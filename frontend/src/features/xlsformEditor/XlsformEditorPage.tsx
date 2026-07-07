@@ -485,14 +485,15 @@ function buildSectionBoundaryState(
   const itemCount = section.itemCount;
   const next = findNextSiblingAfterSection(structure, node.rowIndex);
   const lastChild = findLastDirectChildInSection(structure, node.rowIndex);
+  const closingType = node.kind === "repeat" ? "end_repeat" : "end_group";
   return {
     itemCount,
     closeLabel: itemCount > 0
-      ? `Cierra después de ${boundaryNodeLabel(lastChild)}`
-      : "Cierra justo después del título",
+      ? `${closingType} queda después de ${boundaryNodeLabel(lastChild)}`
+      : `${closingType} queda justo después del título`,
     closeDetail: itemCount > 0
-      ? "El cierre técnico del XLSForm queda después de la última pieza incluida. Puedes ajustar el alcance sin entrar a la hoja cruda."
-      : "El bloque está vacío: su cierre técnico queda inmediatamente debajo del título, por eso las piezas siguientes todavía están fuera.",
+      ? "El cierre del XLSForm se mueve automáticamente con estos controles; no necesitas crear una fila manual en Hojas."
+      : "El bloque está vacío: el cierre queda debajo del título y las piezas siguientes todavía están fuera.",
     nextLabel: next ? boundaryNodeLabel(next) : null,
     lastChildLabel: lastChild ? boundaryNodeLabel(lastChild) : null,
     canIncludeNext: Boolean(next),

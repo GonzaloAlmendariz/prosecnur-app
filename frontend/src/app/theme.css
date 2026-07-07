@@ -24248,6 +24248,30 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: var(--pulso-text-soft);
 }
 
+.pulso-outline-boundary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 5px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--pulso-primary) 6%, white);
+  color: color-mix(in srgb, var(--pulso-primary) 70%, var(--pulso-text-soft));
+  font-size: 10px;
+  font-weight: 720;
+  line-height: 1;
+}
+
+.pulso-outline-boundary code {
+  overflow: hidden;
+  color: inherit;
+  font-family: ui-monospace, monospace;
+  font-size: 9.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pulso-outline-required {
   font-size: 12px;
   color: var(--pulso-warn-fg);
@@ -35223,6 +35247,28 @@ button.pulso-focus-calculation-recipe {
 .pulso-canvas-section-count {
   white-space: nowrap;
 }
+.pulso-canvas-section-boundary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 150px;
+  padding: 2px 6px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-primary) 6%, white);
+  color: color-mix(in srgb, var(--pulso-primary) 72%, #475569);
+  font-size: 10px;
+  font-weight: 720;
+  line-height: 1;
+  white-space: nowrap;
+}
+.pulso-canvas-section-boundary code {
+  overflow: hidden;
+  color: inherit;
+  font-family: ui-monospace, monospace;
+  font-size: 9.5px;
+  text-overflow: ellipsis;
+}
 .pulso-canvas-section-conditional {
   display: inline-flex;
   align-items: center;
@@ -40186,8 +40232,10 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 }
 
 .pulso-xlsform-frame .pulso-outline-code,
+.pulso-xlsform-frame .pulso-outline-boundary,
 .pulso-xlsform-frame .pulso-canvas-card-fieldname code,
 .pulso-xlsform-frame .pulso-canvas-section-name,
+.pulso-xlsform-frame .pulso-canvas-section-boundary,
 .pulso-xlsform-frame .pulso-inspector-header-sub code,
 .pulso-xlsform-frame .pulso-catalog-info-listname {
   background: color-mix(in srgb, #f3f5f8 88%, var(--pulso-primary) 4%);
@@ -40252,6 +40300,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 .pulso-xlsform-frame .pulso-canvas-card-position,
 .pulso-xlsform-frame .pulso-canvas-card-required,
 .pulso-xlsform-frame .pulso-canvas-card-conditional,
+.pulso-xlsform-frame .pulso-canvas-section-boundary,
 .pulso-xlsform-frame .pulso-canvas-section-conditional {
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
