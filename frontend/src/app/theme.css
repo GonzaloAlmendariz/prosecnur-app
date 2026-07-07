@@ -39443,6 +39443,85 @@ button.pulso-focus-calculation-recipe {
   line-height: 1.45;
 }
 
+.pulso-focus-data-contract {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 16%, var(--xls-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 253, 0.86)),
+    color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
+}
+
+.pulso-focus-data-contract-head {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 9px;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.pulso-focus-data-contract-icon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--xls-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-primary) 7%, #ffffff);
+  color: var(--pulso-primary);
+}
+
+.pulso-focus-data-contract-head > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pulso-focus-data-contract-head strong {
+  color: #1f2a3d;
+  font-size: 12.8px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.pulso-focus-data-contract-head p,
+.pulso-focus-data-principle {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11.4px;
+  font-weight: 610;
+  line-height: 1.45;
+}
+
+.pulso-focus-data-contract-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+  gap: 7px;
+}
+
+.pulso-focus-data-contract .pulso-focus-fact {
+  min-height: 50px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.pulso-focus-data-principle {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 7px;
+  padding-top: 2px;
+}
+
+.pulso-focus-data-principle svg {
+  margin-top: 1px;
+  color: var(--pulso-primary);
+}
+
 .pulso-focus-name-assistant {
   display: flex;
   min-width: 0;
