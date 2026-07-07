@@ -229,6 +229,7 @@ export function FocusedWorkspace({
             catalogInfo={catalogInfo}
             conditionalContext={conditionalContext}
             catalogs={catalogs}
+            choiceColumns={choiceFilterColumnsFromWorkbook(workbook)}
             logicScope={logicScope}
             onFieldChange={onFieldChange}
             onFieldsChange={onFieldsChange}
@@ -400,6 +401,7 @@ function FocusedSurveyWorkspace({
   catalogInfo,
   conditionalContext,
   catalogs,
+  choiceColumns,
   logicScope,
   onFieldChange,
   onFieldsChange,
@@ -421,6 +423,7 @@ function FocusedSurveyWorkspace({
   catalogInfo?: CatalogInfo;
   conditionalContext?: ConditionalContext | null;
   catalogs: CatalogSummary[];
+  choiceColumns: string[];
   logicScope: LogicScope;
   onFieldChange: (field: string, value: string) => void;
   onFieldsChange: (updates: Record<string, string>) => void;
@@ -522,6 +525,7 @@ function FocusedSurveyWorkspace({
             <RulesTab
               node={node}
               scope={logicScope}
+              choiceColumns={choiceColumns}
               conditionalContext={conditionalContext}
               onFieldChange={onFieldChange}
               onFieldsChange={onFieldsChange}
@@ -1195,15 +1199,48 @@ function FocusedCatalogInfo({
   );
 }
 
+function choiceFilterColumnsFromWorkbook(workbook: XlsformEditorWorkbook | null): string[] {
+  if (!workbook) return [];
+  const reservedColumns = new Set([
+    "list_name",
+    "name",
+    "label",
+    "image",
+    "media::image",
+    "audio",
+    "media::audio",
+    "video",
+    "media::video",
+    "paper_skip",
+  ]);
+
+  const candidates = workbook.choices.columns
+    .map((column) => column.trim())
+    .filter((column) => {
+      const normalized = column.toLowerCase();
+      return (
+        column.length > 0 &&
+        !reservedColumns.has(normalized) &&
+        !normalized.startsWith("label::") &&
+        !normalized.startsWith("image::") &&
+        !normalized.startsWith("media::")
+      );
+    });
+
+  return Array.from(new Set(candidates));
+}
+
 function RulesTab({
   node,
   scope,
+  choiceColumns,
   conditionalContext,
   onFieldChange,
   onFieldsChange,
 }: {
   node: BuilderNode;
   scope: LogicScope;
+  choiceColumns: string[];
   conditionalContext?: ConditionalContext | null;
   onFieldChange: (field: string, value: string) => void;
   onFieldsChange: (updates: Record<string, string>) => void;
@@ -1232,14 +1269,6 @@ function RulesTab({
       title: "Fórmula importada",
       hint: "Esta fila tiene una fórmula en una pregunta que no es calculate. Se preserva al exportar.",
       value: node.calculation,
-    });
-  }
-  if (isSelect && node.choiceFilter) {
-    readonlyBlocks.push({
-      field: "choice_filter",
-      title: "Filtro de opciones",
-      hint: "Filtro importado para limitar el catálogo disponible en esta pregunta.",
-      value: node.choiceFilter,
     });
   }
 
@@ -1311,6 +1340,17 @@ function RulesTab({
         </InspectorBlock>
       )}
 
+      {isSelect && (
+        <InspectorBlock>
+          <ChoiceFilterPanel
+            node={node}
+            scope={scope}
+            choiceColumns={choiceColumns}
+            onFieldChange={onFieldChange}
+          />
+        </InspectorBlock>
+      )}
+
       {readonlyBlocks.length > 0 && (
         <InspectorBlock>
           {readonlyBlocks.map((block) => (
@@ -1332,6 +1372,291 @@ function RulesTab({
       )}
     </div>
   );
+}
+
+function ChoiceFilterPanel({
+  node,
+  scope,
+  choiceColumns,
+  onFieldChange,
+}: {
+  node: BuilderNode;
+  scope: LogicScope;
+  choiceColumns: string[];
+  onFieldChange: (field: string, value: string) => void;
+}) {
+  const currentFilter = node.choiceFilter ?? "";
+  const hasFilter = currentFilter.trim().length > 0;
+  const variables = scope.variables.filter((variable) => variable.name.trim().length > 0);
+  const [draftColumn, setDraftColumn] = useState(choiceColumns[0] ?? "");
+  const [draftVariable, setDraftVariable] = useState(variables[0]?.name ?? "");
+  const variableOptionsKey = variables.map((variable) => variable.name).join("\u0000");
+  const columnOptionsKey = choiceColumns.join("\u0000");
+  const status = describeChoiceFilter(currentFilter, scope, choiceColumns);
+  const selectedVariable = variables.find((variable) => variable.name === draftVariable);
+  const canApplyTemplate = draftColumn.trim().length > 0 && draftVariable.trim().length > 0;
+  const datalistId = `pulso-choice-filter-columns-${node.rowIndex}`;
+
+  useEffect(() => {
+    setDraftColumn((current) => {
+      if (current.trim() && (!choiceColumns.length || choiceColumns.includes(current))) return current;
+      return choiceColumns[0] ?? "";
+    });
+  }, [columnOptionsKey]);
+
+  useEffect(() => {
+    setDraftVariable((current) => {
+      if (current && variables.some((variable) => variable.name === current)) return current;
+      return variables[0]?.name ?? "";
+    });
+  }, [variableOptionsKey]);
+
+  const applyTemplate = () => {
+    const column = draftColumn.trim();
+    const variable = draftVariable.trim();
+    if (!column || !variable) return;
+    onFieldChange("choice_filter", `${column}=\${${variable}}`);
+  };
+
+  const insertVariableReference = (variableName: string) => {
+    const token = `\${${variableName}}`;
+    const separator = currentFilter.trim().length > 0 && !currentFilter.endsWith(" ") ? " " : "";
+    onFieldChange("choice_filter", `${currentFilter}${separator}${token}`);
+  };
+
+  return (
+    <div className={`pulso-focus-choice-filter ${hasFilter ? "is-active" : "is-empty"} ${status.tone === "warn" ? "is-warning" : ""}`}>
+      <div className="pulso-focus-choice-filter-head">
+        <span className="pulso-focus-choice-filter-icon" aria-hidden="true">
+          <IconConditionalLogic size={14} />
+        </span>
+        <div>
+          <span className="pulso-section-eyebrow">Filtro de opciones Kobo</span>
+          <strong>{hasFilter ? "Catálogo condicionado" : "Catálogo completo"}</strong>
+          <p>
+            Para cascadas como departamento, provincia y distrito: Kobo guarda esta regla en <code>choice_filter</code>.
+          </p>
+        </div>
+        <code className="pulso-focus-choice-filter-code">choice_filter</code>
+      </div>
+
+      <div className="pulso-focus-choice-filter-state">
+        {status.tone === "ok" ? <CheckCircle2 size={14} /> : <Info size={14} />}
+        <div>
+          <strong>{status.title}</strong>
+          <p>{status.detail}</p>
+          {status.references.length > 0 && (
+            <div className="pulso-focus-choice-filter-refs" aria-label="Variables usadas por el filtro">
+              {status.references.map((variable) => (
+                <span key={variable.name}>{variableDisplayLabel(variable)}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="pulso-focus-choice-filter-builder" aria-label="Constructor de filtro de opciones">
+        <div className="pulso-focus-choice-filter-builder-head">
+          <strong>Constructor rápido</strong>
+          <small>Une una columna del catálogo con una respuesta previa.</small>
+        </div>
+        <div className="pulso-focus-choice-filter-builder-row">
+          <label>
+            <span>Columna en choices</span>
+            <input
+              type="text"
+              list={datalistId}
+              value={draftColumn}
+              onChange={(event) => setDraftColumn(event.target.value)}
+              placeholder="Ej. region"
+              spellCheck={false}
+            />
+            <datalist id={datalistId}>
+              {choiceColumns.map((column) => (
+                <option key={column} value={column} />
+              ))}
+            </datalist>
+          </label>
+          <label>
+            <span>Respuesta que controla</span>
+            <select
+              value={draftVariable}
+              onChange={(event) => setDraftVariable(event.target.value)}
+              disabled={variables.length === 0}
+            >
+              {variables.length === 0 ? (
+                <option value="">Sin variables disponibles</option>
+              ) : (
+                variables.map((variable) => (
+                  <option key={variable.name} value={variable.name}>
+                    {variableDisplayLabel(variable)}
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="pulso-focus-choice-filter-apply"
+            onClick={applyTemplate}
+            disabled={!canApplyTemplate}
+            title={selectedVariable ? `Usar ${selectedVariable.name}` : "Elige una variable"}
+          >
+            <IconConditionalLogic size={12} />
+            Aplicar
+          </button>
+        </div>
+        {choiceColumns.length > 0 && (
+          <div className="pulso-focus-choice-filter-chips" aria-label="Columnas detectadas en choices">
+            {choiceColumns.slice(0, 8).map((column) => (
+              <button key={column} type="button" onClick={() => setDraftColumn(column)}>
+                {column}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <InspectorField
+        label="Regla guardada"
+        hint="Ej. region=${region}. La parte antes del igual debe existir como columna en choices."
+      >
+        <textarea
+          value={currentFilter}
+          onChange={(event) => onFieldChange("choice_filter", event.target.value)}
+          placeholder="Ej. region=${region}"
+          rows={3}
+          spellCheck={false}
+        />
+      </InspectorField>
+
+      <div className="pulso-focus-choice-filter-actions">
+        <div className="pulso-focus-choice-filter-vars" aria-label="Insertar referencia a una respuesta">
+          {variables.slice(0, 6).map((variable) => (
+            <button
+              key={variable.name}
+              type="button"
+              onClick={() => insertVariableReference(variable.name)}
+              title={`Insertar ${variable.name}`}
+            >
+              ${`{${variable.name}}`}
+            </button>
+          ))}
+        </div>
+        {hasFilter && (
+          <button
+            type="button"
+            className="pulso-inspector-logic-clear"
+            onClick={() => onFieldChange("choice_filter", "")}
+          >
+            <Trash2 size={12} /> Quitar filtro
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function describeChoiceFilter(
+  expression: string,
+  scope: LogicScope,
+  choiceColumns: string[],
+): {
+  tone: "empty" | "ok" | "warn";
+  title: string;
+  detail: string;
+  references: LogicScope["variables"];
+} {
+  const raw = expression.trim();
+  if (!raw) {
+    return {
+      tone: "empty",
+      title: "Sin filtro aplicado",
+      detail: "Todas las opciones del catálogo aparecen cuando la pregunta se muestra.",
+      references: [],
+    };
+  }
+
+  const variableNames = choiceFilterVariableNames(raw);
+  const references = variableNames
+    .map((name) => scope.variables.find((variable) => variable.name === name))
+    .filter((variable): variable is LogicScope["variables"][number] => Boolean(variable));
+  const missingVariables = variableNames.filter(
+    (name) => !scope.variables.some((variable) => variable.name === name),
+  );
+  const simpleFilter = parseSimpleChoiceFilter(raw);
+  const hasComparison = /(?:!=|<=|>=|=|<|>|\bselected\s*\()/i.test(raw);
+
+  if (missingVariables.length > 0) {
+    return {
+      tone: "warn",
+      title: "Revisa la referencia",
+      detail: `No encuentro ${missingVariables.map((name) => `\${${name}}`).join(", ")} entre las variables actuales del formulario.`,
+      references,
+    };
+  }
+
+  if (!hasComparison) {
+    return {
+      tone: "warn",
+      title: "Falta la comparación",
+      detail: "Agrega la columna del catálogo y el operador, por ejemplo region=${region}.",
+      references,
+    };
+  }
+
+  if (simpleFilter && choiceColumns.length > 0 && !choiceColumns.includes(simpleFilter.column)) {
+    return {
+      tone: "warn",
+      title: "Columna no detectada",
+      detail: `El filtro usa ${simpleFilter.column}; confirma que exista como columna adicional en la hoja choices.`,
+      references,
+    };
+  }
+
+  if (simpleFilter) {
+    return {
+      tone: "ok",
+      title: "Filtro conectado",
+      detail: `Kobo mostrará opciones donde ${simpleFilter.column} coincida con ${variableLabel(simpleFilter.variable, scope)}.`,
+      references,
+    };
+  }
+
+  return {
+    tone: references.length > 0 ? "ok" : "warn",
+    title: references.length > 0 ? "Filtro avanzado" : "Filtro técnico importado",
+    detail:
+      references.length > 0
+        ? "La regla usa variables del formulario y se conservará al exportar."
+        : "No detecté referencias ${variable}; conserva la fórmula si viene de un XLSForm probado.",
+    references,
+  };
+}
+
+function choiceFilterVariableNames(expression: string): string[] {
+  const names = new Set<string>();
+  const regex = /\$\{([^}]+)\}/g;
+  let match = regex.exec(expression);
+  while (match) {
+    const name = match[1]?.trim();
+    if (name) names.add(name);
+    match = regex.exec(expression);
+  }
+  return Array.from(names);
+}
+
+function parseSimpleChoiceFilter(expression: string): { column: string; variable: string } | null {
+  const match = /^([^\s=<>!()]+)\s*={1,2}\s*\$\{([^}]+)\}\s*$/.exec(expression.trim());
+  if (!match) return null;
+  const column = match[1] ?? "";
+  const variable = (match[2] ?? "").trim();
+  if (!column || !variable) return null;
+  return { column, variable };
+}
+
+function variableDisplayLabel(variable: LogicScope["variables"][number]): string {
+  return stripMarkdown(variable.label || variable.name) || variable.name;
 }
 
 function CustomValidationPanel({
