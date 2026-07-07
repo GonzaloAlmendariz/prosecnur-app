@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
-import type { XlsformEditorSheet } from "../types";
-import { parseBuilderStructure } from "./buildIndex";
+import type { XlsformEditorSheet, XlsformEditorWorkbook } from "../types";
+import { buildXlsformIndex, parseBuilderStructure } from "./buildIndex";
 
 describe("parseBuilderStructure", () => {
   test("preserva constraint_message en el nodo visual", () => {
@@ -81,5 +81,39 @@ describe("parseBuilderStructure", () => {
     expect(section?.endRowIndex).toBe(3);
     expect(structure.outline.find((node) => node.name === "nombre")?.sectionId).toBe("section-0");
     expect(structure.outline.find((node) => node.name === "edad")?.sectionId).toBe("section-0");
+  });
+});
+
+describe("buildXlsformIndex", () => {
+  test("expone catálogos vacíos referenciados por preguntas de selección", () => {
+    const workbook: XlsformEditorWorkbook = {
+      survey: {
+        name: "survey",
+        columns: ["type", "name", "label"],
+        rows: [["select_one lista_vacia", "pregunta_1", "Pregunta"]],
+      },
+      choices: {
+        name: "choices",
+        columns: ["list_name", "name", "label"],
+        rows: [],
+      },
+      settings: {
+        name: "settings",
+        columns: ["form_title", "form_id", "version", "default_language"],
+        rows: [["Demo", "demo", "1", "es"]],
+      },
+    };
+
+    const index = buildXlsformIndex(workbook);
+
+    expect(index.catalogs).toEqual([
+      {
+        listName: "lista_vacia",
+        title: "lista_vacia",
+        items: [],
+      },
+    ]);
+    expect(index.catalogsByName.get("lista_vacia")?.items).toEqual([]);
+    expect(index.questionsByCatalog.get("lista_vacia")?.[0]?.name).toBe("pregunta_1");
   });
 });
