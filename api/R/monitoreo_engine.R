@@ -8857,6 +8857,10 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
   ump_group <- ifelse(is_replacement & !is.na(titular_ump), titular_ump, own_ump)
   fallback_ump <- trimws(as.character(df$ump %||% seq_len(nrow(df))))
   ump_group <- ifelse(!is.na(ump_group), as.character(ump_group), fallback_ump)
+  # Un reemplazo codificado como "R 54" (en la ruta o en el fallback df$ump) se
+  # colapsa al titular "54": en ocurrencias el equipo reporta el número titular,
+  # sin la "R", así que la clave esperada debe quedar sin prefijo de reemplazo.
+  ump_group <- sub("^[Rr]\\s*(?=[0-9])", "", ump_group, perl = TRUE)
   missing_ump <- is.na(ump_group) | !nzchar(ump_group) | identical(ump_group, "NA") | ump_group == "NA"
   if (any(missing_ump)) {
     ump_group[missing_ump] <- as.character(seq_len(nrow(df)))[missing_ump]
@@ -9139,6 +9143,7 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
   legacy_manzana_key <- .monitoreo_territorial_occurrence_col(data, "manzana")
   ump_raw <- .monitoreo_territorial_occurrence_col(data, "ump")
   ump_lookup_key <- trimws(gsub("^UMP\\s*", "", toupper(as.character(ump_raw)), perl = TRUE))
+  ump_lookup_key <- sub("^R\\s*(?=[0-9])", "", ump_lookup_key, perl = TRUE)
   ump_lookup_key <- sub("\\.0+$", "", ump_lookup_key, perl = TRUE)
   ump_lookup_key <- sub("^0+([0-9]+)$", "\\1", ump_lookup_key, perl = TRUE)
   route_meta <- lapply(seq_len(n), function(i) {
@@ -9280,6 +9285,7 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
   }
   normalize_occurrence_ump <- function(value) {
     out <- trimws(gsub("^UMP\\s*", "", toupper(as.character(value %||% "")), perl = TRUE))
+    out <- sub("^R\\s*(?=[0-9])", "", out, perl = TRUE)
     out <- sub("\\.0+$", "", out, perl = TRUE)
     out <- sub("^0+([0-9]+)$", "\\1", out, perl = TRUE)
     out
@@ -9431,6 +9437,7 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
   }))
   normalize_report_ump <- function(value) {
     out <- trimws(gsub("^UMP\\s*", "", toupper(as.character(value %||% "")), perl = TRUE))
+    out <- sub("^R\\s*(?=[0-9])", "", out, perl = TRUE)
     out <- sub("\\.0+$", "", out, perl = TRUE)
     out <- sub("^0+([0-9]+)$", "\\1", out, perl = TRUE)
     out
