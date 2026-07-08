@@ -59,7 +59,8 @@ Imports:
     jpeg,
     qpdf,
     scales,
-    sf
+    sf,
+    rsvg
 Suggests:
     testthat (>= 3.0.0),
     DBI,

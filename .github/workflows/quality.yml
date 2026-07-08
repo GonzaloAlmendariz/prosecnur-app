@@ -54,6 +54,7 @@ jobs:
             libpng-dev \
             libproj-dev \
             libqpdf-dev \
+            librsvg2-dev \
             libssl-dev \
             libtiff-dev \
             libudunits2-dev \
