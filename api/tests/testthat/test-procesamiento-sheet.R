@@ -165,3 +165,36 @@ test_that("filtro estructurado in/range/contains y substring retrocompatible", {
                                          column_filters = list(distrito = "sjl"))
   expect_equal(substr$total, 2L)
 })
+
+test_that("categorias y modo Etiquetas resuelven labels desde las choices del instrumento (sin attr labels en la data)", {
+  data <- data.frame(
+    sexo = c("1", "2", "1", "2"),
+    distrito = c("smp", "sjl", "smp", "ate"),
+    stringsAsFactors = FALSE
+  )
+  inst <- list(
+    survey = data.frame(
+      type = c("select_one sx", "select_one dd"),
+      name = c("sexo", "distrito"),
+      label = c("Sexo", "Distrito"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("sx", "sx", "dd", "dd", "dd"),
+      name = c("1", "2", "smp", "sjl", "ate"),
+      label = c("Hombre", "Mujer", "San Martin de Porres", "San Juan de Lurigancho", "Ate"),
+      stringsAsFactors = FALSE
+    )
+  )
+  pl <- .procesamiento_sheet_payload(data = data, inst = inst, modo = "codigos", source = "carga")
+  cols <- stats::setNames(pl$columns, vapply(pl$columns, function(c) c$key, character(1)))
+  by_code <- stats::setNames(cols$sexo$categories, vapply(cols$sexo$categories, function(c) c$code, character(1)))
+  expect_equal(by_code[["1"]]$label, "Hombre")
+  expect_equal(cols$sexo$list_name, "sx")
+  # .label_map interno no debe viajar en el payload
+  expect_null(cols$sexo$.label_map)
+
+  pl_et <- .procesamiento_sheet_payload(data = data, inst = inst, modo = "etiquetas", source = "carga")
+  expect_equal(pl_et$rows[[1]]$sexo, "Hombre")
+  expect_equal(pl_et$rows[[2]]$distrito, "San Juan de Lurigancho")
+})

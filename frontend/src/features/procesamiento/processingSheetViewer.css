@@ -585,17 +585,19 @@
     inset 0 -1px 0 color-mix(in srgb, var(--pulso-border) 76%, transparent);
 }
 
+/* Columnas originales: celdas limpias (blancas). La distinción original vs
+   recodificada la lleva el header (etiqueta de tipo), no un tinte gris en cada
+   celda — así la tabla no se ve apagada cuando aún nada está recodificado. */
 .pulso-processing-sheet-table tbody td.is-original {
-  background: color-mix(in srgb, #f8fafc 86%, var(--sheet-original) 14%);
-  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--sheet-original) 20%, transparent);
+  background: #fff;
 }
 
 .pulso-processing-sheet-table tbody tr:nth-child(even) td.is-original {
-  background: color-mix(in srgb, #f1f5f9 88%, var(--sheet-original) 12%);
+  background: #fbfcfe;
 }
 
 .pulso-processing-sheet-table tbody tr:hover td.is-original {
-  background: color-mix(in srgb, #eef2f7 82%, var(--sheet-original) 18%);
+  background: color-mix(in srgb, var(--sheet-soft) 38%, #fff 62%);
 }
 
 .pulso-processing-sheet-table .is-coded {
@@ -1052,4 +1054,31 @@
   .pulso-sheet-filter-trigger,
   .pulso-sheet-filter-option,
   .pulso-processing-sheet-chip { transition: none; }
+}
+
+/* Encabezado del popover de filtro: nombre de la columna + tipo de filtro. */
+.pulso-sheet-filter-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--pulso-border, #e2e7f0);
+}
+.pulso-sheet-filter-head-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--pulso-text, #17212f);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pulso-sheet-filter-head-kind {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--module-accent, #0f766e);
 }

@@ -132,17 +132,56 @@
   stats::setNames(vals, nms)
 }
 
+# Mapas código->etiqueta por lista, tomados de la hoja `choices` del instrumento.
+# Necesario porque la data de Kobo/promoción no siempre trae attr(,"labels"), y sin
+# esto tanto el modo "Etiquetas" como las categorías del filtro mostrarían códigos.
+.procesamiento_sheet_inst_choice_maps <- function(inst) {
+  choices <- inst$choices %||% NULL
+  if (is.null(choices) || !is.data.frame(choices) || !nrow(choices)) {
+    return(list())
+  }
+  ln_col <- intersect(c("list_name", "list name", "listname"), names(choices))[1]
+  nm_col <- intersect(c("name", "value"), names(choices))[1]
+  lb_col <- grep("^label", names(choices), value = TRUE, ignore.case = TRUE)[1]
+  if (is.na(ln_col) || is.na(nm_col) || is.na(lb_col)) return(list())
+  lists <- as.character(choices[[ln_col]])
+  out <- list()
+  for (ln in unique(lists)) {
+    if (is.na(ln) || !nzchar(ln)) next
+    sub <- choices[lists == ln, , drop = FALSE]
+    codes <- as.character(sub[[nm_col]])
+    labs <- as.character(sub[[lb_col]])
+    keep <- !is.na(codes) & nzchar(codes)
+    out[[ln]] <- stats::setNames(labs[keep], codes[keep])
+  }
+  out
+}
+
+# Mapa código->etiqueta efectivo de una columna: attr(,"labels") primero (data),
+# luego las choices del instrumento por su list_name (rellena lo que falte).
+.procesamiento_sheet_col_label_map <- function(col_data, list_name = "", inst_maps = list()) {
+  attr_map <- .procesamiento_sheet_label_map_from_attr(col_data)
+  inst_map <- if (nzchar(list_name %||% "")) inst_maps[[list_name]] %||% NULL else NULL
+  if (length(attr_map) && length(inst_map)) {
+    miss <- setdiff(names(inst_map), names(attr_map))
+    return(c(attr_map, inst_map[miss]))
+  }
+  if (length(attr_map)) return(attr_map)
+  if (!is.null(inst_map) && length(inst_map)) return(inst_map)
+  stats::setNames(character(0), character(0))
+}
+
 # Categorías presentes en una columna select_one/select_multiple, con etiqueta y
 # conteo sobre TODA la base (no solo la página). Devuelve NULL si hay demasiadas
-# categorías (el frontend cae a filtro de texto). Reusa el mapa código->etiqueta.
-.procesamiento_sheet_categories <- function(col_data, max_n = 200L) {
+# categorías (el frontend cae a filtro de texto).
+.procesamiento_sheet_categories <- function(col_data, label_map = NULL, max_n = 200L) {
   vals <- as.character(col_data)
   vals <- vals[!is.na(vals) & nzchar(vals)]
   if (!length(vals)) return(list())
   counts <- sort(table(vals), decreasing = TRUE)
   codes <- names(counts)
   if (length(codes) > max_n) return(NULL)
-  lm <- .procesamiento_sheet_label_map_from_attr(col_data)
+  lm <- label_map %||% .procesamiento_sheet_label_map_from_attr(col_data)
   lapply(codes, function(code) {
     lab <- if (length(lm)) unname(lm[code]) else NA_character_
     if (is.null(lab) || is.na(lab) || !nzchar(lab)) lab <- code
@@ -152,6 +191,7 @@
 
 .procesamiento_sheet_column_meta <- function(data, inst, coded = FALSE) {
   survey_meta <- .procesamiento_sheet_survey_meta(inst)
+  inst_maps <- .procesamiento_sheet_inst_choice_maps(inst)
   lapply(names(data), function(col) {
     raw_parent <- .procesamiento_sheet_raw_parent_for_recod(col)
     direct <- survey_meta[[col]] %||% NULL
@@ -175,8 +215,10 @@
       ""
     }
     # Filtros inteligentes: categorías para única/múltiple, rango para numéricas.
+    list_name <- .procesamiento_sheet_scalar(meta$list_name %||% "", "")
+    col_label_map <- .procesamiento_sheet_col_label_map(data[[col]], list_name, inst_maps)
     categories <- if (kind %in% c("so", "sm")) {
-      .procesamiento_sheet_categories(data[[col]])
+      .procesamiento_sheet_categories(data[[col]], label_map = col_label_map)
     } else NULL
     value_min <- NULL
     value_max <- NULL
@@ -200,9 +242,11 @@
       raw_parent = raw_parent %||% "",
       dummy_parent = dummy$dummy_parent %||% NULL,
       dummy_code = dummy$dummy_code %||% NULL,
+      list_name = list_name,
       categories = categories,
       value_min = value_min,
-      value_max = value_max
+      value_max = value_max,
+      .label_map = col_label_map
     )
   })
 }
@@ -224,7 +268,7 @@
     if (!nzchar(key) || !key %in% names(out)) next
     values <- vapply(out[[key]], .procesamiento_sheet_value, character(1))
     if (identical(modo, "etiquetas")) {
-      label_map <- .procesamiento_sheet_label_map_from_attr(data[[key]])
+      label_map <- col_meta$.label_map %||% .procesamiento_sheet_label_map_from_attr(data[[key]])
       if (length(label_map)) {
         mapped <- unname(label_map[values])
         hit <- !is.na(mapped) & nzchar(mapped)
@@ -320,6 +364,8 @@
   display_df <- .procesamiento_sheet_display_df(data, columns, modo = modo)
   display_df <- .procesamiento_sheet_filter_df(display_df, raw = data, search = search, column_filters = column_filters)
   display_df <- .procesamiento_sheet_sort_df(display_df, sort = sort)
+  # `.label_map` es interno (para el modo Etiquetas); no viaja al frontend.
+  columns <- lapply(columns, function(cm) { cm$.label_map <- NULL; cm })
   total <- nrow(display_df)
   page <- max(1L, as.integer(page %||% 1L))
   page_size <- max(10L, min(200L, as.integer(page_size %||% 50L)))
