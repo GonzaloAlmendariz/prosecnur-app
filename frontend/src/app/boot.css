@@ -317,6 +317,13 @@ input {
   text-align: center;
 }
 
+/* Envoltura de marca + anillo + texto de progreso. `display: contents` en
+   altura normal: no cambia el grid de una sola columna que ya tenían estos
+   tres hijos como items directos de .boot-warmup. */
+.boot-warmup-summary {
+  display: contents;
+}
+
 .boot-warmup-mark {
   color: var(--pulso-text-soft);
   font-size: 13px;
@@ -535,6 +542,62 @@ input {
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+/* Alto de viewport reducido (laptops compactas, ventanas achicadas): la pila
+   vertical marca→anillo→título→pasos ya no cabe sin scroll. Se pasa a un
+   layout horizontal — resumen a la izquierda, pasos a la derecha con scroll
+   propio — en vez de comprimir o cortar la lista. Guard de ancho para no
+   activarlo en ventanas angostas pero altas. */
+@media (max-height: 820px) and (min-width: 860px) {
+  .boot-panel-warmup {
+    padding: clamp(18px, 3vh, 40px) clamp(28px, 4vw, 56px);
+  }
+
+  .boot-warmup {
+    width: min(1120px, 100%);
+    grid-template-columns: minmax(0, 0.86fr) minmax(0, 1fr);
+    align-items: center;
+    justify-items: stretch;
+    gap: clamp(24px, 3.4vw, 56px);
+    text-align: left;
+  }
+
+  .boot-warmup-summary {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(10px, 1.6vh, 20px);
+    text-align: center;
+  }
+
+  .boot-ring {
+    width: clamp(96px, 9vw, 140px);
+  }
+
+  .boot-progress {
+    width: 100%;
+  }
+
+  .boot-warmup-steps {
+    width: 100%;
+    max-height: min(64vh, 440px);
+    overflow-y: auto;
+    align-content: start;
+    padding-right: 6px;
+    margin-right: -6px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--pulso-border-strong) transparent;
+  }
+
+  .boot-warmup-steps::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .boot-warmup-steps::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--pulso-primary) 18%, transparent);
   }
 }
 

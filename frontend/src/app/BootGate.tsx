@@ -1071,26 +1071,28 @@ function WarmupView({
   const clampedPercent = Math.min(100, progressPercent);
   return (
     <div className="boot-warmup" data-boot-message={message}>
-      <div className="boot-warmup-mark">Prosecnur</div>
-      <div
-        className="boot-ring"
-        style={{ "--boot-ring-p": clampedPercent } as CSSProperties}
-        role="progressbar"
-        aria-label="Avance de preparación"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={clampedPercent}
-      >
-        <span className="boot-ring-orbit" aria-hidden="true" />
-        <span className="boot-ring-arc" aria-hidden="true" />
-        <span className="boot-ring-core">
-          <span className="boot-progress-percent">{progressPercent}%</span>
-        </span>
-      </div>
-      <div className="boot-progress">
-        <p className="boot-project-name" title={projectPath ?? undefined}>{projectName(projectPath)}</p>
-        <h1>{message}</h1>
-        <p className="boot-progress-detail">{detail}</p>
+      <div className="boot-warmup-summary">
+        <div className="boot-warmup-mark">Prosecnur</div>
+        <div
+          className="boot-ring"
+          style={{ "--boot-ring-p": clampedPercent } as CSSProperties}
+          role="progressbar"
+          aria-label="Avance de preparación"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={clampedPercent}
+        >
+          <span className="boot-ring-orbit" aria-hidden="true" />
+          <span className="boot-ring-arc" aria-hidden="true" />
+          <span className="boot-ring-core">
+            <span className="boot-progress-percent">{progressPercent}%</span>
+          </span>
+        </div>
+        <div className="boot-progress">
+          <p className="boot-project-name" title={projectPath ?? undefined}>{projectName(projectPath)}</p>
+          <h1>{message}</h1>
+          <p className="boot-progress-detail">{detail}</p>
+        </div>
       </div>
       <div className="boot-warmup-steps" aria-label="Fases de preparación">
         {steps.map((step) => (
