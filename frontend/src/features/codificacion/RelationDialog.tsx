@@ -72,15 +72,18 @@ export function RelationDialog({
       aria-modal="true"
       aria-labelledby="relation-dialog-title"
       onClick={onCancel}
+      className="pulso-cv2-overlay"
       style={{
         position: "fixed", inset: 0, zIndex: 100,
         background: "rgba(15, 23, 42, 0.4)",
+        backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)",
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: 20,
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="pulso-cv2-dialog"
         style={{
           width: "min(640px, 100%)", maxHeight: "90vh",
           background: "white", borderRadius: 10,
@@ -207,14 +210,14 @@ export function RelationDialog({
             background: "var(--pulso-surface-2)",
           }}
         >
-          <button type="button" onClick={onCancel} style={{ fontSize: 12, padding: "7px 14px" }}>
+          <button type="button" className="pulso-cv2-pill" onClick={onCancel} style={{ fontSize: 12, padding: "7px 14px" }}>
             Cancelar
           </button>
           <button
             type="button"
             onClick={handleConfirm}
             disabled={!canConfirm}
-            className="pulso-primary"
+            className="pulso-primary pulso-cv2-pill pulso-cv2-pill--primary"
             style={{
               fontSize: 12, padding: "7px 14px",
               display: "inline-flex", alignItems: "center", gap: 6,

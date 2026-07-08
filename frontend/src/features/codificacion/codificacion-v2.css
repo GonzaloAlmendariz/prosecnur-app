@@ -1,0 +1,121 @@
+/* =============================================================================
+ * codificacion-v2.css — capa visual gv2 del módulo Codificación
+ * =============================================================================
+ * Solo estética sobre la capa propia del módulo: pills sobre los controles
+ * ya etiquetados, DataSurface de la matriz (zebra, focus) y entrada animada
+ * de los diálogos de emparejado/relación. Complementa lo que theme.css ya
+ * estila para `.pulso-codificacion-*`. Importado desde CodificacionPage.tsx.
+ *
+ * Convención de prefijo: `.pulso-cv2-*` (codificación v2). Los diálogos
+ * portalan/flotan sobre body, por eso llevan clase propia sin scope.
+ * ========================================================================= */
+
+/* ── Keyframes ─────────────────────────────────────────────────────────── */
+
+@keyframes pulso-cv2-pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes pulso-cv2-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Pills gv2 ─────────────────────────────────────────────────────────── */
+/* Acciones ya etiquetadas del módulo pasan a pill sin tocar su TSX;
+ * `.pulso-cv2-pill` queda para botones con estilos inline. */
+
+.pulso-codificacion-frame button.pulso-primary,
+.pulso-codificacion-frame a.pulso-primary,
+.pulso-codificacion-frame button.pulso-secondary,
+.pulso-codificacion-frame .pulso-codificacion-config-button,
+.pulso-codificacion-frame .pulso-codificacion-soft-button,
+.pulso-codificacion-frame .pulso-ghost-nav,
+.pulso-cv2-pill {
+  border-radius: 999px !important;
+  min-height: 30px;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.pulso-codificacion-frame button.pulso-primary,
+.pulso-codificacion-frame .pulso-codificacion-config-button.is-primary,
+.pulso-cv2-pill--primary {
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+}
+
+.pulso-codificacion-frame .pulso-codificacion-config-button {
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease;
+}
+
+.pulso-codificacion-frame .pulso-codificacion-config-button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Chips de filtro de la matriz: feedback de presión coherente con gv2. */
+.pulso-codificacion-frame .pulso-codificacion-matrix-focus-chip {
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease;
+}
+
+.pulso-codificacion-frame .pulso-codificacion-matrix-focus-chip:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* ── DataSurface de la matriz ──────────────────────────────────────────── */
+/* Encabezados sticky y scroll interno ya vienen de theme.css; acá entra la
+ * zebra sutil y el focus ring de las celdas/filas interactivas. */
+
+.pulso-codificacion-matrix-dictionary-table tbody tr:nth-child(even):not(.is-otro):not(.is-no_contesta) td {
+  background: color-mix(in srgb, var(--pulso-surface-2) 42%, #fff);
+}
+
+/* El hover debe seguir ganando sobre la zebra (mismo peso, declarado después). */
+.pulso-codificacion-matrix-dictionary-table tbody tr:hover:not(.is-otro):not(.is-no_contesta) td {
+  background: color-mix(in srgb, var(--pulso-module-processing-soft) 18%, #fff);
+}
+
+.pulso-codificacion-frame .pulso-codificacion-matrix-case-row:focus-visible,
+.pulso-codificacion-frame .pulso-codificacion-matrix-variable-row:focus-within {
+  outline: none;
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-codificacion-frame .pulso-codificacion-matrix-search input:focus-visible {
+  outline: none;
+}
+
+/* ── Diálogos (PairingDialog / RelationDialog) ─────────────────────────── */
+
+.pulso-cv2-overlay {
+  animation: pulso-cv2-overlay-in var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-cv2-dialog {
+  animation: pulso-cv2-pop-in var(--motion-dur-fast) var(--motion-ease-out);
+  transform-origin: top center;
+  border-radius: 16px !important;
+}
+
+/* ── Accesibilidad y motion ────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-cv2-overlay,
+  .pulso-cv2-dialog,
+  .pulso-cv2-pill,
+  .pulso-codificacion-frame .pulso-codificacion-config-button,
+  .pulso-codificacion-frame .pulso-codificacion-matrix-focus-chip {
+    animation: none !important;
+    transition-duration: 1ms !important;
+  }
+}
