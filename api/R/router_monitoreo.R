@@ -5027,6 +5027,182 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   report
 }
 
+# ---------------------------------------------------------------------------
+# Export xlsx de UMPs (ocurrencias): estados por UMP + hoja por responsable,
+# con filtros por "faltantes" (sin reporte) y por responsable. Formato agradable.
+# ---------------------------------------------------------------------------
+.MONITOREO_UMP_MISSING_STATES <- c(
+  "sin_reporte", "iniciada_sin_reporte", "incompleta_sin_reporte", "completa_sin_reporte"
+)
+
+.monitoreo_ump_estado_label <- function(estado) {
+  switch(as.character(estado %||% ""),
+    sin_reporte = "Sin reporte",
+    iniciada_sin_reporte = "Iniciada sin reporte",
+    incompleta_sin_reporte = "Incompleta sin reporte",
+    completa_sin_reporte = "Completa sin reporte",
+    revisar_cruce = "Revisar cruce",
+    reportada_no_efectiva = "Reportada (no efectiva)",
+    reportada_efectiva = "Reportada (efectiva)",
+    .monitoreo_scalar(estado, "")
+  )
+}
+
+.monitoreo_ump_export_rows <- function(by_ump, only_missing = FALSE, responsable = "", distrito = "") {
+  if (is.null(by_ump) || !length(by_ump)) return(data.frame())
+  responsable <- trimws(.monitoreo_scalar(responsable, ""))
+  distrito <- trimws(.monitoreo_scalar(distrito, ""))
+  keep <- Filter(function(it) {
+    est <- .monitoreo_scalar(it$estado_consolidado, "")
+    if (isTRUE(only_missing) && !(est %in% .MONITOREO_UMP_MISSING_STATES)) return(FALSE)
+    if (nzchar(responsable) && !identical(trimws(.monitoreo_scalar(it$responsable, "")), responsable)) return(FALSE)
+    if (nzchar(distrito) && !identical(trimws(tolower(.monitoreo_scalar(it$distrito, ""))), tolower(distrito))) return(FALSE)
+    TRUE
+  }, by_ump)
+  if (!length(keep)) return(data.frame())
+  do.call(rbind, lapply(keep, function(it) {
+    tasa <- suppressWarnings(as.numeric(it$tasa_no_efectiva))
+    data.frame(
+      Distrito = .monitoreo_scalar(it$distrito, ""),
+      Zona = .monitoreo_scalar(it$zona, ""),
+      UMP = .monitoreo_scalar(it$ump, .monitoreo_scalar(it$key, "")),
+      Manzana = .monitoreo_scalar(it$manzana, ""),
+      Responsable = .monitoreo_scalar(it$responsable, "Sin responsable"),
+      Estado = .monitoreo_ump_estado_label(it$estado_consolidado),
+      Faltante = if (.monitoreo_scalar(it$estado_consolidado, "") %in% .MONITOREO_UMP_MISSING_STATES) "Sí" else "No",
+      `Motivo principal` = .monitoreo_scalar(it$motivo_principal, ""),
+      Reportes = as.integer(it$reportes %||% 0L),
+      Efectivas = as.integer(it$efectivas %||% 0L),
+      `No efectivas` = as.integer(it$no_efectivas %||% 0L),
+      Intentos = as.integer(it$intentos %||% 0L),
+      `Válidas (avance)` = as.integer(it$avance_validas %||% 0L),
+      `Meta (avance)` = as.integer(it$avance_meta %||% 0L),
+      `% no efectiva` = if (is.na(tasa)) NA_real_ else round(tasa * 100, 1),
+      `Último reporte` = .monitoreo_scalar(it$ultimo_reporte, ""),
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    )
+  }))
+}
+
+.monitoreo_ump_export_responsable_rows <- function(by_responsable) {
+  if (is.null(by_responsable) || !length(by_responsable)) return(data.frame())
+  items <- if (!is.null(names(by_responsable))) by_responsable else by_responsable
+  do.call(rbind, lapply(items, function(it) {
+    if (!is.list(it)) return(NULL)
+    data.frame(
+      Responsable = .monitoreo_scalar(it$responsable %||% it$nombre, "Sin responsable"),
+      `Código Pulso` = .monitoreo_scalar(it$ultimo_codigo_pulso %||% it$codigo_pulso, ""),
+      Reportes = as.integer(it$reportes %||% 0L),
+      Manzanas = as.integer(it$manzanas %||% 0L),
+      Efectivas = as.integer(it$efectivas %||% 0L),
+      `No efectivas` = as.integer(it$no_efectivas %||% 0L),
+      Intentos = as.integer(it$intentos %||% 0L),
+      `Último reporte` = .monitoreo_scalar(it$ultimo_reporte, ""),
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    )
+  }))
+}
+
+.monitoreo_ump_export_write_workbook <- function(ump_df, resp_df, path, meta = list()) {
+  wb <- openxlsx::createWorkbook()
+  title_style <- openxlsx::createStyle(fontSize = 14, textDecoration = "bold", fontColour = "#17212F")
+  meta_style <- openxlsx::createStyle(fontSize = 9, fontColour = "#5F6B7A")
+  header_style <- openxlsx::createStyle(
+    textDecoration = "bold", fgFill = "#BE123C", fontColour = "#FFFFFF",
+    border = "TopBottomLeftRight", borderColour = "#E2E7F0",
+    halign = "left", valign = "center", wrapText = TRUE
+  )
+  missing_style <- openxlsx::createStyle(fgFill = "#FFF1F2", fontColour = "#9F1239")
+
+  write_sheet <- function(sheet, df, title, widths, missing_col = NULL) {
+    openxlsx::addWorksheet(wb, sheet)
+    openxlsx::writeData(wb, sheet, title, startRow = 1, startCol = 1)
+    openxlsx::addStyle(wb, sheet, title_style, rows = 1, cols = 1, stack = TRUE)
+    if (length(meta)) {
+      meta_txt <- paste(vapply(names(meta), function(k) sprintf("%s: %s", k, meta[[k]]), character(1)), collapse = "   ·   ")
+      openxlsx::writeData(wb, sheet, meta_txt, startRow = 2, startCol = 1)
+      openxlsx::addStyle(wb, sheet, meta_style, rows = 2, cols = 1, stack = TRUE)
+    }
+    header_row <- 4L
+    if (!nrow(df)) {
+      openxlsx::writeData(wb, sheet, "Sin filas para los filtros seleccionados.", startRow = header_row, startCol = 1)
+      return(invisible())
+    }
+    openxlsx::writeData(wb, sheet, df, startRow = header_row, startCol = 1, headerStyle = header_style)
+    openxlsx::freezePane(wb, sheet, firstActiveRow = header_row + 1L)
+    openxlsx::setColWidths(wb, sheet, cols = seq_len(ncol(df)), widths = widths)
+    # resaltar filas faltantes
+    if (!is.null(missing_col) && missing_col %in% names(df)) {
+      hit <- which(df[[missing_col]] == "Sí")
+      if (length(hit)) {
+        openxlsx::addStyle(wb, sheet, missing_style,
+                           rows = header_row + hit, cols = seq_len(ncol(df)),
+                           gridExpand = TRUE, stack = TRUE)
+      }
+    }
+  }
+
+  write_sheet("UMP por estado", ump_df, "UMP totales y su estado",
+              widths = c(20, 10, 16, 14, 26, 22, 10, 26, 10, 10, 12, 10, 14, 12, 13, 20),
+              missing_col = "Faltante")
+  if (nrow(resp_df)) {
+    write_sheet("Por responsable", resp_df, "Resumen por responsable",
+                widths = c(28, 16, 10, 10, 10, 12, 10, 20))
+  }
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  invisible(path)
+}
+
+.monitoreo_ump_export <- function(sid, parsed = list()) {
+  if (!is.list(parsed)) parsed <- list()
+  s <- session_get(sid)
+  main_data <- (s$monitoreo_snapshot %||% list())$data %||% data.frame()
+  cfg <- monitoreo_normalize_config(parsed$config %||% s$monitoreo_config %||% list(), main_data)
+  family <- .monitoreo_scalar(cfg$monitoreo_profile$family, "")
+  if (!identical(family, "territorial")) {
+    stop_api(400, "E_MONITOREO_UMP_EXPORT_FAMILY", "El export de UMPs esta disponible para Monitoreo territorial.")
+  }
+  report <- .monitoreo_territorial_occurrences_dashboard(sid, cfg)
+  by_ump <- report$by_ump %||% list()
+  if (!length(by_ump)) {
+    stop_api(409, "E_MONITOREO_UMP_EXPORT_EMPTY", "No hay UMPs para exportar. Sincroniza las ocurrencias de campo primero.")
+  }
+  only_missing <- isTRUE(parsed$only_missing %||% parsed$onlyMissing %||% parsed$faltantes)
+  responsable <- .monitoreo_scalar(parsed$responsable, "")
+  distrito <- .monitoreo_scalar(parsed$distrito, "")
+  ump_df <- .monitoreo_ump_export_rows(by_ump, only_missing = only_missing, responsable = responsable, distrito = distrito)
+  resp_df <- .monitoreo_ump_export_responsable_rows(report$by_responsable %||% list())
+
+  dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
+  project <- .monitoreo_publication_project_label(parsed, s, cfg)
+  project_slug <- .monitoreo_publication_evidence_slug(project, "monitoreo")
+  suffix <- if (only_missing) "faltantes" else if (nzchar(responsable)) "responsable" else "todas"
+  out_name <- paste0(paste(project_slug, "umps", suffix, sep = "-"), ".xlsx")
+  out_path <- file.path(s$dir, "downloads", sprintf("%s_%s", uuid::UUIDgenerate(), out_name))
+  meta <- list(
+    Universo = if (only_missing) "Solo faltantes (sin reporte)" else "Todas las UMP",
+    Responsable = if (nzchar(responsable)) responsable else "Todos",
+    UMP = nrow(ump_df),
+    Corte = .monitoreo_scalar((report$snapshot %||% list())$synced_at, "")
+  )
+  .monitoreo_ump_export_write_workbook(ump_df, resp_df, out_path, meta = meta)
+  file_meta <- .register_output_file(sid, "monitoreo_ump_export", out_path, original_name = out_name)
+  list(
+    ok = TRUE,
+    file_id = file_meta$file_id,
+    filename = file_meta$original_name,
+    size = file_meta$size,
+    counts = list(
+      ump = as.integer(nrow(ump_df)),
+      faltantes = as.integer(if (nrow(ump_df)) sum(ump_df$Faltante == "Si" | ump_df$Faltante == "Sí") else 0L),
+      responsables = as.integer(nrow(resp_df))
+    ),
+    filters = list(only_missing = only_missing, responsable = responsable, distrito = distrito)
+  )
+}
+
 .monitoreo_snapshot_values <- function(data, column, source_id = "", collector_id = "") {
   if (is.null(data) || !is.data.frame(data) || !nrow(data) || !column %in% names(data)) {
     return(character(0))
@@ -7167,6 +7343,11 @@ mount_monitoreo <- function(pr) {
         field_occurrences = .monitoreo_territorial_occurrences_dashboard(sid, cfg),
         state = .monitoreo_state_payload(sid)
       )
+    })) |>
+    plumber::pr_post("/api/monitoreo/territorial/occurrences/ump-export", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      .monitoreo_ump_export(sid, parsed)
     })) |>
     plumber::pr_post("/api/monitoreo/territorial/occurrences/sync", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
