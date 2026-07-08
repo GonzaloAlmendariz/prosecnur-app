@@ -9724,3 +9724,125 @@
     transition-duration: 120ms !important;
   }
 }
+
+/* =============================================================================
+ * Capa de pulido gv2 (revamp visual 2026-07) — solo estética
+ * =============================================================================
+ * Jerarquía numérica (tabulares grandes + labels 11px), pills gv2 en botones
+ * y segmented, stat-cards limpias en resultados. Sin cambios de layout.
+ * El bloque prefers-reduced-motion de arriba sigue cubriendo esta capa.
+ * ========================================================================= */
+
+/* ── Números tabulares en métricas, celdas y entradas numéricas ─────────── */
+
+.cmv2-frame .cmv2-metric strong,
+.cmv2-frame .cmv2-number-cell,
+.cmv2-frame .cmv2-table td,
+.cmv2-frame .cmv2-cross-table td,
+.cmv2-frame .cmv2-target-input,
+.cmv2-frame input[type="number"],
+.cmv2-frame .cmv2-compact-field input {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Valor grande, label chico: jerarquía clara de las stat-cards */
+.cmv2-frame .cmv2-metric strong {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.12;
+}
+
+.cmv2-frame .cmv2-metric span {
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+}
+
+.cmv2-frame .cmv2-commandbar .cmv2-metric strong {
+  font-size: 15px;
+}
+
+.cmv2-frame .cmv2-metric {
+  border-radius: 11px;
+}
+
+.cmv2-frame .cmv2-compact-field span {
+  font-size: 11px;
+}
+
+/* ── Resultados como stat-cards limpias ─────────────────────────────────── */
+
+.cmv2-frame .cmv2-result-card {
+  border-radius: 14px;
+  background: var(--cmv2-surface-raised);
+  box-shadow: var(--cmv2-shadow-card);
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-frame .cmv2-result-card:hover {
+    transform: translateY(-1px);
+    border-color: var(--cmv2-accent-border);
+    box-shadow: var(--cmv2-shadow-hover);
+  }
+}
+
+/* Entrada con stagger sutil de la pila de resultados (máx 6) */
+.cmv2-frame .cmv2-results-stack > * {
+  animation: cmv2-fade-in-up var(--motion-dur-base) var(--motion-ease-out) both;
+}
+
+.cmv2-frame .cmv2-results-stack > *:nth-child(2) { animation-delay: 35ms; }
+.cmv2-frame .cmv2-results-stack > *:nth-child(3) { animation-delay: 70ms; }
+.cmv2-frame .cmv2-results-stack > *:nth-child(4) { animation-delay: 105ms; }
+.cmv2-frame .cmv2-results-stack > *:nth-child(5) { animation-delay: 140ms; }
+.cmv2-frame .cmv2-results-stack > *:nth-child(n + 6) { animation-delay: 175ms; }
+
+@keyframes cmv2-fade-in-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Botones → pills gv2 ────────────────────────────────────────────────── */
+
+.cmv2-frame .cmv2-primary,
+.cmv2-frame .cmv2-ghost,
+.cmv2-frame .cmv2-link-button,
+.cmv2-frame .cmv2-icon-button {
+  border-radius: 999px;
+}
+
+.cmv2-frame .cmv2-primary {
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--cmv2-accent) 22%, transparent);
+}
+
+/* ── Pasos / modos → segmented pills (activa = pill de acento) ──────────── */
+
+.cmv2-frame .cmv2-segmented-mini button {
+  min-height: 26px;
+  padding: 0 11px;
+  font-size: 10.5px;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.cmv2-frame .cmv2-segmented-mini button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.cmv2-frame .cmv2-segmented-mini button.is-active {
+  background: var(--cmv2-accent-fg);
+  color: #fff;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--cmv2-accent) 24%, transparent);
+}
+
+/* Tabs locales de sección: activa con borde de acento redondeado */
+.cmv2-frame .cmv2-section-local-tab {
+  border-radius: 12px;
+}
