@@ -107,30 +107,9 @@ export default function DrilldownTable({
   }
 
   return (
-    <div
-      style={{
-        overflow: "auto",
-        maxHeight,
-        border: "1px solid var(--pulso-border)",
-        borderRadius: 8,
-        background: "white",
-      }}
-    >
-      <table
-        style={{
-          width: "100%",
-          borderCollapse: "collapse",
-          fontSize: 12,
-        }}
-      >
-        <thead
-          style={{
-            position: "sticky",
-            top: 0,
-            background: "var(--pulso-surface-2)",
-            zIndex: 1,
-          }}
-        >
+    <div className="pulso-vv2-table-scroll" style={{ maxHeight }}>
+      <table className="pulso-vv2-table">
+        <thead>
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
               {hg.headers.map((h) => {
@@ -140,19 +119,7 @@ export default function DrilldownTable({
                   <th
                     key={h.id}
                     onClick={canSort ? h.column.getToggleSortingHandler() : undefined}
-                    style={{
-                      textAlign: "left",
-                      padding: "8px 12px",
-                      borderBottom: "1px solid var(--pulso-border)",
-                      fontWeight: 700,
-                      fontSize: 11,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.3,
-                      color: "var(--pulso-text-soft)",
-                      cursor: canSort ? "pointer" : "default",
-                      userSelect: "none",
-                      whiteSpace: "nowrap",
-                    }}
+                    style={{ cursor: canSort ? "pointer" : "default" }}
                   >
                     {flexRender(h.column.columnDef.header, h.getContext())}
                     {sort === "asc" ? " ↑" : sort === "desc" ? " ↓" : ""}
@@ -166,36 +133,11 @@ export default function DrilldownTable({
           {table.getRowModel().rows.map((row) => (
             <tr
               key={row.id}
+              className={onRowClick ? "is-clickable" : undefined}
               onClick={onRowClick ? () => onRowClick(row.original) : undefined}
-              style={{
-                borderBottom: "1px solid var(--pulso-surface-2)",
-                cursor: onRowClick ? "pointer" : "default",
-                transition: "background 120ms ease",
-              }}
-              onMouseEnter={
-                onRowClick
-                  ? (e) => {
-                      (e.currentTarget as HTMLTableRowElement).style.background =
-                        "var(--pulso-primary-soft)";
-                    }
-                  : undefined
-              }
-              onMouseLeave={
-                onRowClick
-                  ? (e) => {
-                      (e.currentTarget as HTMLTableRowElement).style.background = "white";
-                    }
-                  : undefined
-              }
             >
               {row.getVisibleCells().map((c) => (
-                <td
-                  key={c.id}
-                  style={{
-                    padding: "6px 12px",
-                    verticalAlign: "top",
-                  }}
-                >
+                <td key={c.id}>
                   {flexRender(c.column.columnDef.cell, c.getContext())}
                 </td>
               ))}

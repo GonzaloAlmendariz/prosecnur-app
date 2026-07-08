@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, type CSSProperties } from "react";
+import { useEffect, useState, useCallback, useMemo, type CSSProperties, type ReactNode } from "react";
 import {
   AlertTriangle,
   Download,
@@ -352,7 +352,12 @@ export default function InstrumentoTab() {
         <StepHeader
           idx={1}
           title="Plan de reglas"
-          subtitle="Extraído del XLSForm: required, relevant, constraint, calculate, choice_filter."
+          subtitle={
+            <>
+              Obligatorias, saltos, rangos, cálculos y filtros declarados en el formulario{" "}
+              <span className="pulso-vv2-tech">XLSForm</span>.
+            </>
+          }
           done={estado.plan_construido}
           count={estado.plan_construido ? estado.n_reglas : null}
           countLabel="reglas"
@@ -362,7 +367,7 @@ export default function InstrumentoTab() {
             <div className="pulso-instrumento-setup-card is-active">
               <span>1</span>
               <strong>Leer XLSForm</strong>
-              <small>Detecta required, relevant, constraints, cálculos y filtros.</small>
+              <small>Detecta preguntas obligatorias, saltos, rangos, cálculos y filtros.</small>
             </div>
             <div className="pulso-instrumento-setup-card">
               <span>2</span>
@@ -824,7 +829,7 @@ function StepHeader({
 }: {
   idx: number;
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   done: boolean;
   count?: number | null;
   countLabel?: string;

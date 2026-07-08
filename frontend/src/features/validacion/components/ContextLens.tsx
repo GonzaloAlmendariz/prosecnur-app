@@ -253,7 +253,7 @@ export default function ContextLens({
                   width: 32,
                   height: 32,
                   padding: 0,
-                  borderRadius: 8,
+                  borderRadius: 999,
                   background: "transparent",
                   border: "1px solid var(--pulso-border)",
                   color: "var(--pulso-text-soft)",
