@@ -7627,7 +7627,7 @@ export type MonitoreoUmpExportResult = {
   file_id: string;
   filename: string;
   size?: number;
-  counts?: { ump?: number; faltantes?: number; responsables?: number };
+  counts?: { ump?: number; sin_ocurrencias?: number };
   filters?: { only_missing?: boolean; responsable?: string; distrito?: string };
 };
 

@@ -5053,60 +5053,35 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   responsable <- trimws(.monitoreo_scalar(responsable, ""))
   distrito <- trimws(.monitoreo_scalar(distrito, ""))
   keep <- Filter(function(it) {
-    est <- .monitoreo_scalar(it$estado_consolidado, "")
-    if (isTRUE(only_missing) && !(est %in% .MONITOREO_UMP_MISSING_STATES)) return(FALSE)
+    # Solo las UMP DETERMINADAS (universo de ruta, las 150). Excluye reemplazos y
+    # UMP fuera de ruta (una UMP cubierta por su reemplazo aparece en su slot titular).
+    if (isTRUE(it$outside)) return(FALSE)
+    if (identical(.monitoreo_scalar(it$route_match_status, ""), "ump_no_esperada")) return(FALSE)
+    tiene <- isTRUE(it$has_report)
+    if (isTRUE(only_missing) && tiene) return(FALSE)
     if (nzchar(responsable) && !identical(trimws(.monitoreo_scalar(it$responsable, "")), responsable)) return(FALSE)
     if (nzchar(distrito) && !identical(trimws(tolower(.monitoreo_scalar(it$distrito, ""))), tolower(distrito))) return(FALSE)
     TRUE
   }, by_ump)
   if (!length(keep)) return(data.frame())
   do.call(rbind, lapply(keep, function(it) {
-    tasa <- suppressWarnings(as.numeric(it$tasa_no_efectiva))
+    tiene <- isTRUE(it$has_report)
     data.frame(
       Distrito = .monitoreo_scalar(it$distrito, ""),
-      Zona = .monitoreo_scalar(it$zona, ""),
       UMP = .monitoreo_scalar(it$ump, .monitoreo_scalar(it$key, "")),
-      Manzana = .monitoreo_scalar(it$manzana, ""),
       Responsable = .monitoreo_scalar(it$responsable, "Sin responsable"),
-      Estado = .monitoreo_ump_estado_label(it$estado_consolidado),
-      Faltante = if (.monitoreo_scalar(it$estado_consolidado, "") %in% .MONITOREO_UMP_MISSING_STATES) "Sí" else "No",
-      `Motivo principal` = .monitoreo_scalar(it$motivo_principal, ""),
-      Reportes = as.integer(it$reportes %||% 0L),
-      Efectivas = as.integer(it$efectivas %||% 0L),
-      `No efectivas` = as.integer(it$no_efectivas %||% 0L),
-      Intentos = as.integer(it$intentos %||% 0L),
-      `Válidas (avance)` = as.integer(it$avance_validas %||% 0L),
-      `Meta (avance)` = as.integer(it$avance_meta %||% 0L),
-      `% no efectiva` = if (is.na(tasa)) NA_real_ else round(tasa * 100, 1),
-      `Último reporte` = .monitoreo_scalar(it$ultimo_reporte, ""),
+      `¿Tiene ocurrencias?` = if (tiene) "Sí" else "No",
+      Fecha = if (tiene) .monitoreo_scalar(it$ultimo_reporte, "") else "",
       check.names = FALSE,
       stringsAsFactors = FALSE
     )
   }))
 }
 
-.monitoreo_ump_export_responsable_rows <- function(by_responsable) {
-  if (is.null(by_responsable) || !length(by_responsable)) return(data.frame())
-  items <- if (!is.null(names(by_responsable))) by_responsable else by_responsable
-  do.call(rbind, lapply(items, function(it) {
-    if (!is.list(it)) return(NULL)
-    data.frame(
-      Responsable = .monitoreo_scalar(it$responsable %||% it$nombre, "Sin responsable"),
-      `Código Pulso` = .monitoreo_scalar(it$ultimo_codigo_pulso %||% it$codigo_pulso, ""),
-      Reportes = as.integer(it$reportes %||% 0L),
-      Manzanas = as.integer(it$manzanas %||% 0L),
-      Efectivas = as.integer(it$efectivas %||% 0L),
-      `No efectivas` = as.integer(it$no_efectivas %||% 0L),
-      Intentos = as.integer(it$intentos %||% 0L),
-      `Último reporte` = .monitoreo_scalar(it$ultimo_reporte, ""),
-      check.names = FALSE,
-      stringsAsFactors = FALSE
-    )
-  }))
-}
-
-.monitoreo_ump_export_write_workbook <- function(ump_df, resp_df, path, meta = list()) {
+.monitoreo_ump_export_write_workbook <- function(ump_df, path, meta = list()) {
   wb <- openxlsx::createWorkbook()
+  sheet <- "UMP"
+  openxlsx::addWorksheet(wb, sheet)
   title_style <- openxlsx::createStyle(fontSize = 14, textDecoration = "bold", fontColour = "#17212F")
   meta_style <- openxlsx::createStyle(fontSize = 9, fontColour = "#5F6B7A")
   header_style <- openxlsx::createStyle(
@@ -5114,42 +5089,35 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
     border = "TopBottomLeftRight", borderColour = "#E2E7F0",
     halign = "left", valign = "center", wrapText = TRUE
   )
-  missing_style <- openxlsx::createStyle(fgFill = "#FFF1F2", fontColour = "#9F1239")
+  yes_style <- openxlsx::createStyle(fgFill = "#DCFCE7", fontColour = "#166534", textDecoration = "bold", halign = "center")
+  no_style <- openxlsx::createStyle(fgFill = "#FEE2E2", fontColour = "#991B1B", textDecoration = "bold", halign = "center")
 
-  write_sheet <- function(sheet, df, title, widths, missing_col = NULL) {
-    openxlsx::addWorksheet(wb, sheet)
-    openxlsx::writeData(wb, sheet, title, startRow = 1, startCol = 1)
-    openxlsx::addStyle(wb, sheet, title_style, rows = 1, cols = 1, stack = TRUE)
-    if (length(meta)) {
-      meta_txt <- paste(vapply(names(meta), function(k) sprintf("%s: %s", k, meta[[k]]), character(1)), collapse = "   ·   ")
-      openxlsx::writeData(wb, sheet, meta_txt, startRow = 2, startCol = 1)
-      openxlsx::addStyle(wb, sheet, meta_style, rows = 2, cols = 1, stack = TRUE)
-    }
-    header_row <- 4L
-    if (!nrow(df)) {
-      openxlsx::writeData(wb, sheet, "Sin filas para los filtros seleccionados.", startRow = header_row, startCol = 1)
-      return(invisible())
-    }
-    openxlsx::writeData(wb, sheet, df, startRow = header_row, startCol = 1, headerStyle = header_style)
-    openxlsx::freezePane(wb, sheet, firstActiveRow = header_row + 1L)
-    openxlsx::setColWidths(wb, sheet, cols = seq_len(ncol(df)), widths = widths)
-    # resaltar filas faltantes
-    if (!is.null(missing_col) && missing_col %in% names(df)) {
-      hit <- which(df[[missing_col]] == "Sí")
-      if (length(hit)) {
-        openxlsx::addStyle(wb, sheet, missing_style,
-                           rows = header_row + hit, cols = seq_len(ncol(df)),
-                           gridExpand = TRUE, stack = TRUE)
-      }
-    }
+  openxlsx::writeData(wb, sheet, "UMP determinadas y su estado de ocurrencias", startRow = 1, startCol = 1)
+  openxlsx::addStyle(wb, sheet, title_style, rows = 1, cols = 1, stack = TRUE)
+  if (length(meta)) {
+    meta_txt <- paste(vapply(names(meta), function(k) sprintf("%s: %s", k, meta[[k]]), character(1)), collapse = "   ·   ")
+    openxlsx::writeData(wb, sheet, meta_txt, startRow = 2, startCol = 1)
+    openxlsx::addStyle(wb, sheet, meta_style, rows = 2, cols = 1, stack = TRUE)
   }
-
-  write_sheet("UMP por estado", ump_df, "UMP totales y su estado",
-              widths = c(20, 10, 16, 14, 26, 22, 10, 26, 10, 10, 12, 10, 14, 12, 13, 20),
-              missing_col = "Faltante")
-  if (nrow(resp_df)) {
-    write_sheet("Por responsable", resp_df, "Resumen por responsable",
-                widths = c(28, 16, 10, 10, 10, 12, 10, 20))
+  header_row <- 4L
+  if (!nrow(ump_df)) {
+    openxlsx::writeData(wb, sheet, "Sin UMP para los filtros seleccionados.", startRow = header_row, startCol = 1)
+    openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+    return(invisible(path))
+  }
+  n_cols <- ncol(ump_df)
+  openxlsx::writeData(wb, sheet, ump_df, startRow = header_row, startCol = 1, headerStyle = header_style)
+  openxlsx::freezePane(wb, sheet, firstActiveRow = header_row + 1L)
+  # Autofiltro en los encabezados de la tabla.
+  openxlsx::addFilter(wb, sheet, rows = header_row, cols = seq_len(n_cols))
+  openxlsx::setColWidths(wb, sheet, cols = seq_len(n_cols), widths = c(22, 16, 34, 20, 22)[seq_len(n_cols)])
+  # Color condicional en "¿Tiene ocurrencias?": verde = tiene, rojo = no.
+  oc_col <- which(names(ump_df) == "¿Tiene ocurrencias?")
+  if (length(oc_col)) {
+    yes_rows <- which(ump_df[[oc_col]] == "Sí")
+    no_rows <- which(ump_df[[oc_col]] == "No")
+    if (length(yes_rows)) openxlsx::addStyle(wb, sheet, yes_style, rows = header_row + yes_rows, cols = oc_col, gridExpand = TRUE, stack = TRUE)
+    if (length(no_rows)) openxlsx::addStyle(wb, sheet, no_style, rows = header_row + no_rows, cols = oc_col, gridExpand = TRUE, stack = TRUE)
   }
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   invisible(path)
@@ -5173,21 +5141,21 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   responsable <- .monitoreo_scalar(parsed$responsable, "")
   distrito <- .monitoreo_scalar(parsed$distrito, "")
   ump_df <- .monitoreo_ump_export_rows(by_ump, only_missing = only_missing, responsable = responsable, distrito = distrito)
-  resp_df <- .monitoreo_ump_export_responsable_rows(report$by_responsable %||% list())
 
   dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
   project <- .monitoreo_publication_project_label(parsed, s, cfg)
   project_slug <- .monitoreo_publication_evidence_slug(project, "monitoreo")
-  suffix <- if (only_missing) "faltantes" else if (nzchar(responsable)) "responsable" else "todas"
+  suffix <- if (only_missing) "faltantes" else if (nzchar(responsable)) "responsable" else "determinadas"
   out_name <- paste0(paste(project_slug, "umps", suffix, sep = "-"), ".xlsx")
   out_path <- file.path(s$dir, "downloads", sprintf("%s_%s", uuid::UUIDgenerate(), out_name))
+  sin_oc <- if (nrow(ump_df)) sum(ump_df[["¿Tiene ocurrencias?"]] == "No") else 0L
   meta <- list(
-    Universo = if (only_missing) "Solo faltantes (sin reporte)" else "Todas las UMP",
+    Universo = if (only_missing) "Solo faltantes (sin ocurrencias)" else "UMP determinadas",
     Responsable = if (nzchar(responsable)) responsable else "Todos",
     UMP = nrow(ump_df),
     Corte = .monitoreo_scalar((report$snapshot %||% list())$synced_at, "")
   )
-  .monitoreo_ump_export_write_workbook(ump_df, resp_df, out_path, meta = meta)
+  .monitoreo_ump_export_write_workbook(ump_df, out_path, meta = meta)
   file_meta <- .register_output_file(sid, "monitoreo_ump_export", out_path, original_name = out_name)
   list(
     ok = TRUE,
@@ -5196,8 +5164,7 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
     size = file_meta$size,
     counts = list(
       ump = as.integer(nrow(ump_df)),
-      faltantes = as.integer(if (nrow(ump_df)) sum(ump_df$Faltante == "Si" | ump_df$Faltante == "Sí") else 0L),
-      responsables = as.integer(nrow(resp_df))
+      sin_ocurrencias = as.integer(sin_oc)
     ),
     filters = list(only_missing = only_missing, responsable = responsable, distrito = distrito)
   )
