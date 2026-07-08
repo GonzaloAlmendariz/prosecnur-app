@@ -1218,6 +1218,15 @@ function NormalizedExportActions({
   );
 }
 
+// Etiqueta humana de la fase territorial (evita mostrar el valor técnico crudo).
+function faseTerritorialLabel(phase: string | null | undefined): string {
+  const p = String(phase ?? "").trim().toLowerCase();
+  if (!p) return "";
+  if (p === "field" || p === "campo") return "Campo";
+  if (p === "pilot" || p === "piloto" || p === "pilon" || p === "pilón") return "Piloto";
+  return p.charAt(0).toUpperCase() + p.slice(1);
+}
+
 function DetectedKoboSourceCallout({
   source,
   busy,
@@ -1234,16 +1243,23 @@ function DetectedKoboSourceCallout({
   onReview: () => void;
 }) {
   return (
-    <section className={`pulso-kobo-detected${compact ? " is-compact" : ""}`} aria-label="Fuente Kobo detectada">
+    <section
+      className={`pulso-kobo-detected is-from-monitoreo${compact ? " is-compact" : ""}`}
+      aria-label="Instrumento detectado desde Monitoreo"
+    >
       <span className="pulso-kobo-detected-icon" aria-hidden="true">
         <CloudDownload size={16} />
       </span>
       <div className="pulso-kobo-detected-copy">
-        <strong>Fuente Kobo detectada</strong>
-        <span>
-          {source.name || source.source_title || source.asset_uid}
-          {source.base_url ? ` · ${source.base_url.replace(/^https?:\/\//, "")}` : ""}
-          {source.phase ? ` · fase ${source.phase}` : ""}
+        <span className="pulso-kobo-detected-origin">Detectado desde Monitoreo</span>
+        <strong>{source.name || source.source_title || source.asset_uid}</strong>
+        <span className="pulso-kobo-detected-meta">
+          {faseTerritorialLabel(source.phase) ? (
+            <em className="pulso-kobo-detected-fase">{faseTerritorialLabel(source.phase)}</em>
+          ) : null}
+          {source.base_url ? (
+            <span className="pulso-kobo-detected-host">{source.base_url.replace(/^https?:\/\//, "")}</span>
+          ) : null}
         </span>
       </div>
       <div className="pulso-kobo-detected-actions">
