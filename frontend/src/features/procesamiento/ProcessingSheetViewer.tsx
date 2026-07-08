@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, ChevronLeft, ChevronRight, Database, RefreshCw, RotateCcw, Search } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, Database, RefreshCw, RotateCcw, Search, X } from "lucide-react";
 import type {
   ProcessingSheetColumn,
+  ProcessingSheetColumnFilter,
   ProcessingSheetMode,
   ProcessingSheetPayload,
   ProcessingSheetRequest,
 } from "../../api/client";
 import { ErrorBlock } from "../../components/States";
+import { ColumnFilterControl, columnFilterActive, describeColumnFilter } from "./ColumnFilterControl";
 import "./processingSheetViewer.css";
 
 type Props = {
@@ -44,7 +46,7 @@ export function ProcessingSheetViewer({
   const [mode, setMode] = useState<ProcessingSheetMode>("codigos");
   const [searchDraft, setSearchDraft] = useState("");
   const [search, setSearch] = useState("");
-  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const [columnFilters, setColumnFilters] = useState<Record<string, ProcessingSheetColumnFilter>>({});
   const [sort, setSort] = useState<SortState>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(50);
@@ -118,10 +120,16 @@ export function ProcessingSheetViewer({
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const visibleStart = total > 0 ? (page - 1) * pageSize + 1 : 0;
   const visibleEnd = payload ? Math.min(total, visibleStart + payload.rows.length - 1) : 0;
-  const activeFilters = useMemo(
-    () => Object.values(columnFilters).some((value) => value.trim().length > 0) || search.trim().length > 0,
-    [columnFilters, search],
+  const activeColumnFilters = useMemo(
+    () => Object.entries(columnFilters).filter(([, value]) => columnFilterActive(value)),
+    [columnFilters],
   );
+  const activeFilters = activeColumnFilters.length > 0 || search.trim().length > 0;
+  const columnByKey = useMemo(() => {
+    const map = new Map<string, ProcessingSheetColumn>();
+    for (const column of rawColumns) map.set(column.key, column);
+    return map;
+  }, [rawColumns]);
   const hasCodingLegend = highlightCoding && columns.some((column) => isColumnWithKindColor(column));
   const hasOpenTextMultipleLegend = highlightCoding && columns.some((column) => isOpenTextMultipleRecodColumn(column));
   const isWideSheet = (payload?.n_columns ?? columns.length) > 8;
@@ -134,11 +142,11 @@ export function ProcessingSheetViewer({
     setPage(1);
   }
 
-  function setColumnFilter(key: string, value: string) {
+  function setColumnFilterValue(key: string, value: ProcessingSheetColumnFilter | undefined) {
     setPage(1);
     setColumnFilters((prev) => {
       const next = { ...prev };
-      if (value.trim()) next[key] = value;
+      if (value != null && columnFilterActive(value)) next[key] = value;
       else delete next[key];
       return next;
     });
@@ -244,6 +252,34 @@ export function ProcessingSheetViewer({
         </div>
       </div>
 
+      {activeColumnFilters.length > 0 && (
+        <div className="pulso-processing-sheet-chips" aria-label="Filtros activos">
+          {activeColumnFilters.map(([key, value]) => {
+            const column = columnByKey.get(key);
+            if (!column) return null;
+            return (
+              <button
+                type="button"
+                key={`chip-${key}`}
+                className="pulso-processing-sheet-chip"
+                onClick={() => setColumnFilterValue(key, undefined)}
+                title="Quitar filtro"
+              >
+                <span>{describeColumnFilter(column, value)}</span>
+                <X size={12} aria-hidden="true" />
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            className="pulso-processing-sheet-chip is-clear"
+            onClick={() => { setColumnFilters({}); setPage(1); }}
+          >
+            Limpiar filtros
+          </button>
+        </div>
+      )}
+
       {hasCodingLegend && (
         <div className="pulso-processing-sheet-legend" aria-label="Lectura de columnas recodificadas">
           <span className="is-original">
@@ -337,11 +373,10 @@ export function ProcessingSheetViewer({
                     const displayKind = columnDisplayKind(column);
                     return (
                       <th key={`filter-${column.key}`} className={columnClass(column, highlightCoding)} data-kind={displayKind}>
-                        <input
-                          type="text"
-                          value={columnFilters[column.key] ?? ""}
-                          onChange={(event) => setColumnFilter(column.key, event.target.value)}
-                          aria-label={`Filtrar ${column.label || column.key}`}
+                        <ColumnFilterControl
+                          column={column}
+                          value={columnFilters[column.key]}
+                          onChange={(next) => setColumnFilterValue(column.key, next)}
                         />
                       </th>
                     );

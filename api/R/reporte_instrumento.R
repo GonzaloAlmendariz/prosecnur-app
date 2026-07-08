@@ -175,6 +175,18 @@ reporte_instrumento <- function(path,
       return("label")
     }
 
+    # Instrumento multi-idioma con columnas label::<idioma> separadas: preferir
+    # explícitamente la de español (case-insensitive) antes del grep genérico por
+    # orden de archivo, que si no elegiría el primer idioma (ej. inglés).
+    es_cols <- grep(
+      "^label(::|_).*(\\(es\\)|españ|espanol|spanish|castellano|::es\\b|_es\\b)",
+      nms, ignore.case = TRUE, value = TRUE
+    )
+    if (length(es_cols)) {
+      chosen <- pick_best_col(es_cols)
+      if (!is.na(chosen) && nzchar(chosen) && non_empty(x[[chosen]]) > 0L) return(chosen)
+    }
+
     exact <- label_candidates(x, lang)
     chosen <- pick_best_col(exact)
     if (!is.na(chosen) && nzchar(chosen) && non_empty(x[[chosen]]) > 0L) return(chosen)

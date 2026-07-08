@@ -132,6 +132,24 @@
   stats::setNames(vals, nms)
 }
 
+# Categorías presentes en una columna select_one/select_multiple, con etiqueta y
+# conteo sobre TODA la base (no solo la página). Devuelve NULL si hay demasiadas
+# categorías (el frontend cae a filtro de texto). Reusa el mapa código->etiqueta.
+.procesamiento_sheet_categories <- function(col_data, max_n = 200L) {
+  vals <- as.character(col_data)
+  vals <- vals[!is.na(vals) & nzchar(vals)]
+  if (!length(vals)) return(list())
+  counts <- sort(table(vals), decreasing = TRUE)
+  codes <- names(counts)
+  if (length(codes) > max_n) return(NULL)
+  lm <- .procesamiento_sheet_label_map_from_attr(col_data)
+  lapply(codes, function(code) {
+    lab <- if (length(lm)) unname(lm[code]) else NA_character_
+    if (is.null(lab) || is.na(lab) || !nzchar(lab)) lab <- code
+    list(code = code, label = lab, count = as.integer(counts[[code]]))
+  })
+}
+
 .procesamiento_sheet_column_meta <- function(data, inst, coded = FALSE) {
   survey_meta <- .procesamiento_sheet_survey_meta(inst)
   lapply(names(data), function(col) {
@@ -156,6 +174,19 @@
     } else {
       ""
     }
+    # Filtros inteligentes: categorías para única/múltiple, rango para numéricas.
+    categories <- if (kind %in% c("so", "sm")) {
+      .procesamiento_sheet_categories(data[[col]])
+    } else NULL
+    value_min <- NULL
+    value_max <- NULL
+    if (identical(kind, "integer")) {
+      x <- suppressWarnings(as.numeric(as.character(data[[col]])))
+      if (any(!is.na(x))) {
+        value_min <- as.numeric(min(x, na.rm = TRUE))
+        value_max <- as.numeric(max(x, na.rm = TRUE))
+      }
+    }
     list(
       key = col,
       label = label,
@@ -168,7 +199,10 @@
       is_recoded = is_recoded,
       raw_parent = raw_parent %||% "",
       dummy_parent = dummy$dummy_parent %||% NULL,
-      dummy_code = dummy$dummy_code %||% NULL
+      dummy_code = dummy$dummy_code %||% NULL,
+      categories = categories,
+      value_min = value_min,
+      value_max = value_max
     )
   })
 }
@@ -202,27 +236,59 @@
   out
 }
 
-.procesamiento_sheet_filter_df <- function(df, search = "", column_filters = list()) {
-  if (!is.data.frame(df) || !nrow(df)) return(df)
+# Filtra `display` (valores en modo códigos/etiquetas). Los filtros por columna
+# aceptan dos formas: (a) string → substring sobre el valor mostrado (retrocompat);
+# (b) objeto estructurado {op}: "in" (set de categorías, sobre el código crudo),
+# "range" (min/max numérico, sobre el crudo), "contains" (substring sobre lo mostrado).
+# `raw` es la data cruda alineada por fila con `display` (mismo orden y nº de filas).
+.procesamiento_sheet_filter_df <- function(display, raw = NULL, search = "", column_filters = list()) {
+  if (!is.data.frame(display) || !nrow(display)) return(display)
+  if (is.null(raw) || !is.data.frame(raw) || nrow(raw) != nrow(display)) raw <- display
   search <- trimws(as.character(search %||% "")[1])
-  keep <- rep(TRUE, nrow(df))
+  keep <- rep(TRUE, nrow(display))
   if (nzchar(search)) {
     needle <- tolower(search)
-    any_col <- rep(FALSE, nrow(df))
-    for (col in names(df)) {
-      any_col <- any_col | grepl(needle, tolower(as.character(df[[col]])), fixed = TRUE)
+    any_col <- rep(FALSE, nrow(display))
+    for (col in names(display)) {
+      any_col <- any_col | grepl(needle, tolower(as.character(display[[col]])), fixed = TRUE)
     }
     keep <- keep & any_col
   }
   if (is.list(column_filters) && length(column_filters)) {
     for (col in names(column_filters)) {
-      if (!col %in% names(df)) next
-      needle <- trimws(as.character(column_filters[[col]] %||% "")[1])
-      if (!nzchar(needle)) next
-      keep <- keep & grepl(tolower(needle), tolower(as.character(df[[col]])), fixed = TRUE)
+      f <- column_filters[[col]]
+      if (is.null(f)) next
+      if (is.list(f) && !is.null(f$op)) {
+        op <- as.character(f$op)[1]
+        if (identical(op, "in")) {
+          if (!col %in% names(raw)) next
+          vals <- as.character(unlist(f$values %||% list(), use.names = FALSE))
+          vals <- vals[!is.na(vals)]
+          if (!length(vals)) next
+          keep <- keep & (as.character(raw[[col]]) %in% vals)
+        } else if (identical(op, "range")) {
+          if (!col %in% names(raw)) next
+          x <- suppressWarnings(as.numeric(as.character(raw[[col]])))
+          mn <- suppressWarnings(as.numeric(f$min %||% NA))
+          mx <- suppressWarnings(as.numeric(f$max %||% NA))
+          if (!is.na(mn)) keep <- keep & (!is.na(x) & x >= mn)
+          if (!is.na(mx)) keep <- keep & (!is.na(x) & x <= mx)
+        } else if (identical(op, "contains")) {
+          if (!col %in% names(display)) next
+          needle <- trimws(as.character(f$value %||% "")[1])
+          if (nzchar(needle)) {
+            keep <- keep & grepl(tolower(needle), tolower(as.character(display[[col]])), fixed = TRUE)
+          }
+        }
+      } else {
+        if (!col %in% names(display)) next
+        needle <- trimws(as.character(f %||% "")[1])
+        if (!nzchar(needle)) next
+        keep <- keep & grepl(tolower(needle), tolower(as.character(display[[col]])), fixed = TRUE)
+      }
     }
   }
-  df[keep, , drop = FALSE]
+  display[keep, , drop = FALSE]
 }
 
 .procesamiento_sheet_sort_df <- function(df, sort = NULL) {
@@ -252,7 +318,7 @@
   data <- as.data.frame(data %||% data.frame(), stringsAsFactors = FALSE, check.names = FALSE)
   columns <- .procesamiento_sheet_column_meta(data, inst %||% list(), coded = coded)
   display_df <- .procesamiento_sheet_display_df(data, columns, modo = modo)
-  display_df <- .procesamiento_sheet_filter_df(display_df, search = search, column_filters = column_filters)
+  display_df <- .procesamiento_sheet_filter_df(display_df, raw = data, search = search, column_filters = column_filters)
   display_df <- .procesamiento_sheet_sort_df(display_df, sort = sort)
   total <- nrow(display_df)
   page <- max(1L, as.integer(page %||% 1L))
