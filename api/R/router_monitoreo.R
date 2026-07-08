@@ -5120,7 +5120,7 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
     TRUE
   }, by_ump)
   if (!length(keep)) return(data.frame())
-  do.call(rbind, lapply(keep, function(it) {
+  df <- do.call(rbind, lapply(keep, function(it) {
     tiene <- isTRUE(it$has_report)
     data.frame(
       Distrito = .monitoreo_scalar(it$distrito, ""),
@@ -5132,6 +5132,9 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
       stringsAsFactors = FALSE
     )
   }))
+  # Ordenar por número de UMP ascendente (1 -> 150); no numéricas al final.
+  ump_num <- suppressWarnings(as.numeric(.monitoreo_ump_norm_key(df$UMP)))
+  df[order(is.na(ump_num), ump_num), , drop = FALSE]
 }
 
 .monitoreo_ump_export_write_workbook <- function(ump_df, path, meta = list()) {
