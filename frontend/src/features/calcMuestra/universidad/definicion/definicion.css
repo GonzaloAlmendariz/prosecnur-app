@@ -1,0 +1,1145 @@
+/* =============================================================================
+   Sección Definición del desk universitario (Cálculo de muestra · aulas).
+   Prefijo cmv2-defi-*. Solo tokens var(--cmv2-*/--pulso-*); cero hex.
+   Las primitivas (flujo, chips de término, cifras) viven en ../ui/ui.css.
+   ============================================================================= */
+
+/* --- Intro corta con término del glosario ---------------------------------- */
+.cmv2-defi-intro {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--pulso-text-muted);
+  max-width: 72ch;
+}
+
+/* --- Motion de la sección ----------------------------------------------------
+   Variante de .cmv2-uni-stagger para FlujoVertical: sus hijos directos alternan
+   etapa/arista, así que la cascada anima solo las etapas (translateY+opacity)
+   y funde las aristas con un fade puro intercalado. Decorativa: nunca bloquea. */
+@media (prefers-reduced-motion: no-preference) {
+  .cmv2-defi-stagger .cmv2-uni-flujo-etapa {
+    animation: cmv2-defi-enter 230ms var(--cmv2-ease-out, ease-out) both;
+  }
+
+  .cmv2-defi-stagger .cmv2-uni-flujo-etapa:nth-child(3) { animation-delay: 45ms; }
+  .cmv2-defi-stagger .cmv2-uni-flujo-etapa:nth-child(5) { animation-delay: 90ms; }
+  .cmv2-defi-stagger .cmv2-uni-flujo-etapa:nth-child(7) { animation-delay: 135ms; }
+  .cmv2-defi-stagger .cmv2-uni-flujo-etapa:nth-child(n + 9) { animation-delay: 180ms; }
+
+  .cmv2-defi-stagger .cmv2-uni-flujo-arista {
+    animation: cmv2-defi-fade 230ms var(--cmv2-ease-out, ease-out) both;
+    animation-delay: 25ms;
+  }
+
+  .cmv2-defi-stagger .cmv2-uni-flujo-arista:nth-child(4) { animation-delay: 70ms; }
+  .cmv2-defi-stagger .cmv2-uni-flujo-arista:nth-child(6) { animation-delay: 115ms; }
+  .cmv2-defi-stagger .cmv2-uni-flujo-arista:nth-child(n + 8) { animation-delay: 160ms; }
+}
+
+@keyframes cmv2-defi-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}
+
+@keyframes cmv2-defi-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Los campos del formulario transicionan borde y anillo de foco (el ring en sí
+   lo da calcMuestra.css; aquí solo se suaviza la entrada/salida del foco). */
+.cmv2-defi-form .cmv2-compact-field input,
+.cmv2-defi-form .cmv2-compact-field textarea,
+.cmv2-university-sources .cmv2-compact-field input,
+.cmv2-university-sources .cmv2-compact-field select,
+.cmv2-eligibility-panel .cmv2-compact-field input,
+.cmv2-university-category-map .cmv2-category-meaning input,
+.cmv2-defi-var-card select {
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+/* --- Estudio: hero de primera vez -------------------------------------------
+   Aparece solo sin bases ni marco: pregunta directa + una tarjeta por insumo
+   (estilo EmptyHome del editor XLSForm) + el recorrido completo ilustrado. */
+.cmv2-panel.cmv2-defi-hero {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border-color: color-mix(in srgb, var(--cmv2-accent-border) 55%, var(--cmv2-border));
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--cmv2-accent) 5%, transparent),
+      transparent 62%
+    ),
+    var(--cmv2-surface-raised);
+}
+
+.cmv2-defi-hero-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  line-height: 1.2;
+  color: var(--pulso-text);
+}
+
+.cmv2-defi-hero-lead {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--pulso-text-muted);
+  max-width: 68ch;
+}
+
+.cmv2-defi-hero-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.cmv2-defi-hero-card {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  text-align: left;
+  /* El button global trae white-space: nowrap; aquí el copy debe envolver. */
+  white-space: normal;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--cmv2-border);
+  border-top: 3px solid var(--cmv2-accent);
+  border-radius: 12px;
+  background: var(--cmv2-surface);
+  cursor: pointer;
+  transition:
+    transform var(--motion-dur-fast, 160ms) var(--cmv2-ease-out, ease-out),
+    box-shadow var(--motion-dur-fast, 160ms) var(--cmv2-ease-out, ease-out),
+    border-color var(--motion-dur-fast, 160ms) ease,
+    background var(--motion-dur-fast, 160ms) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-defi-hero-card:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--cmv2-accent-border) 75%, var(--cmv2-border));
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--pulso-text) 9%, transparent);
+  }
+}
+
+.cmv2-defi-hero-card:active {
+  transform: scale(var(--cmv2-press-scale, 0.98));
+}
+
+.cmv2-defi-hero-card:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+.cmv2-defi-hero-card[aria-pressed="true"] {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+}
+
+.cmv2-defi-hero-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.cmv2-defi-hero-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+  border: 1px solid var(--cmv2-accent-border);
+}
+
+.cmv2-defi-hero-card[aria-pressed="true"] .cmv2-defi-hero-card-icon {
+  background: var(--cmv2-surface);
+}
+
+.cmv2-defi-hero-card > strong {
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: -0.1px;
+  color: var(--pulso-text);
+}
+
+.cmv2-defi-hero-card > span {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+
+/* Nota bajo las tarjetas: apunta hacia la pestaña Bases del sidebar (izquierda). */
+.cmv2-defi-hero-nota {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-hero-nota svg {
+  flex: none;
+}
+
+.cmv2-defi-hero-nota[data-tone="ok"] {
+  color: var(--pulso-success-fg);
+}
+
+.cmv2-defi-hero-guide {
+  display: grid;
+  gap: 6px;
+  margin-top: 2px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--cmv2-accent-border);
+}
+
+.cmv2-defi-hero-guide p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+  max-width: 78ch;
+}
+
+/* Recorrido compacto cuando ya hay avance: franja arriba del mapa vivo. */
+.cmv2-defi-flow-compact {
+  padding: 8px 12px 2px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 12px;
+  background: var(--cmv2-surface-tint);
+}
+
+/* --- Estudio: formulario + mapa del recorrido ------------------------------- */
+.cmv2-defi-estudio-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(240px, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+/* El form llena la altura de la fila (marcada por el mapa) y el textarea de
+   alcance crece para ocupar el espacio: elimina el vacío en L y da sitio real
+   para escribir el alcance del estudio (regla 8: sin espacio sin propósito). */
+.cmv2-defi-estudio-layout > .cmv2-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 980px) {
+  .cmv2-defi-estudio-layout {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.cmv2-defi-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto 1fr auto;
+  gap: 10px;
+  flex: 1;
+}
+
+.cmv2-defi-form .cmv2-compact-field--wide {
+  grid-column: 1 / -1;
+  min-height: 0;
+}
+
+.cmv2-defi-form .cmv2-compact-field--wide textarea {
+  height: 100%;
+}
+
+@media (max-width: 720px) {
+  .cmv2-defi-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cmv2-defi-mapa {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+/* Tinte sutil de acento: jerarquiza el mapa como "resumen vivo" frente al
+   formulario plano de la izquierda. */
+.cmv2-panel.cmv2-defi-mapa {
+  border-color: color-mix(in srgb, var(--cmv2-accent-border) 45%, var(--cmv2-border));
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--cmv2-accent) 4%, transparent),
+      transparent 58%
+    ),
+    var(--cmv2-surface-raised);
+}
+
+.cmv2-defi-mapa-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* --- Bases: modos con popover, tarjetas y CTA ------------------------------- */
+.cmv2-defi-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cmv2-defi-mode > .cmv2-source-mode-card {
+  flex: 1;
+  width: 100%;
+}
+
+.cmv2-defi-when {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cmv2-accent-fg);
+  cursor: help;
+  border-bottom: 1px dotted var(--cmv2-accent-border);
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-defi-when:hover {
+    color: var(--cmv2-accent);
+    border-bottom-color: var(--cmv2-accent);
+  }
+}
+
+.cmv2-defi-when:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.cmv2-defi-when-pop {
+  display: grid;
+  gap: 6px;
+  max-width: 300px;
+}
+
+.cmv2-defi-when-pop strong {
+  font-size: 11.5px;
+  color: var(--cmv2-accent);
+}
+
+.cmv2-defi-when-pop p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.cmv2-defi-when-pop ul {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+/* Chip de estado semántico de cada base declarada. El color transiciona al
+   cambiar de estado; combinado con .cmv2-uni-swap el texto cruza con blur. */
+.cmv2-defi-status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid var(--cmv2-border);
+  background: var(--cmv2-surface);
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.cmv2-defi-status.cmv2-uni-swap {
+  transition:
+    filter 180ms ease,
+    opacity 180ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.cmv2-defi-status[data-tone="ok"] {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.cmv2-defi-status[data-tone="warn"] {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.cmv2-defi-status[data-tone="info"] {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+}
+
+/* --- Bases: tarjetas de carga numeradas con dropzone real -------------------- */
+.cmv2-defi-upload-list {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.cmv2-defi-upload-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 14px;
+  background: var(--cmv2-surface);
+  transition:
+    border-color var(--motion-dur-fast, 150ms) ease,
+    box-shadow var(--motion-dur-fast, 150ms) var(--cmv2-ease-out, ease-out),
+    opacity var(--motion-dur-fast, 150ms) ease;
+}
+
+.cmv2-defi-upload-card.is-done {
+  border-color: color-mix(in srgb, var(--pulso-success-border) 60%, var(--cmv2-border));
+}
+
+/* Card en espera (dos_bases: catálogo antes que la base principal). */
+.cmv2-defi-upload-card.is-waiting {
+  opacity: 0.6;
+}
+
+.cmv2-defi-upload-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.cmv2-defi-upload-head .cmv2-defi-status {
+  margin-left: auto;
+  flex: none;
+}
+
+.cmv2-defi-upload-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 999px;
+  border: 1px solid var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+  font-size: 11.5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-defi-upload-card.is-done .cmv2-defi-upload-num {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.cmv2-defi-upload-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cmv2-defi-upload-copy small {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-upload-copy strong {
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: -0.1px;
+  color: var(--pulso-text);
+}
+
+/* Qué ES este archivo (y qué pasa si falta) — el concepto antes de la acción. */
+.cmv2-defi-upload-whatis {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--pulso-text-muted);
+  max-width: 78ch;
+}
+
+/* Dropzone calcada del módulo Carga (borde dashed en ::after inset 4px),
+   con los tokens cmv2 del desk. El input real queda oculto (sr-only). */
+.cmv2-defi-dropzone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 88px;
+  padding: 14px 12px;
+  border: 1.5px solid var(--cmv2-border);
+  border-radius: 13px;
+  background: var(--cmv2-control-bg);
+  color: var(--pulso-text-muted);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color var(--motion-dur-fast, 150ms) ease,
+    background var(--motion-dur-fast, 150ms) ease,
+    color var(--motion-dur-fast, 150ms) ease,
+    transform var(--motion-dur-press, 120ms) var(--cmv2-ease-out, ease-out);
+}
+
+.cmv2-defi-dropzone::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1.5px dashed var(--cmv2-accent-border);
+  border-radius: 10px;
+  opacity: 0;
+  transform: scale(0.985);
+  transition:
+    opacity var(--motion-dur-base, 200ms) var(--cmv2-ease-out, ease-out),
+    transform var(--motion-dur-base, 200ms) var(--cmv2-ease-out, ease-out);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-defi-dropzone:hover:not(.is-disabled) {
+    border-color: var(--cmv2-accent-border);
+    background: color-mix(in srgb, var(--cmv2-accent-soft) 55%, var(--cmv2-surface));
+    color: var(--cmv2-accent-fg);
+  }
+
+  .cmv2-defi-dropzone:hover:not(.is-disabled)::after {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .cmv2-defi-dropzone:hover:not(.is-disabled) .cmv2-defi-dropzone-icon {
+    transform: translateY(-2px);
+  }
+}
+
+.cmv2-defi-dropzone.is-drag-over {
+  border-color: var(--cmv2-accent-border);
+  background: color-mix(in srgb, var(--cmv2-accent-soft) 70%, var(--cmv2-surface));
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-defi-dropzone.is-drag-over::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.cmv2-defi-dropzone:active:not(.is-disabled) {
+  transform: scale(0.995);
+}
+
+.cmv2-defi-dropzone:focus-within {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+.cmv2-defi-dropzone.is-disabled {
+  cursor: not-allowed;
+}
+
+.cmv2-defi-dropzone-icon {
+  color: currentColor;
+  transition: transform var(--motion-dur-fast, 150ms) var(--cmv2-ease-out, ease-out);
+}
+
+.cmv2-defi-dropzone-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pulso-text);
+}
+
+.cmv2-defi-dropzone.is-disabled .cmv2-defi-dropzone-title {
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-dropzone-formats {
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-defi-dropzone,
+  .cmv2-defi-dropzone::after,
+  .cmv2-defi-dropzone-icon {
+    transition: none;
+  }
+}
+
+/* Resumen inmediato tras cargar: hoja, filas y columnas detectadas. */
+.cmv2-defi-upload-resumen {
+  display: grid;
+  gap: 8px;
+}
+
+.cmv2-defi-upload-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  align-items: stretch;
+}
+
+.cmv2-defi-upload-stat {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 10px;
+  background: var(--cmv2-surface-tint);
+}
+
+.cmv2-defi-upload-stat > span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-upload-stat > strong {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.cmv2-defi-upload-cols summary {
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--cmv2-accent-fg);
+  user-select: none;
+}
+
+.cmv2-defi-upload-cols summary:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.cmv2-defi-upload-cols-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-top: 7px;
+}
+
+.cmv2-defi-upload-cols-list span {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--cmv2-border);
+  background: var(--cmv2-control-bg);
+  font-size: 10.5px;
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+/* Franja de compatibilidad: puente "subir → mapear" antes de construir. */
+.cmv2-defi-compat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 10px;
+  font-size: 11.5px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.cmv2-defi-compat svg {
+  flex: none;
+}
+
+.cmv2-defi-compat.is-ok {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.cmv2-defi-compat.is-warn {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.cmv2-defi-build {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 2px;
+}
+
+.cmv2-defi-build-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-miniflujo {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 12px;
+  background: var(--cmv2-surface-tint);
+}
+
+.cmv2-defi-miniflujo-caption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pulso-text-muted);
+}
+
+/* --- Variables: grilla de tarjetas por rol ---------------------------------- */
+.cmv2-defi-var-group {
+  display: grid;
+  gap: 8px;
+}
+
+.cmv2-defi-var-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cmv2-defi-var-group-head small {
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-var-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px;
+}
+
+.cmv2-defi-var-card {
+  display: grid;
+  gap: 7px;
+  align-content: start;
+  padding: 10px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 12px;
+  background: var(--cmv2-surface);
+  min-width: 0;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+/* Hover solo aquí: la tarjeta es interactiva (select + popover). */
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-defi-var-card:hover {
+    box-shadow: 0 2px 10px color-mix(in srgb, var(--pulso-text) 7%, transparent);
+  }
+
+  .cmv2-defi-var-card:not([data-state="falta"]):hover {
+    border-color: color-mix(in srgb, var(--cmv2-accent-border) 70%, var(--cmv2-border));
+  }
+}
+
+.cmv2-defi-var-card[data-state="lista"] {
+  border-color: color-mix(in srgb, var(--pulso-success-border) 55%, var(--cmv2-border));
+}
+
+.cmv2-defi-var-card[data-state="falta"] {
+  border-color: var(--pulso-warn-border);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 16%, var(--cmv2-surface));
+}
+
+/* Micro-confirmación al elegir columna: un solo pulso success que se disuelve. */
+@media (prefers-reduced-motion: no-preference) {
+  .cmv2-defi-var-card[data-flash="true"] {
+    animation: cmv2-defi-flash-success 300ms var(--cmv2-ease-out, ease-out);
+  }
+}
+
+@keyframes cmv2-defi-flash-success {
+  0% {
+    border-color: var(--pulso-success-border);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--pulso-success-fg) 20%, transparent);
+  }
+}
+
+/* El contador X/Y necesarias no baila al cambiar (tabular) y cruza con blur. */
+.cmv2-university-variable-map .cmv2-pill-soft {
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-defi-var-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.cmv2-defi-var-card-head strong {
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.cmv2-defi-var-card-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.cmv2-defi-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--cmv2-border);
+  background: var(--cmv2-control-bg);
+  font-size: 9.5px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+  white-space: nowrap;
+}
+
+.cmv2-defi-chip[data-tone="req"] {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-defi-why {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--pulso-text-muted);
+  cursor: help;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-defi-why:hover {
+    background: var(--cmv2-accent-soft);
+    color: var(--cmv2-accent-fg);
+  }
+}
+
+.cmv2-defi-why[aria-expanded="true"] {
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-defi-why-pop {
+  display: grid;
+  gap: 6px;
+  max-width: 300px;
+}
+
+.cmv2-defi-why-pop strong {
+  font-size: 11.5px;
+  color: var(--cmv2-accent);
+}
+
+.cmv2-defi-why-pop p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.cmv2-defi-var-card select {
+  width: 100%;
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid var(--cmv2-border-strong);
+  border-radius: 9px;
+  background: var(--cmv2-surface);
+  font-size: 12px;
+  color: var(--pulso-text);
+}
+
+.cmv2-defi-var-card select:focus {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 1px;
+}
+
+.cmv2-defi-var-hint {
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-var-hint.is-ready {
+  color: var(--pulso-success-fg);
+}
+
+.cmv2-defi-var-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cmv2-defi-var-values span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  max-width: 100%;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--cmv2-border);
+  background: var(--cmv2-control-bg);
+  font-size: 10.5px;
+  color: var(--pulso-text);
+}
+
+.cmv2-defi-var-values span b {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-defi-var-values span em {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-muted);
+}
+
+/* --- Categorías: elegibilidad como estrella --------------------------------- */
+.cmv2-defi-eleg-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(0, 1.6fr);
+  gap: 12px;
+  align-items: start;
+}
+
+@media (max-width: 980px) {
+  .cmv2-defi-eleg-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cmv2-defi-eleg-flujo {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.cmv2-defi-motivos {
+  display: grid;
+  gap: 5px;
+}
+
+.cmv2-defi-motivos small {
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-motivos-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cmv2-defi-motivos-list span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.cmv2-defi-motivos-list span em {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-defi-criterios {
+  display: grid;
+  gap: 10px;
+}
+
+.cmv2-defi-cond {
+  display: grid;
+  gap: 6px;
+}
+
+.cmv2-defi-cond > small {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--pulso-text);
+}
+
+.cmv2-defi-cond-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.cmv2-defi-cond-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--cmv2-border-strong);
+  background: var(--cmv2-surface);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--pulso-text);
+  cursor: pointer;
+  transition:
+    border-color var(--motion-dur-fast, 120ms) ease,
+    background var(--motion-dur-fast, 120ms) ease,
+    transform var(--motion-dur-press, 120ms) var(--motion-ease-out, ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-defi-cond-chip:hover {
+    border-color: var(--cmv2-accent-border);
+  }
+}
+
+.cmv2-defi-cond-chip:active {
+  transform: scale(0.97);
+}
+
+.cmv2-defi-cond-chip[aria-pressed="true"] {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.cmv2-defi-cond-chip em {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-cond-chip[aria-pressed="true"] em {
+  color: inherit;
+}
+
+.cmv2-defi-cond-hint {
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-criterios-mins {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+/* --- Categorías: buscador del master-detail --------------------------------- */
+/* El detalle se remonta con key por variable: entra con fade corto. La lista
+   izquierda ya anima su selección (background 160ms) desde calcMuestra.css. */
+@media (prefers-reduced-motion: no-preference) {
+  .cmv2-university-category-map .cmv2-category-detail-card {
+    animation: cmv2-defi-fade 150ms var(--cmv2-ease-out, ease-out) both;
+  }
+}
+
+.cmv2-defi-cat-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--cmv2-border-strong);
+  border-radius: 9px;
+  background: var(--cmv2-surface);
+}
+
+.cmv2-defi-cat-search svg {
+  flex: none;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-cat-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
+  color: var(--pulso-text);
+  padding: 2px 0;
+}
+
+.cmv2-defi-cat-search input:focus {
+  outline: none;
+}
+
+.cmv2-defi-cat-search:focus-within {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 1px;
+}
+
+.cmv2-defi-cat-meta {
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}

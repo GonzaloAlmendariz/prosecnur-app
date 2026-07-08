@@ -1,0 +1,327 @@
+/* =============================================================================
+   Capa didáctica del paso 4 "Aulas y selección" (recorrido Muestra de aulas).
+   Complementa didactica.css; mismo lenguaje visual: bordes 1px, radios 10-12px,
+   fuentes 11-12.5px. Todo el color sale de tokens --cmv2-* / --pulso-*.
+   ============================================================================= */
+
+/* --- Fuentes de pesos y probabilidades (SeleccionAulasVisual) --------------- */
+.cmv2-did-aulas-fuentes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .cmv2-did-aulas-fuentes {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cmv2-did-aulas-fuente {
+  display: grid;
+  gap: 3px;
+  padding: 9px 11px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 10px;
+  background: var(--cmv2-control-bg);
+}
+
+.cmv2-did-aulas-fuente small {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-did-aulas-fuente small svg {
+  color: var(--cmv2-accent);
+}
+
+.cmv2-did-aulas-fuente span {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text);
+}
+
+/* --- Tarjetas del comparador de métodos (ComparadorMetodosVisual) ----------- */
+.cmv2-did-aulas-methods {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+
+.cmv2-did-aulas-method {
+  display: grid;
+  gap: 9px;
+  align-content: start;
+  padding: 11px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 12px;
+  background: var(--cmv2-surface);
+}
+
+.cmv2-did-aulas-method[data-recomendado="true"] {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-surface-tint);
+  box-shadow: var(--cmv2-shadow-card);
+}
+
+.cmv2-did-aulas-method-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cmv2-did-aulas-method-head strong {
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--pulso-text);
+}
+
+.cmv2-did-aulas-method[data-recomendado="true"] .cmv2-did-aulas-method-head strong {
+  color: var(--cmv2-accent);
+}
+
+.cmv2-did-aulas-method-tag {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border: 1px solid var(--pulso-success-border, var(--cmv2-accent-border));
+  color: var(--pulso-success-fg, var(--cmv2-accent));
+  background: var(--pulso-success-bg, var(--cmv2-accent-soft));
+  white-space: nowrap;
+}
+
+.cmv2-did-aulas-method-metrics {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.cmv2-did-aulas-method-metric {
+  display: grid;
+  gap: 1px;
+  padding: 6px 8px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 9px;
+  background: var(--cmv2-control-bg);
+}
+
+.cmv2-did-aulas-method-metric dt {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-did-aulas-method-metric dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.cmv2-did-aulas-method-frase {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-did-aulas-method-frase strong {
+  color: var(--pulso-success-fg, var(--cmv2-accent));
+}
+
+.cmv2-did-aulas-method-frase[data-tono="riesgo"] strong {
+  color: var(--pulso-warn-fg, var(--pulso-text));
+}
+
+/* --- Árbol de cadenas de reemplazo (CadenasReemplazoVisual) ------------------ */
+.cmv2-did-chain-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.cmv2-did-chain {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 8px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 12px;
+  background: var(--cmv2-surface);
+}
+
+@media (max-width: 900px) {
+  .cmv2-did-chain {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cmv2-did-chain-titular {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cmv2-did-chain-code {
+  display: inline-block;
+  width: fit-content;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-family: var(--pulso-font-mono, ui-monospace, "SF Mono", Menlo, monospace);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--cmv2-accent);
+  background: var(--cmv2-accent-soft);
+  border: 1px solid var(--cmv2-accent-border);
+  white-space: nowrap;
+}
+
+.cmv2-did-chain-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pulso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-did-chain-fac {
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-did-chain-reservas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cmv2-did-chain-empty {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-did-chain-reserva {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px 4px 6px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 10px;
+  background: var(--cmv2-control-bg);
+  font-size: 11px;
+  color: var(--pulso-text);
+}
+
+.cmv2-did-chain-reserva .cmv2-did-chain-code {
+  color: var(--pulso-text);
+  background: var(--cmv2-surface);
+  border-color: var(--cmv2-border);
+}
+
+.cmv2-did-chain-reserva[data-tono="fuerte"] {
+  border-color: var(--pulso-success-border, var(--cmv2-accent-border));
+  background: var(--pulso-success-bg, var(--cmv2-accent-soft));
+}
+
+.cmv2-did-chain-reserva[data-tono="fuerte"] .cmv2-did-chain-nivel {
+  color: var(--pulso-success-fg, var(--cmv2-accent));
+}
+
+.cmv2-did-chain-reserva[data-tono="bueno"] {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-surface-tint);
+}
+
+.cmv2-did-chain-reserva[data-tono="bueno"] .cmv2-did-chain-nivel {
+  color: var(--cmv2-accent);
+}
+
+.cmv2-did-chain-reserva[data-tono="alerta"] {
+  border-color: var(--pulso-warn-border, var(--cmv2-border-strong));
+  background: var(--pulso-warn-bg, var(--cmv2-control-bg));
+}
+
+.cmv2-did-chain-arrow {
+  flex: none;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-did-chain-nivel {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--pulso-text-muted);
+  white-space: nowrap;
+}
+
+.cmv2-did-chain-delta {
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--cmv2-border);
+  background: var(--cmv2-surface);
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-did-chain-delta[data-signo="sube"] {
+  color: var(--pulso-success-fg, var(--cmv2-accent));
+  border-color: var(--pulso-success-border, var(--cmv2-accent-border));
+}
+
+.cmv2-did-chain-delta[data-signo="baja"] {
+  color: var(--pulso-warn-fg, var(--pulso-text-muted));
+  border-color: var(--pulso-warn-border, var(--cmv2-border));
+}
+
+.cmv2-did-chain-warning {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-warn-border, var(--cmv2-border-strong));
+  background: var(--pulso-warn-bg, var(--cmv2-control-bg));
+  color: var(--pulso-warn-fg, var(--pulso-text));
+  cursor: help;
+}
+
+.cmv2-did-chain-more {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-did-chain-more svg {
+  color: var(--cmv2-accent);
+}
