@@ -138,6 +138,30 @@ test_that("p_slide_indice expone controles amigables para focos editables", {
   expect_equal(slide$style$subtopic_badge_gap, 0.08)
 })
 
+test_that("p_slide_indice tolera `estilo` colapsado a data.frame por un round-trip JSON", {
+  # Un plan guardado y releido via GET/POST (simplifyVector = TRUE en
+  # jsonlite) puede devolver `estilo` como data.frame de 1 fila cuando
+  # mezcla escalares con vectores de igual longitud (p.ej.
+  # iconos_focos_cover_width repetido 5 veces). Antes de .ppt_norm_estilo(),
+  # `estilo$iconos_focos <- <vector 5>` fallaba con
+  # "replacement has 5 rows, data has 1".
+  estilo_df <- as.data.frame(list(
+    redibujar_focos = FALSE,
+    iconos_focos_cover_width = I(list(rep(0.858, 5))),
+    subtopic_badge_fill = "#CA5651"
+  ))
+
+  slide <- p_slide_indice(
+    titulo = "Índice",
+    iconos_focos = c("target-arrow", "clipboard-list", "circle-user-round", "chart-column", "artificial-intelligence"),
+    estilo = estilo_df
+  )
+
+  expect_equal(slide$slots$iconos_focos, c("target-arrow", "clipboard-list", "circle-user-round", "chart-column", "artificial-intelligence"))
+  expect_equal(slide$style$iconos_focos_cover_width, rep(0.858, 5))
+  expect_equal(slide$style$subtopic_badge_fill, "#CA5651")
+})
+
 test_that("reporte_ppt_plan aplica controles de focos desde slots del editor", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
