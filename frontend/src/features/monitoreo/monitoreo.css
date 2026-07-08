@@ -58235,7 +58235,7 @@ button.mon-acr-requirement-metric:active {
 .mon-field-occurrences-command {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, auto);
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
   align-items: center;
   gap: 10px;
   border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 34%, var(--pulso-border));
@@ -58968,7 +58968,8 @@ button.mon-acr-requirement-metric:active {
 }
 
 .mon-stage--ocurrencias .mon-field-occurrences-command-actions {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+  max-width: 100%;
 }
 
 .mon-stage--ocurrencias .mon-field-occurrences-command-actions .pulso-button {

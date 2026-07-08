@@ -33,6 +33,7 @@ import {
   apiJobStatus,
   apiMonitoreoSync,
   apiMonitoreoState,
+  apiMonitoreoTerritorialOccurrencesSync,
   apiMonitoreoTerritorialOperationalAdjustmentApply,
   apiMonitoreoTerritorialOperationalAdjustmentReset,
   apiMonitoreoTerritorialOperationalAdjustmentRevert,
@@ -1770,7 +1771,19 @@ export default function TerritorialMonitoreoPage() {
       throw e;
     }
   }, [phase, state]);
-  const syncAdvance = useCallback(() => syncActiveTerritorialSource("advance"), [syncActiveTerritorialSource]);
+  const syncAdvance = useCallback(async () => {
+    // El Avance también refresca las ocurrencias de campo si hay una fuente
+    // configurada (va a Kobo aparte). Fire-and-forget tolerante: si no hay token
+    // o fuente, no bloquea el avance; al terminar refresca la vista para tomar el
+    // snapshot nuevo de ocurrencias.
+    const fo = (state?.config?.territorial as { field_occurrences?: { source_id?: string; asset_uid?: string } } | undefined)?.field_occurrences;
+    if (fo && (fo.source_id || fo.asset_uid)) {
+      void apiMonitoreoTerritorialOccurrencesSync({ source_id: fo.source_id, asset_uid: fo.asset_uid })
+        .then(() => refreshCurrentView())
+        .catch(() => { /* sin token/fuente Kobo: el avance sigue igual */ });
+    }
+    await syncActiveTerritorialSource("advance");
+  }, [refreshCurrentView, state, syncActiveTerritorialSource]);
   const syncField = useCallback(() => syncActiveTerritorialSource("full"), [syncActiveTerritorialSource]);
   useEffect(() => {
     if (!chromeSyncJobId) return;

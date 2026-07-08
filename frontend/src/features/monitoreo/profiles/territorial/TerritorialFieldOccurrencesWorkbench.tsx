@@ -30,6 +30,8 @@ import {
   apiMonitoreoTerritorialOccurrencesSync,
   apiMonitoreoTerritorialOccurrencesUploadKobo,
   apiMonitoreoTerritorialOccurrencesXlsform,
+  apiMonitoreoTerritorialUmpExport,
+  downloadUrl,
   type ConnectionTokenState,
   type MonitoreoFieldOccurrenceConfig,
   type MonitoreoFieldOccurrenceDashboard,
@@ -50,7 +52,7 @@ import {
 } from "../../fieldOccurrences";
 
 type OccurrenceTab = "states" | "registro" | "ump" | "alerts" | "rhythm";
-type OccurrenceBusy = "" | "config" | "xlsform" | "upload" | "inspect" | "sync";
+type OccurrenceBusy = "" | "config" | "xlsform" | "upload" | "inspect" | "sync" | "ump-export";
 type OccurrenceAlertKind = "missing" | "observations" | "outside_route" | "high_non_effective";
 type OccurrenceAlertFilter = "todos" | OccurrenceAlertKind;
 type OccurrenceRegisterFilter = "todos" | "con_registro" | "sin_registro" | "sin_conciliacion";
@@ -736,6 +738,17 @@ export function TerritorialFieldOccurrencesWorkbench({
     setFieldCheck(result.field_check);
   }), [config, runAction]);
 
+  const exportUmp = useCallback((opts: { responsable?: string; only_missing?: boolean } = {}) =>
+    runAction("ump-export", async () => {
+      const result = await apiMonitoreoTerritorialUmpExport({
+        ...(opts.responsable ? { responsable: opts.responsable } : {}),
+        ...(opts.only_missing ? { only_missing: true } : {}),
+      });
+      if (result.file_id && typeof window !== "undefined") {
+        window.open(downloadUrl(result.file_id), "_blank", "noopener,noreferrer");
+      }
+    }), [runAction]);
+
   const syncOccurrences = useCallback(() => runAction("sync", async () => {
     const result = await apiMonitoreoTerritorialOccurrencesSync({
       asset_uid: config?.asset_uid,
@@ -804,6 +817,10 @@ export function TerritorialFieldOccurrencesWorkbench({
             <button type="button" className="pulso-button" onClick={inspectFields} disabled={disabled || !active}>
               {localBusy === "inspect" ? <Loader2 size={15} className="spin" /> : <FileCheck2 size={15} />}
               Campos
+            </button>
+            <button type="button" className="pulso-button" onClick={() => exportUmp({})} disabled={disabled} title="Descarga un Excel con las UMP totales y sus estados">
+              {localBusy === "ump-export" ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
+              Excel UMP
             </button>
             <button type="button" className="pulso-button is-primary" onClick={syncOccurrences} disabled={disabled || !active}>
               {localBusy === "sync" ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />}
@@ -960,7 +977,7 @@ export function TerritorialFieldOccurrencesWorkbench({
         ) : null}
 
         {tab === "ump" ? (
-          <OccurrenceUmpWorkspace rows={routeUmpRows} allRows={routeUmpRows} />
+          <OccurrenceUmpWorkspace rows={routeUmpRows} allRows={routeUmpRows} onExportUmp={exportUmp} />
         ) : null}
 
         {tab === "alerts" ? (
@@ -1508,7 +1525,15 @@ function OccurrenceRegisterWorkspace({ rows }: { rows: OccurrenceRouteUmpRow[] }
   );
 }
 
-function OccurrenceUmpWorkspace({ rows, allRows }: { rows: OccurrenceRouteUmpRow[]; allRows: OccurrenceRouteUmpRow[] }) {
+const OCCURRENCE_MISSING_STATES: OccurrenceUmpAttentionStatus[] = [
+  "sin_reporte", "iniciada_sin_reporte", "incompleta_sin_reporte", "completa_sin_reporte",
+];
+
+function OccurrenceUmpWorkspace({ rows, allRows, onExportUmp }: {
+  rows: OccurrenceRouteUmpRow[];
+  allRows: OccurrenceRouteUmpRow[];
+  onExportUmp?: (opts: { responsable?: string; only_missing?: boolean }) => void;
+}) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"todos" | OccurrenceUmpAttentionStatus>("todos");
   const [districtFilter, setDistrictFilter] = useState("todos");
@@ -1620,6 +1645,20 @@ function OccurrenceUmpWorkspace({ rows, allRows }: { rows: OccurrenceRouteUmpRow
           <option value="todos">Todos los motivos</option>
           {outcomeOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
         </select>
+        {onExportUmp ? (
+          <button
+            type="button"
+            className="pulso-button"
+            onClick={() => onExportUmp({
+              responsable: responsableFilter !== "todos" ? responsableFilter : undefined,
+              only_missing: OCCURRENCE_MISSING_STATES.includes(statusFilter as OccurrenceUmpAttentionStatus),
+            })}
+            title="Exporta a Excel las UMP con los filtros aplicados (responsable / faltantes)"
+          >
+            <Download size={14} />
+            Excel
+          </button>
+        ) : null}
       </div>
 
       <div className={`mon-field-occurrences-board ${detailOpen && selectedRow ? `is-detail-open is-detail-${detailSide}` : ""}`}>

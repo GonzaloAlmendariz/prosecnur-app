@@ -7622,6 +7622,30 @@ export async function apiMonitoreoTerritorialOccurrencesSync(payload: { source_i
   );
 }
 
+export type MonitoreoUmpExportResult = {
+  ok: true;
+  file_id: string;
+  filename: string;
+  size?: number;
+  counts?: { ump?: number; faltantes?: number; responsables?: number };
+  filters?: { only_missing?: boolean; responsable?: string; distrito?: string };
+};
+
+export async function apiMonitoreoTerritorialUmpExport(payload: {
+  only_missing?: boolean;
+  responsable?: string;
+  distrito?: string;
+  config?: Partial<MonitoreoConfig>;
+} = {}) {
+  return handle<MonitoreoUmpExportResult>(
+    await apiFetch("/api/monitoreo/territorial/occurrences/ump-export", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
 export async function apiMonitoreoSource(payload: MonitoreoSourcePayload) {
   return handle<{ ok: true; source: MonitoreoSource; validation: unknown; state: MonitoreoState }>(
     await apiFetch("/api/monitoreo/source", {
