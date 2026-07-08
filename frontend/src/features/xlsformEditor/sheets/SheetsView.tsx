@@ -22,9 +22,14 @@
 //     editarlas en contexto.
 // =============================================================================
 
-import { useState } from "react";
-import { Plus, Trash2, ChevronUp, ChevronDown, Eye, EyeOff, Info } from "lucide-react";
+import { useEffect, useState } from "react";
+import type { CSSProperties } from "react";
+import { Plus, Trash2, ChevronUp, ChevronDown, Eye, EyeOff } from "lucide-react";
 import type { XlsformEditorWorkbook, XlsformEditorSheet } from "../types";
+import { TechTerm } from "../helpers/TechTerm";
+import { paletteForType, paletteSoftForType } from "../helpers/paletteForType";
+import { iconForType } from "../helpers/icons";
+import "../styles/xf-sheets.css";
 
 export type SheetsViewProps = {
   workbook: XlsformEditorWorkbook;
@@ -64,7 +69,7 @@ const TAB_HELP: Record<TabKey, { label: string; code: string; detail: string }> 
     detail: "Catálogos reutilizables para preguntas de selección.",
   },
   settings: {
-    label: "Ajustes",
+    label: "Configuración",
     code: "settings",
     detail: "Título, ID, versión e idioma principal del formulario.",
   },
@@ -214,45 +219,45 @@ export function SheetsView({
   };
 
   return (
-    <div className="pulso-sheets-view">
-      <div className="pulso-sheets-tabs" role="tablist">
+    <div className="pulso-xfs-view">
+      <div className="pulso-xfs-tabs" role="tablist" aria-label="Hojas del XLSForm">
         {(["survey", "choices", "settings", "paper"] as TabKey[]).map((tab) => {
           const tabHelp = TAB_HELP[tab];
           return (
-          <button
-            key={tab}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab}
-            className={activeTab === tab ? "is-active" : ""}
-            onClick={() => setActiveTab(tab)}
-            title={tabHelp.detail}
-          >
-            <span className="pulso-sheets-tab-name">
+            <button
+              key={tab}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab}
+              className={`pulso-xfs-tab${activeTab === tab ? " is-active" : ""}`}
+              onClick={() => setActiveTab(tab)}
+              title={tabHelp.detail}
+            >
               {tabHelp.label}
-              <code>{tabHelp.code}</code>
-            </span>
-            <span className="pulso-sheets-tab-count">
-              {(workbook[tab]?.rows.length ?? 0)}
-            </span>
-          </button>
-        );
+              <TechTerm t={tabHelp.code} title={tabHelp.detail} />
+              <span className="pulso-xfs-tab-count">
+                {workbook[tab]?.rows.length ?? 0}
+              </span>
+            </button>
+          );
         })}
       </div>
 
-      <div className="pulso-sheets-toolbar">
+      <div className="pulso-xfs-toolbar">
         <button
           type="button"
           onClick={() => onAddRow(activeTab)}
-          className="pulso-sheets-btn"
+          className="pulso-xfs-pill pulso-xfs-pill--primary"
           title={`Agregar fila a ${TAB_HELP[activeTab].label}`}
         >
           <Plus size={13} /> Fila
         </button>
-        <div className="pulso-sheets-newcol">
+        <div className="pulso-xfs-newcol">
           <input
             type="text"
-            placeholder="Nombre de columna nueva (ej. label::English)"
+            className="pulso-xfs-newcol-input"
+            placeholder="Columna nueva (ej. label::English)"
+            aria-label="Nombre de la columna nueva"
             value={newColInput}
             onChange={(e) => setNewColInput(e.target.value)}
             onKeyDown={(e) => {
@@ -267,7 +272,7 @@ export function SheetsView({
             type="button"
             onClick={handleAddCol}
             disabled={!newColInput.trim()}
-            className="pulso-sheets-btn"
+            className="pulso-xfs-pill"
             title="Agregar columna"
           >
             <Plus size={13} /> Columna
@@ -276,53 +281,36 @@ export function SheetsView({
         {collapsiblePdfColumns.length > 0 && (
           <button
             type="button"
-            className="pulso-sheets-btn pulso-sheets-advanced-toggle"
+            className={`pulso-xfs-pill${showAdvancedColumns ? " is-on" : ""}`}
             onClick={() => setShowAdvancedColumns((value) => !value)}
+            aria-pressed={showAdvancedColumns}
             title={
               showAdvancedColumns
-                ? "Ocultar columnas opcionales de papel/PDF que están vacías"
-                : "Mostrar columnas opcionales para la versión papel/PDF"
+                ? "Ocultar columnas de papel/PDF vacías"
+                : "Mostrar columnas de papel/PDF (solo afectan la versión impresa)"
             }
           >
             {showAdvancedColumns ? <EyeOff size={13} /> : <Eye size={13} />}
-            {showAdvancedColumns ? "Ocultar papel/PDF vacío" : "Mostrar papel/PDF"}
+            Papel/PDF
           </button>
         )}
-        <span className="pulso-sheets-meta">
+        <span className="pulso-xfs-meta">
           {visibleColumns.length}{" "}
-          {visibleColumns.length === 1 ? "columna visible" : "columnas visibles"}
+          {visibleColumns.length === 1 ? "columna" : "columnas"} ·{" "}
+          {sheet.rows.length} {sheet.rows.length === 1 ? "fila" : "filas"}
           {hiddenPdfCount > 0
             ? ` · ${hiddenPdfCount} papel/PDF ${hiddenPdfCount === 1 ? "oculta" : "ocultas"}`
-            : pdfColumnCount > 0
-              ? ` · ${pdfColumnCount} papel/PDF`
-              : ""} ·{" "}
-          {sheet.rows.length} {sheet.rows.length === 1 ? "fila" : "filas"}
+            : ""}
         </span>
       </div>
 
-      {pdfColumnCount > 0 && (
-        <div
-          className={`pulso-sheets-guide ${
-            hiddenPdfCount > 0 ? "is-muted" : "is-active"
-          }`}
-          role="note"
-        >
-          <Info size={15} />
-          <div>
-            <strong>
-              {hiddenPdfCount > 0
-                ? "Columnas de papel/PDF ocultas por estar vacías"
-                : "Columnas de papel/PDF visibles"}
-            </strong>
-            <span>
-              Sirven solo para ajustar la versión impresa o PDF. Kobo y la lógica del formulario
-              no cambian si las dejas en blanco.
-            </span>
-          </div>
-        </div>
+      {showAdvancedColumns && pdfColumnCount > 0 && (
+        <span className="pulso-xfs-hint" role="note">
+          Las columnas de papel/PDF solo afectan la versión impresa; Kobo no cambia.
+        </span>
       )}
 
-      <div className="pulso-sheets-table-wrap">
+      <div className="pulso-xfs-table-wrap" key={activeTab}>
         <SheetTable
           sheet={sheet}
           visibleColumns={visibleColumns}
@@ -359,31 +347,32 @@ function SheetTable({
 }: SheetTableProps) {
   if (sheet.columns.length === 0) {
     return (
-      <div className="pulso-sheets-empty">
-        Esta hoja no tiene columnas todavía. Agrega una desde la barra
-        superior.
-      </div>
+      <div className="pulso-xfs-empty">Sin columnas. Agrega una arriba.</div>
     );
   }
   if (sheet.rows.length === 0) {
     return (
-      <div className="pulso-sheets-empty">
-        Hoja vacía. Agrega una fila desde la barra superior para empezar.
-      </div>
+      <div className="pulso-xfs-empty">Hoja vacía. Agrega una fila arriba.</div>
     );
   }
   return (
-    <table className="pulso-sheets-table">
+    <table className="pulso-xfs-table">
       <thead>
         <tr>
-          <th aria-label="Acciones" className="pulso-sheets-actions-col">
-            #
+          <th aria-label="Acciones" className="pulso-xfs-actions-col">
+            <span className="pulso-xfs-colcode">#</span>
           </th>
-          {visibleColumns.map((col) => (
-            <th key={col} title={COLUMN_HELP[col]?.detail ?? col}>
-              <ColumnHeader columnName={col} />
-            </th>
-          ))}
+          {visibleColumns.map((col) => {
+            const help = COLUMN_HELP[col];
+            return (
+              <th
+                key={col}
+                title={help ? `${help.label} — ${help.detail}` : col}
+              >
+                <ColumnHeader columnName={col} />
+              </th>
+            );
+          })}
         </tr>
       </thead>
       <tbody>
@@ -434,27 +423,29 @@ function SheetRow({
 }: SheetRowProps) {
   return (
     <tr>
-      <td className="pulso-sheets-actions-col">
-        <div className="pulso-sheets-row-actions">
-          <span className="pulso-sheets-row-num">{rowIndex + 1}</span>
-          <div>
+      <td className="pulso-xfs-actions-col">
+        <div className="pulso-xfs-row-actions">
+          <span className="pulso-xfs-row-num">{rowIndex + 1}</span>
+          <div className="pulso-xfs-row-btns">
             <button
               type="button"
+              className="pulso-xfs-iconbtn"
               onClick={() => onMoveRow(sheetName, rowIndex, "up")}
               disabled={isFirst}
               title="Subir fila"
               aria-label="Subir fila"
             >
-              <ChevronUp size={11} />
+              <ChevronUp size={13} />
             </button>
             <button
               type="button"
+              className="pulso-xfs-iconbtn"
               onClick={() => onMoveRow(sheetName, rowIndex, "down")}
               disabled={isLast}
               title="Bajar fila"
               aria-label="Bajar fila"
             >
-              <ChevronDown size={11} />
+              <ChevronDown size={13} />
             </button>
             <button
               type="button"
@@ -465,22 +456,38 @@ function SheetRow({
               }}
               title="Eliminar fila"
               aria-label="Eliminar fila"
-              className="pulso-sheets-btn-danger"
+              className="pulso-xfs-iconbtn pulso-xfs-iconbtn--danger"
             >
-              <Trash2 size={11} />
+              <Trash2 size={13} />
             </button>
           </div>
         </div>
       </td>
       {columns.map((col) => {
         const colIdx = allColumns.indexOf(col);
+        const value = colIdx >= 0 ? row[colIdx] ?? "" : "";
         return (
           <td key={col}>
-            <SheetCell
-              value={colIdx >= 0 ? row[colIdx] ?? "" : ""}
-              onChange={(next) => onUpdateCell(sheetName, rowIndex, col, next)}
-              isExpression={EXPRESSION_COLUMNS.has(col)}
-            />
+            {col === "type" ? (
+              <TypeCell
+                value={value}
+                onChange={(next) => onUpdateCell(sheetName, rowIndex, col, next)}
+              />
+            ) : sheetName === "survey" && col === "name" ? (
+              // El rename de `name` propaga referencias ${old}→${new} en todo
+              // el survey; se confirma en blur/Enter para no aplicar estados
+              // intermedios por cada tecla (Esc revierte).
+              <DraftNameCell
+                value={value}
+                onCommit={(next) => onUpdateCell(sheetName, rowIndex, col, next)}
+              />
+            ) : (
+              <SheetCell
+                value={value}
+                onChange={(next) => onUpdateCell(sheetName, rowIndex, col, next)}
+                isExpression={EXPRESSION_COLUMNS.has(col)}
+              />
+            )}
           </td>
         );
       })}
@@ -488,21 +495,16 @@ function SheetRow({
   );
 }
 
+/** Encabezado de columna: nombre técnico en mono suave; la explicación en
+ *  español vive en el `title` del `<th>`. */
 function ColumnHeader({ columnName }: { columnName: string }) {
   const help = COLUMN_HELP[columnName];
-  if (!help) return <span>{columnName}</span>;
   return (
     <span
-      className={`pulso-sheets-column-head ${help.badge ? "is-extension" : ""}`}
-      title={`${help.label}: ${help.detail} XLSForm: ${columnName}`}
+      className={`pulso-xfs-colhead${help?.badge ? " is-extension" : ""}`}
     >
-      <span>
-        {help.label}
-        {help.badge && <em className="pulso-sheets-column-badge">{help.badge}</em>}
-      </span>
-      <small>
-        <code>{columnName}</code>
-      </small>
+      <span className="pulso-xfs-colcode">{columnName}</span>
+      {help?.badge && <em className="pulso-xfs-col-badge">{help.badge}</em>}
     </span>
   );
 }
@@ -540,7 +542,7 @@ function SheetCell({ value, onChange, isExpression }: SheetCellProps) {
   if (isMultiline) {
     return (
       <textarea
-        className={`pulso-sheets-cell ${
+        className={`pulso-xfs-cell ${
           isExpression ? "is-expression" : ""
         } is-multiline`}
         value={value}
@@ -553,10 +555,92 @@ function SheetCell({ value, onChange, isExpression }: SheetCellProps) {
   return (
     <input
       type="text"
-      className={`pulso-sheets-cell ${isExpression ? "is-expression" : ""}`}
+      className={`pulso-xfs-cell ${isExpression ? "is-expression" : ""}`}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       spellCheck={!isExpression}
     />
+  );
+}
+
+// -----------------------------------------------------------------------------
+// DraftNameCell — celda de `name` (survey) con borrador local.
+// -----------------------------------------------------------------------------
+// A diferencia de SheetCell, NO aplica por tecla: el commit ocurre en blur o
+// Enter (Esc revierte). Aplicar un rename propaga referencias ${old}→${new}
+// en todo el survey, así que hacerlo por tecleo generaba renames intermedios
+// y un toast por carácter.
+// -----------------------------------------------------------------------------
+
+type DraftNameCellProps = {
+  value: string;
+  onCommit: (next: string) => void;
+};
+
+function DraftNameCell({ value, onCommit }: DraftNameCellProps) {
+  const [draft, setDraft] = useState(value);
+
+  // Realinea el borrador si el valor cambia desde fuera (undo, otra vista).
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  const dirty = draft !== value;
+
+  function commit() {
+    if (dirty) onCommit(draft);
+  }
+
+  return (
+    <input
+      type="text"
+      className={`pulso-xfs-cell is-expression${dirty ? " is-pending" : ""}`}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          commit();
+        } else if (e.key === "Escape" && dirty) {
+          e.preventDefault();
+          e.stopPropagation();
+          setDraft(value);
+        }
+      }}
+      spellCheck={false}
+      title="El cambio de nombre se aplica al salir de la celda o con Enter; Esc lo descarta."
+    />
+  );
+}
+
+// -----------------------------------------------------------------------------
+// TypeCell — celda de la columna `type`: chip compacto con el color e icono
+// del tipo (paletteForType / iconForType), editable en línea.
+// -----------------------------------------------------------------------------
+
+type TypeCellProps = {
+  value: string;
+  onChange: (next: string) => void;
+};
+
+function TypeCell({ value, onChange }: TypeCellProps) {
+  const baseType = value.trim().split(/\s+/)[0] ?? "";
+  const Icon = iconForType(baseType);
+  const chipStyle = {
+    "--xfs-type-color": paletteForType(baseType),
+    "--xfs-type-bg": paletteSoftForType(baseType),
+  } as CSSProperties;
+  return (
+    <span className="pulso-xfs-type-chip" style={chipStyle}>
+      <Icon size={12} aria-hidden />
+      <input
+        type="text"
+        className="pulso-xfs-cell is-expression"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        spellCheck={false}
+      />
+    </span>
   );
 }

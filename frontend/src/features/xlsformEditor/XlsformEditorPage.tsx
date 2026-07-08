@@ -149,6 +149,9 @@ import type {
   LogicVariable,
 } from "./logic";
 import { LogicCanvas } from "./canvas-graph/LogicCanvas";
+import { FormSimulator } from "./shell/FormSimulator";
+import { FormSummaryView } from "./shell/FormSummaryView";
+import "./styles/xlsform-v2.css";
 
 /**
  * Posición 1-indexed de una fila dentro del outline, contando solo
@@ -546,6 +549,9 @@ export default function XlsformEditorPage() {
 	  const [smVisualLogicRules, setSmVisualLogicRules] = useState<SurveyMonkeyVisualLogicRule[]>([]);
 	  const [smLogicChoiceOverrides, setSmLogicChoiceOverrides] = useState<Record<string, string[]>>({});
 	  const [questionnaireViewOpen, setQuestionnaireViewOpen] = useState(false);
+  /** Overlays complementarios v2: simulador de llenado y resumen ejecutivo. */
+  const [simulatorOpen, setSimulatorOpen] = useState(false);
+  const [summaryViewOpen, setSummaryViewOpen] = useState(false);
   /** Modal de importación SurveyMonkey vía API. El .sav queda solo como ruta
    *  legacy opcional; el flujo principal ya no pide archivo. */
   const [smImportDialog, setSmImportDialog] = useState<
@@ -2315,6 +2321,8 @@ export default function XlsformEditorPage() {
               onOpenSurveyMonkeyLogic={() => setSmLogicDialogOpen(true)}
               onOpenQuestionnaireView={() => setQuestionnaireViewOpen(true)}
               onOpenCatalogsLens={() => setCatalogsLensOpen(true)}
+              onOpenSimulator={() => setSimulatorOpen(true)}
+              onOpenSummary={() => setSummaryViewOpen(true)}
             />
             <DiagnosticsBadge
               diagnostics={diagnostics}
@@ -2716,7 +2724,7 @@ export default function XlsformEditorPage() {
 
 	      {questionnaireViewOpen ? createPortal((
         <div
-          className="pulso-graph-overlay pulso-questionnaire-overlay"
+          className="pulso-graph-overlay pulso-questionnaire-overlay pulso-xf-overlay-enter"
           role="dialog"
           aria-label="Vista del cuestionario"
         >
@@ -2768,6 +2776,37 @@ export default function XlsformEditorPage() {
           </main>
         </div>
       ), document.body) : null}
+
+      {/* Simulador de llenado — overlay full-screen; evalúa relevant en vivo
+          contra las respuestas del usuario. */}
+      {workbook && (
+        <FormSimulator
+          open={simulatorOpen}
+          onClose={() => setSimulatorOpen(false)}
+          workbook={workbook}
+          structure={structure}
+          onEditRow={(rowIndex) => {
+            setSelection({ kind: "survey", rowIndex });
+            setSimulatorOpen(false);
+          }}
+        />
+      )}
+
+      {/* Resumen ejecutivo del formulario — KPIs, distribución por tipo,
+          mapa de secciones y salud. */}
+      {workbook && (
+        <FormSummaryView
+          open={summaryViewOpen}
+          onClose={() => setSummaryViewOpen(false)}
+          workbook={workbook}
+          structure={structure}
+          diagnostics={diagnostics}
+          onSelectRow={(rowIndex) => {
+            setSelection({ kind: "survey", rowIndex });
+            setSummaryViewOpen(false);
+          }}
+        />
+      )}
 
       {/* Toasts deslizables: mensajes efímeros de operaciones (import/export).
           El deck se monta una sola vez y se mantiene a nivel del editor —

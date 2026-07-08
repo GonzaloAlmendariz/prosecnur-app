@@ -20,6 +20,7 @@ import ExplorarTab from "./tabs/ExplorarTab";
 import ReglasCustomTab from "./tabs/ReglasCustomTab";
 import { useValidacionStore } from "./store";
 import type { ValidacionTabId } from "./types";
+import "./validacion-v2.css";
 
 // =============================================================================
 // Fase 2 — Validación v2 (shell)

@@ -1,0 +1,191 @@
+/* =============================================================================
+   xf-canvas.css — pulido gv2 del lienzo central del constructor XLSForm
+   =============================================================================
+   Refinamientos SOLO visuales sobre las clases del canvas (cards, section
+   headers, AddBetween, toggle de modos). Sobreescribe reglas de theme.css
+   desde acá — nunca editar theme.css para este módulo.
+   Solo se animan transform / opacity (+ box-shadow/border-color en
+   transiciones), duraciones ≤ 200ms.
+   ============================================================================= */
+
+/* --- 1 · Cards de pregunta: hover, selección y press ---------------------- */
+
+.pulso-xlsform-frame .pulso-canvas-card {
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xlsform-frame .pulso-canvas-card:hover:not(.is-selected) {
+    transform: translateY(-1px);
+  }
+}
+
+.pulso-xlsform-frame .pulso-canvas-card.is-selected {
+  border-color: color-mix(in srgb, var(--pulso-primary) 44%, var(--xls-border));
+  border-left-color: var(--pulso-primary);
+  box-shadow:
+    0 0 0 3px var(--pulso-primary-focus),
+    0 12px 28px rgba(15, 23, 42, 0.09);
+}
+
+/* Chip del tipo: español + término técnico entre paréntesis (TechTerm). */
+.pulso-xlsform-frame .pulso-canvas-card-typebadge .pulso-xf-tech {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Badges de estado (obligatoria / condicional / posición): pill compacto,
+   icono lucide 11-12px alineado. */
+.pulso-xlsform-frame .pulso-canvas-card-required,
+.pulso-xlsform-frame .pulso-canvas-card-conditional {
+  gap: 4px;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 740;
+  letter-spacing: 0.2px;
+  line-height: 1;
+}
+
+.pulso-xlsform-frame .pulso-canvas-card-required svg,
+.pulso-xlsform-frame .pulso-canvas-card-conditional svg {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+}
+
+/* TechTerm dentro de los preview boxes (título va en uppercase). */
+.pulso-xlsform-frame .pulso-canvas-previewbox .pulso-xf-tech {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* --- 2 · AddBetween: fade + scale desde 0.95, hover y press --------------- */
+
+.pulso-xlsform-frame .pulso-canvas-addbetween {
+  transform: scale(0.95);
+  transition:
+    opacity var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-fast) var(--motion-ease-out),
+    height var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-xlsform-frame .pulso-canvas-addbetween:hover,
+.pulso-xlsform-frame .pulso-canvas-addbetween:focus-within,
+.pulso-xlsform-frame .pulso-canvas-addbetween.is-open,
+.pulso-xlsform-frame .pulso-canvas-addbetween.is-always {
+  transform: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xlsform-frame .pulso-canvas-addbetween-trigger:hover {
+    box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+  }
+}
+
+.pulso-xlsform-frame .pulso-canvas-addbetween-trigger:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Menú de inserción: entrada tipo popover gv2 (fade + translate + scale,
+   nunca desde 0). Conserva el translateX(-50%) del centrado. */
+.pulso-xlsform-frame .pulso-canvas-addbetween-menu {
+  transform-origin: top center;
+  animation: pulso-xf-canvas-menu-in var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@keyframes pulso-xf-canvas-menu-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+/* --- 3 · SectionHeader: jerarquía + chevron animado ----------------------- */
+
+.pulso-xlsform-frame .pulso-canvas-section-title {
+  font-size: 15.5px;
+  font-weight: 760;
+  letter-spacing: -0.1px;
+}
+
+.pulso-xlsform-frame .pulso-canvas-section-count {
+  font-weight: 640;
+}
+
+.pulso-xlsform-frame .pulso-canvas-section-toggle svg {
+  transition: transform 160ms var(--motion-ease-out);
+}
+
+.pulso-xlsform-frame .pulso-canvas-section-toggle.is-collapsed svg {
+  transform: rotate(-90deg);
+}
+
+.pulso-xlsform-frame .pulso-canvas-section-boundary .pulso-xf-tech {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 9px;
+  text-overflow: ellipsis;
+}
+
+/* --- 4 · Toggle de modos (En foco / Formulario completo): segmented pill -- */
+
+.pulso-xlsform-frame .pulso-focus-mode-toggle {
+  padding: 3px;
+  gap: 3px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-xlsform-frame .pulso-focus-mode-toggle button {
+  border-radius: 999px;
+}
+
+.pulso-xlsform-frame .pulso-focus-mode-toggle button.is-on {
+  background: var(--pulso-primary);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+}
+
+.pulso-xlsform-frame .pulso-focus-mode-toggle button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* --- 5 · Accesibilidad: focus-visible + reduced motion -------------------- */
+
+.pulso-xlsform-frame .pulso-canvas-addbetween-trigger:focus-visible,
+.pulso-xlsform-frame .pulso-canvas-addbetween-menu-item:focus-visible,
+.pulso-xlsform-frame .pulso-canvas-addbetween-back:focus-visible,
+.pulso-xlsform-frame .pulso-canvas-section-toggle:focus-visible,
+.pulso-xlsform-frame .pulso-focus-mode-toggle button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-xlsform-frame .pulso-canvas-card,
+  .pulso-xlsform-frame .pulso-canvas-addbetween,
+  .pulso-xlsform-frame .pulso-canvas-addbetween-trigger,
+  .pulso-xlsform-frame .pulso-canvas-addbetween-menu,
+  .pulso-xlsform-frame .pulso-canvas-section-toggle svg,
+  .pulso-xlsform-frame .pulso-focus-mode-toggle button {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .pulso-xlsform-frame .pulso-canvas-addbetween {
+    transform: none;
+  }
+
+  .pulso-xlsform-frame .pulso-canvas-card:hover:not(.is-selected) {
+    transform: none;
+  }
+}

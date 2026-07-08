@@ -205,6 +205,23 @@ export function GraphEdgeArrow({
         strokeLinejoin="round"
         markerEnd={`url(#pulso-graph-arrow-${markerIdFor(color)})`}
       />
+      {/* Overlay "flow" del edge seleccionado: dash blanco fino que
+          fluye en la dirección de la dependencia (anima solo
+          stroke-dashoffset, via .pulso-graph-edge-flowline en
+          xf-graph.css). Puramente presentacional. */}
+      {isSelected && (
+        <path
+          className="pulso-graph-edge-flowline"
+          d={edge.path}
+          fill="none"
+          stroke="white"
+          strokeWidth={Math.max(1.2, strokeWidth - 1.6)}
+          strokeDasharray="5 9"
+          strokeLinecap="round"
+          strokeOpacity={0.75}
+          pointerEvents="none"
+        />
+      )}
     </g>
   );
 }

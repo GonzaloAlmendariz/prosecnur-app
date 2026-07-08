@@ -75,14 +75,14 @@ export function CodebookPane() {
         <div className="analitica-codebook-info">
           <Info size={14} />
           <div>
-            Esta corrida usa la fuente analítica <strong>{fuenteLabel}</strong> y aplica los cambios confirmados en <strong>Datos / Revisión de data</strong>: variables excluidas, etiquetas de preguntas y etiquetas de opciones. El resultado principal es el libro de códigos; el <strong>XLSForm final</strong> queda disponible aquí mismo al terminar.
+            Usa la fuente <strong>{fuenteLabel}</strong> con las exclusiones y etiquetas confirmadas en <strong>Datos</strong>; el <strong>XLSForm final</strong> se genera en la misma corrida.
           </div>
         </div>
 
         <Section
           title="1. Códigos especiales"
           subtitle={<>
-            Los códigos <code>95</code>–<code>99</code> son convenciones Pulso para respuestas especiales (NS/NR/NA). Las variables marcadas aquí <strong>solo los muestran si al menos un respondiente los marcó</strong>. Así evitas que la tabla final traiga filas vacías.
+            Convenciones Pulso para NS/NR/NA: los códigos marcados solo aparecen si alguien los respondió, sin filas vacías en la tabla final.
           </>}
         >
           <div className="analitica-codebook-code-grid">
@@ -154,7 +154,7 @@ function FinalXlsformDownload({ result }: { result?: MultiBaseResult }) {
       </div>
 
       <div className="analitica-codebook-xlsform-copy">
-        Este archivo se genera junto con el libro de códigos y usa las mismas etiquetas de variables y opciones que Frecuencias, Bases y Cruces. También omite las variables excluidas en Datos / Revisión.
+        Sale de la misma corrida: mismas etiquetas y exclusiones que Frecuencias, Bases y Cruces.
       </div>
       {fileId ? (
         <div className="analitica-codebook-sync">

@@ -1,0 +1,236 @@
+/* =============================================================================
+ * xlsform-v2.css — capa visual v2 del editor XLSForm
+ * =============================================================================
+ * Lleva el chrome del editor al lenguaje del generador de gráficos
+ * (editor-v2.css, .pulso-gv2-*): pills, segmented, glass, popovers con entrada
+ * origin-aware y feedback de presión. Reusa tokens --pulso-* / --xls-* del
+ * theme global; acá solo viven keyframes propios, el estilo de término técnico
+ * y overrides scoped a .pulso-xlsform-frame para no tocar otros módulos.
+ *
+ * Convención de prefijo: `.pulso-xf-*`.
+ * ========================================================================= */
+
+/* ── Keyframes compartidos del módulo ──────────────────────────────────── */
+
+@keyframes pulso-xf-popover-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pulso-xf-fade-in-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulso-xf-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pulso-xf-sheet-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Término técnico XLSForm ───────────────────────────────────────────── */
+/* "Condición para mostrarse (relevant)" — el paréntesis lo pone el CSS. */
+
+.pulso-xf-tech {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.88em;
+  font-weight: 500;
+  font-style: normal;
+  color: var(--pulso-text-muted, #9aa4b2);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.pulso-xf-tech::before { content: "("; }
+.pulso-xf-tech::after  { content: ")"; }
+
+/* ── Selector de modo (Constructor | Hojas) → segmented pill gv2 ───────── */
+
+.pulso-xlsform-frame .pulso-mode-toggle {
+  padding: 3px;
+  gap: 3px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-primary-border);
+  box-shadow: var(--pulso-shadow-low);
+  backdrop-filter: blur(8px) saturate(1.06);
+  -webkit-backdrop-filter: blur(8px) saturate(1.06);
+}
+
+.pulso-xlsform-frame .pulso-mode-toggle button {
+  min-height: 30px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-weight: 650;
+  transition:
+    background var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-xlsform-frame .pulso-mode-toggle button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.pulso-xlsform-frame .pulso-mode-toggle button.is-on {
+  background: var(--pulso-primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+}
+
+/* ── Botones del commandbar → pills con feedback de presión ────────────── */
+
+.pulso-xlsform-frame .pulso-xlsform-toolbar-button {
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-weight: 650;
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-xlsform-frame .pulso-xlsform-toolbar-button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.pulso-xlsform-frame .pulso-xlsform-toolbar-button.pulso-primary {
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xlsform-frame .pulso-xlsform-toolbar-button:hover:not(:disabled) {
+    border-color: var(--pulso-primary-border);
+    box-shadow: var(--pulso-shadow-soft);
+  }
+}
+
+.pulso-xlsform-frame .pulso-xlsform-history-button {
+  transition:
+    color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-xlsform-frame .pulso-xlsform-history-button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* ── Menú "Más vistas" → popover glass animado ─────────────────────────── */
+
+.pulso-xlsform-frame .pulso-more-views-trigger {
+  min-height: 30px;
+  border-radius: 999px;
+  padding: 5px 13px;
+  font-size: 12px;
+  font-weight: 650;
+  background: var(--pulso-surface);
+  border-color: var(--pulso-primary-border);
+  transition:
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-xlsform-frame .pulso-more-views-trigger:active {
+  transform: scale(0.97);
+}
+
+.pulso-xlsform-frame .pulso-more-views-menu {
+  border-radius: 16px;
+  border-color: var(--pulso-primary-border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), color-mix(in srgb, var(--pulso-surface-2) 30%, #ffffff)),
+    #ffffff;
+  box-shadow: var(--pulso-shadow-popover);
+  backdrop-filter: blur(16px) saturate(1.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
+  transform-origin: top right;
+  animation: pulso-xf-popover-in var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-xlsform-frame .pulso-more-views-item {
+  border-radius: 10px;
+  transition: background var(--motion-dur-fast) ease, transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-xlsform-frame .pulso-more-views-item:active {
+  transform: scale(0.985);
+}
+
+/* Stagger sutil de los ítems al abrir el menú. */
+.pulso-xlsform-frame .pulso-more-views-item {
+  animation: pulso-xf-fade-in-up var(--motion-dur-fast) var(--motion-ease-out) backwards;
+}
+.pulso-xlsform-frame .pulso-more-views-item:nth-child(2) { animation-delay: 30ms; }
+.pulso-xlsform-frame .pulso-more-views-item:nth-child(3) { animation-delay: 60ms; }
+.pulso-xlsform-frame .pulso-more-views-item:nth-child(4) { animation-delay: 90ms; }
+.pulso-xlsform-frame .pulso-more-views-item:nth-child(5) { animation-delay: 120ms; }
+.pulso-xlsform-frame .pulso-more-views-item:nth-child(6) { animation-delay: 150ms; }
+
+/* ── Overlays de vista completa (mapa de lógica, cuestionario, resumen) ── */
+
+.pulso-xf-overlay-enter {
+  animation: pulso-xf-overlay-in var(--motion-dur-fast) ease;
+}
+
+.pulso-xf-overlay-enter > main,
+.pulso-xf-overlay-enter > .pulso-xf-overlay-body {
+  animation: pulso-xf-sheet-in var(--motion-dur-base) var(--motion-ease-out);
+}
+
+/* ── Commandbar: breakpoint intermedio ─────────────────────────────────── */
+/* Los pills v2 son más anchos que los botones previos; entre 1101 y 1520px
+   los tres grupos ya no caben en una fila. Las acciones bajan a fila propia
+   (mismo patrón que theme.css aplica recién a ≤1180px). */
+
+@media (min-width: 1101px) and (max-width: 1520px) {
+  .pulso-xlsform-commandbar {
+    grid-template-columns: minmax(200px, 1fr) auto;
+  }
+
+  .pulso-xlsform-commandbar-group--modes {
+    justify-content: flex-end;
+  }
+
+  .pulso-xlsform-commandbar-group--actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+/* ── Focus ring coherente para el chrome nuevo ─────────────────────────── */
+
+.pulso-xlsform-frame .pulso-mode-toggle button:focus-visible,
+.pulso-xlsform-frame .pulso-xlsform-toolbar-button:focus-visible,
+.pulso-xlsform-frame .pulso-more-views-trigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+/* ── Accesibilidad de movimiento ───────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-xlsform-frame .pulso-more-views-menu,
+  .pulso-xlsform-frame .pulso-more-views-item,
+  .pulso-xf-overlay-enter,
+  .pulso-xf-overlay-enter > main,
+  .pulso-xf-overlay-enter > .pulso-xf-overlay-body {
+    animation: none;
+  }
+  .pulso-xlsform-frame .pulso-mode-toggle button,
+  .pulso-xlsform-frame .pulso-xlsform-toolbar-button,
+  .pulso-xlsform-frame .pulso-xlsform-history-button,
+  .pulso-xlsform-frame .pulso-more-views-trigger,
+  .pulso-xlsform-frame .pulso-more-views-item {
+    transition-duration: 1ms;
+  }
+}

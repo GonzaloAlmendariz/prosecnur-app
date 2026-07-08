@@ -1,0 +1,578 @@
+/* =============================================================================
+ * xf-inspector.css — pulido visual del inspector del editor XLSForm
+ * =============================================================================
+ * Capa de refinamiento scoped al panel de propiedades (`.pulso-inspector.pulso-xfi`,
+ * la clase la pone inspector/Inspector.tsx). Sigue el lenguaje del generador
+ * de gráficos (editor-v2.css): segmented pills, press feedback scale(0.97),
+ * popovers con entrada origin-aware, focus ring `--pulso-primary-focus`.
+ *
+ * Convención: `.pulso-xfi-*` para clases y keyframes nuevos; los overrides de
+ * clases existentes van anidados bajo `.pulso-inspector.pulso-xfi` para ganar
+ * especificidad a los estilos de theme.css sin depender del orden de import.
+ * Solo se anima transform/opacity; hover gated a (hover:hover); bloque
+ * prefers-reduced-motion al final.
+ * ========================================================================= */
+
+/* ── Keyframes propios ─────────────────────────────────────────────────── */
+
+@keyframes pulso-xfi-pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pulso-xfi-pop-in-up {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pulso-xfi-fade-up {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Utilidades nuevas (sin scope: también sirven en el lienzo enfocado) ── */
+
+/* Input monoespaciado para campos técnicos (name, parameters, repeat_count). */
+.pulso-xfi-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+}
+
+input.pulso-xfi-mono.is-invalid {
+  border-color: var(--pulso-warn-fg);
+  background: var(--pulso-warn-bg);
+}
+
+.pulso-xfi-namefield {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pulso-xfi-namefield-warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--pulso-warn-fg);
+}
+
+/* Fila input + acciones de confirmación del rename (borrador pendiente). */
+.pulso-xfi-namefield-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pulso-xfi-namefield-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pulso-xfi-namefield-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  animation: pulso-xfi-pop-in var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-xfi-namefield-apply {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-primary);
+  background: var(--pulso-primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    opacity var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-xfi-namefield-apply:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pulso-xfi-namefield-apply:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.pulso-xfi-namefield-revert {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  transition:
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-xfi-namefield-revert:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xfi-namefield-revert:hover {
+    border-color: var(--pulso-primary-border);
+    color: var(--pulso-text);
+  }
+}
+
+.pulso-xfi-namefield-pending {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xfi-namefield-pending code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  color: var(--pulso-text);
+  background: var(--pulso-surface-2);
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+
+/* Encabezado "Código Kobo (columna)" de los readouts de fórmula cruda. */
+.pulso-xfi-code-head {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 760;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--pulso-text-muted, #9aa4b2);
+}
+
+.pulso-xfi-code-head .pulso-xf-tech {
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-weight: 500;
+}
+
+/* Contador de opciones del catálogo como badge pill. */
+.pulso-catalogchip-meta .pulso-xfi-catcount {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 2px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 760;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.pulso-catalogchip-meta .pulso-xfi-catcount.is-empty {
+  border-color: var(--pulso-warn-border, rgba(217, 119, 6, 0.3));
+  background: var(--pulso-warn-bg, #fef3c7);
+  color: var(--pulso-warn-fg, #b45309);
+}
+
+/* ── Labels con TechTerm ───────────────────────────────────────────────── */
+
+.pulso-inspector.pulso-xfi .pulso-inspector-field-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.pulso-inspector.pulso-xfi .pulso-inspector-field-hint {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.pulso-inspector.pulso-xfi .pulso-inspector-toggle strong .pulso-xf-tech {
+  font-weight: 500;
+}
+
+/* ── Tabs → segmented pill ─────────────────────────────────────────────── */
+
+.pulso-inspector.pulso-xfi .pulso-inspector-tabs {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 3px;
+  padding: 3px;
+  margin: 0;
+  border: 1px solid var(--pulso-primary-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-inspector.pulso-xfi .pulso-inspector-tab-trigger {
+  justify-content: center;
+  min-width: 0;
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--pulso-text-soft);
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-inspector.pulso-xfi .pulso-inspector-tab-trigger svg {
+  flex-shrink: 0;
+}
+
+.pulso-inspector.pulso-xfi .pulso-inspector-tab-trigger:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.pulso-inspector.pulso-xfi .pulso-inspector-tab-trigger.is-active {
+  color: #ffffff;
+  background: var(--pulso-primary);
+  border-bottom-color: transparent;
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+}
+
+/* ── Bloques del inspector ─────────────────────────────────────────────── */
+
+.pulso-inspector.pulso-xfi .pulso-inspector-block {
+  border-radius: 12px;
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Entrada suave del contenido de la tab activa. */
+.pulso-inspector.pulso-xfi .pulso-inspector-tab {
+  animation: pulso-xfi-fade-up var(--motion-dur-base) var(--motion-ease-out) both;
+}
+
+.pulso-inspector.pulso-xfi .pulso-inspector-tab > .pulso-inspector-block:nth-child(2) { animation: pulso-xfi-fade-up var(--motion-dur-base) var(--motion-ease-out) 40ms both; }
+.pulso-inspector.pulso-xfi .pulso-inspector-tab > .pulso-inspector-block:nth-child(3) { animation: pulso-xfi-fade-up var(--motion-dur-base) var(--motion-ease-out) 80ms both; }
+.pulso-inspector.pulso-xfi .pulso-inspector-tab > .pulso-inspector-block:nth-child(4) { animation: pulso-xfi-fade-up var(--motion-dur-base) var(--motion-ease-out) 120ms both; }
+
+/* ── Inputs: transición de borde + focus ring coherente ────────────────── */
+
+.pulso-inspector.pulso-xfi input,
+.pulso-inspector.pulso-xfi textarea,
+.pulso-inspector.pulso-xfi select {
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    background-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-inspector.pulso-xfi input:focus-visible,
+.pulso-inspector.pulso-xfi textarea:focus-visible,
+.pulso-inspector.pulso-xfi select:focus-visible {
+  outline: none;
+  border-color: var(--pulso-primary);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+/* ── Botones: press feedback + focus ring ──────────────────────────────── */
+
+.pulso-inspector.pulso-xfi .pulso-logic-builder-add,
+.pulso-inspector.pulso-xfi .pulso-logic-builder-replace,
+.pulso-inspector.pulso-xfi .pulso-logic-builder-advanced,
+.pulso-inspector.pulso-xfi .pulso-logic-builder-clear,
+.pulso-inspector.pulso-xfi .pulso-logic-group-add,
+.pulso-inspector.pulso-xfi .pulso-logic-tree-add,
+.pulso-inspector.pulso-xfi .pulso-logic-tree-remove,
+.pulso-inspector.pulso-xfi .pulso-logic-tree-multi-remove,
+.pulso-inspector.pulso-xfi .pulso-logic-tree-multi-add,
+.pulso-inspector.pulso-xfi .pulso-logic-tree-multi-expand,
+.pulso-inspector.pulso-xfi .pulso-logic-condition-remove,
+.pulso-inspector.pulso-xfi .pulso-logic-valueinput-toggle,
+.pulso-inspector.pulso-xfi .pulso-logic-calc-insert,
+.pulso-inspector.pulso-xfi .pulso-logic-calc-template,
+.pulso-inspector.pulso-xfi .pulso-logic-calc-blank,
+.pulso-inspector.pulso-xfi .pulso-constraint-shortcut,
+.pulso-inspector.pulso-xfi .pulso-inspector-logic-clear,
+.pulso-inspector.pulso-xfi .pulso-inspector-clone-btn,
+.pulso-inspector.pulso-xfi .pulso-catalogchip-edit,
+.pulso-inspector.pulso-xfi .pulso-catalogchip-switch,
+.pulso-inspector.pulso-xfi .pulso-catalogchip-empty,
+.pulso-inspector.pulso-xfi .pulso-catalogchip-pop-create,
+.pulso-inspector.pulso-xfi .pulso-inspector-conditional-required-trigger {
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-inspector.pulso-xfi .pulso-logic-builder-add:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-logic-builder-replace:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-logic-builder-advanced:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-logic-builder-clear:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-logic-group-add:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-logic-tree-add:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-logic-tree-remove:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-logic-tree-multi-remove:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-logic-tree-multi-add:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-logic-tree-multi-expand:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-logic-condition-remove:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-logic-valueinput-toggle:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-logic-calc-insert:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-logic-calc-template:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-logic-calc-blank:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-constraint-shortcut:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-inspector-logic-clear:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-inspector-clone-btn:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-catalogchip-edit:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-catalogchip-switch:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-catalogchip-empty:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-catalogchip-pop-create:active:not(:disabled),
+.pulso-inspector.pulso-xfi .pulso-inspector-conditional-required-trigger:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.pulso-inspector.pulso-xfi button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+/* CTAs primarios del builder → pill azul con sombra suave. */
+.pulso-inspector.pulso-xfi .pulso-logic-builder-add,
+.pulso-inspector.pulso-xfi .pulso-logic-builder-replace,
+.pulso-inspector.pulso-xfi .pulso-catalogchip-edit {
+  border-radius: 999px;
+  font-weight: 650;
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+}
+
+.pulso-inspector.pulso-xfi .pulso-logic-builder-advanced,
+.pulso-inspector.pulso-xfi .pulso-logic-builder-clear,
+.pulso-inspector.pulso-xfi .pulso-logic-group-add,
+.pulso-inspector.pulso-xfi .pulso-logic-tree-add,
+.pulso-inspector.pulso-xfi .pulso-inspector-logic-clear,
+.pulso-inspector.pulso-xfi .pulso-inspector-clone-btn {
+  border-radius: 999px;
+}
+
+/* ── TypePicker ────────────────────────────────────────────────────────── */
+
+.pulso-inspector.pulso-xfi .pulso-typepicker-trigger {
+  border-radius: 10px;
+  border-color: color-mix(in srgb, var(--type-accent, var(--pulso-primary)) 26%, var(--pulso-border));
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-inspector.pulso-xfi .pulso-typepicker-trigger:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.pulso-inspector.pulso-xfi .pulso-typepicker-trigger:focus-visible {
+  outline: none;
+  border-color: var(--pulso-primary);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-inspector.pulso-xfi .pulso-typepicker-trigger-label {
+  font-weight: 620;
+}
+
+.pulso-inspector.pulso-xfi .pulso-typepicker-pop {
+  border-radius: 14px;
+  box-shadow: var(--pulso-shadow-popover, 0 10px 30px rgba(15, 23, 42, 0.15));
+  transform-origin: top center;
+  animation: pulso-xfi-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+}
+
+/* Stagger sutil de las familias de tipos al abrir (máx 6). */
+.pulso-inspector.pulso-xfi .pulso-typepicker-family {
+  animation: pulso-xfi-fade-up var(--motion-dur-base) var(--motion-ease-out) both;
+}
+.pulso-inspector.pulso-xfi .pulso-typepicker-family:nth-child(2) { animation-delay: 30ms; }
+.pulso-inspector.pulso-xfi .pulso-typepicker-family:nth-child(3) { animation-delay: 60ms; }
+.pulso-inspector.pulso-xfi .pulso-typepicker-family:nth-child(4) { animation-delay: 90ms; }
+.pulso-inspector.pulso-xfi .pulso-typepicker-family:nth-child(5) { animation-delay: 120ms; }
+.pulso-inspector.pulso-xfi .pulso-typepicker-family:nth-child(n + 6) { animation-delay: 150ms; }
+
+.pulso-inspector.pulso-xfi .pulso-typepicker-item {
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-inspector.pulso-xfi .pulso-typepicker-item:active {
+  transform: scale(0.97);
+}
+
+/* ── CatalogChip ───────────────────────────────────────────────────────── */
+
+.pulso-inspector.pulso-xfi .pulso-catalogchip-assigned {
+  border-radius: 12px;
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-inspector.pulso-xfi .pulso-catalogchip-icon {
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-primary) 9%, #ffffff);
+}
+
+.pulso-inspector.pulso-xfi .pulso-catalogchip-pop {
+  border-radius: 14px;
+  box-shadow: var(--pulso-shadow-popover, 0 10px 30px rgba(15, 23, 42, 0.15));
+  transform-origin: top center;
+  animation: pulso-xfi-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+}
+
+.pulso-inspector.pulso-xfi .pulso-catalogchip-pop-item {
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-inspector.pulso-xfi .pulso-catalogchip-pop-item:active {
+  transform: scale(0.98);
+}
+
+/* ── Builder de lógica ─────────────────────────────────────────────────── */
+
+/* Chip de variable teñido por el tipo de la pregunta referenciada. */
+.pulso-inspector.pulso-xfi .pulso-logic-varpicker-trigger {
+  border-radius: 9px;
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-inspector.pulso-xfi .pulso-logic-varpicker-trigger.is-selected {
+  border-color: color-mix(in srgb, var(--var-accent, var(--pulso-primary)) 32%, var(--pulso-border));
+  background: color-mix(in srgb, var(--var-accent-soft, var(--pulso-surface)) 34%, var(--pulso-surface));
+}
+
+.pulso-inspector.pulso-xfi .pulso-logic-varpicker-trigger:focus-visible,
+.pulso-inspector.pulso-xfi .pulso-logic-predicate-trigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-inspector.pulso-xfi .pulso-logic-varpicker-pop,
+.pulso-inspector.pulso-xfi .pulso-logic-calc-varpop {
+  border-radius: 14px;
+  box-shadow: var(--pulso-shadow-popover, 0 10px 30px rgba(15, 23, 42, 0.15));
+  transform-origin: top center;
+  animation: pulso-xfi-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+}
+
+.pulso-inspector.pulso-xfi .pulso-logic-predicate-pop {
+  border-radius: 14px;
+  box-shadow: var(--pulso-shadow-popover, 0 10px 30px rgba(15, 23, 42, 0.15));
+}
+
+.pulso-inspector.pulso-xfi .pulso-logic-predicate-pop.is-down {
+  transform-origin: top center;
+  animation: pulso-xfi-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+}
+
+.pulso-inspector.pulso-xfi .pulso-logic-predicate-pop.is-up {
+  transform-origin: bottom center;
+  animation: pulso-xfi-pop-in-up var(--motion-dur-fast) var(--motion-ease-out) both;
+}
+
+/* Fila de condición: hover sutil para reforzar que es editable. */
+.pulso-inspector.pulso-xfi .pulso-logic-condition-row {
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Readout de fórmula cruda: deja espacio al encabezado "Código Kobo". */
+.pulso-inspector.pulso-xfi .pulso-logic-builder-raw {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pulso-inspector.pulso-xfi .pulso-logic-builder-raw .pulso-xfi-code-head,
+.pulso-inspector.pulso-xfi .pulso-inspector-logic-readout .pulso-xfi-code-head {
+  margin-bottom: -2px;
+}
+
+/* ── Hover (solo puntero fino) ─────────────────────────────────────────── */
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-inspector.pulso-xfi .pulso-inspector-block:hover {
+    border-color: var(--xls-border-strong, color-mix(in srgb, var(--pulso-primary) 16%, var(--pulso-border)));
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+  }
+
+  .pulso-inspector.pulso-xfi .pulso-inspector-tab-trigger:hover:not(.is-active) {
+    background: rgba(255, 255, 255, 0.58);
+    color: var(--pulso-text);
+  }
+
+  .pulso-inspector.pulso-xfi .pulso-typepicker-trigger:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--type-accent, var(--pulso-primary)) 48%, var(--pulso-border));
+    background: var(--pulso-surface-2);
+  }
+
+  .pulso-inspector.pulso-xfi .pulso-catalogchip-assigned:hover {
+    border-color: color-mix(in srgb, var(--pulso-primary) 24%, var(--pulso-border));
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+  }
+
+  .pulso-inspector.pulso-xfi .pulso-logic-varpicker-trigger:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--var-accent, var(--pulso-primary)) 55%, var(--pulso-border));
+  }
+
+  .pulso-inspector.pulso-xfi .pulso-logic-condition-row:hover {
+    border-color: color-mix(in srgb, var(--pulso-primary) 18%, var(--pulso-border));
+  }
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-inspector.pulso-xfi *,
+  .pulso-inspector.pulso-xfi *::before,
+  .pulso-inspector.pulso-xfi *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .pulso-inspector.pulso-xfi .pulso-inspector-tab-trigger:active:not(:disabled),
+  .pulso-inspector.pulso-xfi .pulso-typepicker-trigger:active:not(:disabled),
+  .pulso-inspector.pulso-xfi .pulso-typepicker-item:active,
+  .pulso-inspector.pulso-xfi .pulso-catalogchip-pop-item:active {
+    transform: none;
+  }
+}

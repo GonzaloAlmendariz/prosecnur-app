@@ -1,0 +1,384 @@
+/* =============================================================================
+ * xf-summary.css — vista "Resumen del formulario" (shell/FormSummaryView.tsx)
+ * =============================================================================
+ * Overlay full-screen con panorama ejecutivo: KPI cards con stagger de entrada,
+ * barras horizontales CSS puras por tipo de pregunta (scaleX + stagger 40ms),
+ * mapa de secciones clickeable y badge de salud estilo gv2.
+ *
+ * Regla "No Scroll Jail": un solo dueño de scroll — .pulso-xfsum-main lleva
+ * overflow-y auto; el header queda fijo arriba.
+ *
+ * Namespace: `.pulso-xfsum-*`.
+ * ========================================================================= */
+
+@keyframes pulso-xfsum-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulso-xfsum-bar-in {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* Por encima del resto del chrome del editor (pulso-graph-overlay usa 900). */
+.pulso-xfsum-overlay {
+  z-index: 940;
+}
+
+/* ── Cuerpo scrolleable (único dueño de scroll del overlay) ────────────── */
+
+.pulso-xfsum-main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 20px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.pulso-xfsum-main > * {
+  width: 100%;
+  max-width: 900px;
+}
+
+/* ── KPI cards ─────────────────────────────────────────────────────────── */
+
+.pulso-xfsum-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 10px;
+}
+
+.pulso-xfsum-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  box-shadow: var(--pulso-shadow-low);
+  animation: pulso-xfsum-in var(--motion-dur-base) var(--motion-ease-out) backwards;
+}
+
+.pulso-xfsum-kpi-icon {
+  display: inline-flex;
+  color: var(--pulso-primary);
+}
+
+.pulso-xfsum-kpi-value {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pulso-xfsum-kpi-label {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+
+/* ── Grid de paneles ───────────────────────────────────────────────────── */
+
+.pulso-xfsum-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.pulso-xfsum-panel {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  box-shadow: var(--pulso-shadow-low);
+  animation: pulso-xfsum-in var(--motion-dur-base) var(--motion-ease-out) 120ms backwards;
+}
+
+.pulso-xfsum-panel-title {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 760;
+  color: var(--pulso-text);
+  letter-spacing: 0.01em;
+}
+
+.pulso-xfsum-types,
+.pulso-xfsum-sections,
+.pulso-xfsum-diags {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Distribución por tipo (barras horizontales CSS puras) ─────────────── */
+
+.pulso-xfsum-type-row {
+  display: grid;
+  grid-template-columns: 18px minmax(120px, 1fr) minmax(70px, 1.1fr) 28px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  animation: pulso-xfsum-in var(--motion-dur-base) var(--motion-ease-out) backwards;
+}
+
+.pulso-xfsum-type-icon {
+  display: inline-flex;
+  justify-content: center;
+}
+
+.pulso-xfsum-type-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.pulso-xfsum-type-bar {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+}
+
+.pulso-xfsum-type-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transform-origin: left;
+  animation: pulso-xfsum-bar-in 220ms var(--motion-ease-out) backwards;
+}
+
+.pulso-xfsum-type-count {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--pulso-text-soft);
+}
+
+/* ── Mapa de secciones ─────────────────────────────────────────────────── */
+
+.pulso-xfsum-section-item {
+  animation: pulso-xfsum-in var(--motion-dur-base) var(--motion-ease-out) backwards;
+}
+
+.pulso-xfsum-section-row {
+  display: grid;
+  grid-template-columns: 18px minmax(110px, 1fr) minmax(50px, 0.9fr) auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 12px;
+  border-radius: 11px;
+  border: 1px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  color: var(--pulso-text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-xfsum-section-row:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.pulso-xfsum-section-row:disabled {
+  cursor: default;
+}
+
+.pulso-xfsum-section-icon {
+  display: inline-flex;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xfsum-section-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.pulso-xfsum-section-bar {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+}
+
+.pulso-xfsum-section-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--pulso-primary);
+  transform-origin: left;
+  animation: pulso-xfsum-bar-in 220ms var(--motion-ease-out) backwards;
+}
+
+.pulso-xfsum-section-count {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Salud: badge gv2 + lista de avisos clickeable ─────────────────────── */
+
+.pulso-xfsum-health-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.pulso-xfsum-health-head .pulso-xfsum-panel-title {
+  margin: 0;
+}
+
+.pulso-xfsum-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.pulso-xfsum-health.is-ok {
+  background: var(--pulso-success-bg);
+  border: 1px solid var(--pulso-success-border);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-xfsum-health.is-warn {
+  background: var(--pulso-warn-bg);
+  border: 1px solid var(--pulso-warn-border);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-xfsum-health.is-danger {
+  background: var(--pulso-danger-bg);
+  border: 1px solid var(--pulso-danger-border);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-xfsum-diag-item {
+  animation: pulso-xfsum-in var(--motion-dur-base) var(--motion-ease-out) backwards;
+}
+
+.pulso-xfsum-diag {
+  display: grid;
+  grid-template-columns: 8px auto 1fr;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  color: var(--pulso-text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-xfsum-diag:active:not(:disabled) {
+  transform: scale(0.995);
+}
+
+.pulso-xfsum-diag:disabled {
+  cursor: default;
+}
+
+.pulso-xfsum-diag-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pulso-text-muted);
+}
+
+.pulso-xfsum-diag.is-warn .pulso-xfsum-diag-dot {
+  background: var(--pulso-warn-fg);
+}
+
+.pulso-xfsum-diag strong {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pulso-xfsum-diag span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xfsum-empty-row {
+  font-size: 11.5px;
+  color: var(--pulso-text-muted);
+  padding: 4px 2px;
+}
+
+/* ── Hover gated ───────────────────────────────────────────────────────── */
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xfsum-section-row:hover:not(:disabled) {
+    background: var(--pulso-surface-2);
+    border-color: var(--pulso-border);
+  }
+  .pulso-xfsum-diag:hover:not(:disabled) {
+    background: var(--pulso-surface-2);
+  }
+}
+
+/* ── Focus visible ─────────────────────────────────────────────────────── */
+
+.pulso-xfsum-section-row:focus-visible,
+.pulso-xfsum-diag:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-xfsum-kpi,
+  .pulso-xfsum-panel,
+  .pulso-xfsum-type-row,
+  .pulso-xfsum-type-bar > i,
+  .pulso-xfsum-section-item,
+  .pulso-xfsum-section-bar > i,
+  .pulso-xfsum-diag-item {
+    animation: none;
+  }
+  .pulso-xfsum-section-row,
+  .pulso-xfsum-diag {
+    transition-duration: 1ms;
+  }
+}

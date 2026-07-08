@@ -13,6 +13,7 @@ import { blankSeed } from "./seeds/blank";
 import { householdSeed } from "./seeds/household";
 import { serviceQualitySeed } from "./seeds/serviceQuality";
 import { censusSeed } from "./seeds/census";
+import { stressSeed } from "./seeds/stress";
 import type { TemplateSeed, TemplateId } from "./seedHelper";
 
 export type { TemplateSeed, TemplateId } from "./seedHelper";
@@ -23,6 +24,8 @@ export const TEMPLATES: TemplateSeed[] = [
   householdSeed,
   serviceQualitySeed,
   censusSeed,
+  // Seed de QA visual: `devOnly` — la galería lo filtra fuera de dev.
+  stressSeed,
 ];
 
 /** Búsqueda por id (raro, útil para deep-links). */

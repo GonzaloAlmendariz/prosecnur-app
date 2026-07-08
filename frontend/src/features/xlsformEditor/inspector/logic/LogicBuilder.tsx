@@ -21,8 +21,10 @@
 // =============================================================================
 
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { X } from "lucide-react";
 import { IconHint } from "../../../../lib/icons";
+import TechTerm from "../../helpers/TechTerm";
 import {
   buildDefaultCondition,
   expandCondition,
@@ -42,12 +44,16 @@ export type LogicBuilderProps = {
   /** Expresión ODK actual. */
   expression: string;
   scope: LogicScope;
-  /** Etiqueta del campo (ej. "Cuándo aparece"). */
-  fieldLabel: string;
+  /** Etiqueta del campo (ej. "Cuándo aparece"). Acepta nodos para
+   *  incrustar `<TechTerm />`. */
+  fieldLabel: ReactNode;
   /** Hint debajo del builder. */
   hint?: string;
   /** Sujeto visible para textos humanos: "esta pregunta", "este bloque". */
   targetNoun?: string;
+  /** Columna XLSForm que edita este builder (ej. "relevant") — se muestra
+   *  junto al readout "Código Kobo". Solo estética. */
+  techTerm?: string;
   /** Callback con la expresión ODK serializada. */
   onChange: (next: string) => void;
 };
@@ -58,6 +64,7 @@ export function LogicBuilder({
   fieldLabel,
   hint,
   targetNoun = "esta pregunta",
+  techTerm,
   onChange,
 }: LogicBuilderProps) {
   const rawExpression = expression.trim();
@@ -103,10 +110,7 @@ export function LogicBuilder({
           </header>
           <div className="pulso-logic-builder-guided-empty">
             <NoVariablesGuidedCondition />
-            <p>
-              Las condiciones guiadas necesitan una pregunta ubicada antes de
-              {` ${targetNoun}`}. Cuando exista, aparecerá aquí para elegirla.
-            </p>
+            <p>Necesita una pregunta ubicada antes de {targetNoun}.</p>
             <div className="pulso-logic-builder-rawactions">
               <button
                 type="button"
@@ -188,10 +192,12 @@ export function LogicBuilder({
           </button>
         </header>
         <div className="pulso-logic-builder-raw">
+          <span className="pulso-xfi-code-head" aria-hidden="true">
+            Código Kobo{techTerm ? <> <TechTerm t={techTerm} /></> : null}
+          </span>
           <pre>{ast.text}</pre>
           <p className="pulso-logic-builder-rawhint">
-            Esta fórmula se preserva al exportar. Puedes editarla aquí si ya
-            conoces el código XLSForm.
+            Se preserva al exportar; edítala si conoces el código XLSForm.
           </p>
           <div className="pulso-logic-builder-rawactions">
             <button
@@ -405,10 +411,7 @@ function ManualFormulaEditor({
           placeholder="${pregunta_1} = 'si'"
         />
       </label>
-      <p>
-        Úsala cuando necesitas una condición avanzada o todavía no hay una
-        pregunta previa disponible para el asistente visual.
-      </p>
+      <p>Para condiciones avanzadas o sin pregunta previa disponible.</p>
       <div className="pulso-logic-builder-rawactions">
         <button
           type="button"

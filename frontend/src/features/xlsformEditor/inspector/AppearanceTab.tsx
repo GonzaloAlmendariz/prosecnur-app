@@ -10,6 +10,7 @@
 // =============================================================================
 
 import type { BuilderNode } from "../types";
+import TechTerm from "../helpers/TechTerm";
 import { AppearancePicker } from "./AppearancePicker";
 import { InspectorBlock, InspectorField } from "./InspectorPrimitives";
 
@@ -27,8 +28,8 @@ export function AppearanceTab({ node, onFieldChange }: AppearanceTabProps) {
     <div className="pulso-inspector-tab">
       <InspectorBlock>
         <InspectorField
-          label="Apariencia"
-          hint="Cómo se renderiza el control en el dispositivo. Puedes combinar varias."
+          label={<>Estilo del control <TechTerm t="appearance" /></>}
+          hint="Cómo se ve en el dispositivo; puedes combinar varios."
         >
           <AppearancePicker
             baseType={node.typeInfo.base}
@@ -41,8 +42,8 @@ export function AppearanceTab({ node, onFieldChange }: AppearanceTabProps) {
       {isQuestionLike && !isSection && (
         <InspectorBlock>
           <InspectorField
-            label="Valor por defecto"
-            hint="Se mostrará prellenado al abrir la pregunta."
+            label={<>Valor por defecto <TechTerm t="default" /></>}
+            hint="Aparece prellenado al abrir la pregunta."
           >
             <input
               type="text"
@@ -56,8 +57,8 @@ export function AppearanceTab({ node, onFieldChange }: AppearanceTabProps) {
 
       <InspectorBlock>
         <InspectorField
-          label="Multimedia adjunta"
-          hint="Imagen, audio o video que acompañan a la consigna. Deben existir en la carpeta media del XLSForm."
+          label={<>Multimedia adjunta <TechTerm t="media::*" /></>}
+          hint="Los archivos deben existir en la carpeta media."
         >
           <div className="pulso-inspector-media-fields">
             <input

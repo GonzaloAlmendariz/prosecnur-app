@@ -349,7 +349,7 @@ function FormCanvasEmptyState({ onAddSection }: { onAddSection: () => void }) {
       </p>
       <p className="pulso-form-canvas-empty-text-secondary">
         Después de crear la sección, agregas las preguntas dentro con el
-        botón <code>+ Pregunta</code>.
+        botón <code>+</code> que aparece entre las piezas.
       </p>
       <button
         type="button"

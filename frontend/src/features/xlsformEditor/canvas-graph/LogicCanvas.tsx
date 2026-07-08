@@ -44,6 +44,7 @@ import { GraphNodeCard } from "./GraphNodeCard";
 import { CanvasToolbar } from "./CanvasToolbar";
 import { ConnectionConditionPicker } from "./ConnectionConditionPicker";
 import { GraphEdgeArrow, GraphEdgeMarkers } from "./GraphEdgeArrow";
+import "../styles/xf-graph.css";
 
 export type LogicCanvasProps = {
   open: boolean;
@@ -663,52 +664,57 @@ export function LogicCanvas({
           >
             <ChevronsUp size={13} /> Colapsar todo
           </button>
-          <span className="pulso-graph-sep" aria-hidden="true" />
-          <button
-            type="button"
-            className="pulso-icon"
-            onClick={() => {
-              triggerSmooth();
-              setZoom((z) => Math.max(0.3, z - 0.15));
-            }}
-            title="Alejar (-)"
-            aria-label="Alejar"
+          <div
+            className="pulso-graph-iconseg"
+            role="group"
+            aria-label="Zoom y vista"
           >
-            <ZoomOut size={14} />
-          </button>
-          <button
-            type="button"
-            className="pulso-icon"
-            onClick={() => {
-              triggerSmooth();
-              setZoom((z) => Math.min(2.5, z + 0.15));
-            }}
-            title="Acercar (+)"
-            aria-label="Acercar"
-          >
-            <ZoomIn size={14} />
-          </button>
-          <button
-            type="button"
-            className="pulso-icon"
-            onClick={() => {
-              triggerSmooth();
-              fitToScreen();
-            }}
-            title="Ajustar zoom para ver todos los bloques (F)"
-            aria-label="Ajustar a la pantalla"
-          >
-            <Maximize2 size={14} />
-          </button>
-          <button
-            type="button"
-            className={`pulso-icon ${legendOpen ? "is-on" : ""}`}
-            onClick={() => setLegendOpen((v) => !v)}
-            title="Cómo leer el mapa (?)"
-            aria-label="Cómo leer el mapa"
-          >
-            <Info size={14} />
-          </button>
+            <button
+              type="button"
+              className="pulso-icon"
+              onClick={() => {
+                triggerSmooth();
+                setZoom((z) => Math.max(0.3, z - 0.15));
+              }}
+              title="Alejar (-)"
+              aria-label="Alejar"
+            >
+              <ZoomOut size={14} />
+            </button>
+            <button
+              type="button"
+              className="pulso-icon"
+              onClick={() => {
+                triggerSmooth();
+                setZoom((z) => Math.min(2.5, z + 0.15));
+              }}
+              title="Acercar (+)"
+              aria-label="Acercar"
+            >
+              <ZoomIn size={14} />
+            </button>
+            <button
+              type="button"
+              className="pulso-icon"
+              onClick={() => {
+                triggerSmooth();
+                fitToScreen();
+              }}
+              title="Ajustar zoom para ver todos los bloques (F)"
+              aria-label="Ajustar a la pantalla"
+            >
+              <Maximize2 size={14} />
+            </button>
+            <button
+              type="button"
+              className={`pulso-icon ${legendOpen ? "is-on" : ""}`}
+              onClick={() => setLegendOpen((v) => !v)}
+              title="Cómo leer el mapa (?)"
+              aria-label="Cómo leer el mapa"
+            >
+              <Info size={14} />
+            </button>
+          </div>
           <button
             type="button"
             className="pulso-icon pulso-icon-danger"

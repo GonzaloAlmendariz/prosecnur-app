@@ -12,6 +12,7 @@
 // mismo conector). El AND/OR mixto y la negación parcial entran en F2-3.
 // =============================================================================
 
+import type { ReactNode } from "react";
 import { Plus } from "lucide-react";
 import type { FlatCondition, LogicScope } from "../../logic";
 import { ConditionRow } from "./ConditionRow";
@@ -25,7 +26,7 @@ export type LogicGroupBlockProps = {
   conditions: FlatCondition[];
   onChangeConditions: (next: FlatCondition[]) => void;
   /** Etiqueta humana del campo (ej. "Cuándo aparece"). */
-  fieldLabel: string;
+  fieldLabel: ReactNode;
   /** Constructor de una condición default cuando se agrega una nueva. */
   buildEmptyCondition: () => FlatCondition;
 };

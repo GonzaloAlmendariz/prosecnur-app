@@ -1,0 +1,533 @@
+/* =============================================================================
+ * xf-sheets.css — vista de HOJAS (modo Excel) del editor XLSForm
+ * =============================================================================
+ * Restyle de SheetsView al lenguaje visual gv2/xlsform-v2: tabs segmented
+ * pill, encabezados sticky con nombre técnico en mono suave, zebra sutil,
+ * icon-buttons redondos con press feedback y chip de color por tipo.
+ *
+ * Convención de prefijo: `.pulso-xfs-*`, todo scoped a `.pulso-xlsform-frame`
+ * para no interferir con otros módulos ni con las clases legacy
+ * `.pulso-sheets-*` de theme.css (que esta vista ya no usa).
+ * ========================================================================= */
+
+@keyframes pulso-xfs-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Contenedor ────────────────────────────────────────────────────────── */
+
+.pulso-xlsform-frame .pulso-xfs-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 14px 16px;
+}
+
+/* ── Tabs de hoja → segmented pill ─────────────────────────────────────── */
+
+.pulso-xlsform-frame .pulso-xfs-tabs {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-primary-border);
+  box-shadow: var(--pulso-shadow-low);
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.pulso-xlsform-frame .pulso-xfs-tab {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) ease;
+}
+.pulso-xlsform-frame .pulso-xfs-tab:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.pulso-xlsform-frame .pulso-xfs-tab:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xlsform-frame .pulso-xfs-tab:hover:not(.is-active) {
+    color: var(--pulso-text);
+    background: color-mix(in srgb, var(--pulso-primary) 6%, transparent);
+  }
+}
+.pulso-xlsform-frame .pulso-xfs-tab.is-active {
+  background: var(--pulso-primary);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+}
+.pulso-xlsform-frame .pulso-xfs-tab .pulso-xf-tech {
+  font-size: 10px;
+}
+.pulso-xlsform-frame .pulso-xfs-tab.is-active .pulso-xf-tech {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.pulso-xlsform-frame .pulso-xfs-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 17px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-primary) 9%, #ffffff);
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 760;
+  font-variant-numeric: tabular-nums;
+}
+.pulso-xlsform-frame .pulso-xfs-tab.is-active .pulso-xfs-tab-count {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+/* ── Toolbar ───────────────────────────────────────────────────────────── */
+
+.pulso-xlsform-frame .pulso-xfs-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.pulso-xlsform-frame .pulso-xfs-pill {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 13px;
+  border: 1px solid var(--xls-border);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--pulso-text);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) ease;
+}
+.pulso-xlsform-frame .pulso-xfs-pill:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.pulso-xlsform-frame .pulso-xfs-pill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.pulso-xlsform-frame .pulso-xfs-pill:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xlsform-frame .pulso-xfs-pill:hover:not(:disabled) {
+    border-color: var(--pulso-primary-border);
+    background: var(--pulso-surface-2);
+  }
+}
+
+.pulso-xlsform-frame .pulso-xfs-pill--primary {
+  background: var(--pulso-primary);
+  border-color: var(--pulso-primary);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xlsform-frame .pulso-xfs-pill--primary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--pulso-primary) 90%, #ffffff);
+    border-color: var(--pulso-primary);
+  }
+}
+
+.pulso-xlsform-frame .pulso-xfs-pill.is-on {
+  background: var(--pulso-primary-soft);
+  border-color: var(--pulso-primary-border);
+  color: var(--pulso-primary);
+}
+
+.pulso-xlsform-frame .pulso-xfs-newcol {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.pulso-xlsform-frame .pulso-xfs-newcol-input {
+  min-height: 30px;
+  width: 230px;
+  max-width: 100%;
+  padding: 4px 13px;
+  border: 1px solid var(--xls-border);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--pulso-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  transition:
+    border-color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) ease;
+}
+.pulso-xlsform-frame .pulso-xfs-newcol-input::placeholder {
+  font-family: inherit;
+  color: var(--pulso-text-muted, #9aa4b2);
+}
+.pulso-xlsform-frame .pulso-xfs-newcol-input:focus {
+  outline: none;
+  border-color: var(--pulso-primary);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-xlsform-frame .pulso-xfs-meta {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 550;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pulso-xlsform-frame .pulso-xfs-hint {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--pulso-text-soft);
+  margin-top: -4px;
+}
+
+/* ── Tabla ─────────────────────────────────────────────────────────────── */
+
+.pulso-xlsform-frame .pulso-xfs-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--xls-border);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: var(--pulso-shadow-low);
+  /* DataSurface: la tabla es la única dueña de su scroll interno (x/y).
+     Piso de 260px para que en alturas bajas (1024x600) no colapse en una
+     franja inusable; el fallback vertical vive en .pulso-main. */
+  max-height: max(260px, calc(100vh - 280px));
+  animation: pulso-xfs-in var(--motion-dur-fast) var(--motion-ease-out) both;
+}
+
+.pulso-xlsform-frame .pulso-xfs-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: 12px;
+}
+
+.pulso-xlsform-frame .pulso-xfs-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: linear-gradient(180deg, #ffffff, var(--pulso-surface-2));
+  border-bottom: 1px solid var(--xls-border);
+  padding: 8px 10px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.pulso-xlsform-frame .pulso-xfs-colhead {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: default;
+}
+/* Nombre técnico de columna: mono gris suave, sin paréntesis (el tooltip
+   en español vive en el title del th). */
+.pulso-xlsform-frame .pulso-xfs-colcode {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--pulso-text-soft);
+}
+.pulso-xlsform-frame .pulso-xfs-colhead.is-extension .pulso-xfs-colcode {
+  color: #925314;
+}
+.pulso-xlsform-frame .pulso-xfs-col-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 15px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, #b7791f 32%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, #f59e0b 11%, #ffffff);
+  color: #9a5b13;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 780;
+  letter-spacing: 0.02em;
+}
+
+/* Celdas del cuerpo + zebra sutil */
+.pulso-xlsform-frame .pulso-xfs-table tbody td {
+  border-bottom: 1px solid color-mix(in srgb, var(--xls-border) 62%, transparent);
+  padding: 4px 6px;
+  vertical-align: top;
+}
+.pulso-xlsform-frame .pulso-xfs-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.pulso-xlsform-frame .pulso-xfs-table tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--pulso-surface-2) 55%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xlsform-frame .pulso-xfs-table tbody tr:hover td {
+    background: color-mix(in srgb, var(--pulso-primary) 4%, transparent);
+  }
+}
+
+/* Columna de acciones sticky a la izquierda (fondo opaco obligatorio) */
+.pulso-xlsform-frame .pulso-xfs-actions-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 118px;
+  min-width: 118px;
+  background: var(--pulso-surface-2);
+  border-right: 1px solid color-mix(in srgb, var(--xls-border) 62%, transparent);
+}
+.pulso-xlsform-frame .pulso-xfs-table thead th.pulso-xfs-actions-col {
+  z-index: 3;
+  background: linear-gradient(180deg, #ffffff, var(--pulso-surface-2));
+}
+.pulso-xlsform-frame .pulso-xfs-table tbody td.pulso-xfs-actions-col {
+  background: var(--pulso-surface-2);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xlsform-frame .pulso-xfs-table tbody tr:hover td.pulso-xfs-actions-col {
+    background: color-mix(in srgb, var(--pulso-primary) 5%, var(--pulso-surface-2));
+  }
+}
+
+.pulso-xlsform-frame .pulso-xfs-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pulso-xlsform-frame .pulso-xfs-row-num {
+  min-width: 18px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.pulso-xlsform-frame .pulso-xfs-row-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Icon-buttons redondos 28px con press feedback */
+.pulso-xlsform-frame .pulso-xfs-iconbtn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    opacity var(--motion-dur-fast) ease;
+}
+.pulso-xlsform-frame .pulso-xfs-iconbtn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.pulso-xlsform-frame .pulso-xfs-iconbtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.pulso-xlsform-frame .pulso-xfs-iconbtn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xlsform-frame .pulso-xfs-iconbtn:hover:not(:disabled) {
+    background: var(--pulso-primary-soft);
+    border-color: var(--pulso-primary-border);
+    color: var(--pulso-primary);
+  }
+  .pulso-xlsform-frame .pulso-xfs-iconbtn--danger:hover:not(:disabled) {
+    background: var(--pulso-danger-bg, rgba(220, 38, 38, 0.08));
+    border-color: color-mix(in srgb, #dc2626 26%, transparent);
+    color: var(--pulso-danger-fg, #dc2626);
+  }
+
+  /* En desktop los botones aparecen al hover / focus de la fila;
+     en touch (sin hover) quedan siempre visibles. */
+  .pulso-xlsform-frame .pulso-xfs-row-btns .pulso-xfs-iconbtn {
+    opacity: 0;
+  }
+  .pulso-xlsform-frame .pulso-xfs-table tbody tr:hover .pulso-xfs-iconbtn,
+  .pulso-xlsform-frame .pulso-xfs-table tbody tr:focus-within .pulso-xfs-iconbtn {
+    opacity: 1;
+  }
+  .pulso-xlsform-frame .pulso-xfs-row-btns .pulso-xfs-iconbtn:disabled {
+    opacity: 0;
+  }
+  .pulso-xlsform-frame .pulso-xfs-table tbody tr:hover .pulso-xfs-iconbtn:disabled,
+  .pulso-xlsform-frame .pulso-xfs-table tbody tr:focus-within .pulso-xfs-iconbtn:disabled {
+    opacity: 0.3;
+  }
+}
+
+/* ── Inputs de celda ───────────────────────────────────────────────────── */
+
+.pulso-xlsform-frame .pulso-xfs-cell {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-width: 110px;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--pulso-text);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.45;
+  resize: vertical;
+  transition:
+    border-color var(--motion-dur-fast) ease,
+    background var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) ease;
+}
+.pulso-xlsform-frame .pulso-xfs-cell.is-expression {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  color: color-mix(in srgb, var(--pulso-primary) 82%, #1f2937);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xlsform-frame .pulso-xfs-cell:hover:not(:focus) {
+    background: color-mix(in srgb, var(--pulso-primary) 5%, #ffffff);
+  }
+}
+.pulso-xlsform-frame .pulso-xfs-cell:focus {
+  outline: none;
+  background: #ffffff;
+  border-color: var(--pulso-primary);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+.pulso-xlsform-frame .pulso-xfs-cell.is-multiline {
+  min-height: 40px;
+  white-space: pre-wrap;
+}
+
+/* Borrador de rename sin aplicar (celda `name` de survey): borde ámbar
+   discreto mientras el cambio está pendiente de blur/Enter. */
+.pulso-xlsform-frame .pulso-xfs-cell.is-pending {
+  border-color: var(--pulso-warn-border);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 55%, #ffffff);
+}
+
+/* ── Chip de tipo (columna `type`) ─────────────────────────────────────── */
+
+.pulso-xlsform-frame .pulso-xfs-type-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 150px;
+  padding: 2px 4px 2px 9px;
+  border: 1px solid color-mix(in srgb, var(--xfs-type-color) 28%, transparent);
+  border-radius: 999px;
+  background: var(--xfs-type-bg);
+}
+.pulso-xlsform-frame .pulso-xfs-type-chip svg {
+  flex: none;
+  color: var(--xfs-type-color);
+}
+.pulso-xlsform-frame .pulso-xfs-type-chip .pulso-xfs-cell {
+  min-width: 100px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  font-weight: 620;
+  color: color-mix(in srgb, var(--xfs-type-color) 78%, #1f2937);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xlsform-frame .pulso-xfs-type-chip .pulso-xfs-cell:hover:not(:focus) {
+    background: rgba(255, 255, 255, 0.55);
+  }
+}
+.pulso-xlsform-frame .pulso-xfs-type-chip .pulso-xfs-cell:focus {
+  background: #ffffff;
+  border-color: color-mix(in srgb, var(--xfs-type-color) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--xfs-type-color) 18%, transparent);
+  color: var(--pulso-text);
+}
+
+/* ── Vacíos ────────────────────────────────────────────────────────────── */
+
+.pulso-xlsform-frame .pulso-xfs-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px 20px;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: 550;
+  text-align: center;
+}
+
+/* ── Accesibilidad: reduced motion ─────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-xlsform-frame .pulso-xfs-table-wrap {
+    animation: none;
+  }
+  .pulso-xlsform-frame .pulso-xfs-tab,
+  .pulso-xlsform-frame .pulso-xfs-pill,
+  .pulso-xlsform-frame .pulso-xfs-iconbtn,
+  .pulso-xlsform-frame .pulso-xfs-cell,
+  .pulso-xlsform-frame .pulso-xfs-newcol-input {
+    transition: none;
+  }
+  .pulso-xlsform-frame .pulso-xfs-tab:active:not(:disabled),
+  .pulso-xlsform-frame .pulso-xfs-pill:active:not(:disabled),
+  .pulso-xlsform-frame .pulso-xfs-iconbtn:active:not(:disabled) {
+    transform: none;
+  }
+}
