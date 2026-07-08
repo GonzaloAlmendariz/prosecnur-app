@@ -5048,10 +5048,66 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   )
 }
 
-.monitoreo_ump_export_rows <- function(by_ump, only_missing = FALSE, responsable = "", distrito = "") {
+.monitoreo_ump_norm_key <- function(v) {
+  o <- trimws(gsub("^UMP\\s*", "", toupper(as.character(v)), perl = TRUE))
+  o <- sub("^R\\s*(?=[0-9])", "", o, perl = TRUE)
+  o <- sub("\\.0+$", "", o, perl = TRUE)
+  sub("^0+([0-9]+)$", "\\1", o, perl = TRUE)
+}
+
+# Mapa UMP -> responsable derivado del AVANCE (código pulso + roster). Sirve para
+# rellenar el responsable de UMP faltantes (sin reporte de ocurrencia): el equipo
+# igual hizo el avance ahí, así que su código pulso identifica al responsable.
+.monitoreo_ump_avance_responsable_map <- function(data, cfg) {
+  if (!is.data.frame(data) || !nrow(data)) return(list())
+  tcfg <- cfg$territorial %||% list()
+  pick_col <- function(primary, aliases) {
+    primary <- .monitoreo_scalar(primary, "")
+    if (nzchar(primary) && primary %in% names(data)) return(primary)
+    hit <- intersect(aliases, names(data))
+    if (length(hit)) hit[[1]] else ""
+  }
+  code_col <- pick_col(tcfg$pulso_code_var, c("closing_group/code_pulso", "code_pulso", "codigo_pulso", "cod_pulso"))
+  ump_col <- pick_col(tcfg$ump_var, c("closing_group/UMP", "UMP", "ump"))
+  if (!nzchar(code_col) || !nzchar(ump_col)) return(list())
+  roster <- .monitoreo_territorial_normalize_enumerator_roster(tcfg$enumerator_roster %||% list())
+  code_lookup <- new.env(parent = emptyenv())
+  for (a in (roster$assignments %||% list())) {
+    cd <- .monitoreo_territorial_clean_code(a$codigo_pulso, roster$code_format)
+    nm <- .monitoreo_scalar(a$nombre, "")
+    if (nzchar(cd) && nzchar(nm)) assign(cd, nm, envir = code_lookup)
+  }
+  codes <- as.character(data[[code_col]])
+  umps <- .monitoreo_ump_norm_key(data[[ump_col]])
+  resp <- vapply(codes, function(code) {
+    k <- .monitoreo_territorial_clean_code(code, roster$code_format)
+    if (nzchar(k) && exists(k, envir = code_lookup, inherits = FALSE)) get(k, envir = code_lookup, inherits = FALSE) else ""
+  }, character(1))
+  # Si el roster no resuelve el código, usar el propio código pulso como responsable.
+  no_name <- !nzchar(resp) & nzchar(codes)
+  resp[no_name] <- trimws(codes[no_name])
+  keep <- nzchar(umps) & nzchar(resp)
+  out <- list()
+  if (!any(keep)) return(out)
+  for (u in unique(umps[keep])) {
+    idx <- which(keep & umps == u)
+    tb <- sort(table(resp[idx]), decreasing = TRUE)
+    out[[u]] <- names(tb)[1]
+  }
+  out
+}
+
+.monitoreo_ump_export_rows <- function(by_ump, only_missing = FALSE, responsable = "", distrito = "", resp_map = list()) {
   if (is.null(by_ump) || !length(by_ump)) return(data.frame())
   responsable <- trimws(.monitoreo_scalar(responsable, ""))
   distrito <- trimws(.monitoreo_scalar(distrito, ""))
+  resolve_resp <- function(it) {
+    r <- trimws(.monitoreo_scalar(it$responsable, ""))
+    if (nzchar(r) && !identical(r, "Sin responsable")) return(r)
+    u <- .monitoreo_ump_norm_key(.monitoreo_scalar(it$ump, .monitoreo_scalar(it$key, "")))
+    cand <- .monitoreo_scalar(resp_map[[u]], "")
+    if (nzchar(cand)) cand else "Sin responsable"
+  }
   keep <- Filter(function(it) {
     # Solo las UMP DETERMINADAS (universo de ruta, las 150). Excluye reemplazos y
     # UMP fuera de ruta (una UMP cubierta por su reemplazo aparece en su slot titular).
@@ -5059,7 +5115,7 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
     if (identical(.monitoreo_scalar(it$route_match_status, ""), "ump_no_esperada")) return(FALSE)
     tiene <- isTRUE(it$has_report)
     if (isTRUE(only_missing) && tiene) return(FALSE)
-    if (nzchar(responsable) && !identical(trimws(.monitoreo_scalar(it$responsable, "")), responsable)) return(FALSE)
+    if (nzchar(responsable) && !identical(resolve_resp(it), responsable)) return(FALSE)
     if (nzchar(distrito) && !identical(trimws(tolower(.monitoreo_scalar(it$distrito, ""))), tolower(distrito))) return(FALSE)
     TRUE
   }, by_ump)
@@ -5069,7 +5125,7 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
     data.frame(
       Distrito = .monitoreo_scalar(it$distrito, ""),
       UMP = .monitoreo_scalar(it$ump, .monitoreo_scalar(it$key, "")),
-      Responsable = .monitoreo_scalar(it$responsable, "Sin responsable"),
+      Responsable = resolve_resp(it),
       `¿Tiene ocurrencias?` = if (tiene) "Sí" else "No",
       Fecha = if (tiene) .monitoreo_scalar(it$ultimo_reporte, "") else "",
       check.names = FALSE,
@@ -5140,7 +5196,8 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   only_missing <- isTRUE(parsed$only_missing %||% parsed$onlyMissing %||% parsed$faltantes)
   responsable <- .monitoreo_scalar(parsed$responsable, "")
   distrito <- .monitoreo_scalar(parsed$distrito, "")
-  ump_df <- .monitoreo_ump_export_rows(by_ump, only_missing = only_missing, responsable = responsable, distrito = distrito)
+  resp_map <- .monitoreo_ump_avance_responsable_map(main_data, cfg)
+  ump_df <- .monitoreo_ump_export_rows(by_ump, only_missing = only_missing, responsable = responsable, distrito = distrito, resp_map = resp_map)
 
   dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
   project <- .monitoreo_publication_project_label(parsed, s, cfg)
