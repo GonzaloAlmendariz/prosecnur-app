@@ -182,12 +182,10 @@ function ResumenPostBuild({ onEditar }: { onEditar: () => void }) {
   return (
     <div className="analitica-dimensiones-summary">
       <Alert kind="info">
-        Dimensiones activas. Cruces, Gráficos y Dashboard ya pueden usar estos puntajes.
-        Si cambiaste la base o la codificación, regenera para refrescar; si quieres reorganizar preguntas y bloques, edita la estructura.
+        Dimensiones activas: Cruces, Gráficos y Dashboard ya pueden usar estos puntajes. Regenera si cambió la base; edita la estructura para reorganizar preguntas.
         <br />
         <span className="analitica-dimensiones-persistence-note">
-          Esta configuración viaja con tu <code>.pulso</code>; al reabrir el proyecto,
-          los puntajes estarán listos sin reimportar nada.
+          La configuración viaja con tu <code>.pulso</code>; al reabrir, los puntajes están listos.
         </span>
       </Alert>
 
@@ -243,6 +241,7 @@ function ResumenPostBuild({ onEditar }: { onEditar: () => void }) {
         </button>
         <button
           type="button"
+          className="pulso-secondary"
           onClick={regenerar}
           disabled={busy}
         >
