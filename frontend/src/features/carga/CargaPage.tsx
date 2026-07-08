@@ -42,6 +42,7 @@ import {
   uploadKindForDataFile,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
+import "./carga-v2.css";
 import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
 import { Panel } from "../../components/Panel";
 import { PageFrame } from "../../components/PageFrame";
@@ -2084,6 +2085,12 @@ function UploadCard({
             {hint}
           </span>
         </div>
+        <span
+          className={`pulso-upload-state${done ? " is-ready" : disabled && !done ? " is-blocked" : ""}`}
+          aria-hidden="true"
+        >
+          {done ? "Listo" : disabled ? "En espera" : "Pendiente"}
+        </span>
         {/* Botón Quitar — solo visible cuando el insumo ya está cargado. */}
         {done && (
           <button

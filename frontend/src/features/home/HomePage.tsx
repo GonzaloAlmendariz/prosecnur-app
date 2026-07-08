@@ -28,6 +28,7 @@ import { GlobalSettingsDialog } from "./GlobalSettingsDialog";
 import {
   type ReleaseNote,
 } from "./ReleaseNotesDrawer";
+import "./home-v2.css";
 
 // Home — menú principal de Prosecnur.
 //
