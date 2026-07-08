@@ -314,6 +314,49 @@
   animation: cga-fade-in-up var(--motion-dur-base) var(--motion-ease-out) both;
 }
 
+/* Procedencia Monitoreo: acento propio del módulo (carmín) para dejar claro
+   que el instrumento fue detectado desde Monitoreo, no cargado a mano. */
+.pulso-carga-frame .pulso-kobo-detected.is-from-monitoreo {
+  border-left: 3px solid var(--pulso-module-monitoring, #be123c);
+  background: color-mix(in srgb, var(--pulso-module-monitoring, #be123c) 5%, var(--pulso-surface, #fff));
+}
+.pulso-carga-frame .pulso-kobo-detected.is-from-monitoreo .pulso-kobo-detected-icon {
+  color: var(--pulso-module-monitoring, #be123c);
+  background: var(--pulso-module-monitoring-soft, rgba(190, 18, 60, 0.12));
+}
+.pulso-carga-frame .pulso-kobo-detected-origin {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--pulso-module-monitoring, #be123c);
+}
+.pulso-carga-frame .pulso-kobo-detected-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+.pulso-carga-frame .pulso-kobo-detected-fase {
+  font-style: normal;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--pulso-module-monitoring, #be123c);
+  background: var(--pulso-module-monitoring-soft, rgba(190, 18, 60, 0.12));
+  border: 1px solid var(--pulso-module-monitoring-border, rgba(190, 18, 60, 0.3));
+}
+.pulso-carga-frame .pulso-kobo-detected-host {
+  color: var(--pulso-text-faint, #8792a2);
+}
+
 /* ── Accesibilidad ─────────────────────────────────────────────────────── */
 
 .pulso-carga-frame :where(button, a, select, input, summary, [role="tab"]):focus-visible {
