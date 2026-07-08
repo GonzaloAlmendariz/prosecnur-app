@@ -93,6 +93,7 @@ export function AdaptarPane({ onBackToCodificar, onBackToMatrices }: Props) {
         <div style={{ flex: 1 }} />
         <button
           type="button"
+          className="pulso-cv2-pill"
           onClick={load}
           disabled={busyLoad}
           style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}
@@ -157,10 +158,10 @@ export function AdaptarPane({ onBackToCodificar, onBackToMatrices }: Props) {
       {/* Acciones */}
       {!output && (
         <div className="pulso-codificacion-adaptar-actions">
-          <button type="button" onClick={onBackToCodificar} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <button type="button" className="pulso-cv2-pill" onClick={onBackToCodificar} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
             <ArrowLeft size={13} /> Volver a codificar
           </button>
-          <button type="button" onClick={onBackToMatrices} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <button type="button" className="pulso-cv2-pill" onClick={onBackToMatrices} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
             <FileSpreadsheet size={13} /> Revisar matrices
           </button>
           <div style={{ flex: 1 }} />

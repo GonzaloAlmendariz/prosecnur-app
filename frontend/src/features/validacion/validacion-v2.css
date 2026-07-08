@@ -1,0 +1,286 @@
+/* =============================================================================
+ * validacion-v2.css — capa visual gv2 del módulo Validación
+ * =============================================================================
+ * Solo estética sobre la capa propia del módulo: pills, chips de variable,
+ * hovercards, cards narrativas de reglas y superficies de datos (drilldown).
+ * No define layout nuevo; complementa lo que theme.css ya estila para
+ * `.pulso-validacion-*`. Importado desde ValidacionPage.tsx.
+ *
+ * Convención de prefijo: `.pulso-vv2-*` (validación v2). Los componentes que
+ * portalan a document.body (hovercards) usan estas clases directamente porque
+ * el scope `.pulso-validacion-frame` no los alcanza.
+ * ========================================================================= */
+
+/* ── Keyframes ─────────────────────────────────────────────────────────── */
+
+@keyframes pulso-vv2-pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes pulso-vv2-fade-in-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── Pills gv2 ─────────────────────────────────────────────────────────── */
+/* Los botones de acción ya etiquetados del módulo pasan a pill sin tocar
+ * su TSX; `.pulso-vv2-pill` queda para botones con estilos inline. */
+
+.pulso-validacion-frame button.pulso-primary,
+.pulso-validacion-frame button.pulso-secondary,
+.pulso-validacion-frame .pulso-instrumento-action,
+.pulso-validacion-frame .pulso-criterios-summary-action,
+.pulso-vv2-pill {
+  border-radius: 999px !important;
+  min-height: 30px;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.pulso-validacion-frame button.pulso-primary {
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+}
+
+.pulso-vv2-pill--soft {
+  background: var(--pulso-surface) !important;
+  border: 1px solid var(--pulso-primary-border) !important;
+  color: var(--pulso-primary) !important;
+}
+
+.pulso-vv2-pill--quiet {
+  background: transparent !important;
+  border: 1px solid var(--pulso-border) !important;
+  color: var(--pulso-primary) !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-vv2-pill--quiet:hover:not(:disabled) {
+    border-color: var(--pulso-primary-border) !important;
+    background: var(--pulso-primary-soft) !important;
+  }
+}
+
+/* Botón de ícono circular (navegación ← → del explorador). */
+.pulso-vv2-iconbtn {
+  border-radius: 999px !important;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-vv2-iconbtn:hover:not(:disabled) {
+    background: var(--pulso-primary-soft) !important;
+  }
+}
+
+/* ── Segmented gv2 (selector de momento en Explorar) ───────────────────── */
+
+.pulso-vv2-segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-vv2-seg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 4px 13px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-vv2-seg-btn:hover:not(:disabled):not(.is-active) {
+    background: var(--pulso-surface);
+    color: var(--pulso-text);
+    transform: none;
+  }
+}
+
+.pulso-vv2-seg-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.pulso-vv2-seg-btn.is-active {
+  background: var(--pulso-primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+}
+
+.pulso-vv2-seg-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── Término técnico en microcopy ──────────────────────────────────────── */
+/* Nombre técnico (XLSForm, relevant, constraint…) en mono gris suave. */
+
+.pulso-vv2-tech {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92em;
+  color: var(--pulso-text-muted, var(--pulso-text-soft));
+}
+
+/* ── Chip de variable (VariableChip) ───────────────────────────────────── */
+
+.pulso-vv2-varchip {
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) ease;
+}
+
+.pulso-vv2-varchip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-vv2-varchip[role="button"]:hover {
+    box-shadow: 0 1px 5px rgba(15, 23, 42, 0.14);
+  }
+}
+
+.pulso-vv2-varchip[role="button"]:active {
+  transform: scale(0.96);
+}
+
+/* ── Hovercard de variable (portal a body) ─────────────────────────────── */
+
+.pulso-vv2-hovercard {
+  border-radius: 16px !important;
+  border-color: var(--pulso-primary-border) !important;
+  box-shadow: var(--pulso-shadow-popover) !important;
+  animation: pulso-vv2-pop-in var(--motion-dur-fast) var(--motion-ease-out);
+  transform-origin: top center;
+}
+
+/* ── Cards narrativas de reglas (RuleNarrative compact) ────────────────── */
+
+.pulso-vv2-rule-card {
+  animation: pulso-vv2-fade-in-up var(--motion-dur-base) var(--motion-ease-out) backwards;
+}
+
+/* Stagger de entrada — solo los primeros ítems de la lista. */
+.pulso-vv2-rule-card:nth-child(2) { animation-delay: 40ms; }
+.pulso-vv2-rule-card:nth-child(3) { animation-delay: 80ms; }
+.pulso-vv2-rule-card:nth-child(4) { animation-delay: 120ms; }
+.pulso-vv2-rule-card:nth-child(5) { animation-delay: 160ms; }
+.pulso-vv2-rule-card:nth-child(6) { animation-delay: 200ms; }
+
+.pulso-vv2-rule-card[role="button"] {
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) ease,
+    background var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-vv2-rule-card[role="button"]:hover {
+    transform: translateY(-1px);
+    border-color: var(--pulso-primary-border) !important;
+    box-shadow: var(--pulso-shadow-soft) !important;
+  }
+}
+
+.pulso-vv2-rule-card[role="button"]:active {
+  transform: scale(0.99);
+}
+
+.pulso-vv2-rule-card[role="button"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus) !important;
+}
+
+/* ── DataSurface del drilldown (DrilldownTable) ────────────────────────── */
+
+.pulso-vv2-table-scroll {
+  overflow: auto;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+}
+
+.pulso-vv2-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+
+.pulso-vv2-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--pulso-border);
+  background:
+    linear-gradient(180deg, var(--pulso-surface), color-mix(in srgb, var(--pulso-surface-2) 72%, var(--pulso-surface)));
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.pulso-vv2-table tbody td {
+  padding: 6px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 55%, transparent);
+  vertical-align: top;
+}
+
+.pulso-vv2-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Zebra sutil */
+.pulso-vv2-table tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--pulso-surface-2) 44%, transparent);
+}
+
+.pulso-vv2-table tbody tr.is-clickable {
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-vv2-table tbody tr.is-clickable:hover td {
+    background: var(--pulso-primary-soft);
+  }
+}
+
+/* ── Accesibilidad y motion ────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-vv2-hovercard,
+  .pulso-vv2-rule-card,
+  .pulso-vv2-seg-btn,
+  .pulso-vv2-varchip,
+  .pulso-vv2-iconbtn,
+  .pulso-vv2-pill {
+    animation: none !important;
+    transition-duration: 1ms !important;
+  }
+}
