@@ -22,6 +22,7 @@ import {
   apiJobStatus,
   apiMonitoreoClientReportPdf,
   apiMonitoreoProcessingHandoffExport,
+  apiMonitoreoProcessingHandoffPromote,
   apiMonitoreoPublicationEvidencePack,
   apiMonitoreoPublicationPreflight,
   apiMonitoreoPublicationSheetsPublish,
@@ -37,6 +38,7 @@ import {
   type MonitoreoDeliverablesPreflight,
   type MonitoreoLastSheetsPublication,
   type MonitoreoProcessingHandoffResult,
+  type MonitoreoProcessingHandoffPromoteResult,
   type MonitoreoProcessingHandoffUniverse,
   type MonitoreoPublicationEvidencePackResult,
   type MonitoreoTerritorialOperationalPackageReviewResult,
@@ -646,6 +648,11 @@ export function MonitoreoOutputsWorkbench({
     kind: "idle",
     message: "",
   });
+  const [promoteStatus, setPromoteStatus] = useState<ProcessingPackageStatus>({
+    kind: "idle",
+    message: "",
+  });
+  const [promoteResult, setPromoteResult] = useState<MonitoreoProcessingHandoffPromoteResult | null>(null);
   const clientInitial = useMemo(() => sheetsStateFromPublication(clientSheets), [clientSheets]);
   const internalInitial = useMemo(() => sheetsStateFromPublication(internalSheets), [internalSheets]);
   const [spreadsheetIds, setSpreadsheetIds] = useState<Record<OutputAudience, string>>({
@@ -1077,6 +1084,30 @@ export function MonitoreoOutputsWorkbench({
     }
   };
 
+  const sendToProcessing = async () => {
+    if (!canGenerateProcessingPackage) return;
+    setPromoteResult(null);
+    setPromoteStatus({
+      kind: "generating",
+      message: "Extrayendo instrumento de Kobo y armando la base...",
+    });
+    try {
+      const result = await apiMonitoreoProcessingHandoffPromote({
+        universe: processingUniverse,
+        ...(config ? { config } : {}),
+      });
+      setPromoteResult(result);
+      setPromoteStatus({
+        kind: "ready",
+        message: `Base "${result.base_nombre}" activa en Procesamiento.`,
+      });
+      window.dispatchEvent(new CustomEvent("pulso:project-status-changed"));
+      navigate("/procesamiento");
+    } catch (e) {
+      setPromoteStatus({ kind: "error", message: (e as Error).message });
+    }
+  };
+
   const publishSheets = async () => {
     if (!canPublishSheets) return;
     const audience = activeAudience;
@@ -1361,6 +1392,28 @@ export function MonitoreoOutputsWorkbench({
                 >
                   {processingPackageBusy ? <Loader2 size={14} className="pulso-spin" /> : <Download size={14} />}
                   {processingPackageBusy ? "Preparando paquete" : "Descargar data + XLSForm"}
+                </button>
+                {promoteStatus.kind !== "idle" ? (
+                  <div className={`mon-outputs-status is-${promoteStatus.kind}`} role="status" aria-live="polite">
+                    <span>{promoteStatus.message}</span>
+                    {promoteResult?.filter_report ? (
+                      <small>
+                        Incluye validada {promoteResult.filter_report.validada ?? 0} + revisión{" "}
+                        {promoteResult.filter_report.revision ?? 0} · excluye no_defendible{" "}
+                        {promoteResult.filter_report.no_defendible_excluidos ?? 0} · {promoteResult.filter_report.filas_incluidas ?? 0} filas.
+                      </small>
+                    ) : null}
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  className="mon-outputs-processing-link is-primary"
+                  onClick={() => { void sendToProcessing(); }}
+                  disabled={!canGenerateProcessingPackage || promoteStatus.kind === "generating"}
+                  title="Extrae el XLSForm fidedigno de Kobo y deja la base filtrada activa en Procesamiento."
+                >
+                  {promoteStatus.kind === "generating" ? <Loader2 size={14} className="pulso-spin" /> : <ArrowRight size={14} />}
+                  {promoteStatus.kind === "generating" ? "Enviando a Procesamiento" : "Enviar a Procesamiento"}
                 </button>
               </>
             ) : null}

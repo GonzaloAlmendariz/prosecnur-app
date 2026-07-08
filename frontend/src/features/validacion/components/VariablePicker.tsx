@@ -190,11 +190,13 @@ function VariableRow({
         alignItems: "flex-start",
         gap: 8,
         padding: "8px 10px",
-        background: selected ? "var(--pulso-primary-soft)" : "transparent",
+        background: selected
+          ? "color-mix(in srgb, var(--module-accent, #0f766e) 12%, transparent)"
+          : "transparent",
         border: selected
-          ? "1px solid var(--pulso-primary-border)"
+          ? "1px solid color-mix(in srgb, var(--module-accent, #0f766e) 34%, transparent)"
           : "1px solid transparent",
-        borderRadius: 6,
+        borderRadius: 8,
         textAlign: "left",
         cursor: "pointer",
         transition: "background 120ms ease, border-color 120ms ease",
@@ -229,7 +231,7 @@ function VariableRow({
           style={{
             fontSize: 11,
             fontFamily: "ui-monospace, monospace",
-            color: selected ? "var(--pulso-primary)" : "var(--pulso-text)",
+            color: selected ? "var(--module-accent, #0f766e)" : "var(--pulso-text)",
             fontWeight: 600,
             overflow: "hidden",
             textOverflow: "ellipsis",

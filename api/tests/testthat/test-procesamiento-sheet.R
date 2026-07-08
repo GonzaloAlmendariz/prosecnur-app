@@ -97,3 +97,71 @@ test_that("processing sheet exposes recoded columns even when the view is not gl
   expect_equal(by_key[["p35_recod.1"]]$type_kind, "sm")
   expect_equal(by_key[["p35_recod.1"]]$source_type_kind, "text")
 })
+
+test_that("payload expone categorias (so/sm) y min/max (integer) para filtros inteligentes", {
+  sexo <- c("1", "2", "1", "2", "3", "1")
+  attr(sexo, "labels") <- c(Hombre = "1", Mujer = "2", Otro = "3")
+  data <- data.frame(
+    sexo = I(sexo),
+    edad = c("22", "35", "48", "19", "67", "41"),
+    distrito = I(c("smp", "sjl", "smp", "ate", "sjl", "smp")),
+    stringsAsFactors = FALSE
+  )
+  inst <- list(
+    survey = data.frame(
+      type = c("select_one sx", "integer", "select_one dd"),
+      name = c("sexo", "edad", "distrito"),
+      label = c("Sexo", "Edad", "Distrito"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(list_name = character(), name = character(), label = character())
+  )
+  pl <- .procesamiento_sheet_payload(data = data, inst = inst, source = "carga")
+  cols <- stats::setNames(pl$columns, vapply(pl$columns, function(c) c$key, character(1)))
+
+  cats <- cols$sexo$categories
+  expect_equal(length(cats), 3L)
+  by_code <- stats::setNames(cats, vapply(cats, function(c) c$code, character(1)))
+  expect_equal(by_code[["1"]]$label, "Hombre")
+  expect_equal(by_code[["1"]]$count, 3L)
+  expect_null(cols$sexo$value_min)
+
+  expect_equal(cols$edad$value_min, 19)
+  expect_equal(cols$edad$value_max, 67)
+  expect_null(cols$edad$categories)
+
+  expect_equal(length(cols$distrito$categories), 3L)
+})
+
+test_that("filtro estructurado in/range/contains y substring retrocompatible", {
+  data <- data.frame(
+    sexo = c("1", "2", "1", "2", "3", "1"),
+    edad = c("22", "35", "48", "19", "67", "41"),
+    distrito = c("smp", "sjl", "smp", "ate", "sjl", "smp"),
+    stringsAsFactors = FALSE
+  )
+  inst <- list(
+    survey = data.frame(
+      type = c("select_one sx", "integer", "select_one dd"),
+      name = c("sexo", "edad", "distrito"),
+      label = c("Sexo", "Edad", "Distrito"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(list_name = character(), name = character(), label = character())
+  )
+  in_pl <- .procesamiento_sheet_payload(data = data, inst = inst, source = "carga",
+                                        column_filters = list(sexo = list(op = "in", values = list("2", "3"))))
+  expect_equal(in_pl$total, 3L)
+
+  rng <- .procesamiento_sheet_payload(data = data, inst = inst, source = "carga",
+                                      column_filters = list(edad = list(op = "range", min = 30, max = 50)))
+  expect_equal(rng$total, 3L)
+
+  cont <- .procesamiento_sheet_payload(data = data, inst = inst, source = "carga",
+                                       column_filters = list(distrito = list(op = "contains", value = "sm")))
+  expect_equal(cont$total, 3L)
+
+  substr <- .procesamiento_sheet_payload(data = data, inst = inst, source = "carga",
+                                         column_filters = list(distrito = "sjl"))
+  expect_equal(substr$total, 2L)
+})
