@@ -1,0 +1,331 @@
+/* =============================================================================
+ * carga-v2.css — capa visual gv2 del módulo Carga (Fase 1)
+ * =============================================================================
+ * Solo estética: sobreescribe clases .pulso-carga-* / .pulso-upload-* /
+ * .pulso-platform-* definidas en app/theme.css desde este archivo scoped.
+ * Lenguaje visual copiado del generador de gráficos v2 (pills, glass,
+ * badges semánticos, motion transform/opacity ≤220ms).
+ * Prefijo propio de esta capa: `cga-` (keyframes).
+ * ========================================================================= */
+
+/* ── Keyframes ─────────────────────────────────────────────────────────── */
+
+@keyframes cga-fade-in-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cga-pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes cga-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── 1) Upload cards — superficie glass + entrada con stagger ──────────── */
+
+.pulso-carga-frame .pulso-upload-card {
+  border-radius: 16px;
+  border-color: var(--pulso-primary-border);
+  background: color-mix(in srgb, var(--pulso-surface) 88%, transparent);
+  backdrop-filter: blur(10px) saturate(1.08);
+  -webkit-backdrop-filter: blur(10px) saturate(1.08);
+  box-shadow: var(--pulso-shadow-soft);
+}
+
+.pulso-carga-frame .pulso-upload-grid > .pulso-upload-card {
+  animation: cga-fade-in-up var(--motion-dur-base) var(--motion-ease-out) both;
+}
+
+.pulso-carga-frame .pulso-upload-grid > .pulso-upload-card:nth-child(2) {
+  animation-delay: 40ms;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-carga-frame .pulso-upload-card:hover:not(.is-disabled) {
+    border-color: color-mix(in srgb, var(--pulso-primary) 26%, var(--pulso-border));
+    box-shadow:
+      0 1px 1px rgba(15, 23, 42, 0.04),
+      0 14px 30px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+  }
+}
+
+.pulso-carga-frame .pulso-upload-card {
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-carga-frame .pulso-upload-card.is-done {
+  border-color: var(--pulso-success-border);
+}
+
+/* Badge de estado del insumo (vacío / listo / en espera) */
+.pulso-carga-frame .pulso-upload-state {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  margin-left: auto;
+  min-height: 20px;
+  padding: 3px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pulso-carga-frame .pulso-upload-state.is-ready {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-carga-frame .pulso-upload-state.is-blocked {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+/* El botón Quitar convive con el badge al final del head */
+.pulso-carga-frame .pulso-upload-card-head .pulso-upload-remove {
+  margin-left: 0;
+  flex-shrink: 0;
+}
+
+/* ── 2) Dropzone — borde dashed con realce sutil al hover ──────────────── */
+
+.pulso-carga-frame .pulso-upload-dropzone {
+  position: relative;
+  border-radius: 13px;
+  border-width: 1.5px;
+}
+
+.pulso-carga-frame .pulso-upload-dropzone::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1.5px dashed var(--pulso-primary-border);
+  border-radius: 10px;
+  opacity: 0;
+  transform: scale(0.985);
+  transition:
+    opacity var(--motion-dur-base) var(--motion-ease-out),
+    transform var(--motion-dur-base) var(--motion-ease-out);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-carga-frame .pulso-upload-dropzone:hover:not(.is-disabled) {
+    border-color: var(--pulso-primary-border);
+    background: color-mix(in srgb, var(--pulso-primary-soft) 42%, var(--pulso-surface));
+    color: var(--pulso-primary);
+  }
+
+  .pulso-carga-frame .pulso-upload-dropzone:hover:not(.is-disabled)::after {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .pulso-carga-frame .pulso-upload-dropzone:hover:not(.is-disabled) .pulso-upload-dropzone-icon {
+    transform: translateY(-2px);
+  }
+}
+
+.pulso-carga-frame .pulso-upload-dropzone.is-drag-over::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.pulso-carga-frame .pulso-upload-dropzone-icon {
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-carga-frame .pulso-upload-dropzone:active:not(.is-disabled) {
+  transform: scale(0.99);
+}
+
+/* ── 3) Botones → pills gv2 ────────────────────────────────────────────── */
+
+.pulso-carga-frame .pulso-upload-remove,
+.pulso-carga-frame .pulso-platform-load,
+.pulso-carga-frame .pulso-platform-refresh,
+.pulso-carga-frame .pulso-platform-import-button,
+.pulso-carga-frame .pulso-kobo-detected-primary,
+.pulso-carga-frame .pulso-kobo-detected-secondary,
+.pulso-carga-frame .pulso-choice-map-primary,
+.pulso-carga-frame .pulso-choice-map-secondary,
+.pulso-carga-frame .pulso-choice-map-inline-button,
+.pulso-carga-frame .pulso-normalized-export-actions button,
+.pulso-carga-frame .pulso-monitoring-suggestions-actions button,
+.pulso-carga-frame .pulso-continue-cta-link {
+  border-radius: 999px;
+  font-weight: 650;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-carga-frame .pulso-upload-remove:active:not(:disabled),
+.pulso-carga-frame .pulso-platform-load:active:not(:disabled),
+.pulso-carga-frame .pulso-platform-refresh:active:not(:disabled),
+.pulso-carga-frame .pulso-platform-import-button:active:not(:disabled),
+.pulso-carga-frame .pulso-kobo-detected-primary:active:not(:disabled),
+.pulso-carga-frame .pulso-kobo-detected-secondary:active:not(:disabled),
+.pulso-carga-frame .pulso-choice-map-primary:active:not(:disabled),
+.pulso-carga-frame .pulso-choice-map-secondary:active:not(:disabled),
+.pulso-carga-frame .pulso-choice-map-inline-button:active:not(:disabled),
+.pulso-carga-frame .pulso-normalized-export-actions button:active:not(:disabled),
+.pulso-carga-frame .pulso-monitoring-suggestions-actions button:active:not(:disabled),
+.pulso-carga-frame .pulso-continue-cta-link:active {
+  transform: scale(0.97);
+}
+
+/* Primarios: azul pleno + sombra suave del gv2 */
+.pulso-carga-frame .pulso-platform-import-button.is-ready,
+.pulso-carga-frame .pulso-kobo-detected-primary,
+.pulso-carga-frame .pulso-choice-map-primary,
+.pulso-carga-frame .pulso-continue-cta-link {
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+}
+
+/* ── 4) Estados semánticos: readiness + progreso ───────────────────────── */
+
+.pulso-carga-frame .pulso-carga-readiness-card {
+  border-radius: 12px;
+  transition:
+    border-color var(--motion-dur-fast) ease,
+    background var(--motion-dur-fast) ease;
+}
+
+.pulso-carga-frame .pulso-carga-readiness-card.is-ready {
+  border-color: var(--pulso-success-border);
+  background: color-mix(in srgb, var(--pulso-success-bg) 62%, #fff);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-carga-frame .pulso-carga-readiness-card.is-warning {
+  border-color: var(--pulso-warn-border);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 62%, #fff);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-carga-frame .pulso-carga-progress-steps li.is-ready .pulso-carga-progress-node {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+  opacity: 1;
+}
+
+.pulso-carga-frame .pulso-carga-progress-steps li.is-warning .pulso-carga-progress-node {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  opacity: 1;
+}
+
+/* ── 5) Stats del resumen — números tabulares grandes ──────────────────── */
+
+.pulso-carga-frame .pulso-resumen-stat {
+  border-radius: 11px;
+  font-size: 11px;
+}
+
+.pulso-carga-frame .pulso-resumen-stat strong {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Detalle técnico (normalización, columnas) en mono gris suave */
+.pulso-carga-frame .pulso-normalization-details,
+.pulso-carga-frame .pulso-column-details {
+  color: var(--pulso-text-muted);
+}
+
+.pulso-carga-frame .pulso-column-details code,
+.pulso-carga-frame .pulso-choice-map-card code {
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+}
+
+/* ── 6) Catálogo de plataforma — filas con hover elegante ──────────────── */
+
+.pulso-carga-frame .pulso-platform-row {
+  border-radius: 12px;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-carga-frame .pulso-platform-row:hover:not(.is-selected) {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--pulso-primary) 22%, var(--pulso-border));
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+  }
+}
+
+.pulso-carga-frame .pulso-platform-row.is-selected {
+  border-color: color-mix(in srgb, var(--pulso-primary) 38%, var(--pulso-border));
+  box-shadow: 0 0 0 1px var(--pulso-primary-border);
+}
+
+/* ── 7) Diálogo de mapeo — entrada tipo popover gv2 ────────────────────── */
+
+.pulso-carga-frame .pulso-choice-map-backdrop {
+  animation: cga-overlay-in var(--motion-dur-fast) ease both;
+}
+
+.pulso-carga-frame .pulso-choice-map-dialog {
+  border-radius: 18px;
+  box-shadow: var(--pulso-shadow-popover);
+  animation: cga-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+  transform-origin: top center;
+}
+
+.pulso-carga-frame .pulso-choice-map-confidence {
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 760;
+}
+
+/* Callout de fuente Kobo detectada — entrada suave */
+.pulso-carga-frame .pulso-kobo-detected {
+  border-radius: 14px;
+  animation: cga-fade-in-up var(--motion-dur-base) var(--motion-ease-out) both;
+}
+
+/* ── Accesibilidad ─────────────────────────────────────────────────────── */
+
+.pulso-carga-frame :where(button, a, select, input, summary, [role="tab"]):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-carga-frame *,
+  .pulso-carga-frame *::before,
+  .pulso-carga-frame *::after {
+    animation: none !important;
+    transition-duration: 1ms !important;
+  }
+}
