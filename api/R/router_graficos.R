@@ -20,6 +20,25 @@
   p_barras = "p_barras_agrupadas"
 )
 
+.graficos_resolve_template_pptx <- function() {
+  configured <- getOption("prosecnur.template_pptx", NA_character_)
+  if (!is.null(configured) && !is.na(configured) && nzchar(configured) && file.exists(configured)) {
+    return(configured)
+  }
+  candidate <- tryCatch(system.file("plantillas/plantilla_16_9.pptx", package = "prosecnurapp"), error = function(e) "")
+  if (!nzchar(candidate) || !file.exists(candidate)) {
+    candidate <- tryCatch(system.file("plantillas/plantilla_16_9.pptx", package = "prosecnur"), error = function(e) "")
+  }
+  if (!nzchar(candidate) || !file.exists(candidate)) {
+    repo_root <- Sys.getenv("PULSO_REPO_ROOT", "")
+    if (nzchar(repo_root)) {
+      alt <- file.path(repo_root, "api", "inst", "plantillas", "plantilla_16_9.pptx")
+      if (file.exists(alt)) candidate <- alt
+    }
+  }
+  if (nzchar(candidate) && file.exists(candidate)) candidate else NA_character_
+}
+
 .graficos_resolve_graficador_name <- function(name, graficador_registry = .GRAFICADOR_REGISTRY) {
   raw <- as.character(name %||% "")
   raw <- if (length(raw)) raw[[1]] else ""
@@ -317,6 +336,18 @@
 
   allowed_args <- names(formals(fn))
   payload <- payload[names(payload) %in% allowed_args]
+  # Un payload serializado por el frontend puede traer claves con valor NULL
+  # explicito (p.ej. "meta": null) para slots que nunca se tocaron. Pasarlas
+  # tal cual a do.call() pisa el default del parametro (p.ej. meta = list())
+  # y revienta las validaciones internas (.ppt_chk_meta). Se descartan aqui
+  # para que el default de la funcion aplique, igual que ya se hace con los
+  # args de graficos en .clean_rebuild_args().
+  payload <- payload[!vapply(payload, function(v) {
+    is.null(v) ||
+      length(v) == 0L ||
+      (length(v) == 1L && is.list(v) && is.null(v[[1]])) ||
+      (length(v) == 1L && is.atomic(v) && is.na(v))
+  }, logical(1))]
   do.call(fn, payload)
 }
 
@@ -602,6 +633,12 @@
   payload <- .graficos_normalize_payload_icon(payload, fn, tipo)
   allowed_args <- names(formals(fn))
   payload <- payload[names(payload) %in% allowed_args]
+  payload <- payload[!vapply(payload, function(v) {
+    is.null(v) ||
+      length(v) == 0L ||
+      (length(v) == 1L && is.list(v) && is.null(v[[1]])) ||
+      (length(v) == 1L && is.atomic(v) && is.na(v))
+  }, logical(1))]
   do.call(fn, payload)
 }
 
@@ -739,6 +776,28 @@
     return(.graficos_default_config(sid))
   }
   s$graficos_config %||% .graficos_default_config(sid)
+}
+
+.graficos_config_get_for_base <- function(sid, base_name, s = NULL) {
+  s <- s %||% session_get(sid, required = FALSE)
+  if (is.null(s)) return(.graficos_default_config(sid))
+  active <- as.character(base_name %||% "")[1]
+  if (is.na(active) || !nzchar(active)) return(s$graficos_config %||% .graficos_default_config(sid))
+  configs <- s$graficos_config_por_base
+  if (is.list(configs) && !is.null(configs[[active]])) {
+    return(configs[[active]])
+  }
+  if ((is.null(configs) || length(configs) == 0L) && !is.null(s$graficos_config)) {
+    return(s$graficos_config)
+  }
+  inherited <- .graficos_config_inherit_candidate(s, active)
+  if (!is.null(inherited)) return(inherited)
+  .graficos_default_config(sid)
+}
+
+.graficos_effective_config_for_base <- function(sid, base_name, s = NULL) {
+  cfg <- .graficos_config_get_for_base(sid, base_name, s = s)
+  .graficos_normalize_config(cfg, sid = sid)
 }
 
 .graficos_config_set <- function(sid, cfg) {
@@ -2473,7 +2532,6 @@ mount_graficos <- function(pr) {
         .slide_names()
       )
       graficador_registry <- .graf_names()
-      graficador_aliases <- .GRAFICADOR_LEGACY_ALIASES
 
       promote_graph_title <- function(args, fn) {
         args <- as.list(args %||% list())
@@ -2503,7 +2561,7 @@ mount_graficos <- function(pr) {
       }
       rebuild_graf <- function(g) {
         if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
-        graficador_name <- graficador_aliases[[g$graficador]] %||% g$graficador
+        graficador_name <- .graficos_resolve_graficador_name(g$graficador, graficador_registry)
         if (!(graficador_name %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
         fn <- getExportedValue("prosecnurapp", graficador_name)
         args <- .graficos_drop_blank_optional_refs(g$args %||% list())
@@ -2540,6 +2598,12 @@ mount_graficos <- function(pr) {
         payload <- .graficos_normalize_payload_icon(payload, fn, tipo0, icon_registry = icon_registry)
         allowed_args <- names(formals(fn))
         payload <- payload[names(payload) %in% allowed_args]
+        payload <- payload[!vapply(payload, function(v) {
+          is.null(v) ||
+            length(v) == 0L ||
+            (length(v) == 1L && is.list(v) && is.null(v[[1]])) ||
+            (length(v) == 1L && is.atomic(v) && is.na(v))
+        }, logical(1))]
         do.call(fn, payload)
       }
 
@@ -2677,6 +2741,11 @@ mount_graficos <- function(pr) {
             stop("Worker requiere 'pkgload' o 'devtools' instalados.")
           }
           `%||%` <- function(a, b) if (is.null(a)) b else a
+          # Ver comentario en el worker de /api/graficos/ppt-all: resolver
+          # reporte_ppt_plan/reporte_word_plan/p_plan/p_presets de forma
+          # dinamica contra el namespace vigente (post load_all()), no por
+          # nombre pelado (lexical scoping los engancha al paquete instalado).
+          .pkg_fn <- function(nm) get(nm, envir = asNamespace("prosecnurapp"), inherits = FALSE)
           report <- if (exists("job_progress_writer", mode = "function")) {
             job_progress_writer(progress_path)
           } else {
@@ -2760,10 +2829,9 @@ mount_graficos <- function(pr) {
             }
             p_ggplot_raw(ggplot2::ggplot() + ggplot2::theme_void())
           }
-          graficador_aliases <- c(p_barras = "p_barras_agrupadas")
           rebuild_graf <- function(g) {
             if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
-            graficador_name <- graficador_aliases[[g$graficador]] %||% g$graficador
+            graficador_name <- .graficos_resolve_graficador_name(g$graficador, graficador_registry)
             if (!(graficador_name %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
             fn <- getExportedValue("prosecnurapp", graficador_name)
             args <- drop_blank_optional_refs(g$args %||% list())
@@ -2794,11 +2862,17 @@ mount_graficos <- function(pr) {
             payload <- .graficos_normalize_payload_icon(payload, fn, tipo, icon_registry = icon_registry)
             allowed_args <- names(formals(fn))
             payload <- payload[names(payload) %in% allowed_args]
+            payload <- payload[!vapply(payload, function(v) {
+              is.null(v) ||
+                length(v) == 0L ||
+                (length(v) == 1L && is.list(v) && is.null(v[[1]])) ||
+                (length(v) == 1L && is.atomic(v) && is.na(v))
+            }, logical(1))]
             do.call(fn, payload)
           }
           build_presets <- function(presets_json) {
             if (is.null(presets_json) || length(presets_json) == 0) return(NULL)
-            do.call(p_presets, lapply(presets_json, as.list))
+            do.call(.pkg_fn("p_presets"), lapply(presets_json, as.list))
           }
           palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
           total_slides <- length(plan$slides)
@@ -2818,12 +2892,12 @@ mount_graficos <- function(pr) {
           }
           report("render", percent = 60, message = "Renderizando presentación...")
           tryCatch(
-            reporte_ppt_plan(
+            .pkg_fn("reporte_ppt_plan")(
               data = readRDS(rp_data_path),
               instrumento = readRDS(rp_inst_path),
               path_ppt = result_path,
               presets = build_presets(presets),
-              plan = do.call(p_plan, list(slides = slides_r)),
+              plan = do.call(.pkg_fn("p_plan"), list(slides = slides_r)),
               env_diapos = palette_env,
               mensajes_progreso = FALSE
             ),
@@ -2852,6 +2926,303 @@ mount_graficos <- function(pr) {
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "graficos.ppt")
+    })) |>
+    plumber::pr_post("/api/graficos/ppt-all", wrap_endpoint(function(req, res) {
+      # Exporta el PPT de TODAS las bases de un estudio multi-base
+      # independiente en un solo ZIP. A diferencia de /api/graficos/ppt
+      # (que usa el `plan` recibido en el body y la fuente escopeada a
+      # la base activa), esta ruta usa la config YA GUARDADA por base
+      # (`graficos_config_por_base[[base]]`) — cada base se exporta con
+      # su propio plan/presets/paletas, tal como quedaron al navegar el
+      # selector de bases en el editor. Es opcional: solo aplica a
+      # proyectos multi-base independientes con >= 2 bases con datos.
+      sid <- session_header(req)
+      s <- session_get(sid)
+      if (!isTRUE(tryCatch(estudio_is_independent_siblings(sid), error = function(e) FALSE))) {
+        stop_api(409, "E_NOT_MULTIBASE",
+                 "Este proyecto no es multi-base independiente. Usa 'Exportar' normal.")
+      }
+      data_sources <- estudio_data_sources(sid)
+      inst_sources <- estudio_inst_sources(sid)
+      bases <- names(data_sources)
+      if (length(bases) < 2L) {
+        stop_api(409, "E_NOT_ENOUGH_BASES",
+                 "Se necesitan al menos 2 bases con datos para exportar un ZIP.")
+      }
+
+      # Validar TODAS las bases antes de arrancar el job — si una falla,
+      # no se genera nada parcial (misma convencion que run_report_multibase()).
+      per_base <- list()
+      errors <- character(0)
+      for (base in bases) {
+        cfg <- .graficos_effective_config_for_base(sid, base, s = s)
+        if (!.graficos_config_has_slides(cfg)) {
+          errors <- c(errors, sprintf("Base '%s': no tiene un plan de graficos guardado.", base))
+          next
+        }
+        plan_b <- .normalize_plan(cfg$plan)
+        validation <- .validar_plan_json(plan_b)
+        if (!validation$ok) {
+          errors <- c(errors, sprintf("Base '%s': %s", base, paste(validation$errors, collapse = "; ")))
+          next
+        }
+        per_base[[base]] <- list(
+          plan = plan_b,
+          presets = .enriquecer_presets(cfg$presets, cfg$debug_ph),
+          paletas = cfg$paletas %||% list(),
+          icon_registry = .graficos_icon_registry(sid, cfg),
+          filename = .export_filename(sid, "reporte_ppt", "pptx", base = base)
+        )
+      }
+      if (length(errors) > 0L) {
+        stop_api(400, "E_INVALID_PLAN_MULTI", paste(errors, collapse = " | "))
+      }
+
+      rp_data_path <- job_save_rds(sid, "rp_data_sources_all", data_sources)
+      rp_inst_path <- job_save_rds(sid, "rp_inst_sources_all", inst_sources)
+      per_base_path <- job_save_rds(sid, "graficos_ppt_all_per_base", per_base)
+
+      slide_registry_arg <- setNames(
+        lapply(.slide_names(), function(nm) list(grafs = setdiff(.slide_slots(nm), "icono"))),
+        .slide_names()
+      )
+      graficador_registry_arg <- .graf_names()
+      api_path <- .app_api_dir()
+      template_pptx_arg <- .graficos_resolve_template_pptx()
+      zip_name <- .export_filename(sid, "reporte_ppt_todas_bases", "zip")
+
+      job_id <- job_submit(
+        sid = sid,
+        kind = "graficos.ppt_all",
+        func = function(rp_data_path, rp_inst_path, per_base_path, bases,
+                        slide_registry, graficador_registry,
+                        api_path, template_pptx, result_path, progress_path = NULL) {
+          # NO recargar el paquete aqui: el bootstrap de job_submit() (jobs.R)
+          # ya hace pkgload::load_all()/library(prosecnurapp) antes de invocar
+          # este func.
+          #
+          # IMPORTANTE: este closure se serializa desde el proceso principal
+          # (donde se definio, al construir el router) y se deserializa en
+          # el subproceso callr ANTES de que el bootstrap corra su propio
+          # pkgload::load_all(). Al deserializar una funcion cuyo entorno
+          # pertenece al namespace "prosecnurapp", R intenta resolverlo YA
+          # (todavia no hay dev-load en el hijo), y termina enganchando el
+          # PAQUETE INSTALADO (version distinta a la dev) como namespace.
+          # El load_all() posterior del bootstrap crea un namespace dev
+          # aparte, pero las referencias "por nombre pelado" en este mismo
+          # closure (reporte_ppt_plan, p_plan, p_presets) ya quedaron
+          # ligadas por lexical scoping al namespace viejo/instalado, no al
+          # nuevo. Sintoma observado: reporte_ppt_plan() ejecuta una version
+          # desactualizada del motor (layouts/tipos de slide ausentes) pese
+          # a que `packageVersion("prosecnurapp")`/`is_dev_package()` YA
+          # reportan correctamente la version dev (esas SI son dinamicas).
+          #
+          # Fix: resolver estas funciones del paquete de forma DINAMICA
+          # contra el namespace vigente en este momento (post load_all()),
+          # igual que ya se hace con getExportedValue() para graficadores.
+          `%||%` <- function(a, b) if (is.null(a)) b else a
+          .pkg_fn <- function(nm) get(nm, envir = asNamespace("prosecnurapp"), inherits = FALSE)
+          report <- if (exists("job_progress_writer", mode = "function")) {
+            job_progress_writer(progress_path)
+          } else {
+            function(...) invisible(NULL)
+          }
+          report("loading", percent = 2, message = "Cargando datos y plantillas...")
+          as_json_list <- function(x) {
+            if (is.null(x)) return(NULL)
+            if (is.data.frame(x)) return(as.list(x))
+            if (is.list(x)) return(x)
+            as.list(x)
+          }
+          promote_graph_title <- function(args, fn) {
+            args <- as.list(args %||% list())
+            if (!("titulo" %in% names(args)) || !("overrides" %in% names(formals(fn)))) return(args)
+            title_value <- args$titulo
+            has_title <- !(
+              is.null(title_value) ||
+                length(title_value) == 0L ||
+                (length(title_value) == 1L && is.list(title_value) && is.null(title_value[[1]])) ||
+                (length(title_value) == 1L && is.atomic(title_value) && is.na(title_value)) ||
+                (length(title_value) == 1L && is.character(title_value) && !nzchar(trimws(title_value)))
+            )
+            if (!isTRUE(has_title)) return(args)
+            overrides <- as_json_list(args$overrides) %||% list()
+            override_title <- overrides$titulo %||% NULL
+            has_override_title <- !(
+              is.null(override_title) ||
+                length(override_title) == 0L ||
+                (length(override_title) == 1L && is.list(override_title) && is.null(override_title[[1]])) ||
+                (length(override_title) == 1L && is.atomic(override_title) && is.na(override_title)) ||
+                (length(override_title) == 1L && is.character(override_title) && !nzchar(trimws(override_title)))
+            )
+            if (!isTRUE(has_override_title)) overrides$titulo <- as.character(title_value)[1]
+            args$overrides <- overrides
+            args$titulo <- NULL
+            args
+          }
+          blank_ref_value <- function(x) {
+            is.character(x) && (!length(x) || all(!nzchar(trimws(x))))
+          }
+          missing_required_ref <- function(args) {
+            if (!is.list(args)) return(FALSE)
+            for (arg_name in c("var", "objetivo")) {
+              if (!is.null(args[[arg_name]]) && blank_ref_value(args[[arg_name]])) return(TRUE)
+            }
+            vars <- args$vars
+            if (is.character(vars) && (!length(vars) || all(!nzchar(trimws(vars))))) return(TRUE)
+            if (is.list(vars) && length(vars)) {
+              if (any(vapply(vars, function(value) {
+                if (is.character(value)) return(!length(value) || all(!nzchar(trimws(value))))
+                if (is.list(value)) return(missing_required_ref(value))
+                FALSE
+              }, logical(1)))) return(TRUE)
+            }
+            if (is.list(args$bloques) && length(args$bloques)) {
+              if (any(vapply(args$bloques, missing_required_ref, logical(1)))) return(TRUE)
+            }
+            FALSE
+          }
+          drop_blank_optional_refs <- function(args) {
+            if (!is.list(args)) return(args)
+            for (arg_name in c("cruces", "cruce", "iter_var")) {
+              if (!is.null(args[[arg_name]]) && blank_ref_value(args[[arg_name]])) args[[arg_name]] <- NULL
+            }
+            if (is.list(args$bloques) && length(args$bloques)) {
+              args$bloques <- lapply(args$bloques, drop_blank_optional_refs)
+            }
+            args
+          }
+          blank_graph_element <- function() {
+            if (!requireNamespace("ggplot2", quietly = TRUE)) {
+              stop("Se requiere el paquete 'ggplot2' para crear placeholders de graficos vacios.")
+            }
+            p_ggplot_raw(ggplot2::ggplot() + ggplot2::theme_void())
+          }
+          drop_blank_payload <- function(v) {
+            is.null(v) ||
+              length(v) == 0L ||
+              (length(v) == 1L && is.list(v) && is.null(v[[1]])) ||
+              (length(v) == 1L && is.atomic(v) && is.na(v))
+          }
+          make_rebuild_graf <- function() {
+            function(g) {
+              if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
+              graficador_name <- .graficos_resolve_graficador_name(g$graficador, graficador_registry)
+              if (!(graficador_name %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
+              fn <- getExportedValue("prosecnurapp", graficador_name)
+              args <- drop_blank_optional_refs(g$args %||% list())
+              if (missing_required_ref(args)) return(blank_graph_element())
+              args <- promote_graph_title(args, fn)
+              args <- args[names(args) %in% names(formals(fn))]
+              args <- args[!vapply(args, drop_blank_payload, logical(1))]
+              do.call(fn, args)
+            }
+          }
+          make_rebuild_slide <- function(icon_registry) {
+            rebuild_graf <- make_rebuild_graf()
+            function(s) {
+              s <- as.list(s)
+              tipo <- as.character(s$tipo %||% "")
+              if (!nzchar(tipo)) stop("Slide sin tipo")
+              if (!(tipo %in% names(slide_registry))) stop(sprintf("Tipo de slide no registrado: %s", tipo))
+              fn <- getExportedValue("prosecnurapp", tipo)
+              payload <- as_json_list(s$payload) %||% list()
+              payload <- lapply(payload, function(v) if (is.list(v) && length(v) == 1 && is.null(names(v))) v[[1]] else v)
+              for (slot_name in slide_registry[[tipo]]$grafs) {
+                if (!is.null(payload[[slot_name]])) {
+                  payload[[slot_name]] <- rebuild_graf(as_json_list(payload[[slot_name]]))
+                }
+              }
+              payload <- .graficos_normalize_payload_icon(payload, fn, tipo, icon_registry = icon_registry)
+              allowed_args <- names(formals(fn))
+              payload <- payload[names(payload) %in% allowed_args]
+              payload <- payload[!vapply(payload, drop_blank_payload, logical(1))]
+              do.call(fn, payload)
+            }
+          }
+          build_presets <- function(presets_json) {
+            if (is.null(presets_json) || length(presets_json) == 0) return(NULL)
+            do.call(.pkg_fn("p_presets"), lapply(presets_json, as.list))
+          }
+
+          all_data <- readRDS(rp_data_path)
+          all_inst <- readRDS(rp_inst_path)
+          per_base <- readRDS(per_base_path)
+
+          stage <- tempfile("ppt_all_stage_")
+          dir.create(stage, recursive = TRUE)
+          n_bases <- length(bases)
+          results <- vector("list", n_bases)
+          for (i in seq_along(bases)) {
+            base <- bases[[i]]
+            base_error <- function(msg) sprintf("Base '%s': %s", base, msg)
+            report(
+              "render",
+              current = i,
+              total = n_bases,
+              percent = round(90 * (i - 1) / max(1, n_bases)),
+              message = sprintf("Generando %s (%d/%d)...", base, i, n_bases)
+            )
+            info <- per_base[[base]]
+            rebuild_slide <- make_rebuild_slide(info$icon_registry)
+            total_slides <- length(info$plan$slides)
+            slides_r <- vector("list", total_slides)
+            for (k in seq_len(total_slides)) {
+              slides_r[[k]] <- tryCatch(
+                rebuild_slide(info$plan$slides[[k]]),
+                error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
+              )
+            }
+            palette_env <- .graficos_palette_env(info$paletas, parent = parent.frame())
+            out_path <- file.path(stage, info$filename)
+            tryCatch(
+              .pkg_fn("reporte_ppt_plan")(
+                data = stats::setNames(list(all_data[[base]]), base),
+                instrumento = stats::setNames(list(all_inst[[base]]), base),
+                path_ppt = out_path,
+                presets = build_presets(info$presets),
+                plan = do.call(.pkg_fn("p_plan"), list(slides = slides_r)),
+                env_diapos = palette_env,
+                template_pptx = template_pptx,
+                mensajes_progreso = FALSE
+              ),
+              error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
+            )
+            results[[i]] <- list(nombre = base, filename = info$filename, n_slides = total_slides)
+          }
+          report("zip", percent = 95, message = "Empaquetando ZIP...")
+          old_wd <- setwd(stage)
+          on.exit(setwd(old_wd), add = TRUE)
+          zip::zip(zipfile = result_path, files = vapply(results, function(r) r$filename, character(1)))
+          setwd(old_wd)
+          report("export", percent = 99, message = "Guardando ZIP...")
+          list(path = result_path, bases = results)
+        },
+        args = list(
+          rp_data_path = rp_data_path,
+          rp_inst_path = rp_inst_path,
+          per_base_path = per_base_path,
+          bases = bases,
+          slide_registry = slide_registry_arg,
+          graficador_registry = graficador_registry_arg,
+          api_path = api_path,
+          template_pptx = template_pptx_arg
+        ),
+        result_filename = zip_name,
+        on_complete = function(j) {
+          meta <- .register_output_file(j$sid, "graficos_ppt_zip", j$result_path)
+          .graficos_status_set(j$sid, "graficos_ppt_ok", TRUE)
+          list(
+            ok = TRUE,
+            file_id = meta$file_id,
+            filename = meta$original_name,
+            size = meta$size,
+            n_bases = length(j$result_data$bases %||% list()),
+            bases = j$result_data$bases
+          )
+        }
+      )
+      list(ok = TRUE, job_id = job_id, kind = "graficos.ppt_all")
     })) |>
     plumber::pr_post("/api/graficos/word", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL, config = NULL) {
       sid <- session_header(req)
@@ -2898,6 +3269,11 @@ mount_graficos <- function(pr) {
             stop("Worker requiere 'pkgload' o 'devtools' instalados.")
           }
           `%||%` <- function(a, b) if (is.null(a)) b else a
+          # Ver comentario en el worker de /api/graficos/ppt-all: resolver
+          # reporte_ppt_plan/reporte_word_plan/p_plan/p_presets de forma
+          # dinamica contra el namespace vigente (post load_all()), no por
+          # nombre pelado (lexical scoping los engancha al paquete instalado).
+          .pkg_fn <- function(nm) get(nm, envir = asNamespace("prosecnurapp"), inherits = FALSE)
           report <- if (exists("job_progress_writer", mode = "function")) {
             job_progress_writer(progress_path)
           } else {
@@ -2983,10 +3359,9 @@ mount_graficos <- function(pr) {
             }
             p_ggplot_raw(ggplot2::ggplot() + ggplot2::theme_void())
           }
-          graficador_aliases <- c(p_barras = "p_barras_agrupadas")
           rebuild_graf <- function(g) {
             if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
-            graficador_name <- graficador_aliases[[g$graficador]] %||% g$graficador
+            graficador_name <- .graficos_resolve_graficador_name(g$graficador, graficador_registry)
             if (!(graficador_name %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
             fn <- getExportedValue("prosecnurapp", graficador_name)
             args <- drop_blank_optional_refs(g$args %||% list())
@@ -3017,11 +3392,17 @@ mount_graficos <- function(pr) {
             payload <- .graficos_normalize_payload_icon(payload, fn, tipo, icon_registry = icon_registry)
             allowed_args <- names(formals(fn))
             payload <- payload[names(payload) %in% allowed_args]
+            payload <- payload[!vapply(payload, function(v) {
+              is.null(v) ||
+                length(v) == 0L ||
+                (length(v) == 1L && is.list(v) && is.null(v[[1]])) ||
+                (length(v) == 1L && is.atomic(v) && is.na(v))
+            }, logical(1))]
             do.call(fn, payload)
           }
           build_presets <- function(presets_json) {
             if (is.null(presets_json) || length(presets_json) == 0) return(NULL)
-            do.call(p_presets, lapply(presets_json, as.list))
+            do.call(.pkg_fn("p_presets"), lapply(presets_json, as.list))
           }
           build_w_presets <- function(w_json) {
             if (is.null(w_json) || length(w_json) == 0) return(NULL)
@@ -3045,13 +3426,13 @@ mount_graficos <- function(pr) {
           }
           report("render", percent = 60, message = "Renderizando documento...")
           tryCatch(
-            reporte_word_plan(
+            .pkg_fn("reporte_word_plan")(
               data = readRDS(rp_data_path),
               instrumento = readRDS(rp_inst_path),
               path_docx = result_path,
               presets_ppt = build_presets(presets),
               presets_word = build_w_presets(w_presets),
-              plan = do.call(p_plan, list(slides = slides_r)),
+              plan = do.call(.pkg_fn("p_plan"), list(slides = slides_r)),
               env_diapos = palette_env,
               mensajes_progreso = FALSE
             ),

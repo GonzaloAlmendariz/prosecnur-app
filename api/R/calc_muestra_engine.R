@@ -2106,3 +2106,169 @@ calc_muestra_build_decision_log <- function(estudio) {
 # Nota: el cumplimiento de cuotas, las brechas y el cierre de campo son
 # parte del módulo de Monitoreo (/monitoreo). Este motor termina su
 # alcance en la generación del diseño validado para la propuesta.
+
+# ---------------------------------------------------------------------------
+# Memoria de cálculo explicada (/api/calc-muestra/explicar)
+# ---------------------------------------------------------------------------
+
+#' Construye la memoria de cálculo de un tamaño muestral con FPC y deff.
+#'
+#' Envoltorio delgado y sin estado sobre `calc_n_muestra` +
+#' `calc_e_desde_n_muestra`: expone cada término intermedio de la fórmula y
+#' un decision log en lenguaje llano para la capa didáctica del frontend.
+#' No altera ningún cálculo existente; la cifra definitiva que muestra la UI
+#' sale de aquí (misma aritmética que `.cm_calc_conglomerado`).
+calc_muestra_explicar <- function(input) {
+  if (is.null(input) || !is.list(input)) input <- list()
+
+  N <- calc_num(input$N, NA_real_, min = 1)
+  if (is.na(N)) {
+    stop_api(400, "E_CALC_PARAMS", "Falta N (tamaño del universo, >= 1).")
+  }
+  p    <- calc_num(input$p, .CM_DEFAULTS_PARAMS$p, min = 0, max = 1)
+  e    <- calc_num(input$e, .CM_DEFAULTS_PARAMS$e, min = 0.001, max = 0.5)
+  deff <- calc_num(input$deff, .CM_DEFAULTS_PARAMS$deff, min = 1, max = 10)
+  oversample_pct <- calc_num(input$oversample_pct, 0, min = 0, max = 2)
+  meta_valor <- calc_int(input$meta_valor, 0L, min = 0L)
+  promedio_conglomerado <- calc_num(input$promedio_conglomerado, 0, min = 0, max = 1000)
+  tau <- calc_num(input$tau, .CM_DEFAULTS_PARAMS$tau, min = 0.01, max = 1)
+
+  # z explícito manda; si no viene, se deriva de la confianza (two-sided).
+  z_in <- calc_num(input$z, NA_real_, min = 0.5, max = 5)
+  confianza_in <- calc_num(input$confianza, NA_real_, min = 0.5, max = 0.999)
+  if (!is.na(z_in)) {
+    z_usado <- z_in
+    confianza <- 2 * stats::pnorm(z_in) - 1
+    fuente_z <- "z provisto directamente"
+  } else {
+    confianza <- if (is.na(confianza_in)) 0.95 else confianza_in
+    z_usado <- stats::qnorm(1 - (1 - confianza) / 2)
+    fuente_z <- sprintf("qnorm(1 - (1 - %s) / 2)", format(confianza))
+  }
+
+  q <- 1 - p
+  numerador <- z_usado^2 * p * q * deff
+  n0_sin_fpc <- numerador / e^2
+  fpc_denominador <- (N - 1) * e^2 + numerador
+
+  n_bruto   <- calc_n_muestra(N = N, p = p, z = z_usado, e = e, deff = 1)
+  n_teorico <- calc_n_muestra(N = N, p = p, z = z_usado, e = e, deff = deff)
+  n_objetivo <- if (meta_valor > 0L) as.integer(ceiling(meta_valor)) else as.integer(n_teorico)
+  sobremuestra <- as.integer(ceiling(n_objetivo * oversample_pct))
+  n_operativo <- as.integer(n_objetivo + sobremuestra)
+
+  precision_alcanzada <- calc_e_desde_n_muestra(
+    n = n_objetivo, N = N, p = p, z = z_usado, deff = deff
+  )
+
+  # Solo se calcula si hay promedio por conglomerado; la clave se agrega al
+  # final únicamente cuando existe (NULL serializa como {} y NA como "NA" con
+  # el serializer unboxed de plumber — ninguno es un number|null válido).
+  unidades_operativas <- if (promedio_conglomerado > 0) {
+    as.integer(ceiling(n_objetivo / (max(promedio_conglomerado, 1) * max(tau, 0.01))))
+  } else {
+    NULL
+  }
+
+  decision_log <- list(
+    list(
+      paso = "modelo",
+      decision = "Fórmula clásica de proporción con corrección por población finita (FPC) y efecto de diseño (deff).",
+      motivo = "Es el estándar para encuestas por conglomerados (aulas) sobre un marco conocido de N unidades.",
+      fuente = "Compendio metodológico PULSO §2"
+    ),
+    list(
+      paso = "confianza",
+      decision = sprintf("Nivel de confianza %.1f%% → z = %.4f.", confianza * 100, z_usado),
+      motivo = paste("El z es el número de desviaciones estándar que cubre ese nivel de",
+                     "confianza en la curva normal.", fuente_z),
+      fuente = "Compendio metodológico PULSO §2"
+    ),
+    list(
+      paso = "p",
+      decision = sprintf("Proporción esperada p = %s (q = %s).", format(p), format(q)),
+      motivo = if (p == 0.5) {
+        "p = 0.5 es el escenario más exigente: maximiza la varianza p·q y por lo tanto el tamaño requerido."
+      } else {
+        "p calibrado con evidencia previa; reduce el n frente al escenario conservador p = 0.5."
+      },
+      fuente = "Estudios de referencia en universidades peruanas (2024-2026)"
+    ),
+    list(
+      paso = "deff",
+      decision = sprintf("Efecto de diseño deff = %s (n pasa de %d a %d).", format(deff), n_bruto, n_teorico),
+      motivo = paste("Encuestar por aulas agrupa a estudiantes que se parecen entre sí;",
+                     "el deff compensa esa pérdida de información aumentando el n."),
+      fuente = "Estudios de referencia en universidades peruanas (2024-2026)"
+    ),
+    list(
+      paso = "fpc",
+      decision = sprintf("Corrección por población finita con N = %s.", format(N, big.mark = ",")),
+      motivo = "Cuando la muestra es una fracción apreciable del universo, el n necesario baja.",
+      fuente = "Compendio metodológico PULSO §2"
+    )
+  )
+  if (meta_valor > 0L) {
+    decision_log[[length(decision_log) + 1L]] <- list(
+      paso = "objetivo",
+      decision = sprintf("n objetivo fijado en %d por meta declarada (teórico: %d).", n_objetivo, n_teorico),
+      motivo = "Existe una meta contractual u operativa que manda sobre el tamaño teórico.",
+      fuente = "Configuración del estudio"
+    )
+  }
+  if (sobremuestra > 0L) {
+    decision_log[[length(decision_log) + 1L]] <- list(
+      paso = "sobremuestra",
+      decision = sprintf("Sobremuestra de %.0f%% → +%d casos (operativo: %d).",
+                         oversample_pct * 100, sobremuestra, n_operativo),
+      motivo = paste("Cubre ausencias, cuestionarios incompletos y aulas que rinden menos de lo",
+                     "previsto sin sacrificar la precisión objetivo."),
+      fuente = "Estudios de referencia en universidades peruanas (2024-2026)"
+    )
+  }
+  decision_log[[length(decision_log) + 1L]] <- list(
+    paso = "retrocalculo",
+    decision = sprintf("Con n = %d el margen de error real es ±%.2f%% (objetivo: ±%.2f%%).",
+                       n_objetivo, precision_alcanzada * 100, e * 100),
+    motivo = "Verificación inversa: se despeja e de la misma fórmula para confirmar que el n elegido cumple.",
+    fuente = "Compendio metodológico PULSO §2"
+  )
+
+  memoria <- list(
+    modelo = "cochran_fpc_deff",
+    parametros = list(
+      confianza = confianza,
+      z_usado   = z_usado,
+      p         = p,
+      q         = q,
+      e         = e,
+      deff      = deff,
+      N         = N,
+      oversample_pct = oversample_pct
+    ),
+    terminos = list(
+      numerador       = numerador,
+      n0_sin_fpc      = n0_sin_fpc,
+      fpc_denominador = fpc_denominador,
+      n_sin_deff      = as.integer(n_bruto)
+    ),
+    n_teorico    = as.integer(n_teorico),
+    n_objetivo   = n_objetivo,
+    n_operativo  = n_operativo,
+    sobremuestra = sobremuestra,
+    retrocalculo = list(
+      precision_alcanzada = precision_alcanzada,
+      e_objetivo          = e,
+      cumple              = isTRUE(precision_alcanzada <= e + 1e-9)
+    ),
+    decision_log = decision_log,
+    fuentes = list(
+      "Compendio metodológico PULSO §2 (fórmula clásica con FPC y deff)",
+      "Metodología de estudios HST en universidades peruanas (2024-2026)"
+    )
+  )
+  if (!is.null(unidades_operativas)) {
+    memoria$unidades_operativas <- unidades_operativas
+  }
+  memoria
+}

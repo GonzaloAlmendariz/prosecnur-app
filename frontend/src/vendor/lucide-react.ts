@@ -33,6 +33,7 @@ export { default as BarChartHorizontal } from "lucide-react/dist/esm/icons/chart
 export { default as Blocks } from "lucide-react/dist/esm/icons/blocks.mjs";
 export { default as Bold } from "lucide-react/dist/esm/icons/bold.mjs";
 export { default as Book } from "lucide-react/dist/esm/icons/book.mjs";
+export { default as BookOpenText } from "lucide-react/dist/esm/icons/book-open-text.mjs";
 export { default as Bookmark } from "lucide-react/dist/esm/icons/bookmark.mjs";
 export { default as BookOpen } from "lucide-react/dist/esm/icons/book-open.mjs";
 export { default as BookOpenCheck } from "lucide-react/dist/esm/icons/book-open-check.mjs";
@@ -198,6 +199,7 @@ export { default as School } from "lucide-react/dist/esm/icons/school.mjs";
 export { default as ScrollText } from "lucide-react/dist/esm/icons/scroll-text.mjs";
 export { default as Search } from "lucide-react/dist/esm/icons/search.mjs";
 export { default as SearchX } from "lucide-react/dist/esm/icons/search-x.mjs";
+export { default as Send } from "lucide-react/dist/esm/icons/send.mjs";
 export { default as ServerCog } from "lucide-react/dist/esm/icons/server-cog.mjs";
 export { default as Settings } from "lucide-react/dist/esm/icons/settings.mjs";
 export { default as Settings2 } from "lucide-react/dist/esm/icons/settings-2.mjs";

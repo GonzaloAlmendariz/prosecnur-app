@@ -1,6 +1,18 @@
-import { useCallback, useEffect, useRef, useState, type ComponentType, type CSSProperties } from "react";
-import { AlertTriangle, Check, FolderOpen, FolderSearch, Loader2, Minus, Plus } from "lucide-react";
-import RecentProjectCard from "../components/RecentProjectCard";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react";
+import {
+  AlertTriangle,
+  Check,
+  Clock,
+  Folder,
+  FolderOpen,
+  FolderSearch,
+  Loader2,
+  Minus,
+  Pencil,
+  Plus,
+  X,
+} from "lucide-react";
+import { formatRelativeDate } from "../components/RecentProjectCard";
 import {
   bootApiCreateSession,
   bootApiHealth,
@@ -891,10 +903,6 @@ export default function BootGate({ loadSuite }: BootGateProps) {
     backendProgress,
     backendEnabled: backendWarmupEnabled,
   });
-  const title = phase === "warming" || phase === "loading"
-    ? "Preparando Prosecnur"
-    : "Selecciona un proyecto .pulso";
-
   if (suite) {
     const Suite = suite;
     return (
@@ -928,31 +936,22 @@ export default function BootGate({ loadSuite }: BootGateProps) {
             steps={displayWarmupSteps}
           />
         ) : (
-          <>
-            <div className="boot-brand">
-              <div>
-                <p className="boot-kicker">Prosecnur</p>
-                <h1>{title}</h1>
-              </div>
-              <span className={`boot-status boot-status-${phase}`}>{phaseLabel(phase)}</span>
-            </div>
-
-            <ChooserView
-              busy={busy}
-              error={error}
-              recents={recents}
-              manualPath={manualPath}
-              hasElectron={hasElectron}
-              onManualPathChange={setManualPath}
-              onOpen={() => void openProject()}
-              onCreate={() => void createProject()}
-              onOpenRecent={(path) => void openProject(path)}
-              onRemoveRecent={async (path) => {
-                const list = await window.prosecnurApi?.removeRecentProject(path).catch(() => null);
-                if (list) setRecents(list);
-              }}
-            />
-          </>
+          <ChooserView
+            phase={phase}
+            busy={busy}
+            error={error}
+            recents={recents}
+            manualPath={manualPath}
+            hasElectron={hasElectron}
+            onManualPathChange={setManualPath}
+            onOpen={() => void openProject()}
+            onCreate={() => void createProject()}
+            onOpenRecent={(path) => void openProject(path)}
+            onRemoveRecent={async (path) => {
+              const list = await window.prosecnurApi?.removeRecentProject(path).catch(() => null);
+              if (list) setRecents(list);
+            }}
+          />
         )}
       </section>
     </main>
@@ -968,7 +967,39 @@ function phaseLabel(phase: GatePhase) {
   return "Selecciona proyecto";
 }
 
+/**
+ * Marca de Prosecnur — tile con degradado navy→teal y un trazo de pulso.
+ * Inline SVG: BootGate vive en el chunk de entrada y no puede depender de
+ * assets externos ni de features. Los colores usan tokens --pulso-* con
+ * fallbacks literales por si theme.css aún no cargó.
+ */
+function BootBrandMark() {
+  return (
+    <span className="boot-mark" aria-hidden="true">
+      <svg viewBox="0 0 48 48" width="46" height="46" role="img">
+        <defs>
+          <linearGradient id="boot-mark-fill" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#0b3d78" />
+            <stop offset="1" stopColor="#002457" />
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="48" height="48" rx="13" fill="url(#boot-mark-fill)" />
+        <path
+          d="M7 26 H15 L18.6 15 L23 33 L27 21 L29.4 26 H41"
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth="2.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="23" cy="33" r="2.4" fill="#3ec6b5" />
+      </svg>
+    </span>
+  );
+}
+
 function ChooserView({
+  phase,
   busy,
   error,
   recents,
@@ -980,6 +1011,7 @@ function ChooserView({
   onOpenRecent,
   onRemoveRecent,
 }: {
+  phase: GatePhase;
   busy: boolean;
   error: string;
   recents: RecentProject[];
@@ -991,58 +1023,178 @@ function ChooserView({
   onOpenRecent: (path: string) => void;
   onRemoveRecent: (path: string) => void;
 }) {
+  const [managing, setManaging] = useState(false);
+  // Al vaciarse la lista (o si solo queda uno) salir del modo edición para no
+  // dejar el botón "Listo" colgado sobre un estado vacío.
+  const canManage = recents.length > 0;
+  useEffect(() => {
+    if (!canManage && managing) setManaging(false);
+  }, [canManage, managing]);
+
   return (
-    <div className="boot-chooser">
-      {error && <div className="boot-error">{error}</div>}
+    <div className="boot-welcome" data-phase={phase}>
+      <div className="boot-hero">
+        <div className="boot-hero-brand">
+          <BootBrandMark />
+          <div className="boot-hero-id">
+            <p className="boot-kicker">Prosecnur</p>
+            <h1>Selecciona un proyecto</h1>
+          </div>
+        </div>
+        <p className="boot-hero-tagline">
+          Procesamiento y monitoreo de encuestas. Cada proyecto vive en un
+          archivo <code>.pulso</code>.
+        </p>
 
-      {!hasElectron && (
-        <label className="boot-path-field">
-          <span>Ruta del proyecto</span>
-          <input
-            value={manualPath}
-            onChange={(event) => onManualPathChange(event.target.value)}
-            placeholder="/ruta/al/proyecto.pulso"
-          />
-        </label>
-      )}
+        {error && <div className="boot-error">{error}</div>}
 
-      <div className="boot-actions">
-        <button type="button" className="boot-button boot-button-primary" onClick={onOpen} disabled={busy}>
-          <FolderOpen size={17} aria-hidden="true" />
-          <span>{hasElectron ? "Abrir proyecto..." : "Abrir proyecto"}</span>
-        </button>
-        <button type="button" className="boot-button" onClick={onCreate} disabled={busy}>
-          <Plus size={17} aria-hidden="true" />
-          <span>{hasElectron ? "Crear proyecto..." : "Crear proyecto"}</span>
-        </button>
+        {!hasElectron && (
+          <label className="boot-path-field">
+            <span>Ruta del proyecto</span>
+            <input
+              value={manualPath}
+              onChange={(event) => onManualPathChange(event.target.value)}
+              placeholder="/ruta/al/proyecto.pulso"
+            />
+          </label>
+        )}
+
+        <div className="boot-actions">
+          <button
+            type="button"
+            className="boot-action-card boot-action-card-primary"
+            onClick={onOpen}
+            disabled={busy}
+          >
+            <span className="boot-action-card-head">
+              <FolderOpen size={18} aria-hidden="true" />
+              <span>{hasElectron ? "Abrir proyecto…" : "Abrir proyecto"}</span>
+            </span>
+            <span className="boot-action-card-hint">
+              {hasElectron ? "Elige un .pulso existente en tu equipo" : "Ingresa la ruta al .pulso a abrir"}
+            </span>
+          </button>
+          <button
+            type="button"
+            className="boot-action-card"
+            onClick={onCreate}
+            disabled={busy}
+          >
+            <span className="boot-action-card-head">
+              <Plus size={18} aria-hidden="true" />
+              <span>{hasElectron ? "Crear proyecto…" : "Crear proyecto"}</span>
+            </span>
+            <span className="boot-action-card-hint">
+              {hasElectron ? "Empieza un .pulso nuevo desde cero" : "Ingresa la ruta donde guardar el .pulso"}
+            </span>
+          </button>
+        </div>
+
+        <span className={`boot-status boot-status-${phase}`}>
+          <span className="boot-status-dot" aria-hidden="true" />
+          {phaseLabel(phase)}
+        </span>
       </div>
 
       <div className="boot-recents">
         <div className="boot-recents-head">
-          <h2>Recientes</h2>
-          <span>{recents.length}</span>
+          <div className="boot-recents-title">
+            <Clock size={15} aria-hidden="true" />
+            <h2>Proyectos recientes</h2>
+            {recents.length > 0 && <span className="boot-recents-count">{recents.length}</span>}
+          </div>
+          {canManage && (
+            <button
+              type="button"
+              className={`boot-recents-edit ${managing ? "is-active" : ""}`}
+              onClick={() => setManaging((value) => !value)}
+              disabled={busy}
+            >
+              {managing ? <Check size={13} aria-hidden="true" /> : <Pencil size={13} aria-hidden="true" />}
+              <span>{managing ? "Listo" : "Editar"}</span>
+            </button>
+          )}
         </div>
         {recents.length ? (
-          <div className="boot-recent-strip rpc-strip" role="list" aria-label="Proyectos recientes">
+          <div className={`boot-recent-list ${managing ? "is-managing" : ""}`} role="list" aria-label="Proyectos recientes">
             {recents.map((recent) => (
-              <RecentProjectCard
+              <BootRecentRow
                 key={recent.path}
                 name={recent.name || projectName(recent.path)}
                 path={recent.path}
                 openedAt={recent.opened_at}
                 busy={busy}
+                managing={managing}
                 onOpen={() => onOpenRecent(recent.path)}
                 onRemove={() => onRemoveRecent(recent.path)}
               />
             ))}
           </div>
         ) : (
-          <p className="boot-empty">
-            <FolderSearch size={16} aria-hidden="true" />
-            <span>No hay proyectos recientes en este equipo.</span>
-          </p>
+          <div className="boot-empty">
+            <FolderSearch size={22} aria-hidden="true" />
+            <strong>Sin proyectos recientes</strong>
+            <span>Abre o crea un proyecto y aparecerá aquí para volver rápido.</span>
+          </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Fila de proyecto reciente para la lista vertical del chooser. Layout propio
+ * (BootGate no puede importar features): ícono, nombre, ruta con ellipsis al
+ * inicio, fecha relativa y acción de quitar. En modo edición el botón queda
+ * siempre visible.
+ */
+function BootRecentRow({
+  name,
+  path,
+  openedAt,
+  busy,
+  managing,
+  onOpen,
+  onRemove,
+}: {
+  name: string;
+  path: string;
+  openedAt?: string | null;
+  busy?: boolean;
+  managing: boolean;
+  onOpen: () => void;
+  onRemove: () => void;
+}) {
+  const dateLabel = useMemo(() => formatRelativeDate(openedAt), [openedAt]);
+  return (
+    <div className={`boot-recent-row ${busy ? "is-busy" : ""} ${managing ? "is-managing" : ""}`} role="listitem">
+      <button
+        type="button"
+        className="boot-recent-open"
+        onClick={onOpen}
+        disabled={busy}
+        title={path}
+        aria-label={`Abrir ${name}`}
+      >
+        <span className="boot-recent-icon" aria-hidden="true">
+          {busy ? <Loader2 size={16} className="boot-recent-spin" /> : <Folder size={16} />}
+        </span>
+        <span className="boot-recent-body">
+          <strong className="boot-recent-name">{name}</strong>
+          <span className="boot-recent-path" dir="rtl">{path}</span>
+        </span>
+        {dateLabel && <span className="boot-recent-date">{dateLabel}</span>}
+      </button>
+      <button
+        type="button"
+        className="boot-recent-remove"
+        onClick={onRemove}
+        disabled={busy}
+        aria-label={`Quitar ${name} de recientes`}
+        title="Quitar de recientes"
+      >
+        <X size={14} aria-hidden="true" />
+      </button>
     </div>
   );
 }

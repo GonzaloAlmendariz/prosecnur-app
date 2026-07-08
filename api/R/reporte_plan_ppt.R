@@ -2722,13 +2722,33 @@ reporte_ppt_plan <- function(
     nzchar(x) & grepl("\\b(otro|otra|otros|otras|other)\\b", x, perl = TRUE)
   }
 
+  # `.looks_like_otros_label()` hace un match de palabra suelta ("\botros\b")
+  # pensado para etiquetas CORTAS de display (una barra, un bullet ya
+  # resuelto). Para identificar la opcion catch-all "Otros" DENTRO de una
+  # lista de choices, eso no alcanza: una categoria nombrada con una
+  # descripcion larga puede mencionar la palabra de forma incidental (ej.
+  # "...para reflejar mejor transporte, geotecnia... y otros campos
+  # profesionales") sin ser el cajon catch-all. Exigimos ademas que el
+  # termino aparezca cerca del inicio Y que la etiqueta completa sea breve
+  # (las opciones "Otros" reales son cortas: "Otros", "Otro, especifique",
+  # "Otra institucion:").
+  .looks_like_otros_catchall_label <- function(x) {
+    x_norm <- .otros_norm(x)
+    is_hit <- nzchar(x_norm) & grepl("\\b(otro|otra|otros|otras|other)\\b", x_norm, perl = TRUE)
+    words <- strsplit(trimws(x_norm), "\\s+", perl = TRUE)
+    n_words <- vapply(words, length, integer(1))
+    first_two <- vapply(words, function(w) paste(utils::head(w, 2), collapse = " "), character(1))
+    near_start <- grepl("\\b(otro|otra|otros|otras|other)\\b", first_two, perl = TRUE)
+    is_hit & near_start & (n_words <= 6)
+  }
+
   .other_option_values <- function(ctx) {
     ln <- .list_name_from_ctx(ctx)
     levels <- .reporte_plan_choice_levels_for_list(ln, ctx$choices)
     if (!nrow(levels)) {
       return(data.frame(code = character(0), label = character(0), stringsAsFactors = FALSE))
     }
-    hit <- .looks_like_otros_label(levels$label) | .looks_like_otros_label(levels$code)
+    hit <- .looks_like_otros_catchall_label(levels$label) | .looks_like_otros_catchall_label(levels$code)
     levels[hit, , drop = FALSE]
   }
 
@@ -2818,13 +2838,30 @@ reporte_ppt_plan <- function(
     )
   }
 
+  # Las variables select_multiple normalizadas viven como columnas dummy
+  # "<var>.<codigo>" (una por opcion) — NUNCA como una columna "<var>" a
+  # secas ni como "<var>/<codigo>" (convencion ODK cruda). Esto aplica
+  # tanto a select_multiple nativas del XLSForm (ej. p19, p7) como a
+  # variables recodificadas manualmente de texto libre a select_multiple
+  # (ej. p35_recod, con 9 categorias). `.related_recod_var()` y las
+  # funciones de mascara de abajo comparaban contra "<var>/<codigo>", que
+  # nunca matchea nada en este formato — degenerando a comparar el TEXTO
+  # LIBRE crudo contra la palabra "otros", lo que genera falsos positivos
+  # cuando esa palabra aparece de forma natural en una respuesta larga
+  # (ej. "...en otros rubros.").
+  .reporte_plan_has_sm_dummy_cols <- function(dsrc, var) {
+    var <- as.character(var %||% "")[1]
+    if (is.na(var) || !nzchar(var)) return(FALSE)
+    any(startsWith(names(dsrc), paste0(var, ".")))
+  }
+
   .related_recod_var <- function(dsrc, ctx_parent, text_var) {
     if (grepl("_recod$", ctx_parent$var, ignore.case = TRUE) &&
-        ctx_parent$var %in% names(dsrc)) {
+        (ctx_parent$var %in% names(dsrc) || .reporte_plan_has_sm_dummy_cols(dsrc, ctx_parent$var))) {
       return(ctx_parent$var)
     }
     if (grepl("_recod$", ctx_parent$var_requested, ignore.case = TRUE) &&
-        ctx_parent$var_requested %in% names(dsrc)) {
+        (ctx_parent$var_requested %in% names(dsrc) || .reporte_plan_has_sm_dummy_cols(dsrc, ctx_parent$var_requested))) {
       return(ctx_parent$var_requested)
     }
 
@@ -2841,6 +2878,29 @@ reporte_ppt_plan <- function(
   .not_already_categorized_mask <- function(dsrc, ctx_parent, text_var) {
     recod_var <- .related_recod_var(dsrc, ctx_parent, text_var)
     if (is.na(recod_var) || !nzchar(recod_var)) return(rep(TRUE, nrow(dsrc)))
+
+    is_marked_col <- function(col) {
+      if (!col %in% names(dsrc)) return(rep(FALSE, nrow(dsrc)))
+      x <- dsrc[[col]]
+      !is.na(x) & as.character(x) %in% c("1", "TRUE", "true", "Si", "Sí", "si", "sí")
+    }
+
+    # select_multiple normalizado: solo existen columnas dummy
+    # "<recod_var>.<codigo>", no una columna madre "<recod_var>" a secas.
+    # "Ya categorizado" = marco alguna opcion NOMBRADA (cualquiera que no
+    # sea la opcion catch-all "Otros" de su propia lista de choices).
+    if (!(recod_var %in% names(dsrc)) && .reporte_plan_has_sm_dummy_cols(dsrc, recod_var)) {
+      ctx_recod <- tryCatch(.resolve_ref(recod_var, source = ctx_parent$source, arg_name = "recod"), error = function(e) NULL)
+      other_values <- if (!is.null(ctx_recod)) .other_option_values(ctx_recod) else NULL
+      other_codes <- .reporte_plan_clean_chr(other_values$code %||% character(0))
+      other_codes <- other_codes[nzchar(other_codes)]
+      other_dummy_cols <- paste0(recod_var, ".", other_codes)
+
+      dummy_cols <- names(dsrc)[startsWith(names(dsrc), paste0(recod_var, "."))]
+      named_dummy_cols <- setdiff(dummy_cols, other_dummy_cols)
+      any_named_marked <- Reduce(`|`, lapply(named_dummy_cols, is_marked_col), rep(FALSE, nrow(dsrc)))
+      return(!any_named_marked)
+    }
 
     recod_raw <- .reporte_plan_clean_chr(dsrc[[recod_var]])
     recod_blank <- !nzchar(recod_raw)
@@ -2866,10 +2926,7 @@ reporte_ppt_plan <- function(
         codes <- .reporte_plan_clean_chr(other_values$code)
         codes <- codes[nzchar(codes)]
         for (code in codes) {
-          col <- paste0(recod_var, "/", code)
-          if (!col %in% names(dsrc)) next
-          x <- dsrc[[col]]
-          recod_other <- recod_other | (!is.na(x) & as.character(x) %in% c("1", "TRUE", "true", "Si", "Sí", "si", "sí"))
+          recod_other <- recod_other | is_marked_col(paste0(recod_var, "/", code)) | is_marked_col(paste0(recod_var, ".", code))
         }
       }
     }
@@ -2877,7 +2934,7 @@ reporte_ppt_plan <- function(
     recod_blank | recod_other
   }
 
-  .parent_other_mask <- function(dsrc, ctx_parent, other_values) {
+  .parent_other_mask <- function(dsrc, ctx_parent, other_values, text_var = NULL) {
     if (!nrow(dsrc)) return(logical(0))
 
     masks <- list()
@@ -2888,6 +2945,17 @@ reporte_ppt_plan <- function(
         sub("_recod$", "", ctx_parent$var, ignore.case = TRUE, perl = TRUE),
         sub("_recod$", "", ctx_parent$var_requested, ignore.case = TRUE, perl = TRUE)
       )))
+      # Si al despojar "_recod" el nombre coincide con la propia columna de
+      # texto libre (caso de una variable recodificada desde cero a partir
+      # de un "text" sin select_multiple nativo, ej. p35 -> p35_recod), esa
+      # columna NO es una lista de codigos separados por delimitador: es
+      # prosa libre. Compararla contra el codigo/etiqueta de "Otros" genera
+      # falsos positivos cuando esa palabra aparece de forma natural en la
+      # respuesta (ej. "...en otros rubros."). La excluimos de este chequeo
+      # directo; el chequeo por columnas dummy de abajo sigue aplicando.
+      if (!is.null(text_var) && nzchar(as.character(text_var)[1])) {
+        direct_cols <- setdiff(direct_cols, as.character(text_var)[1])
+      }
       direct_cols <- direct_cols[nzchar(direct_cols) & direct_cols %in% names(dsrc)]
 
       other_raw <- unique(.reporte_plan_clean_chr(c(other_values$code, other_values$label)))
@@ -2914,7 +2982,10 @@ reporte_ppt_plan <- function(
         candidates <- c(
           paste0(ctx_parent$var_requested, "/", code),
           paste0(ctx_parent$var, "/", code),
-          paste0(sub("_recod$", "", ctx_parent$var), "/", code)
+          paste0(sub("_recod$", "", ctx_parent$var), "/", code),
+          paste0(ctx_parent$var_requested, ".", code),
+          paste0(ctx_parent$var, ".", code),
+          paste0(sub("_recod$", "", ctx_parent$var), ".", code)
         )
         for (col in unique(candidates)) {
           if (!col %in% names(dsrc)) next
@@ -2951,7 +3022,7 @@ reporte_ppt_plan <- function(
     }
 
     parent_mask <- if (has_predefined_otros) {
-      .parent_other_mask(dsrc, ctx_parent, other_values)
+      .parent_other_mask(dsrc, ctx_parent, other_values, text_var = text_var)
     } else {
       rep(TRUE, nrow(dsrc))
     }
@@ -2986,7 +3057,7 @@ reporte_ppt_plan <- function(
       base = paste0(
         "Base: ",
         format(as.integer(length(respuestas)), big.mark = ",", scientific = FALSE, trim = TRUE),
-        " respuestas en Otros"
+        " respuestas en Otros en la pregunta ", title
       )
     )
   }
@@ -3096,6 +3167,21 @@ reporte_ppt_plan <- function(
     detalle$n <- suppressWarnings(as.numeric(detalle$n))
     detalle <- detalle[is.finite(detalle$n) & !is.na(detalle$n) & detalle$n > 0, , drop = FALSE]
     if (!nrow(detalle)) return(NULL)
+
+    # La categoria catch-all "Otro/Otros" ya recodificada NO se lista aqui
+    # como un conteo agregado mas: su contenido real (lo que la persona
+    # escribio) ya se muestra, con texto individual, en el detalle de
+    # `.other_text_info_for_ref()` (kind = "open_text_otros"). Mostrarla
+    # tambien aca duplicaria la misma informacion como un numero sin
+    # texto, cuando lo que le importa al lector es justamente que
+    # escribieron esos casos. Se detecta por el label ya mostrado (mismo
+    # criterio que .is_grouped_otros_final_label() usa arriba para
+    # excluir "Otros" del ranking de top-N), no por el label crudo del
+    # choices sheet, porque este puede diferir del label que se termina
+    # mostrando (ej. choices dice "Otra institucion:", pero el dato/chart
+    # ya lo muestra acortado como "Otros").
+    detalle <- detalle[!.looks_like_otros_label(as.character(detalle$Opciones)), , drop = FALSE]
+    if (!nrow(detalle)) return(NULL)
     ln <- .list_name_from_ctx(ctx)
     detalle_labels <- .reporte_plan_labels_for_levels(ln, detalle$Opciones, ctx$choices)
     detalle_labels <- .reporte_plan_clean_chr(detalle_labels)
@@ -3128,7 +3214,7 @@ reporte_ppt_plan <- function(
       n = length(respuestas),
       n_agrupado = n_agrupado,
       respuestas = respuestas,
-      base = paste0("Base: ", fmt_n(n_agrupado), " respuestas agrupadas en Otros"),
+      base = paste0("Base: ", fmt_n(n_agrupado), " respuestas agrupadas en Otros en la pregunta ", as.character(title)[1]),
       kind = "grouped_otros"
     )
   }
@@ -3221,6 +3307,80 @@ reporte_ppt_plan <- function(
     chunks
   }
 
+  # Reparte una pagina de bullets entre `n_cols` columnas balanceando por
+  # cantidad de LINEAS estimadas (no por cantidad de items), asi columnas
+  # con textos mas largos reciben menos items que columnas con textos cortos.
+  .balance_otros_columns <- function(items, n_cols, wrap_chars) {
+    if (n_cols <= 1L || length(items) <= 1L) return(list(items))
+    cols <- vector("list", n_cols)
+    loads <- rep(0L, n_cols)
+    for (it in items) {
+      lc <- max(1L, .otros_bullet_line_count(it, wrap_chars = wrap_chars))
+      idx <- which.min(loads)
+      cols[[idx]] <- c(cols[[idx]], it)
+      loads[[idx]] <- loads[[idx]] + lc
+    }
+    Filter(function(x) length(x) > 0L, cols)
+  }
+
+  # Listas cortas no necesitan columnas (se verian desbalanceadas / con
+  # una columna casi vacia). Solo repartimos en columnas cuando el volumen
+  # realmente lo amerita.
+  .otros_cols_for_count <- function(n_items, max_cols = 2L) {
+    if (max_cols <= 1L || n_items <= 12L) 1L else max_cols
+  }
+
+  # Pagina una lista de respuestas "Otros" en N slides, cada una con hasta
+  # `max_cols` columnas. A diferencia del chunking de una sola columna
+  # (que subutilizaba el alto disponible apenas se llegaba a `max_items`),
+  # esto reparte la capacidad entre columnas: mas items por slide antes de
+  # necesitar una diapositiva de continuacion "Otros (cont.)".
+  .paginate_otros_columns <- function(respuestas,
+                                       lines_per_col = 14L,
+                                       max_items_per_page = 30L,
+                                       max_cols = 2L,
+                                       wrap_chars_per_col = 46L) {
+    respuestas <- respuestas[nzchar(respuestas)]
+    if (!length(respuestas)) return(list())
+
+    lines_per_col <- suppressWarnings(as.integer(lines_per_col)[1])
+    if (!is.finite(lines_per_col) || is.na(lines_per_col) || lines_per_col < 4L) lines_per_col <- 14L
+    max_items_per_page <- suppressWarnings(as.integer(max_items_per_page)[1])
+    if (!is.finite(max_items_per_page) || is.na(max_items_per_page) || max_items_per_page < 1L) max_items_per_page <- 30L
+    max_cols <- suppressWarnings(as.integer(max_cols)[1])
+    if (!is.finite(max_cols) || is.na(max_cols) || max_cols < 1L) max_cols <- 2L
+
+    pages <- list()
+    current <- character(0)
+    sim_loads <- rep(0L, max_cols)
+
+    for (resp in respuestas) {
+      lc <- max(1L, .otros_bullet_line_count(resp, wrap_chars = wrap_chars_per_col))
+      idx <- which.min(sim_loads)
+      would_exceed_lines <- length(current) > 0L && (sim_loads[[idx]] + lc) > lines_per_col
+      would_exceed_items <- length(current) >= max_items_per_page
+
+      if (would_exceed_lines || would_exceed_items) {
+        pages[[length(pages) + 1L]] <- current
+        current <- character(0)
+        sim_loads <- rep(0L, max_cols)
+        idx <- 1L
+      }
+
+      current <- c(current, resp)
+      sim_loads[[idx]] <- sim_loads[[idx]] + lc
+    }
+    if (length(current)) pages[[length(pages) + 1L]] <- current
+
+    lapply(pages, function(page_items) {
+      n_cols <- min(max_cols, .otros_cols_for_count(length(page_items), max_cols = max_cols))
+      list(
+        items = page_items,
+        columnas = .balance_otros_columns(page_items, n_cols, wrap_chars = wrap_chars_per_col)
+      )
+    })
+  }
+
   .make_otros_slides <- function(info) {
     respuestas <- .clean_other_response_bullet(info$respuestas %||% character(0))
     normalizar_modo <- info$normalizar_respuestas %||% {
@@ -3230,21 +3390,23 @@ reporte_ppt_plan <- function(
     respuestas <- respuestas[nzchar(respuestas)]
     if (!length(respuestas)) return(list())
 
-    chunks <- .chunk_otros_respuestas(
+    paginas <- .paginate_otros_columns(
       respuestas,
-      max_lines = info$max_lines %||% 18L,
-      max_items = info$max_items %||% 8L,
-      wrap_chars = info$wrap_chars %||% 88L
+      lines_per_col = info$lines_per_col %||% 22L,
+      max_items_per_page = info$max_items_per_page %||% 40L,
+      max_cols = info$max_cols %||% 2L,
+      wrap_chars_per_col = info$wrap_chars_per_col %||% 46L
     )
-    total_chunks <- length(chunks)
+    total_paginas <- length(paginas)
     n_txt <- format(as.integer(length(respuestas)), big.mark = ",", scientific = FALSE, trim = TRUE)
-    base_txt <- info$base %||% paste0("Base: ", n_txt, " respuestas en Otros")
+    base_txt <- info$base %||% paste0("Base: ", n_txt, " respuestas en Otros en la pregunta ", info$title)
 
-    lapply(seq_along(chunks), function(i) {
+    lapply(seq_along(paginas), function(i) {
       title <- paste0("Otros: ", info$title)
-      p_slide_texto(
+      pagina <- paginas[[i]]
+      slide <- p_slide_texto(
         titulo = title,
-        bullets = chunks[[i]],
+        bullets = pagina$items,
         base = base_txt,
         meta = list(
           auto_otros = TRUE,
@@ -3253,10 +3415,43 @@ reporte_ppt_plan <- function(
           text_var = info$text_var,
           kind = info$kind %||% "open_text_otros",
           chunk = i,
-          chunks = total_chunks
+          chunks = total_paginas
         )
       )
+      slide$slots$columnas <- pagina$columnas
+      slide
     })
+  }
+
+  # Combina un `grouped_otros_info` (categorias con nombre plegadas en la
+  # barra "Otros" solo por limite visual de max_categorias) con el
+  # `other_text_info` de ESA MISMA variable (texto libre nunca codificado)
+  # en un unico objeto "info", para que ambos casos aparezcan como una sola
+  # lista bajo un unico titulo "Otros: <pregunta>" con un Base combinado —
+  # en vez de dos slides consecutivas casi identicas (mismo titulo, un
+  # "Base: N" distinto cada una) que confunden al lector sobre si son la
+  # misma pregunta o dos preguntas distintas.
+  .merge_otros_infos <- function(grouped_info, text_info) {
+    grouped_txt <- .normalizar_other_response_bullets(
+      .clean_other_response_bullet(grouped_info$respuestas %||% character(0)), "ninguna"
+    )
+    text_txt <- .normalizar_other_response_bullets(
+      .clean_other_response_bullet(text_info$respuestas %||% character(0)), "mayuscula_inicial"
+    )
+    respuestas <- c(grouped_txt, text_txt)
+    respuestas <- respuestas[nzchar(respuestas)]
+    n_total <- length(grouped_txt) + length(text_txt)
+
+    combined <- grouped_info
+    combined$respuestas <- respuestas
+    combined$normalizar_respuestas <- "ninguna"
+    combined$n <- length(respuestas)
+    combined$base <- paste0(
+      "Base: ",
+      format(as.integer(n_total), big.mark = ",", scientific = FALSE, trim = TRUE),
+      " respuestas en Otros en la pregunta ", combined$title
+    )
+    combined
   }
 
   .reporte_plan_insert_otros_slides <- function(plan) {
@@ -3272,22 +3467,10 @@ reporte_ppt_plan <- function(
 
       for (el in elements) {
         grouped_info <- .grouped_otros_info_for_element(el)
-        if (!is.null(grouped_info) && is.finite(grouped_info$n) && grouped_info$n > 0) {
-          key <- .otros_key(grouped_info)
-          if (!key %in% seen) {
-            seen <- c(seen, key)
-            otros_slides <- .make_otros_slides(grouped_info)
-            if (length(otros_slides)) {
-              for (otros_slide in otros_slides) {
-                out[[length(out) + 1L]] <- otros_slide
-              }
-            }
-          }
-        }
+        has_grouped <- !is.null(grouped_info) && is.finite(grouped_info$n) && grouped_info$n > 0
 
         refs <- .element_refs_for_otros(el)
-        if (!length(refs)) next
-
+        text_infos <- list()
         for (ref in refs) {
           info <- .other_text_info_for_ref(
             ref,
@@ -3295,15 +3478,43 @@ reporte_ppt_plan <- function(
             source = el$source %||% NULL,
             title_override = (el$overrides %||% list())$titulo %||% el$title_slide %||% NULL
           )
-          if (is.null(info) || !is.finite(info$n) || info$n <= 0) next
-          key <- .otros_key(info)
-          if (key %in% seen) next
-          seen <- c(seen, key)
-          otros_slides <- .make_otros_slides(info)
-          if (length(otros_slides)) {
-            for (otros_slide in otros_slides) {
-              out[[length(out) + 1L]] <- otros_slide
-            }
+          if (!is.null(info) && is.finite(info$n) && info$n > 0) {
+            text_infos[[length(text_infos) + 1L]] <- info
+          }
+        }
+
+        merged_idx <- NA_integer_
+        if (has_grouped && length(text_infos)) {
+          hit <- which(vapply(text_infos, function(ti) {
+            identical(ti$parent_var, grouped_info$parent_var) && identical(ti$source, grouped_info$source)
+          }, logical(1)))
+          if (length(hit)) merged_idx <- hit[[1]]
+        }
+
+        if (has_grouped) {
+          info_to_render <- if (!is.na(merged_idx)) {
+            .merge_otros_infos(grouped_info, text_infos[[merged_idx]])
+          } else {
+            grouped_info
+          }
+          key <- .otros_key(info_to_render)
+          if (!key %in% seen) {
+            seen <- c(seen, key)
+            if (!is.na(merged_idx)) seen <- c(seen, .otros_key(text_infos[[merged_idx]]))
+            otros_slides <- .make_otros_slides(info_to_render)
+            for (otros_slide in otros_slides) out[[length(out) + 1L]] <- otros_slide
+          }
+        }
+
+        if (length(text_infos)) {
+          for (idx in seq_along(text_infos)) {
+            if (!is.na(merged_idx) && idx == merged_idx) next
+            info <- text_infos[[idx]]
+            key <- .otros_key(info)
+            if (key %in% seen) next
+            seen <- c(seen, key)
+            otros_slides <- .make_otros_slides(info)
+            for (otros_slide in otros_slides) out[[length(out) + 1L]] <- otros_slide
           }
         }
       }
@@ -3462,6 +3673,23 @@ reporte_ppt_plan <- function(
     )
   }
 
+  # `select_multiple`: cada respondente puede aportar a varias opciones a la
+  # vez, asi que el `n` de cada opcion NO es una particion del total (no son
+  # mutuamente excluyentes). El N_total valido para el % siempre es "cuantos
+  # respondentes marcaron algo" (fila "Total" de freq_table_spss), sin
+  # importar cuantas opciones se oculten del grafico. Sumar los `n` de las
+  # opciones visibles tras excluir alguna (como se hace para select_one) da
+  # un numero sin sentido estadistico para select_multiple.
+  .reporte_plan_is_select_multiple <- function(var, source = NULL) {
+    ctx_v <- tryCatch(.resolve_ref(var, source = source, arg_name = "var"), error = function(e) NULL)
+    if (is.null(ctx_v) || is.null(ctx_v$survey) || !all(c("type", "name") %in% names(ctx_v$survey))) {
+      return(FALSE)
+    }
+    mask <- !is.na(ctx_v$survey$name) & ctx_v$survey$name == ctx_v$var
+    tps <- unique(stats::na.omit(ctx_v$survey$type[mask]))
+    any(grepl("^select_multiple(\\s|$)", tps))
+  }
+
   # ---------------------------------------------------------------------------
   # 4) Helpers  -  paleta_<listname> auto desde env_diapos
   # ---------------------------------------------------------------------------
@@ -3538,7 +3766,7 @@ reporte_ppt_plan <- function(
     excluded_any <- isTRUE(attr(tab2, "excluded_any", exact = TRUE))
 
     if (!nrow(tab2)) return(NULL)
-    if (excluded_any || !is.finite(N_total)) N_total <- sum(tab2$n, na.rm = TRUE)
+    if ((excluded_any && !.reporte_plan_is_select_multiple(var)) || !is.finite(N_total)) N_total <- sum(tab2$n, na.rm = TRUE)
     if (!is.finite(N_total)) return(NULL)
 
     N_pretty <- format(N_total, big.mark = ",", scientific = FALSE)
@@ -3595,7 +3823,7 @@ reporte_ppt_plan <- function(
         excluded_any <- isTRUE(attr(tab2, "excluded_any", exact = TRUE))
 
         if (!nrow(tab2)) return(NULL)
-        if (excluded_any || !is.finite(N_total)) N_total <- sum(tab2$n, na.rm = TRUE)
+        if ((excluded_any && !.reporte_plan_is_select_multiple(first_ref, source = src)) || !is.finite(N_total)) N_total <- sum(tab2$n, na.rm = TRUE)
         if (!is.finite(N_total)) return(NULL)
 
         N_pretty <- format(N_total, big.mark = ",", scientific = FALSE)
@@ -3631,7 +3859,7 @@ reporte_ppt_plan <- function(
       excluded_any <- isTRUE(attr(tab2, "excluded_any", exact = TRUE))
 
       if (!nrow(tab2)) next
-      if (excluded_any || !is.finite(N_total)) N_total <- sum(tab2$n, na.rm = TRUE)
+      if ((excluded_any && !.reporte_plan_is_select_multiple(ref_src, source = src)) || !is.finite(N_total)) N_total <- sum(tab2$n, na.rm = TRUE)
       if (!is.finite(N_total)) next
 
       N_pretty <- format(N_total, big.mark = ",", scientific = FALSE)
@@ -4444,7 +4672,7 @@ reporte_ppt_plan <- function(
     excluded_any <- isTRUE(attr(tab, "excluded_any", exact = TRUE))
 
     if (!nrow(tab)) return(.blank_canvas(preset_args, overrides))
-    if (excluded_any || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
+    if ((excluded_any && !.reporte_plan_is_select_multiple(var)) || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
     if (!is.finite(N_total) || N_total <= 0) return(.blank_canvas(preset_args, overrides))
 
     # paleta auto (paleta_<listname>) y orden institucional del instrumento
@@ -4867,7 +5095,7 @@ reporte_ppt_plan <- function(
         excluded_any <- isTRUE(attr(tab, "excluded_any", exact = TRUE))
 
         if (!nrow(tab)) next
-        if (excluded_any || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
+        if ((excluded_any && !.reporte_plan_is_select_multiple(v)) || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
         if (!is.finite(N_total) || N_total <= 0) next
 
         tabs_by_v[[v]] <- tab
@@ -5099,7 +5327,7 @@ reporte_ppt_plan <- function(
         excluded_any <- isTRUE(attr(tab, "excluded_any", exact = TRUE))
 
         if (!nrow(tab)) next
-        if (excluded_any || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
+        if ((excluded_any && !.reporte_plan_is_select_multiple(var)) || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
         if (!is.finite(N_total) || N_total <= 0) next
 
         # pct enteros a 100 dentro del grupo
@@ -5274,7 +5502,7 @@ reporte_ppt_plan <- function(
             excluded_any <- isTRUE(attr(tab, "excluded_any", exact = TRUE))
 
             if (!nrow(tab)) next
-            if (excluded_any || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
+            if ((excluded_any && !.reporte_plan_is_select_multiple(ref)) || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
             if (!is.finite(N_total) || N_total <= 0) next
 
             pct_int <- .pct_enteros_100(tab$n)
@@ -5444,7 +5672,7 @@ reporte_ppt_plan <- function(
             excluded_any <- isTRUE(attr(tab, "excluded_any", exact = TRUE))
 
             if (!nrow(tab)) next
-            if (excluded_any || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
+            if ((excluded_any && !.reporte_plan_is_select_multiple(ctx_v$var)) || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
             if (!is.finite(N_total) || N_total <= 0) next
 
             pct_int <- .pct_enteros_100(tab$n)
@@ -5557,7 +5785,7 @@ reporte_ppt_plan <- function(
 
     if (!nrow(tab)) return(.blank_canvas(preset_args, overrides))
 
-    if (excluded_any || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
+    if ((excluded_any && !.reporte_plan_is_select_multiple(var)) || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
     if (!is.finite(N_total) || N_total <= 0) return(.blank_canvas(preset_args, overrides))
 
     # ----------------------------
@@ -5690,7 +5918,7 @@ reporte_ppt_plan <- function(
     excluded_any <- isTRUE(attr(tab, "excluded_any", exact = TRUE))
     if (!nrow(tab)) return(.blank_canvas(preset_args, overrides))
 
-    if (excluded_any || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
+    if ((excluded_any && !.reporte_plan_is_select_multiple(var)) || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
     if (!is.finite(N_total) || N_total <= 0) return(.blank_canvas(preset_args, overrides))
 
     df_cat <- tibble::tibble(
@@ -7690,7 +7918,118 @@ reporte_ppt_plan <- function(
           ),
           fp_p = officer::fp_par(text.align = "justify", line_spacing = 1)
         )
-        doc <- .ph_with_strict(doc, body_value, contract$slots$text)
+
+        # Diapositivas auto-generadas de "Otros" traen `slots$columnas`: una
+        # lista de bloques de bullets ya repartidos entre N columnas (ver
+        # `.paginate_otros_columns()` / `.make_otros_slides()`). Se renderizan
+        # como N cajas de texto lado a lado (en vez del bloque unico de
+        # `text_slide`) para aprovechar mejor el alto y ancho disponibles, y
+        # con una caja aparte para "Base: ..." debajo de las columnas.
+        columnas_otros <- slots$columnas %||% NULL
+        geom_otros <- NULL
+        if (isTRUE(slide$meta$auto_otros %||% FALSE) && length(columnas_otros)) {
+          slide_obj <- doc$slide$get_slide(doc$cursor)
+          xfrm <- tryCatch(slide_obj$get_xfrm(), error = function(e) NULL)
+          layout_name <- NULL
+          master_name <- NULL
+          if (!is.null(xfrm)) {
+            layout_vals <- unique(as.character(xfrm$name))
+            layout_vals <- layout_vals[!is.na(layout_vals) & nzchar(trimws(layout_vals))]
+            if (length(layout_vals)) layout_name <- layout_vals[1]
+            master_vals <- unique(as.character(xfrm$master_name))
+            master_vals <- master_vals[!is.na(master_vals) & nzchar(trimws(master_vals))]
+            if (length(master_vals)) master_name <- master_vals[1]
+          }
+          if (is.null(master_name) || !nzchar(master_name)) master_name <- master
+
+          geom_otros <- tryCatch({
+            props <- officer::layout_properties(doc, layout = layout_name, master = master_name)
+            props <- .select_placeholder_props(props, contract$slots$text, layout_name, master_name)
+            list(left = props$offx[[1]], top = props$offy[[1]], width = props$cx[[1]], height = props$cy[[1]])
+          }, error = function(e) NULL)
+        }
+
+        if (!is.null(geom_otros)) {
+          n_cols <- length(columnas_otros)
+          otros_body_size <- suppressWarnings(as.numeric(base_args$size_cuerpo_otros %||% 16)[1])
+          if (!is.finite(otros_body_size) || is.na(otros_body_size) || otros_body_size <= 0) otros_body_size <- 16
+
+          # El placeholder "body" de la plantilla se define bajo/angosto
+          # (pensado para 3-4 lineas de narrativa), lo que dejaba la mitad
+          # inferior de la diapositiva vacia para estas listas largas de
+          # "Otros". Extendemos la caja hasta cerca del borde inferior real
+          # de la diapositiva (via `slide_size()`) en vez de respetar el
+          # alto nominal del placeholder, ya que aca renderizamos con
+          # `ph_location` explicito (no `.ph_with_strict`).
+          slide_dims_otros <- tryCatch(officer::slide_size(doc), error = function(e) NULL)
+          slide_h_otros <- suppressWarnings(as.numeric(slide_dims_otros$height %||% 7.5)[1])
+          if (!is.finite(slide_h_otros) || is.na(slide_h_otros) || slide_h_otros <= 0) slide_h_otros <- 7.5
+          bottom_margin_otros <- 0.35
+          avail_height_otros <- max(geom_otros$height, (slide_h_otros - bottom_margin_otros) - geom_otros$top)
+
+          base_line_h <- 0.35
+          gap_v <- 0.1
+          gutter <- 0.35
+          cols_height <- max(0.6, avail_height_otros - base_line_h - gap_v)
+          col_width <- max(1.0, (geom_otros$width - gutter * (n_cols - 1)) / n_cols)
+
+          for (ci in seq_len(n_cols)) {
+            col_items <- columnas_otros[[ci]]
+            if (!length(col_items)) next
+            col_value <- officer::fpar(
+              officer::ftext(
+                .ppt_norm_text_lines(bullets = col_items, blank = " "),
+                prop = officer::fp_text(
+                  color = base_args$color_nota_pie %||% "#081F5C",
+                  font.size = otros_body_size,
+                  bold = FALSE,
+                  font.family = font_family
+                )
+              ),
+              fp_p = officer::fp_par(text.align = "left", line_spacing = 1)
+            )
+            doc <- officer::ph_with(
+              doc,
+              value = col_value,
+              location = officer::ph_location(
+                left = geom_otros$left + (ci - 1) * (col_width + gutter),
+                top = geom_otros$top,
+                width = col_width,
+                height = cols_height,
+                newlabel = paste0("Otros columna ", ci)
+              )
+            )
+          }
+
+          base_txt_otros <- slots$base %||% NULL
+          if (!is.null(base_txt_otros) && nzchar(trimws(as.character(base_txt_otros)[1]))) {
+            base_value <- officer::fpar(
+              officer::ftext(
+                as.character(base_txt_otros)[1],
+                prop = officer::fp_text(
+                  color = base_args$color_nota_pie %||% "#081F5C",
+                  font.size = min(otros_body_size, 12),
+                  bold = FALSE,
+                  font.family = font_family
+                )
+              ),
+              fp_p = officer::fp_par(text.align = "left", line_spacing = 1)
+            )
+            doc <- officer::ph_with(
+              doc,
+              value = base_value,
+              location = officer::ph_location(
+                left = geom_otros$left,
+                top = geom_otros$top + cols_height + gap_v,
+                width = geom_otros$width,
+                height = base_line_h,
+                newlabel = "Otros base"
+              )
+            )
+          }
+        } else {
+          doc <- .ph_with_strict(doc, body_value, contract$slots$text)
+        }
       }
 
       log_rows[[length(log_rows) + 1]] <- tibble::tibble(

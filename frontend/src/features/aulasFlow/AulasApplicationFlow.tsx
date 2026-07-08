@@ -90,10 +90,10 @@ export function AulasApplicationFlow({
     <section
       className={`aulas-flow${compact ? " is-compact" : ""}`}
       style={MODULE_TONES[tone] as CSSProperties}
-      aria-label="Flujo operativo de hostigamiento en aulas"
+      aria-label="Flujo operativo de aplicación en aulas"
     >
       <div className="aulas-flow-copy">
-        <span>Estudio de hostigamiento</span>
+        <span>Aplicación en aulas</span>
         <strong>{title}</strong>
         <p>{summary}</p>
       </div>

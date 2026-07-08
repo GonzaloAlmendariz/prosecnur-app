@@ -1,0 +1,80 @@
+/* =============================================================================
+   MuestraFlowDiagram — recorrido ilustrado del desk universitario.
+   Prefijo cmv2-muestra-flow-*. Solo tokens; el SVG escala con su viewBox.
+   Motion: entrada de nodos con stagger sutil (decorativa, reduced-motion la
+   apaga por completo).
+   ============================================================================= */
+
+.cmv2-muestra-flow {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.cmv2-muestra-flow-svg {
+  width: 100%;
+  max-width: 940px;
+  height: auto;
+}
+
+/* Versión compacta: convive con contenido (arriba del mapa vivo). */
+.cmv2-muestra-flow[data-compacto="true"] {
+  justify-content: flex-start;
+}
+
+.cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-svg {
+  max-width: 780px;
+}
+
+/* --- Motion ------------------------------------------------------------------
+   El delay por nodo lo pone el componente (index * 40ms); las aristas entran
+   con un fade único después de la cascada. */
+@media (prefers-reduced-motion: no-preference) {
+  .cmv2-muestra-flow-node {
+    animation: cmv2-muestra-flow-in 260ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) both;
+  }
+
+  .cmv2-muestra-flow-arrow {
+    animation: cmv2-muestra-flow-fade 260ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) 180ms both;
+  }
+}
+
+@keyframes cmv2-muestra-flow-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes cmv2-muestra-flow-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* --- Tipografía (10–11.5px sobre el viewBox de 960) -------------------------- */
+.cmv2-muestra-flow-title {
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 750;
+  letter-spacing: -0.1px;
+}
+
+.cmv2-muestra-flow-sub {
+  font-family: inherit;
+  font-size: 10px;
+}
+
+.cmv2-muestra-flow-pin {
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.cmv2-muestra-flow-arrow-text {
+  font-family: inherit;
+  font-size: 10px;
+  font-style: italic;
+  letter-spacing: 0.1px;
+}

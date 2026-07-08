@@ -4,6 +4,7 @@ import { ArrowRight, BarChart2, CheckCircle2, Database, FileSpreadsheet } from "
 import {
   apiGraficosPpt,
   apiGraficosWord,
+  apiGraficosPptAll,
   apiGraficosValidar,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
@@ -21,6 +22,14 @@ import { useShortcutsV2 } from "./v2/shortcuts/useShortcutsV2";
 import { buildGraficosConfigFromStore } from "./configSnapshot";
 
 type ExportResult = { ok: true; file_id: string; filename?: string; size: number; n_slides: number };
+type ExportAllResult = {
+  ok: true;
+  file_id: string;
+  filename?: string;
+  size: number;
+  n_bases: number;
+  bases: Array<{ nombre: string; filename: string; n_slides: number }>;
+};
 
 export default function GraficosPage() {
   const { state, refresh } = useSession();
@@ -43,12 +52,18 @@ export default function GraficosPage() {
   const select = usePlanStore((s) => s.select);
   const [pptFileId, setPptFileId] = useState<string | null>(null);
   const [docxFileId, setDocxFileId] = useState<string | null>(null);
+  const [zipFileId, setZipFileId] = useState<string | null>(null);
   const [pptFilename, setPptFilename] = useState<string | null>(null);
   const [docxFilename, setDocxFilename] = useState<string | null>(null);
-  const [exportJob, setExportJob] = useState<{ kind: "ppt" | "word"; id: string } | null>(null);
+  const [zipFilename, setZipFilename] = useState<string | null>(null);
+  const [exportJob, setExportJob] = useState<{ kind: "ppt" | "word" | "ppt_all"; id: string } | null>(null);
 
   const prepOk = !!state?.analitica_prep_ok;
   const canExport = prepOk && plan.slides.length > 0 && hydrated;
+  // "Todas las bases" es opcional: solo aplica a proyectos multi-base
+  // independientes con >= 2 bases con datos (mismo criterio que exige el
+  // backend en /api/graficos/ppt-all).
+  const showExportAll = state?.estudio_processing_mode === "independent_siblings" && (state?.n_bases ?? 0) >= 2;
 
   useEffect(() => {
     function onActiveBaseChanged() {
@@ -82,14 +97,27 @@ export default function GraficosPage() {
     }
   }
 
-  function onExportDone(data: ExportResult) {
+  async function onExportPptAll() {
+    setError(null); setWarns([]);
+    try {
+      const out = await apiGraficosPptAll();
+      setExportJob({ kind: "ppt_all", id: out.job_id });
+    } catch (e: unknown) {
+      setError(humanizeGraficosExportError((e as Error).message, plan));
+    }
+  }
+
+  function onExportDone(data: ExportResult | ExportAllResult) {
     if (!exportJob) return;
     if (exportJob.kind === "ppt") {
       setPptFileId(data.file_id);
       setPptFilename(data.filename ?? null);
-    } else {
+    } else if (exportJob.kind === "word") {
       setDocxFileId(data.file_id);
       setDocxFilename(data.filename ?? null);
+    } else {
+      setZipFileId(data.file_id);
+      setZipFilename(data.filename ?? null);
     }
     setExportJob(null);
     void refresh();
@@ -124,19 +152,29 @@ export default function GraficosPage() {
           <GraficosHeader
             onExportPpt={() => onExport("ppt")}
             onExportWord={() => onExport("word")}
+            onExportPptAll={onExportPptAll}
             pptFileId={pptFileId}
             docxFileId={docxFileId}
+            zipFileId={zipFileId}
             pptFilename={pptFilename}
             docxFilename={docxFilename}
+            zipFilename={zipFilename}
             exportBusy={!!busyValidating || !!exportJob}
             exportJobKind={exportJob?.kind ?? null}
             canExport={canExport}
             prepReady={prepOk}
+            showExportAll={showExportAll}
           />
 
           {exportJob && (
-            <JobProgress<ExportResult>
-              label={exportJob.kind === "ppt" ? "Exportando PPT" : "Exportando Word"}
+            <JobProgress<ExportResult | ExportAllResult>
+              label={
+                exportJob.kind === "ppt"
+                  ? "Exportando PPT"
+                  : exportJob.kind === "word"
+                    ? "Exportando Word"
+                    : "Exportando todas las bases"
+              }
               jobId={exportJob.id}
               onDone={onExportDone}
               onError={onExportError}

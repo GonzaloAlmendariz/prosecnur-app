@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  ArrowLeft,
   Check,
   CheckCircle2,
   Circle,
   Clipboard,
   FilePlus2,
   FolderOpen,
+  LayoutGrid,
   Power,
   Save,
   X,
@@ -176,7 +178,7 @@ export default function ProjectLifecycleDialog({
               <code>{projectPath}</code>
               <button
                 type="button"
-                className="pulso-project-confirm-copy"
+                className={`pulso-project-confirm-copy ${copiedPath ? "is-copied" : ""}`}
                 onClick={() => void copyProjectPath()}
                 disabled={busy}
               >
@@ -197,7 +199,7 @@ export default function ProjectLifecycleDialog({
         <footer className="pulso-project-confirm-actions">
           <button
             type="button"
-            className="pulso-project-confirm-button"
+            className="pulso-project-confirm-button is-quiet"
             onClick={onCancel}
             disabled={busy}
             ref={cancelRef}
@@ -205,44 +207,50 @@ export default function ProjectLifecycleDialog({
             Cancelar
           </button>
           <div className="pulso-project-confirm-action-set">
-            <button
-              type="button"
-              className="pulso-project-confirm-button"
-              onClick={onSave}
-              disabled={busy}
-            >
-              <Save size={14} />
-              {action === "save" ? "Guardando..." : "Guardar"}
-            </button>
-            <button
-              type="button"
-              className="pulso-project-confirm-button"
-              onClick={onSaveAs}
-              disabled={busy}
-            >
-              <FilePlus2 size={14} />
-              {action === "saveAs" ? "Guardando..." : "Guardar como..."}
-            </button>
-            {dirty && (
+            <div className="pulso-project-confirm-save-group">
+              {dirty && (
+                <button
+                  type="button"
+                  className="pulso-project-confirm-button"
+                  onClick={onSave}
+                  disabled={busy}
+                >
+                  <Save size={14} />
+                  {action === "save" ? "Guardando…" : "Guardar"}
+                </button>
+              )}
               <button
                 type="button"
-                className="pulso-project-confirm-button is-danger"
-                onClick={onContinueWithoutSave}
+                className="pulso-project-confirm-button"
+                onClick={onSaveAs}
                 disabled={busy}
               >
-                {isAppExit ? <Power size={14} /> : <FolderOpen size={14} />}
-                {action === (isAppExit ? "exit" : "selector") ? "Saliendo..." : secondaryDangerLabel}
+                <FilePlus2 size={14} />
+                {action === "saveAs" ? "Guardando…" : "Guardar como…"}
               </button>
-            )}
-            <button
-              type="button"
-              className="pulso-project-confirm-button is-primary"
-              onClick={dirty ? onSaveAndContinue : onContinueWithoutSave}
-              disabled={busy}
-            >
-              {isAppExit ? <Power size={14} /> : <FolderOpen size={14} />}
-              {action === primaryAction ? "Procesando..." : primaryLabel}
-            </button>
+            </div>
+            <div className="pulso-project-confirm-leave-group">
+              {dirty && (
+                <button
+                  type="button"
+                  className="pulso-project-confirm-button is-danger"
+                  onClick={onContinueWithoutSave}
+                  disabled={busy}
+                >
+                  <ArrowLeft size={14} />
+                  {action === (isAppExit ? "exit" : "selector") ? "Saliendo…" : secondaryDangerLabel}
+                </button>
+              )}
+              <button
+                type="button"
+                className="pulso-project-confirm-button is-primary"
+                onClick={dirty ? onSaveAndContinue : onContinueWithoutSave}
+                disabled={busy}
+              >
+                {isAppExit ? <Power size={14} /> : <LayoutGrid size={14} />}
+                {action === primaryAction ? "Procesando…" : primaryLabel}
+              </button>
+            </div>
           </div>
         </footer>
       </section>

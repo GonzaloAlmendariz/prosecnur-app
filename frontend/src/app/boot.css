@@ -93,36 +93,90 @@ input {
   backdrop-filter: none;
 }
 
-.boot-brand {
+/* --- Chooser: ventana de bienvenida (dos columnas) ----------------------- */
+
+.boot-welcome {
+  display: grid;
+  /* minmax(0, …) en ambos tracks: sin esto el ancho intrínseco de las rutas
+     de recientes infla el track y desborda el panel. */
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1fr);
+  gap: 26px;
+  align-items: stretch;
+}
+
+.boot-hero {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 24px;
+  flex-direction: column;
+  gap: 15px;
+  min-width: 0;
+}
+
+.boot-hero-brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.boot-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 8px 18px rgba(0, 36, 87, 0.24));
+}
+
+.boot-mark svg {
+  display: block;
+  border-radius: 13px;
+}
+
+.boot-hero-id {
+  min-width: 0;
 }
 
 .boot-kicker {
-  margin: 0 0 6px;
+  margin: 0 0 1px;
   color: var(--pulso-text-soft);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 11.5px;
+  font-weight: 760;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
-.boot-brand h1 {
+.boot-hero-id h1 {
   margin: 0;
-  font-size: clamp(28px, 4vw, 40px);
-  line-height: 1.08;
-  letter-spacing: 0;
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-weight: 780;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
 }
 
-.boot-status,
-.boot-pill {
+.boot-hero-tagline {
+  margin: 0;
+  max-width: 36ch;
+  color: var(--pulso-text-soft);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.boot-hero-tagline code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+}
+
+.boot-status {
   display: inline-flex;
   align-items: center;
+  gap: 7px;
+  align-self: flex-start;
+  margin-top: auto;
   min-height: 26px;
   border-radius: 999px;
-  padding: 0 10px;
+  padding: 0 12px;
   background: var(--pulso-info-bg);
   color: var(--pulso-info-fg);
   font-size: 12px;
@@ -130,36 +184,28 @@ input {
   white-space: nowrap;
 }
 
-.boot-status-warming,
-.boot-status-loading,
-.boot-pill-running {
-  background: var(--pulso-info-bg);
-  color: var(--pulso-info-fg);
+.boot-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.85;
 }
 
-.boot-pill-ready {
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.boot-pill-error {
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
-}
-
-.boot-pill-skipped,
-.boot-pill-timeout,
-.boot-pill-pending {
-  background: var(--pulso-surface-2);
+.boot-status-choose {
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
   color: var(--pulso-text-soft);
 }
 
-.boot-chooser {
-  display: grid;
-  /* minmax(0, 1fr): sin esto, el ancho intrínseco del strip de recientes
-     infla el track y el input/las cards desbordan el panel. */
-  grid-template-columns: minmax(0, 1fr);
-  gap: 18px;
+.boot-status-initializing .boot-status-dot,
+.boot-status-opening .boot-status-dot {
+  animation: boot-status-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes boot-status-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
 }
 
 .boot-error {
@@ -202,109 +248,344 @@ input {
 }
 
 .boot-actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 10px;
+  margin-top: 2px;
 }
 
-.boot-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 40px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  padding: 0 20px;
-  background: var(--pulso-primary-soft);
-  color: var(--pulso-primary);
-  font-weight: 650;
-  cursor: pointer;
-  transition:
-    transform var(--motion-dur-press) var(--motion-ease-out),
-    background var(--motion-dur-fast) ease,
-    border-color var(--motion-dur-fast) ease,
-    color var(--motion-dur-fast) ease,
-    box-shadow var(--motion-dur-fast) ease;
-}
-
-.boot-button:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.boot-button:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .boot-button:hover:not(:disabled) {
-    background: rgba(0, 36, 87, 0.13);
-  }
-}
-
-.boot-button:disabled {
-  opacity: 0.58;
-  cursor: wait;
-}
-
-.boot-button-primary {
-  background: var(--pulso-primary);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .boot-button-primary:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--pulso-primary) 88%, black);
-    box-shadow: 0 4px 14px rgba(0, 36, 87, 0.24);
-  }
-}
+/* --- Chooser: columna de recientes (lista vertical) ---------------------- */
 
 .boot-recents {
-  border-top: 1px solid var(--pulso-border);
-  padding-top: 18px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: 16px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--pulso-surface-2) 72%, transparent);
 }
 
 .boot-recents-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
-  color: var(--pulso-text-soft);
+  gap: 10px;
+  margin-bottom: 11px;
 }
 
-.boot-recents-head h2 {
+.boot-recents-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: var(--pulso-text);
+}
+
+.boot-recents-title svg {
+  flex: 0 0 auto;
+  color: var(--pulso-text-faint);
+}
+
+.boot-recents-title h2 {
   margin: 0;
-  font-size: 14px;
+  font-size: 13.5px;
+  font-weight: 750;
   letter-spacing: 0;
 }
 
-/* El layout del strip vive en .rpc-strip (recent-project-card.css);
-   aquí solo se ajusta el sangrado al padding del panel. */
-.boot-recent-strip {
-  --rpc-bleed: 14px;
+.boot-recents-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  font-size: 11px;
+  font-weight: 760;
+  font-variant-numeric: tabular-nums;
+}
+
+.boot-recents-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  min-height: 26px;
+  padding: 0 11px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease;
+}
+
+.boot-recents-edit:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.boot-recents-edit:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.boot-recents-edit:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.boot-recents-edit.is-active {
+  border-color: var(--pulso-primary-border);
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .boot-recents-edit:hover:not(:disabled) {
+    border-color: var(--pulso-border-strong);
+    color: var(--pulso-text);
+  }
+
+  .boot-recents-edit.is-active:hover:not(:disabled) {
+    color: var(--pulso-primary);
+  }
+}
+
+.boot-recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* Muestra ~5 filas cómodas; el resto queda en scroll suave. */
+  max-height: 322px;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-right: -4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.boot-recent-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.boot-recent-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-primary) 18%, transparent);
+}
+
+.boot-recent-list::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--pulso-primary) 30%, transparent);
+}
+
+.boot-recent-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  animation: boot-row-in var(--motion-dur-base) var(--motion-ease-out) backwards;
+}
+
+.boot-recent-list .boot-recent-row:nth-child(1) { animation-delay: 0ms; }
+.boot-recent-list .boot-recent-row:nth-child(2) { animation-delay: 34ms; }
+.boot-recent-list .boot-recent-row:nth-child(3) { animation-delay: 68ms; }
+.boot-recent-list .boot-recent-row:nth-child(4) { animation-delay: 102ms; }
+.boot-recent-list .boot-recent-row:nth-child(5) { animation-delay: 136ms; }
+.boot-recent-list .boot-recent-row:nth-child(n + 6) { animation-delay: 170ms; }
+
+@keyframes boot-row-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: none; }
+}
+
+.boot-recent-open {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex: 1;
   min-width: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: 11px;
+  padding: 8px 11px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 36, 87, 0.04);
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) ease;
+}
+
+.boot-recent-open:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.boot-recent-open:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.boot-recent-open:focus-visible {
+  outline: none;
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .boot-recent-open:hover:not(:disabled) {
+    border-color: var(--pulso-primary-border);
+    box-shadow: 0 4px 14px rgba(0, 36, 87, 0.09);
+  }
+}
+
+.boot-recent-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+}
+
+.boot-recent-spin {
+  animation: boot-spin 0.9s linear infinite;
+}
+
+.boot-recent-body {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.boot-recent-name {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 720;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Path con ellipsis al INICIO (mismo truco que rpc-path). */
+.boot-recent-path {
+  overflow: hidden;
+  direction: rtl;
+  unicode-bidi: plaintext;
+  color: var(--pulso-text-faint);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 10.5px;
+  line-height: 1.3;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.boot-recent-date {
+  flex: 0 0 auto;
+  margin-left: 8px;
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.boot-recent-remove {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0;
+  background: transparent;
+  color: var(--pulso-text-faint);
+  cursor: pointer;
+  opacity: 1;
+  transition:
+    opacity var(--motion-dur-fast) ease,
+    background var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.boot-recent-remove:disabled {
+  cursor: wait;
+  opacity: 0.4;
+}
+
+.boot-recent-remove:active:not(:disabled) {
+  transform: scale(0.9);
+}
+
+.boot-recent-remove:focus-visible {
+  outline: none;
+  opacity: 1;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+/* En dispositivos con hover fino, el botón aparece al pasar el mouse, con
+   foco, o cuando el modo edición está activo. En touch queda siempre visible. */
+@media (hover: hover) and (pointer: fine) {
+  .boot-recent-remove {
+    opacity: 0;
+  }
+
+  .boot-recent-row:hover .boot-recent-remove,
+  .boot-recent-row:focus-within .boot-recent-remove,
+  .boot-recent-row.is-managing .boot-recent-remove {
+    opacity: 1;
+  }
+
+  .boot-recent-remove:hover:not(:disabled) {
+    background: var(--pulso-danger-bg);
+    color: var(--pulso-danger-fg);
+  }
 }
 
 .boot-empty {
+  flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  margin: 0;
-  min-height: 52px;
+  justify-content: center;
+  gap: 5px;
+  min-height: 188px;
   border: 1px dashed var(--pulso-border-strong);
-  border-radius: 14px;
-  padding: 0 16px;
+  border-radius: 12px;
+  padding: 22px;
+  text-align: center;
   color: var(--pulso-text-soft);
-  background: var(--pulso-surface-2);
-  font-size: 13px;
-  font-weight: 650;
 }
 
 .boot-empty svg {
   flex: 0 0 auto;
+  margin-bottom: 4px;
   color: var(--pulso-text-faint);
+}
+
+.boot-empty strong {
+  color: var(--pulso-text);
+  font-size: 13.5px;
+  font-weight: 750;
+}
+
+.boot-empty span {
+  max-width: 30ch;
+  font-size: 12.5px;
+  line-height: 1.45;
 }
 
 /* --- Warmup: anillo de progreso ------------------------------------------ */
@@ -740,6 +1021,40 @@ input {
   .boot-action-card:hover:not(:disabled) {
     transform: none;
   }
+
+  .boot-recent-row {
+    animation: none;
+  }
+
+  .boot-status-initializing .boot-status-dot,
+  .boot-status-opening .boot-status-dot {
+    animation: none;
+  }
+
+  .boot-recent-open,
+  .boot-recent-remove,
+  .boot-recents-edit {
+    transition: none;
+  }
+
+  .boot-recent-open:active:not(:disabled),
+  .boot-recent-remove:active:not(:disabled),
+  .boot-recents-edit:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* En panel angosto el welcome pasa a una sola columna: primero la marca +
+   acciones, luego la lista de recientes con altura acotada. */
+@media (max-width: 820px) {
+  .boot-welcome {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .boot-recent-list {
+    max-height: 260px;
+  }
 }
 
 @media (max-width: 720px) {
@@ -750,18 +1065,5 @@ input {
 
   .boot-panel {
     padding: 20px;
-  }
-
-  .boot-brand {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
-  .boot-actions {
-    display: grid;
-  }
-
-  .boot-button {
-    width: 100%;
   }
 }
