@@ -274,6 +274,7 @@ test_that("graficar_radar valida color y tamaño de íconos", {
 
 test_that("FODA dispersión soporta rectangular y burbuja con leyenda cruce + iconos", {
   skip_if_not_installed("png")
+  skip_if_not_installed("magick")
 
   icon_path <- tempfile(fileext = ".png")
   icon_img <- array(1, dim = c(8, 8, 4))
@@ -446,6 +447,7 @@ test_that("FODA burbuja reduce solapes extremos en zona densa", {
 
 test_that("graficar_foda_dimensiones valida color, tamaño e input de forma", {
   skip_if_not_installed("png")
+  skip_if_not_installed("magick")
   icon_path <- tempfile(fileext = ".png")
   png::writePNG(array(1, dim = c(4, 4, 4)), target = icon_path)
   fx <- make_dimensiones_icon_fixture(icon_path)
