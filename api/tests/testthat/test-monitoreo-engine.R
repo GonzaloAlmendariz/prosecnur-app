@@ -6080,6 +6080,94 @@ test_that("paquete manual para procesamiento exporta revision y excluye uuid anu
   expect_false(isTRUE(out$would_mutate_pulso))
 })
 
+test_that("promocion a Procesamiento persiste base activa con instrumento fidedigno y reporta el filtro", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  data <- data.frame(
+    `Core/M5_district` = c("sjm", "sjm", "sjm", "sjm"),
+    `Core/M8_ump` = c("m1", "m1", "m2", "m3"),
+    `_geolocation` = c("-12.1 -77.0", "-12.1 -77.0", "-12.1 -77.0", ""),
+    codigo_encuestador = c("P001", "P001", "P002", "P003"),
+    filtro_fuente = c("apto", "apto", "apto", "apto"),
+    `_status` = rep("submitted_via_web", 4),
+    `_uuid` = c("a", "b", "c", "d"),
+    check.names = FALSE
+  )
+  cfg <- list(
+    monitoreo_profile = list(family = "territorial", status = "active"),
+    territorial = list(
+      active_route_phase = "field",
+      asset_uid = "asset_test",
+      kobo_version_id = "v1",
+      kobo_asset_name = "Formulario Kobo test",
+      phase_sources = list(field = list(
+        asset_uid = "asset_test",
+        kobo_version_id = "v1",
+        kobo_asset_name = "Formulario Kobo test",
+        source_id = "kobo_asset_test"
+      )),
+      ump_var = "Core/M8_ump",
+      pulso_code_var = "codigo_encuestador",
+      platform_effective_var = "filtro_fuente",
+      platform_effective_values = list("apto"),
+      production_annulments = list(field = list(list(
+        id = "annul_case_b", phase = "field", status = "active", scope = "response",
+        response_id = "b", response_label = "Caso b", reason = "Caso observado",
+        created_at = "2026-06-26T10:00:00-0500"
+      )))
+    )
+  )
+  xlsform_state <- .xlsform_editor_workbook_payload(list(
+    survey = data.frame(type = "text", name = "pregunta_1", label = "Pregunta suelta", check.names = FALSE),
+    choices = data.frame(list_name = character(), name = character(), label = character(), check.names = FALSE),
+    settings = data.frame(form_title = "Paquete test", form_id = "paquete_test", check.names = FALSE)
+  ))
+  kobo_detail <- list(
+    uid = "asset_test", name = "Formulario Kobo test", version_id = "v1",
+    content = list(
+      survey = list(
+        list(type = "select_one", select_from_list_name = "district", name = "M5_district", "$xpath" = "Core/M5_district", label = "Distrito", required = "yes"),
+        list(type = "text", name = "M8_ump", "$xpath" = "Core/M8_ump", label = "UMP", relevant = "${filtro_fuente} = 'apto'"),
+        list(type = "text", name = "codigo_encuestador", label = "Codigo"),
+        list(type = "select_one", select_from_list_name = "filtro", name = "filtro_fuente", label = "Filtro", constraint = ". = 'apto'")
+      ),
+      choices = list(
+        list(list_name = "district", name = "sjm", label = "SJM"),
+        list(list_name = "filtro", name = "apto", label = "Apto")
+      ),
+      settings = list(list(form_title = "Formulario Kobo test", form_id = "formulario_kobo_test", version = "v1"))
+    )
+  )
+  session_set(sid, "monitoreo_snapshot", list(data = data, synced_at = "2026-07-06T12:00:00Z"))
+  session_set(sid, "monitoreo_config", monitoreo_normalize_config(cfg, data))
+  session_set(sid, "xlsform_state", xlsform_state)
+  session_set(sid, "monitoreo_kobo_asset_details", list(field = kobo_detail))
+
+  out <- .monitoreo_processing_handoff_promote(sid, list(universe = "processable"))
+  expect_true(isTRUE(out$ok))
+  expect_equal(out$universe, "processable")
+  expect_true(isTRUE(out$would_mutate_pulso))
+  expect_equal(out$data$n_filas, 3L)
+  expect_equal(out$filter_report$filas_incluidas, 3L)
+  expect_equal(unlist(out$included_statuses, use.names = FALSE), c("validada", "revision"))
+
+  s <- session_get(sid)
+  base <- s$estudio$bases[[out$base_nombre]]
+  expect_false(is.null(base))
+  expect_equal(s$estudio$active_base, out$base_nombre)
+  expect_equal(s$files[[base$xlsform_file_id]]$kind, "xlsform")
+  expect_equal(s$files[[base$data_file_id]]$kind, "data")
+  expect_equal(base$n_filas, 3L)
+  inst_survey <- openxlsx::read.xlsx(s$files[[base$xlsform_file_id]]$path, sheet = "survey")
+  expect_true(all(c("required", "relevant", "constraint") %in% names(inst_survey)))
+
+  # Idempotencia: una segunda promoción reemplaza, no duplica.
+  out2 <- .monitoreo_processing_handoff_promote(sid, list(universe = "processable"))
+  s2 <- session_get(sid)
+  expect_true(isTRUE(out2$ok))
+  expect_equal(length(s2$estudio$bases), 1L)
+})
+
 test_that("anulacion territorial resume UMP con columnas auditadas actuales", {
   audit <- data.frame(
     response_id = c("r1", "r2", "r3"),
