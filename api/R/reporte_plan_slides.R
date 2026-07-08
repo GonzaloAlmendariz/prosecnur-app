@@ -26,6 +26,23 @@
   invisible(TRUE)
 }
 
+# Un `estilo` guardado y releido via JSON (round-trip GET/POST) puede llegar
+# como data.frame de 1 fila: jsonlite colapsa asi un objeto que mezcla
+# escalares con vectores de la misma longitud (ver iconos_focos_cover_width,
+# etc. en p_slide_indice). Sobre un data.frame, `estilo$campo <- vector`
+# revienta con "replacement has N rows, data has 1" en vez de simplemente
+# reemplazar la columna. Lo normalizamos a lista, recuperando los vectores
+# originales de las columnas-lista.
+.ppt_norm_estilo <- function(estilo) {
+  if (is.data.frame(estilo)) {
+    estilo <- lapply(as.list(estilo), function(v) {
+      if (is.list(v) && length(v) == 1L && is.null(names(v))) v[[1]] else v
+    })
+  }
+  if (!is.list(estilo)) stop("`estilo` debe ser una lista.", call. = FALSE)
+  estilo
+}
+
 .ppt_chk_element <- function(x, nm) {
   if (is.null(x) || !inherits(x, "ppt_element")) {
     stop("`", nm, "` debe ser un `ppt_element` (p_*()).", call. = FALSE)
@@ -321,7 +338,7 @@ p_slide_tabla_tecnica <- function(
 
   body_base <- .ppt_norm_text_like(pie, nm = "pie", blank = NULL)
 
-  if (!is.list(estilo)) stop("`estilo` debe ser una lista.", call. = FALSE)
+  estilo <- .ppt_norm_estilo(estilo)
   .ppt_chk_meta(meta)
 
   .ppt_as_slide(list(
@@ -426,7 +443,7 @@ p_slide_indice <- function(titulo = NULL,
                            subtopic_badge_gap = NULL,
                            estilo = list(),
                            meta = list()) {
-  if (!is.list(estilo)) stop("`estilo` debe ser una lista.", call. = FALSE)
+  estilo <- .ppt_norm_estilo(estilo)
 
   parse_numeric_vec <- function(x) {
     if (is.null(x) || length(x) == 0L) return(NULL)
@@ -538,7 +555,7 @@ p_slide_top_two_box <- function(
     estilo = list(),
     meta = list()
 ) {
-  if (!is.list(estilo)) stop("`estilo` debe ser una lista.", call. = FALSE)
+  estilo <- .ppt_norm_estilo(estilo)
   if (!is.null(accent_color)) estilo$accent_color <- .ppt_norm_text1(accent_color, blank = NULL)
   if (!is.null(colores)) estilo$colores <- colores
   if (!is.null(grosor_barra)) estilo$grosor_barra <- grosor_barra
