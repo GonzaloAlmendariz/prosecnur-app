@@ -1,0 +1,226 @@
+/* =============================================================================
+ * analitica-v2.css — capa visual gv2 del módulo Analítica
+ * =============================================================================
+ * Overrides scoped sobre las clases .pulso-analitica-* / .analitica-* que
+ * viven en theme.css (NO se editan allá). Solo estética: pills, segmented,
+ * popovers con entrada origin-aware, zebra + sticky en tablas, mono técnico,
+ * focus ring y reduced-motion. Cero cambios de layout o comportamiento.
+ *
+ * Convención: todo selector cuelga de `.pulso-analitica-frame` (raíz del
+ * PageFrame del módulo). Solo se anima transform/opacity, duraciones ≤220ms.
+ * ========================================================================= */
+
+/* ── Keyframes ─────────────────────────────────────────────────────────── */
+
+@keyframes pulso-av2-pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes pulso-av2-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── 1. Botones → pills gv2 ────────────────────────────────────────────── */
+/* El press scale(0.97) ya lo aporta el `button:where(:active)` global. */
+
+.pulso-analitica-frame button.pulso-primary,
+.pulso-analitica-frame button.pulso-secondary,
+.pulso-analitica-frame .analitica-dimensiones-footer button,
+.pulso-analitica-frame .analitica-dimensiones-wizard-footer button,
+.pulso-analitica-frame .analitica-generate-footer button {
+  min-height: 32px;
+  border-radius: 999px;
+  font-weight: 650;
+}
+
+.pulso-analitica-frame button.pulso-primary {
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+}
+
+.pulso-analitica-frame .analitica-add-inline,
+.pulso-analitica-frame .analitica-frecuencias-clear,
+.pulso-analitica-frame .pulso-analitica-template-trigger {
+  border-radius: 999px;
+}
+
+/* Pills-enlace (descargas) con el mismo focus ring que los botones. */
+.pulso-analitica-frame .analitica-download-pill,
+.pulso-analitica-frame .analitica-codebook-download,
+.pulso-analitica-frame .analitica-codebook-base-link {
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-analitica-frame .analitica-download-pill:active,
+.pulso-analitica-frame .analitica-codebook-download:active,
+.pulso-analitica-frame .analitica-codebook-base-link:active {
+  transform: scale(0.97);
+}
+
+.pulso-analitica-frame .analitica-download-pill:focus-visible,
+.pulso-analitica-frame .analitica-codebook-download:focus-visible,
+.pulso-analitica-frame .analitica-codebook-base-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+/* ── 2. Segmented → pills gv2 (activo = azul primario) ─────────────────── */
+
+.pulso-analitica-frame .analitica-segmented {
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--pulso-primary-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-analitica-frame .analitica-segmented button {
+  min-height: 30px;
+  border-radius: 999px;
+  font-weight: 650;
+}
+
+.pulso-analitica-frame .analitica-segmented button:hover:not(:disabled):not(.is-on),
+.pulso-analitica-frame .analitica-segmented button:focus-visible:not(.is-on) {
+  border-color: transparent;
+  background: var(--pulso-surface);
+  color: var(--pulso-primary);
+  box-shadow: none;
+}
+
+.pulso-analitica-frame .analitica-segmented button.is-on {
+  border-color: var(--pulso-primary);
+  background: var(--pulso-primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+}
+
+/* ── 3. Popovers y menús con entrada origin-aware (nunca scale(0)) ─────── */
+
+.pulso-analitica-frame .pulso-analitica-template-popover {
+  border-radius: 14px;
+  box-shadow: var(--pulso-shadow-popover);
+  transform-origin: top right;
+  animation: pulso-av2-pop-in var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-analitica-frame .pulso-analitica-template-feedback {
+  transform-origin: top right;
+  animation: pulso-av2-pop-in var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Dropdown de VariableSelect (posicionamiento inline; aquí solo motion). */
+.pulso-analitica-frame .analitica-vselect-pop {
+  transform-origin: top center;
+  animation: pulso-av2-pop-in var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Paneles que aparecen al interactuar: entrada suave hacia arriba. */
+.pulso-analitica-frame .analitica-exclusion-editor,
+.pulso-analitica-frame .analitica-picker-edit-row,
+.pulso-analitica-frame .analitica-collapsible-body,
+.pulso-analitica-frame .analitica-per-base-card {
+  animation: pulso-av2-fade-up var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* ── 4. Entrada del workbench con stagger (máx 6 ítems) ────────────────── */
+
+.pulso-analitica-frame .analitica-report-shell > * {
+  animation: pulso-av2-fade-up var(--motion-dur-base) var(--motion-ease-out) backwards;
+}
+
+.pulso-analitica-frame .analitica-report-shell > :nth-child(2) { animation-delay: 30ms; }
+.pulso-analitica-frame .analitica-report-shell > :nth-child(3) { animation-delay: 60ms; }
+.pulso-analitica-frame .analitica-report-shell > :nth-child(4) { animation-delay: 90ms; }
+.pulso-analitica-frame .analitica-report-shell > :nth-child(5) { animation-delay: 120ms; }
+.pulso-analitica-frame .analitica-report-shell > :nth-child(6) { animation-delay: 150ms; }
+.pulso-analitica-frame .analitica-report-shell > :nth-child(n + 7) { animation: none; }
+
+/* Shell anidado (wizard de dimensiones): sin doble stagger. */
+.pulso-analitica-frame .analitica-report-shell .analitica-report-shell > * {
+  animation: none;
+}
+
+/* ── 5. DataSurface y dueños de scroll ─────────────────────────────────── */
+
+/* No Scroll Jail: el panel de Dimensiones no tenía scroll propio (sus
+ * hermanos codebook/cruces/frecuencias sí). Mismo patrón que ellos. */
+.pulso-analitica-frame .analitica-dimensiones-panel {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+/* Cobertura de dimensiones: scroll propio + encabezado sticky. */
+.pulso-analitica-frame .analitica-dimensiones-table-scroll {
+  overflow: auto;
+  max-height: min(440px, 52vh);
+  overscroll-behavior: contain;
+  background: #fff;
+}
+
+.pulso-analitica-frame .analitica-dimensiones-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* Zebra sutil en superficies de datos. */
+.pulso-analitica-frame .analitica-panel-table tbody tr:nth-child(even) td,
+.pulso-analitica-frame .analitica-dimensiones-table tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--pulso-surface-2) 36%, #fff);
+}
+
+.pulso-analitica-frame .analitica-dimensiones-table td.is-mono {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+/* Hover de fila solo con puntero fino. */
+@media (hover: hover) and (pointer: fine) {
+  .pulso-analitica-frame .analitica-panel-table tbody tr:hover td,
+  .pulso-analitica-frame .analitica-dimensiones-table tbody tr:hover td {
+    background: color-mix(in srgb, var(--pulso-primary-soft) 42%, #fff);
+  }
+}
+
+/* ── 6. Terminología técnica cruda en mono gris suave ──────────────────── */
+
+.pulso-analitica-frame :is(
+  .analitica-section-subtitle,
+  .analitica-report-note,
+  .analitica-control-copy,
+  .analitica-codebook-info,
+  .analitica-codebook-note,
+  .analitica-codebook-xlsform-copy,
+  .analitica-cruces-summary,
+  .analitica-exclusion-subtitle,
+  .analitica-exclusion-warning,
+  .analitica-dimensiones-persistence-note,
+  .pulso-panel-hint
+) code {
+  padding: 0 4px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--pulso-surface-2) 72%, #fff);
+  color: var(--pulso-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.94em;
+  font-weight: 640;
+}
+
+/* ── 7. Reduced motion: anular animaciones del módulo ──────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-analitica-frame *,
+  .pulso-analitica-frame *::before,
+  .pulso-analitica-frame *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
+}

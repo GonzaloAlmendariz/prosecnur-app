@@ -75,7 +75,7 @@ export function VariableSelect({
           padding: "7px 10px", textAlign: "left",
           background: "white",
           border: `1px solid ${open ? "var(--pulso-primary)" : hover ? "var(--pulso-text-soft)" : "var(--pulso-border)"}`,
-          borderRadius: 6,
+          borderRadius: 10,
           fontSize: 13,
           cursor: "pointer",
           transition: "border-color 120ms ease",
@@ -112,13 +112,14 @@ export function VariableSelect({
       {open && (
         <div
           role="listbox"
+          className="analitica-vselect-pop"
           style={{
             position: "absolute", left: 0, right: 0, top: "calc(100% + 4px)",
             zIndex: 20,
             background: "white",
             border: "1px solid var(--pulso-border)",
-            borderRadius: 8,
-            boxShadow: "var(--pulso-shadow-med)",
+            borderRadius: 12,
+            boxShadow: "var(--pulso-shadow-popover)",
             overflow: "hidden",
           }}
         >

@@ -34,6 +34,7 @@ import { PanelBasePane } from "./panes/PanelBasePane";
 import { FichaTecnicaPane } from "./panes/FichaTecnicaPane";
 import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
 import { ProcessingPrereqGate } from "../procesamiento/ProcessingPrereqGate";
+import "./analitica-v2.css";
 
 // Revisión de data primero; enumeradores vive en Monitoreo.
 type Reporte = "datos" | "base_final" | "codebook" | "bases" | "frecuencias" | "multibase" | "panel" | "ficha" | "cruces" | "dimensiones";
