@@ -229,32 +229,32 @@ function VariableRow({
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
-            fontSize: 11,
-            fontFamily: "ui-monospace, monospace",
-            color: selected ? "var(--module-accent, #0f766e)" : "var(--pulso-text)",
+            fontSize: 12,
             fontWeight: 600,
+            lineHeight: 1.3,
+            color: selected ? "var(--module-accent, #0f766e)" : "var(--pulso-text)",
             overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
           }}
+          title={v.label || v.name}
         >
-          {v.name}
+          {v.label || v.name}
         </div>
         {v.label && v.label !== v.name && (
           <div
             style={{
-              fontSize: 10,
-              color: "var(--pulso-text-soft)",
-              marginTop: 1,
-              lineHeight: 1.3,
+              fontSize: 10.5,
+              fontFamily: "ui-monospace, monospace",
+              color: "var(--pulso-text-faint)",
+              marginTop: 2,
               overflow: "hidden",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
-            title={v.label}
           >
-            {v.label}
+            {v.name}
           </div>
         )}
       </div>

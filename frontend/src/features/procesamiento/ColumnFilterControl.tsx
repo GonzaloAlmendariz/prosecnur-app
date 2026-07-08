@@ -40,6 +40,17 @@ export function describeColumnFilter(
   return name;
 }
 
+function FilterHead({ column, kind }: { column: ProcessingSheetColumn; kind: string }) {
+  return (
+    <div className="pulso-sheet-filter-head">
+      <span className="pulso-sheet-filter-head-name" title={column.label || column.key}>
+        {column.label || column.key}
+      </span>
+      <span className="pulso-sheet-filter-head-kind">{kind}</span>
+    </div>
+  );
+}
+
 function useDebouncedCommit(commit: () => void, deps: unknown[], delay = 260) {
   useEffect(() => {
     const handle = window.setTimeout(commit, delay);
@@ -79,6 +90,7 @@ function CategoryPanel({
 
   return (
     <div className="pulso-sheet-filter-panel">
+      <FilterHead column={column} kind="categorías" />
       {cats.length > 8 ? (
         <label className="pulso-sheet-filter-search">
           <Search size={12} aria-hidden="true" />
@@ -147,6 +159,7 @@ function RangePanel({
 
   return (
     <div className="pulso-sheet-filter-panel">
+      <FilterHead column={column} kind="rango numérico" />
       <div className="pulso-sheet-filter-range">
         <label>
           <span>Mín</span>
@@ -187,6 +200,7 @@ function TextPanel({
   }, [text]);
   return (
     <div className="pulso-sheet-filter-panel">
+      <FilterHead column={column} kind="texto" />
       <label className="pulso-sheet-filter-search">
         <Search size={12} aria-hidden="true" />
         <input
