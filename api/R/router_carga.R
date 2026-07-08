@@ -634,7 +634,23 @@ estudio_init_default_base <- function(sid) {
   )
 }
 
-.carga_scalar_cell <- function(value) {
+# Resuelve el índice de idioma preferido (español) dentro de `content$translations`
+# de un asset Kobo. Kobo entrega los campos traducidos (label, hint, ...) como
+# arrays alineados por índice con `translations` (ej. ["Spanish (es)","English (en)"]).
+# Devuelve idx = índice del español (o el primero si no hay español) y n = nº de idiomas.
+.carga_kobo_language_index <- function(content) {
+  tr <- content$translations %||% NULL
+  if (is.null(tr) || !length(tr)) return(list(idx = NA_integer_, n = NA_integer_))
+  langs <- vapply(tr, function(x) {
+    if (is.null(x) || !length(x)) "" else as.character(x)[[1]]
+  }, character(1))
+  n <- length(langs)
+  hit <- which(grepl("\\(es\\)|\\bes\\b|españ|spanish|castellano", langs, ignore.case = TRUE))
+  idx <- if (length(hit)) hit[[1]] else if (n >= 1L) 1L else NA_integer_
+  list(idx = as.integer(idx), n = as.integer(n))
+}
+
+.carga_scalar_cell <- function(value, lang_idx = NA_integer_, n_langs = NA_integer_) {
   if (is.null(value) || !length(value)) return(NA_character_)
   if (is.atomic(value)) {
     out <- as.character(value)
@@ -645,8 +661,15 @@ estudio_init_default_base <- function(sid) {
   if (is.list(value)) {
     atomic_items <- unlist(value, recursive = FALSE, use.names = FALSE)
     if (length(atomic_items) && !any(vapply(atomic_items, is.list, logical(1)))) {
-      out <- as.character(atomic_items)
-      out <- out[!is.na(out) & nzchar(out)]
+      raw <- as.character(atomic_items)
+      # Campo multi-idioma: elegir la entrada del idioma preferido (español) en vez
+      # de concatenar todos los idiomas. El array está alineado con translations.
+      if (!is.na(lang_idx) && !is.na(n_langs) && length(raw) == n_langs &&
+          lang_idx >= 1L && lang_idx <= length(raw)) {
+        picked <- raw[[lang_idx]]
+        if (!is.na(picked) && nzchar(picked)) return(picked)
+      }
+      out <- raw[!is.na(raw) & nzchar(raw)]
       if (length(out)) return(paste(out, collapse = " "))
     }
     return(as.character(jsonlite::toJSON(value, auto_unbox = TRUE, null = "null")))
@@ -654,7 +677,7 @@ estudio_init_default_base <- function(sid) {
   as.character(value)
 }
 
-.carga_kobo_rows_df <- function(rows) {
+.carga_kobo_rows_df <- function(rows, lang_idx = NA_integer_, n_langs = NA_integer_) {
   if (is.null(rows) || !length(rows)) return(data.frame())
   cols <- unique(unlist(lapply(rows, names), use.names = FALSE))
   cols <- cols[!is.na(cols) & nzchar(cols)]
@@ -668,7 +691,7 @@ estudio_init_default_base <- function(sid) {
     row <- rows[[i]]
     if (!is.list(row)) next
     for (nm in intersect(names(row), cols)) {
-      out[[nm]][[i]] <- .carga_scalar_cell(row[[nm]])
+      out[[nm]][[i]] <- .carga_scalar_cell(row[[nm]], lang_idx = lang_idx, n_langs = n_langs)
     }
   }
   out
@@ -676,8 +699,9 @@ estudio_init_default_base <- function(sid) {
 
 .carga_kobo_xlsform_model <- function(detail) {
   content <- detail$content %||% list()
-  survey <- .carga_kobo_rows_df(content$survey %||% list())
-  choices <- .carga_kobo_rows_df(content$choices %||% list())
+  lang <- .carga_kobo_language_index(content)
+  survey <- .carga_kobo_rows_df(content$survey %||% list(), lang_idx = lang$idx, n_langs = lang$n)
+  choices <- .carga_kobo_rows_df(content$choices %||% list(), lang_idx = lang$idx, n_langs = lang$n)
   settings <- .carga_kobo_rows_df(content$settings %||% list())
   if (!nrow(settings)) {
     title <- as.character(detail$name %||% detail$settings$name %||% "KoboToolbox")

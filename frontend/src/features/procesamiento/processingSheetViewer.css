@@ -564,6 +564,8 @@
 .pulso-processing-sheet-table td.pulso-processing-sheet-rownum {
   font-size: 11px;
   padding: 7px 6px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint) !important;
 }
 
 .pulso-processing-sheet.is-wide .pulso-processing-sheet-footer > span {
@@ -812,4 +814,242 @@
     flex: 1;
     justify-content: center;
   }
+}
+
+/* ============================================================
+   Filtros de columna inteligentes (Fase 3)
+   Trigger en el header + popover con categorías / rango / texto
+   + chips de filtros activos. Estética macOS-like sobre el acento
+   del módulo (procesamiento = teal via --module-accent).
+   ============================================================ */
+.pulso-sheet-filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--pulso-text-faint, #8792a2);
+  cursor: pointer;
+  transition: background var(--motion-dur-fast, 160ms) ease, color var(--motion-dur-fast, 160ms) ease,
+    border-color var(--motion-dur-fast, 160ms) ease;
+}
+.pulso-sheet-filter-trigger:hover {
+  background: color-mix(in srgb, var(--module-accent, #0f766e) 10%, transparent);
+  color: var(--module-accent, #0f766e);
+}
+.pulso-sheet-filter-trigger:focus-visible {
+  outline: none;
+  border-color: var(--module-accent, #0f766e);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent, #0f766e) 20%, transparent);
+}
+.pulso-sheet-filter-trigger.is-active {
+  background: color-mix(in srgb, var(--module-accent, #0f766e) 16%, transparent);
+  color: var(--module-accent, #0f766e);
+  border-color: color-mix(in srgb, var(--module-accent, #0f766e) 32%, transparent);
+}
+.pulso-sheet-filter-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--module-accent, #0f766e);
+  box-shadow: 0 0 0 2px var(--pulso-surface, #fff);
+}
+
+/* Popover panel */
+.pulso-popover.pulso-sheet-filter-pop { padding: 0; }
+.pulso-sheet-filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  min-width: 220px;
+}
+.pulso-sheet-filter-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border: 1px solid var(--pulso-border, #e2e7f0);
+  border-radius: 9px;
+  background: var(--pulso-surface-2, #fafbff);
+  color: var(--pulso-text-soft, #5f6b7a);
+}
+.pulso-sheet-filter-search:focus-within {
+  border-color: var(--module-accent, #0f766e);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent, #0f766e) 16%, transparent);
+}
+.pulso-sheet-filter-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 12.5px;
+  color: var(--pulso-text, #17212f);
+  min-width: 0;
+}
+.pulso-sheet-filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 260px;
+  overflow-y: auto;
+  margin: -2px;
+  padding: 2px;
+}
+.pulso-sheet-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12.5px;
+  color: var(--pulso-text, #17212f);
+  transition: background var(--motion-dur-fast, 160ms) ease;
+}
+.pulso-sheet-filter-option:hover { background: var(--pulso-surface-3, #f2f5fa); }
+.pulso-sheet-filter-option.is-on {
+  background: color-mix(in srgb, var(--module-accent, #0f766e) 12%, transparent);
+}
+.pulso-sheet-filter-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  border: 1px solid var(--pulso-border-strong, #cbd5e4);
+  border-radius: 5px;
+  background: var(--pulso-surface, #fff);
+  color: #fff;
+}
+.pulso-sheet-filter-option.is-on .pulso-sheet-filter-check {
+  background: var(--module-accent, #0f766e);
+  border-color: var(--module-accent, #0f766e);
+}
+.pulso-sheet-filter-option-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pulso-sheet-filter-count {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint, #8792a2);
+}
+.pulso-sheet-filter-empty {
+  margin: 0;
+  padding: 10px 8px;
+  font-size: 12px;
+  color: var(--pulso-text-faint, #8792a2);
+  text-align: center;
+}
+.pulso-sheet-filter-range {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.pulso-sheet-filter-range label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--pulso-text-soft, #5f6b7a);
+}
+.pulso-sheet-filter-range input {
+  padding: 6px 8px;
+  border: 1px solid var(--pulso-border, #e2e7f0);
+  border-radius: 8px;
+  background: var(--pulso-surface, #fff);
+  font-size: 12.5px;
+  color: var(--pulso-text, #17212f);
+  outline: none;
+}
+.pulso-sheet-filter-range input:focus {
+  border-color: var(--module-accent, #0f766e);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent, #0f766e) 16%, transparent);
+}
+.pulso-sheet-filter-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--pulso-text-faint, #8792a2);
+}
+.pulso-sheet-filter-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--pulso-border, #e2e7f0);
+  font-size: 11px;
+  color: var(--pulso-text-faint, #8792a2);
+}
+.pulso-sheet-filter-footer button {
+  border: none;
+  background: transparent;
+  color: var(--module-accent, #0f766e);
+  font-weight: 700;
+  font-size: 11.5px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+.pulso-sheet-filter-footer button:hover { background: color-mix(in srgb, var(--module-accent, #0f766e) 12%, transparent); }
+
+/* Chips de filtros activos */
+.pulso-processing-sheet-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--pulso-border, #e2e7f0);
+  background: var(--pulso-surface-2, #fafbff);
+}
+.pulso-processing-sheet-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 260px;
+  padding: 4px 9px;
+  border: 1px solid color-mix(in srgb, var(--module-accent, #0f766e) 30%, transparent);
+  border-radius: var(--pulso-radius-chip, 999px);
+  background: color-mix(in srgb, var(--module-accent, #0f766e) 12%, var(--pulso-surface, #fff));
+  color: var(--module-accent, #0f766e);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--motion-dur-fast, 160ms) ease;
+}
+.pulso-processing-sheet-chip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pulso-processing-sheet-chip:hover { background: color-mix(in srgb, var(--module-accent, #0f766e) 20%, var(--pulso-surface, #fff)); }
+.pulso-processing-sheet-chip.is-clear {
+  border-style: dashed;
+  background: transparent;
+  color: var(--pulso-text-soft, #5f6b7a);
+}
+.pulso-processing-sheet-chip.is-clear:hover { background: var(--pulso-surface-3, #f2f5fa); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-sheet-filter-trigger,
+  .pulso-sheet-filter-option,
+  .pulso-processing-sheet-chip { transition: none; }
 }

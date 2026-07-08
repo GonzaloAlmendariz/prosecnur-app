@@ -1076,7 +1076,7 @@
   )
 }
 
-.monitoreo_processing_handoff_export <- function(sid, parsed = list()) {
+.monitoreo_processing_handoff_prepare <- function(sid, parsed = list()) {
   if (!is.list(parsed)) parsed <- list()
   s <- session_get(sid)
   snapshot <- s$monitoreo_snapshot %||% NULL
@@ -1189,6 +1189,33 @@
     }
     xlsform_meta$compatibility <- compatibility
   }
+  list(
+    s = s, cfg = cfg, family = family, snapshot = snapshot,
+    universe = universe, statuses = statuses,
+    audit = audit, audit_keep = audit_keep, audit_export = audit_export,
+    data_out = data_out, counts = counts,
+    project = project, project_slug = project_slug, cut_slug = cut_slug, universe_slug = universe_slug,
+    stage_dir = stage_dir,
+    data_xlsx_name = data_xlsx_name, data_csv_name = data_csv_name, audit_csv_name = audit_csv_name,
+    xlsform_name = xlsform_name, manifest_name = manifest_name, readme_name = readme_name,
+    data_xlsx_path = data_xlsx_path, data_csv_path = data_csv_path, audit_csv_path = audit_csv_path,
+    xlsform_path = xlsform_path, manifest_path = manifest_path, readme_path = readme_path,
+    manifest_rows = manifest_rows, xlsform_meta = xlsform_meta
+  )
+}
+
+.monitoreo_processing_handoff_export <- function(sid, parsed = list()) {
+  prep <- .monitoreo_processing_handoff_prepare(sid, parsed)
+  s <- prep$s; cfg <- prep$cfg; family <- prep$family; snapshot <- prep$snapshot
+  universe <- prep$universe; statuses <- prep$statuses; counts <- prep$counts
+  audit_export <- prep$audit_export; data_out <- prep$data_out
+  project <- prep$project; project_slug <- prep$project_slug; cut_slug <- prep$cut_slug; universe_slug <- prep$universe_slug
+  stage_dir <- prep$stage_dir
+  data_xlsx_name <- prep$data_xlsx_name; data_csv_name <- prep$data_csv_name; audit_csv_name <- prep$audit_csv_name
+  xlsform_name <- prep$xlsform_name; manifest_name <- prep$manifest_name; readme_name <- prep$readme_name
+  data_xlsx_path <- prep$data_xlsx_path; data_csv_path <- prep$data_csv_path; audit_csv_path <- prep$audit_csv_path
+  xlsform_path <- prep$xlsform_path; manifest_path <- prep$manifest_path; readme_path <- prep$readme_path
+  manifest_rows <- prep$manifest_rows; xlsform_meta <- prep$xlsform_meta
   .monitoreo_processing_handoff_write_xlsx(data_out, audit_export, manifest_rows, data_xlsx_path)
   utils::write.csv(.monitoreo_processing_handoff_plain_df(data_out), data_csv_path, row.names = FALSE, na = "", fileEncoding = "UTF-8")
   utils::write.csv(.monitoreo_processing_handoff_plain_df(audit_export), audit_csv_path, row.names = FALSE, na = "", fileEncoding = "UTF-8")
@@ -1270,6 +1297,98 @@
       )
     ),
     would_mutate_pulso = FALSE
+  )
+}
+
+# Persiste el resultado del handoff como una base de Procesamiento del proyecto:
+# XLSForm fidedigno (traido de Kobo) + BBDD filtrada al universo valido. Reusa el
+# helper .monitoreo_processing_handoff_prepare y el patron canonico de creacion de
+# bases (save_upload -> normalize/compat -> estudio_add_base -> active).
+.monitoreo_processing_handoff_promote <- function(sid, parsed = list()) {
+  if (!is.list(parsed)) parsed <- list()
+  prep <- .monitoreo_processing_handoff_prepare(sid, parsed)
+  cfg <- prep$cfg
+  tcfg <- cfg$territorial %||% list()
+  base_nombre <- .monitoreo_scalar(parsed$base_nombre %||% parsed$nombre, "Monitoreo territorial")
+  if (!nzchar(base_nombre)) base_nombre <- "Monitoreo territorial"
+  base_nombre <- gsub("$", "", base_nombre, fixed = TRUE)
+
+  # 1. Escribir la BBDD filtrada a un xlsx de una sola hoja (data limpia para la base).
+  stage_dir <- prep$stage_dir
+  data_base_path <- file.path(stage_dir, paste(prep$project_slug, prep$universe_slug, "base-data.xlsx", sep = "-"))
+  openxlsx::write.xlsx(.monitoreo_processing_handoff_plain_df(prep$data_out), data_base_path, overwrite = TRUE)
+
+  # 2. Registrar XLSForm fidedigno + data como INPUTS canonicos en s$files (uploads/).
+  inst_original <- paste(prep$project_slug, "xlsform-fidedigno.xlsx", sep = "-")
+  data_original <- paste(prep$project_slug, prep$universe_slug, "data-procesamiento.xlsx", sep = "-")
+  inst_meta <- save_upload(sid, "xlsform", inst_original,
+                           readBin(prep$xlsform_path, "raw", n = file.info(prep$xlsform_path)$size))
+  data_meta <- save_upload(sid, "data", data_original,
+                           readBin(data_base_path, "raw", n = file.info(data_base_path)$size))
+
+  # 3. Parsear instrumento + data, normalizar y validar compatibilidad (patron Carga).
+  rp_inst <- reporte_instrumento(path = inst_meta$path)
+  data_df <- .read_data_any_path(data_meta$path, data_meta$ext)
+  data_df <- normalize_data_for_xlsform(data_df, rp_inst)
+  .carga_assert_data_xlsform_compatible(data_df, rp_inst)
+  rp_data <- reporte_data(data_df, instrumento = rp_inst)
+
+  # 4. Reporte del filtro (transparencia de que entra / que sale).
+  counts <- prep$counts
+  filter_report <- list(
+    universe = prep$universe,
+    included_statuses = as.list(prep$statuses),
+    validada = counts$validada,
+    revision = counts$revision,
+    no_defendible_excluidos = counts$no_defendible,
+    filas_incluidas = counts$exported_rows,
+    tachas_activas_excluidas = counts$active_annulments,
+    respuestas_tachadas_excluidas = counts$annulled_responses
+  )
+  extra_meta <- list(
+    source_kind = "monitoreo_territorial",
+    response_filter = list(universe = prep$universe, statuses = as.list(prep$statuses)),
+    kobo_asset_uid = .monitoreo_scalar(tcfg$asset_uid %||% prep$xlsform_meta$asset_uid, ""),
+    kobo_version_id = .monitoreo_scalar(tcfg$kobo_version_id, ""),
+    xlsform_source = .monitoreo_scalar(prep$xlsform_meta$source, ""),
+    filter_report = filter_report,
+    imported_at = .monitoreo_now_iso()
+  )
+
+  # 5. Crear o reemplazar la base persistida y marcarla activa.
+  estudio_ensure(sid)
+  s_now <- session_get(sid)
+  exists_base <- !is.null((s_now$estudio$bases %||% list())[[base_nombre]])
+  if (exists_base) {
+    estudio_replace_base_files(sid, base_nombre,
+                               xlsform_file_id = inst_meta$file_id,
+                               data_file_id = data_meta$file_id,
+                               data_ext = data_meta$ext,
+                               rp_data = rp_data, rp_inst = rp_inst,
+                               n_filas = nrow(data_df), n_columnas = ncol(data_df))
+    estudio_update_base_metadata(sid, base_nombre, extra_meta)
+  } else {
+    estudio_add_base(sid, nombre = base_nombre,
+                     xlsform_file_id = inst_meta$file_id,
+                     data_file_id = data_meta$file_id,
+                     data_ext = data_meta$ext,
+                     rp_data = rp_data, rp_inst = rp_inst,
+                     n_filas = nrow(data_df), n_columnas = ncol(data_df),
+                     extra_meta = extra_meta)
+  }
+  estudio_active_base_set(sid, base_nombre)
+
+  list(
+    ok = TRUE,
+    schema = "monitoreo_processing_handoff_promote_v1",
+    base_nombre = base_nombre,
+    universe = prep$universe,
+    included_statuses = as.list(prep$statuses),
+    counts = counts,
+    filter_report = filter_report,
+    xlsform = list(file_id = inst_meta$file_id, source = .monitoreo_scalar(prep$xlsform_meta$source, "")),
+    data = list(file_id = data_meta$file_id, n_filas = nrow(data_df), n_columnas = ncol(data_df)),
+    would_mutate_pulso = TRUE
   )
 }
 
@@ -7856,6 +7975,11 @@ mount_monitoreo <- function(pr) {
       sid <- .monitoreo_session(req, res)
       parsed <- .monitoreo_parse_body(req)
       .monitoreo_processing_handoff_export(sid, parsed)
+    })) |>
+    plumber::pr_post("/api/monitoreo/processing-handoff/promote", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      .monitoreo_processing_handoff_promote(sid, parsed)
     })) |>
     plumber::pr_post("/api/monitoreo/export", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)

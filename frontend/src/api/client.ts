@@ -3573,6 +3573,8 @@ export async function apiCargaExportNormalized(
 export type ProcessingSheetMode = "codigos" | "etiquetas";
 export type ProcessingSheetTypeKind = "integer" | "sm" | "so" | "text" | "other";
 
+export type ProcessingSheetCategory = { code: string; label: string; count: number };
+
 export type ProcessingSheetColumn = {
   key: string;
   label: string;
@@ -3586,7 +3588,17 @@ export type ProcessingSheetColumn = {
   raw_parent?: string | null;
   dummy_parent?: string | null;
   dummy_code?: string | null;
+  categories?: ProcessingSheetCategory[] | null;
+  value_min?: number | null;
+  value_max?: number | null;
 };
+
+// Filtro por columna: string (substring, retrocompat) u objeto estructurado.
+export type ProcessingSheetColumnFilter =
+  | string
+  | { op: "in"; values: string[] }
+  | { op: "range"; min?: number | null; max?: number | null }
+  | { op: "contains"; value: string };
 
 export type ProcessingSheetPayload = {
   ok: true;
@@ -3607,8 +3619,8 @@ export type ProcessingSheetRequest = {
   page_size?: number;
   pageSize?: number;
   search?: string;
-  column_filters?: Record<string, string>;
-  columnFilters?: Record<string, string>;
+  column_filters?: Record<string, ProcessingSheetColumnFilter>;
+  columnFilters?: Record<string, ProcessingSheetColumnFilter>;
   sort?: { col: string; desc: boolean } | null;
   base_nombre?: string | null;
   baseNombre?: string | null;
@@ -4713,6 +4725,30 @@ export type MonitoreoProcessingHandoffResult = {
     data_xlsx?: MonitoreoTerritorialOperationalPackageFile;
     xlsform?: MonitoreoTerritorialOperationalPackageFile;
   };
+  would_mutate_pulso?: boolean;
+};
+
+export type MonitoreoProcessingHandoffFilterReport = {
+  universe?: string;
+  included_statuses?: string[];
+  validada?: number;
+  revision?: number;
+  no_defendible_excluidos?: number;
+  filas_incluidas?: number;
+  tachas_activas_excluidas?: number;
+  respuestas_tachadas_excluidas?: number;
+};
+
+export type MonitoreoProcessingHandoffPromoteResult = {
+  ok: true;
+  schema: "monitoreo_processing_handoff_promote_v1" | string;
+  base_nombre: string;
+  universe: MonitoreoProcessingHandoffUniverse | string;
+  included_statuses?: string[];
+  counts?: MonitoreoProcessingHandoffCounts;
+  filter_report?: MonitoreoProcessingHandoffFilterReport;
+  xlsform?: { file_id: string; source?: string };
+  data?: { file_id: string; n_filas?: number; n_columnas?: number };
   would_mutate_pulso?: boolean;
 };
 
@@ -7846,6 +7882,24 @@ export async function apiMonitoreoProcessingHandoffExport(options: {
   return withProcessingHandoffDownloadUrls(result);
 }
 
+export async function apiMonitoreoProcessingHandoffPromote(options: {
+  universe?: MonitoreoProcessingHandoffUniverse | string;
+  config?: Partial<MonitoreoConfig>;
+  base_nombre?: string;
+} = {}) {
+  return handle<MonitoreoProcessingHandoffPromoteResult>(
+    await apiFetch("/api/monitoreo/processing-handoff/promote", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        ...(options.universe ? { universe: options.universe } : {}),
+        ...(options.config ? { config: options.config } : {}),
+        ...(options.base_nombre ? { base_nombre: options.base_nombre } : {}),
+      }),
+    }),
+  );
+}
+
 // ---------- Hojas de ruta para campo ----------
 
 export type HojasRutaFieldStatus = {
@@ -10631,6 +10685,23 @@ export async function apiGraficosWord(plan: PlanJson, presets?: Record<string, u
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ plan, presets, w_presets, config }),
+    })
+  );
+}
+
+/** Exporta el PPT de TODAS las bases de un proyecto multi-base en un solo ZIP.
+    Usa la config ya guardada por base (no el `plan` que esté abierto en el
+    editor); requiere >= 2 bases con datos. */
+export async function apiGraficosPptAll() {
+  return handle<JobStart>(
+    await apiFetch("/api/graficos/ppt-all", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      // El proxy de Vite reenvia POST con Content-Type JSON pero sin body
+      // (Content-Length: 0 explicito) de forma distinta a una request
+      // directa sin ese header — Plumber responde 400 antes de llegar al
+      // handler. Un body explicito evita esa ambiguedad.
+      body: JSON.stringify({}),
     })
   );
 }
@@ -13867,6 +13938,59 @@ export type CalcMuestraRecomendacion = {
   razon: string;
 };
 
+export type CalcMuestraMemoriaDecision = {
+  paso: string;
+  decision: string;
+  motivo: string;
+  fuente: string;
+};
+
+/** Memoria de cálculo del motor R (POST /api/calc-muestra/explicar). */
+export type CalcMuestraMemoria = {
+  modelo: "cochran_fpc_deff" | string;
+  parametros: {
+    confianza: number;
+    z_usado: number;
+    p: number;
+    q: number;
+    e: number;
+    deff: number;
+    N: number;
+    oversample_pct: number;
+  };
+  terminos: {
+    numerador: number;
+    n0_sin_fpc: number;
+    fpc_denominador: number;
+    n_sin_deff: number;
+  };
+  n_teorico: number;
+  n_objetivo: number;
+  n_operativo: number;
+  sobremuestra: number;
+  unidades_operativas?: number | null;
+  retrocalculo: {
+    precision_alcanzada: number;
+    e_objetivo: number;
+    cumple: boolean;
+  };
+  decision_log: CalcMuestraMemoriaDecision[];
+  fuentes: string[];
+};
+
+export type CalcMuestraExplicarInput = {
+  N: number;
+  p?: number;
+  e?: number;
+  deff?: number;
+  confianza?: number;
+  z?: number;
+  oversample_pct?: number;
+  meta_valor?: number;
+  promedio_conglomerado?: number;
+  tau?: number;
+};
+
 export async function apiCalcMuestraState() {
   return handle<CalcMuestraState>(
     await apiFetch("/api/calc-muestra/state", { headers: headers() }),
@@ -13922,6 +14046,16 @@ export async function apiCalcMuestraRecomendar(diagnostico: CalcMuestraDiagnosti
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ diagnostico }),
+    }),
+  );
+}
+
+export async function apiCalcMuestraExplicar(parametros: CalcMuestraExplicarInput) {
+  return handle<{ ok: true; memoria: CalcMuestraMemoria }>(
+    await apiFetch("/api/calc-muestra/explicar", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ parametros }),
     }),
   );
 }
