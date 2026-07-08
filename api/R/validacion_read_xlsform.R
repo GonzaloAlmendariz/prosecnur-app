@@ -40,7 +40,7 @@
   toupper(substr(base, 1, max(1, max_len)))
 }
 
-.transformar_según_modo <- function(x, modo = c("mayúsculas","tal_cual","simplificar")) {
+.transformar_segun_modo <- function(x, modo = c("mayúsculas","tal_cual","simplificar")) {
   modo <- match.arg(modo)
   if (modo == "mayúsculas") return(toupper(x))
   if (modo == "simplificar") return(toupper(.slugify_es(x)))
@@ -744,16 +744,16 @@ leer_xlsform_limpieza <- function(path,
       fuente <- ifelse(is.na(base_map$group_label) | !nzchar(base_map$group_label),
                        base_map$group_name, base_map$group_label)
       pref <- vapply(fuente, .abreviar_heuristico, character(1), max_len = max_longitud_prefijo)
-      pref <- .transformar_según_modo(pref, transformar_prefijo)
+      pref <- .transformar_segun_modo(pref, transformar_prefijo)
     }
     if (origen_prefijo == "nombre_grupo") {
       pref <- base_map$group_name
-      pref <- .transformar_según_modo(pref, transformar_prefijo)
+      pref <- .transformar_segun_modo(pref, transformar_prefijo)
     }
     if (origen_prefijo == "etiqueta_grupo") {
       fuente <- ifelse(is.na(base_map$group_label) | !nzchar(base_map$group_label),
                        base_map$group_name, base_map$group_label)
-      pref <- .transformar_según_modo(fuente, transformar_prefijo)
+      pref <- .transformar_segun_modo(fuente, transformar_prefijo)
     }
     pref[!nzchar(pref)] <- "GEN"
     pref <- paste0(pref, sufijo_prefijo %||% "")

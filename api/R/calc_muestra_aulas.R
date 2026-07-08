@@ -1633,7 +1633,13 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   if (!nrow(df)) return(character(0))
   if ("sample_role" %in% names(df)) {
     role <- .cm_aulas_values(df, "sample_role", "")
-    role[nzchar(role)] <- .cm_aulas_text_key(role[nzchar(role)])
+    nz <- nzchar(role)
+    if (any(nz)) {
+      # text_key es determinista por valor: normalizar solo los distintos
+      # (2-3 categorias) en vez de cada fila. Resultado byte-identico.
+      u <- unique(role[nz])
+      role[nz] <- .cm_aulas_text_key(u)[match(role[nz], u)]
+    }
     return(role)
   }
   if ("wave" %in% names(df)) {
@@ -1810,42 +1816,73 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
 
 .cm_aulas_active_students_without_titular <- function(titulars, titular_idx) {
   if (!nrow(titulars)) return(character(0))
+  col <- if ("unique_student_ids" %in% names(titulars)) "unique_student_ids" else if ("unique_student_ids_frame" %in% names(titulars)) "unique_student_ids_frame" else ""
+  if (!nzchar(col)) return(character(0))  # marco sin ids (anonimizado): sin solape
   keep <- setdiff(seq_len(nrow(titulars)), titular_idx)
-  unique(unlist(lapply(keep, function(i) .cm_aulas_student_ids(titulars$unique_student_ids[[i]])), use.names = FALSE))
+  unique(unlist(lapply(keep, function(i) .cm_aulas_student_ids(titulars[[col]][[i]])), use.names = FALSE))
 }
 
-.cm_aulas_pick_chain_reserve <- function(titular, candidates, titulars, titular_idx, selector, strict_cell = FALSE) {
-  if (!nrow(candidates)) return(list(index = NA_integer_, score = NULL, match_level = "sin_reserva"))
-  same_stratum <- if ("stratum" %in% names(candidates) && "stratum" %in% names(titular)) {
-    .cm_aulas_values(candidates, "stratum", "") == .cm_aulas_scalar(titular$stratum[[1]], "")
-  } else {
-    rep(FALSE, nrow(candidates))
+# Version vectorizada del score de reemplazo para la ruta caliente del chain
+# builder. Calcula, para el titular `i`, el score de TODOS los candidatos de una
+# sola pasada. Es una reescritura fiel de .cm_aulas_replacement_score (misma
+# secuencia de sumas, mismo round(,2), mismos denominadores con longitud cruda)
+# pero sin re-parsear strings ni recorrer candidatos uno a uno. El overlap con
+# estudiantes de otros titulares se resuelve con el conteo global precomputado
+# (cand_du_cnt) en vez de reconstruir la union en cada pick.
+.cm_aulas_score_row <- function(i, tit_ctx, tit_du, cand_ctx, cand_du, cand_du_cnt, weights) {
+  w <- function(name, default) .cm_aulas_num(weights[[name]], default)
+  nC <- cand_ctx$n
+  score <- numeric(nC)
+  score <- score + w("faculty", 35)   * (cand_ctx$faculty    == tit_ctx$faculty[[i]])
+  score <- score + w("program", 22)   * (cand_ctx$program    == tit_ctx$program[[i]])
+  score <- score + w("level", 12)     * (cand_ctx$level       == tit_ctx$level[[i]])
+  score <- score + w("size_group", 8) * (cand_ctx$size_group == tit_ctx$size_group[[i]])
+  score <- score + w("modality", 7)   * (cand_ctx$modality   == tit_ctx$modality[[i]])
+  score <- score + w("sex_top_1", 6)  * (cand_ctx$sex_top_1  == tit_ctx$sex_top_1[[i]])
+  score <- score + w("schedule", 4)   * (cand_ctx$schedule   == tit_ctx$schedule[[i]])
+  ec <- w("eligible_n", 10)
+  et <- tit_ctx$eligible[[i]]
+  score <- score + pmax(0, ec - abs(et - cand_ctx$eligible) / max(1, et) * ec)
+  tset <- tit_du[[i]]
+  overlap <- integer(nC)
+  titular_overlap <- integer(nC)
+  for (k in seq_len(nC)) {
+    du <- cand_du[[k]]
+    if (length(du)) {
+      intit <- du %in% tset
+      overlap[k] <- sum((cand_du_cnt[[k]] - intit) >= 1L)
+      titular_overlap[k] <- sum(intit)
+    }
   }
-  same_faculty <- if ("faculty" %in% names(candidates) && "faculty" %in% names(titular)) {
-    .cm_aulas_values(candidates, "faculty", "") == .cm_aulas_scalar(titular$faculty[[1]], "")
-  } else {
-    rep(FALSE, nrow(candidates))
-  }
-  pool_idx <- if (any(same_stratum)) {
+  score <- score + w("active_overlap", -18) * pmin(1, overlap / pmax(1, cand_ctx$len_r))
+  list(
+    score = round(score, 2),
+    overlap = overlap,
+    titular_overlap = titular_overlap,
+    eligible_delta = cand_ctx$eligible - et
+  )
+}
+
+# Devuelve el indice GLOBAL (en `candidates`) de la reserva elegida para el
+# titular `i`, o NA. Opera sobre una mascara logica de disponibilidad en vez de
+# subsetear el data.frame; preserva el orden global y el tie-break which.max
+# (primer maximo = menor indice global), identico al comportamiento original.
+.cm_aulas_pick_chain_reserve_idx <- function(i, tit_ctx, cand_ctx, avail_mask, score_vec,
+                                             has_stratum, has_faculty, strict_cell = FALSE) {
+  if (!any(avail_mask)) return(NA_integer_)
+  same_stratum <- if (has_stratum) (cand_ctx$stratum == tit_ctx$stratum[[i]]) & avail_mask else rep(FALSE, cand_ctx$n)
+  same_faculty <- if (has_faculty) (cand_ctx$faculty == tit_ctx$faculty[[i]]) & avail_mask else rep(FALSE, cand_ctx$n)
+  pool <- if (any(same_stratum)) {
     which(same_stratum)
   } else if (!isTRUE(strict_cell) && any(same_faculty)) {
     which(same_faculty)
   } else if (!isTRUE(strict_cell)) {
-    seq_len(nrow(candidates))
+    which(avail_mask)
   } else {
     integer(0)
   }
-  if (!length(pool_idx)) return(list(index = NA_integer_, score = NULL, match_level = "sin_reserva"))
-  active_ids <- .cm_aulas_active_students_without_titular(titulars, titular_idx)
-  scores <- lapply(pool_idx, function(i) .cm_aulas_replacement_score(titular, candidates[i, , drop = FALSE], active_ids, selector))
-  values <- vapply(scores, function(x) x$score, numeric(1))
-  best_pos <- which.max(values)
-  best_idx <- pool_idx[[best_pos]]
-  list(
-    index = best_idx,
-    score = scores[[best_pos]],
-    match_level = .cm_aulas_match_level(titular, candidates[best_idx, , drop = FALSE])
-  )
+  if (!length(pool)) return(NA_integer_)
+  pool[[which.max(score_vec[pool])]]
 }
 
 .cm_aulas_build_replacement_chains <- function(aula_frame, titulars, selector, seed = NULL) {
@@ -1861,34 +1898,114 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   candidates$.candidate_random <- stats::runif(nrow(candidates))
   candidates <- candidates[order(candidates$stratum, -candidates$eligible_n, candidates$.candidate_random), , drop = FALSE]
   candidates$.candidate_random <- NULL
+
+  # --- Precomputo (una sola vez, sobre candidates YA ordenado) ---------------
+  # Elimina el O(n^2): el re-subset por copia del data.frame (antes en cada
+  # ola x titular), el re-parseo de student-ids y el recomputo de scores. El
+  # scoring no depende de depth ni de la disponibilidad, asi que se calcula una
+  # sola vez por titular. La aritmetica y el orden se preservan bit a bit.
+  nT <- nrow(titulars)
+  nC <- nrow(candidates)
+  weights <- selector$replacement_score_weights %||% list()
+
+  cand_ctx <- list(
+    n          = nC,
+    stratum    = .cm_aulas_values(candidates, "stratum", ""),
+    faculty    = .cm_aulas_values(candidates, "faculty", ""),
+    program    = .cm_aulas_values(candidates, "program", ""),
+    level      = .cm_aulas_values(candidates, "level", ""),
+    size_group = .cm_aulas_values(candidates, "size_group", ""),
+    modality   = .cm_aulas_values(candidates, "modality", ""),
+    sex_top_1  = .cm_aulas_values(candidates, "sex_top_1", ""),
+    schedule   = .cm_aulas_values(candidates, "schedule", ""),
+    eligible   = vapply(candidates$eligible_n, function(v) .cm_aulas_num(v, 0), numeric(1))
+  )
+  # Columna de student-ids con fallback a _frame; ausente (p.ej. marco
+  # anonimizado con unique_student_hash) -> "" por aula = sin solape, sin crash.
+  .cm_ids_col <- function(df, n) {
+    if ("unique_student_ids" %in% names(df)) df$unique_student_ids
+    else if ("unique_student_ids_frame" %in% names(df)) df$unique_student_ids_frame
+    else rep("", n)
+  }
+  cand_ids <- lapply(.cm_ids_col(candidates, nC), .cm_aulas_student_ids)     # parse 1 vez
+  cand_du  <- lapply(cand_ids, unique)                                       # ids distintos
+  cand_ctx$len_r <- vapply(cand_ids, length, integer(1))                     # denominador CRUDO
+
+  tit_ctx <- list(
+    stratum    = .cm_aulas_values(titulars, "stratum", ""),
+    faculty    = .cm_aulas_values(titulars, "faculty", ""),
+    program    = .cm_aulas_values(titulars, "program", ""),
+    level      = .cm_aulas_values(titulars, "level", ""),
+    size_group = .cm_aulas_values(titulars, "size_group", ""),
+    modality   = .cm_aulas_values(titulars, "modality", ""),
+    sex_top_1  = .cm_aulas_values(titulars, "sex_top_1", ""),
+    schedule   = .cm_aulas_values(titulars, "schedule", ""),
+    eligible   = vapply(titulars$eligible_n, function(v) .cm_aulas_num(v, 0), numeric(1))
+  )
+  tit_ids <- lapply(.cm_ids_col(titulars, nT), .cm_aulas_student_ids)
+  tit_du  <- lapply(tit_ids, unique)
+
+  # Conteo global: para cada id, cuantos titulares lo contienen. El "activo de
+  # otros titulares" para el titular i es count[id] - (id en titular i) >= 1.
+  id_count <- new.env(parent = emptyenv(), hash = TRUE)
+  for (idx in seq_len(nT)) for (id in tit_du[[idx]]) {
+    cur <- id_count[[id]]
+    id_count[[id]] <- if (is.null(cur)) 1L else cur + 1L
+  }
+  cand_du_cnt <- lapply(cand_du, function(du) {
+    if (!length(du)) return(integer(0))
+    vapply(du, function(id) { v <- id_count[[id]]; if (is.null(v)) 0L else v }, integer(1))
+  })
+
+  # Presencia de columnas para la seleccion de pool (identico al guard original;
+  # el scoring, en cambio, trata columna ausente como "" en ambos lados).
+  has_stratum <- ("stratum" %in% names(candidates)) && ("stratum" %in% names(titulars))
+  has_faculty <- ("faculty" %in% names(candidates)) && ("faculty" %in% names(titulars))
+
+  # Scores por titular (independientes de depth/disponibilidad): una sola pasada.
+  score_val <- vector("list", nT)
+  score_ov  <- vector("list", nT)
+  score_tov <- vector("list", nT)
+  score_ed  <- vector("list", nT)
+  for (idx in seq_len(nT)) {
+    s <- .cm_aulas_score_row(idx, tit_ctx, tit_du, cand_ctx, cand_du, cand_du_cnt, weights)
+    score_val[[idx]] <- s$score
+    score_ov[[idx]]  <- s$overlap
+    score_tov[[idx]] <- s$titular_overlap
+    score_ed[[idx]]  <- s$eligible_delta
+  }
+
+  # --- Seleccion por olas con mascara logica ---------------------------------
   rows <- list()
-  used_ids <- character(0)
+  avail_mask <- rep(TRUE, nC)
+  min_reps <- max(1L, .cm_aulas_int(selector$min_replacements_per_titular, 1L))
+  use_strict <- identical(.cm_aulas_scalar(selector$replacement_depth_strategy, ""), "max_complete_chains_by_cell")
   for (depth in seq_len(max_depth)) {
-    for (i in seq_len(nrow(titulars))) {
-      available <- candidates[!candidates$classroom_id %in% used_ids, , drop = FALSE]
-      if (!nrow(available)) break
+    for (i in seq_len(nT)) {
+      if (!any(avail_mask)) break
+      strict_cell <- use_strict && depth > min_reps
+      k <- .cm_aulas_pick_chain_reserve_idx(i, tit_ctx, cand_ctx, avail_mask,
+                                            score_val[[i]], has_stratum, has_faculty,
+                                            strict_cell = strict_cell)
+      if (!is.finite(k)) next
       titular <- titulars[i, , drop = FALSE]
-      strict_cell <- identical(.cm_aulas_scalar(selector$replacement_depth_strategy, ""), "max_complete_chains_by_cell") &&
-        depth > max(1L, .cm_aulas_int(selector$min_replacements_per_titular, 1L))
-      pick <- .cm_aulas_pick_chain_reserve(titular, available, titulars, i, selector, strict_cell = strict_cell)
-      if (!is.finite(pick$index)) next
-      reserve <- available[pick$index, , drop = FALSE]
+      reserve <- candidates[k, , drop = FALSE]   # unica materializacion de fila
       reserve$wave <- paste0("M", depth + 1L)
       reserve$sample_role <- "chain_reserve"
       reserve$replacement_order <- depth
       reserve$replacement_for <- titular$classroom_id[[1]]
       reserve$selection_slot_id <- titular$selection_slot_id[[1]]
-      reserve$chain_score <- pick$score$score
-      reserve$equivalence_level <- pick$match_level
-      reserve$replacement_impact_score <- pick$score$score
+      reserve$chain_score <- score_val[[i]][k]
+      reserve$equivalence_level <- .cm_aulas_match_level(titular, reserve)
+      reserve$replacement_impact_score <- score_val[[i]][k]
       reserve$chain_depth <- max_depth
       reserve$activation_weight_status <- "reserve_conditional"
       reserve$analysis_weight_warning <- "Reserva condicional: usar peso analitico final solo si se activa en campo y se ajusta no respuesta."
-      reserve$active_overlap <- pick$score$overlap
-      reserve$titular_overlap <- pick$score$titular_overlap
-      reserve$eligible_delta_vs_titular <- pick$score$eligible_delta
+      reserve$active_overlap <- score_ov[[i]][k]
+      reserve$titular_overlap <- score_tov[[i]][k]
+      reserve$eligible_delta_vs_titular <- score_ed[[i]][k]
       rows[[length(rows) + 1L]] <- reserve
-      used_ids <- c(used_ids, reserve$classroom_id[[1]])
+      avail_mask[k] <- FALSE
     }
   }
   if (!length(rows)) return(aula_frame[0, , drop = FALSE])
@@ -2036,28 +2153,43 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   unique(unlist(lapply(selection_df[[col]], .cm_aulas_student_ids), use.names = FALSE))
 }
 
-.cm_aulas_distribution_compare <- function(frame_values, selected_values, frame_weights = NULL, selected_weights = NULL,
-                                           dimension = "", label = "", source = "", tolerance = 0.05) {
+# Perfil del lado del MARCO para distribution_compare. Es invariante entre las
+# llamadas por par de la simulacion (depende solo de frame_values/frame_weights),
+# asi que se puede precomputar una vez y cachear. Normaliza igual que el codigo
+# original (trimws, sin_dato) y agrega el peso por categoria del marco.
+.cm_aulas_frame_profile <- function(frame_values, frame_weights = NULL) {
   frame_values <- trimws(as.character(frame_values %||% character(0)))
-  selected_values <- trimws(as.character(selected_values %||% character(0)))
   frame_values[is.na(frame_values) | !nzchar(frame_values)] <- "sin_dato"
-  selected_values[is.na(selected_values) | !nzchar(selected_values)] <- "sin_dato"
   frame_weights <- suppressWarnings(as.numeric(frame_weights %||% rep(1, length(frame_values))))
-  selected_weights <- suppressWarnings(as.numeric(selected_weights %||% rep(1, length(selected_values))))
   if (length(frame_weights) != length(frame_values)) frame_weights <- rep(1, length(frame_values))
-  if (length(selected_weights) != length(selected_values)) selected_weights <- rep(1, length(selected_values))
   frame_weights[!is.finite(frame_weights) | frame_weights < 0] <- 0
+  cats_frame <- unique(frame_values)
+  n_by_cat <- vapply(cats_frame, function(cat) sum(frame_weights[frame_values == cat], na.rm = TRUE), numeric(1))
+  names(n_by_cat) <- cats_frame
+  list(values = frame_values, total = sum(frame_weights, na.rm = TRUE), n_by_cat = n_by_cat)
+}
+
+.cm_aulas_distribution_compare <- function(frame_values, selected_values, frame_weights = NULL, selected_weights = NULL,
+                                           dimension = "", label = "", source = "", tolerance = 0.05,
+                                           frame_profile = NULL) {
+  if (is.null(frame_profile)) frame_profile <- .cm_aulas_frame_profile(frame_values, frame_weights)
+  frame_values <- frame_profile$values
+  selected_values <- trimws(as.character(selected_values %||% character(0)))
+  selected_values[is.na(selected_values) | !nzchar(selected_values)] <- "sin_dato"
+  selected_weights <- suppressWarnings(as.numeric(selected_weights %||% rep(1, length(selected_values))))
+  if (length(selected_weights) != length(selected_values)) selected_weights <- rep(1, length(selected_values))
   selected_weights[!is.finite(selected_weights) | selected_weights < 0] <- 0
   cats <- sort(unique(c(frame_values, selected_values)))
   cats <- cats[nzchar(cats)]
   if (!length(cats) || !length(frame_values) || !length(selected_values)) {
     return(data.frame(stringsAsFactors = FALSE))
   }
-  frame_total <- sum(frame_weights, na.rm = TRUE)
+  frame_total <- frame_profile$total
   selected_total <- sum(selected_weights, na.rm = TRUE)
   if (!(frame_total > 0) || !(selected_total > 0)) return(data.frame(stringsAsFactors = FALSE))
   rows <- lapply(cats, function(cat) {
-    frame_n <- sum(frame_weights[frame_values == cat], na.rm = TRUE)
+    fn <- frame_profile$n_by_cat[cat]
+    frame_n <- if (is.na(fn)) 0 else unname(as.numeric(fn))
     selected_n <- sum(selected_weights[selected_values == cat], na.rm = TRUE)
     frame_prop <- frame_n / frame_total
     selected_prop <- selected_n / selected_total
@@ -2082,7 +2214,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   do.call(rbind, rows)
 }
 
-.cm_aulas_dimension_distribution <- function(frame_result, aula_frame, selection_df, variable_cfg) {
+.cm_aulas_dimension_distribution <- function(frame_result, aula_frame, selection_df, variable_cfg, cache = NULL) {
   selected_m1 <- selection_df[selection_df$wave == "M1", , drop = FALSE]
   if (!nrow(selected_m1)) return(data.frame(stringsAsFactors = FALSE))
   dimension <- .cm_aulas_scalar(variable_cfg$dimension, "")
@@ -2092,16 +2224,26 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   aula_col <- .cm_aulas_scalar(variable_cfg$aula_col, dimension)
   source_preference <- .cm_aulas_text_key(variable_cfg$source_preference)
   population <- .cm_aulas_as_df(frame_result$population %||% data.frame(stringsAsFactors = FALSE), "population")
-  selected_ids <- .cm_aulas_selected_student_ids(selected_m1)
 
+  # El perfil del marco es invariante entre pares; se cachea por columna cuando
+  # se provee un `cache` (env). Sin cache, se calcula inline (byte-identico).
+  get_profile <- function(key, fv, fw) {
+    if (is.null(cache)) return(.cm_aulas_frame_profile(fv, fw))
+    if (is.null(cache[[key]])) cache[[key]] <- .cm_aulas_frame_profile(fv, fw)
+    cache[[key]]
+  }
+
+  # selected_ids solo lo usa la rama "student"; parsear los student-ids de M1 es
+  # caro, asi que se difiere hasta confirmar esa rama (en variables por-aula no
+  # se calcula nunca).
   if (source_preference == "student" && nzchar(student_col) && nrow(population) && student_col %in% names(population) &&
-      "student_id" %in% names(population) && length(selected_ids)) {
+      "student_id" %in% names(population) && length(selected_ids <- .cm_aulas_selected_student_ids(selected_m1))) {
     selected_pop <- population[population$student_id %in% selected_ids, , drop = FALSE]
     if (nrow(selected_pop)) {
+      fp <- get_profile(paste0("stud:", student_col), population[[student_col]], rep(1, nrow(population)))
       return(.cm_aulas_distribution_compare(
-        frame_values = population[[student_col]],
+        frame_profile = fp,
         selected_values = selected_pop[[student_col]],
-        frame_weights = rep(1, nrow(population)),
         selected_weights = rep(1, nrow(selected_pop)),
         dimension = dimension,
         label = label,
@@ -2114,10 +2256,14 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   if (!nzchar(aula_col) || !aula_col %in% names(aula_frame) || !aula_col %in% names(selected_m1)) {
     return(data.frame(stringsAsFactors = FALSE))
   }
+  fp <- get_profile(
+    paste0("aula:", aula_col),
+    aula_frame[[aula_col]],
+    suppressWarnings(as.numeric(aula_frame$eligible_n %||% rep(1, nrow(aula_frame))))
+  )
   .cm_aulas_distribution_compare(
-    frame_values = aula_frame[[aula_col]],
+    frame_profile = fp,
     selected_values = selected_m1[[aula_col]],
-    frame_weights = suppressWarnings(as.numeric(aula_frame$eligible_n %||% rep(1, nrow(aula_frame)))),
     selected_weights = suppressWarnings(as.numeric(selected_m1$eligible_n %||% rep(1, nrow(selected_m1)))),
     dimension = dimension,
     label = label,
@@ -2207,10 +2353,37 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   )
 }
 
-.cm_aulas_coverage_overlap <- function(aula_frame, selection_df, objective = list()) {
+.cm_aulas_coverage_overlap <- function(aula_frame, selection_df, objective = list(), cache = NULL) {
   selected_m1 <- selection_df[selection_df$wave == "M1", , drop = FALSE]
-  selected_ids <- .cm_aulas_selected_student_ids(selected_m1)
-  frame_n <- .cm_aulas_unique_students_n(aula_frame)
+  # unique_covered = length(selected_ids): solo importa el CONTEO de estudiantes
+  # distintos cubiertos, no el orden. Con `cache`, se parsea los student-ids por
+  # aula UNA vez (mapa classroom_id -> ids) y M1 solo hace lookup+union, evitando
+  # el re-strsplit de todas las aulas M1 en cada par (hotspot de la simulacion).
+  sel_col <- if ("unique_student_ids" %in% names(selected_m1)) "unique_student_ids" else if ("unique_student_ids_frame" %in% names(selected_m1)) "unique_student_ids_frame" else ""
+  selected_ids <- if (!is.null(cache) && nzchar(sel_col) && "classroom_id" %in% names(selected_m1) && "classroom_id" %in% names(aula_frame)) {
+    if (is.null(cache[["ids_by_classroom"]])) {
+      idmap <- new.env(parent = emptyenv(), hash = TRUE)
+      fcol <- if ("unique_student_ids" %in% names(aula_frame)) "unique_student_ids" else if ("unique_student_ids_frame" %in% names(aula_frame)) "unique_student_ids_frame" else ""
+      if (nzchar(fcol)) {
+        fcids <- as.character(aula_frame$classroom_id)
+        fvals <- aula_frame[[fcol]]
+        for (r in seq_along(fcids)) idmap[[fcids[[r]]]] <- .cm_aulas_student_ids(fvals[[r]])
+      }
+      cache[["ids_by_classroom"]] <- idmap
+    }
+    idmap <- cache[["ids_by_classroom"]]
+    unique(unlist(lapply(as.character(selected_m1$classroom_id), function(cid) idmap[[cid]]), use.names = FALSE))
+  } else {
+    .cm_aulas_selected_student_ids(selected_m1)
+  }
+  # Total de estudiantes unicos del marco: invariante entre pares (parsea todos
+  # los student-ids del marco), se cachea cuando hay `cache`.
+  frame_n <- if (!is.null(cache)) {
+    if (is.null(cache[["frame_unique_n"]])) cache[["frame_unique_n"]] <- .cm_aulas_unique_students_n(aula_frame)
+    cache[["frame_unique_n"]]
+  } else {
+    .cm_aulas_unique_students_n(aula_frame)
+  }
   exposure_n <- sum(suppressWarnings(as.numeric(selected_m1$eligible_n)), na.rm = TRUE)
   unique_covered <- length(selected_ids)
   if (!is.finite(exposure_n) || exposure_n <= 0) exposure_n <- unique_covered
@@ -2263,12 +2436,23 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   )
 }
 
-calc_muestra_aulas_representativity_objective <- function(frame_result, selection_df, selector = list(), objective = NULL) {
+calc_muestra_aulas_representativity_objective <- function(frame_result, selection_df, selector = list(), objective = NULL, cache = NULL, roles = NULL) {
   objective <- .cm_aulas_normalize_objective(objective %||% frame_result$config$objective %||% list())
-  aula_frame <- .cm_aulas_prepare_frame(frame_result, list(selector = selector %||% frame_result$config$selector %||% list()))
+  # El marco preparado es invariante entre pares de la simulacion; se cachea
+  # cuando se provee un `cache` (env). Sin cache el comportamiento es identico.
+  aula_frame <- if (!is.null(cache) && !is.null(cache[["aula_frame"]])) {
+    cache[["aula_frame"]]
+  } else {
+    af <- .cm_aulas_prepare_frame(frame_result, list(selector = selector %||% frame_result$config$selector %||% list()))
+    if (!is.null(cache)) cache[["aula_frame"]] <- af
+    af
+  }
   selection_df <- .cm_aulas_as_df(selection_df, "selection_df")
   if (!"wave" %in% names(selection_df)) selection_df$wave <- "M1"
-  roles <- .cm_aulas_role_values(selection_df)
+  # `roles` solo sirve para descartar la bolsa extra. La simulacion lo precomputa
+  # una vez (invariante para el filtro) y lo pasa para evitar renormalizar la
+  # columna sample_role en cada par.
+  roles <- roles %||% .cm_aulas_role_values(selection_df)
   selection_df <- selection_df[roles != "extra_reserve_pool", , drop = FALSE]
   if (!nrow(selection_df)) stop("Se requiere una seleccion para calcular representatividad.", call. = FALSE)
 
@@ -2276,14 +2460,14 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   metric_rows <- list()
   for (i in seq_len(nrow(objective$variables))) {
     variable_cfg <- objective$variables[i, , drop = FALSE]
-    dist <- .cm_aulas_dimension_distribution(frame_result, aula_frame, selection_df, variable_cfg)
+    dist <- .cm_aulas_dimension_distribution(frame_result, aula_frame, selection_df, variable_cfg, cache = cache)
     if (nrow(dist)) profile_rows[[length(profile_rows) + 1L]] <- dist
     metric_rows[[length(metric_rows) + 1L]] <- .cm_aulas_balance_metric_from_distribution(dist, variable_cfg)
   }
   profile_distributions <- if (length(profile_rows)) do.call(rbind, profile_rows) else data.frame(stringsAsFactors = FALSE)
   balance_metrics <- if (length(metric_rows)) do.call(rbind, metric_rows) else data.frame(stringsAsFactors = FALSE)
 
-  coverage <- .cm_aulas_coverage_overlap(aula_frame, selection_df, objective)
+  coverage <- .cm_aulas_coverage_overlap(aula_frame, selection_df, objective, cache = cache)
   cov_score <- suppressWarnings(as.numeric(coverage$score[coverage$metric == "coverage_efficiency"][[1]] %||% NA_real_))
   dup_score <- suppressWarnings(as.numeric(coverage$score[coverage$metric == "duplicate_loss"][[1]] %||% NA_real_))
   dup_loss <- suppressWarnings(as.numeric(coverage$value[coverage$metric == "duplicate_loss"][[1]] %||% NA_real_))
@@ -2669,12 +2853,16 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   coverage <- numeric(budget_runs)
   duplicate_loss <- numeric(budget_runs)
   waves <- c("M1")
+  # El marco (frame_result + local_selector + objective) es invariante entre las
+  # corridas Monte Carlo; compartir el cache del objetivo evita reparsear el
+  # marco en cada corrida (dominante con monte_carlo_n alto en marcos grandes).
+  mc_cache <- new.env(parent = emptyenv())
   for (i in seq_len(budget_runs)) {
     selected <- .cm_aulas_select_waves(aula_frame, local_selector, engine, waves, seed = local_selector$seed + i * 3571L, objective = objective)
     design_pi <- .cm_aulas_design_probabilities(aula_frame, local_selector, engine)
     selected$pi_final <- as.numeric(design_pi[selected$classroom_id])
     selected$weight_classroom <- ifelse(selected$pi_final > 0, 1 / selected$pi_final, NA_real_)
-    obj <- tryCatch(calc_muestra_aulas_representativity_objective(frame_result, selected, local_selector, objective), error = function(e) NULL)
+    obj <- tryCatch(calc_muestra_aulas_representativity_objective(frame_result, selected, local_selector, objective, cache = mc_cache), error = function(e) NULL)
     scores[[i]] <- if (!is.null(obj)) obj$representativity_score else NA_real_
     cov <- if (!is.null(obj)) obj$coverage_overlap else data.frame(stringsAsFactors = FALSE)
     coverage[[i]] <- suppressWarnings(as.numeric(cov$value[cov$metric == "coverage_population_pct"][[1]] %||% NA_real_))
@@ -2880,8 +3068,14 @@ calc_muestra_aulas_comparar_metodos <- function(frame_result, config = list(), m
 }
 
 .cm_aulas_replacement_score <- function(titular, reserve, active_student_ids = character(0), selector = list()) {
-  ids_t <- .cm_aulas_student_ids(titular$unique_student_ids[[1]] %||% titular$unique_student_ids_frame[[1]] %||% "")
-  ids_r <- .cm_aulas_student_ids(reserve$unique_student_ids[[1]] %||% reserve$unique_student_ids_frame[[1]] %||% "")
+  # Acceso robusto a columna ausente (marco anonimizado): evita NULL[[1]].
+  .row_ids <- function(row) {
+    u1 <- if ("unique_student_ids" %in% names(row)) row$unique_student_ids[[1]] else NULL
+    u2 <- if ("unique_student_ids_frame" %in% names(row)) row$unique_student_ids_frame[[1]] else NULL
+    u1 %||% u2 %||% ""
+  }
+  ids_t <- .cm_aulas_student_ids(.row_ids(titular))
+  ids_r <- .cm_aulas_student_ids(.row_ids(reserve))
   overlap <- length(intersect(ids_r, .cm_aulas_chr_vec(active_student_ids)))
   titular_overlap <- length(intersect(ids_t, ids_r))
   eligible_t <- .cm_aulas_num(titular$eligible_n[[1]], 0)
@@ -2922,7 +3116,18 @@ calc_muestra_aulas_simular_reemplazos <- function(frame_result, selection_result
   roles <- .cm_aulas_role_values(selection_df)
   titulars <- selection_df[roles == "titular" | selection_df$wave == "M1", , drop = FALSE]
   reserves <- selection_df[roles == "chain_reserve", , drop = FALSE]
-  before_obj <- calc_muestra_aulas_representativity_objective(frame_result, selection_df, cfg$selector, objective)
+  # El objetivo descarta la bolsa extra internamente; pre-filtrarla una vez evita
+  # copiar ~N filas muertas en cada par titular-candidato (identico resultado).
+  selection_core <- selection_df[roles != "extra_reserve_pool", , drop = FALSE]
+  # Roles de selection_core: invariantes para el filtro de bolsa extra (ninguna
+  # fila es extra). Se pasan al objetivo para no renormalizar por par.
+  core_roles <- roles[roles != "extra_reserve_pool"]
+  # Cache del lado invariante del marco (frame preparado, perfiles por columna,
+  # unicos del marco): el objetivo se recomputa por cada par titular-candidato,
+  # pero solo cambia el conjunto M1. Compartir el cache evita el reparseo O(n)
+  # del marco en cada llamada y elimina la segunda O(n^2) de la simulacion.
+  obj_cache <- new.env(parent = emptyenv())
+  before_obj <- calc_muestra_aulas_representativity_objective(frame_result, selection_core, cfg$selector, objective, cache = obj_cache, roles = core_roles)
   suggestions <- list()
   impact <- list()
   for (i in seq_len(nrow(titulars))) {
@@ -2936,11 +3141,14 @@ calc_muestra_aulas_simular_reemplazos <- function(frame_result, selection_result
       if (nrow(tied)) candidates <- tied
     }
     if (!nrow(candidates)) next
+    # Invariantes en j: los student-ids activos de otros titulares y el indice
+    # del titular a reemplazar dependen solo de i. Se calculan una vez fuera del
+    # lapply (antes se recomputaban por cada candidato).
+    active_ids <- .cm_aulas_active_students_without_titular(titulars, i)
+    old_idx <- which(selection_core$classroom_id == titular$classroom_id[[1]] & selection_core$wave == "M1")[1]
     scores <- lapply(seq_len(nrow(candidates)), function(j) {
-      active_ids <- .cm_aulas_active_students_without_titular(titulars, i)
       local_score <- .cm_aulas_replacement_score(titular, candidates[j, , drop = FALSE], active_ids, cfg$selector)
-      after_selection <- selection_df
-      old_idx <- which(after_selection$classroom_id == titular$classroom_id[[1]] & after_selection$wave == "M1")[1]
+      after_selection <- selection_core
       if (is.finite(old_idx)) {
         reserve_row <- candidates[j, , drop = FALSE]
         reserve_row$wave <- "M1"
@@ -2948,7 +3156,7 @@ calc_muestra_aulas_simular_reemplazos <- function(frame_result, selection_result
         common <- intersect(names(after_selection), names(reserve_row))
         after_selection[old_idx, common] <- reserve_row[1, common]
       }
-      after_obj <- tryCatch(calc_muestra_aulas_representativity_objective(frame_result, after_selection, cfg$selector, objective), error = function(e) NULL)
+      after_obj <- tryCatch(calc_muestra_aulas_representativity_objective(frame_result, after_selection, cfg$selector, objective, cache = obj_cache, roles = core_roles), error = function(e) NULL)
       local_score$before_score <- before_obj$representativity_score
       local_score$after_score <- if (!is.null(after_obj)) after_obj$representativity_score else NA_real_
       local_score$score_delta <- if (is.finite(local_score$after_score)) local_score$after_score - before_obj$representativity_score else NA_real_
@@ -3188,7 +3396,13 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
     selection_df$analysis_weight_warning[extra_idx] <- "Reserva extra no seleccionada; solo usar si se documenta una activacion excepcional."
     selection_df$weight_warning[extra_idx] <- selection_df$analysis_weight_warning[extra_idx]
   }
-  selection_df$student_ids_hash <- vapply(selection_df$unique_student_ids, function(x) .cm_aulas_hash(.cm_aulas_student_ids(x)), character(1))
+  selection_df$student_ids_hash <- {
+    ids_src <- if ("unique_student_ids" %in% names(selection_df)) selection_df$unique_student_ids
+               else if ("unique_student_ids_frame" %in% names(selection_df)) selection_df$unique_student_ids_frame
+               else NULL
+    if (is.null(ids_src)) rep(.cm_aulas_hash(character(0)), nrow(selection_df))
+    else vapply(ids_src, function(x) .cm_aulas_hash(.cm_aulas_student_ids(x)), character(1))
+  }
   selection_df$method_source <- .cm_aulas_source_bundle(engine)$method_source
   selection_df$official_reference <- .cm_aulas_source_bundle(engine)$official_reference
   selection_df$academic_reference <- .cm_aulas_source_bundle(engine)$academic_reference
@@ -3910,7 +4124,13 @@ calc_muestra_aulas_demo_hsvg_2025 <- function() {
     selection_df$weight_student[demo_extra_idx] <- NA_real_
     selection_df$peso_base[demo_extra_idx] <- NA_real_
   }
-  selection_df$student_ids_hash <- vapply(selection_df$unique_student_ids, function(x) .cm_aulas_hash(.cm_aulas_student_ids(x)), character(1))
+  selection_df$student_ids_hash <- {
+    ids_src <- if ("unique_student_ids" %in% names(selection_df)) selection_df$unique_student_ids
+               else if ("unique_student_ids_frame" %in% names(selection_df)) selection_df$unique_student_ids_frame
+               else NULL
+    if (is.null(ids_src)) rep(.cm_aulas_hash(character(0)), nrow(selection_df))
+    else vapply(ids_src, function(x) .cm_aulas_hash(.cm_aulas_student_ids(x)), character(1))
+  }
   source_bundle <- .cm_aulas_source_bundle("sistematico_pps")
   selection_df$method_source <- source_bundle$method_source
   selection_df$official_reference <- source_bundle$official_reference

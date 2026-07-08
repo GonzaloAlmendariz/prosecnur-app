@@ -19929,6 +19929,17 @@
   gap: 9px;
 }
 
+.pulso-gv2-export-menu-actions--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.pulso-gv2-export-menu-divider {
+  height: 1px;
+  margin: 2px 0;
+  background: var(--pulso-border);
+  opacity: 0.6;
+}
+
 .pulso-gv2-export-menu-actions button {
   min-height: 78px;
   padding: 11px;

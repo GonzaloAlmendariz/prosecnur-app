@@ -1,0 +1,469 @@
+/* =============================================================================
+   Primitivas UI del desk universitario (Cálculo de muestra · Muestra de aulas)
+   Prefijo cmv2-uni-*. Todo el color sale de tokens --cmv2-* / --pulso-*.
+   ============================================================================= */
+
+/* --- Motion del desk ---------------------------------------------------------
+   Easings fuertes (los built-in de CSS son débiles). Regla: entradas con
+   ease-out, movimiento en pantalla con ease-in-out, nada de ease-in, UI
+   < 300ms, y todo desactivable con prefers-reduced-motion. */
+.cmv2-frame {
+  --cmv2-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --cmv2-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Entrada del panel al cambiar de pestaña: sutil (se ve decenas de veces). */
+  .cmv2-tab-panel {
+    animation: cmv2-uni-enter 170ms var(--cmv2-ease-out, ease-out) both;
+  }
+
+  /* Cascada para grillas de tarjetas/cifras: aplicar a contenedores. */
+  .cmv2-uni-stagger > * {
+    animation: cmv2-uni-enter 230ms var(--cmv2-ease-out, ease-out) both;
+  }
+
+  .cmv2-uni-stagger > *:nth-child(2) { animation-delay: 35ms; }
+  .cmv2-uni-stagger > *:nth-child(3) { animation-delay: 70ms; }
+  .cmv2-uni-stagger > *:nth-child(4) { animation-delay: 105ms; }
+  .cmv2-uni-stagger > *:nth-child(5) { animation-delay: 140ms; }
+  .cmv2-uni-stagger > *:nth-child(6) { animation-delay: 175ms; }
+  .cmv2-uni-stagger > *:nth-child(n + 7) { animation-delay: 200ms; }
+}
+
+@keyframes cmv2-uni-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}
+
+/* Crossfade con blur para cifras que cambian de valor: el blur funde ambos
+   estados en una sola transformación en vez de dos objetos superpuestos. */
+.cmv2-uni-swap {
+  transition: filter 180ms ease, opacity 180ms ease;
+}
+
+.cmv2-uni-swap[data-cambiando="true"] {
+  filter: blur(3px);
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-uni-swap {
+    transition: opacity 150ms ease;
+  }
+
+  .cmv2-uni-swap[data-cambiando="true"] {
+    filter: none;
+  }
+}
+
+/* --- Callout de re-sincronización marco → cálculo ---------------------------- */
+.cmv2-uni-resync {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--pulso-warn-border, var(--cmv2-border-strong));
+  border-radius: 12px;
+  background: var(--pulso-warn-bg, var(--cmv2-control-bg));
+  color: var(--pulso-text);
+}
+
+.cmv2-uni-resync > svg {
+  flex: none;
+  color: var(--pulso-warn-fg, var(--cmv2-accent));
+}
+
+.cmv2-uni-resync-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.cmv2-uni-resync-copy strong {
+  font-size: 12.5px;
+}
+
+.cmv2-uni-resync-copy span {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-uni-resync .cmv2-primary {
+  flex: none;
+}
+
+/* --- TerminoChip: término del glosario → popover ---------------------------- */
+.cmv2-uni-term {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--cmv2-accent);
+  cursor: help;
+  border-bottom: 1px dotted var(--cmv2-accent);
+}
+
+.cmv2-uni-term:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.cmv2-uni-term-pop {
+  display: grid;
+  gap: 6px;
+  max-width: 300px;
+}
+
+.cmv2-uni-term-pop strong {
+  font-size: 11.5px;
+  color: var(--cmv2-accent);
+}
+
+.cmv2-uni-term-pop p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.cmv2-uni-term-pop .cmv2-uni-term-tec {
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-uni-term-valor {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  font-size: 11px;
+}
+
+.cmv2-uni-term-valor strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+/* --- FormulaLatex: KaTeX + chips de términos + procedencia -------------------- */
+.cmv2-uni-formula {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 12px;
+  background: var(--cmv2-surface-tint);
+  min-width: 0;
+}
+
+.cmv2-uni-formula-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cmv2-uni-formula-caption {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-uni-formula-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-x: auto;
+  min-width: 0;
+  padding: 2px 0;
+}
+
+.cmv2-uni-formula-body .enc-math {
+  font-size: 15px;
+}
+
+.cmv2-uni-formula-terms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+}
+
+.cmv2-uni-formula-term {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 999px;
+  background: var(--cmv2-surface);
+  padding: 3px 10px;
+  font-size: 11px;
+  color: var(--pulso-text);
+  cursor: help;
+  transition: border-color var(--motion-dur-fast, 120ms) ease, background var(--motion-dur-fast, 120ms) ease;
+}
+
+.cmv2-uni-formula-term:hover,
+.cmv2-uni-formula-term[aria-expanded="true"] {
+  border-color: var(--cmv2-accent);
+  background: var(--cmv2-accent-soft);
+}
+
+.cmv2-uni-formula-term code {
+  font-family: var(--pulso-font-mono, ui-monospace, "SF Mono", Menlo, monospace);
+  font-weight: 700;
+  color: var(--cmv2-accent);
+}
+
+.cmv2-uni-formula-term strong {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- FlujoVertical: etapas con cifras y mermas -------------------------------- */
+.cmv2-uni-flujo {
+  display: grid;
+  gap: 0;
+}
+
+.cmv2-uni-flujo[data-orientacion="horizontal"] {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.cmv2-uni-flujo-etapa {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 12px;
+  background: var(--cmv2-surface);
+  min-width: 0;
+  text-align: left;
+}
+
+button.cmv2-uni-flujo-etapa {
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast, 120ms) ease, background var(--motion-dur-fast, 120ms) ease,
+    transform var(--motion-dur-press, 90ms) ease;
+}
+
+button.cmv2-uni-flujo-etapa:hover {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+}
+
+button.cmv2-uni-flujo-etapa:active {
+  transform: scale(var(--cmv2-press-scale, 0.97));
+}
+
+.cmv2-uni-flujo-etapa[data-estado="ready"] .cmv2-uni-flujo-dot {
+  background: var(--pulso-success-fg, var(--cmv2-accent));
+  border-color: transparent;
+}
+
+.cmv2-uni-flujo-etapa[data-estado="working"] .cmv2-uni-flujo-dot {
+  background: var(--cmv2-accent);
+  border-color: transparent;
+}
+
+.cmv2-uni-flujo-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  border: 2px solid var(--pulso-border);
+  background: var(--cmv2-surface);
+}
+
+.cmv2-uni-flujo-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cmv2-uni-flujo-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+  white-space: nowrap;
+}
+
+.cmv2-uni-flujo-valor {
+  font-size: 16px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+  line-height: 1.1;
+}
+
+.cmv2-uni-flujo-detalle {
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+}
+
+/* Conector entre etapas (vertical u horizontal) con merma opcional */
+.cmv2-uni-flujo-arista {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0 2px 22px;
+  min-height: 22px;
+}
+
+.cmv2-uni-flujo[data-orientacion="horizontal"] .cmv2-uni-flujo-arista {
+  padding: 0 4px;
+  min-width: 26px;
+  justify-content: center;
+}
+
+.cmv2-uni-flujo-linea {
+  width: 2px;
+  align-self: stretch;
+  min-height: 16px;
+  border-radius: 2px;
+  background: var(--cmv2-border);
+}
+
+.cmv2-uni-flujo[data-orientacion="horizontal"] .cmv2-uni-flujo-linea {
+  width: auto;
+  height: 2px;
+  min-height: 0;
+  min-width: 18px;
+  align-self: center;
+}
+
+.cmv2-uni-flujo-merma {
+  font-size: 10.5px;
+  font-weight: 650;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-warn-border, var(--cmv2-border-strong));
+  background: var(--pulso-warn-bg, var(--cmv2-control-bg));
+  color: var(--pulso-warn-fg, var(--pulso-text-muted));
+  white-space: nowrap;
+}
+
+/* --- PanelAvanzado: disclosure para controles expertos -------------------------- */
+.cmv2-uni-avanzado {
+  border: 1px solid var(--cmv2-border);
+  border-radius: 12px;
+  background: var(--cmv2-surface);
+}
+
+.cmv2-uni-avanzado > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--pulso-text);
+  user-select: none;
+}
+
+.cmv2-uni-avanzado > summary::-webkit-details-marker {
+  display: none;
+}
+
+.cmv2-uni-avanzado-desc {
+  font-weight: 400;
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+}
+
+.cmv2-uni-avanzado-chevron {
+  margin-left: auto;
+  color: var(--pulso-text-muted);
+  transition: transform var(--motion-dur-fast, 140ms) ease;
+}
+
+.cmv2-uni-avanzado[open] .cmv2-uni-avanzado-chevron {
+  transform: rotate(180deg);
+}
+
+.cmv2-uni-avanzado-body {
+  padding: 4px 14px 14px;
+  border-top: 1px solid var(--cmv2-border);
+  display: grid;
+  gap: 10px;
+}
+
+/* --- CifraMotor: métrica con procedencia ------------------------------------------ */
+.cmv2-uni-cifra {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--cmv2-surface);
+  box-shadow: var(--cmv2-shadow-card);
+  min-width: 0;
+}
+
+.cmv2-uni-cifra[data-hero="true"] {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-surface-tint);
+}
+
+.cmv2-uni-cifra[data-tono="ok"] {
+  border-color: var(--pulso-success-border, var(--cmv2-accent-border));
+}
+
+.cmv2-uni-cifra[data-tono="alerta"] {
+  border-color: var(--pulso-warn-border, var(--cmv2-border-strong));
+}
+
+.cmv2-uni-cifra-label {
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-uni-cifra-valor {
+  font-size: 20px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--pulso-text);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.cmv2-uni-cifra[data-hero="true"] .cmv2-uni-cifra-valor {
+  color: var(--cmv2-accent);
+}
+
+.cmv2-uni-cifra-detalle {
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-uni-cifra-fila {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}

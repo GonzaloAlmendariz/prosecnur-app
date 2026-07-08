@@ -655,3 +655,37 @@ test_that("demo universitaria 2025 carga marco, seleccion y reemplazos sin PII",
   expect_true(all(grepl("^demo2025_", frame$unique_student_ids)))
   expect_true(all(is.finite(selection$weight_classroom[selection$wave == "M1"])))
 })
+
+# --- Blindaje de caracterizacion ("golden") --------------------------------
+# Congela la salida del motor de seleccion producida por el codigo pre-refactor
+# (ver api/tools/gen_golden_aulas.R). Cualquier cambio de aula elegida, orden o
+# score tras el refactor de performance O(n^2) rompe estos tests. Fixtures y
+# captura viven en helper-golden-aulas.R (compartidos con el generador).
+
+test_that("golden: seleccion de cadenas es identica al snapshot (seed 515)", {
+  gp <- golden_path("cadenas")
+  skip_if_not(file.exists(gp), "Falta golden cadenas.rds; corre api/tools/gen_golden_aulas.R")
+  f <- golden_fixture_cadenas()
+  frame <- calc_muestra_aulas_construir(base_madre = f$base, config = f$cfg)
+  selection <- calc_muestra_aulas_seleccionar(frame, f$cfg)
+  expect_identical(golden_capture_selection(selection), readRDS(gp))
+})
+
+test_that("golden: simulacion de reemplazos es identica al snapshot (seed 202)", {
+  gp <- golden_path("simulacion")
+  skip_if_not(file.exists(gp), "Falta golden simulacion.rds; corre api/tools/gen_golden_aulas.R")
+  f <- golden_fixture_simulacion()
+  frame <- calc_muestra_aulas_construir(base_madre = f$base, config = f$cfg)
+  selection <- calc_muestra_aulas_seleccionar(frame, f$cfg)
+  replacement <- calc_muestra_aulas_simular_reemplazos(frame, selection, f$cfg)
+  expect_identical(golden_capture_sim(replacement), readRDS(gp))
+})
+
+test_that("golden: seleccion a escala con empates es identica al snapshot (150 aulas)", {
+  gp <- golden_path("escala")
+  skip_if_not(file.exists(gp), "Falta golden escala.rds; corre api/tools/gen_golden_aulas.R")
+  f <- golden_fixture_escala()
+  frame <- calc_muestra_aulas_construir(base_madre = f$base, config = f$cfg)
+  selection <- calc_muestra_aulas_seleccionar(frame, f$cfg)
+  expect_identical(golden_capture_selection(selection), readRDS(gp))
+})

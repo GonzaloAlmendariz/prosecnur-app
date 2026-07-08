@@ -13,6 +13,7 @@
 #   POST /api/calc-muestra/componente          — CRUD de componente (add/update)
 #   DELETE /api/calc-muestra/componente        — elimina componente
 #   POST /api/calc-muestra/calcular            — ejecuta cálculo
+#   POST /api/calc-muestra/explicar            — memoria de cálculo (stateless)
 #   POST /api/calc-muestra/recomendar          — recomienda técnica
 #   POST /api/calc-muestra/iniciar-estudio     — inicia estudio por tipo
 #   POST /api/calc-muestra/modo-trabajo        — transición de modo
@@ -184,6 +185,18 @@ mount_calc_muestra <- function(pr) {
       body <- .cm_parse_body(req)
       diag <- body$diagnostico %||% body
       list(ok = TRUE, recomendacion = calc_muestra_recomendar(diag))
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/explicar — memoria de cálculo explicada
+    # Stateless: no toca la sesión. Body: { N, p?, e?, deff?, confianza?|z?,
+    # oversample_pct?, meta_valor?, promedio_conglomerado?, tau? }
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/explicar",
+                     wrap_endpoint(function(req, res, ...) {
+      body <- .cm_parse_body(req)
+      input <- body$parametros %||% body
+      list(ok = TRUE, memoria = calc_muestra_explicar(input))
     })) |>
 
     # -----------------------------------------------------------------------

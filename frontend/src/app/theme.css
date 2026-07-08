@@ -1511,9 +1511,12 @@ a { color: var(--pulso-primary); }
   align-items: center;
   justify-content: center;
   border: 1px solid var(--pulso-primary-border);
-  border-radius: 11px;
+  border-radius: 12px;
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 1px 2px rgba(0, 36, 87, 0.1);
 }
 
 .pulso-project-confirm.is-dirty .pulso-project-confirm-icon {
@@ -1690,6 +1693,7 @@ a { color: var(--pulso-primary); }
     background var(--motion-dur-fast) var(--motion-ease-out),
     border-color var(--motion-dur-fast) var(--motion-ease-out),
     color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 
@@ -1697,6 +1701,18 @@ a { color: var(--pulso-primary); }
   border-color: var(--pulso-primary-border);
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
+}
+
+.pulso-project-confirm-copy:focus-visible {
+  outline: none;
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-ring);
+}
+
+.pulso-project-confirm-copy.is-copied {
+  border-color: color-mix(in srgb, var(--pulso-success-border) 76%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-success-bg) 58%, #fff 42%);
+  color: var(--pulso-success-fg);
 }
 
 .pulso-project-confirm-copy:active:not(:disabled) {
@@ -1743,8 +1759,20 @@ a { color: var(--pulso-primary); }
   flex: 1 1 auto;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 8px;
+  /* Gap entre grupos (14) > gap intra-grupo (8): agrupa "guardar" vs "salir"
+     sin una línea que quede suelta cuando el footer envuelve a dos filas. */
+  gap: 10px 14px;
   min-width: 0;
+}
+
+/* Subgrupos nowrap: las únicas costuras de wrap quedan ENTRE grupos, nunca a
+   mitad de botón. */
+.pulso-project-confirm-save-group,
+.pulso-project-confirm-leave-group {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  gap: 8px;
 }
 
 .pulso-project-confirm-button {
@@ -1753,19 +1781,26 @@ a { color: var(--pulso-primary); }
   align-items: center;
   justify-content: center;
   gap: 7px;
-  border: 1px solid var(--pulso-border-strong);
+  border: 1px solid var(--pulso-border);
   border-radius: 9px;
-  padding: 0 13px;
+  padding: 0 14px;
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 720;
+  font-weight: 660;
+  white-space: nowrap;
   cursor: pointer;
   transition:
     background var(--motion-dur-fast) var(--motion-ease-out),
     border-color var(--motion-dur-fast) var(--motion-ease-out),
     color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
     transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-project-confirm-button > svg {
+  flex: 0 0 auto;
+  opacity: 0.85;
 }
 
 .pulso-project-confirm-button:hover:not(:disabled) {
@@ -1774,14 +1809,37 @@ a { color: var(--pulso-primary); }
   color: var(--pulso-primary);
 }
 
+/* Cancelar — tertiary/quiet (ghost) */
+.pulso-project-confirm-button.is-quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-project-confirm-button.is-quiet:hover:not(:disabled) {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
 .pulso-project-confirm-button.is-primary {
   border-color: var(--pulso-primary);
   background: var(--pulso-primary);
   color: #fff;
+  font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.pulso-project-confirm-button.is-primary > svg {
+  opacity: 1;
 }
 
 .pulso-project-confirm-button.is-primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--pulso-primary) 90%, #000 10%);
+  /* color explícito: el hover base (mayor especificidad que `.is-primary`)
+     intenta pintar el texto navy → sobre el fondo navy quedaría ilegible. */
+  color: #fff;
+  background: #013371;
+  border-color: #013371;
 }
 
 .pulso-project-confirm-button.is-danger {
@@ -1790,10 +1848,34 @@ a { color: var(--pulso-primary); }
   color: var(--pulso-danger-fg);
 }
 
+.pulso-project-confirm-button.is-danger > svg {
+  opacity: 1;
+}
+
 .pulso-project-confirm-button.is-danger:hover:not(:disabled) {
   border-color: var(--pulso-danger-border);
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
+}
+
+/* Focus-visible variant-aware: supera el ring global (0,0,1) que sobre el
+   primario navy es casi invisible y pinta el danger de navy. */
+.pulso-project-confirm-button:focus-visible {
+  outline: none;
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-ring);
+}
+
+.pulso-project-confirm-button.is-primary:focus-visible {
+  border-color: var(--pulso-primary);
+  box-shadow:
+    0 0 0 2px var(--pulso-surface),
+    0 0 0 4px var(--pulso-primary-focus);
+}
+
+.pulso-project-confirm-button.is-danger:focus-visible {
+  border-color: var(--pulso-danger-border);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-danger-border) 42%, transparent);
 }
 
 .pulso-project-confirm-button:active:not(:disabled) {
@@ -1805,11 +1887,24 @@ a { color: var(--pulso-primary); }
   cursor: wait;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .pulso-project-confirm-button {
+    transition: none;
+  }
+
+  .pulso-project-confirm-button:active:not(:disabled) {
+    transform: none;
+  }
+}
+
 @media (max-width: 620px) {
   .pulso-project-confirm-actions,
-  .pulso-project-confirm-action-set {
+  .pulso-project-confirm-action-set,
+  .pulso-project-confirm-save-group,
+  .pulso-project-confirm-leave-group {
     flex-direction: column-reverse;
     align-items: stretch;
+    width: 100%;
   }
 
   .pulso-project-confirm-button,
