@@ -1,0 +1,549 @@
+/* =============================================================================
+   Sección Salida del desk universitario (Cálculo de muestra · cierre).
+   Prefijo cmv2-sal-*. Solo tokens var(--cmv2-* / --pulso-* / --motion-*);
+   cero hex. Los paneles y tablas movidos conservan sus clases cmv2-classroom-*
+   y cmv2-result-* de calcMuestra.css; las primitivas viven en ../ui/ui.css.
+
+   Motion (glow-up 2026-07): entradas ease-out < 300ms con cascada corta,
+   swaps con .cmv2-uni-swap, hover solo bajo (hover:hover) y todo respetando
+   prefers-reduced-motion. Los keyframes cmv2-uni-enter viven en ui/ui.css.
+   ============================================================================= */
+
+.cmv2-sal-stack {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.cmv2-sal-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.cmv2-sal-nota {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--pulso-text-muted);
+  max-width: 82ch;
+}
+
+/* Franja de cierre (patrón ContinuarCTA de theme.css): remata Pase a
+   Monitoreo cuando la selección está lista. La pila ya trae gap propio,
+   así que el margen global se compacta. */
+.cmv2-sal-cierre-cta {
+  margin-top: 4px;
+}
+
+/* --- Motion de entrada (Cierre y Pase a Monitoreo) ---------------------------
+   Cascada del FlujoVertical (etapas y aristas alternadas, hasta 9 hijos) y
+   stagger de la fila de CifraMotor. Solo transform/opacity, ease-out. */
+@media (prefers-reduced-motion: no-preference) {
+  .cmv2-sal-panel .cmv2-uni-flujo > * {
+    animation: cmv2-uni-enter 220ms var(--cmv2-ease-out, ease-out) both;
+  }
+
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(2) { animation-delay: 25ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(3) { animation-delay: 50ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(4) { animation-delay: 75ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(5) { animation-delay: 100ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(6) { animation-delay: 125ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(7) { animation-delay: 150ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(8) { animation-delay: 175ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(n + 9) { animation-delay: 200ms; }
+
+  /* Mismos tiempos que .cmv2-uni-stagger (ui/ui.css); CifraFila no expone
+     className, por eso el selector estructural. */
+  .cmv2-sal-panel .cmv2-uni-cifra-fila > * {
+    animation: cmv2-uni-enter 230ms var(--cmv2-ease-out, ease-out) both;
+  }
+
+  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(2) { animation-delay: 35ms; }
+  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(3) { animation-delay: 70ms; }
+  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(4) { animation-delay: 105ms; }
+  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(n + 5) { animation-delay: 140ms; }
+
+  /* Tablas de Resultados: fade simple, sin stagger por fila (son largas).
+     Las tablas del Pase a Monitoreo quedan sin animación a propósito. */
+  .cmv2-sal-stack .cmv2-university-results .cmv2-table-wrap {
+    animation: cmv2-sal-fade 200ms var(--cmv2-ease-out, ease-out) both;
+  }
+
+  /* "Ver reporte" recién disponible: entra con fade + scale(0.97) y un único
+     pulso de acento (300ms) para señalar que ya está. */
+  .cmv2-sal-stack .cmv2-did-sal-row a.cmv2-ghost {
+    animation:
+      cmv2-sal-reporte-in 200ms var(--cmv2-ease-out, ease-out) both,
+      cmv2-sal-reporte-pulso 300ms var(--cmv2-ease-out, ease-out) 220ms 1;
+  }
+}
+
+@keyframes cmv2-sal-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes cmv2-sal-reporte-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@keyframes cmv2-sal-reporte-pulso {
+  from {
+    border-color: var(--cmv2-accent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--cmv2-accent) 38%, transparent);
+  }
+
+  to {
+    box-shadow: 0 0 0 9px color-mix(in srgb, var(--cmv2-accent) 0%, transparent);
+  }
+}
+
+/* --- Cierre: la ficha ejecutiva como "documento" ------------------------------
+   Barra de acento superior de 3px, superficie elevada y sombra de panel más
+   profunda: es la pieza final que se enseña al cliente. */
+.cmv2-sal-ficha {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  border-color: color-mix(in srgb, var(--cmv2-accent-border) 55%, var(--cmv2-border));
+  background: var(--cmv2-surface-raised);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 18px 44px rgba(15, 23, 42, 0.09);
+  padding: 16px 16px 14px;
+}
+
+.cmv2-sal-ficha::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--cmv2-accent),
+    color-mix(in srgb, var(--cmv2-accent) 30%, transparent) 72%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* Estado de la ficha: tono éxito cuando el diseño está cerrado. */
+.cmv2-sal-estado[data-cerrado="true"] {
+  border-color: var(--pulso-success-border, var(--cmv2-accent-border));
+  background: color-mix(in srgb, var(--pulso-success-bg, var(--cmv2-accent-soft)) 55%, transparent);
+  color: var(--pulso-success-fg, var(--cmv2-accent-fg));
+}
+
+/* --- Cierre: línea de reproducibilidad compacta ------------------------------ */
+.cmv2-sal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: baseline;
+  padding: 9px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 10px;
+  background: var(--cmv2-surface-tint);
+  font-size: 11.5px;
+  color: var(--pulso-text);
+}
+
+.cmv2-sal-meta span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cmv2-sal-meta b {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cmv2-sal-meta em {
+  flex-basis: 100%;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+/* Dentro de la ficha, la reproducibilidad se lee como sello: valores en mono
+   con tracking, etiquetas más comprimidas y borde discontinuo discreto. */
+.cmv2-sal-ficha .cmv2-sal-meta {
+  border-style: dashed;
+  border-color: var(--cmv2-border-strong);
+  background: transparent;
+}
+
+.cmv2-sal-ficha .cmv2-sal-meta span {
+  font-family: var(--pulso-font-mono, ui-monospace, "SF Mono", Menlo, monospace);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.cmv2-sal-ficha .cmv2-sal-meta b {
+  font-size: 9.5px;
+  letter-spacing: 0.09em;
+}
+
+.cmv2-sal-ficha .cmv2-sal-meta em {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  letter-spacing: normal;
+}
+
+/* --- Entregables: política PII -----------------------------------------------
+   Segmentado con thumb deslizante: las dos opciones ocupan mitades iguales y
+   un ::before (posicionado por data-pii) se desliza en 150ms; los textos solo
+   transicionan color. */
+.pulso-segmented.cmv2-sal-pii-segment {
+  position: relative;
+  isolation: isolate;
+  justify-self: start;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+}
+
+.pulso-segmented.cmv2-sal-pii-segment::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 4.5px);
+  border-radius: var(--pulso-radius-chip, 999px);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--cmv2-accent) 88%, #fff 12%), var(--cmv2-accent));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--cmv2-accent) 26%, transparent);
+  transition: transform 150ms var(--cmv2-ease-in-out, ease-in-out);
+}
+
+.pulso-segmented.cmv2-sal-pii-segment[data-pii="interno_trazabilidad"]::before {
+  transform: translateX(calc(100% + 3px));
+}
+
+.pulso-segmented.cmv2-sal-pii-segment > button {
+  position: relative;
+  z-index: 1;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--pulso-text-muted);
+  transition: color 150ms var(--cmv2-ease-in-out, ease-in-out);
+}
+
+.pulso-segmented.cmv2-sal-pii-segment > button.is-active {
+  background: transparent;
+  box-shadow: none;
+  color: #fff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-segmented.cmv2-sal-pii-segment > button:not(.is-active):hover {
+    color: var(--pulso-text);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-segmented.cmv2-sal-pii-segment::before {
+    transition: none;
+  }
+}
+
+.cmv2-sal-pii-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cmv2-sal-pii-pop {
+  /* El Popover se porta a document.body: los tokens --cmv2-* del frame no
+     llegan hasta aquí. Se redeclaran desde los tokens de raíz del módulo
+     (--pulso-module-sample) para que borde y acentos resuelvan. */
+  --cmv2-accent: var(--pulso-module-sample);
+  --cmv2-accent-fg: var(--pulso-module-sample);
+  --cmv2-border: color-mix(in srgb, var(--pulso-border) 78%, var(--pulso-module-sample) 22%);
+  display: grid;
+  gap: 8px;
+}
+
+.cmv2-sal-pii-pop strong {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.cmv2-sal-pii-pop p {
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.cmv2-sal-pii-pop table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.cmv2-sal-pii-pop th,
+.cmv2-sal-pii-pop td {
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--cmv2-border);
+  text-align: left;
+  vertical-align: top;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-sal-pii-pop th {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cmv2-sal-pii-pop td:first-child {
+  color: var(--pulso-text);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* La columna de la política activa queda resaltada para leer de un vistazo
+   qué versión aplica ahora mismo. */
+.cmv2-sal-pii-pop th[data-activa="true"],
+.cmv2-sal-pii-pop td[data-activa="true"] {
+  background: color-mix(in srgb, var(--cmv2-accent) 7%, transparent);
+}
+
+.cmv2-sal-pii-pop th[data-activa="true"] {
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-sal-pii-pop td[data-activa="true"] {
+  color: var(--pulso-text);
+}
+
+/* --- Entregables: tarjetas por destino --------------------------------------- */
+.cmv2-sal-destinos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+@media (max-width: 980px) {
+  .cmv2-sal-destinos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cmv2-sal-destino {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 12px;
+  background: var(--cmv2-surface-raised);
+  box-shadow: var(--cmv2-shadow-card);
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.cmv2-sal-destino.is-on {
+  border-color: var(--cmv2-accent-border);
+}
+
+/* Hover interactivo (las tarjetas contienen los toggles de publicación). */
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-sal-destino:hover {
+    transform: translateY(-1px);
+    border-color: var(--cmv2-accent-border);
+    box-shadow: var(--cmv2-shadow-hover);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-sal-destino,
+  .cmv2-sal-destino:hover {
+    transform: none;
+    transition-property: background-color, border-color, box-shadow, color;
+  }
+}
+
+.cmv2-sal-destino > header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.cmv2-sal-destino > header > div {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+}
+
+.cmv2-sal-destino > header strong {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--pulso-text);
+}
+
+.cmv2-sal-destino > header small {
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+/* El tile del icono refleja el estado on/off del destino: gris apagado cuando
+   está desactivado, acento cuando publica. */
+.cmv2-sal-destino-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-border) 16%, transparent);
+  color: var(--pulso-text-muted);
+  transition:
+    background-color 150ms var(--motion-ease-out),
+    border-color 150ms var(--motion-ease-out),
+    color 150ms var(--motion-ease-out);
+}
+
+.cmv2-sal-destino.is-on .cmv2-sal-destino-icon {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-sal-tablas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cmv2-sal-tablas label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 999px;
+  background: var(--cmv2-surface-tint);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--pulso-text);
+  cursor: pointer;
+  transition:
+    border-color 150ms var(--motion-ease-out),
+    background-color 150ms var(--motion-ease-out),
+    color 150ms var(--motion-ease-out);
+}
+
+.cmv2-sal-tablas label:has(input:checked) {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-sal-tablas input {
+  accent-color: var(--cmv2-accent);
+  margin: 0;
+}
+
+.cmv2-sal-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.cmv2-sal-campos--hojas {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+/* --- Resultados: "Incluir en reporte" como chip ------------------------------
+   Mismo lenguaje que los chips de tablas del libro (Entregables): estado
+   marcado con acento, transición corta de color. */
+.cmv2-sal-stack .cmv2-report-check {
+  min-height: 26px;
+  padding: 4px 11px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 999px;
+  background: var(--cmv2-surface-tint);
+  cursor: pointer;
+  transition:
+    border-color 150ms var(--motion-ease-out),
+    background-color 150ms var(--motion-ease-out),
+    color 150ms var(--motion-ease-out);
+}
+
+.cmv2-sal-stack .cmv2-report-check:has(input:checked) {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-sal-stack .cmv2-report-check input {
+  accent-color: var(--cmv2-accent);
+}
+
+/* --- Pase a Monitoreo: profundidad de reserva por celda ----------------------- */
+.cmv2-sal-profundidad {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cmv2-sal-profundidad span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 5px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 999px;
+  background: var(--cmv2-surface-tint);
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-sal-profundidad b {
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.cmv2-sal-profundidad i {
+  font-style: normal;
+  font-weight: 900;
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-sal-profundidad span[data-tono="ok"] i {
+  color: var(--pulso-success-fg, var(--cmv2-accent-fg));
+}
+
+.cmv2-sal-profundidad span[data-tono="alerta"] {
+  border-color: var(--pulso-warn-border, var(--cmv2-border-strong));
+  background: var(--pulso-warn-bg, var(--cmv2-surface-tint));
+}
+
+.cmv2-sal-profundidad span[data-tono="alerta"] i {
+  color: var(--pulso-warn-fg, var(--pulso-text));
+}

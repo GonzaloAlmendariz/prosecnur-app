@@ -1,0 +1,620 @@
+/* =============================================================================
+   Sección Marco del desk universitario (Cálculo de muestra · aulas).
+   Prefijo cmv2-marco-*. Solo tokens var(--cmv2-*/--pulso-*); cero hex.
+   Los charts reutilizan clases cmv2-* existentes de calcMuestra.css;
+   las primitivas (flujo, chips, cifras) viven en ../ui/ui.css.
+   ============================================================================= */
+
+.cmv2-marco-stack {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.cmv2-marco-intro {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--pulso-text-muted);
+  max-width: 76ch;
+}
+
+/* Los chips de término dentro de párrafos del marco no deben inflar la línea
+   (el button global trae min-height de control). */
+.cmv2-marco-intro .cmv2-uni-term,
+.cmv2-marco-flujo-copy .cmv2-uni-term,
+.cmv2-marco-flujo-copy .cmv2-marco-when,
+.cmv2-marco-when-pop .cmv2-uni-term {
+  min-height: 0;
+}
+
+.cmv2-marco-subhead {
+  display: grid;
+  gap: 2px;
+}
+
+.cmv2-marco-subhead strong {
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+/* --- Población: flujo del universo + cifras con procedencia ----------------- */
+.cmv2-marco-flujo-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(220px, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+@media (max-width: 980px) {
+  .cmv2-marco-flujo-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cmv2-marco-flujo-main {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cmv2-marco-flujo-copy {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--pulso-text-muted);
+  max-width: 80ch;
+}
+
+.cmv2-marco-flujo-cifras {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+/* Popover "¿universo vs población?" (mismo lenguaje que los "cuándo" de Definición) */
+.cmv2-marco-when {
+  border: none;
+  background: none;
+  padding: 0 2px;
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--cmv2-accent-fg);
+  cursor: help;
+  border-bottom: 1px dotted var(--cmv2-accent-border);
+  transition: color 120ms ease, border-bottom-color 120ms ease;
+}
+
+/* Mejora propia (affordance): el trigger de ayuda es interactivo pero no daba
+   feedback en hover; el subrayado se afirma y el color sube al acento. */
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-marco-when:hover {
+    color: var(--cmv2-accent);
+    border-bottom-style: solid;
+    border-bottom-color: var(--cmv2-accent);
+  }
+}
+
+.cmv2-marco-when:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.cmv2-marco-when-pop {
+  display: grid;
+  gap: 6px;
+  max-width: 320px;
+}
+
+.cmv2-marco-when-pop strong {
+  font-size: 11.5px;
+  color: var(--cmv2-accent);
+}
+
+.cmv2-marco-when-pop p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* --- Población: bloque final "Estructura por controles" --------------------- */
+.cmv2-marco-controles {
+  display: grid;
+  gap: 10px;
+}
+
+/* --- Aulas: histograma con bandas G1-G4 y línea del mínimo ------------------- */
+.cmv2-marco-histo {
+  display: grid;
+  gap: 8px;
+}
+
+.cmv2-marco-histo-track {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 3px;
+  align-items: end;
+  padding: 26px 0 0;
+}
+
+.cmv2-marco-histo-bin {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  min-width: 0;
+}
+
+.cmv2-marco-histo-col {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 120px;
+  border-radius: 6px 6px 0 0;
+  background: var(--cmv2-surface-tint);
+}
+
+.cmv2-marco-histo-col i {
+  display: block;
+  width: 72%;
+  border-radius: 5px 5px 0 0;
+  background: var(--cmv2-accent);
+  transition: height var(--motion-dur-fast, 120ms) ease;
+}
+
+/* Bandas por grupo de tamaño: mezcla del acento con pesos distintos por grupo. */
+.cmv2-marco-histo-bin[data-grupo="bajo"] .cmv2-marco-histo-col {
+  background: color-mix(in srgb, var(--pulso-warn-bg) 55%, var(--cmv2-surface));
+}
+
+.cmv2-marco-histo-bin[data-grupo="bajo"] .cmv2-marco-histo-col i {
+  background: var(--pulso-warn-fg);
+}
+
+.cmv2-marco-histo-bin[data-grupo="G1"] .cmv2-marco-histo-col {
+  background: color-mix(in srgb, var(--cmv2-accent) 8%, var(--cmv2-surface));
+}
+
+.cmv2-marco-histo-bin[data-grupo="G2"] .cmv2-marco-histo-col {
+  background: color-mix(in srgb, var(--cmv2-accent) 15%, var(--cmv2-surface));
+}
+
+.cmv2-marco-histo-bin[data-grupo="G3"] .cmv2-marco-histo-col {
+  background: color-mix(in srgb, var(--cmv2-accent) 23%, var(--cmv2-surface));
+}
+
+.cmv2-marco-histo-bin[data-grupo="G4"] .cmv2-marco-histo-col {
+  background: color-mix(in srgb, var(--cmv2-accent) 32%, var(--cmv2-surface));
+}
+
+.cmv2-marco-histo-bin > span {
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-muted);
+  white-space: nowrap;
+}
+
+/* Línea vertical del mínimo por aula (solo lectura). El trazo vive en el <i>
+   interior para poder "dibujarlo" (scaleY) sin deformar la etiqueta. */
+.cmv2-marco-histo-minline {
+  position: absolute;
+  top: 0;
+  bottom: 18px;
+  width: 0;
+  pointer-events: none;
+}
+
+.cmv2-marco-histo-minline i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  border-left: 2px dashed var(--pulso-danger-fg, var(--cmv2-accent));
+}
+
+.cmv2-marco-histo-minline em {
+  position: absolute;
+  top: 0;
+  left: 6px;
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--pulso-danger-fg, var(--cmv2-accent));
+  background: color-mix(in srgb, var(--cmv2-surface) 82%, transparent);
+  padding: 1px 5px;
+  border-radius: 6px;
+}
+
+/* Mejora propia (jerarquía): hairline entre el chart y su leyenda para que
+   la clave de bandas se lea como bloque aparte y no como una fila más. */
+.cmv2-marco-histo-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+  border-top: 1px solid var(--cmv2-border);
+  padding-top: 8px;
+}
+
+.cmv2-marco-histo-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 6px;
+  padding: 2px 6px;
+  margin: -2px -6px;
+}
+
+/* Hover en la leyenda = resaltar su banda en el chart (los demás bins se
+   atenúan vía data-atenuada). Solo en punteros finos con hover real. */
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-marco-histo-legend span {
+    transition: background-color 120ms ease, color 120ms ease;
+  }
+
+  .cmv2-marco-histo-legend span:hover {
+    background: var(--cmv2-surface-tint);
+    color: var(--pulso-text);
+  }
+
+  .cmv2-marco-histo-bin {
+    transition: opacity 150ms ease;
+  }
+
+  .cmv2-marco-histo[data-resalta] .cmv2-marco-histo-bin[data-atenuada="true"] {
+    opacity: 0.3;
+  }
+}
+
+.cmv2-marco-histo-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--cmv2-accent);
+}
+
+.cmv2-marco-histo-legend span[data-grupo="bajo"] i { background: var(--pulso-warn-fg); }
+.cmv2-marco-histo-legend span[data-grupo="G1"] i { background: color-mix(in srgb, var(--cmv2-accent) 35%, var(--cmv2-surface)); }
+.cmv2-marco-histo-legend span[data-grupo="G2"] i { background: color-mix(in srgb, var(--cmv2-accent) 55%, var(--cmv2-surface)); }
+.cmv2-marco-histo-legend span[data-grupo="G3"] i { background: color-mix(in srgb, var(--cmv2-accent) 75%, var(--cmv2-surface)); }
+.cmv2-marco-histo-legend span[data-grupo="G4"] i { background: var(--cmv2-accent); }
+
+.cmv2-marco-histo-nota {
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+}
+
+/* --- Aulas: auditoría de excluidas ------------------------------------------ */
+.cmv2-marco-excluidas-mas {
+  margin: 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-marco-excluidas-vacio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px dashed var(--cmv2-border);
+  border-radius: 10px;
+  font-size: 11.5px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-marco-excluidas-vacio svg {
+  flex: none;
+  color: var(--pulso-warn-fg);
+}
+
+/* --- Consistencia: gauge del match base-catálogo ----------------------------- */
+.cmv2-marco-match-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(240px, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+@media (max-width: 980px) {
+  .cmv2-marco-match-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cmv2-marco-match-gauge {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cmv2-marco-gauge {
+  display: grid;
+  gap: 4px;
+}
+
+.cmv2-marco-gauge-track {
+  position: relative;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--cmv2-surface-tint);
+  border: 1px solid var(--cmv2-border);
+  overflow: visible;
+}
+
+.cmv2-marco-gauge-fill {
+  position: absolute;
+  inset: 1px auto 1px 1px;
+  border-radius: 999px;
+  background: var(--pulso-danger-fg);
+  transition: width var(--motion-dur-med, 200ms) ease;
+}
+
+.cmv2-marco-gauge[data-tone="warn"] .cmv2-marco-gauge-fill {
+  background: var(--pulso-warn-fg);
+}
+
+.cmv2-marco-gauge[data-tone="ok"] .cmv2-marco-gauge-fill {
+  background: var(--pulso-success-fg);
+}
+
+.cmv2-marco-gauge[data-tone="pending"] .cmv2-marco-gauge-fill {
+  background: var(--cmv2-border-strong);
+}
+
+.cmv2-marco-gauge-tick {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 0;
+  border-left: 1px dashed var(--pulso-text-muted);
+}
+
+.cmv2-marco-gauge-tick em {
+  position: absolute;
+  top: -14px;
+  left: -10px;
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-marco-gauge-scale {
+  display: grid;
+  grid-template-columns: 70fr 20fr 10fr;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pulso-text-muted);
+  padding-top: 4px;
+}
+
+.cmv2-marco-gauge-scale span:nth-child(2) {
+  text-align: center;
+}
+
+.cmv2-marco-gauge-scale span:last-child {
+  text-align: right;
+}
+
+/* Mejora propia (contraste): la zona donde cayó el match toma el color del
+   tono, así la escala "revisar / aceptable / sólido" se lee de un vistazo. */
+.cmv2-marco-gauge[data-tone="danger"] .cmv2-marco-gauge-scale span:first-child {
+  color: var(--pulso-danger-fg);
+  font-weight: 750;
+}
+
+.cmv2-marco-gauge[data-tone="warn"] .cmv2-marco-gauge-scale span:nth-child(2) {
+  color: var(--pulso-warn-fg);
+  font-weight: 750;
+}
+
+.cmv2-marco-gauge[data-tone="ok"] .cmv2-marco-gauge-scale span:last-child {
+  color: var(--pulso-success-fg);
+  font-weight: 750;
+}
+
+/* --- Consistencia: diagrama de dos conjuntos --------------------------------- */
+.cmv2-marco-venn {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+
+.cmv2-marco-venn svg {
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+}
+
+.cmv2-marco-venn-base {
+  fill: color-mix(in srgb, var(--cmv2-accent) 26%, transparent);
+  stroke: var(--cmv2-accent);
+  stroke-width: 1.5;
+}
+
+.cmv2-marco-venn-cat {
+  fill: color-mix(in srgb, var(--pulso-success-fg) 22%, transparent);
+  stroke: var(--pulso-success-fg);
+  stroke-width: 1.5;
+}
+
+.cmv2-marco-venn-n {
+  font-size: 15px;
+  font-weight: 750;
+  fill: var(--pulso-text);
+  dominant-baseline: middle;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-marco-venn-n.is-matched {
+  font-size: 17px;
+}
+
+.cmv2-marco-venn figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 14px;
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-marco-venn figcaption span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cmv2-marco-venn figcaption i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.cmv2-marco-venn figcaption span[data-set="base"] i {
+  background: color-mix(in srgb, var(--cmv2-accent) 40%, var(--cmv2-surface));
+}
+
+.cmv2-marco-venn figcaption span[data-set="match"] i {
+  background: color-mix(in srgb, var(--cmv2-accent) 55%, var(--pulso-success-fg));
+}
+
+.cmv2-marco-venn figcaption span[data-set="cat"] i {
+  background: color-mix(in srgb, var(--pulso-success-fg) 45%, var(--cmv2-surface));
+}
+
+/* --- Consistencia: acción sugerida en hallazgos ------------------------------ */
+.cmv2-marco-issue-accion {
+  display: block;
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--cmv2-accent-fg);
+  padding-top: 2px;
+}
+
+/* =============================================================================
+   Motion del marco. Entradas de una sola vez (animation ... both) al montar,
+   solo transform/opacity, easings del desk (--cmv2-ease-out de .cmv2-frame) y
+   todo bajo prefers-reduced-motion: no-preference. Los cambios de dato en
+   caliente siguen usando las transitions ya existentes (width/height).
+   ============================================================================= */
+
+@keyframes cmv2-marco-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}
+
+@keyframes cmv2-marco-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes cmv2-marco-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes cmv2-marco-grow-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes cmv2-marco-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Población: cascada del flujo universo → elegibles → población. Variante
+     propia (no .cmv2-uni-stagger): solo las etapas se desplazan; las aristas
+     apenas funden en opacidad para no ver flechas "volando". El orden DOM es
+     fijo: etapa(1) arista(2) etapa(3) arista(4) etapa(5). */
+  .cmv2-marco-flujo-stagger .cmv2-uni-flujo > .cmv2-uni-flujo-etapa {
+    animation: cmv2-marco-enter 230ms var(--cmv2-ease-out, ease-out) both;
+  }
+
+  .cmv2-marco-flujo-stagger .cmv2-uni-flujo > .cmv2-uni-flujo-arista {
+    animation: cmv2-marco-fade 180ms var(--cmv2-ease-out, ease-out) both;
+  }
+
+  .cmv2-marco-flujo-stagger .cmv2-uni-flujo > :nth-child(2) { animation-delay: 60ms; }
+  .cmv2-marco-flujo-stagger .cmv2-uni-flujo > :nth-child(3) { animation-delay: 90ms; }
+  .cmv2-marco-flujo-stagger .cmv2-uni-flujo > :nth-child(4) { animation-delay: 150ms; }
+  .cmv2-marco-flujo-stagger .cmv2-uni-flujo > :nth-child(5) { animation-delay: 180ms; }
+
+  /* Población: barras horizontales crecen desde la izquierda al montar
+     (opt-in con .cmv2-marco-grow para no re-animar el drill de carreras). */
+  .cmv2-marco-grow .cmv2-native-bar-row > div > i {
+    transform-origin: left center;
+    animation: cmv2-marco-grow-x 400ms var(--cmv2-ease-out, ease-out) both;
+  }
+
+  .cmv2-marco-grow .cmv2-native-bar-row:nth-child(2) > div > i { animation-delay: 30ms; }
+  .cmv2-marco-grow .cmv2-native-bar-row:nth-child(3) > div > i { animation-delay: 60ms; }
+  .cmv2-marco-grow .cmv2-native-bar-row:nth-child(4) > div > i { animation-delay: 90ms; }
+  .cmv2-marco-grow .cmv2-native-bar-row:nth-child(5) > div > i { animation-delay: 120ms; }
+  .cmv2-marco-grow .cmv2-native-bar-row:nth-child(6) > div > i { animation-delay: 150ms; }
+  .cmv2-marco-grow .cmv2-native-bar-row:nth-child(7) > div > i { animation-delay: 180ms; }
+  .cmv2-marco-grow .cmv2-native-bar-row:nth-child(n + 8) > div > i { animation-delay: 210ms; }
+
+  /* Población: el drill de carreras cambia seguido → solo fade corto. */
+  .cmv2-marco-drill-swap {
+    animation: cmv2-marco-fade 150ms var(--cmv2-ease-out, ease-out) both;
+  }
+
+  /* Aulas: columnas del histograma suben desde la base, escalonadas 20ms
+     (el índice llega como --marco-histo-i desde el componente). */
+  .cmv2-marco-histo-col i {
+    transform-origin: bottom center;
+    animation: cmv2-marco-grow-y 350ms var(--cmv2-ease-out, ease-out) both;
+    animation-delay: calc(var(--marco-histo-i, 0) * 20ms);
+  }
+
+  /* Aulas: la línea del mínimo entra al final, funde y se dibuja hacia abajo. */
+  .cmv2-marco-histo-minline {
+    animation: cmv2-marco-fade 200ms var(--cmv2-ease-out, ease-out) 300ms both;
+  }
+
+  .cmv2-marco-histo-minline i {
+    transform-origin: top center;
+    animation: cmv2-marco-grow-y 260ms var(--cmv2-ease-out, ease-out) 300ms both;
+  }
+
+  /* Consistencia: el gauge llena su barra una sola vez al entrar; los cambios
+     de dato posteriores siguen con la transition de width existente. */
+  .cmv2-marco-gauge-fill {
+    transform-origin: left center;
+    animation: cmv2-marco-grow-x 500ms var(--cmv2-ease-out, ease-out) both;
+  }
+
+  /* Consistencia: el diagrama de conjuntos entra con fade + scale sutil,
+     apenas después de que el gauge arranque. */
+  .cmv2-marco-venn {
+    animation: cmv2-marco-pop 240ms var(--cmv2-ease-out, ease-out) 120ms both;
+  }
+
+  /* Consistencia: micro-entrada del estado vacío (una sola base). */
+  .cmv2-marco-vacio .pulso-empty-state {
+    animation: cmv2-marco-enter 220ms var(--cmv2-ease-out, ease-out) both;
+  }
+
+  .cmv2-marco-vacio .pulso-empty-state-icon {
+    animation: cmv2-marco-pop 260ms var(--cmv2-ease-out, ease-out) 80ms both;
+  }
+}

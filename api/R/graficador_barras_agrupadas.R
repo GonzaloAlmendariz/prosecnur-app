@@ -274,6 +274,7 @@ graficar_barras_agrupadas <- function(
 	    mostrar_leyenda           = TRUE,
 	    leyenda_posicion          = c("abajo", "arriba", "derecha", "izquierda", "ninguna"),
 	    orden_barras              = c("instrumento", "mayor_menor", "menor_mayor"),
+	    orden_categorias_manual   = NULL,
 	    max_categorias            = NULL,
 	    agrupar_resto_en_otros    = TRUE,
 	    etiqueta_otros            = "Otros",
@@ -588,6 +589,15 @@ graficar_barras_agrupadas <- function(
 		  cat_chr  <- as.character(df_long[[var_categoria]])
 		  cat_lvls <- unique(cat_chr)
 		  cat_lvls_instrumento <- cat_lvls
+  orden_manual_chr <- if (!is.null(orden_categorias_manual)) as.character(orden_categorias_manual) else character(0)
+  orden_manual_chr <- orden_manual_chr[!is.na(orden_manual_chr) & nzchar(orden_manual_chr)]
+  if (length(orden_manual_chr)) {
+    # Orden explicito provisto por el analista (ej. "estas categorias
+    # primero, el resto despues"). Se toma tal cual - a diferencia de
+    # `orden_barras`, esto NO se reordena luego por `otros_al_final`, ya
+    # que el analista ya decidio conscientemente donde va cada cosa.
+    cat_lvls <- c(intersect(orden_manual_chr, cat_lvls), setdiff(cat_lvls, orden_manual_chr))
+  } else {
 	  if (!identical(orden_barras, "instrumento")) {
 	    ord_vals <- tapply(df_long$.valor_plot, cat_chr, sum, na.rm = TRUE)
 	    ord_df <- data.frame(
@@ -610,6 +620,7 @@ graficar_barras_agrupadas <- function(
 		      cat_lvls <- c(cat_lvls[!idx_final], lvls_final)
 		    }
 		  }
+  }
 	  if (invertir_barras) cat_lvls <- rev(cat_lvls)
   df_long[[var_categoria]] <- factor(cat_chr, levels = cat_lvls)
   n_categorias <- length(cat_lvls)
@@ -636,6 +647,11 @@ graficar_barras_agrupadas <- function(
   if (!is.finite(lineheight_eje_y_eff) || is.na(lineheight_eje_y_eff) || lineheight_eje_y_eff <= 0) {
     lineheight_eje_y_eff <- NA_real_
   }
+  # Mismo valor para estimar el alto de fila (mas abajo) y para dibujar el
+  # texto (draw_text): si quedan desincronizados, una etiqueta envuelta a 2+
+  # lineas puede terminar ocupando mas espacio del reservado y solaparse con
+  # la categoria vecina.
+  lineheight_eje_y_render <- if (is.finite(lineheight_eje_y_eff)) lineheight_eje_y_eff else 1.20
   ancho_max_eje_y_eff <- ancho_max_eje_y
   if (isTRUE(usar_canvas) && identical(orientacion, "horizontal") && n_categorias > 0) {
     cat_widths <- nchar(as.character(cat_lvls), type = "width", allowNA = FALSE, keepNA = FALSE)
@@ -1179,8 +1195,7 @@ graficar_barras_agrupadas <- function(
     )
     max_lineas_etq <- suppressWarnings(max(lineas_etq, na.rm = TRUE))
     if (is.finite(max_lineas_etq) && max_lineas_etq > 1) {
-      lineheight_est <- if (is.finite(lineheight_eje_y_eff)) lineheight_eje_y_eff else 1.20
-      alto_min_etq <- (size_ejes_eff / 72) * max_lineas_etq * lineheight_est * 1.18 + 0.08
+      alto_min_etq <- (size_ejes_eff / 72) * max_lineas_etq * lineheight_eje_y_render * 1.18 + 0.08
       if (is.finite(alto_min_etq) && alto_min_etq > 0) {
         alto_por_cat_eff <- max(alto_por_cat_eff, alto_min_etq)
       }
@@ -1373,7 +1388,7 @@ graficar_barras_agrupadas <- function(
     family   = font_family,
     fontface = fontface_etq
   )
-  if (is.finite(lineheight_eje_y_eff)) text_args_eje_y$lineheight <- lineheight_eje_y_eff
+  text_args_eje_y$lineheight <- lineheight_eje_y_render
   for (i in seq_len(n_categorias)) {
     text_args_eje_y$text <- etiquetas_vec[i]
     text_args_eje_y$y <- y_abs[i]

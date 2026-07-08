@@ -1,0 +1,40 @@
+/* =============================================================================
+   Capa didáctica · paso 5 "Salida y aplicación" (guía de campo + reporte).
+   Solo tokens --cmv2-* / --pulso-*; cero color hardcodeado.
+   ============================================================================= */
+
+
+
+
+
+
+/* Tarjeta del reporte metodológico */
+.cmv2-did-sal-card {
+  border: 1px solid var(--cmv2-border);
+  border-radius: 12px;
+  background: var(--cmv2-surface);
+  padding: 12px 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.cmv2-did-sal-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cmv2-did-sal-sub {
+  border-top: 1px solid var(--cmv2-border);
+  padding-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.cmv2-did-sal-file {
+  font-size: 10.5px;
+  font-family: var(--pulso-font-mono, ui-monospace, "SF Mono", Menlo, monospace);
+  color: var(--pulso-text-muted);
+  overflow-wrap: anywhere;
+}

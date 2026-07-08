@@ -573,6 +573,8 @@
              list(value = "menor_mayor", label = "Menor a mayor")
            ),
            descripcion = "Define si las categorías respetan el orden del formulario o se ordenan por frecuencia."),
+      list(name = "orden_categorias_manual", label = "Orden manual de categorías", tipo_input = "codigos_list", grupo = "estilo",
+           descripcion = "Etiquetas en el orden exacto deseado (de arriba hacia abajo). Las categorías no listadas se agregan al final, en su orden original. Si se define, tiene prioridad sobre 'Orden de barras'."),
       list(name = "mostrar_ceros", label = "Mostrar opciones 0%", tipo_input = "bool", grupo = "estilo",
            default = FALSE,
            descripcion = "Conserva opciones definidas en el instrumento aunque no tengan casos. Apágalo para graficar solo categorías con N."),
