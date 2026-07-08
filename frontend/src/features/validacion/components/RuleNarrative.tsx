@@ -137,6 +137,7 @@ export default function RuleNarrative({
     const isResolved = status === "ready" || status === "ignored";
     return (
       <article
+        className="pulso-vv2-rule-card"
         role={onClick ? "button" : undefined}
         tabIndex={onClick ? 0 : undefined}
         onClick={onClick}
@@ -222,6 +223,7 @@ export default function RuleNarrative({
             {onOpenDetail && (
               <button
                 type="button"
+                className="pulso-vv2-pill pulso-vv2-pill--quiet"
                 onClick={(e) => {
                   e.stopPropagation();
                   onOpenDetail();
@@ -230,13 +232,8 @@ export default function RuleNarrative({
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 3,
-                  padding: "3px 8px",
-                  borderRadius: 6,
-                  background: "transparent",
-                  border: "1px solid var(--pulso-border)",
-                  color: "var(--pulso-primary)",
+                  padding: "3px 10px",
                   fontSize: 11,
-                  fontWeight: 700,
                   cursor: "pointer",
                 }}
                 aria-label="Ver detalle de la regla"

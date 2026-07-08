@@ -13,6 +13,7 @@ import { AdaptarPane } from "./AdaptarPane";
 import { useCodifSource } from "./useCodifSource";
 import { CodingConfigActions } from "./CodingConfigActions";
 import { ProcessingPrereqGate } from "../procesamiento/ProcessingPrereqGate";
+import "./codificacion-v2.css";
 
 type Step = "organizar" | "codificar" | "matrices" | "adaptar";
 

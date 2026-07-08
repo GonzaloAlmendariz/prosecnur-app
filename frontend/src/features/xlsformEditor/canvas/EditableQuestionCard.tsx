@@ -5,38 +5,22 @@
 // y opciones sean editables in-place. Cuando el usuario hace click en un
 // label tipea y al perder foco dispara `onLabelChange`. Lo mismo para hint.
 //
-// Para `select_one`/`select_multiple` muestra `EditableChoiceList` en vez de
-// la `ChoiceList` de solo lectura. Las opciones se editan inline al lado de
-// la pregunta — sin abrir el editor de catálogos.
-//
-// El componente sigue siendo fiel al tipo (radio, checkbox, number input,
-// etc.) — la idea es que el constructor y la vista sean la misma cosa.
+// El switch por tipo vive en `previewInputs.tsx` (compartido con la card de
+// solo lectura). Para `select_one`/`select_multiple` esta card inyecta su
+// `EditableChoiceList` vía `choiceSlot` — las opciones se editan inline al
+// lado de la pregunta, sin abrir el editor de catálogos.
 // =============================================================================
 
-import type { CSSProperties } from "react";
-import {
-  Calculator,
-  Calendar as CalendarIcon,
-  Camera,
-  CircleDot,
-  Clock,
-  EyeOff,
-  Hash,
-  ImagePlus,
-  ListChecks,
-  MapPin,
-  MessageSquare,
-  Mic,
-  QrCode,
-  Type as TypeIcon,
-} from "lucide-react";
-import { IconAI, IconChecklist, IconConditionalLogic } from "../../../lib/icons";
+import type { CSSProperties, ReactNode } from "react";
+import { IconConditionalLogic, IconRequired } from "../../../lib/icons";
 import type { BuilderNode, ChoiceItem } from "../types";
 import { iconForType } from "../helpers/icons";
 import { paletteForType, paletteSoftForType } from "../helpers/paletteForType";
 import { RichInline } from "../helpers/RichInline";
+import { TechTerm } from "../helpers/TechTerm";
 import { typeLabel } from "../parsing/parseType";
 import { EditableChoiceList } from "./EditableChoiceList";
+import { PreviewInputForType } from "./previewInputs";
 
 export type EditableQuestionCardProps = {
   node: BuilderNode;
@@ -94,6 +78,30 @@ export function EditableQuestionCard({
   const accent = paletteForType(node.typeInfo.base);
   const accentSoft = paletteSoftForType(node.typeInfo.base);
   const Icon = iconForType(node.typeInfo.base);
+  const baseType = node.typeInfo.base;
+  const baseLabel = typeLabel(baseType);
+
+  // Slot editable: solo para selects locales — el módulo compartido decide
+  // dónde ubicarlo (reemplazo de la lista o debajo del mock de appearance).
+  const isSelect = baseType === "select_one" || baseType === "select_multiple";
+  const choiceSlot: ReactNode = isSelect ? (
+    <EditableChoiceList
+      items={choices}
+      kind={baseType === "select_one" ? "radio" : "check"}
+      accent={accent}
+      listName={node.typeInfo.listName}
+      catalogUsageCount={catalogUsageCount}
+      sharedWith={sharedWith}
+      onSelectSharedQuestion={onSelectSharedQuestion}
+      onLabelChange={onChoiceLabelChange}
+      onNameChange={onChoiceNameChange}
+      onAdd={onAddChoice}
+      onRemove={onRemoveChoice}
+      onRenameList={onRenameList}
+      onCloneCatalog={onCloneCatalog}
+      onOpenCatalogLens={onOpenCatalogLens}
+    />
+  ) : undefined;
 
   return (
     <article
@@ -105,7 +113,10 @@ export function EditableQuestionCard({
       <div className="pulso-canvas-card-header">
         <span className="pulso-canvas-card-typebadge" style={{ color: accent, background: accentSoft }}>
           <Icon size={13} />
-          {typeLabel(node.typeInfo.base)}
+          {baseLabel}
+          {baseType && baseLabel !== baseType && (
+            <TechTerm t={baseType} title={`Tipo XLSForm: ${baseType}`} />
+          )}
         </span>
         {position && (
           <span className="pulso-canvas-card-position" title="Posición en el formulario">
@@ -114,7 +125,7 @@ export function EditableQuestionCard({
         )}
         {node.required && (
           <span className="pulso-canvas-card-required" title="Pregunta obligatoria">
-            ★ Obligatoria
+            <IconRequired size={11} /> Obligatoria
           </span>
         )}
         {node.relevant && (
@@ -148,21 +159,7 @@ export function EditableQuestionCard({
 
       {/* Input fiel al tipo */}
       <div className="pulso-canvas-card-input" onClick={(e) => e.stopPropagation()}>
-        <PreviewInput
-          node={node}
-          choices={choices}
-          accent={accent}
-          catalogUsageCount={catalogUsageCount}
-          sharedWith={sharedWith}
-          onSelectSharedQuestion={onSelectSharedQuestion}
-          onChoiceLabelChange={onChoiceLabelChange}
-          onChoiceNameChange={onChoiceNameChange}
-          onAddChoice={onAddChoice}
-          onRemoveChoice={onRemoveChoice}
-          onRenameList={onRenameList}
-          onCloneCatalog={onCloneCatalog}
-          onOpenCatalogLens={onOpenCatalogLens}
-        />
+        <PreviewInputForType node={node} choices={choices} accent={accent} choiceSlot={choiceSlot} />
       </div>
 
       {node.name && (
@@ -175,272 +172,3 @@ export function EditableQuestionCard({
     </article>
   );
 }
-
-// -----------------------------------------------------------------------------
-// PreviewInput — switch por tipo XLSForm para renderizar el control adecuado.
-// Misma lógica que el render de solo lectura, pero las opciones son editables
-// inline (EditableChoiceList).
-// -----------------------------------------------------------------------------
-
-function PreviewInput({
-  node,
-  choices,
-  accent,
-  catalogUsageCount,
-  sharedWith,
-  onSelectSharedQuestion,
-  onChoiceLabelChange,
-  onChoiceNameChange,
-  onAddChoice,
-  onRemoveChoice,
-  onRenameList,
-  onCloneCatalog,
-  onOpenCatalogLens,
-}: {
-  node: BuilderNode;
-  choices: ChoiceItem[];
-  accent: string;
-  catalogUsageCount?: number;
-  sharedWith?: Array<{ rowIndex: number; label: string; name: string }>;
-  onSelectSharedQuestion?: (rowIndex: number) => void;
-  onChoiceLabelChange: (choiceRowIndex: number, value: string) => void;
-  onChoiceNameChange: (choiceRowIndex: number, value: string) => void;
-  onAddChoice: () => void;
-  onRemoveChoice: (choiceRowIndex: number) => void;
-  onRenameList?: (nextListName: string) => void;
-  onCloneCatalog?: () => void;
-  onOpenCatalogLens?: () => void;
-}) {
-  const base = node.typeInfo.base;
-
-  switch (base) {
-    case "select_one":
-    case "select_multiple":
-      return (
-        <EditableChoiceList
-          items={choices}
-          kind={base === "select_one" ? "radio" : "check"}
-          accent={accent}
-          listName={node.typeInfo.listName}
-          catalogUsageCount={catalogUsageCount}
-          sharedWith={sharedWith}
-          onSelectSharedQuestion={onSelectSharedQuestion}
-          onLabelChange={onChoiceLabelChange}
-          onNameChange={onChoiceNameChange}
-          onAdd={onAddChoice}
-          onRemove={onRemoveChoice}
-          onRenameList={onRenameList}
-          onCloneCatalog={onCloneCatalog}
-          onOpenCatalogLens={onOpenCatalogLens}
-        />
-      );
-
-    case "integer":
-    case "decimal":
-      return (
-        <FakeInput
-          icon={<Hash size={14} />}
-          placeholder={base === "integer" ? "Escribe un número entero" : "Escribe un número decimal"}
-          accent={accent}
-        />
-      );
-
-    case "text":
-      return (
-        <FakeInput
-          icon={<TypeIcon size={14} />}
-          placeholder="Respuesta de texto libre"
-          multiline={node.appearance.includes("multiline")}
-          accent={accent}
-        />
-      );
-
-    case "date":
-      return <FakeInput icon={<CalendarIcon size={14} />} placeholder="DD/MM/AAAA" accent={accent} />;
-    case "time":
-      return <FakeInput icon={<Clock size={14} />} placeholder="HH:MM" accent={accent} />;
-    case "datetime":
-      return <FakeInput icon={<CalendarIcon size={14} />} placeholder="DD/MM/AAAA — HH:MM" accent={accent} />;
-
-    case "calculate":
-      return (
-        <PreviewBox
-          icon={<Calculator size={14} />}
-          tone={accent}
-          title="Campo automático"
-          detail="Esta variable se completa con una fórmula. Edítala en el panel lateral."
-        />
-      );
-
-    case "note":
-      return (
-        <PreviewBox
-          icon={<MessageSquare size={14} />}
-          tone="var(--pulso-text-soft)"
-          title="Nota informativa"
-          detail="Mensaje al encuestador. No espera respuesta."
-        />
-      );
-
-    case "acknowledge":
-      return <FakeCheckLine icon={<IconChecklist size={14} />} text="Confirmar que se leyó" accent={accent} />;
-
-    case "hidden":
-      return (
-        <PreviewBox
-          icon={<EyeOff size={14} />}
-          tone="var(--pulso-text-soft)"
-          title="Campo oculto"
-          detail="Viaja con el envío pero el encuestador no lo ve."
-        />
-      );
-
-    case "start":
-    case "end":
-    case "today":
-    case "deviceid":
-    case "username":
-      return (
-        <PreviewBox
-          icon={<IconAI size={14} />}
-          tone="var(--pulso-text-soft)"
-          title="Auto-meta"
-          detail={`El sistema captura este valor automáticamente (${base}).`}
-        />
-      );
-
-    case "image":
-      return <FakeUpload icon={<ImagePlus size={14} />} text="Tomar foto o subir imagen" accent={accent} />;
-    case "audio":
-      return <FakeUpload icon={<Mic size={14} />} text="Grabar o subir audio" accent={accent} />;
-    case "video":
-      return <FakeUpload icon={<Camera size={14} />} text="Grabar o subir video" accent={accent} />;
-    case "file":
-      return <FakeUpload icon={<Camera size={14} />} text="Subir archivo" accent={accent} />;
-    case "barcode":
-      return <FakeUpload icon={<QrCode size={14} />} text="Escanear código de barras o QR" accent={accent} />;
-
-    case "geopoint":
-    case "geotrace":
-    case "geoshape":
-      return (
-        <FakeUpload
-          icon={<MapPin size={14} />}
-          text={
-            base === "geopoint"
-              ? "Capturar ubicación (punto)"
-              : base === "geotrace"
-                ? "Capturar recorrido"
-                : "Capturar área"
-          }
-          accent={accent}
-        />
-      );
-
-    default:
-      return (
-        <PreviewBox
-          icon={<CircleDot size={14} />}
-          tone="var(--pulso-text-soft)"
-          title={`Tipo: ${base || "sin definir"}`}
-          detail="No hay vista previa específica para este tipo todavía."
-        />
-      );
-  }
-}
-
-// -----------------------------------------------------------------------------
-// Building blocks de UI fake (idénticos a PreviewQuestionCard)
-// -----------------------------------------------------------------------------
-
-function FakeInput({
-  icon,
-  placeholder,
-  multiline,
-  accent,
-}: {
-  icon: React.ReactNode;
-  placeholder: string;
-  multiline?: boolean;
-  accent: string;
-}) {
-  return (
-    <div className="pulso-canvas-fakeinput" style={{ borderColor: accent }}>
-      <span className="pulso-canvas-fakeinput-icon" style={{ color: accent }}>
-        {icon}
-      </span>
-      <span className="pulso-canvas-fakeinput-placeholder">
-        {placeholder}
-        {multiline && " · multilínea"}
-      </span>
-    </div>
-  );
-}
-
-function FakeUpload({
-  icon,
-  text,
-  accent,
-}: {
-  icon: React.ReactNode;
-  text: string;
-  accent: string;
-}) {
-  return (
-    <button type="button" disabled className="pulso-canvas-fakeupload" style={{ borderColor: accent, color: accent }}>
-      <span style={{ color: accent }}>{icon}</span>
-      <span>{text}</span>
-    </button>
-  );
-}
-
-function FakeCheckLine({
-  icon,
-  text,
-  accent,
-}: {
-  icon: React.ReactNode;
-  text: string;
-  accent: string;
-}) {
-  return (
-    <div className="pulso-canvas-fakecheck">
-      <span className="pulso-canvas-choice-mark is-check" style={{ borderColor: accent }} />
-      <span style={{ color: accent }}>{icon}</span>
-      <span>{text}</span>
-    </div>
-  );
-}
-
-function PreviewBox({
-  icon,
-  tone,
-  title,
-  detail,
-}: {
-  icon: React.ReactNode;
-  tone: string;
-  title: string;
-  detail: string;
-}) {
-  return (
-    <div className="pulso-canvas-previewbox">
-      <span className="pulso-canvas-previewbox-icon" style={{ color: tone }}>
-        {icon}
-      </span>
-      <div>
-        <strong style={{ color: tone, fontSize: 12, letterSpacing: 0.3, textTransform: "uppercase" }}>
-          {title}
-        </strong>
-        <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
-          {detail}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// Re-export del PreviewQuestionCard original via PreviewBox style — no es
-// estrictamente necesario, pero ayuda a otros consumidores que sólo
-// quieran un placeholder visual ligero.
-ListChecks; // prevent tree-shake of unused-icon import warning if any

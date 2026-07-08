@@ -114,7 +114,7 @@ export function FrecuenciasPane() {
         <Section
           title="Variables con resumen numérico"
           subtitle={<>
-            Las variables marcadas aquí se muestran con <strong>media, desviación, mínimo, máximo y percentiles</strong> en lugar de una tabla de frecuencias. Útil para edades, ingresos, tiempos de espera, etc.
+            Se resumen con <strong>media, desviación y percentiles</strong> en lugar de tabla: edades, ingresos, tiempos de espera.
           </>}
         >
           <div className="analitica-frecuencias-picker-stack">

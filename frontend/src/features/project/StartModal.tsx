@@ -10,7 +10,8 @@
 // input de path manual en vez del file picker nativo.
 
 import { useState } from "react";
-import { FilePlus2, FolderOpen, Loader2, Trash2 } from "lucide-react";
+import { FilePlus2, FolderOpen, Loader2 } from "lucide-react";
+import RecentProjectCard from "../../components/RecentProjectCard";
 import type { UseProjectReturn } from "./useProject";
 
 type Props = {
@@ -274,16 +275,19 @@ export default function StartModal({ project, onDone }: Props) {
               Sin proyectos recientes.
             </div>
           ) : (
-            project.recents.map((r) => (
-              <RecentRow
-                key={r.path}
-                name={r.name}
-                path={r.path}
-                disabled={project.busy}
-                onOpen={() => handleOpenRecent(r.path)}
-                onRemove={() => setConfirmRemovePath(r.path)}
-              />
-            ))
+            <div className="rpc-strip" role="list" aria-label="Proyectos recientes">
+              {project.recents.map((r) => (
+                <RecentProjectCard
+                  key={r.path}
+                  name={r.name}
+                  path={r.path}
+                  openedAt={r.opened_at}
+                  busy={project.busy}
+                  onOpen={() => void handleOpenRecent(r.path)}
+                  onRemove={() => setConfirmRemovePath(r.path)}
+                />
+              ))}
+            </div>
           )}
         </div>
 
@@ -316,90 +320,6 @@ export default function StartModal({ project, onDone }: Props) {
           busy={project.busy}
         />
       )}
-    </div>
-  );
-}
-
-function RecentRow({
-  name, path, disabled, onOpen, onRemove,
-}: {
-  name: string;
-  path: string;
-  disabled?: boolean;
-  onOpen: () => void;
-  onRemove: () => void;
-}) {
-  return (
-    <div style={{
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
-      borderRadius: 6,
-    }}>
-      <button
-        type="button"
-        onClick={onOpen}
-        disabled={disabled}
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-start",
-          gap: 2,
-          padding: "6px 10px",
-          borderRadius: 6,
-          border: "1px solid transparent",
-          background: "white",
-          cursor: disabled ? "not-allowed" : "pointer",
-          textAlign: "left",
-          minWidth: 0,
-        }}
-      >
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--pulso-text)" }}>
-          {name}
-        </span>
-        <span style={{
-          fontSize: 10,
-          color: "var(--pulso-text-soft)",
-          fontFamily: "ui-monospace, monospace",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          maxWidth: "100%",
-        }}>
-          {path}
-        </span>
-      </button>
-      <button
-        type="button"
-        onClick={onRemove}
-        disabled={disabled}
-        title="Quitar de recientes (no borra el archivo)"
-        aria-label={`Quitar ${name} de recientes`}
-        style={{
-          padding: 8,
-          borderRadius: 6,
-          border: "1px solid transparent",
-          background: "transparent",
-          color: "var(--pulso-text-soft)",
-          cursor: disabled ? "not-allowed" : "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-        onMouseEnter={(e) => {
-          if (!disabled) {
-            e.currentTarget.style.background = "var(--pulso-danger-bg, rgba(220, 38, 38, 0.08))";
-            e.currentTarget.style.color = "var(--pulso-danger-fg, #b91c1c)";
-          }
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "transparent";
-          e.currentTarget.style.color = "var(--pulso-text-soft)";
-        }}
-      >
-        <Trash2 size={14} />
-      </button>
     </div>
   );
 }
@@ -509,33 +429,13 @@ function ActionButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={primary ? "pulso-primary" : undefined}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        gap: 6,
-        padding: "14px 16px",
-        borderRadius: 8,
-        border: primary ? "none" : "1px solid var(--pulso-border)",
-        background: primary ? undefined : "white",
-        cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.55 : 1,
-        textAlign: "left",
-        minHeight: 90,
-      }}
+      className={`boot-action-card ${primary ? "boot-action-card-primary" : ""}`}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div className="boot-action-card-head">
         {icon}
-        <span style={{ fontSize: 14, fontWeight: 700 }}>{label}</span>
+        <span>{label}</span>
       </div>
-      <span style={{
-        fontSize: 11,
-        color: primary ? "rgba(255,255,255,0.85)" : "var(--pulso-text-soft)",
-        lineHeight: 1.4,
-      }}>
-        {hint}
-      </span>
+      <span className="boot-action-card-hint">{hint}</span>
     </button>
   );
 }

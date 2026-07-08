@@ -6,19 +6,29 @@
 // `ConstraintRow` en vez de `ConditionRow`.
 //
 // Casos:
-//   1. Vacío → empty state con CTA "Agregar validación".
-//   2. Una compare con `.` lhs → ConstraintRow inline.
-//   3. AND/OR plano de compare-con-`.` → grupo plano.
-//   4. Compleja → caja read-only con CTA "Reemplazar" + "Quitar".
+//   1. Vacío → empty state con CTA "Agregar validación" (+ galería "Formato
+//      del texto" para preguntas de texto).
+//   2. Regla de texto reconocida (`regex(., '…')` del catálogo textRules) →
+//      TextRuleSuite en modo humano, reversible al reabrir.
+//   3. Una compare con `.` lhs → ConstraintRow inline.
+//   4. AND/OR plano de compare-con-`.` → grupo plano.
+//   5. AND plano mixto (compares planas + reglas de texto reconocidas) →
+//      filas mixtas. Límite documentado: solo op `and`; un OR con regex o un
+//      operando no reconocible cae a la caja técnica.
+//   6. Compleja → caja read-only con CTA "Reemplazar" + "Quitar".
 //
 // Helpers especiales:
 //   - "Atajo entre min y max" agrega `. >= min and . <= max` con dos
 //     campos numéricos (caso muy común en integer/decimal/date — del
 //     corpus auditado).
+//   - Los presets regex (email/dígitos/código) se definen desde el catálogo
+//     textRules — una sola fuente para preset, galería y reconocimiento.
 // =============================================================================
 
+import type { ReactNode } from "react";
 import { CheckCircle2, X } from "lucide-react";
 import { IconHint } from "../../../../lib/icons";
+import TechTerm from "../../helpers/TechTerm";
 import {
   expandConstraint,
   parseExpression,
@@ -28,6 +38,9 @@ import {
 import type { Expr, FlatConstraint, LogicScope } from "../../logic";
 import { defaultPredicate } from "../../logic";
 import { ConstraintRow } from "./ConstraintRow";
+import { TextRuleSuite } from "./TextRuleSuite";
+import { buildTextRuleConstraint, matchTextRule, textRuleById } from "./textRules";
+import type { TextRuleParams, TextRuleRecipe } from "./textRules";
 
 export type ConstraintBuilderProps = {
   expression: string;
@@ -37,8 +50,12 @@ export type ConstraintBuilderProps = {
   baseType: string;
   /** Catálogo si la pregunta es select_*. */
   listName?: string;
-  fieldLabel: string;
+  /** Etiqueta del campo. Acepta nodos para incrustar `<TechTerm />`. */
+  fieldLabel: ReactNode;
   hint?: string;
+  /** Columna XLSForm que edita este builder (ej. "constraint") — se
+   *  muestra junto al readout "Código Kobo". Solo estética. */
+  techTerm?: string;
   onChange: (next: string) => void;
   onApplyPreset?: (next: { expression: string; message: string }) => void;
   showShortcuts?: boolean;
@@ -51,6 +68,7 @@ export function ConstraintBuilder({
   listName,
   fieldLabel,
   hint,
+  techTerm,
   onChange,
   onApplyPreset,
   showShortcuts = true,
@@ -64,6 +82,17 @@ export function ConstraintBuilder({
       return;
     }
     onChange(preset.expression);
+  };
+
+  // Mismo canal que los presets: expresión + mensaje sugerido cuando el
+  // padre lo soporta (LogicTab llena constraint_message); si no, solo la
+  // expresión.
+  const applyTextRule = (expression: string, message: string) => {
+    if (onApplyPreset) {
+      onApplyPreset({ expression, message });
+      return;
+    }
+    onChange(expression);
   };
 
   const buildEmpty = (): FlatConstraint => ({
@@ -96,7 +125,7 @@ export function ConstraintBuilder({
             <div className="pulso-constraint-shortcuts-head">
               <span className="pulso-section-eyebrow">Atajos Kobo</span>
               <strong>Reglas frecuentes sin escribir fórmula</strong>
-              <small>Aplican un constraint listo para exportar; en el inspector también completan el mensaje para campo.</small>
+              <small>Aplican la regla <TechTerm t="constraint" /> y su mensaje, listos para exportar.</small>
             </div>
             <div className="pulso-constraint-shortcut-grid">
               {shortcutPresets.map((preset) => (
@@ -121,6 +150,44 @@ export function ConstraintBuilder({
             </div>
           </div>
         )}
+        {showShortcuts && (baseType === "text" || baseType === "") && (
+          <div className="pulso-xftr-section">
+            <div className="pulso-xftr-section-head">
+              <span className="pulso-section-eyebrow">
+                Formato del texto <TechTerm t="regex" />
+              </span>
+              <small>Reglas en lenguaje claro: longitud, contenido y formato.</small>
+            </div>
+            <TextRuleSuite
+              active={null}
+              onApply={applyTextRule}
+              onClear={() => onChange("")}
+            />
+          </div>
+        )}
+        {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
+      </div>
+    );
+  }
+
+  // Caso 2: regla de texto reconocida — el constraint completo es un
+  // `regex(., '…')` del catálogo. Reversible: guardar → reabrir → se ve la
+  // receta humana, no código.
+  const textRule = matchTextRule(ast);
+  if (textRule) {
+    return (
+      <div className="pulso-logic-builder">
+        <header className="pulso-logic-builder-header">
+          <span className="pulso-section-eyebrow">{fieldLabel}</span>
+          <span className="pulso-logic-builder-status">
+            Formato del texto <TechTerm t="regex" />
+          </span>
+        </header>
+        <TextRuleSuite
+          active={textRule}
+          onApply={applyTextRule}
+          onClear={() => onChange("")}
+        />
         {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
       </div>
     );
@@ -133,11 +200,12 @@ export function ConstraintBuilder({
         <span className="pulso-logic-builder-status">Regla técnica</span>
       </header>
       <div className="pulso-logic-builder-raw">
+        <span className="pulso-xfi-code-head" aria-hidden="true">
+          Código Kobo{techTerm ? <> <TechTerm t={techTerm} /></> : null}
+        </span>
         <pre>{raw}</pre>
         <p className="pulso-logic-builder-rawhint">
-          Esta validación vino con una forma técnica. Se preserva tal cual al
-          exportar; puedes reemplazarla por una regla guiada si necesitas
-          editarla desde esta vista.
+          Se preserva al exportar; reemplázala por una regla guiada para editarla.
         </p>
         <div className="pulso-logic-builder-rawactions">
           <button
@@ -163,7 +231,7 @@ export function ConstraintBuilder({
     </div>
   );
 
-  // Caso 2: simple `. <op> X`.
+  // Caso 3: simple `. <op> X`.
   const flat = tryFlattenConstraint(ast);
   if (flat) {
     return (
@@ -195,7 +263,7 @@ export function ConstraintBuilder({
     );
   }
 
-  // Caso 3: AND/OR plano de compare-con-`.`.
+  // Caso 4: AND/OR plano de compare-con-`.`.
   if (ast.kind === "logical") {
     const flatChildren: FlatConstraint[] = [];
     let allFlat = true;
@@ -323,6 +391,133 @@ export function ConstraintBuilder({
         </div>
       );
     }
+
+    // Caso 5: AND plano mixto — cada operando es una compare plana o una
+    // regla de texto reconocida. Límite documentado: solo op `and` (un OR
+    // con regex cae a la caja técnica); al editar una regla dentro del AND
+    // solo se reemplaza su expresión (no se toca el constraint_message
+    // combinado del usuario).
+    if (ast.op === "and") {
+      type MixedChild =
+        | { kind: "flat"; flat: FlatConstraint; expr: Expr }
+        | {
+            kind: "rule";
+            rule: { recipe: TextRuleRecipe; params: TextRuleParams };
+            expr: Expr;
+          };
+      const children: MixedChild[] = [];
+      let supported = true;
+      let ruleCount = 0;
+      for (const operand of ast.operands) {
+        const flatChild = tryFlattenConstraint(operand);
+        if (flatChild) {
+          children.push({ kind: "flat", flat: flatChild, expr: operand });
+          continue;
+        }
+        const ruleChild = matchTextRule(operand);
+        if (ruleChild) {
+          children.push({ kind: "rule", rule: ruleChild, expr: operand });
+          ruleCount += 1;
+          continue;
+        }
+        supported = false;
+        break;
+      }
+      if (supported && ruleCount > 0 && children.length >= 2) {
+        const exprs = children.map((child) => child.expr);
+        const emitExprs = (next: Expr[]) => {
+          if (next.length === 0) {
+            onChange("");
+            return;
+          }
+          if (next.length === 1) {
+            onChange(serializeExpression(next[0]!));
+            return;
+          }
+          onChange(
+            serializeExpression({ kind: "logical", op: "and", operands: next }),
+          );
+        };
+        const replaceAt = (index: number, expr: Expr) => {
+          const copy = [...exprs];
+          copy[index] = expr;
+          emitExprs(copy);
+        };
+        const removeAt = (index: number) => {
+          emitExprs(exprs.filter((_, i) => i !== index));
+        };
+        const addFlat = () => {
+          emitExprs([...exprs, expandConstraint(buildEmpty())]);
+        };
+
+        return (
+          <div className="pulso-logic-builder">
+            <header className="pulso-logic-builder-header">
+              <span className="pulso-section-eyebrow">{fieldLabel}</span>
+              <button
+                type="button"
+                className="pulso-logic-builder-clear"
+                onClick={() => onChange("")}
+                title="Quitar todas las reglas."
+              >
+                <X size={12} /> Quitar
+              </button>
+            </header>
+            <div className="pulso-logic-group">
+              <header className="pulso-logic-group-header">
+                <span className="pulso-logic-group-prompt">Reglas</span>
+                <span className="pulso-xftr-mixed-connector">
+                  todas deben cumplirse
+                </span>
+              </header>
+              <div className="pulso-logic-group-body">
+                {children.map((child, idx) => (
+                  <div className="pulso-logic-group-item" key={idx}>
+                    {idx > 0 && (
+                      <span className="pulso-logic-group-sep" aria-hidden="true">
+                        and
+                      </span>
+                    )}
+                    {child.kind === "flat" ? (
+                      <ConstraintRow
+                        scope={scope}
+                        baseType={baseType}
+                        listName={listName}
+                        constraint={child.flat}
+                        onChange={(next) => replaceAt(idx, expandConstraint(next))}
+                        onRemove={
+                          children.length > 1 ? () => removeAt(idx) : undefined
+                        }
+                      />
+                    ) : (
+                      <TextRuleSuite
+                        variant="row"
+                        active={child.rule}
+                        onApply={(nextExpr) => {
+                          const parsed = parseExpression(nextExpr);
+                          if (parsed) replaceAt(idx, parsed);
+                        }}
+                        onClear={() => removeAt(idx)}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <footer className="pulso-logic-group-footer">
+                <button
+                  type="button"
+                  className="pulso-logic-group-add"
+                  onClick={addFlat}
+                >
+                  + Agregar regla
+                </button>
+              </footer>
+            </div>
+            {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
+          </div>
+        );
+      }
+    }
   }
 
   return renderRaw(serializeExpression(ast));
@@ -337,34 +532,50 @@ type ConstraintShortcutPreset = {
   badge?: string;
 };
 
+/**
+ * Preset regex definido desde el catálogo textRules — una sola fuente para
+ * la expresión y el mensaje (los presets email/digits/code migraron aquí).
+ */
+function presetFromTextRule(
+  preset: { id: string; recipeId: string; label: string; hint: string; badge?: string },
+): ConstraintShortcutPreset | null {
+  const recipe = textRuleById(preset.recipeId);
+  if (!recipe) return null;
+  return {
+    id: preset.id,
+    label: preset.label,
+    hint: preset.hint,
+    expression: buildTextRuleConstraint(recipe, recipe.defaults),
+    message: recipe.buildMessage(recipe.defaults),
+    badge: preset.badge,
+  };
+}
+
 function constraintShortcutPresetsFor(baseType: string): ConstraintShortcutPreset[] {
   if (baseType === "text" || baseType === "") {
     return [
-      {
+      presetFromTextRule({
         id: "email",
+        recipeId: "correo-electronico",
         label: "Correo electrónico",
         hint: "Acepta respuestas como nombre@dominio.org.",
-        expression: "regex(., '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')",
-        message: "Ingresa un correo electrónico válido.",
         badge: "regex",
-      },
-      {
+      }),
+      presetFromTextRule({
         id: "digits",
+        recipeId: "solo-numeros",
         label: "Solo dígitos",
         hint: "Para DNI, teléfonos, códigos numéricos o identificadores.",
-        expression: "regex(., '^\\d+$')",
-        message: "Ingresa solo números, sin letras ni símbolos.",
         badge: "0-9",
-      },
-      {
+      }),
+      presetFromTextRule({
         id: "code",
+        recipeId: "codigo-sin-espacios",
         label: "Código sin espacios",
         hint: "Acepta letras, números, guion y guion bajo.",
-        expression: "regex(., '^[A-Za-z0-9_-]+$')",
-        message: "Ingresa un código sin espacios.",
         badge: "ABC_123",
-      },
-    ];
+      }),
+    ].filter((preset): preset is ConstraintShortcutPreset => preset !== null);
   }
   if (baseType === "integer" || baseType === "decimal") {
     return [

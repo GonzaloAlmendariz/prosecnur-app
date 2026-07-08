@@ -193,6 +193,7 @@ export default function VariableChip({
     <>
       <span
         ref={anchorRef}
+        className="pulso-vv2-varchip"
         style={chipStyle}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -278,7 +279,7 @@ function VariableHoverCard({
   return createPortal(
     <div
       ref={cardRef}
-      className="pulso-hovercard-in"
+      className="pulso-hovercard-in pulso-vv2-hovercard"
       role="tooltip"
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -358,6 +359,7 @@ function VariableHoverCard({
         <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--pulso-border)" }}>
           <button
             type="button"
+            className="pulso-vv2-pill pulso-vv2-pill--soft"
             onClick={() => {
               onOpenInExplorar();
               onClose();
@@ -366,13 +368,8 @@ function VariableHoverCard({
               display: "inline-flex",
               alignItems: "center",
               gap: 6,
-              padding: "5px 10px",
-              borderRadius: 8,
-              border: "1px solid var(--pulso-primary-border)",
-              background: "var(--pulso-primary-soft)",
-              color: "var(--pulso-primary)",
+              padding: "5px 12px",
               fontSize: 11,
-              fontWeight: 700,
               cursor: "pointer",
             }}
           >

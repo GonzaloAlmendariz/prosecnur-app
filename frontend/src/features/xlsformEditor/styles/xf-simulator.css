@@ -1,0 +1,644 @@
+/* =============================================================================
+ * xf-simulator.css — vista "Probar formulario" (shell/FormSimulator.tsx)
+ * =============================================================================
+ * Overlay full-screen con una página por sección: cards de pregunta con acento
+ * fino por tipo (borde izquierdo 3px), radio/checkbox cards con check animado,
+ * slots colapsables (grid-template-rows) para que las preguntas que aparecen o
+ * desaparecen por lógica animen suavemente, y navegación con pills.
+ *
+ * Regla "No Scroll Jail": un solo dueño de scroll — .pulso-xfsim-main lleva
+ * overflow-y auto; el header y la barra de progreso quedan fijos arriba.
+ *
+ * Namespace: `.pulso-xfsim-*`.
+ * ========================================================================= */
+
+@keyframes pulso-xfsim-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Por encima del resto del chrome del editor (pulso-graph-overlay usa 900). */
+.pulso-xfsim-overlay {
+  z-index: 940;
+}
+
+/* ── Barra fina de progreso bajo el header ─────────────────────────────── */
+
+.pulso-xfsim-progress {
+  height: 3px;
+  flex-shrink: 0;
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+}
+
+.pulso-xfsim-progress > i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: var(--pulso-primary);
+  transform-origin: left;
+  transform: scaleX(0);
+  transition: transform var(--motion-dur-base) var(--motion-ease-in-out);
+}
+
+/* ── Cuerpo scrolleable (único dueño de scroll del overlay) ────────────── */
+
+.pulso-xfsim-main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 18px 32px;
+}
+
+.pulso-xfsim-sheet {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Cabecera de la sección actual ─────────────────────────────────────── */
+
+.pulso-xfsim-page-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.pulso-xfsim-page-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pulso-xfsim-page-title strong {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--pulso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-xfsim-page-badge {
+  font-size: 10px;
+  font-weight: 760;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--pulso-warn-bg);
+  border: 1px solid var(--pulso-warn-border);
+  color: var(--pulso-warn-fg);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pulso-xfsim-page-count {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Slot colapsable: aparecer/desaparecer por lógica sin saltos ───────── */
+
+.pulso-xfsim-slot {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--motion-dur-base) var(--motion-ease-in-out),
+    opacity var(--motion-dur-fast) ease;
+}
+
+.pulso-xfsim-slot.is-visible {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  animation: pulso-xfsim-in var(--motion-dur-base) var(--motion-ease-out) backwards;
+}
+
+/* Stagger sutil al entrar a una página (máx ~6 cards). */
+.pulso-xfsim-cards > .pulso-xfsim-slot.is-visible:nth-child(2) { animation-delay: 40ms; }
+.pulso-xfsim-cards > .pulso-xfsim-slot.is-visible:nth-child(3) { animation-delay: 80ms; }
+.pulso-xfsim-cards > .pulso-xfsim-slot.is-visible:nth-child(4) { animation-delay: 120ms; }
+.pulso-xfsim-cards > .pulso-xfsim-slot.is-visible:nth-child(5) { animation-delay: 160ms; }
+.pulso-xfsim-cards > .pulso-xfsim-slot.is-visible:nth-child(6) { animation-delay: 200ms; }
+
+.pulso-xfsim-slot-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Card de pregunta ──────────────────────────────────────────────────── */
+
+.pulso-xfsim-card {
+  position: relative;
+  margin: 0 0 10px;
+  padding: 14px 16px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-left: 3px solid var(--xfsim-accent, var(--pulso-border));
+  border-radius: 14px;
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-xfsim-card.is-note {
+  background: var(--pulso-surface-2);
+  box-shadow: none;
+}
+
+.pulso-xfsim-card.is-note .pulso-xfsim-card-label {
+  font-weight: 500;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xfsim-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.pulso-xfsim-card-icon {
+  display: inline-flex;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.pulso-xfsim-card-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--pulso-text);
+  line-height: 1.35;
+  overflow-wrap: break-word;
+}
+
+/* Punto ámbar: obligatoria sin responder (no bloquea la navegación). */
+.pulso-xfsim-req {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--pulso-warn-fg);
+  vertical-align: middle;
+}
+
+/* Badge discreto: la expresión relevant usa funciones no evaluables. */
+.pulso-xfsim-adv {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  color: var(--pulso-text-muted);
+  white-space: nowrap;
+}
+
+/* Lápiz "ir a editar" — visible en hover (o con foco de teclado). */
+.pulso-xfsim-edit {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-xfsim-edit:active {
+  transform: scale(0.94);
+}
+
+.pulso-xfsim-hint {
+  margin: 6px 0 0 21px;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  line-height: 1.4;
+}
+
+/* ── Opciones (radio / checkbox cards) ─────────────────────────────────── */
+
+.pulso-xfsim-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0 0 21px;
+}
+
+.pulso-xfsim-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-align: left;
+  padding: 8px 11px;
+  border-radius: 11px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--pulso-text);
+  cursor: pointer;
+  transition:
+    border-color var(--motion-dur-fast) ease,
+    background var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-xfsim-option:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.pulso-xfsim-option:disabled {
+  cursor: default;
+}
+
+.pulso-xfsim-option.is-selected {
+  border-color: var(--pulso-primary);
+  background: color-mix(in srgb, var(--pulso-primary) 6%, var(--pulso-surface));
+}
+
+.pulso-xfsim-option-mark {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease;
+}
+
+.pulso-xfsim-option-mark.is-multi {
+  border-radius: 6px;
+}
+
+.pulso-xfsim-option.is-selected .pulso-xfsim-option-mark {
+  background: var(--pulso-primary);
+  border-color: var(--pulso-primary);
+}
+
+.pulso-xfsim-option-check {
+  color: #fff;
+  transform: scale(0);
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-xfsim-option.is-selected .pulso-xfsim-option-check {
+  transform: scale(1);
+}
+
+.pulso-xfsim-option-label {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.pulso-xfsim-options-empty {
+  margin: 10px 0 0 21px;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+/* ── Inputs (número, texto, fecha) ─────────────────────────────────────── */
+
+.pulso-xfsim-input {
+  display: block;
+  margin: 10px 0 0 21px;
+  width: min(240px, calc(100% - 21px));
+  padding: 8px 11px;
+  border-radius: var(--xls-radius-control, 10px);
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--pulso-text);
+  transition: border-color var(--motion-dur-fast) ease;
+}
+
+.pulso-xfsim-input.is-wide {
+  width: calc(100% - 21px);
+  max-width: 420px;
+}
+
+.pulso-xfsim-input:focus-visible {
+  outline: none;
+  border-color: var(--pulso-primary);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+/* ── select_one con appearance minimal/dropdown: select nativo ─────────── */
+
+.pulso-xfsim-selectwrap {
+  position: relative;
+  display: inline-block;
+  margin: 10px 0 0 21px;
+  width: min(280px, calc(100% - 21px));
+}
+
+.pulso-xfsim-select {
+  margin: 0;
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 30px;
+  cursor: pointer;
+}
+
+.pulso-xfsim-select:disabled {
+  cursor: default;
+}
+
+.pulso-xfsim-select-chev {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  color: var(--pulso-text-muted);
+  pointer-events: none;
+}
+
+/* ── rank: toca en orden 1..N; volver a tocar desasigna ────────────────── */
+
+.pulso-xfsim-rank-help {
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-xfsim-option-mark.is-rank {
+  background: var(--pulso-primary);
+  border-color: var(--pulso-primary);
+}
+
+.pulso-xfsim-rank-pos {
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* ── range: slider real con valor visible ──────────────────────────────── */
+
+.pulso-xfsim-range {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0 0 21px;
+  width: calc(100% - 21px);
+  max-width: 420px;
+}
+
+.pulso-xfsim-range-input {
+  flex: 1;
+  min-width: 0;
+  height: 5px;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  accent-color: var(--pulso-primary);
+  cursor: pointer;
+}
+
+.pulso-xfsim-range-input:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.pulso-xfsim-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--pulso-surface);
+  border: 2px solid var(--pulso-primary);
+  box-shadow: 0 1px 3px rgba(0, 36, 87, 0.22);
+  cursor: grab;
+}
+
+.pulso-xfsim-range-input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--pulso-surface);
+  border: 2px solid var(--pulso-primary);
+  box-shadow: 0 1px 3px rgba(0, 36, 87, 0.22);
+  cursor: grab;
+}
+
+.pulso-xfsim-range-input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-xfsim-range-value {
+  flex-shrink: 0;
+  min-width: 34px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 760;
+  font-variant-numeric: tabular-nums;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  color: var(--pulso-text);
+}
+
+.pulso-xfsim-range-value.is-empty {
+  color: var(--pulso-text-muted);
+}
+
+/* ── barcode: input de texto con icono QR ──────────────────────────────── */
+
+.pulso-xfsim-barcode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0 21px;
+  width: calc(100% - 21px);
+  max-width: 320px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xfsim-barcode-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.pulso-xfsim-barcode-input {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
+
+/* ── Placeholder para tipos que solo se capturan en campo ──────────────── */
+
+.pulso-xfsim-placeholder {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0 21px;
+  padding: 9px 13px;
+  border: 1px dashed var(--pulso-border);
+  border-radius: 11px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.pulso-xfsim-placeholder em {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--pulso-text-muted);
+}
+
+/* ── Navegación Anterior / Siguiente ───────────────────────────────────── */
+
+.pulso-xfsim-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.pulso-xfsim-nav-count {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-xfsim-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--pulso-text);
+  cursor: pointer;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-xfsim-pill:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.pulso-xfsim-pill:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.pulso-xfsim-pill.is-primary {
+  background: var(--pulso-primary);
+  border-color: var(--pulso-primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+}
+
+/* ── Estado vacío ──────────────────────────────────────────────────────── */
+
+.pulso-xfsim-empty {
+  max-width: 420px;
+  margin: 60px auto 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pulso-xfsim-empty strong {
+  font-size: 14px;
+  color: var(--pulso-text);
+}
+
+.pulso-xfsim-empty span {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+/* ── Hover gated ───────────────────────────────────────────────────────── */
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xfsim-card:hover .pulso-xfsim-edit {
+    opacity: 1;
+  }
+  .pulso-xfsim-edit:hover {
+    color: var(--pulso-primary);
+    border-color: var(--pulso-primary-border);
+  }
+  .pulso-xfsim-option:hover:not(:disabled):not(.is-selected) {
+    border-color: var(--pulso-primary-border);
+  }
+  .pulso-xfsim-pill:hover:not(:disabled) {
+    border-color: var(--pulso-primary-border);
+    box-shadow: var(--pulso-shadow-soft);
+  }
+}
+
+/* ── Focus visible ─────────────────────────────────────────────────────── */
+
+.pulso-xfsim-pill:focus-visible,
+.pulso-xfsim-option:focus-visible,
+.pulso-xfsim-edit:focus-visible {
+  outline: none;
+  opacity: 1;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-xfsim-slot.is-visible {
+    animation: none;
+  }
+  .pulso-xfsim-slot,
+  .pulso-xfsim-progress > i,
+  .pulso-xfsim-option,
+  .pulso-xfsim-option-mark,
+  .pulso-xfsim-option-check,
+  .pulso-xfsim-input,
+  .pulso-xfsim-pill,
+  .pulso-xfsim-edit {
+    transition-duration: 1ms;
+  }
+}

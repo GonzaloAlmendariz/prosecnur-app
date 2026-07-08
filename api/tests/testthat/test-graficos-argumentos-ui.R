@@ -189,6 +189,25 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   expect_equal(by_name_agr$normalizar_etiquetas$grupo, "lectura")
   expect_true("mayuscula_inicial" %in% vapply(by_name_agr$normalizar_etiquetas$choices, `[[`, character(1), "value"))
 
+  expect_true("barras_categoricas" %in% names(presets))
+  cat <- presets$barras_categoricas$args
+  by_name_cat <- stats::setNames(cat, vapply(cat, `[[`, character(1), "name"))
+  expect_equal(by_name_cat$max_categorias$default, 10)
+  expect_equal(by_name_cat$max_categorias$max, 10)
+  expect_equal(by_name_cat$colores_categorias$tipo_input, "series_colors")
+  expect_equal(by_name_cat$mostrar_promedio$tipo_input, "bool")
+  expect_false(isTRUE(by_name_cat$mostrar_promedio$default))
+  expect_equal(by_name_cat$formato_valor$tipo_input, "choice")
+  expect_true("porcentaje_n" %in% vapply(by_name_cat$formato_valor$choices, `[[`, character(1), "value"))
+  expect_equal(by_name_cat$grosor_barras$grupo, "espacio")
+  expect_equal(by_name_cat$size_ejes$default, 16)
+  expect_equal(by_name_cat$size_texto_barras$default, 5.6)
+  expect_false(isTRUE(by_name_cat$mostrar_eje_y$default))
+  expect_false(isTRUE(by_name_cat$mostrar_linea_eje_x$default))
+  expect_false(isTRUE(by_name_cat$mostrar_linea_eje_y$default))
+  expect_false(isTRUE(by_name_cat$mostrar_grid_y$default))
+  expect_equal(by_name_cat$ancho_max_eje_x$default, 18)
+
   expect_true("histograma" %in% names(presets))
   hist <- presets$histograma$args
   by_name_hist <- stats::setNames(hist, vapply(hist, `[[`, character(1), "name"))
@@ -230,6 +249,12 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   expect_equal(by_name_graf_agr$max_categorias$default, 10)
   expect_equal(by_name_graf_agr$canvas_w_etiquetas$label, "Espacio para etiquetas")
   expect_equal(by_name_graf_agr$normalizar_etiquetas$tipo_input, "choice")
+  expect_true("p_barras_categoricas" %in% names(grafs))
+  args_cat <- grafs$p_barras_categoricas$args
+  by_name_graf_cat <- stats::setNames(args_cat, vapply(args_cat, `[[`, character(1), "name"))
+  expect_equal(by_name_graf_cat$var$tipo_input, "variable")
+  expect_equal(by_name_graf_cat$max_categorias$max, 10)
+  expect_equal(by_name_graf_cat$colores_categorias$tipo_input, "series_colors")
   expect_true("p_nube_palabras" %in% names(grafs))
   expect_equal(
     stats::setNames(grafs$p_nube_palabras$args, vapply(grafs$p_nube_palabras$args, `[[`, character(1), "name"))$var$tipo_input,
@@ -337,6 +362,47 @@ test_that("normalizador de etiquetas de barras agrupadas soporta mayuscula inici
   expect_equal(
     .barras_agrupadas_normalizacion_modo("sin cambio"),
     "ninguna"
+  )
+})
+
+test_that("barras categoricas grafican pocas categorias con color propio y promedio opcional", {
+  df <- data.frame(
+    categoria = c("Poco coherente", "Coherente", "Muy coherente"),
+    valor = c(1, 2, 4),
+    n = c(4, 8, 16),
+    stringsAsFactors = FALSE
+  )
+
+  p <- graficar_barras_categoricas(
+    data = df,
+    var_categoria = "categoria",
+    var_valor = "valor",
+    var_n = "n",
+    formato_valor = "valor_n",
+    mostrar_frecuencia = TRUE,
+    mostrar_promedio = TRUE,
+    promedio = 3.1,
+    promedio_maximo = 4,
+    colores_categorias = c(
+      "Poco coherente" = "#CA5651",
+      "Coherente" = "#EFD25E",
+      "Muy coherente" = "#70AD47"
+    )
+  )
+
+  datos <- attr(p, "pulso_barras_categoricas_data")
+  expect_equal(nrow(datos), 3)
+  expect_equal(datos$fill, c("#CA5651", "#EFD25E", "#70AD47"))
+  expect_equal(attr(p, "pulso_barras_categoricas_promedio"), 3.1)
+  expect_match(ggplot2::ggplot_build(p)$plot$labels$caption, "Promedio: 3.1 / 4.0", fixed = TRUE)
+  expect_s3_class(ggplot2::ggplot_build(p)$plot$theme$axis.text.y, "element_blank")
+  expect_s3_class(ggplot2::ggplot_build(p)$plot$theme$axis.line.x, "element_blank")
+  expect_s3_class(ggplot2::ggplot_build(p)$plot$theme$axis.line.y, "element_blank")
+
+  df_many <- data.frame(categoria = paste0("C", 1:11), valor = 1:11)
+  expect_error(
+    graficar_barras_categoricas(df_many, "categoria", "valor", max_categorias = 10),
+    "admite hasta 10 categorias"
   )
 })
 

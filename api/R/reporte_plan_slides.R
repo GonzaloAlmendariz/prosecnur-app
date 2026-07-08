@@ -26,6 +26,23 @@
   invisible(TRUE)
 }
 
+# Un `estilo` guardado y releido via JSON (round-trip GET/POST) puede llegar
+# como data.frame de 1 fila: jsonlite colapsa asi un objeto que mezcla
+# escalares con vectores de la misma longitud (ver iconos_focos_cover_width,
+# etc. en p_slide_indice). Sobre un data.frame, `estilo$campo <- vector`
+# revienta con "replacement has N rows, data has 1" en vez de simplemente
+# reemplazar la columna. Lo normalizamos a lista, recuperando los vectores
+# originales de las columnas-lista.
+.ppt_norm_estilo <- function(estilo) {
+  if (is.data.frame(estilo)) {
+    estilo <- lapply(as.list(estilo), function(v) {
+      if (is.list(v) && length(v) == 1L && is.null(names(v))) v[[1]] else v
+    })
+  }
+  if (!is.list(estilo)) stop("`estilo` debe ser una lista.", call. = FALSE)
+  estilo
+}
+
 .ppt_chk_element <- function(x, nm) {
   if (is.null(x) || !inherits(x, "ppt_element")) {
     stop("`", nm, "` debe ser un `ppt_element` (p_*()).", call. = FALSE)
@@ -321,7 +338,7 @@ p_slide_tabla_tecnica <- function(
 
   body_base <- .ppt_norm_text_like(pie, nm = "pie", blank = NULL)
 
-  if (!is.list(estilo)) stop("`estilo` debe ser una lista.", call. = FALSE)
+  estilo <- .ppt_norm_estilo(estilo)
   .ppt_chk_meta(meta)
 
   .ppt_as_slide(list(
@@ -426,7 +443,7 @@ p_slide_indice <- function(titulo = NULL,
                            subtopic_badge_gap = NULL,
                            estilo = list(),
                            meta = list()) {
-  if (!is.list(estilo)) stop("`estilo` debe ser una lista.", call. = FALSE)
+  estilo <- .ppt_norm_estilo(estilo)
 
   parse_numeric_vec <- function(x) {
     if (is.null(x) || length(x) == 0L) return(NULL)
@@ -538,7 +555,7 @@ p_slide_top_two_box <- function(
     estilo = list(),
     meta = list()
 ) {
-  if (!is.list(estilo)) stop("`estilo` debe ser una lista.", call. = FALSE)
+  estilo <- .ppt_norm_estilo(estilo)
   if (!is.null(accent_color)) estilo$accent_color <- .ppt_norm_text1(accent_color, blank = NULL)
   if (!is.null(colores)) estilo$colores <- colores
   if (!is.null(grosor_barra)) estilo$grosor_barra <- grosor_barra
@@ -1267,6 +1284,71 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
     var           = var,
     title_slide   = titulo,
     cruces        = cruces,
+    mostrar_ceros = mostrar_ceros,
+    excluir_opciones = excluir_opciones,
+    overrides     = overrides,
+    base          = base,
+    filtros       = filtros
+  )
+  class(el) <- c("ppt_element", "list")
+  el
+}
+
+#' @title Barras categoricas
+#'
+#' @description
+#' Grafico especial para pocas categorias (maximo 10 por defecto), con una barra
+#' vertical por categoria y color propio por categoria. Puede mostrar promedio
+#' en el pie cuando el graficador recibe o calcula un puntaje.
+#'
+#' @param var Variable categorica a resumir.
+#' @param titulo Titulo opcional del elemento.
+#' @param overrides Lista de overrides para `graficar_barras_categoricas()`.
+#' @param base Lista de opciones de base.
+#' @param filtros Lista nombrada de filtros por igualdad/inclusion.
+#' @param mostrar_ceros Si `TRUE`, conserva opciones del instrumento con `n = 0`.
+#' @param excluir_opciones Opciones/codigos a ocultar antes de recalcular.
+#' @param max_categorias Maximo de categorias visibles.
+#' @param mostrar_promedio Si `TRUE`, intenta mostrar promedio en el pie.
+#' @param ... Argumentos adicionales de conveniencia para el graficador.
+#'
+#' @return Objeto `"ppt_element"`.
+#' @family reporte
+#' @export
+p_barras_categoricas <- function(
+    var,
+    titulo = NULL,
+    overrides = list(),
+    base = list(),
+    filtros = list(),
+    mostrar_ceros = NULL,
+    excluir_opciones = NULL,
+    max_categorias = NULL,
+    mostrar_promedio = NULL,
+    ...
+) {
+  if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
+    stop("`var` debe ser character(1) no vacio.", call. = FALSE)
+  }
+  var <- trimws(var)
+  titulo <- .ppt_norm_text1(titulo, blank = NULL)
+  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
+  extra <- list(...)
+  if (length(extra)) overrides <- utils::modifyList(overrides, extra)
+  if (!is.null(max_categorias)) overrides$max_categorias <- overrides$max_categorias %||% max_categorias
+  if (!is.null(mostrar_promedio)) overrides$mostrar_promedio <- overrides$mostrar_promedio %||% isTRUE(mostrar_promedio)
+  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  if (!is.null(mostrar_ceros) &&
+      (!is.logical(mostrar_ceros) || length(mostrar_ceros) != 1L || is.na(mostrar_ceros))) {
+    stop("`mostrar_ceros` debe ser NULL o logical(1).", call. = FALSE)
+  }
+  filtros <- .ppt_norm_filters(filtros)
+  excluir_opciones <- .ppt_norm_chr_vec_arg(excluir_opciones, "excluir_opciones")
+
+  el <- list(
+    .element_type = "barras_categoricas",
+    var           = var,
+    title_slide   = titulo,
     mostrar_ceros = mostrar_ceros,
     excluir_opciones = excluir_opciones,
     overrides     = overrides,

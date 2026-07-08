@@ -79,14 +79,17 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
       aria-modal="true"
       aria-labelledby="pairing-title"
       onClick={onCancel}
+      className="pulso-cv2-overlay"
       style={{
         position: "fixed", inset: 0, zIndex: 100,
         background: "rgba(15, 23, 42, 0.5)",
+        backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)",
         display: "flex", alignItems: "center", justifyContent: "center",
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="pulso-cv2-dialog"
         style={{
           background: "white", borderRadius: 10, padding: 20,
           width: 520, maxWidth: "calc(100vw - 32px)", maxHeight: "calc(100vh - 32px)",
@@ -220,10 +223,10 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
         )}
 
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
-          <button type="button" onClick={onCancel}>Cancelar</button>
+          <button type="button" className="pulso-cv2-pill" onClick={onCancel}>Cancelar</button>
           <button
             type="button"
-            className="pulso-primary"
+            className="pulso-primary pulso-cv2-pill pulso-cv2-pill--primary"
             disabled={!childCol}
             onClick={onConfirmClick}
           >

@@ -573,12 +573,7 @@ function FuenteToggle({
       <div
         role="group"
         aria-label="Momento de respuestas del explorador"
-        style={{
-          display: "inline-flex",
-          border: "1px solid var(--pulso-border)",
-          borderRadius: 8,
-          overflow: "hidden",
-        }}
+        className="pulso-vv2-segmented"
       >
         <FuenteButton
           label="Antes de limpieza"
@@ -633,25 +628,7 @@ function FuenteButton({
       disabled={disabled}
       title={hint}
       aria-pressed={active}
-      style={{
-        padding: "6px 14px",
-        fontSize: 12,
-        fontWeight: 700,
-        border: "none",
-        background: active
-          ? "var(--pulso-primary-soft)"
-          : disabled
-          ? "var(--pulso-surface-2)"
-          : "white",
-        color: active
-          ? "var(--pulso-primary)"
-          : disabled
-          ? "var(--pulso-text-soft)"
-          : "var(--pulso-text)",
-        cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.7 : 1,
-        transition: "background 120ms ease",
-      }}
+      className={`pulso-vv2-seg-btn${active ? " is-active" : ""}`}
     >
       {label}
     </button>
@@ -735,6 +712,7 @@ function VariableHeader({
             onClick={onPrev}
             disabled={!onPrev}
             title={prevName ? `Anterior: ${prevName} (←)` : "Ya estás en la primera variable"}
+            className="pulso-vv2-iconbtn"
             style={navBtnStyle(!!onPrev)}
           >
             <ChevronLeft size={12} />
@@ -744,6 +722,7 @@ function VariableHeader({
             onClick={onNext}
             disabled={!onNext}
             title={nextName ? `Siguiente: ${nextName} (→)` : "Ya estás en la última variable"}
+            className="pulso-vv2-iconbtn"
             style={navBtnStyle(!!onNext)}
           >
             <ChevronRight size={12} />

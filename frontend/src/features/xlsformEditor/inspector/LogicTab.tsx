@@ -14,9 +14,11 @@
 //     porque va siempre de la mano con la regla.
 // =============================================================================
 
+import type { ReactNode } from "react";
 import { Trash2 } from "lucide-react";
 import type { BuilderNode } from "../types";
 import type { LogicScope } from "../logic";
+import TechTerm from "../helpers/TechTerm";
 import { InspectorBlock, InspectorField } from "./InspectorPrimitives";
 import { LogicBuilder } from "./logic/LogicBuilder";
 import { ConstraintBuilder } from "./logic/ConstraintBuilder";
@@ -45,23 +47,23 @@ export function LogicTab({ node, scope, onFieldChange }: LogicTabProps) {
   // Bloques aún read-only (calculation huérfano, choice_filter).
   const readonlyBlocks: Array<{
     field: string;
-    title: string;
+    title: ReactNode;
     hint: string;
     value: string;
   }> = [];
   if (!isCalculate && node.calculation) {
     readonlyBlocks.push({
       field: "calculation",
-      title: "Fórmula heredada",
-      hint: "Esta fila tiene una fórmula importada en una pregunta no-calculate. Se preserva al exportar.",
+      title: <>Fórmula heredada <TechTerm t="calculation" /></>,
+      hint: "Importada en una fila no-calculate; se preserva al exportar.",
       value: node.calculation,
     });
   }
   if (isSelect && node.choiceFilter) {
     readonlyBlocks.push({
       field: "choice_filter",
-      title: "Cómo se filtran las opciones",
-      hint: "Filtro del catálogo importado. La edición visual llega con F2-4.",
+      title: <>Filtro de opciones <TechTerm t="choice_filter" /></>,
+      hint: "Filtro importado; la edición visual llega con F2-4.",
       value: node.choiceFilter,
     });
   }
@@ -72,9 +74,10 @@ export function LogicTab({ node, scope, onFieldChange }: LogicTabProps) {
         <LogicBuilder
           expression={node.relevant}
           scope={scope}
-          fieldLabel="Cuándo aparece"
-          hint={`Define la condición que tiene que cumplirse para que ${targetNoun} se le muestre al encuestado.`}
+          fieldLabel={<>Condición para mostrarse <TechTerm t="relevant" /></>}
+          hint={`Si se cumple, ${targetNoun} se muestra al encuestado.`}
           targetNoun={targetNoun}
+          techTerm="relevant"
           onChange={(next) => onFieldChange("relevant", next)}
         />
       </InspectorBlock>
@@ -82,12 +85,16 @@ export function LogicTab({ node, scope, onFieldChange }: LogicTabProps) {
       {showConstraint && (
         <InspectorBlock>
           <ConstraintBuilder
+            // Re-monta al cambiar de pregunta: descarta borradores internos
+            // (recetas de texto a medio editar, atajos min/max) de la fila previa.
+            key={node.rowIndex}
             expression={node.constraint}
             scope={scope}
             baseType={node.typeInfo.base}
             listName={node.typeInfo.listName || undefined}
-            fieldLabel="Cómo se valida la respuesta"
-            hint="Define qué condición tiene que cumplir la respuesta para que se acepte."
+            fieldLabel={<>Regla de validación <TechTerm t="constraint" /></>}
+            hint="Condición que debe cumplir la respuesta para aceptarse."
+            techTerm="constraint"
             onChange={(next) => onFieldChange("constraint", next)}
             onApplyPreset={({ expression, message }) => {
               onFieldChange("constraint", expression);
@@ -100,8 +107,8 @@ export function LogicTab({ node, scope, onFieldChange }: LogicTabProps) {
               extra. */}
           {(node.constraint || constraintMessage) && (
             <InspectorField
-              label="Mensaje cuando no es válida"
-              hint="Texto que ve el encuestado si su respuesta no cumple la regla."
+              label={<>Mensaje de error <TechTerm t="constraint_message" /></>}
+              hint="Lo ve el encuestado si su respuesta no cumple la regla."
             >
               <input
                 type="text"
@@ -121,6 +128,9 @@ export function LogicTab({ node, scope, onFieldChange }: LogicTabProps) {
           {readonlyBlocks.map((block) => (
             <InspectorField key={block.field} label={block.title} hint={block.hint}>
               <div className="pulso-inspector-logic-readout">
+                <span className="pulso-xfi-code-head" aria-hidden="true">
+                  Código Kobo <TechTerm t={block.field} />
+                </span>
                 <pre>{block.value}</pre>
                 <button
                   type="button"

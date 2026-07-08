@@ -101,6 +101,9 @@ export function GraphNodeCard({
           : isSection && expanded
             ? "rgba(15, 118, 110, 0.04)"
             : baseFill;
+  // Borde SIEMPRE del color del tipo de pregunta (paletteForType) — en
+  // reposo con opacidad reducida para que el lienzo no grite; estados
+  // activos (selección, drag, target) suben a opacidad plena.
   const stroke = markedAsTarget
     ? "#16a34a"
     : draggingFrom
@@ -109,16 +112,20 @@ export function GraphNodeCard({
         ? accent
         : highlighted
           ? "var(--pulso-primary)"
-          : isSection
-            ? accent
-            : "var(--pulso-border)";
+          : accent;
   const strokeWidth = markedAsTarget || draggingFrom
     ? 2.2
     : selected
       ? 2
       : highlighted || isSection
         ? 1.6
-        : 1;
+        : 1.2;
+  const strokeOpacity =
+    markedAsTarget || draggingFrom || selected || highlighted
+      ? 1
+      : isSection
+        ? 0.9
+        : 0.6;
 
   const headerHeight = COLLAPSED_HEIGHT;
 
@@ -151,18 +158,42 @@ export function GraphNodeCard({
         onCardMouseDown?.(event);
       }}
     >
+      {/* Contenido en un <g> interno: la elevación al hover y la entrada
+          fade-in-up animan ESTE g (CSS transform), nunca el g raíz — su
+          translate(x, y) del layout no se pisa. */}
+      <g className="pulso-graph-node-inner">
+
       {/* Caja contenedora: si es sección expandida ocupa height total;
           si es colapsada o pregunta, ocupa COLLAPSED_HEIGHT. */}
       <rect
         width={width}
         height={height}
-        rx={10}
-        ry={10}
+        rx={13}
+        ry={13}
         fill={fill}
         stroke={stroke}
         strokeWidth={strokeWidth}
-        strokeDasharray={isSection && !expanded ? undefined : undefined}
+        strokeOpacity={strokeOpacity}
       />
+
+      {/* Ring primario del nodo seleccionado — halo fino por fuera de
+          la card, solo presentación. */}
+      {selected && (
+        <rect
+          className="pulso-graph-node-ring"
+          x={-3.5}
+          y={-3.5}
+          width={width + 7}
+          height={height + 7}
+          rx={16}
+          ry={16}
+          fill="none"
+          stroke="var(--pulso-primary)"
+          strokeOpacity={0.35}
+          strokeWidth={2}
+          pointerEvents="none"
+        />
+      )}
 
       {/* Color band a la izquierda — solo en secciones expandidas.
           Banda fina de 4 px del color de la sección (paleta
@@ -178,7 +209,7 @@ export function GraphNodeCard({
           opacity={0.85}
           style={{
             // Esquinas redondeadas solo en el borde izquierdo.
-            clipPath: `inset(0 0 0 0 round 10px 0 0 10px)`,
+            clipPath: `inset(0 0 0 0 round 13px 0 0 13px)`,
           }}
         />
       )}
@@ -414,6 +445,8 @@ export function GraphNodeCard({
           <circle cx={width} cy={headerHeight / 2} r={3} fill={accent} />
         </g>
       )}
+
+      </g>
     </g>
   );
 }

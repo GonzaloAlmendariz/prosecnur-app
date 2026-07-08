@@ -125,6 +125,10 @@ export function TypePicker({ value, onChange, disabled }: TypePickerProps) {
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
         className="pulso-typepicker-trigger"
+        style={{
+          ["--type-accent" as string]: accent,
+          ["--type-accent-soft" as string]: accentSoft,
+        }}
         aria-haspopup="listbox"
         aria-expanded={open}
       >

@@ -18,6 +18,7 @@ import {
   Layers3,
   LayoutTemplate,
   Plus,
+  Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { TemplateId, TemplateSeed } from "./seedHelper";
@@ -28,6 +29,7 @@ const ICON_BY_ID: Record<TemplateId, LucideIcon> = {
   household: Building2,
   "service-quality": Award,
   census: CalendarDays,
+  stress: Wrench,
 };
 
 export type TemplateGalleryProps = {
@@ -38,7 +40,9 @@ export type TemplateGalleryProps = {
 };
 
 export function TemplateGallery({ onPick, hideBlank }: TemplateGalleryProps) {
-  const visible = hideBlank ? TEMPLATES.filter((t) => t.id !== "blank") : TEMPLATES;
+  // Los seeds `devOnly` (QA visual) solo se listan en dev.
+  const listed = TEMPLATES.filter((t) => !t.devOnly || import.meta.env.DEV);
+  const visible = hideBlank ? listed.filter((t) => t.id !== "blank") : listed;
 
   return (
     <div className="pulso-template-gallery">

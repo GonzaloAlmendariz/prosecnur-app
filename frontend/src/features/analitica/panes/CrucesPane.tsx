@@ -116,7 +116,7 @@ export function CrucesPane() {
         <Section
           title="Variables a cruzar"
           subtitle={<>
-            Cada variable que elijas <strong>define las columnas</strong> de un bloque de tablas y se cruza contra todas las demás del instrumento. Típicamente: sexo, distrito, servicio, grupo etario. Puedes excluir categorías específicas de cada variable cuando tengan casi ninguna respuesta.
+            Cada variable <strong>define las columnas</strong> de un bloque y se cruza contra el resto del instrumento; puedes excluir categorías con casi ninguna respuesta.
           </>}
         >
           <VariableChips
@@ -136,7 +136,7 @@ export function CrucesPane() {
         <Section
           title="Modo de cruces"
           subtitle={<>
-            <strong>Estándar</strong> reporta frecuencias y porcentajes (modo clásico). <strong>Dimensiones</strong> reporta promedios 0-100 de los índices y bloques construidos en el tab Dimensiones — útil para informes de satisfacción / desempeño donde la unidad de análisis es el índice, no la categoría.
+            <strong>Estándar</strong> reporta frecuencias y porcentajes; <strong>Dimensiones</strong> reporta promedios 0-100 de los índices construidos.
           </>}
         >
           <div className="analitica-control-grid">
@@ -197,7 +197,7 @@ export function CrucesPane() {
         <Section
           title="Significancia estadística"
           subtitle={<>
-            Marca con un asterisco las celdas cuya diferencia entre columnas es estadísticamente significativa (chi² al 5%). Útil para identificar rápidamente los patrones de interés.
+            Marca con asterisco las celdas con diferencia significativa entre columnas (chi² al 5%).
           </>}
         >
           <label
@@ -394,7 +394,7 @@ function ExclusionEditor({
             Excluir categorías de <code>{cruceVar.name}</code>
           </div>
           <div className="analitica-exclusion-subtitle">
-            Las categorías marcadas aquí <strong>no aparecerán como columnas</strong> cuando esta variable sea cruce. Útil para ocultar categorías con casi nula frecuencia.
+            Las categorías marcadas <strong>no aparecen como columnas</strong> de este cruce; útil para frecuencias casi nulas.
           </div>
         </div>
         <button type="button" onClick={onClose} className="pulso-icon analitica-exclusion-close" aria-label="Cerrar">
@@ -405,7 +405,7 @@ function ExclusionEditor({
       <div className="analitica-exclusion-warning">
         <AlertTriangle size={12} />
         <div>
-          <strong>Limitación conocida:</strong> al excluir una categoría, las filas con ese valor se filtran antes de generar todas las tablas. Eso significa que la categoría <em>tampoco aparece como fila</em> cuando la variable es cruzada por otra. En Frecuencias y Libro de códigos la categoría sigue visible con normalidad.
+          <strong>Limitación conocida:</strong> las filas excluidas se filtran de todo el bloque de cruces (tampoco aparecen como fila); en Frecuencias y Libro de códigos siguen visibles.
         </div>
       </div>
 

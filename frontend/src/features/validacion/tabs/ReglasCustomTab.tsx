@@ -215,6 +215,7 @@ export default function ReglasCustomTab() {
         </button>
         <button
           type="button"
+          className="pulso-vv2-pill"
           onClick={() => void handleEjecutar()}
           disabled={!!busy || !!jobId || nActivas === 0}
           title={nActivas === 0 ? "No hay criterios incluidos para ejecutar" : undefined}
@@ -227,7 +228,6 @@ export default function ReglasCustomTab() {
             border: "1px solid var(--pulso-success-border)",
             background: nActivas > 0 ? "var(--pulso-success-bg)" : "var(--pulso-surface-2)",
             color: nActivas > 0 ? "var(--pulso-success-fg)" : "var(--pulso-text-soft)",
-            borderRadius: 6,
             cursor: nActivas === 0 ? "not-allowed" : "pointer",
             opacity: nActivas === 0 ? 0.6 : 1,
           }}

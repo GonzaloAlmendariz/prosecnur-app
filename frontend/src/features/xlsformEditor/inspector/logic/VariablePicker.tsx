@@ -102,6 +102,10 @@ export function VariablePicker({
         className={`pulso-logic-varpicker-trigger ${
           isOrphan ? "is-orphan" : selectedVar ? "is-selected" : "is-empty"
         }`}
+        style={{
+          ["--var-accent" as string]: accent,
+          ["--var-accent-soft" as string]: accentSoft,
+        }}
         aria-haspopup="listbox"
         aria-expanded={open}
       >

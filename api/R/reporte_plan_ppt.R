@@ -614,6 +614,8 @@ reporte_ppt_plan <- function(
   # defaults para que nunca falle el acceso a $args
   presets$barras_agrupadas <- presets$barras_agrupadas %||% list(args = list())
   presets$barras_agrupadas$args <- presets$barras_agrupadas$args %||% list()
+  presets$barras_categoricas <- presets$barras_categoricas %||% list(args = list())
+  presets$barras_categoricas$args <- presets$barras_categoricas$args %||% list()
 
   presets$barras_numericas <- presets$barras_numericas %||% list(args = list())
   presets$barras_numericas$args <- presets$barras_numericas$args %||% list()
@@ -657,7 +659,7 @@ reporte_ppt_plan <- function(
   targets <- intersect(
     names(presets),
     c("barras_apiladas", "multi_apiladas", "barras_agrupadas",
-      "barras_numericas", "histograma", "boxplot", "media_rango", "nube_palabras", "pie", "donut", "radar_tabla",
+      "barras_categoricas", "barras_numericas", "histograma", "boxplot", "media_rango", "nube_palabras", "pie", "donut", "radar_tabla",
       "dim_heatmap", "dim_heatmap_criterios", "dim_radar", "dim_comparativo_radarbar", "dim_foda")
   )
 
@@ -2931,7 +2933,7 @@ reporte_ppt_plan <- function(
     if (is.null(ctx_parent)) return(NULL)
 
     other_values <- .other_option_values(ctx_parent)
-    if (!nrow(other_values)) return(NULL)
+    has_predefined_otros <- nrow(other_values) > 0
 
     dsrc <- tryCatch(.filter_data(filtros, source = ctx_parent$source), error = function(e) NULL)
     if (is.null(dsrc) || !nrow(dsrc)) return(NULL)
@@ -2944,7 +2946,15 @@ reporte_ppt_plan <- function(
     text_mask <- .nonblank_open_text(text_raw) & .nonblank_open_text_for_nube(text_raw)
     if (!any(text_mask)) return(NULL)
 
-    parent_mask <- .parent_other_mask(dsrc, ctx_parent, other_values)
+    if (!has_predefined_otros && !nzchar(as.character(.related_recod_var(dsrc, ctx_parent, text_var) %||% ""))) {
+      return(NULL)
+    }
+
+    parent_mask <- if (has_predefined_otros) {
+      .parent_other_mask(dsrc, ctx_parent, other_values)
+    } else {
+      rep(TRUE, nrow(dsrc))
+    }
     if (length(parent_mask) != length(text_mask) || !any(parent_mask & text_mask)) return(NULL)
     text_mask <- text_mask & parent_mask
 
@@ -2972,7 +2982,12 @@ reporte_ppt_plan <- function(
       title = title,
       filtros = filtros %||% list(),
       n = length(respuestas),
-      respuestas = respuestas
+      respuestas = respuestas,
+      base = paste0(
+        "Base: ",
+        format(as.integer(length(respuestas)), big.mark = ",", scientific = FALSE, trim = TRUE),
+        " respuestas en Otros"
+      )
     )
   }
 
@@ -3223,11 +3238,10 @@ reporte_ppt_plan <- function(
     )
     total_chunks <- length(chunks)
     n_txt <- format(as.integer(length(respuestas)), big.mark = ",", scientific = FALSE, trim = TRUE)
-    base_txt <- info$base %||% paste0("Base: ", n_txt, " respuestas abiertas")
+    base_txt <- info$base %||% paste0("Base: ", n_txt, " respuestas en Otros")
 
     lapply(seq_along(chunks), function(i) {
       title <- paste0("Otros: ", info$title)
-      if (total_chunks > 1L) title <- sprintf("%s (%d/%d)", title, i, total_chunks)
       p_slide_texto(
         titulo = title,
         bullets = chunks[[i]],
@@ -4254,6 +4268,7 @@ reporte_ppt_plan <- function(
     pa_apiladas <- presets$barras_apiladas$args %||% list()
     pa_multi    <- presets$multi_apiladas$args  %||% list()
     pa_agrup    <- presets$barras_agrupadas$args %||% list()
+    pa_cat      <- presets$barras_categoricas$args %||% list()
     pa_num      <- presets$barras_numericas$args %||% list()
     pa_hist     <- presets$histograma$args %||% list()
     pa_box      <- presets$boxplot$args %||% list()
@@ -4299,6 +4314,7 @@ reporte_ppt_plan <- function(
       etype,
       barras_apiladas  = pa_apiladas,
       barras_agrupadas = pa_agrup,
+      barras_categoricas = pa_cat,
       numerico         = pa_num,
       histograma       = pa_hist,
       boxplot          = pa_box,
@@ -5628,6 +5644,112 @@ reporte_ppt_plan <- function(
     args <- .merge_args(base_args, preset_args, overrides)
     fun  <- graficar_barras_agrupadas
     args <- .force_canvas_args(fun, args)
+    args <- .keep_formals(fun, args)
+
+    suppressWarnings(do.call(fun, args))
+  }
+
+  .render_barras_categoricas <- function(el, preset_args) {
+
+    var <- el$var
+    filtros <- el$filtros %||% list()
+    overrides <- el$overrides %||% list()
+    if (!is.null(el$mostrar_ceros)) {
+      overrides$mostrar_ceros <- isTRUE(el$mostrar_ceros)
+    }
+    excluir_opciones <- .reporte_plan_excluir_opciones(
+      preset_args$excluir_opciones %||% NULL,
+      overrides$excluir_opciones %||% NULL,
+      el$excluir_opciones %||% NULL
+    )
+    ctx <- tryCatch(.resolve_ref(var, arg_name = "var"), error = function(e) NULL)
+    if (!is.null(ctx)) {
+      excluir_opciones <- .exclusion_for_ctx(ctx, excluir_opciones)
+    }
+
+    tab <- .tab_freq(var, filtros = filtros)
+    if (is.null(tab) || !nrow(tab)) return(.blank_canvas(preset_args, overrides))
+
+    N_total <- NA_real_
+    if ("Opciones" %in% names(tab) && "n" %in% names(tab)) {
+      idx_tot <- which(tab$Opciones == "Total")
+      if (length(idx_tot)) N_total <- suppressWarnings(as.numeric(tab$n[idx_tot[1]]))
+    }
+
+    mostrar_ceros <- .should_show_zero_options(
+      var,
+      tab = tab,
+      preset_args = preset_args,
+      overrides = overrides,
+      source = el$source %||% NULL,
+      word_render = isTRUE(el$.word_render)
+    )
+
+    tab <- .reporte_plan_prepare_freq_options(tab, incluir_sin_n = mostrar_ceros)
+    tab <- .reporte_plan_filter_freq_options(tab, excluir_opciones)
+    excluded_any <- isTRUE(attr(tab, "excluded_any", exact = TRUE))
+    if (!nrow(tab)) return(.blank_canvas(preset_args, overrides))
+
+    if (excluded_any || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
+    if (!is.finite(N_total) || N_total <= 0) return(.blank_canvas(preset_args, overrides))
+
+    df_cat <- tibble::tibble(
+      categoria = as.character(tab$Opciones),
+      n = suppressWarnings(as.numeric(tab$n)),
+      pct = suppressWarnings(as.numeric(tab$n)) / N_total
+    )
+
+    promedio_auto <- NULL
+    if (isTRUE(overrides$mostrar_promedio %||% preset_args$mostrar_promedio %||% FALSE)) {
+      vals <- suppressWarnings(as.numeric(df_cat$categoria))
+      if ((any(!is.finite(vals)) || all(is.na(vals))) && !is.null(ctx)) {
+        ln_prom <- .list_name_from_ctx(ctx)
+        choices_levels <- .reporte_plan_choice_levels_for_list(ln_prom, ctx$choices)
+        if (nrow(choices_levels)) {
+          code_num <- suppressWarnings(as.numeric(choices_levels$code))
+          label_to_code <- stats::setNames(code_num, choices_levels$label)
+          code_to_code <- stats::setNames(code_num, choices_levels$code)
+          vals <- unname(label_to_code[df_cat$categoria])
+          missing <- !is.finite(vals)
+          vals[missing] <- unname(code_to_code[df_cat$categoria[missing]])
+        }
+      }
+      if (all(is.finite(vals)) && sum(df_cat$n, na.rm = TRUE) > 0) {
+        promedio_auto <- stats::weighted.mean(vals, df_cat$n, na.rm = TRUE)
+      }
+    }
+
+    if (!exists("graficar_barras_categoricas", mode = "function", inherits = TRUE)) {
+      stop("No existe `graficar_barras_categoricas()` en el entorno/paquete.", call. = FALSE)
+    }
+
+    ln <- tryCatch(.list_name_of_var(var), error = function(e) "")
+    colores_categorias <- .paleta_auto(ln, env_diapos)
+
+    base_args <- list(
+      data = df_cat,
+      var_categoria = "categoria",
+      var_valor = "pct",
+      var_n = "n",
+      var_pct = "pct",
+      modo_valor = "valor",
+      formato_valor = "porcentaje_n",
+      mostrar_frecuencia = TRUE,
+      colores_categorias = colores_categorias,
+      titulo = NULL,
+      subtitulo = NULL,
+      nota_pie = .format_n_caption(N_total),
+      promedio = promedio_auto
+    )
+
+    preset_args <- preset_args %||% list()
+    preset_args$mostrar_ceros <- NULL
+    preset_args$excluir_opciones <- NULL
+    overrides$mostrar_ceros <- NULL
+    overrides$excluir_opciones <- NULL
+
+    args <- .merge_args(base_args, preset_args, overrides)
+    fun <- graficar_barras_categoricas
     args <- .keep_formals(fun, args)
 
     suppressWarnings(do.call(fun, args))
@@ -9042,7 +9164,7 @@ reporte_ppt_plan <- function(
 #' @description
 #' Construye un objeto de presets que centraliza configuraciones por tipo:
 #' `base`, `barras_apiladas`, `multi_apiladas`, `barras_agrupadas`,
-#' `barras_numericas`, `boxplot`, `pie`, `donut`, `radar_tabla`, `dim_heatmap`,
+#' `barras_categoricas`, `barras_numericas`, `boxplot`, `pie`, `donut`, `radar_tabla`, `dim_heatmap`,
 #' `dim_radar` y `dim_foda`.
 #'
 #' Este helper refleja el contrato real que consume `reporte_ppt_plan()`, equivalente
@@ -9052,6 +9174,7 @@ reporte_ppt_plan <- function(
 #' @param barras_apiladas Lista de parametros por defecto para `graficar_barras_apiladas()`.
 #' @param multi_apiladas Lista de parametros por defecto para `graficar_barras_apiladas()` en modo bloque.
 #' @param barras_agrupadas Lista de parametros por defecto para `graficar_barras_agrupadas()`.
+#' @param barras_categoricas Lista de parametros por defecto para `graficar_barras_categoricas()`.
 #' @param barras_numericas Lista de parametros por defecto para `graficar_barras_numericas()`.
 #' @param histograma Lista de parametros por defecto para `graficar_histograma()`.
 #' @param boxplot Lista de parametros por defecto para `graficar_boxplot()`.
@@ -9076,6 +9199,7 @@ p_presets <- function(
     barras_apiladas  = list(),
     multi_apiladas   = list(),
     barras_agrupadas = list(),
+    barras_categoricas = list(),
     barras_numericas = list(),
     histograma       = list(),
     boxplot          = list(),
@@ -9120,6 +9244,7 @@ p_presets <- function(
     barras_apiladas  = normalize_block(barras_apiladas),
     multi_apiladas   = normalize_block(multi_apiladas),
     barras_agrupadas = normalize_block(barras_agrupadas),
+    barras_categoricas = normalize_block(barras_categoricas),
     barras_numericas = normalize_block(barras_numericas),
     histograma       = normalize_block(histograma),
     boxplot          = normalize_block(boxplot),
