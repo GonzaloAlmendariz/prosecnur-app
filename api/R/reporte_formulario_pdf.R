@@ -544,40 +544,79 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   y - length(lines) * line_h
 }
 
-.form_pdf_header <- function(model, page_no) {
-  # Logo textual liviano, para no depender de assets externos en el renderer.
-  grid::grid.circle(
-    x = grid::unit(0.065, "npc"), y = grid::unit(0.958, "npc"),
-    r = grid::unit(0.018, "npc"),
-    gp = grid::gpar(fill = "#0b2a5b", col = "#0b2a5b")
+.form_pdf_logo_path <- function() {
+  cands <- c(
+    system.file("hojas_ruta/assets/logo_pulso.png", package = "prosecnurapp"),
+    file.path(getwd(), "api", "inst", "hojas_ruta", "assets", "logo_pulso.png"),
+    file.path(getwd(), "inst", "hojas_ruta", "assets", "logo_pulso.png")
   )
-  grid::grid.text("PULSO\nPUCP", x = grid::unit(0.092, "npc"), y = grid::unit(0.963, "npc"),
+  cands <- cands[nzchar(cands) & file.exists(cands)]
+  if (length(cands)) cands[[1]] else NA_character_
+}
+
+.form_pdf_draw_logo <- function(x, y, width_npc = 0.115) {
+  path <- .form_pdf_logo_path()
+  if (!is.na(path) && requireNamespace("png", quietly = TRUE)) {
+    img <- tryCatch(png::readPNG(path), error = function(e) NULL)
+    if (!is.null(img)) {
+      img_h <- dim(img)[1]; img_w <- dim(img)[2]
+      h_npc <- width_npc * (img_h / img_w) * (8.27 / 11.69)
+      grid::grid.raster(img, x = grid::unit(x, "npc"), y = grid::unit(y, "npc"),
+                        just = c("left", "center"), interpolate = TRUE,
+                        width = grid::unit(width_npc, "npc"),
+                        height = grid::unit(h_npc, "npc"))
+      return(invisible(TRUE))
+    }
+  }
+  grid::grid.text("PULSO PUCP", x = grid::unit(x, "npc"), y = grid::unit(y, "npc"),
                   just = c("left", "center"),
-                  gp = grid::gpar(fontsize = 9, fontface = "bold", col = "#0b2a5b", lineheight = 0.9))
-  .form_pdf_text(toupper(model$title), 0.18, 0.966, 0.55, chars = 76, fontsize = 8.5,
-                 fontface = "bold", align = "center", line_h = 0.012)
-  grid::grid.text("Nro. de cuestionario", x = grid::unit(0.78, "npc"), y = grid::unit(0.954, "npc"),
-                  gp = grid::gpar(fontsize = 7.5))
-  for (i in 0:3) .form_pdf_rect(0.83 + i * 0.026, 0.975, 0.026, 0.031, fill = "white")
+                  gp = grid::gpar(fontsize = 8.5, fontface = "bold", col = "#002457"))
+  invisible(FALSE)
+}
+
+.form_pdf_header <- function(model, page_no) {
+  navy <- "#002457"
+  .form_pdf_draw_logo(0.052, 0.962, width_npc = 0.115)
+  .form_pdf_text(toupper(model$title), 0.190, 0.976, 0.480, chars = 62, fontsize = 8.4,
+                 fontface = "bold", col = navy, line_h = 0.012)
+  grid::grid.text("N.º de cuestionario", x = grid::unit(0.878, "npc"), y = grid::unit(0.938, "npc"),
+                  just = c("center", "center"), gp = grid::gpar(fontsize = 6.6, col = "#5f6b7a"))
+  for (i in 0:3) .form_pdf_rect(0.826 + i * 0.026, 0.982, 0.026, 0.031, fill = "white", col = "#1f2933", lwd = 0.7)
+  grid::grid.lines(x = grid::unit(c(0.052, 0.930), "npc"), y = grid::unit(0.922, "npc"),
+                   gp = grid::gpar(col = navy, lwd = 1.1))
   invisible(page_no)
 }
 
 .form_pdf_footer <- function(model, page_no) {
+  grid::grid.lines(x = grid::unit(c(0.052, 0.930), "npc"), y = grid::unit(0.056, "npc"),
+                   gp = grid::gpar(col = "#d8e0ef", lwd = 0.7))
   grid::grid.text(as.character(page_no), x = grid::unit(0.052, "npc"), y = grid::unit(0.034, "npc"),
-                  gp = grid::gpar(fontsize = 8))
-  .form_pdf_text(toupper(model$footer_title), 0.13, 0.039, 0.74, chars = 118,
-                 fontsize = 6.2, align = "center", line_h = 0.008)
+                  just = c("left", "center"), gp = grid::gpar(fontsize = 8, col = "#5f6b7a"))
+  .form_pdf_text(toupper(model$footer_title), 0.16, 0.039, 0.58, chars = 105,
+                 fontsize = 6.2, align = "center", col = "#5f6b7a", line_h = 0.008)
+  grid::grid.text("PULSO PUCP", x = grid::unit(0.930, "npc"), y = grid::unit(0.034, "npc"),
+                  just = c("right", "center"),
+                  gp = grid::gpar(fontsize = 6.6, fontface = "bold", col = "#002457"))
+}
+
+.form_pdf_band <- function(title, x, y, w, chars) {
+  # Banda navy con el título en blanco adentro (reemplaza la barra negra cruda).
+  navy <- "#002457"
+  lines <- .form_pdf_wrap(toupper(title), chars)
+  if (!length(lines)) return(y)
+  band_h <- length(lines) * 0.014 + 0.012
+  .form_pdf_rect(x, y, w, band_h, fill = navy, col = NA, lwd = 0)
+  .form_pdf_text(paste(lines, collapse = " "), x + 0.008, y - 0.0095, w - 0.016,
+                 chars = chars, fontsize = 8.7, fontface = "bold", col = "white", line_h = 0.014)
+  y - band_h
 }
 
 .form_pdf_draw_paper <- function(block, x, y, w) {
   if (nzchar(block$title %||% "")) {
-    .form_pdf_rect(x, y, w, 0.02, fill = "black", col = "black", lwd = 0)
-    y <- y - 0.028
-    y <- .form_pdf_text(toupper(block$title), x + 0.006, y, w - 0.012, chars = 120,
-                        fontsize = 8.8, fontface = "bold", line_h = 0.014)
+    y <- .form_pdf_band(block$title, x, y, w, chars = 118)
+    y <- y - 0.006
   }
   if (nzchar(block$body %||% "")) {
-    y <- y - 0.006
     y <- .form_pdf_text(block$body, x + 0.006, y, w - 0.012, chars = 126,
                         fontsize = 8.1, line_h = 0.012)
   }
@@ -585,13 +624,10 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 }
 
 .form_pdf_draw_section <- function(block, x, y, w) {
-  .form_pdf_rect(x, y, w, 0.02, fill = "black", col = "black", lwd = 0)
-  y <- y - 0.035
   label <- if (nzchar(block$number %||% "")) paste0(block$number, ". ", block$title) else block$title
-  y <- .form_pdf_text(toupper(label), x + 0.006, y, w - 0.012, chars = 112,
-                      fontsize = 8.7, fontface = "bold", line_h = 0.014)
+  y <- .form_pdf_band(label, x, y, w, chars = 112)
   if (nzchar(block$hint %||% "")) {
-    y <- .form_pdf_text(block$hint, x + 0.006, y - 0.004, w - 0.012, chars = 112,
+    y <- .form_pdf_text(block$hint, x + 0.006, y - 0.006, w - 0.012, chars = 112,
                         fontsize = 7.5, fontface = "italic", line_h = 0.012)
   }
   y - 0.008
