@@ -39482,7 +39482,14 @@ monitoreo_publish_qa_fixture <- function(family = c("territorial", "acreditacion
     list(
       "Reporte" = contract(12L, 6L, c("MONITOREO", "Seguimiento de Encuestas", "Ultima actualizacion", "Respuestas en el sistema", "Avance general"), requires_filter = FALSE),
       "Detalle del avance" = contract(8L, 8L, c("DETALLE COMPLETO POR VARIABLES DE CONTROL", "Completas", "Sin respuesta")),
-      "Avance por encuesta" = contract(2L, 8L, c("EFECTIVAS POR DÍA", "AVANCE POR RECOPILADOR", "Total respuestas"))
+      "Avance por encuesta" = contract(2L, 8L, c("EFECTIVAS POR DÍA", "AVANCE POR RECOPILADOR", "Total respuestas")),
+      # Pestañas opcionales por actor (solo aparecen si el estudio es multi-actor);
+      # tablas breves de una sola seccion, sin encabezado tabular que amerite filtro.
+      "Administrativos - Avance" = contract(2L, 1L, requires_filter = FALSE),
+      "Docentes - Avance" = contract(2L, 1L, requires_filter = FALSE),
+      "Egresados - Avance" = contract(2L, 1L, requires_filter = FALSE),
+      "Empleadores - Avance" = contract(2L, 1L, requires_filter = FALSE),
+      "Estudiantes - Avance" = contract(2L, 1L, requires_filter = FALSE)
     )
   } else if (identical(family, "acreditacion") && identical(audience, "internal")) {
     list(

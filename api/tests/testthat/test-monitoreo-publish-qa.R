@@ -235,7 +235,7 @@ test_that("ACRDCONTA compacto genera 270/157/5/0/108 desde base canonica", {
     dashboard = list(acreditacion_reports = reports),
     synced_at = "2026-06-16T12:00:00Z"
   )
-  expect_equal(names(client_tabs), c("Reporte", "Detalle del avance", "Avance por encuesta"))
+  expect_equal(names(client_tabs), c("Reporte", "Detalle del avance", "Avance por encuesta", "Egresados - Avance"))
   report_text <- paste(unlist(client_tabs[["Reporte"]], use.names = FALSE), collapse = "\n")
   detail_text <- paste(unlist(client_tabs[["Detalle del avance"]], use.names = FALSE), collapse = "\n")
   survey_text <- paste(unlist(client_tabs[["Avance por encuesta"]], use.names = FALSE), collapse = "\n")
@@ -987,7 +987,7 @@ test_that("Sheets acreditacion jala responsables de carga y normaliza fechas", {
 
   client_tabs <- monitoreo_publication_sheets_tabs(data, cfg, audience = "client", dashboard = dashboard, synced_at = "2026-06-18T12:00:00-05:00")
   internal_tabs <- monitoreo_publication_sheets_tabs(data, cfg, audience = "internal", dashboard = dashboard, synced_at = "2026-06-18T12:00:00-05:00")
-  expect_equal(names(client_tabs), c("Reporte", "Detalle del avance", "Avance por encuesta"))
+  expect_equal(names(client_tabs), c("Reporte", "Detalle del avance", "Avance por encuesta", "Administrativos - Avance", "Docentes - Avance", "Egresados - Avance", "Estudiantes - Avance"))
   expect_equal(names(internal_tabs), c("Resumen", "Producción", "Avance por encuesta", "Seguimiento", "Alertas", "Corte y fuentes"))
   client_channel <- paste(unlist(client_tabs[["Reporte"]], use.names = FALSE), collapse = "\n")
   client_survey <- paste(unlist(client_tabs[["Avance por encuesta"]], use.names = FALSE), collapse = "\n")
