@@ -13640,6 +13640,40 @@ export type CalcMuestraWorkspacePublicationConfig = {
   pii_policy?: "sin_pii_cliente" | "interno_trazabilidad" | string;
 };
 
+/** Una corrida registrada del desk (cálculo de muestra o selección de aulas).
+ *  Vive en workspace.run_history (cap 12, FIFO) para comparar dos diseños. */
+export type CalcMuestraCorridaTipo = "calculo" | "seleccion";
+
+export type CalcMuestraCorrida = {
+  id: string;
+  /** ISO-8601 del momento en que terminó la corrida. */
+  timestamp: string;
+  tipo: CalcMuestraCorridaTipo;
+  /** Técnica del cálculo o método selector de aulas, según el tipo. */
+  metodo?: string;
+  semilla?: number;
+  n_objetivo?: number;
+  /** Parámetros clave: cálculo (z/e/p/deff/sobremuestra) o selección (waves / objetivo de aulas). */
+  parametros?: {
+    confianza?: number;
+    z?: number;
+    e?: number;
+    p?: number;
+    deff?: number;
+    sobremuestra?: number;
+    waves?: number;
+    aulas_objetivo?: number;
+  };
+  /** Resumen de resultados para comparar corridas lado a lado. */
+  resumen?: {
+    n?: number;
+    titulares?: number;
+    reservas?: number;
+    esperados?: number;
+    representatividad?: number;
+  };
+};
+
 export type CalcMuestraWorkspace = {
   version: 2;
   frame_mode: CalcMuestraWorkspaceFrameMode;
@@ -13656,6 +13690,9 @@ export type CalcMuestraWorkspace = {
   variable_mappings?: CalcMuestraWorkspaceVariableMapping[];
   category_mappings?: CalcMuestraWorkspaceCategoryMapping[];
   publication_config?: CalcMuestraWorkspacePublicationConfig;
+  /** Mini-historial de corridas (cálculo/selección), últimas 12 en orden cronológico.
+   *  Campo retrocompatible: proyectos viejos no lo traen (leer con fallback []). */
+  run_history?: CalcMuestraCorrida[];
 };
 
 export type CalcMuestraEstudio = {
@@ -14133,6 +14170,14 @@ export async function apiCalcMuestraMarcoConstruir(payload: {
   );
 }
 
+// Con marcos grandes (>= umbral del backend, default 500 aulas) estos dos
+// endpoints responden { mode: "job", job_id } en vez del resultado síncrono;
+// el resultado queda en la sesión al terminar el job (pollear /api/jobs/<id>
+// y refrescar con apiCalcMuestraState()).
+export type CalcMuestraAulasAsyncResponse<T extends object> =
+  | ({ ok: true; mode?: "sync"; job_id?: undefined; state: CalcMuestraState } & T)
+  | ({ ok: true; mode: "job"; job_id: string; state?: undefined } & Partial<Record<keyof T, undefined>>);
+
 export async function apiCalcMuestraAulasCompararMetodos(payload: {
   config?: Record<string, unknown>;
   objective_config?: CalcMuestraAulasObjectiveConfig;
@@ -14140,7 +14185,7 @@ export async function apiCalcMuestraAulasCompararMetodos(payload: {
   methods?: string[];
   simulation_runs?: number;
 } = {}) {
-  return handle<{ ok: true; comparison: CalcMuestraAulasMethodComparison; state: CalcMuestraState }>(
+  return handle<CalcMuestraAulasAsyncResponse<{ comparison: CalcMuestraAulasMethodComparison }>>(
     await apiFetch("/api/calc-muestra/aulas/comparar-metodos", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
@@ -14150,7 +14195,7 @@ export async function apiCalcMuestraAulasCompararMetodos(payload: {
 }
 
 export async function apiCalcMuestraAulasSeleccionar(config?: Record<string, unknown>, frame?: CalcMuestraAulasFrame, methodId?: string, objectiveConfig?: CalcMuestraAulasObjectiveConfig) {
-  return handle<{ ok: true; selection: CalcMuestraAulasSelection; state: CalcMuestraState }>(
+  return handle<CalcMuestraAulasAsyncResponse<{ selection: CalcMuestraAulasSelection }>>(
     await apiFetch("/api/calc-muestra/aulas/seleccionar", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),

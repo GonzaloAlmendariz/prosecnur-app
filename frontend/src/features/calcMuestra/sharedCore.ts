@@ -52,7 +52,24 @@ export function fmtInt(value: number | null | undefined) {
 
 export function fmtPct(value: number | null | undefined) {
   if (value == null || Number.isNaN(value)) return "—";
-  return `${(value * 100).toFixed(1)}%`;
+  const pct = value * 100;
+  // Bordes honestos: un valor mayor que 0% nunca se muestra como "0.0%" y uno
+  // menor que 100% nunca se redondea hasta "100.0%" (p. ej. 5,262 de 5,263).
+  if (pct > 0 && pct < 0.05) return "<0.1%";
+  if (pct < 100 && pct >= 99.95) return "99.9%";
+  return `${pct.toFixed(1)}%`;
+}
+
+/** Decimales con convención es-PE (miles con coma, decimales con punto): 4,659.5 · 12.48. */
+export function fmtDec(value: number | null | undefined, digits = 1) {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return value.toLocaleString("es-PE", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+
+/** Razones tipo "×2.3" con la misma convención decimal que fmtDec. */
+export function fmtRatio(value: number | null | undefined, digits = 1) {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return `×${fmtDec(value, digits)}`;
 }
 
 export function roundUpTo(value: number | null | undefined, multiple: number) {

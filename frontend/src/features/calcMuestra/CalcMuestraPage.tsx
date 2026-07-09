@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
@@ -43,6 +43,7 @@ import {
   apiCalcMuestraMarcoInspeccionarArchivo,
   apiCalcMuestraReporteIniciar,
   apiCalcMuestraState,
+  apiJobStatus,
   apiMonitoreoImportFromCalcMuestra,
   apiUpload,
   calcMuestraReporteDescargarUrl,
@@ -63,6 +64,7 @@ import {
   type CalcMuestraWorkspaceSourceBinding,
   type CalcMuestraWorkspaceVariableMapping,
   type CalcMuestraWorkspaceVariableControl,
+  type JobSnapshot,
 } from "../../api/client";
 import {
   defaultComponente,
@@ -112,6 +114,14 @@ import {
   universityInspectedColumnOptions,
 } from "./universidad/shared/categorias";
 import { NumberCell } from "./universidad/aulas";
+import {
+  corridaDeCalculo,
+  corridaDeSeleccion,
+  historialCorridas,
+  jsonIgual,
+  registrarCorrida,
+} from "./corridas";
+import type { PaqueteDefensaPaso, PaqueteDefensaPasoId } from "./universidad/salidas";
 import { UniversidadDesk } from "./universidad/UniversidadDesk";
 import { resolveUniversityLocalTab, universitySectionStates, universitySidebarTabs, type CalcMuestraSidebarTab } from "./universidad/universidadTabs";
 import "./universidad/universidad-base.css";
@@ -921,6 +931,34 @@ function sidebarTabsForDeskSection({
   ];
 }
 
+// --- Jobs asíncronos de aulas (marcos grandes) ------------------------------
+// Con marcos >= umbral del backend, comparar-métodos y seleccionar responden
+// { mode: "job", job_id }: se pollea GET /api/jobs/<id> mostrando la etapa
+// del worker y el tiempo transcurrido en el busy del shell.
+const CM_JOB_POLL_INTERVAL_MS = 1500;
+const CM_JOB_POLL_TIMEOUT_MS = 30 * 60_000;
+
+function cmFormatElapsed(ms: number): string {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const mm = String(Math.floor(totalSec / 60)).padStart(2, "0");
+  const ss = String(totalSec % 60).padStart(2, "0");
+  return `${mm}:${ss}`;
+}
+
+function cmJobStageMessage(snap: JobSnapshot): string | null {
+  const progress = snap.progress;
+  if (progress && typeof progress === "object" && "message" in progress && typeof progress.message === "string" && progress.message) {
+    return progress.message;
+  }
+  return null;
+}
+
+function cmJobErrorText(snap: JobSnapshot): string {
+  return typeof snap.error === "string" && snap.error
+    ? snap.error
+    : "el proceso terminó con error en el worker.";
+}
+
 export default function CalcMuestraPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -954,11 +992,35 @@ export default function CalcMuestraPage() {
   const [aulasState, setAulasState] = useState<CalcMuestraAulasState | null>(null);
   const [aulasStateChecked, setAulasStateChecked] = useState(false);
   const [uploadingSourceId, setUploadingSourceId] = useState<string | null>(null);
+  const [paqueteEnCurso, setPaqueteEnCurso] = useState(false);
+  const [paquetePasos, setPaquetePasos] = useState<PaqueteDefensaPaso[] | null>(null);
   const handleHydratedState = useCallback((state: CalcMuestraState) => {
     setAulasState(state.aulas ?? null);
     setAulasStateChecked(true);
   }, []);
   useCalcMuestraAutosave(handleHydratedState);
+  // Setters con guardia de no-op: los efectos de auto-reparación/hidratación
+  // del desk (sync Marco → Cálculo, normalizaciones al montar pestañas)
+  // re-emiten el estado tal cual; si el patch es deep-equal al actual no se
+  // llama al store, así el header no queda "sin guardar" sin cambios reales.
+  // Si el patch sí cambia algo, el autosave existente (debounce 2 s) persiste
+  // y devuelve el estado a "Guardado" solo.
+  const setWorkspaceSiCambia = useCallback(
+    (next: CalcMuestraWorkspace) => {
+      const current = useCalcMuestraStore.getState().estudio.workspace;
+      if (current && jsonIgual(current, next)) return;
+      setWorkspace(next);
+    },
+    [setWorkspace],
+  );
+  const setComponentesSiCambian = useCallback(
+    (next: CalcMuestraComponente[]) => {
+      const current = useCalcMuestraStore.getState().estudio.componentes;
+      if (jsonIgual(current, next)) return;
+      setComponentes(next);
+    },
+    [setComponentes],
+  );
   const workspace = useMemo(() => normalizeWorkspace(estudio), [estudio]);
   const inferredDesk = inferDesk(estudio, workspace);
   const requestedDesk = useMemo(() => requestedDeskFromSearch(searchParams), [searchParams]);
@@ -1248,15 +1310,35 @@ export default function CalcMuestraPage() {
       await persistCurrent(prepared);
       const res = await apiCalcMuestraCalcular();
       hydrate(res.estudio);
+      registrarCorridaDeCalculo(res.estudio);
+      const nComponentes = res.estudio.componentes.length;
       setMsg({
         kind: "info",
-        text: `Cálculo completado: ${res.estudio.componentes.length} componente(s).`,
+        text: `Cálculo completado: ${nComponentes} ${nComponentes === 1 ? "componente" : "componentes"}.`,
       });
     } catch (e) {
       setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo calcular." });
     } finally {
       setCalculando(false);
     }
+  }
+
+  // --- Mini-historial de corridas ------------------------------------------
+  // Cada corrida exitosa (cálculo o selección de aulas) queda registrada en
+  // workspace.run_history (cap 12, FIFO) y se persiste con el autosave normal.
+  function registrarCorridaDeCalculo(estudioCalculado: CalcMuestraEstudio) {
+    const totalComp =
+      estudioCalculado.componentes.find((comp) => comp.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID) ??
+      estudioCalculado.componentes[0];
+    const nextWorkspace = normalizeWorkspace(estudioCalculado);
+    const corrida = corridaDeCalculo({ totalComp, workspace: nextWorkspace });
+    if (corrida) setWorkspace(registrarCorrida(nextWorkspace, corrida));
+  }
+
+  function registrarCorridaDeSeleccion(nextAulasState: CalcMuestraAulasState | null) {
+    const nextWorkspace = normalizeWorkspace(useCalcMuestraStore.getState().estudio);
+    const corrida = corridaDeSeleccion({ aulasState: nextAulasState, workspace: nextWorkspace });
+    if (corrida) setWorkspace(registrarCorrida(nextWorkspace, corrida));
   }
 
   async function generarReporte(formato: "html" | "pdf" = "html") {
@@ -1268,22 +1350,30 @@ export default function CalcMuestraPage() {
       setReporteMeta({ disponible: false, jobId: res.job_id });
       const start = Date.now();
       const poll = window.setInterval(async () => {
-        if (Date.now() - start > 120_000) {
+        if (Date.now() - start > CM_JOB_POLL_TIMEOUT_MS) {
           window.clearInterval(poll);
           setReporteEnCurso(false);
-          setMsg({ kind: "warn", text: "El reporte está tomando más de lo esperado." });
+          setMsg({ kind: "error", text: "El reporte superó los 30 minutos de espera. Revisa el estado del backend y reintenta." });
           return;
         }
         try {
-          const state = await apiCalcMuestraState();
-          if (state.reporte.disponible) {
+          // Pollear el JOB (no solo el state): si el worker falla, el error
+          // real llega aquí en vez de dejar la UI esperando para siempre.
+          const snap = await apiJobStatus(res.job_id);
+          if (snap.status === "error" || snap.status === "cancelled") {
+            window.clearInterval(poll);
+            setReporteEnCurso(false);
+            setMsg({ kind: "error", text: `No se pudo generar el reporte: ${cmJobErrorText(snap)}` });
+            return;
+          }
+          if (snap.status === "done") {
             window.clearInterval(poll);
             setReporteEnCurso(false);
             setReporteMeta({ disponible: true, jobId: res.job_id });
             setMsg({ kind: "info", text: "Reporte metodológico listo." });
           }
         } catch {
-          // El job puede tardar: el siguiente polling vuelve a consultar.
+          // Error transitorio: el siguiente polling vuelve a consultar.
         }
       }, 2000);
     } catch (e) {
@@ -1563,6 +1653,33 @@ export default function CalcMuestraPage() {
     }
   }
 
+  // Espera un job del backend actualizando el busy con etapa + tiempo
+  // transcurrido. Resuelve con el snapshot "done"; lanza Error con el mensaje
+  // real del worker si el job falla, se cancela o supera el timeout.
+  async function esperarJobAulas(jobId: string, label: string): Promise<JobSnapshot> {
+    const start = Date.now();
+    for (;;) {
+      if (Date.now() - start > CM_JOB_POLL_TIMEOUT_MS) {
+        throw new Error(`${label}: superó los 30 minutos de espera. Revisa el estado del backend y reintenta.`);
+      }
+      let snap: JobSnapshot | null = null;
+      try {
+        snap = await apiJobStatus(jobId);
+      } catch {
+        // Error transitorio de red/backend: se reintenta en el próximo tick.
+      }
+      if (snap) {
+        if (snap.status === "done") return snap;
+        if (snap.status === "error" || snap.status === "cancelled") {
+          throw new Error(`${label}: ${cmJobErrorText(snap)}`);
+        }
+        const stage = cmJobStageMessage(snap);
+        setBusy(`${label}${stage ? ` — ${stage}` : ""} · ${cmFormatElapsed(Date.now() - start)}`);
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, CM_JOB_POLL_INTERVAL_MS));
+    }
+  }
+
   async function compararMetodosAulas(config: CalcMuestraWorkspaceAulasConfig, simulationRuns: number) {
     setMsg(null);
     setBusy("Comparando métodos");
@@ -1573,8 +1690,23 @@ export default function CalcMuestraPage() {
         methods: ["sistematico_pps", "cube_balanceado", "local_pivotal_balanceado", "pool_controlado"],
         simulation_runs: simulationRuns,
       });
-      setAulasState(res.state.aulas ?? null);
-      setMsg({ kind: "info", text: "Comparación de métodos lista." });
+      if (res.mode === "job" && res.job_id) {
+        const snap = await esperarJobAulas(res.job_id, "Comparando métodos");
+        const state = await apiCalcMuestraState();
+        setAulasState(state.aulas ?? null);
+        const rd = (snap.result_data ?? {}) as { simulation_runs?: number; simulation_runs_executed?: number };
+        const executed = rd.simulation_runs_executed;
+        const requested = rd.simulation_runs;
+        setMsg({
+          kind: "info",
+          text: typeof executed === "number" && typeof requested === "number" && executed < requested
+            ? `Comparación de métodos lista. Marco grande: se ejecutaron ${executed} de ${requested} corridas por método (queda registrado en el resultado).`
+            : "Comparación de métodos lista.",
+        });
+      } else {
+        setAulasState(res.state?.aulas ?? null);
+        setMsg({ kind: "info", text: "Comparación de métodos lista." });
+      }
     } catch (e) {
       setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo comparar métodos. Construye primero el marco de aulas." });
     } finally {
@@ -1587,7 +1719,16 @@ export default function CalcMuestraPage() {
     setBusy("Seleccionando aulas");
     try {
       const res = await apiCalcMuestraAulasSeleccionar(config, undefined, methodId, config.objective);
-      setAulasState(res.state.aulas ?? null);
+      let nextAulasState: CalcMuestraAulasState | null;
+      if (res.mode === "job" && res.job_id) {
+        await esperarJobAulas(res.job_id, "Seleccionando aulas");
+        const state = await apiCalcMuestraState();
+        nextAulasState = state.aulas ?? null;
+      } else {
+        nextAulasState = res.state?.aulas ?? null;
+      }
+      setAulasState(nextAulasState);
+      registrarCorridaDeSeleccion(nextAulasState);
       setMsg({ kind: "info", text: "Selección de aulas generada." });
     } catch (e) {
       setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo seleccionar aulas. Construye primero el marco." });
@@ -1608,6 +1749,148 @@ export default function CalcMuestraPage() {
     } finally {
       setBusy(null);
     }
+  }
+
+  // --- Paquete de defensa de un clic ----------------------------------------
+  // Encadena secuencialmente lo que ya existe: (a) reporte metodológico (job
+  // Quarto), (b) anexo xlsx de la selección de aulas y (c) memoria JSON de
+  // reproducibilidad generada en el frontend. Cada pieza reporta ok/error por
+  // separado en el checklist; un fallo no corta las piezas siguientes.
+  const memoriaUrlRef = useRef<string | null>(null);
+  useEffect(() => () => {
+    if (memoriaUrlRef.current) URL.revokeObjectURL(memoriaUrlRef.current);
+  }, []);
+
+  function actualizarPasoPaquete(id: PaqueteDefensaPasoId, patch: Partial<PaqueteDefensaPaso>) {
+    setPaquetePasos((prev) => (prev ? prev.map((paso) => (paso.id === id ? { ...paso, ...patch } : paso)) : prev));
+  }
+
+  async function generarPaqueteDefensa(formato: "html" | "pdf" = "html") {
+    if (paqueteEnCurso) return;
+    setMsg(null);
+    setPaqueteEnCurso(true);
+    setPaquetePasos([
+      { id: "reporte", label: "Reporte metodológico", status: "pendiente" },
+      { id: "aulas", label: "Anexo de selección de aulas (xlsx)", status: "pendiente" },
+      { id: "memoria", label: "Memoria JSON de reproducibilidad", status: "pendiente" },
+    ]);
+    let piezasOk = 0;
+
+    // (a) Reporte metodológico: mismo flujo que el botón actual (job Quarto).
+    try {
+      actualizarPasoPaquete("reporte", { status: "curso" });
+      setReporteEnCurso(true);
+      await persistCurrent();
+      const res = await apiCalcMuestraReporteIniciar(formato);
+      setReporteMeta({ disponible: false, jobId: res.job_id });
+      await esperarJobAulas(res.job_id, "Paquete de defensa — reporte metodológico");
+      setReporteMeta({ disponible: true, jobId: res.job_id });
+      actualizarPasoPaquete("reporte", {
+        status: "ok",
+        detalle: `reporte ${formato.toUpperCase()} generado`,
+        url: calcMuestraReporteDescargarUrl({ inline: true }),
+      });
+      piezasOk += 1;
+    } catch (e) {
+      actualizarPasoPaquete("reporte", {
+        status: "error",
+        detalle: e instanceof Error ? e.message : "No se pudo generar el reporte.",
+      });
+    } finally {
+      setReporteEnCurso(false);
+    }
+
+    // (b) Anexo xlsx de la selección (mismo export que "Exportar selección").
+    try {
+      actualizarPasoPaquete("aulas", { status: "curso" });
+      setBusy("Paquete de defensa — exportando anexo de aulas");
+      const res = await apiCalcMuestraAulasExportar();
+      setAulasState(res.state.aulas ?? null);
+      actualizarPasoPaquete("aulas", {
+        status: "ok",
+        detalle: res.export?.filename ?? "workbook xlsx",
+        url: res.export?.file_id ? downloadUrl(res.export.file_id) : undefined,
+      });
+      piezasOk += 1;
+    } catch (e) {
+      actualizarPasoPaquete("aulas", {
+        status: "error",
+        detalle: e instanceof Error ? e.message : "No se pudo exportar la selección de aulas.",
+      });
+    }
+
+    // (c) Memoria JSON generada en el frontend (semilla, firma, decision log).
+    try {
+      actualizarPasoPaquete("memoria", { status: "curso" });
+      setBusy("Paquete de defensa — armando memoria JSON");
+      const estudioActual = useCalcMuestraStore.getState().estudio;
+      const workspaceActual = normalizeWorkspace(estudioActual);
+      let aulasActual = aulasState;
+      try {
+        const state = await apiCalcMuestraState();
+        aulasActual = state.aulas ?? aulasActual;
+      } catch {
+        // Sin estado fresco se usa el último conocido en memoria.
+      }
+      const totalComp =
+        estudioActual.componentes.find((comp) => comp.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID) ??
+        estudioActual.componentes[0];
+      const selection = aulasActual?.selection ?? null;
+      const memoria = {
+        schema: "prosecnur_paquete_defensa_v1",
+        proyecto: estudioActual.titulo,
+        cliente: estudioActual.contexto.cliente || null,
+        timestamp: new Date().toISOString(),
+        semilla: selection
+          ? safeNumber(selection.seed, safeNumber(workspaceActual.aulas_config?.semilla))
+          : workspaceActual.aulas_config?.semilla ?? null,
+        firma_marco: selection?.frame_hash ?? aulasActual?.frame?.frame_hash ?? null,
+        metodo: selection
+          ? String(selection.selector_engine_used ?? selection.selector_engine ?? "")
+          : null,
+        parametros_calculo: totalComp
+          ? {
+              z: totalComp.parametros.z,
+              p: totalComp.parametros.p,
+              e: totalComp.parametros.e,
+              deff: totalComp.parametros.deff,
+              sobremuestra: totalComp.parametros.oversample_pct,
+            }
+          : null,
+        n_objetivo: safeNumber(totalComp?.resultado?.n_objetivo, 0) || null,
+        decision_log: estudioActual.decision_log ?? null,
+        historial_corridas: historialCorridas(workspaceActual),
+      };
+      const blob = new Blob([JSON.stringify(memoria, null, 2)], { type: "application/json" });
+      if (memoriaUrlRef.current) URL.revokeObjectURL(memoriaUrlRef.current);
+      const url = URL.createObjectURL(blob);
+      memoriaUrlRef.current = url;
+      actualizarPasoPaquete("memoria", {
+        status: "ok",
+        detalle: "semilla, firma del marco y decision log",
+        url,
+        downloadName: `memoria-defensa-${new Date().toISOString().slice(0, 10)}.json`,
+      });
+      piezasOk += 1;
+    } catch (e) {
+      actualizarPasoPaquete("memoria", {
+        status: "error",
+        detalle: e instanceof Error ? e.message : "No se pudo armar la memoria JSON.",
+      });
+    } finally {
+      setBusy(null);
+      setPaqueteEnCurso(false);
+    }
+
+    const piezasConError = 3 - piezasOk;
+    setMsg(
+      piezasConError === 0
+        ? { kind: "info", text: "Paquete de defensa listo: reporte, anexo de aulas y memoria JSON." }
+        : {
+            kind: "warn",
+            text: `Paquete de defensa con ${piezasConError} ${piezasConError === 1 ? "pieza" : "piezas"} con error: revisa el checklist.`,
+          },
+    );
   }
 
   const chromeStatus = chromeStatusForDesk({
@@ -1800,9 +2083,9 @@ export default function CalcMuestraPage() {
               activeLabTab={activeClassroomLabTab}
               onTitulo={setTitulo}
               onContexto={setContexto}
-              onWorkspace={setWorkspace}
+              onWorkspace={setWorkspaceSiCambia}
               onComponente={updateComponente}
-              onSetComponentes={setComponentes}
+              onSetComponentes={setComponentesSiCambian}
               onCalcular={calcular}
               onCompararAulas={compararMetodosAulas}
               onSeleccionarAulas={seleccionarAulasDesdeMetodo}
@@ -1817,6 +2100,9 @@ export default function CalcMuestraPage() {
               reporteDescargarUrl={reporteJobId ? calcMuestraReporteDescargarUrl({ inline: true }) : null}
               onExportarAulas={() => void exportarAulasAnexo()}
               exportandoAulas={exportandoAulas}
+              onGenerarPaqueteDefensa={(formato) => void generarPaqueteDefensa(formato)}
+              paqueteEnCurso={paqueteEnCurso}
+              paquetePasos={paquetePasos}
             />
           )}
 

@@ -52,6 +52,7 @@ import {
   SalidasEntregablesTab,
   SalidasMonitoreoTab,
   SalidasResultadosTab,
+  type PaqueteDefensaPaso,
 } from "./salidas";
 
 export function UniversidadDesk({
@@ -81,6 +82,9 @@ export function UniversidadDesk({
   reporteDescargarUrl,
   onExportarAulas,
   exportandoAulas,
+  onGenerarPaqueteDefensa,
+  paqueteEnCurso,
+  paquetePasos,
 }: {
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
@@ -95,6 +99,9 @@ export function UniversidadDesk({
   reporteDescargarUrl: string | null;
   onExportarAulas: () => void;
   exportandoAulas: boolean;
+  onGenerarPaqueteDefensa: (formato: "html" | "pdf") => void;
+  paqueteEnCurso: boolean;
+  paquetePasos: PaqueteDefensaPaso[] | null;
   onTitulo: (titulo: string) => void;
   onContexto: (campo: "cliente" | "tipo_cliente" | "descripcion_libre", valor: string) => void;
   onWorkspace: (workspace: CalcMuestraWorkspace) => void;
@@ -461,6 +468,17 @@ export function UniversidadDesk({
                   exportandoAulas,
                   onExportarAulas,
                   aulasExportFilename: aulasState?.export?.filename ?? null,
+                }}
+                paquete={{
+                  puedeGenerar: calculationReady && selectionReady,
+                  hint: !selectionReady
+                    ? "Genera la selección de aulas (sección Aulas) para armar el paquete completo."
+                    : !calculationReady
+                      ? "Calcula la muestra (sección Cálculo) para armar el paquete completo."
+                      : undefined,
+                  enCurso: paqueteEnCurso,
+                  pasos: paquetePasos,
+                  onGenerar: () => onGenerarPaqueteDefensa(reporteFormato),
                 }}
               />
             </div>}
