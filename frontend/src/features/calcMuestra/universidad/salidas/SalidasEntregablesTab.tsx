@@ -10,7 +10,17 @@
  * y resalta su columna en el popover; las tarjetas de destino entran con
  * stagger y su pill de estado también funde al cambiar.
  */
-import { CircleHelp, FileSpreadsheet, Table2 } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Circle,
+  CircleHelp,
+  Download,
+  FileSpreadsheet,
+  Loader2,
+  ShieldCheck,
+  Table2,
+} from "lucide-react";
 import type {
   CalcMuestraWorkspace,
   CalcMuestraWorkspacePublicationConfig,
@@ -38,6 +48,99 @@ export type SalidasReporteProps = {
   onExportarAulas?: () => void;
   aulasExportFilename?: string | null;
 };
+
+/** Piezas del paquete de defensa (reporte + anexo xlsx + memoria JSON). */
+export type PaqueteDefensaPasoId = "reporte" | "aulas" | "memoria";
+
+export type PaqueteDefensaPaso = {
+  id: PaqueteDefensaPasoId;
+  label: string;
+  status: "pendiente" | "curso" | "ok" | "error";
+  detalle?: string;
+  url?: string;
+  /** Nombre sugerido cuando el enlace es un blob descargable (memoria JSON). */
+  downloadName?: string;
+};
+
+/** Props del paquete de defensa que el desk orquesta desde la página. */
+export type SalidasPaqueteDefensaProps = {
+  puedeGenerar: boolean;
+  hint?: string;
+  enCurso: boolean;
+  pasos: PaqueteDefensaPaso[] | null;
+  onGenerar: () => void;
+};
+
+const PAQUETE_STATUS_LABEL: Record<PaqueteDefensaPaso["status"], string> = {
+  pendiente: "pendiente",
+  curso: "en curso",
+  ok: "listo",
+  error: "con error",
+};
+
+function PaqueteDefensaPasoIcon({ status }: { status: PaqueteDefensaPaso["status"] }) {
+  if (status === "ok") return <CheckCircle2 size={15} aria-hidden="true" />;
+  if (status === "error") return <AlertTriangle size={15} aria-hidden="true" />;
+  if (status === "curso") return <Loader2 size={15} className="pulso-spin" aria-hidden="true" />;
+  return <Circle size={15} aria-hidden="true" />;
+}
+
+/** CTA de un clic + checklist con estado y descarga por pieza. */
+function PaqueteDefensaCard({ paquete }: { paquete: SalidasPaqueteDefensaProps }) {
+  const { puedeGenerar, hint, enCurso, pasos, onGenerar } = paquete;
+  return (
+    <section className="cmv2-panel cmv2-sal-panel cmv2-sal-paquete" aria-label="Paquete de defensa del diseño">
+      <div className="cmv2-panel-head">
+        <div>
+          <span className="cmv2-eyebrow">Paquete de defensa</span>
+          <strong>Todo el sustento del diseño en una sola corrida</strong>
+        </div>
+        <button
+          type="button"
+          className="cmv2-primary"
+          disabled={!puedeGenerar || enCurso}
+          title={!puedeGenerar && hint ? hint : undefined}
+          onClick={onGenerar}
+        >
+          {enCurso ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <ShieldCheck size={14} aria-hidden="true" />}
+          {enCurso ? "Generando paquete…" : "Generar paquete de defensa"}
+        </button>
+      </div>
+      <p className="cmv2-sal-nota">
+        Encadena el reporte metodológico, el anexo xlsx de la selección y una memoria JSON con semilla,
+        firma del marco y decision log — lo que se presenta cuando piden justificar el diseño.
+      </p>
+      {!puedeGenerar && hint && <p className="cmv2-sal-nota cmv2-sal-paquete-hint">{hint}</p>}
+      {pasos && (
+        <ol className="cmv2-sal-paquete-lista cmv2-uni-stagger" aria-label="Checklist del paquete de defensa">
+          {pasos.map((paso) => (
+            <li key={paso.id} data-status={paso.status}>
+              <PaqueteDefensaPasoIcon status={paso.status} />
+              <div>
+                <strong>
+                  {paso.label}
+                  <em>{PAQUETE_STATUS_LABEL[paso.status]}</em>
+                </strong>
+                {paso.detalle && <small>{paso.detalle}</small>}
+              </div>
+              {paso.status === "ok" && paso.url && (
+                <a
+                  className="cmv2-ghost"
+                  href={paso.url}
+                  download={paso.downloadName}
+                  target={paso.downloadName ? undefined : "_blank"}
+                  rel="noreferrer"
+                >
+                  <Download size={13} aria-hidden="true" /> {paso.downloadName ? "Descargar" : "Abrir"}
+                </a>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
+}
 
 const PII_OPTIONS = [
   {
@@ -94,11 +197,13 @@ export function SalidasEntregablesTab({
   workspace,
   onWorkspace,
   reporte,
+  paquete,
 }: {
   model: ClassroomLabModel;
   workspace: CalcMuestraWorkspace;
   onWorkspace: (workspace: CalcMuestraWorkspace) => void;
   reporte: SalidasReporteProps;
+  paquete?: SalidasPaqueteDefensaProps;
 }) {
   const config = { ...DEFAULT_UNIVERSITY_PUBLICATION_CONFIG, ...(workspace.publication_config ?? {}) };
   const { selectionReady, replacementReady } = model;
@@ -302,6 +407,8 @@ export function SalidasEntregablesTab({
           ))}
         </div>
       </PanelAvanzado>
+
+      {paquete && <PaqueteDefensaCard paquete={paquete} />}
     </div>
   );
 }

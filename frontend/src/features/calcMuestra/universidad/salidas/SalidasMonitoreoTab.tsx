@@ -10,7 +10,7 @@
 import { ArrowRight, CheckCircle2, Grid3X3, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { AulasApplicationFlow } from "../../../aulasFlow/AulasApplicationFlow";
-import { fmtInt } from "../../sharedCore";
+import { fmtInt, fmtRatio } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import { CifraFila, CifraMotor, FlujoVertical, type FlujoEtapa } from "../ui";
 import {
@@ -22,10 +22,6 @@ import {
 } from "../aulas/aulasParts";
 import "../../didactica/didactica.css";
 import "./salidas.css";
-
-function fmtRatio(value: number) {
-  return `×${value.toFixed(1).replace(".", ",")}`;
-}
 
 export function SalidasMonitoreoTab({ model }: { model: ClassroomLabModel }) {
   const {
