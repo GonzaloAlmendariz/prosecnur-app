@@ -9,8 +9,9 @@
  */
 import { BarChart3 } from "lucide-react";
 import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
-import { fmtInt, fmtPct, safeNumber } from "../../sharedCore";
+import { fmtDec, fmtInt, fmtPct, rowsFrom, safeNumber } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
+import { saludComoRiesgos, saludDesdeModel } from "../shared/salud";
 import { CifraFila, CifraMotor, FormulaLatex, TerminoChip } from "../ui";
 import {
   ClassroomEmptyState,
@@ -23,10 +24,6 @@ import {
 } from "./aulasParts";
 import "../../didactica/didactica.css";
 import "./aulas.css";
-
-function fmtDecimal(value: number, digits = 1) {
-  return Number.isFinite(value) ? value.toFixed(digits).replace(".", ",") : "—";
-}
 
 /** Estabilidad de pesos: micro-barra n_eff vs n nominal + fórmula + cifras. */
 function WeightStabilityBlock({ model }: { model: ClassroomLabModel }) {
@@ -60,13 +57,13 @@ function WeightStabilityBlock({ model }: { model: ClassroomLabModel }) {
       </div>
       <div className="cmv2-aulas-neff-layout">
         <div className="cmv2-aulas-neff-main">
-          <div className="cmv2-aulas-neff-barra" role="img" aria-label={`n efectivo ${fmtDecimal(nEff)} de ${fmtInt(nNominal)} aulas titulares`}>
-            <div className="cmv2-aulas-neff-track">
+          <div className="cmv2-aulas-neff-barra" role="img" aria-label={`n efectivo ${fmtDec(nEff)} de ${fmtInt(nNominal)} aulas titulares`}>
+            <div className="cmv2-aulas-neff-track" data-estado={(ratio || 0) < 0.5 ? "alerta" : "ok"}>
               <i style={{ width: `${Math.max(4, Math.min(100, (ratio || 0) * 100))}%` }} />
             </div>
             <div className="cmv2-aulas-neff-marcas">
-              <span>n efectivo ≈ {fmtDecimal(nEff)}</span>
-              <span>n nominal = {fmtInt(nNominal)}</span>
+              <span>n efectivo ≈ <b>{fmtDec(nEff)}</b></span>
+              <span>n nominal = <b>{fmtInt(nNominal)}</b></span>
             </div>
           </div>
           <FormulaLatex
@@ -77,7 +74,7 @@ function WeightStabilityBlock({ model }: { model: ClassroomLabModel }) {
               {
                 symbol: "w_i",
                 termino: "ponderación (peso)",
-                value: pesoEjemplo ? fmtDecimal(pesoEjemplo, 2) : undefined,
+                value: pesoEjemplo ? fmtDec(pesoEjemplo, 2) : undefined,
               },
             ]}
           />
@@ -89,20 +86,20 @@ function WeightStabilityBlock({ model }: { model: ClassroomLabModel }) {
         <CifraFila>
           <CifraMotor
             label="CV de pesos"
-            value={fmtDecimal(cv, 2)}
-            detalle={cv > cvWarn ? `sobre el umbral de alerta (${fmtDecimal(cvWarn, 2)})` : "dispersión de los pesos"}
+            value={fmtDec(cv, 2)}
+            detalle={cv > cvWarn ? `sobre el umbral de alerta (${fmtDec(cvWarn, 2)})` : "dispersión de los pesos"}
             origen="motor"
             tono={cv > cvWarn ? "alerta" : "ok"}
           />
           <CifraMotor
             label="n efectivo"
-            value={fmtDecimal(nEff)}
+            value={fmtDec(nEff)}
             detalle={ratio > 0 ? `${fmtPct(ratio)} del nominal` : detail || "aulas equivalentes tras ponderar"}
             origen="motor"
           />
           <CifraMotor
             label="Puntaje de estabilidad"
-            value={Number.isFinite(score) && score > 0 ? `${fmtDecimal(score)}/100` : "—"}
+            value={Number.isFinite(score) && score > 0 ? `${fmtDec(score)}/100` : "—"}
             detalle="100 = pesos parejos"
             origen="motor"
             tono={Number.isFinite(score) && score < 50 ? "alerta" : undefined}
@@ -180,6 +177,33 @@ export function AulasSimulacionTab({
   onCompare: (config: CalcMuestraWorkspaceAulasConfig, simulationRuns: number) => void | Promise<void>;
 }) {
   const { comparison, comparisonMethods, comparisonMetrics, simulationRows, recommendedMethodId, engineOption } = model;
+
+  // "Pendiente" solo cuando de verdad no llegó nada: si la selección ya trae
+  // π Monte Carlo o estabilidad de pesos, la simulación existe aunque el
+  // comparador no haya dejado resumen por método.
+  const metodosListos = Boolean(comparison && comparisonMethods.length);
+  const piMcListo = model.probabilityRows.some((row) => classroomRowNumber(row, ["pi_mc"]) > 0);
+  const evidenciaSimulacion = piMcListo || Boolean(model.weightStability);
+
+  // El rail de riesgos agrega los flags del motor Y la salud derivada de las
+  // cifras validadas (CV sobre umbral, balance fuera de banda, score bajo...):
+  // una tarjeta en ámbar nunca debe convivir con un "Sin alertas críticas".
+  const riesgosAgregados = [
+    ...rowsFrom<Record<string, unknown>>(comparison?.risk_flags),
+    ...saludComoRiesgos(saludDesdeModel(model)),
+  ];
+
+  const notaSinResumen = (
+    <ClassroomEmptyState
+      icon={BarChart3}
+      title="Resumen por método sin registrar"
+      detail="La simulación de la selección sí llegó: abajo tienes la estabilidad de pesos y la frecuencia π Monte Carlo por aula. Corre el comparador para regenerar el resumen de corridas por método."
+      actionLabel="Comparar métodos"
+      onAction={() => void onCompare(model.config, model.config.simulation_runs ?? model.config.monte_carlo_n ?? 500)}
+      disabled={Boolean(busy) || !model.frameReady || !model.hasCalculatedQuota}
+    />
+  );
+
   return (
     <div className="cmv2-aulas-stack">
       <ClassroomLabCommandBar model={model} busy={busy} acciones={["comparar"]} onCompare={onCompare} />
@@ -190,7 +214,18 @@ export function AulasSimulacionTab({
             <span className="cmv2-eyebrow">Simulación</span>
             <strong>Estabilidad, cobertura y estudiantes repetidos</strong>
           </div>
-          {!comparison || !comparisonMethods.length ? (
+          {metodosListos ? (
+            <>
+              {simulationRows.length || !evidenciaSimulacion ? (
+                <SimulationSummaryPanel rows={simulationRows} />
+              ) : (
+                notaSinResumen
+              )}
+              <RepresentativityMetricGrid metrics={comparisonMetrics.filter((metric) => metric.method_id === recommendedMethodId)} />
+            </>
+          ) : evidenciaSimulacion ? (
+            notaSinResumen
+          ) : (
             <ClassroomEmptyState
               icon={BarChart3}
               title="Simulación pendiente"
@@ -199,18 +234,13 @@ export function AulasSimulacionTab({
               onAction={() => void onCompare(model.config, model.config.simulation_runs ?? model.config.monte_carlo_n ?? 500)}
               disabled={Boolean(busy) || !model.frameReady || !model.hasCalculatedQuota}
             />
-          ) : (
-            <>
-              <SimulationSummaryPanel rows={simulationRows} />
-              <RepresentativityMetricGrid metrics={comparisonMetrics.filter((metric) => metric.method_id === recommendedMethodId)} />
-            </>
           )}
           <WeightStabilityBlock model={model} />
           <PiMonteCarloHistogram model={model} busy={busy} onCompare={onCompare} />
         </div>
         <aside className="cmv2-classroom-lab-side">
           <ClassroomRecommendation comparison={comparison} fallbackMethod={engineOption.label} />
-          <ClassroomRiskList risks={comparison?.risk_flags ?? []} />
+          <ClassroomRiskList risks={riesgosAgregados} />
         </aside>
       </div>
     </div>

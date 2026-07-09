@@ -10,7 +10,7 @@
 import { Route } from "lucide-react";
 import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
 import { CadenasReemplazoVisual } from "../../didactica/CadenasReemplazoVisual";
-import { fmtInt } from "../../sharedCore";
+import { fmtInt, fmtRatio } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import { CifraFila, CifraMotor, FlujoVertical, TerminoChip, type FlujoEtapa } from "../ui";
 import {
@@ -45,7 +45,7 @@ function ReserveDepthHeader({ model }: { model: ClassroomLabModel }) {
       <CifraFila>
         <CifraMotor
           label="Profundidad mínima"
-          value={`×${minRatio.toFixed(1).replace(".", ",")}`}
+          value={fmtRatio(minRatio)}
           detalle={minRatio < 1
             ? "hay celdas sin reserva completa"
             : minRatio >= 2
@@ -66,7 +66,7 @@ function ReserveDepthHeader({ model }: { model: ClassroomLabModel }) {
         />
         <CifraMotor
           label="Reservas por titular"
-          value={titulares > 0 ? `×${(reservas / titulares).toFixed(1).replace(".", ",")}` : "—"}
+          value={titulares > 0 ? fmtRatio(reservas / titulares) : "—"}
           detalle={`${fmtInt(reservas)} reservas para ${fmtInt(titulares)} titulares`}
           origen="motor"
         />

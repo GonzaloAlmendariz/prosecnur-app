@@ -9,6 +9,8 @@
 import {
   ArrowRight,
   BarChart3,
+  CheckCircle2,
+  CircleAlert,
   Database,
   Gauge,
   Layers3,
@@ -16,6 +18,7 @@ import {
   RefreshCw,
   Route,
   Table2,
+  TriangleAlert,
   Users,
 } from "lucide-react";
 import {
@@ -34,7 +37,7 @@ import {
   type CalcMuestraWorkspaceAulasConfig,
 } from "../../../../api/client";
 import { AulasApplicationFlow } from "../../../aulasFlow/AulasApplicationFlow";
-import { fmtInt, fmtPct, rowsFrom, safeNumber } from "../../sharedCore";
+import { fmtDec, fmtInt, fmtPct, rowsFrom, safeNumber } from "../../sharedCore";
 import {
   DEFAULT_UNIVERSITY_AULAS_OBJECTIVE,
   UNIVERSITY_AULAS_MODALIDAD_OPTIONS,
@@ -188,8 +191,10 @@ export function classroomProbabilitySourceLabel(value: string | null | undefined
 
 export function classroomScore(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) return "—";
-  if (value <= 1) return `${Math.round(value * 100)}%`;
-  return `${Math.round(value)}/100`;
+  // Formato único "N/100" para todos los puntajes, vengan en escala 0-1 o 0-100,
+  // para que un score de 0 no se lea distinto ("0%") al resto de tarjetas.
+  const score = value >= 0 && value <= 1 ? value * 100 : value;
+  return `${Math.round(score)}/100`;
 }
 
 export function selectorFieldLabel(field: string) {
@@ -435,21 +440,52 @@ export function ObjectiveWeightsPanel({ variables }: { variables?: Array<Record<
   );
 }
 
+/** Etiquetas en español para los grupos de métricas que reporta el motor R. */
+const METRIC_GROUP_LABELS: Record<string, string> = {
+  balance: "Balance",
+  coverage: "Cobertura",
+  overlap: "Repetidos",
+  dispersion: "Dispersión",
+  weights: "Pesos",
+  reserves: "Reservas",
+};
+
+/**
+ * Copys conocidos del motor R que llegan sin tildes; se corrigen solo en la
+ * presentación (el dato del motor no se altera).
+ */
+const MOTOR_COPY_FIXES: Record<string, string> = {
+  "Cobertura unica": "Cobertura única",
+  "Perdida por repetidos": "Pérdida por repetidos",
+  "Evitar concentracion": "Evitar concentración",
+};
+
+export function motorCopyText(value: string | null | undefined) {
+  const raw = String(value ?? "");
+  return MOTOR_COPY_FIXES[raw] ?? raw.replace(/\bSimulacion\b/g, "Simulación");
+}
+
 export function RepresentativityMetricGrid({ metrics }: { metrics?: CalcMuestraAulasRepresentativityMetric[] | unknown }) {
   const visible = rowsFrom<CalcMuestraAulasRepresentativityMetric>(metrics)
-    .filter((metric) => metric.active !== false && Number.isFinite(safeNumber(metric.score, Number.NaN)))
+    .filter((metric) => metric.active !== false && metric.score != null && Number.isFinite(safeNumber(metric.score, Number.NaN)))
     .slice(0, 8);
   if (!visible.length) return null;
+  // Nivel semántico del puntaje (0-100): el meter y la cifra lo heredan para
+  // que un 0/100 no se lea igual de neutro que un 100/100.
+  const scoreLevel = (value: number) => (value < 40 ? "bajo" : value < 70 ? "medio" : "alto");
   return (
     <div className="cmv2-representativity-metric-grid">
-      {visible.map((metric) => (
-        <article key={metric.metric_id}>
-          <small>{metric.metric_group}</small>
-          <strong>{classroomScore(metric.score)}</strong>
-          <span>{metric.label}</span>
-          <div aria-hidden="true"><i style={{ width: `${Math.max(0, Math.min(100, safeNumber(metric.score, 0)))}%` }} /></div>
-        </article>
-      ))}
+      {visible.map((metric) => {
+        const score = Math.max(0, Math.min(100, safeNumber(metric.score, 0)));
+        return (
+          <article key={metric.metric_id} data-nivel={scoreLevel(score)}>
+            <small>{METRIC_GROUP_LABELS[String(metric.metric_group ?? "")] ?? metric.metric_group}</small>
+            <strong>{classroomScore(metric.score)}</strong>
+            <span>{motorCopyText(metric.label)}</span>
+            <div aria-hidden="true"><i style={{ width: `${score}%` }} /></div>
+          </article>
+        );
+      })}
     </div>
   );
 }
@@ -1003,7 +1039,7 @@ export function SimulationSummaryPanel({ rows }: { rows?: CalcMuestraAulasSimula
               width: `${Math.max(2, Math.min(100, safeNumber(row.score_p90, 0)) - Math.max(0, safeNumber(row.score_p10, 0)))}%`,
             }} />
           </div>
-          <em>{row.note}</em>
+          <em>{motorCopyText(row.note)}</em>
         </article>
       ))}
     </div>
@@ -1084,19 +1120,29 @@ export function ClassroomRiskList({ risks }: { risks?: NonNullable<CalcMuestraAu
     title: "Sin alertas críticas",
     detail: "La auditoría interna no reporta riesgos activos para el último cálculo.",
   }];
+  // Icono por severidad: el color solo no alcanza para escanear el rail.
+  const severityIcon = (severity: string) => {
+    if (severity === "alta") return TriangleAlert;
+    if (severity === "ok" || severity === "baja") return CheckCircle2;
+    return CircleAlert;
+  };
   return (
     <div className="cmv2-classroom-risk-list">
       <div className="cmv2-subhead">
         <span className="cmv2-eyebrow">Riesgos</span>
         <strong>Alertas interpretables</strong>
       </div>
-      {visible.map((risk, index) => (
-        <div key={`${String(risk.code ?? "riesgo")}-${index}`} className={`is-${String(risk.severity ?? "media")}`}>
-          <small>{String(risk.severity ?? "media")}</small>
-          <strong>{String(risk.title ?? "Alerta metodológica")}</strong>
-          <span>{String(risk.detail ?? "Revisa la auditoría técnica del selector.")}</span>
-        </div>
-      ))}
+      {visible.map((risk, index) => {
+        const severity = String(risk.severity ?? "media");
+        const Icon = severityIcon(severity);
+        return (
+          <div key={`${String(risk.code ?? "riesgo")}-${index}`} className={`is-${severity}`}>
+            <small><Icon size={12} aria-hidden="true" />{severity}</small>
+            <strong>{String(risk.title ?? "Alerta metodológica")}</strong>
+            <span>{String(risk.detail ?? "Revisa la auditoría técnica del selector.")}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -1123,9 +1169,9 @@ export function ClassroomBalanceTable({ rows, methodId }: { rows?: Array<Record<
           <tr>
             <th>Variable</th>
             <th>Categoría</th>
-            <th>Marco</th>
-            <th>Seleccionado</th>
-            <th>Diferencia</th>
+            <th className="is-num">Marco</th>
+            <th className="is-num">Seleccionado</th>
+            <th className="is-num">Diferencia</th>
           </tr>
         </thead>
         <tbody>
@@ -1133,9 +1179,9 @@ export function ClassroomBalanceTable({ rows, methodId }: { rows?: Array<Record<
             <tr key={index}>
               <td>{classroomRowText(row, ["variable"])}</td>
               <td>{classroomRowText(row, ["categoria", "category"])}</td>
-              <td>{fmtPct(classroomRowNumber(row, ["marco_prop", "frame_share"]))}</td>
-              <td>{fmtPct(classroomRowNumber(row, ["seleccion_m1_prop", "selected_share"]))}</td>
-              <td>{fmtPct(classroomRowNumber(row, ["diferencia_abs", "delta"]))}</td>
+              <td className="is-num">{fmtPct(classroomRowNumber(row, ["marco_prop", "frame_share"]))}</td>
+              <td className="is-num">{fmtPct(classroomRowNumber(row, ["seleccion_m1_prop", "selected_share"]))}</td>
+              <td className="is-num">{fmtPct(classroomRowNumber(row, ["diferencia_abs", "delta"]))}</td>
             </tr>
           ))}
         </tbody>
@@ -1144,7 +1190,17 @@ export function ClassroomBalanceTable({ rows, methodId }: { rows?: Array<Record<
   );
 }
 
-export function ClassroomSelectionTable({ rows }: { rows?: Array<Record<string, unknown>> | unknown }) {
+export function ClassroomSelectionTable({
+  rows,
+  selectedRow,
+  onSelectRow,
+}: {
+  rows?: Array<Record<string, unknown>> | unknown;
+  /** Fila inspeccionada (identidad de objeto): pinta el estado selected. */
+  selectedRow?: Record<string, unknown> | null;
+  /** Si existe, las filas se vuelven clickeables y abren el inspector. */
+  onSelectRow?: (row: Record<string, unknown>) => void;
+}) {
   const tableRows = rowsFrom<Record<string, unknown>>(rows);
   if (!tableRows.length) {
     return (
@@ -1166,15 +1222,35 @@ export function ClassroomSelectionTable({ rows }: { rows?: Array<Record<string, 
             <th>Código y aula</th>
             <th>Facultad / programa</th>
             <th>Horario</th>
-            <th>Elegibles</th>
-            <th>Prob. usada</th>
-            <th>Peso</th>
-            <th>Repetidos</th>
+            <th className="is-num">Elegibles</th>
+            <th className="is-num">Prob. usada</th>
+            <th className="is-num">Peso</th>
+            <th className="is-num">Repetidos</th>
           </tr>
         </thead>
         <tbody>
           {tableRows.map((row, index) => (
-            <tr key={`${classroomRowText(row, ["classroom_id"])}-${index}`}>
+            <tr
+              key={`${classroomRowText(row, ["classroom_id"])}-${index}`}
+              className={
+                onSelectRow
+                  ? `is-clickable${selectedRow === row ? " is-selected" : ""}`
+                  : undefined
+              }
+              tabIndex={onSelectRow ? 0 : undefined}
+              aria-label={onSelectRow ? `Inspeccionar ${classroomRowText(row, ["course_name", "label", "classroom_id"])}` : undefined}
+              onClick={onSelectRow ? () => onSelectRow(row) : undefined}
+              onKeyDown={
+                onSelectRow
+                  ? (event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onSelectRow(row);
+                      }
+                    }
+                  : undefined
+              }
+            >
               <td>{classroomPlanLabel(row)}<small>{classroomRowText(row, ["wave"])}</small></td>
               <td>
                 <span className="cmv2-table-code">{classroomOperationalCode(row, classroomRowText(row, ["wave"]) === "M1" ? `AULA ${index + 1}` : classroomRowText(row, ["wave"]))}</span>
@@ -1186,10 +1262,10 @@ export function ClassroomSelectionTable({ rows }: { rows?: Array<Record<string, 
                 <small>{classroomRowText(row, ["program", "level"])}</small>
               </td>
               <td>{classroomRowText(row, ["schedule", "modality"])}</td>
-              <td>{fmtInt(classroomRowNumber(row, ["eligible_n"]))}</td>
-              <td>{fmtPct(classroomRowNumber(row, ["pi_final"]))}</td>
-              <td>{classroomNumberText(row, ["weight_classroom"])}</td>
-              <td>{fmtInt(classroomRowNumber(row, ["duplicate_overlap"]))}</td>
+              <td className="is-num">{fmtInt(classroomRowNumber(row, ["eligible_n"]))}</td>
+              <td className="is-num">{fmtPct(classroomRowNumber(row, ["pi_final"]))}</td>
+              <td className="is-num">{classroomRowNumber(row, ["weight_classroom"]) > 0 ? fmtDec(classroomRowNumber(row, ["weight_classroom"]), 2) : "—"}</td>
+              <td className="is-num">{fmtInt(classroomRowNumber(row, ["duplicate_overlap"]))}</td>
             </tr>
           ))}
         </tbody>
@@ -1266,9 +1342,9 @@ export function ClassroomReplacementTables({ simulation }: { simulation: CalcMue
               <th>Usar reemplazo</th>
               <th>Ruta</th>
               <th>Equivalencia</th>
-              <th>Representatividad</th>
-              <th>Cambio</th>
-              <th>Repetidos</th>
+              <th className="is-num">Representatividad</th>
+              <th className="is-num">Cambio</th>
+              <th className="is-num">Repetidos</th>
             </tr>
           </thead>
           <tbody>
@@ -1286,9 +1362,9 @@ export function ClassroomReplacementTables({ simulation }: { simulation: CalcMue
                 </td>
                 <td>{classroomReplacementRouteLabel(item.wave, item.rank)}<small>{item.wave}</small></td>
                 <td>{item.match_level}</td>
-                <td>{classroomScore(item.after_score ?? item.score)}</td>
-                <td>{classroomNumberText(item as unknown as Record<string, unknown>, ["score_delta"])}</td>
-                <td>{fmtInt(item.overlap_delta ?? 0)}</td>
+                <td className="is-num">{classroomScore(item.after_score ?? item.score)}</td>
+                <td className="is-num">{classroomNumberText(item as unknown as Record<string, unknown>, ["score_delta"])}</td>
+                <td className="is-num">{fmtInt(item.overlap_delta ?? 0)}</td>
               </tr>
             ))}
           </tbody>
@@ -1309,9 +1385,9 @@ function ClassroomImpactTable({ rows }: { rows?: Array<Record<string, unknown>> 
           <tr>
             <th>Titular</th>
             <th>Reemplazo</th>
-            <th>Representatividad</th>
+            <th className="is-num">Representatividad</th>
             <th>Efecto en cuotas</th>
-            <th>Cambio de elegibles</th>
+            <th className="is-num">Cambio de elegibles</th>
             <th>Advertencia</th>
           </tr>
         </thead>
@@ -1326,9 +1402,9 @@ function ClassroomImpactTable({ rows }: { rows?: Array<Record<string, unknown>> 
                 <span className="cmv2-table-code">{classroomRowText(row, ["replacement_operational_code"]) || "R"}</span>
                 {classroomRowText(row, ["suggested_replacement_id"])}
               </td>
-              <td>{classroomScore(classroomRowNumber(row, ["after_score"]))}<small>{classroomNumberText(row, ["score_delta"])}</small></td>
+              <td className="is-num">{classroomScore(classroomRowNumber(row, ["after_score"]))}<small>{classroomNumberText(row, ["score_delta"])}</small></td>
               <td>{classroomRowText(row, ["balance_effect"])}</td>
-              <td>{classroomNumberText(row, ["eligible_delta"])}</td>
+              <td className="is-num">{classroomNumberText(row, ["eligible_delta"])}</td>
               <td>{classroomRowText(row, ["warning"]) || "sin alerta"}</td>
             </tr>
           ))}
