@@ -9,21 +9,23 @@
  * Aulas → Sustento técnico. Visualmente la ficha lleva marco de "documento"
  * (barra de acento superior + sombra de panel) y la reproducibilidad se
  * presenta como sello tipográfico en mono (.cmv2-sal-ficha en salidas.css).
+ * El pill de estado no certifica a ciegas: lee la salud del diseño
+ * (shared/salud.ts) y distingue "diseño cerrado" / "con observaciones" /
+ * "con riesgos"; las observaciones se listan al pie de la ficha.
  */
+import { AlertTriangle, ShieldAlert } from "lucide-react";
 import type { CalcMuestraWorkspace } from "../../../../api/client";
 import { ContextoLlano } from "../../didactica/PasoDidactico";
 import { calcEPreview } from "../../didactica/motorPreview";
-import { fmtInt, fmtPct, safeNumber } from "../../sharedCore";
+import { fmtInt, fmtPct, fmtRatio, safeNumber } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
+import { saludDesdeModel } from "../shared/salud";
 import { hasUsefulResult } from "../shared/study";
 import { CifraFila, CifraMotor, FlujoVertical, type FlujoEtapa } from "../ui";
 import { classroomMethodLabel, classroomScore, type ClassroomLabModel } from "../aulas/aulasParts";
+import { HistorialCorridas } from "./HistorialCorridas";
 import "../../didactica/didactica.css";
 import "./salidas.css";
-
-function fmtRatio(value: number) {
-  return `×${value.toFixed(1).replace(".", ",")}`;
-}
 
 export function SalidasCierreTab({
   model,
@@ -77,6 +79,26 @@ export function SalidasCierreTab({
   const depthRatios = reserveDepthRows.map((row) => classroomRowNumber(row, ["depth_ratio"]));
   const minDepth = depthRatios.length ? Math.min(...depthRatios) : Number.NaN;
   const peorCelda = reserveDepthRows.find((row) => classroomRowNumber(row, ["depth_ratio"]) === minDepth);
+
+  // Salud del diseño: veredicto derivado de las mismas cifras validadas que
+  // muestra esta ficha. La procedencia de cada cifra no cambia; lo que cambia
+  // es si el conjunto se puede defender tal cual.
+  const observaciones = saludDesdeModel(model);
+  const hayRiesgos = observaciones.some((obs) => obs.nivel === "danger");
+  const disenoCompleto = calculationReady && selectionReady && replacementReady;
+  const estadoFicha = !disenoCompleto
+    ? "preparacion"
+    : hayRiesgos
+      ? "riesgos"
+      : observaciones.length
+        ? "observaciones"
+        : "cerrado";
+  const estadoFichaLabel = {
+    preparacion: "en preparación",
+    cerrado: "diseño cerrado",
+    observaciones: "diseño con observaciones",
+    riesgos: "diseño con riesgos",
+  }[estadoFicha];
 
   const publication = workspace.publication_config ?? {};
   const sheetsConfigured = Boolean(publication.google_sheets_enabled || publication.spreadsheet_id || publication.spreadsheet_url);
@@ -135,15 +157,18 @@ export function SalidasCierreTab({
             <span className="cmv2-eyebrow">Ficha ejecutiva</span>
             <strong>
               {calculationReady && selectionReady
-                ? "El diseño completo, con las cifras que se defienden ante el cliente"
+                ? observaciones.length
+                  ? "El diseño completo: revisa las observaciones antes de defenderlo ante el cliente"
+                  : "El diseño completo, con las cifras que se defienden ante el cliente"
                 : "El camino del diseño y lo que falta para cerrarlo"}
             </strong>
           </div>
           <span
             className="cmv2-pill-soft cmv2-sal-estado"
-            data-cerrado={(calculationReady && selectionReady && replacementReady) || undefined}
+            data-cerrado={estadoFicha === "cerrado" || undefined}
+            data-salud={estadoFicha === "observaciones" || estadoFicha === "riesgos" ? estadoFicha : undefined}
           >
-            {calculationReady && selectionReady && replacementReady ? "diseño cerrado" : "en preparación"}
+            {estadoFichaLabel}
           </span>
         </div>
 
@@ -215,7 +240,23 @@ export function SalidasCierreTab({
           </span>
           <em>Con estos datos el sorteo se reconstruye exacto; el detalle completo vive en Aulas → Sustento técnico.</em>
         </div>
+
+        {observaciones.length > 0 && (
+          <ul className="cmv2-sal-observaciones" aria-label="Observaciones de salud del diseño">
+            {observaciones.map((obs) => (
+              <li key={obs.id} data-nivel={obs.nivel}>
+                {obs.nivel === "danger" ? <ShieldAlert size={14} aria-hidden="true" /> : <AlertTriangle size={14} aria-hidden="true" />}
+                <div>
+                  <strong>{obs.titulo}</strong>
+                  <span>{obs.detalle} <em>{obs.accion}</em></span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
+
+      <HistorialCorridas workspace={workspace} />
     </div>
   );
 }

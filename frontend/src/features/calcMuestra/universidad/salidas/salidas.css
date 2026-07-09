@@ -11,13 +11,25 @@
 
 .cmv2-sal-stack {
   display: grid;
-  gap: 12px;
+  gap: 16px;
   align-content: start;
+}
+
+/* Entrada de pestaña: la aporta el wrapper global del desk (ui/ui.css,
+   .cmv2-tab-panel > *) — no duplicar aquí. */
+
+/* Nivel panel: padding 20px (los sub-bloques quedan en 14-16, los tiles en 12). */
+.cmv2-sal-stack > .cmv2-panel {
+  padding: 18px 20px;
 }
 
 .cmv2-sal-panel {
   display: grid;
-  gap: 12px;
+  gap: 14px;
+}
+
+.cmv2-sal-panel > .cmv2-panel-head {
+  margin-bottom: 0;
 }
 
 .cmv2-sal-nota {
@@ -25,7 +37,7 @@
   font-size: 12px;
   line-height: 1.55;
   color: var(--pulso-text-muted);
-  max-width: 82ch;
+  max-width: 72ch;
 }
 
 /* Franja de cierre (patrón ContinuarCTA de theme.css): remata Pase a
@@ -40,7 +52,7 @@
    stagger de la fila de CifraMotor. Solo transform/opacity, ease-out. */
 @media (prefers-reduced-motion: no-preference) {
   .cmv2-sal-panel .cmv2-uni-flujo > * {
-    animation: cmv2-uni-enter 220ms var(--cmv2-ease-out, ease-out) both;
+    animation: cmv2-uni-enter-suave 220ms var(--cmv2-ease-out, ease-out) both;
   }
 
   .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(2) { animation-delay: 25ms; }
@@ -55,7 +67,7 @@
   /* Mismos tiempos que .cmv2-uni-stagger (ui/ui.css); CifraFila no expone
      className, por eso el selector estructural. */
   .cmv2-sal-panel .cmv2-uni-cifra-fila > * {
-    animation: cmv2-uni-enter 230ms var(--cmv2-ease-out, ease-out) both;
+    animation: cmv2-uni-enter-suave 230ms var(--cmv2-ease-out, ease-out) both;
   }
 
   .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(2) { animation-delay: 35ms; }
@@ -114,7 +126,76 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
     0 18px 44px rgba(15, 23, 42, 0.09);
-  padding: 16px 16px 14px;
+}
+
+.cmv2-sal-stack > .cmv2-panel.cmv2-sal-ficha {
+  padding: 20px 20px 18px;
+}
+
+/* --- Cadenas de KPIs (ficha ejecutiva y handoff) como stat-tiles conectados ---
+   Dentro del panel (superficie raised) los tiles pierden fondo propio y la
+   fila se reparte el ancho completo; conectores finos al 55%. */
+.cmv2-sal-panel .cmv2-uni-flujo[data-orientacion="horizontal"] .cmv2-uni-flujo-etapa {
+  flex: 1 1 0;
+  min-width: 148px;
+  padding: 11px 13px;
+  background: transparent;
+  border-color: color-mix(in srgb, var(--cmv2-border) 88%, var(--pulso-text));
+}
+
+.cmv2-sal-panel .cmv2-uni-flujo-label {
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  white-space: normal;
+}
+
+.cmv2-sal-panel .cmv2-uni-flujo-valor {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.cmv2-sal-panel .cmv2-uni-flujo-detalle {
+  font-size: 11px;
+}
+
+.cmv2-sal-panel .cmv2-uni-flujo[data-orientacion="horizontal"] .cmv2-uni-flujo-linea {
+  height: 1.5px;
+  min-width: 20px;
+  background: color-mix(in srgb, var(--cmv2-border-strong) 55%, transparent);
+}
+
+/* --- CifraMotor dentro de la sección: tarjetas planas con jerarquía clara.
+   El panel ya es la superficie raised: la tarjeta interior conserva el borde
+   y suelta la sombra (nunca borde + sombra anidados). */
+.cmv2-sal-panel .cmv2-uni-cifra {
+  box-shadow: none;
+  padding: 12px 14px;
+}
+
+.cmv2-sal-panel .cmv2-uni-cifra-label {
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+}
+
+.cmv2-sal-panel .cmv2-uni-cifra-valor {
+  font-size: 22px;
+  white-space: normal;
+  line-height: 1.12;
+}
+
+.cmv2-sal-panel .cmv2-uni-cifra[data-hero="true"] .cmv2-uni-cifra-valor {
+  font-size: 26px;
+}
+
+.cmv2-sal-panel .cmv2-uni-cifra-detalle {
+  font-size: 11px;
+}
+
+.cmv2-sal-panel .cmv2-uni-cifra-fila {
+  gap: 12px;
 }
 
 .cmv2-sal-ficha::before {
@@ -138,13 +219,80 @@
   color: var(--pulso-success-fg, var(--cmv2-accent-fg));
 }
 
+/* Salud del diseño: tonos semánticos (no el acento del módulo) cuando hay
+   observaciones o riesgos derivados de las cifras del motor. */
+.cmv2-sal-estado[data-salud="observaciones"] {
+  border-color: var(--pulso-warn-border);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 70%, transparent);
+  color: var(--pulso-warn-fg);
+}
+
+.cmv2-sal-estado[data-salud="riesgos"] {
+  border-color: var(--pulso-danger-border);
+  background: color-mix(in srgb, var(--pulso-danger-bg) 70%, transparent);
+  color: var(--pulso-danger-fg);
+}
+
+/* Lista compacta de observaciones al pie de la ficha ejecutiva. */
+.cmv2-sal-observaciones {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.cmv2-sal-observaciones li {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 9px 12px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pulso-warn-bg) 55%, transparent);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.cmv2-sal-observaciones li svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--pulso-warn-fg);
+}
+
+.cmv2-sal-observaciones li strong {
+  display: block;
+  color: var(--pulso-warn-fg);
+  font-size: 11.5px;
+}
+
+.cmv2-sal-observaciones li span {
+  color: var(--pulso-text);
+}
+
+.cmv2-sal-observaciones li span em {
+  font-style: normal;
+  font-weight: 650;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-sal-observaciones li[data-nivel="danger"] {
+  border-color: var(--pulso-danger-border);
+  background: color-mix(in srgb, var(--pulso-danger-bg) 55%, transparent);
+}
+
+.cmv2-sal-observaciones li[data-nivel="danger"] svg,
+.cmv2-sal-observaciones li[data-nivel="danger"] strong {
+  color: var(--pulso-danger-fg);
+}
+
 /* --- Cierre: línea de reproducibilidad compacta ------------------------------ */
 .cmv2-sal-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 14px;
+  gap: 8px 18px;
   align-items: baseline;
-  padding: 9px 12px;
+  padding: 10px 14px;
   border: 1px solid var(--cmv2-border);
   border-radius: 10px;
   background: var(--cmv2-surface-tint);
@@ -238,13 +386,25 @@
   font-weight: 700;
   cursor: pointer;
   color: var(--pulso-text-muted);
-  transition: color 150ms var(--cmv2-ease-in-out, ease-in-out);
+  transition:
+    color 150ms var(--cmv2-ease-in-out, ease-in-out),
+    transform 160ms var(--cmv2-ease-out, ease-out);
 }
 
 .pulso-segmented.cmv2-sal-pii-segment > button.is-active {
   background: transparent;
   box-shadow: none;
   color: #fff;
+}
+
+.pulso-segmented.cmv2-sal-pii-segment > button:active {
+  transform: scale(0.96);
+}
+
+.pulso-segmented.cmv2-sal-pii-segment > button:focus-visible {
+  outline: 2px solid transparent;
+  border-radius: var(--pulso-radius-chip, 999px);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cmv2-accent) 26%, transparent);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -335,11 +495,49 @@
   color: var(--pulso-text);
 }
 
+/* --- Entregables: card del reporte metodológico -------------------------------
+   La tarjeta didáctica (cmv2-did-sal-card) encabeza la pestaña: aquí se
+   promueve a nivel panel (superficie raised + sombra de panel, padding 20)
+   para que el primer bloque pese igual que sus hermanos. */
+.cmv2-sal-stack > .cmv2-did-sal-card {
+  border-radius: var(--pulso-radius-panel);
+  background: var(--cmv2-surface-raised);
+  box-shadow: var(--cmv2-shadow-panel);
+  padding: 18px 20px;
+  gap: 12px;
+}
+
+/* Segmented HTML/PDF fino: estados completos sin mover el layout. */
+.cmv2-sal-stack .cmv2-did-segment button {
+  min-height: 26px;
+  padding: 3px 12px;
+  font-weight: 700;
+  transition:
+    color 150ms var(--cmv2-ease-in-out, ease-in-out),
+    background-color 150ms var(--cmv2-ease-in-out, ease-in-out),
+    transform 160ms var(--cmv2-ease-out, ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-sal-stack .cmv2-did-segment button:not([data-active="true"]):hover {
+    color: var(--pulso-text);
+  }
+}
+
+.cmv2-sal-stack .cmv2-did-segment button:active {
+  transform: scale(0.96);
+}
+
+.cmv2-sal-stack .cmv2-did-segment button:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cmv2-accent) 24%, transparent);
+}
+
 /* --- Entregables: tarjetas por destino --------------------------------------- */
 .cmv2-sal-destinos {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px;
   align-items: start;
 }
 
@@ -442,6 +640,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 26px;
   padding: 5px 10px;
   border: 1px solid var(--cmv2-border);
   border-radius: 999px;
@@ -453,13 +652,28 @@
   transition:
     border-color 150ms var(--motion-ease-out),
     background-color 150ms var(--motion-ease-out),
-    color 150ms var(--motion-ease-out);
+    color 150ms var(--motion-ease-out),
+    transform 160ms var(--motion-ease-out);
 }
 
 .cmv2-sal-tablas label:has(input:checked) {
   border-color: var(--cmv2-accent-border);
   background: var(--cmv2-accent-soft);
   color: var(--cmv2-accent-fg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-sal-tablas label:not(:has(input:checked)):hover {
+    border-color: var(--cmv2-border-strong);
+  }
+}
+
+.cmv2-sal-tablas label:active {
+  transform: scale(var(--cmv2-press-scale, 0.97));
+}
+
+.cmv2-sal-tablas label:has(input:focus-visible) {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cmv2-accent) 22%, transparent);
 }
 
 .cmv2-sal-tablas input {
@@ -490,13 +704,28 @@
   transition:
     border-color 150ms var(--motion-ease-out),
     background-color 150ms var(--motion-ease-out),
-    color 150ms var(--motion-ease-out);
+    color 150ms var(--motion-ease-out),
+    transform 160ms var(--motion-ease-out);
 }
 
 .cmv2-sal-stack .cmv2-report-check:has(input:checked) {
   border-color: var(--cmv2-accent-border);
   background: var(--cmv2-accent-soft);
   color: var(--cmv2-accent-fg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-sal-stack .cmv2-report-check:not(:has(input:checked)):hover {
+    border-color: var(--cmv2-border-strong);
+  }
+}
+
+.cmv2-sal-stack .cmv2-report-check:active {
+  transform: scale(var(--cmv2-press-scale, 0.97));
+}
+
+.cmv2-sal-stack .cmv2-report-check:has(input:focus-visible) {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cmv2-accent) 22%, transparent);
 }
 
 .cmv2-sal-stack .cmv2-report-check input {
@@ -546,4 +775,352 @@
 
 .cmv2-sal-profundidad span[data-tono="alerta"] i {
   color: var(--pulso-warn-fg, var(--pulso-text));
+}
+
+/* -----------------------------------------------------------------------------
+   Historial de corridas (Cierre, bajo la ficha ejecutiva): lista compacta de
+   corridas registradas y comparación de dos diseños lado a lado con deltas.
+   ----------------------------------------------------------------------------- */
+
+/* El disclosure vive al nivel del stack: superficie raised sin sombra para
+   quedar un peldaño por debajo de los paneles, integrado bajo la ficha. */
+.cmv2-sal-stack > .cmv2-uni-avanzado {
+  background: var(--cmv2-surface-raised);
+}
+
+.cmv2-sal-historial {
+  display: grid;
+  gap: 10px;
+}
+
+.cmv2-sal-historial-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.cmv2-sal-historial-lista button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 8px;
+  background: var(--cmv2-surface-tint);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms var(--cmv2-ease-out, ease-out),
+    background-color 160ms var(--cmv2-ease-out, ease-out),
+    transform 160ms var(--cmv2-ease-out, ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-sal-historial-lista button:not([data-activa]):hover {
+    border-color: var(--cmv2-border-strong);
+    background: color-mix(in srgb, var(--cmv2-accent) 4%, var(--cmv2-surface-tint));
+  }
+}
+
+.cmv2-sal-historial-lista button:active {
+  transform: scale(var(--cmv2-press-scale, 0.97));
+}
+
+.cmv2-sal-historial-lista button:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cmv2-accent) 24%, transparent);
+}
+
+.cmv2-sal-historial-lista button[data-activa] {
+  border-color: var(--cmv2-accent-border, var(--cmv2-border-strong));
+  background: var(--cmv2-accent-soft);
+}
+
+.cmv2-sal-historial-check {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--cmv2-border-strong);
+  border-radius: 4px;
+  background: transparent;
+  transition: background 160ms ease-out, border-color 160ms ease-out;
+}
+
+.cmv2-sal-historial-lista button[data-activa] .cmv2-sal-historial-check {
+  border-color: var(--cmv2-accent-fg);
+  background: var(--cmv2-accent-fg);
+}
+
+.cmv2-sal-historial-fecha {
+  flex: none;
+  min-width: 96px;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-sal-historial-lista .cmv2-pill-soft[data-tipo="seleccion"] {
+  border-color: var(--pulso-info-border, var(--cmv2-border));
+  background: var(--pulso-info-bg, var(--cmv2-surface-tint));
+  color: var(--pulso-info-fg, var(--pulso-text));
+}
+
+.cmv2-sal-historial-metodo {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-sal-historial-semilla {
+  flex: none;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-sal-historial-lista b {
+  flex: none;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-sal-historial-comparacion {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 10px;
+  background: var(--cmv2-surface-tint);
+}
+
+.cmv2-sal-historial-comparacion-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--pulso-text);
+}
+
+.cmv2-sal-historial-comparacion-head svg {
+  flex: none;
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-sal-historial-comparacion table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-sal-historial-comparacion th,
+.cmv2-sal-historial-comparacion td {
+  padding: 4px 8px;
+  border-top: 1px solid var(--cmv2-border);
+  text-align: right;
+}
+
+.cmv2-sal-historial-comparacion thead th {
+  border-top: 0;
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cmv2-sal-historial-comparacion th[scope="row"],
+.cmv2-sal-historial-comparacion thead th:first-child {
+  text-align: left;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.cmv2-sal-historial-comparacion td[data-delta] {
+  font-weight: 800;
+  color: var(--cmv2-accent-fg);
+}
+
+/* -----------------------------------------------------------------------------
+   Paquete de defensa (Entregables): CTA de un clic + checklist de 3 piezas
+   con estado (pendiente / en curso / ok / error) y descarga por pieza.
+   ----------------------------------------------------------------------------- */
+
+.cmv2-sal-paquete-hint {
+  color: var(--pulso-warn-fg, var(--pulso-text-muted));
+}
+
+.cmv2-sal-paquete-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.cmv2-sal-paquete-lista li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 10px;
+  background: var(--cmv2-surface-tint);
+  transition: border-color 200ms ease-out, background 200ms ease-out;
+}
+
+.cmv2-sal-paquete-lista li > svg {
+  flex: none;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-sal-paquete-lista li > div {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.cmv2-sal-paquete-lista li strong {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--pulso-text);
+}
+
+.cmv2-sal-paquete-lista li strong em {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-sal-paquete-lista li small {
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-sal-paquete-lista li a {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cmv2-sal-paquete-lista li[data-status="ok"] {
+  border-color: var(--pulso-success-border, var(--cmv2-accent-border));
+  background: color-mix(in srgb, var(--pulso-success-bg, var(--cmv2-accent-soft)) 45%, transparent);
+}
+
+.cmv2-sal-paquete-lista li[data-status="ok"] > svg,
+.cmv2-sal-paquete-lista li[data-status="ok"] strong em {
+  color: var(--pulso-success-fg, var(--cmv2-accent-fg));
+}
+
+.cmv2-sal-paquete-lista li[data-status="error"] {
+  border-color: var(--pulso-danger-border);
+  background: color-mix(in srgb, var(--pulso-danger-bg) 45%, transparent);
+}
+
+.cmv2-sal-paquete-lista li[data-status="error"] > svg,
+.cmv2-sal-paquete-lista li[data-status="error"] strong em {
+  color: var(--pulso-danger-fg);
+}
+
+.cmv2-sal-paquete-lista li[data-status="curso"] > svg,
+.cmv2-sal-paquete-lista li[data-status="curso"] strong em {
+  color: var(--pulso-info-fg, var(--pulso-text));
+}
+
+/* -----------------------------------------------------------------------------
+   Tablas de la sección (cuotas, plan para Monitoreo, reemplazos): th finos y
+   apagados con borde inferior firme, numéricas a la derecha con tabular-nums,
+   totales separados y hover de fila con tinte leve del acento.
+   ----------------------------------------------------------------------------- */
+
+.cmv2-sal-stack .cmv2-table th {
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  color: var(--pulso-text-muted);
+  border-bottom-color: var(--cmv2-border-strong);
+}
+
+/* Cuotas por facultad y sexo: todas las columnas salvo Facultad son cifras. */
+.cmv2-sal-stack .cmv2-table--university th:not(:first-child),
+.cmv2-sal-stack .cmv2-table--university td:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Plan de aulas y sugerencias de reemplazo: elegibles, probabilidad, peso,
+   repetidos y deltas viven de la columna 5 en adelante. */
+.cmv2-sal-stack .cmv2-classroom-table th:nth-child(n + 5),
+.cmv2-sal-stack .cmv2-classroom-table td:nth-child(n + 5) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* La tabla de impacto (segunda del stack de reemplazos) cierra con la columna
+   de advertencia, que es texto: vuelve a la izquierda. */
+.cmv2-sal-stack .cmv2-classroom-replacement-stack .cmv2-classroom-table-wrap:nth-of-type(2) th:last-child,
+.cmv2-sal-stack .cmv2-classroom-replacement-stack .cmv2-classroom-table-wrap:nth-of-type(2) td:last-child {
+  text-align: left;
+  font-variant-numeric: normal;
+}
+
+.cmv2-sal-stack .cmv2-total-row td {
+  border-top: 1px solid var(--cmv2-border-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-sal-stack .cmv2-table tbody tr:not(.cmv2-total-row):hover td {
+    background: color-mix(in srgb, var(--cmv2-accent) 4%, transparent);
+  }
+
+  .cmv2-sal-stack .cmv2-table tbody tr.cmv2-total-row:hover td {
+    background: var(--pulso-surface-2);
+  }
+}
+
+/* Tabla del plan a escala real (cientos de filas): el scroll queda dentro del
+   contenedor de la tabla, adaptado al alto disponible; el th sticky ya viene
+   del patrón compartido. */
+.cmv2-sal-stack .cmv2-classroom-table-wrap {
+  max-height: min(56vh, 520px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-sal-stack,
+  .cmv2-sal-historial-lista button,
+  .cmv2-sal-historial-check,
+  .cmv2-sal-paquete-lista li,
+  .cmv2-sal-tablas label,
+  .cmv2-sal-stack .cmv2-report-check,
+  .pulso-segmented.cmv2-sal-pii-segment > button,
+  .cmv2-sal-stack .cmv2-did-segment button {
+    transition: none;
+    animation: none;
+  }
+
+  .cmv2-sal-historial-lista button:active,
+  .cmv2-sal-tablas label:active,
+  .cmv2-sal-stack .cmv2-report-check:active,
+  .pulso-segmented.cmv2-sal-pii-segment > button:active,
+  .cmv2-sal-stack .cmv2-did-segment button:active {
+    transform: none;
+  }
 }
