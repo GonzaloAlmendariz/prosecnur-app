@@ -253,8 +253,22 @@ calc_muestra_normalize_estudio <- function(estudio = list()) {
     variable_mappings = .cm_normalize_workspace_variable_mappings(ws$variable_mappings),
     publication_config = .cm_normalize_workspace_publication_config(ws$publication_config),
     aulas_config = .cm_normalize_workspace_aulas_config(ws$aulas_config),
-    notas_diseno = calc_str(ws$notas_diseno, "")
+    notas_diseno = calc_str(ws$notas_diseno, ""),
+    run_history = .cm_normalize_workspace_run_history(ws$run_history)
   )
+}
+
+# Mini-historial de corridas (cálculo/selección) que el frontend registra en
+# el workspace. Passthrough con dos garantías: solo entradas con id y cap de
+# 12 (FIFO: se conservan las últimas). Proyectos viejos sin el campo -> list().
+.cm_normalize_workspace_run_history <- function(items) {
+  if (is.null(items) || !is.list(items) || length(items) == 0L) return(list())
+  out <- Filter(function(item) {
+    is.list(item) && nzchar(calc_str(item$id, ""))
+  }, items)
+  n <- length(out)
+  if (n > 12L) out <- out[(n - 11L):n]
+  out
 }
 
 .cm_normalize_workspace_source_bindings <- function(items) {
