@@ -586,8 +586,12 @@ test_that("PDF cliente territorial usa conteos del Sheets cliente", {
   testthat::skip_if(is.null(pdf_text), "No PDF text extractor available")
   expect_true(grepl("Documento de avance", pdf_text, fixed = TRUE))
   expect_true(grepl("Avance del recojo territorial", pdf_text, fixed = TRUE))
-  expect_true(grepl("Corte 18 jun. 2026", pdf_text, fixed = TRUE))
-  expect_true(grepl("Fuente: información de campo", pdf_text, fixed = TRUE))
+  # La cabecera ahora reporta la ventana de trabajo de campo (primer→último día
+  # con recojo, solo fecha) en lugar del corte, y el pie identifica a Pulso.
+  expect_true(grepl("CAMPO", pdf_text, fixed = TRUE))
+  expect_true(grepl("10 jun. 2026", pdf_text, fixed = TRUE))
+  expect_true(grepl("16 jun. 2026", pdf_text, fixed = TRUE))
+  expect_true(grepl("PULSO PUCP", pdf_text, fixed = TRUE))
   expect_true(grepl(paste0("ENCUESTAS\n", expected_total), pdf_text, fixed = TRUE))
   for (value in district_effective) {
     expect_true(grepl(paste0("ENCUESTAS\n", as.integer(value)), pdf_text, fixed = TRUE))
