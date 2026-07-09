@@ -50,6 +50,24 @@ job_submit <- function(sid,
   # para no colisionar con args del inner func.
   repo_root <- Sys.getenv("PULSO_REPO_ROOT", "")
   api_dir <- Sys.getenv("PULSO_API_DIR", "")
+
+  # Si `func` es una funcion top-level del paquete y no trae la marca
+  # `prosecnur_job_function_name`, derivarla automaticamente. Sin la marca,
+  # el closure viaja serializado con una REFERENCIA a namespace:prosecnurapp
+  # que el worker resuelve cargando el paquete INSTALADO (potencialmente
+  # desactualizado) en vez del codigo dev de load_all — ver bootstrap abajo.
+  if (is.null(attr(func, "prosecnur_job_function_name", exact = TRUE))) {
+    ns <- tryCatch(asNamespace("prosecnurapp"), error = function(e) NULL)
+    if (!is.null(ns) && identical(environment(func), ns)) {
+      for (nm in ls(ns, all.names = TRUE)) {
+        cand <- tryCatch(get(nm, envir = ns, inherits = FALSE), error = function(e) NULL)
+        if (is.function(cand) && identical(cand, func)) {
+          attr(func, "prosecnur_job_function_name") <- nm
+          break
+        }
+      }
+    }
+  }
   bootstrap <- function(.__job_inner_func__, .__job_repo_root__, .__job_api_dir__, .__job_args__) {
     # Locale UTF-8 en el subprocess. Igual que en launcher/launch.R: sin
     # esto, pkgload::load_all falla al parsear .R que tienen tildes en
@@ -109,16 +127,31 @@ job_submit <- function(sid,
       )
       if (is.function(fresh_func)) .__job_inner_func__ <- fresh_func
     }
-    inner_formals <- tryCatch(names(formals(.__job_inner_func__)), error = function(e) NULL)
-    if (!is.null(inner_formals) &&
-        !("..." %in% inner_formals) &&
-        "progress_path" %in% names(.__job_args__) &&
-        !("progress_path" %in% inner_formals)) {
-      .__job_args__$progress_path <- NULL
+    # NA = no pudimos inspeccionar formals (conservador: no tocar args).
+    # NULL/character(0) = funcion sin argumentos -> tambien hay que dropear
+    # progress_path (names(formals()) devuelve NULL en ese caso).
+    inner_formals <- tryCatch(names(formals(.__job_inner_func__)), error = function(e) NA)
+    if (!identical(inner_formals, NA)) {
+      inner_formals <- as.character(inner_formals %||% character(0))
+      if (!("..." %in% inner_formals) &&
+          "progress_path" %in% names(.__job_args__) &&
+          !("progress_path" %in% inner_formals)) {
+        .__job_args__$progress_path <- NULL
+      }
     }
     do.call(.__job_inner_func__, .__job_args__)
   }
 
+  # Locale UTF-8 ANTES de que el worker deserialice func/args. Los closures
+  # del paquete viajan con una referencia a namespace:prosecnurapp que el
+  # worker resuelve AL DESERIALIZAR (antes de que corra el bootstrap): si en
+  # ese momento el locale es "C" (app lanzada desde Finder/Electron sin LC_*),
+  # los bindings con nombres no-ASCII del paquete INSTALADO quedan con el
+  # nombre mangleado (ej. `.transformar_seg<U+00FA>n_modo`) y el load_all
+  # posterior muere con `no binding for ".transformar_según_modo"`. Forzar
+  # LC_ALL UTF-8 en el env del subproceso arregla la secuencia de raiz.
+  parent_lc <- Sys.getenv("LC_ALL", "")
+  worker_lc <- if (grepl("UTF-8", parent_lc, ignore.case = TRUE)) parent_lc else "en_US.UTF-8"
   rx <- callr::r_bg(
     func = bootstrap,
     args = list(
@@ -130,7 +163,8 @@ job_submit <- function(sid,
     stdout = file.path(jobs_dir, paste0(job_id, ".out")),
     stderr = file.path(jobs_dir, paste0(job_id, ".err")),
     supervise = TRUE,
-    libpath = libpath
+    libpath = libpath,
+    env = c(callr::rcmd_safe_env(), LC_ALL = worker_lc, LANG = worker_lc)
   )
 
   .jobs[[job_id]] <- list(
