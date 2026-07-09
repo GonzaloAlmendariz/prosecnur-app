@@ -5079,20 +5079,30 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   }
   codes <- as.character(data[[code_col]])
   umps <- .monitoreo_ump_norm_key(data[[ump_col]])
-  resp <- vapply(codes, function(code) {
+  # Nombre del encuestador SOLO si el código pulso está reconocido en el roster.
+  names_resolved <- vapply(codes, function(code) {
     k <- .monitoreo_territorial_clean_code(code, roster$code_format)
     if (nzchar(k) && exists(k, envir = code_lookup, inherits = FALSE)) get(k, envir = code_lookup, inherits = FALSE) else ""
   }, character(1))
-  # Si el roster no resuelve el código, usar el propio código pulso como responsable.
-  no_name <- !nzchar(resp) & nzchar(codes)
-  resp[no_name] <- trimws(codes[no_name])
-  keep <- nzchar(umps) & nzchar(resp)
+  raw_codes <- trimws(codes)
   out <- list()
-  if (!any(keep)) return(out)
-  for (u in unique(umps[keep])) {
-    idx <- which(keep & umps == u)
-    tb <- sort(table(resp[idx]), decreasing = TRUE)
-    out[[u]] <- names(tb)[1]
+  for (u in unique(umps[nzchar(umps)])) {
+    idx <- which(umps == u)
+    # Preferir el encuestador RECONOCIDO (código en el roster) sobre un código
+    # no registrado (ej. "1091"): el responsable real es el encuestador del roster.
+    res <- names_resolved[idx]
+    res <- res[nzchar(res)]
+    if (length(res)) {
+      tb <- sort(table(res), decreasing = TRUE)
+      out[[u]] <- names(tb)[1]
+    } else {
+      rc <- raw_codes[idx]
+      rc <- rc[nzchar(rc)]
+      if (length(rc)) {
+        tb <- sort(table(rc), decreasing = TRUE)
+        out[[u]] <- names(tb)[1]
+      }
+    }
   }
   out
 }
