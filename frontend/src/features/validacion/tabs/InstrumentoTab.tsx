@@ -285,10 +285,17 @@ export default function InstrumentoTab() {
   // reglas evaluadas con éxito sin inconsistencias.
   const rulesByGroup = useMemo(() => {
     const conCasos: typeof compactRules = [];
+    const desalineadas: typeof compactRules = [];
     const noAplicables: typeof compactRules = [];
     const noEvaluadas: typeof compactRules = [];
     for (const row of compactRules) {
-      if ((row.nInconsistencias ?? 0) > 0) {
+      if (row.estadoDinamico === "desalineada") {
+        // Regla desalineada con los datos: compara una columna contra un valor
+        // que no existe en la base (p.ej. consent=='OK' sobre datos 1/0), señal
+        // de desfase entre la versión del instrumento y los datos. No se cuenta
+        // como inconsistencia — se muestra como alerta accionable arriba.
+        desalineadas.push(row);
+      } else if ((row.nInconsistencias ?? 0) > 0) {
         conCasos.push(row);
       } else if (row.estadoDinamico === "no_aplicable") {
         noAplicables.push(row);
@@ -301,7 +308,7 @@ export default function InstrumentoTab() {
         conCasos.push(row);
       }
     }
-    return { conCasos, noAplicables, noEvaluadas };
+    return { conCasos, desalineadas, noAplicables, noEvaluadas };
   }, [compactRules]);
 
   const activeDisplayName = useMemo(() => {
@@ -1057,6 +1064,7 @@ function buildRowHoverLookup(
 // evaluadas). Cada subsección se oculta si no tiene reglas.
 type Groups = {
   conCasos: CompactRuleRow[];
+  desalineadas: CompactRuleRow[];
   noAplicables: CompactRuleRow[];
   noEvaluadas: CompactRuleRow[];
 };
@@ -1083,6 +1091,18 @@ function RuleGroupsSection({
         gap: 18,
       }}
     >
+      {groups.desalineadas.length > 0 && (
+        <RuleSubGroup
+          title="Reglas desalineadas con los datos"
+          hint="Estas reglas comparan una variable contra un valor que no existe en tu base (p.ej. consent='OK' cuando los datos usan 1/0). Es la firma de un desfase entre la versión del instrumento con la que se armó el plan y la versión con la que se levantaron los datos. No se contabilizan como inconsistencias para evitar falsos positivos masivos: revisa que el instrumento de validación coincida con el desplegado."
+          countLabel={(n) => `${n} ${n === 1 ? "regla" : "reglas"}`}
+          rows={groups.desalineadas}
+          selectedRuleId={selectedRuleId}
+          onSelect={onSelect}
+          clickable={false}
+          tone="warn"
+        />
+      )}
       <RuleSubGroup
         title="Reglas con inconsistencias"
         hint="Casos detectados — click en una tarjeta para abrir los detalles."
@@ -1331,6 +1351,14 @@ function describeRuleReason(row: CompactRuleRow): { badge: string; explanation: 
     return {
       badge: "Error de ejecución",
       explanation: row.detalle ?? "La regla falló al evaluarse — revisa la expresión.",
+    };
+  }
+  if (row.estadoDinamico === "desalineada") {
+    return {
+      badge: "Desalineada",
+      explanation:
+        row.detalle ??
+        "La regla compara contra un valor que no existe en los datos — probable desfase de versión del instrumento.",
     };
   }
   return { badge: row.estadoDinamico ?? "—", explanation: row.detalle ?? "" };

@@ -650,6 +650,77 @@ test_that("evaluate_rules: detecta inconsistencias de required + range + constra
   expect_equal(constraint_rules$n_inconsistencias[1], 1L)  # solo U2 edad=150
 })
 
+test_that("guardrail de dominio: gate con valor ausente (texto vs numérico) marca desalineada", {
+  # Reproduce el desfase de versión ACNUR: regla generada con consent=='OK'
+  # (codificación acknowledge de una versión vieja del instrumento) evaluada
+  # sobre datos donde consent es 1/0. El gate nunca se cumpliría → sin guardrail
+  # las reglas de salto disparan en falso sobre toda la base.
+  rule <- list(
+    id = "r_ok", nombre = "requiere q1 si consintió", tipo_regla = "required",
+    categoria_ux = "completitud", severidad = "media", fuente = "test",
+    tabla = "principal", seccion = NA_character_, flag_name = "flag_r_ok",
+    variable_roles = list(target = "q1", gate = "consent"),
+    gate = ast_compare_const("consent", "==", "OK"),
+    predicate = ast_is_missing("q1")
+  )
+  data <- data.frame(
+    consent = c(rep("1", 30), rep("0", 10)),
+    q1 = c(rep("a", 20), rep(NA_character_, 20)),
+    stringsAsFactors = FALSE
+  )
+  ev <- evaluate_rules(list(rule), data)
+  expect_equal(ev$resumen$estado[1], "desalineada")
+  expect_equal(ev$resumen$issue_code[1], "domain_mismatch")
+  expect_equal(ev$resumen$n_inconsistencias[1], 0L)
+  expect_match(ev$resumen$detalle[1], "consent", fixed = TRUE)
+  expect_match(ev$resumen$detalle[1], "OK", fixed = TRUE)
+})
+
+test_that("guardrail de dominio: código numérico válido sin casos NO se marca desalineada", {
+  # Precisión: un gate `q5 == '98'` cuyo valor simplemente no tiene casos en los
+  # datos (dominio numérico, mismo esquema de codificación) es una regla legítima
+  # que no aplica, NO un desfase de versión. No debe marcarse desalineada.
+  rule <- list(
+    id = "r_98", nombre = "requiere q6 si q5==98", tipo_regla = "required",
+    categoria_ux = "completitud", severidad = "media", fuente = "test",
+    tabla = "principal", seccion = NA_character_, flag_name = "flag_r_98",
+    variable_roles = list(target = "q6", gate = "q5"),
+    gate = ast_compare_const("q5", "==", "98"),
+    predicate = ast_is_missing("q6")
+  )
+  data <- data.frame(
+    q5 = c(rep("1", 25), rep("2", 15)),
+    q6 = c(rep("x", 20), rep(NA_character_, 20)),
+    stringsAsFactors = FALSE
+  )
+  ev <- evaluate_rules(list(rule), data)
+  expect_false(identical(ev$resumen$estado[1], "desalineada"))
+  expect_false(identical(ev$resumen$issue_code[1], "domain_mismatch"))
+})
+
+test_that("guardrail de dominio: valor presente en los datos NO se marca desalineada", {
+  # Cuando el instrumento y los datos usan la misma codificación (consent=='1'),
+  # el valor sí aparece y la regla evalúa normalmente.
+  rule <- list(
+    id = "r_1", nombre = "requiere q1 si consintió", tipo_regla = "required",
+    categoria_ux = "completitud", severidad = "media", fuente = "test",
+    tabla = "principal", seccion = NA_character_, flag_name = "flag_r_1",
+    variable_roles = list(target = "q1", gate = "consent"),
+    gate = ast_compare_const("consent", "==", "1"),
+    predicate = ast_is_missing("q1")
+  )
+  data <- data.frame(
+    consent = c(rep("1", 30), rep("0", 10)),
+    q1 = c(rep("a", 20), rep(NA_character_, 20)),
+    stringsAsFactors = FALSE
+  )
+  ev <- evaluate_rules(list(rule), data)
+  expect_false(identical(ev$resumen$estado[1], "desalineada"))
+  # 10 consintieron (filas 21-30 con consent==1) pero q1 NA → inconsistencias reales
+  expect_equal(ev$resumen$estado[1], "correcta")
+  expect_true(ev$resumen$n_inconsistencias[1] > 0L)
+})
+
 test_that("evaluate_rules: __today__ se resuelve desde columna 'end'", {
   survey <- data.frame(
     type = c("date"),
