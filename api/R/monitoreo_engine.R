@@ -20084,7 +20084,7 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   partial_col <- "#b7791f"
   refusal_col <- "#be123c"
   pending_col <- "#98a2b3"
-  navy <- "#06346f"
+  navy <- "#002457"  # navy canónico de marca (alineado a pulso_pdf_tokens/plotly)
 
   page_no <- 0L
   pdf_links <- list()
@@ -20175,12 +20175,14 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
     grid::grid.newpage()
     rect(0, 0, 1, 1, canvas, col = NA)
     rect(0, 0.925, 1, 0.075, "#ffffff", col = NA)
-    line(0.045, 0.925, 0.955, 0.925, col = border, lwd = 0.8)
+    rect(0, 0.925, 1, 0.005, navy, col = NA)
     logo_w <- draw_pulso_logo(0.055, 0.960, height = 0.032)
     title_x <- 0.055 + logo_w + 0.018
     txt(ellipsize(report_title, 64), title_x, 0.958, size = 12.2, col = ink, face = "bold")
-    txt(generated_label, 0.945, 0.958, size = 7.2, col = muted, face = "bold", just = c("right", "center"))
+    txt(paste("Corte", generated_label), 0.945, 0.958, size = 7.2, col = muted, face = "bold", just = c("right", "center"))
+    line(0.055, 0.048, 0.945, 0.048, col = border, lwd = 0.7)
     txt("Avance", 0.055, 0.025, size = 6.2, col = faint, face = "bold")
+    txt(generated_label, 0.500, 0.025, size = 6.2, col = faint, face = "bold", just = c("center", "center"))
     txt(paste("Página", page_no), 0.945, 0.025, size = 6.2, col = faint, just = c("right", "center"))
   }
   metric_box <- function(x, y, w, h, label, value, hint = "", tone = "neutral") {
@@ -20282,31 +20284,62 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
       }
     }
   }
+  draw_progress_ring <- function(cx, cy, size, pct, caption = "AVANCE") {
+    pct_real <- suppressWarnings(as.numeric(pct))
+    fill_pct <- if (is.finite(pct_real)) max(0, min(1, pct_real)) else 0
+    grid::pushViewport(grid::viewport(x = grid::unit(cx, "npc"), y = grid::unit(cy, "npc"),
+                                      width = grid::unit(size, "snpc"), height = grid::unit(size, "snpc")))
+    grid::grid.circle(grid::unit(0.5, "npc"), grid::unit(0.5, "npc"), r = grid::unit(0.44, "snpc"),
+                      gp = grid::gpar(fill = NA, col = grid_line, lwd = 8.5))
+    if (fill_pct > 0) {
+      theta <- seq(pi / 2, pi / 2 - 2 * pi * fill_pct, length.out = max(8, ceiling(120 * fill_pct)))
+      grid::grid.lines(grid::unit(0.5 + 0.44 * cos(theta), "npc"), grid::unit(0.5 + 0.44 * sin(theta), "npc"),
+                       gp = grid::gpar(col = effective, lwd = 8.5, lineend = "round"))
+    }
+    grid::upViewport()
+    txt(pct_label(pct_real), cx, cy + 0.004, size = 11.5, col = ink, face = "bold", just = c("center", "center"))
+    txt(caption, cx, cy - size * 0.170, size = 5.2, col = muted, face = "bold", just = c("center", "center"))
+  }
   draw_actor_overview_card <- function(row, x, y, w, h, target_page_index = NULL) {
     actor <- as.character(row$Actor[[1]] %||% "")
     state <- actor_state(row)
     pct <- if (state$universo > 0) min(1, state$efectivas / state$universo) else 0
     rr(x, y, w, h, fill = "#ffffff", col = border, lwd = 1.1, r = 0.018)
-    rect(x, y + h - 0.006, w, 0.006, effective, col = NA)
+    rect(x, y + h - 0.006, w, 0.006, navy, col = NA)
     txt(ellipsize(actor, 32), x + 0.018, y + h - 0.034, size = 11.0, col = ink, face = "bold", just = c("left", "top"))
     draw_chip(x + w - 0.118, y + h - 0.034, "Ver detalle", fill = "#f8fbff", col = "#d9e3f0", text_col = navy, w = 0.100)
     txt(paste(fmt(state$efectivas), "efectivas de", fmt(state$universo)), x + 0.018, y + h - 0.067, size = 7.0, col = muted, face = "bold", just = c("left", "center"))
     txt(pct_label(pct), x + w - 0.020, y + h - 0.067, size = 9.0, col = ink, face = "bold", just = c("right", "center"))
     draw_state_composition(x + 0.018, y + h - 0.092, w - 0.036, 0.015, state, compact = TRUE)
-    tile_gap <- 0.010
-    tile_w <- (w - 0.046 - tile_gap) / 2
-    tile_gap_y <- min(0.014, max(0.006, h * 0.035))
-    tile_top_limit <- y + h - 0.110
-    tile_bottom_limit <- y + 0.020
-    tile_available <- max(0.112, tile_top_limit - tile_bottom_limit)
-    tile_h <- min(0.083, max(0.052, (tile_available - tile_gap_y) / 2))
-    tile_grid_h <- tile_h * 2 + tile_gap_y
-    tile_y_bottom <- tile_bottom_limit + max(0, (tile_available - tile_grid_h) / 2)
-    tile_y_top <- tile_y_bottom + tile_h + tile_gap_y
-    actor_metric_tile(x + 0.018, tile_y_top, tile_w, tile_h, "Efectivas", state_value_label(state$efectivas, state$universo), "effective")
-    actor_metric_tile(x + 0.028 + tile_w, tile_y_top, tile_w, tile_h, "Parciales", state_value_label(state$parciales, state$universo), "partial")
-    actor_metric_tile(x + 0.018, tile_y_bottom, tile_w, tile_h, "Rechazo", state_value_label(state$rechazo, state$universo), "refusal")
-    actor_metric_tile(x + 0.028 + tile_w, tile_y_bottom, tile_w, tile_h, "Sin respuesta", state_value_label(state$sin_respuesta, state$universo), "pending")
+    # Zona inferior: anillo de avance + filas de estado (composición sofisticada,
+    # reemplaza la grilla de cajitas pastel).
+    content_top <- y + h - 0.112
+    content_bottom <- y + 0.026
+    ring_size <- min(0.150, max(0.098, (content_top - content_bottom) * 0.72))
+    ring_cx <- x + w * 0.205
+    ring_cy <- (content_top + content_bottom) / 2 + 0.006
+    draw_progress_ring(ring_cx, ring_cy, ring_size, pct)
+    divider_x <- x + w * 0.40
+    line(divider_x, content_bottom + 0.008, divider_x, content_top - 0.008, col = grid_line, lwd = 0.8)
+    rows <- list(
+      list(label = "Efectivas", value = state$efectivas, color = effective),
+      list(label = "Parciales", value = state$parciales, color = partial_col),
+      list(label = "Rechazo", value = state$rechazo, color = refusal_col),
+      list(label = "Sin respuesta", value = state$sin_respuesta, color = pending_col)
+    )
+    row_x <- divider_x + 0.026
+    row_step <- (content_top - content_bottom) / length(rows)
+    ry <- content_top - row_step / 2
+    for (r in rows) {
+      grid::grid.circle(grid::unit(row_x, "npc"), grid::unit(ry, "npc"), r = grid::unit(0.0042, "snpc"),
+                        gp = grid::gpar(fill = r$color, col = NA))
+      txt(r$label, row_x + 0.016, ry, size = 6.8, col = muted, face = "bold")
+      txt(fmt(r$value), x + w - 0.026, ry, size = 9.2, col = ink, face = "bold", just = c("right", "center"))
+      share <- if (state$universo > 0) sprintf("%.0f%%", 100 * r$value / state$universo) else ""
+      if (nzchar(share)) txt(share, x + w - 0.098, ry, size = 5.8, col = faint, face = "bold", just = c("right", "center"))
+      if (!identical(r$label, "Sin respuesta")) line(row_x, ry - row_step / 2, x + w - 0.026, ry - row_step / 2, col = grid_line, lwd = 0.5)
+      ry <- ry - row_step
+    }
     if (!is.null(target_page_index)) add_pdf_link(target_page_index, x, y, w, h, actor)
   }
   actor_overview_layout <- function(n) {
@@ -20350,8 +20383,13 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
       h = rep(h, 4)
     )
   }
+  draw_section_kicker <- function(label, y = 0.884) {
+    rect(0.055, y - 0.0065, 0.0048, 0.0145, navy, col = NA)
+    txt(label, 0.066, y, size = 6.6, col = navy, face = "bold", just = c("left", "center"))
+  }
   draw_actor_overview_page <- function(df) {
     draw_page()
+    draw_section_kicker("REPORTE EJECUTIVO")
     txt("Avance por actor", 0.055, 0.855, size = 18, col = ink, face = "bold")
     txt("Selecciona un grupo para ver su detalle diario y sus canales.", 0.055, 0.826, size = 7.6, col = muted, face = "bold")
     if (!nrow(df)) {
@@ -20733,6 +20771,7 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   }
   draw_sources_page <- function() {
     draw_page()
+    draw_section_kicker("TRAZABILIDAD")
     txt("Corte y fuentes", 0.055, 0.855, size = 18, col = ink, face = "bold")
     txt("Trazabilidad resumida del reporte cliente y criterio canónico usado para el avance.", 0.055, 0.826, size = 7.6, col = muted, face = "bold")
 
@@ -20766,14 +20805,15 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
       ), , drop = FALSE]
       rows <- source_rows[seq_len(min(7L, nrow(source_rows))), , drop = FALSE]
       header_y <- 0.500
-      txt("Actor", 0.075, header_y, size = 5.8, col = muted, face = "bold")
-      txt("Canal", 0.225, header_y, size = 5.8, col = muted, face = "bold")
-      txt("Fuente", 0.385, header_y, size = 5.8, col = muted, face = "bold")
-      txt("Efectivas", 0.790, header_y, size = 5.8, col = muted, face = "bold", just = c("right", "center"))
-      txt("Última completa", 0.925, header_y, size = 5.8, col = muted, face = "bold", just = c("right", "center"))
-      line(0.075, 0.486, 0.925, 0.486, col = grid_line, lwd = 0.65)
+      rect(0.070, header_y - 0.012, 0.860, 0.026, navy, col = NA)
+      txt("Actor", 0.078, header_y, size = 5.8, col = "#ffffff", face = "bold")
+      txt("Canal", 0.225, header_y, size = 5.8, col = "#ffffff", face = "bold")
+      txt("Fuente", 0.385, header_y, size = 5.8, col = "#ffffff", face = "bold")
+      txt("Efectivas", 0.790, header_y, size = 5.8, col = "#ffffff", face = "bold", just = c("right", "center"))
+      txt("Última completa", 0.922, header_y, size = 5.8, col = "#ffffff", face = "bold", just = c("right", "center"))
       row_y <- 0.463
       for (i in seq_len(nrow(rows))) {
+        if (i %% 2 == 0) rect(0.070, row_y - 0.0125, 0.860, 0.025, "#f4f7fb", col = NA)
         actor <- source_col(rows, "Actor", "Sin actor")[[i]]
         channel <- channel_alias(source_col(rows, "Canal", "Sin canal")[[i]])
         source <- source_label(source_col(rows, "Fuente", "")[[i]])
@@ -20813,6 +20853,7 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
       actor_sources <- sources[sources$Actor == actor, , drop = FALSE]
       state <- actor_state(actors[i, , drop = FALSE])
       draw_page()
+      draw_section_kicker("DETALLE POR ACTOR")
       txt(ellipsize(actor, 58), 0.055, 0.855, size = 18, col = ink, face = "bold")
       metric_box(0.055, 0.735, 0.205, 0.070, "Efectivas", state_value_label(state$efectivas, state$universo), "", "effective")
       metric_box(0.280, 0.735, 0.205, 0.070, "Parciales", state_value_label(state$parciales, state$universo), "", "partial")
@@ -20825,6 +20866,7 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   }
 
   draw_page()
+  draw_section_kicker("VISIÓN AGREGADA")
   txt("Avance general", 0.055, 0.855, size = 18, col = ink, face = "bold")
   txt("Vista agregada del corte luego del detalle por actor.", 0.055, 0.826, size = 7.6, col = muted, face = "bold")
   total_state <- list(
@@ -21069,6 +21111,47 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
   }
   encuestas_por_zona_num <- if (length(encuestas_por_zona_values) == 1L) encuestas_por_zona_values[[1]] else NA_real_
   encuestas_por_zona <- if (!length(encuestas_por_zona_values)) "S/D" else if (length(encuestas_por_zona_values) == 1L) fmt(encuestas_por_zona_num) else "Según ruta"
+
+  # --- Agregados del recojo diario (ritmo + efectividad), trazables al model ---
+  diario_df <- section("avance_diario")
+  if (!"Fecha" %in% names(diario_df)) diario_df <- data.frame()
+  if (nrow(diario_df)) diario_df <- diario_df[order(as.character(diario_df$Fecha)), , drop = FALSE]
+  recojo_registros <- if (nrow(diario_df) && "Total" %in% names(diario_df)) sum(num(diario_df$Total), na.rm = TRUE) else NA_real_
+  recojo_efectivas <- if (nrow(diario_df) && "Efectivas" %in% names(diario_df)) sum(num(diario_df$Efectivas), na.rm = TRUE) else NA_real_
+  efectividad_pct <- if (is.finite(recojo_registros) && recojo_registros > 0 && is.finite(recojo_efectivas) && recojo_efectivas > 0) {
+    100 * recojo_efectivas / recojo_registros
+  } else {
+    NA_real_
+  }
+  promedio_diario <- if (nrow(diario_df) > 0 && is.finite(recojo_efectivas) && recojo_efectivas > 0) {
+    recojo_efectivas / nrow(diario_df)
+  } else {
+    NA_real_
+  }
+
+  # --- Agregados de cuotas de sexo/edad (observado vs meta del diseño) --------
+  cuotas_df <- section("cuotas_resumen")
+  demo_cols_ok <- nrow(cuotas_df) > 0 &&
+    all(c("Sexo Hombre observado", "Sexo Mujer observado", "Sexo Hombre meta", "Sexo Mujer meta") %in% names(cuotas_df))
+  demo_meta_mask <- if (demo_cols_ok && "tipo_manzana" %in% names(cuotas_df)) {
+    # Las metas del diseño viven en las manzanas titulares; los reemplazos heredan la
+    # misma cuota y sumarlos duplicaría el diseño. Lo observado sí suma en todas.
+    .monitoreo_text_key(cuotas_df$tipo_manzana) != "reemplazo"
+  } else if (demo_cols_ok) {
+    rep(TRUE, nrow(cuotas_df))
+  } else {
+    logical(0)
+  }
+  demo_pair <- function(col) {
+    if (!demo_cols_ok) return(list(obs = NA_real_, meta = NA_real_))
+    obs_col <- paste(col, "observado")
+    meta_col <- paste(col, "meta")
+    if (!obs_col %in% names(cuotas_df)) return(list(obs = NA_real_, meta = NA_real_))
+    list(
+      obs = sum(num(cuotas_df[[obs_col]]), na.rm = TRUE),
+      meta = if (meta_col %in% names(cuotas_df)) sum(num(cuotas_df[[meta_col]])[demo_meta_mask], na.rm = TRUE) else NA_real_
+    )
+  }
 
   report_title <- title %||% "Avance territorial de campo"
   generated_label <- pretty_stamp(model$synced_at %||% model$generated_at %||% "")
@@ -21519,15 +21602,17 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
   }
   district_pct <- function(df, i) {
     label <- cell_value(df, c("Distrito", "Grupo"), i, "")
-    pct <- cell_num(df, c("% UMP efectivas", "% zonas aplicadas", "% manzanas muestrales"), i, NA_real_)
-    if (!is.finite(pct)) {
-      pct <- pct_from(district_sample_blocks(df, i, label), district_target_blocks(df, i, label))
-    }
-    if (!is.finite(pct)) pct <- cell_num(df, c("% avance encuestas", "% avance", "% avance poblacional"), i, NA_real_)
+    # Vista de cara al cliente: el avance del distrito se mide contra su CUOTA de
+    # encuestas (la cuota territorial establecida), no contra las manzanas/UMP
+    # aplicadas -- eso es un dato interno de Pulso. Prioridad: cumplimiento de cuota.
+    pct <- cell_num(df, c("% avance encuestas", "% avance", "% avance poblacional"), i, NA_real_)
     if (!is.finite(pct)) pct <- pct_from(
       cell_num(df, c("Encuestas válidas", "Validas", "Válidas", "Efectivas"), i, NA_real_),
       cell_num(df, c("Meta encuestas", "Meta", "Referencia poblacional"), i, NA_real_)
     )
+    # Fallback (solo si no hay cuota de encuestas): avance por manzanas/UMP aplicadas.
+    if (!is.finite(pct)) pct <- cell_num(df, c("% UMP efectivas", "% zonas aplicadas", "% manzanas muestrales"), i, NA_real_)
+    if (!is.finite(pct)) pct <- pct_from(district_sample_blocks(df, i, label), district_target_blocks(df, i, label))
     pct
   }
   district_applied_zones <- function(label) {
@@ -21603,6 +21688,25 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
         if (col %in% names(rows)) return(sum(num(rows[[col]]), na.rm = TRUE))
       }
     }
+    NA_real_
+  }
+  district_target_surveys <- function(df, i, label = "") {
+    value <- cell_num(df, c("Meta encuestas", "Meta", "Referencia poblacional"), i, NA_real_)
+    if (is.finite(value) && value >= 0) return(value)
+    rows <- district_route_rows(label)
+    if (nrow(rows)) {
+      for (col in c("Meta encuestas", "Meta", "Cuota")) {
+        if (col %in% names(rows)) return(sum(num(rows[[col]]), na.rm = TRUE))
+      }
+    }
+    NA_real_
+  }
+  district_gap_surveys <- function(df, i, label = "") {
+    value <- cell_num(df, c("Brecha encuestas", "Brecha", "Faltante"), i, NA_real_)
+    if (is.finite(value) && value >= 0) return(value)
+    meta <- district_target_surveys(df, i, label)
+    obs <- district_observed_surveys(df, i, label)
+    if (is.finite(meta) && is.finite(obs)) return(max(0, meta - obs))
     NA_real_
   }
   design_surveys_label <- function(value) {
@@ -21746,33 +21850,44 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
     rr(x, y, w, h, fill = "#FFFFFF", col = blue_border, lwd = 1.05, r = 0.016)
     pad <- 0.024
     title_y <- y + h - 0.040
-    txt("ESTADO GENERAL DEL CAMPO", x + pad, title_y, size = 7.7, col = green_dark, face = "bold", just = c("left", "top"))
+    txt("CUMPLIMIENTO DE LA CUOTA TERRITORIAL", x + pad, title_y, size = 7.4, col = green_dark, face = "bold", just = c("left", "top"))
     draw_exec_ring(
       x + w - 0.064,
       y + h - 0.125,
       0.092,
-      ump_pct,
+      avance_pct,
       label_size = 11.4,
       caption_size = 4.9,
       stroke = 8.2
     )
-    main_metric <- if (one_num(meta_ump) > 0) paste0(fmt(manzanas_muestrales), " / ", fmt(meta_ump)) else fmt(manzanas_muestrales)
-    txt(main_metric, x + pad, y + h - 0.108, size = if (nchar(main_metric, type = "width") > 8L) 20.0 else 26.0, col = ink, face = "bold", just = c("left", "top"))
-    txt("manzanas muestrales aplicadas", x + pad + 0.002, y + h - 0.176, size = 6.9, col = muted, face = "bold", just = c("left", "top"))
-    draw_gradient_meter(x + pad, y + h - 0.235, w - pad * 2, 0.017, ump_pct)
+    main_metric <- if (one_num(meta_encuestas) > 0) paste0(fmt(validas), " / ", fmt(meta_encuestas)) else fmt(validas)
+    # Escala el tamaño al ancho para no chocar con el anillo (p. ej. "1,283 / 1,200").
+    main_nchar <- nchar(main_metric, type = "width")
+    main_size <- if (main_nchar > 11L) 13.5 else if (main_nchar > 8L) 18.0 else 24.0
+    txt(main_metric, x + pad, y + h - 0.108, size = main_size, col = ink, face = "bold", just = c("left", "top"))
+    txt("encuestas logradas de la cuota", x + pad + 0.002, y + h - 0.176, size = 6.9, col = muted, face = "bold", just = c("left", "top"))
+    draw_gradient_meter(x + pad, y + h - 0.235, w - pad * 2, 0.017, avance_pct)
     tile_gap <- 0.018
     tile_w <- (w - pad * 2 - tile_gap) / 2
     tile_h <- 0.068
     corte_value <- generated_label
     corte_value <- gsub(",\\s*", "\n", corte_value, perl = TRUE)
+    # Sin métricas de manejo interno (UMP/manzanas): los tiles restantes leen el
+    # recojo en lenguaje cliente. El corte ya vive en el chip de cabecera, así que
+    # solo aparece como tile de relleno cuando falta el ritmo diario.
     tiles <- list(
-      list("APLICADAS", fmt(ump_efectivas)),
-      list("TOTAL", fmt(meta_ump)),
       list("ENCUESTAS", design_surveys_label(one_num(validas, NA_real_))),
-      list("POR MANZANA", encuestas_por_zona),
-      list("DISTRITOS", fmt(active_districts)),
-      list("CORTE", corte_value)
+      list("CUOTA", design_surveys_label(one_num(meta_encuestas, NA_real_))),
+      list("FALTA", design_surveys_label(one_num(brecha_encuestas, NA_real_))),
+      list("DISTRITOS", fmt(active_districts))
     )
+    if (is.finite(promedio_diario) && promedio_diario > 0) {
+      tiles[[length(tiles) + 1L]] <- list("PROMEDIO DIARIO", fmt(promedio_diario))
+    }
+    if (is.finite(efectividad_pct)) {
+      tiles[[length(tiles) + 1L]] <- list("EFECTIVIDAD", sprintf("%.1f%%", efectividad_pct))
+    }
+    if (length(tiles) < 6L) tiles[[length(tiles) + 1L]] <- list("CORTE", corte_value)
     for (i in seq_along(tiles)) {
       row_i <- floor((i - 1L) / 2)
       col_i <- (i - 1L) %% 2
@@ -21780,8 +21895,9 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
       ty <- y + h - 0.324 - row_i * (tile_h + 0.022)
       rr(tx, ty, tile_w, tile_h, fill = surface_alt, col = blue_border, lwd = 0.8, r = 0.010)
       txt(tiles[[i]][[1]], tx + 0.010, ty + tile_h - 0.018, size = 5.6, col = muted, face = "bold", just = c("left", "top"))
-      value_size <- if (i == length(tiles)) 6.6 else if (nchar(as.character(tiles[[i]][[2]]), type = "width") > 8L) 9.8 else 12.2
-      txt(tiles[[i]][[2]], tx + 0.010, ty + 0.017, size = value_size, col = if (i == 1L) pulso_blue else ink, face = "bold", just = c("left", "bottom"), lineheight = 0.90)
+      tile_value <- as.character(tiles[[i]][[2]])
+      value_size <- if (grepl("\n", tile_value, fixed = TRUE)) 6.6 else if (nchar(tile_value, type = "width") > 8L) 9.8 else 12.2
+      txt(tile_value, tx + 0.010, ty + 0.017, size = value_size, col = if (i == 1L) pulso_blue else ink, face = "bold", just = c("left", "bottom"), lineheight = 0.90)
     }
     legend_y <- y + 0.078
     line(x + pad, legend_y + 0.040, x + w - pad, legend_y + 0.040, col = blue_border, lwd = 0.8)
@@ -21860,12 +21976,22 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
   district_features_cache <- NULL
   load_district_features <- function() {
     if (!is.null(district_features_cache)) return(district_features_cache)
-    path <- file.path(getwd(), "frontend", "src", "features", "hojasRuta", "limaDistrictCoverage.json")
-    if (!file.exists(path) || !requireNamespace("jsonlite", quietly = TRUE)) {
+    # El asset canónico viaja con el paquete (api/inst); el JSON del frontend queda
+    # como fallback de desarrollo. Sin esto, mapa y siluetas degradan si cwd != repo.
+    candidates <- c(
+      system.file("hojas_ruta", "cartografia", "lima_district_coverage.json", package = "prosecnurapp"),
+      file.path(getwd(), "api", "inst", "hojas_ruta", "cartografia", "lima_district_coverage.json"),
+      file.path(getwd(), "inst", "hojas_ruta", "cartografia", "lima_district_coverage.json"),
+      file.path(getwd(), "..", "inst", "hojas_ruta", "cartografia", "lima_district_coverage.json"),
+      file.path(getwd(), "..", "..", "inst", "hojas_ruta", "cartografia", "lima_district_coverage.json"),
+      file.path(getwd(), "frontend", "src", "features", "hojasRuta", "limaDistrictCoverage.json")
+    )
+    candidates <- candidates[nzchar(candidates) & file.exists(candidates)]
+    if (!length(candidates) || !requireNamespace("jsonlite", quietly = TRUE)) {
       district_features_cache <<- list()
       return(district_features_cache)
     }
-    geo <- tryCatch(jsonlite::read_json(path, simplifyVector = FALSE), error = function(e) list())
+    geo <- tryCatch(jsonlite::read_json(candidates[[1]], simplifyVector = FALSE), error = function(e) list())
     district_features_cache <<- geo$features %||% list()
     district_features_cache
   }
@@ -22024,7 +22150,9 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
     rr(x, y, filled_w, h, fill = NA, col = NA, lwd = 0, r = h / 2)
   }
   draw_exec_ring <- function(x, y, size, pct, label_size = 16.0, caption_size = 6.6, stroke = 11) {
-    pct <- max(0, min(100, suppressWarnings(as.numeric(pct))))
+    # El anillo se llena hasta 100, pero la cifra reporta el valor real (p. ej. 106.9%).
+    pct_real <- suppressWarnings(as.numeric(pct))
+    pct <- max(0, min(100, pct_real))
     grid::pushViewport(grid::viewport(x = grid::unit(x, "npc"), y = grid::unit(y, "npc"), width = grid::unit(size, "snpc"), height = grid::unit(size, "snpc")))
     grid::grid.circle(grid::unit(0.5, "npc"), grid::unit(0.5, "npc"), r = grid::unit(0.45, "snpc"), gp = grid::gpar(fill = NA, col = grid_line, lwd = stroke))
     if (is.finite(pct) && pct > 0) {
@@ -22033,7 +22161,9 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
     }
     grid::grid.circle(grid::unit(0.5, "npc"), grid::unit(0.5, "npc"), r = grid::unit(0.31, "snpc"), gp = grid::gpar(fill = "#FFFFFF", col = NA))
     grid::upViewport()
-    txt(pct_label(pct), x, y + 0.006, size = label_size, col = ink, face = "bold", just = c("center", "center"))
+    ring_label <- if (is.finite(pct_real)) pct_label(pct_real) else pct_label(pct)
+    ring_label_size <- if (is.finite(pct_real) && pct_real >= 100) label_size * 0.88 else label_size
+    txt(ring_label, x, y + 0.006, size = ring_label_size, col = ink, face = "bold", just = c("center", "center"))
     txt("AVANCE", x, y - size * 0.250, size = caption_size, col = muted, face = "bold", just = c("center", "center"))
   }
   draw_exec_status_panel <- function(x, y, w, h) {
@@ -22078,29 +22208,39 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
     sample_blocks <- district_sample_blocks(row, 1, label)
     target_blocks <- district_target_blocks(row, 1, label)
     observed_surveys <- district_observed_surveys(row, 1, label)
+    target_surveys <- district_target_surveys(row, 1, label)
+    gap_surveys <- district_gap_surveys(row, 1, label)
     pct <- district_pct(row, 1)
+    if (!is.finite(pct) && is.finite(target_surveys) && target_surveys > 0) pct <- 100 * observed_surveys / target_surveys
     if (!is.finite(pct) && target_blocks > 0) pct <- 100 * sample_blocks / target_blocks
-    stats <- row_stats(label, sample_blocks, target_blocks)
     color <- district_tone(pct)
     rr(x, y, w, h, fill = "#FFFFFF", col = blue_border, lwd = 1.0, r = 0.014)
     draw_district_silhouette(x + 0.018, y + 0.023, 0.100, h - 0.046, label_pretty, ubigeo, color)
     draw_chip(x + 0.135, y + h - 0.045, ubigeo %||% "S/U", fill = blue_soft, col = blue_border, text_col = navy, w = 0.060)
     txt(toupper(label_pretty), x + 0.135, y + h - 0.077, size = 12.0, col = ink, face = "bold", just = c("left", "top"))
     chip_y <- y + 0.030
-    draw_chip(x + 0.135, chip_y, paste(fmt(stats$complete), "aplicadas"), fill = green_soft, col = green_border, text_col = green_dark, w = 0.072)
-    draw_chip(x + 0.215, chip_y, paste(fmt(stats$incomplete), "con avance"), fill = blue_soft, col = blue_border, text_col = teal, w = 0.085)
-    draw_chip(x + 0.308, chip_y, paste(fmt(stats$none), "sin registro"), fill = surface_alt, col = blue_border, text_col = muted, w = 0.074)
+    # Cuota de cara al cliente: cumplimiento del distrito medido en encuestas.
+    # Sin métricas de manejo interno (UMP/manzanas) en el documento cliente.
+    if (is.finite(gap_surveys) && gap_surveys <= 0) {
+      draw_chip(x + 0.135, chip_y, "Cuota cumplida", fill = green_soft, col = green_border, text_col = green_dark, w = 0.092)
+    } else if (is.finite(gap_surveys)) {
+      draw_chip(x + 0.135, chip_y, paste("Faltan", fmt(gap_surveys), "encuestas"), fill = blue_soft, col = blue_border, text_col = navy, w = 0.108)
+    }
+    total_share <- if (is.finite(observed_surveys) && one_num(validas) > 0) 100 * observed_surveys / one_num(validas) else NA_real_
+    if (is.finite(total_share)) {
+      draw_chip(x + 0.251, chip_y, sprintf("%.1f%% del total del corte", total_share), fill = surface_alt, col = blue_border, text_col = muted, w = 0.118)
+    }
     mx <- x + 0.420
-    percent_col_w <- 0.102
+    percent_col_w <- 0.118
     boxes_right <- x + w - percent_col_w - 0.020
     m_w <- max(0.074, (boxes_right - mx - 0.020) / 3)
-    draw_metric_box(mx, y + h - 0.080, m_w, 0.060, "MANZANAS", paste(fmt(sample_blocks), "/", fmt(target_blocks)))
-    draw_metric_box(mx + m_w + 0.010, y + h - 0.080, m_w, 0.060, "ENCUESTAS", design_surveys_label(observed_surveys))
-    draw_metric_box(mx + (m_w + 0.010) * 2, y + h - 0.080, m_w, 0.060, "POR MANZANA", encuestas_por_zona)
+    draw_metric_box(mx, y + h - 0.080, m_w, 0.060, "ENCUESTAS", design_surveys_label(observed_surveys))
+    draw_metric_box(mx + m_w + 0.010, y + h - 0.080, m_w, 0.060, "CUOTA", design_surveys_label(target_surveys))
+    draw_metric_box(mx + (m_w + 0.010) * 2, y + h - 0.080, m_w, 0.060, "FALTA", design_surveys_label(gap_surveys))
     draw_meter(mx, y + 0.040, max(0.050, boxes_right - mx), 0.012, pct, fill = color)
     line(x + w - percent_col_w, y + 0.035, x + w - percent_col_w, y + h - 0.035, col = blue_border, lwd = 0.7)
     txt(pct_label(pct), x + w - 0.020, y + h / 2 + 0.014, size = 17.0, col = color, face = "bold", just = c("right", "center"))
-    txt("AVANCE", x + w - 0.020, y + h / 2 - 0.030, size = 6.4, col = muted, face = "bold", just = c("right", "center"))
+    txt("DE LA CUOTA", x + w - 0.020, y + h / 2 - 0.030, size = 6.2, col = muted, face = "bold", just = c("right", "center"))
   }
   draw_exec_district_tile <- function(x, y, w, h, row, i) {
     label <- cell_value(row, c("Distrito", "Grupo"), 1, "Sin distrito")
@@ -22111,31 +22251,41 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
     sample_blocks <- district_sample_blocks(row, 1, label)
     target_blocks <- district_target_blocks(row, 1, label)
     observed_surveys <- district_observed_surveys(row, 1, label)
+    target_surveys <- district_target_surveys(row, 1, label)
     pct <- district_pct(row, 1)
+    if (!is.finite(pct) && is.finite(target_surveys) && target_surveys > 0) pct <- 100 * observed_surveys / target_surveys
     if (!is.finite(pct) && target_blocks > 0) pct <- 100 * sample_blocks / target_blocks
     color <- district_tone(pct)
     rr(x, y, w, h, fill = "#FFFFFF", col = blue_border, lwd = 1.0, r = 0.014)
     draw_district_silhouette(x + 0.014, y + 0.022, 0.082, h - 0.044, label_pretty, ubigeo, color)
     draw_chip(x + 0.112, y + h - 0.036, ubigeo %||% "S/U", fill = blue_soft, col = blue_border, text_col = navy, w = 0.055)
     txt(toupper(ellipsize(label_pretty, 26)), x + 0.112, y + h - 0.066, size = 9.2, col = ink, face = "bold", just = c("left", "top"))
-    progress_label <- if (target_blocks > 0) {
-      paste(fmt(sample_blocks), "de", fmt(target_blocks), "manzanas muestrales")
+    # Cliente: cumplimiento de cuota (encuestas). Manzanas/UMP = contexto secundario.
+    progress_label <- if (is.finite(target_surveys) && target_surveys > 0) {
+      paste(design_surveys_label(observed_surveys), "de", fmt(target_surveys), "encuestas de la cuota")
     } else {
-      paste(fmt(sample_blocks), "manzanas muestrales")
+      paste(design_surveys_label(observed_surveys), "encuestas realizadas")
     }
     txt(progress_label, x + 0.112, y + h - 0.097, size = 6.2, col = muted, face = "bold")
     draw_meter(x + 0.112, y + 0.045, w - 0.210, 0.012, pct, fill = color)
-    txt(paste(design_surveys_label(observed_surveys), "encuestas realizadas"), x + 0.112, y + 0.022, size = 5.9, col = muted, face = "bold")
+    gap_surveys <- district_gap_surveys(row, 1, label)
+    status_label <- if (is.finite(gap_surveys) && gap_surveys <= 0) {
+      "Cuota cumplida al corte actual"
+    } else if (is.finite(gap_surveys)) {
+      paste("Faltan", fmt(gap_surveys), "encuestas para la cuota")
+    } else {
+      ""
+    }
+    if (nzchar(status_label)) txt(status_label, x + 0.112, y + 0.022, size = 5.9, col = if (is.finite(gap_surveys) && gap_surveys <= 0) green_dark else faint, face = "bold")
     line(x + w - 0.090, y + 0.035, x + w - 0.090, y + h - 0.035, col = blue_border, lwd = 0.7)
     txt(pct_label(pct), x + w - 0.020, y + h / 2 + 0.014, size = 14.5, col = color, face = "bold", just = c("right", "center"))
-    txt("AVANCE", x + w - 0.020, y + h / 2 - 0.028, size = 5.7, col = muted, face = "bold", just = c("right", "center"))
+    txt("DE LA CUOTA", x + w - 0.020, y + h / 2 - 0.028, size = 5.5, col = muted, face = "bold", just = c("right", "center"))
   }
   draw_exec_district_board <- function(rows, x, y, w, h) {
     rr(x, y, w, h, fill = "#FFFFFF", col = border, lwd = 1.0, r = 0.016)
-    draw_tiny_bar_icon(x + 0.020, y + h - 0.033, green_dark)
-    txt("AVANCE POR DISTRITO", x + 0.042, y + h - 0.026, size = 8.5, col = green_dark, face = "bold", just = c("left", "top"))
-    txt("Lectura territorial dominante", x + 0.020, y + h - 0.055, size = 10.0, col = ink, face = "bold", just = c("left", "top"))
-    draw_chip(x + w - 0.095, y + h - 0.034, paste(fmt(active_districts), "con avance"), fill = green_soft, col = green_border, text_col = green_dark, w = 0.080)
+    rect(x + 0.020, y + h - 0.038, 0.007, 0.020, pulso_blue, col = NA)
+    txt("CUMPLIMIENTO DE LA CUOTA POR DISTRITO", x + 0.036, y + h - 0.022, size = 8.0, col = green_dark, face = "bold", just = c("left", "top"))
+    draw_chip(x + w - 0.095, y + h - 0.030, paste(fmt(active_districts), "con avance"), fill = green_soft, col = green_border, text_col = green_dark, w = 0.080)
     rows <- rows[seq_len(min(nrow(rows), 6L)), , drop = FALSE]
     if (!nrow(rows)) {
       txt("Sin avance por distrito para este corte.", x + w / 2, y + h / 2, size = 8, col = muted, just = c("center", "center"))
@@ -22145,9 +22295,9 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
       cols <- 2L
       gap_x <- 0.018
       gap_y <- 0.016
-      top_y <- y + h - 0.095
+      top_y <- y + h - 0.072
       tile_w <- (w - 0.040 - gap_x) / cols
-      tile_h <- (h - 0.115 - gap_y * 2) / 3
+      tile_h <- (h - 0.092 - gap_y * 2) / 3
       for (i in seq_len(nrow(rows))) {
         row_i <- floor((i - 1L) / cols)
         col_i <- (i - 1L) %% cols
@@ -22158,19 +22308,26 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
       return(invisible(NULL))
     }
     gap <- 0.014
-    row_h <- min(0.145, (h - 0.100 - gap * (nrow(rows) - 1L)) / nrow(rows))
-    yy <- y + h - 0.095 - row_h
+    row_h <- min(0.150, (h - 0.080 - gap * (nrow(rows) - 1L)) / nrow(rows))
+    yy <- y + h - 0.072 - row_h
     for (i in seq_len(nrow(rows))) {
       draw_exec_district_card(x + 0.020, yy, w - 0.040, row_h, rows[i, , drop = FALSE], i)
       yy <- yy - row_h - gap
     }
   }
+  zone_roots <- function() {
+    roots <- c(
+      system.file("hojas_ruta", "cartografia", "zonas_inei2017_lima_callao", package = "prosecnurapp"),
+      file.path(getwd(), "api", "inst", "hojas_ruta", "cartografia", "zonas_inei2017_lima_callao"),
+      file.path(getwd(), "inst", "hojas_ruta", "cartografia", "zonas_inei2017_lima_callao"),
+      file.path(getwd(), "..", "inst", "hojas_ruta", "cartografia", "zonas_inei2017_lima_callao"),
+      file.path(getwd(), "..", "..", "inst", "hojas_ruta", "cartografia", "zonas_inei2017_lima_callao")
+    )
+    roots[nzchar(roots) & dir.exists(roots)]
+  }
   load_zone_features <- function(ubigeo) {
     if (!requireNamespace("jsonlite", quietly = TRUE) || !nzchar(ubigeo)) return(list())
-    roots <- c(
-      file.path(getwd(), "api", "inst", "hojas_ruta", "cartografia", "zonas_inei2017_lima_callao"),
-      file.path(getwd(), "inst", "hojas_ruta", "cartografia", "zonas_inei2017_lima_callao")
-    )
+    roots <- zone_roots()
     for (root in roots) {
       path <- file.path(root, paste0(ubigeo, ".geojson.gz"))
       if (!file.exists(path)) next
@@ -22253,10 +22410,7 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
   zone_sf_cache <- new.env(parent = emptyenv())
   zone_geojson_path <- function(ubigeo) {
     if (!nzchar(ubigeo)) return("")
-    roots <- c(
-      file.path(getwd(), "api", "inst", "hojas_ruta", "cartografia", "zonas_inei2017_lima_callao"),
-      file.path(getwd(), "inst", "hojas_ruta", "cartografia", "zonas_inei2017_lima_callao")
-    )
+    roots <- zone_roots()
     for (root in roots) {
       for (candidate in c(file.path(root, paste0(ubigeo, ".geojson.gz")), file.path(root, paste0(ubigeo, ".geojson")))) {
         if (file.exists(candidate)) return(candidate)
@@ -22552,16 +22706,428 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
     0L
   }
 
+  day_label <- function(x) {
+    parsed <- suppressWarnings(as.Date(as.character(x)))
+    months <- c("ene.", "feb.", "mar.", "abr.", "may.", "jun.", "jul.", "ago.", "set.", "oct.", "nov.", "dic.")
+    if (!length(parsed) || is.na(parsed[[1]])) return(as.character(x %||% ""))
+    paste(as.integer(format(parsed[[1]], "%d")), months[[as.integer(format(parsed[[1]], "%m"))]])
+  }
+
+  # ==== Página "Ritmo del recojo": avance diario (barras + acumulado) =========
+  rhythm_ready <- nrow(diario_df) > 0 && "Efectivas" %in% names(diario_df) &&
+    sum(num(diario_df$Efectivas), na.rm = TRUE) > 0
+  draw_rhythm_chart <- function(x, y, w, h) {
+    rr(x, y, w, h, fill = "#FFFFFF", col = blue_border, lwd = 1.05, r = 0.016)
+    df <- diario_df
+    values <- num(df$Efectivas)
+    accum <- if ("Efectivas acumuladas" %in% names(df)) num(df$`Efectivas acumuladas`) else cumsum(values)
+    n <- length(values)
+    txt("RITMO DIARIO DEL RECOJO", x + 0.024, y + h - 0.034, size = 7.4, col = green_dark, face = "bold", just = c("left", "top"))
+    txt("Encuestas efectivas por día y acumulado frente a la cuota", x + 0.024, y + h - 0.062, size = 9.6, col = ink, face = "bold", just = c("left", "top"))
+    cx <- x + 0.058
+    cw <- w - 0.112
+    cy <- y + 0.098
+    ch <- h - 0.230
+    max_bar <- max(values, 1, na.rm = TRUE)
+    meta_line <- one_num(meta_encuestas, NA_real_)
+    max_line <- max(accum, if (is.finite(meta_line)) meta_line else 0, 1, na.rm = TRUE) * 1.06
+    bar_ticks <- pretty(c(0, max_bar), n = 4)
+    bar_ticks <- bar_ticks[bar_ticks >= 0 & bar_ticks <= max_bar * 1.02]
+    for (tick in bar_ticks) {
+      ty <- cy + ch * tick / max_bar
+      line(cx, ty, cx + cw, ty, col = grid_line, lwd = 0.55)
+      txt(fmt(tick), cx - 0.012, ty, size = 5.6, col = faint, just = c("right", "center"))
+    }
+    if (is.finite(meta_line) && meta_line > 0) {
+      my <- cy + ch * meta_line / max_line
+      line(cx, my, cx + cw, my, col = navy, lwd = 0.8, lty = 3)
+      txt(paste("CUOTA", fmt(meta_line)), cx + 0.004, my + 0.015, size = 5.6, col = navy, face = "bold", just = c("left", "center"))
+    }
+    xs <- if (n == 1L) cx + cw / 2 else cx + 0.012 + (cw - 0.024) * (seq_len(n) - 1) / (n - 1)
+    bar_w <- min(0.024, cw / max(8, n) * 0.58)
+    for (i in seq_len(n)) {
+      bh <- ch * values[[i]] / max_bar
+      if (bh > 0) rr(xs[[i]] - bar_w / 2, cy, bar_w, max(0.006, bh), fill = green, col = NA, lwd = 0, r = 0.004)
+    }
+    if (n <= 26L) {
+      for (i in seq_len(n)) {
+        if (values[[i]] <= 0) next
+        txt(fmt(values[[i]]), xs[[i]], cy + ch * values[[i]] / max_bar + 0.016, size = 4.9, col = green_dark, face = "bold", just = c("center", "center"))
+      }
+    }
+    ys <- cy + ch * accum / max_line
+    if (n > 1L) {
+      grid::grid.lines(x = grid::unit(xs, "npc"), y = grid::unit(ys, "npc"),
+                       gp = grid::gpar(col = navy, lwd = 2.0, lineend = "round", linejoin = "round"))
+    }
+    grid::grid.points(x = grid::unit(xs, "npc"), y = grid::unit(ys, "npc"), pch = 21,
+                      size = grid::unit(2.4, "mm"), gp = grid::gpar(col = navy, fill = "#ffffff", lwd = 1.0))
+    dates <- suppressWarnings(as.Date(as.character(df$Fecha)))
+    weekday <- suppressWarnings(as.POSIXlt(dates)$wday)
+    marks <- unique(c(1L, which(!is.na(weekday) & weekday == 1L), n))
+    for (i in marks) {
+      if (!is.finite(accum[[i]]) || accum[[i]] <= 0) next
+      label_value <- fmt(accum[[i]])
+      chip_w <- 0.012 + nchar(label_value, type = "width") * 0.0052
+      rr(xs[[i]] - chip_w / 2, ys[[i]] + 0.016, chip_w, 0.021, fill = grDevices::adjustcolor("#FFFFFF", alpha.f = 0.90), col = NA, lwd = 0, r = 0.006)
+      txt(label_value, xs[[i]], ys[[i]] + 0.026, size = 5.4, col = navy, face = "bold", just = c("center", "center"))
+    }
+    keep <- if (n <= 24L) seq_len(n) else unique(round(seq(1, n, length.out = 20L)))
+    for (i in keep) {
+      txt(gsub(" ", "\n", day_label(df$Fecha[[i]]), fixed = TRUE), xs[[i]], cy - 0.038, size = 5.2, col = muted, just = c("center", "center"), lineheight = 0.88)
+    }
+    line(cx, cy, cx + cw, cy, col = blue_border, lwd = 0.8)
+    txt("Barras: efectivas por día", x + 0.024, y + 0.028, size = 5.8, col = green_dark, face = "bold")
+    txt("Línea: acumulado del recojo", x + 0.220, y + 0.028, size = 5.8, col = navy, face = "bold")
+  }
+  draw_rhythm_rail <- function(x, y, w, h) {
+    rr(x, y, w, h, fill = "#FFFFFF", col = blue_border, lwd = 1.05, r = 0.016)
+    pad <- 0.024
+    txt("LECTURA DEL RITMO", x + pad, y + h - 0.040, size = 7.4, col = green_dark, face = "bold", just = c("left", "top"))
+    values <- num(diario_df$Efectivas)
+    n_days <- length(values)
+    promedio <- if (n_days > 0) sum(values, na.rm = TRUE) / n_days else NA_real_
+    best_idx <- if (n_days > 0) which.max(values) else integer(0)
+    last7 <- if (n_days > 0) sum(utils::tail(values, 7L), na.rm = TRUE) else NA_real_
+    txt(if (is.finite(promedio)) fmt(promedio) else "S/D", x + pad, y + h - 0.106, size = 26, col = ink, face = "bold", just = c("left", "top"))
+    txt("encuestas por día en promedio", x + pad + 0.002, y + h - 0.172, size = 6.9, col = muted, face = "bold", just = c("left", "top"))
+    tile_gap <- 0.018
+    tile_w <- (w - pad * 2 - tile_gap) / 2
+    tile_h <- 0.068
+    tiles <- list(
+      list("DÍAS EN CAMPO", fmt(n_days)),
+      list("MEJOR DÍA", if (length(best_idx)) paste0(fmt(values[[best_idx]]), "\n", day_label(diario_df$Fecha[[best_idx]])) else "S/D"),
+      list("ÚLTIMOS 7 DÍAS", if (is.finite(last7)) fmt(last7) else "S/D"),
+      list("EFECTIVIDAD", if (is.finite(efectividad_pct)) sprintf("%.1f%%", efectividad_pct) else "S/D"),
+      list("PRIMER DÍA", if (n_days > 0) day_label(diario_df$Fecha[[1]]) else "S/D"),
+      list("ÚLTIMO REGISTRO", if (n_days > 0) day_label(diario_df$Fecha[[n_days]]) else "S/D")
+    )
+    for (i in seq_along(tiles)) {
+      row_i <- floor((i - 1L) / 2)
+      col_i <- (i - 1L) %% 2
+      tx <- x + pad + col_i * (tile_w + tile_gap)
+      ty <- y + h - 0.260 - row_i * (tile_h + 0.022)
+      rr(tx, ty, tile_w, tile_h, fill = surface_alt, col = blue_border, lwd = 0.8, r = 0.010)
+      txt(tiles[[i]][[1]], tx + 0.010, ty + tile_h - 0.018, size = 5.6, col = muted, face = "bold", just = c("left", "top"))
+      tile_value <- as.character(tiles[[i]][[2]])
+      value_size <- if (grepl("\n", tile_value, fixed = TRUE)) 8.2 else if (nchar(tile_value, type = "width") > 8L) 9.8 else 12.2
+      txt(tile_value, tx + 0.010, ty + 0.015, size = value_size, col = ink, face = "bold", just = c("left", "bottom"), lineheight = 0.90)
+    }
+    note_y <- y + 0.118
+    line(x + pad, note_y + 0.030, x + w - pad, note_y + 0.030, col = blue_border, lwd = 0.8)
+    note <- "La efectividad compara las encuestas efectivas contra el total de registros levantados en campo."
+    note <- paste(strwrap(note, width = max(30L, floor(w * 118))), collapse = "\n")
+    txt(note, x + pad, y + 0.036, size = 6.0, col = muted, face = "bold", just = c("left", "bottom"), lineheight = 1.22)
+  }
+
+  # ==== Página "Muestra": composición por sexo y edad vs cuotas del diseño ====
+  demo_sexo_h <- demo_pair("Sexo Hombre")
+  demo_sexo_m <- demo_pair("Sexo Mujer")
+  demo_edades <- list(
+    list(label = "18 a 29 años", pair = demo_pair("Edad 18-29")),
+    list(label = "30 a 44 años", pair = demo_pair("Edad 30-44")),
+    list(label = "45 a 59 años", pair = demo_pair("Edad 45-59")),
+    list(label = "60 años a más", pair = demo_pair("Edad 60+"))
+  )
+  demo_total_obs <- sum(c(demo_sexo_h$obs, demo_sexo_m$obs), na.rm = TRUE)
+  demo_ready <- demo_cols_ok && is.finite(demo_total_obs) && demo_total_obs > 0
+  draw_person_icon <- function(x, y, size, variant = "hombre", color = navy) {
+    grid::pushViewport(grid::viewport(x = grid::unit(x, "npc"), y = grid::unit(y, "npc"),
+                                      width = grid::unit(size, "snpc"), height = grid::unit(size, "snpc")))
+    grid::grid.circle(grid::unit(0.5, "npc"), grid::unit(0.845, "npc"), r = grid::unit(0.135, "snpc"),
+                      gp = grid::gpar(fill = color, col = NA))
+    if (identical(variant, "mujer")) {
+      grid::grid.polygon(
+        x = grid::unit(c(0.500, 0.235, 0.360, 0.640, 0.765), "npc"),
+        y = grid::unit(c(0.660, 0.150, 0.120, 0.120, 0.150), "npc"),
+        gp = grid::gpar(fill = color, col = NA)
+      )
+    } else {
+      grid::grid.roundrect(
+        x = grid::unit(0.5, "npc"), y = grid::unit(0.395, "npc"),
+        width = grid::unit(0.44, "npc"), height = grid::unit(0.55, "npc"),
+        r = grid::unit(0.16, "snpc"),
+        gp = grid::gpar(fill = color, col = NA)
+      )
+    }
+    grid::upViewport()
+  }
+  draw_demo_meter <- function(x, y, w, h, obs, meta, fill) {
+    scale_max <- max(c(obs, meta), na.rm = TRUE) * 1.06
+    if (!is.finite(scale_max) || scale_max <= 0) return(invisible(NULL))
+    rr(x, y, w, h, fill = grid_line, col = NA, lwd = 0, r = h / 2)
+    if (is.finite(obs) && obs > 0) rr(x, y, max(0.006, w * obs / scale_max), h, fill = fill, col = NA, lwd = 0, r = h / 2)
+    if (is.finite(meta) && meta > 0) {
+      mx <- x + w * meta / scale_max
+      line(mx, y - 0.008, mx, y + h + 0.008, col = ink, lwd = 1.1)
+    }
+  }
+  draw_sexo_panel <- function(x, y, w, h) {
+    rr(x, y, w, h, fill = "#FFFFFF", col = blue_border, lwd = 1.05, r = 0.016)
+    pad <- 0.026
+    txt("COMPOSICIÓN POR SEXO", x + pad, y + h - 0.038, size = 7.4, col = green_dark, face = "bold", just = c("left", "top"))
+    txt("Encuestas efectivas frente a la cuota del diseño", x + pad, y + h - 0.066, size = 9.4, col = ink, face = "bold", just = c("left", "top"))
+    half_w <- (w - pad * 2) / 2
+    mid_x <- x + pad + half_w
+    line(mid_x, y + 0.120, mid_x, y + h - 0.115, col = grid_line, lwd = 0.8)
+    grupos <- list(
+      list(label = "Hombres", variant = "hombre", color = navy, pair = demo_sexo_h, cx = x + pad + half_w / 2),
+      list(label = "Mujeres", variant = "mujer", color = teal, pair = demo_sexo_m, cx = mid_x + half_w / 2)
+    )
+    for (g in grupos) {
+      share <- if (demo_total_obs > 0) 100 * g$pair$obs / demo_total_obs else NA_real_
+      draw_person_icon(g$cx, y + h - 0.205, 0.115, variant = g$variant, color = g$color)
+      txt(if (is.finite(share)) sprintf("%.1f%%", share) else "S/D", g$cx, y + h - 0.330, size = 21, col = g$color, face = "bold", just = c("center", "center"))
+      txt(g$label, g$cx, y + h - 0.388, size = 8.6, col = ink, face = "bold", just = c("center", "center"))
+      detail <- paste(fmt(g$pair$obs), "encuestas · meta", if (is.finite(g$pair$meta) && g$pair$meta > 0) fmt(g$pair$meta) else "S/D")
+      txt(detail, g$cx, y + h - 0.424, size = 6.2, col = muted, face = "bold", just = c("center", "center"))
+      meter_w <- half_w - 0.052
+      draw_demo_meter(g$cx - meter_w / 2, y + h - 0.478, meter_w, 0.015, g$pair$obs, g$pair$meta, g$color)
+      pct_meta <- if (is.finite(g$pair$meta) && g$pair$meta > 0) sprintf("%.1f%% de la meta", 100 * g$pair$obs / g$pair$meta) else ""
+      if (nzchar(pct_meta)) txt(pct_meta, g$cx, y + h - 0.516, size = 5.9, col = muted, face = "bold", just = c("center", "center"))
+    }
+    bar_y <- y + 0.052
+    bar_x <- x + pad
+    bar_w <- w - pad * 2
+    share_h <- if (demo_total_obs > 0) demo_sexo_h$obs / demo_total_obs else 0.5
+    rr(bar_x, bar_y, bar_w, 0.017, fill = grid_line, col = NA, lwd = 0, r = 0.0085)
+    rect(bar_x, bar_y, bar_w * share_h, 0.017, navy, col = NA)
+    rect(bar_x + bar_w * share_h, bar_y, bar_w * (1 - share_h), 0.017, teal, col = NA)
+    line(bar_x + bar_w / 2, bar_y - 0.008, bar_x + bar_w / 2, bar_y + 0.025, col = ink, lwd = 1.0)
+    txt("50%", bar_x + bar_w / 2, bar_y + 0.037, size = 5.4, col = muted, face = "bold", just = c("center", "center"))
+  }
+  draw_edad_panel <- function(x, y, w, h) {
+    rr(x, y, w, h, fill = "#FFFFFF", col = blue_border, lwd = 1.05, r = 0.016)
+    pad <- 0.026
+    txt("CUOTAS POR GRUPO DE EDAD", x + pad, y + h - 0.038, size = 7.4, col = green_dark, face = "bold", just = c("left", "top"))
+    txt("Logrado por grupo frente a la meta (marcador)", x + pad, y + h - 0.066, size = 9.4, col = ink, face = "bold", just = c("left", "top"))
+    rows <- Filter(function(item) is.finite(item$pair$obs), demo_edades)
+    if (!length(rows)) {
+      txt("Sin cuotas de edad para este corte.", x + w / 2, y + h / 2, size = 8, col = muted, just = c("center", "center"))
+      return(invisible(NULL))
+    }
+    top <- y + h - 0.155
+    row_step <- min(0.130, (top - (y + 0.105)) / max(1, length(rows) - 1))
+    label_w <- 0.118
+    value_w <- 0.088
+    bar_x <- x + pad + label_w
+    bar_w <- w - pad * 2 - label_w - value_w
+    palette <- c(navy, deep_blue, teal, green_dark)
+    for (i in seq_along(rows)) {
+      item <- rows[[i]]
+      ry <- top - (i - 1L) * row_step
+      color <- palette[[((i - 1L) %% length(palette)) + 1L]]
+      txt(item$label, x + pad, ry + 0.010, size = 7.6, col = ink, face = "bold")
+      share <- if (demo_total_obs > 0) sprintf("%.1f%% de la muestra", 100 * item$pair$obs / demo_total_obs) else ""
+      if (nzchar(share)) txt(share, x + pad, ry - 0.012, size = 5.6, col = muted, face = "bold")
+      draw_demo_meter(bar_x, ry - 0.008, bar_w, 0.017, item$pair$obs, item$pair$meta, color)
+      txt(paste0(fmt(item$pair$obs), " / ", if (is.finite(item$pair$meta) && item$pair$meta > 0) fmt(item$pair$meta) else "S/D"),
+          x + w - pad, ry + 0.010, size = 7.0, col = ink, face = "bold", just = c("right", "center"))
+      pct_meta <- if (is.finite(item$pair$meta) && item$pair$meta > 0) sprintf("%.1f%% de la meta", 100 * item$pair$obs / item$pair$meta) else ""
+      if (nzchar(pct_meta)) txt(pct_meta, x + w - pad, ry - 0.012, size = 5.5, col = muted, face = "bold", just = c("right", "center"))
+    }
+    line(x + pad, y + 0.058, x + w - pad, y + 0.058, col = grid_line, lwd = 0.8)
+    txt("El marcador vertical indica la meta del grupo según el diseño muestral.", x + pad, y + 0.034, size = 5.9, col = muted, face = "bold", just = c("left", "center"))
+  }
+
+  # ==== Página "Perfil demográfico": resultados por sexo y edad ================
+  demo_age_keys <- c("18-29", "30-44", "45-59", "60+")
+  demo_age_labels <- c("18 a 29", "30 a 44", "45 a 59", "60 a más")
+  demo_cross <- function(sexo, edad) {
+    col <- paste("Obs", sexo, edad)
+    if (!nrow(cuotas_df) || !col %in% names(cuotas_df)) return(NA_real_)
+    sum(num(cuotas_df[[col]]), na.rm = TRUE)
+  }
+  demo_cross_ready <- nrow(cuotas_df) > 0 &&
+    all(paste("Obs Hombre", demo_age_keys) %in% names(cuotas_df)) &&
+    all(paste("Obs Mujer", demo_age_keys) %in% names(cuotas_df))
+  demo_district_ready <- demo_cols_ok && "Distrito" %in% names(cuotas_df) &&
+    all(paste("Edad", demo_age_keys, "observado") %in% names(cuotas_df))
+  results_ready <- demo_ready && (demo_cross_ready || demo_district_ready)
+  demo_age_palette <- c(navy, "#1F5A8A", teal, green_dark)
+  demo_district_profile <- function() {
+    labels <- unique(as.character(cuotas_df$Distrito))
+    labels <- labels[nzchar(trimws(labels))]
+    # Total del distrito desde el corte cliente (misma cifra que págs. 1-2); las
+    # barras reparten sobre las encuestas con sexo/edad registrados.
+    district_valid_lookup <- list()
+    if (nrow(client_district_rows)) {
+      for (i in seq_len(nrow(client_district_rows))) {
+        dl <- cell_value(client_district_rows, c("Distrito", "Grupo"), i, "")
+        value <- district_observed_surveys(client_district_rows, i, dl)
+        if (nzchar(.monitoreo_scalar(dl, "")) && is.finite(value)) {
+          district_valid_lookup[[.monitoreo_text_key(dl)]] <- value
+        }
+      }
+    }
+    rows <- lapply(labels, function(dl) {
+      mask <- as.character(cuotas_df$Distrito) == dl
+      edades <- vapply(demo_age_keys, function(k) sum(num(cuotas_df[[paste("Edad", k, "observado")]])[mask], na.rm = TRUE), numeric(1))
+      hombres <- sum(num(cuotas_df$`Sexo Hombre observado`)[mask], na.rm = TRUE)
+      mujeres <- sum(num(cuotas_df$`Sexo Mujer observado`)[mask], na.rm = TRUE)
+      total <- district_valid_lookup[[.monitoreo_text_key(dl)]] %||% (hombres + mujeres)
+      list(
+        distrito = title_case_district(dl),
+        hombres = hombres,
+        mujeres = mujeres,
+        edades = edades,
+        total = total
+      )
+    })
+    rows[order(-vapply(rows, function(r) r$total, numeric(1)), vapply(rows, function(r) r$distrito, character(1)))]
+  }
+  draw_pyramid_panel <- function(x, y, w, h) {
+    rr(x, y, w, h, fill = "#FFFFFF", col = blue_border, lwd = 1.05, r = 0.016)
+    pad <- 0.026
+    txt("PIRÁMIDE DE LA MUESTRA", x + pad, y + h - 0.038, size = 7.4, col = green_dark, face = "bold", just = c("left", "top"))
+    txt("Encuestas efectivas por sexo y grupo de edad", x + pad, y + h - 0.066, size = 9.4, col = ink, face = "bold", just = c("left", "top"))
+    legend_y <- y + h - 0.108
+    rect(x + pad, legend_y - 0.006, 0.011, 0.012, navy, col = NA)
+    txt(paste("Hombres", fmt(demo_sexo_h$obs)), x + pad + 0.018, legend_y, size = 6.4, col = ink, face = "bold")
+    rect(x + pad + 0.130, legend_y - 0.006, 0.011, 0.012, teal, col = NA)
+    txt(paste("Mujeres", fmt(demo_sexo_m$obs)), x + pad + 0.148, legend_y, size = 6.4, col = ink, face = "bold")
+    hombres <- vapply(demo_age_keys, function(k) demo_cross("Hombre", k), numeric(1))
+    mujeres <- vapply(demo_age_keys, function(k) demo_cross("Mujer", k), numeric(1))
+    total_all <- sum(c(hombres, mujeres), na.rm = TRUE)
+    if (!is.finite(total_all) || total_all <= 0) {
+      txt("Sin cruce sexo × edad para este corte.", x + w / 2, y + h / 2, size = 8, col = muted, just = c("center", "center"))
+      return(invisible(NULL))
+    }
+    max_cell <- max(c(hombres, mujeres), 1, na.rm = TRUE)
+    center_w <- 0.058
+    cx <- x + w / 2
+    area_w <- (w - pad * 2 - center_w) / 2
+    top <- y + h - 0.190
+    bottom <- y + 0.115
+    row_step <- (top - bottom) / max(1, length(demo_age_keys) - 1)
+    bar_h <- min(0.062, row_step * 0.52)
+    # Orden clásico de pirámide: mayores arriba.
+    order_idx <- rev(seq_along(demo_age_keys))
+    for (pos in seq_along(order_idx)) {
+      i <- order_idx[[pos]]
+      ry <- top - (pos - 1L) * row_step
+      txt(demo_age_labels[[i]], cx, ry, size = 6.8, col = muted, face = "bold", just = c("center", "center"))
+      h_w <- area_w * hombres[[i]] / max_cell
+      if (h_w > 0) {
+        rr(cx - center_w / 2 - h_w, ry - bar_h / 2, h_w, bar_h, fill = navy, col = NA, lwd = 0, r = 0.006)
+        txt(fmt(hombres[[i]]), cx - center_w / 2 - h_w - 0.010, ry, size = 7.0, col = navy, face = "bold", just = c("right", "center"))
+        share <- 100 * hombres[[i]] / total_all
+        if (h_w > 0.052) txt(sprintf("%.0f%%", share), cx - center_w / 2 - 0.010, ry, size = 5.4, col = "#FFFFFF", face = "bold", just = c("right", "center"))
+      }
+      m_w <- area_w * mujeres[[i]] / max_cell
+      if (m_w > 0) {
+        rr(cx + center_w / 2, ry - bar_h / 2, m_w, bar_h, fill = teal, col = NA, lwd = 0, r = 0.006)
+        txt(fmt(mujeres[[i]]), cx + center_w / 2 + m_w + 0.010, ry, size = 7.0, col = teal, face = "bold", just = c("left", "center"))
+        share <- 100 * mujeres[[i]] / total_all
+        if (m_w > 0.052) txt(sprintf("%.0f%%", share), cx + center_w / 2 + 0.010, ry, size = 5.4, col = "#FFFFFF", face = "bold", just = c("left", "center"))
+      }
+    }
+    axis_y <- bottom - bar_h / 2 - 0.024
+    line(x + pad, axis_y, x + w - pad, axis_y, col = grid_line, lwd = 0.8)
+    txt(paste("El porcentaje es la participación del grupo en las", fmt(total_all), "encuestas con sexo y edad registrados."),
+        x + pad, axis_y - 0.026, size = 5.8, col = muted, face = "bold", just = c("left", "center"))
+  }
+  draw_district_profile_panel <- function(x, y, w, h) {
+    rr(x, y, w, h, fill = "#FFFFFF", col = blue_border, lwd = 1.05, r = 0.016)
+    pad <- 0.026
+    txt("PERFIL POR DISTRITO", x + pad, y + h - 0.038, size = 7.4, col = green_dark, face = "bold", just = c("left", "top"))
+    txt("Composición de las encuestas logradas en cada distrito", x + pad, y + h - 0.066, size = 9.4, col = ink, face = "bold", just = c("left", "top"))
+    legend_y <- y + h - 0.104
+    lx <- x + pad
+    rect(lx, legend_y - 0.005, 0.010, 0.011, navy, col = NA)
+    txt("Hombres", lx + 0.016, legend_y, size = 5.7, col = muted, face = "bold")
+    lx <- lx + 0.078
+    rect(lx, legend_y - 0.005, 0.010, 0.011, teal, col = NA)
+    txt("Mujeres", lx + 0.016, legend_y, size = 5.7, col = muted, face = "bold")
+    lx <- lx + 0.088
+    for (i in seq_along(demo_age_keys)) {
+      rect(lx, legend_y - 0.005, 0.010, 0.011, demo_age_palette[[i]], col = NA)
+      txt(demo_age_keys[[i]], lx + 0.015, legend_y, size = 5.7, col = muted, face = "bold")
+      lx <- lx + 0.054
+    }
+    rows <- demo_district_profile()
+    if (!length(rows)) {
+      txt("Sin desagregación distrital para este corte.", x + w / 2, y + h / 2, size = 8, col = muted, just = c("center", "center"))
+      return(invisible(NULL))
+    }
+    rows <- utils::head(rows, 6L)
+    top <- y + h - 0.150
+    bottom <- y + 0.052
+    row_step <- (top - bottom) / max(1, length(rows))
+    bar_x <- x + pad + 0.128
+    bar_w <- w - pad * 2 - 0.128 - 0.062
+    seg_label <- function(value, total, seg_w, sx, sy) {
+      if (!is.finite(value) || value <= 0 || total <= 0 || seg_w < 0.025) return(invisible(NULL))
+      txt(sprintf("%.0f%%", 100 * value / total), sx + seg_w / 2, sy, size = if (seg_w < 0.034) 4.5 else 4.9, col = "#FFFFFF", face = "bold", just = c("center", "center"))
+    }
+    for (i in seq_along(rows)) {
+      r <- rows[[i]]
+      ry <- top - (i - 1L) * row_step
+      total_sexo <- r$hombres + r$mujeres
+      total_edad <- sum(r$edades, na.rm = TRUE)
+      txt(ellipsize(r$distrito, 22), x + pad, ry - 0.008, size = 7.0, col = ink, face = "bold")
+      txt(paste(fmt(r$total), "enc."), x + w - pad, ry - 0.008, size = 6.6, col = navy, face = "bold", just = c("right", "center"))
+      sexo_y <- ry - 0.030
+      edad_y <- ry - 0.052
+      bar_h <- 0.0155
+      if (total_sexo > 0) {
+        h_w <- bar_w * r$hombres / total_sexo
+        rect(bar_x, sexo_y, h_w, bar_h, navy, col = NA)
+        rect(bar_x + h_w, sexo_y, bar_w - h_w, bar_h, teal, col = NA)
+        seg_label(r$hombres, total_sexo, h_w, bar_x, sexo_y + bar_h / 2)
+        seg_label(r$mujeres, total_sexo, bar_w - h_w, bar_x + h_w, sexo_y + bar_h / 2)
+      }
+      if (total_edad > 0) {
+        cursor <- bar_x
+        for (k in seq_along(r$edades)) {
+          seg_w <- bar_w * r$edades[[k]] / total_edad
+          if (seg_w > 0) {
+            rect(cursor, edad_y, seg_w, bar_h, demo_age_palette[[k]], col = NA)
+            seg_label(r$edades[[k]], total_edad, seg_w, cursor, edad_y + bar_h / 2)
+          }
+          cursor <- cursor + seg_w
+        }
+      }
+      if (i < length(rows)) line(x + pad, ry - row_step + 0.020, x + w - pad, ry - row_step + 0.020, col = grid_line, lwd = 0.5)
+    }
+    txt("Barra superior: sexo. Barra inferior: grupos de edad, sobre las encuestas con dato registrado.", x + pad, y + 0.030, size = 5.8, col = muted, face = "bold", just = c("left", "center"))
+  }
+
   draw_page("Resumen")
   txt("Avance del recojo territorial", 0.050, 0.842, size = 20, col = ink, face = "bold")
-  txt("Mapa de zonas donde se realizó el recojo y resumen de manzanas muestrales al corte actual.", 0.050, 0.810, size = 8.0, col = muted, face = "bold")
+  txt("Cumplimiento de la cuota de encuestas por distrito y mapa de zonas donde se realizó el recojo al corte actual.", 0.050, 0.810, size = 8.0, col = muted, face = "bold")
   draw_coverage_map(0.050, 0.135, 0.640, 0.650, client_district_rows)
   draw_map_state_panel(0.720, 0.135, 0.230, 0.650)
 
   draw_page("Distritos")
   txt("Avance por distrito", 0.050, 0.842, size = 20, col = ink, face = "bold")
-  txt("Resumen visual de manzanas muestrales, encuestas realizadas y avance por distrito.", 0.050, 0.810, size = 8.0, col = muted, face = "bold")
+  txt("Cumplimiento de la cuota de encuestas por distrito: logrado, cuota y faltante al corte actual.", 0.050, 0.810, size = 8.0, col = muted, face = "bold")
   draw_exec_district_board(client_district_rows, 0.050, 0.110, 0.890, 0.665)
+
+  if (isTRUE(rhythm_ready)) {
+    draw_page("Ritmo del recojo")
+    txt("Ritmo diario del recojo", 0.050, 0.842, size = 20, col = ink, face = "bold")
+    txt("Encuestas efectivas registradas por día, acumulado del recojo y efectividad del trabajo de campo.", 0.050, 0.810, size = 8.0, col = muted, face = "bold")
+    draw_rhythm_chart(0.050, 0.135, 0.640, 0.650)
+    draw_rhythm_rail(0.720, 0.135, 0.230, 0.650)
+  }
+
+  if (isTRUE(demo_ready)) {
+    draw_page("Muestra")
+    txt("Perfil de la muestra lograda", 0.050, 0.842, size = 20, col = ink, face = "bold")
+    txt("Composición por sexo y grupo de edad de las encuestas efectivas, contrastada con las cuotas del diseño muestral.", 0.050, 0.810, size = 8.0, col = muted, face = "bold")
+    draw_sexo_panel(0.050, 0.135, 0.410, 0.650)
+    draw_edad_panel(0.488, 0.135, 0.462, 0.650)
+    txt("Observado: encuestas efectivas al corte. Meta: cuotas de sexo y edad definidas en el diseño muestral.", 0.050, 0.108, size = 6.0, col = faint, face = "bold")
+  }
+
+  if (isTRUE(results_ready)) {
+    draw_page("Perfil demográfico")
+    txt("Resultados por perfil demográfico", 0.050, 0.842, size = 20, col = ink, face = "bold")
+    txt("Distribución de las encuestas efectivas por sexo y grupo de edad, en el total del corte y en cada distrito.", 0.050, 0.810, size = 8.0, col = muted, face = "bold")
+    draw_pyramid_panel(0.050, 0.135, 0.420, 0.650)
+    draw_district_profile_panel(0.498, 0.135, 0.452, 0.650)
+  }
   close_pdf()
   invisible(output_file)
 }
@@ -22681,14 +23247,45 @@ monitoreo_production_report_pdf <- function(model, output_file, title = NULL) {
       gp = grid::gpar(col = col, lwd = lwd)
     )
   }
+  navy <- "#002457"
+  pulso_logo_path <- function() {
+    candidates <- c(
+      system.file("hojas_ruta", "assets", "logo_pulso.png", package = "prosecnurapp"),
+      file.path(getwd(), "api", "inst", "hojas_ruta", "assets", "logo_pulso.png"),
+      file.path(getwd(), "inst", "hojas_ruta", "assets", "logo_pulso.png")
+    )
+    candidates <- candidates[nzchar(candidates) & file.exists(candidates)]
+    if (length(candidates)) candidates[[1]] else ""
+  }
+  draw_pulso_logo <- function(x, y, height = 0.030) {
+    logo_aspect <- 1078 / 423
+    logo_width <- height * logo_aspect * (11.69 / 8.27)
+    path <- pulso_logo_path()
+    if (nzchar(path) && requireNamespace("png", quietly = TRUE)) {
+      img <- tryCatch(png::readPNG(path), error = function(e) NULL)
+      if (!is.null(img)) {
+        grid::grid.raster(
+          img,
+          x = grid::unit(x + logo_width / 2, "npc"),
+          y = grid::unit(y, "npc"),
+          width = grid::unit(logo_width, "npc"),
+          height = grid::unit(height, "npc"),
+          interpolate = TRUE
+        )
+        return(invisible(logo_width))
+      }
+    }
+    txt("PULSO PUCP", x, y, size = 10, col = navy, face = "bold", just = c("left", "center"))
+    invisible(0.105)
+  }
   draw_page <- function(section_label = "") {
     page_no <<- page_no + 1L
     grid::grid.newpage()
     rect(0, 0, 1, 1, canvas, col = NA)
     rect(0, 0.925, 1, 0.075, "#FFFFFF", col = NA)
-    rect(0, 0.925, 1, 0.005, accent, col = NA)
-    txt("PULSO", 0.040, 0.958, size = 11, col = "#002457", face = "bold", just = c("left", "center"))
-    txt(ellipsize(report_title, 58), 0.145, 0.962, size = 12, col = ink, face = "bold")
+    rect(0, 0.925, 1, 0.005, navy, col = NA)
+    logo_w <- draw_pulso_logo(0.055, 0.962, height = 0.030)
+    txt(ellipsize(report_title, 58), 0.055 + logo_w + 0.020, 0.962, size = 12, col = ink, face = "bold")
     txt(paste("Corte", generated_label), 0.945, 0.960, size = 7, col = muted, face = "bold", just = c("right", "center"))
     txt(section_label, 0.055, 0.902, size = 7, col = accent, face = "bold")
     line(0.055, 0.060, 0.945, 0.060, col = border, lwd = 0.7)
@@ -22763,20 +23360,20 @@ monitoreo_production_report_pdf <- function(model, output_file, title = NULL) {
     table_h <- row_h * (nrow(rows) + 1L)
     rr(x, y_top - table_h, w, table_h, fill = panel, col = border, lwd = 0.8, r = 0.008)
     cursor <- x
-    rect(x, y_top - row_h, w, row_h, fill = "#F8FAFC", col = NA)
+    rect(x, y_top - row_h, w, row_h, fill = navy, col = NA)
     for (j in seq_along(cols)) {
-      txt(ellipsize(column_label(cols[[j]]), 18), cursor + 0.006, y_top - row_h / 2, size = 5.7, col = muted, face = "bold")
-      if (j > 1L) line(cursor, y_top - table_h, cursor, y_top, col = grid_line, lwd = 0.5)
+      txt(ellipsize(column_label(cols[[j]]), 18), cursor + 0.008, y_top - row_h / 2, size = 5.7, col = "#FFFFFF", face = "bold")
       cursor <- cursor + widths[[j]]
     }
     for (i in seq_len(nrow(rows))) {
       row_y <- y_top - row_h * (i + 0.5)
+      if (i %% 2 == 0) rect(x, y_top - row_h * (i + 1L), w, row_h, fill = "#F6F9FC", col = NA)
       line(x, y_top - row_h * i, x + w, y_top - row_h * i, col = grid_line, lwd = 0.45)
       cursor <- x
       for (j in seq_along(cols)) {
         value <- rows[[cols[[j]]]][[i]]
         max_chars <- if (widths[[j]] > 0.18) 30 else 16
-        txt(ellipsize(value, max_chars), cursor + 0.006, row_y, size = 5.8, col = ink)
+        txt(ellipsize(value, max_chars), cursor + 0.008, row_y, size = 5.8, col = ink, face = if (j == 1L) "bold" else "plain")
         cursor <- cursor + widths[[j]]
       }
     }
@@ -22794,7 +23391,7 @@ monitoreo_production_report_pdf <- function(model, output_file, title = NULL) {
   draw_metric(0.335, 0.720, 0.260, 0.075, if (nzchar(primary_col)) primary_col else "Producción", if (nzchar(primary_col)) fmt(summary[[primary_col]]) else "0")
   draw_metric(0.615, 0.720, 0.260, 0.075, if (nzchar(secondary_col)) secondary_col else "Detalle", if (nzchar(secondary_col)) fmt(summary[[secondary_col]]) else fmt(nrow(detail)))
   summary_cols <- intersect(c("Responsable", "Código encuestador", "Actores", "Distritos", "UMP efectivas", "UMP subsanadas", "Efectivas telefónicas", "Entrevistas válidas", "Barridos", "Encuestas válidas", "Meta UMP", "% UMP efectivas", "% barrido"), names(summary))
-  draw_table(summary_for_table, 0.055, 0.660, 0.890, row_h = 0.033, cols = summary_cols, max_rows = 14L, title = "Resumen por responsable")
+  draw_table(summary_for_table, 0.055, 0.660, 0.890, row_h = 0.033, cols = summary_cols, max_rows = 16L, title = "Resumen por responsable")
 
   detail <- .monitoreo_workbook_df(detail)
   if (nrow(detail) && "Responsable" %in% names(detail)) {
@@ -22806,17 +23403,38 @@ monitoreo_production_report_pdf <- function(model, output_file, title = NULL) {
       intersect(c("Actor", "Casos asignados", "Barridos", "No barridos", "Efectivas telefónicas", "Ultima actualizacion", "CodPulso asignados", "CodPulso adicionales"), names(detail))
     }
     if (!length(detail_cols)) detail_cols <- setdiff(names(detail), "Responsable")
+    # Layout fluido: los responsables se encadenan en la página y solo se corta
+    # cuando el bloque no entra, en vez de dejar una página casi vacía por persona.
+    flow_y <- NULL
+    detail_row_h <- 0.026
+    flow_bottom <- 0.090
+    ensure_space <- function(needed) {
+      if (is.null(flow_y) || flow_y - needed < flow_bottom) {
+        draw_page("Detalle por responsable")
+        flow_y <<- 0.885
+      }
+    }
     for (resp in responsables) {
       part <- detail[as.character(detail$Responsable %||% "") == resp, , drop = FALSE]
       if (!nrow(part)) next
-      chunks <- split(seq_len(nrow(part)), ceiling(seq_len(nrow(part)) / 18L))
+      chunks <- split(seq_len(nrow(part)), ceiling(seq_len(nrow(part)) / 22L))
       for (chunk_idx in seq_along(chunks)) {
-        draw_page("Detalle por responsable")
+        chunk_rows <- part[chunks[[chunk_idx]], , drop = FALSE]
+        header_h <- 0.058
+        table_h <- detail_row_h * (nrow(chunk_rows) + 1L)
+        needed <- header_h + table_h + 0.040
+        ensure_space(min(needed, 0.795))
         suffix <- if (length(chunks) > 1L) paste(" · parte", chunk_idx, "de", length(chunks)) else ""
-        txt(paste0(ellipsize(resp, 58), suffix), 0.055, 0.850, size = 17, col = ink, face = "bold")
-        txt(if (isTRUE(is_territorial)) paste(fmt(nrow(part)), "UMP completadas") else paste(fmt(nrow(part)), "asignaciones"), 0.055, 0.820, size = 8, col = muted, face = "bold")
-        table_top <- draw_person_metrics(resp, y_top = 0.775)
-        draw_table(part[chunks[[chunk_idx]], , drop = FALSE], 0.055, table_top, 0.890, row_h = 0.030, cols = detail_cols, max_rows = 18L)
+        rect(0.055, flow_y - 0.0205, 0.0055, 0.023, accent, col = NA)
+        txt(paste0(ellipsize(resp, 52), suffix), 0.068, flow_y - 0.009, size = 11.0, col = ink, face = "bold")
+        txt(if (isTRUE(is_territorial)) paste(fmt(nrow(part)), "UMP completadas") else paste(fmt(nrow(part)), "asignaciones"), 0.945, flow_y - 0.009, size = 6.6, col = muted, face = "bold", just = c("right", "center"))
+        metric_items <- responsible_metric_items(resp)
+        if (length(metric_items)) {
+          metric_text <- paste(vapply(metric_items, function(item) paste0(item$label, ": ", item$value), character(1)), collapse = "   ·   ")
+          txt(ellipsize(metric_text, 118), 0.068, flow_y - 0.034, size = 6.4, col = muted, face = "bold")
+        }
+        draw_table(chunk_rows, 0.055, flow_y - header_h, 0.890, row_h = detail_row_h, cols = detail_cols, max_rows = 22L)
+        flow_y <- flow_y - header_h - table_h - 0.042
       }
     }
   }
