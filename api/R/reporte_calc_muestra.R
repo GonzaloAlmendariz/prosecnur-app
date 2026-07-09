@@ -160,3 +160,7 @@ calc_muestra_render_job <- function(estudio, formato = "html",
   list(ok = TRUE, path = result_path, formato = formato,
        generated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
 }
+# En el worker callr, el bootstrap de jobs.R usa esta marca para re-resolver
+# la función desde el namespace fresco (load_all) en vez del closure
+# serializado, que apunta al paquete instalado potencialmente viejo.
+attr(calc_muestra_render_job, "prosecnur_job_function_name") <- "calc_muestra_render_job"
