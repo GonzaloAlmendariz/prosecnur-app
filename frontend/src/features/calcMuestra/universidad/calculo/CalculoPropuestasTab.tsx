@@ -8,7 +8,7 @@
  * motor (mudada aquí desde la antigua guía).
  */
 import { useEffect, useRef, useState } from "react";
-import { Calculator, Loader2 } from "lucide-react";
+import { Calculator, Loader2, ShieldAlert } from "lucide-react";
 import type {
   CalcMuestraComponente,
   CalcMuestraWorkspace,
@@ -19,6 +19,7 @@ import { DistribucionFacultadSexo } from "../../didactica/DistribucionFacultadSe
 import { calcEPreview } from "../../didactica/motorPreview";
 import { fmtInt, fmtPct, fmtSignedInt, roundUpTo, safeNumber } from "../../sharedCore";
 import { ESCENARIOS_OPINION, UNIVERSITY_FACULTY_COMPONENT_ID } from "../shared/constants";
+import { esCenso } from "../shared/salud";
 import {
   componentFormulaBase,
   hasUsefulResult,
@@ -105,6 +106,12 @@ function EscenarioCard({
   // El pill del piso funde su cifra cuando el motor recalcula el n de fórmula.
   const pisoCambiando = useValorSwap(formula ?? "—");
 
+  // Salud del escenario: un n objetivo que iguala o supera el N del marco es
+  // un censo, no una muestra (mismas cifras validadas del motor, solo lectura).
+  const nObjetivo = safeNumber(comp.resultado?.n_objetivo, 0);
+  const marcoN = safeNumber(comp.marco.marco_validado, 0);
+  const escenarioCensal = esCenso(nObjetivo, marcoN);
+
   return (
     <article className={`cmv2-calc-escenario ${belowMinimum ? "is-warning" : ""}`}>
       <div className="cmv2-calc-escenario-head">
@@ -113,6 +120,19 @@ function EscenarioCard({
           <h3>{comp.actor}</h3>
         </div>
       </div>
+      {escenarioCensal && (
+        <div className="cmv2-calc-censo" role="alert">
+          <ShieldAlert size={15} aria-hidden="true" />
+          <div>
+            <strong>
+              El n objetivo ({fmtInt(nObjetivo)}) iguala o supera la población (N={fmtInt(marcoN)}): esto es un censo, no una muestra
+            </strong>
+            <span>
+              Con n ≥ N no hay margen de error que defender. Revisa la meta aplicada o los parámetros antes de cerrar el escenario.
+            </span>
+          </div>
+        </div>
+      )}
       <div className="cmv2-calc-stagger">
         <FlujoVertical
           etapas={etapasEscenario(comp)}
