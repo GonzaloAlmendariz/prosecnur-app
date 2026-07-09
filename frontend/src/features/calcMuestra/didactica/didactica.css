@@ -3,15 +3,16 @@
    Todo el color sale de tokens --cmv2-* / --pulso-*; cero hex hardcodeado.
    ============================================================================= */
 
-/* --- Franja de contexto en lenguaje llano ---------------------------------- */
+/* --- Franja de contexto en lenguaje llano ------------------------------------
+   Compacta y discreta: orienta sin competir con el contenido de la pestaña. */
 .cmv2-did-context {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--cmv2-accent-border);
-  border-radius: 12px;
-  background: var(--cmv2-accent-soft);
+  gap: 9px;
+  padding: 7px 11px;
+  border: 1px solid color-mix(in srgb, var(--cmv2-accent-border) 72%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--cmv2-accent-soft) 72%, transparent);
   margin-bottom: 12px;
 }
 
@@ -19,26 +20,28 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
   color: var(--cmv2-accent);
   background: var(--cmv2-surface);
-  border: 1px solid var(--cmv2-accent-border);
+  border: 1px solid color-mix(in srgb, var(--cmv2-accent-border) 72%, transparent);
 }
 
 .cmv2-did-context p {
-  margin: 0;
-  font-size: 12.5px;
+  margin: 1px 0 0;
+  font-size: 12px;
   line-height: 1.5;
-  color: var(--pulso-text);
+  max-width: 92ch;
+  color: var(--pulso-text-soft, var(--pulso-text));
 }
 
 .cmv2-did-context p + p {
   margin-top: 3px;
 }
 
-/* --- Chips de glosario con tooltip ----------------------------------------- */
+/* --- Chips de glosario con tooltip -------------------------------------------
+   Mismo lenguaje de affordance que .cmv2-uni-term (universidad/ui/ui.css). */
 .cmv2-did-term {
   position: relative;
   display: inline-flex;
@@ -46,27 +49,55 @@
   gap: 3px;
   border: none;
   background: none;
-  padding: 0;
+  padding: 0 1px;
+  margin: 0 -1px;
+  border-radius: 3px;
   font: inherit;
   font-weight: 600;
   color: var(--cmv2-accent);
   cursor: help;
   border-bottom: 1px dotted var(--cmv2-accent);
+  transition:
+    background-color 120ms var(--cmv2-ease-out, ease-out),
+    border-bottom-color 120ms var(--cmv2-ease-out, ease-out),
+    color 120ms var(--cmv2-ease-out, ease-out);
 }
 
-/* --- Badge de procedencia de la cifra --------------------------------------- */
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-did-term:hover {
+    background-color: var(--cmv2-accent-soft);
+    border-bottom-style: solid;
+  }
+}
+
+.cmv2-did-term[aria-expanded="true"] {
+  background-color: var(--cmv2-accent-soft);
+  border-bottom-style: solid;
+}
+
+.cmv2-did-term:active {
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-did-term:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 45%, transparent);
+}
+
+/* --- Badge de procedencia de la cifra ------------------------------------------
+   Informa sin gritar: chip pequeño, tinte translúcido, semántica intacta. */
 .cmv2-did-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
+  gap: 4px;
+  padding: 2px 8px;
   border-radius: 999px;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  border: 1px solid var(--pulso-success-border, var(--cmv2-accent-border));
+  border: 1px solid color-mix(in srgb, var(--pulso-success-border, var(--cmv2-accent-border)) 78%, transparent);
   color: var(--pulso-success-fg, var(--cmv2-accent));
-  background: var(--pulso-success-bg, var(--cmv2-accent-soft));
+  background: color-mix(in srgb, var(--pulso-success-bg, var(--cmv2-accent-soft)) 72%, transparent);
   white-space: nowrap;
 }
 
@@ -83,8 +114,8 @@
 }
 
 .cmv2-did-badge svg {
-  width: 11px;
-  height: 11px;
+  width: 10px;
+  height: 10px;
 }
 
 /* Pop breve cuando el motor confirma: la validación se siente, no solo se lee. */
@@ -132,16 +163,51 @@
 
 .cmv2-did-respaldo-chevron {
   margin-left: auto;
-  transition: transform 140ms ease;
+  transition: transform 200ms var(--cmv2-ease-in-out, ease-in-out);
 }
 
 .cmv2-did-respaldo[open] .cmv2-did-respaldo-chevron {
   transform: rotate(180deg);
 }
 
+.cmv2-did-respaldo > summary:focus-visible {
+  outline: 2px solid transparent;
+  border-radius: 12px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 45%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-did-respaldo > summary:hover {
+    background-color: color-mix(in srgb, var(--cmv2-accent-soft) 55%, transparent);
+    border-radius: 12px;
+  }
+
+  .cmv2-did-respaldo[open] > summary:hover {
+    border-radius: 12px 12px 0 0;
+  }
+}
+
 .cmv2-did-respaldo-body {
-  padding: 2px 14px 12px;
+  padding: 4px 14px 12px;
   border-top: 1px solid var(--cmv2-border);
+}
+
+/* Fade de entrada interrumpible (transition + @starting-style). */
+@media (prefers-reduced-motion: no-preference) {
+  .cmv2-did-respaldo[open] .cmv2-did-respaldo-body {
+    opacity: 1;
+    translate: 0 0;
+    transition:
+      opacity 180ms var(--cmv2-ease-out, ease-out),
+      translate 180ms var(--cmv2-ease-out, ease-out);
+  }
+
+  @starting-style {
+    .cmv2-did-respaldo[open] .cmv2-did-respaldo-body {
+      opacity: 0;
+      translate: 0 -3px;
+    }
+  }
 }
 
 .cmv2-did-respaldo-body p {
@@ -203,6 +269,105 @@
   accent-color: var(--cmv2-accent);
 }
 
+/* Sliders con pista pintada (opt-in): el componente marca data-fill y expone
+   --did-fill (0-100%). Sensación nativa macOS: pista fina con el acento hasta
+   el valor, thumb blanco con sombra corta, ring al hover y leve crecimiento
+   mientras se arrastra. Los sliders sin data-fill conservan accent-color. */
+.cmv2-did-slider input[type="range"][data-fill] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.cmv2-did-slider input[type="range"][data-fill]::-webkit-slider-runnable-track {
+  height: 5px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--cmv2-accent) 0%,
+    var(--cmv2-accent) var(--did-fill, 0%),
+    color-mix(in srgb, var(--cmv2-border) 72%, transparent) var(--did-fill, 0%),
+    color-mix(in srgb, var(--cmv2-border) 72%, transparent) 100%
+  );
+}
+
+.cmv2-did-slider input[type="range"][data-fill]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  margin-top: -5px;
+  border-radius: 999px;
+  background: var(--pulso-surface, #fff);
+  border: 1px solid color-mix(in srgb, var(--cmv2-accent) 26%, var(--pulso-border));
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.16),
+    0 0 0 0 color-mix(in srgb, var(--cmv2-accent) 14%, transparent);
+  transition:
+    box-shadow 140ms var(--cmv2-ease-out, ease-out),
+    transform 160ms var(--cmv2-ease-out, ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-did-slider input[type="range"][data-fill]:hover::-webkit-slider-thumb {
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.16),
+      0 0 0 4px color-mix(in srgb, var(--cmv2-accent) 14%, transparent);
+  }
+}
+
+.cmv2-did-slider input[type="range"][data-fill]:active::-webkit-slider-thumb {
+  transform: scale(1.08);
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.2),
+    0 0 0 5px color-mix(in srgb, var(--cmv2-accent) 18%, transparent);
+}
+
+.cmv2-did-slider input[type="range"][data-fill]:focus-visible {
+  outline: none;
+}
+
+.cmv2-did-slider input[type="range"][data-fill]:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.16),
+    0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 45%, transparent);
+}
+
+/* Firefox: mismo lenguaje con las pseudo-clases propias. */
+.cmv2-did-slider input[type="range"][data-fill]::-moz-range-track {
+  height: 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cmv2-border) 72%, transparent);
+}
+
+.cmv2-did-slider input[type="range"][data-fill]::-moz-range-progress {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--cmv2-accent);
+}
+
+.cmv2-did-slider input[type="range"][data-fill]::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  background: var(--pulso-surface, #fff);
+  border: 1px solid color-mix(in srgb, var(--cmv2-accent) 26%, var(--pulso-border));
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.16);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-did-slider input[type="range"][data-fill]::-webkit-slider-thumb {
+    transition: none;
+  }
+
+  .cmv2-did-slider input[type="range"][data-fill]:active::-webkit-slider-thumb {
+    transform: none;
+  }
+}
+
 .cmv2-did-segment {
   display: inline-flex;
   border: 1px solid var(--cmv2-border);
@@ -219,8 +384,29 @@
   padding: 3px 10px;
   font-size: 11.5px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   color: var(--pulso-text-muted);
   cursor: pointer;
+  transition:
+    background-color 140ms var(--cmv2-ease-out, ease-out),
+    color 140ms var(--cmv2-ease-out, ease-out),
+    transform var(--motion-dur-press, 120ms) var(--cmv2-ease-out, ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-did-segment button:hover:not([data-active="true"]) {
+    color: var(--pulso-text);
+    background: color-mix(in srgb, var(--cmv2-accent-soft) 60%, transparent);
+  }
+}
+
+.cmv2-did-segment button:active {
+  transform: scale(var(--cmv2-press-scale, 0.97));
+}
+
+.cmv2-did-segment button:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 45%, transparent);
 }
 
 .cmv2-did-segment button[data-active="true"] {
@@ -264,10 +450,11 @@
 }
 
 .cmv2-did-kpi dt {
+  /* Eyebrow unificado del desk: 10.5px / 650 / 0.06em / muted. */
   margin: 0;
   font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-weight: 650;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--pulso-text-muted);
 }
@@ -287,6 +474,18 @@
 .cmv2-did-kpi .cmv2-did-kpi-hint {
   font-size: 10.5px;
   color: var(--pulso-text-muted);
+}
+
+/* Lectura honesta: el KPI toma tono warn cuando la cifra validada describe
+   una brecha (cobertura parcial de facultades o esperados bajo el objetivo). */
+.cmv2-did-kpi[data-tono="warn"] {
+  border-color: var(--pulso-warn-border);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 40%, var(--cmv2-surface));
+}
+
+.cmv2-did-kpi .cmv2-did-kpi-hint[data-tono="warn"] {
+  color: var(--pulso-warn-fg);
+  font-weight: 600;
 }
 
 /* --- Memoria de cálculo (decision log) -------------------------------------------- */

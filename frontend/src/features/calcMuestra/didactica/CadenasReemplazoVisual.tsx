@@ -5,8 +5,8 @@
  * para explicar el plan — la operación real vive en el panel principal.
  * HTML/CSS puro, sin Plotly.
  */
-import { useMemo } from "react";
-import { ArrowRight, Route } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowRight, ChevronDown, ChevronUp, Route } from "lucide-react";
 import type {
   CalcMuestraAulasReplacementSimulation,
   CalcMuestraAulasReplacementSuggestion,
@@ -17,6 +17,9 @@ import { rowsFrom, rowText, safeNum } from "./didacticaData";
 
 const MAX_CADENAS_VISIBLES = 8;
 const MAX_RESERVAS_POR_CADENA = 2;
+/** Al expandir, las cadenas se agregan por bloques para no colgar el DOM
+    cuando el proyecto real trae cientos de cadenas. */
+const BLOQUE_CADENAS = 50;
 
 type ReservaNodo = {
   id: string;
@@ -171,9 +174,13 @@ export function CadenasReemplazoVisual({
     return construirCadenas(rows, simulacion);
   }, [seleccion, simulacion]);
 
+  /** Cuántas cadenas se muestran: 8 colapsado, +50 por clic al expandir. */
+  const [limite, setLimite] = useState(MAX_CADENAS_VISIBLES);
+
   if (!seleccion || !cadenas) return null;
-  const visibles = cadenas.slice(0, MAX_CADENAS_VISIBLES);
+  const visibles = cadenas.slice(0, limite);
   const restantes = cadenas.length - visibles.length;
+  const expandida = limite > MAX_CADENAS_VISIBLES && cadenas.length > MAX_CADENAS_VISIBLES;
 
   return (
     <div className="cmv2-did-result">
@@ -183,7 +190,7 @@ export function CadenasReemplazoVisual({
       </div>
 
       {visibles.length > 0 && (
-        <ol className="cmv2-did-chain-list">
+        <ol className={`cmv2-did-chain-list${expandida ? " is-expandida" : ""}`}>
           {visibles.map((cadena) => (
             <li key={cadena.id} className="cmv2-did-chain">
               <div className="cmv2-did-chain-titular">
@@ -218,11 +225,41 @@ export function CadenasReemplazoVisual({
           ))}
         </ol>
       )}
-      {restantes > 0 && (
-        <p className="cmv2-did-chain-more">
-          <Route size={12} aria-hidden="true" />y {restantes.toLocaleString("es-PE")}{" "}
-          {restantes === 1 ? "cadena más con la misma lógica" : "cadenas más con la misma lógica"}
-        </p>
+      {(restantes > 0 || expandida) && (
+        <div className="cmv2-did-chain-acciones">
+          {!expandida && restantes > 0 && (
+            <button
+              type="button"
+              className="cmv2-did-chain-toggle"
+              onClick={() => setLimite(MAX_CADENAS_VISIBLES + BLOQUE_CADENAS)}
+            >
+              <Route size={12} aria-hidden="true" />
+              Ver todas las cadenas ({cadenas.length.toLocaleString("es-PE")})
+              <ChevronDown size={12} aria-hidden="true" />
+            </button>
+          )}
+          {expandida && restantes > 0 && (
+            <button
+              type="button"
+              className="cmv2-did-chain-toggle"
+              onClick={() => setLimite((prev) => prev + BLOQUE_CADENAS)}
+            >
+              <ChevronDown size={12} aria-hidden="true" />
+              Mostrar {Math.min(BLOQUE_CADENAS, restantes).toLocaleString("es-PE")} más
+              <em>quedan {restantes.toLocaleString("es-PE")} de {cadenas.length.toLocaleString("es-PE")}</em>
+            </button>
+          )}
+          {expandida && (
+            <button
+              type="button"
+              className="cmv2-did-chain-toggle is-cerrar"
+              onClick={() => setLimite(MAX_CADENAS_VISIBLES)}
+            >
+              <ChevronUp size={12} aria-hidden="true" />
+              Ver menos
+            </button>
+          )}
+        </div>
       )}
 
       <p className="cmv2-did-note">

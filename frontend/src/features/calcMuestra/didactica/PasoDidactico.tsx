@@ -19,7 +19,7 @@ export function ContextoLlano({ paso }: { paso: PasoId }) {
   return (
     <div className="cmv2-did-context" role="note">
       <span className="cmv2-did-context-icon" aria-hidden="true">
-        <Compass size={14} />
+        <Compass size={12} />
       </span>
       <p>{meta.llano}</p>
     </div>

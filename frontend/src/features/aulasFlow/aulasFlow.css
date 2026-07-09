@@ -2,10 +2,11 @@
   --aulas-flow-accent: var(--module-accent, var(--pulso-primary));
   --aulas-flow-accent-soft: var(--module-accent-soft, var(--pulso-primary-soft));
   --aulas-flow-accent-border: var(--module-accent-border, var(--pulso-primary-border));
-  display: grid;
-  grid-template-columns: minmax(220px, 0.32fr) minmax(360px, 1fr);
-  gap: 10px;
-  align-items: stretch;
+  /* Query container: el stepper vive en anchos muy distintos (página completa
+     en Recopiladores/Monitoreo, rail angosto en Sustento técnico), así que el
+     layout responde al ancho real del componente, no al viewport. */
+  container-type: inline-size;
+  display: block;
   min-width: 0;
   margin: 10px 0 0;
   padding: 10px;
@@ -17,9 +18,20 @@
   box-shadow: var(--pulso-shadow-low);
 }
 
+.aulas-flow-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.32fr) minmax(360px, 1fr);
+  gap: 10px;
+  align-items: stretch;
+  min-width: 0;
+}
+
 .aulas-flow.is-compact {
-  grid-template-columns: minmax(260px, 0.28fr) minmax(330px, 1fr);
   padding: 8px;
+}
+
+.aulas-flow.is-compact .aulas-flow-grid {
+  grid-template-columns: minmax(260px, 0.28fr) minmax(330px, 1fr);
 }
 
 .aulas-flow.is-compact .aulas-flow-copy p {
@@ -55,6 +67,9 @@
   font-size: 14px;
   font-weight: 900;
   line-height: 1.12;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  hyphens: none;
 }
 
 .aulas-flow-copy p {
@@ -68,7 +83,9 @@
 
 .aulas-flow-steps {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* auto-fit + mínimo por item: los pasos caben en 4, 2 o 1 columnas según el
+     ancho disponible, sin que "Muestra de aulas" se rompa letra a letra. */
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
   gap: 7px;
   align-self: center;
   min-width: 0;
@@ -107,12 +124,17 @@
   margin-top: 2px;
 }
 
+/* Nunca romper palabras: los rótulos ("Muestra de aulas", "titulares y
+   reservas") solo envuelven en espacios; el ancho mínimo por item lo
+   garantizan las container queries de abajo. */
 .aulas-flow-steps li strong,
 .aulas-flow-steps li small {
   display: block;
   min-width: 0;
   line-height: 1.08;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  hyphens: none;
   white-space: normal;
 }
 
@@ -287,28 +309,26 @@
   letter-spacing: 0;
 }
 
-@media (max-width: 1180px) {
-  .aulas-flow,
-  .aulas-flow.is-compact,
+/* Container queries: reaccionan al ancho real del stepper (no del viewport),
+   así el rail angosto de Sustento técnico apila sin romper palabras. */
+@container (max-width: 760px) {
+  .aulas-flow-grid,
+  .aulas-flow.is-compact .aulas-flow-grid,
   .aulas-flow-meta {
     grid-template-columns: 1fr;
   }
 
-  .aulas-flow-steps {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .aulas-flow-actions {
     justify-content: flex-start;
+    flex-wrap: wrap;
   }
 }
 
-@media (max-width: 720px) {
-  .aulas-flow-steps {
-    grid-template-columns: 1fr;
-  }
-
+@container (max-width: 380px) {
   .aulas-flow-action {
     flex: 1 1 auto;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.2;
   }
 }

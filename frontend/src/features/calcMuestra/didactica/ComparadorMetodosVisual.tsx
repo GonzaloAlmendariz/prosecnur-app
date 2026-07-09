@@ -60,11 +60,14 @@ function metodoCopy(methodId: string, methodLabel: string) {
   };
 }
 
-/** Formatea scores tolerando ambas convenciones (0-1 o 0-100). */
+/**
+ * Formatea scores tolerando ambas convenciones (0-1 o 0-100), siempre con el
+ * mismo formato "N/100" para que un 0 no se lea distinto al resto de tarjetas.
+ */
 function fmtScore(value: number): string {
   if (!Number.isFinite(value)) return "—";
-  if (value >= 0 && value <= 1) return `${Math.round(value * 100)}%`;
-  return `${Math.round(value)}/100`;
+  const score = value >= 0 && value <= 1 ? value * 100 : value;
+  return `${Math.round(score)}/100`;
 }
 
 type Metrica = { etiqueta: string; valor: string };
@@ -87,7 +90,15 @@ function metricasDe(row: Record<string, unknown>): Metrica[] {
   const out: Metrica[] = [];
   for (const candidata of candidatas) {
     for (const key of candidata.keys) {
-      const n = safeNum(row[key], Number.NaN);
+      const raw = row[key];
+      if (raw === undefined) continue;
+      // Campo presente pero vacío (NA del motor serializado como null/""):
+      // se muestra "—" en vez de dejar que safeNum lo lea como 0.
+      if (raw === null || String(raw).trim() === "") {
+        out.push({ etiqueta: candidata.etiqueta, valor: "—" });
+        break;
+      }
+      const n = safeNum(raw, Number.NaN);
       if (Number.isFinite(n)) {
         out.push({ etiqueta: candidata.etiqueta, valor: candidata.formato ? candidata.formato(n) : fmtScore(n) });
         break;
