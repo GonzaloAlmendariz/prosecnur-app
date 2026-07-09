@@ -22,7 +22,7 @@ import type {
   CalcMuestraWorkspace,
   CalcMuestraWorkspaceAulasConfig,
 } from "../../../../api/client";
-import { fmtInt, fmtPct, rowsFrom, safeNumber } from "../../sharedCore";
+import { fmtInt, fmtPct, fmtRatio, rowsFrom, safeNumber } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import {
   universityCategoryProfileRows,
@@ -97,16 +97,21 @@ export function marcoPopulationFigures(frame: MarcoFrame, totalComp: CalcMuestra
   return { inputRows, eligibleRows, populationN, excludedN, eligibilityRate, dedupeLoad };
 }
 
+/**
+ * Filas de facultad SIN recorte en origen: los datos llegan completos al
+ * chart y es ClassroomBarPlot quien aplica la política "todas si caben,
+ * top-N + fila 'y N más' si no" (ver marcoCharts.tsx).
+ */
 function populationFacultyRows(frame: MarcoFrame, totalComp: CalcMuestraComponente, workspace?: CalcMuestraWorkspace) {
   const { populationRows, classroomRows } = marcoFrameRows(frame, workspace);
   const labelFor = labelerFor(workspace);
-  const profileFacultyRows = frameCategoryProfileRows(frame, "faculty", labelFor("faculty"), 12, "total");
-  const facultyFromAulas = weightedDistributionRows(classroomRows, ["faculty", "facultad", "unidad_academica", "stratum"], ["eligible_n", "matriculados_poblacion", "enrolled_total"], 12, labelFor("faculty"), "total");
+  const profileFacultyRows = frameCategoryProfileRows(frame, "faculty", labelFor("faculty"), 99, "total");
+  const facultyFromAulas = weightedDistributionRows(classroomRows, ["faculty", "facultad", "unidad_academica", "stratum"], ["eligible_n", "matriculados_poblacion", "enrolled_total"], 99, labelFor("faculty"), "total");
   const facultyFromMarco = populationRows.length
-    ? universityFacultyDiagnosticRows(totalComp, populationRows, { sortMode: "total", maxRows: 12 })
+    ? universityFacultyDiagnosticRows(totalComp, populationRows, { sortMode: "total", maxRows: 99 })
     : profileFacultyRows.length
       ? profileFacultyRows
-      : universityFacultyDiagnosticRows(totalComp, [], { sortMode: "total", maxRows: 12 });
+      : universityFacultyDiagnosticRows(totalComp, [], { sortMode: "total", maxRows: 99 });
   return facultyFromMarco.length ? facultyFromMarco : facultyFromAulas;
 }
 
@@ -204,12 +209,12 @@ export function MarcoPoblacionFacultades({
       })
     : populationRows;
   const programRowsFromPopulation = programPopulationRows.length
-    ? weightedDistributionRows(programPopulationRows, ["program", "programa", "career", "carrera", "especialidad"], [], 10, labelFor("program"))
+    ? weightedDistributionRows(programPopulationRows, ["program", "programa", "career", "carrera", "especialidad"], [], 99, labelFor("program"))
     : [];
   const programRowsFromProfile = activeProgramFaculty
-    ? frameCrossSecondaryRows(frame, "faculty", "program", activeProgramFaculty, workspace, 10)
+    ? frameCrossSecondaryRows(frame, "faculty", "program", activeProgramFaculty, workspace, 99)
     : [];
-  const profileProgramRows = frameCategoryProfileRows(frame, "program", labelFor("program"), 12, "total");
+  const profileProgramRows = frameCategoryProfileRows(frame, "program", labelFor("program"), 99, "total");
   const populationCrossProfileRows = rowsFrom<Record<string, unknown>>((frame as Record<string, unknown> | null)?.population_cross_profiles);
   const legacyProgramFrame = Boolean(frame && classroomRows.length && !populationRows.length && !populationCrossProfileRows.length);
   const programRows = legacyProgramFrame
@@ -219,7 +224,7 @@ export function MarcoPoblacionFacultades({
       : programRowsFromProfile.length
         ? programRowsFromProfile
         : !activeProgramFaculty
-          ? profileProgramRows.slice(0, 10)
+          ? profileProgramRows
           : [];
   const programRowsTotal = programRows.reduce((sum, row) => sum + row.value, 0);
   const missingAdministrativeProgramCross = Boolean(activeProgramFaculty) && !programRowsFromPopulation.length && !programRowsFromProfile.length;
@@ -342,15 +347,15 @@ export function MarcoEstructuraControles({
 }) {
   const { populationRows, classroomRows } = marcoFrameRows(frame, workspace);
   const labelFor = labelerFor(workspace);
-  const populationSexTable = universityFacultySexCross(totalComp, populationRows, workspace, frameCrossProfileTable(frame, "faculty", "sex", workspace, 12, 4, "faculty", "label"));
+  const populationSexTable = universityFacultySexCross(totalComp, populationRows, workspace, frameCrossProfileTable(frame, "faculty", "sex", workspace, 99, 4, "faculty", "label"));
   const populationSexTableTotal = populationSexTable.rows.reduce((sum, row) => sum + Object.values(row.values).reduce((inner, value) => inner + safeNumber(value, 0), 0), 0);
   const sexTable = populationSexTableTotal > 0
     ? populationSexTable
     : classroomFacultySexCross(totalComp, [], classroomRows, workspace);
-  const classroomLevelTable = buildWeightedCrossTable(classroomRows, ["faculty", "facultad", "unidad_academica", "stratum"], ["level", "nivel", "nivel_del_curso", "ciclo"], ["eligible_n"], 10, 99, { primary: labelFor("faculty"), secondary: labelFor("level"), rowSort: "faculty", columnSort: "ordinal" });
-  const populationLevelProfileTable = frameCrossProfileTable(frame, "faculty", "level", workspace, 10, 99, "faculty", "ordinal");
+  const classroomLevelTable = buildWeightedCrossTable(classroomRows, ["faculty", "facultad", "unidad_academica", "stratum"], ["level", "nivel", "nivel_del_curso", "ciclo"], ["eligible_n"], 99, 99, { primary: labelFor("faculty"), secondary: labelFor("level"), rowSort: "faculty", columnSort: "ordinal" });
+  const populationLevelProfileTable = frameCrossProfileTable(frame, "faculty", "level", workspace, 99, 99, "faculty", "ordinal");
   const levelTable = populationRows.length
-    ? buildCrossTable(populationRows, ["faculty", "facultad", "unidad_academica"], ["level", "nivel", "ciclo", "anio"], 10, 99, { primary: labelFor("faculty"), secondary: labelFor("level"), rowSort: "faculty", columnSort: "ordinal" })
+    ? buildCrossTable(populationRows, ["faculty", "facultad", "unidad_academica"], ["level", "nivel", "ciclo", "anio"], 99, 99, { primary: labelFor("faculty"), secondary: labelFor("level"), rowSort: "faculty", columnSort: "ordinal" })
     : populationLevelProfileTable.rows.length
       ? populationLevelProfileTable
       : classroomLevelTable;
@@ -424,7 +429,7 @@ export function MarcoAulasCapacidad({
   const items: ClassroomInsight[] = [
     {
       label: "Profundidad",
-      value: Number.isFinite(reserveDepth) ? `${reserveDepth.toFixed(1).replace(".", ",")}x` : classroomN ? fmtInt(classroomN) : "pendiente",
+      value: Number.isFinite(reserveDepth) ? fmtRatio(reserveDepth) : classroomN ? fmtInt(classroomN) : "pendiente",
       detail: requestedClassrooms ? `aulas válidas / ${fmtInt(requestedClassrooms)} titulares` : "aulas disponibles antes de seleccionar",
       tone: Number.isFinite(reserveDepth) && reserveDepth >= 3 ? "good" : "info",
       icon: Grid3X3,

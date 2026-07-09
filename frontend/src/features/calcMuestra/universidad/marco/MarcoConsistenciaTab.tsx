@@ -47,6 +47,21 @@ function issueAction(code: string) {
   return MARCO_ISSUE_ACTIONS[code] ?? "Revisa la relación entre bases en Definición → Bases y reconstruye el marco.";
 }
 
+/**
+ * Advertencias conocidas del motor R que llegan sin tildes; se corrigen solo
+ * en la presentación (el dato del motor no se altera).
+ */
+const MOTOR_WARNING_FIXES: Record<string, string> = {
+  "La validacion entre base principal y catalogo curso-horario tiene problemas criticos.":
+    "La validación entre base principal y catálogo curso-horario tiene problemas críticos.",
+  "La validacion entre base principal y catalogo curso-horario requiere revision.":
+    "La validación entre base principal y catálogo curso-horario requiere revisión.",
+};
+
+function warningText(warning: string) {
+  return MOTOR_WARNING_FIXES[warning] ?? warning;
+}
+
 function matchTone(rate: number) {
   if (!Number.isFinite(rate)) return "pending";
   if (rate >= 0.9) return "ok";
@@ -248,7 +263,7 @@ export function MarcoConsistenciaTab({
 
         {frame && warnings.length > 0 && (
           <div className="cmv2-frame-warning-list">
-            {warnings.map((warning) => <span key={warning}>{warning}</span>)}
+            {warnings.map((warning) => <span key={warning}>{warningText(warning)}</span>)}
           </div>
         )}
       </section>

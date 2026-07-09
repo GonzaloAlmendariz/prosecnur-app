@@ -84,6 +84,15 @@ export type DescriptiveEmptyState = {
   tone?: "missing" | "waiting" | "optional" | "neutral";
 };
 
+/**
+ * Política anti-recorte silencioso de los charts del marco: si las categorías
+ * caben (≤ CHART_MAX_ROWS_VISIBLE) se muestran todas; si son más, se dibujan
+ * las CHART_TOP_N mayores y una última fila agregada "y N más" siempre
+ * visible con tono atenuado, para que nada desaparezca sin aviso.
+ */
+export const CHART_MAX_ROWS_VISIBLE = 20;
+export const CHART_TOP_N = 12;
+
 export const UNIVERSITY_FACULTY_ROW_KEYS = ["faculty", "facultad", "unidad_academica", "escuela", "stratum"];
 export const UNIVERSITY_STUDENT_ROW_KEYS = [
   "student_id",
@@ -109,6 +118,39 @@ export function fmtStackPct(value: number | null | undefined) {
 
 export function safeShare(value: number, total: number) {
   return total > 0 && Number.isFinite(total) ? value / total : Number.NaN;
+}
+
+export type BarRowsWithOverflow = {
+  visible: DescriptiveBarRow[];
+  overflow: { count: number; value: number } | null;
+};
+
+/**
+ * Aplica la política anti-recorte: todas las filas si caben, o las topN
+ * mayores (conservando el orden original) más el agregado del resto.
+ */
+export function capBarRows(
+  rows: DescriptiveBarRow[],
+  maxVisible = CHART_MAX_ROWS_VISIBLE,
+  topN = CHART_TOP_N,
+): BarRowsWithOverflow {
+  if (rows.length <= maxVisible) return { visible: rows, overflow: null };
+  const keep = new Set(
+    [...rows].sort((a, b) => b.value - a.value).slice(0, topN).map((row) => row.label),
+  );
+  const visible: DescriptiveBarRow[] = [];
+  let count = 0;
+  let value = 0;
+  rows.forEach((row) => {
+    if (keep.has(row.label)) {
+      visible.push(row);
+      keep.delete(row.label);
+    } else {
+      count += 1;
+      value += row.value;
+    }
+  });
+  return { visible, overflow: count > 0 ? { count, value } : null };
 }
 
 export function dashboardOptionKey(value: string) {
@@ -458,7 +500,7 @@ export function universityFacultySexCross(
     populationRows,
     ["faculty", "facultad", "unidad_academica"],
     ["sex", "sexo", "genero"],
-    12,
+    99,
     4,
     {
       primary: (value) => workspaceCategoryLabel(workspace, "faculty", value),
@@ -484,7 +526,7 @@ export function universityFacultySexCross(
     })
     .filter((row) => row.total > 0)
     .sort((a, b) => compareCrossTableRows(a, b, "faculty"))
-    .slice(0, 12);
+    .slice(0, 99);
   return {
     columns: ["Mujeres", "Hombres"],
     rows,
@@ -523,7 +565,7 @@ export function classroomFacultySexCross(
       total: Array.from(valuesMap.values()).reduce((sum, value) => sum + value, 0),
     }))
     .sort((a, b) => compareCrossTableRows(a, b, "faculty"))
-    .slice(0, 12);
+    .slice(0, 99);
   const columns = Array.from(new Set(rows.flatMap((row) => Object.keys(row.values)))).slice(0, 4);
   return {
     columns,
@@ -868,11 +910,14 @@ export function ClassroomBarPlot({
   /** Barras crecen (scaleX desde la izquierda) una sola vez al montar. */
   growOnMount?: boolean;
 }) {
-  const visible = rows.filter((row) => row.value > 0).slice(0, 12);
+  const { visible, overflow } = capBarRows(rows.filter((row) => row.value > 0));
   if (!visible.length) return emptyState ? <DescriptiveEmptyNotice state={emptyState} compact /> : <p>Sin datos suficientes para graficar.</p>;
   const max = visible.reduce((peak, row) => Math.max(peak, row.value), 0) || 1;
+  // El minHeight se adapta al número de filas: dos categorías (ej. sexo) ya no
+  // se estiran para llenar 260px con barras flotando a media tarjeta.
+  const naturalHeight = 12 + (visible.length + (overflow ? 1 : 0)) * 25;
   return (
-    <div className={`cmv2-native-bars${growOnMount ? " cmv2-marco-grow" : ""}`} role="img" aria-label={ariaLabel} style={{ minHeight: height }}>
+    <div className={`cmv2-native-bars${growOnMount ? " cmv2-marco-grow" : ""}`} role="img" aria-label={ariaLabel} style={{ minHeight: Math.min(height, naturalHeight) }}>
       {visible.map((row) => {
         const selected = selectedLabel ? dashboardOptionKey(row.label) === dashboardOptionKey(selectedLabel) : false;
         const interactive = Boolean(onRowClick);
@@ -891,7 +936,8 @@ export function ClassroomBarPlot({
               }
             } : undefined}
           >
-            <span>{row.label}</span>
+            {/* title = etiqueta completa: la celda trunca con ellipsis (CSS del marco). */}
+            <span title={row.label}>{row.label}</span>
             <div aria-hidden="true"><i style={{ width: `${Math.max(3, (row.value / max) * 100)}%` }} /></div>
             <strong>
               {fmtInt(row.value)}{" "}
@@ -900,6 +946,16 @@ export function ClassroomBarPlot({
           </div>
         );
       })}
+      {overflow && (
+        <div className="cmv2-native-bar-row is-overflow">
+          <span>y {fmtInt(overflow.count)} más</span>
+          <div aria-hidden="true"><i style={{ width: `${Math.min(100, Math.max(3, (overflow.value / max) * 100))}%` }} /></div>
+          <strong>
+            {fmtInt(overflow.value)}{" "}
+            <small>{Number.isFinite(total) && total && overflow.value > 0 ? `${fmtStackPct(overflow.value / total)} · ${unit}` : unit}</small>
+          </strong>
+        </div>
+      )}
     </div>
   );
 }
@@ -952,10 +1008,26 @@ export function ClassroomStackedCrossPlot({
   showSegmentLabels?: boolean;
 }) {
   const displayTable = sortByMaleSurplus ? sortSexTableByMaleSurplus(table) : table;
-  const rows = displayTable.rows.slice(0, 12);
+  const allRows = displayTable.rows;
   const colors = ["#7c3aed", "#0f766e", "#2563eb", "#64748b"];
-  if (!rows.length || !displayTable.columns.length) return emptyState ? <DescriptiveEmptyNotice state={emptyState} compact /> : <p>Sin datos suficientes para graficar.</p>;
-  const plotHeight = Math.max(118, Math.min(height, 42 + rows.length * 29));
+  if (!allRows.length || !displayTable.columns.length) return emptyState ? <DescriptiveEmptyNotice state={emptyState} compact /> : <p>Sin datos suficientes para graficar.</p>;
+  let rows = allRows;
+  let overflowRow: CrossTable["rows"][number] | null = null;
+  if (allRows.length > CHART_MAX_ROWS_VISIBLE) {
+    const keep = new Set([...allRows].sort((a, b) => b.total - a.total).slice(0, CHART_TOP_N).map((row) => row.label));
+    rows = allRows.filter((row) => keep.has(row.label));
+    const rest = allRows.filter((row) => !keep.has(row.label));
+    overflowRow = {
+      label: `y ${fmtInt(rest.length)} más`,
+      total: rest.reduce((sum, row) => sum + row.total, 0),
+      values: Object.fromEntries(displayTable.columns.map((column) => [
+        column,
+        rest.reduce((sum, row) => sum + safeNumber(row.values[column], 0), 0),
+      ])),
+    };
+  }
+  const renderRows = overflowRow ? [...rows, overflowRow] : rows;
+  const plotHeight = Math.max(118, Math.min(height, 42 + renderRows.length * 29));
   return (
     <div className="cmv2-native-stacked" role="img" aria-label={ariaLabel} style={{ minHeight: plotHeight }}>
       <div className="cmv2-native-legend">
@@ -964,9 +1036,9 @@ export function ClassroomStackedCrossPlot({
         ))}
       </div>
       <div className="cmv2-native-stack-rows">
-        {rows.map((row) => (
-          <div key={row.label} className="cmv2-native-stack-row">
-            <span>{row.label}</span>
+        {renderRows.map((row) => (
+          <div key={row.label} className={`cmv2-native-stack-row${overflowRow && row === overflowRow ? " is-overflow" : ""}`}>
+            <span title={row.label}>{row.label}</span>
             <div className="cmv2-native-stack-track" aria-hidden="true">
               {displayTable.columns.map((column, index) => {
                 const value = row.values[column] ?? 0;
@@ -1083,9 +1155,27 @@ export function ClassroomHeatmapPlot({
   emptyState?: DescriptiveEmptyState;
   minColumnWidth?: number;
 }) {
-  const rows = table.rows.slice(0, 12);
-  if (!rows.length || !table.columns.length) return emptyState ? <DescriptiveEmptyNotice state={emptyState} compact /> : <p>Sin datos suficientes para graficar.</p>;
-  const max = rows.reduce((peak, row) => Math.max(peak, ...table.columns.map((column) => row.values[column] ?? 0)), 0) || 1;
+  const allRows = table.rows;
+  if (!allRows.length || !table.columns.length) return emptyState ? <DescriptiveEmptyNotice state={emptyState} compact /> : <p>Sin datos suficientes para graficar.</p>;
+  let rows = allRows;
+  let overflowLabel = "";
+  if (allRows.length > CHART_MAX_ROWS_VISIBLE) {
+    const keep = new Set([...allRows].sort((a, b) => b.total - a.total).slice(0, CHART_TOP_N).map((row) => row.label));
+    rows = allRows.filter((row) => keep.has(row.label));
+    const rest = allRows.filter((row) => !keep.has(row.label));
+    overflowLabel = `y ${fmtInt(rest.length)} más`;
+    rows = [...rows, {
+      label: overflowLabel,
+      total: rest.reduce((sum, row) => sum + row.total, 0),
+      values: Object.fromEntries(table.columns.map((column) => [
+        column,
+        rest.reduce((sum, row) => sum + safeNumber(row.values[column], 0), 0),
+      ])),
+    }];
+  }
+  const max = rows
+    .filter((row) => row.label !== overflowLabel)
+    .reduce((peak, row) => Math.max(peak, ...table.columns.map((column) => row.values[column] ?? 0)), 0) || 1;
   const minGridWidth = 180 + table.columns.length * minColumnWidth + table.columns.length * 4;
   return (
     <div className="cmv2-native-heatmap" role="img" aria-label={ariaLabel} style={{ minHeight: height }}>
@@ -1099,7 +1189,7 @@ export function ClassroomHeatmapPlot({
         <span className="cmv2-native-heatmap-corner" />
         {table.columns.map((column) => <strong key={column}>{column}</strong>)}
         {rows.flatMap((row) => [
-          <b key={`${row.label}-label`}>{row.label}</b>,
+          <b key={`${row.label}-label`} className={overflowLabel && row.label === overflowLabel ? "is-overflow" : undefined}>{row.label}</b>,
           ...table.columns.map((column) => {
             const value = row.values[column] ?? 0;
             const heat = Math.min(1, value / max);
@@ -1108,8 +1198,8 @@ export function ClassroomHeatmapPlot({
                 key={`${row.label}-${column}`}
                 style={{
                   background: value
-                    ? `color-mix(in srgb, var(--cmv2-accent) ${Math.round(18 + heat * 52)}%, #f8fafc)`
-                    : "#f8fafc",
+                    ? `color-mix(in srgb, var(--cmv2-accent) ${Math.round(18 + heat * 52)}%, var(--cmv2-surface))`
+                    : "var(--pulso-surface-2)",
                   color: heat > 0.58 ? "#fff" : "var(--pulso-text)",
                 }}
               >
