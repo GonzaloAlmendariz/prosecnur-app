@@ -9,7 +9,7 @@
  * handoff operativo.
  */
 import { FileText } from "lucide-react";
-import { fmtInt, fmtPct, safeNumber } from "../../sharedCore";
+import { fmtDec, fmtInt, fmtPct, safeNumber } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import { CifraFila, CifraMotor, FormulaLatex } from "../ui";
 import {
@@ -23,10 +23,6 @@ import {
 } from "./aulasParts";
 import "../../didactica/didactica.css";
 import "./aulas.css";
-
-function fmtDecimal(value: number, digits = 2) {
-  return Number.isFinite(value) ? value.toFixed(digits).replace(".", ",") : "—";
-}
 
 export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
   const {
@@ -113,7 +109,7 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
                 {
                   symbol: "w_i",
                   termino: "ponderación (peso)",
-                  value: Number.isFinite(pesoEjemplo) && pesoEjemplo > 0 ? fmtDecimal(pesoEjemplo) : fmtDecimal(1 / piEjemplo),
+                  value: Number.isFinite(pesoEjemplo) && pesoEjemplo > 0 ? fmtDec(pesoEjemplo, 2) : fmtDec(1 / piEjemplo, 2),
                 },
               ] : undefined}
             />
@@ -142,7 +138,7 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
                 {
                   symbol: "n_eff",
                   termino: "ponderación (peso)",
-                  value: `${fmtDecimal(nEff, 1)} de ${fmtInt(nNominal)} titulares`,
+                  value: `${fmtDec(nEff, 1)} de ${fmtInt(nNominal)} titulares`,
                 },
               ] : undefined}
             />
@@ -182,7 +178,7 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
               />
               <CifraMotor
                 label="Corrida de selección"
-                value={selection?.selection_run_id ? String(selection.selection_run_id).slice(0, 26) : "pendiente"}
+                value={selection?.selection_run_id ? String(selection.selection_run_id) : "pendiente"}
                 detalle="identificador auditable"
                 origen={selection?.selection_run_id ? "motor" : undefined}
               />

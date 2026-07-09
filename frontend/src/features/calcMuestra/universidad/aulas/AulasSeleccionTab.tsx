@@ -14,8 +14,9 @@ import type {
 } from "../../../../api/client";
 import { SeleccionAulasVisual } from "../../didactica/SeleccionAulasVisual";
 import { fmtInt } from "../../sharedCore";
-import { classroomRowSearch } from "../shared/format";
+import { classroomRowSearch, classroomRowText } from "../shared/format";
 import { CifraFila, CifraMotor } from "../ui";
+import { AulaInspectorPanel } from "./AulaInspectorPanel";
 import {
   ClassroomEmptyState,
   ClassroomLabCommandBar,
@@ -33,6 +34,9 @@ import {
 import "../../didactica/didactica.css";
 import "./aulas.css";
 
+const TABLE_PAGE_INITIAL = 80;
+const TABLE_PAGE_STEP = 200;
+
 export function AulasSeleccionTab({
   workspace,
   model,
@@ -47,6 +51,13 @@ export function AulasSeleccionTab({
   onSimulateReplacements: (config: CalcMuestraWorkspaceAulasConfig) => void | Promise<void>;
 }) {
   const [tableQuery, setTableQuery] = useState("");
+  // Tope visible de la tabla: parte en 80 filas y crece bajo demanda, con el
+  // filtro operando SIEMPRE sobre el total de la selección (no solo lo visible).
+  const [tableLimit, setTableLimit] = useState(TABLE_PAGE_INITIAL);
+  // Fila inspeccionada (identidad de objeto: las filas del motor son estables
+  // mientras no se regenere la selección; si se regenera, el guard de abajo
+  // cierra el inspector solo).
+  const [inspectedRow, setInspectedRow] = useState<Record<string, unknown> | null>(null);
   const {
     selection,
     selectionReady,
@@ -66,10 +77,31 @@ export function AulasSeleccionTab({
     totalTarget,
   } = model;
   const filteredSelectionRows = selectionRows.filter((row) => classroomRowSearch(row, tableQuery));
+  const visibleSelectionRows = filteredSelectionRows.slice(0, tableLimit);
+  // Si la selección se regeneró, la fila guardada ya no existe: inspector cerrado.
+  const activeRow = inspectedRow && selectionRows.includes(inspectedRow) ? inspectedRow : null;
+  const methodUsedLabel = classroomMethodLabel(
+    String(selection?.selector_engine_used ?? selection?.selector_engine ?? engineOption.label),
+  );
+  const inspectByClassroomId = (classroomId: string) => {
+    if (!classroomId) return;
+    // Prefiere titular/reemplazo sobre la bolsa extra si el id se repitiera.
+    const candidate =
+      selectionRows.find(
+        (row) =>
+          classroomRowText(row, ["classroom_id"]) === classroomId &&
+          classroomRowText(row, ["sample_role"]) !== "extra_reserve_pool",
+      ) ?? selectionRows.find((row) => classroomRowText(row, ["classroom_id"]) === classroomId);
+    if (candidate) setInspectedRow(candidate);
+  };
 
   return (
     <div className="cmv2-aulas-stack">
-      <SeleccionAulasVisual seleccion={selection} nObjetivo={totalTarget || targetForDisplay || null} />
+      <SeleccionAulasVisual
+        seleccion={selection}
+        nObjetivo={totalTarget || targetForDisplay || null}
+        totalFacultades={model.facultades.length || null}
+      />
 
       <ClassroomLabCommandBar
         model={model}
@@ -128,7 +160,7 @@ export function AulasSeleccionTab({
                 />
                 <CifraMotor
                   label="Método usado"
-                  value={classroomMethodLabel(String(selection?.selector_engine_used ?? selection?.selector_engine ?? engineOption.label))}
+                  value={methodUsedLabel}
                   detalle={classroomProbabilitySourceLabel(selection?.probability_source)}
                   origen="motor"
                 />
@@ -140,15 +172,49 @@ export function AulasSeleccionTab({
                 <strong>Cada categoría dentro de su banda de tolerancia</strong>
               </div>
               <ProfileBalanceChart rows={visibleProfiles} />
-              <label className="cmv2-compact-field cmv2-classroom-table-filter">
-                <span>Filtrar aulas</span>
-                <input
-                  value={tableQuery}
-                  placeholder="facultad, curso, horario, estado..."
-                  onChange={(e) => setTableQuery(e.currentTarget.value)}
-                />
-              </label>
-              <ClassroomSelectionTable rows={filteredSelectionRows.slice(0, 80)} />
+              <div className={`cmv2-aulas-tabla-inspector-layout${activeRow ? " has-inspector" : ""}`}>
+                <div className="cmv2-aulas-tabla-main">
+                  <label className="cmv2-compact-field cmv2-classroom-table-filter">
+                    <span>Filtrar aulas</span>
+                    <input
+                      value={tableQuery}
+                      placeholder="facultad, curso, horario, estado..."
+                      onChange={(e) => setTableQuery(e.currentTarget.value)}
+                    />
+                  </label>
+                  <ClassroomSelectionTable
+                    rows={visibleSelectionRows}
+                    selectedRow={activeRow}
+                    onSelectRow={setInspectedRow}
+                  />
+                  {filteredSelectionRows.length > 0 && (
+                    <div className="cmv2-aulas-tabla-pie">
+                      <span>
+                        mostrando {fmtInt(Math.min(tableLimit, filteredSelectionRows.length))} de {fmtInt(filteredSelectionRows.length)} aulas
+                        {tableQuery.trim() ? ` (filtro sobre ${fmtInt(selectionRows.length)})` : ""}
+                      </span>
+                      {filteredSelectionRows.length > tableLimit && (
+                        <button
+                          type="button"
+                          className="cmv2-ghost"
+                          onClick={() => setTableLimit((limit) => limit + TABLE_PAGE_STEP)}
+                        >
+                          Mostrar {fmtInt(Math.min(TABLE_PAGE_STEP, filteredSelectionRows.length - tableLimit))} más
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {activeRow && (
+                  <AulaInspectorPanel
+                    row={activeRow}
+                    selectionRows={selectionRows}
+                    methodLabel={methodUsedLabel}
+                    onClose={() => setInspectedRow(null)}
+                    onInspect={inspectByClassroomId}
+                  />
+                )}
+              </div>
             </>
           )}
         </div>
