@@ -883,8 +883,8 @@ test_that("slide Otros paginada mantiene titulo sin contador entre parentesis", 
   skip_if_not_installed("rvg")
 
   dat <- data.frame(
-    p12 = rep("99", 11),
-    p12_other = paste("respuesta abierta", seq_len(11)),
+    p12 = rep("99", 45),
+    p12_other = paste("respuesta abierta", seq_len(45)),
     stringsAsFactors = FALSE
   )
   attr(dat$p12, "label") <- "Actividad preferida"
@@ -919,8 +919,8 @@ test_that("slide Otros paginada mantiene titulo sin contador entre parentesis", 
   expect_identical(out$plan[[3]]$title, "Otros: Actividad preferida")
   expect_false(grepl("\\([0-9]+/[0-9]+\\)", out$plan[[2]]$title))
   expect_false(grepl("\\([0-9]+/[0-9]+\\)", out$plan[[3]]$title))
-  expect_true(grepl("Base: 11 respuestas en Otros", out$plan[[2]]$slots$text, fixed = TRUE))
-  expect_true(grepl("Base: 11 respuestas en Otros", out$plan[[3]]$slots$text, fixed = TRUE))
+  expect_true(grepl("Base: 45 respuestas en Otros", out$plan[[2]]$slots$text, fixed = TRUE))
+  expect_true(grepl("Base: 45 respuestas en Otros", out$plan[[3]]$slots$text, fixed = TRUE))
 })
 
 test_that("reporte_ppt_plan explica Otros agrupado por maximo de categorias", {
