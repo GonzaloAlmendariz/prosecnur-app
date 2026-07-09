@@ -53,6 +53,16 @@
   .cm_aulas_read_table(meta$path, sheet = sheet)
 }
 
+# Umbral de aulas a partir del cual comparar/seleccionar corren como job
+# asincrono (callr) en vez de bloquear el proceso principal de plumber.
+# Medido: el overhead del worker (callr + load_all) es ~3s, y a escala real
+# (3,063 aulas) la via sincrona congelaba el backend entero por minutos u
+# horas. Con marcos chicos (< umbral) se mantiene la via sincrona historica.
+.cm_aulas_job_threshold <- function() {
+  raw <- suppressWarnings(as.integer(Sys.getenv("PULSO_CALC_MUESTRA_JOB_THRESHOLD", "500")))
+  if (is.na(raw) || raw < 1L) 500L else raw
+}
+
 .cm_state_payload <- function(sid) {
   s <- session_get(sid)
   estudio <- s$calc_muestra_estudio %||% calc_muestra_normalize_estudio(list())
@@ -344,6 +354,11 @@ mount_calc_muestra <- function(pr) {
     # -----------------------------------------------------------------------
     # POST /api/calc-muestra/aulas/comparar-metodos — laboratorio comparativo
     # Body: { config?: {...}, frame?: {...}, methods?: [], simulation_runs?: n }
+    # Respuesta:
+    #   - marco chico (< umbral): { ok, mode: "sync", comparison, state }
+    #   - marco grande:           { ok, mode: "job", job_id } — pollear
+    #     GET /api/jobs/<id>; al terminar, el resultado queda en la sesión y
+    #     el frontend refresca via GET /api/calc-muestra/state.
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/aulas/comparar-metodos",
                      wrap_endpoint(function(req, res, ...) {
@@ -360,19 +375,59 @@ mount_calc_muestra <- function(pr) {
         config_input$objective <- body$objective_config %||% body$objetivo_representatividad
       }
       config <- calc_muestra_aulas_normalize_config(config_input)
-      comparison <- tryCatch(
-        calc_muestra_aulas_comparar_metodos(
-          frame,
-          config,
-          methods = body$methods %||% body$metodos %||% NULL,
-          simulation_runs = body$simulation_runs %||% body$simulaciones %||% NULL
+      methods <- body$methods %||% body$metodos %||% NULL
+      simulation_runs <- body$simulation_runs %||% body$simulaciones %||% NULL
+
+      if (.cm_aulas_frame_n(frame) < .cm_aulas_job_threshold()) {
+        comparison <- tryCatch(
+          calc_muestra_aulas_comparar_metodos(
+            frame,
+            config,
+            methods = methods,
+            simulation_runs = simulation_runs
+          ),
+          error = function(e) stop_api(400, "E_CALC_MUESTRA_AULAS_COMPARE", conditionMessage(e))
+        )
+        session_set(sid, "calc_muestra_aulas_config", config)
+        session_set(sid, "calc_muestra_aulas_method_comparison", comparison)
+        session_set(sid, "calc_muestra_aulas_export", NULL)
+        return(list(ok = TRUE, mode = "sync", comparison = comparison, state = .cm_state_payload(sid)))
+      }
+
+      sid_capt <- sid
+      config_capt <- config
+      on_complete <- function(j) {
+        comparison <- j$result_data
+        s_now <- session_get(sid_capt, required = FALSE)
+        if (!is.null(s_now) && is.list(comparison)) {
+          session_set(sid_capt, "calc_muestra_aulas_config", config_capt)
+          session_set(sid_capt, "calc_muestra_aulas_method_comparison", comparison)
+          session_set(sid_capt, "calc_muestra_aulas_export", NULL)
+        }
+        # Payload liviano para el snapshot del job (el objeto completo queda
+        # en la sesión y se lee via /api/calc-muestra/state).
+        list(
+          ok = TRUE,
+          kind = "calc_muestra_aulas_comparar",
+          simulation_runs = comparison$simulation_runs %||% NULL,
+          simulation_runs_executed = comparison$simulation_runs_executed %||% NULL,
+          recommended_method = comparison$recommendation$method_id %||% NULL
+        )
+      }
+
+      job_id <- job_submit(
+        sid = sid,
+        kind = "calc_muestra_aulas_comparar",
+        func = calc_muestra_aulas_comparar_job,
+        args = list(
+          frame = frame,
+          config = config,
+          methods = methods,
+          simulation_runs = simulation_runs
         ),
-        error = function(e) stop_api(400, "E_CALC_MUESTRA_AULAS_COMPARE", conditionMessage(e))
+        on_complete = on_complete
       )
-      session_set(sid, "calc_muestra_aulas_config", config)
-      session_set(sid, "calc_muestra_aulas_method_comparison", comparison)
-      session_set(sid, "calc_muestra_aulas_export", NULL)
-      list(ok = TRUE, comparison = comparison, state = .cm_state_payload(sid))
+      list(ok = TRUE, mode = "job", job_id = job_id)
     })) |>
 
     # -----------------------------------------------------------------------
@@ -399,22 +454,60 @@ mount_calc_muestra <- function(pr) {
         config$selector$selector_engine <- .cm_aulas_engine_key(method_id)
         config$selector$method_family <- .cm_aulas_method_family(config$selector$selector_engine)
       }
-      selection <- tryCatch(
-        calc_muestra_aulas_seleccionar(frame, config),
-        error = function(e) stop_api(400, "E_CALC_MUESTRA_AULAS_SELECTION", conditionMessage(e))
+
+      if (.cm_aulas_frame_n(frame) < .cm_aulas_job_threshold()) {
+        selection <- tryCatch(
+          calc_muestra_aulas_seleccionar(frame, config),
+          error = function(e) stop_api(400, "E_CALC_MUESTRA_AULAS_SELECTION", conditionMessage(e))
+        )
+        comparison <- s$calc_muestra_aulas_method_comparison %||% NULL
+        if (!is.null(comparison)) selection$method_comparison <- comparison
+        session_set(sid, "calc_muestra_aulas_config", config)
+        session_set(sid, "calc_muestra_aulas_selection", selection)
+        session_set(sid, "calc_muestra_aulas_replacement_simulation", NULL)
+        session_set(sid, "calc_muestra_aulas_export", NULL)
+        return(list(ok = TRUE, mode = "sync", selection = selection, state = .cm_state_payload(sid)))
+      }
+
+      # Marco grande: job asincrono con progreso por etapas. La selección es
+      # identica a la via sincrona con la misma semilla (el callback de
+      # progreso no toca RNG); ver test e2e de paridad sync/job.
+      sid_capt <- sid
+      config_capt <- config
+      on_complete <- function(j) {
+        selection <- j$result_data
+        s_now <- session_get(sid_capt, required = FALSE)
+        if (!is.null(s_now) && is.list(selection)) {
+          comparison <- s_now$calc_muestra_aulas_method_comparison %||% NULL
+          if (!is.null(comparison)) selection$method_comparison <- comparison
+          session_set(sid_capt, "calc_muestra_aulas_config", config_capt)
+          session_set(sid_capt, "calc_muestra_aulas_selection", selection)
+          session_set(sid_capt, "calc_muestra_aulas_replacement_simulation", NULL)
+          session_set(sid_capt, "calc_muestra_aulas_export", NULL)
+        }
+        list(
+          ok = TRUE,
+          kind = "calc_muestra_aulas_seleccionar",
+          selection_run_id = selection$selection_run_id %||% NULL
+        )
+      }
+
+      job_id <- job_submit(
+        sid = sid,
+        kind = "calc_muestra_aulas_seleccionar",
+        func = calc_muestra_aulas_seleccionar_job,
+        args = list(frame = frame, config = config),
+        on_complete = on_complete
       )
-      comparison <- s$calc_muestra_aulas_method_comparison %||% NULL
-      if (!is.null(comparison)) selection$method_comparison <- comparison
-      session_set(sid, "calc_muestra_aulas_config", config)
-      session_set(sid, "calc_muestra_aulas_selection", selection)
-      session_set(sid, "calc_muestra_aulas_replacement_simulation", NULL)
-      session_set(sid, "calc_muestra_aulas_export", NULL)
-      list(ok = TRUE, selection = selection, state = .cm_state_payload(sid))
+      list(ok = TRUE, mode = "job", job_id = job_id)
     })) |>
 
     # -----------------------------------------------------------------------
     # POST /api/calc-muestra/aulas/simular-reemplazos — impacto de reservas
     # Body: { config?: {...}, frame?: {...}, selection?: {...} }
+    # Nota de escala: a 3,063 aulas esta simulación tarda ~76s síncronos.
+    # Se decidió dejarla síncrona por ahora (tolerable y de un solo tramo);
+    # si crece, migrar al mismo patrón job de comparar/seleccionar.
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/aulas/simular-reemplazos",
                      wrap_endpoint(function(req, res, ...) {

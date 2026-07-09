@@ -2037,9 +2037,10 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   extra
 }
 
-.cm_aulas_select_waves <- function(aula_frame, selector, engine, waves, seed = NULL, objective = NULL) {
+.cm_aulas_select_waves <- function(aula_frame, selector, engine, waves, seed = NULL, objective = NULL, on_progress = NULL) {
   waves <- .cm_aulas_chr_vec(waves)
   include_reserves <- length(waves) > 1L || .cm_aulas_int(selector$replacement_waves, 0L) > 0L
+  .cm_aulas_progress(on_progress, "sorteo_titulares", message = "Sorteo de titulares", force = TRUE)
   titulars <- .cm_aulas_select_once_dispatch(aula_frame, selector, engine, seed = if (is.null(seed)) NULL else seed + 1009L, objective = objective)
   warnings <- attr(titulars, "warnings") %||% character(0)
   used <- attr(titulars, "engine_used") %||% engine
@@ -2065,6 +2066,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   titulars$eligible_delta_vs_titular <- 0
 
   reserves <- if (isTRUE(include_reserves)) {
+    .cm_aulas_progress(on_progress, "cadenas_reemplazo", message = "Cadenas de reemplazo", force = TRUE)
     .cm_aulas_build_replacement_chains(aula_frame, titulars, selector, seed = if (is.null(seed)) NULL else seed + 2003L)
   } else {
     aula_frame[0, , drop = FALSE]
@@ -2098,7 +2100,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   out
 }
 
-.cm_aulas_mc_probabilities <- function(aula_frame, selector, engine, waves, runs, objective = NULL) {
+.cm_aulas_mc_probabilities <- function(aula_frame, selector, engine, waves, runs, objective = NULL, on_progress = NULL) {
   runs <- max(0L, as.integer(runs))
   if (runs <= 0L) {
     return(list(pi = stats::setNames(rep(NA_real_, nrow(aula_frame)), aula_frame$classroom_id), note = "No ejecutada.", runs = 0L, error = NA_real_))
@@ -2109,6 +2111,8 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   }
   counts <- stats::setNames(rep(0L, nrow(aula_frame)), aula_frame$classroom_id)
   for (i in seq_len(runs)) {
+    .cm_aulas_progress(on_progress, "simulacion_mc", current = i, total = runs,
+                       message = sprintf("Simulación Monte Carlo: corrida %d de %d", i, runs))
     sim <- .cm_aulas_select_waves(aula_frame, sim_selector, engine, waves, seed = selector$seed + i * 7919L, objective = objective)
     sim <- sim[.cm_aulas_role_values(sim) != "extra_reserve_pool", , drop = FALSE]
     counts[unique(sim$classroom_id)] <- counts[unique(sim$classroom_id)] + 1L
@@ -2826,7 +2830,57 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   do.call(rbind, rows)
 }
 
-.cm_aulas_method_simulation_summary <- function(frame_result, aula_frame, selector, engine, objective, requested_runs = 0L) {
+# ---------------------------------------------------------------------------
+# Progreso opcional (jobs asincronos)
+# ---------------------------------------------------------------------------
+# `on_progress` es un callback opcional (NULL por defecto) que las funciones
+# largas invocan para reportar etapa/avance. NO toca el RNG ni los datos:
+# con on_progress = NULL el comportamiento es byte-identico al historico
+# (golden tests intactos).
+.cm_aulas_progress <- function(on_progress, phase, current = NULL, total = NULL,
+                               message = NULL, force = FALSE) {
+  if (!is.function(on_progress)) return(invisible(NULL))
+  tryCatch(
+    on_progress(phase = phase, current = current, total = total,
+                message = message, force = force),
+    error = function(e) NULL
+  )
+  invisible(NULL)
+}
+
+# Writer de progreso con throttle para jobs: escribe al progress_path como
+# maximo cada `min_interval` segundos, salvo cambios de fase (force = TRUE).
+.cm_aulas_job_progress_writer <- function(progress_path, min_interval = 0.5) {
+  if (is.null(progress_path) || !nzchar(as.character(progress_path)[1])) return(NULL)
+  writer <- job_progress_writer(progress_path)
+  state <- new.env(parent = emptyenv())
+  state$last <- 0
+  function(phase = "running", current = NULL, total = NULL, message = NULL, force = FALSE) {
+    now <- as.numeric(Sys.time())
+    if (!isTRUE(force) && (now - state$last) < min_interval) return(invisible(NULL))
+    state$last <- now
+    writer(phase = phase, current = current, total = total, message = message)
+    invisible(NULL)
+  }
+}
+
+# Presupuesto de corridas Monte Carlo sensible a la escala del marco.
+# - Marcos chicos (<= 1200 aulas): corre exactamente lo solicitado
+#   (comportamiento historico; golden tests usan <= 150 aulas).
+# - Marcos grandes: escala inversamente al numero de aulas para que el
+#   total del comparador quede en minutos, no horas. La formula es
+#   deterministica (mismo marco -> mismo presupuesto) y el resultado
+#   reporta requested_runs vs executed_runs para auditoria.
+#   En 1200 aulas el presupuesto es 50 (continuo con el tope historico);
+#   en ~3000 aulas baja a ~20 corridas por metodo.
+.cm_aulas_simulation_budget <- function(n_aulas, requested_runs) {
+  requested_runs <- max(0L, as.integer(requested_runs))
+  n_aulas <- max(1L, as.integer(n_aulas))
+  if (requested_runs <= 0L || n_aulas <= 1200L) return(requested_runs)
+  min(requested_runs, max(10L, as.integer(60000 %/% n_aulas)))
+}
+
+.cm_aulas_method_simulation_summary <- function(frame_result, aula_frame, selector, engine, objective, requested_runs = 0L, on_progress = NULL) {
   requested_runs <- max(0L, .cm_aulas_int(requested_runs, 0L))
   if (requested_runs <= 0L) {
     return(data.frame(
@@ -2844,7 +2898,7 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
       check.names = FALSE
     ))
   }
-  budget_runs <- if (nrow(aula_frame) > 1200L) min(requested_runs, 50L) else requested_runs
+  budget_runs <- .cm_aulas_simulation_budget(nrow(aula_frame), requested_runs)
   local_selector <- selector
   if (.cm_aulas_engine_key(engine) == "pool_controlado") {
     local_selector$candidate_pool_size <- min(.cm_aulas_int(selector$candidate_pool_size, 25L), 25L)
@@ -2857,9 +2911,14 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   # corridas Monte Carlo; compartir el cache del objetivo evita reparsear el
   # marco en cada corrida (dominante con monte_carlo_n alto en marcos grandes).
   mc_cache <- new.env(parent = emptyenv())
+  # design_pi es deterministica (sin RNG): calcularla una sola vez fuera del
+  # loop no cambia resultados y evita repetirla en cada corrida.
+  design_pi <- .cm_aulas_design_probabilities(aula_frame, local_selector, engine)
+  method_label <- .cm_aulas_method_label(.cm_aulas_engine_key(engine))
   for (i in seq_len(budget_runs)) {
+    .cm_aulas_progress(on_progress, "simulacion", current = i, total = budget_runs,
+                       message = sprintf("%s: corrida %d de %d", method_label, i, budget_runs))
     selected <- .cm_aulas_select_waves(aula_frame, local_selector, engine, waves, seed = local_selector$seed + i * 3571L, objective = objective)
-    design_pi <- .cm_aulas_design_probabilities(aula_frame, local_selector, engine)
     selected$pi_final <- as.numeric(design_pi[selected$classroom_id])
     selected$weight_classroom <- ifelse(selected$pi_final > 0, 1 / selected$pi_final, NA_real_)
     obj <- tryCatch(calc_muestra_aulas_representativity_objective(frame_result, selected, local_selector, objective, cache = mc_cache), error = function(e) NULL)
@@ -2888,7 +2947,7 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   )
 }
 
-.cm_aulas_run_method_summary <- function(frame_result, aula_frame, selector, engine, simulation_runs = NULL, objective = NULL) {
+.cm_aulas_run_method_summary <- function(frame_result, aula_frame, selector, engine, simulation_runs = NULL, objective = NULL, on_progress = NULL) {
   engine <- .cm_aulas_engine_key(engine)
   local_selector <- selector
   local_selector$selector_engine <- engine
@@ -2919,7 +2978,7 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   overall <- representativity$representativity_score
   probability_source <- if (engine == "pool_controlado") "monte_carlo_after_optimization" else "prescribed_design"
   risk_flags <- .cm_aulas_risk_flags(aula_frame, selected, local_selector, engine, engine_used, warnings, balance, concentration)
-  simulation_summary <- .cm_aulas_method_simulation_summary(frame_result, aula_frame, local_selector, engine, objective, requested_runs = local_selector$simulation_runs)
+  simulation_summary <- .cm_aulas_method_simulation_summary(frame_result, aula_frame, local_selector, engine, objective, requested_runs = local_selector$simulation_runs, on_progress = on_progress)
   balance_metric_rows <- representativity$metrics[representativity$metrics$metric_group == "balance" & representativity$metrics$active %in% TRUE, , drop = FALSE]
   balance_score <- if (nrow(balance_metric_rows)) {
     round(stats::weighted.mean(balance_metric_rows$score, balance_metric_rows$normalized_weight, na.rm = TRUE), 1)
@@ -2972,7 +3031,8 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   )
 }
 
-calc_muestra_aulas_comparar_metodos <- function(frame_result, config = list(), methods = NULL, simulation_runs = NULL) {
+calc_muestra_aulas_comparar_metodos <- function(frame_result, config = list(), methods = NULL, simulation_runs = NULL, on_progress = NULL) {
+  .cm_aulas_progress(on_progress, "preparando", message = "Preparando marco de aulas", force = TRUE)
   cfg <- calc_muestra_aulas_normalize_config(config %||% frame_result$config %||% list())
   selector <- cfg$selector
   objective <- cfg$objective
@@ -2983,7 +3043,14 @@ calc_muestra_aulas_comparar_metodos <- function(frame_result, config = list(), m
   aula_frame <- .cm_aulas_prepare_frame(frame_result, cfg)
   methods <- .cm_aulas_chr_vec(methods %||% c("sistematico_pps", "cube_balanceado", "local_pivotal_balanceado", "pool_controlado"))
   methods <- unique(vapply(methods, .cm_aulas_engine_key, character(1)))
-  runs <- lapply(methods, function(engine) .cm_aulas_run_method_summary(frame_result, aula_frame, selector, engine, simulation_runs = selector$simulation_runs, objective = objective))
+  runs <- lapply(seq_along(methods), function(idx) {
+    engine <- methods[[idx]]
+    .cm_aulas_progress(on_progress, "comparar", current = idx, total = length(methods),
+                       message = sprintf("Método %d de %d (%s)", idx, length(methods), .cm_aulas_method_label(engine)),
+                       force = TRUE)
+    .cm_aulas_run_method_summary(frame_result, aula_frame, selector, engine, simulation_runs = selector$simulation_runs, objective = objective, on_progress = on_progress)
+  })
+  .cm_aulas_progress(on_progress, "consolidando", message = "Consolidando comparación de métodos", force = TRUE)
   metrics <- do.call(rbind, lapply(runs, `[[`, "metrics"))
   risk_flags <- do.call(rbind, Map(function(run, engine) {
     out <- run$risk_flags
@@ -3051,6 +3118,15 @@ calc_muestra_aulas_comparar_metodos <- function(frame_result, config = list(), m
     reserve_depth = reserve_depth,
     risk_flags = risk_flags,
     simulation_runs = selector$simulation_runs,
+    # Corridas efectivamente ejecutadas por metodo tras aplicar el presupuesto
+    # sensible a escala (.cm_aulas_simulation_budget). En marcos chicos
+    # coincide con simulation_runs; en marcos grandes puede ser menor y el
+    # detalle por metodo queda en simulation_summary (requested vs executed).
+    simulation_runs_executed = if (is.data.frame(simulation_summary) && nrow(simulation_summary) && "executed_runs" %in% names(simulation_summary)) {
+      max(simulation_summary$executed_runs, na.rm = TRUE)
+    } else {
+      selector$simulation_runs
+    },
     notes = list(
       "PPS se conserva como benchmark auditable.",
       "La optimizacion por solape cambia probability_source a monte_carlo_after_optimization.",
@@ -3300,10 +3376,11 @@ calc_muestra_aulas_simular_reemplazos <- function(frame_result, selection_result
   out
 }
 
-calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
+calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_progress = NULL) {
   if (is.null(frame_result) || !is.list(frame_result)) {
     stop("Se requiere un marco construido por calc_muestra_aulas_construir().", call. = FALSE)
   }
+  .cm_aulas_progress(on_progress, "preparando", message = "Preparando marco", force = TRUE)
   cfg <- calc_muestra_aulas_normalize_config(config %||% frame_result$config %||% list())
   selector <- cfg$selector
   objective <- cfg$objective
@@ -3320,7 +3397,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
   aula_frame$stratum <- .cm_aulas_make_stratum(aula_frame, selector$strata_cols)
 
   waves <- c("M1", if (selector$replacement_waves > 0L) paste0("M", seq_len(selector$replacement_waves) + 1L) else character(0))
-  selection_df <- .cm_aulas_select_waves(aula_frame, selector, engine, waves, seed = selector$seed, objective = objective)
+  selection_df <- .cm_aulas_select_waves(aula_frame, selector, engine, waves, seed = selector$seed, objective = objective, on_progress = on_progress)
   engine_used <- .cm_aulas_scalar(attr(selection_df, "engine_used"), engine)
   fallback_warnings <- attr(selection_df, "warnings") %||% character(0)
   if (!nrow(selection_df)) stop("No se pudo seleccionar aulas con el marco actual.", call. = FALSE)
@@ -3341,7 +3418,8 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
   } else {
     max(0L, .cm_aulas_int(selector$monte_carlo_n, 0L))
   }
-  mc <- .cm_aulas_mc_probabilities(aula_frame, selector, engine, waves, runs = mc_runs, objective = objective)
+  .cm_aulas_progress(on_progress, "simulacion_mc", message = "Simulación Monte Carlo", force = TRUE)
+  mc <- .cm_aulas_mc_probabilities(aula_frame, selector, engine, waves, runs = mc_runs, objective = objective, on_progress = on_progress)
   pi_mc_lookup <- mc$pi
   pi_final_lookup <- if (probability_source == "monte_carlo_after_optimization") pi_mc_lookup else design_pi
   student_pi_lookup <- .cm_aulas_student_probability_summary(aula_frame, pi_final_lookup)
@@ -3428,6 +3506,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list()) {
   if (!length(methodological_warning)) methodological_warning <- "Sin advertencias metodologicas criticas."
   selection_df$methodological_warning <- paste(methodological_warning, collapse = " | ")
 
+  .cm_aulas_progress(on_progress, "consolidando", message = "Consolidando selección y pesos", force = TRUE)
   representativity <- calc_muestra_aulas_representativity_objective(frame_result, selection_df, selector, objective)
   selection_df$representativity_score <- representativity$representativity_score
   selection_df$representativity_distance <- representativity$weighted_distance
@@ -4361,3 +4440,37 @@ calc_muestra_aulas_exportar_workbook <- function(frame_result, selection_result,
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   path
 }
+
+# =============================================================================
+# Jobs asincronos (callr) para operaciones largas a escala real
+# =============================================================================
+# Wrappers pensados para `job_submit()`: reciben `progress_path` (inyectado
+# por jobs.R), arman un writer con throttle y delegan en las funciones puras.
+# El resultado es identico al de la via sincrona con la misma semilla: el
+# callback de progreso no toca RNG ni datos.
+
+#' Tamano del marco (numero de aulas) tolerante a frame como df o records.
+.cm_aulas_frame_n <- function(frame_result) {
+  af <- frame_result$aula_frame %||% NULL
+  if (is.data.frame(af)) return(nrow(af))
+  if (is.list(af)) return(length(af))
+  0L
+}
+
+calc_muestra_aulas_comparar_job <- function(frame, config = list(), methods = NULL,
+                                            simulation_runs = NULL, progress_path = NULL) {
+  on_progress <- .cm_aulas_job_progress_writer(progress_path)
+  calc_muestra_aulas_comparar_metodos(
+    frame, config,
+    methods = methods,
+    simulation_runs = simulation_runs,
+    on_progress = on_progress
+  )
+}
+attr(calc_muestra_aulas_comparar_job, "prosecnur_job_function_name") <- "calc_muestra_aulas_comparar_job"
+
+calc_muestra_aulas_seleccionar_job <- function(frame, config = list(), progress_path = NULL) {
+  on_progress <- .cm_aulas_job_progress_writer(progress_path)
+  calc_muestra_aulas_seleccionar(frame, config, on_progress = on_progress)
+}
+attr(calc_muestra_aulas_seleccionar_job, "prosecnur_job_function_name") <- "calc_muestra_aulas_seleccionar_job"
