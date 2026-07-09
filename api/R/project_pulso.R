@@ -1485,6 +1485,7 @@ build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwri
   # 2) Copiar solo los files referenciados (nombre estable <fid>__<orig>)
   files_dir <- file.path(stage_dir, "files")
   dir.create(files_dir, recursive = TRUE, showWarnings = FALSE)
+  persisted_files <- list()
   if (!is.null(s$files) && length(s$files) > 0L && length(needed_fids) > 0L) {
     for (fid in needed_fids) {
       meta <- s$files[[fid]]
@@ -1495,17 +1496,19 @@ build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwri
       dst <- file.path(files_dir, sprintf("%s__%s", fid, safe_name))
       file.copy(meta$path, dst, overwrite = TRUE)
     }
-    # Recortar s$files al subset que efectivamente viaja, para que al
-    # reabrir el state no queden referencias colgantes a archivos que
-    # ya no existen (los outputs viejos del tempdir original quedan
-    # inalcanzables tras el reopen).
-    s$files <- s$files[intersect(needed_fids, names(s$files))]
-  } else {
-    s$files <- list()
+    # El state.rds persistido recorta files al subset que efectivamente
+    # viaja, para que al reabrir no queden referencias colgantes a archivos
+    # que ya no existen. IMPORTANTE: solo se recorta la COPIA persistida
+    # (s_clean), nunca el registro en vivo de la sesión — recortar s$files
+    # en memoria hacía desaparecer los outputs recién exportados (xlsx de
+    # anexos, etc.) cuando un autosave corría entre el POST del export y el
+    # GET de descarga, produciendo 404 E_NO_FILE intermitentes.
+    persisted_files <- s$files[intersect(needed_fids, names(s$files))]
   }
 
   # 2) Serializar estado (sin caches) a state.rds
   s_clean <- .pulso_strip_caches(s)
+  s_clean$files <- persisted_files
   # No persistimos estos campos transient:
   s_clean$dir <- NULL                # tempdir cambia entre sesiones
   s_clean$project_path <- NULL        # lo setea el load
@@ -1527,7 +1530,7 @@ build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwri
     processing_mode   = (s$estudio %||% list())$processing_mode %||% "multibase",
     active_base       = (s$estudio %||% list())$active_base %||% NA_character_,
     n_bases           = n_bases,
-    n_files           = length(s$files %||% list()),
+    n_files           = length(persisted_files),
     created_at        = format(s$created_at %||% Sys.time(),
                                 "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
     saved_at          = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
