@@ -60,9 +60,9 @@ export const DEFAULT_UNIVERSITY_PUBLICATION_CONFIG: CalcMuestraWorkspacePublicat
 };
 
 export const UNIVERSITY_AULAS_SIZE_GROUPS: CalcMuestraWorkspaceAulasConfig["grupos_tamano"] = [
-  { id: "G1", label: "G1", min: 15, max: 20, descripcion: "aulas pequenas o especializadas" },
+  { id: "G1", label: "G1", min: 15, max: 20, descripcion: "aulas pequeñas o especializadas" },
   { id: "G2", label: "G2", min: 21, max: 30, descripcion: "aulas medianas" },
-  { id: "G3", label: "G3", min: 31, max: 40, descripcion: "aulas estandar" },
+  { id: "G3", label: "G3", min: 31, max: 40, descripcion: "aulas estándar" },
   { id: "G4", label: "G4", min: 41, max: null, descripcion: "aulas grandes o masivas" },
 ];
 
@@ -140,7 +140,7 @@ export const DEFAULT_UNIVERSITY_AULAS_CONFIG: CalcMuestraWorkspaceAulasConfig = 
   semilla: 20260619,
   objective: DEFAULT_UNIVERSITY_AULAS_OBJECTIVE,
   notas_metodologicas:
-    "Selector reproducible sobre un marco de cursos y horarios: balancea cuotas, tamano de aula y cobertura unica, controla estudiantes repetidos y conserva auditoria interna del proceso.",
+    "Selector reproducible sobre un marco de cursos y horarios: balancea cuotas, tamaño de aula y cobertura única, controla estudiantes repetidos y conserva auditoría interna del proceso.",
 };
 
 export const UNIVERSITY_SOURCE_MODE_OPTIONS: Array<{
@@ -266,7 +266,7 @@ export const UNIVERSITY_AULAS_MODALIDAD_OPTIONS: Array<{
   {
     id: "presencial_aula",
     label: "Presencial en aula",
-    detail: "Aplica filtros de presencialidad, horario, docente y aula fisica.",
+    detail: "Aplica filtros de presencialidad, horario, docente y aula física.",
   },
   {
     id: "mixto_aula",
@@ -276,7 +276,7 @@ export const UNIVERSITY_AULAS_MODALIDAD_OPTIONS: Array<{
   {
     id: "online_controlado",
     label: "Online controlado",
-    detail: "Mantiene cuotas, pero reduce dependencia del aula fisica.",
+    detail: "Mantiene cuotas, pero reduce dependencia del aula física.",
   },
 ];
 
