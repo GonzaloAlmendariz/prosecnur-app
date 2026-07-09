@@ -5,8 +5,8 @@
   --pulso-primary: var(--pulso-module-sample);
   --pulso-primary-soft: var(--pulso-module-sample-soft);
   --pulso-primary-border: var(--pulso-module-sample-border);
-  --pulso-primary-focus: rgba(124, 58, 237, 0.15);
-  --pulso-primary-ring: rgba(124, 58, 237, 0.12);
+  --pulso-primary-focus: color-mix(in srgb, var(--pulso-module-sample) 15%, transparent);
+  --pulso-primary-ring: color-mix(in srgb, var(--pulso-module-sample) 12%, transparent);
   --cmv2-accent: var(--pulso-module-sample);
   --cmv2-accent-soft: color-mix(in srgb, var(--cmv2-accent) 6%, #fff 94%);
   --cmv2-accent-border: color-mix(in srgb, var(--cmv2-accent) 16%, var(--pulso-border) 84%);
@@ -2315,6 +2315,31 @@
   border-radius: var(--pulso-radius);
   background: var(--cmv2-accent-soft);
   color: var(--pulso-text);
+  cursor: pointer;
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-classroom-toggle:hover {
+    border-color: color-mix(in srgb, var(--cmv2-accent) 32%, var(--pulso-border));
+  }
+}
+
+.cmv2-classroom-toggle:active {
+  transform: scale(var(--cmv2-press-scale));
+}
+
+/* Ring de foco cuando el checkbox interno recibe foco por teclado. */
+.cmv2-classroom-toggle:has(input:focus-visible) {
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  border-color: color-mix(in srgb, var(--cmv2-accent) 42%, var(--pulso-border));
+}
+
+.cmv2-classroom-toggle:has(input:focus-visible) input {
+  outline: none;
 }
 
 .cmv2-classroom-toggle input {
@@ -3513,7 +3538,10 @@
 }
 
 .cmv2-panel {
-  padding: 12px;
+  /* Nivel panel de la dirección estética (16-20px). Las secciones con
+     overrides locales (definicion.css, calculo.css) pueden retirarlos
+     cuando adopten este base. */
+  padding: var(--cmv2-space-4);
 }
 
 .cmv2-side .cmv2-panel {
@@ -5079,10 +5107,30 @@
 }
 
 .cmv2-frame .cmv2-primary {
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--cmv2-accent) 22%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 2px 8px color-mix(in srgb, var(--cmv2-accent) 22%, transparent);
 }
 
 /* Tabs locales de sección: activa con borde de acento redondeado */
 .cmv2-frame .cmv2-section-local-tab {
   border-radius: var(--pulso-radius-card);
+}
+
+/* ── Mensajes transitorios del desk ─────────────────────────────────────────
+   El aviso "Cálculo completado…" (Alert global montado en .cmv2-main) baja a
+   una franja compacta: informa sin ocupar una banda entera de la pestaña. */
+.cmv2-frame .cmv2-main > .pulso-alert {
+  padding: 7px 11px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  align-items: center;
+  gap: 8px;
+}
+
+.cmv2-frame .cmv2-main > .pulso-alert .pulso-alert-icon {
+  width: 14px;
+  height: 14px;
+  margin-top: 0;
 }

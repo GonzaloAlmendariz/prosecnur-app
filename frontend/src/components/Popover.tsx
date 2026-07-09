@@ -46,10 +46,14 @@ export function Popover({
   ariaLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
+  // Salida animada: el panel queda montado ~110ms con data-state="closing"
+  // (la animación de salida es más rápida que la de entrada, ver popover.css).
+  const [closing, setClosing] = useState(false);
   const [style, setStyle] = useState<CSSProperties>({});
   const triggerRef = useRef<HTMLElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const hoverTimer = useRef<number | null>(null);
+  const closeTimer = useRef<number | null>(null);
 
   const clearHoverTimer = () => {
     if (hoverTimer.current != null) {
@@ -57,6 +61,33 @@ export function Popover({
       hoverTimer.current = null;
     }
   };
+
+  const clearCloseTimer = () => {
+    if (closeTimer.current != null) {
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+
+  const stateRef = useRef({ open: false, closing: false });
+  stateRef.current = { open, closing };
+
+  const openNow = useCallback(() => {
+    clearCloseTimer();
+    setClosing(false);
+    setOpen(true);
+  }, []);
+
+  const requestClose = useCallback(() => {
+    if (!stateRef.current.open || stateRef.current.closing) return;
+    setClosing(true);
+    clearCloseTimer();
+    closeTimer.current = window.setTimeout(() => {
+      closeTimer.current = null;
+      setOpen(false);
+      setClosing(false);
+    }, 110);
+  }, []);
 
   const reposition = useCallback(() => {
     const anchor = triggerRef.current;
@@ -101,13 +132,13 @@ export function Popover({
   useEffect(() => {
     if (!open) return;
     const onKey = (ev: KeyboardEvent) => {
-      if (ev.key === "Escape") setOpen(false);
+      if (ev.key === "Escape") requestClose();
     };
     const onPointerDown = (ev: PointerEvent) => {
       const target = ev.target as Node;
       if (panelRef.current?.contains(target)) return;
       if (triggerRef.current?.contains(target)) return;
-      setOpen(false);
+      requestClose();
     };
     const onScrollOrResize = () => reposition();
     window.addEventListener("keydown", onKey);
@@ -122,7 +153,13 @@ export function Popover({
     };
   }, [open, reposition]);
 
-  useEffect(() => clearHoverTimer, []);
+  useEffect(
+    () => () => {
+      clearHoverTimer();
+      clearCloseTimer();
+    },
+    [],
+  );
 
   if (!isValidElement(trigger)) return trigger;
 
@@ -138,19 +175,20 @@ export function Popover({
   if (openOn === "click") {
     triggerProps.onClick = (ev: MouseEvent) => {
       (trigger.props as { onClick?: (ev: MouseEvent) => void }).onClick?.(ev);
-      setOpen((prev) => !prev);
+      if (open && !closing) requestClose();
+      else openNow();
     };
   } else {
     triggerProps.onMouseEnter = () => {
       clearHoverTimer();
-      hoverTimer.current = window.setTimeout(() => setOpen(true), 120);
+      hoverTimer.current = window.setTimeout(() => openNow(), 120);
     };
     triggerProps.onMouseLeave = () => {
       clearHoverTimer();
-      hoverTimer.current = window.setTimeout(() => setOpen(false), 160);
+      hoverTimer.current = window.setTimeout(() => requestClose(), 160);
     };
-    triggerProps.onFocus = () => setOpen(true);
-    triggerProps.onBlur = () => setOpen(false);
+    triggerProps.onFocus = () => openNow();
+    triggerProps.onBlur = () => requestClose();
   }
 
   // El portal aterriza dentro del frame del módulo cuando existe, para que
@@ -169,13 +207,21 @@ export function Popover({
             role="dialog"
             aria-label={ariaLabel}
             className={`pulso-popover${className ? ` ${className}` : ""}`}
+            data-state={closing ? "closing" : "open"}
             style={style}
-            onMouseEnter={openOn === "hover" ? clearHoverTimer : undefined}
+            onMouseEnter={
+              openOn === "hover"
+                ? () => {
+                    clearHoverTimer();
+                    openNow();
+                  }
+                : undefined
+            }
             onMouseLeave={
               openOn === "hover"
                 ? () => {
                     clearHoverTimer();
-                    hoverTimer.current = window.setTimeout(() => setOpen(false), 160);
+                    hoverTimer.current = window.setTimeout(() => requestClose(), 160);
                   }
                 : undefined
             }

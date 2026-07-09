@@ -15,12 +15,25 @@
 @media (prefers-reduced-motion: no-preference) {
   /* Entrada del panel al cambiar de pestaña: sutil (se ve decenas de veces). */
   .cmv2-tab-panel {
-    animation: cmv2-uni-enter 170ms var(--cmv2-ease-out, ease-out) both;
+    animation: cmv2-uni-enter 180ms var(--cmv2-ease-out, ease-out) both;
+  }
+
+  /* En el desk universitario el contenido local se re-monta al cambiar de
+     pestaña: anima el hijo directo (el wrapper del tab activo) para que el
+     fade ocurra también entre pestañas locales, una sola vez por mount y en
+     el contenedor (no por card). Las otras mesas conservan la animación del
+     panel de sección. */
+  .cmv2-university-workbench .cmv2-tab-panel {
+    animation: none;
+  }
+
+  .cmv2-university-workbench .cmv2-tab-panel > * {
+    animation: cmv2-uni-enter 180ms var(--cmv2-ease-out, ease-out) both;
   }
 
   /* Cascada para grillas de tarjetas/cifras: aplicar a contenedores. */
   .cmv2-uni-stagger > * {
-    animation: cmv2-uni-enter 230ms var(--cmv2-ease-out, ease-out) both;
+    animation: cmv2-uni-enter-suave 230ms var(--cmv2-ease-out, ease-out) both;
   }
 
   .cmv2-uni-stagger > *:nth-child(2) { animation-delay: 35ms; }
@@ -34,7 +47,16 @@
 @keyframes cmv2-uni-enter {
   from {
     opacity: 0;
-    transform: translateY(5px);
+    transform: translateY(4px);
+  }
+}
+
+/* Variante fade-only para cascadas INTERNAS: el wrapper del tab ya desliza
+   (motion en capas) — si el contenido también trasladara, el movimiento se
+   duplicaría. Las cascadas internas solo funden. */
+@keyframes cmv2-uni-enter-suave {
+  from {
+    opacity: 0;
   }
 }
 
@@ -105,18 +127,41 @@
   gap: 3px;
   border: none;
   background: none;
-  padding: 0;
+  padding: 0 1px;
+  margin: 0 -1px;
+  border-radius: 3px;
   font: inherit;
   font-weight: 600;
   color: var(--cmv2-accent);
   cursor: help;
   border-bottom: 1px dotted var(--cmv2-accent);
+  transition:
+    background-color 120ms var(--cmv2-ease-out, ease-out),
+    border-bottom-color 120ms var(--cmv2-ease-out, ease-out),
+    color 120ms var(--cmv2-ease-out, ease-out);
+}
+
+/* Affordance: al pasar o abrir, el punteado se vuelve trazo firme + tinte. */
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-uni-term:hover {
+    background-color: var(--cmv2-accent-soft);
+    border-bottom-style: solid;
+  }
+}
+
+.cmv2-uni-term[aria-expanded="true"] {
+  background-color: var(--cmv2-accent-soft);
+  border-bottom-style: solid;
+}
+
+.cmv2-uni-term:active {
+  color: var(--cmv2-accent-fg);
 }
 
 .cmv2-uni-term:focus-visible {
-  outline: 2px solid var(--cmv2-accent);
-  outline-offset: 2px;
+  outline: 2px solid transparent;
   border-radius: 3px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 45%, transparent);
 }
 
 .cmv2-uni-term-pop {
@@ -156,12 +201,13 @@
   color: var(--pulso-text);
 }
 
-/* --- FormulaLatex: KaTeX + chips de términos + procedencia -------------------- */
+/* --- FormulaLatex: KaTeX + chips de términos + procedencia --------------------
+   Sub-bloque con tinte: el borde baja de peso para no sumar caja sobre caja. */
 .cmv2-uni-formula {
   display: grid;
   gap: 10px;
   padding: 14px 16px;
-  border: 1px solid var(--cmv2-border);
+  border: 1px solid color-mix(in srgb, var(--cmv2-border) 62%, transparent);
   border-radius: 12px;
   background: var(--cmv2-surface-tint);
   min-width: 0;
@@ -213,13 +259,31 @@
   font-size: 11px;
   color: var(--pulso-text);
   cursor: help;
-  transition: border-color var(--motion-dur-fast, 120ms) ease, background var(--motion-dur-fast, 120ms) ease;
+  transition:
+    border-color var(--motion-dur-fast, 120ms) var(--cmv2-ease-out, ease-out),
+    background-color var(--motion-dur-fast, 120ms) var(--cmv2-ease-out, ease-out),
+    transform var(--motion-dur-press, 120ms) var(--cmv2-ease-out, ease-out);
 }
 
-.cmv2-uni-formula-term:hover,
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-uni-formula-term:hover {
+    border-color: var(--cmv2-accent);
+    background: var(--cmv2-accent-soft);
+  }
+}
+
 .cmv2-uni-formula-term[aria-expanded="true"] {
   border-color: var(--cmv2-accent);
   background: var(--cmv2-accent-soft);
+}
+
+.cmv2-uni-formula-term:active {
+  transform: scale(var(--cmv2-press-scale, 0.97));
+}
+
+.cmv2-uni-formula-term:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 45%, transparent);
 }
 
 .cmv2-uni-formula-term code {
@@ -261,17 +325,26 @@
 
 button.cmv2-uni-flujo-etapa {
   cursor: pointer;
-  transition: border-color var(--motion-dur-fast, 120ms) ease, background var(--motion-dur-fast, 120ms) ease,
-    transform var(--motion-dur-press, 90ms) ease;
+  transition:
+    border-color var(--motion-dur-fast, 120ms) var(--cmv2-ease-out, ease-out),
+    background-color var(--motion-dur-fast, 120ms) var(--cmv2-ease-out, ease-out),
+    transform var(--motion-dur-press, 90ms) var(--cmv2-ease-out, ease-out);
 }
 
-button.cmv2-uni-flujo-etapa:hover {
-  border-color: var(--cmv2-accent-border);
-  background: var(--cmv2-accent-soft);
+@media (hover: hover) and (pointer: fine) {
+  button.cmv2-uni-flujo-etapa:hover {
+    border-color: var(--cmv2-accent-border);
+    background: var(--cmv2-accent-soft);
+  }
 }
 
 button.cmv2-uni-flujo-etapa:active {
   transform: scale(var(--cmv2-press-scale, 0.97));
+}
+
+button.cmv2-uni-flujo-etapa:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 45%, transparent);
 }
 
 .cmv2-uni-flujo-etapa[data-estado="ready"] .cmv2-uni-flujo-dot {
@@ -300,9 +373,10 @@ button.cmv2-uni-flujo-etapa:active {
 }
 
 .cmv2-uni-flujo-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  /* Eyebrow unificado del desk: 10.5px / 650 / 0.06em / muted. */
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--pulso-text-muted);
   white-space: nowrap;
@@ -321,12 +395,14 @@ button.cmv2-uni-flujo-etapa:active {
   color: var(--pulso-text-muted);
 }
 
-/* Conector entre etapas (vertical u horizontal) con merma opcional */
+/* Conector entre etapas (vertical u horizontal) con merma opcional.
+   El padding izquierdo centra la línea (2px) con el punto de estado de la
+   etapa: 1px de borde + 12px de padding + 4.5px de medio dot = 17.5px. */
 .cmv2-uni-flujo-arista {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 2px 0 2px 22px;
+  gap: 10px;
+  padding: 2px 0 2px 16.5px;
   min-height: 22px;
 }
 
@@ -375,12 +451,29 @@ button.cmv2-uni-flujo-etapa:active {
   align-items: center;
   gap: 8px;
   padding: 9px 12px;
+  border-radius: inherit;
   cursor: pointer;
   list-style: none;
   font-size: 12px;
   font-weight: 650;
   color: var(--pulso-text);
   user-select: none;
+  transition: background-color var(--motion-dur-fast, 120ms) var(--cmv2-ease-out, ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-uni-avanzado > summary:hover {
+    background-color: color-mix(in srgb, var(--cmv2-accent-soft) 55%, transparent);
+  }
+}
+
+.cmv2-uni-avanzado[open] > summary {
+  border-radius: 12px 12px 0 0;
+}
+
+.cmv2-uni-avanzado > summary:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 45%, transparent);
 }
 
 .cmv2-uni-avanzado > summary::-webkit-details-marker {
@@ -396,7 +489,7 @@ button.cmv2-uni-flujo-etapa:active {
 .cmv2-uni-avanzado-chevron {
   margin-left: auto;
   color: var(--pulso-text-muted);
-  transition: transform var(--motion-dur-fast, 140ms) ease;
+  transition: transform 200ms var(--cmv2-ease-in-out, ease-in-out);
 }
 
 .cmv2-uni-avanzado[open] .cmv2-uni-avanzado-chevron {
@@ -404,10 +497,29 @@ button.cmv2-uni-flujo-etapa:active {
 }
 
 .cmv2-uni-avanzado-body {
-  padding: 4px 14px 14px;
+  padding: 6px 14px 14px;
   border-top: 1px solid var(--cmv2-border);
   display: grid;
   gap: 10px;
+}
+
+/* Fade de entrada interrumpible del contenido (transition + @starting-style;
+   en engines sin soporte simplemente no anima). */
+@media (prefers-reduced-motion: no-preference) {
+  .cmv2-uni-avanzado[open] .cmv2-uni-avanzado-body {
+    opacity: 1;
+    translate: 0 0;
+    transition:
+      opacity 180ms var(--cmv2-ease-out, ease-out),
+      translate 180ms var(--cmv2-ease-out, ease-out);
+  }
+
+  @starting-style {
+    .cmv2-uni-avanzado[open] .cmv2-uni-avanzado-body {
+      opacity: 0;
+      translate: 0 -3px;
+    }
+  }
 }
 
 /* --- CifraMotor: métrica con procedencia ------------------------------------------ */
@@ -436,9 +548,10 @@ button.cmv2-uni-flujo-etapa:active {
 }
 
 .cmv2-uni-cifra-label {
+  /* Eyebrow unificado del desk: 10.5px / 650 / 0.06em / muted. */
   font-size: 10.5px;
   font-weight: 650;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--pulso-text-muted);
 }
