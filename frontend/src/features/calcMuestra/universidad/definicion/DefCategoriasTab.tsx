@@ -68,7 +68,10 @@ export function DefCategoriasTab({
   const inputRows = frameAuditNumber(frame, "input_rows");
   const eligibleRows = frameAuditNumber(frame, "eligible_student_rows");
   const populationN = Math.max(rowsFrom(frame?.population).length, frameAuditNumber(frame, "population_n"));
-  const excludedRows = frameAuditNumber(frame, "excluded_rows") || exclusionRows.length;
+  // Merma coherente con la aritmética visible del flujo (universo − elegibles),
+  // igual que en DefEstudioTab; el excluded_rows del audit queda para las
+  // superficies de auditoría de exclusiones.
+  const excludedRows = inputRows > 0 && eligibleRows > 0 ? Math.max(0, inputRows - eligibleRows) : 0;
   const observedRows = universityObservedCategoryRows(workspace, aulasState);
   const conditionRows = observedRows.filter((row) => row.role === "condition");
   const accepted = config.accepted_conditions ?? ["regular"];

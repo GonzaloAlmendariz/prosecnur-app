@@ -24,10 +24,81 @@ import { fmtInt, safeNumber } from "../../sharedCore";
 import { ensureUniversitySourceBindings } from "../shared/categorias";
 import { UNIVERSITY_REQUIRED_VARIABLES, UNIVERSITY_SOURCE_MODE_OPTIONS } from "../shared/constants";
 import { classroomM1RowsForState, frameAuditNumber } from "../shared/frame";
-import { FlujoVertical, type FlujoEtapa } from "../ui";
-import { MuestraFlowDiagram, type MuestraFlowNodeKey } from "../ui/MuestraFlowDiagram";
+import { FlujoVertical, MuestraFlowDiagram, type FlujoEtapa, type MuestraFlowNodeKey } from "../ui";
 import "../../didactica/didactica.css";
 import "./definicion.css";
+
+export type MuestraRecorridoInputs = {
+  tituloDefinido: boolean;
+  /** true si algún source_binding declara un archivo cargado. */
+  hasFileBinding: boolean;
+  /** `input_rows` del marco construido (aulasState.frame), 0 si no hay marco. */
+  inputRows: number;
+  variablesListas: boolean;
+  poblacion: number;
+  muestra: number;
+  aulasM1: number;
+};
+
+export type MuestraRecorridoDerivado = {
+  /** Etapa "bases" lista: hay archivo declarado O ya existe un marco construido
+   * con filas (proyectos sembrados por API, o marco llegado por otra vía sin
+   * binding de archivo). Sin ninguna de esas señales — y sin etapa posterior
+   * completada que la arrastre — sigue pendiente. */
+  hayBases: boolean;
+  estados: Record<MuestraFlowNodeKey, "ready" | "pending">;
+  highlight: MuestraFlowNodeKey;
+};
+
+/** Orden secuencial del recorrido; sustenta el backfill de monotonicidad. */
+const RECORRIDO_ORDEN: MuestraFlowNodeKey[] = ["definir", "bases", "variables", "marco", "calcular", "aulas"];
+
+/**
+ * Deriva estados + "Estás aquí" del MuestraFlowDiagram a partir de señales del
+ * estudio. El recorrido es secuencial, así que la derivación es monótona: si
+ * una etapa posterior está completa, todas las anteriores se leen como
+ * completas aunque su señal directa falte (p. ej. marco construido sin binding
+ * de archivo ⇒ bases y variables hechas; resultado de cálculo ⇒ todo lo
+ * anterior hecho). El backfill recorre de atrás hacia adelante y cubre de una
+ * vez cualquier señal ausente, presente o futura.
+ */
+export function deriveMuestraRecorrido({
+  tituloDefinido,
+  hasFileBinding,
+  inputRows,
+  variablesListas,
+  poblacion,
+  muestra,
+  aulasM1,
+}: MuestraRecorridoInputs): MuestraRecorridoDerivado {
+  const done: Record<MuestraFlowNodeKey, boolean> = {
+    definir: tituloDefinido,
+    bases: hasFileBinding || inputRows > 0,
+    variables: variablesListas,
+    marco: poblacion > 0,
+    calcular: muestra > 0,
+    aulas: aulasM1 > 0,
+  };
+
+  // Backfill de monotonicidad: todo lo anterior a la última etapa completa
+  // queda completo también.
+  let arrastre = false;
+  for (let i = RECORRIDO_ORDEN.length - 1; i >= 0; i--) {
+    const key = RECORRIDO_ORDEN[i]!;
+    if (done[key]) arrastre = true;
+    else if (arrastre) done[key] = true;
+  }
+
+  const estados = Object.fromEntries(
+    RECORRIDO_ORDEN.map((key) => [key, done[key] ? "ready" : "pending"]),
+  ) as Record<MuestraFlowNodeKey, "ready" | "pending">;
+
+  // "Estás aquí": primera etapa pendiente después de Definir (esta pestaña YA
+  // es Definir); con todo completo, el pin descansa en la última etapa.
+  const highlight = RECORRIDO_ORDEN.slice(1).find((key) => !done[key]) ?? "aulas";
+
+  return { hayBases: done.bases, estados, highlight };
+}
 
 export function DefEstudioTab({
   estudio,
@@ -58,28 +129,20 @@ export function DefEstudioTab({
   // Recorrido completo: qué pasos ya rindieron resultado. Con nada cargado
   // (ni base ni marco) el tab abre con el hero de primera vez; con avance, el
   // recorrido se compacta y el "Estás aquí" apunta al primer paso pendiente.
-  const hayBases = (workspace.source_bindings ?? []).some((binding) => binding.file_id);
+  const hasFileBinding = (workspace.source_bindings ?? []).some((binding) => Boolean(binding.file_id));
   const variablesListas = UNIVERSITY_REQUIRED_VARIABLES
     .filter((row) => row.required)
     .every((row) => (workspace.variable_mappings ?? []).some((m) => m.role === row.role && m.column));
+  const { hayBases, estados: estadosRecorrido, highlight: highlightRecorrido } = deriveMuestraRecorrido({
+    tituloDefinido: Boolean(estudio.titulo.trim()),
+    hasFileBinding,
+    inputRows: universo,
+    variablesListas,
+    poblacion,
+    muestra,
+    aulasM1,
+  });
   const primeraVez = !hayBases && !hayCifrasMotor;
-  const estadosRecorrido: Record<MuestraFlowNodeKey, "ready" | "pending"> = {
-    definir: estudio.titulo.trim() ? "ready" : "pending",
-    bases: hayBases ? "ready" : "pending",
-    variables: hayBases && variablesListas ? "ready" : "pending",
-    marco: poblacion > 0 ? "ready" : "pending",
-    calcular: muestra > 0 ? "ready" : "pending",
-    aulas: aulasM1 > 0 ? "ready" : "pending",
-  };
-  const highlightRecorrido: MuestraFlowNodeKey = !hayBases
-    ? "bases"
-    : !variablesListas
-      ? "variables"
-      : poblacion <= 0
-        ? "marco"
-        : muestra <= 0
-          ? "calcular"
-          : "aulas";
 
   const etapas: FlujoEtapa[] = [
     {
@@ -131,7 +194,10 @@ export function DefEstudioTab({
       )}
       <ContextoLlano paso="definicion" />
       <div className="cmv2-defi-estudio-layout">
-        <section className="cmv2-panel">
+        <section className="cmv2-panel" aria-label="Identidad del estudio">
+          <div className="cmv2-defi-form-head">
+            <span className="cmv2-eyebrow">Identidad del estudio</span>
+          </div>
           <div className="cmv2-defi-form">
             <label className="cmv2-compact-field">
               <span>Título</span>

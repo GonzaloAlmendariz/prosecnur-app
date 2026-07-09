@@ -403,6 +403,7 @@ export function DefBasesTab({
               className={`cmv2-source-mode-card ${option.id === sourceMode ? "is-active" : ""}`}
               onClick={() => setSourceMode(option.id)}
             >
+              <span className="cmv2-defi-mode-radio" aria-hidden="true" />
               <small>{MODE_BADGES[option.id]}</small>
               <strong>{option.label}</strong>
               <span>{option.detail}</span>
