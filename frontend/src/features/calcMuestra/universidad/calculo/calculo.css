@@ -16,7 +16,7 @@
 .cmv2-calc-cockpit {
   display: grid;
   grid-template-columns: minmax(260px, 340px) 1fr;
-  gap: 16px;
+  gap: 20px;
   align-items: start;
 }
 
@@ -26,16 +26,29 @@
   }
 }
 
-/* La columna de sliders es una tarjeta con sombra baja: agrupa la exploración
-   (perillas + CTA) como un solo instrumento frente a la cadena de fórmulas. */
+/* La columna de sliders es el PANEL DE CONTROL del cockpit: superficie raised
+   con sombra corta que agrupa la exploración (perillas + aplicar + CTA) como
+   un solo instrumento frente a la cadena de fórmulas, que queda flat. */
 .cmv2-calc-cockpit-sliders {
   display: grid;
   gap: 10px;
-  padding: 12px;
+  padding: 16px;
   border: 1px solid var(--cmv2-border);
   border-radius: 14px;
-  background: var(--cmv2-surface-tint);
-  box-shadow: var(--cmv2-shadow-card, 0 1px 2px rgba(15, 23, 42, 0.05));
+  background: var(--cmv2-surface-raised);
+  box-shadow:
+    var(--cmv2-shadow-card, 0 1px 2px rgba(15, 23, 42, 0.05)),
+    0 10px 24px color-mix(in srgb, var(--cmv2-accent) 5%, transparent);
+}
+
+/* Zona de disparo del cálculo oficial: hairline que separa la exploración
+   continua (sliders) de la acción primaria única del panel. */
+.cmv2-calc-cta-zona {
+  display: grid;
+  gap: 8px;
+  margin-top: 2px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
 }
 
 /* Segmento de confianza: el fondo/color del botón activo transiciona en vez
@@ -51,8 +64,8 @@
 .cmv2-calc-cockpit-sliders .cmv2-calc-cta {
   justify-content: center;
   width: 100%;
-  min-height: 36px;
-  font-size: 12.5px;
+  min-height: 38px;
+  font-size: 13px;
   box-shadow: 0 6px 14px color-mix(in srgb, var(--cmv2-accent) 16%, transparent);
 }
 
@@ -70,7 +83,7 @@
 
 .cmv2-calc-cockpit-formulas {
   display: grid;
-  gap: 10px;
+  gap: 14px;
   align-content: start;
 }
 
@@ -84,34 +97,122 @@
   content: "";
   position: absolute;
   left: 26px;
-  bottom: -10px;
+  bottom: -14px;
   width: 2px;
-  height: 10px;
+  height: 14px;
   border-radius: 2px;
   background: linear-gradient(180deg, var(--cmv2-accent-border), transparent);
   pointer-events: none;
+}
+
+/* La memoria de cálculo cierra la pestaña como disclosure de nivel inferior:
+   hairline + aire, sin sumar otra caja (el panel de la memoria es de didactica). */
+.cmv2-calc-memoria-zona {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
 }
 
 /* --- Pestaña Propuestas: escenarios ------------------------------------------ */
 .cmv2-calc-escenarios {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-  gap: 12px;
+  gap: 16px;
 }
 
+/* Sub-bloque flat: la card de escenario vive dentro del panel raised, así que
+   pierde la sombra (un solo nivel de elevación por pestaña). */
 .cmv2-calc-escenario {
   display: grid;
   gap: 12px;
   align-content: start;
-  padding: 14px;
+  padding: 16px;
   border: 1px solid var(--cmv2-border);
   border-radius: 12px;
   background: var(--cmv2-surface);
-  box-shadow: var(--cmv2-shadow-card, 0 1px 2px rgba(15, 23, 42, 0.05));
 }
 
 .cmv2-calc-escenario.is-warning {
   border-color: var(--pulso-warn-border);
+}
+
+/* Mejora propia · stat-tiles del flujo n fórmula → aulas: eyebrow unificado,
+   cifra 19px tabular y tiles flat (el escenario ya es la superficie). */
+.cmv2-calc-escenario .cmv2-uni-flujo-etapa {
+  padding: 10px 12px;
+  border-color: color-mix(in srgb, var(--cmv2-border) 82%, transparent);
+  background: var(--cmv2-surface-tint);
+}
+
+.cmv2-calc-escenario .cmv2-uni-flujo-label {
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+}
+
+.cmv2-calc-escenario .cmv2-uni-flujo-valor {
+  font-size: 19px;
+  letter-spacing: -0.01em;
+}
+
+.cmv2-calc-escenario .cmv2-uni-flujo-detalle {
+  font-size: 11px;
+}
+
+/* Conectores más finos entre etapas: hairline suave, no barra. */
+.cmv2-calc-escenario .cmv2-uni-flujo[data-orientacion="horizontal"] .cmv2-uni-flujo-linea {
+  height: 1.5px;
+  min-width: 14px;
+  background: color-mix(in srgb, var(--cmv2-border) 60%, transparent);
+}
+
+/* Callout de censo: el n objetivo iguala o supera el N del marco. Tokens
+   semánticos de peligro, nunca el acento del módulo; el filo izquierdo lo
+   integra al sistema (mismo patrón de selección/alerta del inspector). */
+.cmv2-calc-censo {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-danger-border);
+  border-left: 3px solid var(--pulso-danger-fg);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pulso-danger-bg) 65%, transparent);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.cmv2-calc-censo svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--pulso-danger-fg);
+}
+
+.cmv2-calc-censo > div {
+  display: grid;
+  gap: 2px;
+}
+
+.cmv2-calc-censo strong {
+  display: block;
+  color: var(--pulso-danger-fg);
+}
+
+.cmv2-calc-censo span {
+  color: var(--pulso-text);
+}
+
+/* Las 4 etapas del flujo (n fórmula → aulas estimadas) deben caber sin
+   recorte: en anchos ajustados envuelven a una segunda fila en lugar de
+   esconder la última tarjeta tras scroll. */
+.cmv2-calc-escenario .cmv2-uni-flujo[data-orientacion="horizontal"] {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  row-gap: 6px;
+}
+
+.cmv2-calc-escenario .cmv2-uni-flujo-etapa {
+  flex: 1 1 auto;
+  min-width: 140px;
 }
 
 .cmv2-calc-escenario-head h3 {
@@ -120,11 +221,26 @@
   line-height: 1.35;
 }
 
+/* Form-row del n final: input + piso a la izquierda, acciones ancladas a la
+   derecha (jerarquía de formulario clara; envuelve con gracia en angosto). */
 .cmv2-calc-objetivo {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
-  gap: 10px;
+  gap: 10px 12px;
+}
+
+.cmv2-calc-objetivo .cmv2-target-input {
+  flex: 0 1 170px;
+  min-width: 130px;
+}
+
+.cmv2-calc-objetivo .cmv2-calc-piso {
+  margin-bottom: 4px;
+}
+
+.cmv2-calc-objetivo .cmv2-inline-actions {
+  margin-left: auto;
 }
 
 .cmv2-calc-objetivo .cmv2-number-cell input {
@@ -189,7 +305,7 @@
   font-size: 11.5px;
   line-height: 1.5;
   color: var(--pulso-text-muted);
-  border-top: 1px dashed var(--cmv2-border);
+  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
   padding-top: 8px;
 }
 
@@ -207,26 +323,50 @@
   overflow: auto;
 }
 
+/* Columnas numéricas de las cuotas: alineadas a la derecha y tabulares
+   (la primera columna, Facultad, sigue siendo texto a la izquierda). */
+.cmv2-calc-cuotas-tabla th:not(:first-child),
+.cmv2-calc-cuotas-tabla td:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-calc-cuotas-tabla tbody tr:hover td {
+    background: color-mix(in srgb, var(--cmv2-accent) 5%, transparent);
+  }
+}
+
 /* --- Pestaña Supuestos: filas control + micro-visual -------------------------- */
 .cmv2-calc-supuestos-panel {
   display: grid;
   gap: 12px;
 }
 
-.cmv2-calc-supuestos {
-  display: grid;
-  gap: 10px;
+/* Los stat-tiles del encabezado pierden la sombra: dentro del panel raised
+   solo hay un nivel de elevación (regla de superficies del desk). */
+.cmv2-calc-supuestos-panel .cmv2-uni-cifra {
+  box-shadow: none;
 }
 
+.cmv2-calc-supuestos {
+  display: grid;
+  gap: 0;
+}
+
+/* Mejora propia · filas editoriales: cada supuesto es una fila separada por
+   hairline (agrupador invisible), no otra caja dentro del panel; la única
+   superficie interna es el instrumento tint del micro-visual. */
 .cmv2-calc-supuesto {
   display: grid;
   grid-template-columns: minmax(280px, 380px) 1fr;
-  gap: 14px;
+  gap: 16px;
   align-items: start;
-  padding: 12px 14px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: 12px;
-  background: var(--cmv2-surface);
+  padding: 16px 2px;
+}
+
+.cmv2-calc-supuesto + .cmv2-calc-supuesto {
+  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
 }
 
 @media (max-width: 1100px) {
@@ -334,9 +474,20 @@
   transform: scale(0.97);
 }
 
-.cmv2-calc-presets button:hover {
-  border-color: var(--cmv2-accent-border);
-  color: var(--cmv2-accent);
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-calc-presets button:hover {
+    border-color: var(--cmv2-accent-border);
+    color: var(--cmv2-accent);
+  }
+}
+
+/* Estados completos de los presionables locales (presets, piso, ¿por qué
+   importa?): mismo ring de foco del sistema, nunca el outline del browser. */
+.cmv2-calc-presets button:focus-visible,
+.cmv2-calc-piso:focus-visible,
+.cmv2-calc-porque:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
 }
 
 .cmv2-calc-presets button[data-active="true"] {
@@ -483,7 +634,7 @@
   font-size: 11px;
   line-height: 1.55;
   color: var(--pulso-text-muted);
-  border-top: 1px dashed var(--cmv2-border);
+  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
   padding-top: 10px;
 }
 
@@ -583,10 +734,10 @@
   }
 }
 
+/* Fade-only: el wrapper del tab ya desliza (motion en capas, ui/ui.css). */
 @keyframes cmv2-calc-enter {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
 }
 

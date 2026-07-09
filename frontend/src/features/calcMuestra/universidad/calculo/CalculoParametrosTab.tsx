@@ -128,23 +128,27 @@ export function CalculoParametrosTab({
                   onAplicar={onAplicarParametros}
                   calculando={calculando}
                 />
-                <button
-                  type="button"
-                  className="cmv2-primary cmv2-calc-cta"
-                  onClick={onCalcular}
-                  disabled={!marcoReady || calculando}
-                  data-calculando={calculando || undefined}
-                  aria-busy={calculando || undefined}
-                >
-                  {calculando
-                    ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
-                    : <Calculator size={14} aria-hidden="true" />}
-                  {calculando ? "Calculando…" : "Calcular muestra"}
-                </button>
-                <p className="cmv2-calc-cta-nota">
-                  El cálculo oficial corre con los parámetros aplicados al estudio y
-                  llena Propuestas con N, cuotas y aulas.
-                </p>
+                {/* Zona de disparo: hairline arriba para separar la exploración
+                    (sliders + aplicar/volver) de la acción oficial del panel. */}
+                <div className="cmv2-calc-cta-zona">
+                  <button
+                    type="button"
+                    className="cmv2-primary cmv2-calc-cta"
+                    onClick={onCalcular}
+                    disabled={!marcoReady || calculando}
+                    data-calculando={calculando || undefined}
+                    aria-busy={calculando || undefined}
+                  >
+                    {calculando
+                      ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
+                      : <Calculator size={14} aria-hidden="true" />}
+                    {calculando ? "Calculando…" : "Calcular muestra"}
+                  </button>
+                  <p className="cmv2-calc-cta-nota">
+                    El cálculo oficial corre con los parámetros aplicados al estudio y
+                    llena Propuestas con N, cuotas y aulas.
+                  </p>
+                </div>
               </div>
               <div className="cmv2-calc-cockpit-formulas cmv2-calc-cascada" aria-label="Fórmula de Cochran encadenada">
                 <SwapValor firma={firmaPaso1} className="cmv2-calc-paso">
@@ -178,8 +182,9 @@ export function CalculoParametrosTab({
               </div>
             </div>
             {/* MemoriaCalculoPanel vive en didactica/ (solo lectura): se envuelve
-                en SwapValor para que sus KPIs fundan al validar el motor. */}
-            <SwapValor firma={firmaMemoria}>
+                en SwapValor para que sus KPIs fundan al validar el motor. La clase
+                local solo marca la zona (hairline + aire) como disclosure al fondo. */}
+            <SwapValor firma={firmaMemoria} className="cmv2-calc-memoria-zona">
               <MemoriaCalculoPanel calculo={calculo} />
             </SwapValor>
           </>
