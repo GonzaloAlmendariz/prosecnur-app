@@ -8,12 +8,44 @@
  * memoria de cálculo. "Aplicar al estudio" lleva los parámetros explorados al
  * componente real y recalcula.
  */
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { RotateCcw, Wand2 } from "lucide-react";
 import type { CalcMuestraParametros } from "../../../api/client";
 import { zFromConfidence } from "./motorPreview";
 
 const CONFIANZAS = [0.9, 0.95, 0.99] as const;
+
+/**
+ * Range con la pista pintada hasta el valor: expone --did-fill (0-100%) y
+ * marca data-fill para que didactica.css aplique el thumb/track custom.
+ */
+function RangoConPista({
+  min,
+  max,
+  step,
+  value,
+  onChange,
+}: {
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const pct = Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100));
+  return (
+    <input
+      type="range"
+      data-fill=""
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      style={{ "--did-fill": `${pct}%` } as CSSProperties}
+      onChange={(ev) => onChange(Number(ev.target.value))}
+    />
+  );
+}
 
 function confianzaDesdeZ(z: number): number {
   if (Math.abs(z - zFromConfidence(0.9)) < 0.01) return 0.9;
@@ -103,56 +135,28 @@ export function ParametrosSliders({
           <span>Proporción esperada (p)</span>
           <output>{activa.p.toLocaleString("es-PE", { maximumFractionDigits: 2 })}</output>
         </div>
-        <input
-          type="range"
-          min={0.1}
-          max={0.9}
-          step={0.05}
-          value={activa.p}
-          onChange={(ev) => onSet({ p: Number(ev.target.value) })}
-        />
+        <RangoConPista min={0.1} max={0.9} step={0.05} value={activa.p} onChange={(p) => onSet({ p })} />
       </label>
       <label className="cmv2-did-slider">
         <div className="cmv2-did-slider-head">
           <span>Margen de error (e)</span>
           <output>±{(activa.e * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })}%</output>
         </div>
-        <input
-          type="range"
-          min={0.01}
-          max={0.1}
-          step={0.005}
-          value={activa.e}
-          onChange={(ev) => onSet({ e: Number(ev.target.value) })}
-        />
+        <RangoConPista min={0.01} max={0.1} step={0.005} value={activa.e} onChange={(e) => onSet({ e })} />
       </label>
       <label className="cmv2-did-slider">
         <div className="cmv2-did-slider-head">
           <span>Efecto de diseño (deff)</span>
           <output>{activa.deff.toLocaleString("es-PE", { maximumFractionDigits: 2 })}</output>
         </div>
-        <input
-          type="range"
-          min={1}
-          max={3}
-          step={0.1}
-          value={activa.deff}
-          onChange={(ev) => onSet({ deff: Number(ev.target.value) })}
-        />
+        <RangoConPista min={1} max={3} step={0.1} value={activa.deff} onChange={(deff) => onSet({ deff })} />
       </label>
       <label className="cmv2-did-slider">
         <div className="cmv2-did-slider-head">
           <span>Sobremuestra</span>
           <output>{Math.round(activa.oversample * 100)}%</output>
         </div>
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.05}
-          value={activa.oversample}
-          onChange={(ev) => onSet({ oversample: Number(ev.target.value) })}
-        />
+        <RangoConPista min={0} max={1} step={0.05} value={activa.oversample} onChange={(oversample) => onSet({ oversample })} />
       </label>
       {onAplicar && (
         <div className="cmv2-inline-actions">

@@ -92,6 +92,10 @@ export function AulasApplicationFlow({
       style={MODULE_TONES[tone] as CSSProperties}
       aria-label="Flujo operativo de aplicación en aulas"
     >
+      {/* Wrapper interno: .aulas-flow es query container (inline-size) y el
+          layout de columnas vive aquí para responder al ancho real del
+          contenedor (rail angosto de Sustento técnico incluido). */}
+      <div className="aulas-flow-grid">
       <div className="aulas-flow-copy">
         <span>Aplicación en aulas</span>
         <strong>{title}</strong>
@@ -143,6 +147,7 @@ export function AulasApplicationFlow({
           {NOTEBOOK_OUTPUTS.map((output) => <span key={output} className="aulas-flow-output-chip">{output}</span>)}
         </div>
       ) : null}
+      </div>
     </section>
   );
 }

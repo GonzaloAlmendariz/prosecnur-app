@@ -12,6 +12,7 @@ import { useMemo } from "react";
 import { GraduationCap, Landmark, Repeat, School } from "lucide-react";
 import type { CalcMuestraAulasSelection } from "../../../api/client";
 import { PlotlyChart } from "../../../lib/PlotlyChart";
+import { fmtPct } from "../sharedCore";
 import { BadgeMotor, TerminoGlosario } from "./PasoDidactico";
 import { colorWithAlpha, didPlotLayout, DID_PLOT_CONFIG, useDidTokens } from "./didacticaCharts";
 import { rowsFrom, rowText, safeNum } from "./didacticaData";
@@ -90,9 +91,12 @@ function filasComparables(rows: Array<Record<string, unknown>>): ComparacionFila
 export function SeleccionAulasVisual({
   seleccion,
   nObjetivo,
+  totalFacultades,
 }: {
   seleccion: CalcMuestraAulasSelection | null | undefined;
   nObjetivo?: number | null;
+  /** Facultades del marco del cálculo, para leer la cobertura como "10 de 16". */
+  totalFacultades?: number | null;
 }) {
   const tokens = useDidTokens();
 
@@ -142,6 +146,15 @@ export function SeleccionAulasVisual({
   const enProporcion = modelo.diagnostico.every((fila) => fila.marco <= 1.5 && fila.muestra <= 1.5);
   const altoChart = Math.max(220, modelo.diagnostico.length * 30 + 80);
 
+  // Lecturas honestas de los KPIs: brecha frente al objetivo del cálculo y
+  // cobertura de facultades del marco (mismos números, cero estadística nueva).
+  const brechaEsperados = objetivo != null && modelo.esperados > 0 && modelo.esperados < objetivo;
+  const coberturaEsperados = brechaEsperados ? modelo.esperados / objetivo : null;
+  const totalFac = totalFacultades != null && Number.isFinite(totalFacultades) && totalFacultades > 0
+    ? Math.round(totalFacultades)
+    : null;
+  const facultadesIncompletas = totalFac != null && modelo.facultades > 0 && modelo.facultades < totalFac;
+
   return (
     <div className="cmv2-did-result">
       <div className="cmv2-did-result-head">
@@ -160,17 +173,31 @@ export function SeleccionAulasVisual({
           <dd>{modelo.reservas.toLocaleString("es-PE")}</dd>
           <span className="cmv2-did-kpi-hint">entran solo si un aula titular cae</span>
         </div>
-        <div className="cmv2-did-kpi">
+        <div className="cmv2-did-kpi" data-tono={brechaEsperados ? "warn" : undefined}>
           <dt>Estudiantes esperados</dt>
           <dd>{modelo.esperados > 0 ? modelo.esperados.toLocaleString("es-PE") : "—"}</dd>
-          <span className="cmv2-did-kpi-hint">
-            {objetivo ? `objetivo del cálculo: ${objetivo.toLocaleString("es-PE")}` : "según las aulas titulares"}
+          <span className="cmv2-did-kpi-hint" data-tono={brechaEsperados ? "warn" : undefined}>
+            {objetivo
+              ? brechaEsperados && coberturaEsperados != null
+                ? `objetivo del cálculo: ${objetivo.toLocaleString("es-PE")} · cubre ${fmtPct(coberturaEsperados)}`
+                : `objetivo del cálculo: ${objetivo.toLocaleString("es-PE")}`
+              : "según las aulas titulares"}
           </span>
         </div>
-        <div className="cmv2-did-kpi">
+        <div className="cmv2-did-kpi" data-tono={facultadesIncompletas ? "warn" : undefined}>
           <dt>Facultades cubiertas</dt>
-          <dd>{modelo.facultades > 0 ? modelo.facultades.toLocaleString("es-PE") : "—"}</dd>
-          <span className="cmv2-did-kpi-hint">con al menos un aula titular</span>
+          <dd>
+            {modelo.facultades > 0
+              ? totalFac != null
+                ? `${modelo.facultades.toLocaleString("es-PE")} de ${totalFac.toLocaleString("es-PE")}`
+                : modelo.facultades.toLocaleString("es-PE")
+              : "—"}
+          </dd>
+          <span className="cmv2-did-kpi-hint" data-tono={facultadesIncompletas ? "warn" : undefined}>
+            {facultadesIncompletas
+              ? `${((totalFac ?? 0) - modelo.facultades).toLocaleString("es-PE")} sin aula titular`
+              : "con al menos un aula titular"}
+          </span>
         </div>
       </dl>
 
@@ -189,8 +216,8 @@ export function SeleccionAulasVisual({
             <School size={11} aria-hidden="true" /> De dónde salen los pesos
           </small>
           <span>
-            {seleccion.weight_source?.trim() ||
-              "peso de aula = 1 / probabilidad final; probabilidad estudiantil agregada"}
+            Cada aula pesa 1/π: las aulas con menor probabilidad de salir sorteadas pesan más al
+            expandir. El detalle técnico vive en Sustento técnico.
           </span>
         </div>
         <div className="cmv2-did-aulas-fuente">
