@@ -201,6 +201,28 @@ evaluate_rules <- function(rules,
     }
   }
 
+  # 3c. Guardrail de dominio: si la regla compara una columna bien poblada
+  #     contra un valor constante ausente en sus datos observados, con
+  #     incompatibilidad de tipo (texto vs numérico), es casi seguro un desfase
+  #     entre la versión del instrumento que generó la regla y los datos. El gate
+  #     nunca se cumpliría y las reglas de salto dispararían en falso sobre toda
+  #     la base. No la contamos como inconsistencia: la marcamos `desalineada`
+  #     para que sea una alerta visible y accionable, no un falso positivo mudo.
+  domain_mismatch <- .rule_domain_mismatch(rule, data)
+  if (!is.null(domain_mismatch)) {
+    resumen_base$estado <- "desalineada"
+    resumen_base$issue_code <- "domain_mismatch"
+    resumen_base$n_inconsistencias <- 0L
+    resumen_base$porcentaje <- 0
+    resumen_base$detalle <- sprintf(
+      paste0("La regla compara «%s» con el valor «%s», que no aparece en los datos ",
+             "(valores observados: %s). Probable desfase entre la versión del ",
+             "instrumento y los datos; no se contabiliza para evitar falsos positivos."),
+      domain_mismatch$var, domain_mismatch$expected, domain_mismatch$observed_sample
+    )
+    return(list(flag_vec = NULL, resumen = resumen_base, logs = list()))
+  }
+
   # 3b. Reglas que dependen de today() requieren fecha de captura usable.
   if (.rule_requires_collection_date(rule) && !isTRUE(has_collection_date)) {
     resumen_base$estado <- "no_evaluada"
@@ -644,6 +666,83 @@ evaluate_rules <- function(rules,
     sprintf("Columnas ausentes: %s", paste(missing_info$all, collapse = ", ")),
     parts
   ), collapse = " | ")
+}
+
+# -----------------------------------------------------------------------------
+# Guardrail de dominio: detecta reglas cuyo gate/predicado comparan una columna
+# contra un valor constante que NO existe en el dominio observado de esa columna,
+# con una incompatibilidad de TIPO (texto vs numérico). Ese patrón es la firma de
+# un desfase de versión entre el instrumento con el que se generó la regla y los
+# datos (p.ej. una regla `consent == 'OK'` — codificación `acknowledge` de una
+# versión vieja — evaluada sobre datos donde `consent` es 1/0). Sin este chequeo,
+# el gate nunca se cumple y las reglas de salto disparan en falso sobre toda la
+# base. Marcamos la regla como `desalineada` y NO la contamos como inconsistencia.
+# -----------------------------------------------------------------------------
+
+# Recolecta literales de igualdad/pertenencia POSITIVA (col == v, selected,
+# any_selected, in_set) de un AST. Devuelve lista de list(var=, values=).
+.ast_positive_equality_literals <- function(node) {
+  acc <- list()
+  if (is.null(node) || !is_ast(node)) return(acc)
+  ast_walk(node, function(n, path) {
+    op <- ast_op(n)
+    if (identical(op, "compare_const")) {
+      if (identical(as.character(ast_arg(n, "op")), "==")) {
+        acc[[length(acc) + 1L]] <<- list(var = as.character(ast_arg(n, "var")),
+                                         values = as.character(ast_arg(n, "value")))
+      }
+    } else if (identical(op, "selected")) {
+      acc[[length(acc) + 1L]] <<- list(var = as.character(ast_arg(n, "var")),
+                                       values = as.character(ast_arg(n, "value")))
+    } else if (op %in% c("any_selected", "in_set")) {
+      acc[[length(acc) + 1L]] <<- list(var = as.character(ast_arg(n, "var")),
+                                       values = as.character(ast_arg(n, "values")))
+    }
+  })
+  acc
+}
+
+# TRUE si al menos `frac` de los valores no vacíos parsean como numérico.
+.vec_mostly_numeric <- function(x, frac = 0.9) {
+  x <- x[!is.na(x) & nzchar(x)]
+  if (!length(x)) return(FALSE)
+  mean(!is.na(suppressWarnings(as.numeric(x)))) >= frac
+}
+
+# Devuelve NULL si la regla está alineada; si no, un descriptor del desajuste.
+.rule_domain_mismatch <- function(rule, data, min_obs = 20L, min_frac = 0.05) {
+  literals <- c(.ast_positive_equality_literals(rule$gate),
+                .ast_positive_equality_literals(rule$predicate))
+  if (!length(literals)) return(NULL)
+  n <- nrow(data)
+  threshold <- max(as.integer(min_obs), as.integer(ceiling(min_frac * n)))
+  for (lit in literals) {
+    col <- lit$var
+    if (length(col) != 1L || is.na(col) || !nzchar(col) || !(col %in% names(data))) next
+    obs <- trimws(as.character(data[[col]]))
+    obs <- obs[!is.na(obs) & nzchar(obs) & obs != "NA"]
+    if (length(obs) < threshold) next            # columna poco poblada → no opinar
+    dom <- unique(obs)
+    dom_numeric <- .vec_mostly_numeric(obs)
+    for (val in lit$values) {
+      v <- trimws(as.character(val))
+      if (!nzchar(v) || v == "NA") next          # centinelas de vacío, no códigos
+      if (v %in% dom) next                        # el valor sí aparece → alineada
+      val_numeric <- !is.na(suppressWarnings(as.numeric(v)))
+      # Solo marcamos cuando hay incompatibilidad de TIPO (texto vs numérico):
+      # esa es la firma inequívoca de desfase de codificación, y evita marcar
+      # códigos válidos que simplemente no tienen casos (p.ej. `q == '98'`).
+      type_mismatch <- (!val_numeric && dom_numeric) || (val_numeric && !dom_numeric)
+      if (!type_mismatch) next
+      return(list(
+        var = col,
+        expected = v,
+        observed_sample = paste(utils::head(sort(dom), 6L), collapse = ", "),
+        n_obs = length(obs)
+      ))
+    }
+  }
+  NULL
 }
 
 .legacy_numeric_coerce <- function(x) {
