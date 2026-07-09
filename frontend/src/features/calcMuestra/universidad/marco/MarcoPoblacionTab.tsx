@@ -38,8 +38,12 @@ export function MarcoPoblacionTab({
 }) {
   const frame = aulasState?.frame ?? null;
   const hasMarco = Boolean(frame || (totalComp.marco.estratos ?? []).length);
-  const { inputRows, eligibleRows, populationN, excludedN, eligibilityRate, dedupeLoad } =
+  const { inputRows, eligibleRows, populationN, eligibilityRate, dedupeLoad } =
     marcoPopulationFigures(frame, totalComp, workspace);
+  // La merma del flujo se calcula con la misma aritmética visible
+  // (universo − elegibles); el excluded_rows del audit vive en la auditoría
+  // de exclusiones, no en este flujo.
+  const filasExcluidas = inputRows > 0 && eligibleRows > 0 ? Math.max(0, inputRows - eligibleRows) : 0;
 
   const etapas: FlujoEtapa[] = [
     {
@@ -48,7 +52,7 @@ export function MarcoPoblacionTab({
       valor: inputRows > 0 ? fmtInt(inputRows) : undefined,
       detalle: "filas leídas del archivo",
       estado: inputRows > 0 ? "ready" : "pending",
-      merma: excludedN > 0 ? { n: excludedN, label: "filas excluidas" } : undefined,
+      merma: filasExcluidas > 0 ? { n: filasExcluidas, label: "filas excluidas" } : undefined,
     },
     {
       id: "elegibles",

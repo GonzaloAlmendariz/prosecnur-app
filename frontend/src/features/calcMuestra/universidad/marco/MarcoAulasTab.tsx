@@ -11,7 +11,7 @@ import type {
   CalcMuestraAulasState,
   CalcMuestraWorkspace,
 } from "../../../../api/client";
-import { fmtInt } from "../../sharedCore";
+import { fmtDec, fmtInt } from "../../sharedCore";
 import { frameAuditNumber } from "../shared/frame";
 import { normalizeUniversityAulasConfig } from "../shared/study";
 import { CifraFila, CifraMotor, TerminoChip } from "../ui";
@@ -87,7 +87,7 @@ export function MarcoAulasTab({
           />
           <CifraMotor
             label="Promedio por aula"
-            value={Number.isFinite(averageEligible) ? averageEligible.toFixed(1).replace(".", ",") : "pendiente"}
+            value={Number.isFinite(averageEligible) ? fmtDec(averageEligible) : "pendiente"}
             detalle="elegibles esperados por aula"
             origen={Number.isFinite(averageEligible) ? "motor" : undefined}
           />

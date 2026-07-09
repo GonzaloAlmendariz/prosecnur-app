@@ -1,13 +1,15 @@
 /* =============================================================================
    Sección Marco del desk universitario (Cálculo de muestra · aulas).
-   Prefijo cmv2-marco-*. Solo tokens var(--cmv2-*/--pulso-*); cero hex.
+   Prefijo cmv2-marco-*. Solo tokens var(--cmv2-* y --pulso-*); cero hex.
    Los charts reutilizan clases cmv2-* existentes de calcMuestra.css;
    las primitivas (flujo, chips, cifras) viven en ../ui/ui.css.
    ============================================================================= */
 
+/* Ritmo 4/8 de la dirección común: 16px entre cards hermanas del stack,
+   12px dentro de grids densos (ver bloque "Pulido estético" al final). */
 .cmv2-marco-stack {
   display: grid;
-  gap: 12px;
+  gap: 16px;
   align-content: start;
 }
 
@@ -43,13 +45,20 @@
 .cmv2-marco-flujo-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(220px, 1fr);
-  gap: 14px;
+  gap: 16px;
   align-items: start;
 }
 
-@media (max-width: 980px) {
+/* A 1024 de ancho las etapas del flujo partían sus cifras en dos líneas:
+   el layout de dos columnas se abandona antes (1180px). */
+@media (max-width: 1180px) {
   .cmv2-marco-flujo-layout {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cmv2-marco-flujo-cifras {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
   }
 }
 
@@ -122,7 +131,7 @@
 /* --- Población: bloque final "Estructura por controles" --------------------- */
 .cmv2-marco-controles {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 /* --- Aulas: histograma con bandas G1-G4 y línea del mínimo ------------------- */
@@ -166,33 +175,35 @@
   transition: height var(--motion-dur-fast, 120ms) ease;
 }
 
-/* Bandas por grupo de tamaño: mezcla del acento con pesos distintos por grupo. */
+/* Bandas por grupo de tamaño: mezcla del acento con pesos distintos por grupo.
+   Pesos rebajados (dirección §5): la banda es referencia y debe pesar menos
+   que la barra de datos; antes las columnas tintadas competían con la serie. */
 .cmv2-marco-histo-bin[data-grupo="bajo"] .cmv2-marco-histo-col {
-  background: color-mix(in srgb, var(--pulso-warn-bg) 55%, var(--cmv2-surface));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 36%, var(--cmv2-surface));
 }
 
 .cmv2-marco-histo-bin[data-grupo="bajo"] .cmv2-marco-histo-col i {
-  background: var(--pulso-warn-fg);
+  background: color-mix(in srgb, var(--pulso-warn-fg) 78%, var(--cmv2-surface));
 }
 
 .cmv2-marco-histo-bin[data-grupo="G1"] .cmv2-marco-histo-col {
-  background: color-mix(in srgb, var(--cmv2-accent) 8%, var(--cmv2-surface));
+  background: color-mix(in srgb, var(--cmv2-accent) 5%, var(--cmv2-surface));
 }
 
 .cmv2-marco-histo-bin[data-grupo="G2"] .cmv2-marco-histo-col {
-  background: color-mix(in srgb, var(--cmv2-accent) 15%, var(--cmv2-surface));
+  background: color-mix(in srgb, var(--cmv2-accent) 10%, var(--cmv2-surface));
 }
 
 .cmv2-marco-histo-bin[data-grupo="G3"] .cmv2-marco-histo-col {
-  background: color-mix(in srgb, var(--cmv2-accent) 23%, var(--cmv2-surface));
+  background: color-mix(in srgb, var(--cmv2-accent) 15%, var(--cmv2-surface));
 }
 
 .cmv2-marco-histo-bin[data-grupo="G4"] .cmv2-marco-histo-col {
-  background: color-mix(in srgb, var(--cmv2-accent) 32%, var(--cmv2-surface));
+  background: color-mix(in srgb, var(--cmv2-accent) 21%, var(--cmv2-surface));
 }
 
 .cmv2-marco-histo-bin > span {
-  font-size: 9.5px;
+  font-size: 10px;
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-muted);
   white-space: nowrap;
@@ -278,7 +289,7 @@
   background: var(--cmv2-accent);
 }
 
-.cmv2-marco-histo-legend span[data-grupo="bajo"] i { background: var(--pulso-warn-fg); }
+.cmv2-marco-histo-legend span[data-grupo="bajo"] i { background: color-mix(in srgb, var(--pulso-warn-fg) 78%, var(--cmv2-surface)); }
 .cmv2-marco-histo-legend span[data-grupo="G1"] i { background: color-mix(in srgb, var(--cmv2-accent) 35%, var(--cmv2-surface)); }
 .cmv2-marco-histo-legend span[data-grupo="G2"] i { background: color-mix(in srgb, var(--cmv2-accent) 55%, var(--cmv2-surface)); }
 .cmv2-marco-histo-legend span[data-grupo="G3"] i { background: color-mix(in srgb, var(--cmv2-accent) 75%, var(--cmv2-surface)); }
@@ -317,11 +328,11 @@
 .cmv2-marco-match-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(240px, 1fr);
-  gap: 14px;
+  gap: 16px;
   align-items: center;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1180px) {
   .cmv2-marco-match-layout {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -340,48 +351,56 @@
 
 .cmv2-marco-gauge-track {
   position: relative;
-  height: 14px;
+  height: 12px;
   border-radius: 999px;
-  background: var(--cmv2-surface-tint);
+  background: color-mix(in srgb, var(--cmv2-border) 55%, var(--cmv2-surface));
   border: 1px solid var(--cmv2-border);
   overflow: visible;
 }
 
+/* La barra toma el color del tono con un degradé sutil (claro → pleno),
+   mismo lenguaje que las barras del resto del desk. */
 .cmv2-marco-gauge-fill {
   position: absolute;
   inset: 1px auto 1px 1px;
   border-radius: 999px;
-  background: var(--pulso-danger-fg);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--pulso-danger-fg) 55%, var(--cmv2-surface)), var(--pulso-danger-fg));
   transition: width var(--motion-dur-med, 200ms) ease;
 }
 
 .cmv2-marco-gauge[data-tone="warn"] .cmv2-marco-gauge-fill {
-  background: var(--pulso-warn-fg);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--pulso-warn-fg) 55%, var(--cmv2-surface)), var(--pulso-warn-fg));
 }
 
 .cmv2-marco-gauge[data-tone="ok"] .cmv2-marco-gauge-fill {
-  background: var(--pulso-success-fg);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--pulso-success-fg) 55%, var(--cmv2-surface)), var(--pulso-success-fg));
 }
 
 .cmv2-marco-gauge[data-tone="pending"] .cmv2-marco-gauge-fill {
   background: var(--cmv2-border-strong);
 }
 
+/* Ticks con mezcla del texto para que sigan legibles sobre el llenado pleno. */
 .cmv2-marco-gauge-tick {
   position: absolute;
   top: -3px;
   bottom: -3px;
   width: 0;
-  border-left: 1px dashed var(--pulso-text-muted);
+  border-left: 1px dashed color-mix(in srgb, var(--pulso-text) 52%, transparent);
 }
 
+/* El tick mide 0 de ancho: la etiqueta se centra sobre él con transform y
+   white-space nowrap para que "70%" no se apile carácter a carácter. */
 .cmv2-marco-gauge-tick em {
   position: absolute;
   top: -14px;
-  left: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
   font-style: normal;
   font-size: 9px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   color: var(--pulso-text-muted);
 }
 
@@ -508,10 +527,10 @@
    caliente siguen usando las transitions ya existentes (width/height).
    ============================================================================= */
 
+/* Fade-only: el wrapper del tab ya desliza (motion en capas, ui/ui.css). */
 @keyframes cmv2-marco-enter {
   from {
     opacity: 0;
-    transform: translateY(5px);
   }
 }
 
@@ -617,4 +636,262 @@
   .cmv2-marco-vacio .pulso-empty-state-icon {
     animation: cmv2-marco-pop 260ms var(--cmv2-ease-out, ease-out) 80ms both;
   }
+}
+
+/* --- Fila agregada "y N más": aviso visible cuando el chart no puede dibujar
+   todas las categorías (política anti-recorte de marcoCharts.tsx). Tono
+   atenuado para que se lea como resto agregado, no como una categoría más. */
+.cmv2-native-bar-row.is-overflow > span,
+.cmv2-native-bar-row.is-overflow strong,
+.cmv2-native-bar-row.is-overflow small,
+.cmv2-native-stack-row.is-overflow > span,
+.cmv2-native-stack-row.is-overflow strong,
+.cmv2-native-heatmap-grid b.is-overflow {
+  color: var(--pulso-text-muted);
+  font-style: italic;
+}
+
+.cmv2-native-bar-row.is-overflow i {
+  background: color-mix(in srgb, var(--cmv2-accent) 24%, var(--cmv2-surface));
+}
+
+.cmv2-native-stack-row.is-overflow .cmv2-native-stack-track i {
+  opacity: 0.42;
+}
+
+/* =============================================================================
+   Pulido estético (dirección común de la pasada coordinada). Overrides SOLO
+   dentro de .cmv2-marco-stack: las clases compartidas (cmv2-native-*, plot
+   cards, insights) conservan su estilo global fuera de Marco.
+   ============================================================================= */
+
+/* --- Ritmo: 12px en grids densos, 16px ya aplicado entre cards hermanas. --- */
+.cmv2-marco-stack .cmv2-dashboard-chart-grid,
+.cmv2-marco-stack .cmv2-dashboard-intelligence,
+.cmv2-marco-stack .cmv2-dashboard-insights,
+.cmv2-marco-stack .cmv2-frame-source-grid {
+  gap: 12px;
+}
+
+/* --- Plot cards: padding de sub-bloque (14px) y fila de contenido flexible
+   para poder centrar estados vacíos sin estirar los charts. --- */
+.cmv2-marco-stack .cmv2-plot-card {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: start;
+  min-height: 0;
+  padding: 14px;
+}
+
+.cmv2-marco-stack .cmv2-plot-card > header {
+  margin-bottom: 8px;
+}
+
+/* El drill de carreras envuelve su chart; en vacío centra el diagnóstico. */
+.cmv2-marco-stack .cmv2-plot-card .cmv2-marco-drill-swap {
+  display: grid;
+  min-width: 0;
+}
+
+.cmv2-marco-stack .cmv2-plot-card > .cmv2-descriptive-empty-state,
+.cmv2-marco-stack .cmv2-plot-card .cmv2-marco-drill-swap > .cmv2-descriptive-empty-state {
+  align-self: center;
+}
+
+/* --- Barras horizontales: etiquetas 12px con truncado + title, valores
+   tabulares a la derecha, pista de referencia más ligera que la serie y
+   filas que respiran (sin efecto "peine" con 16 facultades). --- */
+.cmv2-marco-stack .cmv2-native-bars {
+  gap: 10px;
+  align-content: start;
+}
+
+.cmv2-marco-stack .cmv2-native-bar-row > span,
+.cmv2-marco-stack .cmv2-native-stack-row > span {
+  font-size: 12px;
+  font-weight: 760;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-marco-stack .cmv2-native-bar-row strong,
+.cmv2-marco-stack .cmv2-native-stack-row strong {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-marco-stack .cmv2-native-bar-row small {
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-marco-stack .cmv2-native-bar-row > div {
+  background: color-mix(in srgb, var(--cmv2-border) 52%, transparent);
+}
+
+/* La fila agregada "y N más" se separa del resto con un hairline discontinuo. */
+.cmv2-marco-stack .cmv2-native-bar-row.is-overflow,
+.cmv2-marco-stack .cmv2-native-stack-row.is-overflow {
+  margin-top: 2px;
+  padding-top: 8px;
+  border-top: 1px dashed color-mix(in srgb, var(--cmv2-border-strong) 60%, transparent);
+}
+
+/* Estados completos del elemento presionable (dirección §3). */
+.cmv2-marco-stack .cmv2-native-bar-row.is-interactive {
+  transition:
+    background var(--motion-dur-fast) var(--motion-ease-standard),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-standard),
+    transform 160ms ease-out;
+}
+
+.cmv2-marco-stack .cmv2-native-bar-row.is-interactive:active {
+  transform: scale(0.98);
+}
+
+/* --- Insight tiles → patrón stat-tile: eyebrow / cifra / detalle. --- */
+.cmv2-marco-stack .cmv2-dashboard-insights article {
+  padding: 12px;
+  gap: 10px;
+}
+
+.cmv2-marco-stack .cmv2-dashboard-insights article div {
+  gap: 3px;
+}
+
+.cmv2-marco-stack .cmv2-dashboard-insights article small {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-marco-stack .cmv2-dashboard-insights article strong {
+  font-size: 18px;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+  line-height: 1.12;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-marco-stack .cmv2-dashboard-insights article em {
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+/* Cifras del embudo de capacidad con el mismo tratamiento tabular. */
+.cmv2-marco-stack .cmv2-dashboard-funnel-step strong {
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Heatmap: valores tabulares. --- */
+.cmv2-marco-stack .cmv2-native-heatmap-grid i {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Sexo por aula: los KPI pierden el tinte decorativo (el acento-soft se
+   reserva a estados; dirección §1) y las filas pasan de cajas con borde a
+   lista con separadores — menos cajas dentro de cajas. --- */
+.cmv2-marco-stack .cmv2-classroom-sex-summary {
+  gap: 12px;
+}
+
+.cmv2-marco-stack .cmv2-classroom-sex-summary span {
+  padding: 10px 12px;
+  border-color: var(--cmv2-border);
+  background: var(--cmv2-surface);
+}
+
+.cmv2-marco-stack .cmv2-classroom-sex-summary small {
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-marco-stack .cmv2-classroom-sex-summary strong {
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-marco-stack .cmv2-classroom-sex-rows {
+  gap: 0;
+}
+
+.cmv2-marco-stack .cmv2-classroom-sex-row {
+  padding: 8px 2px;
+  border: none;
+  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
+  border-radius: 0;
+  background: none;
+}
+
+.cmv2-marco-stack .cmv2-classroom-sex-row:first-child {
+  border-top: none;
+  padding-top: 2px;
+}
+
+.cmv2-marco-stack .cmv2-classroom-sex-total strong {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Auditoría de aulas excluidas: columna numérica a la derecha con cifras
+   tabulares, motivo en tono atenuado y hover de fila solo con puntero fino. --- */
+.cmv2-marco-excluidas .cmv2-classroom-table th:nth-child(3),
+.cmv2-marco-excluidas .cmv2-classroom-table td:nth-child(3) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-marco-excluidas .cmv2-classroom-table td:nth-child(4) {
+  color: var(--pulso-text-muted);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-marco-excluidas .cmv2-classroom-table tbody tr {
+    transition: background-color 120ms ease;
+  }
+
+  .cmv2-marco-excluidas .cmv2-classroom-table tbody tr:hover {
+    background: color-mix(in srgb, var(--cmv2-accent) 5%, transparent);
+  }
+}
+
+/* --- Consistencia: hallazgos y ejemplos como agrupadores invisibles (los
+   articles internos ya son cards; el contenedor pierde borde y fondo). --- */
+.cmv2-marco-consistencia .cmv2-frame-issue-list,
+.cmv2-marco-consistencia .cmv2-frame-preview-list {
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.cmv2-marco-consistencia .cmv2-frame-issue-list h4,
+.cmv2-marco-consistencia .cmv2-frame-preview-list h4 {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+/* Advertencias del motor: de chip suelto a banner de ancho completo. */
+.cmv2-marco-consistencia .cmv2-frame-warning-list {
+  gap: 8px;
+}
+
+.cmv2-marco-consistencia .cmv2-frame-warning-list span {
+  flex: 1 1 100%;
+  justify-content: flex-start;
+  min-height: 0;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 740;
+  line-height: 1.45;
+  white-space: normal;
+}
+
+/* El vacío de "una sola base" respiraba en una columna muy angosta. */
+.cmv2-marco-vacio .pulso-empty-state-hint {
+  max-width: 52ch;
 }
