@@ -4823,16 +4823,33 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
         report_scope = "advance_summary"
       )
     }
+    # El PDF de avance territorial es un documento a cliente: consume las
+    # secciones de la audiencia "client" (avance_diario, cuotas_resumen,
+    # avance_por_distrito, avance_por_ump con columnas renombradas). Con
+    # "internal" esas secciones no existen y el PDF colapsa a 2 páginas
+    # (se saltan Ritmo / Muestra / Perfil demográfico). Ver test QA
+    # "PDF cliente territorial usa conteos del Sheets cliente", que arma el
+    # modelo con audience = "client".
     model <- monitoreo_publication_model(
       snapshot$data,
       cfg,
-      audience = "internal",
+      audience = "client",
       include_targets = include_targets,
       dashboard = dashboard,
       synced_at = snapshot$synced_at %||% "",
       context = list(family = publication_family)
     )
     model$report_kind <- "territorial_advance_pdf"
+    # Adjunta un resumen de ocurrencias de campo (client-safe) si el proyecto tiene
+    # el formulario de ocurrencias sincronizado, para la página "Ocurrencias" del PDF.
+    occ_summary <- tryCatch({
+      occ <- attr(snapshot, "occurrences_snapshot", exact = TRUE)
+      if (is.list(occ) && is.data.frame(occ$data) && nrow(occ$data)) {
+        occ_report <- monitoreo_territorial_occurrences_report(occ$data, cfg, list())
+        .monitoreo_territorial_occurrences_client_summary(occ_report)
+      } else NULL
+    }, error = function(e) NULL)
+    if (!is.null(occ_summary)) model$occurrences <- occ_summary
     return(model)
   }
   dashboard <- snapshot$dashboard %||% NULL
@@ -6118,6 +6135,10 @@ mount_monitoreo <- function(pr) {
       snapshot <- s$monitoreo_snapshot %||% NULL
       cfg <- monitoreo_normalize_config(parsed$config %||% s$monitoreo_config %||% list(), snapshot$data %||% data.frame())
       include_targets <- .monitoreo_bool(parsed$include_targets %||% parsed$includeTargets, FALSE)
+      occ_snap <- s$monitoreo_territorial_occurrences_snapshot %||% NULL
+      if (is.list(occ_snap) && is.data.frame(occ_snap$data) && nrow(occ_snap$data) && !is.null(snapshot)) {
+        attr(snapshot, "occurrences_snapshot") <- occ_snap
+      }
       model <- .monitoreo_client_report_model_for_snapshot(snapshot, cfg, include_targets = include_targets)
       model_path <- job_save_rds(sid, "monitoreo_client_report_model", model)
       is_territorial_pdf <- identical(.monitoreo_scalar(model$report_kind, ""), "territorial_advance_pdf") ||

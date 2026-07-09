@@ -148,12 +148,26 @@
   out
 }
 
-.monitoreo_safe_name <- function(x) {
+# Caché de proceso: safe_name es una transformación pura de string (mapeo
+# determinista, independiente del proyecto). El matching de ajustes operativos
+# la llama decenas de miles de veces sobre los mismos ids/etiquetas; memoizar
+# colapsa el costo de iconv+gsub sin cambiar el resultado.
+.monitoreo_safe_name_cache <- new.env(parent = emptyenv())
+.monitoreo_safe_name_compute <- function(x) {
   x <- tolower(trimws(as.character(x %||% "")))
   x <- iconv(x, to = "ASCII//TRANSLIT", sub = "")
   x <- gsub("[^a-z0-9]+", "_", x)
   x <- gsub("^_+|_+$", "", x)
   if (is.na(x) || !nzchar(x)) "campo" else x
+}
+.monitoreo_safe_name <- function(x) {
+  key <- as.character(x %||% "")
+  if (length(key) != 1L || is.na(key) || !nzchar(key)) return(.monitoreo_safe_name_compute(x))
+  hit <- .monitoreo_safe_name_cache[[key]]
+  if (!is.null(hit)) return(hit)
+  res <- .monitoreo_safe_name_compute(key)
+  assign(key, res, envir = .monitoreo_safe_name_cache)
+  res
 }
 
 .monitoreo_variable_label_map <- function(data) {
@@ -7062,7 +7076,19 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
   }))
 }
 
+# Caché de proceso: variantes de id de manzana (dropear el 0 operacional final)
+# es una transformación pura; se llama por cada id × cada ajuste × cada item.
+.monitoreo_territorial_block_id_variants_cache <- new.env(parent = emptyenv())
 .monitoreo_territorial_block_id_variants <- function(id) {
+  if (length(id) == 1L && is.character(id) && !is.na(id) && nzchar(id)) {
+    hit <- .monitoreo_territorial_block_id_variants_cache[[id]]
+    if (!is.null(hit)) return(hit)
+    v <- trimws(id)
+    res <- unique(c(v, sub("0$", "", v, perl = TRUE)))
+    res <- res[!is.na(res) & nzchar(res)]
+    assign(id, res, envir = .monitoreo_territorial_block_id_variants_cache)
+    return(res)
+  }
   id <- trimws(as.character(id %||% ""))
   id <- id[!is.na(id) & nzchar(id)]
   if (!length(id)) return(character(0))
@@ -8107,91 +8133,134 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
   do.call(rbind, pieces)
 }
 
+.monitoreo_territorial_geo_build_out <- function(gps, n) {
+  data.frame(
+    lat = gps$lat,
+    lon = gps$lon,
+    gps_parseable = is.finite(gps$lat) & is.finite(gps$lon),
+    geo_estado = rep("geo_sin_gps", n),
+    distance_m = rep(NA_real_, n),
+    nearest_block_id = rep("", n),
+    nearest_block_type = rep("", n),
+    geometry_match = rep("", n),
+    gps_source_var = as.character(gps$gps_source_var %||% ""),
+    gps_altitude = suppressWarnings(as.numeric(gps$gps_altitude %||% NA_real_)),
+    gps_accuracy_m = suppressWarnings(as.numeric(gps$gps_accuracy_m %||% NA_real_)),
+    stringsAsFactors = FALSE
+  )
+}
+
+# Versión vectorizada: una sola construcción de puntos (una parseada de CRS),
+# un st_intersects global y st_distance por distrito. Preserva exactamente la
+# semántica de la referencia (umbrales y desempate por menor índice global).
+.monitoreo_territorial_classify_gps <- function(gps, selected = NULL, selected_m = NULL, near_thr = 150, review_thr = 300, n = nrow(gps), district_ubigeo = NULL) {
+  out <- .monitoreo_territorial_geo_build_out(gps, n)
+  if (is.null(selected) || !nrow(selected)) {
+    out$geo_estado[out$gps_parseable] <- "geo_sin_cruce"
+    out$geometry_match[out$gps_parseable] <- "route_context_missing"
+    return(out)
+  }
+  if (!requireNamespace("sf", quietly = TRUE)) {
+    out$geo_estado[out$gps_parseable] <- "geo_sin_cruce"
+    out$geometry_match[out$gps_parseable] <- "geometry_unresolved"
+    return(out)
+  }
+  parseable <- which(out$gps_parseable %in% TRUE)
+  if (!length(parseable)) return(out)
+
+  row_ub <- vapply(parseable, function(i) .monitoreo_scalar(district_ubigeo[[i]], ""), character(1))
+  empty_ub <- parseable[!nzchar(row_ub)]
+  if (length(empty_ub)) {
+    out$geo_estado[empty_ub] <- "geo_sin_cruce"
+    out$geometry_match[empty_ub] <- "district_unresolved"
+  }
+  keep <- nzchar(row_ub)
+  cand <- parseable[keep]
+  cand_ub <- row_ub[keep]
+  if (!length(cand)) return(out)
+
+  sel_ub <- as.character(selected$.__ubigeo)
+  ub_has_sel <- cand_ub %in% sel_ub
+  no_sel <- cand[!ub_has_sel]
+  if (length(no_sel)) {
+    out$geo_estado[no_sel] <- "geo_sin_cruce"
+    out$geometry_match[no_sel] <- "district_outside_route"
+  }
+  work <- cand[ub_has_sel]
+  work_ub <- cand_ub[ub_has_sel]
+  if (!length(work)) return(out)
+
+  pts <- tryCatch(
+    sf::st_sfc(lapply(work, function(i) sf::st_point(c(out$lon[[i]], out$lat[[i]]))), crs = 4326),
+    error = function(e) NULL
+  )
+  if (is.null(pts)) return(out)
+  inter <- tryCatch(sf::st_intersects(pts, selected), error = function(e) NULL)
+  pts_m <- tryCatch(sf::st_transform(pts, 3857), error = function(e) pts)
+
+  for (ub in unique(work_ub)) {
+    sel_idx <- which(sel_ub == ub)
+    pos <- which(work_ub == ub)
+    rows <- work[pos]
+    hit_global <- rep(NA_integer_, length(pos))
+    dist_pos <- integer(0)
+    for (k in seq_along(pos)) {
+      cands <- if (is.null(inter)) integer(0) else inter[[pos[k]]]
+      cands <- cands[cands %in% sel_idx]
+      if (length(cands)) hit_global[k] <- min(cands) else dist_pos <- c(dist_pos, k)
+    }
+    hit_k <- which(!is.na(hit_global))
+    if (length(hit_k)) {
+      gi <- hit_global[hit_k]
+      ri <- rows[hit_k]
+      out$geo_estado[ri] <- "geo_ok"
+      out$distance_m[ri] <- 0
+      out$nearest_block_id[ri] <- selected$.__id_manzana[gi]
+      out$nearest_block_type[ri] <- selected$.__tipo_manzana[gi]
+      out$geometry_match[ri] <- "inside_selected_block"
+    }
+    if (length(dist_pos)) {
+      grp_pos <- pos[dist_pos]
+      grp_rows <- rows[dist_pos]
+      dm <- tryCatch(sf::st_distance(pts_m[grp_pos], selected_m[sel_idx, ]), error = function(e) NULL)
+      for (k in seq_along(grp_pos)) {
+        ri <- grp_rows[k]
+        dists <- if (is.null(dm)) rep(NA_real_, length(sel_idx)) else as.numeric(dm[k, ])
+        if (!any(is.finite(dists))) {
+          out$geo_estado[ri] <- "geo_revision"
+          out$geometry_match[ri] <- "distance_unavailable"
+          next
+        }
+        best_pos <- which.min(dists)
+        best_idx <- sel_idx[[best_pos]]
+        d <- dists[[best_pos]]
+        out$distance_m[ri] <- round(d, 1)
+        out$nearest_block_id[ri] <- selected$.__id_manzana[[best_idx]]
+        out$nearest_block_type[ri] <- selected$.__tipo_manzana[[best_idx]]
+        out$geo_estado[ri] <- if (d <= 1) {
+          "geo_ok"
+        } else if (d <= near_thr) {
+          "geo_cerca"
+        } else if (d <= review_thr) {
+          "geo_revision"
+        } else {
+          "geo_no_defendible"
+        }
+        out$geometry_match[ri] <- if (d <= 1) "inside_selected_block_tolerance" else if (d <= near_thr) "near_150m" else if (d <= review_thr) "review_150_300m" else "far_gt_300m"
+      }
+    }
+  }
+  out
+}
+
 .monitoreo_territorial_geo_status <- function(data, tcfg, district_ubigeo, context) {
   n <- nrow(data)
   precomputed <- context$geo_results %||% NULL
   if (is.data.frame(precomputed) && nrow(precomputed) == n) {
     return(.monitoreo_territorial_geo_enrich_effective(precomputed, tcfg$gps_var))
   }
-  build_out <- function(gps) {
-    data.frame(
-      lat = gps$lat,
-      lon = gps$lon,
-      gps_parseable = is.finite(gps$lat) & is.finite(gps$lon),
-      geo_estado = rep("geo_sin_gps", n),
-      distance_m = rep(NA_real_, n),
-      nearest_block_id = rep("", n),
-      nearest_block_type = rep("", n),
-      geometry_match = rep("", n),
-      gps_source_var = as.character(gps$gps_source_var %||% ""),
-      gps_altitude = suppressWarnings(as.numeric(gps$gps_altitude %||% NA_real_)),
-      gps_accuracy_m = suppressWarnings(as.numeric(gps$gps_accuracy_m %||% NA_real_)),
-      stringsAsFactors = FALSE
-    )
-  }
   classify_gps <- function(gps, selected = NULL, selected_m = NULL, near_thr = 150, review_thr = 300) {
-    out <- build_out(gps)
-    if (is.null(selected) || !nrow(selected)) {
-      out$geo_estado[out$gps_parseable] <- "geo_sin_cruce"
-      out$geometry_match[out$gps_parseable] <- "route_context_missing"
-      return(out)
-    }
-    if (!requireNamespace("sf", quietly = TRUE)) {
-      out$geo_estado[out$gps_parseable] <- "geo_sin_cruce"
-      out$geometry_match[out$gps_parseable] <- "geometry_unresolved"
-      return(out)
-    }
-    for (i in seq_len(n)) {
-      if (!isTRUE(out$gps_parseable[[i]])) next
-      ubigeo <- .monitoreo_scalar(district_ubigeo[[i]], "")
-      if (!nzchar(ubigeo)) {
-        out$geo_estado[[i]] <- "geo_sin_cruce"
-        out$geometry_match[[i]] <- "district_unresolved"
-        next
-      }
-      sel_idx <- which(as.character(selected$.__ubigeo) == ubigeo)
-      if (!length(sel_idx)) {
-        out$geo_estado[[i]] <- "geo_sin_cruce"
-        out$geometry_match[[i]] <- "district_outside_route"
-        next
-      }
-      pt <- tryCatch(sf::st_sfc(sf::st_point(c(out$lon[[i]], out$lat[[i]])), crs = 4326), error = function(e) NULL)
-      if (is.null(pt)) next
-      intersects <- tryCatch(as.logical(sf::st_intersects(pt, selected[sel_idx, ], sparse = FALSE)[1, ]), error = function(e) rep(FALSE, length(sel_idx)))
-      if (any(intersects, na.rm = TRUE)) {
-        local_idx <- sel_idx[which(intersects)[1]]
-        out$geo_estado[[i]] <- "geo_ok"
-        out$distance_m[[i]] <- 0
-        out$nearest_block_id[[i]] <- selected$.__id_manzana[[local_idx]]
-        out$nearest_block_type[[i]] <- selected$.__tipo_manzana[[local_idx]]
-        out$geometry_match[[i]] <- "inside_selected_block"
-        next
-      }
-      pt_m <- tryCatch(sf::st_transform(pt, 3857), error = function(e) pt)
-      distances <- tryCatch(as.numeric(sf::st_distance(pt_m, selected_m[sel_idx, ])), error = function(e) rep(NA_real_, length(sel_idx)))
-      if (!any(is.finite(distances))) {
-        out$geo_estado[[i]] <- "geo_revision"
-        out$geometry_match[[i]] <- "distance_unavailable"
-        next
-      }
-      best_pos <- which.min(distances)
-      best_idx <- sel_idx[[best_pos]]
-      d <- distances[[best_pos]]
-      out$distance_m[[i]] <- round(d, 1)
-      out$nearest_block_id[[i]] <- selected$.__id_manzana[[best_idx]]
-      out$nearest_block_type[[i]] <- selected$.__tipo_manzana[[best_idx]]
-      out$geo_estado[[i]] <- if (d <= 1) {
-        "geo_ok"
-      } else if (d <= near_thr) {
-        "geo_cerca"
-      } else if (d <= review_thr) {
-        "geo_revision"
-      } else {
-        "geo_no_defendible"
-      }
-      out$geometry_match[[i]] <- if (d <= 1) "inside_selected_block_tolerance" else if (d <= near_thr) "near_150m" else if (d <= review_thr) "review_150_300m" else "far_gt_300m"
-    }
-    out
+    .monitoreo_territorial_classify_gps(gps, selected, selected_m, near_thr, review_thr, n = n, district_ubigeo = district_ubigeo)
   }
   blocks <- .monitoreo_territorial_block_goal_df(context, include_replacements = TRUE)
   near_thr <- .monitoreo_num(tcfg$geo_thresholds_m$cerca, 150)
@@ -20040,6 +20109,22 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
     out
   }
   generated_label <- pretty_stamp(generated_at)
+  # Ventana de recojo de respuestas (primer→último día con actividad), para el chip
+  # de cabecera. Solo fecha, formato corto.
+  campaign_day_label <- function(x) {
+    parsed <- suppressWarnings(as.Date(as.character(x)))
+    months <- c("ene.", "feb.", "mar.", "abr.", "may.", "jun.", "jul.", "ago.", "set.", "oct.", "nov.", "dic.")
+    if (!length(parsed) || is.na(parsed[[1]])) return("")
+    sprintf("%d %s %d", as.integer(format(parsed[[1]], "%d")), months[[as.integer(format(parsed[[1]], "%m"))]], as.integer(format(parsed[[1]], "%Y")))
+  }
+  campaign_window <- {
+    dg <- .monitoreo_workbook_df(model$daily_general %||% list())
+    if (nrow(dg) && "Fecha" %in% names(dg)) {
+      d <- suppressWarnings(as.Date(as.character(dg$Fecha)))
+      d <- d[!is.na(d)]
+      if (length(d)) list(start = campaign_day_label(min(d)), end = campaign_day_label(max(d)), days = length(unique(d))) else NULL
+    } else NULL
+  }
   pulso_logo_path <- function() {
     candidates <- c(
       system.file("hojas_ruta", "assets", "logo_pulso.png", package = "prosecnurapp"),
@@ -20178,12 +20263,46 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
     rect(0, 0.925, 1, 0.005, navy, col = NA)
     logo_w <- draw_pulso_logo(0.055, 0.960, height = 0.032)
     title_x <- 0.055 + logo_w + 0.018
-    txt(ellipsize(report_title, 64), title_x, 0.958, size = 12.2, col = ink, face = "bold")
-    txt(paste("Corte", generated_label), 0.945, 0.958, size = 7.2, col = muted, face = "bold", just = c("right", "center"))
+    txt(ellipsize(report_title, 52), title_x, 0.958, size = 12.2, col = ink, face = "bold")
+    if (is.list(campaign_window)) {
+      draw_campaign_window_chip(0.660, 0.958, campaign_window)
+    } else {
+      txt(paste("Corte", generated_label), 0.945, 0.958, size = 7.2, col = muted, face = "bold", just = c("right", "center"))
+    }
     line(0.055, 0.048, 0.945, 0.048, col = border, lwd = 0.7)
     txt("Avance", 0.055, 0.025, size = 6.2, col = faint, face = "bold")
     txt(generated_label, 0.500, 0.025, size = 6.2, col = faint, face = "bold", just = c("center", "center"))
     txt(paste("Página", page_no), 0.945, 0.025, size = 6.2, col = faint, just = c("right", "center"))
+  }
+  # Chip de ventana de recojo de respuestas: inicio → fin + duración.
+  draw_campaign_window_chip <- function(x, y, win) {
+    soft <- "#eef4fa"; soft_border <- "#c7d7e8"
+    w <- 0.285; h <- 0.044
+    rr(x, y - h / 2, w, h, fill = "#ffffff", col = border, lwd = 0.9, r = 0.012)
+    rect(x, y - h / 2, 0.006, h, navy, col = NA)
+    txt("RECOJO DE RESPUESTAS", x + 0.016, y + h / 2 - 0.010, size = 5.0, col = muted, face = "bold", just = c("left", "center"))
+    days_txt <- if (is.finite(win$days) && win$days > 0) paste(fmt(win$days), "días") else ""
+    pill_w <- 0.066
+    if (nzchar(days_txt)) {
+      rr(x + w - pill_w - 0.012, y - 0.010, pill_w, 0.020, fill = soft, col = soft_border, lwd = 0.6, r = 0.010)
+      txt(days_txt, x + w - pill_w / 2 - 0.012, y, size = 6.2, col = navy, face = "bold", just = c("center", "center"))
+    }
+    by <- y - h / 2 + 0.013
+    sx <- x + 0.016
+    if (nzchar(win$start)) {
+      txt(win$start, sx, by, size = 6.8, col = navy, face = "bold", just = c("left", "center"))
+      # Portrait: el texto ocupa ~1.4× más npc que en landscape (página más angosta).
+      sx <- sx + max(0.086, 0.010 + nchar(win$start, type = "width") * 0.0075)
+    }
+    ax <- sx
+    line(ax, by, ax + 0.016, by, col = faint, lwd = 1.2)
+    grid::grid.polygon(x = grid::unit(c(ax + 0.016, ax + 0.011, ax + 0.011), "npc"),
+                       y = grid::unit(c(by, by + 0.0035, by - 0.0035), "npc"),
+                       gp = grid::gpar(fill = faint, col = NA))
+    sx <- ax + 0.026
+    if (nzchar(win$end)) {
+      txt(win$end, sx, by, size = 6.8, col = effective, face = "bold", just = c("left", "center"))
+    }
   }
   metric_box <- function(x, y, w, h, label, value, hint = "", tone = "neutral") {
     tones <- list(
@@ -20898,6 +21017,76 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   invisible(output_file)
 }
 
+# Compacta el reporte completo de ocurrencias de campo (monitoreo_territorial_
+# occurrences_report) a agregados seguros de cara al cliente para el PDF de
+# avance: esfuerzo (intentos/visitas), cobertura (zonas/días) y el desglose de
+# motivos de NO efectividad. Deliberadamente NO expone mecánica interna de UMP ni
+# el número de reportes crudos. Los reportes contados deben corresponder a una
+# UMP esperada de la ruta (titular o su reemplazo) y se deduplican por bloque: si
+# una misma UMP tiene varios reportes, se conserva solo el más completo.
+.monitoreo_territorial_occurrences_client_summary <- function(report) {
+  if (!is.list(report)) return(NULL)
+  num <- function(x, d = 0) { v <- suppressWarnings(as.numeric(x)); if (length(v) && is.finite(v[[1]])) v[[1]] else d }
+  recs <- report$records %||% list()
+  if (!length(recs)) return(NULL)
+  # 1) Solo reportes reconocidos (mapean a una UMP titular o su reemplazo de la
+  #    ruta). Descarta "ump_no_esperada" / "missing".
+  recs <- Filter(function(r) identical(as.character(r$route_match_status %||% ""), "recognized"), recs)
+  if (!length(recs)) return(NULL)
+  # 2) Dedup por UMP (manzana_key): un reporte por bloque. Ante duplicados, se
+  #    conserva el más completo (mayor nº de intentos; desempate por fecha reciente).
+  keys <- vapply(recs, function(r) as.character(r$manzana_key %||% ""), character(1))
+  intentos_v <- vapply(recs, function(r) num(r$intentos), numeric(1))
+  dates_v <- vapply(recs, function(r) as.character(r$date %||% ""), character(1))
+  ord <- order(intentos_v, dates_v, decreasing = TRUE)
+  seen <- new.env(parent = emptyenv()); keep <- integer(0)
+  for (i in ord) {
+    k <- keys[[i]]
+    if (nzchar(k)) {
+      if (exists(k, envir = seen, inherits = FALSE)) next
+      assign(k, TRUE, envir = seen)
+    }
+    keep <- c(keep, i)
+  }
+  recs <- recs[sort(keep)]
+  outcome_defs <- .monitoreo_territorial_occurrence_outcomes()
+  by_outcome <- lapply(outcome_defs, function(o) {
+    total <- sum(vapply(recs, function(r) num(r[[o$name]]), numeric(1)), na.rm = TRUE)
+    list(label = as.character(o$label %||% o$name %||% ""), total = total)
+  })
+  by_outcome <- Filter(function(o) nzchar(o$label) && o$total > 0, by_outcome)
+  by_outcome <- by_outcome[order(-vapply(by_outcome, function(o) o$total, numeric(1)))]
+  total_intentos <- sum(vapply(recs, function(r) num(r$intentos), numeric(1)), na.rm = TRUE)
+  no_efectivas <- sum(vapply(recs, function(r) num(r$no_efectivas), numeric(1)), na.rm = TRUE)
+  efectivas <- sum(vapply(recs, function(r) num(r$efectivas), numeric(1)), na.rm = TRUE)
+  if (total_intentos <= 0) total_intentos <- no_efectivas + efectivas
+  if (total_intentos <= 0) return(NULL)
+  day_env <- new.env(parent = emptyenv())
+  for (r in recs) {
+    d <- as.character(r$date %||% "")
+    if (!nzchar(d)) next
+    cur <- if (exists(d, envir = day_env, inherits = FALSE)) get(d, envir = day_env) else c(intentos = 0, efectivas = 0, no_efectivas = 0)
+    cur[["intentos"]] <- cur[["intentos"]] + num(r$intentos)
+    cur[["efectivas"]] <- cur[["efectivas"]] + num(r$efectivas)
+    cur[["no_efectivas"]] <- cur[["no_efectivas"]] + num(r$no_efectivas)
+    assign(d, cur, envir = day_env)
+  }
+  day_keys <- sort(ls(day_env))
+  by_day <- lapply(day_keys, function(d) {
+    v <- get(d, envir = day_env)
+    list(date = d, intentos = v[["intentos"]], efectivas = v[["efectivas"]], no_efectivas = v[["no_efectivas"]])
+  })
+  list(
+    total_intentos = total_intentos,
+    no_efectivas = no_efectivas,
+    efectivas = efectivas,
+    dias = length(day_keys),
+    zonas = length(recs),
+    by_outcome = by_outcome,
+    by_day = by_day
+  )
+}
+
 monitoreo_territorial_advance_report_pdf <- function(model, output_file, include_targets = FALSE, title = NULL) {
   if (is.null(output_file) || !nzchar(.monitoreo_scalar(output_file, ""))) {
     stop("Falta ruta de salida para el PDF territorial.", call. = FALSE)
@@ -21155,6 +21344,22 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
 
   report_title <- title %||% "Avance territorial de campo"
   generated_label <- pretty_stamp(model$synced_at %||% model$generated_at %||% "")
+  # Fechas de campo: primer y último día con recojo (desde avance_diario), solo
+  # fecha, en formato corto y elegante. Se derivan más abajo cuando diario_df existe.
+  field_day_label <- function(x) {
+    parsed <- suppressWarnings(as.Date(as.character(x)))
+    months <- c("ene.", "feb.", "mar.", "abr.", "may.", "jun.", "jul.", "ago.", "set.", "oct.", "nov.", "dic.")
+    if (!length(parsed) || is.na(parsed[[1]])) return("")
+    sprintf("%d %s %d", as.integer(format(parsed[[1]], "%d")), months[[as.integer(format(parsed[[1]], "%m"))]], as.integer(format(parsed[[1]], "%Y")))
+  }
+  corte_year <- {
+    parsed <- suppressWarnings(.monitoreo_parse_time_vec(model$synced_at %||% model$generated_at %||% ""))
+    if (length(parsed) && !is.na(parsed[[1]])) format(parsed[[1]], "%Y") else format(Sys.Date(), "%Y")
+  }
+  # diario_df ya está ordenado más arriba; deriva la ventana de campo (solo fecha).
+  field_start_label <- if (nrow(diario_df)) field_day_label(diario_df$Fecha[[1]]) else ""
+  field_end_label <- if (nrow(diario_df)) field_day_label(diario_df$Fecha[[nrow(diario_df)]]) else ""
+  field_days_count <- as.integer(nrow(diario_df))
   pulso_logo_path <- function() {
     candidates <- c(
       system.file("hojas_ruta", "assets", "logo_pulso.png", package = "prosecnurapp"),
@@ -21360,12 +21565,44 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
     title_x <- 0.048 + logo_w + 0.018
     txt("Documento de avance", title_x, 0.966, size = 11.8, col = navy, face = "bold")
     txt(ellipsize(report_title, 72), title_x, 0.941, size = 6.8, col = muted, face = "bold")
-    draw_chip(0.685, 0.958, "Recojo territorial", fill = blue_soft, col = blue_border, text_col = navy, w = 0.128)
-    draw_chip(0.822, 0.958, paste("Corte", generated_label), fill = green_soft, col = green_border, text_col = green_dark, w = 0.138)
-    txt(section, 0.050, 0.884, size = 7.0, col = pulso_blue, face = "bold")
+    # Ventana de trabajo de campo: inicio (azul) → fin (verde), solo fecha.
+    if (nzchar(field_start_label) || nzchar(field_end_label)) {
+      draw_field_window_chip(0.665, 0.958, field_start_label, field_end_label)
+    }
     line(0.050, 0.060, 0.950, 0.060, col = blue_border, lwd = 0.6)
-    txt("Fuente: información de campo", 0.050, 0.034, size = 5.9, col = faint, face = "bold")
+    txt(paste0("PULSO PUCP · ", corte_year), 0.050, 0.034, size = 5.9, col = faint, face = "bold")
     txt(paste("Página", page_no), 0.950, 0.034, size = 5.9, col = faint, just = c("right", "center"))
+  }
+  # Chip de ventana de campo: etiqueta CAMPO + inicio → fin + duración, con el
+  # espacio bien distribuido (rótulos arriba, fechas abajo, píldora de días).
+  draw_field_window_chip <- function(x, y, start_label, end_label) {
+    w <- 0.285; h <- 0.044; top <- y + h / 2
+    rr(x, y - h / 2, w, h, fill = "#FFFFFF", col = blue_border, lwd = 0.9, r = 0.012)
+    rect(x, y - h / 2, 0.006, h, navy, col = NA)
+    txt("VENTANA DE CAMPO", x + 0.018, top - 0.010, size = 5.0, col = muted, face = "bold", just = c("left", "center"))
+    # Píldora de duración a la derecha.
+    days_txt <- if (is.finite(field_days_count) && field_days_count > 0) paste(fmt(field_days_count), "días") else ""
+    pill_w <- 0.066
+    if (nzchar(days_txt)) {
+      rr(x + w - pill_w - 0.012, y - 0.010, pill_w, 0.020, fill = blue_soft, col = blue_border, lwd = 0.6, r = 0.010)
+      txt(days_txt, x + w - pill_w / 2 - 0.012, y, size = 6.2, col = navy, face = "bold", just = c("center", "center"))
+    }
+    by <- y - h / 2 + 0.013
+    sx <- x + 0.018
+    if (nzchar(start_label)) {
+      txt(start_label, sx, by, size = 6.8, col = navy, face = "bold", just = c("left", "center"))
+      sx <- sx + max(0.062, 0.008 + nchar(start_label, type = "width") * 0.0052)
+    }
+    # Flecha dibujada (la fuente PDF no trae el glifo →).
+    ax <- sx + 0.004
+    line(ax, by, ax + 0.018, by, col = faint, lwd = 1.2)
+    grid::grid.polygon(x = grid::unit(c(ax + 0.018, ax + 0.013, ax + 0.013), "npc"),
+                       y = grid::unit(c(by, by + 0.0035, by - 0.0035), "npc"),
+                       gp = grid::gpar(fill = faint, col = NA))
+    sx <- ax + 0.028
+    if (nzchar(end_label)) {
+      txt(end_label, sx, by, size = 6.8, col = green_dark, face = "bold", just = c("left", "center"))
+    }
   }
   metric_card <- function(x, y, w, h, label, value, hint = "", tone = "neutral") {
     tones <- list(
@@ -21864,35 +22101,29 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
     # Escala el tamaño al ancho para no chocar con el anillo (p. ej. "1,283 / 1,200").
     main_nchar <- nchar(main_metric, type = "width")
     main_size <- if (main_nchar > 11L) 13.5 else if (main_nchar > 8L) 18.0 else 24.0
-    txt(main_metric, x + pad, y + h - 0.108, size = main_size, col = ink, face = "bold", just = c("left", "top"))
-    txt("encuestas logradas de la cuota", x + pad + 0.002, y + h - 0.176, size = 6.9, col = muted, face = "bold", just = c("left", "top"))
-    draw_gradient_meter(x + pad, y + h - 0.235, w - pad * 2, 0.017, avance_pct)
+    txt(main_metric, x + pad, y + h - 0.116, size = main_size, col = ink, face = "bold", just = c("left", "top"))
+    draw_gradient_meter(x + pad, y + h - 0.205, w - pad * 2, 0.017, avance_pct)
     tile_gap <- 0.018
     tile_w <- (w - pad * 2 - tile_gap) / 2
     tile_h <- 0.068
-    corte_value <- generated_label
-    corte_value <- gsub(",\\s*", "\n", corte_value, perl = TRUE)
-    # Sin métricas de manejo interno (UMP/manzanas): los tiles restantes leen el
-    # recojo en lenguaje cliente. El corte ya vive en el chip de cabecera, así que
-    # solo aparece como tile de relleno cuando falta el ritmo diario.
+    # Sin métricas de manejo interno (UMP/manzanas): los tiles leen el recojo en
+    # lenguaje cliente. "ZONAS" = zonas de aplicación donde se realizó el recojo.
     tiles <- list(
       list("ENCUESTAS", design_surveys_label(one_num(validas, NA_real_))),
       list("CUOTA", design_surveys_label(one_num(meta_encuestas, NA_real_))),
       list("FALTA", design_surveys_label(one_num(brecha_encuestas, NA_real_))),
-      list("DISTRITOS", fmt(active_districts))
+      list("DISTRITOS", fmt(active_districts)),
+      list("ZONAS", fmt(manzanas_muestrales))
     )
     if (is.finite(promedio_diario) && promedio_diario > 0) {
       tiles[[length(tiles) + 1L]] <- list("PROMEDIO DIARIO", fmt(promedio_diario))
     }
-    if (is.finite(efectividad_pct)) {
-      tiles[[length(tiles) + 1L]] <- list("EFECTIVIDAD", sprintf("%.1f%%", efectividad_pct))
-    }
-    if (length(tiles) < 6L) tiles[[length(tiles) + 1L]] <- list("CORTE", corte_value)
+    if (length(tiles) < 6L) tiles[[length(tiles) + 1L]] <- list("DISTRITOS", fmt(active_districts))
     for (i in seq_along(tiles)) {
       row_i <- floor((i - 1L) / 2)
       col_i <- (i - 1L) %% 2
       tx <- x + pad + col_i * (tile_w + tile_gap)
-      ty <- y + h - 0.324 - row_i * (tile_h + 0.022)
+      ty <- y + h - 0.300 - row_i * (tile_h + 0.022)
       rr(tx, ty, tile_w, tile_h, fill = surface_alt, col = blue_border, lwd = 0.8, r = 0.010)
       txt(tiles[[i]][[1]], tx + 0.010, ty + tile_h - 0.018, size = 5.6, col = muted, face = "bold", just = c("left", "top"))
       tile_value <- as.character(tiles[[i]][[2]])
@@ -22216,8 +22447,7 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
     color <- district_tone(pct)
     rr(x, y, w, h, fill = "#FFFFFF", col = blue_border, lwd = 1.0, r = 0.014)
     draw_district_silhouette(x + 0.018, y + 0.023, 0.100, h - 0.046, label_pretty, ubigeo, color)
-    draw_chip(x + 0.135, y + h - 0.045, ubigeo %||% "S/U", fill = blue_soft, col = blue_border, text_col = navy, w = 0.060)
-    txt(toupper(label_pretty), x + 0.135, y + h - 0.077, size = 12.0, col = ink, face = "bold", just = c("left", "top"))
+    txt(toupper(label_pretty), x + 0.135, y + h - 0.050, size = 15.0, col = ink, face = "bold", just = c("left", "top"))
     chip_y <- y + 0.030
     # Cuota de cara al cliente: cumplimiento del distrito medido en encuestas.
     # Sin métricas de manejo interno (UMP/manzanas) en el documento cliente.
@@ -22258,8 +22488,7 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
     color <- district_tone(pct)
     rr(x, y, w, h, fill = "#FFFFFF", col = blue_border, lwd = 1.0, r = 0.014)
     draw_district_silhouette(x + 0.014, y + 0.022, 0.082, h - 0.044, label_pretty, ubigeo, color)
-    draw_chip(x + 0.112, y + h - 0.036, ubigeo %||% "S/U", fill = blue_soft, col = blue_border, text_col = navy, w = 0.055)
-    txt(toupper(ellipsize(label_pretty, 26)), x + 0.112, y + h - 0.066, size = 9.2, col = ink, face = "bold", just = c("left", "top"))
+    txt(toupper(ellipsize(label_pretty, 24)), x + 0.112, y + h - 0.040, size = 11.5, col = ink, face = "bold", just = c("left", "top"))
     # Cliente: cumplimiento de cuota (encuestas). Manzanas/UMP = contexto secundario.
     progress_label <- if (is.finite(target_surveys) && target_surveys > 0) {
       paste(design_surveys_label(observed_surveys), "de", fmt(target_surveys), "encuestas de la cuota")
@@ -22285,7 +22514,6 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
     rr(x, y, w, h, fill = "#FFFFFF", col = border, lwd = 1.0, r = 0.016)
     rect(x + 0.020, y + h - 0.038, 0.007, 0.020, pulso_blue, col = NA)
     txt("CUMPLIMIENTO DE LA CUOTA POR DISTRITO", x + 0.036, y + h - 0.022, size = 8.0, col = green_dark, face = "bold", just = c("left", "top"))
-    draw_chip(x + w - 0.095, y + h - 0.030, paste(fmt(active_districts), "con avance"), fill = green_soft, col = green_border, text_col = green_dark, w = 0.080)
     rows <- rows[seq_len(min(nrow(rows), 6L)), , drop = FALSE]
     if (!nrow(rows)) {
       txt("Sin avance por distrito para este corte.", x + w / 2, y + h / 2, size = 8, col = muted, just = c("center", "center"))
@@ -22777,8 +23005,35 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
       txt(gsub(" ", "\n", day_label(df$Fecha[[i]]), fixed = TRUE), xs[[i]], cy - 0.038, size = 5.2, col = muted, just = c("center", "center"), lineheight = 0.88)
     }
     line(cx, cy, cx + cw, cy, col = blue_border, lwd = 0.8)
-    txt("Barras: efectivas por día", x + 0.024, y + 0.028, size = 5.8, col = green_dark, face = "bold")
-    txt("Línea: acumulado del recojo", x + 0.220, y + 0.028, size = 5.8, col = navy, face = "bold")
+    # Leyenda elegante: swatch de barra + ícono de línea con punto.
+    ly <- y + 0.030
+    rr(x + 0.024, ly - 0.007, 0.020, 0.014, fill = green, col = NA, lwd = 0, r = 0.003)
+    txt("Efectivas por día", x + 0.052, ly, size = 6.2, col = ink, face = "bold", just = c("left", "center"))
+    lx <- x + 0.190
+    line(lx, ly, lx + 0.030, ly, col = navy, lwd = 2.0)
+    grid::grid.points(x = grid::unit(lx + 0.015, "npc"), y = grid::unit(ly, "npc"), pch = 21,
+                      size = grid::unit(2.0, "mm"), gp = grid::gpar(col = navy, fill = "#ffffff", lwd = 1.0))
+    txt("Acumulado del recojo", lx + 0.040, ly, size = 6.2, col = ink, face = "bold", just = c("left", "center"))
+  }
+  # Agrupa el recojo en semanas de 7 días desde el primer día de campo.
+  rhythm_weeks <- function() {
+    if (!nrow(diario_df)) return(list())
+    dates <- suppressWarnings(as.Date(as.character(diario_df$Fecha)))
+    vals <- num(diario_df$Efectivas)
+    ok <- !is.na(dates)
+    dates <- dates[ok]; vals <- vals[ok]
+    if (!length(dates)) return(list())
+    start <- min(dates)
+    week_idx <- as.integer(floor(as.numeric(dates - start) / 7)) + 1L
+    months <- c("ene.", "feb.", "mar.", "abr.", "may.", "jun.", "jul.", "ago.", "set.", "oct.", "nov.", "dic.")
+    d_short <- function(d) sprintf("%d %s", as.integer(format(d, "%d")), months[[as.integer(format(d, "%m"))]])
+    lapply(sort(unique(week_idx)), function(wk) {
+      mask <- week_idx == wk
+      wk_start <- min(dates[mask]); wk_end <- max(dates[mask])
+      list(idx = wk, total = sum(vals[mask], na.rm = TRUE),
+           range = paste0(as.integer(format(wk_start, "%d")), "–", d_short(wk_end)),
+           dias = sum(mask))
+    })
   }
   draw_rhythm_rail <- function(x, y, w, h) {
     rr(x, y, w, h, fill = "#FFFFFF", col = blue_border, lwd = 1.05, r = 0.016)
@@ -22787,37 +23042,59 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
     values <- num(diario_df$Efectivas)
     n_days <- length(values)
     promedio <- if (n_days > 0) sum(values, na.rm = TRUE) / n_days else NA_real_
-    best_idx <- if (n_days > 0) which.max(values) else integer(0)
-    last7 <- if (n_days > 0) sum(utils::tail(values, 7L), na.rm = TRUE) else NA_real_
-    txt(if (is.finite(promedio)) fmt(promedio) else "S/D", x + pad, y + h - 0.106, size = 26, col = ink, face = "bold", just = c("left", "top"))
-    txt("encuestas por día en promedio", x + pad + 0.002, y + h - 0.172, size = 6.9, col = muted, face = "bold", just = c("left", "top"))
+    txt(if (is.finite(promedio)) fmt(promedio) else "S/D", x + pad, y + h - 0.104, size = 25, col = ink, face = "bold", just = c("left", "top"))
+    txt("encuestas por día en promedio", x + pad + 0.002, y + h - 0.166, size = 6.7, col = muted, face = "bold", just = c("left", "top"))
+    # Dos tiles contextuales (días de campo + total logrado).
     tile_gap <- 0.018
     tile_w <- (w - pad * 2 - tile_gap) / 2
-    tile_h <- 0.068
-    tiles <- list(
-      list("DÍAS EN CAMPO", fmt(n_days)),
-      list("MEJOR DÍA", if (length(best_idx)) paste0(fmt(values[[best_idx]]), "\n", day_label(diario_df$Fecha[[best_idx]])) else "S/D"),
-      list("ÚLTIMOS 7 DÍAS", if (is.finite(last7)) fmt(last7) else "S/D"),
-      list("EFECTIVIDAD", if (is.finite(efectividad_pct)) sprintf("%.1f%%", efectividad_pct) else "S/D"),
-      list("PRIMER DÍA", if (n_days > 0) day_label(diario_df$Fecha[[1]]) else "S/D"),
-      list("ÚLTIMO REGISTRO", if (n_days > 0) day_label(diario_df$Fecha[[n_days]]) else "S/D")
-    )
+    tile_h <- 0.066
+    tiles <- list(list("DÍAS EN CAMPO", fmt(n_days)), list("TOTAL LOGRADO", fmt(validas)))
+    ty <- y + h - 0.256
     for (i in seq_along(tiles)) {
-      row_i <- floor((i - 1L) / 2)
-      col_i <- (i - 1L) %% 2
-      tx <- x + pad + col_i * (tile_w + tile_gap)
-      ty <- y + h - 0.260 - row_i * (tile_h + 0.022)
+      tx <- x + pad + (i - 1L) * (tile_w + tile_gap)
       rr(tx, ty, tile_w, tile_h, fill = surface_alt, col = blue_border, lwd = 0.8, r = 0.010)
-      txt(tiles[[i]][[1]], tx + 0.010, ty + tile_h - 0.018, size = 5.6, col = muted, face = "bold", just = c("left", "top"))
-      tile_value <- as.character(tiles[[i]][[2]])
-      value_size <- if (grepl("\n", tile_value, fixed = TRUE)) 8.2 else if (nchar(tile_value, type = "width") > 8L) 9.8 else 12.2
-      txt(tile_value, tx + 0.010, ty + 0.015, size = value_size, col = ink, face = "bold", just = c("left", "bottom"), lineheight = 0.90)
+      txt(tiles[[i]][[1]], tx + 0.010, ty + tile_h - 0.017, size = 5.5, col = muted, face = "bold", just = c("left", "top"))
+      txt(as.character(tiles[[i]][[2]]), tx + 0.010, ty + 0.015, size = 12.0, col = ink, face = "bold", just = c("left", "bottom"))
     }
-    note_y <- y + 0.118
-    line(x + pad, note_y + 0.030, x + w - pad, note_y + 0.030, col = blue_border, lwd = 0.8)
-    note <- "La efectividad compara las encuestas efectivas contra el total de registros levantados en campo."
-    note <- paste(strwrap(note, width = max(30L, floor(w * 118))), collapse = "\n")
-    txt(note, x + pad, y + 0.036, size = 6.0, col = muted, face = "bold", just = c("left", "bottom"), lineheight = 1.22)
+    # --- Avance por semana: barras independientes, la semana pico resaltada -----
+    weeks <- rhythm_weeks()
+    wk_top <- ty - 0.022
+    txt("AVANCE POR SEMANA", x + pad, wk_top, size = 6.6, col = navy, face = "bold", just = c("left", "top"))
+    if (length(weeks)) {
+      peak <- which.max(vapply(weeks, function(k) k$total, numeric(1)))
+      max_total <- max(vapply(weeks, function(k) k$total, numeric(1)), 1)
+      bar_x <- x + pad
+      bar_w_full <- w - pad * 2
+      row_top <- wk_top - 0.030
+      row_bottom <- y + 0.150
+      row_step <- (row_top - row_bottom) / max(1, length(weeks))
+      for (i in seq_along(weeks)) {
+        wk <- weeks[[i]]
+        is_peak <- i == peak
+        ry <- row_top - (i - 1L) * row_step
+        color <- if (is_peak) navy else teal
+        lab <- paste0("Sem ", wk$idx)
+        txt(lab, bar_x, ry, size = if (is_peak) 7.0 else 6.4, col = if (is_peak) navy else ink, face = "bold", just = c("left", "top"))
+        txt(wk$range, bar_x + 0.052, ry, size = 5.4, col = muted, face = "bold", just = c("left", "top"))
+        txt(fmt(wk$total), x + w - pad, ry, size = if (is_peak) 7.4 else 6.6, col = color, face = "bold", just = c("right", "top"))
+        bh <- max(0.006, (bar_w_full) * wk$total / max_total)
+        rr(bar_x, ry - 0.026, bh, if (is_peak) 0.015 else 0.012, fill = color, col = NA, lwd = 0, r = 0.004)
+        if (is_peak) txt("semana más productiva", bar_x, ry - 0.040, size = 4.9, col = green_dark, face = "bold", just = c("left", "top"))
+      }
+    }
+    # --- Ventana de campo: línea de tiempo elegante inicio → fin ----------------
+    tl_y <- y + 0.078
+    line(x + pad, tl_y + 0.052, x + w - pad, tl_y + 0.052, col = blue_border, lwd = 0.8)
+    txt("VENTANA DE CAMPO", x + pad, tl_y + 0.040, size = 6.2, col = muted, face = "bold", just = c("left", "top"))
+    tlx0 <- x + pad + 0.008; tlx1 <- x + w - pad - 0.008; tly <- tl_y - 0.004
+    line(tlx0, tly, tlx1, tly, col = blue_border, lwd = 1.4)
+    grid::grid.circle(grid::unit(tlx0, "npc"), grid::unit(tly, "npc"), r = grid::unit(0.006, "snpc"), gp = grid::gpar(fill = navy, col = "#ffffff", lwd = 1.0))
+    grid::grid.circle(grid::unit(tlx1, "npc"), grid::unit(tly, "npc"), r = grid::unit(0.006, "snpc"), gp = grid::gpar(fill = green_dark, col = "#ffffff", lwd = 1.0))
+    txt("INICIO", tlx0, tly + 0.020, size = 5.0, col = muted, face = "bold", just = c("left", "center"))
+    txt(field_start_label, tlx0, tly - 0.020, size = 6.4, col = navy, face = "bold", just = c("left", "center"))
+    txt("CIERRE", tlx1, tly + 0.020, size = 5.0, col = muted, face = "bold", just = c("right", "center"))
+    txt(field_end_label, tlx1, tly - 0.020, size = 6.4, col = green_dark, face = "bold", just = c("right", "center"))
+    if (n_days > 0) txt(paste(fmt(n_days), "días"), (tlx0 + tlx1) / 2, tly + 0.020, size = 5.2, col = faint, face = "bold", just = c("center", "center"))
   }
 
   # ==== Página "Muestra": composición por sexo y edad vs cuotas del diseño ====
@@ -22866,7 +23143,6 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
     rr(x, y, w, h, fill = "#FFFFFF", col = blue_border, lwd = 1.05, r = 0.016)
     pad <- 0.026
     txt("COMPOSICIÓN POR SEXO", x + pad, y + h - 0.038, size = 7.4, col = green_dark, face = "bold", just = c("left", "top"))
-    txt("Encuestas efectivas frente a la cuota del diseño", x + pad, y + h - 0.066, size = 9.4, col = ink, face = "bold", just = c("left", "top"))
     half_w <- (w - pad * 2) / 2
     mid_x <- x + pad + half_w
     line(mid_x, y + 0.120, mid_x, y + h - 0.115, col = grid_line, lwd = 0.8)
@@ -22900,14 +23176,13 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
     rr(x, y, w, h, fill = "#FFFFFF", col = blue_border, lwd = 1.05, r = 0.016)
     pad <- 0.026
     txt("CUOTAS POR GRUPO DE EDAD", x + pad, y + h - 0.038, size = 7.4, col = green_dark, face = "bold", just = c("left", "top"))
-    txt("Logrado por grupo frente a la meta (marcador)", x + pad, y + h - 0.066, size = 9.4, col = ink, face = "bold", just = c("left", "top"))
     rows <- Filter(function(item) is.finite(item$pair$obs), demo_edades)
     if (!length(rows)) {
       txt("Sin cuotas de edad para este corte.", x + w / 2, y + h / 2, size = 8, col = muted, just = c("center", "center"))
       return(invisible(NULL))
     }
-    top <- y + h - 0.155
-    row_step <- min(0.130, (top - (y + 0.105)) / max(1, length(rows) - 1))
+    top <- y + h - 0.120
+    row_step <- min(0.140, (top - (y + 0.100)) / max(1, length(rows) - 1))
     label_w <- 0.118
     value_w <- 0.088
     bar_x <- x + pad + label_w
@@ -22927,7 +23202,8 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
       if (nzchar(pct_meta)) txt(pct_meta, x + w - pad, ry - 0.012, size = 5.5, col = muted, face = "bold", just = c("right", "center"))
     }
     line(x + pad, y + 0.058, x + w - pad, y + 0.058, col = grid_line, lwd = 0.8)
-    txt("El marcador vertical indica la meta del grupo según el diseño muestral.", x + pad, y + 0.034, size = 5.9, col = muted, face = "bold", just = c("left", "center"))
+    line(x + pad, y + 0.030, x + pad, y + 0.042, col = ink, lwd = 1.1)
+    txt("Meta del diseño muestral", x + pad + 0.012, y + 0.036, size = 5.9, col = muted, face = "bold", just = c("left", "center"))
   }
 
   # ==== Página "Perfil demográfico": resultados por sexo y edad ================
@@ -23024,8 +23300,6 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
     }
     axis_y <- bottom - bar_h / 2 - 0.024
     line(x + pad, axis_y, x + w - pad, axis_y, col = grid_line, lwd = 0.8)
-    txt(paste("El porcentaje es la participación del grupo en las", fmt(total_all), "encuestas con sexo y edad registrados."),
-        x + pad, axis_y - 0.026, size = 5.8, col = muted, face = "bold", just = c("left", "center"))
   }
   draw_district_profile_panel <- function(x, y, w, h) {
     rr(x, y, w, h, fill = "#FFFFFF", col = blue_border, lwd = 1.05, r = 0.016)
@@ -23090,7 +23364,115 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
       }
       if (i < length(rows)) line(x + pad, ry - row_step + 0.020, x + w - pad, ry - row_step + 0.020, col = grid_line, lwd = 0.5)
     }
-    txt("Barra superior: sexo. Barra inferior: grupos de edad, sobre las encuestas con dato registrado.", x + pad, y + 0.030, size = 5.8, col = muted, face = "bold", just = c("left", "center"))
+  }
+
+  # ==== Página "Ocurrencias": esfuerzo de campo y motivos de no efectividad =====
+  occ <- model$occurrences %||% NULL
+  occ_outcomes <- if (is.list(occ)) (occ$by_outcome %||% list()) else list()
+  occ_ready <- is.list(occ) && length(occ_outcomes) > 0 && one_num(occ$total_intentos) > 0
+  occ_outcome_palette <- c("#002457", "#1F5A8A", "#0E7490", "#0F766E", "#3F7CAC", "#5f6b7a", "#8792a2")
+  draw_occ_kpis <- function(x, y, w, h) {
+    # "Visitas por zona" es intensidad de esfuerzo derivada de la misma fuente de
+    # ocurrencias; evita el choque de conteos de días con la ventana de campo del
+    # header (que se calcula desde las encuestas efectivas, otra fuente).
+    visitas_zona <- if (one_num(occ$zonas) > 0) one_num(occ$total_intentos) / one_num(occ$zonas) else NA_real_
+    ef_general <- if (one_num(occ$total_intentos) > 0) 100 * one_num(occ$efectivas) / one_num(occ$total_intentos) else NA_real_
+    items <- list(
+      list("VISITAS DE CAMPO", fmt(occ$total_intentos), pulso_blue),
+      list("ZONAS TRABAJADAS", fmt(occ$zonas), teal),
+      list("VISITAS POR ZONA", if (is.finite(visitas_zona)) fmt(visitas_zona) else "S/D", blue_gray),
+      list("EFECTIVIDAD", if (is.finite(ef_general)) sprintf("%.1f%%", ef_general) else "S/D", green_dark)
+    )
+    gap <- 0.014
+    tile_w <- (w - gap * (length(items) - 1L)) / length(items)
+    for (i in seq_along(items)) {
+      tx <- x + (i - 1L) * (tile_w + gap)
+      rr(tx, y, tile_w, h, fill = "#FFFFFF", col = blue_border, lwd = 1.0, r = 0.012)
+      rect(tx, y, 0.0048, h, items[[i]][[3]], col = NA)
+      txt(items[[i]][[1]], tx + 0.014, y + h - 0.020, size = 5.8, col = muted, face = "bold", just = c("left", "top"))
+      txt(items[[i]][[2]], tx + 0.014, y + 0.020, size = 15.0, col = ink, face = "bold", just = c("left", "bottom"))
+    }
+  }
+  draw_occ_outcomes <- function(x, y, w, h) {
+    rr(x, y, w, h, fill = "#FFFFFF", col = blue_border, lwd = 1.05, r = 0.016)
+    pad <- 0.026
+    txt("MOTIVOS DE VISITAS NO EFECTIVAS", x + pad, y + h - 0.038, size = 7.4, col = green_dark, face = "bold", just = c("left", "top"))
+    txt("Resultado de las visitas que no derivaron en una encuesta efectiva", x + pad, y + h - 0.066, size = 9.4, col = ink, face = "bold", just = c("left", "top"))
+    totals <- vapply(occ_outcomes, function(o) one_num(o$total), numeric(1))
+    total_no <- sum(totals, na.rm = TRUE)
+    if (total_no <= 0) {
+      txt("Sin motivos de no efectividad para este corte.", x + w / 2, y + h / 2, size = 8, col = muted, just = c("center", "center"))
+      return(invisible(NULL))
+    }
+    rows <- occ_outcomes[order(-totals)]
+    rows <- rows[seq_len(min(length(rows), 8L))]
+    max_val <- max(totals, 1, na.rm = TRUE)
+    top <- y + h - 0.115
+    bottom <- y + 0.070
+    row_step <- (top - bottom) / max(1, length(rows))
+    bar_x <- x + pad
+    bar_max_w <- w - pad * 2 - 0.150
+    for (i in seq_along(rows)) {
+      o <- rows[[i]]
+      val <- one_num(o$total)
+      ry <- top - (i - 0.5) * row_step
+      color <- occ_outcome_palette[[((i - 1L) %% length(occ_outcome_palette)) + 1L]]
+      txt(ellipsize(o$label, 46), bar_x, ry + 0.016, size = 6.6, col = ink, face = "bold", just = c("left", "center"))
+      bw <- max(0.004, bar_max_w * val / max_val)
+      rr(bar_x, ry - 0.014, bw, 0.017, fill = color, col = NA, lwd = 0, r = 0.004)
+      txt(fmt(val), bar_x + bw + 0.008, ry - 0.006, size = 6.8, col = ink, face = "bold", just = c("left", "center"))
+      txt(sprintf("%.1f%%", 100 * val / total_no), x + w - pad, ry - 0.006, size = 6.4, col = muted, face = "bold", just = c("right", "center"))
+    }
+    line(x + pad, y + 0.046, x + w - pad, y + 0.046, col = grid_line, lwd = 0.8)
+    txt(paste(fmt(total_no), "visitas no derivaron en una encuesta efectiva ·", fmt(occ$zonas), "zonas trabajadas"),
+        x + pad, y + 0.026, size = 5.9, col = muted, face = "bold", just = c("left", "center"))
+  }
+  draw_occ_effort <- function(x, y, w, h) {
+    rr(x, y, w, h, fill = "#FFFFFF", col = blue_border, lwd = 1.05, r = 0.016)
+    pad <- 0.024
+    txt("ESFUERZO DIARIO DE CAMPO", x + pad, y + h - 0.038, size = 7.4, col = green_dark, face = "bold", just = c("left", "top"))
+    days <- occ$by_day %||% list()
+    days <- Filter(function(d) one_num(d$intentos) > 0, days)
+    if (!length(days)) {
+      txt("Sin esfuerzo diario para este corte.", x + w / 2, y + h / 2, size = 8, col = muted, just = c("center", "center"))
+      return(invisible(NULL))
+    }
+    intentos <- vapply(days, function(d) one_num(d$intentos), numeric(1))
+    efectivas <- vapply(days, function(d) one_num(d$efectivas), numeric(1))
+    n <- length(days)
+    cx <- x + pad + 0.006
+    cw <- w - pad * 2 - 0.012
+    cy <- y + 0.120
+    ch <- h - 0.230
+    max_bar <- max(intentos, 1, na.rm = TRUE)
+    ticks <- pretty(c(0, max_bar), n = 3)
+    ticks <- ticks[ticks >= 0 & ticks <= max_bar * 1.02]
+    for (tk in ticks) {
+      ty <- cy + ch * tk / max_bar
+      line(cx, ty, cx + cw, ty, col = grid_line, lwd = 0.5)
+      txt(fmt(tk), cx - 0.006, ty, size = 5.2, col = faint, just = c("right", "center"))
+    }
+    xs <- if (n == 1L) cx + cw / 2 else cx + 0.010 + (cw - 0.020) * (seq_len(n) - 1) / (n - 1)
+    bar_w <- min(0.020, cw / max(8, n) * 0.60)
+    for (i in seq_len(n)) {
+      bh <- ch * intentos[[i]] / max_bar
+      if (bh > 0) rr(xs[[i]] - bar_w / 2, cy, bar_w, max(0.005, bh), fill = "#C7D7E8", col = NA, lwd = 0, r = 0.003)
+      eh <- ch * efectivas[[i]] / max_bar
+      if (eh > 0) rr(xs[[i]] - bar_w / 2, cy, bar_w, max(0.004, eh), fill = green, col = NA, lwd = 0, r = 0.003)
+    }
+    # Días discretos de ocurrencia: se etiqueta cada barra (sin submuestrear, que
+    # dejaba huecos arbitrarios). Solo si son muchos (>22) se alterna 1 de cada 2.
+    keep <- if (n <= 22L) seq_len(n) else seq(1L, n, by = 2L)
+    lab_size <- if (n <= 16L) 4.9 else 4.4
+    for (i in keep) {
+      txt(gsub(" ", "\n", day_label(days[[i]]$date), fixed = TRUE), xs[[i]], cy - 0.032, size = lab_size, col = muted, just = c("center", "center"), lineheight = 0.86)
+    }
+    line(cx, cy, cx + cw, cy, col = blue_border, lwd = 0.8)
+    ly <- y + 0.040
+    rr(x + pad, ly - 0.007, 0.018, 0.013, fill = "#C7D7E8", col = NA, lwd = 0, r = 0.003)
+    txt("Visitas totales", x + pad + 0.026, ly, size = 5.9, col = ink, face = "bold", just = c("left", "center"))
+    rr(x + pad + 0.150, ly - 0.007, 0.018, 0.013, fill = green, col = NA, lwd = 0, r = 0.003)
+    txt("Encuestas efectivas", x + pad + 0.176, ly, size = 5.9, col = ink, face = "bold", just = c("left", "center"))
   }
 
   draw_page("Resumen")
@@ -23107,7 +23489,7 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
   if (isTRUE(rhythm_ready)) {
     draw_page("Ritmo del recojo")
     txt("Ritmo diario del recojo", 0.050, 0.842, size = 20, col = ink, face = "bold")
-    txt("Encuestas efectivas registradas por día, acumulado del recojo y efectividad del trabajo de campo.", 0.050, 0.810, size = 8.0, col = muted, face = "bold")
+    txt("Encuestas efectivas registradas por día y avance acumulado frente a la cuota territorial.", 0.050, 0.810, size = 8.0, col = muted, face = "bold")
     draw_rhythm_chart(0.050, 0.135, 0.640, 0.650)
     draw_rhythm_rail(0.720, 0.135, 0.230, 0.650)
   }
@@ -23116,9 +23498,8 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
     draw_page("Muestra")
     txt("Perfil de la muestra lograda", 0.050, 0.842, size = 20, col = ink, face = "bold")
     txt("Composición por sexo y grupo de edad de las encuestas efectivas, contrastada con las cuotas del diseño muestral.", 0.050, 0.810, size = 8.0, col = muted, face = "bold")
-    draw_sexo_panel(0.050, 0.135, 0.410, 0.650)
-    draw_edad_panel(0.488, 0.135, 0.462, 0.650)
-    txt("Observado: encuestas efectivas al corte. Meta: cuotas de sexo y edad definidas en el diseño muestral.", 0.050, 0.108, size = 6.0, col = faint, face = "bold")
+    draw_sexo_panel(0.050, 0.120, 0.410, 0.665)
+    draw_edad_panel(0.488, 0.120, 0.462, 0.665)
   }
 
   if (isTRUE(results_ready)) {
@@ -23127,6 +23508,15 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
     txt("Distribución de las encuestas efectivas por sexo y grupo de edad, en el total del corte y en cada distrito.", 0.050, 0.810, size = 8.0, col = muted, face = "bold")
     draw_pyramid_panel(0.050, 0.135, 0.420, 0.650)
     draw_district_profile_panel(0.498, 0.135, 0.452, 0.650)
+  }
+
+  if (isTRUE(occ_ready)) {
+    draw_page("Ocurrencias")
+    txt("Ocurrencias del trabajo de campo", 0.050, 0.842, size = 20, col = ink, face = "bold")
+    txt("Esfuerzo del recojo en terreno y motivos por los que una visita no derivó en una encuesta efectiva.", 0.050, 0.810, size = 8.0, col = muted, face = "bold")
+    draw_occ_kpis(0.050, 0.688, 0.900, 0.092)
+    draw_occ_outcomes(0.050, 0.135, 0.545, 0.520)
+    draw_occ_effort(0.615, 0.135, 0.335, 0.520)
   }
   close_pdf()
   invisible(output_file)
