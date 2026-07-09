@@ -106,6 +106,7 @@ export { default as GanttChart } from "lucide-react/dist/esm/icons/chart-no-axes
 export { default as Gauge } from "lucide-react/dist/esm/icons/gauge.mjs";
 export { default as GitBranch } from "lucide-react/dist/esm/icons/git-branch.mjs";
 export { default as GitCompare } from "lucide-react/dist/esm/icons/git-compare.mjs";
+export { default as GitCompareArrows } from "lucide-react/dist/esm/icons/git-compare-arrows.mjs";
 export { default as GitMerge } from "lucide-react/dist/esm/icons/git-merge.mjs";
 export { default as Globe2 } from "lucide-react/dist/esm/icons/earth.mjs";
 export { default as GraduationCap } from "lucide-react/dist/esm/icons/graduation-cap.mjs";

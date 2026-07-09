@@ -25,7 +25,6 @@ type Actions = {
   setComponentes: (comps: CalcMuestraComponente[]) => void;
   setCalculando: (v: boolean) => void;
   setReporteMeta: (m: { disponible: boolean; jobId?: string | null }) => void;
-  reset: () => void;
   markClean: () => void;
 };
 
@@ -79,6 +78,5 @@ export const useCalcMuestraStore = create<State & Actions>((set) => ({
       reporteDisponible: disponible,
       reporteJobId: jobId ?? null,
     })),
-  reset: () => set(() => ({ ...initial })),
   markClean: () => set(() => ({ dirty: false })),
 }));
