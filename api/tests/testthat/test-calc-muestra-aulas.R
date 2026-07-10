@@ -661,8 +661,11 @@ test_that("demo universitaria 2025 carga marco, seleccion y reemplazos sin PII",
 # (ver api/tools/gen_golden_aulas.R). Cualquier cambio de aula elegida, orden o
 # score tras el refactor de performance O(n^2) rompe estos tests. Fixtures y
 # captura viven en helper-golden-aulas.R (compartidos con el generador).
+# Requieren el paquete `sampling` (Suggests): sin el, el motor cae al fallback
+# sample(prob = ) y la seleccion entera cambia con la misma semilla.
 
 test_that("golden: seleccion de cadenas es identica al snapshot (seed 515)", {
+  skip_if_not_installed("sampling")
   gp <- golden_path("cadenas")
   skip_if_not(file.exists(gp), "Falta golden cadenas.rds; corre api/tools/gen_golden_aulas.R")
   f <- golden_fixture_cadenas()
@@ -672,6 +675,7 @@ test_that("golden: seleccion de cadenas es identica al snapshot (seed 515)", {
 })
 
 test_that("golden: simulacion de reemplazos es identica al snapshot (seed 202)", {
+  skip_if_not_installed("sampling")
   gp <- golden_path("simulacion")
   skip_if_not(file.exists(gp), "Falta golden simulacion.rds; corre api/tools/gen_golden_aulas.R")
   f <- golden_fixture_simulacion()
@@ -682,6 +686,7 @@ test_that("golden: simulacion de reemplazos es identica al snapshot (seed 202)",
 })
 
 test_that("golden: seleccion a escala con empates es identica al snapshot (150 aulas)", {
+  skip_if_not_installed("sampling")
   gp <- golden_path("escala")
   skip_if_not(file.exists(gp), "Falta golden escala.rds; corre api/tools/gen_golden_aulas.R")
   f <- golden_fixture_escala()
