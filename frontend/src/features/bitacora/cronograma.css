@@ -1,5 +1,8 @@
+/* .bitacora-shell incluido: el calendario usa plan-button fuera de
+   .plan-shell y sin la var el primario queda transparente (invisible). */
 .plan-frame,
-.plan-shell {
+.plan-shell,
+.bitacora-shell {
   --plan-accent: var(--module-accent);
   --plan-accent-soft: var(--module-accent-soft);
   --plan-accent-border: var(--module-accent-border);

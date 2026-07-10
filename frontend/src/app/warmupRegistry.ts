@@ -502,7 +502,7 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
   {
     id: "plan_trabajo",
     label: "Cronograma del proyecto",
-    load: () => import("../features/planTrabajo/PlanTrabajoPage"),
+    load: () => import("../features/bitacora/BitacoraPage"),
   },
   {
     id: "recopiladores",
@@ -544,8 +544,8 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
   },
   {
     id: "diseno_estudio",
-    label: "Diseño del estudio",
-    load: () => import("../features/disenoEstudio/DisenoEstudioPage"),
+    label: "Bitácora",
+    load: () => import("../features/bitacora/BitacoraPage"),
   },
   {
     id: "plotly",

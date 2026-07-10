@@ -1,0 +1,734 @@
+/* La bitácora reutiliza los estilos del cronograma (.plan-*) y del registro
+   (.diseno-*), fusionados desde los módulos originales. */
+@import "./cronograma.css";
+@import "./logbook.css";
+
+/* =====================================================================
+   Shell del módulo Bitácora (tabs: Bitácora · Cronograma · Calendario)
+   ===================================================================== */
+
+.bitacora-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  height: 100%;
+}
+
+/* Fila de comando: tabs (el recorrido interno) + acciones puntuales.
+   Sin franja de identidad — el rail superior ya nombra el módulo. */
+.bitacora-command-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bitacora-icon-button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.bitacora-icon-button:hover {
+  border-color: var(--module-accent-border, var(--pulso-primary-border));
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.bitacora-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface-2);
+  align-self: flex-start;
+}
+
+.bitacora-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 9px;
+  padding: 7px 14px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  font-weight: 640;
+  cursor: pointer;
+  transition: background var(--motion-dur-fast) ease, color var(--motion-dur-fast) ease;
+}
+
+.bitacora-tabs button:hover {
+  color: var(--pulso-text);
+}
+
+.bitacora-tabs button.is-active {
+  background: var(--pulso-surface);
+  color: var(--module-accent, var(--pulso-primary));
+  box-shadow: 0 1px 2px rgba(0, 36, 87, 0.08);
+}
+
+.bitacora-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* El cronograma embebido no dibuja su propio marco de página. */
+.plan-shell--embedded {
+  flex: 1;
+  min-height: 0;
+  gap: 12px;
+}
+
+.plan-empty-actions,
+.plan-inspector-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plan-inspector-actions {
+  justify-content: space-between;
+}
+
+.diseno-timeline-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 32px 16px;
+  color: var(--pulso-text-soft);
+  text-align: center;
+}
+
+.diseno-timeline-empty strong {
+  font-size: 14px;
+  color: var(--pulso-text);
+}
+
+.diseno-timeline-empty span {
+  font-size: 12.5px;
+  max-width: 34ch;
+}
+
+/* =====================================================================
+   Calendario profesional (Mes + Semana) — chrome ámbar de Bitácora,
+   colores categóricos por tipo de evento, estado con señales no-cromáticas.
+   ===================================================================== */
+
+.bcal {
+  --bcal-gutter: 58px;
+  --cal-activity: #3b5bdb;
+  --cal-milestone: #b45309;
+  --cal-deliverable: #7c3aed;
+  --cal-fieldwork: #0f766e;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.bcal .is-activity { --cat: var(--cal-activity); }
+.bcal .is-milestone { --cat: var(--cal-milestone); }
+.bcal .is-deliverable { --cat: var(--cal-deliverable); }
+.bcal .is-fieldwork { --cat: var(--cal-fieldwork); }
+
+/* --- Toolbar de comandos --------------------------------------------- */
+.bcal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bcal-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bcal-title {
+  margin-left: 4px;
+  font-size: 16px;
+  font-weight: 770;
+  letter-spacing: -0.01em;
+  text-transform: capitalize;
+}
+
+.bcal-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bcal-segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+}
+
+.bcal-segmented button {
+  border: 0;
+  border-radius: 7px;
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-weight: 660;
+  cursor: pointer;
+  transition: background var(--motion-dur-fast) ease, color var(--motion-dur-fast) ease;
+}
+
+.bcal-segmented button.is-active {
+  background: var(--pulso-surface);
+  color: var(--module-accent, var(--pulso-primary));
+  box-shadow: 0 1px 2px rgba(0, 36, 87, 0.1);
+}
+
+/* --- Leyenda de categorías ------------------------------------------- */
+.bcal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 2px 2px 0;
+}
+
+.bcal-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: 620;
+}
+
+.bcal-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: var(--cat, var(--pulso-primary));
+}
+
+/* --- Vista Mes ------------------------------------------------------- */
+.bcal-grid {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--pulso-border);
+  border-radius: 13px;
+  overflow: hidden;
+  background: var(--pulso-surface);
+}
+
+.bcal-weekhead {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: color-mix(in srgb, var(--module-accent-soft, var(--pulso-surface-2)) 40%, var(--pulso-surface));
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.bcal-weekhead span {
+  padding: 7px 10px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 720;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.bcal-week {
+  position: relative;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.bcal-week:first-child { border-top: 0; }
+
+.bcal-daygrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  height: 100%;
+}
+
+.bcal-day {
+  position: relative;
+  min-height: 100%;
+  border-left: 1px solid var(--pulso-border);
+  padding: 4px 6px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--motion-dur-fast) ease;
+}
+
+.bcal-day:first-child { border-left: 0; }
+.bcal-day:hover { background: color-mix(in srgb, var(--module-accent-soft, var(--pulso-primary-soft)) 60%, transparent); }
+
+.bcal-daynum {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: 640;
+}
+
+.bcal-day.is-out .bcal-daynum { color: var(--pulso-text-faint); opacity: 0.55; }
+
+.bcal-day.is-today .bcal-daynum {
+  background: var(--module-accent, var(--pulso-primary));
+  color: #fff;
+  font-weight: 760;
+}
+
+.bcal-more {
+  position: absolute;
+  bottom: 3px;
+  right: 6px;
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.bcal-events {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* --- Evento (chip mensual / all-day) --------------------------------- */
+.bcal-event {
+  position: absolute;
+  height: 21px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid color-mix(in srgb, var(--cat, var(--pulso-primary)) 34%, transparent);
+  border-left: 3px solid var(--cat, var(--pulso-primary));
+  border-radius: 6px;
+  padding: 0 8px;
+  background: color-mix(in srgb, var(--cat, var(--pulso-primary)) 15%, var(--pulso-surface));
+  color: color-mix(in srgb, var(--cat, var(--pulso-primary)) 74%, var(--pulso-text));
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: grab;
+  pointer-events: auto;
+  overflow: hidden;
+  touch-action: none;
+  transition: box-shadow var(--motion-dur-fast) ease, transform var(--motion-dur-press) ease;
+}
+
+.bcal-event:hover { box-shadow: 0 3px 10px color-mix(in srgb, var(--cat, #002457) 22%, transparent); }
+.bcal-event:active { cursor: grabbing; }
+.bcal-event.is-dragging { opacity: 0.4; }
+
+/* flex 0 0 auto: sin esto la hora se comprime y queda pegada al título. */
+.bcal-event-time { flex: 0 0 auto; font-weight: 760; opacity: 0.85; }
+
+.bcal-event-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bcal-event-diamond {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  background: var(--cat, currentColor);
+  transform: rotate(45deg);
+  border-radius: 1px;
+}
+
+/* Señales de estado NO cromáticas (el color ya codifica la categoría). */
+.bcal-event.status-done,
+.bcal-timed.status-done,
+.bcal-allday-chip.status-done {
+  opacity: 0.58;
+  text-decoration: line-through;
+}
+.bcal-event.status-risk,
+.bcal-timed.status-risk,
+.bcal-allday-chip.status-risk { border-style: dashed; }
+.bcal-event.status-blocked,
+.bcal-timed.status-blocked,
+.bcal-allday-chip.status-blocked { border-style: dashed; opacity: 0.72; }
+
+/* --- Vista Semana (time grid) ---------------------------------------- */
+.bcal-week-view {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--pulso-border);
+  border-radius: 13px;
+  overflow: hidden;
+  background: var(--pulso-surface);
+}
+
+.bcal-week-head {
+  display: grid;
+  grid-template-columns: var(--bcal-gutter) repeat(7, 1fr);
+  background: color-mix(in srgb, var(--module-accent-soft, var(--pulso-surface-2)) 40%, var(--pulso-surface));
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.bcal-week-gutter { border-right: 1px solid var(--pulso-border); }
+
+.bcal-week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 4px;
+  border-left: 1px solid var(--pulso-border);
+}
+
+.bcal-week-dow {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bcal-week-date {
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 740;
+}
+
+.bcal-week-day.is-today .bcal-week-date {
+  background: var(--module-accent, var(--pulso-primary));
+  color: #fff;
+}
+
+.bcal-allday-row {
+  display: grid;
+  grid-template-columns: var(--bcal-gutter) repeat(7, 1fr);
+  border-bottom: 1px solid var(--pulso-border);
+  min-height: 30px;
+}
+
+.bcal-allday-label {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: 640;
+}
+
+.bcal-allday-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px;
+  border-left: 1px solid var(--pulso-border);
+}
+
+.bcal-allday-chip {
+  border: 1px solid color-mix(in srgb, var(--cat, var(--pulso-primary)) 34%, transparent);
+  border-left: 3px solid var(--cat, var(--pulso-primary));
+  border-radius: 5px;
+  padding: 2px 7px;
+  background: color-mix(in srgb, var(--cat, var(--pulso-primary)) 15%, var(--pulso-surface));
+  color: color-mix(in srgb, var(--cat, var(--pulso-primary)) 74%, var(--pulso-text));
+  font-size: 11px;
+  font-weight: 640;
+  text-align: left;
+  cursor: grab;
+  touch-action: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bcal-allday-chip.is-dragging { opacity: 0.4; }
+
+.bcal-timegrid {
+  display: grid;
+  grid-template-columns: var(--bcal-gutter) repeat(7, 1fr);
+}
+
+.bcal-hours { border-right: 1px solid var(--pulso-border); }
+
+.bcal-hour {
+  position: relative;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.bcal-hour:first-child { border-top: 0; }
+
+.bcal-hour span {
+  position: absolute;
+  top: -8px;
+  right: 8px;
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: 600;
+  background: var(--pulso-surface);
+  padding: 0 2px;
+}
+
+.bcal-daycol {
+  position: relative;
+  border-left: 1px solid var(--pulso-border);
+  cursor: pointer;
+}
+
+.bcal-daycol.is-today { background: color-mix(in srgb, var(--module-accent-soft, var(--pulso-primary-soft)) 22%, transparent); }
+
+.bcal-slot { border-top: 1px solid color-mix(in srgb, var(--pulso-border) 55%, transparent); }
+.bcal-slot:first-child { border-top: 0; }
+
+.bcal-timed {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid color-mix(in srgb, var(--cat, var(--pulso-primary)) 40%, transparent);
+  border-left: 3px solid var(--cat, var(--pulso-primary));
+  border-radius: 7px;
+  padding: 3px 7px;
+  margin-left: 2px;
+  background: color-mix(in srgb, var(--cat, var(--pulso-primary)) 16%, var(--pulso-surface));
+  color: color-mix(in srgb, var(--cat, var(--pulso-primary)) 76%, var(--pulso-text));
+  text-align: left;
+  cursor: grab;
+  overflow: hidden;
+  touch-action: none;
+  transition: box-shadow var(--motion-dur-fast) ease;
+}
+
+.bcal-timed:hover { box-shadow: 0 4px 14px color-mix(in srgb, var(--cat, #002457) 26%, transparent); z-index: 2; }
+.bcal-timed:active { cursor: grabbing; }
+.bcal-timed.is-dragging { opacity: 0.4; }
+
+.bcal-timed-time { font-size: 10.5px; font-weight: 760; opacity: 0.9; }
+
+.bcal-timed-label {
+  font-size: 11.5px;
+  font-weight: 640;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Estado vacío ---------------------------------------------------- */
+.bcal-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: 14px;
+  background: var(--pulso-surface-2);
+}
+
+.bcal-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 15px;
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.bcal-empty strong { font-size: 15px; font-weight: 760; }
+.bcal-empty p { margin: 0; max-width: 44ch; color: var(--pulso-text-soft); font-size: 13px; line-height: 1.5; }
+
+.bcal-empty-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+/* --- Ghost de arrastre ----------------------------------------------- */
+.bcal-drag-ghost {
+  position: fixed;
+  z-index: 80;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 260px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  padding: 6px 11px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 680;
+  box-shadow: 0 12px 30px rgba(0, 20, 50, 0.28);
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bcal-dot {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 3px;
+  background: var(--cat, var(--pulso-primary));
+}
+
+/* Bandeja de actividades sin fecha */
+.bcal-tray {
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--pulso-surface-2);
+}
+
+.bcal-tray-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.bcal-tray-head span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  font-size: 11px;
+}
+
+.bcal-tray-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bcal-tray-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid var(--pulso-border);
+  border-left: 3px solid var(--pulso-text-faint);
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: var(--pulso-surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.bcal-tray-item span {
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: 680;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bcal-tray-item strong {
+  font-size: 12.5px;
+  font-weight: 640;
+}
+
+.bcal-tray-item.is-done { border-left-color: var(--pulso-success-fg); }
+.bcal-tray-item.is-active { border-left-color: var(--pulso-info-fg); }
+.bcal-tray-item.is-risk { border-left-color: var(--pulso-warn-fg); }
+.bcal-tray-item.is-blocked { border-left-color: var(--pulso-danger-fg); }
+
+/* Modal de creación / edición */
+.bcal-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(8, 20, 40, 0.42);
+  backdrop-filter: blur(2px);
+}
+
+.bcal-modal {
+  width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 16px;
+  padding: 18px;
+  background: var(--pulso-surface);
+  box-shadow: 0 24px 60px rgba(0, 20, 50, 0.28);
+}
+
+.bcal-modal-head strong {
+  font-size: 15px;
+  font-weight: 760;
+}
+
+.bcal-modal label {
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 640;
+  color: var(--pulso-text-soft);
+}
+
+.bcal-modal input,
+.bcal-modal select {
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 9px;
+  padding: 8px 11px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+.bcal-modal input:focus-visible,
+.bcal-modal select:focus-visible {
+  outline: none;
+  border-color: var(--module-accent-border, var(--pulso-primary-border));
+  box-shadow: 0 0 0 3px var(--module-accent-soft, var(--pulso-primary-focus));
+}
+
+.bcal-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bcal-modal-spacer {
+  flex: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bcal-day {
+    transition-duration: 1ms !important;
+  }
+}

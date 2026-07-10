@@ -1,7 +1,7 @@
 // =============================================================================
 // RecentProjectCard — card horizontal de proyecto reciente (compartida)
 // =============================================================================
-// La usan BootGate (chooser de arranque) y StartModal (modal de inicio).
+// La usa BootGate (chooser de arranque).
 //
 // RESTRICCIÓN CRÍTICA DE BUNDLE: BootGate vive en el chunk de ENTRADA
 // (main.tsx) y se ejecuta ANTES de cargar la suite. Este componente solo

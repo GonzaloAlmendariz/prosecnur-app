@@ -9,7 +9,6 @@ import {
   IconRoutes,
   IconSample,
   IconStudyDesign,
-  IconWorkPlan,
 } from "./icons";
 
 export type ProsecnurModuleSlug =
@@ -94,39 +93,21 @@ export const MODULE_TONES: Record<ProsecnurModuleSlug, ProsecnurModuleTone> = {
 export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   {
     slug: "diseno-estudio",
-    title: "Diseño del estudio",
-    shortLabel: "Diseño",
-    tagline: "Bitácora viva y protocolo metodológico",
+    title: "Bitácora",
+    shortLabel: "Bitácora",
+    tagline: "Bitácora, cronograma y calendario del proyecto",
     blurb:
-      "Expediente profesional del proyecto: lee el avance de todos los módulos, consolida evidencia metodológica, muestra riesgos de completitud y permite registrar notas de bitácora durante el trabajo.",
+      "El cuaderno de trabajo del proyecto: registra decisiones, riesgos, bloqueos y avances, arma el cronograma con actividades y entregables, y organiza las fechas en un calendario mensual.",
     features: [
       "Bitácora editable por módulo, decisión, riesgo o avance",
-      "Lectura viva de Carga, Validación, Analítica, Campo y Monitoreo",
-      "Semáforo profesional de fuentes, evidencias y próximos pasos",
-      "Resumen metodológico para ficha técnica y entregables",
-      "Biblioteca metodológica integrada como referencia secundaria",
+      "Cronograma con Gantt, hitos y ventanas sincronizadas",
+      "Calendario mensual con actividades y entregables",
+      "Importación de cronogramas Excel con grilla diaria",
+      "Exportación XLSX profesional del plan",
     ],
     icon: IconStudyDesign,
     tone: MODULE_TONES["diseno-estudio"],
-    to: "/diseno-estudio",
-  },
-  {
-    slug: "plan-trabajo",
-    title: "Cronograma del proyecto",
-    shortLabel: "Cronograma",
-    tagline: "Actividades, hitos y ventanas sincronizadas",
-    blurb:
-      "Importa cronogramas operativos, normaliza actividades, responsables, productos e hitos, y compara lo planificado con la evidencia real de Monitoreo, Reportes y otros módulos.",
-    features: [
-      "Importación de cronogramas Excel con grilla diaria",
-      "Vista Gantt y edición de actividades clave",
-      "Hitos de entrega y ventanas esperadas por módulo",
-      "Exportación XLSX profesional",
-      "Contrato síncrono con Monitoreo y Reportes",
-    ],
-    icon: IconWorkPlan,
-    tone: MODULE_TONES["plan-trabajo"],
-    to: "/plan-trabajo",
+    to: "/bitacora",
   },
   {
     slug: "calc-muestra",
@@ -255,8 +236,8 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   },
 ];
 
-export const PROSECNUR_PRIMARY_MODULES: ProsecnurModuleMeta[] =
-  PROSECNUR_MODULES.filter((module) => module.slug !== "plan-trabajo");
+// Cronograma se fusionó dentro de Bitácora; ya no hay módulos secundarios.
+export const PROSECNUR_PRIMARY_MODULES: ProsecnurModuleMeta[] = PROSECNUR_MODULES;
 
 export const PROSECNUR_ACTIVE_MODULES: ActiveProsecnurModuleMeta[] =
   PROSECNUR_MODULES.filter(hasModuleRoute);

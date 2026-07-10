@@ -1,11 +1,12 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { ChevronDown, Database } from "lucide-react";
+import { ChevronDown, Database, Plus } from "lucide-react";
 import * as Select from "@radix-ui/react-select";
 import { useSession } from "../lib/SessionContext";
 import { apiEstudioActiveBaseSet, apiEstudioGet, type EstudioBase, type EstudioPayload } from "../api/client";
 import ProjectIndicator from "../features/project/ProjectIndicator";
 import { useOptionalProjectShell } from "../features/project/ProjectShell";
+import { useProjectModules } from "../features/project/ProjectModulesContext";
 import {
   PROSECNUR_PRIMARY_ACTIVE_MODULES,
   moduleChromeVars,
@@ -57,8 +58,7 @@ const VIEWPORT_PATHS = new Set([
   "/editor-xlsform",
   "/tablero",
   "/calc-muestra",
-  "/plan-trabajo",
-  "/diseno-estudio",
+  "/bitacora",
   "/recopiladores",
   "/hojas-ruta",
   "/monitoreo",
@@ -199,8 +199,12 @@ function SessionErrorChip() {
 
 function activeModuleRoute(pathname: string): string {
   if (isProcesamientoRoute(pathname)) return "/procesamiento";
-  if (pathname === "/plan-trabajo" || pathname.startsWith("/plan-trabajo/")) {
-    return "/diseno-estudio";
+  // Cronograma y Diseño del estudio se fusionaron en Bitácora.
+  if (
+    pathname === "/plan-trabajo" || pathname.startsWith("/plan-trabajo/") ||
+    pathname === "/diseno-estudio" || pathname.startsWith("/diseno-estudio/")
+  ) {
+    return "/bitacora";
   }
   const match = MODULE_SWITCHER_ITEMS
     .filter((item) => item.to !== "/")
@@ -210,8 +214,15 @@ function activeModuleRoute(pathname: string): string {
 
 function ModuleSwitcher() {
   const location = useLocation();
+  const { addedSlugs } = useProjectModules();
   const active = activeModuleRoute(location.pathname);
   const activeItem = MODULE_SWITCHER_ITEMS.find((item) => item.to === active) ?? null;
+
+  // El rail solo muestra los módulos agregados al proyecto. Además incluimos el
+  // módulo activo aunque no esté agregado, para no perder el "dónde estás".
+  const visibleItems = MODULE_SWITCHER_ITEMS.filter(
+    (item) => addedSlugs.includes(item.slug) || item.to === active,
+  );
 
   return (
     <nav
@@ -220,7 +231,7 @@ function ModuleSwitcher() {
       title={activeItem ? `Módulo actual: ${activeItem.title}` : "Cambiar módulo"}
     >
       <div className="pulso-module-dock" role="list">
-        {MODULE_SWITCHER_ITEMS.map((item) => {
+        {visibleItems.map((item) => {
           const Icon = item.icon;
           const isCurrent = item.to === active;
           return (
@@ -244,6 +255,17 @@ function ModuleSwitcher() {
             </NavLink>
           );
         })}
+        <NavLink
+          to="/?agregar=1"
+          className="pulso-module-tile pulso-module-tile-add"
+          aria-label="Agregar módulo"
+          title="Agregar módulo"
+        >
+          <span className="pulso-module-tile-icon" aria-hidden="true">
+            <Plus size={16} strokeWidth={2.4} />
+          </span>
+          <span className="pulso-module-tile-label">Agregar</span>
+        </NavLink>
       </div>
     </nav>
   );

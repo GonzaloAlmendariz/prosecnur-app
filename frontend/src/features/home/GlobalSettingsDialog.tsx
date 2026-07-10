@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   AlertTriangle,
   Check,
@@ -6,10 +7,12 @@ import {
   ClipboardList,
   ExternalLink,
   FileSpreadsheet,
+  Info,
   KeyRound,
   Loader2,
   MonitorCog,
   RefreshCw,
+  ScrollText,
   ServerCog,
   Settings2,
   ShieldCheck,
@@ -649,57 +652,115 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
     }
   }
 
-  return (
+  const sections: {
+    id: SettingsTab;
+    label: string;
+    hint: string;
+    Icon: LucideIcon;
+    meta: string;
+    title: string;
+    description: string;
+  }[] = [
+    {
+      id: "appearance",
+      label: "Apariencia",
+      hint: "Densidad y railes",
+      Icon: MonitorCog,
+      meta: layoutMeta.label,
+      title: "Apariencia",
+      description:
+        "Elige el perfil de escritorio que guía densidad, railes y toolbars. El tamaño de la ventana no cambia; Prosecnur ajusta su gramática interna.",
+    },
+    {
+      id: "connections",
+      label: "Conexiones",
+      hint: "Credenciales globales",
+      Icon: KeyRound,
+      meta: `${configuredCount}/${PROVIDERS.length + 1}`,
+      title: "Conexiones",
+      description:
+        "Credenciales de las herramientas externas que Prosecnur usa fuera de cada proyecto. El archivo .pulso guarda fuentes y snapshots; las claves se quedan en este equipo.",
+    },
+    {
+      id: "notes",
+      label: "Novedades",
+      hint: "Notas de versión",
+      Icon: ScrollText,
+      meta: latestNote ? `v${latestNote.version}` : "",
+      title: "Notas de versión",
+      description: "Qué cambió en cada corte de Prosecnur, del más reciente al más antiguo.",
+    },
+    {
+      id: "credits",
+      label: "Créditos",
+      hint: "Origen del proyecto",
+      Icon: Info,
+      meta: "",
+      title: "Créditos",
+      description: "Para quién y cómo se construyó Prosecnur.",
+    },
+  ];
+  const activeSection = sections.find((section) => section.id === activeTab) ?? sections[0];
+
+  // Portal a body: dentro de .pulso-route-surface cualquier ancestro con
+  // transform recortaría el backdrop fixed al área de la ruta.
+  return createPortal(
     <>
       <div className="home-settings-backdrop" onClick={onClose} aria-hidden="true" />
-      <section className="home-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="home-settings-title">
-        <header className="home-settings-head">
-          <span className="home-settings-icon" aria-hidden="true">
-            <Settings2 size={18} strokeWidth={2.1} />
-          </span>
-          <div>
-            <span className="home-settings-eyebrow">Prosecnur</span>
-            <h3 id="home-settings-title">Configuración</h3>
+      <section className="home-settings-dialog is-split" role="dialog" aria-modal="true" aria-labelledby="home-settings-title">
+        <aside className="home-settings-rail">
+          <div className="home-settings-rail-brand">
+            <span className="home-settings-icon" aria-hidden="true">
+              <Settings2 size={17} strokeWidth={2.1} />
+            </span>
+            <div>
+              <span className="home-settings-eyebrow">Prosecnur</span>
+              <h3 id="home-settings-title">Configuración</h3>
+            </div>
           </div>
-          <button
-            ref={closeRef}
-            type="button"
-            className="home-settings-close"
-            onClick={onClose}
-            aria-label="Cerrar ajustes"
-          >
-            <X size={16} />
-          </button>
-        </header>
+          <nav className="home-settings-nav" role="tablist" aria-label="Secciones de ajustes">
+            {sections.map((section) => (
+              <button
+                key={section.id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === section.id}
+                className={activeTab === section.id ? "is-active" : ""}
+                onClick={() => setActiveTab(section.id)}
+              >
+                <span className="home-settings-nav-icon" aria-hidden="true">
+                  <section.Icon size={15} strokeWidth={2} />
+                </span>
+                <span className="home-settings-nav-text">
+                  <strong>{section.label}</strong>
+                  <span>{section.hint}</span>
+                </span>
+                {section.meta && <span className="home-settings-nav-meta">{section.meta}</span>}
+              </button>
+            ))}
+          </nav>
+        </aside>
 
-        <nav className="home-settings-tabs" role="tablist" aria-label="Secciones de ajustes">
-          <button type="button" className={activeTab === "appearance" ? "is-active" : ""} onClick={() => setActiveTab("appearance")}>
-            Apariencia
-            <span>{layoutMeta.size}</span>
-          </button>
-          <button type="button" className={activeTab === "connections" ? "is-active" : ""} onClick={() => setActiveTab("connections")}>
-            Conexiones
-            <span>{configuredCount}/{PROVIDERS.length + 1}</span>
-          </button>
-          <button type="button" className={activeTab === "notes" ? "is-active" : ""} onClick={() => setActiveTab("notes")}>
-            Notas
-            {latestNote && <span>v{latestNote.version}</span>}
-          </button>
-          <button type="button" className={activeTab === "credits" ? "is-active" : ""} onClick={() => setActiveTab("credits")}>
-            Créditos
-          </button>
-        </nav>
+        <div className="home-settings-main">
+          <header className="home-settings-main-head">
+            <div className="home-settings-main-copy">
+              <h4>{activeSection.title}</h4>
+              <p>{activeSection.description}</p>
+            </div>
+            <button
+              ref={closeRef}
+              type="button"
+              className="home-settings-close"
+              onClick={onClose}
+              aria-label="Cerrar ajustes"
+            >
+              <X size={16} />
+            </button>
+          </header>
 
         <div className="home-settings-body">
           {activeTab === "appearance" && (
             <div className="home-settings-panel" role="tabpanel">
-              <div className="home-settings-panel-copy">
-                <MonitorCog size={15} aria-hidden="true" />
-                <p>
-                  <strong>Disposición de pantalla.</strong>
-                  <span> Elige el perfil de escritorio que debe guiar densidad, railes y toolbars. El tamaño de la ventana no cambia; Prosecnur ajusta la gramática interna.</span>
-                </p>
-              </div>
               <div className="home-layout-preset-list" role="radiogroup" aria-label="Disposición de pantalla">
                 {LAYOUT_PRESET_OPTIONS.map((option) => (
                   <button
@@ -730,13 +791,6 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
 
           {activeTab === "connections" && (
             <div className="home-settings-panel" role="tabpanel">
-              <div className="home-settings-panel-copy">
-                <KeyRound size={15} aria-hidden="true" />
-                <p>
-                  <strong>Credenciales globales.</strong>
-                  <span> Conecta las herramientas externas que Prosecnur usa fuera de cada proyecto. El archivo .pulso guarda fuentes, mapeos y snapshots; las claves y autorizaciones se quedan en este equipo.</span>
-                </p>
-              </div>
               {loadError && (
                 <div className="home-settings-alert is-error">
                   <AlertTriangle size={14} />
@@ -844,8 +898,10 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
             </div>
           )}
         </div>
+        </div>
       </section>
-    </>
+    </>,
+    document.body,
   );
 }
 

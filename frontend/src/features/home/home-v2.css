@@ -127,3 +127,1287 @@
     transition-duration: 1ms !important;
   }
 }
+
+/* =====================================================================
+   Home mission-control (proyecto en curso)
+   ===================================================================== */
+
+.home-suite {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: clip;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-right: 4px;
+}
+
+/* Sin marco exterior: la identidad del proyecto vive como capa de contexto y
+   las superficies reales son la banda de métricas y las tarjetas. */
+.home-mission {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 2px 6px;
+}
+
+.home-mission-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 2px;
+}
+
+.home-mission-kicker {
+  margin: 0 0 2px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 760;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.home-mission-title {
+  margin: 0;
+  font-size: clamp(20px, 2vw, 25px);
+  font-weight: 780;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+}
+
+.home-mission-client {
+  margin: 4px 0 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-weight: 560;
+}
+
+.home-mission-meta-dot {
+  margin: 0 7px;
+  color: var(--pulso-text-faint);
+}
+
+/* --- Métricas headline: banda única con divisores hairline ------------ */
+.home-mission-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--pulso-border);
+  box-shadow: 0 1px 2px rgba(0, 36, 87, 0.04);
+}
+
+.home-mc-stat-tile {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 9px;
+  padding: 12px 16px;
+  background: var(--pulso-surface);
+}
+
+.home-mc-stat-tile > svg {
+  grid-row: 1 / span 2;
+  color: var(--pulso-text-soft);
+}
+
+.home-mc-stat-tile-value {
+  font-size: 18px;
+  font-weight: 780;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.home-mc-stat-tile-label {
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: 660;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* --- Grid de tarjetas por módulo (adaptativo al número) -------------- */
+.home-mission-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.home-mission-grid[data-density="spacious"] {
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+}
+.home-mission-grid[data-density="balanced"] {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+.home-mission-grid[data-density="dense"] {
+  grid-template-columns: repeat(auto-fill, minmax(288px, 1fr));
+}
+
+@keyframes home-mc-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+.home-mc-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 222px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 18px;
+  padding: 18px 20px;
+  background: var(--pulso-surface);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 36, 87, 0.05);
+  transition:
+    transform var(--motion-dur-base) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) ease;
+  animation: home-mc-in var(--motion-dur-base) var(--motion-ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+
+.home-mission-grid[data-density="spacious"] .home-mc-card { min-height: 236px; }
+
+.home-mc-card:active { transform: scale(0.995); }
+
+.home-mc-card:focus-visible {
+  outline: none;
+  border-color: var(--home-mod-accent, var(--pulso-primary-border));
+  box-shadow: 0 0 0 3px var(--home-mod-accent-soft, var(--pulso-primary-focus));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-mc-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--home-mod-accent-border, var(--pulso-primary-border));
+    box-shadow: 0 16px 34px color-mix(in srgb, var(--home-mod-accent, #002457) 18%, transparent);
+  }
+  .home-mc-card:hover .home-mc-cta-arrow { transform: translateX(2px); }
+  .home-mc-card:hover .home-mc-cta {
+    background: color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 15%, var(--pulso-surface));
+  }
+}
+
+/* Firma de color del módulo: hairline de acento en el borde superior. */
+.home-mc-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--home-mod-accent, var(--pulso-primary)),
+    color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 22%, transparent)
+  );
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+/* Marca de agua: el ícono del módulo recortado en la esquina superior der. */
+.home-mc-watermark {
+  position: absolute;
+  top: -26px;
+  right: -22px;
+  width: 138px;
+  height: 138px;
+  color: var(--home-mod-accent, var(--pulso-primary));
+  opacity: 0.07;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.home-mc-head,
+.home-mc-viz,
+.home-mc-foot { position: relative; z-index: 1; }
+
+/* --- Cabecera de la tarjeta ------------------------------------------ */
+.home-mc-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.home-mc-head-id {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.home-mc-badge {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--home-mod-accent-soft, var(--pulso-primary-soft));
+  color: var(--home-mod-accent, var(--pulso-primary));
+}
+
+.home-mc-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.home-mc-head-text strong {
+  font-size: 15px;
+  font-weight: 760;
+  line-height: 1.15;
+}
+
+.home-mc-tagline {
+  color: var(--home-mod-accent, var(--pulso-primary));
+  font-size: 11.5px;
+  font-weight: 660;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-mc-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.home-mc-kebab {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0;
+  background: transparent;
+  color: var(--pulso-text-faint);
+  cursor: pointer;
+  transition: background var(--motion-dur-fast) ease, color var(--motion-dur-fast) ease;
+}
+
+.home-mc-kebab:hover { background: var(--pulso-surface-2); color: var(--pulso-text); }
+.home-mc-kebab:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--pulso-primary-focus); }
+
+/* --- Indicador de dominio por módulo --------------------------------- */
+.home-mc-viz {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+}
+
+.home-mc-viz.is-windows {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* Número grande (stat de dominio) */
+.home-mc-stat.is-hero { flex-direction: row; align-items: baseline; gap: 12px; }
+.home-mc-stat.is-hero > strong { font-size: clamp(32px, 3.4vw, 42px); }
+
+/* Sin dato: el guion hereda el peso del hero y parece una barra; se atenúa. */
+.home-mc-stat.is-hero.is-empty > strong {
+  color: var(--pulso-text-faint);
+  font-weight: 500;
+}
+
+/* Hero de palabra (fase, estado): escala menor que el hero numérico. */
+.home-mc-stat.is-hero.is-text > strong {
+  font-size: clamp(21px, 2vw, 26px);
+  letter-spacing: -0.01em;
+}
+
+/* Chip de calendario — próximo entregable (Bitácora) */
+.home-mc-daychip {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 56px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--home-mod-accent-border, var(--pulso-border));
+  background: var(--pulso-surface);
+}
+
+.home-mc-daychip-month {
+  width: 100%;
+  text-align: center;
+  padding: 3px 0;
+  background: var(--home-mod-accent, var(--pulso-primary));
+  color: #fff;
+  font-size: 10px;
+  font-weight: 760;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.home-mc-daychip-day {
+  padding: 4px 0 6px;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--home-mod-accent, var(--pulso-primary));
+}
+
+.home-mc-daychip.is-overdue { border-color: var(--pulso-danger-border); }
+.home-mc-daychip.is-overdue .home-mc-daychip-month { background: var(--pulso-danger-fg); }
+.home-mc-daychip.is-overdue .home-mc-daychip-day { color: var(--pulso-danger-fg); }
+.home-mc-daychip.is-today .home-mc-daychip-month { background: var(--pulso-warn-fg); }
+.home-mc-daychip.is-today .home-mc-daychip-day { color: var(--pulso-warn-fg); }
+
+.home-mc-date-title {
+  font-size: 13px;
+  font-weight: 640;
+  color: var(--pulso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-mc-countdown { font-size: 11.5px; font-weight: 720; }
+.home-mc-countdown.is-future { color: var(--pulso-text-soft); }
+.home-mc-countdown.is-today { color: var(--pulso-warn-fg); }
+.home-mc-countdown.is-overdue { color: var(--pulso-danger-fg); }
+
+/* Ventanas activas (Dashboard) */
+.home-mc-windows { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.home-mc-window {
+  border: 1px solid var(--home-mod-accent-border, var(--pulso-border));
+  border-radius: 8px;
+  padding: 4px 10px;
+  background: var(--home-mod-accent-soft, var(--pulso-primary-soft));
+  color: var(--home-mod-accent, var(--pulso-primary));
+  font-size: 12px;
+  font-weight: 680;
+}
+
+/* Alerta "revisar" en la cabecera */
+.home-mc-alert {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 21px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: var(--pulso-warn-bg);
+  border: 1px solid var(--pulso-warn-border);
+  color: var(--pulso-warn-fg);
+  font-size: 11px;
+  font-weight: 720;
+  white-space: nowrap;
+}
+
+.home-mc-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.home-mc-stat > strong {
+  font-size: 27px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.home-mc-stat-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+
+.home-mc-stat-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--pulso-text);
+}
+
+.home-mc-stat-sub {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Procesamiento: barra de 5 fases */
+.home-mc-viz.is-phases { flex-direction: column; align-items: stretch; gap: 12px; }
+
+.home-mc-phasebar { display: flex; flex-direction: column; gap: 6px; }
+
+.home-mc-phase-track { display: flex; gap: 4px; }
+
+.home-mc-phase {
+  flex: 1;
+  height: 9px;
+  border-radius: 5px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+}
+
+.home-mc-phase.is-done {
+  background: var(--home-mod-accent, var(--pulso-primary));
+  border-color: var(--home-mod-accent, var(--pulso-primary));
+}
+
+.home-mc-phase.is-next {
+  background: var(--home-mod-accent-soft, var(--pulso-primary-soft));
+  border-color: var(--home-mod-accent-border, var(--pulso-primary-border));
+}
+
+.home-mc-phase-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 2px;
+}
+
+.home-mc-phase-labels span {
+  flex: 1;
+  text-align: center;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--pulso-text-faint);
+}
+
+.home-mc-phase-labels span.is-done {
+  color: var(--home-mod-accent, var(--pulso-primary));
+  font-weight: 740;
+}
+
+.home-mc-viz.is-phases .home-mc-stat {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.home-mc-viz.is-phases .home-mc-stat > strong { font-size: 22px; }
+.home-mc-viz.is-phases .home-mc-stat-meta { flex-direction: row; align-items: baseline; gap: 8px; }
+
+/* --- Pie: facts de dominio + acceso ----------------------------------- */
+.home-mc-foot {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 72%, transparent);
+}
+
+.home-mc-facts {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.home-mc-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.home-mc-fact strong {
+  font-size: 13.5px;
+  font-weight: 760;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.home-mc-fact > span {
+  color: var(--pulso-text-faint);
+  font-size: 9.5px;
+  font-weight: 680;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.home-mc-cta {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 5px 5px 13px;
+  border-radius: 999px;
+  background: var(--home-mod-accent-soft, var(--pulso-primary-soft));
+  color: var(--home-mod-accent, var(--pulso-primary));
+  font-size: 12px;
+  font-weight: 740;
+  transition: background var(--motion-dur-fast) ease;
+}
+
+.home-mc-cta-arrow {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border-radius: 999px;
+  background: var(--home-mod-accent, var(--pulso-primary));
+  color: #fff;
+  transition: transform var(--motion-dur-base) var(--motion-ease-out);
+}
+
+/* --- Tarjeta fantasma para agregar módulo ---------------------------- */
+.home-mc-add-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  /* Baja: si queda sola en una fila del grid no arrastra una franja vacía;
+     compartiendo fila con tarjetas, stretch la iguala. */
+  min-height: 148px;
+  border: 1.5px dashed var(--pulso-border-strong);
+  border-radius: 18px;
+  padding: 18px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) ease, background var(--motion-dur-fast) ease, color var(--motion-dur-fast) ease;
+  animation: home-mc-in var(--motion-dur-base) var(--motion-ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+
+.home-mc-add-card strong { color: var(--pulso-text); font-size: 14px; font-weight: 740; }
+.home-mc-add-card span:last-child { font-size: 12px; max-width: 24ch; }
+
+.home-mc-add-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-mc-add-card:hover {
+    border-color: var(--pulso-primary-border);
+    background: var(--pulso-primary-soft);
+    color: var(--pulso-primary);
+  }
+  .home-mc-add-card:hover .home-mc-add-icon { background: var(--pulso-primary-soft); color: var(--pulso-primary); }
+}
+
+/* --- Diálogo de confirmación (quitar módulo) ------------------------- */
+.home-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 75;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(8, 20, 40, 0.5);
+  backdrop-filter: blur(3px);
+}
+
+.home-confirm {
+  width: min(430px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 16px;
+  padding: 20px;
+  background: var(--pulso-surface);
+  box-shadow: 0 30px 80px rgba(0, 20, 50, 0.32);
+}
+
+.home-confirm strong { font-size: 16px; font-weight: 760; }
+.home-confirm p { margin: 0; color: var(--pulso-text-soft); font-size: 13px; line-height: 1.5; }
+
+.home-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.home-confirm-remove {
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: 999px;
+  padding: 8px 16px;
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  font-size: 13px;
+  font-weight: 720;
+  cursor: pointer;
+}
+
+.home-confirm-remove:hover { background: color-mix(in srgb, var(--pulso-danger-fg) 14%, var(--pulso-surface)); }
+.home-confirm-remove:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--pulso-danger-bg); }
+
+/* --- Próximos pasos (fila compacta entre métricas y tarjetas) ---------- */
+.home-mission-next {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: -4px;
+  padding: 0 2px;
+}
+
+.home-mission-next-label {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 740;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.home-mission-next-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.home-mission-next-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: 620;
+  cursor: pointer;
+  transition:
+    border-color var(--motion-dur-fast) ease,
+    background var(--motion-dur-fast) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-mission-next-item:hover {
+    border-color: var(--pulso-primary-border);
+    background: var(--pulso-primary-soft);
+  }
+}
+
+.home-mission-next-item:focus-visible {
+  outline: none;
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.home-mission-next-item > svg {
+  color: var(--pulso-text-soft);
+}
+
+/* --- Skeleton mientras resuelve el overview -------------------------- */
+.home-mission.is-loading {
+  pointer-events: none;
+}
+
+.home-mc-stat.is-skeleton {
+  height: 56px;
+  border-style: dashed;
+  background: var(--pulso-surface-2);
+}
+
+.home-mc-card.is-skeleton {
+  min-height: 128px;
+  border-style: dashed;
+  background: var(--pulso-surface-2);
+  box-shadow: none;
+}
+
+/* --- Setup: arma tu proyecto (proyecto nuevo/vacío) ------------------ */
+.home-setup {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.home-setup-head {
+  text-align: center;
+  padding: 6px 0 2px;
+}
+
+.home-setup-kicker {
+  margin: 0 0 2px;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: 760;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.home-setup-head h1 {
+  margin: 0;
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.home-setup-sub {
+  margin: 4px auto 0;
+  max-width: 46ch;
+  color: var(--pulso-text-soft);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+/* El carrusel ya no tiene encabezado propio (evita header redundante): stage +
+   strip → grid de 2 filas en vez de 3. */
+.home-cinema {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+/* El carrusel llena el área de setup (proyecto nuevo). */
+.home-setup .home-cinema {
+  flex: 1;
+  min-height: 0;
+}
+
+/* --- Carrusel en modo selector (curaduría de módulos) ------------------ */
+
+/* En el pop-over de curaduría hay alto de sobra: las features del módulo
+   enfocado se muestran SIEMPRE (la base las oculta según densidad/altura). */
+.home-picker-overlay .home-cinema-panel .home-cinema-feature-list {
+  display: grid !important;
+}
+
+.home-cinema-picker-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.home-cinema-added-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  border-radius: 999px;
+  padding: 8px 15px;
+  background: var(--pulso-success-bg);
+  border: 1px solid var(--pulso-success-border);
+  color: var(--pulso-success-fg);
+  font-size: 12.5px;
+  font-weight: 730;
+}
+
+.home-cinema-cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 999px;
+  padding: 8px 15px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-weight: 660;
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) ease, color var(--motion-dur-fast) ease;
+}
+
+.home-cinema-cta-secondary:hover {
+  border-color: var(--pulso-danger-border);
+  color: var(--pulso-danger-fg);
+}
+
+/* Marca de agregado en las tarjetas del deck: check discreto con anillo de
+   superficie; en la tarjeta enfocada se expande a pill "En el proyecto".
+   span + hijo directo (0-2-1): la base `.home-cinema-card > *:not(...)`
+   (0-2-0) fuerza position: relative y empataría con una clase sola. */
+.home-cinema-card > span.home-cinema-card-added {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 999px;
+  background: var(--pulso-success-fg);
+  color: #fff;
+  box-shadow:
+    0 0 0 2px var(--pulso-surface),
+    0 2px 6px rgba(0, 40, 20, 0.2);
+}
+
+.home-cinema-card-added.is-pill {
+  height: 22px;
+  padding: 0 10px 0 8px;
+}
+
+.home-cinema-card-added em {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Check de agregado en el strip: integrado al item, no flotante. */
+.home-cinema-dot-check {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  background: var(--pulso-success-fg);
+  color: #fff;
+}
+
+.home-cinema-dot.is-added {
+  color: var(--pulso-text);
+}
+
+/* --- Pop-over "Módulos del proyecto": deck giratorio a pantalla casi
+   completa (el kebab). Overlay translúcido sobre toda la app; barra de
+   comando arriba y el carrusel cinematográfico en modo picker al centro. */
+.home-picker-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.8vh, 22px);
+  padding: clamp(16px, 3vh, 30px) clamp(20px, 4vw, 60px) clamp(18px, 3vh, 34px);
+  background: color-mix(in srgb, var(--pulso-surface) 86%, transparent);
+  backdrop-filter: blur(16px) saturate(1.05);
+  animation: home-picker-in 200ms var(--motion-ease-out);
+}
+
+@keyframes home-picker-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.home-picker-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.home-picker-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.home-picker-count {
+  flex: 0 0 auto;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.home-picker-done {
+  flex: 0 0 auto;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 999px;
+  padding: 9px 20px;
+  background: var(--pulso-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 720;
+  cursor: pointer;
+}
+
+.home-picker-done:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.home-picker-stage {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+/* La caja llena el stage (marco visible con flechas y strip dentro) y centra su
+   contenido con align-content. Si una ventana muy baja no da, el stage hace
+   scroll (overflow-y arriba) en vez de solapar. */
+.home-picker-stage .home-cinema {
+  width: min(1000px, 100%);
+  height: 100%;
+}
+
+/* =====================================================================
+   Coverflow centrado vertical (solo dentro del pop-over "Módulos del
+   proyecto"). Todo scopeado a `.home-picker-overlay.is-cinema` para no
+   tocar la base compartida (setup) ni pelear con sus ~12 variantes de
+   stage a 2 columnas. La estructura pasa de "deck | panel | strip lejano"
+   a: deck de posters → zona de detalle centrada → strip, agrupados y
+   centrados como un bloque en el lienzo (sin caja vacía).
+   ===================================================================== */
+
+/* El contenido (deck + detalle + strip) se agrupa y centra vertical. */
+.home-picker-overlay.is-cinema .home-cinema {
+  grid-template-rows: auto auto auto;
+  align-content: center;
+  gap: clamp(16px, 2.2vh, 24px);
+  padding: clamp(20px, 3vh, 34px) clamp(24px, 3vw, 44px);
+}
+
+/* Stage: una sola columna, deck (altura acotada) sobre detalle (auto). El deck
+   debe ocupar todo el ancho (sus cartas son position:absolute y no aportan
+   ancho, así que un justify-items:center lo colapsaría). El panel se centra
+   por su propio max-width + margin auto, no por el stage. */
+.home-picker-overlay.is-cinema .home-cinema-stage {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: center;
+  justify-items: stretch;
+  gap: clamp(14px, 2.4vh, 26px);
+}
+
+/* Deck a todo el ancho. A ≥~860px de alto el deck supera 360px y el JS deja el
+   modo "roomy" (íconos grandes, look premium); en ventanas más bajas encoge y
+   cae a "compact" — que igual se ve completo porque la lista de features está
+   blindada abajo. El clamp mantiene todo dentro del marco (sin solapar). */
+.home-picker-overlay.is-cinema .home-cinema-deck {
+  width: 100%;
+  height: clamp(280px, 42vh, 380px);
+  min-height: 0;
+}
+
+/* --- Posters limpios: solo ícono + título. Tagline y blurb viven abajo,
+   en la zona de detalle (sin duplicar contenido). --- */
+.home-picker-overlay.is-cinema .home-cinema-card-tagline,
+.home-picker-overlay.is-cinema .home-cinema-card-blurb {
+  display: none;
+}
+
+/* Vecinos legibles como posters (ícono + título atenuado), no íconos sueltos
+   flotando sobre el blanco. */
+.home-picker-overlay.is-cinema .home-cinema-card:not(.is-focused) {
+  grid-template-rows: auto auto;
+  align-content: center;
+  gap: 13px;
+}
+
+.home-picker-overlay.is-cinema .home-cinema-card:not(.is-focused) .home-cinema-card-title {
+  display: block;
+  width: min(100%, 190px);
+  font-size: 15px;
+  font-weight: 780;
+  line-height: 1.15;
+  color: var(--pulso-text-soft);
+  opacity: 0.92;
+}
+
+/* --- Zona de detalle: tarjeta centrada bajo el deck. NO repite el ícono ni
+   el nombre (el poster de arriba ya los muestra); solo tagline + blurb +
+   features en 2 columnas + CTA. --- */
+.home-picker-overlay.is-cinema .home-cinema-panel {
+  width: min(760px, 100%);
+  height: auto;
+  min-height: 0;
+  margin: 0 auto;
+  padding: clamp(16px, 1.8vw, 24px) clamp(22px, 2.6vw, 34px) clamp(16px, 1.8vw, 22px);
+  gap: 10px;
+  justify-content: flex-start;
+  overflow: visible;
+  animation: none;
+}
+
+.home-picker-overlay.is-cinema .home-cinema-panel-top,
+.home-picker-overlay.is-cinema .home-cinema-panel h3 {
+  display: none;
+}
+
+.home-picker-overlay.is-cinema .home-cinema-panel > * {
+  width: 100%;
+}
+
+.home-picker-overlay.is-cinema .home-cinema-panel-tagline {
+  font-size: 14px;
+}
+
+.home-picker-overlay.is-cinema .home-cinema-panel-blurb {
+  max-width: 66ch;
+  margin-inline: auto;
+  /* Detalle completo: sin recorte con "…" (el poster ya es el resumen visual). */
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+/* Features SIEMPRE visibles en 2 columnas, aunque el JS marque densidad
+   compact (sus reglas las ocultarían). Selector con `.home-cinema-panel` para
+   igualar la especificidad de la regla compact y ganar por orden. */
+.home-picker-overlay.is-cinema .home-cinema-panel .home-cinema-feature-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.home-picker-overlay.is-cinema .home-cinema-picker-actions {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  margin: 12px auto 0;
+}
+
+/* El CTA no debe estirarse a ancho completo (la regla `> *` lo forzaría). */
+.home-picker-overlay.is-cinema .home-cinema-cta {
+  width: fit-content;
+  align-self: center;
+  margin-top: 12px;
+  padding-inline: 22px;
+}
+
+/* =====================================================================
+   Configuración — diálogo dividido (rail de secciones + panel)
+   ===================================================================== */
+
+/* El botón global fuerza nowrap; estos botones-tarjeta llevan párrafos
+   descriptivos que deben envolver. */
+.home-layout-preset,
+.home-mc-add-card {
+  white-space: normal;
+}
+
+.home-settings-dialog.is-split {
+  width: min(1080px, calc(100vw - 32px));
+  height: min(720px, calc(100vh - 32px));
+  max-height: none;
+  grid-template-columns: 264px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  border-radius: 18px;
+}
+
+.home-settings-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  padding: 18px 14px;
+  border-right: 1px solid var(--pulso-border);
+  background: color-mix(in srgb, var(--pulso-surface-2) 62%, transparent);
+}
+
+.home-settings-rail-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 6px;
+}
+
+.home-settings-rail-brand h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 780;
+  color: var(--pulso-primary);
+}
+
+.home-settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.home-settings-nav button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--pulso-text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) ease;
+}
+
+.home-settings-nav button:hover {
+  background: var(--pulso-surface);
+}
+
+.home-settings-nav button.is-active {
+  background: var(--pulso-surface);
+  border-color: var(--pulso-primary-border);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.home-settings-nav button:focus-visible {
+  outline: none;
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.home-settings-nav-icon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  transition: background var(--motion-dur-fast) ease, color var(--motion-dur-fast) ease;
+}
+
+.home-settings-nav button.is-active .home-settings-nav-icon {
+  border-color: var(--pulso-primary-border);
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+}
+
+.home-settings-nav-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.home-settings-nav-text strong {
+  font-size: 12.5px;
+  font-weight: 720;
+  line-height: 1.25;
+}
+
+.home-settings-nav-text > span {
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-settings-nav-meta {
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  padding: 1px 7px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.home-settings-nav button.is-active .home-settings-nav-meta {
+  border-color: var(--pulso-primary-border);
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+}
+
+.home-settings-main {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+}
+
+.home-settings-main-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: linear-gradient(180deg, var(--pulso-surface), color-mix(in srgb, var(--pulso-surface-2) 45%, var(--pulso-surface)));
+}
+
+.home-settings-main-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-settings-main-copy h4 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 780;
+  letter-spacing: -0.01em;
+}
+
+.home-settings-main-copy p {
+  margin: 3px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  line-height: 1.5;
+  max-width: 78ch;
+}
+
+.home-settings-dialog.is-split .home-settings-body {
+  min-height: 0;
+}
+
+@media (max-width: 860px) {
+  .home-settings-dialog.is-split {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .home-settings-rail {
+    flex-direction: row;
+    align-items: center;
+    border-right: none;
+    border-bottom: 1px solid var(--pulso-border);
+    padding: 12px 14px;
+    overflow-x: auto;
+  }
+  .home-settings-nav { flex-direction: row; }
+  .home-settings-nav-text > span { display: none; }
+}
+
+/* ── Accesibilidad / reduced motion ────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .home-mc-card,
+  .home-mc-add-card,
+  .home-picker-overlay {
+    animation: none !important;
+    transition-duration: 1ms !important;
+  }
+}
