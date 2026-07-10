@@ -149,6 +149,13 @@
   flex-direction: column;
   gap: 16px;
   padding: 4px 2px 6px;
+  /* Centro vertical cuando el contenido no llena el alto (proyectos con pocos
+     módulos): el board se siente intencional, no pegado arriba con vacío
+     abajo. Con contenido alto los márgenes colapsan y scrollea desde arriba. */
+  margin-block: auto;
+  width: 100%;
+  max-width: 1180px;
+  align-self: center;
 }
 
 .home-mission-head {
@@ -160,20 +167,20 @@
 }
 
 .home-mission-kicker {
-  margin: 0 0 2px;
-  color: var(--pulso-text-soft);
+  margin: 0 0 3px;
+  color: var(--pulso-text-faint);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: 600;
   letter-spacing: 0.15em;
   text-transform: uppercase;
 }
 
 .home-mission-title {
   margin: 0;
-  font-size: clamp(20px, 2vw, 25px);
-  font-weight: 780;
+  font-size: clamp(21px, 2vw, 26px);
+  font-weight: 640;
   line-height: 1.12;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.022em;
 }
 
 .home-mission-client {
