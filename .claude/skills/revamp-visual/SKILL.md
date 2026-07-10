@@ -28,6 +28,7 @@ Lanza el agente `frontend-react` (o aplica sus reglas inline) con la dirección 
 
 1. `pnpm --dir frontend typecheck` en verde.
 2. Verificación en navegador real: skill `/ver-ui` para llegar a la vista con proyecto abierto e iterar con HMR; `make ui-quick-check` para la pasada de matriz. Verifica al menos el viewport grande y el compacto, y modo oscuro si la vista lo soporta.
+3. **Dual-platform**: la app corre en macOS Y Windows (Windows es el release bloqueante). Si el cambio toca pesos tipográficos o depende del render de fuente, valida pensando en Segoe UI (el stack cae ahí en Windows); la geometría (alturas/spacing del kit) sí es portable tal cual.
 3. Compara ANTES/DESPUÉS y reporta con screenshots. Si el revamp es de módulo completo, cierra con `prosecnur-ux-evaluator`.
 4. Si la vista participa del QA visual, confirma que su `data-audit-ready` sigue registrado (y las pestañas nuevas en el QA contract).
 5. Veredicto final con el agente `verificador` y sugerencia de `/cerrar-trabajo`.
