@@ -2888,7 +2888,13 @@ reporte_ppt_plan <- function(
     # select_multiple normalizado: solo existen columnas dummy
     # "<recod_var>.<codigo>", no una columna madre "<recod_var>" a secas.
     # "Ya categorizado" = marco alguna opcion NOMBRADA (cualquiera que no
-    # sea la opcion catch-all "Otros" de su propia lista de choices).
+    # sea la opcion catch-all "Otros" de su propia lista de choices) Y NO
+    # tiene marcada la opcion "Otros" en si misma. En una select_multiple,
+    # marcar una categoria nombrada y "Otros" a la vez es valido (dos
+    # selecciones distintas del mismo respondiente) — si solo mirasemos
+    # "any_named_marked" excluiriamos del detalle de texto libre a alguien
+    # cuyo "Otros" sigue genuinamente marcado, solo porque tambien marco
+    # otra opcion.
     if (!(recod_var %in% names(dsrc)) && .reporte_plan_has_sm_dummy_cols(dsrc, recod_var)) {
       ctx_recod <- tryCatch(.resolve_ref(recod_var, source = ctx_parent$source, arg_name = "recod"), error = function(e) NULL)
       other_values <- if (!is.null(ctx_recod)) .other_option_values(ctx_recod) else NULL
@@ -2899,7 +2905,8 @@ reporte_ppt_plan <- function(
       dummy_cols <- names(dsrc)[startsWith(names(dsrc), paste0(recod_var, "."))]
       named_dummy_cols <- setdiff(dummy_cols, other_dummy_cols)
       any_named_marked <- Reduce(`|`, lapply(named_dummy_cols, is_marked_col), rep(FALSE, nrow(dsrc)))
-      return(!any_named_marked)
+      any_otros_marked <- Reduce(`|`, lapply(other_dummy_cols, is_marked_col), rep(FALSE, nrow(dsrc)))
+      return(!any_named_marked | any_otros_marked)
     }
 
     recod_raw <- .reporte_plan_clean_chr(dsrc[[recod_var]])
