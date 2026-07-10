@@ -143,7 +143,10 @@
   fam <- .diseno_scalar(family, "")
   collected <- 0L; valid <- 0L; target <- 0L; avance <- -1; alerts <- 0L
   if (identical(fam, "territorial")) {
-    k <- (dash$territorial_reports %||% list())$kpis %||% list()
+    # Preferimos los KPIs que la vista viva de "Avance territorial" espejo en el
+    # snapshot (report_scope advance_summary no reescribe dash$territorial_reports,
+    # asi que ese tablero puede quedar congelado). Fallback al tablero completo.
+    k <- snap$territorial_overview_facts %||% (dash$territorial_reports %||% list())$kpis %||% list()
     collected <- as.integer(.diseno_num(k$total_respuestas, 0))
     valid <- as.integer(.diseno_num(k$validas, 0))
     target <- as.integer(.diseno_num(k$meta, 0))

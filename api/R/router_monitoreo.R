@@ -3554,6 +3554,16 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   if (!is.null(territorial_map_cache) && is.list(dashboard) && is.list(dashboard$territorial_reports)) {
     dashboard$territorial_reports$map_cache <- territorial_map_cache$active %||% territorial_map_cache
   }
+  # Espeja los KPIs territoriales recien servidos al home (single source fresca),
+  # sin tocar dashboard_cache_token/scope del tablero "full". Ver
+  # monitoreo_overview_facts.R.
+  if (identical(family, "territorial") && isTRUE(include_reports) && is.list(snapshot)) {
+    facts_sync <- monitoreo_snapshot_refresh_territorial_facts(snapshot, dashboard)
+    if (isTRUE(facts_sync$changed)) {
+      snapshot <- facts_sync$snapshot
+      session_set(sid, "monitoreo_snapshot", snapshot)
+    }
+  }
   if (family %in% c("acreditacion", "telefonico")) {
     dashboard <- .monitoreo_acreditacion_repair_cached_dashboard(dashboard)
   }
@@ -3644,6 +3654,9 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
     snapshot$dashboard_cache_key <- .monitoreo_dashboard_cache_key
     snapshot$dashboard_cache_token <- .monitoreo_dashboard_cache_token(snapshot, data, cfg, report_scope = "full")
     snapshot$dashboard_report_scope <- "full"
+    # Fact territorial del home coherente con el tablero recien reconstruido
+    # (ver monitoreo_overview_facts.R). No-op fuera de territorial.
+    snapshot <- monitoreo_snapshot_refresh_territorial_facts(snapshot, snapshot$dashboard)$snapshot
     if (nzchar(.monitoreo_scalar(snapshot$generated_at, ""))) {
       snapshot$generation_status <- "stale"
       snapshot$pending_regeneration <- TRUE
@@ -8144,6 +8157,9 @@ mount_monitoreo <- function(pr) {
 	            variables = if (nrow(dashboard_data)) monitoreo_variables(dashboard_data) else list(),
 	            errors = result$errors
 	          ), artifacts)
+	          # Mantiene el fact territorial del home en sync con el tablero recien
+	          # generado (ver monitoreo_overview_facts.R). No-op fuera de territorial.
+	          snapshot <- monitoreo_snapshot_refresh_territorial_facts(snapshot, result$dashboard)$snapshot
 	          session_set(j$sid, "monitoreo_snapshot", snapshot)
 	          session_set(j$sid, paste("monitoreo_dashboard_cache", report_scope, sep = "_"), result$dashboard)
 	          session_set(j$sid, paste("monitoreo_dashboard_cache_token", report_scope, sep = "_"), dashboard_cache_token)
