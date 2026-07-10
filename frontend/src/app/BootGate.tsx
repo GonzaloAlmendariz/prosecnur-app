@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { formatRelativeDate } from "../components/RecentProjectCard";
+import { PROSECNUR_PRIMARY_ACTIVE_MODULES } from "../lib/modules";
 import {
   bootApiCreateSession,
   bootApiHealth,
@@ -20,11 +21,13 @@ import {
   bootApiProjectOpen,
   bootApiProjectSave,
   bootApiProjectStatus,
+  bootApiProjectManifestPeek,
   bootApiProjectWarmup,
   bootApiProjectWarmupPlan,
   bootApiSystemBootstrap,
   type BootJobSnapshot,
   type BootJobProgress,
+  type BootManifestPeekItem,
   type BootWarmupResult,
   type BootWarmupTask,
 } from "../api/bootClient";
@@ -559,6 +562,7 @@ export default function BootGate({ loadSuite }: BootGateProps) {
   const [error, setError] = useState("");
   const [manualPath, setManualPath] = useState("");
   const [recents, setRecents] = useState<RecentProject[]>([]);
+  const [peeks, setPeeks] = useState<Record<string, BootManifestPeekItem>>({});
   const [activeProjectPath, setActiveProjectPath] = useState<string | null>(null);
   const [suite, setSuite] = useState<ComponentType | null>(null);
   const [frontendModules, setFrontendModules] = useState<Record<string, WarmupModuleProgress>>({});
@@ -590,6 +594,53 @@ export default function BootGate({ loadSuite }: BootGateProps) {
       if (mountedRef.current) setRecents([]);
     }
   }, []);
+
+  // Enriquecimiento best-effort de las tarjetas de recientes: lee SOLO el
+  // manifest de cada .pulso (nunca state.rds) para pintar los módulos vivos
+  // sin abrir el proyecto. No bloquea el render; las luces rellenan solas.
+  // Corre siempre que haya recientes (en navegador el strip se siembra con
+  // pulso.visualQaRecents para QA visual).
+  useEffect(() => {
+    if (phase !== "choose" || recents.length === 0) return;
+    const missing = recents
+      .map((recent) => recent.path)
+      .filter((path) => path && !(path in peeks))
+      .slice(0, 8);
+    if (missing.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { items } = await bootApiProjectManifestPeek(missing);
+        if (cancelled || !mountedRef.current) return;
+        setPeeks((prev) => {
+          const next = { ...prev };
+          for (const item of items) next[item.path] = item;
+          // Marcar rutas intentadas para no reintentar en bucle.
+          for (const path of missing) {
+            if (!(path in next)) {
+              next[path] = {
+                path,
+                exists: false,
+                readable: false,
+                project_name: null,
+                processing_mode: null,
+                n_bases: null,
+                n_files: null,
+                saved_at: null,
+                size: null,
+              };
+            }
+          }
+          return next;
+        });
+      } catch {
+        /* peek es best-effort: las tarjetas quedan sin métricas */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [phase, hasElectron, recents, peeks]);
 
   const enterSuite = useCallback(async () => {
     if (suiteLoadRef.current) return suiteLoadRef.current;
@@ -941,6 +992,7 @@ export default function BootGate({ loadSuite }: BootGateProps) {
             busy={busy}
             error={error}
             recents={recents}
+            peeks={peeks}
             manualPath={manualPath}
             hasElectron={hasElectron}
             onManualPathChange={setManualPath}
@@ -1003,6 +1055,7 @@ function ChooserView({
   busy,
   error,
   recents,
+  peeks,
   manualPath,
   hasElectron,
   onManualPathChange,
@@ -1015,6 +1068,7 @@ function ChooserView({
   busy: boolean;
   error: string;
   recents: RecentProject[];
+  peeks: Record<string, BootManifestPeekItem>;
   manualPath: string;
   hasElectron: boolean;
   onManualPathChange: (value: string) => void;
@@ -1038,12 +1092,12 @@ function ChooserView({
           <BootBrandMark />
           <div className="boot-hero-id">
             <p className="boot-kicker">Prosecnur</p>
-            <h1>Selecciona un proyecto</h1>
+            <h1>¿Qué proyecto quieres avanzar hoy?</h1>
           </div>
         </div>
         <p className="boot-hero-tagline">
-          Procesamiento y monitoreo de encuestas. Cada proyecto vive en un
-          archivo <code>.pulso</code>.
+          Tu suite de proyectos de investigación. Cada proyecto vive en un
+          archivo <code>.pulso</code> con su avance, bitácora y entregables.
         </p>
 
         {error && <div className="boot-error">{error}</div>}
@@ -1123,6 +1177,7 @@ function ChooserView({
                 name={recent.name || projectName(recent.path)}
                 path={recent.path}
                 openedAt={recent.opened_at}
+                peek={peeks[recent.path]}
                 busy={busy}
                 managing={managing}
                 onOpen={() => onOpenRecent(recent.path)}
@@ -1143,15 +1198,63 @@ function ChooserView({
 }
 
 /**
- * Fila de proyecto reciente para la lista vertical del chooser. Layout propio
- * (BootGate no puede importar features): ícono, nombre, ruta con ellipsis al
- * inicio, fecha relativa y acción de quitar. En modo edición el botón queda
- * siempre visible.
+ * Tarjeta de proyecto para la torre de control. El proyecto reporta sus
+ * módulos vivos como una fila de luces con el color característico de cada
+ * módulo (MODULE_TONES vía las vars --pulso-module-* replicadas en boot.css,
+ * porque theme.css aún no cargó en el chunk de entrada). El resumen viaja en
+ * manifest.json (modules_summary) y se lee sin abrir el proyecto.
  */
+const BOOT_ALIVE_STATES = new Set(["ready", "active", "warning"]);
+
+const BOOT_MODULE_STATE_LABEL: Record<string, string> = {
+  ready: "listo",
+  active: "en curso",
+  warning: "por revisar",
+  pending: "sin empezar",
+};
+
+type BootModuleLight = {
+  slug: string;
+  label: string;
+  Icon: ComponentType<{ size?: number | string; strokeWidth?: number | string; "aria-hidden"?: boolean | "true" | "false" }>;
+  accent: string;
+  soft: string;
+  border: string;
+  state: string;
+};
+
+function normalizeAddedSlugs(added?: string[] | string | null): string[] | null {
+  if (Array.isArray(added)) return added;
+  if (typeof added === "string" && added) return [added];
+  return null;
+}
+
+function projectModuleLights(peek?: BootManifestPeekItem): BootModuleLight[] {
+  const summary = peek?.modules_summary;
+  if (!summary || typeof summary !== "object") return [];
+  const states = summary.states && typeof summary.states === "object" ? summary.states : {};
+  const added = normalizeAddedSlugs(summary.added);
+  return PROSECNUR_PRIMARY_ACTIVE_MODULES
+    .map((module) => ({ module, state: String(states[module.slug] ?? "pending") }))
+    .filter(({ module, state }) =>
+      added ? added.includes(module.slug) : BOOT_ALIVE_STATES.has(state),
+    )
+    .map(({ module, state }) => ({
+      slug: module.slug,
+      label: module.shortLabel,
+      Icon: module.icon,
+      accent: module.tone.accent,
+      soft: module.tone.accentSoft,
+      border: module.tone.accentBorder,
+      state,
+    }));
+}
+
 function BootRecentRow({
   name,
   path,
   openedAt,
+  peek,
   busy,
   managing,
   onOpen,
@@ -1160,30 +1263,49 @@ function BootRecentRow({
   name: string;
   path: string;
   openedAt?: string | null;
+  peek?: BootManifestPeekItem;
   busy?: boolean;
   managing: boolean;
   onOpen: () => void;
   onRemove: () => void;
 }) {
   const dateLabel = useMemo(() => formatRelativeDate(openedAt), [openedAt]);
+  const lights = useMemo(() => projectModuleLights(peek), [peek]);
   return (
     <div className={`boot-recent-row ${busy ? "is-busy" : ""} ${managing ? "is-managing" : ""}`} role="listitem">
       <button
         type="button"
-        className="boot-recent-open"
+        className="boot-project-open"
         onClick={onOpen}
         disabled={busy}
         title={path}
         aria-label={`Abrir ${name}`}
       >
-        <span className="boot-recent-icon" aria-hidden="true">
-          {busy ? <Loader2 size={16} className="boot-recent-spin" /> : <Folder size={16} />}
+        <span className="boot-project-top">
+          <span className="boot-project-icon" aria-hidden="true">
+            {busy ? <Loader2 size={15} className="boot-recent-spin" /> : <Folder size={15} />}
+          </span>
+          <strong className="boot-project-name">{name}</strong>
+          {dateLabel && <span className="boot-project-date">{dateLabel}</span>}
         </span>
-        <span className="boot-recent-body">
-          <strong className="boot-recent-name">{name}</strong>
-          <span className="boot-recent-path" dir="rtl">{path}</span>
-        </span>
-        {dateLabel && <span className="boot-recent-date">{dateLabel}</span>}
+        {lights.length > 0 && (
+          <span className="boot-project-modules" aria-label={`Módulos de ${name}`}>
+            {lights.map((light) => (
+              <span
+                key={light.slug}
+                className={`boot-project-module is-${light.state}`}
+                title={`${light.label} — ${BOOT_MODULE_STATE_LABEL[light.state] ?? light.state}`}
+                style={{
+                  "--boot-mod-accent": light.accent,
+                  "--boot-mod-soft": light.soft,
+                  "--boot-mod-border": light.border,
+                } as CSSProperties}
+              >
+                <light.Icon size={12} strokeWidth={2.1} aria-hidden="true" />
+              </span>
+            ))}
+          </span>
+        )}
       </button>
       <button
         type="button"

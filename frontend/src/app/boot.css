@@ -27,6 +27,38 @@
   --motion-dur-base: 220ms;
   --motion-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --motion-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  /* Acentos por módulo — copia literal de theme.css (que aún no cargó en el
+     chunk de entrada) para que las luces de módulo del chooser resuelvan.
+     Mantener sincronizado con theme.css / lib/modules.ts. */
+  --pulso-module-editor: #6d5dfc;
+  --pulso-module-editor-soft: rgba(109, 93, 252, 0.13);
+  --pulso-module-editor-border: rgba(109, 93, 252, 0.32);
+  --pulso-module-processing: #0f766e;
+  --pulso-module-processing-soft: rgba(15, 118, 110, 0.13);
+  --pulso-module-processing-border: rgba(15, 118, 110, 0.3);
+  --pulso-module-dashboard: #2563eb;
+  --pulso-module-dashboard-soft: rgba(37, 99, 235, 0.13);
+  --pulso-module-dashboard-border: rgba(37, 99, 235, 0.3);
+  --pulso-module-routes: #c2410c;
+  --pulso-module-routes-soft: rgba(194, 65, 12, 0.13);
+  --pulso-module-routes-border: rgba(194, 65, 12, 0.3);
+  --pulso-module-sample: #7c3aed;
+  --pulso-module-sample-soft: rgba(124, 58, 237, 0.13);
+  --pulso-module-sample-border: rgba(124, 58, 237, 0.32);
+  --pulso-module-encyclopedia: #a16207;
+  --pulso-module-encyclopedia-soft: rgba(161, 98, 7, 0.13);
+  --pulso-module-encyclopedia-border: rgba(161, 98, 7, 0.3);
+  --pulso-module-workplan: var(--pulso-module-encyclopedia);
+  --pulso-module-workplan-soft: var(--pulso-module-encyclopedia-soft);
+  --pulso-module-workplan-border: var(--pulso-module-encyclopedia-border);
+  --pulso-module-collectors: #0891b2;
+  --pulso-module-collectors-soft: rgba(8, 145, 178, 0.13);
+  --pulso-module-collectors-border: rgba(8, 145, 178, 0.3);
+  --pulso-module-monitoring: #be123c;
+  --pulso-module-monitoring-soft: rgba(190, 18, 60, 0.12);
+  --pulso-module-monitoring-border: rgba(190, 18, 60, 0.3);
+  --pulso-warn-fg: #92400e;
+  --pulso-warn-border: rgba(217, 119, 6, 0.4);
   color: var(--pulso-text);
   background: var(--pulso-bg);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
@@ -71,7 +103,7 @@ input {
 }
 
 .boot-panel {
-  width: min(920px, 100%);
+  width: min(1080px, 100%);
   background: color-mix(in srgb, var(--pulso-surface) 88%, transparent);
   backdrop-filter: blur(10px) saturate(1.08);
   border: 1px solid var(--pulso-border);
@@ -99,7 +131,7 @@ input {
   display: grid;
   /* minmax(0, …) en ambos tracks: sin esto el ancho intrínseco de las rutas
      de recientes infla el track y desborda el panel. */
-  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 0.68fr) minmax(0, 1fr);
   gap: 26px;
   align-items: stretch;
 }
@@ -361,11 +393,12 @@ input {
 }
 
 .boot-recent-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  /* Muestra ~5 filas cómodas; el resto queda en scroll suave. */
-  max-height: 322px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 9px;
+  /* Muestra ~3 filas de tarjetas cómodas; el resto queda en scroll suave. */
+  max-height: 356px;
   overflow-y: auto;
   padding-right: 4px;
   margin-right: -4px;
@@ -387,9 +420,9 @@ input {
 }
 
 .boot-recent-row {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 2px;
+  min-width: 0;
   animation: boot-row-in var(--motion-dur-base) var(--motion-ease-out) backwards;
 }
 
@@ -405,15 +438,19 @@ input {
   to { opacity: 1; transform: none; }
 }
 
-.boot-recent-open {
+/* Tarjeta de proyecto de la torre de control: nombre + fecha arriba y la
+   fila de luces de módulo abajo. El color por módulo ES el reporte de estado;
+   nada de metadata de relleno (la ruta vive en el title). */
+.boot-project-open {
   display: flex;
-  align-items: center;
-  gap: 11px;
+  flex-direction: column;
+  gap: 12px;
   flex: 1;
   min-width: 0;
+  min-height: 92px;
   border: 1px solid var(--pulso-border);
-  border-radius: 11px;
-  padding: 8px 11px;
+  border-radius: 14px;
+  padding: 13px 14px 12px;
   background: var(--pulso-surface);
   color: var(--pulso-text);
   text-align: left;
@@ -425,35 +462,44 @@ input {
     box-shadow var(--motion-dur-fast) ease;
 }
 
-.boot-recent-open:active:not(:disabled) {
+.boot-project-open:active:not(:disabled) {
   transform: scale(0.985);
 }
 
-.boot-recent-open:disabled {
+.boot-project-open:disabled {
   cursor: wait;
   opacity: 0.62;
 }
 
-.boot-recent-open:focus-visible {
+.boot-project-open:focus-visible {
   outline: none;
   border-color: var(--pulso-primary-border);
   box-shadow: 0 0 0 3px var(--pulso-primary-focus);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .boot-recent-open:hover:not(:disabled) {
+  .boot-project-open:hover:not(:disabled) {
+    transform: translateY(-1px);
     border-color: var(--pulso-primary-border);
-    box-shadow: 0 4px 14px rgba(0, 36, 87, 0.09);
+    box-shadow: 0 6px 18px rgba(0, 36, 87, 0.1);
   }
 }
 
-.boot-recent-icon {
+.boot-project-top {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  width: 100%;
+}
+
+.boot-project-icon {
   display: grid;
   flex: 0 0 auto;
   place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
 }
@@ -462,55 +508,89 @@ input {
   animation: boot-spin 0.9s linear infinite;
 }
 
-.boot-recent-body {
-  display: grid;
-  gap: 1px;
-  min-width: 0;
+.boot-project-name {
   flex: 1;
-}
-
-.boot-recent-name {
+  min-width: 0;
   overflow: hidden;
-  font-size: 13px;
-  font-weight: 720;
+  font-size: 13.5px;
+  font-weight: 730;
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Path con ellipsis al INICIO (mismo truco que rpc-path). */
-.boot-recent-path {
-  overflow: hidden;
-  direction: rtl;
-  unicode-bidi: plaintext;
-  color: var(--pulso-text-faint);
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 10.5px;
-  line-height: 1.3;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.boot-recent-date {
+.boot-project-date {
   flex: 0 0 auto;
-  margin-left: 8px;
   color: var(--pulso-text-faint);
   font-size: 11px;
   font-weight: 650;
   white-space: nowrap;
 }
 
-.boot-recent-remove {
-  flex: 0 0 auto;
+/* Luces de módulo: cada módulo vivo con su acento; el estado modula la luz
+   (listo = tinte pleno; en curso = anillo + pulso; atención = ámbar;
+   sin empezar solo aparece si el proyecto lo curó, en fantasma). */
+.boot-project-modules {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: auto;
+}
+
+.boot-project-module {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  border: 1px solid var(--boot-mod-border, var(--pulso-border));
+  background: var(--boot-mod-soft, var(--pulso-primary-soft));
+  color: var(--boot-mod-accent, var(--pulso-primary));
+}
+
+.boot-project-module.is-active {
+  position: relative;
+  box-shadow: 0 0 0 1px var(--boot-mod-border, var(--pulso-primary-border));
+}
+
+.boot-project-module.is-active::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid var(--pulso-surface);
+  background: var(--boot-mod-accent, var(--pulso-primary));
+  animation: boot-status-pulse 1.8s ease-in-out infinite;
+}
+
+.boot-project-module.is-warning {
+  border-color: var(--pulso-warn-border);
+  box-shadow: 0 0 0 1px var(--pulso-warn-border);
+}
+
+.boot-project-module.is-pending {
+  border-style: dashed;
+  background: transparent;
+  color: var(--pulso-text-faint);
+  opacity: 0.75;
+}
+
+.boot-recent-remove {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
   border: 0;
   border-radius: 8px;
   padding: 0;
-  background: transparent;
+  background: color-mix(in srgb, var(--pulso-surface) 88%, transparent);
   color: var(--pulso-text-faint);
   cursor: pointer;
   opacity: 1;
@@ -549,10 +629,21 @@ input {
     opacity: 1;
   }
 
+  /* La X flota donde vive la fecha; se ceden el lugar. */
+  .boot-recent-row:hover .boot-project-date,
+  .boot-recent-row:focus-within .boot-project-date,
+  .boot-recent-row.is-managing .boot-project-date {
+    opacity: 0;
+  }
+
   .boot-recent-remove:hover:not(:disabled) {
     background: var(--pulso-danger-bg);
     color: var(--pulso-danger-fg);
   }
+}
+
+.boot-recent-row.is-managing .boot-project-date {
+  opacity: 0;
 }
 
 .boot-empty {
@@ -1031,13 +1122,13 @@ input {
     animation: none;
   }
 
-  .boot-recent-open,
+  .boot-project-open,
   .boot-recent-remove,
   .boot-recents-edit {
     transition: none;
   }
 
-  .boot-recent-open:active:not(:disabled),
+  .boot-project-open:active:not(:disabled),
   .boot-recent-remove:active:not(:disabled),
   .boot-recents-edit:active:not(:disabled) {
     transform: none;

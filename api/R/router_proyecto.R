@@ -194,6 +194,21 @@ mount_proyecto <- function(pr) {
       sid <- session_header(req)
       project_status(sid)
     })) |>
+    plumber::pr_post("/api/project/manifest-peek", wrap_endpoint(function(req, res, ...) {
+      # Lectura barata (solo manifest.json) para enriquecer las tarjetas de
+      # proyectos recientes del selector. Stateless: no toca sesión ni state.rds.
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      body <- if (nzchar(trimws(body_raw))) {
+        tryCatch(jsonlite::fromJSON(body_raw, simplifyVector = TRUE),
+                 error = function(e) list())
+      } else {
+        list()
+      }
+      paths <- as.character(body$paths %||% character(0))
+      paths <- paths[nzchar(paths)]
+      if (length(paths) > 12L) paths <- paths[seq_len(12L)]
+      list(items = lapply(paths, .pulso_manifest_peek))
+    })) |>
     plumber::pr_post("/api/fs/save-to-project", wrap_endpoint(function(req, res, file_id = NULL, filename = NULL, subdir = NULL, overwrite = FALSE, ...) {
       # Copia un archivo del file store (sess$dir/uploads o downloads) al
       # directorio del .pulso activo, con el nombre que el user eligió en
