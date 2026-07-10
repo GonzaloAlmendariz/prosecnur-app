@@ -463,6 +463,53 @@ test_that("evaluate_validation_bundle evalúa constraints string-length sin modo
   expect_equal(ev$resumen$n_inconsistencias[[1]], 1L)
 })
 
+test_that(".restore_instrument_case_aliases no deja que un placeholder vacío sombree la madre poblada del select_multiple", {
+  # Regresión: un select_multiple cuya madre 'D1_information' llega en blanco
+  # (placeholder tras expandir a dummies) NO debe vaciar la variante poblada.
+  inst <- list(survey = data.frame(
+    type = c("select_one d1_exposure", "select_multiple information"),
+    name = c("D1_messages", "D1_information"),
+    stringsAsFactors = FALSE
+  ))
+  df <- data.frame(
+    D1_messages    = c("1", "0", "1"),      # select_one cased poblada
+    D1_information = c("", "", ""),          # madre cased VACÍA (placeholder)
+    d1_information = c("1 4 7", "", "3 5 96"), # variante poblada (lc)
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+
+  out <- .restore_instrument_case_aliases(list(principal = df), instrumento = inst)$principal
+  filled <- sum(nzchar(trimws(as.character(out[["D1_information"]]))))
+
+  expect_equal(filled, 2L)                                # madre recuperada, tokens preservados
+  expect_equal(out[["D1_information"]][[1]], "1 4 7")     # tokenización por espacio intacta
+  expect_equal(out[["D1_information"]][[3]], "3 5 96")
+  # el select_one no se toca (ya venía poblado con su nombre exacto)
+  expect_equal(out[["D1_messages"]], c("1", "0", "1"))
+})
+
+test_that(".restore_instrument_case_aliases aliasa columnas prefijadas por grupo (import Kobo limpio)", {
+  # Una base limpia trae 'grupo/var' (D/D1_information) sin variante flat:
+  # debe crearse la madre del instrumento 'D1_information' con sus tokens.
+  inst <- list(survey = data.frame(
+    type = c("select_one d1_exposure", "select_multiple information"),
+    name = c("D1_messages", "D1_information"),
+    stringsAsFactors = FALSE
+  ))
+  df <- data.frame(
+    `D/D1_messages`    = c("1", "0", "1"),
+    `D/D1_information` = c("1 4 7", "", "3 5 96"),
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+
+  out <- .restore_instrument_case_aliases(list(principal = df), instrumento = inst)$principal
+
+  expect_true("D1_information" %in% names(out))
+  expect_equal(out[["D1_information"]], c("1 4 7", "", "3 5 96"))
+  expect_true("D1_messages" %in% names(out))
+  expect_equal(out[["D1_messages"]], c("1", "0", "1"))
+})
+
 test_that("lector XLSForm normaliza referencias SM qNNNN dentro de expresiones", {
   skip_if_not_installed("openxlsx")
 
