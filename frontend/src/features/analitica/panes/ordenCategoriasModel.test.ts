@@ -1,8 +1,14 @@
 import { describe, expect, test } from "vitest";
+import type { DataReviewVariable, VariableInstrumento } from "../../../api/client";
 import {
   aplicarOrdenGuardado,
+  derivarCatalogoListas,
   enviarEspecialesAlFinal,
   esValorEspecial,
+  moverAbajo,
+  moverAlFinal,
+  moverAlInicio,
+  moverArriba,
   ordenesIguales,
   sembrarOrden,
   VALORES_ESPECIALES,
@@ -48,5 +54,126 @@ describe("ordenCategoriasModel", () => {
     expect(ordenesIguales(["1", "2"], ["1", "2"])).toBe(true);
     expect(ordenesIguales(["1", "2"], ["2", "1"])).toBe(false);
     expect(ordenesIguales(["1"], ["1", "2"])).toBe(false);
+  });
+});
+
+// ---- Helpers de fixtures para el catálogo ----------------------------------
+function mkVar(name: string, list_name: string): VariableInstrumento {
+  return { name, label: name, tipo: "select_one", list_name };
+}
+
+function mkDR(name: string, codes: string[]): DataReviewVariable {
+  return {
+    name,
+    tipo_xlsform: "select_one",
+    seccion: "",
+    included: true,
+    label_actual: name,
+    label_original: name,
+    n_non_missing: 0,
+    n_missing: 0,
+    opciones: codes.map((code) => ({ code, label: code, count: 0 })),
+  };
+}
+
+describe("derivarCatalogoListas", () => {
+  test("agrupa por list_name con conteos, categorías y flag de override", () => {
+    const variables = [
+      mkVar("p1", "satisfaccion"),
+      mkVar("p2", "satisfaccion"),
+      mkVar("p3", "acuerdo"),
+    ];
+    const dataReview = [
+      mkDR("p1", ["1", "2", "3", "4"]),
+      mkDR("p2", ["1", "2", "3", "4"]),
+      mkDR("p3", ["1", "2"]),
+    ];
+    const catalogo = derivarCatalogoListas(variables, dataReview, { satisfaccion: ["4", "3", "2", "1"] });
+
+    // satisfaccion primero (2 variables > 1 de acuerdo).
+    expect(catalogo.map((e) => e.listName)).toEqual(["satisfaccion", "acuerdo"]);
+    expect(catalogo[0]).toEqual({
+      listName: "satisfaccion",
+      nVariables: 2,
+      nCategorias: 4,
+      tieneOverride: true,
+    });
+    expect(catalogo[1]).toEqual({
+      listName: "acuerdo",
+      nVariables: 1,
+      nCategorias: 2,
+      tieneOverride: false,
+    });
+  });
+
+  test("ignora list_name vacío y resuelve categorías desde la primera var con opciones", () => {
+    const variables = [
+      mkVar("sinlista", "  "),
+      mkVar("a1", "canales"),
+      mkVar("a2", "canales"),
+    ];
+    // a1 sin opciones en la base (todas missing); cae a a2.
+    const dataReview = [mkDR("a1", []), mkDR("a2", ["1", "2", "3"])];
+    const catalogo = derivarCatalogoListas(variables, dataReview, {});
+
+    expect(catalogo).toEqual([
+      { listName: "canales", nVariables: 2, nCategorias: 3, tieneOverride: false },
+    ]);
+  });
+
+  test("override vacío no cuenta como orden propio", () => {
+    const catalogo = derivarCatalogoListas(
+      [mkVar("p1", "acuerdo")],
+      [mkDR("p1", ["1", "2"])],
+      { acuerdo: [] },
+    );
+    expect(catalogo[0].tieneOverride).toBe(false);
+  });
+
+  test("desempata alfabéticamente cuando hay igual número de variables", () => {
+    const variables = [mkVar("z1", "zeta"), mkVar("a1", "alfa")];
+    const dataReview = [mkDR("z1", ["1"]), mkDR("a1", ["1"])];
+    const catalogo = derivarCatalogoListas(variables, dataReview, {});
+    expect(catalogo.map((e) => e.listName)).toEqual(["alfa", "zeta"]);
+  });
+});
+
+describe("movimiento manual por fila", () => {
+  test("moverArriba en la primera fila es no-op (misma referencia)", () => {
+    const codes = ["1", "2", "3"];
+    expect(moverArriba(codes, 0)).toBe(codes);
+  });
+
+  test("moverArriba intercambia con la fila anterior", () => {
+    expect(moverArriba(["1", "2", "3"], 2)).toEqual(["1", "3", "2"]);
+  });
+
+  test("moverAbajo en la última fila es no-op (misma referencia)", () => {
+    const codes = ["1", "2", "3"];
+    expect(moverAbajo(codes, 2)).toBe(codes);
+  });
+
+  test("moverAbajo intercambia con la fila siguiente", () => {
+    expect(moverAbajo(["1", "2", "3"], 0)).toEqual(["2", "1", "3"]);
+  });
+
+  test("moverAlInicio lleva la categoría al tope", () => {
+    expect(moverAlInicio(["1", "2", "3", "4"], 3)).toEqual(["4", "1", "2", "3"]);
+    // ya en el inicio → no-op.
+    const codes = ["1", "2"];
+    expect(moverAlInicio(codes, 0)).toBe(codes);
+  });
+
+  test("moverAlFinal lleva la categoría al fondo", () => {
+    expect(moverAlFinal(["1", "2", "3", "4"], 0)).toEqual(["2", "3", "4", "1"]);
+    // ya en el final → no-op.
+    const codes = ["1", "2"];
+    expect(moverAlFinal(codes, 1)).toBe(codes);
+  });
+
+  test("índice fuera de rango es no-op", () => {
+    const codes = ["1", "2"];
+    expect(moverArriba(codes, 9)).toBe(codes);
+    expect(moverAbajo(codes, -1)).toBe(codes);
   });
 });
