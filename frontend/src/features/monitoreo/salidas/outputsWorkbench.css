@@ -473,6 +473,22 @@
   font-weight: 800;
 }
 
+.mon-outputs-processing-hint {
+  margin: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--pulso-border, #d9e1ee);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--pulso-module-processing-soft, rgba(15, 118, 110, 0.13)) 40%, transparent);
+  color: var(--pulso-text-soft, #64748b);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.mon-outputs-processing-hint strong {
+  color: var(--pulso-text, #1e293b);
+  font-weight: 800;
+}
+
 .mon-outputs-processing-link {
   display: inline-flex;
   align-items: center;
