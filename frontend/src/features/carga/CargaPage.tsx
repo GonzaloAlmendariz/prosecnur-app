@@ -201,6 +201,13 @@ export default function CargaPage() {
   // Puente Monitoreo → Procesamiento (camino primario): si el proyecto ya tiene
   // trabajo de campo validado, lo detectamos para ofrecer traerlo con su
   // formulario. Si la detección falla, degradamos en silencio.
+  //
+  // Depende de `state` (no solo de sessionId): en apertura fresca el warm-start
+  // carga el snapshot de monitoreo DESPUÉS del primer render, y `sessionId` es
+  // estable, así que una sola consulta al montar detectaría 0 y mostraría el
+  // banner de import crudo. Re-consultar cuando `state` cambia (warm-start listo
+  // y tras cada import) hace que la tarjeta del handoff aparezca en cuanto el
+  // snapshot está disponible.
   useEffect(() => {
     let cancelled = false;
     apiCargaMonitoreoHandoffStatus()
@@ -213,7 +220,7 @@ export default function CargaPage() {
         setHandoffStatus(null);
       });
     return () => { cancelled = true; };
-  }, [sessionId]);
+  }, [sessionId, state]);
 
   useEffect(() => {
     let cancelled = false;
