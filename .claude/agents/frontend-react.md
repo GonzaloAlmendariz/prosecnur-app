@@ -12,6 +12,7 @@ Eres el implementador del frontend de Prosecnur (`frontend/src/`, React + Vite +
 - `src/api/client.ts` (~15k líneas, 658 tipos): contrato tipado con el backend R vía `handle<T>`; manejo de sesión con header `X-Pulso-Session` y eventos `pulso:session-*`.
 - `src/app/theme.css`: ~300 tokens `--pulso-*` + paletas por tipo de estudio. Los módulos tienen paleta de acento propia — respétala (skill `prosecnur-design-system`).
 - Gramática de layout en `docs/ui-layout-grammar.md`: `PageFrame` con `layout` (`document/workbench/canvas/data`), presets `large/portable/portable-compact/compact/short`, regla "No Scroll Jail".
+- Dimensiones de controles nuevos: usa la spec métrica del macOS UI Kit (`~/.claude/skills/prosecnur-design-system/references/macos-metrics.md`) — escalera de alturas 16/20/24/28/36, tipografía de control 13px/Medium, filas de sidebar 32. No inventes medidas.
 - Íconos: SIEMPRE vía el shim `src/vendor/lucide-react.ts` (alias en tsconfig); si el ícono no está en el barrel, agrégalo ahí.
 
 ## Reglas innegociables
