@@ -180,6 +180,43 @@ test_that("hojas_ruta_quota_preview_integrado asigna N objetivo por cuotas", {
   expect_true(any(vapply(out$alerts, function(x) identical(x$code, "I_AGE_SIMPLE_OFFICIAL"), logical(1))))
 })
 
+test_that(".hojas_ruta_deal_age_quota conserva marginales y varia por perfil etario", {
+  # Mismo tamano operativo (25 manzanas x 8), distrito joven vs envejecido.
+  joven <- c(65L, 67L, 42L, 26L) # 60+ ~13%
+  viejo <- c(59L, 62L, 44L, 35L) # 60+ ~17.5%
+  ent <- rep(8L, 25L)
+  mj <- .hojas_ruta_deal_age_quota(joven, ent)
+  mv <- .hojas_ruta_deal_age_quota(viejo, ent)
+  # Cada manzana suma su carga; cada rango suma el total del distrito.
+  expect_true(all(rowSums(mj) == 8L))
+  expect_true(all(rowSums(mv) == 8L))
+  expect_equal(colSums(mj), joven)
+  expect_equal(colSums(mv), viejo)
+  # El distrito envejecido pide 60+=2 en mas manzanas que el joven.
+  expect_gt(sum(mv[, 4] >= 2L), sum(mj[, 4] >= 2L))
+})
+
+test_that(".hojas_ruta_deal_age_quota reescala cuando la capacidad no cuadra con los cupos", {
+  # 3 manzanas de 8 = 24 casos, cupos distritales suman 200 -> reescala a 24.
+  m <- .hojas_ruta_deal_age_quota(c(65L, 67L, 42L, 26L), rep(8L, 3L))
+  expect_true(all(rowSums(m) == 8L))
+  expect_equal(sum(m), 24L)
+})
+
+test_that(".hojas_ruta_reference_quota_marginals prefiere la cuota de edad guardada", {
+  cfg <- hojas_ruta_integrada_normalize_config(list())
+  k <- length(cfg$age_ranges)
+  stored <- .hojas_ruta_allocate_integer(seq_len(k), 8L)
+  block <- list(entrevistas = 8L, ubigeo = "",
+                cuota_edad_totals = paste(stored, collapse = ","))
+  m <- .hojas_ruta_reference_quota_marginals(block, cfg)
+  expect_equal(as.integer(m$age_totals), as.integer(stored))
+  # Columna corrupta (largo distinto) -> se ignora y cae al calculo clasico.
+  block$cuota_edad_totals <- "1,2,3"
+  m2 <- .hojas_ruta_reference_quota_marginals(block, cfg)
+  expect_equal(sum(m2$age_totals), 8L)
+})
+
 test_that("hojas_ruta_population_preview_integrado calcula matriz sin N", {
   out <- hojas_ruta_population_preview_integrado(list(
     territorios = c("150110", "070106"),

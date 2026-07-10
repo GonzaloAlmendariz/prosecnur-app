@@ -3687,6 +3687,74 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
   .hojas_ruta_allocate_with_floor(use_w, n, floors)
 }
 
+# Reparto coordinado de las cuotas de edad de un distrito entre sus manzanas.
+#
+# Contexto: si cada manzana redondea sus ~8 entrevistas contra las proporciones
+# censales por separado, la diferencia etaria entre distritos (p.ej. 60+ = 12.9%
+# en un distrito joven vs 17.7% en uno mas envejecido) se pierde: 8 * 0.129 = 1.03
+# y 8 * 0.177 = 1.42 redondean ambas a 1, y todas las manzanas colapsan al mismo
+# vector. La diferencia solo cabe a nivel distrital (200 casos: 26 vs 35).
+#
+# Este reparto conserva la estructura distrital: reparte los cupos por edad del
+# distrito entre sus manzanas de modo que cada manzana sume sus `entrevistas` y
+# que la suma por rango de edad en el distrito iguale `district_age_totals`. Cada
+# rango se esparce de forma sistematica (tipo Kish) sobre el orden de manzanas
+# para que ninguna concentre un rango; asi un distrito con mas adultos mayores
+# tiene visiblemente mas manzanas pidiendo ese rango.
+#
+# Devuelve una matriz (manzanas x rangos) de enteros con esas dos marginales
+# exactas. `district_age_totals` va en el orden de los rangos de `cfg$age_ranges`.
+.hojas_ruta_deal_age_quota <- function(district_age_totals, entrevistas) {
+  district_age_totals <- as.integer(round(suppressWarnings(as.numeric(district_age_totals))))
+  district_age_totals[is.na(district_age_totals) | district_age_totals < 0L] <- 0L
+  entrevistas <- as.integer(round(suppressWarnings(as.numeric(entrevistas))))
+  entrevistas[is.na(entrevistas) | entrevistas < 0L] <- 0L
+  n_age <- length(district_age_totals)
+  n_manz <- length(entrevistas)
+  mat <- matrix(0L, nrow = n_manz, ncol = n_age)
+  if (n_manz == 0L || n_age == 0L) return(mat)
+  total_int <- sum(entrevistas)
+  if (total_int <= 0L) return(mat)
+  total_age <- sum(district_age_totals)
+  # Si la capacidad real de las manzanas no coincide con los cupos por edad
+  # (marco insuficiente, ultima manzana recortada, etc.) reescalo los cupos a la
+  # capacidad real preservando proporciones. Sin datos utiles, reparto parejo.
+  if (total_age != total_int) {
+    weights <- if (total_age > 0L) district_age_totals else rep(1L, n_age)
+    district_age_totals <- .hojas_ruta_allocate_integer(weights, total_int)
+  }
+  # Secuencia de cupos etiquetados por rango, cada rango esparcido uniforme en
+  # [0,1]. Al ordenar por esa posicion, cualquier tramo consecutivo es
+  # proporcional, y los bloques del tamano de cada manzana heredan esa mezcla.
+  age_idx <- rep(seq_len(n_age), times = district_age_totals)
+  pos <- unlist(lapply(seq_len(n_age), function(a) {
+    na <- district_age_totals[[a]]
+    if (na <= 0L) return(numeric(0))
+    (seq_len(na) - 0.5) / na
+  }), use.names = FALSE)
+  ord <- order(pos, age_idx)
+  age_seq <- age_idx[ord]
+  manz_of_slot <- rep(seq_len(n_manz), times = entrevistas)
+  for (s in seq_along(age_seq)) {
+    m <- manz_of_slot[[s]]
+    a <- age_seq[[s]]
+    mat[m, a] <- mat[m, a] + 1L
+  }
+  mat
+}
+
+# Parsea la cuota de edad por manzana guardada (`"2,3,2,1"`) a un vector entero
+# alineado a los rangos de la config. Devuelve NULL si falta, no cuadra en
+# longitud o trae valores invalidos, para que el consumidor caiga al calculo
+# clasico (proyectos generados antes de este reparto no llevan la columna).
+.hojas_ruta_parse_edad_totals <- function(x, n_expected) {
+  raw <- .hojas_ruta_scalar(x, "")
+  if (!nzchar(raw)) return(NULL)
+  parts <- suppressWarnings(as.integer(strsplit(raw, ",", fixed = TRUE)[[1]]))
+  if (length(parts) != n_expected || anyNA(parts) || any(parts < 0L)) return(NULL)
+  parts
+}
+
 .hojas_ruta_age_population <- function(frame, def, sexo) {
   sources <- .hojas_ruta_age_sources()
   req_min <- as.integer(def$min)
@@ -4935,6 +5003,7 @@ hojas_ruta_generar_reemplazos_manual_pdf <- function(config = list(), sample = N
     "manzana", "viviendas", "poblacion", "territorio_muestral", "metodo",
     "orden_seleccion", "hoja_num", "rango_inicio", "rango_fin",
     "entrevistas", "medida_tamano", "lat", "lon", "tipo_manzana",
+    "cuota_edad_totals",
     "replacement_policy", "replacement_order", "replacement_total", "titular_id_manzana",
     "titular_orden_seleccion", "titular_ubigeo", "titular_zona",
     "titular_hoja_num", "titular_rango_inicio", "titular_rango_fin",
@@ -5486,11 +5555,47 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   }
   blocks_df <- .hojas_ruta_add_operational_values(blocks_df, cfg)
   replacement_blocks_df <- .hojas_ruta_add_operational_values(replacement_blocks_df, cfg)
+  # Cuota de edad coordinada por distrito -> manzana. Se calcula una sola vez,
+  # con todas las manzanas del distrito a la vista, y se persiste por manzana
+  # para que tanto el PDF de la hoja de ruta como la validacion de cuotas del
+  # monitoreo lean el mismo target (ambos pasan por
+  # .hojas_ruta_reference_quota_marginals, que prefiere este valor). Sin esto,
+  # cada manzana redondea 8 casos por separado y colapsa al mismo vector.
+  if (nrow(blocks_df) && "ubigeo" %in% names(blocks_df) && nrow(cells) &&
+      all(c("ubigeo", "rango_id", "cuota") %in% names(cells))) {
+    defs_deal <- cfg$age_ranges
+    if (!length(defs_deal)) defs_deal <- .hojas_ruta_age_defs_default()
+    age_ids <- vapply(defs_deal, function(d) .hojas_ruta_scalar(d$id, ""), character(1))
+    cells_cuota <- suppressWarnings(as.numeric(cells$cuota))
+    cells_cuota[is.na(cells_cuota)] <- 0
+    cells_ubigeo <- as.character(cells$ubigeo)
+    cells_rango <- as.character(cells$rango_id)
+    ent_all <- suppressWarnings(as.integer(blocks_df$entrevistas))
+    ent_all[is.na(ent_all)] <- 0L
+    edad_totals_col <- rep("", nrow(blocks_df))
+    for (u in unique(as.character(blocks_df$ubigeo))) {
+      rows_u <- which(as.character(blocks_df$ubigeo) == u)
+      if (!length(rows_u)) next
+      cell_u <- cells_ubigeo == u
+      totals_u <- vapply(age_ids, function(id) {
+        sum(cells_cuota[cell_u & cells_rango == id], na.rm = TRUE)
+      }, numeric(1))
+      mat <- .hojas_ruta_deal_age_quota(totals_u, ent_all[rows_u])
+      edad_totals_col[rows_u] <- apply(mat, 1L, function(r) paste(as.integer(r), collapse = ","))
+    }
+    blocks_df$cuota_edad_totals <- edad_totals_col
+    if (nrow(replacement_blocks_df) && "titular_id_manzana" %in% names(replacement_blocks_df)) {
+      m <- match(as.character(replacement_blocks_df$titular_id_manzana),
+                 as.character(blocks_df$id_manzana))
+      replacement_blocks_df$cuota_edad_totals <- ifelse(is.na(m), "", edad_totals_col[m])
+    }
+  }
   blocks_public <- blocks_df[, intersect(c(
     "id_manzana", "departamento", "provincia", "distrito", "ubigeo", "zona",
     "manzana", "viviendas", "poblacion", "territorio_muestral", "metodo",
     "orden_seleccion", "hoja_num", "rango_inicio", "rango_fin",
     "entrevistas", "medida_tamano", "lat", "lon", "tipo_manzana",
+    "cuota_edad_totals",
     "esquina_codigo", "esquina_inicio", "esquina_coordenada", "sentido_recorrido",
     "vivienda_inicio", "domicilio_inicio", "constante_salto", "constante_salto_unidad",
     "constante_salto_modo", "modo_seleccion_vivienda",
@@ -5502,6 +5607,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     "manzana", "viviendas", "poblacion", "territorio_muestral", "metodo",
     "orden_seleccion", "hoja_num", "rango_inicio", "rango_fin",
     "entrevistas", "medida_tamano", "lat", "lon", "tipo_manzana",
+    "cuota_edad_totals",
     "replacement_policy", "replacement_order", "replacement_total", "titular_id_manzana",
     "titular_orden_seleccion", "titular_ubigeo", "titular_zona",
     "titular_hoja_num", "titular_rango_inicio", "titular_rango_fin",
@@ -7373,6 +7479,12 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   }
   if (sum(age_weights, na.rm = TRUE) <= 0) age_weights <- rep(1, length(defs))
   age_totals <- .hojas_ruta_allocate_integer(age_weights, entrevistas)
+
+  # Si la manzana trae la cuota de edad ya coordinada a nivel distrito (muestras
+  # generadas con .hojas_ruta_deal_age_quota), se prefiere: preserva la
+  # estructura etaria del distrito en vez de redondear 8 casos por separado.
+  stored_age <- .hojas_ruta_parse_edad_totals(block$cuota_edad_totals %||% NULL, length(defs))
+  if (!is.null(stored_age) && sum(stored_age) == entrevistas) age_totals <- stored_age
 
   hombre_total <- entrevistas %/% 2L
   mujer_total <- entrevistas %/% 2L
