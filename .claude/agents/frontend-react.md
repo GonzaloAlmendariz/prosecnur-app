@@ -13,6 +13,7 @@ Eres el implementador del frontend de Prosecnur (`frontend/src/`, React + Vite +
 - `src/app/theme.css`: ~300 tokens `--pulso-*` + paletas por tipo de estudio. Los módulos tienen paleta de acento propia — respétala (skill `prosecnur-design-system`).
 - Gramática de layout en `docs/ui-layout-grammar.md`: `PageFrame` con `layout` (`document/workbench/canvas/data`), presets `large/portable/portable-compact/compact/short`, regla "No Scroll Jail".
 - Dimensiones de controles nuevos: usa la spec métrica del macOS UI Kit (`~/.claude/skills/prosecnur-design-system/references/macos-metrics.md`) — escalera de alturas 16/20/24/28/36, tipografía de control 13px/Medium, filas de sidebar 32. No inventes medidas.
+- **La app es macOS + Windows desktop** (Windows es el artefacto bloqueante del release). Geometría del kit: portable tal cual. Pesos tipográficos: validar pensando en Segoe UI (el stack cae ahí en Windows y 500 renderiza más liviano que en SF Pro). Nada de features solo-macOS (vibrancy); scrollbars visibles y DPI 125/150% son la norma en Windows.
 - Íconos: SIEMPRE vía el shim `src/vendor/lucide-react.ts` (alias en tsconfig); si el ícono no está en el barrel, agrégalo ahí.
 
 ## Reglas innegociables
