@@ -7,6 +7,14 @@
 # ACTUAL en archivos .rds, y exigir identidad byte-a-byte tras el refactor de
 # performance O(n^2). Si el refactor cambia una sola aula, orden o score, el
 # golden falla.
+#
+# DEPENDENCIA CRITICA: el motor usa sampling::UPsystematic/samplecube cuando el
+# paquete `sampling` esta instalado y cae en silencio a sample(prob = ) cuando
+# no lo esta -> la seleccion cambia por completo con la misma semilla. Los tres
+# fallos de Quality de 2026-07 no fueron RNG/locale/floats sino que el runner
+# no tenia `sampling` (hoy declarado en Suggests). Por eso la captura registra
+# el engine efectivamente usado: un fallback se ve como diff legible, no como
+# aulas misteriosamente distintas.
 
 # --- Fixtures deterministas -------------------------------------------------
 # Cada fixture devuelve list(base = <data.frame>, cfg = <config normalizada>).
@@ -153,7 +161,11 @@ golden_capture_selection <- function(selection) {
   tit <- tit[order(tit$selection_slot_id, tit$classroom_id), , drop = FALSE]
   rownames(tit) <- NULL
 
-  list(titulars = .golden_round(tit), reserves = .golden_round(res))
+  list(
+    engine_used = as.character(selection$selector_engine_used %||% ""),
+    titulars = .golden_round(tit),
+    reserves = .golden_round(res)
+  )
 }
 
 # Captura la simulacion de reemplazos: sugerencias e impacto, orden estable.

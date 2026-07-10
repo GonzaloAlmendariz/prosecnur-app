@@ -21,6 +21,13 @@ suppressWarnings(suppressMessages({
     stop("No encuentro la raiz del paquete (api/DESCRIPTION)")
   }
   api_dir <- find_api()
+  # Los goldens caracterizan el motor REAL (sampling::UPsystematic/samplecube).
+  # Sin `sampling` instalado el motor cae en silencio a sample(prob = ) y se
+  # congelaria el camino degradado: mejor fallar aqui con instruccion clara.
+  if (!requireNamespace("sampling", quietly = TRUE)) {
+    stop("Falta el paquete `sampling` (Suggests de prosecnurapp). ",
+         "Instalalo antes de regenerar los goldens: install.packages('sampling')")
+  }
   # Cargar todas las fuentes del paquete (mismo mecanismo que setup-load-all).
   r_files <- list.files(file.path(api_dir, "R"), "[.]R$", full.names = TRUE)
   first <- file.path(api_dir, "R", c("errors.R", "io.R", "session_store.R"))

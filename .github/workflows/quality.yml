@@ -6,6 +6,9 @@ on:
     branches:
       - main
   workflow_call:
+  # Corrida manual sobre cualquier branch (p. ej. validar goldens en ubuntu
+  # antes de tocar main): gh workflow run quality.yml --ref <branch>
+  workflow_dispatch:
 
 permissions:
   contents: read
