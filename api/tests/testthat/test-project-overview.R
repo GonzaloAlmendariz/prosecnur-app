@@ -186,3 +186,23 @@ test_that("overview de proyecto reporta madurez 'in_progress' con trabajo real",
   expect_equal(overview$project$name, "Estudio de prueba")
   expect_equal(overview$project$client, "Cliente")
 })
+
+test_that("overview deriva el nombre del proyecto del .pulso cuando el titulo es sentinel o vacio", {
+  # Titulo real del estudio: se respeta tal cual.
+  expect_equal(
+    .overview_project_name(list(title = "Encuesta ACNUR 2026"), "/x/y/HSVG2026.pulso"),
+    "Encuesta ACNUR 2026"
+  )
+  # Sentinel por defecto: deriva del nombre del archivo .pulso.
+  expect_equal(
+    .overview_project_name(list(title = "Estudio sin título"), "/ruta/al/HSVG2026.pulso"),
+    "HSVG2026"
+  )
+  # Titulo vacio + ruta estilo Windows con backslashes.
+  expect_equal(
+    .overview_project_name(list(title = ""), "C:\\Users\\me\\Padron 2026.pulso"),
+    "Padron 2026"
+  )
+  # Sin titulo ni ruta: cae al sentinel.
+  expect_equal(.overview_project_name(list(), ""), "Estudio sin título")
+})
