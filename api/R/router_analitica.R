@@ -2362,6 +2362,11 @@
   orden_cfg <- .orden_categorias_from_cfg(cfg)
   if (length(orden_cfg)) inst <- .apply_orden_categorias(inst, orden_cfg)
 
+  # La codificación deja las columnas (y dummies) en minúscula mientras el survey
+  # usa el case original; sin realinear, frecuencias/cruces saltan los
+  # select_multiple y sus recodificadas (buscan case-sensitive contra el survey).
+  data <- .analitica_restore_survey_case(data, inst)
+
   # Los dummies de select_multiple se generan en la codificación en orden
   # arbitrario; se reordenan por el orden de la lista de opciones del XLSForm
   # para que la vista "Base final" y el libro de códigos los muestren 1,2,…,96.

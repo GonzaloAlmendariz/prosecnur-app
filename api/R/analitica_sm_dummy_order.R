@@ -104,3 +104,47 @@
   for (nm in keep_attrs) attr(data, nm) <- top_attrs[[nm]]
   data
 }
+
+# Restaura el case de las columnas al del `survey` del instrumento. La
+# codificación deja los nombres y dummies en minúscula (`d1_information.1`,
+# `d1_information_recod.2`) mientras el survey usa el case original
+# (`D1_information`). Frecuencias y cruces buscan las columnas/dummies
+# case-sensitive contra el survey, así que sin este alineamiento SALTAN los
+# select_multiple y sus recodificadas (no aparecen en las tablas). Renombra
+# `<stem>` y `<stem>.<code>` al case del survey cuando coinciden case-insensitive;
+# no toca duplicados con prefijo de grupo (`d.d1_information`, cuyo stem no
+# matchea ninguna variable del survey) ni pisa una columna ya existente.
+.analitica_restore_survey_case <- function(data, inst) {
+  if (!is.data.frame(data) || !length(names(data))) return(data)
+  survey <- (inst %||% list())$survey
+  if (is.null(survey) || !("name" %in% names(survey))) return(data)
+  sv <- as.character(survey$name)
+  sv <- sv[!is.na(sv) & nzchar(sv)]
+  if (!length(sv)) return(data)
+  canon <- sv[!duplicated(tolower(sv))]
+  canon_lower <- tolower(canon)
+  lookup <- function(x) { idx <- match(tolower(x), canon_lower); if (is.na(idx)) NULL else canon[idx] }
+
+  cur <- names(data)
+  new <- cur
+  for (i in seq_along(cur)) {
+    col <- cur[i]
+    proposed <- NULL
+    # dummy `<stem>.<code>`: recasear el stem si matchea un nombre del survey.
+    m <- regmatches(col, regexec("^(.+)\\.([^.]+)$", col))[[1]]
+    if (length(m) == 3L) {
+      hit <- lookup(m[[2]])
+      if (!is.null(hit) && !identical(m[[2]], hit)) proposed <- paste0(hit, ".", m[[3]])
+    }
+    # columna plana: recasear si matchea (case-insensitive) un nombre del survey.
+    if (is.null(proposed)) {
+      hit <- lookup(col)
+      if (!is.null(hit) && !identical(col, hit)) proposed <- hit
+    }
+    if (!is.null(proposed) && !(proposed %in% cur) && !(proposed %in% new[-i])) {
+      new[i] <- proposed
+    }
+  }
+  if (!identical(new, cur)) names(data) <- new
+  data
+}
