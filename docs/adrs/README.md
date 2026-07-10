@@ -51,5 +51,6 @@ Usar la [plantilla ADR](0000-template.md). Cada decision debe incluir:
 | [0027](0027-diseno-estudio-bitacora-viva.md) | Reemplazado por 0029 | 2026-06-28 | Diseno del estudio reemplaza Enciclopedia como expediente y bitacora viva |
 | [0028](0028-plan-trabajo-cronograma-sincronico.md) | Reemplazado por 0029 | 2026-06-29 | Plan de trabajo modela cronogramas sincronicos con evidencia operativa |
 | [0029](0029-reorientacion-por-proyecto-bitacora-y-overview.md) | Aceptado | 2026-07-09 | Reorientacion por proyecto: modulo Bitacora unico, Home adaptativo y overview de proyecto |
+| [0030](0030-grupos-repeat-end-to-end.md) | Aceptado | 2026-07-10 | Soporte de grupos repeat (begin_repeat) end-to-end: base hija long canonica y reconexion de la validacion multi-tabla |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).
