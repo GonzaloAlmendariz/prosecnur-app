@@ -120,6 +120,22 @@ function clearDevProjectPath() {
   window.history.replaceState(window.history.state, "", nextUrl);
 }
 
+// Al abrir un proyecto, el usuario aterriza en el Home del proyecto (cards
+// de avance), no en la ruta que dejó el proyecto anterior — ese módulo
+// podría ni estar activo en el proyecto nuevo. La ruta previa solo se
+// respeta cuando vino explícita por deep-link de dev (?pulso=... + ruta).
+function resetRouteToProjectHome() {
+  if (typeof window === "undefined") return;
+  const base =
+    import.meta.env.BASE_URL && import.meta.env.BASE_URL !== "/"
+      ? import.meta.env.BASE_URL.replace(/\/$/, "")
+      : "";
+  const home = `${base}/`;
+  const url = new URL(window.location.href);
+  if (url.pathname === home) return;
+  window.history.replaceState(window.history.state, "", home);
+}
+
 function shouldUseDevQaWarmupSkip() {
   if (!import.meta.env.DEV || typeof window === "undefined") return false;
   const url = new URL(window.location.href);
@@ -768,7 +784,7 @@ export default function BootGate({ loadSuite }: BootGateProps) {
     });
   }, [enterSuite, pollBackendWarmup]);
 
-  const openProject = useCallback(async (pathOpt?: string | null) => {
+  const openProject = useCallback(async (pathOpt?: string | null, opts?: { preserveRoute?: boolean }) => {
     setError("");
     setPhase("opening");
     try {
@@ -787,6 +803,7 @@ export default function BootGate({ loadSuite }: BootGateProps) {
       const opened = await bootApiProjectOpen(chosenPath);
       const finalPath = opened.project_path || chosenPath;
       clearDevProjectPath();
+      if (!opts?.preserveRoute) resetRouteToProjectHome();
       if (window.prosecnurApi) {
         await window.prosecnurApi.pushRecentProject(finalPath).catch(() => []);
       }
@@ -819,6 +836,7 @@ export default function BootGate({ loadSuite }: BootGateProps) {
       }
       await bootApiCreateSession({ fresh: true });
       const saved = await bootApiProjectSave(chosenPath, projectName(chosenPath));
+      resetRouteToProjectHome();
       if (window.prosecnurApi) {
         await window.prosecnurApi.pushRecentProject(saved.path).catch(() => []);
       }
@@ -860,7 +878,9 @@ export default function BootGate({ loadSuite }: BootGateProps) {
         const launchPath = await window.prosecnurApi?.getLaunchProject?.().catch(() => null);
         const autoPath = devPath || launchPath || "";
         if (autoPath) {
-          await openProject(autoPath);
+          // El deep-link de dev (?pulso=) trae la ruta a propósito; el resto
+          // de aperturas aterrizan en el Home del proyecto.
+          await openProject(autoPath, { preserveRoute: Boolean(devPath) });
           return;
         }
 
