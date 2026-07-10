@@ -1410,6 +1410,66 @@
   out
 }
 
+# Lectura barata para las tarjetas de "proyectos recientes" del selector:
+# descomprime SOLO manifest.json (nunca state.rds) y devuelve metadata liviana.
+# Tolerante a rutas inexistentes o .pulso corruptos: siempre retorna una lista.
+.pulso_manifest_peek <- function(path) {
+  path <- as.character(path %||% "")[1]
+  info <- if (nzchar(path)) file.info(path) else list(size = NA_real_)
+  out <- list(
+    path = path,
+    exists = nzchar(path) && isTRUE(file.exists(path)),
+    readable = FALSE,
+    project_name = NA_character_,
+    processing_mode = NA_character_,
+    n_bases = NA_integer_,
+    n_files = NA_integer_,
+    saved_at = NA_character_,
+    size = if (!is.na(info$size %||% NA_real_)) as.numeric(info$size) else NA_real_
+  )
+  if (!isTRUE(out$exists)) return(out)
+
+  stage_dir <- tempfile("pulso_peek_")
+  dir.create(stage_dir, recursive = TRUE, showWarnings = FALSE)
+  on.exit(unlink(stage_dir, recursive = TRUE, force = TRUE), add = TRUE)
+
+  ok <- tryCatch({
+    utils::unzip(path, files = "manifest.json", exdir = stage_dir)
+    TRUE
+  }, error = function(e) FALSE)
+  manifest_path <- file.path(stage_dir, "manifest.json")
+  if (!isTRUE(ok) || !file.exists(manifest_path)) return(out)
+  out$readable <- TRUE
+
+  manifest <- tryCatch(jsonlite::fromJSON(manifest_path, simplifyVector = TRUE),
+                       error = function(e) list())
+  out$project_name <- .peek_chr(manifest$project_name)
+  out$processing_mode <- .peek_chr(manifest$processing_mode)
+  out$saved_at <- .peek_chr(manifest$saved_at)
+  out$n_bases <- suppressWarnings(as.integer(manifest$n_bases %||% NA_integer_))
+  out$n_files <- suppressWarnings(as.integer(manifest$n_files %||% NA_integer_))
+  ms <- manifest$modules_summary
+  if (!is.null(ms) && length(ms)) {
+    summary <- list(version = suppressWarnings(as.integer(ms$version %||% 1L)))
+    states <- ms$states
+    if (length(states)) {
+      # as.list: fromJSON simplifica states a vector nombrado y jsonlite
+      # serializa vectores nombrados como array (pierde las claves).
+      summary$states <- as.list(setNames(as.character(unlist(states)), names(states)))
+    }
+    added <- ms$added
+    if (!is.null(added) && length(added)) summary$added <- I(as.character(unlist(added)))
+    out$modules_summary <- summary
+  }
+  out
+}
+
+.peek_chr <- function(value) {
+  if (is.null(value) || length(value) == 0L) return(NA_character_)
+  out <- suppressWarnings(as.character(value[[1]]))
+  if (is.na(out) || !nzchar(trimws(out))) NA_character_ else out
+}
+
 .pulso_refuse_empty_project_overwrite <- function(s, dest_path, allow_empty_overwrite = FALSE) {
   if (isTRUE(allow_empty_overwrite)) return(invisible(FALSE))
   existing <- .pulso_existing_project_summary(dest_path)
@@ -1450,6 +1510,52 @@
     }
   }
   s
+}
+
+# Resumen compacto por módulo primario que viaja en manifest.json para que la
+# torre de control (chooser de BootGate) pinte los módulos vivos de cada
+# proyecto SIN abrirlo. Slugs sincronizados con lib/modules.ts; estados con la
+# taxonomía ready/active/warning/pending de .diseno_module_statuses. Los
+# sub-estados de procesamiento (carga..graficos) se agregan a un solo slug.
+.pulso_manifest_modules_summary <- function(s) {
+  protocol <- tryCatch(.diseno_protocol_summary(s), error = function(e) NULL)
+  if (is.null(protocol)) return(NULL)
+  statuses <- tryCatch(.diseno_module_statuses(s, protocol), error = function(e) NULL)
+  if (is.null(statuses)) return(NULL)
+  by_id <- list()
+  for (item in statuses) by_id[[item$id]] <- item$state
+
+  state_of <- function(ids) {
+    states <- unlist(by_id[ids], use.names = FALSE)
+    if (is.null(states) || !length(states)) return("pending")
+    if (any(states == "warning")) return("warning")
+    if (all(states == "ready")) return("ready")
+    if (any(states %in% c("ready", "active"))) return("active")
+    "pending"
+  }
+
+  bitacora_state <- state_of("plan-trabajo")
+  if (bitacora_state == "pending" && length(.diseno_bitacora_entries(s)) > 0L) {
+    bitacora_state <- "ready"
+  }
+
+  states <- list(
+    "diseno-estudio" = bitacora_state,
+    "calc-muestra"   = state_of("calc-muestra"),
+    "editor-xlsform" = state_of("editor-xlsform"),
+    "hojas-ruta"     = state_of("hojas-ruta"),
+    "recopiladores"  = state_of("recopiladores"),
+    "monitoreo"      = state_of("monitoreo"),
+    "procesamiento"  = state_of(c("carga", "validacion", "codificacion", "analitica", "graficos")),
+    "dashboard"      = state_of("dashboard")
+  )
+
+  out <- list(version = 1L, states = states)
+  # added solo si el proyecto curó su lista; I() fuerza array JSON aunque
+  # haya un solo slug (auto_unbox lo colapsaría a string).
+  added <- tryCatch(.project_added_modules(s), error = function(e) NULL)
+  if (!is.null(added)) out$added <- I(as.character(unlist(added)))
+  out
 }
 
 # -----------------------------------------------------------------------------
@@ -1535,6 +1641,8 @@ build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwri
                                 "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
     saved_at          = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   )
+  modules_summary <- .pulso_manifest_modules_summary(s)
+  if (!is.null(modules_summary)) manifest$modules_summary <- modules_summary
   writeLines(
     jsonlite::toJSON(manifest, auto_unbox = TRUE, pretty = TRUE),
     con = file.path(stage_dir, "manifest.json"), useBytes = TRUE

@@ -161,6 +161,38 @@ export async function bootApiProjectStatus() {
   );
 }
 
+/** Resumen por módulo persistido en manifest.json al guardar el proyecto.
+    `added` puede llegar como string si el array de un solo slug se des-boxeó
+    en alguna capa JSON; normalizar en el consumidor. */
+export type BootModulesSummary = {
+  version?: number;
+  states?: Record<string, string> | null;
+  added?: string[] | string | null;
+};
+
+export type BootManifestPeekItem = {
+  path: string;
+  exists: boolean;
+  readable: boolean;
+  project_name: string | null;
+  processing_mode: string | null;
+  n_bases: number | null;
+  n_files: number | null;
+  saved_at: string | null;
+  size: number | null;
+  modules_summary?: BootModulesSummary | null;
+};
+
+export async function bootApiProjectManifestPeek(paths: string[]) {
+  return handle<{ items: BootManifestPeekItem[] }>(
+    await apiFetch("/api/project/manifest-peek", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ paths }),
+    }),
+  );
+}
+
 export async function bootApiProjectWarmupPlan() {
   return handle<BootWarmupPlan>(
     await apiFetch("/api/project/warmup-plan", { headers: headers() }),
