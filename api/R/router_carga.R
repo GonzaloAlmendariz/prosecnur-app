@@ -1676,6 +1676,21 @@ mount_carga <- function(pr) {
       .carga_kobo_detected_source(sid)
     })) |>
 
+    # Puente Monitoreo -> Procesamiento (lado Carga). El STATUS es barato: no
+    # stagea archivos ni jala Kobo; solo cuenta por universo desde el snapshot y
+    # reporta de que fuente saldria el instrumento (la preferencia Kobo API vs
+    # local la decide el helper congelado, ver carga_monitoreo_handoff.R).
+    plumber::pr_get("/api/carga/monitoreo-handoff/status", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      .carga_monitoreo_handoff_status(sid)
+    })) |>
+
+    plumber::pr_post("/api/carga/monitoreo-handoff/promote", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      parsed <- .carga_parse_json_body(req)
+      .carga_monitoreo_handoff_promote(sid, parsed)
+    })) |>
+
     plumber::pr_post("/api/carga/platform/kobo/assets", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .carga_parse_json_body(req)
