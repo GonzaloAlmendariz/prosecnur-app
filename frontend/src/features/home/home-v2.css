@@ -163,10 +163,10 @@
      abajo. Con contenido alto los márgenes colapsan y scrollea desde arriba. */
   margin-block: auto;
   width: 100%;
-  /* Cap generoso: pocas cartas se estiran (1fr) para LLENAR el ancho; muchas
-     se comprimen en más columnas. El techo evita que en ultrawide se estire
-     sin límite. El tamaño de carta lo modula data-density (ver el grid). */
-  max-width: min(1640px, 100%);
+  /* Llena el ancho disponible (solo el padding base del layout como margen);
+     el techo alto evita estirarse sin límite en ultrawide. Pocas cartas se
+     estiran (1fr) y muchas suman columnas — el tamaño lo modula data-density. */
+  max-width: min(2160px, 100%);
   align-self: center;
 }
 
