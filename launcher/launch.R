@@ -65,6 +65,42 @@ if (nzchar(Sys.getenv("PULSO_PROSECNUR_DEV", ""))) {
           "Podés desexportarlo sin problema.")
 }
 
+# --- Guard: mantener el paquete INSTALADO fresco para los jobs callr ---------
+# El backend principal carga la FUENTE con load_all (abajo), pero las
+# operaciones pesadas corren en subprocesos callr (auditoría de validación,
+# cruces, codebook, exports) que terminan cargando el prosecnurapp INSTALADO en
+# la librería de R, no la fuente. Si la fuente es más nueva que lo instalado, un
+# fix a código que corre en un job NO toma efecto por más que reinicies (el job
+# sigue con la versión vieja). Reinstalamos automáticamente cuando la fuente
+# cambió, para que ningún job corra código viejo. Solo reinstala si de verdad
+# hay staleness (chequeo de mtime instantáneo); si falla, avisa pero no bloquea.
+local({
+  installed_dir <- tryCatch(find.package("prosecnurapp"), error = function(e) NA_character_)
+  needs_reinstall <- is.na(installed_dir)
+  if (!needs_reinstall) {
+    src_files <- c(
+      list.files(file.path(api_dir, "R"), pattern = "\\.R$", full.names = TRUE),
+      file.path(api_dir, "DESCRIPTION"), file.path(api_dir, "NAMESPACE")
+    )
+    src_mtime  <- suppressWarnings(max(file.info(src_files)$mtime, na.rm = TRUE))
+    inst_mtime <- file.info(file.path(installed_dir, "DESCRIPTION"))$mtime
+    needs_reinstall <- isTRUE(is.finite(as.numeric(src_mtime)) &&
+                                !is.na(inst_mtime) && src_mtime > inst_mtime)
+  }
+  if (isTRUE(needs_reinstall)) {
+    cat("[prosecnur-app] Paquete instalado desactualizado vs fuente — ",
+        "reinstalando para que los jobs callr corran código actual...\n", sep = "")
+    ok <- tryCatch({
+      utils::install.packages(
+        api_dir, repos = NULL, type = "source", quiet = TRUE,
+        INSTALL_opts = c("--no-multiarch", "--no-docs", "--no-byte-compile")
+      )
+      TRUE
+    }, error = function(e) { message("[prosecnur-app] WARN: no se pudo reinstalar prosecnurapp: ", conditionMessage(e)); FALSE })
+    if (isTRUE(ok)) cat("[prosecnur-app] prosecnurapp reinstalado desde fuente.\n")
+  }
+})
+
 # Cargar el paquete de la app (ya incluye el motor).
 if (requireNamespace("devtools", quietly = TRUE)) {
   devtools::load_all(api_dir, quiet = TRUE)
