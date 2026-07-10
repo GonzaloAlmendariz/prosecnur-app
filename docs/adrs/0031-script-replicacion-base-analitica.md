@@ -1,8 +1,8 @@
 # ADR 0031: Script de replicacion (.R) de la base de Analitica
 
-Estado: Propuesto
+Estado: Aceptado
 
-Fecha: 2026-07-10
+Fecha: 2026-07-10 (Aceptado e implementado 2026-07-10)
 
 ## Contexto
 
