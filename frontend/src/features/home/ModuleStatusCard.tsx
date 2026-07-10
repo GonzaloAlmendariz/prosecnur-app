@@ -1,4 +1,4 @@
-import type { CSSProperties, KeyboardEvent } from "react";
+import { forwardRef, type CSSProperties, type KeyboardEvent } from "react";
 import { ArrowRight, MoreHorizontal, TriangleAlert } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { homeModuleVars, type ProsecnurModuleMeta } from "../../lib/modules";
@@ -100,17 +100,15 @@ function WindowsView({ items, label, sub }: { items: string[]; label: string; su
 // Tarjeta de módulo: marca de agua branded del ícono, indicador hero del
 // dominio, franja de facts con las cifras que se consultan antes de entrar,
 // y flecha de acceso. Quitar el módulo pide confirmación (kebab).
-export function ModuleStatusCard({
-  module,
-  view,
-  index,
-  onRequestRemove,
-}: {
-  module: ProsecnurModuleMeta;
-  view: ModuleCardView;
-  index: number;
-  onRequestRemove: (slug: string) => void;
-}) {
+export const ModuleStatusCard = forwardRef<
+  HTMLDivElement,
+  {
+    module: ProsecnurModuleMeta;
+    view: ModuleCardView;
+    index: number;
+    onRequestRemove: (slug: string) => void;
+  }
+>(function ModuleStatusCard({ module, view, index, onRequestRemove }, ref) {
   const navigate = useNavigate();
   const Icon = module.icon;
   const to = module.to;
@@ -127,6 +125,7 @@ export function ModuleStatusCard({
 
   return (
     <div
+      ref={ref}
       className={`home-mc-card is-${view.state}`}
       style={{ ...homeModuleVars(module), ["--i" as string]: index } as CSSProperties}
       role="button"
@@ -198,4 +197,4 @@ export function ModuleStatusCard({
       </span>
     </div>
   );
-}
+});
