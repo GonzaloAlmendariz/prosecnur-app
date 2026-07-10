@@ -4168,6 +4168,17 @@ mount_analitica <- function(pr) {
       .analitica_status_set(sid, "analitica_bases_xlsx_ok", TRUE)
       result
     })) |>
+    plumber::pr_post("/api/analitica/bases/script-r", wrap_endpoint(function(req, res, ...) {
+      # Script de replicación (.R) — ADR 0031. Un .R por base (zip si N > 1) que,
+      # corrido sobre el crudo de Kobo, reproduce exacto la base final (códigos)
+      # respetando la sanitización (universo por identificador de caso, sin
+      # metadata interna). Router delgado: toda la lógica vive en el engine.
+      sid <- session_header(req)
+      cfg <- .analitica_get_config(sid)
+      result <- .script_replica_run(sid, cfg)
+      .analitica_status_set(sid, "analitica_bases_script_r_ok", TRUE)
+      result
+    })) |>
     plumber::pr_post("/api/analitica/bases/xlsx-unificada", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       cfg <- .analitica_get_config(sid)

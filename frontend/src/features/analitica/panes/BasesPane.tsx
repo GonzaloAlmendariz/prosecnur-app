@@ -8,6 +8,7 @@ import {
   apiAnaliticaBasesCsv,
   apiAnaliticaBasesXlsx,
   apiAnaliticaBasesXlsxUnificada,
+  apiAnaliticaBasesScriptR,
   type BasesSavWriterInfo,
 } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
@@ -72,6 +73,7 @@ export function BasesPane() {
         <SavCard cfg={bases.sav} onChange={setBasesSav} />
         <CsvCard cfg={bases.csv} onChange={setBasesCsv} />
         <XlsxCard cfg={bases.xlsx} onChange={setBasesXlsx} />
+        <ScriptReplicaCard />
       </div>
     </Panel>
   );
@@ -489,6 +491,46 @@ function XlsxCard({
           busy={run.busy}
           fileId={run.fileId}
           downloadName={run.filename ?? "datos.xlsx"}
+          error={run.error}
+          onGenerate={onGenerate}
+          perBase={run.perBase}
+        />
+      </div>
+    </Section>
+  );
+}
+
+// ---- Script de replicación (.R) -------------------------------------------
+
+function ScriptReplicaCard() {
+  const run = useReporteRun();
+
+  async function onGenerate() {
+    await run.runSync(apiAnaliticaBasesScriptR);
+  }
+
+  return (
+    <Section
+      title={
+        <span className="analitica-inline-title">
+          <FileCode2 size={14} /> Reproducir la base (.R)
+        </span>
+      }
+      subtitle="Entregable opcional para la reproducibilidad metodológica del cliente."
+    >
+      <div className="analitica-bases-format-stack">
+        <div className="analitica-bases-file-note">
+          <code>replicar_base.R</code>
+          <div>
+            Script de R autocontenido y comentado que, corrido sobre el crudo que el cliente descarga de Kobo, reproduce exactamente esta misma base final. El cliente puede correrlo por su cuenta, sin depender de Prosecnur.
+          </div>
+        </div>
+
+        <GenerateFooter
+          label="Descargar script de replicación"
+          busy={run.busy}
+          fileId={run.fileId}
+          downloadName={run.filename ?? "replicar_base.R"}
           error={run.error}
           onGenerate={onGenerate}
           perBase={run.perBase}

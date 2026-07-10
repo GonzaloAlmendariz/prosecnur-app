@@ -9921,6 +9921,12 @@ export async function apiAnaliticaBasesXlsx(body: BasesXlsxBody = {}) {
   );
 }
 
+export async function apiAnaliticaBasesScriptR() {
+  return handle<MultiBaseResult>(
+    await apiFetch("/api/analitica/bases/script-r", { method: "POST", headers: headers() })
+  );
+}
+
 export async function apiAnaliticaBasesXlsxUnificada(body: BasesXlsxBody = {}) {
   return handle<MultiBaseResult>(
     await apiFetch("/api/analitica/bases/xlsx-unificada", {
