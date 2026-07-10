@@ -1676,20 +1676,22 @@
   wb <- openxlsx::createWorkbook()
   sheet <- "Codebook"
   openxlsx::addWorksheet(wb, sheet)
+  # Fondo blanco en TODO el documento apagando las gridlines (reemplaza el canvas
+  # acotado a cols 1:max_col, que dejaba gridlines a la derecha del ultimo bloque).
+  pulso_xlsx_hide_gridlines(wb, sheet)
 
   block_width <- 3L
   gap_width <- 1L
   n_blocks <- max(1L, length(suffix_order))
   max_col <- n_blocks * block_width + max(0L, n_blocks - 1L) * gap_width
 
-  clearStyle <- openxlsx::createStyle(fgFill = "#FFFFFF", fontName = "Arial", fontSize = 10)
-  openxlsx::addStyle(wb, sheet, clearStyle, rows = 1:50000, cols = 1:max_col, gridExpand = TRUE, stack = TRUE)
-
-  st_varname <- openxlsx::createStyle(textDecoration = "italic", halign = "left", valign = "center")
-  st_val_row <- openxlsx::createStyle(border = c("top", "bottom"), borderStyle = "thin")
-  st_attr_lbl <- openxlsx::createStyle(halign = "left", valign = "top")
-  st_vals <- openxlsx::createStyle(halign = "left", valign = "top", wrapText = TRUE)
-  st_btm <- openxlsx::createStyle(border = "bottom", borderStyle = "thin")
+  # Estilos del tema monocromo editorial unico (ver api/R/xlsx_theme.R).
+  .st <- pulso_xlsx_styles("codebook")
+  st_varname  <- .st$st_varname
+  st_val_row  <- .st$st_val_row
+  st_attr_lbl <- .st$st_attr_lbl
+  st_vals     <- .st$st_vals
+  st_btm      <- .st$st_btm
 
   start_col_for <- function(suffix) {
     idx <- match(suffix, suffix_order)
@@ -1731,7 +1733,8 @@
     openxlsx::writeData(wb, sheet, x = codes, startCol = col0 + 1L, startRow = vals_start, colNames = FALSE)
     openxlsx::writeData(wb, sheet, x = labels, startCol = col0 + 2L, startRow = vals_start, colNames = FALSE)
     openxlsx::addStyle(wb, sheet, st_vals, rows = vals_start:vals_end, cols = col0:(col0 + 2L), gridExpand = TRUE)
-    openxlsx::addStyle(wb, sheet, st_btm, rows = vals_end, cols = col0:(col0 + 2L), gridExpand = TRUE)
+    # cuadro del bloque (marco exterior definido)
+    pulso_xlsx_box(wb, sheet, r1 = row0, r2 = vals_end, c1 = col0, c2 = col0 + 2L)
 
     3L + n
   }
@@ -1777,6 +1780,7 @@
   }
 
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  if (exists("pulso_xlsx_ignore_number_warnings", mode = "function")) pulso_xlsx_ignore_number_warnings(path)
   message("Codebook guardado en: ", normalizePath(path, winslash = "/"))
   invisible(normalizePath(path, winslash = "/"))
 }

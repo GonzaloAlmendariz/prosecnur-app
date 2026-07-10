@@ -724,11 +724,7 @@ write_one_numeric <- function(wb, sheet, data, var, dic_vars,
 
   # Fuente
   openxlsx::writeData(wb, sheet, paste0("Fuente: ", fuente), startRow = fila, startCol = start_col, colNames = FALSE)
-  openxlsx::addStyle(
-    wb, sheet,
-    openxlsx::createStyle(fontSize = 9, fontColour = "#666666", halign = "left", fontName = "Arial"),
-    rows = fila, cols = start_col, gridExpand = TRUE
-  )
+  openxlsx::addStyle(wb, sheet, st$note, rows = fila, cols = start_col, gridExpand = TRUE)
   openxlsx::mergeCells(wb, sheet, rows = fila, cols = start_col:(start_col + 1))
 
   # Anchos (compatibles con tu layout general)
@@ -1432,159 +1428,17 @@ freq_table_spss <- function(data, var, survey = NULL, sm_vars_force = NULL,
 
 #' @noRd
 mk_styles_spss <- function() {
-  list(
-    sec_title = openxlsx::createStyle(
-      fontSize = 18,
-      textDecoration = NULL,
-      halign = "center",
-      valign = "center",
-      wrapText = TRUE,
-      fgFill = "#FFFFFF",
-      fontColour = "#000000",
-      fontName = "Arial"
-    ),
-    q_title = openxlsx::createStyle(
-      fontSize = 11,
-      textDecoration = "italic",
-      halign = "left",
-      valign = "center",
-      wrapText = TRUE,
-      fgFill = "#FFFFFF",
-      fontColour = "#000000",
-      fontName = "Arial"
-    ),
-    header = openxlsx::createStyle(
-      fontSize = 10,
-      textDecoration = NULL,
-      border = c("top", "bottom"),
-      borderStyle = "thin",
-      borderColour = "#000000",
-      halign = "center",
-      valign = "center",
-      fgFill = "#FFFFFF",
-      fontName = "Arial"
-    ),
-    body_txt = openxlsx::createStyle(
-      fontSize = 10,
-      textDecoration = NULL,
-      border = c(),
-      halign = "left",
-      valign = "center",
-      fgFill = "#FFFFFF",
-      fontName = "Arial",
-      wrapText = TRUE
-    ),
-    # Conteos (n) -> entero
-    body_int = openxlsx::createStyle(
-      fontSize = 10,
-      numFmt   = "#,##0",
-      halign   = "right",
-      valign   = "center",
-      fgFill   = "#FFFFFF",
-      fontName = "Arial"
-    ),
-    # Numéricos resumen -> 1 decimal (o lo que uses)
-    body_num = openxlsx::createStyle(
-      fontSize = 10,
-      numFmt   = "#,##0.0",
-      halign   = "right",
-      valign   = "center",
-      fgFill   = "#FFFFFF",
-      fontName = "Arial",
-      wrapText = FALSE
-    ),
-    body_pct = openxlsx::createStyle(
-      fontSize = 10,
-      textDecoration = NULL,
-      numFmt = "0.0%",
-      border = c(),
-      halign = "right",
-      valign = "center",
-      fgFill = "#FFFFFF",
-      fontName = "Arial",
-      wrapText = FALSE
-    ),
-    total_row = openxlsx::createStyle(
-      fontSize = 10,
-      textDecoration = NULL,
-      numFmt = "#,##0",
-      halign = "right",
-      valign = "center",
-      fgFill = "#FFFFFF",
-      fontName = "Arial",
-      wrapText = FALSE
-    ),
-    freq_body_int = openxlsx::createStyle(
-      fontSize = 10,
-      numFmt   = "#,##0",
-      halign   = "center",
-      valign   = "center",
-      fgFill   = "#FFFFFF",
-      fontName = "Arial",
-      wrapText = FALSE
-    ),
-    freq_body_pct = openxlsx::createStyle(
-      fontSize = 10,
-      textDecoration = NULL,
-      numFmt = "0.0%",
-      border = c(),
-      halign = "center",
-      valign = "center",
-      fgFill = "#FFFFFF",
-      fontName = "Arial",
-      wrapText = FALSE
-    ),
-    freq_total_num = openxlsx::createStyle(
-      fontSize = 10,
-      textDecoration = NULL,
-      numFmt = "#,##0",
-      halign = "center",
-      valign = "center",
-      fgFill = "#FFFFFF",
-      fontName = "Arial",
-      wrapText = FALSE
-    ),
-    freq_total_pct = openxlsx::createStyle(
-      fontSize = 10,
-      textDecoration = NULL,
-      numFmt = "0.0%",
-      halign = "center",
-      valign = "center",
-      fgFill = "#FFFFFF",
-      fontName = "Arial",
-      wrapText = FALSE
-    ),
-    total_label = openxlsx::createStyle(
-      fontSize = 10,
-      textDecoration = NULL,
-      halign = "left",
-      valign = "center",
-      fgFill = "#FFFFFF",
-      fontName = "Arial"
-    ),
-    table_end = openxlsx::createStyle(
-      border = c("bottom"),
-      borderStyle = "thin",
-      borderColour = "#000000"
-    )
-  )
+  # Tema monocromo editorial unico (ver api/R/xlsx_theme.R).
+  pulso_xlsx_styles("freq")
 }
 
 #' @noRd
 .prepare_frecuencias_sheet <- function(wb, sheet, rows = 5000L, cols = 30L) {
-  if ("showGridLines" %in% getNamespaceExports("openxlsx")) {
-    openxlsx::showGridLines(wb, sheet, showGridLines = FALSE)
-  }
-
-  white_canvas <- openxlsx::createStyle(fgFill = "#FFFFFF", fontName = "Arial")
-  openxlsx::addStyle(
-    wb, sheet, white_canvas,
-    rows = seq_len(rows),
-    cols = seq_len(cols),
-    gridExpand = TRUE,
-    stack = TRUE
-  )
-
+  # El fondo blanco en TODO el documento se logra apagando las gridlines de la
+  # hoja (no pintando un canvas acotado, que dejaba celdas sin cubrir a la
+  # derecha de la col 30 / debajo de la fila 5000). rows/cols se conservan en la
+  # firma por compatibilidad con los llamadores, pero ya no se usan.
+  pulso_xlsx_hide_gridlines(wb, sheet)
   invisible(wb)
 }
 
@@ -1618,13 +1472,6 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
     ncols_title <- if (isTRUE(incluir_porcentajes)) 3L else 2L
     openxlsx::mergeCells(wb, sheet, cols = start_col:(start_col + ncols_title - 1L), rows = fila:fila)
     openxlsx::addStyle(wb, sheet, st$q_title, rows = fila, cols = start_col, gridExpand = TRUE, stack = TRUE)
-    openxlsx::addStyle(
-      wb, sheet, st$table_end,
-      rows = fila,
-      cols = start_col:(start_col + ncols_title - 1L),
-      gridExpand = TRUE,
-      stack = TRUE
-    )
     openxlsx::setRowHeights(
       wb, sheet, rows = fila,
       heights = .auto_row_height(label_q, chars_per_line = 70, base = 24, per_line = 16)
@@ -1632,6 +1479,7 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
     fila <- fila + 1
   }
 
+  hdr_row <- fila  # primera fila del cuadro de la tabla (encabezado N/%)
   header_vec <- if (isTRUE(incluir_porcentajes)) c("N", "%") else "N"
   openxlsx::writeData(wb, sheet, t(header_vec), startRow = fila, startCol = start_col + 1L, colNames = FALSE)
   if (isTRUE(incluir_titulo)) {
@@ -1693,15 +1541,24 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
     r_ini <- fila
     r_fin <- fila + nrow(body_rows) - 1
 
-    openxlsx::addStyle(wb, sheet, st$body_txt, rows = r_ini:r_fin, cols = start_col, gridExpand = TRUE)
-    openxlsx::addStyle(wb, sheet, st$freq_body_int, rows = r_ini:r_fin, cols = start_col + 1, gridExpand = TRUE)
-    if (isTRUE(incluir_porcentajes)) {
-      openxlsx::addStyle(wb, sheet, st$freq_body_pct, rows = r_ini:r_fin, cols = start_col + 2, gridExpand = TRUE)
+    # Zebra sutil: sombrea filas alternas (2, 4, ...) para seguir la fila a lo ancho.
+    for (k in seq_len(nrow(body_rows))) {
+      rr <- r_ini + k - 1L
+      z  <- (k %% 2L == 0L)
+      openxlsx::addStyle(wb, sheet, if (z) st$zebra_txt else st$body_txt,
+                         rows = rr, cols = start_col)
+      openxlsx::addStyle(wb, sheet, if (z) st$zebra_int else st$freq_body_int,
+                         rows = rr, cols = start_col + 1)
+      if (isTRUE(incluir_porcentajes)) {
+        openxlsx::addStyle(wb, sheet, if (z) st$zebra_pct else st$freq_body_pct,
+                           rows = rr, cols = start_col + 2)
+      }
     }
 
     fila <- r_fin + 1
   }
 
+  end_col <- start_col + if (isTRUE(incluir_porcentajes)) 2L else 1L
   if (!is.null(total_row) && nrow(total_row)) {
     openxlsx::writeData(wb, sheet, total_row, startRow = fila, startCol = start_col, colNames = FALSE)
 
@@ -1710,26 +1567,17 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
     if (isTRUE(incluir_porcentajes)) {
       openxlsx::addStyle(wb, sheet, st$freq_total_pct, rows = fila, cols = start_col + 2, gridExpand = TRUE)
     }
-
-    end_col <- start_col + if (isTRUE(incluir_porcentajes)) 2L else 1L
-    openxlsx::addStyle(wb, sheet, st$table_end, rows = fila, cols = start_col:end_col, gridExpand = TRUE, stack = TRUE)
+    last_row <- fila
     fila <- fila + 1
   } else {
-    end_col <- start_col + if (isTRUE(incluir_porcentajes)) 2L else 1L
-    openxlsx::addStyle(
-      wb, sheet, st$table_end,
-      rows = max(start_row + 1, fila - 1),
-      cols = start_col:end_col,
-      gridExpand = TRUE, stack = TRUE
-    )
+    last_row <- max(start_row + 1, fila - 1)
   }
 
+  # cuadro completo de la tabla (marco exterior)
+  pulso_xlsx_box(wb, sheet, r1 = hdr_row, r2 = last_row, c1 = start_col, c2 = end_col)
+
   openxlsx::writeData(wb, sheet, paste0("Fuente: ", fuente), startRow = fila, startCol = start_col, colNames = FALSE)
-  openxlsx::addStyle(
-    wb, sheet,
-    openxlsx::createStyle(fontSize = 9, fontColour = "#666666", halign = "left", fontName = "Arial"),
-    rows = fila, cols = start_col, gridExpand = TRUE
-  )
+  openxlsx::addStyle(wb, sheet, st$note, rows = fila, cols = start_col, gridExpand = TRUE)
 
   openxlsx::setColWidths(wb, sheet, cols = start_col,     widths = 55)
   openxlsx::setColWidths(wb, sheet, cols = start_col + 1, widths = 14)
@@ -1819,11 +1667,7 @@ write_one_numeric <- function(wb, sheet, data, var, dic_vars,
   fila <- r_fin + 1
 
   openxlsx::writeData(wb, sheet, paste0("Fuente: ", fuente), startRow = fila, startCol = start_col, colNames = FALSE)
-  openxlsx::addStyle(
-    wb, sheet,
-    openxlsx::createStyle(fontSize = 9, fontColour = "#666666", halign = "left", fontName = "Arial"),
-    rows = fila, cols = start_col, gridExpand = TRUE
-  )
+  openxlsx::addStyle(wb, sheet, st$note, rows = fila, cols = start_col, gridExpand = TRUE)
   openxlsx::mergeCells(wb, sheet, rows = fila, cols = start_col:(start_col + 1))
 
   openxlsx::setColWidths(wb, sheet, cols = start_col,     widths = 55)
@@ -1986,6 +1830,7 @@ exportar_frecuencias_spss <- function(
   }
 
   openxlsx::saveWorkbook(wb, path_xlsx, overwrite = TRUE)
+  if (exists("pulso_xlsx_ignore_number_warnings", mode = "function")) pulso_xlsx_ignore_number_warnings(path_xlsx)
   message("Frecuencias exportadas a: ", normalizePath(path_xlsx, winslash = "/"))
   invisible(normalizePath(path_xlsx, winslash = "/"))
 }
