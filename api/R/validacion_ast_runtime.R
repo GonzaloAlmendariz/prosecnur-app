@@ -573,6 +573,16 @@ validation_bundle_from_plan_xlsx <- function(path,
   tolower(x)
 }
 
+#' Cobertura de datos de una columna (celdas no vacías tras normalizar).
+#' Un placeholder totalmente en blanco cuenta 0 y no debe ganar sobre una
+#' variante poblada al restaurar el nombre del instrumento.
+#' @keywords internal
+.restore_col_filled <- function(x) {
+  if (is.null(x)) return(0L)
+  v <- trimws(as.character(x))
+  sum(!is.na(v) & nzchar(v) & v != "NA")
+}
+
 .restore_instrument_case_aliases <- function(tables, instrumento = NULL) {
   survey <- if (!is.null(instrumento)) instrumento$survey else NULL
   if (is.null(survey) || !is.data.frame(survey) || !"name" %in% names(survey) || !length(tables)) {
@@ -586,13 +596,38 @@ validation_bundle_from_plan_xlsx <- function(path,
   lapply(tables, function(df) {
     if (!is.data.frame(df) || !ncol(df)) return(df)
     current_names <- names(df)
-    canon_current <- .runtime_name_canon(current_names)
+    # Canon que ADEMÁS colapsa el prefijo de grupo (`grupo/var` -> `var`).
+    # Sin esto, una base Kobo limpia con columnas prefijadas
+    # (`D/D1_information`) no aliasa a la variable del instrumento
+    # (`D1_information`) y la regla queda `no_aplicable` (falso negativo).
+    canon_leaf <- .runtime_name_canon(sub("^.*/", "", current_names))
 
     for (var in instrument_vars) {
-      if (var %in% current_names) next
-      hit <- match(.runtime_name_canon(var), canon_current)
-      if (!is.na(hit) && nzchar(current_names[hit])) {
-        df[[var]] <- df[[current_names[hit]]]
+      var_canon <- .runtime_name_canon(sub("^.*/", "", var))
+      cand_idx <- which(canon_leaf == var_canon)
+      if (!length(cand_idx)) next
+
+      # Si la variable ya existe con su nombre exacto Y con datos, respétala.
+      exact_pos <- match(var, current_names)
+      if (!is.na(exact_pos) && .restore_col_filled(df[[exact_pos]]) > 0L) next
+
+      # Elegir la mejor fuente: primero la de mayor cobertura de datos; ante
+      # empate, la de nombre exacto y sin prefijo de grupo. Esto evita que un
+      # placeholder vacío de la madre select_multiple (que queda en blanco tras
+      # la expansión a dummies) sombree la variante poblada y dispare las
+      # reglas required/skip en falso sobre toda la base.
+      fill <- vapply(cand_idx, function(i) .restore_col_filled(df[[i]]), integer(1))
+      exactness <- vapply(cand_idx, function(i) {
+        nm <- current_names[i]
+        (if (identical(nm, var)) 2L else 0L) + (if (!grepl("/", nm, fixed = TRUE)) 1L else 0L)
+      }, integer(1))
+      best <- cand_idx[order(-fill, -exactness)][1]
+
+      # No sobre-escribir una columna con un placeholder vacío: solo copiamos
+      # si la fuente aporta datos, o si la variable aún no existía (crear el
+      # alias aunque venga vacío es inocuo y preserva el comportamiento previo).
+      if (.restore_col_filled(df[[best]]) > 0L || is.na(exact_pos)) {
+        df[[var]] <- df[[best]]
       }
     }
     df
