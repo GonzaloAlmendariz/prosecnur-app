@@ -21,7 +21,7 @@ const monitoreoPageSource = path.resolve(__dirname, "src/features/monitoreo/Moni
 const monitoreoPageVirtual = "\0virtual:monitoreo-page";
 
 const isPublicMode = process.env.VITE_PULSO_PUBLIC_MODE === "true";
-const devPort = Number(process.env.VITE_DEV_PORT || "5173");
+const devPort = Number(process.env.VITE_DEV_PORT || process.env.PORT || "5173");
 const apiProxyTarget =
   process.env.VITE_API_PROXY_TARGET ||
   `http://127.0.0.1:${process.env.PULSO_PORT || "8787"}`;

@@ -5,7 +5,8 @@
       "name": "Frontend (Vite dev server)",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--dir", "frontend", "dev"],
-      "port": 5173
+      "port": 5173,
+      "autoPort": true
     },
     {
       "name": "Frontend (modo público)",
