@@ -29,6 +29,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
   } else {
     pr <- mount_jobs(pr)
     pr <- mount_proyecto(pr)
+    pr <- mount_project_overview(pr)
     pr <- mount_carga(pr)
     pr <- mount_connections(pr)
     pr <- mount_xlsform_editor(pr)
