@@ -1,30 +1,15 @@
-import {
-  type CSSProperties,
-  type KeyboardEvent,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import {
-  ArrowRight,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Power,
-  Settings2,
-} from "lucide-react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import { Power, Settings2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import type { SessionState } from "../../api/client";
-import { useLayoutPreset, type LayoutPreset } from "../../lib/layoutPreference";
+import { useLayoutPreset } from "../../lib/layoutPreference";
 import { useSession } from "../../lib/SessionContext";
-import {
-  PROSECNUR_PRIMARY_MODULES as MODULES,
-  homeModuleVars,
-  type ProsecnurModuleMeta,
-} from "../../lib/modules";
 import { useProjectShell } from "../project/ProjectShell";
+import { useProjectModules } from "../project/ProjectModulesContext";
 import { GlobalSettingsDialog } from "./GlobalSettingsDialog";
+import { MissionControl, type ProcState } from "./MissionControl";
+import { ModuleCarousel } from "./ModuleCarousel";
+import { ModulePickerDialog } from "./ModulePickerDialog";
 import {
   type ReleaseNote,
 } from "./ReleaseNotesDrawer";
@@ -43,36 +28,6 @@ import "./home-v2.css";
 //
 // Los estilos viven en `app/theme.css` con prefijo `.home-*`.
 // El motion reusa los tokens centralizados (--motion-dur-*, --motion-ease-out).
-
-export type ModuleMeta = ProsecnurModuleMeta;
-
-type ModuleMotionDirection = "forward" | "backward";
-type CinemaDensity = "compact" | "standard" | "roomy";
-type CinemaMetrics = {
-  cardWidth: number;
-  cardMinHeight: number;
-  cardStep: number;
-  cardYOffset: number;
-  cardRotate: number;
-  cardTilt: number;
-  scaleDrop: number;
-  minScale: number;
-  hiddenDistance: number;
-  density: CinemaDensity;
-};
-
-const DEFAULT_CINEMA_METRICS: CinemaMetrics = {
-  cardWidth: 372,
-  cardMinHeight: 398,
-  cardStep: 236,
-  cardYOffset: 10,
-  cardRotate: 4.5,
-  cardTilt: 10,
-  scaleDrop: 0.105,
-  minScale: 0.72,
-  hiddenDistance: 1,
-  density: "roomy",
-};
 
 // ---- Notas de la versión --------------------------------------------
 const RELEASE_NOTES: ReleaseNote[] = [
@@ -260,12 +215,7 @@ const PULSO_FULL_NAME =
   "Instituto de Analítica Social e Inteligencia Estratégica de la Pontificia Universidad Católica del Perú (PULSO PUCP)";
 
 // ---- Estado del módulo "Procesamiento" ------------------------------
-type ModulePhaseState = {
-  done: number;
-  total: number;
-};
-
-function useProcesamientoState(): ModulePhaseState {
+function useProcesamientoState(): ProcState {
   const { state } = useSession();
   const phases = [
     { done: !!state?.xlsform && !!state?.data },
@@ -279,56 +229,114 @@ function useProcesamientoState(): ModulePhaseState {
     if (!phase.done) break;
     done += 1;
   }
-  return { done, total: phases.length };
-}
-
-// ---- Mini-estado por módulo (solo cuando aplique) -------------------
-function computeMeta(
-  slug: string,
-  state: SessionState | null,
-  proc: ModulePhaseState,
-): string | null {
-  switch (slug) {
-    case "editor-xlsform":
-      return null;
-    case "procesamiento":
-      return proc.done > 0 ? `${proc.done}/${proc.total} fases` : null;
-    case "dashboard":
-      return state?.xlsform && state?.data ? "Listo para explorar" : null;
-    case "hojas-ruta":
-      return state?.hojas_ruta_ok ? "Lista generada" : null;
-    case "calc-muestra":
-      return null;
-    case "recopiladores":
-      return null;
-    case "monitoreo":
-      return null;
-    default:
-      return null;
-  }
+  // Sub-salidas de Analítica generadas (progreso característico dentro de la fase).
+  const analiticaFlags = [
+    state?.analitica_codebook_ok,
+    state?.analitica_frecuencias_ok,
+    state?.analitica_cruces_ok,
+    state?.analitica_dim_ok,
+    state?.analitica_panel_ok,
+    state?.analitica_ficha_tecnica_ok,
+    state?.analitica_spss_ok,
+    state?.analitica_enumeradores_ok,
+    state?.analitica_multibase_ok,
+  ];
+  return {
+    done,
+    total: phases.length,
+    analiticaDone: analiticaFlags.filter(Boolean).length,
+    analiticaTotal: analiticaFlags.length,
+    ppt: !!state?.graficos_ppt_ok,
+    word: !!state?.graficos_word_ok,
+  };
 }
 
 // =====================================================================
 // Componente principal
 // =====================================================================
 export default function HomePage() {
-  const { state, version } = useSession();
+  const { version } = useSession();
   const { requestAppExit } = useProjectShell();
   const location = useLocation();
+  const navigate = useNavigate();
   const proc = useProcesamientoState();
   const [layoutPreset] = useLayoutPreset();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const { overview, loading, addedSlugs, addModule, removeModule } = useProjectModules();
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("settings") === "connections" || params.get("settings") === "configuracion") {
       setSettingsOpen(true);
     }
+    if (params.get("agregar") === "1") setPickerOpen(true);
   }, [location.search]);
 
+  useEffect(() => {
+    if (!pickerOpen) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") closePicker();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickerOpen]);
+
+  const hasModules = addedSlugs.length > 0;
+
+  const picker = useMemo(
+    () => ({
+      isAdded: (slug: string) => addedSlugs.includes(slug),
+      onAdd: addModule,
+      onRemove: removeModule,
+    }),
+    [addedSlugs, addModule, removeModule],
+  );
+
+  function closePicker() {
+    setPickerOpen(false);
+    const params = new URLSearchParams(location.search);
+    if (params.has("agregar")) {
+      params.delete("agregar");
+      navigate({ pathname: "/", search: params.toString() ? `?${params.toString()}` : "" }, { replace: true });
+    }
+  }
+
+  let content: ReactNode;
+  if (loading && !overview) {
+    content = <div className="home-suite"><MissionControlSkeleton /></div>;
+  } else if (hasModules && overview) {
+    content = (
+      <div className="home-suite">
+        <MissionControl
+          overview={overview}
+          proc={proc}
+          addedSlugs={addedSlugs}
+          onAddModule={() => setPickerOpen(true)}
+          onRemoveModule={removeModule}
+        />
+      </div>
+    );
+  } else {
+    content = (
+      <div className="home-setup">
+        <header className="home-setup-head">
+          <p className="home-setup-kicker">Nuevo proyecto</p>
+          <h1>Arma tu proyecto</h1>
+          <p className="home-setup-sub">
+            Elige los módulos que vas a usar. Puedes sumar o quitar módulos cuando quieras.
+          </p>
+        </header>
+        <ModuleCarousel picker={picker} />
+      </div>
+    );
+  }
+
   return (
-    <div className="home-wrap" data-layout-preset={layoutPreset}>
-      <ModulesGrid state={state} proc={proc} layoutPreset={layoutPreset} />
+    <div className="home-wrap" data-layout-preset={layoutPreset} data-home-mode={hasModules ? "mission" : "setup"}>
+      {content}
+
       <HomeFooter
         version={version}
         onClose={requestAppExit}
@@ -342,353 +350,30 @@ export default function HomePage() {
         onClose={() => setSettingsOpen(false)}
       />
 
+      {pickerOpen && hasModules && createPortal(
+        <ModulePickerDialog picker={picker} onClose={closePicker} />,
+        document.body,
+      )}
     </div>
   );
 }
 
-// =====================================================================
-// ModulesGrid — deck cinematográfico. El click enfoca/mueve tarjetas; el
-// detalle del módulo vive siempre visible para no depender de un modal.
-// =====================================================================
-function ModulesGrid({
-  state,
-  proc,
-  layoutPreset,
-}: {
-  state: SessionState | null;
-  proc: ModulePhaseState;
-  layoutPreset: LayoutPreset;
-}) {
-  const navigate = useNavigate();
-  const [focusIndex, setFocusIndex] = useState(0);
-  const [motionDirection, setMotionDirection] = useState<ModuleMotionDirection>("forward");
-  const { deckRef, metrics } = useAdaptiveCinemaMetrics(layoutPreset);
-  const focused = MODULES[focusIndex] ?? MODULES[0];
-  const FocusIcon = focused.icon;
-
-  const focusedStyle = {
-    ...homeModuleVars(focused),
-    "--home-card-width": `${metrics.cardWidth}px`,
-    "--home-card-min-height": `${metrics.cardMinHeight}px`,
-  } as CSSProperties;
-
-  function focusBy(delta: number) {
-    setMotionDirection(delta >= 0 ? "forward" : "backward");
-    setFocusIndex((current) => wrapIndex(current + delta, MODULES.length));
-  }
-
-  function focusModule(index: number) {
-    if (index === focusIndex) return;
-    const offset = circularOffset(index, focusIndex, MODULES.length);
-    setMotionDirection(offset >= 0 ? "forward" : "backward");
-    setFocusIndex(index);
-  }
-
-  function handleDeckKeyDown(event: KeyboardEvent<HTMLElement>) {
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      focusBy(-1);
-    }
-    if (event.key === "ArrowRight") {
-      event.preventDefault();
-      focusBy(1);
-    }
-    if (event.key === "Enter" && focused.to) {
-      event.preventDefault();
-      navigate(focused.to);
-    }
-  }
-
-  function handleEnterModule() {
-    if (focused.to) navigate(focused.to);
-  }
-
+// Placeholder discreto mientras resuelve el overview (solo cuando la señal
+// optimista ya indicó proyecto en curso, para no parpadear al carrusel).
+function MissionControlSkeleton() {
   return (
-    <section
-      aria-label="Módulos de Prosecnur"
-      className="home-module-stack home-cinema"
-      style={focusedStyle}
-      data-motion={motionDirection}
-      data-density={metrics.density}
-      data-layout-preset={layoutPreset}
-      data-focused-module={focused.slug}
-      onKeyDown={handleDeckKeyDown}
-    >
-      <div className="home-cinema-head">
-        <div className="home-cinema-titleblock">
-          <span className="home-cinema-eyebrow">Suite de herramientas</span>
-          <h2>Explora los módulos de trabajo de Prosecnur</h2>
-        </div>
+    <section className="home-mission is-loading" aria-hidden="true">
+      <div className="home-mission-metrics">
+        {[0, 1, 2, 3].map((i) => (
+          <div className="home-mc-stat is-skeleton" key={i} />
+        ))}
       </div>
-
-      <div className="home-cinema-stage">
-        <div className="home-cinema-deck-wrap">
-          <div className="home-cinema-controls" aria-label="Mover tarjetas">
-            <button
-              type="button"
-              className="home-cinema-arrow"
-              onClick={() => focusBy(-1)}
-              aria-label="Módulo anterior"
-            >
-              <ChevronLeft size={18} strokeWidth={2.2} />
-            </button>
-            <button
-              type="button"
-              className="home-cinema-arrow"
-              onClick={() => focusBy(1)}
-              aria-label="Módulo siguiente"
-            >
-              <ChevronRight size={18} strokeWidth={2.2} />
-            </button>
-          </div>
-          <div ref={deckRef} className="home-cinema-deck" aria-live="polite">
-            {MODULES.map((mod, index) => {
-              const Icon = mod.icon;
-              const offset = circularOffset(index, focusIndex, MODULES.length);
-              const distance = Math.abs(offset);
-              const hidden = distance > metrics.hiddenDistance;
-              const meta = computeMeta(mod.slug, state, proc);
-              const cardStyle = {
-                ...homeModuleVars(mod),
-                "--card-x": `${offset * metrics.cardStep}px`,
-                "--card-y": `${distance * metrics.cardYOffset}px`,
-                "--card-rotate": `${offset * -metrics.cardRotate}deg`,
-                "--card-tilt": `${offset * -metrics.cardTilt}deg`,
-                "--card-scale": `${Math.max(metrics.minScale, 1 - distance * metrics.scaleDrop)}`,
-                "--card-opacity": hidden ? "0" : "1",
-                "--card-z": `${80 - distance}`,
-              } as CSSProperties;
-
-              return (
-                <button
-                  key={mod.slug}
-                  type="button"
-                  className={[
-                    "home-cinema-card",
-                    index === focusIndex ? "is-focused" : "",
-                    hidden ? "is-hidden" : "",
-                    mod.to ? "is-active" : "is-soon",
-                  ].filter(Boolean).join(" ")}
-                  style={cardStyle}
-                  onClick={() => focusModule(index)}
-                  aria-pressed={index === focusIndex}
-                  aria-label={`${mod.title}: ${mod.tagline}`}
-                >
-                  <span className="home-cinema-card-glow" aria-hidden="true" />
-                  <span className="home-cinema-card-icon" aria-hidden="true">
-                    <Icon size={40} strokeWidth={1.65} />
-                  </span>
-                  {!mod.to && (
-                    <span className="home-cinema-card-kicker">
-                      Próximamente
-                    </span>
-                  )}
-                  <span className="home-cinema-card-title">{mod.title}</span>
-                  <span className="home-cinema-card-tagline">{mod.tagline}</span>
-                  <span className="home-cinema-card-blurb">{mod.blurb}</span>
-                  {meta && <span className="home-cinema-card-meta">{meta}</span>}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <aside
-          key={focused.slug}
-          className="home-cinema-panel"
-          aria-label={`Detalle: ${focused.title}`}
-        >
-          <div className="home-cinema-panel-top">
-            <span className="home-cinema-panel-icon" aria-hidden="true">
-              <FocusIcon size={34} strokeWidth={1.7} />
-            </span>
-            {!focused.to && <span className="home-cinema-panel-soon">Próximamente</span>}
-          </div>
-          <h3>{focused.title}</h3>
-          <p className="home-cinema-panel-tagline">{focused.tagline}</p>
-          <p className="home-cinema-panel-blurb">{focused.blurb}</p>
-          <ul className="home-cinema-feature-list">
-            {focused.features.slice(0, 5).map((feature) => (
-              <li key={feature}>
-                <Check size={13} strokeWidth={2.5} aria-hidden="true" />
-                <span>{feature}</span>
-              </li>
-            ))}
-          </ul>
-          {focused.to ? (
-            <button
-              type="button"
-              className="home-cinema-cta"
-              onClick={handleEnterModule}
-            >
-              Entrar al módulo
-              <ArrowRight size={16} strokeWidth={2.2} />
-            </button>
-          ) : (
-            <div className="home-cinema-soon">
-              <span>Próximamente</span>
-              <strong>Se activará en una próxima versión.</strong>
-            </div>
-          )}
-        </aside>
-      </div>
-
-      <div className="home-cinema-strip" aria-label="Ir a un módulo">
-        {MODULES.map((mod, index) => {
-          const Icon = mod.icon;
-          return (
-            <button
-              key={mod.slug}
-              type="button"
-              className={`home-cinema-dot ${index === focusIndex ? "is-current" : ""}`}
-              style={{
-                ...homeModuleVars(mod),
-              } as CSSProperties}
-              onClick={() => focusModule(index)}
-              aria-label={`Ver ${mod.title}`}
-              aria-current={index === focusIndex ? "true" : undefined}
-            >
-              <Icon size={15} strokeWidth={1.9} aria-hidden="true" />
-              <span>{shortModuleLabel(mod)}</span>
-            </button>
-          );
-        })}
+      <div className="home-mission-grid">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <div className="home-mc-card is-skeleton" key={i} />
+        ))}
       </div>
     </section>
-  );
-}
-
-function wrapIndex(index: number, length: number): number {
-  return ((index % length) + length) % length;
-}
-
-function circularOffset(index: number, focusIndex: number, length: number): number {
-  let offset = index - focusIndex;
-  if (offset > length / 2) offset -= length;
-  if (offset < -length / 2) offset += length;
-  return offset;
-}
-
-function shortModuleLabel(mod: ModuleMeta): string {
-  return mod.shortLabel;
-}
-
-function useAdaptiveCinemaMetrics(layoutPreset: LayoutPreset) {
-  const deckRef = useRef<HTMLDivElement | null>(null);
-  const [metrics, setMetrics] = useState<CinemaMetrics>(DEFAULT_CINEMA_METRICS);
-
-  useEffect(() => {
-    const deck = deckRef.current;
-    if (!deck) return;
-
-    let frame = 0;
-    const update = () => {
-      const rect = deck.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return;
-      const next = computeCinemaMetrics(rect.width, rect.height, layoutPreset);
-      setMetrics((current) => (sameCinemaMetrics(current, next) ? current : next));
-    };
-    const schedule = () => {
-      window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(update);
-    };
-
-    update();
-    window.addEventListener("resize", schedule);
-    window.addEventListener("orientationchange", schedule);
-
-    let observer: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== "undefined") {
-      observer = new ResizeObserver(schedule);
-      observer.observe(deck);
-    }
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener("resize", schedule);
-      window.removeEventListener("orientationchange", schedule);
-      observer?.disconnect();
-    };
-  }, [layoutPreset]);
-
-  return { deckRef, metrics };
-}
-
-function computeCinemaMetrics(
-  width: number,
-  height: number,
-  layoutPreset: LayoutPreset,
-): CinemaMetrics {
-  const presetShort = layoutPreset === "short";
-  const presetCompact =
-    layoutPreset === "portable-compact" ||
-    layoutPreset === "compact" ||
-    presetShort;
-  const presetRoomy = layoutPreset === "large";
-  const presetBalanced = layoutPreset === "portable";
-  const crampedHeight = height < (presetShort ? 250 : 220) && width < 620;
-  const shortDeck = height < (presetShort ? 350 : presetRoomy ? 360 : 335) || presetShort;
-  const tallDeck = height >= 560 && width >= 680;
-  const compact = presetCompact || width < 500 || crampedHeight || shortDeck;
-  const roomy = !compact && (presetRoomy || tallDeck || (width > 640 && height > 365));
-  const density: CinemaDensity = compact ? "compact" : roomy ? "roomy" : "standard";
-  const widthFactor = compact ? 0.64 : presetRoomy ? 0.54 : presetBalanced ? 0.52 : tallDeck ? 0.51 : 0.48;
-  const cardWidthMax = compact
-    ? presetShort ? 316 : 334
-    : presetRoomy ? 456 : tallDeck ? 420 : roomy ? 380 : 340;
-  const cardWidth = Math.round(clamp(
-    width * widthFactor,
-    compact ? 216 : 276,
-    cardWidthMax,
-  ));
-  const cardMinHeight = Math.round(
-    crampedHeight
-      ? clamp(height - 16, 126, 220)
-      : shortDeck
-      ? clamp(height - (presetShort ? 34 : 24), 180, presetShort ? 226 : 258)
-      : clamp(
-          height - (compact ? 28 : presetRoomy ? 72 : tallDeck ? 86 : 30),
-          compact ? 248 : 292,
-          presetRoomy ? 520 : tallDeck ? 470 : roomy ? 390 : 326,
-        ),
-  );
-  const cardStep = Math.round(clamp(
-    width * (presetShort ? 0.22 : compact ? 0.28 : presetRoomy ? 0.35 : tallDeck ? 0.33 : 0.31),
-    presetShort ? 84 : compact ? 96 : 148,
-    compact ? (presetShort ? 112 : 170) : presetRoomy ? 312 : tallDeck ? 286 : roomy ? 246 : 194,
-  ));
-  const cardYOffset = Math.round(clamp(height * 0.024, compact ? 4 : 7, tallDeck ? 16 : 12));
-
-  return {
-    cardWidth,
-    cardMinHeight,
-    cardStep,
-    cardYOffset,
-    cardRotate: compact ? 2.2 : tallDeck ? 4.6 : roomy ? 4.2 : 3.4,
-    cardTilt: compact ? 4 : tallDeck ? 10 : roomy ? 9 : 7,
-    scaleDrop: compact ? 0.092 : roomy ? 0.1 : 0.095,
-    minScale: compact ? 0.76 : 0.72,
-    hiddenDistance: 1,
-    density,
-  };
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-function sameCinemaMetrics(a: CinemaMetrics, b: CinemaMetrics): boolean {
-  return (
-    a.cardWidth === b.cardWidth &&
-    a.cardMinHeight === b.cardMinHeight &&
-    a.cardStep === b.cardStep &&
-    a.cardYOffset === b.cardYOffset &&
-    a.cardRotate === b.cardRotate &&
-    a.cardTilt === b.cardTilt &&
-    a.scaleDrop === b.scaleDrop &&
-    a.minScale === b.minScale &&
-    a.hiddenDistance === b.hiddenDistance &&
-    a.density === b.density
   );
 }
 

@@ -4,6 +4,7 @@ import { SessionProvider } from "../lib/SessionContext";
 import Layout from "./Layout";
 import { SessionLostBanner } from "./SessionLostBanner";
 import ProjectShell from "../features/project/ProjectShell";
+import { ProjectModulesProvider } from "../features/project/ProjectModulesContext";
 import { AppErrorBoundary } from "../components/AppErrorBoundary";
 import LogsPanel from "../components/LogsPanel";
 import { LoadingBlock } from "../components/States";
@@ -72,9 +73,9 @@ const MuestraHub = lazyWithReload(
   () => import("../features/muestra/MuestraHub"),
   "MuestraHub",
 );
-const DisenoEstudioPage = lazyWithReload(
-  () => import("../features/disenoEstudio/DisenoEstudioPage"),
-  "DisenoEstudioPage",
+const BitacoraPage = lazyWithReload(
+  () => import("../features/bitacora/BitacoraPage"),
+  "BitacoraPage",
 );
 const EnciclopediaHome = lazyWithReload(
   () => import("../features/enciclopedia/EnciclopediaHome"),
@@ -87,10 +88,6 @@ const FichaMetodologica = lazyWithReload(
 const CalcMuestraPage = lazyWithReload(
   () => import("../features/calcMuestra/CalcMuestraPage"),
   "CalcMuestraPage",
-);
-const PlanTrabajoPage = lazyWithReload(
-  () => import("../features/planTrabajo/PlanTrabajoPage"),
-  "PlanTrabajoPage",
 );
 const RecopiladoresPage = lazyWithReload(
   () => import("../features/recopiladores/RecopiladoresPage"),
@@ -147,6 +144,7 @@ export default function App() {
         <ProjectShell>
           <SessionLostBanner />
           <BrowserRouter basename={ROUTER_BASENAME}>
+            <ProjectModulesProvider>
             <Suspense fallback={<LoadingBlock label="Abriendo modulo..." />}>
               <Routes>
                 <Route element={<Layout />}>
@@ -162,9 +160,10 @@ export default function App() {
                   <Route path="/graficos" element={<GraficosPage />} />
                   <Route path="/hojas-ruta" element={<HojasRutaPage />} />
                   <Route path="/calc-muestra" element={<CalcMuestraPage />} />
-                  <Route path="/plan-trabajo" element={<PlanTrabajoPage />} />
+                  <Route path="/bitacora" element={<BitacoraPage />} />
                   <Route path="/recopiladores" element={<RecopiladoresPage />} />
-                  <Route path="/diseno-estudio" element={<DisenoEstudioPage />} />
+                  <Route path="/diseno-estudio" element={<Navigate to="/bitacora" replace />} />
+                  <Route path="/plan-trabajo" element={<Navigate to="/bitacora?tab=cronograma" replace />} />
                   <Route path="/diseno-muestra" element={<Navigate to="/calc-muestra" replace />} />
                   <Route path="/diseno-muestra/metodologia/:metodologia" element={<Navigate to="/calc-muestra" replace />} />
                   <Route path="/enciclopedia" element={<EnciclopediaHome />} />
@@ -180,6 +179,7 @@ export default function App() {
                 </Route>
               </Routes>
             </Suspense>
+            </ProjectModulesProvider>
           </BrowserRouter>
         </ProjectShell>
       </SessionProvider>

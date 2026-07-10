@@ -122,14 +122,6 @@ const MODULE_PROFILES: ModuleWarmupProfile[] = [
     messages: ["Revisando marco", "Preparando calculo", "Abriendo modulo"],
   },
   {
-    key: "plan-trabajo",
-    title: "Cronograma del proyecto",
-    moduleTo: "/diseno-estudio",
-    frontend: ["plan_trabajo"],
-    backend: ["project"],
-    messages: ["Leyendo cronograma", "Preparando hitos", "Abriendo cronograma"],
-  },
-  {
     key: "recopiladores",
     title: "Fichas QR",
     moduleTo: "/recopiladores",
@@ -163,12 +155,12 @@ const MODULE_PROFILES: ModuleWarmupProfile[] = [
     messages: ["Leyendo catalogo", "Preparando fichas", "Abriendo biblioteca"],
   },
   {
-    key: "diseno-estudio",
-    title: "Diseño del estudio",
-    moduleTo: "/diseno-estudio",
-    frontend: ["diseno_estudio", "enciclopedia"],
+    key: "bitacora",
+    title: "Bitácora",
+    moduleTo: "/bitacora",
+    frontend: ["diseno_estudio"],
     backend: ["project"],
-    messages: ["Leyendo expediente", "Preparando bitacora", "Abriendo diseno"],
+    messages: ["Leyendo bitácora", "Preparando cronograma", "Abriendo módulo"],
   },
 ];
 
@@ -190,9 +182,10 @@ function warmupProfileForPath(pathname: string) {
   if (path === "/calc-muestra" || path === "/diseno-muestra") {
     return MODULE_PROFILES.find((profile) => profile.key === "calc-muestra") ?? null;
   }
-  if (path === "/plan-trabajo") return MODULE_PROFILES.find((profile) => profile.key === "plan-trabajo") ?? null;
   if (path === "/recopiladores") return MODULE_PROFILES.find((profile) => profile.key === "recopiladores") ?? null;
-  if (path === "/diseno-estudio") return MODULE_PROFILES.find((profile) => profile.key === "diseno-estudio") ?? null;
+  if (path === "/bitacora" || path === "/plan-trabajo" || path === "/diseno-estudio") {
+    return MODULE_PROFILES.find((profile) => profile.key === "bitacora") ?? null;
+  }
   if (path === "/tablero") return MODULE_PROFILES.find((profile) => profile.key === "dashboard") ?? null;
   if (path === "/editor-xlsform") return MODULE_PROFILES.find((profile) => profile.key === "editor-xlsform") ?? null;
   if (path === "/enciclopedia" || path.startsWith("/enciclopedia/")) {

@@ -120,12 +120,14 @@
   --pulso-module-sample: #7c3aed;
   --pulso-module-sample-soft: rgba(124, 58, 237, 0.13);
   --pulso-module-sample-border: rgba(124, 58, 237, 0.32);
-  --pulso-module-workplan: #b45309;
-  --pulso-module-workplan-soft: rgba(180, 83, 9, 0.13);
-  --pulso-module-workplan-border: rgba(180, 83, 9, 0.3);
   --pulso-module-encyclopedia: #a16207;
   --pulso-module-encyclopedia-soft: rgba(161, 98, 7, 0.13);
   --pulso-module-encyclopedia-border: rgba(161, 98, 7, 0.3);
+  /* Cronograma se fusionó en Bitácora: el acento workplan queda aliasado al
+   * ámbar de Bitácora (encyclopedia) como acento cálido único. */
+  --pulso-module-workplan: var(--pulso-module-encyclopedia);
+  --pulso-module-workplan-soft: var(--pulso-module-encyclopedia-soft);
+  --pulso-module-workplan-border: var(--pulso-module-encyclopedia-border);
   --pulso-module-collectors: #0891b2;
   --pulso-module-collectors-soft: rgba(8, 145, 178, 0.13);
   --pulso-module-collectors-border: rgba(8, 145, 178, 0.3);
@@ -1054,6 +1056,29 @@ a { color: var(--pulso-primary); }
 
 .pulso-module-tile.is-current .pulso-module-tile-icon {
   background: rgba(255, 255, 255, 0.14);
+}
+
+/* Tile "+" para agregar módulo al proyecto: discreto y punteado. */
+.pulso-module-tile-add {
+  border-style: dashed;
+  border-color: var(--pulso-border-strong);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-module-tile-add .pulso-module-tile-icon {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-module-tile-add:hover {
+    color: var(--pulso-primary);
+    border-color: var(--pulso-primary-border);
+  }
+  .pulso-module-tile-add:hover .pulso-module-tile-icon {
+    background: var(--pulso-primary-soft);
+    color: var(--pulso-primary);
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -3528,9 +3553,12 @@ a { color: var(--pulso-primary); }
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  /* fill "backwards" (no "both") y sin will-change: si el transform o el
+     will-change persisten tras la entrada, la ruta se vuelve containing block
+     de sus hijos position:fixed y todo scrim/diálogo inline queda recortado
+     al área de la ruta en vez del viewport. */
   .pulso-route-surface {
-    animation: pulso-route-enter-kf var(--motion-dur-base) var(--motion-ease-out) both;
-    will-change: opacity, transform;
+    animation: pulso-route-enter-kf var(--motion-dur-base) var(--motion-ease-out) backwards;
   }
 
   .pulso-route-surface[data-route-motion="forward"] {
