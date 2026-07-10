@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   Archive,
-  ArrowRight,
   CheckCircle2,
   Database,
   Download,
@@ -17,12 +15,9 @@ import {
   UsersRound,
 } from "lucide-react";
 import {
-  apiEstudioActiveBaseSet,
-  apiEstudioGet,
   apiJobStatus,
   apiMonitoreoClientReportPdf,
   apiMonitoreoProcessingHandoffExport,
-  apiMonitoreoProcessingHandoffPromote,
   apiMonitoreoPublicationEvidencePack,
   apiMonitoreoPublicationPreflight,
   apiMonitoreoPublicationSheetsPublish,
@@ -31,19 +26,15 @@ import {
   apiUpload,
   monitoreoClientReportPdfDownloadUrl,
   monitoreoProductionReportPdfDownloadUrl,
-  type EstudioBase,
-  type EstudioPayload,
   type JobSnapshot,
   type MonitoreoConfig,
   type MonitoreoDeliverablesPreflight,
   type MonitoreoLastSheetsPublication,
   type MonitoreoProcessingHandoffResult,
-  type MonitoreoProcessingHandoffPromoteResult,
   type MonitoreoProcessingHandoffUniverse,
   type MonitoreoPublicationEvidencePackResult,
   type MonitoreoTerritorialOperationalPackageReviewResult,
 } from "../../../api/client";
-import { useOptionalSession } from "../../../lib/SessionContext";
 import "./outputsWorkbench.css";
 
 type OutputAudience = "client" | "internal";
@@ -78,20 +69,11 @@ export type OperationalPackageStatus = {
   message: string;
   detail?: string;
 };
-type ProcessingHandoffStatus = {
-  kind: "idle" | "loading" | "ready" | "empty" | "setting" | "success" | "error";
-  message: string;
-  detail?: string;
-};
 type ProcessingPackageStatus = {
   kind: "idle" | "generating" | "ready" | "error";
   message: string;
   detail?: string;
 };
-type ProcessingBaseOption = Pick<
-  EstudioBase,
-  "nombre" | "source_alias" | "source_title" | "source_channel" | "source_kind" | "survey_id" | "n_filas" | "n_columnas"
->;
 export type ProcessingHandoffFileLink = {
   key: "package" | "data_xlsx" | "xlsform";
   label: string;
@@ -301,48 +283,6 @@ function preflightIssues(preflight?: MonitoreoDeliverablesPreflight | null) {
         }
       : issue)
     .slice(0, 3);
-}
-
-function normalizedText(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-function processingBaseLabel(base?: ProcessingBaseOption | null) {
-  if (!base) return "";
-  return base.source_alias || base.source_title || base.nombre;
-}
-
-function processingBaseDetail(base?: ProcessingBaseOption | null) {
-  if (!base) return "";
-  return [
-    base.n_filas != null ? `${fmt(base.n_filas)} filas` : "",
-    base.n_columnas != null ? `${fmt(base.n_columnas)} cols` : "",
-    base.source_channel || "",
-  ].filter(Boolean).join(" · ");
-}
-
-function chooseProcessingBase(estudio: EstudioPayload | null, family: OutputFamily, routeLabel: string, defaultTitle: string) {
-  if (!estudio?.bases) return "";
-  const bases = Object.values(estudio.bases);
-  if (!bases.length) return "";
-  const active = String(estudio.active_base || "");
-  const terms = [routeLabel, defaultTitle, family].map(normalizedText).filter(Boolean);
-  const matched = bases.find((base) => {
-    const haystack = normalizedText([
-      base.nombre,
-      base.source_alias || "",
-      base.source_title || "",
-      base.source_kind || "",
-      base.survey_id || "",
-    ].join(" "));
-    return terms.some((term) => term && haystack.includes(term));
-  });
-  return matched?.nombre || active || bases[0]?.nombre || "";
 }
 
 function emptyEvidencePackStatuses(): Record<OutputAudience, EvidencePackStatus> {
@@ -614,8 +554,6 @@ export function MonitoreoOutputsWorkbench({
   className = "",
   onPublished,
 }: MonitoreoOutputsWorkbenchProps) {
-  const navigate = useNavigate();
-  const session = useOptionalSession();
   const copy = copyForFamily(family);
   const productionCopy = productionCopyForFamily(family);
   const productionDefaultTitle = useMemo(
@@ -636,23 +574,12 @@ export function MonitoreoOutputsWorkbench({
   const [productionPdfMessage, setProductionPdfMessage] = useState("");
   const [productionPdfError, setProductionPdfError] = useState("");
   const [productionPdfTitle, setProductionPdfTitle] = useState(productionDefaultTitle);
-  const [estudio, setEstudio] = useState<EstudioPayload | null>(null);
-  const [processingBase, setProcessingBase] = useState("");
-  const [processingStatus, setProcessingStatus] = useState<ProcessingHandoffStatus>({
-    kind: "idle",
-    message: "",
-  });
   const [processingUniverse, setProcessingUniverse] = useState<MonitoreoProcessingHandoffUniverse>("processable");
   const [processingPackage, setProcessingPackage] = useState<MonitoreoProcessingHandoffResult | null>(null);
   const [processingPackageStatus, setProcessingPackageStatus] = useState<ProcessingPackageStatus>({
     kind: "idle",
     message: "",
   });
-  const [promoteStatus, setPromoteStatus] = useState<ProcessingPackageStatus>({
-    kind: "idle",
-    message: "",
-  });
-  const [promoteResult, setPromoteResult] = useState<MonitoreoProcessingHandoffPromoteResult | null>(null);
   const clientInitial = useMemo(() => sheetsStateFromPublication(clientSheets), [clientSheets]);
   const internalInitial = useMemo(() => sheetsStateFromPublication(internalSheets), [internalSheets]);
   const [spreadsheetIds, setSpreadsheetIds] = useState<Record<OutputAudience, string>>({
@@ -687,16 +614,6 @@ export function MonitoreoOutputsWorkbench({
   const [uploadingOperationalPackage, setUploadingOperationalPackage] = useState(false);
   const [uploadingOperationalDrift, setUploadingOperationalDrift] = useState(false);
   const seedRef = useRef("");
-  const sessionBasesSignature = (session?.state?.bases_nombres ?? []).join("|");
-  const sessionBaseOptions = useMemo<ProcessingBaseOption[]>(
-    () => (session?.state?.bases_nombres ?? []).map((nombre) => ({
-      nombre,
-      n_filas: null,
-      n_columnas: null,
-    })),
-    [sessionBasesSignature],
-  );
-  const sessionProcessingBase = session?.state?.active_base || sessionBaseOptions[0]?.nombre || "";
 
   useEffect(() => {
     const seed = [
@@ -726,36 +643,6 @@ export function MonitoreoOutputsWorkbench({
     setProcessingUniverse("processable");
     setProductionPdfTitle(productionDefaultTitle);
   }, [clientInitial, defaultTitle, family, internalInitial, productionDefaultTitle, routeLabel]);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (sessionProcessingBase) {
-      setProcessingBase(sessionProcessingBase);
-      setProcessingStatus({ kind: "ready", message: "Base disponible para abrir Procesamiento." });
-    } else if (session?.state && Number(session.state.n_bases ?? 0) === 0) {
-      setProcessingStatus({ kind: "empty", message: "Procesamiento no tiene bases cargadas." });
-    } else {
-      setProcessingStatus({ kind: "loading", message: "Leyendo bases de Procesamiento..." });
-    }
-    apiEstudioGet()
-      .then((payload) => {
-        if (cancelled) return;
-        setEstudio(payload);
-        const nextBase = chooseProcessingBase(payload, family, routeLabel, defaultTitle);
-        setProcessingBase(nextBase || sessionProcessingBase);
-        setProcessingStatus({
-          kind: nextBase || sessionProcessingBase ? "ready" : "empty",
-          message: nextBase || sessionProcessingBase ? "Base disponible para abrir Procesamiento." : "Procesamiento no tiene bases cargadas.",
-        });
-      })
-      .catch((e) => {
-        if (cancelled) return;
-        setProcessingStatus({ kind: "error", message: (e as Error).message });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [defaultTitle, family, routeLabel, session?.state, sessionProcessingBase]);
 
   const activeTarget = spreadsheetIds[activeAudience] ?? "";
   const activePublished = published[activeAudience];
@@ -815,12 +702,6 @@ export function MonitoreoOutputsWorkbench({
     !preflighting &&
     !evidencePacking &&
     !operationalBusy;
-  const processingBases = useMemo<ProcessingBaseOption[]>(() => {
-    const loaded = Object.values(estudio?.bases ?? {});
-    return loaded.length ? loaded : sessionBaseOptions;
-  }, [estudio, sessionBaseOptions]);
-  const selectedProcessingBase = processingBases.find((base) => base.nombre === processingBase) ?? null;
-  const processingBusy = processingStatus.kind === "loading" || processingStatus.kind === "setting";
   const processingPackageBusy = processingPackageStatus.kind === "generating";
   const canGenerateProcessingPackage = family === "territorial" &&
     hasSnapshot &&
@@ -1038,29 +919,6 @@ export function MonitoreoOutputsWorkbench({
     }
   };
 
-  const openProcessing = async () => {
-    if (!processingBase) {
-      navigate("/carga");
-      return;
-    }
-    setProcessingStatus({
-      kind: "setting",
-      message: `Activando ${processingBaseLabel(selectedProcessingBase) || processingBase}...`,
-    });
-    try {
-      await apiEstudioActiveBaseSet(processingBase);
-      setProcessingStatus({
-        kind: "success",
-        message: "Base activa lista en Procesamiento.",
-        detail: processingBaseDetail(selectedProcessingBase),
-      });
-      window.dispatchEvent(new CustomEvent("pulso:project-status-changed"));
-      navigate("/procesamiento");
-    } catch (e) {
-      setProcessingStatus({ kind: "error", message: (e as Error).message });
-    }
-  };
-
   const generateProcessingPackage = async () => {
     if (!canGenerateProcessingPackage) return;
     setProcessingPackage(null);
@@ -1081,30 +939,6 @@ export function MonitoreoOutputsWorkbench({
       });
     } catch (e) {
       setProcessingPackageStatus({ kind: "error", message: (e as Error).message });
-    }
-  };
-
-  const sendToProcessing = async () => {
-    if (!canGenerateProcessingPackage) return;
-    setPromoteResult(null);
-    setPromoteStatus({
-      kind: "generating",
-      message: "Extrayendo instrumento de Kobo y armando la base...",
-    });
-    try {
-      const result = await apiMonitoreoProcessingHandoffPromote({
-        universe: processingUniverse,
-        ...(config ? { config } : {}),
-      });
-      setPromoteResult(result);
-      setPromoteStatus({
-        kind: "ready",
-        message: `Base "${result.base_nombre}" activa en Procesamiento.`,
-      });
-      window.dispatchEvent(new CustomEvent("pulso:project-status-changed"));
-      navigate("/procesamiento");
-    } catch (e) {
-      setPromoteStatus({ kind: "error", message: (e as Error).message });
     }
   };
 
@@ -1175,12 +1009,6 @@ export function MonitoreoOutputsWorkbench({
     : activeReady
       ? `Actualizar Sheets ${audienceLabel(activeAudience).toLowerCase()}`
       : `Publicar Sheets ${audienceLabel(activeAudience).toLowerCase()}`;
-  const processingBaseName = processingStatus.kind === "loading"
-    ? "Leyendo bases..."
-    : processingBaseLabel(selectedProcessingBase) || "Sin base de procesamiento";
-  const processingBaseMeta = processingStatus.kind === "loading"
-    ? "Preparando puente con Procesamiento."
-    : processingBaseDetail(selectedProcessingBase) || "Carga una base antes de continuar.";
   const operationalFiles = [
     { key: "template", label: "Plantilla", file: operationalReview?.files?.template },
     { key: "review_csv", label: "Revisión CSV", file: operationalReview?.files?.review_csv },
@@ -1393,70 +1221,13 @@ export function MonitoreoOutputsWorkbench({
                   {processingPackageBusy ? <Loader2 size={14} className="pulso-spin" /> : <Download size={14} />}
                   {processingPackageBusy ? "Preparando paquete" : "Descargar data + XLSForm"}
                 </button>
-                {promoteStatus.kind !== "idle" ? (
-                  <div className={`mon-outputs-status is-${promoteStatus.kind}`} role="status" aria-live="polite">
-                    <span>{promoteStatus.message}</span>
-                    {promoteResult?.filter_report ? (
-                      <small>
-                        Incluye validada {promoteResult.filter_report.validada ?? 0} + revisión{" "}
-                        {promoteResult.filter_report.revision ?? 0} · excluye no_defendible{" "}
-                        {promoteResult.filter_report.no_defendible_excluidos ?? 0} · {promoteResult.filter_report.filas_incluidas ?? 0} filas.
-                      </small>
-                    ) : null}
-                  </div>
-                ) : null}
-                <button
-                  type="button"
-                  className="mon-outputs-processing-link is-primary"
-                  onClick={() => { void sendToProcessing(); }}
-                  disabled={!canGenerateProcessingPackage || promoteStatus.kind === "generating"}
-                  title="Extrae el XLSForm fidedigno de Kobo y deja la base filtrada activa en Procesamiento."
-                >
-                  {promoteStatus.kind === "generating" ? <Loader2 size={14} className="pulso-spin" /> : <ArrowRight size={14} />}
-                  {promoteStatus.kind === "generating" ? "Enviando a Procesamiento" : "Enviar a Procesamiento"}
-                </button>
               </>
-            ) : null}
-            {processingBases.length > 1 ? (
-              <label className="mon-outputs-field">
-                <span>Base activa</span>
-                <select
-                  value={processingBase}
-                  onChange={(event) => {
-                    setProcessingBase(event.target.value);
-                    setProcessingStatus({ kind: "ready", message: "Base disponible para abrir Procesamiento." });
-                  }}
-                  disabled={processingStatus.kind === "loading" || processingStatus.kind === "setting"}
-                >
-                  {processingBases.map((base) => (
-                    <option key={base.nombre} value={base.nombre}>
-                      {processingBaseLabel(base)}
-                    </option>
-                  ))}
-                </select>
-              </label>
             ) : (
-              <div className="mon-outputs-processing-base">
-                <span><Database size={14} /></span>
-                <div>
-                  <strong>{processingBaseName}</strong>
-                  <small>{processingBaseMeta}</small>
-                </div>
-              </div>
+              <p className="mon-outputs-processing-hint">
+                El trabajo de campo validado se trae desde <strong>Carga</strong>, junto con su
+                formulario, para validar y codificar en Procesamiento.
+              </p>
             )}
-            <div className={`mon-outputs-status is-${processingStatus.kind}`} role="status" aria-live="polite">
-              <span>{processingStatus.message || "Base lista para activar."}</span>
-              {processingStatus.detail ? <small>{processingStatus.detail}</small> : null}
-            </div>
-            <button
-              type="button"
-              className="mon-outputs-processing-link"
-              onClick={() => { void openProcessing(); }}
-              disabled={processingBusy}
-            >
-              {processingBusy ? <Loader2 size={14} className="pulso-spin" /> : <ArrowRight size={14} />}
-              {processingBusy ? "Preparando puente" : processingBase ? "Abrir en Procesamiento" : "Abrir Carga"}
-            </button>
           </article>
         </div>
 

@@ -3533,6 +3533,51 @@ export async function apiCargaKoboDetectedSource() {
   );
 }
 
+export type CargaMonitoreoHandoffStatus = {
+  ok: true;
+  detected: boolean;
+  universe: "processable" | string;
+  counts: {
+    processable: number;
+    validada: number;
+    revision: number;
+    no_defendible: number;
+    total: number;
+  };
+  source: {
+    label: string;
+    phase: string;
+    kobo_asset_uid: string;
+    instrument_source: "kobo_api" | "local" | "none";
+    instrument_available: boolean;
+  };
+  already_promoted: boolean;
+  base_nombre_sugerido: string;
+};
+
+export async function apiCargaMonitoreoHandoffStatus() {
+  return handle<CargaMonitoreoHandoffStatus>(
+    await apiFetch("/api/carga/monitoreo-handoff/status", {
+      headers: headers(),
+    }),
+  );
+}
+
+export async function apiCargaMonitoreoHandoffPromote(
+  payload: { universe?: string; base_nombre?: string } = {},
+) {
+  return handle<MonitoreoProcessingHandoffPromoteResult>(
+    await apiFetch("/api/carga/monitoreo-handoff/promote", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        ...(payload.universe ? { universe: payload.universe } : {}),
+        ...(payload.base_nombre ? { base_nombre: payload.base_nombre } : {}),
+      }),
+    }),
+  );
+}
+
 export async function apiCargaConfirmChoiceMapping() {
   return handle<{
     ok: true;

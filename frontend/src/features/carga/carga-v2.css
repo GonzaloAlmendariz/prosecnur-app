@@ -357,6 +357,151 @@
   color: var(--pulso-text-faint, #8792a2);
 }
 
+/* ── Puente Monitoreo → Procesamiento (tarjeta primaria) ───────────────────
+   Deriva del callout Kobo pero con copy multilínea (título + conteo + nota),
+   acento carmín del módulo Monitoreo y un CTA grande para traer el trabajo. */
+.pulso-carga-frame .pulso-carga-handoff {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--pulso-border);
+  border-left: 3px solid var(--pulso-module-monitoring);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 5%, var(--pulso-surface));
+  animation: cga-fade-in-up var(--motion-dur-base) var(--motion-ease-out) both;
+}
+
+.pulso-carga-frame .pulso-carga-handoff.is-warning {
+  border-left-color: var(--pulso-warn-border);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 40%, var(--pulso-surface));
+}
+
+.pulso-carga-frame .pulso-carga-handoff-icon {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: var(--pulso-module-monitoring);
+  background: var(--pulso-module-monitoring-soft);
+}
+
+.pulso-carga-frame .pulso-carga-handoff.is-warning .pulso-carga-handoff-icon {
+  color: var(--pulso-warn-fg);
+  background: var(--pulso-warn-bg);
+}
+
+.pulso-carga-frame .pulso-carga-handoff-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.pulso-carga-frame .pulso-carga-handoff-eyebrow {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--pulso-module-monitoring);
+}
+
+.pulso-carga-frame .pulso-carga-handoff-title {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--pulso-text);
+}
+
+.pulso-carga-frame .pulso-carga-handoff-study {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-carga-frame .pulso-carga-handoff-count {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-carga-frame .pulso-carga-handoff-aside {
+  color: var(--pulso-text-faint, #8792a2);
+  font-size: 11.5px;
+}
+
+.pulso-carga-frame .pulso-carga-handoff-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-carga-frame .pulso-carga-handoff-note.is-warning {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-carga-frame .pulso-carga-handoff-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.pulso-carga-frame .pulso-carga-handoff-primary {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 16px;
+  border: 1px solid var(--pulso-module-monitoring);
+  border-radius: 999px;
+  background: var(--pulso-module-monitoring);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px var(--pulso-module-monitoring-soft);
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-carga-frame .pulso-carga-handoff-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px var(--pulso-module-monitoring-soft);
+  }
+}
+
+.pulso-carga-frame .pulso-carga-handoff-primary:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.pulso-carga-frame .pulso-carga-handoff-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pulso-carga-frame .pulso-carga-handoff-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--pulso-success-border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--pulso-success-bg) 62%, var(--pulso-surface));
+  color: var(--pulso-success-fg);
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
 /* ── Accesibilidad ─────────────────────────────────────────────────────── */
 
 .pulso-carga-frame :where(button, a, select, input, summary, [role="tab"]):focus-visible {

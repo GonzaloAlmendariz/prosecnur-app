@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  ArrowRight, ArrowRightLeft, CheckCircle2, CloudDownload, Database, FileSpreadsheet,
-  Download, Info, Loader2, RefreshCw, Search, ShieldCheck, Table2, Trash2, Upload,
+  AlertTriangle, ArrowRight, ArrowRightLeft, CheckCircle2, ClipboardCheck, CloudDownload,
+  Database, FileSpreadsheet, Download, Info, Loader2, RefreshCw, Search, ShieldCheck,
+  Table2, Trash2, Upload,
 } from "lucide-react";
 import {
   apiCargaBaseSheet,
   apiCargaKoboAssets,
   apiCargaKoboDetectedSource,
+  apiCargaMonitoreoHandoffStatus,
+  apiCargaMonitoreoHandoffPromote,
   apiCargaImportKobo,
   apiCargaImportSurveyMonkey,
   apiCargaData,
@@ -24,6 +27,7 @@ import {
   apiQuitarInstrumento,
   apiSurveyMonkeyMultibaseListSurveys,
   apiUpload,
+  CargaMonitoreoHandoffStatus,
   CargaPlatformImportResult,
   CargaPlatformProvider,
   ChoiceCodeMap,
@@ -191,6 +195,25 @@ export default function CargaPage() {
   const [detectedKoboSource, setDetectedKoboSource] = useState<DetectedKoboSource | null>(null);
   const [processingSuggestions, setProcessingSuggestions] = useState<EstudioProcessingSuggestions | null>(null);
   const [processingSuggestionsStatus, setProcessingSuggestionsStatus] = useState("");
+  const [handoffStatus, setHandoffStatus] = useState<CargaMonitoreoHandoffStatus | null>(null);
+  const [handoffMessage, setHandoffMessage] = useState("");
+
+  // Puente Monitoreo → Procesamiento (camino primario): si el proyecto ya tiene
+  // trabajo de campo validado, lo detectamos para ofrecer traerlo con su
+  // formulario. Si la detección falla, degradamos en silencio.
+  useEffect(() => {
+    let cancelled = false;
+    apiCargaMonitoreoHandoffStatus()
+      .then((payload) => {
+        if (cancelled) return;
+        setHandoffStatus(payload);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setHandoffStatus(null);
+      });
+    return () => { cancelled = true; };
+  }, [sessionId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -466,6 +489,22 @@ export default function CargaPage() {
     }
   }
 
+  async function onBringFieldWorkToProcessing() {
+    if (!handoffStatus) return;
+    setError("");
+    setHandoffMessage("");
+    setBusy("Trayendo tu trabajo de campo al procesamiento…");
+    try {
+      const result = await apiCargaMonitoreoHandoffPromote();
+      await refresh();
+      setHandoffMessage(`Base "${result.base_nombre}" lista. Ya puedes validar y codificar.`);
+    } catch (e: unknown) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
   useEffect(() => {
     if (state?.instrumento_parsed && !estructura) {
       apiInstrumentoEstructura().then(setEstructura).catch((e) => setError((e as Error).message));
@@ -477,6 +516,16 @@ export default function CargaPage() {
   const hasData = !!state?.data;
   const pendingChoiceMapping = !!dataPreview?.normalizacion?.choice_code_maps?.requires_confirmation;
   const allReady = hasXlsform && hasData && !pendingChoiceMapping;
+  // El puente de trabajo de campo es el camino primario cuando aún no hay una
+  // base de procesamiento cargada. Deja al banner Kobo remoto como secundario.
+  // Nos apoyamos en `already_promoted` (autoritativo: hay base real/activa) y no
+  // en `hasData`, porque un archivo `data` heredado de otro módulo (p.ej. la
+  // lista de encuestadores de Monitoreo) lo vuelve true en falso y ocultaría la
+  // tarjeta justo en el proyecto que la necesita.
+  const showFieldWorkHandoff =
+    !!handoffStatus &&
+    handoffStatus.detected &&
+    !handoffStatus.already_promoted;
   const studyLoadingBases = state?.n_bases ?? 0;
   const studyLoadingBasesLabel = `${studyLoadingBases} base${studyLoadingBases === 1 ? "" : "s"}`;
 
@@ -743,10 +792,16 @@ export default function CargaPage() {
         </ContextBar>
       }
     >
-      {(busy || error) && (
+      {(busy || error || handoffMessage) && (
         <div ref={feedbackRef} className="pulso-feedback-stack pulso-feedback-stack--upload">
           {busy && <LoadingBlock variant="inline" label={busy} />}
           {error && <ErrorBlock label="No se pudo completar la carga" detail={error} />}
+          {!busy && !error && handoffMessage && (
+            <div className="pulso-carga-handoff-done" role="status">
+              <CheckCircle2 size={15} aria-hidden="true" />
+              <span>{handoffMessage}</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -940,7 +995,15 @@ export default function CargaPage() {
 
           {activeCargaTab === "insumos" ? (
             <>
-          {sourceMode === "files" && detectedKoboSource && (
+          {sourceMode === "files" && showFieldWorkHandoff && handoffStatus && (
+            <FieldWorkHandoffCallout
+              status={handoffStatus}
+              busy={!!busy}
+              onBring={() => void onBringFieldWorkToProcessing()}
+            />
+          )}
+
+          {sourceMode === "files" && detectedKoboSource && !showFieldWorkHandoff && (
             <DetectedKoboSourceCallout
               source={detectedKoboSource}
               busy={!!busy}
@@ -1225,6 +1288,82 @@ function faseTerritorialLabel(phase: string | null | undefined): string {
   if (p === "field" || p === "campo") return "Campo";
   if (p === "pilot" || p === "piloto" || p === "pilon" || p === "pilón") return "Piloto";
   return p.charAt(0).toUpperCase() + p.slice(1);
+}
+
+function handoffCount(n: number | null | undefined): number {
+  return typeof n === "number" && Number.isFinite(n) ? n : 0;
+}
+
+// Tarjeta primaria del puente Monitoreo → Procesamiento: el trabajo de campo
+// ya validado se ofrece con su formulario, sin jerga de "promote"/"universo".
+function FieldWorkHandoffCallout({
+  status,
+  busy,
+  onBring,
+}: {
+  status: CargaMonitoreoHandoffStatus;
+  busy: boolean;
+  onBring: () => void;
+}) {
+  const { counts, source } = status;
+  const processable = handoffCount(counts.processable);
+  const excluded = handoffCount(counts.no_defendible);
+  const studyLabel = source.label?.trim();
+  const instrumentMissing = source.instrument_source === "none" || !source.instrument_available;
+  const instrumentNote =
+    source.instrument_source === "kobo_api"
+      ? "Traemos el cuestionario desde Kobo (versión desplegada)."
+      : source.instrument_source === "local"
+        ? "Usaremos el formulario ya cargado en el proyecto."
+        : "El cuestionario todavía no está disponible. Conéctalo desde Kobo en Configuración para traer el trabajo completo.";
+
+  return (
+    <section
+      className={`pulso-carga-handoff${instrumentMissing ? " is-warning" : ""}`}
+      aria-label="Trabajo de campo listo para procesar"
+    >
+      <span className="pulso-carga-handoff-icon" aria-hidden="true">
+        <ClipboardCheck size={18} />
+      </span>
+      <div className="pulso-carga-handoff-copy">
+        <span className="pulso-carga-handoff-eyebrow">Desde Monitoreo</span>
+        <strong className="pulso-carga-handoff-title">
+          Tu trabajo de campo está listo para procesar
+        </strong>
+        {studyLabel ? (
+          <span className="pulso-carga-handoff-study">{studyLabel}</span>
+        ) : null}
+        <p className="pulso-carga-handoff-count">
+          {processable.toLocaleString("es-PE")} respuestas validadas listas para procesar.
+          {excluded > 0 ? (
+            <span className="pulso-carga-handoff-aside">
+              {" "}{excluded.toLocaleString("es-PE")} quedan fuera por no ser defendibles.
+            </span>
+          ) : null}
+        </p>
+        <span className={`pulso-carga-handoff-note${instrumentMissing ? " is-warning" : ""}`}>
+          {instrumentMissing ? <AlertTriangle size={13} aria-hidden="true" /> : null}
+          {instrumentNote}
+        </span>
+      </div>
+      <div className="pulso-carga-handoff-actions">
+        <button
+          type="button"
+          className="pulso-carga-handoff-primary"
+          onClick={onBring}
+          disabled={busy || instrumentMissing}
+          title={
+            instrumentMissing
+              ? "Conecta el cuestionario en Configuración para traer el trabajo de campo"
+              : "Traer el trabajo de campo al procesamiento"
+          }
+        >
+          {busy ? <Loader2 size={14} className="pulso-spin" /> : <ArrowRight size={14} />}
+          Traer al procesamiento
+        </button>
+      </div>
+    </section>
+  );
 }
 
 function DetectedKoboSourceCallout({
