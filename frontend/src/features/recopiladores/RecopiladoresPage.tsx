@@ -1916,43 +1916,79 @@ export default function RecopiladoresPage() {
       />
 
       <main className="rec-workbench">
-        <aside className="rec-sidebar">
-          <div className="rec-sidebar-head">
-            <span>Sección activa</span>
-            <strong>{SECTIONS.find((section) => section.id === activeSection)?.label}</strong>
-            <small>{selectedFacultyLabel}</small>
-          </div>
-          <nav aria-label="Pestañas de fichas QR">
-            {tabs.map((tab, index) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={activeTab === tab.id ? "is-active" : ""}
-                  aria-label={`${tab.label}: ${tab.detail}`}
-                  data-rec-tip={`${tab.label} · ${tab.detail}`}
-                  title={`${tab.label}: ${tab.detail}`}
-                  onClick={() => setActiveTab(tab.id)}
-                >
-                  <span>{index + 1}</span>
-                  <Icon size={15} />
-                  <strong>{tab.label}</strong>
-                  <small>{tab.detail}</small>
-                </button>
-              );
-            })}
-          </nav>
-          <div className={`rec-sidebar-note is-${sidebarNote.tone}`}>
-            <SidebarNoteIcon size={15} />
-            <div>
-              <strong>{sidebarNote.title}</strong>
-              <p>{sidebarNote.detail}</p>
+        {/* Rail de tercer nivel (módulo → sección → pestaña): colapsado icon-only
+            por defecto, se expande a --pulso-rail-width al hover/focus como
+            overlay sin reflujo del canvas (patrón del rail de Procesamiento). */}
+        <aside className="rec-sidebar" aria-label="Pestañas de la sección activa">
+          <div className="rec-sidebar-shell">
+            <div className="rec-sidebar-head">
+              <span>Sección activa</span>
+              <strong>{SECTIONS.find((section) => section.id === activeSection)?.label}</strong>
+              <small>{selectedFacultyLabel}</small>
+            </div>
+            <nav role="tablist" aria-orientation="vertical" aria-label="Pestañas de fichas QR">
+              {tabs.map((tab, index) => {
+                const Icon = tab.icon;
+                const active = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    id={`rec-tab-${tab.id}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    aria-controls={active ? "rec-tabpanel" : undefined}
+                    tabIndex={active ? 0 : -1}
+                    className={active ? "is-active" : ""}
+                    aria-label={`${tab.label}. ${tab.detail}`}
+                    title={`${tab.label}: ${tab.detail}`}
+                    onClick={() => setActiveTab(tab.id)}
+                    onKeyDown={(event) => {
+                      // Roving tabindex del tablist vertical: las flechas mueven
+                      // el foco y activan (activación automática, patrón WAI-ARIA).
+                      const target = event.key === "Home"
+                        ? 0
+                        : event.key === "End"
+                          ? tabs.length - 1
+                          : event.key === "ArrowDown" || event.key === "ArrowRight"
+                            ? (index + 1) % tabs.length
+                            : event.key === "ArrowUp" || event.key === "ArrowLeft"
+                              ? (index - 1 + tabs.length) % tabs.length
+                              : -1;
+                      if (target < 0) return;
+                      event.preventDefault();
+                      const nextTab = tabs[target];
+                      setActiveTab(nextTab.id);
+                      document.getElementById(`rec-tab-${nextTab.id}`)?.focus();
+                    }}
+                  >
+                    <span className="rec-sidebar-tab-icon" aria-hidden="true">
+                      <Icon size={16} />
+                    </span>
+                    <span className="rec-sidebar-tab-copy">
+                      <strong>{tab.label}</strong>
+                      <small>{tab.detail}</small>
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+            <div className={`rec-sidebar-note is-${sidebarNote.tone}`}>
+              <SidebarNoteIcon size={15} />
+              <div>
+                <strong>{sidebarNote.title}</strong>
+                <p>{sidebarNote.detail}</p>
+              </div>
             </div>
           </div>
         </aside>
 
-        <section className={`rec-content${isFichaPreview ? " is-ficha-preview" : ""}${isFichaList ? " is-ficha-list" : ""}${isAgendaReview ? " is-agenda-review" : ""}${isPackageOutput ? " is-package-output" : ""}${isPackageSave ? " is-package-save" : ""}${isLinkSetup ? " is-link-setup" : ""}`}>
+        <section
+          role="tabpanel"
+          id="rec-tabpanel"
+          aria-labelledby={`rec-tab-${activeTab}`}
+          className={`rec-content${isFichaPreview ? " is-ficha-preview" : ""}${isFichaList ? " is-ficha-list" : ""}${isAgendaReview ? " is-agenda-review" : ""}${isPackageOutput ? " is-package-output" : ""}${isPackageSave ? " is-package-save" : ""}${isLinkSetup ? " is-link-setup" : ""}`}
+        >
           {isFichaPreview || isFichaList || isAgendaReview || isPackageOutput || isPackageSave || isLinkSetup ? null : (
             <div className="rec-content-head">
               <div>
