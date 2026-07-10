@@ -32,6 +32,7 @@ import {
   type BootWarmupTask,
 } from "../api/bootClient";
 import { isPublicMode } from "../lib/runtime";
+import { ChooserChrome } from "./BootChrome";
 import type { RecentProject } from "../features/project/types";
 import {
   warmupFrontendModules,
@@ -576,6 +577,7 @@ function warmupPercent({
 export default function BootGate({ loadSuite }: BootGateProps) {
   const [phase, setPhase] = useState<GatePhase>("initializing");
   const [error, setError] = useState("");
+  const [appVersion, setAppVersion] = useState("");
   const [manualPath, setManualPath] = useState("");
   const [recents, setRecents] = useState<RecentProject[]>([]);
   const [peeks, setPeeks] = useState<Record<string, BootManifestPeekItem>>({});
@@ -866,7 +868,11 @@ export default function BootGate({ loadSuite }: BootGateProps) {
       }
       setPhase("initializing");
       try {
-        await bootApiHealth();
+        const health = await bootApiHealth();
+        if (!cancelled && mountedRef.current) {
+          const v = (health?.prosecnur_version || health?.version || "").trim();
+          if (v) setAppVersion(v);
+        }
         const boot = await bootApiSystemBootstrap().catch(() => ({ sid: null }));
         const bootSid = typeof boot.sid === "string" && boot.sid.trim() ? boot.sid : null;
         let status = !bootSid ? await bootApiProjectStatus().catch(() => null) : null;
@@ -1007,23 +1013,26 @@ export default function BootGate({ loadSuite }: BootGateProps) {
             steps={displayWarmupSteps}
           />
         ) : (
-          <ChooserView
-            phase={phase}
-            busy={busy}
-            error={error}
-            recents={recents}
-            peeks={peeks}
-            manualPath={manualPath}
-            hasElectron={hasElectron}
-            onManualPathChange={setManualPath}
-            onOpen={() => void openProject()}
-            onCreate={() => void createProject()}
-            onOpenRecent={(path) => void openProject(path)}
-            onRemoveRecent={async (path) => {
-              const list = await window.prosecnurApi?.removeRecentProject(path).catch(() => null);
-              if (list) setRecents(list);
-            }}
-          />
+          <>
+            <ChooserView
+              phase={phase}
+              busy={busy}
+              error={error}
+              recents={recents}
+              peeks={peeks}
+              manualPath={manualPath}
+              hasElectron={hasElectron}
+              onManualPathChange={setManualPath}
+              onOpen={() => void openProject()}
+              onCreate={() => void createProject()}
+              onOpenRecent={(path) => void openProject(path)}
+              onRemoveRecent={async (path) => {
+                const list = await window.prosecnurApi?.removeRecentProject(path).catch(() => null);
+                if (list) setRecents(list);
+              }}
+            />
+            <ChooserChrome version={appVersion} hasElectron={hasElectron} disabled={busy} />
+          </>
         )}
       </section>
     </main>
@@ -1040,31 +1049,20 @@ function phaseLabel(phase: GatePhase) {
 }
 
 /**
- * Marca de Prosecnur — tile con degradado navy→teal y un trazo de pulso.
+ * Marca de Prosecnur — misma identidad que el logo del Home (Layout.tsx
+ * `BrandMark`): círculo navy con las tres barras ascendentes de chart.
  * Inline SVG: BootGate vive en el chunk de entrada y no puede depender de
- * assets externos ni de features. Los colores usan tokens --pulso-* con
- * fallbacks literales por si theme.css aún no cargó.
+ * assets externos ni de features; se replica el trazado 1:1 (viewBox 22)
+ * escalado. `--pulso-primary` lo define boot.css para el chunk de entrada.
  */
 function BootBrandMark() {
   return (
     <span className="boot-mark" aria-hidden="true">
-      <svg viewBox="0 0 48 48" width="46" height="46" role="img">
-        <defs>
-          <linearGradient id="boot-mark-fill" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#0b3d78" />
-            <stop offset="1" stopColor="#002457" />
-          </linearGradient>
-        </defs>
-        <rect x="0" y="0" width="48" height="48" rx="13" fill="url(#boot-mark-fill)" />
-        <path
-          d="M7 26 H15 L18.6 15 L23 33 L27 21 L29.4 26 H41"
-          fill="none"
-          stroke="#ffffff"
-          strokeWidth="2.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <circle cx="23" cy="33" r="2.4" fill="#3ec6b5" />
+      <svg viewBox="0 0 22 22" width="44" height="44" role="img">
+        <circle cx="11" cy="11" r="10" fill="var(--pulso-primary)" />
+        <rect x="6" y="11" width="2.3" height="5" rx="0.6" fill="#fff" />
+        <rect x="9.85" y="8" width="2.3" height="8" rx="0.6" fill="#fff" opacity="0.85" />
+        <rect x="13.7" y="5" width="2.3" height="11" rx="0.6" fill="#fff" opacity="0.7" />
       </svg>
     </span>
   );
@@ -1164,10 +1162,12 @@ function ChooserView({
           </button>
         </div>
 
-        <span className={`boot-status boot-status-${phase}`}>
-          <span className="boot-status-dot" aria-hidden="true" />
-          {phaseLabel(phase)}
-        </span>
+        {(phase === "initializing" || phase === "opening") && (
+          <span className={`boot-status boot-status-${phase}`}>
+            <span className="boot-status-dot" aria-hidden="true" />
+            {phaseLabel(phase)}
+          </span>
+        )}
       </div>
 
       <div className="boot-recents">
@@ -1296,10 +1296,11 @@ function BootRecentRow({
       <button
         type="button"
         className="boot-project-open"
-        onClick={onOpen}
+        onClick={managing ? undefined : onOpen}
         disabled={busy}
+        aria-disabled={managing || undefined}
         title={path}
-        aria-label={`Abrir ${name}`}
+        aria-label={managing ? `${name} — modo edición` : `Abrir ${name}`}
       >
         <span className="boot-project-top">
           <span className="boot-project-icon" aria-hidden="true">
