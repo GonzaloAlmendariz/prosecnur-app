@@ -10,14 +10,24 @@ on:
 permissions:
   contents: read
 
+# Pushes en ráfaga a main cancelan el run anterior del mismo ref: solo importa
+# el estado del último commit. Los tags (via workflow_call desde Release) usan
+# un ref propio, así que nunca se cancelan entre sí ni cancelan a main.
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   R_VERSION: '4.5.1'
   NODE_VERSION: '20'
   PNPM_VERSION: '10'
 
 jobs:
-  quality:
-    name: Typecheck, tests, audits
+  # Frontend y backend corren en paralelo: el typecheck roto avisa en ~3-4 min
+  # en vez de esperar los ~15 min del suite R (historial: dos releases muertos
+  # por TS2307 que recién se supo a los 20 min).
+  frontend:
+    name: Frontend (typecheck, tests, build, audits)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -32,6 +42,34 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
+
+      - name: Install frontend dependencies
+        run: pnpm -C frontend install --frozen-lockfile
+
+      - name: Install desktop dependencies
+        run: pnpm -C desktop install --frozen-lockfile
+
+      - name: Frontend typecheck
+        run: pnpm -C frontend exec tsc --noEmit --pretty false
+
+      - name: Frontend tests
+        run: pnpm -C frontend test
+
+      - name: Frontend production build
+        run: pnpm -C frontend exec vite build --outDir /tmp/prosecnur-vite-build --emptyOutDir
+
+      - name: Frontend audit
+        run: pnpm -C frontend audit --audit-level=high
+
+      - name: Desktop audit
+        run: pnpm -C desktop audit --audit-level=high
+
+  backend-r:
+    name: Backend R (load_all + testthat)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup R
         uses: r-lib/actions/setup-r@v2
@@ -61,27 +99,6 @@ jobs:
             libxml2-dev \
             libxt6 \
             qpdf
-
-      - name: Install frontend dependencies
-        run: pnpm -C frontend install --frozen-lockfile
-
-      - name: Install desktop dependencies
-        run: pnpm -C desktop install --frozen-lockfile
-
-      - name: Frontend typecheck
-        run: pnpm -C frontend exec tsc --noEmit --pretty false
-
-      - name: Frontend tests
-        run: pnpm -C frontend test
-
-      - name: Frontend production build
-        run: pnpm -C frontend exec vite build --outDir /tmp/prosecnur-vite-build --emptyOutDir
-
-      - name: Frontend audit
-        run: pnpm -C frontend audit --audit-level=high
-
-      - name: Desktop audit
-        run: pnpm -C desktop audit --audit-level=high
 
       - name: Install R package dependencies
         run: |

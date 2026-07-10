@@ -34,8 +34,34 @@ env:
   PNPM_VERSION: '10'
 
 jobs:
+  # Si este MISMO commit ya pasó Quality (push a main previo al tag), no hay
+  # razón para pagar los ~20 min del gate otra vez: el flujo típico es
+  # push a main + push del tag, y ambos corrían el suite R completo en paralelo.
+  precheck:
+    name: ¿Quality ya pasó para este SHA?
+    runs-on: ubuntu-latest
+    outputs:
+      skip_gate: ${{ steps.check.outputs.skip_gate }}
+    steps:
+      - name: Buscar Quality exitoso del mismo commit
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ok=$(gh api "repos/${{ github.repository }}/actions/workflows/quality.yml/runs?head_sha=${{ github.sha }}&status=completed&per_page=20" \
+            --jq '[.workflow_runs[] | select(.conclusion=="success")] | length' 2>/dev/null || echo 0)
+          if [ "${ok:-0}" -gt 0 ]; then
+            echo "skip_gate=true" >> "$GITHUB_OUTPUT"
+            echo "[precheck] Quality ya pasó para ${{ github.sha }} — gate omitido (ahorra ~20 min)."
+          else
+            echo "skip_gate=false" >> "$GITHUB_OUTPUT"
+            echo "[precheck] Sin Quality exitoso previo para este SHA — el gate corre completo."
+          fi
+
   quality:
     name: Quality gate
+    needs: precheck
+    if: needs.precheck.outputs.skip_gate != 'true'
     uses: ./.github/workflows/quality.yml
 
   # ---------------------------------------------------------------------------
@@ -45,7 +71,10 @@ jobs:
   # ---------------------------------------------------------------------------
   build-windows:
     name: Build Windows (.exe + latest.yml)
-    needs: quality
+    needs: [precheck, quality]
+    # quality queda "skipped" cuando el precheck encontró un Quality verde del
+    # mismo SHA; en ese caso el build procede igual.
+    if: always() && needs.precheck.result == 'success' && (needs.quality.result == 'success' || (needs.precheck.outputs.skip_gate == 'true' && needs.quality.result == 'skipped'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -104,7 +133,8 @@ jobs:
   # ---------------------------------------------------------------------------
   build-mac:
     name: Build macOS (.dmg arm64 + x64)
-    needs: quality
+    needs: [precheck, quality]
+    if: always() && needs.precheck.result == 'success' && (needs.quality.result == 'success' || (needs.precheck.outputs.skip_gate == 'true' && needs.quality.result == 'skipped'))
     runs-on: macos-latest   # arm64 nativo
     # Mac es best-effort: si falla, el .exe Windows igual se publica. El owner
     # puede generar los .dmg localmente con `make package-mac-dmg` y agregarlos
