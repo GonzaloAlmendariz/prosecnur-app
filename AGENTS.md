@@ -23,3 +23,7 @@ platform tasks. It is not part of the default Prosecnur baseline.
 Prosecnur is a local-first desktop app: Electron + React/Vite/TypeScript +
 R/Plumber in `api/`, with portable `.pulso` projects and secrets kept outside
 `.pulso`. Do not reference or modify the deprecated `../prosecnur/` directory.
+
+House rules, verification gates and the project agentic OS (subagents in
+`.claude/agents/`, skills in `.claude/skills/`) are defined in `CLAUDE.md` at
+the repo root. Debt metrics baseline lives in `docs/qa/deuda-baseline.md`.

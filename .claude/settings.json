@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null || exit 0; tracked=$(git diff --numstat HEAD 2>/dev/null | awk '{s+=$1+$2} END{print s+0}'); untracked=$(git ls-files --others --exclude-standard -z 2>/dev/null | xargs -0 cat 2>/dev/null | wc -l | tr -d ' '); total=$((tracked + untracked)); if [ \"$total\" -gt 1500 ]; then printf '{\"systemMessage\":\"Working tree con %s líneas sin commitear (umbral 1500). Considera /cerrar-trabajo.\"}' \"$total\"; fi",
+            "timeout": 15,
+            "statusMessage": "Midiendo working tree…"
+          }
+        ]
+      }
+    ]
+  }
+}
