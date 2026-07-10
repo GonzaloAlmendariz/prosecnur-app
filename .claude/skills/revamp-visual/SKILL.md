@@ -9,7 +9,7 @@ La tarea más frecuente del usuario (homepage, calc-muestra, XLSForms, loading s
 
 ## Fase 1 — Dirección (antes de tocar código)
 
-1. Carga el skill global `prosecnur-design-system` (dirección Apple/macOS, paleta del módulo, matriz de decisión de componentes). Para pulido de micro-interacciones y animación, complementa con `emil-design-eng`.
+1. Carga el skill global `prosecnur-design-system` (dirección Apple/macOS, paleta del módulo, matriz de decisión de componentes). Para dimensiones exactas de controles, ramp tipográfico y estados, usa su referencia `references/macos-metrics.md` (spec numérica extraída del Apple macOS 26 UI Kit: escalera de alturas 16/20/24/28/36, peso Medium 500 para controles, sidebar 240/filas 32, acento #0088FF de estados) — las medidas se toman de ahí, no se inventan. Para pulido de micro-interacciones y animación, complementa con `emil-design-eng`.
 2. Identifica la **paleta de acento del módulo** (cada módulo tiene la suya; no la contamines con la de otro) y el tipo de `PageFrame` (`document/workbench/canvas/data`) según `docs/ui-layout-grammar.md`.
 3. Captura el estado ANTES: usa el skill `/ver-ui` para llegar a la vista exacta (salta el BootGate con `?pulso=`) y toma screenshot. Sin "antes" no se puede defender el "después".
 4. Declara en 3–5 líneas la dirección: qué problema visual se ataca, qué se conserva, qué patrón HIG aplica. Si el revamp cambia navegación o jerarquía de módulo, consulta `prosecnur-architecture` (puede ameritar ADR).
