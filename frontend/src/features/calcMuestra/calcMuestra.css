@@ -2651,8 +2651,11 @@
 }
 
 .cmv2-workbench {
+  /* Ancho colapsado del rail de pestañas (icon-only). Al expandir por hover el
+     shell crece a --pulso-rail-width por encima del canvas, sin reflujo. */
+  --cmv2-rail-collapsed: 56px;
   display: grid;
-  grid-template-columns: minmax(244px, 278px) minmax(0, 1fr);
+  grid-template-columns: var(--cmv2-rail-collapsed) minmax(0, 1fr);
   gap: 10px;
   min-height: 0;
   height: 100%;
@@ -2703,25 +2706,106 @@
     var(--pulso-surface-2);
 }
 
-.cmv2-section-sidebar {
-  gap: 8px;
+/* =============================================================================
+ * Rail de pestañas de sección — tercer nivel (módulo → sección → pestaña).
+ * Patrón canónico "icon-compressed" (como el rail de Procesamiento): carril
+ * angosto icon-only por defecto, que se expande a --pulso-rail-width al hover
+ * o al recibir foco (focus-within), como overlay sobre el canvas (sin reflujo).
+ * ========================================================================== */
+
+/* El aside solo reserva el carril angosto en el grid del workbench; el panel
+   visual vive en el shell. Compuesto con .cmv2-rail para ganar la cascada. */
+.cmv2-rail.cmv2-section-sidebar {
+  position: relative;
+  width: var(--cmv2-rail-collapsed);
+  min-width: 0;
+  padding: 0;
+  gap: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  overflow: visible;
 }
 
+/* Shell = panel visual + motor de la expansión. Absoluto para no empujar el
+   canvas: al expandir crece hacia la derecha por encima de .cmv2-main. */
+.cmv2-section-sidebar-shell {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  width: var(--cmv2-rail-collapsed);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 8px 10px;
+  /* Colapsado: carril flush/integrado — sin borde duro ni drop-shadow (evita
+     la lectura de "caja geométrica flotante"). Solo una superficie sutil sobre
+     el lienzo; la elevación se reserva para el overlay expandido. */
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius-card);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.44), rgba(247, 249, 253, 0.34)),
+    color-mix(in srgb, var(--pulso-surface) 52%, transparent);
+  box-shadow: none;
+  backdrop-filter: saturate(1.04) blur(10px);
+  -webkit-backdrop-filter: saturate(1.04) blur(10px);
+  overflow: hidden;
+  transition:
+    width var(--motion-dur-fast) var(--motion-ease-out),
+    background var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Expandido: ahora sí es un overlay flotante sobre el canvas → recupera borde
+   y una sombra difusa amplia (nunca geométrica: blur alto, sin offset duro). */
+.cmv2-section-sidebar:hover .cmv2-section-sidebar-shell,
+.cmv2-section-sidebar:focus-within .cmv2-section-sidebar-shell {
+  width: var(--pulso-rail-width);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-color: color-mix(in srgb, var(--cmv2-border) 78%, transparent);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.86), transparent 48%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(247, 249, 253, 0.78)),
+    color-mix(in srgb, var(--pulso-surface) 82%, transparent);
+  box-shadow: 0 22px 50px -18px rgba(15, 23, 42, 0.28);
+}
+
+/* Cabecera: oculta en colapsado (solo íconos); aparece al expandir. */
 .cmv2-section-sidebar-head {
   min-width: 0;
   display: grid;
   gap: 3px;
+  max-height: 0;
+  margin: 0;
+  padding: 0 2px;
+  opacity: 0;
+  overflow: hidden;
+  border-bottom: 1px solid transparent;
+  transition:
+    max-height var(--motion-dur-fast) var(--motion-ease-out),
+    opacity var(--motion-dur-fast) var(--motion-ease-out),
+    padding var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.cmv2-section-sidebar:hover .cmv2-section-sidebar-head,
+.cmv2-section-sidebar:focus-within .cmv2-section-sidebar-head {
+  max-height: 96px;
   padding: 4px 2px 8px;
-  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 78%, transparent);
+  opacity: 1;
+  border-bottom-color: color-mix(in srgb, var(--pulso-border) 78%, transparent);
 }
 
 .cmv2-section-sidebar-head span,
 .cmv2-section-sidebar-head strong,
 .cmv2-section-sidebar-head small {
   min-width: 0;
-  overflow: visible;
-  text-overflow: clip;
-  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cmv2-section-sidebar-head span {
@@ -2729,38 +2813,42 @@
   font-size: 9.5px;
   font-weight: 800;
   line-height: 1;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .cmv2-section-sidebar-head strong {
   color: var(--pulso-text);
-  font-size: 14px;
-  font-weight: 930;
+  font-size: 13.5px;
+  font-weight: 860;
   line-height: 1.15;
 }
 
 .cmv2-section-sidebar-head small {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 720;
+  font-weight: var(--pulso-control-weight);
   line-height: 1.28;
+  white-space: normal;
 }
 
 .cmv2-section-local-tabs {
   display: grid;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
 }
 
+/* Fila colapsada: solo el ícono, centrado, a la altura de rail canónica. */
 .cmv2-section-local-tab {
   width: 100%;
   min-width: 0;
-  min-height: 54px;
+  height: var(--pulso-rail-row-height-lg);
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: start;
-  padding: 8px;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-items: center;
+  gap: 0;
+  padding: 0;
   border: 1px solid transparent;
   border-radius: var(--pulso-radius);
   background: transparent;
@@ -2772,7 +2860,19 @@
     border-color var(--motion-dur-fast) var(--motion-ease-out),
     box-shadow var(--motion-dur-fast) var(--motion-ease-out),
     color var(--motion-dur-fast) var(--motion-ease-out),
+    padding var(--motion-dur-fast) var(--motion-ease-out),
     transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+/* Fila expandida: ícono + copy (dos líneas) + marcador de estado. */
+.cmv2-section-sidebar:hover .cmv2-section-local-tab,
+.cmv2-section-sidebar:focus-within .cmv2-section-local-tab {
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  justify-items: stretch;
+  gap: 8px;
+  height: auto;
+  min-height: var(--pulso-rail-row-height-lg);
+  padding: 6px 8px;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -2792,86 +2892,126 @@
   box-shadow: 0 0 0 3px var(--pulso-primary-focus);
 }
 
+/* Selected fill: la pestaña activa se rellena con el acento del módulo, en
+   colapsado y expandido (lectura macOS de "source list" seleccionada). */
 .cmv2-section-local-tab.is-active {
-  border-color: color-mix(in srgb, var(--cmv2-accent-border) 74%, var(--pulso-border));
+  border-color: color-mix(in srgb, var(--cmv2-accent) 60%, #fff);
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--cmv2-accent-soft) 58%, #fff), #fff);
-  color: var(--pulso-text);
+    linear-gradient(180deg, color-mix(in srgb, var(--cmv2-accent) 90%, #fff 10%), var(--cmv2-accent));
+  color: #fff;
   box-shadow:
-    inset 3px 0 0 var(--cmv2-accent),
-    0 8px 20px color-mix(in srgb, var(--cmv2-accent) 8%, transparent);
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 8px 18px color-mix(in srgb, var(--cmv2-accent) 20%, transparent);
 }
 
-.cmv2-section-local-index {
+/* Ícono: glifo primario del carril. Lleva un punto de estado en la esquina
+   (visible solo en colapsado; al expandir cede al flag/estado de la derecha). */
+.cmv2-section-local-icon {
+  position: relative;
+  grid-column: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, var(--cmv2-accent-border) 18%);
+  width: 26px;
+  height: 26px;
   border-radius: var(--pulso-radius-chip);
-  background: var(--cmv2-surface);
-  color: var(--pulso-text-soft);
-  font-size: 10px;
-  font-weight: 800;
+  color: var(--cmv2-accent-fg);
 }
 
-.cmv2-section-local-tab.is-active .cmv2-section-local-index {
-  border-color: color-mix(in srgb, var(--cmv2-accent) 50%, #fff);
-  background: var(--cmv2-accent);
+.cmv2-section-local-icon svg {
+  flex: 0 0 auto;
+}
+
+.cmv2-section-local-tab.is-active .cmv2-section-local-icon {
   color: #fff;
 }
 
-.cmv2-section-local-copy {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
+.cmv2-section-local-dot {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid var(--cmv2-surface-raised);
+  border-radius: 50%;
+  background: transparent;
 }
 
-.cmv2-section-local-copy strong,
-.cmv2-section-local-copy small,
-.cmv2-section-local-state {
+.cmv2-section-local-dot.is-ready {
+  background: var(--pulso-success-fg);
+}
+
+.cmv2-section-local-dot.is-working {
+  background: var(--pulso-warn-fg);
+}
+
+.cmv2-section-local-tab.is-active .cmv2-section-local-dot {
+  border-color: color-mix(in srgb, var(--cmv2-accent) 60%, #fff);
+}
+
+/* Copy: oculta en colapsado, aparece al expandir. */
+.cmv2-section-local-copy {
   min-width: 0;
-  overflow: visible;
-  text-overflow: clip;
-  white-space: normal;
+  display: none;
+  grid-column: 2;
+  gap: 2px;
+}
+
+.cmv2-section-sidebar:hover .cmv2-section-local-copy,
+.cmv2-section-sidebar:focus-within .cmv2-section-local-copy {
+  display: grid;
+}
+
+.cmv2-section-sidebar:hover .cmv2-section-local-dot,
+.cmv2-section-sidebar:focus-within .cmv2-section-local-dot {
+  display: none;
 }
 
 .cmv2-section-local-copy strong {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+  min-width: 0;
   color: var(--pulso-text);
   font-size: 11.5px;
   font-weight: 800;
   line-height: 1.16;
-}
-
-.cmv2-section-local-copy strong svg {
-  flex: 0 0 auto;
-  color: var(--cmv2-accent-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cmv2-section-local-copy small {
+  min-width: 0;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 720;
-  line-height: 1.25;
+  font-weight: var(--pulso-control-weight);
+  line-height: 1.24;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+.cmv2-section-local-tab.is-active .cmv2-section-local-copy strong {
+  color: #fff;
+}
+
+.cmv2-section-local-tab.is-active .cmv2-section-local-copy small {
+  color: color-mix(in srgb, #fff 82%, transparent);
+}
+
+/* Marcador de estado (solo expandido, cuando la pestaña no lleva flag). */
 .cmv2-section-local-state {
   grid-column: 3;
-  grid-row: 1;
   justify-self: end;
   width: 8px;
   height: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 5px;
+  display: none;
   border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius-chip);
+  border-radius: 50%;
   background: var(--cmv2-border-strong);
+}
+
+.cmv2-section-sidebar:hover .cmv2-section-local-state,
+.cmv2-section-sidebar:focus-within .cmv2-section-local-state {
+  display: inline-flex;
 }
 
 .cmv2-section-local-tab.is-ready .cmv2-section-local-state {
@@ -2884,16 +3024,20 @@
   background: var(--pulso-warn-fg);
 }
 
+.cmv2-section-local-tab.is-active .cmv2-section-local-state {
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.9);
+}
+
 /* --- Recorrido guiado (desk universitario): badges de texto ------------------
-   "Siguiente" marca el paso en curso y "Después" lo aún pendiente; sustituyen
-   al punto de estado solo en pestañas no listas. Las pestañas pendientes se
-   atenúan pero siguen navegables (el porqué viaja en el title del botón). */
+   "Siguiente" marca el paso en curso y "Después" lo aún pendiente; solo
+   visibles al expandir. Las pestañas pendientes se atenúan pero siguen
+   navegables (el porqué viaja en el title del botón). */
 .cmv2-section-local-flag {
   grid-column: 3;
-  grid-row: 1;
   justify-self: end;
-  align-self: start;
-  margin-top: 2px;
+  align-self: center;
+  display: none;
   padding: 2px 7px;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
@@ -2906,20 +3050,31 @@
   white-space: nowrap;
 }
 
+.cmv2-section-sidebar:hover .cmv2-section-local-flag,
+.cmv2-section-sidebar:focus-within .cmv2-section-local-flag {
+  display: inline-flex;
+}
+
 .cmv2-section-local-flag.is-working {
   border-color: color-mix(in srgb, var(--pulso-warn-border) 78%, var(--pulso-border));
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
 }
 
+.cmv2-section-local-tab.is-active .cmv2-section-local-flag {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
 .cmv2-section-local-tabs.is-guided .cmv2-section-local-tab.is-pending:not(.is-active) {
-  opacity: 0.55;
-  transition-property: background-color, border-color, box-shadow, color, opacity, transform;
+  opacity: 0.6;
+  transition-property: background-color, border-color, box-shadow, color, opacity, padding, transform;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .cmv2-section-local-tabs.is-guided .cmv2-section-local-tab.is-pending:not(.is-active):hover {
-    opacity: 0.85;
+    opacity: 0.9;
   }
 }
 
@@ -4378,13 +4533,15 @@
   border-radius: var(--pulso-radius);
 }
 
+/* Selected fill del rail icon-compressed (alinea la capa de pulido con el
+   relleno de acento definido arriba; no vuelve a la barra inset heredada). */
 .cmv2-section-local-tab.is-active {
-  border-color: color-mix(in srgb, var(--cmv2-accent) 34%, var(--pulso-border));
+  border-color: color-mix(in srgb, var(--cmv2-accent) 60%, #fff);
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--cmv2-accent-soft) 70%, #fff), #fff);
+    linear-gradient(180deg, color-mix(in srgb, var(--cmv2-accent) 90%, #fff 10%), var(--cmv2-accent));
   box-shadow:
-    inset 3px 0 0 var(--cmv2-accent),
-    0 10px 22px color-mix(in srgb, var(--cmv2-accent) 9%, transparent);
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 8px 18px color-mix(in srgb, var(--cmv2-accent) 20%, transparent);
 }
 
 .cmv2-section-local-state {
@@ -4610,7 +4767,7 @@
 
 @media (max-width: 1180px) {
   .cmv2-workbench {
-    grid-template-columns: 236px minmax(0, 1fr);
+    grid-template-columns: var(--cmv2-rail-collapsed) minmax(0, 1fr);
   }
 
   .cmv2-main {
@@ -4771,6 +4928,44 @@
   .cmv2-rail {
     order: 2;
     max-height: none;
+  }
+
+  /* Rail de pestañas en layout apilado: el overlay absoluto necesita el alto
+     del grid (ausente al apilar), así que el shell vuelve a flujo y las filas
+     se muestran expandidas (ícono + copy), sin depender del hover. */
+  .cmv2-rail.cmv2-section-sidebar {
+    width: 100%;
+    overflow: visible;
+  }
+  .cmv2-section-sidebar-shell,
+  .cmv2-section-sidebar:hover .cmv2-section-sidebar-shell,
+  .cmv2-section-sidebar:focus-within .cmv2-section-sidebar-shell {
+    position: static;
+    width: 100%;
+  }
+  .cmv2-section-sidebar-head {
+    max-height: none;
+    padding: 4px 2px 8px;
+    opacity: 1;
+    border-bottom-color: color-mix(in srgb, var(--pulso-border) 78%, transparent);
+  }
+  .cmv2-section-local-tab {
+    grid-template-columns: 26px minmax(0, 1fr) auto;
+    justify-items: stretch;
+    gap: 8px;
+    height: auto;
+    min-height: var(--pulso-rail-row-height-lg);
+    padding: 6px 8px;
+  }
+  .cmv2-section-local-copy {
+    display: grid;
+  }
+  .cmv2-section-local-dot {
+    display: none;
+  }
+  .cmv2-section-local-state,
+  .cmv2-section-local-flag {
+    display: inline-flex;
   }
 
   .cmv2-main {
@@ -4967,6 +5162,43 @@
 
   .cmv2-rail {
     order: 2;
+  }
+
+  /* Rail de pestañas en columna única: mismo fallback que ≤900 — shell en flujo
+     y filas expandidas, ya que el overlay absoluto pierde alto al apilar. */
+  .cmv2-rail.cmv2-section-sidebar {
+    width: 100%;
+    overflow: visible;
+  }
+  .cmv2-section-sidebar-shell,
+  .cmv2-section-sidebar:hover .cmv2-section-sidebar-shell,
+  .cmv2-section-sidebar:focus-within .cmv2-section-sidebar-shell {
+    position: static;
+    width: 100%;
+  }
+  .cmv2-section-sidebar-head {
+    max-height: none;
+    padding: 4px 2px 8px;
+    opacity: 1;
+    border-bottom-color: color-mix(in srgb, var(--pulso-border) 78%, transparent);
+  }
+  .cmv2-section-local-tab {
+    grid-template-columns: 26px minmax(0, 1fr) auto;
+    justify-items: stretch;
+    gap: 8px;
+    height: auto;
+    min-height: var(--pulso-rail-row-height-lg);
+    padding: 6px 8px;
+  }
+  .cmv2-section-local-copy {
+    display: grid;
+  }
+  .cmv2-section-local-dot {
+    display: none;
+  }
+  .cmv2-section-local-state,
+  .cmv2-section-local-flag {
+    display: inline-flex;
   }
 
   .cmv2-selector-head,

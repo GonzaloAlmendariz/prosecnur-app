@@ -2222,54 +2222,68 @@ function CalcMuestraContextSidebar({
   }
 
   return (
+    // Rail de tercer nivel (jerarquía canónica módulo → sección → pestaña):
+    // colapsado icon-only por defecto, se expande a --pulso-rail-width al
+    // hover/focus como overlay (sin reflujo del canvas). El shell absoluto
+    // carga el panel visual y la transición de ancho; el aside solo reserva
+    // el carril angosto en el grid del workbench.
     <aside className="cmv2-rail cmv2-section-sidebar" aria-label="Pestañas de la sección activa">
-      <div className="cmv2-section-sidebar-head">
-        <span>{activeMeta?.label ?? railTitleForDesk(desk)}</span>
-        <strong>{desk === "opinion_universitaria" && activeSection === "definicion" ? "Preparación" : "Pestañas"}</strong>
-        <small>{activeMeta?.detail ?? deskSubtitleForDesk(desk)}</small>
-      </div>
+      <div className="cmv2-section-sidebar-shell">
+        <div className="cmv2-section-sidebar-head">
+          <span>{activeMeta?.label ?? railTitleForDesk(desk)}</span>
+          <strong>{desk === "opinion_universitaria" && activeSection === "definicion" ? "Preparación" : "Pestañas"}</strong>
+          <small>{activeMeta?.detail ?? deskSubtitleForDesk(desk)}</small>
+        </div>
 
-      <div
-        className={`cmv2-section-local-tabs${desk === "opinion_universitaria" ? " is-guided" : ""}`}
-        role="tablist"
-        aria-label={`Pestañas de ${activeMeta?.label ?? "la sección"}`}
-      >
-        {tabs.map((tab, index) => {
-          const Icon = tab.icon;
-          const active = activeTabId === (tab.classroomTab ?? tab.id);
-          // Recorrido guiado (desk universitario): badge de texto visible en
-          // vez del punto — "Siguiente" para el paso en curso y "Después"
-          // para lo aún pendiente. La pestaña sigue navegable siempre; el
-          // porqué del estado viaja en el title.
-          const guided = desk === "opinion_universitaria";
-          const showFlag = guided && tab.status !== "ready";
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              className={`cmv2-section-local-tab is-${tab.status}${active ? " is-active" : ""}`}
-              title={guided ? `${guidedStatusLabel(tab.status)} · ${tab.label}: ${tab.detail}` : undefined}
-              onClick={() => selectTab(tab)}
-            >
-              <span className="cmv2-section-local-index">{index + 1}</span>
-              <span className="cmv2-section-local-copy">
-                <strong><Icon size={13} /> {tab.label}</strong>
-                <small>{tab.detail}</small>
-              </span>
-              {showFlag ? (
-                <span className={`cmv2-section-local-flag is-${tab.status}`}>
-                  {tab.status === "working" ? "Siguiente" : "Después"}
+        <div
+          className={`cmv2-section-local-tabs${desk === "opinion_universitaria" ? " is-guided" : ""}`}
+          role="tablist"
+          aria-label={`Pestañas de ${activeMeta?.label ?? "la sección"}`}
+        >
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const active = activeTabId === (tab.classroomTab ?? tab.id);
+            // Recorrido guiado (desk universitario): badge de texto visible en
+            // vez del punto — "Siguiente" para el paso en curso y "Después"
+            // para lo aún pendiente. La pestaña sigue navegable siempre; el
+            // porqué del estado viaja en el title.
+            const guided = desk === "opinion_universitaria";
+            const showFlag = guided && tab.status !== "ready";
+            const statusLabel = guidedStatusLabel(tab.status);
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                className={`cmv2-section-local-tab is-${tab.status}${active ? " is-active" : ""}`}
+                // El label completo viaja en title/aria-label para que el carril
+                // colapsado siga siendo identificable con solo el ícono.
+                title={guided ? `${tab.label}: ${tab.detail} · ${statusLabel}` : `${tab.label}: ${tab.detail}`}
+                aria-label={`${tab.label}. ${tab.detail}`}
+                onClick={() => selectTab(tab)}
+              >
+                <span className="cmv2-section-local-icon" aria-hidden="true">
+                  <Icon size={16} />
+                  <span className={`cmv2-section-local-dot is-${tab.status}`} />
                 </span>
-              ) : (
-                <span className="cmv2-section-local-state" title={guidedStatusLabel(tab.status)}>
-                  <span className="pulso-sr-only">{guidedStatusLabel(tab.status)}</span>
+                <span className="cmv2-section-local-copy">
+                  <strong>{tab.label}</strong>
+                  <small>{tab.detail}</small>
                 </span>
-              )}
-            </button>
-          );
-        })}
+                {showFlag ? (
+                  <span className={`cmv2-section-local-flag is-${tab.status}`}>
+                    {tab.status === "working" ? "Siguiente" : "Después"}
+                  </span>
+                ) : (
+                  <span className="cmv2-section-local-state" title={statusLabel}>
+                    <span className="pulso-sr-only">{statusLabel}</span>
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </aside>
   );
