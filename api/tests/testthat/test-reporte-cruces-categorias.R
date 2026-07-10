@@ -37,7 +37,10 @@ test_that("cruces usa choices para mostrar labels y categorias no observadas", {
 
   raw <- readxl::read_excel(out, col_names = FALSE, n_max = 12)
   vals <- as.character(unlist(raw, use.names = FALSE))
-  header_vals <- as.character(unlist(raw[6:8, , drop = FALSE], use.names = FALSE))
+  # El encabezado (dimension / niveles / n-%) ocupa las filas 4-6:
+  # fila 1 seccion "GENERAL", fila 3 titulo de la pregunta, filas 4-6 encabezado.
+  # (Ya no se escribe el banner de hoja "CRUCES".)
+  header_vals <- as.character(unlist(raw[4:6, , drop = FALSE], use.names = FALSE))
 
   expect_true("Presencial" %in% vals)
   expect_true("Telefónica" %in% vals)

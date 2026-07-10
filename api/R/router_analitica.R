@@ -193,6 +193,7 @@
   openxlsx::freezePane(wb, "datos", firstRow = TRUE)
   if (ncol(df)) openxlsx::setColWidths(wb, "datos", cols = seq_len(ncol(df)), widths = "auto")
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  if (exists("pulso_xlsx_ignore_number_warnings", mode = "function")) pulso_xlsx_ignore_number_warnings(path)
 }
 
 .analitica_scalar <- function(x, fallback = "") {

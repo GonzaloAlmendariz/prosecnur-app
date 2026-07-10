@@ -10,113 +10,8 @@
 # =============================================================================
 
 mk_styles_cruces <- function() {
-  list(
-    sec_title = openxlsx::createStyle(
-      fontSize       = 18,
-      textDecoration = "bold",
-      halign         = "center",
-      valign         = "center",
-      wrapText       = TRUE,
-      fontColour     = "#000000",
-      fgFill         = "#FFFFFF",
-      fontName       = "Arial"
-    ),
-    q_title = openxlsx::createStyle(
-      fontSize       = 11,
-      textDecoration = "italic",
-      halign         = "left",
-      valign         = "center",
-      wrapText       = TRUE,
-      fontColour     = "#000000",
-      fgFill         = "#FFFFFF",
-      fontName       = "Arial"
-    ),
-    header = openxlsx::createStyle(
-      fontSize       = 10,
-      textDecoration = "bold",
-      border         = c("top", "bottom"),
-      borderStyle    = "thin",
-      borderColour   = "#000000",
-      halign         = "center",
-      valign         = "center",
-      wrapText       = TRUE,
-      fgFill         = "#FFFFFF",
-      fontName       = "Arial"
-    ),
-    header_A = openxlsx::createStyle(
-      fontSize       = 10,
-      textDecoration = "bold",
-      halign         = "left",
-      valign         = "center",
-      wrapText       = TRUE,
-      fgFill         = "#FFFFFF",
-      fontName       = "Arial"
-    ),
-    body_txt = openxlsx::createStyle(
-      fontSize = 10,
-      halign   = "left",
-      valign   = "center",
-      wrapText = TRUE,
-      fgFill   = "#FFFFFF",
-      fontName = "Arial"
-    ),
-    body_int = openxlsx::createStyle(
-      fontSize = 10,
-      numFmt   = "#,##0",
-      halign   = "right",
-      valign   = "center",
-      fontName = "Arial",
-      fgFill   = "#FFFFFF"
-    ),
-
-    body_num = openxlsx::createStyle(
-      fontSize = 10,
-      numFmt   = "#,##0.0",
-      halign   = "right",
-      valign   = "center",
-      fontName = "Arial",
-      fgFill   = "#FFFFFF"
-    ),
-    body_pct = openxlsx::createStyle(
-      fontSize = 10,
-      numFmt   = "0.0%",
-      halign   = "right",
-      valign   = "center",
-      fontName = "Arial",
-      fgFill   = "#FFFFFF"
-    ),
-    note = openxlsx::createStyle(
-      fontSize       = 9,
-      fontColour     = "#666666",
-      halign         = "left",
-      valign         = "center",
-      wrapText       = TRUE,
-      textDecoration = "italic",
-      fgFill         = "#FFFFFF",
-      fontName       = "Arial"
-    ),
-    total_bold = openxlsx::createStyle(
-      textDecoration = "bold",
-      fontName       = "Arial"
-    ),
-    table_end = openxlsx::createStyle(
-      border       = "bottom",
-      borderStyle  = "thin",
-      borderColour = "#000000"
-    ),
-    footer_top = openxlsx::createStyle(
-      border       = "top",
-      borderStyle  = "thin",
-      borderColour = "#000000"
-    ),
-    cell = openxlsx::createStyle(
-      fontSize = 10,
-      halign   = "center",
-      valign   = "center",
-      fgFill   = "#FFFFFF",
-      fontName = "Arial"
-    )
-  )
+  # Tema monocromo editorial unico (ver api/R/xlsx_theme.R).
+  pulso_xlsx_styles("cruces")
 }
 
 # =============================================================================
@@ -1148,16 +1043,13 @@ exportar_cruces_multi <- function(data,
 
   wb <- openxlsx::createWorkbook()
   openxlsx::addWorksheet(wb, hoja)
+  pulso_xlsx_hide_gridlines(wb, hoja)  # fondo blanco en todo el documento
   st <- mk_styles_cruces()
 
   fila <- 1L
 
-  if (isTRUE(incluir_titulos)) {
-    openxlsx::writeData(wb, hoja, "CRUCES", startRow = fila, startCol = 1)
-    openxlsx::addStyle(wb, hoja, st$sec_title, rows = fila, cols = 1, gridExpand = TRUE)
-    openxlsx::mergeCells(wb, hoja, rows = fila, cols = 1:6)
-    fila <- fila + 2
-  }
+  # (Se omite el banner de hoja "CRUCES": redundante con el nombre del archivo y
+  # la seccion. Los titulos de seccion y de cada pregunta se conservan.)
 
   # helper para merges de encabezado (categoricos)
   escribir_encabezado <- function(h1, h2, h3, row0, col0 = 1) {
@@ -1484,9 +1376,6 @@ exportar_cruces_multi <- function(data,
         openxlsx::mergeCells(wb, hoja, rows = fila, cols = 1:ncols_tbl)
         openxlsx::setRowHeights(wb, hoja, rows = fila,
                                 heights = .calc_row_height(qlab, col_width = 60, font_size = 11))
-        openxlsx::addStyle(wb, hoja, st$table_end,
-                           rows = fila, cols = 1:ncols_tbl,
-                           gridExpand = TRUE, stack = TRUE)
         fila <- fila + 1
       }
 
@@ -1501,8 +1390,10 @@ exportar_cruces_multi <- function(data,
       hdr3_full[1] <- ""
 
       col_ptr <- 2L
+      grp_starts <- integer(0)  # columnas donde empieza cada grupo de cruce (para separadores verticales)
 
       if (any(names(cuerpo) == "Total__n")) {
+        grp_starts <- c(grp_starts, col_ptr)
         hdr1_full[col_ptr:(col_ptr + 1)] <- ""
         hdr2_full[col_ptr:(col_ptr + 1)] <- "Total"
         hdr3_full[col_ptr:(col_ptr + 1)] <- c("n", "%")
@@ -1517,6 +1408,7 @@ exportar_cruces_multi <- function(data,
           if (!length(estr_labels)) next
 
           s_lbl <- label_variable(s, dic_vars, labels_override, data)
+          grp_starts <- c(grp_starts, col_ptr)  # inicio del bloque de esta variable de cruce
 
           for (lab in estr_labels) {
             if (col_ptr > ncols_total) break
@@ -1535,8 +1427,10 @@ exportar_cruces_multi <- function(data,
         hdr3_full[remaining] <- rep(c("n", "%"), length.out = length(remaining))
       }
 
+      hdr_row0 <- fila  # primera fila del encabezado (inicio del cuadro de la tabla)
       escribir_encabezado(hdr1_full, hdr2_full, hdr3_full, row0 = fila, col0 = 1)
 
+      # subrayado que separa el encabezado del cuerpo
       openxlsx::addStyle(wb, hoja, st$table_end,
                          rows = fila + 2, cols = 1:ncols_total,
                          gridExpand = TRUE, stack = TRUE)
@@ -1549,30 +1443,25 @@ exportar_cruces_multi <- function(data,
       nfil     <- nrow(cuerpo)
       ncol_tbl <- ncol(cuerpo)
 
-      openxlsx::addStyle(wb, hoja, st$body_txt,
-                         rows = fila:(fila + nfil - 1), cols = 1,
-                         gridExpand = TRUE)
+      is_pct     <- if (ncol_tbl > 1) grepl("__pct$", names(cuerpo)) else logical(0)
+      pct_cols_w <- which(is_pct)
+      int_cols   <- if (ncol_tbl > 1) setdiff(2:ncol_tbl, pct_cols_w) else integer(0)
+      fila_total <- fila + nfil - 1
 
-      if (ncol_tbl > 1) {
-        is_pct <- grepl("__pct$", names(cuerpo))
-        pct_cols_w <- which(is_pct)
-        int_cols   <- setdiff(2:ncol_tbl, pct_cols_w)
-
+      # Zebra sutil: sombrea filas de datos alternas (no la fila Total).
+      for (rr in fila:(fila + nfil - 1)) {
+        z <- (rr != fila_total) && (((rr - fila) %% 2L) == 1L)
+        openxlsx::addStyle(wb, hoja, if (z) st$zebra_txt else st$body_txt,
+                           rows = rr, cols = 1, gridExpand = TRUE)
         if (length(int_cols)) {
-          openxlsx::addStyle(wb, hoja, st$body_int,
-                             rows = fila:(fila + nfil - 1),
-                             cols  = int_cols,
-                             gridExpand = TRUE)
+          openxlsx::addStyle(wb, hoja, if (z) st$zebra_int else st$body_int,
+                             rows = rr, cols = int_cols, gridExpand = TRUE)
         }
         if (length(pct_cols_w)) {
-          openxlsx::addStyle(wb, hoja, st$body_pct,
-                             rows = fila:(fila + nfil - 1),
-                             cols  = pct_cols_w,
-                             gridExpand = TRUE)
+          openxlsx::addStyle(wb, hoja, if (z) st$zebra_pct else st$body_pct,
+                             rows = rr, cols = pct_cols_w, gridExpand = TRUE)
         }
       }
-
-      fila_total <- fila + nfil - 1
       if (length(n_cols)) {
         openxlsx::addStyle(wb, hoja, st$body_int,
                            rows = fila_total, cols = n_cols,
@@ -1586,9 +1475,9 @@ exportar_cruces_multi <- function(data,
                            rows = fila_total, cols = pct_cols,
                            gridExpand = TRUE, stack = TRUE)
       }
-      openxlsx::addStyle(wb, hoja, st$table_end,
-                         rows = fila_total, cols = 1:ncol_tbl,
-                         gridExpand = TRUE, stack = TRUE)
+      # cuadro completo de la tabla (marco exterior + separadores entre grupos de cruce)
+      pulso_xlsx_box(wb, hoja, r1 = hdr_row0, r2 = fila_total, c1 = 1, c2 = ncol_tbl,
+                     sep_cols = grp_starts)
 
       fila <- fila + nfil
 
@@ -1667,11 +1556,9 @@ exportar_cruces_multi <- function(data,
           if (ncols_sig < 2) ncols_sig <- 2
 
           openxlsx::mergeCells(wb, hoja, rows = fila, cols = 1:ncols_sig)
-          openxlsx::addStyle(wb, hoja, st$table_end,
-                             rows = fila, cols = 1:ncols_sig,
-                             gridExpand = TRUE, stack = TRUE)
           fila <- fila + 1
 
+          sig_hdr0 <- fila  # primera fila del encabezado de la sub-tabla (inicio del cuadro)
           openxlsx::writeData(wb, hoja, t(sig_h1),
                               startRow = fila, startCol = 1, colNames = FALSE)
           openxlsx::writeData(wb, hoja, t(sig_h2),
@@ -1715,7 +1602,8 @@ exportar_cruces_multi <- function(data,
 
           openxlsx::writeData(wb, hoja, opciones,
                               startRow = fila_datos, startCol = 1, colNames = FALSE)
-          openxlsx::addStyle(wb, hoja, st$cell,
+          # Etiquetas de categoria alineadas a la izquierda (no centradas).
+          openxlsx::addStyle(wb, hoja, st$body_txt,
                              rows = fila_datos:(fila_datos + length(opciones) - 1),
                              cols  = 1, gridExpand = TRUE)
 
@@ -1761,18 +1649,20 @@ exportar_cruces_multi <- function(data,
             "\nFuente: ", fuente
           )
 
+          # Cierra el cuadro de la sub-tabla BAJO la ultima categoria (no bajo la nota),
+          # con separadores entre grupos de cruce.
+          sig_last <- fila_datos + length(opciones) - 1L
+          sig_grp_starts <- vapply(runs1, function(r) as.integer(r[1]), integer(1))
+          sig_grp_starts <- sig_grp_starts[sig_grp_starts >= 2L]
+          pulso_xlsx_box(wb, hoja, r1 = sig_hdr0, r2 = sig_last, c1 = 1, c2 = ncols_sig,
+                         sep_cols = sig_grp_starts)
+
           fila_note <- fila_datos + length(opciones)
           openxlsx::writeData(wb, hoja, pie_sig,
                               startRow = fila_note, startCol = 1)
           openxlsx::addStyle(wb, hoja, st$note,
                              rows = fila_note, cols = 1, gridExpand = TRUE)
           openxlsx::mergeCells(wb, hoja, rows = fila_note, cols = 1:(col_cursor - 1))
-
-          openxlsx::addStyle(
-            wb, hoja, st$footer_top,
-            rows = fila_note, cols = 1:(col_cursor - 1),
-            gridExpand = TRUE, stack = TRUE
-          )
 
           openxlsx::setRowHeights(wb, hoja, rows = fila_note,
                                   heights = .calc_row_height(pie_sig, col_width = 60,
@@ -1814,6 +1704,7 @@ exportar_cruces_multi <- function(data,
   }
 
   openxlsx::saveWorkbook(wb, path_xlsx, overwrite = TRUE)
+  if (exists("pulso_xlsx_ignore_number_warnings", mode = "function")) pulso_xlsx_ignore_number_warnings(path_xlsx)
   message("Cruces exportados a: ", normalizePath(path_xlsx))
   invisible(path_xlsx)
 }
@@ -2603,6 +2494,7 @@ exportar_dimensiones_multi <- function(data,
   )
 
   openxlsx::addWorksheet(wb, hoja_meta)
+  pulso_xlsx_hide_gridlines(wb, hoja_meta)  # fondo blanco en todo el documento
   openxlsx::writeData(
     wb,
     hoja_meta,
@@ -2650,11 +2542,10 @@ exportar_dimensiones_multi <- function(data,
     sn <- .sanitize_sheet_name(sheet_name, fallback = hoja)
     if (!(sn %in% names(sheet_rows))) {
       openxlsx::addWorksheet(wb, sn)
+      pulso_xlsx_hide_gridlines(wb, sn)  # fondo blanco en todo el documento
       row0 <- 1L
-      openxlsx::writeData(wb, sn, "CRUCES", startRow = row0, startCol = 1)
-      openxlsx::addStyle(wb, sn, st$sec_title, rows = row0, cols = 1, gridExpand = TRUE)
-      openxlsx::mergeCells(wb, sn, rows = row0, cols = 1:6)
-      sheet_rows[[sn]] <<- row0 + 2L
+      # (Se omite el banner de hoja "CRUCES": redundante con el nombre del archivo.)
+      sheet_rows[[sn]] <<- row0
       sheet_used_cols[[sn]] <<- 1:6
       sheet_brecha_cols[[sn]] <<- integer(0)
       sheet_first_col_chars[[sn]] <<- integer(0)
@@ -3844,6 +3735,7 @@ exportar_dimensiones_multi <- function(data,
   }
 
   openxlsx::saveWorkbook(wb, path_xlsx, overwrite = TRUE)
+  if (exists("pulso_xlsx_ignore_number_warnings", mode = "function")) pulso_xlsx_ignore_number_warnings(path_xlsx)
   message("Cruces (modo dimensiones) exportados a: ", normalizePath(path_xlsx))
   invisible(path_xlsx)
 }

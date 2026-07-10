@@ -120,19 +120,10 @@ reporte_codebook <- function(data,
 
   wb <- openxlsx::createWorkbook()
   openxlsx::addWorksheet(wb, sheet)
+  # Fondo blanco en TODO el documento apagando las gridlines (reemplaza el canvas
+  # acotado a cols 1:5, que dejaba gridlines a la derecha).
+  pulso_xlsx_hide_gridlines(wb, sheet)
   cur_row <- 1L
-
-  # ---- limpiar hoja (fondo blanco básico) ----
-  clearStyle <- openxlsx::createStyle(
-    fgFill   = "#FFFFFF",
-    fontName = "Arial",
-    fontSize = 10
-  )
-  openxlsx::addStyle(
-    wb, sheet, style = clearStyle,
-    rows = 1:50000, cols = 1:5,
-    gridExpand = TRUE, stack = TRUE
-  )
 
   # ---- helper: etiqueta de variable ----
   get_var_label <- function(v) {
@@ -219,25 +210,13 @@ reporte_codebook <- function(data,
          call. = FALSE)
   }
 
-  # ---- estilos ----
-  st_varname <- openxlsx::createStyle(
-    textDecoration = "italic",
-    halign = "left", valign = "center"
-  )
-  st_val_row  <- openxlsx::createStyle(
-    border = c("top", "bottom"),
-    borderStyle = "thin"
-  )
-  st_attr_lbl <- openxlsx::createStyle(
-    halign = "left", valign = "top"
-  )
-  st_vals     <- openxlsx::createStyle(
-    halign = "left", valign = "top",
-    wrapText = TRUE
-  )
-  st_btm      <- openxlsx::createStyle(
-    border = "bottom", borderStyle = "thin"
-  )
+  # ---- estilos (tema monocromo editorial unico; ver api/R/xlsx_theme.R) ----
+  .st <- pulso_xlsx_styles("codebook")
+  st_varname  <- .st$st_varname
+  st_val_row  <- .st$st_val_row
+  st_attr_lbl <- .st$st_attr_lbl
+  st_vals     <- .st$st_vals
+  st_btm      <- .st$st_btm
 
   # ---- recorrer variables ----
   for (v in vars_to_write) {
@@ -250,6 +229,8 @@ reporte_codebook <- function(data,
     labels <- trimws(as.character(vl$labels))
     n <- length(codes)
     if (n == 0L) next
+
+    blk_start <- cur_row  # primera fila del bloque (para el cuadro)
 
     # 1) nombre de variable (itálica) en A:C
     openxlsx::writeData(
@@ -324,11 +305,8 @@ reporte_codebook <- function(data,
       rows = vals_start:vals_end, cols = 2:3, gridExpand = TRUE
     )
 
-    # 5) borde inferior
-    openxlsx::addStyle(
-      wb, sheet, style = st_btm,
-      rows = vals_end, cols = 1:3, gridExpand = TRUE
-    )
+    # 5) cuadro del bloque (marco exterior definido)
+    pulso_xlsx_box(wb, sheet, r1 = blk_start, r2 = vals_end, c1 = 1, c2 = 3)
 
     # espacio entre bloques
     cur_row <- vals_end + 3L
@@ -361,6 +339,7 @@ reporte_codebook <- function(data,
   }
 
   openxlsx::saveWorkbook(wb, outfile, overwrite = TRUE)
+  if (exists("pulso_xlsx_ignore_number_warnings", mode = "function")) pulso_xlsx_ignore_number_warnings(outfile)
   message("Codebook guardado en: ", normalizePath(outfile, winslash = "/"))
   invisible(normalizePath(outfile, winslash = "/"))
 }

@@ -217,7 +217,9 @@ test_that("paquete panel genera cruces configurados por sexo, NSE y distrito", {
   expect_true(file.exists(out_cross))
   expect_equal(openxlsx::getSheetNames(out_cross), "Cruces")
   cross_export <- openxlsx::read.xlsx(out_cross, sheet = "Cruces", colNames = FALSE)
-  expect_identical(cross_export$X1[[1]], "CRUCES")
+  # El banner de hoja "CRUCES" se removio; la primera celda es el titulo de seccion.
+  expect_false(any(cross_export == "CRUCES", na.rm = TRUE))
+  expect_identical(cross_export$X1[[1]], "GENERAL")
   expect_false(any(cross_export == "SIN DATA", na.rm = TRUE))
 
   out_audit <- tempfile(fileext = ".xlsx")
@@ -254,7 +256,9 @@ test_that("paquete panel genera cruces configurados por sexo, NSE y distrito", {
   packaged_codebook <- openxlsx::read.xlsx(file.path(unzip_dir, "02_libro_codigos.xlsx"), sheet = "Codebook", colNames = FALSE)
   packaged_crosses <- openxlsx::read.xlsx(file.path(unzip_dir, "04_cruces.xlsx"), sheet = "Cruces", colNames = FALSE)
   expect_true(any(as.matrix(packaged_codebook) == "p1_med2", na.rm = TRUE))
-  expect_identical(as.character(packaged_crosses[1, 1, drop = TRUE]), "CRUCES")
+  # Banner de hoja "CRUCES" removido: la primera celda es el titulo de seccion.
+  expect_false(any(packaged_crosses == "CRUCES", na.rm = TRUE))
+  expect_identical(as.character(packaged_crosses[1, 1, drop = TRUE]), "GENERAL")
 })
 
 test_that("resumen de instrumento cuenta solo preguntas hechas al entrevistado", {
