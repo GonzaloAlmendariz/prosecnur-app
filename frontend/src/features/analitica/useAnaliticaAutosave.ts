@@ -4,7 +4,7 @@ import {
   apiAnaliticaConfigPut,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
-import { useAnaliticaStore, AnaliticaConfig, DEFAULT_CONFIG, normalizeCrucesVars } from "./store";
+import { useAnaliticaStore, AnaliticaConfig, DEFAULT_CONFIG, normalizeCrucesVars, coerceOrdenCategorias } from "./store";
 
 // Misma mecánica que el autosave de RespuestasCodificador en Fase 3:
 // - Al montar, hidrata desde backend con merge sobre DEFAULT_CONFIG (por si
@@ -35,8 +35,10 @@ function mergeWithDefaults(remote: unknown): AnaliticaConfig {
   return {
     ...DEFAULT_CONFIG,
     ...r,
-    // Siempre forzamos version=3 tras el merge (es lo que persiste al backend).
-    version: 3,
+    // Siempre forzamos la versión actual tras el merge (es lo que persiste
+    // al backend). Migración 3→4: `orden_categorias` con coerción defensiva.
+    version: 4,
+    orden_categorias: coerceOrdenCategorias(r.orden_categorias),
     fuente_preferida:
       r.fuente_preferida === "originales" || r.fuente_preferida === "adaptados"
         ? r.fuente_preferida

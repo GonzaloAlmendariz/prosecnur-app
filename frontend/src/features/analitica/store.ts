@@ -322,8 +322,9 @@ export type PonderacionConfig = {
 };
 
 export type AnaliticaConfig = {
-  // v1 → v2: `bases`; v2 → v3: revisión de metadata de data.
-  version: 3;
+  // v1 → v2: `bases`; v2 → v3: revisión de metadata de data;
+  // v3 → v4: `orden_categorias` (orden de categorías por list_name).
+  version: 4;
   fuente_preferida: FuentePreferida;
   ficha_tecnica: FichaTecnicaConfig;
   secciones: SeccionConfig[];
@@ -341,13 +342,19 @@ export type AnaliticaConfig = {
   datos: DatosConfig;
   dimensiones: DimensionesConfig;
   ponderacion: PonderacionConfig;
+  // Orden explícito de categorías por `list_name` (clave = list_name,
+  // valor = secuencia ordenada de CÓDIGOS de choice). Lo consumen las tablas
+  // de frecuencia y los PPT. Entrada ausente/vacía = orden del instrumento.
+  // Los códigos no listados se anexan al final en su orden original.
+  orden_categorias: Record<string, string[]>;
 };
 
 // ----- Defaults --------------------------------------------------------------
 
 export const DEFAULT_CONFIG: AnaliticaConfig = {
-  version: 3,
+  version: 4,
   fuente_preferida: "adaptados",
+  orden_categorias: {},
   ficha_tecnica: { layout: "pulso_oficial" },
   secciones: [],
   numericas: [],
@@ -531,6 +538,12 @@ type AnaliticaStore = {
   setPonderacion: (patch: Partial<PonderacionConfig>) => void;
   upsertPonderMargin: (m: PonderMargin) => void;
   removePonderMargin: (varName: string) => void;
+
+  // Orden de categorías por list_name. `setOrdenCategorias` guarda la
+  // secuencia explícita; `clearOrdenCategorias` borra el override (restaura
+  // el orden del instrumento). Un array vacío también borra la entrada.
+  setOrdenCategorias: (listName: string, codes: string[]) => void;
+  clearOrdenCategorias: (listName: string) => void;
 };
 
 function dirty(partial: Partial<AnaliticaStore>): Partial<AnaliticaStore> {
@@ -873,7 +886,42 @@ export const useAnaliticaStore = create<AnaliticaStore>((set) => ({
         config: { ...s.config, ponderacion: { ...s.config.ponderacion, rake: { margins } } },
       });
     }),
+
+  setOrdenCategorias: (listName, codes) =>
+    set((s) => {
+      const clean = listName.trim();
+      if (!clean) return s;
+      const orden_categorias = { ...s.config.orden_categorias };
+      // Array vacío = restaurar orden del instrumento → borra la entrada.
+      if (codes.length === 0) delete orden_categorias[clean];
+      else orden_categorias[clean] = codes;
+      return dirty({ config: { ...s.config, orden_categorias } });
+    }),
+
+  clearOrdenCategorias: (listName) =>
+    set((s) => {
+      const clean = listName.trim();
+      if (!(clean in s.config.orden_categorias)) return s;
+      const orden_categorias = { ...s.config.orden_categorias };
+      delete orden_categorias[clean];
+      return dirty({ config: { ...s.config, orden_categorias } });
+    }),
 }));
+
+// ----- Coerción defensiva de orden_categorias -------------------------------
+// El kv store del backend roundtripea el JSON tal cual, pero un proyecto
+// viejo/corrupto podría traer algo que no sea Record<string,string[]>. Coerce a
+// la forma esperada: descarta valores no-array y stringifica cada código.
+export function coerceOrdenCategorias(raw: unknown): Record<string, string[]> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out: Record<string, string[]> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!Array.isArray(value)) continue;
+    const codes = value.map((c) => String(c)).filter((c) => c.length > 0);
+    out[key] = codes;
+  }
+  return out;
+}
 
 // ----- Migración schema v2 cruces_vars --------------------------------------
 // Convierte legacy `cruces_vars: string[]` a `CruceVarConfig[]`. Se aplica
@@ -901,6 +949,10 @@ export function normalizeAnaliticaConfig(raw: AnaliticaConfig): AnaliticaConfig 
   return {
     ...DEFAULT_CONFIG,
     ...c,
+    // Migración idempotente 3→4: normaliza siempre a la versión actual y
+    // rellena `orden_categorias` con {} para proyectos previos a v4.
+    version: 4,
+    orden_categorias: coerceOrdenCategorias((c as Partial<AnaliticaConfig>).orden_categorias),
     ficha_tecnica: { ...DEFAULT_CONFIG.ficha_tecnica, ...((c as Partial<AnaliticaConfig>).ficha_tecnica ?? {}) },
     datos: { ...DEFAULT_CONFIG.datos, ...(c as Partial<AnaliticaConfig>).datos },
     codebook: { ...DEFAULT_CONFIG.codebook, ...(c as Partial<AnaliticaConfig>).codebook },

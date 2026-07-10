@@ -12,6 +12,7 @@ import {
   GitBranch,
   GitMerge,
   Layers,
+  ListOrdered,
   Scale,
   Table2,
   type LucideIcon,
@@ -29,6 +30,7 @@ import { FrecuenciasPane } from "./panes/FrecuenciasPane";
 import { CrucesPane } from "./panes/CrucesPane";
 import { BasesPane } from "./panes/BasesPane";
 import { DimensionesPane } from "./panes/DimensionesPane";
+import { OrdenCategoriasPane } from "./panes/OrdenCategoriasPane";
 import { DataReviewPane } from "./panes/DataReviewPane";
 import { MultibaseTablasPane } from "./panes/MultibaseTablasPane";
 import { PanelBasePane } from "./panes/PanelBasePane";
@@ -39,7 +41,7 @@ import { ProcessingPrereqGate } from "../procesamiento/ProcessingPrereqGate";
 import "./analitica-v2.css";
 
 // Revisión de data primero; enumeradores vive en Monitoreo.
-type Reporte = "datos" | "base_final" | "codebook" | "bases" | "ponderacion" | "frecuencias" | "multibase" | "panel" | "ficha" | "cruces" | "dimensiones";
+type Reporte = "datos" | "base_final" | "codebook" | "bases" | "ponderacion" | "frecuencias" | "multibase" | "panel" | "ficha" | "cruces" | "orden" | "dimensiones";
 
 type ReporteMeta = {
   key: Reporte;
@@ -59,6 +61,7 @@ const REPORTES: ReporteMeta[] = [
   { key: "panel",        label: "Base panel",        icon: GitMerge,  desc: "Personas y mediciones" },
   { key: "ficha",        label: "Ficha técnica",     icon: FileText,  desc: "Metodología e informe" },
   { key: "cruces",       label: "Cruces",            icon: Grid3x3,   desc: "Comparaciones 2D" },
+  { key: "orden",        label: "Orden de categorías", icon: ListOrdered, desc: "Secuencia de respuestas ordinales" },
   { key: "dimensiones",  label: "Dimensiones",       icon: Layers,    desc: "Índices y puntajes" },
 ];
 
@@ -216,6 +219,7 @@ export default function AnaliticaPage() {
                     {active === "panel"        && <PanelBasePane />}
                     {active === "ficha"        && <FichaTecnicaPane />}
                     {active === "cruces"       && <CrucesPane />}
+                    {active === "orden"        && <OrdenCategoriasPane />}
                     {active === "dimensiones"  && <DimensionesPane />}
                   </>
                 ) : (
