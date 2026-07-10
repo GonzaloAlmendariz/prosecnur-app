@@ -394,7 +394,7 @@
       category = "campo"
     ),
     .diseno_status(
-      "plan-trabajo", "Plan de trabajo", "/plan-trabajo", if (has_plan) "ready" else "pending",
+      "plan-trabajo", "Cronograma", "/bitacora?tab=cronograma", if (has_plan) "ready" else "pending",
       if (has_plan) sprintf("%d actividad(es), %d hito(s) y %d ventana(s) sincronizables.", protocol$workplan_tasks_count, protocol$workplan_milestones_count, protocol$workplan_windows_count) else "Sin cronograma operativo importado.",
       c(.diseno_scalar(protocol$workplan_title, ""), if (has_plan) "Cronograma normalizado" else ""),
       category = "campo"
@@ -581,5 +581,32 @@ mount_diseno_estudio <- function(pr) {
       sid <- session_header(req)
       .diseno_bitacora_delete(sid, id)
       .diseno_estudio_state_payload(sid)
+    })) |>
+    # Alias canonicos del modulo Bitacora. La clave persistente sigue siendo
+    # `diseno_estudio_bitacora` (compat con .pulso existentes). El GET es liviano
+    # (solo entradas) para que el modulo no cargue el payload de expediente.
+    plumber::pr_get("/api/bitacora",
+                    wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      list(
+        ok = TRUE,
+        schema = "bitacora_v1",
+        generated_at = .diseno_now_iso(),
+        bitacora = .diseno_bitacora_entries(session_get(sid))
+      )
+    })) |>
+    plumber::pr_post("/api/bitacora",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .diseno_parse_body(req)
+      entry <- .diseno_bitacora_entry(body$entry %||% body)
+      entries <- .diseno_bitacora_upsert(sid, entry)
+      list(ok = TRUE, schema = "bitacora_v1", generated_at = .diseno_now_iso(), bitacora = entries)
+    })) |>
+    plumber::pr_delete("/api/bitacora/<id>",
+                       wrap_endpoint(function(req, res, id, ...) {
+      sid <- session_header(req)
+      entries <- .diseno_bitacora_delete(sid, id)
+      list(ok = TRUE, schema = "bitacora_v1", generated_at = .diseno_now_iso(), bitacora = entries)
     }))
 }

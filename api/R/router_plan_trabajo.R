@@ -293,6 +293,8 @@
       kind = .plan_task_kind(activity, duration, targets),
       start_date = .plan_scalar(date_map[[as.character(start_col)]] %||% "", ""),
       end_date = .plan_scalar(date_map[[as.character(end_col)]] %||% "", ""),
+      start_time = "",
+      end_time = "",
       start_day_index = start_day,
       end_day_index = end_day,
       duration_days = as.integer(duration),
@@ -448,11 +450,114 @@
   for (field in c("activity", "responsible", "product", "phase", "start_date", "end_date", "status", "notes")) {
     if (!is.null(patch[[field]])) task[[field]] <- .plan_text(patch[[field]], if (identical(field, "notes")) 900L else 500L)
   }
+  for (field in c("start_time", "end_time")) {
+    if (!is.null(patch[[field]])) task[[field]] <- .plan_time(patch[[field]])
+  }
   if (!task$status %in% c("planned", "active", "done", "blocked", "risk")) task$status <- "planned"
   task$sync_targets <- as.list(.plan_task_targets(task$activity, task$product))
+  task$duration_days <- .plan_date_span_days(
+    .plan_scalar(task$start_date, ""), .plan_scalar(task$end_date, "")
+  )
   task$kind <- .plan_task_kind(task$activity, as.integer(task$duration_days %||% 1L), unlist(task$sync_targets, use.names = FALSE))
   tasks[[idx[[1L]]]] <- task
   plan$tasks <- tasks
+  .plan_rebuild_derived(plan)
+}
+
+.plan_kind_values <- c("activity", "milestone", "deliverable", "fieldwork_window")
+
+# Plan interno vacio (schema plan_trabajo_v1) para poder crear actividades a
+# mano sin haber importado un Excel.
+.plan_empty_plan <- function() {
+  list(
+    ok = TRUE,
+    schema = "plan_trabajo_v1",
+    title = "",
+    source = NULL,
+    updated_at = .plan_now_iso(),
+    tasks = list(),
+    phases = list(),
+    milestones = list(),
+    windows = list(),
+    warnings = list()
+  )
+}
+
+.plan_date_span_days <- function(start_date, end_date) {
+  if (!nzchar(start_date) || !nzchar(end_date)) return(1L)
+  d0 <- suppressWarnings(as.Date(start_date))
+  d1 <- suppressWarnings(as.Date(end_date))
+  if (is.na(d0) || is.na(d1)) return(1L)
+  span <- as.integer(d1 - d0) + 1L
+  if (!is.finite(span) || span < 1L) 1L else span
+}
+
+# Normaliza una hora "HH:MM" (24h). "" cuando es invalida o vacia (all-day).
+.plan_time <- function(value) {
+  v <- trimws(.plan_text(value, 8L))
+  if (!nzchar(v)) return("")
+  m <- regmatches(v, regexec("^([0-9]{1,2}):([0-9]{2})$", v))[[1]]
+  if (length(m) != 3L) return("")
+  h <- suppressWarnings(as.integer(m[2]))
+  mi <- suppressWarnings(as.integer(m[3]))
+  if (is.na(h) || is.na(mi) || h > 23L || mi > 59L) return("")
+  sprintf("%02d:%02d", h, mi)
+}
+
+# Crea una actividad/hito/entregable manual desde el calendario o la lista.
+# Usa un id con prefijo UUID para no colisionar con los task_%03d importados.
+.plan_create_task <- function(plan, patch) {
+  if (is.null(patch) || !is.list(patch)) patch <- list()
+  activity <- .plan_text(patch$activity, 900L)
+  if (!nzchar(activity)) stop_api(400, "E_PLAN_TASK_ACTIVITY", "La actividad requiere un nombre.")
+  responsible <- .plan_text(patch$responsible, 300L)
+  product <- .plan_text(patch$product, 500L)
+  phase <- .plan_text(patch$phase, 300L)
+  start_date <- .plan_text(patch$start_date, 40L)
+  end_date <- .plan_text(patch$end_date, 40L)
+  if (!nzchar(end_date)) end_date <- start_date
+  start_time <- .plan_time(patch$start_time)
+  end_time <- .plan_time(patch$end_time)
+  notes <- .plan_text(patch$notes, 900L)
+  status <- .plan_scalar(patch$status, "planned")
+  if (!status %in% c("planned", "active", "done", "blocked", "risk")) status <- "planned"
+  targets <- .plan_task_targets(activity, product)
+  duration <- .plan_date_span_days(start_date, end_date)
+  kind <- .plan_scalar(patch$kind, "")
+  if (!(kind %in% .plan_kind_values)) kind <- .plan_task_kind(activity, duration, targets)
+  task <- list(
+    id = paste0("task_m_", uuid::UUIDgenerate()),
+    sheet = "",
+    row = NA_integer_,
+    phase = phase,
+    activity = activity,
+    responsible = responsible,
+    product = product,
+    status = status,
+    kind = kind,
+    start_date = start_date,
+    end_date = end_date,
+    start_time = start_time,
+    end_time = end_time,
+    start_day_index = NA_integer_,
+    end_day_index = NA_integer_,
+    duration_days = as.integer(duration),
+    grid_start_col = NA_integer_,
+    grid_end_col = NA_integer_,
+    sync_targets = as.list(targets),
+    notes = notes
+  )
+  tasks <- plan$tasks %||% list()
+  tasks[[length(tasks) + 1L]] <- task
+  plan$tasks <- tasks
+  .plan_rebuild_derived(plan)
+}
+
+.plan_delete_task <- function(plan, id) {
+  id <- .plan_scalar(id, "")
+  tasks <- plan$tasks %||% list()
+  next_tasks <- Filter(function(t) !identical(.plan_scalar(t$id, ""), id), tasks)
+  plan$tasks <- next_tasks
   .plan_rebuild_derived(plan)
 }
 
@@ -570,8 +675,20 @@ mount_plan_trabajo <- function(pr) {
       session_set(sid, "plan_trabajo", plan)
       .plan_state_payload(sid)
     })) |>
+    plumber::pr_post("/api/plan-trabajo/tasks",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      plan <- s$plan_trabajo %||% NULL
+      if (is.null(plan) || !is.list(plan)) plan <- .plan_empty_plan()
+      body <- .plan_parse_body(req)
+      patch <- body$task %||% body
+      plan <- .plan_create_task(plan, patch)
+      session_set(sid, "plan_trabajo", plan)
+      .plan_state_payload(sid)
+    })) |>
     plumber::pr_post("/api/plan-trabajo/tasks/<id>",
-                     wrap_endpoint(function(req, res, id) {
+                     wrap_endpoint(function(req, res, id, ...) {
       sid <- session_header(req)
       s <- session_get(sid)
       plan <- s$plan_trabajo %||% NULL
@@ -579,6 +696,16 @@ mount_plan_trabajo <- function(pr) {
       body <- .plan_parse_body(req)
       patch <- body$task %||% body
       plan <- .plan_update_task(plan, id, patch)
+      session_set(sid, "plan_trabajo", plan)
+      .plan_state_payload(sid)
+    })) |>
+    plumber::pr_delete("/api/plan-trabajo/tasks/<id>",
+                       wrap_endpoint(function(req, res, id, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      plan <- s$plan_trabajo %||% NULL
+      if (is.null(plan) || !is.list(plan)) stop_api(404, "E_PLAN_EMPTY", "No hay plan de trabajo importado.")
+      plan <- .plan_delete_task(plan, id)
       session_set(sid, "plan_trabajo", plan)
       .plan_state_payload(sid)
     })) |>
