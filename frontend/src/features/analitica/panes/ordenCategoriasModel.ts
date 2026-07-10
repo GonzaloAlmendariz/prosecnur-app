@@ -6,6 +6,8 @@
 // EXPLÍCITA de códigos de choice. Los códigos ausentes en la secuencia se
 // anexan al final en su orden original (el backend replica esa semántica).
 
+import type { DataReviewVariable, VariableInstrumento } from "../../../api/client";
+
 // Estándar de la casa (ver MEMORY / dominio-prosecnur): valores especiales
 // que por convención van al final de cualquier distribución.
 //   90 No aplica/perdido · 94 NS/NR · 95 No piensa votar · 96 Blanco/Viciado
@@ -64,4 +66,94 @@ export function sembrarOrden(instrumentCodes: string[], saved: string[] | undefi
 export function ordenesIguales(a: string[], b: string[]): boolean {
   if (a.length !== b.length) return false;
   return a.every((code, i) => code === b[i]);
+}
+
+// ----- Catálogo de listas ----------------------------------------------------
+// Una fila del catálogo de listas disponibles. Se deriva de las variables de
+// selección del instrumento agrupadas por `list_name`, con el conteo de
+// categorías resuelto desde data-review y el flag de override desde el store.
+
+export type ListaCatalogoEntry = {
+  listName: string;
+  // Cuántas variables de selección comparten esta lista.
+  nVariables: number;
+  // Cuántas categorías (choices) tiene la lista, según data-review.
+  nCategorias: number;
+  // La lista tiene un orden propio guardado (override no vacío en el store).
+  tieneOverride: boolean;
+};
+
+// Deriva el catálogo de listas únicas a partir de las variables de selección.
+// Agrupa por `list_name` (ignora vacíos), cuenta variables, resuelve cuántas
+// categorías tiene la lista (primera variable de la lista con opciones en
+// data-review) y marca `tieneOverride` si el store ya guardó un orden propio.
+// Orden útil: más variables primero, y a igualdad, alfabético por list_name.
+export function derivarCatalogoListas(
+  variablesSeleccion: VariableInstrumento[],
+  dataReview: DataReviewVariable[],
+  overrides: Record<string, string[]>,
+): ListaCatalogoEntry[] {
+  const grupos = new Map<string, VariableInstrumento[]>();
+  for (const v of variablesSeleccion) {
+    const listName = (v.list_name ?? "").trim();
+    if (!listName) continue;
+    const arr = grupos.get(listName);
+    if (arr) arr.push(v);
+    else grupos.set(listName, [v]);
+  }
+
+  const drPorNombre = new Map(dataReview.map((d) => [d.name, d]));
+
+  const entries: ListaCatalogoEntry[] = [];
+  for (const [listName, vars] of grupos) {
+    let nCategorias = 0;
+    for (const v of vars) {
+      const dr = drPorNombre.get(v.name);
+      if (dr && dr.opciones.length > 0) {
+        nCategorias = dr.opciones.length;
+        break;
+      }
+    }
+    const override = overrides[listName];
+    entries.push({
+      listName,
+      nVariables: vars.length,
+      nCategorias,
+      tieneOverride: !!override && override.length > 0,
+    });
+  }
+
+  entries.sort((a, b) => b.nVariables - a.nVariables || a.listName.localeCompare(b.listName));
+  return entries;
+}
+
+// ----- Movimiento manual por fila --------------------------------------------
+// Reordenan una categoría a una posición precisa (complementan el arrastre).
+// Todas son puras y no-op fuera de rango: devuelven la MISMA secuencia si el
+// movimiento no cambia nada (primera fila arriba, última fila abajo, etc.).
+
+function moverElemento(codes: string[], desde: number, hacia: number): string[] {
+  if (desde < 0 || desde >= codes.length) return codes;
+  const destino = Math.max(0, Math.min(hacia, codes.length - 1));
+  if (destino === desde) return codes;
+  const next = [...codes];
+  const [item] = next.splice(desde, 1);
+  next.splice(destino, 0, item);
+  return next;
+}
+
+export function moverArriba(codes: string[], index: number): string[] {
+  return moverElemento(codes, index, index - 1);
+}
+
+export function moverAbajo(codes: string[], index: number): string[] {
+  return moverElemento(codes, index, index + 1);
+}
+
+export function moverAlInicio(codes: string[], index: number): string[] {
+  return moverElemento(codes, index, 0);
+}
+
+export function moverAlFinal(codes: string[], index: number): string[] {
+  return moverElemento(codes, index, codes.length - 1);
 }

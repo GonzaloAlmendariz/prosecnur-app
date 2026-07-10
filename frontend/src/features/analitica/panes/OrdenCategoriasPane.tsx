@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, Check, Layers, Search, X } from "lucide-react";
 import {
   apiAnaliticaDataReview,
   apiAnaliticaVariables,
@@ -10,16 +10,19 @@ import {
 import { Alert } from "../../../components/Alert";
 import { Panel } from "../../../components/Panel";
 import { ErrorBlock, LoadingBlock } from "../../../components/States";
+import { useAnaliticaStore } from "../store";
 import { Section } from "../PaneKit";
 import { VariableSelect } from "../VariableSelect";
 import { OrdenCategoriasEditor } from "./OrdenCategoriasEditor";
+import { derivarCatalogoListas } from "./ordenCategoriasModel";
 
 // Pane "Orden de categorías" (Analítica).
 //
-// Flujo: el analista elige una variable de selección → resolvemos su
-// `list_name` → cargamos las categorías (code + label + count) de esa lista y
-// las variables que la comparten → editor drag-and-drop que persiste el orden
-// en `orden_categorias[list_name]` vía el store + autosave.
+// Flujo: el analista elige una LISTA de opciones (list_name) del catálogo de
+// listas disponibles → cargamos sus categorías (code + label + count) y las
+// variables que la comparten → editor drag-and-drop que persiste el orden en
+// `orden_categorias[list_name]` vía el store + autosave. El VariableSelect
+// queda como atajo para saltar a la lista de una variable concreta.
 
 // Solo variables de selección tienen categorías ordenables.
 function esVariableSeleccion(v: VariableInstrumento): boolean {
@@ -44,7 +47,13 @@ export function OrdenCategoriasPane() {
   const [variables, setVariables] = useState<VariableInstrumento[] | null>(null);
   const [dataReview, setDataReview] = useState<DataReviewVariable[] | null>(null);
   const [error, setError] = useState("");
-  const [selected, setSelected] = useState("");
+  // Estado UI efímero: lista seleccionada, variable del atajo y filtro del
+  // catálogo. La config vive en el store; esto es sólo navegación.
+  const [listName, setListName] = useState("");
+  const [atajoVar, setAtajoVar] = useState("");
+  const [query, setQuery] = useState("");
+
+  const overrides = useAnaliticaStore((s) => s.config.orden_categorias);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,12 +80,16 @@ export function OrdenCategoriasPane() {
     [variables],
   );
 
-  const selectedVar = useMemo(
-    () => seleccionables.find((v) => v.name === selected) ?? null,
-    [seleccionables, selected],
+  const catalogo = useMemo(
+    () => (dataReview ? derivarCatalogoListas(seleccionables, dataReview, overrides) : []),
+    [seleccionables, dataReview, overrides],
   );
 
-  const listName = selectedVar?.list_name ?? "";
+  const catalogoFiltrado = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return catalogo;
+    return catalogo.filter((e) => e.listName.toLowerCase().includes(q));
+  }, [catalogo, query]);
 
   const varsCompartidas = useMemo(
     () => (listName ? (variables ?? []).filter((v) => v.list_name === listName) : []),
@@ -87,6 +100,13 @@ export function OrdenCategoriasPane() {
     () => (listName && dataReview ? resolverOpcionesLista(varsCompartidas, dataReview) : []),
     [listName, dataReview, varsCompartidas],
   );
+
+  // Atajo: elegir una variable resuelve su list_name y selecciona esa lista.
+  function saltarAListaDeVariable(name: string) {
+    setAtajoVar(name);
+    const v = seleccionables.find((x) => x.name === name);
+    if (v && v.list_name.trim()) setListName(v.list_name.trim());
+  }
 
   const ready = variables !== null && dataReview !== null;
 
@@ -112,19 +132,90 @@ export function OrdenCategoriasPane() {
         </div>
 
         <Section
-          title="Variable a ordenar"
-          subtitle="Elige una pregunta de selección. El orden se aplica por lista de opciones, así que se comparte entre todas las variables que usan la misma lista."
+          title="Lista a ordenar"
+          subtitle="Elige una lista de opciones del catálogo. El orden se aplica por lista, así que se comparte entre todas las variables que la usan. Si prefieres, usa el atajo para saltar a la lista de una variable concreta."
         >
-          <VariableSelect
-            variables={seleccionables}
-            value={selected}
-            onChange={setSelected}
-            allowClear
-            placeholder="Seleccionar variable de selección…"
-          />
+          <div className="analitica-orden-atajo">
+            <span className="analitica-orden-atajo-label">Saltar a la lista de una variable</span>
+            <VariableSelect
+              variables={seleccionables}
+              value={atajoVar}
+              onChange={saltarAListaDeVariable}
+              allowClear
+              placeholder="Buscar variable de selección…"
+            />
+          </div>
+
+          {catalogo.length === 0 ? (
+            <Alert kind="info">
+              No se detectaron listas de opciones en el instrumento. Las categorías ordenables
+              provienen de preguntas de selección (<code>select_one</code> / <code>select_multiple</code>).
+            </Alert>
+          ) : (
+            <>
+              {catalogo.length > 6 && (
+                <div className="analitica-orden-catalogo-search">
+                  <Search size={13} className="analitica-orden-catalogo-search-icon" />
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Filtrar listas por nombre…"
+                    className="analitica-orden-catalogo-search-input"
+                  />
+                  {query && (
+                    <button
+                      type="button"
+                      onClick={() => setQuery("")}
+                      className="pulso-icon"
+                      aria-label="Limpiar filtro"
+                    >
+                      <X size={11} />
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div className="analitica-orden-catalogo" role="listbox" aria-label="Listas de opciones">
+                {catalogoFiltrado.length === 0 ? (
+                  <div className="analitica-orden-catalogo-empty">
+                    Ninguna lista coincide con “{query}”.
+                  </div>
+                ) : (
+                  catalogoFiltrado.map((e) => {
+                    const selected = e.listName === listName;
+                    return (
+                      <button
+                        key={e.listName}
+                        type="button"
+                        role="option"
+                        aria-selected={selected}
+                        onClick={() => setListName(e.listName)}
+                        className={`analitica-orden-lista-card${selected ? " is-selected" : ""}`}
+                      >
+                        <span className="analitica-orden-lista-icon" aria-hidden="true">
+                          {selected ? <Check size={13} /> : <Layers size={13} />}
+                        </span>
+                        <span className="analitica-orden-lista-name">{e.listName}</span>
+                        {e.tieneOverride && (
+                          <span className="analitica-orden-lista-override" title="Esta lista ya tiene un orden propio guardado">
+                            orden propio
+                          </span>
+                        )}
+                        <span className="analitica-orden-lista-meta">
+                          {e.nVariables} {e.nVariables === 1 ? "variable" : "variables"}
+                          {" · "}
+                          {e.nCategorias} {e.nCategorias === 1 ? "categoría" : "categorías"}
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </>
+          )}
         </Section>
 
-        {selectedVar && listName && opciones.length > 0 && (
+        {listName && opciones.length > 0 && (
           <OrdenCategoriasEditor
             listName={listName}
             opciones={opciones}
@@ -132,16 +223,16 @@ export function OrdenCategoriasPane() {
           />
         )}
 
-        {selectedVar && listName && opciones.length === 0 && (
+        {listName && opciones.length === 0 && (
           <Alert kind="warn">
             No se detectaron categorías para <code>{listName}</code>. Verifica que la base tenga
             respuestas para esta lista de opciones.
           </Alert>
         )}
 
-        {!selectedVar && (
+        {!listName && catalogo.length > 0 && (
           <Alert kind="info">
-            Selecciona una variable de selección para ordenar sus categorías.
+            Selecciona una lista del catálogo para ordenar sus categorías.
           </Alert>
         )}
       </div>

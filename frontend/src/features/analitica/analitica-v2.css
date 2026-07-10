@@ -313,8 +313,7 @@
 }
 
 .analitica-orden-row {
-  display: grid;
-  grid-template-columns: auto auto auto 1fr auto auto;
+  display: flex;
   gap: 10px;
   align-items: center;
   padding: 6px 10px;
@@ -363,6 +362,7 @@
 }
 
 .analitica-orden-label {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -395,10 +395,171 @@
   color: var(--pulso-text-soft);
 }
 
+/* Controles de movimiento manual por fila (complementan el arrastre). */
+.analitica-orden-move {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.analitica-orden-move-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  transition: border-color var(--anim-dur-short), background var(--anim-dur-short), color var(--anim-dur-short);
+}
+
+.analitica-orden-move-btn:hover:not(:disabled) {
+  border-color: var(--pulso-primary);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-primary);
+}
+
+.analitica-orden-move-btn:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+
 .analitica-orden-note {
   margin: 12px 0 0;
   font-size: 11px;
   line-height: 1.55;
+  color: var(--pulso-text-soft);
+}
+
+/* ── Atajo por variable + catálogo de listas ──────────────────────────── */
+
+.analitica-orden-atajo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.analitica-orden-atajo-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pulso-text-soft);
+}
+
+.analitica-orden-catalogo-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 9px;
+  background: var(--pulso-surface);
+}
+
+.analitica-orden-catalogo-search-icon {
+  color: var(--pulso-text-soft);
+  flex-shrink: 0;
+}
+
+.analitica-orden-catalogo-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 12px;
+  color: var(--pulso-text);
+}
+
+.analitica-orden-catalogo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.analitica-orden-catalogo-empty {
+  padding: 12px;
+  font-size: 12px;
+  text-align: center;
+  color: var(--pulso-text-soft);
+}
+
+.analitica-orden-lista-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "icon name override"
+    "icon meta meta";
+  column-gap: 9px;
+  row-gap: 2px;
+  align-items: center;
+  padding: 9px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--anim-dur-short), background var(--anim-dur-short), box-shadow var(--anim-dur-short);
+}
+
+.analitica-orden-lista-card:hover {
+  border-color: var(--pulso-primary);
+}
+
+.analitica-orden-lista-card.is-selected {
+  border-color: var(--pulso-primary);
+  background: var(--pulso-primary-soft);
+  box-shadow: inset 0 0 0 1px var(--pulso-primary);
+}
+
+.analitica-orden-lista-icon {
+  grid-area: icon;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pulso-text-soft);
+}
+
+.analitica-orden-lista-card.is-selected .analitica-orden-lista-icon {
+  color: var(--pulso-primary);
+}
+
+.analitica-orden-lista-name {
+  grid-area: name;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  font-weight: 640;
+  color: var(--pulso-text);
+}
+
+.analitica-orden-lista-override {
+  grid-area: override;
+  justify-self: end;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--pulso-primary-soft);
+  border: 1px solid var(--pulso-primary);
+  color: var(--pulso-primary);
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.analitica-orden-lista-meta {
+  grid-area: meta;
+  font-size: 11px;
   color: var(--pulso-text-soft);
 }
 

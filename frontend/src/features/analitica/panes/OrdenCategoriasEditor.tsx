@@ -13,12 +13,24 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowDown, ArrowUp, ChevronsDown, GripVertical, HelpCircle, RotateCcw } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronsDown,
+  ChevronsUp,
+  GripVertical,
+  HelpCircle,
+  RotateCcw,
+} from "lucide-react";
 import type { DataReviewOption, VariableInstrumento } from "../../../api/client";
 import { useAnaliticaStore } from "../store";
 import {
   enviarEspecialesAlFinal,
   esValorEspecial,
+  moverAbajo,
+  moverAlFinal,
+  moverAlInicio,
+  moverArriba,
   ordenesIguales,
   sembrarOrden,
 } from "./ordenCategoriasModel";
@@ -72,6 +84,21 @@ export function OrdenCategoriasEditor({ listName, opciones, varsCompartidas }: P
     const newIdx = codesActuales.indexOf(String(over.id));
     if (oldIdx < 0 || newIdx < 0) return;
     setOrdenCategorias(listName, arrayMove(codesActuales, oldIdx, newIdx));
+  }
+
+  // Controles precisos por fila (complementan el arrastre). Cada uno persiste
+  // la secuencia resultante; los movers son no-op fuera de rango.
+  function subir(idx: number) {
+    setOrdenCategorias(listName, moverArriba(codesActuales, idx));
+  }
+  function bajar(idx: number) {
+    setOrdenCategorias(listName, moverAbajo(codesActuales, idx));
+  }
+  function alInicio(idx: number) {
+    setOrdenCategorias(listName, moverAlInicio(codesActuales, idx));
+  }
+  function alFinal(idx: number) {
+    setOrdenCategorias(listName, moverAlFinal(codesActuales, idx));
   }
 
   function invertir() {
@@ -138,9 +165,14 @@ export function OrdenCategoriasEditor({ listName, opciones, varsCompartidas }: P
                 key={code}
                 code={code}
                 posicion={idx + 1}
+                total={codesActuales.length}
                 label={labelMap[code] ?? ""}
                 count={countMap[code]}
                 especial={esValorEspecial(code)}
+                onSubir={() => subir(idx)}
+                onBajar={() => bajar(idx)}
+                onAlInicio={() => alInicio(idx)}
+                onAlFinal={() => alFinal(idx)}
               />
             ))}
           </div>
@@ -179,15 +211,25 @@ export function OrdenCategoriasEditor({ listName, opciones, varsCompartidas }: P
 function SortableCodeRow({
   code,
   posicion,
+  total,
   label,
   count,
   especial,
+  onSubir,
+  onBajar,
+  onAlInicio,
+  onAlFinal,
 }: {
   code: string;
   posicion: number;
+  total: number;
   label: string;
   count: number | undefined;
   especial: boolean;
+  onSubir: () => void;
+  onBajar: () => void;
+  onAlInicio: () => void;
+  onAlFinal: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: code });
@@ -196,6 +238,9 @@ function SortableCodeRow({
     transition,
     opacity: isDragging ? 0.55 : 1,
   };
+
+  const esPrimera = posicion <= 1;
+  const esUltima = posicion >= total;
 
   return (
     <div
@@ -223,6 +268,48 @@ function SortableCodeRow({
           n={count}
         </span>
       )}
+      <div className="analitica-orden-move" role="group" aria-label={`Mover código ${code}`}>
+        <button
+          type="button"
+          onClick={onAlInicio}
+          disabled={esPrimera}
+          title="Llevar al inicio"
+          aria-label={`Llevar código ${code} al inicio`}
+          className="analitica-orden-move-btn"
+        >
+          <ChevronsUp size={12} />
+        </button>
+        <button
+          type="button"
+          onClick={onSubir}
+          disabled={esPrimera}
+          title="Subir una posición"
+          aria-label={`Subir código ${code}`}
+          className="analitica-orden-move-btn"
+        >
+          <ArrowUp size={12} />
+        </button>
+        <button
+          type="button"
+          onClick={onBajar}
+          disabled={esUltima}
+          title="Bajar una posición"
+          aria-label={`Bajar código ${code}`}
+          className="analitica-orden-move-btn"
+        >
+          <ArrowDown size={12} />
+        </button>
+        <button
+          type="button"
+          onClick={onAlFinal}
+          disabled={esUltima}
+          title="Llevar al final"
+          aria-label={`Llevar código ${code} al final`}
+          className="analitica-orden-move-btn"
+        >
+          <ChevronsDown size={12} />
+        </button>
+      </div>
     </div>
   );
 }
