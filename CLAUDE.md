@@ -21,7 +21,7 @@ PDF → skill global `prosecnur-pdf-engine` · PPT/Word/XLSX → skill `entregab
 skill `/estudio-real` (ACNUR/UNSA/Polarización-style: instrumento, cuotas, base procesable, pesos, pipeline). Auditoría sintética canónica → skill global `prosecnur-project`.
 
 **Rama 5 — Operar el repo**
-Working tree grande / fin de sesión → `/cerrar-trabajo` · push o diagnóstico de CI → `/publicar` (pre-flight local espejo del CI + monitoreo + auto-diagnóstico) · corte de versión → `/preparar-release` · salud del código (mensual) → `/auditoria-deuda` · commits sueltos → agente `curador-commits`.
+Working tree grande / fin de sesión → `/cerrar-trabajo` · push o diagnóstico de CI → `/publicar` (pre-flight local espejo del CI + monitoreo + auto-diagnóstico) · corte de versión → `/preparar-release` · notas de versión (in-app + doc + GitHub) y versiones sin mapear → `/notas-parche` · salud del código (mensual) → `/auditoria-deuda` · commits sueltos → agente `curador-commits`.
 
 **Rama 6 — Gobernar (decisiones)**
 Arquitectura, ADRs, límites de módulo → skill global `prosecnur-architecture`. Mapa de dominio y conceptos ("dónde vive X") → skill `dominio-prosecnur`.
