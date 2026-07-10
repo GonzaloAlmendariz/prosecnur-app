@@ -430,6 +430,7 @@ build_validation_bundle <- function(instrumento,
     plan = plan,
     lex_report = ast_bundle$lex_report,
     discarded = c(ast_bundle$discarded, list()),
+    unsupported = ast_bundle$unsupported %||% list(),
     dedup_info = ast_bundle$dedup_info,
     compatibility = compatibility %||% make_validation_compatibility_profile(),
     include_flags = .validation_merge_include_flags(incluir),
@@ -639,19 +640,52 @@ validation_bundle_from_plan_xlsx <- function(path,
   main <- tables[[main_name]]
   if (!is.data.frame(main) || !("_index" %in% names(main))) return(tables)
 
-  parent_key <- as.character(main[["_index"]])
   for (nm in setdiff(names(tables), main_name)) {
     child <- tables[[nm]]
     if (!is.data.frame(child) || !("_parent_index" %in% names(child))) next
     add_cols <- setdiff(names(main), names(child))
     if (!length(add_cols)) next
-    pos <- match(as.character(child[["_parent_index"]]), parent_key)
+    # Enlace por `_parent_index`↔`_index` (sin fallback aquí: este path ya está
+    # guardado por la presencia de ambas llaves). Usa el helper compartido de
+    # link-join (ADR 0030) para no duplicar la lógica de `match`.
+    pos <- .dn_repeat_parent_row_positions(
+      child, main, link_key = "_parent_index", parent_index_key = "_index")
     for (cc in add_cols) {
       child[[cc]] <- main[[cc]][pos]
     }
     tables[[nm]] <- child
   }
   tables
+}
+
+# Post-procesamiento común del modelo multi-tabla producido por lector_limpieza:
+# herencia de columnas del padre, restauración de nombres del instrumento,
+# alias `principal`, normalización + filtro SM de la hoja madre. Lo comparten la
+# rama XLSX multi-hoja (`read_validation_data_ast`) y el ensamblador multi-base
+# (ADR 0030 Fase 2), de modo que ambos entregan un `data_ctx` de la MISMA forma.
+.finalize_multitable_data_ctx <- function(lx, instrumento = NULL,
+                                          source = "lector_limpieza") {
+  main_name <- lx$meta$main %||% names(lx$data)[1]
+  tables <- .inherit_parent_columns(lx$data, main_name = main_name)
+  tables <- .restore_instrument_case_aliases(tables, instrumento = instrumento)
+  if (!"principal" %in% names(tables) && !is.null(main_name) && main_name %in% names(tables)) {
+    tables <- c(list(principal = tables[[main_name]]), tables)
+  }
+  filtered <- list(data = tables$principal, filter = NULL)
+  if (!is.null(tables$principal)) {
+    tables$principal <- normalize_data_for_xlsform(tables$principal, instrumento)
+    filtered <- .validation_filter_sm_partial_rows(tables$principal)
+    tables$principal <- filtered$data
+  }
+  list(
+    principal = tables$principal %||% tables[[1]],
+    tables = tables,
+    data_multi = tables[setdiff(names(tables), "principal")],
+    rc_checks = lx$rc_checks %||% list(),
+    meta = lx$meta %||% list(),
+    row_filter = filtered$filter %||% NULL,
+    source = source
+  )
 }
 
 #' Lee data para evaluación AST con awareness de repeats.
@@ -668,27 +702,8 @@ read_validation_data_ast <- function(path, ext, instrumento = NULL) {
       repeats_count_map = rc_map,
       warn = FALSE
     )
-    main_name <- lx$meta$main %||% names(lx$data)[1]
-    tables <- .inherit_parent_columns(lx$data, main_name = main_name)
-    tables <- .restore_instrument_case_aliases(tables, instrumento = instrumento)
-    if (!"principal" %in% names(tables) && !is.null(main_name) && main_name %in% names(tables)) {
-      tables <- c(list(principal = tables[[main_name]]), tables)
-    }
-    filtered <- list(data = tables$principal, filter = NULL)
-    if (!is.null(tables$principal)) {
-      tables$principal <- normalize_data_for_xlsform(tables$principal, instrumento)
-      filtered <- .validation_filter_sm_partial_rows(tables$principal)
-      tables$principal <- filtered$data
-    }
-    return(list(
-      principal = tables$principal %||% tables[[1]],
-      tables = tables,
-      data_multi = tables[setdiff(names(tables), "principal")],
-      rc_checks = lx$rc_checks %||% list(),
-      meta = lx$meta %||% list(),
-      row_filter = filtered$filter %||% NULL,
-      source = "lector_limpieza"
-    ))
+    return(.finalize_multitable_data_ctx(lx, instrumento = instrumento,
+                                         source = "lector_limpieza"))
   }
 
   df <- switch(ext,
@@ -958,6 +973,32 @@ evaluate_validation_bundle <- function(bundle,
   for (tbl in table_names) {
     tbl_rules <- typed_rules[vapply(typed_rules, function(r) .normalize_rule_table(r$tabla), character(1)) == tbl]
     if (!(tbl %in% names(tables))) {
+      # ADR 0030 Fase 2 — degradación con gracia: si la tabla ausente es una
+      # sección repetida declarada por el instrumento (las reglas la traen como
+      # `repeat_context`) pero SIN base hija registrada (0 instancias en toda la
+      # data, o proyecto no expandido), sus reglas NO son un fallo de ejecución:
+      # simplemente no aplican. Distinguirlo de un "falta la tabla de datos"
+      # real (flujo XLSX multi-hoja) evita ruido de la base madre.
+      es_repeat_faltante <- any(vapply(tbl_rules, function(r) {
+        rc <- as.character(r$repeat_context %||% "")
+        nzchar(rc)
+      }, logical(1)))
+      if (isTRUE(es_repeat_faltante)) {
+        estado_tbl <- "no_aplicable"
+        issue_tbl <- "sin_datos_repeat"
+        detalle_tbl <- sprintf(
+          "La sección repetida «%s» no tiene registros en esta base (0 instancias); sus reglas no aplican.",
+          tbl
+        )
+        n_inc_tbl <- 0L
+        pct_tbl <- 0
+      } else {
+        estado_tbl <- "incorrecta_ejecucion"
+        issue_tbl <- "missing_data_table"
+        detalle_tbl <- paste0("No existe hoja/tabla de datos para: ", tbl)
+        n_inc_tbl <- NA_integer_
+        pct_tbl <- NA_real_
+      }
       manual <- tibble::tibble(
         id = vapply(tbl_rules, function(r) r$id, character(1)),
         nombre = vapply(tbl_rules, function(r) r$nombre, character(1)),
@@ -969,11 +1010,11 @@ evaluate_validation_bundle <- function(bundle,
         seccion = vapply(tbl_rules, function(r) as.character(r$seccion %||% NA_character_), character(1)),
         flag = vapply(tbl_rules, function(r) r$flag_name, character(1)),
         n_filas = NA_integer_,
-        n_inconsistencias = NA_integer_,
-        porcentaje = NA_real_,
-        estado = "incorrecta_ejecucion",
-        issue_code = "missing_data_table",
-        detalle = paste0("No existe hoja/tabla de datos para: ", tbl)
+        n_inconsistencias = n_inc_tbl,
+        porcentaje = pct_tbl,
+        estado = estado_tbl,
+        issue_code = issue_tbl,
+        detalle = detalle_tbl
       )
       resumen_parts[[length(resumen_parts) + 1L]] <- manual
       next

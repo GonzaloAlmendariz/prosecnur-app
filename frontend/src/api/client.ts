@@ -1,3 +1,7 @@
+import { normalizeRepeatGrain, type RepeatGrain } from "../lib/repeatIdentity";
+
+export type { RepeatGrain } from "../lib/repeatIdentity";
+
 const SESSION_KEY = "pulso.sessionId";
 const APP_BASE = import.meta.env.BASE_URL || "/";
 
@@ -227,7 +231,23 @@ export type EstudioBase = {
   n_columnas: number | null;
   added_at: string;
   processing_mode?: "multibase" | "independent_siblings" | string | null;
-  source_kind?: string | null;
+  source_kind?: "manual" | "surveymonkey" | "kobo_repeat" | string | null;
+  // --- Grupos repeat (ADR 0030). Presentes solo en bases hija `kobo_repeat`:
+  // metadata one-to-many que alimenta la identidad visual naranja. ---
+  /** Base madre (ancha) a la que enlaza esta base hija long. */
+  parent_base?: string | null;
+  /** Nombre del begin_repeat del que proviene la base hija. */
+  repeat_group?: string | null;
+  /** `relevant` del begin_repeat, preservado para reglas padre↔hija. */
+  repeat_relevant?: string | null;
+  /** Llave canónica ODK/Kobo de enlace hija→madre (`_parent_index`). */
+  link_key?: string | null;
+  /** Fallback de enlace cuando falta `link_key` (`_submission__id`). */
+  link_key_fallback?: string | null;
+  /** Llave del padre a la que apunta `link_key` (`_index`). */
+  parent_index_key?: string | null;
+  /** Grano de instancia, si el backend lo adjunta a la base. */
+  grain?: RepeatGrain | null;
   survey_id?: string | null;
   source_alias?: string | null;
   source_title?: string | null;
@@ -3533,10 +3553,27 @@ export async function apiCargaKoboDetectedSource() {
   );
 }
 
+export type CargaMonitoreoHandoffValidity =
+  | "validation_status"
+  | "status_var"
+  | "status_candidate"
+  | "all_rows"
+  | "";
+
+export type CargaMonitoreoHandoffSource = {
+  source_id: string;
+  label: string;
+  kind: string;
+  kobo_asset_uid: string;
+  validity: CargaMonitoreoHandoffValidity | string;
+  counts: { processable: number; total: number };
+};
+
 export type CargaMonitoreoHandoffStatus = {
   ok: true;
   detected: boolean;
-  universe: "processable" | string;
+  // "processable" (territorial) o "source" (general multi-fuente).
+  universe: "processable" | "source" | string;
   counts: {
     processable: number;
     validada: number;
@@ -3548,9 +3585,16 @@ export type CargaMonitoreoHandoffStatus = {
     label: string;
     phase: string;
     kobo_asset_uid: string;
+    // Camino general: fuente promovida y como se resolvio "valido".
+    kind?: string;
+    source_id?: string;
+    validity?: CargaMonitoreoHandoffValidity | string;
+    status_column?: string;
     instrument_source: "kobo_api" | "local" | "none";
     instrument_available: boolean;
   };
+  // Fuentes promovibles del snapshot (camino general); vacio en territorial.
+  sources?: CargaMonitoreoHandoffSource[];
   already_promoted: boolean;
   existing_base:
     | { present: false }
@@ -4804,6 +4848,18 @@ export type MonitoreoProcessingHandoffPromoteResult = {
   xlsform?: { file_id: string; source?: string };
   data?: { file_id: string; n_filas?: number; n_columnas?: number };
   would_mutate_pulso?: boolean;
+  // Camino general (schema carga_monitoreo_handoff_general_v1): como se resolvio
+  // "valido", fuente promovida y bases hija de repeat creadas.
+  validity?: CargaMonitoreoHandoffValidity | string;
+  source?: { source_id: string; label: string; kobo_asset_uid: string; validity: string };
+  child_bases?: Array<{
+    base?: string;
+    repeat_group?: string;
+    parent_base?: string;
+    n_filas?: number;
+    n_columnas?: number;
+    link_key?: string;
+  }>;
 };
 
 export type MonitoreoTerritorialOperationalPackageReview = {
@@ -9459,12 +9515,36 @@ export type VariableInstrumento = {
   numerica?: boolean;
   declarada_numerica?: boolean;
   analisis?: boolean;
+  /**
+   * Auto-detección de ordinalidad de la lista (`list_name`) calculada por el
+   * backend. Mismo valor para todas las variables que comparten `list_name`.
+   * Es la base de la resolución ordinal EFECTIVA (ver `esListaOrdinalEfectiva`
+   * en `ordenCategoriasModel.ts`); el override explícito del analista vive en
+   * `config.listas_ordinales`. Ausente = el backend no lo informó (→ false).
+   */
+  list_ordinal_auto?: boolean;
 };
 
-export async function apiAnaliticaVariables() {
-  return handle<{ ok: true; variables: VariableInstrumento[] }>(
+export type AnaliticaVariablesResult = {
+  ok: true;
+  variables: VariableInstrumento[];
+  /**
+   * Grano de la base activa (ADR 0030 Fase 3). Solo presente cuando la base
+   * activa es una hija repeat; `null` en el resto. Normalizado a la baja para
+   * blindar la lógica de identidad visual de payloads R inesperados.
+   */
+  grain: RepeatGrain | null;
+};
+
+export async function apiAnaliticaVariables(): Promise<AnaliticaVariablesResult> {
+  const raw = await handle<{ ok: true; variables: VariableInstrumento[]; grain?: unknown }>(
     await apiFetch("/api/analitica/variables", { headers: headers() })
   );
+  return {
+    ok: true,
+    variables: raw.variables ?? [],
+    grain: normalizeRepeatGrain(raw.grain),
+  };
 }
 
 export type DataReviewOption = {

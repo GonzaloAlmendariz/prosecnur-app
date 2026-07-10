@@ -1329,6 +1329,14 @@ function FieldWorkHandoffCallout({
   const excluded = handoffCount(counts.no_defendible);
   const studyLabel = source.label?.trim();
   const instrumentMissing = source.instrument_source === "none" || !source.instrument_available;
+  // En el camino general sin status resoluble (validity "all_rows") no todas las
+  // filas son "validadas": traemos todo el corte de la fuente. En territorial y en
+  // el camino por status, sí se filtró a las respuestas válidas.
+  const filteredByValidity =
+    source.validity !== undefined && source.validity !== "" && source.validity !== "all_rows";
+  const countLine = filteredByValidity
+    ? `${processable.toLocaleString("es-PE")} respuestas validadas listas para procesar.`
+    : `${processable.toLocaleString("es-PE")} respuestas listas para procesar.`;
   // Si ya hay una base cruda cargada (import previo sin filtrar), el traer la
   // reemplaza en sitio por la selección validada — lo decimos con claridad.
   const replacing =
@@ -1358,7 +1366,7 @@ function FieldWorkHandoffCallout({
           <span className="pulso-carga-handoff-study">{studyLabel}</span>
         ) : null}
         <p className="pulso-carga-handoff-count">
-          {processable.toLocaleString("es-PE")} respuestas validadas listas para procesar.
+          {countLine}
           {excluded > 0 ? (
             <span className="pulso-carga-handoff-aside">
               {" "}{excluded.toLocaleString("es-PE")} quedan fuera por no ser defendibles.

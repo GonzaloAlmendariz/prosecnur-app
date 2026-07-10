@@ -921,13 +921,11 @@
 }
 
 .monitoreo_processing_handoff_complete_expected_columns <- function(data, instrumento) {
-  data <- as.data.frame(data %||% data.frame(), stringsAsFactors = FALSE, check.names = FALSE)
-  expected <- .carga_data_survey_names(instrumento)
-  missing <- setdiff(expected, names(data))
-  if (length(missing)) {
-    for (nm in missing) data[[nm]] <- NA_character_
-  }
-  data
+  # ADR 0030 Fase 1: delega en el helper compartido .dn_backfill_missing_columns
+  # (consolida el backfill duplicado con .carga_backfill_missing_expected). Aquí el
+  # set esperado es el contrato del handoff (.carga_data_survey_names), que incluye
+  # calculate/matrix-header, no la base ancha estricta.
+  .dn_backfill_missing_columns(data, .carga_data_survey_names(instrumento))
 }
 
 .monitoreo_processing_handoff_kobo_detail <- function(sid, s, cfg = NULL) {

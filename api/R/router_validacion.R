@@ -794,13 +794,18 @@ mount_validacion <- function(pr) {
       validacion_scope_set(sid, base, "evaluacion", NULL)
       .limpieza_invalidate_outputs(sid, base)
 
+      # Reglas que no se pudieron compilar (expresión no soportada): el plan se
+      # construye con el resto y aquí se reporta cuántas/cuáles se saltaron.
+      no_soportadas <- bundle$unsupported %||% list()
       list(
         ok = TRUE,
         base_nombre = files$base_nombre %||% NA_character_,
         xlsform_logic_sync = logic_sync %||% NULL,
         n_reglas = as.integer(nrow(plan)),
         resumen = if (!is.null(resumen)) .plan_rows_preview(resumen, n = 50) else list(),
-        plan_preview = .plan_rows_preview(plan, n = 50)
+        plan_preview = .plan_rows_preview(plan, n = 50),
+        n_no_soportadas = length(no_soportadas),
+        no_soportadas = utils::head(no_soportadas, 50)
       )
     })) |>
 
@@ -904,10 +909,15 @@ mount_validacion <- function(pr) {
       # api_path para que el subprocess callr pueda cargar el paquete.
       api_path <- .app_api_dir()
 
+      # ADR 0030 Fase 2: si la base activa es madre de bases hija repeat, las
+      # resolvemos (paths + repeat_group) para ensamblar el modelo multi-tabla
+      # dentro del job. Vacío ⇒ camino single-table intacto.
+      repeat_children <- .validacion_resolve_repeat_children(sid, base_effective %||% base)
+
       job_id <- job_submit(
         sid = sid,
         kind = "validacion.v2.auditoria",
-        func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path, validation_exclusions = list(), progress_path = NULL) {
+        func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path, validation_exclusions = list(), repeat_children = list(), progress_path = NULL) {
           # Locale UTF-8 para que `pkgload::load_all()` pueda parsear
           # archivos .R con caracteres acentuados (el subprocess callr
           # no hereda las opciones locale del main process).
@@ -931,11 +941,21 @@ mount_validacion <- function(pr) {
           }
           report("loading", percent = 8, message = "Leyendo instrumento y base...")
           inst <- leer_xlsform_limpieza(xlsform_path, verbose = FALSE)
-          datos <- read_validation_data_ast(
-            path = data_path,
-            ext = data_ext,
-            instrumento = inst
-          )
+          # Ensamblar madre+hijas si hay repeats; si no, lectura single-table.
+          datos <- if (length(repeat_children)) {
+            assemble_validation_data_multibase(
+              main_data_path = data_path,
+              main_data_ext = data_ext,
+              main_instrumento = inst,
+              repeat_children = repeat_children
+            )
+          } else {
+            read_validation_data_ast(
+              path = data_path,
+              ext = data_ext,
+              instrumento = inst
+            )
+          }
           report("evaluate", percent = 45, message = "Evaluando reglas de consistencia...")
           ev <- evaluate_validation_bundle(
             bundle = bundle,
@@ -961,7 +981,8 @@ mount_validacion <- function(pr) {
           bundle = bundle_efectivo,
           base_name = base_effective %||% base,
           api_path = api_path,
-          validation_exclusions = validation_exclusions
+          validation_exclusions = validation_exclusions,
+          repeat_children = repeat_children
         ),
         on_complete = function(j) {
           raw <- j$result_data
@@ -1665,10 +1686,13 @@ mount_validacion <- function(pr) {
 
         api_path <- .app_api_dir()
 
+        # ADR 0030 Fase 2: hijas repeat de la base activa para el ensamblado.
+        repeat_children <- .validacion_resolve_repeat_children(sid, base_effective %||% base)
+
         job_id <- job_submit(
           sid = sid,
           kind = "validacion.v2.reglas_custom.ejecutar",
-          func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path, validation_exclusions = list(), progress_path = NULL) {
+          func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path, validation_exclusions = list(), repeat_children = list(), progress_path = NULL) {
             tryCatch(Sys.setlocale("LC_ALL", "en_US.UTF-8"),
                      warning = function(w) NULL, error = function(e) NULL)
             options(encoding = "UTF-8")
@@ -1684,11 +1708,20 @@ mount_validacion <- function(pr) {
             }
             report("loading", percent = 8, message = "Leyendo instrumento y base...")
             inst <- leer_xlsform_limpieza(xlsform_path, verbose = FALSE)
-            datos <- read_validation_data_ast(
-              path = data_path,
-              ext = data_ext,
-              instrumento = inst
-            )
+            datos <- if (length(repeat_children)) {
+              assemble_validation_data_multibase(
+                main_data_path = data_path,
+                main_data_ext = data_ext,
+                main_instrumento = inst,
+                repeat_children = repeat_children
+              )
+            } else {
+              read_validation_data_ast(
+                path = data_path,
+                ext = data_ext,
+                instrumento = inst
+              )
+            }
             report("evaluate", percent = 45, message = "Ejecutando reglas activas...")
             ev <- evaluate_validation_bundle(
               bundle = bundle,
@@ -1714,7 +1747,8 @@ mount_validacion <- function(pr) {
             bundle = bundle_final,
             base_name = base_effective %||% base,
             api_path = api_path,
-            validation_exclusions = validation_exclusions
+            validation_exclusions = validation_exclusions,
+            repeat_children = repeat_children
           ),
           on_complete = function(j) {
             raw <- j$result_data

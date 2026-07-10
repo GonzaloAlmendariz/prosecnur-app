@@ -264,6 +264,20 @@ summarize_instrumento <- function(inst) {
   compat
 }
 
+# Backfill benigno de columnas esperadas ausentes, SÓLO para imports por API
+# (Kobo / SurveyMonkey). El XLSForm y la data salen del MISMO asset, así que una
+# columna esperada que no aparece en la data aplanada = pregunta sin respuestas
+# (la plataforma omite columnas 100% vacías), no un desajuste de versión. La
+# agregamos como NA de tipo character para que el assert estricto no falle por
+# preguntas vacías. NO se aplica en uploads manuales de archivo: ahí un faltante
+# sí es sospechoso y debe romper el chequeo estricto.
+.carga_backfill_missing_expected <- function(data, instrumento) {
+  if (!is.data.frame(data)) return(data)
+  # Delega en el helper compartido (ADR 0030 Fase 1). El set esperado de la base
+  # ancha excluye repeat/matrix-header/calculate (.dn_expected_data_names).
+  .dn_backfill_missing_columns(data, .dn_expected_data_names(instrumento))
+}
+
 read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL, choice_code_maps = NULL) {
   # Envolvemos el read_excel en suppressWarnings porque readxl infiere
   # tipo por las primeras 1000 filas; cuando una columna tiene muchos
@@ -961,6 +975,9 @@ estudio_init_default_base <- function(sid) {
   } else {
     .carga_empty_data_for_instrument(rp_inst)
   }
+  # Backfill benigno (import por API): una columna esperada ausente = pregunta
+  # sin respuestas en el mismo asset, no un desajuste de versión.
+  data_df <- .carga_backfill_missing_expected(data_df, rp_inst)
   .carga_assert_data_xlsform_compatible(data_df, rp_inst)
 
   data_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", slug, "_data.xlsx"))
@@ -1029,11 +1046,25 @@ estudio_init_default_base <- function(sid) {
   payload <- kobo_api_fetch_all_asset_data(asset_uid, token, base_url = base_url)
   data_df <- kobo_api_flatten_results(payload$results %||% list())
   data_df <- .carga_align_kobo_data(data_df, rp_inst)
+  # Conservamos la data aplanada+alineada (con los blobs de repeat y las llaves
+  # de enlace _id/_uuid) para expandir los repeats a bases hijas DESPUÉS de
+  # finalizar la base ancha. Sólo cuando el instrumento tiene begin_repeat le
+  # fijamos `_index` = 1..N (ADR 0030): la base ancha recibe el mismo índice
+  # (mismo orden de fila) para que `_parent_index` de la hija case con `_index`.
+  has_repeats <- length(.kobo_repeat_specs(rp_inst)) > 0L
+  repeat_source_df <- if (has_repeats) .kobo_ensure_wide_index(data_df) else data_df
+  # Backfill benigno: form y data salen del mismo asset, así que una columna
+  # esperada ausente = pregunta sin respuestas (Kobo omite columnas vacías).
+  data_df <- .carga_backfill_missing_expected(data_df, rp_inst)
   data_df <- if (is.data.frame(data_df) && nrow(data_df)) {
     normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = .carga_editor_choice_code_maps(sid))
   } else {
     .carga_empty_data_for_instrument(rp_inst)
   }
+  # Los repeat groups de Kobo llegan como una columna JSON-string; la base ancha
+  # no puede representarlos. Quitamos ese blob del padre (se expande aparte).
+  data_df <- .kobo_drop_repeat_blob_columns(data_df, rp_inst)
+  if (has_repeats) data_df <- .kobo_ensure_wide_index(data_df)
   .carga_assert_data_xlsform_compatible(data_df, rp_inst)
 
   data_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", slug, "_data.xlsx"))
@@ -1065,12 +1096,25 @@ estudio_init_default_base <- function(sid) {
     kobo_source_spec = source_spec,
     kobo_effective_data_file_id = data_meta$file_id
   ))
+  # Registramos las bases hijas de repeat DESPUÉS de finalize: así los archivos
+  # del hijo no existen aún cuando estudio_init_default_base re-lee el ÚLTIMO
+  # xlsform+data del file store como base "default" (evita que tome al hijo).
+  child_bases <- .carga_kobo_register_repeat_bases(
+    sid,
+    data_df = repeat_source_df,
+    rp_inst = rp_inst,
+    parent_base_name = "default",
+    title = title,
+    downloads_dir = downloads_dir,
+    choice_code_maps = .carga_editor_choice_code_maps(sid)
+  )
   c(list(
     ok = TRUE,
     provider = "kobo",
     xlsform_file_id = inst_meta$file_id,
     data_file_id = data_meta$file_id,
-    source = source_spec
+    source = source_spec,
+    child_bases = child_bases
   ), finalized)
 }
 
@@ -1179,10 +1223,20 @@ estudio_init_default_base <- function(sid) {
     payload <- kobo_api_fetch_all_asset_data(asset$asset_uid, token, base_url = base_url)
     data_df <- kobo_api_flatten_results(payload$results %||% list())
     data_df <- .carga_align_kobo_data(data_df, rp_inst)
+    # Cobertura de repeats para hermanas independientes (ADR 0030 Fase 1). Sólo
+    # cuando la hermana tiene begin_repeat conservamos la data aplanada (con
+    # blobs + _id) con `_index` fijo para expandir sus bases hija después, y
+    # limpiamos el blob de la base ancha.
+    has_repeats <- length(.kobo_repeat_specs(rp_inst)) > 0L
+    repeat_source_df <- if (has_repeats) .kobo_ensure_wide_index(data_df) else NULL
     data_df <- if (is.data.frame(data_df) && nrow(data_df)) {
       normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = .carga_editor_choice_code_maps(sid))
     } else {
       .carga_empty_data_for_instrument(rp_inst)
+    }
+    if (has_repeats) {
+      data_df <- .kobo_drop_repeat_blob_columns(data_df, rp_inst)
+      data_df <- .kobo_ensure_wide_index(data_df)
     }
     .carga_assert_data_xlsform_compatible(data_df, rp_inst)
     data_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", base_name, "_data.xlsx"))
@@ -1203,6 +1257,7 @@ estudio_init_default_base <- function(sid) {
       data_path = data_path,
       rp_inst = rp_inst,
       rp_data = rp_data,
+      repeat_source_df = repeat_source_df,
       n_filas = as.integer(nrow(data_df)),
       n_columnas = as.integer(ncol(data_df))
     )
@@ -1317,6 +1372,25 @@ estudio_init_default_base <- function(sid) {
     xlsform_logic_sync <- NULL
   }
 
+  # Bases hija de repeat (ADR 0030 Fase 1): DESPUÉS de registrar las hermanas y
+  # sincronizar la lógica de plantilla (para no contaminar `imported_names` ni el
+  # template), expandimos los repeats de cada hermana a bases hija vinculadas. Sin
+  # repeats esto es un no-op y el modo hermanas queda intacto.
+  child_bases <- list()
+  for (item in prepared) {
+    if (!is.data.frame(item$repeat_source_df)) next
+    child <- .carga_kobo_register_repeat_bases(
+      sid,
+      data_df = item$repeat_source_df,
+      rp_inst = item$rp_inst,
+      parent_base_name = item$base_name,
+      title = item$title,
+      downloads_dir = downloads_dir,
+      choice_code_maps = .carga_editor_choice_code_maps(sid)
+    )
+    if (length(child)) child_bases <- c(child_bases, child)
+  }
+
   current_bases <- estudio_list_bases(sid)
   current_session <- session_get(sid, required = FALSE)
   bases_out <- unname(lapply(imported_names, function(name) {
@@ -1329,6 +1403,7 @@ estudio_init_default_base <- function(sid) {
     active_base = as.character(estudio_active_base(sid) %||% NA_character_),
     bases = bases_out,
     n_bases = length(estudio_list_bases(sid)),
+    child_bases = child_bases,
     estudio = .estudio_payload(sid),
     xlsform_logic_sync = xlsform_logic_sync
   )

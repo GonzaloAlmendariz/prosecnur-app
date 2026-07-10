@@ -10,6 +10,12 @@
 #      el instrumento, y
 #   2. un promote delgado que reusa el helper congelado tal cual.
 #
+# DOS CAMINOS (dispatch por familia del monitoreo):
+#   - TERRITORIAL: cuenta por universo (validada/revision/no_defendible) desde los
+#     KPIs territoriales cacheados y delega el promote en el helper congelado.
+#   - GENERAL (telefonico / multi-fuente): el snapshot es un frame multi-fuente sin
+#     validation_status; se promueve UNA fuente Kobo (ver carga_monitoreo_handoff_general.R).
+#
 # PREFERENCIA DE INSTRUMENTO: la data es local, pero el instrumento se prefiere
 # desde la API de Kobo (version desplegada, fidedigna). Esa preferencia la decide
 # el propio helper congelado `.monitoreo_processing_handoff_xlsform`: puntua los
@@ -40,35 +46,54 @@
   length(file_candidates) > 0L
 }
 
-# Cuenta por universo a partir de `s$monitoreo_snapshot$data$validation_status`,
-# detecta el asset Kobo heredado de Monitoreo territorial y arma el contrato de
-# STATUS. No stagea archivos, no jala Kobo ni valida XLSForm: solo lecturas de
-# metadatos en memoria y una lectura local del secreto (sin red).
-.carga_monitoreo_handoff_status <- function(sid) {
-  empty_counts <- list(processable = 0L, validada = 0L, revision = 0L,
-                       no_defendible = 0L, total = 0L)
-  empty_source <- list(label = "", phase = "", kobo_asset_uid = "",
-                       instrument_source = "none", instrument_available = FALSE)
-  s <- session_get(sid, required = FALSE)
-  if (is.null(s)) {
-    return(list(
-      ok = TRUE, detected = FALSE, universe = "processable",
-      counts = empty_counts, source = empty_source,
-      already_promoted = FALSE, existing_base = list(present = FALSE),
-      base_nombre_sugerido = "Monitoreo territorial"
-    ))
-  }
+# Contrato de STATUS vacio (sin sesion o sin snapshot). Preserva el shape historico
+# (universe "processable", base sugerida territorial) para no romper la UI.
+.carga_handoff_empty_status <- function() {
+  list(
+    ok = TRUE, detected = FALSE, universe = "processable",
+    counts = list(processable = 0L, validada = 0L, revision = 0L,
+                  no_defendible = 0L, total = 0L),
+    source = list(label = "", kind = "", phase = "", kobo_asset_uid = "",
+                  source_id = "", validity = "", status_column = "",
+                  instrument_source = "none", instrument_available = FALSE),
+    sources = list(),
+    already_promoted = FALSE,
+    existing_base = list(present = FALSE),
+    base_nombre_sugerido = "Monitoreo territorial"
+  )
+}
 
-  snapshot <- s$monitoreo_snapshot %||% NULL
+# existing_base: si ya hay una base (p.ej. un import crudo de 1697), la reportamos
+# para que la UI enmarque el traer como "reemplazar por la validada". Compartido por
+# ambos caminos (territorial y general).
+.carga_handoff_existing_base_payload <- function(sid, s) {
+  bases <- s$estudio$bases %||% list()
+  if (!length(bases)) return(list(present = FALSE))
   int0 <- function(x) {
     x <- suppressWarnings(as.integer(x %||% 0L))
     if (length(x) != 1L || is.na(x)) 0L else x
   }
-  # El estado de validacion NO vive por fila en snapshot$data; lo calcula el motor
-  # territorial. Los conteos ya resueltos estan cacheados en
-  # `territorial_overview_facts` (espejo de la vista viva de Avance) y, en su
-  # defecto, en los KPIs del ultimo tablero completo. Contar sobre snapshot$data
-  # daria 0 (la columna no existe) y la tarjeta nunca apareceria.
+  active_base <- .carga_chr1(tryCatch(estudio_active_base(sid), error = function(e) ""), "")
+  nm <- if (nzchar(active_base) && !is.null(bases[[active_base]])) active_base else names(bases)[[1]]
+  b <- bases[[nm]]
+  list(
+    present = TRUE,
+    nombre = nm,
+    source_kind = .carga_chr1(b$source_kind, ""),
+    is_territorial = identical(.carga_chr1(b$source_kind, ""), "monitoreo_territorial"),
+    n_filas = int0(b$n_filas)
+  )
+}
+
+# STATUS territorial: cuenta por universo desde `territorial_overview_facts`
+# (espejo de la vista viva de Avance) y, en su defecto, desde los KPIs del ultimo
+# tablero completo. Contar sobre snapshot$data daria 0 (la columna
+# validation_status no existe por fila) y la tarjeta nunca apareceria.
+.carga_handoff_status_territorial <- function(sid, s, snapshot) {
+  int0 <- function(x) {
+    x <- suppressWarnings(as.integer(x %||% 0L))
+    if (length(x) != 1L || is.na(x)) 0L else x
+  }
   facts <- (snapshot %||% list())$territorial_overview_facts %||%
     (((snapshot %||% list())$dashboard %||% list())$territorial_reports %||% list())$kpis %||%
     list()
@@ -112,8 +137,12 @@
   }
   source <- list(
     label = .carga_chr1(detected_kobo$name %||% detected_kobo$source_title, ""),
+    kind = "kobo",
     phase = .carga_chr1(detected_kobo$phase, ""),
     kobo_asset_uid = .carga_chr1(detected_kobo$asset_uid, ""),
+    source_id = "",
+    validity = "validation_status",
+    status_column = "",
     instrument_source = instrument_source,
     instrument_available = !identical(instrument_source, "none")
   )
@@ -122,28 +151,11 @@
   # monitoreo_territorial). Un import crudo previo (source_kind != territorial) NO
   # cuenta: queremos seguir ofreciendo traer la version filtrada y reemplazarlo.
   bases <- s$estudio$bases %||% list()
-  has_territorial_base <- length(bases) > 0L && any(vapply(
+  already_promoted <- length(bases) > 0L && any(vapply(
     bases,
     function(b) identical(.carga_chr1(b$source_kind, ""), "monitoreo_territorial"),
     logical(1)
   ))
-  already_promoted <- has_territorial_base
-
-  # existing_base: si ya hay una base (p.ej. un import crudo de 1697), la
-  # reportamos para que la UI enmarque el traer como "reemplazar por la validada".
-  active_base <- .carga_chr1(tryCatch(estudio_active_base(sid), error = function(e) ""), "")
-  existing_base <- list(present = FALSE)
-  if (length(bases) > 0L) {
-    nm <- if (nzchar(active_base) && !is.null(bases[[active_base]])) active_base else names(bases)[[1]]
-    b <- bases[[nm]]
-    existing_base <- list(
-      present = TRUE,
-      nombre = nm,
-      source_kind = .carga_chr1(b$source_kind, ""),
-      is_territorial = identical(.carga_chr1(b$source_kind, ""), "monitoreo_territorial"),
-      n_filas = int0(b$n_filas)
-    )
-  }
 
   list(
     ok = TRUE,
@@ -151,16 +163,33 @@
     universe = "processable",
     counts = counts,
     source = source,
+    sources = list(),
     already_promoted = already_promoted,
-    existing_base = existing_base,
+    existing_base = .carga_handoff_existing_base_payload(sid, s),
     base_nombre_sugerido = "Monitoreo territorial"
   )
 }
 
+# STATUS del puente. Barato: no stagea archivos, no jala Kobo ni valida XLSForm;
+# solo lecturas de metadatos en memoria y una lectura local del secreto (sin red).
+# Despacha por familia: territorial (validation_status) o general (multi-fuente).
+.carga_monitoreo_handoff_status <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(.carga_handoff_empty_status())
+  snapshot <- s$monitoreo_snapshot %||% NULL
+  if (.carga_handoff_is_territorial(s, snapshot)) {
+    return(.carga_handoff_status_territorial(sid, s, snapshot))
+  }
+  if (is.null(snapshot) || !is.data.frame(snapshot$data) || !nrow(snapshot$data)) {
+    return(.carga_handoff_empty_status())
+  }
+  .carga_handoff_status_general(sid, s, snapshot)
+}
+
 # Expande los repeat groups de la base madre recién promovida a bases hija
-# vinculadas (ADR 0030 Fase 1). El promote vive en router_monitoreo.R (congelado),
-# así que la expansión se engancha AQUÍ, después. El snapshot de Monitoreo
-# preserva la columna blob del repeat (snapshot$data -> data_out -> base
+# vinculadas (ADR 0030 Fase 1). El promote territorial vive en router_monitoreo.R
+# (congelado), así que la expansión se engancha AQUÍ, después. El snapshot de
+# Monitoreo preserva la columna blob del repeat (snapshot$data -> data_out -> base
 # persistida, sin dropearla), así que la base madre trae el JSON del repeat como
 # columna extra. Reusamos el mismo helper del path Kobo (carga_kobo_repeats.R)
 # con las llaves canónicas ODK/Kobo.
@@ -213,10 +242,10 @@
   )
 }
 
-# Promote delgado: delega en el helper congelado (que hace todo el trabajo de
+# Promote territorial: delega en el helper congelado (que hace todo el trabajo de
 # extraer instrumento fidedigno + data filtrada y persistir la base activa) y
 # garantiza el flag `ok` en la respuesta.
-.carga_monitoreo_handoff_promote <- function(sid, parsed = list()) {
+.carga_monitoreo_handoff_promote_territorial <- function(sid, parsed = list()) {
   if (!is.list(parsed)) parsed <- list()
   # Si no se especifica base y el estudio tiene UNA sola base (caso tipico: un
   # import crudo previo que quedo mal, p.ej. 1697 sin filtrar), reemplazamos ESA
@@ -238,4 +267,20 @@
     error = function(e) list()
   )
   result
+}
+
+# Promote del puente. Despacha por familia: territorial (helper congelado) o
+# general (promueve una fuente Kobo del snapshot multi-fuente).
+.carga_monitoreo_handoff_promote <- function(sid, parsed = list()) {
+  if (!is.list(parsed)) parsed <- list()
+  s <- session_get(sid)
+  snapshot <- s$monitoreo_snapshot %||% NULL
+  if (is.null(snapshot) || !is.data.frame(snapshot$data) || !nrow(snapshot$data)) {
+    stop_api(409, "E_NO_MONITOREO_DATA",
+             "Sincroniza datos de monitoreo antes de traer al procesamiento.")
+  }
+  if (.carga_handoff_is_territorial(s, snapshot)) {
+    return(.carga_monitoreo_handoff_promote_territorial(sid, parsed))
+  }
+  .carga_handoff_promote_general(sid, parsed, s, snapshot)
 }

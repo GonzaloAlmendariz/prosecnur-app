@@ -364,6 +364,7 @@ build_unified_rules <- function(instrumento,
     rules = rules,
     lex_report = instr_res$lex_report,
     discarded = instr_res$discarded,
+    unsupported = instr_res$unsupported %||% list(),
     dedup_info = list(
       n_instrumento = length(instr_rules),
       n_custom = length(custom_rules),

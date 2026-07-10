@@ -581,3 +581,78 @@ test_that("normalize_data_for_xlsform no descarta columnas que tambien son varia
   expect_identical(out$D1_information, raw$D1_information)
   expect_true(isTRUE(compat$ok))
 })
+
+test_that(".dn_expected_data_names excluye preguntas anidadas en begin_repeat/end_repeat", {
+  inst <- list(
+    survey = data.frame(
+      type = c("text", "begin_repeat", "select_one", "integer", "end_repeat", "text"),
+      name = c("q_top", "rep_grupo", "q_dentro", "q_num", "rep_grupo", "q_cierre"),
+      list_name = c(NA, NA, "lst_x", NA, NA, NA),
+      appearance = c("", "", "", "", "", ""),
+      label = c("Tope", "Grupo", "Dentro", "Numero", "", "Cierre"),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    ),
+    choices = data.frame(
+      list_name = "lst_x", name = "1", label = "Uno",
+      stringsAsFactors = FALSE, check.names = FALSE
+    )
+  )
+  expected <- .dn_expected_data_names(inst)
+  expect_true(all(c("q_top", "q_cierre") %in% expected))
+  expect_false(any(c("q_dentro", "q_num", "rep_grupo") %in% expected))
+})
+
+test_that(".dn_expected_data_names excluye el header de matriz select_one appearance='label'", {
+  inst <- list(
+    survey = data.frame(
+      type = c("begin_group", "select_one", "select_one", "select_one", "end_group"),
+      name = c("Matriz", "M_header", "M_a", "M_b", "Matriz"),
+      list_name = c(NA, "lst_lik", "lst_lik", "lst_lik", NA),
+      appearance = c("field-list", "label", "list-nolabel", "list-nolabel", ""),
+      label = c("Matriz", "Header", "Fila A", "Fila B", ""),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    ),
+    choices = data.frame(
+      list_name = rep("lst_lik", 2), name = c("1", "2"), label = c("Bajo", "Alto"),
+      stringsAsFactors = FALSE, check.names = FALSE
+    )
+  )
+  expected <- .dn_expected_data_names(inst)
+  # 'list-nolabel' contiene la subcadena 'label' pero NO debe excluirse.
+  expect_true(all(c("M_a", "M_b") %in% expected))
+  expect_false("M_header" %in% expected)
+})
+
+test_that(".carga_backfill_missing_expected agrega columnas esperadas ausentes como NA", {
+  inst <- list(
+    survey = data.frame(
+      type = c("text", "integer"),
+      name = c("q_presente", "q_ausente"),
+      list_name = c(NA, NA),
+      label = c("Presente", "Ausente"),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    ),
+    choices = data.frame(
+      list_name = character(0), name = character(0), label = character(0),
+      stringsAsFactors = FALSE, check.names = FALSE
+    )
+  )
+  data <- data.frame(
+    q_presente = c("a", "b"),
+    extra = c("x", "y"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  # Sin backfill: q_ausente falta -> incompatible.
+  expect_false(validate_data_xlsform_compatibility(data, inst)$ok)
+  filled <- .carga_backfill_missing_expected(data, inst)
+  expect_true("q_ausente" %in% names(filled))
+  expect_true(all(is.na(filled$q_ausente)))
+  expect_identical(filled$q_presente, data$q_presente)
+  # No toca columnas ya presentes ni las extra.
+  expect_true("extra" %in% names(filled))
+  expect_true(validate_data_xlsform_compatibility(filled, inst)$ok)
+})

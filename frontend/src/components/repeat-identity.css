@@ -1,0 +1,93 @@
+/* Identidad visual de grupos repeat (ADR 0030 Fase 5).
+ *
+ * Naranja suave (`--pulso-repeat-*`) como MARCADOR SEMÁNTICO transversal:
+ * significa siempre "esto pertenece a una estructura repetida (roster
+ * one-to-many)". Compartido entre Carga y Analítica (y superficies futuras)
+ * para que el badge y el indicador de grano se vean idénticos en todas.
+ * Colores SOLO vía tokens; nada de hex aquí. */
+
+.pulso-repeat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-repeat-bg);
+  border: 1px solid var(--pulso-repeat-border);
+  color: var(--pulso-repeat-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-control-weight);
+  line-height: 1.4;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.pulso-repeat-badge-icon {
+  display: inline-flex;
+  color: var(--pulso-repeat-accent);
+  flex: 0 0 auto;
+}
+
+.pulso-repeat-badge-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Variante compacta (solo ícono + "Repetible" corto), para filas densas. */
+.pulso-repeat-badge.is-compact {
+  padding: 1px 7px;
+  gap: 4px;
+}
+
+/* Indicador de grano — banner que contextualiza la base hija activa. */
+.pulso-repeat-grain {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-repeat-bg);
+  border: 1px solid var(--pulso-repeat-border);
+  color: var(--pulso-repeat-fg);
+}
+
+.pulso-repeat-grain-icon {
+  display: inline-flex;
+  margin-top: 1px;
+  color: var(--pulso-repeat-accent);
+  flex: 0 0 auto;
+}
+
+.pulso-repeat-grain-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pulso-repeat-grain-headline {
+  font-size: 13px;
+  font-weight: var(--pulso-control-weight);
+  line-height: 1.4;
+}
+
+.pulso-repeat-grain-caveat {
+  font-size: 12px;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--pulso-repeat-fg) 82%, transparent);
+}
+
+/* Variante inline compacta del grano para barras densas (ContextBar). */
+.pulso-repeat-grain.is-inline {
+  padding: 6px 10px;
+  border-radius: var(--pulso-radius-chip);
+  align-items: center;
+}
+
+.pulso-repeat-grain.is-inline .pulso-repeat-grain-icon {
+  margin-top: 0;
+}
+
+.pulso-repeat-grain.is-inline .pulso-repeat-grain-headline {
+  font-size: 12px;
+}

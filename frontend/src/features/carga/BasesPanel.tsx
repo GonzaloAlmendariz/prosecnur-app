@@ -70,6 +70,8 @@ import type {
   RuleInterpretation,
 } from "../../api/client";
 import { ErrorBlock } from "../../components/States";
+import { RepeatBadge } from "../../components/RepeatBadge";
+import { isRepeatChildBase } from "../../lib/repeatIdentity";
 import { IntegratedInstrumentsWizard } from "./IntegratedInstrumentsWizard";
 
 // Panel de bases del estudio (multi-base nativo).
@@ -6628,6 +6630,10 @@ function BaseRow({
   const sourceTitle = String(base.source_title ?? "").trim();
   const showSourceAlias = !!sourceAlias && sourceAlias !== "NA";
   const showSourceTitle = !!sourceTitle && sourceTitle !== "NA" && sourceTitle !== sourceAlias;
+  // ADR 0030 Fase 5: identidad naranja de la base hija repeat.
+  const isRepeatChild = isRepeatChildBase(base);
+  const repeatGroup = String(base.repeat_group ?? "").trim();
+  const repeatParent = String(base.parent_base ?? "").trim();
   return (
     <div className="pulso-base-row">
       <span className="pulso-base-row-icon" aria-hidden="true">
@@ -6665,6 +6671,15 @@ function BaseRow({
                 <Pencil size={10} />
               </button>
             </div>
+            {isRepeatChild && (
+              <RepeatBadge
+                repeatGroup={repeatGroup}
+                compact
+                title={repeatParent
+                  ? `Base hija del begin_repeat "${repeatGroup || "repeat"}" · madre: ${repeatParent}`
+                  : `Base hija del begin_repeat "${repeatGroup || "repeat"}"`}
+              />
+            )}
             <span className="pulso-base-row-status">
               <CheckCircle2 size={12} />
               Lista
@@ -6675,6 +6690,11 @@ function BaseRow({
           <span>
             <FileSpreadsheet size={12} /> Formulario cargado
           </span>
+          {isRepeatChild && repeatParent && (
+            <span title={`Enlaza con la base madre ${repeatParent}`}>
+              <Layers size={12} /> Roster de {repeatParent}
+            </span>
+          )}
           {showSourceAlias && (
             <span title={sourceAlias}>
               <Cloud size={12} /> {sourceAlias}

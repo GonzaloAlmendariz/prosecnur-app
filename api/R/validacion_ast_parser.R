@@ -87,11 +87,74 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
     ))
   }
 
+  ast_out <- parsed$ast
+
+  # Lowering de pseudo-nodos de función que sobrevivieron sin plegarse contra
+  # una comparación. En contexto booleano (relevant/constraint/choice_filter)
+  # un `count-selected(.)` o `string-length(.)` SUELTO es "truthy" en XPath:
+  # verdadero cuando hay ≥1 selección / longitud>0. Lo bajamos a su forma
+  # tipada (count_selected_cmp(var, ">", 0) / text_length_cmp(var, ">", 0)) para
+  # que no se fugue como pseudo-nodo `__*` — que reventaría ast_is_valid en
+  # make_rule aguas abajo.
+  if (context %in% c("relevant", "constraint", "choice_filter")) {
+    ast_out <- .ast_lower_pseudo_bool(ast_out)
+  }
+
+  # Invariante del parser: ningún pseudo-nodo interno `__*` (var/num/str/today/
+  # count_selected/string_length) debe escapar en un AST "no degradado". Si algo
+  # sobrevive —p.ej. count-selected(${x}) usado como VALOR numérico en un
+  # calculate/repeat_count, o una expresión aritmética exótica— degradamos a
+  # odk_raw en vez de emitir un AST inválido. El caller lo trata como
+  # degraded_to_raw (ver .parse_repeat_count / introspección de reglas).
+  if (.ast_has_pseudo_nodes(ast_out)) {
+    return(list(
+      ast = ast_odk_raw(norm, origin = sprintf("pseudo_leftover:%s", context)),
+      findings = lex$findings,
+      degraded_to_raw = TRUE
+    ))
+  }
+
   list(
-    ast = ast_normalize(parsed$ast),
+    ast = ast_normalize(ast_out),
     findings = lex$findings,
     degraded_to_raw = FALSE
   )
+}
+
+# -----------------------------------------------------------------------------
+# Guardas del contrato de pseudo-nodos
+# -----------------------------------------------------------------------------
+# Los pseudo-nodos `__*` viven solo dentro del parser y se resuelven a AST real
+# en .build_compare/.build_additive. Estas dos funciones garantizan que jamás
+# escapen: una los baja a su forma booleana cuando tiene sentido, la otra los
+# detecta para degradar el parse.
+
+# Baja pseudo-nodos de función que quedaron sin comparar a su forma booleana
+# (truthy). Solo aplica en contextos booleanos; recursivo vía ast_map.
+.ast_lower_pseudo_bool <- function(x) {
+  if (!is_ast(x)) return(x)
+  ast_map(x, function(node) {
+    op <- ast_op(node)
+    if (identical(op, "__count_selected") &&
+        is.character(node$var) && length(node$var) == 1L && nzchar(node$var)) {
+      return(ast_count_selected_cmp(node$var, ">", 0))
+    }
+    if (identical(op, "__string_length") &&
+        is.character(node$var) && length(node$var) == 1L && nzchar(node$var)) {
+      return(ast_text_length_cmp(node$var, ">", 0))
+    }
+    node
+  })
+}
+
+# TRUE si algún nodo del AST tiene un op pseudo interno (`__...`).
+.ast_has_pseudo_nodes <- function(x) {
+  if (!is_ast(x)) return(FALSE)
+  found <- FALSE
+  ast_walk(x, function(node, path) {
+    if (grepl("^__", ast_op(node))) found <<- TRUE
+  })
+  found
 }
 
 # -----------------------------------------------------------------------------

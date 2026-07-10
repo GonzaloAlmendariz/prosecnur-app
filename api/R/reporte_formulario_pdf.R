@@ -300,7 +300,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     survey,
     c("type", "name", "label", "hint", "relevant", "appearance",
       "paper_number", "paper_label", "paper_layout", "paper_group",
-      "paper_only", "paper_skip")
+      "paper_only", "paper_skip", "repeat_count")
   )
   choices <- .form_pdf_ensure_cols(choices, c("list_name", "name", "label", "paper_skip"))
   settings <- .form_pdf_ensure_cols(settings, c("form_title", "form_id", "default_language"))
@@ -392,6 +392,10 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     }
 
     if (base %in% c("begin_group", "begin_repeat")) {
+      # Cardinalidad de repeat (ADR 0030, Fase 4): distinguir begin_repeat de
+      # begin_group para marcar la sección como repetible (one-to-many/roster) y,
+      # si el instrumento lo trae, su repeat_count.
+      is_repeat <- identical(base, "begin_repeat")
       add_block(list(
         kind = "section",
         number = numbers[i],
@@ -402,6 +406,8 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
         )),
         hint = .form_pdf_paper_text(survey$hint[i]),
         skip = .form_pdf_clean_text(survey$paper_skip[i]),
+        repeatable = is_repeat,
+        repeat_count = if (is_repeat) .form_pdf_clean_text(survey$repeat_count[i]) else "",
         full_width = TRUE
       ))
       i <- i + 1L
@@ -625,6 +631,8 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 
 .form_pdf_draw_section <- function(block, x, y, w) {
   label <- if (nzchar(block$number %||% "")) paste0(block$number, ". ", block$title) else block$title
+  # Marca textual de sección repetible (ADR 0030, Fase 4).
+  label <- paste0(label, .repeat_pdf_section_suffix(isTRUE(block$repeatable), block$repeat_count))
   y <- .form_pdf_band(label, x, y, w, chars = 112)
   if (nzchar(block$hint %||% "")) {
     y <- .form_pdf_text(block$hint, x + 0.006, y - 0.006, w - 0.012, chars = 112,
