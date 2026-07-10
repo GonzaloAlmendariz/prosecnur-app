@@ -54,6 +54,7 @@ import {
 import { MODULE_TONES } from "../../../../lib/modules";
 import { PlotlyChart } from "../../../../lib/PlotlyChart";
 import { MONITOREO_ROUTES, WORKBENCH_VIEWS, workbenchViewsForRoute, type WorkbenchView } from "../../core/monitoreoRegistry";
+import { initialMonitoreoView, useMonitoreoTabParam } from "../../useMonitoreoTabParam";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail, type MonitoreoWorkbenchRailTab } from "../../components";
 import {
@@ -18634,7 +18635,8 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const route = isPhone ? TELEFONICO_ROUTE : ACREDITACION_ROUTE;
   const profileLabel = isPhone ? "Monitoreo telefónico" : "Acreditación";
   const [state, setState] = useState<MonitoreoState | null>(null);
-  const [activeView, setActiveView] = useState<WorkbenchView>("fuentes");
+  const [activeView, setActiveView] = useState<WorkbenchView>(() => initialMonitoreoView("fuentes", workbenchViewsForRoute(route)));
+  useMonitoreoTabParam(activeView);
   const [activeSourceTab, setActiveSourceTab] = useState<AcreditacionSourceTab>(isPhone ? "sheets" : "survey");
   const [activeModelTab, setActiveModelTab] = useState<AcreditacionModelTab>("estructura");
   const [activeConsultaTab, setActiveConsultaTab] = useState<AcreditacionConsultaTab>("plataforma");

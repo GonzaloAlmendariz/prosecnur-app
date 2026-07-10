@@ -309,6 +309,7 @@ import {
   type InternalQuerySummary,
   type InternalQueryTemplate,
 } from "./internalQueries";
+import { monitoreoViewFromTabParam, useMonitoreoTabParam } from "./useMonitoreoTabParam";
 import "./monitoreo.css";
 import "./shell/monitoreoShell.css";
 
@@ -3073,7 +3074,10 @@ export default function MonitoreoPage() {
   const [sourceSyncJob, setSourceSyncJob] = useState<SourceSyncJobState | null>(null);
   const [sourceSyncRateLimitNotice, setSourceSyncRateLimitNotice] = useState<SourceSyncRateLimitNotice | null>(null);
   const [sample, setSample] = useState<MonitoreoRow[]>([]);
-  const [activeView, setActiveView] = useState<WorkbenchView>(() => initialWorkbenchViewFromLocation("fuentes"));
+  const [activeView, setActiveView] = useState<WorkbenchView>(
+    () => monitoreoViewFromTabParam(window.location.search) ?? initialWorkbenchViewFromLocation("fuentes"),
+  );
+  useMonitoreoTabParam(activeView);
   const [activeModelMode, setActiveModelMode] = useState<OperationalModelMode>("estructura");
   const [explorerIntent, setExplorerIntent] = useState<ExplorerOpenIntent | null>(null);
   const [territorialSelectedResponseId, setTerritorialSelectedResponseId] = useState("");
@@ -4931,8 +4935,12 @@ export default function MonitoreoPage() {
                               ...current,
                               phase: progress.phase || current.phase,
                               message: progress.message || current.message,
+                              // Progreso monótono: nunca retrocede. Evita el salto
+                              // a 0% cuando el primer poll del job llega antes de que
+                              // el worker reporte, o cuando las fases del worker y del
+                              // on_complete se solapan.
                               percent: Number.isFinite(nextPercent)
-                                ? Math.max(0, Math.min(100, nextPercent))
+                                ? Math.max(current.percent, Math.min(100, nextPercent))
                                 : current.percent,
                             };
                           });
@@ -4940,9 +4948,25 @@ export default function MonitoreoPage() {
                         onDone={async (result) => {
                           const rateLimitNotice = buildSourceSyncRateLimitNotice(result);
                           setSourceSyncRateLimitNotice(rateLimitNotice);
-                          await syncFieldOccurrencesAfterSourceSync(result);
-                          setSourceSyncJob(null);
-                          await refresh();
+                          // Mantener el botón en estado "trabajando" mientras se
+                          // recarga el tablero, en vez de volver a gris apenas termina
+                          // el job y dejar el contenido cargando por detrás.
+                          setSourceSyncJob((current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  phase: "Finalizando",
+                                  message: "Cargando el tablero actualizado...",
+                                  percent: Math.max(current.percent, 99),
+                                }
+                              : current,
+                          );
+                          try {
+                            await syncFieldOccurrencesAfterSourceSync(result);
+                            await refresh();
+                          } finally {
+                            setSourceSyncJob(null);
+                          }
                         }}
                         onError={(msg) => {
                           setSourceSyncJob(null);

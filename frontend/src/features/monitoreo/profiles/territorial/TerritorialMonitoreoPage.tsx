@@ -61,6 +61,7 @@ import {
   type WorkbenchView,
   type WorkbenchViewDefinition,
 } from "../../core/monitoreoRegistry";
+import { initialMonitoreoView, useMonitoreoTabParam } from "../../useMonitoreoTabParam";
 import { territorialDurationOperationalStatusFromValues } from "../../territorialDuration";
 import {
   monitoreoScopeCache,
@@ -1413,7 +1414,8 @@ function renderView(
 
 export default function TerritorialMonitoreoPage() {
   const [state, setState] = useState<MonitoreoState | null>(null);
-  const [activeView, setActiveView] = useState<WorkbenchView>("fuentes");
+  const [activeView, setActiveView] = useState<WorkbenchView>(() => initialMonitoreoView("fuentes", TERRITORIAL_WORKBENCH_VIEWS));
+  useMonitoreoTabParam(activeView);
   const [activeLocalTabs, setActiveLocalTabs] = useState<Partial<Record<WorkbenchView, string>>>({
     fuentes: defaultLocalTabForView("fuentes"),
     modelo: defaultLocalTabForView("modelo"),

@@ -252,6 +252,42 @@
   opacity: 0.12;
 }
 
+/* Sheen indeterminado: mientras sincroniza, un brillo en movimiento indica que
+   el motor sigue trabajando aunque el % quede congelado durante el build (el
+   hilo único no puede reportar progreso granular en ese tramo). */
+.mon-commandbar .mon-command-sync.is-syncing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 22%,
+    color-mix(in srgb, currentColor 24%, transparent) 50%,
+    transparent 78%
+  );
+  background-size: 220% 100%;
+  animation: mon-sync-shimmer 1.15s linear infinite;
+}
+
+@keyframes mon-sync-shimmer {
+  from {
+    background-position: 130% 0;
+  }
+  to {
+    background-position: -130% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mon-commandbar .mon-command-sync.is-syncing::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 .mon-commandbar .mon-command-sync svg,
 .mon-commandbar .mon-command-sync span,
 .mon-commandbar .mon-command-sync strong {
