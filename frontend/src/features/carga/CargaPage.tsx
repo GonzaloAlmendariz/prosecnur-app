@@ -497,7 +497,19 @@ export default function CargaPage() {
     try {
       const result = await apiCargaMonitoreoHandoffPromote();
       await refresh();
-      setHandoffMessage(`Base "${result.base_nombre}" lista. Ya puedes validar y codificar.`);
+      const fr = result.filter_report ?? {};
+      const nf = (n?: number) => (n ?? 0).toLocaleString("es-PE");
+      const traidas = result.data?.n_filas ?? fr.filas_incluidas ?? 0;
+      const desglose = [
+        fr.validada != null ? `${nf(fr.validada)} validadas` : null,
+        fr.revision ? `${nf(fr.revision)} en revisión` : null,
+      ].filter(Boolean).join(" · ");
+      const excluidas = fr.no_defendible_excluidos
+        ? ` ${nf(fr.no_defendible_excluidos)} excluidas por no defendibles.`
+        : "";
+      setHandoffMessage(
+        `${nf(traidas)} respuestas traídas${desglose ? ` (${desglose})` : ""}.${excluidas} Ya puedes validar y codificar.`,
+      );
     } catch (e: unknown) {
       setError((e as Error).message);
     } finally {
@@ -1310,6 +1322,11 @@ function FieldWorkHandoffCallout({
   const excluded = handoffCount(counts.no_defendible);
   const studyLabel = source.label?.trim();
   const instrumentMissing = source.instrument_source === "none" || !source.instrument_available;
+  // Si ya hay una base cruda cargada (import previo sin filtrar), el traer la
+  // reemplaza en sitio por la selección validada — lo decimos con claridad.
+  const replacing =
+    status.existing_base.present && !status.existing_base.is_territorial;
+  const replacedRows = status.existing_base.present ? status.existing_base.n_filas : 0;
   const instrumentNote =
     source.instrument_source === "kobo_api"
       ? "Traemos el cuestionario desde Kobo (versión desplegada)."
@@ -1341,6 +1358,13 @@ function FieldWorkHandoffCallout({
             </span>
           ) : null}
         </p>
+        {replacing ? (
+          <span className="pulso-carga-handoff-note is-warning">
+            <AlertTriangle size={13} aria-hidden="true" />
+            Reemplaza la base actual ({replacedRows.toLocaleString("es-PE")} sin filtrar)
+            por esta selección validada.
+          </span>
+        ) : null}
         <span className={`pulso-carga-handoff-note${instrumentMissing ? " is-warning" : ""}`}>
           {instrumentMissing ? <AlertTriangle size={13} aria-hidden="true" /> : null}
           {instrumentNote}
@@ -1359,7 +1383,7 @@ function FieldWorkHandoffCallout({
           }
         >
           {busy ? <Loader2 size={14} className="pulso-spin" /> : <ArrowRight size={14} />}
-          Traer al procesamiento
+          {replacing ? "Reemplazar por la validada" : "Traer al procesamiento"}
         </button>
       </div>
     </section>

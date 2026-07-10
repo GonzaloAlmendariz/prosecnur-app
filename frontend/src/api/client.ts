@@ -3552,6 +3552,15 @@ export type CargaMonitoreoHandoffStatus = {
     instrument_available: boolean;
   };
   already_promoted: boolean;
+  existing_base:
+    | { present: false }
+    | {
+        present: true;
+        nombre: string;
+        source_kind: string;
+        is_territorial: boolean;
+        n_filas: number;
+      };
   base_nombre_sugerido: string;
 };
 
