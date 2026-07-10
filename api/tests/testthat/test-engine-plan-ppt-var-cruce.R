@@ -1022,6 +1022,64 @@ test_that("slide Otros lista solo respuestas aun no categorizadas", {
   expect_true(grepl("Base: 2 respuestas en Otros", txt, fixed = TRUE))
 })
 
+test_that("slide Otros (select_multiple) incluye a quien marco una opcion nombrada y Otros a la vez", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  # select_multiple recodificada, normalizada a columnas dummy
+  # p12_recod.<code>. En una select_multiple marcar una opcion NOMBRADA (.1) y
+  # "Otros" (.99) a la vez es valido (dos selecciones distintas). El detalle de
+  # texto libre NO debe excluir a esa persona solo porque tambien marco una
+  # nombrada: la exclusion depende de si "Otros" en si sigue marcado.
+  dat <- data.frame(
+    `p12_recod.1`  = c(1, 0, 1, 0),
+    `p12_recod.99` = c(1, 1, 0, 0),
+    p12_recod_other = c("combina ambos", "solo otros", "ya categorizado", "texto fuera"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  attr(dat$`p12_recod.1`, "label") <- "Talleres"
+  attr(dat$`p12_recod.99`, "label") <- "Otros"
+
+  inst <- list(
+    survey = data.frame(
+      name = c("p12_recod", "p12_recod_other"),
+      type = c("select_multiple lst_p12_recod", "text"),
+      list_name = c("lst_p12_recod", NA_character_),
+      label = c("Actividad preferida", NA_character_),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("lst_p12_recod", "lst_p12_recod"),
+      name = c("1", "99"),
+      label = c("Talleres", "Otros"),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = NULL
+  )
+
+  out <- reporte_ppt_plan(
+    data = dat,
+    instrumento = inst,
+    plan = list(diapo_001 = p_slide_1_grafico(grafico = p_barras_agrupadas("p12_recod"))),
+    presets = p_presets(barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
+    solo_lista = TRUE,
+    mensajes_progreso = FALSE
+  )
+
+  expect_length(out$plan, 2L)
+  txt <- out$plan[[2]]$slots$text
+  # Persona 1: nombrada + Otros -> aparece (comportamiento corregido).
+  expect_true(grepl("\u2022 Combina ambos", txt, fixed = TRUE))
+  # Persona 2: solo Otros -> aparece.
+  expect_true(grepl("\u2022 Solo otros", txt, fixed = TRUE))
+  # Persona 3: solo la nombrada, sin Otros -> excluida.
+  expect_false(grepl("ya categorizado", txt, fixed = TRUE))
+  # Persona 4: no marco Otros -> excluida.
+  expect_false(grepl("texto fuera", txt, fixed = TRUE))
+  expect_true(grepl("Base: 2 respuestas en Otros", txt, fixed = TRUE))
+})
+
 test_that("slide Otros usa variable madre cuando la recodificada queda en Otros", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
