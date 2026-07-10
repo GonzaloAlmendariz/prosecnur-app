@@ -424,6 +424,29 @@
   )
 }
 
+# Re-aplica el orden de categorías definido en Analítica sobre cada fuente de
+# instrumento, por base. El config vive en `analitica_config_por_base[[base]]`
+# (o en el `analitica_config` global para proyectos de base única); las keys de
+# `inst_sources` son los mismos nombres de base. tryCatch defensivo aguas
+# arriba: un mismatch de keys degrada a "sin reorden", nunca rompe el export.
+.graficos_apply_orden_categorias_sources <- function(sid, src) {
+  inst_sources <- src$inst_sources
+  if (!is.list(inst_sources) || !length(inst_sources)) return(src)
+  if (!exists(".orden_categorias_from_cfg", mode = "function")) return(src)
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(src)
+  configs <- s$analitica_config_por_base
+  global_cfg <- s$analitica_config
+  for (nm in names(inst_sources)) {
+    cfg <- if (is.list(configs) && !is.null(configs[[nm]])) configs[[nm]] else global_cfg
+    orden_cfg <- .orden_categorias_from_cfg(cfg)
+    if (!length(orden_cfg)) next
+    inst_sources[[nm]] <- .apply_orden_categorias(inst_sources[[nm]], orden_cfg)
+  }
+  src$inst_sources <- inst_sources
+  src
+}
+
 .graficos_can_use_legacy_mirror <- function(sid, s) {
   bases <- (s$estudio %||% list())$bases %||% list()
   if (length(bases) > 1L) return(FALSE)
@@ -515,6 +538,11 @@
     if (exists(".graficos_add_virtual_koica_group_sources", mode = "function")) {
       src <- tryCatch(.graficos_add_virtual_koica_group_sources(sid, src), error = function(e) src)
     }
+    # Orden de categorías definido en Analítica (por list_name): el PPT NO pasa
+    # por .analitica_apply_data_review, así que se re-aplica aquí, por base, para
+    # que tablas y PPT respeten la misma secuencia. Va después de normalize
+    # (que re-fija los `names` al orden del instrumento).
+    src <- tryCatch(.graficos_apply_orden_categorias_sources(sid, src), error = function(e) src)
     src
   }
 

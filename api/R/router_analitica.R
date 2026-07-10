@@ -1607,6 +1607,15 @@
   tipos <- as.character(sv$type %||% "")
   base_tipos <- sub("\\s.*$", "", tipos)
   list_names <- trimws(sub("^\\S+\\s*", "", tipos))
+  # El `type` cargado puede venir ya normalizado a "select_one" (sin la lista),
+  # con el nombre de la lista en la columna `list_name`. Preferimos esa columna
+  # cuando existe; solo caemos al parseo del type si falta. Sin esto el frontend
+  # recibe list_name = "" y no puede keyar el orden de categorías por lista.
+  if ("list_name" %in% names(sv)) {
+    ln_col <- trimws(as.character(sv$list_name))
+    has_col <- !is.na(ln_col) & nzchar(ln_col)
+    list_names[has_col] <- ln_col[has_col]
+  }
 
   keep <- !is.na(sv$name) & nzchar(sv$name) &
           !base_tipos %in% c("begin_group","end_group","begin_repeat","end_repeat","note","calculate","start","end","deviceid","today")
@@ -2323,6 +2332,12 @@
     inst <- ctx$inst
   }
 
+  # Orden de categorías definido por el analista (por list_name). Se aplica al
+  # final, DESPUÉS de la normalización contra el choices (que re-fija los
+  # `names` al orden del instrumento); si se aplicase antes, se pisaría.
+  orden_cfg <- .orden_categorias_from_cfg(cfg)
+  if (length(orden_cfg)) inst <- .apply_orden_categorias(inst, orden_cfg)
+
   list(data = data, inst = inst)
 }
 
@@ -3035,6 +3050,8 @@ mount_analitica <- function(pr) {
       next_ficha_json <- jsonlite::toJSON((cfg %||% list())$ficha_tecnica %||% list(), auto_unbox = TRUE, null = "null")
       prev_pond_json <- jsonlite::toJSON((.analitica_config_get(sid, s_prev) %||% list())$ponderacion %||% list(), auto_unbox = TRUE, null = "null")
       next_pond_json <- jsonlite::toJSON((cfg %||% list())$ponderacion %||% list(), auto_unbox = TRUE, null = "null")
+      prev_orden_json <- jsonlite::toJSON((.analitica_config_get(sid, s_prev) %||% list())$orden_categorias %||% list(), auto_unbox = TRUE, null = "null")
+      next_orden_json <- jsonlite::toJSON((cfg %||% list())$orden_categorias %||% list(), auto_unbox = TRUE, null = "null")
       .analitica_config_set(sid, cfg)
       if (!identical(prev_fuente, next_fuente)) {
         .analitica_status_set(sid, "analitica_prep_ok", FALSE)
@@ -3062,6 +3079,13 @@ mount_analitica <- function(pr) {
         .analitica_status_set(sid, "analitica_cruces_ok", FALSE)
         .analitica_status_set(sid, "analitica_dim_ok", FALSE)
         .analitica_status_set(sid, "analitica_ficha_tecnica_ok", FALSE)
+      }
+      # Cambiar el orden de categorías invalida las tablas ya generadas (su
+      # secuencia de filas cambia). No afecta cómputos ponderados ni dimensiones.
+      if (!identical(as.character(prev_orden_json), as.character(next_orden_json))) {
+        .analitica_status_set(sid, "analitica_frecuencias_ok", FALSE)
+        .analitica_status_set(sid, "analitica_cruces_ok", FALSE)
+        .analitica_status_set(sid, "analitica_spss_ok", FALSE)
       }
       list(ok = TRUE, saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
     })) |>
