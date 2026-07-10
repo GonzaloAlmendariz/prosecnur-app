@@ -88,6 +88,67 @@ test_that("plan de trabajo permite actualizar una actividad sin tocar otros modu
   expect_true("monitoreo" %in% unlist(plan$tasks[[1]]$sync_targets, use.names = FALSE))
 })
 
+test_that("plan de trabajo crea actividades manuales sobre un plan vacio", {
+  plan <- .plan_empty_plan()
+  expect_equal(length(plan$tasks), 0L)
+
+  plan <- .plan_create_task(plan, list(
+    activity = "Reunion de arranque",
+    responsible = "Coordinacion",
+    start_date = "2026-08-01",
+    end_date = "2026-08-01",
+    kind = "milestone"
+  ))
+  expect_equal(length(plan$tasks), 1L)
+  task <- plan$tasks[[1]]
+  expect_match(task$id, "^task_m_")
+  expect_equal(task$kind, "milestone")
+  expect_equal(task$duration_days, 1L)
+  expect_equal(length(plan$milestones), 1L)
+
+  plan <- .plan_create_task(plan, list(
+    activity = "Trabajo de campo",
+    start_date = "2026-08-05",
+    end_date = "2026-08-09"
+  ))
+  expect_equal(length(plan$tasks), 2L)
+  expect_equal(plan$tasks[[2]]$duration_days, 5L)
+})
+
+test_that("plan de trabajo normaliza horas HH:MM en tareas manuales", {
+  plan <- .plan_empty_plan()
+  plan <- .plan_create_task(plan, list(
+    activity = "Reunión",
+    start_date = "2026-08-01",
+    end_date = "2026-08-01",
+    start_time = "9:5",
+    end_time = "10:30"
+  ))
+  task <- plan$tasks[[1]]
+  expect_equal(task$start_time, "")       # "9:5" es invalida
+  expect_equal(task$end_time, "10:30")
+
+  id <- task$id
+  plan <- .plan_update_task(plan, id, list(start_time = "09:00", end_time = "25:00"))
+  updated <- plan$tasks[[1]]
+  expect_equal(updated$start_time, "09:00")
+  expect_equal(updated$end_time, "")      # 25:00 fuera de rango
+})
+
+test_that("plan de trabajo rechaza actividad sin nombre y elimina por id", {
+  plan <- .plan_empty_plan()
+  expect_error(.plan_create_task(plan, list(activity = "")))
+
+  plan <- .plan_create_task(plan, list(activity = "Piloto"))
+  id <- plan$tasks[[1]]$id
+  plan <- .plan_create_task(plan, list(activity = "Analisis"))
+  expect_equal(length(plan$tasks), 2L)
+
+  plan <- .plan_delete_task(plan, id)
+  expect_equal(length(plan$tasks), 1L)
+  expect_equal(plan$tasks[[1]]$activity, "Analisis")
+})
+
 test_that("diseno del estudio lee plan de trabajo como fuente transversal", {
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
