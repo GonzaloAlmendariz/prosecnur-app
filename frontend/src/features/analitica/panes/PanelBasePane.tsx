@@ -62,6 +62,7 @@ export function PanelBasePane() {
   const setPanel = useAnaliticaStore((s) => s.setPanel);
   const setPanelWave = useAnaliticaStore((s) => s.setPanelWave);
   const codebookRun = useReporteRun();
+  const codebookPdfRun = useReporteRun();
   const freqRun = useReporteRun();
   const crossesRun = useReporteRun();
   const auditRun = useReporteRun();
@@ -157,6 +158,10 @@ export function PanelBasePane() {
 
   async function onGenerateCodebook() {
     await codebookRun.runAsync(() => apiAnaliticaPanelExport(activeConfig, { formato: "libro_codigos" }));
+  }
+
+  async function onGenerateCodebookPdf() {
+    await codebookPdfRun.runAsync(() => apiAnaliticaPanelExport(activeConfig, { formato: "libro_codigos_pdf" }));
   }
 
   async function onGenerateFrecuencias() {
@@ -429,6 +434,33 @@ export function PanelBasePane() {
                         onJobDone={codebookRun.onJobDone}
                         onJobError={codebookRun.onJobError}
                         onJobCancelled={codebookRun.onJobCancelled}
+                      />
+                    </PanelExportCard>
+
+                    <PanelExportCard
+                      icon={<FileText size={15} />}
+                      title="Libro de códigos (PDF)"
+                      copy="Versión imprimible y elegante del mismo diccionario, lista para compartir."
+                    >
+                      <ToggleOutput
+                        label="Activar libro"
+                        checked={panel.outputs.codebook}
+                        onChange={(next) => setPanel({ outputs: { ...panel.outputs, codebook: next } })}
+                      />
+                      <GenerateFooter
+                        label="Generar PDF"
+                        busy={codebookPdfRun.busy}
+                        jobId={codebookPdfRun.jobId}
+                        fileId={codebookPdfRun.fileId}
+                        downloadName={codebookPdfRun.filename ?? "base_panel_libro_codigos.pdf"}
+                        error={codebookPdfRun.error}
+                        onGenerate={onGenerateCodebookPdf}
+                        disabled={disabled || !panel.outputs.codebook}
+                        disabledHint={disabled ? (info?.reason || "Selecciona un identificador común válido para todas las mediciones.") : "Activa este entregable para generarlo."}
+                        perBase={codebookPdfRun.perBase}
+                        onJobDone={codebookPdfRun.onJobDone}
+                        onJobError={codebookPdfRun.onJobError}
+                        onJobCancelled={codebookPdfRun.onJobCancelled}
                       />
                     </PanelExportCard>
 

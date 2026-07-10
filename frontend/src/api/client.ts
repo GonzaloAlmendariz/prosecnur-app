@@ -9891,7 +9891,7 @@ export async function apiAnaliticaPanelPreview(config?: AnaliticaPanelConfig, ro
 }
 
 export type AnaliticaPanelExportOptions = {
-  formato?: "paquete" | "xlsx" | "csv" | "sav" | "libro_codigos" | "frecuencias" | "cruces" | "auditoria";
+  formato?: "paquete" | "xlsx" | "csv" | "sav" | "libro_codigos" | "libro_codigos_pdf" | "frecuencias" | "cruces" | "auditoria";
   valores?: "codigos" | "etiquetas" | "ambos";
   separador?: "," | ";";
   multi_select?: "codigos_crudos" | "etiquetas_unidas" | "dummy_01";
