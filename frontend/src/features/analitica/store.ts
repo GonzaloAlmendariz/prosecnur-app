@@ -305,6 +305,22 @@ export type FichaTecnicaConfig = {
   panel_context?: unknown;
 };
 
+// ----- Ponderación -----------------------------------------------------------
+// Config declarativa que consume ponderacion_compute() en el backend. La forma
+// coincide con la del motor para no traducir: `design` (pesos de diseño),
+// `rake` (post-estratificación a márgenes) y `trim` (recorte de extremos).
+export type PonderMargin = {
+  var: string;
+  // categoría -> objetivo poblacional (proporción o conteo; el motor normaliza).
+  targets: Record<string, number>;
+};
+export type PonderacionConfig = {
+  enabled: boolean;
+  design?: { var: string; pop_sizes: Record<string, number> } | null;
+  rake: { margins: PonderMargin[] };
+  trim?: { cap: number } | null;
+};
+
 export type AnaliticaConfig = {
   // v1 → v2: `bases`; v2 → v3: revisión de metadata de data.
   version: 3;
@@ -324,6 +340,7 @@ export type AnaliticaConfig = {
   bases: BasesConfig;
   datos: DatosConfig;
   dimensiones: DimensionesConfig;
+  ponderacion: PonderacionConfig;
 };
 
 // ----- Defaults --------------------------------------------------------------
@@ -442,6 +459,10 @@ export const DEFAULT_CONFIG: AnaliticaConfig = {
     labels_subindices: {},
     labels_indicadores: {},
   },
+  ponderacion: {
+    enabled: false,
+    rake: { margins: [] },
+  },
 };
 
 // ----- Store -----------------------------------------------------------------
@@ -507,6 +528,9 @@ type AnaliticaStore = {
   setDimensionesSubindices: (subindices: BloqueConfig[]) => void;
   setDimensionesIndices: (indices: IndiceConfig[]) => void;
   setDimensionesSemaforo: (patch: Partial<DimensionesSemaforo>) => void;
+  setPonderacion: (patch: Partial<PonderacionConfig>) => void;
+  upsertPonderMargin: (m: PonderMargin) => void;
+  removePonderMargin: (varName: string) => void;
 };
 
 function dirty(partial: Partial<AnaliticaStore>): Partial<AnaliticaStore> {
@@ -825,6 +849,30 @@ export const useAnaliticaStore = create<AnaliticaStore>((set) => ({
         },
       }),
     ),
+
+  setPonderacion: (patch) =>
+    set((s) =>
+      dirty({ config: { ...s.config, ponderacion: { ...s.config.ponderacion, ...patch } } }),
+    ),
+
+  upsertPonderMargin: (m) =>
+    set((s) => {
+      const margins = (s.config.ponderacion.rake?.margins ?? []).slice();
+      const i = margins.findIndex((x) => x.var === m.var);
+      if (i >= 0) margins[i] = m;
+      else margins.push(m);
+      return dirty({
+        config: { ...s.config, ponderacion: { ...s.config.ponderacion, rake: { margins } } },
+      });
+    }),
+
+  removePonderMargin: (varName) =>
+    set((s) => {
+      const margins = (s.config.ponderacion.rake?.margins ?? []).filter((x) => x.var !== varName);
+      return dirty({
+        config: { ...s.config, ponderacion: { ...s.config.ponderacion, rake: { margins } } },
+      });
+    }),
 }));
 
 // ----- Migración schema v2 cruces_vars --------------------------------------

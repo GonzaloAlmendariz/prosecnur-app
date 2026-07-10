@@ -3032,6 +3032,8 @@ mount_analitica <- function(pr) {
       next_panel_json <- jsonlite::toJSON((cfg %||% list())$panel %||% list(), auto_unbox = TRUE, null = "null")
       prev_ficha_json <- jsonlite::toJSON((.analitica_config_get(sid, s_prev) %||% list())$ficha_tecnica %||% list(), auto_unbox = TRUE, null = "null")
       next_ficha_json <- jsonlite::toJSON((cfg %||% list())$ficha_tecnica %||% list(), auto_unbox = TRUE, null = "null")
+      prev_pond_json <- jsonlite::toJSON((.analitica_config_get(sid, s_prev) %||% list())$ponderacion %||% list(), auto_unbox = TRUE, null = "null")
+      next_pond_json <- jsonlite::toJSON((cfg %||% list())$ponderacion %||% list(), auto_unbox = TRUE, null = "null")
       .analitica_config_set(sid, cfg)
       if (!identical(prev_fuente, next_fuente)) {
         .analitica_status_set(sid, "analitica_prep_ok", FALSE)
@@ -3053,7 +3055,28 @@ mount_analitica <- function(pr) {
       } else if (!identical(as.character(prev_ficha_json), as.character(next_ficha_json))) {
         .analitica_status_set(sid, "analitica_ficha_tecnica_ok", FALSE)
       }
+      # Cambiar la ponderacion invalida todo lo que se calcula ponderado.
+      if (!identical(as.character(prev_pond_json), as.character(next_pond_json))) {
+        .analitica_status_set(sid, "analitica_frecuencias_ok", FALSE)
+        .analitica_status_set(sid, "analitica_cruces_ok", FALSE)
+        .analitica_status_set(sid, "analitica_dim_ok", FALSE)
+        .analitica_status_set(sid, "analitica_ficha_tecnica_ok", FALSE)
+      }
       list(ok = TRUE, saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+    })) |>
+    plumber::pr_post("/api/analitica/ponderacion/preview", wrap_endpoint(function(req, res, ...) {
+      # Preview en vivo de la ponderacion sobre la base real, sin persistir.
+      # El body puede traer una config candidata { ponderacion: {...} }; si no,
+      # usa la guardada en analitica_config.
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      pond <- NULL
+      if (nzchar(body_raw)) {
+        Encoding(body_raw) <- "UTF-8"
+        parsed <- tryCatch(jsonlite::fromJSON(body_raw, simplifyVector = FALSE), error = function(e) NULL)
+        if (is.list(parsed)) pond <- parsed$ponderacion %||% parsed$config$ponderacion %||% parsed
+      }
+      .analitica_ponderacion_preview(sid, pond)
     })) |>
     plumber::pr_get("/api/analitica/config/export", wrap_endpoint(function(req, res) {
       # Export del estado completo (config + flags de generación) para que
@@ -3353,6 +3376,9 @@ mount_analitica <- function(pr) {
 	          reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
 	          rp_data <- reviewed$data
 	          rp_inst <- reviewed$inst
+	          # Ponderacion: adjunta `peso` (si esta activa) antes de excluir
+	          # columnas, para que las variables de calibracion sigan presentes.
+	          rp_data <- .analitica_ponderacion_apply(rp_data, cfg)
 	          data_out <- .excluir_cols(rp_data, excluidas)
 	          # Secciones: usa las del config si las hay; sino, detecta
           # automáticamente las del instrumento de ESTA base.
@@ -3686,6 +3712,8 @@ mount_analitica <- function(pr) {
 	      reviewed_ctx <- .analitica_apply_data_review(ctx$rp_data, ctx$rp_inst, cfg)
 	      ctx$rp_data <- reviewed_ctx$data
 	      ctx$rp_inst <- reviewed_ctx$inst
+	      # Ponderacion: adjunta `peso` (si esta activa); reporte_cruces lo usa.
+	      ctx$rp_data <- .analitica_ponderacion_apply(ctx$rp_data, cfg)
 	      cc <- cfg$cruces %||% list()
 
       # Resolver cruces_vars: query param > config. Schema v2 del config
