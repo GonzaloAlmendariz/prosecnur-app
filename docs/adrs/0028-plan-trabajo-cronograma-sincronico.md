@@ -1,8 +1,12 @@
 # ADR 0028: Plan de trabajo como cronograma sincronico
 
-Estado: Aceptado
+Estado: Reemplazado por 0029
 
 Fecha: 2026-06-29
+
+> Nota (2026-07-09): ADR 0029 fusiona el cronograma dentro del modulo
+> **Bitacora** (pestana Cronograma + Calendario) y agrega creacion/eliminacion
+> manual de actividades. Los contratos de `plan_trabajo` se conservan.
 
 ## Contexto
 

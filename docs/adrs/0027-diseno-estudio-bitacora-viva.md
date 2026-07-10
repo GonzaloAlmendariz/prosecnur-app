@@ -1,8 +1,12 @@
 # ADR 0027: Diseno del estudio como expediente y bitacora viva
 
-Estado: Aceptado
+Estado: Reemplazado por 0029
 
 Fecha: 2026-06-28
+
+> Nota (2026-07-09): ADR 0029 fusiona el cronograma dentro del modulo, lo
+> renombra a **Bitacora**, retira Expediente/Fuentes/Biblioteca y mueve el
+> agregador de estado por modulo a `GET /api/project/overview`.
 
 ## Contexto
 
