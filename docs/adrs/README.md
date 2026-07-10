@@ -48,7 +48,8 @@ Usar la [plantilla ADR](0000-template.md). Cada decision debe incluir:
 | [0024](0024-monitoreo-subsanaciones-operativas.md) | Aceptado | 2026-06-25 | Monitoreo territorial guarda subsanaciones operativas auditables |
 | [0025](0025-monitoreo-anulacion-produccion-territorial.md) | Aceptado | 2026-06-26 | Monitoreo territorial permite anular produccion localmente |
 | [0026](0026-guardado-explicito-guardia-salida.md) | Aceptado | 2026-06-26 | Prosecnur guarda `.pulso` explicitamente y protege salidas con guardia comun |
-| [0027](0027-diseno-estudio-bitacora-viva.md) | Aceptado | 2026-06-28 | Diseno del estudio reemplaza Enciclopedia como expediente y bitacora viva |
-| [0028](0028-plan-trabajo-cronograma-sincronico.md) | Aceptado | 2026-06-29 | Plan de trabajo modela cronogramas sincronicos con evidencia operativa |
+| [0027](0027-diseno-estudio-bitacora-viva.md) | Reemplazado por 0029 | 2026-06-28 | Diseno del estudio reemplaza Enciclopedia como expediente y bitacora viva |
+| [0028](0028-plan-trabajo-cronograma-sincronico.md) | Reemplazado por 0029 | 2026-06-29 | Plan de trabajo modela cronogramas sincronicos con evidencia operativa |
+| [0029](0029-reorientacion-por-proyecto-bitacora-y-overview.md) | Aceptado | 2026-07-09 | Reorientacion por proyecto: modulo Bitacora unico, Home adaptativo y overview de proyecto |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).
