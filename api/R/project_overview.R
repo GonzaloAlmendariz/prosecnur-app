@@ -402,6 +402,21 @@
   )
 }
 
+# Nombre del proyecto para el Home. Usa el título del estudio, pero si está
+# vacío o es el sentinel por defecto ("Estudio sin título") deriva del nombre
+# del archivo .pulso (HSVG2026.pulso -> "HSVG2026") en vez de mostrar un
+# placeholder genérico. Solo si tampoco hay archivo cae al sentinel.
+.overview_project_name <- function(protocol, project_path) {
+  title <- trimws(.diseno_scalar(protocol$title, ""))
+  if (nzchar(title) && !identical(title, "Estudio sin título")) return(title)
+  path <- .diseno_scalar(project_path, "")
+  if (!nzchar(path)) path <- .diseno_scalar(protocol$project_file, "")
+  path <- gsub("\\\\", "/", path)
+  base <- trimws(sub("\\.pulso$", "", basename(path), ignore.case = TRUE))
+  if (nzchar(base)) return(base)
+  "Estudio sin título"
+}
+
 .project_overview_payload <- function(sid) {
   s <- session_get(sid)
   protocol <- .diseno_protocol_summary(s)
@@ -417,7 +432,7 @@
     schema = "project_overview_v1",
     generated_at = .diseno_now_iso(),
     project = list(
-      name = .diseno_scalar(protocol$title, "Proyecto sin titulo"),
+      name = .overview_project_name(protocol, s$project_path),
       client = .diseno_scalar(protocol$client, ""),
       project_file = .diseno_scalar(protocol$project_file, ""),
       has_project = isTRUE(has_project),
