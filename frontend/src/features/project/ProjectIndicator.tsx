@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Circle,
   Folder,
+  Repeat,
 } from "lucide-react";
 import { projectRelTime } from "./ProjectLifecycleDialog";
 import type { UseProjectReturn } from "./useProject";
@@ -55,7 +56,7 @@ export default function ProjectIndicator({ project, onOpenProjectViewer, onReque
           setViewerOpen(true);
           onOpenProjectViewer();
         }}
-        title={projectPath ? `Cambiar proyecto · ${projectPath}` : "Cambiar proyecto"}
+        title={projectPath ? `Gestionar proyecto · ${projectPath}` : "Gestionar proyecto"}
         className={`pulso-project-chip ${status.dirty ? "is-dirty" : "is-saved"}`}
         disabled={project.busy}
         onBlur={() => setViewerOpen(false)}
@@ -79,6 +80,16 @@ export default function ProjectIndicator({ project, onOpenProjectViewer, onReque
             </>
           )}
         </span>
+      </button>
+      <button
+        type="button"
+        onClick={onRequestSelector}
+        title="Cambiar de proyecto"
+        aria-label="Cambiar de proyecto"
+        className="pulso-project-switch"
+        disabled={project.busy}
+      >
+        <Repeat size={13} strokeWidth={2.2} aria-hidden="true" />
       </button>
     </div>
   );
