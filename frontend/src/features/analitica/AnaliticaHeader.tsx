@@ -17,11 +17,14 @@ import {
   apiAnaliticaConfigImport,
   apiAnaliticaConfigPut,
   apiAnaliticaPreparar,
+  apiAnaliticaVariables,
 } from "../../api/client";
-import type { AnaliticaFuenteBase } from "../../api/client";
+import type { AnaliticaFuenteBase, RepeatGrain } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { ConfigIoButtons } from "../../components/ConfigIoButtons";
 import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
+import { RepeatBadge } from "../../components/RepeatBadge";
+import { RepeatGrainNote } from "../../components/RepeatGrainNote";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { useAnaliticaStore, type FuentePreferida } from "./store";
 
@@ -72,6 +75,33 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
   const codificadaDisponible = Boolean(detalle?.codificada.available || state?.codif_aplicado);
   const fuenteActiva: FuentePreferida = usandoAdaptados ? "adaptados" : "originales";
   const [switching, setSwitching] = useState(false);
+
+  // ADR 0030 Fase 5: si la base activa es una hija repeat, el backend anota el
+  // grano de instancia en /api/analitica/variables. Lo consumimos para pintar
+  // la identidad naranja (badge + indicador de grano) y advertir el clustering.
+  // `null` en cualquier base normal o si la preparación aún no corrió.
+  const [grain, setGrain] = useState<RepeatGrain | null>(null);
+  const activeBase = state?.active_base ?? null;
+  useEffect(() => {
+    let alive = true;
+    async function loadGrain() {
+      try {
+        const res = await apiAnaliticaVariables();
+        if (alive) setGrain(res.grain);
+      } catch {
+        if (alive) setGrain(null);
+      }
+    }
+    void loadGrain();
+    const onChange = () => { void loadGrain(); };
+    window.addEventListener("pulso:analitica-source-changed", onChange);
+    window.addEventListener("pulso:session-changed", onChange);
+    return () => {
+      alive = false;
+      window.removeEventListener("pulso:analitica-source-changed", onChange);
+      window.removeEventListener("pulso:session-changed", onChange);
+    };
+  }, [activeBase, fuenteActual]);
 
   async function selectFuente(next: FuentePreferida) {
     if (switching || next === fuenteActiva || (next === "adaptados" && !codificadaDisponible)) return;
@@ -130,6 +160,7 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
   });
 
   return (
+    <>
     <ContextBar
       ariaLabel="Fuente de datos y configuración de analítica"
       density="compact"
@@ -142,6 +173,15 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
         </span>
         <div className="pulso-analitica-source-copy">
           <strong>{sourceTitle}</strong>{" "}
+          {grain && (
+            <RepeatBadge
+              repeatGroup={grain.repeat_group}
+              compact
+              title={grain.parent_base
+                ? `Base hija repeat · roster de ${grain.parent_base}`
+                : "Base hija de una estructura repetida"}
+            />
+          )}{" "}
           <span>{guidance}</span>
           {!panelVariant && (
             <div className="pulso-analitica-source-files" title={`Formulario: ${activeXls} · Base de datos: ${activeData}`}>
@@ -203,6 +243,8 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
         )}
       </div>
     </ContextBar>
+    <RepeatGrainNote grain={grain} className="pulso-analitica-repeat-grain" />
+    </>
   );
 }
 

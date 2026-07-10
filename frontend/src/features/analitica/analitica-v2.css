@@ -622,3 +622,10 @@
 .analitica-orden-shared-list li span em {
   color: var(--pulso-text-soft);
 }
+
+/* Indicador de grano repeat bajo la sourcebar (ADR 0030 Fase 5). Colores en
+ * los tokens --pulso-repeat-* vía el componente compartido; aquí solo el
+ * espaciado para que quede pegado a la banda de fuente. */
+.pulso-analitica-repeat-grain {
+  margin-top: 8px;
+}

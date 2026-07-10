@@ -283,12 +283,27 @@ lector_limpieza <- function(archivo,
                             hoja_principal   = NULL,
                             grupos_repetidos = NULL,
                             repeats_count_map = NULL,
-                            warn = TRUE) {
+                            warn = TRUE,
+                            hojas_override = NULL) {
 
   # -------- 1) Leer todas las hojas ----------
-  hojas_nombres <- readxl::excel_sheets(archivo)
-  hojas <- purrr::map(hojas_nombres, ~ readxl::read_excel(archivo, sheet = .x))
-  names(hojas) <- hojas_nombres
+  # ADR 0030 Fase 2: `hojas_override` permite ensamblar el modelo multi-tabla
+  # (base madre + bases hija repeat ya cargadas) SIN un workbook físico, pasando
+  # una lista nombrada de data.frames (nombre = hoja). El resto del lector
+  # —detección de main/repeats, enlace padre↔hijo, rc_checks— es idéntico, así
+  # que el ensamblador reusa toda esta maquinaria en lugar de duplicarla.
+  if (is.null(hojas_override)) {
+    hojas_nombres <- readxl::excel_sheets(archivo)
+    hojas <- purrr::map(hojas_nombres, ~ readxl::read_excel(archivo, sheet = .x))
+    names(hojas) <- hojas_nombres
+  } else {
+    if (!is.list(hojas_override) || !length(hojas_override) ||
+        is.null(names(hojas_override)) || any(!nzchar(names(hojas_override)))) {
+      stop("lector_limpieza(): hojas_override debe ser una lista nombrada de data.frames.",
+           call. = FALSE)
+    }
+    hojas <- hojas_override
+  }
 
   # std names en todas (solo columnas, no renombra hojas)
   hojas <- purrr::map(hojas, ll_std_names)

@@ -557,6 +557,26 @@ evaluate_rules <- function(rules,
   setdiff(unique(vals), data_names)
 }
 
+# Columnas de un `aggregate_cmp` que viven en la tabla SOURCE (repeat), no en la
+# host: `source_var` y `parent_key_remote`. Son legítimamente ausentes de la host
+# (ADR 0030 Fase 2, cruce hija→madre) y NO deben marcar la regla como
+# missing_columns — el compilador ya devuelve NA (sin violación) si la tabla o
+# las columnas source faltan de `__data_multi__`.
+.rule_aggregate_remote_cols <- function(ast) {
+  if (is.null(ast) || !is_ast(ast)) return(character(0))
+  out <- character(0)
+  if (identical(ast_op(ast), "aggregate_cmp")) {
+    args <- as.list(ast)
+    out <- c(out,
+             as.character(args$source_var %||% ""),
+             as.character(args$parent_key_remote %||% ""))
+  }
+  for (a in as.list(ast)) {
+    if (is_ast(a)) out <- c(out, .rule_aggregate_remote_cols(a))
+  }
+  unique(out[nzchar(out)])
+}
+
 .rule_missing_columns <- function(rule, data_names) {
   roles <- rule$variable_roles %||% list()
   target <- .role_missing_subset(roles$target, data_names)
@@ -564,6 +584,16 @@ evaluate_rules <- function(rules,
   gate <- .role_missing_subset(roles$gate, data_names)
   drivers <- .role_missing_subset(roles$drivers, data_names)
   all <- unique(c(target, compare, gate, drivers, setdiff(rule$variables %||% character(0), data_names)))
+
+  # Excluir columnas remotas de aggregate_cmp (viven en la tabla repeat).
+  remote_cols <- .rule_aggregate_remote_cols(rule$predicate)
+  if (length(remote_cols)) {
+    target <- setdiff(target, remote_cols)
+    compare <- setdiff(compare, remote_cols)
+    gate <- setdiff(gate, remote_cols)
+    drivers <- setdiff(drivers, remote_cols)
+    all <- setdiff(all, remote_cols)
+  }
 
   # Las preguntas select_multiple pueden no existir como variable madre si el
   # export trae solo dummies (p7.1, p7.2...). En ese caso no son "missing":

@@ -103,6 +103,21 @@
   --pulso-info-border: var(--pulso-primary-border);
   --pulso-info-fg: var(--pulso-primary);
 
+  /* Repeat / roster (ADR 0030 Fase 5) — MARCADOR SEMÁNTICO TRANSVERSAL.
+   * Naranja suave que significa SIEMPRE "esto pertenece a una estructura
+   * repetida (roster one-to-many)": base hija de un begin_repeat, su grano
+   * de instancia, la marca "repetible". NO es un acento de familia/módulo:
+   * se superpone a cualquier paleta de módulo sin competir con ella y con
+   * la misma semántica en toda superficie (Carga, Analítica, formulario,
+   * dashboard). Distinto a propósito de `--pulso-warn-*` (amarillo =
+   * advertencia) y de `--pulso-accent-amber`/`--pulso-module-routes`
+   * (dorado/óxido de módulo). Windows-safe: color plano, sin vibrancy,
+   * legible a DPI 125-150% y con Segoe UI. */
+  --pulso-repeat-bg: #fdeede;
+  --pulso-repeat-border: #f2c79c;
+  --pulso-repeat-fg: #9a4913;
+  --pulso-repeat-accent: #c95f20;
+
   /* Colores canónicos por módulo — una identidad estable para dock,
    * Home y superficies futuras. Mantener sincronizado con lib/modules.ts. */
   --pulso-module-editor: #6d5dfc;
@@ -234,6 +249,16 @@
 
 :root[data-platform="windows"] {
   --pulso-control-weight: 600;
+}
+
+/* Repeat / roster en modo oscuro (ADR 0030 Fase 5). El naranja suave se
+ * traduce a un fill translúcido + texto naranja claro para conservar la
+ * misma semántica y contraste sobre superficies oscuras. Windows-safe. */
+:root[data-theme="dark"] {
+  --pulso-repeat-bg: rgba(224, 122, 60, 0.16);
+  --pulso-repeat-border: rgba(224, 122, 60, 0.44);
+  --pulso-repeat-fg: #f3b98a;
+  --pulso-repeat-accent: #e8935c;
 }
 
 @keyframes pulso-route-enter-kf {

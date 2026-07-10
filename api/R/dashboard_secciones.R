@@ -38,6 +38,14 @@
   label_raw[is.na(label_raw)] <- ""
   Encoding(label_raw) <- "UTF-8"
 
+  # Variables fantasma del repeat en la base MADRE (ADR 0030, Fase 4): las
+  # preguntas anidadas en un `begin_repeat` (repeat_depth > 0) NO existen como
+  # columnas de la data ancha (Kobo devuelve el repeat como blob), así que no
+  # deben listarse como secciones/variables del dashboard. En una base HIJA esas
+  # mismas preguntas ya son top-level (bajo `begin_group`), su repeat_depth es 0
+  # y este set queda vacío: el filtro no las toca (soporte de base hija).
+  phantom <- tryCatch(.analitica_repeat_phantom_names(rp_inst), error = function(e) character(0))
+
   stack_label <- character(0)
   out <- list()  # nombre -> character vector de vars en orden de aparición
 
@@ -51,7 +59,7 @@
       if (length(stack_label) > 0L) {
         stack_label <- stack_label[-length(stack_label)]
       }
-    } else if (nzchar(nm)) {
+    } else if (nzchar(nm) && !(nm %in% phantom)) {
       sec_label <- if (length(stack_label) > 0L) stack_label[length(stack_label)] else "General"
       if (is.null(out[[sec_label]])) out[[sec_label]] <- character(0)
       out[[sec_label]] <- c(out[[sec_label]], nm)

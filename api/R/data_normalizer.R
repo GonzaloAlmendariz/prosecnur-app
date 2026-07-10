@@ -559,6 +559,78 @@
   sub("\\s+.*$", "", type_raw)
 }
 
+.dn_survey_appearance <- function(survey) {
+  n <- if (is.null(survey)) 0L else nrow(survey)
+  if (!n) return(character(0))
+  out <- if ("appearance" %in% names(survey)) as.character(survey$appearance) else rep("", n)
+  out[is.na(out)] <- ""
+  trimws(out)
+}
+
+# Profundidad de repeat por fila del survey. 0 = tope; >0 = la fila vive dentro
+# de uno o más `begin_repeat` abiertos. Las propias filas marcadoras
+# begin_repeat/end_repeat quedan en la profundidad "externa" (no se cuentan a sí
+# mismas), de modo que sólo las PREGUNTAS anidadas reciben profundidad > 0. Se
+# usa para excluir de la base ancha las preguntas que viven en un repeat de Kobo
+# (jsonlite flatten=TRUE devuelve el repeat como un blob JSON, no expandido).
+.dn_survey_repeat_depth <- function(survey) {
+  type_base <- .dn_survey_type_base(survey)
+  n <- length(type_base)
+  depth <- integer(n)
+  cur <- 0L
+  for (i in seq_len(n)) {
+    tb <- type_base[i]
+    if (identical(tb, "end_repeat")) {
+      cur <- max(0L, cur - 1L)
+      depth[i] <- cur
+      next
+    }
+    depth[i] <- cur
+    if (identical(tb, "begin_repeat")) {
+      cur <- cur + 1L
+    }
+  }
+  depth
+}
+
+# Posiciones (índices de fila) en la base MADRE para cada fila de la base HIJA,
+# resolviendo el enlace repeat por la llave primaria (`_parent_index`↔`_index`)
+# con fallback (`_submission__id`↔`_id`). Devuelve un vector integer alineado a
+# las filas de `child` (NA donde no hay match). Es un enlace many-to-one por
+# construcción (`match` toma la PRIMERA fila madre que casa), así que NO duplica
+# filas de la hija. Helper compartido (ADR 0030): lo consumen la herencia de
+# columnas de validación (`.inherit_parent_columns`, Fase 2) y el enriquecimiento
+# hija×madre de analítica (`.analitica_enrich_child_pair`, Fase 3), para no
+# duplicar la lógica de enlace.
+.dn_repeat_parent_row_positions <- function(child, parent,
+                                            link_key = "_parent_index",
+                                            parent_index_key = "_index",
+                                            fallback_child_key = NULL,
+                                            fallback_parent_key = NULL) {
+  if (!is.data.frame(child) || !is.data.frame(parent) || !nrow(child)) {
+    return(integer(0))
+  }
+  pos <- rep(NA_integer_, nrow(child))
+  if (!is.null(link_key) && nzchar(link_key) && link_key %in% names(child) &&
+      !is.null(parent_index_key) && nzchar(parent_index_key) &&
+      parent_index_key %in% names(parent)) {
+    pos <- match(as.character(child[[link_key]]),
+                 as.character(parent[[parent_index_key]]))
+  }
+  # Fallback SOLO para las filas que la llave primaria no resolvió (preserva el
+  # enlace primario donde existe y rescata las demás por `_submission__id`↔`_id`).
+  need <- is.na(pos)
+  if (any(need) &&
+      !is.null(fallback_child_key) && nzchar(fallback_child_key) &&
+      fallback_child_key %in% names(child) &&
+      !is.null(fallback_parent_key) && nzchar(fallback_parent_key) &&
+      fallback_parent_key %in% names(parent)) {
+    pos[need] <- match(as.character(child[[fallback_child_key]])[need],
+                       as.character(parent[[fallback_parent_key]]))
+  }
+  pos
+}
+
 .dn_survey_names <- function(survey) {
   if (is.null(survey) || !"name" %in% names(survey) || !nrow(survey)) {
     return(character(0))
@@ -622,10 +694,49 @@
     "note", "calculate", "start", "end", "today", "deviceid",
     "subscriberid", "phonenumber", "simserial", "username", "audit"
   )
+  # Dos patrones de Kobo que NO producen columnas en la base ancha aplanada:
+  #
+  # 1. Preguntas anidadas dentro de un `begin_repeat`: Kobo devuelve el repeat
+  #    como UNA columna JSON-string (jsonlite flatten=TRUE no lo expande), así
+  #    que la base ancha no puede representar sus preguntas. Van a su base hija
+  #    (ver carga_kobo_repeats.R). Se detectan por profundidad de repeat > 0.
+  # 2. Headers de matriz Likert: en un grupo `appearance=field-list`, la fila
+  #    `select_one` con `appearance="label"` sólo muestra las etiquetas de
+  #    columna y NUNCA guarda dato (sus hermanas usan `list-nolabel` y sí calzan).
+  repeat_depth <- .dn_survey_repeat_depth(survey)
+  appearance <- .dn_survey_appearance(survey)
+  is_label_appearance <- vapply(
+    strsplit(tolower(appearance), "\\s+"),
+    function(tokens) "label" %in% tokens,
+    logical(1)
+  )
+  is_matrix_header <- type_base == "select_one" & is_label_appearance
   keep <- nzchar(names_raw) &
     !(type_base %in% skip_types) &
-    !(type_raw %in% skip_types)
+    !(type_raw %in% skip_types) &
+    repeat_depth == 0L &
+    !is_matrix_header
   unique(names_raw[keep])
+}
+
+# Rellena en `data` las columnas `expected` ausentes como NA_character_. En los
+# imports por API / handoff de Monitoreo, el XLSForm y la data salen del MISMO
+# asset: una columna esperada que no aparece = pregunta sin respuestas (la
+# plataforma omite columnas 100% vacías), no un desajuste de versión. El SET de
+# nombres esperados lo decide el caller (base ancha vs contrato del handoff), por
+# eso se recibe `expected` y no el instrumento. Helper compartido (ADR 0030 Fase
+# 1) que consolida el backfill antes duplicado en `.carga_backfill_missing_expected`
+# (router_carga.R) y `.monitoreo_processing_handoff_complete_expected_columns`
+# (router_monitoreo.R).
+.dn_backfill_missing_columns <- function(data, expected) {
+  data <- as.data.frame(data %||% data.frame(), stringsAsFactors = FALSE, check.names = FALSE)
+  expected <- as.character(expected %||% character(0))
+  missing <- setdiff(expected, names(data))
+  if (length(missing)) {
+    n <- nrow(data)
+    for (nm in missing) data[[nm]] <- rep(NA_character_, n)
+  }
+  data
 }
 
 .dn_collapse_single_child_columns <- function(data, survey) {

@@ -826,6 +826,10 @@
 # o ; como separador. Los NA se escriben como "" para que Excel los
 # muestre vacíos en vez de "NA".
 .bases_write_csv <- function(df, path, separador = ",") {
+  # Suprimir las llaves técnicas de enlace repeat (ADR 0030, Fase 4): son basura
+  # de enlace, no variables de análisis. Preserva las columnas heredadas de la
+  # madre (attr repeat_inherited), que SÍ son analizables.
+  df <- .repeat_drop_technical_cols(df)
   # Quitar atributos de haven_labelled para que write.csv lo trate como
   # columna plana. El data que llega puede venir con o sin etiquetas
   # aplicadas (según valores= en la config).
@@ -863,6 +867,10 @@
 # empiezan en la fila 3. El analista puede ocultar la fila 2 desde Excel
 # si prefiere una tabla plana.
 .bases_write_xlsx <- function(df_cod, df_lab, path, valores = "ambos", ficha_tecnica = NULL) {
+  # Suprimir las llaves técnicas de enlace repeat en ambas hojas (ADR 0030,
+  # Fase 4). No toca las columnas heredadas de la madre (attr repeat_inherited).
+  df_cod <- .repeat_drop_technical_cols(df_cod)
+  df_lab <- .repeat_drop_technical_cols(df_lab)
   wb <- openxlsx::createWorkbook()
 
   escribir_hoja <- function(sheet_name, data) {
@@ -1236,9 +1244,13 @@
 .bases_metadata_preview <- function(df, rp_inst) {
   sv <- rp_inst$survey
   if (is.null(sv)) sv <- data.frame(name = character(0), type = character(0), stringsAsFactors = FALSE)
-  out <- vector("list", length(names(df)))
-  for (i in seq_along(names(df))) {
-    v <- names(df)[i]
+  # No mostrar las llaves técnicas de enlace repeat en el panel Bases (ADR 0030,
+  # Fase 4): son basura de enlace, no variables con metadata SPSS. Las columnas
+  # heredadas de la madre (attr repeat_inherited) NO se filtran aquí.
+  cols <- .repeat_visible_col_names(names(df))
+  out <- vector("list", length(cols))
+  for (i in seq_along(cols)) {
+    v <- cols[i]
     col <- df[[v]]
     row <- sv[sv$name %in% v, , drop = FALSE]
     tipo <- if (nrow(row) > 0L) as.character(row$type[1]) else ""
@@ -1312,6 +1324,10 @@
 # `overrides` es opcional: lista `name -> list(measure?, format_spss?)`.
 .bases_export_sav <- function(df, rp_inst, path_sav, path_sps = NULL,
                               overrides = list()) {
+  # Suprimir las llaves técnicas de enlace repeat ANTES del renombrado de "^_"
+  # (ADR 0030, Fase 4): así no fugan como `index`/`parent_index`/... al .sav.
+  # Las columnas heredadas de la madre (attr repeat_inherited) sí se conservan.
+  df <- .repeat_drop_technical_cols(df)
   df <- .bases_normalize_other_selects(df, rp_inst)
 
   # 1) Convertir columnas con value-labels a haven_labelled_spss. Reusa

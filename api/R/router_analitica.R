@@ -1531,6 +1531,11 @@
   label_raw[is.na(label_raw)] <- ""
   Encoding(label_raw) <- "UTF-8"
 
+  # ADR 0030 Fase 3: las preguntas anidadas en un `begin_repeat` (repeat_depth>0)
+  # son fantasma en la base ancha; no deben aparecer en sus secciones. En una
+  # base hija su repeat_depth es 0 (van bajo `begin_group`), así que no se tocan.
+  phantom <- .analitica_repeat_phantom_names(rp_inst)
+
   # Walk para asignar cada variable al group más interno (stack approach).
   stack_name <- character(0)
   stack_label <- character(0)
@@ -1549,7 +1554,7 @@
         stack_name <- stack_name[-length(stack_name)]
         stack_label <- stack_label[-length(stack_label)]
       }
-    } else if (nzchar(nm)) {
+    } else if (nzchar(nm) && !(nm %in% phantom)) {
       # Variable data: asignarla al group más interno actual (o "general"
       # si estamos en top-level).
       seccion_id <- if (length(stack_name) > 0L) stack_name[length(stack_name)] else "general"
@@ -1619,6 +1624,12 @@
 
   keep <- !is.na(sv$name) & nzchar(sv$name) &
           !base_tipos %in% c("begin_group","end_group","begin_repeat","end_repeat","note","calculate","start","end","deviceid","today")
+  # ADR 0030 Fase 3: excluir las preguntas anidadas en un `begin_repeat`
+  # (repeat_depth > 0). En la base ANCHA son variables fantasma (viven en la base
+  # hija, no en la data aplanada). En una base HIJA el instrumento las promueve a
+  # top-level con `begin_group`, así que su repeat_depth es 0 y NO se filtran.
+  phantom <- .analitica_repeat_phantom_names(rp_inst)
+  if (length(phantom)) keep <- keep & !(as.character(sv$name) %in% phantom)
   idx <- which(keep)
   lapply(idx, function(i) {
     es_categorica <- base_tipos[i] %in% c("select_one", "select_multiple")
@@ -1960,9 +1971,12 @@
       rp_data <- ctx_norm$data
       rp_inst <- ctx_norm$inst
     }
+    # ADR 0030 Fase 3: si la base activa es hija repeat, enriquecerla con la
+    # caracterización de la madre (join many-to-one) y anotar el grano.
+    enriched <- .analitica_repeat_enrich_active(sid, rp_inst, rp_data)
     return(list(
-      rp_inst = rp_inst,
-      rp_data = rp_data
+      rp_inst = enriched$rp_inst,
+      rp_data = enriched$rp_data
     ))
   }
   bases <- (s$estudio %||% list())$bases %||% list()
@@ -1978,14 +1992,18 @@
       rp_data <- ctx_norm$data
       rp_inst <- ctx_norm$inst
     }
+    # ADR 0030 Fase 3: si la base activa es hija repeat, enriquecerla con la
+    # caracterización de la madre (join many-to-one) y anotar el grano.
+    enriched <- .analitica_repeat_enrich_active(sid, rp_inst, rp_data)
     return(list(
-      rp_inst = rp_inst,
-      rp_data = rp_data
+      rp_inst = enriched$rp_inst,
+      rp_data = enriched$rp_data
     ))
   }
   prepared <- tryCatch(.analitica_prepare_and_cache(sid), error = function(e) NULL)
   if (!is.null(prepared)) {
-    return(list(rp_inst = prepared$rp_inst, rp_data = prepared$rp_data))
+    enriched <- .analitica_repeat_enrich_active(sid, prepared$rp_inst, prepared$rp_data)
+    return(list(rp_inst = enriched$rp_inst, rp_data = enriched$rp_data))
   }
   stop_api(409, "E_ANALITICA_NO_PREP", "Primero corre el Paso 1 (Preparar datos para reporte).")
 }
@@ -2028,6 +2046,12 @@
   }
   inst_sources <- .analitica_patch_inst_sources_integrated(sid, inst_sources[names(data_sources)])
   data_sources <- .analitica_patch_data_sources_integrated(sid, data_sources, inst_sources)
+  # ADR 0030 Fase 3: enriquecer las bases hija repeat con la caracterización de
+  # su madre (join many-to-one) antes de normalizar, para que el cruce hija×madre
+  # (srv_* × sexo/edad) tenga las columnas y el picker de la hija las liste.
+  enriched <- .analitica_enrich_repeat_child_with_parent(sid, data_sources, inst_sources)
+  data_sources <- enriched$data_sources
+  inst_sources <- enriched$inst_sources
   if (exists(".bases_normalize_source_contexts", mode = "function")) {
     normalized <- .bases_normalize_source_contexts(data_sources, inst_sources)
     data_sources <- normalized$data_sources
