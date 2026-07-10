@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Check } from "lucide-react";
+import type { ReleaseNote } from "./releaseNotes";
 
 // Drawer lateral derecho con el historial de release notes. Reemplaza al
 // panel inline anterior — el handoff del diseño lo movió a un drawer
@@ -8,12 +9,6 @@ import { Check } from "lucide-react";
 //
 // Animación: slide-in desde la derecha (transform: translateX) +
 // backdrop semi-transparente. Escape cierra. Click en el backdrop cierra.
-
-export type ReleaseNote = {
-  version: string;
-  date: string;
-  highlights: string[];
-};
 
 export type ReleaseNotesDrawerProps = {
   open: boolean;

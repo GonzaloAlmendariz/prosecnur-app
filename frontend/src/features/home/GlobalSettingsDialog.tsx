@@ -46,7 +46,7 @@ import {
   PULSO_HF_DEFAULT_TOKEN_ALIAS,
 } from "../../lib/huggingFace";
 import type { HfSavedDestination, HfSavedToken } from "../project/types";
-import type { ReleaseNote } from "./ReleaseNotesDrawer";
+import type { ReleaseNote } from "./releaseNotes";
 
 type SettingsTab = "appearance" | "connections" | "notes" | "credits";
 
