@@ -166,7 +166,8 @@
 # Cada variable es una entrada estructurada: nombre + pregunta + una TABLA con
 # encabezados "Codigo | Etiqueta", divisor vertical, marco y zebra sutil.
 .CODEBOOK_TBL <- list(
-  code_w = 0.050,   # ancho de la columna Codigo (angosta -> mas ancho para Etiqueta)
+  code_w     = 0.050,  # ancho MINIMO de la columna Codigo (crece con el codigo)
+  code_w_max = 0.42,   # ancho MAXIMO como fraccion del ancho de la columna
   name_h = 0.020,   # alto del nombre de variable
   q_lh   = 0.0138,  # alto de linea de la pregunta
   hdr_h  = 0.019,   # alto de la fila de encabezado de la tabla
@@ -179,22 +180,35 @@
 # Caracteres por linea: calibrado para LLENAR el ancho disponible (antes se
 # cortaba muy temprano y dejaba blanco a la derecha). ~150 char/npc a 7.9pt.
 .codebook_pdf_label_chars <- function(w) max(14L, floor(w * 150))
-.codebook_pdf_val_chars   <- function(w) {
+
+# Ancho de la columna "Codigo": crece con el codigo mas largo del bloque
+# (p. ej. slugs de SurveyMonkey como "Se_mantienen_igual"), acotado para no
+# comerse la columna de Etiqueta. Se mide igual en la simulacion y en el
+# dibujo, de modo que el layout determinista se mantiene.
+.codebook_pdf_code_w <- function(codes, w) {
   tb <- .CODEBOOK_TBL
-  max(8L, floor((w - tb$code_w - 0.010) * 150))
+  gp_code <- grid::gpar(fontsize = 7.8)
+  gp_hdr  <- grid::gpar(fontsize = 7.2, fontface = "bold")
+  cw <- vapply(as.character(codes), function(s) .codebook_pdf_npc_width(s, gp_code), numeric(1))
+  needed <- max(c(cw, .codebook_pdf_npc_width("Código", gp_hdr)), 0) + 0.014  # padding L+R
+  min(max(needed, tb$code_w), tb$code_w_max * w)
 }
-.codebook_pdf_val_lines <- function(lab, w) {
-  max(1L, length(.form_pdf_wrap(lab, .codebook_pdf_val_chars(w))))
+.codebook_pdf_val_chars   <- function(w, code_w) {
+  max(8L, floor((w - code_w - 0.010) * 150))
 }
-.codebook_pdf_row_h <- function(lab, w) {
+.codebook_pdf_val_lines <- function(lab, w, code_w) {
+  max(1L, length(.form_pdf_wrap(lab, .codebook_pdf_val_chars(w, code_w))))
+}
+.codebook_pdf_row_h <- function(lab, w, code_w) {
   tb <- .CODEBOOK_TBL
-  .codebook_pdf_val_lines(lab, w) * tb$row_lh + tb$row_pad
+  .codebook_pdf_val_lines(lab, w, code_w) * tb$row_lh + tb$row_pad
 }
 
 .codebook_pdf_block_height <- function(block, w) {
   tb <- .CODEBOOK_TBL
+  code_w <- .codebook_pdf_code_w(block$codes, w)
   q_h    <- .form_pdf_lines_height(.form_pdf_wrap(block$label, .codebook_pdf_label_chars(w)), tb$q_lh, 0.0)
-  rows_h <- sum(vapply(block$labels, function(l) .codebook_pdf_row_h(l, w), numeric(1)))
+  rows_h <- sum(vapply(block$labels, function(l) .codebook_pdf_row_h(l, w, code_w), numeric(1)))
   tb$name_h + q_h + tb$gap_q + tb$hdr_h + rows_h + tb$gap_bottom
 }
 
@@ -224,7 +238,7 @@
   y <- y - tb$gap_q
 
   # 3) TABLA de valores: Codigo | Etiqueta
-  code_w <- tb$code_w
+  code_w <- .codebook_pdf_code_w(block$codes, w)
   x_div  <- x + code_w
   x2     <- x + w
   tbl_top <- y
@@ -239,14 +253,14 @@
   y <- y - tb$hdr_h
   # 3b) filas
   for (i in seq_along(block$codes)) {
-    rh <- .codebook_pdf_row_h(block$labels[[i]], w)
+    rh <- .codebook_pdf_row_h(block$labels[[i]], w, code_w)
     if ((i %% 2L) == 0L) .cb_rect(x, y, w, rh, zebra_fill)  # zebra en filas pares
     # codigo alineado con la PRIMERA linea de la etiqueta (top), centrado horizontal
     grid::grid.text(block$codes[[i]], x = grid::unit(x + code_w / 2, "npc"),
                     y = grid::unit(y - 0.0016, "npc"), just = c("center", "top"),
                     gp = grid::gpar(fontsize = 7.8, col = pal$ink))
     .form_pdf_text(block$labels[[i]], x_div + 0.006, y - 0.0016, w - code_w - 0.008,
-                   chars = .codebook_pdf_val_chars(w),
+                   chars = .codebook_pdf_val_chars(w, code_w),
                    fontsize = 7.8, col = pal$ink, line_h = tb$row_lh)
     y <- y - rh
   }
@@ -318,39 +332,48 @@
 }
 
 # --- Indice -----------------------------------------------------------------
+# Se reparte a lo ancho de la HOJA COMPLETA (dos columnas equilibradas) y se
+# estira el interlineado para llenar el alto disponible, en vez de apilar todo
+# en una sola columna dejando la pagina medio vacia.
 .codebook_pdf_index_layout <- function(n_entries, geo) {
-  entry_h <- 0.0166
-  idx_top <- 0.858   # bajo el titulo "Indice de variables"
-  per_col <- max(1L, floor((idx_top - geo$y_bottom) / entry_h))
-  per_page <- 2L * per_col
-  list(entry_h = entry_h, idx_top = idx_top, per_col = per_col,
+  idx_top     <- 0.858   # bajo el titulo "Indice de variables"
+  avail       <- idx_top - geo$y_bottom
+  n_cols      <- 2L
+  min_entry_h <- 0.0166  # espaciado minimo comodo (define cuantas caben por pagina)
+  per_col_max <- max(1L, floor(avail / min_entry_h))
+  per_page    <- n_cols * per_col_max
+  list(idx_top = idx_top, avail = avail, n_cols = n_cols,
+       min_entry_h = min_entry_h, per_col_max = per_col_max,
        per_page = per_page, n_pages = as.integer(ceiling(n_entries / per_page)))
 }
 
 .codebook_pdf_draw_index <- function(entries, abs_pages, geo, lay, titulo, subtitulo,
-                                     periodo, pal, footer_page_start) {
+                                     periodo, pal, footer_page_start, page_break) {
   n <- length(entries)
   gp_name <- grid::gpar(fontsize = 8.0, col = pal$navy, fontface = "bold")
+  max_entry_h <- 0.034  # tope de estirado (evita renglones flotando si hay pocos)
   page_i <- 0L
   i <- 1L
   while (i <= n) {
     page_i <- page_i + 1L
-    grid::grid.newpage()
+    page_break()
     .codebook_pdf_header(titulo, subtitulo, pal)
     .codebook_pdf_footer(footer_page_start + page_i - 1L, periodo, pal)
     .form_pdf_text("Índice de variables", 0.048, 0.895, 0.904, chars = 60,
                    fontsize = 10.5, fontface = "bold", col = pal$navy, line_h = 0.016)
-    grid::grid.text(paste(n, "variables documentadas"),
-                    x = grid::unit(0.952, "npc"), y = grid::unit(0.891, "npc"),
-                    just = c("right", "center"),
-                    gp = grid::gpar(fontsize = 8.0, col = pal$soft))
     grid::grid.lines(x = grid::unit(c(0.048, 0.952), "npc"), y = grid::unit(0.876, "npc"),
                      gp = grid::gpar(col = pal$rule, lwd = 0.7))
-    for (col in 1:2) {
+
+    # Entradas de ESTA pagina, equilibradas entre columnas y estiradas para
+    # llenar el alto disponible (hoja completa, no una sola columna).
+    n_this    <- min(lay$per_page, n - i + 1L)
+    rows_used <- as.integer(ceiling(n_this / lay$n_cols))
+    entry_h   <- min(max_entry_h, lay$avail / rows_used)
+    for (col in seq_len(lay$n_cols)) {
       if (i > n) break
       x <- geo$col_x[col]; w <- geo$col_w
       y <- lay$idx_top
-      for (r in seq_len(lay$per_col)) {
+      for (r in seq_len(rows_used)) {
         if (i > n) break
         nm <- entries[[i]]; pg <- as.character(abs_pages[[i]])
         grid::grid.text(nm, x = grid::unit(x, "npc"), y = grid::unit(y, "npc"),
@@ -366,7 +389,7 @@
                            y = grid::unit(y - 0.006, "npc"),
                            gp = grid::gpar(col = pal$rule, lwd = 0.5, lty = "dotted"))
         }
-        y <- y - lay$entry_h
+        y <- y - entry_h
         i <- i + 1L
       }
     }
@@ -396,6 +419,14 @@ reporte_codebook_pdf <- function(df, output_file,
                  width = .CODEBOOK_PDF_PAGE_W, height = .CODEBOOK_PDF_PAGE_H, onefile = TRUE)
   on.exit(grDevices::dev.off(), add = TRUE)
 
+  # grDevices::pdf() ya abre una primera pagina; el primer salto la reutiliza en
+  # vez de crear una hoja en blanco al inicio (bug clasico pdf()+grid.newpage()).
+  page_started <- FALSE
+  page_break <- function() {
+    if (page_started) grid::grid.newpage()
+    page_started <<- TRUE
+  }
+
   # Layout determinista: pagina de contenido de cada variable + nº de paginas de indice.
   content_page <- .codebook_pdf_simulate(blocks, geo)
   lay <- .codebook_pdf_index_layout(length(blocks), geo)
@@ -408,7 +439,7 @@ reporte_codebook_pdf <- function(df, output_file,
       entries = vapply(blocks, function(b) b$name, character(1)),
       abs_pages = abs_pages, geo = geo, lay = lay,
       titulo = titulo, subtitulo = subtitulo, periodo = periodo, pal = pal,
-      footer_page_start = 1L
+      footer_page_start = 1L, page_break = page_break
     )
   }
 
@@ -433,7 +464,7 @@ reporte_codebook_pdf <- function(df, output_file,
   new_page <- function() {
     if (page_no > n_index_pages) flush_divider(geo$y_bottom)
     page_no <<- page_no + 1L
-    grid::grid.newpage()
+    page_break()
     .codebook_pdf_header(titulo, subtitulo, pal)
     .codebook_pdf_footer(page_no, periodo, pal)
     current_col <<- 1L

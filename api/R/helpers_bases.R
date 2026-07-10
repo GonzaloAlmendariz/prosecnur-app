@@ -177,12 +177,21 @@
   }
   nms <- names(labs)
   if (is.null(nms)) nms <- rep("", length(labs))
-  names_are_codes <- suppressWarnings(!any(is.na(as.numeric(nms))))
+  vals <- as.character(unname(labs))
+  # ¿Cuál lado es el código? La heurística vieja asumía que los códigos son
+  # SIEMPRE numéricos, e invertía las listas con códigos de TEXTO (p.ej.
+  # `likert_more_less`: código `Han_disminuido`, etiqueta "Han disminuido"),
+  # dejando el codebook con Código/Etiqueta cambiados. Señal robusta: los códigos
+  # ODK/XLSForm no llevan espacios; las etiquetas humanas sí. Los names son los
+  # códigos si son numéricos, o si no tienen espacios y los values sí los tienen.
+  names_numeric <- suppressWarnings(!any(is.na(as.numeric(nms))))
+  names_are_codes <- names_numeric ||
+    (!any(grepl("[[:space:]]", nms)) && any(grepl("[[:space:]]", vals)))
   if (names_are_codes) {
     code <- as.character(nms)
-    label <- as.character(unname(labs))
+    label <- vals
   } else {
-    code <- as.character(unname(labs))
+    code <- vals
     label <- as.character(nms)
   }
   label <- .bases_clean_choice_labels(code, label)
@@ -580,6 +589,40 @@
   df
 }
 
+# Construye los diccionarios `code -> label` y `label -> code` (indexados por
+# `list_name`) a partir de un data.frame de choices. Es el mismo mapeo que la
+# limpieza estandar del instrumento aplica y que la auto-deteccion de listas
+# ordinales (`.orden_categorias_ordinal_auto`) espera en `dicc_code_to_label`.
+# Extraido para reutilizarlo desde el instrumento panel, que arma sus choices
+# con `list_name` sufijados por medicion y necesita el mismo diccionario.
+.bases_dicc_maps_from_choices <- function(choices) {
+  empty <- list(code_to_label = list(), label_to_code = list())
+  if (is.null(choices) || !is.data.frame(choices) ||
+      !all(c("list_name", "name") %in% names(choices))) {
+    return(empty)
+  }
+  label_col <- if ("label" %in% names(choices)) {
+    "label"
+  } else {
+    grep("^label", names(choices), value = TRUE, ignore.case = TRUE)[1]
+  }
+  if (is.na(label_col) || !nzchar(label_col)) return(empty)
+  keep <- !is.na(choices$list_name) & nzchar(as.character(choices$list_name)) &
+    !is.na(choices$name) & nzchar(as.character(choices$name)) &
+    !is.na(choices[[label_col]])
+  ch_valid <- choices[keep, , drop = FALSE]
+  if (!nrow(ch_valid)) return(empty)
+  by_list <- split(ch_valid, as.character(ch_valid$list_name))
+  list(
+    code_to_label = lapply(by_list, function(x) {
+      stats::setNames(as.character(x[[label_col]]), as.character(x$name))
+    }),
+    label_to_code = lapply(by_list, function(x) {
+      stats::setNames(as.character(x$name), as.character(x[[label_col]]))
+    })
+  )
+}
+
 .bases_clean_report_instrument <- function(inst) {
   if (is.null(inst) || !is.list(inst)) return(inst)
   original_class <- class(inst)
@@ -600,13 +643,9 @@
         !is.na(ch[[label_col]])
       ch_valid <- ch[keep, , drop = FALSE]
       if (nrow(ch_valid)) {
-        by_list <- split(ch_valid, as.character(ch_valid$list_name))
-        inst$dicc_code_to_label <- lapply(by_list, function(x) {
-          stats::setNames(as.character(x[[label_col]]), as.character(x$name))
-        })
-        inst$dicc_label_to_code <- lapply(by_list, function(x) {
-          stats::setNames(as.character(x$name), as.character(x[[label_col]]))
-        })
+        dicc_maps <- .bases_dicc_maps_from_choices(ch_valid)
+        inst$dicc_code_to_label <- dicc_maps$code_to_label
+        inst$dicc_label_to_code <- dicc_maps$label_to_code
 
         if (!is.null(inst$orders_list) && length(inst$orders_list) &&
             !is.null(inst$survey) && is.data.frame(inst$survey) &&

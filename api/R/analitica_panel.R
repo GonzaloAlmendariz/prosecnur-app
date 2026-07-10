@@ -787,11 +787,23 @@
       choices
     )
   }
+  # DETALLE CRITICO (listas ordinales en los entregables del panel):
+  # `inst_wide` historicamente NO llevaba `dicc_code_to_label`, asi que
+  # `.orden_categorias_ordinal_auto` (que lee justo ese campo) no podia
+  # auto-detectar likert sobre el instrumento panel — solo funcionaba el
+  # override manual, y ademas el panel renombra cada lista con un sufijo de
+  # medicion (`likert_o1`, `likert_o2`). Construimos el diccionario desde las
+  # `choices` YA sufijadas para que la auto-deteccion devuelva los `list_name`
+  # sufijados EXACTOS que el motor de frecuencias/cruces matchea por variable
+  # via `get_list_name(v, survey)`.
+  dicc_maps <- .bases_dicc_maps_from_choices(choices)
   inst_wide <- list(
     survey = survey,
     choices = choices,
     choices_raw = choices,
     orders_list = list(),
+    dicc_code_to_label = dicc_maps$code_to_label,
+    dicc_label_to_code = dicc_maps$label_to_code,
     var_labels = stats::setNames(
       vapply(wide, function(x) .panel_scalar(attr(x, "label", exact = TRUE), ""), character(1)),
       names(wide)
@@ -1905,7 +1917,8 @@
     subtitulo = .panel_scalar(cb$subtitulo_pdf, ""),
     ord = (attr(ctx$data, "instrumento_reporte", exact = TRUE) %||% list())$orders_list,
     codigos_solo_si_presentes = .panel_report_codebook_codes(cfg),
-    periodo = .panel_scalar(cb$periodo_pdf, "")
+    periodo = .panel_scalar(cb$periodo_pdf, ""),
+    incluir_indice = FALSE  # el libro de codigos va directo al contenido, sin indice
   )
   invisible(path)
 }
