@@ -796,6 +796,25 @@ validacion_scope_set <- function(sid, base_nombre = NULL, key, value) {
   )
 }
 
+# Devuelve TRUE si `key` (p.ej. "evaluacion" o "plan_result") ya está
+# guardado en la validación de la sesión — ya sea en el scope legacy
+# (raíz de la sesión, single-base pre-v0.2) o en CUALQUIER base del
+# estudio multi-base (v0.2+). En multibase la validación se persiste por
+# base en s$estudio$bases[[b]]$validacion, dejando la raíz (s$evaluacion /
+# s$plan_result) NULL; el gauge del Home solo necesita saber "¿se validó /
+# se armó el plan en algún lado?", no en qué base concreta, así que un
+# match en cualquier base cuenta como hecho.
+validacion_key_present_any <- function(s, key) {
+  if (is.null(s)) return(FALSE)
+  if (!is.null(s[[key]])) return(TRUE)
+  bases <- s$estudio$bases %||% list()
+  if (length(bases) == 0L) return(FALSE)
+  any(vapply(bases, function(base) {
+    if (!is.list(base)) return(FALSE)
+    !is.null((base$validacion %||% list())[[key]])
+  }, logical(1)))
+}
+
 .invalidate_processing_state <- function(s, base_nombre = NULL) {
   # Todo lo que depende del par XLSForm + data debe recomputarse cuando
   # alguno de los dos cambia. Si no, Fase 2 puede mostrar plan/auditoría/

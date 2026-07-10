@@ -609,8 +609,12 @@ mount_sistema <- function(pr) {
         data = (!is.null(files_by_kind$data) || !is.null(files_by_kind$sav)),
         instrumento_parsed = !is.null(s$instrumento),
         data_previewed = !is.null(s$data_raw_meta),
-        plan_built = !is.null(s$plan_result),
-        auditoria_run = !is.null(s$evaluacion),
+        # En estudios multibase (v0.2+) la validación se guarda por base en
+        # s$estudio$bases[[b]]$validacion, no en la raíz; considerar cualquier
+        # base evita reportar "Validación pendiente" en falso (ver
+        # validacion_key_present_any en session_store.R).
+        plan_built = validacion_key_present_any(s, "plan_result"),
+        auditoria_run = validacion_key_present_any(s, "evaluacion"),
         codif_familias_generated = isTRUE(s$codif_familias_generated),
         codif_familias_loaded = !is.null(s$codif_familias_file_id),
         codif_plantilla_template = isTRUE(s$codif_plantilla_template),
