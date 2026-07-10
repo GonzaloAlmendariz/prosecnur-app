@@ -30177,12 +30177,15 @@ button.pulso-focus-calculation-recipe {
   backface-visibility: hidden;
   isolation: isolate;
   will-change: transform, opacity, filter;
+  /* Ease líquido (decelera parejo y llega suave, sin el frenazo del expo) con
+     las duraciones sincronizadas: la carta se mueve, escala y se asienta como
+     un solo gesto continuo en vez de desvanecerse antes de llegar. */
   transition:
-    transform 440ms cubic-bezier(0.19, 1, 0.22, 1),
-    opacity 220ms var(--motion-ease-out),
-    box-shadow 260ms var(--motion-ease-out),
-    border-color var(--motion-dur-fast) var(--motion-ease-out),
-    filter 240ms var(--motion-ease-out);
+    transform 440ms cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 360ms cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 400ms cubic-bezier(0.32, 0.72, 0, 1),
+    border-color 300ms var(--motion-ease-out),
+    filter 380ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .home-cinema-card::after {
