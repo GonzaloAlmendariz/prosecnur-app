@@ -132,13 +132,18 @@ function buildModuleCardView(
             label: "salidas",
             value: proc.analiticaDone > 0 ? `${proc.analiticaDone}/${proc.analiticaTotal}` : "—",
           };
+      // Sin barra de avance lineal: el hero es lo que el módulo tiene entre
+      // manos (registros), y el sub dice en qué está. No "fase 3 de 5".
       return {
         state: procState,
-        viz: { kind: "phases", done, total, labels },
+        viz:
+          m.records_count > 0
+            ? { kind: "stat", value: nf(m.records_count), label: "registros procesados" }
+            : { kind: "stat", value: nf(m.bases_count), label: "bases cargadas" },
         sub,
         facts: [
-          { label: "registros", value: nf(m.records_count) },
           { label: "variables", value: nf(m.variables_count) },
+          { label: "bases", value: nf(m.bases_count) },
           lastFact,
         ],
       };
@@ -391,32 +396,10 @@ export function MissionControl({
 
   const confirmModule = cards.find((card) => card.module.slug === confirmSlug)?.module;
 
-  // Cada métrica pertenece a un módulo: solo se muestran las de los módulos
-  // que este proyecto agregó. Los módulos son herramientas, no fases — nada
-  // de porcentajes globales ni métricas de herramientas que no se usan.
-  const nextDelivery = overview.facts.bitacora.next_date
-    ? formatCutDate(`${overview.facts.bitacora.next_date}T00:00:00`)
-    : "";
-  const stats = [
-    { slug: "procesamiento", icon: Database, label: "Bases", value: formatCount(metrics.bases_count) },
-    { slug: "procesamiento", icon: Layers, label: "Registros", value: formatCount(metrics.records_count) },
-    { slug: "procesamiento", icon: SlidersHorizontal, label: "Variables", value: formatCount(metrics.variables_count) },
-    { slug: "calc-muestra", icon: Target, label: "n objetivo", value: formatCount(metrics.sample_target_n) },
-    { slug: "diseno-estudio", icon: CalendarDays, label: "Próxima entrega", value: nextDelivery || "—" },
-    {
-      slug: "monitoreo",
-      icon: Activity,
-      label: "Casos",
-      value: formatCount(overview.facts.monitoreo.collected),
-    },
-    {
-      slug: "monitoreo",
-      icon: Activity,
-      label: "Último corte",
-      value: metrics.monitoreo_last_cut ? formatCutDate(metrics.monitoreo_last_cut) : "—",
-    },
-  ].filter((stat) => addedSlugs.includes(stat.slug))
-    .filter((stat) => stat.value !== "—");
+  // Sin banda de métricas global: los módulos son herramientas independientes,
+  // no fases de un avance lineal. Cada tarjeta reporta la sustancia de su
+  // módulo (qué tiene, qué hace, cómo va) desde overview.facts.<módulo>; no se
+  // sacan cifras globales fuera de contexto al encabezado.
 
   // Derivado de los estados por módulo (no de next_actions, que el backend
   // capa a 5 antes de poder filtrar por módulos agregados).
@@ -460,18 +443,6 @@ export function MissionControl({
           )}
         </div>
       </header>
-
-      {stats.length > 0 && (
-        <div className="home-mission-metrics" role="list" aria-label="Métricas del estudio">
-          {stats.map((stat) => (
-            <div className="home-mc-stat-tile" role="listitem" key={stat.label}>
-              <stat.icon size={15} aria-hidden="true" />
-              <span className="home-mc-stat-tile-value">{stat.value}</span>
-              <span className="home-mc-stat-tile-label">{stat.label}</span>
-            </div>
-          ))}
-        </div>
-      )}
 
       {nextSteps.length > 0 && (
         <div className="home-mission-next">
