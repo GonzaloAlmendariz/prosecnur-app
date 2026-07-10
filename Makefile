@@ -27,7 +27,7 @@ QA_URL ?= http://localhost:5173/
 QA_API ?= auto
 QA_OUT ?= $(REPO_ROOT)/outputs/visual-qa/$(shell date +%Y%m%d-%H%M%S)
 
-.PHONY: help dev-api dev-frontend dev-pulso dev-electron-vite visual-qa ui-quick-check monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit audit-projects-build audit-project-build audit-project-run audit-project-visual-matrix audit-project-deliverables build build-if-stale build-if-stale-fast dev-port-preflight clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
+.PHONY: help dev-api dev-frontend dev-pulso dev-electron-vite dev-status dev-prune visual-qa ui-quick-check monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit audit-projects-build audit-project-build audit-project-run audit-project-visual-matrix audit-project-deliverables build build-if-stale build-if-stale-fast dev-port-preflight clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
 
 help:
 	@echo "Entrada normal del usuario:"
@@ -276,6 +276,14 @@ build-if-stale-fast:
 
 dev-port-preflight:
 	@node scripts/dev-port-preflight.mjs --ports 8787,8788,8789
+
+# Higiene de servers dev: inventario y limpieza de vites huérfanos/stale.
+# Nunca toca el backend R (8787).
+dev-status:
+	@bash scripts/dev-servers.sh status
+
+dev-prune:
+	@bash scripts/dev-servers.sh prune
 
 desktop: build
 	cd desktop && env -u ELECTRON_RUN_AS_NODE pnpm start

@@ -22,6 +22,14 @@ La app arranca en BootGate → elegir proyecto → clicks. Este skill salta todo
 7. **Itera**: con la vista abierta, edita el código — **Vite HMR actualiza en vivo sin perder la sesión**. Si necesitas reload completo, recarga sin miedo: el parámetro se limpia tras el boot pero la sesión del backend conserva el proyecto y BootGate re-entra solo (`bootApiProjectStatus().has_project` → warm start automático).
 8. **Evidencia**: cierra con `preview_screenshot` (y `preview_resize` para el viewport compacto 1024x600 si tocaste layout).
 
+## Higiene de servers (obligatoria)
+
+Historial del repo: sesiones que abren previews y no los cierran → 5+ servers simultáneos con la mayoría huérfanos.
+
+- **Antes de levantar nada**: `preview_list` — si ya hay un frontend corriendo en esta sesión, reúsalo. Para el backend, si el 8787 responde (`curl -s localhost:8787/api/system/health`), es el proceso del usuario: reúsalo y NUNCA lo mates.
+- **Al terminar la tarea**: si TÚ levantaste el server y el usuario no está iterando activamente sobre la vista, ciérralo con `preview_stop`. Si el usuario sigue mirando, déjalo y dilo explícitamente en el cierre ("dejé el preview corriendo en :5173").
+- **Si sospechas huérfanos** (de sesiones anteriores): `make dev-status` lista todos los servers dev con edad y conexiones; `make dev-prune` mata los huérfanos (vites sin puerto de preview) y los stale (>24 h sin conexiones). El prune jamás toca el backend R del 8787.
+
 ## Trampas
 
 - `?pulso=` solo funciona en dev build; en producción/Electron no existe.
