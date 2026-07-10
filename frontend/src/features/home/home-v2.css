@@ -158,10 +158,12 @@
   flex-direction: column;
   gap: 16px;
   padding: 4px 2px 6px;
-  /* Centro vertical cuando el contenido no llena el alto (proyectos con pocos
-     módulos): el board se siente intencional, no pegado arriba con vacío
-     abajo. Con contenido alto los márgenes colapsan y scrollea desde arriba. */
-  margin-block: auto;
+  /* Top-align con un margen superior chico (el resto del espacio queda abajo,
+     como en cualquier dashboard). Antes se centraba en vertical, pero en
+     pantallas altas eso dejaba demasiado margen ARRIBA; ahora el contenido
+     empieza cerca del tope y llena el ancho, que se lee profesional. */
+  margin-top: clamp(6px, 2.5vh, 34px);
+  margin-bottom: auto;
   width: 100%;
   /* Llena el ancho disponible (solo el padding base del layout como margen);
      el techo alto evita estirarse sin límite en ultrawide. Pocas cartas se
@@ -264,22 +266,26 @@
   gap: 18px;
 }
 
+/* El ancho de columna crece con el ancho de pantalla (clamp con vw): en
+   pantallas grandes hay MENOS columnas y cartas más anchas → más filas, que
+   junto con el alto por vh llena la pantalla y baja el margen superior del
+   centrado. En pantallas chicas cae al mínimo legible. */
+
 /* Pocos módulos (≤3): cartas grandes y anchas. */
 .home-mission-grid[data-density="spacious"] {
-  grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(clamp(440px, 30vw, 620px), 100%), 1fr));
   gap: 22px;
 }
 
 /* Intermedio (4–6). */
 .home-mission-grid[data-density="balanced"] {
-  grid-template-columns: repeat(auto-fit, minmax(min(352px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(clamp(352px, 23vw, 480px), 100%), 1fr));
 }
 
-/* Muchos módulos (7+): se comprimen en alto y gap, no en ancho ilegible — el
-   piso para que los 3 facts no se encaballen es ~350px, así que se mantienen
-   4 columnas legibles y la compresión se siente por cartas más bajas/juntas. */
+/* Muchos módulos (7+): columnas algo más angostas (más por fila) pero sin
+   bajar del piso legible de los 3 facts (~348px). */
 .home-mission-grid[data-density="dense"] {
-  grid-template-columns: repeat(auto-fit, minmax(min(348px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(clamp(348px, 19vw, 420px), 100%), 1fr));
   gap: 14px;
 }
 
@@ -312,10 +318,13 @@
 }
 
 /* El alto de carta escala con la cantidad de módulos (pocas → altas; muchas →
-   compactas). min-height transiciona con ease líquido para un cambio suave. */
-.home-mission-grid[data-density="spacious"] .home-mc-card { min-height: 292px; }
-.home-mission-grid[data-density="balanced"] .home-mc-card { min-height: 242px; }
-.home-mission-grid[data-density="dense"] .home-mc-card { min-height: 210px; }
+   compactas) Y con la altura del viewport (clamp con vh): en pantallas grandes
+   las cartas crecen para que el contenido llene más y no quede tanto margen
+   arriba/abajo por el centrado vertical. min-height transiciona con ease
+   líquido para un cambio suave. */
+.home-mission-grid[data-density="spacious"] .home-mc-card { min-height: clamp(288px, 26vh, 360px); }
+.home-mission-grid[data-density="balanced"] .home-mc-card { min-height: clamp(238px, 22vh, 312px); }
+.home-mission-grid[data-density="dense"] .home-mc-card { min-height: clamp(208px, 18vh, 268px); }
 
 .home-mc-card:active { transform: scale(0.995); }
 
