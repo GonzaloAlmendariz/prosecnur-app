@@ -12,6 +12,7 @@ import {
   GitBranch,
   GitMerge,
   Layers,
+  Scale,
   Table2,
   type LucideIcon,
 } from "lucide-react";
@@ -32,12 +33,13 @@ import { DataReviewPane } from "./panes/DataReviewPane";
 import { MultibaseTablasPane } from "./panes/MultibaseTablasPane";
 import { PanelBasePane } from "./panes/PanelBasePane";
 import { FichaTecnicaPane } from "./panes/FichaTecnicaPane";
+import { PonderacionPane } from "./panes/PonderacionPane";
 import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
 import { ProcessingPrereqGate } from "../procesamiento/ProcessingPrereqGate";
 import "./analitica-v2.css";
 
 // Revisión de data primero; enumeradores vive en Monitoreo.
-type Reporte = "datos" | "base_final" | "codebook" | "bases" | "frecuencias" | "multibase" | "panel" | "ficha" | "cruces" | "dimensiones";
+type Reporte = "datos" | "base_final" | "codebook" | "bases" | "ponderacion" | "frecuencias" | "multibase" | "panel" | "ficha" | "cruces" | "dimensiones";
 
 type ReporteMeta = {
   key: Reporte;
@@ -51,6 +53,7 @@ const REPORTES: ReporteMeta[] = [
   { key: "base_final",   label: "Base final",        icon: Table2, desc: "Tabla lista para exportar" },
   { key: "codebook",     label: "Libro de códigos",  icon: BookOpen,  desc: "Diccionario del estudio" },
   { key: "bases",        label: "Bases e instrumentos", icon: Database,  desc: "Archivos y versiones" },
+  { key: "ponderacion",  label: "Ponderación",       icon: Scale,     desc: "Representar a la población" },
   { key: "frecuencias",  label: "Frecuencias",       icon: BarChart2, desc: "Distribución de respuestas" },
   { key: "multibase",    label: "Tablas multibase",  icon: GitBranch, desc: "Comparación entre bases" },
   { key: "panel",        label: "Base panel",        icon: GitMerge,  desc: "Personas y mediciones" },
@@ -207,6 +210,7 @@ export default function AnaliticaPage() {
                     )}
                     {active === "codebook"     && <CodebookPane />}
                     {active === "bases"        && <BasesPane />}
+                    {active === "ponderacion"  && <PonderacionPane />}
                     {active === "frecuencias"  && <FrecuenciasPane />}
                     {active === "multibase"    && <MultibaseTablasPane />}
                     {active === "panel"        && <PanelBasePane />}

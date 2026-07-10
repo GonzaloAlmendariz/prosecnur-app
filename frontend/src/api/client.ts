@@ -9459,6 +9459,50 @@ export async function apiAnaliticaColumnValues(name: string) {
   );
 }
 
+// ---- Ponderación ----------------------------------------------------------
+export type PonderMarginCompare = {
+  categoria: string;
+  objetivo: number;
+  muestra: number;
+  ponderado: number;
+};
+export type PonderDiagnostics = {
+  n: number;
+  n_eff: number;
+  deff: number;
+  cv: number;
+  loss_pct: number;
+  min: number;
+  max: number;
+  mean: number;
+  median: number;
+  ratio_max_min: number;
+};
+export type PonderWarning = { level: "info" | "warn"; code: string; message: string };
+export type PonderPreview = {
+  ok: boolean;
+  reason?: string;
+  n?: number;
+  enabled?: boolean;
+  design_applied?: boolean;
+  rake_applied?: boolean;
+  converged?: boolean;
+  iterations?: number;
+  diagnostics?: PonderDiagnostics;
+  margins?: Record<string, PonderMarginCompare[]>;
+  warnings?: PonderWarning[];
+};
+
+export async function apiAnaliticaPonderacionPreview(ponderacion: unknown) {
+  return handle<PonderPreview>(
+    await apiFetch("/api/analitica/ponderacion/preview", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ ponderacion }),
+    }),
+  );
+}
+
 // Respuesta de reporte multi-base (v0.2+):
 //   - Single base (n_bases=1): `file_id` directo al archivo.
 //   - Multi (n_bases>1): `zip` al zip agregador + `bases[]` con file_id
