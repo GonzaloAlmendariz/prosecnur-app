@@ -163,7 +163,10 @@
      abajo. Con contenido alto los márgenes colapsan y scrollea desde arriba. */
   margin-block: auto;
   width: 100%;
-  max-width: 1180px;
+  /* Cap generoso: pocas cartas se estiran (1fr) para LLENAR el ancho; muchas
+     se comprimen en más columnas. El techo evita que en ultrawide se estire
+     sin límite. El tamaño de carta lo modula data-density (ver el grid). */
+  max-width: min(1640px, 100%);
   align-self: center;
 }
 
@@ -249,21 +252,35 @@
   letter-spacing: 0.06em;
 }
 
-/* --- Grid de tarjetas por módulo (adaptativo al número) -------------- */
+/* --- Grid de tarjetas por módulo (adaptativo al número) --------------
+   Las cartas escalan con la cantidad de módulos: pocas → columnas anchas y
+   cartas altas que LLENAN el espacio; muchas → se comprimen en más columnas.
+   El ancho de columna mínimo y el alto de carta cambian por densidad; con
+   auto-fit + 1fr las pocas cartas se estiran para ocupar todo el ancho. */
 .home-mission-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px;
+  justify-content: center;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 18px;
 }
 
+/* Pocos módulos (≤3): cartas grandes y anchas. */
 .home-mission-grid[data-density="spacious"] {
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr));
+  gap: 22px;
 }
+
+/* Intermedio (4–6). */
 .home-mission-grid[data-density="balanced"] {
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(352px, 100%), 1fr));
 }
+
+/* Muchos módulos (7+): se comprimen en alto y gap, no en ancho ilegible — el
+   piso para que los 3 facts no se encaballen es ~350px, así que se mantienen
+   4 columnas legibles y la compresión se siente por cartas más bajas/juntas. */
 .home-mission-grid[data-density="dense"] {
-  grid-template-columns: repeat(auto-fill, minmax(288px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(348px, 100%), 1fr));
+  gap: 14px;
 }
 
 @keyframes home-mc-in {
@@ -287,13 +304,18 @@
   box-shadow: 0 1px 3px rgba(0, 36, 87, 0.05);
   transition:
     transform var(--motion-dur-base) var(--motion-ease-out),
+    min-height 440ms cubic-bezier(0.32, 0.72, 0, 1),
     border-color var(--motion-dur-fast) ease,
     box-shadow var(--motion-dur-fast) ease;
   animation: home-mc-in var(--motion-dur-base) var(--motion-ease-out) backwards;
   animation-delay: calc(var(--i, 0) * 55ms);
 }
 
-.home-mission-grid[data-density="spacious"] .home-mc-card { min-height: 236px; }
+/* El alto de carta escala con la cantidad de módulos (pocas → altas; muchas →
+   compactas). min-height transiciona con ease líquido para un cambio suave. */
+.home-mission-grid[data-density="spacious"] .home-mc-card { min-height: 292px; }
+.home-mission-grid[data-density="balanced"] .home-mc-card { min-height: 242px; }
+.home-mission-grid[data-density="dense"] .home-mc-card { min-height: 210px; }
 
 .home-mc-card:active { transform: scale(0.995); }
 

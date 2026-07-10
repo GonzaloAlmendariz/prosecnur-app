@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
 import { Activity, CalendarDays, Database, Layers, Plus, SlidersHorizontal, Target } from "lucide-react";
@@ -396,6 +396,44 @@ export function MissionControl({
 
   const confirmModule = cards.find((card) => card.module.slug === confirmSlug)?.module;
 
+  // FLIP: al agregar/quitar un módulo, las tarjetas cambian de tamaño y de
+  // posición (la densidad reflowa el grid). Animamos ese reflow — medimos las
+  // posiciones nuevas, invertimos con transform y transicionamos a cero — para
+  // que el board "respire" en vez de saltar. Respeta prefers-reduced-motion.
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const prevRects = useRef<Map<string, DOMRect>>(new Map());
+  const addedKey = addedSlugs.join(",");
+
+  useLayoutEffect(() => {
+    const nextRects = new Map<string, DOMRect>();
+    cardRefs.current.forEach((el, slug) => nextRects.set(slug, el.getBoundingClientRect()));
+    const reduce =
+      typeof window !== "undefined" &&
+      Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+    if (!reduce) {
+      cardRefs.current.forEach((el, slug) => {
+        const prev = prevRects.current.get(slug);
+        const next = nextRects.get(slug);
+        if (!prev || !next) return;
+        const dx = prev.left - next.left;
+        const dy = prev.top - next.top;
+        if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+        el.style.transform = `translate(${dx}px, ${dy}px)`;
+        el.style.transition = "none";
+        requestAnimationFrame(() => {
+          el.style.transform = "";
+          el.style.transition = "transform 460ms cubic-bezier(0.32, 0.72, 0, 1)";
+          const clear = () => {
+            el.style.transition = "";
+            el.removeEventListener("transitionend", clear);
+          };
+          el.addEventListener("transitionend", clear);
+        });
+      });
+    }
+    prevRects.current = nextRects;
+  }, [addedKey]);
+
   // Sin banda de métricas global: los módulos son herramientas independientes,
   // no fases de un avance lineal. Cada tarjeta reporta la sustancia de su
   // módulo (qué tiene, qué hace, cómo va) desde overview.facts.<módulo>; no se
@@ -468,6 +506,10 @@ export function MissionControl({
         {cards.map(({ module, view }, index) => (
           <ModuleStatusCard
             key={module.slug}
+            ref={(el) => {
+              if (el) cardRefs.current.set(module.slug, el);
+              else cardRefs.current.delete(module.slug);
+            }}
             module={module}
             view={view}
             index={index}
