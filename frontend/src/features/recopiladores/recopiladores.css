@@ -4,9 +4,8 @@
   --rec-accent-border: var(--module-accent-border, var(--pulso-module-collectors-border));
   --rec-topbar-radius: 18px;
   --rec-control-radius: 9999px;
-  --rec-control-height: 32px;
-  --rec-sidebar-collapsed-size: clamp(60px, 4.8vw, 64px);
-  --rec-sidebar-button-size: calc(var(--rec-sidebar-collapsed-size) - 14px);
+  --rec-control-height: var(--pulso-control-height-md);
+  --rec-sidebar-collapsed-size: 56px;
   --rec-focus-ring: color-mix(in srgb, var(--rec-accent) 16%, transparent);
   height: 100%;
   min-height: 0;
@@ -19,6 +18,7 @@
   position: sticky;
   top: 0;
   z-index: 4;
+  flex: none;
   display: grid;
   grid-template-columns: minmax(238px, max-content) minmax(480px, 1fr) minmax(246px, max-content);
   gap: 6px;
@@ -53,7 +53,7 @@
 
 .rec-brand,
 .rec-actions {
-  min-height: 36px;
+  min-height: var(--pulso-control-height-lg);
   border: 1px solid color-mix(in srgb, var(--rec-accent-border) 28%, var(--pulso-material-border));
   border-radius: var(--rec-control-radius);
   background:
@@ -194,13 +194,11 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 840;
+  font-weight: var(--pulso-control-weight);
 }
 
 .rec-section-rail strong,
-.rec-section-rail small,
-.rec-sidebar nav strong,
-.rec-sidebar nav small {
+.rec-section-rail small {
   min-width: 0;
   overflow: hidden;
   line-height: 1.15;
@@ -250,8 +248,8 @@
   gap: 7px;
   min-height: var(--rec-control-height);
   border-radius: var(--rec-control-radius);
-  padding: 5px 10px;
-  font-weight: 850;
+  padding: 2px 10px;
+  font-weight: var(--pulso-control-weight);
   text-decoration: none;
   white-space: nowrap;
 }
@@ -362,13 +360,13 @@
 .rec-top-status strong {
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 840;
+  font-weight: 600;
 }
 
 .rec-top-status small {
   color: var(--pulso-text-soft);
   font-size: 9.5px;
-  font-weight: 800;
+  font-weight: 600;
   text-transform: uppercase;
 }
 
@@ -407,68 +405,146 @@
   box-shadow: var(--pulso-shadow-soft);
 }
 
+/* Rail de tercer nivel: el aside solo reserva el carril angosto en el grid del
+   workbench; el panel visual y la expansión viven en el shell absoluto. */
 .rec-sidebar {
-  position: sticky;
-  top: 84px;
-  align-self: start;
+  position: relative;
   width: var(--rec-sidebar-collapsed-size);
-  max-height: 100%;
-  display: grid;
-  gap: 6px;
+  min-height: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
   overflow: visible;
-  padding: 7px 6px;
-  backdrop-filter: blur(12px) saturate(128%);
   z-index: 3;
+}
+
+/* Shell = panel visual + motor de la expansión: crece a --pulso-rail-width al
+   hover/focus por encima del canvas, sin reflujo. */
+.rec-sidebar-shell {
+  position: absolute;
+  inset: 0;
+  width: var(--rec-sidebar-collapsed-size);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--rec-accent) 12%, var(--pulso-border));
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #fff 70%, transparent), color-mix(in srgb, var(--pulso-surface) 90%, transparent)),
+    color-mix(in srgb, var(--pulso-surface) 90%, transparent);
+  box-shadow: var(--pulso-shadow-soft);
+  backdrop-filter: blur(12px) saturate(128%);
+  overflow: hidden;
+  transition:
+    width var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.rec-sidebar:hover .rec-sidebar-shell,
+.rec-sidebar:focus-within .rec-sidebar-shell {
+  width: var(--pulso-rail-width);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 18px 42px rgba(15, 23, 42, 0.16);
 }
 
 .rec-sidebar nav {
   display: grid;
-  gap: 6px;
-  overflow: visible;
+  gap: 5px;
+  min-width: 0;
 }
 
+/* Fila colapsada: solo el ícono, centrado, a la altura de rail canónica. */
 .rec-sidebar nav button {
-  position: relative;
-  width: var(--rec-sidebar-button-size);
-  height: var(--rec-sidebar-button-size);
+  width: 100%;
+  min-width: 0;
+  height: var(--pulso-rail-row-height-lg);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  justify-self: center;
-  place-items: center;
-  min-height: 0;
-  aspect-ratio: 1;
-  padding: 4px;
+  justify-items: center;
+  align-items: center;
+  gap: 0;
+  padding: 0;
   border: 1px solid transparent;
-  border-radius: 12px;
-  background: color-mix(in srgb, #fff 72%, var(--pulso-surface-2) 28%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
+  border-radius: 10px;
+  background: transparent;
   color: color-mix(in srgb, var(--rec-accent) 84%, var(--pulso-text-soft));
-  text-align: center;
+  text-align: left;
   transition:
     background var(--motion-dur-fast) var(--motion-ease-out),
     border-color var(--motion-dur-fast) var(--motion-ease-out),
     box-shadow var(--motion-dur-fast) var(--motion-ease-out),
     color var(--motion-dur-fast) var(--motion-ease-out),
+    padding var(--motion-dur-fast) var(--motion-ease-out),
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 
-.rec-sidebar nav button > span {
-  display: none;
+/* Fila expandida: ícono + copy en dos líneas. */
+.rec-sidebar:hover nav button,
+.rec-sidebar:focus-within nav button {
+  grid-template-columns: 26px minmax(0, 1fr);
+  justify-items: stretch;
+  gap: 8px;
+  height: auto;
+  min-height: var(--pulso-rail-row-height-lg);
+  padding: 6px 8px;
 }
 
-.rec-sidebar nav button > svg {
-  width: 15px;
-  height: 15px;
+.rec-sidebar-tab-icon {
+  position: relative;
+  grid-column: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
   color: currentColor;
-  stroke: currentColor;
 }
 
-.rec-sidebar nav small {
+/* Copy: oculto en colapsado, aparece al expandir. */
+.rec-sidebar-tab-copy {
+  min-width: 0;
   display: none;
+  grid-column: 2;
+  gap: 2px;
 }
 
-.rec-sidebar nav strong {
-  display: none;
+.rec-sidebar:hover .rec-sidebar-tab-copy,
+.rec-sidebar:focus-within .rec-sidebar-tab-copy {
+  display: grid;
+}
+
+.rec-sidebar-tab-copy strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.16;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-sidebar-tab-copy small {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-control-weight);
+  line-height: 1.24;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-sidebar nav button.is-active .rec-sidebar-tab-copy strong {
+  color: #fff;
+}
+
+.rec-sidebar nav button.is-active .rec-sidebar-tab-copy small {
+  color: color-mix(in srgb, #fff 82%, transparent);
 }
 
 .rec-sidebar nav button.is-active {
@@ -481,81 +557,48 @@
     0 8px 18px color-mix(in srgb, var(--rec-accent) 18%, transparent);
 }
 
-.rec-sidebar nav button::after {
-  position: absolute;
-  z-index: 40;
-  top: 50%;
-  left: calc(100% + 10px);
-  width: max-content;
-  max-width: min(260px, calc(100vw - 112px));
-  min-height: 30px;
-  display: none;
-  align-items: center;
-  border: 1px solid color-mix(in srgb, var(--rec-accent) 24%, var(--pulso-border));
-  border-radius: 9px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 253, 0.96)),
-    #fff;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 10px 24px rgba(15, 23, 42, 0.12);
-  color: var(--pulso-text);
-  content: attr(data-rec-tip);
-  font-size: 11.5px;
-  font-weight: 820;
-  line-height: 1.18;
+@media (hover: hover) and (pointer: fine) {
+  .rec-sidebar nav button:hover:not(.is-active) {
+    background: color-mix(in srgb, #fff 82%, var(--rec-accent-soft) 18%);
+    color: var(--rec-accent);
+  }
+}
+
+.rec-sidebar nav button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Cabecera del rail: oculta en colapsado (solo íconos); aparece al expandir. */
+.rec-sidebar-head {
+  min-width: 0;
+  max-height: 0;
+  margin: 0;
+  padding: 0 2px;
   opacity: 0;
-  padding: 7px 9px;
-  pointer-events: none;
-  text-align: left;
-  transform: translate(-4px, -50%) scale(0.98);
+  overflow: hidden;
+  border-bottom: 1px solid transparent;
   transition:
+    max-height var(--motion-dur-fast) var(--motion-ease-out),
     opacity var(--motion-dur-fast) var(--motion-ease-out),
-    transform var(--motion-dur-fast) var(--motion-ease-out);
-  white-space: normal;
+    padding var(--motion-dur-fast) var(--motion-ease-out);
 }
 
-.rec-sidebar nav button::before {
-  position: absolute;
-  z-index: 41;
-  top: 50%;
-  left: calc(100% + 6px);
-  width: 8px;
-  height: 8px;
-  display: none;
-  border-left: 1px solid color-mix(in srgb, var(--rec-accent) 24%, var(--pulso-border));
-  border-bottom: 1px solid color-mix(in srgb, var(--rec-accent) 24%, var(--pulso-border));
-  background: rgba(255, 255, 255, 0.98);
-  content: "";
-  pointer-events: none;
-  transform: translateY(-50%) rotate(45deg);
-}
-
-.rec-sidebar nav button:hover,
-.rec-sidebar nav button:focus-visible {
-  z-index: 30;
-}
-
-.rec-sidebar nav button:hover::after,
-.rec-sidebar nav button:focus-visible::after {
-  display: inline-flex;
+.rec-sidebar:hover .rec-sidebar-head,
+.rec-sidebar:focus-within .rec-sidebar-head {
+  max-height: 96px;
+  padding: 4px 2px 8px;
   opacity: 1;
-  transform: translate(0, -50%) scale(1);
+  border-bottom-color: color-mix(in srgb, var(--pulso-border) 78%, transparent);
 }
 
-.rec-sidebar nav button:hover::before,
-.rec-sidebar nav button:focus-visible::before {
-  display: block;
-}
-
-.rec-sidebar nav button.is-active::after,
-.rec-sidebar nav button.is-active::before {
-  display: none;
-}
-
-.rec-sidebar-head,
-.rec-sidebar-note {
-  display: none;
+.rec-sidebar-head small {
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-control-weight);
+  line-height: 1.28;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .rec-sidebar-note {
@@ -595,9 +638,15 @@
   line-height: 1.35;
 }
 
-.rec-sidebar .rec-sidebar-head,
+/* Nota de estado: solo aporta con el rail expandido; en colapsado se oculta. */
 .rec-sidebar .rec-sidebar-note {
   display: none;
+  margin-top: auto;
+}
+
+.rec-sidebar:hover .rec-sidebar-note,
+.rec-sidebar:focus-within .rec-sidebar-note {
+  display: grid;
 }
 
 .rec-content {
@@ -922,7 +971,7 @@
   background: color-mix(in srgb, var(--pulso-surface-2) 66%, #fff);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 600;
   line-height: 1.15;
 }
 
@@ -1142,7 +1191,8 @@
 .rec-toolbar select,
 .rec-toolbar input {
   width: 100%;
-  padding: 9px 10px;
+  min-height: var(--pulso-control-height-md);
+  padding: 4px 10px;
 }
 
 .rec-split {
@@ -1209,7 +1259,7 @@
   background: #fff;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 600;
   padding: 3px 8px;
 }
 
@@ -1337,7 +1387,8 @@
 
 .rec-kobo-controls select,
 .rec-kobo-controls input {
-  height: 38px;
+  min-height: var(--pulso-control-height-md);
+  padding: 4px 10px;
 }
 
 .rec-kobo-controls textarea,
@@ -1366,7 +1417,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 30px;
+  min-height: var(--pulso-control-height-md);
   padding: 0 10px;
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
@@ -1374,7 +1425,7 @@
   color: var(--pulso-text);
   font: inherit;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-control-weight);
   transition:
     background var(--motion-dur-fast) var(--motion-ease-out),
     border-color var(--motion-dur-fast) var(--motion-ease-out),
@@ -1384,7 +1435,7 @@
 
 .rec-kobo-controls button {
   align-self: end;
-  min-height: 38px;
+  min-height: var(--pulso-control-height-md);
   white-space: nowrap;
 }
 
@@ -1437,7 +1488,7 @@
   background: #fff;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 600;
   padding: 3px 8px;
 }
 
@@ -1765,7 +1816,7 @@
 .rec-ficha-url dd {
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 500;
   line-height: 1.25;
   word-break: break-all;
 }
@@ -2039,7 +2090,7 @@
 .rec-package-return-status span {
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 500;
   line-height: 1.35;
 }
 
@@ -2364,7 +2415,7 @@
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: 500;
 }
 
 .rec-engine-stages > div.is-ready {
@@ -2445,7 +2496,7 @@
 .rec-engine-groups header span {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 500;
 }
 
 .rec-engine-groups dl {
@@ -2546,7 +2597,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -2770,7 +2821,7 @@
   border-radius: 8px;
   padding: 8px 10px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 500;
   line-height: 1.35;
 }
 
@@ -2975,8 +3026,6 @@
 }
 
 @media (max-width: 1180px) {
-  .rec-topbar,
-  .rec-workbench,
   .rec-split,
   .rec-link-workbench,
   .rec-package-output,
@@ -2985,53 +3034,10 @@
     grid-template-columns: 1fr;
   }
 
-  .rec-sidebar {
-    position: static;
-    width: 100%;
-    max-width: none;
-  }
-
-  .rec-sidebar nav {
-    grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
-  }
-
-  .rec-sidebar nav button {
-    width: 100%;
-    height: auto;
-    min-height: 44px;
-    aspect-ratio: auto;
-    grid-template-columns: auto auto minmax(0, 1fr);
-    justify-content: start;
-    place-items: center start;
-    padding: 6px 8px;
-    text-align: left;
-  }
-
-  .rec-sidebar nav button > span {
-    display: grid;
-    place-items: center;
-    width: 18px;
-    height: 18px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--rec-accent-soft) 72%, #fff);
-    color: var(--rec-accent);
-    font-size: 10px;
-    font-weight: 900;
-  }
-
-  .rec-sidebar nav strong {
-    display: block;
-    width: 100%;
-  }
-
-  .rec-sidebar nav small {
-    display: block;
-    width: 100%;
-  }
-
-  .rec-sidebar nav button.is-active > span {
-    background: rgba(255, 255, 255, 0.2);
-    color: #fff;
+  /* El topbar conserva su fila única: el rail mantiene sus etiquetas y es el
+     brand el que trunca; apilarlo lo hacía desbordar sobre la banda de aplicación. */
+  .rec-topbar {
+    grid-template-columns: minmax(0, 1fr) auto max-content;
   }
 
   .rec-section-rail {
@@ -3055,6 +3061,10 @@
   .rec-toolbar {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .rec-topbar {
+    grid-template-columns: 1fr;
   }
 
   .rec-section-rail,
