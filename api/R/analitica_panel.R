@@ -433,6 +433,25 @@
   stems[order(group, primary, .panel_pad_numbers(stems), stems, na.last = TRUE)]
 }
 
+# Orden de stems segun la posicion en el survey del instrumento panel (orden del
+# XLSForm). El heuristico previo (.panel_order_stems) colocaba las variables no
+# numeradas ni listadas en un balde alfabetico, enterrando preguntas hechas
+# temprano (p.ej. bloques M/E/A del ACNUR o metadata Kobo) muy adelante o muy
+# atras. Aqui priorizamos la posicion real de cada variable en el survey y solo
+# caemos al heuristico como desempate para las que no existan en el survey.
+.panel_order_stems_by_survey <- function(stems, survey_names, suffixes) {
+  stems <- unique(as.character(stems))
+  if (!length(stems)) return(stems)
+  survey_names <- as.character(survey_names %||% character(0))
+  if (!length(survey_names)) return(.panel_order_stems(stems))
+  survey_stems <- .panel_stem_of(survey_names, suffixes)
+  pos <- match(stems, survey_stems)                 # primera aparicion = orden XLSForm
+  fallback <- match(stems, .panel_order_stems(stems))
+  big <- length(stems) + 1L
+  primary <- ifelse(is.na(pos), big + fallback, pos)
+  stems[order(primary, fallback)]
+}
+
 .panel_dummy_label_overrides <- function(inst_sources = list(), pcfg = list()) {
   out <- character(0)
   for (wave in pcfg$waves %||% list()) {
@@ -498,20 +517,34 @@
   }
 
   key_col <- pcfg$key
+  # Posicion en el survey del instrumento panel ANTES de reordenarlo (linea ~534):
+  # en este punto sigue el orden de construccion (orden de columnas de la data =
+  # orden del XLSForm), que es el que debe mandar en el libro de codigos.
+  survey_names_pre <- if (is.data.frame(built$inst_wide$survey) && "name" %in% names(built$inst_wide$survey)) {
+    as.character(built$inst_wide$survey$name)
+  } else {
+    character(0)
+  }
   technical_cols <- suffixed[.panel_stem_of(suffixed, suffixes) %in% technical_stems]
   content_cols <- setdiff(suffixed, technical_cols)
-  ordered_content <- unlist(lapply(.panel_order_stems(.panel_stem_of(content_cols, suffixes)), function(stem) {
+  ordered_content <- unlist(lapply(.panel_order_stems_by_survey(.panel_stem_of(content_cols, suffixes), survey_names_pre, suffixes), function(stem) {
     intersect(paste0(stem, "_", suffixes), content_cols)
   }), use.names = FALSE)
-  ordered_technical <- unlist(lapply(.panel_order_stems(.panel_stem_of(technical_cols, suffixes)), function(stem) {
+  ordered_technical <- unlist(lapply(.panel_order_stems_by_survey(.panel_stem_of(technical_cols, suffixes), survey_names_pre, suffixes), function(stem) {
     intersect(paste0(stem, "_", suffixes), technical_cols)
   }), use.names = FALSE)
+  # El balde restante (columnas no clasificadas como content/technical/external) se
+  # ordena tambien por posicion en el survey; las que no existan en el survey
+  # conservan su orden actual y quedan al final (na.last).
+  rest_cols <- setdiff(names_bw, c(key_col, ordered_content, external_vars, ordered_technical))
+  rest_pos <- match(rest_cols, survey_names_pre)
+  rest_cols <- rest_cols[order(rest_pos, seq_along(rest_cols), na.last = TRUE)]
   final_cols <- c(
     key_col,
     ordered_content,
     external_vars,
     ordered_technical,
-    setdiff(names_bw, c(key_col, ordered_content, external_vars, ordered_technical))
+    rest_cols
   )
   final_cols <- final_cols[nzchar(final_cols) & final_cols %in% names_bw]
   built$base_wide <- built$base_wide[, final_cols, drop = FALSE]
@@ -1848,7 +1881,12 @@
 .panel_export_codebook_xlsx <- function(built, path, ficha_tecnica = NULL) {
   cfg <- .panel_cfg_from_ficha(ficha_tecnica)
   ctx <- .panel_report_context(built)
-  .panel_export_codebook_parallel_xlsx(ctx$data, path, built, cfg = cfg, ficha_tecnica = ficha_tecnica)
+  # El libro de codigos es un entregable en si mismo: NO embebe la ficha tecnica
+  # (que tiene su propio boton "Generar ficha tecnica"). Pasamos ficha_tecnica =
+  # FALSE al escritor para no colar una 2a hoja "tras bambalinas", pero
+  # conservamos `cfg` para la politica de codigos especiales del codebook. Los
+  # demas formatos (xlsx base, frecuencias, cruces, auditoria) no cambian.
+  .panel_export_codebook_parallel_xlsx(ctx$data, path, built, cfg = cfg, ficha_tecnica = FALSE)
   invisible(path)
 }
 
