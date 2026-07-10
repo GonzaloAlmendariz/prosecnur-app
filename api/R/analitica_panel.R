@@ -1852,6 +1852,26 @@
   invisible(path)
 }
 
+# Libro de codigos en PDF A4 (dos columnas, cabecera + pie con logo Pulso).
+# titulo/subtitulo se toman de cfg$codebook$titulo_pdf/subtitulo_pdf si existen.
+.panel_export_codebook_pdf <- function(built, path, ficha_tecnica = NULL) {
+  if (!exists("reporte_codebook_pdf", mode = "function")) {
+    stop("El generador de libro de codigos PDF no esta disponible.", call. = FALSE)
+  }
+  cfg <- .panel_cfg_from_ficha(ficha_tecnica)
+  ctx <- .panel_report_context(built)
+  cb <- cfg$codebook %||% list()
+  reporte_codebook_pdf(
+    ctx$data, path,
+    titulo = .panel_scalar(cb$titulo_pdf, "LIBRO DE CODIGOS"),
+    subtitulo = .panel_scalar(cb$subtitulo_pdf, ""),
+    ord = (attr(ctx$data, "instrumento_reporte", exact = TRUE) %||% list())$orders_list,
+    codigos_solo_si_presentes = .panel_report_codebook_codes(cfg),
+    periodo = .panel_scalar(cb$periodo_pdf, "")
+  )
+  invisible(path)
+}
+
 .panel_export_frequencies_xlsx <- function(built, path, ficha_tecnica = NULL) {
   if (!exists("reporte_frecuencias", mode = "function")) {
     stop("El generador estandar de frecuencias no esta disponible.", call. = FALSE)
@@ -2123,6 +2143,9 @@
   } else if (identical(options$formato, "libro_codigos")) {
     progress("writing", percent = 82, message = "Generando libro de codigos panel...")
     .panel_export_codebook_xlsx(built, path, ficha_tecnica = ficha_tecnica)
+  } else if (identical(options$formato, "libro_codigos_pdf")) {
+    progress("writing", percent = 82, message = "Generando libro de codigos panel (PDF)...")
+    .panel_export_codebook_pdf(built, path, ficha_tecnica = ficha_tecnica)
   } else if (identical(options$formato, "frecuencias")) {
     progress("writing", percent = 82, message = "Generando frecuencias panel...")
     .panel_export_frequencies_xlsx(built, path, ficha_tecnica = ficha_tecnica)
