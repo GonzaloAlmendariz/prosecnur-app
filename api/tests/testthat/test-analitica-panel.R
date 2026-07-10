@@ -122,6 +122,84 @@ test_that("base panel genera wide, auditoria y frecuencias con select_multiple",
   expect_equal(attr(sav_read$canales_med1___1, "labels", exact = TRUE)[["Sí"]], 1)
 })
 
+test_that("el orden del panel sigue el XLSForm, no el alfabetico de stems", {
+  # Dos variables no numeradas ni listadas: 'zeta_early' se pregunta primero y
+  # 'alpha_late' al final. El heuristico previo (.panel_order_stems) las ordenaba
+  # alfabeticamente (alpha antes que zeta), enterrando la preguntada temprano. El
+  # fix debe respetar la posicion del survey: zeta_early debe salir ANTES.
+  inst <- list(
+    survey = data.frame(
+      type = c("text", "select_one yn", "select_one yn"),
+      name = c("numero_encuesta", "zeta_early", "alpha_late"),
+      label = c("Numero de encuesta", "Preguntada primero", "Preguntada al final"),
+      list_name = c("", "yn", "yn"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("yn", "yn"), name = c("1", "2"), label = c("Si", "No"),
+      stringsAsFactors = FALSE
+    )
+  )
+  mk <- function() {
+    df <- data.frame(
+      numero_encuesta = c("1", "2"),
+      zeta_early = c("1", "2"),
+      alpha_late = c("2", "1"),
+      stringsAsFactors = FALSE
+    )
+    attr(df$zeta_early, "labels") <- c(Si = "1", No = "2")
+    attr(df$alpha_late, "labels") <- c(Si = "1", No = "2")
+    df
+  }
+  built <- .panel_wide_build(list(a = mk(), b = mk()), list(a = inst, b = inst), list())
+  cols <- names(built$base_wide)
+
+  idx_zeta <- which(cols == "zeta_early_med1")
+  idx_alpha <- which(cols == "alpha_late_med1")
+  expect_true(length(idx_zeta) == 1L && length(idx_alpha) == 1L)
+  expect_lt(idx_zeta, idx_alpha)
+  # Las mediciones del mismo stem quedan adyacentes (no se rompe el emparejamiento).
+  expect_equal(which(cols == "zeta_early_med2"), idx_zeta + 1L)
+  # No se pierden ni duplican columnas al reordenar.
+  expect_false(any(duplicated(cols)))
+  expect_setequal(cols, names(built$base_wide))
+
+  # El codebook (que escribe en el orden de base_wide) tambien respeta el orden.
+  cb_cols <- names(built$base_wide)
+  expect_lt(match("zeta_early_med1", cb_cols), match("alpha_late_med1", cb_cols))
+})
+
+test_that("el libro de codigos XLSX no embebe la ficha tecnica por default", {
+  inst <- list(
+    survey = data.frame(
+      type = c("text", "select_one yn"),
+      name = c("numero_encuesta", "p1"),
+      label = c("Numero de encuesta", "Pregunta"),
+      list_name = c("", "yn"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("yn", "yn"), name = c("1", "2"), label = c("Si", "No"),
+      stringsAsFactors = FALSE
+    )
+  )
+  mk <- function() {
+    df <- data.frame(numero_encuesta = c("1", "2"), p1 = c("1", "2"), stringsAsFactors = FALSE)
+    attr(df$p1, "labels") <- c(Si = "1", No = "2")
+    df
+  }
+  built <- .panel_wide_build(list(a = mk(), b = mk()), list(a = inst, b = inst), list())
+
+  # Config con la ficha marcada como embebible: el codebook debe ignorarla y
+  # quedar con una sola hoja (la ficha es su propio entregable aparte).
+  out <- tempfile(fileext = ".xlsx")
+  .panel_export_codebook_xlsx(built, out, ficha_tecnica = list(
+    cfg = list(ficha_tecnica = list(adjuntar_a_xlsx = TRUE, estudio = "Estudio X"))
+  ))
+  expect_true(file.exists(out))
+  expect_identical(openxlsx::getSheetNames(out), "Codebook")
+})
+
 test_that("paquete panel genera cruces configurados por sexo, NSE y distrito", {
   inst <- list(
     survey = data.frame(
