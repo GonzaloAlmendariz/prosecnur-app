@@ -94,26 +94,45 @@ export default function BitacoraPage() {
       className="bitacora-frame"
     >
       <div className="bitacora-shell" style={moduleChromeVars(BITACORA_MODULE)}>
-        {/* Sin franja de identidad: el rail superior ya nombra el módulo.
-            Las tabs SON la capa de comando; el refresh vive a su derecha. */}
+        {/* Rail de secciones canónico: las mismas píldoras centradas que usan
+            Procesamiento y Monitoreo (.pulso-phase-pillbar). El spacer izquierdo
+            equilibra el refresh de la derecha para que el rail quede centrado. */}
         <div className="bitacora-command-row">
-          <nav className="bitacora-tabs" aria-label="Secciones de la bitácora">
-            {TABS.map((item) => {
-              const Icon = item.icon;
-              const active = tab === item.key;
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  className={active ? "is-active" : ""}
-                  aria-pressed={active}
-                  onClick={() => setTab(item.key)}
-                >
-                  <Icon size={14} />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
+          <span className="bitacora-command-spacer" aria-hidden="true" />
+          <nav
+            className="pulso-phase-pillbar bitacora-section-rail"
+            aria-label="Secciones de la bitácora"
+          >
+            <ol className="pulso-phase-pill-list">
+              {TABS.map((item) => {
+                const Icon = item.icon;
+                const active = tab === item.key;
+                return (
+                  <li key={item.key} className="pulso-phase-pill-item">
+                    <button
+                      type="button"
+                      role="tab"
+                      className={`pulso-phase-pill bitacora-section-pill${active ? " is-active" : ""}`}
+                      aria-selected={active}
+                      aria-current={active ? "page" : undefined}
+                      onClick={() => setTab(item.key)}
+                    >
+                      <span className="pulso-phase-pill-circle" aria-hidden="true" />
+                      <span className="pulso-phase-pill-stack">
+                        <span className="pulso-phase-pill-label">
+                          <Icon
+                            size={14}
+                            className="bitacora-section-pill-icon"
+                            aria-hidden="true"
+                          />
+                          <span className="pulso-phase-pill-text">{item.label}</span>
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
           </nav>
           <button
             type="button"
