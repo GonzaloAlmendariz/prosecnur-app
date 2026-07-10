@@ -12,6 +12,64 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.5.4",
+    date: "2026-07-09",
+    highlights: [
+      "Cálculo de muestra: reconstruye Muestra de aulas como un recorrido didáctico que explica cada fórmula y decisión del diseño paso a paso.",
+      "Cálculo de muestra: corre los cálculos grandes en segundo plano con progreso visible, historial de corridas y un paquete de defensa listo para sustentar el diseño.",
+      "Cálculo de muestra: evalúa la salud del diseño — censo, cobertura, balance y precisión — y señala los riesgos por severidad.",
+      "Reportes PDF: estrena la estética institucional Pulso en los avances de campo, el libro de códigos a dos columnas con índice y el formulario en papel.",
+      "Monitoreo: exporta las UMP con ocurrencias a Excel con filtros listos y asigna el responsable correcto incluso cuando hubo reemplazos.",
+      "Validación: avisa cuando una regla apunta a datos que no calzan con la base, antes de generar falsos positivos.",
+      "Carga: reconoce las bases que llegan desde Monitoreo y muestra las etiquetas en español de los formularios Kobo.",
+    ],
+  },
+  {
+    version: "0.5.3",
+    date: "2026-07-07",
+    highlights: [
+      "Editor de formularios: suma asistentes guiados para saltos, filtros de opciones, validaciones, cálculos y mensajes de campo, sin escribir sintaxis técnica.",
+      "Editor de formularios: refuerza el lienzo de lógica, el catálogo de opciones y la restauración del autoguardado.",
+      "Monitoreo: agrega la mesa de reconciliación territorial con cola de UMP, ajustes operativos con historial y lentes de revisión.",
+      "Procesamiento: compacta la navegación en rieles de íconos y pule las mesas de trabajo de Carga, Validación, Codificación y Analítica.",
+      "Gráficos: amplía el selector de modelos, unifica la barra superior y estabiliza la vista previa al cambiar de lámina.",
+      "Apariencia: moderniza Home, Carga, Cálculo de muestra, Validación, Codificación y Analítica con el nuevo lenguaje visual de la suite.",
+    ],
+  },
+  {
+    version: "0.5.2",
+    date: "2026-07-03",
+    highlights: [
+      "Gráficos: estrena la biblioteca de modelos de láminas, calibrada con la plantilla PPT real del estudio.",
+      "Gráficos: genera la vista previa de láminas localmente, lista para funcionar en la app instalada.",
+      "Gráficos: aclara la suite de estilo global — presets, modos por espacio y placeholders dinámicos — con vocabulario más simple.",
+      "Gráficos: compacta la barra superior, el inspector y el timeline para aprovechar mejor la pantalla.",
+      "Gráficos: guía la recuperación de modelos pendientes y muestra la salud del plan antes de exportar.",
+    ],
+  },
+  {
+    version: "0.5.1",
+    date: "2026-07-02",
+    highlights: [
+      "Procesamiento: procesa estudios de acreditación con varios actores, cada uno con su propia base Kobo.",
+      "Carga: importa bases hermanas independientes desde Kobo dentro del mismo proyecto.",
+      "Procesamiento: sugiere los siguientes pasos del pipeline según el diseño del estudio.",
+      "Monitoreo: adapta el seguimiento a estudios de acreditación y encuestas telefónicas con perfiles dedicados.",
+      "Gráficos: mide la cobertura del plan de láminas para detectar variables aún sin graficar.",
+      "Procesamiento: agrega un visor de hojas para revisar la base procesada sin salir de la app.",
+    ],
+  },
+  {
+    version: "0.5.0",
+    date: "2026-06-30",
+    highlights: [
+      "Arranque: acelera la apertura de proyectos con precarga en caliente y una pantalla de inicio que muestra el progreso real.",
+      "Plan de trabajo: mantiene el cronograma del estudio sincronizado con el avance del proyecto.",
+      "Monitoreo: prepara las salidas publicables con indicadores de disponibilidad más confiables y paneles por canal mejor distribuidos.",
+      "Calidad: suma proyectos de auditoría reproducibles que respaldan cada versión con evidencia visual.",
+    ],
+  },
+  {
     version: "0.4.0",
     date: "2026-06-22",
     highlights: [
