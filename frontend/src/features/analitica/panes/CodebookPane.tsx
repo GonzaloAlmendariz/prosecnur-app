@@ -16,6 +16,7 @@ export function CodebookPane() {
   const setCodebook = useAnaliticaStore((s) => s.setCodebook);
   const excluidasCount = useAnaliticaStore((s) => s.config.variables_excluidas.length);
   const run = useReporteRun();
+  const runPdf = useReporteRun();
   const { state } = useSession();
 
   const codes = codebook.codigos_solo_si_presentes;
@@ -33,6 +34,13 @@ export function CodebookPane() {
     await run.runSync(async () => {
       await apiAnaliticaConfigPut(config);
       return apiAnaliticaCodebook();
+    });
+  }
+
+  async function onGeneratePdf() {
+    await runPdf.runSync(async () => {
+      await apiAnaliticaConfigPut(config);
+      return apiAnaliticaCodebook({ formato: "pdf" });
     });
   }
 
@@ -120,6 +128,22 @@ export function CodebookPane() {
         />
 
         <FinalXlsformDownload result={run.lastResult?.xlsform} />
+
+        <div className="analitica-codebook-pdf">
+          <div className="analitica-codebook-pdf-copy">
+            ¿Necesitas compartirlo? Genera el <strong>libro de códigos en PDF</strong>, listo para leer e imprimir. Usa la misma fuente y exclusiones; el XLSForm final se descarga desde la corrida XLSX de arriba.
+          </div>
+          <GenerateFooter
+            label="Generar libro de códigos (PDF)"
+            busy={runPdf.busy}
+            fileId={runPdf.fileId}
+            downloadName={runPdf.filename ?? "libro_de_codigos.pdf"}
+            error={runPdf.error}
+            onGenerate={onGeneratePdf}
+            perBase={runPdf.perBase}
+            variant="secondary"
+          />
+        </div>
       </div>
     </Panel>
   );

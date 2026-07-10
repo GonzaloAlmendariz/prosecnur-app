@@ -192,12 +192,16 @@ reporte_instrumento <- function(path,
     if (!is.na(chosen) && nzchar(chosen) && non_empty(x[[chosen]]) > 0L) return(chosen)
 
     if (nzchar(lang)) {
-      hit <- grep(sprintf("^label::%s", gsub("([\\.\\+*?\\[\\]\\^$(){}|])", "\\\\\\1", lang)), nms_l)
+      # `lang` se escapa con el helper compartido (perl = TRUE); el escape inline
+      # anterior armaba un patrón que TRE rechaza ("Invalid contents of {}") y
+      # abortaba con choices sin filas (formularios Kobo sin preguntas select).
+      lang_rx <- regex_escape(lang)
+      hit <- grep(sprintf("^label::%s", lang_rx), nms_l)
       if (length(hit)) {
         chosen <- pick_best_col(nms[hit])
         if (!is.na(chosen) && nzchar(chosen) && non_empty(x[[chosen]]) > 0L) return(chosen)
       }
-      hit <- grep(sprintf("label::%s\\s*\\(", lang), nms_l)
+      hit <- grep(sprintf("label::%s\\s*\\(", lang_rx), nms_l)
       if (length(hit)) {
         chosen <- pick_best_col(nms[hit])
         if (!is.na(chosen) && nzchar(chosen) && non_empty(x[[chosen]]) > 0L) return(chosen)

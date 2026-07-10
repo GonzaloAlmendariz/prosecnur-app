@@ -2362,6 +2362,11 @@
   orden_cfg <- .orden_categorias_from_cfg(cfg)
   if (length(orden_cfg)) inst <- .apply_orden_categorias(inst, orden_cfg)
 
+  # Los dummies de select_multiple se generan en la codificación en orden
+  # arbitrario; se reordenan por el orden de la lista de opciones del XLSForm
+  # para que la vista "Base final" y el libro de códigos los muestren 1,2,…,96.
+  data <- .analitica_order_sm_dummy_cols(data, inst)
+
   list(data = data, inst = inst)
 }
 
@@ -3333,7 +3338,7 @@ mount_analitica <- function(pr) {
         n_columnas = ncol(ctx$rp_data)
       )
     })) |>
-    plumber::pr_post("/api/analitica/codebook", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/analitica/codebook", wrap_endpoint(function(req, res, ...) {
       # Codebook multi-base (v0.2+): itera sobre todas las bases del
       # estudio y genera un xlsx por cada una. Con 1 base → xlsx directo
       # como antes. Con N → zip con N archivos prefijados por nombre
@@ -3342,36 +3347,33 @@ mount_analitica <- function(pr) {
       # Config: `codigos_solo_si_presentes` y `variables_excluidas` son
       # globales al estudio (no varían por base, el QMD trabaja con la
       # misma política de codificación para todas).
+      # Formato del entregable: "xlsx" (default) o "pdf". El PDF reusa el mismo
+      # data_out que el XLSX; con >1 base, run_report_multibase empaqueta en zip.
       sid <- session_header(req)
+      body <- .analitica_json_body(req)
+      formato <- calc_str(body$formato %||% "xlsx", "xlsx")
+      if (!formato %in% c("xlsx", "pdf")) {
+        stop_api(400, "E_ANALITICA_CODEBOOK_FORMATO",
+                 "Formato de libro de códigos inválido. Usa 'xlsx' o 'pdf'.")
+      }
       cfg <- .analitica_get_config(sid)
       cb_cfg <- cfg$codebook %||% list()
       codes <- .as_int_vec(cb_cfg$codigos_solo_si_presentes)
       excluidas <- .as_chr_vec(cfg$variables_excluidas)
       numericas_arg <- .analitica_declared_numericas(cfg, override_frecuencias = FALSE)
 
+      ext <- if (identical(formato, "pdf")) "pdf" else "xlsx"
+      base_filename <- if (identical(formato, "pdf")) "libro_de_codigos" else "codebook"
+      kind_single <- if (identical(formato, "pdf")) "codebook_pdf" else "codebook"
+      kind_multi  <- if (identical(formato, "pdf")) "codebook_pdf_zip" else "codebook_zip"
+
       result <- run_report_multibase(
         sid           = sid,
-        base_filename = "codebook",
-        ext           = "xlsx",
-	        kind_single   = "codebook",
-	        kind_multi    = "codebook_zip",
-	        fn = function(rp_data, rp_inst, out_path) {
-	          reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
-	          data_out <- .analitica_filter_data(reviewed$data, reviewed$inst, numericas_arg, excluidas)
-	          reporte_codebook(
-	            data = data_out,
-            path_xlsx = out_path,
-            codigos_solo_si_presentes = if (length(codes) > 0L) codes else NULL,
-            ficha_tecnica = list(
-              cfg = cfg,
-              instrumento = reviewed$inst,
-              reporte = "Libro de codigos",
-              detalles = list(
-                "Variables excluidas" = if (length(excluidas)) paste(excluidas, collapse = ", ") else "Ninguna"
-              )
-            )
-          )
-        }
+        base_filename = base_filename,
+        ext           = ext,
+        kind_single   = kind_single,
+        kind_multi    = kind_multi,
+        fn = .analitica_codebook_render_fn(cfg, formato, codes, numericas_arg, excluidas)
       )
       xlsform_result <- run_report_multibase(
         sid           = sid,

@@ -9680,9 +9680,14 @@ export type MultiBaseResult = {
   };
 };
 
-export async function apiAnaliticaCodebook() {
+export async function apiAnaliticaCodebook(opts?: { formato?: "xlsx" | "pdf" }) {
+  const formato = opts?.formato ?? "xlsx";
   return handle<MultiBaseResult>(
-    await apiFetch("/api/analitica/codebook", { method: "POST", headers: headers() })
+    await apiFetch("/api/analitica/codebook", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ formato }),
+    })
   );
 }
 
