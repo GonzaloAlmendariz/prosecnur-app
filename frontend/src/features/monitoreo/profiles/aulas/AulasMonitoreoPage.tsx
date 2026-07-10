@@ -10,10 +10,12 @@ import {
 import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "../../../aulasFlow/AulasApplicationFlow";
 import { MODULE_TONES } from "../../../../lib/modules";
 import { AULAS_WORKBENCH_VIEWS, MONITOREO_ROUTES, type WorkbenchView } from "../../core/monitoreoRegistry";
+import { initialMonitoreoView, useMonitoreoTabParam } from "../../useMonitoreoTabParam";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import type { MonitoreoReportScope } from "../types";
 import "../profilePage.css";
 import "../../shell/monitoreoShell.css";
+import "./aulasMonitoreo.css";
 
 const AULAS_ROUTE = MONITOREO_ROUTES.find((route) => route.family === "aulas_universitarias") ?? MONITOREO_ROUTES[2];
 
@@ -87,11 +89,37 @@ function compactColumns(rows: Array<Record<string, unknown>>, preferred: string[
   return keys.slice(0, 8);
 }
 
-function StatTile({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "good" | "warn" }) {
+type AulasKpi = { label: string; value: string; tone?: "neutral" | "warn" };
+
+// Banda canonica: unifica los KPIs que antes estaban repartidos entre la
+// cabecera (3) y la fila de stats de avance (5). El color semantico (warn)
+// se reserva para brechas/cuotas con deficit real; el resto queda neutral
+// para no meter ruido verde en conteos que aun estan en 0.
+function aulasKpis(dashboard: MonitoreoAulasDashboard | null): AulasKpi[] {
+  const kpis = dashboard?.kpis;
+  const quotaOk = Number(kpis?.quota_cells_ok ?? 0);
+  const quotaAll = Number(kpis?.quota_cells ?? 0);
+  const quotaPending = Number(kpis?.quota_cells_pending ?? 0);
+  const brechas = Number(kpis?.brechas ?? 0);
+  return [
+    { label: "Aulas", value: fmt(kpis?.total_aulas) },
+    { label: "Aplicadas", value: fmt(kpis?.aulas_aplicadas) },
+    { label: "Válidas", value: fmt(kpis?.respuestas_validas) },
+    { label: "Representatividad", value: pct(kpis?.representativity_effective_score) },
+    { label: "Cuotas sexo/facultad", value: `${fmt(quotaOk)}/${fmt(quotaAll)}`, tone: quotaPending ? "warn" : "neutral" },
+    { label: "Brechas", value: fmt(kpis?.brechas), tone: brechas ? "warn" : "neutral" },
+  ];
+}
+
+function AulasKpiBand({ dashboard }: { dashboard: MonitoreoAulasDashboard | null }) {
   return (
-    <div className={`mon-profile-stat mon-profile-stat--${tone}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
+    <div className="aulas-kpi-band" role="group" aria-label="Indicadores de aulas">
+      {aulasKpis(dashboard).map((kpi) => (
+        <div key={kpi.label} className={`aulas-kpi aulas-kpi--${kpi.tone ?? "neutral"}`}>
+          <span>{kpi.label}</span>
+          <strong>{kpi.value}</strong>
+        </div>
+      ))}
     </div>
   );
 }
@@ -173,23 +201,6 @@ function metricTone(done: number, total: number): AulasFlowMetric["tone"] {
   if (done >= total) return "ready";
   if (done > 0) return "current";
   return "warning";
-}
-
-function aulasFlowMetrics(dashboard: MonitoreoAulasDashboard | null): AulasFlowMetric[] {
-  const handoff = handoffSummary(dashboard);
-  const applied = Number(dashboard?.kpis.aulas_aplicadas ?? 0);
-  const totalAulas = handoff.total || Number(dashboard?.kpis.total_aulas ?? 0);
-  return [
-    { label: "Plan", value: dashboard?.selection_run_id ? "importado" : "pendiente", tone: dashboard?.selection_run_id ? "ready" : "warning" },
-    { label: "Kobo + QR", value: coverageLabel(handoff.linked, handoff.total), tone: metricTone(handoff.linked, handoff.total) },
-    {
-      label: "Fichas PDF",
-      value: handoff.pdf ? coverageLabel(handoff.pdf, handoff.total, "fichas") : handoff.linked ? "por generar" : "pendiente",
-      tone: handoff.pdf ? metricTone(handoff.pdf, handoff.total) : handoff.linked ? "current" : "warning",
-    },
-    { label: "Aplicadas", value: coverageLabel(applied, totalAulas), tone: metricTone(applied, totalAulas) },
-    { label: "Brechas", value: fmt(dashboard?.kpis.brechas), tone: dashboard?.kpis.brechas ? "warning" : "ready" },
-  ];
 }
 
 function HandoffTracePanel({ dashboard }: { dashboard: MonitoreoAulasDashboard | null }) {
@@ -311,13 +322,6 @@ function renderAulasView(view: WorkbenchView, dashboard: MonitoreoAulasDashboard
   const avanceRows = (quotaRows.length ? quotaRows : dashboard.avance_por_estrato ?? []) as Array<Record<string, unknown>>;
   return (
     <div className="mon-profile-stack">
-      <div className="mon-profile-stat-row">
-        <StatTile label="Aulas" value={fmt(dashboard.kpis.total_aulas)} />
-        <StatTile label="Aplicadas" value={fmt(dashboard.kpis.aulas_aplicadas)} tone="good" />
-        <StatTile label="Validas" value={fmt(dashboard.kpis.respuestas_validas)} tone="good" />
-        <StatTile label="Cuotas sexo/facultad" value={fmt(dashboard.kpis.quota_cells_ok ?? 0) + "/" + fmt(dashboard.kpis.quota_cells ?? quotaRows.length)} tone={(dashboard.kpis.quota_cells_pending ?? 0) ? "warn" : "good"} />
-        <StatTile label="Brechas" value={fmt(dashboard.kpis.brechas)} tone={dashboard.kpis.brechas ? "warn" : "good"} />
-      </div>
       <section className="mon-profile-panel">
         <div className="mon-profile-panel-head">
           <h3>{quotaRows.length ? "Cuota sexo por facultad" : "Avance por estrato"}</h3>
@@ -331,7 +335,8 @@ function renderAulasView(view: WorkbenchView, dashboard: MonitoreoAulasDashboard
 
 export default function AulasMonitoreoPage() {
   const [state, setState] = useState<MonitoreoState | null>(null);
-  const [activeView, setActiveView] = useState<WorkbenchView>("avance");
+  const [activeView, setActiveView] = useState<WorkbenchView>(() => initialMonitoreoView("avance", AULAS_WORKBENCH_VIEWS));
+  useMonitoreoTabParam(activeView);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -410,30 +415,20 @@ export default function AulasMonitoreoPage() {
         </aside>
 
         <section className="mon-profile-content">
-          <div className="mon-profile-head">
-            <div>
-              <span>Hostigamiento en aulas · flujo actual</span>
-              <h2>{activeDef.label}</h2>
-              <p>{activeDef.desc}</p>
-            </div>
-            <div className="mon-profile-kpis">
-              <StatTile label="Aulas" value={fmt(dashboard?.kpis.total_aulas)} />
-              <StatTile label="Aplicadas" value={fmt(dashboard?.kpis.aulas_aplicadas)} tone="good" />
-              <StatTile label="Representatividad" value={pct(dashboard?.kpis.representativity_effective_score)} />
-            </div>
-          </div>
+          <AulasKpiBand dashboard={dashboard} />
           <AulasApplicationFlow
             tone="monitoreo"
             current="monitoreo"
             compact
             title="Seguimiento del estudio de hostigamiento en aulas"
             summary="Este monitoreo lee el plan del cálculo de muestra de aulas y los enlaces QR/PDF del estudio de hostigamiento para medir avance, caídas, reemplazos y brechas sin rediseñar la muestra."
-            metrics={aulasFlowMetrics(dashboard)}
             secondaryAction={{ to: AULAS_SAMPLE_ROUTE, label: "Ver muestra de aulas" }}
             action={{ to: "/recopiladores", label: "Abrir fichas QR" }}
           />
-          {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
-          {loading ? <EmptyPanel title="Preparando vista" detail="Leyendo cache local del proyecto..." /> : renderAulasView(activeView, dashboard)}
+          <div className="aulas-mon-view">
+            {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
+            {loading ? <EmptyPanel title="Preparando vista" detail="Leyendo cache local del proyecto..." /> : renderAulasView(activeView, dashboard)}
+          </div>
         </section>
       </main>
     </div>

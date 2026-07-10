@@ -1,0 +1,162 @@
+/* Revamp visual — Monitoreo de aulas.
+   Scopeado a .mon-profile-page.is-aulas-flow. Solo tokens --pulso-*.
+   Objetivo: (1) matar la cabecera titulo/subtitulo redundante (el rail de
+   secciones ya nombra la seccion), (2) unificar los KPIs dispersos en una
+   sola banda canonica, (3) que la superficie de datos ocupe el canvas en vez
+   de dejar ~45% de espacio muerto. Se importa despues de profilePage.css para
+   ganar en igualdad de especificidad. */
+
+.mon-profile-page.is-aulas-flow .mon-profile-content {
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 12px;
+}
+
+/* ── Banda canonica de KPIs ─────────────────────────────────────────────
+   Unica fuente de verdad de los indicadores. Identidad de modulo (crimson)
+   en el contenedor; color semantico (warn) solo en tiles con brecha real. */
+.mon-profile-page.is-aulas-flow .aulas-kpi-band {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring) 18%, var(--pulso-border));
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--pulso-module-monitoring) 6%, transparent), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--pulso-surface-2) 90%, transparent));
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-kpi {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 9px 12px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+/* Hairline de acento en el borde inferior — identidad sin recargar */
+.mon-profile-page.is-aulas-flow .aulas-kpi::after {
+  content: "";
+  position: absolute;
+  inset: auto 12px 0;
+  height: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 32%, transparent);
+  opacity: 0.55;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-kpi span {
+  min-height: 22px;
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  line-height: 1.12;
+  text-transform: uppercase;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-kpi strong {
+  color: var(--pulso-text);
+  font-size: 21px;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-kpi--warn {
+  border-color: var(--pulso-warn-border);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 42%, #fff);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-kpi--warn::after {
+  background: color-mix(in srgb, var(--pulso-warn-fg) 46%, transparent);
+  opacity: 0.7;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-kpi--warn strong {
+  color: color-mix(in srgb, var(--pulso-warn-fg) 82%, var(--pulso-text));
+}
+
+/* ── La vista de seccion ocupa el canvas restante ───────────────────────── */
+.mon-profile-page.is-aulas-flow .aulas-mon-view {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mon-view:has(.mon-profile-error) {
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+}
+
+/* Stack de una sola tabla (avance, fuentes, calidad, consultas): la tabla llena */
+.mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-stack {
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
+  align-content: stretch;
+}
+
+/* Agenda (modelo): handoff (auto) + tabla de agenda (1fr) */
+.mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-stack:has(.mon-aulas-handoff-panel) {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+/* Panel/section directa (fuentes, calidad, consultas) tambien llena */
+.mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-panel,
+.mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-empty {
+  min-height: 0;
+}
+
+/* Los paneles de datos estiran su fila y la tabla scrollea dentro */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel {
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-table-wrap {
+  min-height: 0;
+  max-height: none; /* mata el cap de 420px que dejaba el espacio muerto */
+  height: 100%;
+  border-radius: 12px;
+}
+
+/* Zebra + hover sobrios para lectura de campo, con identidad de modulo */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-table tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--pulso-surface-2) 55%, #fff);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 5%, #fff);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-table td {
+  font-variant-numeric: tabular-nums;
+}
+
+/* El HandoffTracePanel no debe estirarse como la tabla */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-aulas-handoff-panel {
+  align-content: start;
+}
+
+/* Cabecera de panel: el eyebrow/contador queda discreto y con el conteo a la
+   derecha; el acento crimson vive en el titulo. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel-head h3 {
+  color: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel-head span {
+  border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring) 20%, var(--pulso-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 7%, #fff);
+  color: color-mix(in srgb, var(--pulso-module-monitoring) 78%, var(--pulso-text));
+  font-size: 10px;
+  font-weight: 850;
+  padding: 3px 9px;
+  white-space: nowrap;
+}
