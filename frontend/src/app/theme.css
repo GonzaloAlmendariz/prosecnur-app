@@ -183,9 +183,21 @@
   --pulso-radius-card: 14px;
   --pulso-radius-panel: 16px;
   --pulso-radius-lens: 20px;
+  /* Escalera de controles del macOS 26 UI Kit (16/20/24/28/36): 28 es el
+   * default de content area; 36 se reserva a toolbar/CTA. sm y md coinciden
+   * hoy en 28 pero son slots semánticos distintos (denso vs. default). */
   --pulso-control-height-sm: 28px;
-  --pulso-control-height-md: 32px;
+  --pulso-control-height-md: 28px;
   --pulso-control-height-lg: 36px;
+  /* Peso de trabajo de controles del kit: Medium (500); la jerarquía se hace
+   * con tamaño y color, no con bold. Windows compensa vía data-platform
+   * porque Segoe UI renderiza Medium más liviano que SF Pro. */
+  --pulso-control-weight: 500;
+  --pulso-control-check-size: 16px;
+  /* Rail lateral canónico del kit: ancho 240, filas 24/32/40. */
+  --pulso-rail-width: 240px;
+  --pulso-rail-row-height: 32px;
+  --pulso-rail-row-height-lg: 40px;
   --pulso-active-base-footer-reserve: 12px;
   --pulso-operational-min-workbench: 360px;
   --pulso-operational-min-panel: 360px;
@@ -218,6 +230,10 @@
   /* Hover card para variables — delay y timing. */
   --pulso-hovercard-delay: 500ms;
   --pulso-hovercard-hide-delay: 180ms;
+}
+
+:root[data-platform="windows"] {
+  --pulso-control-weight: 600;
 }
 
 @keyframes pulso-route-enter-kf {
@@ -445,14 +461,14 @@ button {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 5px 12px;
   border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, var(--pulso-border-strong));
   background:
     linear-gradient(180deg, #fff 0%, color-mix(in srgb, var(--pulso-surface-2) 74%, #fff 26%) 100%);
   color: var(--pulso-text);
   border-radius: 8px;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: var(--pulso-control-weight);
   line-height: 1.2;
   white-space: nowrap;
   box-shadow:
@@ -522,14 +538,14 @@ button.pulso-secondary:hover:not(:disabled) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 32px;
-  padding: 7px 14px;
+  min-height: var(--pulso-control-height-md);
+  padding: 5px 14px;
   border-radius: 8px;
   background: var(--pulso-primary);
   border: 1px solid var(--pulso-primary);
   color: #fff;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--pulso-control-weight);
   text-decoration: none;
 }
 
@@ -582,6 +598,14 @@ input:disabled, textarea:disabled, select:disabled {
   cursor: not-allowed;
   opacity: 0.72;
 }
+/* Text fields calzan con la escalera del kit (28 de alto exacto); checkbox,
+ * radio y range tienen geometría propia y quedan fuera. */
+input:where(:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"])),
+select {
+  min-height: var(--pulso-control-height-md);
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
 select:not([multiple]) {
   appearance: none;
   padding-right: 30px;
@@ -594,10 +618,10 @@ select:not([multiple]) {
 input[type="checkbox"],
 input[type="radio"] {
   appearance: none;
-  width: 18px;
-  height: 18px;
-  min-width: 18px;
-  min-height: 18px;
+  width: var(--pulso-control-check-size);
+  height: var(--pulso-control-check-size);
+  min-width: var(--pulso-control-check-size);
+  min-height: var(--pulso-control-check-size);
   margin: 0;
   display: inline-grid;
   place-content: center;
@@ -610,7 +634,7 @@ input[type="radio"] {
   cursor: pointer;
 }
 input[type="checkbox"] {
-  border-radius: 5px;
+  border-radius: 4px;
 }
 input[type="radio"] {
   border-radius: 999px;
@@ -625,15 +649,15 @@ input[type="radio"]::before {
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 input[type="checkbox"]::before {
-  width: 10px;
-  height: 7px;
+  width: 9px;
+  height: 6px;
   border: solid #fff;
   border-width: 0 0 2px 2px;
   transform: rotate(-45deg) scale(0.82) translate(1px, -1px);
 }
 input[type="radio"]::before {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: inherit;
   background: #fff;
 }
@@ -4745,13 +4769,13 @@ a { color: var(--pulso-primary); }
 }
 .pulso-validacion-nav-item {
   width: 100%;
-  min-height: 46px;
-  height: 46px;
+  min-height: var(--pulso-rail-row-height-lg);
+  height: var(--pulso-rail-row-height-lg);
   display: grid;
   grid-template-columns: 18px 24px minmax(0, 1fr);
   align-items: center;
   gap: 7px;
-  padding: 6px 7px;
+  padding: 5px 7px;
   border: 1px solid var(--pulso-border);
   border-radius: 10px;
   background:
@@ -7904,13 +7928,13 @@ a { color: var(--pulso-primary); }
 }
 .pulso-codificacion-nav-item {
   width: 100%;
-  min-height: 46px;
-  height: 46px;
+  min-height: var(--pulso-rail-row-height-lg);
+  height: var(--pulso-rail-row-height-lg);
   display: grid;
   grid-template-columns: 18px 24px minmax(0, 1fr);
   align-items: center;
   gap: 7px;
-  padding: 6px 7px;
+  padding: 5px 7px;
   border: 1px solid var(--pulso-border);
   border-radius: 10px;
   background:
@@ -9395,8 +9419,8 @@ h1.pulso-page-title {
   grid-template-columns: 20px 25px minmax(0, 1fr);
   align-items: center;
   gap: 6px;
-  min-height: clamp(44px, 5.4vh, 52px);
-  padding: clamp(6px, 0.7vw, 7px);
+  min-height: var(--pulso-rail-row-height-lg);
+  padding: clamp(4px, 0.6vw, 6px);
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.72);
@@ -13034,8 +13058,8 @@ h1.pulso-page-title {
   transform: scale(0.98);
 }
 .pulso-sm-case-filters label input {
-  width: 17px;
-  height: 17px;
+  width: var(--pulso-control-check-size);
+  height: var(--pulso-control-check-size);
   accent-color: var(--sm-decision-accent);
 }
 .pulso-sm-case-filters label.is-active {
@@ -17366,8 +17390,8 @@ h1.pulso-page-title {
 }
 
 .pulso-data-review-include input {
-  width: 17px;
-  height: 17px;
+  width: var(--pulso-control-check-size);
+  height: var(--pulso-control-check-size);
   margin: 0;
   cursor: pointer;
 }
@@ -18796,12 +18820,12 @@ h1.pulso-page-title {
 }
 .pulso-analitica-nav-item {
   width: 100%;
-  min-height: 46px;
+  min-height: var(--pulso-rail-row-height-lg);
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr) auto;
   align-items: center;
   gap: 6px;
-  padding: 6px;
+  padding: 5px 6px;
   border: 1px solid color-mix(in srgb, var(--pulso-border) 86%, transparent);
   border-radius: 9px;
   background: rgba(255, 255, 255, 0.68);
