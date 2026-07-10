@@ -1937,6 +1937,10 @@
     stop("No hay variables analizables para generar frecuencias panel.", call. = FALSE)
   }
   ficha <- if (.panel_embed_ficha_xlsx(ficha_tecnica)) .panel_package_ficha(built, ctx$inst, ficha_tecnica, reporte = "Frecuencias panel") else FALSE
+  # Listas ordinales EFECTIVAS del instrumento panel (override manual del
+  # analista ∪ auto-deteccion likert). Fuerzan "original" por variable ordinal
+  # aunque `orden` global sea desc/asc — igual que la ruta estandar.
+  ordinal_lists <- .orden_categorias_ordinal_set(ctx$inst, cfg)
   reporte_frecuencias(
     ctx$data,
     instrumento = ctx$inst,
@@ -1948,6 +1952,7 @@
     numericas = numericas,
     incluir_titulos = !identical(fc$incluir_titulos, FALSE),
     incluir_secciones = !identical(fc$incluir_secciones, FALSE),
+    ordinal_lists = ordinal_lists,
     ficha_tecnica = ficha
   )
   invisible(path)
@@ -2029,6 +2034,12 @@
   attr(data, "instrumento_reporte") <- ctx$inst
   opciones_excluir <- unique(.panel_as_chr_vec(unlist(exclusion_map, use.names = FALSE)))
   ficha <- if (.panel_embed_ficha_xlsx(ficha_tecnica)) .panel_package_ficha(built, ctx$inst, ficha_tecnica, reporte = "Cruces panel") else FALSE
+  # Orden de cruces elegido por el analista (mismo default/validacion que la
+  # ruta estandar) + listas ordinales efectivas para que las variables likert
+  # queden en su orden fijo aunque el orden global sea desc/asc.
+  orden_cruces <- as.character(cr$orden %||% "original")
+  if (!orden_cruces %in% c("desc", "asc", "original")) orden_cruces <- "original"
+  ordinal_lists <- .orden_categorias_ordinal_set(ctx$inst, cfg)
   reporte_cruces(
     data = data,
     instrumento = ctx$inst,
@@ -2041,6 +2052,8 @@
     codigos_solo_si_presentes = .panel_report_frequency_codes(cfg),
     numericas = numericas,
     opciones_excluir = opciones_excluir,
+    orden = orden_cruces,
+    ordinal_lists = ordinal_lists,
     incluir_total = !identical(cr$incluir_total, FALSE),
     incluir_titulos = !identical(cr$incluir_titulos, FALSE),
     incluir_secciones = !identical(cr$incluir_secciones, FALSE),
@@ -2133,6 +2146,9 @@
     progress("writing", percent = 84, message = "Generando frecuencias con el motor de Analitica...")
     fc <- cfg$frecuencias %||% list()
     freq_path <- file.path(stage, "03_frecuencias.xlsx")
+    # Mismo cableado ordinal que `.panel_export_frequencies_xlsx`: la copia
+    # inline del paquete tambien debe respetar las listas ordinales.
+    freq_ordinal_lists <- .orden_categorias_ordinal_set(inst, cfg)
     reporte_frecuencias(
       data_report,
       instrumento = inst,
@@ -2144,6 +2160,7 @@
       numericas = numericas,
       incluir_titulos = !identical(fc$incluir_titulos, FALSE),
       incluir_secciones = !identical(fc$incluir_secciones, FALSE),
+      ordinal_lists = freq_ordinal_lists,
       ficha_tecnica = ficha
     )
     add_file(freq_path)

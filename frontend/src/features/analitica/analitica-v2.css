@@ -235,6 +235,51 @@
   background: var(--pulso-surface-2);
 }
 
+/* Toggle "¿Es una lista ordinal?" (Automático / Ordinal / Nominal). */
+.analitica-orden-ordinal {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.analitica-orden-ordinal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.analitica-orden-ordinal-title {
+  flex: 1;
+  min-width: 140px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--pulso-text-soft);
+}
+
+.analitica-orden-ordinal-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+}
+
+/* Marca informativa de ordinalidad efectiva en la card del catálogo. */
+.analitica-orden-lista-ordinal {
+  font-weight: 700;
+  color: var(--pulso-primary);
+}
+
+/* Nota discreta bajo los segmentados de orden (Frecuencias y Cruces). */
+.pulso-analitica-frame .analitica-presentation-hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+}
+
 .analitica-orden-toolbar {
   display: flex;
   align-items: center;

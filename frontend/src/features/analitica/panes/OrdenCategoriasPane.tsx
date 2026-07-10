@@ -54,6 +54,7 @@ export function OrdenCategoriasPane() {
   const [query, setQuery] = useState("");
 
   const overrides = useAnaliticaStore((s) => s.config.orden_categorias);
+  const ordinalOverrides = useAnaliticaStore((s) => s.config.listas_ordinales);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,8 +82,8 @@ export function OrdenCategoriasPane() {
   );
 
   const catalogo = useMemo(
-    () => (dataReview ? derivarCatalogoListas(seleccionables, dataReview, overrides) : []),
-    [seleccionables, dataReview, overrides],
+    () => (dataReview ? derivarCatalogoListas(seleccionables, dataReview, overrides, ordinalOverrides) : []),
+    [seleccionables, dataReview, overrides, ordinalOverrides],
   );
 
   const catalogoFiltrado = useMemo(() => {
@@ -205,6 +206,12 @@ export function OrdenCategoriasPane() {
                           {e.nVariables} {e.nVariables === 1 ? "variable" : "variables"}
                           {" · "}
                           {e.nCategorias} {e.nCategorias === 1 ? "categoría" : "categorías"}
+                          {e.ordinalEfectivo && (
+                            <>
+                              {" · "}
+                              <span className="analitica-orden-lista-ordinal">ordinal</span>
+                            </>
+                          )}
                         </span>
                       </button>
                     );

@@ -68,6 +68,36 @@ export function ordenesIguales(a: string[], b: string[]): boolean {
   return a.every((code, i) => code === b[i]);
 }
 
+// ----- Ordinalidad de lista (contrato compartido con el backend) -------------
+// Regla "lista ordinal EFECTIVA", idéntica en R y TS:
+//   • Si `listas_ordinales[list_name]` está definido (!== undefined) → gana ese
+//     override explícito del analista (true o false).
+//   • Si no → cae a `list_ordinal_auto` de esa lista (auto-detección del
+//     backend), y si tampoco está mapeada, a `false`.
+// El backend consume `listas_ordinales` (overrides) y calcula `list_ordinal_auto`
+// por lista; ambos lados aplican esta misma resolución para decidir si una lista
+// conserva su orden fijo al pedir orden "por frecuencia".
+export function esListaOrdinalEfectiva(
+  listName: string,
+  overrides: Record<string, boolean>,
+  autoMap: Record<string, boolean>,
+): boolean {
+  const override = overrides[listName];
+  if (override !== undefined) return override;
+  return autoMap[listName] ?? false;
+}
+
+// Auto-detección de ordinalidad de una lista a partir de sus variables. El
+// backend marca el mismo `list_ordinal_auto` en todas las variables que
+// comparten `list_name`; tomamos el primero con valor definido. Sin señal
+// → false.
+export function ordinalAutoDeLista(vars: VariableInstrumento[]): boolean {
+  for (const v of vars) {
+    if (v.list_ordinal_auto !== undefined) return v.list_ordinal_auto;
+  }
+  return false;
+}
+
 // ----- Catálogo de listas ----------------------------------------------------
 // Una fila del catálogo de listas disponibles. Se deriva de las variables de
 // selección del instrumento agrupadas por `list_name`, con el conteo de
@@ -81,6 +111,10 @@ export type ListaCatalogoEntry = {
   nCategorias: number;
   // La lista tiene un orden propio guardado (override no vacío en el store).
   tieneOverride: boolean;
+  // Auto-detección de ordinalidad calculada por el backend para la lista.
+  ordinalAuto: boolean;
+  // Ordinalidad EFECTIVA = override explícito (`listas_ordinales`) ?? auto.
+  ordinalEfectivo: boolean;
 };
 
 // Deriva el catálogo de listas únicas a partir de las variables de selección.
@@ -92,6 +126,7 @@ export function derivarCatalogoListas(
   variablesSeleccion: VariableInstrumento[],
   dataReview: DataReviewVariable[],
   overrides: Record<string, string[]>,
+  ordinalOverrides: Record<string, boolean> = {},
 ): ListaCatalogoEntry[] {
   const grupos = new Map<string, VariableInstrumento[]>();
   for (const v of variablesSeleccion) {
@@ -115,11 +150,14 @@ export function derivarCatalogoListas(
       }
     }
     const override = overrides[listName];
+    const ordinalAuto = ordinalAutoDeLista(vars);
     entries.push({
       listName,
       nVariables: vars.length,
       nCategorias,
       tieneOverride: !!override && override.length > 0,
+      ordinalAuto,
+      ordinalEfectivo: esListaOrdinalEfectiva(listName, ordinalOverrides, { [listName]: ordinalAuto }),
     });
   }
 

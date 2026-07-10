@@ -87,6 +87,12 @@ export type CrucesConfig = {
   // convierte al montar (ver `normalizeCrucesVars`).
   cruces_vars: CruceVarConfig[];
   modo: "estandar" | "dimensiones";
+  // Orden de las FILAS de cada tabla de cruce (espejo de `frecuencias.orden`,
+  // pero solo aplica a filas; las columnas las fija la variable de cruce).
+  // "original" respeta el instrumento. Las listas marcadas como ordinales
+  // (`listas_ordinales`) conservan su orden fijo aunque se elija desc/asc; el
+  // backend resuelve ese detalle. Default "original".
+  orden: "desc" | "asc" | "original";
   show_sig: boolean;
   alpha: number;
   incluir_total: boolean;
@@ -323,8 +329,9 @@ export type PonderacionConfig = {
 
 export type AnaliticaConfig = {
   // v1 → v2: `bases`; v2 → v3: revisión de metadata de data;
-  // v3 → v4: `orden_categorias` (orden de categorías por list_name).
-  version: 4;
+  // v3 → v4: `orden_categorias` (orden de categorías por list_name);
+  // v4 → v5: `listas_ordinales` (override ordinal por list_name) + `cruces.orden`.
+  version: 5;
   fuente_preferida: FuentePreferida;
   ficha_tecnica: FichaTecnicaConfig;
   secciones: SeccionConfig[];
@@ -347,14 +354,22 @@ export type AnaliticaConfig = {
   // de frecuencia y los PPT. Entrada ausente/vacía = orden del instrumento.
   // Los códigos no listados se anexan al final en su orden original.
   orden_categorias: Record<string, string[]>;
+  // Override explícito de ordinalidad por `list_name` (clave = list_name).
+  // Contrato compartido con el backend: entrada AUSENTE (undefined) = usar la
+  // auto-detección (`VariableInstrumento.list_ordinal_auto`); `true`/`false` =
+  // el analista fijó el valor. Lo consume el ordenamiento "por frecuencia" de
+  // las tablas: una lista ordinal conserva el orden del instrumento aunque se
+  // elija desc/asc. Ver `esListaOrdinalEfectiva` (ordenCategoriasModel.ts).
+  listas_ordinales: Record<string, boolean>;
 };
 
 // ----- Defaults --------------------------------------------------------------
 
 export const DEFAULT_CONFIG: AnaliticaConfig = {
-  version: 4,
+  version: 5,
   fuente_preferida: "adaptados",
   orden_categorias: {},
+  listas_ordinales: {},
   ficha_tecnica: { layout: "pulso_oficial" },
   secciones: [],
   numericas: [],
@@ -409,6 +424,7 @@ export const DEFAULT_CONFIG: AnaliticaConfig = {
   cruces: {
     cruces_vars: [],
     modo: "estandar",
+    orden: "original",
     show_sig: true,
     alpha: 0.05,
     incluir_total: true,
@@ -544,6 +560,12 @@ type AnaliticaStore = {
   // el orden del instrumento). Un array vacío también borra la entrada.
   setOrdenCategorias: (listName: string, codes: string[]) => void;
   clearOrdenCategorias: (listName: string) => void;
+
+  // Override de ordinalidad por list_name. `setListaOrdinal` fija el boolean
+  // explícito (true/false); `clearListaOrdinal` borra la clave para volver a la
+  // auto-detección del backend. Ver contrato en `esListaOrdinalEfectiva`.
+  setListaOrdinal: (listName: string, ordinal: boolean) => void;
+  clearListaOrdinal: (listName: string) => void;
 };
 
 function dirty(partial: Partial<AnaliticaStore>): Partial<AnaliticaStore> {
@@ -906,6 +928,23 @@ export const useAnaliticaStore = create<AnaliticaStore>((set) => ({
       delete orden_categorias[clean];
       return dirty({ config: { ...s.config, orden_categorias } });
     }),
+
+  setListaOrdinal: (listName, ordinal) =>
+    set((s) => {
+      const clean = listName.trim();
+      if (!clean) return s;
+      const listas_ordinales = { ...s.config.listas_ordinales, [clean]: ordinal };
+      return dirty({ config: { ...s.config, listas_ordinales } });
+    }),
+
+  clearListaOrdinal: (listName) =>
+    set((s) => {
+      const clean = listName.trim();
+      if (!(clean in s.config.listas_ordinales)) return s;
+      const listas_ordinales = { ...s.config.listas_ordinales };
+      delete listas_ordinales[clean];
+      return dirty({ config: { ...s.config, listas_ordinales } });
+    }),
 }));
 
 // ----- Coerción defensiva de orden_categorias -------------------------------
@@ -921,6 +960,25 @@ export function coerceOrdenCategorias(raw: unknown): Record<string, string[]> {
     out[key] = codes;
   }
   return out;
+}
+
+// ----- Coerción defensiva de listas_ordinales -------------------------------
+// Contrato compartido con el backend: Record<list_name, boolean>. Descarta
+// cualquier valor que no sea boolean estricto (una entrada ausente = auto,
+// nunca la inventamos como false).
+export function coerceListasOrdinales(raw: unknown): Record<string, boolean> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out: Record<string, boolean> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value === "boolean") out[key] = value;
+  }
+  return out;
+}
+
+// Coerción del orden de tablas ("desc" | "asc" | "original"). Cualquier valor
+// desconocido cae a "original" (orden del instrumento).
+export function coerceOrdenTablas(raw: unknown): "desc" | "asc" | "original" {
+  return raw === "desc" || raw === "asc" || raw === "original" ? raw : "original";
 }
 
 // ----- Migración schema v2 cruces_vars --------------------------------------
@@ -949,10 +1007,12 @@ export function normalizeAnaliticaConfig(raw: AnaliticaConfig): AnaliticaConfig 
   return {
     ...DEFAULT_CONFIG,
     ...c,
-    // Migración idempotente 3→4: normaliza siempre a la versión actual y
-    // rellena `orden_categorias` con {} para proyectos previos a v4.
-    version: 4,
+    // Migración idempotente hasta v5: normaliza siempre a la versión actual,
+    // rellena `orden_categorias` (v4) y `listas_ordinales` (v5) con {} para
+    // proyectos previos.
+    version: 5,
     orden_categorias: coerceOrdenCategorias((c as Partial<AnaliticaConfig>).orden_categorias),
+    listas_ordinales: coerceListasOrdinales((c as Partial<AnaliticaConfig>).listas_ordinales),
     ficha_tecnica: { ...DEFAULT_CONFIG.ficha_tecnica, ...((c as Partial<AnaliticaConfig>).ficha_tecnica ?? {}) },
     datos: { ...DEFAULT_CONFIG.datos, ...(c as Partial<AnaliticaConfig>).datos },
     codebook: { ...DEFAULT_CONFIG.codebook, ...(c as Partial<AnaliticaConfig>).codebook },
@@ -1005,6 +1065,7 @@ export function normalizeAnaliticaConfig(raw: AnaliticaConfig): AnaliticaConfig 
       ...DEFAULT_CONFIG.cruces,
       ...((c as Partial<AnaliticaConfig>).cruces ?? {}),
       cruces_vars: normalizeCrucesVars(((c as Partial<AnaliticaConfig>).cruces ?? {}).cruces_vars),
+      orden: coerceOrdenTablas(((c as Partial<AnaliticaConfig>).cruces ?? {}).orden),
     },
     enumeradores: { ...DEFAULT_CONFIG.enumeradores, ...((c as Partial<AnaliticaConfig>).enumeradores ?? {}) },
     bases: {

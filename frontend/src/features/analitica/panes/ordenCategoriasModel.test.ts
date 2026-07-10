@@ -4,12 +4,14 @@ import {
   aplicarOrdenGuardado,
   derivarCatalogoListas,
   enviarEspecialesAlFinal,
+  esListaOrdinalEfectiva,
   esValorEspecial,
   moverAbajo,
   moverAlFinal,
   moverAlInicio,
   moverArriba,
   ordenesIguales,
+  ordinalAutoDeLista,
   sembrarOrden,
   VALORES_ESPECIALES,
 } from "./ordenCategoriasModel";
@@ -58,8 +60,8 @@ describe("ordenCategoriasModel", () => {
 });
 
 // ---- Helpers de fixtures para el catálogo ----------------------------------
-function mkVar(name: string, list_name: string): VariableInstrumento {
-  return { name, label: name, tipo: "select_one", list_name };
+function mkVar(name: string, list_name: string, list_ordinal_auto?: boolean): VariableInstrumento {
+  return { name, label: name, tipo: "select_one", list_name, list_ordinal_auto };
 }
 
 function mkDR(name: string, codes: string[]): DataReviewVariable {
@@ -97,12 +99,16 @@ describe("derivarCatalogoListas", () => {
       nVariables: 2,
       nCategorias: 4,
       tieneOverride: true,
+      ordinalAuto: false,
+      ordinalEfectivo: false,
     });
     expect(catalogo[1]).toEqual({
       listName: "acuerdo",
       nVariables: 1,
       nCategorias: 2,
       tieneOverride: false,
+      ordinalAuto: false,
+      ordinalEfectivo: false,
     });
   });
 
@@ -117,7 +123,7 @@ describe("derivarCatalogoListas", () => {
     const catalogo = derivarCatalogoListas(variables, dataReview, {});
 
     expect(catalogo).toEqual([
-      { listName: "canales", nVariables: 2, nCategorias: 3, tieneOverride: false },
+      { listName: "canales", nVariables: 2, nCategorias: 3, tieneOverride: false, ordinalAuto: false, ordinalEfectivo: false },
     ]);
   });
 
@@ -175,5 +181,79 @@ describe("movimiento manual por fila", () => {
     const codes = ["1", "2"];
     expect(moverArriba(codes, 9)).toBe(codes);
     expect(moverAbajo(codes, -1)).toBe(codes);
+  });
+});
+
+describe("esListaOrdinalEfectiva (contrato compartido)", () => {
+  test("sin override: cae a la auto-detección del backend", () => {
+    expect(esListaOrdinalEfectiva("satisfaccion", {}, { satisfaccion: true })).toBe(true);
+    expect(esListaOrdinalEfectiva("distrito", {}, { distrito: false })).toBe(false);
+  });
+
+  test("sin override y sin auto mapeado: false", () => {
+    expect(esListaOrdinalEfectiva("desconocida", {}, {})).toBe(false);
+  });
+
+  test("override false gana sobre auto true", () => {
+    expect(esListaOrdinalEfectiva("satisfaccion", { satisfaccion: false }, { satisfaccion: true })).toBe(false);
+  });
+
+  test("override true gana sobre auto false", () => {
+    expect(esListaOrdinalEfectiva("distrito", { distrito: true }, { distrito: false })).toBe(true);
+  });
+
+  test("override no afecta a otras listas", () => {
+    const overrides = { satisfaccion: false };
+    const auto = { satisfaccion: true, acuerdo: true };
+    expect(esListaOrdinalEfectiva("acuerdo", overrides, auto)).toBe(true);
+  });
+});
+
+describe("ordinalAutoDeLista", () => {
+  test("toma el primer list_ordinal_auto definido de las variables agrupadas", () => {
+    expect(ordinalAutoDeLista([mkVar("p1", "esc", true), mkVar("p2", "esc", true)])).toBe(true);
+    expect(ordinalAutoDeLista([mkVar("p1", "esc", false)])).toBe(false);
+  });
+
+  test("sin señal (todas undefined) → false", () => {
+    expect(ordinalAutoDeLista([mkVar("p1", "esc"), mkVar("p2", "esc")])).toBe(false);
+    expect(ordinalAutoDeLista([])).toBe(false);
+  });
+
+  test("ignora undefined hasta encontrar el primer valor definido", () => {
+    expect(ordinalAutoDeLista([mkVar("p1", "esc"), mkVar("p2", "esc", true)])).toBe(true);
+  });
+});
+
+describe("derivarCatalogoListas — ordinalidad", () => {
+  test("expone ordinalAuto desde las variables y ordinalEfectivo = auto sin override", () => {
+    const variables = [mkVar("p1", "satisfaccion", true), mkVar("p2", "distrito", false)];
+    const dataReview = [mkDR("p1", ["1", "2"]), mkDR("p2", ["1", "2", "3"])];
+    const catalogo = derivarCatalogoListas(variables, dataReview, {}, {});
+    const sat = catalogo.find((e) => e.listName === "satisfaccion")!;
+    const dist = catalogo.find((e) => e.listName === "distrito")!;
+    expect(sat.ordinalAuto).toBe(true);
+    expect(sat.ordinalEfectivo).toBe(true);
+    expect(dist.ordinalAuto).toBe(false);
+    expect(dist.ordinalEfectivo).toBe(false);
+  });
+
+  test("el override explícito gana sobre la auto-detección", () => {
+    const variables = [mkVar("p1", "satisfaccion", true), mkVar("p2", "distrito", false)];
+    const dataReview = [mkDR("p1", ["1", "2"]), mkDR("p2", ["1", "2"])];
+    const catalogo = derivarCatalogoListas(
+      variables,
+      dataReview,
+      {},
+      { satisfaccion: false, distrito: true },
+    );
+    const sat = catalogo.find((e) => e.listName === "satisfaccion")!;
+    const dist = catalogo.find((e) => e.listName === "distrito")!;
+    // auto true pero override false → efectivo false.
+    expect(sat.ordinalAuto).toBe(true);
+    expect(sat.ordinalEfectivo).toBe(false);
+    // auto false pero override true → efectivo true.
+    expect(dist.ordinalAuto).toBe(false);
+    expect(dist.ordinalEfectivo).toBe(true);
   });
 });

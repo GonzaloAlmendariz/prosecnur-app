@@ -4,7 +4,7 @@ import {
   apiAnaliticaConfigPut,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
-import { useAnaliticaStore, AnaliticaConfig, DEFAULT_CONFIG, normalizeCrucesVars, coerceOrdenCategorias } from "./store";
+import { useAnaliticaStore, AnaliticaConfig, DEFAULT_CONFIG, normalizeCrucesVars, coerceOrdenCategorias, coerceListasOrdinales, coerceOrdenTablas } from "./store";
 
 // Misma mecánica que el autosave de RespuestasCodificador en Fase 3:
 // - Al montar, hidrata desde backend con merge sobre DEFAULT_CONFIG (por si
@@ -36,9 +36,11 @@ function mergeWithDefaults(remote: unknown): AnaliticaConfig {
     ...DEFAULT_CONFIG,
     ...r,
     // Siempre forzamos la versión actual tras el merge (es lo que persiste
-    // al backend). Migración 3→4: `orden_categorias` con coerción defensiva.
-    version: 4,
+    // al backend). Migración v4/v5: `orden_categorias` y `listas_ordinales`
+    // con coerción defensiva.
+    version: 5,
     orden_categorias: coerceOrdenCategorias(r.orden_categorias),
+    listas_ordinales: coerceListasOrdinales(r.listas_ordinales),
     fuente_preferida:
       r.fuente_preferida === "originales" || r.fuente_preferida === "adaptados"
         ? r.fuente_preferida
@@ -61,6 +63,7 @@ function mergeWithDefaults(remote: unknown): AnaliticaConfig {
       ...(r.cruces ?? {}),
       // Migración v1 (string[]) → v2 ({name,excluidas}[]). Acepta ambos.
       cruces_vars: normalizeCrucesVars((r.cruces as { cruces_vars?: unknown })?.cruces_vars),
+      orden: coerceOrdenTablas(r.cruces?.orden),
       brecha: { ...DEFAULT_CONFIG.cruces.brecha, ...(r.cruces?.brecha ?? {}) },
       semaforo: { ...DEFAULT_CONFIG.cruces.semaforo, ...(r.cruces?.semaforo ?? {}) },
     },

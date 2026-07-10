@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import {
+  coerceListasOrdinales,
   coerceOrdenCategorias,
+  coerceOrdenTablas,
   DEFAULT_CONFIG,
   normalizeAnaliticaConfig,
   useAnaliticaStore,
@@ -83,17 +85,19 @@ describe("orden_categorias — coerción y migración v3→v4", () => {
     expect(coerceOrdenCategorias("texto")).toEqual({});
   });
 
-  test("normalizeAnaliticaConfig rellena orden_categorias {} en config v3 y bumpea a v4", () => {
+  test("normalizeAnaliticaConfig rellena orden_categorias/listas_ordinales {} en config vieja y bumpea a la versión actual", () => {
     const legacy = {
       ...DEFAULT_CONFIG,
       version: 3,
     } as unknown as AnaliticaConfig;
-    // Simula un proyecto previo a v4 sin la clave.
+    // Simula un proyecto previo sin las claves nuevas.
     delete (legacy as Partial<AnaliticaConfig>).orden_categorias;
+    delete (legacy as Partial<AnaliticaConfig>).listas_ordinales;
 
     const migrado = normalizeAnaliticaConfig(legacy);
-    expect(migrado.version).toBe(4);
+    expect(migrado.version).toBe(5);
     expect(migrado.orden_categorias).toEqual({});
+    expect(migrado.listas_ordinales).toEqual({});
   });
 
   test("normalizeAnaliticaConfig preserva y sanea orden_categorias existente", () => {
@@ -119,7 +123,83 @@ describe("orden_categorias — coerción y migración v3→v4", () => {
     const s = useAnaliticaStore.getState();
     expect(s.dirty).toBe(false);
     expect(s.hydrated).toBe(true);
-    expect(s.config.version).toBe(4);
+    expect(s.config.version).toBe(5);
     expect(s.config.orden_categorias.acuerdo).toEqual(["3", "2", "1"]);
+  });
+});
+
+describe("listas_ordinales — setters del store", () => {
+  beforeEach(resetStore);
+
+  test("setListaOrdinal fija el override explícito y marca dirty", () => {
+    useAnaliticaStore.getState().setListaOrdinal("satisfaccion", true);
+    const s = useAnaliticaStore.getState();
+    expect(s.dirty).toBe(true);
+    expect(s.config.listas_ordinales.satisfaccion).toBe(true);
+  });
+
+  test("setListaOrdinal admite false explícito (distinto de ausente)", () => {
+    useAnaliticaStore.getState().setListaOrdinal("distrito", false);
+    const ls = useAnaliticaStore.getState().config.listas_ordinales;
+    expect("distrito" in ls).toBe(true);
+    expect(ls.distrito).toBe(false);
+  });
+
+  test("setListaOrdinal ignora list_name vacío", () => {
+    resetStore();
+    useAnaliticaStore.getState().setListaOrdinal("  ", true);
+    expect(useAnaliticaStore.getState().config.listas_ordinales).toEqual({});
+    expect(useAnaliticaStore.getState().dirty).toBe(false);
+  });
+
+  test("clearListaOrdinal borra la clave (vuelve a auto) y marca dirty", () => {
+    const st = useAnaliticaStore.getState();
+    st.setListaOrdinal("canales", false);
+    useAnaliticaStore.setState({ dirty: false });
+
+    useAnaliticaStore.getState().clearListaOrdinal("canales");
+    const s = useAnaliticaStore.getState();
+    expect("canales" in s.config.listas_ordinales).toBe(false);
+    expect(s.dirty).toBe(true);
+  });
+
+  test("clearListaOrdinal sobre clave ausente es no-op (no marca dirty)", () => {
+    resetStore();
+    useAnaliticaStore.getState().clearListaOrdinal("inexistente");
+    expect(useAnaliticaStore.getState().dirty).toBe(false);
+  });
+});
+
+describe("coerción de listas_ordinales y orden de tablas", () => {
+  test("coerceListasOrdinales conserva solo booleans estrictos", () => {
+    const raw = { a: true, b: false, c: "true", d: 1, e: null } as unknown;
+    expect(coerceListasOrdinales(raw)).toEqual({ a: true, b: false });
+  });
+
+  test("coerceListasOrdinales tolera entradas no-objeto", () => {
+    expect(coerceListasOrdinales(undefined)).toEqual({});
+    expect(coerceListasOrdinales(null)).toEqual({});
+    expect(coerceListasOrdinales(["x"])).toEqual({});
+  });
+
+  test("coerceOrdenTablas acepta desc/asc/original y cae a original", () => {
+    expect(coerceOrdenTablas("desc")).toBe("desc");
+    expect(coerceOrdenTablas("asc")).toBe("asc");
+    expect(coerceOrdenTablas("original")).toBe("original");
+    expect(coerceOrdenTablas("basura")).toBe("original");
+    expect(coerceOrdenTablas(undefined)).toBe("original");
+  });
+
+  test("normalizeAnaliticaConfig rellena cruces.orden default y sanea listas_ordinales", () => {
+    const config = {
+      ...DEFAULT_CONFIG,
+      version: 4,
+      listas_ordinales: { satisfaccion: true, sucia: "x" },
+      cruces: { ...DEFAULT_CONFIG.cruces, orden: "zzz" },
+    } as unknown as AnaliticaConfig;
+
+    const out = normalizeAnaliticaConfig(config);
+    expect(out.listas_ordinales).toEqual({ satisfaccion: true });
+    expect(out.cruces.orden).toBe("original");
   });
 });

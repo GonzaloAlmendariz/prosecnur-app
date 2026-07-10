@@ -2709,6 +2709,8 @@
 	    secciones = list(),
 	    numericas = list(),
 	    variables_excluidas = list(),
+	    # Override por list_name de ordinalidad (analista). Ausente = auto.
+	    listas_ordinales = stats::setNames(list(), character(0)),
 	    datos = list(
 	      variable_labels = list(),
 	      value_labels = list()
@@ -2756,6 +2758,7 @@
     cruces = list(
       cruces_vars = list(),
       modo = "estandar",
+      orden = "original",
       show_sig = TRUE,
       alpha = 0.05,
       incluir_total = TRUE,
@@ -3054,6 +3057,11 @@ mount_analitica <- function(pr) {
       sid <- session_header(req)
       s <- session_get(sid)
       cfg <- .analitica_config_get(sid, s)
+      # Hidratar defaults de campos nuevos para configs persistidas antes de su
+      # introducción (el frontend keya contra estos nombres exactos).
+      if (is.null(cfg$listas_ordinales)) cfg$listas_ordinales <- stats::setNames(list(), character(0))
+      if (is.null(cfg$cruces)) cfg$cruces <- list()
+      if (is.null(cfg$cruces$orden)) cfg$cruces$orden <- "original"
       list(ok = TRUE, config = cfg)
     })) |>
     plumber::pr_post("/api/analitica/config", wrap_endpoint(function(req, res, ...) {
@@ -3081,6 +3089,10 @@ mount_analitica <- function(pr) {
       next_pond_json <- jsonlite::toJSON((cfg %||% list())$ponderacion %||% list(), auto_unbox = TRUE, null = "null")
       prev_orden_json <- jsonlite::toJSON((.analitica_config_get(sid, s_prev) %||% list())$orden_categorias %||% list(), auto_unbox = TRUE, null = "null")
       next_orden_json <- jsonlite::toJSON((cfg %||% list())$orden_categorias %||% list(), auto_unbox = TRUE, null = "null")
+      prev_ord_lists_json <- jsonlite::toJSON((.analitica_config_get(sid, s_prev) %||% list())$listas_ordinales %||% list(), auto_unbox = TRUE, null = "null")
+      next_ord_lists_json <- jsonlite::toJSON((cfg %||% list())$listas_ordinales %||% list(), auto_unbox = TRUE, null = "null")
+      prev_cruces_orden <- as.character(((.analitica_config_get(sid, s_prev) %||% list())$cruces %||% list())$orden %||% "original")
+      next_cruces_orden <- as.character(((cfg %||% list())$cruces %||% list())$orden %||% "original")
       .analitica_config_set(sid, cfg)
       if (!identical(prev_fuente, next_fuente)) {
         .analitica_status_set(sid, "analitica_prep_ok", FALSE)
@@ -3115,6 +3127,16 @@ mount_analitica <- function(pr) {
         .analitica_status_set(sid, "analitica_frecuencias_ok", FALSE)
         .analitica_status_set(sid, "analitica_cruces_ok", FALSE)
         .analitica_status_set(sid, "analitica_spss_ok", FALSE)
+      }
+      # Marcar listas como ordinales cambia el orden de filas de frecuencias y
+      # cruces (esas listas dejan de ordenarse por conteo).
+      if (!identical(as.character(prev_ord_lists_json), as.character(next_ord_lists_json))) {
+        .analitica_status_set(sid, "analitica_frecuencias_ok", FALSE)
+        .analitica_status_set(sid, "analitica_cruces_ok", FALSE)
+      }
+      # Cambiar el orden por frecuencia de cruces invalida solo cruces.
+      if (!identical(prev_cruces_orden, next_cruces_orden)) {
+        .analitica_status_set(sid, "analitica_cruces_ok", FALSE)
       }
       list(ok = TRUE, saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
     })) |>
@@ -3165,12 +3187,21 @@ mount_analitica <- function(pr) {
 	      reviewed <- .analitica_apply_data_review(ctx$rp_data, ctx$rp_inst, cfg)
 	      variables <- .variables_desde_instrumento(reviewed$inst)
 	      numericas_decl <- .analitica_declared_numericas(cfg, override_frecuencias = FALSE)
+	      # Auto-detección de ordinalidad por list_name (mismo valor para todas
+	      # las variables que comparten lista). El frontend keya `list_ordinal_auto`.
+	      ordinal_auto <- .orden_categorias_ordinal_auto(reviewed$inst)
       variables <- lapply(variables, function(v) {
         v$declarada_numerica <- isTRUE(v$numerica) && as.character(v$name %||% "") %in% numericas_decl
         v$analisis <- isTRUE(v$categorica) || isTRUE(v$declarada_numerica)
+        ln <- as.character(v$list_name %||% "")
+        v$list_ordinal_auto <- isTRUE(nzchar(ln) && !is.null(ordinal_auto[[ln]]) && ordinal_auto[[ln]])
         v
 	      })
-	      list(ok = TRUE, variables = variables)
+	      # ADR 0030 Fase 3: si la base activa es una hija repeat, el grano es la
+	      # instancia (no la persona). Se anota en el par enriquecido; NULL en el
+	      # resto de bases.
+	      grain <- attr(reviewed$inst, "repeat_grain") %||% attr(ctx$rp_inst, "repeat_grain")
+	      list(ok = TRUE, variables = variables, grain = grain)
 	    })) |>
 	    plumber::pr_get("/api/analitica/data-review", wrap_endpoint(function(req, res) {
 	      sid <- session_header(req)
@@ -3427,6 +3458,9 @@ mount_analitica <- function(pr) {
 	          reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
 	          rp_data <- reviewed$data
 	          rp_inst <- reviewed$inst
+	          # Listas ordinales EFECTIVAS de ESTA base (override manual ∪
+	          # auto-detección). Fuerzan "original" por variable ordinal.
+	          ordinal_lists <- .orden_categorias_ordinal_set(rp_inst, cfg)
 	          # Ponderacion: adjunta `peso` (si esta activa) antes de excluir
 	          # columnas, para que las variables de calibracion sigan presentes.
 	          rp_data <- .analitica_ponderacion_apply(rp_data, cfg)
@@ -3447,6 +3481,7 @@ mount_analitica <- function(pr) {
             incluir_secciones = incluir_secciones,
             codigos_solo_si_presentes = if (length(codes_codebook) > 0L) codes_codebook else NULL,
             numericas = if (length(numericas_arg) > 0L) numericas_arg else NULL,
+            ordinal_lists = ordinal_lists,
             ficha_tecnica = list(
               cfg = cfg,
               instrumento = rp_inst,
@@ -3802,6 +3837,10 @@ mount_analitica <- function(pr) {
       alpha <- suppressWarnings(as.numeric(cc$alpha %||% 0.05))
       if (!is.finite(alpha)) alpha <- 0.05
       incluir_total <- isTRUE(cc$incluir_total %||% TRUE)
+      # Orden por frecuencia marginal de las filas nominales (las columnas /
+      # estratos nunca se reordenan). Ordinales conservan orden fijo.
+      orden_cruces <- as.character(cc$orden %||% "original")
+      if (!orden_cruces %in% c("desc","asc","original")) orden_cruces <- "original"
       # Los títulos de variable/pregunta se conservan siempre. La opción UI
       # solo controla los separadores de sección.
       incluir_titulos <- TRUE
@@ -3831,6 +3870,10 @@ mount_analitica <- function(pr) {
 	        data_sources[[nombre]] <- .excluir_cols(reviewed$data, excluidas)
 	        inst_sources[[nombre]] <- reviewed$inst
 	      }
+	      # Listas ordinales EFECTIVAS por base (override manual ∪ auto). Se
+	      # precomputan en el hilo principal (paquete cargado) y viajan como
+	      # dato plano al worker callr.
+	      ordinal_lists_by_base <- lapply(inst_sources, function(inst) .orden_categorias_ordinal_set(inst, cfg))
 	      data_sources_filt <- lapply(data_sources, function(df) .excluir_cruce_rows(df, cruces_map))
 
       rp_data_path <- job_save_rds(sid, "rp_data_sources", data_sources_filt)
@@ -3846,6 +3889,7 @@ mount_analitica <- function(pr) {
                         incluir_titulos, incluir_secciones,
                         brecha_filas, brecha_cols,
                         aplicar_sem, sem_modo, sem_cortes, sem_colores,
+                        orden_cruces, ordinal_lists_by_base,
                         api_path, result_path, progress_path = NULL) {
           if (requireNamespace("pkgload", quietly = TRUE)) {
             pkgload::load_all(api_path, quiet = TRUE)
@@ -3879,6 +3923,8 @@ mount_analitica <- function(pr) {
               incluir_total = incluir_total,
               incluir_titulos = incluir_titulos,
               incluir_secciones = incluir_secciones,
+              orden = orden_cruces,
+              ordinal_lists = ordinal_lists_by_base[[nombre]] %||% character(0),
               brecha_filas = brecha_filas,
               brecha_cols = brecha_cols,
               aplicar_semaforo = aplicar_sem,
@@ -3955,6 +4001,8 @@ mount_analitica <- function(pr) {
           sem_modo = sem_modo,
           sem_cortes = sem_cortes,
           sem_colores = sem_colores,
+          orden_cruces = orden_cruces,
+          ordinal_lists_by_base = ordinal_lists_by_base,
           api_path = api_path
         ),
         result_filename = if (length(data_sources) > 1L) {
