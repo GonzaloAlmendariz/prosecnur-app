@@ -1705,6 +1705,7 @@ exportar_frecuencias_spss <- function(
     incluir_titulos = TRUE,
     incluir_secciones = TRUE,
     incluir_porcentajes = TRUE,
+    ordinal_lists = character(),
     ficha_tecnica = NULL
 ){
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
@@ -1713,6 +1714,7 @@ exportar_frecuencias_spss <- function(
   }
 
   orden <- match.arg(orden)
+  ordinal_lists <- as.character(ordinal_lists %||% character())
   numericas <- if (is.null(numericas)) character(0) else as.character(numericas)
 
   wb <- openxlsx::createWorkbook()
@@ -1765,6 +1767,15 @@ exportar_frecuencias_spss <- function(
       }
 
       # --- Tabla categórica (flujo actual) ---
+      # Orden EFECTIVO por variable: si su lista es ordinal (likert, acuerdo,
+      # sí/no), se fuerza "original" para respetar el orden fijo del
+      # instrumento; las nominales sí obedecen el orden global desc/asc.
+      orden_v <- orden
+      if (length(ordinal_lists)) {
+        ln_v <- tryCatch(get_list_name(v, survey), error = function(e) NA_character_)
+        if (!is.na(ln_v) && nzchar(ln_v) && ln_v %in% ordinal_lists) orden_v <- "original"
+      }
+
       tab <- freq_table_spss(
         data,
         v,
@@ -1780,8 +1791,8 @@ exportar_frecuencias_spss <- function(
         body  <- tab[!is_total, , drop = FALSE]
         total <- tab[ is_total, , drop = FALSE]
 
-        if (orden %in% c("asc","desc") && nrow(body)) {
-          body <- dplyr::arrange(body, if (orden == "asc") n else dplyr::desc(n))
+        if (orden_v %in% c("asc","desc") && nrow(body)) {
+          body <- dplyr::arrange(body, if (orden_v == "asc") n else dplyr::desc(n))
         }
         tab <- dplyr::bind_rows(body, total)
       }
@@ -1802,7 +1813,7 @@ exportar_frecuencias_spss <- function(
         codigos_solo_si_presentes = codigos_solo_si_presentes,
         incluir_titulo = incluir_titulos,
         incluir_porcentajes = incluir_porcentajes,
-        orden = orden
+        orden = orden_v
       )
     }
 
@@ -1860,6 +1871,7 @@ reporte_frecuencias <- function(data,
                                 incluir_titulos = TRUE,
                                 incluir_secciones = TRUE,
                                 incluir_porcentajes = TRUE,
+                                ordinal_lists = character(),
                                 ficha_tecnica = NULL) {
 
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
@@ -1957,6 +1969,7 @@ reporte_frecuencias <- function(data,
     incluir_titulos = incluir_titulos,
     incluir_secciones = incluir_secciones,
     incluir_porcentajes = incluir_porcentajes,
+    ordinal_lists   = ordinal_lists,
     ficha_tecnica = ficha_tecnica
   )
 

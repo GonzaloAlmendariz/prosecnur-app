@@ -1029,9 +1029,14 @@ exportar_cruces_multi <- function(data,
                                   digits           = 1,
                                   incluir_titulos  = TRUE,
                                   incluir_secciones = TRUE,
+                                  orden            = "original",
+                                  ordinal_lists    = character(),
                                   ficha_tecnica = NULL) {
 
   numericas <- if (is.null(numericas)) character(0) else as.character(numericas)
+  ordinal_lists <- as.character(ordinal_lists %||% character())
+  orden <- as.character(orden %||% "original")
+  if (!orden %in% c("desc", "asc", "original")) orden <- "original"
 
   # Mantener en SECCIONES variables que existan como columna o tengan dummies
   SECCIONES <- lapply(SECCIONES, function(v) {
@@ -1233,6 +1238,31 @@ exportar_cruces_multi <- function(data,
         openxlsx::addStyle(wb, hoja, st$body_txt, rows = fila, cols = 1, gridExpand = TRUE)
         fila <- fila + 2
         next
+      }
+
+      # ---------- orden de las FILAS por frecuencia marginal ----------
+      # Solo para variables de fila NOMINALES (no ordinales) y cuando el
+      # usuario pidió desc/asc. Las ordinales (likert, acuerdo, sí/no) y el
+      # modo "original" conservan el orden fijo de get_categorias. Las columnas
+      # / estratos nunca se tocan (se ordenan más abajo con su get_categorias).
+      if (orden %in% c("desc", "asc") && length(codes_row) > 1L) {
+        ln_row <- tryCatch(get_list_name(var, survey), error = function(e) NA_character_)
+        es_ordinal <- !is.na(ln_row) && nzchar(ln_row) && ln_row %in% ordinal_lists
+        if (!es_ordinal) {
+          marg <- contar_por_opcion(
+            data       = data,
+            var        = var,
+            codes      = codes_row,
+            tp         = tp,
+            mask       = rep(TRUE, nrow(data)),
+            weight_col = weight_col
+          )
+          # order(-x)/order(x) via radix es estable: los empates conservan el
+          # orden original de get_categorias.
+          ord_idx <- if (identical(orden, "desc")) order(-marg) else order(marg)
+          codes_row <- codes_row[ord_idx]
+          opciones  <- opciones[ord_idx]
+        }
       }
 
       cuerpo <- tibble::tibble(Opciones = opciones)
@@ -3858,6 +3888,8 @@ reporte_cruces <- function(
     digits           = 1,
     incluir_titulos  = TRUE,
     incluir_secciones = TRUE,
+    orden            = "original",
+    ordinal_lists    = character(),
     cruzar_dim       = NULL,
     filas_dimensiones = NULL,
     incluir_total    = TRUE,
@@ -4017,6 +4049,8 @@ reporte_cruces <- function(
     digits                    = digits,
     incluir_titulos           = incluir_titulos,
     incluir_secciones         = incluir_secciones,
+    orden                     = orden,
+    ordinal_lists             = ordinal_lists,
     ficha_tecnica             = ficha_tecnica
   )
 }

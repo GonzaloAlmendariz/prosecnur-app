@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Filter, GitBranch, Grid3x3, Info, Layers, Plus, Sigma, X } from "lucide-react";
+import { AlertTriangle, ArrowDown01, ArrowUp01, CheckCircle2, Filter, GitBranch, Grid3x3, Info, Layers, ListOrdered, Plus, Sigma, X } from "lucide-react";
 import {
   apiAnaliticaColumnValues,
   apiAnaliticaCruces,
@@ -77,6 +77,16 @@ export function CrucesPane() {
     variables.filter((v) => !!v.categorica || numericas.includes(v.name)).length - nVars,
   );
   const modoLabel = cruces.modo === "dimensiones" ? "Dimensiones" : "Estándar";
+
+  // Orden de las FILAS de cada tabla de cruce (espejo del de Frecuencias, pero
+  // solo filas: las columnas las fija la variable de cruce). Persiste en
+  // `cruces.orden`; el backend hace el ordenamiento y respeta las listas
+  // ordinales.
+  const ordenFilasOptions = [
+    { k: "desc", label: "Más frecuentes", hint: "Prioriza lectura ejecutiva", icon: <ArrowDown01 size={13} /> },
+    { k: "asc", label: "Menos frecuentes", hint: "Útil para detectar minorías", icon: <ArrowUp01 size={13} /> },
+    { k: "original", label: "Instrumento", hint: "Respeta el orden del XLSForm", icon: <ListOrdered size={13} /> },
+  ] as const;
 
   return (
     <Panel className="analitica-cruces-panel">
@@ -157,6 +167,35 @@ export function CrucesPane() {
                 : "Genera dimensiones primero (tab Dimensiones)"}
               onClick={() => dimOk && setCruces({ modo: "dimensiones" })}
             />
+          </div>
+        </Section>
+
+        <Section
+          title="Orden de las filas"
+          subtitle={<>
+            Cómo se ordenan las <strong>filas</strong> de cada tabla de cruce. Las columnas las define la variable de cruce, así que este orden no las toca.
+          </>}
+        >
+          <div className="analitica-frecuencias-presentation-stack">
+            <div className="analitica-segmented" role="group" aria-label="Orden de las filas del cruce">
+              {ordenFilasOptions.map((o) => (
+                <button
+                  key={o.k}
+                  type="button"
+                  onClick={() => setCruces({ orden: o.k })}
+                  className={cruces.orden === o.k ? "is-on" : undefined}
+                  title={o.hint}
+                >
+                  <span className="analitica-inline-title">
+                    {o.icon}
+                    {o.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <p className="analitica-presentation-hint">
+              Aplica solo a las <strong>filas</strong>. Las listas marcadas como <em>ordinales</em> en <em>Orden de categorías</em> conservan su orden fijo aunque elijas “Más frecuentes”.
+            </p>
           </div>
         </Section>
 

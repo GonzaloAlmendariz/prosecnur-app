@@ -100,6 +100,61 @@ test_that(".variables_desde_instrumento expone list_name desde la columna aunque
   expect_equal(by_name[["acuerdo"]], "likert5")   # comparte lista -> misma key
 })
 
+test_that(".orden_categorias_ordinal_auto detecta likert y descarta nominales", {
+  inst <- list(dicc_code_to_label = list(
+    likert  = stats::setNames(c("Nada", "Poco", "Algo", "Mucho"), c("1", "2", "3", "4")),
+    acuerdo = stats::setNames(c("Muy en desacuerdo", "En desacuerdo", "De acuerdo", "Muy de acuerdo"),
+                              c("1", "2", "3", "4")),
+    region  = stats::setNames(c("Lima", "Cusco", "Arequipa"), c("1", "2", "3"))
+  ))
+  auto <- .orden_categorias_ordinal_auto(inst)
+  expect_true(auto[["likert"]])
+  expect_true(auto[["acuerdo"]])
+  expect_false(auto[["region"]])
+
+  # Instrumento sin diccionario => named logical vacío, sin error.
+  expect_length(.orden_categorias_ordinal_auto(list()), 0L)
+  expect_length(.orden_categorias_ordinal_auto(NULL), 0L)
+})
+
+test_that(".orden_categorias_ordinales_from_cfg toma solo claves con override explícito", {
+  ov <- .orden_categorias_ordinales_from_cfg(list(listas_ordinales = list(
+    region = TRUE, likert = FALSE, ausente = NULL, vacia = list()
+  )))
+  expect_true(ov[["region"]])
+  expect_false(ov[["likert"]])
+  expect_false("ausente" %in% names(ov))  # NULL => sin override
+  expect_false("vacia" %in% names(ov))    # length 0 => sin override
+
+  expect_length(.orden_categorias_ordinales_from_cfg(list()), 0L)
+  expect_length(.orden_categorias_ordinales_from_cfg(NULL), 0L)
+})
+
+test_that(".orden_categorias_ordinal_set resuelve auto ∪ override-true − override-false", {
+  inst <- list(dicc_code_to_label = list(
+    likert = stats::setNames(c("Nada", "Poco", "Algo", "Mucho"), c("1", "2", "3", "4")),  # auto TRUE
+    region = stats::setNames(c("Lima", "Cusco", "Arequipa"), c("1", "2", "3"))            # auto FALSE
+  ))
+
+  # Solo auto: likert ordinal, region nominal.
+  auto_set <- .orden_categorias_ordinal_set(inst, list())
+  expect_true("likert" %in% auto_set)
+  expect_false("region" %in% auto_set)
+
+  # Override invierte ambos: region ordinal (true), likert nominal (false).
+  ov_set <- .orden_categorias_ordinal_set(
+    inst, list(listas_ordinales = list(region = TRUE, likert = FALSE))
+  )
+  expect_true("region" %in% ov_set)
+  expect_false("likert" %in% ov_set)
+
+  # Override solo de una lista: la otra sigue por auto.
+  mix_set <- .orden_categorias_ordinal_set(
+    inst, list(listas_ordinales = list(region = TRUE))
+  )
+  expect_setequal(mix_set, c("likert", "region"))
+})
+
 test_that("integración: freq_table_spss refleja el orden reordenado por el override", {
   data <- data.frame(
     ingreso = c("1", "1", "2", "3", "3", "3", "94"),

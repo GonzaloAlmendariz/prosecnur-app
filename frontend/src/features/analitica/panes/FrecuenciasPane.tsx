@@ -159,6 +159,10 @@ export function FrecuenciasPane() {
               ))}
             </div>
 
+            <p className="analitica-presentation-hint">
+              Las listas marcadas como <strong>ordinales</strong> en <em>Orden de categorías</em> conservan su orden fijo aunque elijas “Más frecuentes”.
+            </p>
+
             <div className="analitica-control-grid">
               <label className={`analitica-control-card ${frec.mostrar_todo ? "is-active" : ""}`}>
                 <input

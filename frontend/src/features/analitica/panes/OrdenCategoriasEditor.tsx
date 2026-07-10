@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import type { DataReviewOption, VariableInstrumento } from "../../../api/client";
 import { useAnaliticaStore } from "../store";
+import { ListaOrdinalToggle } from "./ListaOrdinalToggle";
 import {
   enviarEspecialesAlFinal,
   esValorEspecial,
@@ -32,6 +33,7 @@ import {
   moverAlInicio,
   moverArriba,
   ordenesIguales,
+  ordinalAutoDeLista,
   sembrarOrden,
 } from "./ordenCategoriasModel";
 
@@ -74,6 +76,7 @@ export function OrdenCategoriasEditor({ listName, opciones, varsCompartidas }: P
 
   const hayOverride = !!saved && saved.length > 0;
   const especialesYaAlFinal = ordenesIguales(codesActuales, enviarEspecialesAlFinal(codesActuales));
+  const ordinalAuto = ordinalAutoDeLista(varsCompartidas);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -115,6 +118,8 @@ export function OrdenCategoriasEditor({ listName, opciones, varsCompartidas }: P
 
   return (
     <div className="analitica-orden-editor">
+      <ListaOrdinalToggle listName={listName} ordinalAuto={ordinalAuto} />
+
       <div className="analitica-orden-toolbar">
         <span className="analitica-orden-toolbar-title">
           Orden de categorías
