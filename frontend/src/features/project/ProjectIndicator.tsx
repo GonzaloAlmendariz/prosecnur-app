@@ -14,7 +14,7 @@ import {
   CheckCircle2,
   Circle,
   Folder,
-  Repeat,
+  Home,
 } from "lucide-react";
 import { projectRelTime } from "./ProjectLifecycleDialog";
 import type { UseProjectReturn } from "./useProject";
@@ -89,7 +89,7 @@ export default function ProjectIndicator({ project, onOpenProjectViewer, onReque
         className="pulso-project-switch"
         disabled={project.busy}
       >
-        <Repeat size={13} strokeWidth={2.2} aria-hidden="true" />
+        <Home size={13} strokeWidth={2.2} aria-hidden="true" />
       </button>
     </div>
   );
