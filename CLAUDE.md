@@ -12,7 +12,7 @@ Subagentes en `.claude/agents/`, skills en `.claude/skills/`. Clasifica la tarea
 **Rama 2 — Diseñar (revamp/pulido visual, la tarea más frecuente)**
 skill `/revamp-visual` (orquesta `prosecnur-design-system` + `emil-design-eng` globales, implementación y QA visual con evidencia). Auditoría UX de módulo completo → skill global `prosecnur-ux-evaluator`.
 
-**Regla de observación**: para ver/iterar cualquier vista que viva detrás de un proyecto abierto, usa el skill `/ver-ui` (deep-link `?pulso=` en dev que salta el BootGate). Nunca digas "no puedo llegar a esa vista" sin haberlo intentado con `/ver-ui`.
+**Regla de observación**: para ver/iterar cualquier vista que viva detrás de un proyecto abierto, usa el skill `/ver-ui` (deep-link `?pulso=` en dev que salta el BootGate). Nunca digas "no puedo llegar a esa vista" sin haberlo intentado con `/ver-ui`. **Higiene de servers**: reusar antes de levantar (`preview_list`; el 8787 es del usuario, nunca matarlo), cerrar al terminar lo que tú levantaste, y ante huérfanos de otras sesiones `make dev-status` / `make dev-prune`.
 
 **Rama 3 — Entregables (motores de salida)**
 PDF → skill global `prosecnur-pdf-engine` · PPT/Word/XLSX → skill `entregables-oficina` · cronogramas XLSX → skill global `cronograma-encuestas`.
