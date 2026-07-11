@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   AlertTriangle, ArrowRight, ArrowRightLeft, CheckCircle2, ClipboardCheck, CloudDownload,
   Database, FileSpreadsheet, Download, Info, Loader2, RefreshCw, Search, ShieldCheck,
-  Table2, Trash2, Upload,
+  Table2, Trash2, Upload, UploadCloud,
 } from "lucide-react";
 import {
   apiCargaBaseSheet,
@@ -1019,6 +1019,7 @@ export default function CargaPage() {
               status={handoffStatus}
               busy={!!busy}
               onBring={() => void onBringFieldWorkToProcessing()}
+              onUploadInstrument={(file) => void onPick("xlsform", file)}
             />
           )}
 
@@ -1319,16 +1320,24 @@ function FieldWorkHandoffCallout({
   status,
   busy,
   onBring,
+  onUploadInstrument,
 }: {
   status: CargaMonitoreoHandoffStatus;
   busy: boolean;
   onBring: () => void;
+  onUploadInstrument: (file: File) => void;
 }) {
   const { counts, source } = status;
   const processable = handoffCount(counts.processable);
   const excluded = handoffCount(counts.no_defendible);
   const studyLabel = source.label?.trim();
-  const instrumentMissing = source.instrument_source === "none" || !source.instrument_available;
+  // El instrumento de procesamiento es SIEMPRE local. Está listo solo cuando
+  // hay un XLSForm local disponible; si falta, la UI ofrece subirlo.
+  const instrumentReady =
+    source.instrument_source === "local" && source.instrument_available === true;
+  const instrumentNeedsUpload =
+    source.instrument_needs_upload === true || source.instrument_source === "needs_upload";
+  const instrumentMissing = !instrumentReady;
   // En el camino general sin status resoluble (validity "all_rows") no todas las
   // filas son "validadas": traemos todo el corte de la fuente. En territorial y en
   // el camino por status, sí se filtró a las respuestas válidas.
@@ -1342,12 +1351,11 @@ function FieldWorkHandoffCallout({
   const replacing =
     status.existing_base.present && !status.existing_base.is_territorial;
   const replacedRows = status.existing_base.present ? status.existing_base.n_filas : 0;
-  const instrumentNote =
-    source.instrument_source === "kobo_api"
-      ? "Traemos el cuestionario desde Kobo (versión desplegada)."
-      : source.instrument_source === "local"
-        ? "Usaremos el formulario ya cargado en el proyecto."
-        : "El cuestionario todavía no está disponible. Conéctalo desde Kobo en Configuración para traer el trabajo completo.";
+  const instrumentNote = instrumentReady
+    ? "Usaremos el formulario (XLSForm) ya cargado en el proyecto."
+    : instrumentNeedsUpload
+      ? "Falta el formulario (XLSForm). Súbelo para traer el trabajo de campo con su estructura."
+      : "El formulario del estudio todavía no está disponible.";
 
   return (
     <section
@@ -1386,15 +1394,39 @@ function FieldWorkHandoffCallout({
         </span>
       </div>
       <div className="pulso-carga-handoff-actions">
+        {instrumentNeedsUpload ? (
+          <label
+            className={`pulso-carga-handoff-upload${busy ? " is-disabled" : ""}`}
+            title="Sube el XLSForm del formulario (última versión de Kobo)"
+          >
+            <UploadCloud size={14} aria-hidden="true" />
+            Sube el XLSForm del formulario
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              disabled={busy}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                // Limpiamos el value para permitir re-subir el mismo archivo
+                // tras un error de compatibilidad form↔data.
+                e.target.value = "";
+                if (file) onUploadInstrument(file);
+              }}
+              style={{ display: "none" }}
+            />
+          </label>
+        ) : null}
         <button
           type="button"
           className="pulso-carga-handoff-primary"
           onClick={onBring}
           disabled={busy || instrumentMissing}
           title={
-            instrumentMissing
-              ? "Conecta el cuestionario en Configuración para traer el trabajo de campo"
-              : "Traer el trabajo de campo al procesamiento"
+            instrumentReady
+              ? "Traer el trabajo de campo al procesamiento"
+              : instrumentNeedsUpload
+                ? "Sube el formulario (XLSForm) para traer el trabajo de campo"
+                : "El formulario del estudio todavía no está disponible"
           }
         >
           {busy ? <Loader2 size={14} className="pulso-spin" /> : <ArrowRight size={14} />}

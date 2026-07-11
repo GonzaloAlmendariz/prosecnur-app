@@ -996,22 +996,14 @@
     add_candidate(s$files[[xlsform_id]]$path, "estudio", s$files[[xlsform_id]]$original_name %||% basename(out_path), 10L)
   }
 
-  kobo_detail <- tryCatch(.monitoreo_processing_handoff_kobo_detail(sid, s, cfg), error = function(e) {
-    attr(e, "prosecnur_handoff_source") <- "kobo_api"
-    e
-  })
-  if (inherits(kobo_detail, "error")) {
-    kobo_detail_error <- conditionMessage(kobo_detail)
-  } else {
-    kobo_detail_error <- ""
-    if (is.list(kobo_detail)) {
-      kobo_path <- tempfile("monitoreo_handoff_kobo_exact_", fileext = ".xlsx")
-      if (.monitoreo_processing_handoff_write_kobo_detail_xlsform(kobo_detail$detail, kobo_path)) {
-        add_candidate(kobo_path, kobo_detail$source %||% "kobo_api", basename(out_path), 5L)
-      }
-    }
-  }
-
+  # Contrato Monitoreo->Procesamiento: el instrumento SIEMPRE sale del XLSForm
+  # LOCAL que subio el usuario (ultima version descargada de Kobo), NUNCA de la
+  # API de Kobo. El pull multi-version de la API arrastraba columnas fantasma, y
+  # para Kobo todo es local (bajar la ultima version del formulario es trivial).
+  # Por eso NO se candidatea el instrumento de la API aca; el candidato de la base
+  # del estudio (arriba) y los del file store (abajo) cubren el caso, y el scoring
+  # de compatibilidad form<->data se mantiene intacto. La descarga
+  # `.monitoreo_processing_handoff_kobo_detail` sigue existiendo para otros usos.
   file_candidates <- Filter(function(meta) {
     identical(.monitoreo_scalar(meta$kind, ""), "xlsform") && file.exists(meta$path)
   }, s$files %||% list())
@@ -1027,7 +1019,7 @@
       stop_api(
         409,
         "E_MONITOREO_PROCESSING_HANDOFF_XLSFORM_EXACT",
-        "No hay XLSForm exacto para Procesamiento. Conecta Kobo para descargar el instrumento original o carga el XLSForm exacto antes de exportar."
+        "No hay XLSForm exacto para Procesamiento. Sube el XLSForm del formulario (la ultima version descargada de Kobo) antes de traer la data a Procesamiento."
       )
     }
     scored <- lapply(seq_along(exact_candidates), function(i) {
@@ -1068,8 +1060,7 @@
     "E_MONITOREO_PROCESSING_HANDOFF_XLSFORM",
     paste(
       "No se encontro un XLSForm exacto para empaquetar.",
-      "Conecta Kobo para descargar el instrumento original o carga el XLSForm exacto antes de generar el paquete.",
-      if (nzchar(kobo_detail_error %||% "")) paste("Detalle Kobo:", kobo_detail_error) else ""
+      "Sube el XLSForm del formulario (la ultima version descargada de Kobo) antes de generar el paquete."
     )
   )
 }

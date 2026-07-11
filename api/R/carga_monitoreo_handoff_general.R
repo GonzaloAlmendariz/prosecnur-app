@@ -11,9 +11,9 @@
 #   2. Contamos las filas PROCESABLES de cada fuente: validas por `status_var` /
 #      `valid_statuses` si son resolubles en las filas de ESA fuente; si no, todas
 #      las filas (validity="all_rows", declarado para transparencia).
-#   3. Promovemos UNA fuente a base madre del estudio reusando el instrumento
-#      fidedigno del helper congelado (Kobo API preferido) y expandiendo sus
-#      repeat groups a bases hija (ADR 0030 Fase 1).
+#   3. Promovemos UNA fuente a base madre del estudio reusando el instrumento del
+#      helper congelado (que sale SIEMPRE del XLSForm LOCAL subido, nunca de la API
+#      de Kobo) y expandiendo sus repeat groups a bases hija (ADR 0030 Fase 1).
 #
 # Reusa los helpers frozen LLAMANDOLOS (nunca crece router_monitoreo.R): el
 # extractor de instrumento `.monitoreo_processing_handoff_xlsform`, el detector de
@@ -197,23 +197,12 @@
   ""
 }
 
-# Fuente del instrumento para la primaria general: Kobo API si hay token local
-# guardado para su asset/perfil; XLSForm local en el proyecto; o "none".
+# Fuente del instrumento para la primaria general: SIEMPRE el XLSForm LOCAL que
+# sube el usuario, NUNCA la API de Kobo (mismo contrato que el path territorial).
+# "local" si hay XLSForm local en el proyecto; si no, "needs_upload" para que la
+# UI pida subirlo antes de traer la data.
 .carga_handoff_instrument_source_general <- function(sid, s, primary) {
-  asset <- .carga_chr1(primary$asset_uid, "")
-  if (nzchar(asset)) {
-    has_token <- tryCatch(
-      isTRUE(.connections_token_status(
-        "kobo", sid,
-        profile_id = if (nzchar(primary$connection_profile_id)) primary$connection_profile_id else NULL,
-        base_url = if (nzchar(primary$base_url)) primary$base_url else NULL
-      )$has_token),
-      error = function(e) FALSE
-    )
-    if (has_token) return("kobo_api")
-  }
-  if (.carga_monitoreo_handoff_has_local_xlsform(sid, s)) return("local")
-  "none"
+  if (.carga_monitoreo_handoff_has_local_xlsform(sid, s)) "local" else "needs_upload"
 }
 
 # Nombre sugerido de base para la UI (etiqueta legible de la fuente).
@@ -250,28 +239,10 @@
   df[, setdiff(names(df), drop), drop = FALSE]
 }
 
-# cfg sintetico para el extractor de instrumento congelado: mete el asset objetivo
-# en la ranura territorial que `.monitoreo_processing_handoff_kobo_detail` inspecciona,
-# de modo que reuse su preferencia Kobo API (version desplegada, con repeat) sin
-# tocar router_monitoreo.R.
-.carga_handoff_synth_cfg <- function(cfg, target) {
-  cfg <- cfg %||% list()
-  tcfg <- cfg$territorial %||% list()
-  tcfg$active_route_phase <- "field"
-  ps <- tcfg$phase_sources %||% list()
-  ps$field <- list(
-    asset_uid = .carga_chr1(target$asset_uid, ""),
-    base_url = .carga_chr1(target$base_url, ""),
-    connection_profile_id = if (nzchar(.carga_chr1(target$connection_profile_id, ""))) {
-      target$connection_profile_id
-    } else {
-      NULL
-    }
-  )
-  tcfg$phase_sources <- ps
-  cfg$territorial <- tcfg
-  cfg
-}
+# NOTA: ya no hay `.carga_handoff_synth_cfg`. Existia para inyectar el asset en la
+# ranura territorial y que el extractor congelado reusara su preferencia de Kobo
+# API; bajo el contrato vigente el instrumento sale SIEMPRE del XLSForm local, asi
+# que `.monitoreo_processing_handoff_xlsform` ya no candidatea la API ni lee `cfg`.
 
 # STATUS general: arma el contrato extendido (source primaria + lista `sources`)
 # desde las fuentes promovibles del snapshot multi-fuente.
@@ -290,7 +261,8 @@
       counts = empty_counts,
       source = list(label = "", kind = "", phase = "", kobo_asset_uid = "",
                     source_id = "", validity = "", status_column = "",
-                    instrument_source = "none", instrument_available = FALSE),
+                    instrument_source = "none", instrument_available = FALSE,
+                    instrument_needs_upload = FALSE),
       sources = list(),
       already_promoted = FALSE,
       existing_base = .carga_handoff_existing_base_payload(sid, s),
@@ -329,7 +301,8 @@
       validity = primary$validity,
       status_column = primary$status_column,
       instrument_source = instr,
-      instrument_available = !identical(instr, "none")
+      instrument_available = identical(instr, "local"),
+      instrument_needs_upload = identical(instr, "needs_upload")
     ),
     sources = lapply(enriched, function(e) list(
       source_id = e$id,
@@ -389,7 +362,7 @@
   slug <- .carga_slug(target$label, paste0("kobo_", target$asset_uid))
   xls_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", slug, "_handoff_xlsform.xlsx"))
   xlsform_meta <- .monitoreo_processing_handoff_xlsform(
-    sid, session_get(sid), xls_path, data = NULL, cfg = .carga_handoff_synth_cfg(cfg, target)
+    sid, session_get(sid), xls_path, data = NULL, cfg = NULL
   )
   inst_path <- .carga_chr1(xlsform_meta$path, xls_path)
   rp_inst <- reporte_instrumento(path = inst_path)
