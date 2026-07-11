@@ -2142,7 +2142,17 @@
 # Lee la sub-configuracion analitica_config de la sesión (store del
 # frontend autosaveado). En hermanos independientes apunta a la base activa.
 .analitica_get_config <- function(sid) {
-  .analitica_config_get(sid)
+  cfg <- .analitica_config_get(sid)
+  # Exponer el orden de las flechas ↑/↓ del editor de Codificación
+  # (`grupos_recod`, solo lectura) para que el orden de la recodificada en la
+  # BBDD/codebook lo respete. NO se persiste en la config de Analítica (R copia
+  # al mutar; nunca se llama session_set con este cfg aumentado).
+  scoped <- tryCatch(.analitica_scoped_base(sid), error = function(e) "")
+  cfg$grupos_recod <- tryCatch(
+    codif_get(sid, "grupos_recod", source = if (nzchar(scoped)) scoped else NULL) %||% list(),
+    error = function(e) list()
+  )
+  cfg
 }
 
 # Traduce las secciones del store (lista de {id, nombre, variables,
@@ -2362,11 +2372,28 @@
     inst <- ctx$inst
   }
 
+  # Orden de la recodificada desde las flechas ↑/↓ de Codificación
+  # (`grupos_recod`). Se aplica ANTES que el override de Analítica para que ESE
+  # mande (precedencia: choices < grupos_recod < orden_categorias). El pase de
+  # valores-especiales-al-final corre después y siempre manda 96/etc. al final.
+  grupos_por_parent <- .orden_grupos_recod_por_parent(cfg$grupos_recod)
+  if (length(grupos_por_parent)) inst <- .apply_grupos_recod_orden(inst, grupos_por_parent)
+
   # Orden de categorías definido por el analista (por list_name). Se aplica al
   # final, DESPUÉS de la normalización contra el choices (que re-fija los
   # `names` al orden del instrumento); si se aplicase antes, se pisaría.
   orden_cfg <- .orden_categorias_from_cfg(cfg)
   if (length(orden_cfg)) inst <- .apply_orden_categorias(inst, orden_cfg)
+
+  # `.analitica_order_sm_dummy_cols` prioriza `attr(data,"instrumento_reporte")
+  # $orders_list` sobre `inst$orders_list`; reporte_data adjuntó el instrumento
+  # ORIGINAL (sin estos overrides). Sincronizar el attr para que el orden de las
+  # flechas y del analista fluya a los dummies de la BBDD y el codebook.
+  ir <- attr(data, "instrumento_reporte", exact = TRUE)
+  if (!is.null(ir) && is.list(ir)) {
+    ir$orders_list <- inst$orders_list
+    attr(data, "instrumento_reporte") <- ir
+  }
 
   # La codificación deja las columnas (y dummies) en minúscula mientras el survey
   # usa el case original; sin realinear, frecuencias/cruces saltan los

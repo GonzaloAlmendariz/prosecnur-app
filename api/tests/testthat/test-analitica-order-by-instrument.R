@@ -253,3 +253,84 @@ test_that("no-op si el bloque no tiene ningún código especial", {
   out <- .analitica_order_sm_dummy_cols(data, inst)
   expect_equal(block_codes(out), c("1", "2", "3"))
 })
+
+# ---- Orden de la recodificada desde las flechas de Codificación ------------
+
+# Instrumento con parent SM `smx` y su recodificada `smx_recod` (lista
+# `sp_recod`), con `orders_list[[smx_recod]]` en el orden de catálogo dado.
+make_inst_recod <- function(catalogo) {
+  survey <- data.frame(
+    name = c("smx", "smx_recod"),
+    type = c("select_multiple sp", "select_multiple sp_recod"),
+    list_name = c("sp", "sp_recod"),
+    label = c("Medios", "Medios recod"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = rep("sp_recod", length(catalogo)),
+    name = as.character(catalogo),
+    label = paste0("Opt ", catalogo),
+    stringsAsFactors = FALSE
+  )
+  structure(
+    list(
+      survey = survey, choices = choices,
+      orders_list = list(
+        smx_recod = list(
+          names = as.character(catalogo),
+          labels = paste0("Opt ", catalogo)
+        )
+      )
+    ),
+    class = "prosecnur_instrumento"
+  )
+}
+
+make_data_recod <- function(codes) {
+  df <- data.frame(id = c(1L, 2L))
+  for (code in codes) df[[paste0("smx_recod.", code)]] <- c(1L, 0L)
+  df
+}
+
+recod_block_codes <- function(out) {
+  cols <- grep("^smx_recod\\.", names(out), value = TRUE)
+  sub("^smx_recod\\.", "", cols)
+}
+
+test_that(".orden_grupos_recod_por_parent extrae los códigos en orden del array", {
+  grupos <- list(
+    D1_information = list(list(codigo = "10"), list(codigo = "9"),
+                         list(codigo = "96"), list(codigo = "1")),
+    Q_vacio = list()
+  )
+  out <- .orden_grupos_recod_por_parent(grupos)
+  expect_equal(out, list(D1_information = c("10", "9", "96", "1")))
+})
+
+test_that(".apply_grupos_recod_orden reordena orders_list de la recodificada", {
+  inst <- make_inst_recod(c("1", "2", "96", "10", "9"))
+  inst2 <- .apply_grupos_recod_orden(inst, list(smx = c("96", "10", "9", "1", "2")))
+  expect_equal(inst2$orders_list$smx_recod$names, c("96", "10", "9", "1", "2"))
+})
+
+test_that("el orden de las flechas gobierna los dummies, con especial al final", {
+  inst <- make_inst_recod(c("1", "2", "96", "10", "9"))
+  # Flechas de Codificación: 96 al frente + orden custom.
+  inst <- .apply_grupos_recod_orden(inst, list(smx = c("96", "10", "9", "1", "2")))
+  data <- make_data_recod(c("1", "2", "96", "10", "9"))
+  out <- .analitica_order_sm_dummy_cols(data, inst)
+  # Respeta las flechas (10,9,1,2) y manda 96 al final por el pase de especiales.
+  expect_equal(recod_block_codes(out), c("10", "9", "1", "2", "96"))
+})
+
+test_that("orden_categorias de Analítica MANDA sobre las flechas de Codificación", {
+  inst <- make_inst_recod(c("1", "2", "96", "10", "9"))
+  # 1) flechas de Codificación fijan 10,9,1,2,96
+  inst <- .apply_grupos_recod_orden(inst, list(smx = c("10", "9", "1", "2", "96")))
+  # 2) el analista reordena en Analítica: 1,2 primero
+  inst <- .apply_orden_categorias(inst, list(sp_recod = c("1", "2")))
+  data <- make_data_recod(c("1", "2", "96", "10", "9"))
+  out <- .analitica_order_sm_dummy_cols(data, inst)
+  # 1,2 al frente (Analítica manda), resto en orden de flechas, 96 al final.
+  expect_equal(recod_block_codes(out), c("1", "2", "10", "9", "96"))
+})
