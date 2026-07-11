@@ -334,3 +334,104 @@ test_that("orden_categorias de Analítica MANDA sobre las flechas de Codificaci�
   # 1,2 al frente (Analítica manda), resto en orden de flechas, 96 al final.
   expect_equal(recod_block_codes(out), c("1", "2", "10", "9", "96"))
 })
+
+# ---- Colapso de duplicados con prefijo de grupo (base real de Monitoreo) ----
+
+make_inst_collapse <- function() {
+  survey <- data.frame(
+    name = c("E1_age", "date", "time_A_start", "A1_leg", "D1_information",
+             "E1_age_calc", "code_pulso"),
+    type = c("integer", "date", "calculate", "select_one leg",
+             "select_multiple information", "calculate", "text"),
+    list_name = c("", "", "", "leg", "information", "", ""),
+    label = c("Edad", "Fecha", "Time A", "Legal", "Info", "Edad calc", "Codigo"),
+    stringsAsFactors = FALSE
+  )
+  structure(list(survey = survey), class = "prosecnur_instrumento")
+}
+
+test_that("group-prefixed idéntico a su gemelo limpio se dropea", {
+  inst <- make_inst_collapse()
+  data <- data.frame(
+    E1_age = c(30L, 41L),
+    `Core.e1_age` = c(30L, 41L),   # gemelo idéntico (crudo)
+    A1_leg = c("1", "2"),
+    `A.a1_leg` = c("1", "2"),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  out <- .analitica_base_collapse_group_prefixed_dupes(data, inst)
+  expect_false("Core.e1_age" %in% names(out))
+  expect_false("A.a1_leg" %in% names(out))
+  expect_true(all(c("E1_age", "A1_leg") %in% names(out)))
+  expect_equal(out$E1_age, data$E1_age)
+})
+
+test_that("group-prefixed único (sin gemelo) se renombra a su nombre del survey", {
+  inst <- make_inst_collapse()
+  data <- data.frame(
+    E1_age = c(30L, 41L),
+    `Core.date` = c("2026-01-01", "2026-01-02"),        # sin gemelo -> rename a `date`
+    `Core.e1_age_calc` = c(30L, 41L),                    # -> rename a `E1_age_calc`
+    `A.time_a_start` = c("t1", "t2"),                    # -> rename a `time_A_start` (case survey)
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  out <- .analitica_base_collapse_group_prefixed_dupes(data, inst)
+  expect_true("date" %in% names(out))
+  expect_true("E1_age_calc" %in% names(out))
+  expect_true("time_A_start" %in% names(out))
+  expect_false(any(c("Core.date", "Core.e1_age_calc", "A.time_a_start") %in% names(out)))
+  expect_equal(out$date, c("2026-01-01", "2026-01-02"))
+})
+
+test_that("metadata cuyo rest no matchea el survey queda intacta", {
+  inst <- make_inst_collapse()
+  data <- data.frame(
+    E1_age = c(30L, 41L),
+    `formhub.uuid` = c("u1", "u2"),
+    `meta.instanceid` = c("i1", "i2"),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  out <- .analitica_base_collapse_group_prefixed_dupes(data, inst)
+  expect_true(all(c("formhub.uuid", "meta.instanceid") %in% names(out)))
+})
+
+test_that("dummy Parent.code (rest numérico) no se toca", {
+  inst <- make_inst_collapse()
+  data <- data.frame(
+    E1_age = c(30L, 41L),
+    `D1_information.96` = c(1L, 0L),
+    `D1_information.1` = c(0L, 1L),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  out <- .analitica_base_collapse_group_prefixed_dupes(data, inst)
+  expect_true(all(c("D1_information.96", "D1_information.1") %in% names(out)))
+})
+
+test_that("group-prefixed con gemelo pero datos DISTINTOS no se dropea (defensivo)", {
+  inst <- make_inst_collapse()
+  data <- data.frame(
+    E1_age = c(30L, 41L),
+    `Core.e1_age` = c(30L, 99L),   # difiere en la fila 2
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  out <- .analitica_base_collapse_group_prefixed_dupes(data, inst)
+  expect_true(all(c("E1_age", "Core.e1_age") %in% names(out)))
+})
+
+test_that("colapso: no-op sin survey y sin group-prefixed; preserva atributos", {
+  inst <- make_inst_collapse()
+  # sin survey
+  d0 <- data.frame(E1_age = 1:2, `Core.e1_age` = 1:2, check.names = FALSE)
+  expect_identical(.analitica_base_collapse_group_prefixed_dupes(d0, list()), d0)
+  # sin group-prefixed
+  d1 <- data.frame(E1_age = 1:2, A1_leg = c("1", "2"), stringsAsFactors = FALSE)
+  expect_identical(.analitica_base_collapse_group_prefixed_dupes(d1, inst), d1)
+  # atributos top-level
+  d2 <- data.frame(E1_age = c(30L, 41L), `Core.e1_age` = c(30L, 41L),
+                   check.names = FALSE)
+  attr(d2, "instrumento_reporte") <- list(marca = "z")
+  attr(d2, "var_peso") <- "peso_final"
+  out <- .analitica_base_collapse_group_prefixed_dupes(d2, inst)
+  expect_equal(attr(out, "instrumento_reporte"), list(marca = "z"))
+  expect_equal(attr(out, "var_peso"), "peso_final")
+})
