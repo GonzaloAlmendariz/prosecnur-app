@@ -12,6 +12,23 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.5.5",
+    date: "2026-07-10",
+    highlights: [
+      "Inicio: cada proyecto abre en su propio panel de control que resume el avance y la madurez de cada módulo, y el selector de proyectos estrena una presentación unificada más clara y adaptable a la pantalla.",
+      "Bitácora: estrena un módulo único que reúne el diseño del estudio y el cronograma, con altas y bajas de actividades y hora en el calendario.",
+      "Analítica: suma ponderación con pesos de diseño y raking, con una vista previa que diagnostica el efecto sobre la muestra antes de aplicarla.",
+      "Analítica: genera el libro de códigos en PDF de la base final —incluida la base panel— en el orden del formulario y con la orientación código o etiqueta que elijas.",
+      "Analítica: permite fijar el orden de las categorías ordinales y lo propaga a frecuencias, cruces, tablas y PPT, con un catálogo de listas y controles por fila.",
+      "Analítica: exporta un script de replicación (.R) que reconstruye la base final de forma reproducible.",
+      "Procesamiento: soporta formularios con grupos repetibles de punta a punta —ingesta, validación, analítica y entregables.",
+      "Carga: trae el trabajo de campo validado desde Monitoreo a Procesamiento en un paso claro, reemplazando la base cruda en su sitio.",
+      "Monitoreo: el inicio refleja el avance territorial vivo, el revamp de aulas ordena los indicadores en una banda de KPIs y los enlaces directos abren la sección correcta.",
+      "Validación: recupera la pregunta madre de los select_multiple para no marcar falsos positivos, y reconoce validación y plan por base en estudios multibase.",
+      "Apariencia: recalibra los controles al UI Kit de macOS y alinea Fichas QR, Cálculo de muestra y otras vistas al lenguaje visual de la suite.",
+    ],
+  },
+  {
     version: "0.5.4",
     date: "2026-07-09",
     highlights: [
