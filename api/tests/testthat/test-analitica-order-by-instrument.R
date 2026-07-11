@@ -163,3 +163,93 @@ test_that("madre legible: no duplica si la madre plana ya existe", {
   expect_equal(sum(names(out) == "sm1"), 1L)
   expect_identical(out$sm1, data$sm1)
 })
+
+# ---- Valores especiales al final del bloque de dummies ---------------------
+
+# Instrumento con un select_multiple `smx` cuya lista declara un valor especial
+# (96) a MEDIA lista y categorías nuevas después: `1, 2, 96, 10, 9`.
+make_inst_special <- function(codes) {
+  survey <- data.frame(
+    name = "smx", type = "select_multiple sp", list_name = "sp",
+    label = "Medios recod", stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = rep("sp", length(codes)),
+    name = as.character(codes),
+    label = paste0("Opt ", codes),
+    stringsAsFactors = FALSE
+  )
+  structure(list(survey = survey, choices = choices),
+            class = "prosecnur_instrumento")
+}
+
+# Base con los dummies de `smx` para los códigos dados (en el orden dado).
+make_data_special <- function(codes) {
+  df <- data.frame(id = c(1L, 2L))
+  for (code in codes) df[[paste0("smx.", code)]] <- c(1L, 0L)
+  df
+}
+
+block_codes <- function(out) {
+  cols <- grep("^smx\\.", names(out), value = TRUE)
+  sub("^smx\\.", "", cols)
+}
+
+test_that(".analitica_code_is_special marca el rango [80,100) y nada más", {
+  expect_true(.analitica_code_is_special("96"))
+  expect_true(.analitica_code_is_special(90))
+  expect_true(.analitica_code_is_special("99"))
+  expect_true(.analitica_code_is_special("80"))
+  expect_false(.analitica_code_is_special("100"))
+  expect_false(.analitica_code_is_special("79"))
+  expect_false(.analitica_code_is_special("10"))
+  expect_false(.analitica_code_is_special("otro"))
+  expect_false(.analitica_code_is_special("_text"))
+})
+
+test_that("especial declarado a media lista (choices) va al final del bloque", {
+  inst <- make_inst_special(c("1", "2", "96", "10", "9"))
+  data <- make_data_special(c("1", "2", "96", "10", "9"))
+  out <- .analitica_order_sm_dummy_cols(data, inst)
+  expect_equal(block_codes(out), c("1", "2", "10", "9", "96"))
+})
+
+test_that("override fija 96 y las categorías nuevas (leftover) igual quedan antes del 96", {
+  # El usuario fijó el orden 1,2,96 con las flechas ANTES de que existieran 9-12.
+  inst <- make_inst_special(c("1", "2", "96", "10", "9", "11", "12"))
+  data <- make_data_special(c("1", "2", "96", "10", "9", "11", "12"))
+  attr(data, "instrumento_reporte") <- list(
+    orders_list = list(smx = list(names = c("1", "2", "96")))
+  )
+  out <- .analitica_order_sm_dummy_cols(data, inst)
+  codes <- block_codes(out)
+  expect_equal(tail(codes, 1L), "96")
+  expect_true(all(c("9", "10", "11", "12") %in% head(codes, -1L)))
+})
+
+test_that("múltiples especiales preservan su orden relativo, todos al final", {
+  inst <- make_inst_special(c("1", "95", "96", "99", "2"))
+  data <- make_data_special(c("1", "95", "96", "99", "2"))
+  out <- .analitica_order_sm_dummy_cols(data, inst)
+  expect_equal(block_codes(out), c("1", "2", "95", "96", "99"))
+})
+
+test_that("sufijo _otro/no numérico no se trata como especial (se queda donde el leftover lo puso)", {
+  inst <- make_inst_special(c("1", "2", "96"))
+  data <- data.frame(id = c(1L, 2L))
+  data[["smx.1"]] <- c(1L, 0L)
+  data[["smx.2"]] <- c(0L, 1L)
+  data[["smx.96"]] <- c(0L, 0L)
+  data[["smx.otro"]] <- c(1L, 0L)  # leftover no numérico
+  out <- .analitica_order_sm_dummy_cols(data, inst)
+  codes <- block_codes(out)
+  expect_equal(tail(codes, 1L), "96")           # el especial es el último
+  expect_true(match("otro", codes) < match("96", codes))  # _otro queda antes del 96
+})
+
+test_that("no-op si el bloque no tiene ningún código especial", {
+  inst <- make_inst_special(c("1", "2", "3"))
+  data <- make_data_special(c("1", "2", "3"))
+  out <- .analitica_order_sm_dummy_cols(data, inst)
+  expect_equal(block_codes(out), c("1", "2", "3"))
+})

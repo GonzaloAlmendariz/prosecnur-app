@@ -15,6 +15,26 @@
 # los duplicados de madre con prefijo de grupo (p.ej. `d.d1_information`), que no
 # matchean el prefijo `<parent>.` del bloque.
 
+# ¿El código es un VALOR ESPECIAL? Estándar de valores especiales del proyecto
+# (90 No aplica/perdido · 94 NS/NR · 95 No piensa votar · 96 Blanco/Viciado/Otro ·
+# 97 No votó · 98 No sabe · 99 No responde): los códigos numéricos en el rango
+# [80, 100) son valores especiales y, por defecto, van SIEMPRE al final del bloque
+# de dummies, sin importar dónde los declare la lista del instrumento (a veces el
+# 96 queda declarado a media lista y las categorías nuevas se agregan después).
+# Sufijos no numéricos (`_otro`, `_text`) NO son especiales por esta regla.
+.analitica_code_is_special <- function(code) {
+  n <- suppressWarnings(as.numeric(as.character(code)))
+  !is.na(n) && n >= 80 && n < 100
+}
+
+# Extrae el sufijo de código de un nombre de dummy (`<parent>.96` → "96",
+# `<parent>___96` → "96", `<parent>.10` → "10", `<parent>___otro` → "otro").
+# Toma lo que sigue al último separador de dummy (`___`, `.` o `/`); robusto a
+# parents con `_` (p.ej. `D1_information_recod`).
+.analitica_dummy_code_suffix <- function(col) {
+  sub("^.*(?:___|[./])", "", as.character(col), perl = TRUE)
+}
+
 # Devuelve `data` con los bloques de dummies de cada select_multiple ordenados
 # por el orden de choices del instrumento. Los dummies presentes que no
 # corresponden a ninguna choice (códigos especiales no listados, `_otro`, …) se
@@ -76,6 +96,22 @@
       if (!any(is.na(suf))) leftover <- leftover[order(suf)]
     }
     ordered <- c(ordered, leftover)
+
+    # Pase FINAL (estándar de valores especiales): mover al final del bloque,
+    # preservando su orden relativo, todos los dummies cuyo código sea especial
+    # [80,100). Se aplica sobre el `ordered` ya resuelto (choices/override +
+    # leftover), así que es robusto incluso cuando el usuario fijó 96 al final con
+    # las flechas ANTES de que existieran las categorías nuevas (9-12): esas
+    # entran como leftover y sin este pase quedarían DESPUÉS del 96.
+    if (length(ordered) > 1L) {
+      is_special <- vapply(
+        .analitica_dummy_code_suffix(ordered),
+        .analitica_code_is_special, logical(1), USE.NAMES = FALSE
+      )
+      if (any(is_special) && !all(is_special)) {
+        ordered <- c(ordered[!is_special], ordered[is_special])
+      }
+    }
 
     # Salvaguardas: no perder/duplicar columnas y no trabajar de más.
     if (length(ordered) != length(current)) next
