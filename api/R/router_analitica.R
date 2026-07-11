@@ -1052,6 +1052,10 @@
   if (isTRUE(omitir_identificadores_directos)) {
     out <- c(out, .analitica_unified_direct_identifier_cols(data, rp_inst))
   }
+  # Plumbing interno (tags de fuente, fases territoriales, derivadas kobo
+  # redundantes): SIEMPRE fuera, independiente de los flags omitir_* (nunca son
+  # datos de análisis). Consistente con /bases/xlsx; `.excluir_cols` deduplica.
+  out <- c(out, .analitica_base_internal_cols(data))
   unique(out[nzchar(out)])
 }
 
@@ -1208,7 +1212,8 @@
 .analitica_unified_independent_xlsx <- function(sid, cfg, valores = "ambos",
                                                 multi_select = "dummy_01",
                                                 omitir_identificadores_directos = TRUE,
-                                                omitir_metadatos_operativos = TRUE) {
+                                                omitir_metadatos_operativos = TRUE,
+                                                incluir_madre_sm = FALSE) {
   if (!exists("estudio_is_independent_siblings", mode = "function") ||
       !estudio_is_independent_siblings(sid)) {
     stop_api(409, "E_NOT_INDEPENDENT_SIBLINGS",
@@ -1283,6 +1288,7 @@
     )
     rp_data <- .excluir_cols(reviewed$data, excluidas)
     if (multi_select == "dummy_01") rp_data <- .expand_multiselect(rp_data, rp_inst)
+    if (isTRUE(incluir_madre_sm)) rp_data <- .analitica_base_reconstruct_madre_sm(rp_data, rp_inst)
 
     alias <- .analitica_base_alias(bases[[nombre]], nombre)
     alias_col <- rep(alias, nrow(rp_data))
@@ -2371,6 +2377,12 @@
   # arbitrario; se reordenan por el orden de la lista de opciones del XLSForm
   # para que la vista "Base final" y el libro de códigos los muestren 1,2,…,96.
   data <- .analitica_order_sm_dummy_cols(data, inst)
+
+  # Los bloques de dummies se apendean al final en la codificación (la madre plana
+  # ya no existe, así que nunca vuelven a su sección). Reubica cada bloque a la
+  # posición canónica del parent en el survey; las derivadas/metadata quedan al
+  # final. NO desordena: impone el orden del instrumento sobre la base adaptada.
+  data <- .analitica_order_by_instrument(data, inst)
 
   list(data = data, inst = inst)
 }
@@ -4198,6 +4210,17 @@ mount_analitica <- function(pr) {
     })) |>
 	    plumber::pr_post("/api/analitica/bases/xlsx", wrap_endpoint(function(req, res, ...) {
 	      # XLSX multi-base: un xlsx por base, zip si N > 1.
+	      #
+	      # Body params (JSON):
+	      #   valores         : "codigos" | "etiquetas" | "ambos" (default "ambos")
+	      #   multi_select    : "codigos_crudos" | "etiquetas_unidas" | "dummy_01"
+	      #                     (default "dummy_01")
+	      #   incluir_madre_sm: bool (default FALSE) — si TRUE, además de los dummies
+	      #                     agrega por cada select_multiple una columna madre
+	      #                     `<parent>` (respuestas concatenadas: etiquetas unidas
+	      #                     en la hoja "etiquetas", códigos crudos en "codigos"),
+	      #                     ubicada en la posición del parent (antes del bloque).
+	      # Mismo contrato de `incluir_madre_sm` en /bases/xlsx-unificada.
 	      sid <- session_header(req)
 	      cfg <- .analitica_get_config(sid)
 	      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
@@ -4210,6 +4233,10 @@ mount_analitica <- function(pr) {
       if (!valores %in% c("codigos","etiquetas","ambos")) valores <- "ambos"
       multi_select <- as.character(body$multi_select %||% "dummy_01")
       if (!multi_select %in% c("codigos_crudos","etiquetas_unidas","dummy_01")) multi_select <- "dummy_01"
+      # incluir_madre_sm (bool, default FALSE): además de los dummies, incluir por
+      # cada select_multiple una columna madre `<parent>` con las respuestas
+      # concatenadas legibles (etiquetas unidas). El toggle vive en la UI.
+      incluir_madre_sm <- isTRUE(body$incluir_madre_sm)
 
       result <- run_report_multibase(
         sid           = sid,
@@ -4220,10 +4247,18 @@ mount_analitica <- function(pr) {
 		        fn = function(rp_data, rp_inst, out_path) {
 		          reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
 		          reviewed$data <- .bases_normalize_other_selects(reviewed$data, reviewed$inst)
-		          rp_data <- .excluir_cols(reviewed$data, .as_chr_vec(cfg$variables_excluidas))
+		          # Higiene: fuera las columnas de plumbing interno (tags de fuente,
+		          # fases territoriales, derivadas kobo redundantes) que no van al
+		          # cliente, además de las variables excluidas por config.
+		          rp_data <- .excluir_cols(
+		            reviewed$data,
+		            c(.as_chr_vec(cfg$variables_excluidas),
+		              .analitica_base_internal_cols(reviewed$data))
+		          )
 		          rp_inst <- reviewed$inst
 		          df_base <- rp_data
           if (multi_select == "dummy_01") df_base <- .expand_multiselect(df_base, rp_inst)
+          if (incluir_madre_sm) df_base <- .analitica_base_reconstruct_madre_sm(df_base, rp_inst)
           df_cod <- .aplicar_etiquetas(df_base, rp_inst, valores = "codigos", multi_select = multi_select)
           df_lab <- if (valores == "codigos") df_cod
                     else .aplicar_etiquetas(df_base, rp_inst, valores = "etiquetas", multi_select = multi_select)
@@ -4273,6 +4308,8 @@ mount_analitica <- function(pr) {
       if (!multi_select %in% c("codigos_crudos","etiquetas_unidas","dummy_01")) multi_select <- "dummy_01"
       omitir_identificadores_directos <- !identical(body$omitir_identificadores_directos, FALSE)
       omitir_metadatos_operativos <- !identical(body$omitir_metadatos_operativos, FALSE)
+      # incluir_madre_sm (bool, default FALSE): mismo contrato que /bases/xlsx.
+      incluir_madre_sm <- isTRUE(body$incluir_madre_sm)
 
       result <- .analitica_unified_independent_xlsx(
         sid = sid,
@@ -4280,7 +4317,8 @@ mount_analitica <- function(pr) {
         valores = valores,
         multi_select = multi_select,
         omitir_identificadores_directos = omitir_identificadores_directos,
-        omitir_metadatos_operativos = omitir_metadatos_operativos
+        omitir_metadatos_operativos = omitir_metadatos_operativos,
+        incluir_madre_sm = incluir_madre_sm
       )
       .analitica_status_set(sid, "analitica_bases_xlsx_ok", TRUE)
       result
