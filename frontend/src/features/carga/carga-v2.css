@@ -537,6 +537,377 @@
   font-weight: 650;
 }
 
+/* ── 8) Reconciliación de variables extra (data ↔ XLSForm) ─────────────────
+   Diálogo que aparece al cargar data con variables ajenas al formulario, y su
+   panel revisitable. El diálogo se monta fuera del .pulso-carga-frame (a nivel
+   de body via el overlay), por eso estas reglas no se anidan bajo el frame. */
+
+.pulso-recon-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--pulso-text) 34%, transparent);
+  animation: cga-overlay-in var(--motion-dur-fast) ease both;
+}
+
+.pulso-recon-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(600px, 100%);
+  max-height: min(720px, calc(100vh - 48px));
+  border: 1px solid var(--pulso-border);
+  border-radius: 18px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+  animation: cga-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+  transform-origin: top center;
+}
+
+.pulso-recon-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-recon-head-icon {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 10px;
+  color: var(--pulso-warn-fg);
+  background: var(--pulso-warn-bg);
+}
+
+.pulso-recon-head-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.pulso-recon-kicker {
+  margin: 0 0 3px;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.pulso-recon-head h2 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.pulso-recon-close {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--pulso-border);
+  border-radius: 9px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  transition:
+    background var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-recon-close:hover:not(:disabled) {
+    background: var(--pulso-surface-2);
+    color: var(--pulso-text);
+  }
+}
+
+.pulso-recon-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pulso-recon-explain {
+  margin: 14px 20px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.pulso-recon-explain svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-recon-explain p {
+  margin: 0;
+}
+
+.pulso-recon-list {
+  margin: 12px 20px 4px;
+  padding: 0;
+  list-style: none;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pulso-recon-row {
+  border: 1px solid var(--pulso-border);
+  border-radius: 11px;
+  background: var(--pulso-surface);
+  transition:
+    border-color var(--motion-dur-fast) ease,
+    background var(--motion-dur-fast) ease;
+}
+
+.pulso-recon-row.is-checked {
+  border-color: var(--pulso-primary-border);
+  background: color-mix(in srgb, var(--pulso-primary) 6%, var(--pulso-surface));
+}
+
+/* Las vacías rara vez se conservan: se muestran atenuadas para que se note. */
+.pulso-recon-row.is-empty {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-recon-row.is-empty .pulso-recon-row-name {
+  color: var(--pulso-text-muted);
+}
+
+.pulso-recon-row-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.pulso-recon-check {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--pulso-primary);
+  cursor: pointer;
+}
+
+.pulso-recon-row-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pulso-text);
+  font-family: var(--pulso-font-mono, ui-monospace, monospace);
+  overflow-wrap: anywhere;
+}
+
+.pulso-recon-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pulso-recon-badge.is-data {
+  color: var(--pulso-success-fg);
+  background: var(--pulso-success-bg);
+  border: 1px solid var(--pulso-success-border);
+}
+
+.pulso-recon-badge.is-empty {
+  color: var(--pulso-text-muted);
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+}
+
+.pulso-recon-error {
+  margin: 8px 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: 10px;
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.pulso-recon-error svg {
+  flex: 0 0 auto;
+}
+
+.pulso-recon-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 20px 18px;
+  margin-top: auto;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-recon-count {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-recon-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pulso-recon-secondary,
+.pulso-recon-primary {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease;
+}
+
+.pulso-recon-secondary {
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+}
+
+.pulso-recon-primary {
+  border: 1px solid var(--pulso-primary);
+  background: var(--pulso-primary);
+  color: #fff;
+  box-shadow: 0 2px 8px var(--pulso-primary-soft);
+}
+
+.pulso-recon-secondary:active:not(:disabled),
+.pulso-recon-primary:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.pulso-recon-secondary:disabled,
+.pulso-recon-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pulso-recon-backdrop :focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+/* Panel revisitable dentro de Carga — reutiliza el lenguaje de la tarjeta de
+   handoff pero en tono neutro/ámbar de "hay algo que revisar". */
+.pulso-carga-frame .pulso-recon-panel {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px;
+  border: 1px solid var(--pulso-border);
+  border-left: 3px solid var(--pulso-warn-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--pulso-warn-bg) 34%, var(--pulso-surface));
+  animation: cga-fade-in-up var(--motion-dur-base) var(--motion-ease-out) both;
+}
+
+.pulso-carga-frame .pulso-recon-panel-icon {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  color: var(--pulso-warn-fg);
+  background: var(--pulso-warn-bg);
+}
+
+.pulso-carga-frame .pulso-recon-panel-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.pulso-carga-frame .pulso-recon-panel-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--pulso-text);
+}
+
+.pulso-carga-frame .pulso-recon-panel-summary {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-carga-frame .pulso-recon-panel-button {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-warn-fg);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-carga-frame .pulso-recon-panel-button:hover:not(:disabled) {
+    background: var(--pulso-warn-bg);
+    transform: translateY(-1px);
+  }
+}
+
+.pulso-carga-frame .pulso-recon-panel-button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
 /* ── Accesibilidad ─────────────────────────────────────────────────────── */
 
 .pulso-carga-frame :where(button, a, select, input, summary, [role="tab"]):focus-visible {

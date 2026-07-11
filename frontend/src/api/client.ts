@@ -3637,6 +3637,79 @@ export async function apiCargaMonitoreoHandoffPromote(
   );
 }
 
+// ── Reconciliación de variables data ↔ XLSForm ──────────────────────────────
+// Cuando la data (upload manual o handoff de Monitoreo) trae variables que ya
+// no existen en el XLSForm actual (típicamente de versiones viejas del
+// formulario), el backend expone el diff aquí. La decisión de cuáles conservar
+// persiste por base; por defecto todas las extra quedan excluidas de la BBDD.
+export type ReconciliacionExtraKind = "con_datos" | "vacia";
+
+export type ReconciliacionExtra = {
+  name: string;
+  fill_pct: number;
+  n_fill: number;
+  kind: ReconciliacionExtraKind;
+  incluida: boolean;
+};
+
+export type ReconciliacionInfo = {
+  ok: true;
+  extra: ReconciliacionExtra[];
+  n_extra: number;
+  n_incluidas: number;
+};
+
+function reconRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+function reconNumber(value: unknown, fallback = 0): number {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+// Normalizador defensivo: el payload viene de R (fill_pct/n_fill pueden llegar
+// como NA/null) y las decisiones alimentan la BBDD, así que blindamos tipos.
+function normalizeReconciliacionInfo(raw: unknown): ReconciliacionInfo {
+  const root = reconRecord(raw);
+  const extra = normalizeShareArray<unknown>(root.extra).map((entry): ReconciliacionExtra => {
+    const row = reconRecord(entry);
+    return {
+      name: String(row.name ?? ""),
+      fill_pct: reconNumber(row.fill_pct),
+      n_fill: reconNumber(row.n_fill),
+      kind: row.kind === "vacia" ? "vacia" : "con_datos",
+      incluida: Boolean(row.incluida),
+    };
+  });
+  return {
+    ok: true,
+    extra,
+    n_extra: reconNumber(root.n_extra, extra.length),
+    n_incluidas: reconNumber(root.n_incluidas, extra.filter((e) => e.incluida).length),
+  };
+}
+
+export async function apiAnaliticaReconciliacionGet(): Promise<ReconciliacionInfo> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/analitica/reconciliacion", { headers: headers() }),
+  );
+  return normalizeReconciliacionInfo(raw);
+}
+
+export async function apiAnaliticaReconciliacionSet(
+  incluidas: string[],
+): Promise<ReconciliacionInfo> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/analitica/reconciliacion", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ incluidas }),
+    }),
+  );
+  return normalizeReconciliacionInfo(raw);
+}
+
 export async function apiCargaConfirmChoiceMapping() {
   return handle<{
     ok: true;
