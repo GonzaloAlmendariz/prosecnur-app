@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   AlertTriangle, ArrowRight, ArrowRightLeft, CheckCircle2, ClipboardCheck, CloudDownload,
-  Database, FileSpreadsheet, Download, Info, Loader2, RefreshCw, Search, ShieldCheck,
+  Database, FileSpreadsheet, FileWarning, Download, Info, Loader2, RefreshCw, Search, ShieldCheck,
   Table2, Trash2, Upload, UploadCloud,
 } from "lucide-react";
 import {
@@ -10,6 +10,8 @@ import {
   apiCargaKoboDetectedSource,
   apiCargaMonitoreoHandoffStatus,
   apiCargaMonitoreoHandoffPromote,
+  apiAnaliticaReconciliacionGet,
+  apiAnaliticaReconciliacionSet,
   apiCargaImportKobo,
   apiCargaImportSurveyMonkey,
   apiCargaData,
@@ -40,6 +42,7 @@ import {
   MonitoreoKoboAssetItem,
   NormalizedExportFormat,
   Pregunta,
+  ReconciliacionInfo,
   Seccion,
   SurveyMonkeyMultibaseListItem,
   downloadUrl,
@@ -56,6 +59,8 @@ import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import SeccionesPanel from "./SeccionesPanel";
 import PreguntasPanel from "./PreguntasPanel";
 import { BasesPanel } from "./BasesPanel";
+import { ReconciliacionExtraDialog } from "./ReconciliacionExtraDialog";
+import { summaryLabel as reconSummaryLabel } from "./reconciliacionModel";
 import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
 
 // Fase 1 — Carga de insumos.
@@ -197,6 +202,10 @@ export default function CargaPage() {
   const [processingSuggestionsStatus, setProcessingSuggestionsStatus] = useState("");
   const [handoffStatus, setHandoffStatus] = useState<CargaMonitoreoHandoffStatus | null>(null);
   const [handoffMessage, setHandoffMessage] = useState("");
+  // Reconciliación de variables data ↔ XLSForm. `reconInfo` alimenta el panel
+  // revisitable; el diálogo se abre solo tras traer/actualizar data con extras.
+  const [reconInfo, setReconInfo] = useState<ReconciliacionInfo | null>(null);
+  const [reconDialogOpen, setReconDialogOpen] = useState(false);
 
   // Puente Monitoreo → Procesamiento (camino primario): si el proyecto ya tiene
   // trabajo de campo validado, lo detectamos para ofrecer traerlo con su
@@ -301,6 +310,9 @@ export default function CargaPage() {
         setChoiceMappingReview(review?.requires_confirmation ? review : null);
       }
       await refresh();
+      // Tras subir data manualmente, revisa si trae variables ajenas al
+      // formulario y abre la reconciliación si las hay.
+      if (kind === "data") await loadReconciliacion(true);
     } catch (e: unknown) {
       setError((e as Error).message);
     } finally {
@@ -496,6 +508,38 @@ export default function CargaPage() {
     }
   }
 
+  // Consulta el estado de reconciliación de variables. `openIfExtra` abre el
+  // diálogo cuando hay variables extra sin resolver — solo se pasa `true` justo
+  // después de traer/actualizar la data (handoff o upload), nunca en bucle. La
+  // reconciliación es un extra: si falla, degrada en silencio sin romper la carga.
+  async function loadReconciliacion(openIfExtra: boolean) {
+    try {
+      const info = await apiAnaliticaReconciliacionGet();
+      setReconInfo(info);
+      if (openIfExtra && info.n_extra > 0) setReconDialogOpen(true);
+    } catch {
+      setReconInfo(null);
+    }
+  }
+
+  async function onSaveReconciliacion(incluidas: string[]): Promise<ReconciliacionInfo> {
+    const info = await apiAnaliticaReconciliacionSet(incluidas);
+    setReconInfo(info);
+    return info;
+  }
+
+  // Mantiene el panel revisitable al día cuando hay una base con data cargada.
+  // No abre el diálogo (openIfExtra=false): eso es exclusivo de los triggers de
+  // carga, para no reabrirlo en cada refresh de estado.
+  useEffect(() => {
+    if (!state?.data) {
+      setReconInfo(null);
+      return;
+    }
+    void loadReconciliacion(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.data]);
+
   async function onBringFieldWorkToProcessing() {
     if (!handoffStatus) return;
     setError("");
@@ -504,6 +548,9 @@ export default function CargaPage() {
     try {
       const result = await apiCargaMonitoreoHandoffPromote();
       await refresh();
+      // El handoff trae data de Monitoreo que puede incluir variables de
+      // versiones viejas del formulario: ofrece reconciliarlas.
+      await loadReconciliacion(true);
       const fr = result.filter_report ?? {};
       const nf = (n?: number) => (n ?? 0).toLocaleString("es-PE");
       const traidas = result.data?.n_filas ?? fr.filas_incluidas ?? 0;
@@ -822,6 +869,34 @@ export default function CargaPage() {
             </div>
           )}
         </div>
+      )}
+
+      {reconInfo && reconInfo.n_extra > 0 && (
+        <div className="pulso-recon-panel" data-audit-ready="true">
+          <span className="pulso-recon-panel-icon" aria-hidden="true">
+            <FileWarning size={16} />
+          </span>
+          <div className="pulso-recon-panel-copy">
+            <span className="pulso-recon-panel-title">Variables extra en la data</span>
+            <span className="pulso-recon-panel-summary">{reconSummaryLabel(reconInfo)}</span>
+          </div>
+          <button
+            type="button"
+            className="pulso-recon-panel-button"
+            onClick={() => setReconDialogOpen(true)}
+          >
+            <ArrowRightLeft size={14} aria-hidden="true" />
+            Revisar variables extra
+          </button>
+        </div>
+      )}
+
+      {reconDialogOpen && reconInfo && (
+        <ReconciliacionExtraDialog
+          info={reconInfo}
+          onSave={onSaveReconciliacion}
+          onClose={() => setReconDialogOpen(false)}
+        />
       )}
 
       {choiceMappingReview && (

@@ -1286,10 +1286,16 @@
       omitir_identificadores_directos = omitir_identificadores_directos,
       omitir_metadatos_operativos = omitir_metadatos_operativos
     )
+    # Reconciliación data↔XLSForm: por defecto las extra sustantivas se excluyen;
+    # solo sobreviven las incluidas por config. El include manda sobre el
+    # empty-drop (una extra incluida-pero-vacía no se dropea por vacía).
+    recon <- .reconciliacion_export_plan(reviewed$data, rp_inst, cfg)
+    excluidas <- unique(c(excluidas, recon$extra_a_excluir))
     # Fuera las columnas 100% vacías del volcado de la BBDD (plantillas de
     # análisis nunca calculadas, metadata sin contenido). Se computa por base
     # antes de agregar alias/origen/uid (que nunca son vacías).
-    excluidas <- unique(c(excluidas, .analitica_base_empty_cols(reviewed$data)))
+    empty_cols <- setdiff(.analitica_base_empty_cols(reviewed$data), recon$extra_incluidas)
+    excluidas <- unique(c(excluidas, empty_cols))
     rp_data <- .excluir_cols(reviewed$data, excluidas)
     if (multi_select == "dummy_01") rp_data <- .expand_multiselect(rp_data, rp_inst)
     if (isTRUE(incluir_madre_sm)) rp_data <- .analitica_base_reconstruct_madre_sm(rp_data, rp_inst)
@@ -2763,6 +2769,10 @@
 	    secciones = list(),
 	    numericas = list(),
 	    variables_excluidas = list(),
+	    # Reconciliación data↔XLSForm: extra sustantivas que el usuario decidió
+	    # INCLUIR en la BBDD (default vacío = todas las extra excluidas). Scopeado
+	    # por base como el resto de la config. Ver reconciliacion_variables.R.
+	    variables_extra_incluidas = list(),
 	    # Override por list_name de ordinalidad (analista). Ausente = auto.
 	    listas_ordinales = stats::setNames(list(), character(0)),
 	    datos = list(
@@ -3262,6 +3272,23 @@ mount_analitica <- function(pr) {
 	      ctx <- .load_rp_data(sid)
 	      cfg <- .analitica_get_config(sid)
 	      list(ok = TRUE, variables = .analitica_data_review_payload(ctx$rp_data, ctx$rp_inst, cfg))
+	    })) |>
+	    plumber::pr_get("/api/analitica/reconciliacion", wrap_endpoint(function(req, res) {
+	      # Reconciliación data↔XLSForm de la base activa. Lista las variables extra
+	      # sustantivas (vars de versiones viejas del form / derivadas de plataforma)
+	      # con su relleno, marcando cuáles están incluidas. Consumido por el popover
+	      # y por el panel revisitable. Router delgado: lógica en reconciliacion_variables.R.
+	      sid <- session_header(req)
+	      .reconciliacion_info(sid)
+	    })) |>
+	    plumber::pr_post("/api/analitica/reconciliacion", wrap_endpoint(function(req, res, ...) {
+	      # Persiste `variables_extra_incluidas` para la base activa. Body:
+	      # { incluidas: ["dim_actor", ...] }. Validación defensiva (subconjunto de
+	      # las extra reales) en el helper vía stop_api(E_RECON_VAR_DESCONOCIDA).
+	      sid <- session_header(req)
+	      body <- .analitica_json_body(req)
+	      nombres <- .as_chr_vec(body$incluidas %||% body$variables_extra_incluidas)
+	      .reconciliacion_set_incluidas(sid, nombres)
 	    })) |>
 	    plumber::pr_post("/api/analitica/base-sheet", wrap_endpoint(function(req, res, ...) {
 	      sid <- session_header(req)
@@ -4289,11 +4316,20 @@ mount_analitica <- function(pr) {
 		          # 100% vacías (plantillas de análisis nunca calculadas, metadata
 		          # sin contenido) y las variables excluidas por config. El strip de
 		          # vacías va SOLO acá (export de la BBDD), no en el review compartido.
+		          #
+		          # Reconciliación data↔XLSForm: por defecto TODAS las extra
+		          # sustantivas (vars de versiones viejas del form, derivadas de
+		          # plataforma) se excluyen; solo sobreviven las que el usuario
+		          # incluyó (`variables_extra_incluidas`). El include manda sobre el
+		          # empty-drop: una extra incluida-pero-vacía NO se dropea por vacía.
+		          recon <- .reconciliacion_export_plan(reviewed$data, reviewed$inst, cfg)
+		          empty_cols <- setdiff(.analitica_base_empty_cols(reviewed$data), recon$extra_incluidas)
 		          rp_data <- .excluir_cols(
 		            reviewed$data,
 		            c(.as_chr_vec(cfg$variables_excluidas),
 		              .analitica_base_internal_cols(reviewed$data),
-		              .analitica_base_empty_cols(reviewed$data))
+		              empty_cols,
+		              recon$extra_a_excluir)
 		          )
 		          rp_inst <- reviewed$inst
 		          df_base <- rp_data
