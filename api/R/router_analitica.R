@@ -1286,6 +1286,10 @@
       omitir_identificadores_directos = omitir_identificadores_directos,
       omitir_metadatos_operativos = omitir_metadatos_operativos
     )
+    # Fuera las columnas 100% vacías del volcado de la BBDD (plantillas de
+    # análisis nunca calculadas, metadata sin contenido). Se computa por base
+    # antes de agregar alias/origen/uid (que nunca son vacías).
+    excluidas <- unique(c(excluidas, .analitica_base_empty_cols(reviewed$data)))
     rp_data <- .excluir_cols(reviewed$data, excluidas)
     if (multi_select == "dummy_01") rp_data <- .expand_multiselect(rp_data, rp_inst)
     if (isTRUE(incluir_madre_sm)) rp_data <- .analitica_base_reconstruct_madre_sm(rp_data, rp_inst)
@@ -1464,18 +1468,14 @@
 
   out_name <- .export_filename(sid, "bases_unificadas", "xlsx")
   out_path <- .session_tmp(sid, sprintf("%s_%s", uuid::UUIDgenerate(), out_name))
+  # BBDD unificada sin "Ficha tecnica" (pedido del usuario — la ficha no
+  # pertenece al volcado de datos). Conserva sus hojas de meta propias
+  # (comunes/omitidas/bases/auditoría); solo se quita la ficha técnica.
   .analitica_write_unified_xlsx(df_cod, df_lab, common_df, omitted_df,
                                 bases_df, out_path, valores = valores,
                                 decision_audit_df = decision_audit_df,
                                 decision_case_audit_df = decision_case_audit_df,
-                                ficha_tecnica = list(
-                                  cfg = cfg,
-                                  fuente = fuente,
-                                  detalles = list(
-                                    "Bases incluidas" = paste(as.character(bases_df$alias %||% bases_df$base_nombre %||% ""), collapse = ", "),
-                                    "Politica multi-select" = multi_select
-                                  )
-                                ))
+                                ficha_tecnica = FALSE)
   meta <- .register_output_file(sid, "bases_unificadas", out_path, original_name = out_name)
   list(
     ok = TRUE,
@@ -4285,12 +4285,15 @@ mount_analitica <- function(pr) {
 		          reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
 		          reviewed$data <- .bases_normalize_other_selects(reviewed$data, reviewed$inst)
 		          # Higiene: fuera las columnas de plumbing interno (tags de fuente,
-		          # fases territoriales, derivadas kobo redundantes) que no van al
-		          # cliente, además de las variables excluidas por config.
+		          # fases territoriales, derivadas kobo redundantes), las columnas
+		          # 100% vacías (plantillas de análisis nunca calculadas, metadata
+		          # sin contenido) y las variables excluidas por config. El strip de
+		          # vacías va SOLO acá (export de la BBDD), no en el review compartido.
 		          rp_data <- .excluir_cols(
 		            reviewed$data,
 		            c(.as_chr_vec(cfg$variables_excluidas),
-		              .analitica_base_internal_cols(reviewed$data))
+		              .analitica_base_internal_cols(reviewed$data),
+		              .analitica_base_empty_cols(reviewed$data))
 		          )
 		          rp_inst <- reviewed$inst
 		          df_base <- rp_data
@@ -4299,20 +4302,15 @@ mount_analitica <- function(pr) {
           df_cod <- .aplicar_etiquetas(df_base, rp_inst, valores = "codigos", multi_select = multi_select)
           df_lab <- if (valores == "codigos") df_cod
                     else .aplicar_etiquetas(df_base, rp_inst, valores = "etiquetas", multi_select = multi_select)
+          # BBDD sin "Ficha tecnica": solo las hojas `codigos` y `etiquetas`
+          # (pedido del usuario — la ficha no pertenece al volcado de datos).
+          # Frecuencias y Cruces SÍ conservan su ficha (no se tocan).
           .bases_write_xlsx(
             df_cod,
             df_lab,
             out_path,
             valores = valores,
-            ficha_tecnica = list(
-              cfg = cfg,
-              instrumento = rp_inst,
-              reporte = "Base de datos analitica",
-              detalles = list(
-                "Formato de valores" = valores,
-                "Tratamiento de select multiple" = multi_select
-              )
-            )
+            ficha_tecnica = FALSE
           )
         }
       )
