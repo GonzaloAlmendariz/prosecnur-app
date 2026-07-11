@@ -41,6 +41,28 @@
   unique(out)
 }
 
+# Columnas 100% VACÍAS a excluir del volcado de la BBDD. La base real trae
+# columnas-plantilla de análisis que la plataforma inyectó pero nunca calculó
+# (`A1_rec`, `perception_index`, …) y metadata Kobo sin contenido (`_tags`,
+# `_notes`, `_submitted_by`, `_attachments`). Una columna está vacía si TODOS sus
+# valores son NA o, tras `as.character` + `trimws`, cadena vacía; también se trata
+# como vacío el `"[]"` que Kobo pone en arrays de metadata sin elementos.
+#
+# Guardrail: si TODAS las columnas resultaran vacías, no se marca ninguna (nunca
+# dejar la BBDD sin columnas por un falso positivo).
+.analitica_base_empty_cols <- function(data) {
+  if (!is.data.frame(data) || !ncol(data)) return(character(0))
+  is_empty_col <- function(col) {
+    if (all(is.na(col))) return(TRUE)
+    v <- trimws(as.character(col))
+    v[is.na(col)] <- ""
+    all(v == "" | v == "[]")
+  }
+  empties <- names(data)[vapply(data, is_empty_col, logical(1))]
+  if (length(empties) == ncol(data)) return(character(0))  # no vaciar todo
+  empties
+}
+
 # Colapsa las columnas DUPLICADAS con prefijo de grupo que arrastra la base real
 # del handoff de Monitoreo. Cada variable de análisis puede aparecer dos veces:
 # limpia (`E1_age`, `A1_leg`) y cruda con prefijo de grupo en minúscula

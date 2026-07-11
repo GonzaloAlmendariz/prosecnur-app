@@ -435,3 +435,30 @@ test_that("colapso: no-op sin survey y sin group-prefixed; preserva atributos", 
   expect_equal(attr(out, "instrumento_reporte"), list(marca = "z"))
   expect_equal(attr(out, "var_peso"), "peso_final")
 })
+
+# ---- Columnas 100% vacías del export de la BBDD ----------------------------
+
+test_that(".analitica_base_empty_cols detecta all-NA, all-\"\" y \"[]\"; respeta las no-vacías", {
+  data <- data.frame(
+    con_dato = c("a", "b", "c"),
+    con_num = c(1L, NA, 3L),
+    all_na = c(NA, NA, NA),
+    all_blank = c("", "  ", ""),
+    kobo_arr = c("[]", "[]", "[]"),
+    mixto = c("", "x", ""),          # tiene un valor -> NO vacía
+    stringsAsFactors = FALSE
+  )
+  empties <- .analitica_base_empty_cols(data)
+  expect_setequal(empties, c("all_na", "all_blank", "kobo_arr"))
+  expect_false(any(c("con_dato", "con_num", "mixto") %in% empties))
+})
+
+test_that(".analitica_base_empty_cols guardrail: no marca si TODAS las columnas están vacías", {
+  data <- data.frame(a = c(NA, NA), b = c("", ""), stringsAsFactors = FALSE)
+  expect_equal(.analitica_base_empty_cols(data), character(0))
+})
+
+test_that(".analitica_base_empty_cols no-op en data sin columnas / no data.frame", {
+  expect_equal(.analitica_base_empty_cols(data.frame()), character(0))
+  expect_equal(.analitica_base_empty_cols(NULL), character(0))
+})
