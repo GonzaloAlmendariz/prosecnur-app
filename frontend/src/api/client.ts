@@ -9962,6 +9962,10 @@ export type BasesXlsxBody = {
   multi_select?: "codigos_crudos" | "etiquetas_unidas" | "dummy_01";
   omitir_identificadores_directos?: boolean;
   omitir_metadatos_operativos?: boolean;
+  // Cuando es true, por cada select_multiple la base agrega una columna
+  // madre legible (respuestas concatenadas) antes de su bloque de dummies.
+  // Solo tiene efecto con multi_select = "dummy_01". Default backend: FALSE.
+  incluir_madre_sm?: boolean;
 };
 
 export async function apiAnaliticaBasesData() {
