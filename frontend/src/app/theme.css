@@ -21316,6 +21316,10 @@ h1.pulso-page-title {
   font-weight: 600;
   line-height: 1.45;
 }
+.analitica-bases-check-option.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
 .analitica-bases-writer-status {
   min-width: 0;
   display: flex;

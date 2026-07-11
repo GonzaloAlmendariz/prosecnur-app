@@ -436,14 +436,23 @@ function XlsxCard({
   cfg: {
     valores: "codigos" | "etiquetas" | "ambos";
     multi_select: "codigos_crudos" | "etiquetas_unidas" | "dummy_01";
+    incluir_madre_sm?: boolean;
   };
   onChange: (patch: Partial<typeof cfg>) => void;
 }) {
   const run = useReporteRun();
 
+  // La columna madre legible solo tiene sentido junto a las columnas 0/1.
+  const madreSmAplica = cfg.multi_select === "dummy_01";
+  const incluirMadreSm = madreSmAplica && !!cfg.incluir_madre_sm;
+
   async function onGenerate() {
     await run.runSync(() =>
-      apiAnaliticaBasesXlsx({ valores: cfg.valores, multi_select: cfg.multi_select }),
+      apiAnaliticaBasesXlsx({
+        valores: cfg.valores,
+        multi_select: cfg.multi_select,
+        incluir_madre_sm: incluirMadreSm,
+      }),
     );
   }
 
@@ -485,6 +494,24 @@ function XlsxCard({
             { value: "codigos_crudos", label: "Mantener códigos originales", hint: "Conserva respuestas como '1 3 5'." },
           ]}
         />
+
+        <label
+          className={`analitica-bases-check-option${madreSmAplica ? "" : " is-disabled"}`}
+          title={madreSmAplica ? undefined : "Disponible cuando eliges una columna por opción (0/1)."}
+        >
+          <input
+            type="checkbox"
+            checked={incluirMadreSm}
+            disabled={!madreSmAplica}
+            onChange={(e) => onChange({ incluir_madre_sm: e.target.checked })}
+          />
+          <span>
+            <strong>Incluir columna legible de opción múltiple</strong>
+            <small>
+              Junto a las columnas 0/1, agrega una columna con las respuestas escritas (unidas) para leer de un vistazo.
+            </small>
+          </span>
+        </label>
 
         <GenerateFooter
           label="Descargar Excel"
@@ -546,6 +573,7 @@ function UnifiedSiblingsCard({
   cfg: {
     valores: "codigos" | "etiquetas" | "ambos";
     multi_select: "codigos_crudos" | "etiquetas_unidas" | "dummy_01";
+    incluir_madre_sm?: boolean;
   };
 }) {
   const cleanRun = useReporteRun();
@@ -553,11 +581,15 @@ function UnifiedSiblingsCard({
   const { state } = useSession();
   const enabled = state?.estudio_processing_mode === "independent_siblings" && (state?.n_bases ?? 0) > 1;
 
+  // Hereda el flag del mismo config compartido (bases.xlsx); solo aplica con dummies.
+  const incluirMadreSm = cfg.multi_select === "dummy_01" && !!cfg.incluir_madre_sm;
+
   async function onGenerateClean() {
     await cleanRun.runSync(() =>
       apiAnaliticaBasesXlsxUnificada({
         valores: cfg.valores,
         multi_select: cfg.multi_select,
+        incluir_madre_sm: incluirMadreSm,
         omitir_identificadores_directos: true,
         omitir_metadatos_operativos: true,
       }),
@@ -569,6 +601,7 @@ function UnifiedSiblingsCard({
       apiAnaliticaBasesXlsxUnificada({
         valores: cfg.valores,
         multi_select: cfg.multi_select,
+        incluir_madre_sm: incluirMadreSm,
         omitir_identificadores_directos: false,
         omitir_metadatos_operativos: false,
       }),
