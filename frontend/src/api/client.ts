@@ -3590,8 +3590,14 @@ export type CargaMonitoreoHandoffStatus = {
     source_id?: string;
     validity?: CargaMonitoreoHandoffValidity | string;
     status_column?: string;
-    instrument_source: "kobo_api" | "local" | "none";
+    // El instrumento de procesamiento SIEMPRE es local (subido por el usuario),
+    // nunca de la API de Kobo. "needs_upload" = falta el XLSForm local y la UI
+    // debe ofrecer subirlo. "local" = disponible. "none" = no aplica.
+    instrument_source: "local" | "needs_upload" | "none";
+    // TRUE solo cuando instrument_source === "local".
     instrument_available: boolean;
+    // TRUE cuando falta el XLSForm local y la UI debe ofrecer subirlo.
+    instrument_needs_upload: boolean;
   };
   // Fuentes promovibles del snapshot (camino general); vacio en territorial.
   sources?: CargaMonitoreoHandoffSource[];

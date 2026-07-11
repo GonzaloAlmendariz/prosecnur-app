@@ -25,6 +25,44 @@
   )
 }
 
+# XLSForm local minimo (sin repeats) para probar el candidato LOCAL del instrumento
+# y el contrato instrument_source="local".
+.handoff_write_simple_xlsform <- function() {
+  survey <- data.frame(
+    type  = c("text", "select_one si_no"),
+    name  = c("nombre", "acepta"),
+    label = c("Nombre", "Acepta"),
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+  choices <- data.frame(
+    list_name = c("si_no", "si_no"),
+    name  = c("1", "0"),
+    label = c("Si", "No"),
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+  settings <- data.frame(form_title = "Simple", form_id = "simple", version = "1",
+                         stringsAsFactors = FALSE, check.names = FALSE)
+  path <- tempfile("simple_xlsform_", fileext = ".xlsx")
+  .carga_write_xlsform_model(list(survey = survey, choices = choices, settings = settings), path)
+  path
+}
+
+# Sesion territorial con un XLSForm local ligado a la base activa del estudio.
+.handoff_setup_territorial_local_xlsform <- function() {
+  sid <- session_create()
+  xls <- .handoff_write_simple_xlsform()
+  meta <- save_upload(sid, "xlsform", "simple.xlsx",
+                      readBin(xls, "raw", n = file.info(xls)$size))
+  s <- session_get(sid)
+  s$monitoreo_snapshot <- .handoff_snapshot_fixture(validada = 1L, revision = 1L)
+  s$estudio <- list(
+    active_source = "default",
+    bases = list(default = list(nombre = "default", xlsform_file_id = meta$file_id))
+  )
+  .session_env[[sid]] <- s
+  list(sid = sid, xlsform_id = meta$file_id)
+}
+
 test_that("status sin snapshot devuelve detected=FALSE y counts en cero", {
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
@@ -41,6 +79,7 @@ test_that("status sin snapshot devuelve detected=FALSE y counts en cero", {
   expect_equal(out$counts$total, 0L)
   expect_equal(out$source$instrument_source, "none")
   expect_false(out$source$instrument_available)
+  expect_false(out$source$instrument_needs_upload)
   expect_false(out$already_promoted)
   expect_false(out$existing_base$present)
   expect_equal(out$base_nombre_sugerido, "Monitoreo territorial")
@@ -171,8 +210,53 @@ test_that("status detecta asset Kobo heredado de Monitoreo territorial en la fue
   expect_equal(out$source$kobo_asset_uid, "aT5qpJ937NmUro9AzgBXaA")
   expect_equal(out$source$phase, "field")
   expect_equal(out$source$label, "Encuesta territorial VF")
-  # Sin token guardado en el store local, no puede prometer la API de Kobo.
-  expect_true(out$source$instrument_source %in% c("kobo_api", "local", "none"))
+  # Contrato vigente: el instrumento NUNCA sale de la API de Kobo, aunque haya
+  # asset detectado. Sin XLSForm local, la UI debe pedir subirlo.
+  expect_false(identical(out$source$instrument_source, "kobo_api"))
+  expect_equal(out$source$instrument_source, "needs_upload")
+  expect_false(out$source$instrument_available)
+  expect_true(out$source$instrument_needs_upload)
+})
+
+test_that("status territorial con XLSForm local reporta instrument_source=local", {
+  setup <- .handoff_setup_territorial_local_xlsform()
+  on.exit(session_delete(setup$sid), add = TRUE)
+
+  out <- .carga_monitoreo_handoff_status(setup$sid)
+
+  expect_equal(out$source$instrument_source, "local")
+  expect_true(out$source$instrument_available)
+  expect_false(out$source$instrument_needs_upload)
+})
+
+test_that("extractor congelado NO candidatea la API de Kobo: elige el XLSForm local y cruza compatibilidad", {
+  setup <- .handoff_setup_territorial_local_xlsform()
+  on.exit(session_delete(setup$sid), add = TRUE)
+  sid <- setup$sid
+
+  # Guarda dura: si el extractor intentara consultar la API de Kobo, el test
+  # falla. Bajo el contrato vigente ese path ni se invoca.
+  testthat::local_mocked_bindings(
+    .monitoreo_processing_handoff_kobo_detail = function(...) {
+      stop("el handoff de procesamiento no debe consultar la API de Kobo")
+    },
+    .package = "prosecnurapp"
+  )
+
+  data <- data.frame(nombre = c("a", "b"), acepta = c("1", "0"),
+                     stringsAsFactors = FALSE, check.names = FALSE)
+  out_path <- tempfile("handoff_out_", fileext = ".xlsx")
+
+  res <- .monitoreo_processing_handoff_xlsform(
+    sid, session_get(sid), out_path, data = data
+  )
+
+  # Elige el candidato LOCAL de la base del estudio, no la API.
+  expect_equal(res$source, "estudio")
+  expect_true(file.exists(res$path))
+  # El cruce de compatibilidad form<->data sigue corriendo y aprueba.
+  expect_true(res$compatibility$ok)
+  expect_gte(as.integer(res$compatibility$matched %||% 0L), 2L)
 })
 
 test_that("promote sin snapshot falla con api_error (E_NO_MONITOREO_DATA), sin stop crudo", {
@@ -292,6 +376,9 @@ test_that("status general detecta la fuente Kobo y cuenta por Status/valid_statu
   expect_equal(out$source$kobo_asset_uid, "ASSET123")
   expect_equal(out$source$validity, "status_candidate")
   expect_equal(out$source$status_column, "Status")
+  # Sin XLSForm local subido, el instrumento no puede salir de la API: needs_upload.
+  expect_equal(out$source$instrument_source, "needs_upload")
+  expect_true(out$source$instrument_needs_upload)
   # 3 de 4 filas Kobo con Status == "Completa"; las 3 de barrido no cuentan.
   expect_equal(out$counts$processable, 3L)
   expect_equal(out$counts$total, 4L)
@@ -366,6 +453,10 @@ test_that("already_promoted general es TRUE solo tras promover ESA fuente Kobo",
 
   before <- .carga_monitoreo_handoff_status(sid)
   expect_false(before$already_promoted)
+  # Con XLSForm local subido, el instrumento sale de local (nunca de la API).
+  expect_equal(before$source$instrument_source, "local")
+  expect_true(before$source$instrument_available)
+  expect_false(before$source$instrument_needs_upload)
 
   .carga_monitoreo_handoff_promote(sid, list())
 

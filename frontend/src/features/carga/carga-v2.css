@@ -449,8 +449,43 @@
 
 .pulso-carga-frame .pulso-carga-handoff-actions {
   display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* CTA para subir el XLSForm cuando el instrumento local aún no está. Comparte
+   el lenguaje visual del primario pero en tono neutro (borde, no relleno). */
+.pulso-carga-frame .pulso-carga-handoff-upload {
+  min-height: 36px;
+  display: inline-flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 16px;
+  border: 1px solid var(--pulso-module-monitoring);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-module-monitoring);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-carga-frame .pulso-carga-handoff-upload:not(.is-disabled):hover {
+    background: var(--pulso-module-monitoring-soft);
+    transform: translateY(-1px);
+  }
+}
+
+.pulso-carga-frame .pulso-carga-handoff-upload.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .pulso-carga-frame .pulso-carga-handoff-primary {
