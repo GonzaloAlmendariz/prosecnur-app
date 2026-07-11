@@ -2400,6 +2400,16 @@
   # select_multiple y sus recodificadas (buscan case-sensitive contra el survey).
   data <- .analitica_restore_survey_case(data, inst)
 
+  # La base real del handoff de Monitoreo arrastra duplicados con prefijo de grupo
+  # (`Core.e1_age`↔`E1_age`, `A.a1_leg`↔`A1_leg`, `D.d1_information` madre). Se
+  # colapsan: dropea la cruda si es idéntica a su gemelo limpio, y renombra a su
+  # nombre del survey las únicas valiosas (`date`, `E1_age_calc`, `time_*`) para
+  # que el reorden canónico las reubique. NO toca metadata ni derivadas. Va acá
+  # (review compartido) para que la base limpia sea consistente en BBDD, codebook
+  # y frecuencias; después de restore_case (gemelos ya en case del survey) y
+  # antes del reorden canónico.
+  data <- .analitica_base_collapse_group_prefixed_dupes(data, inst)
+
   # Los dummies de select_multiple se generan en la codificación en orden
   # arbitrario; se reordenan por el orden de la lista de opciones del XLSForm
   # para que la vista "Base final" y el libro de códigos los muestren 1,2,…,96.
