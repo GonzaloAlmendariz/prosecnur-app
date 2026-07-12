@@ -287,13 +287,21 @@ test_that("promote sin snapshot falla con api_error (E_NO_MONITOREO_DATA), sin s
 # Kobo (con blob rep_servicios y `_id`). `kobo_status` controla la columna Status
 # de las filas Kobo (vector de largo 4); NA => sin status resoluble.
 .handoff_general_snapshot <- function(kobo_status) {
+  # `edad` bare + `Intro/edad` prefijado byte-idénticos -> dup group-prefixed a
+  # colapsar. `Origen`/`dim_sede` = esquema de seguimiento del bind multi-fuente,
+  # 100% VACÍO para las filas Kobo. `.integration_mode` = plumbing dot-prefijado.
+  # Todo esto NO altera el conteo de status (valid_statuses = "Completa").
   phone <- data.frame(
     `.source_id`   = rep("gs_barrido", 3L),
     `.source_kind` = rep("google_sheets", 3L),
     `.source_label` = rep("Barrido telefonico", 3L),
+    `.integration_mode` = rep("connected_read", 3L),
     `_id`          = rep(NA_character_, 3L),
+    `edad`         = rep(NA_character_, 3L),
     `Intro/edad`   = rep(NA_character_, 3L),
     `Status`       = c("No contesta", "Efectivo", "Apagado"),
+    `Origen`       = c("barrido", "barrido", "barrido"),
+    `dim_sede`     = c("Sur", "Norte", "Sur"),
     `Assistance/rep_servicios`       = rep(NA_character_, 3L),
     `Assistance/rep_servicios_count` = rep(NA_character_, 3L),
     check.names = FALSE, stringsAsFactors = FALSE
@@ -302,9 +310,13 @@ test_that("promote sin snapshot falla con api_error (E_NO_MONITOREO_DATA), sin s
     `.source_id`   = rep("kobo_pdm", 4L),
     `.source_kind` = rep("kobo", 4L),
     `.source_label` = rep("PDM Kobo", 4L),
+    `.integration_mode` = rep("connected_read", 4L),
     `_id`          = c("k1", "k2", "k3", "k4"),
+    `edad`         = c("30", "40", "25", "50"),
     `Intro/edad`   = c("30", "40", "25", "50"),
     `Status`       = kobo_status,
+    `Origen`       = rep(NA_character_, 4L),   # universo: vacío en filas Kobo
+    `dim_sede`     = rep(NA_character_, 4L),
     `Assistance/rep_servicios` = c(
       .handoff_blob(.handoff_svc("legal", "4"), .handoff_svc("snm", "5")),
       .handoff_blob(.handoff_svc("legal", "3")),
@@ -445,6 +457,30 @@ test_that("promote general crea base madre + hija repeat y filtra filas validas"
   expect_equal(child$parent_base, res$base_nombre)
   expect_equal(as.integer(child$n_filas), 4L)
   expect_equal(child$link_key, "_parent_index")
+})
+
+test_that("promote general persiste la base SIN dups group-prefix ni universo vacío", {
+  sid <- .handoff_setup_general(c("Completa", "Completa", "Parcial", "Completa"),
+                                with_local_xlsform = TRUE)
+  on.exit(session_delete(sid), add = TRUE)
+
+  res <- .carga_monitoreo_handoff_promote(sid, list())
+  expect_true(res$ok)
+
+  # Leemos el archivo de datos REALMENTE persistido y verificamos su higiene.
+  s <- session_get(sid)
+  data_path <- s$files[[res$data$file_id]]$path
+  expect_true(file.exists(data_path))
+  df <- .read_data_any_path(data_path, "xlsx")
+  nms <- names(df)
+
+  # `edad` del instrumento presente; su gemelo prefijado colapsado.
+  expect_true("edad" %in% nms)
+  expect_false(any(grepl("^Intro[./]edad$", nms)))
+  # Esquema de seguimiento/universo vacío fuera.
+  expect_false(any(c("Origen", "dim_sede") %in% nms))
+  # Plumbing dot-prefijado / tags de fuente fuera.
+  expect_false(any(startsWith(nms, ".")))
 })
 
 test_that("already_promoted general es TRUE solo tras promover ESA fuente Kobo", {

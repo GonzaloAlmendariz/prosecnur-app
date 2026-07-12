@@ -225,16 +225,55 @@
       )
       if (!is.null(raw_df)) {
         choice_maps <- .pulso_load_choice_maps(sid)
+        norm_ok <- TRUE
         data_norm <- tryCatch(
           normalize_data_for_xlsform(raw_df, inst, choice_code_maps = choice_maps),
-          error = function(e) raw_df
+          error = function(e) { norm_ok <<- FALSE; raw_df }
         )
         data_cache <- tryCatch(
           reporte_data(data_norm, instrumento = inst),
           error = function(e) data_norm
         )
-        normalized_attr <- attr(data_norm, "xlsform_normalized", exact = TRUE)
-        if (!is.null(normalized_attr)) {
+        # CURA (frente B): esta es la RECONSTRUCCIÓN canónica de `rp_data` desde
+        # el archivo persistido; alimenta Validación, Analítica, Gráficos y
+        # Dashboard. Sanear acá cura las bases del handoff ya guardadas (dups
+        # group-prefixed, `.integration_mode`, universo vacío) de forma uniforme
+        # en un solo punto, en paridad con "Ver base" (misma `sanitize_base_data`).
+        if (exists("sanitize_base_data", mode = "function")) {
+          data_cache <- tryCatch(
+            sanitize_base_data(
+              data_cache, inst,
+              monitoreo_handoff = .base_hygiene_is_monitoreo_kind(base$source_kind %||% "")
+            ),
+            error = function(e) data_cache
+          )
+        }
+        # Marcar `data_cache` como ya normalizado por el pipeline de ESTE load.
+        # `normalize_data_for_xlsform` solo deja el atributo `xlsform_normalized`
+        # cuando realmente colapsa dummies/aliases; si la data cruda ya venía en
+        # forma "madre" (select_multiple con tokens separados por espacio, sin
+        # columnas dummy) no hay trabajo de colapso y el atributo NO se setea,
+        # aunque la data SÍ quedó canónicamente normalizada. Sin ese marcador,
+        # `.pulso_renormalize_after_load` cree que la base está sin normalizar y
+        # RE-EJECUTA `normalize_data_for_xlsform` sobre la salida de `reporte_data`
+        # (que ya expandió los select_multiple a dummies `var.opcion`); esa segunda
+        # pasada vuelve a colapsar los dummies a la madre y los dropea, destruyendo
+        # la distribución (bug: `obstacle` mostraba solo `other`). Por eso, cuando
+        # normalize corrió sin error, propagamos el atributo existente o dejamos un
+        # marcador mínimo idempotente para que el paso post-load respete la base.
+        if (isTRUE(norm_ok)) {
+          normalized_attr <- attr(data_norm, "xlsform_normalized", exact = TRUE)
+          if (is.null(normalized_attr)) {
+            normalized_attr <- list(
+              normalized_at          = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+              select_multiple        = list(),
+              aliases                = list(),
+              single_child_collapses = list(),
+              select_one_other_recodes = list(),
+              choice_code_maps       = list(),
+              dropped_columns        = character(0)
+            )
+          }
           attr(data_cache, "xlsform_normalized") <- normalized_attr
         }
         compat <- tryCatch(

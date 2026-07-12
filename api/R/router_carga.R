@@ -559,6 +559,17 @@ estudio_init_default_base <- function(sid) {
     inst,
     choice_code_maps = .carga_editor_choice_code_maps(sid)
   )
+  # CURA (frente B): "Ver base" lee del archivo persistido. Las bases traídas por
+  # el handoff de Monitoreo ANTES de este fix guardaron 177 columnas crudas (dups
+  # group-prefixed + universo vacío + `.integration_mode`). Se sanean acá para
+  # que Ver base muestre lo mismo que Validación/Analítica, sin re-importar.
+  s_now <- session_get(sid, required = FALSE)
+  source_kind <- (((s_now %||% list())$estudio %||% list())$bases %||%
+                    list())[[files$base_nombre]]$source_kind %||% NULL
+  df <- sanitize_base_data(
+    df, inst,
+    monitoreo_handoff = if (is.null(source_kind)) NULL else .base_hygiene_is_monitoreo_kind(source_kind)
+  )
   df <- .carga_reorder_data_columns(df, inst)
   list(data = df, instrumento = inst, base_nombre = files$base_nombre)
 }
@@ -753,7 +764,15 @@ estudio_init_default_base <- function(sid) {
   for (var in expected) {
     if (var %in% names(df)) next
     hit <- which(leaf_names == tolower(var))
-    if (length(hit) == 1L) df[[var]] <- df[[hit]]
+    # Alineamos por RENOMBRE, no por copia: la columna prefijada de origen
+    # (`Intro/mand_Date`, `Core.e1_age`) SE CONVIERTE en la pelada esperada
+    # (`mand_Date`, `E1_age`). Copiarla dejaba viva la prefijada -> duplicado
+    # byte-idéntico que ensuciaba Ver base / Validación (la higiene solo vivía en
+    # el export de Analítica). El rename in-situ evita el dup de raíz.
+    if (length(hit) == 1L) {
+      names(df)[hit] <- var
+      leaf_names[hit] <- tolower(var)
+    }
   }
   df
 }

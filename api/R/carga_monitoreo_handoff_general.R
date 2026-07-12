@@ -381,6 +381,11 @@
   }
   data_df <- .kobo_drop_repeat_blob_columns(data_df, rp_inst)
   if (has_repeats) data_df <- .kobo_ensure_wide_index(data_df)
+  # PREVENCIÓN (frente A): persistir la base ya limpia. Colapsa dups
+  # group-prefixed residuales, quita `.integration_mode`/tags de fuente y dropea
+  # el esquema de seguimiento/universo que el bind multi-fuente inyecta VACÍO en
+  # las filas Kobo. `monitoreo_handoff = TRUE`: aquí la proveniencia es segura.
+  data_df <- sanitize_base_data(data_df, rp_inst, monitoreo_handoff = TRUE)
   data_df <- .carga_reorder_data_columns(data_df, rp_inst)
   .carga_assert_data_xlsform_compatible(data_df, rp_inst)
 

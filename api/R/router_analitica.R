@@ -440,6 +440,18 @@
   rp_inst <- reporte_instrumento(path = pair$xls$path)
   rp_inst <- .analitica_apply_integrated_key(rp_inst, base_meta)
   dat_raw <- .analitica_read_data_file(pair$data)
+  # CURA (frente B): este read RE-LEE el archivo crudo y alimenta la Analítica y
+  # el banner "Variables extra en la data" (reconciliación). Sin este saneo la
+  # base del handoff mostraba el esquema de seguimiento/universo VACÍO como extras
+  # fantasma. Gate por proveniencia: source_kind del base_meta que empieza con
+  # "monitoreo"; si el kind es conocido y NO-handoff (upload manual) se pasa FALSE
+  # y sus columnas vacías se preservan; sin base_meta (legacy) se auto-detecta por
+  # fingerprint. Va ANTES del normalize (nombres crudos con separador `/`).
+  handoff_kind <- .carga_chr1((base_meta %||% list())$source_kind, "")
+  dat_raw <- sanitize_base_data(
+    dat_raw, rp_inst,
+    monitoreo_handoff = if (nzchar(handoff_kind)) .base_hygiene_is_monitoreo_kind(handoff_kind) else NULL
+  )
   dat_raw <- normalize_data_for_xlsform(dat_raw, rp_inst)
   dat_raw <- .analitica_filter_data_to_inst(dat_raw, rp_inst)
   .carga_assert_data_xlsform_compatible(dat_raw, rp_inst)
