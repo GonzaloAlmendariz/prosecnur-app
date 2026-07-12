@@ -11,10 +11,12 @@ import type {
   CalcMuestraAulasState,
   CalcMuestraWorkspace,
 } from "../../../../api/client";
+import { embudoAulaDesdeFrame } from "../../dominio";
 import { fmtDec, fmtInt } from "../../sharedCore";
 import { frameAuditNumber } from "../shared/frame";
 import { normalizeUniversityAulasConfig } from "../shared/study";
-import { CifraFila, CifraMotor, TerminoChip } from "../ui";
+import { CifraFila, CifraMotor, FlujoVertical, TerminoChip } from "../ui";
+import { embudoEtapas } from "./embudoEtapas";
 import {
   ClassroomPlotCard,
   countDistinctByKeys,
@@ -47,6 +49,9 @@ export function MarcoAulasTab({
   const eligibleTotal = sumRowsByKeys(classroomRows, WEIGHTED_KEYS);
   const averageEligible = classroomRows.length ? eligibleTotal / classroomRows.length : Number.NaN;
   const teacherCount = countDistinctByKeys(classroomRows, ["teacher", "docente", "profesor", "contacto"]);
+  // Embudo canónico del marco de aula (total → presencial → tipo → ≥N → docente
+  // → nivel → marco) cuando el frame lo trae del backend.
+  const embudoAula = embudoAulaDesdeFrame(frame);
 
   if (!classroomRowsRaw.length && !frameAuditNumber(frame, "classroom_n")) {
     return (
@@ -98,6 +103,15 @@ export function MarcoAulasTab({
             origen={teacherCount > 0 ? "motor" : undefined}
           />
         </CifraFila>
+        {embudoAula && embudoAula.length >= 3 && (
+          <div className="cmv2-marco-embudo-aula cmv2-marco-flujo-stagger">
+            <FlujoVertical
+              etapas={embudoEtapas(embudoAula, "aulas")}
+              orientacion="horizontal"
+              ariaLabel="Del total de curso-horario al marco depurado por las reglas de aula"
+            />
+          </div>
+        )}
       </section>
 
       <MarcoAulasCapacidad frame={frame} workspace={workspace} />

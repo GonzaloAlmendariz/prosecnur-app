@@ -262,6 +262,17 @@ export function embudoAulaDesdeFrame(frame: CalcMuestraAulasFrame | null | undef
 }
 
 /**
+ * Embudo de ALUMNO medido del frame (perfil del backend): universo → pregrado →
+ * regular → mayor de edad → población objetivo. Null si el frame no trae perfil
+ * utilizable — en ese caso la pestaña cae a su flujo agregado de tres pasos.
+ */
+export function embudoAlumnoDesdeFrame(frame: CalcMuestraAulasFrame | null | undefined): EmbudoPaso[] | null {
+  const crudo = perfilCrudoDe(frame);
+  if (!crudo) return null;
+  return embudoDesde(crudo.embudo_alumno, "alumno");
+}
+
+/**
  * Impacto medido de los opcionales (c7/c8) por id, desde el perfil del frame;
  * null si el frame no trae perfil o el perfil no mide opcionales (frames viejos).
  */
