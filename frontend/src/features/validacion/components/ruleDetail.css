@@ -1,0 +1,173 @@
+/* =============================================================================
+ * ruleDetail.css — panel de detalle de una regla + diagrama de flujo.
+ * Todos los colores vienen de tokens --pulso-*; sin hex hardcodeado.
+ * El diagrama pasa de vertical (drawer angosto) a horizontal (>=720px de
+ * ancho de contenedor) vía container queries, sin depender del viewport.
+ * ============================================================================= */
+
+.pulso-ruledetail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--pulso-text);
+}
+
+/* ---- Encabezado de sección -------------------------------------------- */
+.pulso-ruledetail__section-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+  margin-bottom: 2px;
+}
+
+/* ---- Diagrama de flujo ------------------------------------------------- */
+.pulso-ruleflow {
+  container-type: inline-size;
+  width: 100%;
+}
+.pulso-ruleflow__track {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+.pulso-ruleflow__node {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 11px 13px;
+  border-radius: var(--pulso-radius-card, 12px);
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  min-width: 0;
+}
+.pulso-ruleflow__node-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.pulso-ruleflow__node-title {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--pulso-text);
+}
+.pulso-ruleflow__node-detail {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+.pulso-ruleflow__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.pulso-ruleflow__chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  color: var(--pulso-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pulso-ruleflow__chip small {
+  font-family: var(--pulso-font, inherit);
+  font-weight: 500;
+  margin-left: 5px;
+  color: var(--pulso-text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Conector — flecha entre nodos. Vertical por defecto (apunta abajo). */
+.pulso-ruleflow__conn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pulso-text-soft);
+  flex-shrink: 0;
+}
+.pulso-ruleflow__conn svg {
+  transform: rotate(90deg);
+}
+.pulso-ruleflow__conn--vpad {
+  height: 20px;
+}
+
+/* >=720px de ancho de contenedor: flujo horizontal. */
+@container (min-width: 720px) {
+  .pulso-ruleflow__track {
+    flex-direction: row;
+    align-items: stretch;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .pulso-ruleflow__node {
+    flex: 1 1 0;
+    min-width: 138px;
+  }
+  .pulso-ruleflow__conn svg {
+    transform: none;
+  }
+  .pulso-ruleflow__conn--vpad {
+    height: auto;
+    width: 22px;
+    align-self: center;
+  }
+}
+
+/* ---- Reglas aplicadas (referencia auditable) --------------------------- */
+.pulso-ruledetail__applied {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--pulso-radius-card, 12px);
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+.pulso-ruledetail__applied-row {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  align-items: baseline;
+}
+.pulso-ruledetail__applied-key {
+  flex-shrink: 0;
+  min-width: 108px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+  padding-top: 1px;
+}
+.pulso-ruledetail__applied-val {
+  color: var(--pulso-text);
+  min-width: 0;
+  word-break: break-word;
+}
+.pulso-ruledetail__applied-val code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  padding: 1px 6px;
+}

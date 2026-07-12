@@ -12721,12 +12721,45 @@ export type IncluirReglas = {
   tiempo_ventana?: boolean;
 };
 
+// Surfacing relacional (Fase 4, ADR 0030): madre + hija son UN instrumento con
+// base relacionada. El backend anota cada regla del plan con flags relacionales
+// y expone un resumen para el encabezado de la familia "coherencia relacional
+// del repeat" (ver api/R/validacion_relational_surface.R). Se normalizan de
+// forma defensiva en el feature (relationalPlan.ts).
+export type InstrumentoRelationalRepeat = {
+  repeat_group: string;
+  sm_conductor: string | null;
+  identity_var: string | null;
+  repeat_count: string | null;
+};
+
+export type InstrumentoRelationalSummary = {
+  n_relational: number;
+  n_requires_external_dataset: number;
+  repeat_groups: string[];
+  external_datasets: string[];
+  repeats: InstrumentoRelationalRepeat[];
+};
+
+// Fila de `plan_preview` con los flags relacionales inline por regla.
+export type InstrumentoPlanRuleRow = Record<string, unknown> & {
+  relational?: boolean;
+  repeat_group?: string | null;
+  depends_on_child_base?: boolean;
+  requires_external_dataset?: boolean;
+  external_datasets?: string[];
+  roster_subtype?: string | null;
+};
+
 export type InstrumentoPlanResult = {
   ok: true;
   base_nombre: string | null;
   n_reglas: number;
   resumen: Array<Record<string, unknown>>;
-  plan_preview: Array<Record<string, unknown>>;
+  plan_preview: InstrumentoPlanRuleRow[];
+  // Opcionales para compatibilidad con backends previos al surfacing relacional.
+  relational_summary?: InstrumentoRelationalSummary | null;
+  relational_suppressed_legacy?: string[];
 };
 
 export type InstrumentoResultado = {

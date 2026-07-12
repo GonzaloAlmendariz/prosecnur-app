@@ -1068,12 +1068,13 @@ mount_validacion <- function(pr) {
       # casos o ejecución fallida; el usuario puede clickear para el
       # detalle). Limitamos a 500 filas para no inundar el payload.
       resumen_tabla <- if (!is.null(resumen) && nrow(resumen)) {
-        mask <- (resumen$n_inconsistencias > 0L) |
-                (!is.na(resumen$estado_dinamico) &
-                   resumen$estado_dinamico != "correcta")
-        mask[is.na(mask)] <- FALSE
-        r_sub <- resumen[mask, , drop = FALSE]
-        r_sub <- r_sub[order(-r_sub$n_inconsistencias), , drop = FALSE]
+        # Incluimos TODAS las reglas evaluables: las problemáticas (con casos o
+        # estado especial) Y las que pasaron limpio (estado correcta, 0
+        # inconsistencias), para que el usuario pueda abrir el diagrama de
+        # CUALQUIER validación. El frontend agrupa las limpias en una sección
+        # colapsada al final. Orden: problemáticas primero (n_inconsistencias
+        # desc), las limpias caen al final. Se mantiene el tope de 500 filas.
+        r_sub <- resumen[order(-resumen$n_inconsistencias), , drop = FALSE]
         .plan_rows_preview(utils::head(r_sub, 500L), n = 500L)
       } else list()
 
