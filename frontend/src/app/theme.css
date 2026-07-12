@@ -4819,6 +4819,10 @@ a { color: var(--pulso-primary); }
   color: #fff;
   cursor: default;
   box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+  /* La base activa se renderiza como <button disabled> (no re-clickeable). El
+     `cursor: default` ya lo comunica; no debe atenuarse con el `opacity: 0.55`
+     global de `button:disabled` — la activa DESTACA, no se apaga. */
+  opacity: 1;
 }
 .pulso-validacion-shell {
   grid-template-columns: minmax(220px, 240px) minmax(0, 1fr);
@@ -6803,6 +6807,9 @@ a { color: var(--pulso-primary); }
   color: #fff;
   cursor: default;
   box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+  /* Ver nota en `.pulso-validacion-base-chip.is-active`: la base activa destaca,
+     no se atenúa con el `opacity: 0.55` global de `button:disabled`. */
+  opacity: 1;
 }
 .pulso-codificacion-config-actions {
   display: inline-flex;
