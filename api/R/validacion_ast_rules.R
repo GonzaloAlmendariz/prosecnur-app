@@ -643,15 +643,23 @@ rule_pattern_straightline <- function(vars,
 
 #' Longitud de tabla repeat debe coincidir con valor esperado.
 #' `expected` puede ser: número fijo, nombre de variable, o AST.
+#'
+#' `gate` (opcional, AST) es el `relevant` del `begin_repeat`: cuando el gate es
+#' FALSE la sección no debía abrir, así que 0 filas hija es lo correcto. RC2 usa
+#' este gate en `.evaluate_repeat_length_rules` para marcar `sobran_gate_cerrado`
+#' (filas madre con gate cerrado que igual tienen registros hija). El gate NO se
+#' compila al predicate (que es un stub) — se evalúa aparte contra la madre.
 #' @export
 rule_repeat_length <- function(repeat_name,
                                expected,
+                               gate = NULL,
                                nombre = NULL,
                                objetivo = NULL,
                                fuente = "instrumento",
                                severidad = "error",
                                seccion = NULL) {
   predicate <- ast_repeat_length_matches(repeat_name, expected)
+  if (!is.null(gate) && !is_ast(gate)) stop("rule_repeat_length(): gate debe ser AST o NULL.")
   if (is.null(nombre)) {
     nombre <- sprintf("Longitud de «%s» coincide con %s",
                       repeat_name,
@@ -662,20 +670,22 @@ rule_repeat_length <- function(repeat_name,
     tipo_regla = "repeat_length",
     fuente = fuente,
     predicate = predicate,
+    gate = gate,
     severidad = severidad,
     objetivo = objetivo,
     seccion = seccion,
     tabla = repeat_name  # la regla vive en la tabla repeat
   )
   compare_vars <- if (is_ast(expected)) ast_variables(expected) else if (is.character(expected)) expected else character(0)
+  gate_vars <- if (!is.null(gate)) ast_variables(gate) else character(0)
   .rule_apply_metadata(
     r,
     primary_var = repeat_name,
     variable_roles = list(
       target = repeat_name,
       compare = compare_vars,
-      drivers = character(0),
-      gate = character(0)
+      drivers = gate_vars,
+      gate = gate_vars
     ),
     presentation = list(subtipo_semantico = "count")
   )
@@ -736,6 +746,121 @@ rule_aggregate_check <- function(host_var,
       gate = if (!is.null(gate)) ast_variables(gate) else character(0)
     ),
     presentation = list(subtipo_semantico = agg_op)
+  )
+}
+
+#' RC3 — integridad referencial de un repeat.
+#'
+#' La regla vive en la tabla HIJA (`repeat_table`) y marca las filas cuyo
+#' `parent_key_local` (`_parent_index`) no existe como `parent_key_remote`
+#' (`_index`) en la tabla padre (`source_table`, típicamente "principal").
+#' Tipo `coherence` (multi-tabla), categoría UX "coherencia" con subtipo
+#' semántico "relacional" (familia de coherencia relacional del repeat).
+#' @export
+rule_referential_parent_exists <- function(repeat_table,
+                                           source_table = "principal",
+                                           parent_key_local = "_parent_index",
+                                           parent_key_remote = "_index",
+                                           nombre = NULL,
+                                           objetivo = NULL,
+                                           fuente = "instrumento",
+                                           severidad = "error",
+                                           seccion = NULL) {
+  predicate <- ast_referential_parent_exists(
+    source_table = source_table,
+    parent_key_local = parent_key_local,
+    parent_key_remote = parent_key_remote
+  )
+  if (is.null(nombre)) {
+    nombre <- sprintf("Integridad referencial de «%s»", repeat_table)
+  }
+  if (is.null(objetivo)) {
+    objetivo <- sprintf(
+      "Cada registro de «%s» debe pertenecer a un caso de «%s» (%s existente).",
+      repeat_table, source_table, parent_key_local
+    )
+  }
+  r <- make_rule(
+    nombre = nombre,
+    tipo_regla = "coherence",  # coherencia multi-tabla
+    fuente = fuente,
+    predicate = predicate,
+    severidad = severidad,
+    categoria_ux = "coherencia",
+    objetivo = objetivo,
+    seccion = seccion,
+    tabla = repeat_table,
+    repeat_context = repeat_table  # degrada con gracia si no hay base hija
+  )
+  .rule_apply_metadata(
+    r,
+    primary_var = parent_key_local,
+    variable_roles = list(
+      target = parent_key_local,
+      compare = character(0),  # source_table/_index son remotos (viven en la madre)
+      drivers = character(0),
+      gate = character(0)
+    ),
+    presentation = list(subtipo_semantico = "relacional")
+  )
+}
+
+#' RC5 — correspondencia roster↔selección.
+#'
+#' La regla vive en la tabla MADRE (`principal`). Marca las filas donde el set
+#' de opciones marcadas del select_multiple `host_sm_var` NO coincide (setequal)
+#' con el set de códigos del roster de la hija (`source_var` en `source_table`).
+#' Tipo `coherence`, categoría UX "coherencia", subtipo semántico "relacional".
+#' @export
+rule_roster_correspondence <- function(host_sm_var,
+                                       source_table,
+                                       source_var = "current_code",
+                                       parent_key_local = "_index",
+                                       parent_key_remote = "_parent_index",
+                                       nombre = NULL,
+                                       objetivo = NULL,
+                                       fuente = "instrumento",
+                                       severidad = "error",
+                                       seccion = NULL,
+                                       tabla = "principal") {
+  predicate <- ast_roster_set_cmp(
+    host_sm_var = host_sm_var,
+    source_table = source_table,
+    source_var = source_var,
+    op = "setequal",
+    parent_key_local = parent_key_local,
+    parent_key_remote = parent_key_remote
+  )
+  if (is.null(nombre)) {
+    nombre <- sprintf("Correspondencia roster↔selección de «%s»", host_sm_var)
+  }
+  if (is.null(objetivo)) {
+    objetivo <- sprintf(
+      "Las opciones marcadas en «%s» deben corresponder exactamente con los registros del roster «%s».",
+      host_sm_var, source_table
+    )
+  }
+  r <- make_rule(
+    nombre = nombre,
+    tipo_regla = "coherence",
+    fuente = fuente,
+    predicate = predicate,
+    severidad = severidad,
+    categoria_ux = "coherencia",
+    objetivo = objetivo,
+    seccion = seccion,
+    tabla = tabla
+  )
+  .rule_apply_metadata(
+    r,
+    primary_var = host_sm_var,
+    variable_roles = list(
+      target = host_sm_var,
+      compare = parent_key_local,  # _index vive en la madre (presente)
+      drivers = character(0),
+      gate = character(0)
+    ),
+    presentation = list(subtipo_semantico = "relacional")
   )
 }
 

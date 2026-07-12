@@ -980,7 +980,7 @@ test_that("bridge_legacy_plan_rows_to_rules permite evaluar expresiones R hereda
   expect_equal(ev$resumen$n_inconsistencias[1], 1L)
 })
 
-test_that("bridge_legacy_plan_rows_to_rules degrada pulldata legado a no_evaluada", {
+test_that("bridge_legacy_plan_rows_to_rules etiqueta pulldata como requires_external_dataset", {
   plan <- tibble::tibble(
     ID = "LEG_002",
     Tabla = "principal",
@@ -1002,8 +1002,11 @@ test_that("bridge_legacy_plan_rows_to_rules degrada pulldata legado a no_evaluad
     rules = rules,
     data = data.frame(Enumerator_name = "Ana", Pulso_code = "X1", stringsAsFactors = FALSE)
   )
+  # pulldata NO es "modo experto": le falta un roster externo precargado. Queda
+  # no_evaluada pero con su propio issue_code y el detalle nombra el dataset.
   expect_equal(ev$resumen$estado[1], "no_evaluada")
-  expect_equal(ev$resumen$issue_code[1], "odk_raw")
+  expect_equal(ev$resumen$issue_code[1], "requires_external_dataset")
+  expect_match(ev$resumen$detalle[1], "pulso_lookup", fixed = TRUE)
 })
 
 test_that("validation_bundle_from_plan_df reconstituye reglas desde _ast_rule_json", {

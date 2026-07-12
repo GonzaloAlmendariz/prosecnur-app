@@ -341,7 +341,8 @@ bridge_reglas_custom_list <- function(reglas) {
 build_unified_rules <- function(instrumento,
                                 reglas_custom = list(),
                                 include = c("required", "skip",
-                                            "constraint", "repeat_length")) {
+                                            "constraint", "repeat_length",
+                                            "repeat_relational")) {
   # 1. Introspección del instrumento
   instr_res <- infer_rules_from_xlsform(instrumento, include = include, dedup = FALSE)
   instr_rules <- instr_res$rules

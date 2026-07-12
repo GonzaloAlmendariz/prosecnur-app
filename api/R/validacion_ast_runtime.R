@@ -42,9 +42,13 @@ validation_default_include_flags <- function() {
   if (isTRUE(flags$required)) out <- c(out, "required")
   if (isTRUE(flags$relevant)) out <- c(out, "skip")
   if (isTRUE(flags$constraint)) out <- c(out, "constraint")
-  # repeat_length forma parte del motor AST definitivo; no lo atamos al
-  # toggle legacy repeat_min1 porque viene de repeat_count del instrumento.
-  c(out, "repeat_length")
+  # repeat_length, external_dataset y repeat_relational forman parte del motor
+  # AST definitivo: repeat_length viene de repeat_count del instrumento;
+  # external_dataset superficie las calculate con pulldata; repeat_relational es
+  # la familia de coherencia relacional del repeat (RC3/RC4/RC5, + RC2 vía el
+  # gate de repeat_length). No se atan a toggles legacy — siempre ON
+  # (estructurales/informativos).
+  c(out, "repeat_length", "external_dataset", "repeat_relational")
 }
 
 .validation_legacy_bridge_flags <- function(incluir = NULL) {
@@ -423,7 +427,24 @@ build_validation_bundle <- function(instrumento,
   }
 
   rules <- .dedup_rules_exact(c(ast_bundle$rules, legacy_rules))
+
+  # A2 — evita mostrar dos reglas del mismo hecho: la inferencia LEGACY de
+  # "valores calculados" sobre las calculate de identidad del roster
+  # (`current_code`/`current_label`) es intraducible y redundante con RC5
+  # (`roster_set_cmp`), que valida la correspondencia roster↔selección
+  # relacionalmente. Si RC5 está presente, suprimimos la legacy duplicada.
+  roster_legacy <- .suppress_redundant_roster_legacy(rules, instrumento$survey)
+  rules <- roster_legacy$rules
   plan <- compile_rules_to_plan(rules)
+
+  # Mapa code→label por variable (select_one/multiple). Lo persistimos en el
+  # bundle para que el evaluador (a) haga comparaciones agnósticas code/label y
+  # (b) no marque `desalineada` una regla cuyo valor SÍ pertenece a la lista de
+  # opciones — o cuya data ya calza con esa lista (ver .rule_domain_mismatch).
+  choices_map <- tryCatch(
+    .survey_choices_map(instrumento$survey, instrumento$choices),
+    error = function(e) list()
+  )
 
   list(
     rules = rules,
@@ -432,13 +453,16 @@ build_validation_bundle <- function(instrumento,
     discarded = c(ast_bundle$discarded, list()),
     unsupported = ast_bundle$unsupported %||% list(),
     dedup_info = ast_bundle$dedup_info,
+    choices_map = choices_map,
     compatibility = compatibility %||% make_validation_compatibility_profile(),
     include_flags = .validation_merge_include_flags(incluir),
     legacy_bridge = list(
       n_rules = length(legacy_rules),
       plan = legacy_plan,
       error = legacy_error
-    )
+    ),
+    # Reglas legacy suprimidas por redundancia con la familia relacional (RC5).
+    relational_suppressed_legacy = roster_legacy$suppressed_ids
   )
 }
 
@@ -853,7 +877,45 @@ read_validation_data_ast <- function(path, ext, instrumento = NULL) {
   dplyr::bind_rows(out)
 }
 
-.evaluate_repeat_length_rules <- function(rules, data_ctx) {
+# RC2 — evalúa el `gate` (relevant del begin_repeat) contra la madre y devuelve
+# un vector lógico alineado a las filas de `by_parent`. TRUE = la sección debía
+# abrir; FALSE = no debía; NA = indeterminable (se trata como "abierta" aguas
+# abajo para no inventar inconsistencias). Compila el gate a R (mismo camino que
+# el evaluador principal) e inyecta los bindings mínimos. Cualquier error →
+# NULL (degradación silenciosa: RC2 no aplica, solo RC1).
+.rl_gate_true_vector <- function(gate, main, by_parent, choices_map = list()) {
+  if (is.null(gate) || !is_ast(gate) || !is.data.frame(main) || !nrow(main)) return(NULL)
+  rhs <- tryCatch(ast_to_r(gate), error = function(e) NULL)
+  if (is.null(rhs)) return(NULL)
+  eval_env <- new.env(parent = globalenv())
+  for (nm in names(main)) assign(nm, main[[nm]], envir = eval_env)
+  assign(".__eval_data__", main, envir = eval_env)
+  assign(".__choices_map__", as.list(choices_map %||% list()), envir = eval_env)
+  assign("__data_multi__", list(principal = main), envir = eval_env)
+  assign("sum", .legacy_safe_sum, envir = eval_env)
+  assign("mean", .legacy_safe_mean, envir = eval_env)
+  assign("min", .legacy_safe_min, envir = eval_env)
+  assign("max", .legacy_safe_max, envir = eval_env)
+  res <- tryCatch(eval(parse(text = rhs), envir = eval_env), error = function(e) NULL)
+  if (is.null(res)) return(NULL)
+  gate_main <- if (is.logical(res)) res
+               else if (is.numeric(res)) as.logical(res)
+               else return(NULL)
+  if (length(gate_main) == 1L) gate_main <- rep(gate_main, nrow(main))
+  if (length(gate_main) != nrow(main)) return(NULL)
+
+  # Alinear a las filas de by_parent: preferimos la llave del padre (primera
+  # columna de by_parent, p.ej. `_index`); si no calza, fallback posicional.
+  pk <- names(by_parent)[1]
+  if (!is.null(pk) && pk %in% names(main) && pk %in% names(by_parent)) {
+    pos <- match(as.character(by_parent[[pk]]), as.character(main[[pk]]))
+    return(gate_main[pos])
+  }
+  if (length(gate_main) == nrow(by_parent)) return(gate_main)
+  NULL
+}
+
+.evaluate_repeat_length_rules <- function(rules, data_ctx, choices_map = list()) {
   if (!length(rules)) {
     return(list(resumen = tibble::tibble(), principal = data_ctx$principal))
   }
@@ -885,12 +947,38 @@ read_validation_data_ast <- function(path, ext, instrumento = NULL) {
       next
     }
 
-    flag_vec <- by_parent$status %in% c("faltan", "sobran")
+    status <- as.character(by_parent$status)
+    have_n <- suppressWarnings(as.integer(by_parent$have_n))
+    have_n[is.na(have_n)] <- 0L
+
+    # RC2 — gate de presencia: reclasifica por fila madre cuando hay gate.
+    n_gate_cerrado <- 0L
+    gate_vec <- .rl_gate_true_vector(rule$gate, main, by_parent, choices_map)
+    if (!is.null(gate_vec) && length(gate_vec) == length(status)) {
+      gate_open <- gate_vec
+      gate_open[is.na(gate_open)] <- TRUE  # indeterminable → tratar como abierta
+      closed <- !gate_open
+      # Gate cerrado + filas hija → inconsistencia (sección que no debía abrir).
+      idx_bad <- which(closed & have_n > 0L)
+      status[idx_bad] <- "sobran_gate_cerrado"
+      n_gate_cerrado <- length(idx_bad)
+      # Gate cerrado + 0 filas → correcto (override cualquier sin_meta/faltan).
+      status[closed & have_n == 0L] <- "ok"
+    }
+
+    flag_vec <- status %in% c("faltan", "sobran", "sobran_gate_cerrado")
     flag_vec[is.na(flag_vec)] <- FALSE
     if (is.data.frame(main) && nrow(main) == length(flag_vec)) {
       main[[rule$flag_name]] <- flag_vec
     }
     n_inc <- sum(flag_vec, na.rm = TRUE)
+    detalle <- NA_character_
+    if (n_gate_cerrado > 0L) {
+      detalle <- sprintf(
+        "sobran_gate_cerrado: %d caso(s) con la sección cerrada (gate FALSE) que igual tienen registros hija.",
+        as.integer(n_gate_cerrado)
+      )
+    }
     rows[[length(rows) + 1L]] <- tibble::tibble(
       id = rule$id,
       nombre = rule$nombre,
@@ -906,7 +994,7 @@ read_validation_data_ast <- function(path, ext, instrumento = NULL) {
       porcentaje = if (nrow(main %||% tibble::tibble()) > 0L) n_inc / nrow(main) else NA_real_,
       estado = "correcta",
       issue_code = NA_character_,
-      detalle = NA_character_
+      detalle = detalle
     )
   }
 
@@ -1027,7 +1115,8 @@ evaluate_validation_bundle <- function(bundle,
       collection_date_col = collection_date_col,
       strict = strict,
       table_name = tbl,
-      validation_exclusions = validation_exclusions
+      validation_exclusions = validation_exclusions,
+      choices_map = bundle$choices_map %||% list()
     )
     tables_out[[tbl]] <- ev_tbl$data
     resumen_parts[[length(resumen_parts) + 1L]] <- ev_tbl$resumen
@@ -1036,7 +1125,8 @@ evaluate_validation_bundle <- function(bundle,
   principal_now <- if (!is.null(tables_out$principal)) tables_out$principal else data_ctx$principal
   repeat_eval <- .evaluate_repeat_length_rules(
     repeat_rules,
-    data_ctx = utils::modifyList(data_ctx, list(principal = principal_now))
+    data_ctx = utils::modifyList(data_ctx, list(principal = principal_now)),
+    choices_map = bundle$choices_map %||% list()
   )
   tables_out$principal <- repeat_eval$principal
   if (nrow(repeat_eval$resumen %||% tibble::tibble())) {
