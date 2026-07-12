@@ -25,10 +25,9 @@ import { previewKindLabel } from "../parsing/buildIndex";
 /**
  * Fila de CIERRE de sección — la contraparte visible del `begin_*`. Antes el
  * outline ocultaba el `end_group` y mostraba un chip "auto"; ahora el cierre
- * es una pieza propia que el usuario ve, selecciona y elimina. No participa
- * del drag-sort (la sección se mueve como bloque atómico desde su apertura);
- * para reubicar el cierre, se elimina y se agrega "Cerrar sección" donde se
- * quiera. Vive fuera del SortableContext.
+ * es una pieza propia que el usuario ve, selecciona, arrastra y elimina.
+ * Arrastrarla reubica SOLO el cierre (cambia qué preguntas quedan dentro),
+ * con la restricción de no cruzar antes de su begin (ver `computeEndMove`).
  */
 export function OutlineCloseRow({
   rowIndex,
@@ -45,13 +44,29 @@ export function OutlineCloseRow({
   active: boolean;
   onSelect: () => void;
 }) {
+  const sortable = useSortable({ id: rowIndex });
+  const { attributes, listeners, setNodeRef, isDragging } = sortable;
   return (
     <div
-      className={`pulso-outline-row pulso-outline-closerow${active ? " is-active" : ""}`}
+      ref={setNodeRef}
+      className={`pulso-outline-row pulso-outline-closerow${isDragging ? " is-dragging" : ""}${active ? " is-active" : ""}`}
       data-outline-row={rowIndex}
       data-depth={depth}
     >
-      <span className="pulso-outline-grip is-decor" aria-hidden="true" />
+      <button
+        type="button"
+        className="pulso-outline-grip"
+        title="Arrastra para mover el cierre de la sección"
+        aria-label="Arrastra para mover el cierre"
+        {...attributes}
+        {...listeners}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+      >
+        <GripVertical size={14} />
+      </button>
       <div
         role="button"
         tabIndex={0}
@@ -73,6 +88,42 @@ export function OutlineCloseRow({
           <strong className="pulso-outline-title">Cierre de {kind === "repeat" ? "repetición" : "sección"}</strong>
           <span className="pulso-outline-subtitle">
             Termina <span className="pulso-outline-closelabel">{stripMarkdown(label) || label}</span>
+          </span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Fantasma que sigue al cursor mientras se arrastra una fila de cierre. */
+export function OutlineCloseGhost({
+  info,
+  size,
+}: {
+  info: { label: string; kind: "section" | "repeat"; depth: number } | null;
+  size: { width: number; height: number };
+}) {
+  return (
+    <div
+      className="pulso-outline-row pulso-outline-closerow is-overlay"
+      style={{ width: size.width }}
+    >
+      <span className="pulso-outline-grip" aria-hidden="true">
+        <GripVertical size={14} />
+      </span>
+      <div className="pulso-outline-body">
+        <span aria-hidden="true" className="pulso-outline-typeicon pulso-outline-closeicon">
+          <FolderMinus size={14} />
+        </span>
+        <span className="pulso-outline-text">
+          <strong className="pulso-outline-title">
+            Cierre de {info?.kind === "repeat" ? "repetición" : "sección"}
+          </strong>
+          <span className="pulso-outline-subtitle">
+            Termina{" "}
+            <span className="pulso-outline-closelabel">
+              {info ? stripMarkdown(info.label) || info.label : ""}
+            </span>
           </span>
         </span>
       </div>
