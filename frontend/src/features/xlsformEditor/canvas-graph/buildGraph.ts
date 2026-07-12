@@ -40,9 +40,13 @@ export type GraphNodeKind = "question" | "section";
 export type CatalogContext = {
   listName: string;
   itemCount: number;
-  /** Hasta 5 opciones para mostrar como pista; el resto se resume en
-   *  "+ N más". */
+  /** Hasta 5 opciones para mostrar como pista en la card; el resto se
+   *  resume en "+ N más". */
   preview: ChoiceItem[];
+  /** Lista COMPLETA de opciones. La usa el picker de condición del mapa
+   *  para ofrecer un combobox con búsqueda — antes solo veía `preview`
+   *  (5 items) y las listas largas quedaban truncadas e inelegibles. */
+  items: ChoiceItem[];
 };
 
 export type GraphNode = {
@@ -218,6 +222,7 @@ export function buildLogicGraph(
           listName: catalog.listName,
           itemCount: catalog.items.length,
           preview: catalog.items.slice(0, 5),
+          items: catalog.items,
         };
       }
     }
