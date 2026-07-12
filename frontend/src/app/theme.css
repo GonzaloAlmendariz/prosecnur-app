@@ -37130,6 +37130,8 @@ button.pulso-focus-calculation-recipe {
 .pulso-more-views-item {
   display: flex;
   align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
   gap: 10px;
   padding: 8px 10px;
   border: none;
