@@ -255,7 +255,10 @@ calc_muestra_normalize_estudio <- function(estudio = list()) {
     aulas_config = .cm_normalize_workspace_aulas_config(ws$aulas_config),
     notas_diseno = calc_str(ws$notas_diseno, ""),
     run_history = .cm_normalize_workspace_run_history(ws$run_history),
-    motor_recorrido = .cm_normalize_workspace_motor_recorrido(ws$motor_recorrido)
+    motor_recorrido = .cm_normalize_workspace_motor_recorrido(ws$motor_recorrido),
+    # Etapa canónica del método HSyVBG: propuesta (data del semestre anterior)
+    # vs campo (base de DTI del semestre de aplicación). Default propuesta.
+    etapa = calc_enum(ws$etapa, c("propuesta", "campo"), "propuesta")
   )
 }
 
