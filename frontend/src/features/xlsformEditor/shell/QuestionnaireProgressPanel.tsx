@@ -10,6 +10,7 @@ import {
 import type { CSSProperties, ReactNode } from "react";
 import type { BuilderNode, BuilderSelection, BuilderStructure } from "../types";
 import { iconForType } from "../helpers/icons";
+import { stripMarkdown } from "../helpers/markdown";
 import { paletteForType } from "../helpers/paletteForType";
 import { typeLabel } from "../parsing/parseType";
 
@@ -188,7 +189,7 @@ function SectionCard({
   const questions = section.nodes.filter(isQuestionLike);
   const required = questions.filter((node) => node.required).length;
   const conditional = questions.filter((node) => node.relevant).length;
-  const label = section.label || "Sección sin título";
+  const label = stripMarkdown(section.label) || "Sección sin título";
   const range = questionRangeLabel(questions);
   const kindLabel = section.kind === "repeat" ? "Repetición" : section.kind === "root" ? "Inicio" : "Sección";
 
@@ -257,7 +258,7 @@ function QuestionRow({
 }) {
   const Icon = iconForType(node.typeInfo.base);
   const accent = paletteForType(node.typeInfo.base);
-  const label = node.label || node.name || `Pregunta ${position}`;
+  const label = stripMarkdown(node.label) || node.name || `Pregunta ${position}`;
   const ref = displayQuestionRef(node.name) || String(position);
   const rowStyle = { "--question-accent": accent } as CSSProperties;
 

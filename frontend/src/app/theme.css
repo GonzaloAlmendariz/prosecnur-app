@@ -29442,6 +29442,15 @@ button.pulso-focus-calculation-recipe {
   line-height: 1.35;
   font-weight: 780;
   overflow-wrap: anywhere;
+  /* `.pulso-questionnaire-question` es un <button>: el título heredaba
+     `white-space: nowrap` del reset de botones y no envolvía, desbordando
+     su columna y corriendo por debajo de los badges. Forzamos el wrap y
+     acotamos a 2 líneas. */
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .pulso-questionnaire-question-copy span {
