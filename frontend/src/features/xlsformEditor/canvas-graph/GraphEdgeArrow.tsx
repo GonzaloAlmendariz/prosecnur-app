@@ -48,17 +48,6 @@ export type GraphEdgeArrowProps = {
   onClick?: () => void;
 };
 
-/** [Deprecado] Antes usábamos dashed para var↔var. El usuario
- *  reportó: "en la condición roja aún hay un dashed line cuando no
- *  es una condición del rojo" — el dasharray dentro de un mismo
- *  bundle generaba inconsistencia visual (algunas ramas dashed,
- *  otras solid). Y la punta de flecha también se distinguía menos
- *  con dashes. Ahora TODOS los edges van sólidos; el color y el
- *  bundle ya diferencian tipos suficientemente. */
-function isVarToVar(_relation: string): boolean {
-  return false;
-}
-
 /**
  * Paleta categórica Tableau-10 — la misma que usa `GraficarSecciones`
  * en R/ggplot. Ofrece contraste razonable sobre fondo blanco.
@@ -78,26 +67,6 @@ const TABLEAU_10 = [
 
 /** Color neutro para flechas con expresión genérica `${X} != ''`. */
 const NEUTRAL_COLOR = "#2457d6";
-
-/**
- * Color por TIPO de relación lógica — la MISMA fuente de verdad que la
- * leyenda de la toolbar (`CanvasToolbar` → LOGIC_LAYER_CONTROLS). El mapa
- * de lógica trata de una sola cosa: la lógica. Por eso el canal cromático
- * codifica el TIPO (visibilidad / validación / cálculo / filtro), no la
- * expresión: así la leyenda es literal y los cuatro tipos se distinguen de
- * un vistazo. Antes el color venía del hash de la expresión (Tableau-10) y
- * no calzaba con la leyenda — una flecha de validación podía salir azul.
- */
-const TYPE_COLORS: Record<string, string> = {
-  "depends-on": "#2457d6", // Visibilidad (relevant)
-  "constrained-by": "#E15759", // Validación (constraint)
-  "calculated-from": "#59A14F", // Cálculo (calculation)
-  "choice-filter": "#B07AA1", // Filtro (choice_filter)
-};
-
-export function colorForKind(kind: string): string {
-  return TYPE_COLORS[kind] ?? NEUTRAL_COLOR;
-}
 
 /**
  * Hash determinístico string → índice. Misma fórmula que el resto del
@@ -136,10 +105,19 @@ export function GraphEdgeArrow({
   onHover,
   onClick,
 }: GraphEdgeArrowProps) {
-  // Color = TIPO de relación (misma paleta que la leyenda). El mapa es
-  // solo de lógica: el color debe decir QUÉ TIPO de relación es, no de
-  // qué expresión viene. `colorIndex`/`relevantExpression` ya no pintan.
-  const color = colorForKind(edge.edge.kind);
+  // Color = CONDICIÓN (expresión `relevant`). El Mapa de lógica grafica
+  // solo saltos lógicos, así que el canal cromático distingue CADA
+  // condición: dos flechas que comparten el mismo `relevant` reciben el
+  // mismo color (y carril); condiciones distintas reciben colores
+  // distintos de la paleta Tableau-10. `colorIndex` viene pre-asignado
+  // por el layout (estable por expresión): null = expresión genérica
+  // → neutro; undefined = fallback al hash de la expresión.
+  const color =
+    colorIndex === null
+      ? NEUTRAL_COLOR
+      : colorIndex === undefined
+        ? colorForExpression(relevantExpression)
+        : TABLEAU_10[colorIndex % TABLEAU_10.length]!;
   // Visibilidad base alta — antes 0.78 lucía "fantasma" sobre fondo
   // claro, en especial las dashed var↔var. Subimos a 0.95 para que
   // el trazo se lea como "primera capa" del lienzo. El dim sigue
@@ -151,24 +129,9 @@ export function GraphEdgeArrow({
     : highlighted
       ? STROKE_WIDTH + 0.8
       : STROKE_WIDTH;
-  // Dashed por TIPO de dependencia, no por var-to-var.
-  // - depends-on (visibilidad/relevant): sólido (más prominente).
-  // - constrained-by: dashed largo (refleja "restricción").
-  // - calculated-from: dotted (refleja "cálculo").
-  // - choice-filter: dash-dot (refleja "filtro").
-  // El color sigue siendo por expresión (Tableau-10) — el dasharray
-  // diferencia el TIPO sin perder la identidad cromática del bundle.
-  const k = edge.edge.kind;
-  const dashArray =
-    k === "constrained-by"
-      ? "8 5"
-      : k === "calculated-from"
-        ? "2 4"
-        : k === "choice-filter"
-          ? "8 3 2 3"
-          : isVarToVar(edge.edge.relation)
-            ? undefined
-            : undefined;
+  // Todas las flechas del mapa son saltos lógicos (visibilidad), así que
+  // van SÓLIDAS: no hay tipos que diferenciar con dasharray. La identidad
+  // la da el color por condición.
 
   return (
     <g
@@ -216,7 +179,6 @@ export function GraphEdgeArrow({
         fill="none"
         stroke={color}
         strokeWidth={strokeWidth}
-        strokeDasharray={dashArray}
         strokeLinecap="round"
         strokeLinejoin="round"
         markerEnd={`url(#pulso-graph-arrow-${markerIdFor(color)})`}
@@ -253,9 +215,9 @@ function markerIdFor(color: string): string {
 }
 
 export function GraphEdgeMarkers() {
-  // Markers por color de TIPO (+ neutro + Tableau legacy por compat con
-  // cualquier edge que aún resuelva a un color antiguo).
-  const palette = [...Object.values(TYPE_COLORS), NEUTRAL_COLOR, ...TABLEAU_10];
+  // Un marker por cada color que un edge puede tomar: el neutro (expresión
+  // genérica) + toda la paleta Tableau-10 (color por condición).
+  const palette = [NEUTRAL_COLOR, ...TABLEAU_10];
   return (
     <defs>
       {palette.map((color) => (
