@@ -22,6 +22,15 @@
     reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
     data_out <- .analitica_filter_data(reviewed$data, reviewed$inst, numericas_arg, excluidas)
 
+    # ADR 0030 Fase 4 (PARTE A): en una base HIJA repeat, el libro de códigos
+    # documenta SÓLO las variables nativas del bloque; las heredadas de la madre
+    # (grano persona) las documenta la madre. Reusa la marca del enriquecimiento.
+    grain <- .repeat_grain_from_inst(reviewed$inst)
+    if (is.list(grain) && identical(as.character(grain$kind %||% ""), "instancia")) {
+      stripped <- .repeat_strip_inherited(data_out, reviewed$inst)
+      data_out <- stripped$data
+    }
+
     if (identical(formato, "pdf")) {
       reporte_codebook_pdf(
         df = data_out,
