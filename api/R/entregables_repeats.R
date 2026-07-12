@@ -110,9 +110,9 @@
   }
   sprintf(
     paste0(
-      "El grano de esta base es la INSTANCIA del repeat: N=%s instancias%s%s ",
-      "(1 fila = 1 registro del roster). La significancia de cruces sobre esta ",
-      "base ignora el clustering por persona."
+      "Base a nivel de fila repetida: %s filas%s%s (una fila por cada opción ",
+      "marcada, no una por persona). Los porcentajes se calculan sobre filas, ",
+      "no sobre personas."
     ),
     format(n_inst, big.mark = ","), grupo_txt, pers_txt
   )
