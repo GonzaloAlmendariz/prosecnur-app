@@ -797,13 +797,25 @@ mount_validacion <- function(pr) {
       # Reglas que no se pudieron compilar (expresión no soportada): el plan se
       # construye con el resto y aquí se reporta cuántas/cuáles se saltaron.
       no_soportadas <- bundle$unsupported %||% list()
+
+      # Surfacing relacional (Fase 4): madre + hija son UN instrumento con tabla
+      # relacionada. Anotamos cada regla del preview con los campos que el
+      # frontend necesita (relational / repeat_group / requires_external_dataset
+      # / depends_on_child_base) y exponemos un resumen para el encabezado de la
+      # familia. La lógica vive en validacion_relational_surface.R (router thin).
+      relational <- validacion_relational_plan_annotations(bundle$rules, inst$survey)
+      plan_preview <- validacion_relational_annotate_preview(
+        .plan_rows_preview(plan, n = 50), relational$per_rule
+      )
       list(
         ok = TRUE,
         base_nombre = files$base_nombre %||% NA_character_,
         xlsform_logic_sync = logic_sync %||% NULL,
         n_reglas = as.integer(nrow(plan)),
         resumen = if (!is.null(resumen)) .plan_rows_preview(resumen, n = 50) else list(),
-        plan_preview = .plan_rows_preview(plan, n = 50),
+        plan_preview = plan_preview,
+        relational_summary = relational$summary,
+        relational_suppressed_legacy = as.list(bundle$relational_suppressed_legacy %||% character(0)),
         n_no_soportadas = length(no_soportadas),
         no_soportadas = utils::head(no_soportadas, 50)
       )

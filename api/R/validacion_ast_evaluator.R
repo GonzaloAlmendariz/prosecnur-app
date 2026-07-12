@@ -50,7 +50,8 @@ evaluate_rules <- function(rules,
                            residual_codes = c("98", "99", "96", "90"),
                            strict = FALSE,
                            table_name = "principal",
-                           validation_exclusions = list()) {
+                           validation_exclusions = list(),
+                           choices_map = list()) {
   if (!length(rules)) {
     return(list(data = data, resumen = .empty_resumen(), logs = list()))
   }
@@ -71,6 +72,9 @@ evaluate_rules <- function(rules,
   eval_env <- new.env(parent = globalenv())
   for (nm in names(data)) assign(nm, data[[nm]], envir = eval_env)
   assign(".__eval_data__", data, envir = eval_env)
+  # Mapa code→label por variable — usado por las comparaciones agnósticas
+  # code/label (.vd_cmp_const_eq / selected). Vacío = comportamiento previo.
+  assign(".__choices_map__", as.list(choices_map %||% list()), envir = eval_env)
   assign("__today__", today_vec, envir = eval_env)
   assign("sum", .legacy_safe_sum, envir = eval_env)
   assign("mean", .legacy_safe_mean, envir = eval_env)
@@ -97,7 +101,8 @@ evaluate_rules <- function(rules,
       strict = strict,
       collection_date_col = col_name,
       has_collection_date = has_collection_date,
-      validation_exclusions = validation_exclusions
+      validation_exclusions = validation_exclusions,
+      choices_map = choices_map
     )
     # Si la regla produjo vector booleano, lo pegamos como columna a data
     if (!is.null(row_result$flag_vec)) {
@@ -127,7 +132,8 @@ evaluate_rules <- function(rules,
                                   strict,
                                   collection_date_col = NULL,
                                   has_collection_date = FALSE,
-                                  validation_exclusions = list()) {
+                                  validation_exclusions = list(),
+                                  choices_map = list()) {
   resumen_base <- list(
     id = rule$id,
     nombre = rule$nombre,
@@ -154,12 +160,43 @@ evaluate_rules <- function(rules,
     return(list(flag_vec = NULL, resumen = resumen_base, logs = list()))
   }
 
-  # 2. Si el predicate contiene odk_raw, permitir solo los origins que ya
-  #    vienen bridgeados desde expresiones R del legacy. El resto sigue
-  #    siendo modo experto no evaluable.
-  raw_origins <- .ast_raw_origins(rule$predicate)
-  has_raw <- length(raw_origins) > 0L
-  if (has_raw && !all(raw_origins %in% c("legacy_r_expr"))) {
+  # 2. Si el predicate o el GATE contienen odk_raw, permitir solo los origins que
+  #    ya vienen bridgeados desde expresiones R del legacy. El resto no es
+  #    compilable a R evaluable. Chequeamos AMBOS (predicate y gate): un gate con
+  #    un fragmento no traducible (p.ej. `int(format-date(.)) <= 2025`, que el
+  #    parser deja como odk_raw) reventaba el eval con R inválido (`COMPARE[<=`)
+  #    porque solo se miraba el predicate. Ahora cae en la resiliencia por-regla.
+  raw_origins <- unique(c(.ast_raw_origins(rule$predicate), .ast_raw_origins(rule$gate)))
+  non_legacy_raw <- setdiff(raw_origins, "legacy_r_expr")
+  if (length(non_legacy_raw)) {
+    # Reglas que dependen de un roster externo (pulldata) NO son "modo experto":
+    # no es que la sintaxis no se soporte, es que falta un dato precargado
+    # (un dataset externo tipo `listadoedp`). Se etiquetan con un issue_code
+    # dedicado para que la UI (Fase 4) las muestre como "requiere roster externo"
+    # en vez de mezclarlas con las expresiones expertas no evaluables.
+    if ("pulldata" %in% non_legacy_raw) {
+      datasets <- unique(c(.ast_pulldata_datasets(rule$predicate),
+                           .ast_pulldata_datasets(rule$gate)))
+      datasets <- datasets[!is.na(datasets) & nzchar(datasets)]
+      ds_txt <- if (length(datasets)) {
+        paste(vapply(datasets, function(d) sprintf("«%s»", d), character(1)),
+              collapse = ", ")
+      } else {
+        "externo"
+      }
+      # estado = no_evaluada (honesto: no hay contra qué evaluar sin el roster);
+      # el issue_code DEDICADO `requires_external_dataset` la distingue del modo
+      # experto para que la UI (Fase 4) le dé su propio badge.
+      resumen_base$estado <- "no_evaluada"
+      resumen_base$issue_code <- "requires_external_dataset"
+      resumen_base$detalle <- sprintf(
+        "Requiere el roster externo %s (pulldata): el valor se jala de un dataset precargado, no de las respuestas, por lo que no se puede validar aquí.",
+        ds_txt
+      )
+      resumen_base$n_inconsistencias <- NA_integer_
+      resumen_base$porcentaje <- NA_real_
+      return(list(flag_vec = NULL, resumen = resumen_base, logs = list()))
+    }
     resumen_base$estado <- "no_evaluada"
     resumen_base$issue_code <- "odk_raw"
     resumen_base$detalle <- "Regla en modo experto — no evaluada automáticamente."
@@ -208,7 +245,7 @@ evaluate_rules <- function(rules,
   #     nunca se cumpliría y las reglas de salto dispararían en falso sobre toda
   #     la base. No la contamos como inconsistencia: la marcamos `desalineada`
   #     para que sea una alerta visible y accionable, no un falso positivo mudo.
-  domain_mismatch <- .rule_domain_mismatch(rule, data)
+  domain_mismatch <- .rule_domain_mismatch(rule, data, choices_map = choices_map)
   if (!is.null(domain_mismatch)) {
     resumen_base$estado <- "desalineada"
     resumen_base$issue_code <- "domain_mismatch"
@@ -508,6 +545,35 @@ evaluate_rules <- function(rules,
   unique(out)
 }
 
+# Extrae los nombres de dataset externo referenciados por `pulldata('<ds>', ...)`
+# en una expresión (string). El primer argumento de pulldata es el nombre del
+# roster precargado (p.ej. `listadoedp`). Compartido por el evaluador (detalle
+# del issue_code) y el introspector (que superficie las calculate pulldata).
+.pulldata_dataset_names <- function(expr) {
+  expr <- as.character(expr %||% "")
+  if (!length(expr) || any(is.na(expr)) || !nzchar(expr)) return(character(0))
+  hits <- regmatches(
+    expr,
+    gregexpr("pulldata\\s*\\(\\s*['\"]([^'\"]+)['\"]", expr, perl = TRUE)
+  )[[1]]
+  if (!length(hits)) return(character(0))
+  nm <- sub(".*pulldata\\s*\\(\\s*['\"]([^'\"]+)['\"].*", "\\1", hits, perl = TRUE)
+  unique(nm[!is.na(nm) & nzchar(nm)])
+}
+
+# Recorre un AST y devuelve los datasets pulldata referenciados por sus nodos
+# odk_raw. Sirve para el detalle del issue_code `requires_external_dataset`.
+.ast_pulldata_datasets <- function(x) {
+  if (!is_ast(x)) return(character(0))
+  out <- character(0)
+  ast_walk(x, function(node, path) {
+    if (identical(ast_op(node), "odk_raw")) {
+      out <<- c(out, .pulldata_dataset_names(node$expression))
+    }
+  })
+  unique(out[!is.na(out) & nzchar(out)])
+}
+
 .ast_uses_collection_date <- function(x) {
   if (!is_ast(x)) return(FALSE)
   found <- FALSE
@@ -565,7 +631,20 @@ evaluate_rules <- function(rules,
 .rule_aggregate_remote_cols <- function(ast) {
   if (is.null(ast) || !is_ast(ast)) return(character(0))
   out <- character(0)
-  if (identical(ast_op(ast), "aggregate_cmp")) {
+  op <- ast_op(ast)
+  if (identical(op, "aggregate_cmp")) {
+    args <- as.list(ast)
+    out <- c(out,
+             as.character(args$source_var %||% ""),
+             as.character(args$parent_key_remote %||% ""))
+  } else if (identical(op, "referential_parent_exists")) {
+    # RC3: `parent_key_remote` (p.ej. `_index`) vive en la tabla padre, no en la
+    # hija donde corre la regla → no debe contar como columna faltante.
+    args <- as.list(ast)
+    out <- c(out, as.character(args$parent_key_remote %||% ""))
+  } else if (identical(op, "roster_set_cmp")) {
+    # RC5: `source_var` (`current_code`) y `parent_key_remote` (`_parent_index`)
+    # viven en la hija roster, no en la madre donde corre la regla.
     args <- as.list(ast)
     out <- c(out,
              as.character(args$source_var %||% ""),
@@ -593,6 +672,28 @@ evaluate_rules <- function(rules,
     gate <- setdiff(gate, remote_cols)
     drivers <- setdiff(drivers, remote_cols)
     all <- setdiff(all, remote_cols)
+  }
+
+  # Defensa por-regla: los identificadores ESTRUCTURALES de la propia regla
+  # (nombre de la tabla/repeat, `repeat_context` y la `sección`/begin_group) son
+  # metadata del instrumento, nunca columnas de datos. La inferencia ya no los
+  # mete en los roles (`.enrich_ast_rule_from_survey`), pero una regla legacy
+  # bridged o una expresión exótica podría arrastrarlos; aquí garantizamos que
+  # jamás se reporten como "Faltan columnas" (bug del roster: begin_group
+  # `Assistance` reportado como columna faltante).
+  structural_self <- unique(as.character(c(
+    rule$tabla %||% character(0),
+    rule$repeat_context %||% character(0),
+    rule$seccion %||% character(0)
+  )))
+  structural_self <- structural_self[!is.na(structural_self) & nzchar(structural_self) &
+                                       structural_self != "principal"]
+  if (length(structural_self)) {
+    target <- setdiff(target, structural_self)
+    compare <- setdiff(compare, structural_self)
+    gate <- setdiff(gate, structural_self)
+    drivers <- setdiff(drivers, structural_self)
+    all <- setdiff(all, structural_self)
   }
 
   # Las preguntas select_multiple pueden no existir como variable madre si el
@@ -625,7 +726,11 @@ evaluate_rules <- function(rules,
 # Devuelve `character(0)` si no encuentra ninguna.
 .find_select_multiple_dummies <- function(target, data_names) {
   if (!nzchar(target)) return(character(0))
-  pat <- sprintf("^%s[_/.][^_/.]+$", gsub("([.+*?^$()\\[\\]])", "\\\\\\1", target))
+  # Escapar TODOS los metacaracteres regex del target. Antes faltaban `{` y `}`,
+  # así que un pseudo-nombre como `count-selected(${services})` (el compare var
+  # de una regla repeat_length) reventaba grepl con "Invalid contents of {}".
+  target_esc <- gsub("([.\\\\+*?^$(){}|\\[\\]])", "\\\\\\1", target, perl = TRUE)
+  pat <- sprintf("^%s[_/.][^_/.]+$", target_esc)
   matches <- data_names[grepl(pat, data_names)]
   # Filtrar columnas tipo "_other" o "_specify" que NO son opciones marcables
   # sino texto libre asociado.
@@ -739,8 +844,29 @@ evaluate_rules <- function(rules,
   mean(!is.na(suppressWarnings(as.numeric(x)))) >= frac
 }
 
+# Códigos ∪ etiquetas de la lista de opciones de una variable (o character(0)).
+.domain_choice_universe <- function(var, choices_map) {
+  if (is.null(choices_map) || !length(choices_map)) return(character(0))
+  m <- choices_map[[var]]
+  if (is.null(m) || !length(m)) return(character(0))
+  codes <- trimws(as.character(names(m)))
+  labels <- trimws(as.character(unlist(m, use.names = FALSE)))
+  unique(c(codes, labels)[nzchar(c(codes, labels))])
+}
+
 # Devuelve NULL si la regla está alineada; si no, un descriptor del desajuste.
-.rule_domain_mismatch <- function(rule, data, min_obs = 20L, min_frac = 0.05) {
+#
+# `choices_map` (opcional) desactiva el guardrail para literales cuya variable es
+# un select con lista de opciones conocida y la DATA ya calza con esa lista:
+#   - Si el valor comparado ES un código o etiqueta de la lista → no es desfase.
+#   - Si TODOS los valores observados pertenecen a la lista (códigos ∪ etiquetas)
+#     → la data es consistente con el instrumento; que el valor de la regla sea
+#     un código posicional/heredado ('1' cuando la opción se llama 'Si') es una
+#     rareza de autoría del formulario, NO un desfase de versión de la data.
+#     Marcarla `desalineada` la archivaría en falso; hay que evaluarla de verdad.
+# Sin choices_map (o variable sin lista) el comportamiento es el histórico.
+.rule_domain_mismatch <- function(rule, data, choices_map = list(),
+                                  min_obs = 20L, min_frac = 0.05) {
   literals <- c(.ast_positive_equality_literals(rule$gate),
                 .ast_positive_equality_literals(rule$predicate))
   if (!length(literals)) return(NULL)
@@ -754,10 +880,18 @@ evaluate_rules <- function(rules,
     if (length(obs) < threshold) next            # columna poco poblada → no opinar
     dom <- unique(obs)
     dom_numeric <- .vec_mostly_numeric(obs)
+
+    # Universo de opciones declaradas para esta variable (si es un select).
+    universe <- .domain_choice_universe(col, choices_map)
+    data_consistent_with_list <- length(universe) > 0L && all(dom %in% universe)
+
     for (val in lit$values) {
       v <- trimws(as.character(val))
       if (!nzchar(v) || v == "NA") next          # centinelas de vacío, no códigos
       if (v %in% dom) next                        # el valor sí aparece → alineada
+      # El valor pertenece a la lista de opciones (como código o etiqueta), o la
+      # data completa calza con la lista → no es un desfase de datos.
+      if (length(universe) > 0L && (v %in% universe || data_consistent_with_list)) next
       val_numeric <- !is.na(suppressWarnings(as.numeric(v)))
       # Solo marcamos cuando hay incompatibilidad de TIPO (texto vs numérico):
       # esa es la firma inequívoca de desfase de codificación, y evita marcar

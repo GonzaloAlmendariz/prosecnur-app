@@ -130,6 +130,31 @@ resolve_label_es <- function(row, cols = names(row)) {
   out
 }
 
+# -----------------------------------------------------------------------------
+# Nombres estructurales del survey (grupos / repeats / notas)
+# -----------------------------------------------------------------------------
+# `begin_group`/`begin_repeat` (y sus `end_*`) y las `note` son nodos de
+# ESTRUCTURA del XLSForm, no columnas de datos: nunca aparecen en el export.
+# El chequeo de columnas requeridas de una regla NO debe tratarlos como columna
+# faltante (bug de surfacing: la regla del roster salía "no aplica: Faltan
+# columnas: Assistance", donde `Assistance` es el begin_group que contiene el
+# repeat, no un dato). Se comparte entre la inferencia (para no meterlos en los
+# roles) y — vía metadata de la propia regla — el evaluador.
+# NOTA: los `calculate` que producen columna de dato (p.ej. current_code) SÍ son
+# columnas; solo excluimos grupos/repeats/notas, que jamás lo son.
+.survey_structural_names <- function(survey) {
+  if (is.null(survey) || !is.data.frame(survey) ||
+      !("type" %in% names(survey)) || !("name" %in% names(survey)) ||
+      !nrow(survey)) {
+    return(character(0))
+  }
+  tb <- vapply(as.character(survey$type), .type_base, character(1))
+  structural <- as.character(survey$name)[tb %in% c(
+    "begin_group", "end_group", "begin_repeat", "end_repeat", "note"
+  )]
+  unique(structural[!is.na(structural) & nzchar(structural)])
+}
+
 .context_prefix <- function(tabla, repeat_context = NULL, seccion = NULL) {
   if (!is.null(repeat_context) && !is.na(repeat_context) && nzchar(repeat_context)) {
     return(sprintf("En la hoja de datos «%s» (sección repetida «%s»), ", tabla, repeat_context))
@@ -172,6 +197,18 @@ resolve_label_es <- function(row, cols = names(row)) {
                                          choices_map = NULL) {
   label_map <- .survey_label_map(survey)
   gate_vars <- if (!is.null(gate_ast)) ast_variables(gate_ast) else character(0)
+  # Un grupo/repeat/nota NO es columna de datos: si el gate (o el predicate)
+  # referencia el nombre de un begin_group (p.ej. el `Assistance` que contiene
+  # el repeat), no debe entrar al set de columnas requeridas — si no, la regla
+  # sale "no aplica: Faltan columnas: Assistance". Filtramos de los roles y del
+  # `variables` acumulado. El `target` se preserva (el target de repeat_length
+  # es legítimamente el nombre del repeat, y el evaluador lo trata aparte).
+  structural <- setdiff(.survey_structural_names(survey), as.character(target_var))
+  gate_vars <- setdiff(gate_vars, structural)
+  compare_vars <- setdiff(compare_vars, structural)
+  if (length(structural)) {
+    rule$variables <- setdiff(rule$variables %||% character(0), structural)
+  }
   roles <- list(
     target = target_var,
     drivers = unique(c(compare_vars, gate_vars)),
@@ -185,7 +222,7 @@ resolve_label_es <- function(row, cols = names(row)) {
   )
   gate_humano <- if (!is.null(gate_ast)) .ast_to_human_text(gate_ast, label_map = label_map, choices_map = choices_map) else ""
   detalle_condicion <- if (!is.null(detalle_ast)) .ast_to_human_text(detalle_ast, label_map = label_map, choices_map = choices_map) else ""
-  .rule_apply_metadata(
+  out <- .rule_apply_metadata(
     rule,
     primary_var = target_var,
     variable_roles = roles,
@@ -197,6 +234,27 @@ resolve_label_es <- function(row, cols = names(row)) {
       subtipo_semantico = subtipo_semantico %||% NA_character_
     )
   )
+  # Scrub final: `.rule_apply_metadata` recompone `variables`/`roles$all` desde
+  # el predicate (que sí puede referenciar el nombre del grupo vía el gate
+  # embebido). Los depuramos aquí para que ni `variables` ni los roles
+  # arrastren nombres estructurales. El `target` se preserva siempre.
+  .rule_scrub_structural(out, structural)
+}
+
+# Quita nombres estructurales (grupos/repeats/notas) de `variables` y de todos
+# los roles de una regla, preservando el `target`. Compartido por la inferencia.
+.rule_scrub_structural <- function(rule, structural) {
+  if (!length(structural)) return(rule)
+  keep_target <- as.character(rule$variable_roles$target %||% rule$primary_var %||% character(0))
+  strip <- setdiff(structural, keep_target)
+  if (!length(strip)) return(rule)
+  rule$variables <- setdiff(rule$variables %||% character(0), strip)
+  roles <- rule$variable_roles %||% list()
+  for (k in c("gate", "drivers", "compare", "all")) {
+    if (!is.null(roles[[k]])) roles[[k]] <- setdiff(roles[[k]], strip)
+  }
+  rule$variable_roles <- roles
+  rule
 }
 
 # -----------------------------------------------------------------------------
@@ -423,10 +481,13 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
     own_rel <- if ("relevant" %in% names(survey)) as.character(survey$relevant[i]) else ""
     if (!is.null(own_rel) && !is.na(own_rel) && nzchar(own_rel)) {
       parsed <- odk_parse_to_ast(own_rel, context = "relevant")
-      if (!parsed$degraded_to_raw) {
-        eff_gate <- if (is.null(eff_gate)) parsed$ast
-                    else ast_normalize(ast_and(eff_gate, parsed$ast))
-      }
+      # Incorporamos el relevant propio al gate SIEMPRE, incluso si degradó a raw
+      # (pulldata / expresión compleja intraducible). Antes se descartaba en
+      # silencio → la regla sobre-exigía la respuesta en filas donde el campo ni
+      # aparecía. Con el raw en el gate, el evaluador la clasifica como
+      # requiere-roster / modo-experto sin sobre-exigir.
+      eff_gate <- if (is.null(eff_gate)) parsed$ast
+                  else ast_normalize(ast_and(eff_gate, parsed$ast))
     }
 
     # Nombre scanner-friendly: `[var_tecnica] «label» debe responderse`.
@@ -621,10 +682,12 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
     own_rel <- if ("relevant" %in% names(survey)) as.character(survey$relevant[i]) else ""
     if (!is.null(own_rel) && !is.na(own_rel) && nzchar(own_rel)) {
       parsed_rel <- odk_parse_to_ast(own_rel, context = "relevant")
-      if (!parsed_rel$degraded_to_raw) {
-        eff_gate <- if (is.null(eff_gate)) parsed_rel$ast
-                    else ast_normalize(ast_and(eff_gate, parsed_rel$ast))
-      }
+      # Igual que en .infer_required: el relevant propio se suma al gate aunque
+      # degrade a raw, para que una constraint bajo un relevant intraducible no
+      # se evalúe con un gate parcial (falsos positivos) sino que caiga en modo
+      # experto / requiere-roster.
+      eff_gate <- if (is.null(eff_gate)) parsed_rel$ast
+                  else ast_normalize(ast_and(eff_gate, parsed_rel$ast))
     }
 
     if (parsed$degraded_to_raw) {
@@ -716,6 +779,19 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
         # pseudo-row para el reporte de no-compilables (este introspector no
         # itera sobre ctx_map sino sobre las filas del survey).
         pseudo_row <- list(row_index = i, name = rep_name)
+        # RC2 — gate de presencia: el `relevant` propio del begin_repeat controla
+        # si la sección debía abrir. Cuando el gate es FALSE, 0 filas hija es lo
+        # correcto y >0 filas es inconsistencia (`sobran_gate_cerrado`). Solo se
+        # adjunta si el relevant parsea limpio; si degrada a raw, no hay gate
+        # (degradación silenciosa) y la regla sigue la lógica want/have de RC1.
+        gate_ast <- NULL
+        if ("relevant" %in% names(survey)) {
+          rel_raw <- as.character(survey$relevant[i])
+          if (!is.null(rel_raw) && !is.na(rel_raw) && nzchar(rel_raw)) {
+            parsed_rel <- odk_parse_to_ast(rel_raw, context = "relevant")
+            if (!isTRUE(parsed_rel$degraded_to_raw)) gate_ast <- parsed_rel$ast
+          }
+        }
         r <- .infer_emit(collector, "repeat_count", pseudo_row, survey, function() {
           # Intentar parsear el repeat_count como AST — soporta count(${rpt_X}),
           # ${var}, número fijo. Si no, cae a string raw.
@@ -723,6 +799,7 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
           rr <- rule_repeat_length(
             repeat_name = rep_name,
             expected = expected,
+            gate = gate_ast,
             nombre = sprintf("Longitud de «%s» coincide con %s", rep_name, rc_raw),
             seccion = NA
           )
@@ -744,6 +821,247 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
         if (!is.null(r)) rules[[length(rules) + 1L]] <- r
       }
     }
+  }
+  rules
+}
+
+# -----------------------------------------------------------------------------
+# Coherencia relacional del repeat (RC3/RC4/RC5) — familia madre↔hija
+# -----------------------------------------------------------------------------
+# Extrae la variable select_multiple conductora de un `count-selected(${var})`.
+# Devuelve NULL si el repeat_count no tiene esa forma (degradación silenciosa).
+.extract_count_selected_var <- function(rc_raw) {
+  if (is.null(rc_raw) || is.na(rc_raw) || !nzchar(rc_raw)) return(NULL)
+  m <- regmatches(rc_raw, regexpr("count-selected\\s*\\(\\s*\\$\\{([^}]+)\\}\\s*\\)",
+                                   rc_raw, perl = TRUE))
+  if (!length(m)) return(NULL)
+  var <- trimws(sub(".*count-selected\\s*\\(\\s*\\$\\{([^}]+)\\}\\s*\\).*", "\\1", m, perl = TRUE))
+  if (!nzchar(var)) NULL else var
+}
+
+# Enumera cada begin_repeat del survey con la metadata relacional necesaria:
+#   name, begin_i, end_i, relevant_raw, repeat_count_raw,
+#   sm_conductor (var del count-selected, o NULL),
+#   identity_var (calculate de identidad del roster: leaf `current_code` o cuya
+#     `calculation` usa `jr:choice-name(`, o NULL).
+.relational_repeat_specs <- function(survey) {
+  if (is.null(survey) || !nrow(survey) || !all(c("type", "name") %in% names(survey))) {
+    return(list())
+  }
+  n <- nrow(survey)
+  has_calc <- "calculation" %in% names(survey)
+  has_rc   <- "repeat_count" %in% names(survey)
+  has_rel  <- "relevant" %in% names(survey)
+
+  find_end <- function(begin_i) {
+    depth <- 1L; j <- begin_i + 1L
+    while (j <= n) {
+      tj <- .type_base(as.character(survey$type[j]))
+      if (identical(tj, "begin_repeat")) depth <- depth + 1L
+      else if (identical(tj, "end_repeat")) { depth <- depth - 1L; if (depth == 0L) return(j) }
+      j <- j + 1L
+    }
+    n
+  }
+
+  out <- list()
+  for (i in seq_len(n)) {
+    if (!identical(.type_base(as.character(survey$type[i])), "begin_repeat")) next
+    rep_name <- as.character(survey$name[i])
+    if (is.na(rep_name) || !nzchar(rep_name)) next
+    end_i <- find_end(i)
+
+    rc_raw  <- if (has_rc) as.character(survey$repeat_count[i]) else NA_character_
+    rel_raw <- if (has_rel) as.character(survey$relevant[i]) else NA_character_
+    sm_conductor <- .extract_count_selected_var(rc_raw)
+
+    identity_var <- NULL
+    if (end_i > i + 1L) {
+      for (j in (i + 1L):(end_i - 1L)) {
+        if (!identical(.type_base(as.character(survey$type[j])), "calculate")) next
+        nm_j <- as.character(survey$name[j])
+        calc_j <- if (has_calc) as.character(survey$calculation[j]) else NA_character_
+        is_id <- (!is.na(nm_j) && identical(nm_j, "current_code")) ||
+                 (!is.na(calc_j) && nzchar(calc_j) &&
+                    grepl("jr:choice-name\\s*\\(", calc_j, perl = TRUE))
+        if (isTRUE(is_id) && !is.na(nm_j) && nzchar(nm_j)) { identity_var <- nm_j; break }
+      }
+    }
+
+    out[[length(out) + 1L]] <- list(
+      name = rep_name,
+      begin_i = i,
+      end_i = end_i,
+      relevant_raw = rel_raw,
+      repeat_count_raw = rc_raw,
+      sm_conductor = sm_conductor,
+      identity_var = identity_var
+    )
+  }
+  out
+}
+
+# RC3 — integridad referencial: una regla por repeat (tabla = <repeat>). Marca
+# filas hija huérfanas (`_parent_index` sin madre). Se emite SIEMPRE por repeat:
+# toda base hija debe enlazar con un caso de la principal.
+.infer_referential_integrity <- function(survey, choices_map = NULL, collector = NULL) {
+  rules <- list()
+  label_map <- .survey_label_map(survey)
+  for (spec in .relational_repeat_specs(survey)) {
+    rep_name <- spec$name
+    pseudo_row <- list(row_index = spec$begin_i, name = rep_name)
+    r <- .infer_emit(collector, "type", pseudo_row, survey, function() {
+      target_lab <- .lookup_label(label_map, rep_name)
+      rule_referential_parent_exists(
+        repeat_table = rep_name,
+        source_table = "principal",
+        parent_key_local = "_parent_index",
+        parent_key_remote = "_index",
+        nombre = sprintf("Cada fila de «%s» tiene su persona", target_lab),
+        objetivo = sprintf(
+          "Cada fila de «%s» debe pertenecer a una persona que exista en la base principal.",
+          target_lab
+        )
+      )
+    })
+    if (!is.null(r)) rules[[length(rules) + 1L]] <- r
+  }
+  rules
+}
+
+# RC4 — unicidad de roster: reusa rule_duplicate sobre (`_parent_index`,
+# <identity_var>). Solo se emite si el repeat declara una calculate de identidad
+# de roster (`current_code` / `jr:choice-name`). Severidad advertencia.
+.infer_roster_uniqueness <- function(survey, choices_map = NULL, collector = NULL) {
+  rules <- list()
+  label_map <- .survey_label_map(survey)
+  for (spec in .relational_repeat_specs(survey)) {
+    if (is.null(spec$identity_var)) next
+    rep_name <- spec$name
+    idv <- spec$identity_var
+    pseudo_row <- list(row_index = spec$begin_i, name = rep_name)
+    r <- .infer_emit(collector, "calculation", pseudo_row, survey, function() {
+      target_lab <- .lookup_label(label_map, rep_name)
+      rr <- rule_duplicate(
+        vars = c("_parent_index", idv),
+        tabla = rep_name,
+        severidad = "advertencia",
+        fuente = "instrumento",
+        nombre = sprintf("Sin filas duplicadas en «%s»", target_lab),
+        objetivo = sprintf(
+          "En «%s», «%s» no debe repetirse dentro de la misma persona.",
+          target_lab, idv
+        )
+      )
+      rr$repeat_context <- rep_name  # degrada con gracia si no hay base hija
+      .rule_apply_metadata(
+        rr,
+        primary_var = "_parent_index",
+        variable_roles = list(
+          target = "_parent_index",
+          compare = idv,
+          drivers = character(0),
+          gate = character(0)
+        ),
+        presentation = list(subtipo_semantico = "relacional")
+      )
+    })
+    if (!is.null(r)) rules[[length(rules) + 1L]] <- r
+  }
+  rules
+}
+
+# RC5 — correspondencia roster↔selección: una regla por repeat que tenga AMBOS
+# referentes (SM conductor del count-selected + identidad current_code). Si
+# falta cualquiera, NO se emite (degradación silenciosa, no error).
+.infer_roster_correspondence <- function(survey, choices_map = NULL, collector = NULL) {
+  rules <- list()
+  label_map <- .survey_label_map(survey)
+  for (spec in .relational_repeat_specs(survey)) {
+    if (is.null(spec$sm_conductor) || is.null(spec$identity_var)) next
+    rep_name <- spec$name
+    sm_var <- spec$sm_conductor
+    idv <- spec$identity_var
+    pseudo_row <- list(row_index = spec$begin_i, name = rep_name)
+    r <- .infer_emit(collector, "repeat_count", pseudo_row, survey, function() {
+      sm_lab <- .lookup_label(label_map, sm_var)
+      rule_roster_correspondence(
+        host_sm_var = sm_var,
+        source_table = rep_name,
+        source_var = idv,
+        parent_key_local = "_index",
+        parent_key_remote = "_parent_index",
+        nombre = sprintf("Las filas coinciden con lo marcado · «%s»", sm_lab),
+        objetivo = sprintf(
+          "Las opciones marcadas en «%s» deben corresponder exactamente con las filas repetidas de «%s».",
+          sm_lab, rep_name
+        )
+      )
+    })
+    if (!is.null(r)) rules[[length(rules) + 1L]] <- r
+  }
+  rules
+}
+
+# -----------------------------------------------------------------------------
+# Calculates con pulldata → categoría informativa "requiere listado externo"
+# -----------------------------------------------------------------------------
+# Los `calculate` que jalan de un dataset externo vía `pulldata('<roster>', …)`
+# (p.ej. sede_ppl/date_ppl/genero_ppl del PDM contra `listadoedp`) hoy se
+# descartan en silencio: el builder legacy los marca "no ejecutable" y ninguna
+# regla los representa. Eso los vuelve invisibles — el usuario no sabe que
+# existen ni por qué no se validan. No es que la sintaxis no se soporte: falta el
+# dato externo. Los superficiamos como reglas odk_raw con origin="pulldata"; el
+# evaluador las etiqueta con issue_code `requires_external_dataset` (distinto de
+# "modo experto"), y el detalle nombra el roster para que la UI (Fase 4) lo
+# muestre. NO se evalúan (no hay contra qué): son informativas.
+.infer_external_dataset_calculates <- function(survey, ctx_map, choices_map = NULL,
+                                               collector = NULL) {
+  rules <- list()
+  if (!("calculation" %in% names(survey))) return(rules)
+  label_map <- .survey_label_map(survey)
+  for (row in ctx_map) {
+    i <- row$row_index
+    t0 <- .type_base(survey$type[i])
+    if (!identical(t0, "calculate")) next
+    calc_raw <- as.character(survey$calculation[i])
+    if (is.null(calc_raw) || is.na(calc_raw) || !nzchar(calc_raw)) next
+    if (!grepl("\\bpulldata\\s*\\(", calc_raw, perl = TRUE)) next
+
+    var <- row$name
+    label <- resolve_label_es(as.list(survey[i, , drop = FALSE]), names(survey))
+    datasets <- .pulldata_dataset_names(calc_raw)
+    ds_txt <- if (length(datasets)) {
+      paste(vapply(datasets, function(d) sprintf("«%s»", d), character(1)), collapse = ", ")
+    } else {
+      "externo"
+    }
+    seccion <- if (length(row$group_path)) tail(row$group_path, 1) else NA
+    tabla <- if (!is.null(row$repeat_context)) row$repeat_context else "principal"
+
+    r <- .infer_emit(collector, "calculation", row, survey, function() {
+      rr <- rule_odk_raw(
+        odk_expression = calc_raw,
+        variables = var,
+        nombre = if (!is.null(label) && nzchar(label) && label != var) {
+          sprintf("[%s] «%s» — requiere listado externo %s", var, label, ds_txt)
+        } else {
+          sprintf("[%s] requiere listado externo %s", var, ds_txt)
+        },
+        objetivo = sprintf(
+          "El valor de «%s» se obtiene del listado externo %s mediante pulldata; no se puede validar contra las respuestas sin ese dato precargado.",
+          label %||% var, ds_txt
+        ),
+        seccion = seccion,
+        tabla = tabla,
+        repeat_context = row$repeat_context,
+        origin = "pulldata"
+      )
+      # Categoría propia para que la UX no la confunda con "modo experto".
+      rr$categoria_ux <- "roster_externo"
+      rr
+    })
+    if (!is.null(r)) rules[[length(rules) + 1L]] <- r
   }
   rules
 }
@@ -789,7 +1107,9 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
 #' @export
 infer_rules_from_xlsform <- function(instrumento,
                                      include = c("required", "skip",
-                                                 "constraint", "repeat_length"),
+                                                 "constraint", "repeat_length",
+                                                 "external_dataset",
+                                                 "repeat_relational"),
                                      dedup = TRUE) {
   if (is.null(instrumento$survey)) stop("infer_rules_from_xlsform(): falta survey.")
   survey <- instrumento$survey
@@ -817,6 +1137,22 @@ infer_rules_from_xlsform <- function(instrumento,
   }
   if ("repeat_length" %in% include) {
     all_rules <- c(all_rules, .infer_repeat_length(survey, ctx_map, choices_map = choices_map, collector = collector))
+  }
+  # Calculates con pulldata → categoría "requiere listado externo" (siempre ON):
+  # es informativo, barato, y evita que estas reglas queden invisibles.
+  if ("external_dataset" %in% include) {
+    all_rules <- c(all_rules, .infer_external_dataset_calculates(survey, ctx_map, choices_map = choices_map, collector = collector))
+  }
+  # Familia "coherencia relacional del repeat" (RC3/RC4/RC5): trata madre+hija
+  # como un instrumento con base relacionada. RC2 (presencia por gate) va con
+  # repeat_length. Default ON en `.validation_ast_include`.
+  if ("repeat_relational" %in% include) {
+    all_rules <- c(
+      all_rules,
+      .infer_referential_integrity(survey, choices_map = choices_map, collector = collector),
+      .infer_roster_uniqueness(survey, choices_map = choices_map, collector = collector),
+      .infer_roster_correspondence(survey, choices_map = choices_map, collector = collector)
+    )
   }
 
   # Dedup por id (que ya incluye hash del predicate + gate + tipo).

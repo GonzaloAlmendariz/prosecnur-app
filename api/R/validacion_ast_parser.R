@@ -114,6 +114,22 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
     ))
   }
 
+  # Invariante hermano: un AST "no degradado" tampoco debe contener un odk_raw
+  # SINTÉTICO e intraducible que .build_compare/.build_additive emiten cuando una
+  # comparación/aritmética no cabe en el enum tipado (marcadores `COMPARE[op]` /
+  # `ARITH[op]`, origins build_compare_complex / arithmetic_unsupported). Ese
+  # marcador NO es R válido: compilado por .c_raw revienta el eval con
+  # `unexpected '<='` (bug del PDM `int(format-date(${date_residing}),'%Y') <= 2025`).
+  # Degradamos al escape hatch preservando la expresión ODK original, que la
+  # introspección trata como modo experto (no evaluada) sin reventar.
+  if (.ast_has_untranslatable_raw(ast_out)) {
+    return(list(
+      ast = ast_odk_raw(norm, origin = sprintf("complex_expr:%s", context)),
+      findings = lex$findings,
+      degraded_to_raw = TRUE
+    ))
+  }
+
   list(
     ast = ast_normalize(ast_out),
     findings = lex$findings,
@@ -153,6 +169,25 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
   found <- FALSE
   ast_walk(x, function(node, path) {
     if (grepl("^__", ast_op(node))) found <<- TRUE
+  })
+  found
+}
+
+# Origins de odk_raw que marcan una comparación/aritmética que el parser NO
+# pudo traducir a un nodo tipado (su `expression` es un marcador sintético como
+# `COMPARE[<=]`, no R ni ODK válido). No confundir con los odk_raw legítimos
+# (pulldata, jr:choice-name, indexed-repeat…), que preservan la expresión real.
+.AST_UNTRANSLATABLE_RAW_ORIGINS <- c("build_compare_complex", "arithmetic_unsupported")
+
+# TRUE si el AST contiene un odk_raw sintético intraducible (ver arriba).
+.ast_has_untranslatable_raw <- function(x) {
+  if (!is_ast(x)) return(FALSE)
+  found <- FALSE
+  ast_walk(x, function(node, path) {
+    if (identical(ast_op(node), "odk_raw") &&
+        as.character(node$origin %||% "") %in% .AST_UNTRANSLATABLE_RAW_ORIGINS) {
+      found <<- TRUE
+    }
   })
   found
 }

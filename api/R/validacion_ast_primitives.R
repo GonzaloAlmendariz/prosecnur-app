@@ -81,6 +81,27 @@
   #   parent_key_local:  columna en host que identifica la fila padre
   #   parent_key_remote: columna en source_table que apunta al padre
   "aggregate_cmp",
+  # --- Coherencia relacional del repeat (madre↔hija, ADR 0030 addendum) --
+  # RC3 · Integridad referencial: la regla vive en la tabla HIJA (host) y lee
+  # la tabla padre desde `__data_multi__[[source_table]]` (mismo patrón que
+  # aggregate_cmp). Violación = fila hija cuyo `parent_key_local` NO aparece
+  # como `parent_key_remote` en la tabla padre (huérfana).
+  #   source_table:      nombre de la tabla padre (típicamente "principal")
+  #   parent_key_local:  columna en la hija que referencia al padre (_parent_index)
+  #   parent_key_remote: columna en el padre que es su id (_index)
+  "referential_parent_exists",  # (source_table, parent_key_local, parent_key_remote)
+  # RC5 · Correspondencia roster↔selección: la regla vive en la tabla MADRE
+  # (host). Compara, por fila madre, el set de códigos del roster de la hija
+  # (`source_var` agrupado por `parent_key_remote` en `source_table`) contra el
+  # set de opciones marcadas del select_multiple `host_sm_var` de la madre.
+  # Violación = !setequal(roster_set, marked_set). Único op: "setequal".
+  #   host_sm_var:       select_multiple conductor en la madre (p.ej. services)
+  #   source_table:      tabla hija roster (p.ej. rep_servicios)
+  #   source_var:        columna de identidad del roster (p.ej. current_code)
+  #   op:                "setequal"
+  #   parent_key_local:  columna en la madre que es su id (_index)
+  #   parent_key_remote: columna en la hija que referencia al padre (_parent_index)
+  "roster_set_cmp",       # (host_sm_var, source_table, source_var, op, parent_key_local, parent_key_remote)
   # --- Combinadores -----------------------------------------------------
   "and",                  # (args: list<ast>)
   "or",                   # (args: list<ast>)
@@ -356,6 +377,58 @@ ast_aggregate_cmp <- function(host_var, op,
       parent_key_remote = parent_key_remote)
 }
 
+#' RC3 — integridad referencial de un repeat: marca filas hija huérfanas.
+#' La regla vive en la tabla HIJA (host); lee la tabla padre desde
+#' `__data_multi__[[source_table]]` (patrón aggregate_cmp). Violación = el
+#' `parent_key_local` de la fila hija no aparece como `parent_key_remote` en la
+#' tabla padre. Si la tabla padre falta, no marca (conservador, como aggregate_cmp).
+#' @export
+ast_referential_parent_exists <- function(source_table,
+                                          parent_key_local = "_parent_index",
+                                          parent_key_remote = "_index") {
+  if (!is.character(source_table) || length(source_table) != 1L || !nzchar(source_table)) {
+    stop("ast_referential_parent_exists(): source_table requerido.")
+  }
+  .check_var(parent_key_local)
+  .check_var(parent_key_remote)
+  ast("referential_parent_exists",
+      source_table = source_table,
+      parent_key_local = parent_key_local,
+      parent_key_remote = parent_key_remote)
+}
+
+#' RC5 — correspondencia roster↔selección.
+#' La regla vive en la tabla MADRE (host). Compara, por fila madre, el set de
+#' códigos del roster de la hija (`source_var` agrupado por `parent_key_remote`
+#' en `source_table`) contra el set de opciones marcadas del select_multiple
+#' `host_sm_var` de la madre. Único `op` soportado: "setequal". Violación =
+#' !setequal(roster_set, marked_set). Si falta la tabla hija, no marca.
+#' @export
+ast_roster_set_cmp <- function(host_sm_var,
+                               source_table,
+                               source_var,
+                               op = "setequal",
+                               parent_key_local = "_index",
+                               parent_key_remote = "_parent_index") {
+  .check_var(host_sm_var)
+  .check_var(source_var)
+  if (!identical(as.character(op), "setequal")) {
+    stop("ast_roster_set_cmp(): op solo soporta 'setequal'.")
+  }
+  if (!is.character(source_table) || length(source_table) != 1L || !nzchar(source_table)) {
+    stop("ast_roster_set_cmp(): source_table requerido.")
+  }
+  .check_var(parent_key_local)
+  .check_var(parent_key_remote)
+  ast("roster_set_cmp",
+      host_sm_var = host_sm_var,
+      source_table = source_table,
+      source_var = source_var,
+      op = "setequal",
+      parent_key_local = parent_key_local,
+      parent_key_remote = parent_key_remote)
+}
+
 #' Compara una variable de fecha contra la fecha de captura (today() en ODK).
 #' La fecha de captura NO es el día de validación — es el día en que el
 #' enumerador guardó el formulario, resuelto por el evaluador desde la
@@ -514,6 +587,8 @@ ast_is_valid <- function(x) {
     "collection_date_cmp"      = c("var", "op"),
     "collection_date_offset_cmp" = c("var", "op", "offset_days"),
     "aggregate_cmp"            = c("host_var", "op", "source_table", "source_var", "agg_op"),
+    "referential_parent_exists"= c("source_table", "parent_key_local", "parent_key_remote"),
+    "roster_set_cmp"           = c("host_sm_var", "source_table", "source_var", "op", "parent_key_local", "parent_key_remote"),
     "and"                      = "args",
     "or"                       = "args",
     "not"                      = "arg",
