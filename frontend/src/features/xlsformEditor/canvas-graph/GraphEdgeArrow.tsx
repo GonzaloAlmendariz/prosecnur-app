@@ -80,6 +80,26 @@ const TABLEAU_10 = [
 const NEUTRAL_COLOR = "#2457d6";
 
 /**
+ * Color por TIPO de relación lógica — la MISMA fuente de verdad que la
+ * leyenda de la toolbar (`CanvasToolbar` → LOGIC_LAYER_CONTROLS). El mapa
+ * de lógica trata de una sola cosa: la lógica. Por eso el canal cromático
+ * codifica el TIPO (visibilidad / validación / cálculo / filtro), no la
+ * expresión: así la leyenda es literal y los cuatro tipos se distinguen de
+ * un vistazo. Antes el color venía del hash de la expresión (Tableau-10) y
+ * no calzaba con la leyenda — una flecha de validación podía salir azul.
+ */
+const TYPE_COLORS: Record<string, string> = {
+  "depends-on": "#2457d6", // Visibilidad (relevant)
+  "constrained-by": "#E15759", // Validación (constraint)
+  "calculated-from": "#59A14F", // Cálculo (calculation)
+  "choice-filter": "#B07AA1", // Filtro (choice_filter)
+};
+
+export function colorForKind(kind: string): string {
+  return TYPE_COLORS[kind] ?? NEUTRAL_COLOR;
+}
+
+/**
  * Hash determinístico string → índice. Misma fórmula que el resto del
  * editor para colorear secciones por nombre.
  */
@@ -116,14 +136,10 @@ export function GraphEdgeArrow({
   onHover,
   onClick,
 }: GraphEdgeArrowProps) {
-  // Color: prioridad al colorIndex provisto por el layout (orden de
-  // aparición → sin colisiones para las primeras 10 condiciones). Si
-  // no se proveyó (compat), fallback al hash legacy. Si la expresión
-  // es genérica o nula, color neutro.
-  const color =
-    colorIndex == null
-      ? colorForExpression(relevantExpression)
-      : TABLEAU_10[colorIndex % TABLEAU_10.length]!;
+  // Color = TIPO de relación (misma paleta que la leyenda). El mapa es
+  // solo de lógica: el color debe decir QUÉ TIPO de relación es, no de
+  // qué expresión viene. `colorIndex`/`relevantExpression` ya no pintan.
+  const color = colorForKind(edge.edge.kind);
   // Visibilidad base alta — antes 0.78 lucía "fantasma" sobre fondo
   // claro, en especial las dashed var↔var. Subimos a 0.95 para que
   // el trazo se lea como "primera capa" del lienzo. El dim sigue
@@ -237,7 +253,9 @@ function markerIdFor(color: string): string {
 }
 
 export function GraphEdgeMarkers() {
-  const palette = [...TABLEAU_10, NEUTRAL_COLOR];
+  // Markers por color de TIPO (+ neutro + Tableau legacy por compat con
+  // cualquier edge que aún resuelva a un color antiguo).
+  const palette = [...Object.values(TYPE_COLORS), NEUTRAL_COLOR, ...TABLEAU_10];
   return (
     <defs>
       {palette.map((color) => (
