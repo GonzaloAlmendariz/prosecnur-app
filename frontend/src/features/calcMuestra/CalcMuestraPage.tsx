@@ -1962,6 +1962,11 @@ export default function CalcMuestraPage() {
                     </span>
                   </span>
                 )}
+                {desk === "opinion_universitaria" && (
+                  <span className="cmv2-pill-soft cmv2-command-etapa" title="Etapa del estudio · se define en Datos → Estudio">
+                    {(workspace.etapa ?? "propuesta") === "campo" ? "Campo · DTI" : "Propuesta"}
+                  </span>
+                )}
               </div>
             )}
 

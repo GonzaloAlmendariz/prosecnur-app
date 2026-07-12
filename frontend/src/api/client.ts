@@ -14041,6 +14041,10 @@ export type CalcMuestraWorkspace = {
   run_history?: CalcMuestraCorrida[];
   /** Estado del Motor/Recorrido muestral (retrocompatible: puede no venir). */
   motor_recorrido?: CalcMuestraWorkspaceMotorRecorrido | null;
+  /** Etapa del estudio: "propuesta" (data del semestre anterior, para diseñar y
+   *  presupuestar) o "campo" (base de DTI del semestre de aplicación). Distinción
+   *  canónica del método HSyVBG. Retrocompatible: default "propuesta". */
+  etapa?: "propuesta" | "campo";
 };
 
 export type CalcMuestraEstudio = {
