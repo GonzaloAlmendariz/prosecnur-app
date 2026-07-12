@@ -40,10 +40,10 @@ import type {
   BuilderSelection,
   BuilderStructure,
 } from "../types";
-import { OutlineRow, OutlineCloseRow } from "./OutlineRow";
+import { OutlineRow, OutlineCloseRow, OutlineCloseGhost } from "./OutlineRow";
 import { OutlineDragOverlay } from "./OutlineDragOverlay";
 import type { RowMovePlan } from "./outlineUtils";
-import { computeRowMove } from "./outlineUtils";
+import { computeEndMove, computeRowMove } from "./outlineUtils";
 
 type DropPreview = {
   overRow: number;
@@ -173,13 +173,13 @@ export function SurveyOutline({
     );
   }
 
-  const items = structure.outline.map((n) => n.rowIndex);
   const activeNode = activeRow != null ? structure.byRow.get(activeRow) ?? null : null;
 
   // Lista de render fusionada: las filas normales del outline MÁS una fila
-  // de cierre por cada sección/repeat que tenga su `end_*` explícito. Solo
-  // las filas normales entran al SortableContext (drag atómico de sección);
-  // las de cierre son visibles/seleccionables/borrables pero no arrastrables.
+  // de cierre por cada sección/repeat con su `end_*` explícito. Ambas entran
+  // al SortableContext, pero se mueven distinto: las normales mueven su span
+  // atómico (`computeRowMove`); las de cierre reubican SOLO esa fila
+  // (`computeEndMove`), cambiando qué preguntas quedan dentro.
   type RenderEntry =
     | { type: "node"; rowIndex: number; node: BuilderNode }
     | { type: "close"; rowIndex: number; label: string; depth: number; kind: "section" | "repeat" };
@@ -188,8 +188,10 @@ export function SurveyOutline({
     rowIndex: node.rowIndex,
     node,
   }));
+  const closeRowSet = new Set<number>();
   for (const meta of structure.sections.values()) {
     if (meta.kind === "root" || meta.rowIndex == null || meta.endRowIndex == null) continue;
+    closeRowSet.add(meta.endRowIndex);
     renderEntries.push({
       type: "close",
       rowIndex: meta.endRowIndex,
@@ -199,6 +201,11 @@ export function SurveyOutline({
     });
   }
   renderEntries.sort((a, b) => a.rowIndex - b.rowIndex);
+  const items = renderEntries.map((e) => e.rowIndex);
+  const closeLabelByRow = new Map<number, { label: string; kind: "section" | "repeat"; depth: number }>();
+  for (const e of renderEntries) {
+    if (e.type === "close") closeLabelByRow.set(e.rowIndex, { label: e.label, kind: e.kind, depth: e.depth });
+  }
 
   function collisionPosition(
     collisions: DragOverEvent["collisions"],
@@ -219,7 +226,9 @@ export function SurveyOutline({
     if (items.indexOf(fromId) < 0 || items.indexOf(overId) < 0) return null;
 
     const before = position === "before";
-    const plan = computeRowMove(structure, fromId, overId, before);
+    const plan = closeRowSet.has(fromId)
+      ? computeEndMove(structure, fromId, overId, before)
+      : computeRowMove(structure, fromId, overId, before);
     if (!plan) return null;
 
     return {
@@ -268,7 +277,9 @@ export function SurveyOutline({
     const overId = event.over ? Number(event.over.id) : NaN;
     const preview = deriveDropPreview(fromId, overId, collisionPosition(event.collisions));
     if (!preview) return;
-    const plan = computeRowMove(structure, fromId, overId, preview.before);
+    const plan = closeRowSet.has(fromId)
+      ? computeEndMove(structure, fromId, overId, preview.before)
+      : computeRowMove(structure, fromId, overId, preview.before);
     if (!plan) return;
     onApplyMove(plan);
   }
@@ -325,15 +336,24 @@ export function SurveyOutline({
               selection?.kind === "survey" && selection.rowIndex === entry.rowIndex;
             if (entry.type === "close") {
               return (
-                <OutlineCloseRow
-                  key={`close-${entry.rowIndex}`}
-                  rowIndex={entry.rowIndex}
-                  label={entry.label}
-                  depth={entry.depth}
-                  kind={entry.kind}
-                  active={active}
-                  onSelect={() => onSelect({ kind: "survey", rowIndex: entry.rowIndex })}
-                />
+                <Fragment key={`close-${entry.rowIndex}`}>
+                  {dropPreview?.overRow === entry.rowIndex &&
+                  dropPreview.position === "before" ? (
+                    <OutlineDropSlot />
+                  ) : null}
+                  <OutlineCloseRow
+                    rowIndex={entry.rowIndex}
+                    label={entry.label}
+                    depth={entry.depth}
+                    kind={entry.kind}
+                    active={active}
+                    onSelect={() => onSelect({ kind: "survey", rowIndex: entry.rowIndex })}
+                  />
+                  {dropPreview?.overRow === entry.rowIndex &&
+                  dropPreview.position === "after" ? (
+                    <OutlineDropSlot />
+                  ) : null}
+                </Fragment>
               );
             }
             const node = entry.node;
@@ -362,7 +382,7 @@ export function SurveyOutline({
         </SortableContext>
       </div>
 
-      {activeNode && overlayGeometry && typeof document !== "undefined"
+      {overlayGeometry && typeof document !== "undefined" && (activeNode || (activeRow != null && closeRowSet.has(activeRow)))
         ? createPortal(
             <div
               className="pulso-outline-floating-overlay"
@@ -374,10 +394,17 @@ export function SurveyOutline({
                 top: overlayGeometry.point.y - overlayGeometry.offsetY,
               }}
             >
-              <OutlineDragOverlay
-                node={activeNode}
-                size={{ width: overlayGeometry.width, height: overlayGeometry.height }}
-              />
+              {activeNode ? (
+                <OutlineDragOverlay
+                  node={activeNode}
+                  size={{ width: overlayGeometry.width, height: overlayGeometry.height }}
+                />
+              ) : (
+                <OutlineCloseGhost
+                  info={activeRow != null ? closeLabelByRow.get(activeRow) ?? null : null}
+                  size={{ width: overlayGeometry.width, height: overlayGeometry.height }}
+                />
+              )}
             </div>,
             document.body,
           )
