@@ -1,50 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Check,
+  ArrowRight,
   ChevronDown,
-  ChevronUp,
   Inbox,
-  Loader2,
   ListPlus,
   Plus,
   Search,
-  Trash2,
-  AlertCircle,
+  Target,
   X,
-  Wand2,
 } from "lucide-react";
-import { IconAI } from "../../lib/icons";
-
-// Classic Levenshtein edit distance (iterative, O(n*m) space O(n)).
-function levenshtein(a: string, b: string): number {
-  if (a === b) return 0;
-  if (a.length === 0) return b.length;
-  if (b.length === 0) return a.length;
-  const m = a.length, n = b.length;
-  let prev = new Array(n + 1);
-  for (let j = 0; j <= n; j++) prev[j] = j;
-  let curr = new Array(n + 1).fill(0);
-  for (let i = 1; i <= m; i++) {
-    curr[0] = i;
-    for (let j = 1; j <= n; j++) {
-      curr[j] = Math.min(
-        curr[j - 1] + 1,
-        prev[j] + 1,
-        prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
-      );
-    }
-    [prev, curr] = [curr, prev];
-  }
-  return prev[n];
-}
-
-// Similarity 0-1 normalized by the longer string.
-function similarity(a: string, b: string): number {
-  const la = a.length, lb = b.length;
-  if (la === 0 && lb === 0) return 1;
-  const dist = levenshtein(a, b);
-  return 1 - dist / Math.max(la, lb);
-}
 import {
   apiCodifGrupos,
   apiCodifRespuestas,
@@ -53,8 +17,10 @@ import {
 } from "../../api/client";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
+import { GrupoCodificacionCard } from "./GrupoCodificacionCard";
 
 type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
+type StatTone = "neutral" | "success" | "warn" | "info" | "muted";
 
 type Props = {
   parent: string;
@@ -263,92 +229,76 @@ export function RespuestasCodificador({ parent }: Props) {
   if (error) return <ErrorBlock label="Error cargando respuestas" detail={error} />;
   if (!respuestas) return <LoadingBlock variant="inline" label="Cargando respuestas…" />;
 
+  const esSM = tipo === "select_multiple" && !!smOtros;
+
+  // Banda de KPIs: para SM el conteo es en CASOS reales (quienes marcaron
+  // "Otros"); para el resto, en textos únicos. Tonos semánticos, no el accent
+  // del módulo para todo el bloque.
+  const stats: Array<{ label: string; value: number; tone: StatTone }> = esSM
+    ? [
+        { label: "Marcaron Otros", value: smOtros!.n_otros_marcados, tone: "neutral" },
+        { label: "Con texto libre", value: totalTextoFrecuencia, tone: "info" },
+        { label: "Codificadas", value: casosCodificados, tone: "success" },
+        { label: "Sin codificar", value: Math.max(0, casosPendientesOtros), tone: casosPendientesOtros > 0 ? "warn" : "muted" },
+      ]
+    : [
+        { label: "Respuestas", value: respuestas.length, tone: "neutral" },
+        { label: "Codificadas", value: codificadas, tone: codificadas > 0 ? "success" : "muted" },
+        { label: "Sin codificar", value: pendientes, tone: pendientes > 0 ? "warn" : "muted" },
+        { label: grupos.length === 1 ? "Grupo" : "Grupos", value: grupos.length, tone: "info" },
+      ];
+
   return (
-    <div className="pulso-codificacion-respuestas" style={{ minWidth: 0 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+    <div className="pulso-codificacion-respuestas pulso-cv2-rc">
+      {/* Toolbar: guardado + acción. La banda de KPIs va debajo, full-width. */}
+      <div className="pulso-cv2-rc-toolbar">
         <SaveStatusIndicator state={saveStatus} variant="badge" />
-        <span style={{ fontSize: 13, color: "var(--pulso-text-soft)" }}>
-          <strong style={{ color: "var(--pulso-text)" }}>{codificadas}</strong> de <strong>{respuestas.length}</strong> respuestas codificadas
-          {pendientes > 0 && <> · <strong style={{ color: "var(--pulso-warn-fg)" }}>{pendientes} pendientes</strong></>}
-          {grupos.length > 0 && <> · <strong>{grupos.length}</strong> {grupos.length === 1 ? "grupo" : "grupos"}</>}
-        </span>
-        <div style={{ flex: 1 }} />
+        <div className="pulso-cv2-rc-toolbar-spacer" />
         <button
           type="button"
-          className="pulso-primary"
+          className="pulso-primary pulso-cv2-newgroup"
           onClick={addGroup}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
         >
           <Plus size={14} /> Nuevo grupo
         </button>
       </div>
 
-      <div
-        className="pulso-codificacion-respuestas-grid"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(min(340px, 100%), 1fr))",
-          gap: 16,
-          alignItems: "flex-start",
-          minWidth: 0,
-        }}
-      >
-        {/* LEFT — respuestas */}
-        <section style={{ minWidth: 0 }}>
-          <div style={{
-            fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5,
-            color: "var(--pulso-text-soft)", marginBottom: 10,
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-          }}>
-            <span>Respuestas únicas</span>
-            <span style={{ fontSize: 11, fontWeight: 500, textTransform: "none", letterSpacing: 0, color: "var(--pulso-text-soft)" }}>
-              {codificadas} de {respuestas?.length ?? 0} codificadas
+      {/* Banda de KPIs (stat-row) — tonos semánticos. Para SM lleva el
+          eyebrow de la opción "Otros, especifique". */}
+      <div className={`pulso-cv2-statband${esSM ? " is-otros" : ""}`}>
+        {esSM && (
+          <div className="pulso-cv2-statband-eyebrow">
+            Opción "Otros, especifique" en <code>{parent}</code>
+          </div>
+        )}
+        <div className="pulso-cv2-statrow">
+          {stats.map((s) => (
+            <div key={s.label} className={`pulso-cv2-stat is-${s.tone}`}>
+              <span className="pulso-cv2-stat-val">{s.value}</span>
+              <span className="pulso-cv2-stat-label">{s.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Split-view origen → destino. El destino (grupos) lleva superficie de
+          acento del módulo para leerse como el lugar donde caen las respuestas. */}
+      <div className="pulso-cv2-split">
+        {/* ORIGEN — respuestas únicas */}
+        <section className="pulso-cv2-col pulso-cv2-col--origen">
+          <div className="pulso-cv2-col-head">
+            <span className="pulso-cv2-col-title">Respuestas únicas</span>
+            <span className="pulso-cv2-col-count">
+              {codificadas} de {respuestas.length} codificadas
             </span>
           </div>
-          {/* Counter SM "Otros" — visible solo para select_multiple con
-              dummy_col resuelto. Mini-stats con label arriba y número
-              abajo para que cada pieza sea parseable de un vistazo
-              (antes era texto corrido con puntos medios). */}
-          {tipo === "select_multiple" && smOtros && (
-            <div style={{
-              marginBottom: 10,
-              padding: "10px 12px",
-              background: "var(--tipo-sm-bg)",
-              border: "1px solid var(--tipo-sm-border)",
-              borderRadius: 6,
-            }}>
-              <div style={{
-                fontSize: 10, fontWeight: 700,
-                textTransform: "uppercase", letterSpacing: 0.5,
-                color: "var(--tipo-sm-fg)", marginBottom: 8,
-              }}>
-                Opción "Otros, especifique" en {parent}
-              </div>
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                <MiniStat label="Marcaron Otros" value={smOtros.n_otros_marcados} />
-                <MiniStat label="Con texto libre" value={totalTextoFrecuencia} />
-                <MiniStat label="Codificadas" value={casosCodificados} tone="success" />
-                <MiniStat
-                  label="Sin codificar"
-                  value={casosPendientesOtros}
-                  tone={casosPendientesOtros > 0 ? "warn" : "muted"}
-                />
-              </div>
-            </div>
-          )}
-          <div style={{
-            display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
-            padding: "6px 10px",
-            border: "1px solid var(--pulso-border)",
-            borderRadius: 6,
-            background: "white",
-          }}>
-            <Search size={14} color="var(--pulso-text-soft)" />
+          <div className="pulso-cv2-search">
+            <Search size={14} className="pulso-cv2-search-icon" />
             <input
               placeholder="Buscar respuestas…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              style={{ flex: 1, fontSize: 13, border: "none", outline: "none", background: "transparent", padding: 0 }}
+              className="pulso-cv2-search-input"
             />
             {query && (
               <button
@@ -362,16 +312,9 @@ export function RespuestasCodificador({ parent }: Props) {
               </button>
             )}
           </div>
-          <div style={{
-            border: "1px solid var(--pulso-border)", borderRadius: 6,
-            maxHeight: 540, overflowY: "auto",
-            scrollbarWidth: "thin",
-            scrollbarColor: "var(--pulso-border) transparent",
-          }}>
+          <div className="pulso-cv2-resp-list">
             {visibleRespuestas.length === 0 && (
-              <div style={{ padding: 14, fontSize: 13, color: "var(--pulso-text-soft)", textAlign: "center" }}>
-                No hay respuestas que coincidan.
-              </div>
+              <div className="pulso-cv2-resp-empty">No hay respuestas que coincidan.</div>
             )}
             {visibleRespuestas.map((r) => {
               const grupo = asignacion.get(r.texto_normalizado);
@@ -379,14 +322,7 @@ export function RespuestasCodificador({ parent }: Props) {
               return (
                 <div
                   key={r.texto_normalizado}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "24px 1fr auto",
-                    gap: 8, alignItems: "center",
-                    padding: "8px 10px",
-                    borderBottom: "1px solid #f2f2f2",
-                    background: assigned ? "var(--pulso-surface-2)" : "white",
-                  }}
+                  className={`pulso-cv2-resp-row${assigned ? " is-assigned" : ""}`}
                 >
                   <input
                     type="checkbox"
@@ -394,21 +330,21 @@ export function RespuestasCodificador({ parent }: Props) {
                     onChange={() => toggleRespuesta(r.texto_normalizado)}
                     aria-label={`${assigned ? "Quitar" : "Agregar"} "${r.texto}" ${assigned ? `del grupo ${grupo!.etiqueta || grupo!.codigo}` : "al grupo activo"}`}
                   />
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: "var(--pulso-text)" }}>
+                  <div className="pulso-cv2-resp-main">
+                    <div className="pulso-cv2-resp-text">
                       {r.label ? (
                         <>
-                          <code style={{ fontFamily: "monospace", color: "var(--pulso-primary)", marginRight: 6 }}>{r.texto}</code>
+                          <code className="pulso-cv2-resp-code">{r.texto}</code>
                           {r.label}
                         </>
                       ) : r.texto}
                     </div>
-                    <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", display: "flex", gap: 8 }}>
+                    <div className="pulso-cv2-resp-meta">
                       <span><strong>{r.frecuencia}</strong> {r.frecuencia === 1 ? "vez" : "veces"}</span>
                       {r.variantes > 1 && <span>{r.variantes} variantes</span>}
                       {assigned && (
-                        <span style={{ color: "var(--pulso-success-fg)", fontWeight: 600 }}>
-                          → {grupo!.codigo}{grupo!.etiqueta ? ` · ${grupo!.etiqueta}` : ""}
+                        <span className="pulso-cv2-resp-assigned">
+                          <ArrowRight size={10} /> {grupo!.codigo}{grupo!.etiqueta ? ` · ${grupo!.etiqueta}` : ""}
                         </span>
                       )}
                     </div>
@@ -422,57 +358,46 @@ export function RespuestasCodificador({ parent }: Props) {
           </div>
         </section>
 
-        {/* RIGHT — grupos */}
-        <section style={{ minWidth: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
-          <div style={{
-            fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5,
-            color: "var(--pulso-text-soft)", marginBottom: 10,
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-          }}>
-            <span>Grupos de codificación</span>
-            <span style={{ fontSize: 11, fontWeight: 500, textTransform: "none", letterSpacing: 0, color: "var(--pulso-text-soft)" }}>
+        {/* DESTINO — grupos de codificación */}
+        <section className="pulso-cv2-col pulso-cv2-col--destino">
+          <div className="pulso-cv2-col-head">
+            <span className="pulso-cv2-col-title">
+              <Target size={13} className="pulso-cv2-col-title-icon" />
+              Grupos de codificación
+            </span>
+            <span className="pulso-cv2-col-count">
               {grupos.length} {grupos.length === 1 ? "grupo" : "grupos"}
             </span>
           </div>
-          {grupos.length === 0 && (
+          {grupos.length === 0 ? (
             <EmptyState
               variant="inline"
               icon={<Inbox size={18} />}
-              title="Sin grupos"
-              hint="Crea uno con '+ Nuevo grupo' o marca una respuesta de la izquierda — se crea un grupo vacío automáticamente."
+              title="Sin grupos todavía"
+              hint="Crea uno con 'Nuevo grupo' o marca una respuesta a la izquierda — se crea un grupo vacío automáticamente."
             />
+          ) : (
+            <div className="pulso-cv2-grupos-list pulso-codificacion-grupos-list">
+              {grupos.map((g, idx) => (
+                <GrupoCodificacionCard
+                  key={`${g.id}-${idx}`}
+                  grupo={g}
+                  respuestas={respuestas}
+                  asignacion={asignacion}
+                  active={g.id === activeGroupId}
+                  onActivate={() => setActiveGroupId(g.id)}
+                  onUpdate={(patch) => updateGroup(g.id, patch)}
+                  onDelete={() => deleteGroup(g.id)}
+                  onRemoveRespuesta={(t) => updateGroup(g.id, { respuestas: g.respuestas.filter((r) => r !== t) })}
+                  onAddRespuesta={(t) => updateGroup(g.id, { respuestas: [...g.respuestas, t] })}
+                  onMoveUp={() => moveGroup(g.id, "up")}
+                  onMoveDown={() => moveGroup(g.id, "down")}
+                  isFirst={idx === 0}
+                  isLast={idx === grupos.length - 1}
+                />
+              ))}
+            </div>
           )}
-          {/* Mantiene el encabezado visible y desplaza solo la lista larga de grupos. */}
-          <div className="pulso-codificacion-grupos-list" style={{
-            display: "flex", flexDirection: "column", gap: 10,
-            maxHeight: "min(620px, calc(100vh - 350px))",
-            minHeight: 0,
-            overflowY: "auto",
-            overscrollBehavior: "contain",
-            paddingRight: 4,
-            paddingBottom: 14,
-            scrollbarWidth: "thin",
-            scrollbarColor: "var(--pulso-border) transparent",
-          }}>
-            {grupos.map((g, idx) => (
-              <GrupoCard
-                key={`${g.id}-${idx}`}
-                grupo={g}
-                respuestas={respuestas}
-                asignacion={asignacion}
-                active={g.id === activeGroupId}
-                onActivate={() => setActiveGroupId(g.id)}
-                onUpdate={(patch) => updateGroup(g.id, patch)}
-                onDelete={() => deleteGroup(g.id)}
-                onRemoveRespuesta={(t) => updateGroup(g.id, { respuestas: g.respuestas.filter((r) => r !== t) })}
-                onAddRespuesta={(t) => updateGroup(g.id, { respuestas: [...g.respuestas, t] })}
-                onMoveUp={() => moveGroup(g.id, "up")}
-                onMoveDown={() => moveGroup(g.id, "down")}
-                isFirst={idx === 0}
-                isLast={idx === grupos.length - 1}
-              />
-            ))}
-          </div>
         </section>
       </div>
     </div>
@@ -506,40 +431,23 @@ function QuickAssignDropdown({ grupos, onPick }: { grupos: Grupo[]; onPick: (gid
   }, [open]);
 
   return (
-    <div ref={rootRef} style={{ position: "relative" }}>
+    <div ref={rootRef} className="pulso-cv2-qa">
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
         aria-expanded={open}
         aria-haspopup="menu"
-        style={{
-          fontSize: 10, padding: "2px 6px",
-          display: "inline-flex", alignItems: "center", gap: 4,
-          background: open ? "var(--pulso-primary-soft)" : undefined,
-          borderColor: open ? "var(--pulso-primary)" : undefined,
-          color: open ? "var(--pulso-primary)" : undefined,
-        }}
+        className={`pulso-cv2-qa-btn${open ? " is-open" : ""}`}
         title="Asignar a grupo existente"
       >
         <ListPlus size={11} />
         <span>asignar</span>
-        <ChevronDown size={9} style={{ marginLeft: 1, opacity: 0.7, transform: open ? "rotate(180deg)" : undefined, transition: "transform 120ms" }} />
+        <ChevronDown size={9} className="pulso-cv2-qa-caret" />
       </button>
       {open && (
-        <div
-          role="menu"
-          style={{
-            position: "absolute", right: 0, top: "100%", marginTop: 2, zIndex: 10,
-            background: "white", border: "1px solid var(--pulso-border)",
-            borderRadius: 6, boxShadow: "var(--pulso-shadow-med)",
-            minWidth: 200, maxHeight: 280, overflowY: "auto",
-            padding: 4,
-          }}
-        >
+        <div role="menu" className="pulso-cv2-qa-menu">
           {grupos.length === 0 && (
-            <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", padding: "6px 8px", fontStyle: "italic" }}>
-              Todavía no hay grupos creados.
-            </div>
+            <div className="pulso-cv2-qa-empty">Todavía no hay grupos creados.</div>
           )}
           {grupos.map((g) => (
             <button
@@ -547,283 +455,13 @@ function QuickAssignDropdown({ grupos, onPick }: { grupos: Grupo[]; onPick: (gid
               type="button"
               role="menuitem"
               onClick={(e) => { e.stopPropagation(); onPick(g.id); setOpen(false); }}
-              style={{
-                display: "block", width: "100%", textAlign: "left",
-                fontSize: 11, padding: "5px 8px", border: "none", background: "transparent",
-                cursor: "pointer", borderRadius: 4,
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--pulso-surface-2)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              className="pulso-cv2-qa-item"
             >
-              <strong>{g.codigo}</strong> {g.etiqueta || <em style={{ color: "var(--pulso-text-soft)" }}>sin nombre</em>}
+              <strong>{g.codigo}</strong> {g.etiqueta || <em className="pulso-cv2-qa-unnamed">sin nombre</em>}
             </button>
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate, onDelete, onRemoveRespuesta, onAddRespuesta, onMoveUp, onMoveDown, isFirst, isLast }: {
-  grupo: Grupo;
-  respuestas: RespuestaUnica[];
-  asignacion: Map<string, Grupo>;
-  active: boolean;
-  onActivate: () => void;
-  onUpdate: (p: Partial<Grupo>) => void;
-  onDelete: () => void;
-  onRemoveRespuesta: (texto_normalizado: string) => void;
-  onAddRespuesta: (texto_normalizado: string) => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-  isFirst: boolean;
-  isLast: boolean;
-}) {
-  const respByNorm = useMemo(() => new Map(respuestas.map((r) => [r.texto_normalizado, r])), [respuestas]);
-  const total = grupo.respuestas.reduce((sum, t) => sum + (respByNorm.get(t)?.frecuencia ?? 0), 0);
-
-  // Similitud: para cada respuesta SIN asignar, computar max similitud a las
-  // respuestas asignadas al grupo. Top 6 con similarity >= 0.5. Solo cuando
-  // el grupo está activo y tiene al menos una respuesta.
-  const sugerencias = useMemo(() => {
-    if (!active || grupo.respuestas.length === 0) return [];
-    const seeds = grupo.respuestas;
-    const hits: Array<{ t: RespuestaUnica; sim: number }> = [];
-    for (const r of respuestas) {
-      if (asignacion.has(r.texto_normalizado)) continue;
-      let maxSim = 0;
-      for (const s of seeds) {
-        const sim = similarity(r.texto_normalizado, s);
-        if (sim > maxSim) maxSim = sim;
-        if (maxSim >= 0.99) break;
-      }
-      if (maxSim >= 0.35) hits.push({ t: r, sim: maxSim });
-    }
-    hits.sort((a, b) => b.sim - a.sim);
-    return hits.slice(0, 6);
-  }, [active, grupo.respuestas, respuestas, asignacion]);
-  const esExistente = grupo.origen === "existente";
-  return (
-    <article
-      onClick={active ? undefined : onActivate}
-      style={{
-        border: active ? "2px solid var(--pulso-primary)" : "1px solid var(--pulso-border)",
-        borderRadius: 8,
-        padding: 12,
-        background: active ? "var(--pulso-primary-soft)" : esExistente ? "var(--pulso-surface-2)" : "white",
-        cursor: active ? "default" : "pointer",
-        transition: "background 150ms, border-color 150ms",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "nowrap" }}>
-        {esExistente ? (
-          <>
-            <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 13, color: "var(--pulso-primary)", minWidth: 32, textAlign: "center", flexShrink: 0 }}>
-              {grupo.codigo}
-            </span>
-            <span style={{ flex: 1, fontSize: 13, fontWeight: 500, minWidth: 0, lineHeight: 1.35 }}>{grupo.etiqueta}</span>
-            <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text-soft)", background: "#eef3ff", padding: "2px 6px", borderRadius: 3, flexShrink: 0 }}>
-              Existente
-            </span>
-            <MoveButtons onMoveUp={onMoveUp} onMoveDown={onMoveDown} isFirst={isFirst} isLast={isLast} />
-          </>
-        ) : (
-          <>
-            <input
-              type="text"
-              value={grupo.codigo}
-              onChange={(e) => onUpdate({ codigo: e.target.value })}
-              onClick={(e) => e.stopPropagation()}
-              placeholder="código"
-              style={{ fontFamily: "monospace", fontWeight: 700, width: 56, fontSize: 13, textAlign: "center", flexShrink: 0 }}
-              aria-label="Código numérico del grupo"
-            />
-            <input
-              type="text"
-              value={grupo.etiqueta}
-              onChange={(e) => onUpdate({ etiqueta: e.target.value })}
-              onClick={(e) => e.stopPropagation()}
-              placeholder="Etiqueta descriptiva"
-              style={{ flex: 1, fontSize: 13, minWidth: 0 }}
-              aria-label="Etiqueta del grupo"
-            />
-            <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-success-fg)", background: "var(--pulso-success-bg)", padding: "2px 6px", borderRadius: 3, flexShrink: 0 }}>
-              Nuevo
-            </span>
-            <MoveButtons onMoveUp={onMoveUp} onMoveDown={onMoveDown} isFirst={isFirst} isLast={isLast} />
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="pulso-icon pulso-icon-danger"
-              title="Eliminar grupo"
-              aria-label="Eliminar grupo"
-            >
-              <Trash2 size={12} />
-            </button>
-          </>
-        )}
-      </div>
-      <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginBottom: 6 }}>
-        {grupo.respuestas.length} {grupo.respuestas.length === 1 ? "respuesta" : "respuestas"} · <strong>{total}</strong> casos totales
-        {active && <span style={{ color: "var(--pulso-primary)", marginLeft: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, fontSize: 9 }}>← activo</span>}
-      </div>
-      {grupo.respuestas.length === 0 && (
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic", padding: "6px 0" }}>
-          Aún sin respuestas. Marca respuestas a la izquierda para agregarlas.
-        </div>
-      )}
-      {grupo.respuestas.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-          {grupo.respuestas.map((t, idx) => {
-            const r = respByNorm.get(t);
-            const display = r?.texto ?? t;
-            const freq = r?.frecuencia ?? 0;
-            return (
-              <span
-                key={`${t}-${idx}`}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 3,
-                  background: "white", border: "1px solid var(--pulso-border)",
-                  borderRadius: 12, padding: "1px 4px 1px 8px", fontSize: 11,
-                  color: "var(--pulso-text)",
-                }}
-              >
-                {display}
-                {freq > 0 && <span style={{ color: "var(--pulso-text-soft)", fontSize: 9 }}>×{freq}</span>}
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); onRemoveRespuesta(t); }}
-                  className="pulso-icon"
-                  style={{ minWidth: 16, minHeight: 16, padding: 1 }}
-                  aria-label={`Quitar "${display}" del grupo`}
-                  title="Quitar del grupo"
-                >
-                  <X size={10} />
-                </button>
-              </span>
-            );
-          })}
-        </div>
-      )}
-
-      {active && sugerencias.length > 0 && (
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            marginTop: 10, padding: 8, borderTop: "1px dashed var(--pulso-border)",
-          }}
-        >
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text-soft)", marginBottom: 6, display: "inline-flex", alignItems: "center", gap: 4 }}>
-            <IconAI size={11} /> Sugerencias similares
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            {sugerencias.map(({ t, sim }, idx) => {
-              const pct = Math.round(sim * 100);
-              const simColor = sim >= 0.85 ? "var(--pulso-success-fg)" : sim >= 0.7 ? "var(--pulso-warn-fg)" : "var(--pulso-status-empty)";
-              return (
-                <button
-                  key={`${t.texto_normalizado}-${idx}`}
-                  type="button"
-                  onClick={() => onAddRespuesta(t.texto_normalizado)}
-                  title={`${pct}% similar — click para agregar al grupo`}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 4,
-                    background: "#fff7e8", border: "1px dashed #f0d799",
-                    borderRadius: 12, padding: "2px 8px", fontSize: 11,
-                    color: "var(--pulso-text)", cursor: "pointer",
-                  }}
-                >
-                  <Plus size={10} />
-                  <span>{truncateText(t.texto, 22)}</span>
-                  {t.frecuencia > 0 && <span style={{ color: "var(--pulso-text-soft)", fontSize: 9 }}>×{t.frecuencia}</span>}
-                  <span style={{ color: simColor, fontSize: 9, fontWeight: 700 }}>{pct}%</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </article>
-  );
-}
-
-function truncateText(s: string, n: number) {
-  if (!s) return "";
-  return s.length > n ? s.slice(0, n - 1) + "…" : s;
-}
-
-// SaveBadge local reemplazado por `SaveStatusIndicator variant="badge"`
-// de components/SaveStatusIndicator.tsx — unificado con el resto del app.
-
-// unused imports guard
-export const _k = Wand2;
-
-// Botones pequeños ↑/↓ para reordenar grupos (patrón copiado de
-// TimelinePanel en Fase 5 Gráficos). Se stopPropagation para no
-// disparar el onClick del article (que activa la card).
-function MoveButtons({ onMoveUp, onMoveDown, isFirst, isLast }: {
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-  isFirst: boolean;
-  isLast: boolean;
-}) {
-  return (
-    <span style={{ display: "inline-flex", gap: 3 }}>
-      <button
-        type="button"
-        className="pulso-icon"
-        onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
-        disabled={isFirst}
-        title="Subir (el orden determina cómo aparecen en el xlsx final)"
-        aria-label="Subir este grupo"
-      >
-        <ChevronUp size={14} />
-      </button>
-      <button
-        type="button"
-        className="pulso-icon"
-        onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
-        disabled={isLast}
-        title="Bajar (el orden determina cómo aparecen en el xlsx final)"
-        aria-label="Bajar este grupo"
-      >
-        <ChevronDown size={14} />
-      </button>
-    </span>
-  );
-}
-
-// Mini-stat con label uppercase arriba y número grande abajo. Usado en
-// el counter SM "Otros" — más parseable de un vistazo que el texto corrido
-// anterior. Tone define el color del número (neutral / success / warn / muted).
-function MiniStat({
-  label, value, tone = "neutral",
-}: {
-  label: string;
-  value: number;
-  tone?: "neutral" | "success" | "warn" | "muted";
-}) {
-  const color =
-    tone === "success" ? "var(--pulso-success-fg)" :
-    tone === "warn" ? "var(--pulso-warn-fg)" :
-    tone === "muted" ? "var(--pulso-text-soft)" :
-    "var(--pulso-text)";
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      <span style={{
-        fontSize: 9, fontWeight: 600,
-        textTransform: "uppercase", letterSpacing: 0.4,
-        color: "var(--pulso-text-soft)",
-      }}>
-        {label}
-      </span>
-      <span style={{
-        fontSize: 15, fontWeight: 700,
-        color,
-        fontVariantNumeric: "tabular-nums",
-      }}>
-        {value}
-      </span>
     </div>
   );
 }
