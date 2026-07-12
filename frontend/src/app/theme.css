@@ -28572,7 +28572,12 @@ button.pulso-focus-calculation-recipe {
   inset: 0;
   width: 100vw;
   height: 100dvh;
-  z-index: 900;
+  /* Debe cubrir la command bar del editor (.pulso-xlsform-frame
+   * .pulso-page-frame-toolbar tiene z-index: 1000) y el MoreViewsMenu
+   * (1200). El overlay se portalea a document.body — hermano de la app —
+   * así que sin un z-index mayor la barra "instrumento / Constructor /
+   * Hojas" quedaba pintada ENCIMA del mapa en vez de tapada. */
+  z-index: 1400;
   background: var(--pulso-surface);
   display: flex;
   flex-direction: column;
