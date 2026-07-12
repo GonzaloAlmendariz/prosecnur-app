@@ -93,6 +93,7 @@ export function CriteriosMarcoTab({
 
   const alumno = catalogo.variables.filter((v) => v.scope === "alumno");
   const aula = catalogo.variables.filter((v) => v.scope === "aula");
+  const hayNivel = aula.some((v) => v.kind === "range");
   const ready = catalogo.variables.length > 0;
 
   const impacto = useMemo(
@@ -189,6 +190,10 @@ export function CriteriosMarcoTab({
                     Recortan la <strong>población N</strong> que se calcula: las categorías marcadas entran, las
                     demás salen y bajan N y sus cuotas.
                   </p>
+                  <p className="cmv2-crit-scope-note">
+                    El 1er ciclo entra al marco y cuenta en N; se excluye recién en el instrumento (pregunta
+                    filtro), no aquí — no es un criterio de elegibilidad de la población.
+                  </p>
                 </div>
               </header>
               <div className="cmv2-crit-grid">
@@ -219,6 +224,12 @@ export function CriteriosMarcoTab({
                     Definen el <strong>marco de curso-horario</strong> que se muestrea. Modalidad, tipo de sesión y
                     tipo de docente son constantes por aula (del catálogo), no por fila del estudiante.
                   </p>
+                  {hayNivel && (
+                    <p className="cmv2-crit-scope-note">
+                      El <strong>nivel es del curso</strong> (su peldaño en la malla), no el ciclo del alumno. El
+                      nivel 0 son cursos transversales con alumnos de todos los ciclos — no es "primer ciclo".
+                    </p>
+                  )}
                 </div>
               </header>
               <div className="cmv2-crit-grid">
