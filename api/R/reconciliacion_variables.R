@@ -84,13 +84,25 @@
   col
 }
 
+# Prefijo (antes del PRIMER separador `.`/`/`) de una columna. Para
+# `services.legal` -> `services`; `Assistance.rep_servicios_count` -> `Assistance`;
+# `foo` (sin separador) -> `foo`.
+.reconciliacion_col_prefix <- function(col) {
+  sub("[./].*$", "", as.character(col))
+}
+
 # Cubo de reconciliación: por cada variable extra SUSTANTIVA de `data` respecto a
 # `inst`, devuelve `name`, `fill_pct`, `n_fill` y `kind` ("con_datos" | "vacia").
 # Ordenado por `fill_pct` desc (desempate alfabético). Ver definición de "extra"
 # en el encabezado del archivo (clasificación por stem contra `inst$survey$name`).
 #
+# `monitoreo_handoff`: TRUE cuando la base tiene PROVENIENCIA de handoff de
+# Monitoreo. Habilita tratar las dimensiones `dim_*` ajenas al instrumento como
+# plumbing (hermanas de `dim_sede`/`dim_origen`) — NO como extras — sin borrar el
+# dato. En base de carga MANUAL (FALSE) un `dim_x` legítimo sigue contándose.
+#
 # Guardrail: data.frame vacío si no hay `inst` o no hay `data`.
-.reconciliacion_variables_extra <- function(data, inst) {
+.reconciliacion_variables_extra <- function(data, inst, monitoreo_handoff = FALSE) {
   if (is.null(inst) || !is.data.frame(data) || !ncol(data) || !nrow(data)) {
     return(.reconciliacion_empty_df())
   }
@@ -107,6 +119,21 @@
     # Variable real del instrumento (por stem resuelto o por nombre directo):
     # incluye calculates (`date`, `E1_age_calc`, `time_*`) y parents/dummies SM.
     if (tolower(stem) %in% snames_lower || tolower(col) %in% snames_lower) next
+    # FIX A (falsos positivos): una columna `prefix.suffix` cuyo PREFIX es un
+    # nombre del instrumento (SM parent o grupo) es data DERIVADA/hija de ese
+    # elemento, no una variable extra nueva. Suprime dummies de select_multiple
+    # (`services.legal`, `obstacle.time`) y columnas de grupo/repeat
+    # (`Assistance.rep_servicios_count`). NO se borran de la data; solo dejan de
+    # contarse como extra. Guardrail anti-falso-negativo: `foo.bar` con prefix
+    # `foo` ajeno al instrumento SIGUE siendo extra.
+    prefix <- .reconciliacion_col_prefix(col)
+    if (nzchar(prefix) && !identical(prefix, col) &&
+        tolower(prefix) %in% snames_lower) next
+    # FIX B (plumbing de dimensiones): en base con proveniencia de handoff, las
+    # `dim_*` ajenas al instrumento son dimensiones inyectadas por Monitoreo
+    # (`dim_servicio`, `dim_survey_title`), no variables de encuesta. Se excluyen
+    # del conteo sin perder el dato. En base MANUAL un `dim_x` legítimo se cuenta.
+    if (isTRUE(monitoreo_handoff) && grepl("^dim[_.]", col, ignore.case = TRUE)) next
     extra <- c(extra, col)
   }
   if (!length(extra)) return(.reconciliacion_empty_df())
@@ -127,6 +154,18 @@
   out
 }
 
+# ¿La base activa tiene PROVENIENCIA de handoff de Monitoreo? Deriva el flag del
+# `source_kind` de la base activa (meta del estudio). Habilita FIX B (dim_* ajenas
+# al instrumento no cuentan como extra en el banner). En base MANUAL -> FALSE.
+.reconciliacion_handoff_flag <- function(sid) {
+  meta <- if (exists(".analitica_single_base_meta", mode = "function")) {
+    tryCatch(.analitica_single_base_meta(sid), error = function(e) NULL)
+  } else NULL
+  sk <- .carga_chr1((meta %||% list())$source_kind, "")
+  nzchar(sk) && exists(".base_hygiene_is_monitoreo_kind", mode = "function") &&
+    .base_hygiene_is_monitoreo_kind(sk)
+}
+
 # Payload del GET de reconciliación de la base activa. Consumido por el popover y
 # por el panel revisitable. `incluida` marca las que el usuario decidió incluir.
 .reconciliacion_info <- function(sid, cfg = NULL) {
@@ -136,7 +175,8 @@
   # instrumento— pero se aplica para operar sobre EXACTAMENTE la misma data que
   # ve el export (normalización de contexto incluida).
   reviewed <- .analitica_apply_data_review(ctx$rp_data, ctx$rp_inst, cfg)
-  extra_df <- .reconciliacion_variables_extra(reviewed$data, reviewed$inst)
+  extra_df <- .reconciliacion_variables_extra(reviewed$data, reviewed$inst,
+                                              monitoreo_handoff = .reconciliacion_handoff_flag(sid))
   incluidas <- .as_chr_vec(cfg$variables_extra_incluidas)
 
   extra <- lapply(seq_len(nrow(extra_df)), function(i) {
@@ -169,7 +209,8 @@
 
   ctx <- .load_rp_data(sid)
   reviewed <- .analitica_apply_data_review(ctx$rp_data, ctx$rp_inst, cfg_persist)
-  extra_df <- .reconciliacion_variables_extra(reviewed$data, reviewed$inst)
+  extra_df <- .reconciliacion_variables_extra(reviewed$data, reviewed$inst,
+                                              monitoreo_handoff = .reconciliacion_handoff_flag(sid))
   validas <- extra_df$name
 
   desconocidas <- setdiff(pedidas, validas)
