@@ -10,7 +10,6 @@ import {
   Gauge,
   Grid3X3,
   Landmark,
-  ListChecks,
   PieChart,
   Send,
   Sigma,
@@ -64,6 +63,10 @@ export const UNIVERSITY_LOCAL_TAB_ALIASES: Record<string, string> = {
   // Consolidación del Motor en la tubería única (2026-07): la guía de
   // parámetros quedó absorbida por el diseño reactivo.
   "calculo-guia": "calculo-diseno",
+  // Unificación de criterios (2026-07): la pestaña didáctica "Criterios" se
+  // retiró; la suite por categoría (marco-categorias) es la única superficie
+  // de criterios y absorbió sus explicaciones "¿Por qué así?".
+  "marco-criterios": "marco-categorias",
 };
 
 export function resolveUniversityLocalTab(id: string | null | undefined) {
@@ -215,8 +218,7 @@ export function universitySidebarTabs({
   if (activeSection === "marco") {
     const criteriosCatalogoReady = normalizeCriteriosCatalogo(aulasState?.frame?.criterios_catalogo ?? null).variables.length > 0;
     return [
-      { id: "marco-criterios", label: "Criterios", detail: "reglas de inclusión y embudos", icon: Filter, status: guideStatus(true), targetId: "cmv2-local-marco-criterios" },
-      { id: "marco-categorias", label: "Categorías", detail: "inclusión por categoría (alumno y aula)", icon: ListChecks, status: guideStatus(criteriosCatalogoReady, hasDescriptiveFrame), targetId: "cmv2-local-marco-categorias" },
+      { id: "marco-categorias", label: "Criterios", detail: "inclusión por categoría, excepciones y su porqué", icon: Filter, status: guideStatus(criteriosCatalogoReady, hasDescriptiveFrame), targetId: "cmv2-local-marco-categorias" },
       { id: "marco-poblacion", label: "Población", detail: "elegibles y estructura (base real)", icon: Users, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-poblacion" },
       { id: "marco-aulas", label: "Aulas", detail: "curso-horario del marco (base real)", icon: Grid3X3, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-aulas" },
       { id: "marco-validacion", label: "Consistencia", detail: "reconciliación entre bases", icon: CheckCircle2, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-validacion" },

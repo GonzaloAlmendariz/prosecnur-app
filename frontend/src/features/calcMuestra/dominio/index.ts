@@ -45,3 +45,8 @@ export {
   textKey,
   type ImpactoMarco,
 } from "./criteriosImpacto";
+export {
+  rationaleParaCriterio,
+  ELEGIBLES_POR_AULA_ID,
+  type CriterioRationale,
+} from "./criteriosRationale";

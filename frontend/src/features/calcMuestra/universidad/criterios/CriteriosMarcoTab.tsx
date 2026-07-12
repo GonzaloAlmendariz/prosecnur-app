@@ -26,9 +26,11 @@ import {
   setRangosFacultad,
   setSeleccionVariable,
 } from "../../dominio";
+import { ELEGIBLES_POR_AULA_ID, rationaleParaCriterio } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
 import { normalizeUniversityAulasConfig } from "../shared/study";
 import { CriterioCard } from "./CriterioCard";
+import { CriterioPorQue } from "./CriterioPorQue";
 import { ImpactoStrip } from "./ImpactoStrip";
 import type { FacultadRef } from "./facultades";
 import "./criterios.css";
@@ -252,6 +254,10 @@ export function CriteriosMarcoTab({
                       Excluye del marco las aulas con menos elegibles que el umbral.
                     </span>
                   </div>
+                  {(() => {
+                    const rationale = rationaleParaCriterio(ELEGIBLES_POR_AULA_ID, "aula");
+                    return rationale ? <CriterioPorQue rationale={rationale} /> : null;
+                  })()}
                 </article>
               </div>
             </section>
