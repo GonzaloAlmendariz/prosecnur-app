@@ -687,6 +687,17 @@
     data <- .bases_normalize_other_selects(data, inst)
   }
   data <- .bases_clean_report_data_labels(data)
+  # Override permanente de etiquetas por proyecto (label_overrides.R). Este es
+  # el chokepoint por el que pasa TODO instrumento+data del pipeline (lo llama
+  # reporte_data y .load_rp_sources de los entregables), así que aplicar aquí el
+  # override del proyecto activo (ambiente) resuelve las etiquetas bilingües UNA
+  # vez y las propaga a los tres puntos: inst$choices/dicc, attr(labels) y
+  # attr(label). Idempotente e id-preserving; NO-OP sin override activo.
+  if (exists(".label_overrides_ambient", mode = "function") &&
+      !is.null(.label_overrides_ambient())) {
+    inst <- .label_overrides_apply_to_instrument(inst, NULL)
+    data <- .label_overrides_relabel_data(data, inst, NULL)
+  }
   list(data = data, inst = inst)
 }
 

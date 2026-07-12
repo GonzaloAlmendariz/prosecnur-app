@@ -2069,6 +2069,12 @@
 .load_rp_sources <- function(sid) {
   .analitica_repair_project_context(sid)
   s <- session_get(sid, required = FALSE)
+  # Publica el override de etiquetas del proyecto en el env ambiente para que
+  # la normalización de fuentes (capa de instrumento) lo aplique. Cubre también
+  # procesos que reconstruyen la sesión (jobs). NO-OP sin override persistido.
+  if (exists(".label_overrides_activate", mode = "function")) {
+    tryCatch(.label_overrides_activate((s %||% list())$label_overrides), error = function(e) NULL)
+  }
   cfg <- .analitica_get_config(sid)
   fuente <- .analitica_effective_source(s, cfg)
   cache_matches <- .analitica_cached_source_matches(s, .analitica_source_cache_key(sid, fuente))
