@@ -672,3 +672,18 @@
     height: 1px;
   }
 }
+
+/* Nota didáctica bajo el encabezado de un alcance (nivel≠ciclo, ciclo-1) */
+.cmv2-crit-scope-note {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+  padding-left: 10px;
+  border-left: 2px solid var(--pulso-border);
+}
+
+.cmv2-crit-scope-note strong {
+  color: var(--pulso-text);
+  font-weight: 600;
+}
