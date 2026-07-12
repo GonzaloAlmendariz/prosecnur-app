@@ -1,10 +1,12 @@
 /**
  * Pestaña Distribución (sección Cálculo): población y muestra por unidad
- * académica y sexo, y aulas por unidad. Salidas reactivas del cálculo; la
+ * académica y sexo, y aulas por unidad. Salidas reactivas del cálculo, a ancho
+ * completo (dos columnas Población | Cuotas) con barras apiladas por sexo. La
  * cobertura del marco vive en la sección Marco.
  */
 import type { PerfilInstitucional, ResultadoEscenario1 } from "../../dominio";
 import { fmtDec, fmtInt } from "../../sharedCore";
+import { BarrasDistribucion } from "../componentes/BarrasDistribucion";
 import { BarrasFacultad } from "../componentes/BarrasFacultad";
 
 export function TabDistribucion({
@@ -25,55 +27,62 @@ export function TabDistribucion({
     );
   }
 
-  const [segA, segB] = perfil.etiquetasSexo;
   const hayAulas = e1.cuotas.some((c) => c.aulas != null);
 
   return (
     <div className="rec-cap">
-      <section className="rec-bloque">
-        <h3>Población por {perfil.etiquetaUnidad} y sexo</h3>
-        <BarrasFacultad
-          ariaLabel={`Población por ${perfil.etiquetaUnidad} y sexo`}
-          leyenda={
-            <span>
-              N = <strong>{fmtInt(e1.N)}</strong> · segmento oscuro: {segA} · claro: {segB}
-            </span>
-          }
-          filas={[...perfil.facultades]
-            .sort((a, b) => b.N - a.N)
-            .map((f) => ({
-              id: f.id,
-              nombre: f.nombre,
-              valor: f.N,
-              segmentos: [f.mujeres, f.hombres] as [number, number],
-              anotacion: `${fmtInt(f.mujeres)} · ${fmtInt(f.hombres)}`,
-            }))}
-        />
-      </section>
+      <div className="rec-dist-cols">
+        <section className="rec-bloque">
+          <h3>Población por {perfil.etiquetaUnidad} y sexo</h3>
+          <p className="rec-bloque-sub">
+            Elegibles de cada unidad y su reparto por sexo — la base del reparto proporcional de la
+            muestra.
+          </p>
+          <BarrasDistribucion
+            ariaLabel={`Población por ${perfil.etiquetaUnidad} y sexo`}
+            etiquetasSexo={perfil.etiquetasSexo}
+            total={e1.N}
+            totalLabel="N"
+            filas={[...perfil.facultades]
+              .sort((a, b) => b.N - a.N)
+              .map((f) => ({
+                id: f.id,
+                nombre: f.nombre,
+                total: f.N,
+                segA: f.mujeres,
+                segB: f.hombres,
+                anotacion: `${fmtInt(f.mujeres)} · ${fmtInt(f.hombres)}`,
+              }))}
+          />
+        </section>
 
-      <section className="rec-bloque">
-        <h3>Cuotas de muestra por {perfil.etiquetaUnidad} y sexo</h3>
-        <BarrasFacultad
-          ariaLabel={`Cuotas de muestra por ${perfil.etiquetaUnidad} y sexo`}
-          leyenda={
-            <span>
-              n = <strong>{fmtInt(e1.nDiseno)}</strong> · {segA}: {fmtInt(e1.totalMujeres)} · {segB}:{" "}
-              {fmtInt(e1.totalHombres)} · afijación proporcional con cuadratura
-            </span>
-          }
-          filas={[...e1.cuotas]
-            .sort((a, b) => b.n - a.n)
-            .map((c) => ({
-              id: c.facultadId,
-              nombre: c.nombre,
-              valor: c.n,
-              segmentos: [c.nMujeres, c.nHombres] as [number, number],
-              etiqueta: fmtInt(c.n),
-              anotacion: `${fmtInt(c.nMujeres)} · ${fmtInt(c.nHombres)}${c.ajuste !== 0 ? ` · +${c.ajuste} cuadratura` : ""}`,
-              resaltada: c.ajuste !== 0,
-            }))}
-        />
-      </section>
+        <section className="rec-bloque">
+          <h3>Cuotas de muestra por {perfil.etiquetaUnidad} y sexo</h3>
+          <p className="rec-bloque-sub">
+            Afijación proporcional con cuadratura. {perfil.etiquetasSexo[0]}:{" "}
+            <strong>{fmtInt(e1.totalMujeres)}</strong> · {perfil.etiquetasSexo[1]}:{" "}
+            <strong>{fmtInt(e1.totalHombres)}</strong>.
+          </p>
+          <BarrasDistribucion
+            ariaLabel={`Cuotas de muestra por ${perfil.etiquetaUnidad} y sexo`}
+            etiquetasSexo={perfil.etiquetasSexo}
+            total={e1.nDiseno}
+            totalLabel="n"
+            filas={[...e1.cuotas]
+              .sort((a, b) => b.n - a.n)
+              .map((c) => ({
+                id: c.facultadId,
+                nombre: c.nombre,
+                total: c.n,
+                segA: c.nMujeres,
+                segB: c.nHombres,
+                etiqueta: fmtInt(c.n),
+                anotacion: `${fmtInt(c.nMujeres)} · ${fmtInt(c.nHombres)}${c.ajuste !== 0 ? ` · +${c.ajuste} cuadr.` : ""}`,
+                resaltada: c.ajuste !== 0,
+              }))}
+          />
+        </section>
+      </div>
 
       {hayAulas && (
         <section className="rec-bloque">
@@ -105,7 +114,6 @@ export function TabDistribucion({
           construye el marco del proyecto para medirlo.
         </p>
       )}
-
     </div>
   );
 }

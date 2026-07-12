@@ -52,10 +52,12 @@ export function ControlFlat({
 }) {
   const cats = variable.categories ?? [];
   const unidad = unidadCriterio(variable);
+  // Lista larga → fluye en varias columnas dentro de la tarjeta ancha.
+  const long = cats.length >= 8;
   return (
     <div className="cmv2-crit-cats">
       <AccionesSet variable={variable} onSel={onSel} />
-      <ul className="cmv2-crit-list" aria-label={`Categorías de ${variable.label}`}>
+      <ul className="cmv2-crit-list" data-long={long ? "true" : undefined} aria-label={`Categorías de ${variable.label}`}>
         {cats.map((cat) => {
           const checked = categoriaMarcada(sel, cat.key);
           return (

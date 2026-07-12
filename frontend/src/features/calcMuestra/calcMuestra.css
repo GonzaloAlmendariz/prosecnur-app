@@ -2721,6 +2721,22 @@
     var(--pulso-surface-2);
 }
 
+/* Mensaje informativo de la mesa (ej. "Base leída y marco construido…"): nota
+   sutil, no bloque de alerta permanente. Solo el kind info se suaviza; warn y
+   error conservan su prominencia. */
+.cmv2-main > .pulso-alert-info {
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--pulso-text-soft, var(--pulso-text-muted));
+  background: color-mix(in srgb, var(--pulso-info-bg) 45%, transparent);
+  border-color: transparent;
+}
+.cmv2-main > .pulso-alert-info .pulso-alert-icon {
+  color: var(--pulso-text-faint);
+  opacity: 0.8;
+}
+
 /* =============================================================================
  * Rail de pestañas de sección — tercer nivel (módulo → sección → pestaña).
  * Patrón canónico "icon-compressed" (como el rail de Procesamiento): carril

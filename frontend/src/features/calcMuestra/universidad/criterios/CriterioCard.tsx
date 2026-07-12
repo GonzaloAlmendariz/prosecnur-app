@@ -9,9 +9,10 @@ import type {
   CriterioVariable,
   CriteriosSeleccionMarco,
 } from "../../../../api/client";
-import { resumenVariable, seleccionVariable, unidadCriterio } from "../../dominio";
+import { rationaleParaCriterio, resumenVariable, seleccionVariable, unidadCriterio } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
 import { ControlFlat, ControlHierarchical, ControlNumeric, ControlOrdinal } from "./controles";
+import { CriterioPorQue } from "./CriterioPorQue";
 import { ControlRange, ExcepcionesFacultad, type FacultadRef } from "./facultades";
 
 /** Conteo/resumen textual de la selección de la variable. */
@@ -72,9 +73,19 @@ export function CriterioCard({
 }) {
   const sel = seleccionVariable(seleccion, variable.id);
   const mapeada = Boolean(variable.mappedColumn);
+  const rationale = rationaleParaCriterio(variable.id, variable.scope);
+  // Listas planas largas (facultad, condición, tipo de sesión) crecen en una
+  // sola columna: se marcan `data-long` para que la tarjeta ocupe más ancho y
+  // la lista fluya en varias columnas (ver criterios.css).
+  const longList = variable.kind === "flat" && (variable.categories?.length ?? 0) >= 8;
 
   return (
-    <article className="cmv2-crit-card" data-scope={variable.scope} data-kind={variable.kind}>
+    <article
+      className="cmv2-crit-card"
+      data-scope={variable.scope}
+      data-kind={variable.kind}
+      data-long={longList ? "true" : undefined}
+    >
       <header className="cmv2-crit-card-head">
         <div className="cmv2-crit-card-title">
           <strong>{variable.label}</strong>
@@ -105,6 +116,8 @@ export function CriterioCard({
       {(variable.kind === "flat" || variable.kind === "hierarchical") && (
         <ExcepcionesFacultad variable={variable} sel={sel} facultades={facultades} onSel={onSel} />
       )}
+
+      {rationale && <CriterioPorQue rationale={rationale} />}
     </article>
   );
 }

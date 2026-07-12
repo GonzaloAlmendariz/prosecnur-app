@@ -9,9 +9,17 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  width: 100%;
   max-width: 1040px;
   margin: 0 auto;
   padding: 4px 2px 28px;
+}
+
+/* Variante ancha: superficies con tablas/gráficos comparativos que se benefician
+   de todo el canvas (Distribución). Sin cap de 1040 y sin auto-margins. */
+.rec-recorrido--full {
+  max-width: none;
+  margin: 0;
 }
 
 /* ---------- Cabecera ---------- */
@@ -527,6 +535,116 @@
 
 .rec-factible[data-ok] {
   color: var(--pulso-accent-green);
+}
+
+/* ---------- Distribución (población / cuotas por unidad × sexo) ---------- */
+
+/* Dos columnas a ancho completo: Población | Cuotas (apila en canvas angosto). */
+.rec-dist-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+  gap: 16px 20px;
+  align-items: start;
+}
+
+.rec-dist-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 14px;
+  background: var(--pulso-surface);
+  padding: 12px 16px 14px;
+}
+
+.rec-dist-legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+  margin-bottom: 5px;
+  border-bottom: 1px solid var(--pulso-border);
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+.rec-dist-total strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+.rec-dist-keys { display: inline-flex; align-items: center; gap: 14px; }
+.rec-dist-key { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; }
+.rec-dist-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  flex: none;
+}
+.rec-dist-swatch.is-a { background: var(--pulso-module-sample); }
+.rec-dist-swatch.is-b {
+  background: color-mix(in srgb, var(--pulso-module-sample) 28%, var(--pulso-surface-3));
+}
+
+.rec-dist-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 208px) 1fr 60px minmax(96px, auto);
+  align-items: center;
+  gap: 12px;
+  padding: 3px 4px;
+  border-radius: 8px;
+}
+.rec-dist-row[data-resaltada] {
+  background: var(--pulso-module-sample-soft);
+}
+
+.rec-dist-name {
+  font-size: 12px;
+  color: var(--pulso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-dist-track {
+  position: relative;
+  display: block;
+  height: 18px;
+  border-radius: 6px;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+.rec-dist-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: flex;
+  height: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: width 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.rec-dist-seg { height: 100%; }
+.rec-dist-seg.is-a { background: var(--pulso-module-sample); }
+.rec-dist-seg.is-b {
+  background: color-mix(in srgb, var(--pulso-module-sample) 30%, var(--pulso-surface-3));
+}
+
+.rec-dist-value {
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rec-dist-note {
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---------- Criterios ---------- */

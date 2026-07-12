@@ -28,7 +28,6 @@ import {
   componentFormulaBase,
   estratosDesdeFrame,
   hasUsefulResult,
-  normalizeUniversityAulasConfig,
   prepareUniversityStudyForCalculation,
   universityComponents,
   universityDefaultWorkspace,
@@ -61,7 +60,6 @@ import { ResumenDiseno } from "../motor/ResumenDiseno";
 import { usePerfilEfectivo } from "../motor/usePerfilEfectivo";
 import { useMotorStore } from "../motor/store";
 import { TabDatos } from "../motor/pestanas/TabDatos";
-import { TabMarco } from "../motor/pestanas/TabMarco";
 import { TabCalculo } from "../motor/pestanas/TabCalculo";
 import { TabCobertura } from "../motor/pestanas/TabCobertura";
 import { TabDistribucion } from "../motor/pestanas/TabDistribucion";
@@ -276,14 +274,8 @@ export function UniversidadDesk({
   const motor = usePerfilEfectivo(estudio, aulasState);
   const parametrosMotor = useMotorStore((s) => s.decisiones.parametros);
 
-  // Criterios de inclusión operables: patch sobre workspace.aulas_config; el
-  // marco se recalcula al reconstruirlo (onSourceBuild, motor R).
-  const configAulas = normalizeUniversityAulasConfig(syncedWorkspace.aulas_config);
-  const controlesCriterios = {
-    config: configAulas,
-    onConfig: (patch: Partial<typeof configAulas>) =>
-      onWorkspace({ ...syncedWorkspace, aulas_config: { ...configAulas, ...patch } }),
-  };
+  // Reconstrucción del marco duro (motor R): habilitada cuando hay una fuente
+  // con archivo declarado. La suite de criterios la dispara al aplicar cambios.
   const puedeReconstruirMarco = (syncedWorkspace.source_bindings ?? []).some((binding) => binding.file_id);
 
   // Lleva los parámetros del diseño reactivo al estudio real y calcula con R
@@ -409,16 +401,6 @@ export function UniversidadDesk({
 
         {selectedSection === "marco" && (
           <div id="cmv2-section-university-marco" className="cmv2-tab-panel" role="tabpanel" aria-label="Marco muestral">
-            {showLocalTab("marco-criterios") && <div id="cmv2-local-marco-criterios" className="rec-recorrido">
-              <TabMarco
-                perfil={motor.perfil}
-                usaProyecto={motor.usaProyecto}
-                controles={controlesCriterios}
-                onReconstruir={() => void onSourceBuild(syncedWorkspace)}
-                puedeReconstruir={puedeReconstruirMarco && !busy}
-                reconstruyendo={Boolean(busy)}
-              />
-            </div>}
             {showLocalTab("marco-categorias") && <div id="cmv2-local-marco-categorias">
               <CriteriosMarcoTab
                 workspace={syncedWorkspace}
@@ -432,7 +414,7 @@ export function UniversidadDesk({
                 reconstruyendo={Boolean(busy)}
               />
             </div>}
-            {showLocalTab("marco-cobertura") && <div id="cmv2-local-marco-cobertura" className="rec-recorrido">
+            {showLocalTab("marco-cobertura") && <div id="cmv2-local-marco-cobertura" className="rec-recorrido rec-recorrido--full">
               <TabCobertura perfil={motor.perfil} cob={motor.cob} />
             </div>}
             {showLocalTab("marco-poblacion") && <div id="cmv2-local-marco-poblacion">
@@ -493,7 +475,7 @@ export function UniversidadDesk({
                 calculando={calculando}
               />
             </div>}
-            {showLocalTab("calculo-distribucion") && <div id="cmv2-local-calculo-distribucion" className="rec-recorrido">
+            {showLocalTab("calculo-distribucion") && <div id="cmv2-local-calculo-distribucion" className="rec-recorrido rec-recorrido--full">
               <TabDistribucion perfil={motor.perfil} e1={motor.e1} />
             </div>}
             {showLocalTab("calculo-propuestas") && <div id="cmv2-local-calculo-propuestas">
