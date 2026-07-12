@@ -34,7 +34,7 @@ import {
   universityWorkspace,
 } from "./shared/study";
 import { universitySidebarTabs } from "./universidadTabs";
-import { DefBasesTab, DefCategoriasTab, DefEstudioTab, DefVariablesTab } from "./definicion";
+import { DefBasesTab, DefEstudioTab, DefVariablesTab } from "./definicion";
 import { MarcoAulasTab, MarcoConsistenciaTab, MarcoPoblacionTab } from "./marco";
 import { CriteriosMarcoTab } from "./criterios";
 import { CalculoPropuestasTab, CalculoSupuestosTab } from "./calculo";
@@ -59,7 +59,6 @@ import { zFromConfidence } from "../didactica/motorPreview";
 import { ResumenDiseno } from "../motor/ResumenDiseno";
 import { usePerfilEfectivo } from "../motor/usePerfilEfectivo";
 import { useMotorStore } from "../motor/store";
-import { TabDatos } from "../motor/pestanas/TabDatos";
 import { TabCalculo } from "../motor/pestanas/TabCalculo";
 import { TabCobertura } from "../motor/pestanas/TabCobertura";
 import { TabDistribucion } from "../motor/pestanas/TabDistribucion";
@@ -379,21 +378,6 @@ export function UniversidadDesk({
                 workspace={syncedWorkspace}
                 aulasState={aulasState}
                 onWorkspace={onWorkspace}
-              />
-            </div>}
-            {showLocalTab("def-categorias") && <div id="cmv2-local-def-categorias" className="cmv2-definition-stack">
-              <DefCategoriasTab
-                workspace={syncedWorkspace}
-                aulasState={aulasState}
-                onWorkspace={onWorkspace}
-              />
-            </div>}
-            {showLocalTab("def-institucion") && <div id="cmv2-local-def-institucion" className="rec-recorrido">
-              <TabDatos
-                perfilEfectivo={motor.perfil}
-                usaProyecto={motor.usaProyecto}
-                hayDatosProyecto={motor.hayDatosProyecto}
-                onIrAFuentes={() => onNavigate("definicion", "def-bases")}
               />
             </div>}
           </div>

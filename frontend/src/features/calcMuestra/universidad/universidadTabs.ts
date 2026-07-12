@@ -9,11 +9,9 @@ import {
   Filter,
   Gauge,
   Grid3X3,
-  Landmark,
   PieChart,
   Send,
   Sigma,
-  SlidersHorizontal,
   Table2,
   Users,
 } from "lucide-react";
@@ -24,7 +22,6 @@ import {
   type CalcMuestraWorkspace,
 } from "../../../api/client";
 import { guideStatus, rowsFrom, safeNumber, type GuideStatus } from "../sharedCore";
-import { universityObservedCategoryRows } from "./shared/categorias";
 import {
   CLASSROOM_LAB_TABS,
   UNIVERSITY_FACULTY_COMPONENT_ID,
@@ -39,7 +36,7 @@ import {
   classroomSelectionReady,
   frameAuditNumber,
 } from "./shared/frame";
-import { hasUsefulResult, normalizeUniversityAulasConfig } from "./shared/study";
+import { hasUsefulResult } from "./shared/study";
 
 export type CalcMuestraSidebarTab = {
   id: string;
@@ -67,6 +64,11 @@ export const UNIVERSITY_LOCAL_TAB_ALIASES: Record<string, string> = {
   // retiró; la suite por categoría (marco-categorias) es la única superficie
   // de criterios y absorbió sus explicaciones "¿Por qué así?".
   "marco-criterios": "marco-categorias",
+  // Un solo hogar de criterios (2026-07): Datos deja de decidir elegibilidad
+  // (vive en Marco → Criterios) y de adelantar resultados del marco. Un tab
+  // guardado de Elegibilidad/Institución aterriza en el mapeo de Variables.
+  "def-categorias": "def-variables",
+  "def-institucion": "def-variables",
 };
 
 export function resolveUniversityLocalTab(id: string | null | undefined) {
@@ -180,10 +182,6 @@ export function universitySidebarTabs({
   const requiredMapped = UNIVERSITY_REQUIRED_VARIABLES
     .filter((row) => row.required)
     .every((required) => (workspace.variable_mappings ?? []).some((row) => row.role === required.role && row.column));
-  const observedCategoryReady = Boolean(
-    (workspace.category_mappings ?? []).some((mapping) => (mapping.values ?? []).length > 0) ||
-    universityObservedCategoryRows(workspace, aulasState, 1).length > 0,
-  );
   const hasDescriptiveFrame = Boolean(
     rowsFrom(aulasState?.frame?.population).length ||
     rowsFrom(aulasState?.frame?.aula_frame).length ||
@@ -205,14 +203,13 @@ export function universitySidebarTabs({
   if (activeSection === "definicion") {
     const baseReady = declaredSourcesReady || hasDescriptiveFrame;
     const baseConfigured = baseReady && requiredMapped;
-    const aulasConfig = normalizeUniversityAulasConfig(workspace.aulas_config);
-    const eligibilityReady = Boolean(aulasConfig.accepted_conditions?.length) && safeNumber(aulasConfig.min_elegibles_aula, 0) > 0;
+    // Datos solo declara el insumo: identidad, fuentes y mapeo. Los criterios de
+    // inclusión viven en Marco → Criterios (un solo hogar); Datos no muestra
+    // resultados del marco (la antigua pestaña Institución los adelantaba).
     return [
       { id: "def-estudio", label: "Estudio", detail: "nombre, cliente y alcance", icon: ClipboardList, status: guideStatus(Boolean(estudio.titulo)), targetId: "cmv2-local-def-estudio" },
       { id: "def-bases", label: "Fuentes", detail: "archivos, hojas y lectura", icon: Database, status: guideStatus(baseReady, hasSource), targetId: "cmv2-local-def-bases" },
       { id: "def-variables", label: "Variables", detail: "columnas de la base", icon: Table2, status: guideStatus(baseConfigured, baseReady || hasSource), targetId: "cmv2-local-def-variables" },
-      { id: "def-categorias", label: "Elegibilidad", detail: "valores y criterios de inclusión", icon: SlidersHorizontal, status: guideStatus(observedCategoryReady || eligibilityReady, baseConfigured || hasDescriptiveFrame), targetId: "cmv2-local-def-categorias" },
-      { id: "def-institucion", label: "Institución", detail: "unidades, población y fuente del motor", icon: Landmark, status: guideStatus(effectiveMarcoReady, true), targetId: "cmv2-local-def-institucion" },
     ];
   }
   if (activeSection === "marco") {
