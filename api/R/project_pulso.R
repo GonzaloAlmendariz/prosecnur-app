@@ -187,6 +187,13 @@
   s <- session_get(sid, required = FALSE)
   if (is.null(s) || is.null(s$estudio) || !length(s$estudio$bases)) return(invisible(FALSE))
 
+  # Asegura el override de etiquetas activo para las construcciones de esta
+  # reconstrucción (también se llama fuera de load_pulso, p. ej. desde
+  # Validación/Gráficos). NO-OP sin override persistido.
+  if (exists(".label_overrides_activate", mode = "function")) {
+    tryCatch(.label_overrides_activate(s$label_overrides), error = function(e) NULL)
+  }
+
   if (is.null(s$rp_data_sources) || !is.list(s$rp_data_sources)) s$rp_data_sources <- list()
   if (is.null(s$rp_inst_sources) || !is.list(s$rp_inst_sources)) s$rp_inst_sources <- list()
 
@@ -1805,6 +1812,14 @@ load_pulso <- function(src_path) {
   # `_strip_caches` lo invalidara.
   s_saved$dashboard_dim_ctx <- NULL
   .session_env[[new_sid]] <- s_saved
+
+  # Publica el override de etiquetas del proyecto en el env ambiente ANTES de
+  # reconstruir las fuentes runtime (rebuild llama reporte_data/instrumento, que
+  # aplican el override en la capa de instrumento). Sin override persistido es
+  # NO-OP y limpia cualquier override de un proyecto abierto previamente.
+  if (exists(".label_overrides_activate", mode = "function")) {
+    tryCatch(.label_overrides_activate(s_saved$label_overrides), error = function(e) NULL)
+  }
 
   public_kind <- as.character(s_saved$public_artifact$kind %||% "")[1]
   if (
