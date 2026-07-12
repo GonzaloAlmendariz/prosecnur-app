@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { createPortal } from "react-dom";
 import {
   DndContext,
   DragEndEvent,
@@ -13,7 +13,6 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import {
-  ArrowRight,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -515,9 +514,19 @@ export function PreguntasLanding() {
       )}
     </div>
 
-    <DragOverlay dropAnimation={null}>
-      {activePregunta ? <DragOverlayCard p={activePregunta} /> : null}
-    </DragOverlay>
+    {/* El overlay se porta a document.body: un ancestro (.pulso-route-surface,
+        con transform residual de su animación de entrada) actuaba como bloque
+        contenedor del position:fixed del DragOverlay y lo desplazaba ~221px
+        hacia abajo respecto del cursor (bug clásico de dnd-kit con ancestros
+        transformados). En body, el fixed vuelve a anclarse al viewport y el
+        ghost sigue fiel al punto de agarre. El portal preserva el contexto de
+        DndContext, así que onDragEnd/drop no cambian. */}
+    {createPortal(
+      <DragOverlay dropAnimation={null}>
+        {activePregunta ? <DragOverlayCard p={activePregunta} /> : null}
+      </DragOverlay>,
+      document.body
+    )}
     </DndContext>
   );
 }
@@ -862,15 +871,12 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
     </div>
   ) : null;
 
-  // --- Acción principal: según arquetipo ---
-  const detailLink = (
-    <NavLink
-      to={`/codificacion/preguntas/${encodeURIComponent(p.parent)}`}
-      style={{ fontSize: 12, color: "var(--pulso-primary)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 600 }}
-    >
-      {p.status === "completo" ? "Revisar" : p.status === "en-curso" ? "Continuar" : "Codificar"} <ArrowRight size={12} />
-    </NavLink>
-  );
+  // La codificación de cada pregunta vive en la SEGUNDA pestaña (Codificar ·
+  // Agrupar respuestas), que recorre las preguntas marcadas. Antes cada card
+  // tenía además una flecha "Codificar →" hacia la ruta de detalle: era
+  // redundante con la pestaña 2 y confundía en el paso de Preparar, así que
+  // se quitó. La ruta /codificacion/preguntas/:parent sigue existiendo por si
+  // se accede por URL.
 
   // CASE 0: adoptada (text que ya es hija de una SO/SM)
   if (arq === "adoptada") {
@@ -928,8 +934,6 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
           <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
             Autocodifica con su diccionario
           </span>
-          <div style={{ flex: 1 }} />
-          {detailLink}
         </div>
         {marcarFooter}
       </article>
@@ -946,7 +950,6 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         {stats}
         {preview}
         <div style={{ flex: 1 }} />
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>{detailLink}</div>
         {marcarFooter}
       </article>
     );
@@ -1101,8 +1104,6 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
           <button type="button" onClick={onUnpair} disabled={busy} style={{ fontSize: 11, padding: "3px 8px", display: "inline-flex", alignItems: "center", gap: 4 }}>
             <Link2Off size={11} /> Desemparejar
           </button>
-          <div style={{ flex: 1 }} />
-          {!needsDummy && detailLink}
         </div>
         {marcarFooter}
       </article>
