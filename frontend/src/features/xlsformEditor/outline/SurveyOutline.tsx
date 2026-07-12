@@ -46,9 +46,12 @@ import type { RowMovePlan } from "./outlineUtils";
 import { computeEndMove, computeRowMove } from "./outlineUtils";
 
 type DropPreview = {
-  overRow: number;
-  before: boolean;
-  position: "before" | "after";
+  /** Fila (rowIndex actual) ANTES de la cual se dibuja el indicador. Es la
+   *  posición REAL donde caerá el bloque según el plan de movimiento —no la
+   *  fila sobrevolada—, para que el slot sea fiel al resultado. */
+  anchorRow: number;
+  /** Si el bloque cae al final (después de la última fila). */
+  atEnd: boolean;
 };
 
 type OverlayGeometry = {
@@ -231,10 +234,16 @@ export function SurveyOutline({
       : computeRowMove(structure, fromId, overId, before);
     if (!plan) return null;
 
+    // Anclaje FIEL: dónde queda el bloque en el array ACTUAL (antes del
+    // splice). `insertAt` está en términos del array ya sin la fuente; lo
+    // reproyectamos al array actual para posicionar el indicador donde el
+    // bloque realmente caerá, no donde está el cursor.
+    const currentGap =
+      plan.insertAt <= plan.fromStart ? plan.insertAt : plan.insertAt + plan.count;
+    const maxRowIndex = items.length ? Math.max(...items) : -1;
     return {
-      overRow: overId,
-      before,
-      position,
+      anchorRow: currentGap,
+      atEnd: currentGap > maxRowIndex,
     };
   }
 
@@ -275,11 +284,13 @@ export function SurveyOutline({
     setOverlayGeometry(null);
     const fromId = Number(event.active.id);
     const overId = event.over ? Number(event.over.id) : NaN;
-    const preview = deriveDropPreview(fromId, overId, collisionPosition(event.collisions));
+    const position = collisionPosition(event.collisions);
+    const preview = deriveDropPreview(fromId, overId, position);
     if (!preview) return;
+    const before = position === "before";
     const plan = closeRowSet.has(fromId)
-      ? computeEndMove(structure, fromId, overId, preview.before)
-      : computeRowMove(structure, fromId, overId, preview.before);
+      ? computeEndMove(structure, fromId, overId, before)
+      : computeRowMove(structure, fromId, overId, before);
     if (!plan) return;
     onApplyMove(plan);
   }
@@ -334,13 +345,14 @@ export function SurveyOutline({
           {renderEntries.map((entry) => {
             const active =
               selection?.kind === "survey" && selection.rowIndex === entry.rowIndex;
+            // Slot FIEL: se dibuja justo antes de la fila donde el bloque va
+            // a caer (anchorRow del plan), no bajo el cursor.
+            const slotBefore =
+              dropPreview && !dropPreview.atEnd && dropPreview.anchorRow === entry.rowIndex;
             if (entry.type === "close") {
               return (
                 <Fragment key={`close-${entry.rowIndex}`}>
-                  {dropPreview?.overRow === entry.rowIndex &&
-                  dropPreview.position === "before" ? (
-                    <OutlineDropSlot />
-                  ) : null}
+                  {slotBefore ? <OutlineDropSlot /> : null}
                   <OutlineCloseRow
                     rowIndex={entry.rowIndex}
                     label={entry.label}
@@ -349,20 +361,13 @@ export function SurveyOutline({
                     active={active}
                     onSelect={() => onSelect({ kind: "survey", rowIndex: entry.rowIndex })}
                   />
-                  {dropPreview?.overRow === entry.rowIndex &&
-                  dropPreview.position === "after" ? (
-                    <OutlineDropSlot />
-                  ) : null}
                 </Fragment>
               );
             }
             const node = entry.node;
             return (
               <Fragment key={node.rowIndex}>
-                {dropPreview?.overRow === node.rowIndex &&
-                dropPreview.position === "before" ? (
-                  <OutlineDropSlot />
-                ) : null}
+                {slotBefore ? <OutlineDropSlot /> : null}
                 <OutlineRow
                   node={node}
                   active={active}
@@ -372,13 +377,10 @@ export function SurveyOutline({
                   onMoveUp={onMoveUp}
                   onMoveDown={onMoveDown}
                 />
-                {dropPreview?.overRow === node.rowIndex &&
-                dropPreview.position === "after" ? (
-                  <OutlineDropSlot />
-                ) : null}
               </Fragment>
             );
           })}
+          {dropPreview?.atEnd ? <OutlineDropSlot /> : null}
         </SortableContext>
       </div>
 
