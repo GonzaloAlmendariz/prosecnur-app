@@ -24520,28 +24520,40 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: var(--pulso-text-soft);
 }
 
-.pulso-outline-boundary {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
-  padding: 2px 5px;
-  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, transparent);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--pulso-primary) 6%, white);
-  color: color-mix(in srgb, var(--pulso-primary) 70%, var(--pulso-text-soft));
-  font-size: 10px;
-  font-weight: 720;
-  line-height: 1;
+/* ── Sección (fila de apertura) como cabecera del bloque ───────────────── */
+.pulso-outline-row--section,
+.pulso-outline-row--repeat {
+  background: color-mix(in srgb, var(--pulso-primary) 3%, white);
+}
+.pulso-outline-row--section .pulso-outline-title,
+.pulso-outline-row--repeat .pulso-outline-title {
+  font-weight: 780;
+  letter-spacing: 0.005em;
+}
+.pulso-outline-row--repeat .pulso-outline-typeicon {
+  color: #0f9f8f;
 }
 
-.pulso-outline-boundary code {
-  overflow: hidden;
-  color: inherit;
-  font-family: ui-monospace, monospace;
-  font-size: 9.5px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* ── Fila de CIERRE de sección ─────────────────────────────────────────── */
+.pulso-outline-closerow .pulso-outline-title {
+  font-weight: 680;
+  color: var(--pulso-text-soft);
+}
+.pulso-outline-closelabel {
+  font-weight: 700;
+  color: color-mix(in srgb, var(--pulso-text) 78%, var(--pulso-text-soft));
+}
+.pulso-outline-closeicon {
+  color: color-mix(in srgb, var(--pulso-primary) 55%, var(--pulso-text-soft));
+}
+/* Guía vertical que ata visualmente el cierre a su sección. */
+.pulso-outline-closerow .pulso-outline-body::before {
+  content: "";
+  align-self: stretch;
+  width: 2px;
+  margin: 2px 6px 2px 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-primary) 22%, transparent);
 }
 
 .pulso-outline-required {
@@ -41263,6 +41275,22 @@ button.pulso-focus-calculation-recipe {
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--pulso-primary) 18%, transparent),
     0 12px 26px rgba(15, 23, 42, 0.18);
+}
+
+/* Cabecera de sección/repeat dentro del editor — fondo tenue + hairline
+   para que lea como encabezado de bloque (el override .pulso-xlsform-frame
+   .pulso-outline-row pone fondo transparente, así que subimos especificidad). */
+.pulso-xlsform-frame .pulso-outline-row--section:not(.is-active):not(.is-dragging),
+.pulso-xlsform-frame .pulso-outline-row--repeat:not(.is-active):not(.is-dragging) {
+  background: color-mix(in srgb, var(--pulso-primary) 4%, #fff);
+  border-color: color-mix(in srgb, var(--pulso-primary) 10%, transparent);
+}
+.pulso-xlsform-frame .pulso-outline-row--repeat:not(.is-active):not(.is-dragging) {
+  background: color-mix(in srgb, #0f9f8f 5%, #fff);
+  border-color: color-mix(in srgb, #0f9f8f 12%, transparent);
+}
+.pulso-xlsform-frame .pulso-outline-closerow:not(.is-active) {
+  background: color-mix(in srgb, var(--pulso-surface-2) 40%, #fff);
 }
 
 .pulso-outline-floating-overlay .pulso-outline-grip {

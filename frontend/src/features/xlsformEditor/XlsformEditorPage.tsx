@@ -706,6 +706,20 @@ export default function XlsformEditorPage() {
     [catalogs],
   );
 
+  // Filas de CIERRE de sección (end_group/end_repeat). No están en
+  // `structure.byRow` (el parser las consume para el span), pero SÍ son
+  // filas reales del survey que el usuario puede seleccionar y borrar
+  // desde el outline. Este set las hace "válidas" para la selección.
+  const sectionEndRows = useMemo(() => {
+    const rows = new Set<number>();
+    if (structure) {
+      for (const meta of structure.sections.values()) {
+        if (meta.kind !== "root" && meta.endRowIndex != null) rows.add(meta.endRowIndex);
+      }
+    }
+    return rows;
+  }, [structure]);
+
   useEffect(() => {
     if (!workbook) {
       setSelection(null);
@@ -719,14 +733,18 @@ export default function XlsformEditorPage() {
       }
       return;
     }
-    if (selection.kind === "survey" && !structure?.byRow.has(selection.rowIndex)) {
+    if (
+      selection.kind === "survey" &&
+      !structure?.byRow.has(selection.rowIndex) &&
+      !sectionEndRows.has(selection.rowIndex)
+    ) {
       if (structure?.firstSelectableRow != null) {
         setSelection({ kind: "survey", rowIndex: structure.firstSelectableRow });
       } else {
         setSelection({ kind: "settings" });
       }
     }
-  }, [selection, structure, workbook]);
+  }, [selection, structure, workbook, sectionEndRows]);
 
   const selectBuilderFocus = useCallback((next: BuilderSelection) => {
     setSelection(next);
@@ -1637,16 +1655,12 @@ export default function XlsformEditorPage() {
   }
 
   function updateSectionKind(rowIndex: number, nextKind: "begin_group") {
+    // Convierte una fila en apertura de sección SIN crear el cierre
+    // automáticamente: el cierre es una pieza que el usuario coloca donde
+    // decide (add "Cerrar sección"). Si la fila ya pertenecía a una sección
+    // con cierre, ese cierre se mantiene tal cual.
     updateWorkbook((draft) => {
       setCell(draft.survey, rowIndex, "type", nextKind);
-      const structureDraft = parseBuilderStructure(draft.survey);
-      const section = structureDraft.sections.get(`section-${rowIndex}`);
-      if (section?.endRowIndex != null) {
-        setCell(draft.survey, section.endRowIndex, "type", "end_group");
-      } else {
-        const closeIndex = rowIndex + 1;
-        insertRecord(draft.survey, closeIndex, { type: "end_group" });
-      }
     });
   }
 
@@ -1726,10 +1740,11 @@ export default function XlsformEditorPage() {
    */
   function handleAddAfter(
     afterRowIndex: number | null,
-    kind: "section" | "text" | "select_one" | "select_multiple" | "integer" | "decimal" | "date" | "image" | "audio" | "video" | "file" | "barcode" | "geopoint" | "note" | "calculate",
+    kind: "section" | "section_end" | "text" | "select_one" | "select_multiple" | "integer" | "decimal" | "date" | "image" | "audio" | "video" | "file" | "barcode" | "geopoint" | "note" | "calculate",
     reuseListName?: string,
   ) {
     if (kind === "section") addSection(afterRowIndex);
+    else if (kind === "section_end") addSectionClose(afterRowIndex);
     else addQuestion(kind, afterRowIndex, reuseListName);
   }
 
@@ -1769,6 +1784,13 @@ export default function XlsformEditorPage() {
     setCatalogFocus(newListName);
   }
 
+  /**
+   * Crea una sección: inserta el `begin_group` y su `end_group` como par
+   * (ambos filas visibles del outline). El cierre NO es un ente oculto y
+   * automático como antes: es una pieza propia que el usuario puede mover
+   * (arrastrar, sin cruzar antes de su begin) o eliminar. Así la sección
+   * nace válida y el autor ajusta su alcance después.
+   */
   function addSection(afterRowIndex?: number | null) {
     if (!workbook) return;
     const overrideSelection: BuilderSelection | null =
@@ -1783,6 +1805,23 @@ export default function XlsformEditorPage() {
         relevant: "",
       });
       insertRecord(draft.survey, insertionIndex + 1, { type: "end_group" });
+    });
+    setSelection({ kind: "survey", rowIndex: insertionIndex });
+  }
+
+  /**
+   * Inserta un cierre de sección (`end_group`) como pieza independiente.
+   * Espejo de `addSection`: el autor decide dónde cierra el grupo abierto
+   * más cercano. Si no hay ninguna sección abierta por delante, el aviso
+   * de "cierre sin apertura previa" (`unmatchedEndRows`) lo señala.
+   */
+  function addSectionClose(afterRowIndex?: number | null) {
+    if (!workbook) return;
+    const overrideSelection: BuilderSelection | null =
+      afterRowIndex != null ? { kind: "survey", rowIndex: afterRowIndex } : selection;
+    const insertionIndex = resolveInsertionIndex(structure, overrideSelection, workbook.survey);
+    updateWorkbook((draft) => {
+      insertRecord(draft.survey, insertionIndex, { type: "end_group" });
     });
     setSelection({ kind: "survey", rowIndex: insertionIndex });
   }
@@ -1894,7 +1933,19 @@ export default function XlsformEditorPage() {
     if (!workbook || !selection || selection.kind !== "survey") return;
     const currentRow = selection.rowIndex;
     const currentNode = structure?.byRow.get(currentRow) ?? null;
-    if (!currentNode) return;
+    // Caso especial: fila de CIERRE de sección (no está en byRow). Se borra
+    // como fila simple; deja la sección abierta (el aviso lo señala) y el
+    // usuario decide dónde poner el nuevo cierre.
+    if (!currentNode) {
+      if (!sectionEndRows.has(currentRow)) return;
+      if (!window.confirm("¿Eliminar este cierre de sección? La sección quedará abierta hasta que agregues un nuevo cierre.")) return;
+      const nextRow = currentRow > 0 ? currentRow - 1 : null;
+      updateWorkbook((draft) => {
+        deleteRow(draft.survey, currentRow);
+      });
+      setSelection(nextRow != null ? { kind: "survey", rowIndex: nextRow } : { kind: "settings" });
+      return;
+    }
     const question =
       currentNode.kind === "section" || currentNode.kind === "repeat"
         ? "esta sección"
@@ -2213,9 +2264,17 @@ export default function XlsformEditorPage() {
     {
       key: "section",
       label: "Sección",
-      hint: "Agrupa preguntas con cierre y aplica lógica común.",
+      hint: "Crea un grupo con su inicio y su cierre. El cierre lo puedes mover o borrar.",
       icon: addMenuIcon("begin_group"),
       action: addSection,
+      group: "logic",
+    },
+    {
+      key: "section_end",
+      label: "Cerrar sección",
+      hint: "Inserta solo un cierre suelto, por si necesitas terminar un grupo en otro punto.",
+      icon: addMenuIcon("end_group"),
+      action: addSectionClose,
       group: "logic",
     },
   ];
@@ -2976,7 +3035,7 @@ function AddElementMenu({
       </div>
       <div className="pulso-add-element-menu-guidance" aria-label="Guía rápida">
         <span><strong>Kobo limpio</strong> las selecciones dejan una lista preparada, sin opciones falsas.</span>
-        <span><strong>Secciones</strong> insertan inicio y cierre; luego decides qué piezas quedan dentro.</span>
+        <span><strong>Secciones</strong> tienen inicio y cierre como piezas separadas; abre donde empieza y cierra donde termina.</span>
         <span><strong>Atajo</strong> Cmd/Ctrl+N abre este selector sin crear campos por defecto.</span>
       </div>
       <div className="pulso-add-element-menu-tools">
@@ -3099,10 +3158,17 @@ function describeAddMenuItem(item: AddMenuItem): {
       };
     case "section":
       return {
-        tag: "Begin + end",
-        detail: "Inserta el cierre del bloque y habilita lógica común para toda la sección.",
+        tag: "Inicio + cierre",
+        detail: "Crea el grupo con su apertura y su cierre. Luego puedes mover o borrar el cierre para ajustar el alcance.",
         tone: "logic",
-        searchTerms: ["grupo", "seccion", "begin", "end", "bloque"],
+        searchTerms: ["grupo", "seccion", "begin", "abrir", "bloque"],
+      };
+    case "section_end":
+      return {
+        tag: "Solo cierre",
+        detail: "Inserta un cierre suelto, por si necesitas terminar un grupo en un punto específico.",
+        tone: "logic",
+        searchTerms: ["grupo", "seccion", "end", "cerrar", "cierre", "bloque"],
       };
     case "note":
       return {

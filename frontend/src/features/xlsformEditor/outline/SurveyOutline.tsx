@@ -40,7 +40,7 @@ import type {
   BuilderSelection,
   BuilderStructure,
 } from "../types";
-import { OutlineRow } from "./OutlineRow";
+import { OutlineRow, OutlineCloseRow } from "./OutlineRow";
 import { OutlineDragOverlay } from "./OutlineDragOverlay";
 import type { RowMovePlan } from "./outlineUtils";
 import { computeRowMove } from "./outlineUtils";
@@ -176,6 +176,30 @@ export function SurveyOutline({
   const items = structure.outline.map((n) => n.rowIndex);
   const activeNode = activeRow != null ? structure.byRow.get(activeRow) ?? null : null;
 
+  // Lista de render fusionada: las filas normales del outline MÁS una fila
+  // de cierre por cada sección/repeat que tenga su `end_*` explícito. Solo
+  // las filas normales entran al SortableContext (drag atómico de sección);
+  // las de cierre son visibles/seleccionables/borrables pero no arrastrables.
+  type RenderEntry =
+    | { type: "node"; rowIndex: number; node: BuilderNode }
+    | { type: "close"; rowIndex: number; label: string; depth: number; kind: "section" | "repeat" };
+  const renderEntries: RenderEntry[] = structure.outline.map((node) => ({
+    type: "node" as const,
+    rowIndex: node.rowIndex,
+    node,
+  }));
+  for (const meta of structure.sections.values()) {
+    if (meta.kind === "root" || meta.rowIndex == null || meta.endRowIndex == null) continue;
+    renderEntries.push({
+      type: "close",
+      rowIndex: meta.endRowIndex,
+      label: meta.label || meta.name || "sección",
+      depth: meta.depth,
+      kind: meta.kind === "repeat" ? "repeat" : "section",
+    });
+  }
+  renderEntries.sort((a, b) => a.rowIndex - b.rowIndex);
+
   function collisionPosition(
     collisions: DragOverEvent["collisions"],
   ): "before" | "after" | null {
@@ -296,9 +320,23 @@ export function SurveyOutline({
         </div>
 
         <SortableContext items={items} strategy={verticalListSortingStrategy}>
-          {structure.outline.map((node: BuilderNode) => {
+          {renderEntries.map((entry) => {
             const active =
-              selection?.kind === "survey" && selection.rowIndex === node.rowIndex;
+              selection?.kind === "survey" && selection.rowIndex === entry.rowIndex;
+            if (entry.type === "close") {
+              return (
+                <OutlineCloseRow
+                  key={`close-${entry.rowIndex}`}
+                  rowIndex={entry.rowIndex}
+                  label={entry.label}
+                  depth={entry.depth}
+                  kind={entry.kind}
+                  active={active}
+                  onSelect={() => onSelect({ kind: "survey", rowIndex: entry.rowIndex })}
+                />
+              );
+            }
+            const node = entry.node;
             return (
               <Fragment key={node.rowIndex}>
                 {dropPreview?.overRow === node.rowIndex &&
