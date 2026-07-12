@@ -2171,6 +2171,14 @@ function humanizeRelevantWithLabels(
     (_, varName: string, code: string) =>
       `${resolveVar(varName)} contiene "${resolveCode(varName, code)}"`,
   );
+  // selected(${X}, code) con valor SIN comillas — ODK acepta códigos
+  // numéricos crudos, ej. `selected(${p22}, 80)`. Sin esta variante el
+  // wrapper `selected(...)` quedaba visible tal cual tras resolver ${X}.
+  r = r.replace(
+    /selected\(\s*\$\{([^}]+)\}\s*,\s*([^'")\s,]+)\s*\)/g,
+    (_, varName: string, code: string) =>
+      `${resolveVar(varName)} contiene '${resolveCode(varName, code)}'`,
+  );
   // not( ... contiene ... ) → ... no contiene ...
   // El "varRef" capturado puede incluir `«…» (name)` además del nombre
   // simple, así que aceptamos cualquier secuencia hasta `contiene`.
