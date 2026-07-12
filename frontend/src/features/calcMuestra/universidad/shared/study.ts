@@ -41,6 +41,48 @@ export function normalizeAulasSelectorEngine(value: unknown): CalcMuestraWorkspa
   return "cube_balanceado";
 }
 
+/** Lista de patrones de texto: recorta, minusculiza y filtra vacíos; undefined usa el default. */
+function normalizePatternList(raw: string[] | undefined, fallback: string[]): string[] {
+  if (raw == null) return [...fallback];
+  return raw.map((item) => String(item ?? "").trim().toLowerCase()).filter(Boolean);
+}
+
+/** Proporción 0..1 con clamp (umbrales de c7/c8). */
+function normalizeProportion(raw: unknown, fallback: number): number {
+  return Math.min(1, Math.max(0, safeNumber(raw, fallback)));
+}
+
+/** Mapa nivel-por-unidad: conserva solo entradas con rangos {min,max} numéricos. */
+function normalizeNivelPorUnidad(
+  raw: CalcMuestraWorkspaceAulasConfig["nivel_por_unidad"] | undefined,
+): Record<string, Array<{ min: number; max: number }>> {
+  if (raw == null || typeof raw !== "object") return {};
+  const out: Record<string, Array<{ min: number; max: number }>> = {};
+  for (const [unidad, rangos] of Object.entries(raw)) {
+    if (!unidad.trim() || !Array.isArray(rangos)) continue;
+    const limpios = rangos
+      .filter((r): r is { min: number; max: number } =>
+        r != null && typeof r === "object" && Number.isFinite(Number(r.min)) && Number.isFinite(Number(r.max)))
+      .map((r) => ({ min: Math.round(Number(r.min)), max: Math.round(Number(r.max)) }));
+    if (limpios.length) out[unidad] = limpios;
+  }
+  return out;
+}
+
+/** Mapa H9 de excepciones de tipo por unidad: conserva unidades con >= 1 patrón no vacío. */
+function normalizeSessionExcepciones(
+  raw: CalcMuestraWorkspaceAulasConfig["session_type_excepciones"] | undefined,
+): Record<string, string[]> {
+  if (raw == null || typeof raw !== "object") return {};
+  const out: Record<string, string[]> = {};
+  for (const [unidad, patrones] of Object.entries(raw)) {
+    if (!unidad.trim() || !Array.isArray(patrones)) continue;
+    const limpios = patrones.map((p) => String(p ?? "").trim().toLowerCase()).filter(Boolean);
+    if (limpios.length) out[unidad] = limpios;
+  }
+  return out;
+}
+
 export function normalizeUniversityAulasConfig(config?: CalcMuestraWorkspace["aulas_config"] | null): CalcMuestraWorkspaceAulasConfig {
   const raw: Partial<CalcMuestraWorkspaceAulasConfig> = config ?? {};
   const selector = raw.selector ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.selector;
@@ -61,6 +103,26 @@ export function normalizeUniversityAulasConfig(config?: CalcMuestraWorkspace["au
     require_adult: raw.require_adult ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.require_adult,
     min_age: Math.max(0, Math.round(safeNumber(raw.min_age, DEFAULT_UNIVERSITY_AULAS_CONFIG.min_age))),
     require_in_person: raw.require_in_person ?? (raw.modalidad ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.modalidad) !== "online_controlado",
+    exclude_session_patterns: normalizePatternList(raw.exclude_session_patterns, DEFAULT_UNIVERSITY_AULAS_CONFIG.exclude_session_patterns ?? []),
+    exclude_modality_patterns: normalizePatternList(raw.exclude_modality_patterns, DEFAULT_UNIVERSITY_AULAS_CONFIG.exclude_modality_patterns ?? []),
+    exclude_level_patterns: normalizePatternList(raw.exclude_level_patterns, DEFAULT_UNIVERSITY_AULAS_CONFIG.exclude_level_patterns ?? []),
+    // Criterios nuevos del marco (espejo calc_muestra_aulas_config_v1): nacen apagados.
+    require_stable_teacher: raw.require_stable_teacher ?? false,
+    accepted_teacher_type_patterns: normalizePatternList(
+      raw.accepted_teacher_type_patterns,
+      DEFAULT_UNIVERSITY_AULAS_CONFIG.accepted_teacher_type_patterns ?? ["contratado", "ordinario"],
+    ),
+    // H7: criterio de pregrado sobre la columna de formación real.
+    accepted_formation_patterns: normalizePatternList(
+      raw.accepted_formation_patterns,
+      DEFAULT_UNIVERSITY_AULAS_CONFIG.accepted_formation_patterns ?? ["pregrado"],
+    ),
+    nivel_por_unidad: normalizeNivelPorUnidad(raw.nivel_por_unidad),
+    // H9: excepciones de tipo de sesión por unidad.
+    session_type_excepciones: normalizeSessionExcepciones(raw.session_type_excepciones),
+    accepted_campuses: normalizePatternList(raw.accepted_campuses, DEFAULT_UNIVERSITY_AULAS_CONFIG.accepted_campuses ?? []),
+    min_prevalence_pct: normalizeProportion(raw.min_prevalence_pct, 0.8),
+    min_cycle_homogeneity_pct: normalizeProportion(raw.min_cycle_homogeneity_pct, 0.8),
     usar_grupos_tamano: raw.usar_grupos_tamano ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.usar_grupos_tamano,
     grupos_tamano: raw.grupos_tamano?.length ? raw.grupos_tamano : DEFAULT_UNIVERSITY_AULAS_CONFIG.grupos_tamano,
     estratos_selector: raw.estratos_selector?.length ? raw.estratos_selector : DEFAULT_UNIVERSITY_AULAS_CONFIG.estratos_selector,

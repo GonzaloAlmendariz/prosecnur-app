@@ -13831,6 +13831,31 @@ export type CalcMuestraWorkspaceAulasConfig = {
   require_adult?: boolean;
   min_age?: number;
   require_in_person?: boolean;
+  /** Patrones de exclusión (espejo de los filtros del motor R). */
+  exclude_session_patterns?: string[];
+  exclude_modality_patterns?: string[];
+  exclude_level_patterns?: string[];
+  /** Criterios del marco (espejo calc_muestra_aulas_config_v1); todos nacen apagados. */
+  require_stable_teacher?: boolean;
+  accepted_teacher_type_patterns?: string[];
+  /** H7 · patrones aceptados sobre la columna de formación real (pregrado por defecto); solo opera con require_undergraduate y columna con señal. */
+  accepted_formation_patterns?: string[];
+  /** H9 · excepciones de tipo de sesión por unidad: unidad -> patrones aceptados pese a exclude_session_patterns (p.ej. taller solo en Arte y Diseño). */
+  session_type_excepciones?: Record<string, string[]>;
+  /**
+   * Selección de criterios POR CATEGORÍA (contrato calc_muestra_criterios_*):
+   * reemplaza los patrones por substring por sets de categorías normalizadas
+   * con excepciones por facultad. Aditivo y retro-compat: si no viene, el marco
+   * sale del path legacy de patrones bit a bit idéntico. Lo puebla la suite de
+   * criterios del marco a partir de `frame.criterios_catalogo`. */
+  criterios_seleccion?: CriteriosSeleccionMarco;
+  /** Clave = NOMBRE de la unidad tal como aparece en la base; el motor matchea por slug interno. */
+  nivel_por_unidad?: Record<string, Array<{ min: number; max: number }>>;
+  accepted_campuses?: string[];
+  require_min_prevalence?: boolean;
+  min_prevalence_pct?: number;
+  require_cycle_homogeneity?: boolean;
+  min_cycle_homogeneity_pct?: number;
   usar_grupos_tamano: boolean;
   grupos_tamano: CalcMuestraWorkspaceAulasSizeGroup[];
   estratos_selector: string[];
@@ -13983,6 +14008,18 @@ export type CalcMuestraCorrida = {
   };
 };
 
+/** Estado persistido del Motor/Recorrido muestral. Passthrough para el backend:
+ *  la semántica de perfil/decisiones vive en la capa dominio del frontend.
+ *  Retrocompatible: proyectos viejos no lo traen. */
+export type CalcMuestraWorkspaceMotorRecorrido = {
+  schema: "calc_muestra_workspace_motor_v1" | string;
+  fuente: "proyecto" | "manual" | string;
+  perfil: Record<string, unknown> | null;      // PerfilInstitucional serializado
+  decisiones: Record<string, unknown> | null;  // DecisionesRecorrido serializado
+  tocado: boolean;
+  actualizado_at?: string;
+};
+
 export type CalcMuestraWorkspace = {
   version: 2;
   frame_mode: CalcMuestraWorkspaceFrameMode;
@@ -14002,6 +14039,8 @@ export type CalcMuestraWorkspace = {
   /** Mini-historial de corridas (cálculo/selección), últimas 12 en orden cronológico.
    *  Campo retrocompatible: proyectos viejos no lo traen (leer con fallback []). */
   run_history?: CalcMuestraCorrida[];
+  /** Estado del Motor/Recorrido muestral (retrocompatible: puede no venir). */
+  motor_recorrido?: CalcMuestraWorkspaceMotorRecorrido | null;
 };
 
 export type CalcMuestraEstudio = {
@@ -14030,6 +14069,305 @@ export type CalcMuestraReporteMeta = {
   job_id?: string | null;
 };
 
+/** Paso de un embudo agregado del perfil (alumno o aula): conteo restante y excluidos del paso. */
+export type CalcMuestraAulasPerfilEmbudoPaso = {
+  id: string;
+  label: string;
+  conteo: number;
+  excluidos: number;
+};
+
+/** Agregados por unidad académica del perfil (facultad/escuela) sobre el marco depurado. */
+export type CalcMuestraAulasPerfilFacultad = {
+  id: string;
+  nombre: string;
+  /** Población objetivo (elegibles) de la unidad. */
+  n: number;
+  /** Conteos de los dos valores de sexo más frecuentes (orden de sexo_labels). */
+  sexo_1_n: number;
+  sexo_2_n: number;
+  /** Mediana/media de ELEGIBLES por aula en el marco depurado (null si no computable). */
+  est_aula_mediana: number | null;
+  est_aula_media: number | null;
+  /** Elegibles alcanzables por el cruce alumno × aula. */
+  alcanzables: number;
+  /** Aulas del marco depurado que pertenecen a la unidad. */
+  aulas_marco: number;
+};
+
+/** Impacto medido de un criterio opcional del marco (c7 prevalencia / c8 homogeneidad). */
+export type CalcMuestraAulasPerfilOpcional = {
+  id: string;
+  aplicado: boolean;
+  /** Umbral en proporción 0..1 (0.8 = 80%). */
+  umbral: number;
+  /** Aulas que quedarían en el marco con el criterio activo. */
+  aulas: number;
+  /** Cobertura resultante del cruce (proporción 0..1). */
+  cobertura_pct: number;
+  /** Unidades académicas cuya cuota se rompe con el criterio activo. */
+  unidades_rotas: string[];
+};
+
+/** Perfil institucional agregado que el backend adjunta al frame de aulas
+ *  (schema "calc_muestra_aulas_perfil_v1"). Alimenta el Recorrido muestral:
+ *  la conversión a PerfilInstitucional vive en calcMuestra/dominio/adaptador.ts.
+ *  Retrocompatible: frames viejos persistidos no lo traen. */
+export type CalcMuestraAulasPerfil = {
+  schema: "calc_muestra_aulas_perfil_v1" | string;
+  /** Estudiantes únicos en la base leída. */
+  universo: number;
+  /** Estudiantes únicos elegibles (población objetivo N). */
+  poblacion_n: number;
+  /** Curso-horario únicos de la base. */
+  aulas_totales: number;
+  /** Aulas del marco depurado (included). */
+  marco_aulas: number;
+  /** 0..2 valores de sexo más frecuentes, en orden de frecuencia descendente. */
+  sexo_labels: string[];
+  /** Ids posibles: "universo", "pregrado", "regular", "mayor-edad" (pasos no aplicables se omiten). */
+  embudo_alumno: CalcMuestraAulasPerfilEmbudoPaso[];
+  /** Ids posibles, en orden: "total", "presencial", "tipo", "sede", "elegibles",
+   *  "docente", "nivel", "c7", "c8" (pasos no aplicables se omiten);
+   *  el último conteo == marco_aulas. */
+  embudo_aula: CalcMuestraAulasPerfilEmbudoPaso[];
+  facultades: CalcMuestraAulasPerfilFacultad[];
+  /** Cobertura global del cruce alumno × aula (pct en proporción 0..1, null si no computable). */
+  cobertura: { elegibles: number; alcanzables: number; pct: number | null };
+  /** Aulas del marco con SOLO reglas base (sin opcionales). Retrocompatible: frames viejos no lo traen. */
+  marco_base_aulas?: number;
+  /** Impacto medido de los opcionales; SIEMPRE presente en frames nuevos, ausente en los viejos. */
+  opcionales?: {
+    c7?: CalcMuestraAulasPerfilOpcional;
+    c8?: CalcMuestraAulasPerfilOpcional;
+  } | null;
+};
+
+// ---------------------------------------------------------------------------
+// Suite de criterios de inclusión/exclusión POR CATEGORÍA del marco de aulas.
+// Contrato compartido con el motor R (calc_muestra_criterios_*): el catálogo lo
+// EMITE el motor (categorías reales enumeradas + conteo por aula); la selección
+// la MANDA la UI (reemplaza los patrones por substring de aulas_config).
+// ---------------------------------------------------------------------------
+
+/** Scope del criterio: define la POBLACIÓN (alumno) o el MARCO de aulas (aula). */
+export type CriterioScope = "alumno" | "aula";
+
+/**
+ * Forma de selección de una variable de criterio:
+ *  - flat: categorías planas (checkboxes).
+ *  - hierarchical: grupos por prefijo con hijos (tipo de docente).
+ *  - range: rango [min,max] por facultad (nivel de curso).
+ *  - numeric: umbral (>=/<=) o rango entre valores (edad).
+ *  - ordinal: valores ordenados; set o "desde N en adelante" (ciclo).
+ */
+export type CriterioKind = "flat" | "hierarchical" | "range" | "numeric" | "ordinal";
+
+/**
+ * Capa donde se aplica un criterio de ALUMNO:
+ *  - marco: filtra la población que entra al cálculo (afecta N y cuotas).
+ *  - instrumento: NO reduce el marco; se valida en el cuestionario (filtro).
+ *  - procesamiento: se aplica post-campo.
+ */
+export type CriterioLayer = "marco" | "instrumento" | "procesamiento";
+
+/** Una categoría enumerada de una variable, con su conteo por aula única. */
+export type CriterioCategoria = {
+  /** Categoría NORMALIZADA (clave de match, autoritativa). */
+  key: string;
+  /** Etiqueta legible para la UI. */
+  label: string;
+  /** Conteo por aula única (cuántas aulas caen en esta categoría). */
+  aulas: number;
+  /** Variantes crudas plegadas en esta categoría (informativo). */
+  variants?: string[];
+};
+
+/** Un grupo jerárquico (prefijo) de categorías, p. ej. DOCENTE ORDINARIO. */
+export type CriterioGrupo = {
+  key: string;
+  label: string;
+  /** Conteo por aula del grupo (unión de sus hijos, "al menos uno"). */
+  aulas: number;
+  children: CriterioCategoria[];
+};
+
+/** Rango numérico observado (edad): valores extremos presentes en la base. */
+export type CriterioNumericRange = { min: number; max: number };
+
+/** Una variable del catálogo de criterios, según su scope y forma de selección. */
+export type CriterioVariable = {
+  /** "formation" | "condition" | "age" | "faculty" | "level" | "modality" | "session_type" | "teacher_type" | "course_level" | ... */
+  id: string;
+  /** alumno (población N) o aula (marco). */
+  scope: CriterioScope;
+  label: string;
+  kind: CriterioKind;
+  /** Columna del Excel mapeada al rol; null si la variable no está mapeada. */
+  mappedColumn?: string | null;
+  /** flat: categorías planas seleccionables. */
+  categories?: CriterioCategoria[];
+  /** hierarchical: grupos por prefijo con hijos. */
+  groups?: CriterioGrupo[];
+  /** range/ordinal: valores disponibles (0..N). */
+  values?: number[];
+  /** numeric: rango observado en la base. */
+  numericRange?: CriterioNumericRange;
+  /** alumno: capa por defecto del preset (marco/instrumento/procesamiento). */
+  defaultLayer?: CriterioLayer;
+  /** faculty: además de filtrar, estratifica (no excluye a nadie por sí solo). */
+  estratifica?: boolean;
+};
+
+/** Catálogo completo emitido por el motor para poblar la suite (ambos scopes). */
+export type CriteriosCatalogo = {
+  schema?: "calc_muestra_criterios_catalogo_v1" | string;
+  variables: CriterioVariable[];
+};
+
+/** Umbral/rango numérico de una selección (edad). */
+export type CriterioThreshold = { op: ">=" | "<=" | "between"; min?: number; max?: number };
+
+/** Selección de una variable (reemplaza patrones; aditivo y retro-compat). */
+export type CriterioSeleccion = {
+  /** Semántica del set (default include). */
+  mode: "include" | "exclude";
+  /** Claves normalizadas seleccionadas (flat/hierarchical). */
+  categories?: string[];
+  /** Multi-valor por aula: "any" (docente) o "all". */
+  match?: "any" | "all";
+  /** Facultad (clave normalizada) -> override del set. */
+  exceptions?: Record<string, { categories: string[]; op?: "add" | "replace" }>;
+  /** numeric: umbral o rango (edad). */
+  threshold?: CriterioThreshold;
+  /** ordinal: valores incluidos explícitos (ciclos). */
+  includeValues?: number[];
+  /** ordinal: "desde N en adelante" (mutuamente exclusivo con includeValues). */
+  fromValue?: number;
+  /** alumno: capa donde se aplica el criterio (default = variable.defaultLayer). */
+  layer?: CriterioLayer;
+};
+
+/** Selección completa de criterios del marco que la UI manda al motor. */
+export type CriteriosSeleccionMarco = {
+  /** modality, session_type, teacher_type, ... */
+  byVariable: Record<string, CriterioSeleccion>;
+  /** facultad -> rangos [min,max] admitidos del nivel del curso. */
+  courseLevelRanges?: Record<string, Array<[number, number]>>;
+  /** Umbral de elegibles por aula (flexeable por facultad). */
+  minEligible?: { threshold: number; byFaculty?: Record<string, number> };
+};
+
+/**
+ * Normalizador defensivo del catálogo de criterios (patrón
+ * normalizeGraficosShareInspect): Plumber serializa escalares como arrays de 1
+ * y los conteos pueden llegar como strings; todo se coacciona antes de usarse.
+ * Un payload ausente o corrupto degrada a { variables: [] } sin romper la UI.
+ */
+export function normalizeCriteriosCatalogo(raw: unknown): CriteriosCatalogo {
+  const unwrap = (v: unknown): unknown => (Array.isArray(v) ? (v.length > 0 ? v[0] : null) : v);
+  const asText = (v: unknown): string => {
+    const u = unwrap(v);
+    if (typeof u === "string") return u;
+    if (typeof u === "number" && Number.isFinite(u)) return String(u);
+    return "";
+  };
+  const asNum = (v: unknown): number => {
+    const u = unwrap(v);
+    if (typeof u === "number") return Number.isFinite(u) ? u : 0;
+    if (typeof u === "string") {
+      const n = Number(u.trim());
+      return Number.isFinite(n) ? n : 0;
+    }
+    return 0;
+  };
+  const asList = (v: unknown): unknown[] => {
+    if (v == null) return [];
+    return Array.isArray(v) ? v : [v];
+  };
+  const asRecord = (v: unknown): Record<string, unknown> => {
+    const u = unwrap(v);
+    return typeof u === "object" && u !== null && !Array.isArray(u) ? (u as Record<string, unknown>) : {};
+  };
+  const categoria = (v: unknown): CriterioCategoria | null => {
+    const r = asRecord(v);
+    const key = asText(r.key) || asText(r.category) || asText(r.raw);
+    if (!key) return null;
+    const variants = asList(r.variants).map(asText).filter(Boolean);
+    return {
+      key,
+      label: asText(r.label) || key,
+      aulas: asNum(r.aulas ?? r.count ?? r.n),
+      ...(variants.length ? { variants } : {}),
+    };
+  };
+  const asLayer = (v: unknown): CriterioLayer | undefined => {
+    const t = asText(v);
+    return t === "marco" || t === "instrumento" || t === "procesamiento" ? t : undefined;
+  };
+  const raw2 = asRecord(raw);
+  const variables = asList(raw2.variables)
+    .map((rawVar): CriterioVariable | null => {
+      const r = asRecord(rawVar);
+      const id = asText(r.id);
+      if (!id) return null;
+      const kindText = asText(r.kind);
+      const kind: CriterioKind =
+        kindText === "hierarchical" || kindText === "range" || kindText === "numeric" || kindText === "ordinal"
+          ? kindText
+          : "flat";
+      const scope: CriterioScope = asText(r.scope) === "alumno" ? "alumno" : "aula";
+      const categories = asList(r.categories)
+        .map(categoria)
+        .filter((c): c is CriterioCategoria => c != null);
+      const groups = asList(r.groups)
+        .map((rawGroup): CriterioGrupo | null => {
+          const g = asRecord(rawGroup);
+          const key = asText(g.key);
+          if (!key) return null;
+          const children = asList(g.children)
+            .map(categoria)
+            .filter((c): c is CriterioCategoria => c != null);
+          return {
+            key,
+            label: asText(g.label) || key,
+            aulas: asNum(g.aulas ?? g.count ?? g.n),
+            children,
+          };
+        })
+        .filter((g): g is CriterioGrupo => g != null);
+      const values = asList(r.values)
+        .map(asNum)
+        .filter((n) => Number.isFinite(n));
+      const rangeRaw = asRecord(r.numericRange ?? r.numeric_range);
+      const numericRange =
+        Object.keys(rangeRaw).length > 0
+          ? { min: asNum(rangeRaw.min), max: asNum(rangeRaw.max) }
+          : undefined;
+      const mappedColumnText = asText(r.mappedColumn ?? r.mapped_column ?? r.column);
+      const defaultLayer = asLayer(r.defaultLayer ?? r.default_layer);
+      const estratifica = unwrap(r.estratifica) === true;
+      return {
+        id,
+        scope,
+        label: asText(r.label) || id,
+        kind,
+        mappedColumn: mappedColumnText ? mappedColumnText : null,
+        ...(categories.length ? { categories } : {}),
+        ...(groups.length ? { groups } : {}),
+        ...(values.length ? { values } : {}),
+        ...(numericRange ? { numericRange } : {}),
+        ...(defaultLayer ? { defaultLayer } : {}),
+        ...(estratifica ? { estratifica } : {}),
+      };
+    })
+    .filter((v): v is CriterioVariable => v != null);
+  return {
+    ...(asText(raw2.schema) ? { schema: asText(raw2.schema) } : {}),
+    variables,
+  };
+}
+
 export type CalcMuestraAulasFrame = {
   schema: "calc_muestra_aulas_frame_v1" | string;
   generated_at: string;
@@ -14037,6 +14375,13 @@ export type CalcMuestraAulasFrame = {
   config: Record<string, unknown>;
   frame_hash: string;
   population?: MonitoreoRow[];
+  /**
+   * Universo de estudiantes SIN filtrar por elegibilidad, con atributos crudos
+   * por estudiante (student_id/faculty/level/age/formation/condition). Lo usa el
+   * conteo EN VIVO de criterios de alumno (criteriosImpacto): `population` ya
+   * viene recortada por edad/condición/formación y no permite recomputarlos.
+   */
+  population_pool?: MonitoreoRow[];
   aula_frame: MonitoreoRow[];
   exclusions?: MonitoreoRow[];
   category_profiles?: MonitoreoRow[];
@@ -14045,6 +14390,14 @@ export type CalcMuestraAulasFrame = {
   relation_audit?: Record<string, unknown>;
   warnings: string[];
   methodology?: Record<string, unknown>;
+  /** Perfil agregado para el Recorrido muestral (retrocompatible: puede no venir). */
+  perfil?: CalcMuestraAulasPerfil | null;
+  /**
+   * Catálogo de criterios por categoría (categorías reales enumeradas de la
+   * base + conteo por aula). Retrocompatible: frames viejos no lo traen. El
+   * consumidor debe pasarlo por `normalizeCriteriosCatalogo` (payload crítico).
+   */
+  criterios_catalogo?: CriteriosCatalogo | null;
 };
 
 export type CalcMuestraAulasSelection = {

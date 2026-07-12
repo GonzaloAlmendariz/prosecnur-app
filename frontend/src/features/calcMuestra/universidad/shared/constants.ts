@@ -106,6 +106,21 @@ export const DEFAULT_UNIVERSITY_AULAS_CONFIG: CalcMuestraWorkspaceAulasConfig = 
   require_adult: true,
   min_age: 18,
   require_in_person: true,
+  // Espejo de los defaults del motor R (calc_muestra_aulas_default_config).
+  exclude_session_patterns: [],
+  exclude_modality_patterns: ["virtual", "remoto", "online", "distancia", "asincron"],
+  exclude_level_patterns: ["posgrado", "postgrado", "maestria", "master", "doctorado"],
+  require_stable_teacher: false,
+  accepted_teacher_type_patterns: ["contratado", "ordinario"],
+  // H7: el criterio de pregrado opera sobre la columna de formación real
+  // cuando existe; sin columna, el motor cae al fallback por nivel.
+  accepted_formation_patterns: ["pregrado"],
+  nivel_por_unidad: {},
+  accepted_campuses: [],
+  // H9: excepciones de tipo de sesión por unidad (nace vacío).
+  session_type_excepciones: {},
+  min_prevalence_pct: 0.8,
+  min_cycle_homogeneity_pct: 0.8,
   usar_grupos_tamano: true,
   grupos_tamano: UNIVERSITY_AULAS_SIZE_GROUPS,
   estratos_selector: ["faculty", "sex_top_1", "size_group"],
@@ -203,16 +218,23 @@ export const UNIVERSITY_FALLBACK_COLUMN_OPTIONS = [
 export const UNIVERSITY_REQUIRED_VARIABLES: CalcMuestraWorkspaceVariableMapping[] = [
   { role: "student_id", label: "Identificador de estudiante", required: true, source_role: "base_madre", description: "Permite controlar duplicados y cobertura. No se publica en salidas para cliente." },
   { role: "faculty", label: "Facultad", required: true, source_role: "base_madre", description: "Facultad del estudiante; sostiene representatividad, cuotas y cruces de población." },
+  { role: "campus", label: "Sede o campus", required: false, source_role: "base_madre", description: "Sede donde se dicta el aula; habilita el filtro de sedes del operativo." },
   { role: "program", label: "Programa o carrera", required: false, source_role: "base_madre", description: "Carrera del estudiante dentro de su facultad; no es la facultad que dicta el curso." },
   { role: "sex", label: "Sexo", required: true, source_role: "base_madre", description: "Cuota esperada y diagnóstico descriptivo." },
   { role: "level", label: "Ciclo, nivel o año", required: false, source_role: "base_madre", description: "Balance por avance académico." },
+  { role: "formation", label: "Formación", required: false, source_role: "base_madre", description: "Nivel formativo del estudiante (pregrado, maestría…); habilita el criterio de pregrado sobre la columna real." },
+  { role: "age", label: "Edad", required: false, source_role: "base_madre", description: "Habilita el criterio de mayoría de edad sobre la edad real del estudiante." },
   { role: "course_id", label: "Curso o código de curso", required: true, source_role: "base_madre", description: "Junto con horario o sección permite identificar cada aula a seleccionar." },
   { role: "course_schedule_id", label: "Código único de curso y horario", required: false, source_role: "base_madre", description: "Úsala si la base trae NRC o un identificador único de aula." },
   { role: "course_name", label: "Nombre del curso", required: false, source_role: "catalogo_curso_horario", description: "Etiqueta legible de aula/curso." },
+  { role: "course_level", label: "Nivel del curso", required: false, source_role: "catalogo_curso_horario", description: "Nivel o ciclo del curso (no del estudiante); habilita el rango de nivel por unidad académica." },
   { role: "classroom", label: "Aula o sección", required: false, source_role: "catalogo_curso_horario", description: "Ubicación o grupo operativo." },
   { role: "teacher", label: "Docente/contacto", required: false, source_role: "catalogo_curso_horario", description: "Útil para agenda y autorización." },
+  { role: "teacher_type", label: "Tipo de docente", required: false, source_role: "catalogo_curso_horario", description: "Categoría del docente (contratado, ordinario…); habilita el criterio de docente estable." },
   { role: "schedule", label: "Horario", required: true, source_role: "catalogo_curso_horario", description: "Balance y planificación de campo." },
   { role: "modality", label: "Modalidad", required: false, source_role: "catalogo_curso_horario", description: "Presencial, virtual o mixta." },
+  { role: "session_type", label: "Tipo de curso o sesión", required: false, source_role: "catalogo_curso_horario", description: "Teórico, laboratorio, taller, seminario…; habilita el criterio de tipo de curso válido." },
+  { role: "enrolled_total", label: "Matriculados del aula", required: false, source_role: "catalogo_curso_horario", description: "Total de inscritos por curso-horario; los elegibles (matriculados_población) los deriva el motor." },
   { role: "condition", label: "Condición o elegibilidad", required: true, source_role: "base_madre", description: "Filtro de población objetivo; por ejemplo regular, válido o elegible." },
 ];
 
