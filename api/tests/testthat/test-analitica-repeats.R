@@ -232,6 +232,139 @@ test_that("el caso normal (base sin repeat) no se enriquece ni reporta grano", {
   expect_equal(names(res$data), names(madre_data))
 })
 
+# --- Contrato del endpoint /api/analitica/variables (ADR 0030, Fase 5) --------
+# El grano SÓLO se emite cuando la base activa es una hija repeat, y se calcula
+# desde SU data (distinct `_parent_index`), nunca desde la madre. Regresión del
+# bug donde el grano aparecía sobre la MADRE (parent_base = la madre misma) y con
+# n_personas = NA por haberse computado sobre la data de la madre.
+
+test_that("(e) el grano de la base activa es NULL cuando la activa es la MADRE", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("readxl")
+  st <- .ar_setup_study()
+  on.exit(session_delete(st$sid), add = TRUE)
+  estudio_active_base_set(st$sid, "madre")
+  # Corre el pipeline del endpoint (llena caches) antes de leer el grano.
+  invisible(.load_rp_data(st$sid))
+  expect_null(.analitica_active_repeat_grain(st$sid))
+})
+
+test_that("(f) el grano de la HIJA activa se calcula desde su propia data", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("readxl")
+  st <- .ar_setup_study()
+  on.exit(session_delete(st$sid), add = TRUE)
+  child_name <- st$created[[1]]$base
+  estudio_active_base_set(st$sid, child_name)
+  invisible(.load_rp_data(st$sid))
+  grain <- .analitica_active_repeat_grain(st$sid)
+  expect_false(is.null(grain))
+  expect_equal(grain$kind, "instancia")
+  expect_equal(grain$n_instancias, 3L)   # filas de la hija (0 + 2 + 1)
+  expect_equal(grain$n_personas, 2L)     # distinct _parent_index (Luis, Rosa)
+  expect_equal(grain$repeat_group, "rep_servicios")
+  expect_equal(grain$parent_base, "madre")
+})
+
+test_that("(g) la MADRE no hereda grano aunque antes se haya activado la HIJA", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("readxl")
+  st <- .ar_setup_study()
+  on.exit(session_delete(st$sid), add = TRUE)
+  child_name <- st$created[[1]]$base
+  # Primero la hija (computa y cachea su contexto)...
+  estudio_active_base_set(st$sid, child_name)
+  invisible(.load_rp_data(st$sid))
+  expect_false(is.null(.analitica_active_repeat_grain(st$sid)))
+  # ...y al volver a la madre, NULL: el grano no se filtra a una base no-hija.
+  estudio_active_base_set(st$sid, "madre")
+  invisible(.load_rp_data(st$sid))
+  expect_null(.analitica_active_repeat_grain(st$sid))
+})
+
+# --- Contrato del contexto de base activa (.load_rp_data) ---------------------
+# El contexto de base ÚNICA que alimenta /api/analitica/variables, frecuencias y
+# cruces debe ser el de la BASE ACTIVA, no el de la primera base registrada.
+# Regresión del bug donde, con una hija repeat activa, `.load_rp_data` entregaba
+# la data e instrumento de la MADRE (base "first" del override de
+# `.analitica_prepare_context`), de modo que el picker listaba variables de la
+# madre y los cruces operaban sobre ella.
+
+test_that("(h) la HIJA activa entrega su propia data/inst enriquecida en .load_rp_data", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("readxl")
+  st <- .ar_setup_study()
+  on.exit(session_delete(st$sid), add = TRUE)
+  child_name <- st$created[[1]]$base
+  estudio_active_base_set(st$sid, child_name)
+
+  ctx <- .load_rp_data(st$sid)
+
+  # rp_data es la HIJA: trae su llave de enlace y su variable propia del repeat,
+  # NO una columna exclusiva de la madre (p_nombre es text, no se hereda).
+  expect_true("_parent_index" %in% names(ctx$rp_data))
+  expect_true("srv_claridad" %in% names(ctx$rp_data))
+  expect_false("p_nombre" %in% names(ctx$rp_data))
+  expect_equal(nrow(ctx$rp_data), 3L)  # instancias de la hija (0 + 2 + 1)
+
+  # Enriquecida con la caracterización de la madre (join many-to-one por link_key).
+  expect_true(all(c("sexo", "edad") %in% names(ctx$rp_data)))
+  expect_equal(as.character(ctx$rp_data$sexo), c("2", "2", "1"))
+
+  # El instrumento entregado es el de la HIJA: su picker lista srv_claridad
+  # (top-level bajo begin_group en la hija) + las heredadas sexo/edad.
+  names_inst <- vapply(.variables_desde_instrumento(ctx$rp_inst),
+                       function(v) as.character(v$name %||% ""), character(1))
+  expect_true("srv_claridad" %in% names_inst)
+  expect_true(all(c("sexo", "edad") %in% names_inst))
+})
+
+test_that("(i) la MADRE activa sigue entregando su propia data/inst (sin fuga de la hija)", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("readxl")
+  st <- .ar_setup_study()
+  on.exit(session_delete(st$sid), add = TRUE)
+  estudio_active_base_set(st$sid, "madre")
+
+  ctx <- .load_rp_data(st$sid)
+
+  # rp_data es la MADRE: su columna propia sí, la llave de la hija no.
+  expect_true("p_nombre" %in% names(ctx$rp_data))
+  expect_false("_parent_index" %in% names(ctx$rp_data))
+
+  # El picker de la madre no ofrece la pregunta fantasma del repeat (repeat_depth>0)
+  # pero sí sus variables top-level.
+  names_inst <- vapply(.variables_desde_instrumento(ctx$rp_inst),
+                       function(v) as.character(v$name %||% ""), character(1))
+  expect_false("srv_claridad" %in% names_inst)
+  expect_true(all(c("sexo", "edad") %in% names_inst))
+})
+
+test_that("(j) alternar la base activa madre<->hija reevalúa el contexto (caché por base)", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("readxl")
+  st <- .ar_setup_study()
+  on.exit(session_delete(st$sid), add = TRUE)
+  child_name <- st$created[[1]]$base
+
+  # Madre primero (llena el caché singular con su contexto)...
+  estudio_active_base_set(st$sid, "madre")
+  ctx_madre <- .load_rp_data(st$sid)
+  expect_false("_parent_index" %in% names(ctx_madre$rp_data))
+
+  # ...al activar la hija el caché singular NO debe servir la madre.
+  estudio_active_base_set(st$sid, child_name)
+  ctx_hija <- .load_rp_data(st$sid)
+  expect_true("_parent_index" %in% names(ctx_hija$rp_data))
+  expect_true("srv_claridad" %in% names(ctx_hija$rp_data))
+
+  # ...y de vuelta a la madre, tampoco debe servir la hija.
+  estudio_active_base_set(st$sid, "madre")
+  ctx_madre2 <- .load_rp_data(st$sid)
+  expect_false("_parent_index" %in% names(ctx_madre2$rp_data))
+  expect_true("p_nombre" %in% names(ctx_madre2$rp_data))
+})
+
 test_that(".dn_repeat_parent_row_positions enlaza many-to-one con fallback", {
   parent <- data.frame(
     `_index` = c(1L, 2L, 3L), `_id` = c("A", "B", "C"),

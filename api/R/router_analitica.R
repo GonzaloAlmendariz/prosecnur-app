@@ -380,6 +380,29 @@
   stats::setNames(list(bases[[active]]), active)
 }
 
+# Nombre de la base ACTIVA dentro de un conjunto de fuentes ya resueltas. El
+# contexto de base ÚNICA (`rp_data`/`rp_inst` de `.load_rp_data`) es SIEMPRE el
+# de la base activa; antes se fijaba a la primera fuente (`names(...)[1]`), lo
+# que en un estudio madre/hija repeat (multibase, no independent_siblings)
+# entregaba la MADRE al activar la hija: `/api/analitica/variables` listaba las
+# variables de la madre y frecuencias/cruces operaban sobre ella (ADR 0030).
+# Gateado a que no rompa single-base ni independent-siblings:
+#   - con 0/1 fuente devuelve la única (no-op);
+#   - en `independent_siblings` las fuentes ya vienen scopeadas a la activa por
+#     `.analitica_scope_bases` (length 1), así que aquí también es no-op;
+#   - si la activa no está entre las fuentes resueltas, cae a la primera
+#     (comportamiento previo), degradando sin romper.
+.analitica_active_source_name <- function(sid, source_names) {
+  source_names <- as.character(source_names %||% character(0))
+  source_names <- source_names[!is.na(source_names) & nzchar(source_names)]
+  if (length(source_names) <= 1L) {
+    return(if (length(source_names)) source_names[[1L]] else NA_character_)
+  }
+  active <- tryCatch(as.character(estudio_active_base(sid) %||% ""), error = function(e) "")
+  if (nzchar(active) && active %in% source_names) return(active)
+  source_names[[1L]]
+}
+
 .analitica_patch_inst_sources_integrated <- function(sid, inst_sources) {
   if (!length(inst_sources)) return(inst_sources)
   s <- session_get(sid, required = FALSE)
@@ -482,11 +505,11 @@
       data_sources[[nombre]] <- parsed$data
       inst_sources[[nombre]] <- parsed$inst
     }
-    first <- names(data_sources)[1]
+    active <- .analitica_active_source_name(sid, names(data_sources))
     return(list(
       fuente = fuente,
-      rp_data = data_sources[[first]],
-      rp_inst = inst_sources[[first]],
+      rp_data = data_sources[[active]],
+      rp_inst = inst_sources[[active]],
       data_sources = data_sources,
       inst_sources = inst_sources
     ))
@@ -1912,8 +1935,19 @@
 
 .analitica_source_cache_key <- function(sid, fuente) {
   key <- as.character(fuente %||% "")
-  if (exists("estudio_is_independent_siblings", mode = "function") &&
-      estudio_is_independent_siblings(sid)) {
+  # El caché singular (`analitica_rp_data`/`analitica_rp_inst`) es el contexto de
+  # la BASE ACTIVA (ver `.analitica_active_source_name`). Por eso, en cualquier
+  # estudio con más de una base, cambiar la base activa debe invalidarlo. Antes
+  # esto solo ocurría en `independent_siblings`, dejando que un estudio madre/hija
+  # repeat sirviera la base "first" (la madre) al activar la hija. Se generaliza a
+  # todo estudio multibase; single-base (0/1 base, sin independent) no cambia de
+  # key, así el modo de una sola base queda intacto.
+  s <- session_get(sid, required = FALSE)
+  n_bases <- length((s$estudio %||% list())$bases %||% list())
+  include_active <- n_bases > 1L ||
+    (exists("estudio_is_independent_siblings", mode = "function") &&
+       isTRUE(tryCatch(estudio_is_independent_siblings(sid), error = function(e) FALSE)))
+  if (include_active) {
     active <- if (exists("estudio_active_base", mode = "function")) estudio_active_base(sid) else NULL
     key <- paste(key, as.character(active %||% ""), sep = ":")
   }
@@ -1963,10 +1997,10 @@
     normalized <- .bases_normalize_source_contexts(ctx$data_sources, ctx$inst_sources)
     ctx$data_sources <- normalized$data_sources
     ctx$inst_sources <- normalized$inst_sources
-    first <- names(ctx$data_sources)[1] %||% NA_character_
-    if (!is.na(first) && nzchar(first) && first %in% names(ctx$inst_sources)) {
-      ctx$rp_data <- ctx$data_sources[[first]]
-      ctx$rp_inst <- ctx$inst_sources[[first]]
+    active <- .analitica_active_source_name(sid, names(ctx$data_sources))
+    if (!is.na(active) && nzchar(active) && active %in% names(ctx$inst_sources)) {
+      ctx$rp_data <- ctx$data_sources[[active]]
+      ctx$rp_inst <- ctx$inst_sources[[active]]
     }
   }
   session_set(sid, "analitica_rp_inst", ctx$rp_inst)
@@ -2803,7 +2837,10 @@
     frecuencias = list(
       secciones_activas = list(),
       orden = "original",
-      mostrar_todo = FALSE,
+      # Default TRUE (metodológico): muestra TODAS las categorías del catálogo,
+      # con 0 donde nadie marcó (escala completa). El usuario puede apagarlo y su
+      # FALSE explícito se respeta.
+      mostrar_todo = TRUE,
       incluir_titulos = TRUE,
       incluir_secciones = TRUE
     ),
@@ -3273,10 +3310,13 @@ mount_analitica <- function(pr) {
         v$list_ordinal_auto <- isTRUE(nzchar(ln) && !is.null(ordinal_auto[[ln]]) && ordinal_auto[[ln]])
         v
 	      })
-	      # ADR 0030 Fase 3: si la base activa es una hija repeat, el grano es la
-	      # instancia (no la persona). Se anota en el par enriquecido; NULL en el
-	      # resto de bases.
-	      grain <- attr(reviewed$inst, "repeat_grain") %||% attr(ctx$rp_inst, "repeat_grain")
+	      # ADR 0030 Fase 5: si la base activa es una hija repeat, el grano es la
+	      # instancia (no la persona). El helper GATEA a `source_kind == kobo_repeat`
+	      # (NULL para la madre y cualquier base no-hija) y calcula n_instancias/
+	      # n_personas desde la data de la PROPIA hija (distinct `_parent_index`),
+	      # nunca desde la madre. No se lee el attr del inst: `.load_rp_data` entrega
+	      # la base "first"/madre en estudios repeat y su grano quedaría mal.
+	      grain <- .analitica_active_repeat_grain(sid)
 	      list(ok = TRUE, variables = variables, grain = grain)
 	    })) |>
 	    plumber::pr_get("/api/analitica/data-review", wrap_endpoint(function(req, res) {
@@ -3524,67 +3564,15 @@ mount_analitica <- function(pr) {
       # ignora en esa base (no rompe).
       sid <- session_header(req)
       cfg <- .analitica_get_config(sid)
-      fc <- cfg$frecuencias %||% list()
-      activas <- .as_chr_vec(fc$secciones_activas)
-      secs_cfg <- .secciones_from_config(cfg, activas_filter = if (length(activas) > 0L) activas else NULL)
-
-      orden <- as.character(fc$orden %||% "desc")
-      if (!orden %in% c("desc","asc","original")) orden <- "desc"
-      mostrar_todo <- isTRUE(fc$mostrar_todo)
-      # Los títulos de variable/pregunta se conservan siempre. La opción UI
-      # solo controla los separadores de sección.
-      incluir_titulos <- TRUE
-      incluir_secciones <- isTRUE(fc$incluir_secciones %||% TRUE)
-
-      numericas_arg <- .analitica_declared_numericas(cfg, override_frecuencias = TRUE)
-
-      codes_codebook <- .as_int_vec((cfg$codebook %||% list())$codigos_solo_si_presentes)
-      excluidas <- .as_chr_vec(cfg$variables_excluidas)
-
+      # Render single-base delegado al helper (fuente única de la tubería, ya con
+      # el desglose por servicio Parte A+B de bases hija repeat).
       result <- run_report_multibase(
         sid           = sid,
         base_filename = "frecuencias",
         ext           = "xlsx",
-	        kind_single   = "frecuencias",
-	        kind_multi    = "frecuencias_zip",
-	        fn = function(rp_data, rp_inst, out_path) {
-	          reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
-	          rp_data <- reviewed$data
-	          rp_inst <- reviewed$inst
-	          # Listas ordinales EFECTIVAS de ESTA base (override manual ∪
-	          # auto-detección). Fuerzan "original" por variable ordinal.
-	          ordinal_lists <- .orden_categorias_ordinal_set(rp_inst, cfg)
-	          # Ponderacion: adjunta `peso` (si esta activa) antes de excluir
-	          # columnas, para que las variables de calibracion sigan presentes.
-	          rp_data <- .analitica_ponderacion_apply(rp_data, cfg)
-	          data_out <- .excluir_cols(rp_data, excluidas)
-	          # Secciones: usa las del config si las hay; sino, detecta
-          # automáticamente las del instrumento de ESTA base.
-          secs <- secs_cfg
-          if (is.null(secs)) secs <- .secciones_desde_instrumento(rp_inst)
-          secs <- .analitica_filter_sections(secs, rp_inst, numericas_arg, excluidas)
-          secs <- .analitica_append_missing_select_multiple_sections(secs, rp_inst, numericas_arg, excluidas)
-          reporte_frecuencias(
-            data = data_out, instrumento = rp_inst,
-            secciones = secs,
-            path_xlsx = out_path,
-            orden = orden,
-            mostrar_todo = mostrar_todo,
-            incluir_titulos = incluir_titulos,
-            incluir_secciones = incluir_secciones,
-            codigos_solo_si_presentes = if (length(codes_codebook) > 0L) codes_codebook else NULL,
-            numericas = if (length(numericas_arg) > 0L) numericas_arg else NULL,
-            ordinal_lists = ordinal_lists,
-            ficha_tecnica = list(
-              cfg = cfg,
-              instrumento = rp_inst,
-              reporte = "Frecuencias",
-              detalles = list(
-                "Secciones activas" = if (!is.null(secs) && length(names(secs))) paste(names(secs), collapse = ", ") else "Todas las disponibles"
-              )
-            )
-          )
-        }
+        kind_single   = "frecuencias",
+        kind_multi    = "frecuencias_zip",
+        fn            = .analitica_frecuencias_render_fn(sid, cfg)
       )
       .analitica_status_set(sid, "analitica_frecuencias_ok", TRUE)
       result

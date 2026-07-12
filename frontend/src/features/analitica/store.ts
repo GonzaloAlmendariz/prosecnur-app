@@ -390,7 +390,9 @@ export const DEFAULT_CONFIG: AnaliticaConfig = {
     // Default "original": respeta el orden del instrumento. Más cómodo
     // para revisar la base con alguien que conoce el XLSForm.
     orden: "original",
-    mostrar_todo: false,
+    // Default true (metodológico): muestra TODAS las categorías del catálogo,
+    // con 0 donde nadie marcó (escala completa). El usuario puede apagarlo.
+    mostrar_todo: true,
     incluir_titulos: true,
     incluir_secciones: true,
     numericas_override: undefined,
