@@ -14,13 +14,21 @@ estructura_instrumento <- function(inst) {
   secciones <- if (is.null(sm) || nrow(sm) == 0) list() else {
     out <- vector("list", nrow(sm))
     for (i in seq_len(nrow(sm))) {
+      # repeat_count / repeat_count_vars: qué variable gobierna la cardinalidad de
+      # un grupo repetible (p.ej. `count-selected(${services})` -> ["services"]).
+      # Blindado: instrumentos viejos o el section_map vacío pueden no traer estas
+      # columnas.
+      rc <- if ("repeat_count" %in% names(sm)) sm$repeat_count[i] else NA_character_
+      rc_vars <- if ("repeat_count_vars" %in% names(sm)) sm$repeat_count_vars[[i]] else character(0)
       out[[i]] <- list(
         name = as.character(sm$group_name[i]),
         label = as.character(sm$group_label[i] %||% sm$group_name[i]),
         is_repeat = isTRUE(sm$is_repeat[i]),
         is_conditional = isTRUE(sm$is_conditional[i]),
         relevant = if (is.na(sm$group_relevant[i])) NA else as.character(sm$group_relevant[i]),
-        prefix = as.character(sm$prefix[i] %||% "")
+        prefix = as.character(sm$prefix[i] %||% ""),
+        repeat_count = if (length(rc) == 0L || is.na(rc)) NA else as.character(rc),
+        repeat_count_vars = as.list(rc_vars %||% character(0))
       )
     }
     out

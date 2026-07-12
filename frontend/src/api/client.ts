@@ -3266,6 +3266,10 @@ export type Seccion = {
   is_conditional: boolean;
   relevant: string | null;
   prefix: string;
+  // Grupos repetibles: expresión `repeat_count` cruda (p.ej. `count-selected(${services})`)
+  // y las variables que la gobiernan (["services"]). Ausente en instrumentos viejos.
+  repeat_count?: string | null;
+  repeat_count_vars?: string[];
 };
 
 export type Pregunta = {
