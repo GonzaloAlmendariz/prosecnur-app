@@ -277,3 +277,123 @@ test_that("POST reconciliación: rechaza nombres que no son extra reales", {
   expect_s3_class(err, "api_error")
   expect_equal(err$code, "E_RECON_VAR_DESCONOCIDA")
 })
+
+# ---------------------------------------------------------------------------
+# Gate de proveniencia en el banner "Variables extra en la data".
+# El path del banner (.analitica_read_pair) ahora sanea la data ANTES de contar
+# extras. Base con proveniencia de handoff: el esquema de seguimiento/universo
+# VACÍO desaparece de las extras. Base de carga manual: sus vacías se preservan.
+# ---------------------------------------------------------------------------
+
+.rv_fixture_universo_data <- function() {
+  data.frame(
+    sexo = c("1", "2", "1", "2"),
+    edad = c(30, 40, 25, 33),
+    comentario = c("a", "", "b", "c"),
+    dim_actor = c("ONG", "Estado", "", "ONG"),     # extra con datos -> siempre queda
+    # esquema de seguimiento/universo de Monitoreo, 100% VACÍO:
+    Origen = c("", "", "", ""),
+    Status = c(NA, NA, NA, NA),
+    dim_sede = c("", "", "", ""),
+    `.integration_mode` = c("connected_read", "connected_read",
+                            "connected_read", "connected_read"),
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+}
+
+test_that("base con proveniencia de handoff: el universo vacío NO cuenta como extra", {
+  inst <- .rv_fixture_inst()
+  # Gate de handoff (source_kind = monitoreo_kobo -> TRUE).
+  saneada <- sanitize_base_data(.rv_fixture_universo_data(), inst,
+                                monitoreo_handoff = .base_hygiene_is_monitoreo_kind("monitoreo_kobo"))
+  df <- .reconciliacion_variables_extra(saneada, inst)
+
+  # Solo la extra sustantiva sobrevive; el universo vacío se saneó.
+  expect_equal(df$name, "dim_actor")
+  expect_false(any(c("Origen", "Status", "dim_sede") %in% df$name))
+  expect_false(".integration_mode" %in% names(saneada))
+})
+
+test_that("base de carga manual: sus columnas vacías SÍ siguen siendo extras", {
+  inst <- .rv_fixture_inst()
+  # Upload manual: source_kind no-handoff -> gate FALSE, no se sanea el universo.
+  data_manual <- .rv_fixture_universo_data()
+  data_manual$.integration_mode <- NULL   # sin marcadores de handoff
+  saneada <- sanitize_base_data(data_manual, inst,
+                                monitoreo_handoff = .base_hygiene_is_monitoreo_kind("upload"))
+  df <- .reconciliacion_variables_extra(saneada, inst)
+
+  # Las vacías del usuario se preservan como extras (Origen/Status/dim_sede).
+  expect_true(all(c("Origen", "Status", "dim_sede") %in% df$name))
+  expect_true("dim_actor" %in% df$name)
+})
+
+# ---------------------------------------------------------------------------
+# FIX A/B: falsos positivos del banner "Variables extra en la data".
+# Dummies de SM y derivadas cuyo prefix ∈ instrumento NO cuentan como extra;
+# `dim_*` de Monitoreo no cuentan en base de handoff (sí en manual). Sin
+# introducir falsos negativos (extras genuinas siguen apareciendo).
+# ---------------------------------------------------------------------------
+
+.rv_fixture_inst_sm <- function() {
+  # `services` es select_multiple; `Assistance` es un grupo del instrumento.
+  survey <- data.frame(
+    type = c("select_multiple servicios", "begin_group", "text", "end_group", "integer"),
+    name = c("services", "Assistance", "rep_servicios_count", "Assistance", "edad"),
+    label = c("Servicios", "Asistencia", "Conteo", "Asistencia", "Edad"),
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+  structure(list(survey = survey), class = "prosecnur_instrumento")
+}
+
+test_that("FIX A: dummy de SM cuyo parent ∈ instrumento NO se cuenta como extra", {
+  inst <- .rv_fixture_inst_sm()
+  data <- data.frame(
+    edad = c(30, 40),
+    services.legal = c("1", "0"),      # dummy SM: prefix `services` ∈ inst
+    services.psico = c("0", "1"),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  df <- .reconciliacion_variables_extra(data, inst)
+  expect_false(any(c("services.legal", "services.psico") %in% df$name))
+  # La data conserva las dummies (Analítica/gráficos las usan).
+  expect_true(all(c("services.legal", "services.psico") %in% names(data)))
+})
+
+test_that("FIX A: `prefix.suffix` con prefix = grupo del instrumento NO se cuenta", {
+  inst <- .rv_fixture_inst_sm()
+  data <- data.frame(
+    edad = c(30, 40),
+    Assistance.rep_servicios_count = c("2", "1"),  # prefix `Assistance` = grupo
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  df <- .reconciliacion_variables_extra(data, inst)
+  expect_false("Assistance.rep_servicios_count" %in% df$name)
+})
+
+test_that("anti-falso-negativo: `foo.bar` (ni foo ni bar en inst) SÍ es extra", {
+  inst <- .rv_fixture_inst_sm()
+  data <- data.frame(
+    edad = c(30, 40),
+    foo.bar = c("x", "y"),        # prefix `foo` ajeno + suffix `bar` ajeno
+    foo = c("a", "b"),            # extra genuina sin punto
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  df <- .reconciliacion_variables_extra(data, inst)
+  expect_true(all(c("foo.bar", "foo") %in% df$name))
+})
+
+test_that("FIX B: dim_* de Monitoreo no cuenta en handoff, sí en manual", {
+  inst <- .rv_fixture_inst_sm()
+  data <- data.frame(
+    edad = c(30, 40),
+    dim_servicio = c("legal", "salud"),   # dim_* con dato, ajeno al instrumento
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  # Base con proveniencia de handoff: dim_* = plumbing -> NO extra.
+  df_h <- .reconciliacion_variables_extra(data, inst, monitoreo_handoff = TRUE)
+  expect_false("dim_servicio" %in% df_h$name)
+  # Base manual: dim_* legítimo -> SÍ extra.
+  df_m <- .reconciliacion_variables_extra(data, inst, monitoreo_handoff = FALSE)
+  expect_true("dim_servicio" %in% df_m$name)
+})
