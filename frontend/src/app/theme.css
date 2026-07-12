@@ -28780,15 +28780,15 @@ button.pulso-focus-calculation-recipe {
   position: absolute;
   top: 18px;
   right: 18px;
-  width: 280px;
+  width: 288px;
   background: white;
   border: 1px solid var(--pulso-border);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 14px 14px 12px;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
   animation: pulso-stagger-in 180ms ease both;
 }
 .pulso-graph-detail header {
@@ -28825,19 +28825,22 @@ button.pulso-focus-calculation-recipe {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 7px 11px;
+  padding: 9px 11px;
   background: var(--pulso-primary);
   color: white;
   border: none;
-  border-radius: 7px;
+  border-radius: 9px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 140ms ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+  transition: background 140ms ease, transform 100ms ease, box-shadow 140ms ease;
   margin-top: 4px;
 }
 .pulso-graph-detail-go:hover {
   background: var(--pulso-primary-hover, #1d4ed8);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(36, 87, 214, 0.28);
 }
 
 /* ============================================================================
@@ -34015,8 +34018,8 @@ button.pulso-focus-calculation-recipe {
 }
 .pulso-graph-detail-block-label {
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  font-weight: 650;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
 }
@@ -34540,7 +34543,11 @@ button.pulso-focus-calculation-recipe {
   gap: 8px;
   padding-right: 24px; /* dejar espacio al botón × */
 }
-.pulso-graph-legend-body strong {
+/* Legacy: mini-encabezado en mayúsculas de la lista `-types` (ya no se
+ * usa en el JSX). Acotado a `-types` para NO golpear los <strong> inline
+ * de la cabecera y los ejemplos — antes los forzaba a block+uppercase y
+ * partía cada frase en dos líneas con una palabra en mayúsculas. */
+.pulso-graph-legend-types strong {
   display: block;
   font-size: 9.5px;
   font-weight: 700;
@@ -34548,6 +34555,21 @@ button.pulso-focus-calculation-recipe {
   text-transform: uppercase;
   color: var(--pulso-text-soft);
   margin-top: 2px;
+}
+/* Énfasis inline dentro de la cabecera y los ejemplos: bold normal que
+ * fluye con la frase. Resetea explícitamente display/text-transform por si
+ * queda cascada de la regla legacy `-types` (block + uppercase), que
+ * partía cada frase en dos líneas con una palabra en mayúsculas. */
+.pulso-graph-legend-head strong,
+.pulso-graph-legend-examples strong,
+.pulso-graph-legend-colorkey strong {
+  display: inline;
+  font-size: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+  margin-top: 0;
+  font-weight: 700;
+  color: var(--pulso-text);
 }
 .pulso-graph-legend-types {
   list-style: none;
@@ -34674,9 +34696,9 @@ button.pulso-focus-calculation-recipe {
   -webkit-backdrop-filter: blur(10px);
 }
 .pulso-graph-edge-panel-eyebrow {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 1.1px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--pulso-primary);
   line-height: 1.35;
@@ -34702,9 +34724,9 @@ button.pulso-focus-calculation-recipe {
   gap: 9px;
 }
 .pulso-graph-edge-panel-block-label {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 1.2px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.7px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
 }
@@ -34724,13 +34746,12 @@ button.pulso-focus-calculation-recipe {
     transform 100ms ease;
 }
 .pulso-graph-edge-panel-card-clickable:hover {
-  background: rgba(36, 87, 214, 0.06);
-  border-color: var(--pulso-primary);
-  transform: translateX(-2px);
+  background: rgba(36, 87, 214, 0.05);
+  border-color: var(--pulso-primary-border);
 }
 .pulso-graph-edge-panel-card-clickable.pulso-graph-edge-panel-card-section:hover {
-  background: rgba(15, 118, 110, 0.06);
-  border-color: rgba(15, 118, 110, 0.5);
+  background: rgba(15, 118, 110, 0.05);
+  border-color: rgba(15, 118, 110, 0.4);
 }
 
 /* Contador de ramas en eyebrow. */
@@ -34743,22 +34764,24 @@ button.pulso-focus-calculation-recipe {
 .pulso-graph-edge-panel-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 13px 14px;
-  background: rgba(255, 255, 255, 0.9);
+  gap: 11px;
+  padding: 11px 12px;
+  background: var(--pulso-surface);
   border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.32);
+  border: 1px solid var(--pulso-border);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   min-width: 0;
 }
 .pulso-graph-edge-panel-card-section {
-  background: rgba(15, 118, 110, 0.055);
-  border-color: rgba(15, 118, 110, 0.34);
+  background: rgba(15, 118, 110, 0.05);
+  border-color: rgba(15, 118, 110, 0.24);
 }
 .pulso-graph-edge-panel-card-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: rgba(36, 87, 214, 0.10);
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: rgba(36, 87, 214, 0.09);
+  box-shadow: inset 0 0 0 1px rgba(36, 87, 214, 0.14);
   color: var(--pulso-primary);
   display: inline-flex;
   align-items: center;
@@ -34767,31 +34790,53 @@ button.pulso-focus-calculation-recipe {
 }
 .pulso-graph-edge-panel-card-section .pulso-graph-edge-panel-card-icon {
   background: rgba(15, 118, 110, 0.10);
+  box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.16);
   color: #0f766e;
 }
 .pulso-graph-edge-panel-card-text {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  /* block (no flex): el `strong` de abajo usa `-webkit-line-clamp`, que
+     Chromium rompe si el elemento es flex item (lo blockifica a
+     flow-root). Con el contenedor en block, el clamp funciona. */
+  display: block;
   min-width: 0;
+  flex: 1;
 }
 .pulso-graph-edge-panel-card-text strong {
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--pulso-text);
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
   line-height: 1.3;
+  margin-bottom: 3px;
+  /* Incipit, no muro de texto: clamp a 3 líneas. El texto completo
+     queda en el atributo `title` (hover) y en la carta de la pregunta. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 .pulso-graph-edge-panel-card-text code {
-  font-size: 12px;
+  display: block;
+  font-size: 11px;
   font-family: ui-monospace, monospace;
   color: var(--pulso-text-soft);
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
   line-height: 1.25;
+  letter-spacing: 0.1px;
+}
+/* Chevron indicador de "clickable" en las cards de destino. */
+.pulso-graph-edge-panel-card-chevron {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  color: var(--pulso-text-soft);
+  opacity: 0.55;
+  transition: transform 140ms ease, opacity 140ms ease;
+}
+.pulso-graph-edge-panel-card-clickable:hover .pulso-graph-edge-panel-card-chevron {
+  opacity: 1;
+  transform: translateX(2px);
 }
 .pulso-graph-edge-panel-arrow {
   display: flex;
@@ -34810,15 +34855,15 @@ button.pulso-focus-calculation-recipe {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(36, 87, 214, 0.18);
-  background: rgba(36, 87, 214, 0.045);
+  padding: 13px;
+  border-radius: 13px;
+  border: 1px solid rgba(36, 87, 214, 0.14);
+  background: rgba(36, 87, 214, 0.035);
 }
 .pulso-graph-edge-panel-condition-title {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 1.1px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.7px;
   text-transform: uppercase;
   color: var(--pulso-primary);
 }
@@ -34839,20 +34884,26 @@ button.pulso-focus-calculation-recipe {
   margin: 2px 0;
   color: var(--pulso-primary);
 }
+.pulso-graph-edge-panel-condition-or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--pulso-border);
+}
 .pulso-graph-edge-panel-condition-or span,
 .pulso-graph-edge-panel-condition-card-head strong {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  height: 24px;
+  min-width: 26px;
+  height: 22px;
   border-radius: 999px;
-  background: rgba(36, 87, 214, 0.12);
+  background: rgba(36, 87, 214, 0.10);
   color: var(--pulso-primary);
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
 }
 .pulso-graph-edge-panel-condition-or em {
   font-size: 11.5px;
@@ -34860,14 +34911,13 @@ button.pulso-focus-calculation-recipe {
   font-weight: 750;
   color: var(--pulso-text-soft);
 }
+/* Contenedor lógico de un grupo (posible cabecera "Y" + filas). Es un
+   flex transparente: la superficie/borde la lleva la fila, no una card
+   intermedia — así se evita el triple anidado de cajas. */
 .pulso-graph-edge-panel-condition-card {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 10px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(36, 87, 214, 0.14);
 }
 .pulso-graph-edge-panel-condition-card-head {
   display: flex;
@@ -34918,8 +34968,8 @@ button.pulso-focus-calculation-recipe {
   background: rgba(36, 87, 214, 0.10);
   color: var(--pulso-primary);
   font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.4px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
 }
 .pulso-graph-edge-panel-condition-join.is-and {
   background: rgba(15, 118, 110, 0.12);
@@ -34942,9 +34992,9 @@ button.pulso-focus-calculation-recipe {
   justify-content: space-between;
   gap: 10px;
   color: var(--pulso-text-soft);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.7px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
 }
 .pulso-graph-edge-panel-nested-or-head strong {
@@ -34952,14 +35002,14 @@ button.pulso-focus-calculation-recipe {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  height: 24px;
+  min-width: 26px;
+  height: 22px;
   border-radius: 999px;
-  background: rgba(36, 87, 214, 0.12);
+  background: rgba(36, 87, 214, 0.10);
   color: var(--pulso-primary);
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
 }
 .pulso-graph-edge-panel-nested-or-list {
   display: flex;
@@ -34974,8 +35024,8 @@ button.pulso-focus-calculation-recipe {
 }
 .pulso-graph-edge-panel-nested-question strong {
   color: var(--pulso-text);
-  font-size: 12.8px;
-  font-weight: 800;
+  font-size: 12.5px;
+  font-weight: 600;
   line-height: 1.35;
 }
 .pulso-graph-edge-panel-nested-question code {
@@ -34986,7 +35036,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-graph-edge-panel-nested-question span {
   color: var(--pulso-primary);
   font-size: 11.5px;
-  font-weight: 800;
+  font-weight: 650;
 }
 .pulso-graph-edge-panel-option-grid {
   display: flex;
@@ -34998,27 +35048,27 @@ button.pulso-focus-calculation-recipe {
   align-items: center;
   gap: 6px;
   max-width: 100%;
-  padding: 7px 9px;
+  padding: 6px 10px;
   border-radius: 999px;
-  background: white;
-  border: 1px solid rgba(36, 87, 214, 0.14);
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 550;
   line-height: 1.25;
 }
 .pulso-graph-edge-panel-option-chip em {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 18px;
+  min-width: 18px;
+  height: 16px;
   border-radius: 999px;
-  background: rgba(36, 87, 214, 0.12);
+  background: rgba(36, 87, 214, 0.10);
   color: var(--pulso-primary);
-  font-size: 9.5px;
+  font-size: 9px;
   font-style: normal;
-  font-weight: 900;
+  font-weight: 700;
 }
 .pulso-graph-edge-panel-nested-or-item {
   display: flex;
@@ -35054,21 +35104,23 @@ button.pulso-focus-calculation-recipe {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 7px;
   width: 100%;
   padding: 11px 14px;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
   background: var(--pulso-primary);
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 11px;
   cursor: pointer;
-  transition: background 140ms ease, transform 100ms ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+  transition: background 140ms ease, transform 100ms ease, box-shadow 140ms ease;
 }
 .pulso-graph-edge-panel-btn:hover {
   background: #1f47b3;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(36, 87, 214, 0.28);
 }
 .pulso-graph-edge-panel-btn:active {
   transform: translateY(0);
@@ -35104,6 +35156,28 @@ button.pulso-focus-calculation-recipe {
   font-size: 11.5px;
   color: var(--pulso-text-soft);
   line-height: 1.4;
+}
+/* Demostrador "mismo color = misma condición": tarjeta sutil con las
+ * muestras de trazo a la izquierda y la explicación a la derecha. */
+.pulso-graph-legend-colorkey {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--pulso-text-soft);
+}
+.pulso-graph-legend-colorkey-samples {
+  flex-shrink: 0;
+  display: inline-flex;
+}
+.pulso-graph-legend-colorkey strong {
+  color: var(--pulso-text);
 }
 .pulso-graph-legend-section {
   display: flex;
@@ -35445,6 +35519,7 @@ button.pulso-focus-calculation-recipe {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
 }
 .pulso-graph-detail-title {
   display: flex;

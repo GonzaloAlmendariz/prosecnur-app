@@ -255,9 +255,10 @@ export function buildLogicGraph(
     }
   }
 
-  // -- 3. Edges: relevant + constraint + calculation + choice_filter --
-  // Cada tipo de dependencia genera edges propios con su `kind`. La UI
-  // los diferencia visualmente y permite filtrar por tipo en el toolbar.
+  // -- 3. Edges: solo saltos lógicos de visibilidad (`relevant`) --
+  // El mapa es de lógica de apertura; las demás dependencias del
+  // XLSForm (constraint/calculation/choice_filter) se leen en la carta
+  // de cada pregunta, no aquí.
   const edges: GraphEdge[] = [];
   const edgeSources: Array<{
     expression: string;
@@ -267,11 +268,15 @@ export function buildLogicGraph(
     const targetId = `q:${outlineNode.rowIndex}`;
     const targetNode = byId.get(targetId);
     if (!targetNode) continue;
+    // El Mapa de lógica grafica SOLO saltos lógicos / condiciones de
+    // apertura (visibilidad `relevant`). Validación (`constraint`),
+    // cálculo (`calculation`) y filtro de opciones (`choice_filter`) NO
+    // se dibujan aquí: ya viven en la carta de cada pregunta. Además, el
+    // color y el carril del grafo se llavean por `relevantExpression`;
+    // mezclar los otros tipos rompía ese sistema y volvía el mapa
+    // ilegible (todo de un solo color). El mapa es de lógica de apertura.
     const candidates: Array<{ expression: string; kind: GraphEdgeKind }> = [
       { expression: outlineNode.relevant, kind: "depends-on" as GraphEdgeKind },
-      { expression: outlineNode.constraint, kind: "constrained-by" as GraphEdgeKind },
-      { expression: outlineNode.calculation, kind: "calculated-from" as GraphEdgeKind },
-      { expression: outlineNode.choiceFilter, kind: "choice-filter" as GraphEdgeKind },
     ];
     const sources: Array<{ expression: string; kind: GraphEdgeKind }> =
       candidates.filter((s) => s.expression && s.expression.trim());
