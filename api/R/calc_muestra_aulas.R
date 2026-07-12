@@ -173,11 +173,23 @@
 }
 
 .cm_aulas_contains_any <- function(x, patterns) {
-  patterns <- .cm_aulas_text_key(.cm_aulas_chr_vec(patterns))
+  # Ancla de prefijo: un patrón que empieza con "^" matchea por startsWith
+  # sobre el text_key en lugar de contains. Necesaria porque con contains puro
+  # es imposible excluir "LABORATORIO" standalone sin matar los combos que lo
+  # contienen como substring ("TEORICO(TEORICO-PRACTICO,TEORICO-LABORATORIO)").
+  # El "^" se detecta sobre el patrón crudo: .cm_aulas_text_key lo destruiría.
+  crudos <- .cm_aulas_chr_vec(patterns)
+  anclado <- startsWith(crudos, "^")
+  patterns <- .cm_aulas_text_key(sub("^\\^", "", crudos))
+  anclado <- anclado[nzchar(patterns)]
   patterns <- patterns[nzchar(patterns)]
   if (!length(patterns)) return(rep(FALSE, length(x)))
   key <- .cm_aulas_text_key(x)
-  vapply(key, function(item) any(vapply(patterns, grepl, logical(1), x = item, fixed = TRUE)), logical(1))
+  vapply(key, function(item) {
+    any(vapply(seq_along(patterns), function(j) {
+      if (anclado[[j]]) startsWith(item, patterns[[j]]) else grepl(patterns[[j]], item, fixed = TRUE)
+    }, logical(1)))
+  }, logical(1))
 }
 
 .cm_aulas_config_mapping <- function(mapping = list()) {
@@ -194,6 +206,7 @@
     session_type = c("session_type", "tipo_sesion", "tipo_clase", "actividad"),
     teacher = c("teacher", "nombre_de_docente", "nombre_del_docente", "nombre de docente", "nombre del docente", "docente", "profesor", "profesora"),
     teacher_email = c("teacher_email", "correo_pucp_docente", "correo pucp docente", "correo_docente", "email_docente", "correo_docente_pucp", "correo_docente_agora"),
+    teacher_type = c("teacher_type", "tipo_docente", "tipo_de_docente", "tipo de docente", "categoria_docente", "categoría docente", "condicion_docente", "regimen_docente"),
     faculty = c(
       "faculty", "facultad_estudiante", "facultad_alumno", "facultad_de_matricula",
       "facultad_matricula", "nombrefac", "nombre_facultad", "facultad",
@@ -205,6 +218,15 @@
       "especialidad_estudiante", "especialidad_alumno", "carrera", "especialidad"
     ),
     level = c("level", "nivel_segun_creditos", "nivel_segun_credito", "nivel_por_creditos", "nivel_creditos", "nivel_curricular", "ciclo", "nivel_del_curso", "nivel", "nivel_estudios"),
+    # H7: formación del estudiante (PREGRADO/MAESTRIA/DOCTORADO/...). Se
+    # resuelve SOLO por clave exacta (.cm_criterios_col_exacta) — el fuzzy
+    # dejaría que "nivel" o "informacion" secuestren el rol.
+    formation = c("formation", "formacion", "formación", "nivel_academico", "nivel_formativo", "tipo_formacion", "tipo_de_formacion"),
+    # OJO: `level` es el nivel DEL ESTUDIANTE; course_level es el nivel DEL
+    # CURSO (si no matchea columna, el filtro nivel-por-unidad usa como
+    # fallback el level modal del aula).
+    course_level = c("course_level", "nivel_curso", "nivel_del_curso", "nivel del curso", "nivel de curso", "ciclo_curso"),
+    campus = c("campus", "sede", "filial", "sede_campus", "campus_sede", "local_sede"),
     sex = c("sex", "sexo", "genero", "gender"),
     age = c("age", "edad"),
     condition = c("condition", "condicion_matricula", "condicion", "estado_matricula", "situacion", "condicion_del_curso"),
@@ -305,7 +327,9 @@ calc_muestra_aulas_default_config <- function() {
     schema = "calc_muestra_aulas_config_v1",
     input_mode = "base_madre",
     mapping = .cm_aulas_config_mapping(),
-    filters = list(
+    # Criterios adicionales (docente/nivel/sede/c7/c8): sus defaults viven en
+    # calc_muestra_aulas_criterios.R y nacen apagados (retro-compat).
+    filters = c(list(
       require_adult = TRUE,
       min_age = 18L,
       require_undergraduate = TRUE,
@@ -315,7 +339,7 @@ calc_muestra_aulas_default_config <- function() {
       exclude_modality_patterns = as.list(c("virtual", "remoto", "online", "distancia", "asincron")),
       exclude_session_patterns = list(),
       min_eligible_per_class = 15L
-    ),
+    ), .cm_criterios_default_filters()),
     selector = list(
       seed = 20260619L,
       n_aulas = 30L,
@@ -352,7 +376,11 @@ calc_muestra_aulas_default_config <- function() {
       nonresponse_policy = "disposition_codes_and_adjustments",
       replacement_policy = "reservas_coordinadas_sin_redisenar"
     ),
-    objective = .cm_aulas_objective_defaults()
+    objective = .cm_aulas_objective_defaults(),
+    # Selección por categorías (scope alumno/aula). Nace vacía: sin ella el
+    # marco sale por el path legacy de patrones (retro-compat bit a bit). La
+    # lógica vive en calc_muestra_aulas_criterios.R.
+    criterios_seleccion = list()
   )
 }
 
@@ -403,7 +431,9 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
     schema = "calc_muestra_aulas_config_v1",
     input_mode = .cm_aulas_scalar(config$input_mode %||% config$modo_insumo, defaults$input_mode),
     mapping = .cm_aulas_config_mapping(config$mapping %||% config$mapeo %||% list()),
-    filters = list(
+    # Los criterios adicionales (docente/nivel/sede/c7/c8) se normalizan en
+    # calc_muestra_aulas_criterios.R y se concatenan al bloque histórico.
+    filters = c(list(
       require_adult = .cm_aulas_bool(filters$require_adult %||% filters$solo_mayores, defaults$filters$require_adult),
       min_age = max(0L, .cm_aulas_int(filters$min_age %||% filters$edad_minima, defaults$filters$min_age)),
       require_undergraduate = .cm_aulas_bool(filters$require_undergraduate %||% filters$solo_pregrado, defaults$filters$require_undergraduate),
@@ -413,7 +443,7 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
       exclude_modality_patterns = as.list(.cm_aulas_chr_vec(filters$exclude_modality_patterns %||% defaults$filters$exclude_modality_patterns)),
       exclude_session_patterns = as.list(.cm_aulas_chr_vec(filters$exclude_session_patterns %||% filters$excluir_tipos_sesion %||% defaults$filters$exclude_session_patterns)),
       min_eligible_per_class = max(1L, .cm_aulas_int(filters$min_eligible_per_class %||% filters$min_elegibles_aula %||% config$min_elegibles_aula, defaults$filters$min_eligible_per_class))
-    ),
+    ), .cm_criterios_normalize_filters(filters)),
     selector = list(
       seed = .cm_aulas_int(selector$seed %||% selector$semilla %||% config$semilla, defaults$selector$seed),
       n_aulas = max(1L, .cm_aulas_int(selector$n_aulas %||% selector$aulas_titulares %||% config$n_aulas, defaults$selector$n_aulas)),
@@ -440,7 +470,12 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
       nonresponse_policy = .cm_aulas_scalar(selector$nonresponse_policy %||% selector$politica_no_respuesta %||% config$nonresponse_policy, defaults$selector$nonresponse_policy),
       replacement_policy = .cm_aulas_scalar(selector$replacement_policy %||% selector$politica_reemplazos %||% config$replacement_policy, defaults$selector$replacement_policy)
     ),
-    objective = .cm_aulas_normalize_objective(objective_input)
+    objective = .cm_aulas_normalize_objective(objective_input),
+    # Selección por categorías (scope alumno/aula); normalización defensiva en
+    # calc_muestra_aulas_criterios.R. list() cuando no viene → path legacy.
+    criterios_seleccion = .cm_criterios_normalize_seleccion(
+      config$criterios_seleccion %||% config$criterios_marco %||% config$seleccion_criterios
+    )
   )
 }
 
@@ -652,7 +687,9 @@ calc_muestra_aulas_inspect_workbook <- function(path, max_rows = 80L) {
   raw <- .cm_aulas_fill_from_lookup(raw, raw_key, "teacher_email", teacher_email_lookup)
   audit$teacher_values <- sum(nzchar(.cm_aulas_values(raw, "teacher", "")))
   audit$teacher_email_values <- sum(nzchar(.cm_aulas_values(raw, "teacher_email", "")))
-  list(data = raw, audit = audit)
+  # (H8a) Señales de criterios (tipo de docente/sede/nivel del curso) desde el
+  # catálogo cuando la base no las trae; lógica en calc_muestra_aulas_catalogo.R.
+  .cm_aulas_enrich_criterios_desde_catalogo(raw, catalogo, mapping, raw_key, catalog_key, audit)
 }
 
 .cm_aulas_issue_df <- function(issues) {
@@ -809,7 +846,21 @@ calc_muestra_aulas_inspect_workbook <- function(path, max_rows = 80L) {
 
 .cm_aulas_classroom_id <- function(raw, mapping) {
   direct_col <- .cm_aulas_col(raw, mapping$classroom_id)
-  if (nzchar(direct_col) && .cm_aulas_text_key(direct_col) %in% c("curso", "course_id", "codigo_curso", "cod_curso", "clave_curso")) {
+  # Guarda anti-colapso de identidad: el matcher difuso de .cm_aulas_col
+  # acepta que el nombre de la columna sea SUBSTRING del sinónimo (p.ej.
+  # `horario` ⊂ `curso_horario`, `aula` ⊂ `aula_id`), así que una columna de
+  # UNA sola faceta puede quedar como id directo del aula y colapsar la
+  # identidad a esa faceta (visto en E2E: 18 pseudo-aulas H01..H18 con 210
+  # curso-horario reales). Una faceta suelta —curso, horario, sección o
+  # salón— jamás identifica un aula por sí sola: se descarta el id directo y
+  # la identidad se compone abajo como curso × sección × horario × etiqueta.
+  facetas_sueltas <- c(
+    "curso", "course_id", "codigo_curso", "cod_curso", "clave_curso",
+    "schedule", "horario", "dia_hora", "hora", "turno", "bloque",
+    "section", "seccion", "grupo", "comision",
+    "aula", "salon", "ambiente", "classroom", "local_aula"
+  )
+  if (nzchar(direct_col) && .cm_aulas_text_key(direct_col) %in% facetas_sueltas) {
     direct_col <- ""
   }
   direct <- .cm_aulas_values(raw, direct_col, "")
@@ -939,6 +990,14 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   age <- .cm_aulas_num_values(raw, .cm_aulas_col(raw, mapping$age), NA_real_)
   condition <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$condition), "")
   enrolled_total_row <- .cm_aulas_num_values(raw, .cm_aulas_col(raw, mapping$enrolled_total), NA_real_)
+  # Señales de los criterios adicionales (docente/nivel de curso/sede); la
+  # guarda anti-colisión del tipo de docente vive en el archivo de criterios.
+  teacher_type <- .cm_aulas_values(raw, .cm_criterios_col_teacher_type(raw, mapping), "")
+  course_level <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$course_level), "")
+  campus <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$campus), "")
+  # H7: formación del estudiante; resolución SOLO por clave exacta (el fuzzy
+  # secuestraría columnas como "Nivel" o "Información adicional").
+  formation <- .cm_aulas_values(raw, .cm_criterios_col_exacta(raw, mapping$formation), "")
 
   sid_ok <- nzchar(student_id)
   age_ok <- rep(TRUE, length(student_id))
@@ -949,9 +1008,19 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   if (any(nzchar(condition)) && length(cfg$filters$accepted_conditions)) {
     condition_ok <- .cm_aulas_contains_any(condition, cfg$filters$accepted_conditions)
   }
+  # H7: cuando la base trae columna de formación con señal, el criterio de
+  # pregrado se decide ahí (primer filtro del método real: PREGRADO sí,
+  # MAESTRIA/DOCTORADO/... no). Sin esa columna se mantiene el fallback
+  # histórico por patrones de posgrado sobre el nivel. Filas sin formación no
+  # se restringen (sin señal pasa, misma semántica que el resto de filtros).
+  formation_patterns <- .cm_aulas_chr_vec(cfg$filters$accepted_formation_patterns)
   level_ok <- rep(TRUE, length(student_id))
-  if (isTRUE(cfg$filters$require_undergraduate) && any(nzchar(level))) {
-    level_ok <- !.cm_aulas_contains_any(level, cfg$filters$exclude_level_patterns)
+  if (isTRUE(cfg$filters$require_undergraduate)) {
+    if (length(formation_patterns) && any(nzchar(formation))) {
+      level_ok <- !nzchar(formation) | .cm_aulas_contains_any(formation, formation_patterns)
+    } else if (any(nzchar(level))) {
+      level_ok <- !.cm_aulas_contains_any(level, cfg$filters$exclude_level_patterns)
+    }
   }
   modality_ok <- rep(TRUE, length(student_id))
   if (isTRUE(cfg$filters$require_in_person) && any(nzchar(modality))) {
@@ -960,9 +1029,21 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   session_ok <- rep(TRUE, length(student_id))
   if (length(cfg$filters$exclude_session_patterns) && any(nzchar(session_type))) {
     session_ok <- !.cm_aulas_contains_any(session_type, cfg$filters$exclude_session_patterns)
+    # H9: excepciones por unidad (p.ej. taller/artístico solo en Arte y
+    # Diseño); la lógica vive en calc_muestra_aulas_criterios.R.
+    session_ok <- .cm_criterios_session_excepciones(session_ok, faculty, session_type, cfg$filters$session_type_excepciones)
   }
   classroom_ok <- nzchar(classroom_id)
   eligible_student <- sid_ok & age_ok & condition_ok & level_ok
+  # Criterios de alumno por categoría (scope alumno): con capa "marco"
+  # restringen la población objetivo N. Sin selección, marco_ok es todo TRUE
+  # (retro-compat bit a bit). Lógica en calc_muestra_aulas_criterios.R.
+  alumno_sel <- calc_muestra_aulas_criterios_alumno(
+    cfg$criterios_seleccion,
+    list(student_id = student_id, formation = formation, condition = condition,
+         age = age, faculty = faculty, level = level)
+  )
+  eligible_student <- eligible_student & alumno_sel$marco_ok
   eligible_row <- eligible_student & modality_ok & session_ok & classroom_ok
 
   reason_rows <- mapply(function(a, b, c, d, e, f, g) {
@@ -990,6 +1071,26 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   population <- population_raw[population_raw$eligible & nzchar(population_raw$student_id), , drop = FALSE]
   population <- population[!duplicated(population$student_id), , drop = FALSE]
   rownames(population) <- NULL
+
+  # Pool de estudiantes SIN filtrar por elegibilidad (edad/condición/formación).
+  # `population` ya viene recortada por esos criterios, así que no sirve para el
+  # conteo EN VIVO del frontend al togglear los criterios de alumno: necesita el
+  # universo con sus atributos crudos por estudiante para re-aplicar la selección
+  # cliente. Deduplicado por estudiante; incluye faculty/level (para faculty/level)
+  # y age/formation/condition (los tres que antes solo resolvía el motor).
+  pool_raw <- data.frame(
+    student_id = student_id,
+    faculty = faculty,
+    level = level,
+    age = age,
+    formation = formation,
+    condition = condition,
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  population_pool <- pool_raw[nzchar(pool_raw$student_id), , drop = FALSE]
+  population_pool <- population_pool[!duplicated(population_pool$student_id), , drop = FALSE]
+  rownames(population_pool) <- NULL
 
   frame_base <- data.frame(
     row_id = seq_along(student_id),
@@ -1068,6 +1169,32 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     aula_frame$size_group <- as.character(aula_frame$size_group)
   }
 
+  # Criterios de aula adicionales (docente estable, nivel por unidad, sede,
+  # c7 prevalencia, c8 homogeneidad) + impacto medido de los opcionales: la
+  # lógica vive en calc_muestra_aulas_criterios.R (este archivo no debe
+  # seguir creciendo); aquí solo se aplica el resultado sobre el aula_frame.
+  # Señales AUTORITATIVAS por aula desde el catálogo (fix del −281): modalidad/
+  # tipo/tipo_docente/nivel constantes por aula para el gate de selección por
+  # categorías. Vacío sin catálogo (fallback a la base). Lógica en
+  # calc_muestra_aulas_catalogo.R.
+  catalog_signals <- .cm_aulas_catalog_aula_signals(catalogo_curso_horario, mapping)
+  criterios <- calc_muestra_aulas_aplicar_criterios(
+    aula_frame = aula_frame,
+    filas = list(
+      classroom_id = classroom_id,
+      student_id = student_id,
+      level = level,
+      teacher_type = teacher_type,
+      course_level = course_level,
+      campus = campus,
+      eligible_row = eligible_row
+    ),
+    population = population,
+    cfg = cfg,
+    catalog_signals = catalog_signals
+  )
+  aula_frame <- criterios$aula_frame
+
   included_aula_frame <- if (nrow(aula_frame)) {
     aula_frame[aula_frame$included %in% TRUE, , drop = FALSE]
   } else {
@@ -1136,6 +1263,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     config = cfg,
     frame_hash = .cm_aulas_hash(list(aula_frame = aula_frame, cfg = cfg$filters)),
     population = population,
+    population_pool = population_pool,
     aula_frame = aula_frame,
     exclusions = frame_base[!eligible_row, c("row_id", "student_id", "classroom_id", "exclude_reason"), drop = FALSE],
     category_profiles = category_profiles,
@@ -1151,6 +1279,56 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       anonymity = "El marco puede contener identificadores internos para diseno; monitoreo no exige student_id en respuestas."
     )
   )
+  # Perfil institucional del marco: la lógica vive en calc_muestra_perfil.R
+  # (este archivo no debe seguir creciendo); aquí solo se adjunta el resultado.
+  out$perfil <- calc_muestra_aulas_perfil(list(
+    student_id = student_id,
+    classroom_id = classroom_id,
+    faculty = faculty,
+    sex = sex,
+    age = age,
+    condition = condition,
+    level = level,
+    formation = formation,
+    modality = modality,
+    session_type = session_type,
+    age_ok = age_ok,
+    condition_ok = condition_ok,
+    level_ok = level_ok,
+    modality_ok = modality_ok,
+    session_ok = session_ok,
+    eligible_student = eligible_student,
+    eligible_row = eligible_row,
+    population = population,
+    aula_frame = aula_frame,
+    cfg = cfg,
+    criterios = criterios
+  ))
+  # Enumeración de la suite de criterios por categoría (ambos scopes): la
+  # lógica vive en calc_muestra_aulas_criterios.R; aquí solo se adjunta.
+  out$criterios_catalogo <- calc_muestra_aulas_criterios_catalogo(
+    aula_frame = aula_frame,
+    catalog_signals = catalog_signals,
+    filas_alumno = list(
+      student_id = student_id, formation = formation, condition = condition,
+      age = age, faculty = faculty, level = level
+    ),
+    mapped_columns = list(
+      formation = .cm_criterios_col_exacta(raw, mapping$formation),
+      condition = .cm_aulas_col(raw, mapping$condition),
+      faculty = .cm_aulas_col(raw, mapping$faculty),
+      age = .cm_aulas_col(raw, mapping$age),
+      level = .cm_aulas_col(raw, mapping$level),
+      modality = .cm_aulas_col(raw, mapping$modality),
+      session_type = .cm_aulas_col(raw, mapping$session_type),
+      teacher_type = .cm_criterios_col_teacher_type(raw, mapping),
+      course_level = .cm_aulas_col(raw, mapping$course_level),
+      enrolled_total = .cm_aulas_col(raw, mapping$enrolled_total),
+      campus = .cm_aulas_col(raw, mapping$campus)
+    )
+  )
+  out$criterios_seleccion <- cfg$criterios_seleccion
+  out$criterios_alumno_report <- alumno_sel$report
   out
 }
 

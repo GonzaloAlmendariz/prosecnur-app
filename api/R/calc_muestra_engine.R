@@ -254,7 +254,8 @@ calc_muestra_normalize_estudio <- function(estudio = list()) {
     publication_config = .cm_normalize_workspace_publication_config(ws$publication_config),
     aulas_config = .cm_normalize_workspace_aulas_config(ws$aulas_config),
     notas_diseno = calc_str(ws$notas_diseno, ""),
-    run_history = .cm_normalize_workspace_run_history(ws$run_history)
+    run_history = .cm_normalize_workspace_run_history(ws$run_history),
+    motor_recorrido = .cm_normalize_workspace_motor_recorrido(ws$motor_recorrido)
   )
 }
 
@@ -269,6 +270,23 @@ calc_muestra_normalize_estudio <- function(estudio = list()) {
   n <- length(out)
   if (n > 12L) out <- out[(n - 11L):n]
   out
+}
+
+# Estado persistido del Motor/Recorrido muestral que el frontend guarda en el
+# workspace (perfil institucional editable + decisiones del usuario).
+# Passthrough con garantías mínimas de tipo: `perfil` y `decisiones` son
+# OPACOS para R — el normalizador defensivo real vive en el dominio TS del
+# frontend. Proyectos viejos sin el campo -> NULL (retrocompat).
+.cm_normalize_workspace_motor_recorrido <- function(mr) {
+  if (is.null(mr) || !is.list(mr)) return(NULL)
+  list(
+    schema = calc_str(mr$schema, "calc_muestra_workspace_motor_v1"),
+    fuente = calc_enum(mr$fuente, c("proyecto", "manual"), "proyecto"),
+    perfil = if (is.list(mr$perfil)) mr$perfil else NULL,
+    decisiones = if (is.list(mr$decisiones)) mr$decisiones else NULL,
+    tocado = calc_bool(mr$tocado, default = FALSE),
+    actualizado_at = calc_str(mr$actualizado_at, "")
+  )
 }
 
 .cm_normalize_workspace_source_bindings <- function(items) {
@@ -362,6 +380,9 @@ calc_muestra_normalize_estudio <- function(estudio = list()) {
     "pps_balanceado"
   )
   modalidad_values <- c("presencial_aula", "mixto_aula", "online_controlado")
+  # Fuente única de los defaults de patrones de exclusión: el propio motor de
+  # aulas (no se duplican literales aquí).
+  filtros_default <- calc_muestra_aulas_default_config()$filters
   list(
     schema = calc_str(cfg$schema, "calc_muestra_workspace_aulas_v1"),
     modalidad = calc_enum(cfg$modalidad, modalidad_values, "presencial_aula"),
@@ -374,6 +395,62 @@ calc_muestra_normalize_estudio <- function(estudio = list()) {
     require_adult = calc_bool(cfg$require_adult, TRUE),
     min_age = calc_int(cfg$min_age, 18L, min = 0L, max = 120L),
     require_in_person = calc_bool(cfg$require_in_person, TRUE),
+    # Patrones de exclusión históricos (nivel/modalidad/sesión). H8b: al no
+    # estar en esta whitelist, cada PUT/GET del estudio los BORRABA y el build
+    # recibía los defaults del frontend (filtro de tipo de sesión apagado).
+    # Mismo contrato que accepted_teacher_type_patterns: ausente -> default
+    # del motor; una list() vacía explícita se respeta.
+    exclude_level_patterns = if (is.null(cfg$exclude_level_patterns)) {
+      filtros_default$exclude_level_patterns
+    } else {
+      .cm_normalize_chr_list(cfg$exclude_level_patterns)
+    },
+    exclude_modality_patterns = if (is.null(cfg$exclude_modality_patterns)) {
+      filtros_default$exclude_modality_patterns
+    } else {
+      .cm_normalize_chr_list(cfg$exclude_modality_patterns)
+    },
+    exclude_session_patterns = if (is.null(cfg$exclude_session_patterns)) {
+      filtros_default$exclude_session_patterns
+    } else {
+      .cm_normalize_chr_list(cfg$exclude_session_patterns)
+    },
+    # Criterios adicionales del marco de aulas (docente/nivel/sede/c7/c8).
+    # Sin estas entradas el round-trip de guardado del proyecto BORRA los
+    # campos (el workspace es whitelist-only, gotcha conocido del repo).
+    require_stable_teacher = calc_bool(cfg$require_stable_teacher, FALSE),
+    # El default aplica SOLO cuando el campo viene ausente (NULL): una list()
+    # vacía explícita se respeta (el usuario limpió los patrones a propósito).
+    accepted_teacher_type_patterns = if (is.null(cfg$accepted_teacher_type_patterns)) {
+      .cm_criterios_default_filters()$accepted_teacher_type_patterns
+    } else {
+      .cm_normalize_chr_list(cfg$accepted_teacher_type_patterns)
+    },
+    # H7: patrones aceptados de formación (criterio de pregrado sobre la
+    # columna real de la base); mismo contrato ausente->default / list()
+    # explícita respetada.
+    accepted_formation_patterns = if (is.null(cfg$accepted_formation_patterns)) {
+      .cm_criterios_default_filters()$accepted_formation_patterns
+    } else {
+      .cm_normalize_chr_list(cfg$accepted_formation_patterns)
+    },
+    # H9: excepciones de tipo de sesión por unidad académica (passthrough con
+    # el normalizador de calc_muestra_aulas_criterios.R).
+    session_type_excepciones = .cm_criterios_normalize_session_excepciones(cfg$session_type_excepciones),
+    # Passthrough defensivo: solo lista nombrada con rangos válidos; el
+    # normalizador vive en calc_muestra_aulas_criterios.R.
+    nivel_por_unidad = .cm_criterios_normalize_nivel_por_unidad(cfg$nivel_por_unidad),
+    accepted_campuses = .cm_normalize_chr_list(cfg$accepted_campuses),
+    require_min_prevalence = calc_bool(cfg$require_min_prevalence, FALSE),
+    min_prevalence_pct = calc_num(cfg$min_prevalence_pct, 0.8, min = 0, max = 1),
+    require_cycle_homogeneity = calc_bool(cfg$require_cycle_homogeneity, FALSE),
+    min_cycle_homogeneity_pct = calc_num(cfg$min_cycle_homogeneity_pct, 0.8, min = 0, max = 1),
+    # Suite de criterios por categoría (scope alumno + aula). Whitelist-only:
+    # sin esta entrada el round-trip del proyecto BORRA la selección y la suite
+    # no sobrevive reapertura. Passthrough por el normalizador de criterios;
+    # ausente/ inválido degrada a list() (sentinela de "sin selección" ->
+    # marco por path legacy, retro-compat).
+    criterios_seleccion = .cm_criterios_normalize_seleccion(cfg$criterios_seleccion),
     usar_grupos_tamano = calc_bool(cfg$usar_grupos_tamano, TRUE),
     grupos_tamano = cfg$grupos_tamano %||% list(),
     estratos_selector = .cm_normalize_chr_list(cfg$estratos_selector %||% c("faculty", "sex_top_1", "size_group")),
