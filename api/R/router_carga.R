@@ -1630,18 +1630,8 @@ mount_carga <- function(pr) {
       resumen <- summarize_instrumento(inst)
       list(ok = TRUE, resumen = resumen)
     })) |>
-    plumber::pr_get("/api/carga/instrumento/estructura", wrap_endpoint(function(req, res) {
-      sid <- session_header(req)
-      s <- session_get(sid)
-      inst <- if (!is.null(s$inst_limpieza)) s$inst_limpieza else {
-        meta_files <- Filter(function(f) f$kind == "xlsform", s$files)
-        if (length(meta_files) == 0) stop_api(409, "E_NO_XLSFORM", "No XLSForm uploaded yet")
-        x <- leer_xlsform_limpieza(meta_files[[length(meta_files)]]$path, verbose = FALSE)
-        session_set(sid, "inst_limpieza", x)
-        x
-      }
-      estructura_instrumento(inst)
-    })) |>
+    plumber::pr_get("/api/carga/instrumento/estructura",
+                    wrap_endpoint(.carga_estructura_instrumento_endpoint)) |>
     plumber::pr_post("/api/carga/data", wrap_endpoint(function(req, res, file_id = NULL) {
       sid <- session_header(req)
       if (is.null(file_id) || !nzchar(file_id)) stop_api(400, "E_MISSING_FILE_ID", "Body must include file_id")
