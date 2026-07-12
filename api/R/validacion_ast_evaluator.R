@@ -80,6 +80,12 @@ evaluate_rules <- function(rules,
   assign("mean", .legacy_safe_mean, envir = eval_env)
   assign("min", .legacy_safe_min, envir = eval_env)
   assign("max", .legacy_safe_max, envir = eval_env)
+  # Builtins ODK de valor usados por las calculate recompiladas (calculate_check):
+  # `number(x)` e `int(x)` no existen como funciones R. Sin ellas, expresiones
+  # como `ifelse(cond, number(${x}), 0)` reventaban con "could not find
+  # function 'number'". Se inyectan como los overrides de sum/mean.
+  assign("number", .vd_odk_number, envir = eval_env)
+  assign("int", .vd_odk_int, envir = eval_env)
   # Tablas adicionales (repeats) para aggregate_cmp — si vacío, las reglas
   # que las usen devolverán NA (conservador, no falso-positivo).
   assign("__data_multi__", as.list(data_multi), envir = eval_env)
