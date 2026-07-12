@@ -895,3 +895,10 @@
 .cmv2-marco-vacio .pulso-empty-state-hint {
   max-width: 52ch;
 }
+
+/* Embudo detallado de aula bajo los KPIs de Marco → Aulas */
+.cmv2-marco-embudo-aula {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--pulso-border);
+}

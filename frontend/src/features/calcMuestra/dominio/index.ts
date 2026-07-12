@@ -7,6 +7,7 @@ export {
   coberturaDesdeFrame,
   perfilActivo,
   embudoAulaDesdeFrame,
+  embudoAlumnoDesdeFrame,
   impactoOpcionalesDesdeFrame,
   type ImpactoOpcionalAula,
 } from "./adaptador";
