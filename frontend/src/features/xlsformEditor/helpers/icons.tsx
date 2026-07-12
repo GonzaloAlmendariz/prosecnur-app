@@ -20,6 +20,7 @@ import {
   EyeOff,
   File,
   Folder,
+  FolderMinus,
   Hash,
   Image as ImageIcon,
   ListChecks,
@@ -76,11 +77,14 @@ export function iconForType(baseType: string): LucideIcon {
       return IconAI;
 
     case "begin_group":
-    case "end_group":
       return Folder;
+    case "end_group":
+    case "end_repeat":
+      // Cierre de sección: misma familia de carpeta pero con el signo "–"
+      // que comunica "aquí termina el grupo", distinto del inicio.
+      return FolderMinus;
 
     case "begin_repeat":
-    case "end_repeat":
       return Repeat;
 
     case "image":

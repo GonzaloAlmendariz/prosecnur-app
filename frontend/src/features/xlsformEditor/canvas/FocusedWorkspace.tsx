@@ -9,6 +9,7 @@ import {
   Database,
   Eye,
   FileText,
+  FolderMinus,
   ImagePlus,
   Info,
   Layers3,
@@ -271,6 +272,8 @@ export function FocusedWorkspace({
             onSelectRow={onSelectRow}
             formCanvasProps={formCanvasProps}
           />
+        ) : selection?.kind === "survey" ? (
+          <SectionEndPanel />
         ) : (
           <FocusEmptyState />
         )}
@@ -315,6 +318,17 @@ function buildHeaderCopy(
       subtitle: `${typeLabel(node.typeInfo.base)}${node.name ? ` · ${node.name}` : ""}${place}`,
       icon: Icon,
       iconStyle: { color: accent, background: accentSoft },
+    };
+  }
+
+  if (selection?.kind === "survey") {
+    // Selección de una fila de CIERRE de sección (no tiene node en byRow).
+    return {
+      kicker: "Cierre de sección",
+      title: "Fin del grupo",
+      subtitle: "Marca dónde termina la sección abierta.",
+      icon: FolderMinus,
+      iconStyle: undefined,
     };
   }
 
@@ -4014,6 +4028,22 @@ function FocusEmptyState() {
       </span>
       <strong>Selecciona una pieza del formulario</strong>
       <p>El workspace mostrará la pregunta, sección o ajustes que elijas en la estructura.</p>
+    </div>
+  );
+}
+
+function SectionEndPanel() {
+  return (
+    <div className="pulso-focus-empty pulso-focus-sectionend">
+      <span className="pulso-focus-empty-icon">
+        <FolderMinus size={18} />
+      </span>
+      <strong>Cierre de sección</strong>
+      <p>
+        Esta fila marca dónde termina el grupo. Es una pieza independiente del
+        inicio: usa <em>Eliminar</em> para quitarla (la sección quedará abierta)
+        o agrega un nuevo cierre desde el menú donde quieras que termine.
+      </p>
     </div>
   );
 }

@@ -18,6 +18,7 @@ import {
   MessageSquare,
   Calculator,
   FolderPlus,
+  FolderMinus,
   ChevronLeft,
   ImagePlus,
   Mic,
@@ -29,6 +30,7 @@ import {
 
 export type AddBetweenKind =
   | "section"
+  | "section_end"
   | "text"
   | "select_one"
   | "select_multiple"
@@ -87,7 +89,8 @@ const TYPES: Array<{
   { kind: "geopoint", label: "Punto GPS", icon: MapPin, hint: "Ubicación puntual del levantamiento", group: "evidence" },
   { kind: "note", label: "Nota informativa", icon: MessageSquare, hint: "Instrucción visible sin guardar respuesta", group: "logic" },
   { kind: "calculate", label: "Campo automático", icon: Calculator, hint: "Variable calculada con una fórmula XLSForm", group: "logic" },
-  { kind: "section", label: "Sección", icon: FolderPlus, hint: "Bloque para ordenar preguntas y aplicar lógica común", group: "logic" },
+  { kind: "section", label: "Sección", icon: FolderPlus, hint: "Grupo con inicio y cierre; el cierre se puede mover", group: "logic" },
+  { kind: "section_end", label: "Cerrar sección", icon: FolderMinus, hint: "Inserta solo un cierre suelto", group: "logic" },
 ];
 
 const GROUPS: Array<{ id: (typeof TYPES)[number]["group"]; label: string }> = [

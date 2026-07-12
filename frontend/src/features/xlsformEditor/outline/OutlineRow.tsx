@@ -13,7 +13,7 @@
 
 import type { KeyboardEvent, MouseEvent } from "react";
 import { useSortable } from "@dnd-kit/sortable";
-import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
+import { ArrowDown, ArrowUp, FolderMinus, GripVertical } from "lucide-react";
 import { IconConditionalLogic } from "../../../lib/icons";
 import type { BuilderNode } from "../types";
 import { iconForType } from "../helpers/icons";
@@ -21,6 +21,64 @@ import { stripMarkdown } from "../helpers/markdown";
 import { paletteForType } from "../helpers/paletteForType";
 import { typeLabel } from "../parsing/parseType";
 import { previewKindLabel } from "../parsing/buildIndex";
+
+/**
+ * Fila de CIERRE de sección — la contraparte visible del `begin_*`. Antes el
+ * outline ocultaba el `end_group` y mostraba un chip "auto"; ahora el cierre
+ * es una pieza propia que el usuario ve, selecciona y elimina. No participa
+ * del drag-sort (la sección se mueve como bloque atómico desde su apertura);
+ * para reubicar el cierre, se elimina y se agrega "Cerrar sección" donde se
+ * quiera. Vive fuera del SortableContext.
+ */
+export function OutlineCloseRow({
+  rowIndex,
+  label,
+  depth,
+  kind,
+  active,
+  onSelect,
+}: {
+  rowIndex: number;
+  label: string;
+  depth: number;
+  kind: "section" | "repeat";
+  active: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <div
+      className={`pulso-outline-row pulso-outline-closerow${active ? " is-active" : ""}`}
+      data-outline-row={rowIndex}
+      data-depth={depth}
+    >
+      <span className="pulso-outline-grip is-decor" aria-hidden="true" />
+      <div
+        role="button"
+        tabIndex={0}
+        aria-current={active ? "true" : undefined}
+        onClick={onSelect}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSelect();
+          }
+        }}
+        className="pulso-outline-body"
+        style={{ paddingLeft: 2 + depth * 14 }}
+      >
+        <span aria-hidden="true" className="pulso-outline-typeicon pulso-outline-closeicon">
+          <FolderMinus size={14} />
+        </span>
+        <span className="pulso-outline-text">
+          <strong className="pulso-outline-title">Cierre de {kind === "repeat" ? "repetición" : "sección"}</strong>
+          <span className="pulso-outline-subtitle">
+            Termina <span className="pulso-outline-closelabel">{stripMarkdown(label) || label}</span>
+          </span>
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export type OutlineRowProps = {
   node: BuilderNode;
@@ -55,7 +113,6 @@ export function OutlineRow({
   const Icon = iconForType(node.typeInfo.base);
   const accent = paletteForType(node.typeInfo.base);
   const isBlock = node.kind === "section" || node.kind === "repeat";
-  const closingType = node.kind === "repeat" ? "end_repeat" : "end_group";
 
   function onKey(e: KeyboardEvent<HTMLDivElement>) {
     if (e.key === "Enter" || e.key === " ") {
@@ -72,9 +129,9 @@ export function OutlineRow({
   return (
     <div
       ref={setNodeRef}
-      className={`pulso-outline-row${isDragging ? " is-dragging" : ""}${
-        active ? " is-active" : ""
-      }`}
+      className={`pulso-outline-row${isBlock ? ` pulso-outline-row--${node.kind}` : ""}${
+        isDragging ? " is-dragging" : ""
+      }${active ? " is-active" : ""}`}
       data-outline-row={node.rowIndex}
       data-depth={node.depth}
     >
@@ -123,15 +180,6 @@ export function OutlineRow({
               </>
             ) : null}
           </span>
-          {isBlock ? (
-            <span
-              className="pulso-outline-boundary"
-              title={`El cierre técnico ${closingType} se crea automáticamente y se mueve con el alcance de la sección.`}
-            >
-              <code>{closingType}</code>
-              <span>auto</span>
-            </span>
-          ) : null}
         </span>
         {node.relevant && (
           <span

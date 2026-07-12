@@ -100,6 +100,7 @@ export { default as FileWarning } from "lucide-react/dist/esm/icons/file-exclama
 export { default as Filter } from "lucide-react/dist/esm/icons/funnel.mjs";
 export { default as Folder } from "lucide-react/dist/esm/icons/folder.mjs";
 export { default as FolderClosed } from "lucide-react/dist/esm/icons/folder-closed.mjs";
+export { default as FolderMinus } from "lucide-react/dist/esm/icons/folder-minus.mjs";
 export { default as FolderOpen } from "lucide-react/dist/esm/icons/folder-open.mjs";
 export { default as FolderPlus } from "lucide-react/dist/esm/icons/folder-plus.mjs";
 export { default as FolderSearch } from "lucide-react/dist/esm/icons/folder-search.mjs";
