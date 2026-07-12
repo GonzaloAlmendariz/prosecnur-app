@@ -1000,12 +1000,29 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   formation <- .cm_aulas_values(raw, .cm_criterios_col_exacta(raw, mapping$formation), "")
 
   sid_ok <- nzchar(student_id)
+  # Precedencia suite ⇒ flags legacy. Cuando la suite por categoría está activa
+  # (.cm_criterios_seleccion_activa), ELLA es la autoridad única de las
+  # dimensiones que cubre y los filtros legacy de esas dimensiones se
+  # NEUTRALIZAN (quedan en TRUE, no restan elegibilidad). Con AND —el modelo
+  # viejo— la suite no podía EXPANDIR más allá de los defaults legacy encendidos
+  # (p.ej. MAESTRIA marcada en la suite de formación seguía cayendo por
+  # require_undergraduate=TRUE), rompiendo el principio del módulo: la suite
+  # decide qué se incluye/excluye. Sin suite activa, retro-compat bit a bit:
+  # cada bloque corre exactamente como antes. Ver calc_muestra_aulas_criterios.R
+  # (comentario "Retro-compat innegociable", ~L39-42).
+  suite_activa <- .cm_criterios_seleccion_activa(cfg$criterios_seleccion)
+
+  # Scope alumno (edad/condición/formación → dimensiones que la suite cubre):
+  # con suite activa los tres flags quedan en TRUE para todas las filas y la
+  # población objetivo la decide SOLO alumno_sel$marco_ok (abajo). Si la suite
+  # activa NO trae criterio para una de estas dimensiones, esa dimensión no
+  # filtra (suite activa ⇒ suite manda). Sin suite activa, comportamiento legacy.
   age_ok <- rep(TRUE, length(student_id))
-  if (isTRUE(cfg$filters$require_adult) && any(is.finite(age))) {
+  if (!suite_activa && isTRUE(cfg$filters$require_adult) && any(is.finite(age))) {
     age_ok <- is.finite(age) & age >= cfg$filters$min_age
   }
   condition_ok <- rep(TRUE, length(student_id))
-  if (any(nzchar(condition)) && length(cfg$filters$accepted_conditions)) {
+  if (!suite_activa && any(nzchar(condition)) && length(cfg$filters$accepted_conditions)) {
     condition_ok <- .cm_aulas_contains_any(condition, cfg$filters$accepted_conditions)
   }
   # H7: cuando la base trae columna de formación con señal, el criterio de
@@ -1015,19 +1032,27 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   # se restringen (sin señal pasa, misma semántica que el resto de filtros).
   formation_patterns <- .cm_aulas_chr_vec(cfg$filters$accepted_formation_patterns)
   level_ok <- rep(TRUE, length(student_id))
-  if (isTRUE(cfg$filters$require_undergraduate)) {
+  if (!suite_activa && isTRUE(cfg$filters$require_undergraduate)) {
     if (length(formation_patterns) && any(nzchar(formation))) {
       level_ok <- !nzchar(formation) | .cm_aulas_contains_any(formation, formation_patterns)
     } else if (any(nzchar(level))) {
       level_ok <- !.cm_aulas_contains_any(level, cfg$filters$exclude_level_patterns)
     }
   }
+  # Scope aula (modalidad/tipo de sesión → dimensiones que la suite cubre): con
+  # suite activa estos flags per-fila quedan en TRUE y la modalidad/tipo se
+  # deciden a nivel de aula desde el catálogo en la evaluación de scope aula de
+  # calc_muestra_aulas_criterios.R (autoritativo, fix del −281). El marco NO
+  # queda sin filtro de aula: la suite aplica modalidad/tipo/docente/nivel por
+  # aula y min_eligible_per_class sigue vigente aparte. Misma regla que scope
+  # alumno: si la suite activa no incluye una dimensión de aula, esa dimensión
+  # no filtra (suite manda). Sin suite activa, comportamiento legacy intacto.
   modality_ok <- rep(TRUE, length(student_id))
-  if (isTRUE(cfg$filters$require_in_person) && any(nzchar(modality))) {
+  if (!suite_activa && isTRUE(cfg$filters$require_in_person) && any(nzchar(modality))) {
     modality_ok <- !.cm_aulas_contains_any(modality, cfg$filters$exclude_modality_patterns)
   }
   session_ok <- rep(TRUE, length(student_id))
-  if (length(cfg$filters$exclude_session_patterns) && any(nzchar(session_type))) {
+  if (!suite_activa && length(cfg$filters$exclude_session_patterns) && any(nzchar(session_type))) {
     session_ok <- !.cm_aulas_contains_any(session_type, cfg$filters$exclude_session_patterns)
     # H9: excepciones por unidad (p.ej. taller/artístico solo en Arte y
     # Diseño); la lógica vive en calc_muestra_aulas_criterios.R.

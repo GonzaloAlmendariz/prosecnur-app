@@ -415,6 +415,68 @@ test_that("normalización de la selección: defensiva y sentinela de ausencia", 
   expect_identical(sel$byVariable$age$layer, "marco")
 })
 
+# --- Precedencia: suite activa ⇒ autoridad única (neutraliza flags legacy) ----
+# Cuando la suite por categoría está activa, ELLA gobierna las dimensiones que
+# cubre y los flags legacy encendidos por default NO deben restar elegibilidad.
+# Caso canónico: MAESTRIA marcada en la suite de formación entra pese a
+# require_undergraduate=TRUE. Retro-compat: sin suite, el flag legacy sigue
+# filtrando maestría fuera.
+
+# Base con dos aulas: una de puro PREGRADO y otra de pura MAESTRIA (12 alumnos
+# cada una). El resto de señales de alumno es constante para aislar la formación.
+.crit_prec_base <- function() {
+  rbind(
+    .crit_gold_estudiantes("APRE", n = 12, facultad = "CIENCIAS E INGENIERIA", formacion = "PREGRADO"),
+    .crit_gold_estudiantes("AMAE", n = 12, facultad = "CIENCIAS E INGENIERIA", formacion = "MAESTRIA")
+  )
+}
+
+# Flags legacy ENCENDIDOS y canónicos (require_undergraduate=TRUE, pregrado como
+# formación aceptada). Las demás dimensiones apagadas para aislar la formación.
+.crit_prec_config <- function(seleccion = NULL) {
+  cfg <- list(
+    mapping = list(faculty = c("facultad_del_curso"), enrolled_total = c("matriculados")),
+    filters = list(
+      require_undergraduate = TRUE, accepted_formation_patterns = list("pregrado"),
+      require_adult = FALSE, require_in_person = FALSE,
+      exclude_session_patterns = list(), accepted_conditions = list(),
+      min_eligible_per_class = 1L
+    )
+  )
+  if (!is.null(seleccion)) cfg$criterios_seleccion <- seleccion
+  cfg
+}
+
+test_that("precedencia: suite de formación con MAESTRIA override a require_undergraduate", {
+  base <- .crit_prec_base()
+  # Suite ACTIVA: scope formación INCLUYE pregrado Y maestría en capa marco.
+  sel <- list(byVariable = list(
+    formation = list(mode = "include", categories = list("pregrado", "maestria"), layer = "marco")
+  ))
+  frame <- calc_muestra_aulas_construir(base_madre = base, config = .crit_prec_config(sel))
+  # La población objetivo CONTIENE las filas de maestría: la suite gobierna y
+  # neutraliza el require_undergraduate=TRUE legacy (que solía ANDear la suite
+  # fuera de sus propios defaults).
+  expect_true(all(paste0("AMAE_s", 1:12) %in% frame$population$student_id))
+  expect_true(all(paste0("APRE_s", 1:12) %in% frame$population$student_id))
+  expect_identical(frame$perfil$poblacion_n, 24L)
+  # Ambas aulas quedan en el marco (cada una con 12 elegibles).
+  af <- frame$aula_frame
+  expect_identical(sort(af$classroom_id[af$included %in% TRUE]), c("AMAE", "APRE"))
+})
+
+test_that("retro-compat: sin suite, require_undergraduate=TRUE sigue filtrando MAESTRIA", {
+  base <- .crit_prec_base()
+  frame <- calc_muestra_aulas_construir(base_madre = base, config = .crit_prec_config())
+  # Sin criterios_seleccion los flags legacy mandan: maestría fuera de N.
+  expect_false(any(paste0("AMAE_s", 1:12) %in% frame$population$student_id))
+  expect_true(all(paste0("APRE_s", 1:12) %in% frame$population$student_id))
+  expect_identical(frame$perfil$poblacion_n, 12L)
+  # AMAE sin elegibles → fuera del marco; solo APRE queda.
+  af <- frame$aula_frame
+  expect_identical(af$classroom_id[af$included %in% TRUE], "APRE")
+})
+
 # --- Gated: reconciliación contra la base canónica REAL (objetivo 2483) -------
 # Solo corre donde existe el workbook canónico (scratchpad del dev / macOS);
 # en CI se salta. Objetivo del marco = 2483 aulas; población = 21365.
@@ -480,14 +542,21 @@ test_that("[gated] base canónica real: población exacta y marco cerca de 2483"
   cfg <- list(
     mapping = list(faculty = c("facultad_del_curso"), course_level = c("nivel"),
                    session_type = c("tipo_de_curso", "tipo_curso")),
+    # Precedencia suite ⇒ flags legacy: con la suite activa, ELLA es la
+    # autoridad única del scope alumno, así que formación/condición/edad se
+    # expresan DENTRO de la suite (capa marco) y NO por flags legacy (que la
+    # suite ahora neutraliza). El resultado es idéntico al histórico (población
+    # 21365 exacta), ahora bajo el modelo autoritativo.
     filters = list(
-      require_undergraduate = TRUE, accepted_formation_patterns = list("pregrado"),
-      require_adult = TRUE, min_age = 18L, accepted_conditions = as.list("regular"),
+      require_undergraduate = FALSE, require_adult = FALSE, accepted_conditions = list(),
       require_in_person = FALSE, exclude_session_patterns = list(),
       require_stable_teacher = FALSE, nivel_por_unidad = list(), min_eligible_per_class = 10L
     ),
     criterios_seleccion = list(
       byVariable = list(
+        formation = list(mode = "include", categories = list("pregrado"), layer = "marco"),
+        condition = list(mode = "include", categories = list("regular"), layer = "marco"),
+        age = list(mode = "include", threshold = list(op = ">=", min = 18), layer = "marco"),
         modality = list(mode = "include", categories = list("presencial")),
         session_type = list(
           mode = "include",
