@@ -28,6 +28,7 @@ import {
   componentFormulaBase,
   estratosDesdeFrame,
   hasUsefulResult,
+  normalizeUniversityAulasConfig,
   prepareUniversityStudyForCalculation,
   universityComponents,
   universityDefaultWorkspace,
@@ -36,7 +37,8 @@ import {
 import { universitySidebarTabs } from "./universidadTabs";
 import { DefBasesTab, DefCategoriasTab, DefEstudioTab, DefVariablesTab } from "./definicion";
 import { MarcoAulasTab, MarcoConsistenciaTab, MarcoPoblacionTab } from "./marco";
-import { CalculoParametrosTab, CalculoPropuestasTab, CalculoSupuestosTab } from "./calculo";
+import { CriteriosMarcoTab } from "./criterios";
+import { CalculoPropuestasTab, CalculoSupuestosTab } from "./calculo";
 import {
   AulasAuditoriaTab,
   AulasMarcoTab,
@@ -54,6 +56,15 @@ import {
   SalidasResultadosTab,
   type PaqueteDefensaPaso,
 } from "./salidas";
+import { zFromConfidence } from "../didactica/motorPreview";
+import { ResumenDiseno } from "../motor/ResumenDiseno";
+import { usePerfilEfectivo } from "../motor/usePerfilEfectivo";
+import { useMotorStore } from "../motor/store";
+import { TabDatos } from "../motor/pestanas/TabDatos";
+import { TabMarco } from "../motor/pestanas/TabMarco";
+import { TabCalculo } from "../motor/pestanas/TabCalculo";
+import { TabCobertura } from "../motor/pestanas/TabCobertura";
+import { TabDistribucion } from "../motor/pestanas/TabDistribucion";
 
 export function UniversidadDesk({
   estudio,
@@ -85,6 +96,7 @@ export function UniversidadDesk({
   onGenerarPaqueteDefensa,
   paqueteEnCurso,
   paquetePasos,
+  onNavigate,
 }: {
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
@@ -115,6 +127,8 @@ export function UniversidadDesk({
   onSourceBuild: (workspace: CalcMuestraWorkspace) => void | Promise<void>;
   uploadingSourceId: string | null;
   calculando: boolean;
+  /** Navegación del Recorrido: cambia de sección del rail y/o de pestaña local. */
+  onNavigate: (section: string, tab?: string) => void;
 }) {
   const baseWorkspace = useMemo(
     () => workspace.frame_mode === "opinion_universitaria"
@@ -257,6 +271,32 @@ export function UniversidadDesk({
   const selectedSection = ["definicion", "marco", "aulas", "calculo", "salidas"].includes(activeSection)
     ? activeSection
     : "definicion";
+  // Motor reactivo: perfil efectivo (proyecto/manual/ejemplo) y resultados
+  // en vivo, compartidos por la franja de resultados y las pestañas del motor.
+  const motor = usePerfilEfectivo(estudio, aulasState);
+  const parametrosMotor = useMotorStore((s) => s.decisiones.parametros);
+
+  // Criterios de inclusión operables: patch sobre workspace.aulas_config; el
+  // marco se recalcula al reconstruirlo (onSourceBuild, motor R).
+  const configAulas = normalizeUniversityAulasConfig(syncedWorkspace.aulas_config);
+  const controlesCriterios = {
+    config: configAulas,
+    onConfig: (patch: Partial<typeof configAulas>) =>
+      onWorkspace({ ...syncedWorkspace, aulas_config: { ...configAulas, ...patch } }),
+  };
+  const puedeReconstruirMarco = (syncedWorkspace.source_bindings ?? []).some((binding) => binding.file_id);
+
+  // Lleva los parámetros del diseño reactivo al estudio real y calcula con R
+  // (misma vía que el resto del desk: patch compartido + prepare + calcular).
+  function aplicarDisenoAlEstudio() {
+    aplicarParametrosDidacticos({
+      z: zFromConfidence(parametrosMotor.confianza),
+      p: parametrosMotor.proporcion,
+      e: parametrosMotor.margenError,
+      deff: parametrosMotor.deff,
+      oversample_pct: Math.max(parametrosMotor.factorSobremuestra - 1, 0),
+    });
+  }
   const localTabs = universitySidebarTabs({
     activeSection: selectedSection,
     estudio,
@@ -317,6 +357,7 @@ export function UniversidadDesk({
           </button>
         </div>
       )}
+      <ResumenDiseno motor={motor} />
       <div className="cmv2-university-workbench" data-active-section={selectedSection}>
         {selectedSection === "definicion" && (
           <div id="cmv2-section-university-setup" className="cmv2-tab-panel" role="tabpanel" aria-label="Definición">
@@ -355,11 +396,45 @@ export function UniversidadDesk({
                 onWorkspace={onWorkspace}
               />
             </div>}
+            {showLocalTab("def-institucion") && <div id="cmv2-local-def-institucion" className="rec-recorrido">
+              <TabDatos
+                perfilEfectivo={motor.perfil}
+                usaProyecto={motor.usaProyecto}
+                hayDatosProyecto={motor.hayDatosProyecto}
+                onIrAFuentes={() => onNavigate("definicion", "def-bases")}
+              />
+            </div>}
           </div>
         )}
 
         {selectedSection === "marco" && (
-          <div id="cmv2-section-university-marco" className="cmv2-tab-panel" role="tabpanel" aria-label="Marco institucional">
+          <div id="cmv2-section-university-marco" className="cmv2-tab-panel" role="tabpanel" aria-label="Marco muestral">
+            {showLocalTab("marco-criterios") && <div id="cmv2-local-marco-criterios" className="rec-recorrido">
+              <TabMarco
+                perfil={motor.perfil}
+                usaProyecto={motor.usaProyecto}
+                controles={controlesCriterios}
+                onReconstruir={() => void onSourceBuild(syncedWorkspace)}
+                puedeReconstruir={puedeReconstruirMarco && !busy}
+                reconstruyendo={Boolean(busy)}
+              />
+            </div>}
+            {showLocalTab("marco-categorias") && <div id="cmv2-local-marco-categorias">
+              <CriteriosMarcoTab
+                workspace={syncedWorkspace}
+                aulasState={aulasState}
+                facultades={motor.perfil.facultades.map((f) => f.nombre)}
+                marcoAulas={motor.perfil.marcoAulas}
+                poblacionN={motor.perfil.facultades.reduce((sum, f) => sum + safeNumber(f.N, 0), 0) || null}
+                onWorkspace={onWorkspace}
+                onReconstruir={() => void onSourceBuild(syncedWorkspace)}
+                puedeReconstruir={puedeReconstruirMarco && !busy}
+                reconstruyendo={Boolean(busy)}
+              />
+            </div>}
+            {showLocalTab("marco-cobertura") && <div id="cmv2-local-marco-cobertura" className="rec-recorrido">
+              <TabCobertura perfil={motor.perfil} cob={motor.cob} />
+            </div>}
             {showLocalTab("marco-poblacion") && <div id="cmv2-local-marco-poblacion">
               <MarcoPoblacionTab workspace={syncedWorkspace} totalComp={totalComp} aulasState={aulasState} />
             </div>}
@@ -409,16 +484,17 @@ export function UniversidadDesk({
 
         {selectedSection === "calculo" && (
           <div id="cmv2-section-university-calculo" className="cmv2-tab-panel" role="tabpanel" aria-label="Cálculo">
-            {showLocalTab("calculo-guia") && <div id="cmv2-local-calculo-guia">
-              <CalculoParametrosTab
-                N={safeNumber(totalComp.marco.marco_validado)}
-                parametros={totalComp.parametros}
-                metaValor={safeNumber(totalComp.meta.valor) > 0 ? safeNumber(totalComp.meta.valor) : undefined}
-                onAplicarParametros={aplicarParametrosDidacticos}
-                marcoReady={marcoReady}
-                onCalcular={calculateSample}
+            {showLocalTab("calculo-diseno") && <div id="cmv2-local-calculo-diseno" className="rec-recorrido">
+              <TabCalculo
+                perfil={motor.perfil}
+                e1={motor.e1}
+                e2={motor.e2}
+                onAplicarAlEstudio={motor.usaProyecto && marcoReady ? aplicarDisenoAlEstudio : undefined}
                 calculando={calculando}
               />
+            </div>}
+            {showLocalTab("calculo-distribucion") && <div id="cmv2-local-calculo-distribucion" className="rec-recorrido">
+              <TabDistribucion perfil={motor.perfil} e1={motor.e1} />
             </div>}
             {showLocalTab("calculo-propuestas") && <div id="cmv2-local-calculo-propuestas">
               <CalculoPropuestasTab

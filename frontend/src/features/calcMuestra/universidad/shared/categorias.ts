@@ -267,13 +267,20 @@ export function inferUniversityColumn(role: string, columns: string[]) {
     ],
     sex: ["sex", "sexo", "genero", "gender"],
     level: ["level", "nivelseguncreditos", "nivelseguncredito", "nivelporcreditos", "nivelcreditos", "nivelcurricular", "ciclo", "nivel", "anio", "ano", "semestre"],
+    formation: ["formation", "formacion", "nivelacademico", "nivelformativo"],
     course_id: ["courseid", "cursoid", "codigocurso", "codcurso", "curso"],
     course_schedule_id: ["coursescheduleid", "cursohorario", "codigocursohorario", "idcursohorario", "seccionhorario", "nrc"],
     course_name: ["coursename", "nombredelcurso", "nombrecurso", "asignatura", "curso"],
     classroom: ["classroom", "aula", "seccion", "salon"],
     teacher: ["teacher", "docente", "profesor", "contacto"],
+    teacher_type: ["teachertype", "tipodedocente", "tipodocente", "categoriadocente", "dedicaciondocente", "condiciondocente"],
     schedule: ["schedule", "horario", "turno", "bloque"],
     modality: ["modality", "modalidad", "tipo"],
+    age: ["age", "edad"],
+    session_type: ["sessiontype", "tipodesesion", "tiposesion", "tipodecurso", "tipocurso", "tipodeclase", "actividad"],
+    enrolled_total: ["enrolledtotal", "cantidadmatriculados", "matriculadostotal", "totalmatriculados", "matriculados"],
+    course_level: ["courselevel", "nivelcurso", "niveldelcurso", "ciclocurso", "ciclodelcurso"],
+    campus: ["campus", "sede", "filial"],
     condition: ["condition", "condicion", "condiciondelcurso", "condicionmatricula", "elegible", "habilitado", "valido", "regular"],
     eligible: ["eligible", "elegible", "habilitado", "valido", "regular", "condicion", "condiciondelcurso"],
   };
@@ -292,6 +299,11 @@ export function inferUniversityColumn(role: string, columns: string[]) {
     );
     return direct?.column ?? "";
   }
+  // formation NO participa del pase parcial: el substring bidireccional
+  // secuestraría columnas como "Nivel" (⊂ "nivelacademico") o "Información
+  // adicional" (⊇ "formacion") — misma clase de bug que el colapso de
+  // identidad de aula (H4). Solo se automapea con match exacto normalizado.
+  if (role === "formation") return "";
   for (const synonym of synonyms[role] ?? []) {
     const partial = normalized.find((item) => item.normalized.includes(synonym) || synonym.includes(item.normalized));
     if (partial) return partial.column;
