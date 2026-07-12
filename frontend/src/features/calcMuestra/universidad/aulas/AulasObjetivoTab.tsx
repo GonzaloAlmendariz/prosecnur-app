@@ -17,7 +17,8 @@ import type {
 import { fmtInt, safeNumber } from "../../sharedCore";
 import { UNIVERSITY_AULAS_MODALIDAD_OPTIONS } from "../shared/constants";
 import { normalizeUniversityAulasConfig } from "../shared/study";
-import { CifraFila, CifraMotor, FlujoVertical, PanelAvanzado, TerminoChip, type FlujoEtapa } from "../ui";
+import { PanelAvanzado, TerminoChip } from "../ui";
+import { CadenaAulas } from "./CadenaAulas";
 import { NumberCell, ObjectiveWeightsPanel, type ClassroomLabModel } from "./aulasParts";
 import "../../didactica/didactica.css";
 import "./aulas.css";
@@ -35,9 +36,6 @@ export function AulasObjetivoTab({
     config,
     modalidad,
     objectiveVariables,
-    extraOperativo,
-    targetForDisplay,
-    m1ForDisplay,
     aulasPorEstrato,
     facultades,
     selectorFields,
@@ -58,26 +56,35 @@ export function AulasObjetivoTab({
     });
   }
 
-  const expectedYield = targetForDisplay > 0 && m1ForDisplay > 0 ? targetForDisplay / m1ForDisplay : 0;
-
   // Traducción por facultad: preferimos las filas VALIDADAS del motor
-  // (resultado.aulas_por_estrato); si aún no hay cálculo, caemos a los
-  // estratos del marco con cuotas fijadas.
-  const filasMotor = aulasPorEstrato
-    .filter((row) => safeNumber(row.cuota, 0) > 0 || safeNumber(row.aulas_base, 0) > 0)
-    .slice(0, 10);
-  const filasFallback = facultades
-    .filter((row) => safeNumber(row.cuota_fija, 0) > 0 || safeNumber(row.aulas_base_fijas, 0) > 0)
-    .slice(0, 10)
-    .map((row) => ({
-      estrato: row.label,
-      cuota: safeNumber(row.cuota_fija, 0),
-      aulas_base: safeNumber(row.aulas_base_fijas, 0),
-      aulas_reemplazo: 0,
-      aulas_extra_operativas: safeNumber(row.aulas_extra_operativas, 0),
-    }));
-  const filasCuota = filasMotor.length ? filasMotor : filasFallback;
+  // (resultado.aulas_por_estrato, TODAS las facultades para que los totales
+  // cuadren con el objetivo); si aún no hay cálculo, caemos a los estratos del
+  // marco con cuotas fijadas.
+  const filasMotor = aulasPorEstrato.filter(
+    (row) => safeNumber(row.cuota, 0) > 0 || safeNumber(row.aulas_base, 0) > 0,
+  );
   const cuotaValidada = filasMotor.length > 0;
+  const filasTabla = cuotaValidada
+    ? filasMotor.map((row) => ({
+        estrato: String(row.estrato),
+        cuota: safeNumber(row.cuota, 0),
+        estAula: safeNumber(row.avg_conglomerado, 0),
+        titulares: safeNumber(row.aulas_base, 0),
+        reemplazos: safeNumber(row.aulas_reemplazo, 0),
+        extra: safeNumber(row.aulas_extra_operativas, 0) || config.aulas_extra_operativas_default,
+        total: safeNumber(row.aulas_total, 0),
+      }))
+    : facultades
+        .filter((row) => safeNumber(row.cuota_fija, 0) > 0 || safeNumber(row.aulas_base_fijas, 0) > 0)
+        .map((row) => ({
+          estrato: String(row.label),
+          cuota: safeNumber(row.cuota_fija, 0),
+          estAula: 0,
+          titulares: safeNumber(row.aulas_base_fijas, 0),
+          reemplazos: 0,
+          extra: safeNumber(row.aulas_extra_operativas, 0),
+          total: safeNumber(row.aulas_base_fijas, 0) + safeNumber(row.aulas_extra_operativas, 0),
+        }));
 
   return (
     <div className="cmv2-aulas-stack">
@@ -93,56 +100,53 @@ export function AulasObjetivoTab({
           <TerminoChip termino="reemplazo (M1">reemplazos (M1, M2, M3…)</TerminoChip> equivalentes ya
           sorteados, y el extra operativo se presupuesta aparte.
         </p>
-        <CifraFila>
-          <CifraMotor
-            label="Objetivo de entrevistas"
-            value={targetForDisplay ? fmtInt(targetForDisplay) : "pendiente"}
-            detalle="viene de Cálculo y sus cuotas"
-            origen={targetForDisplay ? "motor" : undefined}
-            hero
+        {cuotaValidada && (
+          <CadenaAulas
+            rows={filasMotor}
+            reemplazosPorTitular={config.bolsas_reemplazo}
+            extraOperativo={config.aulas_extra_operativas_default}
           />
-          <CifraMotor
-            label="Aulas titulares necesarias"
-            value={m1ForDisplay ? fmtInt(m1ForDisplay) : "pendiente"}
-            detalle={expectedYield ? `rinde aprox. ${fmtInt(expectedYield)} estudiantes por aula` : "se estima con N y rendimiento"}
-            origen={m1ForDisplay ? "motor" : undefined}
-          />
-          <CifraMotor
-            label="Reemplazos por titular"
-            value={`R1-R${config.bolsas_reemplazo}`}
-            detalle="alternativas equivalentes por aula"
-          />
-          <CifraMotor
-            label="Extra operativo"
-            value={fmtInt(extraOperativo)}
-            detalle="refuerzo de agenda separado"
-          />
-        </CifraFila>
+        )}
 
-        <div className="cmv2-aulas-cuota-flujos" aria-label="Traducción de cuotas a aulas por facultad">
+        <div className="cmv2-aulas-cuota-flujos" aria-label="Aulas por facultad">
           <div className="cmv2-aulas-cuota-head">
-            <strong>Traducción por facultad</strong>
+            <strong>Detalle por facultad</strong>
             <small>{cuotaValidada ? "cuotas y aulas validadas por la calculadora" : "con cuotas fijadas del marco; calcula la muestra para validar"}</small>
           </div>
-          {!filasCuota.length && (
+          {!filasTabla.length ? (
             <p className="cmv2-aulas-nota-suave">
-              Cuando calcules el tamaño por facultad (sección Cálculo), aquí verás cómo cada cuota se convierte en aulas titulares, reemplazos y extra.
+              Cuando calcules el tamaño por facultad (sección Cálculo), aquí verás cómo cada cuota se convierte en aulas titulares, reservas y extra.
             </p>
+          ) : (
+            <div className="cmv2-table-wrap">
+              <table className="cmv2-table cmv2-table--university cmv2-aulas-tabla">
+                <thead>
+                  <tr>
+                    <th>Facultad</th>
+                    <th>Cuota</th>
+                    <th>Est/aula</th>
+                    <th>Titulares</th>
+                    <th>Reservas</th>
+                    <th>Extra</th>
+                    <th>A coordinar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filasTabla.map((row) => (
+                    <tr key={row.estrato}>
+                      <td><strong>{row.estrato}</strong></td>
+                      <td>{fmtInt(row.cuota)}</td>
+                      <td>{row.estAula > 0 ? Math.round(row.estAula) : "—"}</td>
+                      <td>{fmtInt(row.titulares)}</td>
+                      <td>{row.reemplazos > 0 ? fmtInt(row.reemplazos) : `R1-R${config.bolsas_reemplazo}`}</td>
+                      <td>{fmtInt(row.extra)}</td>
+                      <td><strong>{fmtInt(row.total)}</strong></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-          {filasCuota.map((row) => {
-            const etapas: FlujoEtapa[] = [
-              { id: "cuota", label: "cuota n_h", valor: fmtInt(safeNumber(row.cuota, 0)), estado: safeNumber(row.cuota, 0) > 0 ? "ready" : "pending" },
-              { id: "titulares", label: "aulas titulares", valor: fmtInt(safeNumber(row.aulas_base, 0)), estado: safeNumber(row.aulas_base, 0) > 0 ? "ready" : "pending" },
-              { id: "reemplazos", label: "+ reemplazos", valor: safeNumber(row.aulas_reemplazo, 0) ? fmtInt(safeNumber(row.aulas_reemplazo, 0)) : `R1-R${config.bolsas_reemplazo}`, estado: "working" },
-              { id: "extra", label: "+ extra", valor: fmtInt(safeNumber(row.aulas_extra_operativas, 0) || config.aulas_extra_operativas_default), estado: "working" },
-            ];
-            return (
-              <div key={String(row.estrato)} className="cmv2-aulas-cuota-fila">
-                <span className="cmv2-aulas-cuota-facultad">{String(row.estrato)}</span>
-                <FlujoVertical etapas={etapas} orientacion="horizontal" ariaLabel={`Cuota y aulas de ${String(row.estrato)}`} />
-              </div>
-            );
-          })}
         </div>
       </section>
 
