@@ -779,3 +779,26 @@
     transform: translateY(-6px);
   }
 }
+
+/* Cadena A — de la población a la META (overview trazable sobre la tabla) */
+.cmv2-cadena-a {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.cmv2-cadena-a-meta {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--pulso-radius-md, 8px);
+  background: var(--pulso-surface-muted, var(--pulso-surface-2));
+  border: 1px solid var(--pulso-border);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-cadena-a-meta strong {
+  color: var(--pulso-text);
+}
