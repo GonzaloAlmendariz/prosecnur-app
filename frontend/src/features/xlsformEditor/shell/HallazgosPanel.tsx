@@ -30,7 +30,9 @@ export function HallazgosPanel({
         top: 80,
         bottom: 16,
         width: 340,
-        zIndex: 100,
+        // Drawer flotante sobre el contenido: por encima del toolbar del
+        // módulo (z-index 1000), que si no le tapaba la parte superior.
+        zIndex: 1100,
         background: "white",
         border: "1px solid var(--pulso-border, #e5e7eb)",
         borderRadius: 10,

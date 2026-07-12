@@ -24633,7 +24633,12 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 
 .pulso-diagnostics-popover {
   position: fixed;
-  z-index: 700;
+  /* Se portalea a body y ancla bajo la barra de "avisos", que vive en el
+     commandbar dentro de `.pulso-page-frame-toolbar` (z-index 1000 +
+     transform). Con 700 el toolbar (Nuevo formulario / Importar / Exportar…)
+     se pintaba ENCIMA del popover. Sube por encima del chrome (igual que el
+     overlay del mapa y el ContextLens). */
+  z-index: 1400;
   width: min(420px, calc(100vw - 24px));
   max-height: min(560px, calc(100vh - 80px));
   display: flex;
