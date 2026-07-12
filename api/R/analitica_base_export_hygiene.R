@@ -64,83 +64,12 @@
 }
 
 # Colapsa las columnas DUPLICADAS con prefijo de grupo que arrastra la base real
-# del handoff de Monitoreo. Cada variable de análisis puede aparecer dos veces:
-# limpia (`E1_age`, `A1_leg`) y cruda con prefijo de grupo en minúscula
-# (`Core.e1_age`, `A.a1_leg`, `D.d1_information`). Este helper:
-#   - DROPEA la versión cruda cuando tiene un gemelo limpio con datos IDÉNTICOS
-#     (duplicado puro); si difieren, deja ambas (defensivo).
-#   - RENOMBRA la cruda a su nombre limpio del survey cuando NO tiene gemelo
-#     (columnas valiosas únicas: `Core.date`, `Core.e1_age_calc`, `D.d1_information`,
-#     los `time_*`), para que el reorden canónico las reubique en su sección.
-#   - Deja INTACTA la metadata (`formhub.uuid`, `meta.instanceid`) cuyo `rest` no
-#     matchea ningún nombre del survey, y los dummies `Parent.code` (rest numérico).
-# NO toca metadata Kobo ni derivadas: solo colapsa los duplicados group-prefixed.
-# Guardrails: preserva atributos top-level; no-op sin `inst$survey` o sin
-# columnas group-prefixed.
+# del handoff de Monitoreo. Wrapper delgado sobre el helper NEUTRO compartido de
+# `base_hygiene.R` (misma lógica reusada por el promote y la lectura de Ver base
+# / Validación). Se mantiene el nombre `.analitica_*` porque el review compartido
+# de Analítica (router_analitica.R) lo invoca por su nombre histórico.
 .analitica_base_collapse_group_prefixed_dupes <- function(data, inst) {
-  if (!is.data.frame(data) || !length(names(data))) return(data)
-  survey <- (inst %||% list())$survey
-  if (is.null(survey) || !("name" %in% names(survey))) return(data)
-  sv <- as.character(survey$name)
-  sv <- sv[!is.na(sv) & nzchar(sv)]
-  if (!length(sv)) return(data)
-
-  cols <- names(data)
-  cols_lower <- tolower(cols)
-  # canon (case del survey) indexado por su tolower, para el lookup case-insensitive.
-  canon <- sv[!duplicated(tolower(sv))]
-  canon_lower <- tolower(canon)
-
-  to_drop <- character(0)
-  renames <- list()          # col cruda -> nombre limpio del survey
-  rename_targets <- character(0)
-
-  for (col in cols) {
-    m <- regmatches(col, regexec("^([^.]+)\\.(.+)$", col))[[1]]
-    if (length(m) != 3L) next            # no es group-prefixed de un solo punto
-    rest <- m[[3]]
-    if (grepl("^[0-9]+$", rest)) next     # dummy `Parent.code`: no tocar
-
-    idx <- match(tolower(rest), canon_lower)
-    if (is.na(idx)) next                  # rest no matchea survey (metadata): intacta
-    canon_name <- canon[idx]
-
-    # ¿Hay un gemelo limpio (columna cuyo tolower == tolower(canon) y != col)?
-    twin_idx <- which(cols_lower == tolower(canon_name) & cols != col)
-    if (length(twin_idx)) {
-      twin <- cols[twin_idx[1]]
-      a <- as.character(data[[col]]);  a[is.na(a)] <- ""
-      b <- as.character(data[[twin]]); b[is.na(b)] <- ""
-      if (identical(a, b)) to_drop <- c(to_drop, col)  # duplicado puro -> drop
-      # difieren -> defensivo, se dejan ambas.
-    } else {
-      # sin gemelo -> renombrar a su nombre limpio, salvo colisión.
-      if (!(canon_name %in% cols) && !(canon_name %in% rename_targets)) {
-        renames[[col]] <- canon_name
-        rename_targets <- c(rename_targets, canon_name)
-      }
-    }
-  }
-
-  if (!length(to_drop) && !length(renames)) return(data)
-
-  top_attrs <- attributes(data)
-  keep_attrs <- setdiff(names(top_attrs), c("names", "row.names", "class"))
-
-  if (length(to_drop)) {
-    data <- data[, setdiff(names(data), to_drop), drop = FALSE]
-  }
-  if (length(renames)) {
-    nm <- names(data)
-    for (col in names(renames)) {
-      i <- which(nm == col)
-      if (length(i) == 1L && !(renames[[col]] %in% nm)) nm[i] <- renames[[col]]
-    }
-    names(data) <- nm
-  }
-
-  for (a in keep_attrs) attr(data, a) <- top_attrs[[a]]
-  data
+  .base_hygiene_collapse_group_prefixed_dupes(data, inst)
 }
 
 # Reconstruye, para cada select_multiple, la columna madre plana `<parent>` con
