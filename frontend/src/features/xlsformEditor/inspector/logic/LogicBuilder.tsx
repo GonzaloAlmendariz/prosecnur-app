@@ -22,7 +22,7 @@
 
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { IconHint } from "../../../../lib/icons";
 import TechTerm from "../../helpers/TechTerm";
 import {
@@ -264,6 +264,20 @@ export function LogicBuilder({
   // Caso 2: condición simple.
   const flat = tryFlattenCondition(ast);
   if (flat) {
+    // Concatenar: al agregar una segunda condición promovemos a un AND plano,
+    // que en el siguiente render cae al caso 3 (LogicGroupBlock con toggle
+    // Todas/Alguna). Así una regla simple no queda atrapada sin poder crecer.
+    const addSecondCondition = () => {
+      const second = buildEmpty();
+      if (!second.variableName) return;
+      onChange(
+        serializeExpression({
+          kind: "logical",
+          op: "and",
+          operands: [expandCondition(flat), expandCondition(second)],
+        }),
+      );
+    };
     return (
       <div className="pulso-logic-builder">
         <header className="pulso-logic-builder-header">
@@ -286,6 +300,19 @@ export function LogicBuilder({
             }}
           />
         </div>
+        {hasVariables && (
+          <footer className="pulso-logic-builder-footer">
+            <button
+              type="button"
+              className="pulso-logic-group-add"
+              onClick={addSecondCondition}
+              disabled={!scope.variables.length}
+              title="Sumar otra condición (menor a X y mayor a Y, etc.)"
+            >
+              <Plus size={12} /> Agregar condición
+            </button>
+          </footer>
+        )}
         {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
       </div>
     );

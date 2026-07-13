@@ -65,7 +65,12 @@ export function paletteForType(baseType: string): string {
 
     case "begin_repeat":
     case "end_repeat":
-      return CATEGORICAL_PALETTE_10[4]; // rosa
+      // Identidad naranja transversal de "grupo repetible" (`--pulso-repeat-*`,
+      // ADR 0030). El repeat es de primera clase en toda la app: el mismo
+      // naranja lo marca en Carga, el editor y el mapa de lógica. Devolvemos el
+      // token CSS (no un hex de la paleta categórica) para que stroke/fill del
+      // SVG y los estilos hereden el color resuelto del tema.
+      return "var(--pulso-repeat-accent)";
 
     // Multimedia
     case "image":
@@ -92,6 +97,11 @@ export function paletteForType(baseType: string): string {
  * un fondo neutral.
  */
 export function paletteSoftForType(baseType: string): string {
+  // Repeat: fondo naranja suave del token (no el neutro que caería por el
+  // guardia `var(` de abajo, ni una conversión rgba de un no-hex).
+  if (baseType === "begin_repeat" || baseType === "end_repeat") {
+    return "var(--pulso-repeat-bg)";
+  }
   const c = paletteForType(baseType);
   if (c.startsWith("var(")) return "var(--pulso-surface-2)";
   return rgbaFromHex(c, 0.1);

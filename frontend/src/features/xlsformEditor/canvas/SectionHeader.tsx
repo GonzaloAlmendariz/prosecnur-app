@@ -9,6 +9,7 @@
 
 import { ChevronDown, Folder, Repeat } from "lucide-react";
 import { IconConditionalLogic } from "../../../lib/icons";
+import { RepeatBadge } from "../../../components/RepeatBadge";
 import { RichInline } from "../helpers/RichInline";
 import { TechTerm } from "../helpers/TechTerm";
 
@@ -47,11 +48,12 @@ export function SectionHeader({
   onToggleCollapsed,
   onLabelChange,
 }: SectionHeaderProps) {
-  const Icon = kind === "repeat" ? Repeat : Folder;
-  const closingType = kind === "repeat" ? "end_repeat" : "end_group";
+  const isRepeat = kind === "repeat";
+  const Icon = isRepeat ? Repeat : Folder;
+  const closingType = isRepeat ? "end_repeat" : "end_group";
   return (
     <header
-      className={`pulso-canvas-section-header${selected ? " is-selected" : ""}`}
+      className={`pulso-canvas-section-header${selected ? " is-selected" : ""}${isRepeat ? " is-repeat" : ""}`}
       style={{ paddingLeft: 4 + depth * 16 }}
       onClick={onSelect}
     >
@@ -80,6 +82,7 @@ export function SectionHeader({
         ariaLabel="Título de la sección"
       />
       <span className="pulso-canvas-section-meta">
+        {isRepeat && <RepeatBadge compact title="Bloque repetido: sus preguntas se repiten por cada registro." />}
         <span className="pulso-canvas-section-count">
           {childCount} {childCount === 1 ? "pregunta" : "preguntas"}
         </span>
