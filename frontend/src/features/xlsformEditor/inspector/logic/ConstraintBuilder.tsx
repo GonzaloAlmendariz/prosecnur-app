@@ -234,6 +234,18 @@ export function ConstraintBuilder({
   // Caso 3: simple `. <op> X`.
   const flat = tryFlattenConstraint(ast);
   if (flat) {
+    // Concatenar: al sumar una segunda regla promovemos a un AND plano, que
+    // en el siguiente render cae al caso 4 (grupo con toggle y/o). Así se
+    // arma "entre X e Y" (. >= X and . <= Y) sin escribir fórmula.
+    const addSecondRule = () => {
+      onChange(
+        serializeExpression({
+          kind: "logical",
+          op: "and",
+          operands: [expandConstraint(flat), expandConstraint(buildEmpty())],
+        }),
+      );
+    };
     return (
       <div className="pulso-logic-builder">
         <header className="pulso-logic-builder-header">
@@ -258,6 +270,16 @@ export function ConstraintBuilder({
             }}
           />
         </div>
+        <footer className="pulso-logic-builder-footer">
+          <button
+            type="button"
+            className="pulso-logic-group-add"
+            onClick={addSecondRule}
+            title="Sumar otra regla (ej. entre un mínimo y un máximo)"
+          >
+            + Agregar regla
+          </button>
+        </footer>
         {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
       </div>
     );
