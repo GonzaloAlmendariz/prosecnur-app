@@ -718,48 +718,29 @@
   transition: transform var(--motion-dur-base) var(--motion-ease-out);
 }
 
-/* --- Tarjeta fantasma para agregar módulo ---------------------------- */
-.home-mc-add-card {
-  display: flex;
-  flex-direction: column;
+/* --- Botón "agregar módulo" en la cabecera --------------------------- */
+.home-mission-add-btn {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 7px;
-  /* Baja: si queda sola en una fila del grid no arrastra una franja vacía;
-     compartiendo fila con tarjetas, stretch la iguala. */
-  min-height: 148px;
-  border: 1.5px dashed var(--pulso-border-strong);
-  border-radius: 18px;
-  padding: 18px;
-  background: transparent;
+  gap: 6px;
+  flex-shrink: 0;
+  height: 34px;
+  padding: 0 14px 0 12px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 999px;
+  background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  text-align: center;
+  font-size: 13px;
+  font-weight: 640;
+  white-space: nowrap;
   cursor: pointer;
   transition: border-color var(--motion-dur-fast) ease, background var(--motion-dur-fast) ease, color var(--motion-dur-fast) ease;
-  animation: home-mc-in var(--motion-dur-base) var(--motion-ease-out) backwards;
-  animation-delay: calc(var(--i, 0) * 55ms);
 }
 
-.home-mc-add-card strong { color: var(--pulso-text); font-size: 14px; font-weight: 740; }
-.home-mc-add-card span:last-child { font-size: 12px; max-width: 24ch; }
-
-.home-mc-add-icon {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 13px;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .home-mc-add-card:hover {
-    border-color: var(--pulso-primary-border);
-    background: var(--pulso-primary-soft);
-    color: var(--pulso-primary);
-  }
-  .home-mc-add-card:hover .home-mc-add-icon { background: var(--pulso-primary-soft); color: var(--pulso-primary); }
+.home-mission-add-btn:hover {
+  border-color: var(--pulso-primary-border);
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
 }
 
 /* --- Diálogo de confirmación (quitar módulo) ------------------------- */
@@ -934,6 +915,11 @@
 .home-setup .home-cinema {
   flex: 1;
   min-height: 0;
+  /* Con más especificidad que la base de theme.css (que aún declara 3 filas
+     `auto minmax(0,1fr) auto` de cuando el carrusel tenía cabecera): el strip
+     debe vivir en una fila `auto` (alto de contenido), no en la fila flexible
+     `1fr` — si no, se estira a ~118px de alto y queda un lozenge inflado. */
+  grid-template-rows: minmax(0, 1fr) auto;
 }
 
 /* --- Carrusel en modo selector (curaduría de módulos) ------------------ */
@@ -1127,137 +1113,27 @@
    contenido con align-content. Si una ventana muy baja no da, el stage hace
    scroll (overflow-y arriba) en vez de solapar. */
 .home-picker-stage .home-cinema {
-  width: min(1000px, 100%);
+  width: min(1240px, 100%);
   height: 100%;
 }
 
 /* =====================================================================
-   Coverflow centrado vertical (solo dentro del pop-over "Módulos del
-   proyecto"). Todo scopeado a `.home-picker-overlay.is-cinema` para no
-   tocar la base compartida (setup) ni pelear con sus ~12 variantes de
-   stage a 2 columnas. La estructura pasa de "deck | panel | strip lejano"
-   a: deck de posters → zona de detalle centrada → strip, agrupados y
-   centrados como un bloque en el lienzo (sin caja vacía).
+   Pop-over "Módulos del proyecto": el carrusel reutiliza la MISMA gramática
+   que el setup ("Arma tu proyecto") —deck | panel lado a lado y strip abajo—
+   para que ambos se vean igual de definidos. Antes el pop-over tenía un
+   coverflow apilado propio (deck arriba / detalle abajo) que se leía menos
+   resuelto y, con los posters ahora solo-ícono, dejaba sin nombre al módulo
+   enfocado. Se conservan únicamente dos ajustes propios del pop-over: el
+   strip en una fila `auto` (evita el lozenge inflado en un contenedor alto) y
+   las features SIEMPRE visibles (aquí sobra alto; no se ocultan por densidad).
    ===================================================================== */
-
-/* El contenido (deck + detalle + strip) se agrupa y centra vertical. */
 .home-picker-overlay.is-cinema .home-cinema {
-  grid-template-rows: auto auto auto;
-  align-content: center;
-  gap: clamp(16px, 2.2vh, 24px);
-  padding: clamp(20px, 3vh, 34px) clamp(24px, 3vw, 44px);
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-content: stretch;
 }
 
-/* Stage: una sola columna, deck (altura acotada) sobre detalle (auto). El deck
-   debe ocupar todo el ancho (sus cartas son position:absolute y no aportan
-   ancho, así que un justify-items:center lo colapsaría). El panel se centra
-   por su propio max-width + margin auto, no por el stage. */
-.home-picker-overlay.is-cinema .home-cinema-stage {
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto auto;
-  align-content: center;
-  justify-items: stretch;
-  gap: clamp(14px, 2.4vh, 26px);
-}
-
-/* Deck a todo el ancho. A ≥~860px de alto el deck supera 360px y el JS deja el
-   modo "roomy" (íconos grandes, look premium); en ventanas más bajas encoge y
-   cae a "compact" — que igual se ve completo porque la lista de features está
-   blindada abajo. El clamp mantiene todo dentro del marco (sin solapar). */
-.home-picker-overlay.is-cinema .home-cinema-deck {
-  width: 100%;
-  height: clamp(280px, 42vh, 380px);
-  min-height: 0;
-}
-
-/* --- Posters limpios: solo ícono + título. Tagline y blurb viven abajo,
-   en la zona de detalle (sin duplicar contenido). --- */
-.home-picker-overlay.is-cinema .home-cinema-card-tagline,
-.home-picker-overlay.is-cinema .home-cinema-card-blurb {
-  display: none;
-}
-
-/* Vecinos legibles como posters (ícono + título atenuado), no íconos sueltos
-   flotando sobre el blanco. */
-.home-picker-overlay.is-cinema .home-cinema-card:not(.is-focused) {
-  grid-template-rows: auto auto;
-  align-content: center;
-  gap: 13px;
-}
-
-.home-picker-overlay.is-cinema .home-cinema-card:not(.is-focused) .home-cinema-card-title {
-  display: block;
-  width: min(100%, 190px);
-  font-size: 15px;
-  font-weight: 780;
-  line-height: 1.15;
-  color: var(--pulso-text-soft);
-  opacity: 0.92;
-}
-
-/* --- Zona de detalle: tarjeta centrada bajo el deck. NO repite el ícono ni
-   el nombre (el poster de arriba ya los muestra); solo tagline + blurb +
-   features en 2 columnas + CTA. --- */
-.home-picker-overlay.is-cinema .home-cinema-panel {
-  width: min(760px, 100%);
-  height: auto;
-  min-height: 0;
-  margin: 0 auto;
-  padding: clamp(16px, 1.8vw, 24px) clamp(22px, 2.6vw, 34px) clamp(16px, 1.8vw, 22px);
-  gap: 10px;
-  justify-content: flex-start;
-  overflow: visible;
-  animation: none;
-}
-
-.home-picker-overlay.is-cinema .home-cinema-panel-top,
-.home-picker-overlay.is-cinema .home-cinema-panel h3 {
-  display: none;
-}
-
-.home-picker-overlay.is-cinema .home-cinema-panel > * {
-  width: 100%;
-}
-
-.home-picker-overlay.is-cinema .home-cinema-panel-tagline {
-  font-size: 14px;
-}
-
-.home-picker-overlay.is-cinema .home-cinema-panel-blurb {
-  max-width: 66ch;
-  margin-inline: auto;
-  /* Detalle completo: sin recorte con "…" (el poster ya es el resumen visual). */
-  display: block;
-  -webkit-line-clamp: unset;
-  overflow: visible;
-}
-
-/* Features SIEMPRE visibles en 2 columnas, aunque el JS marque densidad
-   compact (sus reglas las ocultarían). Selector con `.home-cinema-panel` para
-   igualar la especificidad de la regla compact y ganar por orden. */
 .home-picker-overlay.is-cinema .home-cinema-panel .home-cinema-feature-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 10px;
-  width: 100%;
-  margin-top: 4px;
-}
-
-.home-picker-overlay.is-cinema .home-cinema-picker-actions {
-  display: inline-flex;
-  gap: 10px;
-  align-items: center;
-  justify-content: center;
-  width: auto;
-  margin: 12px auto 0;
-}
-
-/* El CTA no debe estirarse a ancho completo (la regla `> *` lo forzaría). */
-.home-picker-overlay.is-cinema .home-cinema-cta {
-  width: fit-content;
-  align-self: center;
-  margin-top: 12px;
-  padding-inline: 22px;
 }
 
 /* =====================================================================
@@ -1266,8 +1142,7 @@
 
 /* El botón global fuerza nowrap; estos botones-tarjeta llevan párrafos
    descriptivos que deben envolver. */
-.home-layout-preset,
-.home-mc-add-card {
+.home-layout-preset {
   white-space: normal;
 }
 
@@ -1461,7 +1336,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .home-mc-card,
-  .home-mc-add-card,
   .home-picker-overlay {
     animation: none !important;
     transition-duration: 1ms !important;
