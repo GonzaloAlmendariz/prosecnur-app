@@ -33,10 +33,11 @@ ManifestDPIAware true
 
 Name "${APP_NAME}"
 OutFile "${OUTPUT_FILE}"
-; InstallDir fijo: el instalador es single-user y no exponemos pagina de
-; directorio. Asi evitamos que el usuario apunte a una carpeta arbitraria
-; y que el RMDir borre cosas que no son nuestras.
+; Instalación por usuario: la ruta predeterminada evita permisos de
+; administrador, pero el asistente permite elegir otra carpeta escribible.
+; En upgrades recuperamos la última ubicación elegida.
 InstallDir "$LOCALAPPDATA\Programs\Prosecnur"
+InstallDirRegKey HKCU "${APP_REGKEY}" "InstallLocation"
 RequestExecutionLevel user
 
 !define MUI_ICON "${ICON_FILE}"
@@ -66,8 +67,8 @@ BrandingText "Prosecnur ${APP_VERSION} — Pulso"
 ShowInstDetails hide
 ShowUnInstDetails hide
 
-; Sin MUI_PAGE_DIRECTORY: el path es fijo en $LOCALAPPDATA\Programs\Prosecnur.
 !insertmacro MUI_PAGE_WELCOME
+!insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 
@@ -77,6 +78,25 @@ ShowUnInstDetails hide
 !insertmacro MUI_UNPAGE_FINISH
 
 !insertmacro MUI_LANGUAGE "Spanish"
+
+; La instalación no eleva privilegios. Comprobamos la ruta elegida antes de
+; copiar el bundle para que una carpeta protegida (por ejemplo, Archivos de
+; programa) no produzca un fallo a mitad de la instalación.
+Function .onVerifyInstDir
+  ClearErrors
+  CreateDirectory "$INSTDIR"
+  IfErrors install_dir_not_writable
+
+  FileOpen $R0 "$INSTDIR\.prosecnur-install-write-check.tmp" w
+  IfErrors install_dir_not_writable
+  FileClose $R0
+  Delete "$INSTDIR\.prosecnur-install-write-check.tmp"
+  Return
+
+  install_dir_not_writable:
+    MessageBox MB_ICONSTOP "La carpeta elegida no permite instalar aplicaciones para este usuario. Elige otra ruta donde tengas permiso de escritura; por ejemplo, una carpeta dentro de tu perfil de Windows."
+    Abort
+FunctionEnd
 
 VIProductVersion "${APP_VERSION}.0"
 VIAddVersionKey "ProductName" "${APP_NAME}"
@@ -114,6 +134,33 @@ Function KillRunningProcesses
   ; matado pueda haber tenido abiertos. Sin esto, RMDir /r y File /r del
   ; runtime/electron pueden fallar con "archivo en uso".
   Sleep 1500
+FunctionEnd
+
+; -----------------------------------------------------------------------------
+; RemovePartialRInstall — Windows Defender y otros antivirus pueden mantener
+; durante unos segundos un handle sobre los archivos que acaba de extraer el
+; instalador de R. Reintentamos la limpieza antes de declarar que el runtime
+; está bloqueado; no terminamos procesos R ajenos del usuario.
+; -----------------------------------------------------------------------------
+Function RemovePartialRInstall
+  StrCpy $R5 0
+
+  partial_r_cleanup:
+    RMDir /r "$LOCALAPPDATA\Prosecnur\R"
+    Sleep 750
+    ${IfNot} ${FileExists} "$LOCALAPPDATA\Prosecnur\R"
+      Return
+    ${EndIf}
+
+    IntOp $R5 $R5 + 1
+    ${If} $R5 < 3
+      DetailPrint "Esperando que Windows libere la instalacion parcial de R (intento $R5 de 3)..."
+      Sleep 1500
+      Goto partial_r_cleanup
+    ${EndIf}
+
+    MessageBox MB_ICONSTOP "No se pudo limpiar una instalacion parcial de R en $LOCALAPPDATA\Prosecnur\R. Cierra Prosecnur, espera unos segundos para que Windows o el antivirus liberen la carpeta y vuelve a intentar. Si persiste, revisa que ningun antivirus tenga archivos en cuarentena."
+    Abort
 FunctionEnd
 
 Function un.KillRunningProcesses
@@ -237,12 +284,7 @@ Section "Motor estadistico R" SecR
   ; el instalador de R aborte sobre archivos parciales o bloqueados.
   ${If} ${FileExists} "$LOCALAPPDATA\Prosecnur\R"
     DetailPrint "Limpiando instalacion parcial de R..."
-    RMDir /r "$LOCALAPPDATA\Prosecnur\R"
-    Sleep 500
-    ${If} ${FileExists} "$LOCALAPPDATA\Prosecnur\R"
-      MessageBox MB_ICONSTOP "No se pudo limpiar una instalacion parcial de R en $LOCALAPPDATA\Prosecnur\R. Cierra Prosecnur, revisa que ningun antivirus tenga archivos en cuarentena y vuelve a intentar."
-      Abort
-    ${EndIf}
+    Call RemovePartialRInstall
   ${EndIf}
 
   ; Buscar el R-*-win.exe que el bundle copio a $INSTDIR\runtime\r-installer.
