@@ -62,10 +62,10 @@ export function Step1_Plantilla({ onAdvance }: { onAdvance: (toStep: 2 | 3 | 5) 
           <PlantillaCard
             index={0}
             icon={FileSpreadsheet}
-            accent="#7c3aed"
-            iconBg="#f5f3ff"
-            iconFg="#7c3aed"
-            iconBorder="#ddd6fe"
+            accent="var(--pulso-accent-cyan)"
+            iconBg="color-mix(in srgb, var(--pulso-accent-cyan) 12%, #fff)"
+            iconFg="var(--pulso-accent-cyan)"
+            iconBorder="color-mix(in srgb, var(--pulso-accent-cyan) 32%, #fff)"
             title="Usar una plantilla acordada"
             blurb="Para estudios con bloques o índices ya definidos. Prosecnur cruza la plantilla con este instrumento antes de generar."
             highlights={[
@@ -79,10 +79,10 @@ export function Step1_Plantilla({ onAdvance }: { onAdvance: (toStep: 2 | 3 | 5) 
           <PlantillaCard
             index={1}
             icon={FilePlus2}
-            accent="#059669"
-            iconBg="#ecfdf5"
-            iconFg="#059669"
-            iconBorder="#a7f3d0"
+            accent="var(--pulso-module-processing)"
+            iconBg="color-mix(in srgb, var(--pulso-module-processing) 12%, #fff)"
+            iconFg="var(--pulso-module-processing)"
+            iconBorder="color-mix(in srgb, var(--pulso-module-processing) 32%, #fff)"
             title="Construir desde preguntas"
             blurb="Para armar dimensiones nuevas. El asistente detecta escalas del XLSForm y te guía hasta crear los puntajes."
             highlights={[

@@ -22,6 +22,22 @@
   to   { opacity: 1; transform: none; }
 }
 
+/* ── 0. Acento del módulo (teal) ───────────────────────────────────────── */
+/* El chrome de Procesamiento (phase-dock, rail, tiles) ya habla teal, pero el
+ * CONTENIDO de los reportes seguía en el navy global `--pulso-primary`. Aquí
+ * remapeamos la familia primary a la paleta del módulo —igual que hace
+ * `.pulso-processing-phase-dock`— para que segmentados activos, botones
+ * primarios, selección y focus lean teal. Los tokens semánticos
+ * (success/warn/danger/info) NO se tocan: siguen significando estado. */
+
+.pulso-analitica-frame {
+  --pulso-primary: var(--pulso-module-processing);
+  --pulso-primary-soft: var(--pulso-module-processing-soft);
+  --pulso-primary-border: var(--pulso-module-processing-border);
+  --pulso-primary-focus: rgba(15, 118, 110, 0.15);
+  --pulso-primary-ring: rgba(15, 118, 110, 0.12);
+}
+
 /* ── 1. Botones → pills gv2 ────────────────────────────────────────────── */
 /* El press scale(0.97) ya lo aporta el `button:where(:active)` global. */
 
@@ -36,7 +52,7 @@
 }
 
 .pulso-analitica-frame button.pulso-primary {
-  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+  box-shadow: 0 2px 8px rgba(15, 118, 110, 0.22);
 }
 
 .pulso-analitica-frame .analitica-add-inline,
@@ -96,7 +112,7 @@
   border-color: var(--pulso-primary);
   background: var(--pulso-primary);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+  box-shadow: 0 2px 8px rgba(15, 118, 110, 0.22);
 }
 
 /* ── 3. Popovers y menús con entrada origin-aware (nunca scale(0)) ─────── */
@@ -230,9 +246,13 @@
 .analitica-orden-editor {
   margin-top: 16px;
   padding: 14px 16px;
-  border: 1px solid var(--pulso-border);
+  border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 30%, var(--pulso-border));
   border-radius: 12px;
-  background: var(--pulso-surface-2);
+  background:
+    linear-gradient(180deg, #fff, color-mix(in srgb, var(--pulso-surface-2) 38%, #fff));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 6px 16px color-mix(in srgb, var(--pulso-module-processing) 5%, transparent);
 }
 
 /* Toggle "¿Es una lista ordinal?" (Automático / Ordinal / Nominal). */
@@ -634,16 +654,30 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  /* Desborde: con muchas variables (12+) la lista crecía sin límite y estiraba
+     toda la caja. La acotamos a un panel compacto con scroll propio. */
+  max-height: 176px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .analitica-orden-shared-list li {
   display: flex;
   align-items: baseline;
   gap: 8px;
+  padding: 3px 7px;
+  border-radius: 6px;
   font-size: 12px;
   line-height: 1.4;
   color: var(--pulso-text);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .analitica-orden-shared-list li:hover {
+    background: color-mix(in srgb, var(--pulso-module-processing-soft) 40%, transparent);
+  }
 }
 
 .analitica-orden-shared-list code {
@@ -672,5 +706,84 @@
  * los tokens --pulso-repeat-* vía el componente compartido; aquí solo el
  * espaciado para que quede pegado a la banda de fuente. */
 .pulso-analitica-repeat-grain {
+  /* El panel-head es un grid; sin colocación explícita la nota cae en una
+   * columna auto angosta (~30px) y el texto se apila vertical. Que abarque
+   * toda la fila, debajo de la sourcebar. */
+  grid-column: 1 / -1;
+  min-width: 0;
   margin-top: 8px;
 }
+
+/* ── 9. Identidad del reporte en la sección superior ───────────────────── */
+/* El título + descripción de cada reporte vive ahora en el panel-head
+ * (barra de comandos), no como header interno. Cada docbar oculta su
+ * ícono+copy y queda como banda de stats/controles a fila única. Los
+ * controles (DataReview -command) y overviews (ficha/panel) se conservan. */
+
+.pulso-analitica-frame .pulso-analitica-content :is(
+  .pulso-data-review-docbar-icon, .pulso-data-review-docbar-copy,
+  .analitica-codebook-docbar-icon, .analitica-codebook-docbar-copy,
+  .analitica-bases-docbar-icon, .analitica-bases-docbar-copy,
+  .analitica-frecuencias-docbar-icon, .analitica-frecuencias-docbar-copy,
+  .analitica-cruces-docbar-icon, .analitica-cruces-docbar-copy,
+  .analitica-panel-docbar-icon, .analitica-panel-docbar-copy,
+  .analitica-ficha-docbar-icon, .analitica-ficha-docbar-copy,
+  .analitica-dimensiones-docbar-icon, .analitica-dimensiones-docbar-copy
+) {
+  display: none;
+}
+
+.pulso-analitica-frame .pulso-analitica-content :is(
+  .pulso-data-review-docbar,
+  .analitica-codebook-docbar,
+  .analitica-bases-docbar,
+  .analitica-frecuencias-docbar,
+  .analitica-cruces-docbar,
+  .analitica-panel-docbar,
+  .analitica-ficha-docbar,
+  .analitica-dimensiones-docbar
+) {
+  /* Ya no es una card de identidad: banda sutil de stats/controles. */
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+}
+
+/* Stats/controles alineados a la izquierda (antes iban flex-end junto al
+ * título que ahora vive arriba). */
+.pulso-analitica-frame .pulso-analitica-content :is(
+  .analitica-codebook-docbar-stats,
+  .analitica-bases-docbar-stats,
+  .analitica-frecuencias-docbar-stats,
+  .analitica-cruces-docbar-stats,
+  .analitica-dimensiones-docbar-stats,
+  .pulso-data-review-command
+) {
+  justify-content: flex-start;
+}
+
+/* Ficha y Panel usan `-overview` con un flex-end propio del theme (0,3,0);
+ * subimos especificidad incluyendo el docbar para ganar el left-align. */
+.pulso-analitica-frame .pulso-analitica-content .analitica-ficha-docbar .analitica-report-overview--ficha,
+.pulso-analitica-frame .pulso-analitica-content .analitica-panel-docbar .analitica-report-overview--panel {
+  justify-content: flex-start;
+}
+
+/* Base final usa el ProcessingSheetViewer compartido; dentro de analítica su
+ * título/subtítulo duplican la identidad del panel-head. Ocultamos solo eso
+ * (se conserva el contador filas/columnas y los controles Códigos/Etiquetas
+ * + buscador). Fuera de analítica (Carga, etc.) el header queda intacto. */
+.pulso-analitica-frame .pulso-analitica-content .pulso-processing-sheet-icon,
+.pulso-analitica-frame .pulso-analitica-content .pulso-processing-sheet-title > div > strong,
+.pulso-analitica-frame .pulso-analitica-content .pulso-processing-sheet-source {
+  display: none;
+}
+
+/* NOTA: aquí vivía un bloque de "columna centrada" (max-width + margin-inline
+ * auto + centrado vertical) para Ponderación/Libro de códigos/Base panel. Se
+ * retiró: el criterio del módulo es ancho completo y bien ordenado, NO columnas
+ * centradas con márgenes laterales. El canvas vacío de esos panes se resuelve
+ * con layout de ancho completo, no encogiendo el contenido. */
