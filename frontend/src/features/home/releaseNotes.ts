@@ -12,6 +12,18 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.5.6",
+    date: "2026-07-13",
+    highlights: [
+      "Inicio: renueva el panel de control y el carrusel de módulos para que cada proyecto muestre sus accesos y avances con mayor claridad.",
+      "Procesamiento: hace visible la estructura de grupos repetibles desde Carga, Validación y Analítica, con rosters relacionales que permiten explorar cada base sin perder contexto.",
+      "Analítica: conserva etiquetas y el orden del instrumento con más fidelidad, mejora los entregables de grupos repetibles y evita columnas duplicadas o vacías en las bases exportadas.",
+      "Validación: incorpora controles de coherencia entre la base principal y sus grupos repetibles, y distingue claramente la base activa al revisar reglas.",
+      "Editor de formularios: transforma el mapa de lógica y el lienzo en una experiencia más legible, con búsquedas para listas extensas, relaciones diferenciadas y edición de secciones más directa.",
+      "Cálculo de muestra: organiza los criterios por categoría y convierte el marco de aulas en un recorrido más trazable, con embudos y decisiones de diseño fáciles de explicar.",
+    ],
+  },
+  {
     version: "0.5.5",
     date: "2026-07-10",
     highlights: [
