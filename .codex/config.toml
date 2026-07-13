@@ -1,0 +1,6 @@
+# Configuración mínima del agentic OS de Prosecnur para Codex.
+# Los agentes especializados se definen en .codex/agents/.
+
+[agents]
+max_threads = 4
+max_depth = 1

@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "canonical": {
+    "instructions": [
+      "AGENTS.md",
+      "CLAUDE.md",
+      "docs/loops-reparacion.md"
+    ],
+    "skills_dir": ".claude/skills",
+    "agents_dir": ".claude/agents"
+  },
+  "adapters": {
+    "codex_skills_dir": ".agents/skills",
+    "codex_agents_dir": ".codex/agents",
+    "codex_config": ".codex/config.toml"
+  },
+  "skills": [
+    "auditoria-deuda",
+    "cerrar-trabajo",
+    "dominio-prosecnur",
+    "entregables-oficina",
+    "estudio-real",
+    "integraciones-datos",
+    "jobs-asincronos",
+    "notas-parche",
+    "nucleo-metodologico",
+    "preparar-release",
+    "publicar",
+    "revamp-visual",
+    "scope-lock",
+    "ver-ui"
+  ],
+  "agents": [
+    "auditor-deuda",
+    "backend-r",
+    "curador-commits",
+    "frontend-react",
+    "verificador"
+  ],
+  "external_skills": [
+    "cronograma-encuestas",
+    "emil-design-eng",
+    "prosecnur-architecture",
+    "prosecnur-design-system",
+    "prosecnur-pdf-engine",
+    "prosecnur-project",
+    "prosecnur-project-ui-check",
+    "prosecnur-ux-evaluator",
+    "visual-ui-inspector"
+  ],
+  "routes": {
+    "construir": ["scope-lock", "backend-r", "frontend-react", "verificador", "cerrar-trabajo"],
+    "disenar": ["revamp-visual", "frontend-react", "verificador"],
+    "entregables": ["entregables-oficina", "jobs-asincronos", "verificador"],
+    "estudios_reales": ["estudio-real", "dominio-prosecnur"],
+    "operar_repo": ["cerrar-trabajo", "publicar", "preparar-release", "notas-parche", "auditoria-deuda"],
+    "gobernar": ["dominio-prosecnur", "prosecnur-architecture"]
+  },
+  "policy": {
+    "frozen_growth_files": [
+      "api/R/monitoreo_engine.R",
+      "api/R/router_monitoreo.R",
+      "api/R/reporte_plan_ppt.R",
+      "frontend/src/features/monitoreo/MonitoreoPage.tsx"
+    ],
+    "code_change_final_gate": "verificador",
+    "repair_protocol": "docs/loops-reparacion.md",
+    "generated_adapters_are_editable": false
+  }
+}
