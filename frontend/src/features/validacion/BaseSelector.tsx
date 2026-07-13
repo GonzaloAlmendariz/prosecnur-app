@@ -1,5 +1,7 @@
 import { Database, Layers } from "lucide-react";
 import type { EstudioPayload } from "../../api/client";
+import { RepeatBadge } from "../../components/RepeatBadge";
+import { isRepeatChildBase } from "../../lib/repeatIdentity";
 
 // =============================================================================
 // BaseSelector — selector de base arriba del todo en Fase 2
@@ -41,6 +43,9 @@ export default function BaseSelector({ estudio, selected, onChange, disabled, cl
         {bases.map((b) => {
           const active = b.nombre === selected;
           const label = b.source_alias || b.source_title || b.nombre;
+          const isRepeatChild = isRepeatChildBase(b);
+          const repeatGroup = String(b.repeat_group ?? "").trim();
+          const repeatParent = String(b.parent_base ?? "").trim();
           return (
             <button
               key={b.nombre}
@@ -53,10 +58,21 @@ export default function BaseSelector({ estudio, selected, onChange, disabled, cl
                   ? `${label} · ${b.n_filas} filas · ${b.n_columnas} columnas`
                   : label
               }
-              className={`pulso-validacion-base-chip${active ? " is-active" : ""}`}
+              className={`pulso-validacion-base-chip${active ? " is-active" : ""}${isRepeatChild ? " is-repeat" : ""}`}
             >
               <Database size={11} />
               {label}
+              {isRepeatChild && (
+                <RepeatBadge
+                  repeatGroup={repeatGroup || null}
+                  compact
+                  title={
+                    repeatParent
+                      ? `Respuestas repetidas de «${repeatParent}» (una fila por opción marcada)`
+                      : "Base de respuestas repetidas"
+                  }
+                />
+              )}
               {b.n_filas != null && (
                 <span>
                   · {b.n_filas}

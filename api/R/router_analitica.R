@@ -380,6 +380,29 @@
   stats::setNames(list(bases[[active]]), active)
 }
 
+# Nombre de la base ACTIVA dentro de un conjunto de fuentes ya resueltas. El
+# contexto de base ÚNICA (`rp_data`/`rp_inst` de `.load_rp_data`) es SIEMPRE el
+# de la base activa; antes se fijaba a la primera fuente (`names(...)[1]`), lo
+# que en un estudio madre/hija repeat (multibase, no independent_siblings)
+# entregaba la MADRE al activar la hija: `/api/analitica/variables` listaba las
+# variables de la madre y frecuencias/cruces operaban sobre ella (ADR 0030).
+# Gateado a que no rompa single-base ni independent-siblings:
+#   - con 0/1 fuente devuelve la única (no-op);
+#   - en `independent_siblings` las fuentes ya vienen scopeadas a la activa por
+#     `.analitica_scope_bases` (length 1), así que aquí también es no-op;
+#   - si la activa no está entre las fuentes resueltas, cae a la primera
+#     (comportamiento previo), degradando sin romper.
+.analitica_active_source_name <- function(sid, source_names) {
+  source_names <- as.character(source_names %||% character(0))
+  source_names <- source_names[!is.na(source_names) & nzchar(source_names)]
+  if (length(source_names) <= 1L) {
+    return(if (length(source_names)) source_names[[1L]] else NA_character_)
+  }
+  active <- tryCatch(as.character(estudio_active_base(sid) %||% ""), error = function(e) "")
+  if (nzchar(active) && active %in% source_names) return(active)
+  source_names[[1L]]
+}
+
 .analitica_patch_inst_sources_integrated <- function(sid, inst_sources) {
   if (!length(inst_sources)) return(inst_sources)
   s <- session_get(sid, required = FALSE)
@@ -440,6 +463,18 @@
   rp_inst <- reporte_instrumento(path = pair$xls$path)
   rp_inst <- .analitica_apply_integrated_key(rp_inst, base_meta)
   dat_raw <- .analitica_read_data_file(pair$data)
+  # CURA (frente B): este read RE-LEE el archivo crudo y alimenta la Analítica y
+  # el banner "Variables extra en la data" (reconciliación). Sin este saneo la
+  # base del handoff mostraba el esquema de seguimiento/universo VACÍO como extras
+  # fantasma. Gate por proveniencia: source_kind del base_meta que empieza con
+  # "monitoreo"; si el kind es conocido y NO-handoff (upload manual) se pasa FALSE
+  # y sus columnas vacías se preservan; sin base_meta (legacy) se auto-detecta por
+  # fingerprint. Va ANTES del normalize (nombres crudos con separador `/`).
+  handoff_kind <- .carga_chr1((base_meta %||% list())$source_kind, "")
+  dat_raw <- sanitize_base_data(
+    dat_raw, rp_inst,
+    monitoreo_handoff = if (nzchar(handoff_kind)) .base_hygiene_is_monitoreo_kind(handoff_kind) else NULL
+  )
   dat_raw <- normalize_data_for_xlsform(dat_raw, rp_inst)
   dat_raw <- .analitica_filter_data_to_inst(dat_raw, rp_inst)
   .carga_assert_data_xlsform_compatible(dat_raw, rp_inst)
@@ -470,11 +505,11 @@
       data_sources[[nombre]] <- parsed$data
       inst_sources[[nombre]] <- parsed$inst
     }
-    first <- names(data_sources)[1]
+    active <- .analitica_active_source_name(sid, names(data_sources))
     return(list(
       fuente = fuente,
-      rp_data = data_sources[[first]],
-      rp_inst = inst_sources[[first]],
+      rp_data = data_sources[[active]],
+      rp_inst = inst_sources[[active]],
       data_sources = data_sources,
       inst_sources = inst_sources
     ))
@@ -1052,6 +1087,10 @@
   if (isTRUE(omitir_identificadores_directos)) {
     out <- c(out, .analitica_unified_direct_identifier_cols(data, rp_inst))
   }
+  # Plumbing interno (tags de fuente, fases territoriales, derivadas kobo
+  # redundantes): SIEMPRE fuera, independiente de los flags omitir_* (nunca son
+  # datos de análisis). Consistente con /bases/xlsx; `.excluir_cols` deduplica.
+  out <- c(out, .analitica_base_internal_cols(data))
   unique(out[nzchar(out)])
 }
 
@@ -1208,7 +1247,8 @@
 .analitica_unified_independent_xlsx <- function(sid, cfg, valores = "ambos",
                                                 multi_select = "dummy_01",
                                                 omitir_identificadores_directos = TRUE,
-                                                omitir_metadatos_operativos = TRUE) {
+                                                omitir_metadatos_operativos = TRUE,
+                                                incluir_madre_sm = FALSE) {
   if (!exists("estudio_is_independent_siblings", mode = "function") ||
       !estudio_is_independent_siblings(sid)) {
     stop_api(409, "E_NOT_INDEPENDENT_SIBLINGS",
@@ -1281,8 +1321,19 @@
       omitir_identificadores_directos = omitir_identificadores_directos,
       omitir_metadatos_operativos = omitir_metadatos_operativos
     )
+    # Reconciliación data↔XLSForm: por defecto las extra sustantivas se excluyen;
+    # solo sobreviven las incluidas por config. El include manda sobre el
+    # empty-drop (una extra incluida-pero-vacía no se dropea por vacía).
+    recon <- .reconciliacion_export_plan(reviewed$data, rp_inst, cfg)
+    excluidas <- unique(c(excluidas, recon$extra_a_excluir))
+    # Fuera las columnas 100% vacías del volcado de la BBDD (plantillas de
+    # análisis nunca calculadas, metadata sin contenido). Se computa por base
+    # antes de agregar alias/origen/uid (que nunca son vacías).
+    empty_cols <- setdiff(.analitica_base_empty_cols(reviewed$data), recon$extra_incluidas)
+    excluidas <- unique(c(excluidas, empty_cols))
     rp_data <- .excluir_cols(reviewed$data, excluidas)
     if (multi_select == "dummy_01") rp_data <- .expand_multiselect(rp_data, rp_inst)
+    if (isTRUE(incluir_madre_sm)) rp_data <- .analitica_base_reconstruct_madre_sm(rp_data, rp_inst)
 
     alias <- .analitica_base_alias(bases[[nombre]], nombre)
     alias_col <- rep(alias, nrow(rp_data))
@@ -1458,18 +1509,14 @@
 
   out_name <- .export_filename(sid, "bases_unificadas", "xlsx")
   out_path <- .session_tmp(sid, sprintf("%s_%s", uuid::UUIDgenerate(), out_name))
+  # BBDD unificada sin "Ficha tecnica" (pedido del usuario — la ficha no
+  # pertenece al volcado de datos). Conserva sus hojas de meta propias
+  # (comunes/omitidas/bases/auditoría); solo se quita la ficha técnica.
   .analitica_write_unified_xlsx(df_cod, df_lab, common_df, omitted_df,
                                 bases_df, out_path, valores = valores,
                                 decision_audit_df = decision_audit_df,
                                 decision_case_audit_df = decision_case_audit_df,
-                                ficha_tecnica = list(
-                                  cfg = cfg,
-                                  fuente = fuente,
-                                  detalles = list(
-                                    "Bases incluidas" = paste(as.character(bases_df$alias %||% bases_df$base_nombre %||% ""), collapse = ", "),
-                                    "Politica multi-select" = multi_select
-                                  )
-                                ))
+                                ficha_tecnica = FALSE)
   meta <- .register_output_file(sid, "bases_unificadas", out_path, original_name = out_name)
   list(
     ok = TRUE,
@@ -1888,8 +1935,19 @@
 
 .analitica_source_cache_key <- function(sid, fuente) {
   key <- as.character(fuente %||% "")
-  if (exists("estudio_is_independent_siblings", mode = "function") &&
-      estudio_is_independent_siblings(sid)) {
+  # El caché singular (`analitica_rp_data`/`analitica_rp_inst`) es el contexto de
+  # la BASE ACTIVA (ver `.analitica_active_source_name`). Por eso, en cualquier
+  # estudio con más de una base, cambiar la base activa debe invalidarlo. Antes
+  # esto solo ocurría en `independent_siblings`, dejando que un estudio madre/hija
+  # repeat sirviera la base "first" (la madre) al activar la hija. Se generaliza a
+  # todo estudio multibase; single-base (0/1 base, sin independent) no cambia de
+  # key, así el modo de una sola base queda intacto.
+  s <- session_get(sid, required = FALSE)
+  n_bases <- length((s$estudio %||% list())$bases %||% list())
+  include_active <- n_bases > 1L ||
+    (exists("estudio_is_independent_siblings", mode = "function") &&
+       isTRUE(tryCatch(estudio_is_independent_siblings(sid), error = function(e) FALSE)))
+  if (include_active) {
     active <- if (exists("estudio_active_base", mode = "function")) estudio_active_base(sid) else NULL
     key <- paste(key, as.character(active %||% ""), sep = ":")
   }
@@ -1939,10 +1997,10 @@
     normalized <- .bases_normalize_source_contexts(ctx$data_sources, ctx$inst_sources)
     ctx$data_sources <- normalized$data_sources
     ctx$inst_sources <- normalized$inst_sources
-    first <- names(ctx$data_sources)[1] %||% NA_character_
-    if (!is.na(first) && nzchar(first) && first %in% names(ctx$inst_sources)) {
-      ctx$rp_data <- ctx$data_sources[[first]]
-      ctx$rp_inst <- ctx$inst_sources[[first]]
+    active <- .analitica_active_source_name(sid, names(ctx$data_sources))
+    if (!is.na(active) && nzchar(active) && active %in% names(ctx$inst_sources)) {
+      ctx$rp_data <- ctx$data_sources[[active]]
+      ctx$rp_inst <- ctx$inst_sources[[active]]
     }
   }
   session_set(sid, "analitica_rp_inst", ctx$rp_inst)
@@ -2011,6 +2069,12 @@
 .load_rp_sources <- function(sid) {
   .analitica_repair_project_context(sid)
   s <- session_get(sid, required = FALSE)
+  # Publica el override de etiquetas del proyecto en el env ambiente para que
+  # la normalización de fuentes (capa de instrumento) lo aplique. Cubre también
+  # procesos que reconstruyen la sesión (jobs). NO-OP sin override persistido.
+  if (exists(".label_overrides_activate", mode = "function")) {
+    tryCatch(.label_overrides_activate((s %||% list())$label_overrides), error = function(e) NULL)
+  }
   cfg <- .analitica_get_config(sid)
   fuente <- .analitica_effective_source(s, cfg)
   cache_matches <- .analitica_cached_source_matches(s, .analitica_source_cache_key(sid, fuente))
@@ -2136,7 +2200,17 @@
 # Lee la sub-configuracion analitica_config de la sesión (store del
 # frontend autosaveado). En hermanos independientes apunta a la base activa.
 .analitica_get_config <- function(sid) {
-  .analitica_config_get(sid)
+  cfg <- .analitica_config_get(sid)
+  # Exponer el orden de las flechas ↑/↓ del editor de Codificación
+  # (`grupos_recod`, solo lectura) para que el orden de la recodificada en la
+  # BBDD/codebook lo respete. NO se persiste en la config de Analítica (R copia
+  # al mutar; nunca se llama session_set con este cfg aumentado).
+  scoped <- tryCatch(.analitica_scoped_base(sid), error = function(e) "")
+  cfg$grupos_recod <- tryCatch(
+    codif_get(sid, "grupos_recod", source = if (nzchar(scoped)) scoped else NULL) %||% list(),
+    error = function(e) list()
+  )
+  cfg
 }
 
 # Traduce las secciones del store (lista de {id, nombre, variables,
@@ -2356,21 +2430,54 @@
     inst <- ctx$inst
   }
 
+  # Orden de la recodificada desde las flechas ↑/↓ de Codificación
+  # (`grupos_recod`). Se aplica ANTES que el override de Analítica para que ESE
+  # mande (precedencia: choices < grupos_recod < orden_categorias). El pase de
+  # valores-especiales-al-final corre después y siempre manda 96/etc. al final.
+  grupos_por_parent <- .orden_grupos_recod_por_parent(cfg$grupos_recod)
+  if (length(grupos_por_parent)) inst <- .apply_grupos_recod_orden(inst, grupos_por_parent)
+
   # Orden de categorías definido por el analista (por list_name). Se aplica al
   # final, DESPUÉS de la normalización contra el choices (que re-fija los
   # `names` al orden del instrumento); si se aplicase antes, se pisaría.
   orden_cfg <- .orden_categorias_from_cfg(cfg)
   if (length(orden_cfg)) inst <- .apply_orden_categorias(inst, orden_cfg)
 
+  # `.analitica_order_sm_dummy_cols` prioriza `attr(data,"instrumento_reporte")
+  # $orders_list` sobre `inst$orders_list`; reporte_data adjuntó el instrumento
+  # ORIGINAL (sin estos overrides). Sincronizar el attr para que el orden de las
+  # flechas y del analista fluya a los dummies de la BBDD y el codebook.
+  ir <- attr(data, "instrumento_reporte", exact = TRUE)
+  if (!is.null(ir) && is.list(ir)) {
+    ir$orders_list <- inst$orders_list
+    attr(data, "instrumento_reporte") <- ir
+  }
+
   # La codificación deja las columnas (y dummies) en minúscula mientras el survey
   # usa el case original; sin realinear, frecuencias/cruces saltan los
   # select_multiple y sus recodificadas (buscan case-sensitive contra el survey).
   data <- .analitica_restore_survey_case(data, inst)
 
+  # La base real del handoff de Monitoreo arrastra duplicados con prefijo de grupo
+  # (`Core.e1_age`↔`E1_age`, `A.a1_leg`↔`A1_leg`, `D.d1_information` madre). Se
+  # colapsan: dropea la cruda si es idéntica a su gemelo limpio, y renombra a su
+  # nombre del survey las únicas valiosas (`date`, `E1_age_calc`, `time_*`) para
+  # que el reorden canónico las reubique. NO toca metadata ni derivadas. Va acá
+  # (review compartido) para que la base limpia sea consistente en BBDD, codebook
+  # y frecuencias; después de restore_case (gemelos ya en case del survey) y
+  # antes del reorden canónico.
+  data <- .analitica_base_collapse_group_prefixed_dupes(data, inst)
+
   # Los dummies de select_multiple se generan en la codificación en orden
   # arbitrario; se reordenan por el orden de la lista de opciones del XLSForm
   # para que la vista "Base final" y el libro de códigos los muestren 1,2,…,96.
   data <- .analitica_order_sm_dummy_cols(data, inst)
+
+  # Los bloques de dummies se apendean al final en la codificación (la madre plana
+  # ya no existe, así que nunca vuelven a su sección). Reubica cada bloque a la
+  # posición canónica del parent en el survey; las derivadas/metadata quedan al
+  # final. NO desordena: impone el orden del instrumento sobre la base adaptada.
+  data <- .analitica_order_by_instrument(data, inst)
 
   list(data = data, inst = inst)
 }
@@ -2714,6 +2821,10 @@
 	    secciones = list(),
 	    numericas = list(),
 	    variables_excluidas = list(),
+	    # Reconciliación data↔XLSForm: extra sustantivas que el usuario decidió
+	    # INCLUIR en la BBDD (default vacío = todas las extra excluidas). Scopeado
+	    # por base como el resto de la config. Ver reconciliacion_variables.R.
+	    variables_extra_incluidas = list(),
 	    # Override por list_name de ordinalidad (analista). Ausente = auto.
 	    listas_ordinales = stats::setNames(list(), character(0)),
 	    datos = list(
@@ -2732,7 +2843,10 @@
     frecuencias = list(
       secciones_activas = list(),
       orden = "original",
-      mostrar_todo = FALSE,
+      # Default TRUE (metodológico): muestra TODAS las categorías del catálogo,
+      # con 0 donde nadie marcó (escala completa). El usuario puede apagarlo y su
+      # FALSE explícito se respeta.
+      mostrar_todo = TRUE,
       incluir_titulos = TRUE,
       incluir_secciones = TRUE
     ),
@@ -3202,10 +3316,13 @@ mount_analitica <- function(pr) {
         v$list_ordinal_auto <- isTRUE(nzchar(ln) && !is.null(ordinal_auto[[ln]]) && ordinal_auto[[ln]])
         v
 	      })
-	      # ADR 0030 Fase 3: si la base activa es una hija repeat, el grano es la
-	      # instancia (no la persona). Se anota en el par enriquecido; NULL en el
-	      # resto de bases.
-	      grain <- attr(reviewed$inst, "repeat_grain") %||% attr(ctx$rp_inst, "repeat_grain")
+	      # ADR 0030 Fase 5: si la base activa es una hija repeat, el grano es la
+	      # instancia (no la persona). El helper GATEA a `source_kind == kobo_repeat`
+	      # (NULL para la madre y cualquier base no-hija) y calcula n_instancias/
+	      # n_personas desde la data de la PROPIA hija (distinct `_parent_index`),
+	      # nunca desde la madre. No se lee el attr del inst: `.load_rp_data` entrega
+	      # la base "first"/madre en estudios repeat y su grano quedaría mal.
+	      grain <- .analitica_active_repeat_grain(sid)
 	      list(ok = TRUE, variables = variables, grain = grain)
 	    })) |>
 	    plumber::pr_get("/api/analitica/data-review", wrap_endpoint(function(req, res) {
@@ -3213,6 +3330,23 @@ mount_analitica <- function(pr) {
 	      ctx <- .load_rp_data(sid)
 	      cfg <- .analitica_get_config(sid)
 	      list(ok = TRUE, variables = .analitica_data_review_payload(ctx$rp_data, ctx$rp_inst, cfg))
+	    })) |>
+	    plumber::pr_get("/api/analitica/reconciliacion", wrap_endpoint(function(req, res) {
+	      # Reconciliación data↔XLSForm de la base activa. Lista las variables extra
+	      # sustantivas (vars de versiones viejas del form / derivadas de plataforma)
+	      # con su relleno, marcando cuáles están incluidas. Consumido por el popover
+	      # y por el panel revisitable. Router delgado: lógica en reconciliacion_variables.R.
+	      sid <- session_header(req)
+	      .reconciliacion_info(sid)
+	    })) |>
+	    plumber::pr_post("/api/analitica/reconciliacion", wrap_endpoint(function(req, res, ...) {
+	      # Persiste `variables_extra_incluidas` para la base activa. Body:
+	      # { incluidas: ["dim_actor", ...] }. Validación defensiva (subconjunto de
+	      # las extra reales) en el helper vía stop_api(E_RECON_VAR_DESCONOCIDA).
+	      sid <- session_header(req)
+	      body <- .analitica_json_body(req)
+	      nombres <- .as_chr_vec(body$incluidas %||% body$variables_extra_incluidas)
+	      .reconciliacion_set_incluidas(sid, nombres)
 	    })) |>
 	    plumber::pr_post("/api/analitica/base-sheet", wrap_endpoint(function(req, res, ...) {
 	      sid <- session_header(req)
@@ -3436,67 +3570,15 @@ mount_analitica <- function(pr) {
       # ignora en esa base (no rompe).
       sid <- session_header(req)
       cfg <- .analitica_get_config(sid)
-      fc <- cfg$frecuencias %||% list()
-      activas <- .as_chr_vec(fc$secciones_activas)
-      secs_cfg <- .secciones_from_config(cfg, activas_filter = if (length(activas) > 0L) activas else NULL)
-
-      orden <- as.character(fc$orden %||% "desc")
-      if (!orden %in% c("desc","asc","original")) orden <- "desc"
-      mostrar_todo <- isTRUE(fc$mostrar_todo)
-      # Los títulos de variable/pregunta se conservan siempre. La opción UI
-      # solo controla los separadores de sección.
-      incluir_titulos <- TRUE
-      incluir_secciones <- isTRUE(fc$incluir_secciones %||% TRUE)
-
-      numericas_arg <- .analitica_declared_numericas(cfg, override_frecuencias = TRUE)
-
-      codes_codebook <- .as_int_vec((cfg$codebook %||% list())$codigos_solo_si_presentes)
-      excluidas <- .as_chr_vec(cfg$variables_excluidas)
-
+      # Render single-base delegado al helper (fuente única de la tubería, ya con
+      # el desglose por servicio Parte A+B de bases hija repeat).
       result <- run_report_multibase(
         sid           = sid,
         base_filename = "frecuencias",
         ext           = "xlsx",
-	        kind_single   = "frecuencias",
-	        kind_multi    = "frecuencias_zip",
-	        fn = function(rp_data, rp_inst, out_path) {
-	          reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
-	          rp_data <- reviewed$data
-	          rp_inst <- reviewed$inst
-	          # Listas ordinales EFECTIVAS de ESTA base (override manual ∪
-	          # auto-detección). Fuerzan "original" por variable ordinal.
-	          ordinal_lists <- .orden_categorias_ordinal_set(rp_inst, cfg)
-	          # Ponderacion: adjunta `peso` (si esta activa) antes de excluir
-	          # columnas, para que las variables de calibracion sigan presentes.
-	          rp_data <- .analitica_ponderacion_apply(rp_data, cfg)
-	          data_out <- .excluir_cols(rp_data, excluidas)
-	          # Secciones: usa las del config si las hay; sino, detecta
-          # automáticamente las del instrumento de ESTA base.
-          secs <- secs_cfg
-          if (is.null(secs)) secs <- .secciones_desde_instrumento(rp_inst)
-          secs <- .analitica_filter_sections(secs, rp_inst, numericas_arg, excluidas)
-          secs <- .analitica_append_missing_select_multiple_sections(secs, rp_inst, numericas_arg, excluidas)
-          reporte_frecuencias(
-            data = data_out, instrumento = rp_inst,
-            secciones = secs,
-            path_xlsx = out_path,
-            orden = orden,
-            mostrar_todo = mostrar_todo,
-            incluir_titulos = incluir_titulos,
-            incluir_secciones = incluir_secciones,
-            codigos_solo_si_presentes = if (length(codes_codebook) > 0L) codes_codebook else NULL,
-            numericas = if (length(numericas_arg) > 0L) numericas_arg else NULL,
-            ordinal_lists = ordinal_lists,
-            ficha_tecnica = list(
-              cfg = cfg,
-              instrumento = rp_inst,
-              reporte = "Frecuencias",
-              detalles = list(
-                "Secciones activas" = if (!is.null(secs) && length(names(secs))) paste(names(secs), collapse = ", ") else "Todas las disponibles"
-              )
-            )
-          )
-        }
+        kind_single   = "frecuencias",
+        kind_multi    = "frecuencias_zip",
+        fn            = .analitica_frecuencias_render_fn(sid, cfg)
       )
       .analitica_status_set(sid, "analitica_frecuencias_ok", TRUE)
       result
@@ -4198,6 +4280,17 @@ mount_analitica <- function(pr) {
     })) |>
 	    plumber::pr_post("/api/analitica/bases/xlsx", wrap_endpoint(function(req, res, ...) {
 	      # XLSX multi-base: un xlsx por base, zip si N > 1.
+	      #
+	      # Body params (JSON):
+	      #   valores         : "codigos" | "etiquetas" | "ambos" (default "ambos")
+	      #   multi_select    : "codigos_crudos" | "etiquetas_unidas" | "dummy_01"
+	      #                     (default "dummy_01")
+	      #   incluir_madre_sm: bool (default FALSE) — si TRUE, además de los dummies
+	      #                     agrega por cada select_multiple una columna madre
+	      #                     `<parent>` (respuestas concatenadas: etiquetas unidas
+	      #                     en la hoja "etiquetas", códigos crudos en "codigos"),
+	      #                     ubicada en la posición del parent (antes del bloque).
+	      # Mismo contrato de `incluir_madre_sm` en /bases/xlsx-unificada.
 	      sid <- session_header(req)
 	      cfg <- .analitica_get_config(sid)
 	      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
@@ -4210,6 +4303,10 @@ mount_analitica <- function(pr) {
       if (!valores %in% c("codigos","etiquetas","ambos")) valores <- "ambos"
       multi_select <- as.character(body$multi_select %||% "dummy_01")
       if (!multi_select %in% c("codigos_crudos","etiquetas_unidas","dummy_01")) multi_select <- "dummy_01"
+      # incluir_madre_sm (bool, default FALSE): además de los dummies, incluir por
+      # cada select_multiple una columna madre `<parent>` con las respuestas
+      # concatenadas legibles (etiquetas unidas). El toggle vive en la UI.
+      incluir_madre_sm <- isTRUE(body$incluir_madre_sm)
 
       result <- run_report_multibase(
         sid           = sid,
@@ -4220,27 +4317,42 @@ mount_analitica <- function(pr) {
 		        fn = function(rp_data, rp_inst, out_path) {
 		          reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
 		          reviewed$data <- .bases_normalize_other_selects(reviewed$data, reviewed$inst)
-		          rp_data <- .excluir_cols(reviewed$data, .as_chr_vec(cfg$variables_excluidas))
+		          # Higiene: fuera las columnas de plumbing interno (tags de fuente,
+		          # fases territoriales, derivadas kobo redundantes), las columnas
+		          # 100% vacías (plantillas de análisis nunca calculadas, metadata
+		          # sin contenido) y las variables excluidas por config. El strip de
+		          # vacías va SOLO acá (export de la BBDD), no en el review compartido.
+		          #
+		          # Reconciliación data↔XLSForm: por defecto TODAS las extra
+		          # sustantivas (vars de versiones viejas del form, derivadas de
+		          # plataforma) se excluyen; solo sobreviven las que el usuario
+		          # incluyó (`variables_extra_incluidas`). El include manda sobre el
+		          # empty-drop: una extra incluida-pero-vacía NO se dropea por vacía.
+		          recon <- .reconciliacion_export_plan(reviewed$data, reviewed$inst, cfg)
+		          empty_cols <- setdiff(.analitica_base_empty_cols(reviewed$data), recon$extra_incluidas)
+		          rp_data <- .excluir_cols(
+		            reviewed$data,
+		            c(.as_chr_vec(cfg$variables_excluidas),
+		              .analitica_base_internal_cols(reviewed$data),
+		              empty_cols,
+		              recon$extra_a_excluir)
+		          )
 		          rp_inst <- reviewed$inst
 		          df_base <- rp_data
           if (multi_select == "dummy_01") df_base <- .expand_multiselect(df_base, rp_inst)
+          if (incluir_madre_sm) df_base <- .analitica_base_reconstruct_madre_sm(df_base, rp_inst)
           df_cod <- .aplicar_etiquetas(df_base, rp_inst, valores = "codigos", multi_select = multi_select)
           df_lab <- if (valores == "codigos") df_cod
                     else .aplicar_etiquetas(df_base, rp_inst, valores = "etiquetas", multi_select = multi_select)
+          # BBDD sin "Ficha tecnica": solo las hojas `codigos` y `etiquetas`
+          # (pedido del usuario — la ficha no pertenece al volcado de datos).
+          # Frecuencias y Cruces SÍ conservan su ficha (no se tocan).
           .bases_write_xlsx(
             df_cod,
             df_lab,
             out_path,
             valores = valores,
-            ficha_tecnica = list(
-              cfg = cfg,
-              instrumento = rp_inst,
-              reporte = "Base de datos analitica",
-              detalles = list(
-                "Formato de valores" = valores,
-                "Tratamiento de select multiple" = multi_select
-              )
-            )
+            ficha_tecnica = FALSE
           )
         }
       )
@@ -4273,6 +4385,8 @@ mount_analitica <- function(pr) {
       if (!multi_select %in% c("codigos_crudos","etiquetas_unidas","dummy_01")) multi_select <- "dummy_01"
       omitir_identificadores_directos <- !identical(body$omitir_identificadores_directos, FALSE)
       omitir_metadatos_operativos <- !identical(body$omitir_metadatos_operativos, FALSE)
+      # incluir_madre_sm (bool, default FALSE): mismo contrato que /bases/xlsx.
+      incluir_madre_sm <- isTRUE(body$incluir_madre_sm)
 
       result <- .analitica_unified_independent_xlsx(
         sid = sid,
@@ -4280,7 +4394,8 @@ mount_analitica <- function(pr) {
         valores = valores,
         multi_select = multi_select,
         omitir_identificadores_directos = omitir_identificadores_directos,
-        omitir_metadatos_operativos = omitir_metadatos_operativos
+        omitir_metadatos_operativos = omitir_metadatos_operativos,
+        incluir_madre_sm = incluir_madre_sm
       )
       .analitica_status_set(sid, "analitica_bases_xlsx_ok", TRUE)
       result

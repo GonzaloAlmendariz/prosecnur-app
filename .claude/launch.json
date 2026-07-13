@@ -4,28 +4,74 @@
     {
       "name": "Frontend (Vite dev server)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--dir", "frontend", "dev"],
+      "runtimeArgs": [
+        "--dir",
+        "frontend",
+        "dev"
+      ],
       "port": 5173,
       "autoPort": true
     },
     {
       "name": "Frontend (modo público)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--dir", "frontend", "dev"],
-      "env": { "VITE_PULSO_PUBLIC_MODE": "true" },
+      "runtimeArgs": [
+        "--dir",
+        "frontend",
+        "dev"
+      ],
+      "env": {
+        "VITE_PULSO_PUBLIC_MODE": "true"
+      },
       "port": 5173
+    },
+    {
+      "name": "Frontend (dev vs 8799)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "frontend",
+        "dev"
+      ],
+      "env": {
+        "VITE_API_PROXY_TARGET": "http://127.0.0.1:8799"
+      },
+      "port": 5173,
+      "autoPort": true
     },
     {
       "name": "Backend (Plumber API)",
       "runtimeExecutable": "Rscript",
-      "runtimeArgs": ["launcher/launch.R"],
+      "runtimeArgs": [
+        "launcher/launch.R"
+      ],
       "port": 8787
     },
     {
       "name": "Installer preview",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "4848", "--directory", "/tmp/installer-preview"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4848",
+        "--directory",
+        "/tmp/installer-preview"
+      ],
       "port": 4848
+    },
+    {
+      "name": "Frontend (E2E vs 8790)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "frontend",
+        "dev"
+      ],
+      "env": {
+        "VITE_API_PROXY_TARGET": "http://127.0.0.1:8790"
+      },
+      "port": 5173,
+      "autoPort": true
     }
   ]
 }

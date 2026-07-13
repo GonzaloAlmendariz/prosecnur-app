@@ -10,6 +10,23 @@ import { useProjectShell } from "../project/ProjectShell";
 // misma jerarquía tipográfica, mismo estilo de secciones, mismo estilo
 // de colapsables, mismo footer "Generar".
 
+// ---- PaneGroup ------------------------------------------------------------
+// Encabezado de categoría (tipo de entregable / de salida) + divisor + sus
+// secciones. Separa visualmente grupos como "Fuente original", "Archivos
+// para análisis", "Formatos del libro"… para que el analista ubique rápido
+// qué necesita. Full-width; las secciones se apilan dentro del body.
+export function PaneGroup({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <section className="analitica-pane-group">
+      <header className="analitica-pane-group-head">
+        <span className="analitica-pane-group-label">{label}</span>
+        {hint && <span className="analitica-pane-group-hint">{hint}</span>}
+      </header>
+      <div className="analitica-pane-group-body">{children}</div>
+    </section>
+  );
+}
+
 // ---- Section wrapper ------------------------------------------------------
 // Título + subtítulo explicativo + contenido. Da identidad uniforme a
 // cada paso de configuración dentro de un Panel.

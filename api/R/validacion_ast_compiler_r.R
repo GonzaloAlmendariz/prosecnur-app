@@ -52,6 +52,12 @@ ast_to_r <- function(x) {
     "aggregate_cmp"            = .c_aggregate_cmp(x$host_var, x$op, x$source_table,
                                                   x$source_var, x$agg_op,
                                                   x$parent_key_local, x$parent_key_remote),
+    "referential_parent_exists"= .c_referential_parent_exists(x$source_table,
+                                                              x$parent_key_local,
+                                                              x$parent_key_remote),
+    "roster_set_cmp"           = .c_roster_set_cmp(x$host_sm_var, x$source_table,
+                                                   x$source_var, x$op,
+                                                   x$parent_key_local, x$parent_key_remote),
     "and"                      = .c_bool("and", x$args),
     "or"                       = .c_bool("or",  x$args),
     "not"                      = paste0("!(", .compile(x$arg), ")"),
@@ -126,9 +132,19 @@ ast_to_r <- function(x) {
 .c_cmp_const <- function(var, op, value) {
   vnum <- suppressWarnings(as.numeric(value))
   if (!is.na(vnum) && !is.logical(value)) {
-    # Comparación numérica
+    # Comparación numérica (rangos, edades…): sin toque code/label.
     sprintf("(!is.na(%s) & suppressWarnings(as.numeric(%s)) %s %s)",
             var, var, op, vnum)
+  } else if (op %in% c("==", "!=")) {
+    # Igualdad/desigualdad contra un valor de texto: agnóstica code/label. Si la
+    # variable tiene lista de opciones en `.__choices_map__`, la comparación
+    # acepta el valor y su contraparte code↔label (la regla trae el código y la
+    # data la etiqueta, o viceversa). Sin mapa → igualdad de string directa
+    # (comportamiento histórico).
+    sprintf(
+      "get('.vd_cmp_const_eq', envir = globalenv())(%s, %s, %s, %s, if (exists('.__choices_map__', inherits = TRUE)) `.__choices_map__` else NULL)",
+      .lit_str(var), var, .lit_str(op), .lit_str(as.character(value))
+    )
   } else {
     sprintf("(!is.na(%s) & as.character(%s) %s %s)",
             var, var, op, .lit_str(as.character(value)))
@@ -159,7 +175,7 @@ ast_to_r <- function(x) {
 
 .c_selected <- function(var, value) {
   sprintf(
-    "get('.vd_sm_contains_all', envir = globalenv())(%s, %s, .__eval_data__)",
+    "get('.vd_sm_contains_all', envir = globalenv())(%s, %s, .__eval_data__, if (exists('.__choices_map__', inherits = TRUE)) `.__choices_map__` else NULL)",
     .lit_str(var),
     .lit_char_vec(as.character(value))
   )
@@ -167,7 +183,7 @@ ast_to_r <- function(x) {
 
 .c_any_selected <- function(var, values) {
   sprintf(
-    "get('.vd_sm_contains_any', envir = globalenv())(%s, %s, .__eval_data__)",
+    "get('.vd_sm_contains_any', envir = globalenv())(%s, %s, .__eval_data__, if (exists('.__choices_map__', inherits = TRUE)) `.__choices_map__` else NULL)",
     .lit_str(var),
     .lit_char_vec(values)
   )
@@ -175,7 +191,7 @@ ast_to_r <- function(x) {
 
 .c_none_selected <- function(var, values) {
   sprintf(
-    "get('.vd_sm_contains_none', envir = globalenv())(%s, %s, .__eval_data__)",
+    "get('.vd_sm_contains_none', envir = globalenv())(%s, %s, .__eval_data__, if (exists('.__choices_map__', inherits = TRUE)) `.__choices_map__` else NULL)",
     .lit_str(var),
     .lit_char_vec(values)
   )
@@ -217,10 +233,13 @@ ast_to_r <- function(x) {
 }
 
 .c_dup_tuple <- function(vars) {
+  # Backtick de cada var: las llaves canónicas del repeat (`_parent_index`) no
+  # son identificadores R válidos y reventaban el parse (RC4 reusa este op con
+  # tuplas (`_parent_index`, `current_code`)).
   if (length(vars) == 1L) {
-    clave <- sprintf("as.character(%s)", vars[1])
+    clave <- sprintf("as.character(%s)", .backtick(vars[1]))
   } else {
-    parts <- vapply(vars, function(v) sprintf("as.character(%s)", v), character(1))
+    parts <- vapply(vars, function(v) sprintf("as.character(%s)", .backtick(v)), character(1))
     # Separador U+241F (SYMBOL FOR UNIT SEPARATOR) — muy improbable en datos.
     clave <- sprintf("paste(%s, sep = '\\u241F')", paste(parts, collapse = ", "))
   }
@@ -300,6 +319,36 @@ ast_to_r <- function(x) {
   else sprintf("`%s`", var)
 }
 
+# RC3 — integridad referencial. La regla corre sobre la tabla HIJA (host); el
+# evaluador expone su data en `.__eval_data__` y las demás tablas (incluida la
+# madre) en `__data_multi__`. Delegamos en `.vd_referential_orphans` para leer
+# la tabla padre y marcar las filas hija sin padre. Como aggregate_cmp: si la
+# tabla padre o su llave faltan, no marca (conservador, sin falso positivo).
+.c_referential_parent_exists <- function(source_table, parent_key_local, parent_key_remote) {
+  sprintf(
+    "get('.vd_referential_orphans', envir = globalenv())(%s, %s, %s, .__eval_data__, if (exists('__data_multi__', inherits = TRUE)) `__data_multi__` else NULL)",
+    .lit_str(source_table),
+    .lit_str(parent_key_local),
+    .lit_str(parent_key_remote)
+  )
+}
+
+# RC5 — correspondencia roster↔selección. La regla corre sobre la MADRE (host);
+# `.__eval_data__` es la madre y la tabla hija roster vive en `__data_multi__`.
+# `.vd_sm_tokens_list(host_sm_var, madre)` da el set marcado por fila; el roster
+# se agrupa por padre. Violación = !setequal. Si falta la hija, no marca.
+.c_roster_set_cmp <- function(host_sm_var, source_table, source_var, op,
+                              parent_key_local, parent_key_remote) {
+  sprintf(
+    "get('.vd_roster_set_violation', envir = globalenv())(%s, %s, %s, %s, %s, .__eval_data__, if (exists('__data_multi__', inherits = TRUE)) `__data_multi__` else NULL)",
+    .lit_str(host_sm_var),
+    .lit_str(source_table),
+    .lit_str(source_var),
+    .lit_str(parent_key_local),
+    .lit_str(parent_key_remote)
+  )
+}
+
 # -----------------------------------------------------------------------------
 # Select_multiple helpers usados por AST y reglas custom
 # -----------------------------------------------------------------------------
@@ -376,27 +425,154 @@ ast_to_r <- function(x) {
   lapply(out, .vd_sm_chr)
 }
 
-.vd_sm_contains_any <- function(var, values, data) {
-  values <- .vd_sm_chr(values)
-  toks <- .vd_sm_tokens_list(var, data)
-  vapply(toks, function(x) length(intersect(x, values)) > 0L, logical(1))
+# Representaciones aceptables de un valor dado el sub-mapa code→label de una
+# variable: el valor mismo + su contraparte (etiqueta si el valor es código,
+# código si el valor es etiqueta). Sin mapa devuelve solo el valor.
+.vd_value_aliases <- function(value, var_choices = NULL) {
+  v <- as.character(value)
+  out <- v
+  if (is.null(var_choices) || !length(var_choices)) return(unique(out))
+  codes <- as.character(names(var_choices))
+  labels <- as.character(unlist(var_choices, use.names = FALSE))
+  vt <- trimws(v)
+  hit_c <- which(trimws(codes) == vt)
+  if (length(hit_c)) out <- c(out, labels[hit_c])
+  hit_l <- which(trimws(labels) == vt)
+  if (length(hit_l)) out <- c(out, codes[hit_l])
+  unique(out[!is.na(out) & nzchar(out)])
 }
 
-.vd_sm_contains_all <- function(var, values, data) {
-  values <- .vd_sm_chr(values)
-  toks <- .vd_sm_tokens_list(var, data)
-  vapply(toks, function(x) length(values) > 0L && all(values %in% x), logical(1))
+# Igualdad/desigualdad agnóstica code/label para compare_const. `map` es el
+# `.__choices_map__` inyectado por el evaluador (list var → (code→label)). Sin
+# entrada para la variable, se comporta como igualdad de string directa.
+.vd_cmp_const_eq <- function(var_name, x, op, value, map = NULL) {
+  var_name <- as.character(var_name)[1]
+  value <- as.character(value)
+  vc <- if (!is.null(map) && length(map) && var_name %in% names(map)) map[[var_name]] else NULL
+  aliases <- .vd_value_aliases(value, vc)
+  present <- !is.na(x)
+  hit <- present & (as.character(x) %in% aliases)
+  if (identical(op, "!=")) present & !hit else hit
 }
 
-.vd_sm_contains_none <- function(var, values, data) {
+# Sub-mapa code→label de una variable dentro del choices_map inyectado.
+.vd_var_choices <- function(var, choices_map) {
+  if (is.null(choices_map) || !length(choices_map)) return(NULL)
+  var <- as.character(var)[1]
+  if (!(var %in% names(choices_map))) return(NULL)
+  choices_map[[var]]
+}
+
+.vd_sm_contains_any <- function(var, values, data, choices_map = NULL) {
   values <- .vd_sm_chr(values)
+  vc <- .vd_var_choices(var, choices_map)
   toks <- .vd_sm_tokens_list(var, data)
-  vapply(toks, function(x) !length(intersect(x, values)), logical(1))
+  vapply(toks, function(x) {
+    if (!length(values)) return(FALSE)
+    any(vapply(values, function(v) any(.vd_value_aliases(v, vc) %in% x), logical(1)))
+  }, logical(1))
+}
+
+.vd_sm_contains_all <- function(var, values, data, choices_map = NULL) {
+  values <- .vd_sm_chr(values)
+  vc <- .vd_var_choices(var, choices_map)
+  toks <- .vd_sm_tokens_list(var, data)
+  vapply(toks, function(x) {
+    if (!length(values)) return(FALSE)
+    all(vapply(values, function(v) any(.vd_value_aliases(v, vc) %in% x), logical(1)))
+  }, logical(1))
+}
+
+.vd_sm_contains_none <- function(var, values, data, choices_map = NULL) {
+  values <- .vd_sm_chr(values)
+  vc <- .vd_var_choices(var, choices_map)
+  toks <- .vd_sm_tokens_list(var, data)
+  vapply(toks, function(x) {
+    if (!length(values)) return(TRUE)
+    !any(vapply(values, function(v) any(.vd_value_aliases(v, vc) %in% x), logical(1)))
+  }, logical(1))
 }
 
 .vd_sm_count_selected <- function(var, data) {
   toks <- .vd_sm_tokens_list(var, data)
   as.integer(vapply(toks, length, integer(1)))
+}
+
+# -----------------------------------------------------------------------------
+# Coherencia relacional del repeat (RC3/RC5): helpers de dominio que leen la
+# tabla relacionada desde `__data_multi__` (inyectado por el evaluador). Mismo
+# contrato que `.c_aggregate_cmp`: si la tabla o las llaves faltan, devuelven
+# "sin violación" (conservador) en vez de propagar error.
+# -----------------------------------------------------------------------------
+
+# RC3 — filas hija huérfanas. `eval_data` es la HIJA (host). Devuelve logical de
+# largo nrow(eval_data): TRUE donde `parent_key_local` no aparece como
+# `parent_key_remote` en la tabla padre `data_multi[[source_table]]`.
+.vd_referential_orphans <- function(source_table, parent_key_local, parent_key_remote,
+                                    eval_data, data_multi = NULL) {
+  if (!is.data.frame(eval_data) || !nrow(eval_data)) return(logical(0))
+  n <- nrow(eval_data)
+  if (!(parent_key_local %in% names(eval_data))) return(rep(FALSE, n))
+  parent <- if (!is.null(data_multi) && source_table %in% names(data_multi)) {
+    data_multi[[source_table]]
+  } else NULL
+  child_keys <- as.character(eval_data[[parent_key_local]])
+  present <- !is.na(child_keys) & nzchar(trimws(child_keys))
+  if (is.null(parent) || !is.data.frame(parent) || !(parent_key_remote %in% names(parent))) {
+    # Sin tabla padre no podemos afirmar orfandad → no marcamos (conservador).
+    return(rep(FALSE, n))
+  }
+  parent_keys <- as.character(parent[[parent_key_remote]])
+  present & !(child_keys %in% parent_keys)
+}
+
+# RC5 — evaluación completa por fila madre: devuelve por cada fila
+# list(violation=, falta_en_roster=, sobra_en_roster=). Expuesto aparte del
+# wrapper de flag para que la UI/tests inspeccionen los subtipos.
+#   falta_en_roster = marcado en la madre pero SIN fila en el roster hija.
+#   sobra_en_roster = fila en el roster hija que NO fue marcada en la madre.
+.vd_roster_set_eval <- function(host_sm_var, source_table, source_var,
+                                parent_key_local, parent_key_remote,
+                                eval_data, data_multi = NULL) {
+  if (!is.data.frame(eval_data) || !nrow(eval_data)) {
+    return(list(violation = logical(0), falta_en_roster = list(), sobra_en_roster = list()))
+  }
+  n <- nrow(eval_data)
+  marked <- .vd_sm_tokens_list(host_sm_var, eval_data)
+  src <- if (!is.null(data_multi) && source_table %in% names(data_multi)) {
+    data_multi[[source_table]]
+  } else NULL
+  ok_src <- !is.null(src) && is.data.frame(src) &&
+    (source_var %in% names(src)) && (parent_key_remote %in% names(src)) &&
+    (parent_key_local %in% names(eval_data))
+  if (!isTRUE(ok_src)) {
+    # Sin roster hija comparable → conservador: sin violación, sets vacíos.
+    return(list(
+      violation = rep(FALSE, n),
+      falta_en_roster = replicate(n, character(0), simplify = FALSE),
+      sobra_en_roster = replicate(n, character(0), simplify = FALSE)
+    ))
+  }
+  groups <- split(as.character(src[[source_var]]), as.character(src[[parent_key_remote]]))
+  pk <- as.character(eval_data[[parent_key_local]])
+  viol <- logical(n); falta <- vector("list", n); sobra <- vector("list", n)
+  for (i in seq_len(n)) {
+    roster_i <- .vd_sm_chr(groups[[pk[i]]] %||% character(0))
+    marked_i <- .vd_sm_chr(marked[[i]])
+    falta[[i]] <- setdiff(marked_i, roster_i)  # marcado sin fila
+    sobra[[i]] <- setdiff(roster_i, marked_i)  # fila sin marcar
+    viol[i]    <- !setequal(roster_i, marked_i)
+  }
+  list(violation = viol, falta_en_roster = falta, sobra_en_roster = sobra)
+}
+
+# RC5 — wrapper de flag (lo que consume el compilador): solo el vector logical.
+.vd_roster_set_violation <- function(host_sm_var, source_table, source_var,
+                                     parent_key_local, parent_key_remote,
+                                     eval_data, data_multi = NULL) {
+  .vd_roster_set_eval(host_sm_var, source_table, source_var,
+                      parent_key_local, parent_key_remote,
+                      eval_data, data_multi)$violation
 }
 
 .vd_sm_exclusive_violation <- function(var, exclusive_codes, data, max_others = NULL) {

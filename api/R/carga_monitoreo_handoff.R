@@ -16,13 +16,17 @@
 #   - GENERAL (telefonico / multi-fuente): el snapshot es un frame multi-fuente sin
 #     validation_status; se promueve UNA fuente Kobo (ver carga_monitoreo_handoff_general.R).
 #
-# PREFERENCIA DE INSTRUMENTO: la data es local, pero el instrumento se prefiere
-# desde la API de Kobo (version desplegada, fidedigna). Esa preferencia la decide
-# el propio helper congelado `.monitoreo_processing_handoff_xlsform`: puntua los
-# candidatos por columnas emparejadas y desempata por `priority` (Kobo API = 5,
-# base del estudio = 10, file store = 40; menor gana). No hay flag en `parsed`
-# para forzar la API: es automatica. El STATUS reporta `instrument_source` solo
-# para transparencia de que fuente saldria el instrumento.
+# FUENTE DE INSTRUMENTO (contrato vigente): la data es local Y el instrumento
+# tambien sale SIEMPRE del XLSForm LOCAL que sube el usuario (la ultima version
+# descargada de Kobo), NUNCA de la API de Kobo. Motivo: para Kobo todo es local
+# (bajar la ultima version del formulario es trivial) y el pull multi-version de
+# la API arrastraba columnas fantasma. El helper congelado
+# `.monitoreo_processing_handoff_xlsform` ya no candidatea la API: puntua solo la
+# base del estudio (priority 10) y el file store (priority 40) por columnas
+# emparejadas con la data (el cruce de compatibilidad form<->data SE MANTIENE), y
+# desempata por `priority` (menor gana). El STATUS reporta `instrument_source`
+# ("local" | "needs_upload") e `instrument_needs_upload` para que la UI pida subir
+# el XLSForm cuando falte.
 
 # Detecta el XLSForm local disponible (base activa del estudio o cualquier
 # archivo xlsform en el file store) sin leerlo. Barato: solo mira metadatos.
@@ -55,7 +59,8 @@
                   no_defendible = 0L, total = 0L),
     source = list(label = "", kind = "", phase = "", kobo_asset_uid = "",
                   source_id = "", validity = "", status_column = "",
-                  instrument_source = "none", instrument_available = FALSE),
+                  instrument_source = "none", instrument_available = FALSE,
+                  instrument_needs_upload = FALSE),
     sources = list(),
     already_promoted = FALSE,
     existing_base = list(present = FALSE),
@@ -111,30 +116,13 @@
     total = as.integer(total_rows)
   )
 
-  # Fuente del instrumento: reusa el detector de Kobo heredado de Monitoreo
-  # (mismo patron que /platform/kobo/detected-source) y complementa con el
-  # chequeo LOCAL de token (lectura de secreto, sin red).
+  # Fuente del instrumento: el detector de Kobo se conserva solo para etiquetar la
+  # fuente de DATOS (label/phase/asset). El INSTRUMENTO ya no sale de la API de
+  # Kobo: sale SIEMPRE del XLSForm local que sube el usuario. Si no hay XLSForm
+  # local, la UI debe pedir subirlo (needs_upload) antes de traer la data.
   detected_kobo <- tryCatch(.carga_kobo_detected_source(sid), error = function(e) list(ok = FALSE, detected = FALSE))
-  has_asset <- isTRUE(detected_kobo$detected) && nzchar(.carga_chr1(detected_kobo$asset_uid, ""))
-  has_token <- FALSE
-  if (has_asset) {
-    has_token <- tryCatch(
-      isTRUE(.connections_token_status(
-        "kobo", sid,
-        profile_id = detected_kobo$connection_profile_id %||% NULL,
-        base_url = detected_kobo$base_url %||% NULL
-      )$has_token),
-      error = function(e) FALSE
-    )
-  }
   has_local_xlsform <- .carga_monitoreo_handoff_has_local_xlsform(sid, s)
-  instrument_source <- if (has_asset && has_token) {
-    "kobo_api"
-  } else if (has_local_xlsform) {
-    "local"
-  } else {
-    "none"
-  }
+  instrument_source <- if (has_local_xlsform) "local" else "needs_upload"
   source <- list(
     label = .carga_chr1(detected_kobo$name %||% detected_kobo$source_title, ""),
     kind = "kobo",
@@ -144,7 +132,8 @@
     validity = "validation_status",
     status_column = "",
     instrument_source = instrument_source,
-    instrument_available = !identical(instrument_source, "none")
+    instrument_available = has_local_xlsform,
+    instrument_needs_upload = !has_local_xlsform
   )
 
   # already_promoted = el handoff YA se hizo (existe una base con source_kind

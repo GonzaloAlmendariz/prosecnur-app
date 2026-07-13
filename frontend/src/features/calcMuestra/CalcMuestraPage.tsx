@@ -31,6 +31,9 @@ import { LoadingBlock } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { useCalcMuestraAutosave } from "./hooks/useCalcMuestraAutosave";
 import { useCalcMuestraStore } from "./store/calcMuestraStore";
+import { useMotorPersistencia } from "./motor/useMotorPersistencia";
+import { useMotorStore } from "./motor/store";
+import { EMPTY_WORKSPACE } from "./workspaceDefaults";
 import {
   apiCalcMuestraAulasCompararMetodos,
   apiCalcMuestraAulasExportar,
@@ -173,23 +176,6 @@ function guidedStatusLabel(status: GuideStatus) {
   if (status === "working") return "Siguiente paso";
   return "Pendiente";
 }
-
-const EMPTY_WORKSPACE: CalcMuestraWorkspace = {
-  version: 2,
-  frame_mode: "sin_definir",
-  marco_disponible: "",
-  fuente_marco: "",
-  unidad_observacion: "",
-  unidad_muestreo: "",
-  variables_control: [],
-  escenarios: [],
-  notas_diseno: "",
-  source_mode: "base_madre",
-  source_bindings: [],
-  variable_mappings: [],
-  category_mappings: [],
-  publication_config: DEFAULT_UNIVERSITY_PUBLICATION_CONFIG,
-};
 
 const CANAL_OPTIONS: Array<{ id: CalcMuestraCanalRecojo; label: string }> = [
   { id: "aula_qr", label: "Aulas / QR" },
@@ -516,11 +502,11 @@ function deskSubtitleForDesk(desk: ActiveDesk) {
 function railSectionsForDesk(desk: ActiveDesk): CalcMuestraSectionNavItem[] {
   if (desk === "opinion_universitaria") {
     return [
-      { id: "definicion", label: "Definición", detail: "estudio y contrato de datos", icon: ClipboardList, targetId: "cmv2-section-university-setup" },
-      { id: "marco", label: "Marco institucional", shortLabel: "Marco", detail: "base principal o dos hojas", icon: Database, targetId: "cmv2-section-university-marco" },
-      { id: "calculo", label: "Cálculo", detail: "n final y ajustes", icon: Calculator, targetId: "cmv2-section-university-calculo" },
-      { id: "aulas", label: "Aulas y selección", shortLabel: "Aulas", detail: "selector, reemplazos y cuotas", icon: Grid3X3, targetId: "cmv2-section-university-aulas" },
-      { id: "salidas", label: "Salida", detail: "reporte y seguimiento", icon: Route, targetId: "cmv2-section-university-salidas" },
+      { id: "definicion", label: "Datos", detail: "bases, variables y unidades", icon: Database, targetId: "cmv2-section-university-setup" },
+      { id: "marco", label: "Marco", detail: "criterios, embudos y cobertura", icon: ClipboardList, targetId: "cmv2-section-university-marco" },
+      { id: "calculo", label: "Cálculo", detail: "parámetros, escenarios y reparto", icon: Calculator, targetId: "cmv2-section-university-calculo" },
+      { id: "aulas", label: "Selección", detail: "método, sorteo y reemplazos", icon: Grid3X3, targetId: "cmv2-section-university-aulas" },
+      { id: "salidas", label: "Entrega", detail: "tablas, reportes y monitoreo", icon: Route, targetId: "cmv2-section-university-salidas" },
     ];
   }
   if (desk === "marco_disponible") {
@@ -999,6 +985,9 @@ export default function CalcMuestraPage() {
     setAulasStateChecked(true);
   }, []);
   useCalcMuestraAutosave(handleHydratedState);
+  // Sincroniza el Motor/Recorrido con estudio.workspace.motor_recorrido
+  // (hidratación + write-back); el PUT lo sigue haciendo el autosave de arriba.
+  useMotorPersistencia();
   // Setters con guardia de no-op: los efectos de auto-reparación/hidratación
   // del desk (sync Marco → Cálculo, normalizaciones al montar pestañas)
   // re-emiten el estado tal cual; si el patch es deep-equal al actual no se
@@ -1220,6 +1209,13 @@ export default function CalcMuestraPage() {
     setActiveLocalTabs((prev) => ({ ...prev, [`${desk}:${activeRailSection}`]: tab.id }));
   }
 
+  // Navegación interna del Recorrido: entre capítulos (pestañas de su sección)
+  // y hacia las secciones operativas ("hazlo con tu base").
+  function navegarDesdeRecorrido(section: string, tab?: string) {
+    setActiveRailSection(section);
+    if (tab) setActiveLocalTabs((prev) => ({ ...prev, [`${desk}:${section}`]: tab }));
+  }
+
   function updateComponente(id: string, patch: ComponentePatch) {
     setComponentes(
       estudio.componentes.map((c) =>
@@ -1429,6 +1425,9 @@ export default function CalcMuestraPage() {
 
   function universityMarcoConfigPayload(nextWorkspace: CalcMuestraWorkspace) {
     const config = normalizeUniversityAulasConfig(nextWorkspace.aulas_config);
+    // Los opcionales c7/c8 los gobierna la decisión del Motor/Recorrido, no un
+    // flag suelto del config: la activación real del build sale del store.
+    const opcionales = useMotorStore.getState().decisiones.opcionalesActivos;
     return {
       ...config,
       mapping: universityWorkspaceMappingPayload(nextWorkspace.variable_mappings),
@@ -1440,6 +1439,21 @@ export default function CalcMuestraPage() {
         require_in_person: config.require_in_person ?? config.modalidad !== "online_controlado",
         accepted_conditions: config.accepted_conditions?.length ? config.accepted_conditions : ["regular"],
         min_eligible_per_class: config.min_elegibles_aula,
+        exclude_session_patterns: config.exclude_session_patterns ?? [],
+        exclude_modality_patterns: config.exclude_modality_patterns,
+        exclude_level_patterns: config.exclude_level_patterns,
+        // H9: excepciones de tipo de sesión por unidad (viaja junto a los patrones que exime).
+        session_type_excepciones: config.session_type_excepciones ?? {},
+        require_stable_teacher: config.require_stable_teacher ?? false,
+        accepted_teacher_type_patterns: config.accepted_teacher_type_patterns ?? ["contratado", "ordinario"],
+        // H7: criterio de pregrado sobre la columna de formación real de la base.
+        accepted_formation_patterns: config.accepted_formation_patterns ?? ["pregrado"],
+        nivel_por_unidad: config.nivel_por_unidad ?? {},
+        accepted_campuses: config.accepted_campuses ?? [],
+        require_min_prevalence: opcionales.includes("c7"),
+        min_prevalence_pct: config.min_prevalence_pct ?? 0.8,
+        require_cycle_homogeneity: opcionales.includes("c8"),
+        min_cycle_homogeneity_pct: config.min_cycle_homogeneity_pct ?? 0.8,
       },
     };
   }
@@ -1948,6 +1962,11 @@ export default function CalcMuestraPage() {
                     </span>
                   </span>
                 )}
+                {desk === "opinion_universitaria" && (
+                  <span className="cmv2-pill-soft cmv2-command-etapa" title="Etapa del estudio · se define en Datos → Estudio">
+                    {(workspace.etapa ?? "propuesta") === "campo" ? "Campo · DTI" : "Propuesta"}
+                  </span>
+                )}
               </div>
             )}
 
@@ -2103,6 +2122,7 @@ export default function CalcMuestraPage() {
               onGenerarPaqueteDefensa={(formato) => void generarPaqueteDefensa(formato)}
               paqueteEnCurso={paqueteEnCurso}
               paquetePasos={paquetePasos}
+              onNavigate={navegarDesdeRecorrido}
             />
           )}
 
@@ -2257,10 +2277,13 @@ function CalcMuestraContextSidebar({
                 role="tab"
                 aria-selected={active}
                 className={`cmv2-section-local-tab is-${tab.status}${active ? " is-active" : ""}`}
-                // El label completo viaja en title/aria-label para que el carril
-                // colapsado siga siendo identificable con solo el ícono.
-                title={guided ? `${tab.label}: ${tab.detail} · ${statusLabel}` : `${tab.label}: ${tab.detail}`}
+                // Rail de íconos persistente: el detalle aparece como tooltip
+                // flotante ESTILIZADO en hover (patrón de los sidebars de
+                // Procesamiento vía data-rail-tooltip), no expandiendo el carril.
+                // NO usamos `title` nativo: dispararía el tooltip feo del browser
+                // encima del estilizado. La accesibilidad viaja en aria-label.
                 aria-label={`${tab.label}. ${tab.detail}`}
+                data-rail-tooltip={guided ? `${tab.label}\n${tab.detail} · ${statusLabel}` : `${tab.label}\n${tab.detail}`}
                 onClick={() => selectTab(tab)}
               >
                 <span className="cmv2-section-local-icon" aria-hidden="true">

@@ -12,7 +12,7 @@ import {
   type BasesSavWriterInfo,
 } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
-import { Section, Collapsible, GenerateFooter } from "../PaneKit";
+import { Section, Collapsible, GenerateFooter, PaneGroup } from "../PaneKit";
 import { useReporteRun } from "../useReporteRun";
 import { useAnaliticaStore } from "../store";
 import { MetadatosEditor } from "../MetadatosEditor";
@@ -34,10 +34,9 @@ export function BasesPane() {
   const { state } = useSession();
 
   const fuenteLabel = state?.analitica_fuente === "adaptados" ? "Codificada" : "Original";
-  const siblingsLabel =
-    state?.estudio_processing_mode === "independent_siblings" && (state?.n_bases ?? 0) > 1
-      ? `${state?.n_bases ?? 0} bases`
-      : "Base activa";
+  const multibaseEnabled =
+    state?.estudio_processing_mode === "independent_siblings" && (state?.n_bases ?? 0) > 1;
+  const siblingsLabel = multibaseEnabled ? `${state?.n_bases ?? 0} bases` : "Base activa";
 
   return (
     <Panel className="analitica-bases-panel">
@@ -67,13 +66,39 @@ export function BasesPane() {
           </div>
         </div>
         <BasesUseGuide fuenteLabel={fuenteLabel} siblingsLabel={siblingsLabel} />
-        <UnifiedSiblingsCard cfg={bases.xlsx} />
-        <ArchivosFuenteSection />
-        <MetadatosSection />
-        <SavCard cfg={bases.sav} onChange={setBasesSav} />
-        <CsvCard cfg={bases.csv} onChange={setBasesCsv} />
-        <XlsxCard cfg={bases.xlsx} onChange={setBasesXlsx} />
-        <ScriptReplicaCard />
+
+        {multibaseEnabled && (
+          <PaneGroup
+            label="Comparar bases"
+            hint="Une las mediciones en una sola tabla comparativa, sin tocar el proyecto."
+          >
+            <UnifiedSiblingsCard cfg={bases.xlsx} />
+          </PaneGroup>
+        )}
+
+        <PaneGroup
+          label="Fuente original"
+          hint="La base y el formulario tal cual, para revisar sin alterar el proyecto."
+        >
+          <ArchivosFuenteSection />
+        </PaneGroup>
+
+        <PaneGroup
+          label="Archivos para análisis"
+          hint="Elige el formato según la herramienta: SPSS, R / Python / Stata o Excel."
+        >
+          <MetadatosSection />
+          <SavCard cfg={bases.sav} onChange={setBasesSav} />
+          <CsvCard cfg={bases.csv} onChange={setBasesCsv} />
+          <XlsxCard cfg={bases.xlsx} onChange={setBasesXlsx} />
+        </PaneGroup>
+
+        <PaneGroup
+          label="Reproducibilidad"
+          hint="Para que el cliente regenere esta misma base final por su cuenta."
+        >
+          <ScriptReplicaCard />
+        </PaneGroup>
       </div>
     </Panel>
   );
@@ -89,29 +114,12 @@ function BasesUseGuide({
   siblingsLabel: string;
 }) {
   return (
-    <div className="analitica-bases-guide" aria-label="Guía rápida para elegir archivos">
-      <div className="analitica-bases-guide-context">
-        <Info size={14} />
-        <div>
-          <strong>Elige qué necesitas</strong>
-          <span>{fuenteLabel} · {siblingsLabel}. Todo se genera como archivo nuevo; el proyecto queda intacto.</span>
-        </div>
-      </div>
-      <div className="analitica-bases-guide-options">
+    <div className="analitica-bases-intro" aria-label="Contexto de los entregables">
+      <Info size={14} />
+      <div>
+        <strong>Todo se genera como archivo nuevo</strong>
         <span>
-          <FileCode2 size={14} />
-          <strong>Revisar fuente</strong>
-          <small>Base + formulario</small>
-        </span>
-        <span>
-          <Database size={14} />
-          <strong>Unir bases</strong>
-          <small>Excel comparativo</small>
-        </span>
-        <span>
-          <FileSpreadsheet size={14} />
-          <strong>Preparar entrega</strong>
-          <small>SAV, CSV o Excel</small>
+          Fuente {fuenteLabel} · {siblingsLabel}. Descargar cualquier entregable no altera la base activa ni la codificación del proyecto.
         </span>
       </div>
     </div>
@@ -436,14 +444,23 @@ function XlsxCard({
   cfg: {
     valores: "codigos" | "etiquetas" | "ambos";
     multi_select: "codigos_crudos" | "etiquetas_unidas" | "dummy_01";
+    incluir_madre_sm?: boolean;
   };
   onChange: (patch: Partial<typeof cfg>) => void;
 }) {
   const run = useReporteRun();
 
+  // La columna madre legible solo tiene sentido junto a las columnas 0/1.
+  const madreSmAplica = cfg.multi_select === "dummy_01";
+  const incluirMadreSm = madreSmAplica && !!cfg.incluir_madre_sm;
+
   async function onGenerate() {
     await run.runSync(() =>
-      apiAnaliticaBasesXlsx({ valores: cfg.valores, multi_select: cfg.multi_select }),
+      apiAnaliticaBasesXlsx({
+        valores: cfg.valores,
+        multi_select: cfg.multi_select,
+        incluir_madre_sm: incluirMadreSm,
+      }),
     );
   }
 
@@ -485,6 +502,24 @@ function XlsxCard({
             { value: "codigos_crudos", label: "Mantener códigos originales", hint: "Conserva respuestas como '1 3 5'." },
           ]}
         />
+
+        <label
+          className={`analitica-bases-check-option${madreSmAplica ? "" : " is-disabled"}`}
+          title={madreSmAplica ? undefined : "Disponible cuando eliges una columna por opción (0/1)."}
+        >
+          <input
+            type="checkbox"
+            checked={incluirMadreSm}
+            disabled={!madreSmAplica}
+            onChange={(e) => onChange({ incluir_madre_sm: e.target.checked })}
+          />
+          <span>
+            <strong>Incluir columna legible de opción múltiple</strong>
+            <small>
+              Junto a las columnas 0/1, agrega una columna con las respuestas escritas (unidas) para leer de un vistazo.
+            </small>
+          </span>
+        </label>
 
         <GenerateFooter
           label="Descargar Excel"
@@ -546,6 +581,7 @@ function UnifiedSiblingsCard({
   cfg: {
     valores: "codigos" | "etiquetas" | "ambos";
     multi_select: "codigos_crudos" | "etiquetas_unidas" | "dummy_01";
+    incluir_madre_sm?: boolean;
   };
 }) {
   const cleanRun = useReporteRun();
@@ -553,11 +589,15 @@ function UnifiedSiblingsCard({
   const { state } = useSession();
   const enabled = state?.estudio_processing_mode === "independent_siblings" && (state?.n_bases ?? 0) > 1;
 
+  // Hereda el flag del mismo config compartido (bases.xlsx); solo aplica con dummies.
+  const incluirMadreSm = cfg.multi_select === "dummy_01" && !!cfg.incluir_madre_sm;
+
   async function onGenerateClean() {
     await cleanRun.runSync(() =>
       apiAnaliticaBasesXlsxUnificada({
         valores: cfg.valores,
         multi_select: cfg.multi_select,
+        incluir_madre_sm: incluirMadreSm,
         omitir_identificadores_directos: true,
         omitir_metadatos_operativos: true,
       }),
@@ -569,6 +609,7 @@ function UnifiedSiblingsCard({
       apiAnaliticaBasesXlsxUnificada({
         valores: cfg.valores,
         multi_select: cfg.multi_select,
+        incluir_madre_sm: incluirMadreSm,
         omitir_identificadores_directos: false,
         omitir_metadatos_operativos: false,
       }),

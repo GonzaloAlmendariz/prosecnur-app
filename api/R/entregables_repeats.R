@@ -110,9 +110,9 @@
   }
   sprintf(
     paste0(
-      "El grano de esta base es la INSTANCIA del repeat: N=%s instancias%s%s ",
-      "(1 fila = 1 registro del roster). La significancia de cruces sobre esta ",
-      "base ignora el clustering por persona."
+      "Base a nivel de fila repetida: %s filas%s%s (una fila por cada opción ",
+      "marcada, no una por persona). Los porcentajes se calculan sobre filas, ",
+      "no sobre personas."
     ),
     format(n_inst, big.mark = ","), grupo_txt, pers_txt
   )
@@ -124,4 +124,256 @@
 .repeat_grain_from_inst <- function(instrumento) {
   if (is.null(instrumento)) return(NULL)
   attr(instrumento, "repeat_grain", exact = TRUE)
+}
+
+# --- E. Univariados de la HIJA a grano de INSTANCIA (ADR 0030, Fase 4) --------
+#
+# El enriquecimiento hija×madre (Fase 3, `.analitica_enrich_child_pair`) inyecta
+# en la hija las variables de caracterización de la MADRE (`repeat_inherited=TRUE`
+# en la columna, `parent_inherited=TRUE` en la fila de survey) para que los CRUCES
+# hija×madre existan. Pero esas variables son a grano de PERSONA (430) y, si se
+# reportan en un frecuencias/codebook UNIVARIADO de la hija (668 filas), se
+# inflan (doble-conteo: transport bus 236 personas → 366 instancias). La madre ya
+# las reporta bien a su grano. El filtro de fantasmas de esta capa (Parte B, arriba)
+# era UNIDIRECCIONAL — la madre excluye las preguntas del repeat; faltaba la
+# recíproca. Aquí va:
+#
+#   PARTE A — Los univariados (frecuencias/codebook) de una base hija repeat
+#             reportan SOLO las variables NATIVAS del bloque; las heredadas de la
+#             madre se excluyen del reporte (NO se borran del dato: siguen
+#             disponibles para cruces).
+#   PARTE B — Las preguntas nativas del bloque (`srv_*`) NO van en un total plano;
+#             se reportan DESGLOSADAS POR SERVICIO usando la etiqueta del roster
+#             (`current_label`) como condicional. Cada fila es un caso único
+#             persona×servicio (una persona no repite el mismo servicio), así que
+#             condicionar por servicio no dobla-cuenta. Una `srv_*` que sólo aplica
+#             a ciertos servicios aparece SÓLO bajo ese/esos servicio(s) (las filas
+#             de otros servicios tienen NA para esa pregunta y no suman ahí).
+
+#' ¿El par (data, inst) es una base HIJA repeat a grano instancia? Señal robusta:
+#' `attr(inst,"repeat_grain")$kind == "instancia"` (lo deja la Fase 3). Devuelve el
+#' grain (list) o NULL. Reusa `.repeat_grain_from_inst`.
+#' @keywords internal
+.repeat_child_instancia_grain <- function(inst) {
+  g <- .repeat_grain_from_inst(inst)
+  if (is.list(g) && identical(as.character(g$kind %||% ""), "instancia")) return(g)
+  NULL
+}
+
+#' Nombres de variables HEREDADAS de la madre presentes en el par (data,inst) de
+#' la hija: columnas con `attr(col,"repeat_inherited")==TRUE` ∪ filas de survey con
+#' `parent_inherited==TRUE`. Fuente única de la marca que dejó el enriquecimiento.
+#' @keywords internal
+.repeat_inherited_var_names <- function(data, inst = NULL) {
+  nms <- character(0)
+  if (is.data.frame(data) && length(data)) {
+    inh <- vapply(names(data), function(cn) {
+      isTRUE(attr(data[[cn]], "repeat_inherited", exact = TRUE))
+    }, logical(1))
+    nms <- names(data)[inh]
+  }
+  sv <- inst$survey
+  if (is.data.frame(sv) && all(c("name", "parent_inherited") %in% names(sv))) {
+    flag <- sv$parent_inherited
+    is_inh <- !is.na(flag) & (flag %in% TRUE | as.character(flag) %in% c("TRUE", "true"))
+    nms <- union(nms, as.character(sv$name)[is_inh])
+  }
+  unique(nms[nzchar(nms)])
+}
+
+#' PARTE A — quita del par (data, inst) las variables heredadas de la madre, para
+#' que los univariados de la hija no las reporten (ni las inflen). Preserva los
+#' atributos a nivel de data.frame (instrumento_reporte, repeat_grain) y las filas
+#' de survey nativas. Idempotente y seguro sobre bases sin heredadas.
+#' @keywords internal
+.repeat_strip_inherited <- function(data, inst) {
+  inh <- .repeat_inherited_var_names(data, inst)
+  if (!length(inh)) return(list(data = data, inst = inst))
+  out <- data
+  if (is.data.frame(data)) {
+    keep <- setdiff(names(data), inh)
+    out <- data[, keep, drop = FALSE]
+    preserved <- setdiff(names(attributes(data)), c("names", "row.names", "class"))
+    for (a in preserved) attr(out, a) <- attr(data, a)
+  }
+  inst2 <- inst
+  sv <- inst2$survey
+  if (is.data.frame(sv) && "name" %in% names(sv)) {
+    inst2$survey <- sv[!(as.character(sv$name) %in% inh), , drop = FALSE]
+  }
+  if (is.data.frame(inst2$survey_raw) && "name" %in% names(inst2$survey_raw)) {
+    sr <- inst2$survey_raw
+    inst2$survey_raw <- sr[!(as.character(sr$name) %in% inh), , drop = FALSE]
+  }
+  list(data = out, inst = inst2)
+}
+
+#' Etiqueta de servicio del roster (`current_label`) por fila de la hija. Los
+#' campos `calculate` (current_code/current_label) se pierden en la preparación
+#' analítica; se re-anclan aquí desde la data CRUDA de la propia hija por `_index`
+#' (fallback `_submission__id`). Devuelve un character alineado a `nrow(data)` o
+#' NULL si no se puede resolver (degradar sin romper).
+#' @keywords internal
+.repeat_service_labels_from_raw <- function(sid, base_name, data,
+                                            service_col = "current_label") {
+  base_name <- as.character(base_name %||% "")
+  if (!nzchar(base_name) || !is.data.frame(data)) return(NULL)
+  raw <- tryCatch(estudio_data_sources(sid)[[base_name]], error = function(e) NULL)
+  if (!is.data.frame(raw) || !(service_col %in% names(raw))) return(NULL)
+  key <- if ("_index" %in% names(data) && "_index" %in% names(raw)) {
+    "_index"
+  } else if ("_submission__id" %in% names(data) && "_submission__id" %in% names(raw)) {
+    "_submission__id"
+  } else {
+    NULL
+  }
+  if (is.null(key)) return(NULL)
+  pos <- match(as.character(data[[key]]), as.character(raw[[key]]))
+  if (all(is.na(pos))) return(NULL)
+  svc <- as.character(raw[[service_col]][pos])
+  svc[is.na(svc)] <- ""
+  svc
+}
+
+#' Nombre seguro y único para la columna sintética de una `srv_*` restringida a un
+#' servicio. Determinístico por (var, índice de servicio) para no colisionar.
+#' @keywords internal
+.repeat_service_syn_name <- function(var, svc_idx) {
+  sprintf("%s__svc%02d", as.character(var), as.integer(svc_idx))
+}
+
+#' Clona en el instrumento de la hija la fila de survey (y survey_raw) de `from`
+#' bajo el nombre `to`, conservando `type`/`label`/`list_name` para que
+#' `reporte_frecuencias` resuelva sus etiquetas de valor igual que la original.
+#' @keywords internal
+.repeat_clone_survey_row <- function(inst, from, to) {
+  clone_in <- function(df) {
+    if (!is.data.frame(df) || !("name" %in% names(df))) return(df)
+    idx <- which(as.character(df$name) == as.character(from))
+    if (!length(idx)) return(df)
+    row <- df[idx[1], , drop = FALSE]
+    row$name <- to
+    rbind(df, row)
+  }
+  inst$survey <- clone_in(inst$survey)
+  if (!is.null(inst$survey_raw)) inst$survey_raw <- clone_in(inst$survey_raw)
+  inst
+}
+
+#' Registra `service_col` (character del roster) como un `select_one` con lista de
+#' opciones inline construida de sus propios valores, para que la sección de
+#' composición del roster ("Servicios evaluados") se tabule con etiquetas.
+#' @keywords internal
+.repeat_register_service_dict <- function(inst, service_col, values,
+                                          label = "Servicio evaluado") {
+  vals <- unique(as.character(values))
+  vals <- vals[!is.na(vals) & nzchar(vals)]
+  if (!length(vals)) return(inst)
+  ln <- "svc_roster_list"
+  # survey: fila select_one; si ya existe, no duplicar.
+  sv <- inst$survey %||% data.frame(type = character(0), name = character(0), label = character(0))
+  if (!(service_col %in% as.character(sv$name %||% character(0)))) {
+    row <- sv[0, , drop = FALSE]
+    row[1, ] <- NA
+    row$type[1] <- paste("select_one", ln)
+    row$name[1] <- service_col
+    row$label[1] <- label
+    if ("list_name" %in% names(row)) row$list_name[1] <- ln
+    inst$survey <- rbind(sv, row)
+  }
+  # choices: name = value (autocodigo), label = value.
+  ch <- inst$choices
+  add <- data.frame(list_name = ln, name = vals, label = vals, stringsAsFactors = FALSE)
+  if (is.data.frame(ch) && all(c("list_name", "name", "label") %in% names(ch))) {
+    extra <- setdiff(names(ch), names(add))
+    for (e in extra) add[[e]] <- NA
+    inst$choices <- rbind(ch[, union(names(ch), names(add)), drop = FALSE][, names(ch), drop = FALSE],
+                          add[, names(ch), drop = FALSE])
+  } else {
+    inst$choices <- add
+  }
+  inst
+}
+
+#' Variables NATIVAS del bloque repeat que se tabulan por servicio: `select_one`/
+#' `select_multiple` y numéricas (integer/decimal), excluyendo texto (`_why`), las
+#' llaves técnicas y las columnas de `exclude`. Se leen del survey ya sin heredadas.
+#' @keywords internal
+.repeat_native_tabulable_vars <- function(data, inst, exclude = character(0)) {
+  sv <- inst$survey
+  if (!is.data.frame(sv) || !all(c("type", "name") %in% names(sv))) return(character(0))
+  base_type <- function(t) tolower(trimws(sub("\\s.*$", "", as.character(t))))
+  keep_types <- c("select_one", "select_multiple", "integer", "decimal")
+  ok <- base_type(sv$type) %in% keep_types
+  nms <- as.character(sv$name)[ok]
+  nms <- setdiff(nms, c(.repeat_technical_cols(), as.character(exclude)))
+  nms <- nms[nms %in% names(data)]
+  unique(nms[nzchar(nms)])
+}
+
+#' NÚCLEO de la PARTE B (puro, sin sesión): dado un vector de servicio `svc`
+#' alineado a las filas y las variables nativas `native`, construye
+#' `list(data, inst, secciones)` con una sección "Servicios evaluados" (roster) y
+#' una sección por servicio con columnas sintéticas de sus `srv_*` (restringidas a
+#' las filas de ese servicio). Testeable sin sesión.
+#' @keywords internal
+.repeat_build_service_sections <- function(data, inst, svc, native,
+                                           service_col = "current_label") {
+  svc <- as.character(svc)
+  data[[service_col]] <- svc
+  inst <- .repeat_register_service_dict(inst, service_col, svc)
+
+  secciones <- list()
+  secciones[["Servicios evaluados"]] <- service_col
+
+  # Orden de servicios por frecuencia (desc), estable.
+  tab <- sort(table(svc[!is.na(svc) & nzchar(svc)]), decreasing = TRUE)
+  servicios <- names(tab)
+
+  for (i in seq_along(servicios)) {
+    S <- servicios[i]
+    en_S <- !is.na(svc) & svc == S
+    sec_vars <- character(0)
+    for (V in native) {
+      resp <- !is.na(data[[V]]) & as.character(data[[V]]) != ""
+      if (!any(resp & en_S)) next  # esta srv_ no aplica a este servicio
+      newn <- .repeat_service_syn_name(V, i)
+      col <- data[[V]]
+      col[!en_S] <- NA  # restringe a las filas del servicio (preserva labels/attrs)
+      data[[newn]] <- col
+      inst <- .repeat_clone_survey_row(inst, V, newn)
+      sec_vars <- c(sec_vars, newn)
+    }
+    if (length(sec_vars)) secciones[[S]] <- sec_vars
+  }
+
+  list(data = data, inst = inst, secciones = secciones)
+}
+
+#' PARTE B — plan de frecuencias de la hija DESGLOSADO POR SERVICIO. Devuelve
+#' `list(data, inst, secciones)` listo para `reporte_frecuencias`:
+#'   - aplica PARTE A (sin heredadas),
+#'   - re-ancla `current_label` (servicio) desde la data cruda,
+#'   - delega en `.repeat_build_service_sections` la construcción por servicio.
+#' Si no se resuelve el servicio, degrada a univariado nativo plano (mejor que
+#' romper): reporta las `srv_*` nativas sin desglose.
+#' @keywords internal
+.repeat_frecuencias_plan_por_servicio <- function(sid, data, inst, grain,
+                                                  service_col = "current_label") {
+  stripped <- .repeat_strip_inherited(data, inst)
+  data <- stripped$data
+  inst <- stripped$inst
+  base_name <- as.character((grain %||% list())$repeat_group %||% "")
+
+  native <- .repeat_native_tabulable_vars(data, inst, exclude = c(service_col, "current_code"))
+  svc <- .repeat_service_labels_from_raw(sid, base_name, data, service_col)
+
+  if (is.null(svc) || !length(native)) {
+    # Degradación: univariado nativo plano (sin heredadas). Correcto en grano
+    # (668) aunque no desglosado — nunca peor que el estado previo.
+    secs <- if (length(native)) stats::setNames(list(native), "Bloque repetible") else list()
+    return(list(data = data, inst = inst, secciones = secs))
+  }
+
+  .repeat_build_service_sections(data, inst, svc, native, service_col)
 }

@@ -239,6 +239,20 @@ export function DefEstudioTab({
                 onChange={(e) => onWorkspace({ ...workspace, marco_disponible: e.currentTarget.value })}
               />
             </label>
+            <label className="cmv2-compact-field cmv2-compact-field--wide">
+              <span>Etapa del estudio</span>
+              <select
+                value={workspace.etapa ?? "propuesta"}
+                onChange={(e) => onWorkspace({ ...workspace, etapa: e.currentTarget.value as "propuesta" | "campo" })}
+              >
+                <option value="propuesta">Propuesta — data del semestre anterior (diseñar y presupuestar)</option>
+                <option value="campo">Campo — base de DTI del semestre de aplicación</option>
+              </select>
+              <em>
+                Distinción canónica del método: la Propuesta se calcula con la data disponible; el Campo se
+                recalcula cuando llega la base oficial de DTI.
+              </em>
+            </label>
           </div>
         </section>
         <aside className="cmv2-panel cmv2-defi-mapa cmv2-defi-stagger" aria-label="Mapa del recorrido muestral">

@@ -6,20 +6,22 @@ import {
   Database,
   FileCheck2,
   FileText,
+  Filter,
   Gauge,
   Grid3X3,
+  PieChart,
   Send,
-  SlidersHorizontal,
+  Sigma,
   Table2,
   Users,
 } from "lucide-react";
 import {
+  normalizeCriteriosCatalogo,
   type CalcMuestraAulasState,
   type CalcMuestraEstudio,
   type CalcMuestraWorkspace,
 } from "../../../api/client";
 import { guideStatus, rowsFrom, safeNumber, type GuideStatus } from "../sharedCore";
-import { universityObservedCategoryRows } from "./shared/categorias";
 import {
   CLASSROOM_LAB_TABS,
   UNIVERSITY_FACULTY_COMPONENT_ID,
@@ -34,7 +36,7 @@ import {
   classroomSelectionReady,
   frameAuditNumber,
 } from "./shared/frame";
-import { hasUsefulResult, normalizeUniversityAulasConfig } from "./shared/study";
+import { hasUsefulResult } from "./shared/study";
 
 export type CalcMuestraSidebarTab = {
   id: string;
@@ -55,6 +57,18 @@ export const UNIVERSITY_LOCAL_TAB_ALIASES: Record<string, string> = {
   "marco-estructura": "marco-poblacion",
   "marco-cadena": "marco-poblacion",
   "salidas-reservas": "salidas-monitoreo",
+  // Consolidación del Motor en la tubería única (2026-07): la guía de
+  // parámetros quedó absorbida por el diseño reactivo.
+  "calculo-guia": "calculo-diseno",
+  // Unificación de criterios (2026-07): la pestaña didáctica "Criterios" se
+  // retiró; la suite por categoría (marco-categorias) es la única superficie
+  // de criterios y absorbió sus explicaciones "¿Por qué así?".
+  "marco-criterios": "marco-categorias",
+  // Un solo hogar de criterios (2026-07): Datos deja de decidir elegibilidad
+  // (vive en Marco → Criterios) y de adelantar resultados del marco. Un tab
+  // guardado de Elegibilidad/Institución aterriza en el mapeo de Variables.
+  "def-categorias": "def-variables",
+  "def-institucion": "def-variables",
 };
 
 export function resolveUniversityLocalTab(id: string | null | undefined) {
@@ -168,10 +182,6 @@ export function universitySidebarTabs({
   const requiredMapped = UNIVERSITY_REQUIRED_VARIABLES
     .filter((row) => row.required)
     .every((required) => (workspace.variable_mappings ?? []).some((row) => row.role === required.role && row.column));
-  const observedCategoryReady = Boolean(
-    (workspace.category_mappings ?? []).some((mapping) => (mapping.values ?? []).length > 0) ||
-    universityObservedCategoryRows(workspace, aulasState, 1).length > 0,
-  );
   const hasDescriptiveFrame = Boolean(
     rowsFrom(aulasState?.frame?.population).length ||
     rowsFrom(aulasState?.frame?.aula_frame).length ||
@@ -193,27 +203,31 @@ export function universitySidebarTabs({
   if (activeSection === "definicion") {
     const baseReady = declaredSourcesReady || hasDescriptiveFrame;
     const baseConfigured = baseReady && requiredMapped;
-    const aulasConfig = normalizeUniversityAulasConfig(workspace.aulas_config);
-    const eligibilityReady = Boolean(aulasConfig.accepted_conditions?.length) && safeNumber(aulasConfig.min_elegibles_aula, 0) > 0;
+    // Datos solo declara el insumo: identidad, fuentes y mapeo. Los criterios de
+    // inclusión viven en Marco → Criterios (un solo hogar); Datos no muestra
+    // resultados del marco (la antigua pestaña Institución los adelantaba).
     return [
       { id: "def-estudio", label: "Estudio", detail: "nombre, cliente y alcance", icon: ClipboardList, status: guideStatus(Boolean(estudio.titulo)), targetId: "cmv2-local-def-estudio" },
-      { id: "def-bases", label: "Bases", detail: "archivos, hojas y lectura", icon: Database, status: guideStatus(baseReady, hasSource), targetId: "cmv2-local-def-bases" },
-      { id: "def-variables", label: "Variables", detail: "columnas del Excel", icon: Table2, status: guideStatus(baseConfigured, baseReady || hasSource), targetId: "cmv2-local-def-variables" },
-      { id: "def-categorias", label: "Categorías", detail: "valores y elegibilidad", icon: SlidersHorizontal, status: guideStatus(observedCategoryReady || eligibilityReady, baseConfigured || hasDescriptiveFrame), targetId: "cmv2-local-def-categorias" },
+      { id: "def-bases", label: "Fuentes", detail: "archivos, hojas y lectura", icon: Database, status: guideStatus(baseReady, hasSource), targetId: "cmv2-local-def-bases" },
+      { id: "def-variables", label: "Variables", detail: "columnas de la base", icon: Table2, status: guideStatus(baseConfigured, baseReady || hasSource), targetId: "cmv2-local-def-variables" },
     ];
   }
   if (activeSection === "marco") {
+    const criteriosCatalogoReady = normalizeCriteriosCatalogo(aulasState?.frame?.criterios_catalogo ?? null).variables.length > 0;
     return [
-      { id: "marco-poblacion", label: "Población", detail: "elegibles y estructura", icon: Users, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-poblacion" },
-      { id: "marco-aulas", label: "Aulas", detail: "solo curso-horario", icon: Grid3X3, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-aulas" },
-      { id: "marco-validacion", label: "Consistencia", detail: "bases relacionadas", icon: CheckCircle2, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-validacion" },
+      { id: "marco-categorias", label: "Criterios", detail: "inclusión por categoría, excepciones y su porqué", icon: Filter, status: guideStatus(criteriosCatalogoReady, hasDescriptiveFrame), targetId: "cmv2-local-marco-categorias" },
+      { id: "marco-poblacion", label: "Población", detail: "elegibles y estructura (base real)", icon: Users, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-poblacion" },
+      { id: "marco-aulas", label: "Aulas", detail: "curso-horario del marco (base real)", icon: Grid3X3, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-aulas" },
+      { id: "marco-validacion", label: "Consistencia", detail: "reconciliación entre bases", icon: CheckCircle2, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-validacion" },
+      { id: "marco-cobertura", label: "Cobertura", detail: "alcanzables y factibilidad por unidad", icon: BarChart3, status: guideStatus(effectiveMarcoReady), targetId: "cmv2-local-marco-cobertura" },
     ];
   }
   if (activeSection === "calculo") {
     return [
-      { id: "calculo-guia", label: "Parámetros", detail: "precisión, confianza y n", icon: SlidersHorizontal, status: guideStatus(effectiveMarcoReady || hasResult, declaredSourcesReady), targetId: "cmv2-local-calculo-guia" },
-      { id: "calculo-propuestas", label: "Propuestas", detail: "N, cuotas y aulas", icon: Calculator, status: guideStatus(hasResult, effectiveMarcoReady), targetId: "cmv2-local-calculo-propuestas" },
+      { id: "calculo-diseno", label: "Diseño", detail: "parámetros, n, bolsa y escenarios", icon: Sigma, status: guideStatus(true), targetId: "cmv2-local-calculo-diseno" },
+      { id: "calculo-propuestas", label: "Propuestas", detail: "N, cuotas y aulas (motor R)", icon: Calculator, status: guideStatus(hasResult, effectiveMarcoReady), targetId: "cmv2-local-calculo-propuestas" },
       { id: "calculo-ajustes", label: "Supuestos", detail: "deff, rendimiento y campo", icon: Gauge, status: guideStatus(Boolean(totalComp || facultyComp), effectiveMarcoReady), targetId: "cmv2-local-calculo-ajustes" },
+      { id: "calculo-distribucion", label: "Distribución", detail: "población y muestra por unidad × sexo", icon: PieChart, status: guideStatus(true), targetId: "cmv2-local-calculo-distribucion" },
     ];
   }
   if (activeSection === "aulas") {

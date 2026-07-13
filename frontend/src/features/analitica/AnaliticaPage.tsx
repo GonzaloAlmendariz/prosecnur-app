@@ -185,12 +185,16 @@ export default function AnaliticaPage() {
             />
           ) : (
             <>
+              {/* Sección superior: identidad del reporte (ícono + título + desc)
+                  a la izquierda y el control de fuente/plantilla a la derecha.
+                  La identidad vive aquí —no como header interno— y cada pane
+                  deja su docbar como banda de stats (su -icon/-copy se ocultan
+                  vía CSS). El rail sigue siendo el 3er nivel de navegación. */}
               <header className="pulso-analitica-panel-head">
                 <span aria-hidden="true" className="pulso-analitica-panel-icon">
                   <ActiveIcon size={17} />
                 </span>
                 <div className="pulso-analitica-panel-copy">
-                  <span className="pulso-section-eyebrow">Reporte actual</span>
                   <h2>{activeMeta.label}</h2>
                   <p>{activeMeta.desc}</p>
                 </div>

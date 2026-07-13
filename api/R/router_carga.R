@@ -14,13 +14,21 @@ estructura_instrumento <- function(inst) {
   secciones <- if (is.null(sm) || nrow(sm) == 0) list() else {
     out <- vector("list", nrow(sm))
     for (i in seq_len(nrow(sm))) {
+      # repeat_count / repeat_count_vars: qué variable gobierna la cardinalidad de
+      # un grupo repetible (p.ej. `count-selected(${services})` -> ["services"]).
+      # Blindado: instrumentos viejos o el section_map vacío pueden no traer estas
+      # columnas.
+      rc <- if ("repeat_count" %in% names(sm)) sm$repeat_count[i] else NA_character_
+      rc_vars <- if ("repeat_count_vars" %in% names(sm)) sm$repeat_count_vars[[i]] else character(0)
       out[[i]] <- list(
         name = as.character(sm$group_name[i]),
         label = as.character(sm$group_label[i] %||% sm$group_name[i]),
         is_repeat = isTRUE(sm$is_repeat[i]),
         is_conditional = isTRUE(sm$is_conditional[i]),
         relevant = if (is.na(sm$group_relevant[i])) NA else as.character(sm$group_relevant[i]),
-        prefix = as.character(sm$prefix[i] %||% "")
+        prefix = as.character(sm$prefix[i] %||% ""),
+        repeat_count = if (length(rc) == 0L || is.na(rc)) NA else as.character(rc),
+        repeat_count_vars = as.list(rc_vars %||% character(0))
       )
     }
     out
@@ -559,6 +567,17 @@ estudio_init_default_base <- function(sid) {
     inst,
     choice_code_maps = .carga_editor_choice_code_maps(sid)
   )
+  # CURA (frente B): "Ver base" lee del archivo persistido. Las bases traídas por
+  # el handoff de Monitoreo ANTES de este fix guardaron 177 columnas crudas (dups
+  # group-prefixed + universo vacío + `.integration_mode`). Se sanean acá para
+  # que Ver base muestre lo mismo que Validación/Analítica, sin re-importar.
+  s_now <- session_get(sid, required = FALSE)
+  source_kind <- (((s_now %||% list())$estudio %||% list())$bases %||%
+                    list())[[files$base_nombre]]$source_kind %||% NULL
+  df <- sanitize_base_data(
+    df, inst,
+    monitoreo_handoff = if (is.null(source_kind)) NULL else .base_hygiene_is_monitoreo_kind(source_kind)
+  )
   df <- .carga_reorder_data_columns(df, inst)
   list(data = df, instrumento = inst, base_nombre = files$base_nombre)
 }
@@ -753,7 +772,15 @@ estudio_init_default_base <- function(sid) {
   for (var in expected) {
     if (var %in% names(df)) next
     hit <- which(leaf_names == tolower(var))
-    if (length(hit) == 1L) df[[var]] <- df[[hit]]
+    # Alineamos por RENOMBRE, no por copia: la columna prefijada de origen
+    # (`Intro/mand_Date`, `Core.e1_age`) SE CONVIERTE en la pelada esperada
+    # (`mand_Date`, `E1_age`). Copiarla dejaba viva la prefijada -> duplicado
+    # byte-idéntico que ensuciaba Ver base / Validación (la higiene solo vivía en
+    # el export de Analítica). El rename in-situ evita el dup de raíz.
+    if (length(hit) == 1L) {
+      names(df)[hit] <- var
+      leaf_names[hit] <- tolower(var)
+    }
   }
   df
 }
@@ -1630,18 +1657,8 @@ mount_carga <- function(pr) {
       resumen <- summarize_instrumento(inst)
       list(ok = TRUE, resumen = resumen)
     })) |>
-    plumber::pr_get("/api/carga/instrumento/estructura", wrap_endpoint(function(req, res) {
-      sid <- session_header(req)
-      s <- session_get(sid)
-      inst <- if (!is.null(s$inst_limpieza)) s$inst_limpieza else {
-        meta_files <- Filter(function(f) f$kind == "xlsform", s$files)
-        if (length(meta_files) == 0) stop_api(409, "E_NO_XLSFORM", "No XLSForm uploaded yet")
-        x <- leer_xlsform_limpieza(meta_files[[length(meta_files)]]$path, verbose = FALSE)
-        session_set(sid, "inst_limpieza", x)
-        x
-      }
-      estructura_instrumento(inst)
-    })) |>
+    plumber::pr_get("/api/carga/instrumento/estructura",
+                    wrap_endpoint(.carga_estructura_instrumento_endpoint)) |>
     plumber::pr_post("/api/carga/data", wrap_endpoint(function(req, res, file_id = NULL) {
       sid <- session_header(req)
       if (is.null(file_id) || !nzchar(file_id)) stop_api(400, "E_MISSING_FILE_ID", "Body must include file_id")

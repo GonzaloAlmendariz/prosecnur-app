@@ -4,6 +4,7 @@ import {
   isRepeatChildBase,
   normalizeRepeatGrain,
   repeatBadgeLabel,
+  REPEAT_GRAIN_CAVEAT,
   safeRepeatNum,
   type RepeatGrain,
 } from "./repeatIdentity";
@@ -101,7 +102,7 @@ describe("normalizeRepeatGrain", () => {
 });
 
 describe("formatRepeatGrain", () => {
-  test("arma el headline con instancias + grupo + personas", () => {
+  test("arma el headline con filas repetidas + personas y humaniza la nota", () => {
     const display = formatRepeatGrain({
       kind: "instancia",
       n_instancias: 668,
@@ -111,12 +112,12 @@ describe("formatRepeatGrain", () => {
       nota: "Ignora el clustering por persona.",
     });
     expect(display).toEqual({
-      headline: "N = 668 instancias de rep_servicios · 427 personas",
-      caveat: "Ignora el clustering por persona.",
+      headline: "668 filas repetidas · 427 personas",
+      caveat: REPEAT_GRAIN_CAVEAT,
     });
   });
 
-  test("singulariza y omite el grupo cuando no está", () => {
+  test("singulariza a 1 fila repetida · 1 persona y sin nota si el backend no la envió", () => {
     const display = formatRepeatGrain({
       kind: "instancia",
       n_instancias: 1,
@@ -126,7 +127,7 @@ describe("formatRepeatGrain", () => {
       nota: "",
     });
     expect(display).toEqual({
-      headline: "N = 1 instancia · 1 persona",
+      headline: "1 fila repetida · 1 persona",
       caveat: "",
     });
   });
@@ -139,7 +140,7 @@ describe("formatRepeatGrain", () => {
       repeat_group: "rep_servicios",
       parent_base: "",
       nota: "",
-    })?.headline).toBe("N = 668 instancias de rep_servicios");
+    })?.headline).toBe("668 filas repetidas");
   });
 
   test("devuelve null cuando no hay ningún N ni grano", () => {

@@ -5,11 +5,13 @@ import {
   GitBranch,
   ListChecks,
   Network,
+  Repeat,
   Search,
   ShieldCheck,
   Sigma,
 } from "lucide-react";
 import { Pregunta, Seccion } from "../../api/client";
+import { RepeatBadge } from "../../components/RepeatBadge";
 import ContextLens from "../validacion/components/ContextLens";
 import { PreviewQuestionCard } from "../xlsformEditor/canvas/PreviewQuestionCard";
 import { LogicCanvas } from "../xlsformEditor/canvas-graph/LogicCanvas";
@@ -59,6 +61,7 @@ export default function PreguntasPanel({ preguntas, secciones }: { preguntas: Pr
   const [logicOpen, setLogicOpen] = useState(false);
 
   const seccionLabel = useMemo(() => Object.fromEntries(secciones.map((s) => [s.name, s.label])), [secciones]);
+  const seccionMeta = useMemo(() => new Map(secciones.map((s) => [s.name, s])), [secciones]);
   const logicInputs = useMemo(() => buildReadOnlyLogicInputs(preguntas, secciones), [preguntas, secciones]);
   const allStats = useMemo(() => summarizeItems(preguntas), [preguntas]);
 
@@ -129,24 +132,49 @@ export default function PreguntasPanel({ preguntas, secciones }: { preguntas: Pr
         </button>
       </div>
 
-      {Object.entries(bySection).map(([sec, items]) => (
-        <details key={sec} open className="pulso-question-map-section">
-          <summary style={{ background: sectionColor(sec) }}>
-            <strong>{seccionLabel[sec] || sec || "Sin sección"}</strong>
-            <span>{formatItemStats(summarizeItems(items))}</span>
-          </summary>
-          <div className="pulso-question-map-grid">
-            {items.map((p) => (
-              <QuestionTile
-                key={p.name}
-                pregunta={p}
-                selected={focus?.name === p.name}
-                onClick={() => setFocus(p)}
-              />
-            ))}
-          </div>
-        </details>
-      ))}
+      {Object.entries(bySection).map(([sec, items]) => {
+        const meta = seccionMeta.get(sec);
+        const isRepeat = !!meta?.is_repeat;
+        const relevantExpr = meta?.relevant?.trim() ?? "";
+        return (
+          <details key={sec} open className={`pulso-question-map-section${isRepeat ? " is-repeat" : ""}`}>
+            <summary style={isRepeat ? undefined : { background: sectionColor(sec) }}>
+              {isRepeat && (
+                <span className="pulso-question-map-section-icon" aria-hidden="true">
+                  <Repeat size={13} />
+                </span>
+              )}
+              <strong>{seccionLabel[sec] || sec || "Sin sección"}</strong>
+              {isRepeat && <RepeatBadge compact />}
+              {isRepeat && relevantExpr && (
+                <span
+                  className="pulso-question-map-section-relevant"
+                  title={`Aparece si: ${humanizeRefs(relevantExpr)}`}
+                >
+                  <Eye size={11} /> Aparece si
+                </span>
+              )}
+              <span className="pulso-question-map-section-stats">{formatItemStats(summarizeItems(items))}</span>
+            </summary>
+            {isRepeat && (
+              <p className="pulso-question-map-section-caption">
+                Grupo repetible: sus preguntas se repiten por cada registro.
+              </p>
+            )}
+            <div className="pulso-question-map-grid">
+              {items.map((p) => (
+                <QuestionTile
+                  key={p.name}
+                  pregunta={p}
+                  selected={focus?.name === p.name}
+                  inRepeat={isRepeat}
+                  onClick={() => setFocus(p)}
+                />
+              ))}
+            </div>
+          </details>
+        );
+      })}
 
       <QuestionDetailPopup
         pregunta={focus}
@@ -168,7 +196,17 @@ export default function PreguntasPanel({ preguntas, secciones }: { preguntas: Pr
   );
 }
 
-function QuestionTile({ pregunta, selected, onClick }: { pregunta: Pregunta; selected: boolean; onClick: () => void }) {
+function QuestionTile({
+  pregunta,
+  selected,
+  inRepeat = false,
+  onClick,
+}: {
+  pregunta: Pregunta;
+  selected: boolean;
+  inRepeat?: boolean;
+  onClick: () => void;
+}) {
   const accent = paletteForType(pregunta.tipo);
   const Icon = iconForType(pregunta.tipo);
   const calculate = isCalculateQuestion(pregunta);
@@ -178,7 +216,7 @@ function QuestionTile({ pregunta, selected, onClick }: { pregunta: Pregunta; sel
   return (
     <button
       type="button"
-      className={`pulso-question-map-tile${selected ? " is-selected" : ""}${calculate ? " is-calculate" : ""}`}
+      className={`pulso-question-map-tile${selected ? " is-selected" : ""}${calculate ? " is-calculate" : ""}${inRepeat ? " is-in-repeat" : ""}`}
       onClick={onClick}
       title={calculate ? `${pregunta.name}: ${pregunta.calculation_expr || pregunta.label}` : pregunta.label}
       style={{ background: sectionColor(pregunta.seccion), "--question-accent": accent } as CSSProperties}
@@ -189,6 +227,11 @@ function QuestionTile({ pregunta, selected, onClick }: { pregunta: Pregunta; sel
       <code>{pregunta.name}</code>
       <span className={calculate ? "pulso-question-map-tile-formula" : undefined}>{summary}</span>
       <span className="pulso-question-map-tile-chips">
+        {inRepeat && (
+          <span className="pulso-question-map-tile-repeat" title="Pertenece a un grupo repetible" aria-label="Grupo repetible">
+            <Repeat size={10} />
+          </span>
+        )}
         {pregunta.required && <Chip k="required" />}
         {pregunta.relevant && <Chip k="relevant" />}
         {pregunta.constraint && <Chip k="constraint" />}
@@ -425,6 +468,11 @@ function formatItemStats(stats: ItemStats): string {
 function formatFormulaPreview(value?: string | null): string {
   const formula = value?.trim() ?? "";
   return formula ? `= ${formula}` : "";
+}
+
+/** Simplifica `${variable}` a `variable` para que la condición se lea humana. */
+function humanizeRefs(expr: string): string {
+  return expr.replace(/\$\{([^}]+)\}/g, "$1");
 }
 
 function formatCodePreview(codes: string[]): string {

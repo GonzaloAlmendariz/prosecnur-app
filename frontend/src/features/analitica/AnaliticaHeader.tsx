@@ -82,6 +82,13 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
   // `null` en cualquier base normal o si la preparación aún no corrió.
   const [grain, setGrain] = useState<RepeatGrain | null>(null);
   const activeBase = state?.active_base ?? null;
+  // El indicador de grano de instancia SOLO aplica a una base hija repeat:
+  // su base activa debe ser DISTINTA de su propia madre (`grain.parent_base`).
+  // Si coinciden, la base activa ES la madre — el backend puede devolver un
+  // grain espurio sobre el padre — y no se pinta ni el badge ni la nota.
+  // (Ver ADR 0030 Fase 5.)
+  const repeatGrain =
+    grain && grain.parent_base && grain.parent_base !== activeBase ? grain : null;
   useEffect(() => {
     let alive = true;
     async function loadGrain() {
@@ -173,13 +180,13 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
         </span>
         <div className="pulso-analitica-source-copy">
           <strong>{sourceTitle}</strong>{" "}
-          {grain && (
+          {repeatGrain && (
             <RepeatBadge
-              repeatGroup={grain.repeat_group}
+              repeatGroup={repeatGrain.repeat_group}
               compact
-              title={grain.parent_base
-                ? `Base hija repeat · roster de ${grain.parent_base}`
-                : "Base hija de una estructura repetida"}
+              title={repeatGrain.parent_base
+                ? `Respuestas repetidas de «${repeatGrain.parent_base}» (una fila por opción marcada)`
+                : "Base de respuestas repetidas"}
             />
           )}{" "}
           <span>{guidance}</span>
@@ -243,7 +250,7 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
         )}
       </div>
     </ContextBar>
-    <RepeatGrainNote grain={grain} className="pulso-analitica-repeat-grain" />
+    <RepeatGrainNote grain={repeatGrain} className="pulso-analitica-repeat-grain" />
     </>
   );
 }

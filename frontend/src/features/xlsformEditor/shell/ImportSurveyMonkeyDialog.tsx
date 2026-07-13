@@ -619,7 +619,10 @@ export function ImportSurveyMonkeyDialog({
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 200,
+        // Modal full-screen: debe ir por encima del chrome del módulo
+        // (`.pulso-page-frame-toolbar` es z-index 1000). Con 200 el toolbar
+        // se colaba. Mismo criterio que el overlay del mapa / ContextLens.
+        zIndex: 1400,
         background: "rgba(15, 23, 42, 0.45)",
         display: "flex",
         alignItems: "center",

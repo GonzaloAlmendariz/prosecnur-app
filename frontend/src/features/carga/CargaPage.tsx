@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   AlertTriangle, ArrowRight, ArrowRightLeft, CheckCircle2, ClipboardCheck, CloudDownload,
-  Database, FileSpreadsheet, Download, Info, Loader2, RefreshCw, Search, ShieldCheck,
-  Table2, Trash2, Upload,
+  Database, FileSpreadsheet, FileWarning, Download, Info, Loader2, RefreshCw, Search, ShieldCheck,
+  Table2, Trash2, Upload, UploadCloud,
 } from "lucide-react";
 import {
   apiCargaBaseSheet,
@@ -10,6 +10,8 @@ import {
   apiCargaKoboDetectedSource,
   apiCargaMonitoreoHandoffStatus,
   apiCargaMonitoreoHandoffPromote,
+  apiAnaliticaReconciliacionGet,
+  apiAnaliticaReconciliacionSet,
   apiCargaImportKobo,
   apiCargaImportSurveyMonkey,
   apiCargaData,
@@ -40,6 +42,7 @@ import {
   MonitoreoKoboAssetItem,
   NormalizedExportFormat,
   Pregunta,
+  ReconciliacionInfo,
   Seccion,
   SurveyMonkeyMultibaseListItem,
   downloadUrl,
@@ -56,7 +59,12 @@ import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import SeccionesPanel from "./SeccionesPanel";
 import PreguntasPanel from "./PreguntasPanel";
 import { BasesPanel } from "./BasesPanel";
+import { EsquemaBaseSelector } from "./EsquemaBaseSelector";
+import { ReconciliacionExtraDialog } from "./ReconciliacionExtraDialog";
+import { summaryLabel as reconSummaryLabel } from "./reconciliacionModel";
 import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
+import { repeatContextFromBase } from "../../lib/rosterExplorer";
+import { defaultEsquemaBase } from "./esquemaBaseModel";
 
 // Fase 1 — Carga de insumos.
 //
@@ -169,6 +177,9 @@ export default function CargaPage() {
   const [dataPreview, setDataPreview] = useState<DataPreview | null>(null);
   const [choiceMappingReview, setChoiceMappingReview] = useState<ChoiceCodeMapReview | null>(null);
   const [estructura, setEstructura] = useState<{ secciones: Seccion[]; preguntas: Pregunta[] } | null>(null);
+  // Base cuyo esquema se muestra en la inspección multibase (madre↔hija). En
+  // single-base queda vacío y `estructura` viene del instrumento único.
+  const [esquemaBase, setEsquemaBase] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [busy, setBusy] = useState<string>("");
   const feedbackRef = useRef<HTMLDivElement | null>(null);
@@ -197,6 +208,10 @@ export default function CargaPage() {
   const [processingSuggestionsStatus, setProcessingSuggestionsStatus] = useState("");
   const [handoffStatus, setHandoffStatus] = useState<CargaMonitoreoHandoffStatus | null>(null);
   const [handoffMessage, setHandoffMessage] = useState("");
+  // Reconciliación de variables data ↔ XLSForm. `reconInfo` alimenta el panel
+  // revisitable; el diálogo se abre solo tras traer/actualizar data con extras.
+  const [reconInfo, setReconInfo] = useState<ReconciliacionInfo | null>(null);
+  const [reconDialogOpen, setReconDialogOpen] = useState(false);
 
   // Puente Monitoreo → Procesamiento (camino primario): si el proyecto ya tiene
   // trabajo de campo validado, lo detectamos para ofrecer traerlo con su
@@ -301,6 +316,9 @@ export default function CargaPage() {
         setChoiceMappingReview(review?.requires_confirmation ? review : null);
       }
       await refresh();
+      // Tras subir data manualmente, revisa si trae variables ajenas al
+      // formulario y abre la reconciliación si las hay.
+      if (kind === "data") await loadReconciliacion(true);
     } catch (e: unknown) {
       setError((e as Error).message);
     } finally {
@@ -496,6 +514,38 @@ export default function CargaPage() {
     }
   }
 
+  // Consulta el estado de reconciliación de variables. `openIfExtra` abre el
+  // diálogo cuando hay variables extra sin resolver — solo se pasa `true` justo
+  // después de traer/actualizar la data (handoff o upload), nunca en bucle. La
+  // reconciliación es un extra: si falla, degrada en silencio sin romper la carga.
+  async function loadReconciliacion(openIfExtra: boolean) {
+    try {
+      const info = await apiAnaliticaReconciliacionGet();
+      setReconInfo(info);
+      if (openIfExtra && info.n_extra > 0) setReconDialogOpen(true);
+    } catch {
+      setReconInfo(null);
+    }
+  }
+
+  async function onSaveReconciliacion(incluidas: string[]): Promise<ReconciliacionInfo> {
+    const info = await apiAnaliticaReconciliacionSet(incluidas);
+    setReconInfo(info);
+    return info;
+  }
+
+  // Mantiene el panel revisitable al día cuando hay una base con data cargada.
+  // No abre el diálogo (openIfExtra=false): eso es exclusivo de los triggers de
+  // carga, para no reabrirlo en cada refresh de estado.
+  useEffect(() => {
+    if (!state?.data) {
+      setReconInfo(null);
+      return;
+    }
+    void loadReconciliacion(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.data]);
+
   async function onBringFieldWorkToProcessing() {
     if (!handoffStatus) return;
     setError("");
@@ -504,6 +554,9 @@ export default function CargaPage() {
     try {
       const result = await apiCargaMonitoreoHandoffPromote();
       await refresh();
+      // El handoff trae data de Monitoreo que puede incluir variables de
+      // versiones viejas del formulario: ofrece reconciliarlas.
+      await loadReconciliacion(true);
       const fr = result.filter_report ?? {};
       const nf = (n?: number) => (n ?? 0).toLocaleString("es-PE");
       const traidas = result.data?.n_filas ?? fr.filas_incluidas ?? 0;
@@ -523,12 +576,6 @@ export default function CargaPage() {
       setBusy("");
     }
   }
-
-  useEffect(() => {
-    if (state?.instrumento_parsed && !estructura) {
-      apiInstrumentoEstructura().then(setEstructura).catch((e) => setError((e as Error).message));
-    }
-  }, [state?.instrumento_parsed, estructura]);
 
   // Estado de prereqs — muestra al lado del título como meta chip.
   const hasXlsform = !!state?.xlsform;
@@ -577,6 +624,12 @@ export default function CargaPage() {
   const cargaBaseSignature = estudio
     ? Object.keys(estudio.bases).sort((a, b) => a.localeCompare(b, "es")).join("|")
     : "";
+  // En multibase no hay `instrumento_parsed` único; basta con que la estructura
+  // de la base elegida esté cargada para mostrar la inspección de esquema. En
+  // single-base se conserva el gate histórico.
+  const showInspection = isMultiBase
+    ? !!estructura
+    : !!state?.instrumento_parsed && !!estructura;
   // Flag que le pide al BasesPanel abrir directamente su form "Agregar
   // base" al montar. Se activa tras convertir single → multi con el
   // botón "+ Agregar otra base" para que el usuario no tenga que
@@ -591,6 +644,7 @@ export default function CargaPage() {
     setDataPreview(null);
     setChoiceMappingReview(null);
     setEstructura(null);
+    setEsquemaBase("");
     setEstudio(null);
     setAutoOpenAddBase(false);
     setActiveCargaTab("insumos");
@@ -642,9 +696,38 @@ export default function CargaPage() {
     return () => { cancelled = true; };
   }, [isMultiBase, state?.n_bases, state?.bases_nombres?.join(",")]);
 
+  // Esquema single-base: instrumento único (comportamiento histórico intacto).
+  useEffect(() => {
+    if (isMultiBase) return;
+    if (state?.instrumento_parsed && !estructura) {
+      apiInstrumentoEstructura().then(setEstructura).catch((e) => setError((e as Error).message));
+    }
+  }, [isMultiBase, state?.instrumento_parsed, estructura]);
+
+  // Esquema multibase: elegir la base cuyo esquema se muestra. Por defecto la
+  // que mejor exhibe el begin_repeat (la madre de una base hija repeat) y
+  // mantenerla válida si cambia el set de bases.
+  useEffect(() => {
+    if (!isMultiBase || !estudio) return;
+    const names = new Set(Object.keys(estudio.bases));
+    setEsquemaBase((current) => (current && names.has(current) ? current : defaultEsquemaBase(estudio.bases, estudio.active_base)));
+  }, [isMultiBase, cargaBaseSignature, estudio?.active_base]);
+
+  // Esquema multibase: cargar la estructura de la base elegida y re-cargar
+  // cuando el usuario alterna madre↔hija en el selector.
+  useEffect(() => {
+    if (!isMultiBase || !esquemaBase) return;
+    let cancelled = false;
+    apiInstrumentoEstructura(esquemaBase)
+      .then((r) => { if (!cancelled) setEstructura(r); })
+      .catch((e) => { if (!cancelled) setError((e as Error).message); });
+    return () => { cancelled = true; };
+  }, [isMultiBase, esquemaBase]);
+
   // Tras cambios al estudio (add/remove/rename base), refrescar
-  // session state + estudio payload + re-hidratar estructura del primer
-  // instrumento si aplica.
+  // session state + estudio payload. En multibase, los effects de esquema
+  // reconstruyen la base elegida + su estructura; aquí solo limpiamos el caso
+  // sin bases.
   async function onEstudioChanged(payload: EstudioPayload) {
     setEstudio(payload);
     if (payload.processing_mode === "independent_siblings" || payload.n_bases > 1) {
@@ -654,14 +737,12 @@ export default function CargaPage() {
       setPreferredMultiStrategy("independent");
     }
     await refresh();
-    if (payload.n_bases > 0) {
-      try {
-        const r = await apiInstrumentoEstructura();
-        setEstructura(r);
-      } catch { /* primera base puede no tener estructura aún */ }
-    } else {
+    if (payload.n_bases === 0) {
+      setEsquemaBase("");
       setEstructura(null);
     }
+    // n_bases > 0: el effect de esquema multibase elige la base (madre del
+    // repeat por defecto) y el effect de fetch carga su estructura.
   }
 
   async function onConfirmChoiceMapping() {
@@ -824,6 +905,34 @@ export default function CargaPage() {
         </div>
       )}
 
+      {reconInfo && reconInfo.n_extra > 0 && (
+        <div className="pulso-recon-panel" data-audit-ready="true">
+          <span className="pulso-recon-panel-icon" aria-hidden="true">
+            <FileWarning size={16} />
+          </span>
+          <div className="pulso-recon-panel-copy">
+            <span className="pulso-recon-panel-title">Variables extra en la data</span>
+            <span className="pulso-recon-panel-summary">{reconSummaryLabel(reconInfo)}</span>
+          </div>
+          <button
+            type="button"
+            className="pulso-recon-panel-button"
+            onClick={() => setReconDialogOpen(true)}
+          >
+            <ArrowRightLeft size={14} aria-hidden="true" />
+            Revisar variables extra
+          </button>
+        </div>
+      )}
+
+      {reconDialogOpen && reconInfo && (
+        <ReconciliacionExtraDialog
+          info={reconInfo}
+          onSave={onSaveReconciliacion}
+          onClose={() => setReconDialogOpen(false)}
+        />
+      )}
+
       {choiceMappingReview && (
         <ChoiceMappingReviewDialog
           review={choiceMappingReview}
@@ -850,7 +959,10 @@ export default function CargaPage() {
             />
           )}
         >
-          <div className="pulso-carga-content pulso-content-area pulso-carga-content--multi">
+          <div className="pulso-carga-content pulso-content-area pulso-carga-content--multi pulso-carga-content--framed">
+            {/* Banda fija (fuera del scroller) + área scrolleable propia: el
+                suitebar se queda arriba sin tapar el contenido, que desliza por
+                debajo en su propio contenedor. */}
             <CargaSuiteBar
               modeLabel="Varias bases"
               headline={cargaBaseOptions.length > 0 ? "Mesa multibase activa" : "Define las fuentes del estudio"}
@@ -862,6 +974,7 @@ export default function CargaPage() {
               pendingChoiceMapping={pendingChoiceMapping}
               allReady={allReady}
             />
+            <div className="pulso-carga-scrollarea">
             {activeCargaTab === "insumos" ? (
               <>
                 <BasesPanel
@@ -881,8 +994,15 @@ export default function CargaPage() {
                   }}
                 />
                 <CargaFollowupContent
-                  showInspection={!!state?.instrumento_parsed && !!estructura}
+                  showInspection={showInspection}
                   estructura={estructura}
+                  schemaSelector={(
+                    <EsquemaBaseSelector
+                      bases={estudio.bases}
+                      value={esquemaBase}
+                      onChange={setEsquemaBase}
+                    />
+                  )}
                   hasXlsform={hasXlsform}
                   hasData={hasData}
                   pendingChoiceMapping={pendingChoiceMapping}
@@ -904,6 +1024,7 @@ export default function CargaPage() {
                 onSelectedBaseChange={setSelectedCargaBase}
               />
             )}
+            </div>
           </div>
         </AdaptiveSplitView>
       )}
@@ -1019,6 +1140,7 @@ export default function CargaPage() {
               status={handoffStatus}
               busy={!!busy}
               onBring={() => void onBringFieldWorkToProcessing()}
+              onUploadInstrument={(file) => void onPick("xlsform", file)}
             />
           )}
 
@@ -1237,7 +1359,7 @@ export default function CargaPage() {
           </div>
           )}
           <CargaFollowupContent
-            showInspection={!!state?.instrumento_parsed && !!estructura}
+            showInspection={showInspection}
             estructura={estructura}
             hasXlsform={hasXlsform}
             hasData={hasData}
@@ -1319,16 +1441,24 @@ function FieldWorkHandoffCallout({
   status,
   busy,
   onBring,
+  onUploadInstrument,
 }: {
   status: CargaMonitoreoHandoffStatus;
   busy: boolean;
   onBring: () => void;
+  onUploadInstrument: (file: File) => void;
 }) {
   const { counts, source } = status;
   const processable = handoffCount(counts.processable);
   const excluded = handoffCount(counts.no_defendible);
   const studyLabel = source.label?.trim();
-  const instrumentMissing = source.instrument_source === "none" || !source.instrument_available;
+  // El instrumento de procesamiento es SIEMPRE local. Está listo solo cuando
+  // hay un XLSForm local disponible; si falta, la UI ofrece subirlo.
+  const instrumentReady =
+    source.instrument_source === "local" && source.instrument_available === true;
+  const instrumentNeedsUpload =
+    source.instrument_needs_upload === true || source.instrument_source === "needs_upload";
+  const instrumentMissing = !instrumentReady;
   // En el camino general sin status resoluble (validity "all_rows") no todas las
   // filas son "validadas": traemos todo el corte de la fuente. En territorial y en
   // el camino por status, sí se filtró a las respuestas válidas.
@@ -1342,12 +1472,11 @@ function FieldWorkHandoffCallout({
   const replacing =
     status.existing_base.present && !status.existing_base.is_territorial;
   const replacedRows = status.existing_base.present ? status.existing_base.n_filas : 0;
-  const instrumentNote =
-    source.instrument_source === "kobo_api"
-      ? "Traemos el cuestionario desde Kobo (versión desplegada)."
-      : source.instrument_source === "local"
-        ? "Usaremos el formulario ya cargado en el proyecto."
-        : "El cuestionario todavía no está disponible. Conéctalo desde Kobo en Configuración para traer el trabajo completo.";
+  const instrumentNote = instrumentReady
+    ? "Usaremos el formulario (XLSForm) ya cargado en el proyecto."
+    : instrumentNeedsUpload
+      ? "Falta el formulario (XLSForm). Súbelo para traer el trabajo de campo con su estructura."
+      : "El formulario del estudio todavía no está disponible.";
 
   return (
     <section
@@ -1386,15 +1515,39 @@ function FieldWorkHandoffCallout({
         </span>
       </div>
       <div className="pulso-carga-handoff-actions">
+        {instrumentNeedsUpload ? (
+          <label
+            className={`pulso-carga-handoff-upload${busy ? " is-disabled" : ""}`}
+            title="Sube el XLSForm del formulario (última versión de Kobo)"
+          >
+            <UploadCloud size={14} aria-hidden="true" />
+            Sube el XLSForm del formulario
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              disabled={busy}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                // Limpiamos el value para permitir re-subir el mismo archivo
+                // tras un error de compatibilidad form↔data.
+                e.target.value = "";
+                if (file) onUploadInstrument(file);
+              }}
+              style={{ display: "none" }}
+            />
+          </label>
+        ) : null}
         <button
           type="button"
           className="pulso-carga-handoff-primary"
           onClick={onBring}
           disabled={busy || instrumentMissing}
           title={
-            instrumentMissing
-              ? "Conecta el cuestionario en Configuración para traer el trabajo de campo"
-              : "Traer el trabajo de campo al procesamiento"
+            instrumentReady
+              ? "Traer el trabajo de campo al procesamiento"
+              : instrumentNeedsUpload
+                ? "Sube el formulario (XLSForm) para traer el trabajo de campo"
+                : "El formulario del estudio todavía no está disponible"
           }
         >
           {busy ? <Loader2 size={14} className="pulso-spin" /> : <ArrowRight size={14} />}
@@ -1948,6 +2101,7 @@ function CargaBaseSheetPane({
         disabledMessage={disabledMessage}
         highlightCoding
         request={activeBase ? { base_nombre: activeBase.nombre } : undefined}
+        repeat={repeatContextFromBase(activeBase)}
         load={apiCargaBaseSheet}
       />
     </section>
@@ -1967,6 +2121,7 @@ function cargaBaseMeta(base: EstudioBase) {
 function CargaFollowupContent({
   showInspection,
   estructura,
+  schemaSelector,
   hasXlsform,
   hasData,
   pendingChoiceMapping,
@@ -1978,6 +2133,7 @@ function CargaFollowupContent({
 }: {
   showInspection: boolean;
   estructura: { secciones: Seccion[]; preguntas: Pregunta[] } | null;
+  schemaSelector?: ReactNode;
   hasXlsform: boolean;
   hasData: boolean;
   pendingChoiceMapping: boolean;
@@ -1993,6 +2149,9 @@ function CargaFollowupContent({
     <>
       {showInspection && estructura && (
         <section className="pulso-carga-inspection" aria-label="Inspección del instrumento">
+          {schemaSelector && (
+            <div className="pulso-carga-inspection-head">{schemaSelector}</div>
+          )}
           <Panel
             eyebrow="Instrumento"
             title="Mapa de secciones"

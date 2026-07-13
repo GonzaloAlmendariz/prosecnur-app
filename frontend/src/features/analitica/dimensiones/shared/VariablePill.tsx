@@ -96,9 +96,9 @@ export function VariablePill({
     }
     if (esCombinado) {
       return {
-        bg: asignada ? "#ede9fe" : "#f5f3ff",
-        border: "#a78bfa",
-        fg: "#6d28d9",
+        bg: `color-mix(in srgb, var(--pulso-accent-violet) ${asignada ? "16%" : "9%"}, #fff)`,
+        border: "color-mix(in srgb, var(--pulso-accent-violet) 45%, #fff)",
+        fg: "var(--pulso-accent-violet)",
       };
     }
     if (asignada) {

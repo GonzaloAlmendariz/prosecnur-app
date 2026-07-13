@@ -687,6 +687,17 @@
     data <- .bases_normalize_other_selects(data, inst)
   }
   data <- .bases_clean_report_data_labels(data)
+  # Override permanente de etiquetas por proyecto (label_overrides.R). Este es
+  # el chokepoint por el que pasa TODO instrumento+data del pipeline (lo llama
+  # reporte_data y .load_rp_sources de los entregables), así que aplicar aquí el
+  # override del proyecto activo (ambiente) resuelve las etiquetas bilingües UNA
+  # vez y las propaga a los tres puntos: inst$choices/dicc, attr(labels) y
+  # attr(label). Idempotente e id-preserving; NO-OP sin override activo.
+  if (exists(".label_overrides_ambient", mode = "function") &&
+      !is.null(.label_overrides_ambient())) {
+    inst <- .label_overrides_apply_to_instrument(inst, NULL)
+    data <- .label_overrides_relabel_data(data, inst, NULL)
+  }
   list(data = data, inst = inst)
 }
 
@@ -912,16 +923,42 @@
   df_lab <- .repeat_drop_technical_cols(df_lab)
   wb <- openxlsx::createWorkbook()
 
-  escribir_hoja <- function(sheet_name, data) {
-    openxlsx::addWorksheet(wb, sheet_name)
+  # Ancho de columna estimado y ACOTADO. El "auto" de openxlsx no tiene tope y
+  # produce columnas exageradamente anchas cuando un valor o etiqueta es largo.
+  # La hoja de códigos usa un tope menor (valores cortos: 1, 2, "1 3 5") que la
+  # de etiquetas (texto libre / labels).
+  col_widths <- function(data, con_etiquetas, cap) {
+    vapply(names(data), function(nm) {
+      vals <- suppressWarnings(as.character(data[[nm]]))
+      vals[is.na(vals)] <- ""
+      wv <- if (length(vals)) max(nchar(vals)) else 0L
+      wl <- 0L
+      if (con_etiquetas) {
+        l <- attr(data[[nm]], "label", exact = TRUE)
+        if (!is.null(l)) wl <- nchar(as.character(l))
+      }
+      min(cap, max(8L, nchar(nm), wv, wl) + 2L)
+    }, numeric(1))
+  }
+
+  # `con_etiquetas`: solo la hoja de etiquetas lleva la fila 2 con los labels de
+  # variable. La de códigos no la necesita (el nombre técnico basta) y así se
+  # distingue de un vistazo de la de etiquetas. `tab_color` colorea la pestaña
+  # para reforzar esa distinción.
+  escribir_hoja <- function(sheet_name, data, con_etiquetas, cap, tab_color) {
+    openxlsx::addWorksheet(wb, sheet_name, tabColour = tab_color)
     # Fila 1: nombres técnicos
     openxlsx::writeData(wb, sheet_name, as.data.frame(as.list(names(data)), stringsAsFactors = FALSE), colNames = FALSE, startRow = 1L)
-    # Fila 2: labels de variable (si existen)
-    var_labels <- vapply(data, function(c) {
-      l <- attr(c, "label", exact = TRUE)
-      if (is.null(l)) "" else as.character(l)
-    }, character(1))
-    openxlsx::writeData(wb, sheet_name, as.data.frame(as.list(var_labels), stringsAsFactors = FALSE), colNames = FALSE, startRow = 2L)
+    data_row <- 2L
+    if (con_etiquetas) {
+      # Fila 2: labels de variable (si existen)
+      var_labels <- vapply(data, function(c) {
+        l <- attr(c, "label", exact = TRUE)
+        if (is.null(l)) "" else as.character(l)
+      }, character(1))
+      openxlsx::writeData(wb, sheet_name, as.data.frame(as.list(var_labels), stringsAsFactors = FALSE), colNames = FALSE, startRow = 2L)
+      data_row <- 3L
+    }
     # Limpia atributos haven antes de escribir (writeData no los respeta).
     for (v in names(data)) {
       col <- data[[v]]
@@ -930,23 +967,28 @@
         attributes(data[[v]]) <- NULL
       }
     }
-    openxlsx::writeData(wb, sheet_name, data, startRow = 3L, colNames = FALSE)
-    # Estilo: fila 1 bold + fondo gris claro, fila 2 italic + gris más claro
+    openxlsx::writeData(wb, sheet_name, data, startRow = data_row, colNames = FALSE)
+    # Estilo: fila 1 bold + fondo gris claro; fila 2 (solo etiquetas) italic.
     header1 <- openxlsx::createStyle(textDecoration = "bold", fgFill = "#E8EAED", halign = "left")
-    header2 <- openxlsx::createStyle(textDecoration = "italic", fontColour = "#5F6368", fgFill = "#F6F7F9")
     openxlsx::addStyle(wb, sheet_name, header1, rows = 1L, cols = seq_along(data), gridExpand = TRUE)
-    openxlsx::addStyle(wb, sheet_name, header2, rows = 2L, cols = seq_along(data), gridExpand = TRUE)
-    openxlsx::freezePane(wb, sheet_name, firstActiveRow = 3L)
-    openxlsx::setColWidths(wb, sheet_name, cols = seq_along(data), widths = "auto")
+    if (con_etiquetas) {
+      header2 <- openxlsx::createStyle(textDecoration = "italic", fontColour = "#5F6368", fgFill = "#F6F7F9")
+      openxlsx::addStyle(wb, sheet_name, header2, rows = 2L, cols = seq_along(data), gridExpand = TRUE)
+    }
+    openxlsx::freezePane(wb, sheet_name, firstActiveRow = data_row)
+    openxlsx::setColWidths(wb, sheet_name, cols = seq_along(data), widths = col_widths(data, con_etiquetas, cap))
   }
 
+  # Topes de ancho y color de pestaña por tipo de hoja.
+  CAP_COD <- 16L; CAP_LAB <- 32L
+  TAB_COD <- "#6B7280"; TAB_LAB <- "#2F855A"
   if (valores == "ambos") {
-    escribir_hoja("codigos", df_cod)
-    escribir_hoja("etiquetas", df_lab)
+    escribir_hoja("codigos", df_cod, con_etiquetas = FALSE, cap = CAP_COD, tab_color = TAB_COD)
+    escribir_hoja("etiquetas", df_lab, con_etiquetas = TRUE, cap = CAP_LAB, tab_color = TAB_LAB)
   } else if (valores == "etiquetas") {
-    escribir_hoja("datos", df_lab)
+    escribir_hoja("datos", df_lab, con_etiquetas = TRUE, cap = CAP_LAB, tab_color = TAB_LAB)
   } else {
-    escribir_hoja("datos", df_cod)
+    escribir_hoja("datos", df_cod, con_etiquetas = FALSE, cap = CAP_COD, tab_color = TAB_COD)
   }
 
   if (!identical(ficha_tecnica, FALSE) &&

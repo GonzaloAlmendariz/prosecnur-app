@@ -1056,6 +1056,101 @@
   .pulso-processing-sheet-chip { transition: none; }
 }
 
+/* ============================================================
+   Lectura relacional de una base hija repeat (ADR 0030 Fase 5).
+   Naranja transversal `--pulso-repeat-*`: la tabla se lee como
+   respuesta-por-instancia con vínculo a la persona, no casos sueltos.
+   Colores SOLO por token (sin hex).
+   ============================================================ */
+.pulso-processing-sheet.is-roster .pulso-processing-sheet-title strong {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  overflow: visible;
+  white-space: normal;
+}
+
+.pulso-processing-sheet-roster-badge {
+  flex: 0 0 auto;
+}
+
+/* Banner de grano + pista de lectura, bajo la toolbar. */
+.pulso-processing-sheet-roster {
+  background: color-mix(in srgb, var(--pulso-repeat-bg) 44%, transparent);
+  border-bottom: 1px solid var(--sheet-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.pulso-processing-sheet-roster-hint {
+  color: var(--pulso-repeat-fg);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.pulso-processing-sheet-roster-hint strong {
+  font-weight: var(--pulso-control-weight);
+}
+
+.pulso-processing-sheet-roster-hint code {
+  background: color-mix(in srgb, var(--pulso-repeat-bg) 72%, transparent);
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  padding: 0 4px;
+}
+
+/* Etiqueta "roster" en la cabecera de las columnas relacionales. */
+.pulso-processing-sheet-table thead tr:first-child th button em.pulso-processing-sheet-roster-tag {
+  background: var(--pulso-repeat-bg);
+  border: 1px solid var(--pulso-repeat-border);
+  color: var(--pulso-repeat-fg);
+  text-transform: none;
+  letter-spacing: 0.2px;
+}
+
+/* Cabeceras de columnas relacionales (persona + servicio). */
+.pulso-processing-sheet-table thead th.is-roster-col {
+  background: color-mix(in srgb, var(--pulso-repeat-bg) 62%, transparent);
+  box-shadow:
+    inset 3px 0 0 var(--pulso-repeat-accent),
+    inset 0 -1px 0 color-mix(in srgb, var(--pulso-repeat-border) 76%, transparent);
+}
+
+/* Celdas de la columna Persona: tinte naranja + riel de acento. */
+.pulso-processing-sheet-table tbody td.is-roster-person,
+.pulso-processing-sheet-table tbody tr:nth-child(even) td.is-roster-person {
+  background: var(--pulso-repeat-bg);
+  box-shadow: inset 3px 0 0 var(--pulso-repeat-accent);
+  color: var(--pulso-repeat-fg);
+  font-weight: var(--pulso-control-weight);
+}
+
+.pulso-processing-sheet-table tbody tr:hover td.is-roster-person {
+  background: color-mix(in srgb, var(--pulso-repeat-bg) 82%, transparent);
+}
+
+/* Celdas de identidad del servicio: tinte más suave. */
+.pulso-processing-sheet-table tbody td.is-roster-service-label,
+.pulso-processing-sheet-table tbody td.is-roster-service-code,
+.pulso-processing-sheet-table tbody tr:nth-child(even) td.is-roster-service-label,
+.pulso-processing-sheet-table tbody tr:nth-child(even) td.is-roster-service-code {
+  background: color-mix(in srgb, var(--pulso-repeat-bg) 46%, transparent);
+}
+
+.pulso-processing-sheet-table tbody tr:hover td.is-roster-service-label,
+.pulso-processing-sheet-table tbody tr:hover td.is-roster-service-code {
+  background: color-mix(in srgb, var(--pulso-repeat-bg) 60%, transparent);
+}
+
+/* Separación entre grupos de una misma persona. */
+.pulso-processing-sheet-table tbody tr.is-roster-group-start > td {
+  border-top: 2px solid var(--pulso-repeat-border);
+}
+
 /* Encabezado del popover de filtro: nombre de la columna + tipo de filtro. */
 .pulso-sheet-filter-head {
   display: flex;

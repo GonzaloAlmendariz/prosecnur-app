@@ -15,7 +15,6 @@
 // Hay un toggle "Usar otra pregunta" que conmuta entre literal y ref.
 // =============================================================================
 
-import { ChevronsLeftRight, Type } from "lucide-react";
 import type { FlatCondition, LogicCatalog, LogicVariable } from "../../logic";
 import { VariablePicker } from "./VariablePicker";
 
@@ -42,16 +41,42 @@ export function ValueInput({
 }: ValueInputProps) {
   const isRef = value.kind === "ref";
 
-  const toggleMode = () => {
-    if (isRef) {
-      onChange({ kind: "literal", raw: "" });
-    } else {
-      onChange({ kind: "ref", variableName: variables[0]?.name ?? "" });
-    }
+  const setLiteral = () => {
+    if (!isRef) return;
+    onChange({ kind: "literal", raw: "" });
+  };
+  const setRef = () => {
+    if (isRef) return;
+    onChange({ kind: "ref", variableName: variables[0]?.name ?? "" });
   };
 
   return (
     <div className="pulso-logic-valueinput">
+      {/* Toggle con TEXTO en vez del críptico icono "<>". Deja claro si el
+          lado derecho es un valor escrito o una comparación con otra
+          pregunta del formulario. */}
+      <div className="pulso-logic-valuemode" role="group" aria-label="Comparar contra">
+        <button
+          type="button"
+          className={`pulso-logic-valuemode-opt${!isRef ? " is-on" : ""}`}
+          onClick={setLiteral}
+          disabled={disabled}
+          aria-pressed={!isRef}
+          title="Comparar contra un valor escrito"
+        >
+          Valor
+        </button>
+        <button
+          type="button"
+          className={`pulso-logic-valuemode-opt${isRef ? " is-on" : ""}`}
+          onClick={setRef}
+          disabled={disabled || variables.length === 0}
+          aria-pressed={isRef}
+          title="Comparar contra la respuesta de otra pregunta"
+        >
+          Pregunta
+        </button>
+      </div>
       <div className="pulso-logic-valueinput-control">
         {isRef ? (
           <VariablePicker
@@ -71,20 +96,6 @@ export function ValueInput({
           />
         )}
       </div>
-      <button
-        type="button"
-        className="pulso-logic-valueinput-toggle"
-        onClick={toggleMode}
-        disabled={disabled}
-        title={
-          isRef
-            ? "Usar un valor escrito"
-            : "Comparar con otra pregunta"
-        }
-        aria-label={isRef ? "Usar valor literal" : "Usar variable como valor"}
-      >
-        {isRef ? <Type size={12} /> : <ChevronsLeftRight size={12} />}
-      </button>
     </div>
   );
 }

@@ -28,6 +28,7 @@ import {
 } from "../shared/study";
 import { FlujoVertical, FormulaLatex, type FlujoEtapa } from "../ui";
 import { useValorSwap } from "../ui/useValorSwap";
+import { CadenaAfijacion } from "./CadenaAfijacion";
 import { SwapValor, fmtNum } from "./calculoUi";
 import "../../didactica/didactica.css";
 import "./calculo.css";
@@ -311,6 +312,7 @@ export function CalculoPropuestasTab({
             </div>
             <span className="cmv2-pill-soft">{fmtInt(totalCuotas)} entrevistas asignadas</span>
           </div>
+          {cuotasComp && <CadenaAfijacion comp={cuotasComp} rows={cuotasRows} />}
           <FormulaLatex
             expression={String.raw`n_h = n \cdot \tfrac{N_h}{N}`}
             badge="validado"

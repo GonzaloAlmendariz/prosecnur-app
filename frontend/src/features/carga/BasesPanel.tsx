@@ -6676,8 +6676,8 @@ function BaseRow({
                 repeatGroup={repeatGroup}
                 compact
                 title={repeatParent
-                  ? `Base hija del begin_repeat "${repeatGroup || "repeat"}" · madre: ${repeatParent}`
-                  : `Base hija del begin_repeat "${repeatGroup || "repeat"}"`}
+                  ? `Respuestas repetidas de «${repeatParent}» (una fila por opción marcada)`
+                  : "Base de respuestas repetidas"}
               />
             )}
             <span className="pulso-base-row-status">

@@ -211,6 +211,35 @@ ll_eval_repeats_count_expr <- function(rc_expr, parent_row, map_count_prefix = "
     return(ifelse(length(val) && is.finite(val), val, NA_real_))
   }
 
+  # count-selected(${var}) → nº de opciones marcadas del select_multiple ${var}
+  # en la fila madre (RC1: cardinalidad condicionada — el repeat abre una fila
+  # por opción marcada, p.ej. rep_servicios = count-selected(${services}) en el
+  # PDM). Reusa `.vd_sm_count_selected`, el mismo contador de SM que usa el
+  # compilador AST (robusto a string delimitado "health water" o columnas dummy
+  # `services/health` / `services_1`), para que la meta sea consistente con el
+  # resto del motor. DEBE ir antes del fallback genérico `${var}` de abajo, que
+  # trataría `count-selected(${services})` como un número y devolvería NA.
+  m_cs <- stringr::str_match(ex, "^\\s*count-selected\\(\\s*\\$\\{([^}]+)\\}\\s*\\)\\s*$")
+  if (!any(is.na(m_cs))) {
+    var_raw  <- m_cs[, 2]
+    var_norm <- .ll_norm_name(var_raw)
+    # Resolver la variable SM a columna(s) reales de la fila madre: nombre directo
+    # (valor string delimitado) o columnas dummy expandidas.
+    cand <- unique(c(var_norm, var_raw))
+    var_use <- NA_character_
+    for (v in cand) {
+      if (v %in% names(parent_row) || length(.vd_sm_dummy_columns(v, parent_row))) {
+        var_use <- v; break
+      }
+    }
+    # Sin la variable madre no hay meta que comparar → sin_meta (NA), NO 0:
+    # devolver 0 marcaría en falso "sobran" a toda fila con hijas. Marcar 0
+    # opciones (celda vacía con la columna presente) sí es meta legítima = 0.
+    if (is.na(var_use)) return(NA_real_)
+    val <- suppressWarnings(as.numeric(.vd_sm_count_selected(var_use, parent_row)))
+    return(ifelse(length(val) && is.finite(val), val, NA_real_))
+  }
+
   # ${var}, number/int/toint(${var}), coalesce(), min()/max()
   get_var <- function(v) {
     v_raw  <- as.character(v)

@@ -30,9 +30,9 @@ import "./definicion.css";
 
 const GRUPOS: Array<{ id: string; titulo: string; detalle: string; roles: string[] }> = [
   { id: "identidad", titulo: "Identidad", detalle: "controla duplicados y cobertura", roles: ["student_id"] },
-  { id: "estratificacion", titulo: "Estratificación", detalle: "estratos, cuotas y balance de la muestra", roles: ["faculty", "sex", "program", "level"] },
-  { id: "aula", titulo: "Unidad de aula", detalle: "identifica cada curso-horario seleccionable", roles: ["course_id", "schedule", "course_schedule_id", "classroom", "modality"] },
-  { id: "operativo", titulo: "Operativo", detalle: "elegibilidad, agenda y etiquetas de campo", roles: ["teacher", "condition", "course_name"] },
+  { id: "estratificacion", titulo: "Estratificación", detalle: "estratos, cuotas y balance de la muestra", roles: ["faculty", "sex", "program", "level", "formation", "age"] },
+  { id: "aula", titulo: "Unidad de aula", detalle: "identifica cada curso-horario seleccionable", roles: ["course_id", "schedule", "course_schedule_id", "classroom", "modality", "session_type", "course_level", "enrolled_total"] },
+  { id: "operativo", titulo: "Operativo", detalle: "elegibilidad, agenda y etiquetas de campo", roles: ["teacher", "teacher_type", "campus", "condition", "course_name"] },
 ];
 
 /** Ampliación del "por qué" para los roles donde la description corta no basta. */

@@ -44,6 +44,37 @@ as_char_na <- function(x){
 
 num <- function(z) suppressWarnings(as.numeric(z))
 
+# -------------------------------------------------------------------
+# Builtins ODK de valor: number() / int()
+# -------------------------------------------------------------------
+# ODK expone `number(x)` e `int(x)` como funciones de VALOR (producen un
+# número, no un booleano). Aparecen en calculates del tipo
+#   p_spaceNN = if(${SPACENN} != '99' and ${SPACENN} != '', number(${SPACENN}), 0)
+# El normalizador legacy ya baja `if(` → `ifelse(` y deja `number(`/`int(`
+# intactos; sin estas funciones en el entorno de evaluación el eval reventaba
+# con "could not find function 'number'". Son builtins runtime (como `num`,
+# `selected_at`, `count_selected`) y el evaluador las inyecta en `eval_env`.
+
+#' number() de ODK: coerción a numérico (vacío/no-numérico → NA)
+#'
+#' Semántica ODK: number('')=NaN, number('abc')=NaN, number('5')=5. En R
+#' `as.numeric` produce NA (con warning) para los no-numéricos, equivalente
+#' para fines de comparación NA-segura (eq_num_na trata NA==NA).
+#' @param x vector coercible a numérico
+#' @return numeric del mismo largo que x
+#' @keywords internal
+.vd_odk_number <- function(x) suppressWarnings(as.numeric(x))
+
+#' int() de ODK: truncamiento hacia cero de la coerción numérica
+#'
+#' Semántica ODK: int() trunca hacia cero — int(2.7)=2, int(-2.7)=-2. Se usa
+#' `trunc` (no `as.integer`, que redondea distinto, ni `floor`, que va a -Inf).
+#' Vacío/no-numérico → NA.
+#' @param x vector coercible a numérico
+#' @return numeric truncado del mismo largo que x
+#' @keywords internal
+.vd_odk_int <- function(x) trunc(suppressWarnings(as.numeric(x)))
+
 
 # -------------------------------------------------------------------
 # Igualdad NA-segura

@@ -24,6 +24,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   ChevronLeft,
+  ChevronRight,
   ChevronsDown,
   ChevronsUp,
   CircleDot,
@@ -44,6 +45,7 @@ import { GraphNodeCard } from "./GraphNodeCard";
 import { CanvasToolbar } from "./CanvasToolbar";
 import { ConnectionConditionPicker } from "./ConnectionConditionPicker";
 import { GraphEdgeArrow, GraphEdgeMarkers } from "./GraphEdgeArrow";
+import { stripMarkdown } from "../helpers/markdown";
 import "../styles/xf-graph.css";
 
 export type LogicCanvasProps = {
@@ -123,15 +125,6 @@ export function LogicCanvas({
   // ── Toolbar: snap + undo de drags + filtro por tipo de dependencia ──
   const [snapToGrid, setSnapToGrid] = useState(false);
   const SNAP_GRID = 16;
-  /** Filtro por tipo de edge. Por defecto mostramos toda la lógica que
-   *  exista en el formulario; el usuario puede apagar capas si necesita
-   *  concentrarse en un solo tipo de relación. */
-  const [edgeKindFilter, setEdgeKindFilter] = useState({
-    showRelevant: true,
-    showConstraint: true,
-    showCalculation: true,
-    showChoiceFilter: true,
-  });
   /** Historia de cambios de `nodePositions` para Cmd/Ctrl+Z. Cada
    *  entrada es un snapshot inmutable del map de posiciones tomado
    *  ANTES del cambio. Se pushea al inicio de cada drag y al hacer
@@ -357,10 +350,13 @@ export function LogicCanvas({
   /** Atajo para humanizar con labels resueltos. */
   const humanize = (expr: string): string =>
     humanizeRelevantWithLabels(expr, labelLookup, varTitleLookup);
+  // Título humano LIMPIO (sin markdown crudo `**…**` ni el `(name)`
+  // embutido). El `name` técnico se muestra aparte en su propia línea
+  // mono para no mezclar identidad legible con referencia XLSForm.
   const nodeDisplayName = (node: GraphNode): string => {
-    const title = (node.title || "").trim();
+    const title = stripMarkdown(node.title || "").replace(/\s+/g, " ").trim();
     if (!title || title === node.name) return node.name;
-    return `${title} (${node.name})`;
+    return title;
   };
   const nodeKindLabel = (node: GraphNode): string =>
     node.kind === "section" ? "Sección" : "Pregunta";
@@ -743,8 +739,6 @@ export function LogicCanvas({
           onToggleSnap={() => setSnapToGrid((s) => !s)}
           canUndoDrag={positionHistory.length > 0}
           onUndoDrag={undoLastDrag}
-          edgeKindFilter={edgeKindFilter}
-          onChangeEdgeKindFilter={setEdgeKindFilter}
         />
 
         <svg
@@ -792,21 +786,13 @@ export function LogicCanvas({
                 selectedUnitKey !== null && edge.unitKey === selectedUnitKey;
               const isClickIsolated =
                 selectedUnitKey !== null && !inSelectedBundle;
-              // Capas de lógica: el usuario decide si quiere leer
-              // aparición, validación, cálculos o filtros de lista.
-              const k = edge.edge.kind;
-              const passesFilter =
-                (k === "depends-on" && edgeKindFilter.showRelevant) ||
-                (k === "constrained-by" && edgeKindFilter.showConstraint) ||
-                (k === "calculated-from" && edgeKindFilter.showCalculation) ||
-                (k === "choice-filter" && edgeKindFilter.showChoiceFilter);
               const isHL =
                 inSelectedBundle ||
                 (!!selectedId &&
                   (edge.edge.source === selectedId ||
                     edge.edge.target === selectedId));
               const isHovered = hoveredEdgeIdx === idx;
-              const isDM = !passesFilter || isClickIsolated;
+              const isDM = isClickIsolated;
               // El color del edge se deriva del `relevant` del target
               // — todos los edges que llegan al mismo target comparten
               // expresión y por ende color. Cuando varios edges
@@ -822,7 +808,7 @@ export function LogicCanvas({
                   edge={edge}
                   relevantExpression={targetRelevant}
                   colorIndex={edge.colorIndex}
-                  highlighted={(isHL || isHovered) && passesFilter}
+                  highlighted={isHL || isHovered}
                   dimmed={isDM}
                   justAppeared={freshEdgeKey === edgeKey}
                   appearanceIndex={idx}
@@ -1269,10 +1255,27 @@ export function LogicCanvas({
                 <div className="pulso-graph-legend-head">
                   <strong>Cómo se lee el mapa</strong>
                   <p>
-                    Las flechas conectan preguntas que gobiernan visibilidad,
-                    validaciones, cálculos o filtros de opciones. Mismo
-                    <strong> color</strong> = misma condición lógica.
+                    Cada flecha es un <strong>salto lógico</strong>: una
+                    respuesta que abre u oculta otra pregunta o sección.
+                    Validaciones, cálculos y filtros viven en la carta de
+                    cada pregunta, no aquí.
                   </p>
+                  {/* Demostrador de "mismo color = misma condición": dos
+                      trazos del mismo color (una condición compartida) y
+                      uno de otro color (condición distinta). */}
+                  <div className="pulso-graph-legend-colorkey">
+                    <span className="pulso-graph-legend-colorkey-samples" aria-hidden="true">
+                      <svg width={40} height={26} viewBox="0 0 40 26">
+                        <path d="M 2 7 H 34" stroke="#4E79A7" strokeWidth={2} strokeLinecap="round" markerEnd="url(#pulso-graph-arrow-c-4e79a7)" />
+                        <path d="M 2 14 H 34" stroke="#4E79A7" strokeWidth={2} strokeLinecap="round" markerEnd="url(#pulso-graph-arrow-c-4e79a7)" />
+                        <path d="M 2 21 H 34" stroke="#F28E2B" strokeWidth={2} strokeLinecap="round" markerEnd="url(#pulso-graph-arrow-c-f28e2b)" />
+                      </svg>
+                    </span>
+                    <span>
+                      Mismo <strong>color</strong> = misma condición. Dos
+                      preguntas con la misma condición comparten color y carril.
+                    </span>
+                  </div>
                 </div>
 
                 {/* === Bloque 1: relaciones que abren/cierran SECCIONES === */}
@@ -1370,16 +1373,15 @@ export function LogicCanvas({
                           d="M 2 10 L 18 10 L 18 6 L 38 6"
                           fill="none"
                           stroke="#59A14F"
-                          strokeWidth={1.7}
-                          strokeDasharray="5 4"
+                          strokeWidth={1.9}
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           markerEnd="url(#pulso-graph-arrow-c-59a14f)"
                         />
                       </svg>
                       <span>
-                        Pregunta <strong>condiciona</strong> a otra (línea
-                        punteada)
+                        Una respuesta <strong>condiciona</strong> a otra
+                        pregunta
                       </span>
                     </li>
                     <li>
@@ -1388,15 +1390,15 @@ export function LogicCanvas({
                           d="M 2 4 L 38 4 L 38 16"
                           fill="none"
                           stroke="#E15759"
-                          strokeWidth={1.7}
-                          strokeDasharray="5 4"
+                          strokeWidth={1.9}
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           markerEnd="url(#pulso-graph-arrow-c-e15759)"
                         />
                       </svg>
                       <span>
-                        Misma columna → carril <strong>lateral tight</strong>
+                        Misma columna → entra por el <strong>carril
+                        lateral</strong>
                       </span>
                     </li>
                     <li>
@@ -1405,8 +1407,7 @@ export function LogicCanvas({
                           d="M 2 10 L 24 10 L 24 6 L 38 6"
                           fill="none"
                           stroke="#76B7B2"
-                          strokeWidth={1.7}
-                          strokeDasharray="5 4"
+                          strokeWidth={1.9}
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           markerEnd="url(#pulso-graph-arrow-c-76b7b2)"
@@ -1496,7 +1497,9 @@ export function LogicCanvas({
                   )}
                 </span>
                 <div className="pulso-graph-detail-title">
-                  <strong>{selectedNode.title || selectedNode.subtitle}</strong>
+                  <strong title={nodeDisplayName(selectedNode)}>
+                    {nodeDisplayName(selectedNode)}
+                  </strong>
                   <span>
                     {selectedNode.kind === "section" ? "Sección" : "Pregunta"}
                     {" · "}
@@ -1513,18 +1516,9 @@ export function LogicCanvas({
                   <X size={12} />
                 </button>
               </header>
-              {selectedNode.kind === "question" &&
-                selectedNode.catalogContext && (
-                  <p>
-                    Lista:{" "}
-                    <code>{selectedNode.catalogContext.listName}</code>
-                    {" · "}
-                    {selectedNode.catalogContext.itemCount}{" "}
-                    {selectedNode.catalogContext.itemCount === 1
-                      ? "opción"
-                      : "opciones"}
-                  </p>
-                )}
+              {/* El catálogo de la lista (listName · N opciones) es info
+                  de DATOS, no de lógica: no vive en el Mapa de lógica
+                  (mismo criterio que el chip del nodo). */}
 
               {/* Si este nodo tiene un relevant, mostramos la
                   expresión humanizada estilo `SeccionesPanel`. */}
@@ -1595,11 +1589,11 @@ export function LogicCanvas({
                             type="button"
                             className="pulso-graph-detail-link"
                             onClick={() => setSelectedId(src.id)}
-                            title={src.title || src.name}
+                            title={stripMarkdown(src.title || "") || src.name}
                           >
                             <code>{src.name}</code>
                             {src.title && src.title !== src.name && (
-                              <span>· {src.title}</span>
+                              <span>· {compactTitle(src.title)}</span>
                             )}
                           </button>
                         </li>
@@ -1625,11 +1619,11 @@ export function LogicCanvas({
                             type="button"
                             className="pulso-graph-detail-link"
                             onClick={() => setSelectedId(tgt.id)}
-                            title={tgt.title || tgt.name}
+                            title={stripMarkdown(tgt.title || "") || tgt.name}
                           >
                             <code>{tgt.name}</code>
                             {tgt.title && tgt.title !== tgt.name && (
-                              <span>· {tgt.title}</span>
+                              <span>· {compactTitle(tgt.title)}</span>
                             )}
                           </button>
                         </li>
@@ -1756,8 +1750,15 @@ export function LogicCanvas({
                         )}
                       </span>
                       <div className="pulso-graph-edge-panel-card-text">
-                        <strong>{nodeDisplayName(src)}</strong>
-                        <code>{nodeKindLabel(src)}</code>
+                        <strong title={nodeDisplayName(src)}>
+                          {nodeDisplayName(src)}
+                        </strong>
+                        <code>
+                          {nodeKindLabel(src)}
+                          {nodeDisplayName(src) !== src.name && (
+                            <> · {src.name}</>
+                          )}
+                        </code>
                       </div>
                     </div>
                   ))}
@@ -1905,9 +1906,22 @@ export function LogicCanvas({
                         )}
                       </span>
                       <div className="pulso-graph-edge-panel-card-text">
-                        <strong>{nodeDisplayName(tgt)}</strong>
-                        <code>{nodeKindLabel(tgt)}</code>
+                        <strong title={nodeDisplayName(tgt)}>
+                          {nodeDisplayName(tgt)}
+                        </strong>
+                        <code>
+                          {nodeKindLabel(tgt)}
+                          {nodeDisplayName(tgt) !== tgt.name && (
+                            <> · {tgt.name}</>
+                          )}
+                        </code>
                       </div>
+                      <span
+                        className="pulso-graph-edge-panel-card-chevron"
+                        aria-hidden="true"
+                      >
+                        <ChevronRight size={15} />
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -2053,6 +2067,16 @@ function stripOuterParens(value: string): string {
   return s;
 }
 
+/** Referencia compacta de una pregunta para la narrativa de condiciones:
+ *  limpia el markdown crudo (`**…**`) y trunca prompts largos a un incipit
+ *  reconocible. La condición REFERENCIA la pregunta, no la transcribe —
+ *  antes volcaba el párrafo completo (ej. el texto de consentimiento). */
+function compactTitle(raw: string, max = 46): string {
+  const clean = stripMarkdown(raw).replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  return `${clean.slice(0, max - 1).trimEnd()}…`;
+}
+
 type SameVariableOptionsSummary = {
   varName: string;
   title: string;
@@ -2071,7 +2095,10 @@ function summarizeSameVariableOptions(
   if (!parsed.every((item) => item!.varName === first.varName && item!.operator === first.operator)) {
     return null;
   }
-  const title = varTitle(first.varName) ?? first.varName;
+  const rawTitle = varTitle(first.varName);
+  const title = rawTitle
+    ? compactTitle(rawTitle)
+    : first.varName;
   return {
     varName: first.varName,
     title,
@@ -2156,9 +2183,11 @@ function humanizeRelevantWithLabels(
   // comillas simples.
   const resolveVar = (varName: string): string => {
     if (!varTitle) return varName;
-    const title = varTitle(varName);
-    if (!title || title === varName) return varName;
-    return `«${title}» (${varName})`;
+    const raw = varTitle(varName);
+    if (!raw || raw === varName) return varName;
+    // La condición referencia la pregunta, no la transcribe: markdown
+    // limpio + incipit truncado (ver `compactTitle`).
+    return `«${compactTitle(raw)}» (${varName})`;
   };
   // selected(${X}, 'v') → X contiene 'v_label'
   r = r.replace(
@@ -2170,6 +2199,14 @@ function humanizeRelevantWithLabels(
     /selected\(\s*\$\{([^}]+)\}\s*,\s*"([^"]*)"\s*\)/g,
     (_, varName: string, code: string) =>
       `${resolveVar(varName)} contiene "${resolveCode(varName, code)}"`,
+  );
+  // selected(${X}, code) con valor SIN comillas — ODK acepta códigos
+  // numéricos crudos, ej. `selected(${p22}, 80)`. Sin esta variante el
+  // wrapper `selected(...)` quedaba visible tal cual tras resolver ${X}.
+  r = r.replace(
+    /selected\(\s*\$\{([^}]+)\}\s*,\s*([^'")\s,]+)\s*\)/g,
+    (_, varName: string, code: string) =>
+      `${resolveVar(varName)} contiene '${resolveCode(varName, code)}'`,
   );
   // not( ... contiene ... ) → ... no contiene ...
   // El "varRef" capturado puede incluir `«…» (name)` además del nombre

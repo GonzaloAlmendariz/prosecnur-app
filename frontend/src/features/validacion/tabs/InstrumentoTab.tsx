@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback, useMemo, type CSSProperties, type ReactNode } from "react";
 import {
   AlertTriangle,
+  ChevronDown,
+  ChevronRight,
   Download,
   ListTree,
   Play,
@@ -31,11 +33,27 @@ import {
   LoadingBlock,
 } from "../../../components/States";
 import { JobProgress } from "../../../components/JobProgress";
-import { useValidacionStore } from "../store";
+import { relationalBaseKey, useValidacionStore } from "../store";
 import PlotlyView from "../components/PlotlyView";
 import ReglaDrillPanel from "../components/ReglaDrillPanel";
+import RuleDetailPanel, { type RuleDetailInput } from "../components/RuleDetailPanel";
 import { ContextLens, RuleNarrative } from "../components/v2";
 import type { ReglaLike, VariableHoverData } from "../components/v2";
+import RelationalRuleFamily, {
+  type RelationalRuleView,
+} from "../components/RelationalRuleFamily";
+import {
+  buildRelationalMetaMap,
+  normalizeRelationalSummary,
+  relationalKindCopy,
+  relRecord,
+  relStr,
+  relStrList,
+  resolveRelationalInfo,
+  type RelationalRuleInfo,
+  type RelationalRowSignals,
+  type RelationalSummary,
+} from "../relationalPlan";
 
 // =============================================================================
 // InstrumentoTab — Sprint 2
@@ -53,6 +71,10 @@ export default function InstrumentoTab() {
   const version = useValidacionStore((s) => s.version);
   const prefillInstr = useValidacionStore((s) => s.prefill.instrumento);
   const clearPrefill = useValidacionStore((s) => s.clearPrefill);
+  const setRelationalPlan = useValidacionStore((s) => s.setRelationalPlan);
+  const relationalCapture = useValidacionStore(
+    (s) => s.relationalPlan[relationalBaseKey(s.baseNombre)],
+  );
 
   const [estado, setEstado] = useState<InstrumentoEstado | null>(null);
   const [resultado, setResultado] = useState<InstrumentoResultado | null>(null);
@@ -64,6 +86,10 @@ export default function InstrumentoTab() {
   const [drill, setDrill] = useState<InstrumentoDrillResult | null>(null);
   const [reglaDirty, setReglaDirty] = useState(false);
   const [selectedRuleId, setSelectedRuleId] = useState<string>("");
+  // Regla cuyo panel de detalle (descripción + diagrama de flujo) está abierto.
+  // Es distinto de `selectedRuleId` (que puede quedar en la primera regla por
+  // defecto): sólo se setea al hacer click y gobierna la apertura del ContextLens.
+  const [detailRuleId, setDetailRuleId] = useState<string>("");
   const [variablesExcluidas, setVariablesExcluidas] = useState<InstrumentoVariablesExcluidas | null>(null);
   const [variableQuery, setVariableQuery] = useState("");
 
@@ -94,6 +120,7 @@ export default function InstrumentoTab() {
     // Reset local state al cambiar de base.
     setExportFileId(null);
     setDrill(null);
+    setDetailRuleId("");
     setJobId(null);
     setVariableQuery("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,7 +129,7 @@ export default function InstrumentoTab() {
   // Consumir prefill de deep-link: si viene id_regla, auto-abrir drill.
   useEffect(() => {
     if (prefillInstr?.id_regla && resultado) {
-      void openDrill(prefillInstr.id_regla);
+      onSelectRule(prefillInstr.id_regla);
       clearPrefill("instrumento");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -129,7 +156,13 @@ export default function InstrumentoTab() {
     setBusy("Construyendo plan desde el XLSForm…");
     setError("");
     try {
-      await apiV2InstrumentoBuildPlan(baseNombre);
+      const plan = await apiV2InstrumentoBuildPlan(baseNombre);
+      // Capturamos el surfacing relacional: el resultado de auditoría no trae
+      // estos flags, así que los cacheamos por base para el panel naranja.
+      setRelationalPlan(baseNombre, {
+        summary: normalizeRelationalSummary(plan.relational_summary),
+        metaById: Object.fromEntries(buildRelationalMetaMap(plan.plan_preview)),
+      });
       await refetchAll();
     } catch (e) {
       setError((e as Error).message);
@@ -230,6 +263,27 @@ export default function InstrumentoTab() {
     setReglaDirty(false);
   }
 
+  // Click en CUALQUIER tarjeta de regla: abre el panel de detalle (descripción +
+  // diagrama de flujo). Si la regla tiene casos, además carga el drill con la
+  // tabla de casos debajo; si no, sólo se muestra la explicación (funciona para
+  // reglas no evaluadas / no aplicables / pull-data sin depender del drill).
+  function onSelectRule(id: string) {
+    setSelectedRuleId(id);
+    setDetailRuleId(id);
+    const row = compactRules.find((r) => r.id === id);
+    if (row && (row.nInconsistencias ?? 0) > 0) {
+      void openDrill(id);
+    } else {
+      setDrill(null);
+    }
+  }
+
+  function closeDetail() {
+    setDetailRuleId("");
+    setDrill(null);
+    setReglaDirty(false);
+  }
+
   async function onToggleReglaActiva(activa: boolean, ruleId?: string) {
     const id = ruleId ?? drill?.regla.id;
     if (!id) return;
@@ -251,6 +305,9 @@ export default function InstrumentoTab() {
     }
   }
 
+  const relationalMetaById = relationalCapture?.metaById ?? null;
+  const relationalSummary = relationalCapture?.summary ?? null;
+
   const compactRules = useMemo(
     () => {
       const baseRows =
@@ -264,13 +321,16 @@ export default function InstrumentoTab() {
       }
       return baseRows.map((row) => {
         const key = row.nombre.trim().toLowerCase();
+        const planMeta = relationalMetaById ? relationalMetaById[row.id] ?? null : null;
         return {
           ...row,
           displayName: buildDisplayRuleName(row.nombre, row.variables[0]?.key ?? null, (duplicateCounts.get(key) ?? 0) > 1),
+          // Re-resuelve con la metadata autoritativa del plan (si se capturó).
+          relationalInfo: resolveRelationalInfo(relationalSignalsFromRow(row), planMeta),
         };
       });
     },
-    [resultado],
+    [resultado, relationalMetaById],
   );
 
   // Separamos las reglas por estado para que el usuario distinga visualmente:
@@ -284,11 +344,21 @@ export default function InstrumentoTab() {
   // no aplicaban aparecían como "0 casos · 0.0%" indistinguibles de las
   // reglas evaluadas con éxito sin inconsistencias.
   const rulesByGroup = useMemo(() => {
+    const relacionales: typeof compactRules = [];
     const conCasos: typeof compactRules = [];
     const desalineadas: typeof compactRules = [];
     const noAplicables: typeof compactRules = [];
     const noEvaluadas: typeof compactRules = [];
+    const pullData: typeof compactRules = [];
+    const okSinCasos: typeof compactRules = [];
     for (const row of compactRules) {
+      // La familia relacional se presenta como UN instrumento con base
+      // relacionada: sacamos esas reglas de los buckets por-estado y las
+      // agrupamos en su panel naranja, sin importar si aplican ahora mismo.
+      if (row.relationalInfo.relational) {
+        relacionales.push(row);
+        continue;
+      }
       if (row.estadoDinamico === "desalineada") {
         // Regla desalineada con los datos: compara una columna contra un valor
         // que no existe en la base (p.ej. consent=='OK' sobre datos 1/0), señal
@@ -299,23 +369,52 @@ export default function InstrumentoTab() {
         conCasos.push(row);
       } else if (row.estadoDinamico === "no_aplicable") {
         noAplicables.push(row);
+      } else if (isPullDataRow(row)) {
+        // Campo `calculate` que se pre-llena desde un listado externo vía
+        // pulldata (p.ej. sede_ppl/date_ppl del PDM contra `listadoedp`). NO es
+        // "modo experto" (sintaxis no soportada): es un campo que depende de un
+        // dato externo y es inherentemente no revisable sin ese listado. Va a su
+        // propio grupo para no inflar el conteo de reglas a revisar.
+        pullData.push(row);
       } else if (row.estadoDinamico === "no_evaluada" || row.estadoDinamico === "incorrecta_ejecucion") {
         noEvaluadas.push(row);
       } else {
-        // Fallback (estado correcta + n=0 — debería estar filtrado por el
-        // backend, pero por si acaso lo metemos en "con casos" vacíos para
-        // no perderlas del todo).
-        conCasos.push(row);
+        // Estado correcta + 0 inconsistencias: la validación corrió y pasó
+        // limpio (p.ej. los cálculos p_space). Van a su propia sección colapsable
+        // al final, para poder abrir su diagrama sin inflar la lista de trabajo.
+        okSinCasos.push(row);
       }
     }
-    return { conCasos, desalineadas, noAplicables, noEvaluadas };
+    return { relacionales, conCasos, desalineadas, noAplicables, noEvaluadas, pullData, okSinCasos };
   }, [compactRules]);
+
+  // Vista mínima de las reglas relacionales para el panel naranja.
+  const relationalRows = useMemo<RelationalRuleView[]>(
+    () =>
+      rulesByGroup.relacionales.map((row) => ({
+        id: row.id,
+        displayName: row.displayName,
+        nInconsistencias: row.nInconsistencias,
+        porcentaje: row.porcentaje,
+        info: row.relationalInfo,
+      })),
+    [rulesByGroup.relacionales],
+  );
 
   const activeDisplayName = useMemo(() => {
     if (!drill) return null;
     const fromList = compactRules.find((row) => row.id === drill.regla.id)?.displayName;
     return fromList ?? buildDisplayRuleName(drill.regla.nombre, getTargetVariableKey(drill.regla.variables), true);
   }, [compactRules, drill]);
+
+  // Fila de la regla cuyo panel de detalle está abierto (por click).
+  const detailRow = useMemo(
+    () => (detailRuleId ? compactRules.find((row) => row.id === detailRuleId) ?? null : null),
+    [compactRules, detailRuleId],
+  );
+  const detailTitle = detailRow
+    ? detailRow.presentation?.nombre_humano ?? detailRow.displayName
+    : null;
 
   const excludedVariableSet = useMemo(
     () => new Set(variablesExcluidas?.variables ?? estado?.variables_excluidas ?? []),
@@ -541,44 +640,56 @@ export default function InstrumentoTab() {
 
           <RuleGroupsSection
             groups={rulesByGroup}
+            relationalSummary={relationalSummary}
+            relationalRows={relationalRows}
             selectedRuleId={selectedRuleId}
-            onSelect={(id) => {
-              setSelectedRuleId(id);
-              void openDrill(id);
-            }}
+            onSelect={onSelectRule}
           />
         </section>
       )}
 
       <ContextLens
-        open={!!drill}
-        onClose={closeDrill}
+        open={!!detailRuleId}
+        onClose={closeDetail}
         variant="wide"
-        title={activeDisplayName ?? drill?.regla.nombre ?? "Detalle de regla"}
-        subtitle={drill?.regla.seccion ?? undefined}
+        title={detailTitle ?? "Detalle de regla"}
+        subtitle={detailRow?.seccion ?? undefined}
       >
-        {drill ? (
-          // En vista panorama (Instrumento) no se ignora reglas — esa acción
-          // vive en Limpieza, así que ocultamos el botón con
-          // `showToggleActiva=false`. Y como el ContextLens ya tiene su
-          // propio X de cerrar en el header, ocultamos también el botón
-          // "Cerrar" interno del drill panel para no duplicar.
-          <ReglaDrillPanel
-            regla={drill.regla}
-            displayName={activeDisplayName ?? undefined}
-            casos={drill.casos}
-            uuidCol={drill.uuid_col}
-            onToggleActiva={onToggleReglaActiva}
-            onClose={closeDrill}
-            invalidatedHint={
-              reglaDirty
-                ? "Cambios aplicados. Vuelve a ejecutar la auditoría para actualizar KPIs y heatmap con el plan corregido."
-                : undefined
-            }
-            surface="bubble"
-            showToggleActiva={false}
-            showClose={false}
-          />
+        {detailRow ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+            {/* Explicación de la validación + diagrama de flujo (nuevo). */}
+            <RuleDetailPanel input={buildRuleDetailInput(detailRow)} />
+
+            {/* Si la regla tiene casos, la tabla de drill vive debajo. En vista
+                panorama (Instrumento) no se ignora reglas —esa acción vive en
+                Limpieza—, así que ocultamos ese botón y el "Cerrar" interno
+                (el ContextLens ya tiene su X en el header). */}
+            {drill ? (
+              <div
+                style={{
+                  borderTop: "1px solid var(--pulso-border)",
+                  paddingTop: 18,
+                }}
+              >
+                <ReglaDrillPanel
+                  regla={drill.regla}
+                  displayName={activeDisplayName ?? undefined}
+                  casos={drill.casos}
+                  uuidCol={drill.uuid_col}
+                  onToggleActiva={onToggleReglaActiva}
+                  onClose={closeDetail}
+                  invalidatedHint={
+                    reglaDirty
+                      ? "Cambios aplicados. Vuelve a ejecutar la auditoría para actualizar KPIs y heatmap con el plan corregido."
+                      : undefined
+                  }
+                  surface="bubble"
+                  showToggleActiva={false}
+                  showClose={false}
+                />
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </ContextLens>
 
@@ -593,7 +704,7 @@ export default function InstrumentoTab() {
 }
 
 // -----------------------------------------------------------------------------
-type CompactRuleRow = {
+type CompactRuleRowBase = {
   id: string;
   nombre: string;
   displayName: string;
@@ -605,7 +716,47 @@ type CompactRuleRow = {
   estadoDinamico: string | null;
   issueCode: string | null;
   detalle: string | null;
+  // Señales relacionales (Fase 4): derivadas del resumen para clasificar la
+  // familia "coherencia relacional del repeat" sin depender del plan_preview.
+  tipoRegla: string | null;
+  rosterSubtype: string | null;
+  categoriaUx: string | null;
+  tabla: string | null;
+  targetVar: string | null;
+  // Narrativa enriquecida (para el panel de detalle + diagrama de flujo).
+  presentation: ReglaLike["presentation"];
+  variableRoles: ReglaLike["variable_roles"];
 };
+
+type CompactRuleRow = CompactRuleRowBase & {
+  relationalInfo: RelationalRuleInfo;
+};
+
+// Un `calculate` que jala su valor de un listado externo vía `pulldata()` no es
+// una regla de validación ni "modo experto": es un campo pre-llenado desde un
+// roster externo, no revisable sin ese dato. El backend ya lo marca con
+// `categoria_ux="roster_externo"` / issue_code `requires_external_dataset`; aquí
+// lo detectamos para darle su propio grupo y etiqueta ("Campo pull data").
+function isPullDataRow(row: CompactRuleRow): boolean {
+  return (
+    row.issueCode === "requires_external_dataset" ||
+    row.categoriaUx === "roster_externo" ||
+    row.relationalInfo.requiresExternalDataset === true
+  );
+}
+
+// Señales de una fila (compacta) para clasificarla relacionalmente.
+function relationalSignalsFromRow(row: CompactRuleRowBase): RelationalRowSignals {
+  return {
+    tipoRegla: row.tipoRegla,
+    rosterSubtype: row.rosterSubtype,
+    categoriaUx: row.categoriaUx,
+    tabla: row.tabla,
+    issueCode: row.issueCode,
+    targetVar: row.targetVar,
+    variables: row.variables.map((v) => v.key),
+  };
+}
 
 function VariableExclusionsPanel({
   options,
@@ -962,7 +1113,9 @@ function normalizeCompactRuleRow(row: Record<string, unknown>): CompactRuleRow |
     },
   ].filter((item) => item.key);
 
-  return {
+  const presentation = relRecord(row.presentation);
+  const variableRoles = relRecord(row.variable_roles);
+  const base: CompactRuleRowBase = {
     id,
     nombre: typeof row.nombre_regla === "string" ? row.nombre_regla : id,
     displayName: typeof row.nombre_regla === "string" ? row.nombre_regla : id,
@@ -974,6 +1127,19 @@ function normalizeCompactRuleRow(row: Record<string, unknown>): CompactRuleRow |
     estadoDinamico: typeof row.estado_dinamico === "string" ? row.estado_dinamico : null,
     issueCode: typeof row.issue_code === "string" ? row.issue_code : null,
     detalle: typeof row.detalle === "string" ? row.detalle : null,
+    tipoRegla: typeof row.tipo_regla === "string" ? row.tipo_regla : null,
+    rosterSubtype: presentation ? relStr(presentation.subtipo_semantico) : null,
+    categoriaUx: typeof row.categoria_ux === "string" ? row.categoria_ux : null,
+    tabla: typeof row.tabla === "string" ? row.tabla : null,
+    targetVar: variableRoles ? relStr(variableRoles.target) : null,
+    presentation: parsePresentation(presentation),
+    variableRoles: parseVariableRoles(variableRoles),
+  };
+  return {
+    ...base,
+    // Derivado (sin plan_preview); en `compactRules` se re-resuelve con la
+    // metadata autoritativa del plan cuando está capturada.
+    relationalInfo: resolveRelationalInfo(relationalSignalsFromRow(base)),
   };
 }
 
@@ -1043,6 +1209,71 @@ function compactRowToRule(row: CompactRuleRow): ReglaLike {
   };
 }
 
+// Normaliza el bloque `presentation` del resumen a la forma de ReglaLike.
+function parsePresentation(rec: Record<string, unknown> | null): ReglaLike["presentation"] {
+  if (!rec) return null;
+  return {
+    subtipo_semantico: relStr(rec.subtipo_semantico),
+    gate_humano: relStr(rec.gate_humano),
+    detalle_condicion: relStr(rec.detalle_condicion),
+    nombre_humano: relStr(rec.nombre_humano),
+    nombre_tecnico: relStr(rec.nombre_tecnico),
+    objetivo: relStr(rec.objetivo),
+  };
+}
+
+// Normaliza `variable_roles` (target puede venir como string o lista).
+function parseVariableRoles(rec: Record<string, unknown> | null): ReglaLike["variable_roles"] {
+  if (!rec) return null;
+  const target = relStrList(rec.target);
+  const drivers = relStrList(rec.drivers);
+  const compare = relStrList(rec.compare);
+  const gate = relStrList(rec.gate);
+  if (!target.length && !drivers.length && !compare.length && !gate.length) return null;
+  return {
+    target: target.length ? target : null,
+    drivers: drivers.length ? drivers : null,
+    compare: compare.length ? compare : null,
+    gate: gate.length ? gate : null,
+  };
+}
+
+// Arma el input del RuleDetailPanel a partir de una fila compacta. No depende
+// del drill: sirve para cualquier tipo de regla, evaluada o no.
+function buildRuleDetailInput(row: CompactRuleRow): RuleDetailInput {
+  const variables = row.variables.map((v) => v.key);
+  const labelByKey = new Map(row.variables.map((v) => [v.key, v.label] as const));
+  const regla: ReglaLike = {
+    id: row.id,
+    nombre: row.presentation?.nombre_humano ?? row.displayName,
+    tipo_regla: row.tipoRegla,
+    tipo_observacion: row.tipo,
+    fuente: "instrumento",
+    categoria_ux: row.categoriaUx,
+    objetivo: row.presentation?.objetivo ?? null,
+    variables,
+    variable_roles: row.variableRoles,
+    presentation: row.presentation,
+    n_casos: row.nInconsistencias ?? null,
+    porcentaje: row.porcentaje ?? null,
+  };
+  return {
+    regla,
+    displayName: row.displayName,
+    estadoDinamico: row.estadoDinamico,
+    issueCode: row.issueCode,
+    detalle: row.detalle,
+    nInconsistencias: row.nInconsistencias,
+    porcentaje: row.porcentaje,
+    requiresExternalDataset: isPullDataRow(row),
+    relationalConditionCopy: row.relationalInfo.relational
+      ? relationalKindCopy(row.relationalInfo.kind)
+      : null,
+    seccion: row.seccion,
+    labelLookup: (v: string) => labelByKey.get(v) ?? null,
+  };
+}
+
 // Hover lookup para variables: sólo tiene el label por fila (no hay drill
 // cargado). Suficiente para el listado — el ContextLens abre con datos
 // completos al hacer click.
@@ -1063,18 +1294,25 @@ function buildRowHoverLookup(
 // Sección con las 3 subsecciones de reglas (con casos / no aplicables / no
 // evaluadas). Cada subsección se oculta si no tiene reglas.
 type Groups = {
+  relacionales: CompactRuleRow[];
   conCasos: CompactRuleRow[];
   desalineadas: CompactRuleRow[];
   noAplicables: CompactRuleRow[];
   noEvaluadas: CompactRuleRow[];
+  pullData: CompactRuleRow[];
+  okSinCasos: CompactRuleRow[];
 };
 
 function RuleGroupsSection({
   groups,
+  relationalSummary,
+  relationalRows,
   selectedRuleId,
   onSelect,
 }: {
   groups: Groups;
+  relationalSummary: RelationalSummary | null;
+  relationalRows: RelationalRuleView[];
   selectedRuleId: string | null;
   onSelect: (id: string) => void;
 }) {
@@ -1091,6 +1329,14 @@ function RuleGroupsSection({
         gap: 18,
       }}
     >
+      {/* Panel de la familia relacional (naranja): primero, porque presenta el
+          instrumento con su base relacionada. Se auto-oculta si no hay repeat. */}
+      <RelationalRuleFamily
+        summary={relationalSummary}
+        rows={relationalRows}
+        selectedRuleId={selectedRuleId}
+        onSelect={onSelect}
+      />
       {groups.desalineadas.length > 0 && (
         <RuleSubGroup
           title="Reglas desalineadas con los datos"
@@ -1127,14 +1373,40 @@ function RuleGroupsSection({
       )}
       {groups.noEvaluadas.length > 0 && (
         <RuleSubGroup
-          title="Reglas no evaluadas automáticamente"
-          hint="Reglas que el evaluador no pudo correr (constraint en sintaxis ODK avanzada, falta fecha de captura, etc.). Quedan disponibles para revisión manual o promoción a criterio de revisión."
+          title="No evaluadas automáticamente"
+          hint="El evaluador no pudo correrlas: sintaxis ODK que aún no traduce o falta la fecha de captura. Revísalas a mano."
           countLabel={(n) => `${n} ${n === 1 ? "regla" : "reglas"}`}
           rows={groups.noEvaluadas}
           selectedRuleId={selectedRuleId}
           onSelect={onSelect}
           clickable={false}
           tone="warn"
+        />
+      )}
+      {groups.pullData.length > 0 && (
+        <RuleSubGroup
+          title="Campos pull data"
+          hint="Se pre-llenan desde un listado externo con pulldata(); sin ese listado no hay contra qué validarlos. No es un error del instrumento."
+          countLabel={(n) => `${n} ${n === 1 ? "campo" : "campos"}`}
+          rows={groups.pullData}
+          selectedRuleId={selectedRuleId}
+          onSelect={onSelect}
+          clickable={false}
+          tone="muted"
+        />
+      )}
+      {groups.okSinCasos.length > 0 && (
+        <RuleSubGroup
+          title="Validaciones que pasaron sin inconsistencias"
+          hint="Corrieron sobre la base y no encontraron casos (p.ej. los cálculos p_space). Despliega para abrir el diagrama de cualquiera."
+          countLabel={(n) => `${n} ${n === 1 ? "regla" : "reglas"}`}
+          rows={groups.okSinCasos}
+          selectedRuleId={selectedRuleId}
+          onSelect={onSelect}
+          clickable
+          tone="muted"
+          collapsible
+          defaultCollapsed
         />
       )}
     </section>
@@ -1151,6 +1423,8 @@ function RuleSubGroup({
   countLabel,
   tone = "default",
   emptyHint,
+  collapsible = false,
+  defaultCollapsed = false,
 }: {
   title: string;
   hint: string;
@@ -1161,41 +1435,72 @@ function RuleSubGroup({
   countLabel: (n: number) => string;
   tone?: "default" | "muted" | "warn";
   emptyHint?: string;
+  collapsible?: boolean;
+  defaultCollapsed?: boolean;
 }) {
+  const [collapsed, setCollapsed] = useState(collapsible && defaultCollapsed);
   const headerColor =
     tone === "warn"
       ? "var(--pulso-warn-fg, #b45309)"
       : tone === "muted"
         ? "var(--pulso-text-soft)"
         : "var(--pulso-text)";
+  const countBadge = (
+    <span
+      style={{
+        fontSize: 11,
+        fontWeight: 600,
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: "var(--pulso-surface-2, rgba(0,0,0,0.05))",
+        color: "var(--pulso-text-soft)",
+        fontFamily: "ui-monospace, monospace",
+      }}
+    >
+      {countLabel(rows.length)}
+    </span>
+  );
+  const titleRow = collapsible ? (
+    <button
+      type="button"
+      onClick={() => setCollapsed((c) => !c)}
+      aria-expanded={!collapsed}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 8,
+        fontSize: 13,
+        fontWeight: 700,
+        color: headerColor,
+        background: "none",
+        border: "none",
+        padding: 0,
+        cursor: "pointer",
+      }}
+    >
+      {collapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
+      {title}
+      {countBadge}
+    </button>
+  ) : (
+    <div
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 8,
+        fontSize: 13,
+        fontWeight: 700,
+        color: headerColor,
+      }}
+    >
+      {title}
+      {countBadge}
+    </div>
+  );
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <div>
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            fontSize: 13,
-            fontWeight: 700,
-            color: headerColor,
-          }}
-        >
-          {title}
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              padding: "2px 8px",
-              borderRadius: 999,
-              background: "var(--pulso-surface-2, rgba(0,0,0,0.05))",
-              color: "var(--pulso-text-soft)",
-              fontFamily: "ui-monospace, monospace",
-            }}
-          >
-            {countLabel(rows.length)}
-          </span>
-        </div>
+        {titleRow}
         <div
           style={{
             fontSize: 11,
@@ -1208,7 +1513,7 @@ function RuleSubGroup({
         </div>
       </div>
 
-      {rows.length === 0 ? (
+      {collapsed ? null : rows.length === 0 ? (
         <div
           style={{
             fontSize: 12,
@@ -1241,7 +1546,13 @@ function RuleSubGroup({
                 onClick={() => onSelect(row.id)}
               />
             ) : (
-              <UnevaluableRuleCard key={row.id} row={row} tone={tone === "warn" ? "warn" : "muted"} />
+              <UnevaluableRuleCard
+                key={row.id}
+                row={row}
+                tone={tone === "warn" ? "warn" : "muted"}
+                selected={row.id === selectedRuleId}
+                onClick={() => onSelect(row.id)}
+              />
             ),
           )}
         </div>
@@ -1253,28 +1564,50 @@ function RuleSubGroup({
 function UnevaluableRuleCard({
   row,
   tone,
+  selected = false,
+  onClick,
 }: {
   row: CompactRuleRow;
   tone: "muted" | "warn";
+  selected?: boolean;
+  onClick?: () => void;
 }) {
   const reason = describeRuleReason(row);
-  const borderColor =
-    tone === "warn" ? "var(--pulso-warn-border, #fde68a)" : "var(--pulso-border)";
+  // Los campos pull data se superficializan internamente como `odk_raw`, pero
+  // NO son modo experto: no mostramos ese tag técnico (leería como "experto").
+  const showTipoTag = !!row.tipo && !isPullDataRow(row);
+  const borderColor = selected
+    ? "var(--pulso-primary-border)"
+    : tone === "warn"
+      ? "var(--pulso-warn-border, #fde68a)"
+      : "var(--pulso-border)";
   const badgeBg =
     tone === "warn" ? "var(--pulso-warn-bg, #fffbeb)" : "var(--pulso-surface)";
   const badgeFg =
     tone === "warn" ? "var(--pulso-warn-fg, #b45309)" : "var(--pulso-text-soft)";
   return (
     <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       style={{
         padding: "12px 14px",
         borderRadius: 8,
         border: `1px solid ${borderColor}`,
-        background: "white",
+        background: selected ? "var(--pulso-primary-soft)" : "white",
         display: "flex",
         flexDirection: "column",
         gap: 8,
         opacity: 0.95,
+        cursor: onClick ? "pointer" : "default",
+        boxShadow: selected ? "var(--pulso-shadow-soft)" : undefined,
+        transition: "border-color 120ms ease, background 120ms ease",
       }}
       title={row.detalle ?? undefined}
     >
@@ -1293,7 +1626,7 @@ function UnevaluableRuleCard({
         >
           {reason.badge}
         </span>
-        {row.tipo && (
+        {showTipoTag && (
           <span
             style={{
               fontSize: 10,
@@ -1317,6 +1650,27 @@ function UnevaluableRuleCard({
 }
 
 function describeRuleReason(row: CompactRuleRow): { badge: string; explanation: string } {
+  // Regla relacional cuya base hija aún no está presente: no es "faltan
+  // columnas", se evalúa al cargar la base de respuestas repetidas (Fase 4).
+  if (row.issueCode === "sin_datos_repeat") {
+    return {
+      badge: "Respuestas repetidas pendientes",
+      explanation:
+        "Coherencia de las filas repetidas: se evalúa al cargar la base de respuestas repetidas (aún no hay registros de esa sección en esta base).",
+    };
+  }
+  // Regla que depende de un roster externo precargado vía pulldata: badge
+  // propio, distinto del "Modo experto" (sintaxis no soportada) (Fase 4).
+  if (row.issueCode === "requires_external_dataset" || row.relationalInfo.requiresExternalDataset) {
+    const datasets = row.relationalInfo.externalDatasets.filter((d) => d.length > 0);
+    const listado = datasets.length
+      ? datasets.map((d) => `«${d}»`).join(", ")
+      : "un listado externo";
+    return {
+      badge: "Campo pull data",
+      explanation: `Se jala de ${listado} por el teléfono.`,
+    };
+  }
   if (row.estadoDinamico === "no_aplicable") {
     if (row.issueCode === "missing_columns") {
       const detalle = row.detalle ?? "";

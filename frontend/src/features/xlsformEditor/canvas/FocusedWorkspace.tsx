@@ -9,6 +9,7 @@ import {
   Database,
   Eye,
   FileText,
+  FolderMinus,
   ImagePlus,
   Info,
   Layers3,
@@ -271,6 +272,8 @@ export function FocusedWorkspace({
             onSelectRow={onSelectRow}
             formCanvasProps={formCanvasProps}
           />
+        ) : selection?.kind === "survey" ? (
+          <SectionEndPanel />
         ) : (
           <FocusEmptyState />
         )}
@@ -315,6 +318,17 @@ function buildHeaderCopy(
       subtitle: `${typeLabel(node.typeInfo.base)}${node.name ? ` · ${node.name}` : ""}${place}`,
       icon: Icon,
       iconStyle: { color: accent, background: accentSoft },
+    };
+  }
+
+  if (selection?.kind === "survey") {
+    // Selección de una fila de CIERRE de sección (no tiene node en byRow).
+    return {
+      kicker: "Cierre de sección",
+      title: "Fin del grupo",
+      subtitle: "Marca dónde termina la sección abierta.",
+      icon: FolderMinus,
+      iconStyle: undefined,
     };
   }
 
@@ -1360,16 +1374,25 @@ function RequiredControl({
       )}
 
       {(node.required || requiredMessage) && (
-        <InspectorField
-          label="Mensaje si falta respuesta"
-          hint="Texto que aparece cuando esta pregunta obligatoria queda vacía."
+        // Comprimido y opcional: Kobo ya muestra un aviso por defecto; el
+        // mensaje propio queda plegado y solo se abre (con presets) si el
+        // usuario quiere personalizarlo. Abierto de entrada solo si ya existe.
+        <details
+          className="pulso-focus-required-message-block"
+          open={requiredMessage.trim().length > 0}
         >
-          <input
-            type="text"
-            value={requiredMessage}
-            onChange={(event) => onFieldChange("required_message", event.target.value)}
-            placeholder="Ej. Esta respuesta es necesaria para continuar."
-          />
+          <summary>
+            <span>Mensaje si falta respuesta</span>
+            <small>{requiredMessage.trim() ? "Personalizado" : "Opcional"}</small>
+          </summary>
+          <div className="pulso-inspector-field-control">
+            <input
+              type="text"
+              value={requiredMessage}
+              onChange={(event) => onFieldChange("required_message", event.target.value)}
+              placeholder="Ej. Esta respuesta es necesaria para continuar."
+            />
+          </div>
           {node.required && (
             <RequiredMessageAssistant
               value={requiredMessage}
@@ -1378,7 +1401,7 @@ function RequiredControl({
               onApply={(message) => onFieldChange("required_message", message)}
             />
           )}
-        </InspectorField>
+        </details>
       )}
     </>
   );
@@ -1992,6 +2015,32 @@ function choiceFilterColumnsFromWorkbook(workbook: XlsformEditorWorkbook | null)
   return Array.from(new Set(candidates));
 }
 
+function RuleSectionHead({
+  variant,
+  title,
+  purpose,
+}: {
+  variant: "visibility" | "validation";
+  title: string;
+  purpose: string;
+}) {
+  return (
+    <div className={`pulso-focus-rule-section-head is-${variant}`}>
+      <span className="pulso-focus-rule-section-icon" aria-hidden="true">
+        {variant === "visibility" ? (
+          <IconConditionalLogic size={13} />
+        ) : (
+          <ShieldCheck size={13} />
+        )}
+      </span>
+      <div>
+        <strong>{title}</strong>
+        <small>{purpose}</small>
+      </div>
+    </div>
+  );
+}
+
 function RulesTab({
   node,
   scope,
@@ -2015,6 +2064,15 @@ function RulesTab({
   const showConstraint = !isCalculate && !isSection && !isNote;
   const targetNoun = isSection ? "este bloque" : "esta pregunta";
   const constraintMessage = node.constraint_message ?? "";
+  const hasConstraint = node.constraint.trim().length > 0;
+  // La lectura de visibilidad de arriba se reserva para la HERENCIA (lo que
+  // no se edita aquí): es contexto genuino. La condición PROPIA no necesita
+  // una lectura gemela — el editor de abajo ya la muestra y edita, y así el
+  // editar/agregar condición queda como el foco principal de Reglas.
+  const hasOwnRelevant = node.relevant.trim().length > 0;
+  const inheritedRelevantCount =
+    conditionalContext?.ancestorRelevants?.length ?? 0;
+  const hasInheritedVisibility = inheritedRelevantCount > 0;
   const validation = describeValidation(node.constraint, node, scope);
   // Si el constraint es una receta de texto reconocida, el ConstraintBuilder
   // la muestra en modo humano editable (TextRuleSuite) — eso gana sobre el
@@ -2043,17 +2101,24 @@ function RulesTab({
   return (
     <div className="pulso-focus-tab-panel">
       <InspectorBlock>
-        <RuleInheritancePanel
-          ownRelevant={node.relevant}
-          conditionalContext={conditionalContext}
-          scope={scope}
-          targetLabel={isSection ? "Este bloque" : "Esta pregunta"}
+        <RuleSectionHead
+          variant="visibility"
+          title="Visibilidad"
+          purpose={`Cuándo aparece ${targetNoun} en el formulario.`}
         />
+        {hasInheritedVisibility && (
+          <RuleInheritancePanel
+            ownRelevant={node.relevant}
+            conditionalContext={conditionalContext}
+            scope={scope}
+            targetLabel={isSection ? "Este bloque" : "Esta pregunta"}
+            inheritedOnly
+          />
+        )}
         <LogicBuilder
           expression={node.relevant}
           scope={scope}
-          fieldLabel="Editar condición propia"
-          hint={`Modifica las reglas directas que muestran ${targetNoun}. Si también depende de una sección, esa herencia se muestra en la lectura superior.`}
+          fieldLabel="Condición propia"
           targetNoun={targetNoun}
           onChange={(next) => onFieldChange("relevant", next)}
         />
@@ -2061,18 +2126,24 @@ function RulesTab({
 
       {showConstraint && (
         <InspectorBlock>
-          <ValidationSummary
-            node={node}
-            scope={scope}
-            onFieldChange={onFieldChange}
-            onFieldsChange={onFieldsChange}
+          <RuleSectionHead
+            variant="validation"
+            title="Validación"
+            purpose="Qué respuestas se aceptan como válidas."
           />
-          <CustomValidationPanel
-            node={node}
-            validation={validation}
-            onFieldChange={onFieldChange}
-            onFieldsChange={onFieldsChange}
-          />
+          {/* Estado con regla: la lectura humana (ValidationSummary) resume el
+              qué; el editor de abajo edita el cómo. Estado vacío: el
+              ConstraintBuilder es el ÚNICO dueño de la frase "sin validación"
+              + CTA + atajos — antes ValidationSummary pintaba una card gemela
+              con el mismo texto (redundancia 2× dentro de la pestaña). */}
+          {hasConstraint && (
+            <ValidationSummary
+              node={node}
+              scope={scope}
+              onFieldChange={onFieldChange}
+              onFieldsChange={onFieldsChange}
+            />
+          )}
           {isGuidedPreset && validation ? (
             <GuidedValidationNotice
               summary={validation.summary}
@@ -2090,13 +2161,15 @@ function RulesTab({
               scope={scope}
               baseType={node.typeInfo.base}
               listName={node.typeInfo.listName || undefined}
-              fieldLabel="Cómo se valida la respuesta"
-              hint="Define qué condición debe cumplir la respuesta. Puedes partir de un preset o editar la regla manualmente."
+              fieldLabel="Regla de la respuesta"
               onChange={(next) => onFieldChange("constraint", next)}
               onApplyPreset={({ expression, message }) => {
                 onFieldsChange({ constraint: expression, constraint_message: message });
               }}
-              showShortcuts={false}
+              // Atajos (Cero o más, Edad 18-65, galería de texto…) solo en el
+              // estado vacío, donde reemplazan a los presets que antes vivían
+              // en ValidationSummary.
+              showShortcuts={!hasConstraint}
             />
           )}
           {(node.constraint || constraintMessage) && (
@@ -2107,6 +2180,13 @@ function RulesTab({
               onFieldChange={onFieldChange}
             />
           )}
+          {/* Escape hatch para fórmula cruda — al final, plegado por defecto. */}
+          <CustomValidationPanel
+            node={node}
+            validation={validation}
+            onFieldChange={onFieldChange}
+            onFieldsChange={onFieldsChange}
+          />
         </InspectorBlock>
       )}
 
@@ -2259,14 +2339,25 @@ function ChoiceFilterPanel({
           <IconConditionalLogic size={14} />
         </span>
         <div>
-          <span className="pulso-section-eyebrow">Filtro de opciones Kobo</span>
+          <span className="pulso-section-eyebrow">Filtro de opciones</span>
           <strong>{hasFilter ? "Lista condicionada" : "Lista completa"}</strong>
           <p>
-            Para cascadas como departamento, provincia y distrito: Kobo guarda esta regla en <code>choice_filter</code>.
+            {hasFilter
+              ? status.detail
+              : "Todas las opciones aparecen cuando la pregunta se muestra."}
           </p>
         </div>
         <code className="pulso-focus-choice-filter-code">choice_filter</code>
       </div>
+
+      {/* El constructor de cascadas es denso y casi ningún instrumento lo usa:
+          se pliega por defecto y solo se abre cuando ya hay un filtro. */}
+      <details className="pulso-focus-choice-filter-body" open={hasFilter}>
+        <summary>
+          {hasFilter
+            ? "Editar filtro de opciones"
+            : "Filtrar opciones según una respuesta previa (cascada)"}
+        </summary>
 
       <div className="pulso-focus-choice-filter-state">
         {status.tone === "ok" ? <CheckCircle2 size={14} /> : <Info size={14} />}
@@ -2405,6 +2496,7 @@ function ChoiceFilterPanel({
           </button>
         )}
       </div>
+      </details>
     </div>
   );
 }
@@ -2923,30 +3015,37 @@ function RuleInheritancePanel({
   conditionalContext,
   scope,
   targetLabel,
+  inheritedOnly = false,
 }: {
   ownRelevant: string;
   conditionalContext?: ConditionalContext | null;
   scope: LogicScope;
   targetLabel: string;
+  /** Solo herencia (contexto). La condición propia se ve/edita en el builder
+   *  de abajo, así que aquí no se duplica. */
+  inheritedOnly?: boolean;
 }) {
   const ancestors = conditionalContext?.ancestorRelevants ?? [];
-  const hasOwn = ownRelevant.trim().length > 0;
+  const hasOwn = !inheritedOnly && ownRelevant.trim().length > 0;
+  const showOwn = hasOwn;
 
   return (
     <div className="pulso-focus-rule-context" aria-label="Alcance de reglas de visibilidad">
       <div className="pulso-focus-rule-context-head">
-        <span className="pulso-section-eyebrow">Lectura de visibilidad</span>
-        <strong>{hasOwn || ancestors.length ? "Condicionada" : "Siempre visible"}</strong>
+        <span className="pulso-section-eyebrow">
+          {inheritedOnly ? "Hereda visibilidad" : "Lectura de visibilidad"}
+        </span>
+        <strong>{showOwn || ancestors.length ? "Condicionada" : "Siempre visible"}</strong>
       </div>
 
-      {!hasOwn && !ancestors.length && (
+      {!showOwn && !ancestors.length && (
         <div className="pulso-focus-rule-card is-muted">
           <Info size={13} />
           <span>Esta pieza no tiene condición propia ni hereda condiciones de secciones.</span>
         </div>
       )}
 
-      {hasOwn && (
+      {showOwn && (
         <HumanRuleCard
           label="Condición propia"
           expression={ownRelevant}
@@ -3007,10 +3106,6 @@ function HumanRuleCard({
             </div>
           ))}
         </div>
-        <details>
-          <summary>Ver fórmula XLSForm</summary>
-          <code>{breakdown.raw}</code>
-        </details>
       </div>
     </div>
   );
@@ -3429,12 +3524,9 @@ function DataTab({
   const dataKindLabel = isSection
     ? node.kind === "repeat" ? "Repetición" : "Sección"
     : typeLabel(baseType);
+  // El nombre interno (name) ya no vive aquí como fact read-only: sube al
+  // editor destacado arriba del contrato. El contrato queda para el resto.
   const dataContractFacts = [
-    {
-      label: isSection ? "Código del bloque" : "Columna en base",
-      value: nodeName || "sin nombre",
-      code: Boolean(nodeName),
-    },
     {
       label: "Tipo guardado",
       value: dataKindLabel,
@@ -3472,13 +3564,33 @@ function DataTab({
 
   return (
     <div className="pulso-focus-tab-panel">
+      {/* Lo más importante de Datos es el nombre interno de la columna: va
+          primero y destacado, no enterrado como fact bajo el contrato. */}
+      <InspectorBlock>
+        <InspectorField
+          label={isSection ? "Nombre de variable del bloque" : "Nombre de columna"}
+          hint="El identificador interno: se usa en reglas, exportación y bases. Corto, único y sin tildes ni espacios."
+        >
+          <NameField
+            value={node.name}
+            onChange={(next) => onFieldChange("name", next)}
+            placeholder={isSection ? "ej. datos_hogar" : "ej. p1_edad"}
+          />
+          <KoboNameAssistant
+            node={node}
+            structure={structure}
+            onApply={(next) => onFieldChange("name", next)}
+          />
+        </InspectorField>
+      </InspectorBlock>
+
       <div className="pulso-focus-data-contract">
         <div className="pulso-focus-data-contract-head">
           <span className="pulso-focus-data-contract-icon">
             <Database size={15} />
           </span>
           <div>
-            <strong>Contrato de datos</strong>
+            <strong>Cómo se guarda</strong>
             <p>
               Estos campos no cambian el texto que ve el encuestador; definen
               cómo se guarda la respuesta y cómo se conserva el XLSForm al exportar.
@@ -3520,24 +3632,6 @@ function DataTab({
           </div>
         )}
       </div>
-
-      <InspectorBlock>
-        <InspectorField
-          label={isSection ? "Nombre de variable del bloque" : "Nombre de columna"}
-          hint="Se usa en reglas, exportación y bases. Usa algo corto, único y reconocible."
-        >
-          <NameField
-            value={node.name}
-            onChange={(next) => onFieldChange("name", next)}
-            placeholder={isSection ? "ej. datos_hogar" : "ej. p1_edad"}
-          />
-          <KoboNameAssistant
-            node={node}
-            structure={structure}
-            onApply={(next) => onFieldChange("name", next)}
-          />
-        </InspectorField>
-      </InspectorBlock>
 
       {hasPaperOverrides && (
         <InspectorBlock>
@@ -4014,6 +4108,22 @@ function FocusEmptyState() {
       </span>
       <strong>Selecciona una pieza del formulario</strong>
       <p>El workspace mostrará la pregunta, sección o ajustes que elijas en la estructura.</p>
+    </div>
+  );
+}
+
+function SectionEndPanel() {
+  return (
+    <div className="pulso-focus-empty pulso-focus-sectionend">
+      <span className="pulso-focus-empty-icon">
+        <FolderMinus size={18} />
+      </span>
+      <strong>Cierre de sección</strong>
+      <p>
+        Esta fila marca dónde termina el grupo. Es una pieza independiente del
+        inicio: usa <em>Eliminar</em> para quitarla (la sección quedará abierta)
+        o agrega un nuevo cierre desde el menú donde quieras que termine.
+      </p>
     </div>
   );
 }
