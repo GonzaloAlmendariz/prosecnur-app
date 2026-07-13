@@ -1,6 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { CSSProperties } from "react";
 import { Activity, CalendarDays, Database, Layers, Plus, SlidersHorizontal, Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -480,6 +479,10 @@ export function MissionControl({
             </p>
           )}
         </div>
+        <button type="button" className="home-mission-add-btn" onClick={onAddModule}>
+          <Plus size={15} strokeWidth={2.4} aria-hidden="true" />
+          <span>Agregar módulo</span>
+        </button>
       </header>
 
       {nextSteps.length > 0 && (
@@ -516,17 +519,6 @@ export function MissionControl({
             onRequestRemove={setConfirmSlug}
           />
         ))}
-        <button
-          type="button"
-          className="home-mc-add-card"
-          onClick={onAddModule}
-          style={{ "--i": cards.length } as CSSProperties}
-        >
-          <span className="home-mc-add-icon" aria-hidden="true">
-            <Plus size={22} strokeWidth={2.2} />
-          </span>
-          <strong>Agregar módulo</strong>
-        </button>
       </div>
 
       {confirmModule && createPortal(
