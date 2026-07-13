@@ -7,6 +7,7 @@ import {
   EstudioPayload,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
+import { repeatContextFromBase } from "../../lib/rosterExplorer";
 import { Alert } from "../../components/Alert";
 import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
 import { PageFrame } from "../../components/PageFrame";
@@ -240,7 +241,7 @@ export default function ValidacionPage() {
               <div className="pulso-validacion-panel-body">
                 {activeTab === "limpieza" && <LimpiezaTab />}
                 {activeTab === "instrumento" && <InstrumentoTab />}
-                {activeTab === "explorar" && <ExplorarTab />}
+                {activeTab === "explorar" && <ExplorarTab repeat={repeatContextFromBase(selectedBase)} />}
                 {activeTab === "reglas_custom" && <ReglasCustomTab />}
               </div>
             </>
