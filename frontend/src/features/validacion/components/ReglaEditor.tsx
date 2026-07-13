@@ -181,7 +181,7 @@ const TIPOS: TipoMeta[] = [
     grupo: "seleccion",
     pregunta: "¿La persona no debería marcar tantas o tan pocas opciones?",
     ejemplo: "Ej. si fue una sola vez, revisar cuando aparecen 8 servicios marcados.",
-    resultado: "Detecta registros con cardinalidad fuera del patrón definido.",
+    resultado: "Detecta respuestas con demasiadas o muy pocas opciones marcadas.",
     variableHint: "Elige la pregunta de selección múltiple y define mínimo o máximo.",
     badge: "Cantidad",
   },
