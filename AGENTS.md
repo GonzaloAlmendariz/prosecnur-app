@@ -27,3 +27,20 @@ R/Plumber in `api/`, with portable `.pulso` projects and secrets kept outside
 House rules, verification gates and the project agentic OS (subagents in
 `.claude/agents/`, skills in `.claude/skills/`) are defined in `CLAUDE.md` at
 the repo root. Debt metrics baseline lives in `docs/qa/deuda-baseline.md`.
+
+## Claude + Codex compatibility
+
+The existing `.claude/agents/` and `.claude/skills/` paths remain the canonical
+repo sources. Codex consumes generated adapters in `.codex/agents/` and
+`.agents/skills/`; those adapters must point back to the canonical Claude files
+instead of duplicating their instructions.
+
+Before changing agentic-OS files, run:
+
+```bash
+node agentic/sync-agentic-os.mjs --check
+```
+
+After changing a canonical agent or skill, regenerate adapters with `--write`
+and run `--check` again. Do not hand-edit generated adapters. See
+`docs/agentic-os.md` and `agentic/manifest.json` for the compatibility contract.

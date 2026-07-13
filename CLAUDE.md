@@ -6,6 +6,8 @@ App local-first para investigación por encuestas: Electron + React/Vite/TS (`fr
 
 Subagentes en `.claude/agents/`, skills en `.claude/skills/`. Clasifica la tarea en una de las 6 ramas y sigue su ruta:
 
+Estas rutas siguen siendo la fuente canónica para Claude. Codex las consume mediante adaptadores generados en `.codex/agents/` y `.agents/skills/`; validar la sincronización con `node agentic/sync-agentic-os.mjs --check` y nunca editar los adaptadores a mano. Contrato: `docs/agentic-os.md`.
+
 **Rama 1 — Construir (feature/fix en la app)**
 `/scope-lock` para arrancar → agente `backend-r` y/o `frontend-react` → agente `verificador` → `/cerrar-trabajo`. Si la tarea toca lógica de dominio de encuestas, cargar antes el skill `dominio-prosecnur` y su skill fino: `integraciones-datos` (ingesta/conectores), `jobs-asincronos` (operaciones pesadas), `nucleo-metodologico` (validación/codificación/limpieza/ponderación).
 
