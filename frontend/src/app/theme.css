@@ -230,6 +230,7 @@
   --pulso-accent-green: #16a34a;
   --pulso-accent-rose: #c2416b;
   --pulso-accent-amber: #d97706;
+  --pulso-accent-violet: #7c3aed;
 
   /* Shadow específica para el panel ContextLens (deslizable desde derecha). */
   --pulso-shadow-lens: 0 20px 60px rgba(15, 23, 42, 0.18),
@@ -9631,8 +9632,24 @@ h1.pulso-page-title {
   gap: 14px;
   align-content: start;
 }
-.pulso-carga-content--multi > section {
+.pulso-carga-content--multi > section,
+.pulso-carga-content--multi > .pulso-carga-scrollarea > section {
   margin: 0 !important;
+}
+/* Suitebar como banda fija SIN tapar: el content deja de scrollear (overflow
+   hidden) y se parte en dos filas —banda `auto` para el suitebar y `1fr` para
+   el área scrolleable—. El scroll vive en `.pulso-carga-scrollarea`, así el
+   suitebar queda arriba y el contenido desliza por debajo, nunca detrás. */
+.pulso-carga-content--framed {
+  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.pulso-carga-content--framed > .pulso-carga-scrollarea {
+  min-height: 0;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  overflow: auto;
 }
 .pulso-carga-content-head {
   display: flex;
@@ -9654,14 +9671,18 @@ h1.pulso-page-title {
   padding: 10px 12px;
   border: 1px solid color-mix(in srgb, var(--carga-suite-border) 62%, var(--pulso-border));
   border-radius: 12px;
+  /* Fondo OPACO: el suitebar es sticky (top:0) y el contenido scrollea por
+     debajo. Un fondo translúcido + backdrop-filter (vibrancy) deja ver el
+     contenido crudo cuando el blur no compone (preview/headless y, de forma
+     poco fiable, Windows — el release bloqueante). Gramática Apple con
+     implementación Windows-safe: brillo sutil sobre superficie opaca, sin
+     vibrancy. */
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(250, 253, 252, 0.78)),
-    color-mix(in srgb, var(--pulso-surface) 82%, transparent);
+    var(--pulso-surface);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.84),
     0 10px 26px rgba(15, 23, 42, 0.055);
-  backdrop-filter: blur(16px) saturate(1.08);
-  -webkit-backdrop-filter: blur(16px) saturate(1.08);
 }
 .pulso-carga-suitebar-main {
   min-width: 0;
@@ -21198,6 +21219,78 @@ h1.pulso-page-title {
   font-weight: 680;
   line-height: 1.12;
 }
+/* Nota de contexto full-width (reemplaza la guía de 3 opciones falsas). */
+.analitica-bases-intro {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 30%, var(--pulso-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 251, 250, 0.74)),
+    color-mix(in srgb, var(--pulso-module-processing-soft) 10%, var(--pulso-surface));
+}
+.analitica-bases-intro > svg {
+  color: var(--pulso-module-processing);
+  flex-shrink: 0;
+}
+.analitica-bases-intro > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.analitica-bases-intro strong {
+  font-size: 12px;
+  font-weight: 820;
+  color: var(--pulso-text);
+  line-height: 1.16;
+}
+.analitica-bases-intro span {
+  font-size: 11px;
+  font-weight: 610;
+  color: var(--pulso-text-soft);
+  line-height: 1.32;
+}
+
+/* Grupo por tipo de entregable: encabezado de categoría + divisor + secciones.
+   Full-width; las secciones (Section de PaneKit) se apilan dentro del body. */
+.analitica-pane-group {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+.analitica-pane-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 7px;
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 34%, var(--pulso-border));
+}
+.analitica-pane-group-label {
+  font-size: 12px;
+  font-weight: 840;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--pulso-module-processing);
+}
+.analitica-pane-group-hint {
+  min-width: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--pulso-text-soft);
+}
+.analitica-pane-group-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .analitica-bases-source-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -22813,14 +22906,15 @@ h1.pulso-page-title {
   display: block;
 }
 .analitica-codebook-code-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
 }
 .analitica-codebook-code {
-  min-height: 34px;
+  min-height: 36px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   padding: 6px 11px;
   border: 1px solid var(--pulso-border);
@@ -22860,6 +22954,7 @@ h1.pulso-page-title {
   transform: scale(0.98);
 }
 .analitica-codebook-xlsform {
+  margin-top: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -23048,6 +23143,10 @@ h1.pulso-page-title {
   .analitica-dimensiones-docbar
 ) {
   min-height: 46px;
+  /* Header bar: nunca comprimir por debajo de su contenido. En alturas
+     compactas el Panel es corto y el flex-shrink por defecto clippeaba la
+     fila de stats (que en <1120px envuelve a una 2ª fila). */
+  flex-shrink: 0;
   grid-template-columns: 28px minmax(160px, 1fr) minmax(260px, auto);
   gap: 8px;
   padding: 7px 9px;
@@ -23919,9 +24018,9 @@ h1.pulso-page-title {
   gap: 12px;
   align-items: center;
   flex-wrap: wrap;
-  margin-top: 6px;
-  padding-top: 14px;
-  border-top: 1px solid var(--pulso-border);
+  /* Sin border-top: la línea gris sobre cada botón daba ilusión de división.
+     El espaciado lo aporta el gap del contenedor (source-card/format-stack). */
+  margin-top: 4px;
 }
 .analitica-generate-footer .pulso-primary {
   display: inline-flex;
@@ -25222,9 +25321,60 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   font-size: 12px;
   color: var(--pulso-text);
 }
-.pulso-question-map-section summary span {
+.pulso-question-map-section summary .pulso-question-map-section-stats {
   font-size: 11px;
   color: var(--pulso-text-soft);
+}
+/* Grupo repetible: la card completa toma la identidad naranja `--pulso-repeat-*`
+   para leerse distinta de una sección normal (que usa el color pastel del hash). */
+.pulso-question-map-section.is-repeat > summary {
+  background: var(--pulso-repeat-bg);
+  border-color: var(--pulso-repeat-border);
+}
+/* En un repetible el conteo se ancla a la derecha para dejar respirar al chip
+   "Repetible" y a la condición de apertura junto al título. */
+.pulso-question-map-section.is-repeat > summary .pulso-question-map-section-stats {
+  margin-left: auto;
+}
+.pulso-question-map-section.is-repeat > summary strong {
+  color: var(--pulso-repeat-fg);
+}
+.pulso-question-map-section-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--pulso-repeat-accent);
+  flex: 0 0 auto;
+}
+.pulso-question-map-section-relevant {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: var(--pulso-radius-chip, 999px);
+  background: var(--pulso-info-bg);
+  border: 1px solid var(--pulso-info-border);
+  color: var(--pulso-info-fg);
+  font-size: 10.5px;
+  font-weight: var(--pulso-control-weight, 600);
+  white-space: nowrap;
+}
+.pulso-question-map-section-caption {
+  margin: 6px 2px 2px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--pulso-repeat-fg);
+}
+/* Marca sutil en las preguntas que pertenecen a un grupo repetible. */
+.pulso-question-map-tile-repeat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  background: var(--pulso-repeat-bg);
+  border: 1px solid var(--pulso-repeat-border);
+  color: var(--pulso-repeat-accent);
 }
 .pulso-question-map-grid {
   display: grid;
@@ -28208,6 +28358,13 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   cursor: not-allowed;
 }
 
+/* Footer del builder cuando hay una sola condición: aloja el CTA para
+   concatenar una segunda (promueve a AND/OR en el siguiente render). */
+.pulso-logic-builder-footer {
+  margin-top: 8px;
+  display: flex;
+}
+
 /* ============================================================================
  * Constraint builder (F2-3) — chip read-only "Tu respuesta" en lugar del
  * VariablePicker. El lhs de toda regla constraint es `.` (la respuesta de
@@ -29489,6 +29646,7 @@ button.pulso-focus-calculation-recipe {
   font-size: 11px;
   line-height: 1.35;
   font-weight: 650;
+  white-space: normal;
 }
 
 .pulso-questionnaire-question-flags {
@@ -30171,6 +30329,10 @@ button.pulso-focus-calculation-recipe {
 .home-cinema-deck-wrap {
   position: relative;
   z-index: 1;
+  /* Sin panel lateral: el deck ocupa TODO el ancho del stage (aunque la base y
+     sus ~12 variantes sigan declarando 2 columnas, el deck-wrap las cruza). Así
+     las cartas respiran a lo ancho y los vecinos no quedan tapados. */
+  grid-column: 1 / -1;
   height: 100%;
   min-height: 0;
   display: grid;
@@ -30469,21 +30631,6 @@ button.pulso-focus-calculation-recipe {
   transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
 }
 
-.home-cinema-card:not(.is-focused) .home-cinema-card-icon {
-  width: 66px;
-  height: 66px;
-  border-radius: 18px;
-}
-
-.home-cinema-card.is-focused .home-cinema-card-icon {
-  width: 82px;
-  height: 82px;
-  border-radius: 24px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 18px 34px color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 22%, transparent);
-}
-
 @media (hover: hover) and (pointer: fine) {
   .home-cinema-card:hover .home-cinema-card-icon {
     border-color: color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 42%, #fff 58%);
@@ -30499,9 +30646,157 @@ button.pulso-focus-calculation-recipe {
   }
 }
 
-.home-cinema-card.is-focused .home-cinema-card-icon svg {
-  width: 52px;
-  height: 52px;
+/* =====================================================================
+   Cards autosuficientes (sin panel lateral): la carta ENFOCADA contiene
+   toda la información del módulo —ícono + nombre + descripción + features +
+   acción— centrada como una ficha profesional (sello arriba, features en
+   fichas de 2 columnas). Los vecinos son posters solo-ícono que asoman a los
+   lados. La especificidad `.home-cinema …` (0,3,0) le gana a las ~12 variantes
+   de preset (0,2,0).
+   ===================================================================== */
+.home-cinema .home-cinema-card.is-focused {
+  width: min(clamp(452px, 40vw, 564px), calc(100% - 40px));
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-content: normal;
+  align-items: center;
+  justify-content: center;
+  justify-items: center;
+  text-align: center;
+  gap: 11px;
+  padding: 28px 30px 24px;
+}
+
+/* Cabecera centrada: ícono como sello arriba, luego nombre + tagline. */
+.home-cinema-card-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+}
+
+.home-cinema .home-cinema-card.is-focused .home-cinema-card-icon {
+  width: 66px;
+  height: 66px;
+  border-radius: 19px;
+  flex-shrink: 0;
+}
+
+.home-cinema .home-cinema-card.is-focused .home-cinema-card-icon svg {
+  width: 36px;
+  height: 36px;
+}
+
+.home-cinema-card-heading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.home-cinema-card-name {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 850;
+  line-height: 1.08;
+  letter-spacing: -0.012em;
+  color: var(--pulso-text);
+  text-wrap: balance;
+}
+
+.home-cinema .home-cinema-card.is-focused .home-cinema-card-tagline {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 760;
+  line-height: 1.3;
+  color: var(--home-mod-accent, var(--pulso-primary));
+  text-wrap: balance;
+}
+
+.home-cinema .home-cinema-card.is-focused .home-cinema-card-blurb {
+  margin: 0;
+  max-width: 48ch;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+  text-wrap: pretty;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Features como fichas en 2 columnas: caja con hairline y tinte de acento
+   suave, check en pastilla. Se lee como una tabla profesional, no como una
+   lista de viñetas sueltas. */
+.home-cinema-card-features {
+  list-style: none;
+  margin: 3px 0 0;
+  padding: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 9px;
+}
+
+.home-cinema-card-features li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 7px 11px;
+  border-radius: 11px;
+  border: 1px solid color-mix(in srgb, var(--home-mod-accent-border, var(--pulso-border)) 42%, #fff 58%);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), color-mix(in srgb, var(--home-mod-accent-soft, var(--pulso-surface-2)) 32%, #fff 68%));
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  line-height: 1.26;
+  text-align: left;
+}
+
+.home-cinema-card-features li svg {
+  width: 18px;
+  height: 18px;
+  padding: 2.5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--home-mod-accent-soft, var(--pulso-primary-soft)) 72%, #fff 28%);
+  color: var(--home-mod-accent, var(--pulso-primary));
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+/* Feature impar final: ocupa el ancho completo para no dejar un hueco suelto. */
+.home-cinema-card-features li:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+/* Acción centrada al pie de la ficha. */
+.home-cinema .home-cinema-card.is-focused .home-cinema-cta,
+.home-cinema .home-cinema-card.is-focused .home-cinema-picker-actions {
+  margin-top: 5px;
+  align-self: center;
+  width: auto;
+}
+
+/* Vecinos: posters compactos solo-ícono que asoman a los lados del enfocado. */
+.home-cinema .home-cinema-card:not(.is-focused) {
+  width: min(196px, calc(100% - 24px));
+  min-height: 196px;
+}
+
+.home-cinema .home-cinema-card:not(.is-focused) .home-cinema-card-icon {
+  width: 66px;
+  height: 66px;
+  border-radius: 18px;
+}
+
+.home-cinema .home-cinema-card:not(.is-focused) .home-cinema-card-icon svg {
+  width: 34px;
+  height: 34px;
 }
 
 .home-cinema[data-density="compact"] .home-cinema-card {
@@ -30874,10 +31169,14 @@ button.pulso-focus-calculation-recipe {
 .home-cinema-strip {
   justify-self: center;
   width: fit-content;
-  max-width: 100%;
+  /* Techo de ancho: el strip es un índice secundario, no debe estirarse a
+     media pantalla en monitores anchos. Con los chips compactos su ancho
+     natural (~810px, 8 módulos) queda por debajo del tope y se centra; el
+     tope solo evita el desborde patológico y el overflow-x es la red final. */
+  max-width: min(100%, 860px);
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 5px;
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
@@ -30906,14 +31205,14 @@ button.pulso-focus-calculation-recipe {
   display: inline-flex;
   position: relative;
   align-items: center;
-  gap: 6px;
-  min-height: 30px;
-  padding: 5px 9px;
+  gap: 5px;
+  min-height: 27px;
+  padding: 4px 7px;
   border-radius: 10px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 740;
   cursor: pointer;
   white-space: nowrap;
@@ -34930,9 +35229,9 @@ button.pulso-focus-calculation-recipe {
   justify-content: space-between;
   gap: 10px;
   padding: 0 2px 2px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.8px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
 }
@@ -34949,13 +35248,14 @@ button.pulso-focus-calculation-recipe {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 9px 10px;
-  border-radius: 10px;
-  background: white;
-  border: 1px solid rgba(36, 87, 214, 0.12);
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 650;
+  font-weight: 550;
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
@@ -36292,6 +36592,19 @@ button.pulso-focus-calculation-recipe {
 .pulso-canvas-section-header.is-selected {
   border-color: var(--pulso-primary);
   box-shadow: 0 0 0 1px var(--pulso-primary);
+}
+/* Bloque repetible (begin_repeat): identidad naranja `--pulso-repeat-*` para
+   que se lea distinto de un grupo normal de un vistazo. */
+.pulso-canvas-section-header.is-repeat {
+  background: var(--pulso-repeat-bg);
+  border-color: var(--pulso-repeat-border);
+}
+.pulso-canvas-section-header.is-repeat .pulso-canvas-section-icon {
+  color: var(--pulso-repeat-accent);
+}
+.pulso-canvas-section-header.is-repeat.is-selected {
+  border-color: var(--pulso-repeat-accent);
+  box-shadow: 0 0 0 1px var(--pulso-repeat-accent);
 }
 .pulso-canvas-section-toggle {
   display: inline-flex;
@@ -38931,6 +39244,53 @@ button.pulso-focus-calculation-recipe {
   gap: 8px;
 }
 
+/* Encabezado de sección de Reglas: distingue Visibilidad (cuándo aparece) de
+   Validación (qué se acepta) — dos conceptos que antes se leían iguales. */
+.pulso-focus-rule-section-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding-bottom: 9px;
+  margin-bottom: 1px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-focus-rule-section-head strong {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #1f2a44;
+}
+
+.pulso-focus-rule-section-head small {
+  display: block;
+  margin-top: 1px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-focus-rule-section-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  flex: none;
+}
+
+.pulso-focus-rule-section-head.is-visibility .pulso-focus-rule-section-icon {
+  color: var(--pulso-primary);
+  background: color-mix(in srgb, var(--pulso-primary) 12%, transparent);
+}
+
+.pulso-focus-rule-section-head.is-validation .pulso-focus-rule-section-icon {
+  color: #1f8a5b;
+  background: color-mix(in srgb, #1f8a5b 12%, transparent);
+}
+
 .pulso-focus-rule-context {
   padding: 10px;
   border: 1px solid var(--xls-border);
@@ -39232,6 +39592,52 @@ button.pulso-focus-calculation-recipe {
   color: #1f2a3d;
   font-size: 12.5px;
   line-height: 1.35;
+}
+
+.pulso-focus-required-message-block {
+  border: 1px solid var(--xls-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--xls-content-soft) 72%, #ffffff 28%);
+  padding: 9px 11px;
+}
+
+.pulso-focus-required-message-block > summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  color: #253149;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.pulso-focus-required-message-block > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pulso-focus-required-message-block > summary::before {
+  content: "＋";
+  font-size: 12px;
+  line-height: 1;
+  color: color-mix(in srgb, var(--pulso-primary) 70%, #253149);
+}
+
+.pulso-focus-required-message-block[open] > summary::before {
+  content: "−";
+}
+
+.pulso-focus-required-message-block > summary small {
+  margin-left: auto;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 620;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pulso-focus-required-message-block[open] > summary {
+  margin-bottom: 9px;
 }
 
 .pulso-focus-guided-validation p {
@@ -39733,6 +40139,41 @@ button.pulso-focus-calculation-recipe {
   font-size: 10.8px;
   font-weight: 640;
   line-height: 1.35;
+}
+
+.pulso-focus-choice-filter-body {
+  margin-top: 10px;
+}
+
+.pulso-focus-choice-filter-body > summary {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: color-mix(in srgb, var(--pulso-primary) 76%, #253149);
+  font-size: 11.5px;
+  font-weight: 780;
+  line-height: 1.3;
+  list-style: none;
+}
+
+.pulso-focus-choice-filter-body > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pulso-focus-choice-filter-body > summary::before {
+  content: "＋";
+  font-size: 12px;
+  line-height: 1;
+  color: color-mix(in srgb, var(--pulso-primary) 70%, #253149);
+}
+
+.pulso-focus-choice-filter-body[open] > summary {
+  margin-bottom: 10px;
+}
+
+.pulso-focus-choice-filter-body[open] > summary::before {
+  content: "−";
 }
 
 .pulso-focus-choice-filter-suggestions-compact {
@@ -41624,6 +42065,21 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     var(--xls-shadow-hairline);
 }
 
+/* Bloque repetible dentro del frame del editor: gana al gradiente blanco del
+   header genérico con la identidad naranja `--pulso-repeat-*`. */
+.pulso-xlsform-frame .pulso-canvas-section-header.is-repeat {
+  background: var(--pulso-repeat-bg);
+  border-color: var(--pulso-repeat-border);
+  box-shadow: var(--xls-shadow-hairline);
+}
+
+.pulso-xlsform-frame .pulso-canvas-section-header.is-repeat.is-selected {
+  border-color: var(--pulso-repeat-accent);
+  box-shadow:
+    inset 3px 0 0 var(--pulso-repeat-accent),
+    var(--xls-shadow-hairline);
+}
+
 .pulso-xlsform-frame .pulso-canvas-addbetween {
   transition:
     opacity var(--motion-dur-fast) var(--motion-ease-out),
@@ -42962,7 +43418,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
 .pulso-analitica-panel-head {
   display: grid;
-  grid-template-columns: 30px minmax(136px, 1fr) minmax(0, auto);
+  grid-template-columns: 30px minmax(0, 1fr) minmax(0, auto);
   align-items: center;
   gap: 9px;
 }

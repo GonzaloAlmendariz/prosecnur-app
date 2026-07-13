@@ -154,11 +154,12 @@ function writeLog(line) {
 // ===========================================================================
 // Recientes — persistidos en userData/recent-projects.json
 // ===========================================================================
-// Hasta 5 paths absolutos a archivos .pulso. Se rotan al frente al usar
-// (LRU). Se filtran los que ya no existen al leerlos. El frontend los
-// muestra en el StartModal y en el submenú "Abrir reciente".
+// Hasta 6 paths absolutos a archivos .pulso (llena la grilla 2 columnas x 3
+// filas del StartModal). Se rotan al frente al usar (LRU). Se filtran los
+// que ya no existen al leerlos. El frontend los muestra en el StartModal y
+// en el submenú "Abrir reciente".
 
-const RECENT_LIMIT = 5;
+const RECENT_LIMIT = 6;
 
 function recentProjectsPath() {
   return path.join(app.getPath("userData"), "recent-projects.json");
