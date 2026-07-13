@@ -89,11 +89,20 @@ export function normalizeRepeatGrain(raw: unknown): RepeatGrain | null {
 }
 
 export type RepeatGrainDisplay = {
-  /** "N = 668 instancias de rep_servicios · 427 personas". */
+  /** "668 filas repetidas · 427 personas". */
   headline: string;
-  /** Advertencia de clustering (grain.nota); "" si el backend no la envió. */
+  /** Nota de lectura para el analista; "" cuando no aplica. */
   caveat: string;
 };
+
+/**
+ * Nota de lectura de una base con respuestas repetidas. El backend emite una
+ * versión técnica en `grain.nota`; aquí presentamos SIEMPRE esta versión
+ * humanizada (frontend-owned) para que el analista/cliente la entienda sin
+ * jerga. Se muestra sólo cuando el grano trae una nota (backend o fallback).
+ */
+export const REPEAT_GRAIN_CAVEAT =
+  "Cada fila es un registro repetido, no una persona: quien marcó varias opciones aparece en varias filas. Los porcentajes se calculan sobre filas, no sobre personas.";
 
 function formatCount(n: number, singular: string, plural: string): string {
   const noun = n === 1 ? singular : plural;
@@ -108,14 +117,13 @@ export function formatRepeatGrain(grain: RepeatGrain | null | undefined): Repeat
   if (!grain) return null;
   const { n_instancias: nInst, n_personas: nPers } = grain;
   if (nInst == null && nPers == null) return null;
-  const group = grain.repeat_group.trim();
   const parts: string[] = [];
   if (nInst != null) {
-    const instancias = formatCount(nInst, "instancia", "instancias");
-    parts.push(group ? `${instancias} de ${group}` : instancias);
+    parts.push(formatCount(nInst, "fila repetida", "filas repetidas"));
   }
   if (nPers != null) {
     parts.push(formatCount(nPers, "persona", "personas"));
   }
-  return { headline: `N = ${parts.join(" · ")}`, caveat: grain.nota.trim() };
+  const caveat = grain.nota.trim() ? REPEAT_GRAIN_CAVEAT : "";
+  return { headline: parts.join(" · "), caveat };
 }

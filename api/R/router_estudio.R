@@ -930,6 +930,17 @@
     added_at        = meta$added_at,
     processing_mode = as.character(meta$processing_mode %||% NA_character_),
     source_kind     = as.character(meta$source_kind %||% NA_character_),
+    # Metadata one-to-many de bases hija repeat (ADR 0030). Se persiste al
+    # registrar la hija en carga_kobo_repeats.R; sin serializarla los
+    # exploradores relacionales (Fase 5) y el badge de Carga degradan a
+    # "Repetible" sin nombre de grupo ni link_key. `grain` NO se computa aquí
+    # (es cálculo de Analítica, se expone por /api/analitica/variables).
+    parent_base       = as.character(meta$parent_base %||% NA_character_),
+    repeat_group      = as.character(meta$repeat_group %||% NA_character_),
+    repeat_relevant   = as.character(meta$repeat_relevant %||% NA_character_),
+    link_key          = as.character(meta$link_key %||% NA_character_),
+    link_key_fallback = as.character(meta$link_key_fallback %||% NA_character_),
+    parent_index_key  = as.character(meta$parent_index_key %||% NA_character_),
     survey_id       = as.character(meta$survey_id %||% NA_character_),
     source_alias    = as.character(meta$source_alias %||% NA_character_),
     source_title    = as.character(meta$source_title %||% NA_character_),
