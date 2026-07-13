@@ -230,6 +230,7 @@
   --pulso-accent-green: #16a34a;
   --pulso-accent-rose: #c2416b;
   --pulso-accent-amber: #d97706;
+  --pulso-accent-violet: #7c3aed;
 
   /* Shadow específica para el panel ContextLens (deslizable desde derecha). */
   --pulso-shadow-lens: 0 20px 60px rgba(15, 23, 42, 0.18),
@@ -4819,6 +4820,10 @@ a { color: var(--pulso-primary); }
   color: #fff;
   cursor: default;
   box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+  /* La base activa se renderiza como <button disabled> (no re-clickeable). El
+     `cursor: default` ya lo comunica; no debe atenuarse con el `opacity: 0.55`
+     global de `button:disabled` — la activa DESTACA, no se apaga. */
+  opacity: 1;
 }
 .pulso-validacion-shell {
   grid-template-columns: minmax(220px, 240px) minmax(0, 1fr);
@@ -6803,6 +6808,9 @@ a { color: var(--pulso-primary); }
   color: #fff;
   cursor: default;
   box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
+  /* Ver nota en `.pulso-validacion-base-chip.is-active`: la base activa destaca,
+     no se atenúa con el `opacity: 0.55` global de `button:disabled`. */
+  opacity: 1;
 }
 .pulso-codificacion-config-actions {
   display: inline-flex;
@@ -9624,8 +9632,24 @@ h1.pulso-page-title {
   gap: 14px;
   align-content: start;
 }
-.pulso-carga-content--multi > section {
+.pulso-carga-content--multi > section,
+.pulso-carga-content--multi > .pulso-carga-scrollarea > section {
   margin: 0 !important;
+}
+/* Suitebar como banda fija SIN tapar: el content deja de scrollear (overflow
+   hidden) y se parte en dos filas —banda `auto` para el suitebar y `1fr` para
+   el área scrolleable—. El scroll vive en `.pulso-carga-scrollarea`, así el
+   suitebar queda arriba y el contenido desliza por debajo, nunca detrás. */
+.pulso-carga-content--framed {
+  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.pulso-carga-content--framed > .pulso-carga-scrollarea {
+  min-height: 0;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  overflow: auto;
 }
 .pulso-carga-content-head {
   display: flex;
@@ -9647,14 +9671,18 @@ h1.pulso-page-title {
   padding: 10px 12px;
   border: 1px solid color-mix(in srgb, var(--carga-suite-border) 62%, var(--pulso-border));
   border-radius: 12px;
+  /* Fondo OPACO: el suitebar es sticky (top:0) y el contenido scrollea por
+     debajo. Un fondo translúcido + backdrop-filter (vibrancy) deja ver el
+     contenido crudo cuando el blur no compone (preview/headless y, de forma
+     poco fiable, Windows — el release bloqueante). Gramática Apple con
+     implementación Windows-safe: brillo sutil sobre superficie opaca, sin
+     vibrancy. */
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(250, 253, 252, 0.78)),
-    color-mix(in srgb, var(--pulso-surface) 82%, transparent);
+    var(--pulso-surface);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.84),
     0 10px 26px rgba(15, 23, 42, 0.055);
-  backdrop-filter: blur(16px) saturate(1.08);
-  -webkit-backdrop-filter: blur(16px) saturate(1.08);
 }
 .pulso-carga-suitebar-main {
   min-width: 0;
@@ -21191,6 +21219,78 @@ h1.pulso-page-title {
   font-weight: 680;
   line-height: 1.12;
 }
+/* Nota de contexto full-width (reemplaza la guía de 3 opciones falsas). */
+.analitica-bases-intro {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 30%, var(--pulso-border));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 251, 250, 0.74)),
+    color-mix(in srgb, var(--pulso-module-processing-soft) 10%, var(--pulso-surface));
+}
+.analitica-bases-intro > svg {
+  color: var(--pulso-module-processing);
+  flex-shrink: 0;
+}
+.analitica-bases-intro > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.analitica-bases-intro strong {
+  font-size: 12px;
+  font-weight: 820;
+  color: var(--pulso-text);
+  line-height: 1.16;
+}
+.analitica-bases-intro span {
+  font-size: 11px;
+  font-weight: 610;
+  color: var(--pulso-text-soft);
+  line-height: 1.32;
+}
+
+/* Grupo por tipo de entregable: encabezado de categoría + divisor + secciones.
+   Full-width; las secciones (Section de PaneKit) se apilan dentro del body. */
+.analitica-pane-group {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+.analitica-pane-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 7px;
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 34%, var(--pulso-border));
+}
+.analitica-pane-group-label {
+  font-size: 12px;
+  font-weight: 840;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--pulso-module-processing);
+}
+.analitica-pane-group-hint {
+  min-width: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--pulso-text-soft);
+}
+.analitica-pane-group-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .analitica-bases-source-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -21315,6 +21415,10 @@ h1.pulso-page-title {
   font-size: 11px;
   font-weight: 600;
   line-height: 1.45;
+}
+.analitica-bases-check-option.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 .analitica-bases-writer-status {
   min-width: 0;
@@ -22802,14 +22906,15 @@ h1.pulso-page-title {
   display: block;
 }
 .analitica-codebook-code-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
 }
 .analitica-codebook-code {
-  min-height: 34px;
+  min-height: 36px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   padding: 6px 11px;
   border: 1px solid var(--pulso-border);
@@ -22849,6 +22954,7 @@ h1.pulso-page-title {
   transform: scale(0.98);
 }
 .analitica-codebook-xlsform {
+  margin-top: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -23037,6 +23143,10 @@ h1.pulso-page-title {
   .analitica-dimensiones-docbar
 ) {
   min-height: 46px;
+  /* Header bar: nunca comprimir por debajo de su contenido. En alturas
+     compactas el Panel es corto y el flex-shrink por defecto clippeaba la
+     fila de stats (que en <1120px envuelve a una 2ª fila). */
+  flex-shrink: 0;
   grid-template-columns: 28px minmax(160px, 1fr) minmax(260px, auto);
   gap: 8px;
   padding: 7px 9px;
@@ -23908,9 +24018,9 @@ h1.pulso-page-title {
   gap: 12px;
   align-items: center;
   flex-wrap: wrap;
-  margin-top: 6px;
-  padding-top: 14px;
-  border-top: 1px solid var(--pulso-border);
+  /* Sin border-top: la línea gris sobre cada botón daba ilusión de división.
+     El espaciado lo aporta el gap del contenedor (source-card/format-stack). */
+  margin-top: 4px;
 }
 .analitica-generate-footer .pulso-primary {
   display: inline-flex;
@@ -24516,28 +24626,40 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: var(--pulso-text-soft);
 }
 
-.pulso-outline-boundary {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
-  padding: 2px 5px;
-  border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, transparent);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--pulso-primary) 6%, white);
-  color: color-mix(in srgb, var(--pulso-primary) 70%, var(--pulso-text-soft));
-  font-size: 10px;
-  font-weight: 720;
-  line-height: 1;
+/* ── Sección (fila de apertura) como cabecera del bloque ───────────────── */
+.pulso-outline-row--section,
+.pulso-outline-row--repeat {
+  background: color-mix(in srgb, var(--pulso-primary) 3%, white);
+}
+.pulso-outline-row--section .pulso-outline-title,
+.pulso-outline-row--repeat .pulso-outline-title {
+  font-weight: 780;
+  letter-spacing: 0.005em;
+}
+.pulso-outline-row--repeat .pulso-outline-typeicon {
+  color: #0f9f8f;
 }
 
-.pulso-outline-boundary code {
-  overflow: hidden;
-  color: inherit;
-  font-family: ui-monospace, monospace;
-  font-size: 9.5px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* ── Fila de CIERRE de sección ─────────────────────────────────────────── */
+.pulso-outline-closerow .pulso-outline-title {
+  font-weight: 680;
+  color: var(--pulso-text-soft);
+}
+.pulso-outline-closelabel {
+  font-weight: 700;
+  color: color-mix(in srgb, var(--pulso-text) 78%, var(--pulso-text-soft));
+}
+.pulso-outline-closeicon {
+  color: color-mix(in srgb, var(--pulso-primary) 55%, var(--pulso-text-soft));
+}
+/* Guía vertical que ata visualmente el cierre a su sección. */
+.pulso-outline-closerow .pulso-outline-body::before {
+  content: "";
+  align-self: stretch;
+  width: 2px;
+  margin: 2px 6px 2px 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-primary) 22%, transparent);
 }
 
 .pulso-outline-required {
@@ -24610,7 +24732,12 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 
 .pulso-diagnostics-popover {
   position: fixed;
-  z-index: 700;
+  /* Se portalea a body y ancla bajo la barra de "avisos", que vive en el
+     commandbar dentro de `.pulso-page-frame-toolbar` (z-index 1000 +
+     transform). Con 700 el toolbar (Nuevo formulario / Importar / Exportar…)
+     se pintaba ENCIMA del popover. Sube por encima del chrome (igual que el
+     overlay del mapa y el ContextLens). */
+  z-index: 1400;
   width: min(420px, calc(100vw - 24px));
   max-height: min(560px, calc(100vh - 80px));
   display: flex;
@@ -25194,9 +25321,60 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   font-size: 12px;
   color: var(--pulso-text);
 }
-.pulso-question-map-section summary span {
+.pulso-question-map-section summary .pulso-question-map-section-stats {
   font-size: 11px;
   color: var(--pulso-text-soft);
+}
+/* Grupo repetible: la card completa toma la identidad naranja `--pulso-repeat-*`
+   para leerse distinta de una sección normal (que usa el color pastel del hash). */
+.pulso-question-map-section.is-repeat > summary {
+  background: var(--pulso-repeat-bg);
+  border-color: var(--pulso-repeat-border);
+}
+/* En un repetible el conteo se ancla a la derecha para dejar respirar al chip
+   "Repetible" y a la condición de apertura junto al título. */
+.pulso-question-map-section.is-repeat > summary .pulso-question-map-section-stats {
+  margin-left: auto;
+}
+.pulso-question-map-section.is-repeat > summary strong {
+  color: var(--pulso-repeat-fg);
+}
+.pulso-question-map-section-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--pulso-repeat-accent);
+  flex: 0 0 auto;
+}
+.pulso-question-map-section-relevant {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: var(--pulso-radius-chip, 999px);
+  background: var(--pulso-info-bg);
+  border: 1px solid var(--pulso-info-border);
+  color: var(--pulso-info-fg);
+  font-size: 10.5px;
+  font-weight: var(--pulso-control-weight, 600);
+  white-space: nowrap;
+}
+.pulso-question-map-section-caption {
+  margin: 6px 2px 2px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--pulso-repeat-fg);
+}
+/* Marca sutil en las preguntas que pertenecen a un grupo repetible. */
+.pulso-question-map-tile-repeat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  background: var(--pulso-repeat-bg);
+  border: 1px solid var(--pulso-repeat-border);
+  color: var(--pulso-repeat-accent);
 }
 .pulso-question-map-grid {
   display: grid;
@@ -28025,23 +28203,39 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
 }
-.pulso-logic-valueinput-toggle {
-  width: 26px;
+/* Toggle segmentado Valor / Pregunta (reemplaza el críptico botón "<>"). */
+.pulso-logic-valuemode {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--pulso-border);
-  border-radius: 6px;
-  background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
-  cursor: pointer;
   flex-shrink: 0;
-  transition: background 140ms ease, color 140ms ease;
+  align-self: stretch;
+  padding: 2px;
+  gap: 2px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: var(--pulso-surface-2);
 }
-.pulso-logic-valueinput-toggle:hover:not(:disabled) {
-  background: var(--pulso-primary-bg, rgba(36, 87, 214, 0.08));
+.pulso-logic-valuemode-opt {
+  padding: 3px 9px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease;
+}
+.pulso-logic-valuemode-opt:hover:not(:disabled):not(.is-on) {
+  color: var(--pulso-text);
+}
+.pulso-logic-valuemode-opt.is-on {
+  background: var(--pulso-surface);
   color: var(--pulso-primary);
-  border-color: var(--pulso-primary);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+.pulso-logic-valuemode-opt:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .pulso-logic-condition-hint {
   display: block;
@@ -28162,6 +28356,13 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: var(--pulso-text-soft);
   border-color: var(--pulso-border);
   cursor: not-allowed;
+}
+
+/* Footer del builder cuando hay una sola condición: aloja el CTA para
+   concatenar una segunda (promueve a AND/OR en el siguiente render). */
+.pulso-logic-builder-footer {
+  margin-top: 8px;
+  display: flex;
 }
 
 /* ============================================================================
@@ -28568,7 +28769,12 @@ button.pulso-focus-calculation-recipe {
   inset: 0;
   width: 100vw;
   height: 100dvh;
-  z-index: 900;
+  /* Debe cubrir la command bar del editor (.pulso-xlsform-frame
+   * .pulso-page-frame-toolbar tiene z-index: 1000) y el MoreViewsMenu
+   * (1200). El overlay se portalea a document.body — hermano de la app —
+   * así que sin un z-index mayor la barra "instrumento / Constructor /
+   * Hojas" quedaba pintada ENCIMA del mapa en vez de tapada. */
+  z-index: 1400;
   background: var(--pulso-surface);
   display: flex;
   flex-direction: column;
@@ -28736,15 +28942,15 @@ button.pulso-focus-calculation-recipe {
   position: absolute;
   top: 18px;
   right: 18px;
-  width: 280px;
+  width: 288px;
   background: white;
   border: 1px solid var(--pulso-border);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 14px 14px 12px;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
   animation: pulso-stagger-in 180ms ease both;
 }
 .pulso-graph-detail header {
@@ -28781,19 +28987,22 @@ button.pulso-focus-calculation-recipe {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 7px 11px;
+  padding: 9px 11px;
   background: var(--pulso-primary);
   color: white;
   border: none;
-  border-radius: 7px;
+  border-radius: 9px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 140ms ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+  transition: background 140ms ease, transform 100ms ease, box-shadow 140ms ease;
   margin-top: 4px;
 }
 .pulso-graph-detail-go:hover {
   background: var(--pulso-primary-hover, #1d4ed8);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(36, 87, 214, 0.28);
 }
 
 /* ============================================================================
@@ -29421,6 +29630,15 @@ button.pulso-focus-calculation-recipe {
   line-height: 1.35;
   font-weight: 780;
   overflow-wrap: anywhere;
+  /* `.pulso-questionnaire-question` es un <button>: el título heredaba
+     `white-space: nowrap` del reset de botones y no envolvía, desbordando
+     su columna y corriendo por debajo de los badges. Forzamos el wrap y
+     acotamos a 2 líneas. */
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .pulso-questionnaire-question-copy span {
@@ -29428,6 +29646,7 @@ button.pulso-focus-calculation-recipe {
   font-size: 11px;
   line-height: 1.35;
   font-weight: 650;
+  white-space: normal;
 }
 
 .pulso-questionnaire-question-flags {
@@ -30110,6 +30329,10 @@ button.pulso-focus-calculation-recipe {
 .home-cinema-deck-wrap {
   position: relative;
   z-index: 1;
+  /* Sin panel lateral: el deck ocupa TODO el ancho del stage (aunque la base y
+     sus ~12 variantes sigan declarando 2 columnas, el deck-wrap las cruza). Así
+     las cartas respiran a lo ancho y los vecinos no quedan tapados. */
+  grid-column: 1 / -1;
   height: 100%;
   min-height: 0;
   display: grid;
@@ -30408,21 +30631,6 @@ button.pulso-focus-calculation-recipe {
   transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
 }
 
-.home-cinema-card:not(.is-focused) .home-cinema-card-icon {
-  width: 66px;
-  height: 66px;
-  border-radius: 18px;
-}
-
-.home-cinema-card.is-focused .home-cinema-card-icon {
-  width: 82px;
-  height: 82px;
-  border-radius: 24px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 18px 34px color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 22%, transparent);
-}
-
 @media (hover: hover) and (pointer: fine) {
   .home-cinema-card:hover .home-cinema-card-icon {
     border-color: color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 42%, #fff 58%);
@@ -30438,9 +30646,157 @@ button.pulso-focus-calculation-recipe {
   }
 }
 
-.home-cinema-card.is-focused .home-cinema-card-icon svg {
-  width: 52px;
-  height: 52px;
+/* =====================================================================
+   Cards autosuficientes (sin panel lateral): la carta ENFOCADA contiene
+   toda la información del módulo —ícono + nombre + descripción + features +
+   acción— centrada como una ficha profesional (sello arriba, features en
+   fichas de 2 columnas). Los vecinos son posters solo-ícono que asoman a los
+   lados. La especificidad `.home-cinema …` (0,3,0) le gana a las ~12 variantes
+   de preset (0,2,0).
+   ===================================================================== */
+.home-cinema .home-cinema-card.is-focused {
+  width: min(clamp(452px, 40vw, 564px), calc(100% - 40px));
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-content: normal;
+  align-items: center;
+  justify-content: center;
+  justify-items: center;
+  text-align: center;
+  gap: 11px;
+  padding: 28px 30px 24px;
+}
+
+/* Cabecera centrada: ícono como sello arriba, luego nombre + tagline. */
+.home-cinema-card-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+}
+
+.home-cinema .home-cinema-card.is-focused .home-cinema-card-icon {
+  width: 66px;
+  height: 66px;
+  border-radius: 19px;
+  flex-shrink: 0;
+}
+
+.home-cinema .home-cinema-card.is-focused .home-cinema-card-icon svg {
+  width: 36px;
+  height: 36px;
+}
+
+.home-cinema-card-heading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.home-cinema-card-name {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 850;
+  line-height: 1.08;
+  letter-spacing: -0.012em;
+  color: var(--pulso-text);
+  text-wrap: balance;
+}
+
+.home-cinema .home-cinema-card.is-focused .home-cinema-card-tagline {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 760;
+  line-height: 1.3;
+  color: var(--home-mod-accent, var(--pulso-primary));
+  text-wrap: balance;
+}
+
+.home-cinema .home-cinema-card.is-focused .home-cinema-card-blurb {
+  margin: 0;
+  max-width: 48ch;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+  text-wrap: pretty;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Features como fichas en 2 columnas: caja con hairline y tinte de acento
+   suave, check en pastilla. Se lee como una tabla profesional, no como una
+   lista de viñetas sueltas. */
+.home-cinema-card-features {
+  list-style: none;
+  margin: 3px 0 0;
+  padding: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 9px;
+}
+
+.home-cinema-card-features li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 7px 11px;
+  border-radius: 11px;
+  border: 1px solid color-mix(in srgb, var(--home-mod-accent-border, var(--pulso-border)) 42%, #fff 58%);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), color-mix(in srgb, var(--home-mod-accent-soft, var(--pulso-surface-2)) 32%, #fff 68%));
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  line-height: 1.26;
+  text-align: left;
+}
+
+.home-cinema-card-features li svg {
+  width: 18px;
+  height: 18px;
+  padding: 2.5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--home-mod-accent-soft, var(--pulso-primary-soft)) 72%, #fff 28%);
+  color: var(--home-mod-accent, var(--pulso-primary));
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+/* Feature impar final: ocupa el ancho completo para no dejar un hueco suelto. */
+.home-cinema-card-features li:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+/* Acción centrada al pie de la ficha. */
+.home-cinema .home-cinema-card.is-focused .home-cinema-cta,
+.home-cinema .home-cinema-card.is-focused .home-cinema-picker-actions {
+  margin-top: 5px;
+  align-self: center;
+  width: auto;
+}
+
+/* Vecinos: posters compactos solo-ícono que asoman a los lados del enfocado. */
+.home-cinema .home-cinema-card:not(.is-focused) {
+  width: min(196px, calc(100% - 24px));
+  min-height: 196px;
+}
+
+.home-cinema .home-cinema-card:not(.is-focused) .home-cinema-card-icon {
+  width: 66px;
+  height: 66px;
+  border-radius: 18px;
+}
+
+.home-cinema .home-cinema-card:not(.is-focused) .home-cinema-card-icon svg {
+  width: 34px;
+  height: 34px;
 }
 
 .home-cinema[data-density="compact"] .home-cinema-card {
@@ -30813,10 +31169,14 @@ button.pulso-focus-calculation-recipe {
 .home-cinema-strip {
   justify-self: center;
   width: fit-content;
-  max-width: 100%;
+  /* Techo de ancho: el strip es un índice secundario, no debe estirarse a
+     media pantalla en monitores anchos. Con los chips compactos su ancho
+     natural (~810px, 8 módulos) queda por debajo del tope y se centra; el
+     tope solo evita el desborde patológico y el overflow-x es la red final. */
+  max-width: min(100%, 860px);
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 5px;
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
@@ -30845,14 +31205,14 @@ button.pulso-focus-calculation-recipe {
   display: inline-flex;
   position: relative;
   align-items: center;
-  gap: 6px;
-  min-height: 30px;
-  padding: 5px 9px;
+  gap: 5px;
+  min-height: 27px;
+  padding: 4px 7px;
   border-radius: 10px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 740;
   cursor: pointer;
   white-space: nowrap;
@@ -33962,8 +34322,8 @@ button.pulso-focus-calculation-recipe {
 }
 .pulso-graph-detail-block-label {
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  font-weight: 650;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
 }
@@ -34487,7 +34847,11 @@ button.pulso-focus-calculation-recipe {
   gap: 8px;
   padding-right: 24px; /* dejar espacio al botón × */
 }
-.pulso-graph-legend-body strong {
+/* Legacy: mini-encabezado en mayúsculas de la lista `-types` (ya no se
+ * usa en el JSX). Acotado a `-types` para NO golpear los <strong> inline
+ * de la cabecera y los ejemplos — antes los forzaba a block+uppercase y
+ * partía cada frase en dos líneas con una palabra en mayúsculas. */
+.pulso-graph-legend-types strong {
   display: block;
   font-size: 9.5px;
   font-weight: 700;
@@ -34495,6 +34859,21 @@ button.pulso-focus-calculation-recipe {
   text-transform: uppercase;
   color: var(--pulso-text-soft);
   margin-top: 2px;
+}
+/* Énfasis inline dentro de la cabecera y los ejemplos: bold normal que
+ * fluye con la frase. Resetea explícitamente display/text-transform por si
+ * queda cascada de la regla legacy `-types` (block + uppercase), que
+ * partía cada frase en dos líneas con una palabra en mayúsculas. */
+.pulso-graph-legend-head strong,
+.pulso-graph-legend-examples strong,
+.pulso-graph-legend-colorkey strong {
+  display: inline;
+  font-size: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+  margin-top: 0;
+  font-weight: 700;
+  color: var(--pulso-text);
 }
 .pulso-graph-legend-types {
   list-style: none;
@@ -34621,9 +35000,9 @@ button.pulso-focus-calculation-recipe {
   -webkit-backdrop-filter: blur(10px);
 }
 .pulso-graph-edge-panel-eyebrow {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 1.1px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--pulso-primary);
   line-height: 1.35;
@@ -34649,9 +35028,9 @@ button.pulso-focus-calculation-recipe {
   gap: 9px;
 }
 .pulso-graph-edge-panel-block-label {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 1.2px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.7px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
 }
@@ -34671,13 +35050,12 @@ button.pulso-focus-calculation-recipe {
     transform 100ms ease;
 }
 .pulso-graph-edge-panel-card-clickable:hover {
-  background: rgba(36, 87, 214, 0.06);
-  border-color: var(--pulso-primary);
-  transform: translateX(-2px);
+  background: rgba(36, 87, 214, 0.05);
+  border-color: var(--pulso-primary-border);
 }
 .pulso-graph-edge-panel-card-clickable.pulso-graph-edge-panel-card-section:hover {
-  background: rgba(15, 118, 110, 0.06);
-  border-color: rgba(15, 118, 110, 0.5);
+  background: rgba(15, 118, 110, 0.05);
+  border-color: rgba(15, 118, 110, 0.4);
 }
 
 /* Contador de ramas en eyebrow. */
@@ -34690,22 +35068,24 @@ button.pulso-focus-calculation-recipe {
 .pulso-graph-edge-panel-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 13px 14px;
-  background: rgba(255, 255, 255, 0.9);
+  gap: 11px;
+  padding: 11px 12px;
+  background: var(--pulso-surface);
   border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.32);
+  border: 1px solid var(--pulso-border);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   min-width: 0;
 }
 .pulso-graph-edge-panel-card-section {
-  background: rgba(15, 118, 110, 0.055);
-  border-color: rgba(15, 118, 110, 0.34);
+  background: rgba(15, 118, 110, 0.05);
+  border-color: rgba(15, 118, 110, 0.24);
 }
 .pulso-graph-edge-panel-card-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: rgba(36, 87, 214, 0.10);
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: rgba(36, 87, 214, 0.09);
+  box-shadow: inset 0 0 0 1px rgba(36, 87, 214, 0.14);
   color: var(--pulso-primary);
   display: inline-flex;
   align-items: center;
@@ -34714,31 +35094,53 @@ button.pulso-focus-calculation-recipe {
 }
 .pulso-graph-edge-panel-card-section .pulso-graph-edge-panel-card-icon {
   background: rgba(15, 118, 110, 0.10);
+  box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.16);
   color: #0f766e;
 }
 .pulso-graph-edge-panel-card-text {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  /* block (no flex): el `strong` de abajo usa `-webkit-line-clamp`, que
+     Chromium rompe si el elemento es flex item (lo blockifica a
+     flow-root). Con el contenedor en block, el clamp funciona. */
+  display: block;
   min-width: 0;
+  flex: 1;
 }
 .pulso-graph-edge-panel-card-text strong {
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--pulso-text);
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
   line-height: 1.3;
+  margin-bottom: 3px;
+  /* Incipit, no muro de texto: clamp a 3 líneas. El texto completo
+     queda en el atributo `title` (hover) y en la carta de la pregunta. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 .pulso-graph-edge-panel-card-text code {
-  font-size: 12px;
+  display: block;
+  font-size: 11px;
   font-family: ui-monospace, monospace;
   color: var(--pulso-text-soft);
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
   line-height: 1.25;
+  letter-spacing: 0.1px;
+}
+/* Chevron indicador de "clickable" en las cards de destino. */
+.pulso-graph-edge-panel-card-chevron {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  color: var(--pulso-text-soft);
+  opacity: 0.55;
+  transition: transform 140ms ease, opacity 140ms ease;
+}
+.pulso-graph-edge-panel-card-clickable:hover .pulso-graph-edge-panel-card-chevron {
+  opacity: 1;
+  transform: translateX(2px);
 }
 .pulso-graph-edge-panel-arrow {
   display: flex;
@@ -34757,15 +35159,15 @@ button.pulso-focus-calculation-recipe {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(36, 87, 214, 0.18);
-  background: rgba(36, 87, 214, 0.045);
+  padding: 13px;
+  border-radius: 13px;
+  border: 1px solid rgba(36, 87, 214, 0.14);
+  background: rgba(36, 87, 214, 0.035);
 }
 .pulso-graph-edge-panel-condition-title {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 1.1px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.7px;
   text-transform: uppercase;
   color: var(--pulso-primary);
 }
@@ -34786,20 +35188,26 @@ button.pulso-focus-calculation-recipe {
   margin: 2px 0;
   color: var(--pulso-primary);
 }
+.pulso-graph-edge-panel-condition-or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--pulso-border);
+}
 .pulso-graph-edge-panel-condition-or span,
 .pulso-graph-edge-panel-condition-card-head strong {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  height: 24px;
+  min-width: 26px;
+  height: 22px;
   border-radius: 999px;
-  background: rgba(36, 87, 214, 0.12);
+  background: rgba(36, 87, 214, 0.10);
   color: var(--pulso-primary);
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
 }
 .pulso-graph-edge-panel-condition-or em {
   font-size: 11.5px;
@@ -34807,14 +35215,13 @@ button.pulso-focus-calculation-recipe {
   font-weight: 750;
   color: var(--pulso-text-soft);
 }
+/* Contenedor lógico de un grupo (posible cabecera "Y" + filas). Es un
+   flex transparente: la superficie/borde la lleva la fila, no una card
+   intermedia — así se evita el triple anidado de cajas. */
 .pulso-graph-edge-panel-condition-card {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 10px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(36, 87, 214, 0.14);
 }
 .pulso-graph-edge-panel-condition-card-head {
   display: flex;
@@ -34822,9 +35229,9 @@ button.pulso-focus-calculation-recipe {
   justify-content: space-between;
   gap: 10px;
   padding: 0 2px 2px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.8px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
 }
@@ -34841,13 +35248,14 @@ button.pulso-focus-calculation-recipe {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 9px 10px;
-  border-radius: 10px;
-  background: white;
-  border: 1px solid rgba(36, 87, 214, 0.12);
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 650;
+  font-weight: 550;
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
@@ -34865,8 +35273,8 @@ button.pulso-focus-calculation-recipe {
   background: rgba(36, 87, 214, 0.10);
   color: var(--pulso-primary);
   font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.4px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
 }
 .pulso-graph-edge-panel-condition-join.is-and {
   background: rgba(15, 118, 110, 0.12);
@@ -34889,9 +35297,9 @@ button.pulso-focus-calculation-recipe {
   justify-content: space-between;
   gap: 10px;
   color: var(--pulso-text-soft);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.7px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
 }
 .pulso-graph-edge-panel-nested-or-head strong {
@@ -34899,14 +35307,14 @@ button.pulso-focus-calculation-recipe {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  height: 24px;
+  min-width: 26px;
+  height: 22px;
   border-radius: 999px;
-  background: rgba(36, 87, 214, 0.12);
+  background: rgba(36, 87, 214, 0.10);
   color: var(--pulso-primary);
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
 }
 .pulso-graph-edge-panel-nested-or-list {
   display: flex;
@@ -34921,8 +35329,8 @@ button.pulso-focus-calculation-recipe {
 }
 .pulso-graph-edge-panel-nested-question strong {
   color: var(--pulso-text);
-  font-size: 12.8px;
-  font-weight: 800;
+  font-size: 12.5px;
+  font-weight: 600;
   line-height: 1.35;
 }
 .pulso-graph-edge-panel-nested-question code {
@@ -34933,7 +35341,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-graph-edge-panel-nested-question span {
   color: var(--pulso-primary);
   font-size: 11.5px;
-  font-weight: 800;
+  font-weight: 650;
 }
 .pulso-graph-edge-panel-option-grid {
   display: flex;
@@ -34945,27 +35353,27 @@ button.pulso-focus-calculation-recipe {
   align-items: center;
   gap: 6px;
   max-width: 100%;
-  padding: 7px 9px;
+  padding: 6px 10px;
   border-radius: 999px;
-  background: white;
-  border: 1px solid rgba(36, 87, 214, 0.14);
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 550;
   line-height: 1.25;
 }
 .pulso-graph-edge-panel-option-chip em {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 18px;
+  min-width: 18px;
+  height: 16px;
   border-radius: 999px;
-  background: rgba(36, 87, 214, 0.12);
+  background: rgba(36, 87, 214, 0.10);
   color: var(--pulso-primary);
-  font-size: 9.5px;
+  font-size: 9px;
   font-style: normal;
-  font-weight: 900;
+  font-weight: 700;
 }
 .pulso-graph-edge-panel-nested-or-item {
   display: flex;
@@ -35001,21 +35409,23 @@ button.pulso-focus-calculation-recipe {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 7px;
   width: 100%;
   padding: 11px 14px;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
   background: var(--pulso-primary);
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 11px;
   cursor: pointer;
-  transition: background 140ms ease, transform 100ms ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+  transition: background 140ms ease, transform 100ms ease, box-shadow 140ms ease;
 }
 .pulso-graph-edge-panel-btn:hover {
   background: #1f47b3;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(36, 87, 214, 0.28);
 }
 .pulso-graph-edge-panel-btn:active {
   transform: translateY(0);
@@ -35051,6 +35461,28 @@ button.pulso-focus-calculation-recipe {
   font-size: 11.5px;
   color: var(--pulso-text-soft);
   line-height: 1.4;
+}
+/* Demostrador "mismo color = misma condición": tarjeta sutil con las
+ * muestras de trazo a la izquierda y la explicación a la derecha. */
+.pulso-graph-legend-colorkey {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--pulso-text-soft);
+}
+.pulso-graph-legend-colorkey-samples {
+  flex-shrink: 0;
+  display: inline-flex;
+}
+.pulso-graph-legend-colorkey strong {
+  color: var(--pulso-text);
 }
 .pulso-graph-legend-section {
   display: flex;
@@ -35392,6 +35824,7 @@ button.pulso-focus-calculation-recipe {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
 }
 .pulso-graph-detail-title {
   display: flex;
@@ -36159,6 +36592,19 @@ button.pulso-focus-calculation-recipe {
 .pulso-canvas-section-header.is-selected {
   border-color: var(--pulso-primary);
   box-shadow: 0 0 0 1px var(--pulso-primary);
+}
+/* Bloque repetible (begin_repeat): identidad naranja `--pulso-repeat-*` para
+   que se lea distinto de un grupo normal de un vistazo. */
+.pulso-canvas-section-header.is-repeat {
+  background: var(--pulso-repeat-bg);
+  border-color: var(--pulso-repeat-border);
+}
+.pulso-canvas-section-header.is-repeat .pulso-canvas-section-icon {
+  color: var(--pulso-repeat-accent);
+}
+.pulso-canvas-section-header.is-repeat.is-selected {
+  border-color: var(--pulso-repeat-accent);
+  box-shadow: 0 0 0 1px var(--pulso-repeat-accent);
 }
 .pulso-canvas-section-toggle {
   display: inline-flex;
@@ -37084,6 +37530,8 @@ button.pulso-focus-calculation-recipe {
 .pulso-more-views-item {
   display: flex;
   align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
   gap: 10px;
   padding: 8px 10px;
   border: none;
@@ -38796,6 +39244,53 @@ button.pulso-focus-calculation-recipe {
   gap: 8px;
 }
 
+/* Encabezado de sección de Reglas: distingue Visibilidad (cuándo aparece) de
+   Validación (qué se acepta) — dos conceptos que antes se leían iguales. */
+.pulso-focus-rule-section-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding-bottom: 9px;
+  margin-bottom: 1px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-focus-rule-section-head strong {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #1f2a44;
+}
+
+.pulso-focus-rule-section-head small {
+  display: block;
+  margin-top: 1px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-focus-rule-section-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  flex: none;
+}
+
+.pulso-focus-rule-section-head.is-visibility .pulso-focus-rule-section-icon {
+  color: var(--pulso-primary);
+  background: color-mix(in srgb, var(--pulso-primary) 12%, transparent);
+}
+
+.pulso-focus-rule-section-head.is-validation .pulso-focus-rule-section-icon {
+  color: #1f8a5b;
+  background: color-mix(in srgb, #1f8a5b 12%, transparent);
+}
+
 .pulso-focus-rule-context {
   padding: 10px;
   border: 1px solid var(--xls-border);
@@ -39097,6 +39592,52 @@ button.pulso-focus-calculation-recipe {
   color: #1f2a3d;
   font-size: 12.5px;
   line-height: 1.35;
+}
+
+.pulso-focus-required-message-block {
+  border: 1px solid var(--xls-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--xls-content-soft) 72%, #ffffff 28%);
+  padding: 9px 11px;
+}
+
+.pulso-focus-required-message-block > summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  color: #253149;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.pulso-focus-required-message-block > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pulso-focus-required-message-block > summary::before {
+  content: "＋";
+  font-size: 12px;
+  line-height: 1;
+  color: color-mix(in srgb, var(--pulso-primary) 70%, #253149);
+}
+
+.pulso-focus-required-message-block[open] > summary::before {
+  content: "−";
+}
+
+.pulso-focus-required-message-block > summary small {
+  margin-left: auto;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 620;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pulso-focus-required-message-block[open] > summary {
+  margin-bottom: 9px;
 }
 
 .pulso-focus-guided-validation p {
@@ -39598,6 +40139,41 @@ button.pulso-focus-calculation-recipe {
   font-size: 10.8px;
   font-weight: 640;
   line-height: 1.35;
+}
+
+.pulso-focus-choice-filter-body {
+  margin-top: 10px;
+}
+
+.pulso-focus-choice-filter-body > summary {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: color-mix(in srgb, var(--pulso-primary) 76%, #253149);
+  font-size: 11.5px;
+  font-weight: 780;
+  line-height: 1.3;
+  list-style: none;
+}
+
+.pulso-focus-choice-filter-body > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pulso-focus-choice-filter-body > summary::before {
+  content: "＋";
+  font-size: 12px;
+  line-height: 1;
+  color: color-mix(in srgb, var(--pulso-primary) 70%, #253149);
+}
+
+.pulso-focus-choice-filter-body[open] > summary {
+  margin-bottom: 10px;
+}
+
+.pulso-focus-choice-filter-body[open] > summary::before {
+  content: "−";
 }
 
 .pulso-focus-choice-filter-suggestions-compact {
@@ -41256,6 +41832,22 @@ button.pulso-focus-calculation-recipe {
     0 12px 26px rgba(15, 23, 42, 0.18);
 }
 
+/* Cabecera de sección/repeat dentro del editor — fondo tenue + hairline
+   para que lea como encabezado de bloque (el override .pulso-xlsform-frame
+   .pulso-outline-row pone fondo transparente, así que subimos especificidad). */
+.pulso-xlsform-frame .pulso-outline-row--section:not(.is-active):not(.is-dragging),
+.pulso-xlsform-frame .pulso-outline-row--repeat:not(.is-active):not(.is-dragging) {
+  background: color-mix(in srgb, var(--pulso-primary) 4%, #fff);
+  border-color: color-mix(in srgb, var(--pulso-primary) 10%, transparent);
+}
+.pulso-xlsform-frame .pulso-outline-row--repeat:not(.is-active):not(.is-dragging) {
+  background: color-mix(in srgb, #0f9f8f 5%, #fff);
+  border-color: color-mix(in srgb, #0f9f8f 12%, transparent);
+}
+.pulso-xlsform-frame .pulso-outline-closerow:not(.is-active) {
+  background: color-mix(in srgb, var(--pulso-surface-2) 40%, #fff);
+}
+
 .pulso-outline-floating-overlay .pulso-outline-grip {
   color: var(--pulso-primary);
   background: color-mix(in srgb, var(--pulso-primary) 8%, #ffffff);
@@ -41470,6 +42062,21 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   border-color: var(--pulso-primary-border);
   box-shadow:
     inset 3px 0 0 var(--pulso-primary),
+    var(--xls-shadow-hairline);
+}
+
+/* Bloque repetible dentro del frame del editor: gana al gradiente blanco del
+   header genérico con la identidad naranja `--pulso-repeat-*`. */
+.pulso-xlsform-frame .pulso-canvas-section-header.is-repeat {
+  background: var(--pulso-repeat-bg);
+  border-color: var(--pulso-repeat-border);
+  box-shadow: var(--xls-shadow-hairline);
+}
+
+.pulso-xlsform-frame .pulso-canvas-section-header.is-repeat.is-selected {
+  border-color: var(--pulso-repeat-accent);
+  box-shadow:
+    inset 3px 0 0 var(--pulso-repeat-accent),
     var(--xls-shadow-hairline);
 }
 
@@ -42811,7 +43418,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
 .pulso-analitica-panel-head {
   display: grid;
-  grid-template-columns: 30px minmax(136px, 1fr) minmax(0, auto);
+  grid-template-columns: 30px minmax(0, 1fr) minmax(0, auto);
   align-items: center;
   gap: 9px;
 }

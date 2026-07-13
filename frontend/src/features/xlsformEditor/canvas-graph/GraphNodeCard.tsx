@@ -18,11 +18,12 @@
 //      borde contenedor.
 // =============================================================================
 
-import { ChevronDown, ChevronRight, ListChecks } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { IconConditionalLogic } from "../../../lib/icons";
 import type { LaidOutNode } from "./autoLayout";
 import { iconForType } from "../helpers/icons";
 import { paletteForType, paletteSoftForType } from "../helpers/paletteForType";
+import { stripMarkdown } from "../helpers/markdown";
 
 export type GraphNodeCardProps = {
   laid: LaidOutNode;
@@ -68,21 +69,29 @@ export function GraphNodeCard({
   beingDragged,
 }: GraphNodeCardProps) {
   const { node, x, y, width, height } = laid;
+  // El title puede traer markdown crudo del XLSForm (`**Especifique:**`).
+  // En el lienzo mostramos texto plano (mismo criterio que el resto del
+  // editor vía `stripMarkdown`); el markdown se renderiza en las vistas
+  // de campo, no en el mapa de lógica.
+  const cleanTitle =
+    stripMarkdown(node.title || "").replace(/\s+/g, " ").trim() ||
+    node.subtitle;
   const isSection = node.kind === "section";
+  // Un grupo repetible (begin_repeat) es de primera clase: conserva su
+  // `baseType`, así que lo distinguimos de un grupo normal para pintarlo con la
+  // identidad naranja (`--pulso-repeat-*`) y el ícono Repeat.
+  const isRepeatSection = isSection && node.baseType === "begin_repeat";
+  const sectionType = isRepeatSection ? "begin_repeat" : "begin_group";
   const isSelect =
     node.baseType === "select_one" || node.baseType === "select_multiple";
 
   const accent = isSection
-    ? paletteForType("begin_group")
+    ? paletteForType(sectionType)
     : paletteForType(node.baseType);
   const accentSoft = isSection
-    ? paletteSoftForType("begin_group")
+    ? paletteSoftForType(sectionType)
     : paletteSoftForType(node.baseType);
-  const Icon = isSection
-    ? expanded
-      ? iconForType("begin_group")
-      : iconForType("begin_group")
-    : iconForType(node.baseType);
+  const Icon = isSection ? iconForType(sectionType) : iconForType(node.baseType);
 
   // Fondo por estado, con fallback al color de sección heredado (igual
   // hash determinístico que `PreguntasPanel.tsx`) — así un nodo dentro
@@ -99,7 +108,9 @@ export function GraphNodeCard({
         : highlighted
           ? "rgba(36, 87, 214, 0.04)"
           : isSection && expanded
-            ? "rgba(15, 118, 110, 0.04)"
+            ? isRepeatSection
+              ? "color-mix(in srgb, var(--pulso-repeat-accent) 6%, transparent)"
+              : "rgba(15, 118, 110, 0.04)"
             : baseFill;
   // Borde SIEMPRE del color del tipo de pregunta (paletteForType) — en
   // reposo con opacidad reducida para que el lienzo no grite; estados
@@ -298,7 +309,7 @@ export function GraphNodeCard({
             }}
           >
             <strong
-              title={node.title || node.subtitle}
+              title={cleanTitle}
               style={{
                 fontSize: isSection ? 13 : 12.3,
                 color: "var(--pulso-text)",
@@ -310,7 +321,7 @@ export function GraphNodeCard({
                 fontWeight: 700,
               }}
             >
-              {node.title || node.subtitle}
+              {cleanTitle}
             </strong>
             <span
               style={{
@@ -325,35 +336,30 @@ export function GraphNodeCard({
             >
               {node.subtitle}
             </span>
-            {!isSection && isSelect && node.catalogContext && (
+            {isRepeatSection && (
               <span
-                title={`${node.catalogContext.listName} · ${node.catalogContext.itemCount} ${
-                  node.catalogContext.itemCount === 1 ? "opción" : "opciones"
-                }`}
+                title="Grupo repetible: sus preguntas se repiten por cada registro."
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  minWidth: 0,
-                  fontSize: 10.5,
-                  color: "var(--pulso-text-soft)",
-                  lineHeight: 1.15,
+                  alignSelf: "flex-start",
+                  marginTop: 1,
+                  padding: "1px 7px",
+                  borderRadius: 999,
+                  fontSize: 9.5,
+                  fontWeight: 700,
+                  letterSpacing: 0.2,
+                  lineHeight: 1.3,
+                  whiteSpace: "nowrap",
+                  color: "var(--pulso-repeat-fg)",
+                  background: "var(--pulso-repeat-bg)",
+                  border: "1px solid var(--pulso-repeat-border)",
                 }}
               >
-                <ListChecks size={11} style={{ color: "#0f766e", flexShrink: 0 }} />
-                <span
-                  style={{
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    minWidth: 0,
-                  }}
-                >
-                  {node.catalogContext.listName} · {node.catalogContext.itemCount}{" "}
-                  {node.catalogContext.itemCount === 1 ? "opción" : "opciones"}
-                </span>
+                Repetible
               </span>
             )}
+            {/* El conteo de opciones / lista es info de DATOS, no de lógica:
+                no vive en el Mapa de lógica (feedback directo). La identidad
+                del nodo se lee por título + name técnico. */}
           </span>
           {isConditional && (
             <span

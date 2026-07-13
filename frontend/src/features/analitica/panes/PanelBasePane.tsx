@@ -28,7 +28,7 @@ import {
 } from "../../../api/client";
 import { Alert } from "../../../components/Alert";
 import { Panel } from "../../../components/Panel";
-import { LoadingBlock } from "../../../components/States";
+import { EmptyState, LoadingBlock } from "../../../components/States";
 import { GenerateFooter, Section } from "../PaneKit";
 import { type PanelConfig, useAnaliticaStore } from "../store";
 import { useReporteRun } from "../useReporteRun";
@@ -261,14 +261,25 @@ export function PanelBasePane() {
           <LoadingBlock label="Buscando identificador y mediciones..." />
         ) : error ? (
           <Alert kind="error">{error}</Alert>
+        ) : !info?.available ? (
+          <div className="analitica-panel-unavailable">
+            <EmptyState
+              variant="panel"
+              icon={<GitMerge size={20} />}
+              title={
+                (info?.n_bases ?? 0) < 2
+                  ? "Base panel necesita al menos dos mediciones"
+                  : "Falta un identificador común entre las mediciones"
+              }
+              hint={
+                (info?.n_bases ?? 0) < 2
+                  ? "Une a las mismas personas entre dos o más mediciones para leer su cambio en el tiempo. Con una sola base todavía no hay nada que emparejar: agrega otra medición para armar el panel."
+                  : "Cada medición debe compartir una variable que reconozca a la misma persona (por ejemplo, número de encuesta o documento). Sin ese identificador común no se pueden emparejar los casos."
+              }
+            />
+          </div>
         ) : (
           <>
-            {!info?.available && (
-              <Alert kind="warn">
-                {info?.reason || "Base panel requiere al menos dos mediciones y un identificador común."}
-              </Alert>
-            )}
-
             <div className="analitica-panel-commandbar">
               <div className="analitica-segmented analitica-segmented--five" role="tablist" aria-label="Vistas de base panel">
                 {VIEWS.map((item) => (

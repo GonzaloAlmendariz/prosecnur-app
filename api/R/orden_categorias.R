@@ -82,6 +82,71 @@
 }
 
 # =============================================================================
+# Orden de la recodificada desde las flechas ↑/↓ de Codificación
+# =============================================================================
+#
+# El editor de Codificación (asignar/crear categorías) persiste el orden que el
+# usuario fija con las flechas en el array `grupos_recod` por fuente (keyed por
+# PARENT de select_multiple; cada parent trae una lista de grupos
+# {codigo, etiqueta, respuestas, ...} EN ESE ORDEN). Ese orden debe gobernar el
+# de los dummies de la recodificada `<parent>_recod` en la BBDD y el codebook.
+#
+# Precedencia (menor a mayor): choices del instrumento < grupos_recod (flechas de
+# Codificación) < orden_categorias (reorder propio de Analítica). Por eso este
+# override se aplica ANTES que `.apply_orden_categorias(orden_cfg)` en el review:
+# si el analista tocó el orden en Analítica, ESE reordena por encima y manda. El
+# pase de valores-especiales-al-final (`.analitica_order_sm_dummy_cols`) corre
+# después de todo y siempre manda 96/etc. al final.
+
+#' Orden de las flechas de Codificación por PARENT de select_multiple.
+#'
+#' @param grupos_recod  named list `parent -> list(grupos)` tal como lo persiste
+#'   el editor de Codificación (`codif_get(sid, "grupos_recod")`).
+#' @return named list `parent -> character(codigos)` en el orden del array.
+#' @noRd
+.orden_grupos_recod_por_parent <- function(grupos_recod) {
+  if (is.null(grupos_recod) || !is.list(grupos_recod) || !length(grupos_recod)) return(list())
+  out <- list()
+  for (parent in names(grupos_recod)) {
+    if (is.null(parent) || !nzchar(parent)) next
+    grupos <- grupos_recod[[parent]]
+    if (is.null(grupos) || !length(grupos)) next
+    codes <- vapply(grupos, function(g) as.character((g %||% list())$codigo %||% "")[1], character(1))
+    codes <- codes[!is.na(codes) & nzchar(codes)]
+    codes <- codes[!duplicated(codes)]
+    if (length(codes)) out[[parent]] <- codes
+  }
+  out
+}
+
+#' Aplica el orden de las flechas de Codificación a la recodificada de cada
+#' select_multiple, reordenando `inst$orders_list[[<parent>_recod]]`. Reusa
+#' `.apply_orden_categorias` (keyed por list_name) para compartir maquinaria y
+#' precedencia — de ahí que este override se aplique ANTES que el de Analítica.
+#'
+#' @param inst  Instrumento con `$orders_list` y `$survey`.
+#' @param grupos_por_parent  salida de `.orden_grupos_recod_por_parent`.
+#' @return `inst` con `orders_list` reordenado. No-op sin overrides aplicables.
+#' @noRd
+.apply_grupos_recod_orden <- function(inst, grupos_por_parent) {
+  if (is.null(inst) || is.null(grupos_por_parent) || !length(grupos_por_parent)) return(inst)
+  if (!exists(".analitica_list_name_for_var", mode = "function")) return(inst)
+  orden_cfg <- list()
+  for (parent in names(grupos_por_parent)) {
+    codes <- grupos_por_parent[[parent]]
+    if (!length(codes)) next
+    # La recodificada vive en `<parent>_recod` (convención del bridge de
+    # Codificación); su list_name es el que hay que reordenar.
+    recod_var <- paste0(parent, "_recod")
+    ln <- tryCatch(.analitica_list_name_for_var(inst, recod_var), error = function(e) "")
+    if (!nzchar(ln)) next
+    orden_cfg[[ln]] <- codes
+  }
+  if (!length(orden_cfg)) return(inst)
+  .apply_orden_categorias(inst, orden_cfg)
+}
+
+# =============================================================================
 # Listas ordinales: qué listas de opciones respetan el orden fijo del
 # instrumento (likert, escalas de acuerdo, sí/no) frente al ordenamiento por
 # frecuencia de las tablas. Una lista es "ordinal EFECTIVA" si:

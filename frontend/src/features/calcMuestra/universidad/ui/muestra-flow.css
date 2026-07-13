@@ -1,40 +1,200 @@
 /* =============================================================================
    MuestraFlowDiagram — recorrido ilustrado del desk universitario.
-   Prefijo cmv2-muestra-flow-*. Solo tokens; el SVG escala con su viewBox.
-   Motion: entrada de nodos con stagger sutil (decorativa, reduced-motion la
-   apaga por completo).
+   Prefijo cmv2-muestra-flow-*. Solo tokens.
+   Layout: stepper FLEX responsivo. Los nodos tienen tamaño fijo y los
+   conectores crecen para llenar el ancho disponible → sin márgenes vacíos y
+   sin agrandar los círculos en pantallas anchas. Motion: entrada con stagger
+   sutil (reduced-motion la apaga).
    ============================================================================= */
 
 .cmv2-muestra-flow {
+  --cmv2-flow-badge: 56px;
+  --cmv2-flow-node: 88px;
+  min-width: 0;
+  width: 100%;
+}
+
+.cmv2-muestra-flow-track {
   display: flex;
-  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  margin: 0;
+  padding: 2px 0 4px;
+  list-style: none;
+}
+
+.cmv2-muestra-flow-item {
+  display: flex;
+  align-items: flex-start;
+  flex: 1 1 0;
   min-width: 0;
 }
 
-.cmv2-muestra-flow-svg {
-  width: 100%;
-  max-width: 940px;
-  height: auto;
+/* El último nodo no estira: cierra el recorrido sin dejar hueco a la derecha. */
+.cmv2-muestra-flow-item:last-child {
+  flex: 0 0 auto;
 }
 
-/* Versión compacta: convive con contenido (arriba del mapa vivo). */
+/* --- Nodo: badge + etiqueta ------------------------------------------------- */
+.cmv2-muestra-flow-node {
+  flex: 0 0 var(--cmv2-flow-node);
+  width: var(--cmv2-flow-node);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.cmv2-muestra-flow-badge {
+  position: relative;
+  width: var(--cmv2-flow-badge);
+  height: var(--cmv2-flow-badge);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid var(--pulso-border);
+  background: var(--cmv2-surface, var(--pulso-surface));
+  color: var(--pulso-text-muted);
+  transition:
+    background-color var(--motion-dur-base, 200ms) var(--motion-ease-out, ease),
+    border-color var(--motion-dur-base, 200ms) var(--motion-ease-out, ease),
+    color var(--motion-dur-base, 200ms) var(--motion-ease-out, ease);
+}
+
+.cmv2-muestra-flow-node[data-state="ready"] .cmv2-muestra-flow-badge {
+  background: var(--pulso-success-fg);
+  border-color: var(--pulso-success-fg);
+  color: var(--cmv2-surface, var(--pulso-surface));
+}
+
+.cmv2-muestra-flow-node[data-state="active"] .cmv2-muestra-flow-badge {
+  background: var(--cmv2-accent);
+  border-color: var(--cmv2-accent);
+  color: var(--cmv2-surface, var(--pulso-surface));
+}
+
+/* Halo punteado del nodo activo. */
+.cmv2-muestra-flow-node[data-state="active"] .cmv2-muestra-flow-badge::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1.5px dashed color-mix(in srgb, var(--cmv2-accent) 38%, transparent);
+}
+
+.cmv2-muestra-flow-glyph {
+  width: 34px;
+  height: 34px;
+  color: inherit;
+}
+
+/* Pin "Estás aquí" sobre el badge activo. */
+.cmv2-muestra-flow-pin {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  border-radius: 9px;
+  background: var(--cmv2-accent);
+  color: var(--cmv2-surface, var(--pulso-surface));
+  font-size: 9.5px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  box-shadow: var(--pulso-shadow-popover, 0 2px 8px rgba(0, 0, 0, 0.12));
+}
+
+.cmv2-muestra-flow-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.cmv2-muestra-flow-label strong {
+  font-size: 11.5px;
+  font-weight: 750;
+  letter-spacing: -0.1px;
+  color: var(--pulso-text);
+}
+
+.cmv2-muestra-flow-label small {
+  font-size: 10px;
+  color: var(--pulso-text-muted);
+}
+
+/* --- Conector: crece para llenar el ancho ---------------------------------- */
+.cmv2-muestra-flow-link {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 20px;
+  height: var(--cmv2-flow-badge);
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+}
+
+.cmv2-muestra-flow-link-line {
+  position: relative;
+  flex: 1;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--cmv2-border-strong, var(--pulso-border-strong));
+}
+
+/* Punta de flecha al final del conector. */
+.cmv2-muestra-flow-link-line::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left: 6px solid var(--cmv2-border-strong, var(--pulso-border-strong));
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+}
+
+.cmv2-muestra-flow-link-copy {
+  position: absolute;
+  bottom: calc(50% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-style: italic;
+  letter-spacing: 0.1px;
+  color: var(--pulso-text-muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* --- Compacto: convive con contenido (menos aire) -------------------------- */
 .cmv2-muestra-flow[data-compacto="true"] {
-  justify-content: flex-start;
+  --cmv2-flow-badge: 46px;
+  --cmv2-flow-node: 76px;
 }
 
-.cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-svg {
-  max-width: 780px;
+.cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-glyph {
+  width: 28px;
+  height: 28px;
 }
 
-/* --- Motion ------------------------------------------------------------------
-   El delay por nodo lo pone el componente (index * 40ms); las aristas entran
-   con un fade único después de la cascada. */
+.cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-label strong {
+  font-size: 10.5px;
+}
+
+.cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-label small {
+  font-size: 9.5px;
+}
+
+/* --- Motion ---------------------------------------------------------------- */
 @media (prefers-reduced-motion: no-preference) {
   .cmv2-muestra-flow-node {
     animation: cmv2-muestra-flow-in 260ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) both;
   }
-
-  .cmv2-muestra-flow-arrow {
+  .cmv2-muestra-flow-link {
     animation: cmv2-muestra-flow-fade 260ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) 180ms both;
   }
 }
@@ -50,31 +210,4 @@
   from {
     opacity: 0;
   }
-}
-
-/* --- Tipografía (10–11.5px sobre el viewBox de 960) -------------------------- */
-.cmv2-muestra-flow-title {
-  font-family: inherit;
-  font-size: 11.5px;
-  font-weight: 750;
-  letter-spacing: -0.1px;
-}
-
-.cmv2-muestra-flow-sub {
-  font-family: inherit;
-  font-size: 10px;
-}
-
-.cmv2-muestra-flow-pin {
-  font-family: inherit;
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 0.02em;
-}
-
-.cmv2-muestra-flow-arrow-text {
-  font-family: inherit;
-  font-size: 10px;
-  font-style: italic;
-  letter-spacing: 0.1px;
 }

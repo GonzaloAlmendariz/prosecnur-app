@@ -318,6 +318,17 @@ test_that(".carga_kobo_register_repeat_bases registra la hija con llaves canóni
   # La convención interina ya NO se persiste.
   expect_false(identical(meta$link_key, "_parent_id"))
 
+  # El serializador del estudio expone la metadata one-to-many hacia el
+  # frontend (RepeatBadge, banner de grano, resolución de columna de persona).
+  payload <- .estudio_base_payload(meta, session_get(sid, required = FALSE))
+  expect_equal(payload$source_kind, "kobo_repeat")
+  expect_equal(payload$parent_base, "default")
+  expect_equal(payload$repeat_group, "rep_servicios")
+  expect_equal(payload$link_key, "_parent_index")
+  expect_equal(payload$link_key_fallback, "_submission__id")
+  expect_equal(payload$parent_index_key, "_index")
+  expect_true(is.na(payload$repeat_relevant) || is.character(payload$repeat_relevant))
+
   # La data hija persistida conserva las llaves canónicas y el roster.
   child_data <- suppressWarnings(readxl::read_excel(
     (session_get(sid)$files %||% list())[[meta$data_file_id]]$path

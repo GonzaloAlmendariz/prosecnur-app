@@ -182,6 +182,25 @@ export function buildDiagnostics(
     });
   });
 
+  // Anidamiento de secciones — aviso informativo (no es error). Una
+  // sección cuyo padre es OTRA sección/repeat (no la raíz) queda anidada.
+  // A veces es intencional, pero es una causa frecuente de estructuras
+  // enredadas: se avisa para que el autor confirme que fue a propósito.
+  structure.sections.forEach((section) => {
+    if (section.kind === "root" || section.rowIndex == null) return;
+    if (!section.parentId) return;
+    const parent = structure.sections.get(section.parentId);
+    if (!parent || parent.kind === "root") return;
+    diagnostics.push({
+      id: `nested-section-${section.id}`,
+      level: "info",
+      rowIndex: section.rowIndex,
+      title: `La sección "${section.label}" está anidada dentro de "${parent.label}"`,
+      detail:
+        "Esta sección vive dentro de otra sección. Si el anidamiento no fue intencional, cierra la sección anterior antes de abrir esta para dejarlas al mismo nivel.",
+    });
+  });
+
   // Choices
   catalogs.forEach((catalog) => {
     const codes = new Map<string, number>();

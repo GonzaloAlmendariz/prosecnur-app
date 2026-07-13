@@ -1,6 +1,7 @@
 import { FolderClosed } from "lucide-react";
 import { Seccion } from "../../api/client";
 import { EmptyState } from "../../components/States";
+import { RepeatBadge } from "../../components/RepeatBadge";
 
 // Lista de secciones del XLSForm con sus flags (repeat / condicional) y
 // la condición `relevant` traducida a texto humano.
@@ -30,6 +31,11 @@ export default function SeccionesPanel({ secciones }: { secciones: Seccion[] }) 
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       {secciones.map((s, i) => {
         const cond = s.relevant ? sustituir_refs(s.relevant) : null;
+        // Para grupos repetibles, la información útil no es la visibilidad sino qué
+        // variable gobierna cuántas veces se repite (el `repeat_count`).
+        const repeatVars = s.is_repeat ? (s.repeat_count_vars ?? []) : [];
+        const repeatExpr = s.is_repeat && s.repeat_count ? sustituir_refs(s.repeat_count) : null;
+        const showRepeatDriver = s.is_repeat && (repeatVars.length > 0 || !!repeatExpr);
         return (
           <div
             key={s.name}
@@ -79,22 +85,8 @@ export default function SeccionesPanel({ secciones }: { secciones: Seccion[] }) 
                 {s.name}
               </code>
             </div>
-            <div style={{ display: "inline-flex", gap: 4 }}>
-              {s.is_repeat && (
-                <span
-                  style={{
-                    fontSize: 10, fontWeight: 700,
-                    padding: "2px 8px", borderRadius: 999,
-                    background: "var(--pulso-warn-bg)",
-                    color: "var(--pulso-warn-fg)",
-                    border: "1px solid var(--pulso-warn-border)",
-                    textTransform: "uppercase", letterSpacing: 0.3,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  repeat
-                </span>
-              )}
+            <div style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+              {s.is_repeat && <RepeatBadge compact />}
               {s.is_conditional ? (
                 <span
                   style={{
@@ -109,7 +101,7 @@ export default function SeccionesPanel({ secciones }: { secciones: Seccion[] }) 
                 >
                   condicional
                 </span>
-              ) : (
+              ) : s.is_repeat ? null : (
                 <span
                   style={{
                     fontSize: 10, fontWeight: 600,
@@ -136,6 +128,13 @@ export default function SeccionesPanel({ secciones }: { secciones: Seccion[] }) 
                 <>
                   <span style={{ color: "var(--pulso-text-soft)", marginRight: 4 }}>si</span>
                   {cond}
+                </>
+              ) : showRepeatDriver ? (
+                <>
+                  <span style={{ color: "var(--pulso-text-soft)", marginRight: 4 }}>
+                    se repite según
+                  </span>
+                  {repeatVars.length > 0 ? repeatVars.join(", ") : repeatExpr}
                 </>
               ) : (
                 <span style={{ color: "var(--pulso-text-soft)", opacity: 0.4 }}>—</span>

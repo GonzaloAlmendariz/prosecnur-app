@@ -114,8 +114,614 @@
   .pulso-cv2-dialog,
   .pulso-cv2-pill,
   .pulso-codificacion-frame .pulso-codificacion-config-button,
-  .pulso-codificacion-frame .pulso-codificacion-matrix-focus-chip {
+  .pulso-codificacion-frame .pulso-codificacion-matrix-focus-chip,
+  .pulso-cv2-grupo,
+  .pulso-cv2-qa-btn,
+  .pulso-cv2-qa-caret,
+  .pulso-cv2-sug {
     animation: none !important;
     transition-duration: 1ms !important;
   }
+}
+
+/* ===========================================================================
+ * Codificar · Agrupar respuestas (RespuestasCodificador)
+ * ---------------------------------------------------------------------------
+ * Vista origen → destino: "Respuestas únicas" (origen, superficie neutra) vs
+ * "Grupos de codificación" (destino, superficie de acento del módulo). Antes
+ * era todo estilo inline; acá vive al kit macOS con tokens --pulso-*.
+ * Prefijo `.pulso-cv2-`. Métricas del kit: alturas 16/20/24/28/36, peso 500,
+ * tipografía de control 13px.
+ * ========================================================================= */
+
+/* ── Header de la card de pregunta: compacto (el rail ya dice "Codificar") ── */
+.pulso-codificacion-frame .pulso-codificacion-coder-pane {
+  padding: 14px;
+}
+.pulso-codificacion-frame .pulso-codificacion-coder-head {
+  margin-bottom: 10px;
+}
+.pulso-codificacion-frame .pulso-codificacion-type-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 10px;
+}
+.pulso-codificacion-frame .pulso-codificacion-coder-title {
+  font-size: 15px;
+  font-weight: 660;
+  line-height: 1.3;
+}
+.pulso-codificacion-frame .pulso-codificacion-coder-nav {
+  margin-bottom: 12px;
+}
+
+/* ── Toolbar (guardado + acción) ──────────────────────────────────────────── */
+.pulso-cv2-rc-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.pulso-cv2-rc-toolbar-spacer {
+  flex: 1;
+}
+.pulso-cv2-newgroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Banda de KPIs (stat-row) ─────────────────────────────────────────────── */
+.pulso-cv2-statband {
+  margin-bottom: 14px;
+  padding: 10px 16px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+.pulso-cv2-statband.is-otros {
+  border-color: color-mix(in srgb, var(--tipo-sm-border) 55%, var(--pulso-border));
+  background: color-mix(in srgb, var(--tipo-sm-bg) 26%, var(--pulso-surface));
+}
+.pulso-cv2-statband-eyebrow {
+  margin-bottom: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--pulso-text-soft);
+}
+.pulso-cv2-statband.is-otros .pulso-cv2-statband-eyebrow {
+  color: color-mix(in srgb, var(--tipo-sm-fg) 80%, var(--pulso-text-soft));
+}
+.pulso-cv2-statband-eyebrow code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+}
+.pulso-cv2-statrow {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 4px 0;
+}
+.pulso-cv2-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 80px;
+  padding: 0 18px;
+  border-left: 1px solid var(--pulso-border);
+}
+.pulso-cv2-stat:first-child {
+  padding-left: 0;
+  border-left: none;
+}
+.pulso-cv2-stat-val {
+  font-size: 21px;
+  font-weight: 640;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+.pulso-cv2-stat-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--pulso-text-soft);
+}
+.pulso-cv2-stat.is-success .pulso-cv2-stat-val { color: var(--pulso-success-fg); }
+.pulso-cv2-stat.is-warn .pulso-cv2-stat-val { color: var(--pulso-warn-fg); }
+.pulso-cv2-stat.is-info .pulso-cv2-stat-val { color: var(--pulso-primary); }
+.pulso-cv2-stat.is-muted .pulso-cv2-stat-val { color: var(--pulso-text-faint); }
+
+/* ── Split-view origen → destino ──────────────────────────────────────────── */
+.pulso-cv2-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.06fr);
+  gap: 16px;
+  align-items: start;
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .pulso-cv2-split {
+    grid-template-columns: 1fr;
+  }
+}
+.pulso-cv2-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+/* El destino lleva superficie de acento sutil del módulo: se lee como el
+   lugar donde caen/asignan las respuestas, no como columna gemela. */
+.pulso-cv2-col--destino {
+  padding: 12px;
+  border-radius: var(--pulso-radius-card);
+  border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 52%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-module-processing-soft) 18%, var(--pulso-surface));
+}
+.pulso-cv2-col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.pulso-cv2-col-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--pulso-text-soft);
+}
+.pulso-cv2-col--destino .pulso-cv2-col-title {
+  color: color-mix(in srgb, var(--pulso-module-processing) 82%, var(--pulso-text));
+}
+.pulso-cv2-col-title-icon {
+  color: var(--pulso-module-processing);
+}
+.pulso-cv2-col-count {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+/* ── Buscador de respuestas ───────────────────────────────────────────────── */
+.pulso-cv2-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  margin-bottom: 10px;
+  padding: 0 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  transition: border-color var(--motion-dur-fast) ease, box-shadow var(--motion-dur-fast) ease;
+}
+.pulso-cv2-search:focus-within {
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+.pulso-cv2-search-icon {
+  flex-shrink: 0;
+  color: var(--pulso-text-soft);
+}
+.pulso-cv2-search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--pulso-text);
+}
+
+/* ── Lista de respuestas únicas (origen) ──────────────────────────────────── */
+.pulso-cv2-resp-list {
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: min(560px, calc(100vh - 360px));
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border) transparent;
+}
+.pulso-cv2-resp-empty {
+  padding: 16px;
+  font-size: 13px;
+  color: var(--pulso-text-soft);
+  text-align: center;
+}
+.pulso-cv2-resp-row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+.pulso-cv2-resp-row:last-child {
+  border-bottom: none;
+}
+.pulso-cv2-resp-row.is-assigned {
+  background: var(--pulso-surface-2);
+}
+.pulso-cv2-resp-main {
+  min-width: 0;
+}
+.pulso-cv2-resp-text {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--pulso-text);
+}
+.pulso-cv2-resp-code {
+  margin-right: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--pulso-primary);
+}
+.pulso-cv2-resp-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--pulso-text-soft);
+}
+.pulso-cv2-resp-assigned {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: 600;
+  color: var(--pulso-success-fg);
+}
+
+/* ── Lista de grupos (destino) ────────────────────────────────────────────── */
+.pulso-cv2-grupos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  max-height: min(620px, calc(100vh - 360px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border) transparent;
+}
+
+/* ── Tarjeta de grupo ─────────────────────────────────────────────────────── */
+.pulso-cv2-grupo {
+  padding: 11px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+.pulso-cv2-grupo.is-existente {
+  background: var(--pulso-surface-2);
+}
+.pulso-cv2-grupo:hover:not(.is-active) {
+  border-color: var(--pulso-primary-border);
+}
+.pulso-cv2-grupo.is-active {
+  border-color: var(--pulso-primary);
+  background: var(--pulso-primary-soft);
+  box-shadow: inset 0 0 0 1px var(--pulso-primary);
+  cursor: default;
+}
+.pulso-cv2-grupo-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pulso-cv2-grupo-code {
+  flex-shrink: 0;
+  width: 52px;
+  height: 28px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--pulso-text);
+}
+.pulso-cv2-grupo-code.is-static {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: 34px;
+  height: auto;
+  padding: 0 6px;
+  border: none;
+  background: transparent;
+  color: var(--pulso-primary);
+}
+.pulso-cv2-grupo-label {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pulso-text);
+}
+.pulso-cv2-grupo-label.is-static {
+  display: flex;
+  align-items: center;
+  height: auto;
+  min-height: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  line-height: 1.35;
+}
+.pulso-cv2-move {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 2px;
+}
+.pulso-cv2-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: var(--pulso-radius-chip);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.pulso-cv2-badge.is-nuevo {
+  color: var(--pulso-success-fg);
+  background: var(--pulso-success-bg);
+  border: 1px solid var(--pulso-success-border);
+}
+.pulso-cv2-badge.is-existente {
+  color: var(--pulso-primary);
+  background: var(--pulso-primary-soft);
+  border: 1px solid var(--pulso-primary-border);
+}
+.pulso-cv2-grupo-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+.pulso-cv2-grupo-active-flag {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 0 6px;
+  border-radius: var(--pulso-radius-chip);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--pulso-primary);
+  background: var(--pulso-primary-soft);
+}
+
+/* Empty-state de la tarjeta de grupo (sin la línea "0 respuestas · 0 casos") */
+.pulso-cv2-grupo-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-surface-2) 60%, transparent);
+  color: var(--pulso-text-soft);
+}
+.pulso-cv2-grupo.is-active .pulso-cv2-grupo-empty {
+  border-color: var(--pulso-primary-border);
+  background: color-mix(in srgb, var(--pulso-primary-soft) 45%, var(--pulso-surface));
+}
+.pulso-cv2-grupo-empty-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--pulso-text-faint);
+}
+.pulso-cv2-grupo.is-active .pulso-cv2-grupo-empty-icon {
+  color: var(--pulso-primary);
+}
+.pulso-cv2-grupo-empty-copy {
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+/* Chips de respuestas asignadas dentro de la tarjeta */
+.pulso-cv2-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+.pulso-cv2-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 4px 0 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  font-size: 11px;
+  color: var(--pulso-text);
+}
+.pulso-cv2-chip-text {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pulso-cv2-chip-freq {
+  font-size: 9px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+.pulso-cv2-chip-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  transition: background var(--motion-dur-fast) ease, color var(--motion-dur-fast) ease;
+}
+.pulso-cv2-chip-x:hover {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+
+/* Sugerencias de similitud (aparecen en el grupo activo) */
+.pulso-cv2-sugs {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--pulso-border);
+}
+.pulso-cv2-sugs-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--pulso-text-soft);
+}
+.pulso-cv2-sugs-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.pulso-cv2-sug {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px dashed var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-warn-bg);
+  font-size: 11px;
+  color: var(--pulso-text);
+  cursor: pointer;
+  transition: background var(--motion-dur-fast) ease;
+}
+.pulso-cv2-sug:hover {
+  background: color-mix(in srgb, var(--pulso-warn-bg) 78%, var(--pulso-warn-border));
+}
+.pulso-cv2-sug-pct {
+  font-size: 9px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.pulso-cv2-sug-pct.is-success { color: var(--pulso-success-fg); }
+.pulso-cv2-sug-pct.is-warn { color: var(--pulso-warn-fg); }
+.pulso-cv2-sug-pct.is-muted { color: var(--pulso-text-soft); }
+
+/* Dropdown "asignar a grupo existente" en la fila de respuesta */
+.pulso-cv2-qa {
+  position: relative;
+}
+.pulso-cv2-qa-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--motion-dur-fast) ease, border-color var(--motion-dur-fast) ease, color var(--motion-dur-fast) ease;
+}
+.pulso-cv2-qa-btn:hover {
+  border-color: var(--pulso-primary-border);
+  color: var(--pulso-primary);
+}
+.pulso-cv2-qa-btn.is-open {
+  background: var(--pulso-primary-soft);
+  border-color: var(--pulso-primary);
+  color: var(--pulso-primary);
+}
+.pulso-cv2-qa-caret {
+  opacity: 0.7;
+  transition: transform 120ms ease;
+}
+.pulso-cv2-qa-btn.is-open .pulso-cv2-qa-caret {
+  transform: rotate(180deg);
+}
+.pulso-cv2-qa-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 10;
+  margin-top: 4px;
+  min-width: 200px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-med);
+}
+.pulso-cv2-qa-empty {
+  padding: 6px 8px;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--pulso-text-soft);
+}
+.pulso-cv2-qa-item {
+  display: block;
+  width: 100%;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  text-align: left;
+  font-size: 11px;
+  color: var(--pulso-text);
+  cursor: pointer;
+}
+.pulso-cv2-qa-item:hover {
+  background: var(--pulso-surface-2);
+}
+.pulso-cv2-qa-unnamed {
+  color: var(--pulso-text-soft);
 }

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { ValidacionTabId } from "./types";
+import type { RelationalRuleMeta, RelationalSummary } from "./relationalPlan";
 
 // =============================================================================
 // Store local de Fase 2 — Validación v2
@@ -26,16 +27,36 @@ export type ValidacionPrefill = {
   reglas_custom?: { tipo?: string; variables?: string[] };
 };
 
+// Captura del surfacing relacional del plan (Fase 4). El plan se anota con los
+// flags relacionales al construirse (POST .../instrumento/plan), pero el
+// dashboard de auditoría (resumen_tabla) no los trae. Cacheamos por base la
+// metadata capturada para que el panel naranja de "coherencia relacional del
+// repeat" y su encabezado sobrevivan al remontaje de la pestaña (los tabs se
+// desmontan al cambiar). Es un cache de payload del backend, no estado duro:
+// si no está (cold-open sin reconstruir el plan), el panel se degrada al
+// derivado del resumen.
+export type RelationalPlanCapture = {
+  summary: RelationalSummary | null;
+  metaById: Record<string, RelationalRuleMeta>;
+};
+
+const RELATIONAL_DEFAULT_KEY = "__default__";
+export function relationalBaseKey(base: string | null): string {
+  return base && base.trim() ? base : RELATIONAL_DEFAULT_KEY;
+}
+
 type ValidacionState = {
   activeTab: ValidacionTabId;
   baseNombre: string | null;
   version: number; // bump al cambiar base — fuerza refetch en tabs
   prefill: ValidacionPrefill;
+  relationalPlan: Record<string, RelationalPlanCapture>;
 
   setActiveTab: (tab: ValidacionTabId) => void;
   setBaseNombre: (nombre: string | null) => void;
   setPrefill: (tab: ValidacionTabId, payload: Record<string, unknown>) => void;
   clearPrefill: (tab: ValidacionTabId) => void;
+  setRelationalPlan: (base: string | null, capture: RelationalPlanCapture) => void;
   bumpVersion: () => void;
   resetForSession: () => void;
   /** Deep-link: salta a otra pestaña y prefilea su slice de prefill. */
@@ -47,6 +68,7 @@ export const useValidacionStore = create<ValidacionState>((set) => ({
   baseNombre: null,
   version: 0,
   prefill: {},
+  relationalPlan: {},
 
   setActiveTab: (tab) => set({ activeTab: tab }),
   setBaseNombre: (nombre) =>
@@ -68,6 +90,10 @@ export const useValidacionStore = create<ValidacionState>((set) => ({
       delete copy[tab];
       return { prefill: copy };
     }),
+  setRelationalPlan: (base, capture) =>
+    set((s) => ({
+      relationalPlan: { ...s.relationalPlan, [relationalBaseKey(base)]: capture },
+    })),
   bumpVersion: () =>
     set((s) => ({
       version: s.version + 1,
@@ -78,6 +104,7 @@ export const useValidacionStore = create<ValidacionState>((set) => ({
       baseNombre: null,
       version: s.version + 1,
       prefill: {},
+      relationalPlan: {},
     })),
   jumpTo: (tab, payload) =>
     set((s) => ({

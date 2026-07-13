@@ -1,0 +1,464 @@
+# Tests del reorden canónico por instrumento, la higiene de columnas internas y
+# la reconstrucción de la columna madre legible de select_multiple para el export
+# de base al cliente (analitica_sm_dummy_order.R / analitica_base_export_hygiene.R).
+
+make_inst <- function() {
+  survey <- data.frame(
+    name = c("q_pre", "sm1", "sm1_recod", "q_post"),
+    type = c("select_one yn", "select_multiple opts",
+             "select_multiple opts_recod", "text"),
+    list_name = c("yn", "opts", "opts_recod", ""),
+    label = c("Pregunta previa", "Medios", "Medios (recod)", "Comentario"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = c("yn", "yn", "opts", "opts", "opts", "opts_recod", "opts_recod"),
+    name = c("1", "2", "1", "2", "96", "1", "2"),
+    label = c("Sí", "No", "Radio", "Televisión", "Otro", "RadioR", "TVR"),
+    stringsAsFactors = FALSE
+  )
+  structure(list(survey = survey, choices = choices),
+            class = "prosecnur_instrumento")
+}
+
+# Base con los dummies de sm1/sm1_recod apendados AL FINAL (patrón real de la
+# codificación) y columnas no-survey (kobo_*, _uuid) también al final.
+make_data_dummies_al_final <- function() {
+  data.frame(
+    q_pre = c(1L, 2L),
+    q_post = c("a", "b"),
+    kobo_fecha = c("2026-01-01", "2026-01-02"),
+    `_uuid` = c("u1", "u2"),
+    sm1.1 = c(1L, 0L),
+    sm1.2 = c(0L, 1L),
+    sm1.96 = c(0L, 0L),
+    sm1_recod.1 = c(1L, 0L),
+    sm1_recod.2 = c(0L, 1L),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+}
+
+test_that("(a) los dummies de select_multiple vuelven a la posición del parent en el survey", {
+  inst <- make_inst()
+  data <- make_data_dummies_al_final()
+  out <- .analitica_order_by_instrument(data, inst)
+
+  expect_equal(
+    names(out),
+    c("q_pre",
+      "sm1.1", "sm1.2", "sm1.96",
+      "sm1_recod.1", "sm1_recod.2",
+      "q_post",
+      "kobo_fecha", "_uuid")
+  )
+  # El contenido de cada columna se preserva (solo se reordena).
+  expect_equal(out$sm1.2, data$sm1.2)
+  expect_equal(out[["_uuid"]], data[["_uuid"]])
+})
+
+test_that("(b) columnas no-survey (kobo_*, _uuid) quedan al final sin perderse", {
+  inst <- make_inst()
+  data <- make_data_dummies_al_final()
+  out <- .analitica_order_by_instrument(data, inst)
+
+  expect_setequal(names(out), names(data))
+  expect_equal(tail(names(out), 2L), c("kobo_fecha", "_uuid"))
+})
+
+test_that("(c) guardrail: el set de columnas nunca cambia (no pierde ni duplica)", {
+  inst <- make_inst()
+  data <- make_data_dummies_al_final()
+  out <- .analitica_order_by_instrument(data, inst)
+  expect_equal(length(names(out)), length(names(data)))
+  expect_false(any(duplicated(names(out))))
+  # Idempotente: aplicar dos veces == una vez.
+  expect_identical(.analitica_order_by_instrument(out, inst), out)
+})
+
+test_that("(d) no-op sin inst$survey", {
+  data <- make_data_dummies_al_final()
+  expect_identical(.analitica_order_by_instrument(data, list()), data)
+  expect_identical(.analitica_order_by_instrument(data, NULL), data)
+})
+
+test_that("(e) preserva atributos top-level", {
+  inst <- make_inst()
+  data <- make_data_dummies_al_final()
+  attr(data, "instrumento_reporte") <- list(marca = "x")
+  attr(data, "var_peso") <- "peso_final"
+  out <- .analitica_order_by_instrument(data, inst)
+  expect_equal(attr(out, "instrumento_reporte"), list(marca = "x"))
+  expect_equal(attr(out, "var_peso"), "peso_final")
+})
+
+test_that(".analitica_base_internal_cols detecta plumbing y respeta metadata legítima", {
+  data <- data.frame(
+    q1 = 1:2,
+    `.source_id` = c("s", "s"),
+    `.source_kind` = c("kobo", "kobo"),
+    dim_territorial_phase = c("f1", "f2"),
+    dim_origen = c("o", "o"),
+    kobo_fecha = c("x", "y"),
+    kobo_hora = c("h", "h"),
+    kobo_timestamp_iso = c("t", "t"),
+    kobo_fecha_iso = c("i", "i"),
+    kobo_fecha_hora = c("z", "z"),
+    `_uuid` = c("u1", "u2"),
+    `_submission_time` = c("s1", "s2"),
+    `_id` = c("1", "2"),
+    start = c("a", "b"),
+    end = c("c", "d"),
+    today = c("e", "f"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  internas <- .analitica_base_internal_cols(data)
+
+  expect_true(all(c(".source_id", ".source_kind", "dim_territorial_phase",
+                    "dim_origen", "kobo_fecha", "kobo_hora", "kobo_timestamp_iso",
+                    "kobo_fecha_iso", "kobo_fecha_hora") %in% internas))
+  # Metadata legítima de Kobo NO se marca.
+  expect_false(any(c("_uuid", "_submission_time", "_id", "start", "end",
+                     "today", "q1") %in% internas))
+})
+
+test_that("madre legible: reconstruye <parent> con etiquetas unidas en la posición del parent", {
+  inst <- make_inst()
+  # Base con la madre plana AUSENTE (solo dummies), como en la data real.
+  data <- data.frame(
+    q_pre = c(1L, 2L, 3L),
+    sm1.1 = c(1L, 0L, 1L),
+    sm1.2 = c(0L, 1L, 1L),
+    sm1.96 = c(0L, 0L, 0L),
+    q_post = c("a", "b", "c"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  out <- .analitica_base_reconstruct_madre_sm(data, inst)
+
+  # La madre se agrega justo antes de su bloque de dummies.
+  expect_true("sm1" %in% names(out))
+  pos_madre <- match("sm1", names(out))
+  pos_dummy <- match("sm1.1", names(out))
+  expect_equal(pos_madre + 1L, pos_dummy)
+
+  # La madre trae los códigos concatenados; .aplicar_etiquetas los decodifica.
+  expect_equal(as.character(out$sm1), c("1", "2", "1 2"))
+  dec <- .aplicar_etiquetas(out, inst, valores = "etiquetas", multi_select = "dummy_01")
+  expect_equal(as.character(dec$sm1), c("Radio", "Televisión", "Radio | Televisión"))
+})
+
+test_that("madre legible: no duplica si la madre plana ya existe", {
+  inst <- make_inst()
+  data <- data.frame(
+    q_pre = c(1L, 2L),
+    sm1 = c("1", "2"),
+    sm1.1 = c(1L, 0L),
+    sm1.2 = c(0L, 1L),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  out <- .analitica_base_reconstruct_madre_sm(data, inst)
+  expect_equal(sum(names(out) == "sm1"), 1L)
+  expect_identical(out$sm1, data$sm1)
+})
+
+# ---- Valores especiales al final del bloque de dummies ---------------------
+
+# Instrumento con un select_multiple `smx` cuya lista declara un valor especial
+# (96) a MEDIA lista y categorías nuevas después: `1, 2, 96, 10, 9`.
+make_inst_special <- function(codes) {
+  survey <- data.frame(
+    name = "smx", type = "select_multiple sp", list_name = "sp",
+    label = "Medios recod", stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = rep("sp", length(codes)),
+    name = as.character(codes),
+    label = paste0("Opt ", codes),
+    stringsAsFactors = FALSE
+  )
+  structure(list(survey = survey, choices = choices),
+            class = "prosecnur_instrumento")
+}
+
+# Base con los dummies de `smx` para los códigos dados (en el orden dado).
+make_data_special <- function(codes) {
+  df <- data.frame(id = c(1L, 2L))
+  for (code in codes) df[[paste0("smx.", code)]] <- c(1L, 0L)
+  df
+}
+
+block_codes <- function(out) {
+  cols <- grep("^smx\\.", names(out), value = TRUE)
+  sub("^smx\\.", "", cols)
+}
+
+test_that(".analitica_code_is_special marca el rango [80,100) y nada más", {
+  expect_true(.analitica_code_is_special("96"))
+  expect_true(.analitica_code_is_special(90))
+  expect_true(.analitica_code_is_special("99"))
+  expect_true(.analitica_code_is_special("80"))
+  expect_false(.analitica_code_is_special("100"))
+  expect_false(.analitica_code_is_special("79"))
+  expect_false(.analitica_code_is_special("10"))
+  expect_false(.analitica_code_is_special("otro"))
+  expect_false(.analitica_code_is_special("_text"))
+})
+
+test_that("especial declarado a media lista (choices) va al final del bloque", {
+  inst <- make_inst_special(c("1", "2", "96", "10", "9"))
+  data <- make_data_special(c("1", "2", "96", "10", "9"))
+  out <- .analitica_order_sm_dummy_cols(data, inst)
+  expect_equal(block_codes(out), c("1", "2", "10", "9", "96"))
+})
+
+test_that("override fija 96 y las categorías nuevas (leftover) igual quedan antes del 96", {
+  # El usuario fijó el orden 1,2,96 con las flechas ANTES de que existieran 9-12.
+  inst <- make_inst_special(c("1", "2", "96", "10", "9", "11", "12"))
+  data <- make_data_special(c("1", "2", "96", "10", "9", "11", "12"))
+  attr(data, "instrumento_reporte") <- list(
+    orders_list = list(smx = list(names = c("1", "2", "96")))
+  )
+  out <- .analitica_order_sm_dummy_cols(data, inst)
+  codes <- block_codes(out)
+  expect_equal(tail(codes, 1L), "96")
+  expect_true(all(c("9", "10", "11", "12") %in% head(codes, -1L)))
+})
+
+test_that("múltiples especiales preservan su orden relativo, todos al final", {
+  inst <- make_inst_special(c("1", "95", "96", "99", "2"))
+  data <- make_data_special(c("1", "95", "96", "99", "2"))
+  out <- .analitica_order_sm_dummy_cols(data, inst)
+  expect_equal(block_codes(out), c("1", "2", "95", "96", "99"))
+})
+
+test_that("sufijo _otro/no numérico no se trata como especial (se queda donde el leftover lo puso)", {
+  inst <- make_inst_special(c("1", "2", "96"))
+  data <- data.frame(id = c(1L, 2L))
+  data[["smx.1"]] <- c(1L, 0L)
+  data[["smx.2"]] <- c(0L, 1L)
+  data[["smx.96"]] <- c(0L, 0L)
+  data[["smx.otro"]] <- c(1L, 0L)  # leftover no numérico
+  out <- .analitica_order_sm_dummy_cols(data, inst)
+  codes <- block_codes(out)
+  expect_equal(tail(codes, 1L), "96")           # el especial es el último
+  expect_true(match("otro", codes) < match("96", codes))  # _otro queda antes del 96
+})
+
+test_that("no-op si el bloque no tiene ningún código especial", {
+  inst <- make_inst_special(c("1", "2", "3"))
+  data <- make_data_special(c("1", "2", "3"))
+  out <- .analitica_order_sm_dummy_cols(data, inst)
+  expect_equal(block_codes(out), c("1", "2", "3"))
+})
+
+# ---- Orden de la recodificada desde las flechas de Codificación ------------
+
+# Instrumento con parent SM `smx` y su recodificada `smx_recod` (lista
+# `sp_recod`), con `orders_list[[smx_recod]]` en el orden de catálogo dado.
+make_inst_recod <- function(catalogo) {
+  survey <- data.frame(
+    name = c("smx", "smx_recod"),
+    type = c("select_multiple sp", "select_multiple sp_recod"),
+    list_name = c("sp", "sp_recod"),
+    label = c("Medios", "Medios recod"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = rep("sp_recod", length(catalogo)),
+    name = as.character(catalogo),
+    label = paste0("Opt ", catalogo),
+    stringsAsFactors = FALSE
+  )
+  structure(
+    list(
+      survey = survey, choices = choices,
+      orders_list = list(
+        smx_recod = list(
+          names = as.character(catalogo),
+          labels = paste0("Opt ", catalogo)
+        )
+      )
+    ),
+    class = "prosecnur_instrumento"
+  )
+}
+
+make_data_recod <- function(codes) {
+  df <- data.frame(id = c(1L, 2L))
+  for (code in codes) df[[paste0("smx_recod.", code)]] <- c(1L, 0L)
+  df
+}
+
+recod_block_codes <- function(out) {
+  cols <- grep("^smx_recod\\.", names(out), value = TRUE)
+  sub("^smx_recod\\.", "", cols)
+}
+
+test_that(".orden_grupos_recod_por_parent extrae los códigos en orden del array", {
+  grupos <- list(
+    D1_information = list(list(codigo = "10"), list(codigo = "9"),
+                         list(codigo = "96"), list(codigo = "1")),
+    Q_vacio = list()
+  )
+  out <- .orden_grupos_recod_por_parent(grupos)
+  expect_equal(out, list(D1_information = c("10", "9", "96", "1")))
+})
+
+test_that(".apply_grupos_recod_orden reordena orders_list de la recodificada", {
+  inst <- make_inst_recod(c("1", "2", "96", "10", "9"))
+  inst2 <- .apply_grupos_recod_orden(inst, list(smx = c("96", "10", "9", "1", "2")))
+  expect_equal(inst2$orders_list$smx_recod$names, c("96", "10", "9", "1", "2"))
+})
+
+test_that("el orden de las flechas gobierna los dummies, con especial al final", {
+  inst <- make_inst_recod(c("1", "2", "96", "10", "9"))
+  # Flechas de Codificación: 96 al frente + orden custom.
+  inst <- .apply_grupos_recod_orden(inst, list(smx = c("96", "10", "9", "1", "2")))
+  data <- make_data_recod(c("1", "2", "96", "10", "9"))
+  out <- .analitica_order_sm_dummy_cols(data, inst)
+  # Respeta las flechas (10,9,1,2) y manda 96 al final por el pase de especiales.
+  expect_equal(recod_block_codes(out), c("10", "9", "1", "2", "96"))
+})
+
+test_that("orden_categorias de Analítica MANDA sobre las flechas de Codificación", {
+  inst <- make_inst_recod(c("1", "2", "96", "10", "9"))
+  # 1) flechas de Codificación fijan 10,9,1,2,96
+  inst <- .apply_grupos_recod_orden(inst, list(smx = c("10", "9", "1", "2", "96")))
+  # 2) el analista reordena en Analítica: 1,2 primero
+  inst <- .apply_orden_categorias(inst, list(sp_recod = c("1", "2")))
+  data <- make_data_recod(c("1", "2", "96", "10", "9"))
+  out <- .analitica_order_sm_dummy_cols(data, inst)
+  # 1,2 al frente (Analítica manda), resto en orden de flechas, 96 al final.
+  expect_equal(recod_block_codes(out), c("1", "2", "10", "9", "96"))
+})
+
+# ---- Colapso de duplicados con prefijo de grupo (base real de Monitoreo) ----
+
+make_inst_collapse <- function() {
+  survey <- data.frame(
+    name = c("E1_age", "date", "time_A_start", "A1_leg", "D1_information",
+             "E1_age_calc", "code_pulso"),
+    type = c("integer", "date", "calculate", "select_one leg",
+             "select_multiple information", "calculate", "text"),
+    list_name = c("", "", "", "leg", "information", "", ""),
+    label = c("Edad", "Fecha", "Time A", "Legal", "Info", "Edad calc", "Codigo"),
+    stringsAsFactors = FALSE
+  )
+  structure(list(survey = survey), class = "prosecnur_instrumento")
+}
+
+test_that("group-prefixed idéntico a su gemelo limpio se dropea", {
+  inst <- make_inst_collapse()
+  data <- data.frame(
+    E1_age = c(30L, 41L),
+    `Core.e1_age` = c(30L, 41L),   # gemelo idéntico (crudo)
+    A1_leg = c("1", "2"),
+    `A.a1_leg` = c("1", "2"),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  out <- .analitica_base_collapse_group_prefixed_dupes(data, inst)
+  expect_false("Core.e1_age" %in% names(out))
+  expect_false("A.a1_leg" %in% names(out))
+  expect_true(all(c("E1_age", "A1_leg") %in% names(out)))
+  expect_equal(out$E1_age, data$E1_age)
+})
+
+test_that("group-prefixed único (sin gemelo) se renombra a su nombre del survey", {
+  inst <- make_inst_collapse()
+  data <- data.frame(
+    E1_age = c(30L, 41L),
+    `Core.date` = c("2026-01-01", "2026-01-02"),        # sin gemelo -> rename a `date`
+    `Core.e1_age_calc` = c(30L, 41L),                    # -> rename a `E1_age_calc`
+    `A.time_a_start` = c("t1", "t2"),                    # -> rename a `time_A_start` (case survey)
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  out <- .analitica_base_collapse_group_prefixed_dupes(data, inst)
+  expect_true("date" %in% names(out))
+  expect_true("E1_age_calc" %in% names(out))
+  expect_true("time_A_start" %in% names(out))
+  expect_false(any(c("Core.date", "Core.e1_age_calc", "A.time_a_start") %in% names(out)))
+  expect_equal(out$date, c("2026-01-01", "2026-01-02"))
+})
+
+test_that("metadata cuyo rest no matchea el survey queda intacta", {
+  inst <- make_inst_collapse()
+  data <- data.frame(
+    E1_age = c(30L, 41L),
+    `formhub.uuid` = c("u1", "u2"),
+    `meta.instanceid` = c("i1", "i2"),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  out <- .analitica_base_collapse_group_prefixed_dupes(data, inst)
+  expect_true(all(c("formhub.uuid", "meta.instanceid") %in% names(out)))
+})
+
+test_that("dummy Parent.code (rest numérico) no se toca", {
+  inst <- make_inst_collapse()
+  data <- data.frame(
+    E1_age = c(30L, 41L),
+    `D1_information.96` = c(1L, 0L),
+    `D1_information.1` = c(0L, 1L),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  out <- .analitica_base_collapse_group_prefixed_dupes(data, inst)
+  expect_true(all(c("D1_information.96", "D1_information.1") %in% names(out)))
+})
+
+test_that("group-prefixed con gemelo pero datos DISTINTOS no se dropea (defensivo)", {
+  inst <- make_inst_collapse()
+  data <- data.frame(
+    E1_age = c(30L, 41L),
+    `Core.e1_age` = c(30L, 99L),   # difiere en la fila 2
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  out <- .analitica_base_collapse_group_prefixed_dupes(data, inst)
+  expect_true(all(c("E1_age", "Core.e1_age") %in% names(out)))
+})
+
+test_that("colapso: no-op sin survey y sin group-prefixed; preserva atributos", {
+  inst <- make_inst_collapse()
+  # sin survey
+  d0 <- data.frame(E1_age = 1:2, `Core.e1_age` = 1:2, check.names = FALSE)
+  expect_identical(.analitica_base_collapse_group_prefixed_dupes(d0, list()), d0)
+  # sin group-prefixed
+  d1 <- data.frame(E1_age = 1:2, A1_leg = c("1", "2"), stringsAsFactors = FALSE)
+  expect_identical(.analitica_base_collapse_group_prefixed_dupes(d1, inst), d1)
+  # atributos top-level
+  d2 <- data.frame(E1_age = c(30L, 41L), `Core.e1_age` = c(30L, 41L),
+                   check.names = FALSE)
+  attr(d2, "instrumento_reporte") <- list(marca = "z")
+  attr(d2, "var_peso") <- "peso_final"
+  out <- .analitica_base_collapse_group_prefixed_dupes(d2, inst)
+  expect_equal(attr(out, "instrumento_reporte"), list(marca = "z"))
+  expect_equal(attr(out, "var_peso"), "peso_final")
+})
+
+# ---- Columnas 100% vacías del export de la BBDD ----------------------------
+
+test_that(".analitica_base_empty_cols detecta all-NA, all-\"\" y \"[]\"; respeta las no-vacías", {
+  data <- data.frame(
+    con_dato = c("a", "b", "c"),
+    con_num = c(1L, NA, 3L),
+    all_na = c(NA, NA, NA),
+    all_blank = c("", "  ", ""),
+    kobo_arr = c("[]", "[]", "[]"),
+    mixto = c("", "x", ""),          # tiene un valor -> NO vacía
+    stringsAsFactors = FALSE
+  )
+  empties <- .analitica_base_empty_cols(data)
+  expect_setequal(empties, c("all_na", "all_blank", "kobo_arr"))
+  expect_false(any(c("con_dato", "con_num", "mixto") %in% empties))
+})
+
+test_that(".analitica_base_empty_cols guardrail: no marca si TODAS las columnas están vacías", {
+  data <- data.frame(a = c(NA, NA), b = c("", ""), stringsAsFactors = FALSE)
+  expect_equal(.analitica_base_empty_cols(data), character(0))
+})
+
+test_that(".analitica_base_empty_cols no-op en data sin columnas / no data.frame", {
+  expect_equal(.analitica_base_empty_cols(data.frame()), character(0))
+  expect_equal(.analitica_base_empty_cols(NULL), character(0))
+})

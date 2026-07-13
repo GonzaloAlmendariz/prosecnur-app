@@ -40,15 +40,18 @@ import type {
   BuilderSelection,
   BuilderStructure,
 } from "../types";
-import { OutlineRow } from "./OutlineRow";
+import { OutlineRow, OutlineCloseRow, OutlineCloseGhost } from "./OutlineRow";
 import { OutlineDragOverlay } from "./OutlineDragOverlay";
 import type { RowMovePlan } from "./outlineUtils";
-import { computeRowMove } from "./outlineUtils";
+import { computeEndMove, computeRowMove } from "./outlineUtils";
 
 type DropPreview = {
-  overRow: number;
-  before: boolean;
-  position: "before" | "after";
+  /** Fila (rowIndex actual) ANTES de la cual se dibuja el indicador. Es la
+   *  posición REAL donde caerá el bloque según el plan de movimiento —no la
+   *  fila sobrevolada—, para que el slot sea fiel al resultado. */
+  anchorRow: number;
+  /** Si el bloque cae al final (después de la última fila). */
+  atEnd: boolean;
 };
 
 type OverlayGeometry = {
@@ -173,8 +176,39 @@ export function SurveyOutline({
     );
   }
 
-  const items = structure.outline.map((n) => n.rowIndex);
   const activeNode = activeRow != null ? structure.byRow.get(activeRow) ?? null : null;
+
+  // Lista de render fusionada: las filas normales del outline MÁS una fila
+  // de cierre por cada sección/repeat con su `end_*` explícito. Ambas entran
+  // al SortableContext, pero se mueven distinto: las normales mueven su span
+  // atómico (`computeRowMove`); las de cierre reubican SOLO esa fila
+  // (`computeEndMove`), cambiando qué preguntas quedan dentro.
+  type RenderEntry =
+    | { type: "node"; rowIndex: number; node: BuilderNode }
+    | { type: "close"; rowIndex: number; label: string; depth: number; kind: "section" | "repeat" };
+  const renderEntries: RenderEntry[] = structure.outline.map((node) => ({
+    type: "node" as const,
+    rowIndex: node.rowIndex,
+    node,
+  }));
+  const closeRowSet = new Set<number>();
+  for (const meta of structure.sections.values()) {
+    if (meta.kind === "root" || meta.rowIndex == null || meta.endRowIndex == null) continue;
+    closeRowSet.add(meta.endRowIndex);
+    renderEntries.push({
+      type: "close",
+      rowIndex: meta.endRowIndex,
+      label: meta.label || meta.name || "sección",
+      depth: meta.depth,
+      kind: meta.kind === "repeat" ? "repeat" : "section",
+    });
+  }
+  renderEntries.sort((a, b) => a.rowIndex - b.rowIndex);
+  const items = renderEntries.map((e) => e.rowIndex);
+  const closeLabelByRow = new Map<number, { label: string; kind: "section" | "repeat"; depth: number }>();
+  for (const e of renderEntries) {
+    if (e.type === "close") closeLabelByRow.set(e.rowIndex, { label: e.label, kind: e.kind, depth: e.depth });
+  }
 
   function collisionPosition(
     collisions: DragOverEvent["collisions"],
@@ -195,13 +229,21 @@ export function SurveyOutline({
     if (items.indexOf(fromId) < 0 || items.indexOf(overId) < 0) return null;
 
     const before = position === "before";
-    const plan = computeRowMove(structure, fromId, overId, before);
+    const plan = closeRowSet.has(fromId)
+      ? computeEndMove(structure, fromId, overId, before)
+      : computeRowMove(structure, fromId, overId, before);
     if (!plan) return null;
 
+    // Anclaje FIEL: dónde queda el bloque en el array ACTUAL (antes del
+    // splice). `insertAt` está en términos del array ya sin la fuente; lo
+    // reproyectamos al array actual para posicionar el indicador donde el
+    // bloque realmente caerá, no donde está el cursor.
+    const currentGap =
+      plan.insertAt <= plan.fromStart ? plan.insertAt : plan.insertAt + plan.count;
+    const maxRowIndex = items.length ? Math.max(...items) : -1;
     return {
-      overRow: overId,
-      before,
-      position,
+      anchorRow: currentGap,
+      atEnd: currentGap > maxRowIndex,
     };
   }
 
@@ -242,9 +284,13 @@ export function SurveyOutline({
     setOverlayGeometry(null);
     const fromId = Number(event.active.id);
     const overId = event.over ? Number(event.over.id) : NaN;
-    const preview = deriveDropPreview(fromId, overId, collisionPosition(event.collisions));
+    const position = collisionPosition(event.collisions);
+    const preview = deriveDropPreview(fromId, overId, position);
     if (!preview) return;
-    const plan = computeRowMove(structure, fromId, overId, preview.before);
+    const before = position === "before";
+    const plan = closeRowSet.has(fromId)
+      ? computeEndMove(structure, fromId, overId, before)
+      : computeRowMove(structure, fromId, overId, before);
     if (!plan) return;
     onApplyMove(plan);
   }
@@ -296,15 +342,32 @@ export function SurveyOutline({
         </div>
 
         <SortableContext items={items} strategy={verticalListSortingStrategy}>
-          {structure.outline.map((node: BuilderNode) => {
+          {renderEntries.map((entry) => {
             const active =
-              selection?.kind === "survey" && selection.rowIndex === node.rowIndex;
+              selection?.kind === "survey" && selection.rowIndex === entry.rowIndex;
+            // Slot FIEL: se dibuja justo antes de la fila donde el bloque va
+            // a caer (anchorRow del plan), no bajo el cursor.
+            const slotBefore =
+              dropPreview && !dropPreview.atEnd && dropPreview.anchorRow === entry.rowIndex;
+            if (entry.type === "close") {
+              return (
+                <Fragment key={`close-${entry.rowIndex}`}>
+                  {slotBefore ? <OutlineDropSlot /> : null}
+                  <OutlineCloseRow
+                    rowIndex={entry.rowIndex}
+                    label={entry.label}
+                    depth={entry.depth}
+                    kind={entry.kind}
+                    active={active}
+                    onSelect={() => onSelect({ kind: "survey", rowIndex: entry.rowIndex })}
+                  />
+                </Fragment>
+              );
+            }
+            const node = entry.node;
             return (
               <Fragment key={node.rowIndex}>
-                {dropPreview?.overRow === node.rowIndex &&
-                dropPreview.position === "before" ? (
-                  <OutlineDropSlot />
-                ) : null}
+                {slotBefore ? <OutlineDropSlot /> : null}
                 <OutlineRow
                   node={node}
                   active={active}
@@ -314,17 +377,14 @@ export function SurveyOutline({
                   onMoveUp={onMoveUp}
                   onMoveDown={onMoveDown}
                 />
-                {dropPreview?.overRow === node.rowIndex &&
-                dropPreview.position === "after" ? (
-                  <OutlineDropSlot />
-                ) : null}
               </Fragment>
             );
           })}
+          {dropPreview?.atEnd ? <OutlineDropSlot /> : null}
         </SortableContext>
       </div>
 
-      {activeNode && overlayGeometry && typeof document !== "undefined"
+      {overlayGeometry && typeof document !== "undefined" && (activeNode || (activeRow != null && closeRowSet.has(activeRow)))
         ? createPortal(
             <div
               className="pulso-outline-floating-overlay"
@@ -336,10 +396,17 @@ export function SurveyOutline({
                 top: overlayGeometry.point.y - overlayGeometry.offsetY,
               }}
             >
-              <OutlineDragOverlay
-                node={activeNode}
-                size={{ width: overlayGeometry.width, height: overlayGeometry.height }}
-              />
+              {activeNode ? (
+                <OutlineDragOverlay
+                  node={activeNode}
+                  size={{ width: overlayGeometry.width, height: overlayGeometry.height }}
+                />
+              ) : (
+                <OutlineCloseGhost
+                  info={activeRow != null ? closeLabelByRow.get(activeRow) ?? null : null}
+                  size={{ width: overlayGeometry.width, height: overlayGeometry.height }}
+                />
+              )}
             </div>,
             document.body,
           )

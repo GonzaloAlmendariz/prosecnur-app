@@ -42,6 +42,17 @@
   )
 }
 
+# Inyecta la selección por categorías del body en la config antes de
+# normalizar: la UI puede mandarla al nivel superior del body
+# (criterios_seleccion) o anidada en config. El nivel superior gana. Router
+# delgado: la normalización y toda la semántica viven en el engine.
+.cm_merge_criterios_seleccion <- function(config_input, body) {
+  if (is.null(config_input) || !is.list(config_input)) config_input <- list()
+  sel <- body$criterios_seleccion %||% body$criterios_marco %||% body$seleccion_criterios
+  if (!is.null(sel)) config_input$criterios_seleccion <- sel
+  config_input
+}
+
 .cm_table_from_payload <- function(sid, body, key) {
   direct <- body[[key]] %||% NULL
   if (!is.null(direct)) return(.cm_aulas_as_df(direct, key))
@@ -286,7 +297,8 @@ mount_calc_muestra <- function(pr) {
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
-      config <- calc_muestra_aulas_normalize_config(body$config %||% body)
+      config <- .cm_merge_criterios_seleccion(body$config %||% body, body)
+      config <- calc_muestra_aulas_normalize_config(config)
       session_set(sid, "calc_muestra_aulas_config", config)
       list(ok = TRUE, config = config, state = .cm_state_payload(sid))
     })) |>
@@ -327,7 +339,10 @@ mount_calc_muestra <- function(pr) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
       s <- session_get(sid)
-      config <- calc_muestra_aulas_normalize_config(body$config %||% s$calc_muestra_aulas_config %||% list())
+      config_input <- .cm_merge_criterios_seleccion(
+        body$config %||% s$calc_muestra_aulas_config %||% list(), body
+      )
+      config <- calc_muestra_aulas_normalize_config(config_input)
       base_madre <- .cm_table_from_payload(sid, body, "base_madre")
       estudiantes <- .cm_table_from_payload(sid, body, "estudiantes")
       inscripciones <- .cm_table_from_payload(sid, body, "inscripciones")

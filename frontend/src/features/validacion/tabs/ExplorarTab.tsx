@@ -24,6 +24,8 @@ import type { ViewDescriptor } from "../types";
 import type { ExploradorVariable, ExploradorVariablesList } from "../types";
 import { useValidacionStore } from "../store";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
+import { RepeatGrainNote } from "../../../components/RepeatGrainNote";
+import { buildExplorerGrain, type ProcessingSheetRepeatContext } from "../../../lib/rosterExplorer";
 import PlotlyView from "../components/PlotlyView";
 import VariablePicker from "../components/VariablePicker";
 import FiltroCascada from "../components/FiltroCascada";
@@ -39,7 +41,12 @@ import CrossBar from "../components/CrossBar";
 //
 // El deep-link desde Limpieza (prefill.explorar.var) se consume al montar.
 
-export default function ExplorarTab() {
+export default function ExplorarTab({
+  repeat = null,
+}: {
+  /** Contexto relacional cuando la base explorada es una hija repeat (Fase 5). */
+  repeat?: ProcessingSheetRepeatContext | null;
+}) {
   const baseNombre = useValidacionStore((s) => s.baseNombre);
   const version = useValidacionStore((s) => s.version);
   const prefill = useValidacionStore((s) => s.prefill.explorar);
@@ -221,6 +228,19 @@ export default function ExplorarTab() {
     return () => window.removeEventListener("keydown", onKey);
   }, [prevVar, nextVar]);
 
+  // Banner de grano cuando la base explorada es una hija repeat: recuerda que
+  // los denominadores de las distribuciones son instancias del roster, no
+  // personas (varias filas pueden ser de una misma persona).
+  const rosterGrain = repeat
+    ? buildExplorerGrain({
+        grain: repeat.grain,
+        nInstancias: repeat.nInstancias,
+        nPersonas: repeat.grain?.n_personas ?? null,
+        repeatGroup: repeat.repeatGroup,
+        parentBase: repeat.parentBase,
+      })
+    : null;
+
   if (loading) return <ExplorarLoadingPanel />;
   if (error && !inv) {
     return (
@@ -261,6 +281,10 @@ export default function ExplorarTab() {
 
       {/* --- Vista principal ---------------------------------------------- */}
       <main className="pulso-validacion-explorar-main">
+        {rosterGrain && (
+          <RepeatGrainNote grain={rosterGrain} className="pulso-validacion-explorar-repeat" />
+        )}
+
         {/* Toggle de momento: respuestas cargadas vs versión final tras Limpieza. */}
         <FuenteToggle
           fuente={fuente}

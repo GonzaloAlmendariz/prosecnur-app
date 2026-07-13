@@ -26,6 +26,7 @@ export { default as ArrowUp01 } from "lucide-react/dist/esm/icons/arrow-up-0-1.m
 export { default as ArrowUpDown } from "lucide-react/dist/esm/icons/arrow-up-down.mjs";
 export { default as Asterisk } from "lucide-react/dist/esm/icons/asterisk.mjs";
 export { default as Award } from "lucide-react/dist/esm/icons/award.mjs";
+export { default as Ban } from "lucide-react/dist/esm/icons/ban.mjs";
 export { default as BarChart } from "lucide-react/dist/esm/icons/chart-no-axes-column-increasing.mjs";
 export { default as BarChart2 } from "lucide-react/dist/esm/icons/chart-no-axes-column.mjs";
 export { default as BarChart3 } from "lucide-react/dist/esm/icons/chart-column.mjs";
@@ -100,6 +101,7 @@ export { default as FileWarning } from "lucide-react/dist/esm/icons/file-exclama
 export { default as Filter } from "lucide-react/dist/esm/icons/funnel.mjs";
 export { default as Folder } from "lucide-react/dist/esm/icons/folder.mjs";
 export { default as FolderClosed } from "lucide-react/dist/esm/icons/folder-closed.mjs";
+export { default as FolderMinus } from "lucide-react/dist/esm/icons/folder-minus.mjs";
 export { default as FolderOpen } from "lucide-react/dist/esm/icons/folder-open.mjs";
 export { default as FolderPlus } from "lucide-react/dist/esm/icons/folder-plus.mjs";
 export { default as FolderSearch } from "lucide-react/dist/esm/icons/folder-search.mjs";

@@ -57,7 +57,6 @@ export function ModuleCarousel({ picker }: { picker: ModulePicker }) {
   const [motionDirection, setMotionDirection] = useState<ModuleMotionDirection>("forward");
   const { deckRef, metrics } = useAdaptiveCinemaMetrics(layoutPreset);
   const focused = MODULES[focusIndex] ?? MODULES[0];
-  const FocusIcon = focused.icon;
   const focusedAdded = picker.isAdded(focused.slug);
 
   const focusedStyle = {
@@ -132,6 +131,7 @@ export function ModuleCarousel({ picker }: { picker: ModulePicker }) {
           <div ref={deckRef} className="home-cinema-deck" aria-live="polite">
             {MODULES.map((mod, index) => {
               const Icon = mod.icon;
+              const isFocused = index === focusIndex;
               const offset = circularOffset(index, focusIndex, MODULES.length);
               const distance = Math.abs(offset);
               const hidden = distance > metrics.hiddenDistance;
@@ -147,86 +147,96 @@ export function ModuleCarousel({ picker }: { picker: ModulePicker }) {
                 "--card-z": `${80 - distance}`,
               } as CSSProperties;
 
+              const cardClass = [
+                "home-cinema-card",
+                isFocused ? "is-focused" : "",
+                hidden ? "is-hidden" : "",
+                "is-active",
+              ].filter(Boolean).join(" ");
+
+              // Vecinos: poster compacto (solo ícono), clickeable para enfocarlo.
+              if (!isFocused) {
+                return (
+                  <button
+                    key={mod.slug}
+                    type="button"
+                    className={cardClass}
+                    style={cardStyle}
+                    onClick={() => focusModule(index)}
+                    aria-label={`${mod.title}: ${mod.tagline}`}
+                  >
+                    <span className="home-cinema-card-glow" aria-hidden="true" />
+                    {added && (
+                      <span className="home-cinema-card-added" aria-hidden="true">
+                        <Check size={11} strokeWidth={3} />
+                      </span>
+                    )}
+                    <span className="home-cinema-card-icon" aria-hidden="true">
+                      <Icon size={40} strokeWidth={1.65} />
+                    </span>
+                  </button>
+                );
+              }
+
+              // Card enfocada: autosuficiente. Toda la información del módulo
+              // vive aquí (ícono, nombre, descripción, features y acción); ya no
+              // hay panel lateral, así el deck respira a lo ancho.
               return (
-                <button
+                <div
                   key={mod.slug}
-                  type="button"
-                  className={[
-                    "home-cinema-card",
-                    index === focusIndex ? "is-focused" : "",
-                    hidden ? "is-hidden" : "",
-                    "is-active",
-                  ].filter(Boolean).join(" ")}
+                  className={cardClass}
                   style={cardStyle}
-                  onClick={() => focusModule(index)}
-                  aria-pressed={index === focusIndex}
                   aria-label={`${mod.title}: ${mod.tagline}`}
                 >
                   <span className="home-cinema-card-glow" aria-hidden="true" />
-                  {added && (
-                    <span
-                      className={`home-cinema-card-added${index === focusIndex ? " is-pill" : ""}`}
-                      aria-hidden="true"
-                    >
-                      <Check size={11} strokeWidth={3} />
-                      {index === focusIndex && <em>En el proyecto</em>}
+                  <div className="home-cinema-card-head">
+                    <span className="home-cinema-card-icon" aria-hidden="true">
+                      <Icon size={38} strokeWidth={1.65} />
                     </span>
+                    <span className="home-cinema-card-heading">
+                      <h3 className="home-cinema-card-name">{mod.title}</h3>
+                      <span className="home-cinema-card-tagline">{mod.tagline}</span>
+                    </span>
+                  </div>
+                  <p className="home-cinema-card-blurb">{mod.blurb}</p>
+                  <ul className="home-cinema-card-features">
+                    {mod.features.slice(0, 5).map((feature) => (
+                      <li key={feature}>
+                        <Check size={13} strokeWidth={2.5} aria-hidden="true" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {added ? (
+                    <div className="home-cinema-picker-actions">
+                      <span className="home-cinema-added-badge">
+                        <Check size={13} strokeWidth={2.6} aria-hidden="true" />
+                        En el proyecto
+                      </span>
+                      <button
+                        type="button"
+                        className="home-cinema-cta-secondary"
+                        onClick={() => picker.onRemove(mod.slug)}
+                      >
+                        <Minus size={13} strokeWidth={2.4} aria-hidden="true" />
+                        Quitar
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="home-cinema-cta"
+                      onClick={() => picker.onAdd(mod.slug)}
+                    >
+                      Agregar al proyecto
+                      <ArrowRight size={16} strokeWidth={2.2} />
+                    </button>
                   )}
-                  <span className="home-cinema-card-icon" aria-hidden="true">
-                    <Icon size={40} strokeWidth={1.65} />
-                  </span>
-                  <span className="home-cinema-card-title">{mod.title}</span>
-                  <span className="home-cinema-card-tagline">{mod.tagline}</span>
-                  <span className="home-cinema-card-blurb">{mod.blurb}</span>
-                </button>
+                </div>
               );
             })}
           </div>
         </div>
-
-        <aside
-          key={focused.slug}
-          className="home-cinema-panel"
-          aria-label={`Detalle: ${focused.title}`}
-        >
-          <div className="home-cinema-panel-top">
-            <span className="home-cinema-panel-icon" aria-hidden="true">
-              <FocusIcon size={34} strokeWidth={1.7} />
-            </span>
-          </div>
-          <h3>{focused.title}</h3>
-          <p className="home-cinema-panel-tagline">{focused.tagline}</p>
-          <p className="home-cinema-panel-blurb">{focused.blurb}</p>
-          <ul className="home-cinema-feature-list">
-            {focused.features.slice(0, 5).map((feature) => (
-              <li key={feature}>
-                <Check size={13} strokeWidth={2.5} aria-hidden="true" />
-                <span>{feature}</span>
-              </li>
-            ))}
-          </ul>
-          {focusedAdded ? (
-            <div className="home-cinema-picker-actions">
-              <span className="home-cinema-added-badge">
-                <Check size={13} strokeWidth={2.6} aria-hidden="true" />
-                En el proyecto
-              </span>
-              <button
-                type="button"
-                className="home-cinema-cta-secondary"
-                onClick={() => picker.onRemove(focused.slug)}
-              >
-                <Minus size={13} strokeWidth={2.4} aria-hidden="true" />
-                Quitar
-              </button>
-            </div>
-          ) : (
-            <button type="button" className="home-cinema-cta" onClick={() => picker.onAdd(focused.slug)}>
-              Agregar al proyecto
-              <ArrowRight size={16} strokeWidth={2.2} />
-            </button>
-          )}
-        </aside>
       </div>
 
       <div className="home-cinema-strip" aria-label="Ir a un módulo">
@@ -243,7 +253,7 @@ export function ModuleCarousel({ picker }: { picker: ModulePicker }) {
               aria-label={`Ver ${mod.title}`}
               aria-current={index === focusIndex ? "true" : undefined}
             >
-              <Icon size={15} strokeWidth={1.9} aria-hidden="true" />
+              <Icon size={14} strokeWidth={1.9} aria-hidden="true" />
               <span>{mod.shortLabel}</span>
               {added && <span className="home-cinema-dot-check" aria-hidden="true"><Check size={10} strokeWidth={3} /></span>}
             </button>
@@ -344,10 +354,13 @@ function computeCinemaMetrics(
           presetRoomy ? 520 : tallDeck ? 470 : roomy ? 390 : 326,
         ),
   );
+  // Ficha enfocada ancha (~400-500px) + vecinos solo-ícono a los lados: el
+  // paso debe separarlos lo suficiente para que los vecinos ASOMEN limpios en
+  // vez de quedar tapados detrás de la ficha.
   const cardStep = Math.round(clamp(
-    width * (presetShort ? 0.22 : compact ? 0.28 : presetRoomy ? 0.35 : tallDeck ? 0.33 : 0.31),
-    presetShort ? 84 : compact ? 96 : 148,
-    compact ? (presetShort ? 112 : 170) : presetRoomy ? 312 : tallDeck ? 286 : roomy ? 246 : 194,
+    width * (presetShort ? 0.24 : compact ? 0.3 : 0.35),
+    presetShort ? 96 : compact ? 108 : 320,
+    compact ? (presetShort ? 128 : 188) : presetRoomy ? 430 : tallDeck ? 410 : roomy ? 400 : 372,
   ));
   const cardYOffset = Math.round(clamp(height * 0.024, compact ? 4 : 7, tallDeck ? 16 : 12));
 

@@ -33,7 +33,6 @@ import { frameAuditNumber } from "../shared/frame";
 import { UNIVERSITY_AULAS_SIZE_GROUPS } from "../shared/constants";
 import {
   ClassroomBarPlot,
-  ClassroomFunnelStrip,
   ClassroomHeatmapPlot,
   ClassroomInsightGrid,
   ClassroomPlotCard,
@@ -59,7 +58,6 @@ import {
   universityFacultyDiagnosticRows,
   universityFacultySexCross,
   weightedDistributionRows,
-  type ClassroomFunnelStep,
   type ClassroomInsight,
   type DescriptiveEmptyState,
 } from "./marcoCharts";
@@ -404,7 +402,6 @@ export function MarcoAulasCapacidad({
 }) {
   const { classroomRowsRaw, classroomRows } = marcoFrameRows(frame, workspace);
   const classroomN = Math.max(classroomRows.length, frameAuditNumber(frame, "classroom_included_n"));
-  const classroomEligibleTotal = sumRowsByKeys(classroomRows, WEIGHTED_KEYS);
   const frameRecord = frame as Record<string, unknown> | null;
   const frameConfig = frameRecord?.config && typeof frameRecord.config === "object"
     ? frameRecord.config as Record<string, unknown>
@@ -421,11 +418,6 @@ export function MarcoAulasCapacidad({
   ).length;
   const contactCoverage = safeShare(contactRows, classroomRows.length);
   const reserveDepth = requestedClassrooms > 0 ? classroomN / requestedClassrooms : Number.NaN;
-  const steps: ClassroomFunnelStep[] = [
-    { label: "Aulas leídas", value: classroomRowsRaw.length, detail: "curso-horario detectado", unit: "aulas" },
-    { label: "Aulas válidas", value: classroomN, detail: "seleccionables", unit: "aulas", compareToBase: true },
-    { label: "Elegibles", value: classroomEligibleTotal, detail: "dentro de aulas", unit: "elegibles" },
-  ];
   const items: ClassroomInsight[] = [
     {
       label: "Profundidad",
@@ -458,7 +450,6 @@ export function MarcoAulasCapacidad({
   ];
   return (
     <div className="cmv2-dashboard-intelligence">
-      <ClassroomFunnelStrip title="Capacidad del marco" steps={steps} />
       <ClassroomInsightGrid items={items} />
     </div>
   );

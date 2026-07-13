@@ -8,6 +8,16 @@ import type {
   ProcessingSheetRequest,
 } from "../../api/client";
 import { ErrorBlock } from "../../components/States";
+import { RepeatBadge } from "../../components/RepeatBadge";
+import { RepeatGrainNote } from "../../components/RepeatGrainNote";
+import {
+  buildExplorerGrain,
+  formatPersonTag,
+  markRosterRows,
+  orderColumnsForRoster,
+  resolveRosterColumns,
+  type ProcessingSheetRepeatContext,
+} from "../../lib/rosterExplorer";
 import { ColumnFilterControl, columnFilterActive, describeColumnFilter } from "./ColumnFilterControl";
 import "./processingSheetViewer.css";
 
@@ -19,7 +29,21 @@ type Props = {
   highlightCoding?: boolean;
   request?: ProcessingSheetRequest;
   load: (opts: ProcessingSheetRequest) => Promise<ProcessingSheetPayload>;
+  /**
+   * Contexto relacional cuando la base mostrada es una hija repeat (ADR 0030
+   * Fase 5). Activa la lectura roster: banner de grano, badge naranja, columna
+   * de vínculo a la persona y agrupamiento visual. `null`/ausente = tabla normal.
+   */
+  repeat?: ProcessingSheetRepeatContext | null;
 };
+
+/** Etiqueta de cabecera para las columnas guía de las respuestas repetidas. */
+const ROSTER_HEAD_LABEL = {
+  person: "Persona",
+  "service-label": "Registro",
+  "service-code": "Código",
+} as const;
+type RosterRole = keyof typeof ROSTER_HEAD_LABEL;
 
 type SortState = { col: string; desc: boolean } | null;
 
@@ -42,6 +66,7 @@ export function ProcessingSheetViewer({
   highlightCoding = false,
   request,
   load,
+  repeat = null,
 }: Props) {
   const [mode, setMode] = useState<ProcessingSheetMode>("codigos");
   const [searchDraft, setSearchDraft] = useState("");
@@ -112,10 +137,21 @@ export function ProcessingSheetViewer({
   }, [loading]);
 
   const rawColumns = payload?.columns ?? [];
-  const columns = useMemo(
-    () => orderColumnsForCoding(rawColumns, highlightCoding),
-    [highlightCoding, rawColumns],
+  // --- Lectura relacional de una base hija repeat (ADR 0030 Fase 5) ----------
+  // No se cambia el modelo de datos: sólo se reinterpreta la tabla como
+  // respuesta-por-instancia con vínculo a la persona.
+  const isRoster = !!repeat;
+  const rosterCols = useMemo(
+    () =>
+      isRoster
+        ? resolveRosterColumns(rawColumns.map((column) => column.key), { linkKey: repeat?.linkKey })
+        : { personKey: null, serviceLabelKey: null, serviceCodeKey: null },
+    [isRoster, rawColumns, repeat?.linkKey],
   );
+  const columns = useMemo(() => {
+    const ordered = orderColumnsForCoding(rawColumns, highlightCoding);
+    return isRoster ? orderColumnsForRoster(ordered, rosterCols) : ordered;
+  }, [highlightCoding, rawColumns, isRoster, rosterCols]);
   const total = payload?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const visibleStart = total > 0 ? (page - 1) * pageSize + 1 : 0;
@@ -133,6 +169,32 @@ export function ProcessingSheetViewer({
   const hasCodingLegend = highlightCoding && columns.some((column) => isColumnWithKindColor(column));
   const hasOpenTextMultipleLegend = highlightCoding && columns.some((column) => isOpenTextMultipleRecodColumn(column));
   const isWideSheet = (payload?.n_columns ?? columns.length) > 8;
+
+  const rosterGrain = useMemo(
+    () =>
+      isRoster
+        ? buildExplorerGrain({
+            grain: repeat?.grain,
+            nInstancias: repeat?.nInstancias ?? (total > 0 ? total : null),
+            nPersonas: repeat?.grain?.n_personas ?? null,
+            repeatGroup: repeat?.repeatGroup,
+            parentBase: repeat?.parentBase,
+          })
+        : null,
+    [isRoster, repeat, total],
+  );
+  const rowMarks = useMemo(
+    () => (isRoster && rosterCols.personKey ? markRosterRows(payload?.rows ?? [], rosterCols.personKey) : []),
+    [isRoster, rosterCols.personKey, payload],
+  );
+  const rosterRole = (key: string): RosterRole | null => {
+    if (!isRoster) return null;
+    if (key === rosterCols.personKey) return "person";
+    if (key === rosterCols.serviceLabelKey) return "service-label";
+    if (key === rosterCols.serviceCodeKey) return "service-code";
+    return null;
+  };
+  const rosterUnitLabel = total === 1 ? "fila repetida" : "filas repetidas";
 
   function resetFilters() {
     setSearchDraft("");
@@ -173,18 +235,38 @@ export function ProcessingSheetViewer({
   }
 
   return (
-    <section className={`pulso-processing-sheet${isWideSheet ? " is-wide" : ""}`} aria-label={title}>
+    <section
+      className={`pulso-processing-sheet${isWideSheet ? " is-wide" : ""}${isRoster ? " is-roster" : ""}`}
+      aria-label={title}
+      data-repeat-roster={isRoster ? "true" : undefined}
+      data-audit-ready={isRoster ? "true" : undefined}
+    >
       <div className="pulso-processing-sheet-toolbar">
         <div className="pulso-processing-sheet-title">
           <span className="pulso-processing-sheet-icon" aria-hidden="true">
             <Database size={16} />
           </span>
           <div>
-            <strong>{title}</strong>
+            <strong>
+              {title}
+              {isRoster && (
+                <RepeatBadge
+                  repeatGroup={repeat?.repeatGroup}
+                  compact
+                  className="pulso-processing-sheet-roster-badge"
+                  title={
+                    repeat?.parentBase
+                      ? `Respuestas repetidas de «${repeat.parentBase}» (una fila por opción marcada)`
+                      : "Base de respuestas repetidas"
+                  }
+                />
+              )}
+            </strong>
             <span className="pulso-processing-sheet-source">{sourceLabel}</span>
             {payload && (
               <span className="pulso-processing-sheet-meta">
-                {total.toLocaleString("es-PE")} filas · {payload.n_columns.toLocaleString("es-PE")} columnas
+                {total.toLocaleString("es-PE")} {isRoster ? rosterUnitLabel : "filas"} ·{" "}
+                {payload.n_columns.toLocaleString("es-PE")} columnas
               </span>
             )}
           </div>
@@ -251,6 +333,19 @@ export function ProcessingSheetViewer({
           </button>
         </div>
       </div>
+
+      {isRoster && rosterGrain && (
+        <div className="pulso-processing-sheet-roster">
+          <RepeatGrainNote grain={rosterGrain} />
+          {rosterCols.personKey && (
+            <p className="pulso-processing-sheet-roster-hint">
+              Cada fila es un registro repetido, no una persona. La columna{" "}
+              <strong>Persona</strong> indica quién respondió; las filas de una
+              misma persona van agrupadas.
+            </p>
+          )}
+        </div>
+      )}
 
       {activeColumnFilters.length > 0 && (
         <div className="pulso-processing-sheet-chips" aria-label="Filtros activos">
@@ -348,18 +443,27 @@ export function ProcessingSheetViewer({
                   {columns.map((column) => {
                     const sorted = sort?.col === column.key;
                     const displayKind = columnDisplayKind(column);
+                    const role = rosterRole(column.key);
                     return (
                       <th
                         key={column.key}
-                        className={columnClass(column, highlightCoding)}
+                        className={rosterHeadClass(columnClass(column, highlightCoding), role)}
                         data-kind={displayKind}
                         aria-sort={sorted ? sort?.desc ? "descending" : "ascending" : "none"}
-                        title={column.key}
+                        title={role ? ROSTER_HEAD_LABEL[role] : column.key}
                       >
                         <button type="button" onClick={() => toggleSort(column)}>
-                          <span>{column.label || column.key}</span>
-                          <small>{column.key}</small>
-                          {isColumnWithKindColor(column) && highlightCoding ? (
+                          <span>{role ? ROSTER_HEAD_LABEL[role] : column.label || column.key}</span>
+                          {role === "person" ? (
+                            <small>quién respondió</small>
+                          ) : role ? null : (
+                            <small>{column.key}</small>
+                          )}
+                          {role ? (
+                            <em className="pulso-processing-sheet-roster-tag">
+                              {role === "person" ? "vínculo" : "identidad"}
+                            </em>
+                          ) : isColumnWithKindColor(column) && highlightCoding ? (
                             <em>{columnKindLabel(column)}</em>
                           ) : null}
                         </button>
@@ -372,7 +476,11 @@ export function ProcessingSheetViewer({
                   {columns.map((column) => {
                     const displayKind = columnDisplayKind(column);
                     return (
-                      <th key={`filter-${column.key}`} className={columnClass(column, highlightCoding)} data-kind={displayKind}>
+                      <th
+                        key={`filter-${column.key}`}
+                        className={rosterHeadClass(columnClass(column, highlightCoding), rosterRole(column.key))}
+                        data-kind={displayKind}
+                      >
                         <ColumnFilterControl
                           column={column}
                           value={columnFilters[column.key]}
@@ -391,27 +499,36 @@ export function ProcessingSheetViewer({
                     </td>
                   </tr>
                 ) : (
-                  payload.rows.map((row, rowIndex) => (
-                    <tr key={`${page}-${rowIndex}`}>
-                      <td className="pulso-processing-sheet-rownum">
-                        {visibleStart + rowIndex}
-                      </td>
-                      {columns.map((column) => {
-                        const value = row[column.key] ?? "";
-                        const displayKind = columnDisplayKind(column);
-                        return (
-                          <td
-                            key={column.key}
-                            className={columnClass(column, highlightCoding)}
-                            data-kind={displayKind}
-                            title={value || undefined}
-                          >
-                            <span className="pulso-processing-sheet-cell-text">{value}</span>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))
+                  payload.rows.map((row, rowIndex) => {
+                    const mark = rowMarks[rowIndex];
+                    const groupStart = isRoster && !!mark?.isGroupStart && rowIndex > 0;
+                    return (
+                      <tr
+                        key={`${page}-${rowIndex}`}
+                        className={groupStart ? "is-roster-group-start" : undefined}
+                      >
+                        <td className="pulso-processing-sheet-rownum">
+                          {visibleStart + rowIndex}
+                        </td>
+                        {columns.map((column) => {
+                          const value = row[column.key] ?? "";
+                          const displayKind = columnDisplayKind(column);
+                          const role = rosterRole(column.key);
+                          const display = role === "person" ? formatPersonTag(value) : value;
+                          return (
+                            <td
+                              key={column.key}
+                              className={rosterCellClass(columnClass(column, highlightCoding), role)}
+                              data-kind={displayKind}
+                              title={value || undefined}
+                            >
+                              <span className="pulso-processing-sheet-cell-text">{display}</span>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -465,6 +582,17 @@ export function ProcessingSheetViewer({
       )}
     </section>
   );
+}
+
+/** Añade la clase de rol relacional (persona/servicio) a un `<th>` del roster. */
+function rosterHeadClass(base: string, role: RosterRole | null) {
+  if (!role) return base;
+  return [base, "is-roster-col", `is-roster-${role}`].filter(Boolean).join(" ");
+}
+
+/** Añade la clase de rol relacional a una celda `<td>` del roster. */
+function rosterCellClass(base: string, role: RosterRole | null) {
+  return rosterHeadClass(base, role);
 }
 
 function columnClass(column: ProcessingSheetColumn, highlightCoding: boolean) {

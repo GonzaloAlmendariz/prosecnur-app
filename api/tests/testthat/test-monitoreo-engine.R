@@ -6046,7 +6046,15 @@ test_that("paquete manual para procesamiento exporta revision y excluye uuid anu
   session_set(sid, "monitoreo_snapshot", list(data = data, synced_at = "2026-07-06T12:00:00Z"))
   session_set(sid, "monitoreo_config", monitoreo_normalize_config(cfg, data))
   session_set(sid, "xlsform_state", xlsform_state)
-  session_set(sid, "monitoreo_kobo_asset_details", list(field = kobo_detail))
+  # Contrato vigente: el instrumento del handoff sale SIEMPRE del XLSForm LOCAL que
+  # sube el usuario (la ultima version descargada de Kobo), NUNCA de la API. Aqui
+  # materializamos ese XLSForm local a partir del detail (equivalente a la
+  # descarga + upload manual) y lo dejamos en el file store para que el extractor
+  # congelado lo elija como candidato exacto.
+  .handoff_local_xls <- tempfile("handoff_local_xlsform_", fileext = ".xlsx")
+  .carga_write_xlsform_model(.carga_kobo_xlsform_model(kobo_detail), .handoff_local_xls)
+  save_upload(sid, "xlsform", "instrumento-territorial.xlsx",
+              readBin(.handoff_local_xls, "raw", n = file.info(.handoff_local_xls)$size))
 
   out <- .monitoreo_processing_handoff_export(sid, list(universe = "processable", project = "Paquete Test"))
   exported <- openxlsx::read.xlsx(get_file(sid, out$files$data_xlsx$file_id)$path, sheet = "datos")
@@ -6141,7 +6149,15 @@ test_that("promocion a Procesamiento persiste base activa con instrumento fidedi
   session_set(sid, "monitoreo_snapshot", list(data = data, synced_at = "2026-07-06T12:00:00Z"))
   session_set(sid, "monitoreo_config", monitoreo_normalize_config(cfg, data))
   session_set(sid, "xlsform_state", xlsform_state)
-  session_set(sid, "monitoreo_kobo_asset_details", list(field = kobo_detail))
+  # Contrato vigente: el instrumento del handoff sale SIEMPRE del XLSForm LOCAL que
+  # sube el usuario (la ultima version descargada de Kobo), NUNCA de la API. Aqui
+  # materializamos ese XLSForm local a partir del detail (equivalente a la
+  # descarga + upload manual) y lo dejamos en el file store para que el extractor
+  # congelado lo elija como candidato exacto.
+  .handoff_local_xls <- tempfile("handoff_local_xlsform_", fileext = ".xlsx")
+  .carga_write_xlsform_model(.carga_kobo_xlsform_model(kobo_detail), .handoff_local_xls)
+  save_upload(sid, "xlsform", "instrumento-territorial.xlsx",
+              readBin(.handoff_local_xls, "raw", n = file.info(.handoff_local_xls)$size))
 
   out <- .monitoreo_processing_handoff_promote(sid, list(universe = "processable"))
   expect_true(isTRUE(out$ok))

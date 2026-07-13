@@ -19,7 +19,7 @@
 // posiciona en (screenX, screenY) del drop. Click fuera o Esc cierra.
 // =============================================================================
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, X } from "lucide-react";
 import { TechTerm } from "../helpers/TechTerm";
 import type { CatalogContext, GraphNode } from "./buildGraph";
@@ -58,6 +58,20 @@ export function ConnectionConditionPicker({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [op, setOp] = useState<Operator>("exists");
   const [value, setValue] = useState("");
+  // Combobox de valores (solo cuando el source es un select). `query` es
+  // el texto de búsqueda; `value` es el CÓDIGO elegido (item.name).
+  const [query, setQuery] = useState("");
+  const [listOpen, setListOpen] = useState(false);
+  const filteredItems = useMemo(() => {
+    if (!sourceCatalog) return [];
+    const q = query.trim().toLowerCase();
+    if (!q) return sourceCatalog.items;
+    return sourceCatalog.items.filter(
+      (it) =>
+        (it.label ?? "").toLowerCase().includes(q) ||
+        (it.name ?? "").toLowerCase().includes(q),
+    );
+  }, [sourceCatalog, query]);
   // Step 1: pick condition. Step 2 (solo si hay existing): pick
   // combiner Y/O. Si no hay existing, confirmamos directo.
   const [step, setStep] = useState<1 | 2>(1);
@@ -198,24 +212,81 @@ export function ConnectionConditionPicker({
           {needsValue && (
             <div className="pulso-graph-condpicker-value">
               {sourceCatalog ? (
-                <select
-                  autoFocus
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                >
-                  <option value="">Elige una opción…</option>
-                  {sourceCatalog.preview.map((it) => (
-                    <option key={it.rowIndex} value={it.name}>
-                      {it.label || it.name}
-                    </option>
-                  ))}
-                  {sourceCatalog.itemCount > sourceCatalog.preview.length && (
-                    <option disabled>
-                      + {sourceCatalog.itemCount - sourceCatalog.preview.length}{" "}
-                      opciones más (refina en el inspector)
-                    </option>
+                // Combobox con búsqueda sobre la lista COMPLETA. Antes se
+                // mostraba un <select> con solo 5 opciones (preview) y las
+                // listas largas quedaban truncadas: no se podía elegir el
+                // resto desde el mapa. Ahora se filtran todas con texto.
+                <div className="pulso-graph-condpicker-combo">
+                  <input
+                    autoFocus
+                    type="text"
+                    className="pulso-graph-condpicker-combo-input"
+                    placeholder={`Busca entre ${sourceCatalog.itemCount} opciones…`}
+                    value={query}
+                    onChange={(e) => {
+                      setQuery(e.target.value);
+                      setValue("");
+                      setListOpen(true);
+                    }}
+                    onFocus={() => setListOpen(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (value && canConfirm) {
+                          handleConfirm();
+                        } else if (filteredItems[0]) {
+                          const it = filteredItems[0];
+                          setValue(it.name);
+                          setQuery(it.label || it.name);
+                          setListOpen(false);
+                        }
+                      }
+                    }}
+                    spellCheck={false}
+                    role="combobox"
+                    aria-expanded={listOpen}
+                    aria-controls="pulso-graph-condpicker-listbox"
+                  />
+                  {listOpen && (
+                    <ul
+                      id="pulso-graph-condpicker-listbox"
+                      className="pulso-graph-condpicker-combo-list"
+                      role="listbox"
+                    >
+                      {filteredItems.length === 0 ? (
+                        <li className="pulso-graph-condpicker-combo-empty">
+                          Sin coincidencias
+                        </li>
+                      ) : (
+                        filteredItems.map((it) => (
+                          <li key={it.rowIndex}>
+                            <button
+                              type="button"
+                              role="option"
+                              aria-selected={value === it.name}
+                              className={`pulso-graph-condpicker-combo-option ${value === it.name ? "is-on" : ""}`}
+                              onClick={() => {
+                                setValue(it.name);
+                                setQuery(it.label || it.name);
+                                setListOpen(false);
+                              }}
+                            >
+                              <span className="pulso-graph-condpicker-combo-option-label">
+                                {it.label || it.name}
+                              </span>
+                              <code>{it.name}</code>
+                            </button>
+                          </li>
+                        ))
+                      )}
+                    </ul>
                   )}
-                </select>
+                  {value && !listOpen && (
+                    <p className="pulso-graph-condpicker-combo-chosen">
+                      Valor elegido: <code>{value}</code>
+                    </p>
+                  )}
+                </div>
               ) : (
                 <input
                   autoFocus

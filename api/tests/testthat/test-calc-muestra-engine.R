@@ -55,6 +55,110 @@ test_that("calc_muestra_normalize_estudio aplica defaults a entrada vacía", {
   expect_equal(length(e$componentes), 0L)
 })
 
+test_that("workspace$motor_recorrido sobrevive el round-trip de normalización", {
+  perfil <- list(
+    id = "plantilla-universidad",
+    nombre = "U",
+    facultades = list(list(id = "f1", N = 100))
+  )
+  decisiones <- list(
+    parametros = list(confianza = 0.95),
+    opcionalesActivos = list("c7"),
+    bolsaExtraPorFacultad = 1,
+    escenario = "e2"
+  )
+  e <- calc_muestra_normalize_estudio(list(
+    workspace = list(
+      motor_recorrido = list(
+        schema = "calc_muestra_workspace_motor_v1",
+        fuente = "manual",
+        perfil = perfil,
+        decisiones = decisiones,
+        tocado = TRUE,
+        actualizado_at = "2026-07-11T00:00:00Z"
+      )
+    )
+  ))
+  mr <- e$workspace$motor_recorrido
+  expect_equal(mr$schema, "calc_muestra_workspace_motor_v1")
+  expect_equal(mr$fuente, "manual")
+  # perfil y decisiones son passthrough opaco: deben llegar intactos.
+  expect_identical(mr$perfil, perfil)
+  expect_identical(mr$decisiones, decisiones)
+  expect_true(mr$tocado)
+  expect_equal(mr$actualizado_at, "2026-07-11T00:00:00Z")
+})
+
+test_that("workspace$aulas_config$criterios_seleccion sobrevive el round-trip", {
+  # Blinda el fix de persistencia: la whitelist del workspace es whitelist-only,
+  # así que sin esta entrada el guardado del .pulso borraría la selección.
+  e <- calc_muestra_normalize_estudio(list(
+    workspace = list(
+      aulas_config = list(
+        criterios_seleccion = list(
+          byVariable = list(
+            modality = list(mode = "include", categories = list("presencial"))
+          ),
+          courseLevelRanges = list("DERECHO" = list(list(min = 5, max = 10))),
+          minEligible = list(threshold = 10)
+        )
+      )
+    )
+  ))
+  sel <- e$workspace$aulas_config$criterios_seleccion
+  expect_true(is.list(sel))
+  # La variable sobrevive con su scope/kind resueltos desde el registro.
+  expect_equal(sel$byVariable$modality$mode, "include")
+  expect_equal(sel$byVariable$modality$scope, "aula")
+  expect_true("presencial" %in% unlist(sel$byVariable$modality$categories))
+  expect_equal(sel$minEligible$threshold, 10)
+  expect_true(!is.null(sel$courseLevelRanges[["DERECHO"]]))
+})
+
+test_that("criterios_seleccion ausente o basura degrada al sentinela list()", {
+  # Ausente -> list() (sentinela "sin selección" -> marco por path legacy).
+  e0 <- calc_muestra_normalize_estudio(list(workspace = list(aulas_config = list())))
+  expect_identical(e0$workspace$aulas_config$criterios_seleccion, list())
+  # Basura -> list() (no rompe el round-trip).
+  e1 <- calc_muestra_normalize_estudio(list(
+    workspace = list(aulas_config = list(criterios_seleccion = "basura"))
+  ))
+  expect_identical(e1$workspace$aulas_config$criterios_seleccion, list())
+})
+
+test_that("workspace sin motor_recorrido normaliza a NULL sin tocar el resto", {
+  e <- calc_muestra_normalize_estudio(list(
+    workspace = list(frame_mode = "acreditacion", notas_diseno = "nota")
+  ))
+  expect_null(e$workspace$motor_recorrido)
+  expect_equal(e$workspace$frame_mode, "acreditacion")
+  expect_equal(e$workspace$notas_diseno, "nota")
+})
+
+test_that("motor_recorrido con basura degrada a defaults seguros", {
+  # No-lista -> NULL (retrocompat / input inválido).
+  e1 <- calc_muestra_normalize_estudio(list(
+    workspace = list(motor_recorrido = "hola")
+  ))
+  expect_null(e1$workspace$motor_recorrido)
+
+  # Lista con campos inválidos -> defaults campo a campo.
+  e2 <- calc_muestra_normalize_estudio(list(
+    workspace = list(motor_recorrido = list(
+      fuente = "marciano",
+      perfil = "no-lista",
+      tocado = "quizás"
+    ))
+  ))
+  mr <- e2$workspace$motor_recorrido
+  expect_equal(mr$schema, "calc_muestra_workspace_motor_v1")
+  expect_equal(mr$fuente, "proyecto")
+  expect_null(mr$perfil)
+  expect_null(mr$decisiones)
+  expect_false(mr$tocado)
+  expect_equal(mr$actualizado_at, "")
+})
+
 test_that("calc_muestra_normalize_componente clasifica naturaleza automáticamente", {
   c1 <- calc_muestra_normalize_componente(list(tecnica = "prob_conglomerado_multietapico"))
   expect_equal(c1$naturaleza, "prob")

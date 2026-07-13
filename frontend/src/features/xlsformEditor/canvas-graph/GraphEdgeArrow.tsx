@@ -48,17 +48,6 @@ export type GraphEdgeArrowProps = {
   onClick?: () => void;
 };
 
-/** [Deprecado] Antes usábamos dashed para var↔var. El usuario
- *  reportó: "en la condición roja aún hay un dashed line cuando no
- *  es una condición del rojo" — el dasharray dentro de un mismo
- *  bundle generaba inconsistencia visual (algunas ramas dashed,
- *  otras solid). Y la punta de flecha también se distinguía menos
- *  con dashes. Ahora TODOS los edges van sólidos; el color y el
- *  bundle ya diferencian tipos suficientemente. */
-function isVarToVar(_relation: string): boolean {
-  return false;
-}
-
 /**
  * Paleta categórica Tableau-10 — la misma que usa `GraficarSecciones`
  * en R/ggplot. Ofrece contraste razonable sobre fondo blanco.
@@ -116,14 +105,19 @@ export function GraphEdgeArrow({
   onHover,
   onClick,
 }: GraphEdgeArrowProps) {
-  // Color: prioridad al colorIndex provisto por el layout (orden de
-  // aparición → sin colisiones para las primeras 10 condiciones). Si
-  // no se proveyó (compat), fallback al hash legacy. Si la expresión
-  // es genérica o nula, color neutro.
+  // Color = CONDICIÓN (expresión `relevant`). El Mapa de lógica grafica
+  // solo saltos lógicos, así que el canal cromático distingue CADA
+  // condición: dos flechas que comparten el mismo `relevant` reciben el
+  // mismo color (y carril); condiciones distintas reciben colores
+  // distintos de la paleta Tableau-10. `colorIndex` viene pre-asignado
+  // por el layout (estable por expresión): null = expresión genérica
+  // → neutro; undefined = fallback al hash de la expresión.
   const color =
-    colorIndex == null
-      ? colorForExpression(relevantExpression)
-      : TABLEAU_10[colorIndex % TABLEAU_10.length]!;
+    colorIndex === null
+      ? NEUTRAL_COLOR
+      : colorIndex === undefined
+        ? colorForExpression(relevantExpression)
+        : TABLEAU_10[colorIndex % TABLEAU_10.length]!;
   // Visibilidad base alta — antes 0.78 lucía "fantasma" sobre fondo
   // claro, en especial las dashed var↔var. Subimos a 0.95 para que
   // el trazo se lea como "primera capa" del lienzo. El dim sigue
@@ -135,24 +129,9 @@ export function GraphEdgeArrow({
     : highlighted
       ? STROKE_WIDTH + 0.8
       : STROKE_WIDTH;
-  // Dashed por TIPO de dependencia, no por var-to-var.
-  // - depends-on (visibilidad/relevant): sólido (más prominente).
-  // - constrained-by: dashed largo (refleja "restricción").
-  // - calculated-from: dotted (refleja "cálculo").
-  // - choice-filter: dash-dot (refleja "filtro").
-  // El color sigue siendo por expresión (Tableau-10) — el dasharray
-  // diferencia el TIPO sin perder la identidad cromática del bundle.
-  const k = edge.edge.kind;
-  const dashArray =
-    k === "constrained-by"
-      ? "8 5"
-      : k === "calculated-from"
-        ? "2 4"
-        : k === "choice-filter"
-          ? "8 3 2 3"
-          : isVarToVar(edge.edge.relation)
-            ? undefined
-            : undefined;
+  // Todas las flechas del mapa son saltos lógicos (visibilidad), así que
+  // van SÓLIDAS: no hay tipos que diferenciar con dasharray. La identidad
+  // la da el color por condición.
 
   return (
     <g
@@ -200,7 +179,6 @@ export function GraphEdgeArrow({
         fill="none"
         stroke={color}
         strokeWidth={strokeWidth}
-        strokeDasharray={dashArray}
         strokeLinecap="round"
         strokeLinejoin="round"
         markerEnd={`url(#pulso-graph-arrow-${markerIdFor(color)})`}
@@ -237,7 +215,9 @@ function markerIdFor(color: string): string {
 }
 
 export function GraphEdgeMarkers() {
-  const palette = [...TABLEAU_10, NEUTRAL_COLOR];
+  // Un marker por cada color que un edge puede tomar: el neutro (expresión
+  // genérica) + toda la paleta Tableau-10 (color por condición).
+  const palette = [NEUTRAL_COLOR, ...TABLEAU_10];
   return (
     <defs>
       {palette.map((color) => (

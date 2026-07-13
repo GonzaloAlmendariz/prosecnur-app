@@ -92,6 +92,71 @@
   )
 }
 
+# Data de la PROPIA base `base_name` (con su `_parent_index`), tomada de los caches
+# de analítica/estudio y, como último recurso, releída desde archivo por el mismo
+# pipeline que el resto de analítica. Existe porque para estudios repeat
+# `.load_rp_data` entrega la base "first" (la MADRE, ver el override de
+# `.analitica_prepare_context`), así que el grano NO puede calcularse desde el
+# `rp_data` que recibe el path activo: hay que ir a la data de la hija. Prefiere una
+# fuente que traiga la llave de enlace; degrada sin romper a NULL.
+# @keywords internal
+.analitica_repeat_own_data <- function(sid, base_name, link_key = "_parent_index",
+                                       fallback = "_submission__id", cfg = NULL) {
+  base_name <- as.character(base_name %||% "")
+  if (!nzchar(base_name)) return(NULL)
+  s <- session_get(sid, required = FALSE)
+  has_link <- function(df) {
+    is.data.frame(df) &&
+      ((nzchar(link_key) && link_key %in% names(df)) ||
+       (nzchar(fallback) && fallback %in% names(df)))
+  }
+  cands <- list(
+    (s$analitica_rp_data_sources %||% list())[[base_name]],
+    (s$rp_data_sources %||% list())[[base_name]]
+  )
+  for (d in cands) if (has_link(d)) return(d)
+  for (d in cands) if (is.data.frame(d)) return(d)
+
+  meta <- ((s$estudio %||% list())$bases %||% list())[[base_name]]
+  if (is.null(meta)) return(NULL)
+  cfg <- cfg %||% tryCatch(.analitica_get_config(sid), error = function(e) list())
+  fuente <- tryCatch(.analitica_effective_source(s, cfg), error = function(e) "originales")
+  read_pair <- function(fte) {
+    pair <- tryCatch(.analitica_pair_for_base(s, meta, fte, base_name), error = function(e) NULL)
+    if (is.null(pair)) return(NULL)
+    tryCatch(.analitica_read_pair(pair, meta), error = function(e) NULL)
+  }
+  parsed <- read_pair(fuente)
+  if (is.null(parsed) && !identical(fuente, "originales")) parsed <- read_pair("originales")
+  if (is.null(parsed)) return(NULL)
+  parsed$data
+}
+
+#' Grano de repeat de la BASE ACTIVA, robusto por contrato (ADR 0030, Fase 5).
+#'
+#' Devuelve NULL salvo que la base activa sea una hija repeat
+#' (`source_kind == "kobo_repeat"` con madre declarada). En ese caso
+#' `n_instancias`/`n_personas` se calculan SIEMPRE desde la data de la PROPIA hija
+#' (distinct `_parent_index`), nunca desde la madre. Blinda el endpoint de
+#' variables contra dos cosas: (1) que un attr `repeat_grain` filtrado/heredado
+#' aflore sobre la MADRE (el bug reportado: grano con `parent_base` = la madre
+#' misma), y (2) que el grano de una hija activa se compute sobre la data de la
+#' madre que `.load_rp_data` entrega (override "first"), lo que daría
+#' `n_personas = NA` y `n_instancias` = filas de la madre.
+#' @keywords internal
+.analitica_active_repeat_grain <- function(sid, cfg = NULL) {
+  base_meta <- tryCatch(.analitica_single_base_meta(sid), error = function(e) NULL)
+  base_name <- as.character((base_meta %||% list())$nombre %||% "")
+  if (!nzchar(base_name)) return(NULL)
+  child_meta <- .analitica_repeat_child_meta(sid, base_name)
+  if (is.null(child_meta)) return(NULL)
+  link_key <- as.character(child_meta$link_key %||% "_parent_index")
+  fb <- as.character(child_meta$link_key_fallback %||% "_submission__id")
+  own <- .analitica_repeat_own_data(sid, base_name, link_key = link_key, fallback = fb, cfg = cfg)
+  if (!is.data.frame(own)) return(NULL)
+  .analitica_repeat_grain(own, child_meta)
+}
+
 # --- B. Enriquecimiento hija×madre ------------------------------------------
 
 # ¿Es `base_name` una base hija repeat con madre declarada? Devuelve su meta o
@@ -402,6 +467,11 @@
     error = function(e) NULL)
   if (is.null(res)) return(out)
   inst <- res$inst
-  if (!is.null(res$grain)) attr(inst, "repeat_grain") <- res$grain
+  # El grano se calcula desde la data de la PROPIA hija (distinct `_parent_index`),
+  # no desde `rp_data` (que en estudios repeat es la base "first"/madre por el
+  # override de `.analitica_prepare_context`); si no, `n_personas` saldría NA y
+  # `n_instancias` = filas de la madre. Ver `.analitica_active_repeat_grain`.
+  grain <- .analitica_active_repeat_grain(sid, cfg) %||% res$grain
+  if (!is.null(grain)) attr(inst, "repeat_grain") <- grain
   list(rp_inst = inst, rp_data = res$data)
 }

@@ -160,7 +160,13 @@ export default function ContextLens({
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 100,
+        // El overlay se portalea a document.body (hermano de la app). El
+        // PageFrame monta `.pulso-page-frame-toolbar` con z-index 1000 +
+        // transform (stacking context propio) y el MoreViewsMenu con 1200,
+        // así que con z-index 100 la barra "instrumento / Constructor /
+        // Hojas / Exportar" quedaba pintada ENCIMA del lens. Subimos por
+        // encima de ese chrome (mismo criterio que el overlay del mapa).
+        zIndex: 1400,
         display: "flex",
         justifyContent: isCenter ? "center" : "flex-end",
         alignItems: isCenter ? "center" : "stretch",

@@ -14,9 +14,11 @@ import type {
   CalcMuestraComponente,
   CalcMuestraWorkspace,
 } from "../../../../api/client";
+import { embudoAlumnoDesdeFrame } from "../../dominio";
 import { ContextoLlano, RespaldoMetodologico } from "../../didactica/PasoDidactico";
 import { fmtInt, fmtPct } from "../../sharedCore";
 import { CifraMotor, FlujoVertical, TerminoChip, type FlujoEtapa } from "../ui";
+import { embudoEtapas } from "./embudoEtapas";
 import {
   MarcoEstructuraControles,
   MarcoPoblacionFacultades,
@@ -45,7 +47,11 @@ export function MarcoPoblacionTab({
   // de exclusiones, no en este flujo.
   const filasExcluidas = inputRows > 0 && eligibleRows > 0 ? Math.max(0, inputRows - eligibleRows) : 0;
 
-  const etapas: FlujoEtapa[] = [
+  // Preferimos el embudo detallado del backend (universo → pregrado → regular →
+  // ≥18 → población) cuando el frame lo trae; si no, el flujo agregado de tres
+  // pasos con la aritmética visible (universo − elegibles − repetidas).
+  const embudoDetallado = embudoAlumnoDesdeFrame(frame);
+  const etapasFallback: FlujoEtapa[] = [
     {
       id: "universo",
       label: "Universo",
@@ -72,6 +78,10 @@ export function MarcoPoblacionTab({
       estado: populationN > 0 ? "ready" : "pending",
     },
   ];
+  const etapas: FlujoEtapa[] =
+    embudoDetallado && embudoDetallado.length >= 3
+      ? embudoEtapas(embudoDetallado, "estudiantes")
+      : etapasFallback;
 
   return (
     <div className="cmv2-marco-stack">

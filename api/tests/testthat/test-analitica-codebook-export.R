@@ -96,8 +96,10 @@ test_that("ARREGLO 1: los códigos ausentes de la lista quedan al final del bloq
 
   out <- .analitica_order_sm_dummy_cols(data, inst)
   despues <- grep("^estudios\\.", names(out), value = TRUE)
+  # 7 (categoría real fuera de lista) va tras las declaradas; el valor especial
+  # 96 (rango [80,100)) va SIEMPRE al final del bloque, incluso después de 7.
   expect_equal(despues, c("estudios.1", "estudios.2", "estudios.3",
-                          "estudios.4", "estudios.5", "estudios.96", "estudios.7"))
+                          "estudios.4", "estudios.5", "estudios.7", "estudios.96"))
 })
 
 test_that("ARREGLO 1: reordenar ya-ordenado es un no-op estable", {

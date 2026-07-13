@@ -334,6 +334,90 @@
   border-radius: 9px;
 }
 
+/* ── Combobox de valores (listas largas) ──────────────────────────────── */
+.pulso-graph-overlay .pulso-graph-condpicker-combo {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pulso-graph-overlay .pulso-graph-condpicker-combo-input {
+  width: 100%;
+  border-radius: 9px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  padding: 7px 10px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--motion-dur-fast) ease;
+}
+.pulso-graph-overlay .pulso-graph-condpicker-combo-input:focus {
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+.pulso-graph-overlay .pulso-graph-condpicker-combo-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: 216px;
+  overflow-y: auto;
+  border-radius: 10px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pulso-graph-overlay .pulso-graph-condpicker-combo-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--pulso-text);
+  transition: background var(--motion-dur-fast) ease;
+}
+.pulso-graph-overlay .pulso-graph-condpicker-combo-option:hover {
+  background: var(--pulso-surface-2);
+}
+.pulso-graph-overlay .pulso-graph-condpicker-combo-option.is-on {
+  background: var(--pulso-primary-focus);
+}
+.pulso-graph-overlay .pulso-graph-condpicker-combo-option-label {
+  font-size: 13px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pulso-graph-overlay .pulso-graph-condpicker-combo-option code {
+  flex: none;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+.pulso-graph-overlay .pulso-graph-condpicker-combo-empty {
+  padding: 8px;
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+  text-align: center;
+}
+.pulso-graph-overlay .pulso-graph-condpicker-combo-chosen {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+.pulso-graph-overlay .pulso-graph-condpicker-combo-chosen code {
+  color: var(--pulso-primary);
+  font-weight: 600;
+}
+
 /* ── Paneles laterales (detalle de nodo / relación lógica) ─────────────── */
 
 .pulso-graph-overlay .pulso-graph-detail {

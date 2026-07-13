@@ -231,6 +231,94 @@ export const GLOSARIO: GlosarioEntry[] = [
       'Ajuste por celda facultad × sexo al cierre del campo: las celdas que sobrecumplen se recortan por downsample aleatorio con semilla fija (peso = 1) y las que no alcanzan la meta reciben peso = meta / n_cobrado (> 1). En el estudio de referencia el 83.6% de los casos quedó con peso 1.00 y el peso máximo fue 1.15.',
     fuenteId: 'metodologia-2025',
   },
+  {
+    termino: 'población objetivo (N)',
+    llano:
+      'El grupo de personas al que apunta el estudio: estudiantes de pregrado, matriculados regulares y mayores de 18 años. Este número (N) es la base para calcular cuántas encuestas hacer.',
+    tecnico:
+      'Conjunto de elegibles definido por criterios de ALUMNO (formación = pregrado ∧ condición = regular ∧ edad ≥ 18), verificable con un flag 1/0 por estudiante. La facultad no filtra: estratifica. El primer ciclo integra el marco y se excluye en el instrumento (pregunta filtro).',
+    fuenteId: 'propuesta-2026',
+  },
+  {
+    termino: 'afijación proporcional',
+    llano:
+      'Repartir la muestra total entre los cajones (facultad × sexo) según su peso real: si una facultad tiene el 21% de la población, recibe el 21% de las encuestas.',
+    tecnico:
+      'Asignación n_h = round(n · N_h / N) por estrato, con desglose por sexo proporcional a la composición del estrato (sin forzar 50/50). Los redondeos celda a celda exigen un ajuste de cuadratura posterior para cerrar exacto en el total.',
+    fuenteId: 'propuesta-2026',
+  },
+  {
+    termino: 'ajuste de cuadratura',
+    llano:
+      'El retoque final del reparto: como los redondeos hacen que la suma no dé exacta, el caso faltante se añade a la facultad más grande, donde menos distorsiona.',
+    tecnico:
+      'Regla determinística post-redondeo: faltante = n_total − Σ n_h; se asigna íntegro al estrato de mayor población, en su sexo mayoritario. Al ser reproducible (no un retoque manual), cualquier recomputación llega a la misma tabla.',
+    fuenteId: 'propuesta-2026',
+  },
+  {
+    termino: 'cifra de diseño',
+    llano:
+      'El número "oficial" que se comunica y presupuesta (ej. 2,500 encuestas), que suele ser un redondeo conservador de lo que despeja la fórmula (ej. ~2,354). Más muestra = menos error, así que redondear hacia arriba es prudente.',
+    tecnico:
+      'Valor operativo fijado por el diseño por encima del despeje exacto de la fórmula. Conviene explicitar ambos: el n de fórmula documenta el sustento; la cifra de diseño gobierna cuotas y presupuesto, y su margen de error implícito queda por debajo del exigido.',
+    fuenteId: 'metodologia-2025',
+  },
+  {
+    termino: 'estudiantes por aula',
+    llano:
+      'Cuántos alumnos elegibles tiene un salón típico de cada facultad. Es el divisor que convierte encuestas en número de aulas: a salones más chicos, más aulas que visitar.',
+    tecnico:
+      'Resumen por facultad de matriculados_población por aula sobre el marco depurado, típicamente mín(mediana, media) — conservador. No existe un promedio universitario único: el valor va de ~10 a ~36 según la facultad.',
+    fuenteId: 'propuesta-2026',
+  },
+  {
+    termino: 'bolsa operativa de aulas',
+    llano:
+      'Aulas extra que se cotizan desde el inicio para cubrir imprevistos de campo (docentes que rechazan, aulas flojas). No cambia cuántas encuestas se buscan; da margen de maniobra.',
+    tecnico:
+      'Reserva de k aulas adicionales por facultad (opciones típicas: +0, +1, +2) sobre las aulas base = CEIL(sobremuestra / estudiantes_por_aula). Distinta de la sobremuestra (encuestas) y de la cascada de reemplazos (aulas físicas priorizadas M01–M12).',
+    fuenteId: 'propuesta-2026',
+  },
+  {
+    termino: 'nivel del curso',
+    llano:
+      'El peldaño de la malla al que pertenece EL CURSO (atributo del salón). No confundir con el ciclo del alumno: un curso de "nivel 0" (transversal) puede tener alumnos de todos los ciclos.',
+    tecnico:
+      'Atributo del curso-horario usado en el marco de aulas mediante un mapa de rangos por facultad (las profesionales arrancan en 5 porque sus niveles 1–4 se cursan en Estudios Generales). Fiable, a diferencia del nivel curricular del alumno.',
+    fuenteId: 'propuesta-2026',
+  },
+  {
+    termino: 'ciclo del alumno',
+    llano:
+      'El semestre en que va LA PERSONA. En Estudios Generales este dato es poco confiable, así que "estar en primer ciclo" no se filtra en la base: se pregunta en el propio cuestionario.',
+    tecnico:
+      'Nivel curricular del estudiante. Por su baja fiabilidad en EE.GG. (niveles 0 y 1 conviven de forma ambigua), la exclusión del primer ciclo se implementa en el instrumento (pregunta filtro condicionante), manteniendo el N del marco comparable entre años.',
+    fuenteId: 'propuesta-2026',
+  },
+  {
+    termino: 'etapa (Propuesta / Campo)',
+    llano:
+      'Cada estudio se calcula dos veces: la Propuesta usa la data del año pasado (para diseñar y presupuestar) y el Campo se recalcula con la base nueva del semestre de aplicación. Son dos poblaciones distintas y no deben confundirse.',
+    tecnico:
+      'Etapa 1 (Propuesta): diseño sobre la última base disponible. Etapa 2 (Campo): recomputación del mismo método sobre la base oficial del semestre de aplicación, que define la población definitiva. Toda cifra de propuesta se comunica con la nota de que será actualizada.',
+    fuenteId: 'comparacion-estudios',
+  },
+  {
+    termino: 'escenarios (E1 / E2)',
+    llano:
+      'Dos formas de dimensionar el mismo estudio: E1 hace una muestra global (más barata, conclusiones a nivel universidad); E2 le da a cada facultad su propia muestra (más cara, permite conclusiones por facultad, exige ponderar el total).',
+    tecnico:
+      'E1: n global con afijación proporcional; nivel de inferencia = total universidad. E2: cada facultad como dominio de estimación con parámetros escalonados por tamaño y p observada propia; el total se reporta con ponderación post-estratificación (W).',
+    fuenteId: 'comparacion-estudios',
+  },
+  {
+    termino: 'representatividad vs inferencia',
+    llano:
+      'Que la muestra "se parezca" a la universidad (representativa) no es lo mismo que poder sacar conclusiones confiables por cada facultad (inferencia por facultad). Para lo segundo hace falta el escenario por facultad.',
+    tecnico:
+      'La afijación proporcional garantiza representatividad distribucional, pero el dominio de inferencia del E1 es el total: los n por facultad no alcanzan precisión propia. La inferencia por facultad exige tratarla como estrato con muestra mínima (E2). Punto crítico de comunicación con clientes.',
+    fuenteId: 'comparacion-estudios',
+  },
 ];
 
 export const RESPALDOS: PasoRespaldo[] = [

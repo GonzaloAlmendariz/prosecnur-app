@@ -3,8 +3,10 @@ import type {
   CalcMuestraEstudio,
   CalcMuestraComponente,
   CalcMuestraWorkspace,
+  CalcMuestraWorkspaceMotorRecorrido,
 } from "../../../api/client";
 import { DEFAULT_CALC_MUESTRA_ESTUDIO } from "../../../api/client";
+import { EMPTY_WORKSPACE } from "../workspaceDefaults";
 
 type State = {
   estudio: CalcMuestraEstudio;
@@ -20,6 +22,8 @@ type Actions = {
   replaceEstudio: (estudio: CalcMuestraEstudio) => void;
   patchEstudio: (patch: Partial<CalcMuestraEstudio>) => void;
   setWorkspace: (workspace: CalcMuestraWorkspace | null) => void;
+  /** Patchea SOLO motor_recorrido preservando el resto del workspace. */
+  setWorkspaceMotorRecorrido: (mr: CalcMuestraWorkspaceMotorRecorrido) => void;
   setTitulo: (titulo: string) => void;
   setContexto: (campo: "cliente" | "tipo_cliente" | "descripcion_libre", valor: string) => void;
   setComponentes: (comps: CalcMuestraComponente[]) => void;
@@ -58,6 +62,14 @@ export const useCalcMuestraStore = create<State & Actions>((set) => ({
   setWorkspace: (workspace) =>
     set((s) => ({
       estudio: { ...s.estudio, workspace },
+      dirty: true,
+    })),
+  setWorkspaceMotorRecorrido: (mr) =>
+    set((s) => ({
+      estudio: {
+        ...s.estudio,
+        workspace: { ...(s.estudio.workspace ?? EMPTY_WORKSPACE), motor_recorrido: mr },
+      },
       dirty: true,
     })),
   setTitulo: (titulo) =>

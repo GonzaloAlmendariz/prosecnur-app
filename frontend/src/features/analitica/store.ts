@@ -248,6 +248,10 @@ export type BasesXlsxConfig = {
   // archivo se comparte entre analistas (codigos) y stakeholders (etiquetas).
   valores: "codigos" | "etiquetas" | "ambos";
   multi_select: MultiSelectMode;
+  // Agrega, junto a las columnas dummy 0/1 de cada select_multiple, una
+  // columna madre legible con las respuestas concatenadas. Solo aplica con
+  // multi_select = "dummy_01". Opcional para no forzar el default del panel.
+  incluir_madre_sm?: boolean;
 };
 
 export type MeasureSpss = "nominal" | "ordinal" | "scale";
@@ -386,7 +390,9 @@ export const DEFAULT_CONFIG: AnaliticaConfig = {
     // Default "original": respeta el orden del instrumento. Más cómodo
     // para revisar la base con alguien que conoce el XLSForm.
     orden: "original",
-    mostrar_todo: false,
+    // Default true (metodológico): muestra TODAS las categorías del catálogo,
+    // con 0 donde nadie marcó (escala completa). El usuario puede apagarlo.
+    mostrar_todo: true,
     incluir_titulos: true,
     incluir_secciones: true,
     numericas_override: undefined,
@@ -453,7 +459,7 @@ export const DEFAULT_CONFIG: AnaliticaConfig = {
   bases: {
     sav:  { incluir_sps: false },
     csv:  { valores: "etiquetas", separador: ",", multi_select: "dummy_01" },
-    xlsx: { valores: "ambos", multi_select: "dummy_01" },
+    xlsx: { valores: "ambos", multi_select: "dummy_01", incluir_madre_sm: false },
     overrides: {},
   },
   dimensiones: {
