@@ -12,6 +12,15 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.5.7",
+    date: "2026-07-13",
+    highlights: [
+      "Instalación Windows: permite elegir la carpeta donde instalar Prosecnur y conserva esa elección al actualizar.",
+      "Instalación Windows: verifica que la ruta seleccionada tenga permisos de escritura antes de copiar archivos.",
+      "Instalación Windows: reintenta de forma segura la recuperación del motor estadístico cuando una instalación previa quedó incompleta.",
+    ],
+  },
+  {
     version: "0.5.6",
     date: "2026-07-13",
     highlights: [
