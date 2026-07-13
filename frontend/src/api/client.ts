@@ -3294,9 +3294,11 @@ export type Pregunta = {
   choices?: Array<{ name: string; label: string }>;
 };
 
-export async function apiInstrumentoEstructura() {
+export async function apiInstrumentoEstructura(base?: string) {
+  const trimmed = (base ?? "").trim();
+  const qs = trimmed ? `?base=${encodeURIComponent(trimmed)}` : "";
   return handle<{ secciones: Seccion[]; preguntas: Pregunta[] }>(
-    await apiFetch("/api/carga/instrumento/estructura", { headers: headers() })
+    await apiFetch(`/api/carga/instrumento/estructura${qs}`, { headers: headers() })
   );
 }
 

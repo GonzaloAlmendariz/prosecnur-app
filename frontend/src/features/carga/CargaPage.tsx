@@ -59,9 +59,12 @@ import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import SeccionesPanel from "./SeccionesPanel";
 import PreguntasPanel from "./PreguntasPanel";
 import { BasesPanel } from "./BasesPanel";
+import { EsquemaBaseSelector } from "./EsquemaBaseSelector";
 import { ReconciliacionExtraDialog } from "./ReconciliacionExtraDialog";
 import { summaryLabel as reconSummaryLabel } from "./reconciliacionModel";
 import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
+import { repeatContextFromBase } from "../../lib/rosterExplorer";
+import { defaultEsquemaBase } from "./esquemaBaseModel";
 
 // Fase 1 — Carga de insumos.
 //
@@ -174,6 +177,9 @@ export default function CargaPage() {
   const [dataPreview, setDataPreview] = useState<DataPreview | null>(null);
   const [choiceMappingReview, setChoiceMappingReview] = useState<ChoiceCodeMapReview | null>(null);
   const [estructura, setEstructura] = useState<{ secciones: Seccion[]; preguntas: Pregunta[] } | null>(null);
+  // Base cuyo esquema se muestra en la inspección multibase (madre↔hija). En
+  // single-base queda vacío y `estructura` viene del instrumento único.
+  const [esquemaBase, setEsquemaBase] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [busy, setBusy] = useState<string>("");
   const feedbackRef = useRef<HTMLDivElement | null>(null);
@@ -571,12 +577,6 @@ export default function CargaPage() {
     }
   }
 
-  useEffect(() => {
-    if (state?.instrumento_parsed && !estructura) {
-      apiInstrumentoEstructura().then(setEstructura).catch((e) => setError((e as Error).message));
-    }
-  }, [state?.instrumento_parsed, estructura]);
-
   // Estado de prereqs — muestra al lado del título como meta chip.
   const hasXlsform = !!state?.xlsform;
   const hasData = !!state?.data;
@@ -624,6 +624,12 @@ export default function CargaPage() {
   const cargaBaseSignature = estudio
     ? Object.keys(estudio.bases).sort((a, b) => a.localeCompare(b, "es")).join("|")
     : "";
+  // En multibase no hay `instrumento_parsed` único; basta con que la estructura
+  // de la base elegida esté cargada para mostrar la inspección de esquema. En
+  // single-base se conserva el gate histórico.
+  const showInspection = isMultiBase
+    ? !!estructura
+    : !!state?.instrumento_parsed && !!estructura;
   // Flag que le pide al BasesPanel abrir directamente su form "Agregar
   // base" al montar. Se activa tras convertir single → multi con el
   // botón "+ Agregar otra base" para que el usuario no tenga que
@@ -638,6 +644,7 @@ export default function CargaPage() {
     setDataPreview(null);
     setChoiceMappingReview(null);
     setEstructura(null);
+    setEsquemaBase("");
     setEstudio(null);
     setAutoOpenAddBase(false);
     setActiveCargaTab("insumos");
@@ -689,9 +696,38 @@ export default function CargaPage() {
     return () => { cancelled = true; };
   }, [isMultiBase, state?.n_bases, state?.bases_nombres?.join(",")]);
 
+  // Esquema single-base: instrumento único (comportamiento histórico intacto).
+  useEffect(() => {
+    if (isMultiBase) return;
+    if (state?.instrumento_parsed && !estructura) {
+      apiInstrumentoEstructura().then(setEstructura).catch((e) => setError((e as Error).message));
+    }
+  }, [isMultiBase, state?.instrumento_parsed, estructura]);
+
+  // Esquema multibase: elegir la base cuyo esquema se muestra. Por defecto la
+  // que mejor exhibe el begin_repeat (la madre de una base hija repeat) y
+  // mantenerla válida si cambia el set de bases.
+  useEffect(() => {
+    if (!isMultiBase || !estudio) return;
+    const names = new Set(Object.keys(estudio.bases));
+    setEsquemaBase((current) => (current && names.has(current) ? current : defaultEsquemaBase(estudio.bases, estudio.active_base)));
+  }, [isMultiBase, cargaBaseSignature, estudio?.active_base]);
+
+  // Esquema multibase: cargar la estructura de la base elegida y re-cargar
+  // cuando el usuario alterna madre↔hija en el selector.
+  useEffect(() => {
+    if (!isMultiBase || !esquemaBase) return;
+    let cancelled = false;
+    apiInstrumentoEstructura(esquemaBase)
+      .then((r) => { if (!cancelled) setEstructura(r); })
+      .catch((e) => { if (!cancelled) setError((e as Error).message); });
+    return () => { cancelled = true; };
+  }, [isMultiBase, esquemaBase]);
+
   // Tras cambios al estudio (add/remove/rename base), refrescar
-  // session state + estudio payload + re-hidratar estructura del primer
-  // instrumento si aplica.
+  // session state + estudio payload. En multibase, los effects de esquema
+  // reconstruyen la base elegida + su estructura; aquí solo limpiamos el caso
+  // sin bases.
   async function onEstudioChanged(payload: EstudioPayload) {
     setEstudio(payload);
     if (payload.processing_mode === "independent_siblings" || payload.n_bases > 1) {
@@ -701,14 +737,12 @@ export default function CargaPage() {
       setPreferredMultiStrategy("independent");
     }
     await refresh();
-    if (payload.n_bases > 0) {
-      try {
-        const r = await apiInstrumentoEstructura();
-        setEstructura(r);
-      } catch { /* primera base puede no tener estructura aún */ }
-    } else {
+    if (payload.n_bases === 0) {
+      setEsquemaBase("");
       setEstructura(null);
     }
+    // n_bases > 0: el effect de esquema multibase elige la base (madre del
+    // repeat por defecto) y el effect de fetch carga su estructura.
   }
 
   async function onConfirmChoiceMapping() {
@@ -925,7 +959,10 @@ export default function CargaPage() {
             />
           )}
         >
-          <div className="pulso-carga-content pulso-content-area pulso-carga-content--multi">
+          <div className="pulso-carga-content pulso-content-area pulso-carga-content--multi pulso-carga-content--framed">
+            {/* Banda fija (fuera del scroller) + área scrolleable propia: el
+                suitebar se queda arriba sin tapar el contenido, que desliza por
+                debajo en su propio contenedor. */}
             <CargaSuiteBar
               modeLabel="Varias bases"
               headline={cargaBaseOptions.length > 0 ? "Mesa multibase activa" : "Define las fuentes del estudio"}
@@ -937,6 +974,7 @@ export default function CargaPage() {
               pendingChoiceMapping={pendingChoiceMapping}
               allReady={allReady}
             />
+            <div className="pulso-carga-scrollarea">
             {activeCargaTab === "insumos" ? (
               <>
                 <BasesPanel
@@ -956,8 +994,15 @@ export default function CargaPage() {
                   }}
                 />
                 <CargaFollowupContent
-                  showInspection={!!state?.instrumento_parsed && !!estructura}
+                  showInspection={showInspection}
                   estructura={estructura}
+                  schemaSelector={(
+                    <EsquemaBaseSelector
+                      bases={estudio.bases}
+                      value={esquemaBase}
+                      onChange={setEsquemaBase}
+                    />
+                  )}
                   hasXlsform={hasXlsform}
                   hasData={hasData}
                   pendingChoiceMapping={pendingChoiceMapping}
@@ -979,6 +1024,7 @@ export default function CargaPage() {
                 onSelectedBaseChange={setSelectedCargaBase}
               />
             )}
+            </div>
           </div>
         </AdaptiveSplitView>
       )}
@@ -1313,7 +1359,7 @@ export default function CargaPage() {
           </div>
           )}
           <CargaFollowupContent
-            showInspection={!!state?.instrumento_parsed && !!estructura}
+            showInspection={showInspection}
             estructura={estructura}
             hasXlsform={hasXlsform}
             hasData={hasData}
@@ -2055,6 +2101,7 @@ function CargaBaseSheetPane({
         disabledMessage={disabledMessage}
         highlightCoding
         request={activeBase ? { base_nombre: activeBase.nombre } : undefined}
+        repeat={repeatContextFromBase(activeBase)}
         load={apiCargaBaseSheet}
       />
     </section>
@@ -2074,6 +2121,7 @@ function cargaBaseMeta(base: EstudioBase) {
 function CargaFollowupContent({
   showInspection,
   estructura,
+  schemaSelector,
   hasXlsform,
   hasData,
   pendingChoiceMapping,
@@ -2085,6 +2133,7 @@ function CargaFollowupContent({
 }: {
   showInspection: boolean;
   estructura: { secciones: Seccion[]; preguntas: Pregunta[] } | null;
+  schemaSelector?: ReactNode;
   hasXlsform: boolean;
   hasData: boolean;
   pendingChoiceMapping: boolean;
@@ -2100,6 +2149,9 @@ function CargaFollowupContent({
     <>
       {showInspection && estructura && (
         <section className="pulso-carga-inspection" aria-label="Inspección del instrumento">
+          {schemaSelector && (
+            <div className="pulso-carga-inspection-head">{schemaSelector}</div>
+          )}
           <Panel
             eyebrow="Instrumento"
             title="Mapa de secciones"

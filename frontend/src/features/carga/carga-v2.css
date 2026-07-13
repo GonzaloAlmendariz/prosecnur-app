@@ -908,6 +908,71 @@
   transform: scale(0.97);
 }
 
+/* ── Selector de base del esquema (inspección multibase) ───────────────── */
+
+/* Encabezado de la inspección: aloja el selector de base cuya estructura se
+   muestra (madre↔hija). Ocupa el ancho completo del grid `.pulso-carga-inspection`. */
+.pulso-carga-inspection-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pulso-carga-esquema-base {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-carga-esquema-base-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pulso-carga-esquema-base-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: var(--pulso-control-weight);
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+.pulso-carga-esquema-base-field select {
+  max-width: 320px;
+}
+
+/* Marca cuando la base seleccionada es la MADRE de un grupo repetible: misma
+   identidad naranja `--pulso-repeat-*` que el RepeatBadge, sin ser un badge. */
+.pulso-carga-esquema-base-mother {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-repeat-bg);
+  border: 1px solid var(--pulso-repeat-border);
+  color: var(--pulso-repeat-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-control-weight);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.pulso-carga-esquema-base-mother svg {
+  color: var(--pulso-repeat-accent);
+  flex: 0 0 auto;
+}
+
 /* ── Accesibilidad ─────────────────────────────────────────────────────── */
 
 .pulso-carga-frame :where(button, a, select, input, summary, [role="tab"]):focus-visible {
