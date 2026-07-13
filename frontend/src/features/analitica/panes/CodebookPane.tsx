@@ -1,8 +1,8 @@
-import { BookOpen, CheckCircle2, Download, FileSpreadsheet, Info } from "lucide-react";
+import { BookOpen, CheckCircle2, Download, FileSpreadsheet, FileText, Info } from "lucide-react";
 import { apiAnaliticaCodebook, apiAnaliticaConfigPut, downloadUrl, type MultiBaseResult } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
 import { useAnaliticaStore } from "../store";
-import { Section, GenerateFooter } from "../PaneKit";
+import { Section, GenerateFooter, PaneGroup } from "../PaneKit";
 import { useReporteRun } from "../useReporteRun";
 import { useSession } from "../../../lib/SessionContext";
 
@@ -88,9 +88,9 @@ export function CodebookPane() {
         </div>
 
         <Section
-          title="1. Códigos especiales"
+          title="Códigos especiales"
           subtitle={<>
-            Convenciones Pulso para NS/NR/NA: los códigos marcados solo aparecen si alguien los respondió, sin filas vacías en la tabla final.
+            Convenciones Pulso para NS/NR/NA: los códigos marcados solo aparecen si alguien los respondió, sin filas vacías en la tabla final. Aplica a todos los formatos.
           </>}
         >
           <div className="analitica-codebook-code-grid">
@@ -117,33 +117,50 @@ export function CodebookPane() {
           </div>
         )}
 
-        <GenerateFooter
-          label="Generar libro de códigos + XLSForm final"
-          busy={run.busy}
-          fileId={run.fileId}
-          downloadName={run.filename ?? "libro_de_codigos.xlsx"}
-          error={run.error}
-          onGenerate={onGenerate}
-          perBase={run.perBase}
-        />
+        <PaneGroup
+          label="Libro de códigos"
+          hint="El diccionario del estudio — en Excel para análisis o en PDF para leer e imprimir."
+        >
+          <Section
+            title={
+              <span className="analitica-inline-title">
+                <FileSpreadsheet size={14} /> Excel (.xlsx)
+              </span>
+            }
+            subtitle="Editable, para análisis. Genera además el XLSForm final sincronizado en la misma corrida."
+          >
+            <GenerateFooter
+              label="Generar Excel"
+              busy={run.busy}
+              fileId={run.fileId}
+              downloadName={run.filename ?? "libro_de_codigos.xlsx"}
+              error={run.error}
+              onGenerate={onGenerate}
+              perBase={run.perBase}
+            />
 
-        <FinalXlsformDownload result={run.lastResult?.xlsform} />
+            <FinalXlsformDownload result={run.lastResult?.xlsform} />
+          </Section>
 
-        <div className="analitica-codebook-pdf">
-          <div className="analitica-codebook-pdf-copy">
-            ¿Necesitas compartirlo? Genera el <strong>libro de códigos en PDF</strong>, listo para leer e imprimir. Usa la misma fuente y exclusiones; el XLSForm final se descarga desde la corrida XLSX de arriba.
-          </div>
-          <GenerateFooter
-            label="Generar libro de códigos (PDF)"
-            busy={runPdf.busy}
-            fileId={runPdf.fileId}
-            downloadName={runPdf.filename ?? "libro_de_codigos.pdf"}
-            error={runPdf.error}
-            onGenerate={onGeneratePdf}
-            perBase={runPdf.perBase}
-            variant="secondary"
-          />
-        </div>
+          <Section
+            title={
+              <span className="analitica-inline-title">
+                <FileText size={14} /> PDF
+              </span>
+            }
+            subtitle="Para leer, imprimir y compartir. Usa la misma fuente y exclusiones que el Excel."
+          >
+            <GenerateFooter
+              label="Generar PDF"
+              busy={runPdf.busy}
+              fileId={runPdf.fileId}
+              downloadName={runPdf.filename ?? "libro_de_codigos.pdf"}
+              error={runPdf.error}
+              onGenerate={onGeneratePdf}
+              perBase={runPdf.perBase}
+            />
+          </Section>
+        </PaneGroup>
       </div>
     </Panel>
   );
