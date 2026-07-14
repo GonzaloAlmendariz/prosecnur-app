@@ -334,15 +334,23 @@ export function MarcoPoblacionSexo({
 }) {
   const { populationRows, classroomRows } = marcoFrameRows(frame, workspace);
   const labelFor = labelerFor(workspace);
-  const populationGraphUsesClassrooms = !populationRows.length && classroomRows.length > 0;
+  const SEX_KEYS = ["sex", "sexo", "genero"];
+  const estratos = totalComp.marco.estratos ?? [];
+  // Sexo de ESTUDIANTES ÚNICOS: si no están las filas de población, se toma de
+  // los estratos (N_a/N_b = mujeres/hombres únicos por facultad), NUNCA del
+  // conteo por curso-horario (que cuenta a cada estudiante una vez por cada CH
+  // en que está matriculado → infla a ~96k en vez de los ~21k únicos).
+  const estratoSexRows = universityCategoryProfileRows([], SEX_KEYS, estratos, labelFor("sex"));
   const profileSexRows = frameCategoryProfileRows(frame, "sex", labelFor("sex"), 4, "total");
+  const hasUniqueSex = populationRows.length > 0 || estratoSexRows.length > 0;
+  const populationGraphUsesClassrooms = !hasUniqueSex && classroomRows.length > 0;
   const sexRows = populationRows.length
-    ? universityCategoryProfileRows(populationRows, ["sex", "sexo", "genero"], totalComp.marco.estratos ?? [], labelFor("sex"))
-    : populationGraphUsesClassrooms
-      ? classroomSexRowsFromAulas(classroomRows, 4, labelFor("sex"))
+    ? universityCategoryProfileRows(populationRows, SEX_KEYS, estratos, labelFor("sex"))
+    : estratoSexRows.length
+      ? estratoSexRows
       : profileSexRows.length
         ? profileSexRows
-        : universityCategoryProfileRows([], ["sex", "sexo", "genero"], totalComp.marco.estratos ?? []);
+        : classroomSexRowsFromAulas(classroomRows, 4, labelFor("sex"));
   const sexTotal = sexRows.reduce((sum, row) => sum + row.value, 0);
   // Una sola barra apilada (§4.2.4): la población entera como fila única,
   // segmentada por sexo. ClassroomStackedCrossPlot ordena las columnas y aplica
