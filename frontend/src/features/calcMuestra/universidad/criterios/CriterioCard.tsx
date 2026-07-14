@@ -40,13 +40,23 @@ function ResumenCabecera({
     return <span className="cmv2-crit-head-count">{texto}</span>;
   }
   const r = resumenVariable(variable, seleccion);
+  // Un criterio con NADA o TODO marcado no restringe (el motor deja pasar todo:
+  // set vacío == set completo == sin filtro). Solo un subconjunto propio filtra;
+  // en ese caso mostramos la estimación de unidades cubiertas.
+  const noRestringe = r.seleccionadas === 0 || r.seleccionadas === r.total;
   if (variable.kind === "ordinal") {
-    return <span className="cmv2-crit-head-count">{r.seleccionadas} de {r.total} valores</span>;
+    return (
+      <span className="cmv2-crit-head-count">
+        {r.seleccionadas} de {r.total} valores{noRestringe ? " · no filtra" : ""}
+      </span>
+    );
   }
   return (
     <span className="cmv2-crit-head-count">
       {r.seleccionadas} de {r.total}
-      {r.aulasTotales > 0 ? (
+      {noRestringe ? (
+        " · no filtra"
+      ) : r.aulasTotales > 0 ? (
         <>
           {" · "}
           <strong>~{fmtInt(r.aulasCubiertas)}</strong> {unidadCriterio(variable)}
