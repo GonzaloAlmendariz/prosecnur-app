@@ -12,6 +12,19 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.5.9",
+    date: "2026-07-14",
+    highlights: [
+      "Cálculo de muestra: rediseña la sección de Cálculo con Diseño, parámetros por facultad y cursos-horario por facultad, más una vista de Cobertura con dos gráficos por facultad.",
+      "Cálculo de muestra: en Datos puedes mapear las columnas a mano, ver tarjetas por tipo y trabajar hasta dos escenarios de muestra.",
+      "Editor de formularios: el editor de texto de las preguntas suma color y encabezados, y el Mapa de lógica se renueva por completo — eliminar relaciones desde el visor, conexiones dibujadas en arco, minimapa para orientarte, contador de relaciones por sección y una leyenda mucho más clara.",
+      "Cálculo de muestra: los criterios de elegibilidad traen una selección canónica por defecto, se reconcilian solos al remapear y muestran un inventario de valores únicos en Datos → Consistencia.",
+      "Cálculo de muestra: los cálculos largos ahora se pueden cancelar y muestran su estado, con el tiempo del sorteo final acotado.",
+      "Cálculo de muestra: corrige la distribución por sexo con estudiantes únicos, el tipo de docente jerárquico y el mapeo de columnas de curso-horario; el aviso de reconstruir aparece solo cuando hay un cambio real.",
+      "Procesamiento: la reconstrucción de preguntas de opción múltiple conserva todas las alternativas y reconoce correctamente las columnas marcadas con Sí/No.",
+    ],
+  },
+  {
     version: "0.5.8",
     date: "2026-07-13",
     highlights: [
