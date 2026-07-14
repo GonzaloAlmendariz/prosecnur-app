@@ -5,7 +5,7 @@
 # Uso (desde la raiz del repo o desde api/):
 #   Rscript api/tools/gen_golden_aulas.R
 #
-# Escribe api/tests/testthat/_snaps/golden-aulas/{cadenas,simulacion,escala}.rds
+# Escribe api/tests/testthat/fixtures/golden-aulas/{cadenas,simulacion,escala}.rds
 # El test test-calc-muestra-aulas.R vuelve a computar y exige identidad.
 
 suppressWarnings(suppressMessages({
@@ -35,7 +35,7 @@ suppressWarnings(suppressMessages({
   # Helper de captura/fixtures.
   sys.source(file.path(api_dir, "tests", "testthat", "helper-golden-aulas.R"), envir = globalenv())
 
-  out_dir <- file.path(api_dir, "tests", "testthat", "_snaps", "golden-aulas")
+  out_dir <- file.path(api_dir, "tests", "testthat", "fixtures", "golden-aulas")
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
   fx <- golden_fixtures()
