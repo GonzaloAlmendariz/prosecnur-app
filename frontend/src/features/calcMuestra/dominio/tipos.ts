@@ -206,6 +206,9 @@ export type PerfilInstitucional = {
   notas: string[];
 };
 
+/** Base de cálculo del nº de cursos-horario por facultad (§5.3). */
+export type BaseCursosHorario = "total" | "elegible";
+
 /** Decisiones del usuario sobre el perfil (lo editable del recorrido). */
 export type DecisionesRecorrido = {
   parametros: ParametrosMuestra;
@@ -215,6 +218,22 @@ export type DecisionesRecorrido = {
   bolsaExtraPorFacultad: number;
   /** Escenario elegido para la síntesis final. */
   escenario: "e1" | "e2";
+  /**
+   * Agregado operacional de la pestaña «Cursos-horario por facultad»: cursos-horario
+   * extra (0, 1 o 2) a añadir a cada facultad, indexado por NOMBRE de facultad.
+   * Persistido en el motor_recorrido (passthrough opaco del workspace, sin
+   * whitelist backend). Clave = nombre tal como aparece en el marco.
+   */
+  aulasExtraPorFacultad: Record<string, number>;
+  /** Base sobre la que se contextualizan los cursos-horario del marco (§5.3.d). */
+  cursosHorarioBase: BaseCursosHorario;
+  /** true si el usuario confirmó el plan definitivo de cursos-horario por facultad (§5.3.f). */
+  cursosHorarioConfirmado: boolean;
+  /**
+   * Plan definitivo confirmado: cursos-horario finales por facultad (nombre → CH).
+   * Fuente única que consume el gráfico rediseñado de Distribución (§5.4).
+   */
+  cursosHorarioFinal: Record<string, number>;
 };
 
 /** Una celda de la afijación: cuota de una facultad desglosada por sexo. */

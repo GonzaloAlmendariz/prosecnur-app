@@ -8,6 +8,7 @@ import {
   decisionesPorDefecto,
   perfilPorId,
   PLANTILLA_UNIVERSIDAD,
+  type BaseCursosHorario,
   type DecisionesRecorrido,
   type FacultadDatos,
   type ParametrosMuestra,
@@ -49,6 +50,12 @@ type MotorState = {
   toggleOpcional: (id: string) => void;
   setBolsa: (extraPorFacultad: number) => void;
   setEscenario: (escenario: DecisionesRecorrido["escenario"]) => void;
+  /** Cursos-horario extra (0/1/2) para una facultad (§5.3 · stepper por facultad). */
+  setAulaExtraFacultad: (facultad: string, extra: number) => void;
+  /** Base de cálculo de cursos-horario del marco (total vs elegible). */
+  setCursosHorarioBase: (base: BaseCursosHorario) => void;
+  /** Confirma (o revoca) el plan definitivo de cursos-horario por facultad. */
+  confirmarCursosHorario: (final: Record<string, number> | null) => void;
   resetCanon: () => void;
 };
 
@@ -114,6 +121,34 @@ export const useMotorStore = create<MotorState>((set) => ({
     })),
   setEscenario: (escenario) =>
     set((state) => ({ tocado: true, decisiones: { ...state.decisiones, escenario } })),
+  setAulaExtraFacultad: (facultad, extra) =>
+    set((state) => {
+      const limpio = Math.max(0, Math.min(2, Math.round(extra)));
+      const aulasExtraPorFacultad = { ...state.decisiones.aulasExtraPorFacultad, [facultad]: limpio };
+      // Cambiar el agregado invalida el plan confirmado: hay que reconfirmar.
+      return {
+        tocado: true,
+        decisiones: {
+          ...state.decisiones,
+          aulasExtraPorFacultad,
+          cursosHorarioConfirmado: false,
+        },
+      };
+    }),
+  setCursosHorarioBase: (base) =>
+    set((state) => ({
+      tocado: true,
+      decisiones: { ...state.decisiones, cursosHorarioBase: base, cursosHorarioConfirmado: false },
+    })),
+  confirmarCursosHorario: (final) =>
+    set((state) => ({
+      tocado: true,
+      decisiones: {
+        ...state.decisiones,
+        cursosHorarioConfirmado: final != null,
+        cursosHorarioFinal: final ?? state.decisiones.cursosHorarioFinal,
+      },
+    })),
   resetCanon: () =>
     set((state) => ({ decisiones: decisionesPorDefecto(state.perfil), tocado: false })),
 }));

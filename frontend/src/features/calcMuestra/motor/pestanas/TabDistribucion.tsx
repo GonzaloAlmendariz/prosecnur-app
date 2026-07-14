@@ -7,8 +7,10 @@
 import type { PerfilInstitucional, ResultadoEscenario1 } from "../../dominio";
 import { sexSeriesDisplayLabel } from "../../sexoPalette";
 import { fmtDec, fmtInt } from "../../sharedCore";
+import { normalizeUniversityLabel } from "../../universidad/shared/format";
 import { BarrasDistribucion } from "../componentes/BarrasDistribucion";
 import { BarrasFacultad } from "../componentes/BarrasFacultad";
+import { useMotorStore } from "../store";
 
 export function TabDistribucion({
   perfil,
@@ -17,6 +19,10 @@ export function TabDistribucion({
   perfil: PerfilInstitucional;
   e1: ResultadoEscenario1;
 }) {
+  // Plan definitivo de cursos-horario por facultad (§5.3): cuando el usuario lo
+  // confirma, este gráfico deja de estimar y muestra las cifras acordadas.
+  const cursosHorarioConfirmado = useMotorStore((s) => s.decisiones.cursosHorarioConfirmado);
+  const cursosHorarioFinal = useMotorStore((s) => s.decisiones.cursosHorarioFinal);
   if (e1.N === 0) {
     return (
       <div className="rec-cap">
@@ -28,7 +34,19 @@ export function TabDistribucion({
     );
   }
 
-  const hayAulas = e1.cuotas.some((c) => c.aulas != null);
+  const definitivos = cursosHorarioConfirmado ? cursosHorarioFinal : null;
+  const finalPorFacultad = (nombre: string): number | null => {
+    if (!definitivos) return null;
+    if (definitivos[nombre] != null) return definitivos[nombre];
+    const clave = normalizeUniversityLabel(nombre);
+    const hit = Object.entries(definitivos).find(([k]) => normalizeUniversityLabel(k) === clave);
+    return hit ? hit[1] : null;
+  };
+  const usaDefinitivos = definitivos != null && e1.cuotas.some((c) => finalPorFacultad(c.nombre) != null);
+  const hayAulas = usaDefinitivos || e1.cuotas.some((c) => c.aulas != null);
+  const totalAulasDefinitivos = usaDefinitivos
+    ? e1.cuotas.reduce((acc, c) => acc + (finalPorFacultad(c.nombre) ?? c.aulas ?? 0), 0)
+    : 0;
 
   return (
     <div className="rec-cap">
@@ -85,15 +103,40 @@ export function TabDistribucion({
         </section>
       </div>
 
-      {hayAulas && (
+      {hayAulas && usaDefinitivos && (
+        <section className="rec-bloque">
+          <h3>Cursos-horario por {perfil.etiquetaUnidad}</h3>
+          <BarrasFacultad
+            ariaLabel={`Cursos-horario definitivos por ${perfil.etiquetaUnidad}`}
+            leyenda={
+              <span>
+                Plan confirmado: <strong>{fmtInt(totalAulasDefinitivos)}</strong> cursos-horario definitivos ·
+                cifras acordadas en «Cursos-horario por facultad»
+              </span>
+            }
+            filas={[...e1.cuotas]
+              .map((c) => ({ c, final: finalPorFacultad(c.nombre) ?? c.aulas ?? 0 }))
+              .filter((x) => x.final > 0)
+              .sort((a, b) => b.final - a.final)
+              .map(({ c, final }) => ({
+                id: c.facultadId,
+                nombre: c.nombre,
+                valor: final,
+                etiqueta: fmtInt(final),
+                anotacion: `cuota ${fmtInt(c.n)} · ${fmtDec(c.estAula, 1)} alumnos/curso-horario`,
+              }))}
+          />
+        </section>
+      )}
+      {hayAulas && !usaDefinitivos && (
         <section className="rec-bloque">
           <h3>Cursos-horario por {perfil.etiquetaUnidad}</h3>
           <BarrasFacultad
             ariaLabel={`Cursos-horario por ${perfil.etiquetaUnidad}`}
             leyenda={
               <span>
-                Total: <strong>{fmtInt(e1.aulasConBolsa)}</strong> cursos-horario · CEIL(sobremuestra ÷
-                elegibles por curso-horario) + reserva
+                Estimación: <strong>{fmtInt(e1.aulasConBolsa)}</strong> cursos-horario · CEIL(sobremuestra ÷
+                elegibles por curso-horario) + reserva. Confirma el plan en «Cursos-horario por facultad» para cifras definitivas.
               </span>
             }
             filas={[...e1.cuotas]

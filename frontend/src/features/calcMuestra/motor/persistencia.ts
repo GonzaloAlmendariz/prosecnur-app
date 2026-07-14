@@ -394,5 +394,27 @@ function normalizarDecisiones(raw: unknown, perfil: PerfilInstitucional): Decisi
     opcionalesActivos: listaTextos(raw.opcionalesActivos, base.opcionalesActivos),
     bolsaExtraPorFacultad: esNumeroFinito(bolsa) && bolsa >= 0 ? bolsa : base.bolsaExtraPorFacultad,
     escenario: raw.escenario === "e1" || raw.escenario === "e2" ? raw.escenario : base.escenario,
+    aulasExtraPorFacultad: normalizarMapaEntero(raw.aulasExtraPorFacultad, base.aulasExtraPorFacultad, 0, 2),
+    cursosHorarioBase: raw.cursosHorarioBase === "total" || raw.cursosHorarioBase === "elegible"
+      ? raw.cursosHorarioBase
+      : base.cursosHorarioBase,
+    cursosHorarioConfirmado: booleanO(raw.cursosHorarioConfirmado, base.cursosHorarioConfirmado),
+    cursosHorarioFinal: normalizarMapaEntero(raw.cursosHorarioFinal, base.cursosHorarioFinal, 0),
   };
+}
+
+/** Mapa nombre → entero finito acotado [min, max]; entradas corruptas se descartan. */
+function normalizarMapaEntero(
+  valor: unknown,
+  fallback: Record<string, number>,
+  min: number,
+  max = Number.POSITIVE_INFINITY,
+): Record<string, number> {
+  if (!esRegistro(valor)) return fallback;
+  const mapa: Record<string, number> = {};
+  for (const [clave, bruto] of Object.entries(valor)) {
+    if (!esNumeroFinito(bruto)) continue;
+    mapa[clave] = Math.max(min, Math.min(max, Math.round(bruto)));
+  }
+  return mapa;
 }
