@@ -167,8 +167,17 @@ export function ControlNumeric({
     return onSel(setThreshold(sel, { op: "between", min, max }));
   }
 
+  // Ventana admitida sobre el rango observado (solo presentación): un tramo
+  // resaltado que traduce el umbral elegido a una banda del eje real.
+  const span = Math.max(1, range.max - range.min);
+  const clamp = (value: number) => Math.min(Math.max(value, range.min), range.max);
+  const lo = op === "<=" ? range.min : clamp(min);
+  const hi = op === ">=" ? range.max : clamp(max);
+  const fillLeft = op === "none" ? 0 : ((Math.min(lo, hi) - range.min) / span) * 100;
+  const fillRight = op === "none" ? 100 : ((Math.max(lo, hi) - range.min) / span) * 100;
+
   return (
-    <div className="cmv2-crit-numeric">
+    <div className="cmv2-crit-numeric" data-mode={op}>
       <div className="cmv2-crit-seg" role="group" aria-label={`Umbral de ${variable.label}`}>
         {NUMERIC_OPS.map((item) => (
           <button
@@ -182,7 +191,7 @@ export function ControlNumeric({
           </button>
         ))}
       </div>
-      {op !== "none" && (
+      {op !== "none" ? (
         <div className="cmv2-crit-num-inputs">
           {(op === ">=" || op === "between") && (
             <label className="cmv2-crit-num-field">
@@ -213,10 +222,18 @@ export function ControlNumeric({
             </label>
           )}
         </div>
+      ) : (
+        <p className="cmv2-crit-num-empty">Sin filtro: se admiten todos los valores del rango observado.</p>
       )}
-      <span className="cmv2-crit-num-hint">
-        Rango observado en la base: {fmtInt(range.min)} – {fmtInt(range.max)}.
-      </span>
+      <div className="cmv2-crit-num-scale">
+        <div className="cmv2-crit-num-scale-head">
+          <span>Rango observado en la base</span>
+          <strong>{fmtInt(range.min)} – {fmtInt(range.max)}</strong>
+        </div>
+        <div className="cmv2-crit-num-track" aria-hidden="true">
+          <i style={{ left: `${fillLeft}%`, right: `${100 - fillRight}%` }} />
+        </div>
+      </div>
     </div>
   );
 }

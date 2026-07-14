@@ -45,8 +45,15 @@ export function ControlRange({
     );
   }
 
+  const conRango = facultades.filter((fac) => rangosFacultad(seleccion, fac.key).length > 0).length;
+
   return (
     <div className="cmv2-crit-range">
+      <p className="cmv2-crit-range-note" role="note">
+        Sin rango, la facultad admite <strong>todos los niveles</strong> y no filtra.
+        Activa una facultad para limitarla a un tramo de niveles.
+        {conRango > 0 ? <span className="cmv2-crit-range-note-count"> · {conRango} con rango propio</span> : null}
+      </p>
       <div className="cmv2-crit-range-head" role="row">
         <span role="columnheader">Facultad</span>
         <span role="columnheader">Aplica</span>
@@ -58,8 +65,8 @@ export function ControlRange({
         const desde = activo ? rangos[0][0] : min;
         const hasta = activo ? rangos[0][1] : max;
         return (
-          <div key={fac.key} className="cmv2-crit-range-row" role="row">
-            <span className="cmv2-crit-range-fac" role="rowheader">{fac.label}</span>
+          <div key={fac.key} className="cmv2-crit-range-row" role="row" data-active={activo}>
+            <span className="cmv2-crit-range-fac" role="rowheader" title={fac.label}>{fac.label}</span>
             <span className="cmv2-crit-range-apply">
               <Switch
                 checked={activo}
@@ -68,29 +75,33 @@ export function ControlRange({
               />
             </span>
             <span className="cmv2-crit-range-inputs" data-active={activo}>
-              <select
-                className="cmv2-crit-from-select"
-                value={desde}
-                disabled={!activo}
-                aria-label={`Nivel mínimo en ${fac.label}`}
-                onChange={(e) => onRango(fac.key, [[Number(e.target.value), hasta]])}
-              >
-                {valores.map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
-              <span className="cmv2-crit-range-dash">–</span>
-              <select
-                className="cmv2-crit-from-select"
-                value={hasta}
-                disabled={!activo}
-                aria-label={`Nivel máximo en ${fac.label}`}
-                onChange={(e) => onRango(fac.key, [[desde, Number(e.target.value)]])}
-              >
-                {valores.map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
+              {activo ? (
+                <>
+                  <select
+                    className="cmv2-crit-range-select"
+                    value={desde}
+                    aria-label={`Nivel mínimo en ${fac.label}`}
+                    onChange={(e) => onRango(fac.key, [[Number(e.target.value), hasta]])}
+                  >
+                    {valores.map((v) => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                  <span className="cmv2-crit-range-dash">–</span>
+                  <select
+                    className="cmv2-crit-range-select"
+                    value={hasta}
+                    aria-label={`Nivel máximo en ${fac.label}`}
+                    onChange={(e) => onRango(fac.key, [[desde, Number(e.target.value)]])}
+                  >
+                    {valores.map((v) => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                </>
+              ) : (
+                <span className="cmv2-crit-range-all">Todos los niveles</span>
+              )}
             </span>
           </div>
         );

@@ -1448,6 +1448,29 @@
   font-size: 13px;
 }
 
+/* Carreras por facultad a fila completa: la tarjeta ya es `is-wide`; sin este
+   ajuste las barras se apilaban en una tira estrecha con blanco a la derecha.
+   Ahora fluyen en columnas responsivas (auto-fill) que aprovechan el ancho y
+   colapsan solas a una columna en viewports compactos. El min-height inline del
+   componente (dimensionado para una sola columna) se anula porque en varias
+   columnas sobra-reserva alto y dejaba hueco muerto. */
+.cmv2-marco-stack .cmv2-plot-card:has(.cmv2-marco-carreras-swap) {
+  min-height: 0;
+}
+
+.cmv2-marco-stack .cmv2-marco-carreras-swap .cmv2-native-bars {
+  min-height: 0 !important;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2px 22px;
+  align-content: start;
+}
+
+/* La fila agregada "y N más" cierra el listado a lo ancho, no como una columna
+   más de datos. */
+.cmv2-marco-stack .cmv2-marco-carreras-swap .cmv2-native-bars .cmv2-native-bar-row.is-overflow {
+  grid-column: 1 / -1;
+}
+
 /* §4.3.3: sexo por curso-horario con selector de facultad, orden y scroll. */
 .cmv2-ch-sexo-head {
   display: flex;
