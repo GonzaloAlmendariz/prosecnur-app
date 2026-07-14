@@ -6,7 +6,7 @@
  * aula cliente (unión de sets).
  */
 import { describe, expect, it } from "vitest";
-import type { CriteriosCatalogo } from "../../../../api/client";
+import type { CriteriosCatalogo, CriteriosSeleccionMarco } from "../../../../api/client";
 import {
   aulasCubiertas,
   capaDe,
@@ -14,6 +14,7 @@ import {
   estadoGrupo,
   minEligibleThreshold,
   ordinalIncluido,
+  reconciliarSeleccionConCatalogo,
   removeExcepcion,
   resumenVariable,
   seleccionCanonica,
@@ -179,6 +180,156 @@ describe("seleccionCanonica — teacher_type", () => {
     // Pre-docente (jefe de práctica / instructor) queda fuera.
     expect(canonicas.has("jefe_practica")).toBe(false);
     expect(canonicas.has("instructor")).toBe(false);
+  });
+});
+
+describe("reconciliarSeleccionConCatalogo", () => {
+  // Catálogo con el rol teacher_type ya bien mapeado a "Tipo de docente".
+  const CATALOGO_REAL: CriteriosCatalogo = {
+    schema: "calc_muestra_criterios_catalogo_v1",
+    variables: [
+      {
+        id: "teacher_type",
+        scope: "aula",
+        label: "Tipo de docente",
+        kind: "hierarchical",
+        groups: [
+          {
+            key: "g_contratado",
+            label: "Docente contratado",
+            aulas: 900,
+            children: [{ key: "contratado", label: "Docente contratado", aulas: 900 }],
+          },
+          {
+            key: "g_ordinario",
+            label: "Docente ordinario",
+            aulas: 2000,
+            children: [
+              { key: "ord_principal", label: "Docente ordinario principal", aulas: 800 },
+              { key: "ord_asociado", label: "Docente ordinario asociado", aulas: 700 },
+              { key: "ord_auxiliar", label: "Docente ordinario auxiliar", aulas: 500 },
+            ],
+          },
+          {
+            key: "g_extra",
+            label: "Docente extraordinario",
+            aulas: 150,
+            children: [{ key: "ext_visitante", label: "Docente extraordinario visitante", aulas: 150 }],
+          },
+        ],
+      },
+      {
+        id: "formation",
+        scope: "alumno",
+        label: "Formación",
+        kind: "flat",
+        categories: [
+          { key: "pregrado", label: "Pregrado", aulas: 5000 },
+          { key: "maestria", label: "Maestría", aulas: 400 },
+          { key: "doctorado", label: "Doctorado", aulas: 120 },
+        ],
+      },
+      {
+        id: "modality",
+        scope: "aula",
+        label: "Modalidad",
+        kind: "flat",
+        categories: [
+          { key: "presencial", label: "Presencial", aulas: 4000 },
+          { key: "virtual", label: "Virtual", aulas: 300 },
+        ],
+      },
+    ],
+  };
+
+  it("(a) selección STALE de teacher_type (claves de la columna vieja) se resetea a canónico", () => {
+    const stale: CriteriosSeleccionMarco = {
+      byVariable: {
+        // Claves heredadas de "Condición" (regular/reincorporado): ninguna matchea
+        // un tipo de docente real → 100% stale → excluiría todos los cursos-horario.
+        teacher_type: { mode: "include", match: "any", categories: ["regular", "reincorporado"], layer: "marco" },
+        formation: { mode: "include", categories: ["pregrado"] },
+        modality: { mode: "include", categories: ["presencial", "virtual"] },
+      },
+    };
+    const out = reconciliarSeleccionConCatalogo(stale, CATALOGO_REAL);
+    const tt = new Set(out.byVariable.teacher_type.categories ?? []);
+    // Reset a canónico: contratado + ordinario, SIN extraordinario.
+    expect(tt).toEqual(new Set(["contratado", "ord_principal", "ord_asociado", "ord_auxiliar"]));
+    expect(tt.has("ext_visitante")).toBe(false);
+    // Las demás (válidas) quedan intactas.
+    expect(out.byVariable.formation.categories).toEqual(["pregrado"]);
+    expect(out.byVariable.modality.categories).toEqual(["presencial", "virtual"]);
+  });
+
+  it("(b) selección VÁLIDA parcial (pregrado sin maestría) se conserva intacta", () => {
+    const sel: CriteriosSeleccionMarco = {
+      byVariable: {
+        teacher_type: { mode: "include", match: "any", categories: ["contratado"] },
+        formation: { mode: "include", categories: ["pregrado"] },
+        modality: { mode: "include", categories: ["presencial"] },
+      },
+    };
+    const out = reconciliarSeleccionConCatalogo(sel, CATALOGO_REAL);
+    expect(out.byVariable.formation.categories).toEqual(["pregrado"]);
+    expect(out.byVariable.teacher_type.categories).toEqual(["contratado"]);
+    expect(out.byVariable.modality.categories).toEqual(["presencial"]);
+  });
+
+  it("(c) variable sin selección guardada toma la canónica", () => {
+    const sel: CriteriosSeleccionMarco = {
+      byVariable: {
+        teacher_type: { mode: "include", match: "any", categories: ["contratado"] },
+        // formation y modality sin entrada persistida.
+      },
+    };
+    const out = reconciliarSeleccionConCatalogo(sel, CATALOGO_REAL);
+    expect(out.byVariable.formation.categories).toEqual(["pregrado"]);
+    expect(new Set(out.byVariable.modality.categories ?? [])).toEqual(new Set(["presencial"]));
+    // La válida no se toca.
+    expect(out.byVariable.teacher_type.categories).toEqual(["contratado"]);
+  });
+
+  it("preserva courseLevelRanges y minEligible", () => {
+    const sel: CriteriosSeleccionMarco = {
+      byVariable: { teacher_type: { mode: "include", match: "any", categories: ["regular"] } },
+      courseLevelRanges: { ingenieria: [[2, 10]] },
+      minEligible: { threshold: 15 },
+    };
+    const out = reconciliarSeleccionConCatalogo(sel, CATALOGO_REAL);
+    expect(out.courseLevelRanges).toEqual({ ingenieria: [[2, 10]] });
+    expect(out.minEligible).toEqual({ threshold: 15 });
+  });
+
+  it("es idempotente (reconciliar dos veces == una)", () => {
+    const stale: CriteriosSeleccionMarco = {
+      byVariable: { teacher_type: { mode: "include", match: "any", categories: ["regular"] } },
+    };
+    const once = reconciliarSeleccionConCatalogo(stale, CATALOGO_REAL);
+    const twice = reconciliarSeleccionConCatalogo(once, CATALOGO_REAL);
+    expect(twice).toEqual(once);
+  });
+
+  it("catálogo sin variables no altera la selección", () => {
+    const sel: CriteriosSeleccionMarco = {
+      byVariable: { teacher_type: { mode: "include", categories: ["regular"] } },
+    };
+    const out = reconciliarSeleccionConCatalogo(sel, { schema: "x", variables: [] });
+    expect(out.byVariable).toEqual(sel.byVariable);
+  });
+
+  it("no revienta si categories llega como escalar (jsonlite desempaca array de 1)", () => {
+    // El .pulso persistido puede traer `categories: "regular"` (no array) tras
+    // pasar por jsonlite; sin la coerción defensiva, .some() crasheaba la app.
+    const sel = {
+      byVariable: { teacher_type: { mode: "include", match: "any", categories: "regular" } },
+    } as unknown as CriteriosSeleccionMarco;
+    const out = reconciliarSeleccionConCatalogo(sel, CATALOGO_REAL);
+    // El escalar stale "regular" no matchea ningún tipo de docente → canónico
+    // (contratado + ordinario), y sobre todo NO revienta con .some().
+    expect(new Set(out.byVariable.teacher_type.categories ?? [])).toEqual(
+      new Set(["contratado", "ord_principal", "ord_asociado", "ord_auxiliar"]),
+    );
   });
 });
 

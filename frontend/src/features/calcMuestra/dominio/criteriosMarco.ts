@@ -189,6 +189,92 @@ export function seleccionCanonica(catalogo: CriteriosCatalogo | null | undefined
   return { byVariable };
 }
 
+/**
+ * Claves de match VÁLIDAS de una variable contra el catálogo vigente. flat:
+ * claves de sus categorías; hierarchical: clave de cada GRUPO y de cada HIJO
+ * (el motor arma group.key + children[].key en `.cm_criterios_enum_teacher`);
+ * ordinal/numeric/range: sin claves de categoría (se reconcilian por su propio
+ * dominio, no por este set). Sirve para detectar una selección 100% STALE
+ * heredada de otra columna tras remapear un rol.
+ */
+function clavesValidasDeVariable(variable: CriterioVariable): Set<string> {
+  if (variable.kind === "hierarchical") {
+    const keys = new Set<string>();
+    for (const g of variable.groups ?? []) {
+      if (g.key) keys.add(g.key);
+      for (const c of g.children) keys.add(c.key);
+    }
+    return keys;
+  }
+  if (variable.kind === "flat") {
+    return new Set((variable.categories ?? []).map((c) => c.key));
+  }
+  return new Set();
+}
+
+/**
+ * Reconcilia una selección persistida contra el catálogo ACTUAL. Motivo: al
+ * remapear el rol de una variable (p. ej. teacher_type pasa de leer "Condición"
+ * a "Tipo de docente"), la selección guardada conserva claves de la columna
+ * vieja que ya no matchean ninguna categoría real; en modo include eso excluye
+ * TODOS los cursos-horario y el marco elegible cae a 0.
+ *
+ * Regla, por variable no-range del catálogo:
+ *  - Sin selección guardada → toma la canónica de esa variable (default
+ *    defendible; una variable nueva no debe quedar sin criterio).
+ *  - Selección 100% STALE (su set no intersecta NINGUNA clave/valor válido) →
+ *    se reemplaza por la canónica de esa variable.
+ *  - Intersección parcial (el usuario deseleccionó válidos a propósito) → se
+ *    CONSERVA intacta.
+ * `courseLevelRanges` y `minEligible` se preservan sin tocar. Es idempotente:
+ * reconciliar dos veces produce el mismo resultado (la canónica usa claves
+ * válidas), lo que permite compararla contra la guardada para persistir el
+ * saneo sin entrar en bucle.
+ */
+/**
+ * Coerción defensiva a array. El .pulso persistido pasa por jsonlite, que puede
+ * desempacar un array de 1 elemento a escalar; sin esto, `categories`/`includeValues`
+ * llegan como string/number sueltos y `.some()` revienta (crash de la app al abrir
+ * un proyecto con selección de una sola categoría).
+ */
+function comoArray<T>(x: T[] | T | null | undefined): T[] {
+  return Array.isArray(x) ? x : x == null ? [] : [x];
+}
+
+export function reconciliarSeleccionConCatalogo(
+  seleccion: CriteriosSeleccionMarco,
+  catalogo: CriteriosCatalogo | null | undefined,
+): CriteriosSeleccionMarco {
+  const canon = seleccionCanonica(catalogo);
+  const byVariable: Record<string, CriterioSeleccion> = { ...seleccion.byVariable };
+  for (const variable of catalogo?.variables ?? []) {
+    if (variable.kind === "range") continue; // usa courseLevelRanges, no byVariable
+    const canonVar = canon.byVariable[variable.id];
+    const guardada = seleccion.byVariable?.[variable.id];
+    if (!guardada) {
+      if (canonVar) byVariable[variable.id] = canonVar;
+      continue;
+    }
+    if (variable.kind === "flat" || variable.kind === "hierarchical") {
+      const marcadas = comoArray(guardada.categories);
+      if (marcadas.length === 0) continue; // nada marcado: es "vacío", no stale
+      const validas = clavesValidasDeVariable(variable);
+      if (validas.size > 0 && !marcadas.some((k) => validas.has(k)) && canonVar) {
+        byVariable[variable.id] = canonVar;
+      }
+    } else if (variable.kind === "ordinal") {
+      const marcados = comoArray(guardada.includeValues);
+      if (marcados.length === 0) continue; // fromValue / sin set: no stale
+      const validos = new Set(variable.values ?? []);
+      if (validos.size > 0 && !marcados.some((v) => validos.has(v)) && canonVar) {
+        byVariable[variable.id] = canonVar;
+      }
+    }
+    // numeric: umbral con dominio propio; no se reconcilia por claves.
+  }
+  return { ...seleccion, byVariable };
+}
+
 // ---------------------------------------------------------------------------
 // flat / hierarchical
 // ---------------------------------------------------------------------------

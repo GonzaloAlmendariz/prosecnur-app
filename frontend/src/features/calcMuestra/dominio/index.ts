@@ -14,6 +14,7 @@ export {
 export {
   seleccionInicial,
   seleccionCanonica,
+  reconciliarSeleccionConCatalogo,
   seleccionVariable,
   categoriasDeVariable,
   clavesDeVariable,
