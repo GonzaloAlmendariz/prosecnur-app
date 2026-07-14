@@ -115,12 +115,12 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     shortLabel: "Cálculo de muestra",
     tagline: "Marco muestral, escenarios y selección de unidades",
     blurb:
-      "Construcción del marco muestral, cálculo de escenarios de tamaño y selección de unidades —estudiantes, aulas, actores, manzanas o viviendas—. El plan resultante se enlaza con Monitoreo para el seguimiento de campo.",
+      "Construcción del marco muestral, cálculo de escenarios de tamaño y selección de unidades —estudiantes, cursos-horario, actores, manzanas o viviendas—. El plan resultante se enlaza con Monitoreo para el seguimiento de campo.",
     features: [
       "Construcción y auditoría del marco muestral",
       "Escenarios de tamaño, cuotas, estratos y conglomerados",
       "Selección aleatoria, sistemática o por reglas operativas",
-      "Procedimientos por estudiantes, aulas, actores y territorio",
+      "Procedimientos por estudiantes, cursos-horario, actores y territorio",
       "Reporte metodológico y enlace con Monitoreo",
     ],
     icon: IconSample,
@@ -165,17 +165,17 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   },
   {
     slug: "recopiladores",
-    title: "Fichas QR para aulas",
+    title: "Fichas QR para cursos-horario",
     shortLabel: "Fichas QR",
-    tagline: "Material imprimible para la aplicación en aulas",
+    tagline: "Material imprimible para intervenciones por cursos-horario",
     blurb:
-      "Genera fichas imprimibles con código QR, enlace de Kobo y los datos de aplicación a partir del plan de aulas. Articula la coordinación docente con el monitoreo de la aplicación en aula.",
+      "Genera fichas imprimibles con código QR, enlace de Kobo y los datos de aplicación a partir del plan de cursos-horario. Articula la coordinación docente con el monitoreo de la intervención.",
     features: [
-      "Una ficha por curso-horario del plan de aulas",
+      "Una ficha por curso-horario del plan",
       "QR, enlace y datos del curso en una sola hoja",
       "Vista previa previa a la impresión o consolidación",
       "Agrupación por facultad, selección o estado de enlace",
-      "Devolución de enlaces al monitoreo en aulas",
+      "Devolución de enlaces al monitoreo de cursos-horario",
     ],
     icon: IconCollector,
     tone: MODULE_TONES.recopiladores,

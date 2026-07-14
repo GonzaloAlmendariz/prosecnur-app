@@ -35,7 +35,7 @@ function pct(value: unknown) {
 function columnLabel(column: string) {
   const labels: Record<string, string> = {
     operational_code: "Código de ficha",
-    label: "Aula",
+    label: "Curso-horario",
     course_name: "Curso",
     section: "Sección",
     schedule: "Horario",
@@ -43,7 +43,7 @@ function columnLabel(column: string) {
     package_status: "Ficha PDF",
     responsible: "Responsable",
     collector_id: "Origen",
-    classroom_id: "ID de aula",
+    classroom_id: "ID de curso-horario",
     teacher: "Docente",
     faculty: "Facultad",
     program: "Carrera",
@@ -102,7 +102,7 @@ function aulasKpis(dashboard: MonitoreoAulasDashboard | null): AulasKpi[] {
   const quotaPending = Number(kpis?.quota_cells_pending ?? 0);
   const brechas = Number(kpis?.brechas ?? 0);
   return [
-    { label: "Aulas", value: fmt(kpis?.total_aulas) },
+    { label: "Cursos-horario", value: fmt(kpis?.total_aulas) },
     { label: "Aplicadas", value: fmt(kpis?.aulas_aplicadas) },
     { label: "Válidas", value: fmt(kpis?.respuestas_validas) },
     { label: "Representatividad", value: pct(kpis?.representativity_effective_score) },
@@ -113,7 +113,7 @@ function aulasKpis(dashboard: MonitoreoAulasDashboard | null): AulasKpi[] {
 
 function AulasKpiBand({ dashboard }: { dashboard: MonitoreoAulasDashboard | null }) {
   return (
-    <div className="aulas-kpi-band" role="group" aria-label="Indicadores de aulas">
+    <div className="aulas-kpi-band" role="group" aria-label="Indicadores de cursos-horario">
       {aulasKpis(dashboard).map((kpi) => (
         <div key={kpi.label} className={`aulas-kpi aulas-kpi--${kpi.tone ?? "neutral"}`}>
           <span>{kpi.label}</span>
@@ -191,7 +191,7 @@ function handoffSummary(dashboard: MonitoreoAulasDashboard | null) {
   return { rows, total, linked, pdf, word };
 }
 
-function coverageLabel(done: number, total: number, unit = "aulas") {
+function coverageLabel(done: number, total: number, unit = "cursos-horario") {
   if (!total) return "pendiente";
   return `${fmt(done)}/${fmt(total)} ${unit}`;
 }
@@ -209,7 +209,7 @@ function HandoffTracePanel({ dashboard }: { dashboard: MonitoreoAulasDashboard |
     {
       label: "Plan de muestra",
       value: dashboard?.selection_run_id ? "importado" : "pendiente",
-      detail: `${fmt(handoff.total)} aulas de la selección del cálculo de muestra`,
+      detail: `${fmt(handoff.total)} cursos-horario de la selección del cálculo de muestra`,
       tone: dashboard?.selection_run_id ? "ready" : "waiting",
     },
     {
@@ -235,7 +235,7 @@ function HandoffTracePanel({ dashboard }: { dashboard: MonitoreoAulasDashboard |
   return (
     <section className="mon-profile-panel mon-aulas-handoff-panel">
       <div className="mon-profile-panel-head">
-        <h3>Aplicación en aulas</h3>
+        <h3>Aplicación por cursos-horario</h3>
         <span>muestra, fichas QR y monitoreo</span>
       </div>
       <div className="mon-aulas-handoff-grid">
@@ -253,7 +253,7 @@ function HandoffTracePanel({ dashboard }: { dashboard: MonitoreoAulasDashboard |
 
 function renderAulasView(view: WorkbenchView, dashboard: MonitoreoAulasDashboard | null) {
   if (!dashboard) {
-    return <EmptyPanel title="Resumen pendiente" detail="Todavia no hay dashboard local preparado para aulas." />;
+    return <EmptyPanel title="Resumen pendiente" detail="Todavía no hay un panel local preparado para cursos-horario." />;
   }
   if (view === "fuentes") {
     const rows: MonitoreoRow[] = [
@@ -268,7 +268,7 @@ function renderAulasView(view: WorkbenchView, dashboard: MonitoreoAulasDashboard
           <h3>Fuente y plan</h3>
           <span>{fmt(rows.length)} campos</span>
         </div>
-        <DataTable rows={rows as Array<Record<string, unknown>>} empty="No hay metadatos del plan de aulas." preferredColumns={["campo", "valor"]} />
+        <DataTable rows={rows as Array<Record<string, unknown>>} empty="No hay metadatos del plan de cursos-horario." preferredColumns={["campo", "valor"]} />
       </section>
     );
   }
@@ -278,12 +278,12 @@ function renderAulasView(view: WorkbenchView, dashboard: MonitoreoAulasDashboard
         <HandoffTracePanel dashboard={dashboard} />
         <section className="mon-profile-panel">
           <div className="mon-profile-panel-head">
-            <h3>Agenda de aulas</h3>
-            <span>{fmt(dashboard.agenda?.length ?? 0)} aulas</span>
+            <h3>Agenda de cursos-horario</h3>
+            <span>{fmt(dashboard.agenda?.length ?? 0)} cursos-horario</span>
           </div>
           <DataTable
             rows={agendaRows(dashboard)}
-            empty="No hay agenda importada para aulas."
+            empty="No hay agenda importada para cursos-horario."
             preferredColumns={["operational_code", "label", "course_name", "section", "schedule", "link", "package_status", "responsible", "collector_id"]}
           />
         </section>
@@ -295,7 +295,7 @@ function renderAulasView(view: WorkbenchView, dashboard: MonitoreoAulasDashboard
     return (
       <section className="mon-profile-panel">
         <div className="mon-profile-panel-head">
-          <h3>Validacion de aulas</h3>
+          <h3>Validación de cursos-horario</h3>
           <span>{fmt(rows.length)} alertas</span>
         </div>
         <DataTable rows={rows} empty="No hay alertas de validacion para este corte." />
@@ -314,7 +314,7 @@ function renderAulasView(view: WorkbenchView, dashboard: MonitoreoAulasDashboard
           <h3>Reemplazos y brechas</h3>
           <span>{fmt(rows.length)} filas</span>
         </div>
-        <DataTable rows={rows} empty="No hay consultas internas preparadas para aulas." />
+        <DataTable rows={rows} empty="No hay consultas internas preparadas para cursos-horario." />
       </section>
     );
   }
@@ -347,7 +347,7 @@ export default function AulasMonitoreoPage() {
   const dashboard = dashboardFromState(state);
   const sourceTotal = state?.sources?.length ?? 0;
   const activeSources = (state?.sources ?? []).filter((source) => source.enabled).length;
-  const refreshTitle = loading ? "Actualizando vista de aulas..." : `Actualizar ${activeDef.shortLabel ?? activeDef.label}`;
+  const refreshTitle = loading ? "Actualizando vista de cursos-horario..." : `Actualizar ${activeDef.shortLabel ?? activeDef.label}`;
 
   const loadView = useCallback(async (view: WorkbenchView, force = false) => {
     setLoading(true);
@@ -402,7 +402,7 @@ export default function AulasMonitoreoPage() {
         <aside className="mon-profile-sidebar">
           <div className="mon-profile-context">
             <span>SECCIÓN ACTIVA</span>
-            <strong>Aulas</strong>
+            <strong>Cursos-horario</strong>
             <small>{activeDef.label}</small>
           </div>
           <div className="mon-profile-readiness">
@@ -420,9 +420,9 @@ export default function AulasMonitoreoPage() {
             tone="monitoreo"
             current="monitoreo"
             compact
-            title="Seguimiento del estudio de hostigamiento en aulas"
-            summary="Este monitoreo lee el plan del cálculo de muestra de aulas y los enlaces QR/PDF del estudio de hostigamiento para medir avance, caídas, reemplazos y brechas sin rediseñar la muestra."
-            secondaryAction={{ to: AULAS_SAMPLE_ROUTE, label: "Ver muestra de aulas" }}
+            title="Seguimiento de la intervención por cursos-horario"
+            summary="Este monitoreo lee el plan del cálculo de muestra de cursos-horario y sus enlaces QR/PDF para medir avance, caídas, reemplazos y brechas sin rediseñar la muestra."
+            secondaryAction={{ to: AULAS_SAMPLE_ROUTE, label: "Ver muestra de cursos-horario" }}
             action={{ to: "/recopiladores", label: "Abrir fichas QR" }}
           />
           <div className="aulas-mon-view">
