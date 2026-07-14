@@ -22,6 +22,7 @@ import {
 import { IconConfirm, IconSuccess, IconUndo } from "../../../../lib/icons";
 import {
   minEligibleThreshold,
+  reconciliarSeleccionConCatalogo,
   seleccionCanonica,
   setMinEligible,
   setRangosFacultad,
@@ -39,6 +40,26 @@ import {
 import { CriterioCard } from "./CriterioCard";
 import type { FacultadRef } from "./facultades";
 import "./criterios.css";
+
+/** Igualdad estructural mínima (ignora `undefined` y orden de claves; arrays
+ *  sensibles al orden). Local para no acoplar con shared/frame.ts; suficiente
+ *  para el guard anti-loop de la persistencia del saneo de criterios. */
+function seleccionesEquivalentes(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    return a.every((item, index) => seleccionesEquivalentes(item, b[index]));
+  }
+  if (a && b && typeof a === "object" && typeof b === "object") {
+    const objA = a as Record<string, unknown>;
+    const objB = b as Record<string, unknown>;
+    const keysA = Object.keys(objA).filter((key) => objA[key] !== undefined);
+    const keysB = Object.keys(objB).filter((key) => objB[key] !== undefined);
+    if (keysA.length !== keysB.length) return false;
+    return keysA.every((key) => seleccionesEquivalentes(objA[key], objB[key]));
+  }
+  return false;
+}
 
 /** Slug estable para claves de facultad (sin tildes, minúsculas, guiones). */
 function slugFacultad(nombre: string): string {
@@ -77,7 +98,10 @@ export function CriteriosMarcoTab({
   // no todo deseleccionado: es un punto de partida defendible que el usuario ve
   // marcado y puede cambiar. En bases sin esas categorías cae a "todo incluido".
   const seleccion = useMemo(
-    () => config.criterios_seleccion ?? seleccionCanonica(catalogo),
+    () =>
+      config.criterios_seleccion
+        ? reconciliarSeleccionConCatalogo(config.criterios_seleccion, catalogo)
+        : seleccionCanonica(catalogo),
     [config.criterios_seleccion, catalogo],
   );
   const [borrador, setBorrador] = useState<CriteriosSeleccionMarco>(() => seleccion);
@@ -99,6 +123,22 @@ export function CriteriosMarcoTab({
       reconciliarBorradorCriterios(seleccion, prev, pendientesRef.current, tiposBorrador),
     );
   }, [seleccion, tiposBorrador]);
+
+  // Auto-saneo persistente: si la selección guardada quedó STALE tras remapear
+  // un rol (claves de otra columna → intersección vacía → marco elegible 0), la
+  // versión reconciliada difiere de la guardada. La persistimos para que el
+  // BUILD (que lee config.criterios_seleccion vía universityMarcoPayload, no el
+  // borrador de display) use el criterio saneado; al persistirse,
+  // `marcoCriteriosDesactualizado` habilita "reconstruir" y el flujo existente
+  // cierra el ciclo. Guard anti-loop: reconciliar es idempotente, así que solo
+  // se patchea cuando el contenido de verdad cambió (deep-equal false).
+  useEffect(() => {
+    const guardada = config.criterios_seleccion;
+    if (!guardada) return; // sin nada guardado se usa el default canónico, no hay saneo
+    if (seleccionesEquivalentes(seleccion, guardada)) return;
+    patchSeleccion(seleccion);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seleccion, config.criterios_seleccion]);
 
   const facRefs: FacultadRef[] = useMemo(() => {
     const seen = new Set<string>();

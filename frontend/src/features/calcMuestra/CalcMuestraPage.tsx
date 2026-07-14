@@ -99,6 +99,7 @@ import {
   classroomFrameReady,
   classroomReplacementReady,
   classroomSelectionReady,
+  frameAuditNumber,
 } from "./universidad/shared/frame";
 import {
   defaultTitleFor,
@@ -1610,6 +1611,25 @@ export default function CalcMuestraPage() {
       );
       const aulaN = rowsFrom(frame?.aula_frame).length;
 
+      // Cifras parejas para el banner: universo y elegibles tanto de estudiantes
+      // como de cursos-horario (mismas fuentes que la franja "Diseño vigente":
+      // frame.perfil con fallback al audit). El universo es la base completa;
+      // los elegibles, el marco depurado.
+      const frameProfile = frame?.perfil ?? null;
+      const universoEstudiantes = Math.max(
+        safeNumber(frameProfile?.universo, 0),
+        safeNumber((frame as Record<string, unknown> | null)?.unique_students_n, 0),
+      );
+      const universoCursosHorario = Math.max(
+        aulaN,
+        safeNumber(frameProfile?.aulas_totales, 0),
+        frameAuditNumber(frame, "classroom_n"),
+      );
+      const cursosHorarioElegibles = Math.max(
+        safeNumber(frameProfile?.marco_aulas, 0),
+        frameAuditNumber(frame, "classroom_included_n"),
+      );
+
       // Handoff Marco → Cálculo: el estudio absorbe N y los estratos
       // facultad×sexo del marco recién construido. Sin esto el cálculo se
       // queda en N = 0 aunque la base ya esté depurada.
@@ -1628,11 +1648,26 @@ export default function CalcMuestraPage() {
           { ...facultyComp, marco: { ...facultyComp.marco, ...marcoPatch }, resultado: null },
         ]);
       }
+      // Reporta universo Y elegibles parejo para estudiantes y cursos-horario.
+      // El "de N" se muestra solo cuando el universo supera a los elegibles
+      // (frames retro-compat sin perfil degradan a solo elegibles).
+      const eligEst = populationN;
+      const univEst = Math.max(universoEstudiantes, eligEst);
+      const eligCH = cursosHorarioElegibles || aulaN;
+      const univCH = Math.max(universoCursosHorario, eligCH);
+      const estFrag =
+        univEst > eligEst
+          ? `${fmtInt(eligEst)} de ${fmtInt(univEst)} estudiantes únicos elegibles`
+          : `${fmtInt(eligEst)} estudiantes únicos elegibles`;
+      const chFrag =
+        univCH > eligCH
+          ? `${fmtInt(eligCH)} de ${fmtInt(univCH)} cursos-horario elegibles`
+          : `${fmtInt(eligCH)} cursos-horario elegibles`;
       setMsg({
         kind: "info",
         text: sync
-          ? `Base leída y marco construido: ${fmtInt(populationN)} estudiantes únicos en ${fmtInt(sync.estratos.length)} facultades y ${fmtInt(aulaN)} cursos-horario. El cálculo ya tiene N y estratos listos.`
-          : `Base leída y marco construido: ${fmtInt(populationN)} estudiantes únicos y ${fmtInt(aulaN)} cursos-horario.`,
+          ? `Base leída y marco construido: ${estFrag} en ${fmtInt(sync.estratos.length)} facultades y ${chFrag}. El cálculo ya tiene N y estratos listos.`
+          : `Base leída y marco construido: ${estFrag} y ${chFrag}.`,
       });
     } catch (e) {
       setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo construir el marco desde la base cargada." });
