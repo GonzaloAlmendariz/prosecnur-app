@@ -401,6 +401,28 @@
   ""
 }
 
+# Variante de .cm_criterios_col_exacta que ignora columnas ya reclamadas por
+# otros roles. Respeta el MISMO orden (nombre exacto → clave exacta) pero
+# saltando las columnas de `exclude` (por clave), de modo que un candidato
+# contaminado (ej. "Curso" prependido a los candidatos de course_level por un
+# config viejo del .pulso) ceda al siguiente candidato legítimo ("Nivel del
+# curso") en vez de secuestrar el código del curso.
+.cm_criterios_col_exacta_excl <- function(df, candidates, exclude = character(0)) {
+  if (!is.data.frame(df) || !ncol(df)) return("")
+  candidates <- .cm_aulas_chr_vec(candidates)
+  if (!length(candidates)) return("")
+  exclude_key <- .cm_aulas_text_key(.cm_aulas_chr_vec(exclude))
+  nms <- names(df)
+  if (length(exclude_key)) nms <- nms[!(.cm_aulas_text_key(nms) %in% exclude_key)]
+  if (!length(nms)) return("")
+  exact <- intersect(candidates, nms)
+  if (length(exact)) return(exact[[1]])
+  idx <- match(.cm_aulas_text_key(candidates), .cm_aulas_text_key(nms), nomatch = 0L)
+  idx <- idx[idx > 0L]
+  if (length(idx)) return(nms[[idx[[1]]]])
+  ""
+}
+
 # Columna del tipo de docente con guarda anti-colisión. El matcher difuso de
 # .cm_aulas_col reusa subcadenas: "docente" ⊂ "tipo_docente" y "condicion" ⊂
 # "condicion_docente", así que en una base SIN columna propia de tipo de
@@ -441,6 +463,24 @@
   ocupadas <- c(.cm_aulas_col(raw, mapping$course_id), .cm_aulas_col(raw, mapping$course_name))
   if (col %in% ocupadas[nzchar(ocupadas)]) return("")
   col
+}
+
+# Columna de nivel del curso EN EL CATÁLOGO con la misma guarda anti-colisión
+# que .cm_criterios_col_course_level (base-scope), adaptada al resolver exacto
+# del catálogo. El catálogo curso-horario suele traer "Curso" (CÓDIGO) y a veces
+# "Nivel del curso" como columnas DISTINTAS; si el config guardado prependió
+# "Curso" a los candidatos de course_level, el resolver exacto lo tomaría como
+# nivel (mostraría "Nivel del curso · columna: Curso" y filtraría por el código).
+# Se excluyen las columnas ya resueltas para course_id/course_name (igual que la
+# guarda de base-scope) y se reintenta la resolución exacta, de modo que el rol
+# caiga en la columna propia de nivel. Sin señal propia → "": el nivel real
+# llega por la columna sintética del catálogo o el fallback modal del aula
+# (degradación documentada y benigna, NO el código del curso).
+.cm_criterios_col_course_level_catalogo <- function(catalogo, mapping) {
+  candidates <- .cm_catalogo_signal_candidates(mapping, "course_level")
+  ocupadas <- c(.cm_aulas_col(catalogo, mapping$course_id),
+                .cm_aulas_col(catalogo, mapping$course_name))
+  .cm_criterios_col_exacta_excl(catalogo, candidates, ocupadas[nzchar(ocupadas)])
 }
 
 # --- Evaluación por aula ------------------------------------------------------
@@ -918,9 +958,19 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     ecats <- .cm_criterios_eff_cats(crit, faculty_keys[[i]])
     if (!length(ecats)) return(TRUE)
     piezas <- strsplit(tv, "\\s*\\|+\\s*")[[1]]
-    grupos <- unique(vapply(piezas, .cm_criterios_teacher_group, character(1)))
-    grupos <- grupos[nzchar(grupos)]
-    hit <- if (identical(crit$match, "all")) all(ecats %in% grupos) else any(grupos %in% ecats)
+    # La UI jerárquica deja marcar un GRUPO entero ("docente_ordinario") o hijos
+    # concretos ("docente_ordinario_principal"). El valor del aula es siempre un
+    # child (y su grupo), y el catálogo/selección canónica guardan la clave
+    # CHILD (.cm_aulas_text_key del valor completo). Derivamos de cada pieza
+    # AMBAS claves (grupo y child) para que el match funcione con la selección
+    # sea cual sea el nivel que el usuario marcó; comparar solo por grupo
+    # excluía todos los CH cuando la selección venía a nivel child.
+    claves <- unique(c(
+      vapply(piezas, .cm_criterios_teacher_group, character(1)),  # grupo
+      vapply(piezas, .cm_aulas_text_key, character(1))            # child (valor completo)
+    ))
+    claves <- claves[nzchar(claves)]
+    hit <- if (identical(crit$match, "all")) all(ecats %in% claves) else any(claves %in% ecats)
     if (identical(crit$mode, "exclude")) !hit else hit
   }, logical(1))
 }

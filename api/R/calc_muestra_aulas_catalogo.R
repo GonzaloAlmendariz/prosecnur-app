@@ -213,9 +213,13 @@
   if (!any(nzchar(catalog_key))) return(vacio)
 
   col_of <- function(rol) .cm_criterios_col_exacta(catalogo, .cm_catalogo_signal_candidates(mapping, rol))
+  # course_level requiere guarda anti-colisión: "Curso" (CÓDIGO) suele venir
+  # prependido a sus candidatos y secuestraría el nivel. Ver
+  # .cm_criterios_col_course_level_catalogo.
   cols <- list(
     modality = col_of("modality"), session_type = col_of("session_type"),
-    teacher_type = col_of("teacher_type"), course_level = col_of("course_level"),
+    teacher_type = col_of("teacher_type"),
+    course_level = .cm_criterios_col_course_level_catalogo(catalogo, mapping),
     condicion_curso = col_of("condicion_curso"),
     enrolled_total = col_of("enrolled_total"), faculty_curso = col_of("faculty_curso"),
     campus = col_of("campus")
