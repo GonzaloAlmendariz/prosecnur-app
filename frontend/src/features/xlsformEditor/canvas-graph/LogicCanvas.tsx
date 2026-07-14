@@ -33,6 +33,7 @@ import {
   Info,
   Maximize2,
   Pencil,
+  Trash2,
   ZoomIn,
   ZoomOut,
   X,
@@ -100,6 +101,11 @@ export function LogicCanvas({
    *  y el efecto se dispara únicamente al hacer click en una flecha,
    *  no al pasar el mouse. */
   const [selectedEdgeIdx, setSelectedEdgeIdx] = useState<number | null>(null);
+  /** Confirmación inline de borrado de la relación seleccionada. Se
+   *  arma con el botón "Eliminar" del panel o con la tecla Supr, y se
+   *  resuelve con "Sí, eliminar" / "Cancelar" dentro del mismo panel —
+   *  nunca un window.confirm. */
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   // ── Drag libre de cards (estilo Obsidian Canvas) ──────────────────
   // Cada vez que el usuario arrastra una card, registramos su posición
@@ -222,6 +228,8 @@ export function LogicCanvas({
           // Prioridad: cerrar el panel/picker abierto antes que el canvas.
           if (connectPicker) {
             setConnectPicker(null);
+          } else if (confirmingDelete) {
+            setConfirmingDelete(false);
           } else if (selectedEdgeIdx !== null) {
             setSelectedEdgeIdx(null);
           } else if (selectedId) {
@@ -271,12 +279,27 @@ export function LogicCanvas({
           collapseAll();
           event.preventDefault();
           break;
+        case "Delete":
+        case "Backspace":
+          // Con una relación seleccionada, Supr arma la confirmación de
+          // borrado (que se resuelve en el panel). No borra en seco.
+          if (!readOnly && onSetRelevant && selectedEdgeIdx !== null) {
+            setConfirmingDelete(true);
+            event.preventDefault();
+          }
+          break;
       }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, connectPicker, selectedEdgeIdx, selectedId, legendOpen]);
+  }, [open, connectPicker, selectedEdgeIdx, selectedId, legendOpen, confirmingDelete, readOnly, onSetRelevant]);
+
+  // La confirmación de borrado no debe sobrevivir a un cambio de
+  // relación seleccionada (o a cerrar el panel).
+  useEffect(() => {
+    setConfirmingDelete(false);
+  }, [selectedEdgeIdx]);
 
   // Reset al abrir.
   useEffect(() => {
@@ -395,6 +418,16 @@ export function LogicCanvas({
     if (!nodeEl) return null;
     const id = nodeEl.getAttribute("data-graph-node-id");
     if (!id || id === sourceId) return null;
+    // Una sección EXPANDIDA es un contenedor que envuelve sus preguntas:
+    // su rect ocupa todo el alto. Solo debe ser destino válido por su
+    // HEADER (banda superior), no por el borde/cuerpo que rodea a las
+    // preguntas — si no, pasar cerca del contorno "conectaba con la
+    // sección" sin querer. Fuera del header, no hay destino.
+    if (expandedSections.has(id)) {
+      const SECTION_HEADER_PX = 88; // = COLLAPSED_HEIGHT del GraphNodeCard
+      const r = nodeEl.getBoundingClientRect();
+      if (clientY - r.top > SECTION_HEADER_PX * zoom) return null;
+    }
     return id;
   };
 
@@ -900,11 +933,47 @@ export function LogicCanvas({
               if (!sourceLaid) return null;
               const sx = sourceLaid.x + sourceLaid.width;
               const sy = sourceLaid.y + Math.min(sourceLaid.height, 56) / 2;
-              const tx = edgeDraft.cursorX;
-              const ty = edgeDraft.cursorY;
-              const dx = Math.max(40, Math.abs(tx - sx) * 0.4);
-              const path = `M ${sx} ${sy} C ${sx + dx} ${sy}, ${tx - dx} ${ty}, ${tx} ${ty}`;
               const onValidTarget = !!edgeHoverTargetId;
+              // Cuando el cursor marca un destino válido, la línea se
+              // ANCLA al puerto real del nodo (no al cursor libre): el
+              // puerto del lado que mira al origen — izquierdo si el
+              // destino está a la derecha, derecho si está a la izquierda.
+              const targetLaid = edgeHoverTargetId
+                ? layout?.nodes.find(
+                    (n) => n.node.id === edgeHoverTargetId && n.visible,
+                  )
+                : null;
+              let tx = edgeDraft.cursorX;
+              let ty = edgeDraft.cursorY;
+              if (targetLaid) {
+                const targetIsRight =
+                  targetLaid.x + targetLaid.width / 2 >= sx;
+                tx = targetIsRight
+                  ? targetLaid.x
+                  : targetLaid.x + targetLaid.width;
+                ty = targetLaid.y + Math.min(targetLaid.height, 56) / 2;
+              }
+              // Curva con TANGENTE HORIZONTAL en ambos extremos (estilo
+              // React Flow / editores de nodos): el origen sale por su
+              // derecha y la entrada se orienta según dónde quedó el destino
+              // — desde la izquierda si está a la derecha, desde la derecha
+              // si está detrás. El alcance es generoso y crece con la
+              // distancia para que se lea como un ARCO limpio (una "C" que
+              // entra al puerto), no como una línea recta doblada.
+              const dxAbs = Math.abs(tx - sx);
+              const dyAbs = Math.abs(ty - sy);
+              const reach = Math.max(72, dxAbs * 0.6, dyAbs * 0.45);
+              // Entrada "hacia adelante" (desde la izquierda del destino)
+              // SOLO cuando el destino está claramente a la derecha del
+              // origen; ahí una curva suave tipo S es natural. En cualquier
+              // otro caso —destino debajo, arriba, en la misma columna o
+              // detrás— ambos controles apuntan a la derecha y la línea
+              // bombea a la derecha formando una "C" (⊃) que entra al puerto,
+              // en vez de una S. El umbral evita la S en distancias cortas.
+              const enterFromLeft = tx > sx + 64;
+              const cx1 = sx + reach;
+              const cx2 = enterFromLeft ? tx - reach : tx + reach;
+              const path = `M ${sx} ${sy} C ${cx1} ${sy}, ${cx2} ${ty}, ${tx} ${ty}`;
               const ghostColor = onValidTarget
                 ? "#16a34a"
                 : "var(--pulso-primary)";
@@ -1928,38 +1997,93 @@ export function LogicCanvas({
               </div>
 
               {/* Acciones */}
-              <div className="pulso-graph-edge-panel-actions">
-                {onSetRelevant && (
-                  <button
-                    type="button"
-                    className="pulso-graph-edge-panel-btn"
-                    onClick={() => {
-                      // Reabre el picker sobre el target del edge
-                      // clicado. La nueva condición REEMPLAZA la
-                      // existente para ese target específico — para
-                      // editar otra rama el usuario debe seleccionarla.
-                      const clickedTgt = graph.byId.get(
-                        clickedEdge.edge.target,
-                      );
-                      const clickedSrc = graph.byId.get(
-                        clickedEdge.edge.source,
-                      );
-                      if (!clickedTgt || !clickedSrc) return;
-                      const rect =
-                        svgRef.current?.getBoundingClientRect();
-                      setConnectPicker({
-                        sourceId: clickedSrc.id,
-                        targetId: clickedTgt.id,
-                        screenX: (rect?.left ?? 0) + (rect?.width ?? 600) / 2,
-                        screenY: (rect?.top ?? 0) + 100,
-                      });
-                      setSelectedEdgeIdx(null);
-                    }}
-                  >
-                    <Pencil size={12} /> Editar condición
-                  </button>
-                )}
-              </div>
+              {onSetRelevant && (() => {
+                // Filas de destino REALES cuya visibilidad se borra (las
+                // preguntas que llevan el `relevant`), no las resueltas a
+                // la sección colapsada.
+                const deleteRows = Array.from(
+                  new Set(
+                    bundleEdges
+                      .map((e) => graph.byId.get(e.edge.target)?.rowIndex)
+                      .filter((r): r is number => typeof r === "number"),
+                  ),
+                );
+                const doDelete = () => {
+                  deleteRows.forEach((row) => onSetRelevant(row, ""));
+                  setConfirmingDelete(false);
+                  setSelectedEdgeIdx(null);
+                };
+                if (confirmingDelete) {
+                  return (
+                    <div className="pulso-graph-edge-panel-confirm" role="alertdialog">
+                      <span className="pulso-graph-edge-panel-confirm-text">
+                        Se quitará esta condición de{" "}
+                        <strong>
+                          {deleteRows.length}{" "}
+                          {deleteRows.length === 1 ? "destino" : "destinos"}
+                        </strong>
+                        . El elemento pasará a mostrarse siempre.
+                      </span>
+                      <div className="pulso-graph-edge-panel-confirm-actions">
+                        <button
+                          type="button"
+                          className="pulso-graph-edge-panel-btn"
+                          onClick={() => setConfirmingDelete(false)}
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          className="pulso-graph-edge-panel-btn is-danger"
+                          onClick={doDelete}
+                        >
+                          <Trash2 size={12} /> Sí, eliminar
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="pulso-graph-edge-panel-actions">
+                    <button
+                      type="button"
+                      className="pulso-graph-edge-panel-btn"
+                      onClick={() => {
+                        // Reabre el picker sobre el target del edge
+                        // clicado. La nueva condición REEMPLAZA la
+                        // existente para ese target específico — para
+                        // editar otra rama el usuario debe seleccionarla.
+                        const clickedTgt = graph.byId.get(
+                          clickedEdge.edge.target,
+                        );
+                        const clickedSrc = graph.byId.get(
+                          clickedEdge.edge.source,
+                        );
+                        if (!clickedTgt || !clickedSrc) return;
+                        const rect =
+                          svgRef.current?.getBoundingClientRect();
+                        setConnectPicker({
+                          sourceId: clickedSrc.id,
+                          targetId: clickedTgt.id,
+                          screenX: (rect?.left ?? 0) + (rect?.width ?? 600) / 2,
+                          screenY: (rect?.top ?? 0) + 100,
+                        });
+                        setSelectedEdgeIdx(null);
+                      }}
+                    >
+                      <Pencil size={12} /> Editar condición
+                    </button>
+                    <button
+                      type="button"
+                      className="pulso-graph-edge-panel-btn is-danger"
+                      onClick={() => setConfirmingDelete(true)}
+                      title="Eliminar esta relación (Supr)"
+                    >
+                      <Trash2 size={12} /> Eliminar
+                    </button>
+                  </div>
+                );
+              })()}
             </aside>
           );
         })()}
