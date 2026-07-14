@@ -2835,6 +2835,171 @@ export async function apiXlsformEditorStateClear(): Promise<{ ok: true }> {
   return { ok: true };
 }
 
+// -----------------------------------------------------------------------------
+// Colección multi-formulario del editor XLSForm (Oleada 2)
+// -----------------------------------------------------------------------------
+// Un proyecto puede alojar varios formularios. El backend mantiene una
+// colección nombrada por `id` más un espejo del activo (`s$xlsform_state`,
+// shape retrocompatible que consumen Carga/Monitoreo/etc.). El frontend es
+// autoritativo del `id` (lo genera con crypto.randomUUID()).
+
+/** Entrada ligera del índice de la biblioteca (sin workbook). */
+export type FormLibraryEntry = {
+  id: string;
+  name: string;
+  source: { kind: string | null; original_name: string | null } | null;
+  saved_at: number;
+  active: boolean;
+};
+
+/** Formulario completo persistido (con workbook + hallazgos). */
+export type PersistedXlsformForm = {
+  id: string;
+  name?: string;
+  workbook: XlsformEditorWorkbook;
+  source: { kind: string | null; original_name: string | null } | null;
+  hallazgos: Hallazgo[];
+  saved_at: number;
+};
+
+function normalizeFormSource(
+  value: unknown,
+): { kind: string | null; original_name: string | null } | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const v = value as Record<string, unknown>;
+  const kind = typeof v.kind === "string" && v.kind.trim() ? v.kind : null;
+  const originalName =
+    typeof v.original_name === "string" && v.original_name.trim() ? v.original_name : null;
+  if (kind == null && originalName == null) return null;
+  return { kind, original_name: originalName };
+}
+
+function normalizeFormEntry(value: unknown): FormLibraryEntry | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const v = value as Record<string, unknown>;
+  const id = typeof v.id === "string" ? v.id : "";
+  if (!id) return null;
+  const savedAt = typeof v.saved_at === "number" && Number.isFinite(v.saved_at)
+    ? v.saved_at
+    : Number(v.saved_at) || 0;
+  return {
+    id,
+    name: typeof v.name === "string" && v.name.trim() ? v.name : "Formulario",
+    source: normalizeFormSource(v.source),
+    saved_at: savedAt,
+    active: v.active === true,
+  };
+}
+
+export async function apiXlsformFormsList(): Promise<{
+  ok: true;
+  forms: FormLibraryEntry[];
+  active_form_id: string | null;
+}> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/forms", { method: "GET", headers: headers() }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const forms = Array.isArray(r.forms)
+    ? r.forms.map(normalizeFormEntry).filter((entry): entry is FormLibraryEntry => entry != null)
+    : [];
+  return {
+    ok: true,
+    forms,
+    active_form_id: typeof r.active_form_id === "string" ? r.active_form_id : null,
+  };
+}
+
+export async function apiXlsformFormGet(id: string): Promise<{
+  ok: true;
+  form: PersistedXlsformForm | null;
+}> {
+  const raw = await handle<unknown>(
+    await apiFetch(`/api/xlsform-editor/forms/${encodeURIComponent(id)}`, {
+      method: "GET",
+      headers: headers(),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const formRaw = (r.form ?? {}) as Record<string, unknown>;
+  const workbook = formRaw.workbook as XlsformEditorWorkbook | undefined;
+  if (!workbook || typeof workbook !== "object") return { ok: true, form: null };
+  const savedAt = typeof formRaw.saved_at === "number" && Number.isFinite(formRaw.saved_at)
+    ? formRaw.saved_at
+    : Number(formRaw.saved_at) || 0;
+  return {
+    ok: true,
+    form: {
+      id: typeof formRaw.id === "string" ? formRaw.id : id,
+      name: typeof formRaw.name === "string" ? formRaw.name : undefined,
+      workbook,
+      source: normalizeFormSource(formRaw.source),
+      hallazgos: Array.isArray(formRaw.hallazgos) ? (formRaw.hallazgos as Hallazgo[]) : [],
+      saved_at: savedAt,
+    },
+  };
+}
+
+export async function apiXlsformFormSave(form: PersistedXlsformForm): Promise<{
+  ok: true;
+  id: string;
+  saved_at: number;
+  active_form_id: string | null;
+}> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/forms", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(form),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const savedAt = typeof r.saved_at === "number" && Number.isFinite(r.saved_at)
+    ? r.saved_at
+    : Number(r.saved_at) || Date.now();
+  return {
+    ok: true,
+    id: typeof r.id === "string" ? r.id : form.id,
+    saved_at: savedAt,
+    active_form_id: typeof r.active_form_id === "string" ? r.active_form_id : null,
+  };
+}
+
+export async function apiXlsformFormActivate(id: string): Promise<{
+  ok: true;
+  active_form_id: string | null;
+}> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/forms/activate", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ id }),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    ok: true,
+    active_form_id: typeof r.active_form_id === "string" ? r.active_form_id : null,
+  };
+}
+
+export async function apiXlsformFormDelete(id: string): Promise<{
+  ok: true;
+  active_form_id: string | null;
+}> {
+  const raw = await handle<unknown>(
+    await apiFetch(`/api/xlsform-editor/forms/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: headers(),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    ok: true,
+    active_form_id: typeof r.active_form_id === "string" ? r.active_form_id : null,
+  };
+}
+
 export type RuleInterpretation =
   | {
       ok: true;
