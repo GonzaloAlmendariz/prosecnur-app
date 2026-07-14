@@ -37,8 +37,41 @@ function escapeHtml(s: string): string {
 
 /** Aplica los reemplazos de markdown en orden — los más específicos
  *  primero para que no se pisen entre sí. NO envuelve en <p>. */
+/** Whitelist de nombres de color CSS que aceptamos además de los hex.
+ *  Enketo/KoBo renderiza cualquier color, pero saneamos para no dejar
+ *  pasar valores arbitrarios dentro del atributo `style`. */
+const SAFE_COLOR_KEYWORDS = new Set([
+  "red", "orange", "green", "blue", "purple", "teal", "gray", "grey",
+  "black", "brown", "maroon", "navy", "olive",
+]);
+
+/** Sanea un color para inyectarlo en `style="color:…"`. Devuelve un hex
+ *  (#rgb / #rrggbb / #rrggbbaa) o un keyword de la whitelist; si no
+ *  valida, cae a `inherit` (no rompe el atributo ni permite inyección). */
+export function sanitizeColor(value: string): string {
+  const v = value.trim().toLowerCase();
+  if (/^#[0-9a-f]{3}$|^#[0-9a-f]{4}$|^#[0-9a-f]{6}$|^#[0-9a-f]{8}$/.test(v)) return v;
+  if (SAFE_COLOR_KEYWORDS.has(v)) return v;
+  return "inherit";
+}
+
 function applyMarkdownTokens(escaped: string): string {
   let out = escaped;
+
+  // Encabezado: "#### texto" al inicio de línea (subset soportado por
+  // Enketo/KoBo). Un solo nivel para mantenerlo simple; el texto del
+  // encabezado sigue procesándose (negrita/itálica) porque queda en $1.
+  out = out.replace(/^####[ \t]+(.+)$/gm, '<span class="pulso-md-h4">$1</span>');
+
+  // Color: el valor guardado contiene <span style="color:X">…</span>
+  // literal (HTML que Enketo/KoBo sí renderiza en labels). Tras el
+  // escape quedó como `&lt;span style=&quot;color:X&quot;&gt;`; lo
+  // reconstruimos SOLO para ese patrón exacto y con el color saneado —
+  // cualquier otro HTML sigue escapado.
+  out = out.replace(
+    /&lt;span style=&quot;color:\s*([^&;"]+?)\s*&quot;&gt;([\s\S]*?)&lt;\/span&gt;/g,
+    (_m, color: string, inner: string) => `<span style="color:${sanitizeColor(color)}">${inner}</span>`,
+  );
 
   // Links: [text](url). Hacemos esto ANTES de otros para no comer
   // los corchetes con énfasis.
@@ -103,6 +136,10 @@ export function renderMarkdownInline(input: string): string {
 export function stripMarkdown(input: string): string {
   if (!input) return "";
   let out = input;
+  // Encabezado: quitar el prefijo "#### ".
+  out = out.replace(/^####[ \t]+/gm, "");
+  // Color: dejar solo el texto interno del <span style="color:…">.
+  out = out.replace(/<span style="color:[^"]*">([\s\S]*?)<\/span>/gi, "$1");
   // Links: dejar solo el texto.
   out = out.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
   // Bold y strike: quitar marcadores.

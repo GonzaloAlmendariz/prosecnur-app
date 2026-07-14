@@ -12,9 +12,20 @@
 // markdown ↔ HTML vive en `helpers/markdown.ts`.
 // =============================================================================
 
-import { useEffect, useRef } from "react";
-import { Bold, Italic, Strikethrough, Link as LinkIcon } from "lucide-react";
-import { renderMarkdownInline } from "../helpers/markdown";
+import { useEffect, useRef, useState } from "react";
+import { Bold, Italic, Strikethrough, Link as LinkIcon, Type, Palette } from "lucide-react";
+import { renderMarkdownInline, sanitizeColor } from "../helpers/markdown";
+
+/** Paleta de colores que Enketo/KoBo renderiza en labels. El último
+ *  ("inherit") quita el color. */
+const MD_COLOR_SWATCHES: Array<{ value: string; label: string }> = [
+  { value: "#e11d48", label: "Rojo" },
+  { value: "#ea580c", label: "Naranja" },
+  { value: "#15803d", label: "Verde" },
+  { value: "#2563eb", label: "Azul" },
+  { value: "#7c3aed", label: "Morado" },
+  { value: "inherit", label: "Sin color" },
+];
 
 export type MarkdownFieldProps = {
   value: string;
@@ -36,6 +47,7 @@ export function MarkdownField({
   // Último valor pintado en el DOM — usado para evitar repintar mientras
   // el usuario tipea (lo que destruye el cursor).
   const lastPaintedRef = useRef<string>(value);
+  const [colorOpen, setColorOpen] = useState(false);
 
   // Pintar el contenido inicial al montar.
   useEffect(() => {
@@ -82,6 +94,27 @@ export function MarkdownField({
     // inserta el href como texto. Esto está bien para el caso simple.
     exec("createLink", url);
   };
+
+  /** Aplica color a la selección. "inherit" quita el color (removeFormat
+   *  no borra otros estilos como negrita porque ejecutamos foreColor a
+   *  color heredado). Usa styleWithCSS para que el navegador emita
+   *  <span style="color"> en lugar de <font>. */
+  const applyColor = (color: string) => {
+    document.execCommand("styleWithCSS", false, "true");
+    if (color === "inherit") {
+      // Reaplica el color del contenedor → efectivamente lo quita.
+      document.execCommand("foreColor", false, "inherit");
+    } else {
+      document.execCommand("foreColor", false, sanitizeColor(color));
+    }
+    setColorOpen(false);
+    requestAnimationFrame(flush);
+  };
+
+  /** Convierte el bloque actual en encabezado (`#### …`). Si ya lo es,
+   *  formatBlock lo mantiene; volver a texto normal se hace re-aplicando
+   *  párrafo — para simplicidad, este botón solo promueve a encabezado. */
+  const applyHeading = () => exec("formatBlock", "h4");
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
@@ -154,6 +187,43 @@ export function MarkdownField({
               <Strikethrough size={13} />
             </ToolbarButton>
           )}
+          {!compact && (
+            <ToolbarButton
+              onPress={applyHeading}
+              title="Encabezado (se ve grande en KoBo)"
+              ariaLabel="Encabezado"
+            >
+              <Type size={13} />
+            </ToolbarButton>
+          )}
+          <div className="pulso-md-color">
+            <ToolbarButton
+              onPress={() => setColorOpen((v) => !v)}
+              title="Color de texto"
+              ariaLabel="Color de texto"
+            >
+              <Palette size={13} />
+            </ToolbarButton>
+            {colorOpen && (
+              <div className="pulso-md-color-pop" role="menu" aria-label="Colores">
+                {MD_COLOR_SWATCHES.map((sw) => (
+                  <button
+                    key={sw.value}
+                    type="button"
+                    className="pulso-md-color-swatch"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      applyColor(sw.value);
+                    }}
+                    title={sw.label}
+                    aria-label={sw.label}
+                    data-clear={sw.value === "inherit" ? "true" : undefined}
+                    style={sw.value === "inherit" ? undefined : { background: sw.value }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
           <ToolbarButton
             onPress={insertLink}
             title="Insertar enlace"
@@ -222,6 +292,26 @@ function serializeNode(node: Node): string {
       const href = el.getAttribute("href") || "";
       return inner && href ? `[${inner}](${href})` : inner;
     }
+    // Encabezado: `formatBlock <h4>` produce <h1>..<h6>; el re-pintado
+    // usa <span class="pulso-md-h4">. Ambos serializan a `#### …`.
+    case "h1":
+    case "h2":
+    case "h3":
+    case "h4":
+    case "h5":
+    case "h6":
+      return inner ? `#### ${inner}\n` : "";
+    case "span": {
+      if (el.classList.contains("pulso-md-h4")) return inner ? `#### ${inner}` : "";
+      const color = colorFromStyle(el.style.color);
+      return color && inner ? `<span style="color:${color}">${inner}</span>` : inner;
+    }
+    // `foreColor` sin styleWithCSS produce <font color="…">; lo tratamos
+    // como color span para que el label exportado lo lleve como HTML.
+    case "font": {
+      const color = colorFromStyle(el.getAttribute("color") || el.style.color);
+      return color && inner ? `<span style="color:${color}">${inner}</span>` : inner;
+    }
     case "br":
       return "\n";
     case "p":
@@ -230,4 +320,20 @@ function serializeNode(node: Node): string {
     default:
       return inner;
   }
+}
+
+/** Normaliza un color del DOM (rgb(...) o hex o keyword) a un hex/keyword
+ *  saneado. Devuelve "" si no hay color válido. */
+function colorFromStyle(raw: string): string {
+  const v = (raw || "").trim();
+  if (!v) return "";
+  const rgb = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i.exec(v);
+  if (rgb) {
+    const hex = [rgb[1], rgb[2], rgb[3]]
+      .map((n) => Math.max(0, Math.min(255, Number(n))).toString(16).padStart(2, "0"))
+      .join("");
+    return sanitizeColor(`#${hex}`);
+  }
+  const sane = sanitizeColor(v);
+  return sane === "inherit" ? "" : sane;
 }

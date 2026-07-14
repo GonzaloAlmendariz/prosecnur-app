@@ -19,12 +19,26 @@ import { CheckCircle2, ExternalLink, Info, ListChecks, Plus, Trash2, Users } fro
 import type { ChoiceItem } from "../types";
 import { RichInline } from "../helpers/RichInline";
 import { TechTerm } from "../helpers/TechTerm";
+import { stripMarkdown } from "../helpers/markdown";
 import { SearchInline, filterChoices } from "./previewInputs";
 
 /** Con más opciones que esto, la lista gana scroll interno acotado. */
 const EDIT_SCROLL_THRESHOLD = 8;
 /** Con más opciones que esto, aparece la búsqueda inline. */
 const EDIT_SEARCH_THRESHOLD = 12;
+
+/** Etiqueta compacta para el chip de "lista compartida": preferimos una
+ *  referencia corta tipo "P18" (derivada del `name`) porque 21 labels
+ *  completos llenan el aviso y se cortan a la fuerza. El label entero
+ *  viaja en el `title` del chip. Si el name no sigue el patrón pN, cae al
+ *  name crudo (ya corto) o al label recortado. */
+function sharedChipRef(name: string, label: string): string {
+  const m = /^p(?:regunta)?_?0*(\d+)(?:_(.+))?$/i.exec(name.trim());
+  if (m) return `P${m[1]}${m[2] ? `·${m[2]}` : ""}`;
+  if (name.trim()) return name.trim();
+  const clean = label.trim();
+  return clean.length > 24 ? `${clean.slice(0, 24)}…` : clean || "—";
+}
 
 export type EditableChoiceListProps = {
   items: ChoiceItem[];
@@ -124,9 +138,9 @@ export function EditableChoiceList({
                       e.stopPropagation();
                       onSelectSharedQuestion(q.rowIndex);
                     }}
-                    title="Ir a esta pregunta"
+                    title={`Ir a: ${stripMarkdown(q.label) || q.name || `fila ${q.rowIndex + 1}`}`}
                   >
-                    {q.label || q.name || `fila ${q.rowIndex + 1}`}
+                    {sharedChipRef(q.name, q.label)}
                   </button>
                 </li>
               ))}

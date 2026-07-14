@@ -62,8 +62,8 @@
 }
 
 .pulso-xlsform-frame .pulso-mode-toggle button {
-  min-height: 30px;
-  padding: 5px 14px;
+  min-height: 26px;
+  padding: 4px 13px;
   border-radius: 999px;
   font-weight: 650;
   transition:
@@ -87,7 +87,7 @@
 
 .pulso-xlsform-frame .pulso-xlsform-toolbar-button {
   border-radius: 999px;
-  padding: 6px 13px;
+  padding: 4px 12px;
   font-weight: 650;
   transition:
     background var(--motion-dur-fast) ease,
@@ -125,9 +125,9 @@
 /* ── Menú "Más vistas" → popover glass animado ─────────────────────────── */
 
 .pulso-xlsform-frame .pulso-more-views-trigger {
-  min-height: 30px;
+  min-height: 26px;
   border-radius: 999px;
-  padding: 5px 13px;
+  padding: 4px 12px;
   font-size: 12px;
   font-weight: 650;
   background: var(--pulso-surface);
@@ -233,4 +233,25 @@
   .pulso-xlsform-frame .pulso-more-views-item {
     transition-duration: 1ms;
   }
+}
+
+/* ── El editor llena el alto disponible del viewport ────────────────────────
+ * El body del frame (flex column) ocupa toda la altura, pero el panel de
+ * contenido y el grid del constructor se dimensionaban al contenido y dejaban
+ * un hueco en blanco abajo (más visible tras compactar la command bar). Aquí
+ * los hacemos crecer y que cada columna (outline / lienzo) haga scroll interno
+ * en lugar de dejar espacio muerto. Todo scopeado a `.pulso-xlsform-frame`. */
+.pulso-xlsform-frame .pulso-panel--content {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pulso-xlsform-frame .pulso-builder-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.pulso-xlsform-frame .pulso-outline-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
 }
