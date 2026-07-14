@@ -579,8 +579,10 @@
 
 /* --- Micro-visuales SVG (curva p·q y campana normal) -------------------------- */
 .cmv2-calc-svg {
-  width: min(100%, 760px);
   height: clamp(132px, 12vw, 168px);
+  aspect-ratio: 160 / 64;
+  width: auto;
+  max-width: 100%;
   justify-self: center;
   color: var(--cmv2-accent);
 }
