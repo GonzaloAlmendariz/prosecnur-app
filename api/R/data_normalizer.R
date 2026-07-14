@@ -396,7 +396,14 @@
   x_chr <- trimws(as.character(x))
   vals <- x_chr[!is.na(x_chr) & nzchar(x_chr)]
   if (!length(vals)) return(TRUE)
-  all(tolower(vals) %in% c("0", "1", "true", "false"))
+  # Vocabulario binario de una dummy de opción: 0/1, true/false y
+  # sí/no · yes/no (con y sin tilde) — así llegan muchas dummies tras
+  # normalizar (`.transform_dummy_selected_value` ya las trata como
+  # marca/no-marca). El texto libre (`salud`, `detalle`…) sigue excluido.
+  vals_lower <- tolower(vals)
+  vals_ascii <- suppressWarnings(iconv(vals_lower, from = "", to = "ASCII//TRANSLIT", sub = ""))
+  ok_tokens <- c("0", "1", "true", "false", "si", "no", "yes")
+  all(vals_lower %in% ok_tokens | vals_ascii %in% ok_tokens)
 }
 
 .dn_q_to_p_name <- function(name) {
