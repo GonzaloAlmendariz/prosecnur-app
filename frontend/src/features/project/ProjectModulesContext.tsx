@@ -4,9 +4,11 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { useLocation } from "react-router-dom";
 import {
   apiProjectModulesSet,
   apiProjectOverview,
@@ -66,10 +68,12 @@ const ProjectModulesContext = createContext<ProjectModulesValue | null>(null);
 
 export function ProjectModulesProvider({ children }: { children: ReactNode }) {
   const { sessionId } = useSession();
+  const { pathname } = useLocation();
   const [overview, setOverview] = useState<ProjectOverview | null>(null);
   const [loading, setLoading] = useState(true);
   // Lista explícita persistida (null = nunca curada → se deriva del avance).
   const [explicit, setExplicit] = useState<string[] | null>(null);
+  const lastLoadContext = useRef({ sessionId: "", pathname: "" });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -88,8 +92,13 @@ export function ProjectModulesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const previous = lastLoadContext.current;
+    const sessionChanged = sessionId.length > 0 && previous.sessionId !== sessionId;
+    const returnedHome = pathname === "/" && previous.pathname !== "/";
+    lastLoadContext.current = { sessionId, pathname };
+    if (!sessionId || (!sessionChanged && !returnedHome)) return;
     void load();
-  }, [load, sessionId]);
+  }, [load, pathname, sessionId]);
 
   const addedSlugs = useMemo(() => {
     if (explicit) return canonicalOrder(explicit);
