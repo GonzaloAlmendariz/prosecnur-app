@@ -246,7 +246,13 @@
   for (nm in names(mapping)) {
     if (!nm %in% names(out)) next
     custom <- .cm_aulas_chr_vec(mapping[[nm]])
-    if (length(custom)) out[[nm]] <- unique(c(custom, defaults[[nm]]))
+    # ADR 0035: un rol MAPEADO a mano se resuelve EXCLUSIVAMENTE por su columna,
+    # sin unir los defaults fuzzy. Si se unieran, el resolver podría elegir un
+    # candidato fuzzy (p. ej. course_level -> "Curso"/código) en vez de la
+    # columna que el usuario eligió a propósito. Los roles que NO vienen en el
+    # mapping conservan `defaults[[nm]]` (retrocompat: goldens y proyecto de
+    # referencia sin mapeo manual siguen resolviendo por fuzzy).
+    if (length(custom)) out[[nm]] <- custom
   }
   out
 }
