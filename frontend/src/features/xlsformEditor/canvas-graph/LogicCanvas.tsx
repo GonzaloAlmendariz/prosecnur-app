@@ -1270,6 +1270,77 @@ export function LogicCanvas({
           {Math.round(zoom * 100)}%
         </div>
 
+        {/* Minimapa (bottom-right): overview de todos los bloques con un
+            recuadro del área visible. Click para saltar a esa zona. */}
+        {layout && layout.nodes.some((n) => n.visible) && (() => {
+          const MM_W = 176;
+          const MM_H = 118;
+          const PAD = 8;
+          const vis = layout.nodes.filter((n) => n.visible);
+          let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+          for (const n of vis) {
+            x0 = Math.min(x0, n.x);
+            y0 = Math.min(y0, n.y);
+            x1 = Math.max(x1, n.x + n.width);
+            y1 = Math.max(y1, n.y + n.height);
+          }
+          const bw = Math.max(1, x1 - x0);
+          const bh = Math.max(1, y1 - y0);
+          const scale = Math.min((MM_W - 2 * PAD) / bw, (MM_H - 2 * PAD) / bh);
+          const ox = PAD + ((MM_W - 2 * PAD) - bw * scale) / 2 - x0 * scale;
+          const oy = PAD + ((MM_H - 2 * PAD) - bh * scale) / 2 - y0 * scale;
+          const svgEl = svgRef.current;
+          const vw = svgEl?.clientWidth ?? 0;
+          const vh = svgEl?.clientHeight ?? 0;
+          const vx0 = -pan.x / zoom;
+          const vy0 = -pan.y / zoom;
+          const vpW = (vw / zoom) * scale;
+          const vpH = (vh / zoom) * scale;
+          const onJump = (event: React.MouseEvent<SVGSVGElement>) => {
+            const r = event.currentTarget.getBoundingClientRect();
+            const lx = (event.clientX - r.left - ox) / scale;
+            const ly = (event.clientY - r.top - oy) / scale;
+            triggerSmooth();
+            setPan({ x: vw / 2 - lx * zoom, y: vh / 2 - ly * zoom });
+          };
+          return (
+            <div className="pulso-graph-minimap">
+            <svg
+              width={MM_W}
+              height={MM_H}
+              onClick={onJump}
+              aria-label="Minimapa — click para navegar"
+            >
+              {vis.map((n) => {
+                const isSec = n.node.kind === "section";
+                return (
+                  <rect
+                    key={n.node.id}
+                    x={n.x * scale + ox}
+                    y={n.y * scale + oy}
+                    width={Math.max(2, n.width * scale)}
+                    height={Math.max(2, n.height * scale)}
+                    rx={1.5}
+                    fill={isSec ? "rgba(15, 118, 110, 0.32)" : "rgba(36, 87, 214, 0.30)"}
+                  />
+                );
+              })}
+              {vw > 0 && (
+                <rect
+                  className="pulso-graph-minimap-viewport"
+                  x={vx0 * scale + ox}
+                  y={vy0 * scale + oy}
+                  width={vpW}
+                  height={vpH}
+                  rx={2}
+                  pointerEvents="none"
+                />
+              )}
+            </svg>
+            </div>
+          );
+        })()}
+
         {/* Mini-map (bottom-right). Solo se muestra si hay 4+ secciones
             visibles — para formularios chicos no aporta. Renderiza
             cada nodo visible como un rectángulo escalado y un
