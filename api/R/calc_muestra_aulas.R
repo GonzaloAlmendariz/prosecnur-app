@@ -2327,10 +2327,19 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
 }
 
 .cm_aulas_mc_probabilities <- function(aula_frame, selector, engine, waves, runs, objective = NULL, on_progress = NULL) {
-  runs <- max(0L, as.integer(runs))
-  if (runs <= 0L) {
-    return(list(pi = stats::setNames(rep(NA_real_, nrow(aula_frame)), aula_frame$classroom_id), note = "No ejecutada.", runs = 0L, error = NA_real_))
+  requested_runs <- max(0L, as.integer(runs))
+  if (requested_runs <= 0L) {
+    return(list(pi = stats::setNames(rep(NA_real_, nrow(aula_frame)), aula_frame$classroom_id), note = "No ejecutada.", runs = 0L, requested = 0L, error = NA_real_))
   }
+  # El sorteo final de titulares con pool_controlado estima pi_final por Monte
+  # Carlo corriendo una seleccion de olas COMPLETA por corrida (~10 s a escala
+  # real). Sin capar, 500 corridas sobre ~3000 cursos-horario -> ~80 min e
+  # inutilizable. Aplicamos un presupuesto por escala PROPIO del sorteo final
+  # (.cm_aulas_mc_final_budget, piso 50 corridas), mas alto que el del comparador
+  # porque aqui pi alimenta pesos 1/pi y la cola manda: en marcos chicos (<=1200)
+  # corre lo solicitado (goldens intactos); en marcos grandes baja a ~50. El SE
+  # reportado sube honestamente con menos corridas y exponemos requested vs runs.
+  runs <- .cm_aulas_mc_final_budget(nrow(aula_frame), requested_runs)
   sim_selector <- selector
   if (.cm_aulas_engine_key(engine) == "pool_controlado") {
     sim_selector$candidate_pool_size <- min(max(5L, .cm_aulas_int(selector$mc_candidate_pool_size, 25L)), max(5L, .cm_aulas_int(selector$candidate_pool_size, 25L)))
@@ -2345,10 +2354,19 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   }
   pi <- counts / runs
   se <- sqrt(pmax(pi * (1 - pi), 0) / runs)
+  budgeted <- runs < requested_runs
+  pool_note <- if (.cm_aulas_engine_key(engine) == "pool_controlado") sprintf(" y pool presupuestado de %s candidatas", sim_selector$candidate_pool_size) else ""
+  note <- if (budgeted) {
+    sprintf("Marco grande: se ejecutaron %s de %s corridas presupuestadas para mantener interactividad (SE reportado refleja las corridas ejecutadas)%s.", runs, requested_runs, pool_note)
+  } else {
+    sprintf("Simulacion ejecutada con %s corridas sobre el plan completo de olas%s.", runs, pool_note)
+  }
   list(
     pi = pi,
-    note = sprintf("Simulacion ejecutada con %s corridas sobre el plan completo de olas%s.", runs, if (.cm_aulas_engine_key(engine) == "pool_controlado") sprintf(" y pool presupuestado de %s candidatas", sim_selector$candidate_pool_size) else ""),
+    note = note,
     runs = runs,
+    requested = requested_runs,
+    budgeted = budgeted,
     error = round(max(se, na.rm = TRUE), 6)
   )
 }
@@ -3106,6 +3124,37 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   min(requested_runs, max(10L, as.integer(60000 %/% n_aulas)))
 }
 
+# Presupuesto del MC del SORTEO FINAL (no del comparador). El comparador solo
+# PUNTUA con agregados robustos (medias/percentiles), asi que su piso de 10
+# corridas es suficiente. El sorteo final, en cambio, PONDERA con 1/pi_mc: la
+# cola de pi bajas domina el peso y un conteo Monte Carlo de 0 para un aula
+# seleccionada (posible con pocas corridas) colapsa pi_mc a 0 -> peso NA/Inf.
+# Por eso el path final usa un piso mas alto (50 corridas o 150000/n, lo que
+# sea mayor): a n~=3000 da ~50 corridas y baja P(count=0 | p=0.08) de ~19% a
+# ~1.5%. Aun asi el rescate a design_pi (.cm_aulas_pi_final_rescue) garantiza
+# el invariante para cualquier presupuesto. Deliberadamente NO reusa
+# .cm_aulas_simulation_budget para no alterar el piso del comparador.
+.cm_aulas_mc_final_budget <- function(n_aulas, requested_runs) {
+  requested_runs <- max(0L, as.integer(requested_runs))
+  n_aulas <- max(1L, as.integer(n_aulas))
+  if (requested_runs <= 0L || n_aulas <= 1200L) return(requested_runs)
+  min(requested_runs, max(50L, as.integer(150000 %/% n_aulas)))
+}
+
+# Rescate del invariante de pesos: un aula SELECCIONADA tiene probabilidad de
+# inclusion verdadera > 0, asi que un pi estimado no finito o <= 0 es error de
+# estimacion (conteo Monte Carlo nulo por presupuesto recortado), no una pi
+# real de cero. Cae al pi del diseno prescrito (deterministico, independiente
+# del presupuesto y > 0 para toda aula de un estrato muestreado). Devuelve el
+# vector rescatado; el llamador decide como divulgar el rescate.
+.cm_aulas_pi_final_rescue <- function(pi_final, pi_design) {
+  pi_final <- as.numeric(pi_final)
+  pi_design <- as.numeric(pi_design)
+  missing <- !is.finite(pi_final) | pi_final <= 0
+  pi_final[missing] <- pi_design[missing]
+  pi_final
+}
+
 .cm_aulas_method_simulation_summary <- function(frame_result, aula_frame, selector, engine, objective, requested_runs = 0L, on_progress = NULL) {
   requested_runs <- max(0L, .cm_aulas_int(requested_runs, 0L))
   if (requested_runs <= 0L) {
@@ -3654,13 +3703,34 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
   selection_df$pi_design <- as.numeric(design_pi[selection_df$classroom_id])
   selection_df$pi_mc <- as.numeric(pi_mc_lookup[selection_df$classroom_id])
   selection_df$pi_final <- if (probability_source == "monte_carlo_after_optimization") selection_df$pi_mc else selection_df$pi_design
+  # Invariante innegociable: toda aula SELECCIONADA tiene pi_final > 0 (y por
+  # ende peso finito), con cualquier presupuesto Monte Carlo. En el path MC un
+  # conteo de 0 por corridas recortadas colapsaba pi_mc -> pi_final = 0 -> peso
+  # NA. El path prescrito ya rescataba a design_pi; ahora AMBOS lo hacen. pi_mc
+  # conserva el estimador crudo en su columna para transparencia; pi_final usa
+  # el rescate para no romper los pesos.
   missing_final <- !is.finite(selection_df$pi_final) | selection_df$pi_final <= 0
-  if (probability_source != "monte_carlo_after_optimization") {
-    selection_df$pi_final[missing_final] <- selection_df$pi_design[missing_final]
+  mc_rescued_n <- if (probability_source == "monte_carlo_after_optimization") {
+    sum(missing_final & .cm_aulas_role_values(selection_df) != "extra_reserve_pool")
+  } else {
+    0L
   }
+  selection_df$pi_final <- .cm_aulas_pi_final_rescue(selection_df$pi_final, selection_df$pi_design)
   selection_df$probability_source <- probability_source
   selection_df$mc_runs <- mc$runs
-  selection_df$mc_error_summary <- if (is.finite(mc$error)) sprintf("max_se=%s", mc$error) else mc$note
+  # mc$runs son las corridas EJECUTADAS (ya presupuestadas por escala del marco).
+  # Cuando el marco es grande y se recorto el presupuesto, exponemos requested vs
+  # ejecutadas junto al SE para que el usuario sepa que la precision es la de las
+  # corridas realmente ejecutadas, no la de las solicitadas.
+  selection_df$mc_error_summary <- if (is.finite(mc$error)) {
+    if (isTRUE(mc$budgeted)) {
+      sprintf("max_se=%s (%s de %s corridas presupuestadas)", mc$error, mc$runs, mc$requested)
+    } else {
+      sprintf("max_se=%s", mc$error)
+    }
+  } else {
+    mc$note
+  }
   selection_df$weight_classroom <- ifelse(selection_df$pi_final > 0, round(1 / selection_df$pi_final, 6), NA_real_)
   selection_df$pi_student <- as.numeric(student_pi_lookup[selection_df$classroom_id])
   selection_df$weight_student <- ifelse(selection_df$pi_student > 0, round(1 / selection_df$pi_student, 6), NA_real_)
@@ -3720,6 +3790,22 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
     fallback_warnings,
     if (probability_source == "monte_carlo_after_optimization") {
       "Se eligio la mejor muestra entre candidatas; pi_final usa simulacion Monte Carlo posterior a la optimizacion."
+    } else {
+      character(0)
+    },
+    # Divulgacion del presupuesto recortado: cuando el marco es grande el MC
+    # final corre menos corridas que las solicitadas, asi que el SE de pi_mc es
+    # el de las corridas EJECUTADAS. Se expone a nivel de diseno, no solo en la
+    # celda mc_error_summary.
+    if (isTRUE(mc$budgeted)) {
+      sprintf("Marco grande: el Monte Carlo final ejecuto %s de %s corridas presupuestadas para mantener interactividad; el SE reportado refleja las corridas ejecutadas.", mc$runs, mc$requested)
+    } else {
+      character(0)
+    },
+    # Divulgacion del rescate: aulas seleccionadas cuyo conteo Monte Carlo fue 0
+    # por el presupuesto recortado recuperan pi_final desde el diseno prescrito.
+    if (mc_rescued_n > 0L) {
+      sprintf("%s aula(s) seleccionada(s) con conteo Monte Carlo nulo por presupuesto recortado; pi_final rescatada del diseno prescrito para preservar pesos finitos.", mc_rescued_n)
     } else {
       character(0)
     },
