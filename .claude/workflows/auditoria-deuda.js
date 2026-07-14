@@ -38,8 +38,10 @@ phase('Medición')
 const resultados = await parallel(
   GRUPOS.map(g => () =>
     agent(
-      `Actúa según la definición del agente en .claude/agents/auditor-deuda.md del repo ` +
-        `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app (léela primero). ` +
+      `ORCHESTRATION CONTRACT: objetivo=medir ${g.label}; perfil=read-only; ` +
+        `permitidos=.claude/agents/auditor-deuda.md,docs/qa/deuda-baseline.md,api/,frontend/; ` +
+        `excluidos=todo archivo en escritura; dependencias=ninguna; stopping rule=mediciones reproducibles. ` +
+        `Actúa según .claude/agents/auditor-deuda.md de la raíz actual (léela primero). ` +
         `Mide EXACTAMENTE ${g.ejes}, con los comandos canónicos de esa definición, en modo solo lectura. ` +
         `Devuelve cada eje con su valor de hoy y el detalle de top ofensores.`,
       { label: g.label, phase: 'Medición', schema: EJE_SCHEMA, agentType: 'general-purpose' }
@@ -50,7 +52,7 @@ const resultados = await parallel(
 phase('Síntesis')
 const mediciones = resultados.filter(Boolean).flatMap(r => r.mediciones)
 const sintesis = await agent(
-  `Lee /Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/docs/qa/deuda-baseline.md y compara contra estas mediciones de hoy:\n` +
+  `Lee docs/qa/deuda-baseline.md desde la raíz actual y compara contra estas mediciones de hoy:\n` +
     JSON.stringify(mediciones, null, 2) +
     `\nProduce: (1) tabla eje → baseline → hoy → Δ → veredicto MEJORÓ/ESTABLE/EMPEORÓ; ` +
     `(2) los 3 movimientos más accionables dimensionados; (3) ejes en rojo sostenido. En español. No edites archivos.`,

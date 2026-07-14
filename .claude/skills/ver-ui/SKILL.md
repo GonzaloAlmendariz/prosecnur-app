@@ -19,7 +19,7 @@ La app arranca en BootGate → elegir proyecto → clicks. Este skill salta todo
    Rutas: `/monitoreo`, `/analitica`, `/graficos`, `/tablero`, `/calc-muestra` (acepta `?mesa=aulas`), `/bitacora` (acepta `?tab=cronograma`), `/carga`, `/validacion`, `/codificacion`, `/hojas-ruta`, `/editor-xlsform`.
 5. **Espera el warm start** (~15–30 s la primera vez): sondea con `preview_eval` hasta que aparezca contenido del módulo (o `[data-audit-ready]` donde exista — no todos los perfiles lo exponen). No uses sleeps ciegos largos; sondea.
 6. **Estado profundo**: las pestañas internas (ej. secciones de Monitoreo: Fuentes/Agenda/Avance/Validación/Consultas) NO se rutean por URL — usa `preview_snapshot` para ver la estructura y `preview_click` sobre el tab. `calc-muestra` y `bitacora` sí aceptan query params.
-7. **Itera**: con la vista abierta, edita el código — **Vite HMR actualiza en vivo sin perder la sesión**. Si necesitas reload completo, recarga sin miedo: el parámetro se limpia tras el boot pero la sesión del backend conserva el proyecto y BootGate re-entra solo (`bootApiProjectStatus().has_project` → warm start automático).
+7. **Itera solo si eres implementador**: con la vista abierta, el owner `frontend-react` puede editar sus globs y aprovechar HMR. Si invoca este skill `qa-visual-desktop` o `verificador`, permanece read-only y limita cualquier evidencia a rutas temporales fuera del árbol versionado.
 8. **Evidencia**: cierra con `preview_screenshot` (y `preview_resize` para el viewport compacto 1024x600 si tocaste layout).
 
 ## Higiene de servers (obligatoria)

@@ -44,3 +44,19 @@ node agentic/sync-agentic-os.mjs --check
 After changing a canonical agent or skill, regenerate adapters with `--write`
 and run `--check` again. Do not hand-edit generated adapters. See
 `docs/agentic-os.md` and `agentic/manifest.json` for the compatibility contract.
+
+## Adaptive orchestration
+
+For every non-trivial task, the lead must load the canonical
+`orquestar-trabajo` skill and decide whether at least two independent lanes
+exist. When they do, proactively spawn 2–3 agents in the same wave; the user has
+authorized this repository-level delegation. Keep at most three workers, two
+writers, and depth one. The lead alone reads governing skills, freezes shared
+contracts, assigns non-overlapping globs, integrates results, controls external
+side effects, and launches the final `verificador` serially.
+
+Do not delegate trivial one-file work, undefined contracts, overlapping edits,
+`.pulso` migrations, destructive operations, credentials, publication, or
+external services. If agents are unavailable, execute the same lanes
+sequentially and report the fallback. Every delegated prompt must include the
+ORCHESTRATION CONTRACT defined by the skill.
