@@ -36,8 +36,7 @@ export function FilterChip({
   return (
     <button
       type="button"
-      role="tab"
-      aria-selected={active}
+      aria-pressed={active}
       onClick={onClick}
       style={{
         display: "inline-flex", alignItems: "center", gap: 7,
