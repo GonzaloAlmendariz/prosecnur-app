@@ -12,13 +12,13 @@
  *   f) confirma el plan definitivo y lo entrega en tabla y gráfico; ese plan es
  *      la fuente que reutiliza el gráfico de Distribución (§5.4).
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Check, Grid3X3, RotateCcw } from "lucide-react";
 import type { CalcMuestraAulasState, CalcMuestraComponente } from "../../../../api/client";
 import { EmptyState } from "../../../../components/States";
 import { fmtDec, fmtInt, fmtPct, rowsFrom, safeNumber } from "../../sharedCore";
 import { useMotorStore } from "../../motor/store";
-import { UNIVERSITY_FACULTY_COMPONENT_ID } from "../shared/constants";
+import { UNIVERSITY_FACULTY_COMPONENT_ID, UNIVERSITY_TOTAL_COMPONENT_ID } from "../shared/constants";
 import { classroomRowNumber, classroomRowText, compareUniversityFacultyLabels, normalizeUniversityLabel } from "../shared/format";
 import { hasUsefulResult, universityDistributionRows } from "../shared/study";
 import { Stepper } from "./Stepper";
@@ -105,11 +105,18 @@ export function CalculoCursosHorarioFacultadTab({
   const confirmado = useMotorStore((s) => s.decisiones.cursosHorarioConfirmado);
   const confirmar = useMotorStore((s) => s.confirmarCursosHorario);
 
+  // Propuesta cuyas cuotas dimensionan las aulas: P1 (total universidad,
+  // conglomerado) o P2 (por facultad, estratificado). Cada una da su propio
+  // plan de aulas; el usuario elige cuál llevar a campo.
+  const [propuesta, setPropuesta] = useState<1 | 2>(1);
+  const withDistribucion = (comp: CalcMuestraComponente | undefined) =>
+    comp && (comp.resultado?.distribucion_estratos ?? []).length ? comp : null;
+  const compTotal = componentes.find((c) => c.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID) ?? componentes[0];
+  const compFacultad = componentes.find((c) => c.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID) ?? componentes[1];
   const cuotasComp =
-    componentes.find(
-      (comp) => comp.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID && (comp.resultado?.distribucion_estratos ?? []).length,
-    ) ??
-    componentes.find((comp) => (comp.resultado?.distribucion_estratos ?? []).length) ??
+    (propuesta === 1 ? withDistribucion(compTotal) : withDistribucion(compFacultad)) ??
+    withDistribucion(compFacultad) ??
+    withDistribucion(compTotal) ??
     null;
   const calculado = componentes.some(hasUsefulResult);
 
@@ -162,6 +169,14 @@ export function CalculoCursosHorarioFacultadTab({
         <div className="cmv2-panel-head">
           <strong>Cursos-horario por facultad</strong>
           <div className="cmv2-panel-head-actions">
+            <div className="cmv2-segment" role="radiogroup" aria-label="Propuesta que dimensiona las aulas">
+              <button type="button" role="radio" aria-checked={propuesta === 1} data-active={propuesta === 1 || undefined} onClick={() => setPropuesta(1)}>
+                Propuesta 1
+              </button>
+              <button type="button" role="radio" aria-checked={propuesta === 2} data-active={propuesta === 2 || undefined} onClick={() => setPropuesta(2)}>
+                Propuesta 2
+              </button>
+            </div>
             <div className="cmv2-segment" role="radiogroup" aria-label="Base de cálculo de cursos-horario">
               <button type="button" role="radio" aria-checked={base === "elegible"} data-active={base === "elegible" || undefined} onClick={() => setBase("elegible")}>
                 CH del marco elegible
