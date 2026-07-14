@@ -175,6 +175,95 @@
 .pulso-xlsform-frame .pulso-more-views-item:nth-child(5) { animation-delay: 120ms; }
 .pulso-xlsform-frame .pulso-more-views-item:nth-child(6) { animation-delay: 150ms; }
 
+/* ── Split-button "Exportar PDF" con selector 1/2 columnas ─────────────── */
+
+.pulso-xlsform-frame .pulso-xlsform-pdf-export {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.pulso-xlsform-frame .pulso-xlsform-pdf-export-main {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  padding-right: 9px;
+}
+
+.pulso-xlsform-frame .pulso-xlsform-pdf-export-caret {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: none;
+  padding-left: 7px;
+  padding-right: 8px;
+}
+
+.pulso-xlsform-frame .pulso-xlsform-pdf-export-menu {
+  min-width: 240px;
+  transform-origin: top right;
+}
+
+/* ── Conmutador rápido de formularios (command bar, grupo document) ─────── */
+
+.pulso-xlsform-frame .pulso-xf-form-switcher {
+  min-width: 0;
+}
+
+.pulso-xlsform-frame .pulso-xf-form-switcher-trigger {
+  gap: 6px;
+  max-width: 240px;
+  font-weight: 600;
+}
+
+.pulso-xlsform-frame .pulso-xf-form-switcher-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-xlsform-frame .pulso-xf-form-switcher-menu {
+  /* El trigger vive al extremo IZQUIERDO del command bar, así que el menú se
+     ancla a la izquierda y se abre hacia la derecha. El base
+     `.pulso-more-views-menu` usa `right:0` (pensado para triggers a la
+     derecha) y hacía desbordar el borde izquierdo del viewport. */
+  left: 0;
+  right: auto;
+  min-width: 260px;
+  max-width: 340px;
+  transform-origin: top left;
+}
+
+.pulso-xlsform-frame .pulso-xf-form-switcher-empty {
+  display: block;
+  padding: 6px 10px 8px;
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-xlsform-frame .pulso-xf-form-switcher-item.is-active {
+  background: var(--pulso-primary-soft);
+}
+
+.pulso-xlsform-frame .pulso-xf-form-switcher-item.is-active strong {
+  color: var(--pulso-primary-strong);
+}
+
+.pulso-xlsform-frame .pulso-xf-form-switcher-divider {
+  height: 1px;
+  margin: 6px 8px;
+  background: var(--pulso-border);
+}
+
+/* Acción "Nuevo formulario" deshabilitada al alcanzar el tope: nota sutil, sin
+   hover ni cursor de acción. */
+.pulso-xlsform-frame .pulso-xf-form-switcher-item:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.pulso-xlsform-frame .pulso-xf-form-switcher-item:disabled:hover {
+  background: transparent;
+  transform: none;
+}
+
 /* ── Overlays de vista completa (mapa de lógica, cuestionario, resumen) ── */
 
 .pulso-xf-overlay-enter {

@@ -1,0 +1,755 @@
+/* ==========================================================================
+   xf-home.css — hub / biblioteca de formularios del editor XLSForm
+   --------------------------------------------------------------------------
+   Homepage del módulo cuando no hay workbook abierto. Es la biblioteca de
+   formularios del proyecto: grilla de tarjetas + zona de creación + guía.
+   Colores SOLO con tokens --pulso-*. Prefijo de clase: .pulso-xf-home-*.
+   Acento del módulo editor: --pulso-module-editor.
+   ========================================================================== */
+
+.pulso-xf-home {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  /* Aprovecha el alto disponible: la grilla de slots es el área principal y la
+     guía compacta se ancla al fondo (margin-top:auto), sin zonas muertas. */
+  min-height: calc(100dvh - 126px);
+  padding: 26px 24px 28px;
+  border-radius: 16px;
+  background: linear-gradient(
+    180deg,
+    var(--pulso-module-editor-soft) 0%,
+    var(--pulso-surface) 62%
+  );
+  border: 1px solid var(--pulso-module-editor-border);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+/* --- Encabezado del hub ------------------------------------------------- */
+
+.pulso-xf-home-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pulso-xf-home-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pulso-xf-home-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--pulso-module-editor);
+}
+
+.pulso-xf-home-title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--pulso-text);
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+  max-width: 720px;
+}
+
+.pulso-xf-home-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+}
+
+.pulso-xf-home-resume {
+  margin: 0;
+}
+
+/* --- Grilla de slots (hasta MAX_FORMS formularios) --------------------- */
+/* Rejilla de 3 columnas: los 6 slots máximos forman una malla 3×2 balanceada
+   que aprovecha el ancho del canvas sin dejar el hub sparse en una sola fila.
+   Baja a 2 y 1 columnas en anchos compactos. */
+
+.pulso-xf-home-slots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+@media (max-width: 1180px) {
+  .pulso-xf-home-slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .pulso-xf-home-slots {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Placeholder tenue de un slot libre: insinúa la capacidad total sin ruido. */
+.pulso-xf-home-slot-ghost {
+  min-height: 150px;
+  border-radius: 14px;
+  border: 1px dashed var(--pulso-border);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0,
+      transparent 10px,
+      var(--pulso-surface-2) 10px,
+      var(--pulso-surface-2) 11px
+    );
+  opacity: 0.5;
+}
+
+/* --- Tarjeta de formulario --------------------------------------------- */
+
+.pulso-xf-home-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 150px;
+  padding: 16px 16px 14px;
+  border-radius: 14px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  box-shadow: var(--pulso-shadow-low);
+  transition:
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  /* Acento por origen — inyectado como var por el componente. */
+  --xf-card-accent: var(--pulso-module-editor);
+  --xf-card-accent-soft: var(--pulso-module-editor-soft);
+}
+
+.pulso-xf-home-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--pulso-shadow-soft);
+  border-color: var(--pulso-border-strong);
+}
+
+.pulso-xf-home-card.is-active {
+  border-color: var(--xf-card-accent);
+  box-shadow: 0 0 0 1px var(--xf-card-accent), var(--pulso-shadow-soft);
+}
+
+.pulso-xf-home-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.pulso-xf-home-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  background: var(--xf-card-accent-soft);
+  color: var(--xf-card-accent);
+}
+
+.pulso-xf-home-card-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pulso-xf-home-card-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pulso-text);
+  letter-spacing: -0.1px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-xf-home-card-origin {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.4;
+}
+
+.pulso-xf-home-card-active-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--xf-card-accent);
+  background: var(--xf-card-accent-soft);
+}
+
+/* Rename inline */
+.pulso-xf-home-card-name-input {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pulso-text);
+  padding: 3px 6px;
+  border-radius: 7px;
+  border: 1px solid var(--xf-card-accent);
+  background: var(--pulso-surface);
+  outline: none;
+  width: 100%;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-xf-home-card-metrics {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 2px;
+}
+
+.pulso-xf-home-card-metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.pulso-xf-home-card-metric-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-xf-home-card-metric-label {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-home-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  /* Empuja la fila de acción (Abrir + marca de tiempo) al fondo de la tarjeta,
+     así queda en la misma línea base en toda la grilla aunque el contenido
+     variable (métricas) tenga alturas distintas entre tarjetas. */
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-home-card-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-xf-home-card-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--xf-card-accent);
+  background: var(--xf-card-accent-soft);
+  color: var(--xf-card-accent);
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.pulso-xf-home-card-open:hover {
+  background: var(--xf-card-accent);
+  color: var(--pulso-surface);
+}
+
+/* Menú de acciones de la tarjeta (kebab) */
+.pulso-xf-home-card-menu {
+  position: relative;
+}
+
+.pulso-xf-home-card-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.pulso-xf-home-card-menu-trigger:hover {
+  background: var(--pulso-surface-3);
+  border-color: var(--pulso-border);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-home-card-menu-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 168px;
+  display: flex;
+  flex-direction: column;
+  padding: 5px;
+  border-radius: 10px;
+  background: var(--pulso-surface-raised);
+  border: 1px solid var(--pulso-border);
+  box-shadow: var(--pulso-shadow-popover);
+}
+
+.pulso-xf-home-card-menu-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: 550;
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.pulso-xf-home-card-menu-item:hover {
+  background: var(--pulso-surface-3);
+}
+
+.pulso-xf-home-card-menu-item.is-danger {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-xf-home-card-menu-item.is-danger:hover {
+  background: var(--pulso-danger-bg);
+}
+
+.pulso-xf-home-card-menu-divider {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--pulso-border);
+}
+
+/* Confirmación de borrado inline */
+.pulso-xf-home-card-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--pulso-danger-bg);
+  border: 1px solid var(--pulso-danger-border);
+}
+
+.pulso-xf-home-card-confirm-text {
+  font-size: 12px;
+  color: var(--pulso-danger-fg);
+  line-height: 1.45;
+}
+
+.pulso-xf-home-card-confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pulso-xf-home-card-confirm-btn {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-home-card-confirm-btn.is-danger {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-fg);
+  color: var(--pulso-surface);
+}
+
+/* --- Tarjeta de creación (AddFormCard) --------------------------------- */
+
+/* Slot compacto "＋ Nuevo formulario" (biblioteca poblada, con cupo). */
+.pulso-xf-home-add--tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  min-height: 150px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1.5px dashed var(--pulso-module-editor-border);
+  background: color-mix(in srgb, var(--pulso-module-editor-soft) 45%, var(--pulso-surface));
+  color: var(--pulso-module-editor);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    background 160ms ease;
+}
+
+.pulso-xf-home-add--tile:hover {
+  transform: translateY(-2px);
+  border-color: var(--pulso-module-editor);
+  background: var(--pulso-module-editor-soft);
+  box-shadow: var(--pulso-shadow-soft);
+}
+
+.pulso-xf-home-add-plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-module-editor-border);
+  color: var(--pulso-module-editor);
+}
+
+.pulso-xf-home-add-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--pulso-text);
+  letter-spacing: -0.1px;
+}
+
+.pulso-xf-home-add-hint {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.4;
+  max-width: 200px;
+}
+
+/* Tarjeta expandida: ocupa la fila completa y revela las 3 vías. */
+.pulso-xf-home-add--expanded {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 20px 18px;
+  border-radius: 16px;
+  border: 1.5px dashed var(--pulso-module-editor-border);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--pulso-module-editor-soft) 55%, var(--pulso-surface)) 0%,
+    var(--pulso-surface) 70%
+  );
+}
+
+/* Hero (biblioteca vacía): borde sólido y más presencia — es el protagonista. */
+.pulso-xf-home-add--hero {
+  border-style: solid;
+  border-color: var(--pulso-module-editor-border);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-xf-home-add-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pulso-xf-home-add-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pulso-xf-home-add-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--pulso-module-editor);
+}
+
+.pulso-xf-home-add-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--pulso-text);
+  letter-spacing: -0.2px;
+  line-height: 1.25;
+}
+
+.pulso-xf-home-add--hero .pulso-xf-home-add-title {
+  font-size: 20px;
+}
+
+.pulso-xf-home-add-copy {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+  max-width: 560px;
+}
+
+.pulso-xf-home-add-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.pulso-xf-home-add-close:hover {
+  background: var(--pulso-surface-3);
+  border-color: var(--pulso-border);
+  color: var(--pulso-text);
+}
+
+/* --- Vías de creación (NewFormActions) --------------------------------- */
+
+.pulso-xf-home-actions--cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.pulso-xf-home-actions--menu {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.pulso-xf-home-action {
+  position: relative;
+  text-align: left;
+  display: flex;
+  gap: 12px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  cursor: pointer;
+  transition:
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Variante tarjetas: apilada, acento en el borde superior. */
+.pulso-xf-home-actions--cards .pulso-xf-home-action {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px 18px 16px;
+  border-radius: 14px;
+  border-top: 3px solid var(--xf-action-accent, var(--pulso-module-editor));
+}
+
+/* Variante menú: fila compacta ícono + texto. */
+.pulso-xf-home-actions--menu .pulso-xf-home-action {
+  flex-direction: row;
+  align-items: center;
+  padding: 11px 13px;
+  border-radius: 11px;
+  border-left: 3px solid var(--xf-action-accent, var(--pulso-module-editor));
+}
+
+.pulso-xf-home-action:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--pulso-shadow-soft);
+  border-color: var(--pulso-border-strong);
+}
+
+.pulso-xf-home-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  background: var(--xf-action-accent-soft, var(--pulso-module-editor-soft));
+  color: var(--xf-action-accent, var(--pulso-module-editor));
+}
+
+.pulso-xf-home-actions--cards .pulso-xf-home-action-icon {
+  width: 38px;
+  height: 38px;
+}
+
+.pulso-xf-home-actions--menu .pulso-xf-home-action-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+}
+
+.pulso-xf-home-action-monkey {
+  object-fit: contain;
+}
+
+.pulso-xf-home-action-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pulso-xf-home-action-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pulso-text);
+  letter-spacing: -0.1px;
+}
+
+.pulso-xf-home-actions--menu .pulso-xf-home-action-title {
+  font-size: 13px;
+}
+
+/* Las descripciones envuelven (nunca `nowrap`): a anchos compactos las tres
+   deben poder mostrar su texto completo en varias líneas. */
+.pulso-xf-home-action-desc {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.pulso-xf-home-actions--menu .pulso-xf-home-action-desc {
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+/* --- Nota del tope de formularios -------------------------------------- */
+
+.pulso-xf-home-limit-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 9px 13px;
+  border-radius: 10px;
+  align-self: flex-start;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.pulso-xf-home-limit-note svg {
+  color: var(--pulso-text-faint);
+  flex: 0 0 auto;
+}
+
+/* --- Guía educativa al pie (secundaria y compacta) --------------------- */
+/* La guía "Cómo funciona" es material de apoyo: no debe robar protagonismo a
+   los formularios. Se mantiene compacta — eyebrow + copy en una fila y el
+   diagrama de flujo a escala reducida. */
+
+.pulso-xf-home-guide {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px dashed var(--pulso-module-editor-border);
+  display: grid;
+  grid-template-columns: minmax(0, 300px) 1fr;
+  align-items: center;
+  gap: 12px 24px;
+}
+
+.pulso-xf-home-guide-eyebrow {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--pulso-module-editor);
+}
+
+.pulso-xf-home-guide-copy {
+  grid-row: 2;
+  grid-column: 1;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+  max-width: 300px;
+}
+
+/* El diagrama ocupa la columna derecha y abarca ambas filas — compacto.
+   Especificidad alta a propósito: gana a las reglas heredadas del viejo
+   EmptyHome en theme.css (`.pulso-main--viewport .pulso-xlsform-frame
+   .pulso-hub-flow-svg`) que lo agrandaban a 390px. */
+.pulso-xf-home-guide .pulso-hub-flow,
+.pulso-main--viewport .pulso-xlsform-frame .pulso-xf-home-guide .pulso-hub-flow {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  justify-content: flex-end;
+}
+
+.pulso-xf-home-guide .pulso-hub-flow-svg,
+.pulso-main--viewport .pulso-xlsform-frame .pulso-xf-home-guide .pulso-hub-flow-svg {
+  width: 100%;
+  height: auto;
+  max-width: 620px;
+  margin-left: auto;
+}
+
+@media (max-width: 900px) {
+  .pulso-xf-home-guide {
+    grid-template-columns: 1fr;
+  }
+  .pulso-xf-home-guide-copy {
+    grid-column: 1;
+    max-width: none;
+  }
+  .pulso-xf-home-guide .pulso-hub-flow {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .pulso-xf-home-guide .pulso-hub-flow-svg {
+    margin: 0 auto;
+  }
+}
