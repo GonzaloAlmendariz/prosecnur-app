@@ -366,20 +366,22 @@ export function MarcoPoblacionSexo({
     next: "Revisa Definición > Variables y vincula la columna Sexo o género.",
   });
   return (
-    <ClassroomPlotCard
-      title="Distribución por sexo"
-      subtitle={populationGraphUsesClassrooms ? "composición esperada según cursos-horario válidos" : "estudiantes únicos elegibles"}
-      wide
-    >
-      <ClassroomStackedCrossPlot
-        table={sexTable}
-        ariaLabel="Distribución por sexo de la población"
-        height={132}
-        emptyState={emptyState}
-        sortByMaleSurplus
-        showSegmentLabels
-      />
-    </ClassroomPlotCard>
+    <div className="cmv2-marco-sexo-solo">
+      <ClassroomPlotCard
+        title="Distribución por sexo"
+        subtitle={populationGraphUsesClassrooms ? "composición esperada según cursos-horario válidos" : "estudiantes únicos elegibles"}
+        wide
+      >
+        <ClassroomStackedCrossPlot
+          table={sexTable}
+          ariaLabel="Distribución por sexo de la población"
+          height={132}
+          emptyState={emptyState}
+          sortByMaleSurplus
+          showSegmentLabels
+        />
+      </ClassroomPlotCard>
+    </div>
   );
 }
 

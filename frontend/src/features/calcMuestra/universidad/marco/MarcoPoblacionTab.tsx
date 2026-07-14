@@ -102,7 +102,7 @@ export function MarcoPoblacionTab({
           <div className="cmv2-marco-flujo-main cmv2-marco-flujo-stagger">
             <FlujoVertical
               etapas={etapas}
-              orientacion={etapas.length >= 5 ? "adaptive" : "horizontal"}
+              orientacion="adaptive"
               ariaLabel="Del universo a la población objetivo"
             />
           </div>

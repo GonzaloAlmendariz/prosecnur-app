@@ -1628,3 +1628,69 @@
     order: 3;
   }
 }
+
+/* =============================================================================
+   Pulido del feedback (§ cascada del universo + barra de sexo).
+   ============================================================================= */
+
+/* La cascada universo → población NUNCA comprime un nodo hasta partir el texto.
+   Refluye a más filas antes que angostar una etapa por debajo de lo legible:
+   auto-fit con piso de 150px reemplaza la retícula de N columnas fijas, así el
+   número se lee de corrido y el label envuelve solo por palabra. Escala a N
+   etapas (más etapas → más filas, nunca columnas de 30px). */
+.cmv2-marco-flujo-main .cmv2-uni-flujo[data-orientacion="adaptive"],
+.cmv2-marco-flujo-main .cmv2-uni-flujo[data-orientacion="horizontal"] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px 14px;
+  overflow: visible;
+}
+
+/* Las aristas flex del modo horizontal no ocupan celda en la retícula. */
+.cmv2-marco-flujo-main .cmv2-uni-flujo[data-orientacion="horizontal"] > .cmv2-uni-flujo-arista {
+  display: none;
+}
+
+.cmv2-marco-flujo-main .cmv2-uni-flujo-etapa {
+  min-width: 0;
+}
+
+/* El número de la etapa se lee de corrido, jamás carácter a carácter. */
+.cmv2-marco-flujo-main .cmv2-uni-flujo-valor {
+  white-space: nowrap;
+}
+
+/* La etiqueta envuelve solo por palabra (hasta 2 líneas), nunca parte una. */
+.cmv2-marco-flujo-main .cmv2-uni-flujo-label {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
+/* La card de "Distribución por sexo" es la única de una sola barra. El wrapper
+   es transparente al grid (display: contents) para no romper el span is-wide;
+   solo sirve de gancho para engrosar y centrar esa barra. */
+.cmv2-marco-sexo-solo {
+  display: contents;
+}
+
+/* Sin el blanco muerto de una card de 238px con una sola barra fina: alto
+   contenido y barra centrada que aprovecha el espacio disponible. */
+.cmv2-marco-stack .cmv2-marco-sexo-solo .cmv2-plot-card {
+  min-height: 150px;
+}
+
+.cmv2-marco-stack .cmv2-marco-sexo-solo .cmv2-native-stacked {
+  align-content: center;
+  gap: 12px;
+}
+
+/* Track más grueso (la barra apilada usa el alto disponible). */
+.cmv2-marco-stack .cmv2-marco-sexo-solo .cmv2-native-stacked.is-share-comparison .cmv2-native-stack-track {
+  height: 44px;
+}
+
+/* Etiquetas de segmento acordes a la barra gruesa. */
+.cmv2-marco-stack .cmv2-marco-sexo-solo .cmv2-native-stack-track i span {
+  font-size: 11px;
+}

@@ -13,7 +13,7 @@
  *      la fuente que reutiliza el gráfico de Distribución (§5.4).
  */
 import { useMemo, useState } from "react";
-import { Check, Grid3X3, RotateCcw } from "lucide-react";
+import { Check, Grid3X3, Minus, Plus, RotateCcw } from "lucide-react";
 import type { CalcMuestraAulasState, CalcMuestraComponente } from "../../../../api/client";
 import { EmptyState } from "../../../../components/States";
 import { fmtDec, fmtInt, fmtPct, rowsFrom, safeNumber } from "../../sharedCore";
@@ -163,6 +163,17 @@ export function CalculoCursosHorarioFacultadTab({
   const maxFinal = Math.max(1, ...modelo.filas.map((f) => f.chFinal ?? 0));
   const planIgualConfirmado = confirmado;
 
+  // Bulk de la columna Extra: aplica un delta de CH extra a TODAS las facultades
+  // visibles del modelo. El store (setAulaExtraFacultad) ya limita a [0, 2], así
+  // que basta iterar y sumar/restar; el clamp se respeta por facultad.
+  const aplicarExtraBulk = (delta: number) => {
+    for (const fila of modelo.filas) {
+      setExtra(fila.facultad, safeNumber(extraPorFacultad[fila.facultad], 0) + delta);
+    }
+  };
+  const extraBulkPuedeBajar = modelo.filas.some((f) => safeNumber(extraPorFacultad[f.facultad], 0) > 0);
+  const extraBulkPuedeSubir = modelo.filas.some((f) => safeNumber(extraPorFacultad[f.facultad], 0) < 2);
+
   return (
     <div className="cmv2-calc-stack">
       <section className="cmv2-panel cmv2-ch-panel">
@@ -215,7 +226,31 @@ export function CalculoCursosHorarioFacultadTab({
                 <th>Sobremuestra</th>
                 <th>CH necesarios</th>
                 <th>{base === "total" ? "CH totales" : "CH elegibles"}</th>
-                <th>Extra</th>
+                <th className="cmv2-ch-th-extra-cell">
+                  <div className="cmv2-ch-th-extra">
+                    <span>Extra</span>
+                    <div className="cmv2-stepper cmv2-ch-th-bulk" role="group" aria-label="Aplicar CH extra a todas las facultades">
+                      <button
+                        type="button"
+                        className="cmv2-stepper-btn"
+                        aria-label="Quitar un curso-horario extra a todas las facultades"
+                        disabled={!extraBulkPuedeBajar}
+                        onClick={() => aplicarExtraBulk(-1)}
+                      >
+                        <Minus size={13} aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        className="cmv2-stepper-btn"
+                        aria-label="Añadir un curso-horario extra a todas las facultades"
+                        disabled={!extraBulkPuedeSubir}
+                        onClick={() => aplicarExtraBulk(1)}
+                      >
+                        <Plus size={13} aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
+                </th>
                 <th>CH definitivos</th>
               </tr>
             </thead>

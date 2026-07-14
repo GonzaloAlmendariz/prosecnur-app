@@ -1453,3 +1453,54 @@
   z-index: 1;
   background: var(--pulso-surface);
 }
+
+/* Presentación de la tabla de cursos-horario por facultad: números a la
+   derecha (tabular), facultad a la izquierda, y la tabla centrada en el ancho
+   disponible (deja de verse pegada a la izquierda en paneles anchos). El scroll
+   interno del wrap (max-height 384px) se conserva. */
+.cmv2-ch-tabla {
+  max-width: 960px;
+  margin-inline: auto;
+}
+
+.cmv2-ch-tabla th,
+.cmv2-ch-tabla td {
+  vertical-align: middle;
+}
+
+.cmv2-ch-tabla th:not(:first-child),
+.cmv2-ch-tabla td:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-ch-tabla td:first-child strong {
+  font-weight: 650;
+}
+
+/* Columna Extra: stepper por fila + control bulk en la cabecera, centrados. */
+.cmv2-ch-tabla th.cmv2-ch-th-extra-cell,
+.cmv2-ch-tabla td:nth-child(7) {
+  text-align: center;
+}
+
+.cmv2-ch-tabla td:nth-child(7) .cmv2-stepper {
+  justify-content: center;
+}
+
+.cmv2-ch-th-extra {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+/* El bulk reusa los botones del Stepper (Anexo A.3) en formato compacto. */
+.cmv2-ch-th-bulk {
+  gap: 3px;
+}
+
+.cmv2-ch-th-bulk .cmv2-stepper-btn {
+  width: 22px;
+  height: 20px;
+}
