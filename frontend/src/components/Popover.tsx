@@ -34,6 +34,8 @@ export function Popover({
   maxWidth = 320,
   className,
   ariaLabel,
+  hoverOpenDelay = 120,
+  hoverCloseDelay = 160,
 }: {
   /** Elemento que dispara el popover. Si es un elemento válido se clona con los handlers. */
   trigger: ReactElement;
@@ -44,6 +46,10 @@ export function Popover({
   maxWidth?: number;
   className?: string;
   ariaLabel?: string;
+  /** Retardo de apertura en hover (ms). Tooltips de concepto usan ~400 (A.4). */
+  hoverOpenDelay?: number;
+  /** Retardo de cierre al salir del trigger (ms). 0 = desaparece de inmediato. */
+  hoverCloseDelay?: number;
 }) {
   const [open, setOpen] = useState(false);
   // Salida animada: el panel queda montado ~110ms con data-state="closing"
@@ -181,11 +187,14 @@ export function Popover({
   } else {
     triggerProps.onMouseEnter = () => {
       clearHoverTimer();
-      hoverTimer.current = window.setTimeout(() => openNow(), 120);
+      hoverTimer.current = window.setTimeout(() => openNow(), hoverOpenDelay);
     };
     triggerProps.onMouseLeave = () => {
       clearHoverTimer();
-      hoverTimer.current = window.setTimeout(() => requestClose(), 160);
+      // Salida sin retardo (A.4): al alejar el mouse del elemento la burbuja
+      // desaparece de inmediato; con retardo > 0 se conserva la gracia clásica.
+      if (hoverCloseDelay <= 0) requestClose();
+      else hoverTimer.current = window.setTimeout(() => requestClose(), hoverCloseDelay);
     };
     triggerProps.onFocus = () => openNow();
     triggerProps.onBlur = () => requestClose();
