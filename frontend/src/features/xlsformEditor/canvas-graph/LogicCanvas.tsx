@@ -398,9 +398,28 @@ export function LogicCanvas({
     return (varName: string) => map.get(varName) ?? null;
   }, [structure]);
 
+  /** Lookup que resuelve el `name` a una referencia CORTA tipo "P1" para
+   *  el chip compacto sobre el edge. Si el name no sigue el patrón pN, cae
+   *  al name crudo. */
+  const refLookup = useMemo<VarTitleLookup>(() => {
+    return (varName: string) => nameToRef(varName) ?? varName;
+  }, []);
+
   /** Atajo para humanizar con labels resueltos. */
   const humanize = (expr: string): string =>
     humanizeRelevantWithLabels(expr, labelLookup, varTitleLookup);
+
+  /** Versión compacta para el chip sobre el edge: referencias cortas
+   *  (P1) + labels de opción, en una línea y truncada. */
+  const compactCondition = (expr: string): string => {
+    const s = humanizeRelevantWithLabels(expr, labelLookup, refLookup, true)
+      // Quita las comillas simples alrededor de los valores: en un chip
+      // compacto "P1 = Sí" se lee mejor que "P1 = 'Sí'".
+      .replace(/'([^']*)'/g, "$1")
+      .replace(/\s+/g, " ")
+      .trim();
+    return s.length > 52 ? `${s.slice(0, 52)}…` : s;
+  };
   // Título humano LIMPIO (sin markdown crudo `**…**` ni el `(name)`
   // embutido). El `name` técnico se muestra aparte en su propia línea
   // mono para no mezclar identidad legible con referencia XLSForm.
@@ -1036,7 +1055,7 @@ export function LogicCanvas({
               const e = layout.edges[activeIdx];
               if (!e) return null;
               const expr = graph.byId.get(e.edge.target)?.relevantExpression;
-              const label = expr ? shortConditionLabel(expr) : null;
+              const label = expr ? compactCondition(expr) : null;
               if (!label) return null;
               const W = 220;
               const H = 24;
@@ -2486,16 +2505,13 @@ function parseOptionCondition(
  * luego operadores, luego ${}). El resultado preserva los valores
  * literales (números, strings entre comillas) tal cual.
  */
-/** Versión simple sin acceso a catálogo — fallback cuando no hay
- *  contexto. Mantiene los códigos como están. */
-function humanizeRelevant(expr: string): string {
-  return humanizeRelevantWithLabels(expr, null);
-}
-/** Etiqueta compacta de la condición para el chip que flota sobre el
- *  edge activo: humanización estándar, en una línea y truncada. */
-function shortConditionLabel(expr: string): string {
-  const s = humanizeRelevant(expr).replace(/\s+/g, " ").trim();
-  return s.length > 48 ? `${s.slice(0, 48)}…` : s;
+/** Referencia corta de una variable para el chip compacto: "pregunta_1"
+ *  o "p1" → "P1"; "p6_otro" → "P6·otro". Devuelve null si no calza el
+ *  patrón pN (el caller cae al name crudo). */
+function nameToRef(name: string): string | null {
+  const m = /^p(?:regunta)?_?0*(\d+)(?:_(.+))?$/i.exec(name.trim());
+  if (!m) return null;
+  return `P${m[1]}${m[2] ? `·${m[2]}` : ""}`;
 }
 /** Versión completa que resuelve códigos `'1'` a labels (`'Sí'`).
  *
@@ -2509,6 +2525,7 @@ function humanizeRelevantWithLabels(
   expr: string,
   lookup: LabelLookup | null,
   varTitle: VarTitleLookup | null = null,
+  compact = false,
 ): string {
   let r = expr;
   const resolveCode = (varName: string, code: string): string => {
@@ -2528,6 +2545,9 @@ function humanizeRelevantWithLabels(
     if (!varTitle) return varName;
     const raw = varTitle(varName);
     if (!raw || raw === varName) return varName;
+    // Modo compacto (chip sobre el edge): solo la referencia corta que
+    // devuelve `varTitle` (ej. "P1"), sin el prompt ni el `(name)`.
+    if (compact) return raw;
     // La condición referencia la pregunta, no la transcribe: markdown
     // limpio + incipit truncado (ver `compactTitle`).
     return `«${compactTitle(raw)}» (${varName})`;
