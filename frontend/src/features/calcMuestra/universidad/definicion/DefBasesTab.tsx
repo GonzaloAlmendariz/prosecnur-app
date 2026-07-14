@@ -388,8 +388,11 @@ export function DefBasesTab({
 
   return (
     <section className="cmv2-panel cmv2-university-sources">
-      <div className="cmv2-source-mode-grid cmv2-uni-stagger" role="radiogroup" aria-label="Tipo de insumo institucional">
-        {UNIVERSITY_SOURCE_MODE_OPTIONS.map((option) => (
+      {/* Dos escenarios reales de datos (§3.1.3): base única o dos bases. La
+          lectura de una selección ya trabajada no es un tipo de base para armar
+          el marco, sino un camino aparte: vive como opción secundaria abajo. */}
+      <div className="cmv2-source-mode-grid cmv2-uni-stagger" role="radiogroup" aria-label="Escenario de datos institucional">
+        {UNIVERSITY_SOURCE_MODE_OPTIONS.filter((option) => option.id !== "seleccion_existente").map((option) => (
           <div key={option.id} className="cmv2-defi-mode">
             <button
               type="button"
@@ -421,6 +424,23 @@ export function DefBasesTab({
           </div>
         ))}
       </div>
+      {(() => {
+        const historica = UNIVERSITY_SOURCE_MODE_OPTIONS.find((option) => option.id === "seleccion_existente");
+        if (!historica) return null;
+        const activa = sourceMode === "seleccion_existente";
+        return (
+          <div className="cmv2-source-historica">
+            <button
+              type="button"
+              className={`cmv2-source-historica-toggle ${activa ? "is-active" : ""}`}
+              aria-pressed={activa}
+              onClick={() => setSourceMode(activa ? "base_madre" : "seleccion_existente")}
+            >
+              <span>{activa ? "◂ Volver a construir el marco desde la base" : "¿Ya tienes una selección trabajada? Léela sin reconstruir el marco"}</span>
+            </button>
+          </div>
+        );
+      })()}
       {sourceMode === "dos_bases" && (
         <div className="cmv2-source-mode-note">
           <Database size={15} />
