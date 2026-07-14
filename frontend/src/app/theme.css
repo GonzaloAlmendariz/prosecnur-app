@@ -36309,6 +36309,12 @@ button.pulso-focus-calculation-recipe {
 .pulso-graph-minimap svg rect {
   transition: fill 140ms ease;
 }
+/* Recuadro del área visible dentro del minimapa. */
+.pulso-graph-minimap-viewport {
+  fill: color-mix(in srgb, var(--pulso-primary) 10%, transparent);
+  stroke: var(--pulso-primary);
+  stroke-width: 1.2;
+}
 
 /* Botón de leyenda colapsada → pulse sutil para invitar al click la
  * primera vez que se carga. */
