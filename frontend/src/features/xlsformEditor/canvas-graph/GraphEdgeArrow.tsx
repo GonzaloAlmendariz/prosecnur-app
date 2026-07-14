@@ -43,6 +43,8 @@ export type GraphEdgeArrowProps = {
    *  con halo glow y stroke ligeramente más ancho para destacarlo
    *  contra los edges atenuados. */
   isSelected?: boolean;
+  /** Si true, el edge se está borrando: se desvanece antes de removerse. */
+  leaving?: boolean;
   onHover?: (hovering: boolean) => void;
   /** Click en la rama → aísla esa relación (otras se atenúan). */
   onClick?: () => void;
@@ -102,6 +104,7 @@ export function GraphEdgeArrow({
   justAppeared,
   appearanceIndex = 0,
   isSelected,
+  leaving,
   onHover,
   onClick,
 }: GraphEdgeArrowProps) {
@@ -137,7 +140,7 @@ export function GraphEdgeArrow({
     <g
       className={`pulso-graph-edge ${justAppeared ? "is-fresh" : ""} ${
         onClick ? "is-clickable" : ""
-      } ${isSelected ? "is-selected" : ""}`}
+      } ${isSelected ? "is-selected" : ""} ${leaving ? "is-leaving" : ""}`}
       opacity={opacity}
       onMouseEnter={onHover ? () => onHover(true) : undefined}
       onMouseLeave={onHover ? () => onHover(false) : undefined}
