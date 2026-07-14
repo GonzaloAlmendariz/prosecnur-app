@@ -106,6 +106,9 @@ export function LogicCanvas({
    *  resuelve con "Sí, eliminar" / "Cancelar" dentro del mismo panel —
    *  nunca un window.confirm. */
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  /** unitKey del bundle que se está borrando: sus edges se pintan
+   *  desvaneciéndose ~200ms antes de que el dato desaparezca. */
+  const [deletingUnitKey, setDeletingUnitKey] = useState<string | null>(null);
 
   // ── Drag libre de cards (estilo Obsidian Canvas) ──────────────────
   // Cada vez que el usuario arrastra una card, registramos su posición
@@ -441,6 +444,38 @@ export function LogicCanvas({
 
   if (!open) return null;
 
+  // Destinos INVÁLIDOS mientras se arrastra una conexión desde `edgeDraft`:
+  // el propio origen + todos sus ancestros (nodos de los que el origen ya
+  // depende, transitivamente). Conectar el origen a un ancestro crearía un
+  // ciclo de visibilidad. Se calcula sobre ids RESUELTOS (coinciden con lo
+  // que devuelve `findNodeUnderCursor`, que puede ser una sección colapsada).
+  const connectInvalidIds: Set<string> | null =
+    edgeDraft && layout
+      ? (() => {
+          const invalid = new Set<string>([edgeDraft.sourceId]);
+          const upstream = new Map<string, string[]>();
+          for (const e of layout.edges) {
+            const s = e.resolvedSourceId;
+            const t = e.resolvedTargetId;
+            if (s === t) continue;
+            const arr = upstream.get(t);
+            if (arr) arr.push(s);
+            else upstream.set(t, [s]);
+          }
+          const stack = [edgeDraft.sourceId];
+          while (stack.length) {
+            const cur = stack.pop()!;
+            for (const up of upstream.get(cur) ?? []) {
+              if (!invalid.has(up)) {
+                invalid.add(up);
+                stack.push(up);
+              }
+            }
+          }
+          return invalid;
+        })()
+      : null;
+
   const toCanvasCoords = (clientX: number, clientY: number) => {
     const svg = svgRef.current;
     if (!svg) return { x: 0, y: 0 };
@@ -462,6 +497,9 @@ export function LogicCanvas({
     if (!nodeEl) return null;
     const id = nodeEl.getAttribute("data-graph-node-id");
     if (!id || id === sourceId) return null;
+    // Bloquear destinos que crearían un ciclo (el origen ya depende de
+    // ellos, directa o transitivamente).
+    if (connectInvalidIds?.has(id)) return null;
     // Una sección EXPANDIDA es un contenedor que envuelve sus preguntas:
     // su rect ocupa todo el alto. Solo debe ser destino válido por su
     // HEADER (banda superior), no por el borde/cuerpo que rodea a las
@@ -904,6 +942,7 @@ export function LogicCanvas({
                   justAppeared={freshEdgeKey === edgeKey}
                   appearanceIndex={idx}
                   isSelected={inSelectedBundle}
+                  leaving={deletingUnitKey !== null && edge.unitKey === deletingUnitKey}
                   onHover={(h) => setHoveredEdgeIdx(h ? idx : null)}
                   onClick={() => {
                     setSelectedEdgeIdx((cur) => {
@@ -941,6 +980,12 @@ export function LogicCanvas({
                   !!edgeDraft &&
                   edgeDraft.sourceId !== id &&
                   edgeHoverTargetId === id;
+                // Durante un arrastre de conexión, atenuar los destinos
+                // inválidos (origen + sus ancestros) — no se puede soltar ahí.
+                const isInvalidTarget =
+                  !!edgeDraft &&
+                  !isDraggingFrom &&
+                  !!connectInvalidIds?.has(id);
                 const expanded =
                   laid.node.kind === "section" && expandedSections.has(id);
                 return (
@@ -954,6 +999,7 @@ export function LogicCanvas({
                     relationCount={relationCountById.get(id) ?? 0}
                     draggingFrom={isDraggingFrom}
                     markedAsTarget={isMarkedTarget}
+                    invalidTarget={isInvalidTarget}
                     beingDragged={draggingCardId === id}
                     onClick={() => {
                       // Si veníamos de un drag (moved=true), no
@@ -2099,9 +2145,15 @@ export function LogicCanvas({
                   ),
                 );
                 const doDelete = () => {
-                  deleteRows.forEach((row) => onSetRelevant(row, ""));
+                  // Cierra el panel y desvanece el bundle; el borrado real
+                  // ocurre tras la animación para que no desaparezca en seco.
                   setConfirmingDelete(false);
                   setSelectedEdgeIdx(null);
+                  setDeletingUnitKey(clickedEdge.unitKey);
+                  window.setTimeout(() => {
+                    deleteRows.forEach((row) => onSetRelevant(row, ""));
+                    setDeletingUnitKey(null);
+                  }, 220);
                 };
                 if (confirmingDelete) {
                   return (

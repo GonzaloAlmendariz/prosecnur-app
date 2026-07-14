@@ -240,6 +240,13 @@
 .pulso-graph-overlay .pulso-graph-node.is-dragging .pulso-graph-node-inner > rect:first-of-type {
   filter: drop-shadow(0 10px 22px rgba(15, 23, 42, 0.18));
 }
+/* Durante un arrastre de conexión, los destinos inválidos (origen +
+ * ancestros, que crearían ciclo) se atenúan para señalar que no se puede
+ * soltar ahí. */
+.pulso-graph-overlay .pulso-graph-node.is-invalid-target {
+  opacity: 0.3;
+  transition: opacity var(--motion-dur-fast) ease;
+}
 
 /* Ring primario del nodo seleccionado. */
 .pulso-graph-overlay .pulso-graph-node-ring {
@@ -258,6 +265,16 @@
  * que "fluye" en la dirección de la dependencia). */
 .pulso-graph-overlay .pulso-graph-edge-flowline {
   animation: pulso-xfg-dash-flow 0.9s linear infinite;
+}
+
+/* Salida del edge al eliminarlo: se desvanece antes de removerse del dato. */
+.pulso-graph-overlay .pulso-graph-edge.is-leaving {
+  animation: pulso-xfg-edge-out 220ms ease forwards;
+  pointer-events: none;
+}
+@keyframes pulso-xfg-edge-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
 /* Chip de condición que flota al medio del edge activo (hover/selección):

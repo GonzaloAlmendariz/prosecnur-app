@@ -40,6 +40,9 @@ export type GraphNodeCardProps = {
   /** Estados auxiliares para el modo edición (drag de edge). */
   markedAsTarget?: boolean;
   draggingFrom?: boolean;
+  /** Durante un arrastre de conexión, este nodo NO es destino válido
+   *  (crearía ciclo o es el propio origen) → se atenúa. */
+  invalidTarget?: boolean;
   /** Toggle expand/collapse para secciones. */
   onToggleExpand?: () => void;
   /** Click en el body (no chevron) selecciona / abre detalle. */
@@ -67,6 +70,7 @@ export function GraphNodeCard({
   relationCount = 0,
   markedAsTarget,
   draggingFrom,
+  invalidTarget,
   onToggleExpand,
   onClick,
   onAnchorMouseDown,
@@ -155,7 +159,7 @@ export function GraphNodeCard({
         draggingFrom ? "is-source" : ""
       } ${expanded ? "is-expanded" : ""} ${
         beingDragged ? "is-dragging" : ""
-      } pulso-graph-node-${node.kind}`}
+      } ${invalidTarget ? "is-invalid-target" : ""} pulso-graph-node-${node.kind}`}
       style={{
         // Cursor refleja capacidad: si la card es movible (top-level
         // con onCardMouseDown), grab/grabbing; si no, pointer normal.
