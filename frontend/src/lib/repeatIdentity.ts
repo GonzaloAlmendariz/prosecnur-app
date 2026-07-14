@@ -25,14 +25,17 @@ export type RepeatGrain = {
   nota: string;
 };
 
-/** `source_kind` con el que el backend registra una base hija repeat. */
+/** `source_kind` histórico con el que Kobo registraba una base hija repeat. */
 export const REPEAT_SOURCE_KIND = "kobo_repeat";
 
-/** Metadata mínima necesaria para reconocer una base hija repeat. */
+/** Metadata relacional que puede describir una base hija repeat. */
 export type RepeatBaseLike = {
   source_kind?: string | null;
   repeat_group?: string | null;
   parent_base?: string | null;
+  link_key?: string | null;
+  link_key_fallback?: string | null;
+  parent_index_key?: string | null;
 };
 
 /**
@@ -56,7 +59,28 @@ export function safeRepeatNum(value: unknown): number | null {
  * poder reutilizarse en cualquier superficie y testearse sin el tipo completo.
  */
 export function isRepeatChildBase(base: RepeatBaseLike | null | undefined): boolean {
-  return !!base && String(base.source_kind ?? "") === REPEAT_SOURCE_KIND;
+  if (!base) return false;
+
+  // Compatibilidad con proyectos Kobo guardados antes de persistir todas las
+  // llaves relacionales. `source_kind` no se usa para los proyectos nuevos.
+  if (String(base.source_kind ?? "").trim() === REPEAT_SOURCE_KIND) return true;
+
+  const parentBase = String(base.parent_base ?? "").trim();
+  const repeatGroup = String(base.repeat_group ?? "").trim();
+  if (!parentBase || !repeatGroup) return false;
+
+  // Contrato canónico: hija._parent_index -> madre._index, con fallback
+  // hija._submission__id -> madre._id. Las llaves vacías siguen siendo válidas
+  // para metadata relacional legacy; cualquier par explícito incompatible evita
+  // clasificar una base normal como repeat.
+  const linkKey = String(base.link_key ?? "").trim();
+  const parentIndexKey = String(base.parent_index_key ?? "").trim();
+  const primaryLink = (!linkKey || linkKey === "_parent_index")
+    && (!parentIndexKey || parentIndexKey === "_index");
+  const fallbackLink = linkKey === "_submission__id" && parentIndexKey === "_id";
+  if (!primaryLink && !fallbackLink) return false;
+
+  return true;
 }
 
 /**

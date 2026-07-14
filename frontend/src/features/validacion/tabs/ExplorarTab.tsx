@@ -25,11 +25,17 @@ import type { ExploradorVariable, ExploradorVariablesList } from "../types";
 import { useValidacionStore } from "../store";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
 import { RepeatGrainNote } from "../../../components/RepeatGrainNote";
-import { buildExplorerGrain, type ProcessingSheetRepeatContext } from "../../../lib/rosterExplorer";
+import {
+  buildExplorerGrain,
+  scopeRepeatSections,
+  withRepeatIdentityFilter,
+  type ProcessingSheetRepeatContext,
+} from "../../../lib/rosterExplorer";
 import PlotlyView from "../components/PlotlyView";
 import VariablePicker from "../components/VariablePicker";
 import FiltroCascada from "../components/FiltroCascada";
 import CrossBar from "../components/CrossBar";
+import RepeatDimensionBar from "../components/RepeatDimensionBar";
 
 // =============================================================================
 // ExplorarTab — Sprint 3
@@ -58,6 +64,9 @@ export default function ExplorarTab({
   const [cruzar, setCruzar] = useState<string | null>(null);
   const [biv, setBiv] = useState<ExplorarBivariadoResult | null>(null);
   const [filtros, setFiltros] = useState<ExplorarFiltros>({});
+  // Corte estructural del repeat. Vive sólo en Explorar y no se mezcla con
+  // los chips de filtros manuales.
+  const [repeatCode, setRepeatCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -68,12 +77,34 @@ export default function ExplorarTab({
   const [hasFinalizedBase, setHasFinalizedBase] = useState<boolean>(false);
   const [finalizedAt, setFinalizedAt] = useState<string | null>(null);
 
-  // Lista plana de variables (orden del inventario) — usada para iterar
-  // con ←/→.
+  const repeatContext = inv?.repeat_context ?? null;
+  const selectedRepeatOption = repeatCode
+    ? repeatContext?.options.find((option) => option.code === repeatCode) ?? null
+    : null;
+  const selectedRepeatIsEmpty = !!selectedRepeatOption && selectedRepeatOption.n_instancias === 0;
+
+  const scopedSections = useMemo(
+    () => scopeRepeatSections(inv?.secciones ?? [], repeatCode),
+    [inv, repeatCode],
+  );
+  const scopedInv = useMemo<ExploradorVariablesList | null>(() => {
+    if (!inv) return null;
+    return {
+      ...inv,
+      secciones: scopedSections,
+      n_variables: scopedSections.reduce((total, section) => total + section.variables.length, 0),
+    };
+  }, [inv, scopedSections]);
+
+  const effectiveFiltros = useMemo<ExplorarFiltros>(
+    () => withRepeatIdentityFilter(filtros, repeatContext, repeatCode),
+    [filtros, repeatContext, repeatCode],
+  );
+
+  // Lista plana del contexto activo — gobierna sidebar, navegación y cruces.
   const flatVars = useMemo<ExploradorVariable[]>(() => {
-    if (!inv) return [];
-    return inv.secciones.flatMap((s) => s.variables);
-  }, [inv]);
+    return scopedSections.flatMap((s) => s.variables);
+  }, [scopedSections]);
 
   const currentIdx = useMemo(() => {
     if (!selected) return -1;
@@ -91,7 +122,17 @@ export default function ExplorarTab({
     setCruzar(null);
     setBiv(null);
     setFiltros({});
+    setRepeatCode(null);
   }, [baseNombre, version]);
+
+  // Si cambia el inventario (p.ej. raw → final) y el código ya no existe,
+  // volvemos a Todos en vez de sostener un filtro invisible.
+  useEffect(() => {
+    if (!repeatCode || !repeatContext) return;
+    if (!repeatContext.options.some((option) => option.code === repeatCode)) {
+      setRepeatCode(null);
+    }
+  }, [repeatCode, repeatContext]);
 
   // Chequear si hay base final (Limpieza finalizada) para habilitar el
   // toggle "Data final".
@@ -148,19 +189,47 @@ export default function ExplorarTab({
   // Si el explorador ya tiene inventario y no viene un deep-link, abrir la
   // primera variable evita que la mesa arranque vacía pese a tener datos.
   useEffect(() => {
-    if (!inv || selected || prefill?.var) return;
-    const first = pickInitialVariable(inv);
+    if (!scopedInv || selected || prefill?.var) return;
+    const first = pickInitialVariable(scopedInv);
     if (first) setSelected(first);
-  }, [inv, selected, prefill?.var]);
+  }, [scopedInv, selected, prefill?.var]);
+
+  // Al cambiar de servicio, conserva la variable si sigue siendo aplicable y
+  // adopta sus conteos segmentados; si no, elige la primera variable útil.
+  useEffect(() => {
+    if (!scopedInv) return;
+    const nextSelected = selected
+      ? flatVars.find((variable) => variable.name === selected.name) ?? null
+      : null;
+    if (selected && !nextSelected) {
+      setSelected(pickInitialVariable(scopedInv));
+    } else if (selected && nextSelected && nextSelected !== selected) {
+      setSelected(nextSelected);
+    }
+    if (cruzar && !flatVars.some((variable) => variable.name === cruzar)) {
+      setCruzar(null);
+    }
+    const applicableNames = new Set(flatVars.map((variable) => variable.name));
+    const nextFiltros = Object.fromEntries(
+      Object.entries(filtros).filter(([name]) => applicableNames.has(name)),
+    );
+    if (Object.keys(nextFiltros).length !== Object.keys(filtros).length) {
+      setFiltros(nextFiltros);
+    }
+  }, [scopedInv, flatVars, selected, cruzar, filtros]);
 
   // Cargar univariado al seleccionar variable o cambiar filtros.
   useEffect(() => {
-    if (!selected) return;
+    if (!selected || selectedRepeatIsEmpty) {
+      setUni(null);
+      setBusy("");
+      return;
+    }
     let cancel = false;
     setBusy(`Cargando ${selected.name}…`);
     setError("");
     setUni(null);
-    apiV2ExplorarUnivariado(selected.name, baseNombre, filtros, fuente)
+    apiV2ExplorarUnivariado(selected.name, baseNombre, effectiveFiltros, fuente)
       .then((u) => {
         if (!cancel) setUni(u);
       })
@@ -174,17 +243,21 @@ export default function ExplorarTab({
       cancel = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, baseNombre, fuente, JSON.stringify(filtros)]);
+  }, [selected, baseNombre, fuente, selectedRepeatIsEmpty, JSON.stringify(effectiveFiltros)]);
 
   // Cargar bivariado cuando el usuario elige "cruzar con" (o cambian filtros).
   useEffect(() => {
-    if (!selected || !cruzar) {
+    if (!selected || !cruzar || selectedRepeatIsEmpty) {
       setBiv(null);
+      if (selectedRepeatIsEmpty) setBusy("");
       return;
     }
     let cancel = false;
+    // Retira el cruce anterior antes de pedir el nuevo corte; evita mostrar
+    // una matriz de otro servicio mientras llega la respuesta actual.
+    setBiv(null);
     setBusy(`Cruzando ${selected.name} × ${cruzar}…`);
-    apiV2ExplorarBivariado(selected.name, cruzar, baseNombre, filtros, fuente)
+    apiV2ExplorarBivariado(selected.name, cruzar, baseNombre, effectiveFiltros, fuente)
       .then((b) => {
         if (!cancel) setBiv(b);
       })
@@ -198,7 +271,7 @@ export default function ExplorarTab({
       cancel = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, cruzar, baseNombre, fuente, JSON.stringify(filtros)]);
+  }, [selected, cruzar, baseNombre, fuente, selectedRepeatIsEmpty, JSON.stringify(effectiveFiltros)]);
 
   const onPickVariable = useCallback((v: ExploradorVariable) => {
     setSelected(v);
@@ -267,15 +340,17 @@ export default function ExplorarTab({
       <aside className="pulso-validacion-explorar-sidebar">
         <div className="pulso-validacion-explorar-picker-head">
           <div>
-            <span>Preguntas y campos</span>
-            <strong>{inv.n_variables}</strong>
+            <span>{selectedRepeatOption ? `Preguntas para ${selectedRepeatOption.label}` : "Preguntas y campos"}</span>
+            <strong>{scopedInv?.n_variables ?? inv.n_variables}</strong>
           </div>
-          <p>Única · Múltiple · Numérica · Abierta</p>
+          <p>{selectedRepeatOption ? `${selectedRepeatOption.n_instancias.toLocaleString("es-PE")} instancias` : "Única · Múltiple · Numérica · Abierta"}</p>
         </div>
         <VariablePicker
-          secciones={inv.secciones}
+          secciones={scopedSections}
           selectedVar={selected?.name ?? null}
           onSelect={onPickVariable}
+          repeatCode={repeatCode}
+          repeatLabel={selectedRepeatOption?.label ?? null}
         />
       </aside>
 
@@ -283,6 +358,14 @@ export default function ExplorarTab({
       <main className="pulso-validacion-explorar-main">
         {rosterGrain && (
           <RepeatGrainNote grain={rosterGrain} className="pulso-validacion-explorar-repeat" />
+        )}
+
+        {repeatContext && repeatContext.options.length > 0 && (
+          <RepeatDimensionBar
+            context={repeatContext}
+            selectedCode={repeatCode}
+            onChange={setRepeatCode}
+          />
         )}
 
         {/* Toggle de momento: respuestas cargadas vs versión final tras Limpieza. */}
@@ -295,13 +378,19 @@ export default function ExplorarTab({
 
         {/* Filtros cascada (siempre visibles arriba cuando hay inventario) */}
         <FiltroCascada
-          secciones={inv.secciones}
+          secciones={scopedSections}
           filtros={filtros}
           onChange={setFiltros}
           baseNombre={baseNombre}
         />
 
-        {!selected && (
+        {selectedRepeatIsEmpty ? (
+          <EmptyState
+            icon={<Compass size={20} />}
+            title={`Sin respuestas para ${selectedRepeatOption?.label ?? "este servicio"}`}
+            hint="El servicio está declarado en el formulario, pero esta base no contiene instancias para analizar."
+          />
+        ) : !selected && (
           <EmptyState
             icon={<Compass size={20} />}
             title="Elige una pregunta o campo"
@@ -320,13 +409,15 @@ export default function ExplorarTab({
               onNext={nextVar ? () => setSelected(nextVar) : undefined}
               prevName={prevVar?.name ?? null}
               nextName={nextVar?.name ?? null}
+              repeatLabel={selectedRepeatOption?.label ?? null}
+              repeatInstances={selectedRepeatOption?.n_instancias ?? null}
             />
 
             {/* Barra de cruce: siempre visible, arriba de los charts. */}
             <CrossBar
-              secciones={inv.secciones}
+              secciones={scopedSections}
               selfVar={selected.name}
-              selfSeccion={findSeccionOf(selected.name, inv)}
+              selfSeccion={scopedInv ? findSeccionOf(selected.name, scopedInv) : null}
               cruzar={cruzar}
               onChange={setCruzar}
             />
@@ -344,14 +435,14 @@ export default function ExplorarTab({
                 se ve el univariado a todo el ancho. */}
             {cruzar && biv ? (
               <ChartPanel
-                title={`${selected.name} × ${cruzar}`}
+                title={`${selected.name} × ${cruzar}${selectedRepeatOption ? ` · ${selectedRepeatOption.label}` : ""}`}
                 tone="cross"
               >
                 <PlotlyView view={biv.view} />
               </ChartPanel>
             ) : (
               <ChartPanel
-                title={`Distribución de ${selected.name}`}
+                title={`Distribución de ${selected.name}${selectedRepeatOption ? ` · ${selectedRepeatOption.label}` : ""}`}
                 tone="self"
               >
                 {uni.chart.kind === "table" && uni.chart.text_rows ? (
@@ -670,6 +761,8 @@ function VariableHeader({
   onNext,
   prevName,
   nextName,
+  repeatLabel,
+  repeatInstances,
 }: {
   uni: ExplorarUnivariadoResult;
   currentIdx: number;
@@ -678,6 +771,8 @@ function VariableHeader({
   onNext: (() => void) | undefined;
   prevName: string | null;
   nextName: string | null;
+  repeatLabel: string | null;
+  repeatInstances: number | null;
 }) {
   return (
     <header
@@ -713,6 +808,12 @@ function VariableHeader({
           <code style={{ fontFamily: "ui-monospace, monospace", fontSize: 16, fontWeight: 700, color: "var(--pulso-text)" }}>
             {uni.var}
           </code>
+          {repeatLabel && (
+            <span className="pulso-repeat-variable-context">
+              Servicio · {repeatLabel}
+              {repeatInstances != null && ` · ${repeatInstances.toLocaleString("es-PE")} instancias`}
+            </span>
+          )}
         </div>
         {uni.label && uni.label !== uni.var && (
           <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>

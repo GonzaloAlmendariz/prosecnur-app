@@ -4800,7 +4800,7 @@ a { color: var(--pulso-primary); }
     color var(--motion-dur-fast) ease,
     box-shadow var(--motion-dur-fast) var(--motion-ease-out);
 }
-.pulso-validacion-base-chip span {
+.pulso-validacion-base-chip > span:not(.pulso-repeat-badge) {
   font-size: 10px;
   opacity: 0.72;
   font-weight: 520;
@@ -6283,6 +6283,211 @@ a { color: var(--pulso-primary); }
   overflow: auto;
   padding-right: 2px;
   scrollbar-gutter: stable;
+}
+
+/* Dimensión de instancia de una base repeat. El naranja conserva la identidad
+   transversal del roster; el azul sigue reservado para acciones de Validación. */
+.pulso-repeat-dimension {
+  min-width: 0;
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--pulso-repeat-accent) 24%, var(--pulso-border));
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--pulso-repeat-accent) 6%, transparent);
+  overflow: hidden;
+}
+.pulso-repeat-dimension-trigger {
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 0;
+  background: #ffffff;
+  color: var(--pulso-repeat-fg);
+  cursor: pointer;
+  text-align: left;
+}
+.pulso-repeat-dimension-trigger:hover {
+  background: color-mix(in srgb, var(--pulso-repeat-bg) 56%, #ffffff);
+}
+.pulso-repeat-dimension-trigger:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid var(--pulso-repeat-accent);
+  outline-offset: -2px;
+}
+.pulso-repeat-dimension-icon {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--pulso-repeat-border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--pulso-repeat-accent);
+}
+.pulso-repeat-dimension-trigger-label {
+  flex: 0 0 auto;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.pulso-repeat-dimension-trigger-value {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pulso-repeat-dimension-trigger-count {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--pulso-repeat-bg);
+  color: var(--pulso-repeat-fg);
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.pulso-repeat-dimension-trigger-action {
+  flex: 0 0 auto;
+  color: var(--pulso-repeat-accent);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.pulso-repeat-dimension-chevron {
+  flex: 0 0 auto;
+  color: var(--pulso-repeat-accent);
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-repeat-dimension.is-open .pulso-repeat-dimension-chevron {
+  transform: rotate(180deg);
+}
+.pulso-repeat-dimension-panel {
+  padding: 10px 12px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--pulso-repeat-accent) 22%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-repeat-bg) 24%, #ffffff);
+}
+.pulso-repeat-dimension-panel-copy {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.pulso-repeat-dimension-panel-copy strong {
+  color: var(--pulso-repeat-fg);
+  font-size: 11.5px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+.pulso-repeat-dimension-panel-copy span {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  line-height: 1.3;
+}
+.pulso-repeat-dimension-options {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 1px 0;
+}
+.pulso-repeat-dimension-option {
+  min-height: 30px;
+  flex: 0 1 auto;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--pulso-repeat-accent) 26%, var(--pulso-border));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--pulso-text);
+  cursor: pointer;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.pulso-repeat-dimension-option > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pulso-repeat-dimension-option strong {
+  min-width: 20px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--pulso-repeat-bg);
+  color: var(--pulso-repeat-accent);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.pulso-repeat-dimension-option:hover {
+  border-color: color-mix(in srgb, var(--pulso-repeat-accent) 52%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-repeat-bg) 34%, #ffffff);
+}
+.pulso-repeat-dimension-option:focus-visible {
+  outline: 2px solid var(--pulso-repeat-accent);
+  outline-offset: 2px;
+}
+.pulso-repeat-dimension-option.is-active {
+  border-color: color-mix(in srgb, var(--pulso-repeat-accent) 58%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-repeat-bg) 62%, #ffffff);
+  color: var(--pulso-repeat-fg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-repeat-accent) 14%, transparent);
+}
+.pulso-repeat-dimension-option.is-active strong {
+  background: var(--pulso-repeat-accent);
+  color: #ffffff;
+}
+.pulso-repeat-dimension-unclassified {
+  margin: 8px 0 0;
+  color: var(--pulso-repeat-fg);
+  font-size: 10px;
+}
+.pulso-repeat-variable-context,
+.pulso-variable-repeat-scope {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  border: 1px solid var(--pulso-repeat-border);
+  border-radius: 999px;
+  background: var(--pulso-repeat-bg);
+  color: var(--pulso-repeat-fg);
+  font-size: 9.5px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+.pulso-repeat-variable-context {
+  padding: 3px 7px;
+}
+.pulso-variable-repeat-scope {
+  margin-top: 4px;
+  padding: 2px 6px;
+}
+@media (max-width: 980px) {
+  .pulso-repeat-dimension-trigger-label,
+  .pulso-repeat-dimension-trigger-action {
+    display: none;
+  }
+  .pulso-repeat-dimension-panel-copy {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
 }
 .pulso-validacion-kpi-grid {
   display: grid;

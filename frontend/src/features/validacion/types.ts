@@ -6,6 +6,12 @@
 // `ReglaCustom` es el formato persistido de reglas definidas desde la UI
 // (se compila a una fila del plan al ejecutar).
 
+import type {
+  ExplorerRepeatContext,
+  ExplorerRepeatVariableCount,
+  ExplorerRepeatVariableScope,
+} from "../../lib/rosterExplorer";
+
 /**
  * Tipo de visualización que el frontend sabe renderizar. Se mapea a una
  * configuración plotly concreta dentro de `plotly.data/layout` que el
@@ -357,6 +363,16 @@ export type ExploradorVariable = {
   tipo: "so" | "sm" | "num" | "fecha" | "texto" | "mixto";
   n_validos: number;
   n_nulos: number;
+  /** Instancias donde la variable es estructuralmente aplicable. */
+  n_aplicables?: number;
+  /** Papel de la variable dentro de una base hija repetible. */
+  repeat_scope?: ExplorerRepeatVariableScope | null;
+  /** Códigos de instancia para los que el relevant del instrumento aplica. */
+  applicable_codes?: string[];
+  /** Fuente usada para resolver la aplicabilidad (AST, instrumento o fallback). */
+  applicability_source?: string | null;
+  /** Conteos ya segmentados por la identidad de la instancia. */
+  counts_by_code?: ExplorerRepeatVariableCount[];
 };
 
 export type ExploradorSeccion = {
@@ -369,6 +385,8 @@ export type ExploradorVariablesList = {
   base_nombre: string | null;
   secciones: ExploradorSeccion[];
   n_variables: number;
+  /** Dimensión estructural que gobierna la repetición, ausente en bases normales. */
+  repeat_context?: ExplorerRepeatContext | null;
 };
 
 export type ReglasCustomList = {

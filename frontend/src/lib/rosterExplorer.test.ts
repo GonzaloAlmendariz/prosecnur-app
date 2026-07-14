@@ -6,6 +6,10 @@ import {
   orderColumnsForRoster,
   repeatContextFromBase,
   resolveRosterColumns,
+  isRepeatVariableApplicable,
+  scopeRepeatSections,
+  scopeRepeatVariableCounts,
+  withRepeatIdentityFilter,
   ROSTER_RELATIONAL_NOTE,
 } from "./rosterExplorer";
 import type { RepeatGrain } from "./repeatIdentity";
@@ -213,5 +217,68 @@ describe("buildExplorerGrain", () => {
   test("null cuando no hay N ni grupo que mostrar", () => {
     expect(buildExplorerGrain({})).toBeNull();
     expect(buildExplorerGrain({ nInstancias: null, nPersonas: null })).toBeNull();
+  });
+});
+
+describe("explorador por instancia repeat", () => {
+  const sections = [
+    {
+      nombre: "Servicio",
+      variables: [
+        { name: "current_code", n_validos: 8, n_nulos: 0, repeat_scope: "identity" as const },
+        { name: "srv_claridad", n_validos: 7, n_nulos: 1, repeat_scope: "shared" as const },
+        {
+          name: "srv_legal_resolucion",
+          n_validos: 3,
+          n_nulos: 5,
+          repeat_scope: "conditional" as const,
+          applicable_codes: ["legal"],
+          counts_by_code: [
+            { code: "legal", n_instancias: 4, n_aplicables: 4, n_validos: 3, n_nulos: 1 },
+            { code: "salud", n_instancias: 4, n_aplicables: 0, n_validos: 0, n_nulos: 0 },
+          ],
+        },
+        {
+          name: "srv_salud_escucha",
+          n_validos: 4,
+          n_nulos: 4,
+          repeat_scope: "conditional" as const,
+          applicable_codes: ["salud"],
+        },
+      ],
+    },
+  ];
+
+  test("Todos conserva identidad, comunes y condicionales", () => {
+    expect(scopeRepeatSections(sections, null)).toBe(sections);
+  });
+
+  test("un código conserva identity/shared y sólo sus condicionales", () => {
+    const scoped = scopeRepeatSections(sections, "legal");
+    expect(scoped[0].variables.map((variable) => variable.name)).toEqual([
+      "current_code",
+      "srv_claridad",
+      "srv_legal_resolucion",
+    ]);
+    expect(scoped[0].variables[2]).toMatchObject({ n_aplicables: 4, n_validos: 3, n_nulos: 1 });
+  });
+
+  test("aplicabilidad y conteos degradan sin inventar datos", () => {
+    expect(isRepeatVariableApplicable(sections[0].variables[2], "salud")).toBe(false);
+    expect(isRepeatVariableApplicable(sections[0].variables[1], "salud")).toBe(true);
+    expect(scopeRepeatVariableCounts(sections[0].variables[1], "salud")).toBe(sections[0].variables[1]);
+  });
+
+  test("limpia cualquier filtro manual de identidad antes de componer el estructural", () => {
+    const manual = { current_code: ["salud"], distrito: ["lima"] };
+    expect(withRepeatIdentityFilter(manual, { identity_var: "current_code" }, "legal")).toEqual({
+      distrito: ["lima"],
+      current_code: ["legal"],
+    });
+    expect(withRepeatIdentityFilter(manual, { identity_var: "current_code" }, null)).toEqual({
+      distrito: ["lima"],
+    });
+    expect(manual).toEqual({ current_code: ["salud"], distrito: ["lima"] });
+    expect(withRepeatIdentityFilter(manual, null, "legal")).toBe(manual);
   });
 });

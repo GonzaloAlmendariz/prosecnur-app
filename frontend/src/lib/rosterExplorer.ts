@@ -32,6 +32,102 @@ export const ROSTER_PERSON_LINK_KEY = "_parent_index";
 export const ROSTER_SERVICE_LABEL_KEYS = ["current_label"] as const;
 export const ROSTER_SERVICE_CODE_KEYS = ["current_code"] as const;
 
+/** Contrato del explorador para segmentar una base repeat por su instancia. */
+export type ExplorerRepeatOption = {
+  code: string;
+  label: string;
+  n_instancias: number;
+  n_personas: number | null;
+};
+
+export type ExplorerRepeatContext = {
+  identity_var: string;
+  label_var: string | null;
+  repeat_group: string;
+  parent_base: string;
+  n_instancias: number;
+  n_personas: number | null;
+  unclassified_instances: number;
+  options: ExplorerRepeatOption[];
+};
+
+export type ExplorerRepeatVariableScope = "identity" | "shared" | "conditional";
+
+export type ExplorerRepeatVariableCount = {
+  code: string;
+  n_instancias: number;
+  n_aplicables: number;
+  n_validos: number;
+  n_nulos: number;
+};
+
+export type RepeatScopedVariable = {
+  name: string;
+  n_validos: number;
+  n_nulos: number;
+  n_aplicables?: number;
+  repeat_scope?: ExplorerRepeatVariableScope | null;
+  applicable_codes?: string[];
+  applicability_source?: string | null;
+  counts_by_code?: ExplorerRepeatVariableCount[];
+};
+
+/** Una variable shared/identity aplica a toda instancia; una conditional sólo a sus códigos. */
+export function isRepeatVariableApplicable(
+  variable: RepeatScopedVariable,
+  selectedCode: string | null,
+): boolean {
+  if (!selectedCode) return true;
+  if (variable.repeat_scope !== "conditional") return true;
+  return (variable.applicable_codes ?? []).includes(selectedCode);
+}
+
+/** Sustituye los conteos globales por los del servicio activo sin mutar el inventario. */
+export function scopeRepeatVariableCounts<T extends RepeatScopedVariable>(
+  variable: T,
+  selectedCode: string | null,
+): T {
+  if (!selectedCode) return variable;
+  const scoped = (variable.counts_by_code ?? []).find((count) => count.code === selectedCode);
+  if (!scoped) return variable;
+  return {
+    ...variable,
+    n_aplicables: scoped.n_aplicables,
+    n_validos: scoped.n_validos,
+    n_nulos: scoped.n_nulos,
+  };
+}
+
+/** Filtra secciones por relevant y conserva su jerarquía original. */
+export function scopeRepeatSections<
+  V extends RepeatScopedVariable,
+  S extends { variables: V[] },
+>(sections: S[], selectedCode: string | null): S[] {
+  if (!selectedCode) return sections;
+  return sections
+    .map((section) => ({
+      ...section,
+      variables: section.variables
+        .filter((variable) => isRepeatVariableApplicable(variable, selectedCode))
+        .map((variable) => scopeRepeatVariableCounts(variable, selectedCode)),
+    }))
+    .filter((section) => section.variables.length > 0);
+}
+
+/** Compone el filtro estructural sin mezclarlo con los filtros manuales de la UI. */
+export function withRepeatIdentityFilter<T extends Record<string, unknown>>(
+  filtros: T,
+  context: Pick<ExplorerRepeatContext, "identity_var"> | null | undefined,
+  selectedCode: string | null,
+): T {
+  if (!context) return filtros;
+  const sanitized = Object.fromEntries(
+    Object.entries(filtros).filter(([name]) => name !== context.identity_var),
+  ) as T;
+  if (!selectedCode) return sanitized;
+  return { ...sanitized, [context.identity_var]: [selectedCode] };
+}
+
 /** Resultado de resolver las columnas relacionales dentro de un set de keys. */
 export type RosterColumnResolution = {
   /** Columna con el vínculo a la persona (o `null` si no está presente). */

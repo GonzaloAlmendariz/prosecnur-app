@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import type { ExploradorSeccion, ExploradorVariable } from "../types";
 
@@ -33,15 +33,20 @@ type Props = {
   secciones: ExploradorSeccion[];
   selectedVar: string | null;
   onSelect: (v: ExploradorVariable) => void;
+  repeatCode?: string | null;
+  repeatLabel?: string | null;
 };
 
 export default function VariablePicker({
   secciones,
   selectedVar,
   onSelect,
+  repeatCode = null,
+  repeatLabel = null,
 }: Props) {
   const [query, setQuery] = useState("");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const listId = useId();
 
   const filteredSecs = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -91,6 +96,8 @@ export default function VariablePicker({
         />
         <input
           type="text"
+          aria-label="Buscar preguntas y campos"
+          aria-controls={listId}
           placeholder="Buscar pregunta o campo…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -107,13 +114,30 @@ export default function VariablePicker({
       </div>
 
       {/* Secciones */}
-      <div className="pulso-variable-picker-list">
-        {filteredSecs.map((sec) => {
+      <div className="pulso-variable-picker-list" id={listId}>
+        {filteredSecs.length === 0 && query.trim() && (
+          <div
+            role="status"
+            style={{
+              padding: "18px 10px",
+              color: "var(--pulso-text-soft)",
+              fontSize: 11.5,
+              lineHeight: 1.4,
+              textAlign: "center",
+            }}
+          >
+            No hay preguntas o campos que coincidan con «{query.trim()}».
+          </div>
+        )}
+        {filteredSecs.map((sec, sectionIndex) => {
           const isCollapsed = !!collapsed[sec.nombre];
+          const sectionId = `${listId}-section-${sectionIndex}`;
           return (
             <div key={sec.nombre}>
               <button
                 type="button"
+                aria-expanded={!isCollapsed}
+                aria-controls={sectionId}
                 onClick={() =>
                   setCollapsed((c) => ({
                     ...c,
@@ -150,15 +174,18 @@ export default function VariablePicker({
                   · {sec.variables.length}
                 </span>
               </button>
-              {!isCollapsed &&
-                sec.variables.map((v) => (
+              <div id={sectionId} hidden={isCollapsed}>
+                {sec.variables.map((v) => (
                   <VariableRow
                     key={v.name}
                     v={v}
                     selected={v.name === selectedVar}
                     onClick={() => onSelect(v)}
+                    repeatCode={repeatCode}
+                    repeatLabel={repeatLabel}
                   />
                 ))}
+              </div>
             </div>
           );
         })}
@@ -171,10 +198,14 @@ function VariableRow({
   v,
   selected,
   onClick,
+  repeatCode,
+  repeatLabel,
 }: {
   v: ExploradorVariable;
   selected: boolean;
   onClick: () => void;
+  repeatCode: string | null;
+  repeatLabel: string | null;
 }) {
   const tipoColors = TIPO_COLORS[v.tipo] ?? TIPO_COLORS.mixto;
   const total = v.n_validos + v.n_nulos;
@@ -256,6 +287,15 @@ function VariableRow({
           >
             {v.name}
           </div>
+        )}
+        {v.repeat_scope === "conditional" && (
+          <span
+            className="pulso-variable-repeat-scope"
+            title={repeatCode && repeatLabel ? `Variable específica de ${repeatLabel}` : "Variable condicional según el servicio"}
+            aria-label={repeatCode && repeatLabel ? `Específica del servicio ${repeatLabel}` : "Condicional por servicio"}
+          >
+            Específica
+          </span>
         )}
       </div>
       {showMissing && (

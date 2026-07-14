@@ -34,10 +34,48 @@ describe("safeRepeatNum", () => {
 });
 
 describe("isRepeatChildBase", () => {
-  test("solo TRUE para source_kind kobo_repeat", () => {
+  test("conserva compatibilidad con hijas Kobo legacy sin metadata relacional", () => {
     expect(isRepeatChildBase({ source_kind: "kobo_repeat" })).toBe(true);
+  });
+
+  test("reconoce hijas repeat por contrato relacional sin depender del proveedor", () => {
+    expect(isRepeatChildBase({
+      source_kind: "xlsx_repeat",
+      parent_base: "personas",
+      repeat_group: "rep_servicios",
+      link_key: "_parent_index",
+      parent_index_key: "_index",
+    })).toBe(true);
+    expect(isRepeatChildBase({
+      source_kind: "otro_proveedor",
+      parent_base: "personas",
+      repeat_group: "rep_hogar",
+    })).toBe(true);
+    expect(isRepeatChildBase({
+      source_kind: "xlsx_repeat",
+      parent_base: "personas",
+      repeat_group: "rep_visitas",
+      link_key: "_submission__id",
+      parent_index_key: "_id",
+    })).toBe(true);
+  });
+
+  test("rechaza bases normales, contratos incompletos y llaves incompatibles", () => {
     expect(isRepeatChildBase({ source_kind: "manual" })).toBe(false);
     expect(isRepeatChildBase({ source_kind: "surveymonkey" })).toBe(false);
+    expect(isRepeatChildBase({ source_kind: "xlsx_repeat" })).toBe(false);
+    expect(isRepeatChildBase({ parent_base: "personas" })).toBe(false);
+    expect(isRepeatChildBase({ repeat_group: "rep_servicios" })).toBe(false);
+    expect(isRepeatChildBase({
+      parent_base: "personas",
+      repeat_group: "rep_servicios",
+      link_key: "person_id",
+    })).toBe(false);
+    expect(isRepeatChildBase({
+      parent_base: "personas",
+      repeat_group: "rep_servicios",
+      parent_index_key: "person_id",
+    })).toBe(false);
     expect(isRepeatChildBase({ source_kind: null })).toBe(false);
     expect(isRepeatChildBase({})).toBe(false);
     expect(isRepeatChildBase(null)).toBe(false);
