@@ -181,12 +181,16 @@ golden_capture_sim <- function(replacement) {
   .golden_round(sug)
 }
 
-# Directorio de golden .rds (bajo _snaps para vivir junto a otros snapshots).
+# Directorio de golden .rds. Vive en `fixtures/`, NO en `_snaps/`: estos
+# goldens se leen con readRDS (no son snapshots de testthat), y testthat
+# borra del directorio `_snaps/` todo archivo que no reconozca como snapshot
+# "usado" — al skipear los tests de aulas (sin el paquete `sampling`), los
+# daba por huerfanos y los eliminaba del control de versiones en cada corrida.
 golden_dir <- function() {
   base <- Sys.getenv("GOLDEN_AULAS_DIR", "")
   if (nzchar(base)) return(base)
   # Resolver relativo al archivo de test en ejecucion.
-  file.path(testthat::test_path("_snaps"), "golden-aulas")
+  file.path(testthat::test_path("fixtures"), "golden-aulas")
 }
 
 golden_path <- function(name) file.path(golden_dir(), paste0(name, ".rds"))
