@@ -2750,15 +2750,17 @@ export default function XlsformEditorPage() {
         catalogs={catalogs}
         onSelectRow={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
         onSetRelevant={(rowIndex, expression) => {
-          // El canvas solo declara relaciones de visibilidad (relevant).
-          // Drag-arrow desde A hacia B → B aparece si A tiene valor.
-          // El usuario refina el predicado exacto en el inspector.
+          // El canvas declara/edita/elimina relaciones de visibilidad
+          // (relevant). Una expresión vacía ELIMINA la condición (el
+          // elemento pasa a mostrarse siempre); una no vacía la crea/edita.
           updateSurveyField(rowIndex, "relevant", expression);
+          const cleared = expression.trim() === "";
           toasts.push({
             kind: "success",
-            title: "Conexión creada",
-            detail:
-              "Se condicionó la visibilidad. Refínala en el inspector si quieres precisar el valor.",
+            title: cleared ? "Relación eliminada" : "Conexión creada",
+            detail: cleared
+              ? "Se quitó la condición de visibilidad; el elemento se mostrará siempre."
+              : "Se condicionó la visibilidad. Refínala en el inspector si quieres precisar el valor.",
           });
 	        }}
 	      />
