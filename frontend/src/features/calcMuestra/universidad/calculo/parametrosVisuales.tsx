@@ -62,7 +62,7 @@ export function CurvaP({ p, pFacultades }: { p: number; pFacultades: number }) {
       <svg
         className="cmv2-calc-svg"
         viewBox="0 0 160 64"
-        preserveAspectRatio="none"
+        preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label={`Curva de varianza. Universidad p igual a ${fmtDecimal(p, 2)}; facultades p igual a ${fmtDecimal(pFacultades, 2)}.`}
       >
@@ -111,7 +111,7 @@ export function CampanaZ({ z, zFacultades }: { z: number; zFacultades: number })
       <svg
         className="cmv2-calc-svg"
         viewBox="0 0 160 64"
-        preserveAspectRatio="none"
+        preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label={`Curva normal. Universidad z igual a ${fmtDecimal(z, 2)}; facultades z igual a ${fmtDecimal(zFacultades, 2)}.`}
       >
