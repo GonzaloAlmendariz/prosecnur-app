@@ -163,6 +163,89 @@ export function universityColumnOptions(workspace: CalcMuestraWorkspace, aulasSt
     .sort((a, b) => a.localeCompare(b, "es"));
 }
 
+export type UniversityColumnSourceGroup = "student" | "classroom";
+
+export type UniversityColumnOptionsBySource = Record<UniversityColumnSourceGroup, string[]>;
+
+/**
+ * Mapea el `source_role` de una variable (§3.3.1) a la hoja de la que debe
+ * ofrecer columnas. Solo el catálogo de cursos-horario alimenta el lado "aula";
+ * todo lo demás (base madre, estudiantes, inscripciones) es "estudiante".
+ */
+export function universitySourceGroupForRole(sourceRole: string | undefined | null): UniversityColumnSourceGroup {
+  return sourceRole === "catalogo_curso_horario" ? "classroom" : "student";
+}
+
+/**
+ * A qué grupo(s) contribuye un binding según su rol de slot y el rol detectado
+ * en la hoja seleccionada. Una base madre (una fila por estudiante-curso-horario)
+ * trae columnas de AMBAS hojas, así que alimenta los dos grupos; el catálogo solo
+ * el lado aula; estudiantes/inscripciones solo el lado estudiante.
+ */
+function universityBindingSourceGroups(binding: CalcMuestraWorkspaceSourceBinding): {
+  student: boolean;
+  classroom: boolean;
+} {
+  // Autoridad = el rol de SLOT que el usuario asignó (binding.role); el rol
+  // DETECTADO de la hoja solo se usa si el slot está vacío. Si no, una hoja de
+  // matrícula (detectada como "base_madre" por su estructura fila-por-
+  // estudiante-curso) contaminaría el grupo aula con columnas de alumno cuando
+  // el usuario ya la asignó explícitamente al slot "estudiantes".
+  const roles = new Set(
+    [binding.role || sourceBindingRole(binding)].filter((role): role is string => Boolean(role)),
+  );
+  const isBaseMadre = roles.has("base_madre");
+  const isClassroom = roles.has("catalogo_curso_horario");
+  const isStudentSide = isBaseMadre || roles.has("estudiantes") || roles.has("inscripciones");
+  return {
+    student: isStudentSide,
+    classroom: isClassroom || isBaseMadre,
+  };
+}
+
+/**
+ * Columnas CRUDAS de cada hoja, separadas por fuente, tomadas de los
+ * `sheet_diagnostics` de la hoja seleccionada de cada binding. No mezcla hojas:
+ * un rol de aula nunca debe ver columnas exclusivas de estudiante y viceversa.
+ */
+export function universityColumnOptionsBySource(
+  workspace: CalcMuestraWorkspace,
+  _aulasState: CalcMuestraAulasState | null,
+): UniversityColumnOptionsBySource {
+  const student = new Set<string>();
+  const classroom = new Set<string>();
+  for (const binding of workspace.source_bindings ?? []) {
+    const selected = sourceBindingSelectedSheet(binding);
+    const diagnostics = sourceBindingDiagnostics(binding);
+    const selectedDiagnostic = diagnostics.find((sheet) => sheet.name === selected) ?? diagnostics[0];
+    const cols = rowsFrom<string>(selectedDiagnostic?.columns_sample).filter(Boolean);
+    if (!cols.length) continue;
+    const groups = universityBindingSourceGroups(binding);
+    if (groups.student) cols.forEach((column) => student.add(column));
+    if (groups.classroom) cols.forEach((column) => classroom.add(column));
+  }
+  const toSorted = (set: Set<string>) => Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  return { student: toSorted(student), classroom: toSorted(classroom) };
+}
+
+/**
+ * Opciones de columna que ve una tarjeta de rol: SOLO la hoja de su fuente,
+ * filtradas a columnas de cara al usuario. Siempre incluye la columna ya
+ * confirmada (para que la tarjeta renderice aunque el marco cambie).
+ */
+export function universityRoleColumnOptions(
+  columnsBySource: UniversityColumnOptionsBySource,
+  sourceRole: string | undefined | null,
+  confirmedColumn?: string,
+): string[] {
+  const group = universitySourceGroupForRole(sourceRole);
+  const cols = group === "classroom" ? columnsBySource.classroom : columnsBySource.student;
+  const confirmed = confirmedColumn?.trim() ? [confirmedColumn.trim()] : [];
+  return Array.from(new Set([...cols, ...confirmed]))
+    .filter(isUniversityUserFacingColumnName)
+    .sort((a, b) => a.localeCompare(b, "es"));
+}
+
 export function ensureUniversityVariableMappings(
   current: CalcMuestraWorkspaceVariableMapping[] | undefined,
   detectedColumns: string[],

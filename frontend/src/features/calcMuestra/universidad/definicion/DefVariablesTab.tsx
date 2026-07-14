@@ -15,16 +15,13 @@ import type {
   CalcMuestraWorkspaceVariableMapping,
 } from "../../../../api/client";
 import { fmtInt, rowsFrom } from "../../sharedCore";
-import {
-  UNIVERSITY_FALLBACK_COLUMN_OPTIONS,
-  UNIVERSITY_REQUIRED_VARIABLES,
-} from "../shared/constants";
+import { UNIVERSITY_REQUIRED_VARIABLES } from "../shared/constants";
 import {
   inferUniversityColumn,
-  isUniversityUserFacingColumnName,
-  universityColumnOptions,
-  universityInspectedColumnOptions,
+  universityColumnOptionsBySource,
   universityObservedCategoryRows,
+  universityRoleColumnOptions,
+  universitySourceGroupForRole,
   type UniversityObservedCategory,
 } from "../shared/categorias";
 import {
@@ -79,16 +76,10 @@ export function DefVariablesTab({
     flashTimer.current = window.setTimeout(() => setFlashRole(null), 340);
   }
 
-  const detectedColumns = universityColumnOptions(workspace, aulasState).filter(isUniversityUserFacingColumnName);
-  const inspectedColumns = universityInspectedColumnOptions(workspace);
-  const suggestionColumns = inspectedColumns.length ? inspectedColumns : detectedColumns;
-  const mappedColumns = (workspace.variable_mappings ?? [])
-    .map((row) => row.column ?? "")
-    .filter((column) => Boolean(column) && isUniversityUserFacingColumnName(column));
-  const columns = Array.from(new Set([
-    ...(suggestionColumns.length ? suggestionColumns : UNIVERSITY_FALLBACK_COLUMN_OPTIONS),
-    ...mappedColumns,
-  ])).sort((a, b) => a.localeCompare(b, "es"));
+  // Columnas CRUDAS por hoja: cada rol ofrece SOLO su fuente (§3.3.1). Un rol de
+  // curso-horario no debe ver columnas de estudiante ni al revés.
+  const columnasPorFuente = universityColumnOptionsBySource(workspace, aulasState);
+  const hasAnyColumns = columnasPorFuente.student.length > 0 || columnasPorFuente.classroom.length > 0;
 
   const frame = aulasState?.frame ?? null;
   const hasFrame = Boolean(frame);
@@ -106,8 +97,23 @@ export function DefVariablesTab({
   const requiredRoles = UNIVERSITY_REQUIRED_VARIABLES.filter((base) => base.required).map((base) => base.role);
   const confirmedRequired = requiredRoles.filter((role) => isUniversityRoleConfirmed(workspace.variable_mappings, role));
 
+  function columnsForRoleSource(sourceRole: string | undefined | null) {
+    return universitySourceGroupForRole(sourceRole) === "classroom"
+      ? columnasPorFuente.classroom
+      : columnasPorFuente.student;
+  }
+
   function suggestionFor(role: string) {
-    return inferUniversityColumn(role, suggestionColumns);
+    const base = BASE_BY_ROLE.get(role);
+    return inferUniversityColumn(role, columnsForRoleSource(base?.source_role));
+  }
+
+  function columnasDeRol(base: CalcMuestraWorkspaceVariableMapping) {
+    return universityRoleColumnOptions(
+      columnasPorFuente,
+      base.source_role,
+      universityConfirmedColumn(workspace.variable_mappings, base.role),
+    );
   }
 
   function selectValueFor(role: string) {
@@ -198,7 +204,7 @@ export function DefVariablesTab({
                     key={base.role}
                     base={base}
                     valueType={valueType}
-                    columns={columns}
+                    columns={columnasDeRol(base)}
                     suggested={suggestionFor(base.role)}
                     confirmedColumn={universityConfirmedColumn(workspace.variable_mappings, base.role)}
                     selectValue={selectValue}
@@ -218,7 +224,7 @@ export function DefVariablesTab({
         );
       })}
 
-      {!detectedColumns.length && (
+      {!hasAnyColumns && (
         <EmptyState
           variant="inline"
           icon={<Database size={18} />}
