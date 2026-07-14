@@ -14404,6 +14404,9 @@ export type CalcMuestraAulasFrame = {
    * consumidor debe pasarlo por `normalizeCriteriosCatalogo` (payload crítico).
    */
   criterios_catalogo?: CriteriosCatalogo | null;
+  /** Selección de criterios con la que se construyó este marco (para detectar
+   *  "marco desactualizado" comparándola con la selección confirmada actual). */
+  criterios_seleccion?: CriteriosSeleccionMarco | null;
 };
 
 export type CalcMuestraAulasSelection = {

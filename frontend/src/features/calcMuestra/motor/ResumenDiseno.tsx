@@ -6,13 +6,17 @@
 import { useMemo, type ReactNode } from "react";
 import { BookOpenCheck, ClipboardCheck, RotateCcw, ShieldCheck, Target, Users } from "lucide-react";
 import {
-  normalizeCriteriosCatalogo,
   type CalcMuestraAulasState,
+  type CalcMuestraEstudio,
   type CalcMuestraWorkspace,
 } from "../../../api/client";
-import { computeImpactoMarco, seleccionInicial } from "../dominio";
+import { jsonIgual } from "../corridas";
 import { fmtInt } from "../sharedCore";
 import { frameAuditNumber } from "../universidad/shared/frame";
+import {
+  UNIVERSITY_FACULTY_COMPONENT_ID,
+  UNIVERSITY_TOTAL_COMPONENT_ID,
+} from "../universidad/shared/constants";
 import { normalizeUniversityAulasConfig } from "../universidad/shared/study";
 import { useMotorStore } from "./store";
 import type { MotorEfectivo } from "./usePerfilEfectivo";
@@ -28,54 +32,57 @@ type SummaryMetric = {
 
 export function ResumenDiseno({
   motor,
+  estudio,
   workspace,
   aulasState,
 }: {
   motor: MotorEfectivo;
+  estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
   aulasState: CalcMuestraAulasState | null;
 }) {
   const resetCanon = useMotorStore((s) => s.resetCanon);
-  const { perfil, e1 } = motor;
+  const { perfil } = motor;
   const frame = aulasState?.frame ?? null;
   const frameProfile = frame?.perfil ?? null;
 
-  const catalogo = useMemo(
-    () => normalizeCriteriosCatalogo(frame?.criterios_catalogo ?? null),
-    [frame?.criterios_catalogo],
-  );
-  const seleccion = useMemo(() => {
-    const config = normalizeUniversityAulasConfig(workspace.aulas_config);
-    return config.criterios_seleccion ?? seleccionInicial(catalogo);
-  }, [catalogo, workspace.aulas_config]);
+  const config = useMemo(() => normalizeUniversityAulasConfig(workspace.aulas_config), [workspace.aulas_config]);
 
-  const universoEstudiantes = frameProfile?.universo ?? perfil.universo;
+  // Cifras DURAS del marco construido (producto de "Construir marco"). Nunca
+  // se rellenan con la estimación reactiva del motor: la cabecera "Diseño
+  // vigente" muestra solo lo que ya se ejecutó, no una vista previa.
+  const universoEstudiantes = frameProfile?.universo ?? null;
   const universoCursosHorario =
-    frameProfile?.aulas_totales ?? (frameAuditNumber(frame, "classroom_n") || perfil.aulasTotales);
-  const estudiantesDuros = frameProfile?.poblacion_n ?? (e1.N > 0 ? e1.N : null);
-  const cursosHorarioDuros =
-    frameProfile?.marco_aulas ?? (frameAuditNumber(frame, "classroom_included_n") || perfil.marcoAulas);
+    frameProfile?.aulas_totales ?? (frameAuditNumber(frame, "classroom_n") || null);
+  const estudiantesElegibles = frameProfile?.poblacion_n ?? null;
+  const cursosHorarioElegibles =
+    frameProfile?.marco_aulas ?? (frameAuditNumber(frame, "classroom_included_n") || null);
 
-  const impacto = useMemo(
-    () => computeImpactoMarco(
-      catalogo,
-      seleccion,
-      {
-        population: frame?.population,
-        population_pool: frame?.population_pool,
-        aula_frame: frame?.aula_frame,
-      },
-      { poblacionN: estudiantesDuros, marcoAulas: cursosHorarioDuros },
-    ),
-    [catalogo, cursosHorarioDuros, estudiantesDuros, frame?.aula_frame, frame?.population, frame?.population_pool, seleccion],
-  );
+  // ¿El marco quedó desactualizado? Señal EXACTA (no una estimación viva): los
+  // criterios confirmados en el workspace difieren de los que produjeron el
+  // marco vigente (el frame guarda la selección con que se construyó). Si
+  // difieren, la cifra de elegibles ya no corresponde y hay que reconstruir.
+  const marcoDesactualizado = useMemo(() => {
+    if (!frame) return false;
+    const construidoCon = frame.criterios_seleccion ?? null;
+    const confirmado = config.criterios_seleccion ?? null;
+    if (!construidoCon && !confirmado) return false;
+    return !jsonIgual(construidoCon ?? {}, confirmado ?? {});
+  }, [frame, config.criterios_seleccion]);
+  const estudiantesDesactualizados = estudiantesElegibles != null && marcoDesactualizado;
+  const cursosDesactualizados = cursosHorarioElegibles != null && marcoDesactualizado;
 
-  const estudiantesElegibles = impacto.estudiantesLive ?? estudiantesDuros;
-  const cursosHorarioElegibles = impacto.aulasLive ?? cursosHorarioDuros;
-  const estudiantesEstimados =
-    estudiantesElegibles != null && estudiantesDuros != null && estudiantesElegibles !== estudiantesDuros;
-  const cursosEstimados =
-    cursosHorarioElegibles != null && cursosHorarioDuros != null && cursosHorarioElegibles !== cursosHorarioDuros;
+  // Metas operativas: SOLO tras ejecutar el cálculo (resultado persistido del
+  // componente). Sin corrida de cálculo → "—" (no hay diseño calculado aún).
+  const totalComp =
+    estudio.componentes.find((c) => c.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID) ??
+    estudio.componentes.find((c) => c.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID) ??
+    estudio.componentes[0];
+  const resultado = totalComp?.resultado ?? null;
+  const calcEjecutado = Boolean(resultado && Number(resultado.n_objetivo) > 0);
+  const muestraObjetivo = calcEjecutado && resultado ? resultado.n_objetivo : null;
+  const sobremuestraOperativa =
+    calcEjecutado && resultado ? (resultado.n_operativo ?? resultado.sobremuestra ?? null) : null;
 
   const metrics: SummaryMetric[] = [
     {
@@ -95,28 +102,28 @@ export function ResumenDiseno({
     {
       label: "Estudiantes elegibles",
       value: estudiantesElegibles,
-      note: estudiantesEstimados ? "estimación · falta reconstruir" : "marco vigente",
+      note: estudiantesDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente",
       icon: <ClipboardCheck size={16} aria-hidden="true" />,
-      tone: estudiantesEstimados ? "estimated" : "confirmed",
+      tone: estudiantesDesactualizados ? "estimated" : "confirmed",
     },
     {
       label: "Cursos-horario elegibles",
       value: cursosHorarioElegibles,
-      note: cursosEstimados ? "estimación · falta reconstruir" : "marco vigente",
+      note: cursosDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente",
       icon: <BookOpenCheck size={16} aria-hidden="true" />,
-      tone: cursosEstimados ? "estimated" : "confirmed",
+      tone: cursosDesactualizados ? "estimated" : "confirmed",
     },
     {
       label: "Muestra objetivo",
-      value: e1.N > 0 ? e1.nDiseno : null,
-      note: "respuestas válidas",
+      value: muestraObjetivo,
+      note: calcEjecutado ? "respuestas válidas" : "falta calcular",
       icon: <Target size={16} aria-hidden="true" />,
       tone: "operation",
     },
     {
       label: "Sobremuestra operativa",
-      value: e1.N > 0 ? e1.sobremuestraTotal : null,
-      note: "techo con contingencia",
+      value: sobremuestraOperativa,
+      note: calcEjecutado ? "techo con contingencia" : "falta calcular",
       icon: <ShieldCheck size={16} aria-hidden="true" />,
       tone: "operation",
     },
