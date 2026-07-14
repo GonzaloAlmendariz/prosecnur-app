@@ -1438,3 +1438,18 @@
     transition: none;
   }
 }
+
+/* Tabla de cursos-horario por facultad: altura acotada con scroll interno
+   (el encabezado queda fijo) en vez del chip "Desplaza para ver más". */
+.cmv2-ch-tabla-wrap {
+  max-height: 384px;
+  overflow: auto;
+}
+/* Dos clases para ganar en especificidad al chip global .cmv2-table-wrap::after. */
+.cmv2-table-wrap.cmv2-ch-tabla-wrap::after { content: none; display: none; }
+.cmv2-ch-tabla-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--pulso-surface);
+}

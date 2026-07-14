@@ -53,22 +53,44 @@ function mediana(valores: number[]): number | null {
   return orden.length % 2 === 0 ? (orden[mitad - 1] + orden[mitad]) / 2 : orden[mitad];
 }
 
-type FrameFacultad = { total: number; elegible: number; medianaElegibles: number | null; mediaElegibles: number | null };
+type TamStats = { mediana: number | null; media: number | null };
+type FrameFacultad = {
+  total: number;
+  elegible: number;
+  /** Tamaño de CH (min media/mediana) sobre el marco elegible. */
+  elegibles: TamStats;
+  /** Tamaño de CH (min media/mediana) sobre el total de CH. */
+  totales: TamStats;
+};
 
-/** Agrega el marco de cursos-horario por facultad (conteos y tamaños de CH). */
+function stats(valores: number[]): TamStats {
+  return {
+    mediana: mediana(valores),
+    media: valores.length
+      ? Math.round((valores.reduce((s, v) => s + v, 0) / valores.length) * 10) / 10
+      : null,
+  };
+}
+
+/** Agrega el marco de cursos-horario por facultad (conteos y tamaños de CH).
+ *  El tamaño (media/mediana de elegibles por CH) se calcula por separado sobre
+ *  el marco elegible y sobre el total de CH, para que la base seleccionada
+ *  cambie de verdad la columna Alumnos/CH. */
 function frameCursosHorarioPorFacultad(aulasState: CalcMuestraAulasState | null): Map<string, FrameFacultad> {
   const filas = rowsFrom<Record<string, unknown>>(aulasState?.frame?.aula_frame);
-  const acc = new Map<string, { total: number; elegible: number; tamanos: number[] }>();
+  const acc = new Map<string, { total: number; elegible: number; tamElegible: number[]; tamTotal: number[] }>();
   for (const fila of filas) {
     const facultad = classroomRowText(fila, FACULTY_KEYS);
     if (!facultad) continue;
     const clave = normalizeUniversityLabel(facultad);
-    const bucket = acc.get(clave) ?? { total: 0, elegible: 0, tamanos: [] };
+    const bucket = acc.get(clave) ?? { total: 0, elegible: 0, tamElegible: [], tamTotal: [] };
     bucket.total += 1;
+    const tam = classroomRowNumber(fila, ELEGIBLES_KEYS);
+    const tamValido = Number.isFinite(tam) && tam > 0;
+    if (tamValido) bucket.tamTotal.push(tam);
     if (esIncluida(fila)) {
       bucket.elegible += 1;
-      const tam = classroomRowNumber(fila, ELEGIBLES_KEYS);
-      if (Number.isFinite(tam) && tam > 0) bucket.tamanos.push(tam);
+      if (tamValido) bucket.tamElegible.push(tam);
     }
     acc.set(clave, bucket);
   }
@@ -77,10 +99,8 @@ function frameCursosHorarioPorFacultad(aulasState: CalcMuestraAulasState | null)
     salida.set(clave, {
       total: bucket.total,
       elegible: bucket.elegible,
-      medianaElegibles: mediana(bucket.tamanos),
-      mediaElegibles: bucket.tamanos.length
-        ? Math.round((bucket.tamanos.reduce((s, v) => s + v, 0) / bucket.tamanos.length) * 10) / 10
-        : null,
+      elegibles: stats(bucket.tamElegible),
+      totales: stats(bucket.tamTotal),
     });
   }
   return salida;
@@ -114,11 +134,14 @@ export function CalculoCursosHorarioFacultadTab({
     const cuotas = cuotasComp ? universityDistributionRows(cuotasComp) : [];
     const entradas: CursosHorarioEntradaFacultad[] = cuotas.map((row) => {
       const frame = frameFacultades.get(normalizeUniversityLabel(row.facultad));
+      // La base seleccionada decide sobre qué conjunto de CH se mide el tamaño
+      // (media/mediana de elegibles por CH): elegible = solo marco; total = todos.
+      const tam = base === "total" ? frame?.totales : frame?.elegibles;
       return {
         facultad: row.facultad,
         cuota: safeNumber(row.n, 0),
-        estAulaMediana: frame?.medianaElegibles ?? null,
-        estAulaMedia: frame?.mediaElegibles ?? null,
+        estAulaMediana: tam?.mediana ?? null,
+        estAulaMedia: tam?.media ?? null,
         chMarcoElegible: frame?.elegible ?? null,
         chTotal: frame?.total ?? null,
         extra: safeNumber(extraPorFacultad[row.facultad], 0),
@@ -176,7 +199,7 @@ export function CalculoCursosHorarioFacultadTab({
           )}
         </div>
 
-        <div className="cmv2-table-wrap">
+        <div className="cmv2-table-wrap cmv2-ch-tabla-wrap">
           <table className="cmv2-table cmv2-table--university cmv2-ch-tabla">
             <thead>
               <tr>
