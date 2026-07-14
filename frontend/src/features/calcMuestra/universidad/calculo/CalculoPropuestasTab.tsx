@@ -250,9 +250,19 @@ export function CalculoPropuestasTab({
     (comp) => comp.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID && (comp.resultado?.distribucion_estratos ?? []).length,
   ) ?? componentes.find((comp) => (comp.resultado?.distribucion_estratos ?? []).length) ?? null;
   const cuotasRows = cuotasComp ? universityDistributionRows(cuotasComp) : [];
-  const aulasPorEstrato = cuotasComp?.resultado?.aulas_por_estrato ?? [];
   const totalCuotas = cuotasRows.reduce((sum, row) => sum + row.n, 0);
   const distribucionResultado = cuotasComp?.resultado ?? componentes[0].resultado;
+
+  // Parámetros elegidos en Diseño (universidad): se muestran para que Propuestas
+  // ejecute sobre valores explícitos, nunca cifras escritas a mano.
+  const g = componentes[0].parametros;
+  const paramsElegidos = [
+    { label: "z", value: fmtNum(g.z, 2) },
+    { label: "p", value: fmtNum(g.p, 2) },
+    { label: "e", value: `±${fmtNum(g.e * 100, 1)}%` },
+    { label: "deff", value: fmtNum(g.deff, 2) },
+    { label: "τ", value: `${Math.round(safeNumber(g.tau, 0.7) * 100)}%` },
+  ];
 
   return (
     <div className="cmv2-calc-stack">
@@ -268,6 +278,16 @@ export function CalculoPropuestasTab({
               {hasCalculation ? "cifras de la calculadora" : marcoReady ? "lista para calcular" : "requiere marco"}
             </span>
           </div>
+        </div>
+        <div className="cmv2-calc-params-elegidos" aria-label="Parámetros elegidos en Diseño">
+          <span className="cmv2-calc-params-eyebrow">Parámetros del diseño</span>
+          {paramsElegidos.map((param) => (
+            <span key={param.label} className="cmv2-calc-param-chip">
+              <code>{param.label}</code>
+              <strong>{param.value}</strong>
+            </span>
+          ))}
+          <span className="cmv2-calc-param-nota">Ambas propuestas se ejecutan con estos valores (la Propuesta 2, con la p por facultad).</span>
         </div>
         {!hasCalculation ? (
           <EmptyState
@@ -325,26 +345,24 @@ export function CalculoPropuestasTab({
                   <th>Mujeres</th>
                   <th>Hombres</th>
                   <th>Cuota (n_h)</th>
-                  {aulasPorEstrato.length > 0 && <th>Cursos-horario</th>}
                 </tr>
               </thead>
               <tbody>
-                {cuotasRows.map((row) => {
-                  const aulas = aulasPorEstrato.find((a) => a.estrato === row.facultad);
-                  return (
-                    <tr key={row.facultad}>
-                      <td><strong>{row.facultad}</strong></td>
-                      <td>{fmtInt(row.N)}</td>
-                      <td>{fmtInt(row.mujeres)}</td>
-                      <td>{fmtInt(row.hombres)}</td>
-                      <td><strong>{fmtInt(row.n)}</strong></td>
-                      {aulasPorEstrato.length > 0 && <td>{aulas ? fmtInt(aulas.aulas_total) : "—"}</td>}
-                    </tr>
-                  );
-                })}
+                {cuotasRows.map((row) => (
+                  <tr key={row.facultad}>
+                    <td><strong>{row.facultad}</strong></td>
+                    <td>{fmtInt(row.N)}</td>
+                    <td>{fmtInt(row.mujeres)}</td>
+                    <td>{fmtInt(row.hombres)}</td>
+                    <td><strong>{fmtInt(row.n)}</strong></td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
+          <p className="cmv2-calc-cuotas-nota">
+            El plan de cursos-horario por facultad se define en la pestaña «Cursos-horario por facultad».
+          </p>
           <DistribucionFacultadSexo resultado={distribucionResultado} />
         </section>
       )}

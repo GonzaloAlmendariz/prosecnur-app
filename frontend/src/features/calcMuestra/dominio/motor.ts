@@ -263,5 +263,9 @@ export function decisionesPorDefecto(perfil: PerfilInstitucional): DecisionesRec
     opcionalesActivos: [],
     bolsaExtraPorFacultad: perfil.bolsaOpciones[perfil.bolsaSugerida] ?? 0,
     escenario: "e1",
+    aulasExtraPorFacultad: {},
+    cursosHorarioBase: "elegible",
+    cursosHorarioConfirmado: false,
+    cursosHorarioFinal: {},
   };
 }
