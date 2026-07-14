@@ -56,6 +56,7 @@
     session_type   = list(scope = "aula",   kind = "flat",         label = "Tipo de sesión"),
     teacher_type   = list(scope = "aula",   kind = "hierarchical", label = "Tipo de docente"),
     course_level   = list(scope = "aula",   kind = "range",        label = "Nivel del curso"),
+    condicion_curso = list(scope = "aula",  kind = "flat",         label = "Condición del curso"),
     enrolled_total = list(scope = "aula",   kind = "numeric",      label = "Matriculados / población"),
     campus         = list(scope = "aula",   kind = "flat",         label = "Sede")
   )
@@ -421,6 +422,27 @@
   col
 }
 
+# Columna del nivel del curso con guarda anti-colisión. El matcher difuso de
+# .cm_aulas_col reusa subcadenas en AMBOS sentidos: "curso" ⊂ "nivel_curso", así
+# que en una base con "Curso" (CÓDIGO del curso) pero SIN columna propia de
+# nivel del curso, el rol terminaría leyendo el código (rango 1..N de códigos)
+# como si fuera nivel — un filtro nivel-por-unidad basado en basura. Si el rol
+# resuelve exactamente a una clave propia, la columna sí es de nivel del curso y
+# se conserva. Si el fuzzy cayó en la columna de código/nombre de curso
+# (course_id/course_name) se declara SIN señal: el filtro nivel-por-unidad usa
+# como fallback el level modal del aula (degradación documentada y benigna, no
+# el código de curso). El nivel real llega por el catálogo (columna sintética
+# "course_level" con nombre exacto) cuando existe.
+.cm_criterios_col_course_level <- function(raw, mapping) {
+  col <- .cm_aulas_col(raw, mapping$course_level)
+  if (!nzchar(col)) return("")
+  claves_propias <- .cm_aulas_text_key(.cm_aulas_chr_vec(mapping$course_level))
+  if (.cm_aulas_text_key(col) %in% claves_propias) return(col)
+  ocupadas <- c(.cm_aulas_col(raw, mapping$course_id), .cm_aulas_col(raw, mapping$course_name))
+  if (col %in% ocupadas[nzchar(ocupadas)]) return("")
+  col
+}
+
 # --- Evaluación por aula ------------------------------------------------------
 
 # Primer número parseable de un texto de nivel ("Nivel 5", "5", "Ciclo 05");
@@ -453,13 +475,15 @@
   teacher_type <- character(n_aulas)
   teacher_eval <- rep(TRUE, n_aulas)
   course_level_num <- rep(NA_real_, n_aulas)
+  condicion_curso <- character(n_aulas)
   campus <- character(n_aulas)
   cycle_homogeneity <- rep(NA_real_, n_aulas)
+  cc_filas <- filas$condicion_curso %||% character(0)
   if (!n_aulas) {
     return(list(
       teacher_type = teacher_type, teacher_eval = teacher_eval,
-      course_level_num = course_level_num, campus = campus,
-      cycle_homogeneity = cycle_homogeneity
+      course_level_num = course_level_num, condicion_curso = condicion_curso,
+      campus = campus, cycle_homogeneity = cycle_homogeneity
     ))
   }
   idx_map <- split(seq_along(filas$classroom_id), filas$classroom_id)
@@ -479,6 +503,7 @@
     course_level_num[[i]] <- num
 
     campus[[i]] <- .cm_aulas_mode(filas$campus[idx_all], "")
+    if (length(cc_filas)) condicion_curso[[i]] <- .cm_aulas_mode(cc_filas[idx_all], "")
 
     idx_e <- idx_all[filas$eligible_row[idx_all]]
     sid_e <- filas$student_id[idx_e]
@@ -489,8 +514,8 @@
   }
   list(
     teacher_type = teacher_type, teacher_eval = teacher_eval,
-    course_level_num = course_level_num, campus = campus,
-    cycle_homogeneity = cycle_homogeneity
+    course_level_num = course_level_num, condicion_curso = condicion_curso,
+    campus = campus, cycle_homogeneity = cycle_homogeneity
   )
 }
 
@@ -658,6 +683,7 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   # Columnas informativas nuevas del aula_frame (siempre presentes).
   aula_frame$teacher_type <- stats$teacher_type
   aula_frame$course_level_num <- stats$course_level_num
+  aula_frame$condicion_curso <- stats$condicion_curso
   aula_frame$campus <- stats$campus
   aula_frame$prevalence_ratio <- ratio
   aula_frame$cycle_homogeneity <- stats$cycle_homogeneity
@@ -768,6 +794,7 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     enrolled_total = pick_num("enrolled_total", .cm_aulas_num_values(aula_frame, "enrolled_total", NA_real_)),
     eligible_n = .cm_aulas_num_values(aula_frame, "eligible_n", 0),
     faculty = faculty,
+    condicion_curso = pick_chr("condicion_curso", "condicion_curso"),
     campus = pick_chr("campus", "campus")
   )
 }
@@ -997,7 +1024,7 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   }
   registry <- .cm_criterios_var_registry()
   by <- seleccion$byVariable %||% list()
-  orden <- c("modality", "session_type", "teacher_type", "course_level", "enrolled_total", "campus")
+  orden <- c("modality", "session_type", "teacher_type", "course_level", "condicion_curso", "enrolled_total", "campus")
   for (id in orden) {
     if (identical(id, "course_level")) {
       if (length(seleccion$courseLevelRanges)) {
@@ -1226,6 +1253,7 @@ calc_muestra_aulas_criterios_catalogo <- function(aula_frame, catalog_signals,
     push(.cm_criterios_enum_flat("session_type", registry$session_type, vals$session_type, col_or("session_type", "session_type"), "aula"))
     push(.cm_criterios_enum_teacher(registry$teacher_type, vals$teacher, col_or("teacher_type", "teacher_type")))
     push(.cm_criterios_enum_valores("course_level", registry$course_level, vals$course_level, col_or("course_level", "course_level"), "aula", "range"))
+    push(.cm_criterios_enum_flat("condicion_curso", registry$condicion_curso, vals$condicion_curso, col_or("condicion_curso", "condicion_curso"), "aula"))
     push(.cm_criterios_enum_numeric("enrolled_total", registry$enrolled_total, vals$enrolled_total, col_or("enrolled_total", "enrolled_total"), "aula"))
     push(.cm_criterios_enum_flat("campus", registry$campus, vals$campus, col_or("campus", "campus"), "aula"))
   }

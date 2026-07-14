@@ -229,7 +229,17 @@
     campus = c("campus", "sede", "filial", "sede_campus", "campus_sede", "local_sede"),
     sex = c("sex", "sexo", "genero", "gender"),
     age = c("age", "edad"),
-    condition = c("condition", "condicion_matricula", "condicion", "estado_matricula", "situacion", "condicion_del_curso"),
+    # `condition` es la condición DEL ESTUDIANTE (REGULAR/REINCORPORACION/...).
+    # "condicion_del_curso" NO va aquí: es su propio rol (condicion_curso). Con
+    # ambas columnas presentes la clave exacta "condicion" ganaría igual, pero
+    # una base que solo trae "Condición del curso" secuestraría este rol.
+    condition = c("condition", "condicion_matricula", "condicion", "estado_matricula", "situacion"),
+    # Condición DEL CURSO (obligatorio/electivo/...); criterio propio, distinto
+    # de la condición del estudiante. Resolución SOLO por clave exacta en la
+    # base (.cm_criterios_col_exacta) para que el fuzzy no lo confunda con la
+    # condición del estudiante; en el catálogo la columna suele llamarse solo
+    # "Condición" y se resuelve por señal (ver calc_muestra_aulas_catalogo.R).
+    condicion_curso = c("condicion_curso", "condicion_del_curso", "condición del curso", "condicion del curso", "condicion_curso_horario"),
     enrolled_total = c("enrolled_total", "matriculados_poblacion", "matriculados_total", "matriculados población", "matriculados total", "matriculados", "inscritos", "vacantes_ocupadas")
   )
   out <- defaults
@@ -990,10 +1000,15 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   age <- .cm_aulas_num_values(raw, .cm_aulas_col(raw, mapping$age), NA_real_)
   condition <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$condition), "")
   enrolled_total_row <- .cm_aulas_num_values(raw, .cm_aulas_col(raw, mapping$enrolled_total), NA_real_)
-  # Señales de los criterios adicionales (docente/nivel de curso/sede); la
-  # guarda anti-colisión del tipo de docente vive en el archivo de criterios.
+  # Señales de los criterios adicionales (docente/nivel de curso/sede/condición
+  # del curso); las guardas anti-colisión del tipo de docente y del nivel del
+  # curso viven en el archivo de criterios (evitan que el fuzzy lea "Condición"
+  # o el CÓDIGO de curso como si fueran esas señales).
   teacher_type <- .cm_aulas_values(raw, .cm_criterios_col_teacher_type(raw, mapping), "")
-  course_level <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$course_level), "")
+  course_level <- .cm_aulas_values(raw, .cm_criterios_col_course_level(raw, mapping), "")
+  # Condición del curso: clave exacta en la base (no fuzzy) para no confundirla
+  # con la condición del estudiante.
+  condicion_curso <- .cm_aulas_values(raw, .cm_criterios_col_exacta(raw, mapping$condicion_curso), "")
   campus <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$campus), "")
   # H7: formación del estudiante; resolución SOLO por clave exacta (el fuzzy
   # secuestraría columnas como "Nivel" o "Información adicional").
@@ -1217,6 +1232,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       level = level,
       teacher_type = teacher_type,
       course_level = course_level,
+      condicion_curso = condicion_curso,
       campus = campus,
       eligible_row = eligible_row
     ),
@@ -1353,7 +1369,8 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       modality = .cm_aulas_col(raw, mapping$modality),
       session_type = .cm_aulas_col(raw, mapping$session_type),
       teacher_type = .cm_criterios_col_teacher_type(raw, mapping),
-      course_level = .cm_aulas_col(raw, mapping$course_level),
+      course_level = .cm_criterios_col_course_level(raw, mapping),
+      condicion_curso = .cm_criterios_col_exacta(raw, mapping$condicion_curso),
       enrolled_total = .cm_aulas_col(raw, mapping$enrolled_total),
       campus = .cm_aulas_col(raw, mapping$campus)
     )

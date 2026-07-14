@@ -115,6 +115,10 @@
     session_type   = c(mapping$session_type, "tipo", "tipo_curso", "tipo_de_curso", "tipo de curso"),
     teacher_type   = mapping$teacher_type,
     course_level   = c(mapping$course_level, "nivel"),
+    # En el catálogo la condición DEL CURSO suele venir como "Condición" a secas
+    # (no hay estudiante que ambiguar); por eso se admite "condicion" además del
+    # mapping propio. En la base sí es peligroso y se resuelve por clave exacta.
+    condicion_curso = c(mapping$condicion_curso, "condicion"),
     enrolled_total = mapping$enrolled_total,
     faculty_curso  = c("facultad_del_curso", "facultad del curso", mapping$faculty),
     campus         = mapping$campus,
@@ -195,11 +199,13 @@
     teacher_set = stats::setNames(character(0), character(0)),
     course_level = stats::setNames(numeric(0), character(0)),
     course_faculty_level_pairs = stats::setNames(character(0), character(0)),
+    condicion_curso = stats::setNames(character(0), character(0)),
     enrolled_total = stats::setNames(numeric(0), character(0)),
     faculty_curso = stats::setNames(character(0), character(0)),
     campus = stats::setNames(character(0), character(0)),
     columns = list(modality = "", session_type = "", teacher_type = "",
-                   course_level = "", enrolled_total = "", faculty_curso = "", campus = ""),
+                   course_level = "", condicion_curso = "", enrolled_total = "",
+                   faculty_curso = "", campus = ""),
     used = FALSE
   )
   if (!nrow(catalogo)) return(vacio)
@@ -210,6 +216,7 @@
   cols <- list(
     modality = col_of("modality"), session_type = col_of("session_type"),
     teacher_type = col_of("teacher_type"), course_level = col_of("course_level"),
+    condicion_curso = col_of("condicion_curso"),
     enrolled_total = col_of("enrolled_total"), faculty_curso = col_of("faculty_curso"),
     campus = col_of("campus")
   )
@@ -224,6 +231,7 @@
     course_faculty_level_pairs = .cm_catalogo_pairs_by_key(
       val(cols$faculty_curso), val(cols$course_level), catalog_key
     ),
+    condicion_curso = .cm_catalogo_modal_by_key(val(cols$condicion_curso), catalog_key),
     enrolled_total = .cm_catalogo_num_by_key(val(cols$enrolled_total), catalog_key, "max"),
     faculty_curso = .cm_catalogo_modal_by_key(val(cols$faculty_curso), catalog_key),
     campus = .cm_catalogo_modal_by_key(val(cols$campus), catalog_key),
