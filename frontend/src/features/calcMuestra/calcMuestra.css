@@ -3121,6 +3121,73 @@
   font-weight: 850;
 }
 
+.cmv2-busy-label {
+  min-width: 0;
+}
+
+/* Botón "Cancelar" del job largo: discreto dentro del banner de progreso, con
+   acento de peligro solo en hover para no gritar mientras el proceso avanza. */
+.cmv2-busy-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 6px;
+  padding: 3px 9px;
+  border: 1px solid var(--cmv2-accent-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, #fff 72%, var(--cmv2-accent-soft) 28%);
+  color: var(--cmv2-accent-fg);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.cmv2-busy-cancel:hover:not(:disabled) {
+  border-color: var(--pulso-danger-border);
+  background: color-mix(in srgb, var(--pulso-danger-bg) 60%, #fff 40%);
+  color: var(--pulso-danger-fg);
+}
+
+.cmv2-busy-cancel:disabled {
+  opacity: 0.62;
+  cursor: default;
+}
+
+/* Aviso transitorio de la mesa: texto + botón de descartar (X) alineados. */
+.cmv2-main .pulso-alert-content:has(> .cmv2-msg-dismiss) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cmv2-msg-text {
+  min-width: 0;
+}
+
+.cmv2-msg-dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: currentColor;
+  opacity: 0.6;
+  cursor: pointer;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+
+.cmv2-msg-dismiss:hover {
+  opacity: 1;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
 .cmv2-selector {
   min-height: 100%;
   display: grid;

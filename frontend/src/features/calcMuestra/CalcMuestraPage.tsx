@@ -24,6 +24,7 @@ import {
   Trash2,
   Users,
   Wand2,
+  X,
 } from "lucide-react";
 import { PageFrame } from "../../components/PageFrame";
 import { Alert } from "../../components/Alert";
@@ -49,6 +50,7 @@ import {
   apiCalcMuestraMarcoInspeccionarArchivo,
   apiCalcMuestraReporteIniciar,
   apiCalcMuestraState,
+  apiJobCancel,
   apiJobStatus,
   apiMonitoreoImportFromCalcMuestra,
   apiUpload,
@@ -129,6 +131,7 @@ import {
 } from "./corridas";
 import type { PaqueteDefensaPaso, PaqueteDefensaPasoId } from "./universidad/salidas";
 import { UniversidadDesk } from "./universidad/UniversidadDesk";
+import { JobProgressBanner } from "./JobProgressBanner";
 import { resolveUniversityLocalTab, universitySectionStates, universitySidebarTabs, type CalcMuestraSidebarTab } from "./universidad/universidadTabs";
 import "./universidad/universidad-base.css";
 import "./calcMuestra.css";
@@ -948,6 +951,25 @@ function cmJobErrorText(snap: JobSnapshot): string {
     : "el proceso terminó con error en el worker.";
 }
 
+// Error de control: el usuario canceló el job deliberadamente (no es un fallo
+// del worker). Se distingue para mostrar un estado limpio "Cancelado" en vez
+// del banner rojo de error.
+class JobCancelledError extends Error {
+  constructor(label: string) {
+    super(`${label}: cancelado por el usuario.`);
+    this.name = "JobCancelledError";
+  }
+}
+
+// Traduce el error de una operación de job en el aviso de la mesa: cancelación
+// deliberada → nota limpia (info); cualquier otro fallo → banner de error.
+function msgDeFallo(e: unknown, fallback: string): Msg {
+  if (e instanceof JobCancelledError) {
+    return { kind: "info", text: "Proceso cancelado. No se aplicaron cambios." };
+  }
+  return { kind: "error", text: e instanceof Error ? e.message : fallback };
+}
+
 export default function CalcMuestraPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -970,6 +992,13 @@ export default function CalcMuestraPage() {
   } = useCalcMuestraStore();
   const [msg, setMsg] = useState<Msg>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  // Job largo en curso (comparar métodos / sorteo de cursos-horario). Cuando es
+  // distinto de null el banner de progreso ofrece cancelar. `cancelling` marca
+  // el intervalo entre el click y la confirmación del backend; el ref comunica
+  // la cancelación al loop de polling sin re-render.
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [cancellingJob, setCancellingJob] = useState(false);
+  const cancelRequestedRef = useRef(false);
   const [reporteEnCurso, setReporteEnCurso] = useState(false);
   const [exportandoAulas, setExportandoAulas] = useState(false);
   const [activeRailSection, setActiveRailSection] = useState("pathways");
@@ -1041,6 +1070,13 @@ export default function CalcMuestraPage() {
     if (recoveredAulasDesk) return;
     setActiveRailSection(defaultRailSectionForDesk(desk));
   }, [desk, recoveredAulasDesk]);
+
+  // Los avisos transitorios (error/cancelado/info) no deben sobrevivir a la
+  // navegación: al cambiar de sección o de pestaña del laboratorio se limpian,
+  // así un error viejo no queda pegado sin poder cerrarse.
+  useEffect(() => {
+    setMsg(null);
+  }, [activeRailSection, activeClassroomLabTab]);
 
   useEffect(() => {
     if (!hydrated || !requestedDesk) return;
@@ -1692,25 +1728,51 @@ export default function CalcMuestraPage() {
   // real del worker si el job falla, se cancela o supera el timeout.
   async function esperarJobAulas(jobId: string, label: string): Promise<JobSnapshot> {
     const start = Date.now();
-    for (;;) {
-      if (Date.now() - start > CM_JOB_POLL_TIMEOUT_MS) {
-        throw new Error(`${label}: superó los 30 minutos de espera. Revisa el estado del backend y reintenta.`);
-      }
-      let snap: JobSnapshot | null = null;
-      try {
-        snap = await apiJobStatus(jobId);
-      } catch {
-        // Error transitorio de red/backend: se reintenta en el próximo tick.
-      }
-      if (snap) {
-        if (snap.status === "done") return snap;
-        if (snap.status === "error" || snap.status === "cancelled") {
-          throw new Error(`${label}: ${cmJobErrorText(snap)}`);
+    cancelRequestedRef.current = false;
+    setActiveJobId(jobId);
+    try {
+      for (;;) {
+        // El usuario pidió cancelar: cortamos el polling de inmediato (el backend
+        // sigue abortando el worker en su tiempo) y señalamos cancelación limpia.
+        if (cancelRequestedRef.current) throw new JobCancelledError(label);
+        if (Date.now() - start > CM_JOB_POLL_TIMEOUT_MS) {
+          throw new Error(`${label}: superó los 30 minutos de espera. Revisa el estado del backend y reintenta.`);
         }
-        const stage = cmJobStageMessage(snap);
-        setBusy(`${label}${stage ? ` — ${stage}` : ""} · ${cmFormatElapsed(Date.now() - start)}`);
+        let snap: JobSnapshot | null = null;
+        try {
+          snap = await apiJobStatus(jobId);
+        } catch {
+          // Error transitorio de red/backend: se reintenta en el próximo tick.
+        }
+        if (snap) {
+          if (snap.status === "done") return snap;
+          if (snap.status === "cancelled") throw new JobCancelledError(label);
+          if (snap.status === "error") {
+            throw new Error(`${label}: ${cmJobErrorText(snap)}`);
+          }
+          const stage = cmJobStageMessage(snap);
+          setBusy(`${label}${stage ? ` — ${stage}` : ""} · ${cmFormatElapsed(Date.now() - start)}`);
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, CM_JOB_POLL_INTERVAL_MS));
       }
-      await new Promise((resolve) => window.setTimeout(resolve, CM_JOB_POLL_INTERVAL_MS));
+    } finally {
+      setActiveJobId(null);
+      setCancellingJob(false);
+    }
+  }
+
+  // Cancela el job activo: dispara POST /api/jobs/<id>/cancel (best-effort) y
+  // marca el ref para que esperarJobAulas corte el polling en el próximo tick.
+  async function cancelarJobActivo() {
+    const id = activeJobId;
+    if (!id || cancelRequestedRef.current) return;
+    cancelRequestedRef.current = true;
+    setCancellingJob(true);
+    try {
+      await apiJobCancel(id);
+    } catch {
+      // Si el cancel no llega, el loop igual corta por cancelRequestedRef y el
+      // job termina solo; no bloqueamos al usuario por un fallo de red aquí.
     }
   }
 
@@ -1742,7 +1804,7 @@ export default function CalcMuestraPage() {
         setMsg({ kind: "info", text: "Comparación de métodos lista." });
       }
     } catch (e) {
-      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo comparar métodos. Construye primero el marco de cursos-horario." });
+      setMsg(msgDeFallo(e, "No se pudo comparar métodos. Construye primero el marco de cursos-horario."));
     } finally {
       setBusy(null);
     }
@@ -1765,7 +1827,7 @@ export default function CalcMuestraPage() {
       registrarCorridaDeSeleccion(nextAulasState);
       setMsg({ kind: "info", text: "Selección de cursos-horario generada." });
     } catch (e) {
-      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo seleccionar cursos-horario. Construye primero el marco." });
+      setMsg(msgDeFallo(e, "No se pudo seleccionar cursos-horario. Construye primero el marco."));
     } finally {
       setBusy(null);
     }
@@ -2073,12 +2135,26 @@ export default function CalcMuestraPage() {
         )}
 
         <main className="cmv2-main">
-          {msg && <Alert kind={msg.kind}>{msg.text}</Alert>}
+          {msg && (
+            <Alert kind={msg.kind}>
+              <span className="cmv2-msg-text">{msg.text}</span>
+              <button
+                type="button"
+                className="cmv2-msg-dismiss"
+                onClick={() => setMsg(null)}
+                aria-label="Descartar aviso"
+              >
+                <X size={14} aria-hidden="true" />
+              </button>
+            </Alert>
+          )}
           {busy && (
-            <div className="cmv2-busy">
-              <Loader2 size={16} className="pulso-spin" />
-              {busy}
-            </div>
+            <JobProgressBanner
+              label={busy}
+              jobId={activeJobId}
+              cancelling={cancellingJob}
+              onCancel={() => void cancelarJobActivo()}
+            />
           )}
 
           {desk === "sin_definir" && (
