@@ -384,3 +384,153 @@ test_that(".dn_repeat_parent_row_positions enlaza many-to-one con fallback", {
   # Many-to-one: no crece el número de filas del hijo.
   expect_equal(length(pos), nrow(child))
 })
+
+# --- Diseno inferencial de repeats (cluster = persona) ----------------------
+
+test_that("repeat_design identifica persona, umbral inferencial y fallback descriptivo", {
+  child <- data.frame(
+    `_parent_index` = rep(seq_len(8L), each = 2L),
+    respuesta = rep(c("1", "0"), 8L),
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+  inst <- list()
+  attr(inst, "repeat_grain") <- list(
+    kind = "instancia", n_instancias = 16L, n_personas = 8L,
+    repeat_group = "rep_servicios", parent_base = "madre"
+  )
+
+  design <- .analitica_repeat_design(child, inst, min_clusters = 8L)
+  expect_equal(design$kind, "cluster_persona")
+  expect_equal(design$cluster_col, "_parent_index")
+  expect_equal(design$n_instancias, 16L)
+  expect_equal(design$n_personas, 8L)
+  expect_equal(design$min_clusters, 8L)
+  expect_true(isTRUE(design$inference_ok))
+
+  # Sin llave de persona no se inventa independencia entre instancias.
+  no_key <- child[, "respuesta", drop = FALSE]
+  fallback <- .analitica_repeat_design(no_key, inst, min_clusters = 8L)
+  expect_null(fallback$cluster_col)
+  expect_false(isTRUE(fallback$inference_ok))
+  expect_match(fallback$reason, "llave|cluster|persona", ignore.case = TRUE)
+
+  # Las bases normales mantienen el contrato legacy: no hay repeat_design.
+  expect_null(.analitica_repeat_design(child, list(), min_clusters = 8L))
+})
+
+test_that("contraste cluster-robust no gana evidencia al duplicar instancias", {
+  # 12 personas, cada una pertenece a un estrato y aporta una respuesta binaria.
+  # Duplicar cada instancia tres veces no crea personas ni evidencia nueva.
+  base <- data.frame(
+    `_parent_index` = sprintf("p%02d", seq_len(12L)),
+    grupo = rep(c("A", "B"), each = 6L),
+    respuesta = c(rep("1", 5L), "0", rep("1", 2L), rep("0", 4L)),
+    peso = 1,
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+  inst <- list()
+  attr(inst, "repeat_grain") <- list(kind = "instancia", repeat_group = "rep")
+  d1 <- .analitica_repeat_design(base, inst)
+  cmp1 <- .repeat_compare_columns_cluster(
+    data = base, var = "respuesta", codes_row = c("1", "0"),
+    estratos = c("A", "B"), var_estrato = "grupo", tp = "so",
+    weight_col = "peso", repeat_design = d1, alpha = 0.05
+  )
+
+  duplicated <- base[rep(seq_len(nrow(base)), each = 3L), , drop = FALSE]
+  d3 <- .analitica_repeat_design(duplicated, inst)
+  cmp3 <- .repeat_compare_columns_cluster(
+    data = duplicated, var = "respuesta", codes_row = c("1", "0"),
+    estratos = c("A", "B"), var_estrato = "grupo", tp = "so",
+    weight_col = "peso", repeat_design = d3, alpha = 0.05
+  )
+
+  expect_equal(cmp1$method, "cluster_robust")
+  expect_equal(cmp3$method, "cluster_robust")
+  expect_equal(cmp1$n_clusters, 12L)
+  expect_equal(cmp3$n_clusters, 12L)
+  expect_equal(cmp3$sig, cmp1$sig)
+  expect_equal(cmp3$letras, cmp1$letras)
+})
+
+test_that("contraste repeat con menos de 8 personas queda descriptivo y anotado", {
+  data <- data.frame(
+    `_submission__id` = sprintf("p%d", seq_len(6L)),
+    grupo = rep(c("A", "B"), each = 3L),
+    respuesta = c("1", "1", "0", "0", "0", "1"),
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+  inst <- list()
+  attr(inst, "repeat_grain") <- list(kind = "instancia", repeat_group = "rep")
+  design <- .analitica_repeat_design(data, inst, min_clusters = 8L)
+  expect_equal(design$cluster_col, "_submission__id")
+  expect_false(isTRUE(design$inference_ok))
+
+  cmp <- .repeat_compare_columns_cluster(
+    data = data, var = "respuesta", codes_row = c("1", "0"),
+    estratos = c("A", "B"), var_estrato = "grupo", tp = "so",
+    repeat_design = design
+  )
+  expect_equal(cmp$method, "descriptivo")
+  expect_false(any(cmp$sig))
+  expect_true(all(cmp$letras == ""))
+  expect_match(cmp$reason, "8|cluster|persona", ignore.case = TRUE)
+})
+
+test_that("el minimo de clusters se evalua sobre respuestas validas del contraste", {
+  data <- data.frame(
+    `_parent_index` = sprintf("p%d", seq_len(8L)),
+    grupo = rep(c("A", "B"), each = 4L),
+    respuesta = c("1", "1", "1", "0", "0", "0", "0", NA),
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+  inst <- list()
+  attr(inst, "repeat_grain") <- list(kind = "instancia", repeat_group = "rep")
+  design <- .analitica_repeat_design(data, inst, min_clusters = 8L)
+
+  cmp <- .repeat_compare_columns_cluster(
+    data = data, var = "respuesta", codes_row = c("1", "0"),
+    estratos = c("A", "B"), var_estrato = "grupo", tp = "so",
+    repeat_design = design
+  )
+
+  expect_equal(cmp$method, "descriptivo")
+  expect_equal(cmp$n_clusters, 7L)
+  expect_false(any(cmp$sig))
+  expect_true(all(cmp$letras == ""))
+  expect_match(cmp$reason, "8|7|valid", ignore.case = TRUE)
+})
+
+test_that("la correccion finita cluster usa CR1", {
+  expect_equal(.repeat_cluster_cr1_factor(8L), 8 / 7)
+  expect_equal(.repeat_cluster_cr1_factor(12L), 12 / 11)
+  expect_true(is.na(.repeat_cluster_cr1_factor(1L)))
+})
+
+test_that("analitica reconoce una hija repeat por contrato y no por proveedor", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  estudio_ensure(sid)
+  s <- session_get(sid)
+  s$estudio$bases <- list(
+    madre = list(nombre = "madre", source_kind = "manual"),
+    hija_manual = list(
+      nombre = "hija_manual", source_kind = "manual",
+      parent_base = "madre", repeat_group = "rep_servicios",
+      link_key = "_parent_index", parent_index_key = "_index"
+    ),
+    hija_fallback = list(
+      nombre = "hija_fallback", source_kind = "xlsx_repeat",
+      parent_base = "madre", repeat_group = "rep_visitas",
+      link_key = "_submission__id", parent_index_key = "_id"
+    )
+  )
+  session_set(sid, "estudio", s$estudio)
+
+  meta <- .analitica_repeat_child_meta(sid, "hija_manual")
+  expect_equal(meta$repeat_group, "rep_servicios")
+  expect_equal(meta$parent_base, "madre")
+  fallback <- .analitica_repeat_child_meta(sid, "hija_fallback")
+  expect_equal(fallback$repeat_group, "rep_visitas")
+  expect_equal(fallback$link_key, "_submission__id")
+})

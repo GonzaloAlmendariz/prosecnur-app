@@ -218,7 +218,20 @@
                                             service_col = "current_label") {
   base_name <- as.character(base_name %||% "")
   if (!nzchar(base_name) || !is.data.frame(data)) return(NULL)
-  raw <- tryCatch(estudio_data_sources(sid)[[base_name]], error = function(e) NULL)
+  sources <- tryCatch(estudio_data_sources(sid), error = function(e) list())
+  raw <- sources[[base_name]]
+  # Back-compat: grains antiguos sólo llevaban `repeat_group`. Si la base fue
+  # renombrada o el nombre colisionó durante la carga, resolver la key real por
+  # metadata relacional en vez de asumir repeat_group == nombre de base.
+  if (!is.data.frame(raw)) {
+    s <- session_get(sid, required = FALSE)
+    bases <- ((s %||% list())$estudio %||% list())$bases %||% list()
+    hits <- names(Filter(function(b) {
+      identical(as.character((b %||% list())$repeat_group %||% ""), base_name)
+    }, bases))
+    hits <- intersect(hits, names(sources))
+    if (length(hits)) raw <- sources[[hits[[1]]]]
+  }
   if (!is.data.frame(raw) || !(service_col %in% names(raw))) return(NULL)
   key <- if ("_index" %in% names(data) && "_index" %in% names(raw)) {
     "_index"
@@ -363,7 +376,8 @@
   stripped <- .repeat_strip_inherited(data, inst)
   data <- stripped$data
   inst <- stripped$inst
-  base_name <- as.character((grain %||% list())$repeat_group %||% "")
+  base_name <- as.character((grain %||% list())$base_name %||%
+                              (grain %||% list())$repeat_group %||% "")
 
   native <- .repeat_native_tabulable_vars(data, inst, exclude = c(service_col, "current_code"))
   svc <- .repeat_service_labels_from_raw(sid, base_name, data, service_col)
@@ -376,4 +390,62 @@
   }
 
   .repeat_build_service_sections(data, inst, svc, native, service_col)
+}
+
+#' Plan compartido por los codebooks XLSX/PDF de una base hija repeat.
+#'
+#' Parte del mismo modelo por roster que frecuencias, pero devuelve únicamente
+#' las columnas que el codebook debe documentar: composición del roster y
+#' variables nativas restringidas a cada servicio. Las variables heredadas y
+#' las originales sin condicionar quedan fuera para evitar documentar dos veces
+#' la misma pregunta (total plano + servicio).
+#' @keywords internal
+.repeat_codebook_plan_por_servicio <- function(sid, data, inst, grain,
+                                               service_col = "current_label") {
+  stripped <- .repeat_strip_inherited(data, inst)
+  data <- stripped$data
+  inst <- stripped$inst
+  base_name <- as.character((grain %||% list())$base_name %||%
+                              (grain %||% list())$repeat_group %||% "")
+
+  native <- .repeat_native_tabulable_vars(
+    data, inst, exclude = c(service_col, "current_code")
+  )
+  svc <- .repeat_service_labels_from_raw(sid, base_name, data, service_col)
+
+  if (is.null(svc) || !length(native)) {
+    secs <- if (length(native)) stats::setNames(list(native), "Bloque repetible") else list()
+    return(list(data = data, inst = inst, secciones = secs))
+  }
+
+  plan <- .repeat_build_service_sections(data, inst, svc, native, service_col)
+
+  # En el codebook no existe un renderer de encabezados de sección. Hacemos la
+  # organización visible en la etiqueta de cada bloque y ordenamos físicamente
+  # las columnas según `secciones`; XLSX y PDF consumen exactamente este data.
+  attr(plan$data[[service_col]], "label") <- "Servicio evaluado"
+  service_values <- unique(as.character(plan$data[[service_col]]))
+  service_values <- service_values[!is.na(service_values) & nzchar(service_values)]
+  attr(plan$data[[service_col]], "labels") <- stats::setNames(service_values, service_values)
+  for (section in setdiff(names(plan$secciones), "Servicios evaluados")) {
+    for (v in plan$secciones[[section]]) {
+      old_label <- as.character(attr(plan$data[[v]], "label", exact = TRUE) %||% v)
+      attr(plan$data[[v]], "label") <- sprintf("%s — %s", section, old_label)
+    }
+  }
+
+  keep <- unique(as.character(unlist(plan$secciones, use.names = FALSE)))
+  keep <- intersect(keep, names(plan$data))
+  out <- plan$data[, keep, drop = FALSE]
+  preserved <- setdiff(names(attributes(plan$data)), c("names", "row.names", "class"))
+  for (a in preserved) attr(out, a) <- attr(plan$data, a)
+
+  trim_inst <- function(df) {
+    if (!is.data.frame(df) || !("name" %in% names(df))) return(df)
+    df[as.character(df$name) %in% keep, , drop = FALSE]
+  }
+  plan$inst$survey <- trim_inst(plan$inst$survey)
+  if (!is.null(plan$inst$survey_raw)) plan$inst$survey_raw <- trim_inst(plan$inst$survey_raw)
+  plan$data <- out
+  plan
 }

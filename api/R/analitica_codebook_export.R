@@ -14,22 +14,26 @@
 #   (`ficha_tecnica = FALSE`). Antes se colaba una 2ª hoja "tras bambalinas".
 # - PDF (`reporte_codebook_pdf`): título/subtítulo/período se toman de
 #   `cfg$codebook$*_pdf`, igual que en el panel multibase.
-.analitica_codebook_render_fn <- function(cfg, formato, codes, numericas_arg, excluidas) {
+.analitica_codebook_render_fn <- function(cfg, formato, codes, numericas_arg, excluidas,
+                                          sid = NULL) {
   cb_cfg <- cfg$codebook %||% list()
   codigos <- if (length(codes) > 0L) codes else NULL
 
   function(rp_data, rp_inst, out_path) {
     reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
-    data_out <- .analitica_filter_data(reviewed$data, reviewed$inst, numericas_arg, excluidas)
 
-    # ADR 0030 Fase 4 (PARTE A): en una base HIJA repeat, el libro de códigos
-    # documenta SÓLO las variables nativas del bloque; las heredadas de la madre
-    # (grano persona) las documenta la madre. Reusa la marca del enriquecimiento.
+    # ADR 0030 Fase 4: ambos formatos comparten el mismo modelo por roster. El
+    # plan se construye ANTES de filtrar: `_index` es necesaria para re-anclar
+    # `current_label` desde la hija cruda, y el filtro analítico la elimina.
     grain <- .repeat_grain_from_inst(reviewed$inst)
     if (is.list(grain) && identical(as.character(grain$kind %||% ""), "instancia")) {
-      stripped <- .repeat_strip_inherited(data_out, reviewed$inst)
-      data_out <- stripped$data
+      plan <- .repeat_codebook_plan_por_servicio(
+        sid, reviewed$data, reviewed$inst, grain
+      )
+      reviewed$data <- plan$data
+      reviewed$inst <- plan$inst
     }
+    data_out <- .analitica_filter_data(reviewed$data, reviewed$inst, numericas_arg, excluidas)
 
     if (identical(formato, "pdf")) {
       reporte_codebook_pdf(

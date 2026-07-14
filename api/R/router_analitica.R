@@ -3543,7 +3543,9 @@ mount_analitica <- function(pr) {
         ext           = ext,
         kind_single   = kind_single,
         kind_multi    = kind_multi,
-        fn = .analitica_codebook_render_fn(cfg, formato, codes, numericas_arg, excluidas)
+        fn = .analitica_codebook_render_fn(
+          cfg, formato, codes, numericas_arg, excluidas, sid = sid
+        )
       )
       xlsform_result <- run_report_multibase(
         sid           = sid,
@@ -3885,8 +3887,6 @@ mount_analitica <- function(pr) {
 	      reviewed_ctx <- .analitica_apply_data_review(ctx$rp_data, ctx$rp_inst, cfg)
 	      ctx$rp_data <- reviewed_ctx$data
 	      ctx$rp_inst <- reviewed_ctx$inst
-	      # Ponderacion: adjunta `peso` (si esta activa); reporte_cruces lo usa.
-	      ctx$rp_data <- .analitica_ponderacion_apply(ctx$rp_data, cfg)
 	      cc <- cfg$cruces %||% list()
 
       # Resolver cruces_vars: query param > config. Schema v2 del config
@@ -3957,21 +3957,36 @@ mount_analitica <- function(pr) {
 	        data_sources[[nombre]] <- .excluir_cols(reviewed$data, excluidas)
 	        inst_sources[[nombre]] <- reviewed$inst
 	      }
+	      # La ponderacion vive en la persona: madres/bases normales se calibran
+	      # sobre sus filas y las hijas repeat heredan ese peso por la llave ODK.
+	      weighted <- .analitica_ponderacion_apply_sources(
+	        sid, data_sources, inst_sources, cfg
+	      )
+	      data_sources <- weighted$data_sources
+	      inst_sources <- weighted$inst_sources
+	      repeat_design_by_base <- weighted$repeat_design_by_base
 	      # Listas ordinales EFECTIVAS por base (override manual ∪ auto). Se
 	      # precomputan en el hilo principal (paquete cargado) y viajan como
 	      # dato plano al worker callr.
 	      ordinal_lists_by_base <- lapply(inst_sources, function(inst) .orden_categorias_ordinal_set(inst, cfg))
-	      data_sources_filt <- lapply(data_sources, function(df) .excluir_cruce_rows(df, cruces_map))
+	      data_sources_filt <- lapply(names(data_sources), function(nombre) {
+	        df <- .excluir_cruce_rows(data_sources[[nombre]], cruces_map)
+	        design <- repeat_design_by_base[[nombre]]
+	        if (!is.null(design)) attr(df, "repeat_design") <- design
+	        df
+	      })
+	      names(data_sources_filt) <- names(data_sources)
 
       rp_data_path <- job_save_rds(sid, "rp_data_sources", data_sources_filt)
       rp_inst_path <- job_save_rds(sid, "rp_inst_sources", inst_sources)
+      repeat_design_path <- job_save_rds(sid, "repeat_design_by_base", repeat_design_by_base)
       # api_path para que el worker callr pueda load_all(prosecnurapp).
       api_path <- .app_api_dir()
 
       job_id <- job_submit(
         sid = sid,
         kind = "analitica.cruces",
-        func = function(rp_data_path, rp_inst_path, cruces_val, modo, secs, numericas_arg,
+        func = function(rp_data_path, rp_inst_path, repeat_design_path, cruces_val, modo, secs, numericas_arg,
                         show_sig, alpha, incluir_total,
                         incluir_titulos, incluir_secciones,
                         brecha_filas, brecha_cols,
@@ -3994,6 +4009,7 @@ mount_analitica <- function(pr) {
           } else NULL
           data_sources <- readRDS(rp_data_path)
           inst_sources <- readRDS(rp_inst_path)
+          repeat_design_by_base <- readRDS(repeat_design_path)
           base_names <- names(data_sources)
 
           run_one <- function(nombre, out_path) {
@@ -4012,6 +4028,7 @@ mount_analitica <- function(pr) {
               incluir_secciones = incluir_secciones,
               orden = orden_cruces,
               ordinal_lists = ordinal_lists_by_base[[nombre]] %||% character(0),
+              repeat_design = repeat_design_by_base[[nombre]],
               brecha_filas = brecha_filas,
               brecha_cols = brecha_cols,
               aplicar_semaforo = aplicar_sem,
@@ -4022,7 +4039,16 @@ mount_analitica <- function(pr) {
                 detalles = list(
                   "Modo de cruces" = modo,
                   "Variables de cruce" = paste(cruces_val, collapse = ", "),
-                  "Significancia estadistica" = if (isTRUE(show_sig)) paste0("Activada; alpha = ", alpha) else "No activada"
+                  "Significancia estadistica" = if (!isTRUE(show_sig)) {
+                    "No activada"
+                  } else if (is.list(repeat_design_by_base[[nombre]]) &&
+                             !isTRUE(repeat_design_by_base[[nombre]]$inference_ok)) {
+                    paste0("Descriptiva; ", repeat_design_by_base[[nombre]]$reason %||% "clusters insuficientes")
+                  } else if (is.list(repeat_design_by_base[[nombre]])) {
+                    paste0("Cluster-robust por persona; alpha = ", alpha)
+                  } else {
+                    paste0("Activada; alpha = ", alpha)
+                  }
                 )
               )
             )
@@ -4073,6 +4099,7 @@ mount_analitica <- function(pr) {
         args = list(
           rp_data_path = rp_data_path,
           rp_inst_path = rp_inst_path,
+          repeat_design_path = repeat_design_path,
           cruces_val = cruces_val,
           modo = modo_val,
           secs = secs,

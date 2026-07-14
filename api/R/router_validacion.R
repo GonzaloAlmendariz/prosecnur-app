@@ -1397,13 +1397,25 @@ mount_validacion <- function(pr) {
         data = resolved$data,
         instrumento = resolved$instrumento
       )
-      list(
+      payload <- list(
         ok = TRUE,
         base_nombre = resolved$effective_base %||% NA_character_,
         fuente = resolved$fuente,
         n_variables = as.integer(inv$n_variables),
         secciones = inv$secciones
       )
+      repeat_info <- .explorar_repeat_for_base(
+        sid = sid,
+        base_name = resolved$effective_base,
+        data = resolved$data,
+        inst = resolved$instrumento,
+        inventario = inv
+      )
+      if (!is.null(repeat_info)) {
+        payload$repeat_context <- repeat_info$repeat_context
+        payload$secciones <- repeat_info$secciones
+      }
+      payload
     })) |>
 
     # --- Explorar: univariado ------------------------------------------------

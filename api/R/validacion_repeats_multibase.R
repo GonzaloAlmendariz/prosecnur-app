@@ -97,8 +97,11 @@ assemble_validation_data_multibase <- function(main_data_path,
 
 #' Resuelve las bases hija repeat de una base madre (para el router).
 #'
-#' Busca en `s$estudio$bases` las que tengan `parent_base == base_nombre` y
-#' `source_kind == "kobo_repeat"`, y resuelve el archivo de datos de cada una.
+#' Busca en `s$estudio$bases` las que declaren el contrato relacional repeat:
+#' `parent_base == base_nombre`, `repeat_group` no vacío y llaves compatibles
+#' (`_parent_index` -> `_index`, o `_submission__id` -> `_id`). Las llaves
+#' vacías se aceptan para proyectos legacy que ya registraban padre y grupo
+#' antes de persistir ese metadata.
 #' Devuelve una lista de specs planos (paths + repeat_group) lista para pasar
 #' como argumento de datos a un job callr (sin capturar funciones ni estado del
 #' entorno dev). Vacía si la base no es madre de ningún repeat.
@@ -112,13 +115,21 @@ assemble_validation_data_multibase <- function(main_data_path,
   out <- list()
   for (nm in names(bases)) {
     b <- bases[[nm]]
-    if (!identical(as.character(b$source_kind %||% ""), "kobo_repeat")) next
     if (!identical(as.character(b$parent_base %||% ""), as.character(base_nombre))) next
+    repeat_group <- as.character(b$repeat_group %||% "")
+    if (!nzchar(repeat_group)) next
+    link_key <- as.character(b$link_key %||% "")
+    parent_index_key <- as.character(b$parent_index_key %||% "")
+    primary_link <- (!nzchar(link_key) || identical(link_key, "_parent_index")) &&
+      (!nzchar(parent_index_key) || identical(parent_index_key, "_index"))
+    fallback_link <- identical(link_key, "_submission__id") &&
+      identical(parent_index_key, "_id")
+    if (!primary_link && !fallback_link) next
     dat_meta <- tryCatch(get_file(sid, b$data_file_id), error = function(e) NULL)
     if (is.null(dat_meta) || is.null(dat_meta$path)) next
     out[[length(out) + 1L]] <- list(
       base         = nm,
-      repeat_group = as.character(b$repeat_group %||% nm),
+      repeat_group = repeat_group,
       data_path    = dat_meta$path,
       data_ext     = as.character(b$data_ext %||% dat_meta$ext %||%
                                     tools::file_ext(dat_meta$path))

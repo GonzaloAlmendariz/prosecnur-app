@@ -525,6 +525,56 @@
   s
 }
 
+# Enriquece las fuentes compartidas por Gráficos/PPT/Word con el contrato repeat
+# de Analítica. En una hija agrega caracterización de la madre, propaga pesos
+# calculados a grano persona y deja el diseño de clustering en el data.frame.
+# Para estudios sin repeat es un no-op salvo la ponderación analítica habitual.
+.graficos_repeat_enrich_sources <- function(sid, src) {
+  if (!is.list(src) || !is.list(src$data_sources) || !is.list(src$inst_sources)) {
+    return(src)
+  }
+
+  enriched <- if (exists(".analitica_enrich_repeat_child_with_parent", mode = "function")) {
+    tryCatch(
+      .analitica_enrich_repeat_child_with_parent(
+        sid, src$data_sources, src$inst_sources
+      ),
+      error = function(e) NULL
+    )
+  } else {
+    NULL
+  }
+  if (is.list(enriched)) {
+    src$data_sources <- enriched$data_sources %||% src$data_sources
+    src$inst_sources <- enriched$inst_sources %||% src$inst_sources
+  }
+
+  if (!exists(".analitica_ponderacion_apply_sources", mode = "function")) return(src)
+  s <- session_get(sid, required = FALSE)
+  cfg <- if (exists(".analitica_config_get", mode = "function")) {
+    tryCatch(.analitica_config_get(sid, s), error = function(e) NULL)
+  } else {
+    (s %||% list())$analitica_config
+  }
+  weighted <- tryCatch(
+    .analitica_ponderacion_apply_sources(
+      sid, src$data_sources, src$inst_sources, cfg %||% list()
+    ),
+    error = function(e) NULL
+  )
+  if (!is.list(weighted)) return(src)
+
+  src$data_sources <- weighted$data_sources %||% src$data_sources
+  src$inst_sources <- weighted$inst_sources %||% src$inst_sources
+  designs <- weighted$repeat_design_by_base %||% list()
+  for (nm in intersect(names(designs), names(src$data_sources))) {
+    if (is.list(designs[[nm]]) && is.data.frame(src$data_sources[[nm]])) {
+      attr(src$data_sources[[nm]], "repeat_design") <- designs[[nm]]
+    }
+  }
+  src
+}
+
 .graficos_processing_sources <- function(sid) {
   normalize_sources <- function(src) {
     if (exists(".bases_normalize_source_contexts", mode = "function")) {
@@ -534,6 +584,7 @@
     }
   }
   finalize_sources <- function(src) {
+    src <- .graficos_repeat_enrich_sources(sid, src)
     src <- normalize_sources(src)
     if (exists(".graficos_add_virtual_koica_group_sources", mode = "function")) {
       src <- tryCatch(.graficos_add_virtual_koica_group_sources(sid, src), error = function(e) src)

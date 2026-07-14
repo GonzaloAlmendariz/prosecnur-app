@@ -341,6 +341,47 @@ test_that(".carga_kobo_register_repeat_bases registra la hija con llaves canóni
   expect_setequal(as.character(child_data$`_parent_table_name`), "default")
 })
 
+test_that(".carga_kobo_register_repeat_bases registra una hija vacía con sus headers", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("readxl")
+
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  downloads_dir <- file.path(session_get(sid)$dir, "downloads")
+  dir.create(downloads_dir, recursive = TRUE, showWarnings = FALSE)
+
+  data_df <- .kobo_ensure_wide_index(.kobo_repeat_test_data())
+  data_df[["Assistance/rep_servicios"]] <- "[]"
+  created <- .carga_kobo_register_repeat_bases(
+    sid,
+    data_df = data_df,
+    rp_inst = .kobo_repeat_test_inst(),
+    parent_base_name = "default",
+    title = "PDM sin instancias",
+    downloads_dir = downloads_dir
+  )
+
+  expect_length(created, 1L)
+  if (!length(created)) return(invisible())
+  expect_equal(created[[1]]$repeat_group, "rep_servicios")
+  expect_equal(created[[1]]$n_filas, 0L)
+
+  bases <- estudio_list_bases(sid)
+  meta <- bases[[created[[1]]$base]]
+  expect_equal(meta$source_kind, "kobo_repeat")
+  expect_equal(meta$parent_base, "default")
+  expect_equal(meta$n_filas, 0L)
+
+  child_data <- suppressWarnings(readxl::read_excel(
+    (session_get(sid)$files %||% list())[[meta$data_file_id]]$path
+  ))
+  expect_equal(nrow(child_data), 0L)
+  expect_true(all(c(
+    "_index", "_parent_index", "_parent_table_name", "_submission__id",
+    "current_code", "current_label", "srv_claridad", "srv_seguridad_why"
+  ) %in% names(child_data)))
+})
+
 test_that(".carga_kobo_register_repeat_bases enlaza la hija a una hermana independiente", {
   skip_if_not_installed("openxlsx")
   skip_if_not_installed("readxl")

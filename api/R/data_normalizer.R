@@ -60,15 +60,34 @@
   if (!is.na(src) && nzchar(src)) src else col
 }
 
+# Códigos comparables para decidir si un mapa requiere intervención humana.
+# SurveyMonkey/SAV suele nombrar dummies como C1, Clegal o C01 aunque la opción
+# canónica del XLSForm sea 1, legal o 1. Ese prefijo es transporte, no recodificación.
+.dn_choice_codes_equivalent <- function(source_code, xls_code) {
+  src <- trimws(as.character(source_code %||% "")[1])
+  dst <- trimws(as.character(xls_code %||% "")[1])
+  if (identical(src, dst)) return(TRUE)
+  if (startsWith(src, "C") && nchar(src) > 1L) src <- substring(src, 2L)
+  if (identical(src, dst)) return(TRUE)
+  numeric_token <- function(x) grepl("^[0-9]+$", x)
+  if (numeric_token(src) && numeric_token(dst)) {
+    return(identical(sub("^0+(?=[0-9])", "", src, perl = TRUE),
+                     sub("^0+(?=[0-9])", "", dst, perl = TRUE)))
+  }
+  FALSE
+}
+
 .dn_choice_map_payload <- function(parent, row, list_name, type_kind, items) {
   if (!length(items)) return(NULL)
   mismatched <- vapply(items, function(x) {
-    !identical(as.character(x$source_code %||% ""), as.character(x$xls_code %||% ""))
+    !.dn_choice_codes_equivalent(x$source_code, x$xls_code)
   }, logical(1))
   weak <- vapply(items, function(x) {
     !(as.character(x$match %||% "") %in% c("label", "label_unique"))
   }, logical(1))
-  if (!any(mismatched) && !any(weak)) return(NULL)
+  # Si todos los códigos son equivalentes no existe ajuste que confirmar. El
+  # match débil solo importa cuando acompaña una diferencia real de código.
+  if (!any(mismatched)) return(NULL)
   label <- as.character(row$label %||% parent)[1]
   list(
     variable = parent,

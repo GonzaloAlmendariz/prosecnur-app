@@ -49,6 +49,51 @@ source("setup-load-all.R")
   )
 }
 
+.re_weighted_repeat_study <- function() {
+  sid <- session_create()
+  parent <- data.frame(
+    `_index` = 1:3, sexo = c("1", "2", "1"), edad = c(30, 40, 25),
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+  parent_inst <- list(
+    survey = data.frame(
+      type = c("select_one lst_sexo", "integer"), name = c("sexo", "edad"),
+      label = c("Sexo", "Edad"), stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("lst_sexo", "lst_sexo"), name = c("1", "2"),
+      label = c("Mujer", "Hombre"), stringsAsFactors = FALSE
+    )
+  )
+  child <- data.frame(
+    `_index` = 1:3, `_parent_index` = c(2L, 2L, 3L),
+    srv_claridad = c("2", "1", "1"), stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  child_inst <- list(
+    survey = data.frame(
+      type = "select_one lst_claridad", name = "srv_claridad",
+      label = "Claridad", stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("lst_claridad", "lst_claridad"), name = c("1", "2"),
+      label = c("Si", "No"), stringsAsFactors = FALSE
+    )
+  )
+  estudio_add_base(sid, "madre", "xls-m", "data-m", "xlsx",
+                   parent, parent_inst, 3L, 3L)
+  estudio_add_base(
+    sid, "rep_servicios", "xls-h", "data-h", "xlsx",
+    child, child_inst, 3L, 3L,
+    extra_meta = list(
+      source_kind = "kobo_repeat", parent_base = "madre",
+      repeat_group = "rep_servicios", link_key = "_parent_index",
+      parent_index_key = "_index"
+    )
+  )
+  list(sid = sid, child_name = "rep_servicios")
+}
+
 # --- (a) Export/preview de la hija: sin llaves técnicas, con heredadas --------
 
 test_that("(a) el drop de llaves técnicas conserva heredadas y de análisis", {
@@ -513,4 +558,69 @@ test_that("(F/2) el default de mostrar_todo es TRUE cuando no hay config", {
   expect_true(any(grepl("Opcion B", run(list()))))
   # (iii) ...pero un FALSE explícito se respeta.
   expect_false(any(grepl("Opcion B", run(list(frecuencias = list(mostrar_todo = FALSE))))))
+})
+
+# --- (G) Ponderacion person-scoped y codebook organizado por roster ----------
+
+test_that("(G/1) pesos de persona se calculan en madre y se propagan a la hija", {
+  st <- .re_weighted_repeat_study()
+  on.exit(session_delete(st$sid), add = TRUE)
+  s <- session_get(st$sid)
+  child_name <- st$child_name
+  cfg <- list(ponderacion = list(
+    enabled = TRUE,
+    design = list(var = "sexo", pop_sizes = list(`1` = 50, `2` = 50))
+  ))
+
+  out <- .analitica_ponderacion_apply_sources(
+    st$sid, s$rp_data_sources, s$rp_inst_sources, cfg
+  )
+  madre <- out$data_sources$madre
+  child <- out$data_sources[[child_name]]
+
+  expect_equal(madre$peso, c(0.75, 1.5, 0.75), tolerance = 1e-8)
+  # Luis tiene dos instancias: ambas heredan SU peso 1.5; Rosa hereda 0.75.
+  expect_equal(child$peso, c(1.5, 1.5, 0.75), tolerance = 1e-8)
+  expect_equal(length(unique(child$peso[child$`_parent_index` == 2L])), 1L)
+  expect_equal(out$repeat_design_by_base[[child_name]]$n_personas, 2L)
+})
+
+test_that("(G/2) codebook repeat excluye heredadas y se organiza por servicio", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  data <- .re_child_svc_df()
+  raw <- data
+  raw$current_label <- c("Legal", "Legal", "Salud", "Salud", "Salud")
+  session_set(sid, "rp_data_sources", list(rep_serv = raw))
+  grain <- list(kind = "instancia", n_instancias = 5L, n_personas = 4L,
+                repeat_group = "rep_serv", parent_base = "madre")
+
+  plan <- .repeat_codebook_plan_por_servicio(
+    sid, data, .re_child_svc_inst(), grain
+  )
+  expect_false("sexo" %in% names(plan$data))
+  expect_false("sexo" %in% as.character(plan$inst$survey$name))
+  expect_true("Servicios evaluados" %in% names(plan$secciones))
+  expect_true(all(c("Legal", "Salud") %in% names(plan$secciones)))
+  expect_true(all(vapply(plan$secciones[c("Legal", "Salud")], length, integer(1)) > 0L))
+})
+
+test_that("(G/3) codebook resuelve el roster por nombre real de base", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  data <- .re_child_svc_df()
+  raw <- data
+  raw$current_label <- c("Legal", "Legal", "Salud", "Salud", "Salud")
+  session_set(sid, "rp_data_sources", list(hija_unica = raw))
+  grain <- list(
+    kind = "instancia", n_instancias = 5L, n_personas = 4L,
+    base_name = "hija_unica", repeat_group = "rep_serv", parent_base = "madre"
+  )
+
+  plan <- .repeat_codebook_plan_por_servicio(
+    sid, data, .re_child_svc_inst(), grain
+  )
+
+  expect_true(all(c("Legal", "Salud") %in% names(plan$secciones)))
+  expect_false("Bloque repetible" %in% names(plan$secciones))
 })

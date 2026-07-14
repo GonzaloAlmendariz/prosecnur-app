@@ -186,6 +186,12 @@ summarize_instrumento <- function(inst) {
 
 .carga_choice_code_maps_payload <- function(norm_attr) {
   maps_raw <- norm_attr$choice_code_maps %||% list()
+  maps_raw <- Filter(function(mp) {
+    mappings <- .dn_choice_map_items(mp)
+    length(mappings) && any(vapply(mappings, function(item) {
+      !.dn_choice_codes_equivalent(item$source_code, item$xls_code)
+    }, logical(1)))
+  }, maps_raw)
   if (!length(maps_raw)) {
     return(list(
       applied = FALSE,
@@ -472,8 +478,15 @@ estudio_init_default_base <- function(sid) {
 
   # Detectar el último xlsform y data subidos.
   files <- s$files %||% list()
-  xls_metas <- Filter(function(f) identical(f$kind, "xlsform"), files)
-  dat_metas <- Filter(function(f) f$kind %in% c("data", "sav"), files)
+  child_bases <- Filter(function(b) nzchar(as.character(b$parent_base %||% "")),
+                        (s$estudio %||% list())$bases %||% list())
+  derived_fids <- unique(unlist(lapply(child_bases, function(b) {
+    c(as.character(b$xlsform_file_id %||% ""), as.character(b$data_file_id %||% ""))
+  }), use.names = FALSE))
+  derived_fids <- derived_fids[nzchar(derived_fids)]
+  is_primary_file <- function(f) !(as.character(f$file_id %||% "") %in% derived_fids)
+  xls_metas <- Filter(function(f) identical(f$kind, "xlsform") && is_primary_file(f), files)
+  dat_metas <- Filter(function(f) f$kind %in% c("data", "sav") && is_primary_file(f), files)
   if (length(xls_metas) == 0L || length(dat_metas) == 0L) {
     return(invisible(FALSE))
   }
@@ -525,6 +538,9 @@ estudio_init_default_base <- function(sid) {
       n_filas         = as.integer(nrow(data_df)),
       n_columnas      = as.integer(ncol(data_df))
     )
+  }
+  if (tolower(as.character(dat_meta$ext %||% "")) %in% c("xlsx", "xls")) {
+    .carga_xlsx_register_repeat_bases(sid, parent_base_name = "default")
   }
   invisible(TRUE)
 }

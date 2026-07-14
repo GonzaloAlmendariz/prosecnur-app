@@ -268,9 +268,9 @@ ll_eval_repeats_count_expr <- function(rc_expr, parent_row, map_count_prefix = "
     if (grepl("^max\\(", ex, ignore.case = TRUE)) return(max(vals, na.rm = TRUE))
   }
 
-  if (grepl("\\$\\{[^}]+\\}", ex)) {
-    var <- sub("^.*\\$\\{([^}]+)\\}.*$", "\\1", ex)
-    v <- get_var(var)
+  m_ref <- stringr::str_match(ex, "^\\s*\\$\\{([^}]+)\\}\\s*$")
+  if (!any(is.na(m_ref))) {
+    v <- get_var(m_ref[, 2])
     return(ifelse(is.finite(v), v, NA_real_))
   }
 

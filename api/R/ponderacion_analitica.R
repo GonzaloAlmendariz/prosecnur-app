@@ -86,6 +86,76 @@
   data
 }
 
+# Aplica ponderacion respetando la unidad de calibracion. Las bases hijas repeat
+# no se recalibran a grano de instancia: heredan el peso ya calculado en la madre
+# mediante la misma llave relacional usada por validacion y analitica.
+.analitica_ponderacion_apply_sources <- function(sid, data_sources, inst_sources, cfg) {
+  if (!length(data_sources)) {
+    return(list(
+      data_sources = data_sources, inst_sources = inst_sources,
+      repeat_design_by_base = list()
+    ))
+  }
+
+  repeat_meta <- lapply(names(data_sources), function(nombre) {
+    tryCatch(.analitica_repeat_child_meta(sid, nombre), error = function(e) NULL)
+  })
+  names(repeat_meta) <- names(data_sources)
+  child_names <- names(Filter(Negate(is.null), repeat_meta))
+
+  # Bases normales y madres: contrato legacy, calculado sobre sus propias filas.
+  for (nombre in setdiff(names(data_sources), child_names)) {
+    data_sources[[nombre]] <- .analitica_ponderacion_apply(data_sources[[nombre]], cfg)
+  }
+
+  designs <- list()
+  for (nombre in child_names) {
+    meta <- repeat_meta[[nombre]]
+    child <- data_sources[[nombre]]
+    inst <- inst_sources[[nombre]] %||% list()
+    grain <- attr(inst, "repeat_grain", exact = TRUE) %||%
+      .analitica_repeat_grain(child, meta)
+    attr(inst, "repeat_grain") <- grain
+
+    parent_name <- as.character(meta$parent_base %||% "")
+    parent <- data_sources[[parent_name]]
+    if (is.data.frame(parent) && "peso" %in% names(parent)) {
+      link_key <- as.character(meta$link_key %||% "_parent_index")
+      parent_key <- as.character(meta$parent_index_key %||% "_index")
+      child_fb <- as.character(meta$link_key_fallback %||% "_submission__id")
+      pos <- tryCatch(
+        .dn_repeat_parent_row_positions(
+          child, parent,
+          link_key = link_key, parent_index_key = parent_key,
+          fallback_child_key = child_fb, fallback_parent_key = "_id"
+        ),
+        error = function(e) integer(0)
+      )
+      if (length(pos) == nrow(child)) {
+        inherited <- rep(NA_real_, nrow(child))
+        ok <- !is.na(pos) & pos >= 1L & pos <= nrow(parent)
+        inherited[ok] <- as.numeric(parent$peso[pos[ok]])
+        child[["peso"]] <- inherited
+      }
+    }
+
+    design <- .analitica_repeat_design(child, inst)
+    if (!is.null(design)) {
+      attr(child, "repeat_design") <- design
+      attr(inst, "repeat_design") <- design
+      designs[[nombre]] <- design
+    }
+    data_sources[[nombre]] <- child
+    inst_sources[[nombre]] <- inst
+  }
+
+  list(
+    data_sources = data_sources,
+    inst_sources = inst_sources,
+    repeat_design_by_base = designs
+  )
+}
+
 # Avisos didacticos a partir de los diagnosticos (para la UI).
 .analitica_ponderacion_warnings <- function(res) {
   out <- list()
