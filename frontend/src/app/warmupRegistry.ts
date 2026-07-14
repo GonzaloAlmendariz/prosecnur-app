@@ -401,7 +401,7 @@ async function warmupMonitoreoLocalData() {
       ? [...familyProfile.warmupScopes]
       : ["source", "advance_summary", "validation_summary", "queries_summary"];
     await withTimeout(
-      "Monitoreo aulas",
+      "Monitoreo de cursos-horario",
       settleAllLimited(scopes, async (reportScope) => {
         await api.apiMonitoreoState({ includeReports: true, reportScope, warmupCache: true }).catch(() => null);
       }, 1),

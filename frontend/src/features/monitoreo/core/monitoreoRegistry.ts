@@ -84,18 +84,18 @@ export const MONITOREO_ROUTES: MonitoreoRouteDefinition[] = [
   },
   {
     family: "aulas_universitarias",
-    label: "Monitoreo de aplicación en aulas",
-    shortLabel: "Aulas",
+    label: "Monitoreo de cursos-horario",
+    shortLabel: "Cursos-horario",
     status: "active",
     icon: CalendarRange,
     eyebrow: "Disponible en v1",
-    title: "Aplicación en aulas",
-    summary: "Monitoreo de la aplicación en aulas para estudios de hostigamiento: agenda, QR/Kobo, avance, reemplazos y brechas.",
-    details: ["Muestra de aulas", "Fichas QR/PDF", "Agenda de aplicación", "Cuotas y brechas"],
+    title: "Aplicación por cursos-horario",
+    summary: "Monitoreo de intervenciones universitarias por cursos-horario: agenda, QR/Kobo, avance, reemplazos y brechas.",
+    details: ["Muestra de cursos-horario", "Fichas QR/PDF", "Agenda de aplicación", "Cuotas y brechas"],
     sourceRoles: [
-      { label: "Plan", detail: "Titulares y reservas importadas desde el cálculo de muestra de aulas" },
-      { label: "Fichas QR", detail: "Enlace de Kobo, QR, Word/PDF y consolidado por selección de aulas" },
-      { label: "Respuestas", detail: "Kobo o Sheets agregadas por aula y enlace del estudio de hostigamiento" },
+      { label: "Plan", detail: "Titulares y reservas importados desde el cálculo de muestra de cursos-horario" },
+      { label: "Fichas QR", detail: "Enlace de Kobo, QR, Word/PDF y consolidado por selección de cursos-horario" },
+      { label: "Respuestas", detail: "Kobo o Sheets agregadas por curso-horario y enlace de la intervención" },
       { label: "Cierre", detail: "Titulares, reemplazos usados y brechas justificadas" },
     ],
   },
@@ -145,10 +145,10 @@ export const TERRITORIAL_WORKBENCH_VIEWS: WorkbenchViewDefinition[] = [
 
 export const AULAS_WORKBENCH_VIEWS: WorkbenchViewDefinition[] = [
   { key: "fuentes", label: "Fuentes", shortLabel: "Fuentes", desc: "Plan, agenda y respuestas", icon: PlugZap },
-  { key: "modelo", label: "Agenda de aulas", shortLabel: "Agenda", desc: "Horario, responsable, enlaces y QR", icon: CalendarRange },
-  { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Aulas aplicadas, cuotas y brechas", icon: BarChart3 },
-  { key: "calidad", label: "Validación", shortLabel: "Validación", desc: "Collector, aula, horarios y duplicados", icon: ShieldAlert },
-  { key: "consultas", label: "Consultas", shortLabel: "Consultas", desc: "Trazabilidad aula por aula", icon: Search },
+  { key: "modelo", label: "Agenda de cursos-horario", shortLabel: "Agenda", desc: "Horario, responsable, enlaces y QR", icon: CalendarRange },
+  { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Cursos-horario aplicados, cuotas y brechas", icon: BarChart3 },
+  { key: "calidad", label: "Validación", shortLabel: "Validación", desc: "Recolector, curso-horario, horarios y duplicados", icon: ShieldAlert },
+  { key: "consultas", label: "Consultas", shortLabel: "Consultas", desc: "Trazabilidad por curso-horario", icon: Search },
 ];
 
 export const OPERATIONAL_MODEL_MODES: OperationalModelModeDefinition[] = [

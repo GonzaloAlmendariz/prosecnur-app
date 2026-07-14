@@ -17,6 +17,7 @@ import {
   Search,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { GlidingTabList } from "../../components/GlidingTabList";
 import { toDataURL } from "qrcode";
 import {
   apiCalcMuestraState,
@@ -67,12 +68,12 @@ type TemplateContext = Record<string, string>;
 
 const SECTION_TABS: Record<QrSection, TabDefinition[]> = {
   preparacion: [
-    { id: "agenda", label: "Agenda", detail: "aulas y docentes", icon: ClipboardList },
-    { id: "enlaces", label: "Enlaces", detail: "uno por aula", icon: Link2 },
+    { id: "agenda", label: "Agenda", detail: "cursos-horario y docentes", icon: ClipboardList },
+    { id: "enlaces", label: "Enlaces", detail: "uno por curso-horario", icon: Link2 },
   ],
   fichas: [
     { id: "vista", label: "Vista previa", detail: "ficha imprimible", icon: QrCode },
-    { id: "listado", label: "Lista", detail: "revisión por aula", icon: Search },
+    { id: "listado", label: "Lista", detail: "revisión por curso-horario", icon: Search },
   ],
   paquete: [
     { id: "salida", label: "PDF final", detail: "fichas imprimibles", icon: Archive },
@@ -82,66 +83,66 @@ const SECTION_TABS: Record<QrSection, TabDefinition[]> = {
 
 const SECTIONS: Array<{ id: QrSection; label: string; detail: string; icon: typeof ClipboardList }> = [
   { id: "preparacion", label: "Preparación", detail: "agenda y enlaces", icon: ClipboardList },
-  { id: "fichas", label: "Fichas", detail: "QR por aula", icon: QrCode },
+  { id: "fichas", label: "Fichas", detail: "QR por curso-horario", icon: QrCode },
   { id: "paquete", label: "Paquete", detail: "PDF final", icon: Archive },
 ];
 
 const TAB_COPY: Record<QrTab, { kicker: string; title: string; detail: string }> = {
   agenda: {
     kicker: "Antes de imprimir",
-    title: "Confirma qué aulas entran a campo",
-    detail: "La unidad operativa es el curso-horario: una fila debe tener aula, curso, docente, facultad y estado de coordinación.",
+    title: "Confirma qué cursos-horario entran a campo",
+    detail: "La unidad operativa es el curso-horario: una fila debe tener curso, horario, salón, docente, facultad y estado de coordinación.",
   },
   enlaces: {
-    kicker: "Enlace de aula",
-    title: "Crea un enlace único para cada aula",
+    kicker: "Enlace del curso-horario",
+    title: "Crea un enlace único para cada curso-horario",
     detail: "El QR conserva el curso-horario sin pedir códigos al estudiante.",
   },
   vista: {
-    kicker: "Material de aula",
+    kicker: "Material de campo",
     title: "Revisa la ficha antes de llevarla a campo",
-    detail: "La ficha debe poder leerse en segundos: curso, horario, docente, aula y QR específico de la aplicación.",
+    detail: "La ficha debe poder leerse en segundos: curso, horario, docente, salón y QR específico de la aplicación.",
   },
   listado: {
     kicker: "Control operativo",
-    title: "Busca aulas y corrige pendientes",
-    detail: "Usa la lista para detectar enlaces faltantes, cursos sin horario o aulas que aún no están listas para imprimir.",
+    title: "Busca cursos-horario y corrige pendientes",
+    detail: "Usa la lista para detectar enlaces faltantes, cursos sin horario o cursos-horario que aún no están listos para imprimir.",
   },
   salida: {
     kicker: "Motor PDF",
     title: "Genera el PDF de fichas QR",
-    detail: "La salida produce una portada y una ficha imprimible por curso-horario, con QR, aula, docente y enlace visible.",
+    detail: "La salida produce una portada y una ficha imprimible por curso-horario, con QR, salón, docente y enlace visible.",
   },
   retorno: {
     kicker: "Seguimiento",
     title: "Guarda los enlaces en Monitoreo",
-    detail: "Cada aula conserva el enlace usado para su QR, de modo que el seguimiento sepa qué ficha recibió cada curso-horario.",
+    detail: "Cada curso-horario conserva el enlace usado para su QR, de modo que el seguimiento sepa qué ficha recibió.",
   },
 };
 
 const SIDEBAR_NOTES: Record<QrTab, { icon: typeof ClipboardList; title: string; detail: string; tone: StepTone }> = {
   agenda: {
     icon: ClipboardList,
-    title: "Primero confirma aulas",
+    title: "Primero confirma los cursos-horario",
     detail: "Cada fila es un curso-horario que luego tendrá enlace, QR y ficha imprimible.",
     tone: "current",
   },
   enlaces: {
     icon: Link2,
     title: "Luego conecta Kobo",
-    detail: "El identificador del aula viaja en el enlace para reconocer la respuesta en Monitoreo.",
+    detail: "El identificador del curso-horario viaja en el enlace para reconocer la respuesta en Monitoreo.",
     tone: "current",
   },
   vista: {
     icon: QrCode,
     title: "Revisa una ficha",
-    detail: "La hoja debe explicar el aula, mostrar el QR y sostenerse aun si el enlace se digita.",
+    detail: "La hoja debe identificar el curso-horario, mostrar el QR y sostenerse aun si el enlace se digita.",
     tone: "current",
   },
   listado: {
     icon: Search,
     title: "Audita antes de imprimir",
-    detail: "Busca aulas sin enlace o datos incompletos antes de generar el paquete PDF.",
+    detail: "Busca cursos-horario sin enlace o datos incompletos antes de generar el paquete PDF.",
     tone: "waiting",
   },
   salida: {
@@ -153,7 +154,7 @@ const SIDEBAR_NOTES: Record<QrTab, { icon: typeof ClipboardList; title: string; 
   retorno: {
     icon: CheckCircle2,
     title: "Cierra trazabilidad",
-    detail: "Guarda los enlaces para que Monitoreo sepa qué ficha recibió cada aula.",
+    detail: "Guarda los enlaces para que Monitoreo sepa qué ficha recibió cada curso-horario.",
     tone: "ready",
   },
 };
@@ -214,7 +215,7 @@ function classroomLabel(row: MonitoreoAulasPlanRow) {
     normalizeText(row.titular_operational_code) ||
     normalizeText(row.classroom_id) ||
     normalizeText(row.label) ||
-    `Aula ${fmt(row.orden)}`;
+    `Curso-horario ${fmt(row.orden)}`;
 }
 
 function rowFaculty(row: MonitoreoAulasPlanRow) {
@@ -365,7 +366,7 @@ function roleLabel(row: MonitoreoAulasPlanRow) {
   if (role === "titular" || normalizeText(row.wave) === "M1") return "Titular";
   if (role === "chain_reserve") return `Reserva ${normalizeText(row.wave) || ""}`.trim();
   if (role === "extra_reserve_pool") return "Reserva adicional";
-  return normalizeText(row.wave) || "Aula";
+  return normalizeText(row.wave) || "Curso-horario";
 }
 
 function sampleLabel(row: MonitoreoAulasPlanRow) {
@@ -630,7 +631,7 @@ function ReadinessRail({
   steps: Array<{ label: string; status: string; detail: string; tone: StepTone }>;
 }) {
   return (
-    <ol className="rec-readiness" aria-label="Recorrido operativo de aplicación en aula">
+    <ol className="rec-readiness" aria-label="Recorrido operativo de aplicación por curso-horario">
       {steps.map((step, index) => (
         <li key={step.label} className={`is-${step.tone}`}>
           <span>{index + 1}</span>
@@ -661,7 +662,7 @@ function LinkProcessStrip({
   const steps = [
     {
       label: "Agenda",
-      value: agendaCount ? `${fmt(agendaCount)} aulas` : "pendiente",
+      value: agendaCount ? `${fmt(agendaCount)} cursos-horario` : "pendiente",
       detail: "curso-horario y docente",
       tone: agendaCount ? "ready" : "current",
       icon: ClipboardList,
@@ -676,7 +677,7 @@ function LinkProcessStrip({
     {
       label: "QR",
       value: linkedCount ? `${fmt(linkedCount)} listos` : `${fmt(missingCount)} faltan`,
-      detail: "uno por ficha de aula",
+      detail: "uno por ficha de curso-horario",
       tone: linkedCount ? "ready" : agendaCount ? "current" : "waiting",
       icon: QrCode,
     },
@@ -689,7 +690,7 @@ function LinkProcessStrip({
     },
   ] satisfies Array<{ label: string; value: string; detail: string; tone: StepTone; icon: typeof ClipboardList }>;
   return (
-    <ol className="rec-link-process" aria-label="Recorrido de enlaces QR por aula">
+    <ol className="rec-link-process" aria-label="Recorrido de enlaces QR por curso-horario">
       {steps.map((step, index) => {
         const Icon = step.icon;
         return (
@@ -722,19 +723,19 @@ function PackageFlow({
   const steps = [
     {
       label: "Agenda",
-      detail: "Curso-horario, docente, aula y matrícula objetivo.",
+      detail: "Curso-horario, docente, salón y matrícula objetivo.",
       tone: agendaReady ? "ready" : "current",
       icon: ClipboardList,
     },
     {
       label: "QR individual",
-      detail: "Un enlace específico se convierte en código QR por aula.",
+      detail: "Un enlace específico se convierte en código QR por curso-horario.",
       tone: withLink ? "ready" : agendaReady ? "current" : "waiting",
       icon: QrCode,
     },
     {
       label: "PDF de fichas",
-      detail: "Una página por aula reúne QR, curso, horario, aula y responsable de coordinación.",
+      detail: "Una página por curso-horario reúne QR, curso, horario, salón y responsable de coordinación.",
       tone: readyForPrint ? "ready" : withLink ? "current" : "waiting",
       icon: FileText,
     },
@@ -809,7 +810,7 @@ function ReturnManifestPanel({
         ) : null}
       </div>
       <div className="rec-return-summary">
-        <span>{fmt(rows.length)} aulas</span>
+        <span>{fmt(rows.length)} cursos-horario</span>
         <span>{fmt(linked)} con enlace</span>
         <span>{saved ? "guardado en Monitoreo" : `${fmt(unsavedLinks)} por guardar`}</span>
         <span>{complete ? "cobertura completa" : `${fmt(Math.max(rows.length - linked, 0))} pendientes`}</span>
@@ -846,7 +847,7 @@ function ReturnManifestPanel({
         </table>
       </div>
       {rows.length > previewRows.length ? (
-        <p className="rec-return-footnote">Vista previa de {fmt(previewRows.length)} filas. El respaldo copiado incluye las {fmt(rows.length)} aulas de la agenda.</p>
+        <p className="rec-return-footnote">Vista previa de {fmt(previewRows.length)} filas. El respaldo copiado incluye los {fmt(rows.length)} cursos-horario de la agenda.</p>
       ) : null}
     </section>
   );
@@ -875,7 +876,7 @@ function PackageEnginePanel({
     "Curso",
     "Facultad",
     "Horario",
-    "Aula",
+    "Curso-horario",
   ];
   const stages = [
     { label: "QR individual", value: linked ? `${fmt(linked)} listos` : "pendiente", tone: linked ? "ready" : "waiting" },
@@ -917,7 +918,7 @@ function PackageEnginePanel({
             </dl>
           </article>
         )) : (
-          <p>No hay selección de aulas para producir fichas.</p>
+          <p>No hay selección de cursos-horario para producir fichas.</p>
         )}
       </div>
       <div className="rec-engine-note">
@@ -956,7 +957,7 @@ function FichaPreview({ row }: { row: MonitoreoAulasPlanRow | null }) {
     return (
       <div className="rec-preview-shell">
         <EmptyState
-          title="Selecciona un aula"
+          title="Selecciona un curso-horario"
           detail="Elige una fila de la agenda para revisar cómo quedará la ficha antes de imprimirla."
         />
       </div>
@@ -1012,7 +1013,7 @@ function FichaDocument({ row }: { row: MonitoreoAulasPlanRow }) {
       <header className="rec-ficha-brand">
         <img src={PULSO_LOGO_SRC} alt="Pulso PUCP" />
         <div>
-          <span>Estudio de hostigamiento en aulas</span>
+          <span>Intervención universitaria por cursos-horario</span>
           <strong>Ficha de aplicación</strong>
         </div>
       </header>
@@ -1025,7 +1026,7 @@ function FichaDocument({ row }: { row: MonitoreoAulasPlanRow }) {
             <span><QrCode size={18} /></span>
             <div>
               <strong>Escanea el QR para responder</strong>
-              <small>La encuesta se abre con el enlace correspondiente a esta aula.</small>
+              <small>La encuesta se abre con el enlace correspondiente a este curso-horario.</small>
             </div>
           </div>
         </div>
@@ -1034,7 +1035,7 @@ function FichaDocument({ row }: { row: MonitoreoAulasPlanRow }) {
           <h2>{course}</h2>
           <dl className="rec-ficha-fields">
             <div><dt>Código de ficha</dt><dd>{code}</dd></div>
-            <div><dt>Pabellón y aula</dt><dd>{venue}</dd></div>
+            <div><dt>Pabellón y salón</dt><dd>{venue}</dd></div>
             <div><dt>Horario del curso</dt><dd>{schedule}</dd></div>
             <div className="is-wide"><dt>Facultad</dt><dd>{faculty}</dd></div>
             <div className="is-wide"><dt>Curso</dt><dd>{course}</dd></div>
@@ -1042,14 +1043,14 @@ function FichaDocument({ row }: { row: MonitoreoAulasPlanRow }) {
             <div className="is-wide"><dt>Selección</dt><dd>{selection}</dd></div>
             <div className="is-wide rec-ficha-url"><dt>Enlace de respaldo</dt><dd>{link || "Agrega un enlace para generar el QR"}</dd></div>
           </dl>
-          <section className="rec-ficha-log" aria-label="Registro de aplicación en aula">
+          <section className="rec-ficha-log" aria-label="Registro de aplicación en el salón">
             <div className="rec-ficha-log-heading">
               <span>Registro de aplicación</span>
-              <strong>Completar en aula</strong>
+              <strong>Completar en el salón</strong>
             </div>
             <div className="rec-ficha-log-grid">
               <FichaLogLine label="N° total de alumnos" value={eligibleStudents} />
-              <FichaLogLine label="N° de alumnos en aula" />
+              <FichaLogLine label="N° de alumnos presentes" />
               <FichaLogLine label="Rechazos" />
               <FichaLogLine label="Aplicador/a" value={responsible} />
               <FichaLogLine label="Fecha" />
@@ -1073,14 +1074,14 @@ function PrintFichaPackage({ rows }: { rows: MonitoreoAulasPlanRow[] }) {
       <div className="rec-print-cover">
         <div className="rec-print-cover-brand">
           <img src={PULSO_LOGO_SRC} alt="Pulso PUCP" />
-          <span>Aplicación en aulas</span>
+          <span>Aplicación por cursos-horario</span>
         </div>
         <strong>Fichas QR para el estudio de hostigamiento</strong>
-        <p>Cada hoja contiene el QR de encuesta y los datos visibles necesarios para ubicar el aula durante la aplicación presencial.</p>
+        <p>Cada hoja contiene el QR de encuesta y los datos visibles necesarios para ubicar el salón durante la aplicación presencial.</p>
         <dl aria-label="Resumen del paquete">
           <div><dt>Fichas</dt><dd>{fmt(rows.length)}</dd></div>
           <div><dt>Uso</dt><dd>Aplicación presencial</dd></div>
-          <div><dt>Contenido</dt><dd>QR, aula y registro</dd></div>
+          <div><dt>Contenido</dt><dd>QR, salón y registro</dd></div>
         </dl>
       </div>
       {rows.map((row, index) => (
@@ -1148,14 +1149,14 @@ function AgendaTable({
   onSelect: (row: MonitoreoAulasPlanRow, key: string) => void;
 }) {
   if (!rows.length) {
-    return <EmptyState title="Agenda pendiente" detail="Importa o genera la agenda de aulas desde Cálculo de muestra y Monitoreo." />;
+    return <EmptyState title="Agenda pendiente" detail="Importa o genera la agenda de cursos-horario desde Cálculo de muestra y Monitoreo." />;
   }
   return (
     <div className="rec-table-wrap">
       <table className="rec-table">
         <thead>
           <tr>
-            <th>Aula</th>
+            <th>Curso-horario</th>
             <th>Facultad</th>
             <th>Curso</th>
             <th>Horario</th>
@@ -1202,7 +1203,7 @@ function LinkImportPanel({
   onClear: () => void;
 }) {
   return (
-    <section className="rec-link-import" aria-label="Pegar enlaces por aula">
+    <section className="rec-link-import" aria-label="Pegar enlaces por curso-horario">
       <div className="rec-link-import-head">
         <span><Link2 size={15} /></span>
         <div>
@@ -1282,12 +1283,12 @@ function KoboLinkPanel({
   const hasToken = connection?.has_token === true;
   const selectedAsset = assets.find((asset) => asset.uid === selectedAssetUid) ?? null;
   return (
-    <section className="rec-kobo-panel" aria-label="Kobo para generar enlaces por aula">
+    <section className="rec-kobo-panel" aria-label="Kobo para generar enlaces por curso-horario">
       <div className="rec-kobo-head">
         <span><ExternalLink size={15} /></span>
         <div>
           <small>Kobo</small>
-          <strong>Crea enlaces únicos por aula</strong>
+          <strong>Crea enlaces únicos por curso-horario</strong>
           <p>Usa una conexión guardada o pega el enlace base. La credencial no se muestra ni entra al proyecto.</p>
         </div>
       </div>
@@ -1333,8 +1334,8 @@ function KoboLinkPanel({
           />
         </label>
         <label className="rec-kobo-wide">
-          <span>Identificador por aula</span>
-          <small>Usa el curso-horario para que Kobo y Monitoreo reconozcan de qué aula vino cada respuesta.</small>
+          <span>Identificador por curso-horario</span>
+          <small>Usa el curso-horario para que Kobo y Monitoreo reconozcan de qué unidad vino cada respuesta.</small>
           <textarea
             value={paramsTemplate}
             onChange={(event) => onParamsTemplateChange(event.currentTarget.value)}
@@ -1439,7 +1440,7 @@ export default function RecopiladoresPage() {
   const baseAgendaRows = monitorRows.length ? monitorRows : calcRows;
   const agendaRows = useMemo(() => applyManualLinks(baseAgendaRows, manualLinks), [baseAgendaRows, manualLinks]);
   const printableRows = useMemo(() => agendaRows.filter((row) => Boolean(rowLink(row))), [agendaRows]);
-  const agendaSource = monitorRows.length ? "Monitoreo de aulas" : calcRows.length ? "Cálculo de muestra" : "";
+  const agendaSource = monitorRows.length ? "Monitoreo de cursos-horario" : calcRows.length ? "Cálculo de muestra" : "";
   const unsavedLinks = useMemo(() => {
     if (!agendaRows.length) return 0;
     const monitorLinks = new Map<string, string>();
@@ -1568,13 +1569,13 @@ export default function RecopiladoresPage() {
             icon: Link2,
             tone: "waiting" as StepTone,
             label: "Enlaces pendientes",
-            detail: `${fmt(agendaRows.length)} aulas`,
+            detail: `${fmt(agendaRows.length)} cursos-horario`,
           }
         : {
             icon: ClipboardList,
             tone: "waiting" as StepTone,
             label: "Sin agenda",
-            detail: "preparar aulas",
+            detail: "preparar cursos-horario",
           };
   const TopStatusIcon = topStatus.icon;
   const flowStep: AulasFlowStep = activeTab === "retorno"
@@ -1584,21 +1585,21 @@ export default function RecopiladoresPage() {
       : "qr";
   const readinessSteps = [
     {
-      label: "Coordinar aula",
-      status: agendaReady ? `${fmt(agendaRows.length)} aulas` : "Pendiente",
-      detail: agendaReady ? "Curso-horario, docente y horario listos para contactar." : "Primero genera o importa la selección de aulas.",
+      label: "Coordinar curso-horario",
+      status: agendaReady ? `${fmt(agendaRows.length)} cursos-horario` : "Pendiente",
+      detail: agendaReady ? "Curso-horario, docente y horario listos para contactar." : "Primero genera o importa la selección de cursos-horario.",
       tone: agendaReady ? "ready" : "current",
     },
     {
       label: "Preparar QR",
       status: linksReady ? "Completo" : linksPartial ? `${fmt(missingLinks)} faltan` : "Pendiente",
-      detail: linksReady ? "Cada QR lleva el identificador del curso-horario." : "Cada ficha necesita un enlace específico del aula.",
+      detail: linksReady ? "Cada QR lleva el identificador del curso-horario." : "Cada ficha necesita un enlace específico del curso-horario.",
       tone: linksReady ? "ready" : agendaReady ? "current" : "waiting",
     },
     {
-      label: "Aplicar en aula",
+      label: "Aplicar en el salón",
       status: readyForPrint ? `${fmt(printableRows.length)} fichas` : "Pendiente",
-      detail: readyForPrint ? "El PDF imprime un QR por curso-horario para aplicación presencial." : "El paquete PDF se habilita cuando haya aulas con enlace.",
+      detail: readyForPrint ? "El PDF imprime un QR por curso-horario para aplicación presencial." : "El paquete PDF se habilita cuando haya cursos-horario con enlace.",
       tone: readyForPrint ? "ready" : linksReady || linksPartial ? "current" : "waiting",
     },
     {
@@ -1614,31 +1615,31 @@ export default function RecopiladoresPage() {
   ] satisfies Array<{ label: string; status: string; detail: string; tone: StepTone }>;
   const nextAction = !agendaReady
     ? {
-        title: "Genera la selección de aulas",
+        title: "Genera la selección de cursos-horario",
         detail: "Empieza en Cálculo de muestra para obtener cursos-horario titulares y reservas antes de producir fichas.",
         tone: "current" as StepTone,
       }
     : !withLink
     ? {
-        title: "Agrega enlaces de encuesta por aula",
+        title: "Agrega enlaces de encuesta por curso-horario",
         detail: "La agenda ya existe, pero todavía no hay enlaces para convertir en QR. Sin enlace no hay ficha aplicable.",
         tone: "current" as StepTone,
       }
     : missingLinks > 0
     ? {
         title: "Completa los enlaces faltantes",
-        detail: `${fmt(missingLinks)} aulas todavía no tienen enlace. Puedes generar un PDF parcial o cerrar la cobertura antes de entregar.`,
+        detail: `${fmt(missingLinks)} cursos-horario todavía no tienen enlace. Puedes generar un PDF parcial o cerrar la cobertura antes de entregar.`,
         tone: "current" as StepTone,
       }
     : !returnSaved
     ? {
         title: "Genera el PDF y guarda enlaces",
-        detail: `El PDF tendrá ${fmt(pdfPageCount)} páginas: portada y ${fmt(printableRows.length)} fichas de aula. Luego guarda los enlaces en Monitoreo.`,
+        detail: `El PDF tendrá ${fmt(pdfPageCount)} páginas: portada y ${fmt(printableRows.length)} fichas de curso-horario. Luego guarda los enlaces en Monitoreo.`,
         tone: "current" as StepTone,
       }
     : {
         title: "Paquete listo para campo",
-        detail: "La agenda, los enlaces y el seguimiento están alineados para la aplicación presencial en aulas.",
+        detail: "La agenda, los enlaces y el seguimiento están alineados para la aplicación presencial en salones.",
         tone: "ready" as StepTone,
       };
 
@@ -1743,7 +1744,7 @@ export default function RecopiladoresPage() {
 
   function generateKoboLinks() {
     if (!baseAgendaRows.length) {
-      setKoboError("Primero necesitas una agenda de aulas.");
+      setKoboError("Primero necesitas una agenda de cursos-horario.");
       return;
     }
     const base = normalizeText(koboBaseLink) || (selectedKoboAsset ? koboLandingUrl(koboBaseUrl, selectedKoboAsset.uid) : "");
@@ -1862,16 +1863,25 @@ export default function RecopiladoresPage() {
           <span><QrCode size={18} /></span>
           <div>
             <small>Motor QR/PDF</small>
-            <strong>Fichas QR para hostigamiento en aulas</strong>
+            <strong>Fichas QR para intervenciones por cursos-horario</strong>
           </div>
         </div>
-        <nav className="rec-section-rail" aria-label="Secciones de fichas QR">
+        <GlidingTabList
+          as="nav"
+          activeKey={activeSection}
+          className="rec-section-rail"
+          role="tablist"
+          aria-label="Secciones de fichas QR"
+        >
           {SECTIONS.map((section, index) => {
             const Icon = section.icon;
             return (
               <button
                 key={section.id}
                 type="button"
+                role="tab"
+                data-gliding-key={section.id}
+                aria-selected={activeSection === section.id}
                 className={activeSection === section.id ? "is-active" : ""}
                 title={`${section.label}: ${section.detail}`}
                 onClick={() => changeSection(section.id)}
@@ -1883,7 +1893,7 @@ export default function RecopiladoresPage() {
               </button>
             );
           })}
-        </nav>
+        </GlidingTabList>
         <div className="rec-actions">
           <span className={`rec-top-status is-${topStatus.tone}`}>
             <TopStatusIcon size={14} />
@@ -1903,16 +1913,16 @@ export default function RecopiladoresPage() {
         tone="recopiladores"
         current={flowStep}
         compact
-        title="Motor QR/PDF para hostigamiento en aulas"
-        summary="Toma el plan de aulas del cálculo de muestra, genera enlaces personalizados de Kobo, produce QR y ficha individual, consolida PDF/Word por selección y devuelve enlaces a Monitoreo de aulas."
+        title="Motor QR/PDF para intervenciones por cursos-horario"
+        summary="Toma el plan de cursos-horario del cálculo de muestra, genera enlaces personalizados de Kobo, produce QR y fichas individuales, consolida PDF/Word por selección y devuelve enlaces a Monitoreo."
         metrics={[
-          { label: "Plan de aulas", value: agendaRows.length ? `${fmt(agendaRows.length)} aulas` : "pendiente", tone: agendaRows.length ? "ready" : "warning" },
+          { label: "Plan de cursos-horario", value: agendaRows.length ? `${fmt(agendaRows.length)} cursos-horario` : "pendiente", tone: agendaRows.length ? "ready" : "warning" },
           { label: "Enlaces Kobo", value: agendaRows.length ? `${fmt(withLink)}/${fmt(agendaRows.length)}` : "pendiente", tone: linksReady ? "ready" : withLink ? "current" : "warning" },
           { label: "Fichas PDF", value: printPreparedAt ? "preparado" : printableRows.length ? `${fmt(printableRows.length)} producibles` : "pendiente", tone: printPreparedAt || printableRows.length ? "ready" : "warning" },
           { label: "Monitoreo", value: returnSaved ? "guardado" : withLink ? `${fmt(unsavedLinks)} por guardar` : "pendiente", tone: returnSaved ? "ready" : withLink ? "current" : "warning" },
         ]}
-        secondaryAction={{ to: AULAS_SAMPLE_ROUTE, label: "Ver muestra de aulas" }}
-        action={{ to: "/monitoreo", label: "Abrir monitoreo de aulas" }}
+        secondaryAction={{ to: AULAS_SAMPLE_ROUTE, label: "Ver muestra de cursos-horario" }}
+        action={{ to: "/monitoreo", label: "Abrir monitoreo de cursos-horario" }}
       />
 
       <main className="rec-workbench">
@@ -1926,7 +1936,7 @@ export default function RecopiladoresPage() {
               <strong>{SECTIONS.find((section) => section.id === activeSection)?.label}</strong>
               <small>{selectedFacultyLabel}</small>
             </div>
-            <nav role="tablist" aria-orientation="vertical" aria-label="Pestañas de fichas QR">
+            <GlidingTabList as="nav" activeKey={activeTab} orientation="vertical" role="tablist" aria-label="Pestañas de fichas QR">
               {tabs.map((tab, index) => {
                 const Icon = tab.icon;
                 const active = activeTab === tab.id;
@@ -1937,6 +1947,7 @@ export default function RecopiladoresPage() {
                     type="button"
                     role="tab"
                     aria-selected={active}
+                    data-gliding-key={tab.id}
                     aria-controls={active ? "rec-tabpanel" : undefined}
                     tabIndex={active ? 0 : -1}
                     className={active ? "is-active" : ""}
@@ -1972,7 +1983,7 @@ export default function RecopiladoresPage() {
                   </button>
                 );
               })}
-            </nav>
+            </GlidingTabList>
             <div className={`rec-sidebar-note is-${sidebarNote.tone}`}>
               <SidebarNoteIcon size={15} />
               <div>
@@ -2011,8 +2022,8 @@ export default function RecopiladoresPage() {
                 <span>{activeCopy.kicker}</span>
                 <strong>
                   {agendaReady
-                    ? `${fmt(filteredRows.length)} aulas visibles para preparar QR`
-                    : "Primero trae la selección de aulas"}
+                    ? `${fmt(filteredRows.length)} cursos-horario visibles para preparar QR`
+                    : "Primero trae la selección de cursos-horario"}
                 </strong>
                 <p>Confirma curso-horario, facultad, curso y horario. Cada fila será una ficha cuando tenga enlace de encuesta.</p>
               </div>
@@ -2071,12 +2082,12 @@ export default function RecopiladoresPage() {
                 <span>{activeCopy.kicker}</span>
                 <strong>
                   {linksReady
-                    ? "Todas las aulas están listas para imprimir"
+                    ? "Todos los cursos-horario están listos para imprimir"
                     : withLink
-                      ? `${fmt(missingLinks)} aulas necesitan enlace antes del PDF`
+                      ? `${fmt(missingLinks)} cursos-horario necesitan enlace antes del PDF`
                       : "Agrega enlaces para activar las fichas"}
                 </strong>
-                <p>Audita curso-horario, docente, aula y enlace. Al seleccionar una fila se abre su ficha QR.</p>
+                <p>Audita curso-horario, docente, salón y enlace. Al seleccionar una fila se abre su ficha QR.</p>
               </div>
               <div>
                 {missingLinks ? (
@@ -2213,15 +2224,15 @@ export default function RecopiladoresPage() {
             </div>
           ) : isPackageSave ? (
             <div className="rec-return-summary-strip">
-              <span><strong>{loading ? "..." : fmt(agendaRows.length)}</strong> aulas</span>
+              <span><strong>{loading ? "..." : fmt(agendaRows.length)}</strong> cursos-horario</span>
               <span><strong>{loading ? "..." : fmt(withLink)}</strong> con enlace</span>
               <span><strong>{loading ? "..." : fmt(Math.max(agendaRows.length - withLink, 0))}</strong> pendientes</span>
               <span><strong>{loading ? "..." : returnSaved ? "listo" : fmt(unsavedLinks)}</strong> por guardar</span>
             </div>
           ) : (
             <div className="rec-metrics">
-              <Metric label="Aulas en agenda" value={loading ? "..." : fmt(agendaRows.length)} hint="curso-horario" />
-              <Metric label="Estudiantes en aulas" value={loading ? "..." : totalEligible ? fmt(totalEligible) : "sin dato"} hint="matrícula objetivo" />
+              <Metric label="Cursos-horario en agenda" value={loading ? "..." : fmt(agendaRows.length)} hint="unidad de selección" />
+              <Metric label="Estudiantes en cursos-horario" value={loading ? "..." : totalEligible ? fmt(totalEligible) : "sin dato"} hint="matrícula objetivo" />
               <Metric
                 label={activeSection === "paquete" ? "Fichas PDF" : "Con enlace"}
                 value={loading ? "..." : fmt(activeSection === "paquete" ? printableRows.length : withLink)}
@@ -2265,8 +2276,8 @@ export default function RecopiladoresPage() {
                     <div className="rec-package-output-icon"><FileText size={22} /></div>
                     <div>
                       <span>PDF final</span>
-                      <strong>Portada + fichas QR de aula</strong>
-                      <p>Imprime una hoja por curso-horario. Cada QR abre la encuesta de Kobo con el aula ya identificada para la aplicación presencial.</p>
+                      <strong>Portada + fichas QR por curso-horario</strong>
+                      <p>Imprime una hoja por curso-horario. Cada QR abre la encuesta de Kobo con la unidad ya identificada para la aplicación presencial.</p>
                     </div>
                     <dl>
                       <div><dt>Fichas</dt><dd>{fmt(printableRows.length)}</dd></div>
@@ -2275,7 +2286,7 @@ export default function RecopiladoresPage() {
                     </dl>
                     <div className="rec-package-output-state">
                       <CheckCircle2 size={15} />
-                      <span>{printPreparedAt ? "Paquete preparado para PDF local" : readyForPrint ? "Listo para imprimir y revisar en campo" : "Primero genera enlaces por aula"}</span>
+                      <span>{printPreparedAt ? "Paquete preparado para PDF local" : readyForPrint ? "Listo para imprimir y revisar en campo" : "Primero genera enlaces por curso-horario"}</span>
                     </div>
                   </section>
                   <PackageEnginePanel
@@ -2315,7 +2326,7 @@ export default function RecopiladoresPage() {
                       </strong>
                     </div>
                     <ul className="rec-return-list">
-                      <li><CheckCircle2 size={14} /> Código de aula o curso-horario</li>
+                      <li><CheckCircle2 size={14} /> Código de curso-horario</li>
                       <li><CheckCircle2 size={14} /> Enlace usado para generar el QR</li>
                       <li><CheckCircle2 size={14} /> Facultad o bloque de entrega</li>
                       <li><CheckCircle2 size={14} /> Estado listo para seguimiento</li>
@@ -2326,7 +2337,7 @@ export default function RecopiladoresPage() {
                         {returnSaved
                           ? "Guardado en Monitoreo"
                           : !withLink
-                            ? "Genera enlaces por aula antes de cerrar"
+                            ? "Genera enlaces por curso-horario antes de cerrar"
                             : unsavedLinks
                               ? "Guarda antes de cerrar el paquete"
                               : dashboard
@@ -2356,14 +2367,14 @@ export default function RecopiladoresPage() {
                       <strong>Qué queda conectado</strong>
                     </div>
                     <ul className="rec-return-list">
-                      <li><CheckCircle2 size={14} /> Aula o curso-horario de la ficha</li>
+                      <li><CheckCircle2 size={14} /> Curso-horario de la ficha</li>
                       <li><CheckCircle2 size={14} /> Enlace usado para abrir Kobo</li>
                       <li><CheckCircle2 size={14} /> Origen del enlace y estado del QR</li>
                       <li><CheckCircle2 size={14} /> Agenda lista para seguimiento de campo</li>
                     </ul>
                     <div className={`rec-package-return-status${returnSaved ? " is-ready" : withLink ? " is-waiting" : ""}`}>
                       <Download size={15} />
-                      <span>{returnSaved ? "Monitoreo ya tiene los enlaces" : withLink ? "Guarda antes de cerrar el paquete" : "Genera enlaces por aula primero"}</span>
+                      <span>{returnSaved ? "Monitoreo ya tiene los enlaces" : withLink ? "Guarda antes de cerrar el paquete" : "Genera enlaces por curso-horario primero"}</span>
                     </div>
                   </section>
                 </div>
@@ -2372,7 +2383,7 @@ export default function RecopiladoresPage() {
           ) : activeTab === "enlaces" || activeTab === "listado" || activeTab === "agenda" ? (
             <div className={`rec-list-panel${activeTab === "enlaces" ? " has-link-import" : ""}${activeTab === "agenda" ? " is-agenda-table" : ""}`}>
               <div className="rec-audit-strip">
-                <strong>{activeTab === "enlaces" ? "Revisión de enlaces" : activeTab === "agenda" ? "Agenda de aulas" : "Lista de aulas"}</strong>
+                <strong>{activeTab === "enlaces" ? "Revisión de enlaces" : activeTab === "agenda" ? "Agenda de cursos-horario" : "Lista de cursos-horario"}</strong>
                 <span>{activeTab === "listado" || activeTab === "agenda" ? `${fmt(filteredRows.length)} visibles` : withLink ? `${fmt(withLink)} con enlace` : "sin enlaces"}</span>
                 <span>{missingLinks ? `${fmt(missingLinks)} faltan` : "cobertura completa"}</span>
                 <span>{agendaSource || "sin agenda"}</span>

@@ -3,7 +3,7 @@ import type { MonitoreoFamilyModule } from "../types";
 const aulasProfile: MonitoreoFamilyModule = {
   family: "aulas_universitarias",
   chunk: "monitoreo-aulas",
-  label: "Aplicación en aulas",
+  label: "Aplicación por cursos-horario",
   views: ["fuentes", "modelo", "avance", "calidad", "consultas"],
   loadPage: () => import("./AulasMonitoreoPage"),
   warmupScopes: ["source", "advance_summary", "validation_summary", "queries_summary"],

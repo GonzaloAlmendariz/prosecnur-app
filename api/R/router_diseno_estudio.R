@@ -384,7 +384,7 @@
     .diseno_status(
       "calc-muestra", "Calculo de muestra", "/calc-muestra", if (has_calc || has_aulas) "ready" else "pending",
       if (has_calc || has_aulas) sprintf("%d componente(s), n objetivo %d, %d unidad(es) de aulas.", protocol$sample_components_count, protocol$sample_target_n, protocol$classroom_units_count) else "Sin diseno muestral calculado.",
-      c(if (has_aulas) "Seleccion de aulas disponible" else "", if (protocol$sample_target_n > 0L) sprintf("n=%d", protocol$sample_target_n) else ""),
+      c(if (has_aulas) "Selección de cursos-horario disponible" else "", if (protocol$sample_target_n > 0L) sprintf("n=%d", protocol$sample_target_n) else ""),
       category = "metodologia"
     ),
     .diseno_status(
@@ -401,7 +401,7 @@
     ),
     .diseno_status(
       "recopiladores", "Fichas QR", "/recopiladores", if (has_recop) "ready" else if (has_aulas) "active" else "pending",
-      if (has_recop) "Agenda o publicacion de fichas de aulas conectada." else if (has_aulas) "Seleccion de aulas lista para preparar fichas." else "Requiere seleccion de aulas.",
+      if (has_recop) "Agenda o publicación de fichas de cursos-horario conectada." else if (has_aulas) "Selección de cursos-horario lista para preparar fichas." else "Requiere selección de cursos-horario.",
       c(if (has_recop) "Agenda de aulas" else "", if (has_aulas) "Plan desde Calculo de muestra" else ""),
       category = "campo"
     ),
