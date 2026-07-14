@@ -29,6 +29,7 @@ import {
 } from "../../dominio";
 import { ELEGIBLES_POR_AULA_ID } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
+import { marcoCriteriosDesactualizado } from "../shared/frame";
 import { normalizeUniversityAulasConfig } from "../shared/study";
 import {
   copiarVariableCriterio,
@@ -160,28 +161,53 @@ export function CriteriosMarcoTab({
   const umbralElegibles = minEligibleThreshold(borrador, config.min_elegibles_aula);
   const totalPendientes = pendientes.size;
 
+  // Máquina de estados del recálculo del marco (§4.1.4): el botón exige
+  // reconstruir cuando (a) es la primera vez (aún no hay marco), o (b) los
+  // criterios confirmados difieren de los que construyeron el marco vigente.
+  const marcoConstruido = Boolean(aulasState?.frame);
+  const marcoDesactualizado = marcoCriteriosDesactualizado(aulasState?.frame, config.criterios_seleccion);
+  const necesitaRecalculo = !marcoConstruido || marcoDesactualizado;
+  const listoParaRecalcular = Boolean(puedeReconstruir) && !reconstruyendo && totalPendientes === 0;
+  // El haz de luz (Anexo A.2) solo cuando hace falta reconstruir y no hay nada
+  // pendiente de confirmar (si hay pendientes, la acción primero es confirmar).
+  const beam = necesitaRecalculo && listoParaRecalcular;
+  const estadoResumen =
+    totalPendientes > 0
+      ? `${totalPendientes} ${totalPendientes === 1 ? "variable pendiente de confirmar" : "variables pendientes de confirmar"}`
+      : !marcoConstruido
+        ? "Aún no has construido el marco: calcula la población y los cursos-horario elegibles."
+        : marcoDesactualizado
+          ? "Los criterios cambiaron — el marco vigente ya no los refleja. Recalcula para actualizarlo."
+          : "El marco está al día con los criterios confirmados.";
+
   return (
     <div className="cmv2-crit" data-audit-ready={ready ? "true" : "false"}>
       {onReconstruir && (
-        <div className="cmv2-crit-apply" role="group" aria-label="Aplicar criterios al marco">
-          <span className="cmv2-crit-draft-summary" data-active={totalPendientes > 0 ? "true" : "false"}>
-            {totalPendientes > 0
-              ? `${totalPendientes} ${totalPendientes === 1 ? "variable pendiente" : "variables pendientes"}`
-              : "Todos los criterios están confirmados"}
+        <div
+          className="cmv2-crit-apply"
+          role="group"
+          aria-label="Calcular población y cursos-horario elegibles"
+          data-attention={necesitaRecalculo ? "true" : "false"}
+        >
+          <span className="cmv2-crit-draft-summary" data-active={totalPendientes > 0 ? "true" : "false"} data-stale={marcoDesactualizado ? "true" : "false"}>
+            {estadoResumen}
           </span>
           <button
             type="button"
             className="cmv2-crit-apply-btn"
-            disabled={!puedeReconstruir || reconstruyendo || totalPendientes > 0}
+            data-beam={beam ? "true" : "false"}
+            disabled={!listoParaRecalcular}
             onClick={onReconstruir}
-            title={totalPendientes > 0 ? "Confirma o descarta cada variable antes de reconstruir el marco" : undefined}
+            title={totalPendientes > 0 ? "Confirma o descarta cada variable antes de recalcular el marco" : undefined}
           >
-            {reconstruyendo ? (
-              <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
-            ) : (
-              <RefreshCw size={14} aria-hidden="true" />
-            )}
-            Reconstruir marco
+            <span className="cmv2-crit-apply-btn-inner">
+              {reconstruyendo ? (
+                <Loader2 size={15} className="pulso-spin" aria-hidden="true" />
+              ) : (
+                <RefreshCw size={15} aria-hidden="true" />
+              )}
+              Calcular población y cursos-horario elegibles
+            </span>
           </button>
         </div>
       )}

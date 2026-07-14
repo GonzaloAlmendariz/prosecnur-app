@@ -1,6 +1,46 @@
-import { type CalcMuestraAulasState } from "../../../../api/client";
+import {
+  type CalcMuestraAulasState,
+  type CriteriosSeleccionMarco,
+} from "../../../../api/client";
 import { fmtInt, rowsFrom, safeNumber } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "./format";
+
+/** Igualdad estructural mínima (orden de claves irrelevante; arrays sensibles al
+ *  orden). Copia local para no crear un ciclo con corridas.ts (que importa de
+ *  este módulo). Suficiente para comparar dos selecciones de criterios. */
+function marcoDeepEqual(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    return a.every((item, index) => marcoDeepEqual(item, b[index]));
+  }
+  if (a && b && typeof a === "object" && typeof b === "object") {
+    const objA = a as Record<string, unknown>;
+    const objB = b as Record<string, unknown>;
+    const keysA = Object.keys(objA).filter((key) => objA[key] !== undefined);
+    const keysB = Object.keys(objB).filter((key) => objB[key] !== undefined);
+    if (keysA.length !== keysB.length) return false;
+    return keysA.every((key) => marcoDeepEqual(objA[key], objB[key]));
+  }
+  return false;
+}
+
+/**
+ * true si el marco vigente se construyó con una selección de criterios distinta
+ * a la confirmada actualmente en el workspace → el marco quedó desactualizado y
+ * hay que reconstruirlo. Señal EXACTA (no una estimación): el frame guarda la
+ * selección con que se construyó (`frame.criterios_seleccion`).
+ */
+export function marcoCriteriosDesactualizado(
+  frame: CalcMuestraAulasState["frame"] | null | undefined,
+  configSeleccion: CriteriosSeleccionMarco | null | undefined,
+): boolean {
+  if (!frame) return false;
+  const construido = frame.criterios_seleccion ?? null;
+  const confirmado = configSeleccion ?? null;
+  if (!construido && !confirmado) return false;
+  return !marcoDeepEqual(construido ?? {}, confirmado ?? {});
+}
 
 export function frameAuditValue(frame: CalcMuestraAulasState["frame"] | null | undefined, metric: string) {
   const auditRows = rowsFrom<Record<string, unknown>>(frame?.audit);
