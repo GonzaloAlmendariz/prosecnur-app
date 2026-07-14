@@ -10,6 +10,7 @@ import GraficadorSlot, { getSlotLabel } from "../../GraficadorSlot";
 import { graficadorDisplayName, humanizeIdentifier } from "../../graficadorDisplay";
 import { SlidePreview } from "../../SlidePreview";
 import { LoadingBlock, EmptyState } from "../../../../components/States";
+import { GlidingTabList } from "../../../../components/GlidingTabList";
 import { usePlanValidator } from "../../usePlanValidator";
 import { StylePanel } from "./StylePanel";
 import { FiltersPanel } from "./FiltersPanel";
@@ -156,7 +157,7 @@ export function InspectorV2() {
             )}
           </div>
 
-          <div className="pulso-gv2-inspector-tabs" role="tablist" aria-label="Configuración del slide">
+          <GlidingTabList activeKey={inspectorTab} className="pulso-gv2-inspector-tabs" role="tablist" aria-label="Configuración del slide">
             {TABS.map(({ key, label, Icon }) => {
               const count = tabArgCounts[key];
               const issueN = issuesByTab[key];
@@ -173,6 +174,7 @@ export function InspectorV2() {
                   role="tab"
                   type="button"
                   aria-selected={inspectorTab === key}
+                  data-gliding-key={key}
                   disabled={disabled}
                   onClick={() => setInspectorTab(key)}
                   className={`pulso-gv2-inspector-tab ${inspectorTab === key ? "is-active" : ""}`}
@@ -203,7 +205,7 @@ export function InspectorV2() {
                 </button>
               );
             })}
-          </div>
+          </GlidingTabList>
 
           <SlidePreview key={slide.id} slide={slide} prepOk={prepOk} compact />
         </div>

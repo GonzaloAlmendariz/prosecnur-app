@@ -53,6 +53,7 @@ import {
   type TerritorialResponseAuditRow,
 } from "../../../../api/client";
 import { Alert } from "../../../../components/Alert";
+import { GlidingTabList } from "../../../../components/GlidingTabList";
 import { PageFrame } from "../../../../components/PageFrame";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail } from "../../components";
 import {
@@ -515,12 +516,13 @@ function TerritorialWorkbenchRail({
   const phaseSwitch = (
       <div className="mon-rail-phase-switch" aria-label="Formato territorial">
         <span>Formato territorial</span>
-        <div role="tablist" aria-label="Piloto o campo">
+        <GlidingTabList activeKey={phase} role="tablist" aria-label="Piloto o campo">
           {phaseOptions.map((item) => (
             <button
               key={item.key}
               type="button"
               role="tab"
+              data-gliding-key={item.key}
               aria-selected={phase === item.key}
               className={phase === item.key ? "is-active" : ""}
               disabled={phase === item.key || loadingView === "initial"}
@@ -530,7 +532,7 @@ function TerritorialWorkbenchRail({
               <small>{item.hint}</small>
             </button>
           ))}
-        </div>
+        </GlidingTabList>
         <em className={`mon-rail-phase-status is-${phaseStatusClass}`}>
           {phaseStatusText}
         </em>

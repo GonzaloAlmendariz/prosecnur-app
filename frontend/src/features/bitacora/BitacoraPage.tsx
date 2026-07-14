@@ -16,6 +16,7 @@ import {
 import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
 import { PageFrame } from "../../components/PageFrame";
+import { GlidingTabList } from "../../components/GlidingTabList";
 import { moduleChromeVars, PROSECNUR_MODULES } from "../../lib/modules";
 import { LogbookSection } from "./LogbookSection";
 import { CronogramaSection } from "./CronogramaSection";
@@ -99,7 +100,10 @@ export default function BitacoraPage() {
             equilibra el refresh de la derecha para que el rail quede centrado. */}
         <div className="bitacora-command-row">
           <span className="bitacora-command-spacer" aria-hidden="true" />
-          <nav
+          <GlidingTabList
+            as="nav"
+            activeKey={tab}
+            role="tablist"
             className="pulso-phase-pillbar bitacora-section-rail"
             aria-label="Secciones de la bitácora"
           >
@@ -112,6 +116,7 @@ export default function BitacoraPage() {
                     <button
                       type="button"
                       role="tab"
+                      data-gliding-key={item.key}
                       className={`pulso-phase-pill bitacora-section-pill${active ? " is-active" : ""}`}
                       aria-selected={active}
                       aria-current={active ? "page" : undefined}
@@ -133,7 +138,7 @@ export default function BitacoraPage() {
                 );
               })}
             </ol>
-          </nav>
+          </GlidingTabList>
           <button
             type="button"
             className="bitacora-icon-button"

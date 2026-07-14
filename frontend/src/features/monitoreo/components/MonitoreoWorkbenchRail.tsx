@@ -2,6 +2,7 @@ import { Fragment, useEffect } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { CheckCircle2 } from "lucide-react";
+import { GlidingTabList } from "../../../components/GlidingTabList";
 
 export type MonitoreoWorkbenchRailTab = {
   key: string;
@@ -162,7 +163,7 @@ export function MonitoreoWorkbenchRail({
           </div>
         </>
       ) : null}
-      <div className="mon-section-local-tabs" role="tablist" aria-orientation="vertical" aria-label={`Pestañas locales de ${activeSection.label}`}>
+      <GlidingTabList activeKey={activeLocalTab} orientation="vertical" className="mon-section-local-tabs" role="tablist" aria-label={`Pestañas locales de ${activeSection.label}`}>
         {localTabs.length ? localTabs.map((tab, index) => {
           const Icon = tab.icon;
           const active = activeLocalTab === tab.key;
@@ -175,6 +176,7 @@ export function MonitoreoWorkbenchRail({
               <button
                 type="button"
                 role="tab"
+                data-gliding-key={tab.key}
                 aria-selected={active}
                 aria-current={active ? "page" : undefined}
                 aria-label={`${tab.label}: ${tab.detail}`}
@@ -213,7 +215,7 @@ export function MonitoreoWorkbenchRail({
             </span>
           </span>
         )}
-      </div>
+      </GlidingTabList>
 
       {showRailContext ? phaseSwitch : null}
 

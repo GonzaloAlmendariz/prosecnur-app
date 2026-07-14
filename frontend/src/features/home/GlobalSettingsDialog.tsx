@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { GlidingTabList } from "../../components/GlidingTabList";
 import {
   AlertTriangle,
   Check,
@@ -718,13 +719,14 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
               <h3 id="home-settings-title">Configuración</h3>
             </div>
           </div>
-          <nav className="home-settings-nav" role="tablist" aria-label="Secciones de ajustes">
+          <GlidingTabList as="nav" className="home-settings-nav" activeKey={activeTab} orientation="vertical" role="tablist" aria-label="Secciones de ajustes">
             {sections.map((section) => (
               <button
                 key={section.id}
                 type="button"
                 role="tab"
                 aria-selected={activeTab === section.id}
+                data-gliding-key={section.id}
                 className={activeTab === section.id ? "is-active" : ""}
                 onClick={() => setActiveTab(section.id)}
               >
@@ -738,7 +740,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
                 {section.meta && <span className="home-settings-nav-meta">{section.meta}</span>}
               </button>
             ))}
-          </nav>
+          </GlidingTabList>
         </aside>
 
         <div className="home-settings-main">

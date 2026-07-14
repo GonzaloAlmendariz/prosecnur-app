@@ -12,6 +12,7 @@ import {
   moduleChromeVars,
 } from "../lib/modules";
 import ModuleWarmupBoundary, { RouteLoadingFallback } from "./ModuleWarmupBoundary";
+import { GlidingTabList } from "../components/GlidingTabList";
 
 // Layout global de la app. El header muestra marca, navegación, proyecto
 // activo y errores de sesión solo cuando existen. El topbar local de etapas
@@ -143,28 +144,40 @@ function BrandMark() {
 }
 
 function ProcessingPhaseDock({ items }: { items: NavItem[] }) {
+  const location = useLocation();
+  const activeItem = items.find(
+    (item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`),
+  );
   return (
     <nav
       className="pulso-phase-rail pulso-processing-phase-dock"
       aria-label="Secciones de procesamiento"
     >
-      <div className="pulso-phase-pillbar pulso-processing-phase-bar">
+      <GlidingTabList
+        activeKey={activeItem?.to}
+        className="pulso-phase-pillbar pulso-processing-phase-bar"
+        role="tablist"
+        aria-label="Secciones de procesamiento"
+      >
         <ol className="pulso-phase-pill-list pulso-processing-phase-list">
           {items.map((it) => (
-            <ProcessingPhaseDockItem key={it.to} it={it} />
+            <ProcessingPhaseDockItem key={it.to} it={it} active={activeItem?.to === it.to} />
           ))}
         </ol>
-      </div>
+      </GlidingTabList>
     </nav>
   );
 }
 
-function ProcessingPhaseDockItem({ it }: { it: NavItem }) {
+function ProcessingPhaseDockItem({ it, active }: { it: NavItem; active: boolean }) {
   const blocked = !!it.blockedReason;
   return (
     <li className="pulso-processing-phase-item">
       <NavLink
         to={it.to}
+        role="tab"
+        data-gliding-key={it.to}
+        aria-selected={active}
         title={it.blockedReason ?? (it.done ? `${it.label}: sección lista` : `Abrir ${it.label}`)}
         aria-label={it.blockedReason ? `${it.label}. ${it.blockedReason}` : `${it.label}. ${it.done ? "Sección lista." : "Abrir sección."}`}
         className={({ isActive }) => [
@@ -475,6 +488,9 @@ function SiblingWorkbenchSelector({
 export default function Layout() {
   const items = useNavItems();
   const location = useLocation();
+  const activeModule = PROSECNUR_PRIMARY_ACTIVE_MODULES.find(
+    (item) => item.to === activeModuleRoute(location.pathname),
+  );
   const showFases = isProcesamientoRoute(location.pathname);
   const isProcessing = isProcesamientoRoute(location.pathname);
   const isHome = location.pathname === "/";
@@ -529,6 +545,7 @@ export default function Layout() {
           isHome ? "pulso-main--home" : "",
           isProcessing ? "pulso-main--processing" : "",
         ].filter(Boolean).join(" ")}
+        style={activeModule ? moduleChromeVars(activeModule) : undefined}
         data-route-policy={policy}
       >
         <div className="pulso-main-inner">

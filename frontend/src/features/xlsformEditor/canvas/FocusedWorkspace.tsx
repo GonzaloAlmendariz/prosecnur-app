@@ -1,6 +1,7 @@
 import "../styles/xf-canvas.css";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { GlidingTabList } from "../../../components/GlidingTabList";
 import {
   ArrowDown,
   ArrowUp,
@@ -193,11 +194,12 @@ export function FocusedWorkspace({
         </div>
 
         <div className="pulso-focus-workspace-controls">
-          <div className="pulso-focus-mode-toggle" role="tablist" aria-label="Vista del builder">
+          <GlidingTabList className="pulso-focus-mode-toggle" activeKey={mode} role="tablist" aria-label="Vista del builder">
             <button
               type="button"
               role="tab"
               aria-selected={mode === "focus"}
+              data-gliding-key="focus"
               className={mode === "focus" ? "is-on" : ""}
               onClick={() => onModeChange("focus")}
             >
@@ -207,12 +209,13 @@ export function FocusedWorkspace({
               type="button"
               role="tab"
               aria-selected={mode === "overview"}
+              data-gliding-key="overview"
               className={mode === "overview" ? "is-on" : ""}
               onClick={() => onModeChange("overview")}
             >
               <LayoutList size={13} /> Formulario completo
             </button>
-          </div>
+          </GlidingTabList>
 
           {selection?.kind === "survey" && (
             <div className="pulso-focus-actions" aria-label="Acciones del elemento seleccionado">
@@ -563,7 +566,7 @@ function FocusedSurveyWorkspace({
       </div>
 
       <div className="pulso-focus-config-pane">
-        <div className="pulso-focus-tabs" role="tablist" aria-label="Configuración del elemento seleccionado">
+        <GlidingTabList className="pulso-focus-tabs" activeKey={activeTab} role="tablist" aria-label="Configuración del elemento seleccionado">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = tab.id === activeTab;
@@ -573,6 +576,7 @@ function FocusedSurveyWorkspace({
                 type="button"
                 role="tab"
                 aria-selected={isActive}
+                data-gliding-key={tab.id}
                 className={isActive ? "is-active" : ""}
                 onClick={() => setActiveTab(tab.id)}
               >
@@ -581,7 +585,7 @@ function FocusedSurveyWorkspace({
               </button>
             );
           })}
-        </div>
+        </GlidingTabList>
 
         <div className="pulso-focus-config-body" role="tabpanel">
           {activeTab === "content" && (

@@ -27,6 +27,7 @@ import {
   apiAnaliticaPanelPreview,
 } from "../../../api/client";
 import { Alert } from "../../../components/Alert";
+import { GlidingTabList } from "../../../components/GlidingTabList";
 import { Panel } from "../../../components/Panel";
 import { EmptyState, LoadingBlock } from "../../../components/States";
 import { GenerateFooter, Section } from "../PaneKit";
@@ -281,20 +282,26 @@ export function PanelBasePane() {
         ) : (
           <>
             <div className="analitica-panel-commandbar">
-              <div className="analitica-segmented analitica-segmented--five" role="tablist" aria-label="Vistas de base panel">
+              <GlidingTabList
+                activeKey={view}
+                className="analitica-segmented analitica-segmented--five"
+                role="tablist"
+                aria-label="Vistas de base panel"
+              >
                 {VIEWS.map((item) => (
                   <button
                     key={item.key}
                     type="button"
                     role="tab"
                     aria-selected={view === item.key}
+                    data-gliding-key={item.key}
                     className={view === item.key ? "is-on" : undefined}
                     onClick={() => setView(item.key)}
                   >
                     {item.label}
                   </button>
                 ))}
-              </div>
+              </GlidingTabList>
               <button
                 type="button"
                 className="pulso-secondary"

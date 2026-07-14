@@ -33,6 +33,7 @@ import { BasicTab } from "./BasicTab";
 import { AppearanceTab } from "./AppearanceTab";
 import { MoreTab } from "./MoreTab";
 import { LogicTab } from "./LogicTab";
+import { GlidingTabList } from "../../../components/GlidingTabList";
 
 type InspectorTabId = "basic" | "appearance" | "more" | "logic";
 
@@ -129,7 +130,7 @@ export function Inspector({
         </div>
       </header>
 
-      <nav className="pulso-inspector-tabs" role="tablist" aria-label="Secciones del inspector">
+      <GlidingTabList as="nav" className="pulso-inspector-tabs" activeKey={activeTab} role="tablist" aria-label="Secciones del inspector">
         {visibleTabs.map((tab) => {
           const TabIcon = tab.icon;
           const isActive = tab.id === activeTab;
@@ -139,6 +140,7 @@ export function Inspector({
               type="button"
               role="tab"
               aria-selected={isActive}
+              data-gliding-key={tab.id}
               className={`pulso-inspector-tab-trigger ${isActive ? "is-active" : ""}`}
               onClick={() => setActiveTab(tab.id)}
             >
@@ -147,7 +149,7 @@ export function Inspector({
             </button>
           );
         })}
-      </nav>
+      </GlidingTabList>
 
       <div className="pulso-inspector-tabpanel" role="tabpanel">
         {activeTab === "basic" && (

@@ -1,6 +1,7 @@
 import { Database, Layers } from "lucide-react";
 import type { EstudioPayload } from "../../api/client";
 import { RepeatBadge } from "../../components/RepeatBadge";
+import { GlidingTabList } from "../../components/GlidingTabList";
 import { isRepeatChildBase } from "../../lib/repeatIdentity";
 
 // =============================================================================
@@ -26,9 +27,11 @@ export default function BaseSelector({ estudio, selected, onChange, disabled, cl
   if (!estudio || estudio.n_bases <= 1) return null;
 
   const bases = Object.values(estudio.bases);
+  const activeKey = selected ?? bases[0]?.nombre ?? null;
 
   return (
-    <div
+    <GlidingTabList
+      activeKey={activeKey}
       role="tablist"
       aria-label="Base activa para validar"
       className={["pulso-validacion-base-selector", className].filter(Boolean).join(" ")}
@@ -41,7 +44,7 @@ export default function BaseSelector({ estudio, selected, onChange, disabled, cl
       </span>
       <div className="pulso-validacion-base-list">
         {bases.map((b) => {
-          const active = b.nombre === selected;
+          const active = b.nombre === activeKey;
           const label = b.source_alias || b.source_title || b.nombre;
           const isRepeatChild = isRepeatChildBase(b);
           const repeatGroup = String(b.repeat_group ?? "").trim();
@@ -51,6 +54,7 @@ export default function BaseSelector({ estudio, selected, onChange, disabled, cl
               key={b.nombre}
               role="tab"
               aria-selected={active}
+              data-gliding-key={b.nombre}
               onClick={() => onChange(b.nombre)}
               disabled={disabled || active}
               title={
@@ -82,6 +86,6 @@ export default function BaseSelector({ estudio, selected, onChange, disabled, cl
           );
         })}
       </div>
-    </div>
+    </GlidingTabList>
   );
 }

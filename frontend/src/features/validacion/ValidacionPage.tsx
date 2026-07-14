@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { Activity, CheckCircle2, Compass, Database, ListTree, PieChart, ShieldCheck } from "lucide-react";
 import {
@@ -14,6 +14,7 @@ import { PageFrame } from "../../components/PageFrame";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { TabMeta } from "../../components/TabStrip";
 import { EmptyState, ErrorBlock } from "../../components/States";
+import { GlidingTabList } from "../../components/GlidingTabList";
 import BaseSelector from "./BaseSelector";
 import LimpiezaTab from "./tabs/LimpiezaTab";
 import InstrumentoTab from "./tabs/InstrumentoTab";
@@ -307,10 +308,12 @@ function ValidacionModeSidebar({
         <span className="pulso-section-eyebrow">Validación</span>
         <strong>{disabled ? "Pendiente" : "Validación"}</strong>
       </div>
-      <div
+      <GlidingTabList
+        activeKey={active}
+        orientation="vertical"
+        style={{ "--pulso-gliding-indicator-radius": "10px" } as CSSProperties}
         role="tablist"
         aria-label="Secciones de validación"
-        aria-orientation="vertical"
         className="pulso-validacion-nav"
       >
         {TABS.map((tab, index) => {
@@ -331,6 +334,7 @@ function ValidacionModeSidebar({
               data-rail-title={tab.label}
               data-rail-desc={tab.desc ?? ""}
               data-rail-tooltip={tab.desc ? `${tab.label}\n${tab.desc}` : tab.label}
+              data-gliding-key={tab.key}
             >
               <span className="pulso-validacion-nav-index">{index + 1}</span>
               <span aria-hidden="true" className="pulso-validacion-nav-icon">
@@ -348,7 +352,7 @@ function ValidacionModeSidebar({
             </button>
           );
         })}
-      </div>
+      </GlidingTabList>
     </aside>
   );
 }

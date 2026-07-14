@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import type { CSSProperties, ReactNode } from "react";
 import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ChevronDown, ClipboardCheck, ContactRound, Download, Eye, FileCheck2, Filter, KeyRound, Layers3, Link2, Loader2, Mail, PhoneCall, PlugZap, Plus, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, XCircle } from "lucide-react";
 import { PageFrame } from "../../../../components/PageFrame";
+import { GlidingTabList } from "../../../../components/GlidingTabList";
 import {
   apiConnectionTokenLoad,
   apiJobStatus,
@@ -4798,7 +4799,7 @@ function AcreditacionPhoneQuotaPanel({ rows }: { rows: Array<Record<string, unkn
           {variables.length > 1 ? (
             <div className="mon-phone-quota-filter">
               <span>Variable</span>
-              <div className="mon-phone-quota-tabs" role="tablist" aria-label="Variable de cuota telefónica">
+              <div className="mon-phone-quota-tabs" role="group" aria-label="Variable de cuota telefónica">
                 <button
                   type="button"
                   className={!activeVariable ? "is-active" : ""}
@@ -11573,7 +11574,7 @@ function AcreditacionConsultaTabs({
   onChange: (tab: AcreditacionConsultaTab) => void;
 }) {
   return (
-    <nav className="mon-acr-query-tabs" role="tablist" aria-label="Pestañas de consultas internas">
+    <GlidingTabList as="nav" activeKey={active} className="mon-acr-query-tabs" role="tablist" aria-label="Pestañas de consultas internas">
       {ACREDITACION_CONSULTA_TABS.map((tab) => {
         const Icon = tab.icon;
         const selected = active === tab.key;
@@ -11582,6 +11583,7 @@ function AcreditacionConsultaTabs({
             key={tab.key}
             type="button"
             role="tab"
+            data-gliding-key={tab.key}
             aria-selected={selected}
             className={selected ? "is-active" : ""}
             onClick={() => onChange(tab.key)}
@@ -11595,7 +11597,7 @@ function AcreditacionConsultaTabs({
           </button>
         );
       })}
-    </nav>
+    </GlidingTabList>
   );
 }
 
@@ -17430,11 +17432,14 @@ function AcreditacionGsReportsPanel({ reports }: { reports: MonitoreoAcreditacio
           ))}
         </div>
       </div>
-      <div className="mon-gs-report-tabs" role="tablist" aria-label="Pestañas de reporte de acreditación">
+      <GlidingTabList activeKey={activeSheet.id} className="mon-gs-report-tabs" role="tablist" aria-label="Pestañas de reporte de acreditación">
         {sheets.map((sheet) => (
           <button
             key={sheet.id}
             type="button"
+            role="tab"
+            data-gliding-key={sheet.id}
+            aria-selected={sheet.id === activeSheet.id}
             className={sheet.id === activeSheet.id ? "is-active" : ""}
             onClick={() => setActiveId(sheet.id)}
           >
@@ -17442,7 +17447,7 @@ function AcreditacionGsReportsPanel({ reports }: { reports: MonitoreoAcreditacio
             <span>{reportPanelSheetTitle(sheet)}</span>
           </button>
         ))}
-      </div>
+      </GlidingTabList>
       <div className="mon-gs-report-body" data-report-sheet={activeSheet.id}>
         <p>{description}</p>
         <div className="mon-gs-report-blocks">

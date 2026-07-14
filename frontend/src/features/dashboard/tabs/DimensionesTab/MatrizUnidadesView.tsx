@@ -63,11 +63,10 @@ export function MatrizUnidadesView({ payload }: { payload: DashboardDimMatrizPay
           {payload.var_color_label ? ` · ${payload.var_color_label}` : ""}
           {payload.var_nombre_label ? ` × ${payload.var_nombre_label}` : ""}
         </span>
-        <div className="dash-matriz-orden" role="tablist" aria-label="Orden de filas">
+        <div className="dash-matriz-orden" role="group" data-gliding-opt-out="sort-order" aria-label="Orden de filas">
           <button
             type="button"
-            role="tab"
-            aria-selected={orden === "score"}
+            aria-pressed={orden === "score"}
             className={`dash-matriz-orden-btn ${orden === "score" ? "is-active" : ""}`}
             title="Ordenar por puntaje (mejor → peor)"
             onClick={() => setDim({ matrizOrden: "score" })}
@@ -77,8 +76,7 @@ export function MatrizUnidadesView({ payload }: { payload: DashboardDimMatrizPay
           </button>
           <button
             type="button"
-            role="tab"
-            aria-selected={orden === "alfabetico"}
+            aria-pressed={orden === "alfabetico"}
             className={`dash-matriz-orden-btn ${orden === "alfabetico" ? "is-active" : ""}`}
             title="Ordenar alfabéticamente"
             onClick={() => setDim({ matrizOrden: "alfabetico" })}

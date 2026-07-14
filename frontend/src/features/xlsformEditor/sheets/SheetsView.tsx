@@ -30,6 +30,7 @@ import { TechTerm } from "../helpers/TechTerm";
 import { paletteForType, paletteSoftForType } from "../helpers/paletteForType";
 import { iconForType } from "../helpers/icons";
 import "../styles/xf-sheets.css";
+import { GlidingTabList } from "../../../components/GlidingTabList";
 
 export type SheetsViewProps = {
   workbook: XlsformEditorWorkbook;
@@ -220,7 +221,7 @@ export function SheetsView({
 
   return (
     <div className="pulso-xfs-view">
-      <div className="pulso-xfs-tabs" role="tablist" aria-label="Hojas del XLSForm">
+      <GlidingTabList className="pulso-xfs-tabs" activeKey={activeTab} role="tablist" aria-label="Hojas del XLSForm">
         {(["survey", "choices", "settings", "paper"] as TabKey[]).map((tab) => {
           const tabHelp = TAB_HELP[tab];
           return (
@@ -229,6 +230,7 @@ export function SheetsView({
               type="button"
               role="tab"
               aria-selected={activeTab === tab}
+              data-gliding-key={tab}
               className={`pulso-xfs-tab${activeTab === tab ? " is-active" : ""}`}
               onClick={() => setActiveTab(tab)}
               title={tabHelp.detail}
@@ -241,7 +243,7 @@ export function SheetsView({
             </button>
           );
         })}
-      </div>
+      </GlidingTabList>
 
       <div className="pulso-xfs-toolbar">
         <button

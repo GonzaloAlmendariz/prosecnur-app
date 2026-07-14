@@ -2244,7 +2244,7 @@
 }
 
 .hojas-ruta-sample-mode-cards strong,
-.hojas-ruta-sample-mode-cards span {
+.hojas-ruta-sample-mode-cards button span {
   display: block;
 }
 
@@ -2256,7 +2256,7 @@
   overflow-wrap: anywhere;
 }
 
-.hojas-ruta-sample-mode-cards span {
+.hojas-ruta-sample-mode-cards button span {
   margin-top: 2px;
   color: color-mix(in srgb, currentColor 82%, transparent);
   font-size: 10px;
@@ -5540,7 +5540,7 @@
   color: #064e3b;
 }
 
-.hojas-ruta-sample-tabs span {
+.hojas-ruta-sample-tabs button span {
   display: inline-flex;
   min-width: 24px;
   justify-content: center;
@@ -5976,7 +5976,7 @@
   opacity: 0.48;
 }
 
-.hojas-ruta-delivery-tabs span {
+.hojas-ruta-delivery-tabs button span {
   min-width: 24px;
   display: inline-flex;
   justify-content: center;

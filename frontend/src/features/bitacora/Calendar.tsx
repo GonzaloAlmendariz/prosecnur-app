@@ -26,6 +26,7 @@ import {
   type PlanTrabajoTaskKind,
 } from "../../api/client";
 import { Alert } from "../../components/Alert";
+import { GlidingTabList } from "../../components/GlidingTabList";
 import {
   DAY_MS,
   formatMinutes,
@@ -410,10 +411,10 @@ function CalendarToolbar({
         <strong className="bcal-title">{title}</strong>
       </div>
       <div className="bcal-toolbar-right">
-        <div className="bcal-segmented" role="tablist" aria-label="Vista del calendario">
-          <button type="button" role="tab" aria-selected={view === "month"} className={view === "month" ? "is-active" : ""} onClick={() => onView("month")}>Mes</button>
-          <button type="button" role="tab" aria-selected={view === "week"} className={view === "week" ? "is-active" : ""} onClick={() => onView("week")}>Semana</button>
-        </div>
+        <GlidingTabList activeKey={view} className="bcal-segmented" role="tablist" aria-label="Vista del calendario">
+          <button type="button" role="tab" data-gliding-key="month" aria-selected={view === "month"} className={view === "month" ? "is-active" : ""} onClick={() => onView("month")}>Mes</button>
+          <button type="button" role="tab" data-gliding-key="week" aria-selected={view === "week"} className={view === "week" ? "is-active" : ""} onClick={() => onView("week")}>Semana</button>
+        </GlidingTabList>
         <button type="button" className="plan-button plan-button--primary" onClick={onCreate}>
           <Plus size={15} /> <span>Nueva actividad</span>
         </button>

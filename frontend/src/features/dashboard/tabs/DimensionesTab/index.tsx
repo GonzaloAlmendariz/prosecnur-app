@@ -64,6 +64,7 @@ import "./dimensiones.css";
 import "./foda.css";
 import { IndicadorAssembly } from "./IndicadorAssembly";
 import { MatrizUnidadesView } from "./MatrizUnidadesView";
+import { GlidingTabList } from "../../../../components/GlidingTabList";
 
 // Tab Dimensiones — heatmap semáforo + barras / radar / FODA en un único
 // visualizador con segmented control. Sidebar consolidado a 2 cards
@@ -526,11 +527,12 @@ function PanelVista({
   return (
     <>
       <label className="dash-dim-label">Modo</label>
-      <div className="dash-source-segments" role="tablist" aria-label="Modo de vista">
+      <GlidingTabList className="dash-source-segments" activeKey={modo} role="tablist" aria-label="Modo de vista">
         <button
           type="button"
           role="tab"
           aria-selected={modo === "general"}
+          data-gliding-key="general"
           className={`dash-source-segment ${modo === "general" ? "is-active" : ""}`}
           onClick={() => onModo("general")}
         >
@@ -540,12 +542,13 @@ function PanelVista({
           type="button"
           role="tab"
           aria-selected={modo === "indicadores"}
+          data-gliding-key="indicadores"
           className={`dash-source-segment ${modo === "indicadores" ? "is-active" : ""}`}
           onClick={() => onModo("indicadores")}
         >
           Indicadores
         </button>
-      </div>
+      </GlidingTabList>
       <label htmlFor="dim-objetivo" className="dash-dim-label" style={{ marginTop: 12 }}>
         Objetivo
       </label>
@@ -877,9 +880,10 @@ function VisualizadorCard({
     <section className="dash-cardbox dash-dim-vis" data-visual-mode={effectiveVisualMode}>
       <h2 className="pulso-sr-only">{fsTitle}</h2>
       <div className="dash-dim-vis-header">
-        <div className="dash-dim-vis-segmented" role="tablist" aria-label="Modo de visualización">
+        <GlidingTabList className="dash-dim-vis-segmented" activeKey={effectiveVisualMode} role="tablist" aria-label="Modo de visualización">
           {dim.modo === "general" && (
             <SegmentedItem
+              glideKey="construccion"
               active={effectiveVisualMode === "construccion"}
               onClick={() => setDim({ visualMode: "construccion" })}
               icon={<Blocks size={13} />}
@@ -887,18 +891,21 @@ function VisualizadorCard({
             />
           )}
           <SegmentedItem
+            glideKey="heatmap"
             active={effectiveVisualMode === "heatmap"}
             onClick={() => setDim({ visualMode: "heatmap" })}
             icon={<Grid3x3 size={13} />}
             label="Heatmap"
           />
           <SegmentedItem
+            glideKey="barras"
             active={effectiveVisualMode === "barras"}
             onClick={() => setDim({ visualMode: "barras" })}
             icon={<BarChart3 size={13} />}
             label="Barras"
           />
           <SegmentedItem
+            glideKey="radar"
             active={effectiveVisualMode === "radar"}
             onClick={() => setDim({ visualMode: "radar" })}
             disabled={!radarAvailable}
@@ -907,19 +914,21 @@ function VisualizadorCard({
             title={!radarAvailable ? "Radar disponible con 3 o más dimensiones" : undefined}
           />
           <SegmentedItem
+            glideKey="foda"
             active={effectiveVisualMode === "foda"}
             onClick={() => setDim({ visualMode: "foda" })}
             icon={<ScatterChart size={13} />}
             label="FODA"
           />
           <SegmentedItem
+            glideKey="matriz"
             active={effectiveVisualMode === "matriz"}
             onClick={() => setDim({ visualMode: "matriz" })}
             icon={<Grid3x3 size={13} />}
             label="Matriz"
           />
           <FullscreenButton ctx={fs} />
-        </div>
+        </GlidingTabList>
       </div>
 
       {(showDimContext || showIterStepper) && (
@@ -1255,6 +1264,7 @@ function DesgloseLevelBlock({
 }
 
 function SegmentedItem({
+  glideKey,
   active,
   onClick,
   icon,
@@ -1262,6 +1272,7 @@ function SegmentedItem({
   disabled = false,
   title,
 }: {
+  glideKey: string;
   active: boolean;
   onClick: () => void;
   icon: React.ReactNode;
@@ -1274,6 +1285,7 @@ function SegmentedItem({
       type="button"
       role="tab"
       aria-selected={active}
+      data-gliding-key={glideKey}
       aria-disabled={disabled}
       disabled={disabled}
       className={`dash-dim-vis-segment ${active ? "is-active" : ""}`}
@@ -1904,15 +1916,14 @@ function RadarAlternanteToolbar({
   colors: Record<string, string>;
 }) {
   return (
-    <div className="dash-dim-radar-alt-toolbar" role="tablist" aria-label="Alternar grupo del radar">
+    <div className="dash-dim-radar-alt-toolbar" role="group" data-gliding-opt-out="radar-series-filter" aria-label="Alternar grupo del radar">
       {groups.map((g, i) => {
         const active = i === activeIdx;
         return (
           <button
             key={g}
             type="button"
-            role="tab"
-            aria-selected={active}
+            aria-pressed={active}
             className={`dash-dim-radar-alt-chip ${active ? "is-active" : ""}`}
             onClick={() => onIdx(i)}
             style={active && colors[g] ? { ["--alt-accent" as string]: colors[g] } : undefined}
@@ -2006,7 +2017,7 @@ function FodaView({
   return (
     <div className={`dash-foda ${maxed ? "is-fullscreen" : ""}`}>
       <div className="dash-foda-toolbar">
-        <div className="dash-foda-view-switch" role="tablist" aria-label="Vista FODA">
+        <GlidingTabList className="dash-foda-view-switch" activeKey={fodaVista} role="tablist" aria-label="Vista FODA">
           {/* "Lectura" — vista virtual pedagógica que enseña a leer la
               matriz. Va primero para que el usuario nuevo entienda los
               cuadrantes antes de entrar a los datos reales. */}
@@ -2014,6 +2025,7 @@ function FodaView({
             type="button"
             role="tab"
             aria-selected={isLectura}
+            data-gliding-key="lectura"
             className={`dash-source-segment ${isLectura ? "is-active" : ""}`}
             onClick={() => setFodaVista("lectura")}
             title="Cómo leer esta matriz"
@@ -2027,13 +2039,14 @@ function FodaView({
               type="button"
               role="tab"
               aria-selected={fodaVista === view.id}
+              data-gliding-key={view.id}
               className={`dash-source-segment ${fodaVista === view.id ? "is-active" : ""}`}
               onClick={() => setFodaVista(view.id)}
             >
               {view.label}
             </button>
           ))}
-        </div>
+        </GlidingTabList>
         {!isLectura && (
           <>
             <div className="dash-foda-cortes" aria-label="Cortes FODA">
@@ -2204,20 +2217,21 @@ function FodaLectura() {
       <div className="dash-foda-lectura-caption">
         <span className="dash-foda-lectura-caption-label">{stop.label}</span>
         <span className="dash-foda-lectura-caption-hint">{stop.hint}</span>
-        <div className="dash-foda-lectura-dots" role="tablist" aria-label="Cuadrante en foco">
+        <GlidingTabList className="dash-foda-lectura-dots" activeKey={FODA_LECTURA_STOPS[stopIdx]?.id} role="tablist" aria-label="Cuadrante en foco">
           {FODA_LECTURA_STOPS.map((s, i) => (
             <button
               key={s.id}
               type="button"
               role="tab"
               aria-selected={i === stopIdx}
+              data-gliding-key={s.id}
               className={`dash-foda-lectura-dot ${i === stopIdx ? "is-active" : ""}`}
               onClick={() => setStopIdx(i)}
               aria-label={`Ver ${s.label}`}
               title={s.label}
             />
           ))}
-        </div>
+        </GlidingTabList>
       </div>
     </div>
   );

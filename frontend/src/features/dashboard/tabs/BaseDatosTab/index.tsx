@@ -11,6 +11,7 @@ import {
   useDiccionarioVariable,
 } from "../../useDashboardData";
 import { EmptyState } from "../../shared/EmptyState";
+import { GlidingTabList } from "../../../../components/GlidingTabList";
 import "./baseDatos.css";
 
 // Tab Base de datos — fiel al legacy `prosecnur::reporte_interactivo()`:
@@ -94,11 +95,12 @@ export function BaseDatosTab() {
           <div className="dash-cardbox-header">
             <h2 className="dash-cardbox-title">Vista</h2>
           </div>
-          <div className="dash-source-segments" role="tablist" aria-label="Modo de vista">
+          <GlidingTabList className="dash-source-segments" activeKey={baseDatos.modo} role="tablist" aria-label="Modo de vista">
             <button
               type="button"
               role="tab"
               aria-selected={baseDatos.modo === "codigos"}
+              data-gliding-key="codigos"
               className={`dash-source-segment ${baseDatos.modo === "codigos" ? "is-active" : ""}`}
               onClick={() => setBaseDatos({ modo: "codigos", page: 1 })}
             >
@@ -108,12 +110,13 @@ export function BaseDatosTab() {
               type="button"
               role="tab"
               aria-selected={baseDatos.modo === "etiquetas"}
+              data-gliding-key="etiquetas"
               className={`dash-source-segment ${baseDatos.modo === "etiquetas" ? "is-active" : ""}`}
               onClick={() => setBaseDatos({ modo: "etiquetas", page: 1 })}
             >
               Etiquetas
             </button>
-          </div>
+          </GlidingTabList>
         </section>
 
         <section className="dash-cardbox">

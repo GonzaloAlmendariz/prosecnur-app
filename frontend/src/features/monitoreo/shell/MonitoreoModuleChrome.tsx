@@ -5,6 +5,7 @@ import type {
   WorkbenchView,
 } from "../core/monitoreoRegistry";
 import { workbenchViewsForRoute } from "../core/monitoreoRegistry";
+import { GlidingTabList } from "../../../components/GlidingTabList";
 
 type MonitoreoModuleChromeProps = {
   routes: MonitoreoRouteDefinition[];
@@ -165,7 +166,7 @@ export function MonitoreoModuleChrome({
       aria-label="Secciones de monitoreo"
       data-view-count={views.length}
     >
-      <nav className="pulso-phase-pillbar mon-section-rail" aria-label={`Secciones de ${route.shortLabel}`}>
+      <GlidingTabList as="nav" activeKey={activeView} className="pulso-phase-pillbar mon-section-rail" role="tablist" aria-label={`Secciones de ${route.shortLabel}`}>
         <ol className="pulso-phase-pill-list">
           {views.map((item, index) => {
             const selected = item.key === activeView;
@@ -177,6 +178,7 @@ export function MonitoreoModuleChrome({
                 <button
                   type="button"
                   role="tab"
+                  data-gliding-key={item.key}
                   className={`pulso-phase-pill mon-section-pill is-${item.key}${selected ? " is-active" : ""}${saving ? " is-disabled" : ""}`}
                   aria-label={accessibilityLabel}
                   aria-current={selected ? "page" : undefined}
@@ -201,7 +203,7 @@ export function MonitoreoModuleChrome({
             );
           })}
         </ol>
-      </nav>
+      </GlidingTabList>
     </div>
   ) : null;
 

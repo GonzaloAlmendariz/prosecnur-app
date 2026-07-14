@@ -22,6 +22,7 @@ import {
   uploadKindForDataFile,
 } from "../../api/client";
 import { ErrorBlock } from "../../components/States";
+import { GlidingTabList } from "../../components/GlidingTabList";
 
 type CanonicalOption = {
   fileId: string;
@@ -752,11 +753,12 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
       </div>
 
       <div className="pulso-integrated-sourcebar">
-        <div className="pulso-integrated-source-tabs" role="tablist" aria-label="Fuente de instrumentos hermanos">
+        <GlidingTabList activeKey={sourceMode} className="pulso-integrated-source-tabs" role="tablist" aria-label="Fuente de instrumentos hermanos">
           <button
             type="button"
             role="tab"
             aria-selected={sourceMode === "manual"}
+            data-gliding-key="manual"
             className={sourceMode === "manual" ? "is-active" : ""}
             title="Archivos manuales"
             onClick={() => { setSourceMode("manual"); setGuideSurveyId(""); setRows([makeManualOrigin(), makeManualOrigin()]); resetAudit(); }}
@@ -768,6 +770,7 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
             type="button"
             role="tab"
             aria-selected={sourceMode === "surveymonkey"}
+            data-gliding-key="surveymonkey"
             className={sourceMode === "surveymonkey" ? "is-active" : ""}
             title="SurveyMonkey"
             onClick={() => { setSourceMode("surveymonkey"); setRows([]); setGuideSurveyId(""); resetAudit(); }}
@@ -775,7 +778,7 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
             <Cloud size={14} />
             <span className="pulso-integrated-source-label">SurveyMonkey</span>
           </button>
-        </div>
+        </GlidingTabList>
 
         {sourceMode === "surveymonkey" && (
           <div className={`pulso-integrated-link${guideSurveyId ? " is-linked" : ""}`}>
@@ -1044,18 +1047,21 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
                     {group.kind !== "single" && (
                       <div className="pulso-integrated-wording-review">
                         {group.diffs.length > 1 && (
-                          <div className="pulso-integrated-origin-tabs" role="tablist" aria-label={`Orígenes ${diff.variable}`}>
+                          <GlidingTabList activeKey={activeDiff.id} className="pulso-integrated-origin-tabs" role="tablist" aria-label={`Orígenes ${diff.variable}`}>
                             {group.diffs.map((item) => (
                               <button
                                 key={item.id}
                                 type="button"
+                                role="tab"
+                                aria-selected={item.id === activeDiff.id}
+                                data-gliding-key={item.id}
                                 className={item.id === activeDiff.id ? "is-active" : ""}
                                 onClick={() => setActiveWordingTabs((prev) => ({ ...prev, [group.id]: item.id }))}
                               >
                                 {item.origin_key || "Origen"}
                               </button>
                             ))}
-                          </div>
+                          </GlidingTabList>
                         )}
                         {group.kind === "wording" ? (
                           <div className="pulso-integrated-wording-grid">
