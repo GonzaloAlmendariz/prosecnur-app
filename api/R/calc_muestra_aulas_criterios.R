@@ -99,13 +99,26 @@
   .cm_aulas_text_key(gsub("[ñÑ]", "n", as.character(x %||% "")))
 }
 
-# Extrae el grupo (prefijo antes de " - "/" – ") de un tipo de docente crudo y
-# lo normaliza. "DOCENTE ORDINARIO - PRINCIPAL" -> "docente_ordinario". Sin
-# separador, el valor completo es su propio grupo.
+# Delimitadores de jerarquía reconocidos en "GRUPO <delim> detalle". EXIGEN
+# espacios alrededor para no partir nombres legítimos: "ORDINARIO-PRINCIPAL"
+# (sin espacios) NO es jerarquía. El pipe "|" queda EXCLUIDO a propósito: es el
+# separador multivalor de tipos de docente por aula (ver .cm_aulas construir),
+# no un delimitador de nivel. Guion/raya/barra/dos-puntos con espacios cubren
+# los formatos observados ("DOCENTE ORDINARIO - PRINCIPAL", "... / ...").
+.cm_criterios_teacher_hier_re <- "\\s+[-–/:]\\s+"
+
+# Extrae el grupo (prefijo antes del delimitador de jerarquía) de un tipo de
+# docente crudo y lo normaliza. "DOCENTE ORDINARIO - PRINCIPAL" ->
+# "docente_ordinario". Sin separador, el valor completo es su propio grupo.
 .cm_criterios_teacher_group <- function(value) {
   v <- trimws(as.character(value))
-  v <- sub("\\s+[-–]\\s+.*$", "", v)
+  v <- sub(paste0(.cm_criterios_teacher_hier_re, ".*$"), "", v)
   .cm_aulas_text_key(v)
+}
+
+# Etiqueta del grupo (prefijo crudo, sin normalizar) de un tipo de docente.
+.cm_criterios_teacher_group_label <- function(value) {
+  trimws(sub(paste0(.cm_criterios_teacher_hier_re, ".*$"), "", trimws(as.character(value))))
 }
 
 # Normaliza UN criterio (CriterioSeleccion) del contrato. Defensivo frente al
@@ -1110,6 +1123,11 @@ calc_muestra_aulas_criterios_alumno <- function(criterios_seleccion, filas) {
 
 # Jerárquico (tipo de docente): grupos por prefijo "GRUPO - detalle", conteo de
 # aulas por grupo y por hijo (un aula cuenta una vez por grupo/hijo presente).
+# Si NINGÚN grupo llega a ≥2 hijos, la jerarquía sería degenerada (cada valor su
+# propio grupo con un único hijo idéntico, que el frontend pinta como un nivel
+# ficticio); en ese caso colapsa a lista PLANA de categorías. Solo se mantiene
+# "hierarchical" cuando existe una jerarquía real (varios detalles compartiendo
+# prefijo).
 .cm_criterios_enum_teacher <- function(meta, teacher_sets, mapped_col) {
   sets <- teacher_sets[nzchar(teacher_sets)]
   if (!length(sets)) return(NULL)
@@ -1123,7 +1141,7 @@ calc_muestra_aulas_criterios_alumno <- function(criterios_seleccion, filas) {
       gk <- .cm_criterios_teacher_group(v)
       if (!nzchar(gk)) next
       ck <- .cm_aulas_text_key(v)
-      glabel <- trimws(sub("\\s+[-–]\\s+.*$", "", v))
+      glabel <- .cm_criterios_teacher_group_label(v)
       if (is.null(groups[[gk]])) groups[[gk]] <- list(label = glabel, aulas = 0L, children = list())
       if (!gk %in% g_seen) { groups[[gk]]$aulas <- groups[[gk]]$aulas + 1L; g_seen <- c(g_seen, gk) }
       if (is.null(groups[[gk]]$children[[ck]])) groups[[gk]]$children[[ck]] <- list(label = v, aulas = 0L)
@@ -1133,6 +1151,11 @@ calc_muestra_aulas_criterios_alumno <- function(criterios_seleccion, filas) {
       }
     }
   }
+  if (!length(groups)) return(NULL)
+  # Jerarquía real = al menos un grupo con ≥2 hijos distintos. Sin ella, la
+  # variable es una lista plana (el label crudo del valor es la categoría).
+  hay_jerarquia <- any(vapply(groups, function(g) length(g$children) >= 2L, logical(1)))
+  if (!hay_jerarquia) return(.cm_criterios_enum_teacher_flat(meta, groups, mapped_col))
   out_groups <- lapply(names(groups), function(gk) {
     g <- groups[[gk]]
     children <- lapply(names(g$children), function(ck) {
@@ -1144,6 +1167,26 @@ calc_muestra_aulas_criterios_alumno <- function(criterios_seleccion, filas) {
   out_groups <- out_groups[order(-vapply(out_groups, function(g) g$aulas, integer(1)))]
   list(id = "teacher_type", scope = "aula", label = meta$label, kind = "hierarchical",
        mappedColumn = .cm_criterios_mapped(mapped_col), groups = out_groups)
+}
+
+# Colapso a lista plana del tipo de docente cuando no hay jerarquía real: cada
+# hijo (== su propio grupo) se vuelve una categoría con su conteo de aulas. Emite
+# el MISMO shape que .cm_criterios_enum_flat para que el frontend lo pinte como
+# categorías simples, sin niveles ficticios.
+.cm_criterios_enum_teacher_flat <- function(meta, groups, mapped_col) {
+  cats <- list()
+  for (gk in names(groups)) {
+    hijos <- groups[[gk]]$children
+    for (ck in names(hijos)) {
+      cats[[length(cats) + 1L]] <- list(
+        key = ck, label = hijos[[ck]]$label, aulas = hijos[[ck]]$aulas,
+        variants = list(hijos[[ck]]$label)
+      )
+    }
+  }
+  cats <- cats[order(-vapply(cats, function(c) c$aulas, integer(1)))]
+  list(id = "teacher_type", scope = "aula", label = meta$label, kind = "flat",
+       mappedColumn = .cm_criterios_mapped(mapped_col), categories = cats)
 }
 
 # Enumeración completa: variables de alumno (population) + variables de aula
