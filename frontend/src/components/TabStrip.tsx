@@ -1,4 +1,5 @@
 import { Layers } from "lucide-react";
+import { GlidingTabList } from "./GlidingTabList";
 
 // TabStrip — selector horizontal de tab entre pares.
 //
@@ -39,7 +40,8 @@ export function TabStrip<K extends string = string>({
   tabs, active, onChange, ariaLabel, variant = "segmented", className,
 }: Props<K>) {
   return (
-    <div
+    <GlidingTabList
+      activeKey={active}
       role="tablist"
       aria-label={ariaLabel ?? "Tabs"}
       className={[
@@ -59,7 +61,7 @@ export function TabStrip<K extends string = string>({
           }}
         />
       ))}
-    </div>
+    </GlidingTabList>
   );
 }
 
@@ -76,6 +78,7 @@ function TabChip<K extends string = string>({
     <button
       type="button"
       role="tab"
+      data-gliding-key={meta.key}
       aria-selected={active}
       aria-disabled={meta.disabled || undefined}
       disabled={meta.disabled}

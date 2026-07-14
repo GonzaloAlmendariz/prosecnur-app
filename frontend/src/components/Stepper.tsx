@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { GlidingTabList } from "./GlidingTabList";
 
 // Stepper — navegación SECUENCIAL entre pasos de un flujo.
 //
@@ -44,7 +45,8 @@ export function Stepper<K extends string = string>({
 }: Props<K>) {
   const currentIdx = steps.findIndex((s) => s.key === current);
   return (
-    <div
+    <GlidingTabList
+      activeKey={current}
       role="tablist"
       aria-label={ariaLabel ?? "Stepper"}
       className="pulso-stepper"
@@ -58,6 +60,7 @@ export function Stepper<K extends string = string>({
               meta={s}
               active={isActive}
               done={isDone}
+              glidingKey={s.key}
               onClick={() => {
                 if (!s.disabled) onChange(s.key);
               }}
@@ -66,7 +69,7 @@ export function Stepper<K extends string = string>({
           </div>
         );
       })}
-    </div>
+    </GlidingTabList>
   );
 }
 
@@ -82,11 +85,12 @@ function StepConnector({ done }: { done: boolean }) {
 }
 
 function StepChip({
-  meta, active, done, onClick,
+  meta, active, done, glidingKey, onClick,
 }: {
   meta: StepMeta;
   active: boolean;
   done: boolean;
+  glidingKey: string;
   onClick: () => void;
 }) {
   const Icon = meta.icon;
@@ -94,6 +98,7 @@ function StepChip({
     <button
       type="button"
       role="tab"
+      data-gliding-key={glidingKey}
       aria-selected={active}
       aria-current={active ? "step" : undefined}
       aria-disabled={meta.disabled || undefined}

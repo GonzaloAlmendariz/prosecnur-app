@@ -273,11 +273,10 @@ export function ProcessingSheetViewer({
         </div>
 
         <div className="pulso-processing-sheet-actions">
-          <div className="pulso-processing-sheet-mode" role="tablist" aria-label="Modo de valores">
+          <div className="pulso-processing-sheet-mode" role="group" aria-label="Modo de valores">
             <button
               type="button"
-              role="tab"
-              aria-selected={mode === "codigos"}
+              aria-pressed={mode === "codigos"}
               className={mode === "codigos" ? "is-active" : ""}
               onClick={() => {
                 setPage(1);
@@ -288,8 +287,7 @@ export function ProcessingSheetViewer({
             </button>
             <button
               type="button"
-              role="tab"
-              aria-selected={mode === "etiquetas"}
+              aria-pressed={mode === "etiquetas"}
               className={mode === "etiquetas" ? "is-active" : ""}
               onClick={() => {
                 setPage(1);
