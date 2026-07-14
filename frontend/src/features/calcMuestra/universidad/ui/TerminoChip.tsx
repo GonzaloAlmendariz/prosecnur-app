@@ -28,6 +28,9 @@ export function TerminoChip({
   return (
     <Popover
       openOn="hover"
+      side="top"
+      hoverOpenDelay={400}
+      hoverCloseDelay={0}
       ariaLabel={entry.termino}
       trigger={
         <button type="button" className={triggerClassName}>
