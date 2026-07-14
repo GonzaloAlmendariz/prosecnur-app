@@ -10,9 +10,8 @@ import {
   type CalcMuestraEstudio,
   type CalcMuestraWorkspace,
 } from "../../../api/client";
-import { jsonIgual } from "../corridas";
 import { fmtInt } from "../sharedCore";
-import { frameAuditNumber } from "../universidad/shared/frame";
+import { frameAuditNumber, marcoCriteriosDesactualizado } from "../universidad/shared/frame";
 import {
   UNIVERSITY_FACULTY_COMPONENT_ID,
   UNIVERSITY_TOTAL_COMPONENT_ID,
@@ -62,13 +61,10 @@ export function ResumenDiseno({
   // criterios confirmados en el workspace difieren de los que produjeron el
   // marco vigente (el frame guarda la selección con que se construyó). Si
   // difieren, la cifra de elegibles ya no corresponde y hay que reconstruir.
-  const marcoDesactualizado = useMemo(() => {
-    if (!frame) return false;
-    const construidoCon = frame.criterios_seleccion ?? null;
-    const confirmado = config.criterios_seleccion ?? null;
-    if (!construidoCon && !confirmado) return false;
-    return !jsonIgual(construidoCon ?? {}, confirmado ?? {});
-  }, [frame, config.criterios_seleccion]);
+  const marcoDesactualizado = useMemo(
+    () => marcoCriteriosDesactualizado(frame, config.criterios_seleccion),
+    [frame, config.criterios_seleccion],
+  );
   const estudiantesDesactualizados = estudiantesElegibles != null && marcoDesactualizado;
   const cursosDesactualizados = cursosHorarioElegibles != null && marcoDesactualizado;
 

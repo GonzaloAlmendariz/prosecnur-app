@@ -10,53 +10,105 @@
   align-content: start;
 }
 
-/* --- Acciones del marco ----------------------------------------------------
-   Toolbar compacta: no crea una segunda cabecera ni una franja vacía. */
+/* --- Acción principal del marco --------------------------------------------
+   El cálculo de la población y los cursos-horario elegibles es LA acción de la
+   sección; cuando hace falta reconstruir, la tarjeta gana protagonismo y el
+   botón recorre un haz de luz por su borde (Anexo A.2). */
 .cmv2-crit-apply {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  min-height: 28px;
-  padding: 0 2px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.cmv2-crit-apply[data-attention="true"] {
+  border-color: color-mix(in srgb, var(--cmv2-accent) 40%, var(--pulso-border));
+  background: color-mix(in srgb, var(--cmv2-accent) 6%, var(--pulso-surface));
 }
 
 .cmv2-crit-apply-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 14px;
+  height: 36px;
+  padding: 2px; /* grosor del haz de luz */
   border: 1px solid var(--cmv2-accent-border);
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
-  color: var(--cmv2-accent-fg);
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
   cursor: pointer;
+  overflow: hidden;
+  isolation: isolate;
 }
-
+.cmv2-crit-apply-btn-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 100%;
+  padding: 0 16px;
+  border-radius: calc(var(--pulso-radius-chip) - 1px);
+  background: var(--cmv2-accent);
+  color: var(--pulso-on-accent, #fff);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
 .cmv2-crit-apply-btn:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--cmv2-accent) 52%, var(--pulso-border));
+  border-color: color-mix(in srgb, var(--cmv2-accent) 60%, var(--pulso-border));
+}
+.cmv2-crit-apply-btn:hover:not(:disabled) .cmv2-crit-apply-btn-inner {
+  background: color-mix(in srgb, var(--cmv2-accent) 88%, #000);
+}
+.cmv2-crit-apply-btn:disabled { cursor: not-allowed; }
+.cmv2-crit-apply-btn:disabled .cmv2-crit-apply-btn-inner {
+  background: var(--pulso-surface-alt, color-mix(in srgb, var(--pulso-border) 40%, var(--pulso-surface)));
+  color: var(--pulso-text-muted);
 }
 
-.cmv2-crit-apply-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+/* Haz de luz recorriendo el borde (A.2): conic-gradient girando tras el panel
+   interior; solo asoma el filo por el padding de 2px del botón. */
+.cmv2-crit-apply-btn[data-beam="true"] { border-color: transparent; }
+.cmv2-crit-apply-btn[data-beam="true"]::before {
+  content: "";
+  position: absolute;
+  inset: -60%;
+  z-index: -1;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0 74%,
+    color-mix(in srgb, var(--cmv2-accent) 60%, transparent) 84%,
+    #fff 90%,
+    color-mix(in srgb, var(--cmv2-accent) 60%, transparent) 96%,
+    transparent 100%
+  );
+  animation: cmv2-crit-beam 3s linear infinite;
+}
+@keyframes cmv2-crit-beam {
+  to { transform: rotate(1turn); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-crit-apply-btn[data-beam="true"]::before { animation: none; }
+  .cmv2-crit-apply-btn[data-beam="true"] { border-color: var(--cmv2-accent); }
+}
 
 .cmv2-crit-draft-summary {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
-  padding: 0 9px;
+  padding: 4px 11px;
   border: 1px solid var(--pulso-success-border);
   border-radius: var(--pulso-radius-chip);
   background: color-mix(in srgb, var(--pulso-success-bg) 62%, var(--pulso-surface));
   color: var(--pulso-success-fg);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  white-space: nowrap;
+  line-height: 1.35;
 }
-.cmv2-crit-draft-summary[data-active="true"] {
+.cmv2-crit-draft-summary[data-active="true"],
+.cmv2-crit-draft-summary[data-stale="true"] {
   border-color: var(--pulso-warn-border);
   background: color-mix(in srgb, var(--pulso-warn-bg) 72%, var(--pulso-surface));
   color: var(--pulso-warn-fg);
