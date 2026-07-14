@@ -4,31 +4,44 @@ App local-first para investigación por encuestas: Electron + React/Vite/TS (`fr
 
 ## Enrutamiento del agentic OS
 
-Subagentes en `.claude/agents/`, skills en `.claude/skills/`. Clasifica la tarea en una de las 6 ramas y sigue su ruta:
+Subagentes en `.claude/agents/`, skills en `.claude/skills/`. El lead carga `/orquestar-trabajo` para toda tarea no trivial, construye oleadas de hasta tres trabajadores y conserva contrato, ownership, integración y gate. Clasifica la tarea en una de las 8 ramas:
 
 Estas rutas siguen siendo la fuente canónica para Claude. Codex las consume mediante adaptadores generados en `.codex/agents/` y `.agents/skills/`; validar la sincronización con `node agentic/sync-agentic-os.mjs --check` y nunca editar los adaptadores a mano. Contrato: `docs/agentic-os.md`.
 
 **Rama 1 — Construir (feature/fix en la app)**
-`/scope-lock` para arrancar → agente `backend-r` y/o `frontend-react` → agente `verificador` → `/cerrar-trabajo`. Si la tarea toca lógica de dominio de encuestas, cargar antes el skill `dominio-prosecnur` y su skill fino: `integraciones-datos` (ingesta/conectores), `jobs-asincronos` (operaciones pesadas), `nucleo-metodologico` (validación/codificación/limpieza/ponderación).
+`/scope-lock` → bug/regresión: `diagnosticador-regresiones` + revisores aplicables en paralelo → `autor-regresiones` para fijar rojo → máximo dos writers entre `backend-r`/`frontend-react` → revisiones paralelas → `verificador` serial → `/cerrar-trabajo`. Features cross-layer congelan contrato antes de lanzar frontend/backend. Cargar `dominio-prosecnur` y el skill fino cuando cambie lógica de encuesta.
 
 **Rama 2 — Diseñar (revamp/pulido visual, la tarea más frecuente)**
-skill `/revamp-visual` (orquesta `prosecnur-design-system` + `emil-design-eng` globales, implementación y QA visual con evidencia). Auditoría UX de módulo completo → skill global `prosecnur-ux-evaluator`.
+skill `/revamp-visual` → `qa-visual-desktop` toma baseline → `frontend-react` implementa → QA independiente after → `verificador`. La auditoría UX profunda usa `prosecnur-ux-evaluator`; navegación/arquitectura suma `guardian-contratos`.
 
 **Regla de observación**: para ver/iterar cualquier vista que viva detrás de un proyecto abierto, usa el skill `/ver-ui` (deep-link `?pulso=` en dev que salta el BootGate). Nunca digas "no puedo llegar a esa vista" sin haberlo intentado con `/ver-ui`. **Higiene de servers**: reusar antes de levantar (`preview_list`; el 8787 es del usuario, nunca matarlo), cerrar al terminar lo que tú levantaste, y ante huérfanos de otras sesiones `make dev-status` / `make dev-prune`.
 
 **Rama 3 — Entregables (motores de salida)**
-PDF → skill global `prosecnur-pdf-engine` · PPT/Word/XLSX → skill `entregables-oficina` · cronogramas XLSX → skill global `cronograma-encuestas`.
+`especialista-entregables` implementa. PDF → `prosecnur-pdf-engine`; PPT/Word/XLSX → `entregables-oficina`; cronogramas → `cronograma-encuestas`. `revisor-metodologico` revisa grano/denominadores y `guardian-contratos` jobs/artefactos; termina en `verificador`.
 
-**Rama 4 — Estudios reales (datos de cliente)**
+**Rama 4 — Integrar datos**
+SurveyMonkey/Kobo/Sheets → `dominio-prosecnur` + `integraciones-datos` → `especialista-integraciones`; diagnóstico, contratos y metodología pueden investigar en paralelo. Tests sin red y gate `verificador`.
+
+**Rama 5 — Estudios reales (datos de cliente)**
 skill `/estudio-real` (ACNUR/UNSA/Polarización-style: instrumento, cuotas, base procesable, pesos, pipeline). Auditoría sintética canónica → skill global `prosecnur-project`.
 
-**Rama 5 — Operar el repo**
+**Rama 6 — Escritorio y release técnico**
+Electron, R embebido, asociación `.pulso`, instaladores, updater y workflows → `desktop-packaging` + revisiones aplicables → `verificador`. Construir no autoriza firmar, publicar, taggear ni subir.
+
+**Rama 7 — Operar el repo**
 Working tree grande / fin de sesión → `/cerrar-trabajo` · push o diagnóstico de CI → `/publicar` (pre-flight local espejo del CI + monitoreo + auto-diagnóstico) · corte de versión → `/preparar-release` · notas de versión (in-app + doc + GitHub) y versiones sin mapear → `/notas-parche` · salud del código (mensual) → `/auditoria-deuda` · commits sueltos → agente `curador-commits`.
 
-**Rama 6 — Gobernar (decisiones)**
-Arquitectura, ADRs, límites de módulo → skill global `prosecnur-architecture`. Mapa de dominio y conceptos ("dónde vive X") → skill `dominio-prosecnur`.
+**Rama 8 — Gobernar (decisiones)**
+Arquitectura/ADRs → `prosecnur-architecture` + `guardian-contratos`; mapa de dominio → `dominio-prosecnur`; significado metodológico → `revisor-metodologico`. Las revisiones independientes se sintetizan por el lead.
 
 Regla transversal: **toda rama que toque código termina en el agente `verificador`** antes de declararse lista.
+
+### Reglas de oleadas
+
+- Solo el lead delega. Hijos sin `Agent`/`Task`; profundidad máxima uno.
+- Máximo tres trabajadores y dos writers; globs de escritura sin solape.
+- `autor-regresiones` posee tests/fixtures cuando participa. Especialistas de integraciones, entregables y packaging prevalecen sobre `backend-r`.
+- Claude solicita subagentes background cuando estén disponibles y usa Agent Teams solo para debate/coordinación cross-layer. La cascada es Teams → subagentes background → foreground → serie. Codex usa subagentes directos. El lead espera la oleada completa y sintetiza; no concatena salidas.
 
 ## Gates innegociables
 

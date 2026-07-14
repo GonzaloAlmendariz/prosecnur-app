@@ -10,13 +10,14 @@ Mide la deuda técnica contra `docs/qa/deuda-baseline.md` con comandos reproduci
 ## Flujo
 
 1. **Lee el baseline actual**: `docs/qa/deuda-baseline.md` (fecha y valores de la última medición).
-2. **Mide los 8 ejes**: lanza 2–3 agentes `auditor-deuda` en paralelo repartiendo los ejes (ej. uno con ejes 1–3 R, otro con 4–5 y 7 frontend, otro con 6 y 8). Cada uno devuelve valores + top ofensores. Alternativa: si el usuario pidió un workflow o la sesión tiene ultracode activo, usa el workflow `auditoria-deuda`.
-3. **Sintetiza el reporte** para el usuario:
+2. **Fija el contrato**: carga `orquestar-trabajo`; declara tres líneas read-only con ejes disjuntos, evidencia requerida, exclusión de toda escritura y unión cuando las tres mediciones estén completas.
+3. **Mide los 8 ejes**: lanza 2–3 agentes `auditor-deuda` en paralelo repartiendo los ejes (ej. uno con ejes 1–3 R, otro con 4–5 y 7 frontend, otro con 6 y 8). Espera a todos; un fallo se reintenta o reasigna una vez. Alternativa: usa el workflow `auditoria-deuda`, que aplica el mismo contrato.
+4. **Sintetiza el reporte** para el usuario:
    - Tabla eje → baseline → hoy → Δ → veredicto (MEJORÓ / ESTABLE / EMPEORÓ).
    - Los 3 movimientos más accionables, dimensionados (qué archivo, cuántas líneas, qué helper extraer).
    - Ejes en rojo sostenido (empeoraron 2 mediciones seguidas) se marcan como candidatos a scope lock inmediato.
-4. **Actualiza el baseline**: reescribe `docs/qa/deuda-baseline.md` con los valores de hoy, conservando el histórico anterior en la tabla de evolución.
-5. **Ofrece spawn**: para el hallazgo #1, ofrece crear una tarea separada (spawn_task) con el scope lock ya redactado.
+5. **Actualiza el baseline**: el lead, ya en serie, reescribe `docs/qa/deuda-baseline.md` con los valores de hoy, conservando el histórico anterior.
+6. **Propón continuación**: para el hallazgo #1, ofrece una tarea separada con el scope lock ya redactado.
 
 ## Regla
 

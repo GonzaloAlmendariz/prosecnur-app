@@ -1,67 +1,163 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "canonical": {
-    "instructions": [
-      "AGENTS.md",
-      "CLAUDE.md",
-      "docs/loops-reparacion.md"
-    ],
+    "protected_paths": [".claude"],
+    "instructions": ["AGENTS.md", "CLAUDE.md", "docs/loops-reparacion.md"],
     "skills_dir": ".claude/skills",
     "agents_dir": ".claude/agents"
   },
+  "providers": {
+    "claude": {
+      "settings": ".claude/settings.json",
+      "workflows_dir": ".claude/workflows",
+      "agent_teams_env": "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS",
+      "agent_teams_value": "1",
+      "teammate_mode": "in-process"
+    },
+    "codex": {
+      "config": ".codex/config.toml",
+      "total_threads": 4,
+      "multi_agent": true
+    }
+  },
   "adapters": {
     "codex_skills_dir": ".agents/skills",
-    "codex_agents_dir": ".codex/agents",
-    "codex_config": ".codex/config.toml"
+    "codex_agents_dir": ".codex/agents"
   },
   "skills": [
-    "auditoria-deuda",
-    "cerrar-trabajo",
-    "dominio-prosecnur",
-    "entregables-oficina",
-    "estudio-real",
-    "integraciones-datos",
-    "jobs-asincronos",
-    "notas-parche",
-    "nucleo-metodologico",
-    "preparar-release",
-    "publicar",
-    "revamp-visual",
-    "scope-lock",
-    "ver-ui"
+    "auditoria-deuda", "cerrar-trabajo", "dominio-prosecnur",
+    "entregables-oficina", "estudio-real", "integraciones-datos",
+    "jobs-asincronos", "notas-parche", "nucleo-metodologico",
+    "orquestar-trabajo", "preparar-release", "publicar",
+    "revamp-visual", "scope-lock", "ver-ui"
   ],
   "agents": [
-    "auditor-deuda",
-    "backend-r",
-    "curador-commits",
-    "frontend-react",
-    "verificador"
+    "auditor-deuda", "autor-regresiones", "backend-r", "curador-commits",
+    "desktop-packaging", "diagnosticador-regresiones",
+    "especialista-entregables", "especialista-integraciones",
+    "frontend-react", "guardian-contratos", "qa-visual-desktop",
+    "revisor-metodologico", "verificador"
   ],
+  "profiles": {
+    "read-only": {"codex_sandbox": "read-only", "may_edit_product": false},
+    "reviewer": {"codex_sandbox": "read-only", "may_edit_product": false},
+    "writer": {"codex_sandbox": "workspace-write", "may_edit_product": true},
+    "gate": {"codex_sandbox": "workspace-write", "may_edit_product": false}
+  },
+  "agent_profiles": {
+    "auditor-deuda": "read-only",
+    "autor-regresiones": "writer",
+    "backend-r": "writer",
+    "curador-commits": "writer",
+    "desktop-packaging": "writer",
+    "diagnosticador-regresiones": "read-only",
+    "especialista-entregables": "writer",
+    "especialista-integraciones": "writer",
+    "frontend-react": "writer",
+    "guardian-contratos": "read-only",
+    "qa-visual-desktop": "reviewer",
+    "revisor-metodologico": "read-only",
+    "verificador": "gate"
+  },
   "external_skills": [
-    "cronograma-encuestas",
-    "emil-design-eng",
-    "prosecnur-architecture",
-    "prosecnur-design-system",
-    "prosecnur-pdf-engine",
-    "prosecnur-project",
-    "prosecnur-project-ui-check",
-    "prosecnur-ux-evaluator",
+    "cronograma-encuestas", "emil-design-eng", "prosecnur-architecture",
+    "prosecnur-design-system", "prosecnur-pdf-engine", "prosecnur-project",
+    "prosecnur-project-ui-check", "prosecnur-ux-evaluator",
     "visual-ui-inspector"
   ],
+  "orchestration": {
+    "strategy": "adaptive-waves",
+    "max_parallel_workers": 3,
+    "max_parallel_writers": 2,
+    "max_depth": 1,
+    "retry_limit": 1,
+    "lead_only_spawn": true,
+    "fallback": "sequential",
+    "serial_conditions": [
+      "single_file", "undefined_contract", "overlapping_ownership",
+      "pulso_migration", "destructive_action", "credentials",
+      "publication", "external_service"
+    ]
+  },
   "routes": {
-    "construir": ["scope-lock", "backend-r", "frontend-react", "verificador", "cerrar-trabajo"],
-    "disenar": ["revamp-visual", "frontend-react", "verificador"],
-    "entregables": ["entregables-oficina", "jobs-asincronos", "verificador"],
-    "estudios_reales": ["estudio-real", "dominio-prosecnur"],
-    "operar_repo": ["cerrar-trabajo", "publicar", "preparar-release", "notas-parche", "auditoria-deuda"],
-    "gobernar": ["dominio-prosecnur", "prosecnur-architecture"]
+    "construir": {
+      "code_change": true,
+      "skills": ["scope-lock", "orquestar-trabajo", "dominio-prosecnur", "cerrar-trabajo"],
+      "external": ["prosecnur-architecture"],
+      "pools": {
+        "discovery": ["diagnosticador-regresiones", "guardian-contratos", "revisor-metodologico"],
+        "implementation": ["autor-regresiones", "backend-r", "frontend-react"],
+        "review": ["guardian-contratos", "revisor-metodologico", "qa-visual-desktop"],
+        "gate": ["verificador"]
+      }
+    },
+    "disenar": {
+      "code_change": true,
+      "skills": ["scope-lock", "orquestar-trabajo", "revamp-visual", "ver-ui", "cerrar-trabajo"],
+      "external": ["prosecnur-design-system", "emil-design-eng", "prosecnur-project-ui-check", "prosecnur-ux-evaluator", "visual-ui-inspector"],
+      "pools": {
+        "discovery": ["diagnosticador-regresiones", "qa-visual-desktop", "guardian-contratos"],
+        "implementation": ["autor-regresiones", "frontend-react"],
+        "review": ["qa-visual-desktop", "guardian-contratos"],
+        "gate": ["verificador"]
+      }
+    },
+    "entregables": {
+      "code_change": true,
+      "skills": ["scope-lock", "orquestar-trabajo", "entregables-oficina", "jobs-asincronos", "cerrar-trabajo"],
+      "external": ["prosecnur-pdf-engine", "cronograma-encuestas"],
+      "pools": {
+        "discovery": ["diagnosticador-regresiones", "guardian-contratos", "revisor-metodologico"],
+        "implementation": ["autor-regresiones", "especialista-entregables"],
+        "review": ["guardian-contratos", "revisor-metodologico", "qa-visual-desktop"],
+        "gate": ["verificador"]
+      }
+    },
+    "integraciones": {
+      "code_change": true,
+      "skills": ["scope-lock", "orquestar-trabajo", "dominio-prosecnur", "integraciones-datos", "jobs-asincronos", "cerrar-trabajo"],
+      "external": [],
+      "pools": {
+        "discovery": ["diagnosticador-regresiones", "guardian-contratos", "revisor-metodologico"],
+        "implementation": ["autor-regresiones", "especialista-integraciones", "frontend-react"],
+        "review": ["guardian-contratos", "revisor-metodologico"],
+        "gate": ["verificador"]
+      }
+    },
+    "desktop_release": {
+      "code_change": true,
+      "skills": ["scope-lock", "orquestar-trabajo", "cerrar-trabajo"],
+      "external": ["prosecnur-architecture"],
+      "pools": {
+        "discovery": ["diagnosticador-regresiones", "guardian-contratos"],
+        "implementation": ["autor-regresiones", "desktop-packaging"],
+        "review": ["guardian-contratos", "qa-visual-desktop"],
+        "gate": ["verificador"]
+      }
+    },
+    "estudios_reales": {
+      "code_change": false,
+      "skills": ["orquestar-trabajo", "estudio-real", "dominio-prosecnur"],
+      "external": ["prosecnur-project"],
+      "pools": {"discovery": ["revisor-metodologico", "guardian-contratos"], "implementation": [], "review": [], "gate": []}
+    },
+    "operar_repo": {
+      "code_change": true,
+      "skills": ["orquestar-trabajo", "cerrar-trabajo", "publicar", "preparar-release", "notas-parche", "auditoria-deuda"],
+      "external": [],
+      "pools": {"discovery": ["auditor-deuda"], "implementation": ["curador-commits"], "review": [], "gate": ["verificador"]}
+    },
+    "gobernar": {
+      "code_change": false,
+      "skills": ["orquestar-trabajo", "dominio-prosecnur"],
+      "external": ["prosecnur-architecture"],
+      "pools": {"discovery": ["guardian-contratos", "revisor-metodologico"], "implementation": [], "review": [], "gate": []}
+    }
   },
   "policy": {
     "frozen_growth_files": [
-      "api/R/monitoreo_engine.R",
-      "api/R/router_monitoreo.R",
-      "api/R/reporte_plan_ppt.R",
-      "frontend/src/features/monitoreo/MonitoreoPage.tsx"
+      "api/R/monitoreo_engine.R", "api/R/router_monitoreo.R",
+      "api/R/reporte_plan_ppt.R", "frontend/src/features/monitoreo/MonitoreoPage.tsx"
     ],
     "code_change_final_gate": "verificador",
     "repair_protocol": "docs/loops-reparacion.md",

@@ -11,5 +11,5 @@ Antes de actuar, lee completamente `../../../.claude/skills/dominio-prosecnur/SK
 
 - Resuelve la ruta desde este directorio de skill.
 - Si la fuente canónica no existe o no puede leerse, detente y reporta el bloqueo.
-- Para mejorar el skill, edita la fuente en `.claude/skills/dominio-prosecnur/SKILL.md` y luego ejecuta `node agentic/sync-agentic-os.mjs --write`.
+- Para mejorar el skill, edita `.claude/skills/dominio-prosecnur/SKILL.md` y ejecuta `node agentic/sync-agentic-os.mjs --write`.
 - No dupliques ni reemplaces las instrucciones canónicas dentro de este adaptador.

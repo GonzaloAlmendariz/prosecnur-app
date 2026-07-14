@@ -10,12 +10,12 @@ Convierte el working tree en trabajo verificado y commiteado. Este repo tiene el
 ## Flujo
 
 1. **Inventario rápido**: `git status --short` + `git diff --stat`. Si el tree está limpio, dilo y termina.
-2. **Verifica primero** (en paralelo con el paso 3 si son agentes): lanza el agente `verificador` sobre el estado actual. Espera su veredicto.
+2. **Prepara dos líneas independientes**: lanza `verificador` sobre el estado actual y `curador-commits` para producir únicamente el plan de rebanadas. El curador permanece plan-only y no ejecuta `git add`/`git commit` mientras el gate está corriendo.
+3. **Espera y une**: espera ambos resultados; primero decide con el veredicto y después usa el plan del curador.
    - RECHAZADO → presenta los fallos al usuario, NO commitees nada roto. Ofrece arreglar primero.
    - APROBADO CON PENDIENTES → los pendientes se anotan y pueden ir en el cuerpo del commit o como tarea siguiente; se puede commitear.
-3. **Rebana**: lanza el agente `curador-commits` para producir el plan de rebanadas con mensajes conventional en español y riesgos marcados.
 4. **Borrados riesgosos**: si el plan marca borrados sin justificación (🔴), pregunta al usuario ANTES de commitear esa rebanada — en este repo hay historial de borrar/restaurar páginas por accidente. Los demás commits pueden proceder.
-5. **Ejecuta las rebanadas** (pide al curador-commits que las ejecute, o hazlo tú con `git add <paths>` + `git commit`). Entre commits, verifica `git status`. Cada commit debe dejar el árbol typecheck-limpio.
+5. **Ejecuta las rebanadas tras aprobación** (pide al curador-commits que las ejecute, o hazlo tú con `git add <paths>` + `git commit`). Entre commits, verifica `git status`. Cada commit debe dejar el árbol typecheck-limpio.
 6. **Cierre**: reporta commits creados (SHA + mensaje), veredicto de verificación con su evidencia, y pendientes explícitos si los hubo. NO hagas push salvo pedido explícito.
 
 ## Reglas

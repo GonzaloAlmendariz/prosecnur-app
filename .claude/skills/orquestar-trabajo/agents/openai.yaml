@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orquestar trabajo"
+  short_description: "Coordina agentes en oleadas paralelas seguras"
+  default_prompt: "Usa $orquestar-trabajo para dividir esta tarea en oleadas paralelas seguras y sintetizar sus resultados."

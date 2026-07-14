@@ -11,12 +11,12 @@ La tarea más frecuente del usuario (homepage, calc-muestra, XLSForms, loading s
 
 1. Carga el skill global `prosecnur-design-system` (dirección Apple/macOS, paleta del módulo, matriz de decisión de componentes). Para dimensiones exactas de controles, ramp tipográfico y estados, usa su referencia `references/macos-metrics.md` (spec numérica extraída del Apple macOS 26 UI Kit: escalera de alturas 16/20/24/28/36, peso Medium 500 para controles, sidebar 240/filas 32, acento #0088FF de estados) — las medidas se toman de ahí, no se inventan. Para pulido de micro-interacciones y animación, complementa con `emil-design-eng`.
 2. Identifica la **paleta de acento del módulo** (cada módulo tiene la suya; no la contamines con la de otro) y el tipo de `PageFrame` (`document/workbench/canvas/data`) según `docs/ui-layout-grammar.md`.
-3. Captura el estado ANTES: usa el skill `/ver-ui` para llegar a la vista exacta (salta el BootGate con `?pulso=`) y toma screenshot. Sin "antes" no se puede defender el "después".
+3. Captura el estado ANTES con `qa-visual-desktop` y `/ver-ui`. Esta observación puede correr en paralelo con la inspección de tokens/arquitectura, pero ambas deben terminar antes de congelar la dirección y asignar archivos.
 4. Declara en 3–5 líneas la dirección: qué problema visual se ataca, qué se conserva, qué patrón HIG aplica. Si el revamp cambia navegación o jerarquía de módulo, consulta `prosecnur-architecture` (puede ameritar ADR).
 
 ## Fase 2 — Implementación
 
-Lanza el agente `frontend-react` (o aplica sus reglas inline) con la dirección de la fase 1. Refuerzos específicos de revamp:
+Lanza `frontend-react` con la dirección congelada. Si `autor-regresiones` participa, asígnale exclusivamente tests/fixtures disjuntos y limita la oleada a dos writers. Refuerzos específicos de revamp:
 
 - **Solo tokens `--pulso-*`**; si el diseño pide un color nuevo, se agrega como token en `theme.css`, no como hex en el CSS del feature (26/51 CSS de features ya tienen deriva — no la aumentes).
 - El rail superior del módulo YA es el recorrido: no agregues segundas barras de pasos ni navegación duplicada; el pulido didáctico va dentro de cada pestaña.
@@ -27,8 +27,8 @@ Lanza el agente `frontend-react` (o aplica sus reglas inline) con la dirección 
 ## Fase 3 — QA visual con evidencia
 
 1. `pnpm --dir frontend typecheck` en verde.
-2. Verificación en navegador real: skill `/ver-ui` para llegar a la vista con proyecto abierto e iterar con HMR; `make ui-quick-check` para la pasada de matriz. Verifica al menos el viewport grande y el compacto, y modo oscuro si la vista lo soporta.
+2. Verificación independiente con `qa-visual-desktop`: skill `/ver-ui` para llegar a la vista con proyecto abierto; `make ui-quick-check` para la matriz. QA no edita producto ni goldens. Verifica al menos el viewport grande y el compacto, y modo oscuro si la vista lo soporta.
 3. **Dual-platform**: la app corre en macOS Y Windows (Windows es el release bloqueante). Si el cambio toca pesos tipográficos o depende del render de fuente, valida pensando en Segoe UI (el stack cae ahí en Windows); la geometría (alturas/spacing del kit) sí es portable tal cual.
-3. Compara ANTES/DESPUÉS y reporta con screenshots. Si el revamp es de módulo completo, cierra con `prosecnur-ux-evaluator`.
-4. Si la vista participa del QA visual, confirma que su `data-audit-ready` sigue registrado (y las pestañas nuevas en el QA contract).
-5. Veredicto final con el agente `verificador` y sugerencia de `/cerrar-trabajo`.
+4. Compara ANTES/DESPUÉS y reporta con screenshots. Si el revamp es de módulo completo, cierra con `prosecnur-ux-evaluator`.
+5. Si la vista participa del QA visual, confirma que su `data-audit-ready` sigue registrado (y las pestañas nuevas en el QA contract).
+6. Veredicto final con el agente `verificador` y sugerencia de `/cerrar-trabajo`.

@@ -11,5 +11,5 @@ Antes de actuar, lee completamente `../../../.claude/skills/notas-parche/SKILL.m
 
 - Resuelve la ruta desde este directorio de skill.
 - Si la fuente canónica no existe o no puede leerse, detente y reporta el bloqueo.
-- Para mejorar el skill, edita la fuente en `.claude/skills/notas-parche/SKILL.md` y luego ejecuta `node agentic/sync-agentic-os.mjs --write`.
+- Para mejorar el skill, edita `.claude/skills/notas-parche/SKILL.md` y ejecuta `node agentic/sync-agentic-os.mjs --write`.
 - No dupliques ni reemplaces las instrucciones canónicas dentro de este adaptador.
