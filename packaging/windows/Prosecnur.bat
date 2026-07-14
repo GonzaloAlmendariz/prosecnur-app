@@ -73,6 +73,18 @@ set "PULSO_RSCRIPT=%R_HOME_LOCAL%\bin\Rscript.exe"
 set "R_LIBS_USER=%R_LIBS_LOCAL%"
 set "PATH=%R_HOME_LOCAL%\bin;%PATH%"
 
+REM El acceso directo de producción no debe heredar flags de una consola de
+REM desarrollo/auditoría. De otro modo usa el puerto fijo 8787 y puede abrir
+REM dos motores R en paralelo.
+set "PROSECNUR_ELECTRON_DEV="
+set "PROSECNUR_VITE_URL="
+set "PULSO_PORT="
+set "PULSO_ALLOW_MULTI_INSTANCE="
+set "PULSO_AUDIT_RUN_MANIFEST="
+set "PULSO_AUDIT_PROJECT="
+set "PULSO_BOOTSTRAP_PROJECT="
+set "PULSO_PACKAGED_RUNTIME=1"
+
 if not exist "%R_DEPS_SENTINEL%" (
   echo [%date% %time%] Instalando paquetes R offline >> "%SETUP_LOG%"
   "%PULSO_RSCRIPT%" "%INTERNALS%\offline-r\install-r-deps-offline.R" "%R_PACKAGES_DIR%" "%R_LIBS_LOCAL%" >> "%SETUP_LOG%" 2>&1

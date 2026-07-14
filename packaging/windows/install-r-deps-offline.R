@@ -57,4 +57,24 @@ if (length(missing)) {
   stop("Faltan paquetes R tras instalación offline: ", paste(missing, collapse = ", "), call. = FALSE)
 }
 
-cat("[Prosecnur] Dependencias R offline listas.\n")
+# Instalar el paquete local de Prosecnur en la misma librería. Así los jobs
+# callr y el arranque empaquetado usan exactamente el código del instalador y
+# no intentan reinstalar la fuente cada vez que se abre la aplicación.
+utils::install.packages(
+  file.path(root, "api"), repos = NULL, type = "source", lib = library_dir,
+  INSTALL_opts = c("--no-multiarch", "--no-docs", "--no-byte-compile")
+)
+expected_version <- as.character(desc[["Version"]])
+installed_version <- tryCatch(
+  as.character(utils::packageVersion("prosecnurapp", lib.loc = library_dir)),
+  error = function(e) NA_character_
+)
+if (is.na(installed_version) || !identical(installed_version, expected_version)) {
+  stop(
+    "No se pudo instalar prosecnurapp ", expected_version,
+    " en la librería local (versión encontrada: ", installed_version %||% "ninguna", ").",
+    call. = FALSE
+  )
+}
+
+cat("[Prosecnur] Dependencias y motor R offline listos.\n")
