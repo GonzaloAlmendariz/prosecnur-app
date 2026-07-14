@@ -7,7 +7,6 @@
  */
 import { useState, type CSSProperties } from "react";
 import {
-  AlertTriangle,
   CheckCircle2,
   ClipboardList,
   Gauge,
@@ -36,7 +35,6 @@ import {
   ClassroomHeatmapPlot,
   ClassroomInsightGrid,
   ClassroomPlotCard,
-  ClassroomSexCompositionPlot,
   ClassroomStackedCrossPlot,
   DescriptiveEmptyNotice,
   UNIVERSITY_FACULTY_ROW_KEYS,
@@ -45,7 +43,6 @@ import {
   buildWeightedCrossTable,
   classroomFacultySexCross,
   classroomRowBoolean,
-  classroomSexCompositionRowsFromAulas,
   classroomSexRowsFromAulas,
   descriptiveMissingState,
   firstRowValue,
@@ -59,6 +56,7 @@ import {
   universityFacultySexCross,
   weightedDistributionRows,
   type ClassroomInsight,
+  type CrossTable,
   type DescriptiveEmptyState,
 } from "./marcoCharts";
 import "./marco.css";
@@ -195,6 +193,21 @@ export function MarcoPoblacionFacultades({
   const [programFocusFaculty, setProgramFocusFaculty] = useState("");
   const facultyPopulation = populationFacultyRows(frame, totalComp, workspace);
   const facultyPopulationTotal = facultyPopulation.reduce((sum, row) => sum + row.value, 0);
+  // §4.2.5: la barra por facultad se apila por sexo (una barra por facultad).
+  const populationSexTable = universityFacultySexCross(
+    totalComp,
+    populationRows,
+    workspace,
+    frameCrossProfileTable(frame, "faculty", "sex", workspace, 99, 4, "faculty", "label"),
+  );
+  const populationSexTableTotal = populationSexTable.rows.reduce(
+    (sum, row) => sum + Object.values(row.values).reduce((inner, value) => inner + safeNumber(value, 0), 0),
+    0,
+  );
+  const facultySexTable = populationSexTableTotal > 0
+    ? populationSexTable
+    : classroomFacultySexCross(totalComp, [], classroomRows, workspace);
+  const facultySexTableHasData = facultySexTable.rows.length > 0 && facultySexTable.columns.length > 0;
   const populationGraphUsesClassrooms = !populationRows.length && classroomRows.length > 0;
   const populationPlotUnit = populationGraphUsesClassrooms ? "elegibles" : "personas";
   const defaultProgramFaculty = facultyPopulation[0]?.label ?? "";
@@ -263,25 +276,44 @@ export function MarcoPoblacionFacultades({
   return (
     <>
       <ClassroomPlotCard
-        title={populationGraphUsesClassrooms ? "Elegibles representados por facultad" : "Población por facultad"}
-        subtitle={populationGraphUsesClassrooms ? "alumnos elegibles acumulados en cursos-horario válidos" : "estudiantes únicos elegibles del universo"}
+        title={populationGraphUsesClassrooms ? "Elegibles por facultad" : "Población por facultad"}
+        subtitle={populationGraphUsesClassrooms ? "alumnos elegibles en cursos-horario válidos, por sexo" : "estudiantes únicos elegibles del universo, por sexo"}
+        wide
       >
-        <ClassroomBarPlot
-          rows={facultyPopulation}
-          ariaLabel="Distribución de población por facultad"
-          unit={populationPlotUnit}
-          total={facultyPopulationTotal}
-          emptyState={emptyStates.faculty}
-          selectedLabel={activeProgramFaculty}
-          onRowClick={(row) => setProgramFocusFaculty(row.label)}
-          growOnMount
-        />
+        {facultySexTableHasData ? (
+          <ClassroomStackedCrossPlot
+            table={facultySexTable}
+            ariaLabel="Población por facultad apilada por sexo"
+            emptyState={emptyStates.faculty}
+            sortByMaleSurplus
+            showSegmentLabels
+          />
+        ) : (
+          <ClassroomBarPlot
+            rows={facultyPopulation}
+            ariaLabel="Distribución de población por facultad"
+            unit={populationPlotUnit}
+            total={facultyPopulationTotal}
+            emptyState={emptyStates.faculty}
+            growOnMount
+          />
+        )}
       </ClassroomPlotCard>
       <ClassroomPlotCard
         title="Carreras por facultad"
-        subtitle={activeProgramFaculty ? `carreras del alumnado en ${activeProgramFaculty}` : "selecciona una facultad para ver carreras"}
+        subtitle={activeProgramFaculty ? `carreras del alumnado en ${activeProgramFaculty}` : "elige una facultad para ver carreras"}
       >
-        {/* key por facultad activa: el drill remonta el contenido con un fade
+        {facultyPopulation.length > 1 && (
+          <label className="cmv2-marco-drill-select">
+            <span>Facultad</span>
+            <select value={activeProgramFaculty} onChange={(e) => setProgramFocusFaculty(e.currentTarget.value)}>
+              {facultyPopulation.map((row) => (
+                <option key={row.label} value={row.label}>{row.label}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        {/* key por facultad activa: el cambio remonta el contenido con un fade
             corto (150ms) en vez de swapear las barras en seco. */}
         <div key={activeProgramFaculty || "todas"} className="cmv2-marco-drill-swap">
           <ClassroomBarPlot rows={programRows} ariaLabel="Carreras o programas de la población" unit={populationPlotUnit} height={260} total={programRowsTotal} emptyState={emptyStates.program} />
@@ -312,6 +344,19 @@ export function MarcoPoblacionSexo({
         ? profileSexRows
         : universityCategoryProfileRows([], ["sex", "sexo", "genero"], totalComp.marco.estratos ?? []);
   const sexTotal = sexRows.reduce((sum, row) => sum + row.value, 0);
+  // Una sola barra apilada (§4.2.4): la población entera como fila única,
+  // segmentada por sexo. ClassroomStackedCrossPlot ordena las columnas y aplica
+  // la pareja cromática canónica hombre/mujer con sortByMaleSurplus.
+  const sexTable: CrossTable = {
+    columns: sexRows.map((row) => row.label),
+    rows: sexTotal > 0
+      ? [{
+          label: "Población",
+          total: sexTotal,
+          values: Object.fromEntries(sexRows.map((row) => [row.label, row.value])),
+        }]
+      : [],
+  };
   const emptyState = descriptiveMissingState(workspace, {
     role: "sex",
     variable: "Sexo o género",
@@ -322,11 +367,18 @@ export function MarcoPoblacionSexo({
   });
   return (
     <ClassroomPlotCard
-      title="Sexo o género"
+      title="Distribución por sexo"
       subtitle={populationGraphUsesClassrooms ? "composición esperada según cursos-horario válidos" : "estudiantes únicos elegibles"}
       wide
     >
-      <ClassroomBarPlot rows={sexRows} ariaLabel="Sexo o género de la población" unit={populationGraphUsesClassrooms ? "elegibles" : "personas"} total={sexTotal} emptyState={emptyState} growOnMount colorBySex />
+      <ClassroomStackedCrossPlot
+        table={sexTable}
+        ariaLabel="Distribución por sexo de la población"
+        height={132}
+        emptyState={emptyState}
+        sortByMaleSurplus
+        showSegmentLabels
+      />
     </ClassroomPlotCard>
   );
 }
@@ -346,11 +398,6 @@ export function MarcoEstructuraControles({
 }) {
   const { populationRows, classroomRows } = marcoFrameRows(frame, workspace);
   const labelFor = labelerFor(workspace);
-  const populationSexTable = universityFacultySexCross(totalComp, populationRows, workspace, frameCrossProfileTable(frame, "faculty", "sex", workspace, 99, 4, "faculty", "label"));
-  const populationSexTableTotal = populationSexTable.rows.reduce((sum, row) => sum + Object.values(row.values).reduce((inner, value) => inner + safeNumber(value, 0), 0), 0);
-  const sexTable = populationSexTableTotal > 0
-    ? populationSexTable
-    : classroomFacultySexCross(totalComp, [], classroomRows, workspace);
   const classroomLevelTable = buildWeightedCrossTable(classroomRows, ["faculty", "facultad", "unidad_academica", "stratum"], ["level", "nivel", "nivel_del_curso", "ciclo"], ["eligible_n"], 99, 99, { primary: labelFor("faculty"), secondary: labelFor("level"), rowSort: "faculty", columnSort: "ordinal" });
   const populationLevelProfileTable = frameCrossProfileTable(frame, "faculty", "level", workspace, 99, 99, "faculty", "ordinal");
   const levelTable = populationRows.length
@@ -359,32 +406,19 @@ export function MarcoEstructuraControles({
       ? populationLevelProfileTable
       : classroomLevelTable;
   const hasSource = populationRows.length > 0 || classroomRows.length > 0 || Boolean(totalComp.marco.estratos?.length);
-  const emptyStates = {
-    sex: descriptiveMissingState(workspace, {
-      role: "sex",
-      variable: "Sexo o género",
-      source: "base principal",
-      hasSource,
-      impact: "Permite auditar la composición esperada de cada facultad antes de fijar cuotas.",
-      next: "Revisa Definición > Variables y vincula la columna Sexo o género.",
-    }),
-    level: descriptiveMissingState(workspace, {
-      role: "level",
-      variable: "Ciclo",
-      source: "base principal",
-      hasSource,
-      optional: true,
-      impact: "No bloquea el cálculo, pero muestra concentraciones por avance académico.",
-      next: "Si existe ciclo, asígnalo en Definición > Variables.",
-    }),
-  };
+  const levelEmptyState = descriptiveMissingState(workspace, {
+    role: "level",
+    variable: "Ciclo",
+    source: "base principal",
+    hasSource,
+    optional: true,
+    impact: "No bloquea el cálculo, pero muestra concentraciones por avance académico.",
+    next: "Si existe ciclo, asígnalo en Definición > Variables.",
+  });
   return (
     <div className="cmv2-dashboard-chart-grid">
-      <ClassroomPlotCard title="Sexo por facultad" subtitle="composición esperada de cada dominio, ordenada por predominio" wide>
-        <ClassroomStackedCrossPlot table={sexTable} ariaLabel="Sexo por facultad ordenado por predominio masculino" emptyState={emptyStates.sex} sortByMaleSurplus showSegmentLabels />
-      </ClassroomPlotCard>
       <ClassroomPlotCard title="Facultad por ciclo" subtitle="mapa de calor de estudiantes elegibles por avance académico" wide>
-        <ClassroomHeatmapPlot table={levelTable} ariaLabel="Mapa de calor facultad por ciclo" minColumnWidth={56} emptyState={emptyStates.level} />
+        <ClassroomHeatmapPlot table={levelTable} ariaLabel="Mapa de calor facultad por ciclo" minColumnWidth={56} emptyState={levelEmptyState} />
       </ClassroomPlotCard>
     </div>
   );
@@ -589,130 +623,5 @@ export function MarcoAulasHistograma({
         El mínimo de elegibles por curso-horario es solo lectura aquí: se decide en Selección → Objetivo.
       </p>
     </div>
-  );
-}
-
-/* ============================================================================
-   Aulas: composición por sexo por aula
-   ============================================================================ */
-
-export function MarcoAulasSexo({
-  frame,
-  workspace,
-}: {
-  frame: MarcoFrame;
-  workspace: CalcMuestraWorkspace;
-}) {
-  const { classroomRows } = marcoFrameRows(frame, workspace);
-  const rows = classroomSexCompositionRowsFromAulas(classroomRows, workspace, 12);
-  const emptyState = descriptiveMissingState(workspace, {
-    role: "sex",
-    variable: "Sexo o género",
-    source: "catálogo de cursos-horario",
-    hasSource: classroomRows.length > 0,
-    impact: "Permite leer la composición esperada y auditar cuotas.",
-    next: "Revisa Definición > Variables y vincula la columna Sexo o género.",
-  });
-  return (
-    <ClassroomPlotCard title="Sexo por curso-horario" subtitle="aporte esperado de hombres y mujeres en cada curso-horario" wide>
-      <ClassroomSexCompositionPlot rows={rows} ariaLabel="Sexo esperado por curso-horario" emptyState={emptyState} />
-    </ClassroomPlotCard>
-  );
-}
-
-/* ============================================================================
-   Aulas: excluidas por tamaño u otro motivo (auditoría)
-   ============================================================================ */
-
-const MARCO_EXCLUSION_LABELS: Record<string, string> = {
-  min_eligible_per_class: "bajo el mínimo por curso-horario",
-  modality: "modalidad no presencial",
-  session_type: "tipo de sesión excluido",
-  classroom_id: "sin curso-horario identificable",
-  level: "nivel fuera de pregrado",
-  condition: "condición no aceptada",
-};
-
-export function MarcoAulasExcluidas({
-  frame,
-  workspace,
-  minElegibles,
-}: {
-  frame: MarcoFrame;
-  workspace: CalcMuestraWorkspace;
-  minElegibles: number;
-}) {
-  const { classroomRowsRaw } = marcoFrameRows(frame, workspace);
-  const hasIncludedFlag = classroomRowsRaw.some((row) => row.included !== undefined);
-  const excludedRows = hasIncludedFlag
-    ? classroomRowsRaw.filter((row) => !classroomRowBoolean(row, "included"))
-    : [];
-  if (!classroomRowsRaw.length) return null;
-  const visible = excludedRows.slice(0, 12);
-  return (
-    <section className="cmv2-panel cmv2-marco-excluidas">
-      <div className="cmv2-panel-head">
-        <strong>Cursos-horario excluidos</strong>
-        <span className="cmv2-pill-soft">{excludedRows.length ? `${fmtInt(excludedRows.length)} excluidos` : "sin exclusiones"}</span>
-      </div>
-      {visible.length ? (
-        <>
-          <div className="cmv2-classroom-table-wrap">
-            <table className="cmv2-table cmv2-classroom-table">
-              <thead>
-                <tr>
-                  <th>Curso-horario</th>
-                  <th>Facultad</th>
-                  <th>Elegibles</th>
-                  <th>Motivo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visible.map((row, index) => {
-                  const eligible = classroomRowNumber(row, WEIGHTED_KEYS);
-                  const rawReason = classroomRowText(row, ["exclude_reason", "motivo", "reason"]);
-                  const reason = rawReason
-                    ? rawReason
-                        .split("|")
-                        .map((flag) => MARCO_EXCLUSION_LABELS[flag.trim()] ?? flag.trim().replace(/_/g, " "))
-                        .filter(Boolean)
-                        .join(" · ")
-                    : eligible > 0 && eligible < minElegibles
-                      ? `${MARCO_EXCLUSION_LABELS.min_eligible_per_class} (${fmtInt(eligible)} < ${fmtInt(minElegibles)})`
-                      : "excluido por la calculadora al construir el marco";
-                  const label = classroomRowText(row, ["course_name", "curso", "label", "classroom_label", "aula", "classroom_id"]) || `Curso-horario ${index + 1}`;
-                  const code = classroomRowText(row, ["classroom_id", "course_schedule_id", "nrc", "codigo_aula"]);
-                  return (
-                    <tr key={`${code || label}-${index}`}>
-                      <td>
-                        <strong>{label}</strong>
-                        {code && code !== label && <small>{code}</small>}
-                      </td>
-                      <td>{workspaceCategoryLabel(workspace, "faculty", firstRowValue(row, UNIVERSITY_FACULTY_ROW_KEYS)) || "—"}</td>
-                      <td>{eligible > 0 ? fmtInt(eligible) : "—"}</td>
-                      <td>{reason}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          {excludedRows.length > visible.length && (
-            <p className="cmv2-marco-excluidas-mas">
-              y {fmtInt(excludedRows.length - visible.length)} cursos-horario excluidos más quedan auditados en el marco.
-            </p>
-          )}
-        </>
-      ) : (
-        <div className="cmv2-marco-excluidas-vacio">
-          <AlertTriangle size={14} aria-hidden="true" />
-          <span>
-            {hasIncludedFlag
-              ? "Ningún curso-horario quedó fuera: todos superan el mínimo y los filtros de aplicación."
-              : "El marco guardado no trae marca de inclusión por curso-horario; reconstruye el marco para auditar exclusiones."}
-          </span>
-        </div>
-      )}
-    </section>
   );
 }

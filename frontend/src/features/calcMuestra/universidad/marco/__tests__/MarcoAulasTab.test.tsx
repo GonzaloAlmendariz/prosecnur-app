@@ -52,7 +52,7 @@ describe("MarcoAulasTab — embudo variable por proyecto", () => {
     } as unknown as CalcMuestraAulasState;
 
     const html = renderToStaticMarkup(
-      <MarcoAulasTab workspace={workspace} aulasState={aulasState} />,
+      <MarcoAulasTab workspace={workspace} aulasState={aulasState} onWorkspace={() => {}} />,
     );
 
     expect(html).toContain("Cursos-horario detectados");
@@ -103,7 +103,7 @@ describe("MarcoAulasTab — embudo variable por proyecto", () => {
     } as unknown as CalcMuestraAulasState;
 
     const html = renderToStaticMarkup(
-      <MarcoAulasTab workspace={workspace} aulasState={aulasState} />,
+      <MarcoAulasTab workspace={workspace} aulasState={aulasState} onWorkspace={() => {}} />,
     );
 
     expect(html).toContain('data-orientacion="adaptive"');
