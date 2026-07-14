@@ -17,8 +17,11 @@ import type { BaseCursosHorario } from "../../dominio";
 /** Insumo por facultad para el modelo (ensamblado por la capa visual). */
 export type CursosHorarioEntradaFacultad = {
   facultad: string;
-  /** Encuestas objetivo de la facultad (cuota del motor). */
+  /** Encuestas objetivo de la facultad (cuota neta del motor). */
   cuota: number;
+  /** Sobremuestra de la facultad (cuota × factor de sobremuestra): es el
+   *  DIVIDENDO del cálculo de aulas (método canónico §2.3). */
+  sobremuestra: number;
   /** Mediana de elegibles por curso-horario en el marco depurado. */
   estAulaMediana: number | null;
   /** Media de elegibles por curso-horario en el marco depurado. */
@@ -37,7 +40,9 @@ export type CursosHorarioFilaFacultad = {
   /** min(media, mediana) de elegibles por CH; null si no hay medida. */
   alumnosPorCH: number | null;
   cuota: number;
-  /** ceil(cuota / alumnos-por-CH); null si falta el divisor. */
+  /** Sobremuestra de la facultad (dividendo del cálculo de aulas). */
+  sobremuestra: number;
+  /** ceil(sobremuestra / alumnos-por-CH); null si falta el divisor. */
   chNecesarios: number | null;
   /** Inventario de CH de la base seleccionada (total o elegible del marco). */
   chBase: number | null;
@@ -52,6 +57,7 @@ export type CursosHorarioModelo = {
   filas: CursosHorarioFilaFacultad[];
   base: BaseCursosHorario;
   totalCuota: number;
+  totalSobremuestra: number;
   totalNecesarios: number;
   totalExtra: number;
   totalFinal: number;
@@ -71,11 +77,11 @@ export function alumnosPorCursoHorario(mediana: number | null, media: number | n
   return m ?? a;
 }
 
-/** CH necesarios para una cuota dado el tamaño medio de CH. */
-export function cursosHorarioNecesarios(cuota: number, alumnosPorCH: number | null): number | null {
+/** CH necesarios para una sobremuestra dado el tamaño medio de CH. */
+export function cursosHorarioNecesarios(sobremuestra: number, alumnosPorCH: number | null): number | null {
   if (alumnosPorCH == null || alumnosPorCH <= 0) return null;
-  if (!Number.isFinite(cuota) || cuota <= 0) return 0;
-  return Math.ceil(cuota / alumnosPorCH);
+  if (!Number.isFinite(sobremuestra) || sobremuestra <= 0) return 0;
+  return Math.ceil(sobremuestra / alumnosPorCH);
 }
 
 export function construirCursosHorarioModelo(
@@ -84,7 +90,8 @@ export function construirCursosHorarioModelo(
 ): CursosHorarioModelo {
   const filas: CursosHorarioFilaFacultad[] = entradas.map((entrada) => {
     const alumnosPorCH = alumnosPorCursoHorario(entrada.estAulaMediana, entrada.estAulaMedia);
-    const chNecesarios = cursosHorarioNecesarios(entrada.cuota, alumnosPorCH);
+    const sobremuestra = Math.max(0, Math.round(entrada.sobremuestra));
+    const chNecesarios = cursosHorarioNecesarios(sobremuestra, alumnosPorCH);
     const extra = Math.max(0, Math.round(entrada.extra));
     const chFinal = chNecesarios == null ? null : chNecesarios + extra;
     const chBase = base === "total" ? entrada.chTotal : entrada.chMarcoElegible;
@@ -93,6 +100,7 @@ export function construirCursosHorarioModelo(
       facultad: entrada.facultad,
       alumnosPorCH,
       cuota: Math.max(0, Math.round(entrada.cuota)),
+      sobremuestra,
       chNecesarios,
       chBase: chBase != null && Number.isFinite(chBase) ? chBase : null,
       extra,
@@ -106,6 +114,7 @@ export function construirCursosHorarioModelo(
     filas,
     base,
     totalCuota: filas.reduce((sum, f) => sum + f.cuota, 0),
+    totalSobremuestra: filas.reduce((sum, f) => sum + f.sobremuestra, 0),
     totalNecesarios: filas.reduce((sum, f) => sum + (f.chNecesarios ?? 0), 0),
     totalExtra: filas.reduce((sum, f) => sum + f.extra, 0),
     totalFinal: filas.reduce((sum, f) => sum + (f.chFinal ?? 0), 0),

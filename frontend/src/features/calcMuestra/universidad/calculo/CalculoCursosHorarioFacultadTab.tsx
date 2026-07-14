@@ -53,44 +53,27 @@ function mediana(valores: number[]): number | null {
   return orden.length % 2 === 0 ? (orden[mitad - 1] + orden[mitad]) / 2 : orden[mitad];
 }
 
-type TamStats = { mediana: number | null; media: number | null };
-type FrameFacultad = {
-  total: number;
-  elegible: number;
-  /** Tamaño de CH (min media/mediana) sobre el marco elegible. */
-  elegibles: TamStats;
-  /** Tamaño de CH (min media/mediana) sobre el total de CH. */
-  totales: TamStats;
-};
+type FrameFacultad = { total: number; elegible: number; medianaElegibles: number | null; mediaElegibles: number | null };
 
-function stats(valores: number[]): TamStats {
-  return {
-    mediana: mediana(valores),
-    media: valores.length
-      ? Math.round((valores.reduce((s, v) => s + v, 0) / valores.length) * 10) / 10
-      : null,
-  };
-}
-
-/** Agrega el marco de cursos-horario por facultad (conteos y tamaños de CH).
- *  El tamaño (media/mediana de elegibles por CH) se calcula por separado sobre
- *  el marco elegible y sobre el total de CH, para que la base seleccionada
- *  cambie de verdad la columna Alumnos/CH. */
+/** Agrega el marco de cursos-horario por facultad. El tamaño típico de CH
+ *  (min media/mediana de elegibles por CH) se calcula SIEMPRE sobre el marco
+ *  depurado (elegible), como en el método canónico (§2.2b): incluir los CH
+ *  excluidos —muchos con 1-2 elegibles— colapsaría el divisor e inflaría las
+ *  aulas. La base seleccionable solo cambia el inventario contra el que se
+ *  contrasta el uso (total de CH vs. CH del marco), no el divisor. */
 function frameCursosHorarioPorFacultad(aulasState: CalcMuestraAulasState | null): Map<string, FrameFacultad> {
   const filas = rowsFrom<Record<string, unknown>>(aulasState?.frame?.aula_frame);
-  const acc = new Map<string, { total: number; elegible: number; tamElegible: number[]; tamTotal: number[] }>();
+  const acc = new Map<string, { total: number; elegible: number; tamanos: number[] }>();
   for (const fila of filas) {
     const facultad = classroomRowText(fila, FACULTY_KEYS);
     if (!facultad) continue;
     const clave = normalizeUniversityLabel(facultad);
-    const bucket = acc.get(clave) ?? { total: 0, elegible: 0, tamElegible: [], tamTotal: [] };
+    const bucket = acc.get(clave) ?? { total: 0, elegible: 0, tamanos: [] };
     bucket.total += 1;
-    const tam = classroomRowNumber(fila, ELEGIBLES_KEYS);
-    const tamValido = Number.isFinite(tam) && tam > 0;
-    if (tamValido) bucket.tamTotal.push(tam);
     if (esIncluida(fila)) {
       bucket.elegible += 1;
-      if (tamValido) bucket.tamElegible.push(tam);
+      const tam = classroomRowNumber(fila, ELEGIBLES_KEYS);
+      if (Number.isFinite(tam) && tam > 0) bucket.tamanos.push(tam);
     }
     acc.set(clave, bucket);
   }
@@ -99,8 +82,10 @@ function frameCursosHorarioPorFacultad(aulasState: CalcMuestraAulasState | null)
     salida.set(clave, {
       total: bucket.total,
       elegible: bucket.elegible,
-      elegibles: stats(bucket.tamElegible),
-      totales: stats(bucket.tamTotal),
+      medianaElegibles: mediana(bucket.tamanos),
+      mediaElegibles: bucket.tamanos.length
+        ? Math.round((bucket.tamanos.reduce((s, v) => s + v, 0) / bucket.tamanos.length) * 10) / 10
+        : null,
     });
   }
   return salida;
@@ -132,16 +117,21 @@ export function CalculoCursosHorarioFacultadTab({
 
   const modelo = useMemo(() => {
     const cuotas = cuotasComp ? universityDistributionRows(cuotasComp) : [];
+    // El divisor de aulas es la SOBREMUESTRA por facultad (n × factor), no la
+    // cuota neta (método canónico §2.3: aulas = ⌈sobremuestra / est_aula⌉). El
+    // factor es el que aplicó el motor: n_operativo / n_objetivo del resultado.
+    const nObj = safeNumber(cuotasComp?.resultado?.n_objetivo, 0);
+    const nOper = safeNumber(cuotasComp?.resultado?.n_operativo, 0);
+    const factorSobremuestra = nObj > 0 && nOper > 0 ? nOper / nObj : 1;
     const entradas: CursosHorarioEntradaFacultad[] = cuotas.map((row) => {
       const frame = frameFacultades.get(normalizeUniversityLabel(row.facultad));
-      // La base seleccionada decide sobre qué conjunto de CH se mide el tamaño
-      // (media/mediana de elegibles por CH): elegible = solo marco; total = todos.
-      const tam = base === "total" ? frame?.totales : frame?.elegibles;
+      const cuota = safeNumber(row.n, 0);
       return {
         facultad: row.facultad,
-        cuota: safeNumber(row.n, 0),
-        estAulaMediana: tam?.mediana ?? null,
-        estAulaMedia: tam?.media ?? null,
+        cuota,
+        sobremuestra: Math.round(cuota * factorSobremuestra),
+        estAulaMediana: frame?.medianaElegibles ?? null,
+        estAulaMedia: frame?.mediaElegibles ?? null,
         chMarcoElegible: frame?.elegible ?? null,
         chTotal: frame?.total ?? null,
         extra: safeNumber(extraPorFacultad[row.facultad], 0),
@@ -184,9 +174,10 @@ export function CalculoCursosHorarioFacultadTab({
         </div>
         <p className="cmv2-calc-diseno-nota">
           <Grid3X3 size={13} aria-hidden="true" />
-          Alumnos por curso-horario = <strong>mínimo entre la media y la mediana</strong> de elegibles por CH del marco.
-          CH necesarios = ⌈cuota ÷ alumnos-por-CH⌉. La base seleccionada ({base === "total" ? "total de CH" : "CH del marco elegible"})
-          es el inventario contra el que se contrasta el uso.
+          Alumnos por curso-horario = <strong>mínimo entre la media y la mediana</strong> de elegibles por CH del marco
+          depurado (siempre sobre el marco elegible). CH necesarios = ⌈<strong>sobremuestra</strong> ÷ alumnos-por-CH⌉ — la
+          sobremuestra (no la cuota neta) cubre no-respuesta y ausencias. La base seleccionada
+          ({base === "total" ? "total de CH" : "CH del marco elegible"}) es solo el inventario contra el que se contrasta el uso.
         </p>
 
         <div className="cmv2-ch-kpis">
@@ -206,6 +197,7 @@ export function CalculoCursosHorarioFacultadTab({
                 <th>Facultad</th>
                 <th>Alumnos/CH</th>
                 <th>Cuota</th>
+                <th>Sobremuestra</th>
                 <th>CH necesarios</th>
                 <th>{base === "total" ? "CH totales" : "CH elegibles"}</th>
                 <th>Extra</th>
@@ -218,6 +210,7 @@ export function CalculoCursosHorarioFacultadTab({
                   <td><strong>{fila.facultad}</strong></td>
                   <td>{fila.alumnosPorCH != null ? fmtDec(fila.alumnosPorCH, 1) : "—"}</td>
                   <td>{fmtInt(fila.cuota)}</td>
+                  <td>{fmtInt(fila.sobremuestra)}</td>
                   <td>{fila.chNecesarios != null ? fmtInt(fila.chNecesarios) : "—"}</td>
                   <td>{fila.chBase != null ? fmtInt(fila.chBase) : "—"}</td>
                   <td>
