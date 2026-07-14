@@ -22,7 +22,7 @@ import {
 import { IconConfirm, IconSuccess, IconUndo } from "../../../../lib/icons";
 import {
   minEligibleThreshold,
-  seleccionInicial,
+  seleccionCanonica,
   setMinEligible,
   setRangosFacultad,
   setSeleccionVariable,
@@ -73,8 +73,11 @@ export function CriteriosMarcoTab({
     [aulasState?.frame?.criterios_catalogo],
   );
   const config = useMemo(() => normalizeUniversityAulasConfig(workspace.aulas_config), [workspace.aulas_config]);
+  // Default = selección CANÓNICA (pregrado/regular/presencial/tipos válidos/≥18),
+  // no todo deseleccionado: es un punto de partida defendible que el usuario ve
+  // marcado y puede cambiar. En bases sin esas categorías cae a "todo incluido".
   const seleccion = useMemo(
-    () => config.criterios_seleccion ?? seleccionInicial(catalogo),
+    () => config.criterios_seleccion ?? seleccionCanonica(catalogo),
     [config.criterios_seleccion, catalogo],
   );
   const [borrador, setBorrador] = useState<CriteriosSeleccionMarco>(() => seleccion);
@@ -158,6 +161,15 @@ export function CriteriosMarcoTab({
     });
   }
 
+  // Aplica la selección canónica (pregrado/regular/presencial/tipos válidos/≥18)
+  // a toda la suite de una vez: punto de partida del estudio de referencia.
+  function aplicarCanonicos() {
+    const canon = seleccionCanonica(catalogo);
+    setBorrador(canon);
+    patchSeleccion(canon);
+    setPendientes(new Set());
+  }
+
   const umbralElegibles = minEligibleThreshold(borrador, config.min_elegibles_aula);
   const totalPendientes = pendientes.size;
 
@@ -192,9 +204,13 @@ export function CriteriosMarcoTab({
           <span className="cmv2-crit-draft-summary" data-active={totalPendientes > 0 ? "true" : "false"} data-stale={marcoDesactualizado ? "true" : "false"}>
             {estadoResumen}
           </span>
-          <button
-            type="button"
-            className="cmv2-crit-apply-btn"
+          <div className="cmv2-crit-apply-actions">
+            <button type="button" className="cmv2-crit-canon-btn" onClick={aplicarCanonicos}>
+              Criterios canónicos
+            </button>
+            <button
+              type="button"
+              className="cmv2-crit-apply-btn"
             data-beam={beam ? "true" : "false"}
             disabled={!listoParaRecalcular}
             onClick={onReconstruir}
@@ -209,6 +225,7 @@ export function CriteriosMarcoTab({
               Calcular población y cursos-horario elegibles
             </span>
           </button>
+          </div>
         </div>
       )}
 
