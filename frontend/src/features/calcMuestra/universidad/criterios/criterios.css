@@ -207,23 +207,15 @@
 
 .cmv2-crit-scope-head {
   display: grid;
-  grid-template-columns: 4px auto 1fr;
+  grid-template-columns: auto 1fr;
   align-items: center;
   gap: 12px;
   padding: 5px 0 7px;
   border-bottom: 1px solid var(--cmv2-border);
 }
-.cmv2-crit-scope-bar {
-  align-self: stretch;
-  border-radius: 999px;
-  background: var(--cmv2-accent);
-}
-.cmv2-crit-scope-head[data-scope="alumno"] .cmv2-crit-scope-bar {
-  background: var(--cmv2-accent);
-}
-.cmv2-crit-scope-head[data-scope="aula"] .cmv2-crit-scope-bar {
-  background: color-mix(in srgb, var(--cmv2-accent) 55%, var(--pulso-primary) 45%);
-}
+/* Barra de acento a la izquierda retirada (jerarquía por el ícono, no por un
+   filo decorativo). Se oculta para no tocar el JSX. */
+.cmv2-crit-scope-bar { display: none; }
 .cmv2-crit-scope-icon {
   display: inline-flex;
   align-items: center;
@@ -1050,4 +1042,28 @@
 .cmv2-crit-scope-copy h3 {
   font-size: 14px;
   font-weight: 700;
+}
+
+/* Acciones del apply-bar: botón secundario "Criterios canónicos" junto a la
+   acción primaria de recalcular. */
+.cmv2-crit-apply-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.cmv2-crit-canon-btn {
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.cmv2-crit-canon-btn:hover {
+  border-color: color-mix(in srgb, var(--cmv2-accent) 45%, var(--pulso-border));
+  color: var(--cmv2-accent-fg, var(--cmv2-accent));
 }

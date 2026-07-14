@@ -112,6 +112,80 @@ export function seleccionInicial(catalogo: CriteriosCatalogo | null | undefined)
   return { byVariable };
 }
 
+/**
+ * Categorías canónicas (universidad) por rol de variable, según los criterios
+ * de inclusión de la doc definitiva HST (03.3): pregrado · regular · presencial
+ * · tipos de curso válidos (teórico/laboratorio/taller/obligatorio) · docente
+ * estable. Devuelve las CLAVES a incluir, o `null` si la variable no reconoce
+ * ninguna categoría canónica — en ese caso se incluye TODO (no restringe), para
+ * que en bases distintas (motor general) el default no filtre de más.
+ */
+function categoriasCanonicasFlat(variable: CriterioVariable): string[] | null {
+  const cats = categoriasDeVariable(variable);
+  const txt = (c: (typeof cats)[number]) => `${c.label ?? ""} ${c.key ?? ""}`.toLowerCase();
+  const has = (t: string, ...subs: string[]) => subs.some((s) => t.includes(s));
+  const pick = (test: (t: string) => boolean) => cats.filter((c) => test(txt(c))).map((c) => c.key);
+  let keys: string[] = [];
+  switch (variable.id) {
+    case "formation":
+      keys = pick((t) => t.includes("pregrado") && !has(t, "posgrado", "maestr", "doctor", "diplom", "especialidad"));
+      break;
+    case "condition":
+      keys = pick((t) => t.includes("regular") && !has(t, "reincorpor", "movilidad", "ingreso", "traslado", "incorpor", "consorcio", "especial", "electivo", "obligator"));
+      break;
+    case "modality":
+      keys = pick((t) => t.includes("presencial") && !has(t, "semi", "virtual", "distancia", "online", "remoto"));
+      break;
+    case "session_type":
+    case "course_type":
+      // Válidos (03.3 §B.3): teóricos, teórico-prácticos, laboratorios, talleres.
+      // Ojo: "teórico-práctico" es VÁLIDO, así que la exclusión de prácticas
+      // apunta a "práctica supervisada/preprofesional", no al genérico "practic".
+      keys = pick(
+        (t) =>
+          has(t, "teoric", "teóric", "laborator", "taller", "obligator") &&
+          !has(t, "seminario", "tesis", "asesor", "investigac", "actividad", "supervisad", "preprofesional", "campo", "artist", "artíst", "idiom"),
+      );
+      break;
+    case "condicion_curso":
+      keys = pick((t) => has(t, "obligator", "especialidad", "taller"));
+      break;
+    case "teacher_type":
+      keys = pick((t) => has(t, "ordinario", "contratad"));
+      break;
+    default:
+      return null; // sin canónico conocido → incluir todo (no restringe)
+  }
+  return keys.length ? keys : null;
+}
+
+/**
+ * Selección CANÓNICA por defecto: parte de la selección inicial (todo incluido)
+ * y aplica los criterios canónicos universitarios en las variables que los
+ * reconocen (pregrado/regular/presencial/tipos válidos/edad ≥18). En bases sin
+ * esas categorías cae con gracia a "todo incluido" por variable. Es un punto de
+ * partida defendible (reproduce el marco de referencia), no una restricción
+ * silenciosa: el usuario lo ve marcado y puede cambiarlo.
+ */
+export function seleccionCanonica(catalogo: CriteriosCatalogo | null | undefined): CriteriosSeleccionMarco {
+  const byVariable: Record<string, CriterioSeleccion> = {};
+  for (const variable of catalogo?.variables ?? []) {
+    if (variable.kind === "range") continue;
+    const sel: CriterioSeleccion = { mode: "include" };
+    if (variable.kind === "flat" || variable.kind === "hierarchical") {
+      sel.categories = categoriasCanonicasFlat(variable) ?? clavesDeVariable(variable);
+      if (variable.kind === "hierarchical") sel.match = "any";
+    } else if (variable.kind === "ordinal") {
+      sel.includeValues = [...(variable.values ?? [])];
+    } else if (variable.kind === "numeric" && (variable.id === "age" || variable.id === "edad")) {
+      sel.threshold = { op: ">=", min: 18 };
+    }
+    if (variable.scope === "alumno") sel.layer = "marco";
+    byVariable[variable.id] = sel;
+  }
+  return { byVariable };
+}
+
 // ---------------------------------------------------------------------------
 // flat / hierarchical
 // ---------------------------------------------------------------------------

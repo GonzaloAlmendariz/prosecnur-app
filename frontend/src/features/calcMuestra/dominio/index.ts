@@ -13,6 +13,7 @@ export {
 } from "./adaptador";
 export {
   seleccionInicial,
+  seleccionCanonica,
   seleccionVariable,
   categoriasDeVariable,
   clavesDeVariable,
