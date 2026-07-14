@@ -403,7 +403,7 @@ export function UniversidadDesk({
               />
             </div>}
             {showLocalTab("marco-cobertura") && <div id="cmv2-local-marco-cobertura" className="rec-recorrido rec-recorrido--full">
-              <TabCobertura perfil={motor.perfil} cob={motor.cob} />
+              <TabCobertura perfil={motor.perfil} aulasState={aulasState} />
             </div>}
             {showLocalTab("marco-poblacion") && <div id="cmv2-local-marco-poblacion">
               <MarcoPoblacionTab workspace={syncedWorkspace} totalComp={totalComp} aulasState={aulasState} />

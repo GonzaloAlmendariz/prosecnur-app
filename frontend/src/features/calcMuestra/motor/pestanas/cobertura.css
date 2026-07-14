@@ -1,0 +1,130 @@
+/* =============================================================================
+   Cobertura (sección Marco): dos gráficos apilados por facultad — alumnos y
+   cursos-horario, incluidos vs. excluidos. Prefijo cmv2-cob-*. Solo tokens.
+   ============================================================================= */
+
+.cmv2-cob {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.cmv2-cob-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--cmv2-border, var(--pulso-border));
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+
+.cmv2-cob-card-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+.cmv2-cob-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--pulso-radius-chip);
+  background: color-mix(in srgb, var(--cmv2-accent) 12%, var(--pulso-surface));
+  color: var(--cmv2-accent-fg, var(--cmv2-accent));
+}
+.cmv2-cob-card-title h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+.cmv2-cob-card-title p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--pulso-text-muted);
+}
+.cmv2-cob-card-kpi {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+}
+.cmv2-cob-card-kpi strong {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+.cmv2-cob-card-kpi span {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-cob-legend {
+  display: flex;
+  gap: 16px;
+  padding-top: 2px;
+}
+.cmv2-cob-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pulso-text-muted);
+}
+.cmv2-cob-legend-item i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.cmv2-cob-legend-item[data-kind="in"] i { background: var(--cmv2-accent); }
+.cmv2-cob-legend-item[data-kind="out"] i {
+  background: color-mix(in srgb, var(--pulso-border) 65%, var(--pulso-surface));
+}
+
+.cmv2-cob-bars {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cmv2-cob-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 190px) 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+.cmv2-cob-row-name {
+  font-size: 12px;
+  color: var(--pulso-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cmv2-cob-row-track {
+  display: flex;
+  height: 18px;
+  min-width: 2px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--pulso-border) 22%, var(--pulso-surface));
+}
+.cmv2-cob-seg { height: 100%; transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+.cmv2-cob-seg[data-kind="in"] { background: var(--cmv2-accent); }
+.cmv2-cob-seg[data-kind="out"] {
+  background: color-mix(in srgb, var(--pulso-border) 62%, var(--pulso-surface));
+}
+.cmv2-cob-row-val {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.cmv2-cob-row-val b { font-size: 13px; font-weight: 700; color: var(--pulso-text); }
+.cmv2-cob-row-val em { font-size: 11px; font-style: normal; color: var(--pulso-text-muted); }
