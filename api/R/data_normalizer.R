@@ -377,6 +377,28 @@
   NA_character_
 }
 
+# ¿La columna `x` tiene FORMA de dummy de opción (multiple-dichotomy)? Criterio
+# AUTORITATIVO por NATURALEZA, name-agnostic: reemplaza la vieja exclusión por
+# patrón de nombre (`_other`/`_specify`/`_texto`) que botaba la dummy de OPCIÓN
+# `<parent>/other` y disparaba falsos positivos other-only. Una dummy es binaria
+# 0/1/TRUE/FALSE (o SM/SAV con una sola etiqueta de valor); el TEXTO LIBRE que
+# acompaña a la opción "otro" (`<parent>_other`) trae cadenas ("salud",
+# "detalle") y NO pasa. Difiere a propósito de `.sm_is_binary_like`: aquí una
+# columna 100% vacía SÍ se acepta como dummy (una dummy sin marcas), porque en
+# este paso conviene INCLUIRla como candidata para que mapee a su choice y luego
+# se consuma; excluirla dejaría una dummy huérfana sin reconstruir.
+.dn_is_binary_dummy_col <- function(x) {
+  # Señal autoritativa SM/SAV: una sola etiqueta de valor (`labels` longitud 1)
+  # es la firma del multiple-dichotomy; basta para tratarla como dummy.
+  labs <- attr(x, "labels", exact = TRUE)
+  if (!is.null(labs) && length(labs) == 1L) return(TRUE)
+  if (is.logical(x)) return(TRUE)
+  x_chr <- trimws(as.character(x))
+  vals <- x_chr[!is.na(x_chr) & nzchar(x_chr)]
+  if (!length(vals)) return(TRUE)
+  all(tolower(vals) %in% c("0", "1", "true", "false"))
+}
+
 .dn_q_to_p_name <- function(name) {
   m <- regmatches(name, regexec("^[qQ]0*([0-9]+)(.*)$", name))[[1]]
   if (length(m) < 3L) return(NA_character_)
@@ -412,7 +434,25 @@
 
   prefix_pat <- paste0("^", .dn_escape_regex(parent), "([_/.])(.+)$")
   candidates <- data_names[grepl(prefix_pat, data_names, perl = TRUE)]
-  candidates <- candidates[!grepl("([_/.])(other|otro|otra|specify|texto)$", candidates, ignore.case = TRUE)]
+  # Qué candidata es una dummy de opción se decide por NATURALEZA, jamás por el
+  # NOMBRE de la opción. Cualquier opción real —código con letras (`legal`),
+  # número (`96`), o incluso una opción legítimamente llamada `specify`/`otro`—
+  # aporta su token. Sólo se excluye lo que genuinamente NO es dummy:
+  #   (a) columnas que SON variables del survey (el texto libre `<parent>_other`
+  #       es un campo `text` aparte) → `protected_names`, abajo; y
+  #   (b) columnas cuyos VALORES no son binarios de dummy (el texto libre trae
+  #       cadenas "salud"/"detalle", no 0/1) → `.dn_is_binary_dummy_col`.
+  # Con estos dos criterios name-agnostic, el tie-breaker de ODK se resuelve
+  # solo: la dummy de OPCIÓN `<parent>/other` (binaria) SÍ aporta su token,
+  # mientras el TEXTO LIBRE `<parent>_other` (cadenas + survey var) queda fuera
+  # por AMBAS vías. Esto cierra la clase de bug del falso positivo other-only,
+  # que nacía de excluir por el patrón de nombre `_(other|specify|texto)$`.
+  if (length(candidates)) {
+    is_dummy_shaped <- vapply(
+      candidates, function(nm) .dn_is_binary_dummy_col(data[[nm]]), logical(1)
+    )
+    candidates <- candidates[is_dummy_shaped]
+  }
   protected_names <- as.character(protected_names %||% character())
   protected_names <- protected_names[!is.na(protected_names) & nzchar(protected_names)]
   if (length(protected_names)) {
