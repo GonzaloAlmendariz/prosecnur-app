@@ -102,6 +102,8 @@ describe("MarcoConsistenciaTab", () => {
     expect(resolveUniversityLocalTab("marco-cruces")).toBe("marco-poblacion");
     expect(resolveUniversityLocalTab("marco-estructura")).toBe("marco-poblacion");
     expect(resolveUniversityLocalTab("marco-cadena")).toBe("marco-poblacion");
-    expect(resolveUniversityLocalTab("marco-validacion")).toBe("marco-validacion");
+    // Consistencia se reubicó de Marco a Datos (§3.2): un tab guardado aterriza
+    // en su nuevo hogar def-consistencia.
+    expect(resolveUniversityLocalTab("marco-validacion")).toBe("def-consistencia");
   });
 });

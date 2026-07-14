@@ -1,15 +1,17 @@
 /**
- * Pestaña "Aulas" de Marco. El foco es la unidad seleccionable (curso-horario):
- * KPIs con procedencia del motor, capacidad del marco (embudo + lecturas),
- * histograma de tamaños con bandas G1-G4 y línea del mínimo por aula (solo
- * lectura: se decide en Aulas → Objetivo), composición por sexo por aula y
- * auditoría de aulas excluidas con su motivo.
+ * Pestaña "Cursos-horario" de Marco. Un solo bloque narrativo encabeza la
+ * lectura: KPIs con procedencia del motor + embudo medido del proyecto. Debajo,
+ * el histograma de tamaños se dibuja SOBRE los grupos que el usuario define
+ * (grupos_tamano, persistidos en workspace.aulas_config), y la composición por
+ * sexo por curso-horario con selector de facultad, orden y scroll.
  */
 import { Grid3X3 } from "lucide-react";
 import { EmptyState } from "../../../../components/States";
 import type {
   CalcMuestraAulasState,
   CalcMuestraWorkspace,
+  CalcMuestraWorkspaceAulasConfig,
+  CalcMuestraWorkspaceAulasSizeGroup,
 } from "../../../../api/client";
 import { embudoAulaDesdeFrame } from "../../dominio";
 import { fmtDec, fmtInt } from "../../sharedCore";
@@ -24,11 +26,11 @@ import {
 } from "./marcoCharts";
 import {
   MarcoAulasCapacidad,
-  MarcoAulasExcluidas,
   MarcoAulasHistograma,
-  MarcoAulasSexo,
   marcoFrameRows,
 } from "./marcoCards";
+import { CursosHorarioSexo } from "./CursosHorarioSexo";
+import { GruposTamanoEditor } from "./GruposTamanoEditor";
 import "../../didactica/didactica.css";
 import "./marco.css";
 
@@ -37,9 +39,11 @@ const WEIGHTED_KEYS = ["eligible_n", "elegibles", "n_elegibles", "students_n", "
 export function MarcoAulasTab({
   workspace,
   aulasState,
+  onWorkspace,
 }: {
   workspace: CalcMuestraWorkspace;
   aulasState: CalcMuestraAulasState | null;
+  onWorkspace: (workspace: CalcMuestraWorkspace) => void;
 }) {
   const frame = aulasState?.frame ?? null;
   const config = normalizeUniversityAulasConfig(workspace.aulas_config);
@@ -51,6 +55,25 @@ export function MarcoAulasTab({
   const teacherCount = countDistinctByKeys(classroomRows, ["teacher", "docente", "profesor", "contacto"]);
   // Embudo medido del proyecto, con los pasos y el orden que entrega el backend.
   const embudoAula = embudoAulaDesdeFrame(frame);
+
+  function updateConfig(patch: Partial<CalcMuestraWorkspaceAulasConfig>) {
+    onWorkspace({
+      ...workspace,
+      aulas_config: normalizeUniversityAulasConfig({ ...config, ...patch }),
+    });
+  }
+
+  function setSizeGroups(groups: CalcMuestraWorkspaceAulasSizeGroup[]) {
+    updateConfig({ grupos_tamano: groups });
+  }
+
+  function setUseSizeGroups(value: boolean) {
+    const base = ["faculty", "sex_top_1"];
+    updateConfig({
+      usar_grupos_tamano: value,
+      estratos_selector: value ? [...base, "size_group"] : base,
+    });
+  }
 
   if (!classroomRowsRaw.length && !frameAuditNumber(frame, "classroom_n")) {
     return (
@@ -67,6 +90,10 @@ export function MarcoAulasTab({
   return (
     <div className="cmv2-marco-stack">
       <section className="cmv2-panel cmv2-marco-aulas-head">
+        <div className="cmv2-marco-aulas-lead">
+          <span className="cmv2-eyebrow">Marco de cursos-horario</span>
+          <strong>De la matrícula elegible a las unidades que se pueden seleccionar</strong>
+        </div>
         <CifraFila>
           <CifraMotor
             label="Cursos-horario válidos"
@@ -115,12 +142,17 @@ export function MarcoAulasTab({
           subtitle={`elegibles por curso-horario, con bandas ${(config.grupos_tamano ?? []).map((g) => g.id).join("-") || "G1-G4"} y mínimo operativo`}
           wide
         >
+          <GruposTamanoEditor
+            groups={config.grupos_tamano ?? []}
+            enabled={config.usar_grupos_tamano}
+            onGroupsChange={setSizeGroups}
+            onEnabledChange={setUseSizeGroups}
+          />
           <MarcoAulasHistograma frame={frame} workspace={workspace} minElegibles={minElegibles} />
         </ClassroomPlotCard>
-        <MarcoAulasSexo frame={frame} workspace={workspace} />
       </div>
 
-      <MarcoAulasExcluidas frame={frame} workspace={workspace} minElegibles={minElegibles} />
+      <CursosHorarioSexo frame={frame} workspace={workspace} />
     </div>
   );
 }

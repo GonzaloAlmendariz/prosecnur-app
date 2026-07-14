@@ -15,7 +15,7 @@ import type {
 } from "../../../../api/client";
 import { embudoAlumnoDesdeFrame } from "../../dominio";
 import { RespaldoMetodologico } from "../../didactica/PasoDidactico";
-import { fmtInt, fmtPct } from "../../sharedCore";
+import { fmtInt } from "../../sharedCore";
 import { CifraMotor, FlujoVertical, type FlujoEtapa } from "../ui";
 import { embudoEtapas } from "./embudoEtapas";
 import {
@@ -39,7 +39,7 @@ export function MarcoPoblacionTab({
 }) {
   const frame = aulasState?.frame ?? null;
   const hasMarco = Boolean(frame || (totalComp.marco.estratos ?? []).length);
-  const { inputRows, eligibleRows, populationN, dedupeLoad } =
+  const { inputRows, eligibleRows, populationN } =
     marcoPopulationFigures(frame, totalComp, workspace);
   // La merma del flujo se calcula con la misma aritmética visible
   // (universo − elegibles); el excluded_rows del audit vive en la auditoría
@@ -100,7 +100,11 @@ export function MarcoPoblacionTab({
       <section className="cmv2-panel cmv2-marco-poblacion-head">
         <div className="cmv2-marco-flujo-layout">
           <div className="cmv2-marco-flujo-main cmv2-marco-flujo-stagger">
-            <FlujoVertical etapas={etapas} orientacion="horizontal" ariaLabel="Del universo a la población objetivo" />
+            <FlujoVertical
+              etapas={etapas}
+              orientacion={etapas.length >= 5 ? "adaptive" : "horizontal"}
+              ariaLabel="Del universo a la población objetivo"
+            />
           </div>
           <span className="cmv2-marco-flujo-result-connector" aria-hidden="true" />
           <div className="cmv2-marco-flujo-cifras">
@@ -110,12 +114,6 @@ export function MarcoPoblacionTab({
               detalle="estudiantes únicos elegibles"
               origen={populationN > 0 ? "motor" : undefined}
               hero
-            />
-            <CifraMotor
-              label="Consolidación"
-              value={Number.isFinite(dedupeLoad) ? fmtPct(dedupeLoad) : "pendiente"}
-              detalle="filas repetidas absorbidas"
-              origen={Number.isFinite(dedupeLoad) ? "motor" : undefined}
             />
           </div>
         </div>

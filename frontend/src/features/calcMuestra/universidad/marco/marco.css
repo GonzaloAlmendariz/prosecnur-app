@@ -85,16 +85,24 @@
   min-width: 30px;
 }
 
-/* La merma del marco es una cifra operativa, no un adorno: reserva el ancho
-   necesario para que “cursos-horario” nunca quede oculto por la etapa vecina. */
+/* §4.2.1: la merma del marco es una cifra operativa, no un adorno. En la
+   cascada horizontal reserva el ancho de su pastilla para que el segmento de
+   resta (la "barra amarilla") NUNCA se trunque, sin importar cuántos criterios
+   haya. Con muchos pasos el flujo pasa a orientación adaptativa y la merma se
+   dibuja inline dentro de la etapa (cmv2-uni-flujo-merma-inline), donde tampoco
+   se recorta. */
+.cmv2-marco-flujo-main .cmv2-uni-flujo-arista:has(.cmv2-uni-flujo-merma),
 .cmv2-marco-embudo-aula .cmv2-uni-flujo-arista:has(.cmv2-uni-flujo-merma) {
-  flex-basis: 164px;
-  min-width: 164px;
+  flex: 0 0 auto;
+  flex-basis: 156px;
+  min-width: 148px;
 }
 
+.cmv2-marco-flujo-main .cmv2-uni-flujo-merma,
 .cmv2-marco-embudo-aula .cmv2-uni-flujo-merma {
   position: relative;
   z-index: 1;
+  flex: none;
 }
 
 .cmv2-marco-flujo-result-connector {
@@ -126,9 +134,11 @@
   transform: translateY(-50%) rotate(45deg);
 }
 
+/* §4.2.2: sin la tarjeta "Consolidación", el resultado es una sola cifra hero
+   que ocupa toda la columna de resultado. */
 .cmv2-marco-flujo-cifras {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.9fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   align-content: stretch;
 }
@@ -1237,5 +1247,384 @@
 
   .cmv2-marco-aulas-head > .cmv2-uni-cifra-fila .cmv2-uni-cifra:nth-child(4) {
     border-top: 1px solid var(--cmv2-border);
+  }
+}
+
+/* =============================================================================
+   Cursos-horario: rediseño de la pestaña (§4.3)
+   ============================================================================= */
+
+/* §4.3.1: encabezado como un solo bloque narrativo (lead + banda de KPIs). */
+.cmv2-marco-aulas-lead {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.cmv2-marco-aulas-lead strong {
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+/* §4.3.2: editor de grupos de tamaño (rangos por nº de elegibles). */
+.cmv2-ch-grupos {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 10px;
+  background: var(--cmv2-surface);
+}
+
+.cmv2-ch-grupos-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  cursor: pointer;
+}
+
+.cmv2-ch-grupos-toggle input {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  accent-color: var(--cmv2-accent);
+}
+
+.cmv2-ch-grupos-toggle span {
+  display: grid;
+  gap: 1px;
+}
+
+.cmv2-ch-grupos-toggle strong {
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.cmv2-ch-grupos-toggle em {
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  font-style: normal;
+}
+
+.cmv2-ch-grupos-list {
+  display: grid;
+  gap: 7px;
+}
+
+.cmv2-ch-grupos-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cmv2-ch-grupos-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 42px;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.cmv2-ch-grupos-tag i {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: var(--cmv2-accent);
+}
+
+.cmv2-ch-grupos-tag i[data-grupo="G1"] { background: color-mix(in srgb, var(--cmv2-accent) 35%, var(--cmv2-surface)); }
+.cmv2-ch-grupos-tag i[data-grupo="G2"] { background: color-mix(in srgb, var(--cmv2-accent) 55%, var(--cmv2-surface)); }
+.cmv2-ch-grupos-tag i[data-grupo="G3"] { background: color-mix(in srgb, var(--cmv2-accent) 75%, var(--cmv2-surface)); }
+.cmv2-ch-grupos-tag i[data-grupo="G4"] { background: var(--cmv2-accent); }
+.cmv2-ch-grupos-tag i[data-grupo="G5"] { background: color-mix(in srgb, var(--cmv2-accent) 88%, var(--pulso-text)); }
+.cmv2-ch-grupos-tag i[data-grupo="G6"] { background: color-mix(in srgb, var(--cmv2-accent) 70%, var(--pulso-text)); }
+
+.cmv2-ch-grupos-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+}
+
+.cmv2-ch-grupos-field input {
+  width: 72px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 8px;
+  background: var(--cmv2-control-bg, var(--cmv2-surface));
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-ch-grupos-field input:focus-visible {
+  outline: 2px solid transparent;
+  border-color: var(--cmv2-accent-border);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 35%, transparent);
+}
+
+.cmv2-ch-grupos-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-left: auto;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 8px;
+  background: var(--cmv2-surface);
+  color: var(--pulso-text-muted);
+  cursor: pointer;
+}
+
+.cmv2-ch-grupos-remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-ch-grupos-remove:not(:disabled):hover {
+    border-color: var(--pulso-danger-border, var(--cmv2-border-strong));
+    color: var(--pulso-danger-fg, var(--pulso-text));
+  }
+}
+
+.cmv2-ch-grupos-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: start;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px dashed var(--cmv2-accent-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cmv2-accent-fg, var(--cmv2-accent));
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-ch-grupos-add:hover {
+    background: var(--cmv2-accent-soft);
+  }
+}
+
+/* Grupos añadidos (G5/G6) heredan el degradé del histograma. */
+.cmv2-marco-histo-bin[data-grupo="G5"] .cmv2-marco-histo-col i { background: color-mix(in srgb, var(--cmv2-accent) 88%, var(--pulso-text)); }
+.cmv2-marco-histo-bin[data-grupo="G6"] .cmv2-marco-histo-col i { background: color-mix(in srgb, var(--cmv2-accent) 70%, var(--pulso-text)); }
+.cmv2-marco-histo-legend span[data-grupo="G5"] i { background: color-mix(in srgb, var(--cmv2-accent) 88%, var(--pulso-text)); }
+.cmv2-marco-histo-legend span[data-grupo="G6"] i { background: color-mix(in srgb, var(--cmv2-accent) 70%, var(--pulso-text)); }
+
+/* §4.2.5: selector de facultad para el drill de carreras (reemplaza el clic). */
+.cmv2-marco-drill-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.cmv2-marco-drill-select select {
+  height: 28px;
+  padding: 0 26px 0 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 8px;
+  background: var(--cmv2-control-bg, var(--cmv2-surface));
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+/* §4.3.3: sexo por curso-horario con selector de facultad, orden y scroll. */
+.cmv2-ch-sexo-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cmv2-ch-sexo-title {
+  display: grid;
+  gap: 2px;
+}
+
+.cmv2-ch-sexo-title strong {
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.cmv2-ch-sexo-title span {
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+}
+
+.cmv2-ch-sexo-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cmv2-ch-sexo-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.cmv2-ch-sexo-select select {
+  height: 28px;
+  max-width: 240px;
+  padding: 0 26px 0 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 8px;
+  background: var(--cmv2-control-bg, var(--cmv2-surface));
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+.cmv2-ch-sexo-order {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 8px;
+  background: var(--cmv2-surface);
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-ch-sexo-order:hover {
+    border-color: var(--cmv2-accent-border);
+    background: var(--cmv2-accent-soft);
+  }
+}
+
+.cmv2-ch-sexo-legend {
+  margin: 10px 0 4px;
+}
+
+.cmv2-ch-sexo-scroll {
+  display: grid;
+  gap: 4px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+}
+
+.cmv2-ch-sexo-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.1fr) minmax(0, 2fr) 62px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px;
+  border-radius: 8px;
+}
+
+.cmv2-ch-sexo-row:nth-child(odd) {
+  background: color-mix(in srgb, var(--cmv2-surface-2, var(--cmv2-surface)) 60%, transparent);
+}
+
+.cmv2-ch-sexo-label {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cmv2-ch-sexo-label strong {
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmv2-ch-sexo-label span {
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmv2-ch-sexo-bars {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cmv2-ch-sexo-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cmv2-ch-sexo-bar i {
+  display: block;
+  height: 12px;
+  min-width: 0;
+  border-radius: 3px;
+}
+
+.cmv2-ch-sexo-bar strong {
+  flex: none;
+  min-width: 26px;
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-ch-sexo-total {
+  display: grid;
+  gap: 0;
+  justify-items: end;
+  text-align: right;
+}
+
+.cmv2-ch-sexo-total strong {
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-ch-sexo-total span {
+  color: var(--pulso-text-muted);
+  font-size: 9.5px;
+}
+
+@media (max-width: 720px) {
+  .cmv2-ch-sexo-row {
+    grid-template-columns: minmax(0, 1fr) 56px;
+  }
+
+  .cmv2-ch-sexo-bars {
+    grid-column: 1 / -1;
+    order: 3;
   }
 }
