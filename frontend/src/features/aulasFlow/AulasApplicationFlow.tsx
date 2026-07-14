@@ -45,10 +45,10 @@ const STEPS: Array<{
   detail: string;
   icon: typeof Target;
 }> = [
-  { id: "muestra", label: "Muestra de aulas", detail: "titulares y reservas", icon: Target },
+  { id: "muestra", label: "Muestra de cursos-horario", detail: "titulares y reservas", icon: Target },
   { id: "qr", label: "Kobo + QR", detail: "enlace personalizado", icon: QrCode },
   { id: "pdf", label: "Fichas PDF/Word", detail: "individual y consolidado", icon: FileText },
-  { id: "monitoreo", label: "Monitoreo de aulas", detail: "avance y caídas", icon: CalendarRange },
+  { id: "monitoreo", label: "Monitoreo de cursos-horario", detail: "avance y caídas", icon: CalendarRange },
 ];
 
 const NOTEBOOK_OUTPUTS = [
@@ -90,14 +90,14 @@ export function AulasApplicationFlow({
     <section
       className={`aulas-flow${compact ? " is-compact" : ""}`}
       style={MODULE_TONES[tone] as CSSProperties}
-      aria-label="Flujo operativo de aplicación en aulas"
+      aria-label="Flujo operativo de aplicación por cursos-horario"
     >
       {/* Wrapper interno: .aulas-flow es query container (inline-size) y el
           layout de columnas vive aquí para responder al ancho real del
           contenedor (rail angosto de Sustento técnico incluido). */}
       <div className="aulas-flow-grid">
       <div className="aulas-flow-copy">
-        <span>Aplicación en aulas</span>
+        <span>Aplicación por cursos-horario</span>
         <strong>{title}</strong>
         <p>{summary}</p>
       </div>
