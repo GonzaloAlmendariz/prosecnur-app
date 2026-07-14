@@ -302,6 +302,7 @@ export function MarcoPoblacionFacultades({
       <ClassroomPlotCard
         title="Carreras por facultad"
         subtitle={activeProgramFaculty ? `carreras del alumnado en ${activeProgramFaculty}` : "elige una facultad para ver carreras"}
+        wide
       >
         {facultyPopulation.length > 1 && (
           <label className="cmv2-marco-drill-select">
@@ -314,8 +315,10 @@ export function MarcoPoblacionFacultades({
           </label>
         )}
         {/* key por facultad activa: el cambio remonta el contenido con un fade
-            corto (150ms) en vez de swapear las barras en seco. */}
-        <div key={activeProgramFaculty || "todas"} className="cmv2-marco-drill-swap">
+            corto (150ms) en vez de swapear las barras en seco. La tarjeta ocupa
+            toda la fila y las barras fluyen en varias columnas (ver marco.css)
+            para aprovechar el ancho en vez de apilarse en una tira estrecha. */}
+        <div key={activeProgramFaculty || "todas"} className="cmv2-marco-drill-swap cmv2-marco-carreras-swap">
           <ClassroomBarPlot rows={programRows} ariaLabel="Carreras o programas de la población" unit={populationPlotUnit} height={260} total={programRowsTotal} emptyState={emptyStates.program} />
         </div>
       </ClassroomPlotCard>

@@ -572,26 +572,94 @@
 .cmv2-crit-group-head > .cmv2-crit-item-count { margin-left: 0; }
 .cmv2-crit-group-title { font-size: 13px; font-weight: 600; color: var(--pulso-text); }
 
-/* --- Numeric (edad) -------------------------------------------------------- */
-.cmv2-crit-numeric { display: grid; gap: 8px; }
-.cmv2-crit-num-inputs { display: inline-flex; gap: 10px; flex-wrap: wrap; }
+/* --- Numeric (matrícula / elegibles): umbral + ventana sobre el rango real -- */
+.cmv2-crit-numeric { display: grid; gap: 10px; }
+.cmv2-crit-num-inputs { display: inline-flex; gap: 12px; flex-wrap: wrap; }
 .cmv2-crit-num-field {
   display: inline-grid;
-  gap: 3px;
-  font-size: 11px;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--pulso-text-muted);
 }
 .cmv2-crit-num-field input {
   height: 28px;
-  width: 96px;
-  padding: 0 8px;
+  width: 108px;
+  padding: 0 10px;
   border: 1px solid var(--cmv2-border);
   border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
+  background: var(--cmv2-control-bg, var(--pulso-surface));
   color: var(--pulso-text);
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-out);
 }
-.cmv2-crit-num-hint { font-size: 11px; color: var(--pulso-text-muted); }
+.cmv2-crit-num-field input:hover { border-color: var(--cmv2-accent-border); }
+.cmv2-crit-num-field input:focus-visible {
+  outline: 2px solid transparent;
+  border-color: var(--cmv2-accent-border);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 32%, transparent);
+}
+
+.cmv2-crit-num-empty {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--pulso-text-muted);
+}
+
+/* Ayuda de la tarjeta umbral (Elegibles por curso-horario), que arma su propia
+   card en CriteriosMarcoTab. Comparte el tono muted de las demás ayudas. */
+.cmv2-crit-num-hint {
+  display: block;
+  margin-top: 7px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+
+/* Rango observado como ayuda visual: eje real con la ventana admitida
+   resaltada. Sin filtro = banda completa atenuada. */
+.cmv2-crit-num-scale { display: grid; gap: 5px; margin-top: 2px; }
+.cmv2-crit-num-scale-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cmv2-crit-num-scale-head span {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pulso-text-muted);
+}
+.cmv2-crit-num-scale-head strong {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+.cmv2-crit-num-track {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cmv2-border) 58%, transparent);
+  overflow: hidden;
+}
+.cmv2-crit-num-track i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: var(--cmv2-accent);
+  transition: left var(--motion-dur-fast) var(--motion-ease-out), right var(--motion-dur-fast) var(--motion-ease-out);
+}
+.cmv2-crit-numeric[data-mode="none"] .cmv2-crit-num-track i {
+  background: color-mix(in srgb, var(--cmv2-border) 72%, var(--pulso-text-muted));
+}
 
 /* --- Ordinal (ciclo) ------------------------------------------------------- */
 .cmv2-crit-ordinal { display: grid; gap: 8px; }
@@ -632,34 +700,101 @@
 }
 .cmv2-crit-from-select:disabled { opacity: 0.5; }
 
-/* --- Range (nivel por facultad) -------------------------------------------- */
-.cmv2-crit-range { display: grid; gap: 2px; }
+/* --- Range (nivel por facultad): tabla legible con zebra + selects del kit -- */
+.cmv2-crit-range {
+  display: grid;
+  gap: 0;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 10px;
+  overflow: clip;
+}
+
+.cmv2-crit-range-note {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+  background: color-mix(in srgb, var(--cmv2-accent-soft) 30%, transparent);
+  border-bottom: 1px solid var(--cmv2-border);
+}
+.cmv2-crit-range-note strong { color: var(--cmv2-accent-fg); font-weight: 650; }
+.cmv2-crit-range-note-count { font-weight: 600; color: var(--cmv2-accent-fg); }
+
 .cmv2-crit-range-head,
 .cmv2-crit-range-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) auto minmax(0, 1.4fr);
+  grid-template-columns: minmax(0, 1.7fr) 60px minmax(0, 1.5fr);
   align-items: center;
-  gap: 10px;
-  padding: 4px 6px;
+  gap: 12px;
+  padding: 0 12px;
 }
 .cmv2-crit-range-head {
+  min-height: 30px;
   font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: var(--pulso-text-muted);
+  background: color-mix(in srgb, var(--pulso-surface-2) 90%, var(--cmv2-accent-soft));
   border-bottom: 1px solid var(--cmv2-border);
 }
+.cmv2-crit-range-head span:nth-child(2) { justify-self: center; }
+
+/* Zebra: la nota es <p> y no cuenta como nth-of-type(div); el head es el 1.er
+   div, así que las filas alternan desde nth-of-type(even). */
+.cmv2-crit-range-row {
+  min-height: 42px;
+  border-bottom: 1px solid color-mix(in srgb, var(--cmv2-border) 55%, transparent);
+  transition: background var(--motion-dur-fast) var(--motion-ease-out);
+}
+.cmv2-crit-range-row:last-child { border-bottom: 0; }
+.cmv2-crit-range-row:nth-of-type(even) {
+  background: color-mix(in srgb, var(--pulso-surface-2) 45%, transparent);
+}
+.cmv2-crit-range-row[data-active="true"] {
+  background: color-mix(in srgb, var(--cmv2-accent-soft) 42%, var(--pulso-surface));
+  box-shadow: inset 2px 0 0 var(--cmv2-accent);
+}
+
 .cmv2-crit-range-fac {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--pulso-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.cmv2-crit-range-row[data-active="true"] .cmv2-crit-range-fac { font-weight: 600; }
+
 .cmv2-crit-range-apply { display: inline-flex; align-items: center; justify-content: center; }
-.cmv2-crit-range-inputs { display: inline-flex; align-items: center; gap: 6px; }
-.cmv2-crit-range-inputs[data-active="false"] { opacity: 0.5; }
+.cmv2-crit-range-inputs { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
 .cmv2-crit-range-dash { color: var(--pulso-text-muted); }
+
+.cmv2-crit-range-select {
+  height: 28px;
+  min-width: 66px;
+  padding: 0 8px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--cmv2-control-bg, var(--pulso-surface));
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+.cmv2-crit-range-select:hover { border-color: var(--cmv2-accent-border); }
+.cmv2-crit-range-select:focus-visible {
+  outline: 2px solid transparent;
+  border-color: var(--cmv2-accent-border);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 32%, transparent);
+}
+
+.cmv2-crit-range-all {
+  font-size: 12px;
+  font-style: normal;
+  color: var(--pulso-text-muted);
+}
 
 /* --- Excepciones por facultad ---------------------------------------------- */
 .cmv2-crit-exc {
