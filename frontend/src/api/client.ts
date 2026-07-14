@@ -3346,7 +3346,14 @@ export async function apiXlsformEditorExport(
 export async function apiXlsformEditorExportPdf(
   workbook: XlsformEditorWorkbook,
   filename?: string,
-  options: { title?: string; footer_title?: string } = {},
+  options: {
+    title?: string;
+    footer_title?: string;
+    columns?: 1 | 2;
+    logic_language?: "saltos" | "condiciones";
+    show_questionnaire_number?: boolean;
+    matrix_groups?: string[][];
+  } = {},
 ) {
   return handle<{
     ok: true;
