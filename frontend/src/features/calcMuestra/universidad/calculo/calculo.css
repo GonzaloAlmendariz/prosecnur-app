@@ -343,6 +343,54 @@
   gap: 12px;
 }
 
+.cmv2-calc-pending-strip,
+.cmv2-calc-resultados-strip {
+  border: 1px solid var(--cmv2-border);
+  border-radius: 10px;
+  background: var(--cmv2-surface-tint);
+}
+
+.cmv2-calc-pending-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 12px;
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+}
+
+.cmv2-calc-pending-strip svg {
+  flex: none;
+  color: var(--cmv2-accent);
+}
+
+.cmv2-calc-pending-strip strong {
+  color: var(--pulso-text);
+  font-size: 12px;
+}
+
+.cmv2-calc-resultados-strip {
+  padding: 6px;
+}
+
+.cmv2-calc-resultados-strip .cmv2-uni-cifra {
+  min-height: 0;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+}
+
+.cmv2-calc-resultados-strip .cmv2-uni-cifra + .cmv2-uni-cifra {
+  border-left: 1px solid var(--cmv2-border);
+  border-radius: 0;
+}
+
+.cmv2-calc-resultados-strip .cmv2-uni-cifra-valor {
+  font-size: 16px;
+}
+
 /* Los stat-tiles del encabezado pierden la sombra: dentro del panel raised
    solo hay un nivel de elevación (regla de superficies del desk). */
 .cmv2-calc-supuestos-panel .cmv2-uni-cifra {
@@ -359,10 +407,10 @@
    superficie interna es el instrumento tint del micro-visual. */
 .cmv2-calc-supuesto {
   display: grid;
-  grid-template-columns: minmax(280px, 380px) 1fr;
-  gap: 16px;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 24px;
   align-items: start;
-  padding: 16px 2px;
+  padding: 16px 0;
 }
 
 .cmv2-calc-supuesto + .cmv2-calc-supuesto {
@@ -397,16 +445,31 @@
 .cmv2-calc-porque {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  border: none;
-  background: none;
+  justify-content: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 7px;
+  background: var(--cmv2-surface-tint);
   padding: 0;
-  min-height: 0;
-  font-size: 11px;
-  font-weight: 600;
   color: var(--cmv2-accent);
   cursor: help;
-  border-bottom: 1px dotted var(--cmv2-accent);
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    transform var(--motion-dur-press, 120ms) var(--cmv2-ease-out, ease-out);
+}
+
+.cmv2-calc-porque:active {
+  transform: scale(0.96);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-calc-porque:hover {
+    border-color: var(--cmv2-accent-border);
+    background: var(--cmv2-accent-soft);
+  }
 }
 
 .cmv2-calc-porque-pop {
@@ -435,8 +498,12 @@
 
 .cmv2-calc-supuesto-controles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+.cmv2-calc-supuesto-controles > :nth-child(3):last-child {
+  grid-column: 1 / -1;
 }
 
 .cmv2-calc-supuesto-controles .cmv2-did-slider,
@@ -498,8 +565,9 @@
 
 .cmv2-calc-supuesto-visual {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   align-content: start;
+  min-width: 0;
 }
 
 /* El SwapValor que envuelve campana+nota hereda la retícula del visual. */
@@ -509,22 +577,47 @@
   align-content: start;
 }
 
-/* Mejora propia · panel-instrumento: los micro-visuales SVG se leen como un
-   instrumento de medición sobre fondo tint, no como un dibujo flotante. */
-.cmv2-calc-supuesto-visual:has(> .cmv2-calc-svg),
-.cmv2-calc-supuesto-visual > .cmv2-uni-swap:has(> .cmv2-calc-svg) {
-  padding: 10px 12px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: 10px;
-  background: var(--cmv2-surface-tint);
-}
-
 /* --- Micro-visuales SVG (curva p·q y campana normal) -------------------------- */
 .cmv2-calc-svg {
-  width: 100%;
-  max-width: 320px;
-  height: auto;
+  width: min(100%, 760px);
+  height: clamp(132px, 12vw, 168px);
+  justify-self: center;
   color: var(--cmv2-accent);
+}
+
+.cmv2-calc-ambitos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  align-items: center;
+  min-height: 24px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--cmv2-border);
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+}
+
+.cmv2-calc-ambitos span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cmv2-calc-ambitos i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cmv2-accent);
+}
+
+.cmv2-calc-ambitos i[data-ambito="facultades"] {
+  border: 2px solid var(--cmv2-accent);
+  background: var(--cmv2-surface);
+}
+
+.cmv2-calc-ambitos strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
 }
 
 .cmv2-calc-svg-curva {
@@ -556,11 +649,24 @@
   stroke-dasharray: 2 3;
 }
 
+.cmv2-calc-svg-marca.is-facultades {
+  stroke: var(--pulso-text-muted);
+  stroke-dasharray: 4 3;
+}
+
 .cmv2-calc-svg-punto {
   fill: currentColor;
 }
 
+.cmv2-calc-svg-punto.is-facultades {
+  fill: var(--cmv2-surface);
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+
 .cmv2-calc-svg-nota {
+  width: min(100%, 760px);
+  justify-self: center;
   margin: 0;
   font-size: 11px;
   line-height: 1.5;
@@ -732,6 +838,200 @@
   .cmv2-calc-aviso {
     animation: cmv2-calc-aviso-in 200ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) both;
   }
+}
+
+/* Refinamiento final de las superficies que reutilizan el motor legacy. Los
+   botones globales son nowrap; aquí se revierte explícitamente para que los
+   escenarios midan el panel y nunca obliguen a ensancharlo. */
+.cmv2-university-desk .rec-diseno-panel,
+.cmv2-university-desk .rec-escenarios,
+.cmv2-university-desk .rec-escenarios-cards,
+.cmv2-university-desk .rec-escenario-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.cmv2-university-desk .rec-escenarios-cards {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cmv2-university-desk .rec-escenario-card,
+.cmv2-university-desk .rec-escenario-card * {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Diseño: el objeto matemático conserva protagonismo sin convertirse en un
+   lienzo vacío. Fórmula, controles y resultados forman un único instrumento
+   compacto; las cifras se leen como ribbon y no como tres cards internas. */
+.cmv2-university-desk .rec-formula {
+  gap: 9px;
+  padding: 12px 14px;
+}
+
+.cmv2-university-desk .rec-diseno {
+  gap: 10px;
+}
+
+.cmv2-university-desk .rec-ndiseno {
+  padding: 7px 12px;
+}
+
+.cmv2-university-desk .rec-formula > .cmv2-uni-formula {
+  gap: 6px;
+  padding: 9px 12px;
+  border-radius: 10px;
+}
+
+.cmv2-university-desk .rec-formula .cmv2-uni-formula-body {
+  padding: 0;
+}
+
+.cmv2-university-desk .rec-formula .cmv2-uni-formula-body .enc-math {
+  font-size: 13px;
+}
+
+.cmv2-university-desk .rec-formula .cmv2-uni-formula-term {
+  min-height: 22px;
+  padding: 2px 8px;
+}
+
+.cmv2-university-desk .rec-formula-controles {
+  gap: 10px;
+}
+
+.cmv2-university-desk .rec-formula-control {
+  gap: 3px;
+}
+
+.cmv2-university-desk .rec-formula-control-hint {
+  font-size: 9.5px;
+}
+
+.cmv2-university-desk .rec-formula > .cmv2-uni-cifra-fila {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 10px;
+}
+
+.cmv2-university-desk .rec-formula > .cmv2-uni-cifra-fila .cmv2-uni-cifra {
+  min-height: 56px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.cmv2-university-desk .rec-formula > .cmv2-uni-cifra-fila .cmv2-uni-cifra + .cmv2-uni-cifra {
+  border-left: 1px solid var(--cmv2-border);
+}
+
+.cmv2-university-desk .rec-formula > .cmv2-uni-cifra-fila .cmv2-uni-cifra[data-tono="ok"] {
+  background: color-mix(in srgb, var(--pulso-success-bg) 36%, transparent);
+}
+
+.cmv2-university-desk .rec-formula-canon {
+  padding-top: 6px;
+}
+
+@media (min-width: 901px) and (max-width: 1450px) {
+  .cmv2-university-desk .rec-formula {
+    display: grid;
+    grid-template-columns: minmax(360px, 0.82fr) minmax(0, 1.18fr);
+    align-items: stretch;
+  }
+
+  .cmv2-university-desk .rec-formula > .cmv2-uni-formula {
+    grid-column: 1;
+    grid-row: 1;
+    align-content: center;
+  }
+
+  .cmv2-university-desk .rec-formula > .rec-formula-controles {
+    grid-column: 2;
+    grid-row: 1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: center;
+    padding: 2px 0;
+  }
+
+  .cmv2-university-desk .rec-formula > .cmv2-uni-cifra-fila,
+  .cmv2-university-desk .rec-formula > .rec-formula-canon {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 980px) {
+  .cmv2-university-desk .rec-escenarios-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* El vacío es un preflight compacto, no un lienzo de resultados ficticio. */
+.cmv2-calc-escenarios-panel > .pulso-empty-state--panel {
+  display: grid;
+  grid-template-columns: 36px minmax(180px, auto) minmax(280px, 1fr);
+  justify-content: start;
+  min-height: 0;
+  padding: 20px 16px;
+  gap: 4px 12px;
+  text-align: left;
+}
+
+.cmv2-calc-escenarios-panel > .pulso-empty-state--panel .pulso-empty-state-icon {
+  grid-row: 1 / span 2;
+  width: 34px;
+  height: 34px;
+  align-self: center;
+}
+
+.cmv2-calc-escenarios-panel > .pulso-empty-state--panel .pulso-empty-state-title,
+.cmv2-calc-escenarios-panel > .pulso-empty-state--panel .pulso-empty-state-hint {
+  max-width: none;
+  align-self: center;
+}
+
+/* Ayuda contextual anclada al concepto que explica. */
+.cmv2-calc-supuesto-titulo {
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+}
+
+/* En escritorio compacto priorizamos legibilidad: las dos distribuciones se
+   apilan y cada barra conserva ancho analítico. La guía al 50% vive dentro de
+   la composición por sexo, no en gráficos de magnitud general. */
+@media (max-width: 1450px) {
+  .cmv2-university-desk .rec-dist-cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cmv2-university-desk .rec-dist-row {
+    grid-template-columns: minmax(190px, 250px) minmax(240px, 1fr) 64px minmax(110px, auto);
+  }
+
+  .cmv2-university-desk .rec-dist-name {
+    overflow: visible;
+    white-space: normal;
+  }
+}
+
+.cmv2-university-desk .rec-dist-bar::after {
+  position: absolute;
+  inset: 0 auto 0 50%;
+  z-index: 2;
+  width: 1px;
+  background: repeating-linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--pulso-surface) 92%, var(--pulso-text)) 0 3px,
+    transparent 3px 6px
+  );
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--pulso-text) 10%, transparent);
+  content: "";
+  pointer-events: none;
 }
 
 /* Fade-only: el wrapper del tab ya desliza (motion en capas, ui/ui.css). */

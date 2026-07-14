@@ -15,7 +15,6 @@
  */
 import { AlertTriangle, ShieldAlert } from "lucide-react";
 import type { CalcMuestraWorkspace } from "../../../../api/client";
-import { ContextoLlano } from "../../didactica/PasoDidactico";
 import { calcEPreview } from "../../didactica/motorPreview";
 import { fmtInt, fmtPct, fmtRatio, safeNumber } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
@@ -122,7 +121,7 @@ export function SalidasCierreTab({
     },
     {
       id: "titulares",
-      label: "Aulas titulares M1",
+      label: "Cursos-horario titulares M1",
       valor: m1Rows.length ? fmtInt(m1Rows.length) : undefined,
       detalle: selectionReady && selection
         ? classroomMethodLabel(String(selection.selector_engine_used ?? selection.selector_engine ?? ""))
@@ -149,20 +148,9 @@ export function SalidasCierreTab({
 
   return (
     <div className="cmv2-sal-stack">
-      <ContextoLlano paso="salidas" />
-
       <section className="cmv2-panel cmv2-sal-panel cmv2-sal-ficha" aria-label="Ficha ejecutiva del diseño muestral">
         <div className="cmv2-panel-head">
-          <div>
-            <span className="cmv2-eyebrow">Ficha ejecutiva</span>
-            <strong>
-              {calculationReady && selectionReady
-                ? observaciones.length
-                  ? "El diseño completo: revisa las observaciones antes de defenderlo ante el cliente"
-                  : "El diseño completo, con las cifras que se defienden ante el cliente"
-                : "El camino del diseño y lo que falta para cerrarlo"}
-            </strong>
-          </div>
+          <strong>Ficha ejecutiva</strong>
           <span
             className="cmv2-pill-soft cmv2-sal-estado"
             data-cerrado={estadoFicha === "cerrado" || undefined}
@@ -201,7 +189,7 @@ export function SalidasCierreTab({
             origen={Number.isFinite(currentRepresentativityScore) ? "motor" : undefined}
           />
           <CifraMotor
-            label="Aulas titulares M1"
+            label="Cursos-horario titulares M1"
             value={m1Rows.length ? fmtInt(m1Rows.length) : "pendiente"}
             detalle={reservasTotal ? `con ${fmtInt(reservasTotal)} reservas` : "reservas pendientes"}
             origen={selectionReady ? "motor" : undefined}
@@ -238,7 +226,7 @@ export function SalidasCierreTab({
                 ? String(frame.frame_hash).slice(0, 10)
                 : "pendiente"}
           </span>
-          <em>Con estos datos el sorteo se reconstruye exacto; el detalle completo vive en Aulas → Sustento técnico.</em>
+          <em>Con estos datos el sorteo se reconstruye exacto; el detalle completo vive en Selección → Sustento técnico.</em>
         </div>
 
         {observaciones.length > 0 && (

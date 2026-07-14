@@ -62,7 +62,7 @@ export const UNIVERSITY_LOCAL_TAB_ALIASES: Record<string, string> = {
   "calculo-guia": "calculo-diseno",
   // Unificación de criterios (2026-07): la pestaña didáctica "Criterios" se
   // retiró; la suite por categoría (marco-categorias) es la única superficie
-  // de criterios y absorbió sus explicaciones "¿Por qué así?".
+  // para definir y confirmar criterios de inclusión.
   "marco-criterios": "marco-categorias",
   // Un solo hogar de criterios (2026-07): Datos deja de decidir elegibilidad
   // (vive en Marco → Criterios) y de adelantar resultados del marco. Un tab
@@ -215,9 +215,9 @@ export function universitySidebarTabs({
   if (activeSection === "marco") {
     const criteriosCatalogoReady = normalizeCriteriosCatalogo(aulasState?.frame?.criterios_catalogo ?? null).variables.length > 0;
     return [
-      { id: "marco-categorias", label: "Criterios", detail: "inclusión por categoría, excepciones y su porqué", icon: Filter, status: guideStatus(criteriosCatalogoReady, hasDescriptiveFrame), targetId: "cmv2-local-marco-categorias" },
+      { id: "marco-categorias", label: "Criterios de inclusión", detail: "inclusión por categoría, excepciones y su porqué", icon: Filter, status: guideStatus(criteriosCatalogoReady, hasDescriptiveFrame), targetId: "cmv2-local-marco-categorias" },
       { id: "marco-poblacion", label: "Población", detail: "elegibles y estructura (base real)", icon: Users, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-poblacion" },
-      { id: "marco-aulas", label: "Aulas", detail: "curso-horario del marco (base real)", icon: Grid3X3, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-aulas" },
+      { id: "marco-aulas", label: "Cursos-horario", detail: "unidades del marco (base real)", icon: Grid3X3, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-aulas" },
       { id: "marco-validacion", label: "Consistencia", detail: "reconciliación entre bases", icon: CheckCircle2, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-validacion" },
       { id: "marco-cobertura", label: "Cobertura", detail: "alcanzables y factibilidad por unidad", icon: BarChart3, status: guideStatus(effectiveMarcoReady), targetId: "cmv2-local-marco-cobertura" },
     ];
@@ -225,7 +225,7 @@ export function universitySidebarTabs({
   if (activeSection === "calculo") {
     return [
       { id: "calculo-diseno", label: "Diseño", detail: "parámetros, n, bolsa y escenarios", icon: Sigma, status: guideStatus(true), targetId: "cmv2-local-calculo-diseno" },
-      { id: "calculo-propuestas", label: "Propuestas", detail: "N, cuotas y aulas (motor R)", icon: Calculator, status: guideStatus(hasResult, effectiveMarcoReady), targetId: "cmv2-local-calculo-propuestas" },
+      { id: "calculo-propuestas", label: "Propuestas", detail: "N, cuotas y cursos-horario (motor R)", icon: Calculator, status: guideStatus(hasResult, effectiveMarcoReady), targetId: "cmv2-local-calculo-propuestas" },
       { id: "calculo-ajustes", label: "Supuestos", detail: "deff, rendimiento y campo", icon: Gauge, status: guideStatus(Boolean(totalComp || facultyComp), effectiveMarcoReady), targetId: "cmv2-local-calculo-ajustes" },
       { id: "calculo-distribucion", label: "Distribución", detail: "población y muestra por unidad × sexo", icon: PieChart, status: guideStatus(true), targetId: "cmv2-local-calculo-distribucion" },
     ];

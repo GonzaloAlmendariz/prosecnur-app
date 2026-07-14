@@ -107,7 +107,7 @@ export function FormulaViva({
             onChange={(e) => onParametro({ proporcion: Number(e.target.value) / 100 })}
           />
         </Control>
-        <Control label={`Efecto de diseño · ${fmtDec(parametros.deff, 1)}`} hint="el costo de muestrear por aulas">
+        <Control label={`Efecto de diseño · ${fmtDec(parametros.deff, 1)}`} hint="el costo de muestrear por cursos-horario">
           <input
             type="range"
             min={1}

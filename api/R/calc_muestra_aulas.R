@@ -1151,7 +1151,13 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     enrolled_total <- suppressWarnings(max(enrolled_total_row[idx_all], na.rm = TRUE))
     if (!is.finite(enrolled_total)) enrolled_total <- length(unique(student_id[idx_all]))
     eligible_n <- length(students)
-    included <- eligible_n >= cfg$filters$min_eligible_per_class
+    min_suite <- (cfg$criterios_seleccion %||% list())$minEligible
+    min_suite_explicito <- suite_activa && is.list(min_suite) && isTRUE(is.finite(min_suite$threshold))
+    # Un umbral explícito de la suite puede tener overrides por facultad. No se
+    # aplica aquí su valor global porque este gate base es irreversible; la
+    # evaluación por curso-horario vive en .cm_criterios_evaluar_aula(). Sin
+    # minEligible explícito se conserva el fallback legacy bit a bit.
+    included <- if (min_suite_explicito) TRUE else eligible_n >= .cm_criterios_min_eligible_efectivo(cfg)
     faculty_program <- .cm_aulas_mode_pair(faculty[idx_all], program[idx_all], "", "")
     data.frame(
       classroom_id = cid,

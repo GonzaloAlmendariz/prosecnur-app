@@ -145,20 +145,20 @@ const POR_QUE_ALUMNO: Record<string, (n: string) => string> = {
 };
 
 const POR_QUE_AULA: Record<string, (n: string) => string> = {
-  presencial: (n) => `Excluye ${n} aulas no presenciales.`,
-  tipo: (n) => `Excluye ${n} aulas por tipo de curso no válido (seminarios, tesis, asesorías).`,
-  sede: (n) => `Excluye ${n} aulas fuera de las sedes definidas para el operativo.`,
-  elegibles: (n) => `Excluye ${n} aulas bajo el umbral de elegibles.`,
-  docente: (n) => `Excluye ${n} aulas sin al menos un docente de tipo aceptado (contratado, ordinario…).`,
-  nivel: (n) => `Excluye ${n} aulas fuera del rango de nivel definido para su unidad académica.`,
-  c7: (n) => `Excluye ${n} aulas bajo el umbral de prevalencia de población objetivo (c7).`,
-  c8: (n) => `Excluye ${n} aulas bajo el umbral de homogeneidad de ciclo (c8).`,
+  presencial: (n) => `Excluye ${n} cursos-horario no presenciales.`,
+  tipo: (n) => `Excluye ${n} cursos-horario por tipo de curso no válido (seminarios, tesis, asesorías).`,
+  sede: (n) => `Excluye ${n} cursos-horario fuera de las sedes definidas para el operativo.`,
+  elegibles: (n) => `Excluye ${n} cursos-horario bajo el umbral de elegibles.`,
+  docente: (n) => `Excluye ${n} cursos-horario sin al menos un docente de tipo aceptado (contratado, ordinario…).`,
+  nivel: (n) => `Excluye ${n} cursos-horario fuera del rango de nivel definido para su unidad académica.`,
+  c7: (n) => `Excluye ${n} cursos-horario bajo el umbral de prevalencia de población objetivo (c7).`,
+  c8: (n) => `Excluye ${n} cursos-horario bajo el umbral de homogeneidad de ciclo (c8).`,
 };
 
 /** Genera el porQué en llano de un paso a partir de sus excluidos medidos. */
 function porQuePaso(clase: ClaseEmbudo, id: string, indice: number, excluidos: number): string {
   if (indice === 0) return "Base cruda leída del proyecto.";
-  const sustantivo = clase === "alumno" ? "estudiantes" : "aulas";
+  const sustantivo = clase === "alumno" ? "estudiantes" : "cursos-horario";
   if (excluidos <= 0) return `No excluye ${sustantivo}: el conteo se mantiene.`;
   const n = fmtMiles(excluidos);
   const redaccion = (clase === "alumno" ? POR_QUE_ALUMNO : POR_QUE_AULA)[id];

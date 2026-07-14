@@ -68,7 +68,7 @@ export function ImpactoStrip({ impacto }: { impacto: ImpactoMarco }) {
       />
       <Metric
         icon={<School size={16} aria-hidden="true" />}
-        label="Aulas del marco"
+        label="Cursos-horario del marco"
         live={impacto.aulasLive}
         hard={impacto.aulasHard}
       />

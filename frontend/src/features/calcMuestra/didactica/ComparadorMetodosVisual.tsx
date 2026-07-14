@@ -24,17 +24,17 @@ const METODO_COPY: Record<string, { nombre: string; fortaleza: string; riesgo: s
   },
   local_pivotal_balanceado: {
     nombre: "Balance con dispersión local",
-    fortaleza: "Además del balance, evita que las aulas elegidas se concentren en un mismo programa u horario.",
+    fortaleza: "Además del balance, evita que los cursos-horario elegidos se concentren en un mismo programa u horario.",
     riesgo: "Exige buenas variables de dispersión; con marcos pequeños puede sacrificar algo de balance.",
   },
   pool_controlado: {
     nombre: "Sorteo optimizado contra repetidos",
-    fortaleza: "Compara muestras candidatas y se queda con la que comparte menos estudiantes entre aulas.",
+    fortaleza: "Compara muestras candidatas y se queda con la que comparte menos estudiantes entre cursos-horario.",
     riesgo: "Las probabilidades finales dependen de simulación, así que requiere más corridas para auditarse.",
   },
   sistematico_pps: {
     nombre: "Salto sistemático proporcional al tamaño",
-    fortaleza: "Simple y transparente: ordena el marco y avanza con un salto fijo, dando más chance a aulas grandes.",
+    fortaleza: "Simple y transparente: ordena el marco y avanza con un salto fijo, dando más probabilidad a cursos-horario grandes.",
     riesgo: "Si el orden del marco tiene un patrón oculto, el salto puede alinearse con él y sesgar la muestra.",
   },
   estratificado_aleatorio: {
@@ -177,7 +177,7 @@ export function ComparadorMetodosVisual({
 
       <p className="cmv2-did-note">
         <GitCompare size={12} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: 4 }} />
-        Los métodos comparados son probabilísticos y auditables: cada aula entra con una probabilidad conocida y
+        Los métodos comparados son probabilísticos y auditables: cada curso-horario entra con una probabilidad conocida y
         registrada, y la corrida completa puede reproducirse con la misma semilla. La recomendación no es una
         regla universal — sale de medir cada método contra este marco concreto (su tamaño, sus facultades, sus
         repetidos) y puede cambiar en otro proyecto.

@@ -6,6 +6,7 @@
  * que los charts siguen al tema sin hardcodear hex.
  */
 import { useEffect, useMemo, useState } from "react";
+import { sexSeriesKind } from "../sexoPalette";
 
 export type DidTokens = {
   accent: string;
@@ -16,6 +17,9 @@ export type DidTokens = {
   surface: string;
   success: string;
   warn: string;
+  sexMale: string;
+  sexFemale: string;
+  sexMissing: string;
   font: string;
 };
 
@@ -64,6 +68,9 @@ export function readDidTokens(el?: Element | null): DidTokens {
     ),
     success: resolveColor(readToken(rootStyles, "--pulso-success-fg", "#15803d"), "#15803d"),
     warn: resolveColor(readToken(rootStyles, "--pulso-warn-fg", "#b45309"), "#b45309"),
+    sexMale: resolveColor(readToken(styles, "--cmv2-sex-hombre", "#2563eb"), "#2563eb"),
+    sexFemale: resolveColor(readToken(styles, "--cmv2-sex-mujer", "#c2416b"), "#c2416b"),
+    sexMissing: resolveColor(readToken(styles, "--cmv2-sex-sin-dato", "#cbd5e4"), "#cbd5e4"),
     font: readToken(rootStyles, "--pulso-font", "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"),
   };
 }
@@ -106,6 +113,15 @@ export function colorWithAlpha(color: string, alpha: number): string {
     return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
   }
   return color;
+}
+
+/** Color resuelto para Plotly a partir del mismo contrato que usan los charts CSS. */
+export function didSexSeriesColor(label: string, tokens: DidTokens, fallbackIndex = 0) {
+  const kind = sexSeriesKind(label);
+  if (kind === "male") return tokens.sexMale;
+  if (kind === "female") return tokens.sexFemale;
+  if (kind === "missing") return tokens.sexMissing;
+  return accentScale(tokens, 3)[fallbackIndex % 3];
 }
 
 export function didPlotLayout(tokens: DidTokens, overrides?: Record<string, unknown>) {

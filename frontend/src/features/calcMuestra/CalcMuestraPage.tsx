@@ -29,10 +29,13 @@ import { PageFrame } from "../../components/PageFrame";
 import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
+import { GlidingTabList } from "../../components/GlidingTabList";
 import { useCalcMuestraAutosave } from "./hooks/useCalcMuestraAutosave";
 import { useCalcMuestraStore } from "./store/calcMuestraStore";
 import { useMotorPersistencia } from "./motor/useMotorPersistencia";
 import { useMotorStore } from "./motor/store";
+import { ResumenDiseno } from "./motor/ResumenDiseno";
+import { usePerfilEfectivo } from "./motor/usePerfilEfectivo";
 import { EMPTY_WORKSPACE } from "./workspaceDefaults";
 import {
   apiCalcMuestraAulasCompararMetodos,
@@ -178,7 +181,7 @@ function guidedStatusLabel(status: GuideStatus) {
 }
 
 const CANAL_OPTIONS: Array<{ id: CalcMuestraCanalRecojo; label: string }> = [
-  { id: "aula_qr", label: "Aulas / QR" },
+  { id: "aula_qr", label: "Cursos-horario / QR" },
   { id: "online_email", label: "Correo / online" },
   { id: "telefonico", label: "Telefónico" },
   { id: "presencial", label: "Presencial" },
@@ -219,7 +222,7 @@ const METODOS_CLASICOS: Array<{
   {
     id: "prob_conglomerado_multietapico",
     label: "Por conglomerados",
-    marco: "Unidades agrupadas: aulas, sedes, servicios, manzanas",
+    marco: "Unidades agrupadas: cursos-horario, sedes, servicios, manzanas",
     producto: "muestra_probabilistica",
   },
   {
@@ -231,7 +234,7 @@ const METODOS_CLASICOS: Array<{
   {
     id: "barrido",
     label: "Barrido operativo",
-    marco: "Marco operativo a cubrir por rutas, aulas o servicios",
+    marco: "Marco operativo a cubrir por rutas, cursos-horario o servicios",
     producto: "cobertura_marco",
   },
   {
@@ -261,21 +264,21 @@ const FRAME_CARDS: Array<{
 }> = [
   {
     id: "opinion_universitaria",
-    title: "Muestra de aulas",
+    title: "Muestra de cursos-horario",
     eyebrow: "Base institucional",
-    copy: "Para estudios donde la muestra se aplica en aulas y sale de matrícula, facultades, sexo y aulas disponibles.",
+    copy: "Para intervenciones universitarias cuya muestra se aplica por cursos-horario y parte de matrícula, facultades, sexo y unidades disponibles.",
     action: "Empezar este camino",
-    details: ["Matrícula", "Cuotas", "Aulas", "Seguimiento"],
+    details: ["Matrícula", "Cuotas", "Cursos-horario", "Seguimiento"],
     sourceRoles: [
       { label: "Base", detail: "estudiantes por facultad y sexo" },
       { label: "Muestra", detail: "tamaño final y cuotas" },
-      { label: "Aulas", detail: "titulares y reemplazos" },
+      { label: "Cursos-horario", detail: "titulares y reemplazos" },
       { label: "Campo", detail: "queda listo para seguimiento" },
     ],
     guidance: [
-      { prompt: "¿A quién representa?", answer: "Estudiantes matriculados", detail: "La base se ordena por facultad, sexo y aulas disponibles.", icon: Users },
-      { prompt: "¿Qué se calcula?", answer: "Entrevistas y cuotas", detail: "Define metas por universidad y por facultad antes de seleccionar aulas.", icon: SlidersHorizontal },
-      { prompt: "¿Qué queda listo?", answer: "Aulas titulares y reemplazos", detail: "El plan queda trazable para seguimiento de campo.", icon: FileText },
+      { prompt: "¿A quién representa?", answer: "Estudiantes matriculados", detail: "La base se ordena por facultad, sexo y cursos-horario disponibles.", icon: Users },
+      { prompt: "¿Qué se calcula?", answer: "Entrevistas y cuotas", detail: "Define metas por universidad y por facultad antes de seleccionar cursos-horario.", icon: SlidersHorizontal },
+      { prompt: "¿Qué queda listo?", answer: "Cursos-horario titulares y reemplazos", detail: "El plan queda trazable para seguimiento de campo.", icon: FileText },
     ],
     icon: Grid3X3,
   },
@@ -482,7 +485,7 @@ function defaultRailSectionForDesk(desk: ActiveDesk) {
 }
 
 function railTitleForDesk(desk: ActiveDesk) {
-  if (desk === "opinion_universitaria") return "Muestra de aulas";
+  if (desk === "opinion_universitaria") return "Muestra de cursos-horario";
   if (desk === "marco_disponible") return "Muestra general";
   if (desk === "acreditacion") return "Acreditación";
   if (desk === "territorial_handoff") return "Territorial";
@@ -491,7 +494,7 @@ function railTitleForDesk(desk: ActiveDesk) {
 }
 
 function deskSubtitleForDesk(desk: ActiveDesk) {
-  if (desk === "opinion_universitaria") return "Base institucional, cuotas, aulas y seguimiento de aplicación.";
+  if (desk === "opinion_universitaria") return "Base institucional, cuotas, cursos-horario y seguimiento de aplicación.";
   if (desk === "marco_disponible") return "Unidad, forma del marco, método y resultados.";
   if (desk === "acreditacion") return "Actores, canales, mínimos y reporte metodológico.";
   if (desk === "territorial_handoff") return "Territorio, rutas y viviendas se resuelven en Hojas de Ruta.";
@@ -573,7 +576,7 @@ function actorVisual(comp: CalcMuestraComponente) {
     estudiantes: {
       key: "estudiantes",
       label: "Estudiantes pregrado",
-      copy: "Cobertura o aulas según marco disponible",
+      copy: "Cobertura o cursos-horario según el marco disponible",
     },
     egresados: {
       key: "egresados",
@@ -725,10 +728,10 @@ function chromeTokensForDesk({
     const comparisonReady = classroomComparisonReady(aulasState);
     const target = calculatedTargetForComponents([totalComp, facultyComp].filter(Boolean) as CalcMuestraComponente[]);
     return [
-      { label: "Mesa", value: "Muestra de aulas", tone: "path" },
+      { label: "Mesa", value: "Muestra de cursos-horario", tone: "path" },
       { label: "Base", value: marcoTotal ? `${fmtInt(marcoTotal)} est.` : estratos.length ? `${fmtInt(estratos.length)} dominios` : "por validar", tone: marcoTotal ? "ready" : "working" },
       { label: "Cálculo", value: target ? `${fmtInt(target)} objetivo` : hasResult ? "calculado" : "pendiente", tone: target || hasResult ? "ready" : "working" },
-      { label: "Aulas", value: selectionReady ? "titulares + reemplazos" : comparisonReady ? "métodos listos" : "por seleccionar", tone: selectionReady ? "ready" : comparisonReady ? "working" : "neutral" },
+      { label: "Cursos-horario", value: selectionReady ? "titulares + reemplazos" : comparisonReady ? "métodos listos" : "por seleccionar", tone: selectionReady ? "ready" : comparisonReady ? "working" : "neutral" },
     ];
   }
 
@@ -827,14 +830,14 @@ function contextChecksForDesk({
       return [
         { label: "Cuotas", value: hasResult ? "calculadas" : "pendientes", ready: hasResult, icon: Target },
         { label: "Métodos", value: comparisonReady ? "comparados" : "por correr", ready: comparisonReady, icon: Settings2 },
-        { label: "Aulas titulares", value: selectionReady ? "plan listo" : "pendiente", ready: selectionReady, icon: Grid3X3 },
+        { label: "Cursos-horario titulares", value: selectionReady ? "plan listo" : "pendiente", ready: selectionReady, icon: Grid3X3 },
         { label: "Reemplazos", value: replacementReady ? "probados" : "pendiente", ready: replacementReady, icon: RefreshCw },
       ];
     }
     if (activeSection === "salidas") {
       return [
         { label: "Cálculo", value: hasResult ? "listo" : "pendiente", ready: hasResult, icon: Calculator },
-        { label: "Aulas", value: selectionReady ? "plan generado" : "sin plan", ready: selectionReady, icon: Grid3X3 },
+        { label: "Cursos-horario", value: selectionReady ? "plan generado" : "sin plan", ready: selectionReady, icon: Grid3X3 },
         { label: "Seguimiento", value: selectionReady ? "listo para usar" : "requiere plan", ready: selectionReady, icon: Route },
         { label: "Privacidad", value: "datos protegidos", ready: true, icon: FileText },
       ];
@@ -1185,7 +1188,12 @@ export default function CalcMuestraPage() {
       return;
     }
     setActiveRailSection(item.id);
-    if (desk === "opinion_universitaria") return;
+    if (desk === "opinion_universitaria") {
+      window.requestAnimationFrame(() => {
+        document.querySelector(".cmv2-main")?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      });
+      return;
+    }
     if (!item.targetId) return;
     window.requestAnimationFrame(() => {
       document.getElementById(item.targetId ?? "")?.scrollIntoView({
@@ -1196,6 +1204,12 @@ export default function CalcMuestraPage() {
   }
 
   function navegarPestanaLocal(targetId?: string) {
+    if (desk === "opinion_universitaria") {
+      window.requestAnimationFrame(() => {
+        document.querySelector(".cmv2-main")?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      });
+      return;
+    }
     if (!targetId) return;
     window.requestAnimationFrame(() => {
       document.getElementById(targetId)?.scrollIntoView({
@@ -1387,9 +1401,9 @@ export default function CalcMuestraPage() {
       if (res.export?.file_id) {
         window.open(downloadUrl(res.export.file_id), "_blank", "noreferrer");
       }
-      setMsg({ kind: "info", text: `Anexo de aulas exportado: ${res.export?.filename ?? "workbook xlsx"}.` });
+      setMsg({ kind: "info", text: `Anexo de cursos-horario exportado: ${res.export?.filename ?? "workbook xlsx"}.` });
     } catch (e) {
-      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo exportar la selección de aulas." });
+      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo exportar la selección de cursos-horario." });
     } finally {
       setExportandoAulas(false);
     }
@@ -1575,8 +1589,8 @@ export default function CalcMuestraPage() {
       setMsg({
         kind: "info",
         text: sync
-          ? `Base leída y marco construido: ${fmtInt(populationN)} estudiantes únicos en ${fmtInt(sync.estratos.length)} facultades y ${fmtInt(aulaN)} aulas. El cálculo ya tiene N y estratos listos.`
-          : `Base leída y marco construido: ${fmtInt(populationN)} estudiantes únicos y ${fmtInt(aulaN)} aulas.`,
+          ? `Base leída y marco construido: ${fmtInt(populationN)} estudiantes únicos en ${fmtInt(sync.estratos.length)} facultades y ${fmtInt(aulaN)} cursos-horario. El cálculo ya tiene N y estratos listos.`
+          : `Base leída y marco construido: ${fmtInt(populationN)} estudiantes únicos y ${fmtInt(aulaN)} cursos-horario.`,
       });
     } catch (e) {
       setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo construir el marco desde la base cargada." });
@@ -1648,7 +1662,7 @@ export default function CalcMuestraPage() {
         const aulaN = rowsFrom(frame?.aula_frame).length;
         setMsg({
           kind: "info",
-          text: `Excel cargado. Marco construido con ${fmtInt(populationN)} estudiantes únicos y ${fmtInt(aulaN)} aulas.`,
+          text: `Excel cargado. Marco construido con ${fmtInt(populationN)} estudiantes únicos y ${fmtInt(aulaN)} cursos-horario.`,
         });
       } else {
         const uploadedBinding = nextBindings.find((item) => item.id === binding.id) ?? nextBindingPreview;
@@ -1722,7 +1736,7 @@ export default function CalcMuestraPage() {
         setMsg({ kind: "info", text: "Comparación de métodos lista." });
       }
     } catch (e) {
-      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo comparar métodos. Construye primero el marco de aulas." });
+      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo comparar métodos. Construye primero el marco de cursos-horario." });
     } finally {
       setBusy(null);
     }
@@ -1730,12 +1744,12 @@ export default function CalcMuestraPage() {
 
   async function seleccionarAulasDesdeMetodo(config: CalcMuestraWorkspaceAulasConfig, methodId?: string) {
     setMsg(null);
-    setBusy("Seleccionando aulas");
+    setBusy("Seleccionando cursos-horario");
     try {
       const res = await apiCalcMuestraAulasSeleccionar(config, undefined, methodId, config.objective);
       let nextAulasState: CalcMuestraAulasState | null;
       if (res.mode === "job" && res.job_id) {
-        await esperarJobAulas(res.job_id, "Seleccionando aulas");
+        await esperarJobAulas(res.job_id, "Seleccionando cursos-horario");
         const state = await apiCalcMuestraState();
         nextAulasState = state.aulas ?? null;
       } else {
@@ -1743,9 +1757,9 @@ export default function CalcMuestraPage() {
       }
       setAulasState(nextAulasState);
       registrarCorridaDeSeleccion(nextAulasState);
-      setMsg({ kind: "info", text: "Selección de aulas generada." });
+      setMsg({ kind: "info", text: "Selección de cursos-horario generada." });
     } catch (e) {
-      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo seleccionar aulas. Construye primero el marco." });
+      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo seleccionar cursos-horario. Construye primero el marco." });
     } finally {
       setBusy(null);
     }
@@ -1785,7 +1799,7 @@ export default function CalcMuestraPage() {
     setPaqueteEnCurso(true);
     setPaquetePasos([
       { id: "reporte", label: "Reporte metodológico", status: "pendiente" },
-      { id: "aulas", label: "Anexo de selección de aulas (xlsx)", status: "pendiente" },
+      { id: "aulas", label: "Anexo de selección de cursos-horario (xlsx)", status: "pendiente" },
       { id: "memoria", label: "Memoria JSON de reproducibilidad", status: "pendiente" },
     ]);
     let piezasOk = 0;
@@ -1817,7 +1831,7 @@ export default function CalcMuestraPage() {
     // (b) Anexo xlsx de la selección (mismo export que "Exportar selección").
     try {
       actualizarPasoPaquete("aulas", { status: "curso" });
-      setBusy("Paquete de defensa — exportando anexo de aulas");
+      setBusy("Paquete de defensa — exportando anexo de cursos-horario");
       const res = await apiCalcMuestraAulasExportar();
       setAulasState(res.state.aulas ?? null);
       actualizarPasoPaquete("aulas", {
@@ -1829,7 +1843,7 @@ export default function CalcMuestraPage() {
     } catch (e) {
       actualizarPasoPaquete("aulas", {
         status: "error",
-        detalle: e instanceof Error ? e.message : "No se pudo exportar la selección de aulas.",
+        detalle: e instanceof Error ? e.message : "No se pudo exportar la selección de cursos-horario.",
       });
     }
 
@@ -1899,7 +1913,7 @@ export default function CalcMuestraPage() {
     const piezasConError = 3 - piezasOk;
     setMsg(
       piezasConError === 0
-        ? { kind: "info", text: "Paquete de defensa listo: reporte, anexo de aulas y memoria JSON." }
+        ? { kind: "info", text: "Paquete de defensa listo: reporte, anexo de cursos-horario y memoria JSON." }
         : {
             kind: "warn",
             text: `Paquete de defensa con ${piezasConError} ${piezasConError === 1 ? "pieza" : "piezas"} con error: revisa el checklist.`,
@@ -1915,6 +1929,7 @@ export default function CalcMuestraPage() {
     reporteEnCurso,
     busy,
   });
+  const universityMotor = usePerfilEfectivo(estudio, aulasState);
   const ChromeStatusIcon = chromeStatus.icon;
   const chromeTokens = chromeTokensForDesk({ desk, estudio, workspace, productos, resultados, aulasState });
   const primaryChromeToken = chromeTokens[0] ?? null;
@@ -2023,6 +2038,9 @@ export default function CalcMuestraPage() {
               </div>
             )}
           </div>
+          {desk === "opinion_universitaria" && (
+            <ResumenDiseno motor={universityMotor} workspace={workspace} aulasState={aulasState} />
+          )}
         </div>
       }
       resetScrollKey={desk}
@@ -2096,6 +2114,7 @@ export default function CalcMuestraPage() {
               estudio={estudio}
               workspace={workspace}
               aulasState={aulasState}
+              motor={universityMotor}
               busy={busy}
               activeSection={activeRailSection}
               activeLocalTab={activeLocalTab}
@@ -2168,7 +2187,7 @@ function CalcMuestraSectionRail({
   if (sections.length === 0) return null;
   return (
     <div className="cmv2-section-rail-wrap" aria-label={`${railTitleForDesk(desk)}: secciones`}>
-      <nav className="pulso-phase-pillbar cmv2-section-rail" role="tablist" aria-label={`${railTitleForDesk(desk)}: secciones`}>
+      <GlidingTabList as="nav" activeKey={activeSection} className="pulso-phase-pillbar cmv2-section-rail" role="tablist" aria-label={`${railTitleForDesk(desk)}: secciones`}>
         <ol className="pulso-phase-pill-list">
           {sections.map((item, index) => {
             const active = activeSection === item.id;
@@ -2179,6 +2198,7 @@ function CalcMuestraSectionRail({
                 <button
                   type="button"
                   role="tab"
+                  data-gliding-key={item.id}
                   className={`pulso-phase-pill cmv2-section-pill ${active ? "is-active" : ""}${stateClass}`}
                   aria-current={active ? "page" : undefined}
                   aria-selected={active}
@@ -2199,7 +2219,7 @@ function CalcMuestraSectionRail({
             );
           })}
         </ol>
-      </nav>
+      </GlidingTabList>
     </div>
   );
 }
@@ -2255,7 +2275,9 @@ function CalcMuestraContextSidebar({
           <small>{activeMeta?.detail ?? deskSubtitleForDesk(desk)}</small>
         </div>
 
-        <div
+        <GlidingTabList
+          activeKey={activeTabId}
+          orientation="vertical"
           className={`cmv2-section-local-tabs${desk === "opinion_universitaria" ? " is-guided" : ""}`}
           role="tablist"
           aria-label={`Pestañas de ${activeMeta?.label ?? "la sección"}`}
@@ -2275,6 +2297,7 @@ function CalcMuestraContextSidebar({
                 key={tab.id}
                 type="button"
                 role="tab"
+                data-gliding-key={tab.classroomTab ?? tab.id}
                 aria-selected={active}
                 className={`cmv2-section-local-tab is-${tab.status}${active ? " is-active" : ""}`}
                 // Rail de íconos persistente: el detalle aparece como tooltip
@@ -2306,7 +2329,7 @@ function CalcMuestraContextSidebar({
               </button>
             );
           })}
-        </div>
+        </GlidingTabList>
       </div>
     </aside>
   );
@@ -2529,7 +2552,7 @@ function StudyBasics({
           <span>Unidad de observación</span>
           <input
             value={workspace.unidad_observacion}
-            placeholder="Persona, hogar, aula, actor..."
+            placeholder="Persona, hogar, curso-horario, actor..."
             onChange={(e) => onWorkspace({ ...workspace, unidad_observacion: e.currentTarget.value })}
           />
         </label>
@@ -2869,7 +2892,7 @@ function MarcoShapeSelector({
   const shapes: Array<{ id: MarcoOcasional; label: string; copy: string; icon: typeof Table2 }> = [
     { id: "marco_total", label: "Marco total", copy: "Tengo un N enumerable de la población objetivo.", icon: Database },
     { id: "estratos", label: "Capas / variables de control", copy: "Tengo N por estrato, actor, sexo, edad, distrito u otra capa.", icon: Layers3 },
-    { id: "conglomerados", label: "Conglomerados", copy: "Seleccionaré aulas, sedes, servicios, instituciones u otras unidades agrupadas.", icon: Grid3X3 },
+    { id: "conglomerados", label: "Conglomerados", copy: "Seleccionaré cursos-horario, sedes, servicios, instituciones u otras unidades agrupadas.", icon: Grid3X3 },
     { id: "servicios", label: "Atenciones por servicio y municipalidad", copy: "Patrón GIZ: volumen por celda, n por territorio y cuotas proporcionales.", icon: Table2 },
     { id: "cuotas_controladas", label: "Control no probabilístico", copy: "No hay selección probabilística final, pero sí variables de control.", icon: Target },
     { id: "cobertura", label: "Cobertura de marco", copy: "Quiero saber cuánto del marco corresponde cubrir o contactar.", icon: BarChart3 },

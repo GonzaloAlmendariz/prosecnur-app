@@ -64,8 +64,7 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
       <div className="cmv2-classroom-lab-grid">
         <div className="cmv2-classroom-lab-main">
           <div className="cmv2-subhead">
-            <span className="cmv2-eyebrow">Auditoría técnica</span>
-            <strong>Fórmulas con los valores reales del diseño</strong>
+            <strong>Fórmulas del diseño</strong>
           </div>
           {!hasEvidence && (
             <div className="cmv2-classroom-empty is-compact">
@@ -97,7 +96,7 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
               ] : undefined}
             />
             <FormulaLatex
-              caption="Peso de cada aula seleccionada"
+              caption="Peso de cada curso-horario seleccionado"
               expression={"w_i = \\tfrac{1}{\\pi_i}"}
               badge={probRow ? "validado" : undefined}
               terms={probRow ? [
@@ -146,8 +145,7 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
 
           <section className="cmv2-aulas-repro cmv2-aulas-sello" aria-label="Reproducibilidad defendible">
             <div className="cmv2-subhead">
-              <span className="cmv2-eyebrow">Reproducibilidad defendible</span>
-              <strong>Con estos seis datos, el sorteo se reconstruye exacto</strong>
+              <strong>Reproducibilidad</strong>
             </div>
             <CifraFila>
               <CifraMotor

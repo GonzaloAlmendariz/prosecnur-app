@@ -114,8 +114,7 @@ export function AulasSeleccionTab({
       <div className="cmv2-classroom-lab-grid">
         <div className="cmv2-classroom-lab-main">
           <div className="cmv2-subhead">
-            <span className="cmv2-eyebrow">Selección propuesta</span>
-            <strong>Aulas titulares, reemplazos y trazabilidad</strong>
+            <strong>Selección propuesta</strong>
           </div>
           {!selectionReady ? (
             <>
@@ -140,7 +139,7 @@ export function AulasSeleccionTab({
             <>
               <CifraFila>
                 <CifraMotor
-                  label="Aulas titulares"
+                  label="Cursos-horario titulares"
                   value={fmtInt(m1Rows.length)}
                   detalle="primera cadena que intenta campo"
                   origen="motor"
@@ -168,14 +167,13 @@ export function AulasSeleccionTab({
               <CoverageOverlapPanel rows={coverageRows} selectionRows={m1Rows} framePopulation={framePopulationCount} />
               <ClassroomSelectionRationaleDashboard rows={m1Rows} workspace={workspace} />
               <div className="cmv2-subhead">
-                <span className="cmv2-eyebrow">Ajuste frente al marco</span>
-                <strong>Cada categoría dentro de su banda de tolerancia</strong>
+                <strong>Ajuste frente al marco</strong>
               </div>
               <ProfileBalanceChart rows={visibleProfiles} />
               <div className={`cmv2-aulas-tabla-inspector-layout${activeRow ? " has-inspector" : ""}`}>
                 <div className="cmv2-aulas-tabla-main">
                   <label className="cmv2-compact-field cmv2-classroom-table-filter">
-                    <span>Filtrar aulas</span>
+                    <span>Filtrar cursos-horario</span>
                     <input
                       value={tableQuery}
                       placeholder="facultad, curso, horario, estado..."
@@ -190,7 +188,7 @@ export function AulasSeleccionTab({
                   {filteredSelectionRows.length > 0 && (
                     <div className="cmv2-aulas-tabla-pie">
                       <span>
-                        mostrando {fmtInt(Math.min(tableLimit, filteredSelectionRows.length))} de {fmtInt(filteredSelectionRows.length)} aulas
+                        mostrando {fmtInt(Math.min(tableLimit, filteredSelectionRows.length))} de {fmtInt(filteredSelectionRows.length)} cursos-horario
                         {tableQuery.trim() ? ` (filtro sobre ${fmtInt(selectionRows.length)})` : ""}
                       </span>
                       {filteredSelectionRows.length > tableLimit && (

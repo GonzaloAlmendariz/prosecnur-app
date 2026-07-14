@@ -74,6 +74,21 @@
     !is.null(sel$minEligible)
 }
 
+# Umbral efectivo de alumnos elegibles por curso-horario. Con la suite activa,
+# `minEligible` es la autoridad; si el proyecto todavía no lo trae, conserva el
+# umbral legacy como fallback. Ambos caminos evalúan la MISMA magnitud:
+# aula_frame$eligible_n (nunca la matrícula administrativa enrolled_total).
+.cm_criterios_min_eligible_efectivo <- function(cfg) {
+  cfg <- cfg %||% list()
+  filtros <- cfg$filters %||% list()
+  fallback <- max(1L, .cm_aulas_int(filtros$min_eligible_per_class, 1L))
+  seleccion <- .cm_criterios_normalize_seleccion(cfg$criterios_seleccion)
+  if (!.cm_criterios_seleccion_activa(seleccion)) return(fallback)
+  umbral <- seleccion$minEligible$threshold %||% NA_real_
+  if (!is.finite(umbral)) return(fallback)
+  max(1L, as.integer(round(umbral)))
+}
+
 # Clave de facultad robusta a la "ñ": en macOS iconv ASCII//TRANSLIT convierte
 # "ñ" en "~n" y .cm_aulas_text_key la vuelve "_", así que "Arte y Diseño" ->
 # "arte_y_dise_no" no calza con el "ARTE Y DISENO" que teclea el usuario en el
@@ -572,6 +587,8 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   filtros <- (cfg %||% list())$filters
   if (!is.list(filtros)) filtros <- list()
   n_aulas <- if (is.data.frame(aula_frame)) nrow(aula_frame) else 0L
+  seleccion <- .cm_criterios_normalize_seleccion((cfg %||% list())$criterios_seleccion)
+  suite_activa <- .cm_criterios_seleccion_activa(seleccion)
 
   patrones <- .cm_aulas_chr_vec(filtros$accepted_teacher_type_patterns)
   mapa_nivel <- .cm_criterios_normalize_nivel_por_unidad(filtros$nivel_por_unidad)
@@ -582,12 +599,14 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   # Predicados de activación: pedido en config Y señal en la base. Para nivel
   # cuenta también la señal del fallback (level del aula); para c7 la señal se
   # resuelve por aula (ratio NA pasa), así que basta con el pedido en config.
+  # Con suite activa, docente/nivel/sede quedan neutralizados: la selección por
+  # categorías es la autoridad única de las dimensiones de aula que cubre.
   aplica <- list(
-    docente = isTRUE(filtros$require_stable_teacher) && length(patrones) > 0L &&
+    docente = !suite_activa && isTRUE(filtros$require_stable_teacher) && length(patrones) > 0L &&
       any(nzchar(filas$teacher_type)),
-    nivel = length(mapa_nivel) > 0L &&
+    nivel = !suite_activa && length(mapa_nivel) > 0L &&
       (any(nzchar(filas$course_level)) || any(nzchar(.cm_aulas_values(aula_frame, "level", "")))),
-    sede = length(sedes) > 0L && any(nzchar(filas$campus)),
+    sede = !suite_activa && length(sedes) > 0L && any(nzchar(filas$campus)),
     c7 = isTRUE(filtros$require_min_prevalence),
     c8 = isTRUE(filtros$require_cycle_homogeneity) && any(nzchar(filas$level))
   )
@@ -658,15 +677,14 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     population = population
   )
 
-  # Gate ADITIVO de la selección por categorías (scope aula). Solo restringe:
-  # respeta el included legacy como piso y nunca des-excluye. Sin selección
-  # activa no toca nada → retro-compat bit a bit. Valores constantes por aula
-  # resueltos desde el catálogo (fix del −281); fallback a la base.
-  seleccion <- .cm_criterios_normalize_seleccion((cfg %||% list())$criterios_seleccion)
+  # Gate autoritativo de la selección por categorías (scope aula). Los únicos
+  # gates adicionales que pueden coexistir con la suite son c7/c8 y el umbral
+  # efectivo de elegibles. Sin selección activa no toca nada: retro-compat.
   seleccion_aula <- NULL
-  if (n_aulas && .cm_criterios_seleccion_activa(seleccion)) {
+  if (n_aulas && suite_activa) {
     seleccion_aula <- .cm_criterios_evaluar_aula(
-      aula_frame, catalog_signals, seleccion, stats$course_level_num
+      aula_frame, catalog_signals, seleccion, stats$course_level_num,
+      min_eligible_fallback = .cm_criterios_min_eligible_efectivo(cfg)
     )
     if (any(!seleccion_aula$ok)) {
       aula_frame$included <- aula_frame$included %in% TRUE & seleccion_aula$ok
@@ -735,9 +753,88 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     course_level = course_level,
     course_pairs = course_pairs,
     enrolled_total = pick_num("enrolled_total", .cm_aulas_num_values(aula_frame, "enrolled_total", NA_real_)),
+    eligible_n = .cm_aulas_num_values(aula_frame, "eligible_n", 0),
     faculty = faculty,
     campus = pick_chr("campus", "campus")
   )
+}
+
+.cm_criterios_label_value <- function(x) {
+  x <- gsub("_", " ", as.character(x %||% ""), fixed = TRUE)
+  x <- trimws(gsub("\\s+", " ", x))
+  if (!nzchar(x)) return("")
+  paste0(toupper(substr(x, 1L, 1L)), substr(x, 2L, nchar(x)))
+}
+
+.cm_criterios_label_set <- function(meta, crit) {
+  cats <- .cm_aulas_chr_vec(crit$categories)
+  valores <- vapply(cats, .cm_criterios_label_value, character(1))
+  valores <- valores[nzchar(valores)]
+  resumen <- if (!length(valores)) {
+    if (identical(crit$mode, "exclude")) "Sin exclusiones" else "Todas"
+  } else if (length(valores) <= 2L) {
+    paste(valores, collapse = " y ")
+  } else {
+    sprintf("%s categorías", length(valores))
+  }
+  if (identical(crit$mode, "exclude") && length(valores)) resumen <- paste("Excluye", resumen)
+  sprintf("%s · %s", meta$label, resumen)
+}
+
+.cm_criterios_label_numeric <- function(meta, threshold) {
+  if (is.null(threshold)) return(sprintf("%s · Sin filtro", meta$label))
+  fmt <- function(x) format(.cm_aulas_num(x, 0), trim = TRUE, scientific = FALSE)
+  detalle <- switch(threshold$op,
+    ">=" = paste0("≥ ", fmt(threshold$min)),
+    "<=" = paste0("≤ ", fmt(threshold$max)),
+    "between" = paste0(fmt(threshold$min), "–", fmt(threshold$max)),
+    "Sin filtro"
+  )
+  sprintf("%s · %s", meta$label, detalle)
+}
+
+.cm_criterios_label_course_level <- function(ranges, meta) {
+  piezas <- unlist(lapply(names(ranges), function(fac) {
+    vapply(ranges[[fac]], function(r) sprintf("%s: %s–%s", fac, r$min, r$max), character(1))
+  }), use.names = FALSE)
+  if (!length(piezas)) return(sprintf("%s · Sin rango", meta$label))
+  detalle <- if (length(piezas) <= 2L) paste(piezas, collapse = "; ") else sprintf("%s unidades con rango", length(ranges))
+  sprintf("%s · %s", meta$label, detalle)
+}
+
+.cm_criterios_label_min_eligible <- function(min_elig) {
+  fmt <- function(x) format(.cm_aulas_num(x, 0), trim = TRUE, scientific = FALSE)
+  general <- fmt(min_elig$threshold)
+  por_facultad <- min_elig$byFaculty %||% list()
+  if (!length(por_facultad)) return(sprintf("Con %s o más alumnos elegibles", general))
+
+  valores <- suppressWarnings(as.numeric(unlist(por_facultad, use.names = FALSE)))
+  nombres <- names(por_facultad)
+  validos <- is.finite(valores) & nzchar(nombres)
+  valores <- valores[validos]
+  nombres <- nombres[validos]
+  if (!length(valores)) return(sprintf("Con %s o más alumnos elegibles", general))
+
+  detalle <- if (length(valores) <= 2L) {
+    etiquetas <- vapply(nombres, .cm_criterios_label_value, character(1))
+    umbrales <- vapply(valores, fmt, character(1))
+    paste(sprintf("%s ≥ %s", etiquetas, umbrales), collapse = "; ")
+  } else {
+    sprintf("%s excepciones por facultad · %s–%s", length(valores), fmt(min(valores)), fmt(max(valores)))
+  }
+  sprintf("Elegibles · general ≥ %s; %s", general, detalle)
+}
+
+# Una entrada serializada no siempre representa un filtro. Los numéricos sin
+# umbral y los sets sin categorías (ni excepciones con categorías) son no-op en
+# el evaluador; por tanto tampoco deben crear un paso visual que sugiera un
+# recorte inexistente.
+.cm_criterios_regla_aula_accionable <- function(crit) {
+  if (identical(crit$kind, "numeric")) return(!is.null(crit$threshold))
+  if (!(crit$kind %in% c("flat", "hierarchical"))) return(TRUE)
+  if (length(.cm_aulas_chr_vec(crit$categories))) return(TRUE)
+  excepciones <- crit$exceptions %||% list()
+  any(vapply(excepciones, function(x) length(.cm_aulas_chr_vec(x$categories)) > 0L, logical(1)))
 }
 
 # Set efectivo de categorías para una facultad: base + excepción (add|replace).
@@ -872,35 +969,62 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
 
 # Orquesta el gate scope-aula: itera las variables aula de byVariable +
 # courseLevelRanges + minEligible, acumula flags y razones por aula.
-.cm_criterios_evaluar_aula <- function(aula_frame, catalog_signals, seleccion, base_course_level_num) {
+.cm_criterios_evaluar_aula <- function(aula_frame, catalog_signals, seleccion, base_course_level_num,
+                                       min_eligible_fallback = 1L) {
   n <- nrow(aula_frame)
   vals <- .cm_criterios_valores_aula(aula_frame, catalog_signals, base_course_level_num)
   fac_keys <- .cm_criterios_fac_key(vals$faculty)
   ok <- rep(TRUE, n)
   reason_cols <- list()
-  add <- function(flag, label) {
-    reason_cols[[length(reason_cols) + 1L]] <<- ifelse(flag, "", label)
+  pasos <- list()
+  add <- function(id, flag, reason, label) {
+    reason_cols[[length(reason_cols) + 1L]] <<- ifelse(flag, "", reason)
     ok <<- ok & flag
+    pasos[[length(pasos) + 1L]] <<- list(id = id, label = label, flag = flag)
   }
+  registry <- .cm_criterios_var_registry()
   by <- seleccion$byVariable %||% list()
-  for (id in names(by)) {
+  orden <- c("modality", "session_type", "teacher_type", "course_level", "enrolled_total", "campus")
+  for (id in orden) {
+    if (identical(id, "course_level")) {
+      if (length(seleccion$courseLevelRanges)) {
+        add(
+          "course_level",
+          .cm_criterios_eval_course_ranges(vals$course_pairs, seleccion$courseLevelRanges),
+          "course_level",
+          .cm_criterios_label_course_level(seleccion$courseLevelRanges, registry$course_level)
+        )
+      }
+      next
+    }
+    if (is.null(by[[id]])) next
     crit <- by[[id]]
     if (!identical(crit$scope, "aula")) next
+    if (!.cm_criterios_regla_aula_accionable(crit)) next
     flag <- switch(crit$kind,
       flat = .cm_criterios_eval_flat_vec(vals[[id]] %||% rep("", n), crit, fac_keys),
       hierarchical = .cm_criterios_eval_teacher(vals$teacher, crit, fac_keys),
       numeric = .cm_criterios_eval_numeric(vals[[id]] %||% rep(NA_real_, n), crit$threshold),
       rep(TRUE, n))
-    add(flag, id)
+    label <- if (identical(crit$kind, "numeric")) {
+      .cm_criterios_label_numeric(registry[[id]], crit$threshold)
+    } else {
+      .cm_criterios_label_set(registry[[id]], crit)
+    }
+    add(id, flag, id, label)
   }
-  if (length(seleccion$courseLevelRanges)) {
-    add(.cm_criterios_eval_course_ranges(vals$course_pairs, seleccion$courseLevelRanges), "course_level")
+  min_elig <- seleccion$minEligible
+  if (is.null(min_elig) || !is.finite(min_elig$threshold)) {
+    min_elig <- list(threshold = max(1L, .cm_aulas_int(min_eligible_fallback, 1L)), byFaculty = list())
   }
-  if (!is.null(seleccion$minEligible) && is.finite(seleccion$minEligible$threshold)) {
-    add(.cm_criterios_eval_min_eligible(vals$enrolled_total, fac_keys, seleccion$minEligible), "min_eligible")
-  }
+  add(
+    "minEligible",
+    .cm_criterios_eval_min_eligible(vals$eligible_n, fac_keys, min_elig),
+    "min_eligible",
+    .cm_criterios_label_min_eligible(min_elig)
+  )
   reason <- if (length(reason_cols)) .cm_criterios_concat_razones(reason_cols) else rep("", n)
-  list(ok = ok, reason = reason, valores = vals)
+  list(ok = ok, reason = reason, valores = vals, pasos = pasos)
 }
 
 # Evaluación del scope ALUMNO: reconstruye la población objetivo. Los criterios

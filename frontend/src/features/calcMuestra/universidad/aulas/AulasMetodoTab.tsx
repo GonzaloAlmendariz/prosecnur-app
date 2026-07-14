@@ -50,12 +50,12 @@ function MethodFormulaPopover({ methodId }: { methodId: string }) {
         <strong>Cómo sortea el sistemático-PPS</strong>
         <p>
           Ordena el marco por facultad, calcula el{" "}
-          <TerminoChip termino="salto k">salto k</TerminoChip> y toma un aula cada k posiciones desde
-          un arranque aleatorio con semilla fija.
+          <TerminoChip termino="salto k">salto k</TerminoChip> y toma un curso-horario cada k posiciones
+          desde un arranque aleatorio con semilla fija.
         </p>
-        <FormulaLatex expression={"k = \\tfrac{N_{aulas}}{n_{aulas}}"} display={false} />
+        <FormulaLatex expression={"k = \\tfrac{N_{CH}}{n_{CH}}"} display={false} />
         <p>
-          Cada aula queda con su{" "}
+          Cada curso-horario queda con su{" "}
           <TerminoChip termino="pi (probabilidad">pi (probabilidad de inclusión)</TerminoChip>{" "}
           proporcional a su tamaño elegible:
         </p>
@@ -69,7 +69,7 @@ function MethodFormulaPopover({ methodId }: { methodId: string }) {
         <strong>Cómo sortea el balanceado (cube)</strong>
         <p>Sortea respetando las probabilidades del diseño, pero obliga a que los totales de la muestra reproduzcan los del marco en las variables de balance:</p>
         <FormulaLatex expression={"\\textstyle\\sum_{i \\in muestra} \\tfrac{x_i}{\\pi_i} \\approx \\sum_{i \\in marco} x_i"} display={false} />
-        <p>Con x = facultad, sexo esperado, tamaño de aula y demás variables activas del objetivo.</p>
+        <p>Con x = facultad, sexo esperado, tamaño del curso-horario y demás variables activas del objetivo.</p>
       </div>
     );
   }
@@ -77,9 +77,9 @@ function MethodFormulaPopover({ methodId }: { methodId: string }) {
     return (
       <div className="cmv2-aulas-chip-pop">
         <strong>Cómo sortea el balance + dispersión</strong>
-        <p>Método pivotal local: cuando dos aulas se parecen mucho, compiten entre sí, de modo que la muestra queda dispersa en programa, nivel y horario en vez de amontonarse.</p>
+        <p>Método pivotal local: cuando dos cursos-horario se parecen mucho, compiten entre sí, de modo que la muestra queda dispersa en programa, nivel y horario en vez de amontonarse.</p>
         <FormulaLatex expression={"\\pi_i + \\pi_j = cte."} display={false} />
-        <p>La suma de probabilidades se conserva en cada duelo local; ninguna aula gana probabilidad extra.</p>
+        <p>La suma de probabilidades se conserva en cada duelo local; ningún curso-horario gana probabilidad extra.</p>
       </div>
     );
   }
@@ -126,13 +126,13 @@ function SaltoSistematicoRecta({ model }: { model: ClassroomLabModel }) {
     if (isSelected(aula)) saltoOrden.set(aula, saltoOrden.size);
   });
   return (
-    <div className="cmv2-aulas-recta" role="img" aria-label={`Recta del salto sistemático: ${fmtInt(N)} aulas ordenadas, arranque en la posición ${fmtInt(start)} y un aula cada ${fmtInt(k)} posiciones`}>
+    <div className="cmv2-aulas-recta" role="img" aria-label={`Recta del salto sistemático: ${fmtInt(N)} cursos-horario ordenados, arranque en la posición ${fmtInt(start)} y un curso-horario cada ${fmtInt(k)} posiciones`}>
       <div className="cmv2-aulas-recta-head">
         <strong>La recta del salto sistemático</strong>
         <small>
           {real
-            ? `k = ${fmtInt(frameN)} aulas del marco / ${fmtInt(titulares)} titulares = ${fmtInt(k)}`
-            : `ejemplo ilustrativo (sin selección todavía): ${fmtInt(N)} aulas y ${fmtInt(n)} titulares → k = ${fmtInt(k)}`}
+            ? `k = ${fmtInt(frameN)} cursos-horario del marco / ${fmtInt(titulares)} titulares = ${fmtInt(k)}`
+            : `ejemplo ilustrativo (sin selección todavía): ${fmtInt(N)} cursos-horario y ${fmtInt(n)} titulares → k = ${fmtInt(k)}`}
           {" · arranque de ejemplo en la posición "}{fmtInt(start)}
           {truncated ? ` · se dibujan las primeras ${fmtInt(ticks)} posiciones de ${fmtInt(N)}` : ""}
         </small>
@@ -167,9 +167,9 @@ function SaltoSistematicoRecta({ model }: { model: ClassroomLabModel }) {
             </g>
           );
         })}
-        <text className="cmv2-aulas-recta-eje" x={margin} y={78} textAnchor="start">aula 1</text>
-        <text className="cmv2-aulas-recta-eje" x={width - margin} y={78} textAnchor="end">aula {fmtInt(ticks)}{truncated ? ` de ${fmtInt(N)}` : ""}</text>
-        <text className="cmv2-aulas-recta-eje is-k" x={width / 2} y={78} textAnchor="middle">un aula cada k = {fmtInt(k)} posiciones</text>
+        <text className="cmv2-aulas-recta-eje" x={margin} y={78} textAnchor="start">curso-horario 1</text>
+        <text className="cmv2-aulas-recta-eje" x={width - margin} y={78} textAnchor="end">curso-horario {fmtInt(ticks)}{truncated ? ` de ${fmtInt(N)}` : ""}</text>
+        <text className="cmv2-aulas-recta-eje is-k" x={width / 2} y={78} textAnchor="middle">un curso-horario cada k = {fmtInt(k)} posiciones</text>
       </svg>
     </div>
   );
@@ -224,8 +224,7 @@ export function AulasMetodoTab({
       <div className="cmv2-classroom-lab-grid">
         <div className="cmv2-classroom-lab-main">
           <div className="cmv2-subhead">
-            <span className="cmv2-eyebrow">Comparación</span>
-            <strong>Métodos lado a lado y decisión recomendada</strong>
+            <strong>Comparación de métodos</strong>
           </div>
           <div className="cmv2-classroom-method-grid cmv2-uni-stagger">
             {["sistematico_pps", "cube_balanceado", "local_pivotal_balanceado", "pool_controlado"].map((methodId) => {

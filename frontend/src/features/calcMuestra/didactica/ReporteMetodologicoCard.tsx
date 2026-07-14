@@ -37,10 +37,6 @@ export function ReporteMetodologicoCard(props: {
   return (
     <div className="cmv2-did-sal-card">
       <span className="cmv2-eyebrow">Reporte metodológico</span>
-      <p className="cmv2-did-note">
-        El reporte documenta todo el diseño —parámetros, fórmula, distribución y selección de aulas— para que
-        cualquier revisor pueda auditarlo.
-      </p>
 
       {puedeGenerar ? (
         <div className="cmv2-did-sal-row">
@@ -67,7 +63,7 @@ export function ReporteMetodologicoCard(props: {
       )}
 
       <div className="cmv2-did-sal-sub">
-        <span className="cmv2-eyebrow">Anexo de aulas (xlsx)</span>
+        <span className="cmv2-eyebrow">Anexo de cursos-horario (xlsx)</span>
         <div className="cmv2-did-sal-row">
           <button
             type="button"
@@ -80,7 +76,7 @@ export function ReporteMetodologicoCard(props: {
             ) : (
               <FileSpreadsheet size={14} aria-hidden="true" />
             )}
-            {exportandoAulas ? "Exportando…" : "Exportar selección de aulas"}
+            {exportandoAulas ? "Exportando…" : "Exportar selección de cursos-horario"}
           </button>
           {aulasExportFilename && <span className="cmv2-did-sal-file">{aulasExportFilename}</span>}
         </div>

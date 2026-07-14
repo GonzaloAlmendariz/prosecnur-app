@@ -1,0 +1,74 @@
+import type {
+  CriterioVariable,
+  CriteriosSeleccionMarco,
+} from "../../../../api/client";
+import { ELEGIBLES_POR_AULA_ID } from "../../dominio";
+
+export type TipoBorradorCriterio = CriterioVariable["kind"] | "minEligible";
+
+/**
+ * Copia solamente el fragmento que pertenece a una variable. Así una
+ * confirmación nunca arrastra ediciones todavía abiertas en otras tarjetas.
+ */
+export function copiarVariableCriterio(
+  destino: CriteriosSeleccionMarco,
+  fuente: CriteriosSeleccionMarco,
+  variableId: string,
+  tipo: TipoBorradorCriterio,
+): CriteriosSeleccionMarco {
+  if (variableId === ELEGIBLES_POR_AULA_ID || tipo === "minEligible") {
+    return {
+      ...destino,
+      minEligible: fuente.minEligible
+        ? {
+            ...fuente.minEligible,
+            byFaculty: fuente.minEligible.byFaculty
+              ? { ...fuente.minEligible.byFaculty }
+              : undefined,
+          }
+        : undefined,
+    };
+  }
+
+  if (tipo === "range") {
+    return {
+      ...destino,
+      courseLevelRanges: fuente.courseLevelRanges
+        ? Object.fromEntries(
+            Object.entries(fuente.courseLevelRanges).map(([facultad, rangos]) => [
+              facultad,
+              rangos.map(([min, max]) => [min, max] as [number, number]),
+            ]),
+          )
+        : undefined,
+    };
+  }
+
+  const byVariable = { ...destino.byVariable };
+  const fuenteVariable = fuente.byVariable[variableId];
+  if (fuenteVariable) byVariable[variableId] = fuenteVariable;
+  else delete byVariable[variableId];
+  return { ...destino, byVariable };
+}
+
+/**
+ * Incorpora una nueva selección confirmada sin perder los borradores que el
+ * usuario todavía no decidió confirmar ni descartar.
+ */
+export function reconciliarBorradorCriterios(
+  confirmado: CriteriosSeleccionMarco,
+  borradorAnterior: CriteriosSeleccionMarco,
+  pendientes: ReadonlySet<string>,
+  tipos: ReadonlyMap<string, TipoBorradorCriterio>,
+): CriteriosSeleccionMarco {
+  let next = confirmado;
+  for (const variableId of pendientes) {
+    next = copiarVariableCriterio(
+      next,
+      borradorAnterior,
+      variableId,
+      tipos.get(variableId) ?? "flat",
+    );
+  }
+  return next;
+}

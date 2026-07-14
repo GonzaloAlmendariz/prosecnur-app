@@ -40,11 +40,10 @@ const AULA_PRESET_ID: Record<string, string> = {
   session_type: "tipo-curso",
   teacher_type: "docente",
   course_level: "nivel-unidad",
-  enrolled_total: "min-elegibles",
 };
 
 /** El "Elegibles por aula" (tarjeta especial de la suite) reusa min-elegibles. */
-export const ELEGIBLES_POR_AULA_ID = "enrolled_total";
+export const ELEGIBLES_POR_AULA_ID = "minEligible";
 
 /**
  * Rationale plegable de una variable de criterio, o null si el id no tiene un
@@ -61,7 +60,7 @@ export function rationaleParaCriterio(
     if (!criterio) return null;
     return { incluye: criterio.incluye, excluye: criterio.excluye, porQue: criterio.porQue };
   }
-  const presetId = AULA_PRESET_ID[id];
+  const presetId = id === ELEGIBLES_POR_AULA_ID ? "min-elegibles" : AULA_PRESET_ID[id];
   if (!presetId) return null;
   const criterio = PLANTILLA_UNIVERSIDAD.criteriosAula.find((c) => c.id === presetId);
   if (!criterio) return null;

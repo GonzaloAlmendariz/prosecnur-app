@@ -49,7 +49,7 @@ export function TabCalculo({
     e1.cuadratura.sexoAjustado === "hombres" ? perfil.etiquetasSexo[1] : perfil.etiquetasSexo[0];
 
   return (
-    <div className="rec-cap">
+    <div className="rec-cap rec-diseno">
       <section className="rec-bloque">
         <h3>Tamaño de muestra</h3>
         <FormulaViva
@@ -99,51 +99,53 @@ export function TabCalculo({
         </NotaPorQue>
       </section>
 
-      <section className="rec-bloque">
-        <h3>Bolsa operativa de aulas</h3>
-        <div className="rec-segmented rec-segmented-bolsa" role="radiogroup" aria-label="Bolsa operativa">
-          {perfil.bolsaOpciones.map((extra, i) => {
-            const letra = String.fromCharCode(65 + i);
-            const total = e1.aulasBase + extra * e1.cuotas.length;
-            return (
-              <button
-                key={extra}
-                type="button"
-                role="radio"
-                aria-checked={bolsa === extra}
-                data-activo={bolsa === extra || undefined}
-                onClick={() => setBolsa(extra)}
-              >
-                <strong>{letra} · {extra === 0 ? "sin bolsa" : `+${extra}/${perfil.etiquetaUnidad}`}</strong>
-                <span>{e1.aulasBase > 0 ? fmtInt(total) : "—"} aulas</span>
-                <em>
-                  {extra === 0
-                    ? "sin margen operativo"
-                    : extra === perfil.bolsaOpciones[perfil.bolsaSugerida]
-                      ? "margen moderado (sugerida)"
-                      : "margen amplio"}
-                </em>
-              </button>
-            );
-          })}
-        </div>
-        <p className="rec-bloque-sub">
-          Aulas adicionales cotizadas para incidencias de campo. No modifica la muestra (
-          {fmtInt(e1.nDiseno)} encuestas) ni la sobremuestra (×{fmtDec(parametros.factorSobremuestra, 1)} ={" "}
-          {fmtInt(e1.sobremuestraTotal)}).
-        </p>
-      </section>
+      <div className="rec-diseno-lower">
+        <section className="rec-bloque rec-diseno-panel">
+          <h3>Reserva operativa de cursos-horario</h3>
+          <div className="rec-segmented rec-segmented-bolsa" role="radiogroup" aria-label="Bolsa operativa">
+            {perfil.bolsaOpciones.map((extra, i) => {
+              const letra = String.fromCharCode(65 + i);
+              const total = e1.aulasBase + extra * e1.cuotas.length;
+              return (
+                <button
+                  key={extra}
+                  type="button"
+                  role="radio"
+                  aria-checked={bolsa === extra}
+                  data-activo={bolsa === extra || undefined}
+                  onClick={() => setBolsa(extra)}
+                >
+                  <strong>{letra} · {extra === 0 ? "sin bolsa" : `+${extra}/${perfil.etiquetaUnidad}`}</strong>
+                  <span>{e1.aulasBase > 0 ? fmtInt(total) : "—"} cursos-horario</span>
+                  <em>
+                    {extra === 0
+                      ? "sin margen operativo"
+                      : extra === perfil.bolsaOpciones[perfil.bolsaSugerida]
+                        ? "margen moderado (sugerida)"
+                        : "margen amplio"}
+                  </em>
+                </button>
+              );
+            })}
+          </div>
+          <p className="rec-bloque-sub">
+            Cursos-horario adicionales reservados para incidencias de campo. No modifica la muestra (
+            {fmtInt(e1.nDiseno)} encuestas) ni la sobremuestra (×{fmtDec(parametros.factorSobremuestra, 1)} ={" "}
+            {fmtInt(e1.sobremuestraTotal)}).
+          </p>
+        </section>
 
-      <section className="rec-bloque">
-        <h3>Escenarios</h3>
-        <ComparadorEscenarios
-          e1={e1}
-          e2={e2}
-          escenario={escenario}
-          onEscenario={setEscenario}
-          etiquetaUnidad={perfil.etiquetaUnidad}
-        />
-      </section>
+        <section className="rec-bloque rec-diseno-panel">
+          <h3>Escenarios</h3>
+          <ComparadorEscenarios
+            e1={e1}
+            e2={e2}
+            escenario={escenario}
+            onEscenario={setEscenario}
+            etiquetaUnidad={perfil.etiquetaUnidad}
+          />
+        </section>
+      </div>
     </div>
   );
 }

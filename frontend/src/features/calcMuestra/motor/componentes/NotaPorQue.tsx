@@ -6,7 +6,7 @@ import { useState, type ReactNode } from "react";
 import { ChevronRight, Lightbulb } from "lucide-react";
 
 export function NotaPorQue({
-  pregunta = "¿Por qué así?",
+  pregunta = "Detalle",
   abierta = false,
   children,
 }: {

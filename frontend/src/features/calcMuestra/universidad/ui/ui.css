@@ -42,6 +42,11 @@
   .cmv2-uni-stagger > *:nth-child(5) { animation-delay: 140ms; }
   .cmv2-uni-stagger > *:nth-child(6) { animation-delay: 175ms; }
   .cmv2-uni-stagger > *:nth-child(n + 7) { animation-delay: 200ms; }
+
+  .cmv2-uni-flujo[data-orientacion="adaptive"] > .cmv2-uni-flujo-etapa {
+    animation: cmv2-uni-enter-suave 220ms var(--cmv2-ease-out, ease-out) both;
+    animation-delay: min(calc(var(--cmv2-flujo-index, 0) * 28ms), 168ms);
+  }
 }
 
 @keyframes cmv2-uni-enter {
@@ -310,6 +315,93 @@
   padding-bottom: 2px;
 }
 
+/* Los flujos largos se leen como una secuencia compacta, no como una cinta
+   horizontal ni como una columna interminable. En escritorio amplio ocupan
+   una sola fila; el propio contenedor reduce la retícula antes de comprimir
+   las etiquetas. Las aristas se vuelven conectores superpuestos para no
+   reservar columnas vacías. */
+.cmv2-uni-flujo[data-orientacion="adaptive"] {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: repeat(var(--cmv2-flujo-columnas), minmax(0, 1fr));
+  gap: 8px 18px;
+}
+
+.cmv2-uni-flujo[data-orientacion="adaptive"] > .cmv2-uni-flujo-arista {
+  display: none;
+}
+
+.cmv2-uni-flujo[data-orientacion="adaptive"] > .cmv2-uni-flujo-etapa {
+  position: relative;
+  min-height: 58px;
+  padding: 8px 11px;
+  border-color: color-mix(in srgb, var(--cmv2-border) 78%, transparent);
+  box-shadow: none;
+}
+
+.cmv2-uni-flujo[data-orientacion="adaptive"] > .cmv2-uni-flujo-etapa:not(:last-child)::after {
+  position: absolute;
+  top: 50%;
+  right: -14px;
+  z-index: 2;
+  width: 10px;
+  height: 1px;
+  background: var(--cmv2-accent-border);
+  box-shadow: 5px 0 0 -4px var(--cmv2-accent);
+  content: "";
+}
+
+@container (max-width: 1200px) {
+  .cmv2-uni-flujo[data-orientacion="adaptive"] {
+    --cmv2-flujo-columnas: 3 !important;
+  }
+
+  .cmv2-uni-flujo[data-orientacion="adaptive"] > .cmv2-uni-flujo-etapa:nth-child(6n + 5)::after {
+    display: none;
+  }
+}
+
+@container (max-width: 720px) {
+  .cmv2-uni-flujo[data-orientacion="adaptive"] {
+    --cmv2-flujo-columnas: 2 !important;
+  }
+
+  .cmv2-uni-flujo[data-orientacion="adaptive"] > .cmv2-uni-flujo-etapa:nth-child(6n + 5)::after {
+    display: block;
+  }
+
+  .cmv2-uni-flujo[data-orientacion="adaptive"] > .cmv2-uni-flujo-etapa:nth-child(4n + 3)::after {
+    display: none;
+  }
+}
+
+/* La retícula vive en el propio componente, por lo que el viewport de la app
+   actúa como fallback estable para Electron (los navegadores no permiten que
+   un query cambie el contenedor que lo origina). */
+@media (max-width: 1450px) {
+  .cmv2-uni-flujo[data-orientacion="adaptive"] {
+    --cmv2-flujo-columnas: 3 !important;
+  }
+
+  .cmv2-uni-flujo[data-orientacion="adaptive"] > .cmv2-uni-flujo-etapa:nth-child(6n + 5)::after {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .cmv2-uni-flujo[data-orientacion="adaptive"] {
+    --cmv2-flujo-columnas: 2 !important;
+  }
+
+  .cmv2-uni-flujo[data-orientacion="adaptive"] > .cmv2-uni-flujo-etapa:nth-child(6n + 5)::after {
+    display: block;
+  }
+
+  .cmv2-uni-flujo[data-orientacion="adaptive"] > .cmv2-uni-flujo-etapa:nth-child(4n + 3)::after {
+    display: none;
+  }
+}
+
 .cmv2-uni-flujo-etapa {
   position: relative;
   display: flex;
@@ -382,6 +474,14 @@ button.cmv2-uni-flujo-etapa:focus-visible {
   white-space: nowrap;
 }
 
+.cmv2-uni-flujo[data-orientacion="adaptive"] .cmv2-uni-flujo-label {
+  display: -webkit-box;
+  overflow: hidden;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .cmv2-uni-flujo-valor {
   font-size: 16px;
   font-weight: 750;
@@ -393,6 +493,16 @@ button.cmv2-uni-flujo-etapa:focus-visible {
 .cmv2-uni-flujo-detalle {
   font-size: 10.5px;
   color: var(--pulso-text-muted);
+}
+
+.cmv2-uni-flujo-merma-inline {
+  overflow: hidden;
+  color: var(--pulso-warn-fg, var(--pulso-text-muted));
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Conector entre etapas (vertical u horizontal) con merma opcional.

@@ -147,9 +147,9 @@ describe("textKey", () => {
 });
 
 describe("unidadCriterio", () => {
-  it("estudiantes para alumno, aulas para aula", () => {
+  it("estudiantes para alumno y cursos-horario para la unidad agrupada", () => {
     expect(unidadCriterio({ scope: "alumno" })).toBe("estudiantes");
-    expect(unidadCriterio({ scope: "aula" })).toBe("aulas");
+    expect(unidadCriterio({ scope: "aula" })).toBe("cursos-horario");
   });
 });
 

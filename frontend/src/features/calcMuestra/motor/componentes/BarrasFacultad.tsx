@@ -28,17 +28,44 @@ export function BarrasFacultad({
   filas,
   ariaLabel,
   leyenda,
+  variante = "estandar",
 }: {
   filas: FilaBarra[];
   ariaLabel: string;
   leyenda?: ReactNode;
+  /** Geometría local para vistas que necesitan una escala explícita y más densidad. */
+  variante?: "estandar" | "cobertura";
 }) {
   const max = Math.max(...filas.map((f) => f.valor), 1);
+  const tieneAnotaciones = filas.some((fila) => fila.anotacion != null);
   return (
-    <div className="rec-barras" role="table" aria-label={ariaLabel}>
+    <div
+      className="rec-barras"
+      role="table"
+      aria-label={ariaLabel}
+      data-variante={variante}
+      data-anotaciones={tieneAnotaciones || undefined}
+    >
       {leyenda && <div className="rec-barras-leyenda">{leyenda}</div>}
+      {variante === "cobertura" && (
+        <div className="rec-barras-escala" aria-hidden="true">
+          <span />
+          <span className="rec-barras-escala-pista">
+            <span>0</span>
+            <span>Máximo · {fmtInt(max)}</span>
+          </span>
+          <span />
+          {tieneAnotaciones && <span />}
+        </div>
+      )}
       {filas.map((fila) => (
-        <div key={fila.id} className="rec-barras-fila" role="row" data-resaltada={fila.resaltada || undefined}>
+        <div
+          key={fila.id}
+          className="rec-barras-fila"
+          role="row"
+          data-resaltada={fila.resaltada || undefined}
+          data-anotacion={fila.anotacion != null || undefined}
+        >
           <span className="rec-barras-nombre" role="rowheader">{fila.nombre}</span>
           <span className="rec-barras-pista" aria-hidden="true">
             <span className="rec-barras-barra" style={{ width: `${(fila.valor / max) * 100}%` }}>

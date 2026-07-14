@@ -56,17 +56,18 @@ import {
   type PaqueteDefensaPaso,
 } from "./salidas";
 import { zFromConfidence } from "../didactica/motorPreview";
-import { ResumenDiseno } from "../motor/ResumenDiseno";
-import { usePerfilEfectivo } from "../motor/usePerfilEfectivo";
+import type { MotorEfectivo } from "../motor/usePerfilEfectivo";
 import { useMotorStore } from "../motor/store";
 import { TabCalculo } from "../motor/pestanas/TabCalculo";
 import { TabCobertura } from "../motor/pestanas/TabCobertura";
 import { TabDistribucion } from "../motor/pestanas/TabDistribucion";
+import { UniversityTabHeader } from "./ui/UniversityTabHeader";
 
 export function UniversidadDesk({
   estudio,
   workspace,
   aulasState,
+  motor,
   busy,
   activeSection,
   activeLocalTab,
@@ -98,6 +99,7 @@ export function UniversidadDesk({
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
   aulasState: CalcMuestraAulasState | null;
+  motor: MotorEfectivo;
   busy: string | null;
   activeSection: string;
   activeLocalTab: string;
@@ -270,7 +272,6 @@ export function UniversidadDesk({
     : "definicion";
   // Motor reactivo: perfil efectivo (proyecto/manual/ejemplo) y resultados
   // en vivo, compartidos por la franja de resultados y las pestañas del motor.
-  const motor = usePerfilEfectivo(estudio, aulasState);
   const parametrosMotor = useMotorStore((s) => s.decisiones.parametros);
 
   // Reconstrucción del marco duro (motor R): habilitada cuando hay una fuente
@@ -298,6 +299,9 @@ export function UniversidadDesk({
     ? activeLocalTab
     : localTabs[0]?.id ?? "";
   const showLocalTab = (tabId: string) => selectedLocalTab === tabId;
+  const activeTabMeta = selectedSection === "aulas"
+    ? localTabs.find((tab) => tab.classroomTab === activeLabTab)
+    : localTabs.find((tab) => tab.id === selectedLocalTab);
   const componentMarcoReady = safeNumber(totalComp.marco.marco_validado) > 0 && (totalComp.marco.estratos ?? []).some((e) => safeNumber(e.N) > 0);
   const aulasFrameReady = Boolean(
     aulasState?.frame &&
@@ -326,7 +330,7 @@ export function UniversidadDesk({
     (syncedWorkspace.source_bindings ?? []).some((binding) => binding.file_id);
 
   return (
-    <div className="cmv2-desk">
+    <div className="cmv2-desk cmv2-university-desk">
       {marcoDesincronizado && (
         <div className="cmv2-uni-resync" role="status">
           <TriangleAlert size={15} aria-hidden="true" />
@@ -348,10 +352,12 @@ export function UniversidadDesk({
           </button>
         </div>
       )}
-      <ResumenDiseno motor={motor} />
+      {activeTabMeta ? (
+        <UniversityTabHeader tab={activeTabMeta} />
+      ) : null}
       <div className="cmv2-university-workbench" data-active-section={selectedSection}>
         {selectedSection === "definicion" && (
-          <div id="cmv2-section-university-setup" className="cmv2-tab-panel" role="tabpanel" aria-label="Definición">
+          <div id="cmv2-section-university-setup" className="cmv2-tab-panel" role="tabpanel" aria-labelledby="cmv2-active-local-title">
             {showLocalTab("def-estudio") && <div id="cmv2-local-def-estudio">
               <DefEstudioTab
                 estudio={estudio}
@@ -384,14 +390,12 @@ export function UniversidadDesk({
         )}
 
         {selectedSection === "marco" && (
-          <div id="cmv2-section-university-marco" className="cmv2-tab-panel" role="tabpanel" aria-label="Marco muestral">
+          <div id="cmv2-section-university-marco" className="cmv2-tab-panel" role="tabpanel" aria-labelledby="cmv2-active-local-title">
             {showLocalTab("marco-categorias") && <div id="cmv2-local-marco-categorias">
               <CriteriosMarcoTab
                 workspace={syncedWorkspace}
                 aulasState={aulasState}
                 facultades={motor.perfil.facultades.map((f) => f.nombre)}
-                marcoAulas={motor.perfil.marcoAulas}
-                poblacionN={motor.perfil.facultades.reduce((sum, f) => sum + safeNumber(f.N, 0), 0) || null}
                 onWorkspace={onWorkspace}
                 onReconstruir={() => void onSourceBuild(syncedWorkspace)}
                 puedeReconstruir={puedeReconstruirMarco && !busy}
@@ -414,7 +418,7 @@ export function UniversidadDesk({
         )}
 
         {selectedSection === "aulas" && (
-          <div id="cmv2-section-university-aulas" className="cmv2-tab-panel" role="tabpanel" aria-label="Aulas y selección">
+          <div id="cmv2-section-university-aulas" className="cmv2-tab-panel" role="tabpanel" aria-labelledby="cmv2-active-local-title">
             {activeLabTab === "marco" && <AulasMarcoTab model={labModel} />}
             {activeLabTab === "objetivo" && (
               <AulasObjetivoTab workspace={syncedWorkspace} model={labModel} onWorkspace={onWorkspace} />
@@ -449,8 +453,8 @@ export function UniversidadDesk({
         )}
 
         {selectedSection === "calculo" && (
-          <div id="cmv2-section-university-calculo" className="cmv2-tab-panel" role="tabpanel" aria-label="Cálculo">
-            {showLocalTab("calculo-diseno") && <div id="cmv2-local-calculo-diseno" className="rec-recorrido">
+          <div id="cmv2-section-university-calculo" className="cmv2-tab-panel" role="tabpanel" aria-labelledby="cmv2-active-local-title">
+            {showLocalTab("calculo-diseno") && <div id="cmv2-local-calculo-diseno" className="rec-recorrido rec-recorrido--full">
               <TabCalculo
                 perfil={motor.perfil}
                 e1={motor.e1}
@@ -489,7 +493,7 @@ export function UniversidadDesk({
         )}
 
         {selectedSection === "salidas" && (
-          <div id="cmv2-section-university-salidas" className="cmv2-tab-panel" role="tabpanel" aria-label="Salidas">
+          <div id="cmv2-section-university-salidas" className="cmv2-tab-panel" role="tabpanel" aria-labelledby="cmv2-active-local-title">
             {showLocalTab("salidas-guia") && <div id="cmv2-local-salidas-guia">
               <SalidasCierreTab model={labModel} workspace={syncedWorkspace} />
             </div>}
@@ -514,7 +518,7 @@ export function UniversidadDesk({
                 paquete={{
                   puedeGenerar: calculationReady && selectionReady,
                   hint: !selectionReady
-                    ? "Genera la selección de aulas (sección Aulas) para armar el paquete completo."
+                    ? "Genera la selección de cursos-horario (sección Selección) para armar el paquete completo."
                     : !calculationReady
                       ? "Calcula la muestra (sección Cálculo) para armar el paquete completo."
                       : undefined,

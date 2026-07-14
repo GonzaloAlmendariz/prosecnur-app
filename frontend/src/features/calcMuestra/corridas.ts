@@ -163,7 +163,7 @@ export function jsonIgual(a: unknown, b: unknown): boolean {
 export function tituloCorrida(corrida: CalcMuestraCorrida): string {
   if (corrida.tipo === "seleccion") {
     const titulares = corrida.resumen?.titulares;
-    return titulares ? `${titulares} aulas titulares` : "selección de aulas";
+    return titulares ? `${titulares} cursos-horario titulares` : "selección de cursos-horario";
   }
   const n = corrida.n_objetivo ?? corrida.resumen?.n;
   return n ? `n = ${n}` : "cálculo de muestra";

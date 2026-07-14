@@ -18,7 +18,7 @@ import type {
   CalcMuestraWorkspace,
   CalcMuestraWorkspaceSourceMode,
 } from "../../../../api/client";
-import { BadgeMotor, ContextoLlano, RespaldoMetodologico } from "../../didactica/PasoDidactico";
+import { BadgeMotor, RespaldoMetodologico } from "../../didactica/PasoDidactico";
 import { EJEMPLO_TRABAJADO } from "../../didactica/referencia/corpus";
 import { fmtInt, safeNumber } from "../../sharedCore";
 import { ensureUniversitySourceBindings } from "../shared/categorias";
@@ -176,9 +176,9 @@ export function DefEstudioTab({
     },
     {
       id: "aulas",
-      label: "Aulas M1",
+      label: "Cursos-horario M1",
       valor: aulasM1 > 0 ? fmtInt(aulasM1) : undefined,
-      detalle: aulasM1 > 0 ? "aulas titulares sorteadas" : "se sortean en Aulas",
+      detalle: aulasM1 > 0 ? "cursos-horario titulares sorteados" : "se sortean en Selección",
       estado: aulasM1 > 0 ? "ready" : "pending",
     },
   ];
@@ -192,7 +192,6 @@ export function DefEstudioTab({
           <MuestraFlowDiagram compacto highlight={highlightRecorrido} estados={estadosRecorrido} />
         </div>
       )}
-      <ContextoLlano paso="definicion" />
       <div className="cmv2-defi-estudio-layout">
         <section className="cmv2-panel" aria-label="Identidad del estudio">
           <div className="cmv2-defi-form-head">
@@ -260,7 +259,7 @@ export function DefEstudioTab({
             <span className="cmv2-eyebrow">Mapa del recorrido</span>
             {hayCifrasMotor && <BadgeMotor estado="validado" />}
           </div>
-          <FlujoVertical etapas={etapas} ariaLabel="Del universo a las aulas titulares" />
+          <FlujoVertical etapas={etapas} ariaLabel="Del universo a los cursos-horario titulares" />
         </aside>
       </div>
       <EjemploTrabajado />
@@ -321,7 +320,7 @@ function HeroPrimeraVez({
       <h3 className="cmv2-defi-hero-title">¿Con qué insumo empiezas?</h3>
       <p className="cmv2-defi-hero-lead">
         Todo el recorrido nace de un Excel institucional. Elige el que tienes a la mano;
-        el resto — marco, cálculo y aulas — se construye aquí.
+        el resto — marco, cálculo y cursos-horario — se construye aquí.
       </p>
       <div className="cmv2-defi-hero-cards cmv2-uni-stagger">
         {UNIVERSITY_SOURCE_MODE_OPTIONS.map((option) => {
@@ -368,7 +367,7 @@ function HeroPrimeraVez({
       <div className="cmv2-defi-hero-guide">
         <span className="cmv2-eyebrow">El recorrido completo</span>
         <p>
-          Seis pasos encadenados, del estudio a las aulas que se visitan. Cada pestaña del
+          Seis pasos encadenados, del estudio a los cursos-horario que se visitan. Cada pestaña del
           panel izquierdo cubre un tramo; la calculadora valida cada resultado antes de avanzar.
         </p>
         <MuestraFlowDiagram highlight="definir" />

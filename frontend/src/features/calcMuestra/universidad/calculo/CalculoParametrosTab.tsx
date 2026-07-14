@@ -17,7 +17,7 @@ import type { CalcMuestraParametros } from "../../../../api/client";
 import { EmptyState } from "../../../../components/States";
 import { MemoriaCalculoPanel } from "../../didactica/MemoriaCalculoPanel";
 import { ParametrosSliders, usePerillaParametros } from "../../didactica/ParametrosInteractivos";
-import { ContextoLlano, RespaldoMetodologico } from "../../didactica/PasoDidactico";
+import { RespaldoMetodologico } from "../../didactica/PasoDidactico";
 import { calcNPreview, terminosPreview, zFromConfidence } from "../../didactica/motorPreview";
 import { useMemoriaCalculo } from "../../didactica/useMemoriaCalculo";
 import { fmtInt } from "../../sharedCore";
@@ -105,13 +105,9 @@ export function CalculoParametrosTab({
 
   return (
     <div className="cmv2-calc-stack">
-      <ContextoLlano paso="calculo" />
       <section className="cmv2-panel cmv2-calc-cockpit-panel">
         <div className="cmv2-panel-head">
-          <div>
-            <span className="cmv2-eyebrow">Parámetros del diseño</span>
-            <strong>Mueve los supuestos y mira cómo respira el n</strong>
-          </div>
+          <strong>Parámetros del diseño</strong>
           <span className="cmv2-pill-soft">
             {N > 0 ? `N = ${fmtInt(N)} estudiantes del marco` : "requiere marco validado"}
           </span>
@@ -146,7 +142,7 @@ export function CalculoParametrosTab({
                   </button>
                   <p className="cmv2-calc-cta-nota">
                     El cálculo oficial corre con los parámetros aplicados al estudio y
-                    llena Propuestas con N, cuotas y aulas.
+                    llena Propuestas con N, cuotas y cursos-horario.
                   </p>
                 </div>
               </div>
@@ -167,7 +163,7 @@ export function CalculoParametrosTab({
                   <FormulaLatex
                     expression={paso2}
                     badge={badge}
-                    caption="Paso 2 · Castigo por encuestar aulas completas"
+                    caption="Paso 2 · Castigo por encuestar cursos-horario completos"
                     terms={[{ symbol: "deff", termino: "deff", value: fmtNum(deff, 2) }]}
                   />
                 </SwapValor>

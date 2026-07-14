@@ -201,7 +201,7 @@ export function selectorFieldLabel(field: string) {
   const labels: Record<string, string> = {
     faculty: "facultad",
     sex_top_1: "sexo esperado",
-    size_group: "tamaño de aula",
+    size_group: "tamaño del curso-horario",
   };
   return labels[field] ?? field;
 }
@@ -366,7 +366,7 @@ export function ClassroomLabCommandBar({
 }) {
   const { config } = model;
   return (
-    <div className="cmv2-classroom-commandbar" aria-label="Acciones del laboratorio de aulas">
+    <div className="cmv2-classroom-commandbar" aria-label="Acciones de selección de cursos-horario">
       {acciones.includes("comparar") && onCompare && (
         <button
           type="button"
@@ -385,8 +385,8 @@ export function ClassroomLabCommandBar({
           onClick={() => void onSelectMethod(config, model.recommendedMethodId)}
           disabled={Boolean(busy) || !model.comparisonReady}
         >
-          {busy === "Seleccionando aulas" ? <Loader2 size={14} className="pulso-spin" /> : <Table2 size={14} />}
-          Seleccionar aulas titulares
+          {busy === "Seleccionando cursos-horario" ? <Loader2 size={14} className="pulso-spin" /> : <Table2 size={14} />}
+          Seleccionar cursos-horario titulares
         </button>
       )}
       {acciones.includes("reemplazos") && onSimulateReplacements && (
@@ -419,7 +419,6 @@ export function ObjectiveWeightsPanel({ variables }: { variables?: Array<Record<
   return (
     <div className="cmv2-representativity-panel">
       <div className="cmv2-subhead">
-        <span className="cmv2-eyebrow">Objetivo matemático</span>
         <strong>Pesos y tolerancias activas</strong>
       </div>
       <div className="cmv2-objective-bars">
@@ -582,7 +581,7 @@ function classroomSelectionReason(row: Record<string, unknown>) {
     eligible > 0 ? `${fmtInt(eligible)} elegibles esperados` : "",
     pi > 0 ? `prob. final ${fmtPct(pi)}` : "",
   ].filter(Boolean);
-  return parts.length ? parts.join("; ") : "aula incluida por el método seleccionado";
+  return parts.length ? parts.join("; ") : "curso-horario incluido por el método seleccionado";
 }
 
 export function ClassroomSelectionRationaleDashboard({ rows, workspace }: { rows?: Array<Record<string, unknown>> | unknown; workspace?: CalcMuestraWorkspace }) {
@@ -597,22 +596,21 @@ export function ClassroomSelectionRationaleDashboard({ rows, workspace }: { rows
   return (
     <div className="cmv2-selection-rationale">
       <div className="cmv2-subhead">
-        <span className="cmv2-eyebrow">Por qué estas aulas</span>
-        <strong>Lectura operativa de las aulas titulares antes de monitoreo</strong>
+        <strong>Por qué estos cursos-horario</strong>
       </div>
       <div className="cmv2-selection-rationale-grid">
         <ClassroomPlotCard title="Titulares por facultad" subtitle="elegibles esperados en titulares">
-          <ClassroomBarPlot rows={facultyRows} ariaLabel="Aulas titulares por facultad" unit="elegibles" height={235} />
+          <ClassroomBarPlot rows={facultyRows} ariaLabel="Cursos-horario titulares por facultad" unit="elegibles" height={235} />
         </ClassroomPlotCard>
-        <ClassroomPlotCard title="Sexo esperado por aula titular" subtitle="aporte esperado de titulares">
-          <ClassroomSexCompositionPlot rows={classroomSexRows} ariaLabel="Sexo esperado por aula titular" height={260} />
+        <ClassroomPlotCard title="Sexo esperado por curso-horario titular" subtitle="aporte esperado de titulares">
+          <ClassroomSexCompositionPlot rows={classroomSexRows} ariaLabel="Sexo esperado por curso-horario titular" height={260} />
         </ClassroomPlotCard>
       </div>
       <div className="cmv2-classroom-table-wrap">
         <table className="cmv2-table cmv2-classroom-table">
           <thead>
             <tr>
-              <th>Aula titular</th>
+              <th>Curso-horario titular</th>
               <th>Facultad / programa</th>
               <th>Esperado</th>
               <th>Razón operativa</th>
@@ -622,7 +620,7 @@ export function ClassroomSelectionRationaleDashboard({ rows, workspace }: { rows
             {topRows.map((row, index) => (
               <tr key={`${classroomRowText(row, ["classroom_id"])}-${index}`}>
                 <td>
-                  <span className="cmv2-table-code">{classroomOperationalCode(row, `AULA ${index + 1}`)}</span>
+                  <span className="cmv2-table-code">{classroomOperationalCode(row, `CH ${index + 1}`)}</span>
                   <strong>{classroomRowText(row, ["course_name", "label", "classroom_id"])}</strong>
                   <small>{classroomRowText(row, ["classroom_id", "schedule"])}</small>
                 </td>
@@ -702,7 +700,8 @@ function classroomSlotNumber(slotId: string, fallback: number) {
 }
 
 export function classroomOperationalCode(row: Record<string, unknown>, fallback: string) {
-  return classroomRowText(row, ["operational_code", "codigo_operativo", "codigo_aula_operativa"]) || fallback;
+  const raw = classroomRowText(row, ["operational_code", "codigo_operativo", "codigo_aula_operativa"]) || fallback;
+  return raw.replace(/^AULA\b/i, "CH");
 }
 
 function classroomReplacementMatchLabel(value: string) {
@@ -755,7 +754,7 @@ export function classroomReplacementChains(
     const titularId = classroomRowText(titular, ["classroom_id"]);
     const slotId = classroomRowText(titular, ["selection_slot_id"]);
     const slotNumber = classroomSlotNumber(slotId, titularIndex + 1);
-    const titularCode = classroomOperationalCode(titular, `AULA ${slotNumber}`);
+    const titularCode = classroomOperationalCode(titular, `CH ${slotNumber}`);
     const faculty = classroomRowText(titular, ["faculty", "stratum"]);
     const stratum = classroomRowText(titular, ["stratum", "faculty"]);
     const suggestionByReserveId = new Map(suggestions
@@ -828,25 +827,24 @@ export function ClassroomReplacementChainPanel({
       <ClassroomEmptyState
         icon={Route}
         title="Cadena de reemplazos pendiente"
-        detail="Genera la selección para ver cada aula titular y sus reemplazos Rn.1, Rn.2 y siguientes."
+        detail="Genera la selección para ver cada curso-horario titular y sus reemplazos Rn.1, Rn.2 y siguientes."
       />
     );
   }
   return (
     <div className="cmv2-replacement-chain-panel">
       <div className="cmv2-subhead">
-        <span className="cmv2-eyebrow">Rutas operativas</span>
-        <strong>Códigos de aula titular y reemplazos asociados</strong>
+        <strong>Rutas operativas</strong>
         <small>Estos códigos viajan a agenda, Excel/Sheets y Monitoreo para activar reemplazos sin cambiar el diseño.</small>
       </div>
       <div className="cmv2-replacement-chain-summary">
         <Metric label="Titulares con ruta" value={fmtInt(chains.length)} />
-        <Metric label="Código operativo" value="AULA n / Rn.k" />
+        <Metric label="Código operativo" value="CH n / Rn.k" />
         <Metric label="Reemplazos por ruta" value={`R1-R${maxDepth}`} />
-        <Metric label="Aulas extra" value={extraPool ? fmtInt(extraPool) : "sin extra"} />
+        <Metric label="Cursos-horario extra" value={extraPool ? fmtInt(extraPool) : "sin extra"} />
       </div>
       <div className="cmv2-backend-field-strip" aria-label="Datos visibles usados en rutas de reemplazo">
-        <span>Código visible de aula</span>
+        <span>Código visible del curso-horario</span>
         <span>Titular asociada</span>
         <span>Orden de reemplazo</span>
       </div>
@@ -910,21 +908,20 @@ export function ClassroomOperationalHandoffPanel({
   return (
     <div className="cmv2-handoff-map">
       <div className="cmv2-subhead">
-        <span className="cmv2-eyebrow">Aplicación en aulas</span>
-        <strong>Cómo pasa esta muestra al campo de tu estudio</strong>
+        <strong>Aplicación por cursos-horario</strong>
       </div>
       <AulasApplicationFlow
         tone="calc-muestra"
         current="muestra"
         compact
-        title="Del diseño de aulas al campo del estudio"
-        summary="El cálculo de muestra de aulas produce titulares, reservas, pesos y códigos. El generador QR/PDF convierte esa agenda en fichas y Monitoreo de aulas registra aplicación, caídas y reemplazos."
+        title="Del diseño de cursos-horario al campo del estudio"
+        summary="El cálculo de muestra de cursos-horario produce titulares, reservas, pesos y códigos. El generador QR/PDF convierte esa agenda en fichas y el monitoreo de cursos-horario registra aplicación, caídas y reemplazos."
         metrics={[
           { label: "Titulares", value: fmtInt(titulares), tone: titulares ? "ready" : "warning" },
           { label: "Reservas", value: fmtInt(reservas + reservaExtra), tone: reservas || reservaExtra ? "ready" : "neutral" },
           { label: "Sugerencias", value: fmtInt(sugerencias), tone: sugerencias ? "current" : "neutral" },
         ]}
-        secondaryAction={{ to: "/monitoreo", label: "Ver monitoreo de aulas" }}
+        secondaryAction={{ to: "/monitoreo", label: "Ver monitoreo de cursos-horario" }}
         action={{ to: "/recopiladores", label: "Abrir fichas QR", disabled: !hasSelection }}
       />
     </div>
@@ -966,14 +963,14 @@ export function CoverageOverlapPanel({
     : frameN && estimatedExposure
       ? `${fmtInt(frameN)} estudiantes en el marco`
       : selectedRows.length
-        ? `${fmtInt(selectedRows.length)} aulas titulares`
+        ? `${fmtInt(selectedRows.length)} cursos-horario titulares`
         : "genera una selección";
   const exposureDetail = Number.isFinite(efficiency)
     ? `${fmtPct(efficiency)} eficiencia única`
     : exactExposure
       ? "exposición reportada por la calculadora"
       : selectedRows.length
-        ? "estimación desde aulas seleccionadas"
+        ? "estimación desde cursos-horario seleccionados"
         : "sin selección";
   const duplicateValue = exactDuplicateLoss
     ? fmtPct(duplicateLoss)
@@ -983,12 +980,12 @@ export function CoverageOverlapPanel({
         ? "sin métrica exacta"
         : "pendiente";
   const duplicateDetail = exactDuplicateLoss
-    ? "calculado con llaves estudiante-aula"
+    ? "calculado con llaves estudiante–curso-horario"
     : duplicateOverlap
-      ? "suma observada en aulas titulares"
+      ? "suma observada en cursos-horario titulares"
       : selectedRows.length
-        ? "requiere llave estudiante-aula para medir repetidos"
-        : "se calcula después de seleccionar aulas";
+        ? "requiere llave estudiante–curso-horario para medir repetidos"
+        : "se calcula después de seleccionar cursos-horario";
   return (
     <div className="cmv2-coverage-panel">
       <article>
@@ -1129,8 +1126,7 @@ export function ClassroomRiskList({ risks }: { risks?: NonNullable<CalcMuestraAu
   return (
     <div className="cmv2-classroom-risk-list">
       <div className="cmv2-subhead">
-        <span className="cmv2-eyebrow">Riesgos</span>
-        <strong>Alertas interpretables</strong>
+        <strong>Riesgos</strong>
       </div>
       {visible.map((risk, index) => {
         const severity = String(risk.severity ?? "media");
@@ -1219,7 +1215,7 @@ export function ClassroomSelectionTable({
         <thead>
           <tr>
             <th>Plan</th>
-            <th>Código y aula</th>
+            <th>Código y curso-horario</th>
             <th>Facultad / programa</th>
             <th>Horario</th>
             <th className="is-num">Elegibles</th>
@@ -1253,7 +1249,7 @@ export function ClassroomSelectionTable({
             >
               <td>{classroomPlanLabel(row)}<small>{classroomRowText(row, ["wave"])}</small></td>
               <td>
-                <span className="cmv2-table-code">{classroomOperationalCode(row, classroomRowText(row, ["wave"]) === "M1" ? `AULA ${index + 1}` : classroomRowText(row, ["wave"]))}</span>
+                <span className="cmv2-table-code">{classroomOperationalCode(row, classroomRowText(row, ["wave"]) === "M1" ? `CH ${index + 1}` : classroomRowText(row, ["wave"]))}</span>
                 <strong>{classroomRowText(row, ["course_name", "label", "classroom_id"])}</strong>
                 <small>{classroomRowText(row, ["field_status", "operation_status", "estado", "classroom_id"])}</small>
               </td>
@@ -1279,7 +1275,7 @@ export function ClassroomOverlapGraph({ rows }: { rows?: Array<Record<string, un
     .slice(0, 8)
     .map((row, index) => ({
       id: classroomRowText(row, ["classroom_id"]) || `aula-${index}`,
-      label: classroomOperationalCode(row, `AULA ${index + 1}`),
+      label: classroomOperationalCode(row, `CH ${index + 1}`),
       overlap: classroomRowNumber(row, ["duplicate_overlap"]),
       x: 36 + (index % 2) * 128,
       y: 36 + Math.floor(index / 2) * 54,
@@ -1288,13 +1284,12 @@ export function ClassroomOverlapGraph({ rows }: { rows?: Array<Record<string, un
   return (
     <div className="cmv2-classroom-overlap-graph">
       <div className="cmv2-subhead">
-        <span className="cmv2-eyebrow">Repetidos</span>
-        <strong>Aulas titulares</strong>
+        <strong>Cursos-horario repetidos</strong>
       </div>
       {!visible.length ? (
-        <span className="cmv2-classroom-muted">Genera selección para ver si las aulas comparten muchos estudiantes.</span>
+        <span className="cmv2-classroom-muted">Genera la selección para ver si los cursos-horario comparten muchos estudiantes.</span>
       ) : (
-        <svg viewBox="0 0 230 250" role="img" aria-label="Grafo simple de estudiantes repetidos entre aulas" className="cmv2-aulas-overlap-svg">
+        <svg viewBox="0 0 230 250" role="img" aria-label="Grafo simple de estudiantes repetidos entre cursos-horario" className="cmv2-aulas-overlap-svg">
           {visible.slice(1).map((item, index) => (
             <line
               key={`line-${item.id}`}
@@ -1351,7 +1346,7 @@ export function ClassroomReplacementTables({ simulation }: { simulation: CalcMue
             {suggestions.map((item) => (
               <tr key={`${item.titular_classroom_id}-${item.reserve_classroom_id}-${item.rank}`}>
                 <td>
-                  <span className="cmv2-table-code">{item.titular_operational_code || "AULA"}</span>
+                  <span className="cmv2-table-code">{String(item.titular_operational_code || "CH").replace(/^AULA\b/i, "CH")}</span>
                   {item.titular_label || item.titular_classroom_id}
                   <small>{item.titular_classroom_id}</small>
                 </td>
@@ -1395,7 +1390,7 @@ function ClassroomImpactTable({ rows }: { rows?: Array<Record<string, unknown>> 
           {visible.map((row, index) => (
             <tr key={index}>
               <td>
-                <span className="cmv2-table-code">{classroomRowText(row, ["titular_operational_code"]) || "AULA"}</span>
+                <span className="cmv2-table-code">{(classroomRowText(row, ["titular_operational_code"]) || "CH").replace(/^AULA\b/i, "CH")}</span>
                 {classroomRowText(row, ["titular_classroom_id"])}
               </td>
               <td>
@@ -1426,7 +1421,7 @@ export function ClassroomMethodSources({
     { label: "Fuente académica", value: selection?.academic_reference ?? "Deville & Tillé; Statistics Canada; Groves & Heeringa" },
     { label: "Implementación", value: selection?.implementation_reference ?? "sampling::samplecube(); BalancedSampling::lcube/lpm2" },
     { label: "Probabilidades", value: selection ? classroomProbabilitySourceLabel(selection.probability_source) : classroomMethodLabel(comparison?.recommendation?.method_id ?? "") || "pendiente" },
-    { label: "Pesos", value: selection?.weight_source ?? "peso de aula = 1 / probabilidad final; probabilidad estudiantil agregada" },
+    { label: "Pesos", value: selection?.weight_source ?? "peso del curso-horario = 1 / probabilidad final; probabilidad estudiantil agregada" },
     { label: "No respuesta", value: selection?.nonresponse_policy ?? "códigos de disposición y ajuste posterior por dominio" },
   ];
   return (
@@ -1466,14 +1461,14 @@ export function ClassroomSelectionPreparationPanel({
         <span><Table2 size={15} /></span>
         <div>
           <strong>Esta pestaña se llena recién cuando existe una selección.</strong>
-          <em>Antes de seleccionar, muestra el estado de preparación sin repetir los gráficos de Marco. La revisión descriptiva vive en Marco; aquí se decide qué aulas serán titulares.</em>
+          <em>Antes de seleccionar, muestra el estado de preparación sin repetir los gráficos de Marco. La revisión descriptiva vive en Marco; aquí se decide qué cursos-horario serán titulares.</em>
         </div>
       </div>
       <div className="cmv2-classroom-readiness-map">
         <article className={frameReady ? "is-ready" : "is-pending"}>
           <small>1. Marco listo</small>
-          <strong>{frameCount ? `${fmtInt(frameCount)} aulas` : "pendiente"}</strong>
-          <span>Una fila por aula o curso-horario seleccionable.</span>
+          <strong>{frameCount ? `${fmtInt(frameCount)} cursos-horario` : "pendiente"}</strong>
+          <span>Una fila por curso-horario seleccionable.</span>
         </article>
         <article className={targetForDisplay ? "is-ready" : "is-working"}>
           <small>2. Tamaño definido</small>
@@ -1486,9 +1481,9 @@ export function ClassroomSelectionPreparationPanel({
           <span>La app elige la opción con mejor balance y menos repetidos.</span>
         </article>
         <article className={m1ForDisplay ? "is-ready" : "is-working"}>
-          <small>4. Aulas titulares</small>
+          <small>4. Cursos-horario titulares</small>
           <strong>{m1ForDisplay ? fmtInt(m1ForDisplay) : "pendiente"}</strong>
-          <span>Después aparecerán códigos AULA n y sus razones de selección.</span>
+          <span>Después aparecerán códigos CH n y sus razones de selección.</span>
         </article>
       </div>
     </div>
@@ -1511,7 +1506,7 @@ export function ClassroomReplacementBlueprintPanel({
   return (
     <div className="cmv2-classroom-replacement-blueprint">
       <div className="cmv2-classroom-route-preview" aria-label="Ejemplo de cadena de reemplazos">
-        <span className="is-primary">AULA 5</span>
+        <span className="is-primary">CH 5</span>
         {replacementCodes.map((code) => (
           <span key={code}>
             <ArrowRight size={13} />
@@ -1525,7 +1520,7 @@ export function ClassroomReplacementBlueprintPanel({
       </div>
       <div className="cmv2-classroom-readiness-map">
         <article className={titularCount ? "is-ready" : "is-working"}>
-          <small>Aulas titulares</small>
+          <small>Cursos-horario titulares</small>
           <strong>{titularCount ? fmtInt(titularCount) : "pendiente"}</strong>
           <span>Cada titular tendrá su propia ruta de reemplazos.</span>
         </article>

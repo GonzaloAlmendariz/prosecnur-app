@@ -8,7 +8,7 @@
  */
 import { Database, TriangleAlert } from "lucide-react";
 import { Popover } from "../../../../components/Popover";
-import { ContextoLlano, RespaldoMetodologico } from "../../didactica/PasoDidactico";
+import { RespaldoMetodologico } from "../../didactica/PasoDidactico";
 import { fmtInt } from "../../sharedCore";
 import { frameAuditNumber } from "../shared/frame";
 import { CifraFila, CifraMotor, FlujoVertical, type FlujoEtapa } from "../ui";
@@ -23,8 +23,8 @@ const REGLAS_METODO: Array<{ id: string; chip: string; titulo: string; parrafos:
     chip: "Unidad seleccionable",
     titulo: "Se sortea el curso-horario, no la fila alumno-curso",
     parrafos: [
-      "La base institucional trae una fila por estudiante en cada curso y horario; antes de sortear, el marco se colapsa a una fila por aula (curso, horario y salón).",
-      "La idea es mirar la cadena real: base institucional, cursos y horarios, estudiantes únicos y exclusiones auditadas. Qué filas son válidas y qué aula representa cada curso-horario se decide aquí.",
+      "La base institucional trae una fila por estudiante en cada curso y horario; antes de sortear, el marco se colapsa a una fila por curso-horario.",
+      "La idea es mirar la cadena real: base institucional, cursos y horarios, estudiantes únicos y exclusiones auditadas. Qué filas son válidas y qué curso-horario representa cada registro se decide aquí.",
     ],
   },
   {
@@ -32,7 +32,7 @@ const REGLAS_METODO: Array<{ id: string; chip: string; titulo: string; parrafos:
     chip: "Estudiantes repetidos",
     titulo: "Un estudiante puede aparecer en varios cursos",
     parrafos: [
-      "Si un estudiante está matriculado en varios cursos del marco, podría ser 'alcanzado' por más de un aula. El selector lo controla desde el marco institucional: mide la pérdida por repetidos y la penaliza al comparar métodos.",
+      "Si un estudiante está matriculado en varios cursos del marco, podría ser alcanzado por más de un curso-horario. El selector lo controla desde el marco institucional: mide la pérdida por repetidos y la penaliza al comparar métodos.",
       "Por eso la calidad se mide sobre estudiantes únicos elegibles, no sobre filas repetidas.",
     ],
   },
@@ -41,7 +41,7 @@ const REGLAS_METODO: Array<{ id: string; chip: string; titulo: string; parrafos:
     chip: "Reemplazos ≠ extra",
     titulo: "Los reemplazos no son encuestas extra",
     parrafos: [
-      "Cada aula titular lleva reemplazos equivalentes (mismo perfil de facultad y tamaño) que solo se activan si la titular cae. No suman al N estadístico.",
+      "Cada curso-horario titular lleva reemplazos equivalentes (mismo perfil de facultad y tamaño) que solo se activan si el titular cae. No suman al N estadístico.",
       "El extra operativo es otra cosa: refuerzo de agenda presupuestado por separado, que tampoco cambia el diseño.",
     ],
   },
@@ -50,7 +50,7 @@ const REGLAS_METODO: Array<{ id: string; chip: string; titulo: string; parrafos:
     chip: "Campo anónimo",
     titulo: "No exige identificación personal en campo",
     parrafos: [
-      "La aplicación no requiere identificar al estudiante: la trazabilidad de campo cruza collector, link, aula, fecha y estado operativo.",
+      "La aplicación no requiere identificar al estudiante: la trazabilidad de campo cruza recolector, enlace, curso-horario, fecha y estado operativo.",
       "Los identificadores internos del marco sirven para controlar duplicados y cobertura, y no se publican en salidas para cliente.",
     ],
   },
@@ -86,9 +86,9 @@ export function AulasMarcoTab({ model }: { model: ClassroomLabModel }) {
     },
     {
       id: "marco",
-      label: "Marco de aulas",
-      valor: frameRows.length ? `${fmtInt(frameRows.length)} aulas` : "curso y horario",
-      detalle: "una fila por aula seleccionable",
+      label: "Marco de cursos-horario",
+      valor: frameRows.length ? `${fmtInt(frameRows.length)} cursos-horario` : "curso y horario",
+      detalle: "una fila por curso-horario seleccionable",
       estado: frameReady ? "ready" : "pending",
     },
     {
@@ -100,7 +100,7 @@ export function AulasMarcoTab({ model }: { model: ClassroomLabModel }) {
     },
     {
       id: "cuota-aulas",
-      label: "Aulas por facultad",
+      label: "Cursos-horario por facultad",
       valor: m1ForDisplay ? `${fmtInt(m1ForDisplay)} titulares` : "pendiente",
       detalle: "cuota / rendimiento esperado",
       estado: m1ForDisplay ? "ready" : "pending",
@@ -123,7 +123,7 @@ export function AulasMarcoTab({ model }: { model: ClassroomLabModel }) {
       id: "reemplazos",
       label: "Reemplazos",
       valor: `R1-R${config.bolsas_reemplazo}`,
-      detalle: "rutas equivalentes por aula titular",
+      detalle: "rutas equivalentes por curso-horario titular",
       estado: selectionReady ? "ready" : "pending",
     },
   ];
@@ -136,15 +136,12 @@ export function AulasMarcoTab({ model }: { model: ClassroomLabModel }) {
 
   return (
     <div className="cmv2-aulas-stack">
-      <ContextoLlano paso="aulas" />
-
       <section className="cmv2-panel cmv2-aulas-panel">
         <div className="cmv2-subhead">
-          <span className="cmv2-eyebrow">Cadena metodológica</span>
-          <strong>De base institucional a agenda de aulas</strong>
+          <strong>Cadena metodológica</strong>
         </div>
         <div className="cmv2-aulas-marco-layout">
-          <FlujoVertical etapas={etapas} ariaLabel="Cadena metodológica del laboratorio de aulas" />
+          <FlujoVertical etapas={etapas} ariaLabel="Cadena metodológica de selección de cursos-horario" />
           <div className="cmv2-aulas-marco-lateral">
             <div className="cmv2-aulas-chips" aria-label="Reglas del método de selección">
               <span className="cmv2-aulas-chips-titulo">Reglas del método</span>
@@ -186,8 +183,7 @@ export function AulasMarcoTab({ model }: { model: ClassroomLabModel }) {
 
       <section className="cmv2-panel cmv2-aulas-panel cmv2-aulas-sello" aria-label="Reproducibilidad del marco congelado">
         <div className="cmv2-subhead">
-          <span className="cmv2-eyebrow">Reproducibilidad</span>
-          <strong>Marco congelado que usa el selector</strong>
+          <strong>Reproducibilidad</strong>
         </div>
         {!frameReady ? (
           <div className="cmv2-classroom-empty is-compact">
@@ -216,7 +212,7 @@ export function AulasMarcoTab({ model }: { model: ClassroomLabModel }) {
               <CifraMotor
                 label="Filas del marco"
                 value={frameRows.length ? fmtInt(frameRows.length) : "pendiente"}
-                detalle="aulas seleccionables"
+                detalle="cursos-horario seleccionables"
                 origen={frameRows.length ? "motor" : undefined}
               />
               <CifraMotor

@@ -97,9 +97,9 @@ export function ControlHierarchical({
   return (
     <div className="cmv2-crit-groups">
       <div className="cmv2-crit-match" role="note">
-        La regla del aula es <strong>{match === "any" ? "al menos uno" : "todos"}</strong>: un aula pasa si{" "}
+        La regla del curso-horario es <strong>{match === "any" ? "al menos uno" : "todos"}</strong>: un curso-horario pasa si{" "}
         {match === "any" ? "≥1 de sus docentes" : "todos sus docentes"} caen en el set marcado. El conteo es de{" "}
-        <strong>aulas</strong> con ese tipo de docente.
+        <strong>cursos-horario</strong> con ese tipo de docente.
       </div>
       {groups.map((group) => {
         const childKeys = group.children.map((c) => c.key);
@@ -112,7 +112,7 @@ export function ControlHierarchical({
                 <span className="cmv2-crit-group-title">{group.label}</span>
               </div>
               <span className="cmv2-crit-item-count">
-                {fmtInt(group.aulas)} <em>aulas</em>
+                {fmtInt(group.aulas)} <em>cursos-horario</em>
               </span>
             </div>
             <ul className="cmv2-crit-list cmv2-crit-list-nested">
@@ -125,7 +125,7 @@ export function ControlHierarchical({
                       <span className="cmv2-crit-item-label">{child.label}</span>
                     </div>
                     <span className="cmv2-crit-item-count">
-                      {fmtInt(child.aulas)} <em>aulas</em>
+                      {fmtInt(child.aulas)} <em>cursos-horario</em>
                     </span>
                   </li>
                 );

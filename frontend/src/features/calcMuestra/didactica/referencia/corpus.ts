@@ -59,26 +59,26 @@ export const FUENTES: FuenteRef[] = [
     id: 'propuesta-2026',
     titulo: 'Propuesta muestral de referencia (2026)',
     descripcion:
-      'Paso a paso reproducible del método: filtros del marco, cuotas por facultad y sexo, tasas de rendimiento medidas por aula, salto sistemático k y bolsas de reemplazo.',
+      'Paso a paso reproducible del método: filtros del marco, cuotas por facultad y sexo, tasas de rendimiento medidas por curso-horario, salto sistemático k y bolsas de reemplazo.',
     secciones: '§4-§10',
   },
   {
     id: 'comparacion-estudios',
     titulo: 'Comparación de estudios en universidades peruanas (2024-2026)',
     descripcion:
-      'Glosario comparado de parámetros, modalidades de aplicación (aula con QR, mixta, online) y aprendizajes transferibles entre estudios.',
+      'Glosario comparado de parámetros, modalidades de aplicación (salón con QR, mixta, online) y aprendizajes transferibles entre estudios.',
   },
   {
     id: 'speech-aplicadores',
-    titulo: 'Guion para aplicadores en aula',
+    titulo: 'Guion para aplicadores en salón',
     descripcion:
-      'Guion real de presentación en aula: objetivo del estudio, anonimato, filtros en voz alta y consentimiento voluntario.',
+      'Guion real de presentación en el salón: objetivo del estudio, anonimato, filtros en voz alta y consentimiento voluntario.',
   },
   {
     id: 'ruta-asignacion',
-    titulo: 'Ruta de asignación para aplicación en aulas',
+    titulo: 'Ruta de asignación para aplicación por cursos-horario',
     descripcion:
-      'Protocolo operativo de campo: coordinación previa con docentes, salida a campo, contacto en el aula y cierre con reporte de incidencias.',
+      'Protocolo operativo de campo: coordinación previa con docentes, salida a campo, contacto en el salón y cierre con reporte de incidencias.',
   },
   {
     id: 'indicaciones-aplicadores',
@@ -88,7 +88,7 @@ export const FUENTES: FuenteRef[] = [
   },
   {
     id: 'metodologia-detallada',
-    titulo: 'Compendio metodológico de estudios universitarios en aula',
+    titulo: 'Compendio metodológico de estudios universitarios por cursos-horario',
     descripcion:
       'Respaldo metodológico profundo de tres estudios de referencia: marcos muestrales, criterios de exclusión, parámetros y buenas prácticas consolidadas.',
   },
@@ -106,7 +106,7 @@ export const GLOSARIO: GlosarioEntry[] = [
   {
     termino: 'curso-horario',
     llano:
-      'Un "salón" concreto: la combinación de un curso, su sección, su día, su hora, su aula y su docente. Es la unidad que se sortea, porque ahí encuentras a 20-60 estudiantes juntos en un solo lugar y momento.',
+      'La combinación identificable de curso y horario; puede incluir sección, día, hora, salón y docente. Es la unidad que se sortea, porque concentra estudiantes en un lugar y momento operativo.',
     tecnico:
       'Unidad primaria de muestreo del diseño por conglomerados de una etapa. Cada curso-horario agrupa a los estudiantes matriculados en esa sesión específica; la inferencia se realiza a nivel del universo de pregrado.',
     fuenteId: 'propuesta-2026',
@@ -116,7 +116,7 @@ export const GLOSARIO: GlosarioEntry[] = [
     llano:
       'Los "cajones" en los que divides a la población antes de sortear, para asegurarte de que ningún grupo importante quede fuera. Aquí los cajones principales son facultad y sexo.',
     tecnico:
-      'Subdivisión de la población dentro de la cual se asigna y selecciona muestra de forma independiente. En los estudios de referencia se estratifica por facultad × sexo, con un estrato secundario operativo por tamaño de aula (G1 a G4).',
+      'Subdivisión de la población dentro de la cual se asigna y selecciona muestra de forma independiente. En los estudios de referencia se estratifica por facultad × sexo, con un estrato secundario operativo por tamaño del curso-horario (G1 a G4).',
     fuenteId: 'propuesta-2026',
   },
   {
@@ -154,9 +154,9 @@ export const GLOSARIO: GlosarioEntry[] = [
   {
     termino: 'deff (efecto de diseño)',
     llano:
-      'El "castigo" estadístico por encuestar salones enteros en vez de personas al azar: los estudiantes que comparten un salón se parecen entre sí, así que 30 respuestas de una misma aula valen menos que 30 respuestas de 30 aulas distintas. Para compensar, agrandas la muestra.',
+      'El "castigo" estadístico por encuestar cursos-horario completos en vez de personas al azar: quienes comparten una unidad pueden parecerse entre sí, así que 30 respuestas de un mismo curso-horario aportan menos información que 30 respuestas de unidades distintas. Para compensar, se amplía la muestra.',
     tecnico:
-      'Razón entre la varianza del diseño por conglomerados y la de un muestreo aleatorio simple del mismo tamaño; refleja la correlación intra-aula. Los estudios de referencia usan deff = 2.0 como corrección estándar, lo que en la práctica duplica el componente de varianza en la fórmula.',
+      'Razón entre la varianza del diseño por conglomerados y la de un muestreo aleatorio simple del mismo tamaño; refleja la correlación dentro del curso-horario. Los estudios de referencia usan deff = 2.0 como corrección estándar, lo que en la práctica duplica el componente de varianza en la fórmula.',
     fuenteId: 'propuesta-2026',
   },
   {
@@ -172,13 +172,13 @@ export const GLOSARIO: GlosarioEntry[] = [
     llano:
       'El ritmo del sorteo: si tienes 271 salones en una facultad y necesitas 39, ordenas la lista, sorteas un punto de partida y tomas un salón "cada k" posiciones. Así la selección recorre toda la lista en vez de amontonarse.',
     tecnico:
-      'Intervalo del muestreo sistemático: k = floor(N_cursos_en_marco / aulas_a_coordinar), calculado por facultad. Se sortea un arranque aleatorio entre 0 y k con semilla fija y se toman las posiciones arranque, arranque + k, arranque + 2k, etc. La probabilidad de inclusión resultante es 1/k.',
+      'Intervalo del muestreo sistemático: k = floor(N_cursos_horario_en_marco / cursos_horario_a_coordinar), calculado por facultad. Se sortea un arranque aleatorio entre 0 y k con semilla fija y se toman las posiciones arranque, arranque + k, arranque + 2k, etc. La probabilidad de inclusión resultante es 1/k.',
     fuenteId: 'propuesta-2026',
   },
   {
     termino: 'pi (probabilidad de inclusión)',
     llano:
-      'La probabilidad que tenía cada salón de salir sorteado. Se guarda junto a cada aula seleccionada como su "partida de nacimiento": después sirve para reconstruir el sorteo y calcular pesos correctos.',
+      'La probabilidad que tenía cada curso-horario de salir sorteado. Se guarda junto a cada unidad seleccionada como su "partida de nacimiento": después sirve para reconstruir el sorteo y calcular pesos correctos.',
     tecnico:
       'Probabilidad de que una unidad del marco entre a la muestra bajo el diseño; en selección sistemática equivale a 1/k dentro de su estrato. Los estudios de referencia preservan los campos `probabilidad` y `salto (k)` en la base operativa para trazabilidad y cálculo de factores de expansión.',
     fuenteId: 'metodologia-2025',
@@ -188,7 +188,7 @@ export const GLOSARIO: GlosarioEntry[] = [
     llano:
       'El colchón: planificas más encuestas de las que necesitas porque en el camino habrá docentes que no den permiso, alumnos que falten y cuestionarios inválidos. En los estudios de referencia el colchón es del 50% (para una meta de 2,500 se prepara un techo de 3,750).',
     tecnico:
-      'Cuota adicional sobre la muestra objetivo que cubre no respuesta y depuración posterior. Los estudios de referencia iniciaron con 100% y la calibraron a 50% tras verificar una cobertura de aulas de 93.5%; se materializa operativamente en bolsas de aulas de reemplazo priorizadas.',
+      'Cuota adicional sobre la muestra objetivo que cubre no respuesta y depuración posterior. Los estudios de referencia iniciaron con 100% y la calibraron a 50% tras verificar una cobertura de cursos-horario de 93.5%; se materializa operativamente en bolsas priorizadas de reemplazo.',
     fuenteId: 'metodologia-2025',
   },
   {
@@ -196,15 +196,15 @@ export const GLOSARIO: GlosarioEntry[] = [
     llano:
       'De todos los alumnos elegibles matriculados en un salón, qué fracción termina entregando una encuesta válida el día de la visita. Combina tres cosas: que asistan, que acepten responder y que su cuestionario sea válido.',
     tecnico:
-      'Fracción de alumnos elegibles del curso-horario que aporta una respuesta válida: asistencia × aceptación intra-aula × validez del cuestionario. En la aplicación de referencia el promedio ponderado global fue 0.53 (3,296 respuestas sobre 6,232 elegibles en 194 aulas), con un rango por facultad de 0.39 (aulas masivas transversales) a 1.00 (facultades pequeñas).',
+      'Fracción de alumnos elegibles del curso-horario que aporta una respuesta válida: asistencia × aceptación dentro de la unidad × validez del cuestionario. En la aplicación de referencia el promedio ponderado global fue 0.53 (3,296 respuestas sobre 6,232 elegibles en 194 cursos-horario), con un rango por facultad de 0.39 (unidades masivas transversales) a 1.00 (facultades pequeñas).',
     fuenteId: 'propuesta-2026',
   },
   {
-    termino: 'cuota de aulas por facultad',
+    termino: 'cuota de cursos-horario por facultad',
     llano:
-      'Cuántos salones visitar en cada facultad. No basta un promedio único de la universidad: hay facultades con salones de 13 elegibles y otras con salones de 41, así que cada facultad se calcula con su propio tamaño de aula y su propia tasa de rendimiento.',
+      'Cuántos cursos-horario visitar en cada facultad. No basta un promedio único de la universidad: hay facultades con unidades de 13 elegibles y otras de 41, así que cada facultad se calcula con su propio tamaño y su propia tasa de rendimiento.',
     tecnico:
-      'aulas_facultad = ceil(cuota_facultad / (promedio_matriculados_elegibles_facultad × tasa_rendimiento_facultad)). En el estudio de referencia el promedio de elegibles por aula varió de 12.9 a 41.4 según facultad, resultando en 170 aulas base.',
+      'cursos_horario_facultad = ceil(cuota_facultad / (promedio_matriculados_elegibles_facultad × tasa_rendimiento_facultad)). En el estudio de referencia el promedio de elegibles por curso-horario varió de 12.9 a 41.4 según facultad, resultando en 170 unidades base.',
     fuenteId: 'propuesta-2026',
   },
   {
@@ -220,7 +220,7 @@ export const GLOSARIO: GlosarioEntry[] = [
     llano:
       'No todos los matriculados de un salón cuentan para tu estudio: algunos son menores de edad o de otro nivel. Este número es el subconjunto que sí cumple los requisitos, y es el que debes usar para estimar cuántas respuestas te dará ese salón.',
     tecnico:
-      'Distinción entre `matriculados_total` (inscritos nominales del curso-horario) y `matriculados_poblacion` (subconjunto que cumple los criterios de la población objetivo: ≥18 años, pregrado, matrícula regular). Refinamiento incorporado en 2025 para no sobreestimar la cuota esperada por aula.',
+      'Distinción entre `matriculados_total` (inscritos nominales del curso-horario) y `matriculados_poblacion` (subconjunto que cumple los criterios de la población objetivo: ≥18 años, pregrado, matrícula regular). Refinamiento incorporado en 2025 para no sobreestimar el aporte esperado por curso-horario.',
     fuenteId: 'metodologia-2025',
   },
   {
@@ -264,19 +264,19 @@ export const GLOSARIO: GlosarioEntry[] = [
     fuenteId: 'metodologia-2025',
   },
   {
-    termino: 'estudiantes por aula',
+    termino: 'estudiantes por curso-horario',
     llano:
-      'Cuántos alumnos elegibles tiene un salón típico de cada facultad. Es el divisor que convierte encuestas en número de aulas: a salones más chicos, más aulas que visitar.',
+      'Cuántos alumnos elegibles tiene un curso-horario típico de cada facultad. Es el divisor que convierte encuestas en número de unidades: a cursos-horario más pequeños, más unidades que visitar.',
     tecnico:
-      'Resumen por facultad de matriculados_población por aula sobre el marco depurado, típicamente mín(mediana, media) — conservador. No existe un promedio universitario único: el valor va de ~10 a ~36 según la facultad.',
+      'Resumen por facultad de matriculados_población por curso-horario sobre el marco depurado, típicamente mín(mediana, media) — conservador. No existe un promedio universitario único: el valor va de ~10 a ~36 según la facultad.',
     fuenteId: 'propuesta-2026',
   },
   {
-    termino: 'bolsa operativa de aulas',
+    termino: 'bolsa operativa de cursos-horario',
     llano:
-      'Aulas extra que se cotizan desde el inicio para cubrir imprevistos de campo (docentes que rechazan, aulas flojas). No cambia cuántas encuestas se buscan; da margen de maniobra.',
+      'Cursos-horario extra que se cotizan desde el inicio para cubrir imprevistos de campo (docentes que rechazan, baja asistencia). No cambia cuántas encuestas se buscan; da margen de maniobra.',
     tecnico:
-      'Reserva de k aulas adicionales por facultad (opciones típicas: +0, +1, +2) sobre las aulas base = CEIL(sobremuestra / estudiantes_por_aula). Distinta de la sobremuestra (encuestas) y de la cascada de reemplazos (aulas físicas priorizadas M01–M12).',
+      'Reserva de k cursos-horario adicionales por facultad (opciones típicas: +0, +1, +2) sobre las unidades base = CEIL(sobremuestra / estudiantes_por_curso_horario). Distinta de la sobremuestra (encuestas) y de la cascada de reemplazos priorizados M01–M12.',
     fuenteId: 'propuesta-2026',
   },
   {
@@ -284,7 +284,7 @@ export const GLOSARIO: GlosarioEntry[] = [
     llano:
       'El peldaño de la malla al que pertenece EL CURSO (atributo del salón). No confundir con el ciclo del alumno: un curso de "nivel 0" (transversal) puede tener alumnos de todos los ciclos.',
     tecnico:
-      'Atributo del curso-horario usado en el marco de aulas mediante un mapa de rangos por facultad (las profesionales arrancan en 5 porque sus niveles 1–4 se cursan en Estudios Generales). Fiable, a diferencia del nivel curricular del alumno.',
+      'Atributo del curso-horario usado en el marco mediante un mapa de rangos por facultad (las profesionales arrancan en 5 porque sus niveles 1–4 se cursan en Estudios Generales). Fiable, a diferencia del nivel curricular del alumno.',
     fuenteId: 'propuesta-2026',
   },
   {
@@ -327,9 +327,9 @@ export const RESPALDOS: PasoRespaldo[] = [
     titulo: 'Cómo se define la población en los estudios de referencia',
     parrafos: [
       'En estudios de referencia aplicados en universidades peruanas (2024-2026), la población objetivo se define con una fórmula estable: estudiantes de pregrado matriculados en el semestre de aplicación, mayores de 18 años. Se excluyen posgrado (maestrías y doctorados), escuelas de estudios especiales, consorcios y menores de edad. Esta definición se repite casi idéntica entre universidades porque delimita con precisión a quién representan los resultados.',
-      'Una decisión temprana clave es la representatividad buscada. En un estudio de referencia se plantearon dos escenarios: representatividad al total de la universidad (margen ±2.5%, muestra de 2,500, 170 aulas) o representatividad por cada facultad (margen ±5%, muestra de 4,150, 249 aulas, ~60% más costo operativo). Se eligió el primero porque los reportes principales eran a nivel universidad y porque facilitaba la comparación con la ola anterior. La lección: define primero para qué nivel de detalle necesitas conclusiones confiables, porque eso puede cambiar la muestra en más de 60%.',
+      'Una decisión temprana clave es la representatividad buscada. En un estudio de referencia se plantearon dos escenarios: representatividad al total de la universidad (margen ±2.5%, muestra de 2,500, 170 cursos-horario) o representatividad por cada facultad (margen ±5%, muestra de 4,150, 249 cursos-horario, ~60% más costo operativo). Se eligió el primero porque los reportes principales eran a nivel universidad y porque facilitaba la comparación con la ola anterior. La lección: define primero para qué nivel de detalle necesitas conclusiones confiables, porque eso puede cambiar la muestra en más de 60%.',
       'La proporción esperada (p) también se decide aquí. Sin evidencia previa se usa el valor conservador p = 0.50, que maximiza la muestra requerida. Cuando existe una medición anterior, se calibra: un estudio de referencia bajó p a 0.30 al observar que la prevalencia de su indicador principal fue 30.2%, y esa calibración redujo la muestra teórica en unas 250 encuestas al mismo margen de error, sin comprometer la inferencia.',
-      'El universo se cuantifica con la matrícula oficial: en las olas de referencia, universos de 14,728 a 22,037 estudiantes elegibles repartidos en 15 facultades, con composición por sexo conocida (por ejemplo 48.4% mujeres y 51.6% hombres). Esa tabla poblacional por facultad y sexo es la columna vertebral de todo lo que viene después: cuotas, aulas y ponderación.',
+      'El universo se cuantifica con la matrícula oficial: en las olas de referencia, universos de 14,728 a 22,037 estudiantes elegibles repartidos en 15 facultades, con composición por sexo conocida (por ejemplo 48.4% mujeres y 51.6% hombres). Esa tabla poblacional por facultad y sexo es la columna vertebral de todo lo que viene después: cuotas, cursos-horario y ponderación.',
     ],
     fuenteIds: ['metodologia-2025', 'metodologia-detallada', 'comparacion-estudios'],
   },
@@ -337,9 +337,9 @@ export const RESPALDOS: PasoRespaldo[] = [
     pasoId: 'marco',
     titulo: 'Cómo se construye y depura el marco muestral',
     parrafos: [
-      'El marco muestral nace de la base de matrícula oficial del semestre, solicitada al área de sistemas o registro académico de la universidad. La buena práctica consolidada es pedirla como dos bases relacionadas: una de matrícula (un registro por cada par alumno × curso-horario) y una de cursos-horario (un registro por salón, con docente, día, hora, aula y matriculados). Un mismo estudiante aparece tantas veces como cursos lleva; el vínculo entre ambas bases es el código del curso-horario.',
-      'Sobre el marco crudo se aplican filtros a nivel de aula: solo sesiones teóricas o teórico-prácticas (se excluyen laboratorios puros, asesorías y seminarios de tesis), solo modalidad presencial, solo pregrado, niveles 2 a 10 del plan de estudios (el nivel 1 se excluye por alta presencia de menores de edad), y un mínimo de matriculados por aula (15 en los estudios recientes, con excepciones justificadas en carreras pequeñas). Se añaden umbrales de prevalencia: al menos 80% de mayores de edad y 80% de estudiantes de pregrado en el aula.',
-      'En paralelo se aplican criterios a nivel de alumno, en tres momentos: en el marco (edad, condición de matrícula activa, ciclo regular), en campo (asistencia, consentimiento, confirmación de elegibilidad) y en procesamiento (validez y completitud del cuestionario). Un aula apta puede contener alumnos no elegibles; por eso los estudios recientes distinguen `matriculados_total` de `matriculados_poblacion`, y dimensionan las cuotas con el segundo.',
+      'El marco muestral nace de la base de matrícula oficial del semestre, solicitada al área de sistemas o registro académico de la universidad. La buena práctica consolidada es pedirla como dos bases relacionadas: una de matrícula (un registro por cada par alumno × curso-horario) y una de cursos-horario (un registro por unidad, con docente, día, hora, salón y matriculados). Un mismo estudiante aparece tantas veces como cursos lleva; el vínculo entre ambas bases es el código del curso-horario.',
+      'Sobre el marco crudo se aplican filtros a nivel de curso-horario: solo sesiones teóricas o teórico-prácticas (se excluyen laboratorios puros, asesorías y seminarios de tesis), solo modalidad presencial, solo pregrado, niveles 2 a 10 del plan de estudios y un mínimo de matriculados por curso-horario (15 en los estudios recientes, con excepciones justificadas en carreras pequeñas). Se añaden umbrales de prevalencia: al menos 80% de mayores de edad y 80% de estudiantes de pregrado en la unidad.',
+      'En paralelo se aplican criterios a nivel de alumno, en tres momentos: en el marco (edad, condición de matrícula activa, ciclo regular), en campo (asistencia, consentimiento, confirmación de elegibilidad) y en procesamiento (validez y completitud del cuestionario). Un curso-horario apto puede contener alumnos no elegibles; por eso los estudios recientes distinguen `matriculados_total` de `matriculados_poblacion`, y dimensionan las cuotas con el segundo.',
       'El marco no suele quedar bien a la primera: en los estudios de referencia pasó por varias iteraciones con el área que lo entrega (observaciones, actualizaciones de matrícula, filtros progresivos) antes de consolidarse. Como referencia de escala: de una matrícula de ~22,000 estudiantes, el marco depurado quedó en 1,097 cursos-horario válidos. Presupuesta tiempo para ese ida y vuelta: sin marco confiable no hay cálculo posible.',
     ],
     fuenteIds: ['metodologia-2025', 'propuesta-2026', 'metodologia-detallada'],
@@ -348,22 +348,22 @@ export const RESPALDOS: PasoRespaldo[] = [
     pasoId: 'calculo',
     titulo: 'El cálculo del tamaño de muestra, paso a paso',
     parrafos: [
-      'La fórmula usada en los estudios de referencia es la clásica para proporciones con corrección de población finita, ajustada por el efecto de diseño del muestreo por conglomerados: n = (N · Z² · p(1-p) · deff) / ((N-1) · e² + Z² · p(1-p) · deff). Cada parámetro tiene una justificación concreta: Z = 1.96 por el 95% de confianza estándar, deff = 2.0 porque los estudiantes de una misma aula se parecen entre sí, y p y e según la evidencia y la precisión buscadas.',
+      'La fórmula usada en los estudios de referencia es la clásica para proporciones con corrección de población finita, ajustada por el efecto de diseño del muestreo por conglomerados: n = (N · Z² · p(1-p) · deff) / ((N-1) · e² + Z² · p(1-p) · deff). Cada parámetro tiene una justificación concreta: Z = 1.96 por el 95% de confianza estándar, deff = 2.0 porque los estudiantes de un mismo curso-horario pueden parecerse entre sí, y p y e según la evidencia y la precisión buscadas.',
       'Ejemplo real de referencia: con N = 22,037, p = 0.30, e = ±2.5% y deff = 2.0, la fórmula entrega n ≈ 2,310 respuestas válidas. Ese es el mínimo teórico, no la meta operativa: asume que el 100% de los invitados responde, cosa que no ocurre ni en aplicación presencial.',
-      'Del teórico al operativo hay ajustes documentados: dividir entre la tasa de respuesta intra-aula esperada (~92.4% con base en la experiencia previa, lo que lleva 2,310 a ≈2,500), sumar los redondeos hacia arriba de las cuotas en facultades pequeñas (~15-25 encuestas) y cuadrar operativamente facultad por facultad. La meta quedó en 2,500 encuestas válidas. La verificación de consistencia se hace al revés: con n = 2,500, el margen de error efectivo retrocalculado es ±2.39%, ligeramente mejor que el ±2.5% declarado.',
-      'Dos calibraciones de estos estudios valen la pena copiar. Primera: p se afina con evidencia (0.50 sin datos previos; 0.30 cuando la ola anterior midió 30.2% en el indicador más prevalente, tomándolo como cota superior). Segunda: la sobremuestra también se calibra con historia: se empezó con 100% y se bajó a 50% al comprobar que la cobertura de aulas alcanzaba 93.5%. Sobre la meta de 2,500 el techo con sobremuestra fue 3,750.',
-      'Nota sobre el deff: usar 2.0 equivale a decir que cada encuesta hecha dentro de un conglomerado aporta la mitad de información que una encuesta aleatoria independiente. Es una corrección estándar y prudente para encuestas en aula; omitirla produce muestras engañosamente pequeñas y márgenes de error reales mayores a los declarados.',
+      'Del teórico al operativo hay ajustes documentados: dividir entre la tasa de respuesta esperada dentro del curso-horario (~92.4% con base en la experiencia previa, lo que lleva 2,310 a ≈2,500), sumar los redondeos hacia arriba de las cuotas en facultades pequeñas (~15-25 encuestas) y cuadrar operativamente facultad por facultad. La meta quedó en 2,500 encuestas válidas. La verificación de consistencia se hace al revés: con n = 2,500, el margen de error efectivo retrocalculado es ±2.39%, ligeramente mejor que el ±2.5% declarado.',
+      'Dos calibraciones de estos estudios valen la pena copiar. Primera: p se afina con evidencia (0.50 sin datos previos; 0.30 cuando la ola anterior midió 30.2% en el indicador más prevalente, tomándolo como cota superior). Segunda: la sobremuestra también se calibra con historia: se empezó con 100% y se bajó a 50% al comprobar que la cobertura de cursos-horario alcanzaba 93.5%. Sobre la meta de 2,500 el techo con sobremuestra fue 3,750.',
+      'Nota sobre el deff: usar 2.0 equivale a decir que cada encuesta hecha dentro de un conglomerado aporta la mitad de información que una encuesta aleatoria independiente. Es una corrección estándar y prudente para encuestas por cursos-horario; omitirla produce muestras engañosamente pequeñas y márgenes de error reales mayores a los declarados.',
     ],
     fuenteIds: ['metodologia-2025', 'propuesta-2026'],
   },
   {
     pasoId: 'aulas',
-    titulo: 'De la muestra de personas a la lista de aulas',
+    titulo: 'De la muestra de personas a la lista de cursos-horario',
     parrafos: [
-      'Las encuestas no se reparten a personas sueltas sino a salones. El número de aulas se calcula facultad por facultad: aulas = ceil(cuota_facultad / (promedio de matriculados elegibles por aula × tasa de rendimiento)). En el estudio de referencia el tamaño promedio de aula varió de 12.9 elegibles (facultades pequeñas) a 41.4 (cursos servicio masivos), así que un promedio único de toda la universidad habría dado un plan equivocado.',
-      'La tasa de rendimiento —qué fracción de los elegibles termina entregando respuesta válida— se midió empíricamente: promedio ponderado global de 0.53, con tres patrones claros por facultad. Facultades pequeñas y cohesionadas: 0.80 a 1.00. Facultades intermedias (el grupo más numeroso): 0.50 a 0.72. Aulas masivas transversales de estudios generales: 0.39 a 0.42, por su tamaño (45 alumnos promedio), su mezcla de carreras y la volatilidad de asistencia. Dimensionar con la tasa de cada facultad, no con una uniforme, es lo que hace realista el plan.',
-      'La selección de qué aulas concretas visitar es un muestreo sistemático con arranque aleatorio: dentro de cada facultad se ordenan los cursos-horario por nivel de estudio, se calcula el salto k = floor(cursos_en_marco / aulas_a_coordinar), se sortea el arranque con semilla fija y se toma un curso cada k posiciones. Este método distribuye la muestra a lo largo de todo el marco, hereda naturalmente la composición por nivel y por tamaño de aula (verificado empíricamente contra grupos G1 a G4), y deja trazabilidad: cada aula conserva su probabilidad de selección (1/k).',
-      'Las posiciones no seleccionadas no se botan: forman las bolsas de reemplazo M2, M3 y siguientes, cada aula con un "gemelo" de perfil equivalente. La cascada operativa es simple: se trabaja el plan base M1 (170 aulas en el caso de referencia); si un aula falla —docente que rechaza o no responde, cambio de horario, asistencia insuficiente— se activa su equivalente de M2, luego M3. En la práctica se aplican del orden de las aulas de M1 (194 aplicadas en el referencial, contra 170 previstas): las bolsas restantes son reserva priorizada, no encuestas adicionales. La propuesta más reciente añade además una bolsa operativa de +1 aula por facultad.',
+      'Las encuestas no se reparten a personas sueltas sino a cursos-horario. El número de unidades se calcula facultad por facultad: cursos_horario = ceil(cuota_facultad / (promedio de matriculados elegibles por curso-horario × tasa de rendimiento)). En el estudio de referencia el tamaño promedio varió de 12.9 elegibles (facultades pequeñas) a 41.4 (cursos de servicio masivos), así que un promedio único de toda la universidad habría dado un plan equivocado.',
+      'La tasa de rendimiento —qué fracción de los elegibles termina entregando respuesta válida— se midió empíricamente: promedio ponderado global de 0.53, con tres patrones claros por facultad. Facultades pequeñas y cohesionadas: 0.80 a 1.00. Facultades intermedias: 0.50 a 0.72. Cursos-horario masivos transversales de estudios generales: 0.39 a 0.42, por su tamaño, mezcla de carreras y volatilidad de asistencia. Dimensionar con la tasa de cada facultad, no con una uniforme, es lo que hace realista el plan.',
+      'La selección de qué cursos-horario visitar es un muestreo sistemático con arranque aleatorio: dentro de cada facultad se ordenan las unidades por nivel de estudio, se calcula el salto k = floor(cursos_horario_en_marco / cursos_horario_a_coordinar), se sortea el arranque con semilla fija y se toma una unidad cada k posiciones. Este método distribuye la muestra a lo largo de todo el marco, hereda naturalmente la composición por nivel y tamaño (grupos G1 a G4), y deja trazabilidad: cada curso-horario conserva su probabilidad de selección (1/k).',
+      'Las posiciones no seleccionadas forman las bolsas de reemplazo M2, M3 y siguientes, cada curso-horario con un equivalente de perfil similar. La cascada operativa es simple: se trabaja el plan base M1 (170 cursos-horario en el caso de referencia); si uno falla —docente que rechaza o no responde, cambio de horario, asistencia insuficiente— se activa su equivalente de M2, luego M3. En el referencial se aplicaron 194 frente a 170 previstos: las bolsas restantes son reserva priorizada, no encuestas adicionales. La propuesta más reciente añade una bolsa operativa de +1 curso-horario por facultad.',
     ],
     fuenteIds: ['propuesta-2026', 'metodologia-2025'],
   },
@@ -371,10 +371,10 @@ export const RESPALDOS: PasoRespaldo[] = [
     pasoId: 'aplicacion',
     titulo: 'Qué pasa el día de campo y después',
     parrafos: [
-      'La aplicación en aula es autoadministrada con un código QR que lleva al cuestionario digital. Cada aula tiene su propio link parametrizado con un identificador de aula (collectorID): así se sabe de qué salón vino cada respuesta sin pedirle al estudiante ningún dato que lo identifique. Ese identificador permite verificar cuotas al cierre y construir ponderadores, preservando el anonimato completo.',
-      'El operativo real sigue un protocolo fijo: coordinación previa con cada docente (correos institucionales y llamadas si no responden), llegada del aplicador una hora antes a la oficina de coordinación para recoger su kit, contacto con el docente en la puerta del aula, presentación con guion estandarizado, filtros en voz alta (mayores de 18, no haber respondido antes en otro curso), consentimiento voluntario, aplicación de 15 a 20 minutos y discurso de cierre. Todo se reporta en tiempo real a un chat grupal de supervisión: hora de llegada, hora de inicio, ocurrencias y hora de fin.',
+      'La aplicación en el salón es autoadministrada con un código QR que lleva al cuestionario digital. Cada curso-horario tiene su propio enlace parametrizado con un identificador (collectorID): así se sabe de qué unidad vino cada respuesta sin pedirle al estudiante ningún dato que lo identifique. Ese identificador permite verificar cuotas al cierre y construir ponderadores, preservando el anonimato completo.',
+      'El operativo real sigue un protocolo fijo: coordinación previa con cada docente, llegada del aplicador a la oficina de coordinación para recoger su kit, contacto con el docente en la puerta del salón, presentación con guion estandarizado, filtros en voz alta, consentimiento voluntario, aplicación y discurso de cierre. Todo se reporta en tiempo real a supervisión: hora de llegada, inicio, ocurrencias y fin.',
       'El guion en voz alta cumple funciones metodológicas, no solo de cortesía: comunica que el salón fue seleccionado al azar (para que nadie se sienta señalado), garantiza el anonimato explícitamente, aplica los filtros de elegibilidad antes de empezar y formaliza que la participación es voluntaria: se puede saltar cualquier pregunta o dejar de responder en cualquier momento. En temas sensibles, esa transparencia es la base de una tasa de respuesta honesta.',
-      'Después del campo viene el cierre estadístico. En el estudio de referencia se cobraron 3,296 respuestas válidas para una meta de 2,500: 27 de las 30 celdas facultad × sexo sobrecumplieron. El ajuste por celda recorta aleatoriamente el exceso (peso = 1) y compensa con peso > 1 las celdas que no llegaron (las dos celdas faltantes recibieron pesos de 1.02 y 1.15). El resultado: una base final de 2,471 casos físicos cuya suma de pesos es exactamente 2,500, representativa del diseño. Guardar la probabilidad de selección y la cadena de reemplazos de cada aula es lo que hace posible este cierre limpio.',
+      'Después del campo viene el cierre estadístico. En el estudio de referencia se obtuvieron 3,296 respuestas válidas para una meta de 2,500: 27 de las 30 celdas facultad × sexo sobrecumplieron. El ajuste por celda recorta aleatoriamente el exceso y compensa con peso > 1 las celdas que no llegaron. El resultado fue una base final de 2,471 casos físicos cuya suma de pesos es exactamente 2,500. Guardar la probabilidad de selección y la cadena de reemplazos de cada curso-horario hace posible este cierre limpio.',
     ],
     fuenteIds: ['metodologia-2025', 'ruta-asignacion', 'speech-aplicadores', 'indicaciones-aplicadores'],
   },
@@ -386,13 +386,13 @@ export const GUIA_CAMPO: GuiaCampoSeccion[] = [
     titulo: 'Coordinación con docentes',
     icono: 'coordinacion',
     resumen:
-      'Antes de pisar un aula, cada visita se agenda con el docente. Una buena coordinación previa es lo que explica coberturas de aulas superiores al 90%.',
+      'Antes de ingresar al salón, cada visita se agenda con el docente. Una buena coordinación previa explica coberturas de cursos-horario superiores al 90%.',
     pasos: [
       'Difunde el proyecto a toda la comunidad universitaria desde el área de comunicaciones, para generar apertura de estudiantes y docentes.',
       'Envía correos personalizados a cada docente cuyo curso-horario salió seleccionado, explicando la intervención durante su horario de clase.',
-      'Si no responde, llama por teléfono para agendar día y hora; como último recurso, visita el aula para acordar el horario en persona.',
+      'Si no responde, llama por teléfono para agendar día y hora; como último recurso, visita el salón para acordar el horario en persona.',
       'Coordina con unos 15 días de antelación: la coordinación temprana es el factor que permitió reducir la sobremuestra de 100% a 50% en los estudios de referencia.',
-      'Registra el estado de cada aula (confirmada, sin respuesta, rechazada) para decidir a tiempo si activas un aula de reemplazo.',
+      'Registra el estado de cada curso-horario (confirmado, sin respuesta, rechazado) para decidir a tiempo si activas un reemplazo.',
     ],
     fuenteId: 'ruta-asignacion',
   },
@@ -401,22 +401,22 @@ export const GUIA_CAMPO: GuiaCampoSeccion[] = [
     titulo: 'Kit del aplicador',
     icono: 'kit',
     resumen:
-      'Cada aplicador recibe un kit estandarizado antes de salir a campo. Nada se improvisa: el material identifica al equipo y lleva el QR exacto de cada aula.',
+      'Cada aplicador recibe un kit estandarizado antes de salir a campo. Nada se improvisa: el material identifica al equipo y lleva el QR exacto de cada curso-horario.',
     pasos: [
       'Preséntate en la oficina de coordinación una hora antes del horario de aplicación.',
       'Recibe y verifica tu kit: instructivo (guion, filtros y recomendaciones), credencial, chaleco, tablilla y lapicero.',
-      'Recoge el horario de aplicación de cada aula asignada y las fichas QR correspondientes.',
-      'Lleva dos copias de la ficha QR por aula: una para mostrarla al salón y otra para hacerla circular entre los asientos.',
-      'Confirma en qué pabellón y aula te toca: cada QR es específico de su curso-horario, no son intercambiables.',
+      'Recoge el horario de aplicación de cada curso-horario asignado y las fichas QR correspondientes.',
+      'Lleva dos copias de la ficha QR por curso-horario: una para mostrarla al salón y otra para hacerla circular entre los asientos.',
+      'Confirma en qué pabellón y salón te toca: cada QR es específico de su curso-horario, no son intercambiables.',
     ],
     fuenteId: 'indicaciones-aplicadores',
   },
   {
     id: 'speech',
-    titulo: 'Presentación en el aula',
+    titulo: 'Presentación en el salón',
     icono: 'speech',
     resumen:
-      'El guion de presentación es estandarizado: quién eres, cuánto tomará, por qué ese salón y la garantía de anonimato. Decirlo igual en todas las aulas es parte del método.',
+      'El guion de presentación es estandarizado: quién eres, cuánto tomará, por qué ese salón y la garantía de anonimato. Decirlo igual en todos los cursos-horario es parte del método.',
     pasos: [
       'Toca la puerta unos 10 minutos antes de la hora pactada para anunciarte y recordarle al docente la programación.',
       'Preséntate ante el docente primero y luego ante los estudiantes, con nombre completo y credencial visible.',
@@ -469,7 +469,7 @@ export const GUIA_CAMPO: GuiaCampoSeccion[] = [
     resumen:
       'Mientras el salón responde, el aplicador supervisa sin mirar pantallas ajenas y reporta el avance en tiempo real al chat de supervisión.',
     pasos: [
-      'Reporta al chat grupal la hora de llegada y el nombre del aula, la hora de inicio y luego la hora de finalización.',
+      'Reporta al canal de supervisión la hora de llegada y el código del curso-horario, la hora de inicio y luego la hora de finalización.',
       'Pide a los estudiantes que avisen (por ejemplo, mostrando la pantalla final de confirmación) apenas terminen de enviar la encuesta.',
       'Si alguien necesita más tiempo del pactado con el docente, dale facilidades para completarla y enviarla dentro de las horas siguientes, en lugar de forzar un cierre apurado.',
       'Si el docente no permite el ingreso a la hora pactada, reprograma en vez de aplicar con tiempo insuficiente: una aplicación recortada produce cuestionarios incompletos y problemas con la clase siguiente.',
@@ -485,7 +485,7 @@ export const GUIA_CAMPO: GuiaCampoSeccion[] = [
       'La visita termina con un discurso breve de salida y el retorno a la oficina de coordinación para devolver material y reportar cómo fue.',
     pasos: [
       'Ofrece el discurso de salida: agradece al salón y al docente por el tiempo cedido de su clase.',
-      'Verifica que recogiste todo tu material (fichas QR, tablilla, credencial) antes de salir del aula.',
+      'Verifica que recogiste todo tu material (fichas QR, tablilla, credencial) antes de salir del salón.',
       'Regresa a la oficina de coordinación apenas termines, para devolver el material asignado.',
       'Informa el resultado de la visita: cuántos respondieron, cómo estuvo la asistencia y cualquier situación particular.',
       'Ese reporte alimenta el tablero de cuotas: con él, la coordinación decide si la cuota del estrato avanza según lo previsto o si toca activar reemplazos.',
@@ -500,9 +500,9 @@ export const GUIA_CAMPO: GuiaCampoSeccion[] = [
       'Las fallas de campo son esperables y están previstas en el diseño: lo importante es reportarlas rápido y activar el reemplazo correcto, no improvisar.',
     pasos: [
       'Reporta cualquier eventualidad u observación al supervisor de turno lo antes posible, por el canal acordado.',
-      'Registra las incidencias típicas con su aula: docente que rechaza o no responde, cambio de horario, suspensión de clase, asistencia muy baja.',
-      'Ante un aula caída, la coordinación activa el aula equivalente de la siguiente bolsa (M2, luego M3), con el mismo perfil de facultad y tamaño: no elijas tú un salón "parecido" por tu cuenta.',
-      'Documenta la cadena de sustituciones (qué aula reemplazó a cuál): esa trazabilidad se usa después para auditar el campo y ajustar ponderadores.',
+      'Registra las incidencias típicas con su curso-horario: docente que rechaza o no responde, cambio de horario, suspensión de clase, asistencia muy baja.',
+      'Ante un curso-horario caído, la coordinación activa el equivalente de la siguiente bolsa (M2, luego M3), con el mismo perfil de facultad y tamaño: no elijas una unidad "parecida" por tu cuenta.',
+      'Documenta la cadena de sustituciones (qué curso-horario reemplazó a cuál): esa trazabilidad se usa después para auditar el campo y ajustar ponderadores.',
       'Al final de cada jornada, comparte observaciones y sugerencias: en los estudios de referencia, esos reportes calibraron las tasas de rendimiento que dimensionan los estudios siguientes.',
     ],
     fuenteId: 'indicaciones-aplicadores',
@@ -511,7 +511,7 @@ export const GUIA_CAMPO: GuiaCampoSeccion[] = [
 
 export const EJEMPLO_TRABAJADO = {
   descripcion:
-    'Ejemplo trabajado con los números reales de un estudio de referencia en una universidad peruana de ~22,000 estudiantes de pregrado (15 facultades), encuestados de manera presencial en aulas con código QR.',
+    'Ejemplo trabajado con los números reales de un estudio de referencia en una universidad peruana de ~22,000 estudiantes de pregrado (15 facultades), encuestados presencialmente por cursos-horario con código QR.',
   N: 22037,
   p: 0.3,
   confianza: 95,
@@ -523,9 +523,9 @@ export const EJEMPLO_TRABAJADO = {
   sobremuestraPct: 50,
   narrativa: [
     'Imagina una universidad peruana con 22,037 estudiantes de pregrado elegibles (mayores de 18 años, matriculados en el semestre) repartidos en 15 facultades. Queremos estimar la prevalencia de un fenómeno sensible con 95% de confianza y un margen de error de ±2.5%. Una ola anterior del estudio midió 30.2% en el indicador más prevalente, así que en lugar del conservador p = 0.50 calibramos p = 0.30 como cota superior razonable. Y como vamos a encuestar salones completos —donde los estudiantes se parecen entre sí— aplicamos un efecto de diseño deff = 2.0.',
-    'Con la fórmula n = (N · Z² · p(1-p) · deff) / ((N-1) · e² + Z² · p(1-p) · deff), el numerador es 22,037 × 3.8416 × 0.21 × 2 ≈ 35,548 y el denominador es (22,036 × 0.000625) + (3.8416 × 0.21 × 2) ≈ 15.39. El resultado: n ≈ 2,310 respuestas válidas. Ese es el mínimo teórico. Como ni en aula responde el 100% (la experiencia previa indica ~92.4% de respuesta intra-aula efectiva), dividimos 2,310 / 0.924 ≈ 2,500, y con los redondeos hacia arriba de las cuotas en facultades pequeñas la meta operativa queda en 2,500 encuestas. Verificación: con n = 2,500 el margen de error efectivo retrocede a ±2.39%, mejor que el declarado.',
-    'La muestra se reparte proporcionalmente entre las 15 facultades y, dentro de cada una, por sexo: 30 cuotas en total. Luego se traduce a salones: cada facultad tiene su propio tamaño de aula (de 12.9 a 41.4 elegibles en promedio) y su propia tasa de rendimiento medida (de 0.39 en aulas masivas transversales a 1.00 en facultades pequeñas; 0.53 de promedio global). Dividiendo cuota entre (elegibles promedio × tasa de rendimiento), facultad por facultad, salen 170 aulas base. Sobre la meta de 2,500 se prepara además una sobremuestra del 50% —techo de 3,750— que se materializa en bolsas de aulas de reemplazo (M2, M3, …) sorteadas con el mismo método.',
-    'Las aulas concretas se eligen por muestreo sistemático: dentro de cada facultad se ordenan los cursos-horario por nivel, se calcula el salto k = floor(cursos del marco / aulas a coordinar), se sortea un arranque aleatorio y se toma un salón cada k posiciones. Cada aula seleccionada conserva su probabilidad de inclusión y su salto k en la base operativa, y cada una recibe un QR propio con identificador de aula, de modo que se sabe de qué salón vino cada respuesta sin identificar a nadie.',
-    'El campo aplicó 194 aulas (las 170 previstas más reemplazos activados) y cobró 3,296 respuestas válidas: 27 de las 30 cuotas se sobrecumplieron. El cierre estadístico cuadra cada celda con su meta: el exceso se recorta por sorteo reproducible (peso = 1) y las dos celdas que no llegaron se compensan con pesos de 1.02 y 1.15. La base final: 2,471 casos físicos cuya suma de pesos es exactamente 2,500, lista para inferencia con el margen de error prometido. Del cálculo a la aplicación, cada número quedó trazado: esa es la marca de un buen diseño de muestra de aulas.',
+    'Con la fórmula n = (N · Z² · p(1-p) · deff) / ((N-1) · e² + Z² · p(1-p) · deff), el numerador es 22,037 × 3.8416 × 0.21 × 2 ≈ 35,548 y el denominador es (22,036 × 0.000625) + (3.8416 × 0.21 × 2) ≈ 15.39. El resultado es n ≈ 2,310 respuestas válidas. Como dentro del curso-horario no responde el 100% (la experiencia previa indica ~92.4% de respuesta efectiva), dividimos 2,310 / 0.924 ≈ 2,500; con los redondeos de cuotas la meta operativa queda en 2,500 encuestas. Verificación: con n = 2,500 el margen de error efectivo retrocede a ±2.39%.',
+    'La muestra se reparte proporcionalmente entre las 15 facultades y, dentro de cada una, por sexo: 30 cuotas en total. Luego se traduce a cursos-horario: cada facultad tiene su propio tamaño de unidad (de 12.9 a 41.4 elegibles en promedio) y su tasa de rendimiento medida (de 0.39 en unidades masivas transversales a 1.00 en facultades pequeñas; 0.53 global). Dividiendo cuota entre elegibles promedio × tasa de rendimiento salen 170 cursos-horario base. Sobre la meta de 2,500 se prepara una sobremuestra del 50% —techo de 3,750— que se materializa en bolsas de reemplazo sorteadas con el mismo método.',
+    'Los cursos-horario concretos se eligen por muestreo sistemático: dentro de cada facultad se ordenan por nivel, se calcula el salto k = floor(cursos-horario del marco / cursos-horario a coordinar), se sortea un arranque aleatorio y se toma una unidad cada k posiciones. Cada curso-horario conserva su probabilidad de inclusión y su salto k, y recibe un QR propio con identificador, de modo que se sabe de qué unidad vino cada respuesta sin identificar a nadie.',
+    'El campo aplicó 194 cursos-horario (los 170 previstos más reemplazos activados) y obtuvo 3,296 respuestas válidas: 27 de las 30 cuotas se sobrecumplieron. El cierre estadístico cuadra cada celda con su meta: el exceso se recorta por sorteo reproducible y las dos celdas faltantes se compensan con pesos de 1.02 y 1.15. La base final tiene 2,471 casos físicos cuya suma de pesos es exactamente 2,500. Del cálculo a la aplicación, cada número quedó trazado: esa es la marca de un buen diseño de muestra de cursos-horario.',
   ],
 } as const;

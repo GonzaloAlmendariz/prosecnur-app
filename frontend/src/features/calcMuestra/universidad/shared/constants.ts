@@ -23,12 +23,12 @@ import {
 export type ClassroomLabTab = "marco" | "objetivo" | "metodo" | "laboratorio" | "seleccion" | "reemplazos" | "auditoria";
 
 export const CLASSROOM_LAB_TABS: Array<{ id: ClassroomLabTab; label: string; detail: string; icon: typeof Database }> = [
-  { id: "marco", label: "Marco de aulas", detail: "Base convertida en curso-horario", icon: Database },
-  { id: "objetivo", label: "Objetivo de muestra", detail: "Cuotas y aulas necesarias", icon: Target },
+  { id: "marco", label: "Marco de cursos-horario", detail: "Base convertida en unidades seleccionables", icon: Database },
+  { id: "objetivo", label: "Objetivo de muestra", detail: "Cuotas y cursos-horario necesarios", icon: Target },
   { id: "metodo", label: "Comparar métodos", detail: "Elegir la opción más representativa", icon: Settings2 },
   { id: "laboratorio", label: "Simulación", detail: "Estabilidad y repetidos", icon: BarChart3 },
-  { id: "seleccion", label: "Aulas titulares", detail: "Aulas que se intentan primero", icon: Table2 },
-  { id: "reemplazos", label: "Reemplazos por aula", detail: "Rutas Rn.1, Rn.2...", icon: RefreshCw },
+  { id: "seleccion", label: "Cursos-horario titulares", detail: "Unidades que se intentan primero", icon: Table2 },
+  { id: "reemplazos", label: "Reemplazos por curso-horario", detail: "Rutas Rn.1, Rn.2...", icon: RefreshCw },
   { id: "auditoria", label: "Sustento técnico", detail: "Campos, pesos y fuentes", icon: FileText },
 ];
 
@@ -44,10 +44,10 @@ export const DEFAULT_UNIVERSITY_PUBLICATION_CONFIG: CalcMuestraWorkspacePublicat
   client_sheet_name: "Calculo muestra - cliente",
   frame_sheet_name: "Marco muestral",
   sample_calculation_sheet_name: "Calculo muestral",
-  classroom_selection_sheet_name: "Seleccion de aulas",
-  replacement_sheet_name: "Aulas de reemplazo",
-  operational_routes_sheet_name: "Rutas operativas de aulas",
-  agenda_sheet_name: "Agenda de aulas",
+  classroom_selection_sheet_name: "Seleccion de cursos-horario",
+  replacement_sheet_name: "Cursos-horario de reemplazo",
+  operational_routes_sheet_name: "Rutas operativas de cursos-horario",
+  agenda_sheet_name: "Agenda de cursos-horario",
   monitoring_handoff_sheet_name: "Plan para Monitoreo",
   methodology_sheet_name: "Sustento metodologico",
   include_workbook: true,
@@ -60,10 +60,10 @@ export const DEFAULT_UNIVERSITY_PUBLICATION_CONFIG: CalcMuestraWorkspacePublicat
 };
 
 export const UNIVERSITY_AULAS_SIZE_GROUPS: CalcMuestraWorkspaceAulasConfig["grupos_tamano"] = [
-  { id: "G1", label: "G1", min: 15, max: 20, descripcion: "aulas pequeñas o especializadas" },
-  { id: "G2", label: "G2", min: 21, max: 30, descripcion: "aulas medianas" },
-  { id: "G3", label: "G3", min: 31, max: 40, descripcion: "aulas estándar" },
-  { id: "G4", label: "G4", min: 41, max: null, descripcion: "aulas grandes o masivas" },
+  { id: "G1", label: "G1", min: 15, max: 20, descripcion: "cursos-horario pequeños o especializados" },
+  { id: "G2", label: "G2", min: 21, max: 30, descripcion: "cursos-horario medianos" },
+  { id: "G3", label: "G3", min: 31, max: 40, descripcion: "cursos-horario estándar" },
+  { id: "G4", label: "G4", min: 41, max: null, descripcion: "cursos-horario grandes o masivos" },
 ];
 
 export const DEFAULT_UNIVERSITY_AULAS_OBJECTIVE: CalcMuestraAulasObjectiveConfig = {
@@ -75,7 +75,7 @@ export const DEFAULT_UNIVERSITY_AULAS_OBJECTIVE: CalcMuestraAulasObjectiveConfig
     { dimension: "level", label: "Nivel/ciclo", aula_col: "level", student_col: "level", weight: 0.1, tolerance: 0.05, source_preference: "student" },
     { dimension: "schedule", label: "Horario", aula_col: "schedule", weight: 0.1, tolerance: 0.05, source_preference: "aula" },
     { dimension: "modality", label: "Modalidad", aula_col: "modality", weight: 0.06, tolerance: 0.03, source_preference: "aula" },
-    { dimension: "size_group", label: "Tamaño de aula", aula_col: "size_group", weight: 0.08, tolerance: 0.05, source_preference: "aula" },
+    { dimension: "size_group", label: "Tamaño del curso-horario", aula_col: "size_group", weight: 0.08, tolerance: 0.05, source_preference: "aula" },
     { dimension: "sex", label: "Sexo", aula_col: "sex_top_1", student_col: "sex", weight: 0.1, tolerance: 0.025, source_preference: "student" },
   ],
   component_weights: {
@@ -155,7 +155,7 @@ export const DEFAULT_UNIVERSITY_AULAS_CONFIG: CalcMuestraWorkspaceAulasConfig = 
   semilla: 20260619,
   objective: DEFAULT_UNIVERSITY_AULAS_OBJECTIVE,
   notas_metodologicas:
-    "Selector reproducible sobre un marco de cursos y horarios: balancea cuotas, tamaño de aula y cobertura única, controla estudiantes repetidos y conserva auditoría interna del proceso.",
+    "Selector reproducible sobre un marco de cursos-horario: balancea cuotas, tamaño de la unidad y cobertura única, controla estudiantes repetidos y conserva auditoría interna del proceso.",
 };
 
 export const UNIVERSITY_SOURCE_MODE_OPTIONS: Array<{
@@ -167,7 +167,7 @@ export const UNIVERSITY_SOURCE_MODE_OPTIONS: Array<{
   {
     id: "base_madre",
     label: "Una base principal",
-    detail: "Una fila por estudiante en cada curso y horario. Es lo ideal para identificar aulas, controlar repetidos y auditar exclusiones.",
+    detail: "Una fila por estudiante en cada curso y horario. Es lo ideal para identificar cursos-horario, controlar repetidos y auditar exclusiones.",
     cards: ["estudiante", "curso y horario", "facultad/sexo", "elegibilidad"],
   },
   {
@@ -190,11 +190,11 @@ export const UNIVERSITY_SOURCE_BINDING_DEFAULTS: Record<CalcMuestraWorkspaceSour
   ],
   dos_bases: [
     { id: "src-estudiantes", role: "estudiantes", label: "Base principal de matrícula", status: "pendiente", sheet_name: "MATRICULADO", notes: "Puede ser estudiante elegible o, idealmente, estudiante por curso y horario." },
-    { id: "src-cursos", role: "catalogo_curso_horario", label: "Catálogo de cursos y horarios", status: "pendiente", sheet_name: "CURSO Y HORARIO", notes: "Curso, horario, aula, docente y cupos. Completa la lectura cuando existe." },
+    { id: "src-cursos", role: "catalogo_curso_horario", label: "Catálogo de cursos y horarios", status: "pendiente", sheet_name: "CURSO Y HORARIO", notes: "Curso, horario, salón, docente y cupos. Completa la lectura cuando existe." },
   ],
   seleccion_existente: [
-    { id: "src-muestra", role: "muestra_previa", label: "Muestra seleccionada", status: "pendiente", sheet_name: "Muestra", notes: "Aulas titulares y reemplazos si existen." },
-    { id: "src-agenda", role: "agenda", label: "Agenda de aulas", status: "pendiente", sheet_name: "BD Agenda", notes: "Docente, fecha, responsable, estado y aplicación." },
+    { id: "src-muestra", role: "muestra_previa", label: "Muestra seleccionada", status: "pendiente", sheet_name: "Muestra", notes: "Cursos-horario titulares y reemplazos si existen." },
+    { id: "src-agenda", role: "agenda", label: "Agenda de cursos-horario", status: "pendiente", sheet_name: "BD Agenda", notes: "Docente, fecha, responsable, estado y aplicación." },
   ],
 };
 
@@ -208,7 +208,7 @@ export const UNIVERSITY_FALLBACK_COLUMN_OPTIONS = [
   "Curso y horario",
   "Curso",
   "Nombre del curso",
-  "Aula",
+  "Salón",
   "Docente",
   "Horario",
   "Modalidad",
@@ -218,23 +218,23 @@ export const UNIVERSITY_FALLBACK_COLUMN_OPTIONS = [
 export const UNIVERSITY_REQUIRED_VARIABLES: CalcMuestraWorkspaceVariableMapping[] = [
   { role: "student_id", label: "Identificador de estudiante", required: true, source_role: "base_madre", description: "Permite controlar duplicados y cobertura. No se publica en salidas para cliente." },
   { role: "faculty", label: "Facultad", required: true, source_role: "base_madre", description: "Facultad del estudiante; sostiene representatividad, cuotas y cruces de población." },
-  { role: "campus", label: "Sede o campus", required: false, source_role: "base_madre", description: "Sede donde se dicta el aula; habilita el filtro de sedes del operativo." },
+  { role: "campus", label: "Sede o campus", required: false, source_role: "base_madre", description: "Sede donde se dicta el curso-horario; habilita el filtro de sedes del operativo." },
   { role: "program", label: "Programa o carrera", required: false, source_role: "base_madre", description: "Carrera del estudiante dentro de su facultad; no es la facultad que dicta el curso." },
   { role: "sex", label: "Sexo", required: true, source_role: "base_madre", description: "Cuota esperada y diagnóstico descriptivo." },
   { role: "level", label: "Ciclo, nivel o año", required: false, source_role: "base_madre", description: "Balance por avance académico." },
   { role: "formation", label: "Formación", required: false, source_role: "base_madre", description: "Nivel formativo del estudiante (pregrado, maestría…); habilita el criterio de pregrado sobre la columna real." },
   { role: "age", label: "Edad", required: false, source_role: "base_madre", description: "Habilita el criterio de mayoría de edad sobre la edad real del estudiante." },
-  { role: "course_id", label: "Curso o código de curso", required: true, source_role: "base_madre", description: "Junto con horario o sección permite identificar cada aula a seleccionar." },
-  { role: "course_schedule_id", label: "Código único de curso y horario", required: false, source_role: "base_madre", description: "Úsala si la base trae NRC o un identificador único de aula." },
-  { role: "course_name", label: "Nombre del curso", required: false, source_role: "catalogo_curso_horario", description: "Etiqueta legible de aula/curso." },
+  { role: "course_id", label: "Curso o código de curso", required: true, source_role: "base_madre", description: "Junto con horario o sección permite identificar cada curso-horario a seleccionar." },
+  { role: "course_schedule_id", label: "Código único de curso y horario", required: false, source_role: "base_madre", description: "Úsala si la base trae NRC o un identificador único de curso-horario." },
+  { role: "course_name", label: "Nombre del curso", required: false, source_role: "catalogo_curso_horario", description: "Etiqueta legible del curso-horario." },
   { role: "course_level", label: "Nivel del curso", required: false, source_role: "catalogo_curso_horario", description: "Nivel o ciclo del curso (no del estudiante); habilita el rango de nivel por unidad académica." },
-  { role: "classroom", label: "Aula o sección", required: false, source_role: "catalogo_curso_horario", description: "Ubicación o grupo operativo." },
+  { role: "classroom", label: "Salón o sección", required: false, source_role: "catalogo_curso_horario", description: "Salón físico o grupo operativo; no identifica por sí solo el curso-horario." },
   { role: "teacher", label: "Docente/contacto", required: false, source_role: "catalogo_curso_horario", description: "Útil para agenda y autorización." },
   { role: "teacher_type", label: "Tipo de docente", required: false, source_role: "catalogo_curso_horario", description: "Categoría del docente (contratado, ordinario…); habilita el criterio de docente estable." },
   { role: "schedule", label: "Horario", required: true, source_role: "catalogo_curso_horario", description: "Balance y planificación de campo." },
   { role: "modality", label: "Modalidad", required: false, source_role: "catalogo_curso_horario", description: "Presencial, virtual o mixta." },
   { role: "session_type", label: "Tipo de curso o sesión", required: false, source_role: "catalogo_curso_horario", description: "Teórico, laboratorio, taller, seminario…; habilita el criterio de tipo de curso válido." },
-  { role: "enrolled_total", label: "Matriculados del aula", required: false, source_role: "catalogo_curso_horario", description: "Total de inscritos por curso-horario; los elegibles (matriculados_población) los deriva el motor." },
+  { role: "enrolled_total", label: "Matriculados del curso-horario", required: false, source_role: "catalogo_curso_horario", description: "Total de inscritos por curso-horario; los elegibles (matriculados_población) los deriva el motor." },
   { role: "condition", label: "Condición o elegibilidad", required: true, source_role: "base_madre", description: "Filtro de población objetivo; por ejemplo regular, válido o elegible." },
 ];
 
@@ -261,7 +261,7 @@ export const UNIVERSITY_AULAS_SELECTOR_OPTIONS: Array<{
   {
     id: "sistematico_pps",
     label: "Sistemático por facultad",
-    detail: "Ordena el marco depurado y selecciona aulas de forma espaciada dentro de cada facultad.",
+    detail: "Ordena el marco depurado y selecciona cursos-horario de forma espaciada dentro de cada facultad.",
   },
   {
     id: "estratificado_aleatorio",
@@ -287,18 +287,18 @@ export const UNIVERSITY_AULAS_MODALIDAD_OPTIONS: Array<{
 }> = [
   {
     id: "presencial_aula",
-    label: "Presencial en aula",
-    detail: "Aplica filtros de presencialidad, horario, docente y aula física.",
+    label: "Presencial en salón",
+    detail: "Aplica filtros de presencialidad, horario, docente y salón físico.",
   },
   {
     id: "mixto_aula",
-    label: "Mixto con aula base",
-    detail: "Usa aulas como punto operativo y admite canal digital o papel.",
+    label: "Mixto con curso-horario base",
+    detail: "Usa cursos-horario como punto operativo y admite canal digital o papel.",
   },
   {
     id: "online_controlado",
     label: "Online controlado",
-    detail: "Mantiene cuotas, pero reduce dependencia del aula física.",
+    detail: "Mantiene cuotas, pero reduce dependencia del salón físico.",
   },
 ];
 

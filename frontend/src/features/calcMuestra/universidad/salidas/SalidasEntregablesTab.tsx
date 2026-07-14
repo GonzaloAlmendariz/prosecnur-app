@@ -26,6 +26,7 @@ import type {
   CalcMuestraWorkspacePublicationConfig,
 } from "../../../../api/client";
 import { Popover } from "../../../../components/Popover";
+import { GlidingTabList } from "../../../../components/GlidingTabList";
 import { ReporteMetodologicoCard } from "../../didactica/ReporteMetodologicoCard";
 import { DEFAULT_UNIVERSITY_PUBLICATION_CONFIG } from "../shared/constants";
 import { PanelAvanzado } from "../ui";
@@ -91,10 +92,7 @@ function PaqueteDefensaCard({ paquete }: { paquete: SalidasPaqueteDefensaProps }
   return (
     <section className="cmv2-panel cmv2-sal-panel cmv2-sal-paquete" aria-label="Paquete de defensa del diseño">
       <div className="cmv2-panel-head">
-        <div>
-          <span className="cmv2-eyebrow">Paquete de defensa</span>
-          <strong>Todo el sustento del diseño en una sola corrida</strong>
-        </div>
+        <strong>Paquete de defensa</strong>
         <button
           type="button"
           className="cmv2-primary"
@@ -146,7 +144,7 @@ const PII_OPTIONS = [
   {
     id: "sin_pii_cliente",
     label: "Cliente sin identificadores",
-    detail: "El cliente recibe agregados y aulas sin códigos de estudiante ni datos de contacto.",
+    detail: "El cliente recibe agregados y cursos-horario sin códigos de estudiante ni datos de contacto.",
   },
   {
     id: "interno_trazabilidad",
@@ -158,7 +156,7 @@ const PII_OPTIONS = [
 /** Qué columnas entran o salen por entregable según la política elegida. */
 const PII_MATRIX: Array<{ entregable: string; cliente: string; interno: string }> = [
   { entregable: "Cálculo muestral", cliente: "N, cuotas y supuestos (sin cambios)", interno: "N, cuotas y supuestos (sin cambios)" },
-  { entregable: "Selección de aulas", cliente: "curso, horario, facultad y pesos; sin códigos de estudiante", interno: "agrega código operativo del aula y conteos de repetidos" },
+  { entregable: "Selección de cursos-horario", cliente: "curso, horario, facultad y pesos; sin códigos de estudiante", interno: "agrega código operativo del curso-horario y conteos de repetidos" },
   { entregable: "Rutas y agenda", cliente: "no se publica al cliente", interno: "titular + cadena Rn.1, Rn.2… con contacto de coordinación" },
   { entregable: "Auditoría del marco", cliente: "totales y exclusiones agregadas", interno: "agrega columnas fuente usadas en la validación" },
 ];
@@ -166,10 +164,10 @@ const PII_MATRIX: Array<{ entregable: string; cliente: string; interno: string }
 const SHEET_NAME_FIELDS: Array<[keyof CalcMuestraWorkspacePublicationConfig, string, string]> = [
   ["frame_sheet_name", "Marco muestral", "base leída, exclusiones y marco operativo"],
   ["sample_calculation_sheet_name", "Cálculo muestral", "N, cuotas y supuestos de cálculo"],
-  ["classroom_selection_sheet_name", "Selección de aulas", "aulas titulares, probabilidades y pesos"],
-  ["replacement_sheet_name", "Aulas de reemplazo", "reemplazos por titular e impacto"],
+  ["classroom_selection_sheet_name", "Selección de cursos-horario", "cursos-horario titulares, probabilidades y pesos"],
+  ["replacement_sheet_name", "Cursos-horario de reemplazo", "reemplazos por titular e impacto"],
   ["operational_routes_sheet_name", "Rutas operativas", "titular y cadena Rn.1, Rn.2… para campo"],
-  ["agenda_sheet_name", "Agenda de aulas", "hoja preparada para coordinación de campo"],
+  ["agenda_sheet_name", "Agenda de cursos-horario", "hoja preparada para coordinación de campo"],
   ["monitoring_handoff_sheet_name", "Plan para Monitoreo", "estado, enlace, QR y reemplazo usado"],
   ["methodology_sheet_name", "Sustento", "fuentes, advertencias y bitácora"],
 ];
@@ -178,8 +176,8 @@ const WORKBOOK_TABLE_TOGGLES: Array<[keyof CalcMuestraWorkspacePublicationConfig
   ["include_methodology", "Reporte metodológico"],
   ["include_frame_audit", "Auditoría del marco"],
   ["include_sample_calculation", "Cálculo muestral"],
-  ["include_classroom_selection", "Selección de aulas"],
-  ["include_replacements", "Reemplazos por aula"],
+  ["include_classroom_selection", "Selección de cursos-horario"],
+  ["include_replacements", "Reemplazos por curso-horario"],
 ];
 
 /** Texto que se funde (blur+opacity) cuando su contenido cambia. */
@@ -223,10 +221,7 @@ export function SalidasEntregablesTab({
 
       <section className="cmv2-panel cmv2-sal-panel" aria-label="Política de privacidad de los entregables">
         <div className="cmv2-panel-head">
-          <div>
-            <span className="cmv2-eyebrow">Privacidad</span>
-            <strong>Qué versión recibe cada quién</strong>
-          </div>
+          <strong>Privacidad</strong>
           <Popover
             ariaLabel="Columnas que entran o salen según la política"
             maxWidth={430}
@@ -256,13 +251,14 @@ export function SalidasEntregablesTab({
                   ))}
                 </tbody>
               </table>
-              <p>En ninguna política se publican nombres ni datos personales de estudiantes: los identificadores internos son códigos de aula y de selección.</p>
+              <p>En ninguna política se publican nombres ni datos personales de estudiantes: los identificadores internos son códigos de curso-horario y de selección.</p>
             </div>
           </Popover>
         </div>
-        <div
+        <GlidingTabList
+          activeKey={pii}
           className="pulso-segmented cmv2-sal-pii-segment"
-          role="group"
+          role="tablist"
           aria-label="Política de identificadores"
           data-pii={pii}
         >
@@ -270,14 +266,16 @@ export function SalidasEntregablesTab({
             <button
               key={option.id}
               type="button"
+              role="tab"
+              data-gliding-key={option.id}
               className={pii === option.id ? "is-active" : ""}
-              aria-pressed={pii === option.id}
+              aria-selected={pii === option.id}
               onClick={() => updateConfig({ pii_policy: option.id })}
             >
               {option.label}
             </button>
           ))}
-        </div>
+        </GlidingTabList>
         <p className="cmv2-sal-nota cmv2-uni-swap" data-cambiando={notaPiiCambiando || undefined}>
           {PII_OPTIONS.find((option) => option.id === pii)?.detail}
         </p>
@@ -320,7 +318,7 @@ export function SalidasEntregablesTab({
             ))}
           </div>
           <p className="cmv2-sal-nota">
-            {config.include_classroom_selection && !selectionReady && "La selección de aulas se incluirá cuando esté generada. "}
+            {config.include_classroom_selection && !selectionReady && "La selección de cursos-horario se incluirá cuando esté generada. "}
             {config.include_replacements && !replacementReady && "Los reemplazos se incluirán cuando exista la simulación."}
           </p>
         </article>

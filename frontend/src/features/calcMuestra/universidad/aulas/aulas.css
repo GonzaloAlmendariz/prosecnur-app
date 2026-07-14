@@ -17,7 +17,6 @@
   gap: 10px;
 }
 
-.cmv2-aulas-intro,
 .cmv2-aulas-nota-suave {
   margin: 0;
   font-size: 12px;
@@ -30,8 +29,7 @@
   font-size: 11px;
 }
 
-/* Los chips de término inline no deben inflar la línea del párrafo. */
-.cmv2-aulas-intro .cmv2-uni-term,
+/* Los chips de término inline no deben inflar la línea del encabezado. */
 .cmv2-aulas-stack .cmv2-subhead .cmv2-uni-term {
   min-height: 0;
 }

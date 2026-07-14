@@ -24,24 +24,22 @@ import {
   universityObservedCategoryRows,
   type UniversityObservedCategory,
 } from "../shared/categorias";
-import { TerminoChip } from "../ui";
-import { useValorSwap } from "../ui/useValorSwap";
 import "./definicion.css";
 
-const GRUPOS: Array<{ id: string; titulo: string; detalle: string; roles: string[] }> = [
-  { id: "identidad", titulo: "Identidad", detalle: "controla duplicados y cobertura", roles: ["student_id"] },
-  { id: "estratificacion", titulo: "Estratificación", detalle: "estratos, cuotas y balance de la muestra", roles: ["faculty", "sex", "program", "level", "formation", "age"] },
-  { id: "aula", titulo: "Unidad de aula", detalle: "identifica cada curso-horario seleccionable", roles: ["course_id", "schedule", "course_schedule_id", "classroom", "modality", "session_type", "course_level", "enrolled_total"] },
-  { id: "operativo", titulo: "Operativo", detalle: "elegibilidad, agenda y etiquetas de campo", roles: ["teacher", "teacher_type", "campus", "condition", "course_name"] },
+const GRUPOS: Array<{ id: string; titulo: string; roles: string[] }> = [
+  { id: "identidad", titulo: "Identidad", roles: ["student_id"] },
+  { id: "estratificacion", titulo: "Estratificación", roles: ["faculty", "sex", "program", "level", "formation", "age"] },
+  { id: "aula", titulo: "Unidad curso-horario", roles: ["course_id", "schedule", "course_schedule_id", "classroom", "modality", "session_type", "course_level", "enrolled_total"] },
+  { id: "operativo", titulo: "Operativo", roles: ["teacher", "teacher_type", "campus", "condition", "course_name"] },
 ];
 
 /** Ampliación del "por qué" para los roles donde la description corta no basta. */
 const MOTIVO_MOTOR: Record<string, string> = {
   faculty: "Con esta columna la calculadora arma los estratos por facultad y reparte las cuotas de la muestra en proporción al peso real de cada una en la población.",
   sex: "Es el control de cuota: la muestra final debe conservar la composición por sexo de la población, y el cierre estadístico se cuadra por celda facultad × sexo.",
-  course_id: "Junto con el horario forma la unidad de selección: el aula (curso-horario) que se sortea y se visita en campo.",
-  schedule: "Junto con el curso identifica cada aula seleccionable y permite balancear turnos y planificar la visita en campo.",
-  course_schedule_id: "Si la base ya trae un código único de aula (por ejemplo NRC), la calculadora lo usa directamente como unidad de selección sin reconstruirla.",
+  course_id: "Junto con el horario forma la unidad de selección: el curso-horario que se sortea y se visita en campo.",
+  schedule: "Junto con el curso identifica cada curso-horario seleccionable y permite balancear turnos y planificar la visita en campo.",
+  course_schedule_id: "Si la base ya trae un código único de curso-horario (por ejemplo NRC), la calculadora lo usa directamente como unidad de selección sin reconstruirlo.",
 };
 
 export function DefVariablesTab({
@@ -66,8 +64,6 @@ export function DefVariablesTab({
     .sort((a, b) => a.localeCompare(b, "es"));
   const mappings = ensureUniversityVariableMappings(workspace.variable_mappings, suggestionColumns);
   const byRole = new Map(mappings.map((row) => [row.role, row]));
-  const requiredRows = mappings.filter((row) => row.required);
-  const mappedRequired = requiredRows.filter((row) => row.column).length;
   const observedByRole = universityObservedCategoryRows(workspace, aulasState, 3)
     .reduce<Map<string, UniversityObservedCategory[]>>((acc, row) => {
       const list = acc.get(row.role) ?? [];
@@ -94,24 +90,8 @@ export function DefVariablesTab({
     });
   }
 
-  const conteoNecesarias = `${mappedRequired}/${requiredRows.length}`;
-  const conteoCambiando = useValorSwap(conteoNecesarias);
-
   return (
     <section className="cmv2-panel cmv2-university-variable-map">
-      <div className="cmv2-panel-head">
-        <div>
-          <p className="cmv2-defi-intro">
-            Indica qué columna del Excel cumple cada función. Con facultad y sexo se forman los{" "}
-            <TerminoChip termino="estrato">estratos</TerminoChip> y las cuotas de la muestra; con curso y
-            horario se identifica cada <TerminoChip termino="curso-horario">curso-horario</TerminoChip> que
-            el sorteo puede elegir.
-          </p>
-        </div>
-        <span className="cmv2-pill-soft cmv2-uni-swap" data-cambiando={conteoCambiando || undefined}>
-          {conteoNecesarias} necesarias
-        </span>
-      </div>
       {GRUPOS.map((grupo) => {
         const rows = grupo.roles.flatMap((role) => {
           const row = byRole.get(role);
@@ -122,7 +102,6 @@ export function DefVariablesTab({
           <div key={grupo.id} className="cmv2-defi-var-group">
             <div className="cmv2-defi-var-group-head">
               <span className="cmv2-eyebrow">{grupo.titulo}</span>
-              <small>{grupo.detalle}</small>
             </div>
             <div className="cmv2-defi-var-grid cmv2-uni-stagger">
               {rows.map((row) => {

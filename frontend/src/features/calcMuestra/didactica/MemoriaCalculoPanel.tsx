@@ -53,9 +53,9 @@ export function MemoriaCalculoPanel({ calculo }: { calculo: MemoriaCalculo }) {
         </div>
         {memoria?.unidades_operativas != null && (
           <div className="cmv2-did-kpi">
-            <dt>aulas estimadas</dt>
+            <dt>cursos-horario estimados</dt>
             <dd>{fmtInt(memoria.unidades_operativas)}</dd>
-            <span className="cmv2-did-kpi-hint">según rendimiento por aula</span>
+            <span className="cmv2-did-kpi-hint">según rendimiento por curso-horario</span>
           </div>
         )}
       </dl>
