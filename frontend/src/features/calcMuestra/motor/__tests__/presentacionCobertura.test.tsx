@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import type { CalcMuestraAulasState } from "../../../../api/client";
 import type { PerfilInstitucional } from "../../dominio";
 import { TabCobertura } from "../pestanas/TabCobertura";
 
@@ -8,49 +9,49 @@ const perfil = {
   marcoAulas: 2483,
 } as PerfilInstitucional;
 
-describe("presentación de Cobertura", () => {
-  it("usa cabecera compacta, escala local y tres columnas cuando no hay anotaciones", () => {
-    const html = renderToStaticMarkup(
-      <TabCobertura
-        perfil={perfil}
-        cob={{
-          totalElegibles: 9734,
-          totalAlcanzables: null,
-          pctGlobal: null,
-          filas: [
-            { facultadId: "a", nombre: "Facultad A", elegibles: 6400, alcanzables: null, pct: null, sobremuestra: 0, factible: null },
-            { facultadId: "b", nombre: "Facultad B", elegibles: 3334, alcanzables: null, pct: null, sobremuestra: 0, factible: null },
-          ],
-        }}
-      />,
-    );
+/** Frame mínimo con pool (universo), población (elegibles) y aula_frame
+ *  (cursos-horario con flag `included`) por facultad. */
+function frameState(): CalcMuestraAulasState {
+  return {
+    frame: {
+      population_pool: [
+        { student_id: "1", faculty: "Facultad A" },
+        { student_id: "2", faculty: "Facultad A" },
+        { student_id: "3", faculty: "Facultad A" },
+        { student_id: "4", faculty: "Facultad B" },
+      ],
+      population: [
+        { student_id: "1", faculty: "Facultad A" },
+        { student_id: "2", faculty: "Facultad A" },
+        { student_id: "4", faculty: "Facultad B" },
+      ],
+      aula_frame: [
+        { classroom_id: "a1", faculty: "Facultad A", included: true },
+        { classroom_id: "a2", faculty: "Facultad A", included: false },
+        { classroom_id: "b1", faculty: "Facultad B", included: true },
+      ],
+    },
+  } as unknown as CalcMuestraAulasState;
+}
 
-    expect(html).toContain("rec-cobertura-cabecera");
-    expect(html).toContain('data-variante="cobertura"');
-    expect(html).toContain("Máximo · 6,400");
-    expect(html).not.toContain("50% del máximo");
-    expect(html).not.toContain("rec-barras-anotacion");
-    expect(html).not.toContain("¿Cómo se mide la fracción alcanzable?");
+describe("presentación de Cobertura", () => {
+  it("muestra dos gráficos: alumnos y cursos-horario por facultad", () => {
+    const html = renderToStaticMarkup(<TabCobertura perfil={perfil} aulasState={frameState()} />);
+    // Dos tarjetas de gráfico.
+    expect(html.match(/cmv2-cob-card"/g)?.length).toBe(2);
+    expect(html).toContain("Alumnos por facultad");
+    expect(html).toContain("Cursos-horario por facultad");
+    // Alumnos: Facultad A tiene 3 en el pool, 2 elegibles.
+    expect(html).toContain("Facultad A");
+    expect(html).toContain("Facultad B");
+    // Segmentos incluidos/excluidos presentes.
+    expect(html).toContain('data-kind="in"');
+    expect(html).toContain('data-kind="out"');
   });
 
-  it("activa la cuarta columna solo cuando existe una prueba de factibilidad", () => {
-    const html = renderToStaticMarkup(
-      <TabCobertura
-        perfil={perfil}
-        cob={{
-          totalElegibles: 1000,
-          totalAlcanzables: 800,
-          pctGlobal: 0.8,
-          filas: [
-            { facultadId: "a", nombre: "Facultad A", elegibles: 1000, alcanzables: 800, pct: 0.8, sobremuestra: 700, factible: true },
-          ],
-        }}
-      />,
-    );
-
-    expect(html).toContain('data-anotaciones="true"');
-    expect(html).toContain('data-anotacion="true"');
-    expect(html).toContain("cubre 700");
-    expect(html).not.toContain("Lectura de la factibilidad");
+  it("sin marco construido explica qué falta en vez de dejar la vista vacía", () => {
+    const html = renderToStaticMarkup(<TabCobertura perfil={perfil} aulasState={null} />);
+    expect(html).toContain("Construye el marco");
+    expect(html).not.toContain("cmv2-cob-card");
   });
 });
