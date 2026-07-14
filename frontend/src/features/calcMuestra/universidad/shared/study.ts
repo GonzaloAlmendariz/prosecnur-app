@@ -165,7 +165,7 @@ export function universityFacultyConfidence(N: number) {
 
 export function defaultTitleFor(mode: ActiveDesk) {
   if (mode === "acreditacion") return "Diseño muestral de acreditación";
-  if (mode === "opinion_universitaria") return "Muestra de aulas";
+  if (mode === "opinion_universitaria") return "Muestra de cursos-horario";
   return "Diseño muestral desde marco disponible";
 }
 

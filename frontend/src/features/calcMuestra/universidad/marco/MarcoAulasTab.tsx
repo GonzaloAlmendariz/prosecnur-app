@@ -15,7 +15,7 @@ import { embudoAulaDesdeFrame } from "../../dominio";
 import { fmtDec, fmtInt } from "../../sharedCore";
 import { frameAuditNumber } from "../shared/frame";
 import { normalizeUniversityAulasConfig } from "../shared/study";
-import { CifraFila, CifraMotor, FlujoVertical, TerminoChip } from "../ui";
+import { CifraFila, CifraMotor, FlujoVertical } from "../ui";
 import { embudoEtapas } from "./embudoEtapas";
 import {
   ClassroomPlotCard,
@@ -49,8 +49,7 @@ export function MarcoAulasTab({
   const eligibleTotal = sumRowsByKeys(classroomRows, WEIGHTED_KEYS);
   const averageEligible = classroomRows.length ? eligibleTotal / classroomRows.length : Number.NaN;
   const teacherCount = countDistinctByKeys(classroomRows, ["teacher", "docente", "profesor", "contacto"]);
-  // Embudo canónico del marco de aula (total → presencial → tipo → ≥N → docente
-  // → nivel → marco) cuando el frame lo trae del backend.
+  // Embudo medido del proyecto, con los pasos y el orden que entrega el backend.
   const embudoAula = embudoAulaDesdeFrame(frame);
 
   if (!classroomRowsRaw.length && !frameAuditNumber(frame, "classroom_n")) {
@@ -58,8 +57,8 @@ export function MarcoAulasTab({
       <div className="cmv2-marco-stack">
         <EmptyState
           icon={<Grid3X3 size={20} />}
-          title="El marco de aulas aparece al construirlo"
-          hint="Cuando la base esté leída, cada curso-horario se convierte en un aula seleccionable con sus elegibles, docente y tamaño."
+          title="El marco de cursos-horario aparece al construirlo"
+          hint="Cuando la base esté leída, cada curso-horario se convierte en una unidad seleccionable con sus elegibles, docente y tamaño."
         />
       </div>
     );
@@ -68,32 +67,26 @@ export function MarcoAulasTab({
   return (
     <div className="cmv2-marco-stack">
       <section className="cmv2-panel cmv2-marco-aulas-head">
-        <p className="cmv2-marco-intro">
-          La unidad que se sortea no es el estudiante sino el{" "}
-          <TerminoChip termino="curso-horario">curso-horario</TerminoChip>: cada aula agrupa a sus
-          matriculados y aporta un tamaño esperado. Aquí se audita cuántas aulas quedan seleccionables
-          y con qué capacidad.
-        </p>
         <CifraFila>
           <CifraMotor
-            label="Aulas válidas"
+            label="Cursos-horario válidos"
             value={classroomN > 0 ? fmtInt(classroomN) : "pendiente"}
             detalle={classroomRowsRaw.length > classroomRows.length
-              ? `de ${fmtInt(classroomRowsRaw.length)} detectadas`
+              ? `de ${fmtInt(classroomRowsRaw.length)} detectados`
               : "curso-horario seleccionable"}
             origen={classroomN > 0 ? "motor" : undefined}
             hero
           />
           <CifraMotor
-            label="Elegibles en aulas"
+            label="Elegibles en cursos-horario"
             value={eligibleTotal > 0 ? fmtInt(eligibleTotal) : "pendiente"}
             detalle="suma de matriculados elegibles"
             origen={eligibleTotal > 0 ? "motor" : undefined}
           />
           <CifraMotor
-            label="Promedio por aula"
+            label="Promedio por curso-horario"
             value={Number.isFinite(averageEligible) ? fmtDec(averageEligible) : "pendiente"}
-            detalle="elegibles esperados por aula"
+            detalle="elegibles esperados por curso-horario"
             origen={Number.isFinite(averageEligible) ? "motor" : undefined}
           />
           <CifraMotor
@@ -103,12 +96,12 @@ export function MarcoAulasTab({
             origen={teacherCount > 0 ? "motor" : undefined}
           />
         </CifraFila>
-        {embudoAula && embudoAula.length >= 3 && (
+        {embudoAula && embudoAula.length >= 2 && (
           <div className="cmv2-marco-embudo-aula cmv2-marco-flujo-stagger">
             <FlujoVertical
-              etapas={embudoEtapas(embudoAula, "aulas")}
-              orientacion="horizontal"
-              ariaLabel="Del total de curso-horario al marco depurado por las reglas de aula"
+              etapas={embudoEtapas(embudoAula, "cursos-horario")}
+              orientacion={embudoAula.length >= 5 ? "adaptive" : "horizontal"}
+              ariaLabel="Del total de cursos-horario al marco depurado por sus reglas de elegibilidad"
             />
           </div>
         )}
@@ -118,8 +111,8 @@ export function MarcoAulasTab({
 
       <div className="cmv2-dashboard-chart-grid">
         <ClassroomPlotCard
-          title="Tamaño de aulas"
-          subtitle={`elegibles por aula, con bandas ${(config.grupos_tamano ?? []).map((g) => g.id).join("-") || "G1-G4"} y mínimo por aula`}
+          title="Tamaño de los cursos-horario"
+          subtitle={`elegibles por curso-horario, con bandas ${(config.grupos_tamano ?? []).map((g) => g.id).join("-") || "G1-G4"} y mínimo operativo`}
           wide
         >
           <MarcoAulasHistograma frame={frame} workspace={workspace} minElegibles={minElegibles} />

@@ -5,6 +5,73 @@
  * los overrides en media queries siguen viviendo en calcMuestra.css (cargan después).
  */
 
+/* Cabecera contextual común a las 23 pestañas de la mesa universitaria.
+ * Es chrome local del workbench: confirma la selección del rail sin repetir
+ * navegación ni convertir cada pestaña en una página con hero propio. */
+.cmv2-local-context {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-width: 0;
+  height: var(--pulso-control-height-lg);
+  min-height: var(--pulso-control-height-lg);
+  padding: 0 4px 0 2px;
+  border: 0;
+  border-bottom: 1px solid var(--cmv2-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* La cabecera pertenece al chrome fijo del workbench; el desplazamiento ocurre
+ * únicamente dentro del panel de la pestaña activa. */
+.cmv2-university-desk {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cmv2-local-context::before {
+  content: none;
+}
+
+.cmv2-local-context-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--pulso-control-height-md);
+  height: var(--pulso-control-height-md);
+  border: 1px solid color-mix(in srgb, var(--cmv2-accent-border) 72%, var(--pulso-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--cmv2-accent-soft) 68%, var(--pulso-surface));
+  color: var(--cmv2-accent-fg);
+  box-shadow: none;
+}
+
+.cmv2-local-context-copy {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.cmv2-local-context h2 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+@media (max-width: 760px) {
+  .cmv2-local-context {
+    height: var(--pulso-control-height-lg);
+    min-height: var(--pulso-control-height-lg);
+    padding: 0 4px 0 2px;
+  }
+}
+
 .cmv2-classroom-lab-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.52fr) minmax(300px, 0.65fr);

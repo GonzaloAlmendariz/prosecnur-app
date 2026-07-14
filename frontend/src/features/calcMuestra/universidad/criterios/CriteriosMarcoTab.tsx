@@ -10,28 +10,32 @@
  * emite el motor a partir de la base y el mapeo; la selección canónica es solo
  * un preset seleccionable del backend, no lógica del frontend.
  */
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { GraduationCap, Loader2, RefreshCw, School, SlidersHorizontal } from "lucide-react";
 import {
   normalizeCriteriosCatalogo,
   type CalcMuestraAulasState,
   type CalcMuestraWorkspace,
   type CriterioSeleccion,
+  type CriteriosSeleccionMarco,
 } from "../../../../api/client";
+import { IconConfirm, IconSuccess, IconUndo } from "../../../../lib/icons";
 import {
-  computeImpactoMarco,
   minEligibleThreshold,
   seleccionInicial,
   setMinEligible,
   setRangosFacultad,
   setSeleccionVariable,
 } from "../../dominio";
-import { ELEGIBLES_POR_AULA_ID, rationaleParaCriterio } from "../../dominio";
+import { ELEGIBLES_POR_AULA_ID } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
 import { normalizeUniversityAulasConfig } from "../shared/study";
+import {
+  copiarVariableCriterio,
+  reconciliarBorradorCriterios,
+  type TipoBorradorCriterio,
+} from "./borradorCriterios";
 import { CriterioCard } from "./CriterioCard";
-import { CriterioPorQue } from "./CriterioPorQue";
-import { ImpactoStrip } from "./ImpactoStrip";
 import type { FacultadRef } from "./facultades";
 import "./criterios.css";
 
@@ -49,8 +53,6 @@ export function CriteriosMarcoTab({
   workspace,
   aulasState,
   facultades,
-  marcoAulas,
-  poblacionN,
   onWorkspace,
   onReconstruir,
   puedeReconstruir,
@@ -60,10 +62,6 @@ export function CriteriosMarcoTab({
   aulasState: CalcMuestraAulasState | null;
   /** Nombres de facultad del marco (para excepciones y rangos). */
   facultades: string[];
-  /** Marco de aulas del ÚLTIMO build (cifra dura del motor), o null. */
-  marcoAulas: number | null;
-  /** Población objetivo N del último build, o null. */
-  poblacionN: number | null;
   onWorkspace: (workspace: CalcMuestraWorkspace) => void;
   onReconstruir?: () => void;
   puedeReconstruir?: boolean;
@@ -78,6 +76,25 @@ export function CriteriosMarcoTab({
     () => config.criterios_seleccion ?? seleccionInicial(catalogo),
     [config.criterios_seleccion, catalogo],
   );
+  const [borrador, setBorrador] = useState<CriteriosSeleccionMarco>(() => seleccion);
+  const [pendientes, setPendientes] = useState<Set<string>>(() => new Set());
+  const pendientesRef = useRef(pendientes);
+  const tiposBorrador = useMemo(() => {
+    const tipos = new Map<string, TipoBorradorCriterio>();
+    for (const variable of catalogo.variables) tipos.set(variable.id, variable.kind);
+    tipos.set(ELEGIBLES_POR_AULA_ID, "minEligible");
+    return tipos;
+  }, [catalogo.variables]);
+
+  useEffect(() => {
+    pendientesRef.current = pendientes;
+  }, [pendientes]);
+
+  useEffect(() => {
+    setBorrador((prev) =>
+      reconciliarBorradorCriterios(seleccion, prev, pendientesRef.current, tiposBorrador),
+    );
+  }, [seleccion, tiposBorrador]);
 
   const facRefs: FacultadRef[] = useMemo(() => {
     const seen = new Set<string>();
@@ -93,65 +110,71 @@ export function CriteriosMarcoTab({
 
   const alumno = catalogo.variables.filter((v) => v.scope === "alumno");
   const aula = catalogo.variables.filter((v) => v.scope === "aula");
-  const hayNivel = aula.some((v) => v.kind === "range");
   const ready = catalogo.variables.length > 0;
 
-  const impacto = useMemo(
-    () =>
-      computeImpactoMarco(
-        catalogo,
-        seleccion,
-        {
-          population: aulasState?.frame?.population,
-          population_pool: aulasState?.frame?.population_pool,
-          aula_frame: aulasState?.frame?.aula_frame,
-        },
-        { poblacionN, marcoAulas },
-      ),
-    [
-      catalogo,
-      seleccion,
-      aulasState?.frame?.population,
-      aulasState?.frame?.population_pool,
-      aulasState?.frame?.aula_frame,
-      poblacionN,
-      marcoAulas,
-    ],
-  );
-
-  function patchSeleccion(next: typeof seleccion) {
+  function patchSeleccion(next: CriteriosSeleccionMarco) {
     onWorkspace({ ...workspace, aulas_config: { ...config, criterios_seleccion: next } });
   }
-  function patchVariable(id: string, sel: CriterioSeleccion) {
-    patchSeleccion(setSeleccionVariable(seleccion, id, sel));
-  }
-  function patchRango(facultad: string, rangos: Array<[number, number]>) {
-    patchSeleccion(setRangosFacultad(seleccion, facultad, rangos));
+
+  function marcarPendiente(id: string) {
+    setPendientes((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
   }
 
-  const umbralElegibles = minEligibleThreshold(seleccion, config.min_elegibles_aula);
+  function editarVariable(id: string, sel: CriterioSeleccion) {
+    setBorrador((prev) => setSeleccionVariable(prev, id, sel));
+    marcarPendiente(id);
+  }
+
+  function editarRango(variableId: string, facultad: string, rangos: Array<[number, number]>) {
+    setBorrador((prev) => setRangosFacultad(prev, facultad, rangos));
+    marcarPendiente(variableId);
+  }
+
+  function editarUmbralElegibles(value: number) {
+    setBorrador((prev) => setMinEligible(prev, value));
+    marcarPendiente(ELEGIBLES_POR_AULA_ID);
+  }
+
+  function confirmarVariable(id: string, tipo: TipoBorradorCriterio) {
+    patchSeleccion(copiarVariableCriterio(seleccion, borrador, id, tipo));
+    setPendientes((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }
+
+  function descartarVariable(id: string, tipo: TipoBorradorCriterio) {
+    setBorrador((prev) => copiarVariableCriterio(prev, seleccion, id, tipo));
+    setPendientes((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }
+
+  const umbralElegibles = minEligibleThreshold(borrador, config.min_elegibles_aula);
+  const totalPendientes = pendientes.size;
 
   return (
     <div className="cmv2-crit" data-audit-ready={ready ? "true" : "false"}>
       {onReconstruir && (
         <div className="cmv2-crit-apply" role="group" aria-label="Aplicar criterios al marco">
-          <div className="cmv2-crit-apply-copy">
-            <span>
-              La selección modifica la configuración del proyecto; el <strong>marco duro</strong> se recalcula al
-              reconstruirlo con el motor R. Los conteos por categoría son una estimación previa.
-            </span>
-            {(marcoAulas != null || poblacionN != null) && (
-              <span className="cmv2-crit-apply-figures">
-                Último marco: <strong>{marcoAulas != null ? fmtInt(marcoAulas) : "—"}</strong> aulas
-                {poblacionN != null ? <> · población <strong>{fmtInt(poblacionN)}</strong></> : null}
-              </span>
-            )}
-          </div>
+          <span className="cmv2-crit-draft-summary" data-active={totalPendientes > 0 ? "true" : "false"}>
+            {totalPendientes > 0
+              ? `${totalPendientes} ${totalPendientes === 1 ? "variable pendiente" : "variables pendientes"}`
+              : "Todos los criterios están confirmados"}
+          </span>
           <button
             type="button"
             className="cmv2-crit-apply-btn"
-            disabled={!puedeReconstruir || reconstruyendo}
+            disabled={!puedeReconstruir || reconstruyendo || totalPendientes > 0}
             onClick={onReconstruir}
+            title={totalPendientes > 0 ? "Confirma o descarta cada variable antes de reconstruir el marco" : undefined}
           >
             {reconstruyendo ? (
               <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
@@ -169,14 +192,12 @@ export function CriteriosMarcoTab({
           <strong>Aún no hay catálogo de categorías.</strong>
           <p>
             La suite enumera las categorías reales de tu base (dirigida por el mapeo de variables) y su conteo por
-            aula. Construye el marco desde tus fuentes para poblarla; luego marca qué categorías entran, con
+            curso-horario. Construye el marco desde tus fuentes para poblarla; luego marca qué categorías entran, con
             excepciones por facultad y su capa.
           </p>
         </div>
       ) : (
         <>
-          <ImpactoStrip impacto={impacto} />
-
           {alumno.length > 0 && (
             <section className="cmv2-crit-section" data-scope="alumno">
               <header className="cmv2-crit-scope-head" data-scope="alumno">
@@ -185,15 +206,7 @@ export function CriteriosMarcoTab({
                   <GraduationCap size={18} />
                 </span>
                 <div className="cmv2-crit-scope-copy">
-                  <h3>Criterios de estudiante <span className="cmv2-crit-scope-tag">población</span></h3>
-                  <p>
-                    Recortan la <strong>población N</strong> que se calcula: las categorías marcadas entran, las
-                    demás salen y bajan N y sus cuotas.
-                  </p>
-                  <p className="cmv2-crit-scope-note">
-                    El 1er ciclo entra al marco y cuenta en N; se excluye recién en el instrumento (pregunta
-                    filtro), no aquí — no es un criterio de elegibilidad de la población.
-                  </p>
+                  <h3>Criterios de estudiante</h3>
                 </div>
               </header>
               <div className="cmv2-crit-grid">
@@ -201,10 +214,13 @@ export function CriteriosMarcoTab({
                   <CriterioCard
                     key={variable.id}
                     variable={variable}
-                    seleccion={seleccion}
+                    seleccion={borrador}
                     facultades={facRefs}
-                    onSel={(sel) => patchVariable(variable.id, sel)}
-                    onRango={patchRango}
+                    onSel={(sel) => editarVariable(variable.id, sel)}
+                    onRango={(facultad, rangos) => editarRango(variable.id, facultad, rangos)}
+                    pendiente={pendientes.has(variable.id)}
+                    onConfirmar={() => confirmarVariable(variable.id, variable.kind)}
+                    onDescartar={() => descartarVariable(variable.id, variable.kind)}
                   />
                 ))}
               </div>
@@ -219,17 +235,7 @@ export function CriteriosMarcoTab({
                   <School size={18} />
                 </span>
                 <div className="cmv2-crit-scope-copy">
-                  <h3>Criterios de aula <span className="cmv2-crit-scope-tag">marco</span></h3>
-                  <p>
-                    Definen el <strong>marco de curso-horario</strong> que se muestrea. Modalidad, tipo de sesión y
-                    tipo de docente son constantes por aula (del catálogo), no por fila del estudiante.
-                  </p>
-                  {hayNivel && (
-                    <p className="cmv2-crit-scope-note">
-                      El <strong>nivel es del curso</strong> (su peldaño en la malla), no el ciclo del alumno. El
-                      nivel 0 son cursos transversales con alumnos de todos los ciclos — no es "primer ciclo".
-                    </p>
-                  )}
+                  <h3>Criterios de curso-horario</h3>
                 </div>
               </header>
               <div className="cmv2-crit-grid">
@@ -237,19 +243,43 @@ export function CriteriosMarcoTab({
                   <CriterioCard
                     key={variable.id}
                     variable={variable}
-                    seleccion={seleccion}
+                    seleccion={borrador}
                     facultades={facRefs}
-                    onSel={(sel) => patchVariable(variable.id, sel)}
-                    onRango={patchRango}
+                    onSel={(sel) => editarVariable(variable.id, sel)}
+                    onRango={(facultad, rangos) => editarRango(variable.id, facultad, rangos)}
+                    pendiente={pendientes.has(variable.id)}
+                    onConfirmar={() => confirmarVariable(variable.id, variable.kind)}
+                    onDescartar={() => descartarVariable(variable.id, variable.kind)}
                   />
                 ))}
 
-                <article className="cmv2-crit-card" data-scope="aula" data-kind="numeric">
+                <article
+                  className="cmv2-crit-card"
+                  data-scope="aula"
+                  data-kind="numeric"
+                  data-pending={pendientes.has(ELEGIBLES_POR_AULA_ID) ? "true" : "false"}
+                >
                   <header className="cmv2-crit-card-head">
                     <div className="cmv2-crit-card-title">
-                      <strong>Elegibles por aula</strong>
+                      <strong>Elegibles por curso-horario</strong>
+                      <span className="cmv2-crit-card-meta">
+                        <span className="cmv2-crit-col">regla final del marco</span>
+                      </span>
                     </div>
-                    <span className="cmv2-crit-head-count">≥ {fmtInt(umbralElegibles)}</span>
+                    <div className="cmv2-crit-card-state">
+                      <span className="cmv2-crit-head-count">≥ {fmtInt(umbralElegibles)}</span>
+                      <span
+                        className="cmv2-crit-state"
+                        data-state={pendientes.has(ELEGIBLES_POR_AULA_ID) ? "pending" : "confirmed"}
+                      >
+                        {pendientes.has(ELEGIBLES_POR_AULA_ID) ? (
+                          <span className="cmv2-crit-state-dot" aria-hidden="true" />
+                        ) : (
+                          <IconSuccess size={13} aria-hidden="true" />
+                        )}
+                        {pendientes.has(ELEGIBLES_POR_AULA_ID) ? "Cambios sin confirmar" : "Confirmado"}
+                      </span>
+                    </div>
                   </header>
                   <div className="cmv2-crit-card-body">
                     <label className="cmv2-crit-num-field">
@@ -258,17 +288,39 @@ export function CriteriosMarcoTab({
                         type="number"
                         min={1}
                         value={umbralElegibles}
-                        onChange={(e) => patchSeleccion(setMinEligible(seleccion, Math.max(1, Math.round(Number(e.target.value) || 1))))}
+                        onChange={(e) => editarUmbralElegibles(Math.max(1, Math.round(Number(e.target.value) || 1)))}
                       />
                     </label>
                     <span className="cmv2-crit-num-hint">
-                      Excluye del marco las aulas con menos elegibles que el umbral.
+                      Excluye del marco los cursos-horario con menos elegibles que el umbral.
                     </span>
                   </div>
-                  {(() => {
-                    const rationale = rationaleParaCriterio(ELEGIBLES_POR_AULA_ID, "aula");
-                    return rationale ? <CriterioPorQue rationale={rationale} /> : null;
-                  })()}
+                  {pendientes.has(ELEGIBLES_POR_AULA_ID) ? (
+                    <div className="cmv2-crit-confirm" role="status" aria-live="polite">
+                      <div className="cmv2-crit-confirm-copy">
+                        <strong>Revisa este umbral antes de incorporarlo.</strong>
+                        <span>Los demás criterios y el marco reconstruido no cambian todavía.</span>
+                      </div>
+                      <div className="cmv2-crit-confirm-actions">
+                        <button
+                          type="button"
+                          className="cmv2-crit-discard-btn"
+                          onClick={() => descartarVariable(ELEGIBLES_POR_AULA_ID, "minEligible")}
+                        >
+                          <IconUndo size={14} aria-hidden="true" />
+                          Descartar
+                        </button>
+                        <button
+                          type="button"
+                          className="cmv2-crit-confirm-btn"
+                          onClick={() => confirmarVariable(ELEGIBLES_POR_AULA_ID, "minEligible")}
+                        >
+                          <IconConfirm size={14} aria-hidden="true" />
+                          Confirmar umbral
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
                 </article>
               </div>
             </section>

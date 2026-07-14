@@ -45,9 +45,9 @@ export const PASOS: PasoMeta[] = [
   {
     id: "aulas",
     orden: 4,
-    etiqueta: "Aulas y selección",
+    etiqueta: "Cursos-horario y selección",
     llano:
-      "No encuestamos alumno por alumno: sorteamos salones completos. Aquí el laboratorio elige qué aulas entran, con qué probabilidad, y qué aulas de reserva usar si una falla — todo con reglas auditables, no a dedo.",
+      "No encuestamos alumno por alumno: sorteamos cursos-horario completos. Aquí se elige qué cursos-horario entran, con qué probabilidad y qué reemplazos usar si uno falla — todo con reglas auditables, no a dedo.",
     respaldoId: "aulas",
   },
   {
@@ -55,7 +55,7 @@ export const PASOS: PasoMeta[] = [
     orden: 5,
     etiqueta: "Salida",
     llano:
-      "El diseño se convierte en entregables defendibles: el reporte metodológico con la memoria de cálculo completa y el anexo con las aulas seleccionadas, sus probabilidades y sus reemplazos. Cualquier revisor puede auditar cada decisión.",
+      "El diseño se convierte en entregables defendibles: el reporte metodológico con la memoria de cálculo completa y el anexo con los cursos-horario seleccionados, sus probabilidades y sus reemplazos. Cualquier revisor puede auditar cada decisión.",
     respaldoId: "aplicacion",
   },
 ];

@@ -6,7 +6,6 @@
 import { CheckCircle2 } from "lucide-react";
 import { fmtDec, fmtInt } from "../../sharedCore";
 import type { ResultadoEscenario1, ResultadoEscenario2 } from "../../dominio";
-import { TerminoChip } from "../../universidad/ui";
 
 export function ComparadorEscenarios({
   e1,
@@ -32,7 +31,7 @@ export function ComparadorEscenarios({
         >
           {escenario === "e1" && <CheckCircle2 size={15} className="rec-escenario-check" aria-hidden="true" />}
           <h4>Escenario 1 · global</h4>
-          <p className="rec-escenario-cifra">{fmtInt(e1.nDiseno)} encuestas · {fmtInt(e1.aulasBase)} aulas</p>
+          <p className="rec-escenario-cifra">{fmtInt(e1.nDiseno)} encuestas · {fmtInt(e1.aulasBase)} cursos-horario</p>
           <p>
             Muestra única con afijación proporcional por {etiquetaUnidad} × sexo. Nivel de
             inferencia: total institución.
@@ -50,13 +49,13 @@ export function ComparadorEscenarios({
           <h4>Escenario 2 · por {etiquetaUnidad}</h4>
           <p className="rec-escenario-cifra">
             {e2
-              ? `${fmtInt(e2.totalDiseno ?? e2.totalOficial ?? e2.totalFormula)} encuestas${e2.aulasOficial != null ? ` · ${fmtInt(e2.aulasOficial)} aulas` : ""}`
+              ? `${fmtInt(e2.totalDiseno ?? e2.totalOficial ?? e2.totalFormula)} encuestas${e2.aulasOficial != null ? ` · ${fmtInt(e2.aulasOficial)} cursos-horario` : ""}`
               : "requiere configuración E2"}
           </p>
           <p>
             Cada {etiquetaUnidad} como estrato con muestra propia (parámetros escalonados por
             tamaño, p observada). Nivel de inferencia: por {etiquetaUnidad}; el total se reporta
-            con <TerminoChip termino="ponderación">ponderación (W)</TerminoChip>.
+            con ponderación (W).
           </p>
         </button>
       </div>

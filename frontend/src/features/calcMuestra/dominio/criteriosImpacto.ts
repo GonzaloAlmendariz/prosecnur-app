@@ -76,8 +76,8 @@ function rowBool(row: MonitoreoRow, col: string): boolean {
 }
 
 /** Unidad de conteo natural del criterio según su scope. */
-export function unidadCriterio(variable: Pick<CriterioVariable, "scope">): "estudiantes" | "aulas" {
-  return variable.scope === "alumno" ? "estudiantes" : "aulas";
+export function unidadCriterio(variable: Pick<CriterioVariable, "scope">): "estudiantes" | "cursos-horario" {
+  return variable.scope === "alumno" ? "estudiantes" : "cursos-horario";
 }
 
 /** Aulas del marco construido (incluidas) del último build. */

@@ -73,7 +73,7 @@ const FILAS_COMPARACION: FilaComparacion[] = [
   { id: "deff", label: "DEFF", valor: (c) => c.parametros?.deff, formato: (v) => fmtDec(v, 2) },
   { id: "sobremuestra", label: "Sobremuestra", valor: (c) => c.parametros?.sobremuestra, formato: fmtPct },
   { id: "waves", label: "Bolsas de reemplazo", valor: (c) => c.parametros?.waves, formato: fmtInt },
-  { id: "titulares", label: "Aulas titulares", valor: (c) => c.resumen?.titulares, formato: fmtInt },
+  { id: "titulares", label: "Cursos-horario titulares", valor: (c) => c.resumen?.titulares, formato: fmtInt },
   { id: "reservas", label: "Reservas", valor: (c) => c.resumen?.reservas, formato: fmtInt },
   { id: "esperados", label: "Elegibles esperados", valor: (c) => c.resumen?.esperados, formato: fmtInt },
   {

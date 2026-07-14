@@ -105,8 +105,8 @@ export function derivarSaludDiseno(piezas: SaludPiezas): SaludObservacion[] {
       id: "brecha-cobertura",
       nivel: "warn",
       titulo: `La selección cubre ${fmtPct(cobertura)} del objetivo de entrevistas`,
-      detalle: `Las aulas titulares aportan ${fmtInt(piezas.estudiantesEsperados)} estudiantes esperados frente a ${fmtInt(piezas.objetivoEntrevistas)} del cálculo.`,
-      accion: "Aumenta las aulas necesarias en Objetivo de muestra o revisa las cuotas.",
+      detalle: `Los cursos-horario titulares aportan ${fmtInt(piezas.estudiantesEsperados)} estudiantes esperados frente a ${fmtInt(piezas.objetivoEntrevistas)} del cálculo.`,
+      accion: "Aumenta los cursos-horario necesarios en Objetivo de muestra o revisa las cuotas.",
     });
   }
 
@@ -119,9 +119,9 @@ export function derivarSaludDiseno(piezas: SaludPiezas): SaludObservacion[] {
       observaciones.push({
         id: "facultades-sin-titular",
         nivel: "warn",
-        titulo: `${fmtInt(conAula)} de ${fmtInt(piezas.facultadesMarco.length)} facultades con al menos un aula titular; ${fmtInt(ausentes.length)} quedan sin presencia`,
-        detalle: `Sin aula titular: ${listaCorta(ausentes)}.`,
-        accion: "Revisa la selección en Aulas titulares o el reparto por facultad en Objetivo de muestra.",
+        titulo: `${fmtInt(conAula)} de ${fmtInt(piezas.facultadesMarco.length)} facultades con al menos un curso-horario titular; ${fmtInt(ausentes.length)} quedan sin presencia`,
+        detalle: `Sin curso-horario titular: ${listaCorta(ausentes)}.`,
+        accion: "Revisa la selección de cursos-horario titulares o el reparto por facultad en Objetivo de muestra.",
       });
     }
   }
@@ -153,7 +153,7 @@ export function derivarSaludDiseno(piezas: SaludPiezas): SaludObservacion[] {
       nivel: "warn",
       titulo: `${fmtInt(piezas.balanceFuera)} de ${fmtInt(piezas.balanceEvaluadas)} categorías fuera de su banda de tolerancia`,
       detalle: "Las brechas frente al marco exceden la tolerancia declarada en el objetivo de representatividad.",
-      accion: "Revisa el ajuste frente al marco en Aulas titulares.",
+      accion: "Revisa el ajuste frente al marco en Cursos-horario titulares.",
     });
   }
 
@@ -164,7 +164,7 @@ export function derivarSaludDiseno(piezas: SaludPiezas): SaludObservacion[] {
       id: "cv-pesos",
       nivel: critico ? "danger" : "warn",
       titulo: `CV de pesos ${fmtDec(piezas.cvPesos, 2)} sobre el umbral ${fmtDec(piezas.cvWarn, 2)}`,
-      detalle: "Pesos muy desiguales: unas pocas aulas dominan la estimación y el n efectivo cae por debajo del nominal.",
+      detalle: "Pesos muy desiguales: unos pocos cursos-horario dominan la estimación y el n efectivo cae por debajo del nominal.",
       accion: "Revisa la estabilidad de pesos en Simulación.",
     });
   }

@@ -14,6 +14,7 @@ import type {
   CalcMuestraWorkspace,
 } from "../../../../api/client";
 import { fmtInt, rowsFrom, safeNumber } from "../../sharedCore";
+import { sexSeriesCssColor, sexSeriesCssColorForKind, sexSeriesKind } from "../../sexoPalette";
 import {
   classroomRowNumber,
   classroomRowText,
@@ -114,6 +115,11 @@ export const UNIVERSITY_STUDENT_ROW_KEYS = [
 export function fmtStackPct(value: number | null | undefined) {
   if (value == null || Number.isNaN(value)) return "—";
   return `${Math.round(value * 100)}%`;
+}
+
+function fmtComparisonPct(value: number) {
+  if (!Number.isFinite(value)) return "—";
+  return `${(value * 100).toFixed(1).replace(".", ",")}%`;
 }
 
 export function safeShare(value: number, total: number) {
@@ -244,13 +250,8 @@ export function facultyOptionsForDashboard(
    ============================================================================ */
 
 export function sexLabelKind(label: string): "male" | "female" | null {
-  const key = normalizeUniversityLabel(label).toLowerCase().replace(/[^a-z0-9]+/g, "");
-  if (!key) return null;
-  if (["m", "male", "masculino", "h", "hombre", "hombres", "varon", "varones"].includes(key)) return "male";
-  if (key.includes("hombre") || key.includes("masculino") || key.includes("varon")) return "male";
-  if (["f", "female", "femenino", "mujer", "mujeres"].includes(key)) return "female";
-  if (key.includes("mujer") || key.includes("femenino") || key.includes("female")) return "female";
-  return null;
+  const kind = sexSeriesKind(label);
+  return kind === "male" || kind === "female" ? kind : null;
 }
 
 function sexColumnPriority(column: string) {
@@ -292,10 +293,7 @@ export function sortSexTableByMaleSurplus(table: CrossTable): CrossTable {
 }
 
 function sexSegmentColor(kind: ClassroomSexCompositionRow["segments"][number]["kind"], index: number) {
-  if (kind === "male") return "#7c3aed";
-  if (kind === "female") return "#0f766e";
-  if (kind === "missing") return "#cbd5e1";
-  return ["#2563eb", "#64748b", "#a855f7"][index % 3];
+  return sexSeriesCssColorForKind(kind, index);
 }
 
 /* ============================================================================
@@ -469,7 +467,7 @@ export function classroomSexCompositionRowsFromAulas(
       const program = rowCategoryLabel(row, ["program", "programa", "career", "carrera", "especialidad"], "program", workspace);
       const level = rowCategoryLabel(row, ["level", "nivel", "nivel_del_curso", "ciclo"], "level", workspace);
       const classroomId = classroomRowText(row, ["classroom_id", "course_schedule_id", "nrc", "codigo_aula"]);
-      const label = classroomRowText(row, ["course_name", "curso", "label", "classroom_label", "aula", "classroom_id"]) || `Aula ${index + 1}`;
+      const label = classroomRowText(row, ["course_name", "curso", "label", "classroom_label", "aula", "classroom_id"]) || `Curso-horario ${index + 1}`;
       const detail = [faculty, program, level ? `ciclo ${level}` : "", classroomId && classroomId !== label ? classroomId : ""].filter(Boolean).join(" · ");
       const segments = sortedSexColumns(Array.from(counts.keys()))
         .map((label) => {
@@ -898,6 +896,7 @@ export function ClassroomBarPlot({
   selectedLabel,
   onRowClick,
   growOnMount = false,
+  colorBySex = false,
 }: {
   rows: DescriptiveBarRow[];
   ariaLabel: string;
@@ -909,18 +908,35 @@ export function ClassroomBarPlot({
   onRowClick?: (row: DescriptiveBarRow) => void;
   /** Barras crecen (scaleX desde la izquierda) una sola vez al montar. */
   growOnMount?: boolean;
+  /** Usa la pareja canónica Hombre/Mujer, sin depender del orden de filas. */
+  colorBySex?: boolean;
 }) {
   const { visible, overflow } = capBarRows(rows.filter((row) => row.value > 0));
   if (!visible.length) return emptyState ? <DescriptiveEmptyNotice state={emptyState} compact /> : <p>Sin datos suficientes para graficar.</p>;
   const max = visible.reduce((peak, row) => Math.max(peak, row.value), 0) || 1;
+  const shareComparison = colorBySex && Number.isFinite(total) && Boolean(total);
   // El minHeight se adapta al número de filas: dos categorías (ej. sexo) ya no
   // se estiran para llenar 260px con barras flotando a media tarjeta.
-  const naturalHeight = 12 + (visible.length + (overflow ? 1 : 0)) * 25;
+  const naturalHeight = (shareComparison ? 36 : 12) + (visible.length + (overflow ? 1 : 0)) * 29;
   return (
-    <div className={`cmv2-native-bars${growOnMount ? " cmv2-marco-grow" : ""}`} role="img" aria-label={ariaLabel} style={{ minHeight: Math.min(height, naturalHeight) }}>
-      {visible.map((row) => {
+    <div
+      className={`cmv2-native-bars${growOnMount ? " cmv2-marco-grow" : ""}${shareComparison ? " is-share-comparison" : ""}`}
+      role="img"
+      aria-label={shareComparison ? `${ariaLabel}. Referencia visual en 50 por ciento.` : ariaLabel}
+      style={{ minHeight: Math.min(height, naturalHeight) }}
+    >
+      {shareComparison && (
+        <div className="cmv2-share-reference-key" aria-hidden="true">
+          <i />
+          <span>Referencia 50%</span>
+        </div>
+      )}
+      {visible.map((row, index) => {
         const selected = selectedLabel ? dashboardOptionKey(row.label) === dashboardOptionKey(selectedLabel) : false;
         const interactive = Boolean(onRowClick);
+        const share = safeShare(row.value, total ?? 0);
+        const width = shareComparison ? share * 100 : (row.value / max) * 100;
+        const widthPct = Math.max(3, Number(width.toFixed(4)));
         return (
           <div
             key={row.label}
@@ -938,10 +954,18 @@ export function ClassroomBarPlot({
           >
             {/* title = etiqueta completa: la celda trunca con ellipsis (CSS del marco). */}
             <span title={row.label}>{row.label}</span>
-            <div aria-hidden="true"><i style={{ width: `${Math.max(3, (row.value / max) * 100)}%` }} /></div>
+            <div className={shareComparison ? "has-share-reference" : undefined} aria-hidden="true">
+              <i
+                style={{
+                  width: `${widthPct}%`,
+                  background: colorBySex ? sexSeriesCssColor(row.label, index) : undefined,
+                }}
+              />
+              {shareComparison && <span className="cmv2-share-reference-line" />}
+            </div>
             <strong>
               {fmtInt(row.value)}{" "}
-              <small>{Number.isFinite(total) && total && row.value > 0 ? `${fmtStackPct(row.value / total)} · ${unit}` : unit}</small>
+              <small>{Number.isFinite(total) && total && row.value > 0 ? `${shareComparison ? fmtComparisonPct(row.value / total) : fmtStackPct(row.value / total)} · ${unit}` : unit}</small>
             </strong>
           </div>
         );
@@ -963,7 +987,7 @@ export function ClassroomBarPlot({
 export function ClassroomHistogramPlot({
   rows,
   ariaLabel,
-  unit = "aulas",
+  unit = "cursos-horario",
   emptyState,
 }: {
   rows: DescriptiveBarRow[];
@@ -1009,7 +1033,15 @@ export function ClassroomStackedCrossPlot({
 }) {
   const displayTable = sortByMaleSurplus ? sortSexTableByMaleSurplus(table) : table;
   const allRows = displayTable.rows;
-  const colors = ["#7c3aed", "#0f766e", "#2563eb", "#64748b"];
+  const colors = [
+    "var(--cmv2-accent)",
+    "var(--pulso-accent-cyan)",
+    "var(--pulso-accent-rose)",
+    "var(--pulso-text-muted)",
+  ];
+  const columnColor = (column: string, index: number) => (
+    sortByMaleSurplus ? sexSeriesCssColor(column, index) : colors[index % colors.length]
+  );
   if (!allRows.length || !displayTable.columns.length) return emptyState ? <DescriptiveEmptyNotice state={emptyState} compact /> : <p>Sin datos suficientes para graficar.</p>;
   let rows = allRows;
   let overflowRow: CrossTable["rows"][number] | null = null;
@@ -1028,18 +1060,30 @@ export function ClassroomStackedCrossPlot({
   }
   const renderRows = overflowRow ? [...rows, overflowRow] : rows;
   const plotHeight = Math.max(118, Math.min(height, 42 + renderRows.length * 29));
+  const shareComparison = sortByMaleSurplus;
   return (
-    <div className="cmv2-native-stacked" role="img" aria-label={ariaLabel} style={{ minHeight: plotHeight }}>
+    <div
+      className={`cmv2-native-stacked${shareComparison ? " is-share-comparison" : ""}`}
+      role="img"
+      aria-label={shareComparison ? `${ariaLabel}. Referencia visual en 50 por ciento.` : ariaLabel}
+      style={{ minHeight: plotHeight }}
+    >
       <div className="cmv2-native-legend">
         {displayTable.columns.map((column, index) => (
-          <span key={column}><i style={{ background: colors[index % colors.length] }} />{column}</span>
+          <span key={column}><i style={{ background: columnColor(column, index) }} />{column}</span>
         ))}
+        {shareComparison && (
+          <span className="cmv2-share-reference-key" aria-hidden="true">
+            <i />
+            Referencia 50%
+          </span>
+        )}
       </div>
       <div className="cmv2-native-stack-rows">
         {renderRows.map((row) => (
           <div key={row.label} className={`cmv2-native-stack-row${overflowRow && row === overflowRow ? " is-overflow" : ""}`}>
             <span title={row.label}>{row.label}</span>
-            <div className="cmv2-native-stack-track" aria-hidden="true">
+            <div className={`cmv2-native-stack-track${shareComparison ? " has-share-reference" : ""}`} aria-hidden="true">
               {displayTable.columns.map((column, index) => {
                 const value = row.values[column] ?? 0;
                 const denominator = Math.max(row.total, displayTable.columns.reduce((sum, key) => sum + (row.values[key] ?? 0), 0), 1);
@@ -1053,13 +1097,14 @@ export function ClassroomStackedCrossPlot({
                     title={`${column}: ${segmentLabel}`}
                     style={{
                       width: `${widthPct}%`,
-                      background: colors[index % colors.length],
+                      background: columnColor(column, index),
                     }}
                   >
                     {showSegmentLabels && <span>{segmentLabel}</span>}
                   </i>
                 ) : null;
               })}
+              {shareComparison && <span className="cmv2-share-reference-line" />}
             </div>
             <strong>{fmtInt(row.total)}</strong>
           </div>
@@ -1081,7 +1126,7 @@ export function ClassroomSexCompositionPlot({
   emptyState?: DescriptiveEmptyState;
 }) {
   const visible = rows.filter((row) => row.total > 0 && row.segments.length).slice(0, 12);
-  if (!visible.length) return emptyState ? <DescriptiveEmptyNotice state={emptyState} compact /> : <p>Sin composición por aula para graficar.</p>;
+  if (!visible.length) return emptyState ? <DescriptiveEmptyNotice state={emptyState} compact /> : <p>Sin composición por curso-horario para graficar.</p>;
   const totalExpected = visible.reduce((sum, row) => sum + row.total, 0);
   const mixedCount = visible.filter((row) => row.segments.filter((segment) => segment.kind !== "missing" && segment.value > 0).length > 1).length;
   const dominantShare = visible.reduce((sum, row) => {
@@ -1094,8 +1139,8 @@ export function ClassroomSexCompositionPlot({
   return (
     <div className="cmv2-classroom-sex-plot" role="img" aria-label={ariaLabel} style={{ minHeight: height }}>
       <div className="cmv2-classroom-sex-summary" aria-hidden="true">
-        <span><small>Aulas visibles</small><strong>{fmtInt(visible.length)}</strong></span>
-        <span><small>Aulas mixtas</small><strong>{fmtInt(mixedCount)}</strong></span>
+        <span><small>Cursos-horario visibles</small><strong>{fmtInt(visible.length)}</strong></span>
+        <span><small>Cursos-horario mixtos</small><strong>{fmtInt(mixedCount)}</strong></span>
         <span><small>Elegibles leídos</small><strong>{fmtInt(totalExpected)}</strong></span>
         <span><small>Dominancia media</small><strong>{fmtStackPct(dominantShare)}</strong></span>
       </div>
@@ -1109,7 +1154,7 @@ export function ClassroomSexCompositionPlot({
           <div key={row.id} className="cmv2-classroom-sex-row">
             <div className="cmv2-classroom-sex-label">
               <strong>{row.label}</strong>
-              <span>{row.detail || "aula del marco"}</span>
+              <span>{row.detail || "curso-horario del marco"}</span>
             </div>
             <div className="cmv2-classroom-sex-track" aria-hidden="true">
               {row.segments.map((segment, index) => {

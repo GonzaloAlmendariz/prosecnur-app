@@ -60,7 +60,7 @@ function etapasEscenario(comp: CalcMuestraComponente): FlujoEtapa[] {
     },
     {
       id: "aulas",
-      label: "aulas estimadas",
+      label: "cursos-horario estimados",
       valor: r?.aulas_total ? fmtInt(r.aulas_total) : undefined,
       detalle: "titulares + reemplazos",
       estado: r?.aulas_total ? "ready" : "pending",
@@ -258,10 +258,7 @@ export function CalculoPropuestasTab({
     <div className="cmv2-calc-stack">
       <section className="cmv2-panel cmv2-calc-escenarios-panel">
         <div className="cmv2-panel-head">
-          <div>
-            <span className="cmv2-eyebrow">Propuestas de muestra</span>
-            <strong>Dos escenarios sobre el mismo marco</strong>
-          </div>
+          <strong>Propuestas de muestra</strong>
           <div className="cmv2-panel-head-actions">
             <button type="button" className="cmv2-primary" onClick={onCalcular} disabled={!marcoReady || calculando}>
               {calculando ? <Loader2 size={14} className="pulso-spin" /> : <Calculator size={14} />}
@@ -277,7 +274,7 @@ export function CalculoPropuestasTab({
             icon={<Calculator size={20} />}
             title={marcoReady ? "Todavía no hay cálculo de muestra" : "Primero falta validar el marco"}
             hint={marcoReady
-              ? "Al ejecutar Calcular muestra, cada escenario mostrará su flujo de n fórmula a aulas, con cifras validadas de la calculadora."
+              ? "Al ejecutar Calcular muestra, cada escenario mostrará su flujo de n fórmula a cursos-horario, con cifras validadas de la calculadora."
               : "Carga y valida la base institucional para que el cálculo no dependa de números escritos a mano."}
           />
         ) : (
@@ -306,10 +303,7 @@ export function CalculoPropuestasTab({
       {cuotasRows.length > 0 && (
         <section className="cmv2-panel cmv2-calc-cuotas-panel">
           <div className="cmv2-panel-head">
-            <div>
-              <span className="cmv2-eyebrow">Cuotas por facultad</span>
-              <strong>Cómo se reparte el n final entre facultades</strong>
-            </div>
+            <strong>Cuotas por facultad</strong>
             <span className="cmv2-pill-soft">{fmtInt(totalCuotas)} entrevistas asignadas</span>
           </div>
           {cuotasComp && <CadenaAfijacion comp={cuotasComp} rows={cuotasRows} />}
@@ -331,7 +325,7 @@ export function CalculoPropuestasTab({
                   <th>Mujeres</th>
                   <th>Hombres</th>
                   <th>Cuota (n_h)</th>
-                  {aulasPorEstrato.length > 0 && <th>Aulas</th>}
+                  {aulasPorEstrato.length > 0 && <th>Cursos-horario</th>}
                 </tr>
               </thead>
               <tbody>

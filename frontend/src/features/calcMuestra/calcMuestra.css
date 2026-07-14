@@ -8,6 +8,11 @@
   --pulso-primary-focus: color-mix(in srgb, var(--pulso-module-sample) 15%, transparent);
   --pulso-primary-ring: color-mix(in srgb, var(--pulso-module-sample) 12%, transparent);
   --cmv2-accent: var(--pulso-module-sample);
+  /* Series categóricas del módulo. Verde queda reservado para éxito; sexo se
+     lee siempre con el mismo par, también cuando cambia el orden de datos. */
+  --cmv2-sex-hombre: var(--pulso-module-dashboard);
+  --cmv2-sex-mujer: var(--pulso-accent-rose);
+  --cmv2-sex-sin-dato: var(--pulso-border-strong);
   --cmv2-accent-soft: color-mix(in srgb, var(--cmv2-accent) 6%, #fff 94%);
   --cmv2-accent-border: color-mix(in srgb, var(--cmv2-accent) 16%, var(--pulso-border) 84%);
   --cmv2-accent-fg: color-mix(in srgb, var(--cmv2-accent) 46%, var(--pulso-primary) 54%);
@@ -76,7 +81,7 @@
   width: 100%;
   display: grid;
   justify-items: center;
-  gap: 0;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -86,7 +91,7 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  width: min(100%, 1560px);
+  width: min(100%, 1720px);
   min-width: 0;
   min-height: 0;
   padding: 0 6px;
@@ -142,14 +147,14 @@
 .cmv2-toolbar-copy strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.15;
 }
 
 .cmv2-toolbar-copy small {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: 500;
   line-height: 1.25;
 }
 
@@ -162,7 +167,7 @@
   max-width: 100%;
   min-width: 0;
   overflow-x: auto;
-  padding: 3px;
+  padding: 2px;
   border: 1px solid color-mix(in srgb, var(--cmv2-accent-border) 64%, var(--pulso-border));
   border-radius: var(--pulso-radius-card);
   background:
@@ -226,7 +231,7 @@
   background: color-mix(in srgb, var(--pulso-surface-2) 88%, #fff 12%);
   color: var(--pulso-text-muted);
   font-size: 10px;
-  font-weight: 840;
+  font-weight: 600;
   transition:
     background-color var(--motion-dur-fast) var(--motion-ease-out),
     border-color var(--motion-dur-fast) var(--motion-ease-out),
@@ -251,14 +256,14 @@
 .cmv2-section-pill-copy strong {
   max-width: none;
   font-size: 11.5px;
-  font-weight: 850;
+  font-weight: 700;
   line-height: 1.05;
 }
 
 .cmv2-section-pill-copy small {
   max-width: 122px;
   font-size: 9.5px;
-  font-weight: 760;
+  font-weight: 500;
   line-height: 1.05;
   opacity: 0.72;
 }
@@ -343,7 +348,7 @@
 }
 
 .cmv2-toolbar-actions.is-status-only {
-  min-height: 34px;
+  min-height: var(--pulso-control-height-lg);
 }
 
 /* Indicador de autosave del desk universitario (patrón de Carga): vive junto
@@ -367,7 +372,7 @@
 .cmv2-command-trip {
   max-width: min(100%, 240px);
   min-width: 0;
-  min-height: 34px;
+  min-height: var(--pulso-control-height-lg);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -387,8 +392,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: var(--pulso-control-height-md);
+  height: var(--pulso-control-height-md);
   border: 1px solid color-mix(in srgb, var(--cmv2-accent) 28%, var(--pulso-border));
   border-radius: var(--pulso-radius-chip);
   background: color-mix(in srgb, var(--cmv2-accent-soft) 72%, #fff);
@@ -413,7 +418,7 @@
 .cmv2-command-trip-main small {
   color: color-mix(in srgb, var(--cmv2-accent) 74%, var(--pulso-text-soft));
   font-size: 9px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0;
   line-height: 1;
   text-transform: uppercase;
@@ -422,7 +427,7 @@
 .cmv2-command-trip-main strong {
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.1;
 }
 
@@ -440,7 +445,7 @@
   gap: 5px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 600;
   line-height: 1;
   white-space: nowrap;
 }
@@ -456,7 +461,7 @@
 .cmv2-commandbar .cmv2-ghost,
 .cmv2-commandbar .cmv2-primary,
 .cmv2-commandbar .cmv2-link-button {
-  min-height: 34px;
+  min-height: var(--pulso-control-height-lg);
   padding-inline: 11px;
   border-radius: var(--pulso-radius);
   font-size: 12.5px;
@@ -477,7 +482,7 @@
 
 .cmv2-picker-status {
   justify-self: end;
-  min-height: 32px;
+  min-height: var(--pulso-control-height-lg);
   padding: 0 10px;
   border: 1px solid color-mix(in srgb, var(--cmv2-accent-border) 62%, var(--pulso-border));
   border-radius: var(--pulso-radius-chip);
@@ -505,7 +510,7 @@
 .cmv2-command-current span {
   color: color-mix(in srgb, var(--cmv2-accent) 76%, var(--pulso-text-soft));
   font-size: 10px;
-  font-weight: 880;
+  font-weight: 600;
   line-height: 1.1;
   text-transform: uppercase;
 }
@@ -515,7 +520,7 @@
 .cmv2-command-current small {
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 830;
+  font-weight: 600;
   line-height: 1.1;
 }
 
@@ -4351,26 +4356,21 @@
 }
 
 .cmv2-commandbar {
-  padding: 5px 7px;
-  border: 1px solid color-mix(in srgb, var(--pulso-material-border) 78%, var(--cmv2-accent-border) 22%);
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.86), transparent 68%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(246, 248, 252, 0.66)),
-    color-mix(in srgb, var(--pulso-surface) 78%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 12px 28px rgba(15, 23, 42, 0.055);
-  backdrop-filter: saturate(1.16) blur(18px);
-  -webkit-backdrop-filter: saturate(1.16) blur(18px);
+  padding: 0 6px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .cmv2-section-rail.pulso-phase-pillbar {
-  padding: 4px;
+  padding: 2px;
   border-color: color-mix(in srgb, var(--cmv2-accent-border) 42%, var(--pulso-border));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    0 10px 28px color-mix(in srgb, var(--cmv2-accent) 11%, transparent);
+    0 2px 8px color-mix(in srgb, var(--cmv2-accent) 8%, transparent);
 }
 
 .cmv2-section-pill.pulso-phase-pill {
@@ -4918,7 +4918,7 @@
 
   .cmv2-commandbar {
     min-height: 0;
-    padding: 5px 6px;
+    padding: 0 6px;
   }
 
   
@@ -4928,7 +4928,7 @@
   }
 
   .cmv2-section-rail.pulso-phase-pillbar {
-    --pill-h: 34px;
+    --pill-h: var(--pulso-control-height-lg);
   }
 }
 
@@ -5453,6 +5453,8 @@
   /* El rail no debe recortar el tooltip (que sale hacia el canvas). */
   .cmv2-section-sidebar,
   .cmv2-section-sidebar-shell,
+  .cmv2-section-sidebar:hover .cmv2-section-sidebar-shell,
+  .cmv2-section-sidebar:focus-within .cmv2-section-sidebar-shell,
   .cmv2-section-local-tabs {
     overflow: visible;
   }

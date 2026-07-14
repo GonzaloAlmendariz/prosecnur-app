@@ -143,8 +143,8 @@ export function datosDelProyecto(
     embudoAulaDesdeFrame(frame) ??
     (aulasTotales && marcoAulas
       ? [
-          { id: "total", label: "Curso-horario de la base", conteo: aulasTotales, porQue: "Aulas únicas detectadas en la base del proyecto." },
-          { id: "marco", label: "Marco muestral", conteo: marcoAulas, porQue: "Aulas que cumplen los criterios de inclusión configurados." },
+          { id: "total", label: "Cursos-horario de la base", conteo: aulasTotales, porQue: "Cursos-horario únicos detectados en la base del proyecto." },
+          { id: "marco", label: "Marco muestral", conteo: marcoAulas, porQue: "Cursos-horario que cumplen los criterios de inclusión configurados." },
         ]
       : null);
 

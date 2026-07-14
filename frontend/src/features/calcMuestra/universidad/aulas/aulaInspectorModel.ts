@@ -228,10 +228,11 @@ export function buildAulaInspectorModel({
       const titularId = classroomRowText(titularRow, ["classroom_id"]);
       titular = {
         id: titularId,
-        code:
+        code: (
           classroomRowText(titularRow, ["operational_code"]) ||
           classroomRowText(row, ["titular_operational_code"]) ||
-          DASH,
+          DASH
+        ).replace(/^AULA\b/i, "CH"),
         label: textOrDash(titularRow, ["course_name", "label", "classroom_id"]),
       };
       cadena = reservesForTitular(
@@ -241,7 +242,7 @@ export function buildAulaInspectorModel({
       ).map((reserve) => eslabonFrom(reserve, id));
     } else {
       const titularCode = classroomRowText(row, ["titular_operational_code"]);
-      titular = titularCode ? { id: "", code: titularCode, label: DASH } : null;
+      titular = titularCode ? { id: "", code: titularCode.replace(/^AULA\b/i, "CH"), label: DASH } : null;
     }
   }
 
@@ -250,9 +251,10 @@ export function buildAulaInspectorModel({
 
   return {
     id: id || DASH,
-    code:
+    code: (
       classroomRowText(row, ["operational_code", "replacement_chain_code"]) ||
-      (rol === "titular" ? "AULA" : DASH),
+      (rol === "titular" ? "CH" : DASH)
+    ).replace(/^AULA\b/i, "CH"),
     courseName: textOrDash(row, ["course_name", "label", "classroom_id"]),
     faculty: textOrDash(row, ["faculty", "stratum"]),
     program: textOrDash(row, ["program"]),

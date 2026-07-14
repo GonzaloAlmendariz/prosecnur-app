@@ -1,6 +1,6 @@
 /**
  * Smoke SSR de la pestaña Consistencia (F4): cubre la rama con catálogo
- * (gauge de match + dos conjuntos + hallazgos con acción sugerida), la
+ * (gauge de match + reconciliación + hallazgos con acción sugerida), la
  * auto-simplificación con una sola base y los alias de pestañas retiradas.
  */
 import { describe, expect, it } from "vitest";
@@ -51,17 +51,21 @@ function aulasStateWithRelation(): CalcMuestraAulasState {
 }
 
 describe("MarcoConsistenciaTab", () => {
-  it("con catálogo muestra gauge con umbral, dos conjuntos y acción sugerida", () => {
+  it("con catálogo muestra llave compuesta, reconciliación y acción sugerida", () => {
     const workspace = { ...baseWorkspace, source_mode: "dos_bases" } as CalcMuestraWorkspace;
     const html = renderToStaticMarkup(
       <MarcoConsistenciaTab workspace={workspace} aulasState={aulasStateWithRelation()} />,
     );
     expect(html).toContain("cmv2-marco-gauge");
     expect(html).toContain('data-tone="danger"');
-    expect(html).toContain("cmv2-marco-venn");
-    expect(html).toContain("Emparejadas · 62");
-    expect(html).toContain("Solo base principal · 38");
+    expect(html).toContain("Llave de unión");
+    expect(html).toContain("Curso + horario");
+    expect(html).toContain("cmv2-marco-reconciliation");
+    expect(html).toContain("Emparejados</small><strong>62");
+    expect(html).toContain("Solo base principal</small><strong>38");
+    expect(html).toContain("Solo 62% de los cursos-horario empatan");
     expect(html).toContain("mayúsculas, tildes o códigos");
+    expect(html).not.toContain("cmv2-marco-venn");
     expect(html).not.toContain("no hay catálogo que validar");
   });
 
@@ -73,7 +77,25 @@ describe("MarcoConsistenciaTab", () => {
     );
     expect(html).toContain("Una sola base: no hay catálogo que validar");
     expect(html).not.toContain("cmv2-marco-gauge");
-    expect(html).not.toContain("cmv2-marco-venn");
+    expect(html).not.toContain("cmv2-marco-reconciliation");
+  });
+
+  it("explica una coincidencia sólida con revisión pendiente sin duplicar el banner del motor", () => {
+    const workspace = { ...baseWorkspace, source_mode: "dos_bases" } as CalcMuestraWorkspace;
+    const state = aulasStateWithRelation();
+    state.frame!.relation_audit = {
+      ...state.frame!.relation_audit,
+      match_rate_classrooms: 0.999,
+      matched_classrooms: 99,
+      unmatched_base_classrooms: 1,
+    };
+    state.frame!.warnings = ["La validacion entre base principal y catalogo curso-horario requiere revision."];
+    const html = renderToStaticMarkup(
+      <MarcoConsistenciaTab workspace={workspace} aulasState={state} />,
+    );
+    expect(html).toContain("Coincidencia sólida; hay calidad del catálogo por revisar");
+    expect(html).not.toContain("cmv2-frame-warning-list");
+    expect(html).not.toContain("requiere revision");
   });
 
   it("resuelve pestañas retiradas hacia marco-poblacion", () => {

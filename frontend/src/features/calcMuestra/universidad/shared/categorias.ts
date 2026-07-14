@@ -126,7 +126,7 @@ export function sourceBindingPatchForSheet(binding: CalcMuestraWorkspaceSourceBi
 export function categoryCountBaseLabel(unitLabel: string) {
   const normalized = String(unitLabel ?? "").trim().toLowerCase();
   if (normalized.includes("elegible")) return "elegibles";
-  if (normalized.includes("aula")) return "aulas";
+  if (normalized.includes("aula") || normalized.includes("curso-horario")) return "cursos-horario";
   if (normalized.includes("registro")) return "registros";
   return "filas con valor";
 }
@@ -134,7 +134,7 @@ export function categoryCountBaseLabel(unitLabel: string) {
 export function categoryCountSummaryLabel(unitLabel: string) {
   const normalized = categoryCountBaseLabel(unitLabel);
   if (normalized === "elegibles") return "Elegibles con valor";
-  if (normalized === "aulas") return "Aulas con valor";
+  if (normalized === "cursos-horario") return "Cursos-horario con valor";
   if (normalized === "registros") return "Registros con valor";
   return "Filas con valor";
 }
@@ -420,10 +420,10 @@ export function universityCategoryKeysForMapping(row: CalcMuestraWorkspaceVariab
 export function categoryUnitLabel(role: string, fallback?: string) {
   const cleaned = String(fallback ?? "").trim().toLowerCase();
   if (cleaned.includes("elegible")) return "elegibles";
-  if (cleaned.includes("aula")) return "aulas";
+  if (cleaned.includes("aula") || cleaned.includes("curso-horario")) return "cursos-horario";
   if (cleaned.includes("fila")) return "filas";
   if (cleaned.includes("registro")) return "registros";
-  if (UNIVERSITY_CLASSROOM_CATEGORY_ROLES.has(role)) return "aulas";
+  if (UNIVERSITY_CLASSROOM_CATEGORY_ROLES.has(role)) return "cursos-horario";
   return "filas";
 }
 
@@ -458,7 +458,7 @@ export function observedClassroomSexCategoryCounts(rows: Array<Record<string, un
     });
   });
   return Array.from(counts.entries())
-    .map(([raw, count]) => ({ raw, count, observedColumn: "Sexo estimado en aulas" }))
+    .map(([raw, count]) => ({ raw, count, observedColumn: "Sexo estimado en cursos-horario" }))
     .sort((a, b) => b.count - a.count || a.raw.localeCompare(b.raw, "es"));
 }
 
@@ -524,7 +524,7 @@ export function universityObservedCategoryRows(
         raw: item.raw,
         label: saved?.label ?? suggestUniversityCategoryLabel(mapping.role, item.raw),
         count: item.count,
-        unitLabel: mapping.role === "sex" && useClassroomRows ? "elegibles" : useClassroomRows ? "aulas" : categoryUnitLabel(mapping.role),
+        unitLabel: mapping.role === "sex" && useClassroomRows ? "elegibles" : useClassroomRows ? "cursos-horario" : categoryUnitLabel(mapping.role),
         saved: Boolean(saved),
       };
     });

@@ -55,14 +55,14 @@ export function SalidasMonitoreoTab({ model }: { model: ClassroomLabModel }) {
     {
       id: "codigos",
       label: "Códigos operativos y QR",
-      valor: selectionReady ? `${fmtInt(m1Rows.length + reservasTotal)} aulas` : undefined,
+      valor: selectionReady ? `${fmtInt(m1Rows.length + reservasTotal)} cursos-horario` : undefined,
       detalle: "una ficha por curso-horario",
       estado: selectionReady ? "ready" : "pending",
     },
     {
       id: "agenda",
       label: "Agenda de campo",
-      detalle: "contacto, fecha y aplicador por aula",
+      detalle: "contacto, fecha y aplicador por curso-horario",
       estado: selectionReady ? "working" : "pending",
     },
     {
@@ -77,10 +77,7 @@ export function SalidasMonitoreoTab({ model }: { model: ClassroomLabModel }) {
     <div className="cmv2-sal-stack">
       <section className="cmv2-panel cmv2-sal-panel" aria-label="Qué recibe Monitoreo">
         <div className="cmv2-panel-head">
-          <div>
-            <span className="cmv2-eyebrow">Pase a Monitoreo</span>
-            <strong>Qué recibe Monitoreo y qué hace con ello</strong>
-          </div>
+          <strong>Pase a Monitoreo</strong>
           <span className="cmv2-pill-soft">Monitoreo no rediseña la muestra</span>
         </div>
         <FlujoVertical
@@ -89,19 +86,19 @@ export function SalidasMonitoreoTab({ model }: { model: ClassroomLabModel }) {
           ariaLabel="Handoff: de titulares M1 al seguimiento en Monitoreo"
         />
         <p className="cmv2-sal-nota">
-          Monitoreo recibe la agenda cerrada (titulares, reservas, códigos y pesos). Si un aula titular cae,
+          Monitoreo recibe la agenda cerrada (titulares, reservas, códigos y pesos). Si un curso-horario titular cae,
           activa el reemplazo equivalente que dejó este diseño y registra el motivo: el marco y las
           probabilidades no se tocan durante el campo.
         </p>
         <CifraFila>
           <CifraMotor
-            label="Aulas titulares"
+            label="Cursos-horario titulares"
             value={m1Rows.length ? fmtInt(m1Rows.length) : "pendiente"}
             origen={selectionReady ? "motor" : undefined}
             hero
           />
           <CifraMotor
-            label="Aulas de reemplazo"
+            label="Cursos-horario de reemplazo"
             value={reservasTotal ? fmtInt(reservasTotal) : "pendiente"}
             detalle={extraReserveRows.length ? `incluye ${fmtInt(extraReserveRows.length)} en bolsa extra` : undefined}
             origen={reservasTotal ? "motor" : undefined}
@@ -121,12 +118,12 @@ export function SalidasMonitoreoTab({ model }: { model: ClassroomLabModel }) {
         compact
         showEngineOutputs
         title={selectionReady ? "Plan listo para fichas QR" : "Completa la selección antes de emitir fichas"}
-        summary="Esta salida entrega la agenda de aulas del estudio: cada fila conserva aula, curso, horario, selección y trazabilidad para que Monitoreo prepare fichas QR/PDF y lea el avance."
+        summary="Esta salida entrega la agenda de cursos-horario del estudio: cada fila conserva curso, horario, salón, selección y trazabilidad para que Monitoreo prepare fichas QR/PDF y lea el avance."
         metrics={[
-          { label: "Agenda", value: selectionReady ? `${fmtInt(m1Rows.length + reservasTotal)} aulas` : "pendiente", tone: selectionReady ? "ready" : "warning" },
+          { label: "Agenda", value: selectionReady ? `${fmtInt(m1Rows.length + reservasTotal)} cursos-horario` : "pendiente", tone: selectionReady ? "ready" : "warning" },
           { label: "Titulares", value: m1Rows.length ? fmtInt(m1Rows.length) : "pendiente", tone: m1Rows.length ? "ready" : "warning" },
           { label: "Reservas", value: reservasTotal ? fmtInt(reservasTotal) : "sin reservas", tone: reservasTotal ? "ready" : "neutral" },
-          { label: "Siguiente", value: selectionReady ? "Fichas QR" : "seleccionar aulas", tone: selectionReady ? "current" : "warning" },
+          { label: "Siguiente", value: selectionReady ? "Fichas QR" : "seleccionar cursos-horario", tone: selectionReady ? "current" : "warning" },
         ]}
         secondaryAction={{ to: "/monitoreo", label: "Ver monitoreo" }}
         action={{ to: "/recopiladores", label: "Preparar fichas QR", disabled: !selectionReady }}
@@ -137,22 +134,15 @@ export function SalidasMonitoreoTab({ model }: { model: ClassroomLabModel }) {
       ) : (
         <ClassroomEmptyState
           icon={Grid3X3}
-          title="Plan de aulas pendiente"
-          detail="Genera selección en Aulas para que Monitoreo reciba titulares, reemplazos y trazabilidad metodológica."
+          title="Plan de cursos-horario pendiente"
+          detail="Genera la selección para que Monitoreo reciba titulares, reemplazos y trazabilidad metodológica."
         />
       )}
 
       <section className="cmv2-panel cmv2-sal-panel" aria-label="Reservas listas para campo">
         <div className="cmv2-panel-head">
-          <div>
-            <span className="cmv2-eyebrow">Reservas listas para campo</span>
-            <strong>
-              {replacementReady
-                ? "Rutas Rn.1, Rn.2… que Monitoreo puede activar"
-                : "Rutas de reemplazo pendientes de simulación"}
-            </strong>
-          </div>
-          <span className="cmv2-pill-soft">solo lectura · se gestiona en Aulas</span>
+          <strong>Reservas listas para campo</strong>
+          <span className="cmv2-pill-soft">solo lectura · se gestiona en Selección</span>
         </div>
         {reserveDepthRows.length > 0 && (() => {
           // Celdas más ajustadas primero; las holgadas se resumen en un conteo.
@@ -193,7 +183,7 @@ export function SalidasMonitoreoTab({ model }: { model: ClassroomLabModel }) {
           <ClassroomEmptyState
             icon={RefreshCw}
             title="Reemplazos pendientes"
-            detail="Genera selección y simula reemplazos en Aulas para ver qué aula conviene activar si una titular cae."
+            detail="Genera la selección y simula reemplazos para ver qué curso-horario conviene activar si uno titular cae."
           />
         )}
       </section>

@@ -86,7 +86,7 @@ function whatIsForRole(role: string): ReactNode {
           Es el Excel institucional de matrícula: una fila por estudiante en cada curso y
           horario. Sin él no existe el{" "}
           <TerminoChip termino="marco muestral">marco muestral</TerminoChip> y ningún paso
-          posterior — marco, cálculo, aulas — puede construirse.
+          posterior — marco, cálculo, cursos-horario — puede construirse.
         </>
       );
     case "estudiantes":
@@ -101,7 +101,7 @@ function whatIsForRole(role: string): ReactNode {
     case "catalogo_curso_horario":
       return (
         <>
-          Es el catálogo de cursos y horarios: curso, horario, aula, docente y cupos. Si
+          Es el catálogo de cursos y horarios: curso, horario, salón, docente y cupos. Si
           falta y la base principal ya trae curso y horario por estudiante, la lectura se
           completa igual.
         </>
@@ -109,14 +109,14 @@ function whatIsForRole(role: string): ReactNode {
     case "muestra_previa":
       return (
         <>
-          Es la muestra ya seleccionada: aulas titulares y reemplazos tal como fueron
+          Es la muestra ya seleccionada: cursos-horario titulares y reemplazos tal como fueron
           sorteados. Si falta, no hay selección que leer ni conservar.
         </>
       );
     case "agenda":
       return (
         <>
-          Es la agenda operativa de las aulas: docente, fecha, responsable y estado. Si
+          Es la agenda operativa de los cursos-horario: docente, fecha, responsable y estado. Si
           falta, la lectura no puede reconstruir el plan de campo de la selección.
         </>
       );
@@ -388,11 +388,6 @@ export function DefBasesTab({
 
   return (
     <section className="cmv2-panel cmv2-university-sources">
-      <p className="cmv2-defi-intro">
-        Con estos archivos se construye el{" "}
-        <TerminoChip termino="marco muestral">marco muestral</TerminoChip>: la lista completa de
-        aulas y estudiantes de donde el sorteo puede elegir. Declara qué insumo tienes y de qué hoja se lee.
-      </p>
       <div className="cmv2-source-mode-grid cmv2-uni-stagger" role="radiogroup" aria-label="Tipo de insumo institucional">
         {UNIVERSITY_SOURCE_MODE_OPTIONS.map((option) => (
           <div key={option.id} className="cmv2-defi-mode">

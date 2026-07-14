@@ -1,11 +1,12 @@
 /**
  * Barras apiladas por unidad para la Distribución (población / cuotas): cada
  * fila es una barra proporcional al total de la unidad, partida en dos
- * segmentos de sexo (A oscuro · B claro) que suman el total. Más rica que la
+ * segmentos de sexo (color semántico por etiqueta) que suman el total. Más rica que la
  * barra genérica del recorrido: los dos segmentos son visibles y proporcionales
  * de verdad, con su desglose numérico a la derecha.
  */
 import type { ReactNode } from "react";
+import { sexSeriesCssColor, sexSeriesDisplayLabel } from "../../sexoPalette";
 import { fmtInt } from "../../sharedCore";
 
 export type FilaDistribucion = {
@@ -13,9 +14,9 @@ export type FilaDistribucion = {
   nombre: string;
   /** Total de la unidad (define el largo relativo al máximo del set). */
   total: number;
-  /** Segmento A (ej. mujeres) — segmento oscuro. */
+  /** Segmento A (ej. mujeres); el color se resuelve por su etiqueta visible. */
   segA: number;
-  /** Segmento B (ej. hombres) — segmento claro. */
+  /** Segmento B (ej. hombres); el color se resuelve por su etiqueta visible. */
   segB: number;
   /** Texto del valor principal (por defecto fmtInt(total)). */
   etiqueta?: string;
@@ -50,12 +51,12 @@ export function BarrasDistribucion({
         </span>
         <span className="rec-dist-keys" aria-hidden="true">
           <span className="rec-dist-key">
-            <i className="rec-dist-swatch is-a" />
-            {segALabel}
+            <i className="rec-dist-swatch" style={{ background: sexSeriesCssColor(segALabel, 0) }} />
+            {sexSeriesDisplayLabel(segALabel)}
           </span>
           <span className="rec-dist-key">
-            <i className="rec-dist-swatch is-b" />
-            {segBLabel}
+            <i className="rec-dist-swatch" style={{ background: sexSeriesCssColor(segBLabel, 1) }} />
+            {sexSeriesDisplayLabel(segBLabel)}
           </span>
         </span>
       </div>
@@ -69,8 +70,8 @@ export function BarrasDistribucion({
             </span>
             <span className="rec-dist-track" aria-hidden="true">
               <span className="rec-dist-bar" style={{ width: `${wTotal}%` }}>
-                <span className="rec-dist-seg is-a" style={{ width: `${shareA}%` }} />
-                <span className="rec-dist-seg is-b" style={{ width: `${100 - shareA}%` }} />
+                <span className="rec-dist-seg" style={{ width: `${shareA}%`, background: sexSeriesCssColor(segALabel, 0) }} />
+                <span className="rec-dist-seg" style={{ width: `${100 - shareA}%`, background: sexSeriesCssColor(segBLabel, 1) }} />
               </span>
             </span>
             <span className="rec-dist-value" role="cell">

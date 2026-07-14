@@ -34,7 +34,7 @@ function WeightStabilityBlock({ model }: { model: ClassroomLabModel }) {
         <span><BarChart3 size={16} /></span>
         <div>
           <strong>Estabilidad de pesos pendiente</strong>
-          <em>Cuando exista una selección, la calculadora calcula el CV de los pesos y el n efectivo de las aulas titulares.</em>
+          <em>Cuando exista una selección, la calculadora calcula el CV de los pesos y el n efectivo de los cursos-horario titulares.</em>
         </div>
       </div>
     );
@@ -52,12 +52,11 @@ function WeightStabilityBlock({ model }: { model: ClassroomLabModel }) {
   return (
     <div className="cmv2-aulas-neff" aria-label="Estabilidad de pesos de la selección">
       <div className="cmv2-subhead">
-        <span className="cmv2-eyebrow">Estabilidad de pesos</span>
-        <strong>¿Cuánta muestra "efectiva" queda tras ponderar?</strong>
+        <strong>Estabilidad de pesos</strong>
       </div>
       <div className="cmv2-aulas-neff-layout">
         <div className="cmv2-aulas-neff-main">
-          <div className="cmv2-aulas-neff-barra" role="img" aria-label={`n efectivo ${fmtDec(nEff)} de ${fmtInt(nNominal)} aulas titulares`}>
+          <div className="cmv2-aulas-neff-barra" role="img" aria-label={`n efectivo ${fmtDec(nEff)} de ${fmtInt(nNominal)} cursos-horario titulares`}>
             <div className="cmv2-aulas-neff-track" data-estado={(ratio || 0) < 0.5 ? "alerta" : "ok"}>
               <i style={{ width: `${Math.max(4, Math.min(100, (ratio || 0) * 100))}%` }} />
             </div>
@@ -68,7 +67,7 @@ function WeightStabilityBlock({ model }: { model: ClassroomLabModel }) {
           </div>
           <FormulaLatex
             expression={"n_{\\mathit{eff}} = \\dfrac{\\left(\\sum_i w_i\\right)^2}{\\sum_i w_i^2}"}
-            caption="n efectivo de las aulas titulares"
+            caption="n efectivo de los cursos-horario titulares"
             badge="validado"
             terms={[
               {
@@ -79,8 +78,8 @@ function WeightStabilityBlock({ model }: { model: ClassroomLabModel }) {
             ]}
           />
           <p className="cmv2-aulas-nota-suave">
-            Cada aula pesa w_i = 1/π_i (el inverso de su probabilidad de inclusión). Si los pesos son muy
-            desiguales, unas pocas aulas dominan la estimación y el n efectivo cae por debajo del nominal.
+            Cada curso-horario pesa w_i = 1/π_i (el inverso de su probabilidad de inclusión). Si los pesos son muy
+            desiguales, unos pocos cursos-horario dominan la estimación y el n efectivo cae por debajo del nominal.
           </p>
         </div>
         <CifraFila>
@@ -94,7 +93,7 @@ function WeightStabilityBlock({ model }: { model: ClassroomLabModel }) {
           <CifraMotor
             label="n efectivo"
             value={fmtDec(nEff)}
-            detalle={ratio > 0 ? `${fmtPct(ratio)} del nominal` : detail || "aulas equivalentes tras ponderar"}
+            detalle={ratio > 0 ? `${fmtPct(ratio)} del nominal` : detail || "cursos-horario equivalentes tras ponderar"}
             origen="motor"
           />
           <CifraMotor
@@ -126,8 +125,8 @@ function PiMonteCarloHistogram({ model, onCompare, busy }: {
     return (
       <ClassroomEmptyState
         icon={BarChart3}
-        title="Sin frecuencias de selección por aula"
-        detail="La calculadora aún no trae π Monte Carlo por aula. Corre el comparador con corridas de auditoría para estimar qué tan seguido saldría cada aula."
+        title="Sin frecuencias de selección por curso-horario"
+        detail="La calculadora aún no trae π Monte Carlo por curso-horario. Corre el comparador con corridas de auditoría para estimar qué tan seguido saldría cada curso-horario."
         actionLabel="Comparar métodos"
         onAction={() => void onCompare(model.config, model.config.simulation_runs ?? model.config.monte_carlo_n ?? 500)}
         disabled={Boolean(busy) || !model.frameReady || !model.hasCalculatedQuota}
@@ -144,13 +143,12 @@ function PiMonteCarloHistogram({ model, onCompare, busy }: {
   });
   const max = Math.max(1, ...bins.map((bin) => bin.count));
   return (
-    <div className="cmv2-aulas-histo" aria-label="Frecuencia de selección por aula entre corridas">
+    <div className="cmv2-aulas-histo" aria-label="Frecuencia de selección por curso-horario entre corridas">
       <div className="cmv2-subhead">
-        <span className="cmv2-eyebrow">Frecuencia entre corridas</span>
-        <strong>¿Qué tan seguido salió cada aula? (π Monte Carlo)</strong>
-        <small>{fmtInt(piRows.length)} aulas con probabilidad simulada{mcRuns ? ` en ${fmtInt(mcRuns)} corridas` : ""}</small>
+        <strong>Frecuencia entre corridas</strong>
+        <small>{fmtInt(piRows.length)} cursos-horario con probabilidad simulada{mcRuns ? ` en ${fmtInt(mcRuns)} corridas` : ""}</small>
       </div>
-      <div className="cmv2-aulas-histo-bins" role="img" aria-label={`Histograma de π Monte Carlo para ${fmtInt(piRows.length)} aulas`}>
+      <div className="cmv2-aulas-histo-bins" role="img" aria-label={`Histograma de π Monte Carlo para ${fmtInt(piRows.length)} cursos-horario`}>
         {bins.map((bin) => (
           <div key={bin.label} className="cmv2-aulas-histo-bin">
             <div aria-hidden="true"><i style={{ height: `${Math.max(bin.count ? 8 : 2, (bin.count / max) * 100)}%` }} /></div>
@@ -160,8 +158,8 @@ function PiMonteCarloHistogram({ model, onCompare, busy }: {
         ))}
       </div>
       <p className="cmv2-aulas-nota-suave">
-        Aulas concentradas cerca de 100% salen casi siempre (típico de aulas grandes o de celdas con pocas
-        opciones); una cola larga cerca de 0% indica que el sorteo reparte oportunidades entre muchas aulas parecidas.
+        Cursos-horario concentrados cerca de 100% salen casi siempre (típico de unidades grandes o de celdas con pocas
+        opciones); una cola larga cerca de 0% indica que el sorteo reparte oportunidades entre muchos cursos-horario parecidos.
       </p>
     </div>
   );
@@ -197,7 +195,7 @@ export function AulasSimulacionTab({
     <ClassroomEmptyState
       icon={BarChart3}
       title="Resumen por método sin registrar"
-      detail="La simulación de la selección sí llegó: abajo tienes la estabilidad de pesos y la frecuencia π Monte Carlo por aula. Corre el comparador para regenerar el resumen de corridas por método."
+      detail="La simulación de la selección sí llegó: abajo tienes la estabilidad de pesos y la frecuencia π Monte Carlo por curso-horario. Corre el comparador para regenerar el resumen de corridas por método."
       actionLabel="Comparar métodos"
       onAction={() => void onCompare(model.config, model.config.simulation_runs ?? model.config.monte_carlo_n ?? 500)}
       disabled={Boolean(busy) || !model.frameReady || !model.hasCalculatedQuota}
@@ -211,8 +209,7 @@ export function AulasSimulacionTab({
       <div className="cmv2-classroom-lab-grid">
         <div className="cmv2-classroom-lab-main">
           <div className="cmv2-subhead">
-            <span className="cmv2-eyebrow">Simulación</span>
-            <strong>Estabilidad, cobertura y estudiantes repetidos</strong>
+            <strong>Resultados de la simulación</strong>
           </div>
           {metodosListos ? (
             <>

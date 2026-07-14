@@ -7,7 +7,6 @@
  * elegibilidad NO se re-explican aquí: se decidieron en Definición → Categorías.
  */
 import { BarChart3 } from "lucide-react";
-import { Popover } from "../../../../components/Popover";
 import { EmptyState } from "../../../../components/States";
 import type {
   CalcMuestraAulasState,
@@ -15,9 +14,9 @@ import type {
   CalcMuestraWorkspace,
 } from "../../../../api/client";
 import { embudoAlumnoDesdeFrame } from "../../dominio";
-import { ContextoLlano, RespaldoMetodologico } from "../../didactica/PasoDidactico";
+import { RespaldoMetodologico } from "../../didactica/PasoDidactico";
 import { fmtInt, fmtPct } from "../../sharedCore";
-import { CifraMotor, FlujoVertical, TerminoChip, type FlujoEtapa } from "../ui";
+import { CifraMotor, FlujoVertical, type FlujoEtapa } from "../ui";
 import { embudoEtapas } from "./embudoEtapas";
 import {
   MarcoEstructuraControles,
@@ -40,7 +39,7 @@ export function MarcoPoblacionTab({
 }) {
   const frame = aulasState?.frame ?? null;
   const hasMarco = Boolean(frame || (totalComp.marco.estratos ?? []).length);
-  const { inputRows, eligibleRows, populationN, eligibilityRate, dedupeLoad } =
+  const { inputRows, eligibleRows, populationN, dedupeLoad } =
     marcoPopulationFigures(frame, totalComp, workspace);
   // La merma del flujo se calcula con la misma aritmética visible
   // (universo − elegibles); el excluded_rows del audit vive en la auditoría
@@ -78,49 +77,32 @@ export function MarcoPoblacionTab({
       estado: populationN > 0 ? "ready" : "pending",
     },
   ];
-  const etapas: FlujoEtapa[] =
+  const etapasBase: FlujoEtapa[] =
     embudoDetallado && embudoDetallado.length >= 3
       ? embudoEtapas(embudoDetallado, "estudiantes")
       : etapasFallback;
+  // El backend conserva la etiqueta auditiva completa. En la banda visual la
+  // presentamos con el mismo significado y una longitud que no se desarma en
+  // ventanas compactas.
+  const etiquetaVisual: Record<string, string> = {
+    universo: "Universo",
+    pregrado: "Solo pregrado",
+    regular: "Matrícula regular",
+    "mayor-edad": "Edad ≥ 18 años",
+  };
+  const etapas: FlujoEtapa[] = etapasBase.map((etapa) => ({
+    ...etapa,
+    label: etiquetaVisual[etapa.id] ?? etapa.label,
+  }));
 
   return (
     <div className="cmv2-marco-stack">
-      <ContextoLlano paso="marco" />
       <section className="cmv2-panel cmv2-marco-poblacion-head">
         <div className="cmv2-marco-flujo-layout">
           <div className="cmv2-marco-flujo-main cmv2-marco-flujo-stagger">
             <FlujoVertical etapas={etapas} orientacion="horizontal" ariaLabel="Del universo a la población objetivo" />
-            <p className="cmv2-marco-flujo-copy">
-              Cada flecha es una decisión auditada: el universo se filtra con los criterios decididos en
-              Definición → Categorías y las filas repetidas se consolidan en estudiantes únicos{" "}
-              <Popover
-                openOn="hover"
-                ariaLabel="Universo frente a población"
-                trigger={<button type="button" className="cmv2-marco-when">¿universo vs población?</button>}
-              >
-                <div className="cmv2-marco-when-pop">
-                  <strong>Universo vs población</strong>
-                  <p>
-                    El universo son todas las filas leídas del archivo institucional. La población son los{" "}
-                    <TerminoChip termino="matriculados elegibles">matriculados elegibles</TerminoChip> únicos que
-                    quedan después de aplicar los criterios de inclusión.
-                  </p>
-                  <p>
-                    Esos criterios se decidieron en Definición → Categorías; esta pestaña solo audita su resultado.
-                  </p>
-                </div>
-              </Popover>
-              . La proporción que sobrevive al filtro
-              ({Number.isFinite(eligibilityRate) ? fmtPct(eligibilityRate) : "pendiente"}) alimenta la{" "}
-              <TerminoChip
-                termino="tasa de rendimiento"
-                valor={Number.isFinite(eligibilityRate) ? `${fmtPct(eligibilityRate)} de filas elegibles` : undefined}
-              >
-                tasa de rendimiento
-              </TerminoChip>{" "}
-              con la que el cálculo convierte cuotas en aulas.
-            </p>
           </div>
+          <span className="cmv2-marco-flujo-result-connector" aria-hidden="true" />
           <div className="cmv2-marco-flujo-cifras">
             <CifraMotor
               label="Población objetivo"
@@ -148,8 +130,7 @@ export function MarcoPoblacionTab({
           </div>
           <section className="cmv2-marco-controles">
             <div className="cmv2-marco-subhead">
-              <span className="cmv2-eyebrow">Estructura por controles</span>
-              <strong>Cómo se reparte la población entre los controles del diseño</strong>
+              <strong>Estructura por controles</strong>
             </div>
             <MarcoEstructuraControles frame={frame} totalComp={totalComp} workspace={workspace} />
           </section>

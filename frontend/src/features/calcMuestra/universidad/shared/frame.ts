@@ -57,9 +57,9 @@ export function frameAuditCards(frame: CalcMuestraAulasState["frame"] | null | u
       detail: uniqueDetail,
     },
     {
-      label: "Aulas seleccionables",
+      label: "Cursos-horario seleccionables",
       value: classroomRows ? fmtInt(classroomRows) : "pendiente",
-      detail: excludedRows ? `${fmtInt(excludedRows)} filas quedan fuera y auditadas.` : "Curso-horario/aula listo para selección.",
+      detail: excludedRows ? `${fmtInt(excludedRows)} filas quedan fuera y auditadas.` : "Curso-horario listo para selección.",
     },
   ];
 }

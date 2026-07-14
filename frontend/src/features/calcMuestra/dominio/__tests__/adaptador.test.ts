@@ -123,7 +123,7 @@ describe("perfilDesdeFrame — mapeo completo del contrato", () => {
 
     const aula = perfil.embudoAula!;
     expect(aula).toHaveLength(4);
-    expect(aula[3].porQue).toBe("Excluye 560 aulas bajo el umbral de elegibles.");
+    expect(aula[3].porQue).toBe("Excluye 560 cursos-horario bajo el umbral de elegibles.");
     expect(aula.map((p) => p.conteo)).toEqual([2100, 1800, 1500, 940]);
   });
 
@@ -291,7 +291,7 @@ describe("perfilDesdeFrame — criterios opcionales medidos y pasos nuevos del e
   it("redacta el porqué de los pasos nuevos (sede/docente/nivel/c7)", () => {
     const perfil = perfilDesdeFrame({ frame: frameCon(PERFIL_CON_OPCIONALES) })!;
     const porId = new Map(perfil.embudoAula!.map((p) => [p.id, p.porQue]));
-    expect(porId.get("sede")).toBe("Excluye 100 aulas fuera de las sedes definidas para el operativo.");
+    expect(porId.get("sede")).toBe("Excluye 100 cursos-horario fuera de las sedes definidas para el operativo.");
     expect(porId.get("docente")).toContain("docente de tipo aceptado");
     expect(porId.get("nivel")).toContain("rango de nivel");
     expect(porId.get("c7")).toContain("prevalencia");

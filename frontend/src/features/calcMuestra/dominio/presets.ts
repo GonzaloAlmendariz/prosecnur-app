@@ -58,7 +58,7 @@ const CRITERIOS_ALUMNO: CriterioAlumno[] = [
     variable: "condicion",
     capa: "marco",
     rol: "filtro",
-    porQue: "Solo la matrícula regular garantiza presencia en aula durante la aplicación.",
+    porQue: "Solo la matrícula regular permite proyectar presencia en el salón durante la aplicación.",
   },
   {
     id: "edad",
@@ -97,10 +97,10 @@ const CRITERIOS_AULA: CriterioAula[] = [
   {
     id: "presencial",
     etiqueta: "Modalidad presencial",
-    regla: "El aula se dicta de forma presencial",
+    regla: "El curso-horario se dicta de forma presencial",
     variable: "modalidad",
     tipo: "base",
-    porQue: "La aplicación es en aula física; las secciones virtuales no tienen punto de aplicación.",
+    porQue: "La aplicación es en un salón físico; las secciones virtuales no tienen punto de aplicación.",
   },
   {
     id: "tipo-curso",
@@ -112,11 +112,11 @@ const CRITERIOS_AULA: CriterioAula[] = [
   },
   {
     id: "min-elegibles",
-    etiqueta: "Mínimo de elegibles por aula",
+    etiqueta: "Mínimo de elegibles por curso-horario",
     regla: "matriculados_población ≥ umbral (elegibles, no total)",
     variable: "matriculados_población",
     tipo: "base",
-    porQue: "Bajo el umbral, el rendimiento esperado no justifica la visita. El conteo es sobre elegibles: un aula con 40 matriculados puede aportar solo 25.",
+    porQue: "Bajo el umbral, el rendimiento esperado no justifica la visita. El conteo es sobre elegibles: un curso-horario con 40 matriculados puede aportar solo 25.",
   },
   {
     id: "docente",
@@ -124,7 +124,7 @@ const CRITERIOS_AULA: CriterioAula[] = [
     regla: "Al menos un docente contratado u ordinario",
     variable: "tipo_docente",
     tipo: "base",
-    porQue: "La aplicación se coordina con el docente; la regla «al menos uno» colapsa aulas con varios docentes.",
+    porQue: "La aplicación se coordina con el docente; la regla «al menos uno» consolida cursos-horario con varios docentes.",
   },
   {
     id: "nivel-unidad",
@@ -132,23 +132,23 @@ const CRITERIOS_AULA: CriterioAula[] = [
     regla: "El nivel del curso cae en el rango definido para su unidad académica",
     variable: "nivel_curso",
     tipo: "base",
-    porQue: "Evita duplicar aulas cuando los primeros niveles se cursan fuera de la unidad (p. ej. estudios generales). El rango se define por unidad en el mapa del proyecto.",
+    porQue: "Evita duplicar cursos-horario cuando los primeros niveles se cursan fuera de la unidad (p. ej. estudios generales). El rango se define por unidad en el mapa del proyecto.",
   },
   {
     id: "c7",
     etiqueta: "c7 · Prevalencia de población ≥ 80%",
-    regla: "≥ 80% del aula pertenece a la población objetivo",
+    regla: "≥ 80% del curso-horario pertenece a la población objetivo",
     variable: "derivada del cruce",
     tipo: "opcional",
-    porQue: "Endurece la calidad del aula. Verificar el efecto sobre cobertura y cuotas antes de activarlo.",
+    porQue: "Endurece la calidad del curso-horario. Verificar el efecto sobre cobertura y cuotas antes de activarlo.",
   },
   {
     id: "c8",
     etiqueta: "c8 · Homogeneidad de ciclo ≥ 80%",
-    regla: "≥ 80% del aula está en el ciclo modal",
+    regla: "≥ 80% del curso-horario está en el ciclo modal",
     variable: "derivada del cruce",
     tipo: "opcional",
-    porQue: "Las aulas mezclan ciclos de forma natural; este criterio suele reducir el marco de manera drástica. Verificar factibilidad por unidad antes de activarlo.",
+    porQue: "Los cursos-horario mezclan ciclos de forma natural; este criterio suele reducir el marco de manera drástica. Verificar factibilidad por unidad antes de activarlo.",
   },
 ];
 
@@ -261,7 +261,7 @@ const UNIDADES_EJEMPLO: FacultadDatos[] = [
 
 export const PERFIL_EJEMPLO: PerfilInstitucional = {
   id: "ejemplo-referencia",
-  nombre: "Caso de referencia — estudio universitario en aulas",
+  nombre: "Caso de referencia — estudio universitario por cursos-horario",
   siglas: "Ejemplo",
   esEjemplo: true,
   etiquetaUnidad: "facultad",
@@ -285,12 +285,12 @@ export const PERFIL_EJEMPLO: PerfilInstitucional = {
   ],
   aulasTotales: 5262,
   embudoAula: [
-    { id: "total", label: "Curso-horario únicos", conteo: 5262, porQue: "La base cruda trae varias filas por aula (docentes, carreras); se colapsa a una fila por curso-horario.", sello: "verificado" },
+    { id: "total", label: "Cursos-horario únicos", conteo: 5262, porQue: "La base cruda trae varias filas por curso-horario (docentes, carreras); se colapsa a una fila por unidad.", sello: "verificado" },
     { id: "presencial", label: "+ Presencial", conteo: 4624, porQue: "Excluye 638 secciones no presenciales.", sello: "verificado" },
     { id: "tipo", label: "+ Tipo válido", conteo: 3902, porQue: "Excluye 722: seminarios, tesis, asesorías, prácticas.", sello: "verificado" },
-    { id: "elegibles", label: "+ ≥ 10 elegibles", conteo: 3032, porQue: "Excluye 870 aulas bajo el umbral de elegibles — el filtro de mayor efecto.", sello: "verificado" },
-    { id: "docente", label: "+ Docente estable", conteo: 2961, porQue: "Excluye 71 aulas sin docente contratado u ordinario.", sello: "verificado" },
-    { id: "nivel", label: "+ Nivel por unidad", conteo: 2483, porQue: "Excluye 478 aulas fuera del rango de nivel de su unidad. El resultado es el marco muestral.", sello: "verificado" },
+    { id: "elegibles", label: "+ ≥ 10 elegibles", conteo: 3032, porQue: "Excluye 870 cursos-horario bajo el umbral de elegibles — el filtro de mayor efecto.", sello: "verificado" },
+    { id: "docente", label: "+ Docente estable", conteo: 2961, porQue: "Excluye 71 cursos-horario sin docente contratado u ordinario.", sello: "verificado" },
+    { id: "nivel", label: "+ Nivel por unidad", conteo: 2483, porQue: "Excluye 478 cursos-horario fuera del rango de nivel de su unidad. El resultado es el marco muestral.", sello: "verificado" },
   ],
   marcoAulas: 2483,
   criteriosAlumno: CRITERIOS_ALUMNO.map((c) => ({ ...c })),
@@ -363,7 +363,7 @@ export const PERFIL_EJEMPLO: PerfilInstitucional = {
   bolsaSugerida: 1,
   notas: [
     "Cobertura del cruce: 19,711 de 21,365 elegibles alcanzables (92.3%); factibilidad verificada en las 15 unidades.",
-    "Referencia de campo del caso: 194 aulas aplicadas sobre 170 previstas (+14%) — sustento de la bolsa operativa.",
+    "Referencia de campo del caso: 194 cursos-horario aplicados sobre 170 previstos (+14%) — sustento de la bolsa operativa.",
   ],
 };
 

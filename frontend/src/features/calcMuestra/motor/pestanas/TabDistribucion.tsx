@@ -5,6 +5,7 @@
  * cobertura del marco vive en la sección Marco.
  */
 import type { PerfilInstitucional, ResultadoEscenario1 } from "../../dominio";
+import { sexSeriesDisplayLabel } from "../../sexoPalette";
 import { fmtDec, fmtInt } from "../../sharedCore";
 import { BarrasDistribucion } from "../componentes/BarrasDistribucion";
 import { BarrasFacultad } from "../componentes/BarrasFacultad";
@@ -59,8 +60,8 @@ export function TabDistribucion({
         <section className="rec-bloque">
           <h3>Cuotas de muestra por {perfil.etiquetaUnidad} y sexo</h3>
           <p className="rec-bloque-sub">
-            Afijación proporcional con cuadratura. {perfil.etiquetasSexo[0]}:{" "}
-            <strong>{fmtInt(e1.totalMujeres)}</strong> · {perfil.etiquetasSexo[1]}:{" "}
+            Afijación proporcional con cuadratura. {sexSeriesDisplayLabel(perfil.etiquetasSexo[0])}:{" "}
+            <strong>{fmtInt(e1.totalMujeres)}</strong> · {sexSeriesDisplayLabel(perfil.etiquetasSexo[1])}:{" "}
             <strong>{fmtInt(e1.totalHombres)}</strong>.
           </p>
           <BarrasDistribucion
@@ -86,13 +87,13 @@ export function TabDistribucion({
 
       {hayAulas && (
         <section className="rec-bloque">
-          <h3>Aulas por {perfil.etiquetaUnidad}</h3>
+          <h3>Cursos-horario por {perfil.etiquetaUnidad}</h3>
           <BarrasFacultad
-            ariaLabel={`Aulas por ${perfil.etiquetaUnidad}`}
+            ariaLabel={`Cursos-horario por ${perfil.etiquetaUnidad}`}
             leyenda={
               <span>
-                Total: <strong>{fmtInt(e1.aulasConBolsa)}</strong> aulas · CEIL(sobremuestra ÷
-                elegibles por aula) + bolsa
+                Total: <strong>{fmtInt(e1.aulasConBolsa)}</strong> cursos-horario · CEIL(sobremuestra ÷
+                elegibles por curso-horario) + reserva
               </span>
             }
             filas={[...e1.cuotas]
@@ -103,14 +104,14 @@ export function TabDistribucion({
                 nombre: c.nombre,
                 valor: c.aulas ?? 0,
                 etiqueta: fmtInt(c.aulas),
-                anotacion: `${fmtInt(c.sobremuestra)} enc. ÷ ${fmtDec(c.estAula, 1)}/aula`,
+                anotacion: `${fmtInt(c.sobremuestra)} enc. ÷ ${fmtDec(c.estAula, 1)}/curso-horario`,
               }))}
           />
         </section>
       )}
       {!hayAulas && (
         <p className="rec-chip-ilustrativo">
-          Para el cálculo de aulas, define «elegibles por aula» en cada unidad (pestaña Datos) o
+          Para el cálculo de cursos-horario, define «elegibles por curso-horario» en cada unidad (pestaña Datos) o
           construye el marco del proyecto para medirlo.
         </p>
       )}

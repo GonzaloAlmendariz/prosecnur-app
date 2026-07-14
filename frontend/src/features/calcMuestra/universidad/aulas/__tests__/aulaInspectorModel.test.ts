@@ -97,7 +97,7 @@ describe("buildAulaInspectorModel", () => {
     });
     expect(model.rol).toBe("titular");
     expect(model.rolLabel).toBe("Titular M1");
-    expect(model.code).toBe("AULA 1");
+    expect(model.code).toBe("CH 1");
     expect(model.courseName).toBe("OBLIGACIONES");
     expect(model.faculty).toBe("DERECHO");
     // π en % con 1 decimal y peso 1/π con 2 decimales (formatos sharedCore).
@@ -124,7 +124,7 @@ describe("buildAulaInspectorModel", () => {
     expect(model.equivalenciaLabel).toBe("Misma celda");
     expect(model.titular).toEqual({
       id: "dec285_0409",
-      code: "AULA 1",
+      code: "CH 1",
       label: "OBLIGACIONES",
     });
     // La cadena mostrada es la del titular, marcando este eslabón como activo.

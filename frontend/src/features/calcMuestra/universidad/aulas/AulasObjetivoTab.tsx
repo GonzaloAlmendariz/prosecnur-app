@@ -17,7 +17,7 @@ import type {
 import { fmtInt, safeNumber } from "../../sharedCore";
 import { UNIVERSITY_AULAS_MODALIDAD_OPTIONS } from "../shared/constants";
 import { normalizeUniversityAulasConfig } from "../shared/study";
-import { PanelAvanzado, TerminoChip } from "../ui";
+import { PanelAvanzado } from "../ui";
 import { CadenaAulas } from "./CadenaAulas";
 import { NumberCell, ObjectiveWeightsPanel, type ClassroomLabModel } from "./aulasParts";
 import "../../didactica/didactica.css";
@@ -90,16 +90,8 @@ export function AulasObjetivoTab({
     <div className="cmv2-aulas-stack">
       <section className="cmv2-panel cmv2-aulas-panel">
         <div className="cmv2-subhead">
-          <span className="cmv2-eyebrow">Objetivo</span>
-          <strong>Del N por facultad a aulas titulares y reemplazos</strong>
+          <strong>Conversión de N a cursos-horario</strong>
         </div>
-        <p className="cmv2-aulas-intro">
-          La <TerminoChip termino="cuota de aulas por facultad">cuota de aulas por facultad</TerminoChip>{" "}
-          convierte el N calculado en salones a visitar: cada facultad usa su propio tamaño de aula y su
-          tasa de rendimiento. Cada titular lleva sus{" "}
-          <TerminoChip termino="reemplazo (M1">reemplazos (M1, M2, M3…)</TerminoChip> equivalentes ya
-          sorteados, y el extra operativo se presupuesta aparte.
-        </p>
         {cuotaValidada && (
           <CadenaAulas
             rows={filasMotor}
@@ -108,10 +100,10 @@ export function AulasObjetivoTab({
           />
         )}
 
-        <div className="cmv2-aulas-cuota-flujos" aria-label="Aulas por facultad">
+        <div className="cmv2-aulas-cuota-flujos" aria-label="Cursos-horario por facultad">
           <div className="cmv2-aulas-cuota-head">
             <strong>Detalle por facultad</strong>
-            <small>{cuotaValidada ? "cuotas y aulas validadas por la calculadora" : "con cuotas fijadas del marco; calcula la muestra para validar"}</small>
+            <small>{cuotaValidada ? "cuotas y cursos-horario validados por la calculadora" : "con cuotas fijadas del marco; calcula la muestra para validar"}</small>
           </div>
           {!filasTabla.length ? (
             <p className="cmv2-aulas-nota-suave">
@@ -124,7 +116,7 @@ export function AulasObjetivoTab({
                   <tr>
                     <th>Facultad</th>
                     <th>Cuota</th>
-                    <th>Est/aula</th>
+                    <th>Est./curso-horario</th>
                     <th>Titulares</th>
                     <th>Reservas</th>
                     <th>Extra</th>
@@ -152,8 +144,7 @@ export function AulasObjetivoTab({
 
       <section className="cmv2-panel cmv2-aulas-panel">
         <div className="cmv2-subhead">
-          <span className="cmv2-eyebrow">Criterios de selección</span>
-          <strong>Lo que decides para traducir la cuota en aulas</strong>
+          <strong>Criterios de selección</strong>
         </div>
         <div className="cmv2-classroom-control-grid">
           <label className="cmv2-compact-field cmv2-classroom-field-wide">
@@ -175,14 +166,14 @@ export function AulasObjetivoTab({
             <em>{modalidad.detail}</em>
           </label>
           <div className="cmv2-compact-field">
-            <span>Mínimo por aula</span>
+            <span>Mínimo por curso-horario</span>
             <NumberCell value={config.min_elegibles_aula} min={1} step={1} onChange={(v) => updateConfig({ min_elegibles_aula: Math.round(v) })} />
             <em>Descarta cursos demasiado pequeños para sostener una aplicación presencial.</em>
           </div>
           <div className="cmv2-compact-field">
-            <span>Reemplazos por aula</span>
+            <span>Reemplazos por curso-horario</span>
             <NumberCell value={config.bolsas_reemplazo} min={0} step={1} onChange={(v) => updateConfig({ bolsas_reemplazo: Math.round(v) })} />
-            <em>Crea Rn.1, Rn.2... como alternativas equivalentes para cada aula titular.</em>
+            <em>Crea Rn.1, Rn.2... como alternativas equivalentes para cada curso-horario titular.</em>
           </div>
           <div className="cmv2-compact-field">
             <span>Extra operativo por estrato</span>
@@ -197,12 +188,12 @@ export function AulasObjetivoTab({
             onChange={(e) => setUseSizeGroups(e.currentTarget.checked)}
           />
           <span>
-            <strong>Usar grupos de tamaño de aula</strong>
+            <strong>Usar grupos de tamaño del curso-horario</strong>
             <em>Recomendado cuando la selección puede sesgarse hacia cursos grandes.</em>
           </span>
         </label>
         {config.usar_grupos_tamano && (
-          <div className="cmv2-classroom-groups" aria-label="Grupos de tamaño de aula">
+          <div className="cmv2-classroom-groups" aria-label="Grupos de tamaño de curso-horario">
             {config.grupos_tamano.map((group) => (
               <span key={group.id}>
                 <strong>{group.label}</strong>

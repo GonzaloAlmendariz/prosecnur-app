@@ -231,7 +231,7 @@ export function MarcoPoblacionFacultades({
     faculty: descriptiveMissingState(workspace, {
       role: "faculty",
       variable: "Facultad",
-      source: populationGraphUsesClassrooms ? "marco de aulas" : "base principal",
+      source: populationGraphUsesClassrooms ? "marco de cursos-horario" : "base principal",
       hasSource: hasPopulationSource,
       impact: "Este gráfico necesita saber a qué facultad pertenece cada registro.",
       next: "Revisa Definición > Variables y vincula la columna Facultad.",
@@ -246,14 +246,14 @@ export function MarcoPoblacionFacultades({
     } : missingAdministrativeProgramCross ? {
       badge: "Revisar",
       title: "Falta relación facultad-carrera",
-      detail: "Este gráfico usa la carrera administrativa del estudiante. No se completa con aulas para evitar mezclar cursos de otra facultad.",
+      detail: "Este gráfico usa la carrera administrativa del estudiante. No se completa con cursos-horario para evitar mezclar cursos de otra facultad.",
       next: "Revisa Definición > Variables y confirma que Facultad y Carrera vienen de la base de estudiantes.",
-      chips: ["Población", "No mezcla aulas"],
+      chips: ["Población", "No mezcla cursos-horario"],
       tone: "waiting",
     } : descriptiveMissingState(workspace, {
       role: "program",
       variable: "Programa o carrera",
-      source: populationGraphUsesClassrooms ? "marco de aulas" : "base principal",
+      source: populationGraphUsesClassrooms ? "marco de cursos-horario" : "base principal",
       hasSource: hasPopulationSource,
       optional: true,
       impact: "Ayuda a leer concentraciones dentro de cada facultad.",
@@ -264,7 +264,7 @@ export function MarcoPoblacionFacultades({
     <>
       <ClassroomPlotCard
         title={populationGraphUsesClassrooms ? "Elegibles representados por facultad" : "Población por facultad"}
-        subtitle={populationGraphUsesClassrooms ? "alumnos elegibles acumulados en aulas válidas" : "estudiantes únicos elegibles del universo"}
+        subtitle={populationGraphUsesClassrooms ? "alumnos elegibles acumulados en cursos-horario válidos" : "estudiantes únicos elegibles del universo"}
       >
         <ClassroomBarPlot
           rows={facultyPopulation}
@@ -315,7 +315,7 @@ export function MarcoPoblacionSexo({
   const emptyState = descriptiveMissingState(workspace, {
     role: "sex",
     variable: "Sexo o género",
-    source: populationGraphUsesClassrooms ? "marco de aulas" : "base principal",
+    source: populationGraphUsesClassrooms ? "marco de cursos-horario" : "base principal",
     hasSource: populationRows.length > 0 || classroomRows.length > 0 || Boolean(totalComp.marco.estratos?.length),
     impact: "Permite leer la composición esperada y auditar cuotas.",
     next: "Revisa Definición > Variables y vincula la columna Sexo o género.",
@@ -323,9 +323,10 @@ export function MarcoPoblacionSexo({
   return (
     <ClassroomPlotCard
       title="Sexo o género"
-      subtitle={populationGraphUsesClassrooms ? "composición esperada según aulas válidas" : "estudiantes únicos elegibles"}
+      subtitle={populationGraphUsesClassrooms ? "composición esperada según cursos-horario válidos" : "estudiantes únicos elegibles"}
+      wide
     >
-      <ClassroomBarPlot rows={sexRows} ariaLabel="Sexo o género de la población" unit={populationGraphUsesClassrooms ? "elegibles" : "personas"} total={sexTotal} emptyState={emptyState} growOnMount />
+      <ClassroomBarPlot rows={sexRows} ariaLabel="Sexo o género de la población" unit={populationGraphUsesClassrooms ? "elegibles" : "personas"} total={sexTotal} emptyState={emptyState} growOnMount colorBySex />
     </ClassroomPlotCard>
   );
 }
@@ -422,37 +423,33 @@ export function MarcoAulasCapacidad({
     {
       label: "Profundidad",
       value: Number.isFinite(reserveDepth) ? fmtRatio(reserveDepth) : classroomN ? fmtInt(classroomN) : "pendiente",
-      detail: requestedClassrooms ? `aulas válidas / ${fmtInt(requestedClassrooms)} titulares` : "aulas disponibles antes de seleccionar",
+      detail: requestedClassrooms ? `cursos-horario válidos / ${fmtInt(requestedClassrooms)} titulares` : "cursos-horario disponibles antes de seleccionar",
       tone: Number.isFinite(reserveDepth) && reserveDepth >= 3 ? "good" : "info",
       icon: Grid3X3,
     },
     {
-      label: "Aulas válidas",
+      label: "Cursos-horario válidos",
       value: Number.isFinite(validClassroomShare) ? fmtPct(validClassroomShare) : "pendiente",
-      detail: "curso-horario que pasa al marco de aplicación",
+      detail: "cursos-horario que pasan al marco de aplicación",
       tone: Number.isFinite(validClassroomShare) && validClassroomShare >= 0.9 ? "good" : "warn",
       icon: CheckCircle2,
     },
     {
-      label: "Aulas pequeñas",
+      label: "Cursos-horario pequeños",
       value: Number.isFinite(smallClassroomShare) ? fmtPct(smallClassroomShare) : "pendiente",
-      detail: "aulas con 20 o menos elegibles",
+      detail: "cursos-horario con 20 o menos elegibles",
       tone: Number.isFinite(smallClassroomShare) && smallClassroomShare > 0.35 ? "warn" : "neutral",
       icon: Gauge,
     },
     {
       label: "Contacto",
       value: Number.isFinite(contactCoverage) ? fmtPct(contactCoverage) : "pendiente",
-      detail: "aulas con docente, contacto o correo operativo",
+      detail: "cursos-horario con docente, contacto o correo operativo",
       tone: Number.isFinite(contactCoverage) && contactCoverage >= 0.8 ? "good" : "warn",
       icon: ClipboardList,
     },
   ];
-  return (
-    <div className="cmv2-dashboard-intelligence">
-      <ClassroomInsightGrid items={items} />
-    </div>
-  );
+  return <ClassroomInsightGrid items={items} />;
 }
 
 /* ============================================================================
@@ -473,6 +470,27 @@ function marcoSizeGroupForValue(value: number, groups: CalcMuestraWorkspaceAulas
     value >= safeNumber(item.min, 0) && value <= marcoSizeGroupMax(item.max),
   );
   return group?.id ?? "";
+}
+
+/** Proyectos antiguos pueden conservar descripciones con “aula(s)”. La capa
+ * visual normaliza el término y la concordancia sin migrar el `.pulso`. */
+function courseScheduleGroupDescription(value: string) {
+  return value
+    .replace(/\b(?:aulas|cursos-horario) peque(?:ñ|n)as o especializadas\b/gi, "cursos-horario pequeños o especializados")
+    .replace(/\b(?:aulas|cursos-horario) grandes o masivas\b/gi, "cursos-horario grandes o masivos")
+    .replace(/\baulas peque(?:ñ|n)as\b/gi, "cursos-horario pequeños")
+    .replace(/\baulas medianas\b/gi, "cursos-horario medianos")
+    .replace(/\baulas est(?:á|a)ndar\b/gi, "cursos-horario estándar")
+    .replace(/\baulas grandes\b/gi, "cursos-horario grandes")
+    .replace(/\bcursos-horario peque(?:ñ|n)as\b/gi, "cursos-horario pequeños")
+    .replace(/\bcursos-horario medianas\b/gi, "cursos-horario medianos")
+    .replace(/\bcursos-horario est(?:á|a)ndar\b/gi, "cursos-horario estándar")
+    .replace(/\baula peque(?:ñ|n)a\b/gi, "curso-horario pequeño")
+    .replace(/\baula mediana\b/gi, "curso-horario mediano")
+    .replace(/\baula est(?:á|a)ndar\b/gi, "curso-horario estándar")
+    .replace(/\baula grande\b/gi, "curso-horario grande")
+    .replace(/\baulas\b/gi, "cursos-horario")
+    .replace(/\baula\b/gi, "curso-horario");
 }
 
 export function MarcoAulasHistograma({
@@ -496,11 +514,11 @@ export function MarcoAulasHistograma({
       <DescriptiveEmptyNotice
         state={descriptiveMissingState(workspace, {
           role: "eligible_n",
-          variable: "Elegibles por aula",
-          source: "marco de aulas",
+          variable: "Elegibles por curso-horario",
+          source: "marco de cursos-horario",
           hasSource: classroomRowsRaw.length > 0,
-          impact: "Permite agrupar aulas por tamaño operativo y ubicar el mínimo por aula.",
-          next: "Construye el marco de aulas o revisa la columna de elegibles.",
+          impact: "Permite agrupar cursos-horario por tamaño operativo y ubicar el mínimo.",
+          next: "Construye el marco de cursos-horario o revisa la columna de elegibles.",
         })}
       />
     );
@@ -530,7 +548,7 @@ export function MarcoAulasHistograma({
     <div
       className="cmv2-marco-histo"
       role="img"
-      aria-label={`Tamaño de aulas con bandas ${groups.map((g) => g.id).join(", ")} y mínimo de ${fmtInt(minElegibles)} elegibles por aula`}
+      aria-label={`Tamaño de cursos-horario con bandas ${groups.map((g) => g.id).join(", ")} y mínimo de ${fmtInt(minElegibles)} elegibles por curso-horario`}
       data-resalta={grupoResaltado || undefined}
     >
       <div className="cmv2-marco-histo-track">
@@ -540,7 +558,7 @@ export function MarcoAulasHistograma({
             className="cmv2-marco-histo-bin"
             data-grupo={bin.grupo || "bajo"}
             data-atenuada={grupoResaltado && (bin.grupo || "bajo") !== grupoResaltado ? "true" : undefined}
-            title={`${bin.label} elegibles: ${fmtInt(bin.value)} aulas`}
+            title={`${bin.label} elegibles: ${fmtInt(bin.value)} cursos-horario`}
             style={{ "--marco-histo-i": index } as CSSProperties}
           >
             <div className="cmv2-marco-histo-col" aria-hidden="true">
@@ -551,24 +569,24 @@ export function MarcoAulasHistograma({
         ))}
         <div className="cmv2-marco-histo-minline" style={{ left: `${minLinePct}%` }} aria-hidden="true">
           <i />
-          <em>mínimo por aula: {fmtInt(minElegibles)}</em>
+          <em>mínimo por curso-horario: {fmtInt(minElegibles)}</em>
         </div>
       </div>
       <div className="cmv2-marco-histo-legend" aria-hidden="true" onMouseLeave={() => setGrupoResaltado("")}>
         <span data-grupo="bajo" onMouseEnter={() => setGrupoResaltado("bajo")}>
-          <i />bajo el mínimo{underMin > 0 ? ` · ${fmtInt(underMin)} aulas` : ""}
+          <i />bajo el mínimo{underMin > 0 ? ` · ${fmtInt(underMin)} cursos-horario` : ""}
         </span>
         {groups.map((group) => {
           const max = marcoSizeGroupMax(group.max);
           return (
             <span key={group.id} data-grupo={group.id} onMouseEnter={() => setGrupoResaltado(group.id)}>
-              <i />{group.label} · {fmtInt(safeNumber(group.min, 0))}{Number.isFinite(max) ? `–${fmtInt(max)}` : "+"} {group.descripcion ? `· ${group.descripcion}` : ""}
+              <i />{group.label} · {fmtInt(safeNumber(group.min, 0))}{Number.isFinite(max) ? `–${fmtInt(max)}` : "+"} {group.descripcion ? `· ${courseScheduleGroupDescription(group.descripcion)}` : ""}
             </span>
           );
         })}
       </div>
       <p className="cmv2-marco-histo-nota">
-        El mínimo de elegibles por aula es solo lectura aquí: se decide en Aulas → Objetivo.
+        El mínimo de elegibles por curso-horario es solo lectura aquí: se decide en Selección → Objetivo.
       </p>
     </div>
   );
@@ -590,14 +608,14 @@ export function MarcoAulasSexo({
   const emptyState = descriptiveMissingState(workspace, {
     role: "sex",
     variable: "Sexo o género",
-    source: "catálogo de aulas",
+    source: "catálogo de cursos-horario",
     hasSource: classroomRows.length > 0,
     impact: "Permite leer la composición esperada y auditar cuotas.",
     next: "Revisa Definición > Variables y vincula la columna Sexo o género.",
   });
   return (
-    <ClassroomPlotCard title="Sexo por aula" subtitle="aporte esperado de hombres y mujeres en cada aula" wide>
-      <ClassroomSexCompositionPlot rows={rows} ariaLabel="Sexo esperado por aula" emptyState={emptyState} />
+    <ClassroomPlotCard title="Sexo por curso-horario" subtitle="aporte esperado de hombres y mujeres en cada curso-horario" wide>
+      <ClassroomSexCompositionPlot rows={rows} ariaLabel="Sexo esperado por curso-horario" emptyState={emptyState} />
     </ClassroomPlotCard>
   );
 }
@@ -607,10 +625,10 @@ export function MarcoAulasSexo({
    ============================================================================ */
 
 const MARCO_EXCLUSION_LABELS: Record<string, string> = {
-  min_eligible_per_class: "bajo el mínimo por aula",
+  min_eligible_per_class: "bajo el mínimo por curso-horario",
   modality: "modalidad no presencial",
   session_type: "tipo de sesión excluido",
-  classroom_id: "sin aula identificable",
+  classroom_id: "sin curso-horario identificable",
   level: "nivel fuera de pregrado",
   condition: "condición no aceptada",
 };
@@ -634,11 +652,8 @@ export function MarcoAulasExcluidas({
   return (
     <section className="cmv2-panel cmv2-marco-excluidas">
       <div className="cmv2-panel-head">
-        <div>
-          <span className="cmv2-eyebrow">Auditoría de aulas</span>
-          <strong>Aulas excluidas del marco de aplicación</strong>
-        </div>
-        <span className="cmv2-pill-soft">{excludedRows.length ? `${fmtInt(excludedRows.length)} excluidas` : "sin exclusiones"}</span>
+        <strong>Cursos-horario excluidos</strong>
+        <span className="cmv2-pill-soft">{excludedRows.length ? `${fmtInt(excludedRows.length)} excluidos` : "sin exclusiones"}</span>
       </div>
       {visible.length ? (
         <>
@@ -646,7 +661,7 @@ export function MarcoAulasExcluidas({
             <table className="cmv2-table cmv2-classroom-table">
               <thead>
                 <tr>
-                  <th>Aula</th>
+                  <th>Curso-horario</th>
                   <th>Facultad</th>
                   <th>Elegibles</th>
                   <th>Motivo</th>
@@ -664,8 +679,8 @@ export function MarcoAulasExcluidas({
                         .join(" · ")
                     : eligible > 0 && eligible < minElegibles
                       ? `${MARCO_EXCLUSION_LABELS.min_eligible_per_class} (${fmtInt(eligible)} < ${fmtInt(minElegibles)})`
-                      : "excluida por la calculadora al construir el marco";
-                  const label = classroomRowText(row, ["course_name", "curso", "label", "classroom_label", "aula", "classroom_id"]) || `Aula ${index + 1}`;
+                      : "excluido por la calculadora al construir el marco";
+                  const label = classroomRowText(row, ["course_name", "curso", "label", "classroom_label", "aula", "classroom_id"]) || `Curso-horario ${index + 1}`;
                   const code = classroomRowText(row, ["classroom_id", "course_schedule_id", "nrc", "codigo_aula"]);
                   return (
                     <tr key={`${code || label}-${index}`}>
@@ -684,7 +699,7 @@ export function MarcoAulasExcluidas({
           </div>
           {excludedRows.length > visible.length && (
             <p className="cmv2-marco-excluidas-mas">
-              y {fmtInt(excludedRows.length - visible.length)} aulas excluidas más quedan auditadas en el marco.
+              y {fmtInt(excludedRows.length - visible.length)} cursos-horario excluidos más quedan auditados en el marco.
             </p>
           )}
         </>
@@ -693,8 +708,8 @@ export function MarcoAulasExcluidas({
           <AlertTriangle size={14} aria-hidden="true" />
           <span>
             {hasIncludedFlag
-              ? "Ninguna aula quedó fuera: todas superan el mínimo y los filtros de aplicación."
-              : "El marco guardado no trae marca de inclusión por aula; reconstruye el marco para auditar exclusiones."}
+              ? "Ningún curso-horario quedó fuera: todos superan el mínimo y los filtros de aplicación."
+              : "El marco guardado no trae marca de inclusión por curso-horario; reconstruye el marco para auditar exclusiones."}
           </span>
         </div>
       )}

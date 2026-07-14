@@ -54,21 +54,21 @@ export function CadenaAulas({
     },
     {
       id: "divisor",
-      label: "Estudiantes por aula",
+      label: "Estudiantes por curso-horario",
       valor: rangoEst,
-      detalle: "elegibles por aula, por facultad",
+      detalle: "elegibles por curso-horario, por facultad",
       estado: divisores.length ? "ready" : "pending",
     },
     {
       id: "titulares",
-      label: "Aulas titulares",
+      label: "Cursos-horario titulares",
       valor: fmtInt(sumTitulares),
-      detalle: "sobremuestra ÷ estudiantes por aula",
+      detalle: "sobremuestra ÷ estudiantes por curso-horario",
       estado: sumTitulares > 0 ? "ready" : "pending",
     },
     {
       id: "total",
-      label: "Aulas a coordinar",
+      label: "Cursos-horario a coordinar",
       valor: fmtInt(sumTotal),
       detalle: "titulares + reservas y extra",
       estado: sumTotal > 0 ? "ready" : "working",
@@ -80,22 +80,22 @@ export function CadenaAulas({
       <FlujoVertical
         etapas={etapas}
         orientacion="horizontal"
-        ariaLabel="De la cuota de entrevistas a las aulas: estudiantes por aula, aulas titulares y reservas"
+        ariaLabel="De la cuota de entrevistas a los cursos-horario: estudiantes por curso-horario, titulares y reservas"
       />
       <p className="cmv2-cadena-b-nota">
-        El divisor son <strong>estudiantes elegibles por aula</strong> (no matriculados totales), calculado{" "}
+        El divisor son <strong>estudiantes elegibles por curso-horario</strong> (no matriculados totales), calculado{" "}
         <strong>por facultad</strong>
         {esRango ? (
           <>: por eso va de {rangoEst} — cada facultad tiene su propio tamaño típico, sin promedio universal.</>
         ) : (
-          <> ({rangoEst} elegibles por aula en este marco).</>
+          <> ({rangoEst} elegibles por curso-horario en este marco).</>
         )}
-        {tauProm != null && <> Cada aula rinde alrededor del {Math.round(tauProm * 100)}% de sus elegibles.</>}
+        {tauProm != null && <> Cada curso-horario rinde alrededor del {Math.round(tauProm * 100)}% de sus elegibles.</>}
         {reemplazosPorTitular != null && reemplazosPorTitular > 0 && (
           <> Cada titular lleva R1–R{reemplazosPorTitular} reservas equivalentes</>
         )}
         {extraOperativo != null && extraOperativo > 0 && (
-          <>{reemplazosPorTitular ? " y " : " Se añaden "}+{extraOperativo} aulas de extra operativo por facultad — no cambian la muestra.</>
+          <>{reemplazosPorTitular ? " y " : " Se añaden "}+{extraOperativo} cursos-horario de reserva operativa por facultad — no cambian la muestra.</>
         )}
       </p>
     </div>

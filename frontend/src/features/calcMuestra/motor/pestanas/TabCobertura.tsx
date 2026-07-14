@@ -11,9 +11,7 @@
 import { CheckCircle2, TriangleAlert } from "lucide-react";
 import type { FilaCobertura, PerfilInstitucional } from "../../dominio";
 import { fmtInt, fmtPct } from "../../sharedCore";
-import { CifraFila, CifraMotor } from "../../universidad/ui";
 import { BarrasFacultad } from "../componentes/BarrasFacultad";
-import { NotaPorQue } from "../componentes/NotaPorQue";
 
 export function TabCobertura({
   perfil,
@@ -28,7 +26,7 @@ export function TabCobertura({
       <div className="rec-cap">
         <p className="rec-chip-ilustrativo">
           La cobertura cruza población y marco: qué parte de los elegibles está matriculada en al
-          menos un aula incluida. Construye el marco desde tus fuentes (pestañas Población y Aulas) o
+          menos un curso-horario incluido. Construye el marco desde tus fuentes (pestañas Población y Cursos-horario) o
           usa el caso de ejemplo para verla.
         </p>
       </div>
@@ -42,37 +40,39 @@ export function TabCobertura({
   if (!medida) {
     return (
       <div className="rec-cap">
-        <CifraFila>
-          <CifraMotor
-            label="Población elegible"
-            value={fmtInt(cob.totalElegibles)}
-            detalle={`en ${fmtInt(unidades)} ${unidades === 1 ? "unidad" : "unidades"}`}
-            hero
-          />
-          {perfil.marcoAulas != null && (
-            <CifraMotor
-              label="Marco de aulas"
-              value={fmtInt(perfil.marcoAulas)}
-              detalle="aulas incluidas en el marco"
-            />
-          )}
-          <CifraMotor
-            label="Fracción alcanzable"
-            value="por medir"
-            detalle="requiere el cruce población × aulas por unidad"
-          />
-        </CifraFila>
-
-        <section className="rec-bloque">
-          <h3>Población elegible por {perfil.etiquetaUnidad}</h3>
-          <p className="rec-bloque-sub">
-            Elegibles de cada unidad tras aplicar los criterios. La <strong>fracción alcanzable</strong>{" "}
-            —los que están matriculados en al menos un aula del marco— se mide al cruzar población y
-            aulas; este proyecto aún no expone ese cruce por unidad, así que aquí ves la población
-            elegible que entra al reparto.
-          </p>
+        <section className="rec-bloque rec-cobertura">
+          <header className="rec-cobertura-cabecera">
+            <div>
+              <h3>Población elegible por {perfil.etiquetaUnidad}</h3>
+              <p>
+                Distribución que entra al reparto. La fracción alcanzable se completa al cruzar
+                estudiantes con los cursos-horario del marco.
+              </p>
+            </div>
+            <dl className="rec-cobertura-resumen">
+              <div>
+                <dt>Elegibles</dt>
+                <dd>{fmtInt(cob.totalElegibles)}</dd>
+              </div>
+              <div>
+                <dt>{unidades === 1 ? "Unidad" : "Unidades"}</dt>
+                <dd>{fmtInt(unidades)}</dd>
+              </div>
+              {perfil.marcoAulas != null && (
+                <div>
+                  <dt>Cursos-horario</dt>
+                  <dd>{fmtInt(perfil.marcoAulas)}</dd>
+                </div>
+              )}
+              <div data-pendiente>
+                <dt>Alcanzables</dt>
+                <dd>Por medir</dd>
+              </div>
+            </dl>
+          </header>
           <BarrasFacultad
             ariaLabel={`Población elegible por ${perfil.etiquetaUnidad}`}
+            variante="cobertura"
             filas={[...cob.filas]
               .sort((a, b) => b.elegibles - a.elegibles)
               .map((fila) => ({
@@ -83,13 +83,6 @@ export function TabCobertura({
               }))}
           />
         </section>
-
-        <NotaPorQue pregunta="¿Cómo se mide la fracción alcanzable?">
-          Se cruza cada estudiante elegible con las aulas incluidas en el marco: quien no aparece en
-          ninguna aula del marco no es alcanzable en campo, aunque cuente para N. Ese cruce por unidad
-          lo produce el motor al construir el marco con población y catálogo de aulas relacionados; el
-          caso de ejemplo ya lo trae medido.
-        </NotaPorQue>
       </div>
     );
   }
@@ -100,35 +93,34 @@ export function TabCobertura({
 
   return (
     <div className="rec-cap">
-      <CifraFila>
-        <CifraMotor
-          label="Cobertura del marco"
-          value={fmtPct(cob.pctGlobal)}
-          detalle={`${fmtInt(totalAlcanzables)} de ${fmtInt(cob.totalElegibles)} elegibles alcanzables`}
-          hero
-          tono="ok"
-        />
-        <CifraMotor
-          label="No alcanzables"
-          value={fmtInt(noAlcanzables)}
-          detalle="solo aparecen en aulas excluidas del marco"
-        />
-        <CifraMotor
-          label="Factibilidad"
-          value={`${cob.filas.filter((f) => f.factible === true).length} / ${cob.filas.length}`}
-          detalle="unidades con alcanzables ≥ sobremuestra"
-          tono={cob.filas.every((f) => f.factible !== false) ? "ok" : "alerta"}
-        />
-      </CifraFila>
-
-      <section className="rec-bloque">
-        <h3>Elegibles y alcanzables por {perfil.etiquetaUnidad}</h3>
-        <p className="rec-bloque-sub">
-          Barra completa: elegibles. Franja sólida: alcanzables por el marco. A la derecha, la
-          prueba de factibilidad frente a la sobremuestra de cada unidad.
-        </p>
+      <section className="rec-bloque rec-cobertura">
+        <header className="rec-cobertura-cabecera">
+          <div>
+            <h3>Elegibles y alcanzables por {perfil.etiquetaUnidad}</h3>
+            <p>La franja sólida muestra los alcanzables; el estado final contrasta su sobremuestra.</p>
+          </div>
+          <dl className="rec-cobertura-resumen">
+            <div>
+              <dt>Cobertura</dt>
+              <dd>{fmtPct(cob.pctGlobal)}</dd>
+            </div>
+            <div>
+              <dt>Alcanzables</dt>
+              <dd>{fmtInt(totalAlcanzables)}</dd>
+            </div>
+            <div>
+              <dt>No alcanzables</dt>
+              <dd>{fmtInt(noAlcanzables)}</dd>
+            </div>
+            <div data-alerta={cob.filas.some((fila) => fila.factible === false) || undefined}>
+              <dt>Unidades factibles</dt>
+              <dd>{cob.filas.filter((f) => f.factible === true).length} / {cob.filas.length}</dd>
+            </div>
+          </dl>
+        </header>
         <BarrasFacultad
           ariaLabel={`Cobertura por ${perfil.etiquetaUnidad}`}
+          variante="cobertura"
           filas={[...cob.filas]
             .sort((a, b) => b.elegibles - a.elegibles)
             .map((fila) => ({
@@ -150,12 +142,6 @@ export function TabCobertura({
             }))}
         />
       </section>
-
-      <NotaPorQue pregunta="Lectura de la factibilidad">
-        Una cobertura global alta no basta: cada unidad debe conservar población alcanzable
-        suficiente para llenar su sobremuestra. Si una unidad no llega, el diseño requiere ajustar
-        criterios del marco o el reparto antes de ir a campo.
-      </NotaPorQue>
     </div>
   );
 }

@@ -4,7 +4,7 @@
  * defecto; horizontal para cadenas compactas (cuota → titulares → reservas).
  * Cada etapa puede navegar (onEtapaClick) y declarar su estado.
  */
-import { Fragment } from "react";
+import { Fragment, type CSSProperties } from "react";
 import { useValorSwap } from "./useValorSwap";
 import "./ui.css";
 
@@ -35,13 +35,20 @@ export function FlujoVertical({
   ariaLabel,
 }: {
   etapas: FlujoEtapa[];
-  orientacion?: "vertical" | "horizontal";
+  orientacion?: "vertical" | "horizontal" | "adaptive";
   onEtapaClick?: (id: string) => void;
   ariaLabel?: string;
 }) {
   const Etapa = onEtapaClick ? "button" : "div";
   return (
-    <div className="cmv2-uni-flujo" data-orientacion={orientacion} role="list" aria-label={ariaLabel}>
+    <div
+      className="cmv2-uni-flujo"
+      data-orientacion={orientacion}
+      data-etapas={etapas.length}
+      style={{ "--cmv2-flujo-columnas": Math.min(etapas.length, 6) } as CSSProperties}
+      role="list"
+      aria-label={ariaLabel}
+    >
       {etapas.map((etapa, i) => (
         <Fragment key={etapa.id}>
           {i > 0 && (
@@ -57,6 +64,7 @@ export function FlujoVertical({
           <Etapa
             type={onEtapaClick ? "button" : undefined}
             className="cmv2-uni-flujo-etapa"
+            style={{ "--cmv2-flujo-index": i } as CSSProperties}
             data-estado={etapa.estado ?? "pending"}
             role="listitem"
             onClick={onEtapaClick ? () => onEtapaClick(etapa.id) : undefined}
@@ -65,6 +73,11 @@ export function FlujoVertical({
             <span className="cmv2-uni-flujo-copy">
               <span className="cmv2-uni-flujo-label">{etapa.label}</span>
               {etapa.valor != null && <ValorEtapa valor={etapa.valor} />}
+              {orientacion === "adaptive" && i > 0 && etapas[i - 1].merma && (
+                <span className="cmv2-uni-flujo-merma-inline">
+                  −{etapas[i - 1].merma!.n.toLocaleString("es-PE")} {etapas[i - 1].merma!.label}
+                </span>
+              )}
               {etapa.detalle && <span className="cmv2-uni-flujo-detalle">{etapa.detalle}</span>}
             </span>
           </Etapa>

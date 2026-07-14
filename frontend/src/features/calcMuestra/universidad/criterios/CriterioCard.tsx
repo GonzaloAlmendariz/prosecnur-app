@@ -9,10 +9,10 @@ import type {
   CriterioVariable,
   CriteriosSeleccionMarco,
 } from "../../../../api/client";
-import { rationaleParaCriterio, resumenVariable, seleccionVariable, unidadCriterio } from "../../dominio";
+import { IconConfirm, IconSuccess, IconUndo } from "../../../../lib/icons";
+import { resumenVariable, seleccionVariable, unidadCriterio } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
 import { ControlFlat, ControlHierarchical, ControlNumeric, ControlOrdinal } from "./controles";
-import { CriterioPorQue } from "./CriterioPorQue";
 import { ControlRange, ExcepcionesFacultad, type FacultadRef } from "./facultades";
 
 /** Conteo/resumen textual de la selección de la variable. */
@@ -62,6 +62,9 @@ export function CriterioCard({
   facultades,
   onSel,
   onRango,
+  pendiente,
+  onConfirmar,
+  onDescartar,
 }: {
   variable: CriterioVariable;
   seleccion: CriteriosSeleccionMarco;
@@ -70,10 +73,15 @@ export function CriterioCard({
   onSel: (next: CriterioSeleccion) => void;
   /** Fija los rangos de nivel de una facultad (variable range). */
   onRango: (facultad: string, rangos: Array<[number, number]>) => void;
+  /** La tarjeta contiene ediciones locales que aún no pertenecen al proyecto. */
+  pendiente: boolean;
+  /** Confirma exclusivamente esta variable. */
+  onConfirmar: () => void;
+  /** Recupera exclusivamente el último valor confirmado de esta variable. */
+  onDescartar: () => void;
 }) {
   const sel = seleccionVariable(seleccion, variable.id);
   const mapeada = Boolean(variable.mappedColumn);
-  const rationale = rationaleParaCriterio(variable.id, variable.scope);
   // Listas planas largas (facultad, condición, tipo de sesión) crecen en una
   // sola columna: se marcan `data-long` para que la tarjeta ocupe más ancho y
   // la lista fluya en varias columnas (ver criterios.css).
@@ -85,21 +93,28 @@ export function CriterioCard({
       data-scope={variable.scope}
       data-kind={variable.kind}
       data-long={longList ? "true" : undefined}
+      data-pending={pendiente ? "true" : "false"}
     >
       <header className="cmv2-crit-card-head">
         <div className="cmv2-crit-card-title">
           <strong>{variable.label}</strong>
           {variable.estratifica ? <span className="cmv2-crit-badge">estratifica</span> : null}
+          <span className="cmv2-crit-card-meta">
+            {mapeada ? (
+              <span className="cmv2-crit-col">columna: <code>{variable.mappedColumn}</code></span>
+            ) : (
+              <span className="cmv2-crit-col cmv2-crit-col-warn">variable sin columna mapeada</span>
+            )}
+          </span>
         </div>
-        <ResumenCabecera variable={variable} seleccion={seleccion} />
+        <div className="cmv2-crit-card-state">
+          <ResumenCabecera variable={variable} seleccion={seleccion} />
+          <span className="cmv2-crit-state" data-state={pendiente ? "pending" : "confirmed"}>
+            {pendiente ? <span className="cmv2-crit-state-dot" aria-hidden="true" /> : <IconSuccess size={13} aria-hidden="true" />}
+            {pendiente ? "Cambios sin confirmar" : "Confirmado"}
+          </span>
+        </div>
       </header>
-      <div className="cmv2-crit-card-meta">
-        {mapeada ? (
-          <span className="cmv2-crit-col">columna: <code>{variable.mappedColumn}</code></span>
-        ) : (
-          <span className="cmv2-crit-col cmv2-crit-col-warn">variable sin columna mapeada</span>
-        )}
-      </div>
 
       <div className="cmv2-crit-card-body">
         {variable.kind === "flat" && <ControlFlat variable={variable} sel={sel} onSel={onSel} />}
@@ -117,7 +132,24 @@ export function CriterioCard({
         <ExcepcionesFacultad variable={variable} sel={sel} facultades={facultades} onSel={onSel} />
       )}
 
-      {rationale && <CriterioPorQue rationale={rationale} />}
+      {pendiente ? (
+        <div className="cmv2-crit-confirm" role="status" aria-live="polite">
+          <div className="cmv2-crit-confirm-copy">
+            <strong>Revisa esta variable antes de incorporarla.</strong>
+            <span>Las demás variables y el marco reconstruido no cambian todavía.</span>
+          </div>
+          <div className="cmv2-crit-confirm-actions">
+            <button type="button" className="cmv2-crit-discard-btn" onClick={onDescartar}>
+              <IconUndo size={14} aria-hidden="true" />
+              Descartar
+            </button>
+            <button type="button" className="cmv2-crit-confirm-btn" onClick={onConfirmar}>
+              <IconConfirm size={14} aria-hidden="true" />
+              Confirmar {variable.label.toLocaleLowerCase("es")}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }

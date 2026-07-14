@@ -59,7 +59,7 @@ export function AulaInspectorPanel({
     <aside
       className="cmv2-aulas-inspector"
       role="complementary"
-      aria-label={`Detalle del aula ${model.code}`}
+      aria-label={`Detalle del curso-horario ${model.code}`}
     >
       <header className="cmv2-aulas-inspector-head">
         <div className="cmv2-aulas-inspector-titulo">
@@ -70,7 +70,7 @@ export function AulaInspectorPanel({
         <button
           type="button"
           className="cmv2-aulas-inspector-cerrar"
-          aria-label="Cerrar inspector de aula"
+          aria-label="Cerrar inspector de curso-horario"
           onClick={onClose}
         >
           <X size={14} />
@@ -78,7 +78,7 @@ export function AulaInspectorPanel({
       </header>
 
       <div className="cmv2-aulas-inspector-body">
-        <section aria-label="Identidad del aula">
+        <section aria-label="Identidad del curso-horario">
           <span className="cmv2-aulas-inspector-eyebrow">Identidad</span>
           {identidad.map((item) => (
             <DatoFila key={item.label} label={item.label} value={item.value} />
@@ -111,7 +111,7 @@ export function AulaInspectorPanel({
           )}
         </section>
 
-        <section aria-label="Plan B del aula">
+        <section aria-label="Plan B del curso-horario">
           <span className="cmv2-aulas-inspector-eyebrow">Plan B</span>
           {model.rol === "reemplazo" && model.titular && (
             <button
@@ -139,7 +139,7 @@ export function AulaInspectorPanel({
                   >
                     <b>{eslabon.code}</b>
                     <span>{eslabon.label}</span>
-                    <small>{eslabon.equivalencia}{eslabon.activo ? " · esta aula" : ""}</small>
+                    <small>{eslabon.equivalencia}{eslabon.activo ? " · este curso-horario" : ""}</small>
                   </button>
                 </li>
               ))}
@@ -153,12 +153,12 @@ export function AulaInspectorPanel({
           ) : null}
         </section>
 
-        <section aria-label="Composición del aula">
+        <section aria-label="Composición del curso-horario">
           <span className="cmv2-aulas-inspector-eyebrow">Composición</span>
           <DatoFila label="Elegibles" value={model.elegiblesText} />
           <DatoFila label="Matriculados" value={model.matriculadosText} />
           {model.unicosText && <DatoFila label="Únicos aportados" value={model.unicosText} />}
-          <DatoFila label="Repetidos con otras aulas" value={model.repetidosText} />
+          <DatoFila label="Repetidos con otros cursos-horario" value={model.repetidosText} />
         </section>
 
         <footer className="cmv2-aulas-inspector-procedencia">

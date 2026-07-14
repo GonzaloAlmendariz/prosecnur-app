@@ -12,7 +12,7 @@ import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
 import { CadenasReemplazoVisual } from "../../didactica/CadenasReemplazoVisual";
 import { fmtInt, fmtRatio } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
-import { CifraFila, CifraMotor, FlujoVertical, TerminoChip, type FlujoEtapa } from "../ui";
+import { CifraFila, CifraMotor, FlujoVertical, type FlujoEtapa } from "../ui";
 import {
   ClassroomEmptyState,
   ClassroomLabCommandBar,
@@ -39,8 +39,7 @@ function ReserveDepthHeader({ model }: { model: ClassroomLabModel }) {
   return (
     <section className="cmv2-panel cmv2-aulas-panel" aria-label="Profundidad de reservas por celda">
       <div className="cmv2-subhead">
-        <span className="cmv2-eyebrow">¿Alcanzan las reservas?</span>
-        <strong>Profundidad de reemplazos por celda del diseño</strong>
+        <strong>Profundidad de reemplazos por celda</strong>
       </div>
       <CifraFila>
         <CifraMotor
@@ -92,17 +91,16 @@ function WavesTimeline({ model }: { model: ClassroomLabModel }) {
   const etapas: FlujoEtapa[] = orden.map((wave, index) => ({
     id: wave,
     label: wave.toLowerCase().startsWith("extra") ? "Extra" : wave,
-    valor: `${fmtInt(totals.get(wave) ?? 0)} aulas`,
+    valor: `${fmtInt(totals.get(wave) ?? 0)} cursos-horario`,
     detalle: index === 0 ? "titulares" : wave.toLowerCase().startsWith("extra") ? "reserva suelta" : `ola ${fmtInt(index)} de reemplazo`,
     estado: index === 0 ? "ready" : "working",
   }));
   return (
     <div className="cmv2-aulas-olas" aria-label="Olas del plan de reemplazos">
       <div className="cmv2-subhead">
-        <span className="cmv2-eyebrow">Olas del plan</span>
-        <strong>Qué se activa primero si el campo se complica</strong>
+        <strong>Olas del plan</strong>
       </div>
-      <FlujoVertical etapas={etapas} orientacion="horizontal" ariaLabel="Olas M1 a Extra con aulas por ola" />
+      <FlujoVertical etapas={etapas} orientacion="horizontal" ariaLabel="Olas M1 a Extra con cursos-horario por ola" />
     </div>
   );
 }
@@ -143,10 +141,7 @@ export function AulasReemplazosTab({
       <div className="cmv2-classroom-lab-grid cmv2-classroom-lab-grid--routes">
         <div className="cmv2-classroom-lab-main">
           <div className="cmv2-subhead">
-            <span className="cmv2-eyebrow">Reemplazos</span>
-            <strong>
-              <TerminoChip termino="reemplazo (M1">Reemplazos</TerminoChip> equivalentes y efecto esperado
-            </strong>
+            <strong>Efecto esperado de los reemplazos</strong>
           </div>
           <WavesTimeline model={model} />
           {selectionReady && (

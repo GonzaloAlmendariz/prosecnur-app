@@ -89,6 +89,9 @@
       ),
       teacher_type = list(mode = "include", match = "any",
                           categories = list("docente_contratado", "docente_ordinario")),
+      # Criterio administrativo independiente: matrícula declarada >= 10.
+      # minEligible (abajo) conserva otra semántica: alumnos elegibles reales.
+      enrolled_total = list(mode = "include", threshold = list(op = ">=", min = 10)),
       # Criterio de alumno: formación pregrado en capa "marco" (reduce N).
       formation = list(mode = "include", categories = list("pregrado"), layer = "marco"),
       # Criterio de alumno: ciclo desde 2 en adelante; su CAPA es el parámetro
@@ -194,7 +197,7 @@ test_that("selección canónica reproduce el marco esperado del fixture (3 aulas
   #   A6  cae por docente (solo extraordinario-visitante)
   #   A7  cae por nivel del curso (2 ∉ [5,10] de Ingeniería)
   #   A8  cae por nivel (Consorcio no está en el mapa → fuera)
-  #   A9  cae por matriculados (5 < 10)
+  #   A9  cae por el criterio independiente Matriculados / población (5 < 10)
   #   A10 PASA (laboratorio ∈ set; EDU nivel 3 ∈ [2,10]; contratado; matric 15)
   #   A11 cae: todos maestría → 0 elegibles (criterio de alumno 'formation' marco)
   #   A12 PASA (teorico, ordinario, EDU nivel 4; sus alumnos son ciclo 1 pero el
@@ -216,7 +219,7 @@ test_that("selección canónica reproduce el marco esperado del fixture (3 aulas
   expect_true(grepl("teacher_type", razon[["A6"]]))
   expect_true(grepl("course_level", razon[["A7"]]))
   expect_true(grepl("course_level", razon[["A8"]]))
-  expect_true(grepl("min_eligible", razon[["A9"]]))
+  expect_true(grepl("enrolled_total", razon[["A9"]]))
 })
 
 test_that("capa del ciclo: 'marco' recorta A12, 'instrumento' no", {

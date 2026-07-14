@@ -302,10 +302,41 @@ calc_muestra_aulas_perfil <- function(ctx) {
   # a los filtros ACUMULADOS hasta ese paso, así el último siempre calza con
   # marco_aulas.
   crit <- .cm_perfil_criterios(ctx$criterios, aula_frame, incluida)
+  seleccion_activa <- .cm_criterios_seleccion_activa((ctx$cfg %||% list())$criterios_seleccion)
   pct7 <- .cm_aulas_num(filters$min_prevalence_pct, 0.80)
   pct8 <- .cm_aulas_num(filters$min_cycle_homogeneity_pct, 0.80)
   keep_aula <- eligible_student & nzchar(classroom_id)
   pasos_aula <- list(list(id = "total", label = "Curso-horario únicos", conteo = aulas_totales))
+  if (seleccion_activa && is.list((ctx$criterios %||% list())$seleccion_aula)) {
+    pasos_seleccion <- ctx$criterios$seleccion_aula$pasos %||% list()
+    en_paso <- rep(TRUE, nrow(aula_frame))
+    for (paso in pasos_seleccion) {
+      flag <- paso$flag %||% rep(TRUE, nrow(aula_frame))
+      flag <- as.logical(flag)
+      if (length(flag) != nrow(aula_frame)) flag <- rep(TRUE, nrow(aula_frame))
+      flag[is.na(flag)] <- TRUE
+      en_paso <- en_paso & flag
+      pasos_aula <- c(pasos_aula, list(list(
+        id = paso$id,
+        label = paso$label,
+        conteo = sum(en_paso)
+      )))
+    }
+    agregar_adicional <- function(id, label, flag) {
+      en_paso <<- en_paso & flag
+      pasos_aula <<- c(pasos_aula, list(list(id = id, label = label, conteo = sum(en_paso))))
+    }
+    if (crit$aplica$c7) {
+      agregar_adicional(
+        "c7", sprintf("c7 · Prevalencia ≥ %d%%", as.integer(round(pct7 * 100))), crit$c7_ok
+      )
+    }
+    if (crit$aplica$c8) {
+      agregar_adicional(
+        "c8", sprintf("c8 · Homogeneidad de ciclo ≥ %d%%", as.integer(round(pct8 * 100))), crit$c8_ok
+      )
+    }
+  } else {
   if (aplica_presencial) {
     pasos_aula <- c(pasos_aula, list(list(
       id = "presencial", label = "Solo presencial",
@@ -363,6 +394,7 @@ calc_muestra_aulas_perfil <- function(ctx) {
       label = sprintf("c8 · Homogeneidad de ciclo ≥ %d%%", as.integer(round(pct8 * 100))),
       conteo = sum(en_paso)
     )))
+  }
   }
 
   # Alcanzables: estudiantes con >= 1 fila eligible_row cuya aula quedó en el

@@ -46,10 +46,7 @@ export function SalidasResultadosTab({
 
       <section className="cmv2-panel cmv2-sal-panel cmv2-university-results" aria-label="Tablas de cierre por componente">
         <div className="cmv2-panel-head">
-          <div>
-            <span className="cmv2-eyebrow">Resultados</span>
-            <strong>Tablas de salida para el reporte</strong>
-          </div>
+          <strong>Tablas de salida</strong>
         </div>
         <div className="cmv2-results-stack">
           {componentes.map((comp) => {

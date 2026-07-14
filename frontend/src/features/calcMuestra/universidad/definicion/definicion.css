@@ -4,15 +4,6 @@
    Las primitivas (flujo, chips de término, cifras) viven en ../ui/ui.css.
    ============================================================================= */
 
-/* --- Intro corta con término del glosario ---------------------------------- */
-.cmv2-defi-intro {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.55;
-  color: var(--pulso-text-muted);
-  max-width: 72ch;
-}
-
 /* --- Ritmo de los paneles principales de la sección --------------------------
    Los cuatro paneles raíz de Definición respiran con padding de nivel panel
    (dirección §2) y un flujo vertical propio: el espacio ENTRE bloques de tema

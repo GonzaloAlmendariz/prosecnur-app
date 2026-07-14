@@ -1,7 +1,7 @@
 /**
  * Pestaña "Consistencia" de Marco (id local marco-validacion). Reconstruye el
  * antiguo UniversityFrameValidationPanel: gauge del match base-catálogo con
- * umbrales semánticos, diagrama de dos conjuntos (emparejadas / solo base /
+ * umbrales semánticos, reconciliación cuantitativa (emparejados / solo base /
  * solo catálogo), hallazgos con severidad y acción sugerida, y ejemplos para
  * revisar. Con una sola base se auto-simplifica: no hay catálogo que validar.
  */
@@ -24,7 +24,6 @@ import { frameAuditNumber } from "../shared/frame";
 import { CifraMotor } from "../ui";
 import {
   frameRelationAudit,
-  frameStatusLabel,
   recordNumber,
   recordStringList,
 } from "./marcoCharts";
@@ -38,8 +37,8 @@ const MARCO_ISSUE_ACTIONS: Record<string, string> = {
   catalogo_llaves_duplicadas: "Depura las filas repetidas del catálogo o acepta el valor modal que la calculadora ya aplica.",
   sin_empate_catalogo: "Confirma que ambas hojas usan la misma llave de curso-horario y vuelve a construir el marco.",
   empate_bajo_catalogo: "Busca diferencias de mayúsculas, tildes o códigos en la llave común antes de recalcular.",
-  aulas_base_sin_catalogo: "Revisa si a esas aulas les falta docente, aula u horario, o confírmalas como aulas sin ficha.",
-  catalogo_fuera_de_base: "No bloquea: esas aulas quedan como contexto. Verifica que no falte población en la base.",
+  aulas_base_sin_catalogo: "Revisa si a esos cursos-horario les falta docente, salón u horario, o confírmalos como cursos-horario sin ficha.",
+  catalogo_fuera_de_base: "No bloquea: esos cursos-horario quedan como contexto. Verifica que no falte población en la base.",
   catalogo_sin_docente: "Asigna la columna Docente/contacto en Definición → Variables para preparar la agenda.",
 };
 
@@ -47,19 +46,16 @@ function issueAction(code: string) {
   return MARCO_ISSUE_ACTIONS[code] ?? "Revisa la relación entre bases en Definición → Bases y reconstruye el marco.";
 }
 
-/**
- * Advertencias conocidas del motor R que llegan sin tildes; se corrigen solo
- * en la presentación (el dato del motor no se altera).
- */
-const MOTOR_WARNING_FIXES: Record<string, string> = {
-  "La validacion entre base principal y catalogo curso-horario tiene problemas criticos.":
-    "La validación entre base principal y catálogo curso-horario tiene problemas críticos.",
-  "La validacion entre base principal y catalogo curso-horario requiere revision.":
-    "La validación entre base principal y catálogo curso-horario requiere revisión.",
-};
-
-function warningText(warning: string) {
-  return MOTOR_WARNING_FIXES[warning] ?? warning;
+/** Normaliza terminología heredada solo en presentación; no altera el motor. */
+function courseScheduleText(value: string) {
+  return value
+    .replace(/\b1\s+(?:aulas?|curso-horario\/aulas?)\b/gi, "1 curso-horario")
+    .replace(/\b(\d[\d.,]*)\s+(?:aulas?|curso-horario\/aulas?)\b/gi, "$1 cursos-horario")
+    .replace(/\bde las aulas\b/gi, "de los cursos-horario")
+    .replace(/\b(?:las|unas|estas|esas) aulas\b/gi, "los cursos-horario")
+    .replace(/\b(?:la|una|esta|esa) aula\b/gi, "el curso-horario")
+    .replace(/\baulas\b/gi, "cursos-horario")
+    .replace(/\baula\b/gi, "curso-horario");
 }
 
 function matchTone(rate: number) {
@@ -89,40 +85,40 @@ function MatchGauge({ rate }: { rate: number }) {
   );
 }
 
-/** Dos conjuntos: aulas de la base y del catálogo con su intersección. */
-function RelationSets({
+/** Reconciliación legible de las tres salidas de la unión curso + horario. */
+function RelationSummary({
   matched,
   baseOnly,
   catalogOnly,
+  matchRate,
 }: {
   matched: number;
   baseOnly: number;
   catalogOnly: number;
+  matchRate: number;
 }) {
-  const baseTotal = matched + baseOnly;
-  const catalogTotal = matched + catalogOnly;
-  const max = Math.max(baseTotal, catalogTotal, 1);
-  const rBase = 34 + 26 * Math.sqrt(baseTotal / max);
-  const rCat = 34 + 26 * Math.sqrt(catalogTotal / max);
-  const overlapShare = Math.max(0.08, Math.min(0.92, matched / Math.max(1, Math.min(baseTotal, catalogTotal))));
-  const distance = (rBase + rCat) * (1 - 0.55 * overlapShare);
-  const cxBase = 170 - distance / 2;
-  const cxCat = 170 + distance / 2;
   return (
-    <figure className="cmv2-marco-venn" aria-label={`Aulas emparejadas: ${fmtInt(matched)}; solo en la base: ${fmtInt(baseOnly)}; solo en el catálogo: ${fmtInt(catalogOnly)}`}>
-      <svg viewBox="0 0 340 170" role="presentation" focusable="false">
-        <circle className="cmv2-marco-venn-base" cx={cxBase} cy={85} r={rBase} />
-        <circle className="cmv2-marco-venn-cat" cx={cxCat} cy={85} r={rCat} />
-        <text className="cmv2-marco-venn-n" x={cxBase - rBase * 0.45} y={85} textAnchor="middle">{fmtInt(baseOnly)}</text>
-        <text className="cmv2-marco-venn-n is-matched" x={170} y={85} textAnchor="middle">{fmtInt(matched)}</text>
-        <text className="cmv2-marco-venn-n" x={cxCat + rCat * 0.45} y={85} textAnchor="middle">{fmtInt(catalogOnly)}</text>
-      </svg>
-      <figcaption>
-        <span data-set="base"><i />Solo base principal · {fmtInt(baseOnly)}</span>
-        <span data-set="match"><i />Emparejadas · {fmtInt(matched)}</span>
-        <span data-set="cat"><i />Solo catálogo · {fmtInt(catalogOnly)}</span>
-      </figcaption>
-    </figure>
+    <div
+      className="cmv2-marco-reconciliation"
+      role="group"
+      aria-label={`Cursos-horario emparejados: ${fmtInt(matched)}; solo en la base: ${fmtInt(baseOnly)}; solo en el catálogo: ${fmtInt(catalogOnly)}`}
+    >
+      <article data-kind="base">
+        <small>Solo base principal</small>
+        <strong>{fmtInt(baseOnly)}</strong>
+        <span>sin ficha equivalente en el catálogo</span>
+      </article>
+      <article data-kind="matched">
+        <small>Emparejados</small>
+        <strong>{fmtInt(matched)}</strong>
+        <span>{Number.isFinite(matchRate) ? `${fmtPct(matchRate)} de la base principal` : "unidos por curso + horario"}</span>
+      </article>
+      <article data-kind="catalog">
+        <small>Solo catálogo</small>
+        <strong>{fmtInt(catalogOnly)}</strong>
+        <span>sin matrícula equivalente en la base</span>
+      </article>
+    </div>
   );
 }
 
@@ -171,30 +167,37 @@ export function MarcoConsistenciaTab({
     };
   });
   const singleSource = sourceMode === "base_madre" || (Boolean(frame) && !relationUsed);
+  const hasReview = issues.length > 0 || warnings.length > 0 || ["revisar", "critico"].includes(status);
+  const relationState = Number.isFinite(matchRate) && matchRate >= 0.9
+    ? hasReview
+      ? "Coincidencia sólida; hay calidad del catálogo por revisar"
+      : "Coincidencia sólida y catálogo consistente"
+    : Number.isFinite(matchRate)
+      ? "La coincidencia requiere revisión antes del sorteo"
+      : "Falta una llave común verificable";
 
   return (
     <div className="cmv2-marco-stack">
       <section className="cmv2-panel cmv2-marco-consistencia">
-        <div className="cmv2-panel-head">
-          <div>
-            <span className="cmv2-eyebrow">Consistencia entre bases</span>
-            <strong>Comprueba que las bases se puedan relacionar antes de calcular</strong>
-          </div>
-          <span className={`cmv2-frame-status-badge is-${singleSource && frame ? "ok" : status}`}>
-            {frame ? (singleSource ? "una sola base" : frameStatusLabel(status)) : "pendiente"}
-          </span>
-        </div>
-
-        <div className="cmv2-frame-source-grid">
-          {sourceCards.map((card) => (
-            <article key={card.label} className={card.ready ? "is-ready" : card.review ? "is-review" : "is-pending"}>
-              <span>{card.ready ? <CheckCircle2 size={14} /> : <Database size={14} />}</span>
-              <div>
-                <small>{card.label}</small>
-                <strong>{card.value}</strong>
-                <em>{card.detail}</em>
-              </div>
-            </article>
+        <div className="cmv2-frame-source-relation">
+          {sourceCards.map((card, index) => (
+            <div className="cmv2-frame-source-node" key={card.label}>
+              <article className={card.ready ? "is-ready" : card.review ? "is-review" : "is-pending"}>
+                <span>{card.ready ? <CheckCircle2 size={14} /> : <Database size={14} />}</span>
+                <div>
+                  <small>{card.label}</small>
+                  <strong>{card.value}</strong>
+                  <em>{card.detail}</em>
+                </div>
+              </article>
+              {index === 0 && sourceCards.length > 1 && (
+                <div className="cmv2-frame-join-key" aria-label="Llave de unión: curso más horario">
+                  <Link2 size={15} aria-hidden="true" />
+                  <span>Llave de unión</span>
+                  <strong>Curso + horario</strong>
+                </div>
+              )}
+            </div>
           ))}
         </div>
 
@@ -218,16 +221,19 @@ export function MarcoConsistenciaTab({
             <div className="cmv2-marco-match-layout">
               <div className="cmv2-marco-match-gauge">
                 <CifraMotor
-                  label="Coincidencia base-catálogo"
+                  label="Coincidencia por curso + horario"
                   value={Number.isFinite(matchRate) ? fmtPct(matchRate) : "sin llave"}
-                  detalle={baseClassrooms > 0 ? `${fmtInt(matched)} de ${fmtInt(baseClassrooms)} aulas de la base emparejadas` : "aulas de la base encontradas en el catálogo"}
+                  detalle={baseClassrooms > 0 ? `${fmtInt(matched)} de ${fmtInt(baseClassrooms)} cursos-horario de la base emparejados` : "cursos-horario de la base encontrados en el catálogo"}
                   origen={Number.isFinite(matchRate) ? "motor" : undefined}
                   hero
                   tono={matchTone(matchRate) === "ok" ? "ok" : Number.isFinite(matchRate) ? "alerta" : undefined}
                 />
                 <MatchGauge rate={matchRate} />
+                <p className={`cmv2-marco-relation-state is-${hasReview ? "review" : "ok"}`}>
+                  {relationState}
+                </p>
               </div>
-              <RelationSets matched={matched} baseOnly={baseOnly} catalogOnly={catalogOnly} />
+              <RelationSummary matched={matched} baseOnly={baseOnly} catalogOnly={catalogOnly} matchRate={matchRate} />
             </div>
 
             <div className="cmv2-frame-issue-layout">
@@ -238,8 +244,8 @@ export function MarcoConsistenciaTab({
                   return (
                     <article key={`${code}-${classroomRowText(issue, ["title"])}`} className={`is-${classroomRowText(issue, ["severity"]) || "media"}`}>
                       <small>{classroomRowText(issue, ["severity"]) || "revisar"}</small>
-                      <strong>{classroomRowText(issue, ["title"])}</strong>
-                      <span>{classroomRowText(issue, ["detail"])}</span>
+                      <strong>{courseScheduleText(classroomRowText(issue, ["title"]))}</strong>
+                      <span>{courseScheduleText(classroomRowText(issue, ["detail"]))}</span>
                       <em className="cmv2-marco-issue-accion">{issueAction(code)}</em>
                     </article>
                   );
@@ -261,11 +267,6 @@ export function MarcoConsistenciaTab({
           </>
         )}
 
-        {frame && warnings.length > 0 && (
-          <div className="cmv2-frame-warning-list">
-            {warnings.map((warning) => <span key={warning}>{warningText(warning)}</span>)}
-          </div>
-        )}
       </section>
     </div>
   );

@@ -164,14 +164,14 @@ export function SeleccionAulasVisual({
 
       <dl className="cmv2-did-kpis">
         <div className="cmv2-did-kpi" data-hero="true">
-          <dt>Aulas titulares</dt>
+          <dt>Cursos-horario titulares</dt>
           <dd>{modelo.titulares.toLocaleString("es-PE")}</dd>
           <span className="cmv2-did-kpi-hint">se visitan primero (M1)</span>
         </div>
         <div className="cmv2-did-kpi">
-          <dt>Aulas de reserva</dt>
+          <dt>Cursos-horario de reserva</dt>
           <dd>{modelo.reservas.toLocaleString("es-PE")}</dd>
-          <span className="cmv2-did-kpi-hint">entran solo si un aula titular cae</span>
+          <span className="cmv2-did-kpi-hint">entran solo si un curso-horario titular cae</span>
         </div>
         <div className="cmv2-did-kpi" data-tono={brechaEsperados ? "warn" : undefined}>
           <dt>Estudiantes esperados</dt>
@@ -181,7 +181,7 @@ export function SeleccionAulasVisual({
               ? brechaEsperados && coberturaEsperados != null
                 ? `objetivo del cálculo: ${objetivo.toLocaleString("es-PE")} · cubre ${fmtPct(coberturaEsperados)}`
                 : `objetivo del cálculo: ${objetivo.toLocaleString("es-PE")}`
-              : "según las aulas titulares"}
+              : "según los cursos-horario titulares"}
           </span>
         </div>
         <div className="cmv2-did-kpi" data-tono={facultadesIncompletas ? "warn" : undefined}>
@@ -195,19 +195,19 @@ export function SeleccionAulasVisual({
           </dd>
           <span className="cmv2-did-kpi-hint" data-tono={facultadesIncompletas ? "warn" : undefined}>
             {facultadesIncompletas
-              ? `${((totalFac ?? 0) - modelo.facultades).toLocaleString("es-PE")} sin aula titular`
-              : "con al menos un aula titular"}
+              ? `${((totalFac ?? 0) - modelo.facultades).toLocaleString("es-PE")} sin curso-horario titular`
+              : "con al menos un curso-horario titular"}
           </span>
         </div>
       </dl>
 
       <p className="cmv2-did-note">
         <Repeat size={12} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: 4 }} />
-        Ninguna de estas aulas se eligió "a dedo". La calculadora ordenó el marco y avanzó con un{" "}
-        <TerminoGlosario termino="salto k" /> — como contar "1 de cada k" en una fila — de modo que cada aula
+        Ninguno de estos cursos-horario se eligió "a dedo". La calculadora ordenó el marco y avanzó con un{" "}
+        <TerminoGlosario termino="salto k" /> — como contar "1 de cada k" en una fila — de modo que cada curso-horario
         entró con una <TerminoGlosario termino="pi (probabilidad">probabilidad de inclusión</TerminoGlosario>{" "}
         conocida antes del sorteo. Esa probabilidad registrada es lo que permite defender la muestra ante
-        cualquier auditoría: se puede reconstruir por qué salió cada aula y qué chance tenía cada una.
+        cualquier auditoría: se puede reconstruir por qué salió cada curso-horario y qué probabilidad tenía.
       </p>
 
       <div className="cmv2-did-aulas-fuentes">
@@ -216,7 +216,7 @@ export function SeleccionAulasVisual({
             <School size={11} aria-hidden="true" /> De dónde salen los pesos
           </small>
           <span>
-            Cada aula pesa 1/π: las aulas con menor probabilidad de salir sorteadas pesan más al
+            Cada curso-horario pesa 1/π: los cursos-horario con menor probabilidad de salir sorteados pesan más al
             expandir. El detalle técnico vive en Sustento técnico.
           </span>
         </div>

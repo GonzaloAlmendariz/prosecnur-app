@@ -41,7 +41,7 @@ const NODES: Array<{ key: MuestraFlowNodeKey; title: string; subtitle: string }>
   { key: "variables", title: "Mapear variables", subtitle: "qué columna es qué" },
   { key: "marco", title: "Construir marco", subtitle: "N poblacional real" },
   { key: "calcular", title: "Calcular", subtitle: "n y cuotas" },
-  { key: "aulas", title: "Seleccionar aulas", subtitle: "qué aulas visitar" },
+  { key: "aulas", title: "Seleccionar cursos-horario", subtitle: "qué cursos-horario visitar" },
 ];
 
 /** Microcopy de la arista que LLEGA al nodo i+1 (5 flechas). */
@@ -52,7 +52,7 @@ export function MuestraFlowDiagram({ highlight, estados, compacto }: MuestraFlow
     <div className="cmv2-muestra-flow" data-compacto={compacto || undefined}>
       <ol
         className="cmv2-muestra-flow-track"
-        aria-label="Recorrido de la muestra de aulas: definir el estudio, subir las bases, mapear variables, construir el marco, calcular n y seleccionar las aulas."
+        aria-label="Recorrido de la muestra de cursos-horario: definir el estudio, subir las bases, mapear variables, construir el marco, calcular n y seleccionar los cursos-horario."
       >
         {NODES.map((node, i) => {
           const state = node.key === highlight

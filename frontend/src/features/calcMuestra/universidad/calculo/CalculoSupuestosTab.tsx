@@ -1,7 +1,7 @@
 /**
  * Pestaña "Supuestos" de Cálculo (id calculo-ajustes). Cada supuesto es una
  * fila: control editable (mismo onComponente del desk), micro-visual que
- * enseña qué mueve, y popover "¿por qué importa?" con el sustento del viejo
+ * enseña qué mueve, y ayuda contextual con el sustento del viejo
  * AssumptionGuide. deff, tasa de rendimiento y sobremuestra se explican AQUÍ
  * (única explicación del recorrido); al editar con resultado calculado, el
  * desk anula el resultado y esta pestaña avisa que quedó desactualizado con
@@ -41,8 +41,28 @@ function confianzaDesdeZExacta(z: number) {
   return (lo + hi) / 2;
 }
 
+/** Decimales visibles en español; las expresiones KaTeX conservan punto. */
+function fmtDecimal(value: number | null | undefined, digits = 3) {
+  return fmtNum(value, digits).replace(".", ",");
+}
+
+function AmbitosSupuesto({
+  universidad,
+  facultades,
+}: {
+  universidad: string;
+  facultades: string;
+}) {
+  return (
+    <div className="cmv2-calc-ambitos" aria-label={`Universidad: ${universidad}. Facultades: ${facultades}.`}>
+      <span><i data-ambito="universidad" /> Universidad <strong>{universidad}</strong></span>
+      <span><i data-ambito="facultades" /> Facultades <strong>{facultades}</strong></span>
+    </div>
+  );
+}
+
 /** Micro-curva p·(1−p) con marcador en el p actual. */
-function CurvaP({ p }: { p: number }) {
+function CurvaP({ p, pFacultades }: { p: number; pFacultades: number }) {
   const puntos: string[] = [];
   for (let i = 0; i <= 40; i++) {
     const t = i / 40;
@@ -50,32 +70,44 @@ function CurvaP({ p }: { p: number }) {
   }
   const px = 8 + Math.min(Math.max(p, 0), 1) * 144;
   const py = 56 - 4 * p * (1 - p) * 42;
+  const pFac = Math.min(Math.max(pFacultades, 0), 1);
+  const pxFac = 8 + pFac * 144;
+  const pyFac = 56 - 4 * pFac * (1 - pFac) * 42;
   return (
-    <svg
-      className="cmv2-calc-svg"
-      viewBox="0 0 160 64"
-      role="img"
-      aria-label={`Curva de varianza p por (1 menos p) con marcador en p = ${fmtNum(p, 2)}`}
-    >
-      <line x1="8" y1="56" x2="152" y2="56" className="cmv2-calc-svg-eje" />
-      <line x1="80" y1="56" x2="80" y2="12" className="cmv2-calc-svg-guia" />
-      {/* pathLength=1 normaliza el trazo para el draw-in CSS de una sola vez */}
-      <polyline points={puntos.join(" ")} pathLength={1} className="cmv2-calc-svg-curva cmv2-calc-svg-draw" />
-      {/* El marcador vive en (0,0) y se posiciona con transform para que el
-          CSS lo deslice suave al cambiar p, en vez de saltar de cx a cx. */}
-      <circle
-        cx={0}
-        cy={0}
-        r="3.5"
-        className="cmv2-calc-svg-punto cmv2-calc-svg-punto-movil"
-        style={{ transform: `translate(${px.toFixed(1)}px, ${py.toFixed(1)}px)` }}
-      />
-    </svg>
+    <>
+      <AmbitosSupuesto universidad={`p = ${fmtDecimal(p, 2)}`} facultades={`p = ${fmtDecimal(pFacultades, 2)}`} />
+      <svg
+        className="cmv2-calc-svg"
+        viewBox="0 0 160 64"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label={`Curva de varianza. Universidad p igual a ${fmtDecimal(p, 2)}; facultades p igual a ${fmtDecimal(pFacultades, 2)}.`}
+      >
+        <line x1="8" y1="56" x2="152" y2="56" className="cmv2-calc-svg-eje" />
+        <line x1="80" y1="56" x2="80" y2="12" className="cmv2-calc-svg-guia" />
+        {/* pathLength=1 normaliza el trazo para el draw-in CSS de una sola vez */}
+        <polyline points={puntos.join(" ")} pathLength={1} className="cmv2-calc-svg-curva cmv2-calc-svg-draw" />
+        <circle
+          cx={0}
+          cy={0}
+          r="3.5"
+          className="cmv2-calc-svg-punto cmv2-calc-svg-punto-movil"
+          style={{ transform: `translate(${px.toFixed(1)}px, ${py.toFixed(1)}px)` }}
+        />
+        <circle
+          cx={0}
+          cy={0}
+          r="3.5"
+          className="cmv2-calc-svg-punto cmv2-calc-svg-punto-movil is-facultades"
+          style={{ transform: `translate(${pxFac.toFixed(1)}px, ${pyFac.toFixed(1)}px)` }}
+        />
+      </svg>
+    </>
   );
 }
 
 /** Mini-campana normal con el área central cubierta por ±z sombreada. */
-function CampanaZ({ z }: { z: number }) {
+function CampanaZ({ z, zFacultades }: { z: number; zFacultades: number }) {
   const X = (t: number) => 8 + ((t + 3.4) / 6.8) * 144;
   const Y = (t: number) => 58 - Math.exp((-t * t) / 2) * 46;
   const curva: string[] = [];
@@ -84,6 +116,7 @@ function CampanaZ({ z }: { z: number }) {
     curva.push(`${X(t).toFixed(1)},${Y(t).toFixed(1)}`);
   }
   const zc = Math.min(Math.max(Math.abs(z), 0.4), 3.3);
+  const zcFac = Math.min(Math.max(Math.abs(zFacultades), 0.4), 3.3);
   const area: string[] = [`${X(-zc).toFixed(1)},58.0`];
   for (let i = 0; i <= 40; i++) {
     const t = -zc + (i / 40) * 2 * zc;
@@ -91,18 +124,24 @@ function CampanaZ({ z }: { z: number }) {
   }
   area.push(`${X(zc).toFixed(1)},58.0`);
   return (
-    <svg
-      className="cmv2-calc-svg"
-      viewBox="0 0 160 64"
-      role="img"
-      aria-label={`Curva normal con z = ${fmtNum(z, 2)} marcado`}
-    >
-      <polygon points={area.join(" ")} className="cmv2-calc-svg-area cmv2-calc-svg-revela" />
-      <polyline points={curva.join(" ")} pathLength={1} className="cmv2-calc-svg-curva cmv2-calc-svg-draw" />
-      <line x1={X(-zc)} y1="58" x2={X(-zc)} y2={Y(-zc)} className="cmv2-calc-svg-marca cmv2-calc-svg-revela" />
-      <line x1={X(zc)} y1="58" x2={X(zc)} y2={Y(zc)} className="cmv2-calc-svg-marca cmv2-calc-svg-revela" />
-      <line x1="8" y1="58" x2="152" y2="58" className="cmv2-calc-svg-eje" />
-    </svg>
+    <>
+      <AmbitosSupuesto universidad={`z = ${fmtDecimal(z, 2)}`} facultades={`z = ${fmtDecimal(zFacultades, 2)}`} />
+      <svg
+        className="cmv2-calc-svg"
+        viewBox="0 0 160 64"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label={`Curva normal. Universidad z igual a ${fmtDecimal(z, 2)}; facultades z igual a ${fmtDecimal(zFacultades, 2)}.`}
+      >
+        <polygon points={area.join(" ")} className="cmv2-calc-svg-area cmv2-calc-svg-revela" />
+        <polyline points={curva.join(" ")} pathLength={1} className="cmv2-calc-svg-curva cmv2-calc-svg-draw" />
+        <line x1={X(-zcFac)} y1="58" x2={X(-zcFac)} y2={Y(-zcFac)} className="cmv2-calc-svg-marca cmv2-calc-svg-revela is-facultades" />
+        <line x1={X(zcFac)} y1="58" x2={X(zcFac)} y2={Y(zcFac)} className="cmv2-calc-svg-marca cmv2-calc-svg-revela is-facultades" />
+        <line x1={X(-zc)} y1="58" x2={X(-zc)} y2={Y(-zc)} className="cmv2-calc-svg-marca cmv2-calc-svg-revela" />
+        <line x1={X(zc)} y1="58" x2={X(zc)} y2={Y(zc)} className="cmv2-calc-svg-marca cmv2-calc-svg-revela" />
+        <line x1="8" y1="58" x2="152" y2="58" className="cmv2-calc-svg-eje" />
+      </svg>
+    </>
   );
 }
 
@@ -130,8 +169,13 @@ function SupuestoFila({
             openOn="hover"
             ariaLabel={`Por qué importa ${titulo}`}
             trigger={
-              <button type="button" className="cmv2-calc-porque">
-                <CircleHelp size={13} aria-hidden="true" /> ¿por qué importa?
+              <button
+                type="button"
+                className="cmv2-calc-porque"
+                aria-label={`Información sobre ${titulo}`}
+                title={`Información sobre ${titulo}`}
+              >
+                <CircleHelp size={15} aria-hidden="true" />
               </button>
             }
           >
@@ -199,6 +243,7 @@ export function CalculoSupuestosTab({
     safeNumber(facultyComp.resultado?.aulas_total, 0),
   );
   const nReferencia = Math.max(totalTarget, facultyTarget);
+  const resultadosPendientes = !totalTarget && !facultyTarget && !aulasBase && !aulasTotal;
 
   // deff → correlación intra-aula implícita con el tamaño medio de aula.
   const mBarra = Math.max(2, safeNumber(total.promedio_conglomerado, 25));
@@ -225,40 +270,43 @@ export function CalculoSupuestosTab({
 
   return (
     <div className="cmv2-calc-stack">
-      <section className="cmv2-panel cmv2-calc-supuestos-panel">
-        <div className="cmv2-panel-head">
-          <div>
-            <span className="cmv2-eyebrow">Supuestos del cálculo</span>
-            <strong>Qué mueve el tamaño de muestra y qué mueve aulas</strong>
+      <section className="cmv2-calc-supuestos-panel">
+        {resultadosPendientes ? (
+          <div className="cmv2-calc-pending-strip" role="status">
+            <Calculator size={16} aria-hidden="true" />
+            <strong>Resultados pendientes</strong>
+            <span>Configura los supuestos y calcula para obtener N y cursos-horario.</span>
           </div>
-          <span className="cmv2-pill-soft">editar con intención · antes de elegir aulas</span>
-        </div>
-        <CifraFila>
-          <CifraMotor
-            label="N universidad"
-            value={totalTarget ? fmtInt(totalTarget) : "pendiente"}
-            detalle="encuestas objetivo"
-            origen={totalTarget ? "motor" : undefined}
-          />
-          <CifraMotor
-            label="N facultades"
-            value={facultyTarget ? fmtInt(facultyTarget) : "pendiente"}
-            detalle="suma de cuotas mínimas"
-            origen={facultyTarget ? "motor" : undefined}
-          />
-          <CifraMotor
-            label="Aulas base"
-            value={aulasBase ? fmtInt(aulasBase) : "pendiente"}
-            detalle="titulares estimadas"
-            origen={aulasBase ? "motor" : undefined}
-          />
-          <CifraMotor
-            label="Aulas con reemplazos"
-            value={aulasTotal ? fmtInt(aulasTotal) : "pendiente"}
-            detalle="plan operativo completo"
-            origen={aulasTotal ? "motor" : undefined}
-          />
-        </CifraFila>
+        ) : (
+          <div className="cmv2-calc-resultados-strip">
+            <CifraFila>
+              <CifraMotor
+                label="N universidad"
+                value={totalTarget ? fmtInt(totalTarget) : "pendiente"}
+                detalle="encuestas objetivo"
+                origen={totalTarget ? "motor" : undefined}
+              />
+              <CifraMotor
+                label="N facultades"
+                value={facultyTarget ? fmtInt(facultyTarget) : "pendiente"}
+                detalle="suma de cuotas mínimas"
+                origen={facultyTarget ? "motor" : undefined}
+              />
+              <CifraMotor
+                label="Cursos-horario base"
+                value={aulasBase ? fmtInt(aulasBase) : "pendiente"}
+                detalle="cursos-horario titulares estimados"
+                origen={aulasBase ? "motor" : undefined}
+              />
+              <CifraMotor
+                label="Cursos-horario con reemplazos"
+                value={aulasTotal ? fmtInt(aulasTotal) : "pendiente"}
+                detalle="plan operativo completo"
+                origen={aulasTotal ? "motor" : undefined}
+              />
+            </CifraFila>
+          </div>
+        )}
 
         {desactualizado && (
           <div className="cmv2-calc-aviso" role="status">
@@ -302,10 +350,10 @@ export function CalculoSupuestosTab({
               /* z se edita por pasos discretos: el swap funde el área ±z de la
                  campana en vez de que el polígono salte de una forma a otra. */
               <SwapValor firma={`z:${total.z}`}>
-                <CampanaZ z={total.z} />
+                <CampanaZ z={total.z} zFacultades={faculty.z} />
                 <p className="cmv2-calc-svg-nota">
-                  z = {fmtNum(total.z, 2)} cubre ≈{fmtNum(confianzaTotal * 100, 1)}% de la campana:
-                  solo el {fmtNum((1 - confianzaTotal) * 100, 1)}% más extremo queda fuera.
+                  En Universidad, z = {fmtDecimal(total.z, 2)} cubre ≈{fmtDecimal(confianzaTotal * 100, 1)}% de la campana:
+                  solo el {fmtDecimal((1 - confianzaTotal) * 100, 1)}% más extremo queda fuera.
                 </p>
               </SwapValor>
             }
@@ -318,7 +366,7 @@ export function CalculoSupuestosTab({
             popover={
               <>
                 <strong>Variabilidad</strong>
-                <p>p y DEFF protegen incertidumbre y similitud dentro de aulas; subirlos incrementa N.</p>
+                <p>p y DEFF protegen incertidumbre y similitud dentro de cursos-horario; subirlos incrementa N.</p>
                 <p>
                   p = 0.5 es el escenario más exigente (varianza máxima); una p calibrada con
                   evidencia previa reduce el n sin perder respaldo.
@@ -333,10 +381,10 @@ export function CalculoSupuestosTab({
             }
             visual={
               <>
-                <CurvaP p={total.p} />
+                <CurvaP p={total.p} pFacultades={faculty.p} />
                 <p className="cmv2-calc-svg-nota">
-                  La varianza p·(1−p) es máxima en 0.5; con p = {fmtNum(total.p, 2)} el diseño
-                  trabaja con {fmtNum(4 * total.p * (1 - total.p) * 100, 0)}% de esa exigencia.
+                  La varianza p·(1−p) es máxima en 0,5; con p = {fmtDecimal(total.p, 2)} Universidad
+                  trabaja con {fmtDecimal(4 * total.p * (1 - total.p) * 100, 0)}% de esa exigencia.
                 </p>
               </>
             }
@@ -345,14 +393,14 @@ export function CalculoSupuestosTab({
           <SupuestoFila
             id="deff"
             titulo="Efecto de diseño (deff)"
-            resumen="Encuestar aulas completas agrupa estudiantes parecidos; el deff compensa esa pérdida de información."
+            resumen="Encuestar cursos-horario completos agrupa estudiantes parecidos; el deff compensa esa pérdida de información."
             popover={
               <>
                 <strong>Variabilidad por conglomerados</strong>
-                <p>p y DEFF protegen incertidumbre y similitud dentro de aulas; subirlos incrementa N.</p>
+                <p>p y DEFF protegen incertidumbre y similitud dentro de cursos-horario; subirlos incrementa N.</p>
                 <p>
                   Supuesto sensible: al cambiarlo se debe recalcular antes de comparar métodos o
-                  generar la selección de aulas.
+                  generar la selección de cursos-horario.
                 </p>
               </>
             }
@@ -364,12 +412,16 @@ export function CalculoSupuestosTab({
             }
             visual={
               <>
+                <AmbitosSupuesto
+                  universidad={`deff = ${fmtDecimal(total.deff, 2)}`}
+                  facultades={`deff = ${fmtDecimal(faculty.deff, 2)}`}
+                />
                 <FormulaLatex
                   expression={String.raw`\mathit{deff} = 1 + (\bar{m} - 1)\,\rho = 1 + (${ltxNum(mBarra, 0)} - 1) \times ${ltxNum(rhoImplicita, 3)}`}
                   caption="De dónde sale el deff aplicado"
                   terms={[
-                    { symbol: "m̄", termino: "curso-horario", value: `${fmtNum(mBarra, 0)} por aula` },
-                    { symbol: "ρ", termino: "deff", value: `ρ implícita ${fmtNum(rhoImplicita, 3)}` },
+                    { symbol: "m̄", termino: "curso-horario", value: `${fmtDecimal(mBarra, 0)} por curso-horario` },
+                    { symbol: "ρ", termino: "deff", value: `ρ implícita ${fmtDecimal(rhoImplicita, 3)}` },
                   ]}
                 />
                 {nEfectivo != null ? (
@@ -385,7 +437,7 @@ export function CalculoSupuestosTab({
                       <strong>{fmtInt(nEfectivo)}</strong>
                     </div>
                     <p className="cmv2-calc-svg-nota">
-                      Con deff = {fmtNum(total.deff, 2)}, las {fmtInt(nReferencia)} encuestas del diseño aportan la información de ≈{fmtInt(nEfectivo)} entrevistas independientes.
+                      En Universidad, deff = {fmtDecimal(total.deff, 2)}: las {fmtInt(nReferencia)} encuestas del diseño aportan la información de ≈{fmtInt(nEfectivo)} entrevistas independientes.
                     </p>
                   </div>
                 ) : (
@@ -398,11 +450,11 @@ export function CalculoSupuestosTab({
           <SupuestoFila
             id="rendimiento"
             titulo="Tasa de rendimiento y sobremuestra"
-            resumen="No toda aula rinde completa: la tasa de rendimiento convierte encuestas objetivo en intentos de campo, y la sobremuestra agrega colchón."
+            resumen="No todo curso-horario rinde completo: la tasa de rendimiento convierte encuestas objetivo en intentos de campo, y la sobremuestra agrega colchón."
             popover={
               <>
-                <strong>Campo y rendimiento por aula</strong>
-                <p>La sobremuestra cubre no respuesta esperada; no reemplaza las rutas de reemplazo por aula.</p>
+                <strong>Campo y rendimiento por curso-horario</strong>
+                <p>La sobremuestra cubre no respuesta esperada; no reemplaza las rutas de reemplazo por curso-horario.</p>
                 <p>El rendimiento define cuántos estudiantes efectivos esperamos captar por curso y horario.</p>
                 <p>
                   Sobremuestra no es reserva: las rutas Rn.1, Rn.2… son reemplazos trazables que
@@ -431,7 +483,7 @@ export function CalculoSupuestosTab({
                     promedio de estudios de referencia · {Math.round(promedioReferencia * 100)}%
                   </button>
                   <button type="button" data-active={Math.abs(tau - tauEscenario) < 0.005} onClick={() => editarCompartido({ tau: tauEscenario })}>
-                    escenario base de aulas · {Math.round(tauEscenario * 100)}%
+                    escenario base de cursos-horario · {Math.round(tauEscenario * 100)}%
                   </button>
                 </div>
                 <CampoNumero label="Sobremuestra (universidad)" value={total.oversample_pct} step={0.05} suffix="prop." onChange={(v) => editar(totalComp.id, { parametros: { oversample_pct: v } })} />
@@ -440,6 +492,10 @@ export function CalculoSupuestosTab({
             }
             visual={
               <>
+                <AmbitosSupuesto
+                  universidad={`τ ${Math.round(tau * 100)}% · sobremuestra ${fmtPct(total.oversample_pct)}`}
+                  facultades={`τ ${Math.round(tau * 100)}% · sobremuestra ${fmtPct(faculty.oversample_pct)}`}
+                />
                 <FormulaLatex
                   expression={intentos != null
                     ? String.raw`n_{\mathit{campo}} = \left\lceil \dfrac{n}{\tau} \right\rceil = \left\lceil \dfrac{${ltxInt(nReferencia)}}{${ltxNum(tau, 2)}} \right\rceil = ${ltxInt(intentos)}`
@@ -455,7 +511,7 @@ export function CalculoSupuestosTab({
                 {intentos != null && (
                   <p className="cmv2-calc-svg-nota">
                     Para lograr {fmtInt(nReferencia)} encuestas completas hay que intentar
-                    ≈{fmtInt(intentos)} en aula: cada aula rinde alrededor del {Math.round(tau * 100)}%
+                    ≈{fmtInt(intentos)} en cursos-horario: cada curso-horario rinde alrededor del {Math.round(tau * 100)}%
                     de sus matriculados elegibles.
                   </p>
                 )}
@@ -466,9 +522,9 @@ export function CalculoSupuestosTab({
 
         <p className="cmv2-calc-supuestos-foot">
           Reemplazos: {fmtInt(aulasConfig.bolsas_reemplazo)} niveles y +{fmtInt(aulasConfig.aulas_extra_operativas_default)}{" "}
-          aulas extra por dominio — aulas equivalentes para campo que Monitoreo activa sin rediseñar el
+          cursos-horario extra por dominio — unidades equivalentes para campo que Monitoreo activa sin rediseñar el
           marco. El método de selección ({selectorLabel}) se decide después de fijar N y cuotas, en la
-          sección Aulas.
+          sección Selección.
         </p>
       </section>
     </div>

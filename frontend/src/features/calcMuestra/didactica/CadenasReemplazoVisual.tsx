@@ -50,7 +50,8 @@ function slotNumber(slotId: string, fallback: number): number {
 }
 
 function codigoOperativo(row: Record<string, unknown>, fallback: string): string {
-  return rowText(row, ["operational_code", "codigo_operativo", "codigo_aula_operativa"]) || fallback;
+  const raw = rowText(row, ["operational_code", "codigo_operativo", "codigo_aula_operativa"]) || fallback;
+  return raw.replace(/^AULA\b/i, "CH");
 }
 
 function nivelLabel(nivel: string): string {
@@ -98,7 +99,7 @@ function construirCadenas(
     const titularId = rowText(titular, ["classroom_id"]);
     const slotId = rowText(titular, ["selection_slot_id"]);
     const numero = slotNumber(slotId, index + 1);
-    const codigoTitular = codigoOperativo(titular, `AULA ${numero}`);
+    const codigoTitular = codigoOperativo(titular, `CH ${numero}`);
     const facultad = rowText(titular, ["faculty", "facultad", "stratum"]);
     const estrato = rowText(titular, ["stratum", "faculty"]);
 
@@ -185,7 +186,7 @@ export function CadenasReemplazoVisual({
   return (
     <div className="cmv2-did-result">
       <div className="cmv2-did-result-head">
-        <span className="cmv2-eyebrow">Plan B ya sorteado: qué entra si un aula cae</span>
+        <span className="cmv2-eyebrow">Plan B ya sorteado: qué entra si un curso-horario cae</span>
         <BadgeMotor estado="validado" />
       </div>
 
@@ -195,7 +196,7 @@ export function CadenasReemplazoVisual({
             <li key={cadena.id} className="cmv2-did-chain">
               <div className="cmv2-did-chain-titular">
                 <span className="cmv2-did-chain-code">{cadena.codigo}</span>
-                <span className="cmv2-did-chain-label">{cadena.etiqueta || "aula titular"}</span>
+                <span className="cmv2-did-chain-label">{cadena.etiqueta || "curso-horario titular"}</span>
                 {cadena.facultad && <span className="cmv2-did-chain-fac">{cadena.facultad}</span>}
               </div>
               <div className="cmv2-did-chain-reservas">
@@ -263,7 +264,7 @@ export function CadenasReemplazoVisual({
       )}
 
       <p className="cmv2-did-note">
-        Ojo con no confundir dos ideas: el <TerminoGlosario termino="reemplazo" /> sustituye un aula caída
+        Ojo con no confundir dos ideas: el <TerminoGlosario termino="reemplazo" /> sustituye un curso-horario caído
         (cerrada, sin permiso del docente) por una equivalente ya sorteada — misma celda o misma facultad — de
         modo que el diseño de la muestra se mantiene intacto. La{" "}
         <TerminoGlosario termino="sobremuestra" />, en cambio, son casos extra planificados desde el inicio para

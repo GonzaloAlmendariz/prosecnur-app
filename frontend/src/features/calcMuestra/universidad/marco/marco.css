@@ -13,19 +13,8 @@
   align-content: start;
 }
 
-.cmv2-marco-intro {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.55;
-  color: var(--pulso-text-muted);
-  max-width: 76ch;
-}
-
 /* Los chips de término dentro de párrafos del marco no deben inflar la línea
    (el button global trae min-height de control). */
-.cmv2-marco-intro .cmv2-uni-term,
-.cmv2-marco-flujo-copy .cmv2-uni-term,
-.cmv2-marco-flujo-copy .cmv2-marco-when,
 .cmv2-marco-when-pop .cmv2-uni-term {
   min-height: 0;
 }
@@ -44,9 +33,9 @@
 /* --- Población: flujo del universo + cifras con procedencia ----------------- */
 .cmv2-marco-flujo-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(220px, 1fr);
-  gap: 16px;
-  align-items: start;
+  grid-template-columns: minmax(0, 2fr) 28px minmax(390px, 1.2fr);
+  gap: 0;
+  align-items: stretch;
 }
 
 /* A 1024 de ancho las etapas del flujo partían sus cifras en dos líneas:
@@ -54,6 +43,11 @@
 @media (max-width: 1180px) {
   .cmv2-marco-flujo-layout {
     grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .cmv2-marco-flujo-result-connector {
+    display: none;
   }
 
   .cmv2-marco-flujo-cifras {
@@ -64,22 +58,85 @@
 
 .cmv2-marco-flujo-main {
   display: grid;
-  gap: 10px;
+  min-width: 0;
+  align-content: center;
+}
+
+.cmv2-marco-flujo-main .cmv2-uni-flujo,
+.cmv2-marco-embudo-aula .cmv2-uni-flujo {
+  width: 100%;
+  overflow: visible;
+}
+
+.cmv2-marco-flujo-main .cmv2-uni-flujo-etapa,
+.cmv2-marco-embudo-aula .cmv2-uni-flujo-etapa {
+  flex: 1 1 0;
+}
+
+.cmv2-marco-flujo-main .cmv2-uni-flujo-label,
+.cmv2-marco-embudo-aula .cmv2-uni-flujo-label {
+  line-height: 1.2;
+  white-space: normal;
+}
+
+.cmv2-marco-flujo-main .cmv2-uni-flujo-arista,
+.cmv2-marco-embudo-aula .cmv2-uni-flujo-arista {
+  flex: 0 1 72px;
+  min-width: 30px;
+}
+
+/* La merma del marco es una cifra operativa, no un adorno: reserva el ancho
+   necesario para que “cursos-horario” nunca quede oculto por la etapa vecina. */
+.cmv2-marco-embudo-aula .cmv2-uni-flujo-arista:has(.cmv2-uni-flujo-merma) {
+  flex-basis: 164px;
+  min-width: 164px;
+}
+
+.cmv2-marco-embudo-aula .cmv2-uni-flujo-merma {
+  position: relative;
+  z-index: 1;
+}
+
+.cmv2-marco-flujo-result-connector {
+  position: relative;
   min-width: 0;
 }
 
-.cmv2-marco-flujo-copy {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--pulso-text-muted);
-  max-width: 80ch;
+.cmv2-marco-flujo-result-connector::before {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  left: 4px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--cmv2-accent-border);
+  content: "";
+  transform: translateY(-50%);
+}
+
+.cmv2-marco-flujo-result-connector::after {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  width: 7px;
+  height: 7px;
+  border-top: 2px solid var(--cmv2-accent);
+  border-right: 2px solid var(--cmv2-accent);
+  content: "";
+  transform: translateY(-50%) rotate(45deg);
 }
 
 .cmv2-marco-flujo-cifras {
   display: grid;
-  gap: 8px;
-  align-content: start;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.9fr);
+  gap: 10px;
+  align-content: stretch;
+}
+
+.cmv2-marco-flujo-cifras .cmv2-uni-cifra {
+  align-content: center;
+  min-height: 84px;
+  box-shadow: none;
 }
 
 /* Popover "¿universo vs población?" (mismo lenguaje que los "cuándo" de Definición) */
@@ -327,15 +384,8 @@
 /* --- Consistencia: gauge del match base-catálogo ----------------------------- */
 .cmv2-marco-match-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(240px, 1fr);
-  gap: 16px;
-  align-items: center;
-}
-
-@media (max-width: 1180px) {
-  .cmv2-marco-match-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
 }
 
 .cmv2-marco-match-gauge {
@@ -439,75 +489,191 @@
   font-weight: 750;
 }
 
-/* --- Consistencia: diagrama de dos conjuntos --------------------------------- */
-.cmv2-marco-venn {
-  margin: 0;
+/* --- Consistencia: reconciliación cuantitativa de las dos fuentes ----------- */
+.cmv2-marco-reconciliation {
   display: grid;
-  gap: 6px;
-  justify-items: center;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
-.cmv2-marco-venn svg {
-  width: 100%;
-  max-width: 340px;
-  height: auto;
+.cmv2-marco-reconciliation article {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 13px 15px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--cmv2-surface);
 }
 
-.cmv2-marco-venn-base {
-  fill: color-mix(in srgb, var(--cmv2-accent) 26%, transparent);
-  stroke: var(--cmv2-accent);
-  stroke-width: 1.5;
+.cmv2-marco-reconciliation article[data-kind="matched"] {
+  border-color: var(--pulso-success-border);
+  background: color-mix(in srgb, var(--pulso-success-bg) 36%, var(--cmv2-surface));
 }
 
-.cmv2-marco-venn-cat {
-  fill: color-mix(in srgb, var(--pulso-success-fg) 22%, transparent);
-  stroke: var(--pulso-success-fg);
-  stroke-width: 1.5;
+.cmv2-marco-reconciliation small {
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.cmv2-marco-venn-n {
-  font-size: 15px;
-  font-weight: 750;
-  fill: var(--pulso-text);
-  dominant-baseline: middle;
+.cmv2-marco-reconciliation strong {
+  color: var(--pulso-text);
+  font-size: 23px;
+  font-weight: 850;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
-.cmv2-marco-venn-n.is-matched {
-  font-size: 17px;
+.cmv2-marco-reconciliation article[data-kind="matched"] strong {
+  color: var(--pulso-success-fg);
 }
 
-.cmv2-marco-venn figcaption {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px 14px;
+.cmv2-marco-reconciliation span {
+  color: var(--pulso-text-muted);
   font-size: 10.5px;
+}
+
+.cmv2-marco-relation-state {
+  margin: 0;
+  padding: 7px 10px;
+  border-left: 3px solid var(--pulso-success-border);
+  border-radius: 0 var(--pulso-radius) var(--pulso-radius) 0;
+  background: color-mix(in srgb, var(--pulso-success-bg) 38%, var(--cmv2-surface));
+  color: var(--pulso-success-fg);
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.cmv2-marco-relation-state.is-review {
+  border-left-color: var(--pulso-warn-border);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 46%, var(--cmv2-surface));
+  color: var(--pulso-warn-fg);
+}
+
+.cmv2-frame-source-relation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 128px;
+  min-width: 0;
+}
+
+.cmv2-frame-source-node {
+  position: relative;
+  min-width: 0;
+}
+
+.cmv2-frame-source-node > article {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  min-width: 0;
+  height: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--cmv2-surface);
+}
+
+.cmv2-frame-source-node > article > span {
+  display: inline-grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
   color: var(--pulso-text-muted);
 }
 
-.cmv2-marco-venn figcaption span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+.cmv2-frame-source-node > article.is-ready > span {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
 }
 
-.cmv2-marco-venn figcaption i {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
+.cmv2-frame-source-node > article.is-review > span {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
 }
 
-.cmv2-marco-venn figcaption span[data-set="base"] i {
-  background: color-mix(in srgb, var(--cmv2-accent) 40%, var(--cmv2-surface));
+.cmv2-frame-source-node small,
+.cmv2-frame-source-node strong,
+.cmv2-frame-source-node em {
+  display: block;
 }
 
-.cmv2-marco-venn figcaption span[data-set="match"] i {
-  background: color-mix(in srgb, var(--cmv2-accent) 55%, var(--pulso-success-fg));
+.cmv2-frame-source-node small {
+  color: var(--pulso-text-muted);
+  font-size: 9.5px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
-.cmv2-marco-venn figcaption span[data-set="cat"] i {
-  background: color-mix(in srgb, var(--pulso-success-fg) 45%, var(--cmv2-surface));
+.cmv2-frame-source-node strong {
+  margin-top: 2px;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.cmv2-frame-source-node em {
+  margin-top: 3px;
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+  font-style: normal;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.cmv2-frame-join-key {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 8px);
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1px 6px;
+  width: 112px;
+  color: var(--cmv2-accent);
+  transform: translateY(-50%);
+}
+
+.cmv2-frame-join-key::before,
+.cmv2-frame-join-key::after {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 1px;
+  background: var(--cmv2-accent-border);
+  content: "";
+}
+
+.cmv2-frame-join-key::before { right: 100%; }
+.cmv2-frame-join-key::after { left: 100%; }
+
+.cmv2-frame-join-key svg {
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+.cmv2-frame-join-key span {
+  color: var(--pulso-text-muted);
+  font-size: 8.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cmv2-frame-join-key strong {
+  margin: 0;
+  color: var(--cmv2-accent);
+  font-size: 9.5px;
+  white-space: nowrap;
 }
 
 /* --- Consistencia: acción sugerida en hallazgos ------------------------------ */
@@ -622,9 +788,9 @@
     animation: cmv2-marco-grow-x 500ms var(--cmv2-ease-out, ease-out) both;
   }
 
-  /* Consistencia: el diagrama de conjuntos entra con fade + scale sutil,
+  /* Consistencia: la reconciliación entra con fade + scale sutil,
      apenas después de que el gauge arranque. */
-  .cmv2-marco-venn {
+  .cmv2-marco-reconciliation {
     animation: cmv2-marco-pop 240ms var(--cmv2-ease-out, ease-out) 120ms both;
   }
 
@@ -729,6 +895,91 @@
   background: color-mix(in srgb, var(--cmv2-border) 52%, transparent);
 }
 
+/* Comparaciones de sexo: ambas usan una escala porcentual real. La referencia
+   al 50% se superpone a cada pista y conserva un pequeño halo de superficie
+   para seguir legible sobre cualquiera de los dos colores canónicos. */
+.cmv2-marco-stack .cmv2-native-bars.is-share-comparison {
+  gap: 11px;
+}
+
+.cmv2-marco-stack .cmv2-plot-card:has(.cmv2-native-bars.is-share-comparison) {
+  min-height: 164px;
+}
+
+.cmv2-marco-stack .cmv2-native-bars.is-share-comparison .cmv2-native-bar-row {
+  grid-template-columns: minmax(150px, 220px) minmax(0, 1fr) minmax(170px, auto);
+}
+
+.cmv2-marco-stack .cmv2-native-stacked.is-share-comparison .cmv2-native-stack-row {
+  grid-template-columns: minmax(250px, 30%) minmax(0, 1fr) minmax(64px, auto);
+}
+
+.cmv2-marco-stack .cmv2-native-bars.is-share-comparison .cmv2-native-bar-row > div {
+  height: 18px;
+}
+
+.cmv2-marco-stack .cmv2-native-stacked.is-share-comparison .cmv2-native-stack-track {
+  height: 17px;
+}
+
+.cmv2-marco-stack .cmv2-native-stacked.is-share-comparison .cmv2-native-stack-rows {
+  gap: 7px;
+}
+
+.cmv2-marco-stack .has-share-reference {
+  position: relative;
+}
+
+.cmv2-marco-stack .cmv2-share-reference-line {
+  position: absolute;
+  z-index: 3;
+  inset: -2px auto -2px 50%;
+  width: 3px;
+  min-width: 0;
+  overflow: visible;
+  pointer-events: none;
+  transform: translateX(-1.5px);
+}
+
+.cmv2-marco-stack .cmv2-share-reference-line::before,
+.cmv2-marco-stack .cmv2-share-reference-line::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+}
+
+.cmv2-marco-stack .cmv2-share-reference-line::before {
+  left: 1px;
+  width: 1px;
+  background: var(--pulso-surface);
+  opacity: 0.88;
+}
+
+.cmv2-marco-stack .cmv2-share-reference-line::after {
+  border-left: 1px dashed color-mix(in srgb, var(--pulso-text) 72%, transparent);
+}
+
+.cmv2-marco-stack .cmv2-share-reference-key {
+  display: inline-flex;
+  align-items: center;
+  justify-self: end;
+  gap: 6px;
+  margin-left: auto;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 1;
+}
+
+.cmv2-marco-stack .cmv2-share-reference-key > i,
+.cmv2-marco-stack .cmv2-native-legend .cmv2-share-reference-key > i {
+  width: 3px;
+  height: 13px;
+  border-radius: 0;
+  border-left: 1px dashed color-mix(in srgb, var(--pulso-text) 72%, transparent);
+  background: transparent;
+}
+
 /* La fila agregada "y N más" se separa del resto con un hairline discontinuo. */
 .cmv2-marco-stack .cmv2-native-bar-row.is-overflow,
 .cmv2-marco-stack .cmv2-native-stack-row.is-overflow {
@@ -763,6 +1014,10 @@
   font-size: 10px;
   letter-spacing: 0.06em;
   color: var(--pulso-text-muted);
+  overflow: visible;
+  line-height: 1.25;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .cmv2-marco-stack .cmv2-dashboard-insights article strong {
@@ -776,6 +1031,12 @@
 .cmv2-marco-stack .cmv2-dashboard-insights article em {
   font-size: 11px;
   line-height: 1.35;
+}
+
+/* Las lecturas de capacidad son cuatro pares comparables: ocupan el ancho
+   completo y solo bajan a dos columnas cuando el espacio realmente lo exige. */
+.cmv2-marco-stack > .cmv2-dashboard-insights {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 /* Cifras del embudo de capacidad con el mismo tratamiento tabular. */
@@ -901,4 +1162,80 @@
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid var(--pulso-border);
+}
+
+@media (max-width: 980px) {
+  .cmv2-marco-stack > .cmv2-dashboard-insights,
+  .cmv2-marco-reconciliation {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cmv2-frame-source-relation {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .cmv2-frame-join-key {
+    position: static;
+    width: auto;
+    margin: 8px 0 -2px 12px;
+    transform: none;
+  }
+
+  .cmv2-frame-join-key::before,
+  .cmv2-frame-join-key::after {
+    display: none;
+  }
+}
+
+/* Cursos-horario: una sola banda de lectura. El panel ya delimita el bloque,
+   por lo que las cuatro cifras no necesitan cuatro superficies elevadas. */
+.cmv2-marco-aulas-head > .cmv2-uni-cifra-fila {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 10px;
+  background: var(--cmv2-surface);
+}
+
+.cmv2-marco-aulas-head > .cmv2-uni-cifra-fila .cmv2-uni-cifra {
+  min-height: 62px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.cmv2-marco-aulas-head > .cmv2-uni-cifra-fila .cmv2-uni-cifra + .cmv2-uni-cifra {
+  border-left: 1px solid var(--cmv2-border);
+}
+
+.cmv2-marco-aulas-head > .cmv2-uni-cifra-fila .cmv2-uni-cifra[data-hero="true"] {
+  background: color-mix(in srgb, var(--cmv2-accent-soft) 38%, transparent);
+}
+
+.cmv2-marco-embudo-aula {
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.cmv2-marco-embudo-aula .cmv2-uni-flujo[data-orientacion="adaptive"] .cmv2-uni-flujo-etapa {
+  flex: initial;
+}
+
+@media (max-width: 900px) {
+  .cmv2-marco-aulas-head > .cmv2-uni-cifra-fila {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cmv2-marco-aulas-head > .cmv2-uni-cifra-fila .cmv2-uni-cifra:nth-child(3) {
+    border-left: 0;
+    border-top: 1px solid var(--cmv2-border);
+  }
+
+  .cmv2-marco-aulas-head > .cmv2-uni-cifra-fila .cmv2-uni-cifra:nth-child(4) {
+    border-top: 1px solid var(--cmv2-border);
+  }
 }
