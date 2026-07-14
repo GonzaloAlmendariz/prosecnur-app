@@ -260,6 +260,34 @@
   animation: pulso-xfg-dash-flow 0.9s linear infinite;
 }
 
+/* Chip de condición que flota al medio del edge activo (hover/selección):
+ * permite leer la condición sin abrir el panel. */
+.pulso-graph-overlay .pulso-graph-edge-label-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  animation: pulso-xfg-fade-in-up var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-graph-overlay .pulso-graph-edge-label {
+  max-width: 100%;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-surface) 92%, transparent);
+  border: 1px solid var(--pulso-primary-border);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.14);
+  backdrop-filter: blur(6px) saturate(1.1);
+  -webkit-backdrop-filter: blur(6px) saturate(1.1);
+  font-size: 10.5px;
+  font-weight: 650;
+  line-height: 1.5;
+  color: var(--pulso-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Popover de condición (ConnectionConditionPicker) ──────────────────── */
 
 .pulso-graph-overlay .pulso-graph-condpicker {
