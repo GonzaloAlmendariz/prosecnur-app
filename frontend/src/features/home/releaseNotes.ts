@@ -12,6 +12,19 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.5.8",
+    date: "2026-07-13",
+    highlights: [
+      "Procesamiento: carga archivos XLSX con varias hojas y las organiza automáticamente en bases relacionadas por grupo repetible.",
+      "Analítica: hereda el peso de diseño de la base principal a cada grupo repetible, sin necesidad de ponderar hoja por hoja.",
+      "Validación: muestra los conteos por servicio o grupo repetible en un indicador segmentado, para ubicar de un vistazo dónde están los casos.",
+      "Cálculo de muestra: mantiene el resumen del diseño siempre visible mientras ajustas los criterios de selección, con confirmación explícita para cada cambio, y hace del mínimo elegible el criterio autoritativo sin filtros redundantes.",
+      "Cálculo de muestra: unifica el vocabulario a \"curso-horario\" en todo el recorrido, en monitoreo y en recopiladores, para no confundirlo con el aula física.",
+      "Apariencia: las pestañas de toda la aplicación cambian con un indicador animado más fluido.",
+      "Instalación Windows: evita reinstalar el motor estadístico en cada arranque y elimina los diálogos de error duplicados.",
+    ],
+  },
+  {
     version: "0.5.7",
     date: "2026-07-13",
     highlights: [

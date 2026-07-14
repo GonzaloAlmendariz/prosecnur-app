@@ -32,10 +32,11 @@ La fuente de verdad para empaquetado es `api/DESCRIPTION`.
 | 0.5.4 | Corte 0.5.4: muestra didactica y PDFs Pulso | Publicada en GitHub | Reconstruye Muestra de aulas como recorrido didactico con jobs de progreso, historial y paquete de defensa; estrena la capa estetica Pulso en los PDFs de avance, libro de codigos y formulario papel; suma export de ocurrencias UMP en Monitoreo, guardrail de dominio en Validacion y puente Monitoreo→Procesamiento en Carga. |
 | 0.5.5 | Corte 0.5.5: proyecto al centro, ponderacion y grupos repeat | Publicada en GitHub | Reorienta la app por proyecto con home mission-control, panel de avance/madurez por modulo, selector de proyectos unificado y modulo Bitacora (diseño + cronograma); suma ponderacion con pesos de diseño y raking con preview diagnostico, libro de codigos PDF de la base final/panel, orden de categorias ordinales propagado a tablas/PPT y script de replicacion (.R); soporta grupos repeat end-to-end, puente Monitoreo→Procesamiento en Carga, revamp de Monitoreo de aulas y recalibrado de controles al UI Kit macOS. |
 | 0.5.6 | Corte 0.5.6: rosters repeat y criterio trazable | Publicada en GitHub | Consolida el trabajo multibase con grupos repetibles: esquema por base, rosters relacionales y controles de coherencia en Validacion; mejora la fidelidad de Analitica y sus entregables; renueva el editor XLSForm y su mapa de logica; organiza el calculo de muestra por criterios de categoria y pule el panel de control de proyectos. |
-| 0.5.7 | Corte 0.5.7: instalacion Windows robusta | Version actual para deploy | Permite elegir la carpeta de instalacion en Windows, valida permisos antes de copiar archivos, conserva la ruta al actualizar y reintenta la recuperacion del runtime R cuando una instalacion previa quedo incompleta. |
+| 0.5.7 | Corte 0.5.7: instalacion Windows robusta | Publicada en GitHub | Permite elegir la carpeta de instalacion en Windows, valida permisos antes de copiar archivos, conserva la ruta al actualizar y reintenta la recuperacion del runtime R cuando una instalacion previa quedo incompleta. |
+| 0.5.8 | Corte 0.5.8: repeats multihoja y criterios trazables | Version actual para deploy | Suma carga XLSX multihoja con bases relacionadas por grupo repetible, ponderacion heredada de la base madre y exploracion de conteos por servicio en Validacion; en Calculo de muestra estrena cabecera persistente y suite de criterios autoritativa por curso-horario (unifica el vocabulario en monitoreo y recopiladores); renueva las pestañas de toda la app con un indicador animado y estabiliza la instalacion Windows. |
 
 ## Version actual
 
-Estamos en `0.5.7` (corte `0.5.7`). Esta es la version publicada como
-`v0.5.7` para que GitHub Releases genere el instalador y el auto-updater la
+Estamos en `0.5.8` (corte `0.5.8`). Esta es la version publicada como
+`v0.5.8` para que GitHub Releases genere el instalador y el auto-updater la
 detecte.
