@@ -1841,6 +1841,7 @@ load_pulso <- function(src_path) {
   .pulso_repair_multibase_variant_xlsforms(new_sid)
   .pulso_repair_parent_recod_columns(new_sid)
   .pulso_rebuild_estudio_runtime_sources(new_sid)
+  .pulso_repair_xlsx_repeat_bases(new_sid)
   if (exists("estudio_sync_shared_xlsform_logic_if_needed", mode = "function")) {
     tryCatch(
       estudio_sync_shared_xlsform_logic_if_needed(new_sid),

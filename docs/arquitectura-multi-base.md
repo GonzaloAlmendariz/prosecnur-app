@@ -107,6 +107,46 @@ estudio$independent_siblings = list(
 )
 ```
 
+### Bases relacionadas de grupos repeat
+
+Un grupo XLSForm `begin_repeat` no es una hermana independiente ni una base para
+apilar. Se representa como una relación one-to-many:
+
+```text
+base madre (1 fila = persona)
+  _index
+     └── base hija repeat (1 fila = instancia del roster)
+           _parent_index -> madre._index
+           _submission__id -> madre._id       # fallback
+```
+
+La hija declara en su metadata `parent_base`, `repeat_group`, `link_key` y
+`parent_index_key`. El consumidor debe reconocer ese contrato relacional y no
+acoplarse a `source_kind = "kobo_repeat"`; el origen puede variar mientras las
+llaves sean compatibles. Una hija de cero filas es válida si instrumento y data
+están registrados: representa un roster observado sin instancias y permite que
+Validación contraste la cardinalidad esperada.
+
+Las reglas de consumo son:
+
+- Validación ensambla madre+hijas como tablas y evalúa cardinalidad, gate,
+  integridad referencial, unicidad y correspondencia del roster.
+- Analítica hace un join many-to-one para heredar caracterización de la madre,
+  sin cambiar el grano de la hija.
+- La ponderación se calcula en la madre y se copia a cada instancia; no se
+  recalibra sobre filas repetidas.
+- Los descriptivos de la hija estiman distribuciones de **instancias**. La
+  inferencia categórica agrupa la varianza por persona y exige al menos 8
+  clusters; sin llave o con menos personas se omiten letras y se informa la
+  razón. Las medias/dimensiones repeat permanecen descriptivas.
+- Frecuencias y codebook de la hija excluyen las variables heredadas del
+  univariado y organizan sus preguntas por la identidad del roster. Esas
+  variables heredadas siguen disponibles para cruces, Gráficos, PPT y Word.
+
+Los repeats anidados quedan fuera del contrato plano actual. Su extensión
+canónica será jerárquica —cada repeat interior enlazado a la instancia del repeat
+inmediato— y requiere ensamblaje recursivo y pruebas propias antes de habilitarse.
+
 La estructura canónica del motor (`prosecnur::reporte_ppt_plan`) ya
 acepta `data = list(...)` + `instrumento = list(...)` nativamente —
 solo hubo que empezar a pasarle listas en lugar de dataframes sueltos.

@@ -82,12 +82,61 @@
     kind         = "instancia",
     n_instancias = if (is.na(n_inst)) NA_integer_ else as.integer(n_inst),
     n_personas   = if (is.na(n_pers)) NA_integer_ else as.integer(n_pers),
+    base_name    = as.character(base_meta$nombre %||% ""),
     repeat_group = as.character(base_meta$repeat_group %||% base_meta$nombre %||% ""),
     parent_base  = as.character(base_meta$parent_base %||% ""),
     nota = paste0(
       "El grano de esta base es la INSTANCIA del repeat, no la persona ",
-      "(1 fila = 1 registro del roster). La significancia de cruces sobre ",
-      "esta base ignora el clustering por persona."
+      "(1 fila = 1 registro del roster). La inferencia de proporciones usa ",
+      "clusters de persona cuando la llave y el numero minimo de personas ",
+      "estan disponibles."
+    )
+  )
+}
+
+#' Diseño inferencial de una base hija repeat.
+#'
+#' Las filas de un roster no son observaciones independientes: varias pertenecen
+#' a la misma persona. Este contrato identifica esa unidad primaria y decide si
+#' hay clusters suficientes para habilitar inferencia. En bases normales devuelve
+#' NULL, preservando el camino legacy sin alterar sus contrastes.
+#' @keywords internal
+.analitica_repeat_design <- function(data, inst, min_clusters = 8L) {
+  grain <- attr(inst, "repeat_grain", exact = TRUE)
+  if (!is.list(grain) || !identical(as.character(grain$kind %||% ""), "instancia")) {
+    return(NULL)
+  }
+
+  min_clusters <- suppressWarnings(as.integer(min_clusters[[1]] %||% 8L))
+  if (!is.finite(min_clusters) || min_clusters < 2L) min_clusters <- 8L
+  cluster_col <- c("_parent_index", "_submission__id")
+  cluster_col <- cluster_col[cluster_col %in% names(data)]
+  cluster_col <- if (length(cluster_col)) cluster_col[[1]] else NULL
+
+  ids <- if (!is.null(cluster_col) && is.data.frame(data)) {
+    as.character(data[[cluster_col]])
+  } else character(0)
+  ids <- ids[!is.na(ids) & nzchar(ids)]
+  n_personas <- as.integer(length(unique(ids)))
+  n_instancias <- if (is.data.frame(data)) as.integer(nrow(data)) else NA_integer_
+
+  if (is.null(cluster_col)) {
+    return(list(
+      kind = "cluster_persona", cluster_col = NULL,
+      n_instancias = n_instancias, n_personas = n_personas,
+      min_clusters = min_clusters, inference_ok = FALSE,
+      reason = "No se encontro una llave de persona para formar clusters; resultados descriptivos sin letras."
+    ))
+  }
+
+  ok <- n_personas >= min_clusters
+  list(
+    kind = "cluster_persona", cluster_col = cluster_col,
+    n_instancias = n_instancias, n_personas = n_personas,
+    min_clusters = min_clusters, inference_ok = ok,
+    reason = if (ok) "" else sprintf(
+      "Se requieren al menos %d clusters de persona; hay %d. Resultados descriptivos sin letras.",
+      min_clusters, n_personas
     )
   )
 }
@@ -134,8 +183,8 @@
 
 #' Grano de repeat de la BASE ACTIVA, robusto por contrato (ADR 0030, Fase 5).
 #'
-#' Devuelve NULL salvo que la base activa sea una hija repeat
-#' (`source_kind == "kobo_repeat"` con madre declarada). En ese caso
+#' Devuelve NULL salvo que la base activa sea una hija repeat que cumpla el
+#' contrato relacional (madre, grupo y llaves compatibles). En ese caso
 #' `n_instancias`/`n_personas` se calculan SIEMPRE desde la data de la PROPIA hija
 #' (distinct `_parent_index`), nunca desde la madre. Blinda el endpoint de
 #' variables contra dos cosas: (1) que un attr `repeat_grain` filtrado/heredado
@@ -159,16 +208,24 @@
 
 # --- B. Enriquecimiento hija×madre ------------------------------------------
 
-# ¿Es `base_name` una base hija repeat con madre declarada? Devuelve su meta o
-# NULL. Resiliente: sin sesión/estudio/base devuelve NULL.
+# ¿Es `base_name` una base hija repeat por contrato relacional? Devuelve su meta
+# o NULL. El proveedor no forma parte del contrato: Kobo, archivo u otra fuente
+# pueden producir la misma relación madre-hija.
 .analitica_repeat_child_meta <- function(sid, base_name) {
   if (is.null(base_name) || !nzchar(as.character(base_name))) return(NULL)
   s <- session_get(sid, required = FALSE)
   bases <- (s$estudio %||% list())$bases %||% list()
   b <- bases[[as.character(base_name)]]
   if (is.null(b)) return(NULL)
-  if (!identical(as.character(b$source_kind %||% ""), "kobo_repeat")) return(NULL)
   if (!nzchar(as.character(b$parent_base %||% ""))) return(NULL)
+  if (!nzchar(as.character(b$repeat_group %||% ""))) return(NULL)
+  link_key <- as.character(b$link_key %||% "")
+  parent_key <- as.character(b$parent_index_key %||% "")
+  primary_link <- (!nzchar(link_key) || identical(link_key, "_parent_index")) &&
+    (!nzchar(parent_key) || identical(parent_key, "_index"))
+  fallback_link <- identical(link_key, "_submission__id") &&
+    identical(parent_key, "_id")
+  if (!primary_link && !fallback_link) return(NULL)
   b
 }
 

@@ -229,6 +229,112 @@ test_that("assemble_validation_data_multibase sin hijas delega al lector single-
   expect_false("rep_serv" %in% names(data_ctx$tables))
 })
 
+test_that("una hija vacía conserva la tabla repeat y valida cardinalidad cero", {
+  inst <- .mb_test_inst()
+  mother_path <- .mb_write_mother()
+  child_empty <- data.frame(
+    `_index` = integer(),
+    `_parent_index` = integer(),
+    `_parent_table_name` = character(),
+    `_submission__id` = character(),
+    sat = character(),
+    monto = numeric(),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  child_path <- tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "datos")
+  openxlsx::writeData(wb, "datos", child_empty)
+  openxlsx::saveWorkbook(wb, child_path, overwrite = TRUE)
+  on.exit(unlink(c(mother_path, child_path)), add = TRUE)
+
+  data_ctx <- assemble_validation_data_multibase(
+    main_data_path = mother_path,
+    main_data_ext = "xlsx",
+    main_instrumento = inst,
+    repeat_children = list(list(
+      repeat_group = "rep_serv", data_path = child_path, data_ext = "xlsx"
+    ))
+  )
+
+  expect_true("rep_serv" %in% names(data_ctx$tables))
+  expect_equal(nrow(data_ctx$tables$rep_serv), 0L)
+  rc <- data_ctx$rc_checks$rep_serv$by_parent
+  expect_equal(rc$want_n, c(2L, 2L))
+  expect_equal(rc$have_n, c(0L, 0L))
+  expect_equal(rc$status, c("faltan", "faltan"))
+
+  ev <- evaluate_validation_bundle(
+    .mb_test_bundle(inst), data_ctx,
+    compatibility = make_validation_compatibility_profile()
+  )
+  rl <- ev$resumen[ev$resumen$tipo_regla == "repeat_length", , drop = FALSE]
+  expect_equal(nrow(rl), 1L)
+  expect_equal(rl$estado_dinamico[1], "correcta")
+  expect_equal(rl$n_inconsistencias[1], 2L)
+})
+
+test_that("resolver de repeats acepta contrato relacional no-Kobo, incluido fallback", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  child_file <- save_upload(sid, "data", "repeat_manual.csv",
+                            charToRaw("_index,_parent_index,sat\n1,1,ok\n"))
+  sibling_file <- save_upload(sid, "data", "hermana.csv",
+                              charToRaw("id,respuesta\n1,ok\n"))
+  estudio_ensure(sid)
+  s <- session_get(sid)
+  s$estudio$bases <- list(
+    madre = list(nombre = "madre", source_kind = "manual"),
+    repeat_manual = list(
+      nombre = "repeat_manual",
+      source_kind = "manual",
+      parent_base = "madre",
+      repeat_group = "rep_serv",
+      link_key = "_parent_index",
+      parent_index_key = "_index",
+      data_file_id = child_file$file_id,
+      data_ext = "csv"
+    ),
+    repeat_fallback = list(
+      nombre = "repeat_fallback",
+      source_kind = "xlsx_repeat",
+      parent_base = "madre",
+      repeat_group = "rep_fallback",
+      link_key = "_submission__id",
+      parent_index_key = "_id",
+      data_file_id = child_file$file_id,
+      data_ext = "csv"
+    ),
+    hermana = list(
+      nombre = "hermana",
+      source_kind = "manual",
+      parent_base = "madre",
+      data_file_id = sibling_file$file_id,
+      data_ext = "csv"
+    )
+  )
+  session_set(sid, "estudio", s$estudio)
+
+  resolved <- .validacion_resolve_repeat_children(sid, "madre")
+  expect_length(resolved, 2L)
+  if (!length(resolved)) return(invisible())
+  resolved_by_base <- setNames(resolved, vapply(resolved, `[[`, character(1), "base"))
+  expect_setequal(names(resolved_by_base), c("repeat_manual", "repeat_fallback"))
+  expect_equal(resolved_by_base$repeat_manual$repeat_group, "rep_serv")
+  expect_equal(resolved_by_base$repeat_fallback$repeat_group, "rep_fallback")
+  expect_equal(resolved_by_base$repeat_manual$data_path, child_file$path)
+})
+
+test_that("repeat_count sólo evalúa referencias exactas y rechaza expresiones complejas no soportadas", {
+  parent <- data.frame(n = 3, stringsAsFactors = FALSE, check.names = FALSE)
+
+  expect_equal(ll_eval_repeats_count_expr("${n}", parent), 3)
+  expect_true(is.na(ll_eval_repeats_count_expr("${n} + 1", parent)))
+  expect_true(is.na(ll_eval_repeats_count_expr("if(${n} > 0, ${n}, 0)", parent)))
+})
+
 # =============================================================================
 # RC1 (ADR 0030 addendum) — cardinalidad condicionada `count-selected(${var})`
 # =============================================================================

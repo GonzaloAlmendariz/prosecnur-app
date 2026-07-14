@@ -449,7 +449,6 @@
       parent_ids = parent_ids,
       parent_table_name = parent_base_name
     )
-    if (!nrow(long_df)) next               # ninguna submission trajo instancias
     data_cols <- attr(long_df, "data_cols") %||% spec$leaf_vars
 
     child_model <- .kobo_build_repeat_instrument(rp_inst, spec, extra_cols = data_cols)

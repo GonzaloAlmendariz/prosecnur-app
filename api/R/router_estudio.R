@@ -575,7 +575,12 @@
     isTRUE(graficos_status[[k]])
   }, logical(1)))
   list(
-    imported = isTRUE(suppressWarnings(as.integer(meta$n_filas %||% 0L) > 0L)),
+    # "Importada" describe que el par instrumento+datos ya fue registrado, no
+    # que necesariamente tenga respuestas. Una base hija repeat con cero
+    # instancias es valida y debe seguir visible para que Validacion compruebe
+    # cardinalidad (p. ej. repeat_count esperado > 0 frente a 0 observadas).
+    imported = nzchar(as.character(meta$xlsform_file_id %||% "")) &&
+      nzchar(as.character(meta$data_file_id %||% "")),
     validacion = !is.null(validacion$evaluacion) ||
       length(validacion$limpieza_artifacts %||% list()) > 0L ||
       length(validacion$reglas_custom %||% list()) > 0L,

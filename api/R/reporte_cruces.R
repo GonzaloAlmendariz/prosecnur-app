@@ -1031,6 +1031,7 @@ exportar_cruces_multi <- function(data,
                                   incluir_secciones = TRUE,
                                   orden            = "original",
                                   ordinal_lists    = character(),
+                                  repeat_design    = NULL,
                                   ficha_tecnica = NULL) {
 
   numericas <- if (is.null(numericas)) character(0) else as.character(numericas)
@@ -1565,14 +1566,25 @@ exportar_cruces_multi <- function(data,
             weight_col      = weight_col
           )
 
-          cmp <- comparar_columnas_sig(nn$n_mat, nn$N_vec, alpha = alpha)
+          cmp <- if (is.list(repeat_design)) {
+            .repeat_compare_columns_cluster(
+              data = data, var = var, codes_row = codes_row,
+              estratos = estr_codes, var_estrato = s, tp = tp,
+              weight_col = weight_col, repeat_design = repeat_design,
+              alpha = alpha
+            )
+          } else {
+            comparar_columnas_sig(nn$n_mat, nn$N_vec, alpha = alpha)
+          }
 
           bloques_sig[[s]] <- list(
             opciones    = opciones,
             estr_codes  = estr_codes,
             estr_labels = estr_labels,
             letras      = cmp$letras,
-            sig         = cmp$sig
+            sig         = cmp$sig,
+            method      = cmp$method %||% "z_legacy",
+            reason      = cmp$reason %||% ""
           )
         }
 
@@ -1668,12 +1680,33 @@ exportar_cruces_multi <- function(data,
             }
           }
 
+          metodos_repeat <- if (is.list(repeat_design)) {
+            vapply(bloques_sig, function(bl) as.character(bl$method %||% "descriptivo"), character(1))
+          } else character(0)
+          razones_repeat <- if (is.list(repeat_design)) {
+            unique(Filter(nzchar, vapply(bloques_sig, function(bl) as.character(bl$reason %||% ""), character(1))))
+          } else character(0)
+          metodo_sig <- if (is.list(repeat_design) && all(metodos_repeat == "cluster_robust")) {
+            paste0("segun contrastes cluster-robust por persona con correccion de Bonferroni ",
+                   "para comparaciones multiples (α = ", alpha, "). ")
+          } else if (is.list(repeat_design)) {
+            if (!length(razones_repeat)) razones_repeat <- "diseño repeat insuficiente"
+            paste0(
+              "No se ejecuta inferencia ni se asignan letras: ",
+              paste(razones_repeat, collapse = " "), ". "
+            )
+          } else {
+            paste0("segun pruebas z de diferencia de proporciones con correccion de Bonferroni ",
+                   "para comparaciones multiples (α = ", alpha, "). ")
+          }
           pie_sig <- paste0(
             "Las letras indican columnas cuya proporcion es significativamente mayor ",
-            "que la proporcion de la columna marcada por esa letra, segun pruebas z ",
-            "de diferencia de proporciones con correccion de Bonferroni para ",
-            "comparaciones multiples (α = ", alpha, "). ",
-            "'.a' indica categoria excluida del contraste (proporciones 0 o 1).\n",
+            "que la proporcion de la columna marcada por esa letra, ", metodo_sig,
+            if (!is.list(repeat_design) || all(metodos_repeat == "cluster_robust")) {
+              "'.a' indica categoria excluida del contraste (proporciones 0 o 1).\n"
+            } else {
+              "\n"
+            },
             "Letras por estrato: ",
             paste(letras_map_text, collapse = "  |  "),
             "\nFuente: ", fuente
@@ -2119,6 +2152,7 @@ exportar_dimensiones_multi <- function(data,
                                          alto = "#F4B183"
                                        ),
                                        brecha_cortes = c(0, 30),
+                                       repeat_design = NULL,
                                        ficha_tecnica = NULL) {
   `%||%` <- function(x, y) if (!is.null(x)) x else y
   estilo_metodologia <- match.arg(estilo_metodologia)
@@ -2498,6 +2532,22 @@ exportar_dimensiones_multi <- function(data,
     fuente = fuente,
     estilo = estilo_metodologia
   )
+  if (is.list(repeat_design)) {
+    show_sig <- FALSE
+    meta_df <- rbind(
+      meta_df,
+      data.frame(
+        elemento = "Inferencia repeat",
+        detalle = paste0(
+          "La base tiene grano de instancia y clusters de persona. Las comparaciones de medias ",
+          "se presentan de forma descriptiva, sin pruebas t de Welch ni letras, hasta contar ",
+          "con un contraste cluster-robust de medias. ", repeat_design$reason %||% ""
+        ),
+        tipo = "note",
+        stringsAsFactors = FALSE
+      )
+    )
+  }
 
   st_meta_h <- openxlsx::createStyle(
     fontSize = if (identical(estilo_metodologia, "editorial")) 12 else 11,
@@ -3810,6 +3860,8 @@ exportar_dimensiones_multi <- function(data,
 #' @param opciones_excluir Categorias a excluir en cruces.
 #' @param show_sig Si \code{TRUE}, agrega tablas de significancia.
 #' @param alpha Nivel de significancia.
+#' @param repeat_design Contrato inferencial opcional para bases hija repeat.
+#'   Si se omite, se toma del atributo \code{repeat_design} de \code{data}.
 #' @param codigos_solo_si_presentes Solo modo \code{"estandar"}.
 #' @param numericas Solo modo \code{"estandar"}.
 #' @param digits Decimales para resultados numericos.
@@ -3917,6 +3969,7 @@ reporte_cruces <- function(
     ),
     brecha_cortes = c(0, 30),
     tablas           = NULL,
+    repeat_design    = attr(data, "repeat_design", exact = TRUE),
     ficha_tecnica    = NULL
 ) {
   modo <- match.arg(modo)
@@ -4023,6 +4076,7 @@ reporte_cruces <- function(
         aplicar_gradiente_brecha = aplicar_gradiente_brecha,
         brecha_colores = brecha_colores,
         brecha_cortes = brecha_cortes,
+        repeat_design = repeat_design,
         ficha_tecnica = ficha_tecnica
       )
     )
@@ -4051,6 +4105,7 @@ reporte_cruces <- function(
     incluir_secciones         = incluir_secciones,
     orden                     = orden,
     ordinal_lists             = ordinal_lists,
+    repeat_design             = repeat_design,
     ficha_tecnica             = ficha_tecnica
   )
 }

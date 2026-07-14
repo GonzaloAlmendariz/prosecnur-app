@@ -93,6 +93,39 @@ test_that("normalize_data_for_xlsform detecta y aplica mapeo de códigos SAV a X
   )
 })
 
+test_that("los mapas identidad con prefijo técnico C no requieren confirmación", {
+  row <- data.frame(label = "Servicios", stringsAsFactors = FALSE)
+  items <- list(
+    list(source_code = "Clegal", source_label = "Legal", xls_code = "legal", xls_label = "Legal", match = "label"),
+    list(source_code = "C01", source_label = "Uno", xls_code = "1", xls_label = "Uno", match = "label")
+  )
+
+  expect_null(.dn_choice_map_payload("services", row, "services", "select_multiple", items))
+
+  boundary <- .carga_choice_code_maps_payload(list(choice_code_maps = list(
+    services = list(
+      variable = "services", label = "Servicios", type = "select_multiple",
+      list_name = "services", requires_confirmation = TRUE, mappings = items
+    )
+  )))
+  expect_false(boundary$applied)
+  expect_equal(boundary$n_questions, 0L)
+})
+
+test_that("un mapa que cambia realmente el código conserva la confirmación", {
+  row <- data.frame(label = "Actividad", stringsAsFactors = FALSE)
+  items <- list(
+    list(source_code = "C2", source_label = "Primera", xls_code = "1", xls_label = "Primera", match = "label"),
+    list(source_code = "C1", source_label = "Segunda", xls_code = "2", xls_label = "Segunda", match = "label")
+  )
+
+  payload <- .dn_choice_map_payload("actividad", row, "actividad", "select_multiple", items)
+  expect_true(isTRUE(payload$requires_confirmation))
+  boundary <- .carga_choice_code_maps_payload(list(choice_code_maps = list(actividad = payload)))
+  expect_true(boundary$applied)
+  expect_equal(boundary$n_questions, 1L)
+})
+
 test_that("normalize_data_for_xlsform prioriza el mapa definido por el editor XLSForm", {
   inst <- list(
     survey = data.frame(

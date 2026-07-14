@@ -131,6 +131,98 @@ verificación:
   dashboard e indicador de grano; verificado en light/dark y Windows-safe con
   evidencia visual (skill `/revamp-visual` + QA visual).
 
+## Consolidación metodológica y de entregables (2026-07-13)
+
+La implementación posterior cierra las brechas de grano e inferencia que
+quedaban en las fases 2–4:
+
+1. Una base hija se reconoce por su **contrato relacional**, no por el proveedor:
+   `parent_base` + `repeat_group` + `_parent_index` → `_index`. Kobo sigue siendo
+   el productor principal, pero Validación acepta cualquier hija que cumpla el
+   contrato. Una base con el blob presente y cero instancias también se registra;
+   así `repeat_count > 0` frente a cero filas produce una inconsistencia real en
+   vez de degradar silenciosamente a tabla ausente.
+2. La evaluación de `repeat_count` usa una gramática cerrada: literal numérico,
+   `count(${repeat})`, `count-selected(${var})`, referencia exacta `${var}` y los
+   agregadores ya soportados `coalesce`, `min` y `max`. Una expresión más compleja
+   no se aproxima extrayendo su primera variable: queda sin meta (`NA`) hasta que
+   exista un evaluador XPath explícito.
+3. En una hija repeat, la ponderación se calcula una sola vez sobre la madre, a
+   grano persona, y el peso se propaga a todas sus instancias por la llave
+   relacional. Nunca se recalibran targets sobre filas del roster.
+4. Los cruces categóricos usan varianza sandwich agrupada por persona y ajuste de
+   Bonferroni. Se requieren al menos 8 personas/cluster para mostrar letras; con
+   menos clusters o sin llave se conservan los descriptivos y se omite la
+   inferencia con una explicación explícita. Los cruces de dimensiones/medias
+   repeat también omiten Welch y letras hasta contar con un contraste de medias
+   cluster-robust; las bases no-repeat conservan el motor histórico.
+5. Frecuencias y codebook de la hija excluyen variables heredadas de la madre y
+   organizan las preguntas nativas por `current_label`/servicio. Gráficos, PPT y
+   Word consumen el mismo par hija×madre enriquecido, los pesos a nivel persona y
+   el metadato de grano. El Dashboard mantiene soporte estructural: filtra
+   fantasmas en la madre y admite variables top-level de la hija, pero no se
+   convierte en un segundo motor de joins analíticos.
+
+### Carga manual XLS/XLSX multihoja
+
+La carga manual reconoce el mismo contrato relacional cuando las respuestas
+vienen en un libro Excel multihoja. Después de registrar la madre, solo se
+catalogan hojas cuyo nombre coincide **exactamente** con un `begin_repeat` del
+XLSForm. Cada hoja válida se materializa como hija con
+`source_kind = "xlsx_repeat"`, `parent_base`, `repeat_group` y sus llaves. Se
+acepta `_parent_index` → `_index` como vínculo principal y
+`_submission__id` → `_id` como fallback; hojas extra o sin vínculo se ignoran.
+
+La operación es idempotente: una fuente sin cambios no reescribe derivados ni
+duplica bases; al reemplazar el libro madre se actualiza la hija existente. Al
+abrir un `.pulso` anterior, el loader repara en memoria las hijas faltantes a
+partir del Excel ya contenido en el proyecto, marca el estado como pendiente de
+guardar y nunca modifica el insumo original.
+
+Además, los mapas de códigos distinguen una recodificación real de una identidad
+de transporte. Prefijos técnicos de dummies (`C1`, `Clegal`) y ceros iniciales
+numéricos equivalentes no generan confirmación cuando el código final no cambia.
+El boundary de Carga repite este filtro para impedir que estados antiguos o
+payloads externos reactiven falsos pendientes.
+
+### Límite deliberado: repeats anidados
+
+Los `begin_repeat` anidados requieren una decisión y una unidad separada: la
+base del repeat interior debe ser hija de la base del repeat inmediato,
+`_parent_index` debe apuntar al `_index` de esa instancia exterior y la
+validación debe ensamblar el árbol de forma recursiva. No se aplana el repeat
+interior ni se enlaza directamente a la raíz porque ambas opciones pierden la
+cardinalidad por nivel. Esta consolidación no cambia el esquema `.pulso` ni crea
+esa jerarquía recursiva; un repeat anidado sin blob top-level continúa reportado
+como capacidad pendiente, no como soporte parcial silencioso.
+
+### Exploración condicionada por la identidad del roster
+
+En Validación, el inventario de una base hija expone un `repeat_context`
+opcional. `current_code` es la identidad estable de cada instancia y
+`current_label` es solo su presentación. La etiqueta canónica se resuelve desde
+la lista de opciones de la variable conductora referenciada por el cálculo de
+`current_code`; los códigos observados que no estén en el catálogo se conservan
+con su etiqueta observada, y las filas sin código se contabilizan en un bucket
+explícito en vez de desaparecer.
+
+Cada opción reporta por separado `n_instancias` y `n_personas`. El primer valor
+es el denominador natural del roster; el segundo cuenta llaves padre distintas
+y no puede inferirse sumando servicios, porque una persona puede tener varias
+instancias. Por variable, el inventario distingue identidad, preguntas
+compartidas y preguntas condicionales. La aplicabilidad condicional se deriva
+del AST del `relevant` sobre `current_code`: ese subconjunto gobierna en qué
+servicios se muestra la variable. El `relevant` completo se evalúa por fila y
+gobierna la elegibilidad y los faltantes; así, un follow-up inelegible no se
+cuenta como nulo. Los conteos separan aplicables, válidos y nulos por servicio.
+La ausencia observada de respuestas nunca basta para declarar que una variable
+no aplica.
+
+Este contrato se limita al explorador de Validación: sus vistas existentes
+reutilizan el filtro `current_code` y no se crea un motor analítico paralelo.
+Los cruces e inferencia siguen bajo las reglas de grano y clustering de
+Analítica descritas arriba.
+
 ## Notas
 
 Supersede la convención de llaves interina de `carga_kobo_repeats.R`
