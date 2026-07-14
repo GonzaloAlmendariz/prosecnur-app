@@ -428,7 +428,7 @@ export function PreguntasLanding() {
           controles del paso "Organizar". */}
       <div className="pulso-codificacion-organizar-toolbar">
         <div
-          role="tablist"
+          role="group"
           aria-label="Filtrar preguntas"
           className="pulso-codificacion-filter-row"
         >
