@@ -1447,11 +1447,17 @@ export default function CalcMuestraPage() {
       mapping: universityWorkspaceMappingPayload(nextWorkspace.variable_mappings),
       selector_engine: config.selector_engine,
       filters: {
-        require_undergraduate: config.require_undergraduate ?? true,
-        require_adult: config.require_adult ?? true,
+        // Criterios DESACTIVADOS por defecto (§4.1.1): un marco recién
+        // construido, sin que el usuario haya definido criterios, no restringe
+        // — entra todo el universo único de la base (§4.1.3: todos los
+        // criterios "incluidos" ⇒ N = alumnos únicos totales). El usuario opta
+        // por cada restricción en Marco → Criterios (suite `criterios_seleccion`,
+        // que al activarse gobierna y neutraliza estos flags legacy).
+        require_undergraduate: config.require_undergraduate ?? false,
+        require_adult: config.require_adult ?? false,
         min_age: config.min_age ?? 18,
-        require_in_person: config.require_in_person ?? config.modalidad !== "online_controlado",
-        accepted_conditions: config.accepted_conditions?.length ? config.accepted_conditions : ["regular"],
+        require_in_person: config.require_in_person ?? false,
+        accepted_conditions: config.accepted_conditions?.length ? config.accepted_conditions : [],
         min_eligible_per_class: config.min_elegibles_aula,
         exclude_session_patterns: config.exclude_session_patterns ?? [],
         exclude_modality_patterns: config.exclude_modality_patterns,
@@ -2039,7 +2045,7 @@ export default function CalcMuestraPage() {
             )}
           </div>
           {desk === "opinion_universitaria" && (
-            <ResumenDiseno motor={universityMotor} workspace={workspace} aulasState={aulasState} />
+            <ResumenDiseno motor={universityMotor} estudio={estudio} workspace={workspace} aulasState={aulasState} />
           )}
         </div>
       }
