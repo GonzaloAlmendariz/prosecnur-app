@@ -1,6 +1,6 @@
 import "./theme/tokens.css";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Database,
   Eye,
@@ -31,6 +31,7 @@ import { ThemeProvider } from "./theme/ThemeProvider";
 import { DEFAULT_TABS_ENABLED, useDashboardAutosave, useDashboardStore } from "./store";
 import { useDashboardManifest, useDashboardRecodVars } from "./useDashboardData";
 import { isPublicMode } from "../../lib/runtime";
+import { GlidingTabList } from "../../components/GlidingTabList";
 
 const DASHBOARD_SECTION_ICONS: Record<DashboardTabId, LucideIcon> = {
   resumen: LayoutDashboard,
@@ -324,9 +325,6 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
   );
 }
 
-// Tab nav con pill animado (legacy: .navbar .nav::before con cubic-bezier).
-// Mide el offsetLeft/Width del tab activo y setea CSS vars en el contenedor
-// para que el ::before se posicione/anche con transición.
 function TabNav({
   tabs,
   activeId,
@@ -336,28 +334,8 @@ function TabNav({
   activeId: DashboardTabId;
   onSelect: (id: DashboardTabId) => void;
 }) {
-  const navRef = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const nav = navRef.current;
-    if (!nav) return;
-    const active = nav.querySelector<HTMLElement>(".dash-tab.is-active");
-    if (!active) {
-      nav.style.setProperty("--dash-tab-pill-op", "0");
-      return;
-    }
-    const x = active.offsetLeft;
-    const y = active.offsetTop;
-    const w = active.offsetWidth;
-    const h = active.offsetHeight;
-    nav.style.setProperty("--dash-tab-pill-x", `${x}px`);
-    nav.style.setProperty("--dash-tab-pill-y", `${y}px`);
-    nav.style.setProperty("--dash-tab-pill-w", `${w}px`);
-    nav.style.setProperty("--dash-tab-pill-h", `${h}px`);
-    nav.style.setProperty("--dash-tab-pill-op", "1");
-  }, [activeId, tabs]);
-
   return (
-    <div className="dash-tab-nav" ref={navRef} role="tablist" aria-orientation="horizontal">
+    <GlidingTabList className="dash-tab-nav" activeKey={activeId} role="tablist">
       {tabs.map((t) => (
         <DashboardSectionTab
           key={t.id}
@@ -366,7 +344,7 @@ function TabNav({
           onSelect={onSelect}
         />
       ))}
-    </div>
+    </GlidingTabList>
   );
 }
 
@@ -388,6 +366,7 @@ function DashboardSectionTab({
       className={`dash-tab ${active ? "is-active" : ""}`}
       disabled={!tab.available}
       aria-selected={active}
+      data-gliding-key={tab.id}
       aria-controls={`dash-section-${tab.id}`}
       aria-label={!tab.available && tab.reason ? `${tab.label}. ${tab.reason}` : tab.label}
       data-audit-tab={tab.id}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart2,
@@ -23,6 +23,7 @@ import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
 import { PageFrame } from "../../components/PageFrame";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
+import { GlidingTabList } from "../../components/GlidingTabList";
 import { useAnaliticaAutosave } from "./useAnaliticaAutosave";
 import { AnaliticaHeader } from "./AnaliticaHeader";
 import { CodebookPane } from "./panes/CodebookPane";
@@ -263,10 +264,12 @@ function AnaliticaSidebar({
         <span className="pulso-section-eyebrow">Analítica</span>
         <strong>{prepBusy ? "Preparando datos" : prepOk ? "Mesa de reportes" : "Pendiente"}</strong>
       </div>
-      <div
+      <GlidingTabList
+        activeKey={active}
+        orientation="vertical"
+        style={{ "--pulso-gliding-indicator-radius": "9px" } as CSSProperties}
         role="tablist"
         aria-label="Reportes disponibles"
-        aria-orientation="vertical"
         className="pulso-analitica-nav"
       >
         {reportes.map((item) => {
@@ -285,6 +288,7 @@ function AnaliticaSidebar({
               data-rail-title={item.label}
               data-rail-desc={item.desc}
               data-rail-tooltip={`${item.label}\n${item.desc}`}
+              data-gliding-key={item.key}
               disabled={disabled}
               onClick={() => {
                 onChange(item.key);
@@ -306,7 +310,7 @@ function AnaliticaSidebar({
             </button>
           );
         })}
-      </div>
+      </GlidingTabList>
     </aside>
   );
 }

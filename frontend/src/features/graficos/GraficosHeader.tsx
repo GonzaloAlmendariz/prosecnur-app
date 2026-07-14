@@ -14,6 +14,7 @@ import {
 } from "../../api/client";
 import { normalizeGraficosConfig } from "../../api/graficosConfigNormalizer";
 import { ContextBar } from "../../components/ContextBar";
+import { GlidingTabList } from "../../components/GlidingTabList";
 import { DEFAULT_DEBUG_PH, usePlanStore } from "./store";
 import { PlanHealthBadge } from "./PlanHealthBadge";
 import { PlanCoverageBadge } from "./PlanCoverageBadge";
@@ -1375,12 +1376,13 @@ function ConstructorViewControls({ issueCount }: { issueCount: number }) {
         )}
       </div>
 
-      <div className="pulso-gv2-mode-tabs pulso-gv2-segmented" role="tablist" aria-label="Modo de trabajo">
+      <GlidingTabList activeKey={viewMode} className="pulso-gv2-mode-tabs pulso-gv2-segmented" role="tablist" aria-label="Modo de trabajo">
         {CONSTRUCTOR_VIEW_MODES.map(({ key, label, Icon, hint }) => (
           <button
             key={key}
             role="tab"
             aria-selected={viewMode === key}
+            data-gliding-key={key}
             type="button"
             className={`pulso-gv2-mode-tab ${viewMode === key ? "is-active" : ""}`}
             onClick={() => setViewMode(key)}
@@ -1391,7 +1393,7 @@ function ConstructorViewControls({ issueCount }: { issueCount: number }) {
             <span>{label}</span>
           </button>
         ))}
-      </div>
+      </GlidingTabList>
 
       <button
         type="button"

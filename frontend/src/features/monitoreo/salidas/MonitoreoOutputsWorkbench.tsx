@@ -35,6 +35,7 @@ import {
   type MonitoreoPublicationEvidencePackResult,
   type MonitoreoTerritorialOperationalPackageReviewResult,
 } from "../../../api/client";
+import { GlidingTabList } from "../../../components/GlidingTabList";
 import "./outputsWorkbench.css";
 
 type OutputAudience = "client" | "internal";
@@ -1237,7 +1238,7 @@ export function MonitoreoOutputsWorkbench({
             <strong>Cliente e interno</strong>
             <small>Las audiencias se publican por separado para preservar el alcance de cada salida.</small>
           </div>
-          <div className="mon-outputs-audience-tabs" role="tablist" aria-label="Audiencia de salida">
+          <GlidingTabList activeKey={activeAudience} className="mon-outputs-audience-tabs" role="tablist" aria-label="Audiencia de salida">
             {(["client", "internal"] as const).map((audience) => {
               const ready = Boolean(published[audience]?.spreadsheetId);
               const status = statuses[audience];
@@ -1246,6 +1247,7 @@ export function MonitoreoOutputsWorkbench({
                   key={audience}
                   type="button"
                   role="tab"
+                  data-gliding-key={audience}
                   aria-selected={activeAudience === audience}
                   className={`is-${audience}${activeAudience === audience ? " is-active" : ""}${ready ? " is-ready" : ""}${status.kind === "error" ? " is-error" : ""}`}
                   onClick={() => setActiveAudience(audience)}
@@ -1255,7 +1257,7 @@ export function MonitoreoOutputsWorkbench({
                 </button>
               );
             })}
-          </div>
+          </GlidingTabList>
           <div className={`mon-outputs-sheets-detail is-${activeAudience}`}>
             <div className="mon-outputs-audience-copy">
               <span>{activeAudience === "client" ? <Table2 size={14} /> : <ShieldAlert size={14} />}</span>

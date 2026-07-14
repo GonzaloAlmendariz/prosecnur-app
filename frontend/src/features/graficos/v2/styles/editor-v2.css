@@ -5989,6 +5989,7 @@
 .pulso-gv2-estilo-close:hover { background: var(--pulso-surface); border-color: var(--pulso-border); color: var(--pulso-text); }
 
 .pulso-gv2-estilo-tabs {
+  --pulso-gliding-indicator-radius: 0;
   display: flex;
   gap: 0;
   padding: 0 22px;
@@ -6034,15 +6035,10 @@
 .pulso-gv2-estilo-tab:hover { color: var(--pulso-text); }
 .pulso-gv2-estilo-tab.is-active { color: var(--pulso-primary); }
 .pulso-gv2-estilo-tab.is-active .pulso-gv2-estilo-tab-icon {
-  background: var(--pulso-primary-soft);
+  background: transparent;
 }
 .pulso-gv2-estilo-tab.is-active::after {
-  content: "";
-  position: absolute;
-  left: 8px; right: 8px; bottom: -1px;
-  height: 2px;
-  background: var(--pulso-primary);
-  border-radius: 2px;
+  content: none;
 }
 
 .pulso-gv2-estilo-body {

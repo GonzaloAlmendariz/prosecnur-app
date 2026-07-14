@@ -7,6 +7,7 @@ import { IconosEditor } from "../../IconosEditor";
 import { PresetsEditor } from "../../PresetsEditor";
 import { OverridesEditor } from "../../OverridesEditor";
 import { WordPresetsEditor } from "../../WordPresetsEditor";
+import { GlidingTabList } from "../../../../components/GlidingTabList";
 
 // Popup unificado de "Estilo global". Reemplaza los 3 botones del header
 // (Presets PPT, Presets Word, Configuración global de estilo) por un
@@ -189,13 +190,14 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
               })}
             </div>
 
-            <nav className="pulso-gv2-estilo-tabs" role="tablist">
+            <GlidingTabList as="nav" activeKey={tab} className="pulso-gv2-estilo-tabs" role="tablist">
               {TABS.map(({ key, label, eyebrow, Icon, hint }) => (
                 <button
                   key={key}
                   role="tab"
                   type="button"
                   aria-selected={tab === key}
+                  data-gliding-key={key}
                   className={`pulso-gv2-estilo-tab ${tab === key ? "is-active" : ""}`}
                   onClick={() => setTab(key)}
                   aria-label={`${label}. ${hint}`}
@@ -209,7 +211,7 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
                   </span>
                 </button>
               ))}
-            </nav>
+            </GlidingTabList>
           </aside>
 
           <section className="pulso-gv2-estilo-panel" aria-label={activeTab.label}>

@@ -62,6 +62,7 @@ import { JobProgress } from "../../components/JobProgress";
 import { PageFrame } from "../../components/PageFrame";
 import { Panel } from "../../components/Panel";
 import { EmptyState, LoadingBlock } from "../../components/States";
+import { GlidingTabList } from "../../components/GlidingTabList";
 import type { StepMeta } from "../../components/Stepper";
 import { useSession } from "../../lib/SessionContext";
 import districtCoverage from "./limaDistrictCoverage.json";
@@ -1028,7 +1029,7 @@ function HojasRutaStageRail({
 }) {
   return (
     <div className="pulso-phase-rail hojas-ruta-stage-rail" aria-label="Etapas de hojas de ruta">
-      <nav className="pulso-phase-pillbar" aria-label="Etapas de hojas de ruta">
+      <GlidingTabList as="nav" activeKey={current} className="pulso-phase-pillbar" role="tablist" aria-label="Etapas de hojas de ruta">
         <ul className="pulso-phase-pill-list">
           {steps.map((step) => {
             const active = step.key === current;
@@ -1039,6 +1040,7 @@ function HojasRutaStageRail({
                 <button
                   type="button"
                   role="tab"
+                  data-gliding-key={step.key}
                   aria-selected={active}
                   aria-current={active ? "step" : undefined}
                   aria-disabled={step.disabled || undefined}
@@ -1067,7 +1069,7 @@ function HojasRutaStageRail({
             );
           })}
         </ul>
-      </nav>
+      </GlidingTabList>
     </div>
   );
 }
@@ -1097,10 +1099,11 @@ function PhaseHeaderControl({
 
   return (
     <div className="hojas-ruta-phase-header" aria-label="Fase de aplicación" title={pilotSummary || undefined}>
-      <div className="hojas-ruta-phase-tabs" role="tablist" aria-label="Fase de aplicación de campo">
+      <GlidingTabList activeKey={activePhase} className="hojas-ruta-phase-tabs" role="tablist" aria-label="Fase de aplicación de campo">
         <button
           type="button"
           role="tab"
+          data-gliding-key="pilot"
           aria-selected={activePhase === "pilot"}
           className={activePhase === "pilot" ? "is-active" : ""}
           onClick={() => onPhaseChange("pilot")}
@@ -1111,6 +1114,7 @@ function PhaseHeaderControl({
         <button
           type="button"
           role="tab"
+          data-gliding-key="field"
           aria-selected={activePhase === "field"}
           className={activePhase === "field" ? "is-active" : ""}
           onClick={() => onPhaseChange("field")}
@@ -1118,7 +1122,7 @@ function PhaseHeaderControl({
         >
           Campo real
         </button>
-      </div>
+      </GlidingTabList>
       {pilotRun ? (
         <span className="hojas-ruta-phase-pilot-badge" title={pilotSummary}>
           {formatNumber(pilotTitularCount)} titulares
@@ -5707,11 +5711,14 @@ function SampleSizeWorkbench({
               <small>Primero decide si Prosecnur calcula el tamaño muestral o si estás validando un N ya aprobado.</small>
             </div>
           </div>
-          <div className="hojas-ruta-sample-mode-cards" role="tablist" aria-label="Modo de muestra">
+          <GlidingTabList activeKey={mode} className="hojas-ruta-sample-mode-cards" role="tablist" aria-label="Modo de muestra">
             {(["calculator", "external_total", "external_district"] as SampleSizeMode[]).map((item) => (
               <button
                 key={item}
                 type="button"
+                role="tab"
+                data-gliding-key={item}
+                aria-selected={mode === item}
                 className={mode === item ? "is-active" : ""}
                 onClick={() => onModeChange(item)}
               >
@@ -5719,7 +5726,7 @@ function SampleSizeWorkbench({
                 <span>{modeCopy[item].detail}</span>
               </button>
             ))}
-          </div>
+          </GlidingTabList>
         </section>
 
         <div className="hojas-ruta-sample-size-flow">
@@ -8367,9 +8374,12 @@ export default function HojasRutaPage() {
                     </div>
                     {sampleListRows.length ? (
                       <div className="hojas-ruta-sample-table-shell">
-                        <div className="hojas-ruta-sample-tabs" role="tablist" aria-label="Tipo de manzanas seleccionadas">
+                        <GlidingTabList activeKey={sampleListTab} className="hojas-ruta-sample-tabs" role="tablist" aria-label="Tipo de manzanas seleccionadas">
                           <button
                             type="button"
+                            role="tab"
+                            data-gliding-key="titulares"
+                            aria-selected={sampleListTab === "titulares"}
                             className={sampleListTab === "titulares" ? "is-active" : ""}
                             onClick={() => setSampleListTab("titulares")}
                           >
@@ -8377,12 +8387,15 @@ export default function HojasRutaPage() {
                           </button>
                           <button
                             type="button"
+                            role="tab"
+                            data-gliding-key="reemplazos"
+                            aria-selected={sampleListTab === "reemplazos"}
                             className={sampleListTab === "reemplazos" ? "is-active" : ""}
                             onClick={() => setSampleListTab("reemplazos")}
                           >
                             Reemplazos <span>{formatNumber(replacementBlocks.length)}</span>
                           </button>
-                        </div>
+                        </GlidingTabList>
                         <div className="hojas-ruta-section-title">
                           <strong>{sampleListTotalLabel}</strong>
                           <span>{sampleListTab === "titulares" ? "UMPs titulares seleccionadas para campo, con ID de manzana como referencia." : "Reemplazos R asociados a su UMP titular y al sorteo."}</span>
@@ -8500,12 +8513,13 @@ export default function HojasRutaPage() {
                           </div>
                         )}
 
-                        <div className="hojas-ruta-delivery-tabs" role="tablist" aria-label="Revisión de entregables">
+                        <GlidingTabList activeKey={deliveryReviewTab} className="hojas-ruta-delivery-tabs" role="tablist" aria-label="Revisión de entregables">
                           {deliveryReviewTabs.map((tab) => (
                             <button
                               key={tab.key}
                               type="button"
                               role="tab"
+                              data-gliding-key={tab.key}
                               aria-selected={deliveryReviewTab === tab.key}
                               className={deliveryReviewTab === tab.key ? "is-active" : ""}
                               disabled={tab.disabled}
@@ -8515,7 +8529,7 @@ export default function HojasRutaPage() {
                               <span>{formatNumber(tab.count)}</span>
                             </button>
                           ))}
-                        </div>
+                        </GlidingTabList>
 
                         {deliveryReviewTab === "cuotas" && (
                           <section className="hojas-ruta-delivery-section">

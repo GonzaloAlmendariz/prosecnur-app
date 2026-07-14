@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AlertCircle, CheckCircle2, Database, FileSpreadsheet, Layers, Network, Tags, Wand2 } from "lucide-react";
 import { useSession } from "../../lib/SessionContext";
@@ -7,6 +7,7 @@ import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
 import { PageFrame } from "../../components/PageFrame";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { StepMeta } from "../../components/Stepper";
+import { GlidingTabList } from "../../components/GlidingTabList";
 import { PreguntasLanding } from "./PreguntasLanding";
 import { CodificarWizard } from "./CodificarWizard";
 import { AdaptarPane } from "./AdaptarPane";
@@ -289,10 +290,12 @@ function CodificacionModeSidebar({
         <span className="pulso-section-eyebrow">Codificación</span>
         <strong>{disabled ? "Pendiente" : "Flujo de trabajo"}</strong>
       </div>
-      <div
+      <GlidingTabList
+        activeKey={active}
+        orientation="vertical"
+        style={{ "--pulso-gliding-indicator-radius": "10px" } as CSSProperties}
         role="tablist"
         aria-label="Pasos de codificación"
-        aria-orientation="vertical"
         className="pulso-codificacion-nav"
       >
         {CODIFICACION_STEPS.map((item) => {
@@ -313,6 +316,7 @@ function CodificacionModeSidebar({
               data-rail-title={item.label}
               data-rail-desc={item.hint ?? ""}
               data-rail-tooltip={item.hint ? `${item.label}\n${item.hint}` : item.label}
+              data-gliding-key={item.key}
             >
               <span className="pulso-codificacion-nav-index">{item.n}</span>
               <span aria-hidden="true" className="pulso-codificacion-nav-icon">
@@ -330,7 +334,7 @@ function CodificacionModeSidebar({
             </button>
           );
         })}
-      </div>
+      </GlidingTabList>
     </aside>
   );
 }

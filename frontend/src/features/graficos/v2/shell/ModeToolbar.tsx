@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, GanttChart, LayoutGrid, Rows3, AlignJustify } from "lucide-react";
 import { usePlanStore } from "../../store";
 import { usePlanValidator } from "../../usePlanValidator";
+import { GlidingTabList } from "../../../../components/GlidingTabList";
 
 // Toolbar de modo: tabs Timeline | Canvas + density toggle.
 // Atajos V/T cambian de modo (manejados en useShortcutsV2).
@@ -43,12 +44,13 @@ export function ModeToolbar() {
         </span>
       </div>
 
-      <div className="pulso-gv2-mode-tabs pulso-gv2-segmented" role="tablist" aria-label="Vista del constructor">
+      <GlidingTabList activeKey={viewMode} className="pulso-gv2-mode-tabs pulso-gv2-segmented" role="tablist" aria-label="Vista del constructor">
         {MODES.map(({ key, label, Icon, hint }) => (
           <button
             key={key}
             role="tab"
             aria-selected={viewMode === key}
+            data-gliding-key={key}
             type="button"
             className={`pulso-gv2-mode-tab ${viewMode === key ? "is-active" : ""}`}
             onClick={() => setViewMode(key)}
@@ -58,7 +60,7 @@ export function ModeToolbar() {
             {label}
           </button>
         ))}
-      </div>
+      </GlidingTabList>
 
       <button
         type="button"

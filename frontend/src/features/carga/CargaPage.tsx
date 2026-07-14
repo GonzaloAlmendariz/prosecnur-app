@@ -56,6 +56,7 @@ import { PageFrame } from "../../components/PageFrame";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
+import { GlidingTabList } from "../../components/GlidingTabList";
 import SeccionesPanel from "./SeccionesPanel";
 import PreguntasPanel from "./PreguntasPanel";
 import { BasesPanel } from "./BasesPanel";
@@ -1106,13 +1107,14 @@ export default function CargaPage() {
             pendingChoiceMapping={pendingChoiceMapping}
             allReady={allReady}
             controls={activeCargaTab === "insumos" ? (
-                <div className="pulso-carga-source-switch pulso-compact-tabs pulso-carga-origin-tabs" role="tablist" aria-label="Origen de carga">
+                <GlidingTabList activeKey={sourceMode} className="pulso-carga-source-switch pulso-compact-tabs pulso-carga-origin-tabs" role="tablist" aria-label="Origen de carga">
                   <button
                     type="button"
                     className={`pulso-compact-tab pulso-carga-origin-tab${sourceMode === "files" ? " is-active" : ""}`}
                     onClick={() => setSourceMode("files")}
                     role="tab"
                     aria-selected={sourceMode === "files"}
+                    data-gliding-key="files"
                     title="Carga manual - XLSForm y respuestas desde archivos locales"
                   >
                     <Upload size={14} />
@@ -1124,12 +1126,13 @@ export default function CargaPage() {
                     onClick={() => setSourceMode("platform")}
                     role="tab"
                     aria-selected={sourceMode === "platform"}
+                    data-gliding-key="platform"
                     title="Plataforma - importar desde SurveyMonkey o KoboToolbox"
                   >
                     <CloudDownload size={14} />
                     <span className="pulso-carga-tab-label">Plataforma</span>
                   </button>
-                </div>
+                </GlidingTabList>
               ) : null}
           />
 
@@ -1768,7 +1771,7 @@ function PlatformImportPanel({
   return (
     <section className="pulso-platform-import" aria-label="Carga desde plataforma">
       <div className="pulso-platform-topbar">
-        <div className="pulso-platform-provider-tabs pulso-compact-tabs" role="tablist" aria-label="Proveedor">
+        <GlidingTabList activeKey={provider} className="pulso-platform-provider-tabs pulso-compact-tabs" role="tablist" aria-label="Proveedor">
           {(["surveymonkey", "kobo"] as CargaPlatformProvider[]).map((item) => (
             <button
               key={item}
@@ -1777,13 +1780,14 @@ function PlatformImportPanel({
               onClick={() => onProviderChange(item)}
               role="tab"
               aria-selected={provider === item}
+              data-gliding-key={item}
               title={`${providerLabel(item)} - seleccionar proveedor de origen`}
             >
               {item === "surveymonkey" ? <CloudDownload size={14} /> : <Database size={14} />}
               <span className="pulso-platform-provider-label">{providerLabel(item)}</span>
             </button>
           ))}
-        </div>
+        </GlidingTabList>
         <div className="pulso-platform-topbar-actions">
           <div className={`pulso-platform-status${hasConnection ? " is-ready" : ""}`}>
             <span aria-hidden="true" />
@@ -1976,11 +1980,12 @@ function CargaWorkspaceTabs({
   const sidebarClass = isSidebar ? " is-sidebar" : "";
 
   return (
-    <div
+    <GlidingTabList
+      activeKey={active}
+      orientation={isSidebar ? "vertical" : "horizontal"}
       className={`pulso-carga-source-switch pulso-compact-tabs pulso-carga-view-tabs${sidebarClass}`}
       role="tablist"
       aria-label="Vista de carga"
-      aria-orientation={isSidebar ? "vertical" : undefined}
     >
       <button
         type="button"
@@ -1988,6 +1993,7 @@ function CargaWorkspaceTabs({
         onClick={() => onChange("insumos")}
         role="tab"
         aria-selected={active === "insumos"}
+        data-gliding-key="insumos"
         aria-label="Preparar carga. Formulario, respuestas y fuentes"
         data-rail-title="Preparar"
         data-rail-desc="Formulario, respuestas y fuentes"
@@ -2004,6 +2010,7 @@ function CargaWorkspaceTabs({
         }}
         role="tab"
         aria-selected={active === "base"}
+        data-gliding-key="base"
         aria-disabled={!baseReady}
         aria-label={baseReady ? "Ver base. Respuestas cargadas" : "Ver base. Pendiente hasta completar insumos"}
         data-rail-title="Ver base"
@@ -2014,7 +2021,7 @@ function CargaWorkspaceTabs({
         <span className="pulso-carga-tab-label">Ver base</span>
         <span className="pulso-carga-view-tab-state" aria-hidden="true" />
       </button>
-    </div>
+    </GlidingTabList>
   );
 }
 

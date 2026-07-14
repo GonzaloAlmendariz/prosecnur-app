@@ -71,6 +71,7 @@ import type {
 } from "../../api/client";
 import { ErrorBlock } from "../../components/States";
 import { RepeatBadge } from "../../components/RepeatBadge";
+import { GlidingTabList } from "../../components/GlidingTabList";
 import { isRepeatChildBase } from "../../lib/repeatIdentity";
 import { IntegratedInstrumentsWizard } from "./IntegratedInstrumentsWizard";
 
@@ -395,12 +396,18 @@ export function BasesPanel({
         )}
       </header>
 
-      <div className="pulso-multi-strategy" role="tablist" aria-label="Forma de trabajar varias bases">
+      <GlidingTabList
+        activeKey={strategy}
+        className="pulso-multi-strategy"
+        role="tablist"
+        aria-label="Forma de trabajar varias bases"
+      >
         <button
           type="button"
           className={strategy === "separate" ? "is-active" : ""}
           role="tab"
           aria-selected={strategy === "separate"}
+          data-gliding-key="separate"
           onClick={() => requestStrategyChange("separate")}
           title="Mantener bases separadas - formulario y respuestas por base"
         >
@@ -415,6 +422,7 @@ export function BasesPanel({
           className={strategy === "integrated" ? "is-active" : ""}
           role="tab"
           aria-selected={strategy === "integrated"}
+          data-gliding-key="integrated"
           onClick={() => requestStrategyChange("integrated")}
           title="Unificar bases compatibles - formulario comun y base final"
         >
@@ -429,6 +437,7 @@ export function BasesPanel({
           className={strategy === "independent" ? "is-active" : ""}
           role="tab"
           aria-selected={strategy === "independent"}
+          data-gliding-key="independent"
           onClick={() => requestStrategyChange("independent")}
           title="Fuentes independientes - entregables por encuesta"
         >
@@ -438,7 +447,7 @@ export function BasesPanel({
             <small>Entregables por encuesta.</small>
           </span>
         </button>
-      </div>
+      </GlidingTabList>
 
       {strategy === "integrated" && (
         integratedBases.length > 0 && !showNewIntegration ? (

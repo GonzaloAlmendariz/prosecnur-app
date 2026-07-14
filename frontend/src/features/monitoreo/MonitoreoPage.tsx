@@ -10,6 +10,7 @@ import { autoUpdate, flip, FloatingPortal, offset, shift, useFloating } from "@f
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { AnimatePresence, motion, useReducedMotion } from "./lightMotion";
 import { MonitoreoOutputsWorkbench } from "./salidas/MonitoreoOutputsWorkbench";
+import { GlidingTabList } from "../../components/GlidingTabList";
 import { TerritorialOutputsPanel } from "./profiles/territorial/TerritorialOutputsPanel";
 import {
   Activity,
@@ -6794,7 +6795,7 @@ function MonitoreoRail({
           <small>{territorialActiveItem?.detail ?? activeSection.desc}</small>
         </div>
       ) : null}
-      <div className="mon-section-local-tabs" role="tablist" aria-orientation="vertical" aria-label={`Pestañas locales de ${activeSection?.label ?? route.shortLabel}`}>
+      <GlidingTabList activeKey={activeLocalTab} orientation="vertical" className="mon-section-local-tabs" role="tablist" aria-label={`Pestañas locales de ${activeSection?.label ?? route.shortLabel}`}>
         {localTabs.length ? localTabs.map((item) => {
           const Icon = item.icon;
           const active = activeLocalTab === item.key;
@@ -6803,6 +6804,7 @@ function MonitoreoRail({
               key={item.key}
               type="button"
               role="tab"
+              data-gliding-key={item.key}
               aria-selected={active}
               aria-current={active ? "page" : undefined}
               aria-label={`${item.label}: ${item.desc}`}
@@ -6832,7 +6834,7 @@ function MonitoreoRail({
             </span>
           </span>
         )}
-      </div>
+      </GlidingTabList>
       {showOutputsPublish && onOpenOutputs ? (
         <MonitoreoRailOutputsControl
           clientSheets={publishClientSheets ?? null}
@@ -6847,12 +6849,13 @@ function MonitoreoRail({
       {isTerritorial && onTerritorialPhaseChange ? (
         <div className="mon-rail-phase-switch" aria-label="Formato territorial">
           <span>Formato territorial</span>
-          <div role="tablist" aria-label="Piloto o campo">
+          <GlidingTabList activeKey={activePhase} role="tablist" aria-label="Piloto o campo">
             {phaseOptions.map((item) => (
               <button
                 key={item.key}
                 type="button"
                 role="tab"
+                data-gliding-key={item.key}
                 aria-selected={activePhase === item.key}
                 className={activePhase === item.key ? "is-active" : ""}
 	                disabled={activePhase === item.key}
@@ -6862,7 +6865,7 @@ function MonitoreoRail({
                 <small>{item.hint}</small>
               </button>
             ))}
-          </div>
+          </GlidingTabList>
 	          <em className={`mon-rail-phase-status${sourceStatus ? ` is-${sourceStatus}` : ""}`}>{phaseStatusLabel}</em>
 	        </div>
       ) : null}
@@ -7360,7 +7363,7 @@ function StageModeBar<T extends string>({
 }) {
   return (
     <div className="mon-stage-modebar">
-      <div className="mon-stage-segment" role="tablist" aria-label="Modo de trabajo">
+      <GlidingTabList activeKey={active} className="mon-stage-segment" role="tablist" aria-label="Modo de trabajo">
         {options.map((option) => {
           const Icon = option.icon;
           const selected = option.key === active;
@@ -7369,6 +7372,7 @@ function StageModeBar<T extends string>({
               key={option.key}
               type="button"
               role="tab"
+              data-gliding-key={option.key}
               aria-selected={selected}
               className={selected ? "is-active" : ""}
               onClick={() => onChange(option.key)}
@@ -7381,7 +7385,7 @@ function StageModeBar<T extends string>({
             </button>
           );
         })}
-      </div>
+      </GlidingTabList>
       {summary && <div className="mon-stage-summary">{summary}</div>}
     </div>
   );
@@ -32153,7 +32157,7 @@ function AdvanceDailyPanelV2({
           <em>{activeLensHint}</em>
         </div>
         <div className="mon-advance-daily-controls" aria-label="Vista de avance diario">
-          <div className="mon-advance-daily-mode" role="tablist" aria-label="Lectura de avance diario">
+          <GlidingTabList activeKey={mode} className="mon-advance-daily-mode" role="tablist" aria-label="Lectura de avance diario">
             {scopeItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -32161,6 +32165,7 @@ function AdvanceDailyPanelV2({
                   key={item.key}
                   type="button"
                   role="tab"
+                  data-gliding-key={item.key}
                   aria-selected={mode === item.key}
                   className={mode === item.key ? "is-active" : ""}
                   onClick={() => setMode(item.key)}
@@ -32174,7 +32179,7 @@ function AdvanceDailyPanelV2({
                 </button>
               );
             })}
-          </div>
+          </GlidingTabList>
         </div>
       </div>
       {models.length ? (
@@ -32561,11 +32566,14 @@ function AcreditacionGsReportsPanel({
           ))}
         </div>
       </div>
-      <div className="mon-gs-report-tabs" role="tablist" aria-label="Pestañas de reporte de acreditación">
+      <GlidingTabList activeKey={activeSheet.id} className="mon-gs-report-tabs" role="tablist" aria-label="Pestañas de reporte de acreditación">
         {sheets.map((sheet) => (
           <button
             key={sheet.id}
             type="button"
+            role="tab"
+            data-gliding-key={sheet.id}
+            aria-selected={sheet.id === activeSheet.id}
             className={sheet.id === activeSheet.id ? "is-active" : ""}
             onClick={() => setActiveId(sheet.id)}
           >
@@ -32573,7 +32581,7 @@ function AcreditacionGsReportsPanel({
             <span>{reportPanelSheetTitle(sheet, unitLexicon)}</span>
           </button>
         ))}
-      </div>
+      </GlidingTabList>
       <div className="mon-gs-report-body" data-report-sheet={activeSheet.id}>
         <p>{description}</p>
         <div className="mon-gs-report-blocks">
@@ -38139,7 +38147,7 @@ function InternalQueryCatalog({
         <span>Cinco entradas</span>
         <strong>Explora desde caso, unidad, canal, campo o auditoría</strong>
       </header>
-      <div className="mon-query-blocks" role="tablist" aria-label="Bloques de consulta">
+      <GlidingTabList activeKey={activeBlock} className="mon-query-blocks" role="tablist" aria-label="Bloques de consulta">
         {INTERNAL_QUERY_BLOCKS.map((block) => {
           const Icon = internalQueryBlockIcon(block.key);
           const selected = block.key === activeBlock;
@@ -38148,6 +38156,7 @@ function InternalQueryCatalog({
               key={block.key}
               type="button"
               role="tab"
+              data-gliding-key={block.key}
               aria-selected={selected}
               className={`is-${block.key}${selected ? " is-active" : ""}`}
               onClick={() => onBlockSelect(block.key)}
@@ -38161,7 +38170,7 @@ function InternalQueryCatalog({
             </button>
           );
         })}
-      </div>
+      </GlidingTabList>
 
       <div className="mon-query-template-board">
         <header>
@@ -38242,7 +38251,7 @@ function InternalEvidenceBar({
   const options = INTERNAL_QUERY_EVIDENCE_VIEWS.filter((view) => template.evidenceViews.includes(view.key));
   return (
     <div className="mon-query-evidencebar">
-      <div className="mon-stage-segment" role="tablist" aria-label="Vistas de evidencia">
+      <GlidingTabList activeKey={active} className="mon-stage-segment" role="tablist" aria-label="Vistas de evidencia">
         {options.map((option) => {
           const Icon = option.icon;
           const selected = option.key === active;
@@ -38251,6 +38260,7 @@ function InternalEvidenceBar({
               key={option.key}
               type="button"
               role="tab"
+              data-gliding-key={option.key}
               aria-selected={selected}
               className={selected ? "is-active" : ""}
               onClick={() => onChange(option.key)}
@@ -38263,7 +38273,7 @@ function InternalEvidenceBar({
             </button>
           );
         })}
-      </div>
+      </GlidingTabList>
       <div className="mon-stage-summary">
         <span>{formatCaseLabel(total)} · {activeFilters ? "filtros activos" : "sin filtros"}</span>
       </div>
@@ -40552,7 +40562,7 @@ function QualityCommandCenter({
           })}
         </div>
       </div>
-      <div className="mon-quality-mode-tabs" role="tablist" aria-label="Lecturas de calidad">
+      <GlidingTabList activeKey={mode} className="mon-quality-mode-tabs" role="tablist" aria-label="Lecturas de calidad">
         {QUALITY_MODES.map((item) => {
           const Icon = item.icon;
           const selected = item.key === mode;
@@ -40561,6 +40571,7 @@ function QualityCommandCenter({
               key={item.key}
               type="button"
               role="tab"
+              data-gliding-key={item.key}
               aria-selected={selected}
               className={selected ? "is-active" : ""}
               onClick={() => onModeChange(item.key)}
@@ -40574,7 +40585,7 @@ function QualityCommandCenter({
             </button>
           );
         })}
-      </div>
+      </GlidingTabList>
     </section>
   );
 }
@@ -40758,7 +40769,7 @@ function AcreditacionReconciliationTracePanel({
 
       {groups.length > 0 && activeGroup && (
         <div className="mon-reconciliation-rules" aria-label="Reglas de conciliación por tipo de inconsistencia">
-          <div className="mon-reconciliation-rule-list" role="tablist" aria-label="Tipos de inconsistencia">
+          <GlidingTabList activeKey={activeGroup.id} orientation="vertical" className="mon-reconciliation-rule-list" role="tablist" aria-label="Tipos de inconsistencia">
             {groups.map((group) => {
               const included = group.rows.filter((row) => row.responseId && includedIds.has(row.responseId)).length;
               return (
@@ -40766,6 +40777,7 @@ function AcreditacionReconciliationTracePanel({
                   key={group.id}
                   type="button"
                   role="tab"
+                  data-gliding-key={group.id}
                   aria-selected={group.id === activeGroup.id}
                   className={`is-${group.tone}${group.id === activeGroup.id ? " is-active" : ""}`}
                   onClick={() => setActiveGroupId(group.id)}
@@ -40777,7 +40789,7 @@ function AcreditacionReconciliationTracePanel({
                 </button>
               );
             })}
-          </div>
+          </GlidingTabList>
 
           <section className={`mon-reconciliation-rule-detail is-${activeGroup.tone}`} aria-label={activeGroup.title}>
             <header>
@@ -43118,7 +43130,7 @@ function SourcePanel({
             />
           ) : (
             <div className="mon-source-toolbar">
-              <div className="mon-source-segment" role="tablist" aria-label="Proveedor de fuente">
+              <div className="mon-source-segment" role="group" aria-label="Proveedor de fuente">
                 <button type="button" className={draft.kind === "surveymonkey" ? "is-active" : ""} onClick={() => setPlatform("surveymonkey")}>
                   SurveyMonkey
                 </button>
@@ -43605,7 +43617,7 @@ function AcreditacionSourcesGuide({
         <span><QrCode size={14} /> SurveyMonkey <em>Respuestas {unitLexicon.byUnit}</em></span>
         <span><FileCheck2 size={14} /> Reporte <em>Avance y cortes</em></span>
       </div>
-      <div className="mon-acr-source-step-grid" role="tablist" aria-label="Piezas de acreditacion">
+      <GlidingTabList activeKey={activePreset?.key} className="mon-acr-source-step-grid" role="tablist" aria-label="Piezas de acreditacion">
         {ACREDITACION_SOURCE_PRESETS.map((preset) => {
           const Icon = preset.icon;
           const count = countAcreditacionPresetSources(sources, preset);
@@ -43616,6 +43628,7 @@ function AcreditacionSourcesGuide({
               type="button"
               className={`mon-acr-source-step${active ? " is-active" : ""}`}
               role="tab"
+              data-gliding-key={preset.key}
               aria-selected={active}
               onClick={() => onSelectPreset(preset)}
             >
@@ -43626,7 +43639,7 @@ function AcreditacionSourcesGuide({
             </button>
           );
         })}
-      </div>
+      </GlidingTabList>
       {activePreset && (
         <div className="mon-acr-source-context">
           <strong>{activePreset.label}</strong>

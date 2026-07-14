@@ -986,7 +986,8 @@ function Segmented({
       <span className="dash-filtro-label">{label}</span>
       <div
         className="dash-source-segments"
-        role="tablist"
+        role="group"
+        data-gliding-opt-out="property-value-control"
         aria-label={label}
         style={{ marginTop: 8, gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
       >
@@ -994,8 +995,7 @@ function Segmented({
           <button
             key={id}
             type="button"
-            role="tab"
-            aria-selected={value === id}
+            aria-pressed={value === id}
             className={`dash-source-segment ${value === id ? "is-active" : ""}`}
             onClick={() => onChange(id)}
           >

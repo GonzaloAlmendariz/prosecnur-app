@@ -19,6 +19,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { GlidingTabList } from "../../../components/GlidingTabList";
 
 export type ContextLensTab = {
   id: string;
@@ -274,10 +275,11 @@ export default function ContextLens({
 
         {/* Tabs (opcional) */}
         {tabs && tabs.length > 1 && (
-          <nav
-            role="tablist"
-            aria-label="Secciones del panel"
+          <GlidingTabList
+            as="nav"
+            activeKey={effectiveTab}
             style={{
+              "--pulso-gliding-indicator-radius": "0px",
               flexShrink: 0,
               display: "flex",
               gap: 2,
@@ -285,7 +287,9 @@ export default function ContextLens({
               borderBottom: "1px solid var(--pulso-border)",
               background: "var(--pulso-surface)",
               overflowX: "auto",
-            }}
+            } as CSSProperties}
+            role="tablist"
+            aria-label="Secciones del panel"
           >
             {tabs.map((tab) => (
               <TabButton
@@ -295,7 +299,7 @@ export default function ContextLens({
                 onClick={() => handleTab(tab.id)}
               />
             ))}
-          </nav>
+          </GlidingTabList>
         )}
 
         {/* Content */}
@@ -336,7 +340,7 @@ function TabButton({
     borderRadius: 0,
     background: "transparent",
     border: "none",
-    borderBottom: active ? "2px solid var(--pulso-primary)" : "2px solid transparent",
+    borderBottom: "2px solid transparent",
     color: active ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
     fontSize: 12,
     fontWeight: 700,
@@ -349,6 +353,7 @@ function TabButton({
       type="button"
       role="tab"
       aria-selected={active}
+      data-gliding-key={tab.id}
       onClick={onClick}
       style={style}
     >

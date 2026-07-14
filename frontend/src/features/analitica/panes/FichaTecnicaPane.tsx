@@ -17,6 +17,7 @@ import {
   apiAnaliticaFichaTecnicaInfo,
 } from "../../../api/client";
 import { Alert } from "../../../components/Alert";
+import { GlidingTabList } from "../../../components/GlidingTabList";
 import { Panel } from "../../../components/Panel";
 import { GenerateFooter, Section } from "../PaneKit";
 import { type FichaTecnicaConfig, useAnaliticaStore } from "../store";
@@ -172,20 +173,26 @@ export function FichaTecnicaPane() {
         ) : (
           <>
             <div className="analitica-ficha-commandbar">
-              <div className="analitica-segmented" role="tablist" aria-label="Formato de ficha">
+              <GlidingTabList
+                activeKey={ficha.layout ?? "pulso_oficial"}
+                className="analitica-segmented"
+                role="tablist"
+                aria-label="Formato de ficha"
+              >
                 {LAYOUTS.map((layout) => (
                   <button
                     key={layout.key}
                     type="button"
                     role="tab"
                     aria-selected={(ficha.layout ?? "pulso_oficial") === layout.key}
+                    data-gliding-key={layout.key}
                     className={(ficha.layout ?? "pulso_oficial") === layout.key ? "is-on" : undefined}
                     onClick={() => setFichaTecnica({ layout: layout.key })}
                   >
                     {layout.label}
                   </button>
                 ))}
-              </div>
+              </GlidingTabList>
               <button type="button" className="pulso-secondary" onClick={applyEmptySuggestions} disabled={!suggestedCount}>
                 <Wand2 size={14} />
                 Completar sugeridos
