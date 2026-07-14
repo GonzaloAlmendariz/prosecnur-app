@@ -33,6 +33,10 @@ export type GraphNodeCardProps = {
   expanded?: boolean;
   /** True cuando este node tiene `relevant` no vacío. */
   isConditional: boolean;
+  /** Nº de relaciones lógicas que tocan este nodo (entradas + salidas).
+   *  Solo se muestra en secciones COLAPSADAS, para anticipar cuánta
+   *  lógica esconde el grupo sin tener que expandirlo. */
+  relationCount?: number;
   /** Estados auxiliares para el modo edición (drag de edge). */
   markedAsTarget?: boolean;
   draggingFrom?: boolean;
@@ -60,6 +64,7 @@ export function GraphNodeCard({
   highlighted,
   expanded,
   isConditional,
+  relationCount = 0,
   markedAsTarget,
   draggingFrom,
   onToggleExpand,
@@ -360,6 +365,30 @@ export function GraphNodeCard({
             {/* El conteo de opciones / lista es info de DATOS, no de lógica:
                 no vive en el Mapa de lógica (feedback directo). La identidad
                 del nodo se lee por título + name técnico. */}
+            {isSection && !expanded && relationCount > 0 && (
+              <span
+                title={`${relationCount} relación${relationCount === 1 ? "" : "es"} lógica${relationCount === 1 ? "" : "s"} entra(n)/sale(n) de esta sección`}
+                style={{
+                  alignSelf: "flex-start",
+                  marginTop: 1,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "1px 8px",
+                  borderRadius: 999,
+                  fontSize: 9.5,
+                  fontWeight: 700,
+                  lineHeight: 1.4,
+                  whiteSpace: "nowrap",
+                  color: "var(--pulso-primary)",
+                  background: "var(--pulso-primary-bg, rgba(36, 87, 214, 0.10))",
+                  border: "1px solid var(--pulso-primary-border)",
+                }}
+              >
+                <IconConditionalLogic size={10} />
+                {relationCount} relaci{relationCount === 1 ? "ón" : "ones"}
+              </span>
+            )}
           </span>
           {isConditional && (
             <span

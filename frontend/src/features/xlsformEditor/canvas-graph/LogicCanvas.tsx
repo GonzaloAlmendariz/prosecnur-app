@@ -301,6 +301,31 @@ export function LogicCanvas({
     setConfirmingDelete(false);
   }, [selectedEdgeIdx]);
 
+  // Al seleccionar un nodo, si su card quedó fuera (o casi fuera) del
+  // viewport, desplazamos para centrarlo — así "saltar" a un nodo del
+  // detalle o del editor siempre lo trae a la vista. Si ya está cómodo
+  // en pantalla, no movemos nada (evita re-centrados molestos al click).
+  useEffect(() => {
+    if (!selectedId || !layout || !svgRef.current) return;
+    const n = layout.nodes.find((nd) => nd.node.id === selectedId && nd.visible);
+    if (!n) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const sx = n.x * zoom + pan.x;
+    const sy = n.y * zoom + pan.y;
+    const sw = n.width * zoom;
+    const sh = Math.min(n.height, 88) * zoom;
+    const m = 48;
+    const offscreen =
+      sx < m || sy < m || sx + sw > rect.width - m || sy + sh > rect.height - m;
+    if (offscreen) {
+      triggerSmooth();
+      centerOnNode(selectedId);
+    }
+    // Solo al cambiar la selección: pan/zoom se leen del closure actual a
+    // propósito (no queremos re-centrar en cada pan).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
+
   // Reset al abrir.
   useEffect(() => {
     if (open) {
@@ -394,6 +419,25 @@ export function LogicCanvas({
     }
     return set;
   }, [selectedId, layout]);
+
+  // Cuántas relaciones lógicas toca cada nodo (por ids RESUELTOS: cuando
+  // una sección está colapsada, sus edges internos se resuelven a la
+  // sección). Se usa para el contador de una sección colapsada. Los edges
+  // internos a un mismo nodo colapsado (ambos extremos resueltos a él) no
+  // cuentan — no entran ni salen. DEBE ir con el resto de hooks, antes del
+  // early return `if (!open)`.
+  const relationCountById = useMemo(() => {
+    const m = new Map<string, number>();
+    if (!layout) return m;
+    for (const e of layout.edges) {
+      const s = e.resolvedSourceId;
+      const t = e.resolvedTargetId;
+      if (s === t) continue;
+      m.set(s, (m.get(s) ?? 0) + 1);
+      m.set(t, (m.get(t) ?? 0) + 1);
+    }
+    return m;
+  }, [layout]);
 
   if (!open) return null;
 
@@ -636,6 +680,19 @@ export function LogicCanvas({
     setPan({ x: panX, y: panY });
   };
 
+  /** Desplaza (sin cambiar el zoom) para dejar el nodo `id` en el centro
+   *  del viewport. Para secciones altas, centra su HEADER, no el bloque
+   *  entero. */
+  const centerOnNode = (id: string) => {
+    if (!layout || !svgRef.current) return;
+    const n = layout.nodes.find((nd) => nd.node.id === id && nd.visible);
+    if (!n) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const cx = n.x + n.width / 2;
+    const cy = n.y + Math.min(n.height, 88) / 2;
+    setPan({ x: rect.width / 2 - cx * zoom, y: rect.height / 2 - cy * zoom });
+  };
+
   // Lookup a "está condicional" para el badge en el header.
   const isConditional = (id: string): boolean => {
     if (!structure) return false;
@@ -655,6 +712,7 @@ export function LogicCanvas({
         edges: layout.edges.length,
       }
     : { visible: 0, edges: 0 };
+
 
   const overlay = (
     <div
@@ -893,6 +951,7 @@ export function LogicCanvas({
                     highlighted={isHL}
                     expanded={expanded}
                     isConditional={isConditional(id)}
+                    relationCount={relationCountById.get(id) ?? 0}
                     draggingFrom={isDraggingFrom}
                     markedAsTarget={isMarkedTarget}
                     beingDragged={draggingCardId === id}
@@ -921,6 +980,37 @@ export function LogicCanvas({
                   />
                 );
               })}
+
+            {/* Etiqueta de condición del edge activo (seleccionado o en
+                hover) — chip al medio del path para leer la condición sin
+                abrir el panel. */}
+            {(() => {
+              const activeIdx = selectedEdgeIdx ?? hoveredEdgeIdx;
+              if (activeIdx == null || !layout || !graph) return null;
+              const e = layout.edges[activeIdx];
+              if (!e) return null;
+              const expr = graph.byId.get(e.edge.target)?.relevantExpression;
+              const label = expr ? shortConditionLabel(expr) : null;
+              if (!label) return null;
+              const W = 220;
+              const H = 24;
+              return (
+                <foreignObject
+                  x={e.midX - W / 2}
+                  y={e.midY - H / 2}
+                  width={W}
+                  height={H}
+                  pointerEvents="none"
+                  style={{ overflow: "visible" }}
+                >
+                  <div className="pulso-graph-edge-label-wrap">
+                    <span className="pulso-graph-edge-label" title={label}>
+                      {label}
+                    </span>
+                  </div>
+                </foreignObject>
+              );
+            })()}
 
             {/* Ghost edge mientras se arrastra. Bezier suave con
                 color primary y un círculo "snap" al cursor que indica
@@ -2277,6 +2367,12 @@ function parseOptionCondition(
  *  contexto. Mantiene los códigos como están. */
 function humanizeRelevant(expr: string): string {
   return humanizeRelevantWithLabels(expr, null);
+}
+/** Etiqueta compacta de la condición para el chip que flota sobre el
+ *  edge activo: humanización estándar, en una línea y truncada. */
+function shortConditionLabel(expr: string): string {
+  const s = humanizeRelevant(expr).replace(/\s+/g, " ").trim();
+  return s.length > 48 ? `${s.slice(0, 48)}…` : s;
 }
 /** Versión completa que resuelve códigos `'1'` a labels (`'Sí'`).
  *
