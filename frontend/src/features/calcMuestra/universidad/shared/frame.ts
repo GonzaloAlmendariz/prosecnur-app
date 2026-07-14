@@ -31,15 +31,24 @@ function marcoDeepEqual(a: unknown, b: unknown): boolean {
  * hay que reconstruirlo. Señal EXACTA (no una estimación): el frame guarda la
  * selección con que se construyó (`frame.criterios_seleccion`).
  */
+function seleccionVacia(sel: CriteriosSeleccionMarco | null | undefined): boolean {
+  return !sel || Object.keys(sel.byVariable ?? {}).length === 0;
+}
+
 export function marcoCriteriosDesactualizado(
   frame: CalcMuestraAulasState["frame"] | null | undefined,
   configSeleccion: CriteriosSeleccionMarco | null | undefined,
 ): boolean {
   if (!frame) return false;
   const construido = frame.criterios_seleccion ?? null;
-  const confirmado = configSeleccion ?? null;
-  if (!construido && !confirmado) return false;
-  return !marcoDeepEqual(construido ?? {}, confirmado ?? {});
+  // Si el marco vigente no registró con qué selección se construyó (marcos por
+  // defecto o previos a la suite: null o `{byVariable:{}}`), NO afirmamos que
+  // esté desactualizado: solo mostramos "reconstruye" cuando hay un cambio real
+  // y comparable — no de forma permanente al reabrir. Al reconstruir con
+  // criterios el frame registra su selección y la comparación vuelve a ser exacta.
+  if (seleccionVacia(construido)) return false;
+  if (seleccionVacia(configSeleccion)) return false;
+  return !marcoDeepEqual(construido, configSeleccion);
 }
 
 export function frameAuditValue(frame: CalcMuestraAulasState["frame"] | null | undefined, metric: string) {
