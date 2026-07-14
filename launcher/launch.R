@@ -56,6 +56,13 @@ if (!(tolower(host) %in% loopback_hosts)) {
 
 cat(sprintf("[prosecnur-app] repo_root = %s\n", repo_root))
 
+# El instalador Windows prepara prosecnurapp en la librería local antes de
+# abrir la app. En ese runtime no usamos mtimes del árbol copiado: Windows
+# conserva timestamps del source y podría intentar reinstalarlo en cada inicio.
+# Ese trabajo sólo corresponde al desarrollo, donde los jobs callr sí deben
+# seguir el código fuente más reciente.
+packaged_runtime <- tolower(Sys.getenv("PULSO_PACKAGED_RUNTIME", "false")) %in% c("1", "true", "yes")
+
 # Deprecación amable de PULSO_PROSECNUR_DEV: si alguien todavía lo tiene
 # seteado por costumbre, avisamos y seguimos. El prosecnur externo ya no
 # se usa; ignorar la variable no rompe nada.
@@ -74,7 +81,7 @@ if (nzchar(Sys.getenv("PULSO_PROSECNUR_DEV", ""))) {
 # sigue con la versión vieja). Reinstalamos automáticamente cuando la fuente
 # cambió, para que ningún job corra código viejo. Solo reinstala si de verdad
 # hay staleness (chequeo de mtime instantáneo); si falla, avisa pero no bloquea.
-local({
+if (!packaged_runtime) local({
   installed_dir <- tryCatch(find.package("prosecnurapp"), error = function(e) NA_character_)
   needs_reinstall <- is.na(installed_dir)
   if (!needs_reinstall) {
@@ -102,7 +109,12 @@ local({
 })
 
 # Cargar el paquete de la app (ya incluye el motor).
-if (requireNamespace("devtools", quietly = TRUE)) {
+if (packaged_runtime) {
+  if (!requireNamespace("prosecnurapp", quietly = TRUE)) {
+    stop("El motor de Prosecnur no quedó instalado. Reinstala Prosecnur para reparar la librería local.")
+  }
+  library(prosecnurapp)
+} else if (requireNamespace("devtools", quietly = TRUE)) {
   devtools::load_all(api_dir, quiet = TRUE)
 } else if (requireNamespace("pkgload", quietly = TRUE)) {
   pkgload::load_all(api_dir, quiet = TRUE)

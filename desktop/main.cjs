@@ -97,6 +97,12 @@ let mainWindow = null;
 let backend = null;
 let backendStopping = false;
 let backendPort = null;
+// Un arranque puede ser disparado por la ventana inicial o por el botón
+// "Reintentar". Compartimos la misma promesa para que ambos caminos nunca
+// creen dos procesos R que compitan por el mismo puerto.
+let backendStartPromise = null;
+// Evita que dos exits cercanos del backend abran diálogos nativos superpuestos.
+let backendErrorDialogOpen = false;
 let rendererCloseGuardReady = false;
 let closeConfirmed = false;
 let closeRequestPending = false;
@@ -1059,41 +1065,51 @@ function showError(message) {
 // usuario decida qué hacer.
 async function showBackendError(message) {
   if (!mainWindow || mainWindow.isDestroyed()) return;
-  showError(message);
-  const { response } = await dialog.showMessageBox(mainWindow, {
-    type: "error",
-    title: APP_NAME,
-    message: "Se detuvo el motor local de R",
-    detail:
-      `${message}\n\n` +
-      (logsDir ? `Logs en: ${logsDir}` : "(no se pudo inicializar el archivo de logs)"),
-    buttons: ["Reintentar", "Ver logs", "Salir"],
-    defaultId: 0,
-    cancelId: 2
-  });
-  if (response === 0) {
-    // Reintentar: asegurar backend muerto, mostrar loading, rearrancar.
-    if (backend) {
-      backendStopping = true;
-      try { backend.kill(); } catch (_e) { /* noop */ }
-      backend = null;
-      backendStopping = false;
+  if (backendErrorDialogOpen) return;
+
+  backendErrorDialogOpen = true;
+  try {
+    let currentMessage = message;
+    while (mainWindow && !mainWindow.isDestroyed()) {
+      showError(currentMessage);
+      const { response } = await dialog.showMessageBox(mainWindow, {
+        type: "error",
+        title: APP_NAME,
+        message: "Se detuvo el motor local de R",
+        detail:
+          `${currentMessage}\n\n` +
+          (logsDir ? `Logs en: ${logsDir}` : "(no se pudo inicializar el archivo de logs)"),
+        buttons: ["Reintentar", "Ver logs", "Salir"],
+        defaultId: 0,
+        cancelId: 2
+      });
+      if (response === 0) {
+        // Reintentar: asegurar backend muerto, mostrar loading, rearrancar.
+        if (backend) {
+          backendStopping = true;
+          try { backend.kill(); } catch (_e) { /* noop */ }
+          backend = null;
+          backendStopping = false;
+        }
+        showLoading();
+        try {
+          const port = await startBackend();
+          await loadRenderer(port);
+          return;
+        } catch (error) {
+          currentMessage = error.message || String(error);
+        }
+      } else if (response === 1) {
+        if (logsDir) {
+          shell.openPath(logsDir);
+        }
+      } else {
+        app.quit();
+        return;
+      }
     }
-    showLoading();
-    try {
-      const port = await startBackend();
-      await loadRenderer(port);
-    } catch (error) {
-      showBackendError(error.message || String(error));
-    }
-  } else if (response === 1) {
-    if (logsDir) {
-      shell.openPath(logsDir);
-    }
-    // Volver al dialog para que el usuario decida después de revisar.
-    showBackendError(message);
-  } else {
-    app.quit();
+  } finally {
+    backendErrorDialogOpen = false;
   }
 }
 
@@ -1318,6 +1334,9 @@ async function spawnBackendOnce(rscript, launchScript, root, port) {
   backendPort = port;
 
   proc.on("exit", (code, signal) => {
+    // Si el backend fue reemplazado durante un reintento, su salida tardía no
+    // describe al motor actual y no debe abrir un diálogo falso.
+    if (backend !== proc) return;
     // Ignoramos exits esperados: shutdown del usuario (backendStopping) y
     // reintentos por bind error (expectingBackendRestart). Solo disparamos
     // la UI de error si fue un crash real post-startup.
@@ -1347,7 +1366,7 @@ async function spawnBackendOnce(rscript, launchScript, root, port) {
   }
 }
 
-async function startBackend() {
+async function startBackendImpl() {
   const root = appRoot();
   configurePptxPreviewRenderer(root);
   const launchScript = path.join(root, "launcher", "launch.R");
@@ -1416,6 +1435,20 @@ async function startBackend() {
   }
   // Inalcanzable, pero por completitud del flow-analysis:
   throw new Error("startBackend: estado inesperado.");
+}
+
+async function startBackend() {
+  if (backendStartPromise) return backendStartPromise;
+
+  const pendingStart = startBackendImpl();
+  backendStartPromise = pendingStart;
+  try {
+    return await pendingStart;
+  } finally {
+    if (backendStartPromise === pendingStart) {
+      backendStartPromise = null;
+    }
+  }
 }
 
 async function stopBackend() {
