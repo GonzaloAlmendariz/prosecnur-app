@@ -2,13 +2,32 @@ import {
   type CalcMuestraAulasState,
   type CriteriosSeleccionMarco,
 } from "../../../../api/client";
+import { seleccionVariable } from "../../dominio/criteriosMarco";
 import { fmtInt, rowsFrom, safeNumber } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "./format";
 
-/** Igualdad estructural mínima (orden de claves irrelevante; arrays sensibles al
- *  orden). Copia local para no crear un ciclo con corridas.ts (que importa de
- *  este módulo). Suficiente para comparar dos selecciones de criterios. */
+/** Un valor "vacío/ausente" a efectos de comparar selecciones. La selección que
+ *  el frame ECHA desde el backend viene verbosa (`fromValue: "NA"`, `layer: null`,
+ *  `threshold: {}`, `includeValues: []`, `exceptions: []`), mientras que la
+ *  selección del frontend es lean. El codebase ya trata "NA"/`{}` como AUSENTES
+ *  (ver `seleccionVariable`); tratarlos como equivalentes aquí evita un falso
+ *  "desactualizado" perpetuo por diferencias de forma sin cambio de significado. */
+function selVacio(x: unknown): boolean {
+  if (x == null || x === "" || x === "NA") return true;
+  if (Array.isArray(x)) return x.length === 0;
+  if (typeof x === "object") {
+    return Object.keys(x as Record<string, unknown>).every((k) =>
+      selVacio((x as Record<string, unknown>)[k]),
+    );
+  }
+  return false;
+}
+
+/** Igualdad SEMÁNTICA de selecciones (orden de claves irrelevante; arrays
+ *  sensibles al orden; vacíos ausentes/null/"NA"/[]/{} son equivalentes). Copia
+ *  local para no crear un ciclo con corridas.ts (que importa de este módulo). */
 function marcoDeepEqual(a: unknown, b: unknown): boolean {
+  if (selVacio(a) && selVacio(b)) return true;
   if (Object.is(a, b)) return true;
   if (Array.isArray(a) || Array.isArray(b)) {
     if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
@@ -17,8 +36,8 @@ function marcoDeepEqual(a: unknown, b: unknown): boolean {
   if (a && b && typeof a === "object" && typeof b === "object") {
     const objA = a as Record<string, unknown>;
     const objB = b as Record<string, unknown>;
-    const keysA = Object.keys(objA).filter((key) => objA[key] !== undefined);
-    const keysB = Object.keys(objB).filter((key) => objB[key] !== undefined);
+    const keysA = Object.keys(objA).filter((key) => !selVacio(objA[key]));
+    const keysB = Object.keys(objB).filter((key) => !selVacio(objB[key]));
     if (keysA.length !== keysB.length) return false;
     return keysA.every((key) => marcoDeepEqual(objA[key], objB[key]));
   }
@@ -35,6 +54,21 @@ function seleccionVacia(sel: CriteriosSeleccionMarco | null | undefined): boolea
   return !sel || Object.keys(sel.byVariable ?? {}).length === 0;
 }
 
+/** Reduce una selección a sus campos con SIGNIFICADO para comparar. `seleccionVariable`
+ *  descarta la metadata que el backend echa desde el registro (scope/kind) y que el
+ *  frontend no carga; combinado con la igualdad que ignora vacíos ([]/{}/"NA"/null),
+ *  una selección verbosa del frame y la lean del frontend con el mismo contenido son
+ *  equivalentes (evita el "reconstruye" perpetuo tras auto-sanear). */
+function seleccionNormalizada(sel: CriteriosSeleccionMarco | null | undefined) {
+  const byVariable: Record<string, unknown> = {};
+  for (const id of Object.keys(sel?.byVariable ?? {})) byVariable[id] = seleccionVariable(sel, id);
+  return {
+    byVariable,
+    courseLevelRanges: sel?.courseLevelRanges ?? {},
+    minEligible: sel?.minEligible ?? {},
+  };
+}
+
 export function marcoCriteriosDesactualizado(
   frame: CalcMuestraAulasState["frame"] | null | undefined,
   configSeleccion: CriteriosSeleccionMarco | null | undefined,
@@ -48,7 +82,7 @@ export function marcoCriteriosDesactualizado(
   // criterios el frame registra su selección y la comparación vuelve a ser exacta.
   if (seleccionVacia(construido)) return false;
   if (seleccionVacia(configSeleccion)) return false;
-  return !marcoDeepEqual(construido, configSeleccion);
+  return !marcoDeepEqual(seleccionNormalizada(construido), seleccionNormalizada(configSeleccion));
 }
 
 export function frameAuditValue(frame: CalcMuestraAulasState["frame"] | null | undefined, metric: string) {
