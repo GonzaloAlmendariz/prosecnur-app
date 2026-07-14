@@ -22,6 +22,7 @@ import {
 } from "../shared/categorias";
 import { frameAuditNumber } from "../shared/frame";
 import { CifraMotor } from "../ui";
+import { InventarioUnicosPanel } from "./InventarioUnicosPanel";
 import {
   frameRelationAudit,
   recordNumber,
@@ -178,6 +179,7 @@ export function MarcoConsistenciaTab({
 
   return (
     <div className="cmv2-marco-stack">
+      <InventarioUnicosPanel aulasState={aulasState} />
       <section className="cmv2-panel cmv2-marco-consistencia">
         <div className="cmv2-frame-source-relation">
           {sourceCards.map((card, index) => (

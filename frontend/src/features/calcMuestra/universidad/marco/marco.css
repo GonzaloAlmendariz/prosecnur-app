@@ -1717,3 +1717,258 @@
 .cmv2-marco-stack .cmv2-marco-sexo-solo .cmv2-native-stack-track i span {
   font-size: 11px;
 }
+
+/* =============================================================================
+   Inventario de únicos (fase Datos → Consistencia). Embudo de deduplicación de
+   la base cruda a alumnos y cursos-horario únicos. Solo tokens cmv2-*/pulso-*.
+   ============================================================================= */
+.cmv2-inv {
+  display: grid;
+  gap: 16px;
+}
+
+.cmv2-inv-head {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.cmv2-inv-head-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--pulso-radius);
+  color: var(--cmv2-accent-fg);
+  background: var(--cmv2-accent-soft);
+  border: 1px solid var(--cmv2-accent-border);
+}
+
+.cmv2-inv-head > div {
+  display: grid;
+  gap: 3px;
+}
+
+.cmv2-inv-head strong {
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.cmv2-inv-head small {
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  max-width: 74ch;
+}
+
+.cmv2-inv-head-crudo {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+  padding: 6px 12px;
+  border-radius: var(--pulso-radius);
+  border: 1px solid var(--cmv2-border);
+  background: var(--cmv2-surface-tint);
+  text-align: right;
+}
+
+.cmv2-inv-head-crudo b {
+  color: var(--pulso-text);
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-inv-head-crudo span {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+.cmv2-inv-tracks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .cmv2-inv-tracks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cmv2-inv-head {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .cmv2-inv-head-crudo {
+    grid-column: 1 / -1;
+    justify-items: start;
+    text-align: left;
+  }
+}
+
+.cmv2-inv-track {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--pulso-radius-card);
+  border: 1px solid var(--cmv2-border);
+  background: var(--pulso-surface);
+}
+
+.cmv2-inv-track[data-tono="aula"] {
+  background: var(--cmv2-surface-tint);
+}
+
+.cmv2-inv-track > header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cmv2-inv-track-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--pulso-radius);
+  color: var(--cmv2-accent-fg);
+  background: var(--cmv2-accent-soft);
+  border: 1px solid var(--cmv2-accent-border);
+}
+
+.cmv2-inv-track > header > div {
+  display: grid;
+  gap: 1px;
+}
+
+.cmv2-inv-track > header small {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.cmv2-inv-track > header strong {
+  color: var(--pulso-text);
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.cmv2-inv-bars {
+  display: grid;
+  gap: 8px;
+}
+
+.cmv2-inv-bar {
+  position: relative;
+  height: 28px;
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-surface-tint);
+  border: 1px solid var(--cmv2-border);
+  overflow: hidden;
+}
+
+.cmv2-inv-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.cmv2-inv-bar.is-crudo i {
+  background: color-mix(in srgb, var(--pulso-text-soft) 22%, transparent);
+}
+
+.cmv2-inv-bar.is-unico i {
+  background: color-mix(in srgb, var(--cmv2-accent) 42%, var(--cmv2-accent-soft));
+  min-width: 3px;
+}
+
+.cmv2-inv-bar label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-inv-bar label b {
+  color: var(--pulso-text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-inv-track-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cmv2-inv-merma,
+.cmv2-inv-razon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-surface-tint);
+  border: 1px solid var(--cmv2-border);
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+  line-height: 1.3;
+}
+
+.cmv2-inv-merma svg {
+  color: var(--pulso-text-soft);
+  flex: none;
+}
+
+.cmv2-inv-merma b,
+.cmv2-inv-razon b {
+  color: var(--pulso-text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-inv-razon {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.cmv2-inv-razon b {
+  font-size: 15px;
+}
+
+.cmv2-inv-track-nota {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.cmv2-inv-bridge {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-accent-soft);
+  border: 1px solid var(--cmv2-accent-border);
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.cmv2-inv-bridge b {
+  color: var(--pulso-text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
