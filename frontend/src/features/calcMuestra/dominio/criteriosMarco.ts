@@ -151,7 +151,10 @@ function categoriasCanonicasFlat(variable: CriterioVariable): string[] | null {
       keys = pick((t) => has(t, "obligator", "especialidad", "taller"));
       break;
     case "teacher_type":
-      keys = pick((t) => has(t, "ordinario", "contratad"));
+      // Canónico (03.3): DOCENTE CONTRATADO + DOCENTE ORDINARIO (Principal/
+      // Asociado/Auxiliar). EXCLUIR DOCENTE EXTRAORDINARIO (el substring
+      // "ordinario" matchea "EXTRA-ordinario") y PRE-DOCENTE (ya cae fuera).
+      keys = pick((t) => has(t, "ordinario", "contratad") && !has(t, "extraordinar"));
       break;
     default:
       return null; // sin canónico conocido → incluir todo (no restringe)

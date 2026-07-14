@@ -16,6 +16,7 @@ import {
   ordinalIncluido,
   removeExcepcion,
   resumenVariable,
+  seleccionCanonica,
   seleccionInicial,
   seleccionVariable,
   setFromValue,
@@ -115,6 +116,69 @@ describe("seleccionInicial", () => {
 
   it("tolera catálogo nulo", () => {
     expect(seleccionInicial(null)).toEqual({ byVariable: {} });
+  });
+});
+
+describe("seleccionCanonica — teacher_type", () => {
+  // Catálogo jerárquico realista: los hijos portan el tipo completo en su label
+  // (categoriasDeVariable aplana grupos → hijos, y el match usa label+key).
+  const CATALOGO_DOCENTES: CriteriosCatalogo = {
+    schema: "calc_muestra_criterios_catalogo_v1",
+    variables: [
+      {
+        id: "teacher_type",
+        scope: "aula",
+        label: "Tipo de docente",
+        kind: "hierarchical",
+        groups: [
+          {
+            key: "g_contratado",
+            label: "Docente contratado",
+            aulas: 900,
+            children: [{ key: "contratado", label: "Docente contratado", aulas: 900 }],
+          },
+          {
+            key: "g_ordinario",
+            label: "Docente ordinario",
+            aulas: 2000,
+            children: [
+              { key: "ord_principal", label: "Docente ordinario principal", aulas: 800 },
+              { key: "ord_asociado", label: "Docente ordinario asociado", aulas: 700 },
+              { key: "ord_auxiliar", label: "Docente ordinario auxiliar", aulas: 500 },
+            ],
+          },
+          {
+            key: "g_pre",
+            label: "Pre-docente",
+            aulas: 300,
+            children: [
+              { key: "jefe_practica", label: "Jefe de práctica", aulas: 200 },
+              { key: "instructor", label: "Instructor", aulas: 100 },
+            ],
+          },
+          {
+            key: "g_extra",
+            label: "Docente extraordinario",
+            aulas: 150,
+            children: [{ key: "ext_visitante", label: "Docente extraordinario visitante", aulas: 150 }],
+          },
+        ],
+      },
+    ],
+  };
+
+  it("incluye SOLO contratado + ordinario; excluye extraordinario y pre-docente", () => {
+    const sel = seleccionCanonica(CATALOGO_DOCENTES).byVariable.teacher_type;
+    expect(sel.mode).toBe("include");
+    expect(sel.match).toBe("any");
+    const canonicas = new Set(sel.categories ?? []);
+    // Contratado + los tres ordinarios (Principal/Asociado/Auxiliar).
+    expect(canonicas).toEqual(new Set(["contratado", "ord_principal", "ord_asociado", "ord_auxiliar"]));
+    // El substring "ordinario" NO debe arrastrar "EXTRA-ordinario".
+    expect(canonicas.has("ext_visitante")).toBe(false);
+    // Pre-docente (jefe de práctica / instructor) queda fuera.
+    expect(canonicas.has("jefe_practica")).toBe(false);
+    expect(canonicas.has("instructor")).toBe(false);
   });
 });
 
