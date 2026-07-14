@@ -37,7 +37,7 @@ import { universitySidebarTabs } from "./universidadTabs";
 import { DefBasesTab, DefEstudioTab, DefVariablesTab } from "./definicion";
 import { MarcoAulasTab, MarcoConsistenciaTab, MarcoPoblacionTab } from "./marco";
 import { CriteriosMarcoTab } from "./criterios";
-import { CalculoPropuestasTab, CalculoSupuestosTab } from "./calculo";
+import { CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoPropuestasTab } from "./calculo";
 import {
   AulasAuditoriaTab,
   AulasMarcoTab,
@@ -58,7 +58,6 @@ import {
 import { zFromConfidence } from "../didactica/motorPreview";
 import type { MotorEfectivo } from "../motor/usePerfilEfectivo";
 import { useMotorStore } from "../motor/store";
-import { TabCalculo } from "../motor/pestanas/TabCalculo";
 import { TabCobertura } from "../motor/pestanas/TabCobertura";
 import { TabDistribucion } from "../motor/pestanas/TabDistribucion";
 import { UniversityTabHeader } from "./ui/UniversityTabHeader";
@@ -379,6 +378,9 @@ export function UniversidadDesk({
                 uploadingSourceId={uploadingSourceId}
               />
             </div>}
+            {showLocalTab("def-consistencia") && <div id="cmv2-local-def-consistencia">
+              <MarcoConsistenciaTab workspace={syncedWorkspace} aulasState={aulasState} />
+            </div>}
             {showLocalTab("def-variables") && <div id="cmv2-local-def-variables" className="cmv2-definition-stack">
               <DefVariablesTab
                 workspace={syncedWorkspace}
@@ -409,10 +411,7 @@ export function UniversidadDesk({
               <MarcoPoblacionTab workspace={syncedWorkspace} totalComp={totalComp} aulasState={aulasState} />
             </div>}
             {showLocalTab("marco-aulas") && <div id="cmv2-local-marco-aulas">
-              <MarcoAulasTab workspace={syncedWorkspace} aulasState={aulasState} />
-            </div>}
-            {showLocalTab("marco-validacion") && <div id="cmv2-local-marco-validacion">
-              <MarcoConsistenciaTab workspace={syncedWorkspace} aulasState={aulasState} />
+              <MarcoAulasTab workspace={syncedWorkspace} aulasState={aulasState} onWorkspace={onWorkspace} />
             </div>}
           </div>
         )}
@@ -454,17 +453,15 @@ export function UniversidadDesk({
 
         {selectedSection === "calculo" && (
           <div id="cmv2-section-university-calculo" className="cmv2-tab-panel" role="tabpanel" aria-labelledby="cmv2-active-local-title">
-            {showLocalTab("calculo-diseno") && <div id="cmv2-local-calculo-diseno" className="rec-recorrido rec-recorrido--full">
-              <TabCalculo
-                perfil={motor.perfil}
-                e1={motor.e1}
-                e2={motor.e2}
-                onAplicarAlEstudio={motor.usaProyecto && marcoReady ? aplicarDisenoAlEstudio : undefined}
+            {showLocalTab("calculo-diseno") && <div id="cmv2-local-calculo-diseno">
+              <CalculoDisenoTab
+                totalComp={totalComp}
+                facultyComp={facultyComp}
+                marcoReady={marcoReady}
+                onSetComponentes={onSetComponentes}
+                onCalcular={calculateSample}
                 calculando={calculando}
               />
-            </div>}
-            {showLocalTab("calculo-distribucion") && <div id="cmv2-local-calculo-distribucion" className="rec-recorrido rec-recorrido--full">
-              <TabDistribucion perfil={motor.perfil} e1={motor.e1} />
             </div>}
             {showLocalTab("calculo-propuestas") && <div id="cmv2-local-calculo-propuestas">
               <CalculoPropuestasTab
@@ -478,16 +475,14 @@ export function UniversidadDesk({
                 calculando={calculando}
               />
             </div>}
-            {showLocalTab("calculo-ajustes") && <div id="cmv2-local-calculo-ajustes">
-              <CalculoSupuestosTab
-                totalComp={totalComp}
-                facultyComp={facultyComp}
-                workspace={syncedWorkspace}
-                onComponente={onComponente}
-                onParametroCompartido={aplicarParametroCompartido}
-                onCalcular={calculateSample}
-                calculando={calculando}
+            {showLocalTab("calculo-ch-facultad") && <div id="cmv2-local-calculo-ch-facultad">
+              <CalculoCursosHorarioFacultadTab
+                componentes={[totalComp, facultyComp]}
+                aulasState={aulasState}
               />
+            </div>}
+            {showLocalTab("calculo-distribucion") && <div id="cmv2-local-calculo-distribucion" className="rec-recorrido rec-recorrido--full">
+              <TabDistribucion perfil={motor.perfil} e1={motor.e1} />
             </div>}
           </div>
         )}

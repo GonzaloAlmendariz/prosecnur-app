@@ -10,7 +10,7 @@ import {
   type CalcMuestraEstudio,
   type CalcMuestraWorkspace,
 } from "../../../api/client";
-import { fmtInt } from "../sharedCore";
+import { CountUp } from "./CountUp";
 import { frameAuditNumber, marcoCriteriosDesactualizado } from "../universidad/shared/frame";
 import {
   UNIVERSITY_FACULTY_COMPONENT_ID,
@@ -150,7 +150,7 @@ export function ResumenDiseno({
             <span className="rec-resumen-item-icon" aria-hidden="true">{metric.icon}</span>
             <span className="rec-resumen-item-copy">
               <small>{metric.label}</small>
-              <strong>{metric.value != null ? fmtInt(metric.value) : "—"}</strong>
+              <strong><CountUp value={metric.value} /></strong>
               <span>{metric.note}</span>
             </span>
           </div>

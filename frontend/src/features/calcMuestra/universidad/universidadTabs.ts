@@ -60,10 +60,16 @@ export const UNIVERSITY_LOCAL_TAB_ALIASES: Record<string, string> = {
   // Consolidación del Motor en la tubería única (2026-07): la guía de
   // parámetros quedó absorbida por el diseño reactivo.
   "calculo-guia": "calculo-diseno",
+  // Supuestos se fusionó en Diseño (§5.1.2); su slot lo ocupa la nueva pestaña
+  // Cursos-horario por facultad. Un tab guardado de Supuestos va a Diseño.
+  "calculo-ajustes": "calculo-diseno",
   // Unificación de criterios (2026-07): la pestaña didáctica "Criterios" se
   // retiró; la suite por categoría (marco-categorias) es la única superficie
   // para definir y confirmar criterios de inclusión.
   "marco-criterios": "marco-categorias",
+  // Consistencia se reubicó de Marco a Datos (§3.2): un tab guardado aterriza
+  // en su nuevo hogar dentro de Datos.
+  "marco-validacion": "def-consistencia",
   // Un solo hogar de criterios (2026-07): Datos deja de decidir elegibilidad
   // (vive en Marco → Criterios) y de adelantar resultados del marco. Un tab
   // guardado de Elegibilidad/Institución aterriza en el mapeo de Variables.
@@ -209,6 +215,9 @@ export function universitySidebarTabs({
     return [
       { id: "def-estudio", label: "Estudio", detail: "nombre, cliente y alcance", icon: ClipboardList, status: guideStatus(Boolean(estudio.titulo)), targetId: "cmv2-local-def-estudio" },
       { id: "def-bases", label: "Fuentes", detail: "archivos, hojas y lectura", icon: Database, status: guideStatus(baseReady, hasSource), targetId: "cmv2-local-def-bases" },
+      // Consistencia vive en Datos (§3.2): la calidad del enlace entre bases se
+      // evalúa AL CARGAR los datos, no al armar el marco.
+      { id: "def-consistencia", label: "Consistencia", detail: "enlace entre bases (base única o dos bases)", icon: CheckCircle2, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-def-consistencia" },
       { id: "def-variables", label: "Variables", detail: "columnas de la base", icon: Table2, status: guideStatus(baseConfigured, baseReady || hasSource), targetId: "cmv2-local-def-variables" },
     ];
   }
@@ -218,15 +227,18 @@ export function universitySidebarTabs({
       { id: "marco-categorias", label: "Criterios de inclusión", detail: "inclusión por categoría, excepciones y su porqué", icon: Filter, status: guideStatus(criteriosCatalogoReady, hasDescriptiveFrame), targetId: "cmv2-local-marco-categorias" },
       { id: "marco-poblacion", label: "Población", detail: "elegibles y estructura (base real)", icon: Users, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-poblacion" },
       { id: "marco-aulas", label: "Cursos-horario", detail: "unidades del marco (base real)", icon: Grid3X3, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-aulas" },
-      { id: "marco-validacion", label: "Consistencia", detail: "reconciliación entre bases", icon: CheckCircle2, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-validacion" },
-      { id: "marco-cobertura", label: "Cobertura", detail: "alcanzables y factibilidad por unidad", icon: BarChart3, status: guideStatus(effectiveMarcoReady), targetId: "cmv2-local-marco-cobertura" },
+      { id: "marco-cobertura", label: "Cobertura", detail: "elegibles vs. no elegibles por facultad", icon: BarChart3, status: guideStatus(effectiveMarcoReady), targetId: "cmv2-local-marco-cobertura" },
     ];
   }
   if (activeSection === "calculo") {
     return [
-      { id: "calculo-diseno", label: "Diseño", detail: "parámetros, n, bolsa y escenarios", icon: Sigma, status: guideStatus(true), targetId: "cmv2-local-calculo-diseno" },
-      { id: "calculo-propuestas", label: "Propuestas", detail: "N, cuotas y cursos-horario (motor R)", icon: Calculator, status: guideStatus(hasResult, effectiveMarcoReady), targetId: "cmv2-local-calculo-propuestas" },
-      { id: "calculo-ajustes", label: "Supuestos", detail: "deff, rendimiento y campo", icon: Gauge, status: guideStatus(Boolean(totalComp || facultyComp), effectiveMarcoReady), targetId: "cmv2-local-calculo-ajustes" },
+      // Diseño absorbe los supuestos de la fórmula (§5.1.2): fórmula, significado
+      // y regulación de cada parámetro (global y por facultad).
+      { id: "calculo-diseno", label: "Diseño", detail: "fórmula, parámetros y supuestos", icon: Sigma, status: guideStatus(true), targetId: "cmv2-local-calculo-diseno" },
+      { id: "calculo-propuestas", label: "Propuestas", detail: "N y cuotas por facultad (motor R)", icon: Calculator, status: guideStatus(hasResult, effectiveMarcoReady), targetId: "cmv2-local-calculo-propuestas" },
+      // Nueva pestaña (§5.3) en el slot que dejó Supuestos: alumnos por CH y CH
+      // definitivos por facultad.
+      { id: "calculo-ch-facultad", label: "Cursos-horario por facultad", detail: "alumnos por CH y CH definitivos", icon: Grid3X3, status: guideStatus(hasResult, effectiveMarcoReady), targetId: "cmv2-local-calculo-ch-facultad" },
       { id: "calculo-distribucion", label: "Distribución", detail: "población y muestra por unidad × sexo", icon: PieChart, status: guideStatus(true), targetId: "cmv2-local-calculo-distribucion" },
     ];
   }
