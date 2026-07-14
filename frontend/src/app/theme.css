@@ -24908,9 +24908,15 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 
 /* ── Fila de CIERRE de sección ─────────────────────────────────────────── */
+/* Lee como un marcador de límite arrastrable, no como una fila más: borde
+ * superior punteado (la "costura" donde termina la sección) y un grip
+ * siempre visible que anuncia que se puede reubicar. */
+.pulso-outline-closerow {
+  border-top: 1px dashed color-mix(in srgb, var(--pulso-primary) 30%, var(--pulso-border));
+}
 .pulso-outline-closerow .pulso-outline-title {
-  font-weight: 680;
-  color: var(--pulso-text-soft);
+  font-weight: 700;
+  color: color-mix(in srgb, var(--pulso-text) 62%, var(--pulso-text-soft));
 }
 .pulso-outline-closelabel {
   font-weight: 700;
@@ -24918,6 +24924,16 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-outline-closeicon {
   color: color-mix(in srgb, var(--pulso-primary) 55%, var(--pulso-text-soft));
+}
+/* El grip del cierre no espera al hover: la reubicación es su función
+ * principal, así que se muestra afirmado y con tinte primario. */
+.pulso-outline-closerow .pulso-outline-grip {
+  opacity: 0.85;
+  color: var(--pulso-primary);
+}
+.pulso-outline-closerow:hover .pulso-outline-grip {
+  opacity: 1;
+  background: var(--pulso-primary-soft);
 }
 /* Guía vertical que ata visualmente el cierre a su sección. */
 .pulso-outline-closerow .pulso-outline-body::before {
@@ -29700,6 +29716,10 @@ button.pulso-focus-calculation-recipe {
 .pulso-questionnaire-section-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  /* `start` evita que una tarjeta corta (ej. "1 elemento") se estire a
+   * la altura de la sección más larga de su fila: sin esto el grid
+   * iguala las alturas y deja huecos enormes. */
+  align-items: start;
   gap: 10px;
 }
 
@@ -29819,7 +29839,22 @@ button.pulso-focus-calculation-recipe {
 
 .pulso-questionnaire-question-list {
   display: grid;
+  /* `max-content` es imprescindible: sin él, cuando la lista topa el
+   * `max-height` con muchas filas, el grid encoge las pistas `auto` hasta
+   * su min-height (~28px) para caber y recorta los labels de 2 líneas.
+   * Con `max-content` cada fila conserva su alto natural y el sobrante
+   * hace scroll. */
+  grid-auto-rows: max-content;
   gap: 6px;
+  /* Secciones largas (20+ preguntas) hacían crecer la tarjeta sin
+   * límite y estiraban toda la vista. Acotamos la lista y le damos
+   * scroll interno propio: la tarjeta queda a una altura legible y el
+   * recorrido no se vuelve una columna gigante. El tope es relativo al
+   * alto del viewport para aprovechar pantallas altas sin desbordar en
+   * las cortas. */
+  max-height: clamp(260px, 52vh, 680px);
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .pulso-questionnaire-question {
@@ -36710,6 +36745,53 @@ button.pulso-focus-calculation-recipe {
   color: var(--pulso-text-soft);
   font-style: italic;
 }
+/* Encabezado (`#### …`) — render en editor y previsualizaciones. */
+.pulso-md-editor h4,
+.pulso-md-editor .pulso-md-h4,
+.pulso-md-h4 {
+  display: block;
+  margin: 0;
+  font-size: 1.18em;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--pulso-text);
+}
+/* Selector de color: botón de la toolbar + popover de swatches. */
+.pulso-md-color {
+  position: relative;
+  display: inline-flex;
+}
+.pulso-md-color-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  gap: 5px;
+  padding: 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: white;
+  box-shadow: var(--pulso-shadow-popover, 0 8px 24px rgba(15, 23, 42, 0.16));
+}
+.pulso-md-color-swatch {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 100ms ease, box-shadow 100ms ease;
+}
+.pulso-md-color-swatch:hover {
+  transform: scale(1.12);
+  box-shadow: 0 0 0 2px var(--pulso-primary-soft);
+}
+.pulso-md-color-swatch[data-clear="true"] {
+  background:
+    linear-gradient(45deg, transparent 44%, #e11d48 44%, #e11d48 56%, transparent 56%),
+    white;
+}
 
 /* === RichInline (editor inline tipo Notion para campos con markdown) === */
 .pulso-rich-inline {
@@ -37161,21 +37243,31 @@ button.pulso-focus-calculation-recipe {
   margin: 0;
   padding: 0;
   list-style: none;
+  /* Con muchas preguntas compartidas (ej. 21) el aviso crecía sin
+   * límite; lo acotamos con scroll interno propio. */
+  max-height: 96px;
+  overflow-y: auto;
 }
 .pulso-choices-edit-shared-list li {
   display: inline-flex;
+  min-width: 0;
 }
 .pulso-choices-edit-shared-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
+  /* inline-block (no inline-flex) para que text-overflow: ellipsis
+   * funcione: en un contenedor flex el truncado no se aplica y el
+   * texto se corta a la fuerza. */
+  display: inline-block;
+  max-width: 132px;
+  padding: 2px 8px;
   border: 1px solid rgba(247, 175, 0, 0.4);
   background: white;
   border-radius: 999px;
   font-size: 11px;
+  font-weight: 640;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
   color: var(--pulso-text);
   cursor: pointer;
-  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -38606,11 +38698,11 @@ button.pulso-focus-calculation-recipe {
   display: grid;
   grid-template-columns: minmax(300px, 1fr) minmax(280px, 0.82fr) auto;
   align-items: center;
-  gap: 10px;
-  padding: 8px;
+  gap: 8px;
+  padding: 5px 7px;
   margin: 0 12px;
   border: 1px solid var(--xls-border);
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--xls-toolbar);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.72),
@@ -38629,7 +38721,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-xlsform-commandbar-group--document {
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 3px 8px;
 }
 
 .pulso-xlsform-state-strip {
@@ -38640,19 +38732,19 @@ button.pulso-focus-calculation-recipe {
 .pulso-xlsform-document-strip {
   min-width: 0;
   max-width: 100%;
-  min-height: 32px;
+  min-height: 26px;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 2px 4px;
+  gap: 6px;
+  padding: 1px 4px;
   border: 1px solid transparent;
   border-radius: 9px;
   background: transparent;
 }
 
 .pulso-xlsform-document-icon {
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -38725,7 +38817,7 @@ button.pulso-focus-calculation-recipe {
 }
 
 .pulso-xlsform-toolbar-button {
-  min-height: 30px;
+  min-height: 27px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
