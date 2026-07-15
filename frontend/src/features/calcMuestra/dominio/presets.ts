@@ -23,7 +23,9 @@ import type {
   PerfilInstitucional,
 } from "./tipos";
 
-/** f(id, nombre, N, segA, segB, mediana, media, alcanzables, pExito) */
+/** f(id, nombre, N, segA, segB, mediana, media, alcanzables, pExito). El IC 95%
+ *  del bootstrap (lo95/hi95/nCh) solo lo emite el marco real del backend, así que
+ *  los presets/ejemplos lo dejan en null (sin bootstrap sintético). */
 function f(
   id: string,
   nombre: string,
@@ -35,7 +37,20 @@ function f(
   alcanzables: number | null,
   pExito: number | null,
 ): FacultadDatos {
-  return { id, nombre, N, mujeres, hombres, estAulaMediana, estAulaMedia, alcanzables, pExito };
+  return {
+    id,
+    nombre,
+    N,
+    mujeres,
+    hombres,
+    estAulaMediana,
+    estAulaMedia,
+    estAulaLo95: null,
+    estAulaHi95: null,
+    estAulaNCh: null,
+    alcanzables,
+    pExito,
+  };
 }
 
 /** Criterios de ALUMNO del método (genéricos; la variable exacta se mapea por proyecto). */

@@ -15,6 +15,7 @@ import {
 } from "../universidad/shared/constants";
 import {
   embudoAulaDesdeFrame,
+  facultadesDesdeFrame,
   impactoOpcionalesDesdeFrame,
   type EmbudoPaso,
   type FacultadDatos,
@@ -109,6 +110,13 @@ export function datosDelProyecto(
   if (!estratos.length) return null;
 
   const estAula = estAulaPorUnidad(aulasState);
+  // Agregado del backend R por facultad (mediana/media + IC 95% del bootstrap).
+  // El bootstrap (lo95) solo puede venir de aquí; se prefiere el agregado R para
+  // las tres cifras cuando existe, de modo que mediana/media y su cota inferior
+  // salgan del MISMO cálculo. Frames viejos sin perfil: mapa vacío → se cae a la
+  // mediana/media recomputadas del aula_frame y lo95 queda en null.
+  const aggR = new Map<string, FacultadDatos>();
+  for (const f of facultadesDesdeFrame(aulasState?.frame ?? null)) aggR.set(slug(f.nombre), f);
   const etiquetasSexo: [string, string] = [
     estratos[0].sub_a_label?.trim() || "Segmento A",
     estratos[0].sub_b_label?.trim() || "Segmento B",
@@ -121,14 +129,18 @@ export function datosDelProyecto(
     const segA = safeNumber(estrato.N_a, 0);
     const segB = safeNumber(estrato.N_b, 0) || Math.max(N - segA, 0);
     const aula = estAula.get(id) ?? null;
+    const rem = aggR.get(id) ?? null;
     return {
       id,
       nombre,
       N,
       mujeres: segA,
       hombres: segB,
-      estAulaMediana: aula?.mediana ?? null,
-      estAulaMedia: aula?.media ?? null,
+      estAulaMediana: rem?.estAulaMediana ?? aula?.mediana ?? null,
+      estAulaMedia: rem?.estAulaMedia ?? aula?.media ?? null,
+      estAulaLo95: rem?.estAulaLo95 ?? null,
+      estAulaHi95: rem?.estAulaHi95 ?? null,
+      estAulaNCh: rem?.estAulaNCh ?? null,
       alcanzables: null,
       pExito: null,
     };

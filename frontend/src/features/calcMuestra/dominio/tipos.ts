@@ -33,6 +33,16 @@ export type FacultadDatos = {
   estAulaMediana: number | null;
   /** Media de matriculados_población por aula, en el marco depurado. */
   estAulaMedia: number | null;
+  /**
+   * Cota inferior del IC 95% (percentil 2.5%) del bootstrap de la media de
+   * matriculados_población por aula. NA (null) si la facultad tiene <15
+   * curso-horario: el bootstrap no da un intervalo fiable con tan pocas aulas.
+   */
+  estAulaLo95: number | null;
+  /** Cota superior del IC 95% (percentil 97.5%) del mismo bootstrap; null igual. */
+  estAulaHi95: number | null;
+  /** Nº de curso-horario de la facultad en el marco (tamaño del bootstrap). */
+  estAulaNCh: number | null;
   /** Elegibles alcanzables por el marco de aulas (cruce), si se conoce. */
   alcanzables: number | null;
   /** Proporción de éxito observada (prevalencia) para el escenario 2. */
@@ -147,8 +157,15 @@ export type ConfigEscenario2 = {
   tablaOficial: Record<string, { n: number; W: number | null; aulas: number | null }> | null;
 };
 
-/** Cómo se resume "estudiantes por aula" (el divisor del cálculo de aulas). */
-export type ResumenEstAula = "min_mediana_media" | "media" | "mediana";
+/**
+ * Cómo se resume "estudiantes por aula" (el divisor del cálculo de aulas):
+ *  - "min_mediana_media": heurístico conservador mín(mediana, media),
+ *  - "media" / "mediana": punto simple,
+ *  - "li_bootstrap": cota inferior del IC 95% del bootstrap de la media (más
+ *    conservador aún ⇒ divisor menor ⇒ más aulas). Con <15 CH el bootstrap no
+ *    es fiable (estAulaLo95 es null) y el motor cae a mín(mediana, media).
+ */
+export type ResumenEstAula = "min_mediana_media" | "media" | "mediana" | "li_bootstrap";
 
 /** Modelo de datos que entrega la institución. */
 export type ModeloDatos = {

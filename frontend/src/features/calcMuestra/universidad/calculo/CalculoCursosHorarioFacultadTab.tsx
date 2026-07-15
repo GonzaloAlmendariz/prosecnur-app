@@ -13,19 +13,23 @@
  *      la fuente que reutiliza el gráfico de Distribución (§5.4).
  */
 import { useMemo, useState } from "react";
-import { Check, Grid3X3, Minus, Plus, RotateCcw } from "lucide-react";
+import { AlertTriangle, Check, Grid3X3, Minus, Plus, RotateCcw } from "lucide-react";
 import type { CalcMuestraAulasState, CalcMuestraComponente } from "../../../../api/client";
 import { EmptyState } from "../../../../components/States";
+import { facultadesDesdeFrame, type FacultadDatos, type ResumenEstAula } from "../../dominio";
 import { fmtDec, fmtInt, fmtPct, rowsFrom, safeNumber } from "../../sharedCore";
 import { useMotorStore } from "../../motor/store";
 import { UNIVERSITY_FACULTY_COMPONENT_ID, UNIVERSITY_TOTAL_COMPONENT_ID } from "../shared/constants";
 import { classroomRowNumber, classroomRowText, compareUniversityFacultyLabels, normalizeUniversityLabel } from "../shared/format";
 import { hasUsefulResult, universityDistributionRows } from "../shared/study";
+import { MetodoEstAulaSelector } from "./MetodoEstAulaSelector";
+import { METODOS_EST_AULA } from "./estAulaMetodo";
 import { Stepper } from "./Stepper";
 import {
   construirCursosHorarioModelo,
   cursosHorarioFinalMap,
   type CursosHorarioEntradaFacultad,
+  type CursosHorarioFilaFacultad,
 } from "./cursosHorarioModel";
 import "./calculo.css";
 
@@ -91,12 +95,61 @@ function frameCursosHorarioPorFacultad(aulasState: CalcMuestraAulasState | null)
   return salida;
 }
 
+/** Valor de referencia de una fila según el método (positivo o null). */
+function valorReferencia(fila: CursosHorarioFilaFacultad, metodo: ResumenEstAula): number | null {
+  if (metodo === "mediana") return fila.refMediana;
+  if (metodo === "media") return fila.refMedia;
+  if (metodo === "li_bootstrap") return fila.refLo95;
+  return fila.refMin;
+}
+
+/**
+ * Celda de una columna de referencia. Resalta si su método es el activo; en la
+ * columna LI 95% de una facultad chica muestra un badge que explica por qué el
+ * bootstrap no es fiable (y por qué, si el método elegido es LI, esa facultad
+ * cayó a mín(mediana, media) — visible en la columna «En uso»).
+ */
+function ReferenciaCelda({
+  fila,
+  metodo,
+  activo,
+}: {
+  fila: CursosHorarioFilaFacultad;
+  metodo: ResumenEstAula;
+  activo: boolean;
+}) {
+  const valor = valorReferencia(fila, metodo);
+  const esLi = metodo === "li_bootstrap";
+  const badgeLi = esLi && !fila.li95Fiable;
+  return (
+    <td className="cmv2-ch-td-ref" data-enuso={activo || undefined}>
+      {valor != null ? (
+        fmtDec(valor, 1)
+      ) : badgeLi ? (
+        <span
+          className="cmv2-ch-li-badge"
+          title={`IC poco fiable — pocas aulas (${fila.nCh != null ? fmtInt(fila.nCh) : "<15"} CH). Esta facultad usa mín(mediana, media).`}
+        >
+          <AlertTriangle size={12} aria-hidden="true" />
+          IC no fiable
+        </span>
+      ) : (
+        "—"
+      )}
+    </td>
+  );
+}
+
 export function CalculoCursosHorarioFacultadTab({
   componentes,
   aulasState,
+  marcoDesactualizado = false,
 }: {
   componentes: [CalcMuestraComponente, CalcMuestraComponente];
   aulasState: CalcMuestraAulasState | null;
+  /** true si los criterios cambiaron desde que se construyó el marco: el # de CH
+   *  (y el # de aulas) puede estar stale hasta reconstruir en Marco → Criterios. */
+  marcoDesactualizado?: boolean;
 }) {
   const base = useMotorStore((s) => s.decisiones.cursosHorarioBase);
   const setBase = useMotorStore((s) => s.setCursosHorarioBase);
@@ -104,6 +157,9 @@ export function CalculoCursosHorarioFacultadTab({
   const setExtra = useMotorStore((s) => s.setAulaExtraFacultad);
   const confirmado = useMotorStore((s) => s.decisiones.cursosHorarioConfirmado);
   const confirmar = useMotorStore((s) => s.confirmarCursosHorario);
+  // Método GLOBAL del divisor de estudiantes-por-aula (vive en el perfil).
+  const resumen = useMotorStore((s) => s.perfil.resumenEstAula);
+  const setResumen = useMotorStore((s) => s.setResumenEstAula);
 
   // Propuesta cuyas cuotas dimensionan las aulas: P1 (total universidad,
   // conglomerado) o P2 (por facultad, estratificado). Cada una da su propio
@@ -121,6 +177,18 @@ export function CalculoCursosHorarioFacultadTab({
   const calculado = componentes.some(hasUsefulResult);
 
   const frameFacultades = useMemo(() => frameCursosHorarioPorFacultad(aulasState), [aulasState]);
+  // Agregado del backend R por facultad: el IC 95% del bootstrap (est_aula_lo95)
+  // solo puede venir de aquí. También trae mediana/media, que se prefieren para
+  // que las referencias y la cota inferior salgan del MISMO cálculo. Frames sin
+  // perfil: mapa vacío → se cae a la mediana/media recomputadas del aula_frame y
+  // el LI 95% queda no disponible.
+  const facultadesR = useMemo(() => {
+    const mapa = new Map<string, FacultadDatos>();
+    for (const f of facultadesDesdeFrame(aulasState?.frame ?? null)) {
+      mapa.set(normalizeUniversityLabel(f.nombre), f);
+    }
+    return mapa;
+  }, [aulasState]);
 
   const modelo = useMemo(() => {
     const cuotas = cuotasComp ? universityDistributionRows(cuotasComp) : [];
@@ -131,22 +199,26 @@ export function CalculoCursosHorarioFacultadTab({
     const nOper = safeNumber(cuotasComp?.resultado?.n_operativo, 0);
     const factorSobremuestra = nObj > 0 && nOper > 0 ? nOper / nObj : 1;
     const entradas: CursosHorarioEntradaFacultad[] = cuotas.map((row) => {
-      const frame = frameFacultades.get(normalizeUniversityLabel(row.facultad));
+      const clave = normalizeUniversityLabel(row.facultad);
+      const frame = frameFacultades.get(clave);
+      const rem = facultadesR.get(clave) ?? null;
       const cuota = safeNumber(row.n, 0);
       return {
         facultad: row.facultad,
         cuota,
         sobremuestra: Math.round(cuota * factorSobremuestra),
-        estAulaMediana: frame?.medianaElegibles ?? null,
-        estAulaMedia: frame?.mediaElegibles ?? null,
+        estAulaMediana: rem?.estAulaMediana ?? frame?.medianaElegibles ?? null,
+        estAulaMedia: rem?.estAulaMedia ?? frame?.mediaElegibles ?? null,
+        estAulaLo95: rem?.estAulaLo95 ?? null,
+        estAulaNCh: rem?.estAulaNCh ?? frame?.elegible ?? null,
         chMarcoElegible: frame?.elegible ?? null,
         chTotal: frame?.total ?? null,
         extra: safeNumber(extraPorFacultad[row.facultad], 0),
       };
     });
     entradas.sort((a, b) => compareUniversityFacultyLabels(a.facultad, b.facultad));
-    return construirCursosHorarioModelo(entradas, base);
-  }, [base, cuotasComp, extraPorFacultad, frameFacultades]);
+    return construirCursosHorarioModelo(entradas, base, resumen);
+  }, [base, cuotasComp, extraPorFacultad, frameFacultades, facultadesR, resumen]);
 
   if (!calculado || !cuotasComp) {
     return (
@@ -175,7 +247,14 @@ export function CalculoCursosHorarioFacultadTab({
   const extraBulkPuedeSubir = modelo.filas.some((f) => safeNumber(extraPorFacultad[f.facultad], 0) < 2);
 
   return (
-    <div className="cmv2-calc-stack">
+    <div className="cmv2-calc-stack" data-marco-stale={marcoDesactualizado || undefined}>
+      {marcoDesactualizado && (
+        <div className="cmv2-ch-stale-banner" role="status">
+          Los criterios cambiaron desde que se construyó el marco: el número de
+          cursos-horario elegibles —y con él el de aulas— puede haber cambiado.
+          Recalcula el marco en <strong>Marco → Criterios</strong> para números al día.
+        </div>
+      )}
       <section className="cmv2-panel cmv2-ch-panel">
         <div className="cmv2-panel-head">
           <strong>Cursos-horario por facultad</strong>
@@ -198,11 +277,13 @@ export function CalculoCursosHorarioFacultadTab({
             </div>
           </div>
         </div>
+        <MetodoEstAulaSelector value={resumen} onChange={setResumen} />
+
         <p className="cmv2-calc-diseno-nota">
           <Grid3X3 size={13} aria-hidden="true" />
-          Alumnos por curso-horario = <strong>mínimo entre la media y la mediana</strong> de elegibles por CH del marco
-          depurado (siempre sobre el marco elegible). CH necesarios = ⌈<strong>sobremuestra</strong> ÷ alumnos-por-CH⌉ — la
-          sobremuestra (no la cuota neta) cubre no-respuesta y ausencias. La base seleccionada
+          Alumnos por curso-horario = el valor del <strong>método elegido</strong> de elegibles por CH del marco depurado
+          (siempre sobre el marco elegible). CH necesarios = ⌈<strong>sobremuestra</strong> ÷ alumnos-por-CH⌉ — la
+          sobremuestra (no la cuota neta) cubre no-respuesta y ausencias. Un divisor más chico ⇒ más aulas. La base seleccionada
           ({base === "total" ? "total de CH" : "CH del marco elegible"}) es solo el inventario contra el que se contrasta el uso.
         </p>
 
@@ -221,10 +302,20 @@ export function CalculoCursosHorarioFacultadTab({
             <thead>
               <tr>
                 <th>Facultad</th>
-                <th>Alumnos/CH</th>
+                {METODOS_EST_AULA.map((metodo) => (
+                  <th
+                    key={metodo.id}
+                    className="cmv2-ch-th-ref"
+                    data-enuso={metodo.id === resumen || undefined}
+                    title={metodo.ayuda}
+                  >
+                    {metodo.columna}
+                  </th>
+                ))}
+                <th className="cmv2-ch-th-enuso" title="Divisor efectivamente aplicado (el del método elegido)">En uso</th>
                 <th>Cuota</th>
                 <th>Sobremuestra</th>
-                <th>CH necesarios</th>
+                <th className="cmv2-ch-th-enuso" title="Aulas resultantes = ⌈sobremuestra ÷ divisor en uso⌉">CH necesarios</th>
                 <th>{base === "total" ? "CH totales" : "CH elegibles"}</th>
                 <th className="cmv2-ch-th-extra-cell">
                   <div className="cmv2-ch-th-extra">
@@ -258,12 +349,17 @@ export function CalculoCursosHorarioFacultadTab({
               {modelo.filas.map((fila) => (
                 <tr key={fila.facultad} data-incompleta={fila.alumnosPorCH == null || undefined}>
                   <td><strong>{fila.facultad}</strong></td>
-                  <td>{fila.alumnosPorCH != null ? fmtDec(fila.alumnosPorCH, 1) : "—"}</td>
+                  {METODOS_EST_AULA.map((metodo) => (
+                    <ReferenciaCelda key={metodo.id} fila={fila} metodo={metodo.id} activo={metodo.id === resumen} />
+                  ))}
+                  <td className="cmv2-ch-td-enuso">
+                    <strong>{fila.alumnosPorCH != null ? fmtDec(fila.alumnosPorCH, 1) : "—"}</strong>
+                  </td>
                   <td>{fmtInt(fila.cuota)}</td>
                   <td>{fmtInt(fila.sobremuestra)}</td>
-                  <td>{fila.chNecesarios != null ? fmtInt(fila.chNecesarios) : "—"}</td>
+                  <td className="cmv2-ch-td-enuso"><strong>{fila.chNecesarios != null ? fmtInt(fila.chNecesarios) : "—"}</strong></td>
                   <td>{fila.chBase != null ? fmtInt(fila.chBase) : "—"}</td>
-                  <td>
+                  <td className="cmv2-ch-td-extra">
                     <Stepper
                       value={safeNumber(extraPorFacultad[fila.facultad], 0)}
                       onChange={(v) => setExtra(fila.facultad, v)}

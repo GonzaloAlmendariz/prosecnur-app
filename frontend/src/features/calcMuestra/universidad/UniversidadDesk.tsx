@@ -23,11 +23,12 @@ import {
   UNIVERSITY_TOTAL_COMPONENT_ID,
   type ClassroomLabTab,
 } from "./shared/constants";
-import { classroomSelectionReady, frameAuditNumber } from "./shared/frame";
+import { classroomSelectionReady, frameAuditNumber, marcoCriteriosDesactualizado } from "./shared/frame";
 import {
   componentFormulaBase,
   estratosDesdeFrame,
   hasUsefulResult,
+  normalizeUniversityAulasConfig,
   prepareUniversityStudyForCalculation,
   universityComponents,
   universityDefaultWorkspace,
@@ -314,6 +315,19 @@ export function UniversidadDesk({
   const marcoReady = componentMarcoReady || aulasFrameReady;
   const calculationReady = hasUsefulResult(totalComp) || hasUsefulResult(facultyComp);
   const selectionReady = classroomSelectionReady(aulasState);
+  // Frescura del marco para la tab de Cálculo: si los criterios cambiaron desde
+  // que se construyó el marco, el # de CH del marco (y por tanto el # de aulas)
+  // puede estar stale. Misma señal que la tab de Marco, para que Cálculo nunca
+  // muestre aulas de un marco viejo en silencio. La permutación del método (min/
+  // media/mediana/LI) queda libre: solo se gatea la frescura del marco.
+  const marcoDesactualizado = useMemo(
+    () =>
+      marcoCriteriosDesactualizado(
+        aulasState?.frame,
+        normalizeUniversityAulasConfig(syncedWorkspace.aulas_config).criterios_seleccion,
+      ),
+    [aulasState?.frame, syncedWorkspace.aulas_config],
+  );
   const labModel = useMemo(
     () => buildClassroomLabModel({ workspace: syncedWorkspace, totalComp, facultyComp, aulasState }),
     [syncedWorkspace, totalComp, facultyComp, aulasState],
@@ -479,6 +493,7 @@ export function UniversidadDesk({
               <CalculoCursosHorarioFacultadTab
                 componentes={[totalComp, facultyComp]}
                 aulasState={aulasState}
+                marcoDesactualizado={marcoDesactualizado}
               />
             </div>}
             {showLocalTab("calculo-distribucion") && <div id="cmv2-local-calculo-distribucion" className="rec-recorrido rec-recorrido--full">

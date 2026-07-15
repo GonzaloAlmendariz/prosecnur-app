@@ -13,6 +13,7 @@ import {
   type FacultadDatos,
   type ParametrosMuestra,
   type PerfilInstitucional,
+  type ResumenEstAula,
 } from "../dominio";
 
 export type FuenteDatos = "proyecto" | "manual";
@@ -54,6 +55,13 @@ type MotorState = {
   setAulaExtraFacultad: (facultad: string, extra: number) => void;
   /** Base de cálculo de cursos-horario del marco (total vs elegible). */
   setCursosHorarioBase: (base: BaseCursosHorario) => void;
+  /**
+   * Método GLOBAL de resumen de estudiantes-por-aula (el divisor del cálculo de
+   * aulas). Vive en el perfil porque el motor (escenario1) lo lee de ahí; una
+   * sola elección gobierna todas las facultades. Invalida el plan confirmado:
+   * cambiar el divisor cambia los CH necesarios.
+   */
+  setResumenEstAula: (resumen: ResumenEstAula) => void;
   /** Confirma (o revoca) el plan definitivo de cursos-horario por facultad. */
   confirmarCursosHorario: (final: Record<string, number> | null) => void;
   resetCanon: () => void;
@@ -139,6 +147,12 @@ export const useMotorStore = create<MotorState>((set) => ({
     set((state) => ({
       tocado: true,
       decisiones: { ...state.decisiones, cursosHorarioBase: base, cursosHorarioConfirmado: false },
+    })),
+  setResumenEstAula: (resumen) =>
+    set((state) => ({
+      tocado: true,
+      perfil: { ...state.perfil, resumenEstAula: resumen },
+      decisiones: { ...state.decisiones, cursosHorarioConfirmado: false },
     })),
   confirmarCursosHorario: (final) =>
     set((state) => ({

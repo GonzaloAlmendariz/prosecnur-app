@@ -5,6 +5,7 @@ export { PERFILES, PERFIL_EJEMPLO, PLANTILLA_UNIVERSIDAD, PLANTILLA_ESCUELA, per
 export {
   perfilDesdeFrame,
   coberturaDesdeFrame,
+  facultadesDesdeFrame,
   perfilActivo,
   embudoAulaDesdeFrame,
   embudoAlumnoDesdeFrame,

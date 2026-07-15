@@ -213,6 +213,12 @@ function facultadesDesde(crudo: unknown): FacultadDatos[] {
         hombres: numero(fila.sexo_2_n) ?? 0,
         estAulaMediana: numero(fila.est_aula_mediana),
         estAulaMedia: numero(fila.est_aula_media),
+        // IC 95% del bootstrap de la media (percentiles 2.5/97.5). El backend R
+        // emite NA cuando la facultad tiene <15 CH: numero(...) lo coacciona a
+        // null y el motor cae a mín(mediana, media) para esa facultad.
+        estAulaLo95: numero(fila.est_aula_lo95),
+        estAulaHi95: numero(fila.est_aula_hi95),
+        estAulaNCh: numero(fila.est_aula_n_ch),
         alcanzables: numero(fila.alcanzables),
         pExito: null,
       };
@@ -270,6 +276,18 @@ export function embudoAlumnoDesdeFrame(frame: CalcMuestraAulasFrame | null | und
   const crudo = perfilCrudoDe(frame);
   if (!crudo) return null;
   return embudoDesde(crudo.embudo_alumno, "alumno");
+}
+
+/**
+ * FacultadDatos[] del perfil del frame (agregado R): incluye el IC 95% del
+ * bootstrap de estudiantes-por-aula (estAulaLo95/hi95/nCh) que solo el backend
+ * puede calcular. `[]` si el frame no trae perfil utilizable — en ese caso la
+ * pestaña de cursos-horario cae a la mediana/media recomputadas del aula_frame.
+ */
+export function facultadesDesdeFrame(frame: CalcMuestraAulasFrame | null | undefined): FacultadDatos[] {
+  const crudo = perfilCrudoDe(frame);
+  if (!crudo) return [];
+  return facultadesDesde(crudo.facultades);
 }
 
 /**

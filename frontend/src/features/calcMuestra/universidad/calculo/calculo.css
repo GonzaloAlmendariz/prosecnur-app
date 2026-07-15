@@ -1461,7 +1461,10 @@
    disponible (deja de verse pegada a la izquierda en paneles anchos). El scroll
    interno del wrap (max-height 384px) se conserva. */
 .cmv2-ch-tabla {
-  max-width: 960px;
+  /* Con las columnas de referencia (Mediana·Media·mín·LI 95%·En uso) la tabla
+     es ancha: se deja crecer a su contenido y el wrap (overflow:auto) resuelve
+     el scroll horizontal en viewports compactos y Windows. */
+  min-width: 100%;
   margin-inline: auto;
 }
 
@@ -1482,11 +1485,11 @@
 
 /* Columna Extra: stepper por fila + control bulk en la cabecera, centrados. */
 .cmv2-ch-tabla th.cmv2-ch-th-extra-cell,
-.cmv2-ch-tabla td:nth-child(7) {
+.cmv2-ch-tabla td.cmv2-ch-td-extra {
   text-align: center;
 }
 
-.cmv2-ch-tabla td:nth-child(7) .cmv2-stepper {
+.cmv2-ch-tabla td.cmv2-ch-td-extra .cmv2-stepper {
   justify-content: center;
 }
 
@@ -1505,4 +1508,103 @@
 .cmv2-ch-th-bulk .cmv2-stepper-btn {
   width: 22px;
   height: 20px;
+}
+
+/* --- Selector global de método de estudiantes-por-aula ---------------------- */
+.cmv2-ch-metodo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.cmv2-ch-metodo-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cmv2-ch-metodo-label {
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--pulso-text);
+}
+
+.cmv2-ch-metodo-ayuda {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-ch-metodo-ayuda svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--cmv2-accent, var(--pulso-accent));
+}
+
+.cmv2-ch-metodo-ayuda strong {
+  color: var(--pulso-text);
+  font-weight: 600;
+}
+
+/* --- Columnas de referencia y «En uso» de la tabla por facultad ------------- */
+/* Encabezado/celda de la columna cuyo método está activo: se resalta con un
+   tinte suave del acento para leer al instante qué divisor gobierna. */
+.cmv2-ch-tabla th.cmv2-ch-th-ref[data-enuso],
+.cmv2-ch-tabla td.cmv2-ch-td-ref[data-enuso],
+.cmv2-ch-tabla th.cmv2-ch-th-enuso,
+.cmv2-ch-tabla td.cmv2-ch-td-enuso {
+  background: color-mix(in srgb, var(--cmv2-accent, var(--pulso-accent)) 9%, transparent);
+}
+
+.cmv2-ch-tabla td.cmv2-ch-td-enuso strong,
+.cmv2-ch-tabla td.cmv2-ch-td-ref[data-enuso] {
+  color: var(--cmv2-accent, var(--pulso-accent));
+  font-weight: 650;
+}
+
+.cmv2-ch-tabla th.cmv2-ch-th-ref {
+  font-weight: 550;
+}
+
+/* Badge de facultad chica en la columna LI 95%: el bootstrap no es fiable. */
+.cmv2-ch-li-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 11px;
+  font-weight: 550;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.cmv2-ch-li-badge svg {
+  flex: 0 0 auto;
+}
+
+/* Banner de marco desactualizado en Cálculo → Cursos-horario por facultad:
+   los criterios cambiaron desde el build, así que el # de CH/aulas puede estar
+   stale. Misma semántica que el aviso de la tab de Marco. Tokens --pulso-warn-*. */
+.cmv2-ch-stale-banner {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--pulso-warn-border);
+  background: color-mix(in srgb, var(--pulso-warn-fg) 9%, transparent);
+  color: var(--pulso-warn-fg);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.cmv2-ch-stale-banner strong {
+  font-weight: 600;
 }

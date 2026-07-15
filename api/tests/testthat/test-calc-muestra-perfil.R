@@ -86,7 +86,8 @@ test_that("perfil: facultades con sexos, tamaños de aula y alcanzables", {
 
   expect_identical(
     names(fac),
-    c("id", "nombre", "n", "sexo_1_n", "sexo_2_n", "est_aula_mediana", "est_aula_media", "alcanzables", "aulas_marco")
+    c("id", "nombre", "n", "sexo_1_n", "sexo_2_n", "est_aula_mediana", "est_aula_media",
+      "est_aula_lo95", "est_aula_hi95", "est_aula_n_ch", "alcanzables", "aulas_marco")
   )
   # Empate n=2 y n=2: orden estable por nombre.
   expect_identical(fac$id, c("fac1", "fac2"))
@@ -99,6 +100,11 @@ test_that("perfil: facultades con sexos, tamaños de aula y alcanzables", {
   # en el marco -> est_aula_* NA y aulas_marco 0.
   expect_equal(fac$est_aula_mediana, c(2, NA_real_))
   expect_equal(fac$est_aula_media, c(2, NA_real_))
+  # Ambas facultades tienen < 15 aulas en el marco: la banda bootstrap degrada
+  # a NA aunque mediana/media sí salgan. n_ch cuenta las aulas del marco.
+  expect_equal(fac$est_aula_n_ch, c(1L, 0L))
+  expect_true(all(is.na(fac$est_aula_lo95)))
+  expect_true(all(is.na(fac$est_aula_hi95)))
   expect_identical(fac$aulas_marco, c(1L, 0L))
   # Alcanzables: s1 y s2 en FAC1; s6 (A2 fuera del marco) y s7 (A3 virtual) no.
   expect_identical(fac$alcanzables, c(2L, 0L))
@@ -219,7 +225,8 @@ test_that("perfil: ante insumos vacíos degrada a ceros sin error", {
   expect_identical(nrow(perfil$facultades), 0L)
   expect_identical(
     names(perfil$facultades),
-    c("id", "nombre", "n", "sexo_1_n", "sexo_2_n", "est_aula_mediana", "est_aula_media", "alcanzables", "aulas_marco")
+    c("id", "nombre", "n", "sexo_1_n", "sexo_2_n", "est_aula_mediana", "est_aula_media",
+      "est_aula_lo95", "est_aula_hi95", "est_aula_n_ch", "alcanzables", "aulas_marco")
   )
   expect_identical(perfil$cobertura$elegibles, 0L)
   expect_identical(perfil$cobertura$alcanzables, 0L)
@@ -280,4 +287,78 @@ test_that("perfil: construir() adjunta out$perfil sin alterar el resto del frame
     utils::tail(frame$perfil$embudo_alumno$conteo, 1L),
     as.integer(nrow(frame$population))
   )
+})
+
+# --- Banda bootstrap del tamaño-de-aula (est_aula_lo95/hi95/n_ch) -----------
+
+# Construye un population + marco sintéticos para ejercitar la banda bootstrap
+# directamente en .cm_perfil_facultades_df, sin tener que fabricar >= 15 aulas
+# distintas a través de construir(). Cada tamaño es un aula del marco.
+.perfil_marco_de_tamanos <- function(faculty, tamanos) {
+  data.frame(
+    faculty = rep(faculty, length(tamanos)),
+    classroom_id = paste0("A", seq_along(tamanos)),
+    eligible_n = as.numeric(tamanos),
+    stringsAsFactors = FALSE
+  )
+}
+
+test_that("bootstrap: facultad grande da lo95 <= media <= hi95 y es reproducible", {
+  set.seed(999L) # semilla global "sucia" que el bootstrap no debe consumir
+  tamanos <- c(30, 32, 28, 40, 35, 22, 27, 31, 33, 29, 45, 38, 26, 24, 41, 36, 39, 30)
+  pop <- data.frame(
+    student_id = paste0("s", seq_along(tamanos)),
+    faculty = "FAC_G",
+    sex = "F",
+    stringsAsFactors = FALSE
+  )
+  marco <- .perfil_marco_de_tamanos("FAC_G", tamanos)
+
+  r1 <- .cm_perfil_facultades_df(pop, marco, "F", pop$student_id)
+  r2 <- .cm_perfil_facultades_df(pop, marco, "F", pop$student_id)
+
+  expect_identical(r1$est_aula_n_ch, length(tamanos))
+  # La media muestral cae dentro del IC bootstrap.
+  expect_true(r1$est_aula_lo95 <= r1$est_aula_media)
+  expect_true(r1$est_aula_media <= r1$est_aula_hi95)
+  expect_true(r1$est_aula_lo95 < r1$est_aula_hi95)
+  # Seed fijo => dos corridas idénticas.
+  expect_identical(r1$est_aula_lo95, r2$est_aula_lo95)
+  expect_identical(r1$est_aula_hi95, r2$est_aula_hi95)
+  # Redondeo a 1 decimal como est_aula_media.
+  expect_equal(r1$est_aula_lo95, round(r1$est_aula_lo95, 1))
+})
+
+test_that("bootstrap: no perturba el .Random.seed global del sorteo", {
+  set.seed(4242L)
+  antes <- runif(1)
+  set.seed(4242L)
+  tamanos <- as.numeric(20:40) # 21 aulas
+  pop <- data.frame(student_id = paste0("s", seq_along(tamanos)), faculty = "FAC_G", sex = "F", stringsAsFactors = FALSE)
+  invisible(.cm_perfil_facultades_df(pop, .perfil_marco_de_tamanos("FAC_G", tamanos), "F", pop$student_id))
+  # Tras el bootstrap el flujo RNG global continúa como si nada hubiera pasado.
+  despues <- runif(1)
+  expect_equal(antes, despues)
+})
+
+test_that("bootstrap: facultad chica (< 15 aulas) degrada cotas a NA pero no mediana/media", {
+  tamanos <- c(30, 32, 28, 40, 35, 22, 27, 31, 33, 29) # 10 aulas < 15
+  pop <- data.frame(student_id = paste0("s", seq_along(tamanos)), faculty = "FAC_CH", sex = "F", stringsAsFactors = FALSE)
+  fac <- .cm_perfil_facultades_df(pop, .perfil_marco_de_tamanos("FAC_CH", tamanos), "F", pop$student_id)
+
+  expect_identical(fac$est_aula_n_ch, 10L)
+  expect_true(is.na(fac$est_aula_lo95))
+  expect_true(is.na(fac$est_aula_hi95))
+  expect_false(is.na(fac$est_aula_mediana))
+  expect_false(is.na(fac$est_aula_media))
+})
+
+test_that("bootstrap: helper directo respeta borde exacto n_min = 15", {
+  # 14 aulas -> NA; 15 aulas -> banda numérica.
+  expect_true(is.na(.cm_perfil_bootstrap_media(as.numeric(1:14))$lo95))
+  b15 <- .cm_perfil_bootstrap_media(as.numeric(1:15))
+  expect_false(is.na(b15$lo95))
+  expect_true(b15$lo95 <= b15$hi95)
+  # Vector vacío -> NA (mismo patrón que mediana/media en marco vacío).
+  expect_true(is.na(.cm_perfil_bootstrap_media(numeric(0))$lo95))
 })

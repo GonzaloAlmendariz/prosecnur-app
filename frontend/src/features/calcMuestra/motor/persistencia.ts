@@ -174,7 +174,7 @@ function esEtapa(valor: unknown): valor is EtapaEstudio {
 }
 
 function esResumenEstAula(valor: unknown): valor is ResumenEstAula {
-  return valor === "min_mediana_media" || valor === "media" || valor === "mediana";
+  return valor === "min_mediana_media" || valor === "media" || valor === "mediana" || valor === "li_bootstrap";
 }
 
 function normalizarEtiquetasSexo(valor: unknown, fallback: [string, string]): [string, string] {
@@ -211,6 +211,9 @@ function normalizarFacultades(valor: unknown, fallback: FacultadDatos[]): Facult
       hombres: numeroO(item.hombres, 0),
       estAulaMediana: numeroONuloO(item.estAulaMediana, null),
       estAulaMedia: numeroONuloO(item.estAulaMedia, null),
+      estAulaLo95: numeroONuloO(item.estAulaLo95, null),
+      estAulaHi95: numeroONuloO(item.estAulaHi95, null),
+      estAulaNCh: numeroONuloO(item.estAulaNCh, null),
       alcanzables: numeroONuloO(item.alcanzables, null),
       pExito: numeroONuloO(item.pExito, null),
     });
