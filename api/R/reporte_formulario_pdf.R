@@ -1389,7 +1389,10 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 # con pocas columnas la etiqueta puede ser mas ancha; con muchas se acota para que
 # la escala respire.
 .form_pdf_matrix_label_frac <- function(total_cols) {
-  if (total_cols <= 4L) 0.52 else if (total_cols <= 7L) 0.47 else 0.40
+  # El label del item se lleva mas ancho (columnas de alternativas mas
+  # angostas): asi las etiquetas largas envuelven en menos lineas y la fila
+  # ocupa menos alto. Las columnas de escala solo necesitan caber el codigo.
+  if (total_cols <= 4L) 0.60 else if (total_cols <= 7L) 0.54 else 0.46
 }
 
 # Calibracion char/npc del label del item (~150 para LLENAR el ancho, como el kit).
