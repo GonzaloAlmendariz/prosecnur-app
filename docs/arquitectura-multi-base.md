@@ -92,6 +92,26 @@ donde una carrera se procesa como un solo hermano aunque sus respuestas
 provengan de más de una campaña y una de ellas haya sido WhatsApp/link
 autoadministrado sin preguntas administrativas de campo.
 
+La decisión manual de separar entrevistas reales y de prueba usa otra metadata:
+`base$universe_filter`. No modifica ni reemplaza `response_filter`. El pipeline
+canónico por base es:
+
+```text
+fuente del conector + response_filter
+  -> source_data_file_id (intacto)
+  -> filtro manual de universo en Carga
+  -> effective_data_file_id / base$data_file_id
+  -> Validación -> Codificación -> Analítica
+```
+
+El filtro materializado conserva un resumen disjunto (`total`, `included`,
+`excluded_test`, `excluded_unclassified`) y los dos identificadores de archivo
+dentro de `base$universe_filter`. Las bases repeat heredan la inclusión de su
+madre mediante `link_key -> parent_index_key`; no son configurables por separado
+y la ausencia de una relación comprobable bloquea la operación. La persistencia
+`.pulso` incluye tanto la fuente como el efectivo. Véase [ADR
+0036](adrs/0036-filtro-universo-manual-en-carga.md).
+
 En `validation_exclusion_profile = "admin_autoadministrado"`, Validación
 enmascara por fila las reglas cuyo objetivo está en `excluded_validation_vars`;
 la regla sigue existiendo para las filas de campo, pero no genera falsos

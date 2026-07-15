@@ -973,6 +973,7 @@
     surveymonkey_sources = if (is.null(sm_source_summary)) list() else sm_source_summary$sources,
     kobo_source_spec = meta$kobo_source_spec %||% NA,
     kobo_effective_data_file_id = as.character(meta$kobo_effective_data_file_id %||% NA_character_),
+    universe_filter = meta$universe_filter %||% NA,
     logic_template_base = as.character(meta$logic_template_base %||% NA_character_),
     logic_template_applied_at = as.character(meta$logic_template_applied_at %||% NA_character_),
     logic_template_status = as.character(meta$logic_template_status %||% NA_character_),

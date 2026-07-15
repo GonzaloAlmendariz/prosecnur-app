@@ -3647,6 +3647,102 @@ export async function apiCargaData(file_id: string) {
   );
 }
 
+export type CargaUniverseFilterConfig = {
+  version: 1;
+  enabled: boolean;
+  variable: string;
+  real_values: string[];
+  test_values: string[];
+  missing_policy: "exclude";
+  unassigned_policy: "unclassified";
+};
+
+export type CargaUniverseVariable = {
+  variable: string;
+  type?: string | null;
+  n_distinct?: number;
+};
+
+export type CargaUniverseObservedValue = {
+  value: string;
+  count: number;
+  missing?: boolean;
+};
+
+export type CargaUniverseSummary = {
+  total: number;
+  included: number;
+  excluded_test: number;
+  excluded_unclassified: number;
+};
+
+export type CargaUniverseFilterState = {
+  ok: true;
+  base_nombre: string | null;
+  config: CargaUniverseFilterConfig;
+  summary: CargaUniverseSummary | null;
+  variable_inventory: CargaUniverseVariable[];
+  observed_values: CargaUniverseObservedValue[];
+  inherited_from?: string | null;
+  read_only?: boolean;
+  applied_at?: string | null;
+  warnings?: string[];
+};
+
+export type CargaUniverseFilterPreview = {
+  ok: true;
+  base_nombre: string | null;
+  config?: CargaUniverseFilterConfig;
+  summary: CargaUniverseSummary;
+  observed_values: CargaUniverseObservedValue[];
+  warnings?: string[];
+};
+
+function cargaUniverseFilterQuery(baseNombre?: string | null) {
+  const trimmed = String(baseNombre ?? "").trim();
+  return trimmed ? `?base_nombre=${encodeURIComponent(trimmed)}` : "";
+}
+
+export async function apiCargaUniverseFilterGet(baseNombre?: string | null) {
+  return handle<CargaUniverseFilterState>(
+    await apiFetch(`/api/carga/universe-filter${cargaUniverseFilterQuery(baseNombre)}`, {
+      headers: headers(),
+    }),
+  );
+}
+
+export async function apiCargaUniverseFilterPreview(
+  config: CargaUniverseFilterConfig,
+  baseNombre?: string | null,
+) {
+  return handle<CargaUniverseFilterPreview>(
+    await apiFetch("/api/carga/universe-filter/preview", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        base_nombre: String(baseNombre ?? "").trim() || null,
+        config,
+      }),
+    }),
+  );
+}
+
+export async function apiCargaUniverseFilterApply(
+  config: CargaUniverseFilterConfig,
+  baseNombre?: string | null,
+) {
+  return handle<CargaUniverseFilterState>(
+    await apiFetch("/api/carga/universe-filter", {
+      method: "PUT",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        base_nombre: String(baseNombre ?? "").trim() || null,
+        config,
+      }),
+    }),
+  );
+}
+
 export type CargaPlatformProvider = "surveymonkey" | "kobo";
 
 export type KoboSourceSpec = {

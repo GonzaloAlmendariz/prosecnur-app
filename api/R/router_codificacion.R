@@ -38,6 +38,13 @@
     return(NULL)
   }
   base <- s$estudio$bases[[active]]
+  if (identical(slot, "data") && isTRUE(prefer_original) &&
+      isTRUE((base$universe_filter %||% list())$enabled)) {
+    effective_fid <- as.character((base$universe_filter %||% list())$effective_data_file_id %||% "")
+    if (nzchar(effective_fid) && !is.null(s$files[[effective_fid]])) {
+      return(s$files[[effective_fid]])
+    }
+  }
   fid_fields <- if (identical(slot, "xlsform")) {
     c("original_xlsform_file_id", "xlsform_file_id")
   } else {

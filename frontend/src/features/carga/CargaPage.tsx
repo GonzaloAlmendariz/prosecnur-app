@@ -66,6 +66,7 @@ import { summaryLabel as reconSummaryLabel } from "./reconciliacionModel";
 import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
 import { repeatContextFromBase } from "../../lib/rosterExplorer";
 import { defaultEsquemaBase } from "./esquemaBaseModel";
+import { CargaUniverseFilter } from "./CargaUniverseFilter";
 
 // Fase 1 — Carga de insumos.
 //
@@ -994,6 +995,17 @@ export default function CargaPage() {
                     await refresh();
                   }}
                 />
+                {selectedCargaBase && (
+                  <CargaUniverseFilter
+                    baseNombre={selectedCargaBase}
+                    disabled={!!busy}
+                    onApplied={() => {
+                      void apiEstudioGet()
+                        .then((payload) => onEstudioChanged(payload))
+                        .catch((reason: Error) => setError(reason.message));
+                    }}
+                  />
+                )}
                 <CargaFollowupContent
                   showInspection={showInspection}
                   estructura={estructura}
@@ -1360,6 +1372,12 @@ export default function CargaPage() {
               onRemove={() => onQuitar("data")}
             />
           </div>
+          )}
+          {hasData && !pendingChoiceMapping && (
+            <CargaUniverseFilter
+              disabled={!!busy}
+              onApplied={() => { void refresh().catch((reason: Error) => setError(reason.message)); }}
+            />
           )}
           <CargaFollowupContent
             showInspection={showInspection}
