@@ -83,3 +83,8 @@ packaging/macos/build-resources/icon.iconset/
 
 # Backups puntuales del .pulso (limpieza manual)
 *.pulso.pre-cleanup.bak
+
+# Artefactos generados de reportes y QA (gate 4)
+output/pdf/
+output/validacion/
+output/entrega_acnur_pdm/
