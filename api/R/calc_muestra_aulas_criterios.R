@@ -444,6 +444,26 @@
   col
 }
 
+# Columna de la condición del CURSO con guarda anti-homónimo cross-hoja. En modo
+# base_madre el mapping llega PLANO (rol→columna, sin hoja/source) y la base es
+# la del ALUMNO (MATRICULADO). El usuario mapea condicion_curso a la columna que
+# vive en el catálogo ("CURSO Y HORARIO"·"Condición"), pero como el nombre es
+# homónimo con la condición del ESTUDIANTE ("MATRICULADO"·"Condición": REGULAR,
+# MOVILIDAD, POR REINCORPORACION…), el resolver exacto la calza contra la MISMA
+# columna base que ya reclama `condition`. El fallback del catálogo (casi vacío)
+# consumiría entonces ese valor leaked como si fuera condición del curso. Si
+# condicion_curso resuelve a la misma columna que condition (colisión de
+# homónimo dentro de la hoja base), se declara SIN señal base: la ÚNICA fuente de
+# condicion_curso pasa a ser la señal del catálogo ("CURSO Y HORARIO"·"Condición"),
+# que sí es condición del curso. Sin colisión, comportamiento actual.
+.cm_criterios_col_condicion_curso <- function(raw, mapping) {
+  col <- .cm_criterios_col_exacta(raw, mapping$condicion_curso)
+  if (!nzchar(col)) return("")
+  ocupada <- .cm_aulas_col(raw, mapping$condition)
+  if (col %in% ocupada[nzchar(ocupada)]) return("")
+  col
+}
+
 # Columna del nivel del curso con guarda anti-colisión. El matcher difuso de
 # .cm_aulas_col reusa subcadenas en AMBOS sentidos: "curso" ⊂ "nivel_curso", así
 # que en una base con "Curso" (CÓDIGO del curso) pero SIN columna propia de
