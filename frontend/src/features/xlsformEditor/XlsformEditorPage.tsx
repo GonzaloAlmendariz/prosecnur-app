@@ -1668,7 +1668,7 @@ export default function XlsformEditorPage() {
     columns: 1 | 2 = 2,
     logicLanguage: "saltos" | "condiciones" = "saltos",
     showQuestionnaireNumber: boolean = true,
-    matrixGroups: string[][] = [],
+    matrixGroups: Array<{ members: string[]; tenor?: string }> = [],
   ) {
     if (!workbook) return;
     resetMessages();
