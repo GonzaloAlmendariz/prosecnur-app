@@ -85,7 +85,8 @@ jobs:
       # fallando. Revisar cuando pnpm use el bulk advisory endpoint.
       - name: Frontend audit
         run: |
-          out=$(pnpm -C frontend audit --audit-level=high 2>&1); code=$?
+          code=0
+          out=$(pnpm -C frontend audit --audit-level=high 2>&1) || code=$?
           echo "$out"
           if [ "$code" != "0" ]; then
             if echo "$out" | grep -q "ERR_PNPM_AUDIT_BAD_RESPONSE"; then
@@ -97,7 +98,8 @@ jobs:
 
       - name: Desktop audit
         run: |
-          out=$(pnpm -C desktop audit --audit-level=high 2>&1); code=$?
+          code=0
+          out=$(pnpm -C desktop audit --audit-level=high 2>&1) || code=$?
           echo "$out"
           if [ "$code" != "0" ]; then
             if echo "$out" | grep -q "ERR_PNPM_AUDIT_BAD_RESPONSE"; then
