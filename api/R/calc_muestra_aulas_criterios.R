@@ -56,7 +56,13 @@
     session_type   = list(scope = "aula",   kind = "flat",         label = "Tipo de sesión"),
     teacher_type   = list(scope = "aula",   kind = "hierarchical", label = "Tipo de docente"),
     course_level   = list(scope = "aula",   kind = "range",        label = "Nivel del curso"),
-    condicion_curso = list(scope = "aula",  kind = "flat",         label = "Condición del curso"),
+    # emptyBucket: bucket SINTÉTICO para la AUSENCIA de valor. En la data real
+    # (PUCP) "CURSO Y HORARIO"·"Condición" viene ~98% vacía; el usuario quiere
+    # poder INCLUIR explícitamente esos cursos sin condición en vez de que se
+    # caigan del marco al filtrar. Solo condicion_curso lo define (pedido
+    # concreto); es un punto de extensión, no un cambio para modality/etc.
+    condicion_curso = list(scope = "aula",  kind = "flat",         label = "Condición del curso",
+                           emptyBucket = list(key = "sin_condicion", label = "Sin condición")),
     enrolled_total = list(scope = "aula",   kind = "numeric",      label = "Matriculados / población"),
     campus         = list(scope = "aula",   kind = "flat",         label = "Sede")
   )
@@ -473,6 +479,21 @@
   col
 }
 
+# Variables con emptyBucket (registry) cuya COLUMNA existe en la base o el
+# catálogo. El bucket sintético "Sin condición" solo se activa para estas: sin
+# columna la variable ni siquiera se enumera, y el vacío no debe forzar recorte
+# (graceful). La gate replica la de la enumeración (col_or: catálogo OR base).
+# Hoy solo condicion_curso; sumar otra variable es una entrada aquí + emptyBucket
+# en .cm_criterios_var_registry.
+.cm_criterios_empty_bucket_cols <- function(raw, mapping, catalog_signals = list()) {
+  cols <- (catalog_signals %||% list())$columns %||% list()
+  out <- character(0)
+  cc_existe <- nzchar(.cm_criterios_col_condicion_curso(raw, mapping)) ||
+    nzchar(.cm_aulas_scalar(cols$condicion_curso, ""))
+  if (cc_existe) out <- c(out, "condicion_curso")
+  out
+}
+
 # Columna del nivel del curso con guarda anti-colisión. El matcher difuso de
 # .cm_aulas_col reusa subcadenas en AMBOS sentidos: "curso" ⊂ "nivel_curso", así
 # que en una base con "Curso" (CÓDIGO del curso) pero SIN columna propia de
@@ -695,7 +716,8 @@ calc_muestra_aulas_impacto_opcionales <- function(aula_frame,
 #   classroom_id, student_id, level, teacher_type, course_level, campus,
 #   eligible_row.
 calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, cfg,
-                                                  catalog_signals = list()) {
+                                                  catalog_signals = list(),
+                                                  empty_bucket_cols = character(0)) {
   filtros <- (cfg %||% list())$filters
   if (!is.list(filtros)) filtros <- list()
   n_aulas <- if (is.data.frame(aula_frame)) nrow(aula_frame) else 0L
@@ -797,7 +819,8 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   if (n_aulas && suite_activa) {
     seleccion_aula <- .cm_criterios_evaluar_aula(
       aula_frame, catalog_signals, seleccion, stats$course_level_num,
-      min_eligible_fallback = .cm_criterios_min_eligible_efectivo(cfg)
+      min_eligible_fallback = .cm_criterios_min_eligible_efectivo(cfg),
+      empty_bucket_cols = empty_bucket_cols
     )
     if (any(!seleccion_aula$ok)) {
       aula_frame$included <- aula_frame$included %in% TRUE & seleccion_aula$ok
@@ -964,8 +987,17 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
 
 # Flat (include/exclude por set, con excepción por facultad). Sin señal (valor
 # vacío) o sin set efectivo → pasa. Match por text_key, NUNCA substring.
-.cm_criterios_eval_flat_vec <- function(values, crit, faculty_keys) {
+#
+# empty_key (hoy solo condicion_curso → "sin_condicion", ver registry): cuando
+# se define, el valor VACÍO deja de pasar incondicionalmente y se comporta como
+# una categoría más ("Sin condición"). Así, si la selección incluye
+# "sin_condicion" las aulas sin valor PASAN; si no la incluye, se EXCLUYEN —
+# simétrico con las categorías reales. No es un renombrado de un valor real
+# (ADR 0035 §5): es un bucket para la AUSENCIA de valor. Sin empty_key el vacío
+# sigue pasando (retro-compat para modality/session_type y el scope alumno).
+.cm_criterios_eval_flat_vec <- function(values, crit, faculty_keys, empty_key = NULL) {
   vk <- .cm_aulas_text_key(values)
+  if (!is.null(empty_key) && nzchar(empty_key)) vk[!nzchar(vk)] <- empty_key
   vapply(seq_along(vk), function(i) {
     if (!nzchar(vk[[i]])) return(TRUE)
     cats <- .cm_criterios_eff_cats(crit, faculty_keys[[i]])
@@ -1093,8 +1125,13 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
 
 # Orquesta el gate scope-aula: itera las variables aula de byVariable +
 # courseLevelRanges + minEligible, acumula flags y razones por aula.
+# empty_bucket_cols: ids de variable con emptyBucket cuya COLUMNA existe en la
+# base/catálogo (calculado por construir, consistente con la gate de la
+# enumeración). Solo para esos ids el valor vacío se remapea al bucket sintético
+# ("sin_condicion"); si la columna no existe (base sin la variable) el vacío
+# sigue pasando — graceful, el criterio no fuerza recorte.
 .cm_criterios_evaluar_aula <- function(aula_frame, catalog_signals, seleccion, base_course_level_num,
-                                       min_eligible_fallback = 1L) {
+                                       min_eligible_fallback = 1L, empty_bucket_cols = character(0)) {
   n <- nrow(aula_frame)
   vals <- .cm_criterios_valores_aula(aula_frame, catalog_signals, base_course_level_num)
   fac_keys <- .cm_criterios_fac_key(vals$faculty)
@@ -1125,8 +1162,10 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     crit <- by[[id]]
     if (!identical(crit$scope, "aula")) next
     if (!.cm_criterios_regla_aula_accionable(crit)) next
+    empty_key <- if (id %in% empty_bucket_cols) registry[[id]]$emptyBucket$key else NULL
     flag <- switch(crit$kind,
-      flat = .cm_criterios_eval_flat_vec(vals[[id]] %||% rep("", n), crit, fac_keys),
+      flat = .cm_criterios_eval_flat_vec(vals[[id]] %||% rep("", n), crit, fac_keys,
+                                         empty_key = empty_key),
       hierarchical = .cm_criterios_eval_teacher(vals$teacher, crit, fac_keys),
       numeric = .cm_criterios_eval_numeric(vals[[id]] %||% rep(NA_real_, n), crit$threshold),
       rep(TRUE, n))
@@ -1192,10 +1231,21 @@ calc_muestra_aulas_criterios_alumno <- function(criterios_seleccion, filas) {
 
 # Constructor de una variable flat: categorías normalizadas con conteo por
 # unidad (aula o alumno único) y variantes crudas plegadas.
+#
+# Bucket sintético "Sin condición" (meta$emptyBucket, hoy solo condicion_curso):
+# las unidades con valor AUSENTE se cuentan como una categoría explícita
+# seleccionable, con clave estable ("sin_condicion") y label fijo, en vez de
+# descartarse. Se emite SOLO si la columna EXISTE (mapped_col resuelto) y hay al
+# menos una unidad vacía; sin columna (base sin la variable) no se inventa un
+# bucket fantasma. Los valores REALES conservan su etiqueta cruda (ADR 0035 §5):
+# el bucket es para la AUSENCIA de valor, NO un renombrado de un valor real.
 .cm_criterios_enum_flat <- function(id, meta, values, mapped_col, scope) {
   values <- trimws(as.character(values %||% character(0)))
+  n_empty <- sum(!nzchar(values))
   values <- values[nzchar(values)]
-  if (!length(values)) return(NULL)
+  bucket <- meta$emptyBucket
+  emit_bucket <- !is.null(bucket) && nzchar(mapped_col %||% "") && n_empty > 0L
+  if (!length(values) && !emit_bucket) return(NULL)
   keys <- .cm_aulas_text_key(values)
   cats <- list()
   for (k in unique(keys[nzchar(keys)])) {
@@ -1206,6 +1256,12 @@ calc_muestra_aulas_criterios_alumno <- function(criterios_seleccion, filas) {
                                       aulas = length(idx), variants = as.list(variantes))
   }
   cats <- cats[order(-vapply(cats, function(c) c$aulas, integer(1)))]
+  if (emit_bucket) {
+    # Va al FINAL (tras ordenar por conteo) para que las categorías reales
+    # encabecen; es sintético, sin variantes crudas, marcado con synthetic=TRUE.
+    cats[[length(cats) + 1L]] <- list(key = bucket$key, label = bucket$label,
+                                      aulas = n_empty, variants = list(), synthetic = TRUE)
+  }
   out <- list(id = id, scope = scope, label = meta$label, kind = "flat",
               mappedColumn = .cm_criterios_mapped(mapped_col), categories = cats)
   if (scope == "alumno") out$defaultLayer <- meta$defaultLayer %||% NULL

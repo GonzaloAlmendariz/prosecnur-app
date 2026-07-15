@@ -1252,7 +1252,8 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     ),
     population = population,
     cfg = cfg,
-    catalog_signals = catalog_signals
+    catalog_signals = catalog_signals,
+    empty_bucket_cols = .cm_criterios_empty_bucket_cols(raw, mapping, catalog_signals)
   )
   aula_frame <- criterios$aula_frame
 
