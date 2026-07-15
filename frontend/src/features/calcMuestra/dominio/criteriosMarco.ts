@@ -62,13 +62,21 @@ export function seleccionVariable(
 ): CriterioSeleccion {
   const actual = seleccion?.byVariable?.[variableId];
   const fromValue = actual?.fromValue;
+  // Defensivo contra jsonlite: en el round-trip por disco los arrays de UN
+  // elemento se desempaquetan a escalares (categories "pregrado" en vez de
+  // ["pregrado"]). Un `[...string]` explotaría "pregrado" en caracteres y la
+  // selección de un solo valor se vería como "no filtra"; `comoArray` recupera el
+  // array real. Aplica igual a ambos lados de la comparación del marco, así que
+  // no reintroduce el "reconstruye" perpetuo.
+  const categorias = comoArray(actual?.categories);
+  const incluidos = comoArray(actual?.includeValues);
   return {
     mode: actual?.mode ?? "include",
-    categories: actual?.categories ? [...actual.categories] : [],
+    categories: categorias,
     ...(actual?.match ? { match: actual.match } : {}),
     ...(actual?.exceptions ? { exceptions: actual.exceptions } : {}),
     ...(thresholdValido(actual?.threshold) ? { threshold: actual!.threshold } : {}),
-    ...(actual?.includeValues ? { includeValues: [...actual.includeValues] } : {}),
+    ...(incluidos.length ? { includeValues: incluidos } : {}),
     ...(typeof fromValue === "number" && Number.isFinite(fromValue) ? { fromValue } : {}),
     ...(actual?.layer ? { layer: actual.layer } : {}),
   };
