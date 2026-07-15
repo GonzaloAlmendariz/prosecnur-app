@@ -433,6 +433,30 @@ describe("aulasCubiertas / resumenVariable", () => {
   });
 });
 
+describe("jsonlite: escalares de un elemento se tratan como arrays", () => {
+  // Al persistir en disco, jsonlite desempaqueta los arrays de UN elemento a un
+  // escalar (categories "presencial" en vez de ["presencial"]). Sin coerción, un
+  // `[...string]` explota el string en caracteres y la selección de un solo valor
+  // se ve como "no filtra" (seleccionadas = 0). Regresión de ese defecto.
+  it("categories escalar cuenta como 1 seleccionada, no como sus caracteres", () => {
+    const seleccionEscalar = {
+      byVariable: { modality: { mode: "include" as const, categories: "presencial" as unknown as string[] } },
+    };
+    expect(seleccionVariable(seleccionEscalar, "modality").categories).toEqual(["presencial"]);
+    const resumen = resumenVariable(CATALOGO.variables[0], seleccionEscalar);
+    expect(resumen.seleccionadas).toBe(1); // no 0 (ni 10 = chars de "presencial")
+    expect(resumen.total).toBe(4);
+  });
+
+  it("includeValues escalar numérico se coerciona a array (no lanza)", () => {
+    const sel = seleccionVariable(
+      { byVariable: { level: { mode: "include" as const, includeValues: 2 as unknown as number[] } } },
+      "level",
+    );
+    expect(sel.includeValues).toEqual([2]);
+  });
+});
+
 describe("rangos de nivel y umbral de elegibles", () => {
   it("setRangosFacultad agrega y elimina", () => {
     const sel = setRangosFacultad({ byVariable: {} }, "arte_y_diseno", [[2, 10]]);

@@ -56,7 +56,13 @@
     session_type   = list(scope = "aula",   kind = "flat",         label = "Tipo de sesión"),
     teacher_type   = list(scope = "aula",   kind = "hierarchical", label = "Tipo de docente"),
     course_level   = list(scope = "aula",   kind = "range",        label = "Nivel del curso"),
-    condicion_curso = list(scope = "aula",  kind = "flat",         label = "Condición del curso"),
+    # emptyBucket: bucket SINTÉTICO para la AUSENCIA de valor. En la data real
+    # (PUCP) "CURSO Y HORARIO"·"Condición" viene ~98% vacía; el usuario quiere
+    # poder INCLUIR explícitamente esos cursos sin condición en vez de que se
+    # caigan del marco al filtrar. Solo condicion_curso lo define (pedido
+    # concreto); es un punto de extensión, no un cambio para modality/etc.
+    condicion_curso = list(scope = "aula",  kind = "flat",         label = "Condición del curso",
+                           emptyBucket = list(key = "sin_condicion", label = "Sin condición")),
     enrolled_total = list(scope = "aula",   kind = "numeric",      label = "Matriculados / población"),
     campus         = list(scope = "aula",   kind = "flat",         label = "Sede")
   )
@@ -432,7 +438,16 @@
 # señal. Para course_level la degradación equivalente (caer en la columna de
 # nivel del estudiante) es benigna: coincide con el fallback documentado.
 .cm_criterios_col_teacher_type <- function(raw, mapping) {
+  # ADR 0035 (mapeo exclusivo): un rol mapeado a mano dejó de unir los defaults
+  # fuzzy, entre ellos el literal "teacher_type". Pero la enriquecimiento desde
+  # el catálogo escribe una columna SINTÉTICA nombrada por el ROL ("teacher_type",
+  # ver .cm_aulas_fill_from_lookup en calc_muestra_aulas_catalogo.R). El nombre
+  # mapeado se resuelve primero (la columna propia de la base gana si existe); si
+  # no hay señal, se cae a la sintética SOLO por clave exacta (.cm_criterios_col_exacta,
+  # NO fuzzy): con fuzzy, "teacher" (nombre del docente, ya enriquecido) es
+  # subcadena de "teacher_type" y secuestraría el rol.
   col <- .cm_aulas_col(raw, mapping$teacher_type)
+  if (!nzchar(col)) col <- .cm_criterios_col_exacta(raw, "teacher_type")
   if (!nzchar(col)) return("")
   # Match exacto por clave con un candidato propio: la columna sí es de tipo
   # de docente y se conserva aunque otro rol (teacher, por fuzzy) también la
@@ -442,6 +457,51 @@
   ocupadas <- c(.cm_aulas_col(raw, mapping$teacher), .cm_aulas_col(raw, mapping$condition))
   if (col %in% ocupadas[nzchar(ocupadas)]) return("")
   col
+}
+
+# Columna de la condición del CURSO con guarda anti-homónimo cross-hoja. En modo
+# base_madre el mapping llega PLANO (rol→columna, sin hoja/source) y la base es
+# la del ALUMNO (MATRICULADO). El usuario mapea condicion_curso a la columna que
+# vive en el catálogo ("CURSO Y HORARIO"·"Condición"), pero como el nombre es
+# homónimo con la condición del ESTUDIANTE ("MATRICULADO"·"Condición": REGULAR,
+# MOVILIDAD, POR REINCORPORACION…), el resolver exacto la calza contra la MISMA
+# columna base que ya reclama `condition`. El fallback del catálogo (casi vacío)
+# consumiría entonces ese valor leaked como si fuera condición del curso. Si
+# condicion_curso resuelve a la misma columna que condition (colisión de
+# homónimo dentro de la hoja base), se declara SIN señal base: la ÚNICA fuente de
+# condicion_curso pasa a ser la señal del catálogo ("CURSO Y HORARIO"·"Condición"),
+# que sí es condición del curso. Sin colisión, comportamiento actual.
+.cm_criterios_col_condicion_curso <- function(raw, mapping) {
+  col <- .cm_criterios_col_exacta(raw, mapping$condicion_curso)
+  if (!nzchar(col)) return("")
+  # La colisión de homónimo es GENUINA solo si `condition` reclama la MISMA
+  # columna por su MAPEO PROPIO (nombre exacto o clave exacta), NO si apenas la
+  # agarró por el fuzzy de un candidato default. En una base de UNA hoja con
+  # "Condición del curso" pero SIN columna de condición del alumno, el candidato
+  # default `condicion` haría fuzzy-match ("condicion" ⊂ "condicion_del_curso")
+  # contra la de curso y anularía una señal legítima; por eso la colisión se
+  # mide con el resolver EXACTO (.cm_criterios_col_exacta), que solo calza cuando
+  # condition tiene columna propia por nombre/clave exacta (los defaults no
+  # matchean por clave exacta con "condicion_del_curso"). Sin colisión genuina,
+  # condicion_curso conserva su columna.
+  ocupada <- .cm_criterios_col_exacta(raw, mapping$condition)
+  if (nzchar(ocupada) && identical(col, ocupada)) return("")
+  col
+}
+
+# Variables con emptyBucket (registry) cuya COLUMNA existe en la base o el
+# catálogo. El bucket sintético "Sin condición" solo se activa para estas: sin
+# columna la variable ni siquiera se enumera, y el vacío no debe forzar recorte
+# (graceful). La gate replica la de la enumeración (col_or: catálogo OR base).
+# Hoy solo condicion_curso; sumar otra variable es una entrada aquí + emptyBucket
+# en .cm_criterios_var_registry.
+.cm_criterios_empty_bucket_cols <- function(raw, mapping, catalog_signals = list()) {
+  cols <- (catalog_signals %||% list())$columns %||% list()
+  out <- character(0)
+  cc_existe <- nzchar(.cm_criterios_col_condicion_curso(raw, mapping)) ||
+    nzchar(.cm_aulas_scalar(cols$condicion_curso, ""))
+  if (cc_existe) out <- c(out, "condicion_curso")
+  out
 }
 
 # Columna del nivel del curso con guarda anti-colisión. El matcher difuso de
@@ -456,7 +516,12 @@
 # el código de curso). El nivel real llega por el catálogo (columna sintética
 # "course_level" con nombre exacto) cuando existe.
 .cm_criterios_col_course_level <- function(raw, mapping) {
+  # ADR 0035: mismo respaldo que teacher_type. La sintética del catálogo se
+  # nombra "course_level" (rol); si el mapeo no resuelve señal en la base, se cae
+  # a esa sintética SOLO por clave exacta (evita que el fuzzy la confunda con el
+  # código/nombre del curso). La guarda anti-colisión de abajo sigue vigente.
   col <- .cm_aulas_col(raw, mapping$course_level)
+  if (!nzchar(col)) col <- .cm_criterios_col_exacta(raw, "course_level")
   if (!nzchar(col)) return("")
   claves_propias <- .cm_aulas_text_key(.cm_aulas_chr_vec(mapping$course_level))
   if (.cm_aulas_text_key(col) %in% claves_propias) return(col)
@@ -510,18 +575,22 @@
 #     estudiantes únicos (con ciclo no vacío) en el ciclo modal; los
 #     estudiantes sin ciclo no entran ni al numerador ni al denominador, y un
 #     aula sin ningún ciclo queda en NA (sin señal, pasa c8).
-.cm_criterios_stats_por_aula <- function(aula_frame, filas, patrones) {
+.cm_criterios_stats_por_aula <- function(aula_frame, filas, patrones, teacher_orden = NULL) {
   n_aulas <- nrow(aula_frame)
   teacher_type <- character(n_aulas)
+  teacher_type_top <- character(n_aulas)
   teacher_eval <- rep(TRUE, n_aulas)
   course_level_num <- rep(NA_real_, n_aulas)
   condicion_curso <- character(n_aulas)
   campus <- character(n_aulas)
   cycle_homogeneity <- rep(NA_real_, n_aulas)
   cc_filas <- filas$condicion_curso %||% character(0)
+  # Orden efectivo de jerarquía docente (ALTO→BAJO). Vacío → default académico.
+  teacher_orden <- .cm_criterios_normalize_teacher_orden(teacher_orden)
   if (!n_aulas) {
     return(list(
-      teacher_type = teacher_type, teacher_eval = teacher_eval,
+      teacher_type = teacher_type, teacher_type_top = teacher_type_top,
+      teacher_eval = teacher_eval,
       course_level_num = course_level_num, condicion_curso = condicion_curso,
       campus = campus, cycle_homogeneity = cycle_homogeneity
     ))
@@ -536,6 +605,9 @@
     tt <- unique(filas$teacher_type[idx_all])
     tt <- tt[nzchar(tt)]
     teacher_type[[i]] <- paste(tt, collapse = " | ")
+    # teacher_type_top: SOLO etiqueta (mayor jerarquía del CH). No afecta la
+    # inclusión, que sigue siendo "al menos uno" sobre el conjunto (teacher_eval).
+    teacher_type_top[[i]] <- .cm_criterios_teacher_top(tt, teacher_orden)
     if (length(tt)) teacher_eval[[i]] <- any(.cm_aulas_contains_any(tt, patrones))
 
     num <- .cm_criterios_parse_nivel(.cm_aulas_mode(filas$course_level[idx_all], ""))
@@ -553,7 +625,8 @@
     if (length(lvls)) cycle_homogeneity[[i]] <- round(max(table(lvls)) / length(lvls), 4)
   }
   list(
-    teacher_type = teacher_type, teacher_eval = teacher_eval,
+    teacher_type = teacher_type, teacher_type_top = teacher_type_top,
+    teacher_eval = teacher_eval,
     course_level_num = course_level_num, condicion_curso = condicion_curso,
     campus = campus, cycle_homogeneity = cycle_homogeneity
   )
@@ -661,7 +734,8 @@ calc_muestra_aulas_impacto_opcionales <- function(aula_frame,
 #   classroom_id, student_id, level, teacher_type, course_level, campus,
 #   eligible_row.
 calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, cfg,
-                                                  catalog_signals = list()) {
+                                                  catalog_signals = list(),
+                                                  empty_bucket_cols = character(0)) {
   filtros <- (cfg %||% list())$filters
   if (!is.list(filtros)) filtros <- list()
   n_aulas <- if (is.data.frame(aula_frame)) nrow(aula_frame) else 0L
@@ -689,7 +763,10 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     c8 = isTRUE(filtros$require_cycle_homogeneity) && any(nzchar(filas$level))
   )
 
-  stats <- .cm_criterios_stats_por_aula(aula_frame, filas, patrones)
+  # Orden de jerarquía docente para la etiqueta teacher_type_top (configurable;
+  # NULL/vacío → default académico). No participa de ningún gate de inclusión.
+  teacher_orden <- .cm_criterios_normalize_teacher_orden((cfg %||% list())$teacher_type_orden)
+  stats <- .cm_criterios_stats_por_aula(aula_frame, filas, patrones, teacher_orden)
   ratio <- .cm_aulas_num_values(aula_frame, "eligible_ratio", NA_real_)
 
   # Evaluaciones "puras" por aula (sin importar activación): sin señal pasa.
@@ -722,6 +799,9 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
 
   # Columnas informativas nuevas del aula_frame (siempre presentes).
   aula_frame$teacher_type <- stats$teacher_type
+  # Etiqueta de mayor jerarquía docente del CH (ADR 0035): fluye a Selección/
+  # Entrega como campo/catálogo, sin tocar la inclusión al-menos-uno.
+  aula_frame$teacher_type_top <- stats$teacher_type_top
   aula_frame$course_level_num <- stats$course_level_num
   aula_frame$condicion_curso <- stats$condicion_curso
   aula_frame$campus <- stats$campus
@@ -763,7 +843,8 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   if (n_aulas && suite_activa) {
     seleccion_aula <- .cm_criterios_evaluar_aula(
       aula_frame, catalog_signals, seleccion, stats$course_level_num,
-      min_eligible_fallback = .cm_criterios_min_eligible_efectivo(cfg)
+      min_eligible_fallback = .cm_criterios_min_eligible_efectivo(cfg),
+      empty_bucket_cols = empty_bucket_cols
     )
     if (any(!seleccion_aula$ok)) {
       aula_frame$included <- aula_frame$included %in% TRUE & seleccion_aula$ok
@@ -930,8 +1011,17 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
 
 # Flat (include/exclude por set, con excepción por facultad). Sin señal (valor
 # vacío) o sin set efectivo → pasa. Match por text_key, NUNCA substring.
-.cm_criterios_eval_flat_vec <- function(values, crit, faculty_keys) {
+#
+# empty_key (hoy solo condicion_curso → "sin_condicion", ver registry): cuando
+# se define, el valor VACÍO deja de pasar incondicionalmente y se comporta como
+# una categoría más ("Sin condición"). Así, si la selección incluye
+# "sin_condicion" las aulas sin valor PASAN; si no la incluye, se EXCLUYEN —
+# simétrico con las categorías reales. No es un renombrado de un valor real
+# (ADR 0035 §5): es un bucket para la AUSENCIA de valor. Sin empty_key el vacío
+# sigue pasando (retro-compat para modality/session_type y el scope alumno).
+.cm_criterios_eval_flat_vec <- function(values, crit, faculty_keys, empty_key = NULL) {
   vk <- .cm_aulas_text_key(values)
+  if (!is.null(empty_key) && nzchar(empty_key)) vk[!nzchar(vk)] <- empty_key
   vapply(seq_along(vk), function(i) {
     if (!nzchar(vk[[i]])) return(TRUE)
     cats <- .cm_criterios_eff_cats(crit, faculty_keys[[i]])
@@ -1059,8 +1149,13 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
 
 # Orquesta el gate scope-aula: itera las variables aula de byVariable +
 # courseLevelRanges + minEligible, acumula flags y razones por aula.
+# empty_bucket_cols: ids de variable con emptyBucket cuya COLUMNA existe en la
+# base/catálogo (calculado por construir, consistente con la gate de la
+# enumeración). Solo para esos ids el valor vacío se remapea al bucket sintético
+# ("sin_condicion"); si la columna no existe (base sin la variable) el vacío
+# sigue pasando — graceful, el criterio no fuerza recorte.
 .cm_criterios_evaluar_aula <- function(aula_frame, catalog_signals, seleccion, base_course_level_num,
-                                       min_eligible_fallback = 1L) {
+                                       min_eligible_fallback = 1L, empty_bucket_cols = character(0)) {
   n <- nrow(aula_frame)
   vals <- .cm_criterios_valores_aula(aula_frame, catalog_signals, base_course_level_num)
   fac_keys <- .cm_criterios_fac_key(vals$faculty)
@@ -1091,8 +1186,10 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     crit <- by[[id]]
     if (!identical(crit$scope, "aula")) next
     if (!.cm_criterios_regla_aula_accionable(crit)) next
+    empty_key <- if (id %in% empty_bucket_cols) registry[[id]]$emptyBucket$key else NULL
     flag <- switch(crit$kind,
-      flat = .cm_criterios_eval_flat_vec(vals[[id]] %||% rep("", n), crit, fac_keys),
+      flat = .cm_criterios_eval_flat_vec(vals[[id]] %||% rep("", n), crit, fac_keys,
+                                         empty_key = empty_key),
       hierarchical = .cm_criterios_eval_teacher(vals$teacher, crit, fac_keys),
       numeric = .cm_criterios_eval_numeric(vals[[id]] %||% rep(NA_real_, n), crit$threshold),
       rep(TRUE, n))
@@ -1158,10 +1255,21 @@ calc_muestra_aulas_criterios_alumno <- function(criterios_seleccion, filas) {
 
 # Constructor de una variable flat: categorías normalizadas con conteo por
 # unidad (aula o alumno único) y variantes crudas plegadas.
+#
+# Bucket sintético "Sin condición" (meta$emptyBucket, hoy solo condicion_curso):
+# las unidades con valor AUSENTE se cuentan como una categoría explícita
+# seleccionable, con clave estable ("sin_condicion") y label fijo, en vez de
+# descartarse. Se emite SOLO si la columna EXISTE (mapped_col resuelto) y hay al
+# menos una unidad vacía; sin columna (base sin la variable) no se inventa un
+# bucket fantasma. Los valores REALES conservan su etiqueta cruda (ADR 0035 §5):
+# el bucket es para la AUSENCIA de valor, NO un renombrado de un valor real.
 .cm_criterios_enum_flat <- function(id, meta, values, mapped_col, scope) {
   values <- trimws(as.character(values %||% character(0)))
+  n_empty <- sum(!nzchar(values))
   values <- values[nzchar(values)]
-  if (!length(values)) return(NULL)
+  bucket <- meta$emptyBucket
+  emit_bucket <- !is.null(bucket) && nzchar(mapped_col %||% "") && n_empty > 0L
+  if (!length(values) && !emit_bucket) return(NULL)
   keys <- .cm_aulas_text_key(values)
   cats <- list()
   for (k in unique(keys[nzchar(keys)])) {
@@ -1172,6 +1280,12 @@ calc_muestra_aulas_criterios_alumno <- function(criterios_seleccion, filas) {
                                       aulas = length(idx), variants = as.list(variantes))
   }
   cats <- cats[order(-vapply(cats, function(c) c$aulas, integer(1)))]
+  if (emit_bucket) {
+    # Va al FINAL (tras ordenar por conteo) para que las categorías reales
+    # encabecen; es sintético, sin variantes crudas, marcado con synthetic=TRUE.
+    cats[[length(cats) + 1L]] <- list(key = bucket$key, label = bucket$label,
+                                      aulas = n_empty, variants = list(), synthetic = TRUE)
+  }
   out <- list(id = id, scope = scope, label = meta$label, kind = "flat",
               mappedColumn = .cm_criterios_mapped(mapped_col), categories = cats)
   if (scope == "alumno") out$defaultLayer <- meta$defaultLayer %||% NULL

@@ -5,6 +5,7 @@ import {
 import { seleccionVariable } from "../../dominio/criteriosMarco";
 import { fmtInt, rowsFrom, safeNumber } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "./format";
+import { normalizeTeacherTypeOrden } from "./study";
 
 /** Un valor "vacío/ausente" a efectos de comparar selecciones. La selección que
  *  el frame ECHA desde el backend viene verbosa (`fromValue: "NA"`, `layer: null`,
@@ -69,20 +70,53 @@ function seleccionNormalizada(sel: CriteriosSeleccionMarco | null | undefined) {
   };
 }
 
-export function marcoCriteriosDesactualizado(
-  frame: CalcMuestraAulasState["frame"] | null | undefined,
+/**
+ * true si la selección de criterios con la que se construyó el marco difiere de
+ * la confirmada actualmente. Si el marco vigente no registró con qué selección
+ * se construyó (marcos por defecto o previos a la suite: null o `{byVariable:{}}`)
+ * NO afirmamos que esté desactualizado: solo "reconstruye" cuando hay un cambio
+ * real y comparable — no de forma permanente al reabrir.
+ */
+function criteriosSeleccionDesactualizada(
+  construido: CriteriosSeleccionMarco | null | undefined,
   configSeleccion: CriteriosSeleccionMarco | null | undefined,
 ): boolean {
-  if (!frame) return false;
-  const construido = frame.criterios_seleccion ?? null;
-  // Si el marco vigente no registró con qué selección se construyó (marcos por
-  // defecto o previos a la suite: null o `{byVariable:{}}`), NO afirmamos que
-  // esté desactualizado: solo mostramos "reconstruye" cuando hay un cambio real
-  // y comparable — no de forma permanente al reabrir. Al reconstruir con
-  // criterios el frame registra su selección y la comparación vuelve a ser exacta.
   if (seleccionVacia(construido)) return false;
   if (seleccionVacia(configSeleccion)) return false;
   return !marcoDeepEqual(seleccionNormalizada(construido), seleccionNormalizada(configSeleccion));
+}
+
+/**
+ * true si el orden de jerarquía de docente cambió desde que se construyó el
+ * marco (ADR 0035): reordenar `teacher_type_orden` reetiqueta el `teacher_type_top`
+ * de cada curso-horario, así que el marco vigente quedó obsoleto. El backend
+ * expone en el frame el orden EFECTIVO con que construyó (`teacher_type_orden`).
+ * Defensivo: marcos viejos que no traen el campo NO se marcan stale por eso
+ * (mismo criterio que con `criterios_seleccion` ausente). El orden importa, así
+ * que se compara elemento a elemento tras normalizar.
+ */
+function teacherTypeOrdenDesactualizado(
+  frame: CalcMuestraAulasState["frame"] | null | undefined,
+  configTeacherTypeOrden: string[] | null | undefined,
+): boolean {
+  const rawFrameOrden = (frame as Record<string, unknown> | null | undefined)?.teacher_type_orden;
+  if (!Array.isArray(rawFrameOrden)) return false; // marco viejo sin el campo
+  const frameOrden = normalizeTeacherTypeOrden(rawFrameOrden);
+  const configOrden = normalizeTeacherTypeOrden(configTeacherTypeOrden ?? undefined);
+  if (frameOrden.length !== configOrden.length) return true;
+  return frameOrden.some((key, index) => key !== configOrden[index]);
+}
+
+export function marcoCriteriosDesactualizado(
+  frame: CalcMuestraAulasState["frame"] | null | undefined,
+  configSeleccion: CriteriosSeleccionMarco | null | undefined,
+  configTeacherTypeOrden?: string[] | null,
+): boolean {
+  if (!frame) return false;
+  const construido = frame.criterios_seleccion ?? null;
+  if (criteriosSeleccionDesactualizada(construido, configSeleccion)) return true;
+  if (teacherTypeOrdenDesactualizado(frame, configTeacherTypeOrden)) return true;
+  return false;
 }
 
 export function frameAuditValue(frame: CalcMuestraAulasState["frame"] | null | undefined, metric: string) {
