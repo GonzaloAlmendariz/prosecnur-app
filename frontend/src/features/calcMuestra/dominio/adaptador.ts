@@ -26,7 +26,7 @@
  *    etiquetasSexo, nunca del nombre del campo.
  */
 import type { CalcMuestraAulasFrame } from "../../../api/client";
-import { PERFIL_EJEMPLO, PLANTILLA_UNIVERSIDAD } from "./presets";
+import { PLANTILLA_UNIVERSIDAD } from "./presets";
 import type {
   CriterioAula,
   EmbudoPaso,
@@ -397,9 +397,27 @@ export function coberturaDesdeFrame(frame: CalcMuestraAulasFrame | null | undefi
 }
 
 /**
+ * Perfil PENDIENTE del proyecto real: la plantilla universitaria sin ningún
+ * conteo (universo/embudos/marco en null, facultades vacías). Es el fallback del
+ * seam cuando aún no hay marco construido — §ADR 0035: un proyecto real muestra
+ * "—/pendiente", NUNCA las cifras del caso de referencia (PERFIL_EJEMPLO), que
+ * solo se consumen en modo ejemplo explícito.
+ */
+function perfilPendiente(titulo?: string | null): PerfilInstitucional {
+  const plantilla = structuredClone(PLANTILLA_UNIVERSIDAD);
+  return {
+    ...plantilla,
+    id: "estudio-real-pendiente",
+    nombre: texto(titulo ?? null) ?? "Estudio del proyecto",
+    esEjemplo: false,
+  };
+}
+
+/**
  * Seam único para el recorrido: el perfil real del proyecto si el frame trae
- * agregados utilizables; si no, el caso de referencia (PERFIL_EJEMPLO) con
- * esReal false para que la UI lo marque siempre como ejemplo.
+ * agregados utilizables; si no, un perfil PENDIENTE sin conteos (esReal false).
+ * Jamás cae al caso de referencia hardcodeado: sus cifras solo viven en el modo
+ * ejemplo explícito, nunca se filtran al flujo del proyecto real.
  */
 export function perfilActivo(input: {
   frame?: CalcMuestraAulasFrame | null;
@@ -407,5 +425,5 @@ export function perfilActivo(input: {
 }): { perfil: PerfilInstitucional; esReal: boolean } {
   const real = perfilDesdeFrame(input);
   if (real) return { perfil: real, esReal: true };
-  return { perfil: PERFIL_EJEMPLO, esReal: false };
+  return { perfil: perfilPendiente(input.titulo), esReal: false };
 }

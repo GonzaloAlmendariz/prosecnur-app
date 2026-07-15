@@ -163,6 +163,73 @@ export function universityColumnOptions(workspace: CalcMuestraWorkspace, aulasSt
     .sort((a, b) => a.localeCompare(b, "es"));
 }
 
+export type UniversityColumnSourceGroup = "student" | "classroom";
+
+export type UniversityColumnsBySource = Record<UniversityColumnSourceGroup, string[]>;
+
+/**
+ * Columnas disponibles POR FUENTE/HOJA (§ADR 0035): las opciones de un rol
+ * salen SOLO de su hoja. Los roles de alumno (source_role "base_madre") leen la
+ * base madre / MATRICULADO; los roles de curso-horario (source_role
+ * "catalogo_curso_horario") leen el catálogo / CURSO Y HORARIO. En modo de una
+ * sola base (binding "base_madre") ambas fuentes comparten esa hoja, así que no
+ * hay contaminación posible. La lista queda sin filtrar por user-facing (el
+ * caller aplica isUniversityUserFacingColumnName cuando lo necesita).
+ */
+export function universityColumnOptionsBySource(
+  workspace: CalcMuestraWorkspace,
+  aulasState: CalcMuestraAulasState | null,
+): UniversityColumnsBySource {
+  const bindings = workspace.source_bindings ?? [];
+  const inspectedForBinding = (role: string): string[] => {
+    const binding = bindings.find((item) => item.role === role);
+    if (!binding) return [];
+    const selected = sourceBindingSelectedSheet(binding);
+    const diagnostics = sourceBindingDiagnostics(binding);
+    const selectedDiagnostic = diagnostics.find((sheet) => sheet.name === selected) ?? diagnostics[0];
+    return rowsFrom<string>(selectedDiagnostic?.columns_sample);
+  };
+  const uniqueSorted = (values: string[]) =>
+    Array.from(new Set(values)).filter(Boolean).sort((a, b) => a.localeCompare(b, "es"));
+  // El binding "base_madre" (modo una sola base) alimenta ambas fuentes: todo
+  // vive en la misma hoja y ahí no hay dos hojas que separar. El modo dos_bases
+  // admite además que el binding "estudiantes" tenga rol DETECTADO base_madre
+  // (una sola hoja que sirve a alumno Y curso-horario, sin catálogo aparte); en
+  // ese caso sus columnas también alimentan el grupo classroom, o los roles de
+  // aula quedarían sin opciones. Cuando la hoja de estudiantes es un roster real
+  // (rol "estudiantes", caso HST_UNSA2 con catálogo separado) NO se comparte.
+  const estudiantesBinding = bindings.find((item) => item.role === "estudiantes");
+  const estudiantesEsBaseUnica = Boolean(
+    estudiantesBinding && sourceBindingRole(estudiantesBinding) === "base_madre",
+  );
+  const shared = [
+    ...inspectedForBinding("base_madre"),
+    ...(estudiantesEsBaseUnica ? inspectedForBinding("estudiantes") : []),
+  ];
+  const studentInspected = uniqueSorted([...shared, ...inspectedForBinding("estudiantes")]);
+  const classroomInspected = uniqueSorted([...shared, ...inspectedForBinding("catalogo_curso_horario")]);
+  const frame = aulasState?.frame ?? null;
+  // Solo columnas CRUDAS del frame procesado: sin las señales DERIVADAS del
+  // motor (exclude_reason, course_level_num, sex_top_1_n…) que no existen en la
+  // hoja original (§ADR 0035). El frame es únicamente fallback: la inspección
+  // (head de nombres de la hoja) es la fuente de verdad de columnas reales.
+  const rawFromSample = (rows: Array<Record<string, unknown>>) =>
+    uniqueSorted(rows.flatMap((row) => Object.keys(row)).filter((column) => !isUniversityDerivedColumnName(column)));
+  const studentSample = rawFromSample(rowsFrom<Record<string, unknown>>(frame?.population).slice(0, 6));
+  const classroomSample = rawFromSample(rowsFrom<Record<string, unknown>>(frame?.aula_frame).slice(0, 6));
+  return {
+    // Preferimos SIEMPRE las columnas crudas inspeccionadas de la hoja; el frame
+    // procesado solo entra si la hoja aún no fue inspeccionada.
+    student: studentInspected.length ? studentInspected : studentSample,
+    classroom: classroomInspected.length ? classroomInspected : classroomSample,
+  };
+}
+
+/** Grupo de fuente (hoja) al que pertenece un rol según su source_role. */
+export function universitySourceGroupForRole(sourceRole: string | undefined): UniversityColumnSourceGroup {
+  return sourceRole === "catalogo_curso_horario" ? "classroom" : "student";
+}
+
 export function ensureUniversityVariableMappings(
   current: CalcMuestraWorkspaceVariableMapping[] | undefined,
   detectedColumns: string[],
@@ -238,6 +305,38 @@ export function isUniversityInternalColumnName(value: string) {
     "sizegroup",
     "condition",
   ].includes(normalized);
+}
+
+/**
+ * Columnas DERIVADAS/sintéticas del motor de marco: no existen en la hoja cruda
+ * (son señales de exclusión, agregados de sexo, ratios, claves de estrato,
+ * niveles numéricos, etc.). Se excluyen cuando las opciones de columna se
+ * derivan del frame PROCESADO (frame.aula_frame / population) en vez de la
+ * inspección cruda de la hoja — §ADR 0035: el mapeo ofrece columnas REALES de
+ * la base, nunca computadas. Reutiliza la lista de columnas internas y suma las
+ * derivadas que esa lista no cubre.
+ */
+const UNIVERSITY_DERIVED_COLUMN_NAMES = new Set<string>([
+  "courselevelnum",
+  "excludereason",
+  "label",
+  "section",
+  "prevalenceratio",
+  "cyclehomogeneity",
+  "teachertype",
+  "teachereval",
+  "coursefacultylevelpairs",
+  "uniquestudentids",
+  "campus",
+  "sextop1n",
+  "sextop2n",
+]);
+
+export function isUniversityDerivedColumnName(value: string) {
+  const normalized = normalizeColumnName(value);
+  if (!normalized) return false;
+  if (UNIVERSITY_DERIVED_COLUMN_NAMES.has(normalized)) return true;
+  return isUniversityInternalColumnName(value);
 }
 
 export function isUniversityUserFacingColumnName(value: string) {

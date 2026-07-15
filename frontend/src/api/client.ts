@@ -14117,6 +14117,13 @@ export type CalcMuestraWorkspaceAulasConfig = {
   accepted_teacher_type_patterns?: string[];
   /** H7 · patrones aceptados sobre la columna de formación real (pregrado por defecto); solo opera con require_undergraduate y columna con señal. */
   accepted_formation_patterns?: string[];
+  /**
+   * Orden de jerarquía de tipos de docente (ADR 0035): claves canónicas de
+   * categoría de teacher_type (las MISMAS que emite `criterios_catalogo`), de
+   * rango ALTO→BAJO. El motor cataloga cada curso-horario por su docente de mayor
+   * jerarquía (`teacher_type_top`). Opcional; vacío ⇒ el motor usa su orden por
+   * defecto. No afecta la inclusión ("al menos uno" sigue mandando). */
+  teacher_type_orden?: string[];
   /** H9 · excepciones de tipo de sesión por unidad: unidad -> patrones aceptados pese a exclude_session_patterns (p.ej. taller solo en Arte y Diseño). */
   session_type_excepciones?: Record<string, string[]>;
   /**

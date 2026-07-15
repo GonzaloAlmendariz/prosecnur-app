@@ -123,6 +123,15 @@
   max-width: 68ch;
 }
 
+/* Subtítulo bajo el select de un rol dual-hoja (condicion_curso): aclara que la
+   columna puede venir de cualquiera de las dos hojas. */
+.cmv2-defi-var-sheet-note {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+
 .cmv2-defi-hero-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

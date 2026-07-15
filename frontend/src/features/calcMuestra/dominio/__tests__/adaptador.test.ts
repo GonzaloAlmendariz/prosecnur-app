@@ -4,9 +4,10 @@
  * "calc_muestra_aulas_perfil_v1") y el Recorrido muestral.
  *
  * Cubre el contrato completo: mapeo fiel de embudos/facultades/cobertura,
- * caída al canon (PERFIL_EJEMPLO) cuando el frame no trae perfil utilizable,
- * y tolerancia a los payloads sucios de Plumber (escalares en arrays de 1,
- * strings numéricos, "NA", campos faltantes).
+ * caída a un perfil PENDIENTE sin conteos (§ADR 0035, nunca el ejemplo
+ * hardcodeado) cuando el frame no trae perfil utilizable, y tolerancia a los
+ * payloads sucios de Plumber (escalares en arrays de 1, strings numéricos,
+ * "NA", campos faltantes).
  */
 import { describe, expect, it } from "vitest";
 import type { CalcMuestraAulasFrame, CalcMuestraAulasPerfil } from "../../../../api/client";
@@ -17,7 +18,7 @@ import {
   perfilActivo,
   perfilDesdeFrame,
 } from "../adaptador";
-import { PERFIL_EJEMPLO, PLANTILLA_UNIVERSIDAD } from "../presets";
+import { PLANTILLA_UNIVERSIDAD } from "../presets";
 
 /** Perfil realista pequeño: 2 unidades, embudos completos, cobertura medida. */
 const PERFIL_BACKEND: CalcMuestraAulasPerfil = {
@@ -180,11 +181,18 @@ describe("perfilDesdeFrame — caída al canon", () => {
     expect(perfilDesdeFrame({ frame: frameCon({ ...PERFIL_BACKEND, poblacion_n: -5 }) })).toBeNull();
   });
 
-  it("perfilActivo cae a PERFIL_EJEMPLO con esReal false", () => {
-    const caido = perfilActivo({ frame: frameCon(null) });
+  it("perfilActivo cae a un perfil PENDIENTE sin conteos (nunca el ejemplo hardcodeado)", () => {
+    const caido = perfilActivo({ frame: frameCon(null), titulo: "Mi estudio" });
     expect(caido.esReal).toBe(false);
-    expect(caido.perfil).toBe(PERFIL_EJEMPLO);
-    expect(caido.perfil.esEjemplo).toBe(true);
+    // §ADR 0035: sin marco real, el flujo del proyecto no muestra las cifras del
+    // caso de referencia; los conteos quedan pendientes (null / vacío).
+    expect(caido.perfil.esEjemplo).toBe(false);
+    expect(caido.perfil.nombre).toBe("Mi estudio");
+    expect(caido.perfil.universo).toBeNull();
+    expect(caido.perfil.embudoAlumno).toBeNull();
+    expect(caido.perfil.embudoAula).toBeNull();
+    expect(caido.perfil.marcoAulas).toBeNull();
+    expect(caido.perfil.facultades).toHaveLength(0);
   });
 
   it("perfilActivo entrega el perfil real cuando el frame lo trae", () => {

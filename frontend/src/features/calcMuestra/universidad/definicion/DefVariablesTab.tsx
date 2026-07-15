@@ -15,16 +15,13 @@ import type {
   CalcMuestraWorkspaceVariableMapping,
 } from "../../../../api/client";
 import { fmtInt, rowsFrom } from "../../sharedCore";
-import {
-  UNIVERSITY_FALLBACK_COLUMN_OPTIONS,
-  UNIVERSITY_REQUIRED_VARIABLES,
-} from "../shared/constants";
+import { UNIVERSITY_REQUIRED_VARIABLES } from "../shared/constants";
 import {
   inferUniversityColumn,
   isUniversityUserFacingColumnName,
-  universityColumnOptions,
-  universityInspectedColumnOptions,
+  universityColumnOptionsBySource,
   universityObservedCategoryRows,
+  universitySourceGroupForRole,
   type UniversityObservedCategory,
 } from "../shared/categorias";
 import {
@@ -40,7 +37,7 @@ import "./definicion.css";
 const GRUPOS: Array<{ id: string; titulo: string; roles: string[] }> = [
   { id: "identidad", titulo: "Identidad", roles: ["student_id"] },
   { id: "estratificacion", titulo: "Estratificación", roles: ["faculty", "sex", "program", "level", "formation", "age"] },
-  { id: "aula", titulo: "Unidad curso-horario", roles: ["course_id", "schedule", "course_schedule_id", "classroom", "modality", "session_type", "course_level", "enrolled_total"] },
+  { id: "aula", titulo: "Unidad curso-horario", roles: ["course_id", "schedule", "course_schedule_id", "classroom", "modality", "session_type", "condicion_curso", "course_level", "enrolled_total"] },
   { id: "operativo", titulo: "Operativo", roles: ["teacher", "teacher_type", "campus", "condition", "course_name"] },
 ];
 
@@ -79,16 +76,29 @@ export function DefVariablesTab({
     flashTimer.current = window.setTimeout(() => setFlashRole(null), 340);
   }
 
-  const detectedColumns = universityColumnOptions(workspace, aulasState).filter(isUniversityUserFacingColumnName);
-  const inspectedColumns = universityInspectedColumnOptions(workspace);
-  const suggestionColumns = inspectedColumns.length ? inspectedColumns : detectedColumns;
-  const mappedColumns = (workspace.variable_mappings ?? [])
-    .map((row) => row.column ?? "")
-    .filter((column) => Boolean(column) && isUniversityUserFacingColumnName(column));
-  const columns = Array.from(new Set([
-    ...(suggestionColumns.length ? suggestionColumns : UNIVERSITY_FALLBACK_COLUMN_OPTIONS),
-    ...mappedColumns,
-  ])).sort((a, b) => a.localeCompare(b, "es"));
+  // §ADR 0035: las opciones de columna de cada rol vienen SOLO de la hoja/fuente
+  // de ese rol. Los roles de alumno leen la base madre / MATRICULADO; los de
+  // curso-horario, el catálogo / CURSO Y HORARIO. Nunca se mezclan columnas de
+  // la otra hoja, aunque exista una homónima (queda desambiguada por hoja).
+  const columnsBySource = universityColumnOptionsBySource(workspace, aulasState);
+  const studentColumns = columnsBySource.student.filter(isUniversityUserFacingColumnName);
+  const classroomColumns = columnsBySource.classroom.filter(isUniversityUserFacingColumnName);
+  const anyColumnsDetected = studentColumns.length > 0 || classroomColumns.length > 0;
+
+  function sourceColumnsFor(sourceRole: string | undefined): string[] {
+    return universitySourceGroupForRole(sourceRole) === "classroom" ? classroomColumns : studentColumns;
+  }
+
+  // Opciones de la tarjeta = columnas de la hoja del rol + su columna confirmada
+  // (para que se renderice aun si el marco cambió y ya no la detecta). Si su hoja
+  // aún no tiene columnas detectadas, la tarjeta cae al estado vacío, jamás a las
+  // columnas de la otra hoja.
+  function columnsForBase(baseVar: CalcMuestraWorkspaceVariableMapping): string[] {
+    const options = new Set(sourceColumnsFor(baseVar.source_role));
+    const confirmed = universityConfirmedColumn(workspace.variable_mappings, baseVar.role);
+    if (confirmed && isUniversityUserFacingColumnName(confirmed)) options.add(confirmed);
+    return Array.from(options).sort((a, b) => a.localeCompare(b, "es"));
+  }
 
   const frame = aulasState?.frame ?? null;
   const hasFrame = Boolean(frame);
@@ -107,7 +117,8 @@ export function DefVariablesTab({
   const confirmedRequired = requiredRoles.filter((role) => isUniversityRoleConfirmed(workspace.variable_mappings, role));
 
   function suggestionFor(role: string) {
-    return inferUniversityColumn(role, suggestionColumns);
+    const baseVar = BASE_BY_ROLE.get(role);
+    return inferUniversityColumn(role, sourceColumnsFor(baseVar?.source_role));
   }
 
   function selectValueFor(role: string) {
@@ -193,12 +204,32 @@ export function DefVariablesTab({
                 const numeric = valueType === "numerica"
                   ? universityNumericColumnSummary(numericRows, selectValue)
                   : null;
+                // §ADR 0035: la condición del curso es la única variable que puede
+                // vivir en cualquiera de las dos hojas (la misma noción está en la
+                // de matrícula y en la de curso-horario, con nombres distintos y
+                // grados de llenado distintos). Le ofrecemos AMBAS hojas, agrupadas
+                // y etiquetadas, para que el usuario elija manualmente la poblada.
+                const esDualHoja = base.role === "condicion_curso";
+                const columnGroups = esDualHoja
+                  ? [
+                      { label: "Hoja de matrícula", columns: studentColumns },
+                      { label: "Hoja de curso-horario", columns: classroomColumns },
+                    ].filter((grupo) => grupo.columns.length > 0)
+                  : undefined;
+                const sheetNote = esDualHoja
+                  ? "Puede estar en la hoja de matrícula o en la de curso-horario. Elige la columna que esté poblada."
+                  : undefined;
+                const columnsProp = esDualHoja
+                  ? Array.from(new Set([...studentColumns, ...classroomColumns])).sort((a, b) => a.localeCompare(b, "es"))
+                  : columnsForBase(base);
                 return (
                   <VariableMapCard
                     key={base.role}
                     base={base}
                     valueType={valueType}
-                    columns={columns}
+                    columns={columnsProp}
+                    columnGroups={columnGroups}
+                    sheetNote={sheetNote}
                     suggested={suggestionFor(base.role)}
                     confirmedColumn={universityConfirmedColumn(workspace.variable_mappings, base.role)}
                     selectValue={selectValue}
@@ -218,7 +249,7 @@ export function DefVariablesTab({
         );
       })}
 
-      {!detectedColumns.length && (
+      {!anyColumnsDetected && (
         <EmptyState
           variant="inline"
           icon={<Database size={18} />}

@@ -246,7 +246,13 @@
   for (nm in names(mapping)) {
     if (!nm %in% names(out)) next
     custom <- .cm_aulas_chr_vec(mapping[[nm]])
-    if (length(custom)) out[[nm]] <- unique(c(custom, defaults[[nm]]))
+    # ADR 0035: un rol MAPEADO a mano se resuelve EXCLUSIVAMENTE por su columna,
+    # sin unir los defaults fuzzy. Si se unieran, el resolver podría elegir un
+    # candidato fuzzy (p. ej. course_level -> "Curso"/código) en vez de la
+    # columna que el usuario eligió a propósito. Los roles que NO vienen en el
+    # mapping conservan `defaults[[nm]]` (retrocompat: goldens y proyecto de
+    # referencia sin mapeo manual siguen resolviendo por fuzzy).
+    if (length(custom)) out[[nm]] <- custom
   }
   out
 }
@@ -485,6 +491,13 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
     # calc_muestra_aulas_criterios.R. list() cuando no viene → path legacy.
     criterios_seleccion = .cm_criterios_normalize_seleccion(
       config$criterios_seleccion %||% config$criterios_marco %||% config$seleccion_criterios
+    ),
+    # ADR 0035: orden de jerarquía docente (ALTO→BAJO) para la etiqueta
+    # teacher_type_top del aula_frame. Solo etiqueta/catálogo, no filtra.
+    # NULL/vacío → orden por defecto académico. Lógica en
+    # calc_muestra_aulas_teacher_top.R.
+    teacher_type_orden = .cm_criterios_normalize_teacher_orden(
+      config$teacher_type_orden %||% config$orden_tipo_docente
     )
   )
 }
@@ -1007,9 +1020,17 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   teacher_type <- .cm_aulas_values(raw, .cm_criterios_col_teacher_type(raw, mapping), "")
   course_level <- .cm_aulas_values(raw, .cm_criterios_col_course_level(raw, mapping), "")
   # Condición del curso: clave exacta en la base (no fuzzy) para no confundirla
-  # con la condición del estudiante.
-  condicion_curso <- .cm_aulas_values(raw, .cm_criterios_col_exacta(raw, mapping$condicion_curso), "")
-  campus <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$campus), "")
+  # con la condición del estudiante. La guarda anti-homónimo cross-hoja anula la
+  # señal base cuando condicion_curso colisiona con la columna de condition
+  # (mismo nombre en la hoja del alumno): la fuente real llega por el catálogo.
+  condicion_curso <- .cm_aulas_values(raw, .cm_criterios_col_condicion_curso(raw, mapping), "")
+  # ADR 0035: "campus" es la sintética que el catálogo escribe con el nombre del
+  # rol; el mapeo del usuario resuelve primero (su columna gana si existe) y, sin
+  # señal, se cae a la sintética SOLO por clave exacta (no fuzzy) bajo mapeo
+  # exclusivo.
+  campus_col <- .cm_aulas_col(raw, mapping$campus)
+  if (!nzchar(campus_col)) campus_col <- .cm_criterios_col_exacta(raw, "campus")
+  campus <- .cm_aulas_values(raw, campus_col, "")
   # H7: formación del estudiante; resolución SOLO por clave exacta (el fuzzy
   # secuestraría columnas como "Nivel" o "Información adicional").
   formation <- .cm_aulas_values(raw, .cm_criterios_col_exacta(raw, mapping$formation), "")
@@ -1238,7 +1259,8 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     ),
     population = population,
     cfg = cfg,
-    catalog_signals = catalog_signals
+    catalog_signals = catalog_signals,
+    empty_bucket_cols = .cm_criterios_empty_bucket_cols(raw, mapping, catalog_signals)
   )
   aula_frame <- criterios$aula_frame
 
@@ -1370,12 +1392,19 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       session_type = .cm_aulas_col(raw, mapping$session_type),
       teacher_type = .cm_criterios_col_teacher_type(raw, mapping),
       course_level = .cm_criterios_col_course_level(raw, mapping),
-      condicion_curso = .cm_criterios_col_exacta(raw, mapping$condicion_curso),
+      condicion_curso = .cm_criterios_col_condicion_curso(raw, mapping),
       enrolled_total = .cm_aulas_col(raw, mapping$enrolled_total),
       campus = .cm_aulas_col(raw, mapping$campus)
     )
   )
   out$criterios_seleccion <- cfg$criterios_seleccion
+  # ADR 0035: orden EFECTIVO de jerarquía docente usado en este build (ya
+  # resuelto por .cm_criterios_normalize_teacher_orden en la config; NULL/vacío
+  # colapsó al default académico). El frontend lo compara con el orden que el
+  # usuario tiene en pantalla para marcar el marco DESACTUALIZADO al reordenar.
+  # Se expone como lista para forzar un array JSON aunque el orden tenga un solo
+  # elemento.
+  out$teacher_type_orden <- as.list(cfg$teacher_type_orden)
   out$criterios_alumno_report <- alumno_sel$report
   out
 }
