@@ -29,6 +29,7 @@ import {
   apiUpload,
   apiXlsformEditorExport,
   apiXlsformEditorExportPdf,
+  apiXlsformEditorExportWord,
   apiXlsformEditorImport,
   apiXlsformEditorImportMatrizPulso,
   isMatrizPulsoImport,
@@ -560,7 +561,7 @@ export default function XlsformEditorPage() {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [status, setStatus] = useState("Todavía no hay un formulario abierto.");
-  const [artifact, setArtifact] = useState<{ file_id: string; original_name: string; extension: "xlsx" | "pdf" } | null>(null);
+  const [artifact, setArtifact] = useState<{ file_id: string; original_name: string; extension: "xlsx" | "pdf" | "docx" } | null>(null);
   const [source, setSource] = useState<{ kind: string | null; original_name: string | null } | null>(null);
   const [catalogFocus, setCatalogFocus] = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
@@ -1633,6 +1634,12 @@ export default function XlsformEditorPage() {
       .replace(/\.xlsx$/i, ".pdf");
   }
 
+  function wordFilenameFromSource(name: string | null | undefined): string {
+    return cleanFilename(name)
+      .replace(/_editado\.xlsx$/i, "_papel.docx")
+      .replace(/\.xlsx$/i, ".docx");
+  }
+
   async function onExport() {
     if (!workbook) return;
     resetMessages();
@@ -1697,7 +1704,8 @@ export default function XlsformEditorPage() {
     }
   }
 
-  async function onExportPdf(
+  async function onExportForm(
+    format: "pdf" | "word" = "pdf",
     columns: 1 | 2 = 2,
     logicLanguage: "saltos" | "condiciones" = "saltos",
     showQuestionnaireNumber: boolean = true,
@@ -1706,14 +1714,21 @@ export default function XlsformEditorPage() {
     consentVar: string | null = null,
   ) {
     if (!workbook) return;
+    const isWord = format === "word";
+    const label = isWord ? "Word" : "PDF";
+    const ext = isWord ? "docx" : "pdf";
     resetMessages();
     setArtifact(null);
-    setBusy("Exportando PDF para papel…");
+    setBusy(`Exportando ${label} para papel…`);
     try {
       const exportableWorkbook = { ...workbook, diagnostico: null };
-      const out = await apiXlsformEditorExportPdf(
+      const exportFn = isWord ? apiXlsformEditorExportWord : apiXlsformEditorExportPdf;
+      const filename = isWord
+        ? wordFilenameFromSource(source?.original_name)
+        : pdfFilenameFromSource(source?.original_name);
+      const out = await exportFn(
         exportableWorkbook,
-        pdfFilenameFromSource(source?.original_name),
+        filename,
         {
           columns,
           logic_language: logicLanguage,
@@ -1723,7 +1738,7 @@ export default function XlsformEditorPage() {
           ...(consentVar ? { consent_var: consentVar } : {}),
         },
       );
-      setArtifact({ file_id: out.file_id, original_name: out.original_name, extension: "pdf" });
+      setArtifact({ file_id: out.file_id, original_name: out.original_name, extension: ext });
       setStatus(`Listo: generamos ${out.original_name} con plantilla impresa Pulso.`);
       const warnDetail = out.warnings?.length
         ? ` ${out.warnings.length} salto(s) o regla(s) necesitan revisión manual.`
@@ -1734,14 +1749,14 @@ export default function XlsformEditorPage() {
           const saved = await apiSaveEntregable(out.file_id, entregableStem(out.original_name), { overwrite: true });
           toasts.push({
             kind: out.warnings?.length ? "warn" : "success",
-            title: "PDF guardado en el proyecto",
+            title: `${label} guardado en el proyecto`,
             detail: `${saved.path}${warnDetail}`,
             durationMs: 9000,
           });
         } catch (e) {
           toasts.push({
             kind: "warn",
-            title: "PDF listo, pero no se pudo guardar en el proyecto",
+            title: `${label} listo, pero no se pudo guardar en el proyecto`,
             detail: (e as Error).message,
             durationMs: 8000,
             action: {
@@ -1753,7 +1768,7 @@ export default function XlsformEditorPage() {
       } else {
         toasts.push({
           kind: out.warnings?.length ? "warn" : "success",
-          title: "PDF listo",
+          title: `${label} listo`,
           detail: `${out.original_name}${warnDetail}`,
           durationMs: 7000,
           action: {
@@ -1765,7 +1780,7 @@ export default function XlsformEditorPage() {
     } catch (e: unknown) {
       const msg = (e as Error).message;
       setError(msg);
-      toasts.push({ kind: "danger", title: "No se pudo exportar el PDF", detail: msg });
+      toasts.push({ kind: "danger", title: `No se pudo exportar el ${label}`, detail: msg });
     } finally {
       setBusy("");
     }
@@ -2817,9 +2832,9 @@ export default function XlsformEditorPage() {
               className="pulso-xlsform-toolbar-button"
               onClick={() => setPdfDialogOpen(true)}
               disabled={!!busy}
-              title="Configurar y exportar el cuestionario en PDF"
+              title="Configurar y exportar el cuestionario impreso (PDF o Word)"
             >
-              <FileText size={14} /> PDF
+              <FileText size={14} /> Documento
             </button>
           </div>
         </div>
@@ -2888,7 +2903,7 @@ export default function XlsformEditorPage() {
           actions={(
             <SaveEntregableButton
               fileId={artifact.file_id}
-              defaultName={artifact.original_name.replace(/\.(xlsx|pdf)$/i, "")}
+              defaultName={artifact.original_name.replace(/\.(xlsx|pdf|docx)$/i, "")}
               extension={artifact.extension}
               label={`Descargar .${artifact.extension}`}
               icon={artifact.extension === "pdf" ? <FileText size={14} /> : <Download size={14} />}
@@ -3083,7 +3098,7 @@ export default function XlsformEditorPage() {
                       actions={(
                         <SaveEntregableButton
                           fileId={artifact.file_id}
-                          defaultName={artifact.original_name.replace(/\.(xlsx|pdf)$/i, "")}
+                          defaultName={artifact.original_name.replace(/\.(xlsx|pdf|docx)$/i, "")}
                           extension={artifact.extension}
                           label="Descargar export"
                           icon={artifact.extension === "pdf" ? <FileText size={14} /> : <Download size={14} />}
@@ -3322,8 +3337,9 @@ export default function XlsformEditorPage() {
         key={activeFormId ?? "no-form"}
         open={pdfDialogOpen}
         onClose={() => setPdfDialogOpen(false)}
-        onExport={(columns, logicLanguage, showQuestionnaireNumber, matrixGroups, matrixLayout, consentVar) => {
-          void onExportPdf(
+        onExport={(format, columns, logicLanguage, showQuestionnaireNumber, matrixGroups, matrixLayout, consentVar) => {
+          void onExportForm(
+            format,
             columns,
             logicLanguage,
             showQuestionnaireNumber,

@@ -685,7 +685,7 @@
   padding: 0 18px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--pulso-primary-bg);
+  color: #fff;
   background: var(--pulso-primary);
   border: 1px solid var(--pulso-primary);
   border-radius: var(--pulso-radius-chip);
@@ -695,6 +695,17 @@
 
 .pulso-xf-pdf-dialog-export:hover:not(:disabled) {
   background: var(--pulso-primary-hover);
+}
+
+/* Segunda salida (Word): variante secundaria outline junto al PDF primario. */
+.pulso-xf-pdf-dialog-export-word {
+  color: var(--pulso-primary);
+  background: transparent;
+  border-color: var(--pulso-border-strong, var(--pulso-primary));
+}
+
+.pulso-xf-pdf-dialog-export-word:hover:not(:disabled) {
+  background: var(--pulso-surface-hover, rgba(0, 36, 87, 0.06));
 }
 
 .pulso-xf-pdf-dialog-export:active:not(:disabled) {

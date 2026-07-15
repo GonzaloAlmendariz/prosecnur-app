@@ -40,6 +40,7 @@ export type ConfigurarPdfDialogProps = {
   open: boolean;
   onClose: () => void;
   onExport: (
+    format: "pdf" | "word",
     columns: PdfColumns,
     logicLanguage: PdfLogicLanguage,
     showQuestionnaireNumber: boolean,
@@ -116,7 +117,7 @@ export function ConfigurarPdfDialog({
     });
   }
 
-  function exportNow() {
+  function exportNow(format: "pdf" | "word") {
     const groups = buildMatrixGroups(
       matrixCandidates,
       disabledMatrixIds,
@@ -125,7 +126,7 @@ export function ConfigurarPdfDialog({
       headerById,
     );
     const consent = consentVar.trim() ? consentVar.trim() : null;
-    onExport(columns, logicLanguage, showQuestionnaireNumber, groups, matrixLayout, consent);
+    onExport(format, columns, logicLanguage, showQuestionnaireNumber, groups, matrixLayout, consent);
     onClose();
   }
 
@@ -440,8 +441,17 @@ export function ConfigurarPdfDialog({
           </button>
           <button
             type="button"
+            className="pulso-xf-pdf-dialog-export pulso-xf-pdf-dialog-export-word"
+            onClick={() => exportNow("word")}
+            disabled={busy}
+          >
+            <FileText size={15} />
+            {busy ? "Exportando…" : "Exportar Word"}
+          </button>
+          <button
+            type="button"
             className="pulso-xf-pdf-dialog-export"
-            onClick={exportNow}
+            onClick={() => exportNow("pdf")}
             disabled={busy}
           >
             <FileText size={15} />
