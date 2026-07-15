@@ -1091,7 +1091,7 @@
   margin-top: 10px;
   padding: 10px;
   border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius-chip);
+  border-radius: var(--pulso-radius-card);
   background: color-mix(in srgb, var(--cmv2-accent-soft) 40%, transparent);
 }
 .cmv2-crit-ttorden-head {
@@ -1123,7 +1123,7 @@
   min-height: 32px;
   padding: 4px 6px 4px 4px;
   border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius-chip);
+  border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
 }
 .cmv2-crit-ttorden-rank {
