@@ -1294,7 +1294,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   label <- tolower(.form_pdf_clean_text(label %||% ""))
   if (!nzchar(label)) return(FALSE)
   grepl(paste0(
-    "(^|\\b)(sin\\s*inf|sin\\s+informaci|no\\s+sabe|ns\\s*[/.–-]?\\s*nr|no\\s+responde|",
+    "(^|\\b)(sin\\s*inf(?![a-z])|sin\\s+informaci|no\\s+sabe|ns\\s*[/.–-]?\\s*nr|no\\s+responde|",
     "no\\s+contesta|no\\s+aplica|prefiero\\s+no\\s+responder|valor\\s+perdido|",
     "blanco|viciad|no\\s+informa)"),
     label, perl = TRUE)
