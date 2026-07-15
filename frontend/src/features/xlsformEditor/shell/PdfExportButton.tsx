@@ -15,10 +15,16 @@
 // `.pulso-more-views-*` del command bar (mismo click-fuera / Escape que
 // FormSwitcher).
 //
+// Cada candidato activo puede llevar un "tenor" (enunciado guía de la tabla):
+// cuando viene, el motor le da el número X y las filas pasan a X.1, X.2…; sin
+// tenor, numeración secuencial. El input de tenor solo se muestra cuando la
+// matriz está activada.
+//
 // Contrato con el motor R: SIEMPRE enviamos `matrix_groups` con los candidatos
-// activados (decisión (b) del brief) para que "lo que ves en el popover" sea
-// "lo que sale". Un candidato desactivado se omite del arreglo y el motor lo
-// renderiza como preguntas individuales. Si no hay candidatos, enviamos `[]`.
+// activados (decisión (b) del brief), en la forma de objeto `{ members, tenor? }`,
+// para que "lo que ves en el popover" sea "lo que sale". Un candidato
+// desactivado se omite del arreglo y el motor lo renderiza como preguntas
+// individuales. Si no hay candidatos, enviamos `[]`.
 // =============================================================================
 
 import { useEffect, useRef, useState } from "react";
@@ -26,7 +32,9 @@ import { Check, ChevronDown, Columns2, FileText, GitBranch, Grid3x3, Route, Squa
 import type { MatrixCandidate } from "../parsing/detectMatrixCandidates";
 import {
   DEFAULT_PDF_EXPORT_PREFERENCE,
+  buildMatrixGroups,
   exportButtonTitle,
+  type MatrixGroupPayload,
   type PdfColumns,
   type PdfLogicLanguage,
 } from "./pdfExportPreference";
@@ -36,7 +44,7 @@ export type PdfExportButtonProps = {
     columns: PdfColumns,
     logicLanguage: PdfLogicLanguage,
     showQuestionnaireNumber: boolean,
-    matrixGroups: string[][],
+    matrixGroups: MatrixGroupPayload[],
   ) => void;
   matrixCandidates?: MatrixCandidate[];
   disabled?: boolean;
@@ -62,6 +70,8 @@ export function PdfExportButton({ onExport, matrixCandidates = [], disabled }: P
   );
   // Ids de candidatos DESACTIVADOS (default = todos activos, set vacío).
   const [disabledMatrixIds, setDisabledMatrixIds] = useState<Set<string>>(() => new Set());
+  // Tenor (enunciado guía) por candidato: map id→texto. Vacío = sin tenor.
+  const [tenorById, setTenorById] = useState<Record<string, string>>({});
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -81,10 +91,8 @@ export function PdfExportButton({ onExport, matrixCandidates = [], disabled }: P
     };
   }, [open]);
 
-  function activeMatrixGroups(): string[][] {
-    return matrixCandidates
-      .filter((candidate) => !disabledMatrixIds.has(candidate.id))
-      .map((candidate) => candidate.memberNames);
+  function activeMatrixGroups(): MatrixGroupPayload[] {
+    return buildMatrixGroups(matrixCandidates, disabledMatrixIds, tenorById);
   }
 
   function exportNow(cols: PdfColumns, logic: PdfLogicLanguage) {
@@ -99,6 +107,10 @@ export function PdfExportButton({ onExport, matrixCandidates = [], disabled }: P
       else next.add(id);
       return next;
     });
+  }
+
+  function setTenor(id: string, value: string) {
+    setTenorById((prev) => ({ ...prev, [id]: value }));
   }
 
   return (
@@ -216,29 +228,46 @@ export function PdfExportButton({ onExport, matrixCandidates = [], disabled }: P
           ) : (
             matrixCandidates.map((candidate) => {
               const enabled = !disabledMatrixIds.has(candidate.id);
+              const tenorInputId = `pulso-matrix-tenor-${candidate.id}`;
               return (
-                <button
-                  key={candidate.id}
-                  type="button"
-                  role="switch"
-                  aria-checked={enabled}
-                  className={`pulso-more-views-item pulso-more-views-switch-item${enabled ? " is-active" : ""}`}
-                  onClick={() => toggleMatrix(candidate.id)}
-                >
-                  <span className="pulso-more-views-item-icon">
-                    <Grid3x3 size={16} />
-                  </span>
-                  <span className="pulso-more-views-item-text">
-                    <strong>{candidate.count} preguntas en matriz</strong>
-                    <em>{matrixCandidateSummary(candidate)}</em>
-                  </span>
-                  <span
-                    className={`pulso-more-views-switch${enabled ? " is-on" : ""}`}
-                    aria-hidden="true"
+                <div key={candidate.id} className="pulso-more-views-matrix">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={enabled}
+                    className={`pulso-more-views-item pulso-more-views-switch-item${enabled ? " is-active" : ""}`}
+                    onClick={() => toggleMatrix(candidate.id)}
                   >
-                    <span className="pulso-more-views-switch-thumb" />
-                  </span>
-                </button>
+                    <span className="pulso-more-views-item-icon">
+                      <Grid3x3 size={16} />
+                    </span>
+                    <span className="pulso-more-views-item-text">
+                      <strong>{candidate.count} preguntas en matriz</strong>
+                      <em>{matrixCandidateSummary(candidate)}</em>
+                    </span>
+                    <span
+                      className={`pulso-more-views-switch${enabled ? " is-on" : ""}`}
+                      aria-hidden="true"
+                    >
+                      <span className="pulso-more-views-switch-thumb" />
+                    </span>
+                  </button>
+                  {enabled && (
+                    <div className="pulso-more-views-matrix-tenor">
+                      <label htmlFor={tenorInputId}>Tenor / enunciado de la tabla</label>
+                      <input
+                        id={tenorInputId}
+                        type="text"
+                        className="pulso-more-views-tenor-input"
+                        value={tenorById[candidate.id] ?? ""}
+                        placeholder="A continuación, indique cuán de acuerdo…"
+                        onChange={(e) => setTenor(candidate.id, e.target.value)}
+                        // Evita cerrar el popover / disparar el toggle al teclear.
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  )}
+                </div>
               );
             })
           )}

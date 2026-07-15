@@ -38090,6 +38090,38 @@ button.pulso-focus-calculation-recipe {
   font-size: 11px;
   color: var(--pulso-text-soft);
 }
+.pulso-more-views-matrix-tenor {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0 10px 8px 48px;
+}
+.pulso-more-views-matrix-tenor label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--pulso-text-soft);
+}
+.pulso-more-views-tenor-input {
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 13px;
+  color: var(--pulso-text);
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.pulso-more-views-tenor-input::placeholder {
+  color: var(--pulso-text-soft);
+}
+.pulso-more-views-tenor-input:focus {
+  outline: none;
+  border-color: var(--pulso-primary);
+  box-shadow: 0 0 0 2px var(--pulso-primary-soft);
+}
 
 /* === HubFlowDiagram (SVG del flujo en el EmptyHome) === */
 .pulso-hub-flow {

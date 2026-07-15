@@ -8,8 +8,37 @@
 // componente.
 // =============================================================================
 
+import type { MatrixCandidate } from "../parsing/detectMatrixCandidates";
+
 export type PdfColumns = 1 | 2;
 export type PdfLogicLanguage = "saltos" | "condiciones";
+
+/**
+ * Grupo de matriz enviado al motor R. `members` son los nombres de variable de
+ * las preguntas del run; `tenor` es el enunciado guía opcional de la tabla
+ * (cuando viene, ese tenor toma el número X y las filas pasan a X.1, X.2…).
+ */
+export type MatrixGroupPayload = { members: string[]; tenor?: string };
+
+/**
+ * Arma `options.matrix_groups` a partir de los candidatos detectados, el set de
+ * ids DESACTIVADOS (default = todos activos) y el map id→tenor. Los candidatos
+ * desactivados se omiten; el tenor vacío o de solo espacios se descarta.
+ */
+export function buildMatrixGroups(
+  candidates: readonly MatrixCandidate[],
+  disabledIds: ReadonlySet<string>,
+  tenorById: Readonly<Record<string, string>>,
+): MatrixGroupPayload[] {
+  return candidates
+    .filter((candidate) => !disabledIds.has(candidate.id))
+    .map((candidate) => {
+      const tenor = (tenorById[candidate.id] ?? "").trim();
+      return tenor
+        ? { members: candidate.memberNames, tenor }
+        : { members: candidate.memberNames };
+    });
+}
 
 export type PdfExportPreference = {
   columns: PdfColumns;
