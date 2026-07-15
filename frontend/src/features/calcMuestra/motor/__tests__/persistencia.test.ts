@@ -68,10 +68,25 @@ describe("round-trip serializar → normalizar", () => {
     const slice = sliceDefault();
     slice.perfil.esEjemplo = false;
     slice.perfil.facultades = [
-      { id: "fac-a", nombre: "Facultad A", N: 1200, mujeres: 700, hombres: 500, estAulaMediana: 32, estAulaMedia: 30.5, alcanzables: null, pExito: null },
+      { id: "fac-a", nombre: "Facultad A", N: 1200, mujeres: 700, hombres: 500, estAulaMediana: 32, estAulaMedia: 30.5, estAulaLo95: 28, estAulaHi95: 34, estAulaNCh: 22, alcanzables: null, pExito: null },
     ];
     const vuelta = normalizarMotorRecorrido(serializarMotorRecorrido(slice));
     expect(vuelta?.perfil.facultades).toEqual(slice.perfil.facultades);
+  });
+
+  it("el método resumenEstAula 'li_bootstrap' sobrevive el round-trip", () => {
+    const slice = sliceDefault();
+    slice.perfil.resumenEstAula = "li_bootstrap";
+    slice.tocado = true;
+    const vuelta = normalizarMotorRecorrido(serializarMotorRecorrido(slice));
+    expect(vuelta?.perfil.resumenEstAula).toBe("li_bootstrap");
+  });
+
+  it("un resumenEstAula desconocido cae al del canon (defensivo)", () => {
+    const vuelta = normalizarMotorRecorrido({
+      perfil: { id: PLANTILLA_UNIVERSIDAD.id, resumenEstAula: "no-existe" },
+    });
+    expect(vuelta?.perfil.resumenEstAula).toBe(PLANTILLA_UNIVERSIDAD.resumenEstAula);
   });
 
   it("un perfil de preset (ejemplo) conserva su id y sus criterios", () => {

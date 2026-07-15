@@ -163,6 +163,43 @@
   )
 }
 
+# Cota inferior/superior del tamaño-de-aula por bootstrap NO paramétrico de la
+# MEDIA de `tamanos`. Se bootstrapea la media (no la mediana: con tamaños
+# discretos y pocas aulas el bootstrap de la mediana es grumoso/inestable) y se
+# reportan los percentiles 2.5%/97.5% como IC de referencia.
+#   - Guard de facultad chica: con menos de n_min aulas el IC no es fiable, así
+#     que ambas cotas degradan a NA (el frontend cae a min(mediana, media)).
+#   - Determinismo: seed local fijo, preservando y restaurando el .Random.seed
+#     global para NO perturbar la semilla del sorteo muestral (los goldens de
+#     aulas se rompen ante RNG no sembrado o compartido).
+.cm_perfil_bootstrap_media <- function(tamanos, n_min = 15L, B = 2000L,
+                                       seed = 20260715L) {
+  tamanos <- tamanos[is.finite(tamanos)]
+  n <- length(tamanos)
+  if (n < n_min) return(list(lo95 = NA_real_, hi95 = NA_real_))
+
+  # Guarda el estado RNG global (si existe) y lo restaura al salir; así el seed
+  # local no interfiere con la semilla del sorteo muestral.
+  tiene_seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  old_seed <- if (tiene_seed) get(".Random.seed", envir = .GlobalEnv, inherits = FALSE) else NULL
+  on.exit({
+    if (is.null(old_seed)) {
+      if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+        rm(".Random.seed", envir = .GlobalEnv)
+      }
+    } else {
+      assign(".Random.seed", old_seed, envir = .GlobalEnv)
+    }
+  }, add = TRUE)
+
+  set.seed(seed)
+  medias <- vapply(seq_len(B), function(i) {
+    mean(sample(tamanos, size = n, replace = TRUE))
+  }, numeric(1))
+  q <- stats::quantile(medias, probs = c(0.025, 0.975), type = 7, names = FALSE)
+  list(lo95 = round(q[[1L]], 1), hi95 = round(q[[2L]], 1))
+}
+
 # Tabla por facultad presente en population. marco = aulas INCLUIDAS del
 # aula_frame (marco depurado); alcanzables_ids = estudiantes con >= 1 fila
 # eligible_row dentro de un aula incluida.
@@ -171,6 +208,8 @@
     id = character(0), nombre = character(0), n = integer(0),
     sexo_1_n = integer(0), sexo_2_n = integer(0),
     est_aula_mediana = numeric(0), est_aula_media = numeric(0),
+    est_aula_lo95 = numeric(0), est_aula_hi95 = numeric(0),
+    est_aula_n_ch = integer(0),
     alcanzables = integer(0), aulas_marco = integer(0),
     stringsAsFactors = FALSE, check.names = FALSE
   )
@@ -186,6 +225,8 @@
     en_marco <- marco_fac == f
     tamanos <- marco_sizes[en_marco]
     tamanos <- tamanos[is.finite(tamanos)]
+    # Banda bootstrap de la media (NA en facultades chicas < 15 aulas).
+    boot <- .cm_perfil_bootstrap_media(tamanos)
     data.frame(
       id = if (nzchar(f)) .cm_aulas_text_key(f) else "sin-facultad",
       nombre = if (nzchar(f)) f else "Sin facultad",
@@ -194,6 +235,9 @@
       sexo_2_n = if (length(sexo_labels) >= 2L) as.integer(sum(en_fac & sex == sexo_labels[[2L]])) else 0L,
       est_aula_mediana = if (length(tamanos)) as.numeric(stats::median(tamanos)) else NA_real_,
       est_aula_media = if (length(tamanos)) round(mean(tamanos), 1) else NA_real_,
+      est_aula_lo95 = boot$lo95,
+      est_aula_hi95 = boot$hi95,
+      est_aula_n_ch = as.integer(length(tamanos)),
       alcanzables = as.integer(sum(en_fac & sid %in% alcanzables_ids)),
       aulas_marco = as.integer(sum(en_marco)),
       stringsAsFactors = FALSE,

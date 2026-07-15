@@ -10,7 +10,11 @@
  * "NA", campos faltantes).
  */
 import { describe, expect, it } from "vitest";
-import type { CalcMuestraAulasFrame, CalcMuestraAulasPerfil } from "../../../../api/client";
+import type {
+  CalcMuestraAulasFrame,
+  CalcMuestraAulasPerfil,
+  CalcMuestraAulasPerfilFacultad,
+} from "../../../../api/client";
 import {
   coberturaDesdeFrame,
   embudoAulaDesdeFrame,
@@ -40,15 +44,20 @@ const PERFIL_BACKEND: CalcMuestraAulasPerfil = {
     { id: "tipo", label: "+ Tipo válido", conteo: 1500, excluidos: 300 },
     { id: "elegibles", label: "+ ≥ 10 elegibles", conteo: 940, excluidos: 560 },
   ],
+  // Los campos del IC 95% (est_aula_lo95/hi95/n_ch) los emite el backend R pero
+  // el tipo compartido de client.ts aún no los declara: se castea el literal
+  // (el adaptador los lee de forma defensiva sobre Record<string, unknown>).
   facultades: [
     {
       id: "ingenieria", nombre: "Ingeniería", n: 5200, sexo_1_n: 1900, sexo_2_n: 3300,
-      est_aula_mediana: 24, est_aula_media: 26.4, alcanzables: 4800, aulas_marco: 520,
-    },
+      est_aula_mediana: 24, est_aula_media: 26.4, est_aula_lo95: 21.5, est_aula_hi95: 30.2, est_aula_n_ch: 40,
+      alcanzables: 4800, aulas_marco: 520,
+    } as CalcMuestraAulasPerfilFacultad,
     {
       id: "sociales", nombre: "Ciencias Sociales", n: 4600, sexo_1_n: 2700, sexo_2_n: 1900,
-      est_aula_mediana: null, est_aula_media: null, alcanzables: 4100, aulas_marco: 420,
-    },
+      est_aula_mediana: null, est_aula_media: null, est_aula_lo95: "NA", est_aula_hi95: "NA", est_aula_n_ch: 8,
+      alcanzables: 4100, aulas_marco: 420,
+    } as unknown as CalcMuestraAulasPerfilFacultad,
   ],
   cobertura: { elegibles: 9800, alcanzables: 8900, pct: 0.9082 },
 };
@@ -134,10 +143,23 @@ describe("perfilDesdeFrame — mapeo completo del contrato", () => {
     expect(ing).toEqual({
       id: "ingenieria", nombre: "Ingeniería", N: 5200,
       mujeres: 1900, hombres: 3300, // slots del diseño: siguen a etiquetasSexo
-      estAulaMediana: 24, estAulaMedia: 26.4, alcanzables: 4800, pExito: null,
+      estAulaMediana: 24, estAulaMedia: 26.4,
+      estAulaLo95: 21.5, estAulaHi95: 30.2, estAulaNCh: 40,
+      alcanzables: 4800, pExito: null,
     });
     expect(soc.estAulaMediana).toBeNull();
     expect(soc.estAulaMedia).toBeNull();
+  });
+
+  it("lee el IC 95% del bootstrap (lo95/hi95/n_ch) y coacciona NA → null", () => {
+    const [ing, soc] = perfil.facultades;
+    expect(ing.estAulaLo95).toBe(21.5);
+    expect(ing.estAulaHi95).toBe(30.2);
+    expect(ing.estAulaNCh).toBe(40);
+    // Facultad chica: el backend emite NA en las cotas (n_ch<15) → null defensivo.
+    expect(soc.estAulaLo95).toBeNull();
+    expect(soc.estAulaHi95).toBeNull();
+    expect(soc.estAulaNCh).toBe(8);
   });
 
   it("redacta la nota de cobertura global con la proporción medida", () => {

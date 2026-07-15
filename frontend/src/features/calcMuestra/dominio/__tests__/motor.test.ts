@@ -144,6 +144,30 @@ describe("aulas por aplicar (E1) y bolsa operativa", () => {
     const derecho = perfil.facultades.find((f) => f.id === "derecho")!;
     expect(estudiantesPorAula(derecho, "min_mediana_media")).toBe(26.7); // media 26.7 < mediana 33
   });
+
+  describe("estudiantesPorAula — método li_bootstrap", () => {
+    it("devuelve la cota inferior del bootstrap (lo95) cuando existe", () => {
+      const insumos = { estAulaMediana: 30, estAulaMedia: 28, estAulaLo95: 22 };
+      expect(estudiantesPorAula(insumos, "li_bootstrap")).toBe(22);
+      // Los otros métodos ignoran lo95.
+      expect(estudiantesPorAula(insumos, "mediana")).toBe(30);
+      expect(estudiantesPorAula(insumos, "media")).toBe(28);
+      expect(estudiantesPorAula(insumos, "min_mediana_media")).toBe(28);
+    });
+
+    it("cae a mín(mediana, media) cuando lo95 es null (facultad chica, guard R)", () => {
+      const chica = { estAulaMediana: 30, estAulaMedia: 26, estAulaLo95: null };
+      expect(estudiantesPorAula(chica, "li_bootstrap")).toBe(26); // = min_mediana_media
+      expect(estudiantesPorAula(chica, "li_bootstrap")).toBe(
+        estudiantesPorAula(chica, "min_mediana_media"),
+      );
+    });
+
+    it("con lo95 null y una sola medida, usa esa medida", () => {
+      expect(estudiantesPorAula({ estAulaMediana: null, estAulaMedia: 24, estAulaLo95: null }, "li_bootstrap")).toBe(24);
+      expect(estudiantesPorAula({ estAulaMediana: 31, estAulaMedia: null, estAulaLo95: null }, "li_bootstrap")).toBe(31);
+    });
+  });
 });
 
 describe("escenario 2 (cada unidad como estrato)", () => {

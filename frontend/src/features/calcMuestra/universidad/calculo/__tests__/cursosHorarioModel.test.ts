@@ -4,6 +4,7 @@ import {
   construirCursosHorarioModelo,
   cursosHorarioFinalMap,
   cursosHorarioNecesarios,
+  li95EsFiable,
   type CursosHorarioEntradaFacultad,
 } from "../cursosHorarioModel";
 
@@ -88,5 +89,69 @@ describe("construirCursosHorarioModelo", () => {
     expect(mapa["Ingeniería"]).toBe(8);
     expect(mapa["Derecho"]).toBe(5);
     expect(mapa["Sin medida"]).toBeUndefined();
+  });
+});
+
+describe("li95EsFiable", () => {
+  it("es fiable con lo95 positivo y ≥15 CH", () => {
+    expect(li95EsFiable(22, 40)).toBe(true);
+    expect(li95EsFiable(22, 15)).toBe(true);
+  });
+  it("no es fiable sin lo95, con lo95 no positivo, o con <15 CH", () => {
+    expect(li95EsFiable(null, 40)).toBe(false);
+    expect(li95EsFiable(0, 40)).toBe(false);
+    expect(li95EsFiable(22, 8)).toBe(false);
+  });
+  it("con nCh desconocido (null) confía en el lo95 (guard del backend)", () => {
+    expect(li95EsFiable(22, null)).toBe(true);
+  });
+});
+
+describe("construirCursosHorarioModelo — método (resumen)", () => {
+  // Facultad grande con bootstrap fiable y una chica con lo95 NA (<15 CH).
+  const entradas: CursosHorarioEntradaFacultad[] = [
+    { facultad: "Grande", cuota: 120, sobremuestra: 180, estAulaMediana: 30, estAulaMedia: 28, estAulaLo95: 22, estAulaNCh: 40, chMarcoElegible: 40, chTotal: 55, extra: 0 },
+    { facultad: "Chica", cuota: 40, sobremuestra: 60, estAulaMediana: 18, estAulaMedia: 16, estAulaLo95: null, estAulaNCh: 8, chMarcoElegible: 6, chTotal: 9, extra: 0 },
+  ];
+
+  it("expone las cuatro referencias por facultad", () => {
+    const [g] = construirCursosHorarioModelo(entradas, "elegible", "min_mediana_media").filas;
+    expect(g.refMediana).toBe(30);
+    expect(g.refMedia).toBe(28);
+    expect(g.refMin).toBe(28);
+    expect(g.refLo95).toBe(22);
+    expect(g.li95Fiable).toBe(true);
+  });
+
+  it("con LI 95% el divisor es la cota inferior y hay MÁS aulas que con mín(med,media)", () => {
+    const min = construirCursosHorarioModelo(entradas, "elegible", "min_mediana_media").filas[0];
+    const li = construirCursosHorarioModelo(entradas, "elegible", "li_bootstrap").filas[0];
+    expect(min.alumnosPorCH).toBe(28); // mín(30, 28)
+    expect(li.alumnosPorCH).toBe(22); // cota inferior del bootstrap
+    expect(min.chNecesarios).toBe(Math.ceil(180 / 28)); // 7
+    expect(li.chNecesarios).toBe(Math.ceil(180 / 22)); // 9 — más aulas
+    expect(li.chNecesarios!).toBeGreaterThan(min.chNecesarios!);
+    expect(li.metodoEfectivo).toBe("li_bootstrap");
+  });
+
+  it("una facultad chica (lo95 null) cae a mín(med,media) aunque el método sea LI", () => {
+    const li = construirCursosHorarioModelo(entradas, "elegible", "li_bootstrap").filas[1];
+    expect(li.li95Fiable).toBe(false);
+    expect(li.refLo95).toBeNull();
+    expect(li.metodoEfectivo).toBe("min_mediana_media");
+    expect(li.alumnosPorCH).toBe(16); // mín(18, 16), NO el lo95 inexistente
+    expect(li.chNecesarios).toBe(Math.ceil(60 / 16)); // 4
+  });
+
+  it("mediana y media puras usan su punto simple", () => {
+    const med = construirCursosHorarioModelo(entradas, "elegible", "mediana").filas[0];
+    const mea = construirCursosHorarioModelo(entradas, "elegible", "media").filas[0];
+    expect(med.alumnosPorCH).toBe(30);
+    expect(mea.alumnosPorCH).toBe(28);
+  });
+
+  it("el modelo recuerda el método elegido", () => {
+    expect(construirCursosHorarioModelo(entradas, "elegible", "li_bootstrap").resumen).toBe("li_bootstrap");
+    expect(construirCursosHorarioModelo(entradas, "elegible").resumen).toBe("min_mediana_media");
   });
 });

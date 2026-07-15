@@ -53,14 +53,34 @@ export function poblacionTotal(facultades: FacultadDatos[]): number {
   return facultades.reduce((acc, f) => acc + f.N, 0);
 }
 
-/** Estudiantes por aula de una facultad según el resumen configurado. */
-export function estudiantesPorAula(facultad: FacultadDatos, resumen: ResumenEstAula): number | null {
-  const { estAulaMediana: mediana, estAulaMedia: media } = facultad;
-  if (resumen === "mediana") return mediana;
-  if (resumen === "media") return media;
+/** Insumos del resumen de estudiantes-por-aula (subconjunto de FacultadDatos). */
+export type ResumenEstAulaInsumos = Pick<
+  FacultadDatos,
+  "estAulaMediana" | "estAulaMedia" | "estAulaLo95"
+>;
+
+/** mín(mediana, media) tolerando nulos: la única presente, o null si faltan las dos. */
+function minMedianaMedia(mediana: number | null, media: number | null): number | null {
   if (mediana == null) return media;
   if (media == null) return mediana;
   return Math.min(mediana, media);
+}
+
+/**
+ * Estudiantes por aula de una facultad según el resumen configurado.
+ *
+ * "li_bootstrap" devuelve la cota inferior del IC 95% del bootstrap
+ * (estAulaLo95) cuando existe. Si es null —facultad con <15 curso-horario, guard
+ * del backend R que suprime el intervalo— cae a mín(mediana, media): el mismo
+ * cálculo que "min_mediana_media", conservador y siempre disponible. Así una
+ * facultad chica nunca queda sin divisor por elegir el método bootstrap.
+ */
+export function estudiantesPorAula(facultad: ResumenEstAulaInsumos, resumen: ResumenEstAula): number | null {
+  const { estAulaMediana: mediana, estAulaMedia: media, estAulaLo95: lo95 } = facultad;
+  if (resumen === "mediana") return mediana;
+  if (resumen === "media") return media;
+  if (resumen === "li_bootstrap") return lo95 != null ? lo95 : minMedianaMedia(mediana, media);
+  return minMedianaMedia(mediana, media);
 }
 
 /**

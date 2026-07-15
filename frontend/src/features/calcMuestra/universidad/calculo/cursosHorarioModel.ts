@@ -12,7 +12,15 @@
  * agregado operacional (0/1/2 CH extra por facultad). Sin React ni red: la capa
  * visual consume estas cifras y el gráfico de Distribución (§5.4) las reutiliza.
  */
-import type { BaseCursosHorario } from "../../dominio";
+import { estudiantesPorAula, type BaseCursosHorario, type ResumenEstAula } from "../../dominio";
+
+/**
+ * Mínimo de curso-horario para que la cota inferior del bootstrap (LI 95%) se
+ * considere fiable. Bajo este umbral el backend R emite NA (estAulaLo95 null) y
+ * el método LI cae a mín(mediana, media). Se replica aquí como defensa: si
+ * llegara un lo95 con nCh chico igual se marca poco fiable.
+ */
+export const LI95_MIN_CH = 15;
 
 /** Insumo por facultad para el modelo (ensamblado por la capa visual). */
 export type CursosHorarioEntradaFacultad = {
@@ -26,6 +34,11 @@ export type CursosHorarioEntradaFacultad = {
   estAulaMediana: number | null;
   /** Media de elegibles por curso-horario en el marco depurado. */
   estAulaMedia: number | null;
+  /** Cota inferior del IC 95% del bootstrap de la media (agregado R); null en
+   *  facultades chicas (<15 CH) o frames sin perfil. */
+  estAulaLo95?: number | null;
+  /** Nº de curso-horario de la facultad en el marco (tamaño del bootstrap). */
+  estAulaNCh?: number | null;
   /** Cursos-horario elegibles del marco para la facultad. */
   chMarcoElegible: number | null;
   /** Total de cursos-horario de la facultad en la base (antes de depurar). */
@@ -37,8 +50,22 @@ export type CursosHorarioEntradaFacultad = {
 /** Fila resuelta por facultad del plan de cursos-horario. */
 export type CursosHorarioFilaFacultad = {
   facultad: string;
-  /** min(media, mediana) de elegibles por CH; null si no hay medida. */
+  /** Divisor EN USO (el valor del método elegido); null si no hay medida. */
   alumnosPorCH: number | null;
+  /** Mediana de elegibles por CH (referencia), saneada a positivo o null. */
+  refMediana: number | null;
+  /** Media de elegibles por CH (referencia), saneada a positivo o null. */
+  refMedia: number | null;
+  /** mín(mediana, media) (referencia). */
+  refMin: number | null;
+  /** Cota inferior IC 95% del bootstrap (referencia); null si no fiable. */
+  refLo95: number | null;
+  /** Nº de CH de la facultad (tamaño del bootstrap). */
+  nCh: number | null;
+  /** true si el LI 95% es fiable (lo95 presente y ≥15 CH). */
+  li95Fiable: boolean;
+  /** Método realmente aplicado a esta fila: LI cae a mín(m,m) si no es fiable. */
+  metodoEfectivo: ResumenEstAula;
   cuota: number;
   /** Sobremuestra de la facultad (dividendo del cálculo de aulas). */
   sobremuestra: number;
@@ -56,6 +83,8 @@ export type CursosHorarioFilaFacultad = {
 export type CursosHorarioModelo = {
   filas: CursosHorarioFilaFacultad[];
   base: BaseCursosHorario;
+  /** Método global elegido para el divisor de estudiantes-por-aula. */
+  resumen: ResumenEstAula;
   totalCuota: number;
   totalSobremuestra: number;
   totalNecesarios: number;
@@ -66,15 +95,25 @@ export type CursosHorarioModelo = {
   completo: boolean;
 };
 
+/** Positivo finito o null (sanea medidas de aula: 0/NaN/negativo no sirven). */
+function pos(valor: number | null | undefined): number | null {
+  return valor != null && Number.isFinite(valor) && valor > 0 ? valor : null;
+}
+
 /**
  * Alumnos por curso-horario: el MÍNIMO entre media y mediana (criterio del
  * método). Con solo una de las dos medidas, esa; sin ninguna, null.
  */
 export function alumnosPorCursoHorario(mediana: number | null, media: number | null): number | null {
-  const m = mediana != null && Number.isFinite(mediana) && mediana > 0 ? mediana : null;
-  const a = media != null && Number.isFinite(media) && media > 0 ? media : null;
+  const m = pos(mediana);
+  const a = pos(media);
   if (m != null && a != null) return Math.min(m, a);
   return m ?? a;
+}
+
+/** true si la cota inferior del bootstrap es fiable (lo95 presente y ≥15 CH). */
+export function li95EsFiable(lo95: number | null | undefined, nCh: number | null | undefined): boolean {
+  return pos(lo95) != null && (nCh == null || nCh >= LI95_MIN_CH);
 }
 
 /** CH necesarios para una sobremuestra dado el tamaño medio de CH. */
@@ -87,9 +126,23 @@ export function cursosHorarioNecesarios(sobremuestra: number, alumnosPorCH: numb
 export function construirCursosHorarioModelo(
   entradas: CursosHorarioEntradaFacultad[],
   base: BaseCursosHorario,
+  resumen: ResumenEstAula = "min_mediana_media",
 ): CursosHorarioModelo {
   const filas: CursosHorarioFilaFacultad[] = entradas.map((entrada) => {
-    const alumnosPorCH = alumnosPorCursoHorario(entrada.estAulaMediana, entrada.estAulaMedia);
+    const refMediana = pos(entrada.estAulaMediana);
+    const refMedia = pos(entrada.estAulaMedia);
+    const refMin = alumnosPorCursoHorario(entrada.estAulaMediana, entrada.estAulaMedia);
+    const li95Fiable = li95EsFiable(entrada.estAulaLo95, entrada.estAulaNCh);
+    const refLo95 = li95Fiable ? pos(entrada.estAulaLo95) : null;
+    // LI 95% cae a mín(mediana, media) cuando no es fiable (facultad chica).
+    const metodoEfectivo: ResumenEstAula =
+      resumen === "li_bootstrap" && !li95Fiable ? "min_mediana_media" : resumen;
+    // Divisor EN USO: la regla de dominio única (estudiantesPorAula) sobre las
+    // medidas saneadas, para que el fallback del LI sea idéntico al del motor.
+    const alumnosPorCH = estudiantesPorAula(
+      { estAulaMediana: refMediana, estAulaMedia: refMedia, estAulaLo95: refLo95 },
+      resumen,
+    );
     const sobremuestra = Math.max(0, Math.round(entrada.sobremuestra));
     const chNecesarios = cursosHorarioNecesarios(sobremuestra, alumnosPorCH);
     const extra = Math.max(0, Math.round(entrada.extra));
@@ -99,6 +152,13 @@ export function construirCursosHorarioModelo(
     return {
       facultad: entrada.facultad,
       alumnosPorCH,
+      refMediana,
+      refMedia,
+      refMin,
+      refLo95,
+      nCh: entrada.estAulaNCh ?? null,
+      li95Fiable,
+      metodoEfectivo,
       cuota: Math.max(0, Math.round(entrada.cuota)),
       sobremuestra,
       chNecesarios,
@@ -113,6 +173,7 @@ export function construirCursosHorarioModelo(
   return {
     filas,
     base,
+    resumen,
     totalCuota: filas.reduce((sum, f) => sum + f.cuota, 0),
     totalSobremuestra: filas.reduce((sum, f) => sum + f.sobremuestra, 0),
     totalNecesarios: filas.reduce((sum, f) => sum + (f.chNecesarios ?? 0), 0),
