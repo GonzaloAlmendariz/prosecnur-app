@@ -1017,7 +1017,13 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   # señal base cuando condicion_curso colisiona con la columna de condition
   # (mismo nombre en la hoja del alumno): la fuente real llega por el catálogo.
   condicion_curso <- .cm_aulas_values(raw, .cm_criterios_col_condicion_curso(raw, mapping), "")
-  campus <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$campus), "")
+  # ADR 0035: "campus" es la sintética que el catálogo escribe con el nombre del
+  # rol; el mapeo del usuario resuelve primero (su columna gana si existe) y, sin
+  # señal, se cae a la sintética SOLO por clave exacta (no fuzzy) bajo mapeo
+  # exclusivo.
+  campus_col <- .cm_aulas_col(raw, mapping$campus)
+  if (!nzchar(campus_col)) campus_col <- .cm_criterios_col_exacta(raw, "campus")
+  campus <- .cm_aulas_values(raw, campus_col, "")
   # H7: formación del estudiante; resolución SOLO por clave exacta (el fuzzy
   # secuestraría columnas como "Nivel" o "Información adicional").
   formation <- .cm_aulas_values(raw, .cm_criterios_col_exacta(raw, mapping$formation), "")

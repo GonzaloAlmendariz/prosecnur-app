@@ -432,7 +432,16 @@
 # señal. Para course_level la degradación equivalente (caer en la columna de
 # nivel del estudiante) es benigna: coincide con el fallback documentado.
 .cm_criterios_col_teacher_type <- function(raw, mapping) {
+  # ADR 0035 (mapeo exclusivo): un rol mapeado a mano dejó de unir los defaults
+  # fuzzy, entre ellos el literal "teacher_type". Pero la enriquecimiento desde
+  # el catálogo escribe una columna SINTÉTICA nombrada por el ROL ("teacher_type",
+  # ver .cm_aulas_fill_from_lookup en calc_muestra_aulas_catalogo.R). El nombre
+  # mapeado se resuelve primero (la columna propia de la base gana si existe); si
+  # no hay señal, se cae a la sintética SOLO por clave exacta (.cm_criterios_col_exacta,
+  # NO fuzzy): con fuzzy, "teacher" (nombre del docente, ya enriquecido) es
+  # subcadena de "teacher_type" y secuestraría el rol.
   col <- .cm_aulas_col(raw, mapping$teacher_type)
+  if (!nzchar(col)) col <- .cm_criterios_col_exacta(raw, "teacher_type")
   if (!nzchar(col)) return("")
   # Match exacto por clave con un candidato propio: la columna sí es de tipo
   # de docente y se conserva aunque otro rol (teacher, por fuzzy) también la
@@ -476,7 +485,12 @@
 # el código de curso). El nivel real llega por el catálogo (columna sintética
 # "course_level" con nombre exacto) cuando existe.
 .cm_criterios_col_course_level <- function(raw, mapping) {
+  # ADR 0035: mismo respaldo que teacher_type. La sintética del catálogo se
+  # nombra "course_level" (rol); si el mapeo no resuelve señal en la base, se cae
+  # a esa sintética SOLO por clave exacta (evita que el fuzzy la confunda con el
+  # código/nombre del curso). La guarda anti-colisión de abajo sigue vigente.
   col <- .cm_aulas_col(raw, mapping$course_level)
+  if (!nzchar(col)) col <- .cm_criterios_col_exacta(raw, "course_level")
   if (!nzchar(col)) return("")
   claves_propias <- .cm_aulas_text_key(.cm_aulas_chr_vec(mapping$course_level))
   if (.cm_aulas_text_key(col) %in% claves_propias) return(col)
