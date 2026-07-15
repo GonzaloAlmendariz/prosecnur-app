@@ -2951,6 +2951,10 @@ export type FormLibraryEntry = {
   source: { kind: string | null; original_name: string | null } | null;
   saved_at: number;
   active: boolean;
+  /** Conteos calculados en el backend sobre el workbook (para tarjetas del hub
+   * sin traer el workbook completo). Ausentes en índices locales antiguos. */
+  n_questions?: number;
+  n_sections?: number;
 };
 
 /** Formulario completo persistido (con workbook + hallazgos). */
@@ -2989,6 +2993,8 @@ function normalizeFormEntry(value: unknown): FormLibraryEntry | null {
     source: normalizeFormSource(v.source),
     saved_at: savedAt,
     active: v.active === true,
+    n_questions: typeof v.n_questions === "number" ? v.n_questions : undefined,
+    n_sections: typeof v.n_sections === "number" ? v.n_sections : undefined,
   };
 }
 

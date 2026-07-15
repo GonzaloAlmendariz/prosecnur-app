@@ -140,17 +140,44 @@
 # -----------------------------------------------------------------------------
 
 # Metadatos de todos los formularios (SIN workbooks → payload liviano).
+# Conteo ligero de preguntas/secciones sobre la hoja `survey` de un workbook
+# (mismo criterio que el frontend `computeFormMetrics`): secciones = filas
+# `begin_group`; preguntas = filas cuyo `type` base no es estructural
+# (begin/end group/repeat) ni vacío. Filas posicionales alineadas a `columns`.
+.xlsform_forms_survey_counts <- function(workbook) {
+  survey <- workbook$survey %||% list()
+  rows <- survey$rows %||% list()
+  cols <- as.character(survey$columns %||% character(0))
+  ti <- match("type", cols)
+  if (is.na(ti) || !length(rows)) return(list(n_questions = 0L, n_sections = 0L))
+  structural <- c("begin_group", "end_group", "begin_repeat", "end_repeat")
+  nq <- 0L; ns <- 0L
+  for (r in rows) {
+    ty <- tryCatch(as.character(r[[ti]]), error = function(e) "")
+    ty <- if (length(ty)) ty[1] else ""
+    if (is.na(ty)) ty <- ""
+    base <- tolower(trimws(sub("\\s.*$", "", ty)))
+    if (!nzchar(base)) next
+    if (identical(base, "begin_group")) ns <- ns + 1L
+    if (!(base %in% structural)) nq <- nq + 1L
+  }
+  list(n_questions = nq, n_sections = ns)
+}
+
 .xlsform_forms_list <- function(s) {
   forms <- s$xlsform_forms %||% list()
   if (!length(forms)) return(list())
   active <- as.character(s$xlsform_active_form_id %||% "")[1]
   lapply(unname(forms), function(e) {
     id <- as.character(e$id %||% "")[1]
+    counts <- .xlsform_forms_survey_counts(e$workbook %||% list())
     list(
       id = id,
       name = as.character(e$name %||% "")[1],
       source = e$source %||% list(),
       saved_at = as.character(e$saved_at %||% "")[1],
+      n_questions = counts$n_questions,
+      n_sections = counts$n_sections,
       active = identical(id, active)
     )
   })
