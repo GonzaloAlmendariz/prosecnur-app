@@ -565,18 +565,22 @@
 #     estudiantes únicos (con ciclo no vacío) en el ciclo modal; los
 #     estudiantes sin ciclo no entran ni al numerador ni al denominador, y un
 #     aula sin ningún ciclo queda en NA (sin señal, pasa c8).
-.cm_criterios_stats_por_aula <- function(aula_frame, filas, patrones) {
+.cm_criterios_stats_por_aula <- function(aula_frame, filas, patrones, teacher_orden = NULL) {
   n_aulas <- nrow(aula_frame)
   teacher_type <- character(n_aulas)
+  teacher_type_top <- character(n_aulas)
   teacher_eval <- rep(TRUE, n_aulas)
   course_level_num <- rep(NA_real_, n_aulas)
   condicion_curso <- character(n_aulas)
   campus <- character(n_aulas)
   cycle_homogeneity <- rep(NA_real_, n_aulas)
   cc_filas <- filas$condicion_curso %||% character(0)
+  # Orden efectivo de jerarquía docente (ALTO→BAJO). Vacío → default académico.
+  teacher_orden <- .cm_criterios_normalize_teacher_orden(teacher_orden)
   if (!n_aulas) {
     return(list(
-      teacher_type = teacher_type, teacher_eval = teacher_eval,
+      teacher_type = teacher_type, teacher_type_top = teacher_type_top,
+      teacher_eval = teacher_eval,
       course_level_num = course_level_num, condicion_curso = condicion_curso,
       campus = campus, cycle_homogeneity = cycle_homogeneity
     ))
@@ -591,6 +595,9 @@
     tt <- unique(filas$teacher_type[idx_all])
     tt <- tt[nzchar(tt)]
     teacher_type[[i]] <- paste(tt, collapse = " | ")
+    # teacher_type_top: SOLO etiqueta (mayor jerarquía del CH). No afecta la
+    # inclusión, que sigue siendo "al menos uno" sobre el conjunto (teacher_eval).
+    teacher_type_top[[i]] <- .cm_criterios_teacher_top(tt, teacher_orden)
     if (length(tt)) teacher_eval[[i]] <- any(.cm_aulas_contains_any(tt, patrones))
 
     num <- .cm_criterios_parse_nivel(.cm_aulas_mode(filas$course_level[idx_all], ""))
@@ -608,7 +615,8 @@
     if (length(lvls)) cycle_homogeneity[[i]] <- round(max(table(lvls)) / length(lvls), 4)
   }
   list(
-    teacher_type = teacher_type, teacher_eval = teacher_eval,
+    teacher_type = teacher_type, teacher_type_top = teacher_type_top,
+    teacher_eval = teacher_eval,
     course_level_num = course_level_num, condicion_curso = condicion_curso,
     campus = campus, cycle_homogeneity = cycle_homogeneity
   )
@@ -745,7 +753,10 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     c8 = isTRUE(filtros$require_cycle_homogeneity) && any(nzchar(filas$level))
   )
 
-  stats <- .cm_criterios_stats_por_aula(aula_frame, filas, patrones)
+  # Orden de jerarquía docente para la etiqueta teacher_type_top (configurable;
+  # NULL/vacío → default académico). No participa de ningún gate de inclusión.
+  teacher_orden <- .cm_criterios_normalize_teacher_orden((cfg %||% list())$teacher_type_orden)
+  stats <- .cm_criterios_stats_por_aula(aula_frame, filas, patrones, teacher_orden)
   ratio <- .cm_aulas_num_values(aula_frame, "eligible_ratio", NA_real_)
 
   # Evaluaciones "puras" por aula (sin importar activación): sin señal pasa.
@@ -778,6 +789,9 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
 
   # Columnas informativas nuevas del aula_frame (siempre presentes).
   aula_frame$teacher_type <- stats$teacher_type
+  # Etiqueta de mayor jerarquía docente del CH (ADR 0035): fluye a Selección/
+  # Entrega como campo/catálogo, sin tocar la inclusión al-menos-uno.
+  aula_frame$teacher_type_top <- stats$teacher_type_top
   aula_frame$course_level_num <- stats$course_level_num
   aula_frame$condicion_curso <- stats$condicion_curso
   aula_frame$campus <- stats$campus

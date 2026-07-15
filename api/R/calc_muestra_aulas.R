@@ -491,6 +491,13 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
     # calc_muestra_aulas_criterios.R. list() cuando no viene → path legacy.
     criterios_seleccion = .cm_criterios_normalize_seleccion(
       config$criterios_seleccion %||% config$criterios_marco %||% config$seleccion_criterios
+    ),
+    # ADR 0035: orden de jerarquía docente (ALTO→BAJO) para la etiqueta
+    # teacher_type_top del aula_frame. Solo etiqueta/catálogo, no filtra.
+    # NULL/vacío → orden por defecto académico. Lógica en
+    # calc_muestra_aulas_teacher_top.R.
+    teacher_type_orden = .cm_criterios_normalize_teacher_orden(
+      config$teacher_type_orden %||% config$orden_tipo_docente
     )
   )
 }

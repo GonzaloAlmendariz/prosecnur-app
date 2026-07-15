@@ -69,6 +69,25 @@ function normalizeNivelPorUnidad(
   return out;
 }
 
+/**
+ * Orden de jerarquía de tipos de docente (ADR 0035): claves canónicas de
+ * categoría, rango ALTO→BAJO. Se conservan tal cual (trim, sin vacíos ni
+ * duplicados) porque son claves autoritativas del catálogo — a diferencia de los
+ * patrones por substring, NO se pasan a minúscula. Ausente/no-array ⇒ [].
+ */
+function normalizeTeacherTypeOrden(raw: CalcMuestraWorkspaceAulasConfig["teacher_type_orden"] | undefined): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    const key = String(item ?? "").trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
+  }
+  return out;
+}
+
 /** Mapa H9 de excepciones de tipo por unidad: conserva unidades con >= 1 patrón no vacío. */
 function normalizeSessionExcepciones(
   raw: CalcMuestraWorkspaceAulasConfig["session_type_excepciones"] | undefined,
@@ -117,6 +136,10 @@ export function normalizeUniversityAulasConfig(config?: CalcMuestraWorkspace["au
       raw.accepted_formation_patterns,
       DEFAULT_UNIVERSITY_AULAS_CONFIG.accepted_formation_patterns ?? ["pregrado"],
     ),
+    // ADR 0035: orden de jerarquía de tipos de docente (claves canónicas del
+    // catálogo, rango ALTO→BAJO). Se preserva tal cual (dedup, sin vacíos); vacío
+    // ⇒ el motor aplica su default. No se fuerza minúscula: son claves autoritativas.
+    teacher_type_orden: normalizeTeacherTypeOrden(raw.teacher_type_orden),
     nivel_por_unidad: normalizeNivelPorUnidad(raw.nivel_por_unidad),
     // H9: excepciones de tipo de sesión por unidad.
     session_type_excepciones: normalizeSessionExcepciones(raw.session_type_excepciones),

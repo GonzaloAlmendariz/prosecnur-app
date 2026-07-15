@@ -122,6 +122,13 @@ export function CriteriosMarcoTab({
     onWorkspace({ ...workspace, aulas_config: { ...config, criterios_seleccion: next } });
   }
 
+  // ADR 0035: el orden de jerarquía de tipos de docente vive en su propio campo
+  // del config (no en criterios_seleccion) y se autosalva de inmediato — no pasa
+  // por el borrador/confirm de las variables (es un ranking, no un set opt-in).
+  function patchTeacherTypeOrden(keys: string[]) {
+    onWorkspace({ ...workspace, aulas_config: { ...config, teacher_type_orden: keys } });
+  }
+
   function marcarPendiente(id: string) {
     setPendientes((prev) => {
       const next = new Set(prev);
@@ -283,6 +290,8 @@ export function CriteriosMarcoTab({
                     pendiente={pendientes.has(variable.id)}
                     onConfirmar={() => confirmarVariable(variable.id, variable.kind)}
                     onDescartar={() => descartarVariable(variable.id, variable.kind)}
+                    teacherTypeOrden={config.teacher_type_orden}
+                    onTeacherTypeOrden={patchTeacherTypeOrden}
                   />
                 ))}
 
