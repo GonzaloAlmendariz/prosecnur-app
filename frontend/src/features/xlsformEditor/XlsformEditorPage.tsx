@@ -694,6 +694,7 @@ export default function XlsformEditorPage() {
     const migrated = migrateLegacySingleForm(projectScope);
     setForms(migrated.forms);
     let localActive = migrated.activeFormId;
+    let formCount = migrated.forms.length;
 
     let cancelled = false;
     void (async () => {
@@ -715,12 +716,19 @@ export default function XlsformEditorPage() {
         if (backend.active_form_id && !localActive) {
           localActive = backend.active_form_id;
         }
-        if (backend.forms.length > 0) setForms(listForms(projectScope));
+        if (backend.forms.length > 0) {
+          setForms(listForms(projectScope));
+          formCount = backend.forms.length;
+        }
       } catch {
         // Sin backend / sin proyecto: seguimos con lo local.
       }
       if (cancelled) return;
-      if (localActive) {
+      // Con VARIOS formularios aterrizamos en el hub (workbook=null → FormsLibrary
+      // muestra las tarjetas) para que el usuario elija; solo con UN formulario
+      // entramos directo a editarlo. El activo queda apuntado para "Ver todos"
+      // / el conmutador del toolbar.
+      if (localActive && formCount <= 1) {
         await switchToFormRef.current?.(localActive);
       }
     })();
