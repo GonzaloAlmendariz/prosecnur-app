@@ -17,6 +17,10 @@ function candidate(id: string, members: string[]): MatrixCandidate {
     count: members.length,
     memberNames: members,
     questionLabels: members.map((m) => m.toUpperCase()),
+    scaleOptions: [
+      { code: "1", label: "De acuerdo" },
+      { code: "9", label: "SIN INF" },
+    ],
   };
 }
 
@@ -84,5 +88,59 @@ describe("buildMatrixGroups", () => {
 
   it("sin candidatos devuelve []", () => {
     expect(buildMatrixGroups([], new Set(), {})).toEqual([]);
+  });
+
+  it("special ausente o 'auto' omite el campo del payload", () => {
+    const sinMap = buildMatrixGroups([c1], new Set(), {});
+    expect(sinMap[0]).not.toHaveProperty("special");
+    const conAuto = buildMatrixGroups([c1], new Set(), {}, { matrix_0: "auto" });
+    expect(conAuto[0]).not.toHaveProperty("special");
+    // Un valor de solo espacios colapsa a "auto" y también se omite.
+    const soloEspacios = buildMatrixGroups([c1], new Set(), {}, { matrix_0: "  " });
+    expect(soloEspacios[0]).not.toHaveProperty("special");
+  });
+
+  it("special = 'none' produce el campo special: 'none'", () => {
+    const groups = buildMatrixGroups([c1], new Set(), {}, { matrix_0: "none" });
+    expect(groups).toEqual([{ members: ["p1", "p2"], special: "none" }]);
+  });
+
+  it("special con un código de opción lo incluye junto al tenor", () => {
+    const groups = buildMatrixGroups(
+      [c1],
+      new Set(),
+      { matrix_0: "Indique…" },
+      { matrix_0: "9" },
+    );
+    expect(groups).toEqual([{ members: ["p1", "p2"], tenor: "Indique…", special: "9" }]);
+  });
+
+  it("header ausente o 'auto' omite el campo del payload", () => {
+    const sinMap = buildMatrixGroups([c1], new Set(), {});
+    expect(sinMap[0]).not.toHaveProperty("header");
+    const conAuto = buildMatrixGroups([c1], new Set(), {}, {}, { matrix_0: "auto" });
+    expect(conAuto[0]).not.toHaveProperty("header");
+    const soloEspacios = buildMatrixGroups([c1], new Set(), {}, {}, { matrix_0: "  " });
+    expect(soloEspacios[0]).not.toHaveProperty("header");
+  });
+
+  it("header = 'extremos'/'categorias' produce el campo header", () => {
+    const extremos = buildMatrixGroups([c1], new Set(), {}, {}, { matrix_0: "extremos" });
+    expect(extremos).toEqual([{ members: ["p1", "p2"], header: "extremos" }]);
+    const categorias = buildMatrixGroups([c1], new Set(), {}, {}, { matrix_0: "categorias" });
+    expect(categorias).toEqual([{ members: ["p1", "p2"], header: "categorias" }]);
+  });
+
+  it("header convive con tenor y special", () => {
+    const groups = buildMatrixGroups(
+      [c1],
+      new Set(),
+      { matrix_0: "Indique…" },
+      { matrix_0: "9" },
+      { matrix_0: "categorias" },
+    );
+    expect(groups).toEqual([
+      { members: ["p1", "p2"], tenor: "Indique…", special: "9", header: "categorias" },
+    ]);
   });
 });

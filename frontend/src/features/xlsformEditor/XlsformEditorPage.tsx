@@ -109,6 +109,7 @@ import {
 } from "./parsing/buildIndex";
 import { buildDiagnostics } from "./parsing/diagnostics";
 import { detectMatrixCandidates } from "./parsing/detectMatrixCandidates";
+import { detectConsentQuestions } from "./parsing/detectConsentQuestions";
 import {
   canRedoEditor,
   canUndoEditor,
@@ -140,7 +141,7 @@ import {
 } from "./state/persistence";
 import { FormsLibrary } from "./shell/FormsLibrary";
 import { FormSwitcher } from "./shell/FormSwitcher";
-import { PdfExportButton } from "./shell/PdfExportButton";
+import { ConfigurarPdfDialog } from "./shell/ConfigurarPdfDialog";
 import { QuestionnaireProgressPanel } from "./shell/QuestionnaireProgressPanel";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
 import { DiagnosticsBadge } from "./shell/DiagnosticsPopover";
@@ -598,6 +599,8 @@ export default function XlsformEditorPage() {
     | null
   >(null);
   const [matrizPulsoSubmitting, setMatrizPulsoSubmitting] = useState(false);
+  /** Abre/cierra el diálogo "Configurar PDF" que reemplaza al viejo popover. */
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   /** Hallazgos del validador empírico (devueltos por import-with-logic).
    *  Se renderizan en panel UI dedicado, NO se exportan al .xlsx. */
   const [hallazgos, setHallazgos] = useState<Hallazgo[]>([]);
@@ -812,6 +815,13 @@ export default function XlsformEditorPage() {
   // de select_one/select_multiple con misma lista dentro de la misma sección.
   const matrixCandidates = useMemo(
     () => (workbook ? detectMatrixCandidates(workbook) : []),
+    [workbook],
+  );
+
+  // Preguntas candidatas a variable de consentimiento (select_one/acknowledge)
+  // para el selector del diálogo "Configurar PDF".
+  const consentQuestions = useMemo(
+    () => (workbook ? detectConsentQuestions(workbook) : []),
     [workbook],
   );
 
@@ -1668,7 +1678,9 @@ export default function XlsformEditorPage() {
     columns: 1 | 2 = 2,
     logicLanguage: "saltos" | "condiciones" = "saltos",
     showQuestionnaireNumber: boolean = true,
-    matrixGroups: Array<{ members: string[]; tenor?: string }> = [],
+    matrixGroups: Array<{ members: string[]; tenor?: string; special?: string; header?: string }> = [],
+    matrixLayout: "full" | "column" = "full",
+    consentVar: string | null = null,
   ) {
     if (!workbook) return;
     resetMessages();
@@ -1683,7 +1695,9 @@ export default function XlsformEditorPage() {
           columns,
           logic_language: logicLanguage,
           show_questionnaire_number: showQuestionnaireNumber,
+          matrix_layout: matrixLayout,
           matrix_groups: matrixGroups,
+          ...(consentVar ? { consent_var: consentVar } : {}),
         },
       );
       setArtifact({ file_id: out.file_id, original_name: out.original_name, extension: "pdf" });
@@ -2775,13 +2789,15 @@ export default function XlsformEditorPage() {
             <button type="button" className="pulso-primary pulso-xlsform-toolbar-button" onClick={onExport} disabled={!!busy}>
               <Download size={14} /> Exportar .xlsx
             </button>
-            <PdfExportButton
-              onExport={(columns, logicLanguage, showQuestionnaireNumber, matrixGroups) => {
-                void onExportPdf(columns, logicLanguage, showQuestionnaireNumber, matrixGroups);
-              }}
-              matrixCandidates={matrixCandidates}
+            <button
+              type="button"
+              className="pulso-xlsform-toolbar-button"
+              onClick={() => setPdfDialogOpen(true)}
               disabled={!!busy}
-            />
+              title="Configurar y exportar el cuestionario en PDF"
+            >
+              <FileText size={14} /> PDF
+            </button>
           </div>
         </div>
       ) : undefined}
@@ -3272,6 +3288,28 @@ export default function XlsformEditorPage() {
           onConfirm={onMatrizPulsoConfirm}
         />
       ) : null}
+
+      {/* Diálogo "Configurar PDF": Formato / Lógica / Matrices. Se mantiene
+          montado (aunque cerrado) para conservar las elecciones del usuario
+          entre aperturas dentro de una sesión de edición. */}
+      <ConfigurarPdfDialog
+        open={pdfDialogOpen}
+        onClose={() => setPdfDialogOpen(false)}
+        onExport={(columns, logicLanguage, showQuestionnaireNumber, matrixGroups, matrixLayout, consentVar) => {
+          void onExportPdf(
+            columns,
+            logicLanguage,
+            showQuestionnaireNumber,
+            matrixGroups,
+            matrixLayout,
+            consentVar,
+          );
+        }}
+        matrixCandidates={matrixCandidates}
+        consentQuestions={consentQuestions}
+        fileName={activeFormName}
+        busy={!!busy}
+      />
 
       {/* Panel de hallazgos del validador empírico — drawer flotante a la
           derecha. Aparece tras un import-with-logic con resultados. Click en

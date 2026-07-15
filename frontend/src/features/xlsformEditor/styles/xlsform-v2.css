@@ -175,30 +175,567 @@
 .pulso-xlsform-frame .pulso-more-views-item:nth-child(5) { animation-delay: 120ms; }
 .pulso-xlsform-frame .pulso-more-views-item:nth-child(6) { animation-delay: 150ms; }
 
-/* ── Split-button "Exportar PDF" con selector 1/2 columnas ─────────────── */
+/* ── Diálogo "Configurar PDF" ──────────────────────────────────────────── */
+/* Reemplaza al viejo split-button + popover apretado por un modal amplio con
+   secciones Formato / Lógica / Matrices. Overlay a z-1400 (por encima del
+   chrome del módulo, `pulso-page-frame-toolbar` es z-1000). Todo con tokens
+   `--pulso-*`; sin hex. No va scopeado a `.pulso-xlsform-frame` porque el
+   overlay se pinta a nivel de la página, fuera del frame del editor. */
 
-.pulso-xlsform-frame .pulso-xlsform-pdf-export {
+.pulso-xf-pdf-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--pulso-text) 42%, transparent);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: pulso-xf-overlay-in var(--motion-dur-fast) ease;
+}
+
+.pulso-xf-pdf-dialog {
+  width: min(720px, 100%);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  box-shadow: var(--pulso-shadow-high);
+  overflow: hidden;
+  animation: pulso-xf-sheet-in var(--motion-dur-base) var(--motion-ease-out);
+}
+
+/* ── Cabecera ──────────────────────────────────────────────────────────── */
+
+.pulso-xf-pdf-dialog-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--pulso-border-soft);
+}
+
+.pulso-xf-pdf-dialog-badge {
+  flex: 0 0 auto;
   display: inline-flex;
-  align-items: stretch;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
 }
 
-.pulso-xlsform-frame .pulso-xlsform-pdf-export-main {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  padding-right: 9px;
+.pulso-xf-pdf-dialog-heading {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
-.pulso-xlsform-frame .pulso-xlsform-pdf-export-caret {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  border-left: none;
-  padding-left: 7px;
-  padding-right: 8px;
+.pulso-xf-pdf-dialog-heading h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pulso-text);
 }
 
-.pulso-xlsform-frame .pulso-xlsform-pdf-export-menu {
-  min-width: 240px;
-  transform-origin: top right;
+.pulso-xf-pdf-dialog-sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-xf-pdf-dialog-close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pulso-text-muted);
+  cursor: pointer;
+  transition: background var(--motion-dur-fast) ease, color var(--motion-dur-fast) ease;
+}
+
+.pulso-xf-pdf-dialog-close:hover:not(:disabled) {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.pulso-xf-pdf-dialog-close:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ── Cuerpo scrollable ─────────────────────────────────────────────────── */
+
+.pulso-xf-pdf-dialog-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.pulso-xf-pdf-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pulso-xf-pdf-section-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-xf-pdf-section-note {
+  margin: -4px 0 2px;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-pdf-empty {
+  margin: 0;
+  padding: 14px;
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+  text-align: center;
+  border: 1px dashed var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+/* ── Campo con etiqueta izquierda (Columnas) ───────────────────────────── */
+
+.pulso-xf-pdf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pulso-xf-pdf-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+/* ── Tarjetas de opción (radios) ───────────────────────────────────────── */
+
+.pulso-xf-pdf-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pulso-xf-pdf-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  text-align: left;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  cursor: pointer;
+  transition:
+    border-color var(--motion-dur-fast) ease,
+    background var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) ease;
+}
+
+.pulso-xf-pdf-card:hover {
+  border-color: var(--pulso-border-strong);
+}
+
+.pulso-xf-pdf-card.is-active {
+  border-color: var(--pulso-primary-border);
+  background: var(--pulso-primary-soft);
+  box-shadow: inset 0 0 0 1px var(--pulso-primary-border);
+}
+
+.pulso-xf-pdf-card-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-xf-pdf-card.is-active .pulso-xf-pdf-card-icon {
+  color: var(--pulso-primary);
+}
+
+.pulso-xf-pdf-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-xf-pdf-card-text strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.pulso-xf-pdf-card.is-active .pulso-xf-pdf-card-text strong {
+  color: var(--pulso-primary-strong);
+}
+
+.pulso-xf-pdf-card-text em {
+  font-style: normal;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--pulso-text-muted);
+}
+
+/* ── Fila con switch (N.º de cuestionario) ─────────────────────────────── */
+
+.pulso-xf-pdf-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  text-align: left;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) ease, background var(--motion-dur-fast) ease;
+}
+
+.pulso-xf-pdf-switch-row:hover {
+  border-color: var(--pulso-border-strong);
+}
+
+.pulso-xf-pdf-switch-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pulso-xf-pdf-switch-text strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.pulso-xf-pdf-switch-text em {
+  font-style: normal;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-xf-pdf-switch {
+  flex: 0 0 auto;
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--pulso-border-strong);
+  transition: background var(--motion-dur-fast) ease;
+}
+
+.pulso-xf-pdf-switch.is-on {
+  background: var(--pulso-primary);
+}
+
+.pulso-xf-pdf-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-xf-pdf-switch.is-on .pulso-xf-pdf-switch-thumb {
+  transform: translateX(16px);
+}
+
+/* ── Matrices ──────────────────────────────────────────────────────────── */
+
+.pulso-xf-pdf-matrix-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pulso-xf-pdf-matrix {
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  overflow: hidden;
+  transition: border-color var(--motion-dur-fast) ease;
+}
+
+.pulso-xf-pdf-matrix.is-active {
+  border-color: var(--pulso-primary-border);
+}
+
+.pulso-xf-pdf-matrix-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.pulso-xf-pdf-matrix-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+}
+
+.pulso-xf-pdf-matrix.is-active .pulso-xf-pdf-matrix-badge {
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+}
+
+.pulso-xf-pdf-matrix-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pulso-xf-pdf-matrix-info strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.pulso-xf-pdf-matrix-info em {
+  font-style: normal;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--pulso-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-xf-pdf-matrix-toggle-label {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-pdf-matrix-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 4px 14px 14px;
+  border-top: 1px solid var(--pulso-border-soft);
+}
+
+/* El Tenor ocupa la fila completa; Columna especial y Cabecera la comparten. */
+.pulso-xf-pdf-control--tenor {
+  grid-column: 1 / -1;
+}
+
+.pulso-xf-pdf-control {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+/* Selector de consentimiento: control ancho al pie de la sección Lógica. */
+.pulso-xf-pdf-control--consent {
+  margin-top: 14px;
+}
+
+.pulso-xf-pdf-control--consent label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pulso-xf-pdf-control label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.pulso-xf-pdf-control-hint {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-xf-pdf-input {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: var(--pulso-text);
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  transition: border-color var(--motion-dur-fast) ease, box-shadow var(--motion-dur-fast) ease;
+}
+
+.pulso-xf-pdf-input:focus {
+  outline: none;
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-xf-pdf-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.pulso-xf-pdf-select {
+  width: 100%;
+  height: 28px;
+  padding: 0 30px 0 10px;
+  font-size: 13px;
+  color: var(--pulso-text);
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) ease, box-shadow var(--motion-dur-fast) ease;
+}
+
+.pulso-xf-pdf-select:focus {
+  outline: none;
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-xf-pdf-select-caret {
+  position: absolute;
+  right: 9px;
+  color: var(--pulso-text-muted);
+  pointer-events: none;
+}
+
+/* ── Pie de página ─────────────────────────────────────────────────────── */
+
+.pulso-xf-pdf-dialog-foot {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--pulso-border-soft);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-xf-pdf-dialog-cancel {
+  height: 32px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pulso-text);
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) ease, background var(--motion-dur-fast) ease;
+}
+
+.pulso-xf-pdf-dialog-cancel:hover:not(:disabled) {
+  border-color: var(--pulso-border-strong);
+  background: var(--pulso-surface-3);
+}
+
+.pulso-xf-pdf-dialog-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pulso-primary-bg);
+  background: var(--pulso-primary);
+  border: 1px solid var(--pulso-primary);
+  border-radius: var(--pulso-radius-chip);
+  cursor: pointer;
+  transition: background var(--motion-dur-fast) ease, transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-xf-pdf-dialog-export:hover:not(:disabled) {
+  background: var(--pulso-primary-hover);
+}
+
+.pulso-xf-pdf-dialog-export:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.pulso-xf-pdf-dialog-cancel:disabled,
+.pulso-xf-pdf-dialog-export:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.pulso-xf-pdf-dialog-close:focus-visible,
+.pulso-xf-pdf-card:focus-visible,
+.pulso-xf-pdf-switch-row:focus-visible,
+.pulso-xf-pdf-matrix-head:focus-visible,
+.pulso-xf-pdf-dialog-cancel:focus-visible,
+.pulso-xf-pdf-dialog-export:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+/* ── Responsivo compacto ───────────────────────────────────────────────── */
+
+@media (max-width: 620px) {
+  .pulso-xf-pdf-cards {
+    grid-template-columns: 1fr;
+  }
+  .pulso-xf-pdf-matrix-controls {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-xf-pdf-dialog-overlay,
+  .pulso-xf-pdf-dialog {
+    animation: none;
+  }
+  .pulso-xf-pdf-switch-thumb {
+    transition: none;
+  }
 }
 
 /* ── Conmutador rápido de formularios (command bar, grupo document) ─────── */

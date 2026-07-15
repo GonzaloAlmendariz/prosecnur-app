@@ -19,8 +19,17 @@
 // =============================================================================
 
 import type { XlsformEditorWorkbook } from "../types";
+import { extractChoiceItems } from "./buildIndex";
 import { parseType } from "./parseType";
 import { rowToRecord } from "./sheetUtils";
+
+/** Una opción de la escala del candidato (código + etiqueta), en orden. */
+export type MatrixScaleOption = {
+  /** Código/valor de la opción (`name` en la hoja choices). */
+  code: string;
+  /** Etiqueta legible de la opción (`label` en la hoja choices). */
+  label: string;
+};
 
 export type MatrixCandidate = {
   /** Id estable dentro del workbook (basado en la fila de la 1ª pregunta). */
@@ -35,6 +44,11 @@ export type MatrixCandidate = {
   memberNames: string[];
   /** Etiquetas de las preguntas, en orden del survey. */
   questionLabels: string[];
+  /**
+   * Opciones de la escala (leídas de `choices` para `listName`, en orden), para
+   * que el usuario pueda elegir cuál es la columna especial de "sin información".
+   */
+  scaleOptions: MatrixScaleOption[];
 };
 
 const SELECT_BASES = new Set(["select_one", "select_multiple"]);
@@ -65,6 +79,12 @@ export function detectMatrixCandidates(workbook: XlsformEditorWorkbook): MatrixC
 
   const flush = () => {
     if (run && run.memberNames.length >= 2) {
+      const scaleOptions: MatrixScaleOption[] = workbook.choices
+        ? extractChoiceItems(workbook.choices, run.listName).map((item) => ({
+            code: item.name,
+            label: item.label,
+          }))
+        : [];
       candidates.push({
         id: `matrix_${run.firstRowIndex}`,
         sectionLabel: run.sectionLabel,
@@ -72,6 +92,7 @@ export function detectMatrixCandidates(workbook: XlsformEditorWorkbook): MatrixC
         count: run.memberNames.length,
         memberNames: [...run.memberNames],
         questionLabels: [...run.questionLabels],
+        scaleOptions,
       });
     }
     run = null;
