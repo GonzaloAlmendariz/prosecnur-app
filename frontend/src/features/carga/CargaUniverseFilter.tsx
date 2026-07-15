@@ -40,6 +40,7 @@ export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied }:
   const [previewing, setPreviewing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [sinBase, setSinBase] = useState(false);
   const loadSequence = useRef(0);
   const previewSequence = useRef(0);
 
@@ -48,6 +49,7 @@ export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied }:
     ++previewSequence.current;
     setLoading(true);
     setError("");
+    setSinBase(false);
     setState(null);
     setObservedValues([]);
     setPreviewSummary(null);
@@ -63,7 +65,11 @@ export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied }:
         setPreviewSummary(summary);
       })
       .catch((reason: Error) => {
-        if (requestId === loadSequence.current) setError(reason.message);
+        if (requestId !== loadSequence.current) return;
+        // Sin base registrada todavía: estado esperado antes de cargar
+        // respuestas, no un error que alarme al usuario.
+        if (reason.message.startsWith("[E_UNIVERSE_FILTER_BASE]")) setSinBase(true);
+        else setError(reason.message);
       })
       .finally(() => {
         if (requestId === loadSequence.current) setLoading(false);
@@ -167,6 +173,10 @@ export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied }:
 
       {loading ? (
         <div className="pulso-carga-universe-loading" role="status"><Loader2 size={14} className="pulso-spin" /> Leyendo configuración de la base…</div>
+      ) : sinBase && !state ? (
+        <div className="pulso-carga-universe-empty">
+          Disponible cuando cargues las respuestas de la base.
+        </div>
       ) : error && !state ? (
         <div className="pulso-carga-universe-error" role="alert">{error}</div>
       ) : state ? (
