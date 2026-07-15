@@ -12,6 +12,16 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.5.10",
+    date: "2026-07-15",
+    highlights: [
+      "Cálculo de muestra: las categorías se muestran tal cual vienen en tu base, sin reetiquetados automáticos.",
+      "Cálculo de muestra: la pestaña Variables separa con claridad las columnas del estudiante de las del curso-horario, cada una bajo su propia hoja.",
+      "Cálculo de muestra: el mapeo de columnas ahora ofrece todos los encabezados disponibles de cada hoja, incluido el tipo de docente.",
+      "Inicio: cada tarjeta de módulo muestra en qué punto vas y qué sigue, con las métricas y el acceso directo más relevantes.",
+    ],
+  },
+  {
     version: "0.5.9",
     date: "2026-07-14",
     highlights: [
