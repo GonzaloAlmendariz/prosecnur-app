@@ -247,6 +247,7 @@ export function CriteriosMarcoTab({
                 </span>
                 <div className="cmv2-crit-scope-copy">
                   <h3>Criterios de estudiante</h3>
+                  <p className="cmv2-crit-scope-hint">de la hoja de matrícula (una fila por estudiante)</p>
                 </div>
               </header>
               <div className="cmv2-crit-grid">
@@ -276,6 +277,7 @@ export function CriteriosMarcoTab({
                 </span>
                 <div className="cmv2-crit-scope-copy">
                   <h3>Criterios de curso-horario</h3>
+                  <p className="cmv2-crit-scope-hint">de la hoja de catálogo de cursos y horarios</p>
                 </div>
               </header>
               <div className="cmv2-crit-grid">
