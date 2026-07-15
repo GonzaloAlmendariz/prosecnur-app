@@ -12,6 +12,19 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.5.11",
+    date: "2026-07-15",
+    highlights: [
+      "Carga: permite marcar a mano qué registros pertenecen al universo real del estudio (fuera pruebas y piloto); el filtro se materializa por base y las tablas repeat lo heredan solas.",
+      "Validación: genera un reporte metodológico completo del plan aplicado — qué evalúa cada regla, sobre qué universo y con qué resultado — listo para anexar al informe del estudio.",
+      "Validación: suma controles operacionales sobre las reglas del instrumento, con manejo explícito de duplicados y rangos de fecha con zona horaria.",
+      "Monitoreo: agrega el PDF de avance telefónico para el cliente, con resumen del campo, ritmo diario y estado de cuotas.",
+      "Editor de formularios: exporta el cuestionario también a Word con la misma composición del PDF, y el hub de formularios muestra conteos reales de preguntas y secciones por formulario.",
+      "Cálculo de muestra: nuevo método estadístico para estudiantes por aula con límite inferior conservador (bootstrap al 95%), seleccionable desde la pestaña de cursos-horario.",
+      "Formulario en PDF: las matrices ganan legibilidad — etiquetas más anchas, escalas sin rotar cuando caben y filas más compactas.",
+    ],
+  },
+  {
     version: "0.5.10",
     date: "2026-07-15",
     highlights: [
