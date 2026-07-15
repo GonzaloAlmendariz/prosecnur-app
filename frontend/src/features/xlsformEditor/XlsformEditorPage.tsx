@@ -30,6 +30,8 @@ import {
   apiXlsformEditorExport,
   apiXlsformEditorExportPdf,
   apiXlsformEditorImport,
+  apiXlsformEditorImportMatrizPulso,
+  isMatrizPulsoImport,
   apiXlsformEditorSmApplyLogic,
   apiXlsformEditorSmInterpretRule,
   apiXlsformEditorValidate,
@@ -44,6 +46,8 @@ import {
 } from "../../api/client";
 import { useProjectShell } from "../project/ProjectShell";
 import { ImportSurveyMonkeyDialog } from "./shell/ImportSurveyMonkeyDialog";
+import { MatrizPulsoDialog } from "./shell/MatrizPulsoDialog";
+import { planMatrizPulsoForms } from "./shell/matrizPulso";
 import { compileVisualLogicRules, RuleWizard, type ConfirmedRule } from "./shell/RuleWizard";
 import {
   buildSurveyMonkeyLogicPack,
@@ -586,6 +590,14 @@ export default function XlsformEditorPage() {
     | { fileId?: string | null; fileName: string }
     | null
   >(null);
+  /** Diálogo del importador de "Matriz PULSO IAC-CINDA". Se abre cuando el
+   *  backend detecta que el .xlsx subido es una matriz por audiencia en vez de
+   *  un XLSForm normal. */
+  const [matrizPulsoDialog, setMatrizPulsoDialog] = useState<
+    | { fileId: string; fileName: string; audiences: string[] }
+    | null
+  >(null);
+  const [matrizPulsoSubmitting, setMatrizPulsoSubmitting] = useState(false);
   /** Hallazgos del validador empírico (devueltos por import-with-logic).
    *  Se renderizan en panel UI dedicado, NO se exportan al .xlsx. */
   const [hallazgos, setHallazgos] = useState<Hallazgo[]>([]);
@@ -1294,6 +1306,23 @@ export default function XlsformEditorPage() {
     try {
       const up = await apiUpload(file, "xlsform");
       const out = await apiXlsformEditorImport(up.file_id);
+      if (isMatrizPulsoImport(out)) {
+        // No es un XLSForm: es una Matriz PULSO IAC-CINDA. En vez de cargar un
+        // workbook, pedimos al usuario elegir audiencias y generamos un
+        // formulario por cada una en el paso siguiente.
+        if (out.audiences.length === 0) {
+          const detail = "Detectamos una matriz PULSO pero sin columnas de audiencia reconocibles.";
+          setError(detail);
+          toasts.push({ kind: "warn", title: "Matriz PULSO sin audiencias", detail });
+          return;
+        }
+        setMatrizPulsoDialog({
+          fileId: up.file_id,
+          fileName: out.original_name ?? file.name,
+          audiences: out.audiences,
+        });
+        return;
+      }
       loadWorkbook(
         out.workbook,
         out.source,
@@ -1322,6 +1351,95 @@ export default function XlsformEditorPage() {
     if (blockIfAtFormLimit()) return;
     resetMessages();
     setSmImportDialog({ fileId: null, fileName: "SurveyMonkey API" });
+  }
+
+  // Confirmación del diálogo de Matriz PULSO: por cada audiencia elegida pide al
+  // backend el workbook y lo registra como formulario propio en la biblioteca.
+  // Respeta el tope del proyecto (crea hasta el cupo libre) y activa el primero.
+  async function onMatrizPulsoConfirm(selectedAudiences: string[]) {
+    const dialog = matrizPulsoDialog;
+    if (!dialog) return;
+    const plan = planMatrizPulsoForms(selectedAudiences, forms.length, MAX_FORMS);
+    if (plan.toCreate.length === 0) {
+      toasts.push({
+        kind: "warn",
+        title: `Límite de ${MAX_FORMS} formularios`,
+        detail:
+          "Este proyecto ya alcanzó el máximo de formularios. Elimina uno para generar los de la matriz.",
+        durationMs: 6000,
+      });
+      return;
+    }
+    setMatrizPulsoSubmitting(true);
+    resetMessages();
+    setBusy(`Generando ${plan.toCreate.length} formulario(s) de la matriz PULSO…`);
+    const createdIds: string[] = [];
+    const scaleNotes: string[] = [];
+    const failed: string[] = [];
+    try {
+      for (const audience of plan.toCreate) {
+        try {
+          const res = await apiXlsformEditorImportMatrizPulso(dialog.fileId, audience);
+          const formId = openWorkbookAsForm(
+            res.workbook,
+            { kind: "matriz_pulso", original_name: `${dialog.fileName} · ${audience}` },
+            `Generamos el formulario de ${audience} desde la matriz PULSO.`,
+          );
+          createdIds.push(formId);
+          const detailParts: string[] = [];
+          if (res.summary.n_acuerdo != null) detailParts.push(`${res.summary.n_acuerdo} de acuerdo`);
+          if (res.summary.n_satisfaccion != null) detailParts.push(`${res.summary.n_satisfaccion} de satisfacción`);
+          if (res.summary.scale_inferred || detailParts.length > 0) {
+            scaleNotes.push(
+              `${audience}: escala inferida${detailParts.length ? ` — ${detailParts.join(", ")}` : ""}`,
+            );
+          }
+        } catch {
+          failed.push(audience);
+        }
+      }
+    } finally {
+      setMatrizPulsoSubmitting(false);
+      setBusy("");
+    }
+    // Activa el primero generado para dejar al usuario dentro de un formulario.
+    if (createdIds.length > 0) {
+      await switchToForm(createdIds[0]);
+    }
+    setSmLogicRules([]);
+    setSmVisualLogicRules([]);
+    setSmLogicChoiceOverrides({});
+    setMatrizPulsoDialog(null);
+    if (createdIds.length > 0) {
+      toasts.push({
+        kind: "success",
+        title: `Matriz PULSO · ${createdIds.length} formulario${createdIds.length === 1 ? "" : "s"}`,
+        detail: `Generamos ${plan.toCreate.slice(0, createdIds.length).join(", ")} desde ${dialog.fileName}.`,
+      });
+    }
+    if (scaleNotes.length > 0) {
+      toasts.push({
+        kind: "info",
+        title: "Escala inferida — revísala",
+        detail: `${scaleNotes.join(" · ")}. Revisa las preguntas antes de publicar.`,
+        durationMs: 8000,
+      });
+    }
+    if (plan.capped) {
+      toasts.push({
+        kind: "warn",
+        title: `Límite de ${MAX_FORMS} formularios`,
+        detail: `Quedó(aron) fuera ${plan.skipped.join(", ")} por el tope del proyecto. Elimina formularios para generar el resto.`,
+        durationMs: 7000,
+      });
+    }
+    if (failed.length > 0) {
+      toasts.push({
+        kind: "danger",
+        title: "Algunas audiencias fallaron",
+        detail: `No pudimos generar: ${failed.join(", ")}.`,
+      });
+    }
   }
 
   // Callback del modal cuando completa con éxito (ya con o sin reglas aplicadas)
@@ -3136,6 +3254,22 @@ export default function XlsformEditorPage() {
           fileName={smImportDialog.fileName}
           onCancel={() => setSmImportDialog(null)}
           onComplete={onSurveyMonkeyImportComplete}
+        />
+      ) : null}
+
+      {/* Diálogo del importador de Matriz PULSO IAC-CINDA (por audiencia). */}
+      {matrizPulsoDialog ? (
+        <MatrizPulsoDialog
+          fileName={matrizPulsoDialog.fileName}
+          audiences={matrizPulsoDialog.audiences}
+          existingCount={forms.length}
+          maxForms={MAX_FORMS}
+          submitting={matrizPulsoSubmitting}
+          onCancel={() => {
+            if (matrizPulsoSubmitting) return;
+            setMatrizPulsoDialog(null);
+          }}
+          onConfirm={onMatrizPulsoConfirm}
         />
       ) : null}
 
