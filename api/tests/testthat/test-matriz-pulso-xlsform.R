@@ -136,3 +136,21 @@ test_that("el workbook de la matriz se renderiza a PDF con matrices y sin glifos
   expect_gt(result$summary$n_matrices, 0L)
   expect_length(glyph_warns, 0L)
 })
+
+test_that(".matriz_pulso_escala_row honra Tipo/Respuesta con fallback por texto", {
+  tp <- c("Dicotomica", "Escala", "Escala", "Escala", "")
+  rp <- c("Sí/No", "Totamente en desacuerdo-Totalmente de acuerdo",
+          "Muy insatisfecho-Muy satisfecho", "", "")
+  af <- c("Conoce X", "Afirmacion Y", "Pregunta Z", "Otra afirmacion",
+          "Esta muy satisfecho con W")
+  esc <- .matriz_pulso_escala_row(tp, rp, af)
+  expect_equal(esc, c("esc_sino", "esc_acuerdo", "esc_satisf", "esc_acuerdo", "esc_satisf"))
+})
+
+test_that(".matriz_pulso_choices devuelve solo las listas usadas (incl. esc_sino)", {
+  ch <- .matriz_pulso_choices(used = c("esc_sino", "esc_acuerdo"))
+  expect_setequal(unique(ch$list_name), c("esc_acuerdo", "esc_sino"))
+  sino <- ch[ch$list_name == "esc_sino", ]
+  expect_equal(sino$name, c("1", "2"))
+  expect_equal(sino$label, c("Sí", "No"))
+})

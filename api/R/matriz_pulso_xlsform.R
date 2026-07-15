@@ -49,14 +49,37 @@
   out
 }
 
-# Infiere la escala de una afirmación por su texto. Heurística documentada:
-# "satisfec…" → escala de satisfacción; el resto → escala de acuerdo.
+# Infiere la escala de una afirmación por su texto (FALLBACK cuando la matriz no
+# trae columnas Tipo/Respuesta). "satisfec…" → satisfacción; resto → acuerdo.
 .matriz_pulso_infer_escala <- function(afirmacion) {
   ifelse(
     grepl("satisfec", afirmacion, ignore.case = TRUE),
     "esc_satisf",
     "esc_acuerdo"
   )
+}
+
+# Resuelve la escala de una fila usando las columnas EXPLÍCITAS Tipo/Respuesta de
+# la matriz (formato -2 en adelante); si vienen vacías, cae al fallback por texto.
+# Respuesta manda; Tipo es secundario. Vectorizado.
+.matriz_pulso_escala_row <- function(tipo, respuesta, afirmacion) {
+  n <- length(afirmacion)
+  tp <- .matriz_pulso_norm(if (length(tipo)) tipo else rep("", n))
+  rp <- .matriz_pulso_norm(if (length(respuesta)) respuesta else rep("", n))
+  out <- character(n)
+  for (i in seq_len(n)) {
+    r <- rp[i]; t <- tp[i]
+    if (grepl("si\\s*/\\s*no|si/no|\\bsi no\\b|dicotom", paste(r, t))) {
+      out[i] <- "esc_sino"
+    } else if (grepl("satisf", r)) {
+      out[i] <- "esc_satisf"
+    } else if (grepl("acuerdo", r)) {
+      out[i] <- "esc_acuerdo"
+    } else {
+      out[i] <- .matriz_pulso_infer_escala(afirmacion[i])
+    }
+  }
+  out
 }
 
 # Lee la hoja de matriz cruda (col_types texto). Devuelve NULL si no se puede
@@ -141,9 +164,9 @@ matriz_pulso_detect <- function(path) {
 # Construye la hoja `survey` a partir de los vectores paralelos criterio /
 # subcriterio (ya forward-filled) y afirmacion (ya filtrados a no vacíos).
 # Devuelve list(survey=df, escala=chr, n_secciones, n_questions).
-.matriz_pulso_build_survey <- function(criterio, subcriterio, afirmacion) {
+.matriz_pulso_build_survey <- function(criterio, subcriterio, afirmacion, escala = NULL) {
   n <- length(afirmacion)
-  escala <- .matriz_pulso_infer_escala(afirmacion)
+  if (is.null(escala)) escala <- .matriz_pulso_infer_escala(afirmacion)
 
   types <- character(0)
   names_v <- character(0)
@@ -239,24 +262,26 @@ matriz_pulso_detect <- function(path) {
   matrices
 }
 
-# Catálogos de opciones (dos escalas Likert de 4 puntos + valor SIN INF = 9).
-.matriz_pulso_choices <- function() {
-  data.frame(
-    list_name = c(
-      rep("esc_acuerdo", 5),
-      rep("esc_satisf", 5)
-    ),
-    name = c(
-      "1", "2", "3", "4", "9",
-      "1", "2", "3", "4", "9"
-    ),
-    label = c(
-      "Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "SIN INF",
-      "Nada satisfecho", "Poco satisfecho", "Satisfecho", "Muy satisfecho", "SIN INF"
-    ),
-    stringsAsFactors = FALSE,
-    check.names = FALSE
+# Catálogos de opciones. Escalas Likert de 4 puntos + SIN INF = 9, y la
+# dicotómica Sí/No. Devuelve SOLO las listas efectivamente usadas (`used`).
+.matriz_pulso_choices <- function(used = c("esc_acuerdo", "esc_satisf", "esc_sino")) {
+  catalog <- list(
+    esc_acuerdo = data.frame(
+      list_name = "esc_acuerdo", name = c("1", "2", "3", "4", "9"),
+      label = c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "SIN INF"),
+      stringsAsFactors = FALSE, check.names = FALSE),
+    esc_satisf = data.frame(
+      list_name = "esc_satisf", name = c("1", "2", "3", "4", "9"),
+      label = c("Nada satisfecho", "Poco satisfecho", "Satisfecho", "Muy satisfecho", "SIN INF"),
+      stringsAsFactors = FALSE, check.names = FALSE),
+    esc_sino = data.frame(
+      list_name = "esc_sino", name = c("1", "2"),
+      label = c("Sí", "No"),
+      stringsAsFactors = FALSE, check.names = FALSE)
   )
+  used <- intersect(c("esc_acuerdo", "esc_satisf", "esc_sino"), unique(used))
+  if (!length(used)) used <- "esc_acuerdo"
+  do.call(rbind, catalog[used])
 }
 
 # Hoja settings con el título por audiencia.
@@ -309,10 +334,22 @@ matriz_pulso_to_workbook <- function(path, audience) {
   }
   afirm <- trimws(as.character(df[[aud_col]]))
 
+  # Columnas explícitas de escala (formato -2 en adelante): Tipo / Respuesta.
+  # Si no existen, quedan vacías y la escala cae al fallback por texto.
+  col_by_name <- function(name) {
+    idx <- which(.matriz_pulso_norm(names(df)) == .matriz_pulso_norm(name))
+    if (length(idx)) trimws(as.character(df[[idx[1]]])) else rep("", nrow(df))
+  }
+  tipo_all <- col_by_name("tipo")
+  respuesta_all <- col_by_name("respuesta")
+  has_explicit <- any(nzchar(respuesta_all) | nzchar(tipo_all))
+
   keep <- !is.na(afirm) & nzchar(afirm)
   criterio <- criterio_ff[keep]
   subcriterio <- subcriterio_ff[keep]
   afirmacion <- afirm[keep]
+  tipo <- tipo_all[keep]
+  respuesta <- respuesta_all[keep]
 
   if (!length(afirmacion)) {
     stop_api(
@@ -327,15 +364,21 @@ matriz_pulso_to_workbook <- function(path, audience) {
   criterio[is.na(criterio) | !nzchar(criterio)] <- "Sin criterio"
   subcriterio[is.na(subcriterio) | !nzchar(subcriterio)] <- "Sin subcriterio"
 
-  built <- .matriz_pulso_build_survey(criterio, subcriterio, afirmacion)
-  escala <- built$escala
+  # Escala por fila: explícita (Tipo/Respuesta) con fallback por texto.
+  escala <- .matriz_pulso_escala_row(tipo, respuesta, afirmacion)
+
+  built <- .matriz_pulso_build_survey(criterio, subcriterio, afirmacion, escala)
   n_acuerdo <- sum(escala == "esc_acuerdo")
   n_satisf <- sum(escala == "esc_satisf")
+  n_sino <- sum(escala == "esc_sino")
   n_matrices <- .matriz_pulso_n_matrices(criterio, subcriterio, escala)
 
   warnings <- character(0)
-  warnings <- c(warnings, sprintf(
-    "Escala inferida por texto (heurística revisable): %d afirmaciones de acuerdo, %d de satisfacción.",
+  warnings <- c(warnings, if (has_explicit) sprintf(
+    "Escala tomada de las columnas Tipo/Respuesta: %d de acuerdo, %d de satisfacción, %d dicotómicas (Sí/No).",
+    n_acuerdo, n_satisf, n_sino
+  ) else sprintf(
+    "Escala inferida por texto (heurística revisable; la matriz no trae columnas Tipo/Respuesta): %d de acuerdo, %d de satisfacción.",
     n_acuerdo, n_satisf
   ))
   if (sin_criterio > 0L) {
@@ -347,7 +390,7 @@ matriz_pulso_to_workbook <- function(path, audience) {
 
   list(
     survey = built$survey,
-    choices = .matriz_pulso_choices(),
+    choices = .matriz_pulso_choices(used = unique(escala)),
     settings = .matriz_pulso_settings(audience_canon),
     summary = list(
       audience = audience_canon,
@@ -355,6 +398,7 @@ matriz_pulso_to_workbook <- function(path, audience) {
       n_matrices_estimadas = as.integer(n_matrices),
       n_acuerdo = as.integer(n_acuerdo),
       n_satisf = as.integer(n_satisf),
+      n_sino = as.integer(n_sino),
       n_secciones = as.integer(built$n_secciones)
     ),
     warnings = warnings
