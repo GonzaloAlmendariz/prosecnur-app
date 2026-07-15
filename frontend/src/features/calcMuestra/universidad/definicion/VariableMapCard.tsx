@@ -35,6 +35,8 @@ export function VariableMapCard({
   base,
   valueType,
   columns,
+  columnGroups,
+  sheetNote,
   suggested,
   confirmedColumn,
   selectValue,
@@ -50,6 +52,10 @@ export function VariableMapCard({
   base: CalcMuestraWorkspaceVariableMapping;
   valueType: UniversityVariableValueType;
   columns: string[];
+  /** Opciones agrupadas por hoja (solo roles dual-hoja como condicion_curso). */
+  columnGroups?: Array<{ label: string; columns: string[] }>;
+  /** Subtítulo bajo el select (p.ej. aviso de que la variable vive en dos hojas). */
+  sheetNote?: string;
   suggested: string;
   confirmedColumn: string;
   selectValue: string;
@@ -126,12 +132,25 @@ export function VariableMapCard({
             <option value={suggested}>{suggested}</option>
           </optgroup>
         )}
-        <optgroup label="Todas las columnas">
-          {otherColumns.map((column) => (
-            <option key={`${base.role}-${column}`} value={column}>{column}</option>
-          ))}
-        </optgroup>
+        {columnGroups
+          ? columnGroups.map((grupo) => (
+              <optgroup key={grupo.label} label={grupo.label}>
+                {grupo.columns
+                  .filter((column) => column !== suggested)
+                  .map((column) => (
+                    <option key={`${base.role}-${grupo.label}-${column}`} value={column}>{column}</option>
+                  ))}
+              </optgroup>
+            ))
+          : (
+              <optgroup label="Todas las columnas">
+                {otherColumns.map((column) => (
+                  <option key={`${base.role}-${column}`} value={column}>{column}</option>
+                ))}
+              </optgroup>
+            )}
       </select>
+      {sheetNote && <p className="cmv2-defi-var-sheet-note">{sheetNote}</p>}
 
       <div className="cmv2-defi-var-confirm" data-state={state}>
         {state === "confirmada" ? (

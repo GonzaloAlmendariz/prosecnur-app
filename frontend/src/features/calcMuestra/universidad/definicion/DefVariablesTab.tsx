@@ -37,7 +37,7 @@ import "./definicion.css";
 const GRUPOS: Array<{ id: string; titulo: string; roles: string[] }> = [
   { id: "identidad", titulo: "Identidad", roles: ["student_id"] },
   { id: "estratificacion", titulo: "Estratificación", roles: ["faculty", "sex", "program", "level", "formation", "age"] },
-  { id: "aula", titulo: "Unidad curso-horario", roles: ["course_id", "schedule", "course_schedule_id", "classroom", "modality", "session_type", "course_level", "enrolled_total"] },
+  { id: "aula", titulo: "Unidad curso-horario", roles: ["course_id", "schedule", "course_schedule_id", "classroom", "modality", "session_type", "condicion_curso", "course_level", "enrolled_total"] },
   { id: "operativo", titulo: "Operativo", roles: ["teacher", "teacher_type", "campus", "condition", "course_name"] },
 ];
 
@@ -204,12 +204,32 @@ export function DefVariablesTab({
                 const numeric = valueType === "numerica"
                   ? universityNumericColumnSummary(numericRows, selectValue)
                   : null;
+                // §ADR 0035: la condición del curso es la única variable que puede
+                // vivir en cualquiera de las dos hojas (la misma noción está en la
+                // de matrícula y en la de curso-horario, con nombres distintos y
+                // grados de llenado distintos). Le ofrecemos AMBAS hojas, agrupadas
+                // y etiquetadas, para que el usuario elija manualmente la poblada.
+                const esDualHoja = base.role === "condicion_curso";
+                const columnGroups = esDualHoja
+                  ? [
+                      { label: "Hoja de matrícula", columns: studentColumns },
+                      { label: "Hoja de curso-horario", columns: classroomColumns },
+                    ].filter((grupo) => grupo.columns.length > 0)
+                  : undefined;
+                const sheetNote = esDualHoja
+                  ? "Puede estar en la hoja de matrícula o en la de curso-horario. Elige la columna que esté poblada."
+                  : undefined;
+                const columnsProp = esDualHoja
+                  ? Array.from(new Set([...studentColumns, ...classroomColumns])).sort((a, b) => a.localeCompare(b, "es"))
+                  : columnsForBase(base);
                 return (
                   <VariableMapCard
                     key={base.role}
                     base={base}
                     valueType={valueType}
-                    columns={columnsForBase(base)}
+                    columns={columnsProp}
+                    columnGroups={columnGroups}
+                    sheetNote={sheetNote}
                     suggested={suggestionFor(base.role)}
                     confirmedColumn={universityConfirmedColumn(workspace.variable_mappings, base.role)}
                     selectValue={selectValue}
