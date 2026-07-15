@@ -1406,8 +1406,8 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   # solo imprimen el codigo (1-2 digitos), asi que con pocas columnas la
   # etiqueta puede ser MUCHO mas ancha (menos wrap, filas mas bajas). Con muchas
   # columnas se acota para que la escala respire.
-  if (total_cols <= 2L) 0.74 else if (total_cols <= 4L) 0.66
-  else if (total_cols <= 7L) 0.56 else 0.48
+  if (total_cols <= 2L) 0.82 else if (total_cols <= 4L) 0.72
+  else if (total_cols <= 7L) 0.60 else 0.50
 }
 
 # Geometria del header CATEGORIAS: decide horizontal vs rotado 90 segun si las
@@ -1434,7 +1434,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 }
 
 # Calibracion char/npc del label del item (~150 para LLENAR el ancho, como el kit).
-.form_pdf_matrix_lbl_chars <- function(label_w) max(20L, floor((label_w - 0.012) * 150))
+.form_pdf_matrix_lbl_chars <- function(label_w) max(20L, floor((label_w - 0.012) * 165))
 
 # Resuelve el modo de cabecera de la matriz: "extremos" (solo anclas de los
 # extremos, actual) | "categorias" (cada opcion de escala rotulada sobre su
