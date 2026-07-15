@@ -157,27 +157,53 @@
   NULL
 }
 
-.form_pdf_display_numbers <- function(survey) {
-  # Numeracion secuencial de nivel superior: cada pregunta y cada fila de matriz
-  # toma el siguiente entero correlativo (la subnumeracion N.j que a veces trae la
-  # referencia es codificacion manual del autor, no se genera automaticamente).
+.form_pdf_display_numbers <- function(survey, matrix_keys = NULL, tenor_keys = character(0)) {
+  # Numeracion de nivel superior. Por defecto SECUENCIAL: cada pregunta y cada
+  # fila de matriz toma el siguiente entero correlativo. Excepcion: una matriz con
+  # TENOR (su key esta en `tenor_keys`) consume UN solo numero X (en su 1a fila);
+  # las demas filas quedan "" y build_model deriva la subnumeracion X.1..X.k.
   n <- nrow(survey)
+  if (is.null(matrix_keys)) matrix_keys <- rep("", n)
   out <- rep("", n)
   last_num <- 0L
-  for (i in seq_len(n)) {
+  assign_top <- function(row) {
+    explicit <- .form_pdf_clean_text(survey$paper_number[row])
+    if (nzchar(explicit)) {
+      out[row] <<- explicit
+      ne <- suppressWarnings(as.integer(explicit))
+      if (!is.na(ne)) last_num <<- max(last_num, ne)
+      return(invisible(NULL))
+    }
+    candidate <- suppressWarnings(as.integer(.form_pdf_number_from_name(survey$name[row], NA_integer_)))
+    next_num <- if (!is.na(candidate) && candidate > last_num) candidate else last_num + 1L
+    out[row] <<- as.character(next_num)
+    last_num <<- next_num
+    invisible(NULL)
+  }
+
+  i <- 1L
+  while (i <= n) {
+    key <- matrix_keys[i]
+    if (nzchar(key) && key %in% tenor_keys) {
+      # Matriz con tenor: un solo numero de nivel superior (en la 1a fila).
+      j <- i
+      while (j + 1L <= n && identical(matrix_keys[j + 1L], key)) j <- j + 1L
+      assign_top(i)
+      i <- j + 1L
+      next
+    }
     base <- .form_pdf_type_base(survey$type[i])
     explicit <- .form_pdf_clean_text(survey$paper_number[i])
     if (nzchar(explicit)) {
       out[i] <- explicit
-      numeric_explicit <- suppressWarnings(as.integer(explicit))
-      if (!is.na(numeric_explicit)) last_num <- max(last_num, numeric_explicit)
+      ne <- suppressWarnings(as.integer(explicit))
+      if (!is.na(ne)) last_num <- max(last_num, ne)
+      i <- i + 1L
       next
     }
-    if (!base %in% .form_pdf_question_bases()) next
-    candidate <- suppressWarnings(as.integer(.form_pdf_number_from_name(survey$name[i], NA_integer_)))
-    next_num <- if (!is.na(candidate) && candidate > last_num) candidate else last_num + 1L
-    out[i] <- as.character(next_num)
-    last_num <- next_num
+    if (!base %in% .form_pdf_question_bases()) { i <- i + 1L; next }
+    assign_top(i)
+    i <- i + 1L
   }
   out
 }
@@ -299,18 +325,26 @@
 }
 
 # Construye `matrix_keys` a partir de una agrupacion EXPLICITA enviada por el
-# frontend (`options$matrix_groups`): lista de grupos, cada uno un vector de
-# `name`s que deben renderizarse como UNA matriz. Valida existencia, contiguidad
-# y >=2 miembros; grupos invalidos/parciales se ignoran con warning.
+# frontend (`options$matrix_groups`): lista de grupos. Cada grupo puede ser un
+# vector de `name`s (forma vieja, sin tenor) o un objeto `{members:[names],
+# tenor:"texto"}`. Valida existencia, contiguidad y >=2 miembros; grupos
+# invalidos/parciales se ignoran con warning. Devuelve keys + tenors por key.
 .form_pdf_matrix_keys_from_groups <- function(survey, groups) {
   n <- nrow(survey)
   keys <- rep("", n)
+  tenors <- list()
   warnings <- character(0)
-  if (is.null(groups) || !length(groups)) return(list(keys = keys, warnings = warnings))
+  if (is.null(groups) || !length(groups)) return(list(keys = keys, tenors = tenors, warnings = warnings))
   name_to_row <- stats::setNames(seq_len(n), survey$name)
   gi <- 0L
   for (g in groups) {
-    members <- as.character(unlist(g))
+    if (is.list(g) && !is.null(g[["members"]])) {
+      members <- as.character(unlist(g[["members"]]))
+      tenor <- .form_pdf_clean_text(g[["tenor"]] %||% "")
+    } else {
+      members <- as.character(unlist(g))
+      tenor <- ""
+    }
     members <- members[nzchar(members)]
     if (!length(members)) next
     rows <- unname(name_to_row[members])
@@ -340,9 +374,11 @@
       next
     }
     gi <- gi + 1L
-    keys[rows] <- paste0("group:", gi)
+    gkey <- paste0("group:", gi)
+    keys[rows] <- gkey
+    tenors[[gkey]] <- tenor
   }
-  list(keys = keys, warnings = warnings)
+  list(keys = keys, tenors = tenors, warnings = warnings)
 }
 
 # Reescribe el verbo de salto legacy ("IR A LA PREGUNTA"/"IR AL FINAL") a la
@@ -481,17 +517,22 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     else !(tolower(trimws(as.character(sqn)[[1]])) %in% c("false", "0", "no", "f", "n"))
 
   choices_by_list <- .form_pdf_options_by_list(choices)
-  numbers <- .form_pdf_display_numbers(survey)
   # Agrupacion de matrices: si el frontend manda `matrix_groups` (aunque sea []),
   # se respeta EXACTAMENTE y se ignora la autodeteccion; si esta AUSENTE, autodetecta.
   group_warnings <- character(0)
+  group_tenors <- list()
   if (!is.null(options$matrix_groups)) {
     mg <- .form_pdf_matrix_keys_from_groups(survey, options$matrix_groups)
     matrix_keys <- mg$keys
+    group_tenors <- mg$tenors
     group_warnings <- mg$warnings
   } else {
     matrix_keys <- .form_pdf_matrix_keys(survey)
   }
+  # Las matrices con tenor no vacio consumen un solo numero (subnumeracion X.j);
+  # el resto (autodeteccion, grupos sin tenor) numera secuencialmente.
+  tenor_keys <- names(group_tenors)[vapply(group_tenors, function(t) nzchar(t %||% ""), logical(1))]
+  numbers <- .form_pdf_display_numbers(survey, matrix_keys, tenor_keys)
   if (condiciones) {
     inferred <- list(skips = list(), warnings = character(0))
     opened <- .form_pdf_compute_openings(survey, choices_by_list, numbers)
@@ -553,24 +594,42 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
         idx <- c(idx, idx[length(idx)] + 1L)
       }
       list_name <- .form_pdf_type_list(survey$type[i])
-      add_block(list(
-        kind = "matrix",
-        number = numbers[i],
-        name = .form_pdf_chr(survey$name[i]),
-        title = .form_pdf_paper_text(.form_pdf_strip_leading_number(
-          .form_pdf_first_nonempty(survey$paper_label[i], survey$label[i]),
-          numbers[i]
-        )),
-        hint = .form_pdf_paper_text(survey$hint[i]),
-        # Numeracion secuencial: cada fila toma su propio entero correlativo.
-        items = lapply(idx, function(r) list(
+      mat_key <- matrix_keys[i]
+      tenor <- .form_pdf_paper_text(.form_pdf_clean_text(group_tenors[[mat_key]] %||% ""))
+      mat_number <- numbers[i]
+      if (nzchar(tenor)) {
+        # Con tenor: la matriz consume un solo numero X; titulo = "X. {tenor}",
+        # filas subnumeradas X.1 .. X.k con su propia etiqueta.
+        mat_title <- tenor
+        mat_items <- lapply(seq_along(idx), function(jj) {
+          r <- idx[jj]
+          item_num <- if (nzchar(mat_number)) sprintf("%s.%d", mat_number, jj) else as.character(jj)
+          list(
+            number = item_num,
+            name = .form_pdf_chr(survey$name[r]),
+            label = .form_pdf_paper_text(.form_pdf_strip_leading_number(
+              .form_pdf_first_nonempty(survey$paper_label[r], survey$label[r]), item_num))
+          )
+        })
+      } else {
+        # Sin tenor: numeracion secuencial, cada fila su propio entero.
+        mat_title <- .form_pdf_paper_text(.form_pdf_strip_leading_number(
+          .form_pdf_first_nonempty(survey$paper_label[i], survey$label[i]), mat_number))
+        mat_items <- lapply(idx, function(r) list(
           number = numbers[r],
           name = .form_pdf_chr(survey$name[r]),
           label = .form_pdf_paper_text(.form_pdf_strip_leading_number(
-            .form_pdf_first_nonempty(survey$paper_label[r], survey$label[r]),
-            numbers[r]
-          ))
-        )),
+            .form_pdf_first_nonempty(survey$paper_label[r], survey$label[r]), numbers[r]))
+        ))
+      }
+      add_block(list(
+        kind = "matrix",
+        number = mat_number,
+        name = .form_pdf_chr(survey$name[i]),
+        title = mat_title,
+        tenor = tenor,
+        hint = .form_pdf_paper_text(survey$hint[i]),
+        items = mat_items,
         options = choices_by_list[[list_name]] %||% list(),
         skip = if (condiciones) "" else .form_pdf_clean_text(survey$paper_skip[i]),
         opening_condition = openings[i],
@@ -1104,9 +1163,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     grid::grid.rect(x = grid::unit(x0 + inner / 2, "npc"), y = grid::unit(y - header_h / 2, "npc"),
                     width = grid::unit(inner, "npc"), height = grid::unit(header_h, "npc"),
                     gp = grid::gpar(fill = tk$tbl_header, col = NA))
-    .form_pdf_text("Encierre una respuesta por fila", x0 + 0.006, y - 0.006, label_w - 0.010,
-                   chars = max(20L, floor((label_w - 0.010) * 120)), fontsize = 6.7,
-                   fontface = "bold", col = tk$soft, line_h = 0.009)
+    # Celda izquierda de la cabecera VACIA (como la referencia).
     if (length(left_lines)) {
       grid::grid.text(paste(left_lines, collapse = "\n"), x = grid::unit(scale_x0 + 0.005, "npc"),
                       y = grid::unit(y - 0.006, "npc"), just = c("left", "top"),

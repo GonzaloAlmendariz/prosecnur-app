@@ -447,6 +447,70 @@ test_that("invalid matrix_groups are ignored with a warning", {
   expect_match(paste(m2$warnings, collapse = " "), "contiguas")
 })
 
+test_that("matrix tenor drives subnumbering X.1..X.k, next question X+1", {
+  survey <- data.frame(
+    type = c("select_one esc", "select_one esc", "select_one esc", "text"),
+    name = c("q1_a", "q1_b", "q1_c", "q2"),
+    label = c("Afirma A", "Afirma B", "Afirma C", "Comentario"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(list_name = rep("esc", 4), name = c("1", "2", "3", "9"),
+                        label = c("Nada", "Poco", "Mucho", "SIN INF"), stringsAsFactors = FALSE)
+  settings <- data.frame(form_title = "T")
+
+  # (a) CON tenor: X. {tenor} + filas X.1..X.k + siguiente X+1.
+  m_ten <- formulario_pdf_build_model(survey, choices, settings, options = list(
+    matrix_groups = list(list(members = c("q1_a", "q1_b", "q1_c"), tenor = "Indique su grado de acuerdo"))
+  ))
+  mat <- Filter(function(b) identical(b$kind, "matrix"), m_ten$blocks)[[1]]
+  q2 <- Filter(function(b) identical(b$name, "q2"), m_ten$blocks)[[1]]
+  expect_identical(mat$number, "1")
+  expect_identical(mat$title, "Indique su grado de acuerdo")
+  expect_equal(length(mat$items), 3L)
+  expect_identical(mat$items[[1]]$number, "1.1")
+  expect_identical(mat$items[[3]]$number, "1.3")
+  expect_identical(q2$number, "2")  # X+1
+
+  # (b) SIN tenor (misma forma-objeto, tenor vacio): filas secuenciales X..X+k-1.
+  m_seq <- formulario_pdf_build_model(survey, choices, settings, options = list(
+    matrix_groups = list(list(members = c("q1_a", "q1_b", "q1_c"), tenor = ""))
+  ))
+  mat2 <- Filter(function(b) identical(b$kind, "matrix"), m_seq$blocks)[[1]]
+  q2b <- Filter(function(b) identical(b$name, "q2"), m_seq$blocks)[[1]]
+  expect_identical(mat2$items[[1]]$number, "1")
+  expect_identical(mat2$items[[3]]$number, "3")
+  expect_identical(q2b$number, "4")  # X+k
+
+  # (c) forma vieja [[names]] (retrocompat): sin tenor, secuencial.
+  m_old <- formulario_pdf_build_model(survey, choices, settings, options = list(
+    matrix_groups = list(c("q1_a", "q1_b", "q1_c"))
+  ))
+  mat3 <- Filter(function(b) identical(b$kind, "matrix"), m_old$blocks)[[1]]
+  expect_identical(mat3$items[[1]]$number, "1")
+  expect_identical(mat3$items[[3]]$number, "3")
+  expect_identical(mat3$tenor, "")
+})
+
+test_that("matrix header left cell has no 'respuesta por fila' text", {
+  survey <- data.frame(
+    type = rep("select_one esc", 3),
+    name = c("q1_a", "q1_b", "q1_c"),
+    label = c("Afirma A", "Afirma B", "Afirma C"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(list_name = rep("esc", 4), name = c("1", "2", "3", "9"),
+                        label = c("Nada", "Poco", "Mucho", "SIN INF"), stringsAsFactors = FALSE)
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(survey, choices, settings = data.frame(form_title = "T"), output_file = tmp)
+  expect_true(file.exists(tmp))
+  pdftotext <- Sys.which("pdftotext")
+  skip_if_not(nzchar(pdftotext))
+  txt <- paste(system2(pdftotext, c(tmp, "-"), stdout = TRUE), collapse = " ")
+  expect_false(grepl("respuesta por fila", txt, ignore.case = TRUE))
+  # la escala si debe estar (matriz sigue renderizando)
+  expect_true(grepl("SIN INF", txt))
+})
+
 test_that("matrix prints the scale code in every item row (reference style)", {
   survey <- data.frame(
     type = rep("select_one acuerdo", 4),
