@@ -82,6 +82,15 @@ export function seleccionVariable(
   };
 }
 
+/**
+ * true si la suite de criterios está ACTIVA: el académico definió al menos una
+ * variable en `byVariable` (opt-in explícito). Vacía/ausente ⇒ ningún criterio
+ * asumido — el marco debe construirse permisivo (§ADR 0035, §4.1.1).
+ */
+export function seleccionActiva(seleccion: CriteriosSeleccionMarco | null | undefined): boolean {
+  return Boolean(seleccion && Object.keys(seleccion.byVariable ?? {}).length > 0);
+}
+
 /** Aplana las categorías de una variable (flat o jerárquica). */
 export function categoriasDeVariable(variable: CriterioVariable): CriterioCategoria[] {
   if (variable.kind === "hierarchical") {

@@ -62,8 +62,8 @@ export function ResumenDiseno({
   // marco vigente (el frame guarda la selección con que se construyó). Si
   // difieren, la cifra de elegibles ya no corresponde y hay que reconstruir.
   const marcoDesactualizado = useMemo(
-    () => marcoCriteriosDesactualizado(frame, config.criterios_seleccion),
-    [frame, config.criterios_seleccion],
+    () => marcoCriteriosDesactualizado(frame, config.criterios_seleccion, config.teacher_type_orden),
+    [frame, config.criterios_seleccion, config.teacher_type_orden],
   );
   const estudiantesDesactualizados = estudiantesElegibles != null && marcoDesactualizado;
   const cursosDesactualizados = cursosHorarioElegibles != null && marcoDesactualizado;

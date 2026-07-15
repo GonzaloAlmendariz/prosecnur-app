@@ -474,8 +474,18 @@
 .cm_criterios_col_condicion_curso <- function(raw, mapping) {
   col <- .cm_criterios_col_exacta(raw, mapping$condicion_curso)
   if (!nzchar(col)) return("")
-  ocupada <- .cm_aulas_col(raw, mapping$condition)
-  if (col %in% ocupada[nzchar(ocupada)]) return("")
+  # La colisión de homónimo es GENUINA solo si `condition` reclama la MISMA
+  # columna por su MAPEO PROPIO (nombre exacto o clave exacta), NO si apenas la
+  # agarró por el fuzzy de un candidato default. En una base de UNA hoja con
+  # "Condición del curso" pero SIN columna de condición del alumno, el candidato
+  # default `condicion` haría fuzzy-match ("condicion" ⊂ "condicion_del_curso")
+  # contra la de curso y anularía una señal legítima; por eso la colisión se
+  # mide con el resolver EXACTO (.cm_criterios_col_exacta), que solo calza cuando
+  # condition tiene columna propia por nombre/clave exacta (los defaults no
+  # matchean por clave exacta con "condicion_del_curso"). Sin colisión genuina,
+  # condicion_curso conserva su columna.
+  ocupada <- .cm_criterios_col_exacta(raw, mapping$condition)
+  if (nzchar(ocupada) && identical(col, ocupada)) return("")
   col
 }
 
