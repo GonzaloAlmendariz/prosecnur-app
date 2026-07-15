@@ -83,12 +83,14 @@ test_that("la enumeración de condicion_curso solo trae condición DE CURSO, nun
   expect_false(is.null(var))
   keys <- .chom_cat_keys(var)
 
-  # Solo categorías de condición del CURSO (obligatorio/electivo), del catálogo.
-  expect_true(all(keys %in% c("obligatorio", "electivo")))
+  # Categorías de condición del CURSO (obligatorio/electivo) del catálogo, más el
+  # bucket sintético "sin_condicion" por las aulas C3/C4 con condición vacía
+  # (feature: el vacío es una categoría explícita, no se descarta).
+  expect_true(all(keys %in% c("obligatorio", "electivo", "sin_condicion")))
   # NUNCA condición del estudiante (el valor leaked de la hoja del alumno).
   expect_false("regular" %in% keys)
   expect_false("movilidad" %in% keys)
-  expect_setequal(keys, c("obligatorio", "electivo"))
+  expect_setequal(keys, c("obligatorio", "electivo", "sin_condicion"))
 })
 
 test_that("aula_frame$condicion_curso no arrastra la condición del estudiante (señal base anulada por colisión)", {
