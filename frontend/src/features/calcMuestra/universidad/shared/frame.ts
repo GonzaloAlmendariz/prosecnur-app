@@ -103,6 +103,11 @@ function teacherTypeOrdenDesactualizado(
   if (!Array.isArray(rawFrameOrden)) return false; // marco viejo sin el campo
   const frameOrden = normalizeTeacherTypeOrden(rawFrameOrden);
   const configOrden = normalizeTeacherTypeOrden(configTeacherTypeOrden ?? undefined);
+  // Config sin orden explícito = el usuario nunca reordenó → "usa el orden por
+  // defecto", que es justo con el que el motor construyó (el frame guarda ese
+  // orden efectivo, siempre poblado). Comparar [] contra los 8 por defecto daría
+  // un "reconstruye" perpetuo; mismo guard de vacío que en criterios_seleccion.
+  if (configOrden.length === 0) return false;
   if (frameOrden.length !== configOrden.length) return true;
   return frameOrden.some((key, index) => key !== configOrden[index]);
 }
