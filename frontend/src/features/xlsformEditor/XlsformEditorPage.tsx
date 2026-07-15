@@ -706,10 +706,15 @@ export default function XlsformEditorPage() {
         const backend = await apiXlsformFormsList();
         if (cancelled) return;
         for (const entry of backend.forms) {
+          // `saved_at` del backend es ISO string; la biblioteca guarda ms epoch.
+          const savedAtMs =
+            typeof entry.saved_at === "number"
+              ? entry.saved_at
+              : Date.parse(entry.saved_at) || Date.now();
           upsertLibraryEntry(projectScope, {
             id: entry.id,
             name: entry.name,
-            savedAt: entry.saved_at,
+            savedAt: savedAtMs,
             source: entry.source,
           });
         }
