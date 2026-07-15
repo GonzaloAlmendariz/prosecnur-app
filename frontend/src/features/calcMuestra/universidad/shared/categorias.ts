@@ -364,7 +364,8 @@ export function inferUniversityColumn(role: string, columns: string[]) {
     enrolled_total: ["enrolledtotal", "cantidadmatriculados", "matriculadostotal", "totalmatriculados", "matriculados"],
     course_level: ["courselevel", "nivelcurso", "niveldelcurso", "ciclocurso", "ciclodelcurso"],
     campus: ["campus", "sede", "filial"],
-    condition: ["condition", "condicion", "condiciondelcurso", "condicionmatricula", "elegible", "habilitado", "valido", "regular"],
+    condition: ["condition", "condicion", "condicionmatricula", "elegible", "habilitado", "valido", "regular"],
+    condicion_curso: ["condicioncurso", "condiciondelcurso", "condicion", "tipodecurso", "tipocurso", "obligatorioelectivo", "obligatorioelectivotaller"],
     eligible: ["eligible", "elegible", "habilitado", "valido", "regular", "condicion", "condiciondelcurso"],
   };
   for (const synonym of synonyms[role] ?? []) {
@@ -447,26 +448,18 @@ export function normalizeObservedCategoryKey(value: string) {
   return normalizeColumnName(String(value ?? "").trim());
 }
 
-export function suggestUniversityCategoryLabel(role: string, raw: string) {
+/**
+ * Etiqueta mostrada de una categoría = su valor CRUDO tal cual la data (solo
+ * trim de espacios). Requisito explícito del usuario (ADR 0035 fase 3): nada de
+ * normalizar/renombrar/reetiquetar valores ("REGULAR" se muestra "REGULAR", no
+ * "Elegible"; "1"/"2" de sexo no se traducen a "Hombre"/"Mujer"). El `role` se
+ * conserva en la firma por compatibilidad con los llamadores, pero no altera el
+ * valor. El renombrado, si el usuario lo quiere, es una decisión MANUAL que vive
+ * en workspace.category_mappings (etiqueta guardada), no una heurística.
+ */
+export function suggestUniversityCategoryLabel(_role: string, raw: string) {
   const text = String(raw ?? "").trim();
-  const key = normalizeObservedCategoryKey(text);
-  if (!key) return "Sin dato";
-  if (role === "sex") {
-    if (["1", "h", "hom", "hombre", "masculino", "male", "m", "varon"].includes(key)) return "Hombre";
-    if (["2", "mujer", "femenino", "female", "f", "fem"].includes(key)) return "Mujer";
-    if (["o", "otro", "otra", "otros", "nonbinary", "nobinario", "nobinaria"].includes(key)) return "Otro";
-    if (["na", "nd", "sindato", "noreporta", "prefieronodecir"].includes(key)) return "Sin dato";
-  }
-  if (role === "condition") {
-    if (["1", "si", "s", "true", "regular", "valido", "valida", "elegible", "apto", "activa", "activo"].includes(key)) return "Elegible";
-    if (["0", "no", "false", "irregular", "retirado", "retirada", "anulado", "anulada", "noelegible"].includes(key)) return "No elegible";
-  }
-  if (role === "modality") {
-    if (["p", "presencial", "inaula"].includes(key)) return "Presencial";
-    if (["v", "virtual", "online", "remoto", "remota"].includes(key)) return "Virtual";
-    if (["m", "mixto", "mixta", "hibrido", "hibrida"].includes(key)) return "Mixta";
-  }
-  return text;
+  return text || "Sin dato";
 }
 
 export function findWorkspaceCategoryMapping(
