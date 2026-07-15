@@ -29,11 +29,19 @@ import {
   apiXlsformEditorStateClear,
   apiXlsformEditorStateSave,
   apiXlsformEditorStateLoad,
+  apiXlsformFormSave,
   type Hallazgo,
 } from "../../../api/client";
 
 const STORAGE_PREFIX = "pulso.xlsformEditor.workbook.v2";
 const META_PREFIX = "pulso.xlsformEditor.meta.v2";
+const LIBRARY_PREFIX = "pulso.xlsformEditor.library.v1";
+
+/** Tope de formularios por proyecto. La UI deshabilita las vías de creación al
+ *  alcanzarlo y el backend rechaza el intento nº 7 con `E_FORM_LIMIT`. Vive
+ *  aquí, junto a la lógica de la biblioteca, para que hub y conmutador
+ *  compartan una única fuente de verdad. */
+export const MAX_FORMS = 6;
 
 /** v1 keys (sin scope de proyecto) — solo se leen como migración. */
 const LEGACY_V1_STORAGE = "pulso.xlsformEditor.workbook.v1";
@@ -58,6 +66,339 @@ function workbookKey(scope: ProjectScope): string {
 
 function metaKey(scope: ProjectScope): string {
   return `${META_PREFIX}.${scopeKey(scope)}`;
+}
+
+/** Sanitiza un formId a un sufijo seguro para localStorage. Los uuid de
+ *  `crypto.randomUUID()` ya son seguros; esto solo blinda ids ad-hoc. */
+function formKeyPart(formId: string): string {
+  return formId.replace(/[^a-zA-Z0-9-]+/g, "_").slice(0, 64) || "form";
+}
+
+/** Clave del workbook por-formulario: `...workbook.v2.<scope>.<formId>`. */
+function formWorkbookKey(scope: ProjectScope, formId: string): string {
+  return `${STORAGE_PREFIX}.${scopeKey(scope)}.${formKeyPart(formId)}`;
+}
+
+/** Clave de la metadata por-formulario: `...meta.v2.<scope>.<formId>`. */
+function formMetaKey(scope: ProjectScope, formId: string): string {
+  return `${META_PREFIX}.${scopeKey(scope)}.${formKeyPart(formId)}`;
+}
+
+/** Clave del índice de la biblioteca: `...library.v1.<scope>`. */
+function libraryKey(scope: ProjectScope): string {
+  return `${LIBRARY_PREFIX}.${scopeKey(scope)}`;
+}
+
+// -----------------------------------------------------------------------------
+// Índice de la biblioteca multi-formulario
+// -----------------------------------------------------------------------------
+// Un proyecto aloja varios formularios. El índice es ligero (sin workbooks):
+// cada workbook vive en su propia clave `...workbook.v2.<scope>.<formId>`.
+// El shape persistido en `...library.v1.<scope>` es:
+//
+//   { "activeFormId": string | null,
+//     "forms": [ { id, name, savedAt, source } ] }
+//
+// `activeFormId` es campo hermano del array `forms` (no se guarda repetido por
+// entrada). Cada entrada de `forms` es solo metadata para pintar el hub y el
+// conmutador del toolbar sin cargar los workbooks.
+
+/** Origen de un formulario (import xlsform / surveymonkey / blank…). */
+export type FormSource = { kind: string | null; original_name: string | null } | null;
+
+/** Entrada ligera del índice de la biblioteca (sin workbook). */
+export type LibraryEntry = {
+  id: string;
+  name: string;
+  savedAt: number;
+  source: FormSource;
+};
+
+/** Índice completo persistido para un scope. */
+export type LibraryIndex = {
+  activeFormId: string | null;
+  forms: LibraryEntry[];
+};
+
+function emptyIndex(): LibraryIndex {
+  return { activeFormId: null, forms: [] };
+}
+
+function normalizeSource(value: unknown): FormSource {
+  if (!isPlainRecord(value)) return null;
+  const kind = nullableString(value.kind);
+  const originalName = nullableString(value.original_name);
+  if (kind == null && originalName == null) return null;
+  return { kind, original_name: originalName };
+}
+
+function normalizeEntry(value: unknown): LibraryEntry | null {
+  if (!isPlainRecord(value)) return null;
+  const id = typeof value.id === "string" && value.id.trim() ? value.id : null;
+  if (!id) return null;
+  return {
+    id,
+    name: typeof value.name === "string" && value.name.trim() ? value.name : "Formulario",
+    savedAt: savedAtOrNow(value.savedAt),
+    source: normalizeSource(value.source),
+  };
+}
+
+function readIndex(scope: ProjectScope): LibraryIndex {
+  try {
+    const raw = localStorage.getItem(libraryKey(scope));
+    if (!raw) return emptyIndex();
+    const parsed = JSON.parse(raw) as unknown;
+    if (!isPlainRecord(parsed)) return emptyIndex();
+    const forms = arrayOrEmpty(parsed.forms)
+      .map(normalizeEntry)
+      .filter((entry): entry is LibraryEntry => entry != null);
+    const activeFormId =
+      typeof parsed.activeFormId === "string" && forms.some((f) => f.id === parsed.activeFormId)
+        ? parsed.activeFormId
+        : null;
+    return { activeFormId, forms };
+  } catch {
+    return emptyIndex();
+  }
+}
+
+function writeIndex(scope: ProjectScope, index: LibraryIndex): void {
+  try {
+    localStorage.setItem(libraryKey(scope), JSON.stringify(index));
+  } catch {
+    // QuotaExceeded / SecurityError — silencioso, igual que saveSnapshot.
+  }
+}
+
+/** Deriva el nombre visible de un formulario con la cascada:
+ *  `settings.form_title` → `source.original_name` sin extensión →
+ *  `"Formulario <ordinal>"`. */
+export function deriveFormName(
+  workbook: XlsformEditorWorkbook,
+  source: FormSource,
+  fallbackOrdinal = 1,
+): string {
+  const title = readSettingValue(workbook, "form_title");
+  if (title && title.trim()) return title.trim();
+  const original = source?.original_name;
+  if (original && original.trim()) return stripExtension(original.trim());
+  return `Formulario ${fallbackOrdinal}`;
+}
+
+function readSettingValue(workbook: XlsformEditorWorkbook, column: string): string | null {
+  const settings = workbook.settings;
+  if (!settings) return null;
+  const idx = settings.columns.indexOf(column);
+  if (idx < 0) return null;
+  const row = settings.rows[0];
+  if (!row) return null;
+  const value = row[idx];
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function stripExtension(name: string): string {
+  return name.replace(/\.[^./\\]+$/, "");
+}
+
+// -----------------------------------------------------------------------------
+// API multi-formulario
+// -----------------------------------------------------------------------------
+
+/** Lista las entradas ligeras de la biblioteca del scope. */
+export function listForms(scope: ProjectScope): LibraryEntry[] {
+  return readIndex(scope).forms;
+}
+
+/** Id del formulario activo del scope (o null). */
+export function getActiveForm(scope: ProjectScope): string | null {
+  return readIndex(scope).activeFormId;
+}
+
+/** Marca `formId` como activo si existe en el índice. */
+export function setActiveForm(scope: ProjectScope, formId: string | null): void {
+  const index = readIndex(scope);
+  if (formId != null && !index.forms.some((f) => f.id === formId)) return;
+  writeIndex(scope, { ...index, activeFormId: formId });
+}
+
+/** Lee el snapshot de un formulario concreto. null si no existe o corrupto. */
+export function loadForm(scope: ProjectScope, formId: string): PersistedSnapshot | null {
+  try {
+    const wbRaw = localStorage.getItem(formWorkbookKey(scope, formId));
+    if (!wbRaw) return null;
+    const workbook = normalizeWorkbookSnapshot(JSON.parse(wbRaw));
+    if (!workbook) return null;
+    const metaRaw = localStorage.getItem(formMetaKey(scope, formId));
+    const meta = metaRaw
+      ? JSON.parse(metaRaw) as Record<string, unknown>
+      : { savedAt: Date.now(), sourceName: null, sourceKind: null };
+    return {
+      workbook,
+      savedAt: savedAtOrNow(meta.savedAt),
+      sourceName: nullableString(meta.sourceName),
+      sourceKind: nullableString(meta.sourceKind),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Guarda el workbook de un formulario y actualiza (upsert) su entrada en el
+ *  índice. Devuelve el timestamp, o null si falló la escritura. */
+export function saveForm(
+  scope: ProjectScope,
+  formId: string,
+  workbook: XlsformEditorWorkbook,
+  meta: { sourceName: string | null; sourceKind: string | null },
+): number | null {
+  try {
+    const savedAt = Date.now();
+    localStorage.setItem(formWorkbookKey(scope, formId), JSON.stringify(workbook));
+    localStorage.setItem(
+      formMetaKey(scope, formId),
+      JSON.stringify({
+        savedAt,
+        sourceName: nullableString(meta.sourceName),
+        sourceKind: nullableString(meta.sourceKind),
+      }),
+    );
+    const index = readIndex(scope);
+    const existingIdx = index.forms.findIndex((f) => f.id === formId);
+    const source = normalizeSource({ kind: meta.sourceKind, original_name: meta.sourceName });
+    const ordinal = existingIdx >= 0 ? existingIdx + 1 : index.forms.length + 1;
+    const entry: LibraryEntry = {
+      id: formId,
+      name: deriveFormName(workbook, source, ordinal),
+      savedAt,
+      source,
+    };
+    const forms = existingIdx >= 0
+      ? index.forms.map((f, i) => (i === existingIdx ? entry : f))
+      : [...index.forms, entry];
+    writeIndex(scope, { activeFormId: index.activeFormId, forms });
+    return savedAt;
+  } catch {
+    return null;
+  }
+}
+
+/** Inserta o actualiza SOLO la entrada de índice (sin tocar el workbook). Se
+ *  usa para reflejar formularios que existen en el backend pero cuyo workbook
+ *  aún no se ha bajado a esta máquina. */
+export function upsertLibraryEntry(scope: ProjectScope, entry: LibraryEntry): void {
+  const index = readIndex(scope);
+  const existingIdx = index.forms.findIndex((f) => f.id === entry.id);
+  const forms = existingIdx >= 0
+    ? index.forms.map((f, i) => (i === existingIdx ? { ...f, ...entry } : f))
+    : [...index.forms, entry];
+  writeIndex(scope, { activeFormId: index.activeFormId, forms });
+}
+
+/** Escribe un valor en la hoja `settings` (columna, primera fila), clonando
+ *  el workbook. Crea la columna y/o la fila si no existen. */
+function writeSettingValue(
+  workbook: XlsformEditorWorkbook,
+  column: string,
+  value: string,
+): XlsformEditorWorkbook {
+  const settings = workbook.settings;
+  const columns = [...settings.columns];
+  let idx = columns.indexOf(column);
+  if (idx < 0) {
+    columns.push(column);
+    idx = columns.length - 1;
+  }
+  const baseRow = settings.rows[0] ? [...settings.rows[0]] : [];
+  while (baseRow.length < columns.length) baseRow.push("");
+  baseRow[idx] = value;
+  const rows = settings.rows.length > 0
+    ? settings.rows.map((row, i) => (i === 0 ? baseRow : row))
+    : [baseRow];
+  return { ...workbook, settings: { ...settings, columns, rows } };
+}
+
+/** Renombra un formulario. Actualiza la entrada del índice y —si hay copia
+ *  local del workbook— escribe `settings.form_title` para que el nombre
+ *  sobreviva a un futuro autosave (deriveFormName prioriza form_title). No
+ *  bloqueante: sincroniza el nombre al backend en segundo plano. Devuelve el
+ *  índice resultante. */
+export function renameForm(
+  scope: ProjectScope,
+  formId: string,
+  name: string,
+): LibraryIndex {
+  const trimmed = name.trim();
+  if (!trimmed) return readIndex(scope);
+  const snap = loadForm(scope, formId);
+  if (snap) {
+    const workbook = writeSettingValue(snap.workbook, "form_title", trimmed);
+    const meta = { sourceName: snap.sourceName, sourceKind: snap.sourceKind };
+    saveForm(scope, formId, workbook, meta);
+    // Rename opera sobre un formulario existente: nunca dispara E_FORM_LIMIT,
+    // pero blindamos el promise huérfano por si el re-throw del tope aflora.
+    void syncFormToBackend(formId, workbook, meta).catch(() => {});
+  } else {
+    const index = readIndex(scope);
+    const forms = index.forms.map((f) => (f.id === formId ? { ...f, name: trimmed } : f));
+    writeIndex(scope, { ...index, forms });
+  }
+  return readIndex(scope);
+}
+
+/** Borra un formulario (workbook + meta + entrada). Si era el activo, reasigna
+ *  al más reciente restante (o null si no queda ninguno). Devuelve el índice
+ *  resultante. */
+export function deleteForm(scope: ProjectScope, formId: string): LibraryIndex {
+  try {
+    localStorage.removeItem(formWorkbookKey(scope, formId));
+    localStorage.removeItem(formMetaKey(scope, formId));
+  } catch {
+    // ignore
+  }
+  const index = readIndex(scope);
+  const forms = index.forms.filter((f) => f.id !== formId);
+  let activeFormId = index.activeFormId;
+  if (activeFormId === formId) {
+    const mostRecent = forms.slice().sort((a, b) => b.savedAt - a.savedAt)[0];
+    activeFormId = mostRecent ? mostRecent.id : null;
+  }
+  const next = { activeFormId, forms };
+  writeIndex(scope, next);
+  return next;
+}
+
+/** Migra un proyecto legacy mono-formulario a la biblioteca multi-formulario.
+ *  Idempotente: si ya hay índice con formularios, no hace nada. Si no hay
+ *  índice pero sí un snapshot legacy (clave sin formId, vía loadSnapshot),
+ *  siembra la biblioteca con un id nuevo como activo, SIN borrar la clave
+ *  legacy (se retira en una versión posterior). Devuelve el índice resultante. */
+export function migrateLegacySingleForm(scope: ProjectScope): LibraryIndex {
+  const existing = readIndex(scope);
+  if (existing.forms.length > 0) return existing;
+
+  const legacy = loadSnapshot(scope);
+  if (!legacy) return existing;
+
+  const formId = newFormId();
+  saveForm(scope, formId, legacy.workbook, {
+    sourceName: legacy.sourceName,
+    sourceKind: legacy.sourceKind,
+  });
+  setActiveForm(scope, formId);
+  return readIndex(scope);
+}
+
+/** Genera un id de formulario. Prefiere `crypto.randomUUID()`; cae a un id
+ *  pseudoaleatorio si el runtime no lo expone. */
+export function newFormId(): string {
+  const cryptoObj = typeof globalThis !== "undefined"
+    ? (globalThis.crypto as Crypto | undefined)
+    : undefined;
+  if (cryptoObj && typeof cryptoObj.randomUUID === "function") {
+    return cryptoObj.randomUUID();
+  }
+  return `form-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 export type PersistedSnapshot = {
@@ -299,7 +640,9 @@ export async function clearSnapshotFromBackend(): Promise<void> {
 // localStorage sigue siendo el primer recurso (rápido, offline) y el
 // backend es el que sobrevive cierre de tab + reopen de proyecto.
 
-/** Empuja un snapshot al backend. No bloqueante — los errores se silencian. */
+/** Empuja un snapshot al backend vía /state (deprecado). No bloqueante. Se
+ *  conserva para el flujo legacy mono-formulario; el multi-formulario usa
+ *  `syncFormToBackend`. */
 export async function syncSnapshotToBackend(
   workbook: XlsformEditorWorkbook,
   meta: { sourceName: string | null; sourceKind: string | null; hallazgos?: Hallazgo[] },
@@ -314,6 +657,41 @@ export async function syncSnapshotToBackend(
   } catch {
     // ignore — el snapshot local sigue intacto en localStorage.
   }
+}
+
+/** Empuja un formulario concreto al backend vía POST /forms. Cuando el
+ *  `formId` es el activo, el backend re-deriva el espejo `s$xlsform_state`
+ *  (así los consumidores externos — Carga, Monitoreo — leen el activo
+ *  fresco). No bloqueante — los errores se silencian. */
+export async function syncFormToBackend(
+  formId: string,
+  workbook: XlsformEditorWorkbook,
+  meta: { sourceName: string | null; sourceKind: string | null; hallazgos?: Hallazgo[] },
+): Promise<void> {
+  try {
+    const source = { kind: nullableString(meta.sourceKind), original_name: nullableString(meta.sourceName) };
+    await apiXlsformFormSave({
+      id: formId,
+      name: deriveFormName(workbook, source),
+      workbook,
+      source,
+      hallazgos: meta.hallazgos ?? [],
+      saved_at: Date.now(),
+    });
+  } catch (err) {
+    // El tope compartido (E_FORM_LIMIT) sí es significativo: la UI necesita
+    // avisar y revertir la creación local. El resto de errores (red, sesión)
+    // se silencian — el snapshot local sigue intacto en localStorage y el
+    // próximo autosave reintenta.
+    if (isFormLimitError(err)) throw err;
+  }
+}
+
+/** `true` si el error propagado por el api client corresponde al tope de
+ *  formularios del backend (`E_FORM_LIMIT`). El client lo serializa como
+ *  `[E_FORM_LIMIT] <mensaje>`, así que basta con inspeccionar el texto. */
+export function isFormLimitError(err: unknown): boolean {
+  return err instanceof Error && err.message.includes("E_FORM_LIMIT");
 }
 
 /** Trae el snapshot desde el backend. null si no hay o si falla. */
@@ -341,13 +719,16 @@ export async function loadSnapshotFromBackend(): Promise<PersistedSnapshot | nul
 // -----------------------------------------------------------------------------
 
 export type PersistenceScheduler = {
-  /** Solicita un guardado. Si ya hay uno pendiente, lo reinicia. */
+  /** Solicita un guardado del formulario `formId`. Si ya hay uno pendiente,
+   *  lo reinicia. */
   schedule: (
+    formId: string,
     workbook: XlsformEditorWorkbook,
     meta: { sourceName: string | null; sourceKind: string | null },
     scope?: ProjectScope,
   ) => void;
-  /** Fuerza un guardado inmediato (cancela debounce). */
+  /** Fuerza el guardado pendiente inmediato (cancela debounce). Usa el
+   *  `formId` con el que se agendó. */
   flush: () => number | null;
   /** Cancela el guardado pendiente sin escribir. */
   cancel: () => void;
@@ -366,6 +747,7 @@ export function createPersistenceScheduler(
 ): PersistenceScheduler {
   let timer: ReturnType<typeof setTimeout> | null = null;
   let pending: {
+    formId: string;
     workbook: XlsformEditorWorkbook;
     meta: { sourceName: string | null; sourceKind: string | null };
     scope: ProjectScope;
@@ -377,17 +759,18 @@ export function createPersistenceScheduler(
       timer = null;
     }
     if (!pending) return null;
-    const ts = saveSnapshot(pending.workbook, pending.meta, pending.scope);
-    // Fire-and-forget al backend para que el state viaje con el .pulso.
-    // Si no hay proyecto activo o no hay backend, falla silenciosamente.
-    void syncSnapshotToBackend(pending.workbook, pending.meta);
+    // Guardado local bajo la clave por-formulario + upsert del índice.
+    const ts = saveForm(pending.scope, pending.formId, pending.workbook, pending.meta);
+    // Fire-and-forget al backend: upsert del formulario en la colección; si
+    // es el activo el backend re-deriva el espejo que consume el .pulso.
+    void syncFormToBackend(pending.formId, pending.workbook, pending.meta).catch(() => {});
     pending = null;
     if (ts != null && onSaved) onSaved(ts);
     return ts;
   };
 
-  const schedule: PersistenceScheduler["schedule"] = (workbook, meta, scope = null) => {
-    pending = { workbook, meta, scope };
+  const schedule: PersistenceScheduler["schedule"] = (formId, workbook, meta, scope = null) => {
+    pending = { formId, workbook, meta, scope };
     if (timer) clearTimeout(timer);
     timer = setTimeout(flush, delayMs);
   };

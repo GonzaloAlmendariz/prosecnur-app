@@ -59,7 +59,10 @@ import {
   apiAnaliticaPreparar,
   apiXlsformEditorExportPdf,
   apiXlsformEditorImport,
+  apiXlsformEditorImportMatrizPulso,
   apiXlsformEditorImportSurveyMonkeyWithLogic,
+  isMatrizPulsoImport,
+  normalizeXlsformImportResult,
   apiXlsformEditorSmCheckToken,
   apiXlsformEditorSmFetchSurveyInfo,
   apiXlsformEditorSmInterpretRule,
@@ -181,8 +184,80 @@ describe("XLSForm editor PDF client", () => {
 
     const result = await apiXlsformEditorImport("uploaded-xlsx");
 
+    expect(result.kind).toBe("xlsform");
+    if (result.kind !== "xlsform") throw new Error("esperaba un import XLSForm normal");
     expect(result.workbook.paper).toEqual(paperSheet);
     expect(result.summary.paper_rows).toBe(1);
+  });
+
+  test("discrimina la variante matriz PULSO del import", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        ok: true,
+        kind: "matriz_pulso",
+        audiences: ["Docentes", "Estudiantes", "", "Administrativos"],
+        original_name: "Matriz IAC-CINDA.xlsx",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiXlsformEditorImport("uploaded-xlsx");
+
+    expect(result.kind).toBe("matriz_pulso");
+    expect(isMatrizPulsoImport(result)).toBe(true);
+    if (!isMatrizPulsoImport(result)) throw new Error("esperaba una matriz PULSO");
+    // Descarta la audiencia vacía y conserva el orden.
+    expect(result.audiences).toEqual(["Docentes", "Estudiantes", "Administrativos"]);
+    expect(result.original_name).toBe("Matriz IAC-CINDA.xlsx");
+  });
+
+  test("normalizeXlsformImportResult trata la respuesta sin kind como XLSForm", () => {
+    const result = normalizeXlsformImportResult({
+      ok: true,
+      workbook,
+      summary: { survey_rows: 1, choices_rows: 0, settings_rows: 1, diagnostico_rows: 0 },
+      source: { kind: "xlsform", original_name: "demo.xlsx" },
+      warnings: [],
+    });
+    expect(result.kind).toBe("xlsform");
+    expect(isMatrizPulsoImport(result)).toBe(false);
+  });
+
+  test("import-matriz-pulso construye workbook + resumen de escala por audiencia", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        workbook,
+        summary: {
+          audience: "Docentes",
+          survey_rows: 1,
+          choices_rows: 0,
+          settings_rows: 1,
+          n_acuerdo: 12,
+          n_satisfaccion: 8,
+          scale_inferred: true,
+        },
+        warnings: ["Escala inferida"],
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiXlsformEditorImportMatrizPulso("uploaded-xlsx", "Docentes");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/xlsform-editor/import-matriz-pulso",
+      expect.objectContaining({ method: "POST" }),
+    );
+    const payload = JSON.parse(String(sentInit?.body));
+    expect(payload).toEqual({ file_id: "uploaded-xlsx", audience: "Docentes" });
+    expect(result.workbook.paper).toEqual(paperSheet);
+    expect(result.summary.audience).toBe("Docentes");
+    expect(result.summary.n_acuerdo).toBe(12);
+    expect(result.summary.n_satisfaccion).toBe(8);
+    expect(result.summary.scale_inferred).toBe(true);
+    expect(result.warnings).toEqual(["Escala inferida"]);
   });
 });
 
