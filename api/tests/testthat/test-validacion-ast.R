@@ -83,6 +83,13 @@ test_that("ast_in_set con values en orden distinto produce mismo hash", {
   )
 })
 
+test_that("ast_range_date rechaza fechas invertidas", {
+  expect_error(
+    ast_range_date("fecha", min = "2026-07-10", max = "2026-07-01"),
+    "min no puede ser mayor"
+  )
+})
+
 test_that("ast_is_valid detecta AST bien formado vs malformado", {
   good <- ast_range_numeric("edad", 0, 120)
   expect_true(ast_is_valid(good)$ok)
@@ -100,6 +107,24 @@ test_that("ast_variables extrae todas las vars referenciadas", {
   )
   vars <- ast_variables(x)
   expect_setequal(vars, c("edad", "edad_minima", "pais"))
+})
+
+test_that("duplicate_similarity valida umbrales y conserva sus variables", {
+  vars <- paste0("q", seq_len(10L))
+  node <- ast_duplicate_similarity(
+    vars,
+    threshold = 0.90,
+    minimum_coverage = 0.80
+  )
+
+  expect_equal(ast_op(node), "duplicate_similarity")
+  expect_setequal(ast_variables(node), vars)
+  expect_equal(node$threshold, 0.90)
+  expect_equal(node$minimum_coverage, 0.80)
+  expect_error(ast_duplicate_similarity(vars, threshold = 0), "threshold")
+  expect_error(ast_duplicate_similarity(vars, threshold = 1.01), "threshold")
+  expect_error(ast_duplicate_similarity(vars, threshold = NA_real_), "threshold")
+  expect_error(ast_duplicate_similarity(vars[seq_len(9L)]), "10")
 })
 
 # =============================================================================
@@ -200,6 +225,31 @@ test_that("compiler: collection_date_cmp usa __today__ inyectado", {
   res <- eval(parse(text = rhs))
   # TRUE = constraint fulfilled (fecha <= today)
   expect_equal(res, c(TRUE, TRUE, FALSE, FALSE))
+})
+
+test_that("compiler: similitud al 90 por ciento marca ambas entrevistas del par", {
+  vars <- paste0("q", seq_len(10L))
+  data <- as.data.frame(matrix("A", nrow = 3L, ncol = 10L), stringsAsFactors = FALSE)
+  names(data) <- vars
+  data$q10[[2L]] <- "B"
+  data$q9[[3L]] <- "C"
+  data$q10[[3L]] <- "C"
+  `.__eval_data__` <- data
+
+  rhs <- ast_to_r(ast_duplicate_similarity(vars, threshold = 0.90, minimum_coverage = 0.80))
+  expect_identical(as.vector(eval(parse(text = rhs))), c(TRUE, TRUE, FALSE))
+})
+
+test_that("compiler: vacios comunes no inflan similitud sin cobertura suficiente", {
+  vars <- paste0("q", seq_len(10L))
+  data <- as.data.frame(matrix("A", nrow = 3L, ncol = 10L), stringsAsFactors = FALSE)
+  names(data) <- vars
+  data[1:2, c("q9", "q10")] <- NA_character_
+  data[3L, c("q8", "q9", "q10")] <- NA_character_
+  `.__eval_data__` <- data
+
+  rhs <- ast_to_r(ast_duplicate_similarity(vars, threshold = 0.90, minimum_coverage = 0.80))
+  expect_identical(as.vector(eval(parse(text = rhs))), c(TRUE, TRUE, FALSE))
 })
 
 # =============================================================================

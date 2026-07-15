@@ -729,6 +729,7 @@ validacion_scope_get <- function(sid, base_nombre = NULL, key = NULL) {
       plan_result      = s$plan_result,
       evaluacion       = s$evaluacion,
       reglas_custom    = s$reglas_custom %||% list(),
+      operational_config = s$validacion_operational_config %||% .validation_operational_default_config(),
       variables_excluidas = s$validacion_variables_excluidas %||% character(0),
       explorador_cache = s$explorador_cache %||% list(),
       limpieza_draft   = s$limpieza_draft %||% list(),
@@ -740,6 +741,7 @@ validacion_scope_get <- function(sid, base_nombre = NULL, key = NULL) {
       plan_result      = NULL,
       evaluacion       = NULL,
       reglas_custom    = list(),
+      operational_config = .validation_operational_default_config(),
       variables_excluidas = character(0),
       explorador_cache = list(),
       limpieza_draft   = list(),
@@ -757,6 +759,8 @@ validacion_scope_set <- function(sid, base_nombre = NULL, key, value) {
     # Fallback legacy: guardamos en la raíz de la sesión.
     if (identical(key, "variables_excluidas")) {
       s$validacion_variables_excluidas <- value
+    } else if (identical(key, "operational_config")) {
+      s$validacion_operational_config <- value
     } else {
       s[[key]] <- value
     }
@@ -766,6 +770,7 @@ validacion_scope_set <- function(sid, base_nombre = NULL, key, value) {
         plan_result      = NULL,
         evaluacion       = NULL,
         reglas_custom    = list(),
+        operational_config = .validation_operational_default_config(),
         variables_excluidas = character(0),
         explorador_cache = list(),
         limpieza_draft   = list(),
@@ -783,11 +788,12 @@ validacion_scope_set <- function(sid, base_nombre = NULL, key, value) {
   invisible(value)
 }
 
-.validacion_empty_scope <- function() {
+.validacion_empty_scope <- function(operational_config = NULL) {
   list(
     plan_result      = NULL,
     evaluacion       = NULL,
     reglas_custom    = list(),
+    operational_config = operational_config %||% .validation_operational_default_config(),
     variables_excluidas = character(0),
     explorador_cache = list(),
     limpieza_draft   = list(),
@@ -847,7 +853,10 @@ validacion_key_present_any <- function(s, key) {
       names(s$estudio$bases)
     }
     for (bn in targets) {
-      s$estudio$bases[[bn]]$validacion <- .validacion_empty_scope()
+      previous <- s$estudio$bases[[bn]]$validacion %||% list()
+      s$estudio$bases[[bn]]$validacion <- .validacion_empty_scope(
+        operational_config = previous$operational_config %||% NULL
+      )
     }
   }
   s

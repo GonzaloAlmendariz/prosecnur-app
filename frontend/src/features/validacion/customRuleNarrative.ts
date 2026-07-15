@@ -56,6 +56,7 @@ export const CUSTOM_TIPO_LABEL: Record<ReglaCustomTipo, string> = {
 export function describeCustomParams(
   tipo: ReglaCustomTipo,
   params: Record<string, unknown>,
+  variables: string[] = [],
 ): string {
   const mn = typeof params.min === "string" ? params.min : null;
   const mx = typeof params.max === "string" ? params.max : null;
@@ -71,16 +72,23 @@ export function describeCustomParams(
       if (mx) return `Debe ser ≤ ${mx}.`;
       return "Define el rango esperado para una duración, conteo o métrica operativa.";
     case "rango_fecha":
-      if (mn && mx) return `Debe estar entre ${mn} y ${mx}.`;
-      if (mn) return `Debe ser desde ${mn}.`;
-      if (mx) return `Debe ser hasta ${mx}.`;
+      {
+        const timezone = typeof params.timezone === "string" && params.timezone.trim()
+          ? ` (${params.timezone.trim()})`
+          : " (America/Lima)";
+        if (mn && mx) return `Debe estar entre ${mn} y ${mx}${timezone}; los vacíos se revisan por separado.`;
+        if (mn) return `Debe ser desde ${mn}${timezone}; los vacíos se revisan por separado.`;
+        if (mx) return `Debe ser hasta ${mx}${timezone}; los vacíos se revisan por separado.`;
+      }
       return "Define el periodo del operativo para esta fecha.";
     case "outliers_iqr":
       return `Se marcan valores fuera del intervalo [Q1 − ${k ?? 1.5}·IQR, Q3 + ${k ?? 1.5}·IQR].`;
     case "outliers_z":
       return `Se marcan valores cuyo |z-score| supere ${k ?? 3}.`;
     case "duplicados":
-      return "Se marcan filas donde esa combinación de identificadores operativos aparece más de una vez.";
+      return variables.length > 0
+        ? `Se marcan todas las filas cuando la tupla (${variables.join(" + ")}) aparece más de una vez; las claves incompletas se ignoran.`
+        : "Se marcan todas las filas donde esa combinación de identificadores aparece más de una vez; las claves incompletas se ignoran.";
     case "fuera_catalogo":
       return valores > 0
         ? `Se marcan filas con valores que no están en la lista permitida (${valores} entradas).`
@@ -126,7 +134,7 @@ export function customRuleToRule(r: ReglaCustom): ReglaLike {
       : "Personalizada: caso a validar",
     severidad: r.severidad,
     categoria_ux: CUSTOM_TIPO_LABEL[r.tipo] ?? r.tipo,
-    objetivo: r.mensaje || describeCustomParams(r.tipo, r.params) || null,
+    objetivo: customObjective(r.tipo, r.params, r.variables, r.mensaje),
     variables: r.variables,
     variable_roles: target ? (gate ? { target, gate } : { target }) : null,
     n_casos: null,
@@ -155,8 +163,12 @@ export function draftCustomToRule(input: {
       : gateVars.length
         ? gateVars
       : null;
-  const objetivo =
-    input.mensaje.trim() || describeCustomParams(input.tipo, input.params) || null;
+  const objetivo = customObjective(
+    input.tipo,
+    input.params,
+    input.variables,
+    input.mensaje,
+  );
   return {
     id: undefined,
     nombre: input.nombre.trim() || CUSTOM_TIPO_LABEL[input.tipo],
@@ -173,4 +185,17 @@ export function draftCustomToRule(input: {
     n_casos: null,
     porcentaje: null,
   };
+}
+
+function customObjective(
+  tipo: ReglaCustomTipo,
+  params: Record<string, unknown>,
+  variables: string[],
+  message: string,
+): string | null {
+  const detail = describeCustomParams(tipo, params, variables).trim();
+  const note = message.trim();
+  if (!note) return detail || null;
+  if (!detail || note.toLocaleLowerCase("es").includes(detail.toLocaleLowerCase("es"))) return note;
+  return `${detail} Nota: ${note}`;
 }

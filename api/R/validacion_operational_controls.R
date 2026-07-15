@@ -1,0 +1,240 @@
+# =============================================================================
+# Validacion v2 — controles operativos del plan
+# =============================================================================
+
+.validation_operational_default_config <- function() {
+  list(
+    version = 2L,
+    field_period = list(
+      enabled = FALSE,
+      variable = "",
+      start_date = "",
+      end_date = "",
+      timezone = "America/Lima"
+    ),
+    duplicates = list(
+      enabled = FALSE,
+      variables = character(0),
+      matching_method = "response_similarity",
+      similarity_threshold = 0.90,
+      minimum_coverage = 0.80
+    )
+  )
+}
+
+.validation_operational_chr <- function(x) {
+  out <- as.character(unlist(x %||% list(), recursive = TRUE, use.names = FALSE))
+  out <- trimws(out)
+  unique(out[!is.na(out) & nzchar(out)])
+}
+
+.validation_operational_scalar <- function(x) {
+  out <- as.character(x %||% NA_character_)[1]
+  if (is.na(out) || !nzchar(trimws(out))) NULL else trimws(out)
+}
+
+.validation_operational_date <- function(x, field) {
+  raw <- .validation_operational_scalar(x)
+  if (is.null(raw)) return(NULL)
+  parsed <- suppressWarnings(as.Date(raw))
+  if (is.na(parsed)) {
+    stop_api(400, "E_OPERATIONAL_DATE_INVALID",
+             sprintf("'%s' debe usar formato YYYY-MM-DD.", field))
+  }
+  as.character(parsed)
+}
+
+.validation_operational_probability <- function(x, default, field) {
+  raw <- suppressWarnings(as.numeric(x %||% default))[1]
+  if (!is.finite(raw) || raw <= 0 || raw > 1) {
+    stop_api(400, "E_OPERATIONAL_DUPLICATE_THRESHOLD",
+             sprintf("'%s' debe ser un numero mayor que 0 y menor o igual que 1.", field))
+  }
+  raw
+}
+
+.validation_operational_date_label <- function(x) {
+  value <- suppressWarnings(as.Date(x))
+  if (is.na(value)) return(as.character(x %||% ""))
+  months <- c("ene.", "feb.", "mar.", "abr.", "may.", "jun.",
+              "jul.", "ago.", "set.", "oct.", "nov.", "dic.")
+  sprintf("%d %s %d", as.integer(format(value, "%d")),
+          months[[as.integer(format(value, "%m"))]],
+          as.integer(format(value, "%Y")))
+}
+
+#' Normaliza y valida la configuracion operativa de una base.
+#' @keywords internal
+normalize_validation_operational_config <- function(config = NULL,
+                                                     available_variables = NULL) {
+  defaults <- .validation_operational_default_config()
+  if (is.null(config)) return(defaults)
+  if (!is.list(config)) {
+    stop_api(400, "E_OPERATIONAL_CONFIG_INVALID",
+             "'operational_config' debe ser un objeto.")
+  }
+
+  version <- suppressWarnings(as.integer(config$version %||% 2L))[1]
+  if (is.na(version) || version != 2L) {
+    stop_api(400, "E_OPERATIONAL_VERSION_UNSUPPORTED",
+             "Solo se admite operational_config version 2.")
+  }
+
+  fp_in <- config$field_period %||% list()
+  du_in <- config$duplicates %||% list()
+  if (!is.list(fp_in) || !is.list(du_in)) {
+    stop_api(400, "E_OPERATIONAL_CONFIG_INVALID",
+             "Los controles operativos deben ser objetos.")
+  }
+
+  tz <- as.character(fp_in$timezone %||% "America/Lima")[1]
+  if (is.na(tz) || !nzchar(tz) || !(tz %in% OlsonNames())) {
+    stop_api(400, "E_OPERATIONAL_TIMEZONE_INVALID",
+             sprintf("Zona horaria no valida: '%s'.", tz %||% ""))
+  }
+  fp <- list(
+    enabled = isTRUE(fp_in$enabled),
+    variable = .validation_operational_scalar(fp_in$variable),
+    start_date = .validation_operational_date(fp_in$start_date, "field_period.start_date"),
+    end_date = .validation_operational_date(fp_in$end_date, "field_period.end_date"),
+    timezone = tz
+  )
+  if (fp$enabled && (is.null(fp$variable) || is.null(fp$start_date) || is.null(fp$end_date))) {
+    stop_api(400, "E_OPERATIONAL_PERIOD_INCOMPLETE",
+             "El periodo de campo requiere variable, fecha de inicio y fecha de cierre.")
+  }
+  if (!is.null(fp$start_date) && !is.null(fp$end_date) &&
+      as.Date(fp$start_date) > as.Date(fp$end_date)) {
+    stop_api(400, "E_OPERATIONAL_PERIOD_INVERTED",
+             "La fecha de inicio no puede ser posterior a la fecha de cierre.")
+  }
+
+  du <- list(
+    enabled = isTRUE(du_in$enabled),
+    variables = .validation_operational_chr(du_in$variables),
+    matching_method = as.character(du_in$matching_method %||% "response_similarity")[1],
+    similarity_threshold = .validation_operational_probability(
+      du_in$similarity_threshold, 0.90, "duplicates.similarity_threshold"
+    ),
+    minimum_coverage = .validation_operational_probability(
+      du_in$minimum_coverage, 0.80, "duplicates.minimum_coverage"
+    )
+  )
+  if (is.na(du$matching_method) ||
+      !identical(du$matching_method, "response_similarity")) {
+    stop_api(400, "E_OPERATIONAL_DUPLICATE_METHOD",
+             "duplicates.matching_method debe ser 'response_similarity'.")
+  }
+  if (du$enabled && length(du$variables) < 10L) {
+    stop_api(400, "E_OPERATIONAL_DUPLICATES_INCOMPLETE",
+             "La similitud de respuestas requiere seleccionar al menos 10 variables.")
+  }
+
+  available <- .validation_operational_chr(available_variables)
+  if (length(available)) {
+    selected <- c(
+      if (fp$enabled) fp$variable else NULL,
+      if (du$enabled) du$variables else NULL
+    )
+    missing <- setdiff(.validation_operational_chr(selected), available)
+    if (length(missing)) {
+      stop_api(400, "E_OPERATIONAL_VARIABLE_UNKNOWN",
+               sprintf("Variables operativas no encontradas: %s.", paste(missing, collapse = ", ")))
+    }
+  }
+
+  fp$variable <- fp$variable %||% ""
+  fp$start_date <- fp$start_date %||% ""
+  fp$end_date <- fp$end_date %||% ""
+  # `universe_filter` legacy se ignora deliberadamente: el universo efectivo
+  # se materializa en Carga y nunca vuelve a filtrarse dentro de Validacion.
+  list(version = 2L, field_period = fp, duplicates = du)
+}
+
+validation_operational_config_public <- function(config = NULL) {
+  out <- normalize_validation_operational_config(config)
+  out$duplicates$variables <- as.list(out$duplicates$variables)
+  out
+}
+
+#' Materializa controles operativos como reglas AST modernas.
+#' @keywords internal
+validation_operational_rules <- function(config = NULL) {
+  config <- normalize_validation_operational_config(config)
+  out <- list()
+
+  fp <- config$field_period
+  if (isTRUE(fp$enabled)) {
+    r <- rule_range(
+      var = fp$variable,
+      min = fp$start_date,
+      max = fp$end_date,
+      inclusive = TRUE,
+      type = "date",
+      timezone = fp$timezone,
+      fuente = "custom",
+      severidad = "advertencia",
+      nombre = "Fecha dentro del periodo de campo",
+      objetivo = sprintf(
+        "«%s» debe estar entre %s y %s en la zona %s.",
+        fp$variable,
+        .validation_operational_date_label(fp$start_date),
+        .validation_operational_date_label(fp$end_date),
+        fp$timezone
+      )
+    )
+    r$id <- "OP_field_period"
+    r$flag_name <- .derive_flag_name(r$id)
+    r$presentation$nombre_tecnico <- r$flag_name
+    out[[length(out) + 1L]] <- r
+  }
+
+  du <- config$duplicates
+  if (isTRUE(du$enabled)) {
+    r <- rule_duplicate(
+      vars = du$variables,
+      similarity_threshold = du$similarity_threshold,
+      minimum_coverage = du$minimum_coverage,
+      fuente = "custom",
+      severidad = "advertencia",
+      nombre = sprintf(
+        "Entrevistas con al menos %.0f%% de respuestas coincidentes",
+        100 * du$similarity_threshold
+      ),
+      objetivo = sprintf(
+        paste0(
+          "Compara %d preguntas seleccionadas y señala ambas entrevistas cuando ",
+          "coinciden en al menos %.0f%% de las respuestas comparables, siempre que ",
+          "estas cubran al menos %.0f%% de las preguntas."
+        ),
+        length(du$variables),
+        100 * du$similarity_threshold,
+        100 * du$minimum_coverage
+      )
+    )
+    r$id <- "OP_duplicates"
+    r$flag_name <- .derive_flag_name(r$id)
+    r$presentation$nombre_tecnico <- r$flag_name
+    # El hallazgo exige revision; esta regla nunca elimina registros de forma
+    # automatica ni propone una transformacion irreversible.
+    r$remediation_default <- "ignore"
+    out[[length(out) + 1L]] <- r
+  }
+  out
+}
+
+validation_operational_append_rules <- function(bundle, config = NULL) {
+  operational_ids <- c("OP_field_period", "OP_duplicates")
+  existing <- Filter(function(rule) {
+    !(as.character(rule$id %||% "") %in% operational_ids)
+  }, bundle$rules %||% list())
+  rules <- c(existing, validation_operational_rules(config))
+  bundle$rules <- if (exists(".dedup_rules_exact", mode = "function")) {
+    .dedup_rules_exact(rules)
+  } else {
+    rules
+  }
+  bundle$plan <- compile_rules_to_plan(bundle$rules)
+  bundle$operational_config <- normalize_validation_operational_config(config)
+  bundle
+}

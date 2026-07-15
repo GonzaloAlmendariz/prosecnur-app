@@ -27,7 +27,8 @@ ast_to_r <- function(x) {
     "is_missing"               = .c_is_missing(x$var),
     "is_empty_string"          = .c_is_empty(x$var),
     "range_numeric"            = .c_range_num(x$var, x$min, x$max, x$inclusive),
-    "range_date"               = .c_range_date(x$var, x$min, x$max, x$inclusive),
+    "range_date"               = .c_range_date(x$var, x$min, x$max, x$inclusive,
+                                                 x$timezone %||% NULL),
     "in_set"                   = .c_in_set(x$var, x$values),
     "not_in_set"               = .c_not_in_set(x$var, x$values),
     "matches_regex"            = .c_regex(x$var, x$pattern),
@@ -41,7 +42,9 @@ ast_to_r <- function(x) {
     "select_multiple_exclusive"= .c_sm_exclusive(x$var, x$exclusive_codes, x$max_others),
     "any_column_equals"        = .c_any_col_eq(x$cols, x$value),
     "all_columns_not_equals"   = .c_all_cols_ne(x$cols, x$value),
-    "duplicate_tuple"          = .c_dup_tuple(x$vars),
+    "duplicate_tuple"          = .c_dup_tuple(x$vars, x$missing_key_policy %||% NULL),
+    "duplicate_similarity"     = .c_dup_similarity(x$vars, x$threshold,
+                                                     x$minimum_coverage),
     "outlier_iqr"              = .c_outlier_iqr(x$var, x$k),
     "outlier_zscore"           = .c_outlier_z(x$var, x$k),
     "straight_line"            = .c_straight_line(x$vars, x$max_variance),
@@ -91,8 +94,13 @@ ast_to_r <- function(x) {
   sprintf("(!is.na(%s) & (%s))", xnum, cond)
 }
 
-.c_range_date <- function(var, min, max, inclusive) {
-  xd <- sprintf("suppressWarnings(as.Date(%s))", var)
+.c_range_date <- function(var, min, max, inclusive, timezone = NULL) {
+  xd <- if (is.null(timezone)) {
+    sprintf("suppressWarnings(as.Date(%s))", var)
+  } else {
+    sprintf("get('.vd_operational_date', envir = globalenv())(%s, %s)",
+            .backtick(var), .lit_str(timezone))
+  }
   ops_exclude <- if (isTRUE(inclusive)) c("<", ">") else c("<=", ">=")
   parts <- character()
   if (!is.null(min)) parts <- c(parts, sprintf("%s %s as.Date('%s')", xd, ops_exclude[1], as.character(min)))
@@ -232,10 +240,11 @@ ast_to_r <- function(x) {
   sprintf("(%s)", paste(parts, collapse = " & "))
 }
 
-.c_dup_tuple <- function(vars) {
+.c_dup_tuple <- function(vars, missing_key_policy = NULL) {
   # Backtick de cada var: las llaves canónicas del repeat (`_parent_index`) no
   # son identificadores R válidos y reventaban el parse (RC4 reusa este op con
   # tuplas (`_parent_index`, `current_code`)).
+  refs <- vapply(vars, .backtick, character(1))
   if (length(vars) == 1L) {
     clave <- sprintf("as.character(%s)", .backtick(vars[1]))
   } else {
@@ -243,8 +252,170 @@ ast_to_r <- function(x) {
     # Separador U+241F (SYMBOL FOR UNIT SEPARATOR) — muy improbable en datos.
     clave <- sprintf("paste(%s, sep = '\\u241F')", paste(parts, collapse = ", "))
   }
-  sprintf("{ .k_ <- %s; .n_ <- stats::ave(seq_along(.k_), .k_, FUN = length); .n_ > 1 }",
-          clave)
+  # AST antiguos no tienen missing_key_policy: preservan el comportamiento
+  # historico (NA/vacio participa en la clave). Las reglas nuevas usan
+  # ignore_missing y dejan la completitud a una regla separada.
+  if (identical(missing_key_policy, "ignore_missing")) {
+    missing_parts <- vapply(refs, function(ref) {
+      sprintf("(is.na(%s) | !nzchar(trimws(as.character(%s))))", ref, ref)
+    }, character(1))
+    missing <- paste(missing_parts, collapse = " | ")
+    return(sprintf(
+      "{ .k_ <- %s; .miss_ <- (%s); !.miss_ & (duplicated(.k_) | duplicated(.k_, fromLast = TRUE)) }",
+      clave, missing
+    ))
+  }
+  sprintf("{ .k_ <- %s; duplicated(.k_) | duplicated(.k_, fromLast = TRUE) }", clave)
+}
+
+.c_dup_similarity <- function(vars, threshold, minimum_coverage) {
+  sprintf(
+    paste0(
+      "get('.vd_duplicate_similarity', envir = globalenv())(",
+      ".__eval_data__, vars = %s, threshold = %s, minimum_coverage = %s)"
+    ),
+    .lit_char_vec(vars),
+    .lit_num(threshold),
+    .lit_num(minimum_coverage)
+  )
+}
+
+# Compara perfiles de respuesta sin construir una matriz n x n. Primero
+# colapsa filas identicas y luego genera candidatos mediante bloques: una pareja
+# que supera cobertura y similitud necesariamente comparte al menos un bloque
+# completo de respuestas no vacias. Cada candidato se verifica con el criterio
+# exacto antes de marcar ambas filas.
+.vd_duplicate_similarity <- function(data,
+                                     vars,
+                                     threshold = 0.90,
+                                     minimum_coverage = 0.80) {
+  if (!is.data.frame(data)) stop("data debe ser un data.frame.")
+  vars <- unique(as.character(vars))
+  missing_vars <- setdiff(vars, names(data))
+  if (length(missing_vars)) {
+    stop(sprintf("Variables ausentes: %s", paste(missing_vars, collapse = ", ")))
+  }
+  if (length(vars) < 10L) stop("Se requieren al menos 10 variables.")
+  threshold <- suppressWarnings(as.numeric(threshold))[1]
+  minimum_coverage <- suppressWarnings(as.numeric(minimum_coverage))[1]
+  if (!is.finite(threshold) || threshold <= 0 || threshold > 1) {
+    stop("threshold debe estar en (0, 1].")
+  }
+  if (!is.finite(minimum_coverage) || minimum_coverage <= 0 || minimum_coverage > 1) {
+    stop("minimum_coverage debe estar en (0, 1].")
+  }
+
+  n <- nrow(data)
+  p <- length(vars)
+  if (n < 2L) return(rep(FALSE, n))
+
+  normalize_answer <- function(x) {
+    missing <- is.na(x)
+    value <- enc2utf8(as.character(x))
+    value[missing | is.na(value)] <- ""
+    value <- gsub("[[:space:]]+", " ", trimws(value), perl = TRUE)
+    value <- tolower(value)
+    value[is.na(value)] <- ""
+    value
+  }
+  values <- do.call(cbind, lapply(data[vars], normalize_answer))
+  if (is.null(dim(values))) values <- matrix(values, ncol = p)
+  empty <- values == ""
+
+  row_signature <- function(rows, cols) {
+    parts <- lapply(cols, function(j) {
+      value <- values[rows, j]
+      paste0(nchar(value, type = "bytes"), ":", value)
+    })
+    do.call(paste, c(parts, sep = "\u241F"))
+  }
+
+  # Las firmas identicas se representan una sola vez. Se conserva el mapa a
+  # filas originales para marcar todos los miembros cuando corresponda.
+  full_key <- row_signature(seq_len(n), seq_len(p))
+  signature_groups <- unname(split(seq_len(n), full_key))
+  representatives <- vapply(signature_groups, `[[`, integer(1), 1L)
+  values_unique <- values[representatives, , drop = FALSE]
+  empty_unique <- empty[representatives, , drop = FALSE]
+  unique_n <- length(representatives)
+  flagged <- rep(FALSE, n)
+
+  min_comparable <- ceiling(minimum_coverage * p - 1e-12)
+  min_matches <- ceiling(threshold * min_comparable - 1e-12)
+  for (i in seq_len(unique_n)) {
+    if (length(signature_groups[[i]]) > 1L &&
+        sum(!empty_unique[i, ]) >= min_comparable) {
+      flagged[signature_groups[[i]]] <- TRUE
+    }
+  }
+  if (unique_n < 2L) return(flagged)
+
+  # Si una pareja valida tiene al menos `min_matches` coincidencias no vacias,
+  # a lo sumo p-min_matches posiciones pueden impedir la igualdad. Al dividir
+  # las variables en una posicion mas que ese maximo, al menos un bloque debe
+  # coincidir por completo (principio del palomar).
+  block_count <- min(p, max(1L, p - min_matches + 1L))
+  blocks <- split(seq_len(p), rep(seq_len(block_count), length.out = p))
+  seen_pairs <- new.env(parent = emptyenv(), hash = TRUE)
+
+  for (cols in blocks) {
+    eligible <- which(rowSums(empty_unique[, cols, drop = FALSE]) == 0L)
+    if (length(eligible) < 2L) next
+    block_parts <- lapply(cols, function(j) {
+      value <- values_unique[eligible, j]
+      paste0(nchar(value, type = "bytes"), ":", value)
+    })
+    block_key <- do.call(paste, c(block_parts, sep = "\u241F"))
+    candidate_groups <- unname(split(eligible, block_key))
+    candidate_groups <- candidate_groups[lengths(candidate_groups) > 1L]
+    if (!length(candidate_groups)) next
+
+    for (group in candidate_groups) {
+      for (a in seq_len(length(group) - 1L)) {
+        i <- group[[a]]
+        for (b in seq.int(a + 1L, length(group))) {
+          j <- group[[b]]
+          pair_key <- paste(i, j, sep = ":")
+          if (exists(pair_key, envir = seen_pairs, inherits = FALSE)) next
+          assign(pair_key, TRUE, envir = seen_pairs)
+
+          both_empty <- empty_unique[i, ] & empty_unique[j, ]
+          comparable <- !both_empty
+          comparable_n <- sum(comparable)
+          if (comparable_n < min_comparable) next
+          matches <- sum(comparable & values_unique[i, ] == values_unique[j, ])
+          if ((matches / comparable_n) + 1e-12 < threshold) next
+          flagged[signature_groups[[i]]] <- TRUE
+          flagged[signature_groups[[j]]] <- TRUE
+        }
+      }
+    }
+  }
+  flagged
+}
+
+# Convierte date/datetime a fecha civil en la zona configurada. Los timestamps
+# con offset/Z conservan su instante; los datetimes sin offset se interpretan
+# en la zona del operativo.
+.vd_operational_date <- function(x, timezone = "America/Lima") {
+  if (inherits(x, "Date")) return(as.Date(x))
+  if (inherits(x, "POSIXt")) return(as.Date(x, tz = timezone))
+  raw <- trimws(as.character(x))
+  out <- as.Date(rep(NA_character_, length(raw)))
+  date_only <- !is.na(raw) & grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", raw)
+  out[date_only] <- suppressWarnings(as.Date(raw[date_only]))
+  idx <- which(!date_only & !is.na(raw) & nzchar(raw))
+  for (i in idx) {
+    value <- sub("Z$", "+0000", raw[i])
+    value <- sub("([+-][0-9]{2}):([0-9]{2})$", "\\1\\2", value)
+    formats <- c(
+      "%Y-%m-%dT%H:%M:%OS%z", "%Y-%m-%d %H:%M:%OS%z",
+      "%Y-%m-%dT%H:%M:%OS", "%Y-%m-%d %H:%M:%OS"
+    )
+    parsed <- suppressWarnings(as.POSIXct(value, tz = timezone, tryFormats = formats))
+    if (!is.na(parsed)) out[i] <- as.Date(parsed, tz = timezone)
+  }
+  out
 }
 
 .c_outlier_iqr <- function(var, k) {

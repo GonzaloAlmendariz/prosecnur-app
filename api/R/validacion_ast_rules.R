@@ -349,12 +349,14 @@ rule_range <- function(var,
                        severidad = "error",
                        seccion = NULL,
                        tabla = "principal",
-                       repeat_context = NULL) {
+                       repeat_context = NULL,
+                       timezone = NULL) {
   type <- match.arg(type)
   predicate <- if (type == "numeric") {
     ast_range_numeric(var, min = min, max = max, inclusive = inclusive)
   } else {
-    ast_range_date(var, min = min, max = max, inclusive = inclusive)
+    ast_range_date(var, min = min, max = max, inclusive = inclusive,
+                   timezone = timezone)
   }
   if (is.null(nombre)) {
     nombre <- sprintf("«%s» dentro de rango [%s, %s]",
@@ -479,10 +481,26 @@ rule_duplicate <- function(vars,
                            fuente = "custom",
                            severidad = "advertencia",
                            seccion = NULL,
-                           tabla = "principal") {
-  predicate <- ast_duplicate_tuple(vars)
+                           tabla = "principal",
+                           missing_key_policy = "ignore_missing",
+                           similarity_threshold = NULL,
+                           minimum_coverage = 0.80) {
+  similarity_mode <- !is.null(similarity_threshold)
+  predicate <- if (similarity_mode) {
+    ast_duplicate_similarity(
+      vars,
+      threshold = similarity_threshold,
+      minimum_coverage = minimum_coverage
+    )
+  } else {
+    ast_duplicate_tuple(vars, missing_key_policy = missing_key_policy)
+  }
   if (is.null(nombre)) {
-    nombre <- sprintf("Duplicados en (%s)", paste(vars, collapse = ", "))
+    nombre <- if (similarity_mode) {
+      sprintf("Posibles duplicados por similitud en (%s)", paste(vars, collapse = ", "))
+    } else {
+      sprintf("Duplicados en (%s)", paste(vars, collapse = ", "))
+    }
   }
   r <- make_rule(
     nombre = nombre,
@@ -504,7 +522,12 @@ rule_duplicate <- function(vars,
       drivers = character(0),
       gate = if (!is.null(gate)) ast_variables(gate) else character(0)
     ),
-    presentation = list(subtipo_semantico = "duplicados")
+    presentation = list(
+      subtipo_semantico = if (similarity_mode) "duplicados_por_similitud" else "duplicados",
+      missing_key_policy = if (similarity_mode) NULL else missing_key_policy,
+      similarity_threshold = if (similarity_mode) as.numeric(similarity_threshold) else NULL,
+      minimum_coverage = if (similarity_mode) as.numeric(minimum_coverage) else NULL
+    )
   )
 }
 
@@ -1578,13 +1601,13 @@ compile_rule <- function(rule) {
       .human_label_for_var(x$var, label_map), .human_op(x$op), as.character(x$n)),
     "text_length_cmp" = sprintf("la longitud de %s %s %s caracteres",
       .human_label_for_var(x$var, label_map), .human_op(x$op), as.character(x$n)),
-    "collection_date_cmp" = sprintf("%s %s hoy",
+    "collection_date_cmp" = sprintf("%s %s la fecha de captura de la entrevista",
       .human_label_for_var(x$var, label_map), .human_op(x$op)),
     "collection_date_offset_cmp" = {
       ref <- if (isTRUE(as.integer(x$offset_days) < 0L)) {
-        sprintf("%s días antes de hoy", abs(as.integer(x$offset_days)))
+        sprintf("%s días antes de la fecha de captura", abs(as.integer(x$offset_days)))
       } else {
-        sprintf("%s días después de hoy", abs(as.integer(x$offset_days)))
+        sprintf("%s días después de la fecha de captura", abs(as.integer(x$offset_days)))
       }
       sprintf("%s %s %s", .human_label_for_var(x$var, label_map), .human_op(x$op), ref)
     },

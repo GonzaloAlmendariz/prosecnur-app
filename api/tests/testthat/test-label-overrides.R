@@ -97,6 +97,23 @@ test_that("(a) override en capa de instrumento limpia choices$label + dicc + ord
   expect_equal(sexo_rows$label[match("1", as.character(sexo_rows$name))], "Hombre Man")
 })
 
+test_that("el constructor de Validación consume el override persistido de la sesión", {
+  pair <- .lo_build_pair()
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "label_overrides", .lo_override())
+
+  inst <- .validacion_apply_label_overrides(sid, pair$inst)
+  rows <- inst$choices[
+    as.character(inst$choices$list_name) == "seg_l",
+    c("name", "label"), drop = FALSE
+  ]
+  labels <- stats::setNames(as.character(rows$label), as.character(rows$name))
+
+  expect_identical(labels[["1"]], "Muy seguro")
+  expect_false(any(grepl("Very safe|Insurance|Insecure", unlist(labels), perl = TRUE)))
+})
+
 test_that("(a) override propaga a attr(labels) y attr(label) vía el chokepoint", {
   pair <- .lo_build_pair()
   .lo_with_ambient(.lo_override(), {

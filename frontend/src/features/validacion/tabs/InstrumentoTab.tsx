@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback, useMemo, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef, type CSSProperties, type ReactNode } from "react";
 import {
   AlertTriangle,
   ChevronDown,
   ChevronRight,
   Download,
+  FileText,
   ListTree,
   Play,
   RefreshCcw,
@@ -18,15 +19,21 @@ import {
   apiV2InstrumentoEstado,
   apiV2InstrumentoExportPlan,
   apiV2InstrumentoImportPlan,
+  apiV2MethodologyReportBundle,
   apiV2InstrumentoReglaToggleActiva,
   apiV2InstrumentoResultado,
   apiV2InstrumentoVariablesExcluidas,
   apiV2InstrumentoVariablesExcluidasSave,
   downloadUrl,
+  jobResultUrl,
   type InstrumentoDrillResult,
   type InstrumentoResultado,
 } from "../../../api/client";
-import type { InstrumentoEstado, InstrumentoVariablesExcluidas } from "../types";
+import type {
+  InstrumentoEstado,
+  InstrumentoOperationalConfig,
+  InstrumentoVariablesExcluidas,
+} from "../types";
 import {
   EmptyState,
   ErrorBlock,
@@ -54,6 +61,14 @@ import {
   type RelationalRowSignals,
   type RelationalSummary,
 } from "../relationalPlan";
+import InstrumentoOperationalControls from "../components/InstrumentoOperationalControls";
+import {
+  defaultOperationalConfig,
+  hasOperationalConfigChanges,
+  isOperationalConfigValid,
+  normalizeOperationalConfig,
+  validateOperationalConfig,
+} from "../operationalControlsModel";
 
 // =============================================================================
 // InstrumentoTab — Sprint 2
@@ -82,6 +97,8 @@ export default function InstrumentoTab() {
   const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [jobId, setJobId] = useState<string | null>(null);
+  const [methodologyPackageJobId, setMethodologyPackageJobId] = useState<string | null>(null);
+  const [methodologyPackageReadyJobId, setMethodologyPackageReadyJobId] = useState<string | null>(null);
   const [exportFileId, setExportFileId] = useState<string | null>(null);
   const [drill, setDrill] = useState<InstrumentoDrillResult | null>(null);
   const [reglaDirty, setReglaDirty] = useState(false);
@@ -92,26 +109,40 @@ export default function InstrumentoTab() {
   const [detailRuleId, setDetailRuleId] = useState<string>("");
   const [variablesExcluidas, setVariablesExcluidas] = useState<InstrumentoVariablesExcluidas | null>(null);
   const [variableQuery, setVariableQuery] = useState("");
+  const [operationalConfig, setOperationalConfig] = useState<InstrumentoOperationalConfig>(
+    () => defaultOperationalConfig(),
+  );
+  const [appliedOperationalConfig, setAppliedOperationalConfig] = useState<InstrumentoOperationalConfig>(
+    () => defaultOperationalConfig(),
+  );
+  const refetchSequence = useRef(0);
 
   // Carga inicial + refetch al cambiar base.
   const refetchAll = useCallback(async () => {
+    const requestId = ++refetchSequence.current;
     setLoading(true);
     setError("");
     try {
       const e = await apiV2InstrumentoEstado(baseNombre);
+      if (requestId !== refetchSequence.current) return;
       setEstado(e);
+      const nextOperationalConfig = normalizeOperationalConfig(e.operational_config);
+      setOperationalConfig(nextOperationalConfig);
+      setAppliedOperationalConfig(nextOperationalConfig);
       const vars = await apiV2InstrumentoVariablesExcluidas(baseNombre);
+      if (requestId !== refetchSequence.current) return;
       setVariablesExcluidas(vars);
       if (e.auditoria_corrida) {
         const r = await apiV2InstrumentoResultado(baseNombre);
+        if (requestId !== refetchSequence.current) return;
         setResultado(r);
       } else {
         setResultado(null);
       }
     } catch (err) {
-      setError((err as Error).message);
+      if (requestId === refetchSequence.current) setError((err as Error).message);
     } finally {
-      setLoading(false);
+      if (requestId === refetchSequence.current) setLoading(false);
     }
   }, [baseNombre]);
 
@@ -122,7 +153,11 @@ export default function InstrumentoTab() {
     setDrill(null);
     setDetailRuleId("");
     setJobId(null);
+    setMethodologyPackageJobId(null);
+    setMethodologyPackageReadyJobId(null);
     setVariableQuery("");
+    setOperationalConfig(defaultOperationalConfig());
+    setAppliedOperationalConfig(defaultOperationalConfig());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [baseNombre, version]);
 
@@ -153,10 +188,15 @@ export default function InstrumentoTab() {
   }, [resultado, selectedRuleId]);
 
   async function onBuildPlan() {
+    const configErrors = validateOperationalConfig(operationalConfig);
+    if (Object.keys(configErrors).length > 0) {
+      setError("Completa los controles operativos activos antes de construir el plan.");
+      return;
+    }
     setBusy("Construyendo plan desde el XLSForm…");
     setError("");
     try {
-      const plan = await apiV2InstrumentoBuildPlan(baseNombre);
+      const plan = await apiV2InstrumentoBuildPlan(baseNombre, undefined, operationalConfig);
       // Capturamos el surfacing relacional: el resultado de auditoría no trae
       // estos flags, así que los cacheamos por base para el panel naranja.
       setRelationalPlan(baseNombre, {
@@ -181,6 +221,17 @@ export default function InstrumentoTab() {
       setError((e as Error).message);
     } finally {
       setBusy("");
+    }
+  }
+
+  async function onMethodologyPackage() {
+    setError("");
+    setMethodologyPackageReadyJobId(null);
+    try {
+      const out = await apiV2MethodologyReportBundle(baseNombre);
+      setMethodologyPackageJobId(out.job_id);
+    } catch (e) {
+      setError((e as Error).message);
     }
   }
 
@@ -307,6 +358,8 @@ export default function InstrumentoTab() {
 
   const relationalMetaById = relationalCapture?.metaById ?? null;
   const relationalSummary = relationalCapture?.summary ?? null;
+  const operationalDirty = hasOperationalConfigChanges(operationalConfig, appliedOperationalConfig);
+  const operationalValid = isOperationalConfigValid(operationalConfig);
 
   const compactRules = useMemo(
     () => {
@@ -487,25 +540,45 @@ export default function InstrumentoTab() {
             </div>
           </div>
         )}
+        <InstrumentoOperationalControls
+          baseNombre={baseNombre}
+          value={operationalConfig}
+          upstreamUniverse={estado.upstream_universe}
+          dirty={operationalDirty}
+          disabled={!!busy || !!jobId}
+          onChange={setOperationalConfig}
+        />
         <div className="pulso-instrumento-action-row">
           <button
             type="button"
             className="pulso-primary pulso-instrumento-action"
             onClick={() => void onBuildPlan()}
-            disabled={!!busy || !!jobId}
+            disabled={!!busy || !!jobId || !operationalValid}
           >
             {estado.plan_construido ? <RefreshCcw size={12} /> : <ListTree size={12} />}
-            {estado.plan_construido ? "Reconstruir plan" : "Construir plan"}
+            {estado.plan_construido && operationalDirty
+              ? "Aplicar y reconstruir plan"
+              : estado.plan_construido
+                ? "Reconstruir plan"
+                : "Construir plan"}
           </button>
           {estado.plan_construido && (
             <>
               <button
                 type="button"
                 onClick={() => void onExport()}
-                disabled={!!busy}
+                disabled={!!busy || !!methodologyPackageJobId}
                 className="pulso-instrumento-action"
               >
                 <Download size={12} /> Exportar a Excel
+              </button>
+              <button
+                type="button"
+                onClick={() => void onMethodologyPackage()}
+                disabled={!!busy || !!jobId || !!methodologyPackageJobId}
+                className="pulso-instrumento-action"
+              >
+                <FileText size={12} /> Paquete metodológico PDF + R
               </button>
               <label
                 className={`pulso-instrumento-action pulso-instrumento-file-action${busy ? " is-busy" : ""}`}
@@ -535,6 +608,30 @@ export default function InstrumentoTab() {
               style={{ color: "var(--pulso-primary)", fontWeight: 600 }}
             >
               Descargar →
+            </a>
+          </div>
+        )}
+        <JobProgress
+          label="Generando paquete metodológico"
+          jobId={methodologyPackageJobId}
+          onDone={() => {
+            setMethodologyPackageReadyJobId(methodologyPackageJobId);
+            setMethodologyPackageJobId(null);
+          }}
+          onError={(message) => {
+            setMethodologyPackageJobId(null);
+            setError(message);
+          }}
+          onCancelled={() => setMethodologyPackageJobId(null)}
+        />
+        {methodologyPackageReadyJobId && (
+          <div className="pulso-instrumento-export-note">
+            Paquete listo. Incluye el reporte PDF y el script R derivados del mismo inventario metodológico.{" "}
+            <a
+              href={jobResultUrl(methodologyPackageReadyJobId)}
+              style={{ color: "var(--pulso-primary)", fontWeight: 600 }}
+            >
+              Descargar paquete ZIP →
             </a>
           </div>
         )}
@@ -573,7 +670,7 @@ export default function InstrumentoTab() {
               type="button"
               className="pulso-primary"
               onClick={() => void onAudit()}
-              disabled={!!busy || !!jobId}
+              disabled={!!busy || !!jobId || operationalDirty}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -585,6 +682,11 @@ export default function InstrumentoTab() {
               <Play size={12} />
               {estado.auditoria_corrida ? "Ejecutar de nuevo" : "Ejecutar auditoría"}
             </button>
+            {operationalDirty && (
+              <div className="pulso-operational-inline-note" style={{ marginTop: 7 }}>
+                Aplica y reconstruye el plan antes de ejecutar la auditoría con estos controles.
+              </div>
+            )}
           </div>
           {jobId && (
             <JobProgress

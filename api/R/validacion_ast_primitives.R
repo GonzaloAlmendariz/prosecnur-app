@@ -35,7 +35,7 @@
   "is_empty_string",      # (var)
   # --- Rangos ------------------------------------------------------------
   "range_numeric",        # (var, min, max, inclusive)
-  "range_date",           # (var, min, max, inclusive)
+  "range_date",           # (var, min, max, inclusive, timezone opcional)
   # --- Catálogo y regex --------------------------------------------------
   "in_set",               # (var, values)
   "not_in_set",           # (var, values)
@@ -54,7 +54,8 @@
   "any_column_equals",    # (cols, value)      P28_2='1' or P28_3='1' ...
   "all_columns_not_equals", # (cols, value)    su negación
   # --- Data quality ------------------------------------------------------
-  "duplicate_tuple",      # (vars)
+  "duplicate_tuple",      # (vars, missing_key_policy opcional)
+  "duplicate_similarity", # (vars, threshold, minimum_coverage)
   "outlier_iqr",          # (var, k)
   "outlier_zscore",       # (var, k)
   "straight_line",        # (vars, max_variance)
@@ -194,16 +195,32 @@ ast_range_numeric <- function(var, min = NULL, max = NULL, inclusive = TRUE) {
 }
 
 #' @export
-ast_range_date <- function(var, min = NULL, max = NULL, inclusive = TRUE) {
+ast_range_date <- function(var, min = NULL, max = NULL, inclusive = TRUE,
+                           timezone = NULL) {
   .check_var(var)
   if (is.null(min) && is.null(max)) {
     stop("ast_range_date(): min o max requerido.")
   }
+  min_date <- if (!is.null(min)) suppressWarnings(as.Date(min)) else NULL
+  max_date <- if (!is.null(max)) suppressWarnings(as.Date(max)) else NULL
+  if ((!is.null(min_date) && is.na(min_date)) || (!is.null(max_date) && is.na(max_date))) {
+    stop("ast_range_date(): min/max deben ser fechas validas.")
+  }
+  if (!is.null(min_date) && !is.null(max_date) && min_date > max_date) {
+    stop("ast_range_date(): min no puede ser mayor que max.")
+  }
+  if (!is.null(timezone)) {
+    timezone <- as.character(timezone)[1]
+    if (is.na(timezone) || !nzchar(timezone) || !(timezone %in% OlsonNames())) {
+      stop("ast_range_date(): timezone no valida.")
+    }
+  }
   ast("range_date",
       var = var,
-      min = if (!is.null(min)) as.character(as.Date(min)) else NULL,
-      max = if (!is.null(max)) as.character(as.Date(max)) else NULL,
-      inclusive = isTRUE(inclusive))
+      min = if (!is.null(min_date)) as.character(min_date) else NULL,
+      max = if (!is.null(max_date)) as.character(max_date) else NULL,
+      inclusive = isTRUE(inclusive),
+      timezone = timezone)
 }
 
 #' @export
@@ -314,9 +331,44 @@ ast_all_columns_not_equals <- function(cols, value) {
 }
 
 #' @export
-ast_duplicate_tuple <- function(vars) {
+ast_duplicate_tuple <- function(vars, missing_key_policy = "ignore_missing") {
   if (!length(vars)) stop("ast_duplicate_tuple(): vars vacío.")
-  ast("duplicate_tuple", vars = as.character(vars))
+  missing_key_policy <- as.character(missing_key_policy %||% "ignore_missing")[1]
+  if (!(missing_key_policy %in% c("ignore_missing", "include_missing"))) {
+    stop("ast_duplicate_tuple(): missing_key_policy invalida.")
+  }
+  ast("duplicate_tuple", vars = as.character(vars),
+      missing_key_policy = missing_key_policy)
+}
+
+#' Detecta pares de registros con respuestas suficientemente similares.
+#'
+#' A diferencia de `duplicate_tuple`, esta primitiva no exige igualdad total:
+#' compara el vector de respuestas seleccionado y delega al runtime el calculo
+#' de cobertura y proporcion de coincidencias por par.
+#' @export
+ast_duplicate_similarity <- function(vars,
+                                     threshold = 0.90,
+                                     minimum_coverage = 0.80) {
+  vars <- unique(as.character(vars))
+  vars <- vars[!is.na(vars) & nzchar(trimws(vars))]
+  if (length(vars) < 10L) {
+    stop("ast_duplicate_similarity(): se requieren al menos 10 variables.")
+  }
+  threshold <- suppressWarnings(as.numeric(threshold))[1]
+  minimum_coverage <- suppressWarnings(as.numeric(minimum_coverage))[1]
+  if (!is.finite(threshold) || threshold <= 0 || threshold > 1) {
+    stop("ast_duplicate_similarity(): threshold debe estar en (0, 1].")
+  }
+  if (!is.finite(minimum_coverage) || minimum_coverage <= 0 || minimum_coverage > 1) {
+    stop("ast_duplicate_similarity(): minimum_coverage debe estar en (0, 1].")
+  }
+  ast(
+    "duplicate_similarity",
+    vars = vars,
+    threshold = threshold,
+    minimum_coverage = minimum_coverage
+  )
 }
 
 #' @export
@@ -580,6 +632,7 @@ ast_is_valid <- function(x) {
     "any_column_equals"        = c("cols", "value"),
     "all_columns_not_equals"   = c("cols", "value"),
     "duplicate_tuple"          = "vars",
+    "duplicate_similarity"     = c("vars", "threshold", "minimum_coverage"),
     "outlier_iqr"              = c("var", "k"),
     "outlier_zscore"           = c("var", "k"),
     "straight_line"            = c("vars", "max_variance"),
