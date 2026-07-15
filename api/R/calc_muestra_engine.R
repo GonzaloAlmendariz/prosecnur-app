@@ -429,6 +429,12 @@ calc_muestra_normalize_estudio <- function(estudio = list()) {
     } else {
       .cm_normalize_chr_list(cfg$accepted_teacher_type_patterns)
     },
+    # ADR 0035: orden de jerarquía de tipos de docente. Cataloga cada CH con su
+    # docente de mayor rango (aula_frame$teacher_type_top) SIN afectar la
+    # inclusión. Whitelist-only: sin esta entrada el round-trip del proyecto
+    # BORRA el orden y se pierde al reabrir. Ausente/vacío -> list() (el motor
+    # aplica su orden académico por defecto).
+    teacher_type_orden = .cm_normalize_chr_list(cfg$teacher_type_orden),
     # H7: patrones aceptados de formación (criterio de pregrado sobre la
     # columna real de la base); mismo contrato ausente->default / list()
     # explícita respetada.
