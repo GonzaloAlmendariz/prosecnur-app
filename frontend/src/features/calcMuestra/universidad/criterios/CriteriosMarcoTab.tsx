@@ -6,9 +6,11 @@
  * reconstruye el motor R. La selección vive en workspace.aulas_config
  * (criterios_seleccion) y se autosalva con el resto del workspace.
  *
- * Principio: cero categoría hardcodeada. Todo sale de `criterios_catalogo` que
- * emite el motor a partir de la base y el mapeo; la selección canónica es solo
- * un preset seleccionable del backend, no lógica del frontend.
+ * Principio (ADR 0035): cero categoría hardcodeada y cero preset canónico. Todo
+ * sale de `criterios_catalogo` que emite el motor a partir de la base y el mapeo;
+ * la selección es 100% MANUAL: sin nada guardado arranca VACÍA (ningún criterio
+ * asumido) y es el académico quien marca cada uno. No se inyecta ni reconcilia a
+ * un canónico por heurística.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GraduationCap, Loader2, RefreshCw, School, SlidersHorizontal } from "lucide-react";
@@ -22,8 +24,6 @@ import {
 import { IconConfirm, IconSuccess, IconUndo } from "../../../../lib/icons";
 import {
   minEligibleThreshold,
-  reconciliarSeleccionConCatalogo,
-  seleccionCanonica,
   setMinEligible,
   setRangosFacultad,
   setSeleccionVariable,
@@ -40,26 +40,6 @@ import {
 import { CriterioCard } from "./CriterioCard";
 import type { FacultadRef } from "./facultades";
 import "./criterios.css";
-
-/** Igualdad estructural mínima (ignora `undefined` y orden de claves; arrays
- *  sensibles al orden). Local para no acoplar con shared/frame.ts; suficiente
- *  para el guard anti-loop de la persistencia del saneo de criterios. */
-function seleccionesEquivalentes(a: unknown, b: unknown): boolean {
-  if (Object.is(a, b)) return true;
-  if (Array.isArray(a) || Array.isArray(b)) {
-    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
-    return a.every((item, index) => seleccionesEquivalentes(item, b[index]));
-  }
-  if (a && b && typeof a === "object" && typeof b === "object") {
-    const objA = a as Record<string, unknown>;
-    const objB = b as Record<string, unknown>;
-    const keysA = Object.keys(objA).filter((key) => objA[key] !== undefined);
-    const keysB = Object.keys(objB).filter((key) => objB[key] !== undefined);
-    if (keysA.length !== keysB.length) return false;
-    return keysA.every((key) => seleccionesEquivalentes(objA[key], objB[key]));
-  }
-  return false;
-}
 
 /** Slug estable para claves de facultad (sin tildes, minúsculas, guiones). */
 function slugFacultad(nombre: string): string {
@@ -94,15 +74,13 @@ export function CriteriosMarcoTab({
     [aulasState?.frame?.criterios_catalogo],
   );
   const config = useMemo(() => normalizeUniversityAulasConfig(workspace.aulas_config), [workspace.aulas_config]);
-  // Default = selección CANÓNICA (pregrado/regular/presencial/tipos válidos/≥18),
-  // no todo deseleccionado: es un punto de partida defendible que el usuario ve
-  // marcado y puede cambiar. En bases sin esas categorías cae a "todo incluido".
-  const seleccion = useMemo(
-    () =>
-      config.criterios_seleccion
-        ? reconciliarSeleccionConCatalogo(config.criterios_seleccion, catalogo)
-        : seleccionCanonica(catalogo),
-    [config.criterios_seleccion, catalogo],
+  // Selección 100% MANUAL (ADR 0035): se muestra EXACTAMENTE lo confirmado en el
+  // workspace, sin default canónico ni reconciliación silenciosa a un canónico.
+  // Sin nada guardado arranca vacía (ningún criterio asumido). Persistir tal cual
+  // evita que el marco recién construido quede "desactualizado" por un re-parcheo.
+  const seleccion = useMemo<CriteriosSeleccionMarco>(
+    () => config.criterios_seleccion ?? { byVariable: {} },
+    [config.criterios_seleccion],
   );
   const [borrador, setBorrador] = useState<CriteriosSeleccionMarco>(() => seleccion);
   const [pendientes, setPendientes] = useState<Set<string>>(() => new Set());
@@ -123,22 +101,6 @@ export function CriteriosMarcoTab({
       reconciliarBorradorCriterios(seleccion, prev, pendientesRef.current, tiposBorrador),
     );
   }, [seleccion, tiposBorrador]);
-
-  // Auto-saneo persistente: si la selección guardada quedó STALE tras remapear
-  // un rol (claves de otra columna → intersección vacía → marco elegible 0), la
-  // versión reconciliada difiere de la guardada. La persistimos para que el
-  // BUILD (que lee config.criterios_seleccion vía universityMarcoPayload, no el
-  // borrador de display) use el criterio saneado; al persistirse,
-  // `marcoCriteriosDesactualizado` habilita "reconstruir" y el flujo existente
-  // cierra el ciclo. Guard anti-loop: reconciliar es idempotente, así que solo
-  // se patchea cuando el contenido de verdad cambió (deep-equal false).
-  useEffect(() => {
-    const guardada = config.criterios_seleccion;
-    if (!guardada) return; // sin nada guardado se usa el default canónico, no hay saneo
-    if (seleccionesEquivalentes(seleccion, guardada)) return;
-    patchSeleccion(seleccion);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seleccion, config.criterios_seleccion]);
 
   const facRefs: FacultadRef[] = useMemo(() => {
     const seen = new Set<string>();
@@ -201,15 +163,6 @@ export function CriteriosMarcoTab({
     });
   }
 
-  // Aplica la selección canónica (pregrado/regular/presencial/tipos válidos/≥18)
-  // a toda la suite de una vez: punto de partida del estudio de referencia.
-  function aplicarCanonicos() {
-    const canon = seleccionCanonica(catalogo);
-    setBorrador(canon);
-    patchSeleccion(canon);
-    setPendientes(new Set());
-  }
-
   const umbralElegibles = minEligibleThreshold(borrador, config.min_elegibles_aula);
   const totalPendientes = pendientes.size;
 
@@ -245,26 +198,23 @@ export function CriteriosMarcoTab({
             {estadoResumen}
           </span>
           <div className="cmv2-crit-apply-actions">
-            <button type="button" className="cmv2-crit-canon-btn" onClick={aplicarCanonicos}>
-              Criterios canónicos
-            </button>
             <button
               type="button"
               className="cmv2-crit-apply-btn"
-            data-beam={beam ? "true" : "false"}
-            disabled={!listoParaRecalcular}
-            onClick={onReconstruir}
-            title={totalPendientes > 0 ? "Confirma o descarta cada variable antes de recalcular el marco" : undefined}
-          >
-            <span className="cmv2-crit-apply-btn-inner">
-              {reconstruyendo ? (
-                <Loader2 size={15} className="pulso-spin" aria-hidden="true" />
-              ) : (
-                <RefreshCw size={15} aria-hidden="true" />
-              )}
-              Calcular población y cursos-horario elegibles
-            </span>
-          </button>
+              data-beam={beam ? "true" : "false"}
+              disabled={!listoParaRecalcular}
+              onClick={onReconstruir}
+              title={totalPendientes > 0 ? "Confirma o descarta cada variable antes de recalcular el marco" : undefined}
+            >
+              <span className="cmv2-crit-apply-btn-inner">
+                {reconstruyendo ? (
+                  <Loader2 size={15} className="pulso-spin" aria-hidden="true" />
+                ) : (
+                  <RefreshCw size={15} aria-hidden="true" />
+                )}
+                Calcular población y cursos-horario elegibles
+              </span>
+            </button>
           </div>
         </div>
       )}
