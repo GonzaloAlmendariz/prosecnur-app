@@ -712,6 +712,20 @@ mount_xlsform_editor <- function(pr) {
         message = "El editor espera un archivo subido con kind='xlsform'."
       )
 
+      # Antes del safe gate: ¿es una Matriz PULSO IAC-CINDA? Ese formato no es
+      # un XLSForm (no tiene hoja `survey`) pero sí sabemos convertirlo. En vez
+      # de abortar, devolvemos el catálogo de audiencias para que el frontend
+      # ofrezca elegir una y luego llame a /import-matriz-pulso.
+      matriz <- matriz_pulso_detect(meta$path)
+      if (isTRUE(matriz$is_matriz)) {
+        return(list(
+          ok = TRUE,
+          kind = "matriz_pulso",
+          audiences = as.list(matriz$audiences),
+          original_name = meta$original_name
+        ))
+      }
+
       # Safe gate: aborta con mensaje claro si el archivo no parece XLSForm.
       # Sin esto, archivos como los Plan de Pulso/GIZ (con hojas Plan,
       # Diccionario, Resumen, etc.) producían un workbook con 0 columnas
@@ -728,6 +742,40 @@ mount_xlsform_editor <- function(pr) {
         source_kind = "xlsform",
         source_name = meta$original_name
       )
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/import-matriz-pulso", wrap_endpoint(function(req, res, ...) {
+      # Segunda etapa del import de Matriz PULSO: el frontend ya eligió la
+      # audiencia; convertimos la matriz a un workbook XLSForm editable. La
+      # lógica de dominio vive en matriz_pulso_xlsform.R; aquí solo validamos y
+      # serializamos con los helpers de payload del editor.
+      sid <- session_header(req)
+      parsed <- .xlsform_editor_parse_body(req)
+      file_id <- as.character(parsed$file_id %||% "")
+      audience <- as.character(parsed$audience %||% "")
+      if (!nzchar(file_id)) stop_api(400, "E_MISSING_FILE_ID", "Falta 'file_id'.")
+      if (!nzchar(audience)) stop_api(400, "E_MATRIZ_AUDIENCE", "Falta 'audience' (audiencia a convertir).")
+
+      meta <- get_file(sid, file_id)
+      .xlsform_editor_validate_meta(
+        meta,
+        expected_kind = "xlsform",
+        code = "E_BAD_EDITOR_SOURCE",
+        message = "El editor espera un archivo subido con kind='xlsform'."
+      )
+
+      out <- matriz_pulso_to_workbook(meta$path, audience)
+
+      payload <- .xlsform_editor_workbook_payload(
+        sheets = list(survey = out$survey, choices = out$choices, settings = out$settings),
+        source_kind = "matriz_pulso",
+        source_name = meta$original_name,
+        warnings = as.list(out$warnings),
+        source_meta = list(audience = out$summary$audience)
+      )
+      # Anexamos el resumen de dominio (secciones, matrices estimadas, escalas)
+      # sin pisar el summary estructural de filas del payload base.
+      payload$summary <- utils::modifyList(payload$summary, out$summary)
+      payload
     })) |>
     plumber::pr_post("/api/xlsform-editor/import-surveymonkey", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
