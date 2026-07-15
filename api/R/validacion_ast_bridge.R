@@ -78,6 +78,7 @@ bridge_regla_custom <- function(r) {
       max = params$max,
       inclusive = isTRUE(params$inclusive %||% TRUE),
       type = "date",
+      timezone = params$timezone %||% "America/Lima",
       gate = gate_ast,
       fuente = "custom",
       severidad = sev,
@@ -106,6 +107,9 @@ bridge_regla_custom <- function(r) {
     ),
     "duplicados" = rule_duplicate(
       vars = vars,
+      missing_key_policy = params$missing_key_policy %||% "ignore_missing",
+      similarity_threshold = params$similarity_threshold %||% NULL,
+      minimum_coverage = params$minimum_coverage %||% 0.80,
       gate = gate_ast,
       fuente = "custom",
       severidad = sev,

@@ -212,6 +212,511 @@
   box-shadow: 0 0 0 3px var(--pulso-primary-focus) !important;
 }
 
+/* ── Constructor de controles operativos ──────────────────────────────── */
+
+.pulso-operational-controls {
+  border: 1px solid var(--pulso-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--pulso-surface-2) 68%, var(--pulso-surface));
+  overflow: hidden;
+}
+
+.pulso-operational-controls.is-expanded {
+  border-color: var(--pulso-primary-border);
+  box-shadow: var(--pulso-shadow-soft);
+}
+
+.pulso-operational-head,
+.pulso-operational-disclosure {
+  width: 100%;
+}
+
+.pulso-operational-disclosure {
+  min-height: 62px;
+  display: grid;
+  grid-template-columns: auto minmax(190px, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 13px;
+  border: 0;
+  border-radius: 0 !important;
+  background: transparent;
+  color: var(--pulso-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pulso-operational-disclosure:hover:not(:disabled) {
+  background: var(--pulso-primary-soft);
+}
+
+.pulso-operational-icon,
+.pulso-operational-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+}
+
+.pulso-operational-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-operational-heading strong {
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.pulso-operational-heading small,
+.pulso-operational-card header small,
+.pulso-operational-field small,
+.pulso-operational-key-list > small {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+.pulso-operational-chips,
+.pulso-operational-edit-label,
+.pulso-operational-summary {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.pulso-operational-chip {
+  padding: 3px 7px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: 700;
+}
+
+.pulso-operational-chip.is-active {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-operational-chip.is-dirty {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-operational-chip.is-error {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-operational-edit-label {
+  justify-content: flex-end;
+  color: var(--pulso-primary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pulso-operational-body {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding: 13px;
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+
+.pulso-operational-lead,
+.pulso-operational-inline-note,
+.pulso-operational-error {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-operational-error,
+.pulso-operational-card-error {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-operational-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
+.pulso-operational-upstream-universe {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-success-border);
+  border-radius: 9px;
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+.pulso-operational-upstream-universe svg {
+  flex: 0 0 auto;
+}
+
+.pulso-operational-card {
+  min-width: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+  transition: border-color var(--motion-dur-fast) ease, box-shadow var(--motion-dur-fast) ease;
+}
+
+.pulso-operational-card.is-enabled {
+  border-color: var(--pulso-primary-border);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-operational-card > header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 9px;
+  padding: 11px;
+}
+
+.pulso-operational-card > header > span:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pulso-operational-card > header strong {
+  color: var(--pulso-text);
+  font-size: 12px;
+}
+
+.pulso-operational-card-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+}
+
+.pulso-operational-switch {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+}
+
+.pulso-operational-switch input {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 50%;
+  width: 30px;
+  height: 17px;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  transform: translateX(-50%);
+}
+
+.pulso-operational-switch > span {
+  width: 30px;
+  height: 17px;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--pulso-border-strong);
+  transition: background var(--motion-dur-fast) ease;
+}
+
+.pulso-operational-switch > span::after {
+  content: "";
+  display: block;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-operational-switch input:checked + span {
+  background: var(--pulso-primary);
+}
+
+.pulso-operational-switch input:checked + span::after {
+  transform: translateX(13px);
+}
+
+.pulso-operational-switch input:focus-visible + span {
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-operational-switch b {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+}
+
+.pulso-operational-card-body {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-operational-card-body[aria-disabled="true"] {
+  opacity: 0.48;
+}
+
+.pulso-operational-card-body fieldset {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 11px;
+  border: 0;
+}
+
+.pulso-operational-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.pulso-operational-label {
+  color: var(--pulso-text);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.pulso-operational-field select,
+.pulso-operational-field input {
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 11px;
+}
+
+.pulso-operational-date-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pulso-operational-value-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 168px;
+  overflow: auto;
+}
+
+.pulso-operational-value-list label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 7px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  cursor: pointer;
+}
+
+.pulso-operational-value-list label.is-selected {
+  border-color: var(--pulso-primary-border);
+  background: var(--pulso-primary-soft);
+}
+
+.pulso-operational-value-list label > span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pulso-operational-value-list strong {
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-operational-value-list small,
+.pulso-operational-value-list b {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+}
+
+.pulso-operational-fixed-policy {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.pulso-operational-fixed-policy svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--pulso-success-fg);
+}
+
+.pulso-operational-summary span {
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.pulso-operational-key-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 5px;
+  max-height: 154px;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.pulso-operational-key-list > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 5px;
+  border: 1px solid var(--pulso-primary-border);
+  border-radius: 7px;
+  background: var(--pulso-primary-soft);
+}
+
+.pulso-operational-key-list b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--pulso-primary);
+  color: var(--pulso-surface);
+  font-size: 9px;
+}
+
+.pulso-operational-key-list code {
+  color: var(--pulso-primary);
+  font-size: 10.5px;
+}
+
+.pulso-operational-key-list button {
+  min-width: 28px;
+  min-height: 28px !important;
+  justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.pulso-operational-card-error {
+  padding: 0 11px 10px;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.pulso-operational-preview {
+  overflow: hidden;
+  border: 1px solid var(--pulso-primary-border);
+  border-radius: 12px;
+  background: var(--pulso-primary-soft);
+}
+
+.pulso-operational-preview > header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 11px;
+  color: var(--pulso-primary);
+  font-size: 11px;
+}
+
+.pulso-operational-preview > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1px;
+  background: var(--pulso-primary-border);
+  border-top: 1px solid var(--pulso-primary-border);
+}
+
+.pulso-operational-preview article {
+  min-width: 0;
+  padding: 10px;
+  background: var(--pulso-surface);
+}
+
+.pulso-operational-preview article > strong {
+  color: var(--pulso-text);
+  font-size: 11px;
+}
+
+.pulso-operational-preview dl {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 4px 7px;
+  margin: 8px 0 0;
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+.pulso-operational-preview dt {
+  color: var(--pulso-text-soft);
+  font-weight: 700;
+}
+
+.pulso-operational-preview dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--pulso-text);
+}
+
+@media (max-width: 1100px) {
+  .pulso-operational-card-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  .pulso-operational-disclosure { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .pulso-operational-chips { grid-column: 2 / -1; }
+  .pulso-operational-edit-label { grid-column: 3; grid-row: 1; }
+  .pulso-operational-date-grid { grid-template-columns: 1fr; }
+}
+
 /* ── DataSurface del drilldown (DrilldownTable) ────────────────────────── */
 
 .pulso-vv2-table-scroll {

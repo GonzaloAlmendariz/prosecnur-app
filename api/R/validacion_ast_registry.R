@@ -105,7 +105,7 @@ reset_rule_registry <- function() {
     categoria_ux = "rangos",
     needs_vars_min = 1L, needs_vars_max = 1L,
     constructor = rule_range,
-    params = c("min", "max", "inclusive", "type"),
+    params = c("min", "max", "inclusive", "type", "timezone"),
     preview_chart = "histogram",
     remediation_default = "replace_value"
   )
@@ -134,11 +134,11 @@ reset_rule_registry <- function() {
   register_rule_type(
     tipo = "duplicate",
     label = "Duplicados",
-    description = "La tupla (var1, var2, ...) no debería repetirse entre casos.",
+    description = "Detecta igualdad exacta o similitud entre las respuestas seleccionadas, según el método configurado.",
     categoria_ux = "duplicados",
     needs_vars_min = 1L, needs_vars_max = Inf,
     constructor = rule_duplicate,
-    params = character(0),
+    params = c("missing_key_policy", "similarity_threshold", "minimum_coverage"),
     preview_chart = "table",
     remediation_default = "exclude_cases"
   )

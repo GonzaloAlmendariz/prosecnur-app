@@ -87,6 +87,15 @@
       stop_api(400, "E_REGLA_RANGO_FECHA_VACIO",
                "'rango_fecha' requiere al menos 'min' o 'max' en formato YYYY-MM-DD.")
     }
+    if (!is.na(mn) && !is.na(mx) && mn > mx) {
+      stop_api(400, "E_REGLA_RANGO_FECHA_INVERTIDO",
+               "En 'rango_fecha', 'min' no puede ser mayor que 'max'.")
+    }
+    tz <- as.character(params$timezone %||% "America/Lima")[1]
+    if (is.na(tz) || !nzchar(tz) || !(tz %in% OlsonNames())) {
+      stop_api(400, "E_REGLA_TIMEZONE_INVALIDO",
+               "'rango_fecha' requiere una zona horaria valida.")
+    }
   } else if (tipo %in% c("outliers_iqr", "outliers_z")) {
     k <- .as_num(params$k)
     if (is.na(k) || k <= 0) {
@@ -100,7 +109,11 @@
                "'fuera_catalogo' requiere 'valores' (lista no vacía).")
     }
   } else if (tipo == "duplicados") {
-    # No requiere params extra — la agrupación usa todas las `variables`.
+    policy <- as.character(params$missing_key_policy %||% "ignore_missing")[1]
+    if (!(policy %in% c("ignore_missing", "include_missing"))) {
+      stop_api(400, "E_REGLA_DUPLICADOS_MISSING_POLICY",
+               "missing_key_policy debe ser 'ignore_missing' o 'include_missing'.")
+    }
   } else if (tipo == "coherencia_2v") {
     if (length(vars) < 2L) {
       stop_api(400, "E_REGLA_COHERENCIA_VARS",

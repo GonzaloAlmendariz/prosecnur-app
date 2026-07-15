@@ -12922,6 +12922,7 @@ import type {
   LimpiezaDecision,
   LimpiezaBeforeAfterPreview,
   InstrumentoEstado,
+  InstrumentoOperationalConfig,
   InstrumentoVariablesExcluidas,
   ExploradorVariablesList,
   ReglasCustomList,
@@ -13016,6 +13017,24 @@ export async function apiV2LimpiezaFinalize(baseNombre?: string | null) {
 export async function apiV2ReportHtml(baseNombre?: string | null) {
   return handle<{ ok: true; file_id: string; size: number; original_name: string }>(
     await apiFetch("/api/validacion/v2/report/html", {
+      method: "POST",
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
+export async function apiV2MethodologyReportPdf(baseNombre?: string | null) {
+  return handle<{ ok: true; job_id: string; kind: "validacion.v2.methodology_report_pdf" | string }>(
+    await apiFetch("/api/validacion/v2/report/methodology/pdf", {
+      method: "POST",
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
+export async function apiV2MethodologyReportBundle(baseNombre?: string | null) {
+  return handle<{ ok: true; job_id: string; kind: "validacion.v2.methodology_report_bundle" | string }>(
+    await apiFetch("/api/validacion/v2/report/methodology/bundle", {
       method: "POST",
       headers: v2Headers(baseNombre),
     }),
@@ -13194,12 +13213,16 @@ export type InstrumentoDrillResult = {
 export async function apiV2InstrumentoBuildPlan(
   baseNombre?: string | null,
   incluir?: IncluirReglas,
+  operationalConfig?: InstrumentoOperationalConfig,
 ) {
   return handle<InstrumentoPlanResult>(
     await apiFetch("/api/validacion/v2/instrumento/plan", {
       method: "POST",
       headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
-      body: JSON.stringify(incluir ? { incluir } : {}),
+      body: JSON.stringify({
+        ...(incluir ? { incluir } : {}),
+        ...(operationalConfig ? { operational_config: operationalConfig } : {}),
+      }),
     }),
   );
 }

@@ -336,3 +336,14 @@ test_that(".validar_regla_custom exige tipo y variables", {
     class = "api_error"
   )
 })
+
+test_that("schema custom valida rango de fecha y politica de claves incompletas", {
+  expect_error(.validar_regla_custom(list(
+    tipo = "rango_fecha", variables = list("fecha"),
+    params = list(min = "2026-07-10", max = "2026-07-01")
+  )), class = "api_error")
+  expect_error(.validar_regla_custom(list(
+    tipo = "duplicados", variables = list("id"),
+    params = list(missing_key_policy = "inventada")
+  )), class = "api_error")
+})

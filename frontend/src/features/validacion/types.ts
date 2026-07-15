@@ -339,7 +339,38 @@ export type InstrumentoEstado = {
   n_reglas: number;
   variables_excluidas?: string[];
   n_variables_excluidas?: number;
+  operational_config?: InstrumentoOperationalConfig;
+  upstream_universe?: InstrumentoUpstreamUniverseSummary;
   views: ViewDescriptor[];
+};
+
+export type InstrumentoOperationalConfig = {
+  version: 2;
+  field_period: {
+    enabled: boolean;
+    variable: string;
+    start_date: string;
+    end_date: string;
+    timezone: string;
+  };
+  duplicates: {
+    enabled: boolean;
+    variables: string[];
+    matching_method: "response_similarity";
+    similarity_threshold: number;
+    minimum_coverage: number;
+  };
+};
+
+export type InstrumentoUpstreamUniverseSummary = {
+  applied: boolean;
+  variable: string;
+  total: number;
+  included: number;
+  excluded_test: number;
+  excluded_unclassified: number;
+  inherited_from?: string | null;
+  applied_at?: string | null;
 };
 
 export type InstrumentoVariableExclusionOption = {

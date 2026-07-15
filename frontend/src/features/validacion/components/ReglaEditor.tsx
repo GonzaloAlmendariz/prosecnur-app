@@ -314,6 +314,9 @@ export default function ReglaEditor({ inv, baseNombre, inicial, onSubmit, onCanc
         const mn = params.min as string | undefined;
         const mx = params.max as string | undefined;
         if (!mn && !mx) return "Define al menos fecha mínima o máxima (YYYY-MM-DD).";
+        if (mn && mx && mn > mx) return "El inicio del operativo no puede ser posterior al cierre.";
+        const timezone = String(params.timezone ?? "America/Lima").trim();
+        if (!isValidTimeZone(timezone)) return "La zona horaria no es válida. Usa un identificador como America/Lima.";
       }
       if (tipo === "outliers_iqr" || tipo === "outliers_z") {
         const k = Number(params.k);
@@ -1081,6 +1084,20 @@ function Step3({
               </label>
             </FieldRow>
           )}
+          {tipo === "rango_fecha" && (
+            <FieldRow
+              label="Zona horaria"
+              hint="Identificador IANA usado para interpretar los límites del operativo."
+            >
+              <input
+                type="text"
+                value={(params.timezone as string) ?? "America/Lima"}
+                onChange={(e) => setParam("timezone", e.target.value)}
+                placeholder="America/Lima"
+                style={inputStyle}
+              />
+            </FieldRow>
+          )}
         </>
       )}
 
@@ -1220,8 +1237,12 @@ function Step3({
         </div>
       )}
       {tipo === "duplicados" && (
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
-          Sin parámetros adicionales: se marcan casos cuya tupla ({variables.join(", ")}) aparezca más de una vez.
+        <div className="pulso-regla-detection-note">
+          <strong>Política de claves incompletas.</strong>
+          <span>
+            Se marcan todas las filas cuya tupla ({variables.join(", ")}) aparezca más de una vez.
+            Las tuplas con alguna clave vacía se ignoran y se revisan con una regla de completitud separada.
+          </span>
         </div>
       )}
     </div>
@@ -2019,6 +2040,12 @@ function parseHierarchyMapText(text: string): { ok: true; value: Record<string, 
 
 function normalizeParamsForSubmit(tipo: ReglaCustomTipo, params: Record<string, unknown>) {
   const rest = { ...params };
+  if (tipo === "rango_fecha") {
+    return { ...rest, timezone: String(params.timezone ?? "America/Lima").trim() || "America/Lima" };
+  }
+  if (tipo === "duplicados") {
+    return { ...rest, missing_key_policy: "ignore_missing" };
+  }
   if (tipo === "select_multiple_hierarchy") {
     const map = hierarchyMapFromRows(hierarchyRowsFromParams(params));
     delete rest.hierarchy_map_text;
@@ -2064,6 +2091,15 @@ function nullableNumber(value: unknown): number | null {
   if (value === "" || value === null || value === undefined) return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function isValidTimeZone(value: string): boolean {
+  try {
+    new Intl.DateTimeFormat("es-PE", { timeZone: value }).format();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function variableTipoLabel(tipo: ExploradorVariable["tipo"]) {

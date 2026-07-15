@@ -44,6 +44,55 @@
   validacion_scope_get(sid, base_nombre)
 }
 
+# El plan de validación consume el mismo diccionario curado de etiquetas que
+# el resto del pipeline. Algunos XLSForm (como ACNUR) traen español e inglés
+# pegados en una sola celda; el override persistido del proyecto es la fuente
+# de verdad para separarlos sin alterar códigos ni expresiones.
+.validacion_apply_label_overrides <- function(sid, inst) {
+  if (is.null(inst) || !exists(".label_overrides_apply_to_instrument", mode = "function")) {
+    return(inst)
+  }
+  s <- session_get(sid, required = FALSE)
+  .label_overrides_apply_to_instrument(inst, (s %||% list())$label_overrides %||% NULL)
+}
+
+.validacion_request_json <- function(req) {
+  body_raw <- tryCatch({
+    if (!is.null(req$bodyRaw) && length(req$bodyRaw) > 0L) rawToChar(req$bodyRaw)
+    else req$postBody %||% ""
+  }, error = function(e) "")
+  if (!is.character(body_raw) || !nzchar(body_raw)) return(list())
+  Encoding(body_raw) <- "UTF-8"
+  tryCatch(
+    jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+    error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+  )
+}
+
+.validacion_upstream_universe <- function(sid, base_nombre = NULL) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(NULL)
+  resolved <- tryCatch(.resolve_base_nombre(s, base_nombre), error = function(e) NULL)
+  if (is.null(resolved)) return(NULL)
+  filter <- ((s$estudio %||% list())$bases %||% list())[[resolved]]$universe_filter %||% NULL
+  if (is.null(filter) || !isTRUE(filter$enabled)) return(NULL)
+  audit <- filter$audit %||% list()
+  list(
+    applied = TRUE,
+    variable = as.character(filter$variable %||% "")[1],
+    real_values = as.list(as.character(unlist(filter$real_values %||% character(0), use.names = FALSE))),
+    test_values = as.list(as.character(unlist(filter$test_values %||% character(0), use.names = FALSE))),
+    missing_policy = as.character(filter$missing_policy %||% "exclude")[1],
+    unassigned_policy = as.character(filter$unassigned_policy %||% "unclassified")[1],
+    total = as.integer(audit$total %||% 0L),
+    included = as.integer(audit$included %||% 0L),
+    excluded_test = as.integer(audit$excluded_test %||% 0L),
+    excluded_unclassified = as.integer(audit$excluded_unclassified %||% 0L),
+    applied_at = filter$applied_at %||% NULL,
+    inherited_from = filter$inherited_from %||% NULL
+  )
+}
+
 .validacion_sync_shared_logic_if_needed <- function(sid, base_nombre = NULL) {
   if (!exists("estudio_sync_shared_xlsform_logic_if_needed", mode = "function")) {
     return(NULL)
@@ -450,6 +499,7 @@
   files <- tryCatch(.resolve_base_files(sid, base), error = function(e) NULL)
   if (is.null(files)) return(list())
   inst <- tryCatch(leer_xlsform_limpieza(files$xlsform$path, verbose = FALSE), error = function(e) NULL)
+  inst <- .validacion_apply_label_overrides(sid, inst)
   survey <- inst$survey %||% NULL
   if (is.null(survey) || !is.data.frame(survey) || !"name" %in% names(survey)) return(list())
   lab_col <- .validacion_label_col(survey)
@@ -487,6 +537,7 @@
   if (!is.null(s$inst_limpieza)) return(s$inst_limpieza)
   meta <- .require_xlsform(sid)
   inst <- leer_xlsform_limpieza(meta$path, verbose = FALSE)
+  inst <- .validacion_apply_label_overrides(sid, inst)
   session_set(sid, "inst_limpieza", inst)
   inst
 }
@@ -691,6 +742,75 @@ mount_validacion <- function(pr) {
            original_name = meta$original_name)
     })) |>
 
+    # --- Reporte metodologico PDF -------------------------------------------
+    # Inventario exhaustivo del plan efectivo. Se genera como job porque un
+    # instrumento grande puede producir decenas de paginas con formulas largas.
+    plumber::pr_post("/api/validacion/v2/report/methodology/pdf", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      scope <- .get_base_scope(sid, base)
+      if (is.null(scope$plan_result) || is.null(scope$plan_result$plan)) {
+        stop_api(409, "E_NO_PLAN", "Primero construye el plan de validacion.")
+      }
+      s <- session_get(sid)
+      resolved_base <- tryCatch(.resolve_base_nombre(s, base), error = function(e) base)
+      base_meta <- ((s$estudio %||% list())$bases %||% list())[[resolved_base]] %||% list()
+      model <- build_validation_methodology_report_model(
+        scope = scope,
+        base_nombre = base_meta$source_alias %||% base_meta$source_title %||% base_meta$nombre %||% base,
+        estudio_nombre = (s$estudio %||% list())$nombre %||% s$project_name %||% "Estudio",
+        upstream_universe = .validacion_upstream_universe(sid, base),
+        generated_at = Sys.time()
+      )
+      model_path <- job_save_rds(sid, "validacion_methodology_report_model", model)
+      filename <- .export_filename(sid, "metodologia_validacion", "pdf", base = base)
+      runner <- validacion_methodology_report_pdf_job_runner
+      attr(runner, "prosecnur_job_function_name") <- "validacion_methodology_report_pdf_job_runner"
+      job_id <- job_submit(
+        sid = sid,
+        kind = "validacion.v2.methodology_report_pdf",
+        func = runner,
+        args = list(model_path = model_path),
+        result_filename = filename
+      )
+      list(ok = TRUE, job_id = job_id, kind = "validacion.v2.methodology_report_pdf")
+    })) |>
+
+    # --- Paquete metodologico PDF + R ----------------------------------------
+    # Conserva el endpoint PDF individual y agrega un ZIP generado desde el
+    # mismo modelo canonico. El resultado vive en el contrato comun de jobs y
+    # no modifica ni persiste artefactos dentro del proyecto .pulso.
+    plumber::pr_post("/api/validacion/v2/report/methodology/bundle", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      scope <- .get_base_scope(sid, base)
+      if (is.null(scope$plan_result) || is.null(scope$plan_result$plan)) {
+        stop_api(409, "E_NO_PLAN", "Primero construye el plan de validacion.")
+      }
+      s <- session_get(sid)
+      resolved_base <- tryCatch(.resolve_base_nombre(s, base), error = function(e) base)
+      base_meta <- ((s$estudio %||% list())$bases %||% list())[[resolved_base]] %||% list()
+      model <- build_validation_methodology_report_model(
+        scope = scope,
+        base_nombre = base_meta$source_alias %||% base_meta$source_title %||% base_meta$nombre %||% base,
+        estudio_nombre = (s$estudio %||% list())$nombre %||% s$project_name %||% "Estudio",
+        upstream_universe = .validacion_upstream_universe(sid, base),
+        generated_at = Sys.time()
+      )
+      model_path <- job_save_rds(sid, "validacion_methodology_report_bundle_model", model)
+      filename <- .export_filename(sid, "metodologia_validacion", "zip", base = base)
+      runner <- validation_methodology_report_bundle_job_runner
+      attr(runner, "prosecnur_job_function_name") <- "validation_methodology_report_bundle_job_runner"
+      job_id <- job_submit(
+        sid = sid,
+        kind = "validacion.v2.methodology_report_bundle",
+        func = runner,
+        args = list(model_path = model_path),
+        result_filename = filename
+      )
+      list(ok = TRUE, job_id = job_id, kind = "validacion.v2.methodology_report_bundle")
+    })) |>
+
     # --- Instrumento: estado general (HEAD-like) -----------------------------
     plumber::pr_get("/api/validacion/v2/instrumento/estado", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
@@ -703,6 +823,7 @@ mount_validacion <- function(pr) {
         nrow(scope$plan_result$plan)
       } else 0L
       vars_excluidas <- .validacion_chr_vec(scope$variables_excluidas)
+      op_config <- normalize_validation_operational_config(scope$operational_config %||% NULL)
       list(
         ok = TRUE,
         base_nombre = base %||% NA_character_,
@@ -710,7 +831,9 @@ mount_validacion <- function(pr) {
         auditoria_corrida = !is.null(scope$evaluacion),
         n_reglas = as.integer(n_reglas),
         variables_excluidas = as.list(vars_excluidas),
-        n_variables_excluidas = as.integer(length(vars_excluidas))
+        n_variables_excluidas = as.integer(length(vars_excluidas)),
+        operational_config = validation_operational_config_public(op_config),
+        upstream_universe = .validacion_upstream_universe(sid, base)
       )
     })) |>
 
@@ -751,9 +874,11 @@ mount_validacion <- function(pr) {
     })) |>
 
     # --- Instrumento: construir plan desde XLSForm (scoped por base) ---------
-    plumber::pr_post("/api/validacion/v2/instrumento/plan", wrap_endpoint(function(req, res, incluir = NULL) {
+    plumber::pr_post("/api/validacion/v2/instrumento/plan", wrap_endpoint(function(req, res, incluir = NULL, operational_config = NULL) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
+      scope <- .get_base_scope(sid, base)
+      parsed_body <- .validacion_request_json(req)
       logic_sync <- .validacion_sync_shared_logic_if_needed(sid, base)
       # Resolver archivos de la base (multi-base) o legacy.
       files <- .resolve_base_files(sid, base)
@@ -762,14 +887,31 @@ mount_validacion <- function(pr) {
       # ahora se lee en cada construcción y no pasa nada porque el XLSForm
       # no cambia entre builds).
       inst <- leer_xlsform_limpieza(files$xlsform$path, verbose = FALSE)
+      inst <- .validacion_apply_label_overrides(sid, inst)
       base_meta <- .validacion_mb_base_meta(sid, files$base_nombre %||% base)
       inst <- .validacion_patch_integrated_instrument(inst, base_meta)
 
-      incluir_final <- if (is.null(incluir)) list(
+      incluir_requested <- parsed_body$incluir %||% incluir
+      incluir_final <- if (is.null(incluir_requested)) list(
         required = TRUE, other = TRUE, relevant = TRUE,
         constraint = TRUE, calculate = TRUE, choice_filter = TRUE,
         repeat_min1 = FALSE, tiempo_ventana = FALSE
-      ) else as.list(incluir)
+      ) else as.list(incluir_requested)
+
+      # Los controles operativos actuan sobre entrevistas (tabla principal),
+      # no sobre cualquier nombre declarado dentro de un repeat del XLSForm.
+      # Leer el mismo contexto que usara la auditoria evita aceptar una
+      # variable repeat-only que luego vaciaria silenciosamente el universo.
+      main_data_ctx <- read_validation_data_ast(
+        path = files$data$path,
+        ext = files$data$ext,
+        instrumento = inst
+      )
+      available_variables <- names(main_data_ctx$principal %||% data.frame())
+      op_config <- normalize_validation_operational_config(
+        parsed_body$operational_config %||% operational_config %||% scope$operational_config %||% NULL,
+        available_variables = available_variables
+      )
 
       compat <- validation_profile_for_base(files$base_nombre %||% base)
       bundle <- build_validation_bundle(
@@ -779,6 +921,7 @@ mount_validacion <- function(pr) {
         compatibility = compat
       )
       bundle <- .validacion_patch_integrated_bundle(bundle, base_meta)
+      bundle <- validation_operational_append_rules(bundle, op_config)
       plan <- bundle$plan %||% compile_rules_to_plan(bundle$rules)
       resumen <- tryCatch(
         dplyr::arrange(
@@ -788,8 +931,10 @@ mount_validacion <- function(pr) {
         error = function(e) NULL
       )
       plan_result <- list(plan = plan, bundle = bundle, resumen = resumen,
+                          operational_config = op_config,
                           secciones = inst$meta$section_map, meta = inst$meta)
       validacion_scope_set(sid, base, "plan_result", plan_result)
+      validacion_scope_set(sid, base, "operational_config", op_config)
       # Al reconstruir el plan, la evaluación vieja ya no aplica.
       validacion_scope_set(sid, base, "evaluacion", NULL)
       .limpieza_invalidate_outputs(sid, base)
@@ -812,6 +957,7 @@ mount_validacion <- function(pr) {
         base_nombre = files$base_nombre %||% NA_character_,
         xlsform_logic_sync = logic_sync %||% NULL,
         n_reglas = as.integer(nrow(plan)),
+        operational_config = validation_operational_config_public(op_config),
         resumen = if (!is.null(resumen)) .plan_rows_preview(resumen, n = 50) else list(),
         plan_preview = plan_preview,
         relational_summary = relational$summary,
@@ -832,6 +978,7 @@ mount_validacion <- function(pr) {
       }
       files <- .resolve_base_files(sid, base)
       inst <- leer_xlsform_limpieza(files$xlsform$path, verbose = FALSE)
+      inst <- .validacion_apply_label_overrides(sid, inst)
 
       s <- session_get(sid)
       out_name <- .export_filename(sid, "plan_limpieza_export", "xlsx", base = base)
@@ -925,7 +1072,6 @@ mount_validacion <- function(pr) {
       # resolvemos (paths + repeat_group) para ensamblar el modelo multi-tabla
       # dentro del job. Vacío ⇒ camino single-table intacto.
       repeat_children <- .validacion_resolve_repeat_children(sid, base_effective %||% base)
-
       job_id <- job_submit(
         sid = sid,
         kind = "validacion.v2.auditoria",
@@ -1108,6 +1254,7 @@ mount_validacion <- function(pr) {
       files <- .resolve_base_files(sid, base)
       inst <- tryCatch(leer_xlsform_limpieza(files$xlsform$path, verbose = FALSE),
                        error = function(e) NULL)
+      inst <- .validacion_apply_label_overrides(sid, inst)
       # auditar_regla devuelve list(resumen, expresion, objetivo, casos).
       aud <- auditar_regla(scope$evaluacion, ids = id_regla,
                            inst = inst, verbose = FALSE)
@@ -1713,7 +1860,6 @@ mount_validacion <- function(pr) {
 
         # ADR 0030 Fase 2: hijas repeat de la base activa para el ensamblado.
         repeat_children <- .validacion_resolve_repeat_children(sid, base_effective %||% base)
-
         job_id <- job_submit(
           sid = sid,
           kind = "validacion.v2.reglas_custom.ejecutar",
