@@ -3453,7 +3453,9 @@ export async function apiXlsformEditorExportPdf(
     columns?: 1 | 2;
     logic_language?: "saltos" | "condiciones";
     show_questionnaire_number?: boolean;
-    matrix_groups?: Array<{ members: string[]; tenor?: string }>;
+    matrix_layout?: "full" | "column";
+    consent_var?: string;
+    matrix_groups?: Array<{ members: string[]; tenor?: string; special?: string; header?: string }>;
   } = {},
 ) {
   return handle<{

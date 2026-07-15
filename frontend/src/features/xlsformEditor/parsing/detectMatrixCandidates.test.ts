@@ -3,14 +3,25 @@ import { detectMatrixCandidates } from "./detectMatrixCandidates";
 import { createBlankWorkbook } from "./sheetUtils";
 import type { XlsformEditorWorkbook } from "../types";
 
-// Helper: arma un workbook con una hoja survey mínima (type/name/label).
-function surveyWorkbook(rows: Array<[string, string, string]>): XlsformEditorWorkbook {
+// Helper: arma un workbook con una hoja survey mínima (type/name/label) y,
+// opcionalmente, una hoja choices (list_name/name/label).
+function surveyWorkbook(
+  rows: Array<[string, string, string]>,
+  choices?: Array<[string, string, string]>,
+): XlsformEditorWorkbook {
   const wb = createBlankWorkbook();
   wb.survey = {
     name: "survey",
     columns: ["type", "name", "label"],
     rows: rows.map((r) => [...r]),
   };
+  if (choices) {
+    wb.choices = {
+      name: "choices",
+      columns: ["list_name", "name", "label"],
+      rows: choices.map((r) => [...r]),
+    };
+  }
   return wb;
 }
 
@@ -76,5 +87,37 @@ describe("detectMatrixCandidates", () => {
 
   it("survey vacío devuelve []", () => {
     expect(detectMatrixCandidates(surveyWorkbook([]))).toEqual([]);
+  });
+
+  it("extrae scaleOptions de la lista del candidato, en orden", () => {
+    const wb = surveyWorkbook(
+      [
+        ["select_one satisfaccion", "p1", "Servicio A"],
+        ["select_one satisfaccion", "p2", "Servicio B"],
+      ],
+      [
+        ["satisfaccion", "1", "De acuerdo"],
+        ["satisfaccion", "2", "En desacuerdo"],
+        ["satisfaccion", "9", "SIN INF"],
+        // Otra lista no debe filtrarse dentro de las opciones del candidato.
+        ["frecuencia", "1", "Siempre"],
+      ],
+    );
+
+    const [candidate] = detectMatrixCandidates(wb);
+    expect(candidate.scaleOptions).toEqual([
+      { code: "1", label: "De acuerdo" },
+      { code: "2", label: "En desacuerdo" },
+      { code: "9", label: "SIN INF" },
+    ]);
+  });
+
+  it("sin hoja choices poblada, scaleOptions es []", () => {
+    const wb = surveyWorkbook([
+      ["select_one lista_x", "q1", "P1"],
+      ["select_one lista_x", "q2", "P2"],
+    ]);
+    const [candidate] = detectMatrixCandidates(wb);
+    expect(candidate.scaleOptions).toEqual([]);
   });
 });

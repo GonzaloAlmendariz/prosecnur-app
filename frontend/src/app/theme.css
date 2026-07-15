@@ -38122,6 +38122,40 @@ button.pulso-focus-calculation-recipe {
   border-color: var(--pulso-primary);
   box-shadow: 0 0 0 2px var(--pulso-primary-soft);
 }
+/* Separa el rótulo de la columna especial del input de tenor que lo precede. */
+.pulso-more-views-tenor-input + label {
+  margin-top: 5px;
+}
+.pulso-more-views-special-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.pulso-more-views-special-select {
+  width: 100%;
+  height: 28px;
+  padding: 0 26px 0 8px;
+  font-size: 13px;
+  color: var(--pulso-text);
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.pulso-more-views-special-select:focus {
+  outline: none;
+  border-color: var(--pulso-primary);
+  box-shadow: 0 0 0 2px var(--pulso-primary-soft);
+}
+.pulso-more-views-special-caret {
+  position: absolute;
+  right: 8px;
+  color: var(--pulso-text-soft);
+  pointer-events: none;
+}
 
 /* === HubFlowDiagram (SVG del flujo en el EmptyHome) === */
 .pulso-hub-flow {
