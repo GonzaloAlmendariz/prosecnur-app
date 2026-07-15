@@ -191,6 +191,47 @@ test_that("columns option toggles single vs two column layout", {
   expect_equal(m_bad$columns, 2L)
 })
 
+test_that("contextual special detection across scale shapes (2/5/8/9/12 pts)", {
+  P <- function(codes, labels) {
+    opts <- Map(function(cc, ll) list(code = cc, label = ll), codes, labels)
+    .form_pdf_matrix_partition_options(unname(opts))
+  }
+  ncol <- function(p) length(p$scale) + (if (!is.null(p$special)) 1L else 0L)
+
+  # (a) 4 + especial 9 (gap) -> 5 columnas, especial 9
+  p <- P(c("1","2","3","4","9"), c("Muy bajo","Bajo","Alto","Muy alto","SIN INF"))
+  expect_equal(length(p$scale), 4L); expect_identical(p$special$code, "9"); expect_equal(ncol(p), 5L)
+  # (b) 4 + especial 99 (etiqueta NS)
+  p <- P(c("1","2","3","4","99"), c("A","B","C","D","No sabe"))
+  expect_equal(length(p$scale), 4L); expect_identical(p$special$code, "99")
+  # (c) 5 puntos con intermedia, SIN especial
+  p <- P(c("1","2","3","4","5"),
+         c("Totalmente en desacuerdo","En desacuerdo","Ni de acuerdo ni en desacuerdo",
+           "De acuerdo","Totalmente de acuerdo"))
+  expect_equal(length(p$scale), 5L); expect_null(p$special)
+  # (d) escala 1-9 CONTIGUA: el 9 NO debe separarse
+  p <- P(as.character(1:9), paste("Punto", 1:9))
+  expect_equal(length(p$scale), 9L); expect_null(p$special)
+  # (e) 8 puntos contiguos
+  p <- P(as.character(1:8), paste("P", 1:8))
+  expect_equal(length(p$scale), 8L); expect_null(p$special)
+  # (f) 12 puntos contiguos
+  p <- P(as.character(1:12), paste("P", 1:12))
+  expect_equal(length(p$scale), 12L); expect_null(p$special)
+  # (g) 2 puntos Si/No
+  p <- P(c("1","2"), c("Si","No"))
+  expect_equal(length(p$scale), 2L); expect_null(p$special)
+  # extra: 1-4 + 88 centinela alto -> especial 88
+  p <- P(c("1","2","3","4","88"), c("A","B","C","D","No hay informacion"))
+  expect_equal(length(p$scale), 4L); expect_identical(p$special$code, "88")
+  # extra: 5 puntos + 9 con gap -> escala 5, especial 9
+  p <- P(c("1","2","3","4","5","9"), c("A","B","C","D","E","SIN INF"))
+  expect_equal(length(p$scale), 5L); expect_identical(p$special$code, "9")
+  # extra: codigo 77 con etiqueta "No aplica" -> especial por etiqueta
+  p <- P(c("1","2","3","77"), c("A","B","C","No aplica"))
+  expect_identical(p$special$code, "77")
+})
+
 test_that("matrix option partition separates scale from special anchor", {
   # Escala tipo Likert con codigo especial 9 = SIN INF.
   opts <- list(
@@ -218,6 +259,95 @@ test_that("matrix option partition separates scale from special anchor", {
   expect_true(.form_pdf_option_is_special(list(code = "3", label = "No sabe / No responde")))
   expect_true(.form_pdf_option_is_special(list(code = "88", label = "No aplica")))
   expect_false(.form_pdf_option_is_special(list(code = "2", label = "En desacuerdo")))
+})
+
+test_that("special_override fixes the special column explicitly", {
+  P <- function(codes, labels) {
+    Map(function(cc, ll) list(code = cc, label = ll), codes, labels)
+  }
+  ncol <- function(p) length(p$scale) + (if (!is.null(p$special)) 1L else 0L)
+
+  # (a) "none" sobre escala con 9 al final: TODO es escala, sin especial. La
+  # heuristica separaria el 9 (gap), pero el override lo impide.
+  opts_a <- unname(P(c("1","2","3","4","9"),
+                     c("Muy bajo","Bajo","Alto","Muy alto","SIN INF")))
+  p_none <- .form_pdf_matrix_partition_options(opts_a, "none")
+  expect_null(p_none$special)
+  expect_equal(length(p_none$scale), 5L)
+  expect_equal(ncol(p_none), 5L)
+  # confirmacion: sin override, la heuristica si separa el 9.
+  p_auto <- .form_pdf_matrix_partition_options(opts_a, "auto")
+  expect_identical(p_auto$special$code, "9")
+  expect_equal(length(p_auto$scale), 4L)
+
+  # (b) "9" sobre escala CONTIGUA 1..9: la heuristica NO separaria el 9 (contiguo),
+  # pero el override lo fuerza como especial -> 8 de escala + 1 especial.
+  opts_b <- unname(P(as.character(1:9), paste("Punto", 1:9)))
+  p_force <- .form_pdf_matrix_partition_options(opts_b, "9")
+  expect_identical(p_force$special$code, "9")
+  expect_equal(length(p_force$scale), 8L)
+  expect_equal(ncol(p_force), 9L)
+  # confirmacion: sin override, 1..9 contiguo es todo escala.
+  p_b_auto <- .form_pdf_matrix_partition_options(opts_b, "auto")
+  expect_null(p_b_auto$special)
+  expect_equal(length(p_b_auto$scale), 9L)
+
+  # (c) ausente / "auto" / NULL: heuristica intacta (mismos asserts que ya existen).
+  opts_c <- unname(P(c("1","2","3","4","9"),
+                     c("Totalmente en Desacuerdo","En Desacuerdo","De Acuerdo",
+                       "Totalmente de Acuerdo","SIN INF")))
+  for (ov in list(NULL, "auto", "")) {
+    p <- .form_pdf_matrix_partition_options(opts_c, ov)
+    expect_equal(length(p$scale), 4L)
+    expect_identical(p$special$code, "9")
+    expect_identical(p$scale[[1]]$label, "Totalmente en Desacuerdo")
+    expect_identical(p$scale[[4]]$label, "Totalmente de Acuerdo")
+  }
+
+  # (d) defensivo: codigo forzado inexistente -> warning + caida a heuristica.
+  expect_warning(
+    p_miss <- .form_pdf_matrix_partition_options(opts_a, "77"),
+    "inexistente")
+  expect_identical(p_miss$special$code, "9")  # heuristica de respaldo
+})
+
+test_that("matrix_groups special is parsed and attached to the matrix block", {
+  survey <- data.frame(
+    type = rep("select_one esc", 3),
+    name = c("q1_a", "q1_b", "q1_c"),
+    label = c("Afirma A", "Afirma B", "Afirma C"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = rep("esc", 5),
+    name = c("1", "2", "3", "4", "9"),
+    label = c("Nada", "Poco", "Algo", "Mucho", "SIN INF"),
+    stringsAsFactors = FALSE
+  )
+  settings <- data.frame(form_title = "T")
+
+  # keys_from_groups devuelve `specials` alineado a la key del grupo.
+  mg <- .form_pdf_matrix_keys_from_groups(survey, list(
+    list(members = c("q1_a", "q1_b", "q1_c"), special = "none")))
+  gkey <- mg$keys[mg$keys != ""][1]
+  expect_identical(mg$specials[[gkey]], "none")
+
+  # special = "none" adjunta special_override="none" al bloque -> matriz sin especial.
+  m_none <- formulario_pdf_build_model(survey, choices, settings, options = list(
+    matrix_groups = list(list(members = c("q1_a", "q1_b", "q1_c"), special = "none"))))
+  mat_none <- Filter(function(b) identical(b$kind, "matrix"), m_none$blocks)[[1]]
+  expect_identical(mat_none$special_override, "none")
+  part_none <- .form_pdf_matrix_partition_options(mat_none$options, mat_none$special_override)
+  expect_null(part_none$special)
+  expect_equal(length(part_none$scale), 5L)
+
+  # special ausente -> override "auto" (heuristica separa el 9).
+  m_auto <- formulario_pdf_build_model(survey, choices, settings, options = list(
+    matrix_groups = list(list(members = c("q1_a", "q1_b", "q1_c")))))
+  mat_auto <- Filter(function(b) identical(b$kind, "matrix"), m_auto$blocks)[[1]]
+  expect_identical(mat_auto$special_override, "auto")
+  part_auto <- .form_pdf_matrix_partition_options(mat_auto$options, mat_auto$special_override)
+  expect_identical(part_auto$special$code, "9")
 })
 
 test_that("localized label::es columns resolve into label and hint", {
@@ -322,7 +452,7 @@ test_that("logic_language condiciones emits openings and suppresses skips", {
   # p2 abre la condicion; p3 (misma relevant en corrida) NO la repite.
   expect_match(q2$opening_condition, "En caso de haber respondido")
   expect_match(q2$opening_condition, "Si")
-  expect_match(q2$opening_condition, "P.1")
+  expect_match(q2$opening_condition, "en la pregunta 1", fixed = TRUE)
   expect_identical(q3$opening_condition, "")
 
   tmp <- tempfile(fileext = ".pdf")
@@ -354,6 +484,133 @@ test_that("condiciones dedups group-inherited relevant on questions", {
   expect_match(sec$opening_condition, "En caso de haber respondido")
   expect_identical(h1$opening_condition, "")
   expect_identical(h2$opening_condition, "")
+})
+
+test_that("group-level relevant skips the WHOLE group to the first question after it", {
+  # `relevant` en el begin_group: el bloque condicionado es todo el grupo; el
+  # destino es la primera pregunta DESPUES del end_group (no la primera hija).
+  survey <- data.frame(
+    type = c("select_one yesno", "begin_group", "text", "text", "end_group", "text"),
+    name = c("filtro", "grp", "hijo1", "hijo2", "", "despues"),
+    label = c("¿Continúa?", "Datos", "N1", "N2", "", "Cierre"),
+    relevant = c("", "${filtro} = '1'", "", "", "", ""),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(list_name = c("yesno", "yesno"), name = c("1", "2"),
+                        label = c("Si", "No"), stringsAsFactors = FALSE)
+  model <- formulario_pdf_build_model(survey, choices, data.frame(form_title = "T"))
+  filtro <- Filter(function(b) identical(b$name, "filtro"), model$blocks)[[1]]
+  despues <- Filter(function(b) identical(b$name, "despues"), model$blocks)[[1]]
+  hijo1 <- Filter(function(b) identical(b$name, "hijo1"), model$blocks)[[1]]
+  no_choice <- Filter(function(c) identical(c$code, "2"), filtro$options)[[1]]
+  # El salto apunta a la pregunta post-grupo (`despues`), NO a la primera hija.
+  expect_identical(no_choice$paper_skip, sprintf("Salto a la %s", despues$number))
+  expect_false(identical(no_choice$paper_skip, sprintf("Salto a la %s", hijo1$number)))
+})
+
+test_that("skip that lands at questionnaire end says 'Termina la encuesta'", {
+  survey <- data.frame(
+    type = c("select_one yesno", "begin_group", "text", "text", "end_group"),
+    name = c("filtro", "grp", "h1", "h2", ""),
+    label = c("¿Sigue?", "Datos", "A", "B", ""),
+    relevant = c("", "${filtro} = '1'", "", "", ""),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(list_name = c("yesno", "yesno"), name = c("1", "2"),
+                        label = c("Si", "No"), stringsAsFactors = FALSE)
+  model <- formulario_pdf_build_model(survey, choices, data.frame(form_title = "T"))
+  filtro <- Filter(function(b) identical(b$name, "filtro"), model$blocks)[[1]]
+  no_choice <- Filter(function(c) identical(c$code, "2"), filtro$options)[[1]]
+  expect_identical(no_choice$paper_skip, "Termina la encuesta")
+})
+
+test_that("no-op skip (nothing numbered is skipped) is suppressed", {
+  # El relevant solo gatea una nota (no numerada) entre dos preguntas: el destino
+  # coincide con la pregunta inmediatamente siguiente al origen -> no se emite salto.
+  survey <- data.frame(
+    type = c("select_one yesno", "note", "text"),
+    name = c("filtro", "nota", "final"),
+    label = c("¿Ver nota?", "Texto informativo", "Comentario"),
+    relevant = c("", "${filtro} = '1'", ""),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(list_name = c("yesno", "yesno"), name = c("1", "2"),
+                        label = c("Si", "No"), stringsAsFactors = FALSE)
+  model <- formulario_pdf_build_model(survey, choices, data.frame(form_title = "T"))
+  filtro <- Filter(function(b) identical(b$name, "filtro"), model$blocks)[[1]]
+  no_choice <- Filter(function(c) identical(c$code, "2"), filtro$options)[[1]]
+  expect_false(nzchar(no_choice$paper_skip %||% ""))
+})
+
+test_that("condiciones wording uses 'en la pregunta N' (full word)", {
+  survey <- data.frame(
+    type = c("select_one yesno", "text"),
+    name = c("p1", "p2"),
+    label = c("¿Trabaja?", "Ocupación"),
+    relevant = c("", "${p1} = '1'"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(list_name = c("yesno", "yesno"), name = c("1", "2"),
+                        label = c("Sí", "No"), stringsAsFactors = FALSE)
+  model <- formulario_pdf_build_model(survey, choices, data.frame(form_title = "T"),
+                                      options = list(logic_language = "condiciones"))
+  q2 <- Filter(function(b) identical(b$name, "p2"), model$blocks)[[1]]
+  expect_match(q2$opening_condition, "en la pregunta 1", fixed = TRUE)
+  expect_false(grepl("P.1", q2$opening_condition, fixed = TRUE))
+})
+
+test_that("consent_var: omits consent opening (condiciones) and terminates (saltos)", {
+  survey <- data.frame(
+    type = c("select_one yesno", "begin_group", "text", "end_group",
+             "select_one yesno", "begin_group", "text", "end_group", "text"),
+    name = c("consent", "g1", "q1", "", "otra", "g2", "q2", "", "cierre"),
+    label = c("¿Consiente?", "Bloque 1", "Dato 1", "",
+              "¿Otra cosa?", "Bloque 2", "Dato 2", "", "Final"),
+    relevant = c("", "${consent} = '1'", "", "",
+                 "", "${otra} = '1'", "", "", ""),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(list_name = c("yesno", "yesno"), name = c("1", "2"),
+                        label = c("Sí", "No"), stringsAsFactors = FALSE)
+
+  # CONDICIONES: la apertura del consentimiento se omite; la de OTRA variable no.
+  m_cond <- formulario_pdf_build_model(survey, choices, data.frame(form_title = "T"),
+    options = list(logic_language = "condiciones", consent_var = "consent"))
+  sec_g1 <- Filter(function(b) identical(b$kind, "section") && grepl("Bloque 1", b$title), m_cond$blocks)[[1]]
+  sec_g2 <- Filter(function(b) identical(b$kind, "section") && grepl("Bloque 2", b$title), m_cond$blocks)[[1]]
+  expect_identical(sec_g1$opening_condition, "")                       # consentimiento omitido
+  expect_match(sec_g2$opening_condition, "En caso de haber respondido") # otra condicion sí
+
+  # SALTOS: la negativa del consentimiento termina la encuesta.
+  m_skip <- formulario_pdf_build_model(survey, choices, data.frame(form_title = "T"),
+    options = list(logic_language = "saltos", consent_var = "consent"))
+  consent <- Filter(function(b) identical(b$name, "consent"), m_skip$blocks)[[1]]
+  no_consent <- Filter(function(c) identical(c$code, "2"), consent$options)[[1]]
+  expect_identical(no_consent$paper_skip, "Termina la encuesta")
+})
+
+test_that("OPS consent no longer emits the false 'Salto a la 4'", {
+  path <- test_path("../../inst/samples/ops_salud/instrumento.xlsx")
+  skip_if_not(file.exists(path))
+  survey <- readxl::read_excel(path, sheet = "survey", col_types = "text")
+  choices <- readxl::read_excel(path, sheet = "choices", col_types = "text")
+  st <- data.frame(form_title = "OPS")
+
+  m <- suppressWarnings(formulario_pdf_build_model(survey, choices, st,
+                                                   options = list(logic_language = "saltos")))
+  consent <- Filter(function(b) identical(b$name, "consetimiento"), m$blocks)[[1]]
+  skips <- vapply(consent$options, function(o) o$paper_skip %||% "", character(1))
+  # El destino real es post-grupo (no la pregunta inmediatamente siguiente Q4).
+  expect_false(any(skips == "Salto a la 4"))
+  expect_true(any(nzchar(skips)))  # sí hay un salto real (a la seccion tras el grupo)
+
+  # Con consent_var, la negativa termina la encuesta.
+  m2 <- suppressWarnings(formulario_pdf_build_model(survey, choices, st,
+    options = list(logic_language = "saltos", consent_var = "consetimiento")))
+  consent2 <- Filter(function(b) identical(b$name, "consetimiento"), m2$blocks)[[1]]
+  skips2 <- vapply(consent2$options, function(o) o$paper_skip %||% "", character(1))
+  expect_true(any(skips2 == "Termina la encuesta"))
+  expect_false(any(skips2 == "Salto a la 4"))
 })
 
 test_that("matrix rows are numbered sequentially (not subnumbered N.j)", {
@@ -561,6 +818,207 @@ test_that("show_questionnaire_number flag toggles and never breaks render", {
                          output_file = tmp, options = list(show_questionnaire_number = FALSE))
   expect_true(file.exists(tmp))
   expect_gte(qpdf::pdf_length(tmp), 1)
+})
+
+test_that("matrix without tenor does not draw a duplicated heading", {
+  # Matriz autodetectada SIN tenor: la etiqueta del 1er item NO debe salir como
+  # encabezado ademas de como fila 1 (antes se duplicaba).
+  survey <- data.frame(
+    type = rep("select_one esc", 3),
+    name = c("q1_a", "q1_b", "q1_c"),
+    label = c("Conoce la vision institucional", "Afirma B", "Afirma C"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(list_name = rep("esc", 4), name = c("1", "2", "3", "9"),
+                        label = c("Nada", "Poco", "Mucho", "SIN INF"), stringsAsFactors = FALSE)
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(survey, choices, settings = data.frame(form_title = "T"),
+                         output_file = tmp,
+                         options = list(matrix_groups = list(c("q1_a", "q1_b", "q1_c"))))
+  expect_true(file.exists(tmp))
+  pdftotext <- Sys.which("pdftotext")
+  skip_if_not(nzchar(pdftotext))
+  txt <- paste(system2(pdftotext, c(tmp, "-"), stdout = TRUE), collapse = " ")
+  # El token distintivo del 1er item aparece UNA sola vez (solo como fila).
+  n_hits <- length(gregexpr("Conoce", txt, fixed = TRUE)[[1]])
+  expect_equal(n_hits, 1L)
+  # La tabla sigue renderizando (escala + filas B/C).
+  expect_true(grepl("Afirma B", txt))
+  expect_true(grepl("SIN INF", txt))
+})
+
+test_that("matrix with tenor keeps its numbered heading and X.j rows", {
+  survey <- data.frame(
+    type = rep("select_one esc", 3),
+    name = c("q1_a", "q1_b", "q1_c"),
+    label = c("Afirma A", "Afirma B", "Afirma C"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(list_name = rep("esc", 4), name = c("1", "2", "3", "9"),
+                        label = c("Nada", "Poco", "Mucho", "SIN INF"), stringsAsFactors = FALSE)
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(survey, choices, settings = data.frame(form_title = "T"),
+                         output_file = tmp,
+                         options = list(matrix_groups = list(list(
+                           members = c("q1_a", "q1_b", "q1_c"),
+                           tenor = "Indique su grado de acuerdo con las siguientes afirmaciones"))))
+  expect_true(file.exists(tmp))
+  pdftotext <- Sys.which("pdftotext")
+  skip_if_not(nzchar(pdftotext))
+  txt <- paste(system2(pdftotext, c(tmp, "-"), stdout = TRUE), collapse = " ")
+  # El tenor sigue como encabezado numerado y las filas conservan la subnumeracion.
+  expect_true(grepl("Indique su grado de acuerdo", txt))
+  expect_true(grepl("1.1", txt, fixed = TRUE))
+  expect_true(grepl("1.3", txt, fixed = TRUE))
+})
+
+test_that("section kicker is suppressed when the title already starts with a number", {
+  survey <- data.frame(
+    type = c("begin_group", "text", "end_group", "begin_group", "text", "end_group"),
+    name = c("s1", "q1", "", "s2", "q2", ""),
+    label = c("1.1 Caracteristicas del programa", "Nombre", "",
+              "Datos generales del informante", "Edad", ""),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(list_name = character(0), name = character(0),
+                        label = character(0), stringsAsFactors = FALSE)
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(survey, choices, settings = data.frame(form_title = "T"),
+                         output_file = tmp)
+  expect_true(file.exists(tmp))
+  pdftotext <- Sys.which("pdftotext")
+  skip_if_not(nzchar(pdftotext))
+  txt <- paste(system2(pdftotext, c(tmp, "-"), stdout = TRUE), collapse = " ")
+  # s1 (titulo "1.1 ...") no emite el kicker; s2 (sin numero) si.
+  expect_false(grepl("SECCIÓN 1", txt))
+  expect_true(grepl("SECCIÓN 2", txt))
+  # Los titulos de ambas secciones siguen presentes.
+  expect_true(grepl("Caracteristicas del programa", txt, ignore.case = TRUE))
+  expect_true(grepl("Datos generales del informante", txt, ignore.case = TRUE))
+})
+
+test_that("default instructions use the accented word 'códigos'", {
+  survey <- data.frame(type = "text", name = "p1", label = "Nombre", stringsAsFactors = FALSE)
+  choices <- data.frame(list_name = character(0), name = character(0),
+                        label = character(0), stringsAsFactors = FALSE)
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(survey, choices, settings = data.frame(form_title = "T"),
+                         output_file = tmp)
+  expect_true(file.exists(tmp))
+  pdftotext <- Sys.which("pdftotext")
+  skip_if_not(nzchar(pdftotext))
+  txt <- paste(system2(pdftotext, c(tmp, "-"), stdout = TRUE), collapse = " ")
+  expect_true(grepl("códigos", txt))
+  expect_false(grepl("Registre codigos", txt))
+})
+
+test_that("matrix_layout column flows matrices inside one column (2-col render)", {
+  survey <- data.frame(
+    type = rep("select_one info", 4),
+    name = c("q_a", "q_b", "q_c", "q_d"),
+    label = c("Delincuencia", "Desempleo", "Salud", "Corrupción"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = rep("info", 5), name = c("1", "2", "3", "4", "0"),
+    label = c("Nada informado", "Poco informado", "Algo informado", "Muy informado", "NS/NR"),
+    stringsAsFactors = FALSE
+  )
+  settings <- data.frame(form_title = "T")
+  grp <- list(matrix_groups = list(list(members = c("q_a", "q_b", "q_c", "q_d"), tenor = "Grado")))
+
+  # default matrix_layout = "full" -> matriz full_width.
+  m_full <- formulario_pdf_build_model(survey, choices, settings, options = c(grp, list(columns = 2)))
+  expect_identical(m_full$matrix_layout, "full")
+  mat_full <- Filter(function(b) identical(b$kind, "matrix"), m_full$blocks)[[1]]
+  expect_true(isTRUE(mat_full$full_width))
+
+  # matrix_layout = "column" en 2 columnas -> matriz NO full_width (fluye en col_w).
+  m_col <- formulario_pdf_build_model(survey, choices, settings,
+                                      options = c(grp, list(columns = 2, matrix_layout = "column")))
+  expect_identical(m_col$matrix_layout, "column")
+  mat_col <- Filter(function(b) identical(b$kind, "matrix"), m_col$blocks)[[1]]
+  expect_false(isTRUE(mat_col$full_width))
+
+  # Fallback de gracia: escala 1..10 (>6 columnas) se queda full_width aun en "column".
+  ch10 <- data.frame(list_name = rep("esc10", 11), name = c(as.character(1:10), "0"),
+                     label = c(as.character(1:10), "NS/NR"), stringsAsFactors = FALSE)
+  s10 <- data.frame(type = rep("select_one esc10", 3), name = c("a", "b", "c"),
+                    label = c("A", "B", "C"), stringsAsFactors = FALSE)
+  m10 <- formulario_pdf_build_model(s10, ch10, settings, options = list(
+    columns = 2, matrix_layout = "column",
+    matrix_groups = list(list(members = c("a", "b", "c"), tenor = "Escala 1-10"))))
+  mat10 <- Filter(function(b) identical(b$kind, "matrix"), m10$blocks)[[1]]
+  expect_true(isTRUE(mat10$full_width))
+})
+
+test_that("matrix header mode auto: short labels categorias, numeric 1-10 extremos", {
+  short_scale <- lapply(c("Nada", "Poco", "Algo", "Mucho"), function(l) list(code = "x", label = l))
+  expect_identical(.form_pdf_matrix_header_mode(short_scale, "auto"), "categorias")
+  num_scale <- lapply(1:10, function(i) list(code = as.character(i), label = as.character(i)))
+  expect_identical(.form_pdf_matrix_header_mode(num_scale, "auto"), "extremos")
+  long_scale <- lapply(c("Totalmente en desacuerdo", "En desacuerdo"), function(l) list(code = "x", label = l))
+  expect_identical(.form_pdf_matrix_header_mode(long_scale, "auto"), "extremos")
+  # override explicito respeta la eleccion del usuario.
+  expect_identical(.form_pdf_matrix_header_mode(num_scale, "categorias"), "categorias")
+  expect_identical(.form_pdf_matrix_header_mode(short_scale, "extremos"), "extremos")
+})
+
+test_that("matrix_groups header override is parsed and attached to the block", {
+  survey <- data.frame(type = rep("select_one esc", 3), name = c("q1_a", "q1_b", "q1_c"),
+                       label = c("A", "B", "C"), stringsAsFactors = FALSE)
+  choices <- data.frame(list_name = rep("esc", 5), name = c("1", "2", "3", "4", "0"),
+                        label = c("Nada", "Poco", "Algo", "Mucho", "NS/NR"), stringsAsFactors = FALSE)
+  settings <- data.frame(form_title = "T")
+  for (hv in c("extremos", "categorias", "auto")) {
+    m <- formulario_pdf_build_model(survey, choices, settings, options = list(
+      matrix_groups = list(list(members = c("q1_a", "q1_b", "q1_c"), header = hv))))
+    mat <- Filter(function(b) identical(b$kind, "matrix"), m$blocks)[[1]]
+    expect_identical(mat$header_mode, hv)
+  }
+})
+
+test_that("special code 0 (NS/NR) is detected as the special column", {
+  # 0 con etiqueta NS/NR (escala 1..4 + 0).
+  p <- .form_pdf_matrix_partition_options(list(
+    list(code = "1", label = "Nada"), list(code = "2", label = "Poco"),
+    list(code = "3", label = "Algo"), list(code = "4", label = "Mucho"),
+    list(code = "0", label = "NS/NR")))
+  expect_identical(p$special$code, "0")
+  expect_equal(length(p$scale), 4L)
+  # 0 como sentinel bajo discontinuo (gap) sin etiqueta NS/NR.
+  pg <- .form_pdf_matrix_partition_options(list(
+    list(code = "2", label = "B"), list(code = "3", label = "C"),
+    list(code = "4", label = "D"), list(code = "5", label = "E"),
+    list(code = "0", label = "Cero")))
+  expect_identical(pg$special$code, "0")
+  # 0 contiguo legitimo (0..4) SIN etiqueta NS/NR -> NO especial (conservador).
+  pc <- .form_pdf_matrix_partition_options(list(
+    list(code = "0", label = "Cero"), list(code = "1", label = "Uno"),
+    list(code = "2", label = "Dos"), list(code = "3", label = "Tres"),
+    list(code = "4", label = "Cuatro")))
+  expect_null(pc$special)
+})
+
+test_that("categorias header prints every scale label (rotated) in pdftotext", {
+  survey <- data.frame(type = rep("select_one info", 3), name = c("q_a", "q_b", "q_c"),
+                       label = c("Delincuencia", "Desempleo", "Salud"), stringsAsFactors = FALSE)
+  choices <- data.frame(list_name = rep("info", 5), name = c("1", "2", "3", "4", "0"),
+                        label = c("Nada informado", "Poco informado", "Algo informado",
+                                  "Muy informado", "NS/NR"), stringsAsFactors = FALSE)
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(survey, choices, settings = data.frame(form_title = "T"), output_file = tmp,
+                         options = list(matrix_groups = list(list(
+                           members = c("q_a", "q_b", "q_c"), tenor = "Grado", header = "categorias"))))
+  expect_true(file.exists(tmp))
+  pdftotext <- Sys.which("pdftotext")
+  skip_if_not(nzchar(pdftotext))
+  txt <- paste(system2(pdftotext, c(tmp, "-"), stdout = TRUE), collapse = " ")
+  for (lbl in c("Nada informado", "Poco informado", "Algo informado", "Muy informado", "NS/NR")) {
+    expect_true(grepl(lbl, txt, fixed = TRUE))
+  }
+  # El codigo especial 0 se imprime en cada fila (3 items) -> >= 3 veces.
+  expect_gte(length(gregexpr("0", txt, fixed = TRUE)[[1]]), 3L)
 })
 
 test_that("OPS sample renders in one and two columns with matrices", {
