@@ -1118,7 +1118,7 @@ export default function XlsformEditorPage() {
       next: XlsformEditorWorkbook,
       nextSource: { kind: string | null; original_name: string | null },
       nextStatus: string,
-      opts?: { formId?: string; register?: boolean; hallazgos?: Hallazgo[] },
+      opts?: { formId?: string; register?: boolean; activate?: boolean; hallazgos?: Hallazgo[] },
     ): string => {
       // LOAD_FORM resetea historia y dirty=false. Sellamos (flush) cualquier
       // autosave pendiente del formulario ANTERIOR antes de cargar el nuevo —
@@ -1156,7 +1156,14 @@ export default function XlsformEditorPage() {
               ...sourceMeta,
               hallazgos: opts?.hallazgos ?? [],
             });
-            await apiXlsformFormActivate(formId);
+            // En creación por lotes (Matriz PULSO con varias audiencias) NO se
+            // activa cada formulario: eso dispara varias activaciones de fondo
+            // que pueden sobrepasar al switchToForm final y dejar el espejo del
+            // .pulso apuntando al formulario equivocado. El caller activa el
+            // elegido al final (activate=false salta la activación aquí).
+            if (opts?.activate !== false) {
+              await apiXlsformFormActivate(formId);
+            }
           } catch (err) {
             if (isFormLimitError(err)) {
               // Carrera contra el tope compartido: el guard cliente vio cupo
@@ -1394,6 +1401,9 @@ export default function XlsformEditorPage() {
             res.workbook,
             { kind: "matriz_pulso", original_name: `${dialog.fileName} · ${audience}` },
             `Generamos el formulario de ${audience} desde la matriz PULSO.`,
+            // Guarda cada formulario sin activarlo; el switchToForm de abajo
+            // activa solo el primero, evitando la carrera de activaciones.
+            { activate: false },
           );
           createdIds.push(formId);
           const detailParts: string[] = [];
@@ -3291,8 +3301,12 @@ export default function XlsformEditorPage() {
 
       {/* Diálogo "Configurar PDF": Formato / Lógica / Matrices. Se mantiene
           montado (aunque cerrado) para conservar las elecciones del usuario
-          entre aperturas dentro de una sesión de edición. */}
+          entre aperturas DEL MISMO formulario. El `key` por formulario activo
+          lo remonta al cambiar de formulario, descartando estado form-específico
+          (ids de matriz row-based, tenor, columna especial, cabecera, variable
+          de consentimiento) que no aplica al nuevo workbook. */}
       <ConfigurarPdfDialog
+        key={activeFormId ?? "no-form"}
         open={pdfDialogOpen}
         onClose={() => setPdfDialogOpen(false)}
         onExport={(columns, logicLanguage, showQuestionnaireNumber, matrixGroups, matrixLayout, consentVar) => {
