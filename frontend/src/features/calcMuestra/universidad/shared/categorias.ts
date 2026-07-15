@@ -456,9 +456,21 @@ export const UNIVERSITY_CATEGORY_ROLES = new Set([
   "condition",
   "schedule",
   "modality",
+  "session_type",
+  "condicion_curso",
+  "campus",
 ]);
 
-export const UNIVERSITY_CLASSROOM_CATEGORY_ROLES = new Set(["schedule", "modality"]);
+// Roles CATEGÓRICOS que viven en la hoja de curso-horario (aula_frame), no en la
+// de matrícula: sus categorías observadas se computan sobre las filas del aula,
+// no de la población de estudiantes.
+export const UNIVERSITY_CLASSROOM_CATEGORY_ROLES = new Set([
+  "schedule",
+  "modality",
+  "session_type",
+  "condicion_curso",
+  "campus",
+]);
 
 export const UNIVERSITY_ROLE_VALUE_KEYS: Record<string, string[]> = {
   faculty: [
