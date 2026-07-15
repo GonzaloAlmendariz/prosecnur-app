@@ -1013,8 +1013,10 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   teacher_type <- .cm_aulas_values(raw, .cm_criterios_col_teacher_type(raw, mapping), "")
   course_level <- .cm_aulas_values(raw, .cm_criterios_col_course_level(raw, mapping), "")
   # Condición del curso: clave exacta en la base (no fuzzy) para no confundirla
-  # con la condición del estudiante.
-  condicion_curso <- .cm_aulas_values(raw, .cm_criterios_col_exacta(raw, mapping$condicion_curso), "")
+  # con la condición del estudiante. La guarda anti-homónimo cross-hoja anula la
+  # señal base cuando condicion_curso colisiona con la columna de condition
+  # (mismo nombre en la hoja del alumno): la fuente real llega por el catálogo.
+  condicion_curso <- .cm_aulas_values(raw, .cm_criterios_col_condicion_curso(raw, mapping), "")
   campus <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$campus), "")
   # H7: formación del estudiante; resolución SOLO por clave exacta (el fuzzy
   # secuestraría columnas como "Nivel" o "Información adicional").
@@ -1376,7 +1378,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       session_type = .cm_aulas_col(raw, mapping$session_type),
       teacher_type = .cm_criterios_col_teacher_type(raw, mapping),
       course_level = .cm_criterios_col_course_level(raw, mapping),
-      condicion_curso = .cm_criterios_col_exacta(raw, mapping$condicion_curso),
+      condicion_curso = .cm_criterios_col_condicion_curso(raw, mapping),
       enrolled_total = .cm_aulas_col(raw, mapping$enrolled_total),
       campus = .cm_aulas_col(raw, mapping$campus)
     )
