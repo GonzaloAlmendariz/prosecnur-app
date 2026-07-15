@@ -1838,6 +1838,14 @@ load_pulso <- function(src_path) {
   # 7) Rebuild de caches dashboard (rp_inst / rp_data) a partir de los
   #    file_ids persistidos en dashboard_source. No falla si no hay fuente.
   .dashboard_rebuild_after_load(new_sid)
+  # Migración multi-formulario del editor XLSForm: proyectos viejos traen solo
+  # `xlsform_state` (mono-formulario). Sembramos la colección `xlsform_forms`
+  # con esa única entrada como activa, en runtime, sin pérdida de datos. Es
+  # idempotente: si el .pulso ya trae la colección, no toca nada.
+  local({
+    s_seed <- .xlsform_forms_seed_from_legacy(session_get(new_sid))
+    .session_env[[new_sid]] <- s_seed
+  })
   .pulso_repair_multibase_variant_xlsforms(new_sid)
   .pulso_repair_parent_recod_columns(new_sid)
   .pulso_rebuild_estudio_runtime_sources(new_sid)

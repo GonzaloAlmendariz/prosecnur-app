@@ -79,18 +79,35 @@ jobs:
       - name: Frontend production build
         run: pnpm -C frontend exec vite build --outDir /tmp/prosecnur-vite-build --emptyOutDir
 
-      # npm retiró el endpoint de `pnpm audit` (410: "This endpoint is being
-      # retired. Use the bulk advisory endpoint instead"), así que el comando
-      # revienta con error de infraestructura, no por una vulnerabilidad. No
-      # debe bloquear el merge mientras typecheck/tests/build sí gatean; queda
-      # visible como advertencia hasta migrar a un pnpm que use el bulk endpoint.
+      # npm retiró el endpoint clásico de `npm audit` (responde 410 →
+      # ERR_PNPM_AUDIT_BAD_RESPONSE). Toleramos SOLO ese caso (endpoint caído)
+      # para no tumbar el CI; una vulnerabilidad real de nivel high sigue
+      # fallando. Revisar cuando pnpm use el bulk advisory endpoint.
       - name: Frontend audit
-        continue-on-error: true
-        run: pnpm -C frontend audit --audit-level=high
+        run: |
+          code=0
+          out=$(pnpm -C frontend audit --audit-level=high 2>&1) || code=$?
+          echo "$out"
+          if [ "$code" != "0" ]; then
+            if echo "$out" | grep -q "ERR_PNPM_AUDIT_BAD_RESPONSE"; then
+              echo "::warning::pnpm audit endpoint retirado (npm 410); audit omitido."
+            else
+              exit "$code"
+            fi
+          fi
 
       - name: Desktop audit
-        continue-on-error: true
-        run: pnpm -C desktop audit --audit-level=high
+        run: |
+          code=0
+          out=$(pnpm -C desktop audit --audit-level=high 2>&1) || code=$?
+          echo "$out"
+          if [ "$code" != "0" ]; then
+            if echo "$out" | grep -q "ERR_PNPM_AUDIT_BAD_RESPONSE"; then
+              echo "::warning::pnpm audit endpoint retirado (npm 410); audit omitido."
+            else
+              exit "$code"
+            fi
+          fi
 
   backend-r:
     name: Backend R (load_all + testthat)

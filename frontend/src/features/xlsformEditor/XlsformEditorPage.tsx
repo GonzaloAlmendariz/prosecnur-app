@@ -30,9 +30,15 @@ import {
   apiXlsformEditorExport,
   apiXlsformEditorExportPdf,
   apiXlsformEditorImport,
+  apiXlsformEditorImportMatrizPulso,
+  isMatrizPulsoImport,
   apiXlsformEditorSmApplyLogic,
   apiXlsformEditorSmInterpretRule,
   apiXlsformEditorValidate,
+  apiXlsformFormActivate,
+  apiXlsformFormDelete,
+  apiXlsformFormGet,
+  apiXlsformFormsList,
   downloadUrl,
   type ChoiceCodeMap,
   type Hallazgo,
@@ -40,6 +46,8 @@ import {
 } from "../../api/client";
 import { useProjectShell } from "../project/ProjectShell";
 import { ImportSurveyMonkeyDialog } from "./shell/ImportSurveyMonkeyDialog";
+import { MatrizPulsoDialog } from "./shell/MatrizPulsoDialog";
+import { planMatrizPulsoForms } from "./shell/matrizPulso";
 import { compileVisualLogicRules, RuleWizard, type ConfirmedRule } from "./shell/RuleWizard";
 import {
   buildSurveyMonkeyLogicPack,
@@ -100,6 +108,8 @@ import {
   resolveInsertionIndex,
 } from "./parsing/buildIndex";
 import { buildDiagnostics } from "./parsing/diagnostics";
+import { detectMatrixCandidates } from "./parsing/detectMatrixCandidates";
+import { detectConsentQuestions } from "./parsing/detectConsentQuestions";
 import {
   canRedoEditor,
   canUndoEditor,
@@ -110,16 +120,29 @@ import {
   clearSnapshot,
   clearSnapshotFromBackend,
   createPersistenceScheduler,
+  deleteForm,
+  deriveFormName,
+  getActiveForm,
+  isFormLimitError,
+  listForms,
+  loadForm,
   loadSnapshot,
-  loadSnapshotFromBackend,
+  MAX_FORMS,
+  migrateLegacySingleForm,
+  newFormId,
   reconcileSnapshotWithBackend,
-  saveSnapshot,
-  syncSnapshotToBackend,
+  renameForm,
+  saveForm,
+  setActiveForm,
+  syncFormToBackend,
+  upsertLibraryEntry,
+  type LibraryEntry,
+  type PersistedSnapshot,
 } from "./state/persistence";
-import EmptyHome from "./shell/EmptyHome";
+import { FormsLibrary } from "./shell/FormsLibrary";
+import { FormSwitcher } from "./shell/FormSwitcher";
+import { ConfigurarPdfDialog } from "./shell/ConfigurarPdfDialog";
 import { QuestionnaireProgressPanel } from "./shell/QuestionnaireProgressPanel";
-import { buildWorkbookFromSeed } from "./templates";
-import type { TemplateSeed } from "./templates";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
 import { DiagnosticsBadge } from "./shell/DiagnosticsPopover";
 import { CollapsibleSection } from "./shell/CollapsibleSection";
@@ -519,9 +542,19 @@ export default function XlsformEditorPage() {
     null,
     () => createInitialEditorState(null),
   );
-  const { workbook, dirty, lastSavedAt } = editorState;
+  const { workbook, dirty, lastSavedAt, activeFormId } = editorState;
   const canUndo = canUndoEditor(editorState);
   const canRedo = canRedoEditor(editorState);
+
+  // Biblioteca multi-formulario del proyecto: entradas ligeras (sin workbook)
+  // que alimentan el conmutador rápido del toolbar y — en Oleada 3 — el hub.
+  const [forms, setForms] = useState<LibraryEntry[]>([]);
+  // Ref al activeFormId para consultarlo desde callbacks async (switchToForm)
+  // sin re-crear la callback en cada cambio.
+  const activeFormIdRef = useRef<string | null>(activeFormId);
+  useEffect(() => {
+    activeFormIdRef.current = activeFormId;
+  }, [activeFormId]);
 
   const [selection, setSelection] = useState<BuilderSelection | null>(null);
   const [busy, setBusy] = useState("");
@@ -558,6 +591,16 @@ export default function XlsformEditorPage() {
     | { fileId?: string | null; fileName: string }
     | null
   >(null);
+  /** Diálogo del importador de "Matriz PULSO IAC-CINDA". Se abre cuando el
+   *  backend detecta que el .xlsx subido es una matriz por audiencia en vez de
+   *  un XLSForm normal. */
+  const [matrizPulsoDialog, setMatrizPulsoDialog] = useState<
+    | { fileId: string; fileName: string; audiences: string[] }
+    | null
+  >(null);
+  const [matrizPulsoSubmitting, setMatrizPulsoSubmitting] = useState(false);
+  /** Abre/cierra el diálogo "Configurar PDF" que reemplaza al viejo popover. */
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   /** Hallazgos del validador empírico (devueltos por import-with-logic).
    *  Se renderizan en panel UI dedicado, NO se exportan al .xlsx. */
   const [hallazgos, setHallazgos] = useState<Hallazgo[]>([]);
@@ -584,13 +627,56 @@ export default function XlsformEditorPage() {
   // banner "Tenías un formulario abierto" sea independiente por proyecto.
   const projectScope = project.status.path ?? null;
 
-  // Detectar al montar — y al cambiar de proyecto — si hay un snapshot
-  // persistido para el scope actual. Para proyectos .pulso esperamos al
-  // backend y reconciliamos ambos snapshots: localStorage puede ser más
-  // fresco, pero el .pulso puede traer metadata crítica como
-  // surveyMonkeyLogic. Si cambiamos de proyecto: descartamos el workbook
-  // abierto (pertenecía al proyecto anterior) y recargamos contra el nuevo scope.
-  // Usamos un ref para detectar el primer mount y NO limpiar entonces.
+  // Refresca la lista ligera de formularios de la biblioteca del scope.
+  const refreshForms = useCallback(() => {
+    setForms(listForms(projectScope));
+  }, [projectScope]);
+
+  // Tope de 6 formularios por proyecto (fuente de verdad en persistence).
+  // `canCreate` gobierna el estado deshabilitado de las vías de creación en el
+  // hub y el conmutador; el backend rechaza el 7º con E_FORM_LIMIT (red de
+  // seguridad ante carreras entre ventanas/máquinas).
+  const canCreateForm = forms.length < MAX_FORMS;
+
+  // Nombre reactivo del formulario abierto: se deriva del workbook vivo (no del
+  // índice `forms`, que se refresca en diferido), así el label del conmutador
+  // se actualiza en cuanto cambia `form_title` o se renombra el activo.
+  const activeFormName = useMemo(() => {
+    if (!workbook) return source?.original_name ?? "Formulario activo";
+    const idx = forms.findIndex((f) => f.id === activeFormId);
+    const ordinal = idx >= 0 ? idx + 1 : forms.length + 1;
+    return deriveFormName(workbook, source, ordinal);
+  }, [workbook, source, forms, activeFormId]);
+
+  // Renombra un formulario desde el hub. Persiste local (índice + form_title)
+  // y sincroniza al backend en segundo plano. No toca el editor abierto — el
+  // hub solo se muestra sin workbook activo.
+  const onRenameForm = useCallback((id: string, name: string) => {
+    const next = renameForm(projectScope, id, name);
+    setForms(next.forms);
+  }, [projectScope]);
+
+  // Elimina un formulario desde el hub (local + backend). deleteForm reasigna
+  // el activo al más reciente si borramos el que estaba marcado activo.
+  const onDeleteForm = useCallback((id: string) => {
+    const next = deleteForm(projectScope, id);
+    setForms(next.forms);
+    void apiXlsformFormDelete(id).catch(() => {
+      // ignore — el borrado local ya basta para la sesión; el backend
+      // reintenta la próxima vez que se reabra y reconcilie la colección.
+    });
+    toasts.push({ kind: "info", title: "Formulario eliminado", durationMs: 4000 });
+  }, [projectScope, toasts]);
+
+  // Ref a switchToForm para invocarlo desde el efecto de scope sin problemas
+  // de orden de declaración (la callback se define más abajo).
+  const switchToFormRef = useRef<((id: string) => Promise<void>) | null>(null);
+
+  // Al montar — y al cambiar de proyecto — sembramos la biblioteca
+  // multi-formulario: migramos cualquier snapshot legacy mono-formulario,
+  // fusionamos las entradas que el backend (.pulso) tenga y que aún no estén
+  // en localStorage, y si hay un formulario activo lo hidratamos. Si no hay
+  // ninguno, dejamos workbook=null (el hub / EmptyHome).
   const restoreKey = `${sessionId || "no-session"}::${projectScope ?? "no-project"}`;
   const lastScopeRef = useRef(restoreKey);
   useEffect(() => {
@@ -602,22 +688,46 @@ export default function XlsformEditorPage() {
     if (isProjectSwitch && workbookRef.current) {
       dispatch({ type: "CLEAR" });
     }
-
     setRestoreOffer(null);
-    const local = loadSnapshot(projectScope);
-    if (local && !projectScope) {
-      setRestoreOffer(local);
-    }
+
+    // Migración legacy → biblioteca (idempotente) + primer listado local.
+    const migrated = migrateLegacySingleForm(projectScope);
+    setForms(migrated.forms);
+    let localActive = migrated.activeFormId;
+
     let cancelled = false;
-    void loadSnapshotFromBackend().then((remote) => {
+    void (async () => {
+      // Fusionar formularios que existan en el backend (.pulso) pero cuyo
+      // workbook aún no esté en esta máquina (localStorage fresco). El
+      // workbook se baja on-demand al abrirlos (switchToForm reconcilia con
+      // apiXlsformFormGet).
+      try {
+        const backend = await apiXlsformFormsList();
+        if (cancelled) return;
+        for (const entry of backend.forms) {
+          upsertLibraryEntry(projectScope, {
+            id: entry.id,
+            name: entry.name,
+            savedAt: entry.saved_at,
+            source: entry.source,
+          });
+        }
+        if (backend.active_form_id && !localActive) {
+          localActive = backend.active_form_id;
+        }
+        if (backend.forms.length > 0) setForms(listForms(projectScope));
+      } catch {
+        // Sin backend / sin proyecto: seguimos con lo local.
+      }
       if (cancelled) return;
-      const reconciled = reconcileSnapshotWithBackend(local, remote);
-      if (reconciled) setRestoreOffer(reconciled);
-    });
+      if (localActive) {
+        await switchToFormRef.current?.(localActive);
+      }
+    })();
     return () => {
       cancelled = true;
     };
-    // workbookRef intencionalmente no en deps — solo lo consultamos.
+    // workbookRef y switchToForm intencionalmente fuera de deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectScope, restoreKey]);
 
@@ -629,13 +739,14 @@ export default function XlsformEditorPage() {
   }, [workbook]);
 
   // Programar autosave después de cada edición. El scheduler debouncea 2s
-  // — si el usuario sigue editando, se posterga; si se queda quieto, escribe.
-  // Pasamos el `projectScope` para que el snapshot se guarde en el bucket
-  // del proyecto actual.
+  // — si el usuario sigue editando, se posterga; si se queda quieto, escribe
+  // bajo la clave por-formulario del `activeFormId` en el bucket del proyecto.
   useEffect(() => {
     if (!workbook) return;
     if (!dirty) return;
+    if (!activeFormId) return;
     persistence.schedule(
+      activeFormId,
       workbook,
       {
         sourceKind: source?.kind ?? null,
@@ -643,7 +754,7 @@ export default function XlsformEditorPage() {
       },
       projectScope,
     );
-  }, [workbook, dirty, source, persistence, projectScope]);
+  }, [workbook, dirty, source, persistence, projectScope, activeFormId]);
 
   // Atajos de teclado del editor:
   //   Cmd/Ctrl+Z         → deshacer
@@ -699,6 +810,20 @@ export default function XlsformEditorPage() {
     [workbook]
   );
   const structure = xlsformIndex?.structure ?? null;
+
+  // Candidatos de matriz para el selector de exportación a PDF: runs contiguos
+  // de select_one/select_multiple con misma lista dentro de la misma sección.
+  const matrixCandidates = useMemo(
+    () => (workbook ? detectMatrixCandidates(workbook) : []),
+    [workbook],
+  );
+
+  // Preguntas candidatas a variable de consentimiento (select_one/acknowledge)
+  // para el selector del diálogo "Configurar PDF".
+  const consentQuestions = useMemo(
+    () => (workbook ? detectConsentQuestions(workbook) : []),
+    [workbook],
+  );
 
   const catalogs = xlsformIndex?.catalogs ?? [];
   const readyCatalogsCount = useMemo(
@@ -983,17 +1108,25 @@ export default function XlsformEditorPage() {
     setStatus("");
   }
 
-  const loadWorkbook = useCallback(
+  // Aplica un workbook como el formulario activo. Cuando `formId` viene dado
+  // (switchToForm) reusa esa entrada; si no, crea una nueva con un uuid del
+  // frontend. Con `register` (default para creaciones) registra el formulario
+  // en el backend y lo activa; switchToForm pasa `register:false` porque ya
+  // activó por su cuenta.
+  const openWorkbookAsForm = useCallback(
     (
       next: XlsformEditorWorkbook,
       nextSource: { kind: string | null; original_name: string | null },
       nextStatus: string,
-    ) => {
-      // LOAD resetea historia y dirty=false. Cancelamos cualquier autosave
-      // pendiente del workbook anterior para no pisar el snapshot nuevo.
-      persistence.cancel();
+      opts?: { formId?: string; register?: boolean; activate?: boolean; hallazgos?: Hallazgo[] },
+    ): string => {
+      // LOAD_FORM resetea historia y dirty=false. Sellamos (flush) cualquier
+      // autosave pendiente del formulario ANTERIOR antes de cargar el nuevo —
+      // así no perdemos sus últimas ediciones (persistence.cancel las perdería).
+      persistence.flush();
+      const formId = opts?.formId ?? newFormId();
       const loadedWorkbook = cloneWorkbook(next);
-      dispatch({ type: "LOAD", workbook: loadedWorkbook });
+      dispatch({ type: "LOAD_FORM", formId, workbook: loadedWorkbook });
       setSource(nextSource);
       setArtifact(null);
       setStatus(nextStatus);
@@ -1009,14 +1142,125 @@ export default function XlsformEditorPage() {
         sourceKind: nextSource.kind,
         sourceName: nextSource.original_name,
       };
-      const savedAt = saveSnapshot(loadedWorkbook, sourceMeta, projectScope);
-      void syncSnapshotToBackend(loadedWorkbook, sourceMeta);
+      const savedAt = saveForm(projectScope, formId, loadedWorkbook, sourceMeta);
+      setActiveForm(projectScope, formId);
       if (savedAt != null) {
         dispatch({ type: "MARK_SAVED", savedAt });
       }
+      if (opts?.register !== false) {
+        // Creación/import: registra el formulario en la colección del backend
+        // y lo activa (re-deriva el espejo s$xlsform_state).
+        void (async () => {
+          try {
+            await syncFormToBackend(formId, loadedWorkbook, {
+              ...sourceMeta,
+              hallazgos: opts?.hallazgos ?? [],
+            });
+            // En creación por lotes (Matriz PULSO con varias audiencias) NO se
+            // activa cada formulario: eso dispara varias activaciones de fondo
+            // que pueden sobrepasar al switchToForm final y dejar el espejo del
+            // .pulso apuntando al formulario equivocado. El caller activa el
+            // elegido al final (activate=false salta la activación aquí).
+            if (opts?.activate !== false) {
+              await apiXlsformFormActivate(formId);
+            }
+          } catch (err) {
+            if (isFormLimitError(err)) {
+              // Carrera contra el tope compartido: el guard cliente vio cupo
+              // pero el backend ya estaba lleno (otra ventana/máquina). Revertimos
+              // la creación local para no dejar un formulario fantasma y volvemos
+              // al hub con un aviso amable en vez de un error crudo.
+              const next = deleteForm(projectScope, formId);
+              setForms(next.forms);
+              dispatch({ type: "CLEAR" });
+              resetMessages();
+              toasts.push({
+                kind: "info",
+                title: `Límite de ${MAX_FORMS} formularios`,
+                detail:
+                  "Este proyecto ya alcanzó el máximo de formularios. Elimina uno para crear otro.",
+                durationMs: 6000,
+              });
+              return;
+            }
+            // Resto de errores (red, sesión): lo local sigue intacto y
+            // reintentará en el próximo autosave.
+          }
+        })();
+      }
+      setForms(listForms(projectScope));
+      return formId;
     },
-    [persistence, projectScope],
+    [persistence, projectScope, dispatch, toasts],
   );
+
+  // Wrapper retrocompatible: cada import/creación abre un formulario NUEVO.
+  const loadWorkbook = useCallback(
+    (
+      next: XlsformEditorWorkbook,
+      nextSource: { kind: string | null; original_name: string | null },
+      nextStatus: string,
+      hallazgosForBackend?: Hallazgo[],
+    ) => {
+      openWorkbookAsForm(next, nextSource, nextStatus, { hallazgos: hallazgosForBackend });
+    },
+    [openWorkbookAsForm],
+  );
+
+  // Salta a otro formulario de la biblioteca: sella el actual (flush),
+  // lo activa en el backend, baja su workbook (local + .pulso reconciliados)
+  // y lo hidrata. El undo/redo del anterior se descarta (ya quedó persistido).
+  const switchToForm = useCallback(
+    async (id: string): Promise<void> => {
+      if (!id || id === activeFormIdRef.current) return;
+      persistence.flush();
+      try {
+        await apiXlsformFormActivate(id);
+      } catch {
+        // ignore — seguimos con lo local; la activación reintenta al reabrir.
+      }
+      const local = loadForm(projectScope, id);
+      let remote: PersistedSnapshot | null = null;
+      let remoteHallazgos: Hallazgo[] = [];
+      try {
+        const r = await apiXlsformFormGet(id);
+        if (r.form) {
+          remote = {
+            workbook: r.form.workbook,
+            savedAt: r.form.saved_at,
+            sourceName: r.form.source?.original_name ?? null,
+            sourceKind: r.form.source?.kind ?? null,
+            hallazgos: r.form.hallazgos,
+          };
+          remoteHallazgos = r.form.hallazgos;
+        }
+      } catch {
+        // ignore — reconciliamos solo con lo local.
+      }
+      const reconciled = reconcileSnapshotWithBackend(local, remote) ?? local ?? remote;
+      if (!reconciled) {
+        toasts.push({
+          kind: "danger",
+          title: "No se pudo abrir el formulario",
+          detail: "No encontramos el contenido de ese formulario ni localmente ni en el proyecto.",
+        });
+        refreshForms();
+        return;
+      }
+      setHallazgos(reconciled === remote ? remoteHallazgos : []);
+      openWorkbookAsForm(
+        reconciled.workbook,
+        { kind: reconciled.sourceKind, original_name: reconciled.sourceName },
+        "Cambiaste de formulario.",
+        { formId: id, register: false },
+      );
+    },
+    [persistence, projectScope, openWorkbookAsForm, refreshForms, toasts],
+  );
+
+  useEffect(() => {
+    switchToFormRef.current = switchToForm;
+  }, [switchToForm]);
 
   const updateWorkbook = useCallback(
     (mutator: (draft: XlsformEditorWorkbook) => void) => {
@@ -1070,11 +1314,32 @@ export default function XlsformEditorPage() {
       if (xlsInputRef.current) xlsInputRef.current.value = "";
       return;
     }
+    if (blockIfAtFormLimit()) {
+      if (xlsInputRef.current) xlsInputRef.current.value = "";
+      return;
+    }
     resetMessages();
     setBusy(`Importando ${file.name}…`);
     try {
       const up = await apiUpload(file, "xlsform");
       const out = await apiXlsformEditorImport(up.file_id);
+      if (isMatrizPulsoImport(out)) {
+        // No es un XLSForm: es una Matriz PULSO IAC-CINDA. En vez de cargar un
+        // workbook, pedimos al usuario elegir audiencias y generamos un
+        // formulario por cada una en el paso siguiente.
+        if (out.audiences.length === 0) {
+          const detail = "Detectamos una matriz PULSO pero sin columnas de audiencia reconocibles.";
+          setError(detail);
+          toasts.push({ kind: "warn", title: "Matriz PULSO sin audiencias", detail });
+          return;
+        }
+        setMatrizPulsoDialog({
+          fileId: up.file_id,
+          fileName: out.original_name ?? file.name,
+          audiences: out.audiences,
+        });
+        return;
+      }
       loadWorkbook(
         out.workbook,
         out.source,
@@ -1100,8 +1365,101 @@ export default function XlsformEditorPage() {
 
   function onImportSurveyMonkey() {
     if (blockUntilRestoreDecision("traducir SurveyMonkey")) return;
+    if (blockIfAtFormLimit()) return;
     resetMessages();
     setSmImportDialog({ fileId: null, fileName: "SurveyMonkey API" });
+  }
+
+  // Confirmación del diálogo de Matriz PULSO: por cada audiencia elegida pide al
+  // backend el workbook y lo registra como formulario propio en la biblioteca.
+  // Respeta el tope del proyecto (crea hasta el cupo libre) y activa el primero.
+  async function onMatrizPulsoConfirm(selectedAudiences: string[]) {
+    const dialog = matrizPulsoDialog;
+    if (!dialog) return;
+    const plan = planMatrizPulsoForms(selectedAudiences, forms.length, MAX_FORMS);
+    if (plan.toCreate.length === 0) {
+      toasts.push({
+        kind: "warn",
+        title: `Límite de ${MAX_FORMS} formularios`,
+        detail:
+          "Este proyecto ya alcanzó el máximo de formularios. Elimina uno para generar los de la matriz.",
+        durationMs: 6000,
+      });
+      return;
+    }
+    setMatrizPulsoSubmitting(true);
+    resetMessages();
+    setBusy(`Generando ${plan.toCreate.length} formulario(s) de la matriz PULSO…`);
+    const createdIds: string[] = [];
+    const scaleNotes: string[] = [];
+    const failed: string[] = [];
+    try {
+      for (const audience of plan.toCreate) {
+        try {
+          const res = await apiXlsformEditorImportMatrizPulso(dialog.fileId, audience);
+          const formId = openWorkbookAsForm(
+            res.workbook,
+            { kind: "matriz_pulso", original_name: `${dialog.fileName} · ${audience}` },
+            `Generamos el formulario de ${audience} desde la matriz PULSO.`,
+            // Guarda cada formulario sin activarlo; el switchToForm de abajo
+            // activa solo el primero, evitando la carrera de activaciones.
+            { activate: false },
+          );
+          createdIds.push(formId);
+          const detailParts: string[] = [];
+          if (res.summary.n_acuerdo != null) detailParts.push(`${res.summary.n_acuerdo} de acuerdo`);
+          if (res.summary.n_satisfaccion != null) detailParts.push(`${res.summary.n_satisfaccion} de satisfacción`);
+          if (res.summary.scale_inferred || detailParts.length > 0) {
+            scaleNotes.push(
+              `${audience}: escala inferida${detailParts.length ? ` — ${detailParts.join(", ")}` : ""}`,
+            );
+          }
+        } catch {
+          failed.push(audience);
+        }
+      }
+    } finally {
+      setMatrizPulsoSubmitting(false);
+      setBusy("");
+    }
+    // Activa el primero generado para dejar al usuario dentro de un formulario.
+    if (createdIds.length > 0) {
+      await switchToForm(createdIds[0]);
+    }
+    setSmLogicRules([]);
+    setSmVisualLogicRules([]);
+    setSmLogicChoiceOverrides({});
+    setMatrizPulsoDialog(null);
+    if (createdIds.length > 0) {
+      toasts.push({
+        kind: "success",
+        title: `Matriz PULSO · ${createdIds.length} formulario${createdIds.length === 1 ? "" : "s"}`,
+        detail: `Generamos ${plan.toCreate.slice(0, createdIds.length).join(", ")} desde ${dialog.fileName}.`,
+      });
+    }
+    if (scaleNotes.length > 0) {
+      toasts.push({
+        kind: "info",
+        title: "Escala inferida — revísala",
+        detail: `${scaleNotes.join(" · ")}. Revisa las preguntas antes de publicar.`,
+        durationMs: 8000,
+      });
+    }
+    if (plan.capped) {
+      toasts.push({
+        kind: "warn",
+        title: `Límite de ${MAX_FORMS} formularios`,
+        detail: `Quedó(aron) fuera ${plan.skipped.join(", ")} por el tope del proyecto. Elimina formularios para generar el resto.`,
+        durationMs: 7000,
+      });
+    }
+    if (failed.length > 0) {
+      toasts.push({
+        kind: "danger",
+        title: "Algunas audiencias fallaron",
+        detail: `No pudimos generar: ${failed.join(", ")}.`,
+      });
+    }
   }
 
   // Callback del modal cuando completa con éxito (ya con o sin reglas aplicadas)
@@ -1143,6 +1501,7 @@ export default function XlsformEditorPage() {
       payload.hallazgos.length > 0
         ? `Tradujimos ${fileName} y aplicamos tu lógica. Hay ${payload.hallazgos.length} hallazgo(s) para revisar.`
         : `Tradujimos ${fileName} a un constructor editable.`,
+      payload.hallazgos,
     );
     toasts.push({
       kind: "success",
@@ -1325,7 +1684,14 @@ export default function XlsformEditorPage() {
     }
   }
 
-  async function onExportPdf() {
+  async function onExportPdf(
+    columns: 1 | 2 = 2,
+    logicLanguage: "saltos" | "condiciones" = "saltos",
+    showQuestionnaireNumber: boolean = true,
+    matrixGroups: Array<{ members: string[]; tenor?: string; special?: string; header?: string }> = [],
+    matrixLayout: "full" | "column" = "full",
+    consentVar: string | null = null,
+  ) {
     if (!workbook) return;
     resetMessages();
     setArtifact(null);
@@ -1335,6 +1701,14 @@ export default function XlsformEditorPage() {
       const out = await apiXlsformEditorExportPdf(
         exportableWorkbook,
         pdfFilenameFromSource(source?.original_name),
+        {
+          columns,
+          logic_language: logicLanguage,
+          show_questionnaire_number: showQuestionnaireNumber,
+          matrix_layout: matrixLayout,
+          matrix_groups: matrixGroups,
+          ...(consentVar ? { consent_var: consentVar } : {}),
+        },
       );
       setArtifact({ file_id: out.file_id, original_name: out.original_name, extension: "pdf" });
       setStatus(`Listo: generamos ${out.original_name} con plantilla impresa Pulso.`);
@@ -1384,8 +1758,33 @@ export default function XlsformEditorPage() {
     }
   }
 
+  // Vuelve al hub (biblioteca de formularios) sin perder la colección: sella
+  // el formulario abierto y despacha CLEAR. El conmutador del toolbar y —en
+  // Oleada 3— el hub usan esto para "Ver todos".
+  function onBackToHub() {
+    persistence.flush();
+    resetMessages();
+    dispatch({ type: "CLEAR" });
+    refreshForms();
+  }
+
+  // Guard del tope de 6: avisa con un toast amable y bloquea la creación. Se
+  // llama al inicio de cada vía (nuevo en blanco / importar XLSForm / traducir
+  // SurveyMonkey). Devuelve `true` si ya no hay cupo.
+  function blockIfAtFormLimit(): boolean {
+    if (canCreateForm) return false;
+    toasts.push({
+      kind: "info",
+      title: `Límite de ${MAX_FORMS} formularios`,
+      detail: "Este proyecto ya tiene el máximo de formularios. Elimina uno para crear otro.",
+      durationMs: 5000,
+    });
+    return true;
+  }
+
   function onNewWorkbook() {
     if (blockUntilRestoreDecision("empezar otro formulario")) return;
+    if (blockIfAtFormLimit()) return;
     if (dirty && !window.confirm("Hay cambios sin exportar. ¿Abrimos un constructor nuevo igual?")) return;
     resetMessages();
     loadWorkbook(
@@ -1393,34 +1792,6 @@ export default function XlsformEditorPage() {
       { kind: null, original_name: null },
       "Creamos una base limpia para diseñar el formulario desde una interfaz guiada."
     );
-  }
-
-  /**
-   * Carga un template seed (galería del EmptyHome) materializándolo a
-   * workbook editable. Comparte el guardarraíl de "cambios sin exportar"
-   * con `onNewWorkbook` para que el usuario no pierda trabajo por descuido.
-   */
-  function onPickTemplate(template: TemplateSeed) {
-    if (blockUntilRestoreDecision("cargar una plantilla")) return;
-    if (
-      dirty &&
-      !window.confirm(
-        `Hay cambios sin exportar. ¿Reemplazar el formulario actual por la plantilla «${template.title}»?`,
-      )
-    ) {
-      return;
-    }
-    resetMessages();
-    loadWorkbook(
-      buildWorkbookFromSeed(template),
-      { kind: null, original_name: null },
-      `Cargamos la plantilla «${template.title}». Personaliza los textos y las opciones desde el constructor.`,
-    );
-    toasts.push({
-      kind: "success",
-      title: "Plantilla cargada",
-      detail: `Empezaste con «${template.title}». Edita lo que necesites.`,
-    });
   }
 
   function updateSurveyField(rowIndex: number, field: string, value: string) {
@@ -2290,12 +2661,15 @@ export default function XlsformEditorPage() {
         <div className="pulso-xlsform-commandbar" aria-label="Comandos del formulario activo">
           <div className="pulso-xlsform-commandbar-group pulso-xlsform-commandbar-group--document">
             <div className="pulso-xlsform-document-strip" aria-label="Resumen del formulario">
-              <span className="pulso-xlsform-document-icon" aria-hidden="true">
-                <FileSpreadsheet size={13} />
-              </span>
-              <span className="pulso-xlsform-commandbar-kicker" title={source?.original_name ?? "Formulario activo"}>
-                {source?.original_name ?? "Formulario activo"}
-              </span>
+              <FormSwitcher
+                forms={forms}
+                activeFormId={activeFormId}
+                activeName={activeFormName}
+                canCreate={canCreateForm}
+                onSwitch={(id) => { void switchToForm(id); }}
+                onNew={onNewWorkbook}
+                onViewAll={onBackToHub}
+              />
               <span className="pulso-xlsform-document-divider" aria-hidden="true" />
               <DocumentMetric value={structure?.outline.length ?? 0} label="piezas" />
               <DocumentMetric
@@ -2399,20 +2773,39 @@ export default function XlsformEditorPage() {
               type="button"
               onClick={onNewWorkbook}
               className="pulso-xlsform-toolbar-button"
-              title="Crear un formulario nuevo"
+              disabled={!canCreateForm}
+              title={canCreateForm ? "Crear un formulario nuevo" : `Límite de ${MAX_FORMS} formularios por proyecto`}
             >
               <IconNew size={14} /> Nuevo formulario
             </button>
-            <button type="button" onClick={() => xlsInputRef.current?.click()} className="pulso-xlsform-toolbar-button">
+            <button
+              type="button"
+              onClick={() => xlsInputRef.current?.click()}
+              className="pulso-xlsform-toolbar-button"
+              disabled={!canCreateForm}
+              title={canCreateForm ? "Importar un XLSForm" : `Límite de ${MAX_FORMS} formularios por proyecto`}
+            >
               <Upload size={14} /> Importar
             </button>
-            <button type="button" onClick={onImportSurveyMonkey} className="pulso-xlsform-toolbar-button">
+            <button
+              type="button"
+              onClick={onImportSurveyMonkey}
+              className="pulso-xlsform-toolbar-button"
+              disabled={!canCreateForm}
+              title={canCreateForm ? "Traducir una encuesta de SurveyMonkey" : `Límite de ${MAX_FORMS} formularios por proyecto`}
+            >
               <Cloud size={14} /> SurveyMonkey
             </button>
             <button type="button" className="pulso-primary pulso-xlsform-toolbar-button" onClick={onExport} disabled={!!busy}>
               <Download size={14} /> Exportar .xlsx
             </button>
-            <button type="button" onClick={onExportPdf} disabled={!!busy} className="pulso-xlsform-toolbar-button">
+            <button
+              type="button"
+              className="pulso-xlsform-toolbar-button"
+              onClick={() => setPdfDialogOpen(true)}
+              disabled={!!busy}
+              title="Configurar y exportar el cuestionario en PDF"
+            >
               <FileText size={14} /> PDF
             </button>
           </div>
@@ -2442,14 +2835,19 @@ export default function XlsformEditorPage() {
           Antes había un Panel "Entradas y salidas" arriba con los mismos
           4 botones — duplicaba acciones y confundía al usuario. */}
       {!workbook && (
-        <EmptyHome
+        <FormsLibrary
+          forms={forms}
+          activeFormId={getActiveForm(projectScope)}
+          scope={projectScope}
+          onOpen={(id) => { void switchToForm(id); }}
+          onDelete={onDeleteForm}
+          onRename={onRenameForm}
           onNewBlank={onNewWorkbook}
           onImportXls={() => {
             if (blockUntilRestoreDecision("importar otro XLSForm")) return;
             xlsInputRef.current?.click();
           }}
           onImportSurveyMonkey={onImportSurveyMonkey}
-          onPickTemplate={onPickTemplate}
           resumeBanner={
             restoreOffer ? (
               <RestoreOfferBanner
@@ -2884,6 +3282,48 @@ export default function XlsformEditorPage() {
           onComplete={onSurveyMonkeyImportComplete}
         />
       ) : null}
+
+      {/* Diálogo del importador de Matriz PULSO IAC-CINDA (por audiencia). */}
+      {matrizPulsoDialog ? (
+        <MatrizPulsoDialog
+          fileName={matrizPulsoDialog.fileName}
+          audiences={matrizPulsoDialog.audiences}
+          existingCount={forms.length}
+          maxForms={MAX_FORMS}
+          submitting={matrizPulsoSubmitting}
+          onCancel={() => {
+            if (matrizPulsoSubmitting) return;
+            setMatrizPulsoDialog(null);
+          }}
+          onConfirm={onMatrizPulsoConfirm}
+        />
+      ) : null}
+
+      {/* Diálogo "Configurar PDF": Formato / Lógica / Matrices. Se mantiene
+          montado (aunque cerrado) para conservar las elecciones del usuario
+          entre aperturas DEL MISMO formulario. El `key` por formulario activo
+          lo remonta al cambiar de formulario, descartando estado form-específico
+          (ids de matriz row-based, tenor, columna especial, cabecera, variable
+          de consentimiento) que no aplica al nuevo workbook. */}
+      <ConfigurarPdfDialog
+        key={activeFormId ?? "no-form"}
+        open={pdfDialogOpen}
+        onClose={() => setPdfDialogOpen(false)}
+        onExport={(columns, logicLanguage, showQuestionnaireNumber, matrixGroups, matrixLayout, consentVar) => {
+          void onExportPdf(
+            columns,
+            logicLanguage,
+            showQuestionnaireNumber,
+            matrixGroups,
+            matrixLayout,
+            consentVar,
+          );
+        }}
+        matrixCandidates={matrixCandidates}
+        consentQuestions={consentQuestions}
+        fileName={activeFormName}
+        busy={!!busy}
+      />
 
       {/* Panel de hallazgos del validador empírico — drawer flotante a la
           derecha. Aparece tras un import-with-logic con resultados. Click en
