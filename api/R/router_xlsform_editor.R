@@ -1486,6 +1486,68 @@ mount_xlsform_editor <- function(pr) {
         warnings = result$warnings %||% character(0)
       )
     })) |>
+    plumber::pr_post("/api/xlsform-editor/export-word", wrap_endpoint(function(req, res, ...) {
+      # Segundo motor de exportacion: MISMO modelo que el PDF (build_model
+      # compartido), renderizado a .docx (officer/flextable).
+      sid <- session_header(req)
+      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
+        sid <- session_create()
+        res$setHeader("X-Pulso-Session", sid)
+      }
+
+      parsed <- .xlsform_editor_parse_body(req)
+      workbook <- parsed$workbook %||% list()
+      filename <- as.character(parsed$filename %||% "formulario_impreso.docx")
+      if (!grepl("\\.docx$", filename, ignore.case = TRUE)) {
+        filename <- paste0(filename, ".docx")
+      }
+
+      survey <- .xlsform_editor_payload_to_df(workbook$survey, "survey")
+      choices <- .xlsform_editor_payload_to_df(workbook$choices, "choices")
+      settings <- .xlsform_editor_payload_to_df(workbook$settings, "settings")
+      paper <- if (!is.null(workbook$paper)) {
+        .xlsform_editor_payload_to_df(workbook$paper, "paper")
+      } else {
+        .xlsform_editor_empty_df(.xlsform_editor_default_columns("paper"))
+      }
+      options <- parsed$options %||% list()
+      if (!nzchar(as.character(options$title %||% ""))) {
+        fallback_title <- tools::file_path_sans_ext(basename(filename))
+        fallback_title <- gsub("(_papel|_editado)$", "", fallback_title, ignore.case = TRUE)
+        fallback_title <- gsub("[_-]+", " ", fallback_title)
+        options$title <- fallback_title
+      }
+      if (!nzchar(as.character(options$footer_title %||% ""))) {
+        options$footer_title <- options$title
+      }
+
+      s <- session_get(sid)
+      out_path <- file.path(s$dir, "downloads", paste0(uuid::UUIDgenerate(), ".docx"))
+      result <- tryCatch(
+        reporte_formulario_word(
+          survey = survey,
+          choices = choices,
+          settings = settings,
+          paper = paper,
+          output_file = out_path,
+          options = options
+        ),
+        error = function(e) {
+          stop_api(500, "E_WORD_EXPORT_FAILED",
+                   sprintf("No pude generar el Word del formulario: %s", conditionMessage(e)))
+        }
+      )
+      meta <- .register_output_file(sid, "formulario_word", out_path, original_name = filename)
+
+      list(
+        ok = TRUE,
+        file_id = meta$file_id,
+        original_name = meta$original_name,
+        size = meta$size,
+        summary = result$summary,
+        warnings = result$warnings %||% character(0)
+      )
+    })) |>
     plumber::pr_post("/api/xlsform-editor/validate", wrap_endpoint(function(req, res, ...) {
       # Validador estructural ligero. El frontend lo invoca debounced (cada
       # ~1s tras una edición) para refrescar el DiagnosticsBadge. Devuelve

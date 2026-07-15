@@ -3480,6 +3480,47 @@ export async function apiXlsformEditorExportPdf(
 }
 
 /**
+ * Exporta el MISMO cuestionario en formato Word (.docx). Reutiliza el mismo
+ * modelo que el PDF en el backend (build_model compartido), así que acepta las
+ * mismas `options`. Devuelve un file_id descargable/registrable como entregable.
+ */
+export async function apiXlsformEditorExportWord(
+  workbook: XlsformEditorWorkbook,
+  filename?: string,
+  options: {
+    title?: string;
+    footer_title?: string;
+    columns?: 1 | 2;
+    logic_language?: "saltos" | "condiciones";
+    show_questionnaire_number?: boolean;
+    show_header_title?: boolean;
+    matrix_layout?: "full" | "column";
+    consent_var?: string;
+    matrix_groups?: Array<{ members: string[]; tenor?: string; special?: string; header?: string }>;
+  } = {},
+) {
+  return handle<{
+    ok: true;
+    file_id: string;
+    original_name: string;
+    size: number;
+    summary: {
+      n_blocks: number;
+      n_questions: number;
+      n_sections: number;
+      n_matrices: number;
+    };
+    warnings: string[];
+  }>(
+    await apiFetch("/api/xlsform-editor/export-word", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ workbook, filename, options }),
+    })
+  );
+}
+
+/**
  * Diagnostic estructural devuelto por el validador de R. La forma coincide
  * con `BuilderDiagnostic` del frontend para que el badge pueda renderizarlos
  * directo, sin transformación. `rowIndex` y `catalogName` son opcionales.

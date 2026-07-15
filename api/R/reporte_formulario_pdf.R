@@ -584,6 +584,12 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   show_qnum <- if (is.null(sqn)) TRUE
     else if (is.logical(sqn)) isTRUE(sqn[[1]])
     else !(tolower(trimws(as.character(sqn)[[1]])) %in% c("false", "0", "no", "f", "n"))
+  # Titulo pequeno en el header superior (se repite por pagina): opcional
+  # (default TRUE). Se puede ocultar cuando la portada ya lleva el titulo grande.
+  sht <- options$show_header_title
+  show_header_title <- if (is.null(sht)) TRUE
+    else if (is.logical(sht)) isTRUE(sht[[1]])
+    else !(tolower(trimws(as.character(sht)[[1]])) %in% c("false", "0", "no", "f", "n"))
 
   choices_by_list <- .form_pdf_options_by_list(choices)
   # Agrupacion de matrices: si el frontend manda `matrix_groups` (aunque sea []),
@@ -837,6 +843,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     matrix_layout = matrix_layout,
     logic_language = logic_language,
     show_questionnaire_number = show_qnum,
+    show_header_title = show_header_title,
     blocks = blocks,
     warnings = unique(warnings),
     summary = list(
@@ -996,8 +1003,10 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 .form_pdf_header <- function(model, page_no) {
   tk <- pulso_pdf_tokens()
   .form_pdf_draw_logo(0.052, 0.962, width_npc = 0.115)
-  .form_pdf_text(toupper(model$title), 0.190, 0.976, 0.480, chars = 62, fontsize = 8.4,
-                 fontface = "bold", col = tk$navy, line_h = 0.012)
+  if (!identical(model$show_header_title, FALSE)) {
+    .form_pdf_text(toupper(model$title), 0.190, 0.976, 0.480, chars = 62, fontsize = 8.4,
+                   fontface = "bold", col = tk$navy, line_h = 0.012)
+  }
   if (!identical(model$show_questionnaire_number, FALSE)) {
     grid::grid.text("N.º de cuestionario", x = grid::unit(0.878, "npc"), y = grid::unit(0.938, "npc"),
                     just = c("center", "center"), gp = grid::gpar(fontsize = 6.6, col = tk$soft))
