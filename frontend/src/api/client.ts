@@ -2216,7 +2216,41 @@ function normalizeEditorPayload(value: unknown): XlsformEditorPayload {
   };
 }
 
-export async function apiXlsformEditorImport(file_id: string) {
+// Variante de respuesta cuando el archivo subido NO es un XLSForm normal sino
+// una "Matriz PULSO IAC-CINDA" (preguntas por criterio/subcriterio con columnas
+// de audiencia). El backend la detecta y, en vez del workbook, devuelve las
+// audiencias disponibles para que el front pida elegir cuáles generar.
+export type XlsformEditorImportMatrizPulso = {
+  kind: "matriz_pulso";
+  audiences: string[];
+  original_name: string | null;
+};
+
+// Resultado discriminado del import: XLSForm normal (kind:"xlsform") o matriz
+// PULSO (kind:"matriz_pulso"). El caller discrimina por `kind`.
+export type XlsformEditorImportResult =
+  | ({ kind: "xlsform" } & XlsformEditorPayload)
+  | XlsformEditorImportMatrizPulso;
+
+export function isMatrizPulsoImport(
+  result: XlsformEditorImportResult,
+): result is XlsformEditorImportMatrizPulso {
+  return result.kind === "matriz_pulso";
+}
+
+export function normalizeXlsformImportResult(value: unknown): XlsformEditorImportResult {
+  const raw = (value ?? {}) as Record<string, unknown>;
+  if (raw.kind === "matriz_pulso") {
+    return {
+      kind: "matriz_pulso",
+      audiences: asStringArray(raw.audiences).filter((audience) => audience.trim().length > 0),
+      original_name: raw.original_name == null ? null : String(raw.original_name),
+    };
+  }
+  return { kind: "xlsform", ...normalizeEditorPayload(raw) };
+}
+
+export async function apiXlsformEditorImport(file_id: string): Promise<XlsformEditorImportResult> {
   const raw = await handle<unknown>(
     await apiFetch("/api/xlsform-editor/import", {
       method: "POST",
@@ -2224,7 +2258,74 @@ export async function apiXlsformEditorImport(file_id: string) {
       body: JSON.stringify({ file_id }),
     })
   );
-  return normalizeEditorPayload(raw);
+  return normalizeXlsformImportResult(raw);
+}
+
+// Segundo paso del flujo matriz PULSO: para una audiencia elegida el backend
+// construye el workbook XLSForm correspondiente. Devuelve además un resumen con
+// la escala inferida (preguntas de acuerdo/satisfacción) y warnings a revisar.
+export type MatrizPulsoImportSummary = {
+  audience: string | null;
+  survey_rows: number;
+  choices_rows: number;
+  settings_rows: number;
+  n_acuerdo: number | null;
+  n_satisfaccion: number | null;
+  scale_inferred: boolean;
+};
+
+export type MatrizPulsoImportResult = {
+  workbook: XlsformEditorWorkbook;
+  summary: MatrizPulsoImportSummary;
+  warnings: string[];
+};
+
+function matrizNumOrNull(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeMatrizPulsoImport(value: unknown): MatrizPulsoImportResult {
+  const raw = (value ?? {}) as Record<string, unknown>;
+  const workbookRaw = (raw.workbook ?? {}) as Record<string, unknown>;
+  const summaryRaw = (raw.summary ?? {}) as Record<string, unknown>;
+  return {
+    workbook: {
+      survey: normalizeSheet(workbookRaw.survey, "survey"),
+      choices: normalizeSheet(workbookRaw.choices, "choices"),
+      settings: normalizeSheet(workbookRaw.settings, "settings"),
+      paper: workbookRaw.paper ? normalizeSheet(workbookRaw.paper, "paper") : null,
+      diagnostico: workbookRaw.diagnostico ? normalizeSheet(workbookRaw.diagnostico, "diagnostico") : null,
+      surveyMonkeyLogic: normalizeSurveyMonkeyLogicState(
+        workbookRaw.surveyMonkeyLogic ?? workbookRaw.survey_monkey_logic,
+      ),
+    },
+    summary: {
+      audience: summaryRaw.audience == null ? null : String(summaryRaw.audience),
+      survey_rows: Number(summaryRaw.survey_rows ?? 0),
+      choices_rows: Number(summaryRaw.choices_rows ?? 0),
+      settings_rows: Number(summaryRaw.settings_rows ?? 0),
+      n_acuerdo: matrizNumOrNull(summaryRaw.n_acuerdo),
+      n_satisfaccion: matrizNumOrNull(summaryRaw.n_satisfaccion),
+      scale_inferred: Boolean(summaryRaw.scale_inferred),
+    },
+    warnings: Array.isArray(raw.warnings) ? raw.warnings.map((item) => String(item)) : [],
+  };
+}
+
+export async function apiXlsformEditorImportMatrizPulso(
+  file_id: string,
+  audience: string,
+): Promise<MatrizPulsoImportResult> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/import-matriz-pulso", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ file_id, audience }),
+    })
+  );
+  return normalizeMatrizPulsoImport(raw);
 }
 
 export async function apiXlsformEditorImportSurveyMonkey(file_id: string, lang = "es") {
@@ -2835,6 +2936,171 @@ export async function apiXlsformEditorStateClear(): Promise<{ ok: true }> {
   return { ok: true };
 }
 
+// -----------------------------------------------------------------------------
+// Colección multi-formulario del editor XLSForm (Oleada 2)
+// -----------------------------------------------------------------------------
+// Un proyecto puede alojar varios formularios. El backend mantiene una
+// colección nombrada por `id` más un espejo del activo (`s$xlsform_state`,
+// shape retrocompatible que consumen Carga/Monitoreo/etc.). El frontend es
+// autoritativo del `id` (lo genera con crypto.randomUUID()).
+
+/** Entrada ligera del índice de la biblioteca (sin workbook). */
+export type FormLibraryEntry = {
+  id: string;
+  name: string;
+  source: { kind: string | null; original_name: string | null } | null;
+  saved_at: number;
+  active: boolean;
+};
+
+/** Formulario completo persistido (con workbook + hallazgos). */
+export type PersistedXlsformForm = {
+  id: string;
+  name?: string;
+  workbook: XlsformEditorWorkbook;
+  source: { kind: string | null; original_name: string | null } | null;
+  hallazgos: Hallazgo[];
+  saved_at: number;
+};
+
+function normalizeFormSource(
+  value: unknown,
+): { kind: string | null; original_name: string | null } | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const v = value as Record<string, unknown>;
+  const kind = typeof v.kind === "string" && v.kind.trim() ? v.kind : null;
+  const originalName =
+    typeof v.original_name === "string" && v.original_name.trim() ? v.original_name : null;
+  if (kind == null && originalName == null) return null;
+  return { kind, original_name: originalName };
+}
+
+function normalizeFormEntry(value: unknown): FormLibraryEntry | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const v = value as Record<string, unknown>;
+  const id = typeof v.id === "string" ? v.id : "";
+  if (!id) return null;
+  const savedAt = typeof v.saved_at === "number" && Number.isFinite(v.saved_at)
+    ? v.saved_at
+    : Number(v.saved_at) || 0;
+  return {
+    id,
+    name: typeof v.name === "string" && v.name.trim() ? v.name : "Formulario",
+    source: normalizeFormSource(v.source),
+    saved_at: savedAt,
+    active: v.active === true,
+  };
+}
+
+export async function apiXlsformFormsList(): Promise<{
+  ok: true;
+  forms: FormLibraryEntry[];
+  active_form_id: string | null;
+}> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/forms", { method: "GET", headers: headers() }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const forms = Array.isArray(r.forms)
+    ? r.forms.map(normalizeFormEntry).filter((entry): entry is FormLibraryEntry => entry != null)
+    : [];
+  return {
+    ok: true,
+    forms,
+    active_form_id: typeof r.active_form_id === "string" ? r.active_form_id : null,
+  };
+}
+
+export async function apiXlsformFormGet(id: string): Promise<{
+  ok: true;
+  form: PersistedXlsformForm | null;
+}> {
+  const raw = await handle<unknown>(
+    await apiFetch(`/api/xlsform-editor/forms/${encodeURIComponent(id)}`, {
+      method: "GET",
+      headers: headers(),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const formRaw = (r.form ?? {}) as Record<string, unknown>;
+  const workbook = formRaw.workbook as XlsformEditorWorkbook | undefined;
+  if (!workbook || typeof workbook !== "object") return { ok: true, form: null };
+  const savedAt = typeof formRaw.saved_at === "number" && Number.isFinite(formRaw.saved_at)
+    ? formRaw.saved_at
+    : Number(formRaw.saved_at) || 0;
+  return {
+    ok: true,
+    form: {
+      id: typeof formRaw.id === "string" ? formRaw.id : id,
+      name: typeof formRaw.name === "string" ? formRaw.name : undefined,
+      workbook,
+      source: normalizeFormSource(formRaw.source),
+      hallazgos: Array.isArray(formRaw.hallazgos) ? (formRaw.hallazgos as Hallazgo[]) : [],
+      saved_at: savedAt,
+    },
+  };
+}
+
+export async function apiXlsformFormSave(form: PersistedXlsformForm): Promise<{
+  ok: true;
+  id: string;
+  saved_at: number;
+  active_form_id: string | null;
+}> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/forms", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(form),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const savedAt = typeof r.saved_at === "number" && Number.isFinite(r.saved_at)
+    ? r.saved_at
+    : Number(r.saved_at) || Date.now();
+  return {
+    ok: true,
+    id: typeof r.id === "string" ? r.id : form.id,
+    saved_at: savedAt,
+    active_form_id: typeof r.active_form_id === "string" ? r.active_form_id : null,
+  };
+}
+
+export async function apiXlsformFormActivate(id: string): Promise<{
+  ok: true;
+  active_form_id: string | null;
+}> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/forms/activate", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ id }),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    ok: true,
+    active_form_id: typeof r.active_form_id === "string" ? r.active_form_id : null,
+  };
+}
+
+export async function apiXlsformFormDelete(id: string): Promise<{
+  ok: true;
+  active_form_id: string | null;
+}> {
+  const raw = await handle<unknown>(
+    await apiFetch(`/api/xlsform-editor/forms/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: headers(),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    ok: true,
+    active_form_id: typeof r.active_form_id === "string" ? r.active_form_id : null,
+  };
+}
+
 export type RuleInterpretation =
   | {
       ok: true;
@@ -3181,7 +3447,16 @@ export async function apiXlsformEditorExport(
 export async function apiXlsformEditorExportPdf(
   workbook: XlsformEditorWorkbook,
   filename?: string,
-  options: { title?: string; footer_title?: string } = {},
+  options: {
+    title?: string;
+    footer_title?: string;
+    columns?: 1 | 2;
+    logic_language?: "saltos" | "condiciones";
+    show_questionnaire_number?: boolean;
+    matrix_layout?: "full" | "column";
+    consent_var?: string;
+    matrix_groups?: Array<{ members: string[]; tenor?: string; special?: string; header?: string }>;
+  } = {},
 ) {
   return handle<{
     ok: true;

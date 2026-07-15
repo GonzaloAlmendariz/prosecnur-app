@@ -48,6 +48,9 @@ export type EditorState = {
   lastSavedAt: number | null;
   /** Stack de undo/redo del workbook. */
   history: UndoStack<XlsformEditorWorkbook | null>;
+  /** Id del formulario activo dentro de la colección multi-formulario del
+   *  proyecto. `null` cuando no hay ninguno abierto (hub / EmptyHome). */
+  activeFormId: string | null;
 };
 
 export type EditorAction =
@@ -61,7 +64,18 @@ export type EditorAction =
    * Usado al importar XLSForm/SurveyMonkey o restaurar un snapshot.
    */
   | { type: "LOAD"; workbook: XlsformEditorWorkbook | null }
-  /** Vuelve al EmptyHome — historia limpia, workbook null, dirty=false. */
+  /**
+   * Carga un formulario concreto de la colección multi-formulario: igual que
+   * LOAD (resetea historia + dirty=false) más el set de `activeFormId`. El
+   * undo/redo se resetea al saltar de formulario — el anterior ya quedó
+   * persistido por el flush previo al switch.
+   */
+  | { type: "LOAD_FORM"; formId: string; workbook: XlsformEditorWorkbook }
+  /**
+   * Cierra el formulario abierto y vuelve al hub — historia limpia, workbook
+   * null, `activeFormId` null, dirty=false. NO borra la colección persistida:
+   * los demás formularios siguen en la biblioteca del proyecto.
+   */
   | { type: "CLEAR" }
   /** Mueve el cursor de historia atrás. */
   | { type: "UNDO" }
@@ -84,6 +98,7 @@ export function createInitialEditorState(
     history: initialWorkbook != null
       ? createUndoStack<XlsformEditorWorkbook | null>(initialWorkbook)
       : emptyUndoStack<XlsformEditorWorkbook | null>(),
+    activeFormId: null,
   };
 }
 
@@ -98,6 +113,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       if (action.workbook === state.workbook) return state;
       const history = pushUndoStack(state.history, action.workbook);
       return {
+        ...state,
         workbook: action.workbook,
         dirty: true,
         lastSavedAt: null,
@@ -110,10 +126,21 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           ? resetUndoStack<XlsformEditorWorkbook | null>(action.workbook)
           : emptyUndoStack<XlsformEditorWorkbook | null>();
       return {
+        ...state,
         workbook: action.workbook,
         dirty: false,
         lastSavedAt: null,
         history,
+      };
+    }
+    case "LOAD_FORM": {
+      const history = resetUndoStack<XlsformEditorWorkbook | null>(action.workbook);
+      return {
+        workbook: action.workbook,
+        dirty: false,
+        lastSavedAt: null,
+        history,
+        activeFormId: action.formId,
       };
     }
     case "CLEAR": {
@@ -122,6 +149,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         dirty: false,
         lastSavedAt: null,
         history: emptyUndoStack<XlsformEditorWorkbook | null>(),
+        activeFormId: null,
       };
     }
     case "UNDO": {
