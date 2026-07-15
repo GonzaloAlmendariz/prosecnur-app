@@ -52,6 +52,29 @@ describe("marcoCriteriosDesactualizado", () => {
     const configCiclo = { byVariable: { teacher_type: { mode: "include", fromValue: "NA" } } } as unknown as CriteriosSeleccionMarco;
     expect(marcoCriteriosDesactualizado(frameCiclo, configCiclo)).toBe(true);
   });
+
+  it("match:'any' del backend vs config lean sin match → NO desactualizado (caso real HST_UNSA2)", () => {
+    // El motor estampa match:"any" en TODA variable flat (formation, condition…);
+    // normalizeUniversityAulasConfig no lleva match. Antes esto quedaba en
+    // "reconstruye" perpetuo por comparar "any" contra ausente.
+    const frameFlat = frameCon({
+      scope: "alumno", kind: "flat", mode: "include", match: "any",
+      categories: "pregrado", exceptions: [], threshold: null,
+      includeValues: [], fromValue: "NA", layer: "marco",
+    });
+    const configFlat = {
+      byVariable: { teacher_type: { mode: "include", categories: ["pregrado"], layer: "marco" } },
+    } as unknown as CriteriosSeleccionMarco;
+    expect(marcoCriteriosDesactualizado(frameFlat, configFlat)).toBe(false);
+  });
+
+  it("match:'all' (no-default) sí se compara: 'all' en frame vs config sin match → SÍ desactualizado", () => {
+    const frameAll = frameCon({ mode: "include", match: "all", categories: ["a", "b"] });
+    const configAny = {
+      byVariable: { teacher_type: { mode: "include", categories: ["a", "b"] } },
+    } as unknown as CriteriosSeleccionMarco;
+    expect(marcoCriteriosDesactualizado(frameAll, configAny)).toBe(true);
+  });
 });
 
 // ADR 0035: reordenar la jerarquía de docente reetiqueta el teacher_type_top de
@@ -84,6 +107,23 @@ describe("marcoCriteriosDesactualizado — orden de jerarquía de docente", () =
   it("frame sin el campo (marco viejo) ⇒ NO desactualizado aunque el config tenga orden", () => {
     const frameViejo = { criterios_seleccion: { byVariable: {} } } as unknown as CalcMuestraAulasState["frame"];
     expect(marcoCriteriosDesactualizado(frameViejo, sinCriterios, ["contratado", "ordinario_principal"])).toBe(false);
+  });
+
+  it("config sin orden (el usuario nunca reordenó) ⇒ NO desactualizado aunque el frame guarde el orden por defecto", () => {
+    // Caso real HST_UNSA2: el motor guarda el orden efectivo (8 tipos por defecto)
+    // pero el workspace no tiene teacher_type_orden. [] vs 8 no es un cambio real.
+    const frameOrden = [
+      "docente_ordinario_principal",
+      "docente_ordinario_asociado",
+      "docente_ordinario_auxiliar",
+      "docente_ordinario",
+      "docente_contratado",
+      "docente_extraordinario",
+      "pre_docente",
+      "jefe_de_practica",
+    ];
+    expect(marcoCriteriosDesactualizado(frameConOrden(frameOrden), sinCriterios, undefined)).toBe(false);
+    expect(marcoCriteriosDesactualizado(frameConOrden(frameOrden), sinCriterios, [])).toBe(false);
   });
 
   it("compara semánticamente: dedup y trim no cuentan como cambio", () => {

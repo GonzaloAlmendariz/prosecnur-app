@@ -73,7 +73,11 @@ export function seleccionVariable(
   return {
     mode: actual?.mode ?? "include",
     categories: categorias,
-    ...(actual?.match ? { match: actual.match } : {}),
+    // `match:"any"` es el default que el backend estampa en TODA variable (metadata,
+    // como scope/kind); el config lean del frontend no lo lleva. Emitirlo solo cuando
+    // es "all" (lo único que `setMatch` puede volver no-default) evita que la franja
+    // compare "any" (frame) contra ausente (config) y quede en "reconstruye" perpetuo.
+    ...(actual?.match && actual.match !== "any" ? { match: actual.match } : {}),
     ...(actual?.exceptions ? { exceptions: actual.exceptions } : {}),
     ...(thresholdValido(actual?.threshold) ? { threshold: actual!.threshold } : {}),
     ...(incluidos.length ? { includeValues: incluidos } : {}),
