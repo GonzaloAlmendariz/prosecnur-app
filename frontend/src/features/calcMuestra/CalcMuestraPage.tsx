@@ -57,6 +57,7 @@ import {
   calcMuestraReporteDescargarUrl,
   downloadUrl,
   type CalcMuestraCanalRecojo,
+  type CalcMuestraAulasFileInspection,
   type CalcMuestraAulasSheetInspectionSheet,
   type CalcMuestraAulasState,
   type CalcMuestraComponente,
@@ -124,6 +125,10 @@ import {
   sourceBindingRole,
   universityInspectedColumnOptions,
 } from "./universidad/shared/categorias";
+import {
+  applyRefreshedDiagnostics,
+  sourceBindingsPendingInspection,
+} from "./universidad/shared/refreshDiagnostics";
 import { NumberCell } from "./universidad/aulas";
 import {
   corridaDeCalculo,
@@ -1002,6 +1007,13 @@ export default function CalcMuestraPage() {
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [cancellingJob, setCancellingJob] = useState(false);
   const cancelRequestedRef = useRef(false);
+  // Fix ADR 0035: file_ids de source bindings ya re-inspeccionados en esta sesión.
+  // El sample de columnas guardado en el workspace puede estar stale (18/19: falta
+  // la última columna, p.ej. "Tipo de docente"), así que al entrar a Definición
+  // re-inspeccionamos una sola vez por archivo y refrescamos los diagnostics. El
+  // set actúa de guarda anti-loop: la persistencia del workspace re-dispara el
+  // efecto, pero el file_id ya marcado no se vuelve a inspeccionar.
+  const inspectedSourceFileIdsRef = useRef<Set<string>>(new Set());
   const [reporteEnCurso, setReporteEnCurso] = useState(false);
   const [exportandoAulas, setExportandoAulas] = useState(false);
   const [activeRailSection, setActiveRailSection] = useState("pathways");
@@ -1080,6 +1092,49 @@ export default function CalcMuestraPage() {
   useEffect(() => {
     setMsg(null);
   }, [activeRailSection, activeClassroomLabTab]);
+
+  // Fix raíz ADR 0035: al entrar a Definición (donde vive el picker de columnas de
+  // Variables) re-inspeccionamos los archivos de las source bindings para refrescar
+  // `sheet_diagnostics` con el set COMPLETO de encabezados actuales. El sample
+  // guardado en el workspace suele estar stale (18/19: falta la última columna,
+  // p.ej. "Tipo de docente"), lo que impide mapear ese rol. Best-effort y una sola
+  // vez por file_id por sesión (ver `inspectedSourceFileIdsRef`), sin bloquear la UI.
+  useEffect(() => {
+    if (desk !== "opinion_universitaria") return;
+    if (activeRailSection !== "definicion") return;
+    const pending = sourceBindingsPendingInspection(
+      workspace.source_bindings,
+      inspectedSourceFileIdsRef.current,
+    );
+    if (pending.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      const inspections = new Map<string, CalcMuestraAulasFileInspection>();
+      for (const fileId of pending) {
+        // Marca antes del await: si el efecto se re-dispara durante la inspección
+        // (p.ej. por la persistencia del workspace) el mismo archivo no se vuelve a
+        // inspeccionar → no hay bucle efecto ↔ workspace.
+        inspectedSourceFileIdsRef.current.add(fileId);
+        try {
+          const res = await apiCalcMuestraMarcoInspeccionarArchivo(fileId);
+          if (cancelled) return;
+          inspections.set(fileId, res.inspection);
+        } catch {
+          // Best-effort: el archivo puede no estar disponible; dejamos los
+          // diagnostics viejos y seguimos con los demás. El file_id queda marcado
+          // para no reintentar en bucle esta sesión.
+        }
+      }
+      if (cancelled || inspections.size === 0) return;
+      const current = useCalcMuestraStore.getState().estudio.workspace ?? workspace;
+      const nextBindings = applyRefreshedDiagnostics(current.source_bindings, inspections);
+      if (jsonIgual(current.source_bindings ?? [], nextBindings)) return;
+      setWorkspaceSiCambia({ ...current, source_bindings: nextBindings });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [desk, activeRailSection, workspace, setWorkspaceSiCambia]);
 
   useEffect(() => {
     if (!hydrated || !requestedDesk) return;

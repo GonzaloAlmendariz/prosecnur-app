@@ -168,6 +168,15 @@ export type UniversityColumnSourceGroup = "student" | "classroom";
 export type UniversityColumnsBySource = Record<UniversityColumnSourceGroup, string[]>;
 
 /**
+ * Mapea el `source_role` de una variable (§3.3.1) a la hoja de la que debe
+ * ofrecer columnas. Solo el catálogo de cursos-horario alimenta el lado "aula";
+ * todo lo demás (base madre, estudiantes, inscripciones) es "estudiante".
+ */
+export function universitySourceGroupForRole(sourceRole: string | undefined | null): UniversityColumnSourceGroup {
+  return sourceRole === "catalogo_curso_horario" ? "classroom" : "student";
+}
+
+/**
  * Columnas disponibles POR FUENTE/HOJA (§ADR 0035): las opciones de un rol
  * salen SOLO de su hoja. Los roles de alumno (source_role "base_madre") leen la
  * base madre / MATRICULADO; los roles de curso-horario (source_role
@@ -225,9 +234,22 @@ export function universityColumnOptionsBySource(
   };
 }
 
-/** Grupo de fuente (hoja) al que pertenece un rol según su source_role. */
-export function universitySourceGroupForRole(sourceRole: string | undefined): UniversityColumnSourceGroup {
-  return sourceRole === "catalogo_curso_horario" ? "classroom" : "student";
+/**
+ * Opciones de columna que ve una tarjeta de rol: SOLO la hoja de su fuente,
+ * filtradas a columnas de cara al usuario. Siempre incluye la columna ya
+ * confirmada (para que la tarjeta renderice aunque el marco cambie).
+ */
+export function universityRoleColumnOptions(
+  columnsBySource: UniversityColumnsBySource,
+  sourceRole: string | undefined | null,
+  confirmedColumn?: string,
+): string[] {
+  const group = universitySourceGroupForRole(sourceRole);
+  const cols = group === "classroom" ? columnsBySource.classroom : columnsBySource.student;
+  const confirmed = confirmedColumn?.trim() ? [confirmedColumn.trim()] : [];
+  return Array.from(new Set([...cols, ...confirmed]))
+    .filter(isUniversityUserFacingColumnName)
+    .sort((a, b) => a.localeCompare(b, "es"));
 }
 
 export function ensureUniversityVariableMappings(
@@ -380,7 +402,8 @@ export function inferUniversityColumn(role: string, columns: string[]) {
     enrolled_total: ["enrolledtotal", "cantidadmatriculados", "matriculadostotal", "totalmatriculados", "matriculados"],
     course_level: ["courselevel", "nivelcurso", "niveldelcurso", "ciclocurso", "ciclodelcurso"],
     campus: ["campus", "sede", "filial"],
-    condition: ["condition", "condicion", "condiciondelcurso", "condicionmatricula", "elegible", "habilitado", "valido", "regular"],
+    condition: ["condition", "condicion", "condicionmatricula", "elegible", "habilitado", "valido", "regular"],
+    condicion_curso: ["condicioncurso", "condiciondelcurso", "condicion", "tipodecurso", "tipocurso", "obligatorioelectivo", "obligatorioelectivotaller"],
     eligible: ["eligible", "elegible", "habilitado", "valido", "regular", "condicion", "condiciondelcurso"],
   };
   for (const synonym of synonyms[role] ?? []) {
@@ -463,26 +486,18 @@ export function normalizeObservedCategoryKey(value: string) {
   return normalizeColumnName(String(value ?? "").trim());
 }
 
-export function suggestUniversityCategoryLabel(role: string, raw: string) {
+/**
+ * Etiqueta mostrada de una categoría = su valor CRUDO tal cual la data (solo
+ * trim de espacios). Requisito explícito del usuario (ADR 0035 fase 3): nada de
+ * normalizar/renombrar/reetiquetar valores ("REGULAR" se muestra "REGULAR", no
+ * "Elegible"; "1"/"2" de sexo no se traducen a "Hombre"/"Mujer"). El `role` se
+ * conserva en la firma por compatibilidad con los llamadores, pero no altera el
+ * valor. El renombrado, si el usuario lo quiere, es una decisión MANUAL que vive
+ * en workspace.category_mappings (etiqueta guardada), no una heurística.
+ */
+export function suggestUniversityCategoryLabel(_role: string, raw: string) {
   const text = String(raw ?? "").trim();
-  const key = normalizeObservedCategoryKey(text);
-  if (!key) return "Sin dato";
-  if (role === "sex") {
-    if (["1", "h", "hom", "hombre", "masculino", "male", "m", "varon"].includes(key)) return "Hombre";
-    if (["2", "mujer", "femenino", "female", "f", "fem"].includes(key)) return "Mujer";
-    if (["o", "otro", "otra", "otros", "nonbinary", "nobinario", "nobinaria"].includes(key)) return "Otro";
-    if (["na", "nd", "sindato", "noreporta", "prefieronodecir"].includes(key)) return "Sin dato";
-  }
-  if (role === "condition") {
-    if (["1", "si", "s", "true", "regular", "valido", "valida", "elegible", "apto", "activa", "activo"].includes(key)) return "Elegible";
-    if (["0", "no", "false", "irregular", "retirado", "retirada", "anulado", "anulada", "noelegible"].includes(key)) return "No elegible";
-  }
-  if (role === "modality") {
-    if (["p", "presencial", "inaula"].includes(key)) return "Presencial";
-    if (["v", "virtual", "online", "remoto", "remota"].includes(key)) return "Virtual";
-    if (["m", "mixto", "mixta", "hibrido", "hibrida"].includes(key)) return "Mixta";
-  }
-  return text;
+  return text || "Sin dato";
 }
 
 export function findWorkspaceCategoryMapping(

@@ -21,6 +21,7 @@ import {
   isUniversityUserFacingColumnName,
   universityColumnOptionsBySource,
   universityObservedCategoryRows,
+  universityRoleColumnOptions,
   universitySourceGroupForRole,
   type UniversityObservedCategory,
 } from "../shared/categorias";
@@ -34,11 +35,28 @@ import {
 import { VariableMapCard } from "./VariableMapCard";
 import "./definicion.css";
 
-const GRUPOS: Array<{ id: string; titulo: string; roles: string[] }> = [
-  { id: "identidad", titulo: "Identidad", roles: ["student_id"] },
-  { id: "estratificacion", titulo: "Estratificación", roles: ["faculty", "sex", "program", "level", "formation", "age"] },
-  { id: "aula", titulo: "Unidad curso-horario", roles: ["course_id", "schedule", "course_schedule_id", "classroom", "modality", "session_type", "condicion_curso", "course_level", "enrolled_total"] },
-  { id: "operativo", titulo: "Operativo", roles: ["teacher", "teacher_type", "campus", "condition", "course_name"] },
+/**
+ * Separación por HOJA (§ADR 0035 fase 3): las tarjetas de rol se agrupan en dos
+ * secciones sin overlap — arriba el estudiante (hoja de matrícula, source_role
+ * base_madre), abajo el curso-horario (hoja de catálogo, source_role
+ * catalogo_curso_horario). Cada rol cae en su sección por su `source_role`; el
+ * orden dentro de cada sección respeta UNIVERSITY_REQUIRED_VARIABLES.
+ */
+type DefVariablesSourceGroup = "student" | "classroom";
+
+const SECCIONES: Array<{ id: string; titulo: string; descripcion: string; group: DefVariablesSourceGroup }> = [
+  {
+    id: "estudiante",
+    titulo: "Variables del estudiante",
+    descripcion: "Columnas de la hoja de matrícula (una fila por estudiante).",
+    group: "student",
+  },
+  {
+    id: "curso_horario",
+    titulo: "Variables del curso-horario",
+    descripcion: "Columnas de la hoja de catálogo de cursos y horarios.",
+    group: "classroom",
+  },
 ];
 
 /** Ampliación del "por qué" para los roles donde la description corta no basta. */
@@ -83,21 +101,21 @@ export function DefVariablesTab({
   const columnsBySource = universityColumnOptionsBySource(workspace, aulasState);
   const studentColumns = columnsBySource.student.filter(isUniversityUserFacingColumnName);
   const classroomColumns = columnsBySource.classroom.filter(isUniversityUserFacingColumnName);
-  const anyColumnsDetected = studentColumns.length > 0 || classroomColumns.length > 0;
+  const hasAnyColumns = studentColumns.length > 0 || classroomColumns.length > 0;
 
-  function sourceColumnsFor(sourceRole: string | undefined): string[] {
+  function sourceColumnsFor(sourceRole: string | undefined | null): string[] {
     return universitySourceGroupForRole(sourceRole) === "classroom" ? classroomColumns : studentColumns;
   }
 
-  // Opciones de la tarjeta = columnas de la hoja del rol + su columna confirmada
-  // (para que se renderice aun si el marco cambió y ya no la detecta). Si su hoja
-  // aún no tiene columnas detectadas, la tarjeta cae al estado vacío, jamás a las
-  // columnas de la otra hoja.
+  // Opciones de la tarjeta = columnas de la hoja del rol (vía universityRoleColumnOptions,
+  // §3.3.1) más su columna confirmada, para que se renderice aun si el marco cambió y ya
+  // no la detecta.
   function columnsForBase(baseVar: CalcMuestraWorkspaceVariableMapping): string[] {
-    const options = new Set(sourceColumnsFor(baseVar.source_role));
-    const confirmed = universityConfirmedColumn(workspace.variable_mappings, baseVar.role);
-    if (confirmed && isUniversityUserFacingColumnName(confirmed)) options.add(confirmed);
-    return Array.from(options).sort((a, b) => a.localeCompare(b, "es"));
+    return universityRoleColumnOptions(
+      columnsBySource,
+      baseVar.source_role,
+      universityConfirmedColumn(workspace.variable_mappings, baseVar.role),
+    );
   }
 
   const frame = aulasState?.frame ?? null;
@@ -185,16 +203,16 @@ export function DefVariablesTab({
         </div>
       </header>
 
-      {GRUPOS.map((grupo) => {
-        const bases = grupo.roles.flatMap((role) => {
-          const base = BASE_BY_ROLE.get(role);
-          return base ? [base] : [];
-        });
+      {SECCIONES.map((seccion) => {
+        const bases = UNIVERSITY_REQUIRED_VARIABLES.filter(
+          (base) => universitySourceGroupForRole(base.source_role) === seccion.group,
+        );
         if (!bases.length) return null;
         return (
-          <div key={grupo.id} className="cmv2-defi-var-group">
+          <div key={seccion.id} className="cmv2-defi-var-group" data-sheet={seccion.group}>
             <div className="cmv2-defi-var-group-head">
-              <span className="cmv2-eyebrow">{grupo.titulo}</span>
+              <span className="cmv2-eyebrow">{seccion.titulo}</span>
+              <p className="cmv2-defi-var-group-hint">{seccion.descripcion}</p>
             </div>
             <div className="cmv2-defi-var-grid cmv2-uni-stagger">
               {bases.map((base) => {
@@ -249,7 +267,7 @@ export function DefVariablesTab({
         );
       })}
 
-      {!anyColumnsDetected && (
+      {!hasAnyColumns && (
         <EmptyState
           variant="inline"
           icon={<Database size={18} />}

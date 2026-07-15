@@ -859,13 +859,34 @@
 
 .cmv2-defi-var-group-head {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding-left: 10px;
+  border-left: 3px solid var(--cmv2-accent, var(--pulso-accent));
 }
 
 .cmv2-defi-var-group-head small {
   font-size: 11px;
   color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-var-group-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--pulso-text-muted);
+}
+
+/* Separación entre las dos hojas (estudiante arriba, curso-horario abajo). */
+.cmv2-defi-var-group + .cmv2-defi-var-group {
+  margin-top: 6px;
+  padding-top: 16px;
+  border-top: 1px solid var(--cmv2-border);
+}
+
+.cmv2-defi-var-group[data-sheet="classroom"] .cmv2-defi-var-group-head {
+  border-left-color: var(--pulso-text-muted);
 }
 
 .cmv2-defi-var-grid {

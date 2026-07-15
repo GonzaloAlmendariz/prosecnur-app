@@ -1,4 +1,4 @@
-# ADR 0035: Cálculo de muestra (aulas) — definición de datos manual, exclusiva y por hoja
+# ADR 0035: Cálculo de muestra (aulas) — definición de datos manual, exclusiva, por hoja y verbatim
 
 Estado: Aceptado
 
@@ -29,6 +29,13 @@ selección canónica de criterios **antes** de que el usuario confirmara su mape
 y el catálogo de columnas ofrecía a todos los roles la misma lista plana de
 ambas hojas (un rol de curso-horario podía mapearse a una columna de alumno).
 
+Un problema adicional descubierto: los nombres de las categorías se
+**reetiquetaban** por heurística (p. ej. "REGULAR" se mostraba como "Elegible"),
+y la UI no separaba visualmente los criterios de estudiante de los de
+curso-horario. Esto importa porque vendrán OTRAS tablas con las mismas dos hojas
+pero columnas de nombres distintos para los mismos roles: preservar los nombres
+literales y separar por hoja es lo que hace el mapeo portable y auditable.
+
 Fuerzas en tensión: la heurística difusa da un arranque cómodo (el usuario no
 mapea nada) pero es **frágil e insegura** — adivina, y adivina mal en bases con
 nombres colisionantes. El principio §3.3.1 ya declaraba que la asignación de
@@ -38,7 +45,7 @@ trataba como una sugerencia prependida al fuzzy y descartaba la hoja de origen.
 ## Decisión
 
 La definición de datos del desk universitario es **estrictamente secuencial,
-manual y sin adivinación**:
+manual, sin adivinación, por hoja y verbatim**:
 
 1. **Mapeo manual EXCLUSIVO.** El mapeo columna→rol es una decisión consciente.
    La auto-detección produce solo SUGERENCIAS que el usuario confirma; nada se
@@ -65,20 +72,35 @@ manual y sin adivinación**:
    dispara, después de completar el mapeo. Criterios y conteos no se muestran ni
    se aplican hasta que exista un marco construido de verdad.
 
+5. **Nombres VERBATIM.** Los nombres de columnas, de roles y de CATEGORÍAS se
+   muestran tal cual vienen en la data. No se normalizan, no se renombran, no se
+   reetiquetan por heurística ("REGULAR" NO se muestra como "Elegible"). El
+   significado lo pone el rol al que se mapea la columna, nunca una transformación
+   silenciosa del valor. Motivo: otras tablas traerán columnas de otros nombres
+   para los mismos roles; preservar los nombres literales hace el mapeo manual
+   portable.
+
+6. **Separación por hoja en la UI.** La interfaz separa VISUALMENTE variables y
+   criterios por hoja: arriba los del ESTUDIANTE (base madre), abajo los del
+   CURSO-HORARIO (catálogo), sin overlap. Toda variable pertenece a una hoja (no
+   hay variables "locales" sin hoja). Una misma variable lógica puede aparecer en
+   ambas hojas (p. ej. la llave curso-horario), pero cada instancia referencia la
+   columna de SU hoja y se mapea por separado.
+
 ## Consecuencias
 
-- **Beneficio:** el mapeo deja de adivinar; los defectos de columna equivocada
-  (teacher_type/course_level/condición) desaparecen por construcción, no por
-  parches. La base con nombres homónimos deja de ser una trampa.
-- **Beneficio:** el usuario ve solo su data; no hay números de ejemplo que
-  confundan.
-- **Costo:** el arranque exige que el usuario mapee sus columnas antes de ver
-  resultados (menos "mágico", más correcto). Se mitiga con sugerencias claras y
-  confirmación de a una.
-- **Costo/riesgo:** flujos y fixtures que dependían del fuzzy (proyecto de
-  referencia, goldens) deben proveer su mapeo explícito. Migración acotada:
-  cuando no hay mapeo manual, el motor puede conservar un modo de compatibilidad
-  documentado, pero el camino canónico es el manual exclusivo.
+- **Beneficio:** el mapeo deja de adivinar y de mutar nombres; los defectos de
+  columna/categoría equivocada (teacher_type/course_level/condición) desaparecen
+  por construcción, no por parches. La base con nombres homónimos deja de ser
+  una trampa, y el flujo es portable a otras tablas con nombres distintos.
+- **Beneficio:** el usuario ve solo su data, con sus nombres; no hay números de
+  ejemplo ni reetiquetados que confundan.
+- **Costo:** el arranque exige mapear las columnas antes de ver resultados (menos
+  mágico, más correcto), mitigado con sugerencias claras y confirmación de a una.
+- **Costo/riesgo:** flujos y fixtures que dependían del fuzzy o del reetiquetado
+  deben proveer su mapeo explícito y aceptar los nombres crudos. Migración
+  acotada: cuando no hay mapeo manual, el motor puede conservar un modo de
+  compatibilidad documentado, pero el camino canónico es el manual exclusivo.
 
 ## Cumplimiento
 
@@ -87,9 +109,13 @@ manual y sin adivinación**:
   con código claro; test que columnas homónimas entre hojas se resuelven cada
   una en su hoja.
 - Frontend: test de dominio que las opciones de columna de un rol se filtran a
-  la hoja del rol (source), y que el payload del mapeo lleva `source`.
+  la hoja del rol (source), y que el payload del mapeo lleva `source`; test que
+  las categorías se muestran con su nombre CRUDO (sin reetiquetar
+  regular→elegible); la UI agrupa roles/criterios en secciones estudiante vs
+  curso-horario.
 - `rg` de guardia: los números `21365|2483|19711` no aparecen en las rutas del
-  flujo real (solo en el módulo de ejemplo/demo marcado).
+  flujo real (solo en el módulo de ejemplo/demo marcado); sin reetiquetado de
+  valores de categoría.
 
 ## Notas
 
@@ -97,6 +123,7 @@ Relacionado: [0006](0006-modulos-por-dominio.md) (módulos por dominio),
 [0033](0033-reconciliacion-variables-data-xlsform.md) (reconciliación de
 variables). Reemplaza la resolución difusa de columnas del desk universitario
 introducida junto a la suite de criterios por categoría. Implementación por
-fases: (1) columnas por hoja + fin de la data hardcodeada + payload calificado;
-(2) resolución backend exclusiva + gate de rol requerido; (3) gating secuencial
-completo del flujo.
+fases: (1) columnas por hoja + fin de la data hardcodeada + payload calificado +
+re-inspección completa de encabezados; (2) resolución backend exclusiva + gate
+de rol requerido; (3) nombres verbatim + separación por hoja en la UI + rol
+condicion_curso manual; (4) gating secuencial completo del flujo.
