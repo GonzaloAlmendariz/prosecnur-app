@@ -2216,7 +2216,41 @@ function normalizeEditorPayload(value: unknown): XlsformEditorPayload {
   };
 }
 
-export async function apiXlsformEditorImport(file_id: string) {
+// Variante de respuesta cuando el archivo subido NO es un XLSForm normal sino
+// una "Matriz PULSO IAC-CINDA" (preguntas por criterio/subcriterio con columnas
+// de audiencia). El backend la detecta y, en vez del workbook, devuelve las
+// audiencias disponibles para que el front pida elegir cuáles generar.
+export type XlsformEditorImportMatrizPulso = {
+  kind: "matriz_pulso";
+  audiences: string[];
+  original_name: string | null;
+};
+
+// Resultado discriminado del import: XLSForm normal (kind:"xlsform") o matriz
+// PULSO (kind:"matriz_pulso"). El caller discrimina por `kind`.
+export type XlsformEditorImportResult =
+  | ({ kind: "xlsform" } & XlsformEditorPayload)
+  | XlsformEditorImportMatrizPulso;
+
+export function isMatrizPulsoImport(
+  result: XlsformEditorImportResult,
+): result is XlsformEditorImportMatrizPulso {
+  return result.kind === "matriz_pulso";
+}
+
+export function normalizeXlsformImportResult(value: unknown): XlsformEditorImportResult {
+  const raw = (value ?? {}) as Record<string, unknown>;
+  if (raw.kind === "matriz_pulso") {
+    return {
+      kind: "matriz_pulso",
+      audiences: asStringArray(raw.audiences).filter((audience) => audience.trim().length > 0),
+      original_name: raw.original_name == null ? null : String(raw.original_name),
+    };
+  }
+  return { kind: "xlsform", ...normalizeEditorPayload(raw) };
+}
+
+export async function apiXlsformEditorImport(file_id: string): Promise<XlsformEditorImportResult> {
   const raw = await handle<unknown>(
     await apiFetch("/api/xlsform-editor/import", {
       method: "POST",
@@ -2224,7 +2258,74 @@ export async function apiXlsformEditorImport(file_id: string) {
       body: JSON.stringify({ file_id }),
     })
   );
-  return normalizeEditorPayload(raw);
+  return normalizeXlsformImportResult(raw);
+}
+
+// Segundo paso del flujo matriz PULSO: para una audiencia elegida el backend
+// construye el workbook XLSForm correspondiente. Devuelve además un resumen con
+// la escala inferida (preguntas de acuerdo/satisfacción) y warnings a revisar.
+export type MatrizPulsoImportSummary = {
+  audience: string | null;
+  survey_rows: number;
+  choices_rows: number;
+  settings_rows: number;
+  n_acuerdo: number | null;
+  n_satisfaccion: number | null;
+  scale_inferred: boolean;
+};
+
+export type MatrizPulsoImportResult = {
+  workbook: XlsformEditorWorkbook;
+  summary: MatrizPulsoImportSummary;
+  warnings: string[];
+};
+
+function matrizNumOrNull(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeMatrizPulsoImport(value: unknown): MatrizPulsoImportResult {
+  const raw = (value ?? {}) as Record<string, unknown>;
+  const workbookRaw = (raw.workbook ?? {}) as Record<string, unknown>;
+  const summaryRaw = (raw.summary ?? {}) as Record<string, unknown>;
+  return {
+    workbook: {
+      survey: normalizeSheet(workbookRaw.survey, "survey"),
+      choices: normalizeSheet(workbookRaw.choices, "choices"),
+      settings: normalizeSheet(workbookRaw.settings, "settings"),
+      paper: workbookRaw.paper ? normalizeSheet(workbookRaw.paper, "paper") : null,
+      diagnostico: workbookRaw.diagnostico ? normalizeSheet(workbookRaw.diagnostico, "diagnostico") : null,
+      surveyMonkeyLogic: normalizeSurveyMonkeyLogicState(
+        workbookRaw.surveyMonkeyLogic ?? workbookRaw.survey_monkey_logic,
+      ),
+    },
+    summary: {
+      audience: summaryRaw.audience == null ? null : String(summaryRaw.audience),
+      survey_rows: Number(summaryRaw.survey_rows ?? 0),
+      choices_rows: Number(summaryRaw.choices_rows ?? 0),
+      settings_rows: Number(summaryRaw.settings_rows ?? 0),
+      n_acuerdo: matrizNumOrNull(summaryRaw.n_acuerdo),
+      n_satisfaccion: matrizNumOrNull(summaryRaw.n_satisfaccion),
+      scale_inferred: Boolean(summaryRaw.scale_inferred),
+    },
+    warnings: Array.isArray(raw.warnings) ? raw.warnings.map((item) => String(item)) : [],
+  };
+}
+
+export async function apiXlsformEditorImportMatrizPulso(
+  file_id: string,
+  audience: string,
+): Promise<MatrizPulsoImportResult> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/import-matriz-pulso", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ file_id, audience }),
+    })
+  );
+  return normalizeMatrizPulsoImport(raw);
 }
 
 export async function apiXlsformEditorImportSurveyMonkey(file_id: string, lang = "es") {
