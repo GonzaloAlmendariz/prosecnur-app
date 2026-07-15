@@ -177,7 +177,7 @@ export function CriteriosMarcoTab({
   // reconstruir cuando (a) es la primera vez (aún no hay marco), o (b) los
   // criterios confirmados difieren de los que construyeron el marco vigente.
   const marcoConstruido = Boolean(aulasState?.frame);
-  const marcoDesactualizado = marcoCriteriosDesactualizado(aulasState?.frame, config.criterios_seleccion);
+  const marcoDesactualizado = marcoCriteriosDesactualizado(aulasState?.frame, config.criterios_seleccion, config.teacher_type_orden);
   const necesitaRecalculo = !marcoConstruido || marcoDesactualizado;
   const listoParaRecalcular = Boolean(puedeReconstruir) && !reconstruyendo && totalPendientes === 0;
   // El haz de luz (Anexo A.2) solo cuando hace falta reconstruir y no hay nada

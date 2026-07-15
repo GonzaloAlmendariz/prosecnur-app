@@ -192,8 +192,20 @@ export function universityColumnOptionsBySource(
   const uniqueSorted = (values: string[]) =>
     Array.from(new Set(values)).filter(Boolean).sort((a, b) => a.localeCompare(b, "es"));
   // El binding "base_madre" (modo una sola base) alimenta ambas fuentes: todo
-  // vive en la misma hoja y ahí no hay dos hojas que separar.
-  const shared = inspectedForBinding("base_madre");
+  // vive en la misma hoja y ahí no hay dos hojas que separar. El modo dos_bases
+  // admite además que el binding "estudiantes" tenga rol DETECTADO base_madre
+  // (una sola hoja que sirve a alumno Y curso-horario, sin catálogo aparte); en
+  // ese caso sus columnas también alimentan el grupo classroom, o los roles de
+  // aula quedarían sin opciones. Cuando la hoja de estudiantes es un roster real
+  // (rol "estudiantes", caso HST_UNSA2 con catálogo separado) NO se comparte.
+  const estudiantesBinding = bindings.find((item) => item.role === "estudiantes");
+  const estudiantesEsBaseUnica = Boolean(
+    estudiantesBinding && sourceBindingRole(estudiantesBinding) === "base_madre",
+  );
+  const shared = [
+    ...inspectedForBinding("base_madre"),
+    ...(estudiantesEsBaseUnica ? inspectedForBinding("estudiantes") : []),
+  ];
   const studentInspected = uniqueSorted([...shared, ...inspectedForBinding("estudiantes")]);
   const classroomInspected = uniqueSorted([...shared, ...inspectedForBinding("catalogo_curso_horario")]);
   const frame = aulasState?.frame ?? null;

@@ -98,6 +98,43 @@ describe("universityColumnOptionsBySource — una sola base", () => {
   });
 });
 
+describe("universityColumnOptionsBySource — estudiantes con rol detectado base_madre", () => {
+  // dos_bases pero una sola hoja: el binding "estudiantes" tiene rol DETECTADO
+  // base_madre (sirve a alumno Y curso-horario, sin catálogo aparte). Sus
+  // columnas deben alimentar TAMBIÉN el grupo classroom, o los roles de aula
+  // quedan sin opciones (§ADR 0035, Fix 3).
+  const baseUnicaComoEstudiantes = {
+    source_bindings: [
+      {
+        id: "src-estudiantes",
+        role: "estudiantes",
+        label: "Base principal",
+        sheet_name: "BD",
+        sheet_diagnostics: [
+          { name: "BD", role: "base_madre", columns_sample: [...STUDENT_COLS, ...CLASSROOM_COLS] },
+        ],
+      },
+    ],
+  } as unknown as CalcMuestraWorkspace;
+
+  it("las columnas de la hoja única alimentan alumno Y curso-horario", () => {
+    const { student, classroom } = universityColumnOptionsBySource(baseUnicaComoEstudiantes, null);
+    for (const col of [...STUDENT_COLS, ...CLASSROOM_COLS]) {
+      expect(student).toContain(col);
+      expect(classroom).toContain(col);
+    }
+  });
+
+  it("no rompe el caso dos-hojas real: cada hoja sigue alimentando su grupo", () => {
+    // dosBases: estudiantes=MATRICULADO (rol detectado "estudiantes") + catálogo
+    // separado. Aquí classroom NO debe recibir columnas solo de la hoja de alumno.
+    const { classroom } = universityColumnOptionsBySource(dosBases, null);
+    expect(classroom).not.toContain("Código estudiante");
+    expect(classroom).not.toContain("Facultad");
+    expect(classroom).toContain("NRC");
+  });
+});
+
 describe("universityColumnOptionsBySource — sin inspección, fallback al frame", () => {
   // Sin columnas inspeccionadas de la hoja, la fuente cae al frame PROCESADO.
   // Ahí NO deben aparecer columnas derivadas del motor (§ADR 0035): solo crudas.

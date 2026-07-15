@@ -101,8 +101,10 @@ import {
   classroomSelectionReady,
   frameAuditNumber,
 } from "./universidad/shared/frame";
+import { seleccionActiva } from "./dominio/criteriosMarco";
 import {
   defaultTitleFor,
+  filtrosLegacyPayload,
   hasUsefulResult,
   normalizeUniversityAulasConfig,
   prepareUniversityStudyForCalculation,
@@ -1478,40 +1480,20 @@ export default function CalcMuestraPage() {
     const config = normalizeUniversityAulasConfig(nextWorkspace.aulas_config);
     // Los opcionales c7/c8 los gobierna la decisión del Motor/Recorrido, no un
     // flag suelto del config: la activación real del build sale del store.
-    const opcionales = useMotorStore.getState().decisiones.opcionalesActivos;
+    const opcionalesActivos = useMotorStore.getState().decisiones.opcionalesActivos;
+    // Sin suite de criterios definida, el bloque `filters` viaja PERMISIVO: un
+    // marco recién construido no restringe (§4.1.1/§4.1.3, "ningún criterio
+    // asumido"). Con la suite activa R gobierna y neutraliza estos flags legacy.
+    // El detalle vive en filtrosLegacyPayload (lógica pura testeada).
+    const suiteActiva = seleccionActiva(config.criterios_seleccion);
     return {
       ...config,
       mapping: universityWorkspaceMappingPayload(nextWorkspace.variable_mappings),
       selector_engine: config.selector_engine,
-      filters: {
-        // Criterios DESACTIVADOS por defecto (§4.1.1): un marco recién
-        // construido, sin que el usuario haya definido criterios, no restringe
-        // — entra todo el universo único de la base (§4.1.3: todos los
-        // criterios "incluidos" ⇒ N = alumnos únicos totales). El usuario opta
-        // por cada restricción en Marco → Criterios (suite `criterios_seleccion`,
-        // que al activarse gobierna y neutraliza estos flags legacy).
-        require_undergraduate: config.require_undergraduate ?? false,
-        require_adult: config.require_adult ?? false,
-        min_age: config.min_age ?? 18,
-        require_in_person: config.require_in_person ?? false,
-        accepted_conditions: config.accepted_conditions?.length ? config.accepted_conditions : [],
-        min_eligible_per_class: config.min_elegibles_aula,
-        exclude_session_patterns: config.exclude_session_patterns ?? [],
-        exclude_modality_patterns: config.exclude_modality_patterns,
-        exclude_level_patterns: config.exclude_level_patterns,
-        // H9: excepciones de tipo de sesión por unidad (viaja junto a los patrones que exime).
-        session_type_excepciones: config.session_type_excepciones ?? {},
-        require_stable_teacher: config.require_stable_teacher ?? false,
-        accepted_teacher_type_patterns: config.accepted_teacher_type_patterns ?? ["contratado", "ordinario"],
-        // H7: criterio de pregrado sobre la columna de formación real de la base.
-        accepted_formation_patterns: config.accepted_formation_patterns ?? ["pregrado"],
-        nivel_por_unidad: config.nivel_por_unidad ?? {},
-        accepted_campuses: config.accepted_campuses ?? [],
-        require_min_prevalence: opcionales.includes("c7"),
-        min_prevalence_pct: config.min_prevalence_pct ?? 0.8,
-        require_cycle_homogeneity: opcionales.includes("c8"),
-        min_cycle_homogeneity_pct: config.min_cycle_homogeneity_pct ?? 0.8,
-      },
+      filters: filtrosLegacyPayload(config, suiteActiva, {
+        c7: opcionalesActivos.includes("c7"),
+        c8: opcionalesActivos.includes("c8"),
+      }),
     };
   }
 

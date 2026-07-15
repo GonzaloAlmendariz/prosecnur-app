@@ -1398,6 +1398,13 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     )
   )
   out$criterios_seleccion <- cfg$criterios_seleccion
+  # ADR 0035: orden EFECTIVO de jerarquía docente usado en este build (ya
+  # resuelto por .cm_criterios_normalize_teacher_orden en la config; NULL/vacío
+  # colapsó al default académico). El frontend lo compara con el orden que el
+  # usuario tiene en pantalla para marcar el marco DESACTUALIZADO al reordenar.
+  # Se expone como lista para forzar un array JSON aunque el orden tenga un solo
+  # elemento.
+  out$teacher_type_orden <- as.list(cfg$teacher_type_orden)
   out$criterios_alumno_report <- alumno_sel$report
   out
 }
