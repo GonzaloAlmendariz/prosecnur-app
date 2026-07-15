@@ -431,7 +431,15 @@ function nullableString(value: unknown): string | null {
 }
 
 function savedAtOrNow(value: unknown): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : Date.now();
+  // Número válido y positivo → tal cual. String ISO (p.ej. el `saved_at` del
+  // backend al hidratar un .pulso) → se parsea a ms. Cualquier otra cosa
+  // (0, NaN, undefined, string inválido) → ahora, para no mostrar "1970".
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return Date.now();
 }
 
 function cloneSurveyMonkeyLogic(logic: XlsformEditorWorkbook["surveyMonkeyLogic"] | unknown): SurveyMonkeyLogic | null {

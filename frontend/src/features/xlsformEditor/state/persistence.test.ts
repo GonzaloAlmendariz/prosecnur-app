@@ -384,3 +384,24 @@ describe("reconcile por-formulario", () => {
     expect(out?.workbook.surveyMonkeyLogic?.choice_code_maps?.[0].variable).toBe("p27");
   });
 });
+
+describe("savedAt robusto en el índice de la biblioteca", () => {
+  test("listForms parsea saved_at ISO y rescata 0/inválido a un ts positivo", () => {
+    // Índice hidratado del backend con saved_at ISO string, un 0 (regresión
+    // '1970'/'hace 56 años') y un número válido.
+    vi.stubGlobal("localStorage", makeStorage({
+      "pulso.xlsformEditor.library.v1.no-project": JSON.stringify({
+        activeFormId: "a",
+        forms: [
+          { id: "a", name: "ISO", savedAt: "2026-07-15T18:34:54Z", source: null },
+          { id: "b", name: "Cero", savedAt: 0, source: null },
+          { id: "c", name: "Num", savedAt: 1784140494000, source: null },
+        ],
+      }),
+    }));
+    const byId = Object.fromEntries(listForms(null).map((f) => [f.id, f.savedAt]));
+    expect(byId.a).toBe(Date.parse("2026-07-15T18:34:54Z"));
+    expect(byId.b).toBeGreaterThan(0); // 0 → Date.now() (no 1970)
+    expect(byId.c).toBe(1784140494000);
+  });
+});
