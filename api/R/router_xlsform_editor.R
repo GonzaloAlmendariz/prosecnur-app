@@ -712,6 +712,20 @@ mount_xlsform_editor <- function(pr) {
         message = "El editor espera un archivo subido con kind='xlsform'."
       )
 
+      # Antes del safe gate: ¿es una Matriz PULSO IAC-CINDA? Ese formato no es
+      # un XLSForm (no tiene hoja `survey`) pero sí sabemos convertirlo. En vez
+      # de abortar, devolvemos el catálogo de audiencias para que el frontend
+      # ofrezca elegir una y luego llame a /import-matriz-pulso.
+      matriz <- matriz_pulso_detect(meta$path)
+      if (isTRUE(matriz$is_matriz)) {
+        return(list(
+          ok = TRUE,
+          kind = "matriz_pulso",
+          audiences = as.list(matriz$audiences),
+          original_name = meta$original_name
+        ))
+      }
+
       # Safe gate: aborta con mensaje claro si el archivo no parece XLSForm.
       # Sin esto, archivos como los Plan de Pulso/GIZ (con hojas Plan,
       # Diccionario, Resumen, etc.) producían un workbook con 0 columnas
@@ -728,6 +742,40 @@ mount_xlsform_editor <- function(pr) {
         source_kind = "xlsform",
         source_name = meta$original_name
       )
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/import-matriz-pulso", wrap_endpoint(function(req, res, ...) {
+      # Segunda etapa del import de Matriz PULSO: el frontend ya eligió la
+      # audiencia; convertimos la matriz a un workbook XLSForm editable. La
+      # lógica de dominio vive en matriz_pulso_xlsform.R; aquí solo validamos y
+      # serializamos con los helpers de payload del editor.
+      sid <- session_header(req)
+      parsed <- .xlsform_editor_parse_body(req)
+      file_id <- as.character(parsed$file_id %||% "")
+      audience <- as.character(parsed$audience %||% "")
+      if (!nzchar(file_id)) stop_api(400, "E_MISSING_FILE_ID", "Falta 'file_id'.")
+      if (!nzchar(audience)) stop_api(400, "E_MATRIZ_AUDIENCE", "Falta 'audience' (audiencia a convertir).")
+
+      meta <- get_file(sid, file_id)
+      .xlsform_editor_validate_meta(
+        meta,
+        expected_kind = "xlsform",
+        code = "E_BAD_EDITOR_SOURCE",
+        message = "El editor espera un archivo subido con kind='xlsform'."
+      )
+
+      out <- matriz_pulso_to_workbook(meta$path, audience)
+
+      payload <- .xlsform_editor_workbook_payload(
+        sheets = list(survey = out$survey, choices = out$choices, settings = out$settings),
+        source_kind = "matriz_pulso",
+        source_name = meta$original_name,
+        warnings = as.list(out$warnings),
+        source_meta = list(audience = out$summary$audience)
+      )
+      # Anexamos el resumen de dominio (secciones, matrices estimadas, escalas)
+      # sin pisar el summary estructural de filas del payload base.
+      payload$summary <- utils::modifyList(payload$summary, out$summary)
+      payload
     })) |>
     plumber::pr_post("/api/xlsform-editor/import-surveymonkey", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
@@ -952,38 +1000,158 @@ mount_xlsform_editor <- function(pr) {
       list(ok = TRUE, has_state = TRUE, state = st)
     })) |>
     plumber::pr_post("/api/xlsform-editor/state", wrap_endpoint(function(req, res, ...) {
-      # Guarda/actualiza el state del editor xlsform en la sesión.
+      # DEPRECADO en favor de POST /api/xlsform-editor/forms. Se conserva como
+      # alias retrocompatible del cliente mono-formulario: además de setear el
+      # espejo del activo, hace UPSERT del formulario activo en la colección
+      # xlsform_forms para que /forms lo vea.
       # Body: { workbook: {...}, source: {...}, hallazgos: [...], saved_at: <ts> }
-      # Marca el proyecto como dirty para que el guardado explicito del .pulso lo recoja.
       sid <- session_header(req)
       if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
         sid <- session_create()
         res$setHeader("X-Pulso-Session", sid)
       }
       parsed <- .xlsform_editor_parse_body(req)
-      # Aceptamos arbitrary JSON en `state` — el frontend define su shape;
-      # el backend solo lo persiste opaco y lo devuelve igual al cargar.
       s <- session_get(sid)
-      s$xlsform_state <- parsed
+      # Reusa el id del activo si existe, para no fragmentar la colección.
+      active_id <- as.character(s$xlsform_active_form_id %||% "")[1]
+      # saved_at generado en servidor (paridad con el comportamiento legacy).
+      now <- .xlsform_forms_now()
+      parsed$saved_at <- now
+      entry <- .xlsform_forms_as_entry(parsed, id = if (nzchar(active_id)) active_id else NULL)
+      s <- .xlsform_forms_upsert(s, entry)
+      # El upsert re-deriva el espejo del activo; garantizamos que ESTE form es
+      # el activo (POST /state siempre trabaja sobre el activo).
+      s <- .xlsform_forms_set_active(s, entry$id)
       # Marcar dirty solo si hay proyecto activo.
       if (!is.null(s$project_path) && nzchar(s$project_path)) {
         s$project_dirty <- TRUE
       }
       .session_env[[sid]] <- s
-      list(ok = TRUE, saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+      list(ok = TRUE, saved_at = now)
     })) |>
     plumber::pr_delete("/api/xlsform-editor/state", wrap_endpoint(function(req, res, ...) {
-      # Limpia el state del editor xlsform (por ej. al "Cerrar formulario").
+      # DEPRECADO: "cerrar el formulario activo". Lo quita de la colección y
+      # activa el siguiente más reciente (o limpia el espejo si queda vacía).
       sid <- session_header(req)
       if (is.null(sid)) return(list(ok = TRUE))
       s <- session_get(sid, required = FALSE)
       if (is.null(s)) return(list(ok = TRUE))
-      s$xlsform_state <- NULL
+      active_id <- as.character(s$xlsform_active_form_id %||% "")[1]
+      if (nzchar(active_id)) {
+        s <- .xlsform_forms_delete(s, active_id)
+      } else {
+        # Proyecto legacy sin colección: limpia el espejo directamente.
+        s$xlsform_state <- NULL
+      }
       if (!is.null(s$project_path) && nzchar(s$project_path)) {
         s$project_dirty <- TRUE
       }
       .session_env[[sid]] <- s
-      list(ok = TRUE)
+      list(ok = TRUE, active_form_id = s$xlsform_active_form_id %||% NULL)
+    })) |>
+    plumber::pr_get("/api/xlsform-editor/forms", wrap_endpoint(function(req, res, ...) {
+      # Metadatos de todos los formularios del proyecto (SIN workbooks → payload
+      # liviano para el homepage). Fuente de verdad: s$xlsform_forms + activo.
+      sid <- session_header(req)
+      s <- session_get(sid, required = FALSE)
+      if (is.null(s)) return(list(ok = TRUE, forms = list(), active_form_id = NULL))
+      # Migración perezosa para proyectos viejos con solo xlsform_state.
+      had_collection <- !is.null(s$xlsform_forms)
+      s <- .xlsform_forms_seed_from_legacy(s)
+      if (!had_collection && !is.null(s$xlsform_forms) && nzchar(sid %||% "")) {
+        .session_env[[sid]] <- s
+      }
+      list(
+        ok = TRUE,
+        forms = .xlsform_forms_list(s),
+        active_form_id = s$xlsform_active_form_id %||% NULL
+      )
+    })) |>
+    plumber::pr_get("/api/xlsform-editor/forms/<id>", wrap_endpoint(function(req, res, id = "", ...) {
+      # Entrada completa (con workbook) de un formulario por id.
+      sid <- session_header(req)
+      s <- session_get(sid, required = FALSE)
+      form_id <- as.character(id %||% "")[1]
+      if (is.null(s)) stop_api(404, "E_FORM_NOT_FOUND", "No hay sesión con formularios.")
+      s <- .xlsform_forms_seed_from_legacy(s)
+      entry <- .xlsform_forms_get(s, form_id)
+      if (is.null(entry)) {
+        stop_api(404, "E_FORM_NOT_FOUND", sprintf("No existe el formulario '%s'.", form_id))
+      }
+      list(ok = TRUE, form = list(
+        id = entry$id,
+        name = entry$name,
+        source = entry$source,
+        saved_at = entry$saved_at,
+        hallazgos = entry$hallazgos,
+        workbook = entry$workbook
+      ))
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/forms", wrap_endpoint(function(req, res, ...) {
+      # Upsert de un formulario por id. Body:
+      #   { id?, name?, workbook, source, hallazgos, saved_at }
+      # Si es el primero → se vuelve activo. NO cambia el activo en caso
+      # contrario (el frontend usa /forms/activate para saltar).
+      sid <- session_header(req)
+      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
+        sid <- session_create()
+        res$setHeader("X-Pulso-Session", sid)
+      }
+      parsed <- .xlsform_editor_parse_body(req)
+      if (is.null(parsed$workbook)) {
+        stop_api(400, "E_FORM_MISSING_WORKBOOK", "Falta 'workbook' en el formulario.")
+      }
+      s <- session_get(sid)
+      # Tope de 6 formularios: solo bloquea la creación de un id nuevo. El
+      # autosave de un formulario existente (mismo id), incluido el 6º, sigue.
+      .xlsform_forms_guard_limit(s, parsed$id)
+      now <- .xlsform_forms_now()
+      parsed$saved_at <- as.character(parsed$saved_at %||% now)[1]
+      entry <- .xlsform_forms_as_entry(
+        parsed,
+        id = parsed$id %||% NULL,
+        name = parsed$name %||% NULL
+      )
+      s <- .xlsform_forms_upsert(s, entry)
+      if (!is.null(s$project_path) && nzchar(s$project_path)) {
+        s$project_dirty <- TRUE
+      }
+      .session_env[[sid]] <- s
+      list(ok = TRUE, id = entry$id, saved_at = entry$saved_at,
+           active_form_id = s$xlsform_active_form_id %||% NULL)
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/forms/activate", wrap_endpoint(function(req, res, ...) {
+      # Cambia el formulario activo → re-deriva el espejo s$xlsform_state.
+      sid <- session_header(req)
+      s <- session_get(sid, required = FALSE)
+      if (is.null(s)) stop_api(404, "E_FORM_NOT_FOUND", "No hay sesión con formularios.")
+      parsed <- .xlsform_editor_parse_body(req)
+      form_id <- as.character(parsed$id %||% "")[1]
+      if (!nzchar(form_id) || is.null(.xlsform_forms_get(s, form_id))) {
+        stop_api(404, "E_FORM_NOT_FOUND", sprintf("No existe el formulario '%s'.", form_id))
+      }
+      s <- .xlsform_forms_set_active(s, form_id)
+      if (!is.null(s$project_path) && nzchar(s$project_path)) {
+        s$project_dirty <- TRUE
+      }
+      .session_env[[sid]] <- s
+      list(ok = TRUE, active_form_id = s$xlsform_active_form_id %||% NULL)
+    })) |>
+    plumber::pr_delete("/api/xlsform-editor/forms/<id>", wrap_endpoint(function(req, res, id = "", ...) {
+      # Borra un formulario. Si era el activo, reasigna al más reciente.
+      sid <- session_header(req)
+      s <- session_get(sid, required = FALSE)
+      if (is.null(s)) return(list(ok = TRUE, active_form_id = NULL))
+      form_id <- as.character(id %||% "")[1]
+      if (!nzchar(form_id) || is.null(.xlsform_forms_get(s, form_id))) {
+        stop_api(404, "E_FORM_NOT_FOUND", sprintf("No existe el formulario '%s'.", form_id))
+      }
+      s <- .xlsform_forms_delete(s, form_id)
+      if (!is.null(s$project_path) && nzchar(s$project_path)) {
+        s$project_dirty <- TRUE
+      }
+      .session_env[[sid]] <- s
+      list(ok = TRUE, active_form_id = s$xlsform_active_form_id %||% NULL)
     })) |>
     plumber::pr_post("/api/xlsform-editor/sm-interpret-rule", wrap_endpoint(function(req, res, ...) {
       # Wizard paso-a-paso: el usuario pega UNA regla, le devolvemos su

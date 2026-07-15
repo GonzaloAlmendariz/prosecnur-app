@@ -37972,6 +37972,23 @@ button.pulso-focus-calculation-recipe {
   letter-spacing: 0.6px;
   color: var(--pulso-text-soft);
 }
+.pulso-more-views-section-label {
+  display: block;
+  padding: 4px 10px 2px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--pulso-text-soft);
+}
+.pulso-more-views-section-label + .pulso-more-views-item {
+  margin-top: 0;
+}
+.pulso-more-views-item + .pulso-more-views-section-label {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--pulso-border);
+}
 .pulso-more-views-item {
   display: flex;
   align-items: flex-start;
@@ -38033,6 +38050,111 @@ button.pulso-focus-calculation-recipe {
   font-size: 11px;
   color: var(--pulso-text-soft);
   line-height: 1.45;
+}
+/* Item con toggle on/off en vez de radio: el texto ocupa el ancho y el switch
+   se ancla a la derecha. */
+.pulso-more-views-switch-item {
+  align-items: center;
+}
+.pulso-more-views-switch-item .pulso-more-views-item-text {
+  flex: 1 1 auto;
+}
+.pulso-more-views-switch {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 20px;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--pulso-border);
+  transition: background 140ms ease;
+}
+.pulso-more-views-switch.is-on {
+  background: var(--pulso-primary);
+}
+.pulso-more-views-switch-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--pulso-surface);
+  box-shadow: 0 1px 2px rgba(0, 36, 87, 0.25);
+  transition: transform 140ms ease;
+}
+.pulso-more-views-switch.is-on .pulso-more-views-switch-thumb {
+  transform: translateX(14px);
+}
+.pulso-more-views-empty-note {
+  display: block;
+  padding: 4px 10px 8px;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+.pulso-more-views-matrix-tenor {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0 10px 8px 48px;
+}
+.pulso-more-views-matrix-tenor label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--pulso-text-soft);
+}
+.pulso-more-views-tenor-input {
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 13px;
+  color: var(--pulso-text);
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.pulso-more-views-tenor-input::placeholder {
+  color: var(--pulso-text-soft);
+}
+.pulso-more-views-tenor-input:focus {
+  outline: none;
+  border-color: var(--pulso-primary);
+  box-shadow: 0 0 0 2px var(--pulso-primary-soft);
+}
+/* Separa el rótulo de la columna especial del input de tenor que lo precede. */
+.pulso-more-views-tenor-input + label {
+  margin-top: 5px;
+}
+.pulso-more-views-special-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.pulso-more-views-special-select {
+  width: 100%;
+  height: 28px;
+  padding: 0 26px 0 8px;
+  font-size: 13px;
+  color: var(--pulso-text);
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.pulso-more-views-special-select:focus {
+  outline: none;
+  border-color: var(--pulso-primary);
+  box-shadow: 0 0 0 2px var(--pulso-primary-soft);
+}
+.pulso-more-views-special-caret {
+  position: absolute;
+  right: 8px;
+  color: var(--pulso-text-soft);
+  pointer-events: none;
 }
 
 /* === HubFlowDiagram (SVG del flujo en el EmptyHome) === */

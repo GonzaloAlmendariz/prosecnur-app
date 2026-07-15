@@ -69,6 +69,25 @@ function normalizeNivelPorUnidad(
   return out;
 }
 
+/**
+ * Orden de jerarquía de tipos de docente (ADR 0035): claves canónicas de
+ * categoría, rango ALTO→BAJO. Se conservan tal cual (trim, sin vacíos ni
+ * duplicados) porque son claves autoritativas del catálogo — a diferencia de los
+ * patrones por substring, NO se pasan a minúscula. Ausente/no-array ⇒ [].
+ */
+export function normalizeTeacherTypeOrden(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    const key = String(item ?? "").trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
+  }
+  return out;
+}
+
 /** Mapa H9 de excepciones de tipo por unidad: conserva unidades con >= 1 patrón no vacío. */
 function normalizeSessionExcepciones(
   raw: CalcMuestraWorkspaceAulasConfig["session_type_excepciones"] | undefined,
@@ -117,6 +136,10 @@ export function normalizeUniversityAulasConfig(config?: CalcMuestraWorkspace["au
       raw.accepted_formation_patterns,
       DEFAULT_UNIVERSITY_AULAS_CONFIG.accepted_formation_patterns ?? ["pregrado"],
     ),
+    // ADR 0035: orden de jerarquía de tipos de docente (claves canónicas del
+    // catálogo, rango ALTO→BAJO). Se preserva tal cual (dedup, sin vacíos); vacío
+    // ⇒ el motor aplica su default. No se fuerza minúscula: son claves autoritativas.
+    teacher_type_orden: normalizeTeacherTypeOrden(raw.teacher_type_orden),
     nivel_por_unidad: normalizeNivelPorUnidad(raw.nivel_por_unidad),
     // H9: excepciones de tipo de sesión por unidad.
     session_type_excepciones: normalizeSessionExcepciones(raw.session_type_excepciones),
@@ -147,6 +170,75 @@ export function normalizeUniversityAulasConfig(config?: CalcMuestraWorkspace["au
     semilla: Math.round(safeNumber(raw.semilla, DEFAULT_UNIVERSITY_AULAS_CONFIG.semilla)),
     objective: raw.objective ?? DEFAULT_UNIVERSITY_AULAS_OBJECTIVE,
     notas_metodologicas: raw.notas_metodologicas ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.notas_metodologicas,
+  };
+}
+
+/**
+ * Bloque `filters` legacy del payload de construcción de marco (§ADR 0035, §4.1.1).
+ *
+ * Cuando la suite `criterios_seleccion` está INACTIVA (el académico aún no ha
+ * definido ningún criterio) NO se asume ninguna restricción: todos los flags
+ * viajan PERMISIVOS ⇒ el backend garantiza "incluir todo" el universo único de
+ * la base. `normalizeUniversityAulasConfig` siempre rellena estos campos con sus
+ * defaults (pregrado/regular/≥18/docente estable), así que sin este corte el
+ * build filtraría en silencio pese a que el usuario no eligió nada. El único
+ * umbral ESTRUCTURAL que se conserva es `min_eligible_per_class`.
+ *
+ * Con la suite ACTIVA el motor R gobierna la selección y neutraliza estos flags
+ * legacy; se envían los valores del config tal como estaban (comportamiento
+ * previo intacto). Los opcionales c7/c8 provienen del Motor/Recorrido, no del
+ * config, y solo aplican con la suite activa.
+ */
+export function filtrosLegacyPayload(
+  config: CalcMuestraWorkspaceAulasConfig,
+  suiteActiva: boolean,
+  opcionales: { c7: boolean; c8: boolean },
+): Record<string, unknown> {
+  if (!suiteActiva) {
+    return {
+      require_undergraduate: false,
+      require_adult: false,
+      min_age: config.min_age ?? 18,
+      require_in_person: false,
+      accepted_conditions: [],
+      min_eligible_per_class: config.min_elegibles_aula,
+      exclude_session_patterns: [],
+      exclude_modality_patterns: [],
+      exclude_level_patterns: [],
+      session_type_excepciones: {},
+      require_stable_teacher: false,
+      accepted_teacher_type_patterns: [],
+      accepted_formation_patterns: [],
+      nivel_por_unidad: {},
+      accepted_campuses: [],
+      require_min_prevalence: false,
+      min_prevalence_pct: config.min_prevalence_pct ?? 0.8,
+      require_cycle_homogeneity: false,
+      min_cycle_homogeneity_pct: config.min_cycle_homogeneity_pct ?? 0.8,
+    };
+  }
+  return {
+    require_undergraduate: config.require_undergraduate ?? false,
+    require_adult: config.require_adult ?? false,
+    min_age: config.min_age ?? 18,
+    require_in_person: config.require_in_person ?? false,
+    accepted_conditions: config.accepted_conditions?.length ? config.accepted_conditions : [],
+    min_eligible_per_class: config.min_elegibles_aula,
+    exclude_session_patterns: config.exclude_session_patterns ?? [],
+    exclude_modality_patterns: config.exclude_modality_patterns,
+    exclude_level_patterns: config.exclude_level_patterns,
+    // H9: excepciones de tipo de sesión por unidad (viaja junto a los patrones que exime).
+    session_type_excepciones: config.session_type_excepciones ?? {},
+    require_stable_teacher: config.require_stable_teacher ?? false,
+    accepted_teacher_type_patterns: config.accepted_teacher_type_patterns ?? ["contratado", "ordinario"],
+    // H7: criterio de pregrado sobre la columna de formación real de la base.
+    accepted_formation_patterns: config.accepted_formation_patterns ?? ["pregrado"],
+    nivel_por_unidad: config.nivel_por_unidad ?? {},
+    accepted_campuses: config.accepted_campuses ?? [],
+    require_min_prevalence: opcionales.c7,
+    min_prevalence_pct: config.min_prevalence_pct ?? 0.8,
+    require_cycle_homogeneity: opcionales.c8,
+    min_cycle_homogeneity_pct: config.min_cycle_homogeneity_pct ?? 0.8,
   };
 }
 

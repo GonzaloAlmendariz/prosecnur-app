@@ -234,6 +234,7 @@ export const UNIVERSITY_REQUIRED_VARIABLES: CalcMuestraWorkspaceVariableMapping[
   { role: "schedule", label: "Horario", required: true, source_role: "catalogo_curso_horario", description: "Balance y planificación de campo." },
   { role: "modality", label: "Modalidad", required: false, source_role: "catalogo_curso_horario", description: "Presencial, virtual o mixta." },
   { role: "session_type", label: "Tipo de curso o sesión", required: false, source_role: "catalogo_curso_horario", description: "Teórico, laboratorio, taller, seminario…; habilita el criterio de tipo de curso válido." },
+  { role: "condicion_curso", label: "Condición del curso", required: false, source_role: "catalogo_curso_horario", description: "Condición del curso (obligatorio, electivo…), no la del estudiante. Puede vivir en la hoja de curso-horario o en la de matrícula; elige la columna que esté poblada." },
   { role: "enrolled_total", label: "Matriculados del curso-horario", required: false, source_role: "catalogo_curso_horario", description: "Total de inscritos por curso-horario; los elegibles (matriculados_población) los deriva el motor." },
   { role: "condicion_curso", label: "Condición del curso", required: false, source_role: "catalogo_curso_horario", description: "Condición del curso-horario (obligatorio, electivo, taller…); distinta de la condición de matrícula del estudiante." },
   { role: "condition", label: "Condición o elegibilidad", required: true, source_role: "base_madre", description: "Filtro de población objetivo; por ejemplo regular, válido o elegible." },

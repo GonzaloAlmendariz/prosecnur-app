@@ -14,6 +14,7 @@ import { resumenVariable, seleccionVariable, unidadCriterio } from "../../domini
 import { fmtInt } from "../../sharedCore";
 import { ControlFlat, ControlHierarchical, ControlNumeric, ControlOrdinal } from "./controles";
 import { ControlRange, ExcepcionesFacultad, type FacultadRef } from "./facultades";
+import { TeacherTypeOrden } from "./TeacherTypeOrden";
 
 /** Conteo/resumen textual de la selección de la variable. */
 function ResumenCabecera({
@@ -75,6 +76,8 @@ export function CriterioCard({
   pendiente,
   onConfirmar,
   onDescartar,
+  teacherTypeOrden,
+  onTeacherTypeOrden,
 }: {
   variable: CriterioVariable;
   seleccion: CriteriosSeleccionMarco;
@@ -89,6 +92,10 @@ export function CriterioCard({
   onConfirmar: () => void;
   /** Recupera exclusivamente el último valor confirmado de esta variable. */
   onDescartar: () => void;
+  /** teacher_type (ADR 0035): orden de jerarquía guardado (claves canónicas). */
+  teacherTypeOrden?: string[];
+  /** teacher_type: persiste el nuevo orden de jerarquía (autosave del workspace). */
+  onTeacherTypeOrden?: (keys: string[]) => void;
 }) {
   const sel = seleccionVariable(seleccion, variable.id);
   const mapeada = Boolean(variable.mappedColumn);
@@ -131,6 +138,9 @@ export function CriterioCard({
         {variable.kind === "hierarchical" && (
           <ControlHierarchical variable={variable} sel={sel} onSel={onSel} />
         )}
+        {variable.id === "teacher_type" && onTeacherTypeOrden ? (
+          <TeacherTypeOrden variable={variable} orden={teacherTypeOrden} onOrden={onTeacherTypeOrden} />
+        ) : null}
         {variable.kind === "numeric" && <ControlNumeric variable={variable} sel={sel} onSel={onSel} />}
         {variable.kind === "ordinal" && <ControlOrdinal variable={variable} sel={sel} onSel={onSel} />}
         {variable.kind === "range" && (
