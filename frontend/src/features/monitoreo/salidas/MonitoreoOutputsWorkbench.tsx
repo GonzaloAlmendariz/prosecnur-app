@@ -165,7 +165,7 @@ function copyForFamily(family: OutputFamily) {
     return {
       eyebrow: "PDF telefónico",
       title: "PDF de avance telefónico",
-      detail: "Efectivas Kobo, cuotas, estados telefónicos y coincidencia por CodPulso del corte activo.",
+      detail: "Avance ejecutivo, ritmo diario y cuotas del corte activo, en una salida agregada para cliente.",
       button: "Generar PDF telefónico",
       progress: "Generando PDF telefónico",
       ready: "PDF telefónico listo para descargar.",

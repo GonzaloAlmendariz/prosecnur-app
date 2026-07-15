@@ -4854,6 +4854,13 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
     if (!is.null(occ_summary)) model$occurrences <- occ_summary
     return(model)
   }
+  if (identical(.monitoreo_publication_family_key(publication_family), "telefonico")) {
+    return(build_monitoreo_telefonico_report_model(
+      snapshot = snapshot,
+      cfg = cfg,
+      include_targets = include_targets
+    ))
+  }
   dashboard <- snapshot$dashboard %||% NULL
   reports <- if (is.list(dashboard)) dashboard$acreditacion_reports %||% list() else list()
   model <- reports$client_report %||% NULL
@@ -5522,6 +5529,9 @@ monitoreo_client_report_pdf_job_runner <- function(model_path,
   if (identical(report_kind, "territorial_advance_pdf") || identical(family, "territorial")) {
     report("render", percent = 55, message = "Renderizando avance territorial...")
     monitoreo_territorial_advance_report_pdf(model, result_path, include_targets = include_targets)
+  } else if (identical(report_kind, "telefonico_advance_pdf") || identical(family, "telefonico")) {
+    report("render", percent = 55, message = "Renderizando avance telefónico...")
+    monitoreo_telefonico_advance_report_pdf(model, result_path, include_targets = include_targets)
   } else {
     report("render", percent = 55, message = "Renderizando PDF ejecutivo...")
     monitoreo_acreditacion_client_report_pdf(model, result_path, include_targets = include_targets)
@@ -5999,6 +6009,7 @@ mount_monitoreo <- function(pr) {
       parsed <- .monitoreo_parse_body(req)
       s <- session_get(sid)
       snapshot <- s$monitoreo_snapshot %||% NULL
+      snapshot <- monitoreo_client_snapshot_with_carga_universe(snapshot, s)
       cfg <- monitoreo_normalize_config(parsed$config %||% s$monitoreo_config %||% list(), snapshot$data %||% data.frame())
       include_targets <- .monitoreo_bool(parsed$include_targets %||% parsed$includeTargets, FALSE)
       model <- .monitoreo_client_report_model_for_snapshot(snapshot, cfg, include_targets = include_targets)
@@ -6135,6 +6146,7 @@ mount_monitoreo <- function(pr) {
       parsed <- .monitoreo_parse_body(req)
       s <- session_get(sid)
       snapshot <- s$monitoreo_snapshot %||% NULL
+      snapshot <- monitoreo_client_snapshot_with_carga_universe(snapshot, s)
       cfg <- monitoreo_normalize_config(parsed$config %||% s$monitoreo_config %||% list(), snapshot$data %||% data.frame())
       include_targets <- .monitoreo_bool(parsed$include_targets %||% parsed$includeTargets, FALSE)
       occ_snap <- s$monitoreo_territorial_occurrences_snapshot %||% NULL
@@ -6145,12 +6157,16 @@ mount_monitoreo <- function(pr) {
       model_path <- job_save_rds(sid, "monitoreo_client_report_model", model)
       is_territorial_pdf <- identical(.monitoreo_scalar(model$report_kind, ""), "territorial_advance_pdf") ||
         identical(.monitoreo_publication_family_key(model$family %||% ""), "territorial")
-      filename <- .export_filename(sid, if (isTRUE(is_territorial_pdf)) "avance_territorial_monitoreo" else "reporte_cliente_monitoreo", "pdf")
+      is_telefonico_pdf <- identical(.monitoreo_scalar(model$report_kind, ""), "telefonico_advance_pdf") ||
+        identical(.monitoreo_publication_family_key(model$family %||% ""), "telefonico")
+      report_slug <- if (isTRUE(is_territorial_pdf)) "avance_territorial_monitoreo" else if (isTRUE(is_telefonico_pdf)) "avance_telefonico_monitoreo" else "reporte_cliente_monitoreo"
+      report_job_kind <- if (isTRUE(is_territorial_pdf)) "monitoreo.territorial_advance_pdf" else if (isTRUE(is_telefonico_pdf)) "monitoreo.telefonico_advance_pdf" else "monitoreo.client_report_pdf"
+      filename <- .export_filename(sid, report_slug, "pdf")
       pdf_job_runner <- monitoreo_client_report_pdf_job_runner
       attr(pdf_job_runner, "prosecnur_job_function_name") <- "monitoreo_client_report_pdf_job_runner"
       job_id <- job_submit(
         sid = sid,
-        kind = if (isTRUE(is_territorial_pdf)) "monitoreo.territorial_advance_pdf" else "monitoreo.client_report_pdf",
+        kind = report_job_kind,
         func = pdf_job_runner,
         args = list(model_path = model_path, include_targets = include_targets),
         result_filename = filename,
@@ -6174,7 +6190,7 @@ mount_monitoreo <- function(pr) {
         include_targets = include_targets,
         report_kind = model$report_kind %||% ""
       ))
-      list(ok = TRUE, job_id = job_id, kind = if (isTRUE(is_territorial_pdf)) "monitoreo.territorial_advance_pdf" else "monitoreo.client_report_pdf")
+      list(ok = TRUE, job_id = job_id, kind = report_job_kind)
     })) |>
     plumber::pr_get("/api/monitoreo/client-report/pdf/download", wrap_endpoint(function(req, res, sid = NULL, inline = NULL, ...) {
       effective_sid <- session_header(req)
