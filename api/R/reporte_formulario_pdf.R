@@ -883,8 +883,12 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     # cuando los items envuelven a varias lineas. Usa EXACTAMENTE la misma
     # calibracion (label_w adaptativo + chars) que el dibujo.
     part <- .form_pdf_matrix_partition_options(block$options, block$special_override %||% "auto")
-    total_cols <- length(part$scale) + (if (!is.null(part$special)) 1L else 0L)
-    label_w <- max(0.05, (width - 0.012) * .form_pdf_matrix_label_frac(total_cols))
+    n_scale <- length(part$scale)
+    has_special <- !is.null(part$special)
+    total_cols <- n_scale + (if (has_special) 1L else 0L)
+    inner <- width - 0.012
+    label_w <- max(0.05, inner * .form_pdf_matrix_label_frac(total_cols))
+    col_w <- if (total_cols > 0L) (inner - label_w) / total_cols else 0
     lbl_chars <- .form_pdf_matrix_lbl_chars(label_w)
     rows_h <- sum(vapply(block$items %||% list(), function(it) {
       num <- .form_pdf_clean_text(it$number %||% "")
@@ -895,9 +899,9 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     header_mode <- .form_pdf_matrix_header_mode(part$scale, block$header_mode %||% "auto")
     if (identical(header_mode, "categorias")) {
       cat_labels <- vapply(part$scale, function(o) .form_pdf_clean_text(o$label %||% o$code), character(1))
-      sp_label <- if (!is.null(part$special)) .form_pdf_clean_text(part$special$label %||% part$special$code) else ""
-      max_chars <- max(1L, max(nchar(c(cat_labels, sp_label), type = "width")))
-      header_h <- min(0.115, max_chars * 0.0044 + 0.013) + 0.006
+      sp_label <- if (has_special) .form_pdf_clean_text(part$special$label %||% part$special$code) else ""
+      geom <- .form_pdf_matrix_cat_header_geom(cat_labels, sp_label, has_special, col_w, total_cols)
+      header_h <- geom$height + 0.006
     } else {
       header_h <- 0.050  # cabecera de anclas (hasta ~3 lineas) + margenes
     }
@@ -1389,10 +1393,35 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 # con pocas columnas la etiqueta puede ser mas ancha; con muchas se acota para que
 # la escala respire.
 .form_pdf_matrix_label_frac <- function(total_cols) {
-  # El label del item se lleva mas ancho (columnas de alternativas mas
-  # angostas): asi las etiquetas largas envuelven en menos lineas y la fila
-  # ocupa menos alto. Las columnas de escala solo necesitan caber el codigo.
-  if (total_cols <= 4L) 0.60 else if (total_cols <= 7L) 0.54 else 0.46
+  # El label del item se lleva la mayor parte del ancho: las columnas de escala
+  # solo imprimen el codigo (1-2 digitos), asi que con pocas columnas la
+  # etiqueta puede ser MUCHO mas ancha (menos wrap, filas mas bajas). Con muchas
+  # columnas se acota para que la escala respire.
+  if (total_cols <= 2L) 0.74 else if (total_cols <= 4L) 0.66
+  else if (total_cols <= 7L) 0.56 else 0.48
+}
+
+# Geometria del header CATEGORIAS: decide horizontal vs rotado 90 segun si las
+# etiquetas caben en el ancho de columna, y devuelve la altura reservada. Draw y
+# measure llaman a este mismo helper para no desincronizar el paginado.
+# `horizontal` = la etiqueta cabe (hasta 2 lineas) en col_w -> texto derecho
+# (Si/No, "Muy satisfecho"); si no, `rotated` (categorias largas estilo
+# Polarizacion). ~118 char/npc calibra el ancho a la tipografia del header.
+.form_pdf_matrix_cat_header_geom <- function(cat_labels, sp_label, has_special, col_w, total_cols) {
+  all_labels <- c(cat_labels, if (has_special) sp_label else character(0))
+  all_labels <- all_labels[nzchar(all_labels)]
+  if (!length(all_labels)) all_labels <- ""
+  max_chars <- max(1L, max(nchar(all_labels, type = "width")))
+  col_chars <- max(1L, floor(col_w * 118))
+  if (max_chars <= 2L * col_chars) {
+    hdr_lines <- max(1L, min(3L, max(vapply(all_labels, function(l)
+      length(.form_pdf_wrap(l, col_chars)), integer(1)))))
+    list(layout = "horizontal", height = hdr_lines * 0.011 + 0.010,
+         col_chars = col_chars, cat_fs = if (total_cols >= 6L) 5.6 else 6.2)
+  } else {
+    list(layout = "rotated", height = min(0.115, max_chars * 0.0044 + 0.013),
+         col_chars = col_chars, cat_fs = if (total_cols >= 6L) 5.6 else 6.0)
+  }
 }
 
 # Calibracion char/npc del label del item (~150 para LLENAR el ancho, como el kit).
@@ -1461,27 +1490,44 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   header_mode <- .form_pdf_matrix_header_mode(scale, block$header_mode %||% "auto")
 
   if (total_cols > 0L && identical(header_mode, "categorias")) {
-    # --- Cabecera CATEGORIAS: cada label de escala rotulada (rotada 90°) SOBRE su
-    # columna; la especial tambien. Alto = largo del label mas largo (rotado). ---
+    # --- Cabecera CATEGORIAS: cada label de escala rotulada SOBRE su columna. Si
+    # la etiqueta cabe en el ancho de columna se dibuja HORIZONTAL (Si/No,
+    # escalas cortas); si es larga se rota 90° (categorias estilo Polarizacion). ---
     cat_labels <- vapply(scale, function(o) .form_pdf_clean_text(o$label %||% o$code), character(1))
     sp_label <- if (has_special) .form_pdf_clean_text(special$label %||% special$code) else ""
-    max_chars <- max(1L, max(nchar(c(cat_labels, sp_label), type = "width")))
-    cat_fs <- if (total_cols >= 6L) 5.6 else 6.0
-    header_h <- min(0.115, max_chars * 0.0044 + 0.013)
+    geom <- .form_pdf_matrix_cat_header_geom(cat_labels, sp_label, has_special, col_w, total_cols)
+    header_h <- geom$height
+    cat_fs <- geom$cat_fs
 
     grid::grid.rect(x = grid::unit(x0 + inner / 2, "npc"), y = grid::unit(y - header_h / 2, "npc"),
                     width = grid::unit(inner, "npc"), height = grid::unit(header_h, "npc"),
                     gp = grid::gpar(fill = tk$tbl_header, col = NA))
-    y_hdr_bottom <- y - header_h + 0.006
-    for (k in seq_len(n_scale)) {
-      grid::grid.text(cat_labels[k], x = grid::unit(scale_x0 + (k - 0.5) * col_w, "npc"),
-                      y = grid::unit(y_hdr_bottom, "npc"), rot = 90, just = c("left", "center"),
-                      gp = grid::gpar(fontsize = cat_fs, fontface = "bold", col = tk$navy))
-    }
-    if (has_special) {
-      grid::grid.text(sp_label, x = grid::unit(scale_x0 + scale_w + col_w / 2, "npc"),
-                      y = grid::unit(y_hdr_bottom, "npc"), rot = 90, just = c("left", "center"),
-                      gp = grid::gpar(fontsize = cat_fs, fontface = "bold", col = tk$soft))
+    if (identical(geom$layout, "horizontal")) {
+      hy <- y - header_h / 2
+      for (k in seq_len(n_scale)) {
+        grid::grid.text(paste(.form_pdf_wrap(cat_labels[k], geom$col_chars), collapse = "\n"),
+                        x = grid::unit(scale_x0 + (k - 0.5) * col_w, "npc"),
+                        y = grid::unit(hy, "npc"), just = c("center", "center"),
+                        gp = grid::gpar(fontsize = cat_fs, fontface = "bold", col = tk$navy, lineheight = 0.95))
+      }
+      if (has_special) {
+        grid::grid.text(paste(.form_pdf_wrap(sp_label, geom$col_chars), collapse = "\n"),
+                        x = grid::unit(scale_x0 + scale_w + col_w / 2, "npc"),
+                        y = grid::unit(hy, "npc"), just = c("center", "center"),
+                        gp = grid::gpar(fontsize = cat_fs, fontface = "bold", col = tk$soft, lineheight = 0.95))
+      }
+    } else {
+      y_hdr_bottom <- y - header_h + 0.006
+      for (k in seq_len(n_scale)) {
+        grid::grid.text(cat_labels[k], x = grid::unit(scale_x0 + (k - 0.5) * col_w, "npc"),
+                        y = grid::unit(y_hdr_bottom, "npc"), rot = 90, just = c("left", "center"),
+                        gp = grid::gpar(fontsize = cat_fs, fontface = "bold", col = tk$navy))
+      }
+      if (has_special) {
+        grid::grid.text(sp_label, x = grid::unit(scale_x0 + scale_w + col_w / 2, "npc"),
+                        y = grid::unit(y_hdr_bottom, "npc"), rot = 90, just = c("left", "center"),
+                        gp = grid::gpar(fontsize = cat_fs, fontface = "bold", col = tk$soft))
+      }
     }
     y <- y - header_h
   } else if (total_cols > 0L) {
