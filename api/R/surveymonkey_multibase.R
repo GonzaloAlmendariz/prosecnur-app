@@ -2581,6 +2581,7 @@ sm_multibase_decision_apply <- function(sid, base_name, policy = NULL,
                                         force_replace_adapted = FALSE) {
   built <- .sm_mb_build_effective_from_snapshot(sid, base_name, policy)
   s <- session_get(sid)
+  session_before_decision_apply <- s
   base <- s$estudio$bases[[base_name]]
   is_adapted <- .sm_mb_base_current_is_adapted(s, base)
   has_downstream_progress <- .sm_mb_base_has_downstream_progress(s, base_name, base)
@@ -2624,6 +2625,16 @@ sm_multibase_decision_apply <- function(sid, base_name, policy = NULL,
   }
   s <- .mark_project_dirty(s)
   .session_env[[sid]] <- s
+  if (!is.null(generated_meta) &&
+      isTRUE((base$universe_filter %||% list())$enabled)) {
+    tryCatch(
+      carga_universe_filter_reapply(sid, base_name, generated_meta$file_id),
+      error = function(err) {
+        .session_env[[sid]] <- session_before_decision_apply
+        stop(err)
+      }
+    )
+  }
   list(
     ok = TRUE,
     base_name = base_name,
@@ -3656,7 +3667,16 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
                                              decision_audit = NULL,
                                              xlsform_logic_sync = NULL) {
   s <- session_get(sid)
+  session_before_refresh <- s
   base <- s$estudio$bases[[base_name]]
+  reapply_universe <- isTRUE((base$universe_filter %||% list())$enabled)
+  if (reapply_universe && !exists("carga_universe_filter_reapply", mode = "function")) {
+    stop_api(
+      500,
+      "E_UNIVERSE_FILTER_REAPPLY_UNAVAILABLE",
+      "No se pudo reaplicar el filtro de universo tras refrescar SurveyMonkey."
+    )
+  }
   base$original_xlsform_file_id <- inst_meta$file_id
   base$original_data_file_id <- data_meta$file_id
   base$original_data_ext <- data_meta$ext
@@ -3713,6 +3733,16 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
   }
   s <- .mark_project_dirty(s)
   .session_env[[sid]] <- s
+  if (reapply_universe) {
+    tryCatch(
+      carga_universe_filter_reapply(sid, base_name, data_meta$file_id),
+      error = function(err) {
+        .session_env[[sid]] <- session_before_refresh
+        stop(err)
+      }
+    )
+    return(invisible(session_get(sid)$estudio$bases[[base_name]]))
+  }
   invisible(base)
 }
 

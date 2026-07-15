@@ -79,7 +79,11 @@
   fuente <- as.character(fuente %||% "adaptados")
   if (identical(fuente, "originales")) {
     xls_id <- as.character(base_meta$original_xlsform_file_id %||% base_meta$xlsform_file_id %||% "")
-    data_id <- as.character(base_meta$original_data_file_id %||% base_meta$data_file_id %||% "")
+    filtered_id <- if (isTRUE((base_meta$universe_filter %||% list())$enabled)) {
+      as.character((base_meta$universe_filter %||% list())$effective_data_file_id %||% "")
+    } else ""
+    data_id <- if (nzchar(filtered_id)) filtered_id else
+      as.character(base_meta$original_data_file_id %||% base_meta$data_file_id %||% "")
   } else {
     xls_id <- as.character(base_meta$xlsform_file_id %||% "")
     data_id <- as.character(base_meta$data_file_id %||% "")

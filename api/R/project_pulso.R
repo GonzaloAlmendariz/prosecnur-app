@@ -1224,6 +1224,12 @@
       if (!is.null(b$original_data_file_id) && nzchar(b$original_data_file_id)) {
         out <- c(out, b$original_data_file_id)
       }
+      universe_filter <- b$universe_filter %||% list()
+      for (fid in c(universe_filter$source_data_file_id,
+                    universe_filter$effective_data_file_id)) {
+        fid <- as.character(fid %||% "")
+        if (length(fid) && nzchar(fid[1])) out <- c(out, fid[1])
+      }
       if (!is.null(b$surveymonkey_raw_snapshot_file_id) && nzchar(b$surveymonkey_raw_snapshot_file_id)) {
         out <- c(out, b$surveymonkey_raw_snapshot_file_id)
       }

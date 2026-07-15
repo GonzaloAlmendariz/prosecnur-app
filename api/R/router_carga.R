@@ -474,6 +474,8 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL, c
 }
 
 estudio_init_default_base <- function(sid) {
+  session_before_init <- session_get(sid)
+  tryCatch({
   s <- session_get(sid)
 
   # Detectar el último xlsform y data subidos.
@@ -483,6 +485,14 @@ estudio_init_default_base <- function(sid) {
   derived_fids <- unique(unlist(lapply(child_bases, function(b) {
     c(as.character(b$xlsform_file_id %||% ""), as.character(b$data_file_id %||% ""))
   }), use.names = FALSE))
+  # Los efectivos materializados del filtro son derivados aunque pertenezcan
+  # a la base madre. Excluirlos evita que una subida posterior solo de XLSForm
+  # los confunda con una nueva fuente cruda por ser el ultimo archivo `data`.
+  universe_effective_fids <- unique(unlist(lapply(
+    (s$estudio %||% list())$bases %||% list(),
+    function(b) as.character((b$universe_filter %||% list())$effective_data_file_id %||% "")
+  ), use.names = FALSE))
+  derived_fids <- unique(c(derived_fids, universe_effective_fids))
   derived_fids <- derived_fids[nzchar(derived_fids)]
   is_primary_file <- function(f) !(as.character(f$file_id %||% "") %in% derived_fids)
   xls_metas <- Filter(function(f) identical(f$kind, "xlsform") && is_primary_file(f), files)
@@ -542,7 +552,12 @@ estudio_init_default_base <- function(sid) {
   if (tolower(as.character(dat_meta$ext %||% "")) %in% c("xlsx", "xls")) {
     .carga_xlsx_register_repeat_bases(sid, parent_base_name = "default")
   }
+  carga_universe_filter_reapply(sid, "default", dat_meta$file_id)
   invisible(TRUE)
+  }, error = function(e) {
+    .session_env[[sid]] <- session_before_init
+    stop(e)
+  })
 }
 
 .carga_resolve_export_files <- function(sid, base_nombre = NULL) {
@@ -1483,6 +1498,143 @@ estudio_init_default_base <- function(sid) {
   target_names
 }
 
+# Regenera las fuentes de las bases repeat de una hermana Kobo ya registrada.
+# El refresh debe reemplazar primero estas fuentes crudas y solo despues dejar
+# que universe_filter materialice sus efectivos heredados; de otro modo el
+# helper del filtro reutilizaria source_data_file_id del refresh anterior.
+.carga_kobo_refresh_repeat_bases <- function(sid, data_df, rp_inst,
+                                               parent_base_name,
+                                               downloads_dir,
+                                               choice_code_maps = NULL) {
+  specs <- .kobo_repeat_specs(rp_inst)
+  if (!length(specs)) return(list())
+  data_df <- .kobo_ensure_wide_index(
+    as.data.frame(data_df, stringsAsFactors = FALSE, check.names = FALSE)
+  )
+  parent_ids <- .kobo_parent_ids(data_df)
+  parent_index <- if ("_index" %in% names(data_df)) {
+    suppressWarnings(as.integer(data_df[["_index"]]))
+  } else {
+    seq_len(nrow(data_df))
+  }
+  refreshed <- list()
+
+  for (spec in specs) {
+    if (!length(spec$leaf_vars)) next
+    bases <- estudio_list_bases(sid)
+    candidates <- names(Filter(function(base) {
+      identical(.carga_chr1(base$parent_base, ""), parent_base_name) &&
+        identical(.carga_chr1(base$repeat_group, ""), spec$name)
+    }, bases))
+    if (length(candidates) > 1L) {
+      stop_api(
+        409, "E_KOBO_REPEAT_AMBIGUOUS",
+        sprintf("El repeat '%s' tiene mas de una base hija vinculada.", spec$name)
+      )
+    }
+    blob_col <- .kobo_repeat_blob_column(data_df, spec$name)
+    # Repeats anidados no materializados por la importacion inicial siguen
+    # fuera de alcance. Si la hija ya existia y Kobo omite el blob (por ejemplo,
+    # un refresh sin submissions), sí se reemplaza por una fuente vacia.
+    if (is.null(blob_col) && !length(candidates)) next
+    long_df <- .kobo_expand_repeat(
+      data_df, spec, blob_col,
+      parent_index = parent_index,
+      parent_ids = parent_ids,
+      parent_table_name = parent_base_name
+    )
+    data_cols <- attr(long_df, "data_cols") %||% spec$leaf_vars
+    child_model <- .kobo_build_repeat_instrument(rp_inst, spec, extra_cols = data_cols)
+    slug <- .carga_slug(spec$name, "kobo_repeat")
+    inst_path <- file.path(
+      downloads_dir,
+      paste0(uuid::UUIDgenerate(), "_", slug, "_refresh_repeat_xlsform.xlsx")
+    )
+    .carga_write_xlsform_model(child_model, inst_path)
+    inst_meta <- save_upload(
+      sid, "xlsform", paste0(slug, "_refresh_repeat_xlsform.xlsx"),
+      readBin(inst_path, "raw", n = file.info(inst_path)$size)
+    )
+    child_inst <- reporte_instrumento(path = inst_meta$path)
+    norm_df <- normalize_data_for_xlsform(
+      long_df, child_inst, choice_code_maps = choice_code_maps
+    )
+    norm_df <- .carga_backfill_missing_expected(norm_df, child_inst)
+    .carga_assert_data_xlsform_compatible(norm_df, child_inst)
+
+    data_path <- file.path(
+      downloads_dir,
+      paste0(uuid::UUIDgenerate(), "_", slug, "_refresh_repeat_data.xlsx")
+    )
+    .carga_write_xlsx_sheet(norm_df, data_path, "datos")
+    data_meta <- save_upload(
+      sid, "data", paste0(slug, "_refresh_repeat_data.xlsx"),
+      readBin(data_path, "raw", n = file.info(data_path)$size)
+    )
+    child_rp_data <- reporte_data(norm_df, instrumento = child_inst)
+
+    if (length(candidates)) {
+      child_name <- candidates[[1]]
+      estudio_replace_base_files(
+        sid, child_name,
+        xlsform_file_id = inst_meta$file_id,
+        data_file_id = data_meta$file_id,
+        data_ext = "xlsx",
+        rp_data = child_rp_data,
+        rp_inst = child_inst,
+        n_filas = as.integer(nrow(norm_df)),
+        n_columnas = as.integer(ncol(norm_df))
+      )
+      s_after <- session_get(sid)
+      child <- s_after$estudio$bases[[child_name]]
+      child$source_kind <- "kobo_repeat"
+      child$parent_base <- parent_base_name
+      child$repeat_group <- spec$name
+      child$repeat_relevant <- as.character(spec$group_relevant %||% "")
+      child$link_key <- "_parent_index"
+      child$link_key_fallback <- "_submission__id"
+      child$parent_index_key <- "_index"
+      child$kobo_refreshed_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+      s_after$estudio$bases[[child_name]] <- child
+      s_after <- .mark_project_dirty(s_after)
+      .session_env[[sid]] <- s_after
+    } else {
+      child_name <- .carga_unique_base_name(
+        spec$name, names(bases), paste0("rep_", slug)
+      )
+      estudio_add_base(
+        sid,
+        nombre = child_name,
+        xlsform_file_id = inst_meta$file_id,
+        data_file_id = data_meta$file_id,
+        data_ext = "xlsx",
+        rp_data = child_rp_data,
+        rp_inst = child_inst,
+        n_filas = as.integer(nrow(norm_df)),
+        n_columnas = as.integer(ncol(norm_df)),
+        extra_meta = list(
+          source_kind = "kobo_repeat",
+          parent_base = parent_base_name,
+          repeat_group = spec$name,
+          repeat_relevant = as.character(spec$group_relevant %||% ""),
+          link_key = "_parent_index",
+          link_key_fallback = "_submission__id",
+          parent_index_key = "_index",
+          imported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+        )
+      )
+    }
+    refreshed[[length(refreshed) + 1L]] <- list(
+      base = child_name,
+      repeat_group = spec$name,
+      parent_base = parent_base_name,
+      data_file_id = data_meta$file_id,
+      n_filas = as.integer(nrow(norm_df))
+    )
+  }
+  refreshed
+}
+
 .carga_refresh_kobo_independent <- function(sid, parsed = list()) {
   target_names <- .carga_kobo_refresh_names(sid, parsed)
   if (!length(target_names)) {
@@ -1504,8 +1656,13 @@ estudio_init_default_base <- function(sid) {
   dir.create(downloads_dir, recursive = TRUE, showWarnings = FALSE)
   results <- list()
   updated <- character(0)
+  session_before_refresh <- session_get(sid)
 
   for (base_name in target_names) {
+    # El refresh reemplaza varias piezas (padre, repeats y efectivos) en pasos
+    # sucesivos. Conservamos el estado de sesión previo para que cualquier
+    # fallo fail-closed de universe_filter no deje punteros o caches parciales.
+    tryCatch({
     bases <- estudio_list_bases(sid)
     base <- bases[[base_name]]
     spec <- base$kobo_source_spec %||% list()
@@ -1534,10 +1691,17 @@ estudio_init_default_base <- function(sid) {
     payload <- kobo_api_fetch_all_asset_data(asset_uid, token, base_url = base_url)
     data_df <- kobo_api_flatten_results(payload$results %||% list())
     data_df <- .carga_align_kobo_data(data_df, rp_inst)
+    has_repeats <- length(.kobo_repeat_specs(rp_inst)) > 0L
+    repeat_source_df <- if (has_repeats) .kobo_ensure_wide_index(data_df) else NULL
+    data_df <- .carga_backfill_missing_expected(data_df, rp_inst)
     data_df <- if (is.data.frame(data_df) && nrow(data_df)) {
       normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = .carga_editor_choice_code_maps(sid))
     } else {
       .carga_empty_data_for_instrument(rp_inst)
+    }
+    if (has_repeats) {
+      data_df <- .kobo_drop_repeat_blob_columns(data_df, rp_inst)
+      data_df <- .kobo_ensure_wide_index(data_df)
     }
     .carga_assert_data_xlsform_compatible(data_df, rp_inst)
     data_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", base_name, "_refresh_data.xlsx"))
@@ -1618,6 +1782,19 @@ estudio_init_default_base <- function(sid) {
     s_after$estudio$bases[[base_name]] <- refreshed_base
     s_after <- .mark_project_dirty(s_after)
     .session_env[[sid]] <- s_after
+    refreshed_repeats <- if (has_repeats) {
+      .carga_kobo_refresh_repeat_bases(
+        sid,
+        data_df = repeat_source_df,
+        rp_inst = rp_inst,
+        parent_base_name = base_name,
+        downloads_dir = downloads_dir,
+        choice_code_maps = .carga_editor_choice_code_maps(sid)
+      )
+    } else {
+      list()
+    }
+    carga_universe_filter_reapply(sid, base_name, data_meta$file_id)
 
     updated <- c(updated, base_name)
     results[[length(results) + 1L]] <- list(
@@ -1629,8 +1806,13 @@ estudio_init_default_base <- function(sid) {
       total_remote = refresh_meta$total_remote,
       xlsform_file_id = inst_meta$file_id,
       data_file_id = data_meta$file_id,
+      repeat_bases = refreshed_repeats,
       refreshed_at = refreshed_at
     )
+    }, error = function(e) {
+      .session_env[[sid]] <- session_before_refresh
+      stop(e)
+    })
   }
 
   current_bases <- estudio_list_bases(sid)
@@ -1770,6 +1952,28 @@ mount_carga <- function(pr) {
         sort = body$sort %||% NULL,
         coded = FALSE,
         source = "carga"
+      )
+    })) |>
+
+    plumber::pr_get("/api/carga/universe-filter", wrap_endpoint(function(req, res, base_nombre = NULL) {
+      carga_universe_filter_get(session_header(req), base_nombre)
+    })) |>
+
+    plumber::pr_post("/api/carga/universe-filter/preview", wrap_endpoint(function(req, res, ...) {
+      parsed <- .carga_parse_json_body(req)
+      carga_universe_filter_preview(
+        session_header(req),
+        .carga_chr1(parsed$base_nombre %||% parsed$baseName, ""),
+        parsed$config %||% list()
+      )
+    })) |>
+
+    plumber::pr_handle("PUT", "/api/carga/universe-filter", wrap_endpoint(function(req, res, ...) {
+      parsed <- .carga_parse_json_body(req)
+      carga_universe_filter_apply(
+        session_header(req),
+        .carga_chr1(parsed$base_nombre %||% parsed$baseName, ""),
+        parsed$config %||% list()
       )
     })) |>
 
