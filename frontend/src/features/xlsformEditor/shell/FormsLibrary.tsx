@@ -69,7 +69,19 @@ export function FormsLibrary({
     const map = new Map<string, FormCardMetrics>();
     for (const entry of forms) {
       const snap = loadForm(scope, entry.id);
-      map.set(entry.id, computeFormMetrics(snap?.workbook ?? null));
+      const local = computeFormMetrics(snap?.workbook ?? null);
+      // Si el workbook aún no está en esta máquina (formulario no abierto),
+      // computeFormMetrics da 0/0: caemos a los conteos que calculó el backend
+      // sobre el .pulso (entry.nQuestions/nSections) para no mostrar tarjetas
+      // "vacías" que en realidad tienen contenido.
+      const metrics =
+        local.questions > 0 || local.sections > 0
+          ? local
+          : {
+              questions: entry.nQuestions ?? local.questions,
+              sections: entry.nSections ?? local.sections,
+            };
+      map.set(entry.id, metrics);
     }
     return map;
   }, [forms, scope]);

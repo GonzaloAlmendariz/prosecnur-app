@@ -112,6 +112,10 @@ export type LibraryEntry = {
   name: string;
   savedAt: number;
   source: FormSource;
+  /** Conteos calculados por el backend (para tarjetas del hub cuyo workbook aún
+   * no está en localStorage). Opcionales: índices locales viejos no los traen. */
+  nQuestions?: number;
+  nSections?: number;
 };
 
 /** Índice completo persistido para un scope. */
@@ -141,6 +145,8 @@ function normalizeEntry(value: unknown): LibraryEntry | null {
     name: typeof value.name === "string" && value.name.trim() ? value.name : "Formulario",
     savedAt: savedAtOrNow(value.savedAt),
     source: normalizeSource(value.source),
+    nQuestions: typeof value.nQuestions === "number" ? value.nQuestions : undefined,
+    nSections: typeof value.nSections === "number" ? value.nSections : undefined,
   };
 }
 

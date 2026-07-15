@@ -717,6 +717,8 @@ export default function XlsformEditorPage() {
             name: entry.name,
             savedAt: savedAtMs,
             source: entry.source,
+            nQuestions: entry.n_questions,
+            nSections: entry.n_sections,
           });
         }
         if (backend.active_form_id && !localActive) {
