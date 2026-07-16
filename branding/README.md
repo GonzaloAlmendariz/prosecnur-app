@@ -1,6 +1,6 @@
 # Identidad visual de Prosecnur
 
-Paquete canónico de la identidad (v1.1, julio 2026). La referencia normativa es
+Paquete canónico de la identidad (v1.2, julio 2026). La referencia normativa es
 [`direccion-creativa.md`](direccion-creativa.md); el manual interactivo completo
 vive en [`manual-identidad.html`](manual-identidad.html) (también publicado como
 Artifact). La v1.1 destila como **patrones maestros** los ejemplares más
@@ -12,8 +12,8 @@ procedencia/herencia de Gráficos v2 e iconografía en dos capas.
 
 | Ruta | Qué es |
 | --- | --- |
-| `direccion-creativa.md` | Dirección congelada v1.1: concepto «La señal ordenada», marca, paleta, tipografía, espaciado, motion, patrones maestros y economía del chrome. |
-| `manual-identidad.html` | Manual interactivo de 8 capítulos (componentes vivos, demos de motion, mockups animados). Autocontenido: se abre en cualquier navegador. |
+| `direccion-creativa.md` | Dirección congelada v1.2: concepto «La señal ordenada», marca, paleta, tipografía, espaciado, motion, patrones maestros y economía del chrome. |
+| `manual-identidad.html` | Manual interactivo de 10 capítulos (componentes vivos, demos de motion, mockups animados). Autocontenido: se abre en cualquier navegador. |
 | `tokens/prosecnur-brand.css` | Tokens de marca (`--prosecnur-*`) espejo 1:1 de los `--pulso-*` de producción, para piezas fuera de la app. |
 | `logo/` | Suite completa en SVG (10 variantes) + `preview.html` (contact sheet con prueba de reducción). |
 

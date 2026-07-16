@@ -1,6 +1,6 @@
 # Prosecnur — Dirección creativa de la identidad visual
 
-Versión 1.1 · julio 2026. Documento de congelamiento: toda pieza de la identidad
+Versión 1.2 · julio 2026. Documento de congelamiento: toda pieza de la identidad
 (logo, sistema gráfico, componentes, motion, pantallas) se produce contra esta
 dirección. Fuente de reconocimiento: `frontend/src/app/theme.css`,
 `packaging/windows/brand/`, `api/R/pulso_pdf_theme.R`, `docs/ui-layout-grammar.md`.
@@ -147,6 +147,44 @@ que ya viven en la app** y los eleva a norma para todos los módulos.
    header 150ms / toolbar 160ms, easing de salida) es la transición base de
    toda ruta; el «orbit-in + edge-draw» del dashboard (nodos 620ms productiva +
    aristas `stroke-dashoffset` 680ms) es la firma para diagramas y árboles.
+
+## Materiales y elevación (v1.2)
+
+- **Seis niveles de sombra fría** (base navy/pizarra, jamás negro puro):
+  low (reposo) · soft (tarjetas) · med (hover-lift) · high (diálogos) ·
+  raised (workbench) · popover (flotantes). Lo que empuja en flujo no flota;
+  solo lo que se superpone usa niveles altos.
+- **Vibrancy simulada Windows-safe**: gradiente blanco + superficie translúcida
+  (`color-mix` 82/92/74%) + `backdrop-filter` progresivo (10/14/18 según
+  jerarquía). Material SOLO en navegación y capas de comando; formularios
+  densos en superficie sólida. Degrada con dignidad sin backdrop-filter.
+
+## Datos y entregables (v1.2)
+
+- **Una sola fuente cromática para CSS, PDF y Plotly**: el navy ancla las tres
+  capas (`pulso_plotly_palette`, `pulso_pdf_tokens`, `--pulso-*`); los
+  semánticos de chart son los del sistema.
+- **Secuencial = intensidad del navy** (`#DBE8FF → #7AA2F8 → #2457D6 →
+  #002457`); nunca arcoíris. Charts: grid sutil horizontal, ejes sin línea
+  dura, sin 3D ni sombras ni degradados decorativos, un acento por gráfico,
+  eje Y en 0 para barras, endpoint enfatizado en líneas, tabular-nums.
+- **La capa Pulso PDF es normativa** (cabecera/pie/logo/hairlines/tablas
+  zebra, escala en pt); el layout por motor es libre. PPT/XLSX heredan paleta
+  y tipografía; el XLSX conserva los colores de tipo de pregunta canónicos.
+- «Si un número aparece en pantalla, en un PDF y en un PPT, debe contar la
+  misma historia con la misma paleta.»
+
+## Identidad verbal — voz y tono (v1.2)
+
+Prosecnur habla como un colega experto: claro antes que elegante, de tú en
+español peruano neutro, técnico cuando aporta, sereno siempre. Las acciones
+dicen lo que hacen (verbo + objeto: «Marcar 6 como revisadas», nunca
+«Aceptar»); los errores explican qué pasó y cómo seguir (código `E_*` visible
+pero al final, en mono); números es-PE (miles con coma, decimales con punto,
+horas 24h, tabular en columnas); mayúscula solo inicial en controles, las
+sostenidas reservadas a micro-etiquetas con tracking; vocabulario canónico
+sin sinónimos improvisados (base procesable, cursos-horario, marco muestral,
+recopilador, corte). La voz es parte del contrato visual.
 
 ## Economía del chrome (reglas duras heredadas del design system)
 

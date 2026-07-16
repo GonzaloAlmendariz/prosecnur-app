@@ -181,7 +181,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
       <rect class="bb-bar" x="45" y="16" width="7" height="32" rx="3.5" fill="#002457"/>
     </svg>
     <div>
-      <p class="bb-hero-kicker">Manual de identidad visual · v1.1 · Julio 2026</p>
+      <p class="bb-hero-kicker">Manual de identidad visual · v1.2 · Julio 2026</p>
       <h1>Prosecnur</h1>
       <p class="bb-hero-sub">La señal ordenada: el pulso crudo del campo convertido en evidencia
         ordenada y defendible. Suite analítica de PULSO PUCP — Instituto de Analítica Social e
@@ -191,6 +191,8 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
         <span class="bb-hero-chip">Sistema gráfico</span>
         <span class="bb-hero-chip">Componentes UI</span>
         <span class="bb-hero-chip">Física Pulso</span>
+        <span class="bb-hero-chip">Datos y entregables</span>
+        <span class="bb-hero-chip">Voz y tono</span>
         <span class="bb-hero-chip">Pantallas</span>
       </div>
       <button class="bb-replay" id="bb-replay" type="button">Reproducir firma del isotipo</button>
@@ -206,8 +208,10 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
     <a href="#espaciado">04 Espaciado</a>
     <a href="#componentes">05 Componentes</a>
     <a href="#motion">06 Motion</a>
-    <a href="#pantallas">07 Pantallas</a>
-    <a href="#adopcion">08 Adopción</a>
+    <a href="#datos">07 Datos</a>
+    <a href="#voz">08 Voz</a>
+    <a href="#pantallas">09 Pantallas</a>
+    <a href="#adopcion">10 Adopción</a>
   </div>
 </nav>
 
@@ -551,7 +555,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
 <section class="bb-ch" id="espaciado">
   <div class="bb-wrap">
     <div class="bb-ch-head">
-      <span class="bb-ch-num">04 · Espaciado y grilla</span>
+      <span class="bb-ch-num">04 · Espaciado y materiales</span>
       <h2>Todo respira en múltiplos de cuatro</h2>
       <p class="bb-ch-lede">Base 4px para espaciar, radios normalizados para contener, alturas fijas
         para los controles y una jerarquía de contenedores con un solo dueño de scroll por pantalla.
@@ -603,6 +607,47 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
             </g>
           </svg>
         </div>
+      </div>
+
+      <div class="bb-card">
+        <h3 class="bb-h3">Elevación</h3>
+        <p class="bb-spec">Seis niveles con sombra fría navy; la elevación comunica jerarquía de flotación, nunca decoración</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px">
+          <div><div style="height:72px;border-radius:12px;background:var(--bk-paper);border:1px solid var(--bk-border);box-shadow:var(--bk-shadow-low)"></div><div class="bb-cap">low · reposo</div></div>
+          <div><div style="height:72px;border-radius:12px;background:var(--bk-paper);border:1px solid var(--bk-border);box-shadow:var(--bk-shadow-soft)"></div><div class="bb-cap">soft · tarjetas</div></div>
+          <div><div style="height:72px;border-radius:12px;background:var(--bk-paper);border:1px solid var(--bk-border);box-shadow:var(--bk-shadow-med)"></div><div class="bb-cap">med · hover-lift</div></div>
+          <div><div style="height:72px;border-radius:12px;background:var(--bk-paper);border:1px solid var(--bk-border);box-shadow:0 24px 60px rgba(0,36,87,.14)"></div><div class="bb-cap">high · diálogos</div></div>
+          <div><div style="height:72px;border-radius:12px;background:var(--bk-paper);box-shadow:var(--bk-shadow-raised)"></div><div class="bb-cap">raised · workbench</div></div>
+          <div><div style="height:72px;border-radius:12px;background:var(--bk-paper);box-shadow:0 22px 60px rgba(15,23,42,.18),0 4px 16px rgba(15,23,42,.08)"></div><div class="bb-cap">popover · flotantes</div></div>
+        </div>
+        <p class="bb-spec" style="margin:16px 0 0">Regla: lo que empuja en flujo no flota (el sidebar expandido conserva soft); solo lo que se superpone de verdad —popovers, diálogos, lens— usa los niveles altos. Las sombras siempre frías (base navy o pizarra), nunca negras puras.</p>
+      </div>
+
+      <div class="bb-card">
+        <h3 class="bb-h3">Materiales</h3>
+        <p class="bb-spec">Vibrancy simulada Windows-safe: gradiente blanco + superficie translúcida + blur CSS — jamás vibrancy real del OS</p>
+        <div style="position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--bk-border)">
+          <div style="position:absolute;inset:0;background:
+            radial-gradient(circle at 20% 30%, var(--bk-mod-proc) 0, transparent 34%),
+            radial-gradient(circle at 70% 60%, var(--bk-mod-monitoreo) 0, transparent 30%),
+            radial-gradient(circle at 45% 85%, var(--bk-signal) 0, transparent 32%),
+            var(--bk-canvas);opacity:.35"></div>
+          <div style="position:relative;display:flex;gap:16px;flex-wrap:wrap;padding:24px">
+            <div style="flex:1;min-width:180px;padding:14px 16px;border-radius:12px;border:1px solid var(--bk-border-strong);background:color-mix(in srgb, var(--bk-paper) 82%, transparent);backdrop-filter:blur(14px) saturate(1.08)">
+              <div style="font-size:13px;font-weight:600">Material base · 82%</div>
+              <div style="font-size:12px;color:var(--bk-ink-soft);margin-top:2px">command bars, pillbars, rails</div>
+            </div>
+            <div style="flex:1;min-width:180px;padding:14px 16px;border-radius:12px;border:1px solid var(--bk-border-strong);background:color-mix(in srgb, var(--bk-paper) 92%, transparent);backdrop-filter:blur(10px) saturate(1.08)">
+              <div style="font-size:13px;font-weight:600">Material fuerte · 92%</div>
+              <div style="font-size:12px;color:var(--bk-ink-soft);margin-top:2px">segmented, controles sobre contenido</div>
+            </div>
+            <div style="flex:1;min-width:180px;padding:14px 16px;border-radius:12px;border:1px solid var(--bk-border-strong);background:color-mix(in srgb, #ffffff 74%, transparent);backdrop-filter:blur(18px) saturate(1.08)">
+              <div style="font-size:13px;font-weight:600">Chrome · 74%</div>
+              <div style="font-size:12px;color:var(--bk-ink-soft);margin-top:2px">barras de app, blur 18 + saturación 1.08</div>
+            </div>
+          </div>
+        </div>
+        <p class="bb-spec" style="margin:16px 0 0">El material va SOLO en navegación y capas de comando donde el contexto de fondo aporta; los formularios densos usan superficies sólidas. El blur es progresivo (10/14/18) según jerarquía, y todo degrada con dignidad si backdrop-filter no está disponible (el gradiente blanco sostiene la legibilidad).</p>
       </div>
 
       <div class="bb-card">
@@ -2544,6 +2589,646 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
 </section>
 
 
+<section class="bb-ch" id="datos">
+<style>
+/* ====== 07 · Datos y entregables (todo lo propio con prefijo d-) ====== */
+#datos [class^="d-"],
+#datos [class*=" d-"]{box-sizing:border-box}
+
+/* --- utilidades del capítulo --- */
+.d-rule{margin:16px 0 0;padding:11px 14px;background:var(--bk-ice);border:1px solid var(--bk-border);border-left:3px solid var(--bk-navy);border-radius:var(--bk-radius);font-size:12.5px;color:var(--bk-ink);line-height:1.55}
+.d-rule strong{color:var(--bk-navy)}
+.d-src{margin:12px 0 0;font-family:var(--bk-mono);font-size:10.5px;color:var(--bk-ink-faint);line-height:1.5}
+.d-cap{margin:8px 0 0;font-size:11px;color:var(--bk-ink-faint);line-height:1.45}
+.d-num{font-variant-numeric:tabular-nums}
+.d-svg-t{font-family:var(--bk-font)}
+.d-svg-mono{font-family:var(--bk-mono)}
+.d-chart-scroll{overflow-x:auto;max-width:100%}
+
+/* --- 1 · swatches de la paleta plotly --- */
+.d-swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(152px,1fr));gap:10px;margin-top:14px}
+.d-sw{display:flex;flex-direction:column;border:1px solid var(--bk-border);border-radius:var(--bk-radius);overflow:hidden;background:var(--bk-paper)}
+.d-sw-chip{height:42px;border-bottom:1px solid var(--bk-border)}
+.d-sw-meta{display:flex;flex-direction:column;gap:2px;padding:8px 10px}
+.d-sw-name{font-size:12px;font-weight:600;color:var(--bk-ink)}
+.d-sw-hex{font-family:var(--bk-mono);font-size:10.5px;color:var(--bk-ink-soft)}
+.d-sw-role{font-size:11px;color:var(--bk-ink-soft);line-height:1.4}
+
+/* --- 2 · escala secuencial --- */
+.d-ramp{display:flex;flex-direction:column;gap:14px;margin-top:14px;max-width:560px}
+.d-ramp-band{width:100%;height:auto;display:block}
+.d-ramp-ends{display:flex;justify-content:space-between;font-size:11px;color:var(--bk-ink-faint);margin-top:-8px}
+.d-ramp-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.d-step{border:1px solid var(--bk-border);border-radius:var(--bk-radius);overflow:hidden;background:var(--bk-paper)}
+.d-step-chip{height:34px;border-bottom:1px solid var(--bk-border)}
+.d-step-meta{padding:6px 8px;display:flex;flex-direction:column;gap:1px}
+.d-step-name{font-size:11px;font-weight:600;color:var(--bk-ink)}
+.d-step-hex{font-family:var(--bk-mono);font-size:10px;color:var(--bk-ink-soft)}
+@media (max-width:560px){.d-ramp-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* --- 3 y 4 · layouts chart + reglas --- */
+.d-duo{display:grid;grid-template-columns:minmax(0,1fr) 264px;gap:22px;align-items:start;margin-top:14px}
+.d-duo-line{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:22px;align-items:start;margin-top:14px}
+.d-chart-bars{width:100%;min-width:540px;height:auto;display:block}
+.d-chart-line{width:100%;max-width:340px;height:auto;display:block}
+.d-rules-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.d-rules-list li{position:relative;padding-left:18px;font-size:12.5px;color:var(--bk-ink);line-height:1.5}
+.d-rules-list li::before{content:"";position:absolute;left:2px;top:7px;width:7px;height:7px;border-radius:2px;background:var(--bk-navy)}
+@media (max-width:960px){.d-duo{grid-template-columns:1fr}}
+@media (max-width:720px){.d-duo-line{grid-template-columns:1fr}}
+
+/* --- 5 · capa Pulso PDF --- */
+.d-pdf-duo{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:22px;align-items:start;margin-top:14px}
+.d-pdf-stage{background:var(--bk-mist);border:1px solid var(--bk-border);border-radius:var(--bk-radius);padding:16px;display:flex;justify-content:center}
+.d-pdf-mock{width:100%;max-width:346px;height:auto;display:block}
+.d-type-table{width:100%;border-collapse:collapse;margin-top:2px}
+.d-type-table th{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--bk-ink-faint);text-align:left;padding:6px 10px;border-bottom:1px solid var(--bk-border-strong)}
+.d-type-table td{font-size:12.5px;color:var(--bk-ink);padding:6px 10px;border-bottom:1px solid var(--bk-border);line-height:1.4}
+.d-type-table td.d-tk{font-family:var(--bk-mono);font-size:11.5px;color:var(--bk-navy);font-weight:600}
+.d-type-table td.d-pt{font-family:var(--bk-mono);font-size:11.5px;color:var(--bk-ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (max-width:860px){.d-pdf-duo{grid-template-columns:1fr}}
+
+/* --- 6 · PPT y XLSX --- */
+.d-office{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:14px}
+.d-office-block{padding:14px 16px;background:var(--bk-ice);border:1px solid var(--bk-border);border-radius:var(--bk-radius-card)}
+.d-office-h{margin:0 0 8px;font-size:13px;font-weight:600;color:var(--bk-ink)}
+.d-office-p{margin:0;font-size:12.5px;color:var(--bk-ink-soft);line-height:1.55}
+.d-tipos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.d-tipo{display:flex;align-items:center;gap:9px;padding:6px 9px;background:var(--bk-paper);border:1px solid var(--bk-border);border-radius:var(--bk-radius)}
+.d-tipo-chip{flex:none;width:22px;height:22px;border-radius:6px;border:1px solid var(--bk-border-strong)}
+.d-tipo-meta{display:flex;flex-direction:column;min-width:0}
+.d-tipo-name{font-family:var(--bk-mono);font-size:10.5px;font-weight:600;color:var(--bk-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d-tipo-hex{font-family:var(--bk-mono);font-size:10px;color:var(--bk-ink-soft)}
+@media (max-width:760px){.d-office{grid-template-columns:1fr}}
+
+/* --- 7 · cierre --- */
+.d-cierre{text-align:center;background:var(--bk-navy);border-color:var(--bk-navy)}
+.d-cierre-q{margin:0;font-size:15.5px;font-weight:600;line-height:1.5;color:var(--bk-paper);letter-spacing:-.005em}
+.d-cierre-q em{font-style:normal;color:var(--bk-deep);opacity:.85}
+</style>
+
+  <div class="bb-wrap">
+    <div class="bb-ch-head">
+      <span class="bb-ch-num">07 · Datos y entregables</span>
+      <h2>El dato es el protagonista</h2>
+      <p class="bb-ch-lede">La identidad no termina en la interfaz. La misma señal gobierna los gráficos in-app — la paleta Plotly compartida, anclada en el navy — y la cara externa del producto: los PDF, PPT y XLSX que salen firmados con la capa estética Pulso. Un entregable de Prosecnur se reconoce antes de leer el título.</p>
+    </div>
+
+    <div class="bb-stack">
+
+      <!-- 1 · Paleta de visualización -->
+      <div class="bb-card">
+        <h3 class="bb-h3">Paleta de visualización</h3>
+        <p class="bb-spec">Once roles, una fuente única: <code class="bb-code">pulso_plotly_palette()</code>. Todo gráfico de la app — Validación, Analítica, explorador, monitoreo — toma sus colores de aquí, nunca de un hex local.</p>
+        <div class="d-swatches">
+          <div class="d-sw"><div class="d-sw-chip" style="background:#002457"></div><div class="d-sw-meta"><span class="d-sw-name">Primario</span><span class="d-sw-hex">#002457</span><span class="d-sw-role">La serie por defecto: barras, líneas, marca</span></div></div>
+          <div class="d-sw"><div class="d-sw-chip" style="background:#2457d6"></div><div class="d-sw-meta"><span class="d-sw-name">Serie brillante</span><span class="d-sw-hex">#2457d6</span><span class="d-sw-role">Acento: la serie o barra activa</span></div></div>
+          <div class="d-sw"><div class="d-sw-chip" style="background:#16a34a"></div><div class="d-sw-meta"><span class="d-sw-name">Éxito</span><span class="d-sw-hex">#16a34a</span><span class="d-sw-role">Semántico: en meta, cumplimiento</span></div></div>
+          <div class="d-sw"><div class="d-sw-chip" style="background:#d97706"></div><div class="d-sw-meta"><span class="d-sw-name">Alerta</span><span class="d-sw-hex">#d97706</span><span class="d-sw-role">Semántico: atención, ritmo bajo</span></div></div>
+          <div class="d-sw"><div class="d-sw-chip" style="background:#dc2626"></div><div class="d-sw-meta"><span class="d-sw-name">Peligro</span><span class="d-sw-hex">#dc2626</span><span class="d-sw-role">Semántico: fuera de rango, error</span></div></div>
+          <div class="d-sw"><div class="d-sw-chip" style="background:#94a3b8"></div><div class="d-sw-meta"><span class="d-sw-name">Neutro</span><span class="d-sw-hex">#94a3b8</span><span class="d-sw-role">Series de contexto sin señal</span></div></div>
+          <div class="d-sw"><div class="d-sw-chip" style="background:#f8faff"></div><div class="d-sw-meta"><span class="d-sw-name">Superficie</span><span class="d-sw-hex">#f8faff</span><span class="d-sw-role">Panel del gráfico</span></div></div>
+          <div class="d-sw"><div class="d-sw-chip" style="background:#d8e0ef"></div><div class="d-sw-meta"><span class="d-sw-name">Borde</span><span class="d-sw-hex">#d8e0ef</span><span class="d-sw-role">Marco de paneles y tarjetas de chart</span></div></div>
+          <div class="d-sw"><div class="d-sw-chip" style="background:#dbe3f1"></div><div class="d-sw-meta"><span class="d-sw-name">Grid</span><span class="d-sw-hex">#dbe3f1</span><span class="d-sw-role">Retícula horizontal fina</span></div></div>
+          <div class="d-sw"><div class="d-sw-chip" style="background:#1f2933"></div><div class="d-sw-meta"><span class="d-sw-name">Texto</span><span class="d-sw-hex">#1f2933</span><span class="d-sw-role">Títulos y valores</span></div></div>
+          <div class="d-sw"><div class="d-sw-chip" style="background:#5f6b7a"></div><div class="d-sw-meta"><span class="d-sw-name">Texto suave</span><span class="d-sw-hex">#5f6b7a</span><span class="d-sw-role">Ejes, ticks y leyendas</span></div></div>
+        </div>
+        <p class="d-rule"><strong>Una sola fuente para CSS, PDF y Plotly:</strong> el navy ancla las tres capas; los semánticos de chart son los del sistema. Si un color no está en esta paleta, no entra a un gráfico.</p>
+        <p class="d-src">Fuente: api/R/plotly_theme_shared.R · pulso_plotly_palette()</p>
+      </div>
+
+      <!-- 2 · Escala secuencial -->
+      <div class="bb-card">
+        <h3 class="bb-h3">Escala secuencial</h3>
+        <p class="bb-spec">Cuando el color codifica magnitud — mapas de calor, coropléticos del explorador — la escala es una sola: la intensidad del navy, en cuatro pasos interpolables.</p>
+        <div class="d-ramp">
+          <svg class="d-ramp-band" viewBox="0 0 560 40" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Banda continua de la escala secuencial navy, de #dbe8ff a #002457">
+            <defs>
+              <linearGradient id="d-ramp-g" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#dbe8ff"/>
+                <stop offset=".333" stop-color="#7aa2f8"/>
+                <stop offset=".667" stop-color="#2457d6"/>
+                <stop offset="1" stop-color="#002457"/>
+              </linearGradient>
+            </defs>
+            <rect x="0.5" y="0.5" width="559" height="39" rx="8" fill="url(#d-ramp-g)" stroke="#d8e0ef"/>
+          </svg>
+          <div class="d-ramp-ends"><span>mínimo</span><span>máximo</span></div>
+          <div class="d-ramp-steps">
+            <div class="d-step"><div class="d-step-chip" style="background:#dbe8ff"></div><div class="d-step-meta"><span class="d-step-name">Paso 1</span><span class="d-step-hex">#dbe8ff</span></div></div>
+            <div class="d-step"><div class="d-step-chip" style="background:#7aa2f8"></div><div class="d-step-meta"><span class="d-step-name">Paso 2</span><span class="d-step-hex">#7aa2f8</span></div></div>
+            <div class="d-step"><div class="d-step-chip" style="background:#2457d6"></div><div class="d-step-meta"><span class="d-step-name">Paso 3</span><span class="d-step-hex">#2457d6</span></div></div>
+            <div class="d-step"><div class="d-step-chip" style="background:#002457"></div><div class="d-step-meta"><span class="d-step-name">Paso 4</span><span class="d-step-hex">#002457</span></div></div>
+          </div>
+        </div>
+        <p class="d-rule"><strong>Secuencial = intensidad del navy.</strong> Nunca arcoíris: una sola dimensión de dato pide una sola dimensión de color. El paso más oscuro es siempre el dato máximo.</p>
+        <p class="d-src">Fuente: api/R/explorador_view_builders.R · colorRampPalette(c("#dbe8ff", "#7aa2f8", "#2457d6", "#002457"))</p>
+      </div>
+
+      <!-- 3 · Anatomía de un gráfico -->
+      <div class="bb-card">
+        <h3 class="bb-h3">Anatomía de un gráfico Prosecnur</h3>
+        <p class="bb-spec">Un gráfico de la casa se reconoce por lo que no tiene: nada de decoración, un solo acento, y la tinta al servicio del número. Este ejemplar contiene todas las reglas.</p>
+        <div class="d-duo">
+          <div class="d-chart-scroll">
+            <svg class="d-chart-bars d-svg-t" viewBox="0 0 640 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Gráfico de barras ejemplar: avance de campo por distrito, seis distritos ordenados por valor, con Cerro Colorado destacado en azul señal">
+              <rect x="0.5" y="0.5" width="639" height="279" rx="10" fill="#f8faff" stroke="#d8e0ef"/>
+              <text x="20" y="28" font-size="13" font-weight="600" fill="#1f2933">Avance de campo por distrito</text>
+              <!-- grid horizontal -->
+              <line x1="64" y1="48" x2="616" y2="48" stroke="#dbe3f1" stroke-width="1"/>
+              <line x1="64" y1="93" x2="616" y2="93" stroke="#dbe3f1" stroke-width="1"/>
+              <line x1="64" y1="138" x2="616" y2="138" stroke="#dbe3f1" stroke-width="1"/>
+              <line x1="64" y1="183" x2="616" y2="183" stroke="#dbe3f1" stroke-width="1"/>
+              <line x1="64" y1="228" x2="616" y2="228" stroke="#dbe3f1" stroke-width="1"/>
+              <!-- eje Y: labels soft, sin línea dura -->
+              <text class="d-num" x="56" y="231.5" font-size="11" fill="#5f6b7a" text-anchor="end">0</text>
+              <text class="d-num" x="56" y="186.5" font-size="11" fill="#5f6b7a" text-anchor="end">300</text>
+              <text class="d-num" x="56" y="141.5" font-size="11" fill="#5f6b7a" text-anchor="end">600</text>
+              <text class="d-num" x="56" y="96.5" font-size="11" fill="#5f6b7a" text-anchor="end">900</text>
+              <text class="d-num" x="56" y="51.5" font-size="11" fill="#5f6b7a" text-anchor="end">1,200</text>
+              <!-- barras (máxima en primary_bright) -->
+              <rect x="82" y="47.4" width="56" height="180.6" rx="2" fill="#2457d6"/>
+              <rect x="174" y="73.2" width="56" height="154.8" rx="2" fill="#002457"/>
+              <rect x="266" y="98.8" width="56" height="129.2" rx="2" fill="#002457"/>
+              <rect x="358" y="116.5" width="56" height="111.5" rx="2" fill="#002457"/>
+              <rect x="450" y="139.2" width="56" height="88.8" rx="2" fill="#002457"/>
+              <rect x="542" y="165.4" width="56" height="62.6" rx="2" fill="#002457"/>
+              <!-- valores sobre barra -->
+              <text class="d-num" x="110" y="40.4" font-size="11" font-weight="600" fill="#2457d6" text-anchor="middle">1,204</text>
+              <text class="d-num" x="202" y="66.2" font-size="11" font-weight="600" fill="#1f2933" text-anchor="middle">1,032</text>
+              <text class="d-num" x="294" y="91.8" font-size="11" font-weight="600" fill="#1f2933" text-anchor="middle">861</text>
+              <text class="d-num" x="386" y="109.5" font-size="11" font-weight="600" fill="#1f2933" text-anchor="middle">743</text>
+              <text class="d-num" x="478" y="132.2" font-size="11" font-weight="600" fill="#1f2933" text-anchor="middle">592</text>
+              <text class="d-num" x="570" y="158.4" font-size="11" font-weight="600" fill="#1f2933" text-anchor="middle">417</text>
+              <!-- categorías -->
+              <text x="110" y="246" font-size="11" fill="#5f6b7a" text-anchor="middle">Cerro Colorado</text>
+              <text x="202" y="246" font-size="11" fill="#5f6b7a" text-anchor="middle">Paucarpata</text>
+              <text x="294" y="246" font-size="11" fill="#5f6b7a" text-anchor="middle">Cayma</text>
+              <text x="386" y="246" font-size="11" fill="#5f6b7a" text-anchor="middle">Yanahuara</text>
+              <text x="478" y="246" font-size="11" fill="#5f6b7a" text-anchor="middle">Sachaca</text>
+              <text x="570" y="246" font-size="11" fill="#5f6b7a" text-anchor="middle">Characato</text>
+              <!-- fuente (una serie: sin leyenda) -->
+              <text x="20" y="266" font-size="10.5" fill="#8792a2">Fuente: Monitoreo de campo · Encuestas efectivas al corte · Julio 2026</text>
+            </svg>
+          </div>
+          <ul class="d-rules-list">
+            <li>Sin 3D. Sin sombras en las marcas. Sin degradados decorativos.</li>
+            <li>Grid sutil y siempre horizontal; los ejes no llevan línea dura.</li>
+            <li>El eje Y arranca en 0 cuando hay barras — sin excepciones.</li>
+            <li>Categorías ordenadas por valor, salvo ordinales (orden fijo de la escala).</li>
+            <li>Un solo acento por gráfico: la serie activa o el máximo, en azul señal.</li>
+            <li>Valores en tabular-nums, miles con coma (es-PE).</li>
+            <li>Leyenda solo si hay más de una serie; aquí la fuente basta.</li>
+            <li>Título 13/600 tinta arriba a la izquierda; fuente 10.5 bruma abajo.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 4 · Línea y énfasis de endpoint -->
+      <div class="bb-card">
+        <h3 class="bb-h3">Línea y énfasis de endpoint</h3>
+        <p class="bb-spec">En series de tiempo — ritmo diario, acumulados de campo — la pregunta del lector es siempre la misma: ¿cómo vamos hoy? La composición responde exactamente eso.</p>
+        <div class="d-duo-line">
+          <div>
+            <svg class="d-chart-line d-svg-t" viewBox="0 0 300 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Gráfico de línea del ritmo diario de encuestas: catorce días en ascenso, con el último punto destacado en azul señal y el valor 142">
+              <line x1="10" y1="66" x2="262" y2="66" stroke="#dbe3f1" stroke-width="1"/>
+              <line x1="10" y1="110" x2="262" y2="110" stroke="#dbe3f1" stroke-width="1"/>
+              <path d="M10,102 L29,89 L49,96 L68,80 L88,73 L107,76 L126,61 L146,67 L165,54 L184,46 L204,52 L223,38 L243,33 L262,22 L262,110 L10,110 Z" fill="#002457" fill-opacity=".06"/>
+              <polyline points="10,102 29,89 49,96 68,80 88,73 107,76 126,61 146,67 165,54 184,46 204,52 223,38 243,33 262,22" fill="none" stroke="#002457" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+              <circle cx="262" cy="22" r="4" fill="#2457d6" stroke="#ffffff" stroke-width="1.5"/>
+              <text class="d-num" x="271" y="26" font-size="11" font-weight="600" fill="#2457d6">142</text>
+            </svg>
+            <p class="d-cap">Ritmo diario de encuestas efectivas · últimos 14 días</p>
+          </div>
+          <div>
+            <ul class="d-rules-list">
+              <li>Línea navy de 2 px; área bajo la curva en navy al 6 % — presencia, no peso.</li>
+              <li><strong>El endpoint es la noticia:</strong> se enfatiza el final (dot en azul señal + valor tabular), nunca todos los puntos.</li>
+              <li>Grid mínimo: dos referencias horizontales bastan para leer la pendiente.</li>
+              <li>Sin marcadores intermedios ni etiquetas por punto; la forma de la curva ya cuenta la historia.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5 · La capa Pulso PDF -->
+      <div class="bb-card">
+        <h3 class="bb-h3">La capa Pulso PDF</h3>
+        <p class="bb-spec">Todos los motores de PDF — libro de códigos, avances, producción — comparten el kit de familia: paleta navy, cabecera con regla, tablas estructuradas y el pie logo · periodo · página. El layout del contenido lo compone cada motor.</p>
+        <div class="d-pdf-duo">
+          <div class="d-pdf-stage">
+            <svg class="d-pdf-mock d-svg-t" viewBox="0 0 346 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mockup de una página PDF Pulso: cabecera con título navy y regla, tabla estructurada con encabezado y zebra, y pie con logo, periodo y número de página">
+              <!-- página -->
+              <rect x="8" y="6" width="236" height="328" fill="#ffffff" stroke="var(--bk-border-strong)"/>
+              <!-- cabecera -->
+              <text x="26" y="34" font-size="11" font-weight="700" fill="#002457">Libro de códigos — Estudio ACNUR CG</text>
+              <text x="26" y="46" font-size="6.5" fill="#5f6b7a">Instrumento v3 · 128 variables · Base procesable n = 1,283</text>
+              <line x1="26" y1="54" x2="226" y2="54" stroke="#002457" stroke-width="1.1"/>
+              <!-- sección A -->
+              <text x="26" y="70" font-size="7.5" font-weight="600" fill="#002457">A · Caracterización</text>
+              <rect x="26" y="76" width="200" height="14" fill="#e9eef6"/>
+              <text x="30" y="85.5" font-size="6" font-weight="600" fill="#1f2933">Código</text>
+              <text x="88" y="85.5" font-size="6" font-weight="600" fill="#1f2933">Etiqueta</text>
+              <text x="222" y="85.5" font-size="6" font-weight="600" fill="#1f2933" text-anchor="end">n</text>
+              <line x1="26" y1="90" x2="226" y2="90" stroke="#c3ccdb" stroke-width="0.7"/>
+              <rect x="26" y="103" width="200" height="13" fill="#f6f8fb"/>
+              <rect x="26" y="129" width="200" height="13" fill="#f6f8fb"/>
+              <rect x="26" y="155" width="200" height="13" fill="#f6f8fb"/>
+              <rect x="26" y="181" width="200" height="13" fill="#f6f8fb"/>
+              <text class="d-svg-mono" x="30" y="99" font-size="5.8" fill="#1f2933">p01_sexo</text><text x="88" y="99" font-size="6" fill="#1f2933">Sexo de la persona encuestada</text><text class="d-num" x="222" y="99" font-size="6" fill="#1f2933" text-anchor="end">1,283</text>
+              <text class="d-svg-mono" x="30" y="112" font-size="5.8" fill="#1f2933">p02_edad</text><text x="88" y="112" font-size="6" fill="#1f2933">Edad en años cumplidos</text><text class="d-num" x="222" y="112" font-size="6" fill="#1f2933" text-anchor="end">1,283</text>
+              <text class="d-svg-mono" x="30" y="125" font-size="5.8" fill="#1f2933">p03_nac</text><text x="88" y="125" font-size="6" fill="#1f2933">País de nacimiento</text><text class="d-num" x="222" y="125" font-size="6" fill="#1f2933" text-anchor="end">1,281</text>
+              <text class="d-svg-mono" x="30" y="138" font-size="5.8" fill="#1f2933">p04_dist</text><text x="88" y="138" font-size="6" fill="#1f2933">Distrito de residencia actual</text><text class="d-num" x="222" y="138" font-size="6" fill="#1f2933" text-anchor="end">1,283</text>
+              <text class="d-svg-mono" x="30" y="151" font-size="5.8" fill="#1f2933">p05_tiempo</text><text x="88" y="151" font-size="6" fill="#1f2933">Tiempo de residencia en el Perú</text><text class="d-num" x="222" y="151" font-size="6" fill="#1f2933" text-anchor="end">1,279</text>
+              <text class="d-svg-mono" x="30" y="164" font-size="5.8" fill="#1f2933">p06_estatus</text><text x="88" y="164" font-size="6" fill="#1f2933">Estatus migratorio actual</text><text class="d-num" x="222" y="164" font-size="6" fill="#1f2933" text-anchor="end">1,264</text>
+              <text class="d-svg-mono" x="30" y="177" font-size="5.8" fill="#1f2933">p07_trabajo</text><text x="88" y="177" font-size="6" fill="#1f2933">Condición de actividad económica</text><text class="d-num" x="222" y="177" font-size="6" fill="#1f2933" text-anchor="end">1,270</text>
+              <text class="d-svg-mono" x="30" y="190" font-size="5.8" fill="#1f2933">p08_ingreso</text><text x="88" y="190" font-size="6" fill="#1f2933">Ingreso mensual del hogar</text><text class="d-num" x="222" y="190" font-size="6" fill="#1f2933" text-anchor="end">1,144</text>
+              <rect x="26" y="76" width="200" height="118" fill="none" stroke="#c3ccdb" stroke-width="0.7"/>
+              <line x1="84" y1="76" x2="84" y2="194" stroke="#c9d1de" stroke-width="0.5"/>
+              <line x1="200" y1="76" x2="200" y2="194" stroke="#c9d1de" stroke-width="0.5"/>
+              <text x="26" y="205" font-size="5.5" fill="#8792a2">Valores especiales: 90 No aplica · 94 NS/NR · 98 No sabe · 99 No responde</text>
+              <!-- sección B -->
+              <text x="26" y="224" font-size="7.5" font-weight="600" fill="#002457">B · Trayectoria migratoria</text>
+              <rect x="26" y="230" width="200" height="14" fill="#e9eef6"/>
+              <text x="30" y="239.5" font-size="6" font-weight="600" fill="#1f2933">Código</text>
+              <text x="88" y="239.5" font-size="6" font-weight="600" fill="#1f2933">Etiqueta</text>
+              <text x="222" y="239.5" font-size="6" font-weight="600" fill="#1f2933" text-anchor="end">n</text>
+              <line x1="26" y1="244" x2="226" y2="244" stroke="#c3ccdb" stroke-width="0.7"/>
+              <rect x="26" y="257" width="200" height="13" fill="#f6f8fb"/>
+              <rect x="26" y="283" width="200" height="13" fill="#f6f8fb"/>
+              <text class="d-svg-mono" x="30" y="253" font-size="5.8" fill="#1f2933">p09_ruta</text><text x="88" y="253" font-size="6" fill="#1f2933">Ruta de ingreso al país</text><text class="d-num" x="222" y="253" font-size="6" fill="#1f2933" text-anchor="end">1,262</text>
+              <text class="d-svg-mono" x="30" y="266" font-size="5.8" fill="#1f2933">p10_docs</text><text x="88" y="266" font-size="6" fill="#1f2933">Documentación al ingresar</text><text class="d-num" x="222" y="266" font-size="6" fill="#1f2933" text-anchor="end">1,254</text>
+              <text class="d-svg-mono" x="30" y="279" font-size="5.8" fill="#1f2933">p11_motivo</text><text x="88" y="279" font-size="6" fill="#1f2933">Motivo principal de salida</text><text class="d-num" x="222" y="279" font-size="6" fill="#1f2933" text-anchor="end">1,270</text>
+              <text class="d-svg-mono" x="30" y="292" font-size="5.8" fill="#1f2933">p12_retorno</text><text x="88" y="292" font-size="6" fill="#1f2933">Intención de retorno en 12 meses</text><text class="d-num" x="222" y="292" font-size="6" fill="#1f2933" text-anchor="end">1,238</text>
+              <rect x="26" y="230" width="200" height="66" fill="none" stroke="#c3ccdb" stroke-width="0.7"/>
+              <line x1="84" y1="230" x2="84" y2="296" stroke="#c9d1de" stroke-width="0.5"/>
+              <line x1="200" y1="230" x2="200" y2="296" stroke="#c9d1de" stroke-width="0.5"/>
+              <!-- pie -->
+              <line x1="26" y1="316" x2="226" y2="316" stroke="#d8e0ef" stroke-width="0.7"/>
+              <text x="26" y="326" font-size="6.5" font-weight="700" fill="#002457">PULSO PUCP</text>
+              <text x="126" y="326" font-size="6" fill="#5f6b7a" text-anchor="middle">Julio 2026</text>
+              <text class="d-num" x="226" y="326" font-size="6" fill="#5f6b7a" text-anchor="end">Pág. 3</text>
+              <!-- callouts -->
+              <line x1="246" y1="30" x2="254" y2="30" stroke="var(--bk-border-strong)" stroke-dasharray="2 2"/>
+              <text class="d-svg-mono" x="258" y="32.5" font-size="6.5" fill="var(--bk-ink-faint)">título 15 pt navy</text>
+              <line x1="246" y1="54" x2="254" y2="54" stroke="var(--bk-border-strong)" stroke-dasharray="2 2"/>
+              <text class="d-svg-mono" x="258" y="56.5" font-size="6.5" fill="var(--bk-ink-faint)">regla navy 1.1</text>
+              <line x1="246" y1="83" x2="254" y2="83" stroke="var(--bk-border-strong)" stroke-dasharray="2 2"/>
+              <text class="d-svg-mono" x="258" y="85.5" font-size="6.5" fill="var(--bk-ink-faint)">header #e9eef6</text>
+              <line x1="246" y1="109" x2="254" y2="109" stroke="var(--bk-border-strong)" stroke-dasharray="2 2"/>
+              <text class="d-svg-mono" x="258" y="111.5" font-size="6.5" fill="var(--bk-ink-faint)">zebra #f6f8fb</text>
+              <line x1="246" y1="194" x2="254" y2="194" stroke="var(--bk-border-strong)" stroke-dasharray="2 2"/>
+              <text class="d-svg-mono" x="258" y="196.5" font-size="6.5" fill="var(--bk-ink-faint)">marco #c3ccdb</text>
+              <line x1="246" y1="316" x2="254" y2="316" stroke="var(--bk-border-strong)" stroke-dasharray="2 2"/>
+              <text class="d-svg-mono" x="258" y="318.5" font-size="6.5" fill="var(--bk-ink-faint)">hairline #d8e0ef</text>
+              <line x1="246" y1="326" x2="254" y2="326" stroke="var(--bk-border-strong)" stroke-dasharray="2 2"/>
+              <text class="d-svg-mono" x="258" y="328.5" font-size="6.5" fill="var(--bk-ink-faint)">logo · periodo · pág.</text>
+            </svg>
+          </div>
+          <div>
+            <table class="d-type-table">
+              <thead><tr><th>Token</th><th>pt</th><th>Uso</th></tr></thead>
+              <tbody>
+                <tr><td class="d-tk">title</td><td class="d-pt">15</td><td>Título de cabecera — bold, navy</td></tr>
+                <tr><td class="d-tk">subtitle</td><td class="d-pt">9.5</td><td>Subtítulo de cabecera — soft</td></tr>
+                <tr><td class="d-tk">section</td><td class="d-pt">13</td><td>Título de sección o de página en dashboards</td></tr>
+                <tr><td class="d-tk">body</td><td class="d-pt">8.0</td><td>Cuerpo de texto</td></tr>
+                <tr><td class="d-tk">code</td><td class="d-pt">7.8</td><td>Código y celdas de tabla</td></tr>
+                <tr><td class="d-tk">footer</td><td class="d-pt">8.0</td><td>Periodo y número de página</td></tr>
+                <tr><td class="d-tk">caption</td><td class="d-pt">6.4</td><td>Etiquetas de KPI y captions</td></tr>
+              </tbody>
+            </table>
+            <p class="d-rule"><strong>Dos capas.</strong> El kit de familia es normativo — paleta navy, cabecera y pie, logo con corrección de aspecto, tablas estructuradas. El layout es libre por motor: el codebook compone a dos columnas, el avance territorial arma un dashboard apaisado.</p>
+            <p class="d-src">Fuente: api/R/pulso_pdf_theme.R · pulso_pdf_tokens() / pulso_pdf_type() · docs/pdf/pulso-pdf-design-system.md</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 · PPT y XLSX -->
+      <div class="bb-card">
+        <h3 class="bb-h3">PPT y XLSX</h3>
+        <p class="bb-spec">Los entregables de oficina hablan el mismo idioma que la app, cada uno con su acento propio.</p>
+        <div class="d-office">
+          <div class="d-office-block">
+            <h4 class="d-office-h">PPT — la familia en diapositivas</h4>
+            <p class="d-office-p">Hereda la paleta navy con acentos semánticos y la tipografía del sistema. Los gráficos de slide siguen las mismas reglas de anatomía: un acento, grid sutil, valores tabulares. Nada de plantillas ajenas de Office.</p>
+          </div>
+          <div class="d-office-block">
+            <h4 class="d-office-h">XLSX — el color como lenguaje de tipo</h4>
+            <p class="d-office-p">Las plantillas usan los colores canónicos de tipo de pregunta: el analista que domina el flujo xlsx↔app reconoce cada columna de un vistazo.</p>
+            <div class="d-tipos">
+              <div class="d-tipo"><span class="d-tipo-chip" style="background:#E2F0D9"></span><span class="d-tipo-meta"><span class="d-tipo-name">select_multiple</span><span class="d-tipo-hex">#E2F0D9</span></span></div>
+              <div class="d-tipo"><span class="d-tipo-chip" style="background:#D9E1F2"></span><span class="d-tipo-meta"><span class="d-tipo-name">select_one</span><span class="d-tipo-hex">#D9E1F2</span></span></div>
+              <div class="d-tipo"><span class="d-tipo-chip" style="background:#E6D9F2"></span><span class="d-tipo-meta"><span class="d-tipo-name">integer</span><span class="d-tipo-hex">#E6D9F2</span></span></div>
+              <div class="d-tipo"><span class="d-tipo-chip" style="background:#FFF2CC"></span><span class="d-tipo-meta"><span class="d-tipo-name">text</span><span class="d-tipo-hex">#FFF2CC</span></span></div>
+            </div>
+          </div>
+        </div>
+        <p class="d-rule"><strong>El logo en entregables sale siempre de <code class="bb-code">branding/logo/</code></strong> — nunca redibujado, nunca deformado: los motores aplican corrección de aspecto sobre el asset canónico.</p>
+        <p class="d-src">Fuente: frontend/src/app/theme.css · --tipo-*-bg · api/R/codificacion_flujo_hibrido.R · tipo_hex()</p>
+      </div>
+
+      <!-- 7 · Cierre -->
+      <div class="bb-card d-cierre">
+        <p class="d-cierre-q">«Si un número aparece en pantalla, en un PDF y en un PPT, debe contar <em>la misma historia con la misma paleta</em>.»</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<section class="bb-ch" id="voz">
+<style>
+/* ============================================================
+   08 · Voz y tono — identidad verbal de Prosecnur
+   Prefijo de clase: v-  ·  Solo tokens --bk-*  ·  Sin JS
+   ============================================================ */
+
+#voz [class^="v-"],
+#voz [class*=" v-"]{box-sizing:border-box}
+
+/* --- utilidades del capítulo --- */
+.v-sub{margin:0 0 12px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--bk-ink-faint)}
+.v-rule{margin:16px 0 0;font-size:12.5px;line-height:1.5;color:var(--bk-ink-soft)}
+.v-rule strong{color:var(--bk-ink);font-weight:600}
+.v-src{margin:6px 0 0;font-family:var(--bk-mono);font-size:10.5px;line-height:1.6;color:var(--bk-ink-faint)}
+.v-scroll{overflow-x:auto}
+
+/* --- 1 · principios --- */
+.v-principles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.v-principle{display:flex;gap:12px;padding:16px;background:var(--bk-ice);border:1px solid var(--bk-border);border-radius:var(--bk-radius-card)}
+.v-principle-num{font-family:var(--bk-mono);font-size:12px;font-weight:600;color:var(--bk-signal);font-variant-numeric:tabular-nums;line-height:1.55;flex:none}
+.v-principle-body{min-width:0}
+.v-principle-name{margin:0;font-size:14px;font-weight:600;color:var(--bk-navy)}
+.v-principle-line{margin:4px 0 0;font-size:12.5px;line-height:1.5;color:var(--bk-ink-soft)}
+
+/* --- 2 · pares don't → do --- */
+.v-pairs{display:flex;flex-direction:column;gap:10px;min-width:520px}
+.v-pairs-head,.v-pair{display:grid;grid-template-columns:minmax(0,1fr) 28px minmax(0,1.4fr);gap:12px;align-items:center}
+.v-pairs-head span{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--bk-ink-faint)}
+.v-pair-arrow{font-size:13px;color:var(--bk-ink-faint);text-align:center}
+.v-cell{display:flex;align-items:center;gap:10px;min-width:0}
+.v-mark{width:16px;height:16px;border-radius:var(--bk-radius-chip);display:grid;place-items:center;font-size:10px;font-weight:700;line-height:1;flex:none}
+.v-mark--no{background:var(--bk-danger-bg);color:var(--bk-danger)}
+.v-mark--si{background:var(--bk-success-bg);color:var(--bk-success-fg)}
+.v-btn{display:inline-flex;align-items:center;height:var(--bk-ctrl-h);padding:0 12px;border:1px solid transparent;border-radius:var(--bk-radius);font-size:13px;font-weight:var(--bk-ctrl-weight);line-height:1;white-space:nowrap;user-select:none;-webkit-user-select:none}
+.v-btn--vague{background:var(--bk-mist);border-color:var(--bk-border);color:var(--bk-ink-faint)}
+.v-btn--primary{background:var(--bk-navy);color:var(--bk-paper)}
+.v-btn--danger{background:var(--bk-danger);color:var(--bk-paper)}
+.v-pair-note{font-size:11.5px;color:var(--bk-ink-soft);white-space:normal}
+
+/* --- 3 · banners de error --- */
+.v-err-pairs{display:flex;flex-direction:column;gap:20px}
+.v-err-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:16px;align-items:stretch}
+.v-err-col{display:flex;flex-direction:column;gap:8px;min-width:0}
+.v-err-tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.v-err-tag--no{color:var(--bk-danger)}
+.v-err-tag--si{color:var(--bk-success-fg)}
+.v-banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:var(--bk-radius-card);border:1px solid color-mix(in srgb,var(--bk-danger) 26%,var(--bk-paper));background:var(--bk-danger-bg);font-size:13px;line-height:1.5;color:var(--bk-danger-fg);flex:1}
+.v-banner-dot{width:8px;height:8px;margin-top:6px;border-radius:var(--bk-radius-chip);background:var(--bk-danger);flex:none}
+.v-banner-txt{min-width:0}
+.v-banner-txt strong{font-weight:600}
+.v-ecode{display:inline-block;margin-left:8px;padding:1px 6px;border:1px solid var(--bk-border-strong);border-radius:var(--bk-radius-chip);background:var(--bk-paper);font-family:var(--bk-mono);font-size:10.5px;color:var(--bk-ink-soft);vertical-align:middle;white-space:nowrap}
+.v-empty{display:grid;place-items:center;padding:18px 14px;border:1px dashed var(--bk-border-strong);border-radius:var(--bk-radius-card);background:var(--bk-ice);font-size:13px;line-height:1.5;color:var(--bk-ink-soft);text-align:center;flex:1}
+
+/* --- 4 y 6 · tablas --- */
+.v-table{width:100%;border-collapse:collapse;font-size:13px;line-height:1.5;min-width:520px}
+.v-table th{padding:8px 12px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--bk-ink-faint);background:var(--bk-header-row);border-bottom:1px solid var(--bk-border)}
+.v-table td{padding:10px 12px;border-bottom:1px solid var(--bk-border);color:var(--bk-ink-soft);vertical-align:top}
+.v-table tr:last-child td{border-bottom:0}
+.v-table td:first-child{color:var(--bk-ink);font-weight:500;white-space:nowrap}
+.v-num{font-family:var(--bk-mono);font-size:12.5px;color:var(--bk-ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.v-no{color:var(--bk-danger-fg)}
+.v-term{font-weight:600;color:var(--bk-navy)}
+
+/* --- 5 · mayúsculas y etiquetas --- */
+.v-caps-rows{display:flex;flex-direction:column;gap:12px}
+.v-caps-row{display:grid;grid-template-columns:minmax(200px,1fr) minmax(0,1.6fr);gap:16px;align-items:center;padding:12px 14px;background:var(--bk-ice);border:1px solid var(--bk-border);border-radius:var(--bk-radius-card)}
+.v-caps-demo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.v-caps-desc{font-size:12.5px;line-height:1.5;color:var(--bk-ink-soft)}
+.v-caps-desc strong{color:var(--bk-ink);font-weight:600}
+.v-micro{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--bk-ink-faint)}
+.v-micro--on{color:var(--bk-navy)}
+.v-mono{font-family:var(--bk-mono);font-size:12px;color:var(--bk-ink);white-space:nowrap}
+.v-tab-demo{display:inline-flex;align-items:center;height:var(--bk-ctrl-h);padding:0 12px;border-radius:var(--bk-radius-chip);background:var(--bk-navy);color:var(--bk-paper);font-size:13px;font-weight:var(--bk-ctrl-weight);white-space:nowrap}
+.v-strike{text-decoration:line-through;text-decoration-color:var(--bk-danger);color:var(--bk-ink-faint)}
+
+/* --- 7 · cierre --- */
+.v-close{display:flex;align-items:center;gap:14px}
+.v-close-bar{width:4px;align-self:stretch;border-radius:var(--bk-radius-chip);background:var(--bk-navy);flex:none}
+.v-close-line{margin:0;font-size:17px;line-height:1.4;font-weight:600;letter-spacing:-.01em;color:var(--bk-navy)}
+
+@media (max-width:860px){
+  .v-principles{grid-template-columns:minmax(0,1fr)}
+  .v-err-pair{grid-template-columns:minmax(0,1fr)}
+  .v-caps-row{grid-template-columns:minmax(0,1fr)}
+}
+</style>
+
+<div class="bb-wrap">
+  <div class="bb-ch-head">
+    <span class="bb-ch-num">08 · Voz y tono</span>
+    <h2>Habla como un colega experto</h2>
+    <p class="bb-ch-lede">Prosecnur le habla a investigadores: español peruano neutro, de tú, con precisión técnica y sin jerga vacía. Cada control dice exactamente lo que hace y cada error explica cómo seguir. La voz es una sola en toda la superficie — botón, banner, tooltip o PDF entregable.</p>
+  </div>
+
+  <div class="bb-stack">
+
+    <!-- 1 · Principios de voz -->
+    <div class="bb-card">
+      <h3 class="bb-h3">1 · Principios de voz</h3>
+      <p class="bb-spec">Cuatro reglas contra las que se revisa cada string del producto. Si una frase incumple una, se reescribe.</p>
+      <div class="v-principles">
+        <div class="v-principle">
+          <span class="v-principle-num">a</span>
+          <div class="v-principle-body">
+            <p class="v-principle-name">Claro antes que elegante</p>
+            <p class="v-principle-line">Si el analista tiene que releer, fallamos. La frase corta y directa gana siempre.</p>
+          </div>
+        </div>
+        <div class="v-principle">
+          <span class="v-principle-num">b</span>
+          <div class="v-principle-body">
+            <p class="v-principle-name">De tú, peruano neutro</p>
+            <p class="v-principle-line">Nunca «vos», nunca «usted» salvo contexto muy formal. Conjugación estándar latinoamericana: tienes, puedes, abre.</p>
+          </div>
+        </div>
+        <div class="v-principle">
+          <span class="v-principle-num">c</span>
+          <div class="v-principle-body">
+            <p class="v-principle-name">Técnico cuando aporta</p>
+            <p class="v-principle-line">Los tecnicismos estándar van en su idioma — deploy, endpoint, bootstrap — sin traducción forzada; el vocabulario metodológico se usa con rigor, no como adorno.</p>
+          </div>
+        </div>
+        <div class="v-principle">
+          <span class="v-principle-num">d</span>
+          <div class="v-principle-body">
+            <p class="v-principle-name">Sereno</p>
+            <p class="v-principle-line">Sin exclamaciones, sin alarmismo, sin humor forzado en flujos de trabajo. El tono no sube cuando algo falla.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 · Las acciones dicen lo que hacen -->
+    <div class="bb-card">
+      <h3 class="bb-h3">2 · Las acciones dicen lo que hacen</h3>
+      <p class="bb-spec">Regla única: <strong>verbo + objeto</strong>. El botón se entiende sin leer el título de la ventana. «Aceptar», «OK» y «Sí» delegan el significado al contexto; en Prosecnur el control lo carga completo.</p>
+      <div class="v-scroll">
+        <div class="v-pairs">
+          <div class="v-pairs-head"><span>Genérico</span><span></span><span>Prosecnur</span></div>
+          <div class="v-pair">
+            <div class="v-cell"><span class="v-mark v-mark--no">✕</span><span class="v-btn v-btn--vague">Aceptar</span></div>
+            <span class="v-pair-arrow">→</span>
+            <div class="v-cell"><span class="v-mark v-mark--si">✓</span><span class="v-btn v-btn--primary">Guardar cambios</span></div>
+          </div>
+          <div class="v-pair">
+            <div class="v-cell"><span class="v-mark v-mark--no">✕</span><span class="v-btn v-btn--vague">OK</span></div>
+            <span class="v-pair-arrow">→</span>
+            <div class="v-cell"><span class="v-btn v-btn--primary" style="margin-left:26px">Ejecutar reglas</span></div>
+          </div>
+          <div class="v-pair">
+            <div class="v-cell"><span class="v-mark v-mark--no">✕</span><span class="v-btn v-btn--vague">¿Continuar?</span></div>
+            <span class="v-pair-arrow">→</span>
+            <div class="v-cell"><span class="v-btn v-btn--primary" style="margin-left:26px">Marcar 6 como revisadas</span></div>
+          </div>
+          <div class="v-pair">
+            <div class="v-cell"><span class="v-mark v-mark--no">✕</span><span class="v-btn v-btn--vague">Enviar</span></div>
+            <span class="v-pair-arrow">→</span>
+            <div class="v-cell"><span class="v-btn v-btn--primary" style="margin-left:26px">Publicar dashboard</span></div>
+          </div>
+          <div class="v-pair">
+            <div class="v-cell"><span class="v-mark v-mark--no">✕</span><span class="v-btn v-btn--vague">Sí</span></div>
+            <span class="v-pair-arrow">→</span>
+            <div class="v-cell"><span class="v-btn v-btn--danger" style="margin-left:26px">Eliminar base</span><span class="v-pair-note">lo destructivo lleva el objeto explícito</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="v-rule">Copy real de la app que ya cumple la regla:</p>
+      <p class="v-src">«Guardar cambios» — analitica/dimensiones/shared/CombinarVarsPanel.tsx:432<br>«Publicar dashboard · Sube el proyecto actual a un Hugging Face Space con Docker.» — dashboard/publish/DashboardPublishDialog.tsx:161–162<br>«Confirma qué cursos-horario entran a campo» — recopiladores/RecopiladoresPage.tsx:93</p>
+    </div>
+
+    <!-- 3 · Errores que ayudan a seguir -->
+    <div class="bb-card">
+      <h3 class="bb-h3">3 · Errores que ayudan a seguir</h3>
+      <p class="bb-spec">Estructura canónica: <strong>[qué pasó] + [cómo seguir]</strong>. Sin disculpas vacías («Ups», «Lo sentimos») ni culpas al usuario. El banner falla en serio cuando el analista lo lee y no sabe cuál es su siguiente clic.</p>
+      <div class="v-err-pairs">
+        <div class="v-err-pair">
+          <div class="v-err-col">
+            <span class="v-err-tag v-err-tag--no">✕ Así no</span>
+            <div class="v-banner"><span class="v-banner-dot"></span><span class="v-banner-txt">Error inesperado (E_KOBO_401)</span></div>
+          </div>
+          <div class="v-err-col">
+            <span class="v-err-tag v-err-tag--si">✓ Así sí</span>
+            <div class="v-banner"><span class="v-banner-dot"></span><span class="v-banner-txt"><strong>Kobo rechazó el token (401).</strong> Revisa el token del recopilador en Conexiones y vuelve a sincronizar.<span class="v-ecode">E_KOBO_TOKEN</span></span></div>
+          </div>
+        </div>
+        <div class="v-err-pair">
+          <div class="v-err-col">
+            <span class="v-err-tag v-err-tag--no">✕ Así no</span>
+            <div class="v-banner"><span class="v-banner-dot"></span><span class="v-banner-txt">Datos inválidos</span></div>
+          </div>
+          <div class="v-err-col">
+            <span class="v-err-tag v-err-tag--si">✓ Así sí</span>
+            <div class="v-banner"><span class="v-banner-dot"></span><span class="v-banner-txt"><strong>3 filas tienen fecha posterior al cierre de campo.</strong> Revísalas en Validación o exclúyelas del universo.</span></div>
+          </div>
+        </div>
+        <div class="v-err-pair">
+          <div class="v-err-col">
+            <span class="v-err-tag v-err-tag--no">✕ Así no — lo esperado no se viste de error</span>
+            <div class="v-banner"><span class="v-banner-dot"></span><span class="v-banner-txt">[E_UNIVERSE_FILTER_BASE] No hay base registrada</span></div>
+          </div>
+          <div class="v-err-col">
+            <span class="v-err-tag v-err-tag--si">✓ Así sí — estado vacío sereno</span>
+            <div class="v-empty">Disponible cuando cargues las respuestas de la base.</div>
+          </div>
+        </div>
+      </div>
+      <p class="v-rule"><strong>Los códigos E_* son trazabilidad, no mensaje.</strong> El backend los emite siempre por contrato — <span class="bb-code">stop_api(status, code, message)</span> en <span class="bb-code">api/R/errors.R</span> — y en la UI van visibles pero al final y en mono, nunca como único contenido del banner.</p>
+      <p class="v-src">Estado vacío real: «Disponible cuando cargues las respuestas de la base.» — carga/CargaUniverseFilter.tsx:178 (E_UNIVERSE_FILTER_BASE se degrada a vacío, no a alerta)</p>
+    </div>
+
+    <!-- 4 · Números y formatos -->
+    <div class="bb-card">
+      <h3 class="bb-h3">4 · Números y formatos (es-PE)</h3>
+      <p class="bb-spec">Un solo régimen numérico en toda la superficie. En columnas de datos, siempre <span class="bb-code">font-variant-numeric: tabular-nums</span>.</p>
+      <div class="v-scroll">
+        <table class="v-table">
+          <thead><tr><th>Regla</th><th>Ejemplo</th><th>Nota</th></tr></thead>
+          <tbody>
+            <tr><td>Miles con coma</td><td><span class="v-num">29,090</span></td><td>nunca punto ni espacio de miles</td></tr>
+            <tr><td>Decimales con punto</td><td><span class="v-num">86.3%</span></td><td>en UI compacta, el % va pegado</td></tr>
+            <tr><td>Fecha en UI compacta</td><td><span class="v-num">14 jul 2026</span></td><td>mes de tres letras, sin punto</td></tr>
+            <tr><td>Fecha en prosa</td><td>14 de julio de 2026</td><td>reportes, notas metodológicas</td></tr>
+            <tr><td>Horas en 24&#8201;h</td><td><span class="v-num">14:00</span></td><td>nunca «2 pm»</td></tr>
+            <tr><td>Rangos con guion corto</td><td><span class="v-num">46–54</span></td><td>en dash, sin espacios</td></tr>
+            <tr><td>Unidades en specs</td><td><span class="v-num">120&#8201;ms · 86.3&#8201;%</span></td><td>espacio fino antes de % y ms en documentación técnica</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 5 · Mayúsculas y etiquetas -->
+    <div class="bb-card">
+      <h3 class="bb-h3">5 · Mayúsculas y etiquetas</h3>
+      <p class="bb-spec">La jerarquía tipográfica ya trabaja por nosotros; las mayúsculas no se usan para gritar.</p>
+      <div class="v-caps-rows">
+        <div class="v-caps-row">
+          <div class="v-caps-demo"><span class="v-tab-demo">Marcar como revisadas</span><span class="v-strike">Marcar Como Revisadas</span></div>
+          <p class="v-caps-desc"><strong>Solo inicial mayúscula</strong> en botones, títulos y pestañas. Nunca Title Case importado del inglés.</p>
+        </div>
+        <div class="v-caps-row">
+          <div class="v-caps-demo"><span class="v-micro v-micro--on">Completadas</span><span class="v-micro">Sección activa</span></div>
+          <p class="v-caps-desc"><strong>MAYÚSCULAS SOSTENIDAS</strong> reservadas a micro-etiquetas de 11&#8201;px con tracking +0.06em. A cuerpo de texto, jamás.</p>
+        </div>
+        <div class="v-caps-row">
+          <div class="v-caps-demo"><span>Procesamiento · Bitácora · Monitoreo</span></div>
+          <p class="v-caps-desc"><strong>Los módulos son nombres propios</strong>: inicial mayúscula siempre que se nombra el lugar de la app.</p>
+        </div>
+        <div class="v-caps-row">
+          <div class="v-caps-demo"><span class="v-mono">hogares-lima-este.pulso</span><span class="v-mono">p14_ingreso</span></div>
+          <p class="v-caps-desc"><strong>Archivos y variables en mono</strong>, tal como existen: sin comillas decorativas ni capitalización cosmética.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6 · Vocabulario canónico -->
+    <div class="bb-card">
+      <h3 class="bb-h3">6 · Vocabulario canónico</h3>
+      <p class="bb-spec">Términos que no se improvisan ni se sinonimizan: nombran objetos precisos del dominio y se escriben igual en UI, entregables y documentación.</p>
+      <div class="v-scroll">
+        <table class="v-table">
+          <thead><tr><th>Término</th><th>Qué nombra</th><th>Qué no decir</th></tr></thead>
+          <tbody>
+            <tr><td><span class="v-term">base procesable</span></td><td>las respuestas que superan los filtros de calidad y entran al análisis</td><td class="v-no">«encuestas válidas», «datos limpios»</td></tr>
+            <tr><td><span class="v-term">cursos-horario</span></td><td>la unidad de campo universitaria: un curso dictándose en un horario concreto</td><td class="v-no">«clases», «aulas» a secas</td></tr>
+            <tr><td><span class="v-term">marco muestral</span></td><td>la lista N de unidades elegibles de la que se selecciona la muestra</td><td class="v-no">«la base», «el padrón»</td></tr>
+            <tr><td><span class="v-term">roster / repeat</span></td><td>las tablas hijas de un grupo repetible del XLSForm, cada una con su propio grano</td><td class="v-no">«sub-bases», «hojas extra»</td></tr>
+            <tr><td><span class="v-term">universo</span></td><td>el subconjunto de la base que define quién cuenta para el análisis</td><td class="v-no">«filtro» a secas</td></tr>
+            <tr><td><span class="v-term">recopilador</span></td><td>el canal de recolección — enlace o ficha por curso-horario —, no una persona</td><td class="v-no">«encuestador» (persona ≠ canal)</td></tr>
+            <tr><td><span class="v-term">ficha QR</span></td><td>el impreso por curso-horario con el QR de aplicación presencial</td><td class="v-no">«el QR», «el volante»</td></tr>
+            <tr><td><span class="v-term">corte</span></td><td>el release versionado de la app que se empaqueta y taggea (v0.5.11)</td><td class="v-no">«la nueva app», «el update»</td></tr>
+            <tr><td><span class="v-term">entregable</span></td><td>el artefacto que sale del proyecto hacia el cliente: PPT, Word, XLSX, PDF, dashboard</td><td class="v-no">«reporte» genérico, «export»</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="v-src">Verificado contra el uso real: «cursos-horario y docentes» — recopiladores/RecopiladoresPage.tsx:71 · «Cálculo de muestra y marco muestral» — calcMuestra/CalcMuestraPage.tsx:2097 · «una ficha QR por curso-horario» — recopiladores/RecopiladoresPage.tsx:151 · «Universo aplicado / Universo heredado de la base madre» — carga/CargaUniverseFilter.tsx:170,188</p>
+    </div>
+
+    <!-- 7 · Cierre -->
+    <div class="bb-card">
+      <div class="v-close">
+        <span class="v-close-bar"></span>
+        <p class="v-close-line">La voz es parte del contrato visual: un botón bien escrito es tan de la marca como el navy.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+</section>
+
+
 <section class="bb-ch" id="pantallas">
 <style>
 /* ============================================================
@@ -2721,7 +3406,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
 
 <div class="bb-wrap">
   <div class="bb-ch-head">
-    <span class="bb-ch-num">07 · Pantallas</span>
+    <span class="bb-ch-num">09 · Pantallas</span>
     <h2>La identidad en uso</h2>
     <p class="bb-ch-lede">Cuatro momentos reales del producto —arranque, home, trabajo y monitoreo— con la marca, el espectro modular y la Física Pulso aplicados: la firma del isotipo abre la sesión, cada módulo tiñe su chrome sin tocar los datos y ningún movimiento supera los 420&#8239;ms. El chrome es el canónico de la casa: capa de comando material, rail de secciones centrado y KPIs discretos.</p>
   </div>
@@ -3091,7 +3776,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
 <section class="bb-ch" id="adopcion">
   <div class="bb-wrap">
     <div class="bb-ch-head">
-      <span class="bb-ch-num">08 · Adopción</span>
+      <span class="bb-ch-num">10 · Adopción</span>
       <h2>De la identidad al repo</h2>
       <p class="bb-ch-lede">La identidad formaliza el sistema vivo de la app: los valores coinciden
         1:1 con los tokens <code class="bb-code">--pulso-*</code> de producción. Adoptar la marca
@@ -3150,7 +3835,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
     <div style="display:flex;align-items:center;gap:12px">
       <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="15.4" fill="#fff"/><rect x="12" y="30" width="7" height="18" rx="3.5" fill="#002457"/><rect x="23" y="22" width="7" height="26" rx="3.5" fill="#002457"/><rect x="34" y="28" width="7" height="20" rx="3.5" fill="#002457"/><rect x="45" y="16" width="7" height="32" rx="3.5" fill="#002457"/></svg>
       <span style="font-weight:700;color:#fff">Prosecnur</span>
-      <span>· Manual de identidad v1.1</span>
+      <span>· Manual de identidad v1.2</span>
     </div>
     <span>PULSO PUCP · Julio 2026</span>
   </div>
