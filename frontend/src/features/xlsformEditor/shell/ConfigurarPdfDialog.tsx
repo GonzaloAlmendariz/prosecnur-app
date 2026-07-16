@@ -22,7 +22,7 @@
 // iconos lucide vía el shim compartido.
 // =============================================================================
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, Columns2, FileText, GitBranch, Grid3x3, Route, ShieldCheck, Square, Table2, X } from "../../../vendor/lucide-react";
 import type { MatrixCandidate } from "../parsing/detectMatrixCandidates";
@@ -89,6 +89,20 @@ export function ConfigurarPdfDialog({
   const [disabledMatrixIds, setDisabledMatrixIds] = useState<Set<string>>(
     () => new Set(matrixCandidates.filter((c) => c.count < 2).map((c) => c.id)),
   );
+  // El diálogo permanece montado entre aperturas, así que el inicializador de
+  // arriba corre UNA vez por formulario. Los candidatos de 1 pregunta que
+  // aparezcan después (el usuario sigue editando) también deben arrancar
+  // apagados, sin pisar los toggles que el usuario ya decidió.
+  const seenMatrixIds = useRef<Set<string>>(new Set(matrixCandidates.map((c) => c.id)));
+  useEffect(() => {
+    const fresh = matrixCandidates.filter((c) => !seenMatrixIds.current.has(c.id));
+    if (!fresh.length) return;
+    for (const c of fresh) seenMatrixIds.current.add(c.id);
+    const freshOptIn = fresh.filter((c) => c.count < 2).map((c) => c.id);
+    if (freshOptIn.length) {
+      setDisabledMatrixIds((prev) => new Set([...prev, ...freshOptIn]));
+    }
+  }, [matrixCandidates]);
   // Tenor (enunciado guía) por candidato: map id→texto. Vacío = sin tenor.
   const [tenorById, setTenorById] = useState<Record<string, string>>({});
   // Columna especial por candidato: map id→valor. Ausente/"auto" = heurística
