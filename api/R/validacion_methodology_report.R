@@ -510,30 +510,208 @@
   list(available = available, state = state, reviewed = reviewed, findings = findings)
 }
 
+.vmr_universe_records <- function(x) {
+  if (is.null(x) || !length(x)) return(list())
+  if (is.data.frame(x)) {
+    return(lapply(seq_len(nrow(x)), function(i) as.list(x[i, , drop = FALSE])))
+  }
+  if (!is.list(x)) return(list())
+  record_fields <- c(
+    "id", "variable", "key_variable", "key_values", "from_values",
+    "to_value", "values", "reason"
+  )
+  if (length(intersect(names(x) %||% character(0), record_fields))) return(list(x))
+  Filter(is.list, unname(x))
+}
+
+.vmr_universe_values <- function(x) {
+  out <- as.character(unlist(x %||% character(0), use.names = FALSE))
+  unique(out[!is.na(out) & nzchar(out)])
+}
+
+.vmr_universe_corrections <- function(x) {
+  records <- .vmr_universe_records(x)
+  out <- lapply(seq_along(records), function(i) {
+    item <- records[[i]]
+    list(
+      id = .vmr_text(item$id %||% paste0("correction_", i)),
+      key_variable = .vmr_text(item$key_variable %||% ""),
+      key_values = .vmr_universe_values(item$key_values),
+      variable = .vmr_text(item$variable %||% ""),
+      from_values = .vmr_universe_values(item$from_values),
+      to_value = .vmr_text(item$to_value %||% ""),
+      reason = .vmr_text(item$reason %||% "")
+    )
+  })
+  Filter(function(item) {
+    nzchar(item$key_variable) && length(item$key_values) &&
+      nzchar(item$variable) && nzchar(item$to_value)
+  }, out)
+}
+
+.vmr_universe_exclusion_rules <- function(x) {
+  records <- .vmr_universe_records(x)
+  out <- lapply(seq_along(records), function(i) {
+    item <- records[[i]]
+    list(
+      id = .vmr_text(item$id %||% paste0("exclusion_", i)),
+      variable = .vmr_text(item$variable %||% ""),
+      values = .vmr_universe_values(item$values),
+      reason = .vmr_text(item$reason %||% "")
+    )
+  })
+  Filter(function(item) nzchar(item$variable) && length(item$values), out)
+}
+
+.vmr_universe_count <- function(value, fallback = 0L) {
+  out <- suppressWarnings(as.integer(value %||% fallback))[1L]
+  if (is.na(out)) as.integer(fallback) else out
+}
+
+.vmr_universe_rejection_count <- function(universe) {
+  rules <- universe$exclusion_rules %||% list()
+  audits <- .vmr_universe_records(universe$exclusion_audit %||% list())
+  if (!length(rules)) return(0L)
+  rejection_ids <- vapply(rules, function(rule) {
+    grepl("rechaz|consent", paste(rule$reason, rule$variable), ignore.case = TRUE)
+  }, logical(1))
+  if (!any(rejection_ids)) return(0L)
+  if (!length(audits)) return(.vmr_universe_count(universe$excluded_rules, 0L))
+  audit_counts <- vapply(audits, function(item) .vmr_universe_count(item$excluded, 0L), integer(1))
+  audit_ids <- vapply(audits, function(item) .vmr_text(item$id %||% ""), character(1))
+  rule_ids <- vapply(rules[rejection_ids], `[[`, character(1), "id")
+  sum(audit_counts[audit_ids %in% rule_ids])
+}
+
+.vmr_universe_preparation_sentences <- function(universe) {
+  corrections <- universe$corrections %||% list()
+  exclusions <- universe$exclusion_rules %||% list()
+  human_value <- function(value) {
+    normalized <- tolower(.vmr_text(value))
+    if (identical(normalized, "test")) return("prueba")
+    if (identical(normalized, "real")) return("real")
+    .vmr_text(value)
+  }
+  correction_lines <- vapply(corrections, function(item) {
+    keys <- paste(item$key_values, collapse = ", ")
+    from <- if (length(item$from_values)) {
+      paste(vapply(item$from_values, human_value, character(1)), collapse = ", ")
+    } else {
+      "su clasificación anterior"
+    }
+    sprintf(
+      "%s: se corrigió la clasificación de %s a %s.",
+      keys, from, human_value(item$to_value)
+    )
+  }, character(1))
+  exclusion_lines <- vapply(exclusions, function(item) {
+    if (grepl("rechaz|consent", paste(item$reason, item$variable), ignore.case = TRUE)) {
+      return("Se retiraron las encuestas con rechazo de consentimiento.")
+    }
+    if (nzchar(item$reason)) return(paste0("Se retiraron las encuestas por ", tolower(item$reason), "."))
+    sprintf("Se retiraron las encuestas que cumplían el criterio %s.", item$id)
+  }, character(1))
+  excluded_test <- .vmr_universe_count(universe$excluded_test, 0L)
+  filter_line <- if (excluded_test > 0L) {
+    paste0(
+      "Después de las correcciones se conservaron las entrevistas reales y se ",
+      "retir", if (excluded_test == 1L) "ó " else "aron ", excluded_test,
+      if (excluded_test == 1L) " encuesta de prueba." else " encuestas de prueba."
+    )
+  } else character(0)
+  c(correction_lines, filter_line, exclusion_lines)
+}
+
 .vmr_universe_formula <- function(universe) {
   variable <- .vmr_text(universe$variable %||% "")
   real_values <- as.character(unlist(universe$real_values %||% character(0), use.names = FALSE))
   test_values <- as.character(unlist(universe$test_values %||% character(0), use.names = FALSE))
+  corrections <- .vmr_universe_corrections(universe$corrections %||% list())
+  exclusion_rules <- .vmr_universe_exclusion_rules(universe$exclusion_rules %||% list())
   real_values <- real_values[!is.na(real_values)]
   test_values <- test_values[!is.na(test_values)]
   if (!isTRUE(universe$applied) || !nzchar(variable) || !length(real_values)) return("")
-  literal <- function(x) paste(utils::capture.output(dput(x)), collapse = "\n")
-  paste(
+  literal <- function(x) paste(deparse(x, width.cutoff = 500L), collapse = "\n")
+  has_preparation <- length(corrections) || length(exclusion_rules)
+  required_variables <- unique(c(
+    variable,
+    vapply(corrections, `[[`, character(1), "key_variable"),
+    vapply(corrections, `[[`, character(1), "variable"),
+    vapply(exclusion_rules, `[[`, character(1), "variable")
+  ))
+  required_variables <- required_variables[nzchar(required_variables)]
+  correction_block <- unlist(lapply(seq_along(corrections), function(i) {
+    item <- corrections[[i]]
+    match_name <- paste0(".correction_match_", i)
+    key_line <- paste0(
+      "  as.character(base_preparada[[", literal(item$key_variable), "]]) %in% ",
+      literal(item$key_values)
+    )
+    value_line <- if (length(item$from_values)) paste0(
+      "  as.character(base_preparada[[", literal(item$variable), "]]) %in% ",
+      literal(item$from_values)
+    ) else character(0)
+    c(
+      paste0("# Corrección: ", .vmr_text(item$reason, item$id)),
+      paste0(match_name, " <-"),
+      paste0(key_line, if (length(value_line)) " &" else ""),
+      value_line,
+      paste0("base_preparada[[", literal(item$variable), "]] <- as.character(base_preparada[[", literal(item$variable), "]])"),
+      paste0("base_preparada[[", literal(item$variable), "]][", match_name, "] <- ", literal(item$to_value)),
+      ""
+    )
+  }), use.names = FALSE)
+  exclusion_block <- unlist(lapply(seq_along(exclusion_rules), function(i) {
+    item <- exclusion_rules[[i]]
+    match_name <- paste0(".exclusion_match_", i)
+    c(
+      paste0("# Exclusión: ", .vmr_text(item$reason, item$id)),
+      paste0(match_name, " <-"),
+      paste0("  as.character(base_preparada[[", literal(item$variable), "]]) %in% ", literal(item$values)),
+      paste0(".filter_keep <- .filter_keep & !", match_name),
+      ""
+    )
+  }), use.names = FALSE)
+  preparation_start <- if (has_preparation) c(
+    "# Trabajar sobre una copia de la base recibida",
+    "base_preparada <- data",
+    "",
+    paste0(".required_preparation_variables <- ", literal(required_variables)),
+    "if (!all(.required_preparation_variables %in% names(base_preparada))) {",
+    "  stop(",
+    "    \"Faltan variables para preparar el universo.\",",
+    "    call. = FALSE",
+    "  )",
+    "}",
+    ""
+  ) else character(0)
+  source_name <- if (has_preparation) "base_preparada" else "data"
+  paste(c(
+    preparation_start,
+    correction_block,
+    "# Conservar entrevistas reales y separar las pruebas",
     paste0(".filter_variable <- ", literal(variable)),
     paste0(".filter_real_values <- ", literal(real_values)),
     paste0(".filter_test_values <- ", literal(test_values)),
-    ".filter_values <- trimws(as.character(data[[.filter_variable]]))",
+    paste0(".filter_values <- trimws(as.character(", source_name, "[[.filter_variable]]))"),
     ".filter_missing <- is.na(.filter_values) | !nzchar(.filter_values)",
     ".filter_keep <- !.filter_missing & .filter_values %in% .filter_real_values",
     ".filter_is_test <- !.filter_missing & .filter_values %in% .filter_test_values",
     ".filter_unclassified <- !.filter_keep & !.filter_is_test",
-    "base_validacion <- data[.filter_keep, , drop = FALSE]",
-    sep = "\n"
-  )
+    "",
+    exclusion_block,
+    paste0("base_validacion <- ", source_name, "[.filter_keep, , drop = FALSE]")
+  ), collapse = "\n")
 }
 
 .vmr_universe_model <- function(upstream_universe = NULL) {
   universe <- upstream_universe %||% list(applied = FALSE)
+  universe$corrections <- .vmr_universe_corrections(universe$corrections %||% list())
+  universe$exclusion_rules <- .vmr_universe_exclusion_rules(universe$exclusion_rules %||% list())
+  universe$corrected <- .vmr_universe_count(universe$corrected, 0L)
+  universe$correction_changes <- .vmr_universe_count(universe$correction_changes, universe$corrected)
+  universe$excluded_rules <- .vmr_universe_count(universe$excluded_rules, 0L)
+  universe$excluded_rejections <- .vmr_universe_rejection_count(universe)
   universe$formula_r <- .vmr_universe_formula(universe)
   universe$formula_available <- nzchar(universe$formula_r)
   universe
@@ -1504,7 +1682,7 @@ validation_methodology_report_r <- function(model, path) {
   universe_formula <- .vmr_text(universe$formula_r %||% "")
   universe_function_source <- if (nzchar(universe_formula)) {
     formula_lines <- strsplit(
-      .vmr_pretty_r_formula(universe_formula, width = 96L),
+      universe_formula,
       "\n",
       fixed = TRUE
     )[[1L]]
@@ -1534,23 +1712,22 @@ validation_methodology_report_r <- function(model, path) {
 
   universe_summary <- c("# DATOS INCLUIDOS EN LA VALIDACIÓN")
   if (isTRUE(universe$applied)) {
+    rejection_count <- .vmr_universe_count(universe$excluded_rejections, 0L)
+    other_exclusions <- max(0L, .vmr_universe_count(universe$excluded_rules, 0L) - rejection_count)
     universe_summary <- c(
       universe_summary,
       paste0("# Encuestas recibidas: ", .vmr_script_count(universe$total)),
+      paste0("# Encuestas reclasificadas de prueba a real: ", .vmr_script_count(universe$corrected, "0")),
       paste0("# Pruebas retiradas: ", .vmr_script_count(universe$excluded_test, "0")),
+      if (rejection_count > 0L) paste0("# Rechazos retirados: ", .vmr_script_count(rejection_count, "0")) else NULL,
+      if (other_exclusions > 0L) paste0("# Otras exclusiones: ", .vmr_script_count(other_exclusions, "0")) else NULL,
       paste0("# Encuestas incluidas: ", .vmr_script_count(universe$included)),
       "#",
-      "# Filtro de encuestas"
+      "# Preparación del universo"
     )
-    variable <- .vmr_text(universe$variable)
-    real_values <- paste(as.character(unlist(universe$real_values %||% character(0), use.names = FALSE)), collapse = ", ")
-    test_values <- paste(as.character(unlist(universe$test_values %||% character(0), use.names = FALSE)), collapse = ", ")
-    if (nzchar(variable) && nzchar(real_values)) {
-      filter_text <- paste0("En Carga se conservaron las encuestas con ", variable, " = ", real_values)
-      if (nzchar(test_values)) {
-        filter_text <- paste0(filter_text, " y se retiraron aquellas con ", variable, " = ", test_values)
-      }
-      universe_summary <- c(universe_summary, .vmr_script_comment(paste0(filter_text, ".")))
+    preparation_sentences <- .vmr_universe_preparation_sentences(universe)
+    if (length(preparation_sentences)) {
+      universe_summary <- c(universe_summary, unlist(lapply(preparation_sentences, .vmr_script_comment), use.names = FALSE))
     }
   } else {
     universe_summary <- c(universe_summary, "# No se registró un filtro de encuestas de prueba.")
@@ -1869,8 +2046,11 @@ validation_methodology_report_pdf <- function(model, path) {
       rule_pages = sum(vapply(rule_pages, function(page) identical(page$category_key, category), logical(1)))
     )
   })
+  rich_preparation <- length(universe$corrections %||% list()) > 0L ||
+    length(universe$exclusion_rules %||% list()) > 0L
+  preparation_pages <- if (rich_preparation) 2L else 1L
   summary_chunk_count <- max(1L, ceiling(length(category_rows) / 10L))
-  intro_pages <- 3L + summary_chunk_count
+  intro_pages <- 2L + preparation_pages + summary_chunk_count
   cursor <- intro_pages + 1L
   for (i in seq_along(category_rows)) {
     category_rows[[i]]$divider_page <- cursor
@@ -2028,9 +2208,18 @@ validation_methodology_report_pdf <- function(model, path) {
 
   grid::grid.roundrect(x = 0.5, y = 0.17, width = 0.86, height = 0.13, r = grid::unit(3, "mm"), gp = grid::gpar(fill = theme$white, col = theme$line))
   grid::grid.text("BASE USADA", x = 0.09, y = 0.209, just = "left", gp = grid::gpar(col = theme$teal, fontsize = 7.5, fontface = "bold"))
-  base_values <- c(universe$total %||% NA_real_, universe$excluded_test %||% NA_real_, universe$included %||% NA_real_, applied_exact_r)
-  base_labels <- c("Encuestas recibidas", "Pruebas retiradas", "Encuestas incluidas", "Reglas con fórmula R")
-  base_x <- c(0.15, 0.375, 0.60, 0.825)
+  rejection_count <- .vmr_universe_count(universe$excluded_rejections, 0L)
+  exclusion_value <- if (rejection_count > 0L) rejection_count else .vmr_universe_count(universe$excluded_rules, 0L)
+  exclusion_label <- if (rejection_count > 0L) "Rechazos retirados" else "Otras exclusiones"
+  base_values <- c(
+    universe$total %||% NA_real_,
+    universe$corrected %||% 0L,
+    universe$excluded_test %||% NA_real_,
+    exclusion_value,
+    universe$included %||% NA_real_
+  )
+  base_labels <- c("Encuestas recibidas", "Reclasificadas", "Pruebas retiradas", exclusion_label, "Encuestas incluidas")
+  base_x <- seq(0.125, 0.875, length.out = 5L)
   for (i in seq_along(base_x)) {
     if (i > 1L) grid::grid.lines(x = rep(base_x[[i]] - 0.1125, 2L), y = c(0.125, 0.19), gp = grid::gpar(col = theme$line, lwd = 0.8))
     grid::grid.text(fmt(base_values[[i]]), x = base_x[[i]], y = 0.165, gp = grid::gpar(col = theme$ink, fontsize = 16, fontface = "bold"))
@@ -2044,29 +2233,40 @@ validation_methodology_report_pdf <- function(model, path) {
     invisible(NULL)
   }
   if (isTRUE(universe$applied)) {
-    criterion <- sprintf(
-      "En Carga se conservaron las encuestas con %s = %s y se retiraron aquellas con %s = %s.",
-      .vmr_text(universe$variable, "declarada"),
-      paste(as.character(unlist(universe$real_values %||% list())), collapse = ", "),
-      .vmr_text(universe$variable, "declarada"),
-      paste(as.character(unlist(universe$test_values %||% list())), collapse = ", ")
+    rejection_count <- .vmr_universe_count(universe$excluded_rejections, 0L)
+    other_exclusions <- max(0L, .vmr_universe_count(universe$excluded_rules, 0L) - rejection_count)
+    count_text <- paste0(
+      "De ", fmt(universe$total %||% NA_real_), " encuestas recibidas, ",
+      fmt(universe$corrected %||% 0L), " se reclasificaron de prueba a real. ",
+      "Quedaron fuera ", fmt(universe$excluded_test %||% 0L),
+      if (identical(.vmr_universe_count(universe$excluded_test, 0L), 1L)) " prueba retirada" else " pruebas retiradas",
+      if (rejection_count > 0L) paste0(" y ", fmt(rejection_count), if (rejection_count == 1L) " rechazo retirado" else " rechazos retirados") else "",
+      if (other_exclusions > 0L) paste0(" y ", fmt(other_exclusions), " por otros criterios") else "",
+      ". Se incluyeron ", fmt(universe$included %||% NA_real_), " encuestas."
     )
-    grid::grid.roundrect(x = 0.5, y = 0.745, width = 0.86, height = 0.11, r = grid::unit(3, "mm"), gp = grid::gpar(fill = theme$soft_teal, col = NA))
-    grid::grid.text("FILTRO DE ENCUESTAS", x = 0.09, y = 0.775, just = "left", gp = grid::gpar(col = theme$teal, fontsize = 8, fontface = "bold"))
-    grid::grid.text(.vmr_wrap(criterion, 78L), x = 0.09, y = 0.742, just = c("left", "top"), gp = grid::gpar(col = theme$text, fontsize = 9.5, lineheight = 1.18))
+    preparation_details <- .vmr_universe_preparation_sentences(universe)
+    criterion <- paste(c(count_text, preparation_details), collapse = " ")
+    grid::grid.roundrect(x = 0.5, y = 0.735, width = 0.86, height = 0.13, r = grid::unit(3, "mm"), gp = grid::gpar(fill = theme$soft_teal, col = NA))
+    grid::grid.text("PREPARACIÓN DEL UNIVERSO", x = 0.09, y = 0.775, just = "left", gp = grid::gpar(col = theme$teal, fontsize = 8, fontface = "bold"))
+    grid::grid.text(.vmr_wrap(criterion, 82L), x = 0.09, y = 0.744, just = c("left", "top"), gp = grid::gpar(col = theme$text, fontsize = 8.6, lineheight = 1.15))
   } else {
     grid::grid.roundrect(x = 0.5, y = 0.745, width = 0.86, height = 0.11, r = grid::unit(3, "mm"), gp = grid::gpar(fill = theme$soft_amber, col = NA))
     grid::grid.text(.vmr_wrap("No consta un filtro de encuestas de prueba aplicado; por ello no se presenta una fórmula de filtrado.", 76L), x = 0.09, y = 0.765, just = c("left", "top"), gp = grid::gpar(col = "#6D5315", fontsize = 9.5, lineheight = 1.18))
   }
   filter_formula <- .vmr_text(universe$formula_r %||% "")
   filter_lines <- if (nzchar(filter_formula)) {
-    wrap_code_lines(.vmr_pretty_r_formula(filter_formula, 68L), 68L)
+    display_formula <- if (rich_preparation) {
+      filter_formula
+    } else {
+      .vmr_pretty_r_formula(filter_formula, 68L)
+    }
+    wrap_code_lines(display_formula, if (rich_preparation) 94L else 68L)
   } else {
     character(0)
   }
-  if (length(filter_lines)) {
+  if (length(filter_lines) && !rich_preparation) {
     filter_h <- min(0.31, 0.085 + length(filter_lines) * 0.016)
-    filter_top <- 0.655
+    filter_top <- 0.645
     grid::grid.roundrect(x = 0.5, y = filter_top - filter_h / 2, width = 0.86, height = filter_h, r = grid::unit(3, "mm"), gp = grid::gpar(fill = theme$code, col = NA))
     grid::grid.text("FÓRMULA R USADA PARA FILTRAR", x = 0.09, y = filter_top - 0.03, just = "left", gp = grid::gpar(col = theme$mint, fontsize = 8.5, fontface = "bold"))
     grid::grid.text(paste(filter_lines, collapse = "\n"), x = 0.09, y = filter_top - 0.068, just = c("left", "top"), gp = grid::gpar(col = theme$white, fontsize = 8.6, family = "mono", lineheight = 1.12))
@@ -2109,9 +2309,35 @@ validation_methodology_report_pdf <- function(model, path) {
     row_top <- row_top - row_height - 0.014
   }
 
+  if (rich_preparation) {
+    page_number <- 4L
+    draw_shell(
+      "Fórmula R de preparación",
+      "Correcciones, clasificación y exclusiones aplicadas antes de validar",
+      page_number,
+      "Preparación"
+    )
+    grid::grid.roundrect(
+      x = 0.5, y = 0.47, width = 0.86, height = 0.66,
+      r = grid::unit(3, "mm"),
+      gp = grid::gpar(fill = theme$code, col = NA)
+    )
+    grid::grid.text(
+      "CÓDIGO EJECUTABLE",
+      x = 0.09, y = 0.775, just = "left",
+      gp = grid::gpar(col = theme$mint, fontsize = 8.5, fontface = "bold")
+    )
+    code_size <- if (length(filter_lines) > 44L) 6.3 else if (length(filter_lines) > 34L) 6.8 else 7.4
+    grid::grid.text(
+      paste(filter_lines, collapse = "\n"),
+      x = 0.09, y = 0.742, just = c("left", "top"),
+      gp = grid::gpar(col = theme$white, fontsize = code_size, family = "mono", lineheight = 1.08)
+    )
+  }
+
   # Índice completo de familias y guía de lectura. Nunca se trunca con head().
   for (chunk_idx in seq_along(summary_chunks)) {
-    page_number <- 3L + chunk_idx
+    page_number <- 2L + preparation_pages + chunk_idx
     subtitle <- if (length(summary_chunks) > 1L) sprintf("Páginas de cada grupo · %d de %d", chunk_idx, length(summary_chunks)) else "Páginas de cada grupo"
     draw_shell("Reglas por tema", subtitle, page_number, "Índice")
     if (chunk_idx == 1L) {

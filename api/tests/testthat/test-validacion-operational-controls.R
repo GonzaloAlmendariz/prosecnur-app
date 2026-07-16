@@ -183,6 +183,55 @@ test_that("estado de Validacion expone el filtro aplicado en Carga", {
   expect_equal(unlist(upstream$test_values, use.names = FALSE), "test")
 })
 
+test_that("estado de Validacion conserva correcciones y exclusiones de preparacion", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  estudio_ensure(sid)
+  s <- session_get(sid)
+  s$estudio$active_base <- "principal"
+  s$estudio$bases$principal <- list(
+    nombre = "principal",
+    universe_filter = list(
+      enabled = TRUE,
+      variable = "testreal",
+      real_values = "real",
+      test_values = "test",
+      corrections = list(list(
+        key_variable = "Pulso_code",
+        key_values = c("PDM1114", "PDM1153"),
+        variable = "testreal",
+        from_values = "test",
+        to_value = "real",
+        reason = "Entrevistas reales registradas inicialmente como prueba"
+      )),
+      exclusion_rules = list(list(
+        variable = "Consent",
+        values = "No",
+        reason = "Rechazo de consentimiento"
+      )),
+      audit = list(
+        total = 430L,
+        corrected = 2L,
+        excluded_test = 1L,
+        excluded_rules = 3L,
+        included = 426L
+      )
+    )
+  )
+  .session_env[[sid]] <- s
+
+  upstream <- .validacion_upstream_universe(sid, "principal")
+
+  expect_length(upstream$corrections, 1L)
+  expect_length(upstream$exclusion_rules, 1L)
+  expect_equal(upstream$corrected, 2L)
+  expect_equal(upstream$excluded_test, 1L)
+  expect_equal(upstream$excluded_rules, 3L)
+  expect_equal(upstream$included, 426L)
+  expect_equal(unlist(upstream$corrections[[1L]]$key_values), c("PDM1114", "PDM1153"))
+  expect_equal(upstream$exclusion_rules[[1L]]$variable, "Consent")
+})
+
 test_that("operational config hace round-trip .pulso por base", {
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
