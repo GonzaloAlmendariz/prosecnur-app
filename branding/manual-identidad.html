@@ -181,7 +181,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
       <rect class="bb-bar" x="45" y="16" width="7" height="32" rx="3.5" fill="#002457"/>
     </svg>
     <div>
-      <p class="bb-hero-kicker">Manual de identidad visual · v1.0 · Julio 2026</p>
+      <p class="bb-hero-kicker">Manual de identidad visual · v1.1 · Julio 2026</p>
       <h1>Prosecnur</h1>
       <p class="bb-hero-sub">La señal ordenada: el pulso crudo del campo convertido en evidencia
         ordenada y defendible. Suite analítica de PULSO PUCP — Instituto de Analítica Social e
@@ -3114,17 +3114,17 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
       </div>
 
       <div class="bb-card">
-        <h3 class="bb-h3">Tres movimientos para adoptar el isotipo unificado</h3>
-        <p class="bb-spec">Hoy conviven dos trazados divergentes; el canónico los reemplaza</p>
+        <h3 class="bb-h3">Adopción del isotipo unificado — completada</h3>
+        <p class="bb-spec">Los tres movimientos ya están ejecutados y verificados (typecheck + 1022 tests + gate); los derivados .ico/.icns/.bmp se regeneran solos en el próximo build</p>
         <div class="bb-scroll"><table class="bb-table">
           <thead><tr><th>#</th><th>Dónde</th><th>Cambio</th></tr></thead>
           <tbody>
-            <tr><td>1</td><td><code>frontend/src/app/Layout.tsx</code> (BrandMark) y <code>BootGate.tsx</code> (BootBrandMark)</td><td>Sustituir el círculo de 3 barras por el squircle canónico (viewBox 64, geometría de este manual)</td></tr>
-            <tr><td>2</td><td><code>packaging/windows/brand/icon.svg · header.svg · wizard.svg</code></td><td>Reemplazar el trazado de 4 barras con gradiente por las variantes <code>isotipo-gradiente</code> y lockups de <code>branding/logo/</code></td></tr>
-            <tr><td>3</td><td><code>packaging/macos/build-resources/icon.icns</code> (pipeline de build)</td><td>Regenerar desde <code>prosecnur-appicon.svg</code> (512, retícula macOS)</td></tr>
+            <tr><td>✓</td><td><code>frontend/src/app/Layout.tsx</code> (BrandMark) y <code>BootGate.tsx</code> (BootBrandMark)</td><td>Squircle canónico adoptado — e incluye la <strong>firma de arranque</strong>: las pastillas suben con stagger 0/60/120/180&#8239;ms (420&#8239;ms, curva productiva) al abrir la app, con vía reducida</td></tr>
+            <tr><td>✓</td><td><code>packaging/windows/brand/icon.svg · header.svg · wizard.svg</code></td><td>Recompuestos con la marca canónica (gradiente vertical, lockup horizontal, mono blanco con knockout); raster del icono byte-idéntico al canónico</td></tr>
+            <tr><td>✓</td><td><code>packaging/macos/build-dmg.sh</code> (pipeline del <code>.icns</code>)</td><td>El Dock se genera desde <code>prosecnur-appicon.svg</code> (retícula macOS 82.4%); el <code>.ico</code> de Windows conserva el full-bleed</td></tr>
           </tbody>
         </table></div>
-        <p class="bb-spec" style="margin:12px 0 0">Los tokens de color, motion, radios y tipografía no requieren cambio alguno: ya son los de producción. Outliers conocidos a saldar: «Monitoreo acreditación» usa navy <code class="bb-code">#06346f</code> en PDF — unificar a <code class="bb-code">#002457</code>; en theme.css conviven dos ámbares (<code class="bb-code">--pulso-warn-accent #d68a00</code> vs el canónico <code class="bb-code">#D97706</code>) — unificar al canónico.</p>
+        <p class="bb-spec" style="margin:12px 0 0">Los tokens de color, motion, radios y tipografía ya son los de producción. Unificaciones v1.1 aplicadas: el segmented control activo usa el gradiente maestro del primario (mismo lenguaje que pillbar y switch) y el sidebar icon-compressed de Fichas QR migró del overlay al push por grid canónico. Outliers conocidos a saldar: «Monitoreo acreditación» usa navy <code class="bb-code">#06346f</code> en PDF — unificar a <code class="bb-code">#002457</code>; en theme.css conviven dos ámbares (<code class="bb-code">--pulso-warn-accent #d68a00</code> vs el canónico <code class="bb-code">#D97706</code>) — unificar al canónico.</p>
       </div>
 
       <div class="bb-card">
@@ -3150,7 +3150,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
     <div style="display:flex;align-items:center;gap:12px">
       <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="15.4" fill="#fff"/><rect x="12" y="30" width="7" height="18" rx="3.5" fill="#002457"/><rect x="23" y="22" width="7" height="26" rx="3.5" fill="#002457"/><rect x="34" y="28" width="7" height="20" rx="3.5" fill="#002457"/><rect x="45" y="16" width="7" height="32" rx="3.5" fill="#002457"/></svg>
       <span style="font-weight:700;color:#fff">Prosecnur</span>
-      <span>· Manual de identidad v1.0</span>
+      <span>· Manual de identidad v1.1</span>
     </div>
     <span>PULSO PUCP · Julio 2026</span>
   </div>
