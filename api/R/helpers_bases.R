@@ -833,12 +833,19 @@
 
   for (v in names(df)) {
     col <- df[[v]]
-    labs <- attr(col, "labels", exact = TRUE)
-    if (is.null(labs) || length(labs) == 0L) next
-
-    pairs <- .bases_label_pairs(labs)
+    # El instrumento es la fuente de verdad de las etiquetas de salida. Los
+    # attrs pueden conservar labels del proveedor (p. ej. `Yes`) aun cuando el
+    # XLSForm ya define su etiqueta española (`Sí`). Las columnas derivadas que
+    # no existen en survey —como dummies 0/1— mantienen el fallback a attrs.
+    pairs <- .bases_choice_pairs_for_var(df, rp_inst, v)
+    if (!nrow(pairs)) {
+      labs <- attr(col, "labels", exact = TRUE)
+      if (is.null(labs) || length(labs) == 0L) next
+      pairs <- .bases_label_pairs(labs)
+    }
     if (!nrow(pairs)) next
-    map_cod_to_lab <- stats::setNames(pairs$label, pairs$code)
+    pair_codes <- if ("code" %in% names(pairs)) pairs$code else pairs$name
+    map_cod_to_lab <- stats::setNames(pairs$label, pair_codes)
 
     is_multi <- v %in% ms_cols
     raw <- as.character(col)

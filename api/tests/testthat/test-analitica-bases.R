@@ -447,6 +447,44 @@ test_that(".aplicar_etiquetas mapea códigos a labels en select_one", {
   expect_equal(out$edad, df$edad)
 })
 
+test_that(".aplicar_etiquetas prioriza el diccionario español del instrumento", {
+  inst <- list(
+    survey = data.frame(
+      name = c("consentimiento", "motivos"),
+      type = c("select_one", "select_multiple"),
+      list_name = c("si_no", "motivos_list"),
+      label = c("Consentimiento", "Motivos"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("si_no", "si_no", "motivos_list", "motivos_list"),
+      name = c("Yes", "No", "a", "b"),
+      label = c("Sí", "No", "Cercanía", "Recomendación"),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  consentimiento <- c("Yes", "No", "Yes")
+  attr(consentimiento, "labels") <- stats::setNames(c("Yes", "No"), c("Yes", "No"))
+  motivos <- c("a b", "b", "a")
+  attr(motivos, "labels") <- stats::setNames(c("a", "b"), c("Near", "Referral"))
+  df <- data.frame(
+    consentimiento = I(consentimiento),
+    motivos = I(motivos),
+    stringsAsFactors = FALSE
+  )
+
+  out <- .aplicar_etiquetas(
+    df,
+    inst,
+    valores = "etiquetas",
+    multi_select = "etiquetas_unidas"
+  )
+
+  expect_equal(as.character(out$consentimiento), c("Sí", "No", "Sí"))
+  expect_equal(as.character(out$motivos), c("Cercanía | Recomendación", "Recomendación", "Cercanía"))
+})
+
 test_that(".aplicar_etiquetas limpia codigos redundantes en etiquetas de escala", {
   inst <- .fixture_inst()
   escala <- c("1", "2", "3", "4")
