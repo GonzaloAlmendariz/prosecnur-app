@@ -1946,10 +1946,12 @@ export default function RecopiladoresPage() {
       />
 
       <main className="rec-workbench">
-        {/* Rail de tercer nivel (módulo → sección → pestaña): colapsado icon-only
-            por defecto; al hover/focus la columna del grid del workbench crece
-            a --pulso-rail-width y EMPUJA el canvas (grid push, patrón del rail
-            de Procesamiento — sin overlay flotante). */}
+        {/* Rail de tercer nivel (módulo → sección → pestaña): SIEMPRE comprimido
+            icon-only (dec-sidebar-icon-tooltip, patrón maestro #3 — el push por
+            grid quedó deprecado). El reveal es la burbuja flotante
+            data-rail-tooltip en hover/focus (incluida la pestaña activa); la
+            identificación persistente la da el command strip de cada pestaña
+            al inicio del canvas. */}
         <aside className="rec-sidebar" aria-label="Pestañas de la sección activa">
           <div className="rec-sidebar-shell">
             <div className="rec-sidebar-head">
@@ -1973,7 +1975,7 @@ export default function RecopiladoresPage() {
                     tabIndex={active ? 0 : -1}
                     className={active ? "is-active" : ""}
                     aria-label={`${tab.label}. ${tab.detail}`}
-                    title={`${tab.label}: ${tab.detail}`}
+                    data-rail-tooltip={`${tab.label}\n${tab.detail}`}
                     onClick={() => setActiveTab(tab.id)}
                     onKeyDown={(event) => {
                       // Roving tabindex del tablist vertical: las flechas mueven
@@ -2022,9 +2024,12 @@ export default function RecopiladoresPage() {
           className={`rec-content${isFichaPreview ? " is-ficha-preview" : ""}${isFichaList ? " is-ficha-list" : ""}${isAgendaReview ? " is-agenda-review" : ""}${isPackageOutput ? " is-package-output" : ""}${isPackageSave ? " is-package-save" : ""}${isLinkSetup ? " is-link-setup" : ""}`}
         >
           {/* Identidad accesible sin franja visual (contrato: sin H1 visible en
-              módulos; el primer viewport es para datos). El kicker lo da el rail
-              de secciones y el detalle vive en el command strip de cada pestaña;
-              los enlaces a muestra/monitoreo ya existen en los strips y en la
+              módulos; el primer viewport es para datos). Título compacto de la
+              pestaña activa (dec-sidebar-icon-tooltip): el command strip de cada
+              pestaña YA cumple ese rol — es la primera pieza del panel y trae
+              kicker propio de la pestaña (span acento/uppercase) + título en
+              strong + detalle en p, así que no se duplica con un header extra.
+              Los enlaces a muestra/monitoreo ya existen en los strips y en la
               banda de aplicación. pulso-sr-only es position:absolute, no ocupa
               fila del grid del canvas. */}
           <h1 className="pulso-sr-only">{`Fichas QR · ${activeCopy.title}`}</h1>

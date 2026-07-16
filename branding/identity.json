@@ -6,7 +6,7 @@
     "mode": "reconstruction",
     "status": "frozen",
     "version": "1.2.0",
-    "manifest_hash": "sha256:d906ccb9b8981e097825c515bcaad38c5879c8aef37d2e4073ae07cc03fa9362",
+    "manifest_hash": "sha256:ba38c9d50d5e5db7d2f9f97b7b81c395809d23b62929edf4a90e38cda40b35f5",
     "owners": [
       "Gonzalo Almendáriz (PULSO PUCP)"
     ]
@@ -259,6 +259,18 @@
       "rationale": "El sidebar de pestañas de calc-muestra se unifica al patrón maestro push-por-grid (se retirará la capa icon-only+tooltip ≥921px en la oleada R3.5).",
       "evidence_ids": [
         "ev-direccion-creativa"
+      ]
+    },
+    {
+      "id": "dec-sidebar-icon-tooltip",
+      "gate": "change-request",
+      "owner": "Gonzalo Almendáriz (PULSO PUCP)",
+      "timestamp": "2026-07-16T13:30:00Z",
+      "status": "approved",
+      "rationale": "Corrección de dirección del usuario (con capturas de referencia, 2026-07-16): el patrón canónico del sidebar de pestañas de 3er nivel es SIEMPRE comprimido (solo íconos, sin expansión por hover ni push del canvas); el reveal es una burbuja flotante elegante en hover/focus (título + subtítulo, separada del rail) que aparece SIEMPRE — incluida la pestaña activa —, y la identificación persistente la da el título compacto de la pestaña activa al inicio del workbench (ícono + título + subtítulo, minimal). SUPERSEDE a dec-calc-sidebar-push: el push por grid queda deprecado como patrón de 3er nivel.",
+      "evidence_ids": [
+        "ev-direccion-creativa",
+        "ev-theme-css"
       ]
     }
   ],
@@ -936,7 +948,7 @@
           "ownership": "manual_template",
           "status": "current",
           "identity_version": "1.2.0",
-          "manifest_hash": "sha256:d906ccb9b8981e097825c515bcaad38c5879c8aef37d2e4073ae07cc03fa9362"
+          "manifest_hash": "sha256:ba38c9d50d5e5db7d2f9f97b7b81c395809d23b62929edf4a90e38cda40b35f5"
         },
         {
           "id": "prosecnur-brand-css",
@@ -945,7 +957,7 @@
           "ownership": "manual_template",
           "status": "current",
           "identity_version": "1.2.0",
-          "manifest_hash": "sha256:d906ccb9b8981e097825c515bcaad38c5879c8aef37d2e4073ae07cc03fa9362"
+          "manifest_hash": "sha256:ba38c9d50d5e5db7d2f9f97b7b81c395809d23b62929edf4a90e38cda40b35f5"
         }
       ]
     },
@@ -1021,7 +1033,7 @@
       "ownership": "generated",
       "status": "current",
       "identity_version": "1.2.0",
-      "manifest_hash": "sha256:d906ccb9b8981e097825c515bcaad38c5879c8aef37d2e4073ae07cc03fa9362"
+      "manifest_hash": "sha256:ba38c9d50d5e5db7d2f9f97b7b81c395809d23b62929edf4a90e38cda40b35f5"
     },
     {
       "id": "identity-reference-doc",
@@ -1030,7 +1042,7 @@
       "ownership": "generated",
       "status": "current",
       "identity_version": "1.2.0",
-      "manifest_hash": "sha256:d906ccb9b8981e097825c515bcaad38c5879c8aef37d2e4073ae07cc03fa9362"
+      "manifest_hash": "sha256:ba38c9d50d5e5db7d2f9f97b7b81c395809d23b62929edf4a90e38cda40b35f5"
     }
   ],
   "extensions": {
@@ -1216,6 +1228,9 @@
         "nivel-1": "Familia/Módulo (homepage, paleta propia)",
         "nivel-2": "Sección (top bar del módulo)",
         "nivel-3": "Pestaña dinámica (sidebar icon-compressed)"
+      },
+      "superseded_decisions": {
+        "dec-calc-sidebar-push": "superseded por dec-sidebar-icon-tooltip (2026-07-16)"
       }
     }
   }

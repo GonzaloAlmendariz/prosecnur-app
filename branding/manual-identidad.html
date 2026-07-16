@@ -667,7 +667,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
           <div style="border:1px solid var(--bk-border);border-radius:12px;padding:14px 16px;background:var(--bk-ice)">
             <div style="font-size:12px;font-weight:600;color:var(--bk-signal)">Capa 3</div>
             <div style="font-size:14px;font-weight:600;margin-top:2px">Objetos</div>
-            <div style="font-size:12px;color:var(--bk-ink-soft);margin-top:4px">Sidebar/outline compacto para inventarios largos: reglas, variables, rutas, pestañas dinámicas (icon-compressed que empuja el canvas).</div>
+            <div style="font-size:12px;color:var(--bk-ink-soft);margin-top:4px">Sidebar/outline compacto para inventarios largos y pestañas dinámicas: siempre comprimido (solo íconos) con burbuja flotante en hover — incluida la activa — y título compacto de la pestaña al inicio del workbench.</div>
           </div>
           <div style="border:1px solid var(--bk-border);border-radius:12px;padding:14px 16px;background:var(--bk-ice)">
             <div style="font-size:12px;font-weight:600;color:var(--bk-signal)">Capa 4</div>
@@ -909,26 +909,26 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
 .c-pill.is-on .c-pill-num{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.28);color:var(--bk-paper)}
 .c-pill.is-done:not(.is-on) .c-pill-num{background:var(--c-primary-soft);border-color:color-mix(in srgb,var(--c-primary) 18%,transparent);color:var(--c-primary)}
 
-/* Sidebar icon-compressed (canoniza calc-muestra/Procesamiento): 56→240
-   empujando el canvas por grid. Track expandido de longitud FIJA: la
-   interpolación suave de grid-template-columns exige tracks de la misma
-   estructura (length↔length, nunca minmax↔length). */
-.c-sbdemo{display:grid;grid-template-columns:56px minmax(0,1fr);gap:10px;height:220px;transition:grid-template-columns var(--bk-dur-base) var(--bk-ease-out)}
-.c-sbdemo:has(> .c-sb:hover),.c-sbdemo:has(> .c-sb:focus-within){grid-template-columns:240px minmax(0,1fr)}
-.c-sb{min-width:0;display:flex;flex-direction:column;gap:5px;padding:8px;border:1px solid var(--bk-border);border-radius:var(--bk-radius-card);background:linear-gradient(180deg,rgba(255,255,255,.82),rgba(247,249,253,.72));overflow:hidden}
-.c-sb-item{display:grid;grid-template-columns:26px minmax(0,1fr);align-items:center;gap:8px;min-height:36px;padding:4px 7px;border:none;border-radius:var(--bk-radius);background:transparent;font-family:inherit;font-size:12px;text-align:left;color:var(--bk-ink-soft);cursor:pointer;overflow:hidden;transition:background-color var(--bk-dur-fast) var(--bk-ease-out),color var(--bk-dur-fast) var(--bk-ease-out),box-shadow var(--bk-dur-fast) var(--bk-ease-out),transform var(--bk-dur-press) var(--bk-ease-out)}
+/* Sidebar icon-compressed (dec-sidebar-icon-tooltip): SIEMPRE comprimido
+   (solo íconos). El reveal es la burbuja flotante en hover/focus — incluida
+   la activa — y el título compacto de la pestaña activa al inicio del
+   workbench. Nada de expandir ni empujar el canvas. */
+.c-sbdemo{display:grid;grid-template-columns:56px minmax(0,1fr);gap:10px;height:220px}
+.c-sb{display:flex;flex-direction:column;gap:5px;padding:8px;border:1px solid var(--bk-border);border-radius:var(--bk-radius-card);background:linear-gradient(180deg,rgba(255,255,255,.82),rgba(247,249,253,.72))}
+.c-sb-item{position:relative;display:grid;place-items:center;width:38px;height:36px;padding:0;border:none;border-radius:var(--bk-radius);background:transparent;color:var(--bk-ink-soft);cursor:pointer;transition:background-color var(--bk-dur-fast) var(--bk-ease-out),color var(--bk-dur-fast) var(--bk-ease-out),box-shadow var(--bk-dur-fast) var(--bk-ease-out),transform var(--bk-dur-press) var(--bk-ease-out)}
 .c-sb-item:hover:not(.is-on){background:var(--bk-mist);color:var(--bk-ink)}
 .c-sb-item:active{transform:scale(.98)}
 .c-sb-item:focus-visible{outline:none;box-shadow:0 0 0 3px var(--bk-focus)}
 .c-sb-item.is-on{background:linear-gradient(180deg,color-mix(in srgb,var(--bk-navy) 90%,var(--bk-paper)),var(--bk-navy));color:var(--bk-paper);box-shadow:0 7px 16px rgba(0,36,87,.16)}
+/* Burbuja flotante: SIEMPRE — la activa también (jamás excluir .is-on). */
+.c-sb-item::after{content:attr(data-tip);position:absolute;left:calc(100% + 10px);top:50%;z-index:60;display:none;width:max-content;min-width:122px;max-width:220px;padding:7px 9px;border:1px solid color-mix(in srgb,var(--bk-navy-border) 52%,var(--bk-border));border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(247,250,253,.96)),var(--bk-paper);color:var(--bk-ink);font-size:11px;font-weight:760;line-height:1.22;text-align:left;white-space:pre-line;transform:translateY(-50%);box-shadow:0 10px 24px rgba(15,23,42,.10);pointer-events:none}
+.c-sb-item:hover::after,.c-sb-item:focus-visible::after{display:block}
 .c-sb-ic{display:grid;place-items:center;width:26px;height:26px;color:inherit}
-.c-sb-copy{min-width:0;display:grid;gap:2px;opacity:0;transition:opacity var(--bk-dur-fast) var(--bk-ease-out)}
-.c-sbdemo:has(> .c-sb:hover) .c-sb-copy,.c-sbdemo:has(> .c-sb:focus-within) .c-sb-copy{opacity:1}
-.c-sb-name{font-size:12px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.c-sb-sub{font-size:10.5px;line-height:1.32;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.75;max-height:0;transition:max-height var(--bk-dur-fast) var(--bk-ease-out)}
-.c-sbdemo:has(> .c-sb:hover) .c-sb-item.is-on .c-sb-sub,
-.c-sbdemo:has(> .c-sb:focus-within) .c-sb-item.is-on .c-sb-sub{max-height:14px}
 .c-sb-canvas{min-width:0;display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid var(--bk-border);border-radius:var(--bk-radius-card);background:var(--bk-mist)}
+.c-sb-wbtitle{display:flex;align-items:center;gap:10px}
+.c-sb-wbtile{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--bk-navy-soft);color:var(--bk-navy)}
+.c-sb-wbname{font-size:15px;font-weight:600;line-height:1.2;color:var(--bk-ink)}
+.c-sb-wbsub{font-size:12px;color:var(--bk-ink-soft)}
 .c-sb-line{height:12px;border-radius:var(--bk-radius-chip);background:var(--bk-deep)}
 
 .c-rail{display:flex;flex-direction:column;gap:4px;padding:8px;background:var(--bk-ice);border:1px solid var(--bk-border);border-radius:var(--bk-radius)}
@@ -1483,30 +1483,30 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
   <p class="c-sub">Sidebar icon-compressed · 3er nivel</p>
   <div class="c-sbdemo">
     <nav class="c-sb" aria-label="Pestañas de la sección">
-      <button type="button" class="c-sb-item">
+      <button type="button" class="c-sb-item" data-tip="Datos&#10;Base leída y perfil" aria-label="Datos. Base leída y perfil">
         <span class="c-sb-ic"><svg class="c-ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span>
-        <span class="c-sb-copy"><span class="c-sb-name">Datos</span><span class="c-sb-sub">Base leída y perfil</span></span>
       </button>
-      <button type="button" class="c-sb-item">
+      <button type="button" class="c-sb-item" data-tip="Marco&#10;Universo y filtros" aria-label="Marco. Universo y filtros">
         <span class="c-sb-ic"><svg class="c-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4Z"/></svg></span>
-        <span class="c-sb-copy"><span class="c-sb-name">Marco</span><span class="c-sb-sub">Universo y filtros</span></span>
       </button>
-      <button type="button" class="c-sb-item is-on">
+      <button type="button" class="c-sb-item is-on" data-tip="Cálculo&#10;n, precisión y diseño" aria-label="Cálculo. n, precisión y diseño">
         <span class="c-sb-ic"><svg class="c-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8"/><path d="M16 14v4"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg></span>
-        <span class="c-sb-copy"><span class="c-sb-name">Cálculo</span><span class="c-sb-sub">n, precisión y diseño</span></span>
       </button>
-      <button type="button" class="c-sb-item">
+      <button type="button" class="c-sb-item" data-tip="Selección&#10;Aulas elegidas" aria-label="Selección. Aulas elegidas">
         <span class="c-sb-ic"><svg class="c-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
-        <span class="c-sb-copy"><span class="c-sb-name">Selección</span><span class="c-sb-sub">Aulas elegidas</span></span>
       </button>
     </nav>
-    <div class="c-sb-canvas" aria-hidden="true">
+    <div class="c-sb-canvas">
+      <div class="c-sb-wbtitle">
+        <span class="c-sb-wbtile"><svg class="c-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8"/><path d="M16 14v4"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg></span>
+        <span><span class="c-sb-wbname">Cálculo</span><br><span class="c-sb-wbsub">n, precisión y diseño</span></span>
+      </div>
       <div class="c-sb-line" style="width:56%"></div>
       <div class="c-sb-line" style="width:88%"></div>
       <div class="c-sb-line" style="width:72%"></div>
     </div>
   </div>
-  <p class="c-note">Expande <strong>empujando el canvas por grid</strong>, nunca overlay. El track expandido es de longitud fija (240px): la interpolación suave de <code>grid-template-columns</code> exige tracks de la misma estructura. La activa revela su subtítulo (max-height 0→14px, fast).</p>
+  <p class="c-note"><strong>Siempre comprimido</strong>: el rail nunca expande ni empuja. Pasa el mouse por cualquier ícono —también el activo— y la burbuja flotante da título y subtítulo; la identificación persistente la da el título compacto al inicio del workbench. Accesibilidad: <code>aria-label</code> + burbuja en <code>:focus-visible</code>; jamás <code>title</code> nativo.</p>
 </article>
 
 <!-- ============ 08 · Feedback ============ -->
