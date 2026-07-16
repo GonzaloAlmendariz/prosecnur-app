@@ -128,7 +128,7 @@ Patrones ya iterados que conviene conservar/reusar (su *esencia*, con libertad d
 | Libro de códigos | Vertical | Completos (logo PNG) | `#002457` | ★ Gold standard |
 | Kit `pulso_pdf_theme` | Ambas | Completos (logo PNG) | `#002457` | ★ Referencia |
 | Formulario XLSForm | Vertical | Logo = **texto** | navy textual | Parcial |
-| Monitoreo acreditación | Vertical | Logo PNG; footer sin logo | **`#06346f`** (outlier) | Parcial |
+| Monitoreo acreditación | Vertical | Logo PNG; footer sin logo | `#002457` (outlier `#06346f` ya unificado; verificado 2026-07-15, sin rastro en `api/R/`) | Parcial |
 | Monitoreo territorial | Apaisado | Logo PNG; footer "Fuente: …" | `#002457` | Parcial (reencuadrado a cuota) |
 | Monitoreo producción | Vertical | Logo = **texto "PULSO"** | `#002457` hardcode | Parcial |
 | Hojas de ruta | Mixta | Logo PNG | — | n/a (mapas) |

@@ -56,6 +56,6 @@ canónico versionado en `branding/`:
 - Cambios de identidad (geometría del isotipo, paleta de marca, patrones
   maestros) requieren actualizar la dirección y republicar el manual; el
   Artifact y `branding/manual-identidad.html` deben mantenerse en paridad.
-- Outliers a saldar registrados: navy `#06346f` en el PDF de Monitoreo
-  acreditación; doble ámbar `--pulso-warn-accent #d68a00` vs canónico
-  `#D97706` en theme.css.
+- Outliers saldados el 2026-07-15: el navy `#06346f` del PDF de acreditación
+  ya no existía en código (solo en la tabla del doc, corregida) y
+  `--pulso-warn-accent` se unificó de `#d68a00` al canónico `#D97706`.
