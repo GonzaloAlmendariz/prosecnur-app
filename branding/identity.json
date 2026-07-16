@@ -6,7 +6,7 @@
     "mode": "reconstruction",
     "status": "frozen",
     "version": "1.2.0",
-    "manifest_hash": "sha256:518eb2cd23e96c4e0263f70987d1f8bd25277be26d332b1aba7b2f43e7b1dcf3",
+    "manifest_hash": "sha256:d906ccb9b8981e097825c515bcaad38c5879c8aef37d2e4073ae07cc03fa9362",
     "owners": [
       "Gonzalo Almendáriz (PULSO PUCP)"
     ]
@@ -936,7 +936,7 @@
           "ownership": "manual_template",
           "status": "current",
           "identity_version": "1.2.0",
-          "manifest_hash": "sha256:518eb2cd23e96c4e0263f70987d1f8bd25277be26d332b1aba7b2f43e7b1dcf3"
+          "manifest_hash": "sha256:d906ccb9b8981e097825c515bcaad38c5879c8aef37d2e4073ae07cc03fa9362"
         },
         {
           "id": "prosecnur-brand-css",
@@ -945,7 +945,7 @@
           "ownership": "manual_template",
           "status": "current",
           "identity_version": "1.2.0",
-          "manifest_hash": "sha256:518eb2cd23e96c4e0263f70987d1f8bd25277be26d332b1aba7b2f43e7b1dcf3"
+          "manifest_hash": "sha256:d906ccb9b8981e097825c515bcaad38c5879c8aef37d2e4073ae07cc03fa9362"
         }
       ]
     },
@@ -1019,18 +1019,18 @@
       "target": "react",
       "path": "branding/identity/tokens.css",
       "ownership": "generated",
-      "status": "planned",
+      "status": "current",
       "identity_version": "1.2.0",
-      "manifest_hash": "sha256:518eb2cd23e96c4e0263f70987d1f8bd25277be26d332b1aba7b2f43e7b1dcf3"
+      "manifest_hash": "sha256:d906ccb9b8981e097825c515bcaad38c5879c8aef37d2e4073ae07cc03fa9362"
     },
     {
       "id": "identity-reference-doc",
       "target": "documentation",
       "path": "branding/identity/identity-reference.html",
       "ownership": "generated",
-      "status": "planned",
+      "status": "current",
       "identity_version": "1.2.0",
-      "manifest_hash": "sha256:518eb2cd23e96c4e0263f70987d1f8bd25277be26d332b1aba7b2f43e7b1dcf3"
+      "manifest_hash": "sha256:d906ccb9b8981e097825c515bcaad38c5879c8aef37d2e4073ae07cc03fa9362"
     }
   ],
   "extensions": {

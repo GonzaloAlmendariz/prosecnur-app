@@ -34319,12 +34319,10 @@ button.mon-acr-requirement-metric:active {
   width: 44px;
   height: 24px;
   appearance: none;
-  border: 1px solid color-mix(in srgb, var(--pulso-border-strong) 84%, #fff 16%);
+  border: 1px solid var(--pulso-switch-border);
   border-radius: var(--pulso-radius-chip);
-  background: linear-gradient(180deg, #eef2f7, #dfe6ef);
-  box-shadow:
-    inset 0 1px 2px rgba(15, 23, 42, 0.12),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.72);
+  background: var(--pulso-switch-track);
+  box-shadow: var(--pulso-switch-track-shadow);
   cursor: pointer;
   transition:
     transform var(--motion-dur-press) var(--motion-ease-out),
@@ -34354,7 +34352,7 @@ button.mon-acr-requirement-metric:active {
   height: 18px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.22);
+  box-shadow: var(--pulso-switch-knob-shadow);
   transition: transform var(--motion-dur-fast) var(--motion-ease-out);
 }
 
@@ -34378,8 +34376,7 @@ button.mon-acr-requirement-metric:active {
 .mon-switch-line input:focus-visible {
   outline: none;
   box-shadow:
-    inset 0 1px 2px rgba(15, 23, 42, 0.12),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.72),
+    var(--pulso-switch-track-shadow),
     0 0 0 4px var(--pulso-primary-ring);
 }
 
@@ -37689,11 +37686,9 @@ button.mon-acr-requirement-metric:active {
   height: 24px;
   display: block;
   border-radius: var(--pulso-radius-pill);
-  border: 1px solid color-mix(in srgb, var(--pulso-border-strong) 84%, #fff 16%);
-  background: linear-gradient(180deg, #eef2f7, #dfe6ef);
-  box-shadow:
-    inset 0 1px 2px rgba(15, 23, 42, 0.12),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--pulso-switch-border);
+  background: var(--pulso-switch-track);
+  box-shadow: var(--pulso-switch-track-shadow);
   position: relative;
   transition:
     transform var(--motion-dur-press) var(--motion-ease-out),
@@ -37711,7 +37706,7 @@ button.mon-acr-requirement-metric:active {
   height: 18px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.22);
+  box-shadow: var(--pulso-switch-knob-shadow);
   transition: transform var(--motion-dur-fast) var(--motion-ease-out);
 }
 
@@ -37721,8 +37716,7 @@ button.mon-acr-requirement-metric:active {
 
 .mon-reconciliation-switch input:focus-visible + span i {
   box-shadow:
-    inset 0 1px 2px rgba(15, 23, 42, 0.12),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.72),
+    var(--pulso-switch-track-shadow),
     0 0 0 4px var(--pulso-primary-ring);
 }
 

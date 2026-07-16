@@ -211,6 +211,13 @@
    * porque Segoe UI renderiza Medium más liviano que SF Pro. */
   --pulso-control-weight: 500;
   --pulso-control-check-size: 16px;
+  /* Track cóncavo del switch maestro (`.pulso-switch`) y sus réplicas por
+   * feature; ADR 0038 / gate 2026-07-16. El encendido NO se tokeniza aquí:
+   * deriva del primario del scope. */
+  --pulso-switch-track: linear-gradient(180deg, #eef2f7, #dfe6ef);
+  --pulso-switch-track-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.12), inset 0 -1px 0 rgba(255, 255, 255, 0.72);
+  --pulso-switch-border: color-mix(in srgb, var(--pulso-border-strong) 84%, #fff 16%);
+  --pulso-switch-knob-shadow: 0 1px 2px rgba(15, 23, 42, 0.22);
   /* Rail lateral canónico del kit: ancho 240, filas 24/32/40. */
   --pulso-rail-width: 240px;
   --pulso-rail-row-height: 32px;
@@ -16655,11 +16662,9 @@ h1.pulso-page-title {
   height: 24px;
   min-height: 24px;
   border-radius: var(--pulso-radius-chip);
-  border: 1px solid color-mix(in srgb, var(--pulso-border-strong) 84%, #fff 16%);
-  background: linear-gradient(180deg, #eef2f7, #dfe6ef);
-  box-shadow:
-    inset 0 1px 2px rgba(15, 23, 42, 0.12),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--pulso-switch-border);
+  background: var(--pulso-switch-track);
+  box-shadow: var(--pulso-switch-track-shadow);
   cursor: pointer;
   flex-shrink: 0;
   padding: 0;
@@ -16680,8 +16685,7 @@ h1.pulso-page-title {
 .pulso-switch:hover:not(:disabled) {
   transform: none;
   box-shadow:
-    inset 0 1px 2px rgba(15, 23, 42, 0.12),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.72),
+    var(--pulso-switch-track-shadow),
     0 0 0 4px var(--pulso-primary-ring);
 }
 .pulso-switch[aria-checked="true"]:hover:not(:disabled) {
@@ -16704,7 +16708,7 @@ h1.pulso-page-title {
   height: 18px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.22);
+  box-shadow: var(--pulso-switch-knob-shadow);
   transition: left var(--motion-dur-fast) var(--motion-ease-out);
 }
 .pulso-switch[aria-checked="true"] .pulso-switch-thumb {
@@ -20485,11 +20489,8 @@ h1.pulso-page-title {
   min-height: 21px;
   border-radius: 999px;
   border-color: color-mix(in srgb, var(--pulso-border-strong) 78%, #fff 22%);
-  background:
-    linear-gradient(180deg, #eef2f7, #dfe6ef);
-  box-shadow:
-    inset 0 1px 2px rgba(15, 23, 42, 0.12),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.72);
+  background: var(--pulso-switch-track);
+  box-shadow: var(--pulso-switch-track-shadow);
 }
 .analitica-switch-row .pulso-switch[aria-checked="true"] {
   border-color: color-mix(in srgb, var(--pulso-primary) 84%, #fff 16%);
