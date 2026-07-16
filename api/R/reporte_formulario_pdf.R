@@ -409,9 +409,9 @@
       next
     }
     rows <- sort(unique(rows))
-    if (length(rows) < 2L) {
+    if (length(rows) < 1L) {
       warnings <- c(warnings, sprintf(
-        "Grupo de matriz ignorado: requiere al menos 2 preguntas (%s).",
+        "Grupo de matriz ignorado: sin preguntas válidas (%s).",
         paste(members, collapse = ", ")))
       next
     }

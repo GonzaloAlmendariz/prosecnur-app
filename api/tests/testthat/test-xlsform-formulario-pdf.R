@@ -350,6 +350,32 @@ test_that("matrix_groups special is parsed and attached to the matrix block", {
   expect_identical(part_auto$special$code, "9")
 })
 
+test_that("un grupo de matriz de UNA sola pregunta rinde una matriz de 1 fila", {
+  survey <- data.frame(
+    type = c("select_one esc", "text"),
+    name = c("q1", "q2"),
+    label = c("¿Qué tan satisfecho está?", "Comentario"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = rep("esc", 5),
+    name = c("1", "2", "3", "4", "9"),
+    label = c("Nada", "Poco", "Algo", "Mucho", "SIN INF"),
+    stringsAsFactors = FALSE
+  )
+  # keys_from_groups ya no rechaza grupos de 1 miembro (matriz de 1 fila, opt-in).
+  mg <- .form_pdf_matrix_keys_from_groups(survey, list(list(members = c("q1"))))
+  expect_false(any(grepl("al menos", mg$warnings)))
+  expect_true(any(nzchar(mg$keys)))
+
+  m <- formulario_pdf_build_model(survey, choices, data.frame(form_title = "T"),
+                                  options = list(matrix_groups = list(list(members = c("q1")))))
+  mats <- Filter(function(b) identical(b$kind, "matrix"), m$blocks)
+  expect_length(mats, 1L)
+  expect_length(mats[[1]]$items, 1L)
+  expect_identical(mats[[1]]$items[[1]]$name, "q1")
+})
+
 test_that("localized label::es columns resolve into label and hint", {
   survey <- data.frame(
     type = c("select_one acuerdo", "select_one acuerdo", "select_one acuerdo"),

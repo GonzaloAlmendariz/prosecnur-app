@@ -26,54 +26,52 @@ function surveyWorkbook(
 }
 
 describe("detectMatrixCandidates", () => {
-  it("detecta dos runs matrizables, corta por sección y por lista distinta", () => {
+  it("detecta runs matrizables (incluye singles), corta por sección y por lista distinta", () => {
     const wb = surveyWorkbook([
-      // Run A: dos select_one con la misma lista en la raíz -> matriz
+      // Run A: dos select_one con la misma lista en la raíz -> matriz de 2
       ["select_one satisfaccion", "p1", "Servicio A"],
       ["select_one satisfaccion", "p2", "Servicio B"],
-      // Distinta lista -> corta el run A y NO forma matriz solo con una
+      // Distinta lista -> corta el run A; queda como single (candidato de 1)
       ["select_one frecuencia", "p3", "Frecuencia X"],
       // Abre una sección: cambia de sección
       ["begin_group", "grupo_1", "Bloque 1"],
-      // Run B: dos select_multiple con la misma lista DENTRO de la sección -> matriz
+      // Run B: dos select_multiple con la misma lista DENTRO de la sección -> matriz de 2
       ["select_multiple medios", "p4", "Medio A"],
       ["select_multiple medios", "p5", "Medio B"],
       ["end_group", "grupo_1", ""],
       // Fuera de la sección, misma lista que dentro pero distinta sección:
-      // una sola pregunta -> no forma matriz
+      // una sola pregunta -> candidato de 1 (opt-in), separado del run B
       ["select_multiple medios", "p6", "Medio C"],
     ]);
 
     const candidates = detectMatrixCandidates(wb);
-    expect(candidates).toHaveLength(2);
-
-    const [a, b] = candidates;
-    expect(a).toMatchObject({
-      listName: "satisfaccion",
+    // p1+p2 (×2), p3 (×1), p4+p5 (×2 Bloque 1), p6 (×1) = 4 candidatos
+    expect(candidates).toHaveLength(4);
+    const find = (list: string, section: string) =>
+      candidates.find((c) => c.listName === list && c.sectionLabel === section);
+    expect(find("satisfaccion", "Formulario")).toMatchObject({
       count: 2,
-      sectionLabel: "Formulario",
       memberNames: ["p1", "p2"],
       questionLabels: ["Servicio A", "Servicio B"],
     });
-    expect(b).toMatchObject({
-      listName: "medios",
-      count: 2,
-      sectionLabel: "Bloque 1",
-      memberNames: ["p4", "p5"],
-    });
-    expect(a.id).not.toBe(b.id);
+    expect(find("frecuencia", "Formulario")).toMatchObject({ count: 1, memberNames: ["p3"] });
+    expect(find("medios", "Bloque 1")).toMatchObject({ count: 2, memberNames: ["p4", "p5"] });
+    expect(find("medios", "Formulario")).toMatchObject({ count: 1, memberNames: ["p6"] });
   });
 
-  it("un run cortado por una pregunta de otro tipo no forma matriz", () => {
+  it("una pregunta de otro tipo corta el run: dos singles, no una matriz de dos", () => {
     const wb = surveyWorkbook([
       ["select_one lista_x", "q1", "P1"],
       ["text", "nota", "Comentario"],
       ["select_one lista_x", "q2", "P2"],
     ]);
-    expect(detectMatrixCandidates(wb)).toHaveLength(0);
+    const candidates = detectMatrixCandidates(wb);
+    expect(candidates).toHaveLength(2);
+    expect(candidates.every((c) => c.count === 1)).toBe(true);
+    expect(candidates.map((c) => c.memberNames[0])).toEqual(["q1", "q2"]);
   });
 
-  it("mismo list_name pero distinta sección no se fusiona", () => {
+  it("mismo list_name pero distinta sección no se fusiona (dos singles separados)", () => {
     const wb = surveyWorkbook([
       ["begin_group", "g1", "Sección 1"],
       ["select_one comun", "a1", "A1"],
@@ -82,7 +80,10 @@ describe("detectMatrixCandidates", () => {
       ["select_one comun", "a2", "A2"],
       ["end_group", "g2", ""],
     ]);
-    expect(detectMatrixCandidates(wb)).toHaveLength(0);
+    const candidates = detectMatrixCandidates(wb);
+    expect(candidates).toHaveLength(2);
+    expect(candidates.every((c) => c.count === 1)).toBe(true);
+    expect(candidates.map((c) => c.sectionLabel)).toEqual(["Sección 1", "Sección 2"]);
   });
 
   it("survey vacío devuelve []", () => {

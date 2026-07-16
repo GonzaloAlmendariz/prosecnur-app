@@ -83,8 +83,12 @@ export function ConfigurarPdfDialog({
   );
   // Ancho de las tablas de matriz (GLOBAL): "full" (default) / "column".
   const [matrixLayout, setMatrixLayout] = useState<PdfMatrixLayout>("full");
-  // Ids de candidatos DESACTIVADOS (default = todos activos, set vacío).
-  const [disabledMatrixIds, setDisabledMatrixIds] = useState<Set<string>>(() => new Set());
+  // Ids de candidatos DESACTIVADOS. Los grupos de 2+ preguntas arrancan activos
+  // (como la auto-detección); los de UNA sola pregunta arrancan apagados —
+  // ir como matriz es opt-in para no cambiar el look por defecto.
+  const [disabledMatrixIds, setDisabledMatrixIds] = useState<Set<string>>(
+    () => new Set(matrixCandidates.filter((c) => c.count < 2).map((c) => c.id)),
+  );
   // Tenor (enunciado guía) por candidato: map id→texto. Vacío = sin tenor.
   const [tenorById, setTenorById] = useState<Record<string, string>>({});
   // Columna especial por candidato: map id→valor. Ausente/"auto" = heurística
@@ -340,7 +344,7 @@ export function ConfigurarPdfDialog({
                         </span>
                         <span className="pulso-xf-pdf-matrix-info">
                           <strong>
-                            {candidate.count} preguntas · lista {candidate.listName}
+                            {candidate.count} {candidate.count === 1 ? "pregunta" : "preguntas"} · lista {candidate.listName}
                           </strong>
                           <em>
                             {matrixQuestionsSummary(candidate)} · {candidate.sectionLabel}
