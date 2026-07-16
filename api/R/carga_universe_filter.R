@@ -9,6 +9,8 @@
     variable = "",
     real_values = character(0),
     test_values = character(0),
+    corrections = list(),
+    exclusion_rules = list(),
     missing_policy = "exclude",
     unassigned_policy = "unclassified"
   )
@@ -22,6 +24,88 @@
 .cuf_scalar <- function(x, default = "") {
   out <- as.character(x %||% default)[1]
   if (is.na(out)) default else trimws(out)
+}
+
+.cuf_rule_entries <- function(x, field, rule_fields) {
+  if (is.null(x) || !length(x)) return(list())
+  if (!is.list(x)) {
+    stop_api(400, "E_UNIVERSE_FILTER_RULES_INVALID",
+             sprintf("%s debe ser una lista de reglas.", field))
+  }
+  if (length(intersect(names(x) %||% character(), rule_fields))) {
+    return(list(x))
+  }
+  if (!all(vapply(x, is.list, logical(1)))) {
+    stop_api(400, "E_UNIVERSE_FILTER_RULES_INVALID",
+             sprintf("Cada elemento de %s debe ser un objeto.", field))
+  }
+  unname(x)
+}
+
+.cuf_normalize_corrections <- function(x) {
+  entries <- .cuf_rule_entries(
+    x, "corrections",
+    c("id", "key_variable", "key_value", "key_values", "variable",
+      "from_values", "to_value", "reason")
+  )
+  out <- lapply(seq_along(entries), function(i) {
+    rule <- entries[[i]]
+    normalized <- list(
+      id = .cuf_scalar(rule$id, sprintf("correction_%d", i)),
+      key_variable = .cuf_scalar(rule$key_variable),
+      key_values = .cuf_chr(rule$key_values %||% rule$key_value),
+      variable = .cuf_scalar(rule$variable),
+      from_values = .cuf_chr(rule$from_values),
+      to_value = .cuf_scalar(rule$to_value),
+      reason = .cuf_scalar(rule$reason)
+    )
+    if (!nzchar(normalized$key_variable) || !length(normalized$key_values) ||
+        !nzchar(normalized$variable) || !length(normalized$from_values) ||
+        !nzchar(normalized$to_value)) {
+      stop_api(
+        400, "E_UNIVERSE_FILTER_CORRECTION_INCOMPLETE",
+        sprintf(paste0(
+          "La correccion '%s' requiere key_variable, key_values, variable, ",
+          "from_values y to_value."
+        ), normalized$id)
+      )
+    }
+    normalized
+  })
+  ids <- vapply(out, `[[`, character(1), "id")
+  if (anyDuplicated(ids)) {
+    stop_api(400, "E_UNIVERSE_FILTER_RULE_ID_DUPLICATED",
+             "Los identificadores de corrections deben ser unicos.")
+  }
+  out
+}
+
+.cuf_normalize_exclusion_rules <- function(x) {
+  entries <- .cuf_rule_entries(
+    x, "exclusion_rules", c("id", "variable", "values", "reason")
+  )
+  out <- lapply(seq_along(entries), function(i) {
+    rule <- entries[[i]]
+    normalized <- list(
+      id = .cuf_scalar(rule$id, sprintf("exclusion_%d", i)),
+      variable = .cuf_scalar(rule$variable),
+      values = .cuf_chr(rule$values),
+      reason = .cuf_scalar(rule$reason)
+    )
+    if (!nzchar(normalized$variable) || !length(normalized$values)) {
+      stop_api(
+        400, "E_UNIVERSE_FILTER_EXCLUSION_INCOMPLETE",
+        sprintf("La exclusion '%s' requiere variable y values.", normalized$id)
+      )
+    }
+    normalized
+  })
+  ids <- vapply(out, `[[`, character(1), "id")
+  if (anyDuplicated(ids)) {
+    stop_api(400, "E_UNIVERSE_FILTER_RULE_ID_DUPLICATED",
+             "Los identificadores de exclusion_rules deben ser unicos.")
+  }
+  out
 }
 
 normalize_carga_universe_filter <- function(config = NULL, require_real_values = TRUE) {
@@ -40,6 +124,8 @@ normalize_carga_universe_filter <- function(config = NULL, require_real_values =
     variable = .cuf_scalar(config$variable),
     real_values = .cuf_chr(config$real_values),
     test_values = .cuf_chr(config$test_values),
+    corrections = .cuf_normalize_corrections(config$corrections),
+    exclusion_rules = .cuf_normalize_exclusion_rules(config$exclusion_rules),
     missing_policy = .cuf_scalar(config$missing_policy, "exclude"),
     unassigned_policy = .cuf_scalar(config$unassigned_policy, "unclassified")
   )
@@ -107,14 +193,85 @@ normalize_carga_universe_filter <- function(config = NULL, require_real_values =
   .cuf_source_fid(base)
 }
 
+.cuf_empty_audit <- function(total) {
+  list(
+    total = as.integer(total),
+    included = as.integer(total),
+    excluded_test = 0L,
+    excluded_unclassified = 0L
+  )
+}
+
+.cuf_apply_corrections <- function(data, rules) {
+  corrected_rows <- rep(FALSE, nrow(data))
+  correction_changes <- 0L
+  audit <- vector("list", length(rules))
+  for (i in seq_along(rules)) {
+    rule <- rules[[i]]
+    required <- c(rule$key_variable, rule$variable)
+    missing_variables <- setdiff(required, names(data))
+    if (length(missing_variables)) {
+      stop_api(
+        409, "E_UNIVERSE_FILTER_CORRECTION_VARIABLE_UNKNOWN",
+        sprintf(
+          "La correccion '%s' usa variables inexistentes: %s.",
+          rule$id, paste(missing_variables, collapse = ", ")
+        )
+      )
+    }
+    keys <- trimws(as.character(data[[rule$key_variable]]))
+    values <- trimws(as.character(data[[rule$variable]]))
+    affected <- !is.na(keys) & keys %in% rule$key_values &
+      !is.na(values) & values %in% rule$from_values
+    n_affected <- as.integer(sum(affected))
+    if (n_affected) {
+      if (is.factor(data[[rule$variable]])) {
+        data[[rule$variable]] <- as.character(data[[rule$variable]])
+      }
+      data[[rule$variable]][affected] <- rule$to_value
+      corrected_rows <- corrected_rows | affected
+      correction_changes <- correction_changes + n_affected
+    }
+    audit[[i]] <- c(rule, list(affected = n_affected))
+  }
+  list(
+    data = data,
+    corrected = as.integer(sum(corrected_rows)),
+    correction_changes = as.integer(correction_changes),
+    audit = audit
+  )
+}
+
+.cuf_apply_exclusions <- function(data, keep, rules) {
+  audit <- vector("list", length(rules))
+  total_excluded <- 0L
+  for (i in seq_along(rules)) {
+    rule <- rules[[i]]
+    if (!(rule$variable %in% names(data))) {
+      stop_api(
+        409, "E_UNIVERSE_FILTER_EXCLUSION_VARIABLE_UNKNOWN",
+        sprintf("La exclusion '%s' usa la variable inexistente '%s'.",
+                rule$id, rule$variable)
+      )
+    }
+    values <- trimws(as.character(data[[rule$variable]]))
+    newly_excluded <- keep & !is.na(values) & values %in% rule$values
+    n_excluded <- as.integer(sum(newly_excluded))
+    keep[newly_excluded] <- FALSE
+    total_excluded <- total_excluded + n_excluded
+    audit[[i]] <- c(rule, list(excluded = n_excluded))
+  }
+  list(keep = keep, excluded = as.integer(total_excluded), audit = audit)
+}
+
 .cuf_classify <- function(data, config, allow_empty_selection = FALSE) {
   config <- normalize_carga_universe_filter(config, require_real_values = FALSE)
   if (!config$enabled) {
-    return(list(data = data, keep = rep(TRUE, nrow(data)), summary = list(
-      total = as.integer(nrow(data)), included = as.integer(nrow(data)),
-      excluded_test = 0L, excluded_unclassified = 0L
-    )))
+    return(list(data = data, keep = rep(TRUE, nrow(data)),
+                summary = .cuf_empty_audit(nrow(data))))
   }
+  prepared <- .cuf_apply_corrections(data, config$corrections)
+  data <- prepared$data
   if (!(config$variable %in% names(data))) {
     stop_api(409, "E_UNIVERSE_FILTER_VARIABLE_UNKNOWN",
              sprintf("La variable '%s' no existe en la base fuente.", config$variable))
@@ -124,18 +281,30 @@ normalize_carga_universe_filter <- function(config = NULL, require_real_values =
   keep <- !missing & values %in% config$real_values
   is_test <- !missing & values %in% config$test_values
   unclassified <- !keep & !is_test
+  excluded <- .cuf_apply_exclusions(data, keep, config$exclusion_rules)
+  keep <- excluded$keep
   if (!any(keep) && !isTRUE(allow_empty_selection)) {
     stop_api(409, "E_UNIVERSE_FILTER_EMPTY", "El filtro no incluye ninguna entrevista real.")
+  }
+  summary <- list(
+    total = as.integer(nrow(data)),
+    included = as.integer(sum(keep)),
+    excluded_test = as.integer(sum(is_test)),
+    excluded_unclassified = as.integer(sum(unclassified))
+  )
+  if (length(config$corrections) || length(config$exclusion_rules)) {
+    summary <- c(summary, list(
+      corrected = prepared$corrected,
+      correction_changes = prepared$correction_changes,
+      excluded_rules = excluded$excluded,
+      corrections = prepared$audit,
+      exclusion_rules = excluded$audit
+    ))
   }
   list(
     data = data[keep, , drop = FALSE],
     keep = keep,
-    summary = list(
-      total = as.integer(nrow(data)),
-      included = as.integer(sum(keep)),
-      excluded_test = as.integer(sum(is_test)),
-      excluded_unclassified = as.integer(sum(unclassified))
-    )
+    summary = summary
   )
 }
 
@@ -161,6 +330,15 @@ normalize_carga_universe_filter <- function(config = NULL, require_real_values =
 .cuf_public_config <- function(config) {
   config$real_values <- as.list(config$real_values %||% character())
   config$test_values <- as.list(config$test_values %||% character())
+  config$corrections <- lapply(config$corrections %||% list(), function(rule) {
+    rule$key_values <- as.list(rule$key_values %||% character())
+    rule$from_values <- as.list(rule$from_values %||% character())
+    rule
+  })
+  config$exclusion_rules <- lapply(config$exclusion_rules %||% list(), function(rule) {
+    rule$values <- as.list(rule$values %||% character())
+    rule
+  })
   config
 }
 
@@ -256,12 +434,13 @@ carga_universe_filter_preview <- function(sid, base_name, config) {
       child_keys <- as.character(child_loaded$data[[link_key]])
       keep <- !is.na(child_keys) & child_keys %in% included_keys
       child_effective <- child_loaded$data[keep, , drop = FALSE]
+      child_audit <- .cuf_empty_audit(nrow(child_loaded$data))
+      child_audit$included <- as.integer(sum(keep))
+      child_audit$excluded_unclassified <- as.integer(nrow(child_loaded$data) - sum(keep))
       prepared[[child_name]] <<- list(
         mode = "inherited", source_fid = child_source, source_meta = child_loaded$meta,
         data = child_effective,
-        audit = list(total = as.integer(nrow(child_loaded$data)),
-                     included = as.integer(sum(keep)), excluded_test = 0L,
-                     excluded_unclassified = as.integer(nrow(child_loaded$data) - sum(keep))),
+        audit = child_audit,
         parent = parent_name, link_key = link_key, parent_index_key = parent_key
       )
       walk(child_name, child_loaded$data, child_effective)
@@ -319,8 +498,7 @@ carga_universe_filter_apply <- function(sid, base_name, config, source_override 
         mode = if (identical(nm, base_name)) "manual" else "inherited",
         source_data_file_id = source_fid,
         effective_data_file_id = .cuf_scalar(stored$effective_data_file_id),
-        audit = list(total = as.integer(nrow(loaded$data)), included = as.integer(nrow(loaded$data)),
-                     excluded_test = 0L, excluded_unclassified = 0L),
+        audit = .cuf_empty_audit(nrow(loaded$data)),
         revision = revision, applied_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
       ))
       s$estudio$bases[[nm]] <- meta
