@@ -25,6 +25,22 @@
   to   { opacity: 1; }
 }
 
+/* ── 0. Acento del módulo (teal) ───────────────────────────────────────── */
+/* El chrome de Procesamiento (phase-dock, rail, tiles) ya habla teal, pero el
+ * CONTENIDO de Carga seguía en el navy global `--pulso-primary`. Aquí
+ * remapeamos la familia primary a la paleta del módulo —igual que hace
+ * `.pulso-analitica-frame`— para que segmentados activos, botones
+ * primarios, selección y focus lean teal. Los tokens semánticos
+ * (success/warn/danger/info) NO se tocan: siguen significando estado. */
+
+.pulso-carga-frame {
+  --pulso-primary: var(--pulso-module-processing);
+  --pulso-primary-soft: var(--pulso-module-processing-soft);
+  --pulso-primary-border: var(--pulso-module-processing-border);
+  --pulso-primary-focus: rgba(15, 118, 110, 0.15);
+  --pulso-primary-ring: rgba(15, 118, 110, 0.12);
+}
+
 /* ── 1) Upload cards — superficie glass + entrada con stagger ──────────── */
 
 .pulso-carga-frame .pulso-upload-card {
@@ -317,12 +333,12 @@
 /* Procedencia Monitoreo: acento propio del módulo (carmín) para dejar claro
    que el instrumento fue detectado desde Monitoreo, no cargado a mano. */
 .pulso-carga-frame .pulso-kobo-detected.is-from-monitoreo {
-  border-left: 3px solid var(--pulso-module-monitoring, #be123c);
-  background: color-mix(in srgb, var(--pulso-module-monitoring, #be123c) 5%, var(--pulso-surface, #fff));
+  border-left: 3px solid var(--pulso-module-monitoring);
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 5%, var(--pulso-surface, #fff));
 }
 .pulso-carga-frame .pulso-kobo-detected.is-from-monitoreo .pulso-kobo-detected-icon {
-  color: var(--pulso-module-monitoring, #be123c);
-  background: var(--pulso-module-monitoring-soft, rgba(190, 18, 60, 0.12));
+  color: var(--pulso-module-monitoring);
+  background: var(--pulso-module-monitoring-soft);
 }
 .pulso-carga-frame .pulso-kobo-detected-origin {
   display: inline-flex;
@@ -332,7 +348,7 @@
   font-weight: 800;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: var(--pulso-module-monitoring, #be123c);
+  color: var(--pulso-module-monitoring);
 }
 .pulso-carga-frame .pulso-kobo-detected-meta {
   display: inline-flex;
@@ -349,9 +365,9 @@
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 999px;
-  color: var(--pulso-module-monitoring, #be123c);
-  background: var(--pulso-module-monitoring-soft, rgba(190, 18, 60, 0.12));
-  border: 1px solid var(--pulso-module-monitoring-border, rgba(190, 18, 60, 0.3));
+  color: var(--pulso-module-monitoring);
+  background: var(--pulso-module-monitoring-soft);
+  border: 1px solid var(--pulso-module-monitoring-border);
 }
 .pulso-carga-frame .pulso-kobo-detected-host {
   color: var(--pulso-text-faint, #8792a2);
@@ -1087,43 +1103,65 @@
   position: absolute;
   z-index: 1;
   left: 0;
-  width: 34px;
-  height: 19px;
+  width: 44px;
+  height: 24px;
   margin: 0;
   opacity: 0;
   cursor: pointer;
 }
 
+/* Pista al switch maestro 44×24 (`.pulso-switch`, theme.css). */
 .pulso-carga-universe-switch > span {
-  width: 34px;
-  height: 19px;
+  width: 44px;
+  height: 24px;
   padding: 2px;
-  border-radius: 999px;
-  background: var(--pulso-border-strong);
-  transition: background var(--motion-dur-fast) ease;
+  border-radius: var(--pulso-radius-chip);
+  border: 1px solid color-mix(in srgb, var(--pulso-border-strong) 84%, #fff 16%);
+  background: linear-gradient(180deg, #eef2f7, #dfe6ef);
+  box-shadow:
+    inset 0 1px 2px rgba(15, 23, 42, 0.12),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.72);
+  flex-shrink: 0;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .pulso-carga-universe-switch > span::after {
   content: "";
   display: block;
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-low);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.22);
   transition: transform var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .pulso-carga-universe-switch input:checked + span {
-  background: var(--pulso-primary);
+  border-color: color-mix(in srgb, var(--pulso-primary) 84%, #fff 16%);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-primary) 88%, #fff 12%), var(--pulso-primary));
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    0 1px 2px rgba(0, 36, 87, 0.12);
 }
 
 .pulso-carga-universe-switch input:checked + span::after {
-  transform: translateX(15px);
+  transform: translateX(20px);
+}
+
+.pulso-carga-universe-switch:active > span {
+  transform: scale(0.97);
 }
 
 .pulso-carga-universe-switch input:focus-visible + span {
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  box-shadow:
+    inset 0 1px 2px rgba(15, 23, 42, 0.12),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.72),
+    0 0 0 4px var(--pulso-primary-ring);
 }
 
 .pulso-carga-universe-switch b {
