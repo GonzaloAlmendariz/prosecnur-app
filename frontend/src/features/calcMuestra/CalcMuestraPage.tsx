@@ -2454,10 +2454,14 @@ function CalcMuestraContextSidebar({
                 data-gliding-key={tab.classroomTab ?? tab.id}
                 aria-selected={active}
                 className={`cmv2-section-local-tab is-${tab.status}${active ? " is-active" : ""}`}
-                // Rail icon-compressed canónico: expande empujando el canvas
-                // por grid (dec-calc-sidebar-push, ADR 0038). Sin `title`
-                // nativo; la accesibilidad viaja en aria-label.
+                // Rail de íconos persistente: el detalle aparece como tooltip
+                // flotante ESTILIZADO en hover (patrón de los sidebars de
+                // Procesamiento vía data-rail-tooltip), no expandiendo el carril.
+                // NO usamos `title` nativo: dispararía el tooltip feo del browser
+                // encima del estilizado. La accesibilidad viaja en aria-label.
+                // (dec-sidebar-icon-tooltip, ADR 0038.)
                 aria-label={`${tab.label}. ${tab.detail}`}
+                data-rail-tooltip={guided ? `${tab.label}\n${tab.detail} · ${statusLabel}` : `${tab.label}\n${tab.detail}`}
                 onClick={() => selectTab(tab)}
               >
                 <span className="cmv2-section-local-icon" aria-hidden="true">

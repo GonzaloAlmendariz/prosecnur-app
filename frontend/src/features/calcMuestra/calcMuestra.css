@@ -2656,29 +2656,19 @@
 }
 
 .cmv2-workbench {
-  /* Ancho colapsado del rail de pestañas (icon-only). Al hover/focus la
-     columna del grid crece y empuja el canvas — mismo comportamiento que los
-     sidebars de Procesamiento (theme.css: "Processing sidebars"). */
+  /* Ancho fijo del rail de pestañas (icon-only). El rail NUNCA expande en
+     desktop: el detalle de cada pestaña viaja en el tooltip flotante de la
+     capa data-rail-tooltip al final de este archivo (dec-sidebar-icon-tooltip,
+     ADR 0038 — supersede al push por grid). Sin transición de
+     grid-template-columns: no queda ningún cambio interactivo de tracks que
+     interpolar (el pathway-picker cambia la ESTRUCTURA de tracks, que salta
+     discreto igual; los layouts ≤920px son switches de media query). */
   --cmv2-rail-collapsed: 56px;
   display: grid;
   grid-template-columns: var(--cmv2-rail-collapsed) minmax(0, 1fr);
   gap: 10px;
   min-height: 0;
   height: 100%;
-  transition: grid-template-columns var(--motion-dur-base) var(--motion-ease-out);
-}
-
-/* Solo en desktop de dos columnas: en los layouts apilados (≤920px) el rail
-   vive en flujo con las filas ya expandidas y no debe reaccionar al hover.
-   Track expandido de largo fijo (no minmax): la transición de
-   grid-template-columns solo interpola suave entre listas de tracks con la
-   misma estructura (length↔length); con minmax() el cambio sería un salto
-   discreto en vez de deslizarse. */
-@media (min-width: 921px) {
-  .cmv2-workbench:has(> .cmv2-section-sidebar:hover),
-  .cmv2-workbench:has(> .cmv2-section-sidebar:focus-within) {
-    grid-template-columns: var(--pulso-rail-width) minmax(0, 1fr);
-  }
 }
 
 .cmv2-workbench.is-pathway-picker {
@@ -2764,8 +2754,9 @@
   overflow: visible;
 }
 
-/* Shell = panel visual del rail, en flujo: la expansión la gobierna la
-   columna del grid del workbench (ver .cmv2-workbench:has(...)). */
+/* Shell = panel visual del rail, en flujo. En desktop el rail queda icon-only
+   fijo (capa dec-sidebar-icon-tooltip al final del archivo); solo los layouts
+   apilados ≤920px lo muestran expandido en flujo. */
 .cmv2-section-sidebar-shell {
   flex: 1 1 auto;
   min-height: 0;
@@ -5458,5 +5449,118 @@
   margin-top: 0;
 }
 
-/* Capa icon-only+tooltip retirada (dec-calc-sidebar-push, ADR 0038): el rail
-   vuelve al push por grid canónico definido en .cmv2-workbench (≥921px). */
+/* ── Rail de sección: carril de íconos persistente (nunca expande) ──────────
+   Patrón canónico del sidebar de 3er nivel (dec-sidebar-icon-tooltip, ADR
+   0038 — supersede a dec-calc-sidebar-push): el rail se mantiene icon-only
+   siempre y el detalle aparece como TOOLTIP flotante en hover/focus, igual
+   que los sidebars de Procesamiento (theme.css: rail tooltips por
+   data-rail-tooltip). La burbuja aparece también sobre la pestaña ACTIVA —
+   sin exclusión de .is-active. El push por grid ya no existe en la base
+   (.cmv2-workbench queda fijo en --cmv2-rail-collapsed), así que esta capa no
+   necesita pinear la columna; solo neutraliza las reglas de hover/focus-within
+   que revelaban texto cuando el carril se ensanchaba. Solo desktop (≥921px);
+   el layout apilado conserva su rail expandido en flujo. */
+@media (min-width: 921px) {
+  /* El rail no se expande, así que el workbench no necesita recortar: dejarlo
+     visible + elevar el rail deja SALIR el tooltip flotante sobre el canvas (si
+     no, el overflow:hidden del workbench y el stacking del canvas lo recortaban
+     — el usuario veía el tooltip cortado a media palabra). El canvas conserva su
+     propio scroll interno en .cmv2-main. */
+  .cmv2-frame .pulso-page-frame-body--fill > .cmv2-workbench,
+  .cmv2-workbench {
+    overflow: visible;
+  }
+  .cmv2-section-sidebar {
+    position: relative;
+    z-index: 4;
+  }
+
+  /* Cabecera y texto de pestaña: no existen en el rail de íconos. */
+  .cmv2-section-sidebar-head,
+  .cmv2-section-sidebar:hover .cmv2-section-sidebar-head,
+  .cmv2-section-sidebar:focus-within .cmv2-section-sidebar-head,
+  .cmv2-section-local-copy,
+  .cmv2-section-sidebar:hover .cmv2-section-local-copy,
+  .cmv2-section-sidebar:focus-within .cmv2-section-local-copy,
+  .cmv2-section-local-flag,
+  .cmv2-section-sidebar:hover .cmv2-section-local-flag,
+  .cmv2-section-sidebar:focus-within .cmv2-section-local-flag,
+  .cmv2-section-local-state,
+  .cmv2-section-sidebar:hover .cmv2-section-local-state,
+  .cmv2-section-sidebar:focus-within .cmv2-section-local-state {
+    display: none;
+  }
+
+  /* El punto de estado sobre el ícono se conserva. */
+  .cmv2-section-sidebar:hover .cmv2-section-local-dot,
+  .cmv2-section-sidebar:focus-within .cmv2-section-local-dot {
+    display: block;
+  }
+
+  /* La pestaña mantiene su geometría icon-only aun en hover/focus. */
+  .cmv2-section-sidebar:hover .cmv2-section-local-tab,
+  .cmv2-section-sidebar:focus-within .cmv2-section-local-tab {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 0;
+    padding: 0;
+    min-height: 0;
+    height: var(--pulso-rail-row-height-lg);
+  }
+
+  /* El rail no debe recortar el tooltip (que sale hacia el canvas). */
+  .cmv2-section-sidebar,
+  .cmv2-section-sidebar-shell,
+  .cmv2-section-sidebar:hover .cmv2-section-sidebar-shell,
+  .cmv2-section-sidebar:focus-within .cmv2-section-sidebar-shell,
+  .cmv2-section-local-tabs {
+    overflow: visible;
+  }
+
+  /* Tooltip flotante (mismo lenguaje que los rails de Procesamiento).
+     El tab en modo icon-only no tiene texto que recortar, así que puede dejar
+     escapar su ::before (sin overflow:visible el propio tab lo recortaba). */
+  .cmv2-section-local-tab[data-rail-tooltip] {
+    position: relative;
+    overflow: visible;
+  }
+  .cmv2-section-local-tab[data-rail-tooltip]::before {
+    content: "";
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    z-index: 420;
+    width: max-content;
+    min-width: 132px;
+    max-width: 236px;
+    padding: 7px 10px;
+    border: 1px solid color-mix(in srgb, var(--pulso-primary) 30%, var(--pulso-border));
+    border-radius: 10px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 253, 0.96)),
+      var(--pulso-surface);
+    color: var(--pulso-text);
+    font-size: 11px;
+    font-weight: 720;
+    line-height: 1.26;
+    text-align: left;
+    white-space: pre-line;
+    box-shadow: var(--pulso-shadow-popover);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-50%);
+    transition:
+      opacity 140ms var(--motion-ease-out),
+      visibility 0s linear 140ms;
+  }
+  .cmv2-section-local-tab[data-rail-tooltip]:hover::before,
+  .cmv2-section-local-tab[data-rail-tooltip]:focus-visible::before {
+    content: attr(data-rail-tooltip);
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity 140ms var(--motion-ease-out),
+      visibility 0s;
+  }
+}

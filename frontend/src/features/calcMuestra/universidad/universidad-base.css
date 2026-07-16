@@ -51,8 +51,9 @@
 }
 
 .cmv2-local-context-copy {
-  display: flex;
-  align-items: center;
+  display: grid;
+  gap: 0;
+  align-content: center;
   min-width: 0;
 }
 
@@ -62,6 +63,22 @@
   font-size: 14px;
   font-weight: 600;
   line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Subtítulo compacto de la pestaña activa (patrón «Datos / Etiquetas y variables»
+ * del panel de Analítica). El header conserva su altura fija de 36px: título
+ * (14px/1.15) + detalle (12px/1.35) caben dentro sin crecer el chrome. */
+.cmv2-local-context-detail {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (max-width: 760px) {
