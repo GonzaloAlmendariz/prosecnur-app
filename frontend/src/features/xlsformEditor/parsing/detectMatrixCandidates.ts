@@ -78,7 +78,10 @@ export function detectMatrixCandidates(workbook: XlsformEditorWorkbook): MatrixC
     sectionStack[sectionStack.length - 1] ?? { id: ROOT_SECTION_ID, label: ROOT_SECTION_LABEL };
 
   const flush = () => {
-    if (run && run.memberNames.length >= 2) {
+    // >=1: una sola pregunta con lista también es candidata a matriz (1 fila).
+    // El diálogo la ofrece apagada por defecto (opt-in), así el look por defecto
+    // no cambia respecto de la auto-detección (que sigue agrupando 3+).
+    if (run && run.memberNames.length >= 1) {
       const scaleOptions: MatrixScaleOption[] = workbook.choices
         ? extractChoiceItems(workbook.choices, run.listName).map((item) => ({
             code: item.name,
