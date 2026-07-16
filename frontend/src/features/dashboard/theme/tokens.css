@@ -71,10 +71,10 @@
   --dash-dur-hover: 160ms;
   --dash-dur: 180ms;
   --dash-dur-modal: 240ms;
-  /* Easings (Emil curves — más fuertes que `cubic-bezier(0.4,0,0.2,1)`). */
-  --dash-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --dash-ease-press: cubic-bezier(0.2, 0.9, 0.2, 1);
-  --dash-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  /* Easings: alias de la física Pulso (`--motion-ease-*`, theme.css). */
+  --dash-ease-out: var(--motion-ease-out);
+  --dash-ease-press: var(--motion-ease-out);
+  --dash-ease-in-out: var(--motion-ease-in-out);
 
   /* Fondo del dashboard SIEMPRE gris neutro — la paleta de marca solo
    * afecta botones, chips, badges y demás elementos interactivos. Sin

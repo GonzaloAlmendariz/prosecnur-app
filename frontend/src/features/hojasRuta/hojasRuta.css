@@ -474,6 +474,11 @@
   opacity: 0.45;
 }
 
+.hojas-ruta-map-layer-toggle button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
 .hojas-ruta-map-stage > .pulso-loading-block {
   margin: auto;
 }
@@ -2023,6 +2028,12 @@
 
 .hojas-ruta-mode-switch button:active {
   transform: scale(0.97);
+}
+
+.hojas-ruta-mode-switch button:focus-visible {
+  outline: none;
+  /* Anillo inset: el contenedor recorta con overflow: hidden. */
+  box-shadow: inset 0 0 0 3px var(--pulso-primary-focus);
 }
 
 .hojas-ruta-mode-switch.is-wide {

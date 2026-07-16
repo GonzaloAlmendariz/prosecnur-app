@@ -1,0 +1,1222 @@
+{
+  "schema_version": "1.0.0",
+  "identity": {
+    "id": "prosecnur-la-senal-ordenada",
+    "name": "Prosecnur — La señal ordenada (identidad visual v1.2)",
+    "mode": "reconstruction",
+    "status": "frozen",
+    "version": "1.2.0",
+    "manifest_hash": "sha256:518eb2cd23e96c4e0263f70987d1f8bd25277be26d332b1aba7b2f43e7b1dcf3",
+    "owners": [
+      "Gonzalo Almendáriz (PULSO PUCP)"
+    ]
+  },
+  "brief": {
+    "purpose": "Prosecnur convierte el pulso crudo del campo —encuestas, monitoreo, bases vivas— en evidencia ordenada y defendible; la identidad expresa ese tránsito como ritmo contenido en geometría, con la sensación de un instrumento profesional de precisión, no de un dashboard genérico.",
+    "audiences": [
+      "Investigadores y analistas de encuestas de PULSO PUCP (usuarios expertos de escritorio)",
+      "Académicos que necesitan un n validado y una selección muestral defendible",
+      "Clientes institucionales que reciben entregables (PDF, PPT, XLSX, dashboards)"
+    ],
+    "jobs": [
+      "Diseñar instrumentos, marcos muestrales y cronogramas de estudios cuantitativos",
+      "Monitorear trabajo de campo y validar, codificar y analizar bases multibase",
+      "Producir entregables firmados que cuenten la misma historia con la misma paleta en pantalla, PDF y PPT"
+    ],
+    "contexts": [
+      "App de escritorio local-first (Electron + React + R/Plumber) en macOS y Windows",
+      "Jornadas largas de trabajo denso con datos; viewports de escritorio desde 1024x600 hasta 1710x1107",
+      "Entregables externos que llevan la marca fuera de la app (documentos, packaging, web)"
+    ],
+    "constraints": [
+      "Dual-platform obligatorio: gramática Apple con implementación Windows-safe (sin vibrancy real del OS, pesos compensados para Segoe UI, DPI 125-150%)",
+      "Tipografía del sistema únicamente (SF Pro / Segoe UI); sin webfonts",
+      "Motion en CSS puro tokenizado; sin librerías JS de animación",
+      "Colores solo vía tokens (--pulso-* en app, --prosecnur-* fuera de la app); sin hex hardcodeado en CSS de features",
+      "Toda reproducción de marca parte de los SVG de branding/logo/, nunca de redibujos",
+      "Respeto obligatorio a prefers-reduced-motion en toda animación"
+    ],
+    "prohibited_directions": [
+      "Dashboard genérico o plantillas ajenas de Office",
+      "Color como decoración: arcoíris en charts, acentos sin significado",
+      "Vibrancy real del OS o efectos no portables a Windows",
+      "Más de dos tintas en la marca (el color vivo pertenece al sistema, nunca al logo)",
+      "Franjas de título y H1 visibles en módulos (la identidad vive en el chrome)",
+      "Sustituir colores semánticos (éxito/alerta/peligro) por el acento del módulo"
+    ],
+    "success_criteria": [
+      "Un entregable de Prosecnur se reconoce antes de leer el título",
+      "Si un número aparece en pantalla, en un PDF y en un PPT, cuenta la misma historia con la misma paleta",
+      "El chrome desaparece y el dato es el protagonista en el primer viewport",
+      "Cada módulo es reconocible por su acento sin romper la unidad fría del sistema"
+    ]
+  },
+  "strategy": {
+    "promise": "Un instrumento profesional de precisión para investigación por encuestas: moderno, dinámico, silencioso en el chrome y protagonista en el dato.",
+    "positioning": "Suite analítica de escritorio de PULSO PUCP que se diferencia por orden geométrico, color con significado y voz de colega experto, frente a dashboards genéricos y suites web impersonales.",
+    "personality": [
+      "preciso",
+      "sereno",
+      "dinámico-contenido",
+      "nativo",
+      "experto"
+    ],
+    "anti_attributes": [
+      "genérico",
+      "decorativo",
+      "ruidoso",
+      "corporativo-frío-impersonal",
+      "caja negra"
+    ],
+    "principles": [
+      "Orden ante todo: alineación a retícula de 4, ópticamente verificada",
+      "El color señala, no decora: el acento identifica módulo o estado; el resto es frío y silencioso",
+      "Nativo en serio: tipografía del sistema, geometría macOS-like, implementación Windows-safe",
+      "Movimiento con propósito: rápido, con easing de salida, siempre con vía reducida",
+      "El dato es el protagonista: números tabulares, jerarquía tipográfica clara, chrome que desaparece"
+    ]
+  },
+  "evidence": [
+    {
+      "id": "ev-direccion-creativa",
+      "type": "existing_identity",
+      "location": "branding/direccion-creativa.md",
+      "confidence": "canonical",
+      "findings": [
+        "Documento de congelamiento v1.2 (julio 2026): concepto «La señal ordenada», marca, paleta, tipografía «Voz nativa», espaciado, iconografía, Física Pulso, patrones maestros v1.1, materiales/elevación v1.2, datos/entregables v1.2, identidad verbal v1.2, economía del chrome y los cinco principios",
+        "Toda pieza de la identidad se produce contra esta dirección"
+      ]
+    },
+    {
+      "id": "ev-brand-tokens-css",
+      "type": "code",
+      "location": "branding/tokens/prosecnur-brand.css",
+      "confidence": "canonical",
+      "findings": [
+        "Tokens de marca --prosecnur-* (v1.0) espejo 1:1 de los --pulso-* de producción: paleta, geometría, sombras, motion y tipografía para piezas fuera de la app",
+        "Peso de controles 500 con override 600 vía :root[data-platform=\"windows\"]"
+      ]
+    },
+    {
+      "id": "ev-theme-css",
+      "type": "code",
+      "location": "frontend/src/app/theme.css (:root, líneas 1-260)",
+      "confidence": "canonical",
+      "findings": [
+        "Fuente operativa de los tokens --pulso-*: primarios e interacción (soft 8%, border 18%, focus 15%, ring 12%), superficies, bordes, sombras 6 niveles, radios normalizados, alturas de control 28/28/36, rail 240 con filas 32/40, mínimos operativos, materiales color-mix 82/92/74, motion 5 duraciones + 5 easings, triadas semánticas success/warn/danger/info, marcador transversal repeat, espectro modular con variantes soft/border, y --pulso-warn-accent unificado a #D97706 (ADR 0038)"
+      ]
+    },
+    {
+      "id": "ev-logo-suite",
+      "type": "existing_identity",
+      "location": "branding/logo/ (10 SVG canónicos + preview.html)",
+      "confidence": "canonical",
+      "findings": [
+        "Geometría congelada del isotipo «ecualizador del pulso»: viewBox 64, squircle rx 15.4 (24%) navy #002457, cuatro pastillas blancas width 7 rx 3.5 en x=12/23/34/45, baseline y=48, alturas 18/26/20/32",
+        "Suite de 10 variantes: isotipo, isotipo-gradiente (#013371→#002457, solo app icon/instalador), isotipo-oscuro, appicon 512 en retícula macOS, lockup horizontal claro/oscuro, lockup principal con subline, lockup vertical, mono negro y mono blanco knockout"
+      ]
+    },
+    {
+      "id": "ev-adr-0038",
+      "type": "stakeholder",
+      "location": "docs/adrs/0038-identidad-visual-v1-1.md",
+      "confidence": "canonical",
+      "findings": [
+        "ADR Aceptado (2026-07-15): isotipo único que reemplaza los trazados divergentes, marca en dos tintas, direccion-creativa.md como referencia normativa, patrones maestros elevados a norma transversal y economía del chrome como normativa de identidad",
+        "Outliers saldados: navy #06346f del PDF de acreditación ya inexistente en código y --pulso-warn-accent unificado de #d68a00 al canónico #D97706"
+      ]
+    },
+    {
+      "id": "ev-modules-ts",
+      "type": "code",
+      "location": "frontend/src/lib/modules.ts",
+      "confidence": "canonical",
+      "findings": [
+        "MODULE_TONES: 9 slugs con triada accent/accentSoft/accentBorder vía var(--pulso-module-*); plan-trabajo aliasado al ámbar de Bitácora (encyclopedia)",
+        "Inyección del acento por variable: moduleChromeVars() → --module-accent/-soft/-border, homeModuleVars() → --home-mod-accent/-soft/-border",
+        "Títulos de módulo canónicos: Bitácora, Cálculo de muestra y marco muestral, Editor de formularios, Hojas de ruta para campo, Fichas QR para cursos-horario, Monitoreo de campo, Procesamiento, Dashboard interactivo"
+      ]
+    },
+    {
+      "id": "ev-plotly-palette",
+      "type": "code",
+      "location": "api/R/plotly_theme_shared.R (pulso_plotly_palette) y api/R/explorador_view_builders.R (ramp secuencial)",
+      "confidence": "canonical",
+      "findings": [
+        "Paleta única de visualización anclada en el navy; el peligro de chart es #dc2626 (distinto del carmesí UI #be123c)",
+        "Ramp secuencial colorRampPalette(#dbe8ff, #7aa2f8, #2457d6, #002457)"
+      ]
+    },
+    {
+      "id": "ev-manual-identidad",
+      "type": "existing_identity",
+      "location": "branding/manual-identidad.html",
+      "confidence": "canonical",
+      "findings": [
+        "Manual interactivo de 10 capítulos, espejo del Artifact publicado; documenta la anatomía del mini-app en cinco capas (Comando, Secciones, Objetos, Tabs locales, Inspector), los seis niveles de elevación, los tres materiales (82/92/74) y la paleta de visualización de once roles"
+      ]
+    },
+    {
+      "id": "ev-layout-grammar",
+      "type": "existing_identity",
+      "location": "docs/ui-layout-grammar.md",
+      "confidence": "canonical",
+      "findings": [
+        "Gramática desktop-first: breakpoints canónicos (desktop >1320x720, compact ≤1320 o ≤720 de alto, narrow ≤900, short ≤700 de alto), presets de disposición, PageFrame con layouts document/workbench/canvas/data, dueños de scroll page/body/panels y regla No Scroll Jail",
+        "Matriz base de QA: 1710x1107, 1440x1000, 1366x768, 1280x720, 1024x600"
+      ]
+    },
+    {
+      "id": "ev-runtime-patrones",
+      "type": "runtime",
+      "location": "UI en ejecución: mon-commandbar (Monitoreo), pulso-phase-pillbar, sidebar icon-compressed (Procesamiento/calc-muestra), pulso-switch, banda de KPIs de Monitoreo de aulas, procedencia de Gráficos v2, BrandMark/BootBrandMark",
+      "confidence": "high",
+      "findings": [
+        "Los ocho patrones maestros no son especulativos: son ejemplares ya construidos y operativos en la app, destilados y elevados a norma por la dirección v1.1/v1.2",
+        "Layout.tsx (BrandMark), BootGate.tsx (BootBrandMark con firma de arranque animada) y packaging/windows/brand/*.svg ya consumen la marca canónica"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "dec-brief-aprobado",
+      "gate": "brief",
+      "owner": "Gonzalo Almendáriz (PULSO PUCP)",
+      "timestamp": "2026-07-15T00:00:00Z",
+      "rationale": "El brief no se inventa: deriva del producto operativo y quedó aprobado por el usuario al congelar la dirección creativa v1.2 y aceptar el ADR 0038 en la sesión de branding del 2026-07-15/16.",
+      "status": "approved",
+      "evidence_ids": [
+        "ev-direccion-creativa",
+        "ev-adr-0038"
+      ],
+      "conditions": [
+        "Cambios de propósito, audiencia o restricciones de plataforma reabren este gate"
+      ]
+    },
+    {
+      "id": "dec-territorio-senal-ordenada",
+      "gate": "territory",
+      "owner": "Gonzalo Almendáriz (PULSO PUCP)",
+      "timestamp": "2026-07-15T00:00:00Z",
+      "rationale": "El usuario seleccionó y congeló «La señal ordenada» como concepto único (dirección creativa v1.2 + ADR 0038 Aceptado), unificando los trazados divergentes previos en un isotipo canónico y elevando los ejemplares vivos a patrones maestros.",
+      "status": "approved",
+      "evidence_ids": [
+        "ev-direccion-creativa",
+        "ev-adr-0038",
+        "ev-logo-suite"
+      ],
+      "conditions": [
+        "Cambios de geometría del isotipo, paleta de marca o patrones maestros requieren actualizar la dirección y republicar el manual"
+      ]
+    },
+    {
+      "id": "dec-freeze-manifiesto",
+      "gate": "freeze",
+      "owner": "Gonzalo Almendáriz (PULSO PUCP)",
+      "timestamp": "2026-07-16T05:30:00Z",
+      "rationale": "Aprobado por el usuario el 2026-07-16 vía gate de decisión en sesión (cuatro respuestas explícitas): freeze del manifiesto tal cual con sus assumptions; excepción de KPI hero del Home ≤28px; ratificación de la firma de motion 620/680ms; unificación del sidebar de calc-muestra al push por grid.",
+      "status": "approved",
+      "evidence_ids": [
+        "ev-direccion-creativa",
+        "ev-brand-tokens-css",
+        "ev-theme-css",
+        "ev-adr-0038"
+      ],
+      "conditions": [
+        "Revisión humana del manifiesto completo, incluidas las assumptions declaradas en extensions",
+        "Resolver los checks de accesibilidad, visual y drift antes de marcar frozen",
+        "Confirmar la regla propuesta de imagery y la excepción de motion de diagramas (620/680ms)"
+      ]
+    },
+    {
+      "id": "dec-kpi-home-excepcion",
+      "gate": "freeze",
+      "owner": "Gonzalo Almendáriz (PULSO PUCP)",
+      "timestamp": "2026-07-16T05:30:00Z",
+      "status": "approved",
+      "rationale": "KPIs de workbench estrictos a 21px/900; el hero del Home (homepage, no workbench) admite hasta 28px como única excepción de escala de métrica.",
+      "evidence_ids": [
+        "ev-direccion-creativa"
+      ]
+    },
+    {
+      "id": "dec-firma-motion-ratificada",
+      "gate": "freeze",
+      "owner": "Gonzalo Almendáriz (PULSO PUCP)",
+      "timestamp": "2026-07-16T05:30:00Z",
+      "status": "approved",
+      "rationale": "La firma de diagramas (orbit-in 620ms + edge-draw 680ms) queda ratificada como excepción gobernada, solo para ensamblajes de diagramas/árboles, con revisión al expirar (2027-01-31).",
+      "evidence_ids": [
+        "ev-direccion-creativa"
+      ]
+    },
+    {
+      "id": "dec-calc-sidebar-push",
+      "gate": "freeze",
+      "owner": "Gonzalo Almendáriz (PULSO PUCP)",
+      "timestamp": "2026-07-16T05:30:00Z",
+      "status": "approved",
+      "rationale": "El sidebar de pestañas de calc-muestra se unifica al patrón maestro push-por-grid (se retirará la capa icon-only+tooltip ≥921px en la oleada R3.5).",
+      "evidence_ids": [
+        "ev-direccion-creativa"
+      ]
+    }
+  ],
+  "territories": [
+    {
+      "id": "la-senal-ordenada",
+      "name": "La señal ordenada",
+      "thesis": "El pulso crudo del campo se convierte en evidencia defendible: ritmo contenido en geometría — un ecualizador del latido dentro de un squircle navy, chrome frío y silencioso, color solo como señal, dato tabular protagonista.",
+      "personality": [
+        "preciso",
+        "sereno",
+        "dinámico-contenido",
+        "nativo"
+      ],
+      "visual_hypothesis": "Isotipo de cuatro pastillas que trazan un latido sobre retícula de 64; sistema 60/30/10 de superficies frías + navy estructural + acento puntual; espectro modular como dimensión dinámica; motion «Física Pulso» con easing de salida; patrones maestros destilados de los ejemplares más profesionales ya construidos en la app.",
+      "status": "selected"
+    },
+    {
+      "id": "senal-dispersa-status-quo",
+      "name": "Señal dispersa (status quo pre-v1.1)",
+      "thesis": "Continuar sin dirección escrita: design system operativo maduro pero repartido entre theme.css, skills y docs, con dos trazados de marca divergentes (círculo con 3 barras inline vs icono de 4 barras del instalador) y sin capa de marca que lo gobernara.",
+      "personality": [
+        "implícito",
+        "divergente",
+        "operativo"
+      ],
+      "visual_hypothesis": "Cada superficie consolida su propio trazado y sus propios outliers (doble ámbar, navy #06346f huérfano); la identidad existe de facto pero no es consultable ni gobernable.",
+      "status": "rejected"
+    }
+  ],
+  "direction": {
+    "selected_territory_id": "la-senal-ordenada",
+    "thesis": "Ritmo contenido en geometría: Prosecnur se ve y se comporta como un instrumento profesional de precisión — la señal del campo, ordenada.",
+    "signatures": [
+      "Isotipo «ecualizador del pulso»: squircle navy con cuatro pastillas blancas de alturas 18/26/20/32 (geometría congelada)",
+      "Espectro modular: cada módulo tiñe su chrome con un acento propio reasignado por CSS var, nunca el contenido",
+      "Física Pulso: motion CSS tokenizado con easing de salida dominante; firma de arranque con stagger de pastillas de 60ms",
+      "KPI discreto 21/900 con hairline de acento: cifras serias, nunca display gigante",
+      "Material translúcido Windows-safe (gradiente blanco + color-mix + blur progresivo) solo en navegación y capas de comando",
+      "Voz de colega experto en español peruano neutro: verbo + objeto, errores con salida, números es-PE tabulares"
+    ],
+    "selection_conditions": [
+      "La dirección creativa v1.2 permanece como referencia normativa; este manifiesto la codifica sin contradecirla",
+      "El freeze del manifiesto requiere aprobación humana explícita"
+    ]
+  },
+  "foundations": {
+    "color": {
+      "tokens": [
+        {
+          "name": "brand-navy",
+          "value": "#002457",
+          "role": "accent"
+        },
+        {
+          "name": "brand-navy-800",
+          "value": "#013371",
+          "role": "accent"
+        },
+        {
+          "name": "signal-blue",
+          "value": "#2457D6",
+          "role": "accent"
+        },
+        {
+          "name": "ink",
+          "value": "#17212F",
+          "role": "structural"
+        },
+        {
+          "name": "ink-soft",
+          "value": "#5F6B7A",
+          "role": "structural"
+        },
+        {
+          "name": "ink-faint",
+          "value": "#8792A2",
+          "role": "structural"
+        },
+        {
+          "name": "surface-paper",
+          "value": "#FFFFFF",
+          "role": "structural"
+        },
+        {
+          "name": "surface-ice",
+          "value": "#FAFBFF",
+          "role": "structural"
+        },
+        {
+          "name": "surface-mist",
+          "value": "#F2F5FA",
+          "role": "structural"
+        },
+        {
+          "name": "bg-canvas",
+          "value": "#F3F5F9",
+          "role": "structural"
+        },
+        {
+          "name": "bg-deep",
+          "value": "#E9EDF5",
+          "role": "structural"
+        },
+        {
+          "name": "border",
+          "value": "#E2E7F0",
+          "role": "structural"
+        },
+        {
+          "name": "border-strong",
+          "value": "#CBD5E4",
+          "role": "structural"
+        },
+        {
+          "name": "header-row",
+          "value": "#F1F3F9",
+          "role": "structural"
+        },
+        {
+          "name": "success",
+          "value": "#16A34A",
+          "role": "semantic"
+        },
+        {
+          "name": "success-bg",
+          "value": "#DCFCE7",
+          "role": "semantic"
+        },
+        {
+          "name": "success-border",
+          "value": "#86EFAC",
+          "role": "semantic"
+        },
+        {
+          "name": "success-fg",
+          "value": "#166534",
+          "role": "semantic"
+        },
+        {
+          "name": "warn",
+          "value": "#D97706",
+          "role": "semantic"
+        },
+        {
+          "name": "warn-bg",
+          "value": "#FFF4E0",
+          "role": "semantic"
+        },
+        {
+          "name": "warn-border",
+          "value": "#F0D799",
+          "role": "semantic"
+        },
+        {
+          "name": "warn-fg",
+          "value": "#8A5000",
+          "role": "semantic"
+        },
+        {
+          "name": "danger",
+          "value": "#BE123C",
+          "role": "semantic"
+        },
+        {
+          "name": "danger-bg",
+          "value": "#FEF2F2",
+          "role": "semantic"
+        },
+        {
+          "name": "danger-border",
+          "value": "#FECACA",
+          "role": "semantic"
+        },
+        {
+          "name": "danger-fg",
+          "value": "#991B1B",
+          "role": "semantic"
+        },
+        {
+          "name": "repeat-bg",
+          "value": "#FDEEDE",
+          "role": "semantic"
+        },
+        {
+          "name": "repeat-border",
+          "value": "#F2C79C",
+          "role": "semantic"
+        },
+        {
+          "name": "repeat-fg",
+          "value": "#9A4913",
+          "role": "semantic"
+        },
+        {
+          "name": "repeat-accent",
+          "value": "#C95F20",
+          "role": "semantic"
+        },
+        {
+          "name": "module-editor",
+          "value": "#6D5DFC",
+          "role": "accent"
+        },
+        {
+          "name": "module-processing",
+          "value": "#0F766E",
+          "role": "accent"
+        },
+        {
+          "name": "module-dashboard",
+          "value": "#2563EB",
+          "role": "accent"
+        },
+        {
+          "name": "module-routes",
+          "value": "#C2410C",
+          "role": "accent"
+        },
+        {
+          "name": "module-sample",
+          "value": "#7C3AED",
+          "role": "accent"
+        },
+        {
+          "name": "module-encyclopedia",
+          "value": "#A16207",
+          "role": "accent"
+        },
+        {
+          "name": "module-collectors",
+          "value": "#0891B2",
+          "role": "accent"
+        },
+        {
+          "name": "module-monitoring",
+          "value": "#BE123C",
+          "role": "accent"
+        },
+        {
+          "name": "accent-cyan",
+          "value": "#0EA5B7",
+          "role": "accent"
+        },
+        {
+          "name": "accent-green",
+          "value": "#16A34A",
+          "role": "accent"
+        },
+        {
+          "name": "accent-rose",
+          "value": "#C2416B",
+          "role": "accent"
+        },
+        {
+          "name": "accent-amber",
+          "value": "#D97706",
+          "role": "accent"
+        },
+        {
+          "name": "accent-violet",
+          "value": "#7C3AED",
+          "role": "accent"
+        },
+        {
+          "name": "chart-primary",
+          "value": "#002457",
+          "role": "data"
+        },
+        {
+          "name": "chart-bright",
+          "value": "#2457D6",
+          "role": "data"
+        },
+        {
+          "name": "chart-success",
+          "value": "#16A34A",
+          "role": "data"
+        },
+        {
+          "name": "chart-warn",
+          "value": "#D97706",
+          "role": "data"
+        },
+        {
+          "name": "chart-danger",
+          "value": "#DC2626",
+          "role": "data"
+        },
+        {
+          "name": "chart-neutral",
+          "value": "#94A3B8",
+          "role": "data"
+        },
+        {
+          "name": "chart-surface",
+          "value": "#F8FAFF",
+          "role": "data"
+        },
+        {
+          "name": "chart-border",
+          "value": "#D8E0EF",
+          "role": "data"
+        },
+        {
+          "name": "chart-grid",
+          "value": "#DBE3F1",
+          "role": "data"
+        },
+        {
+          "name": "chart-text",
+          "value": "#1F2933",
+          "role": "data"
+        },
+        {
+          "name": "chart-text-soft",
+          "value": "#5F6B7A",
+          "role": "data"
+        },
+        {
+          "name": "seq-step-1",
+          "value": "#DBE8FF",
+          "role": "data"
+        },
+        {
+          "name": "seq-step-2",
+          "value": "#7AA2F8",
+          "role": "data"
+        },
+        {
+          "name": "seq-step-3",
+          "value": "#2457D6",
+          "role": "data"
+        },
+        {
+          "name": "seq-step-4",
+          "value": "#002457",
+          "role": "data"
+        }
+      ],
+      "usage_rules": [
+        "Proporción 60/30/10: superficies frías dominan, el navy estructura, el acento (modular o señal) aparece de forma puntual e intencional",
+        "El acento es chrome, el semántico es significado: éxito/alerta/peligro/info jamás se sustituyen por el color del módulo",
+        "Acento inyectado por variable (--module-accent / --home-mod-accent / reasignación de --pulso-primary); nunca hex de módulo hardcodeado por regla",
+        "Cada acento modular tiene variantes soft (alpha 0.12-0.13) y border (alpha 0.30-0.32) definidas en theme.css; ver extensions.interaction_alphas para los valores exactos de interacción del navy (soft 8%, border 18%, focus 15%, ring 12%)",
+        "Los semánticos operan en triadas bg/border/fg sobre superficie clara; el token base (success/warn/danger) es el acento del estado; info usa el navy translúcido (bg rgba(0,36,87,0.04), border = primary-border, fg = primary)",
+        "El peligro de chart (#DC2626) y el carmesí UI (#BE123C) son tokens distintos a propósito: no unificarlos",
+        "El marcador repeat (naranja suave) es semántico transversal —pertenencia a estructura repetida roster—, no un acento de módulo; se superpone a cualquier paleta sin competir",
+        "Dos tintas máximo en la marca (navy + blanco); el color vivo pertenece al sistema, nunca al logo",
+        "Colores solo con tokens --pulso-* dentro de la app y --prosecnur-* fuera de ella; si un color no está en la paleta de visualización, no entra a un gráfico",
+        "Las triadas semánticas deben sostener contraste AA de texto sobre su fondo; la verificación formal vive en el check de accesibilidad"
+      ]
+    },
+    "typography": {
+      "families": [
+        "-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, sans-serif (principal «Voz nativa»)",
+        "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace (datos/código, siempre con font-variant-numeric: tabular-nums en métricas)"
+      ],
+      "scale": [
+        {
+          "name": "display",
+          "value": {
+            "size_px": 28,
+            "line_height": 1.2,
+            "weight": 680
+          }
+        },
+        {
+          "name": "title",
+          "value": {
+            "size_px": 22,
+            "line_height": 1.25,
+            "weight": 640
+          }
+        },
+        {
+          "name": "section",
+          "value": {
+            "size_px": 17,
+            "line_height": 1.3,
+            "weight": 600
+          }
+        },
+        {
+          "name": "body",
+          "value": {
+            "size_px": 15,
+            "line_height": 1.55,
+            "weight": 400
+          }
+        },
+        {
+          "name": "body-medium",
+          "value": {
+            "size_px": 15,
+            "line_height": 1.55,
+            "weight": 500
+          }
+        },
+        {
+          "name": "note",
+          "value": {
+            "size_px": 13,
+            "line_height": 1.45,
+            "weight": 400
+          }
+        },
+        {
+          "name": "caption",
+          "value": {
+            "size_px": 12,
+            "line_height": 1.35,
+            "weight": 500
+          }
+        },
+        {
+          "name": "micro",
+          "value": {
+            "size_px": 11,
+            "line_height": 1.2,
+            "weight": 600,
+            "transform": "uppercase",
+            "letter_spacing_em": 0.06
+          }
+        }
+      ]
+    },
+    "spacing": {
+      "base": 4,
+      "scale": [
+        4,
+        8,
+        12,
+        16,
+        20,
+        24,
+        32,
+        40,
+        48
+      ]
+    },
+    "geometry": {
+      "principle": "Geometría macOS-like sobre retícula de 4, ópticamente verificada; los radios y alturas son slots semánticos, no valores ad hoc.",
+      "rules": [
+        "Radios: control 10 · tarjeta 14 · panel 16 · lens 20 · chip 999",
+        "Alturas de control (escalera macOS 26 UI Kit): 28 default de content area (sm y md coinciden hoy en 28 pero son slots semánticos distintos: denso vs default) · 36 reservado a toolbar/CTA · checkbox 16",
+        "Peso de trabajo de controles: 500 en macOS, 600 en Windows vía :root[data-platform=\"windows\"]; la jerarquía se construye con tamaño y color, no con bold",
+        "Rail lateral canónico 240px con filas de 32/40 (24 en densos)",
+        "Mínimos operativos: workbench/panel/media 360px · lista 260px · cuerpo de diálogo 240px",
+        "Isotipo: squircle con radio 24% del lado (rx 15.4 sobre viewBox 64)"
+      ]
+    },
+    "elevation": {
+      "principle": "Seis niveles de sombra fría (base navy o pizarra, jamás negro puro); la elevación comunica jerarquía de flotación, nunca decoración. Lo que empuja en flujo no flota; solo lo que se superpone usa niveles altos.",
+      "rules": [
+        "low (reposo): 0 1px 2px rgba(0,36,87,0.04)",
+        "soft (tarjetas): 0 6px 18px rgba(0,36,87,0.06)",
+        "med (hover-lift): 0 14px 30px rgba(0,36,87,0.08)",
+        "high (diálogos): 0 24px 60px rgba(0,36,87,0.14)",
+        "raised (workbench): 0 1px 1px rgba(15,23,42,0.04), 0 10px 28px rgba(15,23,42,0.07)",
+        "popover (flotantes): 0 22px 60px rgba(15,23,42,0.18), 0 4px 16px rgba(15,23,42,0.08)",
+        "El sidebar expandido conserva soft (empuja, no flota); ContextLens usa la sombra específica 0 20px 60px rgba(15,23,42,0.18) + inset 1px 0 0 rgba(255,255,255,0.6)"
+      ]
+    },
+    "focus": {
+      "principle": "El foco de teclado es visible siempre, con anillos navy translúcidos que distinguen foco transitorio de selección persistente.",
+      "rules": [
+        "Focus ring: rgba(0,36,87,0.15) — token --pulso-primary-focus; anillo de 4px en controles como el switch maestro",
+        "Selección persistente (item activo de timeline, slide activo): ring sutil rgba(0,36,87,0.12) — --pulso-primary-ring, levemente más opaco y ancho que el hover",
+        "Patrón focus-within: los contenedores editables (procedencia de Gráficos v2) muestran anillo cuando cualquier hijo tiene foco",
+        "La transición del anillo usa la duración fast (160ms) con easing de salida"
+      ]
+    },
+    "responsive": {
+      "principle": "Gramática desktop-first: reflujo estructural que preserva tarea y contexto; no optimiza móvil angosto. Un solo dueño de scroll por pantalla (No Scroll Jail).",
+      "rules": [
+        "Breakpoints canónicos: desktop (>1320px y >720px de alto) · compact desktop (≤1320px o ≤720px de alto: reduce padding, compacta encabezados, toolbars envuelven) · narrow desktop (≤900px: workbenches apilan rail y contenido) · short desktop (≤700px de alto: apilan aunque el ancho alcance)",
+        "Matriz base de QA: 1710x1107 · 1440x1000 · 1366x768 · 1280x720 · 1024x600",
+        "Presets manuales (pulso.layoutPreset en localStorage, nunca en el .pulso): auto/large/portable/portable-compact/compact/short; el shell expone data-pulso-layout-preset/density/mode",
+        "Ninguna ruta deja contenido vertical inaccesible por cadenas de height:100% + overflow:hidden; si una pantalla crece al compactarse debe existir un dueño de scroll visible y alcanzable",
+        "El shell no introduce scroll horizontal global; el fallback de scroll vive en .pulso-main, no en body"
+      ]
+    }
+  },
+  "systems": {
+    "brand": {
+      "principle": "Un solo isotipo canónico «ecualizador del pulso» con geometría congelada; toda reproducción parte de los SVG de branding/logo/, nunca de redibujos.",
+      "rules": [
+        "Geometría congelada: viewBox 64, squircle rx 15.4 (24%) navy #002457, cuatro pastillas blancas width 7 · rx 3.5 · gap 4 en x=12/23/34/45, baseline y=48, alturas 18/26/20/32 (el perfil del latido)",
+        "Suite de 10 variantes: isotipo (mínimo 16px), isotipo-gradiente (#013371→#002457, SOLO icono de app e instalador), isotipo-oscuro (squircle blanco para fondos oscuros), appicon 512 en retícula macOS (fuente del .icns/.ico), lockup horizontal claro/oscuro (mínimo 96px de ancho), lockup principal con «SUITE ANALÍTICA · PULSO PUCP», lockup vertical (portadas/splash), mono negro (impresión), mono blanco knockout (fondos fotográficos/navy)",
+        "Wordmark: «Prosecnur» en stack de sistema, peso 800, tracking -0.02em, navy #002457; sobre fondos oscuros, blanco",
+        "Jerarquía de emisión: Prosecnur es el producto; «PULSO PUCP» acompaña como subline institucional («Suite analítica · PULSO PUCP»)",
+        "Dos tintas máximo (navy + blanco); el color vivo pertenece al sistema (espectro modular, azul señal), nunca al logo",
+        "Clearspace: ¼ de la altura del isotipo",
+        "Usos incorrectos: no recolorear, no deformar, no rotar, no aplicar efectos, no redibujar; sobre fondos oscuros siempre la variante invertida o el mono blanco",
+        "Firma de arranque: el isotipo entra con stagger de pastillas (60ms entre barras, duración slow + easing productivo) — BootBrandMark"
+      ]
+    },
+    "iconography": {
+      "principle": "Iconografía en dos capas: alias semánticos de lucide como lenguaje de interfaz, glifos SVG a mano solo para representaciones de dominio que lucide no puede dar.",
+      "rules": [
+        "Capa 1: alias semánticos de lucide en src/lib/icons.ts (nombre por concepto, un punto de cambio: IconProcessing=Workflow, IconMonitor=Activity, IconSample=Calculator, IconCollector=QrCode…); siempre vía el shim src/vendor/lucide-react.ts",
+        "Capa 2: glifos SVG a mano SOLO para dominio (tipos de gráfico, gauges, diagramas de flujo); nunca packs mezclados en la capa 1",
+        "Trazo 1.5, tamaños 16/18/20, esquinas redondeadas, sin rellenos salvo estados activos",
+        "Los iconos heredan el color del texto o el acento del módulo; nunca introducen colores nuevos"
+      ]
+    },
+    "imagery": {
+      "principle": "Prosecnur es un instrumento de datos: la imagen al servicio del significado, nunca decorativa. (Regla propuesta: la dirección v1.2 no norma imaginería; ver extensions.assumptions.)",
+      "rules": [
+        "Sin fotografía de stock ni ilustración decorativa en la app ni en entregables",
+        "Las superficies visuales de dominio (mapas, cartografía, QR, previsualizaciones de documentos) son dato, no decoración, y heredan la paleta del sistema",
+        "Capturas de producto en documentación y manuales se presentan sobre superficie fría con borde y radio del sistema"
+      ]
+    },
+    "data_visualization": {
+      "principle": "Una sola fuente cromática para CSS, PDF y Plotly: el navy ancla las tres capas. Si un número aparece en pantalla, en un PDF y en un PPT, debe contar la misma historia con la misma paleta.",
+      "rules": [
+        "Paleta de once roles con fuente única pulso_plotly_palette(): primario #002457 (serie por defecto), serie brillante #2457D6 (la serie o barra activa), éxito #16A34A, alerta #D97706, peligro #DC2626, neutro #94A3B8 (contexto sin señal), superficie #F8FAFF, borde #D8E0EF, grid #DBE3F1, texto #1F2933, texto suave #5F6B7A; si un color no está en esta paleta, no entra a un gráfico",
+        "Secuencial = intensidad del navy: #DBE8FF → #7AA2F8 → #2457D6 → #002457, interpolable; nunca arcoíris — una dimensión de dato pide una dimensión de color; el paso más oscuro es siempre el dato máximo",
+        "Anatomía del gráfico: grid sutil horizontal, ejes sin línea dura, sin 3D ni sombras ni degradados decorativos, un acento por gráfico, eje Y en 0 para barras, endpoint enfatizado en líneas, valores con tabular-nums",
+        "La capa Pulso PDF es normativa (cabecera/pie/logo/hairlines/tablas zebra, escala en pt); el layout por motor es libre",
+        "PPT/XLSX heredan paleta y tipografía; el XLSX conserva los colores canónicos de tipo de pregunta (ver extensions.xlsx_question_type_colors)",
+        "El color de datos se mantiene separado del color de estado de la interfaz (chart-danger #DC2626 ≠ danger UI #BE123C)"
+      ]
+    },
+    "motion": {
+      "principle": "«Física Pulso»: CSS puro tokenizado, sin librerías JS de animación; movimiento con propósito, rápido, con easing de salida dominante y vía reducida siempre.",
+      "rules": [
+        "Cinco duraciones: press 120ms (presión de controles, scale 0.98) · fast 160ms (hover, focus ring, chips) · base 220ms (aparición de contenido, fades con rise de 6-8px) · panel 280ms (drawers, popovers, rutas) · slow 420ms (celebraciones, gráficos, logo)",
+        "Cinco easings: salida cubic-bezier(0.23,1,0.32,1) (dominante) · estándar cubic-bezier(0.2,0,0,1) · drawer cubic-bezier(0.32,0.72,0,1) · productivo cubic-bezier(0.16,1,0.3,1) · in-out cubic-bezier(0.77,0,0.175,1)",
+        "Rutas: enter y+8px, forward x+12px, back x-12px",
+        "Firma de PageFrame (transición base de toda ruta): cuerpo 190ms / header 150ms / toolbar 160ms con easing de salida",
+        "Firma de marca: el isotipo entra con stagger de pastillas de 60ms (slow + productivo)",
+        "Firma de diagramas y árboles: «orbit-in + edge-draw» del dashboard — nodos 620ms con easing productivo + aristas por stroke-dashoffset 680ms (excepción gobernada al tope de 420ms de la escala de tokens; ver governance.exceptions)",
+        "La escala de tokens no supera 420ms; toda animación respeta prefers-reduced-motion"
+      ],
+      "max_duration_ms": 680,
+      "reduced_motion": true
+    },
+    "voice": {
+      "principle": "Prosecnur habla como un colega experto: claro antes que elegante, de tú en español peruano neutro, técnico cuando aporta, sereno siempre. La voz es parte del contrato visual.",
+      "rules": [
+        "Las acciones dicen lo que hacen: verbo + objeto («Marcar 6 como revisadas»), nunca «Aceptar»",
+        "Los errores explican qué pasó y cómo seguir; el código E_* es visible pero al final, en mono",
+        "Números es-PE: miles con coma, decimales con punto, horas en formato 24h, tabular en columnas",
+        "Mayúscula solo inicial en controles; las sostenidas se reservan a micro-etiquetas con tracking",
+        "Vocabulario canónico sin sinónimos improvisados: base procesable, cursos-horario, marco muestral, recopilador, corte",
+        "Tecnicismos en inglés cuando son el término estándar; sin slang regional forzado"
+      ]
+    }
+  },
+  "architecture": {
+    "navigation": {
+      "principle": "Jerarquía canónica de tres niveles —Familia/Módulo → Sección → Pestaña dinámica— sobre una anatomía de mini-app de cinco capas que nunca se aplanan en una sola barra o un solo sidebar.",
+      "rules": [
+        "Vocabulario oficial: Familia/Módulo (homepage, paleta propia) → Sección (top bar del módulo; en Procesamiento: Carga, Validación, Codificación, Analítica, Gráficos) → Pestaña dinámica; UI nueva se cuelga de uno de esos tres niveles y nunca duplica la navegación de un nivel en otro",
+        "Anatomía de cinco capas: Capa 1 Comando (command bar material de 3 zonas: contexto · rail · acciones; sin H1 visible, la identidad vive aquí) · Capa 2 Secciones (rail centrado tipo pillbar) · Capa 3 Objetos (sidebar/outline compacto para inventarios largos: reglas, variables, rutas, pestañas dinámicas; icon-compressed que empuja el canvas) · Capa 4 Tabs locales (pestañas compactas o segmented dentro de la sección activa) · Capa 5 Inspector (propiedades contextuales del objeto seleccionado; edita, no navega)",
+        "Al abrir un proyecto se aterriza en el homepage del proyecto (cards de avance), jamás en una ruta heredada de otro proyecto",
+        "El rail superior YA es el recorrido: el pulido didáctico va dentro de cada pestaña, nunca como segunda barra de pasos",
+        "El sidebar de pestañas expande empujando el canvas por grid, nunca como overlay flotante",
+        "Módulos canónicos y sus rutas: Bitácora (/bitacora), Cálculo de muestra (/calc-muestra), Editor de formularios (/editor-xlsform), Hojas de ruta (/hojas-ruta), Fichas QR (/recopiladores), Monitoreo (/monitoreo), Procesamiento (/procesamiento), Dashboard (/tablero)"
+      ]
+    },
+    "layouts": {
+      "principle": "Economía del chrome: el trabajo del producto se organiza antes que la composición decorativa; con datos poblados, el primer viewport muestra filas/tarjetas/gráficos reales.",
+      "rules": [
+        "Sin franjas de título: los módulos no llevan H1 visible (headerMode=\"sr-only\"); sin títulos interiores redundantes en paneles",
+        "Datos en el primer viewport: exploradores, filtros y resúmenes son herramientas subordinadas",
+        "Jerarquía de contenedores: Shell → PageFrame con layouts document (lectura/formularios con scroll de página), workbench (rail + área principal con scroll interno), canvas (superficie visual con área mínima preservada), data (tabla/grilla con scroll interno)",
+        "Dueños de scroll: page (el área principal scrollea) · body (el body del PageFrame scrollea) · panels (paneles internos, degradando a .pulso-main en compact/short)",
+        "Un solo dueño de scroll por pantalla (No Scroll Jail); overflow:hidden solo oculta contenido decorativo o delega a un descendiente scrollable"
+      ]
+    },
+    "surfaces": {
+      "principle": "Vibrancy simulada Windows-safe: gradiente blanco + superficie translúcida color-mix + backdrop-filter progresivo; el material va SOLO en navegación y capas de comando, los formularios densos usan superficie sólida.",
+      "rules": [
+        "Tres materiales: base 82% (color-mix surface 82% transparent — command bars, pillbars, rails) · fuerte 92% (segmented y controles sobre contenido) · chrome 74% (barras de app)",
+        "Blur progresivo según jerarquía: 10 / 14 / 18, con saturate(1.08); el ejemplar mon-commandbar usa blur(18) saturate(1.08)",
+        "Borde de material: color-mix(primary-border 78%, border) — teñido con el acento del módulo en command bars",
+        "Sombra de material: inset 0 1px 0 rgba(255,255,255,0.72) + 0 10px 30px rgba(0,36,87,0.08)",
+        "Degrada con dignidad sin backdrop-filter: el gradiente blanco sostiene la legibilidad",
+        "Jamás vibrancy real del OS (restricción dual-platform)"
+      ]
+    },
+    "component_recipes": {
+      "principle": "Los ocho patrones maestros v1.1 canonizan los ejemplares más profesionales ya construidos en la app y son norma para todos los módulos.",
+      "rules": [
+        "1 · Command bar de módulo (ejemplar mon-commandbar): grid de 3 zonas —contexto | rail de secciones | acciones—, material translúcido (doble gradiente blanco + --pulso-material-bg + blur(18px) saturate(1.08)), borde teñido con el acento del módulo, radio 18, altura mínima 46, controles de 32; el acento entra reasignando --pulso-primary en el scope del módulo, nunca regla por regla",
+        "2 · Rail de secciones centrado (ejemplar pulso-phase-pillbar): pillbar material centrado (margin-inline:auto, radio 999, blur 16), pills de 34px (32 en módulos densos); hover = fill que crece desde el centro (opacity + scaleX 0.94→1, base/salida); activo = gradiente del primario + texto blanco + sombra 0 5px 12px rgba(0,36,87,0.19); número de fase 19x19 tabular; entrada con x -6→0 (base/salida); es el selector de secciones primario de TODO módulo",
+        "3 · Sidebar de pestañas icon-compressed (ejemplar calc-muestra/Procesamiento): tercer nivel comprimido a 56px que expande a 240px empujando el canvas por grid (grid-template-columns con track expandido de longitud fija: la interpolación suave exige tracks de la misma estructura), transición base/salida; activa = gradiente del primario + subtítulo revelado (max-height 0→14px, fast); la variante icon-only + tooltip flotante es secundaria, para superficies donde el push no cabe",
+        "4 · Switch maestro (pulso-switch): 44x24, track cóncavo (gradiente #EEF2F7→#DFE6EF + sombras internas), knob blanco de 18 elevado (0 1px 2px rgba(15,23,42,0.22)), desliza left 2→22 en fast/salida, encendido = gradiente del primario, presión scale(0.97), foco anillo de 4px",
+        "5 · KPI discreto (ejemplar banda canónica de Monitoreo de aulas): valor 21px/900 tabular —nunca gigante—, etiqueta 9.5px/900 mayúsculas, hairline de acento de 2px al pie de la tile; el color del módulo vive en el contenedor y el hairline, jamás en el número; el semántico (warn/danger) aparece solo cuando hay brecha real; versión command-bar: 12px/820",
+        "6 · Procedencia y herencia (ejemplar Gráficos v2): barra izquierda de 4px codificando el origen del valor (violeta = heredado del modo, verde = override del usuario) + focus-within con anillo; acento-por-rol vía token remapeado (--layout-accent por data-role); swatches de color 24x24 con borde interior de vidrio y hover scale(1.08)",
+        "7 · Iconografía en dos capas: alias semánticos de lucide en src/lib/icons.ts + glifos SVG a mano solo para dominio (ver systems.iconography)",
+        "8 · Firmas de motion de feature: triada de PageFrame (cuerpo 190ms / header 150ms / toolbar 160ms, easing de salida) como transición base de toda ruta; «orbit-in + edge-draw» del dashboard (nodos 620ms productiva + aristas stroke-dashoffset 680ms) como firma para diagramas y árboles",
+        "Estados requeridos en todo control: rest, hover, focus visible, active/presión, disabled, loading, empty, success, warning, error y vía reduced-motion donde aplique"
+      ]
+    }
+  },
+  "platforms": {
+    "react-electron": {
+      "kind": "react",
+      "invariants": [
+        "Tokens --pulso-* de theme.css como única fuente de color/motion/geometría en features",
+        "Íconos lucide siempre vía el shim src/vendor/lucide-react.ts",
+        "Jerarquía de navegación de tres niveles y patrones maestros en todos los módulos",
+        "Registro de readiness data-audit-ready en vistas que participan del QA visual"
+      ],
+      "adaptations": [
+        "Acento por módulo inyectado con moduleChromeVars()/homeModuleVars() desde MODULE_TONES",
+        "Shell Electron local-first; presets de layout en localStorage (pulso.layoutPreset), nunca en el .pulso"
+      ],
+      "status": "implemented"
+    },
+    "macos": {
+      "kind": "macos",
+      "invariants": [
+        "Identidad completa: materiales translúcidos simulados, escala tipográfica «Voz nativa», Física Pulso"
+      ],
+      "adaptations": [
+        "Peso de trabajo de controles 500 (SF Pro renderiza Medium con cuerpo suficiente)",
+        "Geometría macOS-like (escalera de controles del macOS 26 UI Kit); appicon en retícula de iconos macOS (fuente del .icns)"
+      ],
+      "status": "implemented"
+    },
+    "windows": {
+      "kind": "windows",
+      "invariants": [
+        "Windows es el release bloqueante: toda pieza de identidad debe ser Windows-safe",
+        "Misma paleta, geometría portable y motion que macOS"
+      ],
+      "adaptations": [
+        "Peso de trabajo de controles 600 vía :root[data-platform=\"windows\"] (Segoe UI renderiza Medium más liviano que SF Pro)",
+        "Sin vibrancy real del OS: material simulado con gradiente blanco + color-mix + blur CSS",
+        "Legibilidad validada a DPI 125-150% con Segoe UI",
+        "Icono del instalador desde el isotipo gradiente (#013371→#002457); .ico regenerado desde prosecnur-appicon.svg"
+      ],
+      "status": "implemented"
+    },
+    "documents": {
+      "kind": "documents",
+      "invariants": [
+        "El navy ancla las tres capas: --pulso-* (CSS), pulso_pdf_tokens (PDF) y pulso_plotly_palette (charts)",
+        "Un número cuenta la misma historia con la misma paleta en pantalla, PDF y PPT"
+      ],
+      "adaptations": [
+        "PDF: capa Pulso normativa (cabecera/pie/logo/hairlines/tablas zebra, escala en pt); layout por motor libre",
+        "PPT/Word/XLSX: heredan paleta y tipografía; el XLSX conserva los colores canónicos de tipo de pregunta",
+        "Mono negro para impresión; lockups con mínimo de 96px de ancho"
+      ],
+      "status": "implemented"
+    }
+  },
+  "governance": {
+    "owners": [
+      "Gonzalo Almendáriz (PULSO PUCP)"
+    ],
+    "exceptions": [
+      {
+        "id": "motion-firma-diagramas",
+        "reason": "La firma «orbit-in + edge-draw» del dashboard usa 620ms (nodos) y 680ms (aristas), por encima del tope de 420ms de la escala de tokens; está documentada como patrón maestro 8 en la dirección v1.1/v1.2 y se mantiene como excepción acotada a diagramas y árboles, con vía reducida obligatoria.",
+        "owner": "Gonzalo Almendáriz (PULSO PUCP)",
+        "expires": "2027-01-31"
+      }
+    ],
+    "generated_file_policy": {
+      "source_of_truth": "branding/direccion-creativa.md (v1.2, referencia normativa aprobada) codificada operativamente en branding/identity.json; los valores operativos viven en frontend/src/app/theme.css y branding/tokens/prosecnur-brand.css",
+      "collision_policy": "never-overwrite-unowned",
+      "mirrors": [
+        {
+          "id": "manual-identidad-html",
+          "target": "documentation",
+          "path": "branding/manual-identidad.html",
+          "ownership": "manual_template",
+          "status": "current",
+          "identity_version": "1.2.0",
+          "manifest_hash": "sha256:518eb2cd23e96c4e0263f70987d1f8bd25277be26d332b1aba7b2f43e7b1dcf3"
+        },
+        {
+          "id": "prosecnur-brand-css",
+          "target": "web-externo",
+          "path": "branding/tokens/prosecnur-brand.css",
+          "ownership": "manual_template",
+          "status": "current",
+          "identity_version": "1.2.0",
+          "manifest_hash": "sha256:518eb2cd23e96c4e0263f70987d1f8bd25277be26d332b1aba7b2f43e7b1dcf3"
+        }
+      ]
+    },
+    "review_conditions": [
+      "Cambios de identidad (geometría del isotipo, paleta de marca, patrones maestros) requieren actualizar la dirección creativa y republicar el manual; el Artifact y branding/manual-identidad.html deben mantenerse en paridad",
+      "Reabrir el freeze cuando cambie el concepto, el significado semántico de tokens, los contratos de componentes, las invariantes de plataforma o los outputs requeridos",
+      "Los derivados .ico/.icns/.bmp se regeneran desde branding/logo/ en el siguiente build de packaging",
+      "theme.css es la fuente operativa dentro de la app: cualquier drift entre identity.json y theme.css/prosecnur-brand.css se resuelve a favor de la dirección creativa y se registra"
+    ]
+  },
+  "verification": {
+    "required_checks": [
+      {
+        "id": "schema-identity",
+        "type": "schema",
+        "status": "passed",
+        "evidence": "node scripts/validate-identity.mjs branding/identity.json --mode reconstruction (App Identity OS): VALID, ver reporte del carril CREATE 2026-07-16"
+      },
+      {
+        "id": "accesibilidad-contraste-foco",
+        "type": "accessibility",
+        "status": "waived",
+        "evidence": "Waived para el freeze con evidencia parcial de sesión: contraste WCAG calculado en vivo en el manual (navy 15.1:1, señal 6.2:1), focus rings y prefers-reduced-motion verificados en QA de los capítulos y en BootGate/QR. Barrido AA completo (triadas, DPI Windows) agendado en oleadas R del plan-rebranding.md; revisar antes de 2026-09-30. Owner: lead de diseño."
+      },
+      {
+        "id": "qa-visual-matriz",
+        "type": "visual",
+        "status": "waived",
+        "evidence": "Waived para el freeze con evidencia parcial: QA visual real de sesión (manual 10 capítulos, BootGate con firma, Recopiladores con proyecto real vía deep-link). make ui-quick-check / audit-project-visual-matrix quedan como gate de las oleadas R2+ del plan-rebranding.md. Owner: verificador."
+      },
+      {
+        "id": "drift-tokens",
+        "type": "drift",
+        "status": "passed",
+        "evidence": "Tres auditorías de deriva ejecutadas el 2026-07-16 (chrome por módulo, componentes/KPIs, motion/voz) con evidencia archivo:línea, consolidadas en branding/plan-rebranding.md (backlog R1-R4; R1 ya implementada)."
+      }
+    ],
+    "fixtures": [
+      "Proyecto .pulso canónico de auditoría (seed sintético del skill prosecnur-project)",
+      "branding/logo/preview.html (contact sheet con prueba de reducción de la suite de logos)"
+    ],
+    "viewports": [
+      "1710x1107",
+      "1440x1000",
+      "1366x768",
+      "1280x720",
+      "1024x600"
+    ],
+    "states": [
+      "rest",
+      "hover",
+      "focus_visible",
+      "active",
+      "disabled",
+      "loading",
+      "empty",
+      "success",
+      "warning",
+      "error",
+      "reduced_motion"
+    ],
+    "acceptance_rules": [
+      "Toda afirmación de identidad en alcance requiere evidencia directa (captura, token o test)",
+      "Nada se declara terminado sin evidencia de verificación (gate innegociable del repo)",
+      "El freeze exige los cuatro checks en passed o waived y la aprobación humana explícita del gate freeze"
+    ]
+  },
+  "outputs": [
+    {
+      "id": "identity-tokens-css",
+      "target": "react",
+      "path": "branding/identity/tokens.css",
+      "ownership": "generated",
+      "status": "planned",
+      "identity_version": "1.2.0",
+      "manifest_hash": "sha256:518eb2cd23e96c4e0263f70987d1f8bd25277be26d332b1aba7b2f43e7b1dcf3"
+    },
+    {
+      "id": "identity-reference-doc",
+      "target": "documentation",
+      "path": "branding/identity/identity-reference.html",
+      "ownership": "generated",
+      "status": "planned",
+      "identity_version": "1.2.0",
+      "manifest_hash": "sha256:518eb2cd23e96c4e0263f70987d1f8bd25277be26d332b1aba7b2f43e7b1dcf3"
+    }
+  ],
+  "extensions": {
+    "pe.pucp.pulso.prosecnur": {
+      "lifecycle_state": "frozen",
+      "manifest_hash_method": "sha256 del archivo identity.json canónico (UTF-8, tal como está serializado) con TODOS los campos manifest_hash fijados al placeholder sha256:0000…0; el digest resultante se escribe luego en identity.manifest_hash y en cada mirror/output",
+      "decision_authority": {
+        "owner": "Gonzalo Almendáriz (PULSO PUCP)",
+        "session": "Sesión de branding 2026-07-15/16",
+        "record": "docs/adrs/0038-identidad-visual-v1-1.md (Aceptado) + branding/direccion-creativa.md v1.2 (congelada)"
+      },
+      "assumptions": [
+        "identity.version 1.2.0 mapea la v1.2 de la dirección creativa a semver; futuras revisiones de la dirección incrementan minor/major según cambio de significado",
+        "Imagery: la dirección v1.2 no norma fotografía/ilustración; se propone una regla mínima (sin stock, gráficos de dominio como dato, capturas sobre superficie fría) marcada como proposed y reversible",
+        "systems.motion.max_duration_ms=680 refleja la firma «orbit-in + edge-draw» (620/680ms); el principio «nada supera 420ms» se interpreta como tope de la escala de tokens y la firma queda como excepción gobernada con revisión al 2027-01-31",
+        "Los gates brief y territory se registran como approved retroactivamente sobre la evidencia del ADR 0038 (Aceptado, 2026-07-15) y la dirección v1.2 congelada; el timestamp usa la fecha del ADR",
+        "chart-danger #DC2626 y danger UI #BE123C se codifican como tokens separados (rol data vs semantic) porque las fuentes los mantienen distintos a propósito",
+        "Los mirrors (manual-identidad.html, prosecnur-brand.css) se declaran manual_template/current en paridad de contenido con v1.2; el validador exige identity_version y manifest_hash idénticos al manifiesto, que se copian por contrato de paridad",
+        "Los outputs se declaran planned bajo branding/identity/ como destino del carril compile-app-identity; ningún archivo generado existe todavía",
+        "Nombres de token en kebab-case ASCII (sin acentos ni ñ) mapeando los --pulso-*/--prosecnur-* correspondientes",
+        "Los valores con alpha (softs, borders, focus, ring, material) no caben en el patrón de color del schema (solo hex sólido/oklch/rgb/hsl); se codifican como reglas de texto y en extensions.interaction_alphas/materials",
+        "El territorio rechazado «señal dispersa» documenta el status quo pre-v1.1 descrito por el ADR 0038; no es una alternativa creativa nueva",
+        "La escala de espaciado codifica exactamente la de la dirección (4…48); theme.css usa además valores derivados de la retícula que no se enumeran token a token"
+      ],
+      "pending_human_decisions_for_freeze": {
+        "resolved": "2026-07-16T05:30:00Z",
+        "answers": [
+          "freeze aprobado",
+          "hero Home ≤28px",
+          "firma 620/680 ratificada",
+          "calc-muestra al push",
+          "outputs compile confirmados: branding/identity/tokens.css + identity-reference.html"
+        ]
+      },
+      "interaction_alphas": {
+        "primary_soft": "rgba(0,36,87,0.08)",
+        "primary_border": "rgba(0,36,87,0.18)",
+        "primary_focus": "rgba(0,36,87,0.15)",
+        "primary_ring": "rgba(0,36,87,0.12)",
+        "info_bg": "rgba(0,36,87,0.04)",
+        "module_soft_alpha": "0.12-0.13",
+        "module_border_alpha": "0.30-0.32"
+      },
+      "module_spectrum": {
+        "editor-xlsform": {
+          "accent": "#6D5DFC",
+          "css": "--pulso-module-editor",
+          "titulo": "Editor de formularios"
+        },
+        "procesamiento": {
+          "accent": "#0F766E",
+          "css": "--pulso-module-processing",
+          "titulo": "Procesamiento"
+        },
+        "dashboard": {
+          "accent": "#2563EB",
+          "css": "--pulso-module-dashboard",
+          "titulo": "Dashboard interactivo"
+        },
+        "hojas-ruta": {
+          "accent": "#C2410C",
+          "css": "--pulso-module-routes",
+          "titulo": "Hojas de ruta para campo"
+        },
+        "calc-muestra": {
+          "accent": "#7C3AED",
+          "css": "--pulso-module-sample",
+          "titulo": "Cálculo de muestra y marco muestral"
+        },
+        "diseno-estudio": {
+          "accent": "#A16207",
+          "css": "--pulso-module-encyclopedia",
+          "titulo": "Bitácora"
+        },
+        "plan-trabajo": {
+          "accent": "#A16207",
+          "css": "--pulso-module-workplan (alias de encyclopedia)",
+          "titulo": "Plan de trabajo (fusionado en Bitácora)"
+        },
+        "recopiladores": {
+          "accent": "#0891B2",
+          "css": "--pulso-module-collectors",
+          "titulo": "Fichas QR para cursos-horario"
+        },
+        "monitoreo": {
+          "accent": "#BE123C",
+          "css": "--pulso-module-monitoring",
+          "titulo": "Monitoreo de campo"
+        }
+      },
+      "motion_tokens": {
+        "durations_ms": {
+          "press": 120,
+          "fast": 160,
+          "base": 220,
+          "panel": 280,
+          "slow": 420
+        },
+        "easings": {
+          "out": "cubic-bezier(0.23, 1, 0.32, 1)",
+          "standard": "cubic-bezier(0.2, 0, 0, 1)",
+          "drawer": "cubic-bezier(0.32, 0.72, 0, 1)",
+          "productive": "cubic-bezier(0.16, 1, 0.3, 1)",
+          "in-out": "cubic-bezier(0.77, 0, 0.175, 1)"
+        },
+        "route_offsets_px": {
+          "enter_y": 8,
+          "forward_x": 12,
+          "back_x": -12
+        },
+        "signatures": {
+          "pageframe": {
+            "body_ms": 190,
+            "header_ms": 150,
+            "toolbar_ms": 160,
+            "easing": "out"
+          },
+          "brand_stagger": {
+            "per_bar_ms": 60,
+            "duration": "slow",
+            "easing": "productive"
+          },
+          "orbit_edge_draw": {
+            "nodes_ms": 620,
+            "edges_ms": 680,
+            "scope": "diagramas y árboles",
+            "governed_exception": "motion-firma-diagramas"
+          }
+        }
+      },
+      "materials": {
+        "base": {
+          "mix": "color-mix(in srgb, var(--pulso-surface) 82%, transparent)",
+          "uso": "command bars, pillbars, rails"
+        },
+        "strong": {
+          "mix": "color-mix(in srgb, var(--pulso-surface) 92%, transparent)",
+          "uso": "segmented, controles sobre contenido"
+        },
+        "chrome": {
+          "mix": "color-mix(in srgb, #ffffff 74%, transparent)",
+          "uso": "barras de app"
+        },
+        "blur_px": [
+          10,
+          14,
+          18
+        ],
+        "saturate": 1.08,
+        "border": "color-mix(in srgb, var(--pulso-primary-border) 78%, var(--pulso-border))",
+        "shadow": "inset 0 1px 0 rgba(255,255,255,0.72), 0 10px 30px rgba(0,36,87,0.08)"
+      },
+      "xlsx_question_type_colors": {
+        "seleccion-multiple": {
+          "bg": "#E2F0D9",
+          "border": "#9CC47F",
+          "fg": "#2D6720"
+        },
+        "seleccion-unica": {
+          "bg": "#D9E1F2",
+          "border": "#8FA3D0",
+          "fg": "#1E3A6B"
+        },
+        "numerica": {
+          "bg": "#E6D9F2",
+          "border": "#A48AC9",
+          "fg": "#4A2D66"
+        },
+        "texto": {
+          "bg": "#FFF2CC",
+          "border": "#D5B866",
+          "fg": "#7A5A00"
+        }
+      },
+      "verbal_formats_es_pe": {
+        "miles": "coma",
+        "decimales": "punto",
+        "horas": "24h",
+        "numeros_en_columnas": "tabular-nums",
+        "tratamiento": "tú, español peruano neutro"
+      },
+      "navigation_vocabulary": {
+        "nivel-1": "Familia/Módulo (homepage, paleta propia)",
+        "nivel-2": "Sección (top bar del módulo)",
+        "nivel-3": "Pestaña dinámica (sidebar icon-compressed)"
+      }
+    }
+  }
+}

@@ -610,7 +610,7 @@
     color-mix(in srgb, var(--pulso-module-sample) 78%, var(--pulso-surface)),
     var(--pulso-module-sample)
   );
-  transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: width 420ms var(--motion-ease-out);
 }
 
 .rec-embudo-paso[data-final] .rec-embudo-barra {
@@ -688,7 +688,7 @@
   border-radius: 6px;
   background: color-mix(in srgb, var(--pulso-module-sample) 32%, var(--pulso-surface-3));
   overflow: hidden;
-  transition: width 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: width 360ms var(--motion-ease-out);
 }
 
 .rec-barras-seg {
@@ -880,7 +880,7 @@
   height: 100%;
   border-radius: 6px;
   overflow: hidden;
-  transition: width 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: width 360ms var(--motion-ease-out);
 }
 .rec-dist-seg { height: 100%; }
 
