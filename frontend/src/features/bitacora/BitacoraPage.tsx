@@ -95,11 +95,14 @@ export default function BitacoraPage() {
       className="bitacora-frame"
     >
       <div className="bitacora-shell" style={moduleChromeVars(BITACORA_MODULE)}>
-        {/* Rail de secciones canónico: las mismas píldoras centradas que usan
-            Procesamiento y Monitoreo (.pulso-phase-pillbar). El spacer izquierdo
-            equilibra el refresh de la derecha para que el rail quede centrado. */}
-        <div className="bitacora-command-row">
-          <span className="bitacora-command-spacer" aria-hidden="true" />
+        {/* Command bar material de 3 zonas (patrón maestro 1, espejo del
+            mon-commandbar): contexto (dot + kicker) | rail de secciones
+            canónico (.pulso-phase-pillbar) | acciones (refresh). */}
+        <div className="bitacora-commandbar" aria-label="Contexto de la bitácora">
+          <span className="bitacora-command-context">
+            <span className="bitacora-command-dot" aria-hidden="true" />
+            <span className="bitacora-command-kicker">Bitácora</span>
+          </span>
           <GlidingTabList
             as="nav"
             activeKey={tab}
@@ -139,15 +142,17 @@ export default function BitacoraPage() {
               })}
             </ol>
           </GlidingTabList>
-          <button
-            type="button"
-            className="bitacora-icon-button"
-            onClick={load}
-            title="Actualizar"
-            aria-label="Actualizar bitácora"
-          >
-            {loading ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />}
-          </button>
+          <div className="bitacora-command-actions">
+            <button
+              type="button"
+              className="bitacora-icon-button"
+              onClick={load}
+              title="Actualizar"
+              aria-label="Actualizar bitácora"
+            >
+              {loading ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />}
+            </button>
+          </div>
         </div>
 
         {error && <Alert kind="error">{error}</Alert>}

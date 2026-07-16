@@ -56,6 +56,7 @@ antes de su commit. Máximo dos writers por oleada, globs disjuntos.
 | R4.1 | Tokens de motion en features: `--cmv2-ease-*`/`--dash-ease-*` → alias de `--motion-*` (patrón `--gv2-press-ease`); literales near-map (150→fast, 200-250→base, 300-340→panel) | A3§1-2 |
 | R4.2 | Hex semántico/navy/slate → tokens en `monitoreo.css` (~1064) y `editor-v2.css` (~985), por lotes 1:1 mecánicos con QA visual por perfil | A2§6 |
 | R4.3 | Iconografía: alias nuevos (Database, FileText, Download, RotateCcw, FileSpreadsheet, Info, Upload, Filter, Save, Eye) + migración gradual de imports crudos a alias | A2§4 |
+| R4.5 | Token `--pulso-switch-track` (+`-track-on`): el gradiente del track está copiado en ~8 CSS de features espejando el maestro — centralizar para que el maestro gobierne | Gate integral 2026-07-16 |
 | R4.4 | Dashboard: convergencia de chrome (rail propio, capa `--dash-*`) — requiere decisión de diseño (es superficie de entregable) | A1 |
 
 ## No-hacer (por ahora)
