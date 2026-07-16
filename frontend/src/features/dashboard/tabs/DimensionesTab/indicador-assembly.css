@@ -85,9 +85,9 @@
 
 .dashboard-scope .dash-assembly-index-score {
   fill: #ffffff;
-  font-size: 22px;
+  font-size: 21px;
   font-variant-numeric: tabular-nums;
-  font-weight: 800;
+  font-weight: 900;
   letter-spacing: -0.02em;
   pointer-events: none;
 }

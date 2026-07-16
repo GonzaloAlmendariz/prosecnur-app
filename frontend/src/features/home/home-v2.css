@@ -692,7 +692,7 @@
 
 /* Número grande (stat de dominio) */
 .home-mc-stat.is-hero { flex-direction: row; align-items: baseline; gap: 12px; }
-.home-mc-stat.is-hero > strong { font-size: clamp(32px, 3.4vw, 42px); }
+.home-mc-stat.is-hero > strong { font-size: 28px; }
 
 /* Sin dato: el guion hereda el peso del hero y parece una barra; se atenúa. */
 .home-mc-stat.is-hero.is-empty > strong {
@@ -785,8 +785,9 @@
 }
 
 .home-mc-stat > strong {
-  font-size: 27px;
-  font-weight: 800;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
   letter-spacing: -0.02em;
 }
@@ -862,7 +863,7 @@
   gap: 10px;
 }
 
-.home-mc-viz.is-phases .home-mc-stat > strong { font-size: 22px; }
+.home-mc-viz.is-phases .home-mc-stat > strong { font-size: 21px; }
 .home-mc-viz.is-phases .home-mc-stat-meta { flex-direction: row; align-items: baseline; gap: 8px; }
 
 /* --- Pie: facts de dominio + acceso ----------------------------------- */

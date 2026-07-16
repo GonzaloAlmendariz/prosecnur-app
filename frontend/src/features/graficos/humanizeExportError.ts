@@ -24,8 +24,8 @@ export type HumanizedError = {
 };
 
 export function humanizeGraficosExportError(raw: string, plan: PlanJson): HumanizedError {
-  // Quitar el prefijo "[E_CODE] " si viene envuelto por el handle() del client.
-  const msg = raw.replace(/^\[[A-Z_]+\]\s*/, "");
+  // Quitar el prefijo legado "[E_CODE] " y el sufijo canónico " · E_CODE" del client.
+  const msg = raw.replace(/^\[[A-Z_]+\]\s*/, "").replace(/\s*·\s*(?:E_|HTTP_)[A-Z0-9_]+\s*$/, "");
 
   // 1) argument "xxx" is missing ----------------------------------------
   const missingMatch = /argument "(\w+)" is missing, with no default/.exec(msg);
