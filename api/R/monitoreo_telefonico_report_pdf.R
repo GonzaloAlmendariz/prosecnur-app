@@ -56,25 +56,63 @@ monitoreo_client_snapshot_with_carga_universe <- function(snapshot, session_stat
   variable <- .mtpdf_text(selected$variable, "")
   if (!nzchar(variable)) return(snapshot)
   norm <- function(x) gsub("[^a-z0-9]", "", iconv(tolower(sub("^.*/", "", x)), to = "ASCII//TRANSLIT"))
-  idx <- match(norm(variable), norm(names(snapshot$data)))
-  if (is.na(idx)) return(snapshot)
-  column <- names(snapshot$data)[idx]
-  values <- trimws(as.character(snapshot$data[[column]]))
-  real_values <- trimws(as.character(unlist(selected$real_values, use.names = FALSE)))
   response_mask <- if (".source_role" %in% names(snapshot$data)) tolower(trimws(as.character(snapshot$data$.source_role))) == "respuestas" else rep(TRUE, nrow(snapshot$data))
-  keep <- !response_mask | (!is.na(values) & values %in% real_values)
   before <- sum(response_mask, na.rm = TRUE)
-  after <- sum(response_mask & keep, na.rm = TRUE)
+  response_data <- snapshot$data[response_mask, , drop = FALSE]
+  resolve_column <- function(name) {
+    idx <- match(norm(.mtpdf_text(name)), norm(names(response_data)))
+    if (is.na(idx)) "" else names(response_data)[idx]
+  }
+  cfg <- selected
+  cfg$variable <- resolve_column(cfg$variable)
+  if (!nzchar(cfg$variable)) return(snapshot)
+  cfg$corrections <- lapply(cfg$corrections %||% list(), function(item) {
+    item$key_variable <- resolve_column(item$key_variable)
+    item$variable <- resolve_column(item$variable)
+    item
+  })
+  cfg$exclusion_rules <- lapply(cfg$exclusion_rules %||% list(), function(item) {
+    item$variable <- resolve_column(item$variable)
+    item
+  })
+  if (!exists(".cuf_classify", mode = "function")) return(snapshot)
+  classified <- .cuf_classify(response_data, cfg, allow_empty_selection = TRUE)
+  keep <- !response_mask
+  keep[which(response_mask)] <- classified$keep
+  after <- sum(classified$keep, na.rm = TRUE)
   snapshot$data <- snapshot$data[keep, , drop = FALSE]
+  response_rows <- which(
+    if (".source_role" %in% names(snapshot$data)) {
+      tolower(trimws(as.character(snapshot$data$.source_role))) == "respuestas"
+    } else {
+      rep(TRUE, nrow(snapshot$data))
+    }
+  )
+  # Conservar también las correcciones de clasificación en el corte que recibe
+  # el motor del reporte. Si solo se copiara el vector keep, las entrevistas
+  # corregidas entrarían en la tabla pero seguirían figurando como prueba.
+  if (length(response_rows) == nrow(classified$data)) {
+    for (name in intersect(names(snapshot$data), names(classified$data))) {
+      snapshot$data[[name]][response_rows] <- classified$data[[name]]
+    }
+  }
+  audit <- classified$summary %||% list()
+  real_values <- trimws(as.character(unlist(selected$real_values, use.names = FALSE)))
   snapshot$report_universe_filter <- list(
     applied = TRUE,
     base_nombre = selected$base_nombre,
     variable = variable,
-    column = column,
+    column = cfg$variable,
     responses_before = as.integer(before),
     responses_after = as.integer(after),
     excluded = as.integer(before - after),
-    real_values = as.list(real_values)
+    real_values = as.list(real_values),
+    corrected = as.integer(audit$corrected %||% 0L),
+    excluded_test = as.integer(audit$excluded_test %||% 0L),
+    excluded_unclassified = as.integer(audit$excluded_unclassified %||% 0L),
+    excluded_rules = as.integer(audit$excluded_rules %||% 0L),
+    corrections = audit$corrections %||% list(),
+    exclusion_rules = audit$exclusion_rules %||% list()
   )
   snapshot
 }

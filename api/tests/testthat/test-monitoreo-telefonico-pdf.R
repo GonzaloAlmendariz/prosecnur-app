@@ -22,6 +22,52 @@ test_that("corte cliente hereda filtro real/prueba de Carga sin mutar la fuente"
   expect_identical(filtered$report_universe_filter$column, "Intro/testreal")
 })
 
+test_that("corte cliente aplica correcciones y exclusiones registradas en Carga", {
+  snapshot <- list(data = data.frame(
+    .source_role = c("barrido", rep("respuestas", 6L)),
+    `Detalles/Codigo` = c(NA, "A", "B", "PRUEBA", "R1", "R2", "DUP"),
+    `Intro/testreal` = c(NA, "test", "test", "test", "real", "real", "real"),
+    `Intro/Consent` = c(NA, "Yes", "Yes", "Yes", "No", "No", "Yes"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  ))
+  session_state <- list(estudio = list(
+    active_base = "principal",
+    bases = list(principal = list(universe_filter = list(
+      enabled = TRUE,
+      variable = "testreal",
+      real_values = list("real"),
+      test_values = list("test"),
+      corrections = list(
+        list(id = "A_real", key_variable = "Codigo", key_values = list("A"),
+             variable = "testreal", from_values = list("test"), to_value = "real"),
+        list(id = "B_real", key_variable = "Codigo", key_values = list("B"),
+             variable = "testreal", from_values = list("test"), to_value = "real")
+      ),
+      exclusion_rules = list(
+        list(id = "rechazo", variable = "Consent", values = list("No"))
+      )
+    )))
+  ))
+
+  filtered <- monitoreo_client_snapshot_with_carga_universe(snapshot, session_state)
+
+  expect_equal(nrow(snapshot$data), 7L)
+  expect_equal(sum(filtered$data$.source_role == "respuestas"), 3L)
+  expect_equal(
+    filtered$data$`Detalles/Codigo`[filtered$data$.source_role == "respuestas"],
+    c("A", "B", "DUP")
+  )
+  expect_true(all(
+    filtered$data$`Intro/testreal`[filtered$data$.source_role == "respuestas"] == "real"
+  ))
+  expect_equal(filtered$report_universe_filter$responses_before, 6L)
+  expect_equal(filtered$report_universe_filter$responses_after, 3L)
+  expect_equal(filtered$report_universe_filter$corrected, 2L)
+  expect_equal(filtered$report_universe_filter$excluded_test, 1L)
+  expect_equal(filtered$report_universe_filter$excluded_rules, 2L)
+})
+
 test_that("endpoint PDF filtra las pruebas antes de construir el modelo cliente", {
   source <- paste(deparse(body(mount_monitoreo), width.cutoff = 500L), collapse = "\n")
   route_start <- regexpr("/api/monitoreo/client-report/pdf", source, fixed = TRUE)[[1L]]
