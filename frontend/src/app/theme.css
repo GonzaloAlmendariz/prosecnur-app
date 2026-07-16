@@ -45209,23 +45209,13 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   align-self: center;
 }
 
-/* Processing sidebars: persistent icon rail; details appear as hover/focus tooltips. */
+/* Processing sidebars: always-compressed icon rail (dec-sidebar-icon-tooltip); details appear only as hover/focus tooltip bubbles, never as inline expansion. */
 @media (min-width: 901px) {
   .pulso-main--processing :is(
     .pulso-adaptive-split--workbench,
     .pulso-analitica-shell
   ) {
     grid-template-columns: 66px minmax(0, 1fr) !important;
-    transition: grid-template-columns var(--motion-dur-base) var(--motion-ease-out);
-  }
-
-  .pulso-main--processing :is(
-    .pulso-adaptive-split--workbench:has(> .pulso-adaptive-rail:hover),
-    .pulso-adaptive-split--workbench:has(> .pulso-adaptive-rail:focus-within),
-    .pulso-analitica-shell:has(> .pulso-analitica-sidebar:hover),
-    .pulso-analitica-shell:has(> .pulso-analitica-sidebar:focus-within)
-  ) {
-    grid-template-columns: minmax(220px, 240px) minmax(0, 1fr) !important;
   }
 
   .pulso-main--processing :is(
@@ -45242,20 +45232,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   }
 
   .pulso-main--processing :is(
-    .pulso-adaptive-rail:hover > .pulso-carga-stage-rail,
-    .pulso-adaptive-rail:focus-within > .pulso-carga-stage-rail,
-    .pulso-adaptive-rail:hover > .pulso-validacion-sidebar,
-    .pulso-adaptive-rail:focus-within > .pulso-validacion-sidebar,
-    .pulso-adaptive-rail:hover > .pulso-codificacion-sidebar,
-    .pulso-adaptive-rail:focus-within > .pulso-codificacion-sidebar,
-    .pulso-analitica-sidebar:hover,
-    .pulso-analitica-sidebar:focus-within
-  ) {
-    padding: 9px;
-    overflow: auto;
-  }
-
-  .pulso-main--processing :is(
     .pulso-carga-stage-head,
     .pulso-validacion-sidebar-head,
     .pulso-codificacion-sidebar-head,
@@ -45263,26 +45239,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     .pulso-carga-stage-mode
   ) {
     display: none !important;
-  }
-
-  .pulso-main--processing :is(
-    .pulso-adaptive-rail:hover > .pulso-carga-stage-rail .pulso-carga-stage-head,
-    .pulso-adaptive-rail:focus-within > .pulso-carga-stage-rail .pulso-carga-stage-head,
-    .pulso-adaptive-rail:hover > .pulso-validacion-sidebar .pulso-validacion-sidebar-head,
-    .pulso-adaptive-rail:focus-within > .pulso-validacion-sidebar .pulso-validacion-sidebar-head,
-    .pulso-adaptive-rail:hover > .pulso-codificacion-sidebar .pulso-codificacion-sidebar-head,
-    .pulso-adaptive-rail:focus-within > .pulso-codificacion-sidebar .pulso-codificacion-sidebar-head,
-    .pulso-analitica-sidebar:hover .pulso-analitica-sidebar-head,
-    .pulso-analitica-sidebar:focus-within .pulso-analitica-sidebar-head
-  ) {
-    display: grid !important;
-  }
-
-  .pulso-main--processing :is(
-    .pulso-adaptive-rail:hover > .pulso-carga-stage-rail .pulso-carga-stage-mode,
-    .pulso-adaptive-rail:focus-within > .pulso-carga-stage-rail .pulso-carga-stage-mode
-  ) {
-    display: grid !important;
   }
 
   .pulso-main--processing :is(
@@ -45312,47 +45268,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     gap: 0;
     padding: 0 !important;
     overflow: hidden;
-  }
-
-  .pulso-main--processing :is(
-    .pulso-adaptive-rail:hover > .pulso-carga-stage-rail .pulso-carga-stage-item,
-    .pulso-adaptive-rail:focus-within > .pulso-carga-stage-rail .pulso-carga-stage-item,
-    .pulso-adaptive-rail:hover > .pulso-validacion-sidebar .pulso-validacion-nav-item,
-    .pulso-adaptive-rail:focus-within > .pulso-validacion-sidebar .pulso-validacion-nav-item,
-    .pulso-adaptive-rail:hover > .pulso-codificacion-sidebar .pulso-codificacion-nav-item,
-    .pulso-adaptive-rail:focus-within > .pulso-codificacion-sidebar .pulso-codificacion-nav-item,
-    .pulso-analitica-sidebar:hover .pulso-analitica-nav-item,
-    .pulso-analitica-sidebar:focus-within .pulso-analitica-nav-item
-  ) {
-    width: 100%;
-    min-height: 46px;
-    height: 46px;
-    justify-items: stretch;
-    gap: 7px;
-    padding: 6px 7px !important;
-  }
-
-  .pulso-main--processing :is(
-    .pulso-adaptive-rail:hover > .pulso-carga-stage-rail .pulso-carga-stage-item,
-    .pulso-adaptive-rail:focus-within > .pulso-carga-stage-rail .pulso-carga-stage-item
-  ) {
-    grid-template-columns: 22px 28px minmax(0, 1fr) !important;
-  }
-
-  .pulso-main--processing :is(
-    .pulso-adaptive-rail:hover > .pulso-validacion-sidebar .pulso-validacion-nav-item,
-    .pulso-adaptive-rail:focus-within > .pulso-validacion-sidebar .pulso-validacion-nav-item,
-    .pulso-adaptive-rail:hover > .pulso-codificacion-sidebar .pulso-codificacion-nav-item,
-    .pulso-adaptive-rail:focus-within > .pulso-codificacion-sidebar .pulso-codificacion-nav-item
-  ) {
-    grid-template-columns: 22px 28px minmax(0, 1fr) !important;
-  }
-
-  .pulso-main--processing :is(
-    .pulso-analitica-sidebar:hover .pulso-analitica-nav-item,
-    .pulso-analitica-sidebar:focus-within .pulso-analitica-nav-item
-  ) {
-    grid-template-columns: 28px minmax(0, 1fr) 13px !important;
   }
 
   .pulso-main--processing :is(
@@ -45396,79 +45311,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     transition:
       opacity var(--motion-dur-fast) ease,
       transform var(--motion-dur-fast) var(--motion-ease-out);
-  }
-
-  .pulso-main--processing :is(
-    .pulso-analitica-sidebar:hover,
-    .pulso-analitica-sidebar:focus-within
-  ) .pulso-analitica-nav-item.is-done::after {
-    opacity: 0;
-    transform: scale(0.72);
-  }
-
-  .pulso-main--processing :is(
-    .pulso-adaptive-rail:hover > .pulso-carga-stage-rail .pulso-carga-stage-index,
-    .pulso-adaptive-rail:focus-within > .pulso-carga-stage-rail .pulso-carga-stage-index,
-    .pulso-adaptive-rail:hover > .pulso-validacion-sidebar .pulso-validacion-nav-index,
-    .pulso-adaptive-rail:focus-within > .pulso-validacion-sidebar .pulso-validacion-nav-index,
-    .pulso-adaptive-rail:hover > .pulso-codificacion-sidebar .pulso-codificacion-nav-index,
-    .pulso-adaptive-rail:focus-within > .pulso-codificacion-sidebar .pulso-codificacion-nav-index
-  ) {
-    display: inline-flex !important;
-  }
-
-  .pulso-main--processing :is(
-    .pulso-adaptive-rail:hover > .pulso-carga-stage-rail .pulso-carga-stage-copy,
-    .pulso-adaptive-rail:focus-within > .pulso-carga-stage-rail .pulso-carga-stage-copy,
-    .pulso-adaptive-rail:hover > .pulso-validacion-sidebar .pulso-validacion-nav-copy,
-    .pulso-adaptive-rail:focus-within > .pulso-validacion-sidebar .pulso-validacion-nav-copy,
-    .pulso-adaptive-rail:hover > .pulso-codificacion-sidebar .pulso-codificacion-nav-copy,
-    .pulso-adaptive-rail:focus-within > .pulso-codificacion-sidebar .pulso-codificacion-nav-copy,
-    .pulso-analitica-sidebar:hover .pulso-analitica-nav-copy,
-    .pulso-analitica-sidebar:focus-within .pulso-analitica-nav-copy
-  ) {
-    display: grid !important;
-    align-self: center;
-    min-width: 0;
-  }
-
-  .pulso-main--processing :is(
-    .pulso-analitica-sidebar:hover,
-    .pulso-analitica-sidebar:focus-within
-  ) .pulso-analitica-nav-done {
-    display: inline-flex !important;
-  }
-
-  .pulso-main--processing :is(
-    .pulso-adaptive-rail:hover > .pulso-carga-stage-rail .pulso-carga-stage-copy,
-    .pulso-adaptive-rail:focus-within > .pulso-carga-stage-rail .pulso-carga-stage-copy,
-    .pulso-adaptive-rail:hover > .pulso-validacion-sidebar .pulso-validacion-nav-copy,
-    .pulso-adaptive-rail:focus-within > .pulso-validacion-sidebar .pulso-validacion-nav-copy,
-    .pulso-adaptive-rail:hover > .pulso-codificacion-sidebar .pulso-codificacion-nav-copy,
-    .pulso-adaptive-rail:focus-within > .pulso-codificacion-sidebar .pulso-codificacion-nav-copy,
-    .pulso-analitica-sidebar:hover .pulso-analitica-nav-copy,
-    .pulso-analitica-sidebar:focus-within .pulso-analitica-nav-copy
-  ) :is(strong, span) {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow-wrap: normal;
-  }
-
-  .pulso-main--processing :is(
-    .pulso-adaptive-rail:hover > .pulso-carga-stage-rail .pulso-carga-stage-copy span,
-    .pulso-adaptive-rail:focus-within > .pulso-carga-stage-rail .pulso-carga-stage-copy span,
-    .pulso-adaptive-rail:hover > .pulso-validacion-sidebar .pulso-validacion-nav-copy span,
-    .pulso-adaptive-rail:focus-within > .pulso-validacion-sidebar .pulso-validacion-nav-copy span,
-    .pulso-adaptive-rail:hover > .pulso-codificacion-sidebar .pulso-codificacion-nav-copy span,
-    .pulso-adaptive-rail:focus-within > .pulso-codificacion-sidebar .pulso-codificacion-nav-copy span,
-    .pulso-analitica-sidebar:hover .pulso-analitica-nav-copy span,
-    .pulso-analitica-sidebar:focus-within .pulso-analitica-nav-copy span
-  ) {
-    display: block !important;
-    max-height: 14px;
-    opacity: 0.78;
-    transform: translateY(0);
   }
 }
 
@@ -45689,15 +45531,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     transition-delay: 0s;
   }
 
-  .pulso-main--processing :is(
-    .pulso-carga-stage-item.is-active[data-rail-tooltip],
-    .pulso-validacion-nav-item.is-active[data-rail-tooltip],
-    .pulso-codificacion-nav-item.is-active[data-rail-tooltip],
-    .pulso-analitica-nav-item.is-active[data-rail-tooltip]
-  )::before {
-    content: none !important;
-    display: none !important;
-  }
+  /* La burbuja aparece siempre, incluida la pestaña activa — dec-sidebar-icon-tooltip. */
 
   .pulso-main--processing :is(
     .pulso-carga-view-tab.is-sidebar,

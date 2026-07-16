@@ -116,13 +116,20 @@ que ya viven en la app** y los eleva a norma para todos los módulos.
    texto blanco + sombra `0 5px 12px rgba(0,36,87,.19)`; número de fase 19×19
    tabular. Entrada con `x −6→0` (base/salida). Es el selector de secciones
    primario de TODO módulo.
-3. **Sidebar de pestañas icon-compressed** (ejemplar: calc-muestra/Procesamiento):
-   3er nivel comprimido a 56px que expande a 240px **empujando el canvas por
-   grid** (`grid-template-columns` con track expandido de longitud fija — la
-   interpolación suave exige tracks de la misma estructura), transición
-   base/salida; activa = gradiente del primario + subtítulo revelado
-   (`max-height 0→14px`, fast). La variante icon-only + tooltip flotante es
-   secundaria, para superficies donde el push no cabe.
+3. **Sidebar de pestañas icon-compressed** (ejemplar: Procesamiento; decisión
+   dec-sidebar-icon-tooltip, 2026-07-16): el 3er nivel está **SIEMPRE
+   comprimido** (solo íconos, ~56px) — nunca se expande ni empuja el canvas.
+   El reveal es una **burbuja flotante elegante** en hover/focus
+   (`data-rail-tooltip` → `::before` a `left: calc(100% + 8px)`, radio 10,
+   material blanco en capas, 11px/760, título + subtítulo en `pre-line`,
+   z-index 420) que aparece **siempre — incluida la pestaña activa**. La
+   identificación persistente la da el **título compacto de la pestaña activa
+   al inicio del workbench** (ícono en tile + título + subtítulo, minimal).
+   Activa = gradiente del primario en el tile. Accesibilidad: `aria-label`
+   con título y detalle (sin `title` nativo, que pisaría la burbuja
+   estilizada); la burbuja también sale con `:focus-visible`. En apilado
+   angosto (<921px) el rail vive expandido EN FLUJO fijo, sin reaccionar al
+   hover. El push por grid queda **deprecado** como patrón de 3er nivel.
 4. **Switch maestro** (`pulso-switch`): 44×24, track cóncavo (gradiente
    `#eef2f7→#dfe6ef` + sombras internas), knob blanco de 18 elevado
    (`0 1px 2px rgba(15,23,42,.22)`), desliza `left 2→22` en fast/salida,
