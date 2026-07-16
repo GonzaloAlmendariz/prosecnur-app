@@ -392,6 +392,20 @@
   padding: 14px 0 0;
   overflow: visible;
   isolation: isolate;
+  transition: grid-template-columns var(--motion-dur-base) var(--motion-ease-out);
+}
+
+/* Solo en desktop de dos columnas: en el layout apilado (≤920px) el rail vive
+   en flujo con las filas ya expandidas y no debe reaccionar al hover.
+   Track expandido de largo fijo (no minmax): la transición de
+   grid-template-columns solo interpola suave entre listas de tracks con la
+   misma estructura (length↔length); con minmax() el cambio sería un salto
+   discreto en vez de deslizarse. */
+@media (min-width: 921px) {
+  .rec-workbench:has(> .rec-sidebar:hover),
+  .rec-workbench:has(> .rec-sidebar:focus-within) {
+    grid-template-columns: var(--pulso-rail-width) minmax(0, 1fr);
+  }
 }
 
 .rec-sidebar,
@@ -405,25 +419,28 @@
   box-shadow: var(--pulso-shadow-soft);
 }
 
-/* Rail de tercer nivel: el aside solo reserva el carril angosto en el grid del
-   workbench; el panel visual y la expansión viven en el shell absoluto. */
+/* Rail de tercer nivel: el aside llena su columna del grid; el panel visual
+   vive en el shell, en flujo. La expansión la gobierna la columna del grid
+   del workbench (ver .rec-workbench:has(...)): el rail EMPUJA el canvas,
+   sin overlay flotante (patrón maestro #3, como calc-muestra/Procesamiento). */
 .rec-sidebar {
-  position: relative;
-  width: var(--rec-sidebar-collapsed-size);
+  min-width: 0;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   border: 0;
   background: none;
   box-shadow: none;
   overflow: visible;
-  z-index: 3;
 }
 
-/* Shell = panel visual + motor de la expansión: crece a --pulso-rail-width al
-   hover/focus por encima del canvas, sin reflujo. */
+/* Shell = panel visual del rail, en flujo: ocupa el 100% del track del grid y
+   conserva el material; overflow oculto en colapsado para que las etiquetas
+   no se derramen mientras el track transiciona. */
 .rec-sidebar-shell {
-  position: absolute;
-  inset: 0;
-  width: var(--rec-sidebar-collapsed-size);
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -436,19 +453,14 @@
   box-shadow: var(--pulso-shadow-soft);
   backdrop-filter: blur(12px) saturate(128%);
   overflow: hidden;
-  transition:
-    width var(--motion-dur-fast) var(--motion-ease-out),
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
 }
 
+/* Expandido: mismo material (el panel empuja al canvas, no flota — sin sombra
+   de elevación de overlay); solo gana scroll interno. */
 .rec-sidebar:hover .rec-sidebar-shell,
 .rec-sidebar:focus-within .rec-sidebar-shell {
-  width: var(--pulso-rail-width);
   overflow-y: auto;
   overscroll-behavior: contain;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    0 18px 42px rgba(15, 23, 42, 0.16);
 }
 
 .rec-sidebar nav {
@@ -3050,6 +3062,52 @@
       "engine"
       "blocks"
       "return";
+  }
+}
+
+/* Rail de pestañas en layout apilado (≤920px, complemento del guard ≥921px
+   del push): sin columna que ensanchar, el rail pasa a fila plena en flujo
+   con las filas ya expandidas (ícono + copy) de forma fija, sin depender del
+   hover — misma estrategia que calc-muestra. El canvas queda primero y el
+   workbench gana scroll propio. */
+@media (max-width: 920px) {
+  .rec-workbench {
+    grid-template-columns: minmax(0, 1fr);
+    overflow: auto;
+  }
+
+  .rec-sidebar {
+    order: 2;
+  }
+
+  .rec-sidebar-shell,
+  .rec-sidebar:hover .rec-sidebar-shell,
+  .rec-sidebar:focus-within .rec-sidebar-shell {
+    overflow: visible;
+  }
+
+  .rec-sidebar-head {
+    max-height: none;
+    padding: 4px 2px 8px;
+    opacity: 1;
+    border-bottom-color: color-mix(in srgb, var(--pulso-border) 78%, transparent);
+  }
+
+  .rec-sidebar nav button {
+    grid-template-columns: 26px minmax(0, 1fr);
+    justify-items: stretch;
+    gap: 8px;
+    height: auto;
+    min-height: var(--pulso-rail-row-height-lg);
+    padding: 6px 8px;
+  }
+
+  .rec-sidebar-tab-copy {
+    display: grid;
+  }
+
+  .rec-sidebar .rec-sidebar-note {
+    display: grid;
   }
 }
 

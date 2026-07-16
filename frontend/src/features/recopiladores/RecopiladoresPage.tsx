@@ -1927,8 +1927,9 @@ export default function RecopiladoresPage() {
 
       <main className="rec-workbench">
         {/* Rail de tercer nivel (módulo → sección → pestaña): colapsado icon-only
-            por defecto, se expande a --pulso-rail-width al hover/focus como
-            overlay sin reflujo del canvas (patrón del rail de Procesamiento). */}
+            por defecto; al hover/focus la columna del grid del workbench crece
+            a --pulso-rail-width y EMPUJA el canvas (grid push, patrón del rail
+            de Procesamiento — sin overlay flotante). */}
         <aside className="rec-sidebar" aria-label="Pestañas de la sección activa">
           <div className="rec-sidebar-shell">
             <div className="rec-sidebar-head">

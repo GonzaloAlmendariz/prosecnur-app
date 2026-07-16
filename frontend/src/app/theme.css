@@ -4107,9 +4107,16 @@ a { color: var(--pulso-primary); }
   background: transparent;
 }
 
+/* Activo con el lenguaje maestro de la identidad v1.1 (mismo tratamiento que
+ * .pulso-phase-pill activo y .pulso-switch encendido): gradiente del primario
+ * en vez de plano, para que segmented/pillbar/switch hablen igual. */
 .pulso-segmented > button[aria-selected="true"],
 .pulso-segmented > button.is-active {
-  background: var(--pulso-primary);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--pulso-primary) 90%, #fff),
+    var(--pulso-primary)
+  );
   color: white;
   box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
 }
