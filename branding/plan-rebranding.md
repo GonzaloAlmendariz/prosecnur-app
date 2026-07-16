@@ -1,75 +1,76 @@
 # Plan de rebranding — Prosecnur sobre el contrato v1.2
 
-Fecha: 2026-07-16 · Fuente: tres auditorías de brechas (chrome por módulo,
-componentes/KPIs, motion/voz) contra `direccion-creativa.md` v1.2.
-Principio rector: **sin romper lo que funciona** — unidades quirúrgicas, cada
-una con typecheck + tests + QA visual con proyecto real + gate `verificador`
-antes de su commit. Máximo dos writers por oleada, globs disjuntos.
+Actualizado: 2026-07-16 · Fuente: tres auditorías de brechas contra
+`direccion-creativa.md` v1.2 (chrome por módulo, componentes/KPIs, motion/voz).
+**Este documento es autosuficiente: cualquier agente puede continuar el
+programa leyendo solo esta página y las referencias que cita.**
 
-## Estado de partida (lo que ya cumple)
+## Protocolo de ejecución (handoff — léelo antes de tocar nada)
 
-- Monitoreo es el ejemplar completo (command bar 3 zonas, pillbar embebido,
-  sr-only, acento por reasignación). Calc-muestra casi entero; hojas-ruta,
-  bitácora y analítica cumplen rail+acento; TODOS los módulos salvo
-  recopiladores usan `headerMode="sr-only"`; los sidebars de 3er nivel ya
-  siguen el patrón resuelto (ninguno queda en overlay).
-- Ya aterrizado en commits previos: isotipo canónico + firma de arranque,
-  instalador, segmented con gradiente maestro, sidebar QR a grid-push,
-  outliers cromáticos.
+1. **Fuentes de verdad**: `branding/direccion-creativa.md` (normas) ·
+   `branding/identity.json` (manifiesto frozen; NO cambiar status/decisiones) ·
+   tokens `--pulso-*` de `frontend/src/app/theme.css` (valores operativos).
+   El método completo de oleadas vive en
+   `~/.claude/skills/orchestrate-app-identity/references/production-playbook.md`
+   y las recetas de chrome en
+   `~/.claude/skills/build-branded-react-app/references/master-patterns.md`.
+2. **Grano**: una unidad = un commit atómico `feat(rebranding): …` en español,
+   citando su verificación en el mensaje. Máximo 2 escritores por oleada con
+   archivos SIN solape (si dos unidades comparten archivo → fusionar o
+   serializar).
+3. **Gate innegociable por unidad**: `pnpm --dir frontend typecheck` +
+   `pnpm --dir frontend test` ejecutados de verdad (salida literal); testthat
+   focalizado si se tocó `api/R/`; greps de confirmación del cambio; QA visual
+   en runtime con proyecto real vía deep-link
+   (`/<ruta>?pulso=<abs>/api/inst/audit_reference/prosecnur_audit_reference.pulso`
+   en el Vite de dev — skill `/ver-ui`). Trampas del navegador embebido:
+   playbook §D (animaciones infinitas cuelgan el scroll de automatización;
+   capturas tras scroll JS salen en blanco; getComputedStyle puede leer stale
+   bajo `:has(:focus-within)` — la captura con estado sostenido es la verdad).
+4. **Reglas duras de código**: solo tokens (cero hex nuevo en features);
+   acento de módulo por reasignación de variable en el scope; semántico ≠
+   acento; TS estricto; archivos congelados
+   (`MonitoreoPage.tsx`, `monitoreo_engine.R`, `router_monitoreo.R`,
+   `reporte_plan_ppt.R`) no crecen.
+5. **Si una norma cambia** (no píxeles): actualizar `direccion-creativa.md`,
+   reensamblar el manual y republicar el Artifact EN LA MISMA URL con etiqueta
+   de versión, y sincronizar `manual-identidad.html`.
+6. **Decisiones humanas**: lo marcado «decide el usuario» NO se ejecuta sin
+   respuesta explícita; se registra como decisión en `identity.json`
+   (recomputando el hash con el método de sus `extensions`).
 
-## Oleada R1 — Pulido inmediato (S, riesgo ~nulo)
+## Estado: COMPLETADO ✓
 
-| # | Unidad | Evidencia | Notas |
-|---|---|---|---|
-| R1.1 | Focus rings `:focus-visible` en controles custom de hojas-ruta (`mode-switch:1999`, `map-layer-toggle:454`) y muestreo carga/validación | A2§5 | Ratio actual hojas-ruta 5/43 |
-| R1.2 | `ProjectLifecycleDialog.tsx:36` → `toLocaleDateString("es-PE")` | A3§6 | Única fuga real de locale |
-| R1.3 | Purgar easings contra-contrato: `cubic-bezier(.4,0,.2,1)` ×5, `(.22,1,.36,1)` ×4, `--dash-ease-press`, 2 springs → tokens | A3§2 | Find/replace acotado |
-| R1.4 | `E_UNSUPPORTED_EXT` con doble mensaje (inglés `router_carga.R:308` vs español `:473`) → uno solo en español | A3§5 | + testthat afectado |
-| R1.5 | Duraciones >420ms accidentales: `indicador-assembly.css:44` (720ms), `dimensiones.css:373/379` (480/520) | A3§1 | Firmas 620/680 quedan (amparadas) |
-| R1.6 | Voz: «Aceptar» → «Aceptar sugerencia» (`IntegratedInstrumentsWizard.tsx:1115`); «Sí/No» de PonderacionPane con etiqueta de acción | A3§4 | |
-
-## Oleada R2 — Impacto visual alto (M, riesgo bajo)
-
-| # | Unidad | Evidencia | Notas de riesgo |
-|---|---|---|---|
-| R2.1 | **KPIs a 21/900 tabular** (~25 reglas: territorial 30/26/25/24/22, telefónico 28/25/24/22, hojas-ruta 32/24/22, calc-muestra 26/23/22, rec 24, home 27/22) | A2§1 | Solo font-size/weight; QA visual por módulo. Excepción propuesta: hero del Home ≤28px (homepage, no workbench) — decide el usuario en el freeze |
-| R2.2 | **Switches unificados** sobre `.pulso-switch` 44×24 (8 caseros: carga, motor, gv2, validación, mon ×3, dash) | A2§2 | Patrón a replicar: `analitica-switch-row` |
-| R2.3 | **Contrato de error**: `client.ts:95` mueve el código al final (`mensaje · E_*` en mono) + `States.tsx` heading «qué pasó + cómo seguir» | A3§5 | Los `message.includes("E_X")` de features siguen funcionando (el código permanece en el string) — verificar los 3 parseos ad-hoc |
-| R2.4 | **Acento processing en carga/validación/codificación**: reasignar `--pulso-primary` (paridad `analitica-v2.css:34`) + limpiar fallback `#be123c` de carga | A1§4 | QA visual: el navy del contenido pasa a teal en chrome |
-| R2.5 | **Editor-xlsform**: inyectar `--pulso-module-editor` en el scope del workbench frame | A1§3 | El chrome del editor gana su violeta; QA cuidadoso (superficie grande) |
-
-## Oleada R3 — Convergencia de chrome (M-L)
-
-| # | Unidad | Evidencia |
+| Oleada | Commit | Contenido |
 |---|---|---|
-| R3.1 | Recopiladores: H1 visible → sr-only, kicker/detalle plegados al `rec-topbar` | A1§1 |
-| R3.2 | Recopiladores: `rec-section-rail` → `pulso-phase-pillbar` | A1§5 |
-| R3.3 | Bitácora: `command-row` pelado → command bar material 3 zonas | A1 |
-| R3.4 | Hojas-ruta: rail embebido en su command bar (hoy fila aparte) | A1 |
-| R3.5 | Calc-muestra: banda de comando material (hoy transparente) + decidir push vs icon-only+tooltip (el contrato declara push como maestro; la capa ≥921px lo revierte) — decide el usuario | A1 |
-| R3.6 | Gráficos: acentos de rol `--layout-accent` hex → tokens `--pulso-*` conservando la semántica de procedencia | A1§2 |
+| R1 — pulido | `ac5756c` | Focus rings hojas-ruta, locale es-PE, purga de easings contra-contrato, duraciones >420ms accidentales, voz de botones, `E_UNSUPPORTED_EXT` es-PE + freeze del identity.json |
+| R2-a | `f4b6469` | ~30 KPIs a 21/900+tabular (hero Home 28px, excepción aprobada) + contrato de error `mensaje · E_CODE` (ApiError; 4 parsers protegidos) |
+| R2-b | `76830c7` | 8 switches al maestro 44×24 + acento teal en carga/validación/codificación + acento violeta del editor (antídoto AA 5.21:1) |
+| R3-a | `62aac4e` | Recopiladores: H1→sr-only + rail al pillbar canónico · calc-muestra: push restaurado · gráficos: roles tokenizados 1:1 |
+| R3-b | `13f9eb2` | Bitácora: command bar material ámbar · hojas-ruta: dos bandas fundidas en una (rail embebido) |
+| R4.5 + compile | `0ba1a6e` | Token `--pulso-switch-track` (8 réplicas→maestro) + `branding/identity/` compilado determinista + validador persistido |
 
-## Oleada R4 — Fondo estructural (L, por lotes con QA)
+Gate integral del programa (verificador independiente, 2026-07-16):
+**APTO CON OBSERVACIONES**, observaciones saldadas en `13f9eb2`/`0ba1a6e`.
+Convergencia de chrome completa en todos los módulos salvo dashboard.
 
-| # | Unidad | Evidencia |
-|---|---|---|
-| R4.1 | Tokens de motion en features: `--cmv2-ease-*`/`--dash-ease-*` → alias de `--motion-*` (patrón `--gv2-press-ease`); literales near-map (150→fast, 200-250→base, 300-340→panel) | A3§1-2 |
-| R4.2 | Hex semántico/navy/slate → tokens en `monitoreo.css` (~1064) y `editor-v2.css` (~985), por lotes 1:1 mecánicos con QA visual por perfil | A2§6 |
-| R4.3 | Iconografía: alias nuevos (Database, FileText, Download, RotateCcw, FileSpreadsheet, Info, Upload, Filter, Save, Eye) + migración gradual de imports crudos a alias | A2§4 |
-| R4.5 | Token `--pulso-switch-track` (+`-track-on`): el gradiente del track está copiado en ~8 CSS de features espejando el maestro — centralizar para que el maestro gobierne | Gate integral 2026-07-16 |
-| R4.4 | Dashboard: convergencia de chrome (rail propio, capa `--dash-*`) — requiere decisión de diseño (es superficie de entregable) | A1 |
+## Cola: PENDIENTE (por orden recomendado)
 
-## No-hacer (por ahora)
+| # | Unidad | Detalle y evidencia | Esfuerzo |
+|---|---|---|---|
+| P1 | **R4.1 Motion tokens en features** | `--cmv2-ease-*` (ui.css:11, copia exacta, 95 usos) y `--dash-ease-*` (theme/tokens.css, 143 usos) → aliasar a `var(--motion-ease-*)` (patrón `--gv2-press-ease`); literales `ms` near-map en calcMuestra/dashboard (150→fast, 200-250→base, 300-340→panel); los 81 `cubic-bezier(.23,1,.32,1)` inline → token. Exentos: crecimientos de barras 350-500ms (carve-out documentado en aulas.css:604) y loops ambientales | L |
+| P2 | **R4.2 Hex→tokens por lotes** | ~1064 hex en `monitoreo.css` + ~985 en `editor-v2.css` (mayoría semántico/slate/navy con token 1:1: `#64748b`→text-soft, `#168a55`→success…, escala navy suelta→tokens). Lotes mecánicos SOLO 1:1 + QA visual por perfil tras cada lote. NO tocar: paleta violeta de procedencia, SVG de dominio, sets "apagados" deliberados de editor-v2 (~10790) | L |
+| P3 | **R4.3 Alias de iconos** | Añadir a `src/lib/icons.ts`: Database(37 archivos), FileText(27), Download(27), RotateCcw(27), FileSpreadsheet(26), Info(23), Upload(16), Filter(14), Save(14), Eye(14); migración gradual de imports crudos a alias (290 archivos importan crudo vs 35 por alias) | S-M |
+| P4 | **R3.5b Banda material de calc-muestra** | `.cmv2-commandbar` es transparente (border:0/background:transparent, calcMuestra.css:98-103); darle el material canónico de mon-commandbar | S |
+| P5 | **Voz: barrido E_UNSUPPORTED_EXT** | Mensajes divergentes restantes: `router_validacion.R:396` (inglés), `router_analitica.R:188`, `router_codificacion.R:75/2154/2179` (listas de extensiones distintas — evaluar códigos propios para el caso xlsx-only) | S |
+| P6 | **Limpieza MODULE_TONES** | `style={MODULE_TONES.x as CSSProperties}` es no-op enmascarado (pasa claves que no son CSS vars); sustituir por `moduleChromeVars()` en RecopiladoresPage y AulasApplicationFlow | S |
+| P7 | **R4.4 Dashboard chrome** | Rail propio (`dash-tab-nav`) y capa `--dash-*` vs patrones maestros. **DECIDE EL USUARIO**: es superficie de entregable con clientes; presentar opciones antes de tocar. Ídem paleta arcoíris del KpiCard (donut) → secuencial navy | M + gate humano |
+| P8 | **Instaladores reales** | Próximo build regenera `.ico`/`.icns`/BMPs desde los SVG canónicos automáticamente (guard `-nt` en `build-dmg.sh`); verificar en el próximo corte de release | — |
+| P9 | **data-audit-ready de Recopiladores** | El módulo no registra readiness en el QA contract; unidad aparte si entra a la matriz visual | S |
 
-- KpiCard del dashboard (medio-donut Plotly con paleta arcoíris) — es superficie
-  de entregable publicado; cambiar su paleta a la secuencial navy requiere
-  decisión de producto con clientes en mente.
-- Reescritura masiva de mensajes de error del backend R — se corrige el
-  contrato de presentación (R2.3) y los casos puntuales (R1.4); el barrido
-  total de `stop_api` es programa aparte.
+## No-hacer (vigente)
 
-## Gates
-
-Cada unidad termina en `verificador`; cada oleada cierra con QA visual con
-proyecto real (`/ver-ui`, deep-link) del módulo tocado y commit atómico. El
-Artifact del manual se republica cuando una unidad cambie normas (no píxeles).
+- KpiCard del dashboard sin decisión de producto (ver P7).
+- Reescritura masiva de mensajes `stop_api` del backend (solo los casos P5).
+- Mover/renombrar archivos de `branding/` (las rutas están referenciadas por
+  ADR, manifiesto, skills y pipeline del icns).
