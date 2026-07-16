@@ -93,7 +93,9 @@
   --pulso-warn-bg: #fff4e0;
   --pulso-warn-border: #f0d799;
   --pulso-warn-fg: #8a5000;
-  --pulso-warn-accent: #d68a00;
+  /* Unificado al ámbar canónico de la identidad (= --pulso-accent-amber);
+   * antes #d68a00, el único doble ámbar del sistema (ADR 0038). */
+  --pulso-warn-accent: #d97706;
 
   --pulso-danger-bg: #fef2f2;
   --pulso-danger-border: #fecaca;
