@@ -33,6 +33,16 @@
   --dash-primario-ring: rgba(0, 36, 87, 0.16);
   --dash-shadow-color: rgba(15, 23, 42, 0.08);
 
+  /* Espejo LOCAL de --pulso-switch-* (theme.css): track cóncavo del switch
+   * maestro, ADR 0038 / gate 2026-07-16. El tablero se sirve standalone sin
+   * theme.css, así que no puede depender de --pulso-*; si el maestro cambia,
+   * actualizar aquí a mano. El borde deriva de --dash-borde-fuerte (equivalente
+   * local de --pulso-border-strong). */
+  --dash-switch-track: linear-gradient(180deg, #eef2f7, #dfe6ef);
+  --dash-switch-track-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.12), inset 0 -1px 0 rgba(255, 255, 255, 0.72);
+  --dash-switch-border: color-mix(in srgb, var(--dash-borde-fuerte) 84%, #fff 16%);
+  --dash-switch-knob-shadow: 0 1px 2px rgba(15, 23, 42, 0.22);
+
   /* Chrome de edición del módulo Dashboard. Se mantiene separado del
    * primario del dashboard final, que pertenece al branding del cliente. */
   --dash-editor-accent: var(--pulso-module-dashboard, #2563eb);
@@ -719,12 +729,10 @@
   position: absolute;
   cursor: pointer;
   inset: 0;
-  background: linear-gradient(180deg, #eef2f7, #dfe6ef);
-  border: 1px solid color-mix(in srgb, var(--dash-borde-fuerte) 84%, #fff 16%);
+  background: var(--dash-switch-track);
+  border: 1px solid var(--dash-switch-border);
   border-radius: 999px;
-  box-shadow:
-    inset 0 1px 2px rgba(15, 23, 42, 0.12),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.72);
+  box-shadow: var(--dash-switch-track-shadow);
   transition:
     transform var(--dash-dur-press) var(--dash-ease-out),
     background-color var(--dash-dur-hover) var(--dash-ease-out),
@@ -740,7 +748,7 @@
   top: 2px;
   background: #fff;
   border-radius: 50%;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.22);
+  box-shadow: var(--dash-switch-knob-shadow);
   transition: transform var(--dash-dur-hover) var(--dash-ease-out);
 }
 .dashboard-scope .dash-switch input:checked + .dash-switch-slider {
@@ -758,8 +766,7 @@
 }
 .dashboard-scope .dash-switch input:focus-visible + .dash-switch-slider {
   box-shadow:
-    inset 0 1px 2px rgba(15, 23, 42, 0.12),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.72),
+    var(--dash-switch-track-shadow),
     0 0 0 4px var(--dash-primario-ring);
 }
 

@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prosecnur — referencia técnica de identidad v1.2.0</title>
+<meta name="generator" content="prosecnur-identity-compiler v1.0.0">
+<style>
+/* ============================================================
+ * Prosecnur — tokens.css (GENERADO — no editar a mano)
+ * ------------------------------------------------------------
+ * Generador : prosecnur-identity-compiler v1.0.0 (branding/identity/generate.mjs)
+ * Fuente    : branding/identity.json
+ * Identidad : prosecnur-la-senal-ordenada v1.2.0 (frozen)
+ * Manifest  : sha256:d906ccb9b8981e097825c515bcaad38c5879c8aef37d2e4073ae07cc03fa9362
+ * Input     : sha256:8c6fb5d3c5006d30c7aa3975e03933b7ffe01420b370ca043e2cae349048f845 (digest del archivo identity.json)
+ * ------------------------------------------------------------
+ * Derivado determinista del manifiesto congelado. El identificador
+ * de generación es el input digest (sin timestamp, a propósito).
+ * Namespace --prosecnur-* para piezas fuera de la app; dentro de la
+ * app la fuente operativa siguen siendo los --pulso-* de theme.css.
+ * Compatible con el mirror manual branding/tokens/prosecnur-brand.css:
+ * los nombres coincidentes tienen valores idénticos.
+ * ============================================================ */
+
+:root {
+
+  /* --- Color · estructural (tinta, superficies, bordes)
+   * fuente: foundations.color.tokens[role=structural]
+   * ------------------------------------------------------------ */
+  --prosecnur-ink: #17212f;
+  --prosecnur-ink-soft: #5f6b7a;
+  --prosecnur-ink-faint: #8792a2;
+  --prosecnur-surface-paper: #ffffff;
+  --prosecnur-surface-ice: #fafbff;
+  --prosecnur-surface-mist: #f2f5fa;
+  --prosecnur-bg-canvas: #f3f5f9;
+  --prosecnur-bg-deep: #e9edf5;
+  --prosecnur-border: #e2e7f0;
+  --prosecnur-border-strong: #cbd5e4;
+  --prosecnur-header-row: #f1f3f9;
+
+  /* --- Color · acentos (marca, espectro modular, acentos de sistema)
+   * fuente: foundations.color.tokens[role=accent]
+   * ------------------------------------------------------------ */
+  --prosecnur-brand-navy: #002457;
+  --prosecnur-brand-navy-800: #013371;
+  --prosecnur-signal-blue: #2457d6;
+  --prosecnur-module-editor: #6d5dfc;
+  --prosecnur-module-processing: #0f766e;
+  --prosecnur-module-dashboard: #2563eb;
+  --prosecnur-module-routes: #c2410c;
+  --prosecnur-module-sample: #7c3aed;
+  --prosecnur-module-encyclopedia: #a16207;
+  --prosecnur-module-collectors: #0891b2;
+  --prosecnur-module-monitoring: #be123c;
+  --prosecnur-accent-cyan: #0ea5b7;
+  --prosecnur-accent-green: #16a34a;
+  --prosecnur-accent-rose: #c2416b;
+  --prosecnur-accent-amber: #d97706;
+  --prosecnur-accent-violet: #7c3aed;
+
+  /* --- Color · semánticos (triadas bg/border/fg + marcador repeat)
+   * fuente: foundations.color.tokens[role=semantic]
+   * ------------------------------------------------------------ */
+  --prosecnur-success: #16a34a;
+  --prosecnur-success-bg: #dcfce7;
+  --prosecnur-success-border: #86efac;
+  --prosecnur-success-fg: #166534;
+  --prosecnur-warn: #d97706;
+  --prosecnur-warn-bg: #fff4e0;
+  --prosecnur-warn-border: #f0d799;
+  --prosecnur-warn-fg: #8a5000;
+  --prosecnur-danger: #be123c;
+  --prosecnur-danger-bg: #fef2f2;
+  --prosecnur-danger-border: #fecaca;
+  --prosecnur-danger-fg: #991b1b;
+  --prosecnur-repeat-bg: #fdeede;
+  --prosecnur-repeat-border: #f2c79c;
+  --prosecnur-repeat-fg: #9a4913;
+  --prosecnur-repeat-accent: #c95f20;
+  /* info: navy translúcido — bg rgba(0,36,87,0.04), border = primary-border, fg = primary (regla de uso 5) */
+
+  /* --- Color · datos (paleta de visualización de once roles + secuencial)
+   * fuente: foundations.color.tokens[role=data]
+   * ------------------------------------------------------------ */
+  --prosecnur-chart-primary: #002457;
+  --prosecnur-chart-bright: #2457d6;
+  --prosecnur-chart-success: #16a34a;
+  --prosecnur-chart-warn: #d97706;
+  --prosecnur-chart-danger: #dc2626;
+  --prosecnur-chart-neutral: #94a3b8;
+  --prosecnur-chart-surface: #f8faff;
+  --prosecnur-chart-border: #d8e0ef;
+  --prosecnur-chart-grid: #dbe3f1;
+  --prosecnur-chart-text: #1f2933;
+  --prosecnur-chart-text-soft: #5f6b7a;
+  --prosecnur-seq-step-1: #dbe8ff;
+  --prosecnur-seq-step-2: #7aa2f8;
+  --prosecnur-seq-step-3: #2457d6;
+  --prosecnur-seq-step-4: #002457;
+
+  /* --- Interacción · alphas del navy e info
+   * fuente: extensions.pe.pucp.pulso.prosecnur.interaction_alphas
+   * ------------------------------------------------------------ */
+  --prosecnur-primary-soft: rgba(0,36,87,0.08);
+  --prosecnur-primary-border: rgba(0,36,87,0.18);
+  --prosecnur-primary-focus: rgba(0,36,87,0.15);
+  --prosecnur-primary-ring: rgba(0,36,87,0.12);
+  --prosecnur-info-bg: rgba(0,36,87,0.04);
+  /* Variantes por módulo: soft alpha 0.12-0.13, border alpha 0.30-0.32
+   * (rangos definidos operativamente en frontend/src/app/theme.css; no se fijan aquí) */
+
+  /* --- Espectro modular · alias por slug de módulo
+   * fuente: extensions.pe.pucp.pulso.prosecnur.module_spectrum
+   * ------------------------------------------------------------ */
+  --prosecnur-mod-editor-xlsform: #6d5dfc; /* Editor de formularios — operativo: --pulso-module-editor */
+  --prosecnur-mod-procesamiento: #0f766e; /* Procesamiento — operativo: --pulso-module-processing */
+  --prosecnur-mod-dashboard: #2563eb; /* Dashboard interactivo — operativo: --pulso-module-dashboard */
+  --prosecnur-mod-hojas-ruta: #c2410c; /* Hojas de ruta para campo — operativo: --pulso-module-routes */
+  --prosecnur-mod-calc-muestra: #7c3aed; /* Cálculo de muestra y marco muestral — operativo: --pulso-module-sample */
+  --prosecnur-mod-diseno-estudio: #a16207; /* Bitácora — operativo: --pulso-module-encyclopedia */
+  --prosecnur-mod-plan-trabajo: #a16207; /* Plan de trabajo (fusionado en Bitácora) — operativo: --pulso-module-workplan (alias de encyclopedia) */
+  --prosecnur-mod-recopiladores: #0891b2; /* Fichas QR para cursos-horario — operativo: --pulso-module-collectors */
+  --prosecnur-mod-monitoreo: #be123c; /* Monitoreo de campo — operativo: --pulso-module-monitoring */
+
+  /* --- Tipografía · familias «Voz nativa»
+   * fuente: foundations.typography.families
+   * ------------------------------------------------------------ */
+  --prosecnur-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; /* principal «Voz nativa» */
+  --prosecnur-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; /* datos/código, siempre con font-variant-numeric: tabular-nums en métricas */
+
+  /* --- Tipografía · escala
+   * fuente: foundations.typography.scale
+   * ------------------------------------------------------------ */
+  --prosecnur-type-display-size: 28px;
+  --prosecnur-type-display-line: 1.2;
+  --prosecnur-type-display-weight: 680;
+  --prosecnur-type-title-size: 22px;
+  --prosecnur-type-title-line: 1.25;
+  --prosecnur-type-title-weight: 640;
+  --prosecnur-type-section-size: 17px;
+  --prosecnur-type-section-line: 1.3;
+  --prosecnur-type-section-weight: 600;
+  --prosecnur-type-body-size: 15px;
+  --prosecnur-type-body-line: 1.55;
+  --prosecnur-type-body-weight: 400;
+  --prosecnur-type-body-medium-size: 15px;
+  --prosecnur-type-body-medium-line: 1.55;
+  --prosecnur-type-body-medium-weight: 500;
+  --prosecnur-type-note-size: 13px;
+  --prosecnur-type-note-line: 1.45;
+  --prosecnur-type-note-weight: 400;
+  --prosecnur-type-caption-size: 12px;
+  --prosecnur-type-caption-line: 1.35;
+  --prosecnur-type-caption-weight: 500;
+  --prosecnur-type-micro-size: 11px;
+  --prosecnur-type-micro-line: 1.2;
+  --prosecnur-type-micro-weight: 600;
+  --prosecnur-type-micro-transform: uppercase;
+  --prosecnur-type-micro-tracking: 0.06em;
+
+  /* --- Espaciado · retícula de 4
+   * fuente: foundations.spacing
+   * ------------------------------------------------------------ */
+  --prosecnur-space-base: 4px;
+  --prosecnur-space-1: 4px;
+  --prosecnur-space-2: 8px;
+  --prosecnur-space-3: 12px;
+  --prosecnur-space-4: 16px;
+  --prosecnur-space-5: 20px;
+  --prosecnur-space-6: 24px;
+  --prosecnur-space-7: 32px;
+  --prosecnur-space-8: 40px;
+  --prosecnur-space-9: 48px;
+
+  /* --- Geometría · radios
+   * fuente: foundations.geometry.rules (Radios)
+   * ------------------------------------------------------------ */
+  --prosecnur-radius-control: 10px;
+  --prosecnur-radius-tarjeta: 14px;
+  --prosecnur-radius-panel: 16px;
+  --prosecnur-radius-lens: 20px;
+  --prosecnur-radius-chip: 999px;
+
+  /* --- Geometría · controles y rail
+   * fuente: foundations.geometry.rules (Alturas/Peso/Rail/Mínimos)
+   * ------------------------------------------------------------ */
+  --prosecnur-control-h: 28px; /* default de content area (slots sm y md coinciden hoy en 28) */
+  --prosecnur-control-h-toolbar: 36px; /* reservado a toolbar/CTA */
+  --prosecnur-control-checkbox: 16px;
+  --prosecnur-control-weight: 500; /* macOS; 600 en Windows vía data-platform */
+  --prosecnur-rail-w: 240px;
+  --prosecnur-rail-row: 32px;
+  --prosecnur-rail-row-lg: 40px;
+  --prosecnur-rail-row-dense: 24px;
+  --prosecnur-min-workbench-panel-media: 360px; /* workbench/panel/media */
+  --prosecnur-min-lista: 260px; /* lista */
+  --prosecnur-min-cuerpo-de-dialogo: 240px; /* cuerpo de diálogo */
+
+  /* --- Elevación · seis niveles de sombra fría
+   * fuente: foundations.elevation.rules
+   * ------------------------------------------------------------ */
+  --prosecnur-shadow-low: 0 1px 2px rgba(0,36,87,0.04); /* reposo */
+  --prosecnur-shadow-soft: 0 6px 18px rgba(0,36,87,0.06); /* tarjetas */
+  --prosecnur-shadow-med: 0 14px 30px rgba(0,36,87,0.08); /* hover-lift */
+  --prosecnur-shadow-high: 0 24px 60px rgba(0,36,87,0.14); /* diálogos */
+  --prosecnur-shadow-raised: 0 1px 1px rgba(15,23,42,0.04), 0 10px 28px rgba(15,23,42,0.07); /* workbench */
+  --prosecnur-shadow-popover: 0 22px 60px rgba(15,23,42,0.18), 0 4px 16px rgba(15,23,42,0.08); /* flotantes */
+  /* El sidebar expandido conserva soft (empuja, no flota); ContextLens usa la sombra específica 0 20px 60px rgba(15,23,42,0.18) + inset 1px 0 0 rgba(255,255,255,0.6) */
+
+  /* --- Motion · Física Pulso — duraciones
+   * fuente: extensions.pe.pucp.pulso.prosecnur.motion_tokens.durations_ms
+   * ------------------------------------------------------------ */
+  --prosecnur-dur-press: 120ms;
+  --prosecnur-dur-fast: 160ms;
+  --prosecnur-dur-base: 220ms;
+  --prosecnur-dur-panel: 280ms;
+  --prosecnur-dur-slow: 420ms;
+
+  /* --- Motion · Física Pulso — easings
+   * fuente: extensions.pe.pucp.pulso.prosecnur.motion_tokens.easings
+   * ------------------------------------------------------------ */
+  --prosecnur-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --prosecnur-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --prosecnur-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --prosecnur-ease-productive: cubic-bezier(0.16, 1, 0.3, 1);
+  --prosecnur-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+  /* --- Motion · offsets de ruta
+   * fuente: extensions.pe.pucp.pulso.prosecnur.motion_tokens.route_offsets_px
+   * ------------------------------------------------------------ */
+  --prosecnur-route-enter-y: 8px;
+  --prosecnur-route-forward-x: 12px;
+  --prosecnur-route-back-x: -12px;
+
+  /* --- Motion · firmas
+   * fuente: extensions.pe.pucp.pulso.prosecnur.motion_tokens.signatures
+   * ------------------------------------------------------------ */
+  --prosecnur-sig-pageframe-body: 190ms; /* easing out */
+  --prosecnur-sig-pageframe-header: 150ms;
+  --prosecnur-sig-pageframe-toolbar: 160ms;
+  --prosecnur-sig-brand-stagger: 60ms; /* por pastilla; duración slow + easing productive */
+  --prosecnur-sig-diagram-nodes: 620ms; /* excepción gobernada motion-firma-diagramas */
+  --prosecnur-sig-diagram-edges: 680ms; /* alcance: diagramas y árboles */
+  /* Tope de la escala de tokens: 420ms; máximo gobernado: 680ms.
+   * Toda animación respeta prefers-reduced-motion (systems.motion.reduced_motion=true). */
+
+  /* --- Materiales · vibrancy simulada Windows-safe
+   * fuente: extensions.pe.pucp.pulso.prosecnur.materials
+   * ------------------------------------------------------------ */
+  --prosecnur-material-base: color-mix(in srgb, var(--prosecnur-surface-paper) 82%, transparent); /* command bars, pillbars, rails */
+  --prosecnur-material-strong: color-mix(in srgb, var(--prosecnur-surface-paper) 92%, transparent); /* segmented, controles sobre contenido */
+  --prosecnur-material-chrome: color-mix(in srgb, #ffffff 74%, transparent); /* barras de app */
+  --prosecnur-material-blur-1: 10px;
+  --prosecnur-material-blur-2: 14px;
+  --prosecnur-material-blur-3: 18px;
+  --prosecnur-material-saturate: 1.08;
+  --prosecnur-material-border: color-mix(in srgb, var(--prosecnur-primary-border) 78%, var(--prosecnur-border));
+  --prosecnur-material-shadow: inset 0 1px 0 rgba(255,255,255,0.72), 0 10px 30px rgba(0,36,87,0.08);
+
+  /* --- Entregables · XLSX, colores canónicos por tipo de pregunta
+   * fuente: extensions.pe.pucp.pulso.prosecnur.xlsx_question_type_colors
+   * ------------------------------------------------------------ */
+  --prosecnur-xlsx-seleccion-multiple-bg: #e2f0d9;
+  --prosecnur-xlsx-seleccion-multiple-border: #9cc47f;
+  --prosecnur-xlsx-seleccion-multiple-fg: #2d6720;
+  --prosecnur-xlsx-seleccion-unica-bg: #d9e1f2;
+  --prosecnur-xlsx-seleccion-unica-border: #8fa3d0;
+  --prosecnur-xlsx-seleccion-unica-fg: #1e3a6b;
+  --prosecnur-xlsx-numerica-bg: #e6d9f2;
+  --prosecnur-xlsx-numerica-border: #a48ac9;
+  --prosecnur-xlsx-numerica-fg: #4a2d66;
+  --prosecnur-xlsx-texto-bg: #fff2cc;
+  --prosecnur-xlsx-texto-border: #d5b866;
+  --prosecnur-xlsx-texto-fg: #7a5a00;
+}
+
+/* Peso de trabajo de controles en Windows (Segoe UI renderiza Medium más
+ * liviano que SF Pro) — platforms.windows.adaptations */
+:root[data-platform="windows"] {
+  --prosecnur-control-weight: 600;
+}
+
+/* --- estilos de la página de referencia (consumen los tokens generados) --- */
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--prosecnur-bg-canvas); color: var(--prosecnur-ink);
+  font-family: var(--prosecnur-font-sans);
+  font-size: var(--prosecnur-type-body-size); line-height: var(--prosecnur-type-body-line);
+}
+main { max-width: 980px; margin: 0 auto; padding: 40px 24px 64px; }
+header.doc {
+  background: var(--prosecnur-brand-navy); color: var(--prosecnur-surface-paper);
+  padding: 28px 24px; border-radius: var(--prosecnur-radius-panel); margin-bottom: 32px;
+}
+header.doc h1 { margin: 0 0 6px; font-size: var(--prosecnur-type-title-size); font-weight: var(--prosecnur-type-title-weight); }
+header.doc p { margin: 2px 0; opacity: .85; font-size: var(--prosecnur-type-note-size); }
+header.doc code { font-family: var(--prosecnur-font-mono); font-size: 12px; word-break: break-all; }
+section { background: var(--prosecnur-surface-paper); border: 1px solid var(--prosecnur-border);
+  border-radius: var(--prosecnur-radius-tarjeta); padding: 20px 24px; margin-bottom: 20px;
+  box-shadow: var(--prosecnur-shadow-low); }
+h2 { font-size: var(--prosecnur-type-section-size); font-weight: var(--prosecnur-type-section-weight);
+  margin: 0 0 4px; color: var(--prosecnur-brand-navy); }
+h3 { font-size: var(--prosecnur-type-note-size); text-transform: uppercase; letter-spacing: .06em;
+  color: var(--prosecnur-ink-soft); margin: 18px 0 8px; }
+p.src { margin: 0 0 14px; font-size: var(--prosecnur-type-caption-size); color: var(--prosecnur-ink-faint); }
+p.src code { font-family: var(--prosecnur-font-mono); }
+.swgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.sw { display: flex; gap: 10px; align-items: center; border: 1px solid var(--prosecnur-border);
+  border-radius: var(--prosecnur-radius-control); padding: 8px; background: var(--prosecnur-surface-ice); }
+.sw-chip { width: 40px; height: 40px; border-radius: var(--prosecnur-radius-control);
+  border: 1px solid var(--prosecnur-border-strong); flex: none; }
+.sw-meta { min-width: 0; display: flex; flex-direction: column; }
+.sw-meta code { font-family: var(--prosecnur-font-mono); font-size: 11px; overflow-wrap: anywhere; }
+.sw-meta span { font-size: 11px; color: var(--prosecnur-ink-soft); font-family: var(--prosecnur-font-mono); }
+.sw-meta em { font-size: 10.5px; color: var(--prosecnur-ink-faint); font-style: normal; }
+ul.rules { margin: 8px 0; padding-left: 20px; }
+ul.rules li { margin: 6px 0; font-size: var(--prosecnur-type-note-size); }
+table { border-collapse: collapse; width: 100%; font-size: var(--prosecnur-type-note-size); }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--prosecnur-border); vertical-align: top; }
+th { background: var(--prosecnur-header-row); font-size: var(--prosecnur-type-caption-size);
+  text-transform: uppercase; letter-spacing: .05em; color: var(--prosecnur-ink-soft); }
+td code, li code { font-family: var(--prosecnur-font-mono); font-size: 12px; }
+.sp { display: flex; align-items: center; gap: 10px; margin: 4px 0; font-size: 12px; }
+.sp code { width: 80px; font-family: var(--prosecnur-font-mono); }
+.sp-bar { height: 12px; background: var(--prosecnur-signal-blue); border-radius: 3px; }
+.sp span { color: var(--prosecnur-ink-soft); }
+.elevgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
+.elev { background: var(--prosecnur-surface-paper); border-radius: var(--prosecnur-radius-tarjeta);
+  padding: 14px; display: flex; flex-direction: column; gap: 3px; }
+.elev code { font-family: var(--prosecnur-font-mono); font-size: 12px; font-weight: 600; }
+.elev span { font-size: 11.5px; color: var(--prosecnur-ink-soft); }
+.elev em { font-size: 10.5px; color: var(--prosecnur-ink-faint); font-style: normal; font-family: var(--prosecnur-font-mono); }
+.chip { display: inline-block; border-radius: var(--prosecnur-radius-chip); padding: 3px 12px;
+  font-size: 12px; font-weight: 600; margin: 2px; }
+.seqrow { display: flex; gap: 0; border-radius: var(--prosecnur-radius-control); overflow: hidden;
+  border: 1px solid var(--prosecnur-border-strong); width: fit-content; }
+.seq { width: 90px; height: 34px; }
+.note { font-size: var(--prosecnur-type-caption-size); color: var(--prosecnur-ink-faint); }
+footer { text-align: center; font-size: 11.5px; color: var(--prosecnur-ink-faint); padding-top: 8px; }
+footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
+</style>
+</head>
+<body>
+<main>
+  <header class="doc">
+    <h1>Prosecnur — La señal ordenada (identidad visual v1.2)</h1>
+    <p>Referencia técnica generada del manifiesto — prosecnur-la-senal-ordenada · v1.2.0 · status frozen</p>
+    <p><code>manifest_hash: sha256:d906ccb9b8981e097825c515bcaad38c5879c8aef37d2e4073ae07cc03fa9362</code></p>
+    <p><code>input sha256: 8c6fb5d3c5006d30c7aa3975e03933b7ffe01420b370ca043e2cae349048f845</code> · prosecnur-identity-compiler v1.0.0</p>
+    <p class="note" style="opacity:.7">Documento GENERADO (no editar): el mirror rico es branding/manual-identidad.html; la norma es branding/identity.json + branding/direccion-creativa.md. La marca se reproduce solo desde branding/logo/.</p>
+  </header>
+
+  <section>
+    <h2>Marca</h2>
+    <p class="src">fuente: <code>systems.brand</code> — Un solo isotipo canónico «ecualizador del pulso» con geometría congelada; toda reproducción parte de los SVG de branding/logo/, nunca de redibujos.</p>
+    <ul class="rules"><li>Geometría congelada: viewBox 64, squircle rx 15.4 (24%) navy #002457, cuatro pastillas blancas width 7 · rx 3.5 · gap 4 en x=12/23/34/45, baseline y=48, alturas 18/26/20/32 (el perfil del latido)</li><li>Suite de 10 variantes: isotipo (mínimo 16px), isotipo-gradiente (#013371→#002457, SOLO icono de app e instalador), isotipo-oscuro (squircle blanco para fondos oscuros), appicon 512 en retícula macOS (fuente del .icns/.ico), lockup horizontal claro/oscuro (mínimo 96px de ancho), lockup principal con «SUITE ANALÍTICA · PULSO PUCP», lockup vertical (portadas/splash), mono negro (impresión), mono blanco knockout (fondos fotográficos/navy)</li><li>Wordmark: «Prosecnur» en stack de sistema, peso 800, tracking -0.02em, navy #002457; sobre fondos oscuros, blanco</li><li>Jerarquía de emisión: Prosecnur es el producto; «PULSO PUCP» acompaña como subline institucional («Suite analítica · PULSO PUCP»)</li><li>Dos tintas máximo (navy + blanco); el color vivo pertenece al sistema (espectro modular, azul señal), nunca al logo</li><li>Clearspace: ¼ de la altura del isotipo</li><li>Usos incorrectos: no recolorear, no deformar, no rotar, no aplicar efectos, no redibujar; sobre fondos oscuros siempre la variante invertida o el mono blanco</li><li>Firma de arranque: el isotipo entra con stagger de pastillas (60ms entre barras, duración slow + easing productivo) — BootBrandMark</li></ul>
+  </section>
+
+  <section>
+    <h2>Color</h2>
+    <p class="src">fuente: <code>foundations.color.tokens</code> (58 tokens) + <code>usage_rules</code></p>
+    <h3>Estructural</h3><div class="swgrid">
+      <div class="sw">
+        <div class="sw-chip" style="background:#17212f"></div>
+        <div class="sw-meta"><code>--prosecnur-ink</code><span>#17212f</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#5f6b7a"></div>
+        <div class="sw-meta"><code>--prosecnur-ink-soft</code><span>#5f6b7a</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#8792a2"></div>
+        <div class="sw-meta"><code>--prosecnur-ink-faint</code><span>#8792a2</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#ffffff"></div>
+        <div class="sw-meta"><code>--prosecnur-surface-paper</code><span>#ffffff</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#fafbff"></div>
+        <div class="sw-meta"><code>--prosecnur-surface-ice</code><span>#fafbff</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#f2f5fa"></div>
+        <div class="sw-meta"><code>--prosecnur-surface-mist</code><span>#f2f5fa</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#f3f5f9"></div>
+        <div class="sw-meta"><code>--prosecnur-bg-canvas</code><span>#f3f5f9</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#e9edf5"></div>
+        <div class="sw-meta"><code>--prosecnur-bg-deep</code><span>#e9edf5</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#e2e7f0"></div>
+        <div class="sw-meta"><code>--prosecnur-border</code><span>#e2e7f0</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#cbd5e4"></div>
+        <div class="sw-meta"><code>--prosecnur-border-strong</code><span>#cbd5e4</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#f1f3f9"></div>
+        <div class="sw-meta"><code>--prosecnur-header-row</code><span>#f1f3f9</span></div>
+      </div></div>
+    <h3>Acentos</h3><div class="swgrid">
+      <div class="sw">
+        <div class="sw-chip" style="background:#002457"></div>
+        <div class="sw-meta"><code>--prosecnur-brand-navy</code><span>#002457</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#013371"></div>
+        <div class="sw-meta"><code>--prosecnur-brand-navy-800</code><span>#013371</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#2457d6"></div>
+        <div class="sw-meta"><code>--prosecnur-signal-blue</code><span>#2457d6</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#6d5dfc"></div>
+        <div class="sw-meta"><code>--prosecnur-module-editor</code><span>#6d5dfc</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#0f766e"></div>
+        <div class="sw-meta"><code>--prosecnur-module-processing</code><span>#0f766e</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#2563eb"></div>
+        <div class="sw-meta"><code>--prosecnur-module-dashboard</code><span>#2563eb</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#c2410c"></div>
+        <div class="sw-meta"><code>--prosecnur-module-routes</code><span>#c2410c</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#7c3aed"></div>
+        <div class="sw-meta"><code>--prosecnur-module-sample</code><span>#7c3aed</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#a16207"></div>
+        <div class="sw-meta"><code>--prosecnur-module-encyclopedia</code><span>#a16207</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#0891b2"></div>
+        <div class="sw-meta"><code>--prosecnur-module-collectors</code><span>#0891b2</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#be123c"></div>
+        <div class="sw-meta"><code>--prosecnur-module-monitoring</code><span>#be123c</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#0ea5b7"></div>
+        <div class="sw-meta"><code>--prosecnur-accent-cyan</code><span>#0ea5b7</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#16a34a"></div>
+        <div class="sw-meta"><code>--prosecnur-accent-green</code><span>#16a34a</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#c2416b"></div>
+        <div class="sw-meta"><code>--prosecnur-accent-rose</code><span>#c2416b</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#d97706"></div>
+        <div class="sw-meta"><code>--prosecnur-accent-amber</code><span>#d97706</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#7c3aed"></div>
+        <div class="sw-meta"><code>--prosecnur-accent-violet</code><span>#7c3aed</span></div>
+      </div></div>
+    <h3>Semánticos</h3><div class="swgrid">
+      <div class="sw">
+        <div class="sw-chip" style="background:#16a34a"></div>
+        <div class="sw-meta"><code>--prosecnur-success</code><span>#16a34a</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#dcfce7"></div>
+        <div class="sw-meta"><code>--prosecnur-success-bg</code><span>#dcfce7</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#86efac"></div>
+        <div class="sw-meta"><code>--prosecnur-success-border</code><span>#86efac</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#166534"></div>
+        <div class="sw-meta"><code>--prosecnur-success-fg</code><span>#166534</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#d97706"></div>
+        <div class="sw-meta"><code>--prosecnur-warn</code><span>#d97706</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#fff4e0"></div>
+        <div class="sw-meta"><code>--prosecnur-warn-bg</code><span>#fff4e0</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#f0d799"></div>
+        <div class="sw-meta"><code>--prosecnur-warn-border</code><span>#f0d799</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#8a5000"></div>
+        <div class="sw-meta"><code>--prosecnur-warn-fg</code><span>#8a5000</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#be123c"></div>
+        <div class="sw-meta"><code>--prosecnur-danger</code><span>#be123c</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#fef2f2"></div>
+        <div class="sw-meta"><code>--prosecnur-danger-bg</code><span>#fef2f2</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#fecaca"></div>
+        <div class="sw-meta"><code>--prosecnur-danger-border</code><span>#fecaca</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#991b1b"></div>
+        <div class="sw-meta"><code>--prosecnur-danger-fg</code><span>#991b1b</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#fdeede"></div>
+        <div class="sw-meta"><code>--prosecnur-repeat-bg</code><span>#fdeede</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#f2c79c"></div>
+        <div class="sw-meta"><code>--prosecnur-repeat-border</code><span>#f2c79c</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#9a4913"></div>
+        <div class="sw-meta"><code>--prosecnur-repeat-fg</code><span>#9a4913</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#c95f20"></div>
+        <div class="sw-meta"><code>--prosecnur-repeat-accent</code><span>#c95f20</span></div>
+      </div></div>
+    <h3>Datos (visualización)</h3><div class="swgrid">
+      <div class="sw">
+        <div class="sw-chip" style="background:#002457"></div>
+        <div class="sw-meta"><code>--prosecnur-chart-primary</code><span>#002457</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#2457d6"></div>
+        <div class="sw-meta"><code>--prosecnur-chart-bright</code><span>#2457d6</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#16a34a"></div>
+        <div class="sw-meta"><code>--prosecnur-chart-success</code><span>#16a34a</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#d97706"></div>
+        <div class="sw-meta"><code>--prosecnur-chart-warn</code><span>#d97706</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#dc2626"></div>
+        <div class="sw-meta"><code>--prosecnur-chart-danger</code><span>#dc2626</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#94a3b8"></div>
+        <div class="sw-meta"><code>--prosecnur-chart-neutral</code><span>#94a3b8</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#f8faff"></div>
+        <div class="sw-meta"><code>--prosecnur-chart-surface</code><span>#f8faff</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#d8e0ef"></div>
+        <div class="sw-meta"><code>--prosecnur-chart-border</code><span>#d8e0ef</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#dbe3f1"></div>
+        <div class="sw-meta"><code>--prosecnur-chart-grid</code><span>#dbe3f1</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#1f2933"></div>
+        <div class="sw-meta"><code>--prosecnur-chart-text</code><span>#1f2933</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#5f6b7a"></div>
+        <div class="sw-meta"><code>--prosecnur-chart-text-soft</code><span>#5f6b7a</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#dbe8ff"></div>
+        <div class="sw-meta"><code>--prosecnur-seq-step-1</code><span>#dbe8ff</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#7aa2f8"></div>
+        <div class="sw-meta"><code>--prosecnur-seq-step-2</code><span>#7aa2f8</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#2457d6"></div>
+        <div class="sw-meta"><code>--prosecnur-seq-step-3</code><span>#2457d6</span></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#002457"></div>
+        <div class="sw-meta"><code>--prosecnur-seq-step-4</code><span>#002457</span></div>
+      </div></div>
+    <h3>Secuencial (intensidad del navy)</h3>
+    <div class="seqrow"><div class="seq" style="background:#dbe8ff" title="seq-step-1"></div><div class="seq" style="background:#7aa2f8" title="seq-step-2"></div><div class="seq" style="background:#2457d6" title="seq-step-3"></div><div class="seq" style="background:#002457" title="seq-step-4"></div></div>
+    <h3>Reglas de uso</h3>
+    <ul class="rules"><li>Proporción 60/30/10: superficies frías dominan, el navy estructura, el acento (modular o señal) aparece de forma puntual e intencional</li><li>El acento es chrome, el semántico es significado: éxito/alerta/peligro/info jamás se sustituyen por el color del módulo</li><li>Acento inyectado por variable (--module-accent / --home-mod-accent / reasignación de --pulso-primary); nunca hex de módulo hardcodeado por regla</li><li>Cada acento modular tiene variantes soft (alpha 0.12-0.13) y border (alpha 0.30-0.32) definidas en theme.css; ver extensions.interaction_alphas para los valores exactos de interacción del navy (soft 8%, border 18%, focus 15%, ring 12%)</li><li>Los semánticos operan en triadas bg/border/fg sobre superficie clara; el token base (success/warn/danger) es el acento del estado; info usa el navy translúcido (bg rgba(0,36,87,0.04), border = primary-border, fg = primary)</li><li>El peligro de chart (#DC2626) y el carmesí UI (#BE123C) son tokens distintos a propósito: no unificarlos</li><li>El marcador repeat (naranja suave) es semántico transversal —pertenencia a estructura repetida roster—, no un acento de módulo; se superpone a cualquier paleta sin competir</li><li>Dos tintas máximo en la marca (navy + blanco); el color vivo pertenece al sistema, nunca al logo</li><li>Colores solo con tokens --pulso-* dentro de la app y --prosecnur-* fuera de ella; si un color no está en la paleta de visualización, no entra a un gráfico</li><li>Las triadas semánticas deben sostener contraste AA de texto sobre su fondo; la verificación formal vive en el check de accesibilidad</li></ul>
+  </section>
+
+  <section>
+    <h2>Interacción</h2>
+    <p class="src">fuente: <code>extensions.pe.pucp.pulso.prosecnur.interaction_alphas</code> + <code>foundations.focus</code></p>
+    <table><thead><tr><th>token</th><th>valor</th></tr></thead><tbody>
+    <tr><td><code>--prosecnur-primary-soft</code></td><td><code>rgba(0,36,87,0.08)</code></td></tr><tr><td><code>--prosecnur-primary-border</code></td><td><code>rgba(0,36,87,0.18)</code></td></tr><tr><td><code>--prosecnur-primary-focus</code></td><td><code>rgba(0,36,87,0.15)</code></td></tr><tr><td><code>--prosecnur-primary-ring</code></td><td><code>rgba(0,36,87,0.12)</code></td></tr><tr><td><code>--prosecnur-info-bg</code></td><td><code>rgba(0,36,87,0.04)</code></td></tr>
+    <tr><td class="note">alphas por módulo</td><td class="note">soft 0.12-0.13 · border 0.30-0.32 (operativos en theme.css)</td></tr>
+    </tbody></table>
+    <h3>Foco</h3>
+    <ul class="rules"><li>Focus ring: rgba(0,36,87,0.15) — token --pulso-primary-focus; anillo de 4px en controles como el switch maestro</li><li>Selección persistente (item activo de timeline, slide activo): ring sutil rgba(0,36,87,0.12) — --pulso-primary-ring, levemente más opaco y ancho que el hover</li><li>Patrón focus-within: los contenedores editables (procedencia de Gráficos v2) muestran anillo cuando cualquier hijo tiene foco</li><li>La transición del anillo usa la duración fast (160ms) con easing de salida</li></ul>
+  </section>
+
+  <section>
+    <h2>Espectro modular</h2>
+    <p class="src">fuente: <code>extensions.pe.pucp.pulso.prosecnur.module_spectrum</code> — el acento tiñe el chrome del módulo, nunca el contenido</p>
+    <div class="swgrid">
+      <div class="sw">
+        <div class="sw-chip" style="background:#6d5dfc"></div>
+        <div class="sw-meta"><code>--prosecnur-mod-editor-xlsform</code><span>#6d5dfc</span><em>Editor de formularios · --pulso-module-editor</em></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#0f766e"></div>
+        <div class="sw-meta"><code>--prosecnur-mod-procesamiento</code><span>#0f766e</span><em>Procesamiento · --pulso-module-processing</em></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#2563eb"></div>
+        <div class="sw-meta"><code>--prosecnur-mod-dashboard</code><span>#2563eb</span><em>Dashboard interactivo · --pulso-module-dashboard</em></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#c2410c"></div>
+        <div class="sw-meta"><code>--prosecnur-mod-hojas-ruta</code><span>#c2410c</span><em>Hojas de ruta para campo · --pulso-module-routes</em></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#7c3aed"></div>
+        <div class="sw-meta"><code>--prosecnur-mod-calc-muestra</code><span>#7c3aed</span><em>Cálculo de muestra y marco muestral · --pulso-module-sample</em></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#a16207"></div>
+        <div class="sw-meta"><code>--prosecnur-mod-diseno-estudio</code><span>#a16207</span><em>Bitácora · --pulso-module-encyclopedia</em></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#a16207"></div>
+        <div class="sw-meta"><code>--prosecnur-mod-plan-trabajo</code><span>#a16207</span><em>Plan de trabajo (fusionado en Bitácora) · --pulso-module-workplan (alias de encyclopedia)</em></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#0891b2"></div>
+        <div class="sw-meta"><code>--prosecnur-mod-recopiladores</code><span>#0891b2</span><em>Fichas QR para cursos-horario · --pulso-module-collectors</em></div>
+      </div>
+      <div class="sw">
+        <div class="sw-chip" style="background:#be123c"></div>
+        <div class="sw-meta"><code>--prosecnur-mod-monitoreo</code><span>#be123c</span><em>Monitoreo de campo · --pulso-module-monitoring</em></div>
+      </div></div>
+  </section>
+
+  <section>
+    <h2>Tipografía «Voz nativa»</h2>
+    <p class="src">fuente: <code>foundations.typography</code></p>
+    <table><thead><tr><th>familia</th><th>stack</th></tr></thead><tbody>
+      <tr><td><code>--prosecnur-font-sans</code></td><td><code>-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, system-ui, sans-serif</code> <span class="note">principal «Voz nativa»</span></td></tr>
+      <tr><td><code>--prosecnur-font-mono</code></td><td><code>ui-monospace, SFMono-Regular, Menlo, Consolas, monospace</code> <span class="note">datos/código, siempre con font-variant-numeric: tabular-nums en métricas</span></td></tr>
+    </tbody></table>
+    <h3>Escala</h3>
+    <table><thead><tr><th>paso</th><th>size / line / weight</th><th>muestra</th></tr></thead><tbody>
+<tr><td><code>display</code></td><td>28px / 1.2 / 680</td><td><span style="font-size:28px;line-height:1.2;font-weight:680;">La señal ordenada 0123456789</span></td></tr>
+<tr><td><code>title</code></td><td>22px / 1.25 / 640</td><td><span style="font-size:22px;line-height:1.25;font-weight:640;">La señal ordenada 0123456789</span></td></tr>
+<tr><td><code>section</code></td><td>17px / 1.3 / 600</td><td><span style="font-size:17px;line-height:1.3;font-weight:600;">La señal ordenada 0123456789</span></td></tr>
+<tr><td><code>body</code></td><td>15px / 1.55 / 400</td><td><span style="font-size:15px;line-height:1.55;font-weight:400;">La señal ordenada 0123456789</span></td></tr>
+<tr><td><code>body-medium</code></td><td>15px / 1.55 / 500</td><td><span style="font-size:15px;line-height:1.55;font-weight:500;">La señal ordenada 0123456789</span></td></tr>
+<tr><td><code>note</code></td><td>13px / 1.45 / 400</td><td><span style="font-size:13px;line-height:1.45;font-weight:400;">La señal ordenada 0123456789</span></td></tr>
+<tr><td><code>caption</code></td><td>12px / 1.35 / 500</td><td><span style="font-size:12px;line-height:1.35;font-weight:500;">La señal ordenada 0123456789</span></td></tr>
+<tr><td><code>micro</code></td><td>11px / 1.2 / 600 / uppercase / 0.06em</td><td><span style="font-size:11px;line-height:1.2;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">La señal ordenada 0123456789</span></td></tr>
+    </tbody></table>
+  </section>
+
+  <section>
+    <h2>Espaciado</h2>
+    <p class="src">fuente: <code>foundations.spacing</code> — retícula de 4, ópticamente verificada</p>
+    <div class="sp"><code>space-1</code><div class="sp-bar" style="width:16px"></div><span>4px</span></div><div class="sp"><code>space-2</code><div class="sp-bar" style="width:32px"></div><span>8px</span></div><div class="sp"><code>space-3</code><div class="sp-bar" style="width:48px"></div><span>12px</span></div><div class="sp"><code>space-4</code><div class="sp-bar" style="width:64px"></div><span>16px</span></div><div class="sp"><code>space-5</code><div class="sp-bar" style="width:80px"></div><span>20px</span></div><div class="sp"><code>space-6</code><div class="sp-bar" style="width:96px"></div><span>24px</span></div><div class="sp"><code>space-7</code><div class="sp-bar" style="width:128px"></div><span>32px</span></div><div class="sp"><code>space-8</code><div class="sp-bar" style="width:160px"></div><span>40px</span></div><div class="sp"><code>space-9</code><div class="sp-bar" style="width:192px"></div><span>48px</span></div>
+  </section>
+
+  <section>
+    <h2>Geometría</h2>
+    <p class="src">fuente: <code>foundations.geometry</code> — radios y alturas como slots semánticos, no valores ad hoc</p>
+    <h3>Radios</h3>
+    <table><thead><tr><th>token</th><th>valor</th></tr></thead><tbody><tr><td><code>--prosecnur-radius-control</code></td><td>10px</td></tr><tr><td><code>--prosecnur-radius-tarjeta</code></td><td>14px</td></tr><tr><td><code>--prosecnur-radius-panel</code></td><td>16px</td></tr><tr><td><code>--prosecnur-radius-lens</code></td><td>20px</td></tr><tr><td><code>--prosecnur-radius-chip</code></td><td>999px</td></tr></tbody></table>
+    <h3>Controles y rail</h3>
+    <table><thead><tr><th>token</th><th>valor</th></tr></thead><tbody>
+      <tr><td><code>--prosecnur-control-h</code></td><td>28px (default de content area)</td></tr>
+      <tr><td><code>--prosecnur-control-h-toolbar</code></td><td>36px (toolbar/CTA)</td></tr>
+      <tr><td><code>--prosecnur-control-checkbox</code></td><td>16px</td></tr>
+      <tr><td><code>--prosecnur-control-weight</code></td><td>500 macOS · 600 Windows (data-platform)</td></tr>
+      <tr><td><code>--prosecnur-rail-w</code></td><td>240px</td></tr>
+      <tr><td><code>--prosecnur-rail-row</code> / <code>-lg</code> / <code>-dense</code></td><td>32px / 40px / 24px</td></tr>
+    </tbody></table>
+    <h3>Mínimos operativos</h3>
+    <table><thead><tr><th>token</th><th>valor</th><th>alcance</th></tr></thead><tbody><tr><td><code>--prosecnur-min-workbench-panel-media</code></td><td>360px</td><td>workbench/panel/media</td></tr><tr><td><code>--prosecnur-min-lista</code></td><td>260px</td><td>lista</td></tr><tr><td><code>--prosecnur-min-cuerpo-de-dialogo</code></td><td>240px</td><td>cuerpo de diálogo</td></tr></tbody></table>
+    <h3>Reglas completas</h3>
+    <ul class="rules"><li>Radios: control 10 · tarjeta 14 · panel 16 · lens 20 · chip 999</li><li>Alturas de control (escalera macOS 26 UI Kit): 28 default de content area (sm y md coinciden hoy en 28 pero son slots semánticos distintos: denso vs default) · 36 reservado a toolbar/CTA · checkbox 16</li><li>Peso de trabajo de controles: 500 en macOS, 600 en Windows vía :root[data-platform=&quot;windows&quot;]; la jerarquía se construye con tamaño y color, no con bold</li><li>Rail lateral canónico 240px con filas de 32/40 (24 en densos)</li><li>Mínimos operativos: workbench/panel/media 360px · lista 260px · cuerpo de diálogo 240px</li><li>Isotipo: squircle con radio 24% del lado (rx 15.4 sobre viewBox 64)</li></ul>
+  </section>
+
+  <section>
+    <h2>Elevación</h2>
+    <p class="src">fuente: <code>foundations.elevation</code> — Seis niveles de sombra fría (base navy o pizarra, jamás negro puro); la elevación comunica jerarquía de flotación, nunca decoración. Lo que empuja en flujo no flota; solo lo que se superpone usa niveles altos.</p>
+    <div class="elevgrid"><div class="elev" style="box-shadow:0 1px 2px rgba(0,36,87,0.04)"><code>shadow-low</code><span>reposo</span><em>0 1px 2px rgba(0,36,87,0.04)</em></div><div class="elev" style="box-shadow:0 6px 18px rgba(0,36,87,0.06)"><code>shadow-soft</code><span>tarjetas</span><em>0 6px 18px rgba(0,36,87,0.06)</em></div><div class="elev" style="box-shadow:0 14px 30px rgba(0,36,87,0.08)"><code>shadow-med</code><span>hover-lift</span><em>0 14px 30px rgba(0,36,87,0.08)</em></div><div class="elev" style="box-shadow:0 24px 60px rgba(0,36,87,0.14)"><code>shadow-high</code><span>diálogos</span><em>0 24px 60px rgba(0,36,87,0.14)</em></div><div class="elev" style="box-shadow:0 1px 1px rgba(15,23,42,0.04), 0 10px 28px rgba(15,23,42,0.07)"><code>shadow-raised</code><span>workbench</span><em>0 1px 1px rgba(15,23,42,0.04), 0 10px 28px rgba(15,23,42,0.07)</em></div><div class="elev" style="box-shadow:0 22px 60px rgba(15,23,42,0.18), 0 4px 16px rgba(15,23,42,0.08)"><code>shadow-popover</code><span>flotantes</span><em>0 22px 60px rgba(15,23,42,0.18), 0 4px 16px rgba(15,23,42,0.08)</em></div></div>
+    <h3>Notas</h3><ul class="rules"><li>El sidebar expandido conserva soft (empuja, no flota); ContextLens usa la sombra específica 0 20px 60px rgba(15,23,42,0.18) + inset 1px 0 0 rgba(255,255,255,0.6)</li></ul>
+  </section>
+
+  <section>
+    <h2>Motion — Física Pulso</h2>
+    <p class="src">fuente: <code>extensions.pe.pucp.pulso.prosecnur.motion_tokens</code> + <code>systems.motion</code></p>
+    <h3>Duraciones</h3>
+    <table><thead><tr><th>token</th><th>valor</th></tr></thead><tbody><tr><td><code>--prosecnur-dur-press</code></td><td>120ms</td></tr><tr><td><code>--prosecnur-dur-fast</code></td><td>160ms</td></tr><tr><td><code>--prosecnur-dur-base</code></td><td>220ms</td></tr><tr><td><code>--prosecnur-dur-panel</code></td><td>280ms</td></tr><tr><td><code>--prosecnur-dur-slow</code></td><td>420ms</td></tr></tbody></table>
+    <h3>Easings</h3>
+    <table><thead><tr><th>token</th><th>curva</th></tr></thead><tbody><tr><td><code>--prosecnur-ease-out</code></td><td><code>cubic-bezier(0.23, 1, 0.32, 1)</code></td></tr><tr><td><code>--prosecnur-ease-standard</code></td><td><code>cubic-bezier(0.2, 0, 0, 1)</code></td></tr><tr><td><code>--prosecnur-ease-drawer</code></td><td><code>cubic-bezier(0.32, 0.72, 0, 1)</code></td></tr><tr><td><code>--prosecnur-ease-productive</code></td><td><code>cubic-bezier(0.16, 1, 0.3, 1)</code></td></tr><tr><td><code>--prosecnur-ease-in-out</code></td><td><code>cubic-bezier(0.77, 0, 0.175, 1)</code></td></tr></tbody></table>
+    <h3>Offsets de ruta</h3>
+    <p>enter y+8px · forward x+12px · back x-12px</p>
+    <h3>Firmas</h3>
+    <table><thead><tr><th>firma</th><th>spec</th></tr></thead><tbody>
+      <tr><td>PageFrame (toda ruta)</td><td>cuerpo 190ms · header 150ms · toolbar 160ms · easing out</td></tr>
+      <tr><td>Marca (BootBrandMark)</td><td>stagger de pastillas 60ms · duración slow · easing productive</td></tr>
+      <tr><td>Diagramas y árboles</td><td>orbit-in 620ms + edge-draw 680ms — excepción gobernada <code>motion-firma-diagramas</code></td></tr>
+    </tbody></table>
+    <p class="note">Tope de la escala de tokens: 420ms · máximo gobernado: 680ms · prefers-reduced-motion obligatorio.</p>
+    <ul class="rules"><li>Cinco duraciones: press 120ms (presión de controles, scale 0.98) · fast 160ms (hover, focus ring, chips) · base 220ms (aparición de contenido, fades con rise de 6-8px) · panel 280ms (drawers, popovers, rutas) · slow 420ms (celebraciones, gráficos, logo)</li><li>Cinco easings: salida cubic-bezier(0.23,1,0.32,1) (dominante) · estándar cubic-bezier(0.2,0,0,1) · drawer cubic-bezier(0.32,0.72,0,1) · productivo cubic-bezier(0.16,1,0.3,1) · in-out cubic-bezier(0.77,0,0.175,1)</li><li>Rutas: enter y+8px, forward x+12px, back x-12px</li><li>Firma de PageFrame (transición base de toda ruta): cuerpo 190ms / header 150ms / toolbar 160ms con easing de salida</li><li>Firma de marca: el isotipo entra con stagger de pastillas de 60ms (slow + productivo)</li><li>Firma de diagramas y árboles: «orbit-in + edge-draw» del dashboard — nodos 620ms con easing productivo + aristas por stroke-dashoffset 680ms (excepción gobernada al tope de 420ms de la escala de tokens; ver governance.exceptions)</li><li>La escala de tokens no supera 420ms; toda animación respeta prefers-reduced-motion</li></ul>
+  </section>
+
+  <section>
+    <h2>Materiales</h2>
+    <p class="src">fuente: <code>extensions.pe.pucp.pulso.prosecnur.materials</code> + <code>architecture.surfaces</code> — Vibrancy simulada Windows-safe: gradiente blanco + superficie translúcida color-mix + backdrop-filter progresivo; el material va SOLO en navegación y capas de comando, los formularios densos usan superficie sólida.</p>
+    <table><thead><tr><th>token</th><th>receta</th><th>uso</th></tr></thead><tbody>
+      <tr><td><code>--prosecnur-material-base</code></td><td><code>color-mix(in srgb, var(--prosecnur-surface-paper) 82%, transparent)</code></td><td>command bars, pillbars, rails</td></tr>
+      <tr><td><code>--prosecnur-material-strong</code></td><td><code>color-mix(in srgb, var(--prosecnur-surface-paper) 92%, transparent)</code></td><td>segmented, controles sobre contenido</td></tr>
+      <tr><td><code>--prosecnur-material-chrome</code></td><td><code>color-mix(in srgb, #ffffff 74%, transparent)</code></td><td>barras de app</td></tr>
+      <tr><td><code>--prosecnur-material-blur-1/2/3</code></td><td>10px / 14px / 18px · saturate(1.08)</td><td>blur progresivo según jerarquía</td></tr>
+      <tr><td><code>--prosecnur-material-border</code></td><td><code>color-mix(in srgb, var(--prosecnur-primary-border) 78%, var(--prosecnur-border))</code></td><td>teñido con el acento del módulo en command bars</td></tr>
+      <tr><td><code>--prosecnur-material-shadow</code></td><td><code>inset 0 1px 0 rgba(255,255,255,0.72), 0 10px 30px rgba(0,36,87,0.08)</code></td><td>sombra de material</td></tr>
+    </tbody></table>
+    <ul class="rules"><li>Tres materiales: base 82% (color-mix surface 82% transparent — command bars, pillbars, rails) · fuerte 92% (segmented y controles sobre contenido) · chrome 74% (barras de app)</li><li>Blur progresivo según jerarquía: 10 / 14 / 18, con saturate(1.08); el ejemplar mon-commandbar usa blur(18) saturate(1.08)</li><li>Borde de material: color-mix(primary-border 78%, border) — teñido con el acento del módulo en command bars</li><li>Sombra de material: inset 0 1px 0 rgba(255,255,255,0.72) + 0 10px 30px rgba(0,36,87,0.08)</li><li>Degrada con dignidad sin backdrop-filter: el gradiente blanco sostiene la legibilidad</li><li>Jamás vibrancy real del OS (restricción dual-platform)</li></ul>
+  </section>
+
+  <section>
+    <h2>Visualización de datos</h2>
+    <p class="src">fuente: <code>systems.data_visualization</code> — Una sola fuente cromática para CSS, PDF y Plotly: el navy ancla las tres capas. Si un número aparece en pantalla, en un PDF y en un PPT, debe contar la misma historia con la misma paleta.</p>
+    <ul class="rules"><li>Paleta de once roles con fuente única pulso_plotly_palette(): primario #002457 (serie por defecto), serie brillante #2457D6 (la serie o barra activa), éxito #16A34A, alerta #D97706, peligro #DC2626, neutro #94A3B8 (contexto sin señal), superficie #F8FAFF, borde #D8E0EF, grid #DBE3F1, texto #1F2933, texto suave #5F6B7A; si un color no está en esta paleta, no entra a un gráfico</li><li>Secuencial = intensidad del navy: #DBE8FF → #7AA2F8 → #2457D6 → #002457, interpolable; nunca arcoíris — una dimensión de dato pide una dimensión de color; el paso más oscuro es siempre el dato máximo</li><li>Anatomía del gráfico: grid sutil horizontal, ejes sin línea dura, sin 3D ni sombras ni degradados decorativos, un acento por gráfico, eje Y en 0 para barras, endpoint enfatizado en líneas, valores con tabular-nums</li><li>La capa Pulso PDF es normativa (cabecera/pie/logo/hairlines/tablas zebra, escala en pt); el layout por motor es libre</li><li>PPT/XLSX heredan paleta y tipografía; el XLSX conserva los colores canónicos de tipo de pregunta (ver extensions.xlsx_question_type_colors)</li><li>El color de datos se mantiene separado del color de estado de la interfaz (chart-danger #DC2626 ≠ danger UI #BE123C)</li></ul>
+  </section>
+
+  <section>
+    <h2>Iconografía</h2>
+    <p class="src">fuente: <code>systems.iconography</code> — Iconografía en dos capas: alias semánticos de lucide como lenguaje de interfaz, glifos SVG a mano solo para representaciones de dominio que lucide no puede dar.</p>
+    <ul class="rules"><li>Capa 1: alias semánticos de lucide en src/lib/icons.ts (nombre por concepto, un punto de cambio: IconProcessing=Workflow, IconMonitor=Activity, IconSample=Calculator, IconCollector=QrCode…); siempre vía el shim src/vendor/lucide-react.ts</li><li>Capa 2: glifos SVG a mano SOLO para dominio (tipos de gráfico, gauges, diagramas de flujo); nunca packs mezclados en la capa 1</li><li>Trazo 1.5, tamaños 16/18/20, esquinas redondeadas, sin rellenos salvo estados activos</li><li>Los iconos heredan el color del texto o el acento del módulo; nunca introducen colores nuevos</li></ul>
+  </section>
+
+  <section>
+    <h2>Patrones maestros</h2>
+    <p class="src">fuente: <code>architecture.component_recipes</code> — Los ocho patrones maestros v1.1 canonizan los ejemplares más profesionales ya construidos en la app y son norma para todos los módulos.</p>
+    <ul class="rules">
+<li>1 · Command bar de módulo (ejemplar mon-commandbar): grid de 3 zonas —contexto | rail de secciones | acciones—, material translúcido (doble gradiente blanco + --pulso-material-bg + blur(18px) saturate(1.08)), borde teñido con el acento del módulo, radio 18, altura mínima 46, controles de 32; el acento entra reasignando --pulso-primary en el scope del módulo, nunca regla por regla</li>
+<li>2 · Rail de secciones centrado (ejemplar pulso-phase-pillbar): pillbar material centrado (margin-inline:auto, radio 999, blur 16), pills de 34px (32 en módulos densos); hover = fill que crece desde el centro (opacity + scaleX 0.94→1, base/salida); activo = gradiente del primario + texto blanco + sombra 0 5px 12px rgba(0,36,87,0.19); número de fase 19x19 tabular; entrada con x -6→0 (base/salida); es el selector de secciones primario de TODO módulo</li>
+<li>3 · Sidebar de pestañas icon-compressed (ejemplar calc-muestra/Procesamiento): tercer nivel comprimido a 56px que expande a 240px empujando el canvas por grid (grid-template-columns con track expandido de longitud fija: la interpolación suave exige tracks de la misma estructura), transición base/salida; activa = gradiente del primario + subtítulo revelado (max-height 0→14px, fast); la variante icon-only + tooltip flotante es secundaria, para superficies donde el push no cabe</li>
+<li>4 · Switch maestro (pulso-switch): 44x24, track cóncavo (gradiente #EEF2F7→#DFE6EF + sombras internas), knob blanco de 18 elevado (0 1px 2px rgba(15,23,42,0.22)), desliza left 2→22 en fast/salida, encendido = gradiente del primario, presión scale(0.97), foco anillo de 4px</li>
+<li>5 · KPI discreto (ejemplar banda canónica de Monitoreo de aulas): valor 21px/900 tabular —nunca gigante—, etiqueta 9.5px/900 mayúsculas, hairline de acento de 2px al pie de la tile; el color del módulo vive en el contenedor y el hairline, jamás en el número; el semántico (warn/danger) aparece solo cuando hay brecha real; versión command-bar: 12px/820</li>
+<li>6 · Procedencia y herencia (ejemplar Gráficos v2): barra izquierda de 4px codificando el origen del valor (violeta = heredado del modo, verde = override del usuario) + focus-within con anillo; acento-por-rol vía token remapeado (--layout-accent por data-role); swatches de color 24x24 con borde interior de vidrio y hover scale(1.08)</li>
+<li>7 · Iconografía en dos capas: alias semánticos de lucide en src/lib/icons.ts + glifos SVG a mano solo para dominio (ver systems.iconography)</li>
+<li>8 · Firmas de motion de feature: triada de PageFrame (cuerpo 190ms / header 150ms / toolbar 160ms, easing de salida) como transición base de toda ruta; «orbit-in + edge-draw» del dashboard (nodos 620ms productiva + aristas stroke-dashoffset 680ms) como firma para diagramas y árboles</li>
+<li>Estados requeridos en todo control: rest, hover, focus visible, active/presión, disabled, loading, empty, success, warning, error y vía reduced-motion donde aplique</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Navegación y layouts</h2>
+    <p class="src">fuente: <code>architecture.navigation</code> + <code>architecture.layouts</code> + <code>foundations.responsive</code></p>
+    <table><thead><tr><th>nivel</th><th>definición</th></tr></thead><tbody>
+      <tr><td><code>nivel-1</code></td><td>Familia/Módulo (homepage, paleta propia)</td></tr><tr><td><code>nivel-2</code></td><td>Sección (top bar del módulo)</td></tr><tr><td><code>nivel-3</code></td><td>Pestaña dinámica (sidebar icon-compressed)</td></tr>
+    </tbody></table>
+    <ul class="rules"><li>Vocabulario oficial: Familia/Módulo (homepage, paleta propia) → Sección (top bar del módulo; en Procesamiento: Carga, Validación, Codificación, Analítica, Gráficos) → Pestaña dinámica; UI nueva se cuelga de uno de esos tres niveles y nunca duplica la navegación de un nivel en otro</li><li>Anatomía de cinco capas: Capa 1 Comando (command bar material de 3 zonas: contexto · rail · acciones; sin H1 visible, la identidad vive aquí) · Capa 2 Secciones (rail centrado tipo pillbar) · Capa 3 Objetos (sidebar/outline compacto para inventarios largos: reglas, variables, rutas, pestañas dinámicas; icon-compressed que empuja el canvas) · Capa 4 Tabs locales (pestañas compactas o segmented dentro de la sección activa) · Capa 5 Inspector (propiedades contextuales del objeto seleccionado; edita, no navega)</li><li>Al abrir un proyecto se aterriza en el homepage del proyecto (cards de avance), jamás en una ruta heredada de otro proyecto</li><li>El rail superior YA es el recorrido: el pulido didáctico va dentro de cada pestaña, nunca como segunda barra de pasos</li><li>El sidebar de pestañas expande empujando el canvas por grid, nunca como overlay flotante</li><li>Módulos canónicos y sus rutas: Bitácora (/bitacora), Cálculo de muestra (/calc-muestra), Editor de formularios (/editor-xlsform), Hojas de ruta (/hojas-ruta), Fichas QR (/recopiladores), Monitoreo (/monitoreo), Procesamiento (/procesamiento), Dashboard (/tablero)</li></ul>
+    <h3>Economía del chrome</h3>
+    <ul class="rules"><li>Sin franjas de título: los módulos no llevan H1 visible (headerMode=&quot;sr-only&quot;); sin títulos interiores redundantes en paneles</li><li>Datos en el primer viewport: exploradores, filtros y resúmenes son herramientas subordinadas</li><li>Jerarquía de contenedores: Shell → PageFrame con layouts document (lectura/formularios con scroll de página), workbench (rail + área principal con scroll interno), canvas (superficie visual con área mínima preservada), data (tabla/grilla con scroll interno)</li><li>Dueños de scroll: page (el área principal scrollea) · body (el body del PageFrame scrollea) · panels (paneles internos, degradando a .pulso-main en compact/short)</li><li>Un solo dueño de scroll por pantalla (No Scroll Jail); overflow:hidden solo oculta contenido decorativo o delega a un descendiente scrollable</li></ul>
+    <h3>Responsive</h3>
+    <ul class="rules"><li>Breakpoints canónicos: desktop (&gt;1320px y &gt;720px de alto) · compact desktop (≤1320px o ≤720px de alto: reduce padding, compacta encabezados, toolbars envuelven) · narrow desktop (≤900px: workbenches apilan rail y contenido) · short desktop (≤700px de alto: apilan aunque el ancho alcance)</li><li>Matriz base de QA: 1710x1107 · 1440x1000 · 1366x768 · 1280x720 · 1024x600</li><li>Presets manuales (pulso.layoutPreset en localStorage, nunca en el .pulso): auto/large/portable/portable-compact/compact/short; el shell expone data-pulso-layout-preset/density/mode</li><li>Ninguna ruta deja contenido vertical inaccesible por cadenas de height:100% + overflow:hidden; si una pantalla crece al compactarse debe existir un dueño de scroll visible y alcanzable</li><li>El shell no introduce scroll horizontal global; el fallback de scroll vive en .pulso-main, no en body</li></ul>
+  </section>
+
+  <section>
+    <h2>Voz</h2>
+    <p class="src">fuente: <code>systems.voice</code> + <code>extensions.pe.pucp.pulso.prosecnur.verbal_formats_es_pe</code> — Prosecnur habla como un colega experto: claro antes que elegante, de tú en español peruano neutro, técnico cuando aporta, sereno siempre. La voz es parte del contrato visual.</p>
+    <ul class="rules"><li>Las acciones dicen lo que hacen: verbo + objeto («Marcar 6 como revisadas»), nunca «Aceptar»</li><li>Los errores explican qué pasó y cómo seguir; el código E_* es visible pero al final, en mono</li><li>Números es-PE: miles con coma, decimales con punto, horas en formato 24h, tabular en columnas</li><li>Mayúscula solo inicial en controles; las sostenidas se reservan a micro-etiquetas con tracking</li><li>Vocabulario canónico sin sinónimos improvisados: base procesable, cursos-horario, marco muestral, recopilador, corte</li><li>Tecnicismos en inglés cuando son el término estándar; sin slang regional forzado</li></ul>
+    <p class="note">Formatos es-PE: miles con coma · decimales con punto · horas 24h · columnas tabular-nums · trato: tú, español peruano neutro.</p>
+  </section>
+
+  <section>
+    <h2>Entregables — XLSX por tipo de pregunta</h2>
+    <p class="src">fuente: <code>extensions.pe.pucp.pulso.prosecnur.xlsx_question_type_colors</code></p>
+    <p><span class="chip" style="background:#e2f0d9;border:1px solid #9cc47f;color:#2d6720">seleccion-multiple</span> <span class="chip" style="background:#d9e1f2;border:1px solid #8fa3d0;color:#1e3a6b">seleccion-unica</span> <span class="chip" style="background:#e6d9f2;border:1px solid #a48ac9;color:#4a2d66">numerica</span> <span class="chip" style="background:#fff2cc;border:1px solid #d5b866;color:#7a5a00">texto</span></p>
+  </section>
+
+  <section>
+    <h2>Gobernanza</h2>
+    <p class="src">fuente: <code>governance</code></p>
+    <h3>Excepciones vigentes</h3>
+    <table><thead><tr><th>id</th><th>vence</th><th>motivo</th></tr></thead><tbody>
+      <tr><td><code>motion-firma-diagramas</code></td><td>2027-01-31</td><td>La firma «orbit-in + edge-draw» del dashboard usa 620ms (nodos) y 680ms (aristas), por encima del tope de 420ms de la escala de tokens; está documentada como patrón maestro 8 en la dirección v1.1/v1.2 y se mantiene como excepción acotada a diagramas y árboles, con vía reducida obligatoria.</td></tr>
+    </tbody></table>
+    <h3>Condiciones de revisión</h3>
+    <ul class="rules"><li>Cambios de identidad (geometría del isotipo, paleta de marca, patrones maestros) requieren actualizar la dirección creativa y republicar el manual; el Artifact y branding/manual-identidad.html deben mantenerse en paridad</li><li>Reabrir el freeze cuando cambie el concepto, el significado semántico de tokens, los contratos de componentes, las invariantes de plataforma o los outputs requeridos</li><li>Los derivados .ico/.icns/.bmp se regeneran desde branding/logo/ en el siguiente build de packaging</li><li>theme.css es la fuente operativa dentro de la app: cualquier drift entre identity.json y theme.css/prosecnur-brand.css se resuelve a favor de la dirección creativa y se registra</li></ul>
+    <h3>Outputs declarados</h3>
+    <table><thead><tr><th>id</th><th>target</th><th>path</th><th>ownership</th><th>status</th></tr></thead><tbody><tr><td><code>identity-tokens-css</code></td><td>react</td><td><code>branding/identity/tokens.css</code></td><td>generated</td><td>current</td></tr><tr><td><code>identity-reference-doc</code></td><td>documentation</td><td><code>branding/identity/identity-reference.html</code></td><td>generated</td><td>current</td></tr></tbody></table>
+  </section>
+
+  <footer>
+    Derivado determinista de <code>branding/identity.json</code> · prosecnur-la-senal-ordenada v1.2.0 ·
+    <code>sha256:d906ccb9b8981e097825c515bcaad38c5879c8aef37d2e4073ae07cc03fa9362</code> · prosecnur-identity-compiler v1.0.0
+  </footer>
+</main>
+</body>
+</html>
