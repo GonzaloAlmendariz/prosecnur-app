@@ -1035,7 +1035,7 @@ test_that("filtro de Carga conserva formula R exacta y literales escapados", {
 
   report <- .vmr_test_pdf_text(model)
   expect_match(report$text, "FÓRMULA R USADA PARA FILTRAR", fixed = TRUE)
-  expect_match(report$text, variable, fixed = TRUE)
+  expect_match(report$text, deparse(variable, width.cutoff = 500L), fixed = TRUE)
   expect_true(grepl("base_validacion\\s*<-\\s*data\\[\\.filter_keep", report$text, perl = TRUE))
 
   r_path <- tempfile(fileext = ".R")
@@ -1063,6 +1063,80 @@ test_that("filtro aplicado sin valores reales no inventa formula R", {
   )
 
   expect_false(nzchar(as.character(model$upstream_universe$formula_r %||% "")))
+})
+
+test_that("preparacion del universo corrige antes de excluir y documenta los conteos", {
+  universe <- list(
+    applied = TRUE,
+    variable = "testreal",
+    real_values = "real",
+    test_values = "test",
+    corrections = list(list(
+      key_variable = "Pulso_code",
+      key_values = c("PDM1114", "PDM1153"),
+      variable = "testreal",
+      from_values = "test",
+      to_value = "real",
+      reason = "Entrevistas reales registradas inicialmente como prueba"
+    )),
+    exclusion_rules = list(list(
+      variable = "Consent",
+      values = "No",
+      reason = "Rechazo de consentimiento"
+    )),
+    total = 430L,
+    corrected = 2L,
+    excluded_test = 1L,
+    excluded_rules = 3L,
+    included = 426L
+  )
+  evaluation <- list(resumen_tabla = data.frame(
+    id_regla = rule_required("Pulso_code")$id,
+    estado = "correcta",
+    n_evaluados = 426L,
+    n_inconsistencias = 0L,
+    stringsAsFactors = FALSE
+  ))
+  model <- build_validation_methodology_report_model(
+    .vmr_test_scope(list(rule_required("Pulso_code")), evaluation = evaluation),
+    upstream_universe = universe
+  )
+  formula <- as.character(model$upstream_universe$formula_r %||% "")
+
+  expect_error(parse(text = formula), NA)
+  expect_lt(regexpr("\\.correction_match_1", formula)[[1L]], regexpr("\\.filter_variable", formula)[[1L]])
+  expect_lt(regexpr("\\.filter_variable", formula)[[1L]], regexpr("\\.exclusion_match_1", formula)[[1L]])
+  raw <- data.frame(
+    Pulso_code = c("PDM1114", "PDM1153", "123456", "PDM1429", "PDM2000"),
+    testreal = c("test", "test", "test", "real", "real"),
+    Consent = c("Yes", "Yes", "Yes", "No", "Yes"),
+    stringsAsFactors = FALSE
+  )
+  env <- list2env(list(data = raw), parent = baseenv())
+  eval(parse(text = formula), envir = env)
+  expect_equal(env$base_validacion$Pulso_code, c("PDM1114", "PDM1153", "PDM2000"))
+  expect_equal(env$base_validacion$testreal, rep("real", 3L))
+
+  r_path <- tempfile(fileext = ".R")
+  validation_methodology_report_r(model, r_path)
+  script <- paste(readLines(r_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  expect_match(script, "# Encuestas reclasificadas de prueba a real: 2", fixed = TRUE)
+  expect_match(script, "# Pruebas retiradas: 1", fixed = TRUE)
+  expect_match(script, "# Rechazos retirados: 3", fixed = TRUE)
+  expect_match(script, "# Encuestas incluidas: 426", fixed = TRUE)
+  expect_lt(regexpr(".correction_match_1", script, fixed = TRUE)[[1L]],
+            regexpr(".exclusion_match_1", script, fixed = TRUE)[[1L]])
+  script_env <- new.env(parent = baseenv())
+  sys.source(r_path, envir = script_env)
+  expect_equal(script_env$prepare_validation_universe(raw)$Pulso_code,
+               c("PDM1114", "PDM1153", "PDM2000"))
+
+  report <- .vmr_test_pdf_text(model)
+  expect_match(report$text, "2", fixed = TRUE)
+  expect_match(report$text, "reclasificadas", ignore.case = TRUE)
+  expect_match(report$text, "1 prueba retirada", ignore.case = TRUE)
+  expect_match(report$text, "3 rechazos retirados", ignore.case = TRUE)
+  expect_match(report$text, "426", fixed = TRUE)
 })
 
 test_that("PDF y script R documentan fechas manuales y similitud de respuestas", {
