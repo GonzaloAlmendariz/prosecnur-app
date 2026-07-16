@@ -65,9 +65,9 @@
 }
 
 .hojas-ruta-commandbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr) max-content;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
   min-width: 0;
   padding: 8px 10px;
@@ -86,12 +86,23 @@
 
 .hojas-ruta-command-summary {
   min-width: 0;
+  max-width: min(100%, 40vw, 620px);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, max-content));
+  align-items: center;
+  gap: 4px 8px;
+  justify-self: start;
+  overflow: visible;
+}
+
+.hojas-ruta-command-actions {
+  min-width: 0;
+  max-width: min(100%, 560px);
   display: inline-flex;
   align-items: center;
-  gap: 7px 8px;
-  flex: 1 1 760px;
-  flex-wrap: wrap;
-  overflow: visible;
+  justify-content: flex-end;
+  gap: 8px;
+  justify-self: end;
 }
 
 .hojas-ruta-phase-notice-chip {
@@ -157,21 +168,13 @@
 }
 
 .hojas-ruta-command-readiness {
+  grid-column: 1 / -1;
   min-width: 0;
   display: inline-flex;
   align-items: center;
   gap: 0;
-  flex: 0 1 auto;
   flex-wrap: nowrap;
-  margin-left: 1px;
-  padding: 3px 0 3px 9px;
-  border-left: 1px solid color-mix(in srgb, var(--module-accent-border) 54%, transparent);
-}
-
-.hojas-ruta-command-readiness::before {
-  content: "";
-  align-self: stretch;
-  width: 0;
+  justify-self: start;
 }
 
 .hojas-ruta-command-current {
@@ -207,16 +210,21 @@
 }
 
 .hojas-ruta-stage-rail-wrap {
-  display: flex;
-  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
   min-width: 0;
+  display: flex;
+  justify-self: center;
+  justify-content: center;
 }
 
 .hojas-ruta-stage-rail {
   max-width: min(720px, 100%);
+  min-width: 0;
 }
 
 .hojas-ruta-stage-rail .pulso-phase-pillbar {
+  --pill-pad-x: 10px;
   border-color: color-mix(in srgb, var(--module-accent-border) 72%, var(--pulso-border));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
@@ -4110,12 +4118,28 @@
 @media (max-width: 1180px) {
   .hojas-ruta-commandbar {
     align-items: center;
-    flex-wrap: wrap;
+    gap: 7px;
+    padding: 6px 8px;
     border-radius: 16px;
   }
 
   .hojas-ruta-command-summary {
-    flex: 1 1 560px;
+    max-width: min(100%, 320px);
+    grid-template-columns: repeat(2, minmax(0, max-content));
+    gap: 3px 4px;
+  }
+
+  .hojas-ruta-command-readiness {
+    display: none;
+  }
+
+  .hojas-ruta-command-actions {
+    max-width: min(100%, 420px);
+    gap: 6px;
+  }
+
+  .hojas-ruta-phase-notice-chip {
+    max-width: 190px;
   }
 
   .hojas-ruta-command-current {
