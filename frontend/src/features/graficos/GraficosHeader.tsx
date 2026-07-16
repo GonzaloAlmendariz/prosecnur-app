@@ -1212,8 +1212,8 @@ export function GraficosHeader({
                         </a>
                       )}
                       {saveStatus && (
-                        <span className={saveStatus.startsWith("[") ? "is-error" : "is-ok"}>
-                          {!saveStatus.startsWith("[") && <CheckCircle2 size={12} />}
+                        <span className={saveStatus.startsWith("[") || /\s·\s(?:E_|HTTP_)[A-Z0-9_]+$/.test(saveStatus) ? "is-error" : "is-ok"}>
+                          {!(saveStatus.startsWith("[") || /\s·\s(?:E_|HTTP_)[A-Z0-9_]+$/.test(saveStatus)) && <CheckCircle2 size={12} />}
                           {saveStatus}
                         </span>
                       )}

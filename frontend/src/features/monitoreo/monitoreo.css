@@ -4094,8 +4094,9 @@
 
 .mon-inspector-total strong {
   color: var(--pulso-text);
-  font-size: 22px;
-  font-weight: 860;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
@@ -6318,8 +6319,9 @@
 
 .mon-territorial-objective-meter header strong {
   color: var(--pulso-text);
-  font-size: 22px;
-  font-weight: 920;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
@@ -7137,9 +7139,10 @@
 
 .mon-territorial-exec-progress-main > div > strong {
   color: var(--pulso-text);
-  font-size: clamp(34px, 3.2vw, 42px);
-  font-weight: 940;
-  line-height: 1.05;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .mon-territorial-exec-progress-main > div > em {
@@ -7180,8 +7183,10 @@
 .mon-territorial-exec-ring strong {
   align-self: center;
   color: var(--pulso-text);
-  font-size: 22px;
-  font-weight: 940;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .mon-territorial-exec-ring span {
@@ -7714,8 +7719,9 @@
   justify-self: end;
   border-left: 1px solid color-mix(in srgb, var(--district-card-color) 18%, var(--pulso-border));
   color: var(--district-card-color);
-  font-size: 25px;
-  font-weight: 940;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
   padding-left: 10px;
   white-space: nowrap;
@@ -7906,8 +7912,9 @@
 
 .mon-territorial-demographic-summary-main strong {
   color: var(--exec-navy);
-  font-size: 30px;
-  font-weight: 940;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
@@ -8179,8 +8186,10 @@
 .mon-territorial-exec-sex-ring strong {
   align-self: center;
   color: var(--pulso-text);
-  font-size: 22px;
-  font-weight: 920;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .mon-territorial-exec-sex-ring span {
@@ -8467,7 +8476,7 @@
 
   .mon-territorial-exec-district-pct {
     min-width: 70px;
-    font-size: 22px;
+    font-size: 21px;
     padding-left: 8px;
   }
 
@@ -18109,8 +18118,9 @@
 .mon-territorial-state-headline strong {
   grid-row: 1 / span 2;
   color: var(--pulso-text);
-  font-size: 26px;
-  font-weight: 920;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   line-height: 0.98;
 }
 
@@ -18315,8 +18325,9 @@
 
 .mon-territorial-geo-compass strong {
   color: var(--pulso-text);
-  font-size: 24px;
-  font-weight: 920;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
@@ -18606,7 +18617,7 @@
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-score-ring strong {
-  font-size: 22px;
+  font-size: 21px;
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-score-ring em {
@@ -18625,7 +18636,7 @@
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-state-headline strong {
-  font-size: 23px;
+  font-size: 21px;
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-state-headline span {
@@ -20401,8 +20412,8 @@
 
 .mon-duration-category-grid article > strong {
   color: var(--pulso-text);
-  font-size: clamp(22px, 2.4vw, 34px);
-  font-weight: 940;
+  font-size: 21px;
+  font-weight: 900;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
   line-height: 0.95;
@@ -21576,8 +21587,9 @@
 
 .mon-territorial-review-hero strong {
   color: var(--pulso-text);
-  font-size: 22px;
+  font-size: 21px;
   font-weight: 900;
+  font-variant-numeric: tabular-nums;
   line-height: 1.08;
 }
 
@@ -25829,8 +25841,9 @@ button.mon-territorial-ump-audit-scrim {
 
 .mon-advance-survey-meter strong {
   color: var(--pulso-text);
-  font-size: 22px;
-  font-weight: 880;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
@@ -27172,8 +27185,9 @@ button.mon-territorial-ump-audit-scrim {
 
 .mon-actor-dashboard-tile strong {
   color: var(--pulso-text);
-  font-size: 24px;
-  font-weight: 860;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
@@ -27762,8 +27776,9 @@ button.mon-territorial-ump-audit-scrim {
 
 .mon-actor-dial strong {
   color: var(--pulso-text);
-  font-size: 26px;
-  font-weight: 880;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
@@ -29081,8 +29096,9 @@ button.mon-territorial-ump-audit-scrim {
 
 .mon-strata-dial strong {
   color: var(--pulso-text);
-  font-size: 22px;
-  font-weight: 860;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
   letter-spacing: 0;
 }
@@ -34296,33 +34312,35 @@ button.mon-acr-requirement-metric:active {
   white-space: nowrap;
 }
 
+/* Pista al switch maestro 44×24 (`.pulso-switch`, theme.css). */
 .mon-switch-line input {
   position: relative;
   flex: 0 0 auto;
-  width: 30px;
-  height: 18px;
+  width: 44px;
+  height: 24px;
   appearance: none;
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #bcc7d8 18%);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--pulso-surface-2) 75%, #fff 25%);
-  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--pulso-switch-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-switch-track);
+  box-shadow: var(--pulso-switch-track-shadow);
   cursor: pointer;
   transition:
-    background-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
-    border-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
-    box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1);
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .mon-switch-line input[type="checkbox"] {
-  width: 30px !important;
-  min-width: 30px !important;
-  height: 18px !important;
-  min-height: 18px !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 24px !important;
+  min-height: 24px !important;
   display: inline-block !important;
   place-content: unset !important;
   padding: 0 !important;
   border-width: 1px !important;
-  border-radius: 999px !important;
+  border-radius: var(--pulso-radius-chip) !important;
 }
 
 .mon-switch-line input::after {
@@ -34330,30 +34348,36 @@ button.mon-acr-requirement-metric:active {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 12px;
-  height: 12px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: #fff;
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.22),
-    0 0 0 1px rgba(15, 23, 42, 0.04);
-  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow: var(--pulso-switch-knob-shadow);
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .mon-switch-line input:checked {
-  border-color: color-mix(in srgb, var(--pulso-primary) 72%, var(--pulso-primary-border) 28%);
-  background: var(--pulso-primary);
+  border-color: color-mix(in srgb, var(--pulso-primary) 84%, #fff 16%);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-primary) 88%, #fff 12%), var(--pulso-primary));
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    0 1px 2px rgba(0, 36, 87, 0.12);
 }
 
 .mon-switch-line input:checked::after {
-  transform: translateX(12px);
+  transform: translateX(20px);
+}
+
+.mon-switch-line input:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .mon-switch-line input:focus-visible {
   outline: none;
   box-shadow:
-    inset 0 1px 1px rgba(15, 23, 42, 0.08),
-    0 0 0 3px var(--pulso-primary-soft);
+    var(--pulso-switch-track-shadow),
+    0 0 0 4px var(--pulso-primary-ring);
 }
 
 .mon-checkbox-pill input {
@@ -36763,8 +36787,9 @@ button.mon-acr-requirement-metric:active {
 
 .mon-quality-alert-note strong {
   color: var(--quality-accent);
-  font-size: 22px;
-  font-weight: 860;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
@@ -37641,7 +37666,7 @@ button.mon-acr-requirement-metric:active {
   min-width: 0;
   min-height: 32px;
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-columns: 44px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
   border: 1px solid color-mix(in srgb, var(--case-accent) 20%, var(--pulso-border));
@@ -37654,27 +37679,45 @@ button.mon-acr-requirement-metric:active {
   padding: 3px 9px 3px 4px;
 }
 
+/* Pista al switch maestro 44×24 (`.pulso-switch`, theme.css). El encendido
+   conserva el verde semántico: significa "caso conciliado", no chrome. */
 .mon-reconciliation-switch i {
-  width: 30px;
-  height: 20px;
+  width: 44px;
+  height: 24px;
   display: block;
   border-radius: var(--pulso-radius-pill);
-  background: var(--pulso-border);
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
+  border: 1px solid var(--pulso-switch-border);
+  background: var(--pulso-switch-track);
+  box-shadow: var(--pulso-switch-track-shadow);
   position: relative;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .mon-reconciliation-switch i::after {
   content: "";
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 14px;
-  height: 14px;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.22);
-  transition: transform 160ms ease;
+  box-shadow: var(--pulso-switch-knob-shadow);
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.mon-reconciliation-switch:active i {
+  transform: scale(0.97);
+}
+
+.mon-reconciliation-switch input:focus-visible + span i {
+  box-shadow:
+    var(--pulso-switch-track-shadow),
+    0 0 0 4px var(--pulso-primary-ring);
 }
 
 .mon-reconciliation-switch input:checked + span {
@@ -37683,11 +37726,16 @@ button.mon-acr-requirement-metric:active {
 }
 
 .mon-reconciliation-switch input:checked + span i {
-  background: var(--pulso-success-fg);
+  border-color: color-mix(in srgb, var(--pulso-success-fg) 84%, #fff 16%);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-success-fg) 88%, #fff 12%), var(--pulso-success-fg));
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    0 1px 2px rgba(0, 36, 87, 0.12);
 }
 
 .mon-reconciliation-switch input:checked + span i::after {
-  transform: translateX(10px);
+  transform: translateX(20px);
 }
 
 .mon-reconciliation-switch input:disabled + span {
@@ -40707,7 +40755,7 @@ button.mon-acr-requirement-metric:active {
 
 .mon-phone-codpulso-bridge strong {
   color: color-mix(in srgb, var(--codpulso-flow-accent) 74%, var(--pulso-text));
-  font-size: 24px;
+  font-size: 21px;
 }
 
 .mon-phone-codpulso-node em,
@@ -40811,8 +40859,9 @@ button.mon-acr-requirement-metric:active {
   min-width: 0;
   overflow: hidden;
   color: var(--pulso-text);
-  font-size: 28px;
-  font-weight: 920;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0;
   line-height: 0.95;
   text-overflow: ellipsis;
@@ -40891,7 +40940,7 @@ button.mon-acr-requirement-metric:active {
 }
 
 .mon-phone-codpulso-trace strong {
-  font-size: 25px;
+  font-size: 21px;
 }
 
 .mon-phone-codpulso-proof {
@@ -42848,8 +42897,9 @@ button.mon-acr-requirement-metric:active {
 
 .mon-phone-model-rules strong {
   color: var(--pulso-text);
-  font-size: 22px;
-  font-weight: 880;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
@@ -61221,8 +61271,9 @@ button.mon-acr-requirement-metric:active {
 
 .mon-field-occurrences-intents-card strong {
   color: var(--pulso-text);
-  font-size: 27px;
-  font-weight: 940;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
@@ -65907,10 +65958,11 @@ button.mon-acr-requirement-metric:active {
   min-width: 0;
   overflow: hidden;
   color: var(--pulso-text);
-  font-size: 24px;
-  font-weight: 880;
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0;
-  line-height: 1.05;
+  line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -66516,7 +66568,8 @@ button.mon-acr-requirement-metric:active {
   display: block;
   margin-top: 5px;
   color: var(--pulso-ink, #17212f);
-  font-size: 22px;
+  font-size: 21px;
+  font-variant-numeric: tabular-nums;
   line-height: 1.12;
 }
 

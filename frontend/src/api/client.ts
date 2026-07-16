@@ -58,6 +58,35 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
   return h;
 }
 
+// Contrato de presentación de errores (identidad verbal v1.2): el mensaje
+// explica qué pasó; el código `E_*` queda visible pero AL FINAL, tras «·»,
+// para que la UI lo pinte en mono sin que encabece el error. El código viaja
+// también como propiedad tipada (`code`) para que los consumidores no
+// dependan de parsear el string; los matcheos existentes por
+// `message.includes("E_X")` siguen funcionando porque el código permanece
+// dentro del mensaje.
+export class ApiError extends Error {
+  readonly code: string;
+  constructor(code: string, message: string) {
+    super(`${message} · ${code}`);
+    this.name = "ApiError";
+    this.code = code;
+  }
+}
+
+// Mensaje de fallo de descarga bajo el mismo contrato: qué pasó + cómo
+// seguir. `raw` (body del backend) solo se anexa como detalle si es corto
+// y legible (ni JSON/HTML ni multilínea) — nunca se vuelca el body crudo.
+function downloadFailedMessage(status: number, raw = ""): string {
+  const base = `No se pudo descargar el archivo (HTTP ${status}). Reintenta; si persiste, revisa la conexión con el backend.`;
+  const detail = raw.trim();
+  const legible = detail.length > 0
+    && detail.length < 120
+    && !/[{<]/.test(detail)
+    && !detail.includes("\n");
+  return legible ? `${base} · ${detail}` : base;
+}
+
 async function handle<T>(res: Response): Promise<T> {
   const sidHeader = res.headers.get("X-Pulso-Session");
   if (sidHeader) {
@@ -92,7 +121,7 @@ async function handle<T>(res: Response): Promise<T> {
       localStorage.removeItem(SESSION_KEY);
       window.dispatchEvent(new CustomEvent("pulso:session-lost"));
     }
-    throw new Error(`[${code}] ${message}`);
+    throw new ApiError(code, message);
   }
   return res.json();
 }
@@ -2007,7 +2036,7 @@ export async function apiMultiIntegratedDecisionsDocx(payload: {
   });
   if (!res.ok) {
     const raw = await res.text().catch(() => "");
-    throw new Error(raw || `Descarga falló (${res.status})`);
+    throw new Error(downloadFailedMessage(res.status, raw));
   }
   return await res.blob();
 }
@@ -12162,7 +12191,7 @@ export async function apiDashboardRelacionDescargar(opts: {
     body: JSON.stringify(opts),
   });
   if (!res.ok) {
-    throw new Error(`Descarga falló (${res.status})`);
+    throw new Error(downloadFailedMessage(res.status));
   }
   return await res.blob();
 }
@@ -12237,7 +12266,7 @@ export async function apiDashboardBaseDatosDescargar(opts: {
     body: JSON.stringify(opts),
   });
   if (!res.ok) {
-    throw new Error(`Descarga falló (${res.status})`);
+    throw new Error(downloadFailedMessage(res.status));
   }
   return await res.blob();
 }

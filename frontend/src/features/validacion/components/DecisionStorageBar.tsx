@@ -232,7 +232,7 @@ function BarTrack({
               background: meta.color,
               borderRight: idx < segments.length - 1 ? "1px solid rgba(255,255,255,0.4)" : "none",
               cursor: isClickable ? "pointer" : "default",
-              transition: "flex 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 120ms ease, filter 120ms ease",
+              transition: "flex 400ms var(--motion-ease-standard), opacity 120ms ease, filter 120ms ease",
               opacity: isDimmed ? 0.42 : 1,
               filter:
                 hoverKind === seg.kind || isActive

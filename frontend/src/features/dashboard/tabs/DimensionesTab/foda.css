@@ -1156,8 +1156,8 @@
   position: absolute;
   transform: translate(-50%, -50%);
   transition:
-    top 1.4s cubic-bezier(0.65, 0, 0.35, 1),
-    left 1.4s cubic-bezier(0.65, 0, 0.35, 1);
+    top var(--motion-dur-slow) var(--motion-ease-in-out),
+    left var(--motion-dur-slow) var(--motion-ease-in-out);
   width: 22px;
   z-index: 3;
 }

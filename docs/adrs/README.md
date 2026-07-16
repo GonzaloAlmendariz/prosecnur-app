@@ -55,5 +55,6 @@ Usar la [plantilla ADR](0000-template.md). Cada decision debe incluir:
 | [0035](0035-calc-muestra-mapeo-manual-exclusivo-por-hoja.md) | Aceptado | 2026-07-14 | Calculo de muestra (aulas): definicion de datos manual, exclusiva y por hoja (sin fuzzy, sin data hardcodeada) |
 | [0036](0036-filtro-universo-manual-en-carga.md) | Aceptado | 2026-07-14 | El filtro manual real/prueba se materializa en Carga y se hereda a repeats |
 | [0037](0037-reporte-metodologico-validacion.md) | Aceptado | 2026-07-14 | Validacion genera un reporte metodologico exhaustivo basado en el plan efectivo y distingue la naturaleza de cada formula |
+| [0038](0038-identidad-visual-v1-1.md) | Aceptado | 2026-07-15 | Identidad visual v1.1 «La señal ordenada»: isotipo canonico unico, patrones maestros y paquete branding/ como referencia normativa |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).

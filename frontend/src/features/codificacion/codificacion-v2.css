@@ -22,6 +22,22 @@
   to   { opacity: 1; }
 }
 
+/* ── Acento del módulo (teal) ──────────────────────────────────────────── */
+/* El chrome de Procesamiento (phase-dock, rail, tiles) ya habla teal, pero el
+ * CONTENIDO de Codificación seguía en el navy global `--pulso-primary`. Aquí
+ * remapeamos la familia primary a la paleta del módulo —igual que hace
+ * `.pulso-analitica-frame`— para que segmentados activos, botones
+ * primarios, selección y focus lean teal. Los tokens semánticos
+ * (success/warn/danger/info) NO se tocan: siguen significando estado. */
+
+.pulso-codificacion-frame {
+  --pulso-primary: var(--pulso-module-processing);
+  --pulso-primary-soft: var(--pulso-module-processing-soft);
+  --pulso-primary-border: var(--pulso-module-processing-border);
+  --pulso-primary-focus: rgba(15, 118, 110, 0.15);
+  --pulso-primary-ring: rgba(15, 118, 110, 0.12);
+}
+
 /* ── Pills gv2 ─────────────────────────────────────────────────────────── */
 /* Acciones ya etiquetadas del módulo pasan a pill sin tocar su TSX;
  * `.pulso-cv2-pill` queda para botones con estilos inline. */

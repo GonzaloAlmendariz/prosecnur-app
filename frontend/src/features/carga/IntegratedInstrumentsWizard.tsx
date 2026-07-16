@@ -1112,7 +1112,7 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
                         </label>
                       )}
                       <button type="button" className="pulso-sm-secondary" onClick={() => updateDecisionGroup(group, {})}>
-                        {resolved ? "Resuelta" : "Aceptar"}
+                        {resolved ? "Resuelta" : "Aceptar sugerencia"}
                       </button>
                     </div>
                   )}

@@ -702,8 +702,9 @@ export async function syncFormToBackend(
 }
 
 /** `true` si el error propagado por el api client corresponde al tope de
- *  formularios del backend (`E_FORM_LIMIT`). El client lo serializa como
- *  `[E_FORM_LIMIT] <mensaje>`, así que basta con inspeccionar el texto. */
+ *  formularios del backend (`E_FORM_LIMIT`). El client mantiene el código
+ *  dentro del mensaje (`mensaje · E_FORM_LIMIT`; legado `[E_FORM_LIMIT] …`),
+ *  así que basta con inspeccionar el texto. */
 export function isFormLimitError(err: unknown): boolean {
   return err instanceof Error && err.message.includes("E_FORM_LIMIT");
 }

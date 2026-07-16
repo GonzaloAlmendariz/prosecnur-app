@@ -212,8 +212,20 @@ function DecisionAid() {
       <div style={{ fontSize: 12.5, color: "var(--pulso-text-soft)", marginBottom: 12 }}>
         Ponderar corrige el sesgo, pero cuesta precisión. Responde dos cosas y te digo si conviene.
       </div>
-      <YesNo q="¿Vas a describir a la población (no solo comparar grupos entre sí)?" value={describe} onChange={setDescribe} />
-      <YesNo q="¿Tienes cifras poblacionales confiables (censo, padrón)?" value={margins} onChange={setMargins} />
+      <YesNo
+        q="¿Vas a describir a la población (no solo comparar grupos entre sí)?"
+        yes="Describir población"
+        no="Solo comparar grupos"
+        value={describe}
+        onChange={setDescribe}
+      />
+      <YesNo
+        q="¿Tienes cifras poblacionales confiables (censo, padrón)?"
+        yes="Con cifras confiables"
+        no="Sin cifras confiables"
+        value={margins}
+        onChange={setMargins}
+      />
       {answered && (
         <div style={{
           display: "flex", alignItems: "center", gap: 8, marginTop: 12, padding: "10px 12px", borderRadius: 8,
@@ -234,13 +246,15 @@ function DecisionAid() {
   );
 }
 
-function YesNo({ q, value, onChange }: { q: string; value: boolean | null; onChange: (v: boolean) => void }) {
+function YesNo({ q, yes, no, value, onChange }: {
+  q: string; yes: string; no: string; value: boolean | null; onChange: (v: boolean) => void;
+}) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--pulso-surface-2)", borderRadius: 8, marginBottom: 8 }}>
       <span style={{ fontSize: 13, flex: 1 }}>{q}</span>
       <div className="analitica-segmented" role="group">
-        <button type="button" className={value === true ? "is-on" : ""} onClick={() => onChange(true)}>Sí</button>
-        <button type="button" className={value === false ? "is-on" : ""} onClick={() => onChange(false)}>No</button>
+        <button type="button" className={value === true ? "is-on" : ""} onClick={() => onChange(true)}>{yes}</button>
+        <button type="button" className={value === false ? "is-on" : ""} onClick={() => onChange(false)}>{no}</button>
       </div>
     </div>
   );

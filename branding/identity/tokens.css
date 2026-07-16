@@ -1,0 +1,275 @@
+/* ============================================================
+ * Prosecnur — tokens.css (GENERADO — no editar a mano)
+ * ------------------------------------------------------------
+ * Generador : prosecnur-identity-compiler v1.0.0 (branding/identity/generate.mjs)
+ * Fuente    : branding/identity.json
+ * Identidad : prosecnur-la-senal-ordenada v1.2.0 (frozen)
+ * Manifest  : sha256:d906ccb9b8981e097825c515bcaad38c5879c8aef37d2e4073ae07cc03fa9362
+ * Input     : sha256:8c6fb5d3c5006d30c7aa3975e03933b7ffe01420b370ca043e2cae349048f845 (digest del archivo identity.json)
+ * ------------------------------------------------------------
+ * Derivado determinista del manifiesto congelado. El identificador
+ * de generación es el input digest (sin timestamp, a propósito).
+ * Namespace --prosecnur-* para piezas fuera de la app; dentro de la
+ * app la fuente operativa siguen siendo los --pulso-* de theme.css.
+ * Compatible con el mirror manual branding/tokens/prosecnur-brand.css:
+ * los nombres coincidentes tienen valores idénticos.
+ * ============================================================ */
+
+:root {
+
+  /* --- Color · estructural (tinta, superficies, bordes)
+   * fuente: foundations.color.tokens[role=structural]
+   * ------------------------------------------------------------ */
+  --prosecnur-ink: #17212f;
+  --prosecnur-ink-soft: #5f6b7a;
+  --prosecnur-ink-faint: #8792a2;
+  --prosecnur-surface-paper: #ffffff;
+  --prosecnur-surface-ice: #fafbff;
+  --prosecnur-surface-mist: #f2f5fa;
+  --prosecnur-bg-canvas: #f3f5f9;
+  --prosecnur-bg-deep: #e9edf5;
+  --prosecnur-border: #e2e7f0;
+  --prosecnur-border-strong: #cbd5e4;
+  --prosecnur-header-row: #f1f3f9;
+
+  /* --- Color · acentos (marca, espectro modular, acentos de sistema)
+   * fuente: foundations.color.tokens[role=accent]
+   * ------------------------------------------------------------ */
+  --prosecnur-brand-navy: #002457;
+  --prosecnur-brand-navy-800: #013371;
+  --prosecnur-signal-blue: #2457d6;
+  --prosecnur-module-editor: #6d5dfc;
+  --prosecnur-module-processing: #0f766e;
+  --prosecnur-module-dashboard: #2563eb;
+  --prosecnur-module-routes: #c2410c;
+  --prosecnur-module-sample: #7c3aed;
+  --prosecnur-module-encyclopedia: #a16207;
+  --prosecnur-module-collectors: #0891b2;
+  --prosecnur-module-monitoring: #be123c;
+  --prosecnur-accent-cyan: #0ea5b7;
+  --prosecnur-accent-green: #16a34a;
+  --prosecnur-accent-rose: #c2416b;
+  --prosecnur-accent-amber: #d97706;
+  --prosecnur-accent-violet: #7c3aed;
+
+  /* --- Color · semánticos (triadas bg/border/fg + marcador repeat)
+   * fuente: foundations.color.tokens[role=semantic]
+   * ------------------------------------------------------------ */
+  --prosecnur-success: #16a34a;
+  --prosecnur-success-bg: #dcfce7;
+  --prosecnur-success-border: #86efac;
+  --prosecnur-success-fg: #166534;
+  --prosecnur-warn: #d97706;
+  --prosecnur-warn-bg: #fff4e0;
+  --prosecnur-warn-border: #f0d799;
+  --prosecnur-warn-fg: #8a5000;
+  --prosecnur-danger: #be123c;
+  --prosecnur-danger-bg: #fef2f2;
+  --prosecnur-danger-border: #fecaca;
+  --prosecnur-danger-fg: #991b1b;
+  --prosecnur-repeat-bg: #fdeede;
+  --prosecnur-repeat-border: #f2c79c;
+  --prosecnur-repeat-fg: #9a4913;
+  --prosecnur-repeat-accent: #c95f20;
+  /* info: navy translúcido — bg rgba(0,36,87,0.04), border = primary-border, fg = primary (regla de uso 5) */
+
+  /* --- Color · datos (paleta de visualización de once roles + secuencial)
+   * fuente: foundations.color.tokens[role=data]
+   * ------------------------------------------------------------ */
+  --prosecnur-chart-primary: #002457;
+  --prosecnur-chart-bright: #2457d6;
+  --prosecnur-chart-success: #16a34a;
+  --prosecnur-chart-warn: #d97706;
+  --prosecnur-chart-danger: #dc2626;
+  --prosecnur-chart-neutral: #94a3b8;
+  --prosecnur-chart-surface: #f8faff;
+  --prosecnur-chart-border: #d8e0ef;
+  --prosecnur-chart-grid: #dbe3f1;
+  --prosecnur-chart-text: #1f2933;
+  --prosecnur-chart-text-soft: #5f6b7a;
+  --prosecnur-seq-step-1: #dbe8ff;
+  --prosecnur-seq-step-2: #7aa2f8;
+  --prosecnur-seq-step-3: #2457d6;
+  --prosecnur-seq-step-4: #002457;
+
+  /* --- Interacción · alphas del navy e info
+   * fuente: extensions.pe.pucp.pulso.prosecnur.interaction_alphas
+   * ------------------------------------------------------------ */
+  --prosecnur-primary-soft: rgba(0,36,87,0.08);
+  --prosecnur-primary-border: rgba(0,36,87,0.18);
+  --prosecnur-primary-focus: rgba(0,36,87,0.15);
+  --prosecnur-primary-ring: rgba(0,36,87,0.12);
+  --prosecnur-info-bg: rgba(0,36,87,0.04);
+  /* Variantes por módulo: soft alpha 0.12-0.13, border alpha 0.30-0.32
+   * (rangos definidos operativamente en frontend/src/app/theme.css; no se fijan aquí) */
+
+  /* --- Espectro modular · alias por slug de módulo
+   * fuente: extensions.pe.pucp.pulso.prosecnur.module_spectrum
+   * ------------------------------------------------------------ */
+  --prosecnur-mod-editor-xlsform: #6d5dfc; /* Editor de formularios — operativo: --pulso-module-editor */
+  --prosecnur-mod-procesamiento: #0f766e; /* Procesamiento — operativo: --pulso-module-processing */
+  --prosecnur-mod-dashboard: #2563eb; /* Dashboard interactivo — operativo: --pulso-module-dashboard */
+  --prosecnur-mod-hojas-ruta: #c2410c; /* Hojas de ruta para campo — operativo: --pulso-module-routes */
+  --prosecnur-mod-calc-muestra: #7c3aed; /* Cálculo de muestra y marco muestral — operativo: --pulso-module-sample */
+  --prosecnur-mod-diseno-estudio: #a16207; /* Bitácora — operativo: --pulso-module-encyclopedia */
+  --prosecnur-mod-plan-trabajo: #a16207; /* Plan de trabajo (fusionado en Bitácora) — operativo: --pulso-module-workplan (alias de encyclopedia) */
+  --prosecnur-mod-recopiladores: #0891b2; /* Fichas QR para cursos-horario — operativo: --pulso-module-collectors */
+  --prosecnur-mod-monitoreo: #be123c; /* Monitoreo de campo — operativo: --pulso-module-monitoring */
+
+  /* --- Tipografía · familias «Voz nativa»
+   * fuente: foundations.typography.families
+   * ------------------------------------------------------------ */
+  --prosecnur-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; /* principal «Voz nativa» */
+  --prosecnur-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; /* datos/código, siempre con font-variant-numeric: tabular-nums en métricas */
+
+  /* --- Tipografía · escala
+   * fuente: foundations.typography.scale
+   * ------------------------------------------------------------ */
+  --prosecnur-type-display-size: 28px;
+  --prosecnur-type-display-line: 1.2;
+  --prosecnur-type-display-weight: 680;
+  --prosecnur-type-title-size: 22px;
+  --prosecnur-type-title-line: 1.25;
+  --prosecnur-type-title-weight: 640;
+  --prosecnur-type-section-size: 17px;
+  --prosecnur-type-section-line: 1.3;
+  --prosecnur-type-section-weight: 600;
+  --prosecnur-type-body-size: 15px;
+  --prosecnur-type-body-line: 1.55;
+  --prosecnur-type-body-weight: 400;
+  --prosecnur-type-body-medium-size: 15px;
+  --prosecnur-type-body-medium-line: 1.55;
+  --prosecnur-type-body-medium-weight: 500;
+  --prosecnur-type-note-size: 13px;
+  --prosecnur-type-note-line: 1.45;
+  --prosecnur-type-note-weight: 400;
+  --prosecnur-type-caption-size: 12px;
+  --prosecnur-type-caption-line: 1.35;
+  --prosecnur-type-caption-weight: 500;
+  --prosecnur-type-micro-size: 11px;
+  --prosecnur-type-micro-line: 1.2;
+  --prosecnur-type-micro-weight: 600;
+  --prosecnur-type-micro-transform: uppercase;
+  --prosecnur-type-micro-tracking: 0.06em;
+
+  /* --- Espaciado · retícula de 4
+   * fuente: foundations.spacing
+   * ------------------------------------------------------------ */
+  --prosecnur-space-base: 4px;
+  --prosecnur-space-1: 4px;
+  --prosecnur-space-2: 8px;
+  --prosecnur-space-3: 12px;
+  --prosecnur-space-4: 16px;
+  --prosecnur-space-5: 20px;
+  --prosecnur-space-6: 24px;
+  --prosecnur-space-7: 32px;
+  --prosecnur-space-8: 40px;
+  --prosecnur-space-9: 48px;
+
+  /* --- Geometría · radios
+   * fuente: foundations.geometry.rules (Radios)
+   * ------------------------------------------------------------ */
+  --prosecnur-radius-control: 10px;
+  --prosecnur-radius-tarjeta: 14px;
+  --prosecnur-radius-panel: 16px;
+  --prosecnur-radius-lens: 20px;
+  --prosecnur-radius-chip: 999px;
+
+  /* --- Geometría · controles y rail
+   * fuente: foundations.geometry.rules (Alturas/Peso/Rail/Mínimos)
+   * ------------------------------------------------------------ */
+  --prosecnur-control-h: 28px; /* default de content area (slots sm y md coinciden hoy en 28) */
+  --prosecnur-control-h-toolbar: 36px; /* reservado a toolbar/CTA */
+  --prosecnur-control-checkbox: 16px;
+  --prosecnur-control-weight: 500; /* macOS; 600 en Windows vía data-platform */
+  --prosecnur-rail-w: 240px;
+  --prosecnur-rail-row: 32px;
+  --prosecnur-rail-row-lg: 40px;
+  --prosecnur-rail-row-dense: 24px;
+  --prosecnur-min-workbench-panel-media: 360px; /* workbench/panel/media */
+  --prosecnur-min-lista: 260px; /* lista */
+  --prosecnur-min-cuerpo-de-dialogo: 240px; /* cuerpo de diálogo */
+
+  /* --- Elevación · seis niveles de sombra fría
+   * fuente: foundations.elevation.rules
+   * ------------------------------------------------------------ */
+  --prosecnur-shadow-low: 0 1px 2px rgba(0,36,87,0.04); /* reposo */
+  --prosecnur-shadow-soft: 0 6px 18px rgba(0,36,87,0.06); /* tarjetas */
+  --prosecnur-shadow-med: 0 14px 30px rgba(0,36,87,0.08); /* hover-lift */
+  --prosecnur-shadow-high: 0 24px 60px rgba(0,36,87,0.14); /* diálogos */
+  --prosecnur-shadow-raised: 0 1px 1px rgba(15,23,42,0.04), 0 10px 28px rgba(15,23,42,0.07); /* workbench */
+  --prosecnur-shadow-popover: 0 22px 60px rgba(15,23,42,0.18), 0 4px 16px rgba(15,23,42,0.08); /* flotantes */
+  /* El sidebar expandido conserva soft (empuja, no flota); ContextLens usa la sombra específica 0 20px 60px rgba(15,23,42,0.18) + inset 1px 0 0 rgba(255,255,255,0.6) */
+
+  /* --- Motion · Física Pulso — duraciones
+   * fuente: extensions.pe.pucp.pulso.prosecnur.motion_tokens.durations_ms
+   * ------------------------------------------------------------ */
+  --prosecnur-dur-press: 120ms;
+  --prosecnur-dur-fast: 160ms;
+  --prosecnur-dur-base: 220ms;
+  --prosecnur-dur-panel: 280ms;
+  --prosecnur-dur-slow: 420ms;
+
+  /* --- Motion · Física Pulso — easings
+   * fuente: extensions.pe.pucp.pulso.prosecnur.motion_tokens.easings
+   * ------------------------------------------------------------ */
+  --prosecnur-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --prosecnur-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --prosecnur-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --prosecnur-ease-productive: cubic-bezier(0.16, 1, 0.3, 1);
+  --prosecnur-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+  /* --- Motion · offsets de ruta
+   * fuente: extensions.pe.pucp.pulso.prosecnur.motion_tokens.route_offsets_px
+   * ------------------------------------------------------------ */
+  --prosecnur-route-enter-y: 8px;
+  --prosecnur-route-forward-x: 12px;
+  --prosecnur-route-back-x: -12px;
+
+  /* --- Motion · firmas
+   * fuente: extensions.pe.pucp.pulso.prosecnur.motion_tokens.signatures
+   * ------------------------------------------------------------ */
+  --prosecnur-sig-pageframe-body: 190ms; /* easing out */
+  --prosecnur-sig-pageframe-header: 150ms;
+  --prosecnur-sig-pageframe-toolbar: 160ms;
+  --prosecnur-sig-brand-stagger: 60ms; /* por pastilla; duración slow + easing productive */
+  --prosecnur-sig-diagram-nodes: 620ms; /* excepción gobernada motion-firma-diagramas */
+  --prosecnur-sig-diagram-edges: 680ms; /* alcance: diagramas y árboles */
+  /* Tope de la escala de tokens: 420ms; máximo gobernado: 680ms.
+   * Toda animación respeta prefers-reduced-motion (systems.motion.reduced_motion=true). */
+
+  /* --- Materiales · vibrancy simulada Windows-safe
+   * fuente: extensions.pe.pucp.pulso.prosecnur.materials
+   * ------------------------------------------------------------ */
+  --prosecnur-material-base: color-mix(in srgb, var(--prosecnur-surface-paper) 82%, transparent); /* command bars, pillbars, rails */
+  --prosecnur-material-strong: color-mix(in srgb, var(--prosecnur-surface-paper) 92%, transparent); /* segmented, controles sobre contenido */
+  --prosecnur-material-chrome: color-mix(in srgb, #ffffff 74%, transparent); /* barras de app */
+  --prosecnur-material-blur-1: 10px;
+  --prosecnur-material-blur-2: 14px;
+  --prosecnur-material-blur-3: 18px;
+  --prosecnur-material-saturate: 1.08;
+  --prosecnur-material-border: color-mix(in srgb, var(--prosecnur-primary-border) 78%, var(--prosecnur-border));
+  --prosecnur-material-shadow: inset 0 1px 0 rgba(255,255,255,0.72), 0 10px 30px rgba(0,36,87,0.08);
+
+  /* --- Entregables · XLSX, colores canónicos por tipo de pregunta
+   * fuente: extensions.pe.pucp.pulso.prosecnur.xlsx_question_type_colors
+   * ------------------------------------------------------------ */
+  --prosecnur-xlsx-seleccion-multiple-bg: #e2f0d9;
+  --prosecnur-xlsx-seleccion-multiple-border: #9cc47f;
+  --prosecnur-xlsx-seleccion-multiple-fg: #2d6720;
+  --prosecnur-xlsx-seleccion-unica-bg: #d9e1f2;
+  --prosecnur-xlsx-seleccion-unica-border: #8fa3d0;
+  --prosecnur-xlsx-seleccion-unica-fg: #1e3a6b;
+  --prosecnur-xlsx-numerica-bg: #e6d9f2;
+  --prosecnur-xlsx-numerica-border: #a48ac9;
+  --prosecnur-xlsx-numerica-fg: #4a2d66;
+  --prosecnur-xlsx-texto-bg: #fff2cc;
+  --prosecnur-xlsx-texto-border: #d5b866;
+  --prosecnur-xlsx-texto-fg: #7a5a00;
+}
+
+/* Peso de trabajo de controles en Windows (Segoe UI renderiza Medium más
+ * liviano que SF Pro) — platforms.windows.adaptations */
+:root[data-platform="windows"] {
+  --prosecnur-control-weight: 600;
+}

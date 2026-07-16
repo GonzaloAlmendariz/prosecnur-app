@@ -1,0 +1,144 @@
+{
+  "record": "generation-manifest",
+  "contract": "app-identity-os/compile-app-identity/artifact-contract",
+  "contract_version": "1.0.0",
+  "generator": {
+    "name": "prosecnur-identity-compiler",
+    "version": "1.0.0",
+    "path": "branding/identity/generate.mjs",
+    "sha256": "c91d069aa83ea384168b8bbce91a83b6aa0242e2d29ea3d5e2bbf48b1a25aa39"
+  },
+  "tools": [
+    {
+      "name": "validate-identity",
+      "role": "validador estructural pre-compilación",
+      "path": "branding/identity/validate-identity.mjs",
+      "sha256": "b1e71e672d2bd43bcbc55a597abd5e3ef51faabc7ce3dd229c3e268ee5211cb5"
+    }
+  ],
+  "input": {
+    "path": "branding/identity.json",
+    "schema_version": "1.0.0",
+    "identity_id": "prosecnur-la-senal-ordenada",
+    "identity_version": "1.2.0",
+    "identity_status": "frozen",
+    "manifest_hash": "sha256:d906ccb9b8981e097825c515bcaad38c5879c8aef37d2e4073ae07cc03fa9362",
+    "file_sha256": "8c6fb5d3c5006d30c7aa3975e03933b7ffe01420b370ca043e2cae349048f845",
+    "manifest_hash_method": "sha256 del archivo con todos los campos manifest_hash en placeholder de 64 ceros (extensions.pe.pucp.pulso.prosecnur.manifest_hash_method)"
+  },
+  "determinism": {
+    "policy": "sin timestamps ni aleatoriedad; orden de iteración = orden del manifiesto; hex minúsculas; LF; UTF-8. El input digest identifica la corrida.",
+    "volatile_fields": [
+      "environment.node (registrado, no afecta los bytes de los artefactos)"
+    ],
+    "reproducibility_check": "dos corridas limpias con byte-igualdad exigida (ver reporte del carril COMPILE)"
+  },
+  "environment": {
+    "node": "v25.9.0"
+  },
+  "transformations": [
+    "foundations.color.tokens[name,value] → --prosecnur-<name> con hex en minúsculas, agrupado por role",
+    "extensions.interaction_alphas → --prosecnur-<clave con _ → ->; rangos por módulo solo como comentario",
+    "extensions.module_spectrum[slug].accent → --prosecnur-mod-<slug>",
+    "foundations.typography.families → stack sin anotación parentética final (anotación como comentario)",
+    "foundations.typography.scale → --prosecnur-type-<name>-{size,line,weight[,transform,tracking]}",
+    "foundations.spacing → --prosecnur-space-base + --prosecnur-space-<indice 1..n>",
+    "foundations.geometry.rules (Radios/Alturas/Peso/Rail/Mínimos): parse anclado fail-loud → tokens con slug ASCII mecánico de la etiqueta española",
+    "foundations.elevation.rules 'name (nota): value' → --prosecnur-shadow-<name>; reglas prosa como comentario",
+    "extensions.motion_tokens → --prosecnur-dur-*/--prosecnur-ease-*/--prosecnur-route-*/--prosecnur-sig-*",
+    "extensions.materials: var(--pulso-surface)→var(--prosecnur-surface-paper), var(--pulso-primary-border)→var(--prosecnur-primary-border), var(--pulso-border)→var(--prosecnur-border)",
+    "extensions.xlsx_question_type_colors → --prosecnur-xlsx-<tipo>-{bg,border,fg}",
+    "platforms.windows / regla de peso → bloque :root[data-platform=\"windows\"]"
+  ],
+  "artifacts": [
+    {
+      "id": "identity-tokens-css",
+      "target_id": "identity-tokens-css",
+      "path": "branding/identity/tokens.css",
+      "format": "text/css",
+      "ownership": "generated",
+      "source_fields": [
+        "foundations.color",
+        "foundations.typography",
+        "foundations.spacing",
+        "foundations.geometry",
+        "foundations.elevation",
+        "extensions.pe.pucp.pulso.prosecnur.interaction_alphas",
+        "extensions.pe.pucp.pulso.prosecnur.module_spectrum",
+        "extensions.pe.pucp.pulso.prosecnur.motion_tokens",
+        "extensions.pe.pucp.pulso.prosecnur.materials",
+        "extensions.pe.pucp.pulso.prosecnur.xlsx_question_type_colors",
+        "systems.motion",
+        "platforms.windows"
+      ],
+      "sha256": "b62fa67a0fb227d0dcb0beea4fcb88433829c629a50ae5d40b31cf753c69419f",
+      "bytes": 13625
+    },
+    {
+      "id": "identity-reference-doc",
+      "target_id": "identity-reference-doc",
+      "path": "branding/identity/identity-reference.html",
+      "format": "text/html",
+      "ownership": "generated",
+      "source_fields": [
+        "identity",
+        "foundations",
+        "systems",
+        "architecture",
+        "governance",
+        "outputs",
+        "extensions.pe.pucp.pulso.prosecnur"
+      ],
+      "sha256": "4886c13c8a87fd8c1f64ecfc1a6d651087f1bb70c4e840d654f496c6b1e78c4a",
+      "bytes": 65029
+    }
+  ],
+  "validations": [
+    {
+      "id": "css-braces",
+      "status": "passed",
+      "detail": "2 bloques balanceados"
+    },
+    {
+      "id": "css-unique-names",
+      "status": "passed",
+      "detail": "172 tokens únicos (control-weight con override de plataforma)"
+    },
+    {
+      "id": "vars-resolve-tokens.css",
+      "status": "passed",
+      "detail": "3 referencias var() resueltas"
+    },
+    {
+      "id": "vars-resolve-identity-reference.html",
+      "status": "passed",
+      "detail": "27 referencias var() resueltas"
+    },
+    {
+      "id": "no-undeclared-colors-tokens.css",
+      "status": "passed",
+      "detail": "59 hex + 13 rgba, todos trazables al manifiesto"
+    },
+    {
+      "id": "no-undeclared-colors-identity-reference.html",
+      "status": "passed",
+      "detail": "61 hex + 15 rgba, todos trazables al manifiesto"
+    },
+    {
+      "id": "html-provenance",
+      "status": "passed",
+      "detail": "identity.version y manifest_hash embebidos"
+    },
+    {
+      "id": "html-self-contained",
+      "status": "passed",
+      "detail": "sin src/href externos"
+    }
+  ],
+  "result": "success",
+  "notes": [
+    "Los outputs NO son canónicos: branding/identity.json manda; ante drift se regenera con node branding/identity/generate.mjs",
+    "Este registro (generation-manifest.json) es el provenance record del artifact contract; no puede contener su propio digest",
+    "Mirrors manuales no tocados por este compilador: branding/manual-identidad.html, branding/tokens/prosecnur-brand.css"
+  ]
+}

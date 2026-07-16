@@ -4,7 +4,8 @@
 #
 # Este script:
 #   1. Lee la version de api/DESCRIPTION.
-#   2. Genera icon.icns a partir del SVG de packaging/windows/brand/icon.svg.
+#   2. Genera icon.icns a partir de branding/logo/prosecnur-appicon.svg
+#      (appicon canónico con retícula macOS; ver ICON_SVG más abajo).
 #   3. Descarga R-4.5.1-{arm64,x86_64}.pkg desde CRAN.
 #   4. Descarga los .tgz binarios de mac para todas las dependencias R.
 #   5. Stagea packaging/macos/r-mac-runtime/ con el .pkg + paquetes + script
@@ -32,7 +33,10 @@ DIST_ROOT="$ROOT/dist.nosync"
 CACHE_DIR="$DIST_ROOT/mac-cache"
 BUILD_RES="$ROOT/packaging/macos/build-resources"
 RUNTIME_DIR="$ROOT/packaging/macos/r-mac-runtime"
-ICON_SVG="$ROOT/packaging/windows/brand/icon.svg"
+# Icono del Dock: appicon canónico con retícula macOS (marca al 82.4% del
+# lienzo). El full-bleed de packaging/windows/brand/icon.svg queda solo para
+# el .ico de Windows, donde el borde a borde es lo correcto.
+ICON_SVG="$ROOT/branding/logo/prosecnur-appicon.svg"
 
 R_VERSION="${PROSECNUR_R_VERSION:-4.5.1}"
 ARCHS="${PROSECNUR_DMG_ARCHS:-arm64 x64}"

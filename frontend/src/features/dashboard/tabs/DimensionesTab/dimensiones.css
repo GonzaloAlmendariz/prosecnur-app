@@ -370,13 +370,13 @@
  * imagen entera fade-in y los labels stagger. */
 @media (prefers-reduced-motion: no-preference) {
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer image {
-    animation: dash-dim-fade-in-soft 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: dash-dim-fade-in-soft var(--motion-dur-slow) cubic-bezier(0.16, 1, 0.3, 1) both;
   }
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label,
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point,
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point,
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .points path {
-    animation: dash-dim-cell-pop 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: dash-dim-cell-pop var(--motion-dur-slow) cubic-bezier(0.16, 1, 0.3, 1) both;
   }
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 1) { animation-delay: 200ms; }
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 2) { animation-delay: 220ms; }
