@@ -25,8 +25,10 @@
   --motion-dur-press: 120ms;
   --motion-dur-fast: 160ms;
   --motion-dur-base: 220ms;
+  --motion-dur-slow: 420ms;
   --motion-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --motion-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --motion-ease-productive: cubic-bezier(0.16, 1, 0.3, 1);
   /* Acentos por módulo — copia literal de theme.css (que aún no cargó en el
      chunk de entrada) para que las luces de módulo del chooser resuelvan.
      Mantener sincronizado con theme.css / lib/modules.ts. */
@@ -174,9 +176,35 @@ input {
   filter: drop-shadow(0 6px 14px rgba(0, 36, 87, 0.2));
 }
 
+/* El squircle ya trae sus esquinas (rx 15.4/64); un border-radius CSS aquí
+   recortaría el isotipo (el svg inline clipea por overflow hidden). */
 .boot-mark svg {
   display: block;
-  border-radius: 50%;
+}
+
+/* Firma de arranque: las pastillas del isotipo suben al montar con stagger
+   de 60ms (branding/direccion-creativa.md — Motion, «firma de marca»).
+   El primer rect del SVG es el squircle: por eso los delays usan
+   nth-of-type(2..5) (la primera pastilla = type 2 = delay 0). */
+.boot-mark-bar {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: boot-mark-bar-in var(--motion-dur-slow) var(--motion-ease-productive) both;
+}
+
+.boot-mark-bar:nth-of-type(2) { animation-delay: 0ms; }
+.boot-mark-bar:nth-of-type(3) { animation-delay: 60ms; }
+.boot-mark-bar:nth-of-type(4) { animation-delay: 120ms; }
+.boot-mark-bar:nth-of-type(5) { animation-delay: 180ms; }
+
+@keyframes boot-mark-bar-in {
+  from { transform: scaleY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot-mark-bar {
+    animation: none;
+  }
 }
 
 .boot-hero-id {

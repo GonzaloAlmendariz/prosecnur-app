@@ -130,15 +130,17 @@ function Brand() {
   );
 }
 
-// Logo SVG compacto — círculo con chart bars embebido. Neutro para
-// que funcione dentro de un header con fondo blanco/surface.
+// Isotipo canónico de la identidad (branding/logo/prosecnur-isotipo.svg):
+// squircle navy + 4 pastillas en perfil de latido. Fuente única de la
+// geometría: branding/direccion-creativa.md
 function BrandMark() {
   return (
-    <svg className="pulso-brand-mark" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
-      <circle cx="11" cy="11" r="10" fill="var(--pulso-primary)" />
-      <rect x="6"  y="11" width="2.3" height="5" rx="0.6" fill="white" />
-      <rect x="9.85" y="8" width="2.3" height="8" rx="0.6" fill="white" opacity="0.85" />
-      <rect x="13.7" y="5" width="2.3" height="11" rx="0.6" fill="white" opacity="0.7" />
+    <svg className="pulso-brand-mark" width="22" height="22" viewBox="0 0 64 64" aria-hidden="true">
+      <rect width="64" height="64" rx="15.4" fill="var(--pulso-primary)" />
+      <rect x="12" y="30" width="7" height="18" rx="3.5" fill="white" />
+      <rect x="23" y="22" width="7" height="26" rx="3.5" fill="white" />
+      <rect x="34" y="28" width="7" height="20" rx="3.5" fill="white" />
+      <rect x="45" y="16" width="7" height="32" rx="3.5" fill="white" />
     </svg>
   );
 }
