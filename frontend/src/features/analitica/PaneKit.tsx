@@ -191,9 +191,9 @@ export function GenerateFooter({
             display: "inline-flex",
             alignItems: "center",
             gap: 4,
-            color: saveStatus.startsWith("[") ? "var(--pulso-danger-fg)" : "var(--pulso-success-fg)",
+            color: saveStatus.startsWith("[") || /\s·\s(?:E_|HTTP_)[A-Z0-9_]+$/.test(saveStatus) ? "var(--pulso-danger-fg)" : "var(--pulso-success-fg)",
           }}>
-            {!saveStatus.startsWith("[") && <CheckCircle2 size={12} />}
+            {!(saveStatus.startsWith("[") || /\s·\s(?:E_|HTTP_)[A-Z0-9_]+$/.test(saveStatus)) && <CheckCircle2 size={12} />}
             {saveStatus}
           </span>
         )}

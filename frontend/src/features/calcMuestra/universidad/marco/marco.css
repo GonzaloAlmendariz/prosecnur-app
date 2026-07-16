@@ -531,8 +531,8 @@
 
 .cmv2-marco-reconciliation strong {
   color: var(--pulso-text);
-  font-size: 23px;
-  font-weight: 850;
+  font-size: 21px;
+  font-weight: 900;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -1854,10 +1854,10 @@
 
 .cmv2-inv-track > header strong {
   color: var(--pulso-text);
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 21px;
+  font-weight: 900;
   font-variant-numeric: tabular-nums;
-  line-height: 1.1;
+  line-height: 1;
 }
 
 .cmv2-inv-bars {

@@ -1391,7 +1391,7 @@
   background: color-mix(in srgb, var(--cmv2-border) 55%, transparent);
 }
 
-/* --- Stat-tiles de balance: eyebrow / cifra 22px tabular / meter 6px --------- */
+/* --- Stat-tiles de balance: eyebrow / cifra 21px tabular / meter 6px --------- */
 .cmv2-aulas-stack .cmv2-representativity-metric-grid article {
   gap: 4px;
   padding: 11px 12px;
@@ -1402,9 +1402,11 @@
 }
 
 .cmv2-aulas-stack .cmv2-representativity-metric-grid strong {
-  font-size: 22px;
+  font-size: 21px;
+  font-weight: 900;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
+  line-height: 1;
 }
 
 .cmv2-aulas-stack .cmv2-representativity-metric-grid article > div {

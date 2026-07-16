@@ -82,6 +82,16 @@
   font-weight: 400;
 }
 
+/* Código E_* del contrato de errores: mono, menor y atenuado, siempre
+   después del mensaje (identidad verbal v1.2). */
+.pulso-error-block-code {
+  margin-left: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  color: color-mix(in srgb, var(--pulso-danger-fg) 68%, transparent);
+  white-space: nowrap;
+}
+
 /* --- EmptyState ------------------------------------------------------------ */
 
 .pulso-empty-state {

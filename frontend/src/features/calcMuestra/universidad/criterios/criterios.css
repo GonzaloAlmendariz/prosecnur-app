@@ -180,9 +180,9 @@
   color: var(--pulso-text-muted);
 }
 .cmv2-crit-impact-value {
-  font-size: 22px;
-  font-weight: 600;
-  line-height: 1.1;
+  font-size: 21px;
+  font-weight: 900;
+  line-height: 1;
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
   display: inline-flex;
