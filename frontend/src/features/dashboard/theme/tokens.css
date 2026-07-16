@@ -705,23 +705,28 @@
   font-size: 13px;
   font-weight: 800;
 }
+/* Pista al switch maestro 44×24 (`.pulso-switch`, theme.css), dicho con
+ * tokens --dash-* porque el tablero también se sirve standalone. */
 .dashboard-scope .dash-switch {
   position: relative;
   display: inline-block;
   flex: 0 0 auto;
-  width: 38px;
-  height: 22px;
+  width: 44px;
+  height: 24px;
 }
 .dashboard-scope .dash-switch input { opacity: 0; width: 0; height: 0; }
 .dashboard-scope .dash-switch-slider {
   position: absolute;
   cursor: pointer;
   inset: 0;
-  background: color-mix(in srgb, var(--dash-borde) 86%, var(--dash-texto-suave) 14%);
-  border: 1px solid color-mix(in srgb, var(--dash-borde) 70%, var(--dash-texto-suave) 30%);
+  background: linear-gradient(180deg, #eef2f7, #dfe6ef);
+  border: 1px solid color-mix(in srgb, var(--dash-borde-fuerte) 84%, #fff 16%);
   border-radius: 999px;
-  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.08);
+  box-shadow:
+    inset 0 1px 2px rgba(15, 23, 42, 0.12),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.72);
   transition:
+    transform var(--dash-dur-press) var(--dash-ease-out),
     background-color var(--dash-dur-hover) var(--dash-ease-out),
     border-color var(--dash-dur-hover) var(--dash-ease-out),
     box-shadow var(--dash-dur-hover) var(--dash-ease-out);
@@ -729,22 +734,33 @@
 .dashboard-scope .dash-switch-slider::before {
   content: "";
   position: absolute;
-  height: 16px;
-  width: 16px;
+  height: 18px;
+  width: 18px;
   left: 2px;
   top: 2px;
   background: #fff;
   border-radius: 50%;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.22);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.22);
   transition: transform var(--dash-dur-hover) var(--dash-ease-out);
 }
 .dashboard-scope .dash-switch input:checked + .dash-switch-slider {
-  background: var(--dash-primario);
-  border-color: var(--dash-primario);
-  box-shadow: 0 0 0 3px var(--dash-primario-soft);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--dash-primario) 88%, #fff 12%), var(--dash-primario));
+  border-color: color-mix(in srgb, var(--dash-primario) 84%, #fff 16%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    0 1px 2px rgba(0, 36, 87, 0.12);
 }
 .dashboard-scope .dash-switch input:checked + .dash-switch-slider::before {
-  transform: translateX(16px);
+  transform: translateX(20px);
+}
+.dashboard-scope .dash-switch:active .dash-switch-slider {
+  transform: scale(0.97);
+}
+.dashboard-scope .dash-switch input:focus-visible + .dash-switch-slider {
+  box-shadow:
+    inset 0 1px 2px rgba(15, 23, 42, 0.12),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.72),
+    0 0 0 4px var(--dash-primario-ring);
 }
 
 .dashboard-scope .dash-filtros-rows {
