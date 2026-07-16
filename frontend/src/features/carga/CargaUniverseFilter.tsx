@@ -68,7 +68,7 @@ export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied }:
         if (requestId !== loadSequence.current) return;
         // Sin base registrada todavía: estado esperado antes de cargar
         // respuestas, no un error que alarme al usuario.
-        if (reason.message.startsWith("[E_UNIVERSE_FILTER_BASE]")) setSinBase(true);
+        if (reason.message.includes("E_UNIVERSE_FILTER_BASE")) setSinBase(true);
         else setError(reason.message);
       })
       .finally(() => {

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="prosecnur-isotipo-gradiente-fondo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#013371"/>
+      <stop offset="1" stop-color="#002457"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="64" height="64" rx="15.4" fill="url(#prosecnur-isotipo-gradiente-fondo)"/>
+  <rect x="12" y="30" width="7" height="18" rx="3.5" fill="#ffffff"/>
+  <rect x="23" y="22" width="7" height="26" rx="3.5" fill="#ffffff"/>
+  <rect x="34" y="28" width="7" height="20" rx="3.5" fill="#ffffff"/>
+  <rect x="45" y="16" width="7" height="32" rx="3.5" fill="#ffffff"/>
+</svg>

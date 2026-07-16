@@ -181,13 +181,14 @@
 }
 
 .cmv2-sal-panel .cmv2-uni-cifra-valor {
-  font-size: 22px;
+  font-size: 21px;
+  font-weight: 900;
   white-space: normal;
   line-height: 1.12;
 }
 
 .cmv2-sal-panel .cmv2-uni-cifra[data-hero="true"] .cmv2-uni-cifra-valor {
-  font-size: 26px;
+  font-size: 21px;
 }
 
 .cmv2-sal-panel .cmv2-uni-cifra-detalle {

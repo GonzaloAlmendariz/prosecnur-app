@@ -150,7 +150,7 @@ function ResumenPostBuild({ onEditar }: { onEditar: () => void }) {
     }
   }
 
-  const noDimensiones = statusErr.includes("[E_NO_DIM]");
+  const noDimensiones = statusErr.includes("E_NO_DIM");
 
   if (statusErr && !noDimensiones) {
     return <ErrorBlock label="No se pudo leer el estado de dimensiones" detail={statusErr} />;

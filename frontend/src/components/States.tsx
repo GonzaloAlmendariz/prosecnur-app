@@ -1,5 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 
+import { splitErrorDetail } from "./errorPresentation";
 import "./states.css";
 
 // Componentes de estado compartidos entre los editores de Configuración
@@ -35,6 +36,9 @@ export function LoadingBlock({
   );
 }
 
+// Contrato de presentación de errores (identidad verbal v1.2): el heading
+// dice qué pasó en tono sereno; el detalle explica; el código `E_*` va al
+// final, en mono y atenuado — nunca encabezando ni como único contenido.
 export function ErrorBlock({
   label,
   detail,
@@ -42,14 +46,22 @@ export function ErrorBlock({
   label?: string;
   detail?: string;
 }) {
+  const parsed = detail ? splitErrorDetail(detail) : null;
   return (
     <div role="alert" className="pulso-error-block">
       <span className="pulso-error-block-icon" aria-hidden="true">
         <AlertTriangle size={14} />
       </span>
       <span className="pulso-error-block-copy">
-        <strong>{label ?? "Error"}</strong>
-        {detail && <span className="pulso-error-block-detail">{detail}</span>}
+        <strong>{label ?? "No se pudo completar"}</strong>
+        {parsed && (
+          <span className="pulso-error-block-detail">
+            {parsed.message}
+            {parsed.code && (
+              <code className="pulso-error-block-code">{parsed.code}</code>
+            )}
+          </span>
+        )}
       </span>
     </div>
   );

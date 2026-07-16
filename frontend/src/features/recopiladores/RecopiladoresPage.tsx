@@ -1583,6 +1583,14 @@ export default function RecopiladoresPage() {
     : activeSection === "fichas" || activeSection === "paquete"
       ? "pdf"
       : "qr";
+  // Done por sección del rail: espejo 1:1 de los hitos que ya usa ReadinessRail
+  // (Preparar QR → linksReady · Aplicar en el salón → readyForPrint ·
+  // Cerrar trazabilidad → returnSaved). No introduce señales nuevas.
+  const sectionDone: Record<QrSection, boolean> = {
+    preparacion: linksReady,
+    fichas: readyForPrint,
+    paquete: returnSaved,
+  };
   const readinessSteps = [
     {
       label: "Coordinar curso-horario",
@@ -1866,33 +1874,45 @@ export default function RecopiladoresPage() {
             <strong>Fichas QR para intervenciones por cursos-horario</strong>
           </div>
         </div>
+        {/* Rail de secciones canónico (.pulso-phase-pillbar, patrón maestro #2):
+            mismas píldoras centradas de Monitoreo/Bitácora, con número de fase
+            19×19 y estado done derivado de los hitos existentes. El acento
+            activo entra por --module-accent/--pulso-primary del scope. */}
         <GlidingTabList
           as="nav"
           activeKey={activeSection}
-          className="rec-section-rail"
+          className="pulso-phase-pillbar rec-section-pillbar"
           role="tablist"
           aria-label="Secciones de fichas QR"
         >
-          {SECTIONS.map((section, index) => {
-            const Icon = section.icon;
-            return (
-              <button
-                key={section.id}
-                type="button"
-                role="tab"
-                data-gliding-key={section.id}
-                aria-selected={activeSection === section.id}
-                className={activeSection === section.id ? "is-active" : ""}
-                title={`${section.label}: ${section.detail}`}
-                onClick={() => changeSection(section.id)}
-              >
-                <span>{index + 1}</span>
-                <Icon size={14} />
-                <strong>{section.label}</strong>
-                <small>{section.detail}</small>
-              </button>
-            );
-          })}
+          <ol className="pulso-phase-pill-list">
+            {SECTIONS.map((section, index) => {
+              const active = activeSection === section.id;
+              return (
+                <li key={section.id} className="pulso-phase-pill-item">
+                  <button
+                    type="button"
+                    role="tab"
+                    data-gliding-key={section.id}
+                    aria-selected={active}
+                    aria-current={active ? "page" : undefined}
+                    className={`pulso-phase-pill rec-section-pill${active ? " is-active" : ""}${sectionDone[section.id] ? " is-done" : ""}`}
+                    title={`${section.label}: ${section.detail}`}
+                    aria-label={`${section.label}: ${section.detail}`}
+                    onClick={() => changeSection(section.id)}
+                  >
+                    <span className="pulso-phase-pill-circle" aria-hidden="true" />
+                    <span className="pulso-phase-pill-stack">
+                      <span className="pulso-phase-pill-label">
+                        <span className="pulso-phase-pill-number">{index + 1}</span>
+                        <span className="pulso-phase-pill-text">{section.label}</span>
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
         </GlidingTabList>
         <div className="rec-actions">
           <span className={`rec-top-status is-${topStatus.tone}`}>
@@ -1927,8 +1947,9 @@ export default function RecopiladoresPage() {
 
       <main className="rec-workbench">
         {/* Rail de tercer nivel (módulo → sección → pestaña): colapsado icon-only
-            por defecto, se expande a --pulso-rail-width al hover/focus como
-            overlay sin reflujo del canvas (patrón del rail de Procesamiento). */}
+            por defecto; al hover/focus la columna del grid del workbench crece
+            a --pulso-rail-width y EMPUJA el canvas (grid push, patrón del rail
+            de Procesamiento — sin overlay flotante). */}
         <aside className="rec-sidebar" aria-label="Pestañas de la sección activa">
           <div className="rec-sidebar-shell">
             <div className="rec-sidebar-head">
@@ -2000,19 +2021,13 @@ export default function RecopiladoresPage() {
           aria-labelledby={`rec-tab-${activeTab}`}
           className={`rec-content${isFichaPreview ? " is-ficha-preview" : ""}${isFichaList ? " is-ficha-list" : ""}${isAgendaReview ? " is-agenda-review" : ""}${isPackageOutput ? " is-package-output" : ""}${isPackageSave ? " is-package-save" : ""}${isLinkSetup ? " is-link-setup" : ""}`}
         >
-          {isFichaPreview || isFichaList || isAgendaReview || isPackageOutput || isPackageSave || isLinkSetup ? null : (
-            <div className="rec-content-head">
-              <div>
-                <span>{activeCopy.kicker}</span>
-                <h1>{activeCopy.title}</h1>
-                <p>{activeCopy.detail}</p>
-              </div>
-              <div className="rec-head-links">
-                <Link to={AULAS_SAMPLE_ROUTE}><CalendarRange size={14} /> Revisar muestra</Link>
-                <Link to="/monitoreo"><ExternalLink size={14} /> Abrir monitoreo</Link>
-              </div>
-            </div>
-          )}
+          {/* Identidad accesible sin franja visual (contrato: sin H1 visible en
+              módulos; el primer viewport es para datos). El kicker lo da el rail
+              de secciones y el detalle vive en el command strip de cada pestaña;
+              los enlaces a muestra/monitoreo ya existen en los strips y en la
+              banda de aplicación. pulso-sr-only es position:absolute, no ocupa
+              fila del grid del canvas. */}
+          <h1 className="pulso-sr-only">{`Fichas QR · ${activeCopy.title}`}</h1>
 
           {error ? <div className="rec-error"><AlertCircle size={16} /> {error}</div> : null}
 

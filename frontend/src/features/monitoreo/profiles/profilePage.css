@@ -4583,28 +4583,31 @@
   border-radius: 8px;
   background: #fff;
   color: var(--pulso-text);
-  padding: 5px 8px 5px 10px;
+  padding: 3px 8px 3px 10px;
   cursor: pointer;
 }
 
+/* Pista al switch maestro 44×24 (`.pulso-switch`, theme.css). El encendido
+   conserva el verde semántico: significa "fuente en uso", no chrome. */
 .mon-acr-use-switch input[type="checkbox"] {
   position: relative;
   order: 2;
-  flex: 0 0 32px;
-  width: 32px !important;
-  min-width: 32px !important;
-  height: 19px !important;
-  min-height: 19px !important;
+  flex: 0 0 44px;
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 24px !important;
+  min-height: 24px !important;
   appearance: none;
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 86%, #bcc7d8 14%) !important;
-  border-radius: 999px !important;
-  background: color-mix(in srgb, var(--pulso-surface-2) 76%, #fff 24%);
-  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--pulso-switch-border) !important;
+  border-radius: var(--pulso-radius-chip) !important;
+  background: var(--pulso-switch-track);
+  box-shadow: var(--pulso-switch-track-shadow);
   padding: 0 !important;
   transition:
-    background-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
-    border-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
-    box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1);
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .mon-profile-canonical-shell .mon-switch-line input[type="checkbox"]::before,
@@ -4618,30 +4621,36 @@
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 13px;
-  height: 13px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: #fff;
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.22),
-    0 0 0 1px rgba(15, 23, 42, 0.04);
-  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow: var(--pulso-switch-knob-shadow);
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .mon-acr-use-switch input[type="checkbox"]:checked {
-  border-color: color-mix(in srgb, var(--pulso-success-fg) 58%, var(--pulso-success-border)) !important;
-  background: var(--pulso-success-fg);
+  border-color: color-mix(in srgb, var(--pulso-success-fg) 84%, #fff 16%) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-success-fg) 88%, #fff 12%), var(--pulso-success-fg));
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    0 1px 2px rgba(0, 36, 87, 0.12);
 }
 
 .mon-acr-use-switch input[type="checkbox"]:checked::after {
-  transform: translateX(13px);
+  transform: translateX(20px);
+}
+
+.mon-acr-use-switch input[type="checkbox"]:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .mon-acr-use-switch input[type="checkbox"]:focus-visible {
   outline: none;
   box-shadow:
-    inset 0 1px 1px rgba(15, 23, 42, 0.08),
-    0 0 0 3px var(--pulso-success-bg);
+    var(--pulso-switch-track-shadow),
+    0 0 0 4px var(--pulso-primary-ring);
 }
 
 .mon-acr-use-switch > span {

@@ -33,7 +33,7 @@ export function projectRelTime(iso: string | null): string {
   if (diff < 90) return "hace un minuto";
   if (diff < 60 * 60) return `hace ${Math.floor(diff / 60)} min`;
   if (diff < 60 * 60 * 24) return `hace ${Math.floor(diff / 3600)} h`;
-  return new Date(iso).toLocaleDateString();
+  return new Date(iso).toLocaleDateString("es-PE");
 }
 
 export default function ProjectLifecycleDialog({

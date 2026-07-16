@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="prosecnur-appicon-fondo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#013371"/>
+      <stop offset="1" stop-color="#002457"/>
+    </linearGradient>
+  </defs>
+  <rect x="45" y="45" width="422" height="422" rx="101.28" fill="url(#prosecnur-appicon-fondo)"/>
+  <rect x="124.125" y="242.8125" width="46.15625" height="118.6875" rx="23.078125" fill="#ffffff"/>
+  <rect x="196.65625" y="190.0625" width="46.15625" height="171.4375" rx="23.078125" fill="#ffffff"/>
+  <rect x="269.1875" y="229.625" width="46.15625" height="131.875" rx="23.078125" fill="#ffffff"/>
+  <rect x="341.71875" y="150.5" width="46.15625" height="211" rx="23.078125" fill="#ffffff"/>
+</svg>

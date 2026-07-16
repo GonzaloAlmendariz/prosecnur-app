@@ -13,6 +13,12 @@ type Props<T> = {
   onProgress?: (progress: JobProgressData | null, snapshot: JobSnapshot<T>) => void;
 };
 
+// Contrato de errores (identidad verbal v1.2): cuando el job muere sin
+// mensaje, igual se explica qué pasó y cómo seguir — nunca un «Error
+// desconocido» a secas.
+const JOB_ERROR_SIN_DETALLE =
+  "El trabajo terminó sin detalle del error. Reintenta o revisa el estado de la base.";
+
 function readProgress(snapshot: JobSnapshot<unknown> | null): JobProgressData | null {
   const raw = snapshot?.progress;
   if (!raw || typeof raw !== "object") return null;
@@ -95,7 +101,7 @@ export function JobProgress<T = unknown>({ label, jobId, onDone, onError, onCanc
       onDone?.(payload, snapshot);
     } else if (snapshot.status === "error") {
       notifiedRef.current = key;
-      const msg = typeof snapshot.error === "string" ? snapshot.error : "Error en el job";
+      const msg = typeof snapshot.error === "string" ? snapshot.error : JOB_ERROR_SIN_DETALLE;
       onError?.(msg);
     } else if (snapshot.status === "cancelled") {
       notifiedRef.current = key;
@@ -164,7 +170,7 @@ export function JobProgress<T = unknown>({ label, jobId, onDone, onError, onCanc
     return <Alert kind="warn">{label}: cancelado.</Alert>;
   }
   if (snapshot.status === "error") {
-    const msg = typeof snapshot.error === "string" ? snapshot.error : "Error desconocido";
+    const msg = typeof snapshot.error === "string" ? snapshot.error : JOB_ERROR_SIN_DETALLE;
     return <Alert kind="error">{label}: {msg}</Alert>;
   }
   return null;

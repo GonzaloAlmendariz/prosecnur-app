@@ -48,6 +48,18 @@
       "port": 8787
     },
     {
+      "name": "Brand book preview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4849",
+        "--directory",
+        "/private/tmp/claude-501/-Users-gonzaloalmendariz-Documents-Pulso-prosecnur-app--claude-worktrees-app-visual-identity-3ee2ae/afbaf031-41d6-49df-a244-469e07620bfe/scratchpad"
+      ],
+      "port": 4849
+    },
+    {
       "name": "Installer preview",
       "runtimeExecutable": "python3",
       "runtimeArgs": [

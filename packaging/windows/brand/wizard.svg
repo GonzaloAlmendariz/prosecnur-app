@@ -1,31 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Sidebar del NSIS MUI Welcome page (164x314).
-     Fondo navy + logo grande + wordmark "Prosecnur" en blanco abajo. -->
+<!-- Sidebar del NSIS MUI Welcome page (164x314). Identidad v1.1.
+     Fondo navy + isotipo canonico en variante mono blanco con calado
+     (branding/logo/prosecnur-mono-blanco.svg): squircle blanco y pastillas
+     caladas que dejan respirar el gradiente del fondo. Es la variante
+     canonica para fondos oscuros y mantiene las dos tintas de la marca
+     (navy + blanco) sin introducir un segundo navy plano que pelee con
+     el gradiente del sidebar.
+     Isotipo 64x64 escalado x1.4375 → 92x92 (coordenadas absolutas:
+     x = 36 + 1.4375*x0, y = 42 + 1.4375*y0), centrado en x = 82 = 164/2. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 164 314" width="164" height="314">
   <defs>
-    <linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="nsis-wizard-fondo" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#012558"/>
       <stop offset="100%" stop-color="#001a40"/>
     </linearGradient>
-    <linearGradient id="circle-grad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#002457"/>
-      <stop offset="100%" stop-color="#013371"/>
-    </linearGradient>
+    <mask id="nsis-wizard-calado" maskUnits="userSpaceOnUse" x="36" y="42" width="92" height="92">
+      <rect x="36" y="42" width="92" height="92" rx="22.1375" fill="#ffffff"/>
+      <rect x="53.25" y="85.125" width="10.0625" height="25.875" rx="5.03125" fill="#000000"/>
+      <rect x="69.0625" y="73.625" width="10.0625" height="37.375" rx="5.03125" fill="#000000"/>
+      <rect x="84.875" y="82.25" width="10.0625" height="28.75" rx="5.03125" fill="#000000"/>
+      <rect x="100.6875" y="65" width="10.0625" height="46" rx="5.03125" fill="#000000"/>
+    </mask>
   </defs>
   <!-- Fondo del sidebar -->
-  <rect width="164" height="314" fill="url(#bg-grad)"/>
+  <rect width="164" height="314" fill="url(#nsis-wizard-fondo)"/>
 
-  <!-- Logo: viewBox 64x64, escalado a 100x100, centrado horizontal arriba.
-       cx interno=32 → centramos el grupo en x=82, y=88. -->
-  <g transform="translate(32 38)">
-    <circle cx="50" cy="50" r="46" fill="url(#circle-grad)" stroke="#ffffff" stroke-opacity="0.10" stroke-width="1"/>
-    <g transform="translate(50 50) scale(1.45) translate(-32 -32)">
-      <rect x="16" y="34" width="6" height="14" rx="1.5" fill="#ffffff" fill-opacity="0.95"/>
-      <rect x="26" y="26" width="6" height="22" rx="1.5" fill="#ffffff" fill-opacity="0.85"/>
-      <rect x="36" y="18" width="6" height="30" rx="1.5" fill="#ffffff" fill-opacity="0.75"/>
-      <rect x="46" y="22" width="6" height="26" rx="1.5" fill="#ffffff" fill-opacity="0.65"/>
-    </g>
-  </g>
+  <!-- Isotipo mono blanco calado, 92x92, centrado horizontal arriba -->
+  <rect x="36" y="42" width="92" height="92" rx="22.1375" fill="#ffffff" mask="url(#nsis-wizard-calado)"/>
 
   <!-- Wordmark "Prosecnur" debajo del logo. Mismo estilo que .home-hero-wordmark
        (font-weight 800, letter-spacing apretado), color blanco para contraste

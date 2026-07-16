@@ -1,6 +1,6 @@
 # Prosecnur — reglas de la casa y agentic OS
 
-App local-first para investigación por encuestas: Electron + React/Vite/TS (`frontend/`) + R/Plumber (`api/`, paquete `prosecnurapp`). Proyectos portables `.pulso`, secretos fuera del `.pulso`. Protocolo de trabajo: `AGENTS.md` → `docs/loops-reparacion.md`. Decisiones: `docs/adrs/`. Layout: `docs/ui-layout-grammar.md`. Baseline de deuda: `docs/qa/deuda-baseline.md`.
+App local-first para investigación por encuestas: Electron + React/Vite/TS (`frontend/`) + R/Plumber (`api/`, paquete `prosecnurapp`). Proyectos portables `.pulso`, secretos fuera del `.pulso`. Protocolo de trabajo: `AGENTS.md` → `docs/loops-reparacion.md`. Decisiones: `docs/adrs/`. Layout: `docs/ui-layout-grammar.md`. Identidad visual: `branding/` (dirección creativa, manual y logos canónicos — ADR 0038). Baseline de deuda: `docs/qa/deuda-baseline.md`.
 
 ## Enrutamiento del agentic OS
 

@@ -23,6 +23,22 @@
   to   { opacity: 1; transform: none; }
 }
 
+/* ── Acento del módulo (teal) ──────────────────────────────────────────── */
+/* El chrome de Procesamiento (phase-dock, rail, tiles) ya habla teal, pero el
+ * CONTENIDO de Validación seguía en el navy global `--pulso-primary`. Aquí
+ * remapeamos la familia primary a la paleta del módulo —igual que hace
+ * `.pulso-analitica-frame`— para que segmentados activos, botones
+ * primarios, selección y focus lean teal. Los tokens semánticos
+ * (success/warn/danger/info) NO se tocan: siguen significando estado. */
+
+.pulso-validacion-frame {
+  --pulso-primary: var(--pulso-module-processing);
+  --pulso-primary-soft: var(--pulso-module-processing-soft);
+  --pulso-primary-border: var(--pulso-module-processing-border);
+  --pulso-primary-focus: rgba(15, 118, 110, 0.15);
+  --pulso-primary-ring: rgba(15, 118, 110, 0.12);
+}
+
 /* ── Pills gv2 ─────────────────────────────────────────────────────────── */
 /* Los botones de acción ya etiquetados del módulo pasan a pill sin tocar
  * su TSX; `.pulso-vv2-pill` queda para botones con estilos inline. */
@@ -429,44 +445,63 @@
   z-index: 1;
   top: 0;
   left: 50%;
-  width: 30px;
-  height: 17px;
+  width: 44px;
+  height: 24px;
   margin: 0;
   opacity: 0;
   cursor: pointer;
   transform: translateX(-50%);
 }
 
+/* Pista al switch maestro 44×24 (`.pulso-switch`, theme.css). */
 .pulso-operational-switch > span {
-  width: 30px;
-  height: 17px;
+  width: 44px;
+  height: 24px;
   padding: 2px;
-  border-radius: 999px;
-  background: var(--pulso-border-strong);
-  transition: background var(--motion-dur-fast) ease;
+  border-radius: var(--pulso-radius-chip);
+  border: 1px solid var(--pulso-switch-border);
+  background: var(--pulso-switch-track);
+  box-shadow: var(--pulso-switch-track-shadow);
+  flex-shrink: 0;
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .pulso-operational-switch > span::after {
   content: "";
   display: block;
-  width: 13px;
-  height: 13px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-low);
+  background: #fff;
+  box-shadow: var(--pulso-switch-knob-shadow);
   transition: transform var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .pulso-operational-switch input:checked + span {
-  background: var(--pulso-primary);
+  border-color: color-mix(in srgb, var(--pulso-primary) 84%, #fff 16%);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-primary) 88%, #fff 12%), var(--pulso-primary));
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    0 1px 2px rgba(0, 36, 87, 0.12);
 }
 
 .pulso-operational-switch input:checked + span::after {
-  transform: translateX(13px);
+  transform: translateX(20px);
+}
+
+.pulso-operational-switch:active > span {
+  transform: scale(0.97);
 }
 
 .pulso-operational-switch input:focus-visible + span {
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  box-shadow:
+    var(--pulso-switch-track-shadow),
+    0 0 0 4px var(--pulso-primary-ring);
 }
 
 .pulso-operational-switch b {
