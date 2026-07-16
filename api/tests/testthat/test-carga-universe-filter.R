@@ -241,3 +241,136 @@ test_that("universe_filter source+effective hacen round-trip .pulso", {
   expect_equal(nrow(.cuf_file_df(s, uf$source_data_file_id)$data), 4L)
   expect_equal(nrow(.cuf_file_df(s, uf$effective_data_file_id)$data), 1L)
 })
+
+test_that("preparacion corrige registros, filtra pruebas y excluye rechazos por fila", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  parent <- data.frame(
+    `_index` = sprintf("p%03d", seq_len(430)),
+    Pulso_code = sprintf("PDM%04d", seq_len(430)),
+    testreal = rep("real", 430),
+    Consent = rep("Yes", 430),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  parent$testreal[1:3] <- "test"
+  parent$Pulso_code[1:3] <- c("123456", "PDM1114", "PDM1153")
+  parent$Consent[4:6] <- "No"
+  # El mismo codigo puede tener una respuesta aceptada: la exclusion se aplica
+  # a la fila por Consent, no a todas las filas que compartan Pulso_code.
+  parent$Pulso_code[c(4, 7)] <- "PDM1429"
+
+  child <- data.frame(
+    `_index` = seq_len(668),
+    `_parent_index` = c("p001", rep("p007", 667)),
+    item = sprintf("r%03d", seq_len(668)),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  parent_path <- .cuf_test_write_xlsx(parent)
+  parent_inst_path <- .cuf_test_inst(c("Pulso_code", "testreal", "Consent"))
+  parent_file <- save_upload(
+    sid, "data", "parent_430.xlsx",
+    readBin(parent_path, "raw", file.info(parent_path)$size)
+  )
+  parent_inst_file <- save_upload(
+    sid, "xlsform", "parent_form.xlsx",
+    readBin(parent_inst_path, "raw", file.info(parent_inst_path)$size)
+  )
+  parent_inst <- reporte_instrumento(parent_inst_file$path)
+  estudio_ensure(sid)
+  estudio_add_base(
+    sid, "parent", parent_inst_file$file_id, parent_file$file_id, "xlsx",
+    reporte_data(parent, instrumento = parent_inst), parent_inst,
+    nrow(parent), ncol(parent)
+  )
+
+  child_path <- .cuf_test_write_xlsx(child)
+  child_inst_path <- .cuf_test_inst("item")
+  child_file <- save_upload(
+    sid, "data", "repeat_668.xlsx",
+    readBin(child_path, "raw", file.info(child_path)$size)
+  )
+  child_inst_file <- save_upload(
+    sid, "xlsform", "repeat_form.xlsx",
+    readBin(child_inst_path, "raw", file.info(child_inst_path)$size)
+  )
+  child_inst <- reporte_instrumento(child_inst_file$path)
+  estudio_add_base(
+    sid, "repeat", child_inst_file$file_id, child_file$file_id, "xlsx",
+    reporte_data(child, instrumento = child_inst), child_inst,
+    nrow(child), ncol(child), extra_meta = list(
+      parent_base = "parent", repeat_group = "repeat",
+      link_key = "_parent_index", parent_index_key = "_index"
+    )
+  )
+
+  config <- c(.cuf_enabled(), list(
+    corrections = list(list(
+      id = "tests_confirmados_como_reales",
+      key_variable = "Pulso_code",
+      key_values = list("PDM1114", "PDM1153"),
+      variable = "testreal",
+      from_values = list("test"),
+      to_value = "real",
+      reason = "Entrevistas reales registradas inicialmente como prueba"
+    )),
+    exclusion_rules = list(list(
+      id = "rechazo_consentimiento",
+      variable = "Consent",
+      values = list("No"),
+      reason = "La persona rechazo participar"
+    ))
+  ))
+
+  applied <- carga_universe_filter_apply(sid, "parent", config)
+  expect_equal(applied$summary$total, 430L)
+  expect_equal(applied$summary$corrected, 2L)
+  expect_equal(applied$summary$correction_changes, 2L)
+  expect_equal(applied$summary$excluded_test, 1L)
+  expect_equal(applied$summary$excluded_rules, 3L)
+  expect_equal(applied$summary$included, 426L)
+  expect_equal(applied$summary$corrections[[1]]$affected, 2L)
+  expect_equal(applied$summary$exclusion_rules[[1]]$excluded, 3L)
+
+  s <- session_get(sid)
+  parent_effective <- .cuf_file_df(s, s$estudio$bases$parent$data_file_id)$data
+  repeat_effective <- .cuf_file_df(s, s$estudio$bases[["repeat"]]$data_file_id)$data
+  parent_source <- .cuf_file_df(s, parent_file$file_id)$data
+  expect_equal(nrow(parent_effective), 426L)
+  expect_equal(nrow(repeat_effective), 667L)
+  expect_equal(nrow(parent_source), 430L)
+  expect_equal(parent_source$testreal[parent_source$Pulso_code == "PDM1114"], "test")
+  expect_equal(parent_effective$testreal[parent_effective$Pulso_code == "PDM1114"], "real")
+  expect_equal(sum(parent_effective$Pulso_code == "PDM1429"), 1L)
+  expect_equal(parent_effective$Consent[parent_effective$Pulso_code == "PDM1429"], "Yes")
+
+  exposed <- carga_universe_filter_get(sid, "parent")
+  expect_equal(
+    exposed$config$corrections[[1]]$key_values,
+    list("PDM1114", "PDM1153")
+  )
+  expect_equal(exposed$config$exclusion_rules[[1]]$values, list("No"))
+
+  project_path <- tempfile(fileext = ".pulso")
+  on.exit(unlink(project_path, force = TRUE), add = TRUE)
+  build_pulso(sid, project_path, "Preparacion persistente")
+  loaded <- load_pulso(project_path)
+  on.exit(session_delete(loaded$session_id), add = TRUE)
+  loaded_session <- session_get(loaded$session_id)
+  loaded_filter <- loaded_session$estudio$bases$parent$universe_filter
+  expect_equal(loaded_filter$audit$corrected, 2L)
+  expect_equal(loaded_filter$audit$excluded_rules, 3L)
+  expect_equal(loaded_filter$corrections[[1]]$to_value, "real")
+  expect_equal(
+    nrow(.cuf_file_df(loaded_session, loaded_filter$effective_data_file_id)$data),
+    426L
+  )
+  repeat_filter <- loaded_session$estudio$bases[["repeat"]]$universe_filter
+  expect_equal(
+    nrow(.cuf_file_df(loaded_session, repeat_filter$effective_data_file_id)$data),
+    667L
+  )
+})
