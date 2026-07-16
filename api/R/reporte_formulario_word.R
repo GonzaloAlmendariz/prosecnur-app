@@ -85,17 +85,20 @@
 
   # --- Etiquetas de cabecera ---
   # "categorias": cada opcion rotulada en su columna (Sí/No, escalas cortas).
-  # "extremos": una sola celda que abarca TODAS las columnas de escala con los
-  # dos polos ("Totalmente en desacuerdo — Totalmente de acuerdo"); asi las
-  # anclas no se parten en columnas angostas como pasaba celda a celda.
-  scale_only_ids <- paste0("s", seq_len(n_scale))
+  # "extremos": el ancla IZQUIERDA abarca la primera mitad de columnas (alineada
+  # a la izquierda) y la DERECHA la segunda mitad (alineada a la derecha), como
+  # el PDF — cada polo sobre su lado, no una sola celda que abarca todo.
   merge_extremos <- !identical(header_mode, "categorias") && n_scale >= 2L
+  left_n <- ceiling(n_scale / 2)
+  left_ids <- paste0("s", seq_len(left_n))
+  right_ids <- if (n_scale > left_n) paste0("s", seq(left_n + 1L, n_scale)) else character(0)
   hdr <- stats::setNames(rep("", length(col_ids)), col_ids)
   if (identical(header_mode, "categorias")) {
     for (k in seq_len(n_scale)) hdr[[paste0("s", k)]] <- scale_labels[k]
     if (has_special) hdr[["sp"]] <- sp_label
   } else if (merge_extremos) {
-    hdr[["s1"]] <- paste0(scale_labels[1], "   —   ", scale_labels[n_scale])
+    hdr[["s1"]] <- scale_labels[1]                                       # ancla izquierda
+    if (length(right_ids)) hdr[[right_ids[1]]] <- scale_labels[n_scale]  # ancla derecha
     if (has_special) hdr[["sp"]] <- sp_label
   } else {
     hdr[["s1"]] <- scale_labels[1]
@@ -103,7 +106,8 @@
   }
   ft <- do.call(flextable::set_header_labels, c(list(ft), as.list(hdr)))
   if (merge_extremos) {
-    ft <- flextable::merge_at(ft, i = 1, j = scale_only_ids, part = "header")
+    if (length(left_ids) >= 2L) ft <- flextable::merge_at(ft, i = 1, j = left_ids, part = "header")
+    if (length(right_ids) >= 2L) ft <- flextable::merge_at(ft, i = 1, j = right_ids, part = "header")
   }
 
   # --- Anchos: la columna de etiqueta se lleva la mayor parte (mismo criterio
@@ -125,6 +129,11 @@
   ft <- flextable::color(ft, j = "lbl", color = .FORM_WORD_INK, part = "body")
   ft <- flextable::align(ft, j = scale_ids, align = "center", part = "all")
   ft <- flextable::align(ft, j = "lbl", align = "left", part = "all")
+  # En extremos, las anclas van pegadas a su extremo (izq/der), no centradas.
+  if (merge_extremos) {
+    ft <- flextable::align(ft, i = 1, j = left_ids, align = "left", part = "header")
+    if (length(right_ids)) ft <- flextable::align(ft, i = 1, j = right_ids, align = "right", part = "header")
+  }
   even <- which(seq_len(nrow(df)) %% 2L == 0L)
   if (length(even)) ft <- flextable::bg(ft, i = even, bg = .FORM_WORD_ZEBRA, part = "body")
   ft <- .form_word_table_base(ft, col_ids)
