@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 356 80">
+  <g transform="translate(8 8)">
+    <rect x="0" y="0" width="64" height="64" rx="15.4" fill="#002457"/>
+    <rect x="12" y="30" width="7" height="18" rx="3.5" fill="#ffffff"/>
+    <rect x="23" y="22" width="7" height="26" rx="3.5" fill="#ffffff"/>
+    <rect x="34" y="28" width="7" height="20" rx="3.5" fill="#ffffff"/>
+    <rect x="45" y="16" width="7" height="32" rx="3.5" fill="#ffffff"/>
+  </g>
+  <text x="90" y="47" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" font-size="42" font-weight="800" letter-spacing="-0.02em" fill="#002457">Prosecnur</text>
+  <text x="90" y="63" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" font-size="10" font-weight="600" letter-spacing="0.14em" fill="#5f6b7a">SUITE ANALÍTICA · PULSO PUCP</text>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 356 80">
+  <g transform="translate(8 8)">
+    <rect x="0" y="0" width="64" height="64" rx="15.4" fill="#ffffff"/>
+    <rect x="12" y="30" width="7" height="18" rx="3.5" fill="#002457"/>
+    <rect x="23" y="22" width="7" height="26" rx="3.5" fill="#002457"/>
+    <rect x="34" y="28" width="7" height="20" rx="3.5" fill="#002457"/>
+    <rect x="45" y="16" width="7" height="32" rx="3.5" fill="#002457"/>
+  </g>
+  <text x="90" y="54.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" font-size="42" font-weight="800" letter-spacing="-0.02em" fill="#ffffff">Prosecnur</text>
+</svg>
