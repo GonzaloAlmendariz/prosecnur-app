@@ -112,6 +112,36 @@ test_that("series telefónicas completamente vacías no se convierten en cero", 
   expect_equal(.mtpdf_sum_or_na(c(2, NA, 3)), 5)
 })
 
+test_that("avance cuenta respuestas efectivas aunque compartan código de contacto", {
+  data <- data.frame(
+    .source_role = rep("respuestas", 3L),
+    CodPulso = c("PDM1158", "PDM1158", "PDM1200"),
+    kobo_fecha_iso = c("2026-07-02", "2026-07-02", "2026-07-03"),
+    Sede = c("Centro", "Centro", "Sur"),
+    stringsAsFactors = FALSE
+  )
+  model <- list(
+    metrics = list(kobo_effective = 2L),
+    daily = data.frame(
+      Fecha = as.Date(c("2026-07-02", "2026-07-03")),
+      `Efectivas Kobo` = c(1L, 1L),
+      check.names = FALSE
+    ),
+    quotas = data.frame(
+      Variable = c("Sede", "Sede"),
+      Valor = c("Centro", "Sur"),
+      Efectivas = c(1L, 1L),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  reconciled <- .mtpdf_reconcile_response_counts(model, data)
+
+  expect_equal(reconciled$metrics$kobo_effective, 3L)
+  expect_equal(reconciled$daily$`Efectivas Kobo`, c(2L, 1L))
+  expect_equal(reconciled$quotas$Efectivas, c(2L, 1L))
+})
+
 test_that("reporte cliente conserva las cifras de referencia y composición", {
   model <- list(
     metrics = list(total = 2296L, swept = 631L, not_swept = 1665L, phone_effective = 222L, kobo_effective = 423L),
@@ -148,6 +178,7 @@ test_that("reporte cliente conserva las cifras de referencia y composición", {
   expect_equal(facts$phone_effectiveness_pct, 100 * 222 / 631)
   expect_true(facts$has_phone_effectiveness)
   expect_equal(facts$real_responses, 427)
+  expect_equal(facts$total_valid, 427)
   expect_equal(facts$test_excluded, 3)
 })
 

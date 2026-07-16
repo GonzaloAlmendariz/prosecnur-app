@@ -174,6 +174,88 @@ monitoreo_client_snapshot_with_carga_universe <- function(snapshot, session_stat
   if (length(value) && is.finite(value)) value else default
 }
 
+.mtpdf_match_data_column <- function(data, variable, prefer_populated = FALSE) {
+  if (!is.data.frame(data) || !ncol(data)) return("")
+  normalize <- function(x) {
+    x <- iconv(tolower(trimws(as.character(x))), to = "ASCII//TRANSLIT")
+    gsub("[^a-z0-9]", "", x)
+  }
+  target <- normalize(variable)
+  names_full <- normalize(names(data))
+  names_tail <- normalize(sub("^.*/", "", names(data)))
+  exact <- which(names_full == target | names_tail == target)
+  if (!isTRUE(prefer_populated) && length(exact)) return(names(data)[[exact[[1L]]]])
+  candidates <- unique(c(
+    exact,
+    which(grepl(target, names_full, fixed = TRUE) | grepl(target, names_tail, fixed = TRUE))
+  ))
+  if (!length(candidates)) return("")
+  populated <- vapply(candidates, function(i) {
+    values <- trimws(as.character(data[[i]]))
+    sum(!is.na(values) & nzchar(values))
+  }, numeric(1))
+  exact_bonus <- as.numeric(candidates %in% exact) / 10
+  names(data)[[candidates[[which.max(populated + exact_bonus)]]]]
+}
+
+.mtpdf_reconcile_response_counts <- function(model, data) {
+  if (!is.data.frame(data) || !nrow(data) || !(".source_role" %in% names(data))) return(model)
+  is_response <- tolower(trimws(as.character(data$.source_role))) == "respuestas"
+  responses <- data[is_response, , drop = FALSE]
+  if (!nrow(responses)) return(model)
+
+  model$metrics <- model$metrics %||% list()
+  # La unidad del avance es la encuesta efectiva, no el código de contacto.
+  # Esto conserva dos respuestas válidas aunque compartan el mismo CodPulso.
+  model$metrics$kobo_effective <- as.integer(nrow(responses))
+
+  date_candidates <- c(
+    "kobo_fecha_iso", "kobo_timestamp_iso", "_submission_time",
+    "submission_time", "Fecha"
+  )
+  date_col <- ""
+  for (candidate in date_candidates) {
+    date_col <- .mtpdf_match_data_column(responses, candidate)
+    if (nzchar(date_col)) break
+  }
+  response_dates <- if (nzchar(date_col)) .mtpdf_parse_date(responses[[date_col]]) else as.Date(character(0))
+  if (length(response_dates) && any(!is.na(response_dates))) {
+    daily_counts <- table(response_dates[!is.na(response_dates)])
+    daily <- .mtpdf_df(model$daily %||% data.frame())
+    daily_dates <- if ("Fecha" %in% names(daily)) .mtpdf_parse_date(daily$Fecha) else as.Date(character(0))
+    all_dates <- sort(unique(c(daily_dates[!is.na(daily_dates)], as.Date(names(daily_counts)))))
+    aligned <- data.frame(Fecha = all_dates, stringsAsFactors = FALSE)
+    if (nrow(daily)) {
+      match_old <- match(all_dates, daily_dates)
+      for (name in setdiff(names(daily), "Fecha")) aligned[[name]] <- daily[[name]][match_old]
+    }
+    counts <- as.integer(daily_counts[as.character(all_dates)])
+    counts[is.na(counts)] <- 0L
+    aligned[["Efectivas"]] <- counts
+    aligned[["Efectivas Kobo"]] <- counts
+    model$daily <- aligned
+  }
+
+  quotas <- .mtpdf_df(model$quotas %||% data.frame())
+  variable_col <- intersect(c("Variable", "Dimension", "Dimensión"), names(quotas))[1]
+  value_col <- intersect(c("Valor", "Segmento", "Grupo"), names(quotas))[1]
+  actual_col <- intersect(c("Efectivas", "Válidas", "Validas", "Logrado"), names(quotas))[1]
+  if (nrow(quotas) && !is.na(variable_col) && !is.na(value_col) && !is.na(actual_col)) {
+    for (dimension in unique(as.character(quotas[[variable_col]]))) {
+      data_col <- .mtpdf_match_data_column(responses, dimension, prefer_populated = TRUE)
+      if (!nzchar(data_col)) next
+      counts <- table(trimws(as.character(responses[[data_col]])))
+      rows <- which(as.character(quotas[[variable_col]]) == dimension)
+      values <- trimws(as.character(quotas[[value_col]][rows]))
+      actual <- as.integer(counts[values])
+      actual[is.na(actual)] <- 0L
+      quotas[[actual_col]][rows] <- actual
+    }
+    model$quotas <- quotas
+  }
+  model
+}
+
 build_monitoreo_telefonico_report_model <- function(snapshot, cfg, include_targets = FALSE) {
   if (is.null(snapshot) || !is.data.frame(snapshot$data) || !nrow(snapshot$data)) stop_api(409, "E_NO_MONITOREO_DATA", "Sin datos de Monitoreo.")
   data <- snapshot$data
@@ -209,7 +291,7 @@ build_monitoreo_telefonico_report_model <- function(snapshot, cfg, include_targe
     is.finite(swept) && swept >= 0 && is.finite(phone_effective) &&
       phone_effective >= 0 && phone_effective <= swept
   ) swept - phone_effective else NA_real_
-  list(
+  model <- list(
     schema = "monitoreo_telefonico_advance_report_v1",
     report_kind = "telefonico_advance_pdf",
     family = "telefonico",
@@ -240,6 +322,7 @@ build_monitoreo_telefonico_report_model <- function(snapshot, cfg, include_targe
       }
     )
   )
+  .mtpdf_reconcile_response_counts(model, data)
 }
 
 .mtpdf_wrap <- function(x, width = 90L) paste(strwrap(.mtpdf_text(x), width = width), collapse = "\n")
@@ -396,7 +479,14 @@ build_monitoreo_telefonico_report_model <- function(snapshot, cfg, include_targe
       if (length(idx)) real_responses <- .mtpdf_num(sources$Registros[idx[[1L]]], NA_real_)[[1L]]
     }
   }
-  total_valid <- .mtpdf_num(metrics$kobo_effective %||% NA_real_, NA_real_)[[1L]]
+  # Cuando Carga dejó constancia de un universo efectivo, ese conteo representa
+  # respuestas incluidas. No se reduce por códigos de contacto repetidos: dos
+  # entrevistas válidas con el mismo código siguen siendo dos encuestas.
+  total_valid <- if (isTRUE(filter$applied) && is.finite(real_responses)) {
+    real_responses
+  } else {
+    .mtpdf_num(metrics$kobo_effective %||% NA_real_, NA_real_)[[1L]]
+  }
   if (!is.finite(total_valid) && is.finite(quota_actual)) total_valid <- quota_actual
   if (!is.finite(total_valid) && is.finite(real_responses)) total_valid <- real_responses
   primary_target <- quota_rows$target
