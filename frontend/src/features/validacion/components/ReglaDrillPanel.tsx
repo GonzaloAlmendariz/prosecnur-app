@@ -318,7 +318,7 @@ export default function ReglaDrillPanel({
             }
           }
           .pulso-rule-flow-item {
-            animation: pulsoRuleStepIn 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+            animation: pulsoRuleStepIn 360ms var(--motion-ease-out) both;
           }
           .pulso-rule-accordion {
             overflow: hidden;

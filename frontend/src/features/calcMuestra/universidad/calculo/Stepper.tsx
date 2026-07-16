@@ -1,7 +1,7 @@
 /**
  * Stepper de cantidad (Anexo A.3): botones −/+ alrededor de un número que, al
- * cambiar, hace un pop con spring (scale 1.3 → asienta con cubic-bezier
- * 0.34,1.56,0.64,1). El botón presionado se hunde (scale 0.9) en :active y los
+ * cambiar, hace un pop (scale 1.3 al 40% del keyframe → asienta con la curva
+ * productiva tokenizada). El botón presionado se hunde (scale 0.9) en :active y los
  * dígitos usan tabular-nums para no bailar de ancho. Controlado: el padre posee
  * el valor y persiste el cambio.
  */

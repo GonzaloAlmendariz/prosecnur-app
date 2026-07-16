@@ -305,7 +305,7 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL, c
     xls  = suppressWarnings(readxl::read_excel(path)),
     csv  = utils::read.csv(path, stringsAsFactors = FALSE),
     sav  = haven::read_sav(path),
-    stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Unsupported data extension: %s", ext))
+    stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Extensión de datos no soportada: %s. Usa CSV, XLSX, XLS o SAV.", ext))
   )
   normalized_info <- NULL
   compatibility_info <- .carga_compatibility_payload(df, NULL)
@@ -470,7 +470,7 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL, c
     }
     return(haven::read_sav(path))
   }
-  stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Extensión no soportada: %s", ext))
+  stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Extensión de datos no soportada: %s. Usa CSV, XLSX, XLS o SAV.", ext))
 }
 
 estudio_init_default_base <- function(sid) {
