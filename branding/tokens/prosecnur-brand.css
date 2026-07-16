@@ -1,0 +1,97 @@
+/* ============================================================
+ * Prosecnur — tokens canónicos de identidad de marca (v1.0)
+ * ------------------------------------------------------------
+ * Capa de marca sobre el design system vivo de la app.
+ * Los valores coinciden 1:1 con los tokens --pulso-* de
+ * frontend/src/app/theme.css (fuente operativa) y con la paleta
+ * navy de api/R/pulso_pdf_theme.R; este archivo es la referencia
+ * de identidad para piezas fuera de la app (web, docs, packaging,
+ * plantillas). Dentro de la app se siguen usando los --pulso-*.
+ * ============================================================ */
+
+:root {
+  /* --- Marca ------------------------------------------------ */
+  --prosecnur-navy: #002457;        /* = --pulso-primary / pdf navy */
+  --prosecnur-navy-800: #013371;    /* profundidad de gradiente del icono */
+  --prosecnur-signal: #2457d6;      /* azul señal = plotly primary_bright */
+
+  /* --- Texto ------------------------------------------------ */
+  --prosecnur-ink: #17212f;         /* = --pulso-text */
+  --prosecnur-ink-soft: #5f6b7a;    /* = --pulso-text-soft */
+  --prosecnur-ink-faint: #8792a2;   /* = --pulso-text-faint */
+
+  /* --- Superficies y bordes --------------------------------- */
+  --prosecnur-paper: #ffffff;       /* = --pulso-surface */
+  --prosecnur-ice: #fafbff;         /* = --pulso-surface-2 */
+  --prosecnur-mist: #f2f5fa;        /* = --pulso-surface-3 */
+  --prosecnur-canvas: #f3f5f9;      /* = --pulso-bg */
+  --prosecnur-deep: #e9edf5;        /* = --pulso-bg-deep */
+  --prosecnur-border: #e2e7f0;      /* = --pulso-border */
+  --prosecnur-border-strong: #cbd5e4;
+
+  /* --- Semánticos ------------------------------------------- */
+  --prosecnur-success: #16a34a;
+  --prosecnur-success-bg: #dcfce7;
+  --prosecnur-success-fg: #166534;
+  --prosecnur-warn: #d97706;
+  --prosecnur-warn-bg: #fff4e0;
+  --prosecnur-warn-fg: #8a5000;
+  --prosecnur-danger: #be123c;
+  --prosecnur-danger-bg: #fef2f2;
+  --prosecnur-danger-fg: #991b1b;
+
+  /* --- Espectro modular (acentos de chrome por módulo) ------- */
+  --prosecnur-mod-editor: #6d5dfc;
+  --prosecnur-mod-procesamiento: #0f766e;
+  --prosecnur-mod-dashboard: #2563eb;
+  --prosecnur-mod-rutas: #c2410c;
+  --prosecnur-mod-muestra: #7c3aed;
+  --prosecnur-mod-bitacora: #a16207;
+  --prosecnur-mod-recopiladores: #0891b2;
+  --prosecnur-mod-monitoreo: #be123c;
+
+  /* --- Interacción ------------------------------------------ */
+  --prosecnur-focus: rgba(0, 36, 87, 0.15);
+  --prosecnur-navy-soft: rgba(0, 36, 87, 0.08);
+  --prosecnur-navy-border: rgba(0, 36, 87, 0.18);
+
+  /* --- Geometría --------------------------------------------- */
+  --prosecnur-radius: 10px;
+  --prosecnur-radius-card: 14px;
+  --prosecnur-radius-panel: 16px;
+  --prosecnur-radius-lens: 20px;
+  --prosecnur-radius-chip: 999px;
+  --prosecnur-ctrl-h: 28px;
+  --prosecnur-ctrl-h-lg: 36px;
+  --prosecnur-ctrl-weight: 500;     /* 600 con [data-platform="windows"] */
+
+  /* --- Sombras ----------------------------------------------- */
+  --prosecnur-shadow-low: 0 1px 2px rgba(0, 36, 87, 0.04);
+  --prosecnur-shadow-soft: 0 6px 18px rgba(0, 36, 87, 0.06);
+  --prosecnur-shadow-med: 0 14px 30px rgba(0, 36, 87, 0.08);
+  --prosecnur-shadow-raised:
+    0 1px 1px rgba(15, 23, 42, 0.04),
+    0 10px 28px rgba(15, 23, 42, 0.07);
+
+  /* --- Motion «Física Pulso» ---------------------------------- */
+  --prosecnur-dur-press: 120ms;
+  --prosecnur-dur-fast: 160ms;
+  --prosecnur-dur-base: 220ms;
+  --prosecnur-dur-panel: 280ms;
+  --prosecnur-dur-slow: 420ms;
+  --prosecnur-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --prosecnur-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --prosecnur-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --prosecnur-ease-productive: cubic-bezier(0.16, 1, 0.3, 1);
+  --prosecnur-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+  /* --- Tipografía --------------------------------------------- */
+  --prosecnur-font:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --prosecnur-mono:
+    ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+:root[data-platform="windows"] {
+  --prosecnur-ctrl-weight: 600;
+}
