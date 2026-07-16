@@ -54,6 +54,17 @@ Gate integral del programa (verificador independiente, 2026-07-16):
 **APTO CON OBSERVACIONES**, observaciones saldadas en `13f9eb2`/`0ba1a6e`.
 Convergencia de chrome completa en todos los módulos salvo dashboard.
 
+## Corrección de dirección en curso (2026-07-16, tarde)
+
+**dec-sidebar-icon-tooltip** (supersede a dec-calc-sidebar-push): el 3er nivel
+es SIEMPRE comprimido + burbuja flotante en hover/focus (incluida la activa,
+cuyo tooltip estaba asesinado por regla en theme.css ~45692) + título compacto
+de la pestaña activa al inicio del workbench. En ejecución: fix del bug de la
+activa + universalización en processing (theme.css), restauración de la capa
+tooltip de calc-muestra (desde 62aac4e^) y conversión de Recopiladores
+push→burbuja. La dirección v1.2 (patrón 3) ya está reescrita; falta el demo
+del manual (componentes 07.3) y el patrón 3 del skill master-patterns.md.
+
 ## Cola: PENDIENTE (por orden recomendado)
 
 | # | Unidad | Detalle y evidencia | Esfuerzo |

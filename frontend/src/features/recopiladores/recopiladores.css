@@ -313,6 +313,10 @@
   color: var(--rec-accent);
 }
 
+/* Track del rail SIEMPRE fijo en el colapsado (dec-sidebar-icon-tooltip):
+   el 3er nivel nunca se expande ni empuja el canvas; el detalle de cada
+   pestaña vive en la burbuja flotante data-rail-tooltip (ver capa al final
+   de la sección del rail). */
 .rec-workbench {
   min-height: 0;
   flex: 1 1 auto;
@@ -322,20 +326,6 @@
   padding: 14px 0 0;
   overflow: visible;
   isolation: isolate;
-  transition: grid-template-columns var(--motion-dur-base) var(--motion-ease-out);
-}
-
-/* Solo en desktop de dos columnas: en el layout apilado (≤920px) el rail vive
-   en flujo con las filas ya expandidas y no debe reaccionar al hover.
-   Track expandido de largo fijo (no minmax): la transición de
-   grid-template-columns solo interpola suave entre listas de tracks con la
-   misma estructura (length↔length); con minmax() el cambio sería un salto
-   discreto en vez de deslizarse. */
-@media (min-width: 921px) {
-  .rec-workbench:has(> .rec-sidebar:hover),
-  .rec-workbench:has(> .rec-sidebar:focus-within) {
-    grid-template-columns: var(--pulso-rail-width) minmax(0, 1fr);
-  }
 }
 
 .rec-sidebar,
@@ -349,11 +339,16 @@
   box-shadow: var(--pulso-shadow-soft);
 }
 
-/* Rail de tercer nivel: el aside llena su columna del grid; el panel visual
-   vive en el shell, en flujo. La expansión la gobierna la columna del grid
-   del workbench (ver .rec-workbench:has(...)): el rail EMPUJA el canvas,
-   sin overlay flotante (patrón maestro #3, como calc-muestra/Procesamiento). */
+/* Rail de tercer nivel SIEMPRE comprimido (patrón maestro #3,
+   dec-sidebar-icon-tooltip, como Procesamiento/calc-muestra): icon-only fijo,
+   sin expansión por hover ni push del canvas. El reveal es la burbuja
+   flotante data-rail-tooltip; la identificación persistente la da el command
+   strip de cada pestaña al inicio del canvas. z-index sobre .rec-content
+   (z 0) para que la burbuja salga por encima del canvas dentro del
+   workbench aislado. */
 .rec-sidebar {
+  position: relative;
+  z-index: 4;
   min-width: 0;
   min-height: 0;
   display: flex;
@@ -365,8 +360,8 @@
 }
 
 /* Shell = panel visual del rail, en flujo: ocupa el 100% del track del grid y
-   conserva el material; overflow oculto en colapsado para que las etiquetas
-   no se derramen mientras el track transiciona. */
+   conserva el material. Overflow visible: en icon-only no hay etiquetas que
+   se derramen y la burbuja flotante no debe recortarse. */
 .rec-sidebar-shell {
   flex: 1 1 auto;
   min-width: 0;
@@ -382,15 +377,7 @@
     color-mix(in srgb, var(--pulso-surface) 90%, transparent);
   box-shadow: var(--pulso-shadow-soft);
   backdrop-filter: blur(12px) saturate(128%);
-  overflow: hidden;
-}
-
-/* Expandido: mismo material (el panel empuja al canvas, no flota — sin sombra
-   de elevación de overlay); solo gana scroll interno. */
-.rec-sidebar:hover .rec-sidebar-shell,
-.rec-sidebar:focus-within .rec-sidebar-shell {
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: visible;
 }
 
 .rec-sidebar nav {
@@ -424,17 +411,6 @@
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 
-/* Fila expandida: ícono + copy en dos líneas. */
-.rec-sidebar:hover nav button,
-.rec-sidebar:focus-within nav button {
-  grid-template-columns: 26px minmax(0, 1fr);
-  justify-items: stretch;
-  gap: 8px;
-  height: auto;
-  min-height: var(--pulso-rail-row-height-lg);
-  padding: 6px 8px;
-}
-
 .rec-sidebar-tab-icon {
   position: relative;
   grid-column: 1;
@@ -446,17 +422,13 @@
   color: currentColor;
 }
 
-/* Copy: oculto en colapsado, aparece al expandir. */
+/* Copy inline: oculto en desktop (la burbuja data-rail-tooltip lo reemplaza);
+   visible en flujo solo en el layout apilado ≤920px. */
 .rec-sidebar-tab-copy {
   min-width: 0;
   display: none;
   grid-column: 2;
   gap: 2px;
-}
-
-.rec-sidebar:hover .rec-sidebar-tab-copy,
-.rec-sidebar:focus-within .rec-sidebar-tab-copy {
-  display: grid;
 }
 
 .rec-sidebar-tab-copy strong {
@@ -510,7 +482,8 @@
   transform: scale(0.98);
 }
 
-/* Cabecera del rail: oculta en colapsado (solo íconos); aparece al expandir. */
+/* Cabecera del rail: no existe en el rail de íconos de desktop; solo aparece
+   en el layout apilado ≤920px (override en su media query). */
 .rec-sidebar-head {
   min-width: 0;
   max-height: 0;
@@ -519,18 +492,6 @@
   opacity: 0;
   overflow: hidden;
   border-bottom: 1px solid transparent;
-  transition:
-    max-height var(--motion-dur-fast) var(--motion-ease-out),
-    opacity var(--motion-dur-fast) var(--motion-ease-out),
-    padding var(--motion-dur-fast) var(--motion-ease-out);
-}
-
-.rec-sidebar:hover .rec-sidebar-head,
-.rec-sidebar:focus-within .rec-sidebar-head {
-  max-height: 96px;
-  padding: 4px 2px 8px;
-  opacity: 1;
-  border-bottom-color: color-mix(in srgb, var(--pulso-border) 78%, transparent);
 }
 
 .rec-sidebar-head small {
@@ -580,15 +541,71 @@
   line-height: 1.35;
 }
 
-/* Nota de estado: solo aporta con el rail expandido; en colapsado se oculta. */
+/* Nota de estado: solo aporta con las filas en flujo del layout apilado
+   ≤920px; en el rail de íconos de desktop se oculta siempre. */
 .rec-sidebar .rec-sidebar-note {
   display: none;
   margin-top: auto;
 }
 
-.rec-sidebar:hover .rec-sidebar-note,
-.rec-sidebar:focus-within .rec-sidebar-note {
-  display: grid;
+/* ── Burbuja flotante del rail (dec-sidebar-icon-tooltip) ───────────────────
+   Receta canónica de los rails de Procesamiento (theme.css, capa
+   [data-rail-tooltip] de .pulso-main--processing), con el borde teñido por el
+   acento del módulo (--rec-accent-border). Aparece en hover Y focus-visible,
+   SIEMPRE — incluida la pestaña activa. Solo desktop: en el apilado ≤920px el
+   copy vive inline y la burbuja no participa. */
+@media (min-width: 921px) {
+  .rec-sidebar nav button[data-rail-tooltip] {
+    position: relative;
+    overflow: visible;
+    contain: layout style;
+  }
+
+  .rec-sidebar nav button[data-rail-tooltip]::before {
+    content: "";
+    position: absolute;
+    left: calc(100% + 8px);
+    top: 50%;
+    z-index: 420;
+    display: none;
+    width: max-content;
+    min-width: 122px;
+    max-width: 220px;
+    min-height: 0;
+    padding: 7px 9px;
+    border: 1px solid color-mix(in srgb, var(--rec-accent-border) 52%, var(--pulso-border));
+    border-radius: 10px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 253, 0.96)),
+      var(--pulso-surface);
+    color: var(--pulso-text);
+    font-size: 11px;
+    font-weight: 760;
+    line-height: 1.22;
+    text-align: left;
+    white-space: pre-line;
+    box-shadow: var(--pulso-shadow-popover);
+    opacity: 0;
+    visibility: hidden;
+    overflow-wrap: anywhere;
+    pointer-events: none;
+    transform: translateY(-50%);
+    transition:
+      opacity 150ms var(--motion-ease-out),
+      visibility 0s linear 150ms;
+  }
+
+  /* La burbuja aparece siempre, incluida la pestaña activa —
+     dec-sidebar-icon-tooltip. */
+  .rec-sidebar nav button[data-rail-tooltip]:hover::before,
+  .rec-sidebar nav button[data-rail-tooltip]:focus-visible::before {
+    content: attr(data-rail-tooltip);
+    display: block;
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-50%);
+    transition-delay: 0s;
+  }
 }
 
 .rec-content {
@@ -2961,11 +2978,11 @@
   }
 }
 
-/* Rail de pestañas en layout apilado (≤920px, complemento del guard ≥921px
-   del push): sin columna que ensanchar, el rail pasa a fila plena en flujo
-   con las filas ya expandidas (ícono + copy) de forma fija, sin depender del
-   hover — misma estrategia que calc-muestra. El canvas queda primero y el
-   workbench gana scroll propio. */
+/* Rail de pestañas en layout apilado (≤920px, complemento de la burbuja
+   ≥921px): sin columna lateral, el rail pasa a fila plena en flujo con las
+   filas ya expandidas (ícono + copy) de forma FIJA, sin reaccionar al hover —
+   misma estrategia que calc-muestra. El canvas queda primero y el workbench
+   gana scroll propio. */
 @media (max-width: 920px) {
   .rec-workbench {
     grid-template-columns: minmax(0, 1fr);
@@ -2976,9 +2993,7 @@
     order: 2;
   }
 
-  .rec-sidebar-shell,
-  .rec-sidebar:hover .rec-sidebar-shell,
-  .rec-sidebar:focus-within .rec-sidebar-shell {
+  .rec-sidebar-shell {
     overflow: visible;
   }
 
