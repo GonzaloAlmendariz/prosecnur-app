@@ -1,53 +1,61 @@
-# Identidad visual de Prosecnur
+# Identidad visual de Prosecnur — paquete canónico
 
-Paquete canónico de la identidad (v1.2, julio 2026). La referencia normativa es
-[`direccion-creativa.md`](direccion-creativa.md); el manual interactivo completo
-vive en [`manual-identidad.html`](manual-identidad.html) (también publicado como
-Artifact). La v1.1 destila como **patrones maestros** los ejemplares más
-profesionales que ya viven en la app: command bar de módulo, rail de secciones
-centrado, sidebar icon-compressed, switch 44×24, KPI discreto 21/900,
-procedencia/herencia de Gráficos v2 e iconografía en dos capas.
+**v1.2 · julio 2026 · estado: CONGELADA y en aplicación.** Este directorio es
+la única fuente de verdad de la identidad. Todo lo demás (CSS de la app,
+instaladores, PDFs, PPTs) se deriva de aquí.
 
-## Contenido
+## Por dónde empezar, según quién eres
 
-| Ruta | Qué es |
+| Si eres… | Empieza por |
 | --- | --- |
-| `direccion-creativa.md` | Dirección congelada v1.2: concepto «La señal ordenada», marca, paleta, tipografía, espaciado, motion, patrones maestros y economía del chrome. |
-| `manual-identidad.html` | Manual interactivo de 10 capítulos (componentes vivos, demos de motion, mockups animados). Autocontenido: se abre en cualquier navegador. |
-| `tokens/prosecnur-brand.css` | Tokens de marca (`--prosecnur-*`) espejo 1:1 de los `--pulso-*` de producción, para piezas fuera de la app. |
-| `logo/` | Suite completa en SVG (10 variantes) + `preview.html` (contact sheet con prueba de reducción). |
+| **Cualquiera** (ver la identidad completa, del logo a las animaciones) | El manual interactivo: [`manual-identidad.html`](manual-identidad.html) (se abre en cualquier navegador) o su Artifact publicado — misma pieza, URL estable |
+| **Diseñador** (crear una pieza nueva de la marca) | [`direccion-creativa.md`](direccion-creativa.md) — el contrato normativo — y [`logo/`](logo/) para los SVG (nunca redibujar) |
+| **Implementador** (tocar UI de la app) | Los tokens `--pulso-*` de `frontend/src/app/theme.css` (fuente operativa) + el capítulo 05/06 del manual + los patrones maestros de la dirección |
+| **Otro agente / otro chat** (continuar el rebranding) | [`plan-rebranding.md`](plan-rebranding.md) — backlog con estado y **protocolo de ejecución completo** |
+| **Herramientas** (generar derivados) | [`identity.json`](identity.json) (manifiesto congelado) + `node identity/generate.mjs` |
 
-## Suite de logos
+## Mapa del paquete
 
-| Archivo | Uso |
-| --- | --- |
-| `prosecnur-isotipo.svg` | Marca base 64×64, navy plano. Mínimo 16px. |
-| `prosecnur-isotipo-gradiente.svg` | Solo icono de app e instalador (gradiente `#013371→#002457`). |
-| `prosecnur-isotipo-oscuro.svg` | Invertido (squircle blanco) para fondos oscuros. |
-| `prosecnur-appicon.svg` | 512×512 en retícula de iconos macOS; fuente del `.icns`/`.ico`. |
-| `prosecnur-lockup-horizontal.svg` | Lockup estándar para fondo claro. Mínimo 96px de ancho. |
-| `prosecnur-lockup-horizontal-oscuro.svg` | Lockup estándar para fondo navy/oscuro. |
-| `prosecnur-lockup-principal.svg` | Presentación: lockup + «SUITE ANALÍTICA · PULSO PUCP». |
-| `prosecnur-lockup-vertical.svg` | Apilado para portadas y splash. |
-| `prosecnur-mono-negro.svg` | Una tinta negra (impresión). |
-| `prosecnur-mono-blanco.svg` | Blanco con pastillas en knockout (fondos fotográficos/navy). |
+```
+branding/
+├── README.md              ← este índice
+├── direccion-creativa.md  ← EL CONTRATO (v1.2): concepto, marca, color, tipografía,
+│                             espaciado, patrones maestros, motion, datos, voz
+├── manual-identidad.html  ← manual interactivo de 10 capítulos (espejo del Artifact)
+├── identity.json          ← manifiesto canónico CONGELADO (App Identity OS):
+│                             hash, gates humanos, decisiones registradas
+├── identity/              ← derivados COMPILADOS (no editar a mano):
+│   ├── tokens.css             172 tokens --prosecnur-* generados del manifiesto
+│   ├── identity-reference.html referencia técnica autocontenida
+│   ├── generation-manifest.json sha256 de entradas/salidas
+│   ├── generate.mjs           compilador (valida y se rehúsa si no está frozen)
+│   └── validate-identity.mjs  validador (13 invariantes)
+├── logo/                  ← suite de producción: 10 SVG + preview.html (contact sheet)
+├── tokens/
+│   └── prosecnur-brand.css    espejo manual --prosecnur-* para piezas fuera de la app
+└── plan-rebranding.md     ← backlog de aplicación por oleadas + protocolo handoff
+```
 
-Reglas duras: dos tintas (navy + blanco), sin recolorear, sin deformar, sin
-rotar, sin efectos; clearspace = ¼ de la altura del isotipo; sobre fondos
-oscuros siempre la variante invertida o el mono blanco.
+## Reglas de oro del paquete
 
-## Geometría congelada del isotipo
+1. **La dirección manda**: cualquier pieza nueva se revisa contra
+   `direccion-creativa.md`; si contradice, se reabre la dirección (con gate
+   humano), nunca se improvisa.
+2. **El manifiesto es frozen**: cambios de identidad exigen recomputar el hash
+   (método documentado en sus `extensions`) y re-validar
+   (`node identity/validate-identity.mjs identity.json`).
+3. **Derivados solo generados**: `identity/` se regenera con `generate.mjs`
+   (determinista, doble corrida byte-idéntica); no se edita a mano.
+4. **El manual vive en doble destino**: Artifact (republicar en la misma URL
+   con etiqueta de versión) + esta copia versionada. Se republica cuando
+   cambian NORMAS, no píxeles.
+5. **Los logos no se redibujan**: toda reproducción parte de `logo/*.svg`
+   (geometría congelada: squircle rx 24%, pastillas 7×{18,26,20,32}).
 
-ViewBox 64: squircle `rx 15.4` (24%) navy `#002457`; cuatro pastillas blancas
-`width 7 · rx 3.5 · gap 4` en `x = 12/23/34/45`, baseline `y = 48`, alturas
-`18 / 26 / 20 / 32` (el perfil del latido). Toda reproducción nueva parte de
-estos SVG, nunca de un redibujo.
+## Contexto de gobierno
 
-## Adopción en la app
-
-Los tokens de color, motion, radios y tipografía ya son los de producción
-(`frontend/src/app/theme.css`) — no requieren cambios. Para adoptar el isotipo
-unificado: (1) `BrandMark`/`BootBrandMark` en `frontend/src/app/Layout.tsx` y
-`BootGate.tsx`; (2) `packaging/windows/brand/{icon,header,wizard}.svg`;
-(3) regenerar `icon.icns` desde `prosecnur-appicon.svg`. Outlier conocido:
-el PDF de «Monitoreo acreditación» usa navy `#06346f` — unificar a `#002457`.
+- Decisión de arquitectura: `docs/adrs/0038-identidad-visual-v1-1.md`.
+- El taste macOS-like de la casa está destilado como capacidad reusable en el
+  App Identity OS (`~/.claude/skills/create-app-identity/references/macos-taste-baseline.md`
+  y hermanos): identidades del mismo nivel para cualquier app React nueva.
+- Emisor: PULSO PUCP · Producto: Prosecnur · Concepto: «La señal ordenada».

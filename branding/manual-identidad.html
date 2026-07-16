@@ -3790,10 +3790,14 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
         <div class="bb-scroll"><table class="bb-table">
           <thead><tr><th>Pieza</th><th>Ruta</th><th>Uso</th></tr></thead>
           <tbody>
-            <tr><td>Dirección creativa</td><td><code>branding/direccion-creativa.md</code></td><td>Documento de congelamiento; contra esto se revisa cada pieza nueva</td></tr>
-            <tr><td>Tokens de marca</td><td><code>branding/tokens/prosecnur-brand.css</code></td><td>Referencia para piezas fuera de la app (web, docs, plantillas)</td></tr>
+            <tr><td>Índice del paquete</td><td><code>branding/README.md</code></td><td>Punto de entrada: mapa de piezas y rutas por audiencia</td></tr>
+            <tr><td>Dirección creativa</td><td><code>branding/direccion-creativa.md</code></td><td>Documento de congelamiento (v1.2); contra esto se revisa cada pieza nueva</td></tr>
+            <tr><td>Manifiesto canónico</td><td><code>branding/identity.json</code></td><td>Identidad formalizada y CONGELADA (App Identity OS): tokens, patrones, gates y decisiones con hash</td></tr>
+            <tr><td>Derivados compilados</td><td><code>branding/identity/</code></td><td>tokens.css (172 tokens generados), referencia técnica, compilador y validador — regenerables con <code>node branding/identity/generate.mjs</code></td></tr>
+            <tr><td>Tokens de marca</td><td><code>branding/tokens/prosecnur-brand.css</code></td><td>Espejo manual para piezas fuera de la app (web, docs, plantillas)</td></tr>
             <tr><td>Suite de logos</td><td><code>branding/logo/*.svg</code> + <code>preview.html</code></td><td>10 variantes de producción en SVG limpio</td></tr>
-            <tr><td>Manual interactivo</td><td>Artifact publicado</td><td>Este documento</td></tr>
+            <tr><td>Plan de cambios</td><td><code>branding/plan-rebranding.md</code></td><td>Backlog por oleadas con estado y protocolo de ejecución para cualquier agente</td></tr>
+            <tr><td>Manual interactivo</td><td>Artifact publicado + <code>branding/manual-identidad.html</code></td><td>Este documento (doble destino: URL estable y copia versionada)</td></tr>
           </tbody>
         </table></div>
       </div>
