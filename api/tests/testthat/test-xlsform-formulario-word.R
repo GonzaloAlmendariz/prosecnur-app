@@ -70,7 +70,7 @@ test_that("reporte_formulario_word genera un .docx valido con portada, secciones
   expect_true(grepl("nivel de satisfacción", txt, fixed = TRUE))
 })
 
-test_that("matriz en modo extremos reparte las anclas en celdas separadas (split mitad/mitad con alineacion por polo)", {
+test_that("matriz en modo extremos reparte las anclas en celdas separadas (split mitad/mitad, ambas centradas)", {
   skip_if_not_installed("officer")
   skip_if_not_installed("flextable")
   skip_if_not_installed("xml2")
@@ -129,9 +129,10 @@ test_that("matriz en modo extremos reparte las anclas en celdas separadas (split
   # Split mitad/mitad: la impar va al polo izquierdo (ceiling), 3 + 2 = 5.
   expect_identical(grid_span(header_cells[[i_left]]), "3")
   expect_identical(grid_span(header_cells[[i_right]]), "2")
-  # Cada ancla pegada a su extremo.
-  expect_identical(jc_val(header_cells[[i_left]]), "left")
-  expect_identical(jc_val(header_cells[[i_right]]), "right")
+  # Ambos polos centrados en su celda (los encabezados de matriz siempre van
+  # centrados, nunca alineados al borde).
+  expect_identical(jc_val(header_cells[[i_left]]), "center")
+  expect_identical(jc_val(header_cells[[i_right]]), "center")
 })
 
 test_that("reporte_formulario_word respeta el lenguaje de saltos", {
