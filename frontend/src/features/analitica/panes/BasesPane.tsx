@@ -33,9 +33,11 @@ export function BasesPane() {
   const setBasesXlsx = useAnaliticaStore((s) => s.setBasesXlsx);
   const { state } = useSession();
 
-  const fuenteLabel = state?.analitica_fuente === "adaptados" ? "Codificada" : "Original";
+  const fuenteLabel = state?.analitica_fuente?.startsWith("adaptados") ? "Codificada" : "Original";
   const multibaseEnabled =
     state?.estudio_processing_mode === "independent_siblings" && (state?.n_bases ?? 0) > 1;
+  const relationalEnabled =
+    state?.estudio_processing_mode === "multibase" && (state?.n_bases ?? 0) > 1;
   const siblingsLabel = multibaseEnabled ? `${state?.n_bases ?? 0} bases` : "Base activa";
 
   return (
@@ -65,7 +67,10 @@ export function BasesPane() {
             </span>
           </div>
         </div>
-        <BasesUseGuide fuenteLabel={fuenteLabel} siblingsLabel={siblingsLabel} />
+        <BasesUseGuide
+          fuenteLabel={fuenteLabel}
+          siblingsLabel={relationalEnabled ? "Libro relacional" : siblingsLabel}
+        />
 
         {multibaseEnabled && (
           <PaneGroup
@@ -85,7 +90,9 @@ export function BasesPane() {
 
         <PaneGroup
           label="Archivos para análisis"
-          hint="Elige el formato según la herramienta: SPSS, R / Python / Stata o Excel."
+          hint={relationalEnabled
+            ? "Excel reúne encuestas y respuestas repetibles en un solo libro, con sus llaves de enlace."
+            : "Elige el formato según la herramienta: SPSS, R / Python / Stata o Excel."}
         >
           <MetadatosSection />
           <SavCard cfg={bases.sav} onChange={setBasesSav} />
@@ -449,6 +456,8 @@ function XlsxCard({
   onChange: (patch: Partial<typeof cfg>) => void;
 }) {
   const run = useReporteRun();
+  const { state } = useSession();
+  const relational = state?.estudio_processing_mode === "multibase" && (state?.n_bases ?? 0) > 1;
 
   // La columna madre legible solo tiene sentido junto a las columnas 0/1.
   const madreSmAplica = cfg.multi_select === "dummy_01";
@@ -457,7 +466,7 @@ function XlsxCard({
   async function onGenerate() {
     await run.runSync(() =>
       apiAnaliticaBasesXlsx({
-        valores: cfg.valores,
+        valores: relational ? "ambos" : cfg.valores,
         multi_select: cfg.multi_select,
         incluir_madre_sm: incluirMadreSm,
       }),
@@ -470,22 +479,26 @@ function XlsxCard({
     <Section
       title={
         <span className="analitica-inline-title">
-          <FileSpreadsheet size={14} /> Revisar en Excel
+          <FileSpreadsheet size={14} /> {relational ? "Libro relacional" : "Revisar en Excel"}
         </span>
       }
-      subtitle="Libro de trabajo para lectura rápida de códigos, etiquetas y preguntas de varias opciones."
+      subtitle={relational
+        ? "Un solo archivo con códigos y etiquetas para las encuestas y cada grupo repetible, enlazados por llaves públicas."
+        : "Libro de trabajo para lectura rápida de códigos, etiquetas y preguntas de varias opciones."}
     >
       <div className="analitica-bases-format-stack">
-        <RadioRow
-          label="Contenido"
-          value={cfg.valores}
-          onChange={(v) => onChange({ valores: v as "codigos" | "etiquetas" | "ambos" })}
-          options={[
-            { value: "ambos", label: "Códigos y etiquetas", hint: "Dos hojas: una para análisis y otra para lectura." },
-            { value: "codigos", label: "Solo códigos", hint: "Una sola hoja con valores numéricos." },
-            { value: "etiquetas", label: "Solo etiquetas", hint: "Una sola hoja con texto legible." },
-          ]}
-        />
+        {!relational && (
+          <RadioRow
+            label="Contenido"
+            value={cfg.valores}
+            onChange={(v) => onChange({ valores: v as "codigos" | "etiquetas" | "ambos" })}
+            options={[
+              { value: "ambos", label: "Códigos y etiquetas", hint: "Dos hojas: una para análisis y otra para lectura." },
+              { value: "codigos", label: "Solo códigos", hint: "Una sola hoja con valores numéricos." },
+              { value: "etiquetas", label: "Solo etiquetas", hint: "Una sola hoja con texto legible." },
+            ]}
+          />
+        )}
 
         <RadioRow
           label="Preguntas de varias opciones"

@@ -64,6 +64,22 @@
   list(xls = xls, data = dat)
 }
 
+.analitica_all_bases_adapted <- function(s, bases = NULL) {
+  bases <- bases %||% ((s$estudio %||% list())$bases %||% list())
+  if (!length(bases)) return(!is.null(.analitica_global_adapted_pair(s)))
+  if (length(bases) == 1L) {
+    base_name <- names(bases)[1]
+    return(
+      isTRUE(.analitica_pair_is_adapted(s, bases[[1]])) ||
+        (!is.null(.analitica_global_adapted_pair(s)) &&
+           .analitica_base_can_use_global_adapted(s, base_name))
+    )
+  }
+  all(vapply(bases, function(base_meta) {
+    .analitica_pair_is_adapted(s, base_meta)
+  }, logical(1)))
+}
+
 .analitica_base_can_use_global_adapted <- function(s, base_name = NULL) {
   bases <- names((s$estudio %||% list())$bases %||% list())
   if (length(bases) <= 1L) return(TRUE)
@@ -100,6 +116,10 @@
   if (identical(fuente, "originales") &&
       (identical(.analitica_file_kind(xls), "instrumento_adaptado") ||
        identical(.analitica_file_kind(dat), "data_adaptada"))) {
+    # En multibase no existe un "último original" global seguro: podría
+    # pertenecer a otra tabla. Sin IDs originales scopeados, fallar es preferible
+    # a entregar una mezcla o enlazar el instrumento equivocado.
+    if (length(((s$estudio %||% list())$bases %||% list())) > 1L) return(NULL)
     xls <- .analitica_last_file_by_kind(s, "xlsform") %||% xls
     dat <- .analitica_last_file_by_kind(s, c("data", "sav")) %||% dat
   }
@@ -114,15 +134,18 @@
   if (identical(pref, "originales")) return("originales")
 
   bases <- (s$estudio %||% list())$bases %||% list()
-  has_adapted <- if (length(bases) > 0L) {
-    any(vapply(bases, function(b) .analitica_pair_is_adapted(s, b), logical(1))) ||
-      !is.null(.analitica_global_adapted_pair(s))
-  } else {
-    isTRUE(s$codif_aplicado) &&
-      !is.null(s$codif_inst_adaptado_fid) &&
-      !is.null(s$codif_data_adaptada_fid)
-  }
+  # En un estudio con varias tablas la fuente es una propiedad del conjunto:
+  # nunca mezclar una base codificada con otra original bajo una misma corrida.
+  # La fuente adaptada se habilita únicamente cuando TODAS las bases requeridas
+  # tienen su par instrumento+datos adaptado.
+  has_adapted <- .analitica_all_bases_adapted(s, bases)
   if (isTRUE(has_adapted)) "adaptados" else "originales"
+}
+
+.analitica_cfg_with_effective_source <- function(sid, cfg) {
+  out <- cfg %||% list()
+  out$fuente_preferida <- .analitica_effective_source(session_get(sid), out)
+  out
 }
 
 .analitica_non_data_types <- c(
@@ -498,9 +521,6 @@
     inst_sources <- list()
     for (nombre in names(bases)) {
       pair <- .analitica_pair_for_base(s, bases[[nombre]], fuente, nombre)
-      if (is.null(pair) && identical(fuente, "adaptados")) {
-        pair <- .analitica_pair_for_base(s, bases[[nombre]], "originales", nombre)
-      }
       if (is.null(pair)) {
         stop_api(409, "E_ANALITICA_SOURCE_MISSING",
           sprintf("No se pudo resolver el par XLSForm/Data para la base '%s'.", nombre))
@@ -544,9 +564,6 @@
     pairs <- list()
     for (nombre in names(bases)) {
       pair <- .analitica_pair_for_base(s, bases[[nombre]], fuente, nombre)
-      if (is.null(pair) && identical(fuente, "adaptados")) {
-        pair <- .analitica_pair_for_base(s, bases[[nombre]], "originales", nombre)
-      }
       if (is.null(pair)) {
         stop_api(409, "E_ANALITICA_SOURCE_MISSING",
           sprintf("No se pudo resolver el par XLSForm/Data para la base '%s'.", nombre))
@@ -1288,9 +1305,6 @@
 
   for (nombre in names(bases)) {
     pair <- .analitica_pair_for_base(s, bases[[nombre]], fuente, nombre)
-    if (is.null(pair) && identical(fuente, "adaptados")) {
-      pair <- .analitica_pair_for_base(s, bases[[nombre]], "originales", nombre)
-    }
     if (is.null(pair)) {
       stop_api(409, "E_ANALITICA_SOURCE_MISSING",
         sprintf("No se pudo resolver el par XLSForm/Data para la base '%s'.", nombre))
@@ -3452,6 +3466,7 @@ mount_analitica <- function(pr) {
       template_path <- parsed$template_path %||% ((cfg$ficha_tecnica %||% list())$template_path %||% NULL)
       cfg <- .analitica_ficha_contextual_cfg(sid, cfg, include_panel = FALSE)
       .analitica_config_set(sid, cfg)
+      cfg <- .analitica_cfg_with_effective_source(sid, cfg)
       cfg_doc <- cfg
 
       panel_bundle <- .analitica_ficha_panel_build(sid, cfg)
@@ -3575,7 +3590,7 @@ mount_analitica <- function(pr) {
       # de la sección no existe en una base específica, el motor la
       # ignora en esa base (no rompe).
       sid <- session_header(req)
-      cfg <- .analitica_get_config(sid)
+      cfg <- .analitica_cfg_with_effective_source(sid, .analitica_get_config(sid))
       # Render single-base delegado al helper (fuente única de la tubería, ya con
       # el desglose por servicio Parte A+B de bases hija repeat).
       result <- run_report_multibase(
@@ -3887,7 +3902,7 @@ mount_analitica <- function(pr) {
       # prioridad sobre el config.
 	      sid <- session_header(req)
 	      ctx <- .load_rp_data(sid)
-	      cfg <- .analitica_get_config(sid)
+	      cfg <- .analitica_cfg_with_effective_source(sid, .analitica_get_config(sid))
 	      reviewed_ctx <- .analitica_apply_data_review(ctx$rp_data, ctx$rp_inst, cfg)
 	      ctx$rp_data <- reviewed_ctx$data
 	      ctx$rp_inst <- reviewed_ctx$inst
@@ -4338,6 +4353,39 @@ mount_analitica <- function(pr) {
       # cada select_multiple una columna madre `<parent>` con las respuestas
       # concatenadas legibles (etiquetas unidas). El toggle vive en la UI.
       incluir_madre_sm <- isTRUE(body$incluir_madre_sm)
+
+      # Madre + grupos repetibles forman UN solo contrato relacional, no bases
+      # hermanas. El Excel estándar los reúne en un único libro con dos hojas
+      # por tabla y llaves públicas; nunca devuelve un ZIP en este modo.
+      if (.analitica_relational_available(sid)) {
+        sources <- .load_rp_sources(sid)
+        out_name <- .export_filename(sid, "base_relacional", "xlsx")
+        out_path <- .session_tmp(sid, sprintf("%s_%s", uuid::UUIDgenerate(), out_name))
+        built <- .analitica_relational_write_xlsx(
+          sid = sid,
+          data_sources = sources$data_sources,
+          inst_sources = sources$inst_sources,
+          cfg = cfg,
+          path_xlsx = out_path,
+          multi_select = multi_select,
+          incluir_madre_sm = incluir_madre_sm
+        )
+        meta <- .register_output_file(
+          sid, "bases_xlsx_relacional", out_path, original_name = out_name
+        )
+        .analitica_status_set(sid, "analitica_bases_xlsx_ok", TRUE)
+        return(list(
+          ok = TRUE,
+          relational = TRUE,
+          n_bases = built$n_bases,
+          fuente = .analitica_effective_source(session_get(sid), cfg),
+          file_id = meta$file_id,
+          filename = meta$original_name,
+          size = meta$size,
+          sheets = built$sheets,
+          rows = built$rows
+        ))
+      }
 
       result <- run_report_multibase(
         sid           = sid,
