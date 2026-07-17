@@ -100,6 +100,12 @@ function CriterioFacultadCard({
       ? sugerenciaParaFacultad(variable, facLabel, UNIVERSITY_SESSION_TYPE_SUGERENCIAS)
       : null;
   const sugAlDia = sug ? sugerenciaAplicada(variable, sel, excKey, sug) : false;
+  // Criterios con radiografía propia arriba (tabla de tipos o barra apilada de
+  // condición): el toggle no repite la mini-barra de proporción —evita el %
+  // doble e inconsistente entre la radiografía y el toggle— y un rótulo separa
+  // la info (arriba) de la selección (abajo).
+  const tieneRadiografia =
+    variable.id === SESSION_TYPE_VARIABLE_ID || variable.id === "condicion_curso";
   if (!fila) return null;
   return (
     <section
@@ -156,8 +162,11 @@ function CriterioFacultadCard({
           ) : variable.id === "condicion_curso" ? (
             <FacultadRadiografiaCard fac={fac} modo="condicion" />
           ) : null}
-          {variable.id === SESSION_TYPE_VARIABLE_ID ? (
-            <p className="cmv2-chfp-selecciona-nota">Marca los tipos que entran al marco de esta facultad:</p>
+          {tieneRadiografia ? (
+            <p className="cmv2-chfp-selecciona-nota">
+              Marca {variable.id === "condicion_curso" ? "las condiciones" : "los tipos"} que entran al
+              marco de esta facultad:
+            </p>
           ) : null}
           <FacultadCategoriaToggles
             fila={fila}
@@ -165,7 +174,7 @@ function CriterioFacultadCard({
             sel={sel}
             onSel={onSel}
             ariaLabel={`${variable.label} en ${facLabel}`}
-            sinBarra={variable.id === SESSION_TYPE_VARIABLE_ID}
+            sinBarra={tieneRadiografia}
           />
         </>
       ) : null}
