@@ -1991,8 +1991,10 @@ function SeriesColorsField({
   defaultValue?: unknown;
   onChange: (v: Record<string, string> | null) => void;
 }) {
-  const current = normalizeSeriesColors(value);
   const inherited = normalizeSeriesColors(defaultValue);
+  // Si el valor llega como array posicional de colores (formato del motor R),
+  // lo mapeamos sobre los nombres de categoría heredados del preset.
+  const current = normalizeSeriesColors(value, Object.keys(inherited));
   const rows = Object.entries(current);
   const visibleRows = rows.length > 0 ? rows : Object.entries(inherited);
   const showingInherited = rows.length === 0 && visibleRows.length > 0;
@@ -2114,17 +2116,33 @@ function SeriesColorsField({
   );
 }
 
-function normalizeSeriesColors(value: unknown): Record<string, string> {
+export function normalizeSeriesColors(
+  value: unknown,
+  names?: string[],
+): Record<string, string> {
   if (!value) return {};
   if (Array.isArray(value)) {
     const out: Record<string, string> = {};
-    for (const item of value) {
-      if (!item || typeof item !== "object") continue;
+    value.forEach((item, index) => {
+      // El motor R emite el override `colores_categorias` como un array
+      // posicional de colores (p.ej. ["#0072BC","#00A98F","#8FA8C8"]); cada
+      // color se mapea a la categoría/serie de su misma posición. Antes este
+      // formato colapsaba a {} y truncaba el override al pasar por el editor.
+      if (typeof item === "string") {
+        const color = item.trim();
+        if (!color || !isValidColor(color)) return;
+        const provided =
+          names && typeof names[index] === "string" ? names[index].trim() : "";
+        const name = provided || `Serie ${index + 1}`;
+        if (!(name in out)) out[name] = color;
+        return;
+      }
+      if (!item || typeof item !== "object") return;
       const obj = item as Record<string, unknown>;
       const name = String(obj.name ?? obj.serie ?? "").trim();
       const color = String(obj.color ?? obj.value ?? "").trim();
       if (name && color) out[name] = color;
-    }
+    });
     return out;
   }
   if (typeof value === "object") {
