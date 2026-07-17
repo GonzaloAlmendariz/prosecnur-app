@@ -213,6 +213,8 @@ export function filtrosLegacyPayload(
       accepted_campuses: [],
       require_min_prevalence: false,
       min_prevalence_pct: config.min_prevalence_pct ?? 0.8,
+      require_faculty_prevalence: false,
+      min_faculty_prevalence_pct: config.min_faculty_prevalence_pct ?? 0.8,
       require_cycle_homogeneity: false,
       min_cycle_homogeneity_pct: config.min_cycle_homogeneity_pct ?? 0.8,
     };
@@ -235,9 +237,15 @@ export function filtrosLegacyPayload(
     accepted_formation_patterns: config.accepted_formation_patterns ?? ["pregrado"],
     nivel_por_unidad: config.nivel_por_unidad ?? {},
     accepted_campuses: config.accepted_campuses ?? [],
-    require_min_prevalence: opcionales.c7,
+    require_min_prevalence: (config.require_min_prevalence ?? false) || opcionales.c7,
     min_prevalence_pct: config.min_prevalence_pct ?? 0.8,
-    require_cycle_homogeneity: opcionales.c8,
+    // Criterio 8 · paso 1 (misma facultad del curso): lo gobierna la tarjeta de
+    // criterios (aulas_config); no tiene opcional legacy en el Motor.
+    require_faculty_prevalence: config.require_faculty_prevalence ?? false,
+    min_faculty_prevalence_pct: config.min_faculty_prevalence_pct ?? 0.8,
+    // Criterio 8 · paso 2 (mismo nivel del curso): tarjeta de criterios ∪ el
+    // opcional c8 del Motor/Recorrido (cualquiera de los dos lo activa).
+    require_cycle_homogeneity: (config.require_cycle_homogeneity ?? false) || opcionales.c8,
     min_cycle_homogeneity_pct: config.min_cycle_homogeneity_pct ?? 0.8,
   };
 }

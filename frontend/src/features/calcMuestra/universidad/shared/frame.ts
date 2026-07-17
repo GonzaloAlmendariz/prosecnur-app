@@ -1,11 +1,12 @@
 import {
   type CalcMuestraAulasState,
+  type CalcMuestraWorkspaceAulasConfig,
   type CriteriosSeleccionMarco,
 } from "../../../../api/client";
-import { seleccionVariable } from "../../dominio/criteriosMarco";
+import { seleccionActiva, seleccionVariable } from "../../dominio/criteriosMarco";
 import { fmtInt, rowsFrom, safeNumber } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "./format";
-import { normalizeTeacherTypeOrden } from "./study";
+import { filtrosLegacyPayload, normalizeTeacherTypeOrden } from "./study";
 
 /** Un valor "vacío/ausente" a efectos de comparar selecciones. La selección que
  *  el frame ECHA desde el backend viene verbosa (`fromValue: "NA"`, `layer: null`,
@@ -112,15 +113,72 @@ function teacherTypeOrdenDesactualizado(
   return frameOrden.some((key, index) => key !== configOrden[index]);
 }
 
+/** Parejas flag/umbral del eco de filtros que gobiernan el criterio 8
+ *  (composición del aula) y la prevalencia referencial legacy (c7). */
+const FILTROS_ECO_PARES = [
+  ["require_min_prevalence", "min_prevalence_pct"],
+  ["require_faculty_prevalence", "min_faculty_prevalence_pct"],
+  ["require_cycle_homogeneity", "min_cycle_homogeneity_pct"],
+] as const;
+
+/** Config vigente para la señal de frescura del criterio 8: el aulas_config
+ *  del workspace + los opcionales activos del Motor/Recorrido (c7/c8 también
+ *  participan del payload efectivo del build). */
+export type MarcoConfigVigente = {
+  config: CalcMuestraWorkspaceAulasConfig;
+  opcionalesActivos?: string[] | null;
+};
+
+/**
+ * true si los filtros del criterio 8 / prevalencia referencial con los que se
+ * construyó el marco (`frame.filters_echo`, eco normalizado del backend)
+ * difieren de los EFECTIVOS vigentes. El payload efectivo se deriva con la
+ * MISMA lógica del build (`filtrosLegacyPayload`): tarjeta de criterios
+ * (aulas_config) ∪ opcionales c7/c8 del Motor, y suite inactiva ⇒ permisivo.
+ *
+ * Guards de compatibilidad: marcos viejos sin `filters_echo` (o con una
+ * pareja no comparable) NUNCA se marcan desactualizados por esta vía — evita
+ * el "reconstruye" perpetuo con marcos previos al eco. Los umbrales solo se
+ * comparan con el flag encendido en ambos lados: apagado, el pct no filtra.
+ */
+function filtrosEchoDesactualizado(
+  frame: CalcMuestraAulasState["frame"] | null | undefined,
+  vigente: MarcoConfigVigente,
+): boolean {
+  const eco = frame?.filters_echo;
+  if (eco == null || typeof eco !== "object" || Array.isArray(eco)) return false;
+  const ecoRegistro = eco as Record<string, unknown>;
+  const opcionales = vigente.opcionalesActivos ?? [];
+  const efectivo = filtrosLegacyPayload(
+    vigente.config,
+    seleccionActiva(vigente.config.criterios_seleccion),
+    { c7: opcionales.includes("c7"), c8: opcionales.includes("c8") },
+  );
+  for (const [flagKey, pctKey] of FILTROS_ECO_PARES) {
+    const ecoFlag = ecoRegistro[flagKey];
+    if (typeof ecoFlag !== "boolean") continue; // eco parcial: no comparable
+    const flagVigente = efectivo[flagKey] === true;
+    if (ecoFlag !== flagVigente) return true;
+    if (!ecoFlag) continue;
+    const ecoPct = safeNumber(ecoRegistro[pctKey], Number.NaN);
+    const pctVigente = safeNumber(efectivo[pctKey], Number.NaN);
+    if (!Number.isFinite(ecoPct) || !Number.isFinite(pctVigente)) continue;
+    if (Math.abs(ecoPct - pctVigente) > 1e-9) return true;
+  }
+  return false;
+}
+
 export function marcoCriteriosDesactualizado(
   frame: CalcMuestraAulasState["frame"] | null | undefined,
   configSeleccion: CriteriosSeleccionMarco | null | undefined,
   configTeacherTypeOrden?: string[] | null,
+  configVigente?: MarcoConfigVigente | null,
 ): boolean {
   if (!frame) return false;
   const construido = frame.criterios_seleccion ?? null;
   if (criteriosSeleccionDesactualizada(construido, configSeleccion)) return true;
   if (teacherTypeOrdenDesactualizado(frame, configTeacherTypeOrden)) return true;
+  if (configVigente && filtrosEchoDesactualizado(frame, configVigente)) return true;
   return false;
 }
 

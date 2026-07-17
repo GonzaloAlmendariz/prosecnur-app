@@ -48,6 +48,13 @@ describe("filtrosLegacyPayload — suite inactiva ⇒ permisivo", () => {
     expect(filters.require_min_prevalence).toBe(false);
     expect(filters.require_cycle_homogeneity).toBe(false);
   });
+
+  it("apaga el criterio 8 · paso 1 (facultad) aunque el config lo encienda", () => {
+    const encendido = { ...config, require_faculty_prevalence: true };
+    const filters = filtrosLegacyPayload(encendido, false, sinOpcionales);
+    expect(filters.require_faculty_prevalence).toBe(false);
+    expect(filters.min_faculty_prevalence_pct).toBe(0.8);
+  });
 });
 
 describe("filtrosLegacyPayload — suite activa ⇒ comportamiento previo", () => {
@@ -67,5 +74,23 @@ describe("filtrosLegacyPayload — suite activa ⇒ comportamiento previo", () =
     const filters = filtrosLegacyPayload(config, true, { c7: true, c8: false });
     expect(filters.require_min_prevalence).toBe(true);
     expect(filters.require_cycle_homogeneity).toBe(false);
+  });
+
+  it("criterio 8 · paso 1 (facultad) fluye desde la tarjeta de criterios", () => {
+    const encendido = { ...config, require_faculty_prevalence: true, min_faculty_prevalence_pct: 0.7 };
+    const filters = filtrosLegacyPayload(encendido, true, sinOpcionales);
+    expect(filters.require_faculty_prevalence).toBe(true);
+    expect(filters.min_faculty_prevalence_pct).toBe(0.7);
+  });
+
+  it("criterio 8 · paso 2 (nivel) se activa desde el config O el opcional del Motor", () => {
+    const desdeConfig = filtrosLegacyPayload(
+      { ...config, require_cycle_homogeneity: true },
+      true,
+      sinOpcionales,
+    );
+    expect(desdeConfig.require_cycle_homogeneity).toBe(true);
+    const desdeMotor = filtrosLegacyPayload(config, true, { c7: false, c8: true });
+    expect(desdeMotor.require_cycle_homogeneity).toBe(true);
   });
 });

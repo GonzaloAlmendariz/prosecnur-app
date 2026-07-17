@@ -1159,6 +1159,14 @@
   box-shadow: 0 8px 20px color-mix(in srgb, var(--cmv2-accent) 12%, transparent);
 }
 
+/* Variante en flujo (QA: la barra flotante tapaba el encabezado siguiente en
+   la pestaña CH por facultad): cierra el bloque sin superponerse a nada. */
+.cmv2-calc-confirm-bar--flujo {
+  position: static;
+  z-index: auto;
+  box-shadow: none;
+}
+
 .cmv2-calc-confirm-copy {
   display: grid;
   gap: 2px;
@@ -1302,10 +1310,14 @@
   transition: background-color 150ms ease, color 150ms ease;
 }
 
+/* Estado seleccionado unificado del módulo (mismo lenguaje que .cmv2-crit-seg:
+   segmento blanco elevado con texto de acento, patrón segmented de macOS).
+   Antes convivían fill de acento, chip blanco y estilos ad-hoc. */
 .cmv2-segment button[data-active] {
-  background: var(--cmv2-accent, var(--pulso-accent));
-  color: var(--pulso-on-accent, white);
-  box-shadow: var(--cmv2-shadow-card, 0 1px 2px rgba(15, 23, 42, 0.05));
+  background: var(--pulso-surface);
+  color: var(--cmv2-accent-fg, var(--pulso-primary));
+  font-weight: 600;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--cmv2-accent) 14%, transparent);
 }
 
 /* --- Pestaña Cursos-horario por facultad ------------------------------------ */
