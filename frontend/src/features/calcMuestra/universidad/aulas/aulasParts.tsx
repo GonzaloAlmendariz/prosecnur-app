@@ -37,6 +37,13 @@ import {
   type CalcMuestraWorkspaceAulasConfig,
 } from "../../../../api/client";
 import { AulasApplicationFlow } from "../../../aulasFlow/AulasApplicationFlow";
+import { AulasStaleJobAviso } from "./AulasStaleJobAviso";
+import {
+  DISCOUNT_CELL_KEYS,
+  discountCellText,
+  hasDiscountColumns,
+  normalizeStaleJobAviso,
+} from "./descuentoRepetidosModel";
 import { fmtDec, fmtInt, fmtPct, rowsFrom, safeNumber } from "../../sharedCore";
 import {
   DEFAULT_UNIVERSITY_AULAS_OBJECTIVE,
@@ -74,6 +81,8 @@ import {
   weightedDistributionRows,
 } from "../marco/marcoCharts";
 import "./aulas.css";
+/* Detalle técnico plegado del banner de riesgos (clases .cmv2-aviso-tecnico). */
+import "../shared/aviso.css";
 
 /* =============================================================================
    Primitivas compartidas (movidas del monolito; el monolito las importa de aquí)
@@ -206,6 +215,12 @@ export function selectorFieldLabel(field: string) {
   return labels[field] ?? field;
 }
 
+/** Variante capitalizada para celdas de tabla (QA H4: nada de `faculty` crudo). */
+export function selectorFieldLabelTitulo(field: string) {
+  const label = selectorFieldLabel(field);
+  return label ? label.charAt(0).toLocaleUpperCase("es") + label.slice(1) : label;
+}
+
 /* =============================================================================
    Modelo derivado del laboratorio: una sola lectura del estado del motor que
    comparten las 7 pestañas (código movido del cuerpo del panel del monolito).
@@ -242,7 +257,17 @@ export function buildClassroomLabModel({
     frameAuditNumber(frame, "unique_students_n"),
   );
   const selectionRows = classroomSelectionRowsForState(aulasState);
-  const config = normalizeUniversityAulasConfig((aulasState?.config as CalcMuestraWorkspaceAulasConfig | undefined) ?? workspace.aulas_config);
+  // El config vigente sale del eco de la última corrida (aulasState.config).
+  // `sequential_discount` es la excepción deliberada: es una decisión del
+  // usuario que vive en el workspace (autosave) y debe mandar sobre el eco
+  // para que el toggle no rebote ni viaje stale en la próxima corrida.
+  const sessionConfig = (aulasState?.config as CalcMuestraWorkspaceAulasConfig | undefined) ?? workspace.aulas_config;
+  const workspaceDiscount = workspace.aulas_config?.sequential_discount;
+  const config = normalizeUniversityAulasConfig(
+    sessionConfig == null || workspaceDiscount == null
+      ? sessionConfig
+      : { ...sessionConfig, sequential_discount: workspaceDiscount },
+  );
   const objective = comparison?.objective_config ?? selection?.objective_config ?? config.objective ?? DEFAULT_UNIVERSITY_AULAS_OBJECTIVE;
   const objectiveVariables = rowsFrom<CalcMuestraAulasObjectiveConfig["variables"][number]>(objective.variables);
   const representativity = selection?.representativity ?? null;
@@ -291,6 +316,9 @@ export function buildClassroomLabModel({
   const probabilityRows = rowsFrom<Record<string, unknown>>(diagnostics.probabilities);
   // Traducción validada del motor: cuota → aulas por facultad (si existe).
   const aulasPorEstrato = totalComp.resultado?.aulas_por_estrato ?? facultyComp.resultado?.aulas_por_estrato ?? [];
+  // F4: resultado de job NO aplicado por marco desactualizado (guard del
+  // backend). Se muestra junto a las acciones de la mesa para pedir re-ejecutar.
+  const staleJobAviso = normalizeStaleJobAviso(aulasState?.stale_job_result ?? null);
 
   return {
     totalComp,
@@ -341,6 +369,7 @@ export function buildClassroomLabModel({
     waveRows,
     probabilityRows,
     aulasPorEstrato,
+    staleJobAviso,
   };
 }
 
@@ -366,6 +395,7 @@ export function ClassroomLabCommandBar({
 }) {
   const { config } = model;
   return (
+    <>
     <div className="cmv2-classroom-commandbar" aria-label="Acciones de selección de cursos-horario">
       {acciones.includes("comparar") && onCompare && (
         <button
@@ -406,6 +436,11 @@ export function ClassroomLabCommandBar({
         </span>
       )}
     </div>
+    {/* F4: la barra vive en todas las pestañas con acciones de la mesa; el
+        aviso de "resultado no aplicado por marco viejo" se ancla aquí para
+        que ninguna pestaña que pueda re-ejecutar el job se lo pierda. */}
+    <AulasStaleJobAviso aviso={model.staleJobAviso} />
+    </>
   );
 }
 
@@ -1131,11 +1166,26 @@ export function ClassroomRiskList({ risks }: { risks?: NonNullable<CalcMuestraAu
       {visible.map((risk, index) => {
         const severity = String(risk.severity ?? "media");
         const Icon = severityIcon(severity);
+        const detail = String(risk.detail ?? "Revisa la auditoría técnica del selector.");
+        // QA H4: los namespaces R (BalancedSampling::lcube, sampling::samplecube…)
+        // no van en primer plano; el texto técnico queda plegado y el banner
+        // habla en llano.
+        const esTecnico = /\b[A-Za-z][\w.]*::[\w.]+/.test(detail);
         return (
           <div key={`${String(risk.code ?? "riesgo")}-${index}`} className={`is-${severity}`}>
             <small><Icon size={12} aria-hidden="true" />{severity}</small>
             <strong>{String(risk.title ?? "Alerta metodológica")}</strong>
-            <span>{String(risk.detail ?? "Revisa la auditoría técnica del selector.")}</span>
+            {esTecnico ? (
+              <>
+                <span>El motor usó una implementación alternativa equivalente para esta corrida.</span>
+                <details className="cmv2-aviso-tecnico">
+                  <summary>Detalle técnico</summary>
+                  <code>{detail}</code>
+                </details>
+              </>
+            ) : (
+              <span>{detail}</span>
+            )}
           </div>
         );
       })}
@@ -1173,7 +1223,7 @@ export function ClassroomBalanceTable({ rows, methodId }: { rows?: Array<Record<
         <tbody>
           {visible.map((row, index) => (
             <tr key={index}>
-              <td>{classroomRowText(row, ["variable"])}</td>
+              <td>{selectorFieldLabelTitulo(classroomRowText(row, ["variable"]))}</td>
               <td>{classroomRowText(row, ["categoria", "category"])}</td>
               <td className="is-num">{fmtPct(classroomRowNumber(row, ["marco_prop", "frame_share"]))}</td>
               <td className="is-num">{fmtPct(classroomRowNumber(row, ["seleccion_m1_prop", "selected_share"]))}</td>
@@ -1198,6 +1248,10 @@ export function ClassroomSelectionTable({
   onSelectRow?: (row: Record<string, unknown>) => void;
 }) {
   const tableRows = rowsFrom<Record<string, unknown>>(rows);
+  // Columnas del descuento secuencial (contrato Oleada III): solo aparecen
+  // cuando la corrida trae las claves nuevas; con payloads viejos la tabla
+  // se ve exactamente como hoy.
+  const conDescuento = hasDiscountColumns(tableRows);
   if (!tableRows.length) {
     return (
       <div className="cmv2-classroom-empty is-compact">
@@ -1218,7 +1272,16 @@ export function ClassroomSelectionTable({
             <th>Código y curso-horario</th>
             <th>Facultad / programa</th>
             <th>Horario</th>
-            <th className="is-num">Elegibles</th>
+            {conDescuento ? (
+              <>
+                <th className="is-num">Elegibles bruto</th>
+                <th className="is-num">Elegibles netos</th>
+                <th className="is-num">Ya cubiertos</th>
+                <th className="is-num">Aporte neto</th>
+              </>
+            ) : (
+              <th className="is-num">Elegibles</th>
+            )}
             <th className="is-num">Prob. usada</th>
             <th className="is-num">Peso</th>
             <th className="is-num">Repetidos</th>
@@ -1258,7 +1321,16 @@ export function ClassroomSelectionTable({
                 <small>{classroomRowText(row, ["program", "level"])}</small>
               </td>
               <td>{classroomRowText(row, ["schedule", "modality"])}</td>
-              <td className="is-num">{fmtInt(classroomRowNumber(row, ["eligible_n"]))}</td>
+              {conDescuento ? (
+                <>
+                  <td className="is-num">{discountCellText(row, [...DISCOUNT_CELL_KEYS.bruto])}</td>
+                  <td className="is-num">{discountCellText(row, [...DISCOUNT_CELL_KEYS.neto])}</td>
+                  <td className="is-num">{discountCellText(row, [...DISCOUNT_CELL_KEYS.cubiertos])}</td>
+                  <td className="is-num">{discountCellText(row, [...DISCOUNT_CELL_KEYS.aporte])}</td>
+                </>
+              ) : (
+                <td className="is-num">{fmtInt(classroomRowNumber(row, ["eligible_n"]))}</td>
+              )}
               <td className="is-num">{fmtPct(classroomRowNumber(row, ["pi_final"]))}</td>
               <td className="is-num">{classroomRowNumber(row, ["weight_classroom"]) > 0 ? fmtDec(classroomRowNumber(row, ["weight_classroom"]), 2) : "—"}</td>
               <td className="is-num">{fmtInt(classroomRowNumber(row, ["duplicate_overlap"]))}</td>

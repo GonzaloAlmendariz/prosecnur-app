@@ -17,6 +17,7 @@ import { fmtInt } from "../../sharedCore";
 import { classroomRowSearch, classroomRowText } from "../shared/format";
 import { CifraFila, CifraMotor } from "../ui";
 import { AulaInspectorPanel } from "./AulaInspectorPanel";
+import { DescuentoRepetidosPanel } from "./DescuentoRepetidosPanel";
 import {
   ClassroomEmptyState,
   ClassroomLabCommandBar,
@@ -165,6 +166,7 @@ export function AulasSeleccionTab({
                 />
               </CifraFila>
               <CoverageOverlapPanel rows={coverageRows} selectionRows={m1Rows} framePopulation={framePopulationCount} />
+              <DescuentoRepetidosPanel selection={selection} m1Rows={m1Rows} />
               <ClassroomSelectionRationaleDashboard rows={m1Rows} workspace={workspace} />
               <div className="cmv2-subhead">
                 <strong>Ajuste frente al marco</strong>

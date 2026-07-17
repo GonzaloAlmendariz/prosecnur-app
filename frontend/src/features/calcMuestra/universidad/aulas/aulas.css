@@ -34,12 +34,15 @@
   min-height: 0;
 }
 
-/* --- Marco: flujo + lateral con chips y auditoría ---------------------------- */
+/* --- Marco: flujo + lateral con chips y auditoría ----------------------------
+   Con tope de ancho: a 1710 la cadena se estiraba a ~950px con texto corto y
+   la columna lateral quedaba flotando sobre un vacío (QA H10). */
 .cmv2-aulas-marco-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.9fr);
   gap: 16px;
   align-items: start;
+  max-width: 1320px;
 }
 
 @media (max-width: 1040px) {
@@ -238,17 +241,18 @@
   gap: 2px;
 }
 
-/* --- Método: botón interno de la tarjeta + popover de fórmula ----------------- */
+/* --- Método: tarjeta canónica única (elección + métricas + acción, QA H1) ---- */
 .cmv2-aulas-method-card {
   position: relative;
   display: grid;
+  align-content: start;
   padding: 0;
 }
 
 .cmv2-aulas-method-pick {
   display: block;
   width: 100%;
-  min-height: 132px;
+  min-height: 108px;
   padding: 11px;
   border: 0;
   background: transparent;
@@ -256,6 +260,82 @@
   text-align: left;
   white-space: normal;
   cursor: pointer;
+}
+
+/* Un solo elemento dominante por tarjeta (QA H8): el nombre humano manda; el
+   rol (eyebrow) acompaña en gris sin competir. */
+.cmv2-aulas-method-pick strong {
+  font-size: 13.5px;
+}
+
+.cmv2-aulas-method-reco {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  margin-top: 5px;
+  padding: 2px 8px;
+  border: 1px solid var(--cmv2-accent-border);
+  border-radius: 999px;
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cmv2-aulas-method-card .cmv2-classroom-quality-metrics {
+  padding: 0 11px;
+}
+
+.cmv2-aulas-method-card.is-recommended {
+  border-color: var(--cmv2-accent-border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), transparent),
+    color-mix(in srgb, var(--cmv2-accent-soft) 55%, var(--pulso-surface));
+}
+
+.cmv2-aulas-method-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 11px 11px;
+}
+
+.cmv2-aulas-method-foot .cmv2-aulas-method-formula {
+  margin: 0;
+}
+
+/* Referencia histórica (QA H1): la réplica didáctica de la corrida guardada
+   queda plegada y rotulada; nunca compite con la grilla canónica. */
+.cmv2-aulas-referencia {
+  min-width: 0;
+  border: 1px dashed var(--cmv2-border-strong);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.cmv2-aulas-referencia > summary {
+  padding: 9px 12px;
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cmv2-aulas-referencia > summary:hover {
+  color: var(--pulso-text);
+}
+
+.cmv2-aulas-referencia[open] > summary {
+  border-bottom: 1px dashed var(--cmv2-border);
+}
+
+.cmv2-aulas-referencia > .cmv2-did-result {
+  margin: 10px;
 }
 
 .cmv2-aulas-method-formula {
@@ -1702,4 +1782,34 @@
 
 .cmv2-cadena-b-nota strong {
   color: var(--pulso-text);
+}
+
+/* --- Descuento de repetidos y avisos de estado de la mesa (Oleada III) -------- */
+/* El toggle vive en el stack de la pestaña Método: el gap del stack ya separa. */
+.cmv2-aulas-descuento-toggle {
+  margin-top: 0;
+}
+
+/* Nota del modo aplicado (secuencial / post-hoc) con ícono alineado al texto. */
+.cmv2-aulas-descuento-modo {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.cmv2-aulas-descuento-modo svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--pulso-text-soft);
+}
+
+.cmv2-aulas-descuento-modo strong {
+  color: var(--pulso-text);
+}
+
+/* Fila Total del resumen bruto/neto por estrato. */
+.cmv2-aulas-descuento-tabla tfoot td {
+  border-top: 1px solid var(--cmv2-border);
+  color: var(--pulso-text);
+  font-weight: 800;
 }

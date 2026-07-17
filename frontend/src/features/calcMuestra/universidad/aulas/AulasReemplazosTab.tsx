@@ -11,6 +11,7 @@ import { Route } from "lucide-react";
 import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
 import { CadenasReemplazoVisual } from "../../didactica/CadenasReemplazoVisual";
 import { fmtInt, fmtRatio } from "../../sharedCore";
+import { AvisoModulo } from "../shared/AvisoModulo";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import { CifraFila, CifraMotor, FlujoVertical, type FlujoEtapa } from "../ui";
 import {
@@ -173,10 +174,10 @@ export function AulasReemplazosTab({
           )}
         </div>
         <aside className="cmv2-classroom-lab-side">
-          <div className="cmv2-classroom-note">
-            <Route size={15} />
-            <span>Calc-Muestra propone titulares y reemplazos; Monitoreo solo activa reemplazos, registra motivos y recalcula brechas sin rediseñar silenciosamente el marco base.</span>
-          </div>
+          <AvisoModulo tone="neutral" icon={Route}>
+            Calc-Muestra propone titulares y reemplazos; Monitoreo solo activa reemplazos, registra motivos
+            y recalcula brechas sin rediseñar silenciosamente el marco base.
+          </AvisoModulo>
           <ClassroomOperationalHandoffPanel selection={selection} replacementSimulation={replacementSimulation} />
         </aside>
       </div>
