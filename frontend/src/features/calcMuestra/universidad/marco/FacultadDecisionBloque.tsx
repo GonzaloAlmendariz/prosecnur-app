@@ -23,7 +23,14 @@ import type {
 import { seleccionVariable } from "../../dominio";
 import { fmtDec, fmtInt } from "../../sharedCore";
 import { FacultadCategoriaToggles } from "../criterios/FacultadCategoriaToggles";
-import { filasPorFacultad } from "../criterios/tipoSesionModel";
+import { UNIVERSITY_SESSION_TYPE_SUGERENCIAS } from "../shared/constants";
+import {
+  aplicarSugerencia,
+  filasPorFacultad,
+  sugerenciaAplicada,
+  sugerenciaParaFacultad,
+  SESSION_TYPE_VARIABLE_ID,
+} from "../criterios/tipoSesionModel";
 import { minimoFacultad, minimoSugerido, presentesEsperados } from "../criterios/minElegiblesModel";
 import { FacultadRadiografiaCard } from "./FacultadRadiografiaCard";
 import { resumenDecisionFacultad, type FacultadBloque } from "./facultadDecisionModel";
@@ -63,6 +70,14 @@ function CriterioFacultadCard({
   // queda escaneable y solo se abre lo que se está decidiendo. Una decisión
   // propia arranca abierta para que el override quede a la vista.
   const [abierto, setAbierto] = useState(propia);
+  // Sugerencia por facultad (reunión §4 + verificación empírica): solo para el
+  // tipo de sesión, matcheando por nombre de facultad. NUNCA auto-aplicada — el
+  // académico decide con el botón «Usar» (regla de control explícito).
+  const sug =
+    variable.id === SESSION_TYPE_VARIABLE_ID
+      ? sugerenciaParaFacultad(variable, facLabel, UNIVERSITY_SESSION_TYPE_SUGERENCIAS)
+      : null;
+  const sugAlDia = sug ? sugerenciaAplicada(variable, sel, excKey, sug) : false;
   if (!fila) return null;
   return (
     <section className="cmv2-chfp-crit" data-decision={fila.decision} data-open={abierto || undefined}>
@@ -82,6 +97,24 @@ function CriterioFacultadCard({
           {propia ? "Decisión propia" : "Hereda el global"}
         </span>
       </button>
+      {sug ? (
+        <div className="cmv2-chfp-crit-sug" role="note">
+          <Lightbulb size={13} aria-hidden="true" />
+          <span className="cmv2-chfp-crit-sug-copy" title={sug.porque}>
+            Sugerido: {sug.modo === "solo" ? "solo " : "incluir "}
+            {sug.labels.join(", ").toLocaleLowerCase("es")}
+          </span>
+          <button
+            type="button"
+            className="cmv2-crit-sug-btn"
+            disabled={sugAlDia}
+            title={sug.porque}
+            onClick={() => onSel(aplicarSugerencia(variable, sel, excKey, sug))}
+          >
+            {sugAlDia ? "Al día" : "Usar"}
+          </button>
+        </div>
+      ) : null}
       {abierto ? (
         <FacultadCategoriaToggles
           fila={fila}
