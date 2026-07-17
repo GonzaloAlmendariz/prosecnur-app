@@ -1,0 +1,146 @@
+/*
+ * aviso.css — lenguaje único de avisos del módulo Cálculo de muestra (QA H7).
+ * Un solo radio, un solo esquema de ícono/fondo/tipografía; el tono cambia
+ * únicamente color de acento y fondo suave. Solo tokens --pulso- y --cmv2-.
+ */
+
+.cmv2-aviso {
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr);
+  gap: 4px 9px;
+  align-items: start;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.cmv2-aviso:has(.cmv2-aviso-actions) {
+  grid-template-columns: 15px minmax(0, 1fr) auto;
+}
+
+.cmv2-aviso-icon {
+  margin-top: 1px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-aviso-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cmv2-aviso-title {
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.cmv2-aviso-copy {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: 450;
+  line-height: 1.45;
+}
+
+.cmv2-aviso-copy strong {
+  color: var(--pulso-text);
+  font-weight: 650;
+}
+
+.cmv2-aviso-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: center;
+}
+
+/* --- Tonos ------------------------------------------------------------------ */
+.cmv2-aviso[data-tone="info"] {
+  border-color: var(--cmv2-accent-border);
+  background: color-mix(in srgb, var(--cmv2-accent-soft) 62%, var(--pulso-surface));
+}
+
+.cmv2-aviso[data-tone="info"] .cmv2-aviso-icon {
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-aviso[data-tone="success"] {
+  border-color: var(--pulso-success-border);
+  background: color-mix(in srgb, var(--pulso-success-bg) 55%, var(--pulso-surface));
+}
+
+.cmv2-aviso[data-tone="success"] .cmv2-aviso-icon {
+  color: var(--pulso-success-fg);
+}
+
+.cmv2-aviso[data-tone="warn"] {
+  border-color: var(--pulso-warn-border);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 60%, var(--pulso-surface));
+}
+
+.cmv2-aviso[data-tone="warn"] .cmv2-aviso-icon {
+  color: var(--pulso-warn-fg);
+}
+
+.cmv2-aviso[data-tone="warn"] .cmv2-aviso-title {
+  color: var(--pulso-warn-fg);
+}
+
+/* --- Variante compacta (estados de una línea) -------------------------------- */
+.cmv2-aviso--compact {
+  display: inline-grid;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px 10px;
+  border-radius: var(--pulso-radius-chip);
+  align-items: center;
+}
+
+.cmv2-aviso--compact .cmv2-aviso-icon {
+  margin-top: 0;
+}
+
+.cmv2-aviso--compact .cmv2-aviso-title {
+  font-size: 12px;
+}
+
+.cmv2-aviso--compact .cmv2-aviso-copy {
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+/* --- Detalle técnico plegado (IDs/namespaces fuera del primer plano, H4) ----- */
+.cmv2-aviso-tecnico {
+  min-width: 0;
+  margin-top: 2px;
+}
+
+.cmv2-aviso-tecnico summary {
+  width: fit-content;
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cmv2-aviso-tecnico summary:hover {
+  color: var(--pulso-text);
+}
+
+.cmv2-aviso-tecnico code {
+  display: block;
+  margin-top: 3px;
+  padding: 4px 7px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}

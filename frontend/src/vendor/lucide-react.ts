@@ -168,6 +168,7 @@ export { default as MoreHorizontal } from "lucide-react/dist/esm/icons/ellipsis.
 export { default as MousePointer2 } from "lucide-react/dist/esm/icons/mouse-pointer-2.mjs";
 export { default as MoveHorizontal } from "lucide-react/dist/esm/icons/move-horizontal.mjs";
 export { default as Network } from "lucide-react/dist/esm/icons/network.mjs";
+export { default as NotepadText } from "lucide-react/dist/esm/icons/notepad-text.mjs";
 export { default as Paintbrush } from "lucide-react/dist/esm/icons/paintbrush.mjs";
 export { default as Palette } from "lucide-react/dist/esm/icons/palette.mjs";
 export { default as PanelLeftClose } from "lucide-react/dist/esm/icons/panel-left-close.mjs";
