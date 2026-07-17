@@ -12,6 +12,19 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.5.12",
+    date: "2026-07-17",
+    highlights: [
+      "Apariencia: Prosecnur estrena su identidad visual definitiva — isotipo canónico, familia de logos y un lenguaje visual unificado en toda la app, con el ícono oficial en el Dock, la barra de tareas y el instalador.",
+      "Apariencia: los módulos comparten ahora un mismo marco — banda de indicadores canónica, interruptores uniformes y acentos de color propios de cada módulo; el panel de pestañas de tercer nivel se muestra siempre compacto, con la pestaña activa resaltada.",
+      "Cálculo de muestra: el diseño del marco se reorganiza \"todo por facultad\" — un embudo que va de lo general a lo particular donde cada facultad decide sus propios criterios, con una radiografía de estudiantes elegibles y aulas sobrevivientes, detalle por tipo de sesión (rango, mediana y media) y selección manual de los cursos-horario finales.",
+      "Editor de formularios: estrena la vista \"Filtros de opciones\" con un diagrama de las relaciones entre listas y exporta el XLSForm ya depurado; además, las matrices de una sola pregunta pueden incluirse en el PDF cuando tú lo decides.",
+      "Entregables: suma la ficha técnica territorial ACNUR en dos láminas, el reporte del formulario en PDF y Word fiel al modelo 2026, y un libro relacional que reúne la base madre y sus grupos repetibles en un solo Excel.",
+      "Procesamiento: aplica la codificación por base en estudios multibase, prioriza las etiquetas del instrumento en las salidas de Analítica y, en Gráficos, conserva con exactitud los colores que eliges por serie tanto en la vista previa como en la exportación.",
+      "Monitoreo y Carga: el avance telefónico cuenta respuestas efectivas en lugar de contactos, el corte para el cliente aplica las correcciones y exclusiones registradas en Carga, y el filtro de universo suma reglas de exclusión que quedan documentadas en el reporte metodológico.",
+    ],
+  },
+  {
     version: "0.5.11",
     date: "2026-07-15",
     highlights: [
