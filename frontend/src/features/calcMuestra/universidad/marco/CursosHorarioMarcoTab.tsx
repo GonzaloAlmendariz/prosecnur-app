@@ -306,14 +306,14 @@ export function CursosHorarioMarcoTab({
         </div>
       ) : (
         <>
-          <section className="cmv2-chfp-global" aria-label="Base global de criterios de curso-horario">
+          <section className="cmv2-chfp-global" aria-label="Ajustes globales del marco">
             <header className="cmv2-chfp-section-head">
               <span className="cmv2-chfp-section-icon" aria-hidden="true">
                 <Building2 size={18} />
               </span>
               <div className="cmv2-chfp-section-copy">
-                <h3>Base global · todas las facultades</h3>
-                <p>El set por defecto de los criterios de curso-horario. Cada facultad lo hereda salvo que decida propio.</p>
+                <h3>Ajustes del marco</h3>
+                <p>Transversales a todas las facultades: el mínimo general de elegibles (cada facultad lo ajusta abajo), la tasa de asistencia y la composición del aula. Los criterios de tipo, condición, nivel, docente y modalidad se deciden por facultad.</p>
               </div>
             </header>
             {dti ? (
@@ -329,6 +329,7 @@ export function CursosHorarioMarcoTab({
               facultades={facRefs}
               teacherTypeOrden={config.teacher_type_orden}
               config={config}
+              soloAjustes
               onSelVariable={editarVariable}
               onRango={(facultad, rangos) => {
                 const rangeVar = aula.find((v) => v.kind === "range");
