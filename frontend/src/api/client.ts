@@ -14061,6 +14061,10 @@ export type CalcMuestraParametros = {
   promedio_conglomerado: number;
   n_minimo_estrato: number;
   tope_operativo: number;
+  /** Estadístico con que el motor R deriva estudiantes-por-aula del marco
+   *  (reunión Ramiro 2026-07-15). Espejo del `resumenEstAula` del Recorrido;
+   *  default del backend: "media". */
+  estadistico_conglomerado?: "media" | "mediana" | "min_media_mediana";
 };
 
 export type CalcMuestraMeta = {
@@ -14331,8 +14335,16 @@ export type CalcMuestraWorkspaceAulasConfig = {
   /** Clave = NOMBRE de la unidad tal como aparece en la base; el motor matchea por slug interno. */
   nivel_por_unidad?: Record<string, Array<{ min: number; max: number }>>;
   accepted_campuses?: string[];
+  /** LEGACY referencial: prevalencia de elegibles sobre la matrícula del
+   *  curso-horario. NO es el criterio 8 — se muestra como métrica referencial. */
   require_min_prevalence?: boolean;
   min_prevalence_pct?: number;
+  /** Criterio 8 · paso 1 (reunión Ramiro 2026-07-15): ≥ pct de los matriculados
+   *  pertenecen a la MISMA FACULTAD del curso. Se evalúa ANTES que el paso 2. */
+  require_faculty_prevalence?: boolean;
+  min_faculty_prevalence_pct?: number;
+  /** Criterio 8 · paso 2: ≥ pct cursan el MISMO NIVEL del curso (el backend
+   *  redefine la referencia al nivel del curso, no al ciclo del estudiante). */
   require_cycle_homogeneity?: boolean;
   min_cycle_homogeneity_pct?: number;
   usar_grupos_tamano: boolean;
@@ -14353,12 +14365,34 @@ export type CalcMuestraWorkspaceAulasConfig = {
   bolsas_reemplazo: number;
   aulas_extra_operativas_default: number;
   penalizacion_repetidos: number;
+  /** Descuento secuencial de repetidos (reunión Ramiro §10): al elegir un
+   *  aula, sus alumnos se descuentan de las candidatas restantes (un aula
+   *  grande ya cubierta deja de pesar como grande). El default del ENGINE es
+   *  false; el frontend lo enciende por defecto (DEFAULT_UNIVERSITY_AULAS_CONFIG)
+   *  porque es el flujo metodológico correcto y solo surte efecto al ejecutar
+   *  una selección NUEVA. Retrocompatible: configs viejos no lo traen. */
+  sequential_discount?: boolean;
   pps_weight: number;
   coverage_weight: number;
   monte_carlo_n: number;
   semilla: number;
   objective?: CalcMuestraAulasObjectiveConfig;
   notas_metodologicas?: string;
+  /**
+   * Decisiones MANUALES sobre las particularidades detectadas del marco
+   * (reunión del diseño muestral 2026-07-15: los casos se detectan y muestran;
+   * la decisión es del usuario, documentada). Clave = id del curso-horario del
+   * bloque `frame.particularidades`. "excluir" saca el aula del marco al
+   * RECONSTRUIR (paso "Particularidades (decisión manual)" del embudo);
+   * "incluir"/"revisado" solo documentan. Retrocompatible: puede no venir.
+   */
+  particularidades_decisiones?: Record<string, CalcMuestraParticularidadDecision>;
+};
+
+/** Decisión manual documentada sobre una particularidad del marco. */
+export type CalcMuestraParticularidadDecision = {
+  decision: "incluir" | "excluir" | "revisado";
+  nota?: string;
 };
 
 export type CalcMuestraWorkspaceSourceMode =
@@ -14550,6 +14584,10 @@ export type CalcMuestraReporteMeta = {
   generated_at?: string | null;
   formato?: "html" | "pdf" | null;
   job_id?: string | null;
+  /** true cuando el estudio cambió (componentes/parámetros) después de generar
+   *  el reporte: sigue descargable pero quedó desactualizado. Retrocompatible:
+   *  backends viejos no lo emiten. */
+  stale?: boolean;
 };
 
 /** Paso de un embudo agregado del perfil (alumno o aula): conteo restante y excluidos del paso. */
@@ -14654,6 +14692,14 @@ export type CriterioKind = "flat" | "hierarchical" | "range" | "numeric" | "ordi
  */
 export type CriterioLayer = "marco" | "instrumento" | "procesamiento";
 
+/** CH de una categoría dentro de una facultad (distribución por facultad). */
+export type CriterioCategoriaFacultadCh = {
+  /** Nombre de la facultad tal como lo emite el motor (join defensivo por label). */
+  facultad: string;
+  /** Cursos-horario de la categoría en esa facultad (deduplicados). */
+  ch: number;
+};
+
 /** Una categoría enumerada de una variable, con su conteo por aula única. */
 export type CriterioCategoria = {
   /** Categoría NORMALIZADA (clave de match, autoritativa). */
@@ -14664,6 +14710,12 @@ export type CriterioCategoria = {
   aulas: number;
   /** Variantes crudas plegadas en esta categoría (informativo). */
   variants?: string[];
+  /**
+   * Distribución de la categoría por facultad (ordenada ch desc; la suma
+   * iguala `aulas`). Retrocompatible: catálogos viejos no la traen y la vista
+   * por facultad degrada a filas sin barras.
+   */
+  por_facultad?: CriterioCategoriaFacultadCh[];
 };
 
 /** Un grupo jerárquico (prefijo) de categorías, p. ej. DOCENTE ORDINARIO. */
@@ -14737,8 +14789,11 @@ export type CriteriosSeleccionMarco = {
   byVariable: Record<string, CriterioSeleccion>;
   /** facultad -> rangos [min,max] admitidos del nivel del curso. */
   courseLevelRanges?: Record<string, Array<[number, number]>>;
-  /** Umbral de elegibles por aula (flexeable por facultad). */
-  minEligible?: { threshold: number; byFaculty?: Record<string, number> };
+  /** Umbral de elegibles por aula (flexeable por facultad). `attendance_rate`
+   *  es la tasa de asistencia esperada (proporción 0–1): informativa, alimenta
+   *  la SUGERENCIA de mínimos (ceil(mínimo/tasa)) pero NO altera el umbral
+   *  efectivo — se persiste para trazabilidad del diseño. */
+  minEligible?: { threshold: number; byFaculty?: Record<string, number>; attendance_rate?: number };
 };
 
 /**
@@ -14777,11 +14832,30 @@ export function normalizeCriteriosCatalogo(raw: unknown): CriteriosCatalogo {
     const key = asText(r.key) || asText(r.category) || asText(r.raw);
     if (!key) return null;
     const variants = asList(r.variants).map(asText).filter(Boolean);
+    // Distribución por facultad (contrato «Tipo de sesión por facultad»):
+    // lista {facultad, ch} ordenada ch desc. Defensivo: filas sin facultad se
+    // descartan y facultades repetidas se pliegan a la primera aparición.
+    const facSeen = new Set<string>();
+    const por_facultad = asList(r.por_facultad)
+      .map((rawFac): CriterioCategoriaFacultadCh | null => {
+        const f = asRecord(rawFac);
+        const facultad = asText(f.facultad);
+        if (!facultad) return null;
+        return { facultad, ch: Math.max(0, Math.round(asNum(f.ch ?? f.aulas ?? f.count))) };
+      })
+      .filter((f): f is CriterioCategoriaFacultadCh => {
+        if (!f) return false;
+        const marker = f.facultad.trim().toLowerCase();
+        if (facSeen.has(marker)) return false;
+        facSeen.add(marker);
+        return true;
+      });
     return {
       key,
       label: asText(r.label) || key,
       aulas: asNum(r.aulas ?? r.count ?? r.n),
       ...(variants.length ? { variants } : {}),
+      ...(por_facultad.length ? { por_facultad } : {}),
     };
   };
   const asLayer = (v: unknown): CriterioLayer | undefined => {
@@ -14884,6 +14958,541 @@ export type CalcMuestraAulasFrame = {
   /** Selección de criterios con la que se construyó este marco (para detectar
    *  "marco desactualizado" comparándola con la selección confirmada actual). */
   criterios_seleccion?: CriteriosSeleccionMarco | null;
+  /** Eco de los filtros normalizados con que el backend construyó el marco
+   *  (criterio 8 · composición del aula + prevalencia referencial c7). Sirve
+   *  para la señal de frescura del marco. Retrocompatible: marcos viejos no
+   *  lo traen y NUNCA se marcan desactualizados por esta vía. */
+  filters_echo?: CalcMuestraAulasFrameFiltersEcho | null;
+  /**
+   * Particularidades DETECTADAS del marco (schema
+   * calc_muestra_aulas_particularidades_v1): señales para revisión manual, no
+   * decisiones. Retrocompatible: marcos viejos no lo traen. El consumidor debe
+   * pasarlo por `normalizeCalcMuestraAulasParticularidades` (payload crítico).
+   */
+  particularidades?: CalcMuestraAulasParticularidades | null;
+  /**
+   * Radiografía del marco por facultad (contrato congelado
+   * calc_muestra_aulas_exploracion_v1): dónde están los alumnos elegibles por
+   * tipo de sesión y nivel, cursos en locales externos y multi-facultad.
+   * Retrocompatible: marcos viejos no lo traen — la pestaña Explorador muestra
+   * su estado vacío honesto. El consumidor debe pasarlo por
+   * `normalizeCalcMuestraAulasExploracion` (payload crítico).
+   */
+  exploracion?: CalcMuestraAulasExploracion | null;
+  /**
+   * Impacto de los tipos de sesión EXCLUIDOS del set global, por facultad
+   * (contrato congelado cm_session_type_impacto_v1): qué facultades pierden CH
+   * y elegibles por cada tipo excluido, y dónde ya está exceptuado.
+   * Retrocompatible: marcos viejos no lo traen — sin el campo la tarjeta se
+   * comporta como hoy (sin aviso). El consumidor debe pasarlo por
+   * `normalizeCalcMuestraSessionTypeImpacto` (payload crítico).
+   */
+  session_type_impacto?: CalcMuestraSessionTypeImpacto | null;
+};
+
+// ----------------------------------------------------------------------------
+// Particularidades del marco de aulas (contrato congelado
+// calc_muestra_aulas_particularidades_v1, reunión del diseño muestral
+// 2026-07-15). La app las DETECTA y MUESTRA; la decisión es del usuario y vive
+// en aulas_config.particularidades_decisiones.
+// ----------------------------------------------------------------------------
+
+/** Señal de tipo de curso agrupado: una sola categoría domina el catálogo. */
+export type CalcMuestraAulasParticularidadSessionType = {
+  categoria: string;
+  /** Proporción 0..1 de cursos-horario en la categoría dominante. */
+  share: number;
+  total_categorias: number;
+};
+
+/** Curso-horario que sirve a dos o más facultades (estudios generales/electivo compartido). */
+export type CalcMuestraAulasParticularidadMultiFacultad = {
+  id: string;
+  curso: string;
+  facultades: string[];
+  n_facultades: number;
+};
+
+/** Curso-horario con código Z (se dicta en un local externo). */
+export type CalcMuestraAulasParticularidadCodigoZ = {
+  id: string;
+  curso: string;
+  codigo: string;
+};
+
+/** Curso-horario cuyo nombre sugiere tesis/trabajo de grado. */
+export type CalcMuestraAulasParticularidadNombreTesis = {
+  id: string;
+  curso: string;
+  nivel: string;
+};
+
+export type CalcMuestraAulasParticularidades = {
+  schema?: "calc_muestra_aulas_particularidades_v1" | string;
+  session_type_dominante: CalcMuestraAulasParticularidadSessionType | null;
+  /** Cap 200 filas en el backend; `counts` conserva los totales reales. */
+  multi_facultad: CalcMuestraAulasParticularidadMultiFacultad[];
+  codigo_z: CalcMuestraAulasParticularidadCodigoZ[];
+  nombre_tesis: CalcMuestraAulasParticularidadNombreTesis[];
+  counts: { multi_facultad: number; codigo_z: number; nombre_tesis: number };
+};
+
+/**
+ * Normalizador defensivo de `frame.particularidades` (patrón
+ * normalizeGraficosShareInspect): jsonlite desempaca arrays de 1 a escalares,
+ * los números pueden llegar como strings y los NA como "NA". Payload ausente o
+ * sin forma reconocible ⇒ null (la UI se comporta como hoy: sin panel).
+ */
+export function normalizeCalcMuestraAulasParticularidades(
+  raw: unknown,
+): CalcMuestraAulasParticularidades | null {
+  if (raw == null || typeof raw !== "object") return null;
+  const unwrap = (v: unknown): unknown => (Array.isArray(v) ? (v.length > 0 ? v[0] : null) : v);
+  const asText = (v: unknown): string => {
+    const u = unwrap(v);
+    if (typeof u === "string") return u === "NA" ? "" : u;
+    if (typeof u === "number" && Number.isFinite(u)) return String(u);
+    return "";
+  };
+  const asNum = (v: unknown): number => {
+    const u = unwrap(v);
+    if (typeof u === "number") return Number.isFinite(u) ? u : 0;
+    if (typeof u === "string") {
+      const n = Number(u.trim());
+      return Number.isFinite(n) ? n : 0;
+    }
+    return 0;
+  };
+  const asList = (v: unknown): unknown[] => {
+    if (v == null) return [];
+    return Array.isArray(v) ? v : [v];
+  };
+  const asRecord = (v: unknown): Record<string, unknown> => {
+    const u = unwrap(v);
+    return typeof u === "object" && u !== null && !Array.isArray(u) ? (u as Record<string, unknown>) : {};
+  };
+  const asTextList = (v: unknown): string[] =>
+    asList(v).map((item) => asText(item)).filter(Boolean);
+
+  const r = raw as Record<string, unknown>;
+
+  const domRec = asRecord(r.session_type_dominante);
+  const domCategoria = asText(domRec.categoria);
+  const session_type_dominante: CalcMuestraAulasParticularidadSessionType | null = domCategoria
+    ? {
+        categoria: domCategoria,
+        share: Math.min(1, Math.max(0, asNum(domRec.share))),
+        total_categorias: Math.max(0, Math.round(asNum(domRec.total_categorias))),
+      }
+    : null;
+
+  const multi_facultad = asList(r.multi_facultad)
+    .map((item): CalcMuestraAulasParticularidadMultiFacultad | null => {
+      const row = asRecord(item);
+      const id = asText(row.id);
+      if (!id) return null;
+      const facultades = asTextList(row.facultades);
+      return {
+        id,
+        curso: asText(row.curso),
+        facultades,
+        n_facultades: Math.max(facultades.length, Math.round(asNum(row.n_facultades))),
+      };
+    })
+    .filter((row): row is CalcMuestraAulasParticularidadMultiFacultad => row != null);
+
+  const codigo_z = asList(r.codigo_z)
+    .map((item): CalcMuestraAulasParticularidadCodigoZ | null => {
+      const row = asRecord(item);
+      const id = asText(row.id);
+      if (!id) return null;
+      return { id, curso: asText(row.curso), codigo: asText(row.codigo) };
+    })
+    .filter((row): row is CalcMuestraAulasParticularidadCodigoZ => row != null);
+
+  const nombre_tesis = asList(r.nombre_tesis)
+    .map((item): CalcMuestraAulasParticularidadNombreTesis | null => {
+      const row = asRecord(item);
+      const id = asText(row.id);
+      if (!id) return null;
+      return { id, curso: asText(row.curso), nivel: asText(row.nivel) };
+    })
+    .filter((row): row is CalcMuestraAulasParticularidadNombreTesis => row != null);
+
+  const countsRec = asRecord(r.counts);
+  const counts = {
+    multi_facultad: Math.max(multi_facultad.length, Math.round(asNum(countsRec.multi_facultad))),
+    codigo_z: Math.max(codigo_z.length, Math.round(asNum(countsRec.codigo_z))),
+    nombre_tesis: Math.max(nombre_tesis.length, Math.round(asNum(countsRec.nombre_tesis))),
+  };
+
+  // Sin NINGUNA señal ni schema reconocible, el payload no aporta nada: null
+  // honesto (estado vacío del panel) en vez de un objeto todo-ceros ambiguo.
+  const schema = asText(r.schema);
+  const haySenales = Boolean(
+    session_type_dominante ||
+    counts.multi_facultad > 0 ||
+    counts.codigo_z > 0 ||
+    counts.nombre_tesis > 0,
+  );
+  if (!haySenales && !schema) return null;
+
+  return {
+    ...(schema ? { schema } : {}),
+    session_type_dominante,
+    multi_facultad,
+    codigo_z,
+    nombre_tesis,
+    counts,
+  };
+}
+
+// ----------------------------------------------------------------------------
+// Exploración del marco de aulas (contrato congelado
+// calc_muestra_aulas_exploracion_v1, reunión del diseño muestral 2026-07-15):
+// radiografía por facultad para elegir aulas con conocimiento del terreno.
+// Datos transparentes — nunca un score compuesto de caja negra.
+// ----------------------------------------------------------------------------
+
+/** Distribución de una facultad por tipo de sesión (dónde están sus alumnos). */
+export type CalcMuestraAulasExploracionTipoSesion = {
+  tipo: string;
+  ch: number;
+  ch_elegibles: number;
+  elegibles: number;
+  /** Media de elegibles de los CH incluidos de este tipo. Se expone aparte de
+   *  la mediana para VER la distorsión de las aulas gigantes (reunión Ramiro
+   *  §9): media > mediana señala aulas de ~100 que jalan el promedio. `null`
+   *  sin CH incluidos con dato. */
+  media_elegibles: number | null;
+  /** Resumen de 5 números de elegibles por aula sobre los CH INCLUIDOS de este
+   *  tipo (min · Q1 · mediana · Q3 · max), para dibujar un boxplot robusto por
+   *  tipo. Mismo subset y NA honesto que `mediana_elegibles`: `null` cuando no
+   *  hay cifra defendible (un 0 mentiría que el aula típica está vacía). */
+  elegibles_min: number | null;
+  elegibles_q1: number | null;
+  /** Mediana (Q2) de elegibles del aula típica INCLUIDA de este tipo (la cifra
+   *  que dice si esas aulas cubren la cuota). */
+  mediana_elegibles: number | null;
+  elegibles_q3: number | null;
+  elegibles_max: number | null;
+};
+
+/** Distribución de una facultad por nivel del curso. */
+export type CalcMuestraAulasExploracionNivel = {
+  nivel: string;
+  ch: number;
+  elegibles: number;
+  /** Mediana de elegibles del aula típica incluida en este nivel; `null` sin
+   *  cifra defendible (misma semántica que en la distribución por tipo). */
+  mediana_elegibles: number | null;
+};
+
+/** Curso-horario del top por elegibles de una facultad. */
+export type CalcMuestraAulasExploracionCurso = {
+  id: string;
+  curso: string;
+  nivel: string;
+  tipo: string;
+  elegibles: number;
+  /** Proporción 0..1 de elegibles del aula que pertenecen a la facultad.
+   *  `null` cuando el marco no pudo calcularla (NA del motor). */
+  faculty_match_share: number | null;
+  local_externo: boolean;
+  multi_facultad: boolean;
+};
+
+export type CalcMuestraAulasExploracionFacultad = {
+  facultad: string;
+  ch_total: number;
+  ch_elegibles: number;
+  elegibles_total: number;
+  est_aula_mediana: number | null;
+  est_aula_media: number | null;
+  por_tipo_sesion: CalcMuestraAulasExploracionTipoSesion[];
+  por_nivel: CalcMuestraAulasExploracionNivel[];
+  n_multi_facultad: number;
+  n_local_externo: number;
+  n_sin_condicion: number;
+  /** Top de cursos por elegibles (cap 15 en el backend). */
+  top_cursos: CalcMuestraAulasExploracionCurso[];
+};
+
+export type CalcMuestraAulasExploracionTotales = {
+  facultades: number;
+  ch_total: number;
+  ch_elegibles: number;
+  elegibles_total: number;
+  n_local_externo: number;
+  n_multi_facultad: number;
+};
+
+export type CalcMuestraAulasExploracion = {
+  schema: "calc_muestra_aulas_exploracion_v1" | string;
+  totales: CalcMuestraAulasExploracionTotales;
+  por_facultad: CalcMuestraAulasExploracionFacultad[];
+};
+
+/**
+ * Normalizador defensivo de `frame.exploracion` (patrón
+ * normalizeGraficosShareInspect): jsonlite desempaca arrays de 1 a escalares,
+ * los números pueden llegar como strings y los NA como "NA". Payload ausente o
+ * sin forma reconocible ⇒ null (la pestaña Explorador muestra su estado vacío
+ * honesto: «Reconstruye el marco para generar la radiografía»).
+ */
+export function normalizeCalcMuestraAulasExploracion(
+  raw: unknown,
+): CalcMuestraAulasExploracion | null {
+  if (raw == null || typeof raw !== "object") return null;
+  const unwrap = (v: unknown): unknown => (Array.isArray(v) ? (v.length > 0 ? v[0] : null) : v);
+  const asText = (v: unknown): string => {
+    const u = unwrap(v);
+    if (typeof u === "string") return u === "NA" ? "" : u;
+    if (typeof u === "number" && Number.isFinite(u)) return String(u);
+    return "";
+  };
+  const asNum = (v: unknown): number => {
+    const u = unwrap(v);
+    if (typeof u === "number") return Number.isFinite(u) ? u : 0;
+    if (typeof u === "string") {
+      const n = Number(u.trim());
+      return Number.isFinite(n) ? n : 0;
+    }
+    return 0;
+  };
+  /** Número que distingue "no vino / NA" (null) de un cero real. */
+  const asNumOrNull = (v: unknown): number | null => {
+    const u = unwrap(v);
+    if (typeof u === "number") return Number.isFinite(u) ? u : null;
+    if (typeof u === "string") {
+      const trimmed = u.trim();
+      if (!trimmed || trimmed === "NA") return null;
+      const n = Number(trimmed);
+      return Number.isFinite(n) ? n : null;
+    }
+    return null;
+  };
+  const asBool = (v: unknown): boolean => {
+    const u = unwrap(v);
+    if (typeof u === "boolean") return u;
+    if (typeof u === "number") return u === 1;
+    if (typeof u === "string") {
+      const t = u.trim().toLowerCase();
+      return t === "true" || t === "1";
+    }
+    return false;
+  };
+  const asList = (v: unknown): unknown[] => {
+    if (v == null) return [];
+    return Array.isArray(v) ? v : [v];
+  };
+  const asRecord = (v: unknown): Record<string, unknown> => {
+    const u = unwrap(v);
+    return typeof u === "object" && u !== null && !Array.isArray(u) ? (u as Record<string, unknown>) : {};
+  };
+  const asCount = (v: unknown): number => Math.max(0, Math.round(asNum(v)));
+
+  const r = raw as Record<string, unknown>;
+
+  const por_facultad = asList(r.por_facultad)
+    .map((item): CalcMuestraAulasExploracionFacultad | null => {
+      const row = asRecord(item);
+      const facultad = asText(row.facultad);
+      if (!facultad) return null;
+      const por_tipo_sesion = asList(row.por_tipo_sesion)
+        .map((tipoItem): CalcMuestraAulasExploracionTipoSesion | null => {
+          const tipoRow = asRecord(tipoItem);
+          const tipo = asText(tipoRow.tipo);
+          if (!tipo) return null;
+          return {
+            tipo,
+            ch: asCount(tipoRow.ch),
+            ch_elegibles: asCount(tipoRow.ch_elegibles),
+            elegibles: asCount(tipoRow.elegibles),
+            media_elegibles: asNumOrNull(tipoRow.media_elegibles),
+            elegibles_min: asNumOrNull(tipoRow.elegibles_min),
+            elegibles_q1: asNumOrNull(tipoRow.elegibles_q1),
+            mediana_elegibles: asNumOrNull(tipoRow.mediana_elegibles),
+            elegibles_q3: asNumOrNull(tipoRow.elegibles_q3),
+            elegibles_max: asNumOrNull(tipoRow.elegibles_max),
+          };
+        })
+        .filter((tipoRow): tipoRow is CalcMuestraAulasExploracionTipoSesion => tipoRow != null);
+      const por_nivel = asList(row.por_nivel)
+        .map((nivelItem): CalcMuestraAulasExploracionNivel | null => {
+          const nivelRow = asRecord(nivelItem);
+          const nivel = asText(nivelRow.nivel);
+          if (!nivel) return null;
+          return {
+            nivel,
+            ch: asCount(nivelRow.ch),
+            elegibles: asCount(nivelRow.elegibles),
+            mediana_elegibles: asNumOrNull(nivelRow.mediana_elegibles),
+          };
+        })
+        .filter((nivelRow): nivelRow is CalcMuestraAulasExploracionNivel => nivelRow != null);
+      const top_cursos = asList(row.top_cursos)
+        .map((cursoItem): CalcMuestraAulasExploracionCurso | null => {
+          const cursoRow = asRecord(cursoItem);
+          const id = asText(cursoRow.id);
+          const curso = asText(cursoRow.curso);
+          if (!id && !curso) return null;
+          const shareRaw = asNumOrNull(cursoRow.faculty_match_share);
+          return {
+            id: id || curso,
+            curso: curso || id,
+            nivel: asText(cursoRow.nivel),
+            tipo: asText(cursoRow.tipo),
+            elegibles: asCount(cursoRow.elegibles),
+            faculty_match_share: shareRaw == null ? null : Math.min(1, Math.max(0, shareRaw)),
+            local_externo: asBool(cursoRow.local_externo),
+            multi_facultad: asBool(cursoRow.multi_facultad),
+          };
+        })
+        .filter((cursoRow): cursoRow is CalcMuestraAulasExploracionCurso => cursoRow != null);
+      return {
+        facultad,
+        ch_total: asCount(row.ch_total),
+        ch_elegibles: asCount(row.ch_elegibles),
+        elegibles_total: asCount(row.elegibles_total),
+        est_aula_mediana: asNumOrNull(row.est_aula_mediana),
+        est_aula_media: asNumOrNull(row.est_aula_media),
+        por_tipo_sesion,
+        por_nivel,
+        n_multi_facultad: asCount(row.n_multi_facultad),
+        n_local_externo: asCount(row.n_local_externo),
+        n_sin_condicion: asCount(row.n_sin_condicion),
+        top_cursos,
+      };
+    })
+    .filter((row): row is CalcMuestraAulasExploracionFacultad => row != null);
+
+  const totalesRec = asRecord(r.totales);
+  const totales: CalcMuestraAulasExploracionTotales = {
+    facultades: Math.max(por_facultad.length, asCount(totalesRec.facultades)),
+    ch_total: asCount(totalesRec.ch_total),
+    ch_elegibles: asCount(totalesRec.ch_elegibles),
+    elegibles_total: asCount(totalesRec.elegibles_total),
+    n_local_externo: asCount(totalesRec.n_local_externo),
+    n_multi_facultad: asCount(totalesRec.n_multi_facultad),
+  };
+
+  // Sin facultades ni schema reconocible, el payload no aporta nada: null
+  // honesto (estado vacío de la pestaña) en vez de un objeto todo-ceros.
+  const schema = asText(r.schema);
+  if (!por_facultad.length && !schema) return null;
+
+  return { schema: schema || "calc_muestra_aulas_exploracion_v1", totales, por_facultad };
+}
+
+// ----------------------------------------------------------------------------
+// Impacto de tipos de sesión excluidos por facultad (contrato congelado
+// cm_session_type_impacto_v1, «Tipo de sesión por facultad»). La app lo
+// MUESTRA como aviso («¿es intencional?»); la decisión de exceptuar es del
+// usuario y compila a `criterios_seleccion.byVariable.session_type.exceptions`.
+// ----------------------------------------------------------------------------
+
+/** Facultad afectada por un tipo de sesión excluido: CH y elegibles en juego. */
+export type CalcMuestraSessionTypeImpactoFacultad = {
+  facultad: string;
+  ch: number;
+  elegibles: number;
+};
+
+/** Un tipo de sesión excluido del set global y su impacto por facultad. */
+export type CalcMuestraSessionTypeImpactoTipo = {
+  /** Tipo tal como lo emite el motor (match defensivo por label contra el catálogo). */
+  tipo: string;
+  /** Dónde existe el tipo (todas las facultades con CH de ese tipo). */
+  facultades: CalcMuestraSessionTypeImpactoFacultad[];
+  /** Facultades donde el tipo YA está exceptuado (no lo pierden). */
+  exceptuado_en: string[];
+  /** Facultades que PIERDEN CH/elegibles porque el tipo sigue excluido ahí. */
+  perdido_en: CalcMuestraSessionTypeImpactoFacultad[];
+};
+
+export type CalcMuestraSessionTypeImpacto = {
+  schema: "cm_session_type_impacto_v1" | string;
+  tipos_excluidos: CalcMuestraSessionTypeImpactoTipo[];
+};
+
+/**
+ * Normalizador defensivo de `frame.session_type_impacto` (patrón
+ * normalizeGraficosShareInspect): jsonlite desempaca arrays de 1 a escalares,
+ * los números pueden llegar como strings y los NA como "NA". Payload ausente o
+ * sin forma reconocible ⇒ null (la tarjeta se comporta como hoy: sin aviso).
+ */
+export function normalizeCalcMuestraSessionTypeImpacto(
+  raw: unknown,
+): CalcMuestraSessionTypeImpacto | null {
+  if (raw == null || typeof raw !== "object") return null;
+  const unwrap = (v: unknown): unknown => (Array.isArray(v) ? (v.length > 0 ? v[0] : null) : v);
+  const asText = (v: unknown): string => {
+    const u = unwrap(v);
+    if (typeof u === "string") return u === "NA" ? "" : u;
+    if (typeof u === "number" && Number.isFinite(u)) return String(u);
+    return "";
+  };
+  const asNum = (v: unknown): number => {
+    const u = unwrap(v);
+    if (typeof u === "number") return Number.isFinite(u) ? u : 0;
+    if (typeof u === "string") {
+      const n = Number(u.trim());
+      return Number.isFinite(n) ? n : 0;
+    }
+    return 0;
+  };
+  const asList = (v: unknown): unknown[] => {
+    if (v == null) return [];
+    return Array.isArray(v) ? v : [v];
+  };
+  const asRecord = (v: unknown): Record<string, unknown> => {
+    const u = unwrap(v);
+    return typeof u === "object" && u !== null && !Array.isArray(u) ? (u as Record<string, unknown>) : {};
+  };
+  const asCount = (v: unknown): number => Math.max(0, Math.round(asNum(v)));
+  const facultadImpacto = (v: unknown): CalcMuestraSessionTypeImpactoFacultad | null => {
+    const row = asRecord(v);
+    const facultad = asText(row.facultad);
+    if (!facultad) return null;
+    return { facultad, ch: asCount(row.ch), elegibles: asCount(row.elegibles) };
+  };
+
+  const r = raw as Record<string, unknown>;
+  const tipos_excluidos = asList(r.tipos_excluidos)
+    .map((item): CalcMuestraSessionTypeImpactoTipo | null => {
+      const row = asRecord(item);
+      const tipo = asText(row.tipo);
+      if (!tipo) return null;
+      return {
+        tipo,
+        facultades: asList(row.facultades)
+          .map(facultadImpacto)
+          .filter((f): f is CalcMuestraSessionTypeImpactoFacultad => f != null),
+        exceptuado_en: asList(row.exceptuado_en).map(asText).filter(Boolean),
+        perdido_en: asList(row.perdido_en)
+          .map(facultadImpacto)
+          .filter((f): f is CalcMuestraSessionTypeImpactoFacultad => f != null),
+      };
+    })
+    .filter((t): t is CalcMuestraSessionTypeImpactoTipo => t != null);
+
+  // Sin tipos excluidos ni schema reconocible, el payload no aporta nada:
+  // null honesto (sin aviso) en vez de un objeto vacío ambiguo.
+  const schema = asText(r.schema);
+  if (!tipos_excluidos.length && !schema) return null;
+
+  return { schema: schema || "cm_session_type_impacto_v1", tipos_excluidos };
+}
+
+/** Eco normalizado de los filtros del build del marco (frescura del criterio 8). */
+export type CalcMuestraAulasFrameFiltersEcho = {
+  require_min_prevalence?: boolean;
+  min_prevalence_pct?: number;
+  require_faculty_prevalence?: boolean;
+  min_faculty_prevalence_pct?: number;
+  require_cycle_homogeneity?: boolean;
+  min_cycle_homogeneity_pct?: number;
 };
 
 export type CalcMuestraAulasSelection = {
@@ -14910,13 +15519,48 @@ export type CalcMuestraAulasSelection = {
   representativity?: CalcMuestraAulasRepresentativityResult;
   representativity_score?: number;
   representativity_distance?: number;
+  /** Filas por aula seleccionada. Con `sequential_discount` APLICADO (flag ON
+   *  del config y marco con ids parseables) cada fila trae además las columnas
+   *  OPCIONALES `eligible_n_bruto`, `eligible_n_neto`, `aporte_neto`,
+   *  `ya_cubiertos` y `discount_step` (contrato calc_muestra_aulas_descuento_v1;
+   *  corridas viejas o con flag OFF no las traen). */
   selection: MonitoreoRow[];
   quotas: MonitoreoRow[];
   summary: MonitoreoRow[];
+  /** Bloque del descuento secuencial de repetidos emitido por el engine
+   *  (contrato Oleada III). Retrocompatible: corridas viejas no lo traen y la
+   *  UI se comporta como hoy (lectura defensiva en descuentoRepetidosModel). */
+  sequential_discount?: CalcMuestraAulasSelectionDescuento | null;
   diagnostics?: Record<string, MonitoreoRow[] | undefined>;
   methodology?: Record<string, unknown>;
   method_comparison?: CalcMuestraAulasMethodComparison;
   replacement_simulation?: CalcMuestraAulasReplacementSimulation;
+};
+
+/** Resumen por estrato del descuento secuencial (bloque `sequential_discount`). */
+export type CalcMuestraAulasSelectionDescuentoEstrato = {
+  stratum: string;
+  aulas_seleccionadas?: number;
+  eligible_bruto_total?: number;
+  eligible_neto_total?: number;
+  ya_cubiertos_total?: number;
+};
+
+/** Bloque del resultado de seleccionar con el descuento secuencial de
+ *  repetidos (schema calc_muestra_aulas_descuento_v1, claves congeladas).
+ *  `requested` = flag pedido en el config; `applied` = si el engine pudo
+ *  aplicarlo; `mode` = "off" | "sequential" | "post_hoc" (auditoría
+ *  post-selección en engines balanceados); `warning_code` =
+ *  "descuento_sin_ids" cuando el marco no tiene ids de estudiante parseables
+ *  y se seleccionó SIN descuento. */
+export type CalcMuestraAulasSelectionDescuento = {
+  schema: "calc_muestra_aulas_descuento_v1" | string;
+  requested?: boolean;
+  applied?: boolean;
+  mode?: "off" | "sequential" | "post_hoc" | string;
+  warning_code?: "" | "descuento_sin_ids" | string;
+  warnings?: string[];
+  por_estrato?: CalcMuestraAulasSelectionDescuentoEstrato[] | MonitoreoRow[];
 };
 
 export type CalcMuestraAulasProfileDistribution = {
@@ -15101,6 +15745,10 @@ export type CalcMuestraAulasState = {
   method_comparison?: CalcMuestraAulasMethodComparison | null;
   replacement_simulation?: CalcMuestraAulasReplacementSimulation | null;
   export?: { ok?: true; file_id: string; filename: string; size: number } | null;
+  /** Resultado de un job que llegó con un frame_hash que ya no corresponde al
+   *  marco vigente (guard del backend): se conserva aparte en vez de pisar el
+   *  estado bueno. Retrocompatible: puede no venir. */
+  stale_job_result?: Record<string, unknown> | null;
 };
 
 export type CalcMuestraState = {
@@ -15358,7 +16006,10 @@ export async function apiCalcMuestraAulasSimularReemplazos(payload: {
   frame?: CalcMuestraAulasFrame;
   selection?: CalcMuestraAulasSelection;
 } = {}) {
-  return handle<{ ok: true; replacement_simulation: CalcMuestraAulasReplacementSimulation; state: CalcMuestraState }>(
+  // Sobre el umbral de aulas del backend este endpoint también deriva a job
+  // ({ mode: "job", job_id }), mismo patrón que comparar-metodos/seleccionar.
+  // Backends viejos siguen respondiendo síncrono (rama sin `mode`).
+  return handle<CalcMuestraAulasAsyncResponse<{ replacement_simulation: CalcMuestraAulasReplacementSimulation }>>(
     await apiFetch("/api/calc-muestra/aulas/simular-reemplazos", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
@@ -15375,6 +16026,38 @@ export async function apiCalcMuestraAulasExportar() {
       body: JSON.stringify({}),
     }),
   );
+}
+
+/** Una variable de la solicitud de base a DTI (claves congeladas del contrato). */
+export type CalcMuestraSolicitudDtiVariable = {
+  rol: string;
+  label: string;
+  /** Hoja donde se espera la columna (base de matrícula / catálogo de cursos). */
+  hoja: string;
+  requerida: boolean;
+  descripcion: string;
+};
+
+/**
+ * Exporta el XLSX de solicitud de base para DTI: estructura de variables
+ * esperadas + criterios de la reunión del diseño muestral en bullets, listo
+ * para adjuntar al correo. Devuelve el binario (mismo patrón blob que
+ * apiDashboardBaseDatosDescargar).
+ */
+export async function apiCalcMuestraSolicitudDtiExportar(payload: {
+  variables: CalcMuestraSolicitudDtiVariable[];
+  notas?: string[];
+}): Promise<Blob> {
+  const res = await apiFetch("/api/calc-muestra/solicitud-dti", {
+    method: "POST",
+    headers: headers({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const raw = await res.text().catch(() => "");
+    throw new Error(downloadFailedMessage(res.status, raw));
+  }
+  return await res.blob();
 }
 
 // ----------------------------------------------------------------------------
