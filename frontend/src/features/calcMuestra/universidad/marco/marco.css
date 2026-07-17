@@ -2512,6 +2512,8 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 }
 .cmv2-chfp-min-dist strong { color: var(--pulso-text); }
 .cmv2-chfp-min-alerta { color: var(--cmv2-accent-fg); font-weight: 500; }
+/* Sub-cifra en la tabla por tipo (media junto a mediana, CH elegibles). */
+.cmv2-dist-sub { font-size: 10px; font-weight: 400; color: var(--pulso-text-muted); }
 .cmv2-chfp-min-sug {
   display: flex;
   align-items: flex-start;
