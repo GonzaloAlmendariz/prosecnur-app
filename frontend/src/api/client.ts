@@ -3464,6 +3464,7 @@ export async function apiXlsformEditorExport(
   workbook: XlsformEditorWorkbook,
   filename?: string,
   source?: XlsformEditorPayload["source"] | null,
+  options?: { include_app_columns?: boolean },
 ) {
   return handle<{
     ok: true;
@@ -3474,7 +3475,7 @@ export async function apiXlsformEditorExport(
     await apiFetch("/api/xlsform-editor/export", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ workbook, filename, source }),
+      body: JSON.stringify({ workbook, filename, source, options }),
     })
   );
 }
