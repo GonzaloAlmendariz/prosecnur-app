@@ -1,14 +1,16 @@
 /**
- * Pestaña "Comparar métodos" (id metodo) de la sección Aulas. Arriba la capa
- * didáctica (ComparadorMetodosVisual con las métricas del motor); luego las 4
- * tarjetas de método seleccionables, cada una con un Popover que muestra la
- * mini-fórmula del método (la de sistemático-PPS explica por ÚNICA vez el
- * "salto k" y la "pi de inclusión"); la recta numérica del salto sistemático
- * como visual nuevo; y la recomendación del motor como callout con riesgos y
- * tabla de balance. Command bar: Comparar métodos + Seleccionar titulares.
+ * Pestaña "Comparar métodos" (id metodo) de la sección Aulas. Los 4 métodos
+ * viven en UNA sola presentación canónica (revamp QA H1): tarjetas con el
+ * nombre humano, la elección del método, sus métricas de la última corrida y
+ * la acción "Usar método"; el id técnico va a tooltip (H4). Cada tarjeta trae
+ * un Popover con la mini-fórmula (la de sistemático-PPS explica por ÚNICA vez
+ * el "salto k" y la "pi de inclusión"); siguen la recta numérica del salto y
+ * la tabla de balance. La capa didáctica (ComparadorMetodosVisual) se degrada
+ * a un bloque colapsado de referencia histórica: sus factores no se recalculan
+ * con el marco vigente hasta volver a correr el comparador.
  */
 import type { CSSProperties } from "react";
-import { BarChart3, Sigma } from "lucide-react";
+import { Award, BarChart3, Sigma } from "lucide-react";
 import type {
   CalcMuestraWorkspace,
   CalcMuestraWorkspaceAulasConfig,
@@ -17,15 +19,16 @@ import { Popover } from "../../../../components/Popover";
 import { ComparadorMetodosVisual } from "../../didactica/ComparadorMetodosVisual";
 import { fmtInt, fmtPct, safeNumber } from "../../sharedCore";
 import { UNIVERSITY_AULAS_SELECTOR_OPTIONS } from "../shared/constants";
+import { AvisoModulo } from "../shared/AvisoModulo";
 import { normalizeAulasSelectorEngine, normalizeUniversityAulasConfig } from "../shared/study";
 import { FormulaLatex, TerminoChip } from "../ui";
+import { DescuentoRepetidosControl } from "./DescuentoRepetidosControl";
 import {
   ClassroomBalanceTable,
   ClassroomEmptyState,
   ClassroomLabCommandBar,
   ClassroomRecommendation,
   ClassroomRiskList,
-  MethodSummaryCard,
   classroomMethodLabel,
   classroomMethodReason,
   classroomScore,
@@ -34,10 +37,11 @@ import {
 import "../../didactica/didactica.css";
 import "./aulas.css";
 
-/** Copia corta por método para la esquina de la tarjeta. */
+/** Rol corto por método para la esquina de la tarjeta ("Recomendado" es del
+ *  motor, no un rol fijo: lo pinta la tarjeta cuando la corrida lo recomienda). */
 const METHOD_BADGES: Record<string, string> = {
   sistematico_pps: "Benchmark",
-  cube_balanceado: "Recomendado",
+  cube_balanceado: "Balanceado",
   local_pivotal_balanceado: "Avanzado",
   pool_controlado: "Optimización",
 };
@@ -209,10 +213,20 @@ export function AulasMetodoTab({
     void onCompare(config, config.simulation_runs ?? config.monte_carlo_n ?? 500);
   }
 
+  // Decisión del usuario: vive en el workspace (autosave) y manda sobre el
+  // eco de la última corrida (ver buildClassroomLabModel). Solo surte efecto
+  // al ejecutar una selección nueva.
+  function setSequentialDiscount(value: boolean) {
+    onWorkspace({
+      ...workspace,
+      aulas_config: normalizeUniversityAulasConfig({ ...config, sequential_discount: value }),
+    });
+  }
+
+  const hayComparacion = Boolean(comparison && comparisonMethods.length);
+
   return (
     <div className="cmv2-aulas-stack">
-      <ComparadorMetodosVisual comparison={comparison} />
-
       <ClassroomLabCommandBar
         model={model}
         busy={busy}
@@ -226,40 +240,83 @@ export function AulasMetodoTab({
           <div className="cmv2-subhead">
             <strong>Comparación de métodos</strong>
           </div>
+          {/* Presentación canónica ÚNICA de los 4 métodos (QA H1): elección,
+              métricas de la última corrida y acción en la misma tarjeta. */}
           <div className="cmv2-classroom-method-grid cmv2-uni-stagger">
             {["sistematico_pps", "cube_balanceado", "local_pivotal_balanceado", "pool_controlado"].map((methodId) => {
               const option = UNIVERSITY_AULAS_SELECTOR_OPTIONS.find((item) => item.id === methodId);
               const compared = comparisonMethods.find((method) => method.method_id === methodId);
               const active = String(config.selector_engine) === methodId;
+              const recomendado = hayComparacion && methodId === recommendedMethodId;
+              const label = option?.label ?? classroomMethodLabel(methodId);
               return (
-                <div key={methodId} className={`cmv2-classroom-method-card cmv2-aulas-method-card ${active ? "is-active" : ""}`}>
-                  <button type="button" className="cmv2-aulas-method-pick" onClick={() => setSelector(methodId)}>
-                    <small>{METHOD_BADGES[methodId] ?? "Método"}</small>
-                    <strong>{option?.label ?? classroomMethodLabel(methodId)}</strong>
-                    <span>{option?.detail ?? classroomMethodReason(methodId)}</span>
-                    {compared && <em>Calidad {classroomScore(compared.representativity_score ?? compared.overall_score)} · repetidos {fmtPct(compared.duplicate_loss ?? 0)}</em>}
-                  </button>
-                  <Popover
-                    openOn="hover"
-                    ariaLabel={`Fórmula del método ${option?.label ?? methodId}`}
-                    maxWidth={360}
-                    trigger={
-                      <button type="button" className="cmv2-aulas-method-formula" aria-label={`Ver fórmula de ${option?.label ?? methodId}`}>
-                        <Sigma size={12} />
-                        fórmula
-                      </button>
-                    }
+                <div
+                  key={methodId}
+                  className={`cmv2-classroom-method-card cmv2-aulas-method-card ${active ? "is-active" : ""} ${recomendado ? "is-recommended" : ""}`}
+                >
+                  <button
+                    type="button"
+                    className="cmv2-aulas-method-pick"
+                    onClick={() => setSelector(methodId)}
+                    title={`Identificador técnico: ${methodId}`}
                   >
-                    <MethodFormulaPopover methodId={methodId} />
-                  </Popover>
+                    <small>{METHOD_BADGES[methodId] ?? "Método"}</small>
+                    <strong>{label}</strong>
+                    {recomendado && (
+                      <span className="cmv2-aulas-method-reco" aria-label="Recomendado por el comparador">
+                        <Award size={11} aria-hidden="true" />
+                        Recomendado
+                      </span>
+                    )}
+                    <span>{option?.detail ?? classroomMethodReason(methodId)}</span>
+                  </button>
+                  {compared && (
+                    <div className="cmv2-classroom-quality-metrics" aria-label={`Métricas de ${label}`}>
+                      <span><strong>{classroomScore(compared.representativity_score ?? compared.overall_score)}</strong> representatividad</span>
+                      <span><strong>{classroomScore(compared.balance_score)}</strong> balance</span>
+                      <span><strong>{fmtPct(compared.duplicate_loss ?? 0)}</strong> repetidos</span>
+                      <span><strong>{fmtPct(compared.coverage_unique_pct ?? 0)}</strong> cobertura</span>
+                    </div>
+                  )}
+                  <div className="cmv2-aulas-method-foot">
+                    <Popover
+                      openOn="hover"
+                      ariaLabel={`Fórmula del método ${label}`}
+                      maxWidth={360}
+                      trigger={
+                        <button type="button" className="cmv2-aulas-method-formula" aria-label={`Ver fórmula de ${label}`}>
+                          <Sigma size={12} />
+                          fórmula
+                        </button>
+                      }
+                    >
+                      <MethodFormulaPopover methodId={methodId} />
+                    </Popover>
+                    {compared && (
+                      <button
+                        type="button"
+                        className={recomendado ? "cmv2-primary" : "cmv2-ghost"}
+                        onClick={() => void onSelectMethod(config, methodId)}
+                        disabled={Boolean(busy)}
+                      >
+                        Usar método
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
           </div>
 
+          <DescuentoRepetidosControl
+            checked={config.sequential_discount ?? true}
+            selectorEngine={String(config.selector_engine ?? config.selector)}
+            onChange={setSequentialDiscount}
+          />
+
           <SaltoSistematicoRecta model={model} />
 
-          {!comparison || !comparisonMethods.length ? (
+          {!hayComparacion ? (
             <ClassroomEmptyState
               icon={BarChart3}
               title="Comparación pendiente"
@@ -269,30 +326,30 @@ export function AulasMetodoTab({
               disabled={Boolean(busy) || !model.frameReady || !model.hasCalculatedQuota}
             />
           ) : (
-            <>
-              <div className="cmv2-classroom-quality-grid cmv2-uni-stagger">
-                {comparisonMethods.map((method) => (
-                  <MethodSummaryCard
-                    key={method.method_id}
-                    method={method}
-                    active={method.method_id === recommendedMethodId}
-                    onSelect={() => void onSelectMethod(config, String(method.method_id))}
-                  />
-                ))}
-              </div>
-              <ClassroomBalanceTable rows={comparison.balance ?? []} methodId={recommendedMethodId} />
-            </>
+            <ClassroomBalanceTable rows={comparison?.balance ?? []} methodId={recommendedMethodId} />
           )}
         </div>
         <aside className="cmv2-classroom-lab-side">
           <ClassroomRecommendation comparison={comparison} fallbackMethod={engineOption.label} />
           <ClassroomRiskList risks={comparison?.risk_flags ?? []} />
-          <div className="cmv2-classroom-note">
-            <BarChart3 size={15} />
-            <span>El PPS queda como base auditable. El método balanceado es el recomendado cuando hay variables auxiliares; el pool controlado reduce estudiantes repetidos pero obliga a estimar probabilidades finales por simulación.</span>
-          </div>
+          <AvisoModulo tone="neutral" icon={BarChart3}>
+            El PPS queda como base auditable. El método balanceado es el recomendado cuando hay variables
+            auxiliares; el pool controlado reduce estudiantes repetidos pero obliga a estimar probabilidades
+            finales por simulación.
+          </AvisoModulo>
         </aside>
       </div>
+
+      {/* Réplica didáctica de la corrida guardada, DEGRADADA a referencia
+          (QA H1): sus factores no se recalculan con el marco vigente hasta
+          volver a correr el comparador. Nunca se presenta como evidencia
+          comparable ni se elimina. */}
+      {hayComparacion && (
+        <details className="cmv2-aulas-referencia">
+          <summary>Referencia histórica (no recalculada con tu marco)</summary>
+          <ComparadorMetodosVisual comparison={comparison} />
+        </details>
+      )}
     </div>
   );
 }

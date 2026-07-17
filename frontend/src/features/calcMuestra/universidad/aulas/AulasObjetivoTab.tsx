@@ -15,6 +15,7 @@ import type {
   CalcMuestraWorkspaceAulasModalidad,
 } from "../../../../api/client";
 import { fmtInt, safeNumber } from "../../sharedCore";
+import { AvisoModulo } from "../shared/AvisoModulo";
 import { UNIVERSITY_AULAS_MODALIDAD_OPTIONS } from "../shared/constants";
 import { normalizeUniversityAulasConfig } from "../shared/study";
 import { PanelAvanzado } from "../ui";
@@ -202,10 +203,10 @@ export function AulasObjetivoTab({
             ))}
           </div>
         )}
-        <div className="cmv2-classroom-note">
-          <CheckCircle2 size={15} />
-          <span>El extra operativo no cambia el N estadístico: refuerza la agenda de campo sin alterar cuotas ni pesos del diseño.</span>
-        </div>
+        <AvisoModulo tone="neutral" icon={CheckCircle2}>
+          El extra operativo no cambia el N estadístico: refuerza la agenda de campo sin alterar cuotas ni
+          pesos del diseño.
+        </AvisoModulo>
 
         <PanelAvanzado
           titulo="Auditoría y reproducibilidad"

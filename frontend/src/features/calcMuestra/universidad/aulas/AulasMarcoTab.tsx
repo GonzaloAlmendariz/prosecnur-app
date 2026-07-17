@@ -6,10 +6,11 @@
  * reproducibilidad del marco congelado (firma, fecha, filas y advertencia si
  * el marco de la sección 2 cambió después de la selección).
  */
-import { Database, TriangleAlert } from "lucide-react";
+import { Database } from "lucide-react";
 import { Popover } from "../../../../components/Popover";
 import { RespaldoMetodologico } from "../../didactica/PasoDidactico";
 import { fmtInt } from "../../sharedCore";
+import { AvisoModulo } from "../shared/AvisoModulo";
 import { frameAuditNumber } from "../shared/frame";
 import { CifraFila, CifraMotor, FlujoVertical, type FlujoEtapa } from "../ui";
 import { classroomMethodLabel, type ClassroomLabModel } from "./aulasParts";
@@ -203,38 +204,31 @@ export function AulasMarcoTab({ model }: { model: ClassroomLabModel }) {
                 origen={frameHash ? "motor" : undefined}
                 hero
               />
+              {/* Un solo sello por panel (QA H11): la firma valida al grupo;
+                  repetir "cifra validada" en las 4 celdas inflaba el sello. */}
               <CifraMotor
                 label="Generado"
                 value={generatedAt || "pendiente"}
                 detalle="fecha de construcción"
-                origen={generatedAt ? "motor" : undefined}
               />
               <CifraMotor
                 label="Filas del marco"
                 value={frameRows.length ? fmtInt(frameRows.length) : "pendiente"}
                 detalle="cursos-horario seleccionables"
-                origen={frameRows.length ? "motor" : undefined}
               />
               <CifraMotor
                 label="Estudiantes únicos"
                 value={framePopulationCount ? fmtInt(framePopulationCount) : "pendiente"}
                 detalle={exclusions ? `${fmtInt(exclusions)} exclusiones auditadas` : "población que representa"}
-                origen={framePopulationCount ? "motor" : undefined}
               />
             </CifraFila>
             <p className="cmv2-aulas-nota-suave">
               La selección conserva semilla, firma del marco y reglas usadas para poder replicarse; el sustento completo vive en la pestaña Sustento técnico.
             </p>
             {frameChangedAfterSelection && (
-              <div className="cmv2-aulas-alerta" role="alert">
-                <TriangleAlert size={15} />
-                <div>
-                  <strong>El marco cambió después de la selección.</strong>
-                  <span>
-                    La selección vigente ({classroomMethodLabel(String(selection?.selector_engine_used ?? selection?.selector_engine ?? ""))}) se sorteó sobre la firma {selectionHash.slice(0, 10)}, pero el marco actual tiene la firma {frameHash.slice(0, 10)}. Vuelve a comparar métodos y seleccionar para que titulares y reemplazos correspondan al marco vigente.
-                  </span>
-                </div>
-              </div>
+              <AvisoModulo tone="warn" title="El marco cambió después de la selección.">
+                La selección vigente ({classroomMethodLabel(String(selection?.selector_engine_used ?? selection?.selector_engine ?? ""))}) se sorteó sobre la firma {selectionHash.slice(0, 10)}, pero el marco actual tiene la firma {frameHash.slice(0, 10)}. Vuelve a comparar métodos y seleccionar para que titulares y reemplazos correspondan al marco vigente.
+              </AvisoModulo>
             )}
           </>
         )}
