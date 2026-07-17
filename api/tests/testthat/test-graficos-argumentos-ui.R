@@ -127,7 +127,7 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   ui_tipo_input_soportado <- c(
     "variable", "variable_opt", "variables_list", "string", "textarea",
     "number", "bool", "choice", "codigos_list", "multiflag", "color",
-    "series_colors", "criteria_config", "icono", "overrides", "filtros",
+    "series_colors", "criteria_config", "technical_rows", "icono", "overrides", "filtros",
     "base_config", "meta"
   )
   ui_grupo_soportado <- c(

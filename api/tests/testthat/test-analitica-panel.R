@@ -699,3 +699,20 @@ test_that("ficha tecnica Word usa formato Pulso oficial por defecto", {
   expect_true(any(grepl("No recalculada en este entregable.", txt, fixed = TRUE)))
   expect_true(any(grepl("Digitalizacion desde cuestionario en papel.", txt, fixed = TRUE)))
 })
+
+test_that("hidden_fields omite por completo la fila indicada de la ficha Word", {
+  cfg <- list(ficha_tecnica = list(
+    estudio = "Estudio ACNUR territorial",
+    hidden_fields = c("Ponderación"),
+    ponderacion = "No debería aparecer."
+  ))
+  rows <- .ficha_tecnica_docx_rows(cfg = cfg)
+
+  # La fila oculta desaparece por completo: ni etiqueta, ni valor, ni "No documentado".
+  expect_false("Ponderación" %in% rows$Campo)
+  expect_false(any(grepl("No deber", rows$Detalle, fixed = TRUE)))
+  expect_false(any(grepl("Ponderaci", rows$Campo, fixed = TRUE)))
+  # El resto de la ficha se conserva intacto.
+  expect_true("Estudio" %in% rows$Campo)
+  expect_true(any(grepl("Estudio ACNUR territorial", rows$Detalle, fixed = TRUE)))
+})

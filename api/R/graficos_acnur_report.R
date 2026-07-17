@@ -511,10 +511,17 @@
   }
   field_control <- paste0("Cuotas por ", control_text)
   if (is.finite(max_per_block) && !is.na(max_per_block)) {
-    field_control <- paste0(field_control, "; hasta ", max_per_block, " entrevistas por manzana.")
-  } else {
-    field_control <- paste0(field_control, ".")
+    field_control <- paste0(field_control, "; hasta ", max_per_block, " entrevistas por manzana")
   }
+  operational_capacity <- unique(district_targets)
+  if (length(operational_capacity) == 1L && is.finite(operational_capacity)) {
+    field_control <- paste0(
+      field_control,
+      "; capacidad operativa ", .graficos_acnur_number(operational_capacity),
+      "/distrito (no analítica)"
+    )
+  }
+  field_control <- paste0(field_control, ".")
 
   list(
     design = "Encuesta presencial por conglomerados, organizada en tres pares territoriales.",
@@ -718,6 +725,31 @@
   )
 }
 
+# Constantes de contenido del estudio ACNUR-KOICA territorial. No hay dato en el
+# .pulso para estos campos (son decisiones del marco metodológico del estudio),
+# por eso se centralizan aquí, en el motor del perfil ACNUR, en un único lugar
+# legible en vez de dispersarlos por las filas de la ficha.
+.graficos_acnur_territorial_content <- function() {
+  list(
+    study_type = "Cuantitativo, cuasi-experimental con grupo de comparación.",
+    design = paste0(
+      "Territorial por conglomerados; selección probabilística de manzanas (PPS) ",
+      "y sistemática de viviendas; cuotas de sexo y edad en la persona."
+    ),
+    sampling_frame = "Manzanas censales INEI 2017.",
+    analysis_groups = paste0(
+      "Intervención (SMP, SJL, Chorrillos) vs. Comparación (Los Olivos, Ate, SJM)."
+    ),
+    household_selection = paste0(
+      "Viviendas por ruta sistemática (arranque + salto); ",
+      "una persona adulta por regla."
+    ),
+    precision = "±4.1 pp grupo (95%); ±7.1 pp distrital (exploratorio); MDE 8.3 pp.",
+    selection_sources = "proGres (ACNUR), MINEDU, MINSA-SIS, INEI 2026.",
+    design_target = 1134L
+  )
+}
+
 .graficos_acnur_technical_rows <- function(context, territorial = FALSE) {
   rows <- list()
   add <- function(label, detail) {
@@ -729,13 +761,25 @@
   main_n <- suppressWarnings(as.integer((context$main %||% list())$n_rows)[1])
   if (isTRUE(territorial)) {
     methodology <- .graficos_acnur_territorial_methodology(context)
-    add("Diseño", methodology$design)
+    content <- .graficos_acnur_territorial_content()
+    add("Tipo de estudio", content$study_type)
+    add("Diseño muestral", content$design)
+    add("Marco muestral", content$sampling_frame)
     add("Población", methodology$population)
+    add("Grupos de análisis", content$analysis_groups)
     add("Selección de manzanas", methodology$selection)
+    add("Selección en el hogar", content$household_selection)
     add("Control muestral", methodology$field_control)
     if (is.finite(main_n) && !is.na(main_n)) {
-      add("Muestra analizada", paste(.graficos_acnur_number(main_n), "personas"))
+      detail <- paste(.graficos_acnur_number(main_n), "personas")
+      target <- suppressWarnings(as.integer(content$design_target)[1])
+      if (is.finite(target) && !is.na(target)) {
+        detail <- paste0(detail, " (meta de diseño ", .graficos_acnur_number(target), ")")
+      }
+      add("Muestra analizada", detail)
     }
+    add("Precisión (diseño)", content$precision)
+    add("Fuentes de selección de distritos", content$selection_sources)
     samples <- .graficos_acnur_territorial_samples(context)
     for (sample in samples) {
       district_text <- paste(vapply(names(sample$districts), function(name) {
@@ -850,6 +894,42 @@
   )
 }
 
+# Reparte las filas de la ficha técnica en una o dos láminas para no desbordar la
+# tabla (altura fija). Emite una sola lámina cuando el número de filas no supera
+# el umbral editorial; en caso contrario parte en dos ("Ficha técnica" y
+# "Ficha técnica (cont.)") repartiendo las filas de forma balanceada. La capacidad
+# real (altura / alto mínimo de fila) acota el umbral para garantizar que ninguna
+# lámina desborde.
+.graficos_acnur_technical_slides <- function(rows, table_style, threshold = 11L) {
+  rows <- rows %||% list()
+  make_slide <- function(title, slide_rows) {
+    list(
+      id = .graficos_plan_slide_id("acnur"),
+      tipo = "p_slide_tabla_tecnica",
+      payload = list(titulo = title, filas = slide_rows, pie = "", estilo = table_style)
+    )
+  }
+  n <- length(rows)
+  table_height <- suppressWarnings(as.numeric(table_style$table_height)[1])
+  min_row <- suppressWarnings(as.numeric(table_style$min_row_height)[1])
+  capacity <- if (is.finite(table_height) && is.finite(min_row) && min_row > 0) {
+    max(1L, as.integer(floor(table_height / min_row)))
+  } else {
+    NA_integer_
+  }
+  threshold <- suppressWarnings(as.integer(threshold)[1])
+  if (!is.finite(threshold) || is.na(threshold) || threshold < 1L) threshold <- 11L
+  if (is.finite(capacity) && !is.na(capacity)) threshold <- min(threshold, capacity)
+  if (n <= threshold) {
+    return(list(make_slide("Ficha técnica", rows)))
+  }
+  head_n <- as.integer(ceiling(n / 2))
+  list(
+    make_slide("Ficha técnica", rows[seq_len(head_n)]),
+    make_slide("Ficha técnica (cont.)", rows[(head_n + 1L):n])
+  )
+}
+
 .graficos_acnur_content_slides <- function(sections, single_limit = 8L,
                                             per_slide = 8L) {
   sections <- trimws(as.character(sections %||% character(0)))
@@ -904,16 +984,17 @@
   table_style <- .graficos_acnur_table_style()
   cover_subtitle <- if (territorial) "Resultados y cobertura territorial" else "Informe de resultados"
   if (nzchar(date)) cover_subtitle <- paste(cover_subtitle, date, sep = "\n")
-  slides <- list(
-    list(id = .graficos_plan_slide_id("acnur"), tipo = "p_slide_portada",
-         payload = list(titulo = cover_title,
-                        subtitulo = cover_subtitle,
-                        fecha = "", subtexto = "")),
-    list(id = .graficos_plan_slide_id("acnur"), tipo = "p_slide_tabla_tecnica",
-         payload = list(titulo = "Ficha técnica",
-                        filas = .graficos_acnur_technical_rows(context, territorial),
-                        pie = "", estilo = table_style))
+  cover_slide <- list(
+    id = .graficos_plan_slide_id("acnur"), tipo = "p_slide_portada",
+    payload = list(titulo = cover_title,
+                   subtitulo = cover_subtitle,
+                   fecha = "", subtexto = "")
   )
+  technical_slides <- .graficos_acnur_technical_slides(
+    .graficos_acnur_technical_rows(context, territorial),
+    table_style
+  )
+  slides <- c(list(cover_slide), technical_slides)
   slides <- c(
     slides,
     .graficos_acnur_content_slides(
