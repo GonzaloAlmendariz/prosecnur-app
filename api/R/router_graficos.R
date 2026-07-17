@@ -20,21 +20,71 @@
   p_barras = "p_barras_agrupadas"
 )
 
-.graficos_resolve_template_pptx <- function() {
+.graficos_delivery_options <- function(config = NULL, profile_id = NULL, template_id = NULL,
+                                        auto_otros_slides = NULL) {
+  cfg <- .as_json_list(config) %||% list()
+  global <- .as_json_list((cfg$scope_rules %||% list())$global) %||% list()
+  profile <- as.character(profile_id %||% global$profile_id %||% global$profileId %||%
+                            cfg$profile_id %||% cfg$profileId %||% "")[1]
+  template <- as.character(template_id %||% global$template_id %||% global$templateId %||%
+                             cfg$template_id %||% cfg$templateId %||% "")[1]
+  if (!nzchar(template) && identical(profile, "acnur_kobo_cruncher_plus")) template <- "acnur_16_9"
+  if (!nzchar(template)) template <- "generic_16_9"
+  auto_others <- auto_otros_slides %||% global$auto_otros_slides %||% global$autoOtrosSlides %||%
+    cfg$auto_otros_slides %||% cfg$autoOtrosSlides
+  if (is.null(auto_others)) auto_others <- !identical(template, "acnur_16_9")
+  list(
+    profile_id = profile,
+    template_id = template,
+    auto_otros_slides = isTRUE(auto_others)
+  )
+}
+
+.graficos_resolve_template_pptx <- function(config = NULL, profile_id = NULL,
+                                             template_id = NULL, template_pptx = NULL) {
+  explicit <- as.character(template_pptx %||% "")[1]
+  if (nzchar(explicit) && file.exists(explicit)) return(explicit)
+  delivery <- .graficos_delivery_options(config, profile_id = profile_id, template_id = template_id)
+  filename <- if (identical(delivery$template_id, "acnur_16_9")) {
+    "plantilla_acnur_16_9.pptx"
+  } else {
+    "plantilla_16_9.pptx"
+  }
   configured <- getOption("prosecnur.template_pptx", NA_character_)
   if (!is.null(configured) && !is.na(configured) && nzchar(configured) && file.exists(configured)) {
     return(configured)
   }
-  candidate <- tryCatch(system.file("plantillas/plantilla_16_9.pptx", package = "prosecnurapp"), error = function(e) "")
+  candidate <- tryCatch(system.file(file.path("plantillas", filename), package = "prosecnurapp"), error = function(e) "")
   if (!nzchar(candidate) || !file.exists(candidate)) {
-    candidate <- tryCatch(system.file("plantillas/plantilla_16_9.pptx", package = "prosecnur"), error = function(e) "")
+    candidate <- tryCatch(system.file(file.path("plantillas", filename), package = "prosecnur"), error = function(e) "")
   }
   if (!nzchar(candidate) || !file.exists(candidate)) {
     repo_root <- Sys.getenv("PULSO_REPO_ROOT", "")
     if (nzchar(repo_root)) {
-      alt <- file.path(repo_root, "api", "inst", "plantillas", "plantilla_16_9.pptx")
+      alt <- file.path(repo_root, "api", "inst", "plantillas", filename)
       if (file.exists(alt)) candidate <- alt
     }
+  }
+  if (!nzchar(candidate) || !file.exists(candidate)) {
+    api_dir <- tryCatch(.app_api_dir(), error = function(e) "")
+    candidates <- c(
+      if (nzchar(api_dir)) file.path(api_dir, "inst", "plantillas", filename) else "",
+      file.path(getwd(), "api", "inst", "plantillas", filename),
+      file.path(getwd(), "inst", "plantillas", filename)
+    )
+    cursor <- normalizePath(getwd(), winslash = "/", mustWork = FALSE)
+    for (i in seq_len(8L)) {
+      candidates <- c(
+        candidates,
+        file.path(cursor, "api", "inst", "plantillas", filename),
+        file.path(cursor, "inst", "plantillas", filename)
+      )
+      parent <- dirname(cursor)
+      if (identical(parent, cursor)) break
+      cursor <- parent
+    }
+    hit <- candidates[file.exists(candidates)]
+    if (length(hit)) candidate <- hit[[1]]
   }
   if (nzchar(candidate) && file.exists(candidate)) candidate else NA_character_
 }
@@ -586,6 +636,7 @@
   finalize_sources <- function(src) {
     src <- .graficos_repeat_enrich_sources(sid, src)
     src <- normalize_sources(src)
+    src <- .graficos_align_recoded_dummy_sources(src)
     if (exists(".graficos_add_virtual_koica_group_sources", mode = "function")) {
       src <- tryCatch(.graficos_add_virtual_koica_group_sources(sid, src), error = function(e) src)
     }
@@ -787,6 +838,8 @@
     inspector_tab = "content",
     density = "comfortable",
     canvas_viewport = list(x = 0, y = 0, zoom = 1),
+    profile_id = "",
+    template_id = "",
     scope_rules = list()
   )
 }
@@ -966,6 +1019,8 @@
     "overrides_reusables", "overridesReusables", "debug_ph", "debugPh",
     "view_mode", "viewMode", "inspector_tab", "inspectorTab", "density",
     "canvas_viewport", "canvasViewport", "scope_rules", "scopeRules",
+    "profile_id", "profileId", "template_id", "templateId",
+    "auto_otros_slides", "autoOtrosSlides",
     "_unknown"
   )
   if (!.graficos_is_obj(x)) return(list())
@@ -1044,6 +1099,17 @@
 
   canvas_viewport <- .graficos_pick_alias(src, "canvas_viewport", "canvasViewport")
   cfg$canvas_viewport <- if (.graficos_valid_viewport(canvas_viewport)) canvas_viewport else defaults$canvas_viewport
+
+  profile_id <- .graficos_pick_alias(src, "profile_id", "profileId")
+  cfg$profile_id <- if (is.character(profile_id) && length(profile_id) == 1L) profile_id else defaults$profile_id
+  template_id <- .graficos_pick_alias(src, "template_id", "templateId")
+  cfg$template_id <- if (is.character(template_id) && length(template_id) == 1L) template_id else defaults$template_id
+  auto_otros_slides <- .graficos_pick_alias(src, "auto_otros_slides", "autoOtrosSlides")
+  cfg$auto_otros_slides <- if (is.logical(auto_otros_slides) && length(auto_otros_slides) == 1L && !is.na(auto_otros_slides)) {
+    auto_otros_slides
+  } else {
+    defaults$auto_otros_slides
+  }
 
   scope_rules <- .graficos_pick_alias(src, "scope_rules", "scopeRules")
   cfg$scope_rules <- if (.graficos_is_obj(scope_rules)) scope_rules else list(
@@ -1406,22 +1472,13 @@
   value
 }
 
-.graficos_internal_template_path <- function() {
-  configured <- getOption("prosecnur.template_pptx", NA_character_)
-  candidates <- c(
-    if (!is.null(configured) && length(configured) && !is.na(configured) && nzchar(configured)) configured else "",
-    system.file("plantillas/plantilla_16_9.pptx", package = "prosecnurapp"),
-    system.file("plantillas/plantilla_16_9.pptx", package = "prosecnur"),
-    {
-      repo_root <- Sys.getenv("PULSO_REPO_ROOT", unset = "")
-      if (nzchar(repo_root)) file.path(repo_root, "api", "inst", "plantillas", "plantilla_16_9.pptx") else ""
-    },
-    file.path(getwd(), "api", "inst", "plantillas", "plantilla_16_9.pptx"),
-    file.path(getwd(), "inst", "plantillas", "plantilla_16_9.pptx")
+.graficos_internal_template_path <- function(config = NULL, profile_id = NULL, template_id = NULL) {
+  path <- .graficos_resolve_template_pptx(
+    config = config,
+    profile_id = profile_id,
+    template_id = template_id
   )
-  candidates <- unique(candidates[nzchar(candidates)])
-  hit <- candidates[file.exists(candidates)]
-  if (length(hit)) hit[[1]] else ""
+  if (is.na(path)) "" else path
 }
 
 .graficos_slide_contract_key <- function(tipo) {
@@ -1548,7 +1605,7 @@
   by_type[1, , drop = FALSE]
 }
 
-.graficos_slide_layout_preview <- function(tipo) {
+.graficos_slide_layout_preview <- function(tipo, config = NULL, profile_id = NULL, template_id = NULL) {
   tipo <- as.character(tipo %||% "")[1]
   fallback <- function(contract_key = "", reason = "missing_geometry") {
     list(
@@ -1569,7 +1626,12 @@
   contract <- .PPT_CONTRACT[[contract_key]] %||% NULL
   if (is.null(contract) || !is.list(contract)) return(fallback(contract_key, "missing_contract"))
 
-  template_path <- .graficos_internal_template_path()
+  delivery <- .graficos_delivery_options(config, profile_id = profile_id, template_id = template_id)
+  template_path <- .graficos_internal_template_path(
+    config = config,
+    profile_id = delivery$profile_id,
+    template_id = delivery$template_id
+  )
   if (!nzchar(template_path)) return(fallback(contract_key, "missing_template"))
 
   doc <- tryCatch(officer::read_pptx(path = template_path), error = function(e) NULL)
@@ -1624,6 +1686,7 @@
     layout = layout_name,
     aspectRatio = slide_size$width / slide_size$height,
     source = "template",
+    template_id = delivery$template_id,
     placeholders = placeholders
   )
 }
@@ -2257,7 +2320,9 @@ mount_graficos <- function(pr) {
     })) |>
     plumber::pr_get("/api/graficos/slide-layout-preview", wrap_endpoint(function(req, res, tipo = "") {
       tipo <- as.character((req$argsQuery$tipo %||% tipo %||% "")[1])
-      .graficos_slide_layout_preview(tipo)
+      profile_id <- as.character((req$argsQuery$profile_id %||% req$argsQuery$profileId %||% "")[1])
+      template_id <- as.character((req$argsQuery$template_id %||% req$argsQuery$templateId %||% "")[1])
+      .graficos_slide_layout_preview(tipo, profile_id = profile_id, template_id = template_id)
     })) |>
     plumber::pr_get("/api/graficos/preview-renderer", wrap_endpoint(function(req, res) {
       c(list(ok = TRUE), .preview_renderer_status())
@@ -2547,12 +2612,27 @@ mount_graficos <- function(pr) {
       # Enriquecemos con usar_canvas=TRUE + debug_ph (invariantes globales
       # que el backend aplica antes de cada export).
       cfg <- .graficos_effective_config(sid, parsed$config %||% parsed$graficos_config)
+      delivery <- .graficos_delivery_options(
+        cfg,
+        profile_id = parsed$profile_id %||% parsed$profileId,
+        template_id = parsed$template_id %||% parsed$templateId
+      )
+      template_pptx <- .graficos_resolve_template_pptx(
+        config = cfg,
+        profile_id = delivery$profile_id,
+        template_id = delivery$template_id
+      )
       presets_json <- .enriquecer_presets(cfg$presets %||% list(), cfg$debug_ph)
       icon_registry <- .graficos_icon_registry(sid, cfg)
       palette_env <- .graficos_palette_env(cfg$paletas %||% list(), parent = parent.frame())
       preview_cache_key <- digest::digest(list(
         slide = slide,
         active_base = .graficos_active_base_name(sid),
+        template_id = delivery$template_id,
+        template_hash = if (!is.na(template_pptx) && file.exists(template_pptx)) {
+          digest::digest(file = template_pptx, algo = "xxhash64")
+        } else "",
+        auto_otros_slides = delivery$auto_otros_slides,
         preset_hash = digest::digest(
           list(
             presets = cfg$presets %||% list(),
@@ -2707,6 +2787,8 @@ mount_graficos <- function(pr) {
           presets = build_presets(presets_json),
           plan = do.call(p_plan, list(slides = list(slide_r))),
           env_diapos = palette_env,
+          template_pptx = template_pptx,
+          auto_otros_slides = delivery$auto_otros_slides,
           mensajes_progreso = FALSE
         )
       }, error = function(e) {
@@ -2779,6 +2861,17 @@ mount_graficos <- function(pr) {
       # Enriquecer presets con canvas-always + debug_ph global antes de
       # pasarlos al worker (invariantes Pulso).
       cfg <- .graficos_effective_config(sid, config)
+      delivery <- .graficos_delivery_options(
+        cfg,
+        template_id = plan$template_id %||% NULL,
+        auto_otros_slides = plan$auto_otros_slides %||% NULL
+      )
+      template_pptx_arg <- .graficos_resolve_template_pptx(
+        config = cfg,
+        profile_id = delivery$profile_id,
+        template_id = delivery$template_id
+      )
+      auto_otros_slides_arg <- delivery$auto_otros_slides
       presets <- .enriquecer_presets(presets, cfg$debug_ph)
       # Serializamos las LISTAS NOMBRADAS (multi-base) a RDS para el
       # worker. Cuando hay 1 sola base, la lista tiene 1 sola entrada
@@ -2811,7 +2904,8 @@ mount_graficos <- function(pr) {
                         slide_registry, graficador_registry,
                         icon_registry,
                         active_base,
-                        api_path, result_path, progress_path = NULL) {
+                        api_path, template_pptx, auto_otros_slides,
+                        result_path, progress_path = NULL) {
           if (requireNamespace("pkgload", quietly = TRUE)) {
             pkgload::load_all(api_path, quiet = TRUE)
           } else if (requireNamespace("devtools", quietly = TRUE)) {
@@ -2978,6 +3072,8 @@ mount_graficos <- function(pr) {
               presets = build_presets(presets),
               plan = do.call(.pkg_fn("p_plan"), list(slides = slides_r)),
               env_diapos = palette_env,
+              template_pptx = template_pptx,
+              auto_otros_slides = auto_otros_slides,
               mensajes_progreso = FALSE
             ),
             error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
@@ -2995,7 +3091,9 @@ mount_graficos <- function(pr) {
           graficador_registry = graficador_registry_arg,
           icon_registry = icon_registry_arg,
           active_base = active_base_arg,
-          api_path = api_path
+          api_path = api_path,
+          template_pptx = template_pptx_arg,
+          auto_otros_slides = auto_otros_slides_arg
         ),
         result_filename = .graficos_export_filename(sid, "reporte_ppt", "pptx"),
         on_complete = function(j) {
@@ -3050,6 +3148,15 @@ mount_graficos <- function(pr) {
           presets = .enriquecer_presets(cfg$presets, cfg$debug_ph),
           paletas = cfg$paletas %||% list(),
           icon_registry = .graficos_icon_registry(sid, cfg),
+          template_pptx = .graficos_resolve_template_pptx(
+            config = cfg,
+            template_id = plan_b$template_id %||% NULL
+          ),
+          auto_otros_slides = .graficos_delivery_options(
+            cfg,
+            template_id = plan_b$template_id %||% NULL,
+            auto_otros_slides = plan_b$auto_otros_slides %||% NULL
+          )$auto_otros_slides,
           filename = .export_filename(sid, "reporte_ppt", "pptx", base = base)
         )
       }
@@ -3067,7 +3174,6 @@ mount_graficos <- function(pr) {
       )
       graficador_registry_arg <- .graf_names()
       api_path <- .app_api_dir()
-      template_pptx_arg <- .graficos_resolve_template_pptx()
       zip_name <- .export_filename(sid, "reporte_ppt_todas_bases", "zip")
 
       job_id <- job_submit(
@@ -3075,7 +3181,7 @@ mount_graficos <- function(pr) {
         kind = "graficos.ppt_all",
         func = function(rp_data_path, rp_inst_path, per_base_path, bases,
                         slide_registry, graficador_registry,
-                        api_path, template_pptx, result_path, progress_path = NULL) {
+                        api_path, result_path, progress_path = NULL) {
           # NO recargar el paquete aqui: el bootstrap de job_submit() (jobs.R)
           # ya hace pkgload::load_all()/library(prosecnurapp) antes de invocar
           # este func.
@@ -3262,7 +3368,8 @@ mount_graficos <- function(pr) {
                 presets = build_presets(info$presets),
                 plan = do.call(.pkg_fn("p_plan"), list(slides = slides_r)),
                 env_diapos = palette_env,
-                template_pptx = template_pptx,
+                template_pptx = info$template_pptx,
+                auto_otros_slides = isTRUE(info$auto_otros_slides),
                 mensajes_progreso = FALSE
               ),
               error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
@@ -3284,8 +3391,7 @@ mount_graficos <- function(pr) {
           bases = bases,
           slide_registry = slide_registry_arg,
           graficador_registry = graficador_registry_arg,
-          api_path = api_path,
-          template_pptx = template_pptx_arg
+          api_path = api_path
         ),
         result_filename = zip_name,
         on_complete = function(j) {

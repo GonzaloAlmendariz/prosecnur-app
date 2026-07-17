@@ -32,10 +32,61 @@
 
 .graficos_var_non_empty_n <- function(data, var) {
   if (is.null(data) || !is.data.frame(data) || !nzchar(var) || !(var %in% names(data))) {
-    return(0L)
+    if (is.null(data) || !is.data.frame(data) || !nzchar(var)) return(0L)
+    name_key <- tolower(names(data))
+    exact <- which(name_key == tolower(var))[1]
+    if (length(exact) && is.finite(exact) && !is.na(exact)) {
+      return(sum(!.graficos_is_blank_cell(data[[exact]])))
+    }
+    dummy_idx <- which(startsWith(name_key, paste0(tolower(var), ".")))
+    if (!length(dummy_idx)) return(0L)
+    marked <- lapply(dummy_idx, function(idx) {
+      x <- data[[idx]]
+      if (is.numeric(x) || is.logical(x)) {
+        return(!is.na(x) & suppressWarnings(as.numeric(x)) > 0)
+      }
+      key <- .graficos_norm_text_key(x)
+      key %in% c("1", "true", "si", "yes", "x", "marcada", "marcado")
+    })
+    return(sum(Reduce(`|`, marked, rep(FALSE, nrow(data)))))
   }
   x <- data[[var]]
   sum(!.graficos_is_blank_cell(x))
+}
+
+.graficos_align_recoded_dummy_names <- function(data, instrumento) {
+  if (is.null(data) || !is.data.frame(data) || !ncol(data) ||
+      is.null(instrumento) || !is.list(instrumento)) return(data)
+  survey <- instrumento$survey %||% NULL
+  if (is.null(survey) || !is.data.frame(survey) || !"name" %in% names(survey)) return(data)
+  vars <- trimws(as.character(survey$name))
+  vars <- unique(vars[!is.na(vars) & nzchar(vars) & grepl("_recod$", vars, ignore.case = TRUE)])
+  if (!length(vars)) return(data)
+
+  data_names <- names(data)
+  for (var in vars) {
+    idx <- which(startsWith(tolower(data_names), paste0(tolower(var), ".")))
+    for (j in idx) {
+      target <- paste0(var, substring(data_names[[j]], nchar(var) + 1L))
+      if (identical(data_names[[j]], target)) next
+      if (target %in% data_names) next
+      data_names[[j]] <- target
+    }
+  }
+  names(data) <- data_names
+  data
+}
+
+.graficos_align_recoded_dummy_sources <- function(src) {
+  if (!is.list(src) || !is.list(src$data_sources) || !is.list(src$inst_sources)) return(src)
+  common <- intersect(names(src$data_sources), names(src$inst_sources))
+  for (name in common) {
+    src$data_sources[[name]] <- .graficos_align_recoded_dummy_names(
+      src$data_sources[[name]],
+      src$inst_sources[[name]]
+    )
+  }
+  src
 }
 
 .graficos_var_has_data <- function(data, var) {
@@ -96,20 +147,48 @@
   kind <- tolower(.graficos_scalar_chr(kind, ""))
   if (!nzchar(kind)) return("unknown")
   if (startsWith(kind, "surveymonkey")) return("surveymonkey")
-  if (startsWith(kind, "kobo")) return("kobo")
+  if (grepl("(^|_)kobo($|_)", kind, perl = TRUE)) return("kobo")
   if (kind %in% c("manual", "xlsform", "existing_project", "uploaded", "local")) return("xlsform")
   kind
 }
 
 .graficos_acnur_koica_districts <- function() {
   list(
-    list(ubigeo = "150132", distrito = "San Juan de Lurigancho", short = "SJL", group = "intervencion"),
-    list(ubigeo = "150135", distrito = "San Martin de Porres", short = "SMP", group = "intervencion"),
-    list(ubigeo = "150108", distrito = "Chorrillos", short = "Chorrillos", group = "intervencion"),
-    list(ubigeo = "150103", distrito = "Ate", short = "Ate", group = "comparacion"),
-    list(ubigeo = "150133", distrito = "San Juan de Miraflores", short = "SJM", group = "comparacion"),
-    list(ubigeo = "150117", distrito = "Los Olivos", short = "Los Olivos", group = "comparacion")
+    list(ubigeo = "150135", distrito = "San Martín de Porres", short = "SMP", group = "intervencion",
+         pair_id = "lima_norte", pair_label = "Lima Norte", pair_order = 1L, label_dx = -0.025, label_dy = -0.015),
+    list(ubigeo = "150117", distrito = "Los Olivos", short = "Los Olivos", group = "comparacion",
+         pair_id = "lima_norte", pair_label = "Lima Norte", pair_order = 1L, label_dx = -0.025, label_dy = 0.020),
+    list(ubigeo = "150132", distrito = "San Juan de Lurigancho", short = "SJL", group = "intervencion",
+         pair_id = "lima_este", pair_label = "Lima Este", pair_order = 2L, label_dx = 0.028, label_dy = 0.012),
+    list(ubigeo = "150103", distrito = "Ate", short = "Ate", group = "comparacion",
+         pair_id = "lima_este", pair_label = "Lima Este", pair_order = 2L, label_dx = 0.030, label_dy = -0.005),
+    list(ubigeo = "150108", distrito = "Chorrillos", short = "Chorrillos", group = "intervencion",
+         pair_id = "lima_sur", pair_label = "Lima Sur", pair_order = 3L, label_dx = -0.020, label_dy = -0.018),
+    list(ubigeo = "150133", distrito = "San Juan de Miraflores", short = "SJM", group = "comparacion",
+         pair_id = "lima_sur", pair_label = "Lima Sur", pair_order = 3L, label_dx = -0.020, label_dy = 0.016)
   )
+}
+
+.graficos_acnur_koica_pairs <- function() {
+  districts <- .graficos_acnur_koica_districts()
+  pair_ids <- unique(vapply(districts, function(x) .graficos_scalar_chr(x$pair_id, ""), character(1)))
+  pairs <- lapply(pair_ids[nzchar(pair_ids)], function(pair_id) {
+    members <- Filter(function(x) identical(.graficos_scalar_chr(x$pair_id, ""), pair_id), districts)
+    intervention <- Filter(function(x) identical(x$group, "intervencion"), members)
+    comparison <- Filter(function(x) identical(x$group, "comparacion"), members)
+    if (length(intervention) != 1L || length(comparison) != 1L) {
+      stop("Cada par territorial ACNUR debe tener un distrito de intervención y uno de comparación.", call. = FALSE)
+    }
+    list(
+      id = pair_id,
+      label = .graficos_scalar_chr(members[[1L]]$pair_label, pair_id),
+      order = suppressWarnings(as.integer(members[[1L]]$pair_order %||% 999L)[1]),
+      intervention = intervention[[1L]],
+      comparison = comparison[[1L]],
+      districts = c(intervention[[1L]]$distrito, comparison[[1L]]$distrito)
+    )
+  })
+  pairs[order(vapply(pairs, function(x) x$order, integer(1)))]
 }
 
 .graficos_records_df <- function(rows) {
@@ -255,44 +334,123 @@
   )
 }
 
+.graficos_fieldwork_activity_mask <- function(df, mode = c("planned", "visited", "effective")) {
+  mode <- match.arg(mode)
+  if (is.null(df) || !is.data.frame(df) || !nrow(df)) return(logical(0))
+  if (identical(mode, "planned")) return(rep(TRUE, nrow(df)))
+
+  truthy <- function(x) {
+    key <- .graficos_norm_text_key(x)
+    key %in% c("true", "1", "si", "yes", "visitada", "visitado", "recorrida", "recorrido",
+               "contactada", "contactado", "validada", "validado", "completada", "completado")
+  }
+  first_present <- function(candidates) {
+    hit <- candidates[candidates %in% names(df)][1]
+    if (length(hit) && !is.na(hit)) hit else ""
+  }
+
+  explicit_col <- if (identical(mode, "effective")) {
+    first_present(c("advance_valid", "source_effective", "effective", "efectiva"))
+  } else {
+    first_present(c("visited", "visitada", "recorrida", "contacted", "contactada", "fieldwork_activity"))
+  }
+  if (nzchar(explicit_col)) return(vapply(df[[explicit_col]], truthy, logical(1)))
+
+  status_col <- first_present(c("validation_status", "advance_status", "Estado", "estado"))
+  if (nzchar(status_col)) {
+    status_key <- vapply(df[[status_col]], .graficos_norm_text_key, character(1))
+    has_status <- nzchar(status_key)
+    if (any(has_status)) {
+      active_status <- if (identical(mode, "effective")) {
+        c("validada", "validado", "efectiva", "efectivo", "completada", "completado")
+      } else {
+        c("validada", "validado", "revision", "en_revision", "no_defendible", "no_defendibles",
+          "visitada", "visitado", "recorrida", "recorrido", "contactada", "contactado",
+          "completada", "completado")
+      }
+      return(has_status & status_key %in% active_status)
+    }
+  }
+
+  count_candidates <- if (identical(mode, "effective")) {
+    c("validas", "validos", "effective_count")
+  } else {
+    c("validas", "validos", "effective_count", "revision", "revisiones", "revision_count",
+      "no_defendibles", "no_defendible", "non_defensible_count")
+  }
+  count_cols <- intersect(count_candidates, names(df))
+  if (length(count_cols)) {
+    counts <- lapply(count_cols, function(col) {
+      value <- suppressWarnings(as.numeric(df[[col]]))
+      value[!is.finite(value)] <- 0
+      value
+    })
+    return(Reduce(`+`, counts) > 0)
+  }
+
+  pct_col <- first_present(c("avance_pct", "advance_pct"))
+  if (nzchar(pct_col)) {
+    pct <- suppressWarnings(as.numeric(df[[pct_col]]))
+    return(is.finite(pct) & pct > 0)
+  }
+  rep(FALSE, nrow(df))
+}
+
 .graficos_zone_sets <- function(reports) {
-  audit <- .graficos_records_df(reports$response_audit %||% reports$map$points %||% list())
-  routes <- .graficos_records_df(
-    reports$route_blocks %||% reports$map$blocks %||% reports$block_progress %||% reports$advance$block_progress %||% list()
-  )
-  zone_key <- function(df, ubigeo_cols, zone_cols, effective_only = FALSE) {
+  first_non_empty <- function(candidates) {
+    for (candidate in candidates) {
+      out <- .graficos_records_df(candidate %||% list())
+      if (nrow(out)) return(out)
+    }
+    data.frame()
+  }
+  audit <- first_non_empty(list(
+    reports$response_audit,
+    (reports$map %||% list())$points,
+    reports$block_progress,
+    (reports$advance %||% list())$block_progress
+  ))
+  routes <- first_non_empty(list(
+    reports$route_blocks,
+    (reports$map %||% list())$blocks,
+    reports$block_progress,
+    (reports$advance %||% list())$block_progress
+  ))
+  zone_key <- function(df, ubigeo_cols, zone_cols, activity = c("planned", "visited", "effective")) {
+    activity <- match.arg(activity)
     if (!nrow(df)) return(character(0))
     ucol <- .graficos_first_col(df, ubigeo_cols)
     zcol <- .graficos_first_col(df, zone_cols)
     if (!nzchar(ucol) || !nzchar(zcol)) return(character(0))
-    keep <- rep(TRUE, nrow(df))
-    if (isTRUE(effective_only)) {
-      av_col <- .graficos_first_col(df, c("advance_valid", "source_effective"))
-      st_col <- .graficos_first_col(df, c("validation_status", "advance_status", "Estado"))
-      if (nzchar(av_col)) {
-        keep <- keep & tolower(as.character(df[[av_col]])) %in% c("true", "1", "validada", "si", "yes")
-      }
-      if (nzchar(st_col)) {
-        keep <- keep & tolower(as.character(df[[st_col]])) %in% c("validada", "validado")
-      }
-    }
+    keep <- .graficos_fieldwork_activity_mask(df, activity)
     ub <- .graficos_ubigeo6(df[[ucol]])
     zn <- trimws(as.character(df[[zcol]]))
+    keep <- keep & nzchar(ub) & nzchar(zn)
     unique(paste(ub[keep], zn[keep], sep = "::"))
   }
-  list(
-    effective = zone_key(
+  effective <- zone_key(
       audit,
       ubigeo_cols = c("advance_block_ubigeo", "ubigeo", "district_code"),
       zone_cols = c("advance_block_zona", "zona", "zone"),
-      effective_only = TRUE
-    ),
-    route = zone_key(
+      activity = "effective"
+    )
+  visited <- zone_key(
+      audit,
+      ubigeo_cols = c("advance_block_ubigeo", "ubigeo", "district_code"),
+      zone_cols = c("advance_block_zona", "zona", "zone"),
+      activity = "visited"
+    )
+  planned <- zone_key(
       routes,
       ubigeo_cols = c("advance_block_ubigeo", "ubigeo", "district_code"),
       zone_cols = c("advance_block_zona", "zona", "zone"),
-      effective_only = FALSE
+      activity = "planned"
     )
+  list(
+    effective = effective,
+    visited = visited,
+    planned = planned,
+    route = planned
   )
 }
 
@@ -319,6 +477,88 @@
   })
 }
 
+.graficos_rings_payload <- function(rings) {
+  lapply(rings %||% list(), function(mat) {
+    mat <- as.matrix(mat)
+    if (!nrow(mat) || ncol(mat) < 2L) return(list(x = numeric(0), y = numeric(0)))
+    list(x = unname(as.numeric(mat[, 1])), y = unname(as.numeric(mat[, 2])))
+  })
+}
+
+.graficos_lima_district_context <- function() {
+  candidates <- c(
+    system.file("hojas_ruta", "cartografia", "lima_district_coverage.json", package = "prosecnurapp"),
+    file.path(.app_api_dir(), "inst", "hojas_ruta", "cartografia", "lima_district_coverage.json"),
+    file.path(getwd(), "api", "inst", "hojas_ruta", "cartografia", "lima_district_coverage.json"),
+    file.path(getwd(), "inst", "hojas_ruta", "cartografia", "lima_district_coverage.json")
+  )
+  path <- candidates[nzchar(candidates) & file.exists(candidates)][1]
+  if (is.na(path) || !nzchar(path)) return(list())
+  geo <- tryCatch(.hojas_ruta_read_json_any(path), error = function(e) NULL)
+  features <- (geo %||% list())$features %||% list()
+  out <- lapply(features, function(feature) {
+    props <- feature$properties %||% list()
+    ubigeo <- .graficos_ubigeo6(props$ubigeo)
+    if (!startsWith(ubigeo, "1501")) return(NULL)
+    rings <- .graficos_geojson_rings_payload(feature$geometry)
+    if (!length(rings)) return(NULL)
+    list(
+      ubigeo = ubigeo,
+      distrito = .graficos_scalar_chr(props$distrito, ""),
+      rings = rings,
+      label_x = suppressWarnings(as.numeric(props$label_lon %||% NA_real_)),
+      label_y = suppressWarnings(as.numeric(props$label_lat %||% NA_real_))
+    )
+  })
+  out[!vapply(out, is.null, logical(1))]
+}
+
+.graficos_study_blocks_context <- function(reports, districts) {
+  progress <- .graficos_records_df((reports$advance %||% list())$block_progress %||% reports$block_progress)
+  if (!nrow(progress)) return(list())
+  id_col <- .graficos_first_col(progress, c("id_manzana", "block_id", "advance_block_id"))
+  ubigeo_col <- .graficos_first_col(progress, c("ubigeo", "advance_block_ubigeo", "district_code"))
+  if (!nzchar(id_col) || !nzchar(ubigeo_col)) return(list())
+  visited_mask <- .graficos_fieldwork_activity_mask(progress, "visited")
+  effective_mask <- .graficos_fieldwork_activity_mask(progress, "effective")
+  out <- list()
+  for (district in districts) {
+    mask <- .graficos_ubigeo6(progress[[ubigeo_col]]) == district$ubigeo
+    ids <- unique(trimws(as.character(progress[[id_col]][mask])))
+    ids <- ids[nzchar(ids)]
+    if (!length(ids) || !exists(".hojas_ruta_pdf_block_features_for_ubigeo", mode = "function")) next
+    features <- tryCatch(
+      .hojas_ruta_pdf_block_features_for_ubigeo(district$ubigeo, selected_ids = ids),
+      error = function(e) list()
+    )
+    features <- Filter(function(feature) .graficos_scalar_chr(feature$id, "") %in% ids, features)
+    for (feature in features) {
+      feature_id <- .graficos_scalar_chr(feature$id, "")
+      feature_rows <- mask & trimws(as.character(progress[[id_col]])) == feature_id
+      visited <- any(visited_mask[feature_rows], na.rm = TRUE)
+      effective <- any(effective_mask[feature_rows], na.rm = TRUE)
+      rings <- .graficos_rings_payload(feature$rings)
+      if (!length(rings)) next
+      out[[length(out) + 1L]] <- list(
+        ubigeo = district$ubigeo,
+        distrito = district$distrito,
+        zona = feature_id,
+        status = if (!visited) {
+          "no_intervenido"
+        } else if (identical(district$group, "intervencion")) {
+          "intervencion"
+        } else {
+          "comparacion"
+        },
+        visited = visited,
+        effective = effective,
+        rings = rings
+      )
+    }
+  }
+  out
+}
+
 .graficos_coverage_map_context <- function(sid, scope = c("district", "overview_koica"), ubigeo = NULL) {
   scope <- match.arg(scope)
   districts <- .graficos_acnur_koica_districts()
@@ -333,6 +573,11 @@
   zones <- list()
   summary <- list()
   alerts <- list()
+  lima_boundary <- if (identical(scope, "overview_koica")) .graficos_lima_district_context() else list()
+  study_blocks <- if (identical(scope, "overview_koica")) {
+    .graficos_study_blocks_context(reports, selected)
+  } else list()
+  boundary_by_ubigeo <- stats::setNames(lima_boundary, vapply(lima_boundary, function(x) x$ubigeo, character(1)))
   for (district in selected) {
     payload <- tryCatch(hojas_ruta_zone_map_preview(district$ubigeo), error = function(e) {
       alerts[[length(alerts) + 1L]] <<- list(level = "warn", code = "zone_map_failed", message = conditionMessage(e))
@@ -346,14 +591,21 @@
       key <- paste(district$ubigeo, zona, sep = "::")
       is_effective <- key %in% zone_sets$effective
       is_route <- key %in% zone_sets$route
+      is_visited <- key %in% zone_sets$visited
       if (is_route) route_n <- route_n + 1L
       if (is_effective) effective_n <- effective_n + 1L
-      status <- if (is_effective) {
+      status <- if (identical(scope, "overview_koica")) {
+        if (!is_visited) {
+          "no_intervenido"
+        } else if (identical(district$group, "comparacion")) {
+          "comparacion"
+        } else {
+          "intervencion"
+        }
+      } else if (is_effective) {
         "efectiva"
       } else if (is_route) {
         "intervencion"
-      } else if (identical(scope, "overview_koica") && identical(district$group, "comparacion")) {
-        "comparacion"
       } else {
         "no_intervenido"
       }
@@ -365,6 +617,9 @@
         group = district$group,
         zona = zona,
         status = status,
+        planned = is_route,
+        visited = is_visited,
+        effective = is_effective,
         rings = rings
       )
     }
@@ -377,7 +632,7 @@
     )
   }
   title <- if (identical(scope, "overview_koica")) {
-    "Overview territorial"
+    "Distritos del estudio"
   } else {
     paste("Cobertura efectiva -", selected[[1]]$distrito)
   }
@@ -386,9 +641,32 @@
     ubigeo = if (identical(scope, "district")) selected[[1]]$ubigeo else "",
     distrito = if (identical(scope, "district")) selected[[1]]$distrito else "",
     titulo = title,
-    subtitle = "Zonas sombreadas segun ruta e informacion validada",
-    caption = "Fuente: Hojas de Ruta y Monitoreo territorial Prosecnur.",
+    subtitle = if (identical(scope, "overview_koica")) {
+      ""
+    } else {
+      "Zonas sombreadas según ruta e información validada"
+    },
+    caption = "",
     zones = zones,
+    lima_boundary = lima_boundary,
+    study_districts = unname(Filter(
+      function(feature) length(feature %||% list()) > 0L,
+      boundary_by_ubigeo[vapply(selected, function(district) district$ubigeo, character(1))]
+    )),
+    study_blocks = study_blocks,
+    district_labels = unname(lapply(selected, function(district) {
+      feature <- boundary_by_ubigeo[[district$ubigeo]] %||% list()
+      list(
+        ubigeo = district$ubigeo,
+        distrito = district$distrito,
+        pair_label = .graficos_scalar_chr(district$pair_label, ""),
+        status = if (identical(district$group, "intervencion")) "intervencion" else "comparacion",
+        x = suppressWarnings(as.numeric(feature$label_x %||% NA_real_)) +
+          suppressWarnings(as.numeric(district$label_dx %||% 0)),
+        y = suppressWarnings(as.numeric(feature$label_y %||% NA_real_)) +
+          suppressWarnings(as.numeric(district$label_dy %||% 0))
+      )
+    })),
     summary = summary,
     alerts = alerts
   )
@@ -400,20 +678,34 @@
     data.frame(
       ubigeo = d$ubigeo,
       distrito = d$distrito,
+      pair_label = d$pair_label,
       group = d$group,
       kobo_code = "",
       stringsAsFactors = FALSE
     )
   })
   out <- do.call(rbind, rows)
+  default_codes <- c(
+    `150132` = "sjl",
+    `150135` = "smp",
+    `150108` = "chorrillos",
+    `150103` = "ate",
+    `150133` = "sjm",
+    `150117` = "olivos"
+  )
+  out$kobo_code <- unname(default_codes[out$ubigeo])
   s <- session_get(sid, required = FALSE)
   cfg <- (s$monitoreo_config %||% list())$territorial %||% list()
   cw <- cfg$district_crosswalk %||% cfg$districtCrosswalk %||% list()
   cw_df <- .graficos_records_df(cw)
   if (nrow(cw_df) && all(c("ubigeo", "kobo_code") %in% names(cw_df))) {
+    configured_codes <- .graficos_norm_text_key(cw_df$kobo_code)
+    duplicated_codes <- duplicated(configured_codes) | duplicated(configured_codes, fromLast = TRUE)
     for (i in seq_len(nrow(out))) {
-      hit <- which(.graficos_ubigeo6(cw_df$ubigeo) == out$ubigeo)[1]
-      if (!is.na(hit)) out$kobo_code[[i]] <- .graficos_norm_text_key(cw_df$kobo_code[[hit]])
+      hit <- which(.graficos_ubigeo6(cw_df$ubigeo) == out$ubigeo[[i]])[1]
+      if (!is.na(hit) && nzchar(configured_codes[[hit]]) && !duplicated_codes[[hit]]) {
+        out$kobo_code[[i]] <- configured_codes[[hit]]
+      }
     }
   }
   out
@@ -421,7 +713,14 @@
 
 .graficos_detect_district_values <- function(df, sid) {
   n <- if (is.data.frame(df)) nrow(df) else 0L
-  if (!n) return(list(ubigeo = rep("", 0L), distrito = rep("", 0L), group = rep("", 0L)))
+  if (!n) {
+    return(list(
+      ubigeo = rep("", 0L),
+      distrito = rep("", 0L),
+      pair = rep("", 0L),
+      group = rep("", 0L)
+    ))
+  }
   cw <- .graficos_koica_crosswalk(sid)
   col <- .graficos_first_col(df, c(
     "advance_block_ubigeo", "ubigeo", "district_code", "Core/M5_district",
@@ -437,9 +736,59 @@
   }
   match_idx <- match(ub, cw$ubigeo)
   distrito <- ifelse(!is.na(match_idx), cw$distrito[match_idx], "Otros distritos")
-  group <- ifelse(!is.na(match_idx) & cw$group[match_idx] == "intervencion", "Intervencion territorial",
-                  ifelse(!is.na(match_idx) & cw$group[match_idx] == "comparacion", "Comparacion territorial", "Otros distritos"))
-  list(ubigeo = ub, distrito = distrito, group = group)
+  pair <- ifelse(!is.na(match_idx), cw$pair_label[match_idx], "Otros distritos")
+  group <- ifelse(!is.na(match_idx) & cw$group[match_idx] == "intervencion", "Intervención territorial",
+                  ifelse(!is.na(match_idx) & cw$group[match_idx] == "comparacion", "Comparación territorial", "Otros distritos"))
+  list(ubigeo = ub, distrito = distrito, pair = pair, group = group)
+}
+
+.graficos_detect_age_groups <- function(df, sid = NULL) {
+  n <- if (is.data.frame(df)) nrow(df) else 0L
+  if (!n) return(rep("", 0L))
+
+  find_col <- function(candidates) {
+    candidates <- unique(as.character(candidates %||% character(0)))
+    exact <- candidates[candidates %in% names(df)]
+    if (length(exact)) return(exact[[1L]])
+    keys <- .graficos_norm_text_key(names(df))
+    candidate_keys <- .graficos_norm_text_key(candidates)
+    hit <- which(keys %in% candidate_keys)[1]
+    if (length(hit) && !is.na(hit)) names(df)[[hit]] else ""
+  }
+
+  state <- if (!is.null(sid)) session_get(sid, required = FALSE) else NULL
+  territorial <- ((state %||% list())$monitoreo_config %||% list())$territorial %||% list()
+  configured_age <- .graficos_scalar_chr(territorial$age_var, "")
+  configured_leaf <- sub("^.*/", "", configured_age)
+  grouped_col <- find_col(c(
+    "E1_age_calc", "Core/E1_age_calc", "age_group", "grupo_edad",
+    "rango_edad", paste0(configured_age, "_calc"), paste0(configured_leaf, "_calc")
+  ))
+
+  canonicalize <- function(values) {
+    key <- .graficos_norm_text_key(values)
+    out <- rep("", length(key))
+    out[grepl("(^|_)18_.*29(_|$)", key, perl = TRUE)] <- "18 a 29 años"
+    out[grepl("(^|_)30_.*44(_|$)", key, perl = TRUE)] <- "30 a 44 años"
+    out[grepl("(^|_)45_.*59(_|$)", key, perl = TRUE)] <- "45 a 59 años"
+    out[grepl("(^|_)60(_|$)", key, perl = TRUE) | grepl("(^|_)60_.*(mas|more)(_|$)", key, perl = TRUE)] <- "60 años o más"
+    out
+  }
+
+  if (nzchar(grouped_col)) {
+    grouped <- canonicalize(df[[grouped_col]])
+    if (any(nzchar(grouped))) return(grouped)
+  }
+
+  age_col <- find_col(c(configured_age, configured_leaf, "E1_age", "Core/E1_age", "age", "edad"))
+  if (!nzchar(age_col)) return(rep("", n))
+  age <- suppressWarnings(as.numeric(as.character(df[[age_col]])))
+  out <- rep("", length(age))
+  out[is.finite(age) & age >= 18 & age <= 29] <- "18 a 29 años"
+  out[is.finite(age) & age >= 30 & age <= 44] <- "30 a 44 años"
+  out[is.finite(age) & age >= 45 & age <= 59] <- "45 a 59 años"
+  out[is.finite(age) & age >= 60] <- "60 años o más"
+  out
 }
 
 .graficos_add_virtual_koica_group_sources <- function(sid, sources) {
@@ -451,8 +800,11 @@
     rp_inst <- inst[[nm]]
     if (!is.data.frame(df) || is.null(rp_inst$survey) || !is.data.frame(rp_inst$survey)) next
     detected <- .graficos_detect_district_values(df, sid)
+    age_group <- .graficos_detect_age_groups(df, sid)
     if (!"__koica_group" %in% names(df)) df$`__koica_group` <- detected$group
     if (!"__district" %in% names(df)) df$`__district` <- detected$distrito
+    if (!"__territory_pair" %in% names(df)) df$`__territory_pair` <- detected$pair
+    if (!"__age_group" %in% names(df)) df$`__age_group` <- age_group
     survey <- rp_inst$survey
     choices <- rp_inst$choices %||% rp_inst$choices_raw %||% data.frame()
     add_survey <- function(name, label, list_name) {
@@ -491,8 +843,12 @@
     }
     add_survey("__koica_group", "Grupo territorial", "__koica_group_list")
     add_survey("__district", "Distrito", "__district_list")
-    add_choices("__koica_group_list", c("Intervencion territorial", "Comparacion territorial", "Otros distritos"))
+    add_survey("__territory_pair", "Ámbito territorial", "__territory_pair_list")
+    add_survey("__age_group", "Grupo de edad", "__age_group_list")
+    add_choices("__koica_group_list", c("Intervención territorial", "Comparación territorial", "Otros distritos"))
     add_choices("__district_list", unique(as.character(detected$distrito)))
+    add_choices("__territory_pair_list", c("Lima Norte", "Lima Este", "Lima Sur", "Otros distritos"))
+    add_choices("__age_group_list", c("18 a 29 años", "30 a 44 años", "45 a 59 años", "60 años o más"))
     rp_inst$survey <- survey
     rp_inst$choices <- choices
     ds[[nm]] <- df
@@ -575,6 +931,8 @@
     vars[[i]]$covered_by <- NULL
     vars[[i]]$integrated_in <- NULL
     vars[[i]]$is_preferred <- TRUE
+    vars[[i]]$suggest_as_primary <- !isTRUE(vars[[i]]$parent_inherited) &&
+      !isTRUE(vars[[i]]$repeat_inherited)
 
     g <- .graficos_graphable_reason(vars[[i]])
     vars[[i]]$graphable <- isTRUE(g$graphable)
@@ -620,6 +978,80 @@
   vars
 }
 
+.graficos_dynamic_tokens <- function(text) {
+  text <- .graficos_scalar_chr(text, "")
+  hits <- regmatches(text, gregexpr("\\$\\{[^}]+\\}", text, perl = TRUE))[[1]]
+  if (!length(hits) || identical(hits, "")) return(character(0))
+  unique(sub("\\}$", "", sub("^\\$\\{", "", hits)))
+}
+
+.graficos_clean_dynamic_label <- function(text) {
+  out <- .graficos_scalar_chr(text, "")
+  if (!nzchar(out)) return(out)
+  out <- gsub("\\s*[-–—:]\\s*\\$\\{[^}]+\\}", "", out, perl = TRUE)
+  out <- gsub("\\s+\\b(de|del|en|para|por|con|a)\\s+\\$\\{[^}]+\\}", "", out,
+              perl = TRUE, ignore.case = TRUE)
+  out <- gsub("\\$\\{[^}]+\\}", "", out, perl = TRUE)
+  out <- gsub("\\s+([,.;:?!])", "\\1", out, perl = TRUE)
+  out <- gsub("([,.;:])\\s*([,.;:])", "\\2", out, perl = TRUE)
+  out <- gsub("\\s{2,}", " ", out, perl = TRUE)
+  trimws(out)
+}
+
+.graficos_resolve_dynamic_label <- function(text, var_name, data, choices, is_repeat = FALSE) {
+  original <- .graficos_scalar_chr(text, var_name)
+  tokens <- .graficos_dynamic_tokens(original)
+  universal <- .graficos_clean_dynamic_label(original)
+  result <- list(
+    label_original = original,
+    label = universal,
+    dynamic_tokens = as.list(tokens),
+    context_resolution = if (length(tokens)) "universal" else "not_required"
+  )
+  if (!length(tokens) || !isTRUE(is_repeat) || !is.data.frame(data) || !(var_name %in% names(data))) {
+    return(result)
+  }
+
+  response_mask <- !.graficos_is_blank_cell(data[[var_name]])
+  allowed <- character(0)
+  if (is.data.frame(choices) && nrow(choices)) {
+    label_col <- .graficos_choices_label_col(choices)
+    choice_labels <- if (!is.na(label_col) && label_col %in% names(choices)) {
+      as.character(choices[[label_col]])
+    } else {
+      character(0)
+    }
+    allowed <- unique(trimws(c(
+      as.character(choices$name %||% character(0)),
+      choice_labels
+    )))
+    allowed <- allowed[!is.na(allowed) & nzchar(allowed)]
+  }
+  resolved <- list()
+  for (token in tokens) {
+    if (.graficos_is_identifier_like(token, token) || !(token %in% names(data)) || !length(allowed)) {
+      return(result)
+    }
+    values <- trimws(as.character(data[[token]][response_mask]))
+    values <- unique(values[!is.na(values) & nzchar(values)])
+    if (length(values) != 1L || !(values[[1]] %in% allowed)) return(result)
+    resolved[[token]] <- values[[1]]
+  }
+  final <- original
+  for (token in names(resolved)) {
+    final <- gsub(
+      paste0("\\s*[-–—]\\s*\\$\\{", token, "\\}"),
+      paste0(": ", resolved[[token]]),
+      final,
+      perl = TRUE
+    )
+    final <- gsub(paste0("${", token, "}"), resolved[[token]], final, fixed = TRUE)
+  }
+  result$label <- .graficos_clean_dynamic_label(final)
+  result$context_resolution <- "unique_materialized_repeat_context"
+  result
+}
+
 .graficos_extract_vars_from_inst <- function(rp_inst, data = NULL, source_name = "", source_kind = "") {
   if (is.null(rp_inst)) return(list())
   survey <- rp_inst$survey
@@ -630,6 +1062,13 @@
   name <- if ("name" %in% names(survey)) survey[["name"]] else rep("", nrow(survey))
   label <- if ("label" %in% names(survey)) survey[["label"]] else name
   group_name <- if ("group_name" %in% names(survey)) survey[["group_name"]] else rep("", nrow(survey))
+  structural_section <- if (exists(".graficos_acnur_survey_sections", mode = "function")) {
+    .graficos_acnur_survey_sections(survey)
+  } else {
+    rep("", nrow(survey))
+  }
+  repeat_grain <- attr(rp_inst, "repeat_grain", exact = TRUE) %||% rp_inst$repeat_grain %||% list()
+  is_repeat <- identical(.graficos_scalar_chr(repeat_grain$kind, ""), "instancia")
   vs <- list()
   for (i in seq_len(nrow(survey))) {
     tb <- as.character(type_base[i] %||% type[i] %||% "")
@@ -642,20 +1081,45 @@
     choice_meta <- .graficos_choices_for_list(choices, list_name)
     section <- as.character(group_name[i] %||% "")
     group_path <- .graficos_group_path_for_row(survey, i)
+    if (!nzchar(.graficos_scalar_chr(group_path, ""))) {
+      group_path <- .graficos_scalar_chr(structural_section[[i]], "")
+    }
+    if (!nzchar(.graficos_scalar_chr(section, ""))) section <- group_path
+    label_meta <- .graficos_resolve_dynamic_label(
+      label[i] %||% nm,
+      var_name = nm,
+      data = data,
+      choices = choices,
+      is_repeat = is_repeat
+    )
     n_non_empty <- .graficos_var_non_empty_n(data, nm)
+    parent_inherited <- FALSE
+    if ("parent_inherited" %in% names(survey)) {
+      flag <- suppressWarnings(as.logical(survey$parent_inherited[i]))
+      parent_inherited <- isTRUE(flag)
+    }
+    repeat_inherited <- parent_inherited || (
+      is.data.frame(data) && nm %in% names(data) &&
+        isTRUE(attr(data[[nm]], "repeat_inherited", exact = TRUE))
+    )
     vs[[length(vs) + 1L]] <- list(
       name = nm,
-      label = as.character(label[i] %||% nm),
+      label = label_meta$label,
+      label_original = label_meta$label_original,
+      dynamic_tokens = label_meta$dynamic_tokens,
+      context_resolution = label_meta$context_resolution,
       tipo = tb,
-      seccion = section,
+      seccion = .graficos_clean_dynamic_label(section),
       list_name = list_name,
       choices = choice_meta$items,
       scale_signature = choice_meta$signature,
       data_available = n_non_empty > 0L,
       n_non_empty = n_non_empty,
       source_kind = .graficos_simplify_source_kind(source_kind),
-      group_path = group_path,
-      section_reliable = .graficos_section_is_reliable(group_path %||% section, source_kind)
+      group_path = .graficos_clean_dynamic_label(group_path),
+      section_reliable = .graficos_section_is_reliable(group_path %||% section, source_kind),
+      parent_inherited = parent_inherited,
+      repeat_inherited = repeat_inherited
     )
   }
   .graficos_finalize_var_metadata(vs)
@@ -745,12 +1209,18 @@
     source_name <- .graficos_scalar_chr(src$name, "default")
     vars <- lapply(src$variables %||% list(), function(v) {
       status <- .graficos_var_status(v, source_name, included_refs, exclusions)
-      countable <- isTRUE(v$graphable) && isTRUE(v$is_preferred) && status != "excluida_intencionalmente"
+      countable <- isTRUE(v$graphable) && isTRUE(v$is_preferred) &&
+        !identical(v$suggest_as_primary, FALSE) &&
+        status != "excluida_intencionalmente"
       c(v, list(status = status, coverage_countable = countable))
     })
     list(
       name = source_name,
       source_kind = .graficos_scalar_chr(src$source_kind, "unknown"),
+      source_kind_raw = .graficos_scalar_chr(src$source_kind_raw, ""),
+      source_role = .graficos_scalar_chr(src$source_role, "principal"),
+      repeat_grain = src$repeat_grain %||% list(),
+      base_label = .graficos_scalar_chr(src$base_label, ""),
       variables = vars
     )
   })
@@ -789,6 +1259,53 @@
 
 .graficos_var_choice_n <- function(v) length(v$choices %||% list())
 
+.graficos_acnur_choice_exclusion_aliases <- function(item) {
+  values <- Filter(nzchar, c(
+    .graficos_scalar_chr(item$name, ""),
+    .graficos_scalar_chr(item$label, "")
+  ))
+  keys <- .graficos_norm_text_key(values)
+  if (any(keys %in% c("otro", "otros", "otra", "otras", "other", "others"))) {
+    values <- c(values, "Otro", "Otros", "Otra", "Otras", "Other", "Others")
+  }
+  unique(values)
+}
+
+.graficos_acnur_choice_pages <- function(v, max_per_slide = 8L) {
+  choices <- v$choices %||% list()
+  n_choices <- length(choices)
+  max_per_slide <- suppressWarnings(as.integer(max_per_slide)[1])
+  if (!is.finite(max_per_slide) || is.na(max_per_slide) || max_per_slide < 2L) {
+    max_per_slide <- 8L
+  }
+  if (n_choices <= max_per_slide) {
+    return(list(list(exclude_options = NULL, page = 1L, pages = 1L)))
+  }
+
+  chunks <- split(seq_len(n_choices), ceiling(seq_len(n_choices) / max_per_slide))
+  lapply(seq_along(chunks), function(page_idx) {
+    keep_idx <- chunks[[page_idx]]
+    exclude_idx <- setdiff(seq_len(n_choices), keep_idx)
+    exclude_options <- unique(unlist(lapply(choices[exclude_idx], function(item) {
+      .graficos_acnur_choice_exclusion_aliases(item)
+    }), use.names = FALSE))
+    list(
+      exclude_options = exclude_options,
+      page = as.integer(page_idx),
+      pages = as.integer(length(chunks))
+    )
+  })
+}
+
+.graficos_acnur_page_subtitle <- function(subtitle, page_spec) {
+  subtitle <- .graficos_scalar_chr(subtitle, "")
+  pages <- suppressWarnings(as.integer((page_spec %||% list())$pages %||% 1L)[1])
+  page <- suppressWarnings(as.integer((page_spec %||% list())$page %||% 1L)[1])
+  if (!is.finite(pages) || pages <= 1L) return(subtitle)
+  marker <- sprintf("%d de %d", page, pages)
+  if (nzchar(subtitle)) paste(subtitle, marker, sep = " · ") else marker
+}
+
 .graficos_is_ordinal_signature <- function(v) {
   n <- .graficos_var_choice_n(v)
   isTRUE(v$graphable) &&
@@ -797,7 +1314,11 @@
     n >= 3L && n <= 7L
 }
 
-.graficos_chart_for_var <- function(v, ref, profile_id = "", comparison_ref = NULL) {
+.graficos_chart_for_var <- function(v, ref, profile_id = "", comparison_ref = NULL,
+                                    base_label = "", exclude_options = NULL,
+                                    filtros = list(), subtitulo = "",
+                                    comparison_colors = NULL,
+                                    base_unit = "") {
   n_choices <- .graficos_var_choice_n(v)
   label <- .graficos_scalar_chr(v$label, ref)
   tipo <- .graficos_base_type(v$tipo)
@@ -805,12 +1326,40 @@
   comparison_ref <- .graficos_scalar_chr(comparison_ref, "")
   add_comparison <- function(args) {
     if (nzchar(comparison_ref)) args$cruces <- comparison_ref
+    if (length(filtros)) args$filtros <- filtros
     args
   }
   if (isTRUE(acnur_profile)) {
+    comparison_enabled <- nzchar(comparison_ref)
+    chart_overrides <- list(
+      mostrar_leyenda = comparison_enabled,
+      leyenda_posicion = if (comparison_enabled) "abajo" else "ninguna",
+      excluir_opciones = exclude_options,
+      minimo_cero_visual = 0.005,
+      color_fondo = "#FFFFFF"
+    )
+    if (comparison_enabled && length(filtros)) {
+      chart_overrides$base_por_grupo <- TRUE
+      chart_overrides$invertir_series <- TRUE
+      chart_overrides$invertir_leyenda <- TRUE
+      chart_overrides$legend_espaciado <- 5
+    }
+    base_label <- .graficos_scalar_chr(base_label, "")
+    subtitulo <- .graficos_scalar_chr(subtitulo, "")
+    if (nzchar(base_label)) chart_overrides$nota_pie <- base_label
+    if (nzchar(subtitulo)) chart_overrides$subtitulo <- subtitulo
+    base_unit <- .graficos_scalar_chr(base_unit, "")
+    if (nzchar(base_unit)) chart_overrides$unidad_base <- base_unit
+    if (!is.null(comparison_colors) && length(comparison_colors)) {
+      chart_overrides$colores_series <- comparison_colors
+    }
     return(list(
       graficador = "p_barras_agrupadas",
-      args = add_comparison(list(var = ref, titulo = label, mostrar_ceros = FALSE))
+      args = add_comparison(list(
+        var = ref,
+        mostrar_ceros = TRUE,
+        overrides = chart_overrides
+      ))
     ))
   }
   if (identical(tipo, "select_multiple")) {
@@ -844,7 +1393,7 @@
   slides
 }
 
-.graficos_pack_simple_graphs <- function(graphs, section_title = "") {
+.graficos_pack_simple_graphs <- function(graphs, section_title = "", base_label = "") {
   slides <- list()
   i <- 1L
   while (i <= length(graphs)) {
@@ -860,7 +1409,7 @@
           texto = "",
           izquierda = graphs[[i]]$graf,
           derecha = graphs[[i + 1L]]$graf,
-          base = "",
+          base = base_label,
           pie = "",
           etiqueta = ""
         )
@@ -874,7 +1423,7 @@
           titulo = graphs[[i]]$title,
           texto = "",
           grafico = graphs[[i]]$graf,
-          base = "",
+          base = base_label,
           pie = "",
           etiqueta = ""
         )
@@ -894,8 +1443,32 @@
 .graficos_comparison_ref <- function(source, comparison_mode = "none") {
   mode <- .graficos_scalar_chr(comparison_mode, "none")
   if (identical(mode, "koica_group")) return(.graficos_ref_for_source(source, "__koica_group"))
-  if (identical(mode, "district")) return(.graficos_ref_for_source(source, "__district"))
+  if (mode %in% c("district", "paired_district")) return(.graficos_ref_for_source(source, "__district"))
   ""
+}
+
+.graficos_acnur_pair_specs <- function(source = "default") {
+  lapply(.graficos_acnur_koica_pairs(), function(pair) {
+    districts <- pair$districts
+    colors <- stats::setNames(c("#0072BC", "#00A98F"), districts)
+    list(
+      id = pair$id,
+      label = pair$label,
+      subtitle = pair$label,
+      comparison_ref = .graficos_ref_for_source(source, "__district"),
+      filters = stats::setNames(list(districts), "__district"),
+      colors = colors,
+      districts = districts
+    )
+  })
+}
+
+.graficos_acnur_pairwise_exempt <- function(v) {
+  name_key <- .graficos_norm_text_key(.graficos_scalar_chr(v$name, ""))
+  label_key <- .graficos_norm_text_key(.graficos_scalar_chr(v$label, ""))
+  name_key %in% c("consent", "consentimiento", "m5_district", "district", "distrito") ||
+    grepl("(^|_)consent($|_)|(^|_)district($|_)|(^|_)distrito($|_)", name_key, perl = TRUE) ||
+    grepl("^distrito$|acepta continuar|consentimiento", label_key, perl = TRUE)
 }
 
 .graficos_boolish <- function(x) {
@@ -944,12 +1517,21 @@
     cfg$profile_family,
     profile$family,
     profile$variant,
+    s$project_path,
+    tools::file_path_sans_ext(basename(s$project_path %||% "")),
     estudio$project_kind,
     estudio$profile_family,
     (estudio$independent_siblings %||% list())$project_kind,
     (estudio$independent_siblings %||% list())$profile_family,
     base_values
   ))
+}
+
+.graficos_is_acnur_study <- function(sid, raw_cfg = list(), cfg = list()) {
+  keys <- .graficos_norm_text_key(
+    .graficos_session_profile_values(sid, raw_cfg = raw_cfg, cfg = cfg)
+  )
+  any(grepl("(^|_)(acnur|unhcr)(_|$)", keys, perl = TRUE))
 }
 
 .graficos_should_use_multisource_report <- function(sid, coverage, raw_cfg = list(), cfg = list(), profile_id = "") {
@@ -982,6 +1564,7 @@
       tipo <- .graficos_base_type(v$tipo)
       if (!identical(tipo, "select_one")) next
       if (!isTRUE(v$graphable) || !isTRUE(v$is_preferred) || !isTRUE(v$data_available)) next
+      if (identical(v$suggest_as_primary, FALSE)) next
       if (identical(v$status, "excluida_intencionalmente")) next
       choice_n <- .graficos_var_choice_n(v)
       if (choice_n < 2L || choice_n > 8L) next
@@ -1073,72 +1656,55 @@
   list(slides = slides, refs = unique(refs))
 }
 
-.graficos_acnur_intro_slides <- function(sid, include_coverage_maps = FALSE, acnur_mode = "general") {
+.graficos_acnur_intro_slides <- function(sid, include_coverage_maps = FALSE, acnur_mode = "general",
+                                         coverage = NULL, index_single_limit = 8L,
+                                         index_per_slide = 8L,
+                                         include_district_maps = FALSE) {
   territorial_mode <- identical(.graficos_scalar_chr(acnur_mode, "general"), "territorial")
-  slides <- list(
-    list(
-      id = .graficos_plan_slide_id("acnur"),
-      tipo = "p_slide_portada",
-      payload = list(
-        titulo = if (territorial_mode) "ACNUR territorial" else "ACNUR",
-        subtitulo = if (territorial_mode) "Resultados Kobo + cobertura territorial" else "Resultados Kobo",
-        fecha = format(Sys.Date(), "%Y"),
-        subtexto = "Plantilla Prosecnur original inspirada en estructura Kobo-style"
-      )
-    ),
-    list(
-      id = .graficos_plan_slide_id("acnur"),
-      tipo = "p_slide_texto",
-      payload = list(
-        titulo = "Ficha tecnica",
-        texto = c(
-          "Fuente: KoboToolbox UNHCR.",
-          "Instrumento: XLSForm + submissions normalizadas.",
-          "Procesamiento: Motor Prosecnur.",
-          if (territorial_mode) {
-            "Cobertura: Hojas de Ruta + Monitoreo territorial."
-          } else {
-            "Visualizacion: resultados en barras agrupadas ACNUR."
-          }
-        ),
-        bullets = "",
-        base = ""
-      )
-    )
+  slides <- .graficos_acnur_report_intro_slides(
+    sid,
+    coverage,
+    acnur_mode = acnur_mode,
+    index_single_limit = index_single_limit,
+    index_per_slide = index_per_slide
   )
   if (territorial_mode) {
-    slides[[length(slides) + 1L]] <- list(
-      id = .graficos_plan_slide_id("acnur"),
-      tipo = "p_slide_texto",
-      payload = list(
-        titulo = "Diseno territorial y comparativo",
-        texto = c(
-          "Intervencion territorial: San Juan de Lurigancho, San Martin de Porres y Chorrillos.",
-          "Comparacion territorial: Ate, San Juan de Miraflores y Los Olivos."
-        ),
-        bullets = "",
-        base = ""
-      )
-    )
+    is_note <- vapply(slides, function(slide) {
+      identical(.graficos_scalar_chr((slide %||% list())$tipo, ""), "p_slide_texto") &&
+        identical(.graficos_scalar_chr(((slide %||% list())$payload %||% list())$titulo, ""),
+                  "Diseño territorial")
+    }, logical(1))
+    slides <- slides[!is_note]
   }
   if (isTRUE(territorial_mode) && isTRUE(include_coverage_maps)) {
     overview_context <- .graficos_coverage_map_context(sid, scope = "overview_koica")
+    overview_context$titulo <- ""
+    overview_context$mostrar_titulo <- FALSE
     slides[[length(slides) + 1L]] <- list(
       id = .graficos_plan_slide_id("map"),
       tipo = "p_slide_1_grafico_narrativo",
       payload = list(
-        titulo = "Overview territorial",
+        titulo = "Distritos del estudio",
         texto = "",
         grafico = list(
           graficador = "p_mapa_cobertura_territorial",
-          args = list(scope = "overview_koica", titulo = "Overview territorial", contexto = overview_context)
+          args = list(
+            scope = "overview_koica",
+            titulo = "Distritos del estudio",
+            contexto = overview_context,
+            overrides = list(titulo = "")
+          )
         ),
         base = "",
         pie = "",
-        etiqueta = ""
+        etiqueta = "",
+        meta = list(
+          plot_extra_height_cm = 0,
+          plot_max_height_cm = 12.50
+        )
       )
     )
-    for (district in .graficos_acnur_koica_districts()) {
+    if (isTRUE(include_district_maps)) for (district in .graficos_acnur_koica_districts()) {
       ctx <- .graficos_coverage_map_context(sid, scope = "district", ubigeo = district$ubigeo)
       title <- paste("Cobertura efectiva -", district$distrito)
       slides[[length(slides) + 1L]] <- list(
@@ -1158,7 +1724,9 @@
       )
     }
   }
-  slides[[length(slides) + 1L]] <- list(id = .graficos_plan_slide_id("idx"), tipo = "p_slide_indice", payload = list())
+  if (isTRUE(territorial_mode) && exists(".graficos_acnur_profile_slides", mode = "function")) {
+    slides <- c(slides, .graficos_acnur_profile_slides(sid, coverage))
+  }
   slides
 }
 
@@ -1184,35 +1752,123 @@
   if (isTRUE(mode_explicit)) return("general")
 
   comparison_mode <- .graficos_scalar_chr(comparison_value, "")
-  if (isTRUE(include_value) || comparison_mode %in% c("koica_group", "district")) {
+  if (isTRUE(include_value) || comparison_mode %in% c("koica_group", "district", "paired_district")) {
     return("territorial")
   }
   "general"
 }
 
-.graficos_pack_acnur_graphs <- function(graphs, section_title = "") {
+.graficos_pack_acnur_graphs <- function(graphs, section_title = "", base_label = "") {
   lapply(graphs, function(item) {
     list(
       id = .graficos_plan_slide_id("auto"),
-      tipo = "p_slide_1_grafico_narrativo",
+      tipo = "p_slide_1_grafico",
       payload = list(
         titulo = item$title,
-        texto = "",
         grafico = item$graf,
-        base = "",
-        pie = "",
-        etiqueta = ""
+        base = NULL,
+        pie = .graficos_scalar_chr(item$source_note, ""),
+        etiqueta = "",
+        meta = list(
+          suppress_base_placeholder = TRUE,
+          suppress_footer_placeholder = !nzchar(.graficos_scalar_chr(item$source_note, ""))
+        )
       )
     )
   })
+}
+
+.graficos_generation_audit <- function(plan, coverage) {
+  variable_index <- list()
+  for (src in coverage$sources %||% list()) {
+    source <- .graficos_scalar_chr(src$name, "default")
+    for (v in src$variables %||% list()) {
+      key <- paste(source, .graficos_scalar_chr(v$name, ""), sep = "$")
+      variable_index[[key]] <- c(v, list(source = source, ref = key))
+    }
+  }
+  find_variable <- function(ref) {
+    parts <- .graficos_ref_parts(ref)
+    if (nzchar(parts$source)) return(variable_index[[paste(parts$source, parts$name, sep = "$")]])
+    hits <- Filter(function(v) identical(.graficos_scalar_chr(v$name, ""), parts$name), variable_index)
+    covered <- Filter(function(v) identical(v$status, "cubierta"), hits)
+    if (length(covered)) covered[[1]] else if (length(hits)) hits[[1]] else NULL
+  }
+
+  generated <- list()
+  seen <- character(0)
+  for (slide in (.normalize_plan(plan)$slides %||% list())) {
+    payload <- .as_json_list(slide$payload) %||% list()
+    title_final <- .graficos_clean_dynamic_label(payload$titulo %||% "")
+    for (value in payload) {
+      graf <- .as_json_list(value)
+      if (is.null(graf$graficador)) next
+      args <- .as_json_list(graf$args) %||% list()
+      refs <- unique(c(.graficos_collect_strings(args$var), .graficos_collect_strings(args$vars)))
+      for (ref in refs[nzchar(refs)]) {
+        v <- find_variable(ref)
+        if (is.null(v)) next
+        key <- paste(v$source, v$name, sep = "$")
+        if (key %in% seen) next
+        seen <- c(seen, key)
+        generated[[length(generated) + 1L]] <- list(
+          source = v$source,
+          var = v$name,
+          ref = key,
+          slide_id = .graficos_scalar_chr(slide$id, ""),
+          graficador = .graficos_scalar_chr(graf$graficador, ""),
+          label_original = .graficos_scalar_chr(v$label_original %||% v$label, ""),
+          title_final = if (nzchar(title_final)) title_final else .graficos_scalar_chr(v$label, v$name),
+          tokens = v$dynamic_tokens %||% list(),
+          context_resolution = .graficos_scalar_chr(v$context_resolution, "not_required")
+        )
+      }
+    }
+  }
+
+  omitted <- list()
+  for (v in variable_index) {
+    key <- paste(v$source, v$name, sep = "$")
+    if (key %in% seen) next
+    inherited <- isTRUE(v$parent_inherited) || isTRUE(v$repeat_inherited)
+    operational_filter <- isTRUE(v$operational_filter)
+    omitted[[length(omitted) + 1L]] <- list(
+      source = v$source,
+      var = v$name,
+      ref = key,
+      reason_code = if (operational_filter) {
+        "universe_filter"
+      } else if (inherited) {
+        "inherited_dimension"
+      } else {
+        .graficos_scalar_chr(v$status, "sin_usar")
+      },
+      status = .graficos_scalar_chr(v$status, "sin_usar"),
+      inherited = inherited,
+      operational_filter = operational_filter
+    )
+  }
+  list(
+    totals = list(generated = length(generated), omitted = length(omitted), failed = 0L),
+    generated = generated,
+    omitted = omitted,
+    failed = list()
+  )
 }
 
 .graficos_suggested_plan <- function(sid, config = NULL) {
   raw_cfg <- config %||% list()
   cfg <- .graficos_effective_config(sid, config)
   profile_id <- .graficos_scalar_chr(raw_cfg$profile_id %||% raw_cfg$profileId %||% cfg$profile_id, "")
+  if (!nzchar(profile_id) && .graficos_is_acnur_study(sid, raw_cfg = raw_cfg, cfg = cfg)) {
+    profile_id <- "acnur_kobo_cruncher_plus"
+  }
   include_value <- raw_cfg$include_coverage_maps %||% raw_cfg$includeCoverageMaps %||% cfg$include_coverage_maps
   comparison_value <- raw_cfg$comparison_mode %||% raw_cfg$comparisonMode %||% cfg$comparison_mode
+  include_district_maps <- isTRUE(
+    raw_cfg$include_district_maps %||% raw_cfg$includeDistrictMaps %||%
+      cfg$include_district_maps %||% cfg$includeDistrictMaps
+  )
   include_explicit <- !is.null(raw_cfg$include_coverage_maps) ||
     !is.null(raw_cfg$includeCoverageMaps) ||
     !is.null(cfg$include_coverage_maps)
@@ -1223,11 +1879,32 @@
   include_coverage_maps <- isTRUE(include_value)
   comparison_mode <- .graficos_scalar_chr(comparison_value, "")
   acnur_mode <- .graficos_acnur_mode(raw_cfg, cfg, include_value = include_value, comparison_value = comparison_value)
+  acnur_index_int <- function(value, fallback) {
+    out <- suppressWarnings(as.integer(value)[1])
+    if (!is.finite(out) || is.na(out) || out < 1L) fallback else out
+  }
+  acnur_index_single_limit <- acnur_index_int(
+    raw_cfg$acnur_index_single_limit %||% raw_cfg$acnurIndexSingleLimit %||%
+      cfg$acnur_index_single_limit %||% cfg$acnurIndexSingleLimit,
+    8L
+  )
+  acnur_index_per_slide <- acnur_index_int(
+    raw_cfg$acnur_index_per_slide %||% raw_cfg$acnurIndexPerSlide %||%
+      cfg$acnur_index_per_slide %||% cfg$acnurIndexPerSlide,
+    8L
+  )
+  acnur_categories_per_slide <- acnur_index_int(
+    raw_cfg$acnur_categories_per_slide %||% raw_cfg$acnurCategoriesPerSlide %||%
+      cfg$acnur_categories_per_slide %||% cfg$acnurCategoriesPerSlide,
+    8L
+  )
   if (identical(profile_id, "acnur_kobo_cruncher_plus")) {
     if (identical(acnur_mode, "territorial")) {
       if (!include_explicit) include_coverage_maps <- isTRUE(coverage_caps$has_coverage_maps)
-      if (!comparison_mode %in% c("koica_group", "district", "none")) comparison_mode <- "koica_group"
-      if (!comparison_explicit || !nzchar(comparison_mode)) comparison_mode <- "koica_group"
+      if (!comparison_mode %in% c("paired_district", "koica_group", "district", "none")) {
+        comparison_mode <- "paired_district"
+      }
+      if (!comparison_explicit || !nzchar(comparison_mode)) comparison_mode <- "paired_district"
     } else {
       include_coverage_maps <- FALSE
       comparison_mode <- "none"
@@ -1261,7 +1938,11 @@
     .graficos_acnur_intro_slides(
       sid,
       include_coverage_maps = include_coverage_maps,
-      acnur_mode = acnur_mode
+      acnur_mode = acnur_mode,
+      coverage = coverage_for_plan,
+      index_single_limit = acnur_index_single_limit,
+      index_per_slide = acnur_index_per_slide,
+      include_district_maps = include_district_maps
     )
   } else {
     list()
@@ -1273,6 +1954,19 @@
   }
   slides <- c(slides, multisource_pack$slides %||% list())
   comparison_refs <- multisource_pack$refs %||% character(0)
+  acnur_profile_source <- ""
+  acnur_profile_sex <- ""
+  if (identical(profile_id, "acnur_kobo_cruncher_plus") && identical(acnur_mode, "territorial") &&
+      exists(".graficos_acnur_report_context", mode = "function") &&
+      exists(".graficos_acnur_profile_variable", mode = "function")) {
+    profile_context <- .graficos_acnur_report_context(sid, coverage_for_plan)
+    profile_age <- .graficos_acnur_profile_variable(profile_context, "age")
+    profile_sex <- .graficos_acnur_profile_variable(profile_context, "sex")
+    if (nzchar(profile_age) && nzchar(profile_sex)) {
+      acnur_profile_source <- .graficos_scalar_chr((profile_context$main %||% list())$name, "")
+      acnur_profile_sex <- profile_sex
+    }
+  }
 
   for (src in coverage_for_plan$sources %||% list()) {
     source <- .graficos_scalar_chr(src$name, "default")
@@ -1280,8 +1974,11 @@
     vars <- Filter(function(v) {
       isTRUE(v$graphable) &&
         isTRUE(v$is_preferred) &&
+        !identical(v$suggest_as_primary, FALSE) &&
         !identical(v$status, "excluida_intencionalmente") &&
         isTRUE(v$data_available) &&
+        !(identical(source, acnur_profile_source) &&
+            identical(.graficos_scalar_chr(v$name, ""), acnur_profile_sex)) &&
         !.graficos_is_var_ref_in(comparison_refs, source, .graficos_scalar_chr(v$name, ""))
     }, vars)
     if (!length(vars)) next
@@ -1338,7 +2035,7 @@
                     wrap_y = 60
                   )
                 ),
-                base = "",
+                base = .graficos_scalar_chr(src$base_label, ""),
                 pie = "",
                 etiqueta = ""
               )
@@ -1354,36 +2051,114 @@
         v <- section_vars[[idx]]
         ref <- .graficos_scalar_chr(v$name)
         if (!identical(source, "default")) ref <- paste0(source, "$", ref)
-        simple[[length(simple) + 1L]] <- list(
-          title = .graficos_scalar_chr(v$label, ref),
-          graf = .graficos_chart_for_var(v, ref, profile_id = profile_id, comparison_ref = comparison_ref)
-        )
+        semantics <- if (identical(profile_id, "acnur_kobo_cruncher_plus")) {
+          .graficos_acnur_question_semantics(sid, source, v)
+        } else {
+          list(
+            note = .graficos_scalar_chr(src$base_label, ""),
+            exclude_options = NULL,
+            source_note = ""
+          )
+        }
+        pairwise <- identical(comparison_mode, "paired_district") &&
+          identical(profile_id, "acnur_kobo_cruncher_plus") &&
+          !.graficos_acnur_pairwise_exempt(v)
+        pair_specs <- if (isTRUE(pairwise)) .graficos_acnur_pair_specs(source) else list(NULL)
+        choice_pages <- if (identical(profile_id, "acnur_kobo_cruncher_plus")) {
+          .graficos_acnur_choice_pages(v, max_per_slide = acnur_categories_per_slide)
+        } else {
+          list(list(exclude_options = NULL, page = 1L, pages = 1L))
+        }
+        for (pair_spec in pair_specs) {
+          pair_subtitle <- if (is.null(pair_spec)) "" else pair_spec$subtitle
+          for (page_spec in choice_pages) {
+            page_exclusions <- .graficos_collect_strings(page_spec$exclude_options %||% NULL)
+            simple[[length(simple) + 1L]] <- list(
+              title = .graficos_scalar_chr(v$label, ref),
+              source_note = .graficos_scalar_chr(semantics$source_note, ""),
+              pair_id = if (is.null(pair_spec)) "" else pair_spec$id,
+              category_page = page_spec$page %||% 1L,
+              category_pages = page_spec$pages %||% 1L,
+              graf = .graficos_chart_for_var(
+                v,
+                ref,
+                profile_id = profile_id,
+                comparison_ref = if (is.null(pair_spec)) {
+                  if (identical(comparison_mode, "paired_district")) "" else comparison_ref
+                } else pair_spec$comparison_ref,
+                base_label = if (is.null(pair_spec)) .graficos_scalar_chr(semantics$note, "") else "",
+                exclude_options = unique(c(semantics$exclude_options, page_exclusions)),
+                filtros = if (is.null(pair_spec)) list() else pair_spec$filters,
+                subtitulo = .graficos_acnur_page_subtitle(pair_subtitle, page_spec),
+                comparison_colors = if (is.null(pair_spec)) NULL else pair_spec$colors,
+                base_unit = if (is.null(pair_spec)) "" else "personas"
+              )
+            )
+          }
+        }
       }
       slides <- c(
         slides,
         if (identical(profile_id, "acnur_kobo_cruncher_plus")) {
-          .graficos_pack_acnur_graphs(simple, section_title = if (identical(section, "Variables sugeridas")) "" else section)
+          .graficos_pack_acnur_graphs(
+            simple,
+            section_title = if (identical(section, "Variables sugeridas")) "" else section,
+            base_label = .graficos_scalar_chr(src$base_label, "")
+          )
         } else {
-          .graficos_pack_simple_graphs(simple, section_title = if (identical(section, "Variables sugeridas")) "" else section)
+          .graficos_pack_simple_graphs(
+            simple,
+            section_title = if (identical(section, "Variables sugeridas")) "" else section,
+            base_label = .graficos_scalar_chr(src$base_label, "")
+          )
         }
       )
     }
   }
 
-  plan <- list(slides = slides)
+  delivery <- .graficos_delivery_options(
+    cfg,
+    profile_id = profile_id,
+    template_id = if (identical(profile_id, "acnur_kobo_cruncher_plus")) "acnur_16_9" else NULL,
+    auto_otros_slides = if (identical(profile_id, "acnur_kobo_cruncher_plus")) FALSE else NULL
+  )
+  plan <- list(
+    slides = slides,
+    template_id = delivery$template_id,
+    auto_otros_slides = delivery$auto_otros_slides
+  )
   next_coverage <- .graficos_plan_coverage(
     sid,
     plan = plan,
     config = cfg,
     scoped = !isTRUE(use_multisource_report)
   )
-  list(
+  report_inputs <- NULL
+  if (identical(profile_id, "acnur_kobo_cruncher_plus") &&
+      exists(".graficos_acnur_report_inputs", mode = "function")) {
+    report_inputs <- .graficos_acnur_report_inputs(
+      sid,
+      coverage_for_plan,
+      acnur_mode = acnur_mode,
+      map_included = include_coverage_maps,
+      comparison_mode = comparison_mode
+    )
+  }
+  response <- list(
     ok = TRUE,
     plan = plan,
+    profile_id = profile_id,
+    acnur_mode = if (identical(profile_id, "acnur_kobo_cruncher_plus")) acnur_mode else "",
+    report_scope = "single_study",
+    template_id = delivery$template_id,
+    auto_otros_slides = delivery$auto_otros_slides,
+    generation_audit = .graficos_generation_audit(plan, next_coverage),
     coverage = next_coverage,
     warnings = as.list(unique(c(
       unlist(warnings, use.names = FALSE),
       if (!length(slides)) "No se encontraron variables graficables con datos para sugerir un plan." else character(0)
     )))
   )
+  if (!is.null(report_inputs)) response$report_inputs <- report_inputs
+  response
 }

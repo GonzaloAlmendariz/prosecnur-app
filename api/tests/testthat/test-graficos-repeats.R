@@ -70,6 +70,28 @@ test_that("graficos consume fuentes repeat enriquecidas, ponderadas y con grano"
   expect_equal(grain$n_personas, 2L)
   expect_equal(attr(child, "repeat_design", exact = TRUE)$cluster_col,
                "_parent_index")
+
+  payload <- .graficos_variables_sources_payload(st$sid)
+  repeat_source <- payload$sources[[which(vapply(
+    payload$sources,
+    function(source) identical(source$name, child_name),
+    logical(1)
+  ))]]
+  by_name <- stats::setNames(
+    repeat_source$variables,
+    vapply(repeat_source$variables, `[[`, character(1), "name")
+  )
+
+  expect_equal(repeat_source$source_role, "repeat")
+  expect_equal(repeat_source$repeat_grain$n_instancias, 3L)
+  expect_equal(repeat_source$repeat_grain$n_personas, 2L)
+  expect_equal(repeat_source$base_label, "Base: 3 respuestas de 2 encuestas")
+  expect_true(isTRUE(by_name$sexo$parent_inherited))
+  expect_true(isTRUE(by_name$sexo$repeat_inherited))
+  expect_false(isTRUE(by_name$sexo$suggest_as_primary))
+  expect_true(isTRUE(by_name$sexo$graphable))
+  expect_true(isTRUE(by_name$sexo$is_preferred))
+  expect_true(isTRUE(by_name$srv_claridad$suggest_as_primary))
 })
 
 test_that("graficos_repeat_enrich_sources es benigno para una base normal", {

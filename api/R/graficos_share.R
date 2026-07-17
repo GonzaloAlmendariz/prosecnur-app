@@ -81,6 +81,55 @@
   if (!is.list(inst_sources)) list() else inst_sources
 }
 
+.graficos_source_relational_meta <- function(sid, source_name, data = NULL, inst = NULL) {
+  s <- session_get(sid, required = FALSE)
+  base <- (((s %||% list())$estudio %||% list())$bases %||% list())[[source_name]] %||% list()
+  universe_filter <- base$universe_filter %||% list()
+  universe_filter_variables <- if (isTRUE(universe_filter$enabled)) {
+    exclusion_rules <- universe_filter$exclusion_rules %||% list()
+    unique(Filter(nzchar, c(
+      .graficos_scalar_chr(universe_filter$variable, ""),
+      vapply(exclusion_rules, function(rule) {
+        .graficos_scalar_chr((rule %||% list())$variable, "")
+      }, character(1))
+    )))
+  } else {
+    character(0)
+  }
+  is_repeat <- nzchar(as.character(base$parent_base %||% "")) &&
+    nzchar(as.character(base$repeat_group %||% ""))
+  role <- if (is_repeat) "repeat" else "principal"
+  grain <- attr(inst, "repeat_grain", exact = TRUE) %||% list()
+  if (!is.list(grain)) grain <- list()
+  if (is_repeat) {
+    grain$kind <- as.character(grain$kind %||% "instancia")
+    grain$n_instancias <- as.integer(grain$n_instancias %||% if (is.data.frame(data)) nrow(data) else NA_integer_)
+    grain$n_personas <- as.integer(grain$n_personas %||% NA_integer_)
+    grain$parent_base <- as.character(grain$parent_base %||% base$parent_base %||% "")
+  } else {
+    grain <- list(
+      kind = "encuesta",
+      n_encuestas = as.integer(if (is.data.frame(data)) nrow(data) else NA_integer_)
+    )
+  }
+  base_label <- if (exists(".reporte_plan_base_label", mode = "function")) {
+    .reporte_plan_base_label(
+      role = role,
+      grain = grain,
+      n_rows = if (is.data.frame(data)) nrow(data) else NULL
+    )
+  } else {
+    ""
+  }
+  list(
+    source_role = role,
+    repeat_grain = grain,
+    base_label = base_label,
+    universe_filter_variable = if (length(universe_filter_variables)) universe_filter_variables[[1]] else "",
+    universe_filter_variables = as.list(universe_filter_variables)
+  )
+}
+
 .graficos_variables_sources_payload <- function(sid, scoped = TRUE) {
   processing_sources <- if (isTRUE(scoped)) {
     .graficos_processing_sources(sid)
@@ -92,16 +141,36 @@
   source_kinds <- .graficos_source_kind_map(sid)
   sources <- lapply(names(inst_sources), function(nm) {
     kind <- .graficos_scalar_chr(source_kinds[[nm]] %||% "", "")
-    list(
+    relational <- .graficos_source_relational_meta(
+      sid,
+      nm,
+      data = data_sources[[nm]] %||% NULL,
+      inst = inst_sources[[nm]] %||% NULL
+    )
+    variables <- .graficos_extract_vars_from_inst(
+      inst_sources[[nm]],
+      data = data_sources[[nm]] %||% NULL,
+      source_name = nm,
+      source_kind = kind
+    )
+    filter_variables <- unique(Filter(nzchar, .graficos_collect_strings(
+      relational$universe_filter_variables %||% relational$universe_filter_variable
+    )))
+    if (length(filter_variables)) {
+      variables <- lapply(variables, function(variable) {
+        if (!(.graficos_scalar_chr(variable$name, "") %in% filter_variables)) return(variable)
+        variable$operational_filter <- TRUE
+        variable$suggest_as_primary <- FALSE
+        variable$exclusion_reason <- "filtro aplicado al universo"
+        variable
+      })
+    }
+    c(list(
       name = nm,
       source_kind = .graficos_simplify_source_kind(kind),
-      variables = .graficos_extract_vars_from_inst(
-        inst_sources[[nm]],
-        data = data_sources[[nm]] %||% NULL,
-        source_name = nm,
-        source_kind = kind
-      )
-    )
+      source_kind_raw = kind,
+      variables = variables
+    ), relational)
   })
   list(
     sources = sources,

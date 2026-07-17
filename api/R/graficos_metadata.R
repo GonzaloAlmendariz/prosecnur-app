@@ -28,6 +28,7 @@
 # "codigos_list"     → lista editable de códigos (ej. sm_omit_codes)
 # "series_colors"    → pares serie → color con filas editables
 # "criteria_config"  → criterios/conductores con selector de variables
+# "technical_rows"   → filas estructuradas {criterio, detalle}
 # "icono"            → dropdown del catálogo de iconos subidos en sesión
 # "overrides"        → editor especial de overrides (delta vs preset tipo)
 # "filtros"          → editor de filtros por variable (avanzado)
@@ -401,8 +402,8 @@
     slots         = character(0),
     args = list(
       list(name = "titulo", label = "Título de la tabla", tipo_input = "string",   grupo = "textos"),
-      list(name = "filas",  label = "Filas",              tipo_input = "textarea", grupo = "datos",
-           descripcion = "Una fila por línea, en formato 'Campo: valor'. La UI lo traduce a filas de la tabla."),
+      list(name = "filas",  label = "Filas",              tipo_input = "technical_rows", grupo = "datos",
+           descripcion = "Filas estructuradas de la ficha, con un criterio y su detalle."),
       list(name = "pie",    label = "Nota al pie",        tipo_input = "string",   grupo = "textos")
     )
   ),
@@ -757,7 +758,7 @@
            default = "district",
            choices = list(
              list(value = "district", label = "Distrito"),
-             list(value = "overview_koica", label = "Overview KOICA")
+             list(value = "overview_koica", label = "Vista general KOICA")
            )),
       list(name = "ubigeo", label = "UBIGEO", tipo_input = "string", grupo = "datos",
            descripcion = "Código distrital cuando el alcance es distrito."),
@@ -2866,11 +2867,13 @@
 
 .PPT_STYLE_PROFILES <- list(
   acnur_kobo_cruncher_plus = list(
-    titulo_humano = "ACNUR - Kobo azul",
+    template_id = "acnur_16_9",
+    auto_otros_slides = FALSE,
+    titulo_humano = "ACNUR · azul institucional",
     descripcion = paste(
-      "Linea visual ACNUR para reportes Kobo: portada azul,",
-      "titulos limpios, barras agrupadas en azul ACNUR y logo PULSO en footer.",
-      "El modo territorial KOICA agrega mapas y comparativos solo cuando corresponde."
+      "Línea visual para informes ACNUR: portada azul, títulos limpios,",
+      "gráficos en azul institucional y logo PULSO en el pie.",
+      "La variante territorial se activa por separado cuando el estudio la requiere."
     ),
     icono_ui = "BarChart3",
     preview_colors = unname(c(
@@ -2890,53 +2893,75 @@
         formato = "Base: %s",
         sufijo_auto = "encuestas",
         size_titulo = 13.5,
-        size_titulo_slide = 22.5,
+        size_titulo_slide = 24,
         size_subtitulo = 12,
         size_subtitulo_slide = 15,
         size_cuerpo_slide = 13,
         size_leyenda = 9.5,
-        size_ejes = 9.2,
+        size_ejes = 16,
         size_nota_pie = 9,
-        size_texto_barras = 3.6,
+        size_texto_barras = 16 / (72.27 / 25.4),
         size_titulo_portada = 50,
         size_subtitulo_portada = 22,
+        size_titulo_seccion = 30,
         top_offset_subtitulo_portada = 0.58,
-        height_subtitulo_portada = 0.50,
+        height_subtitulo_portada = 0.95,
         color_titulo = .ACNUR_PPT_COLORS$text,
         color_subtitulo = .ACNUR_PPT_COLORS$navy,
         color_leyenda = .ACNUR_PPT_COLORS$text,
-        color_ejes = .ACNUR_PPT_COLORS$gray,
+        color_ejes = .ACNUR_PPT_COLORS$text,
         color_nota_pie = .ACNUR_PPT_COLORS$text,
         color_titulo_portada = "#FFFFFF",
         color_subtitulo_portada = .ACNUR_PPT_COLORS$yellow,
+        color_titulo_seccion = .ACNUR_PPT_COLORS$blue,
         mayusculas_titulo_slide = FALSE,
         mayusculas_titulo_portada = TRUE,
         bold_titulo_slide = FALSE,
         bold_titulo_portada = TRUE,
+        bold_titulo_seccion = TRUE,
         slide_1_plot_height_cm = 13.40,
+        slide_title_height = 0.84,
         partner_logo_footer = TRUE,
         partner_logo_path = "api/inst/hojas_ruta/assets/logo_pulso.png",
         partner_logo_left = 0.46,
         partner_logo_height = 0.60,
-        textos_negrita = c("leyenda", "valores")
+        partner_logo_cover = TRUE,
+        partner_logo_cover_variant = "white",
+        partner_logo_cover_left = 0.46,
+        partner_logo_cover_top = 0.30,
+        partner_logo_cover_height = 0.60,
+        source_footer_left = 2.15,
+        source_footer_top = 6.96,
+        source_footer_width = 4.00,
+        source_footer_height = 0.28,
+        source_footer_align = "left",
+        textos_negrita = c("leyenda", "valores", "eje_y")
       ),
       barras_agrupadas = list(
-        usar_canvas = FALSE,
-        canvas_w_etiquetas = 0.33,
-        canvas_w_bars = 0.62,
-        canvas_h_toprow_in = 0.08,
-        canvas_h_header_in = 0.40,
+        usar_canvas = TRUE,
+        preservar_tamanos_texto = TRUE,
+        canvas_w_adaptativo = TRUE,
+        alinear_etiquetas = "izquierda",
+        canvas_w_etiquetas = 0.34,
+        canvas_w_bars = 0.66,
+        canvas_w_extra = 0,
+        canvas_h_toprow_in = 0,
+        canvas_h_header_in = 0.32,
         canvas_h_legend_in = 0.10,
-        canvas_h_caption_in = 0.10,
-        alto_por_categoria = 0.34,
-        ancho_max_eje_y = 32,
+        canvas_h_caption_in = 0.08,
+        alto_por_categoria = 0.42,
+        grosor_barras = 0.66,
+        lineheight_eje_y = 1.08,
+        ancho_max_eje_y = 38,
+        forzar_ancho_max_eje_y = TRUE,
         mostrar_valores = TRUE,
         mostrar_ceros = FALSE,
         decimales = 1,
         umbral_etiqueta = 0.001,
         umbral_posicion = 0.055,
         mostrar_barra_extra = FALSE,
-        mostrar_leyenda = TRUE,
+        mostrar_leyenda = FALSE,
+        leyenda_posicion = "ninguna",
         orden_barras = "instrumento",
         invertir_barras = TRUE,
         color_texto_barras_fuera = .ACNUR_PPT_COLORS$navy,
@@ -3017,9 +3042,10 @@
           usar_canvas = FALSE,
           mostrar_leyenda = TRUE,
           invertir_barras = TRUE,
-          alto_por_categoria = 0.34,
-          canvas_h_header_in = 0.36,
-          canvas_h_caption_in = 0.10,
+          alto_por_categoria = 0.42,
+          grosor_barras = 0.66,
+          canvas_h_header_in = 0.32,
+          canvas_h_caption_in = 0.08,
           colores_series = list(
             Intervencion = .ACNUR_PPT_COLORS$blue,
             `Intervención` = .ACNUR_PPT_COLORS$blue,
@@ -3030,7 +3056,11 @@
       )
     ),
     scope_rules = list(
-      global = list(profile_id = "acnur_kobo_cruncher_plus")
+      global = list(
+        profile_id = "acnur_kobo_cruncher_plus",
+        template_id = "acnur_16_9",
+        auto_otros_slides = FALSE
+      )
     )
   )
 )
@@ -3608,7 +3638,7 @@
         list(id = "tpl-acnur-3", tipo = "p_slide_texto",
              payload = list(titulo = "Diseno KOICA", texto = "Intervencion y comparacion territorial.", bullets = "", base = "")),
         list(id = "tpl-acnur-4", tipo = "p_slide_1_grafico_narrativo",
-             payload = list(titulo = "Overview territorial KOICA", texto = "", grafico = NULL, base = "", pie = "", etiqueta = "")),
+             payload = list(titulo = "Cobertura territorial KOICA", texto = "", grafico = NULL, base = "", pie = "", etiqueta = "")),
         list(id = "tpl-acnur-5", tipo = "p_slide_indice", payload = list()),
         list(id = "tpl-acnur-6", tipo = "p_slide_seccion",
              payload = list(titulo = "Resultados", subtitulo = "", introduccion_word = ""))
@@ -3801,7 +3831,9 @@
       presets = meta$presets %||% list(),
       paletas = meta$paletas %||% list(),
       overrides_reusables = meta$overrides_reusables %||% list(),
-      scope_rules = meta$scope_rules %||% list()
+      scope_rules = meta$scope_rules %||% list(),
+      template_id = as.character(meta$template_id %||% "generic_16_9"),
+      auto_otros_slides = isTRUE(meta$auto_otros_slides %||% TRUE)
     )
   })
   list(style_profiles = profiles)

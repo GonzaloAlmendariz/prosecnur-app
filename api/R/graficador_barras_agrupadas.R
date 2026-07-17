@@ -87,6 +87,9 @@
 #' @param mostrar_ceros Si `TRUE`, conserva categorias con porcentaje 0 y
 #'   muestra su etiqueta `0%` cerca del origen. Es util cuando se requiere que
 #'   todas las opciones formales del instrumento aparezcan en el grafico.
+#' @param minimo_cero_visual Longitud exclusivamente grafica, en escala 0-1,
+#'   para una barra cuyo valor real es exactamente cero. El dato, la etiqueta,
+#'   el orden y la escala conservan el valor `0`. Por defecto no se aplica.
 #' @param umbral_posicion Umbral (en escala 0-1) para decidir si la etiqueta se coloca
 #'   dentro de la barra (mitad de la altura) o fuera (por encima).
 #' @param sufijo_etiqueta Texto adicional al final de cada etiqueta (por ejemplo, `" pp"`).
@@ -156,6 +159,12 @@
 #'
 #' @param usar_canvas Si `TRUE`, arma el grafico mediante `cowplot` separando encabezado,
 #'   panel, leyenda y pie en bloques.
+#' @param preservar_tamanos_texto Si `TRUE`, conserva los tamanos solicitados
+#'   para categorias y valores aunque el grafico tenga muchas categorias o series.
+#' @param canvas_w_adaptativo Si `TRUE`, reparte el ancho entre etiquetas y barras
+#'   segun la longitud visible de las etiquetas ya envueltas.
+#' @param alinear_etiquetas Alineacion horizontal de las etiquetas dentro de su
+#'   columna en modo canvas.
 #' @param canvas_w_etiquetas,canvas_w_buf_etq_bars,canvas_w_bars,canvas_w_buf_bars_extra,canvas_w_extra
 #'   Anchos relativos de los bloques horizontales del panel (etiquetas, buffers, barras y
 #'   bloque de texto extra).
@@ -229,6 +238,7 @@ graficar_barras_agrupadas <- function(
     decimales                 = 1,
     umbral_etiqueta           = 0.03,
     mostrar_ceros             = FALSE,
+    minimo_cero_visual        = 0,
     umbral_barra              = 0.01,   # proporcion minima para dibujar una barra
     umbral_posicion           = 0.15,
     sufijo_etiqueta           = "",
@@ -288,6 +298,9 @@ graficar_barras_agrupadas <- function(
     # CANVAS CONTROLADO
     # ==========================
     usar_canvas               = FALSE,
+    preservar_tamanos_texto   = FALSE,
+    canvas_w_adaptativo       = FALSE,
+    alinear_etiquetas         = c("derecha", "izquierda"),
 
     canvas_w_etiquetas        = 0.38,
     canvas_w_buf_etq_bars     = 0.00,
@@ -349,6 +362,7 @@ graficar_barras_agrupadas <- function(
 	  pos_nota_pie <- match.arg(pos_nota_pie)
 	  leyenda_posicion <- match.arg(leyenda_posicion)
 	  orden_barras <- match.arg(orden_barras)
+  alinear_etiquetas <- match.arg(alinear_etiquetas)
   normalizar_etiquetas <- .barras_agrupadas_normalizacion_modo(normalizar_etiquetas)
   font_family <- as.character(font_family %||% "Arial")[1]
   if (is.na(font_family) || !nzchar(trimws(font_family))) font_family <- "Arial"
@@ -376,6 +390,8 @@ graficar_barras_agrupadas <- function(
   hjust_titulo    <- hjust_from_pos(pos_titulo)
   hjust_caption   <- hjust_from_pos(pos_nota_pie)
   mostrar_ceros   <- isTRUE(mostrar_ceros)
+  minimo_cero_visual <- suppressWarnings(as.numeric(minimo_cero_visual)[1])
+  if (!is.finite(minimo_cero_visual) || minimo_cero_visual < 0) minimo_cero_visual <- 0
 
   # canvas: solo horizontal (por diseno de placeholders por filas)
   if (isTRUE(usar_canvas) && orientacion != "horizontal") {
@@ -580,6 +596,16 @@ graficar_barras_agrupadas <- function(
     }
   }
 
+  # Mantener el cero como dato y reservar una longitud mínima solo para el
+  # dibujo. Ningún cálculo, etiqueta u orden usa `.valor_dibujo`.
+  df_long$.valor_dibujo <- df_long$.valor_plot
+  zero_real <- mostrar_ceros &
+    is.finite(df_long$.valor_raw_plot) &
+    df_long$.valor_raw_plot == 0
+  if (minimo_cero_visual > 0) {
+    df_long$.valor_dibujo[zero_real] <- minimo_cero_visual
+  }
+
   # orden series
   niveles_series <- unname(etiquetas_series)
   if (invertir_series) niveles_series <- rev(niveles_series)
@@ -669,7 +695,7 @@ graficar_barras_agrupadas <- function(
       }
     }
     dense_labels <- n_categorias >= 8L || max_cat_width >= 42
-    if (isTRUE(dense_labels)) {
+    if (isTRUE(dense_labels) && !isTRUE(preservar_tamanos_texto)) {
       size_ejes_eff <- min(size_ejes_eff, if (n_categorias >= 10L || max_cat_width >= 48) 12.2 else 13.2)
       if (!forzar_ancho_max_eje_y && !is.null(ancho_max_eje_y_eff)) {
         ancho_max_eje_y_eff <- min(suppressWarnings(as.numeric(ancho_max_eje_y_eff)[1]), 32)
@@ -690,12 +716,16 @@ graficar_barras_agrupadas <- function(
 
   # tamanos texto %
   n_series <- length(levels(df_long$.serie))
-  size_texto_barras_eff <- dplyr::case_when(
-    n_series <= 2 ~ size_texto_barras * 1.00,
-    n_series == 3 ~ size_texto_barras * 0.85,
-    n_series == 4 ~ size_texto_barras * 0.70,
-    TRUE          ~ size_texto_barras * 0.55
-  )
+  size_texto_barras_eff <- if (isTRUE(preservar_tamanos_texto)) {
+    suppressWarnings(as.numeric(size_texto_barras)[1])
+  } else {
+    dplyr::case_when(
+      n_series <= 2 ~ size_texto_barras * 1.00,
+      n_series == 3 ~ size_texto_barras * 0.85,
+      n_series == 4 ~ size_texto_barras * 0.70,
+      TRUE          ~ size_texto_barras * 0.55
+    )
+  }
 
   max_valor <- suppressWarnings(max(df_long$.valor_plot, na.rm = TRUE))
   if (!is.finite(max_valor)) max_valor <- 0
@@ -715,7 +745,7 @@ graficar_barras_agrupadas <- function(
     df_long,
     ggplot2::aes(
       x    = .data[[var_categoria]],
-      y    = .data$.valor_plot,
+      y    = .data$.valor_dibujo,
       fill = .data$.fill_key
     )
   ) +
@@ -832,7 +862,10 @@ graficar_barras_agrupadas <- function(
 
     p <- p +
       ggplot2::geom_text(
-        data        = df_lab[df_lab$lab != "", , drop = FALSE],
+        # Conservar también las filas cuya etiqueta está vacía mantiene el
+        # mismo dodge que las barras cuando una serie vale cero. ggplot no
+        # dibuja esos textos, pero sí reserva su posición dentro del grupo.
+        data        = df_lab,
         mapping     = ggplot2::aes(
           x      = .data[[var_categoria]],
           y      = .data$valor_label,
@@ -1058,11 +1091,12 @@ graficar_barras_agrupadas <- function(
       attr(p, "alto_word_sugerido") <- (alto_por_categoria %||% 0.35) * max(1L, n_categorias)
       attr(p, "pulso_barras_agrupadas_layout") <- list(
         n_categorias = n_categorias,
-      base_max = base_max,
-      usar_eje_libre = isTRUE(usar_eje_libre),
-      grosor_eff = grosor_barras_eff,
-      size_ejes_eff = size_ejes_eff,
-      ancho_max_eje_y_eff = ancho_max_eje_y_eff
+        base_max = base_max,
+        usar_eje_libre = isTRUE(usar_eje_libre),
+        grosor_eff = grosor_barras_eff,
+        size_ejes_eff = size_ejes_eff,
+        size_texto_barras_eff = size_texto_barras_eff,
+        ancho_max_eje_y_eff = ancho_max_eje_y_eff
       )
       return(p)
     }
@@ -1132,7 +1166,7 @@ graficar_barras_agrupadas <- function(
         size  = size_leyenda,
         family = font_family,
         face  = if ("leyenda" %in% textos_negrita) "bold" else "plain",
-        margin = ggplot2::margin(r = legend_espaciado, unit = "pt")
+        margin = ggplot2::margin(l = legend_espaciado, r = legend_espaciado, unit = "pt")
       ),
       legend.key.width  = grid::unit(legend_key_cm, "cm"),
       legend.key.height = grid::unit(legend_key_cm, "cm"),
@@ -1257,6 +1291,35 @@ graficar_barras_agrupadas <- function(
   w_buf2  <- w_buf2  / w_sum
   w_extra <- w_extra / w_sum
 
+  if (isTRUE(canvas_w_adaptativo) && length(etiquetas_vec)) {
+    visible_lines <- unlist(
+      strsplit(as.character(etiquetas_vec), "\n", fixed = TRUE),
+      use.names = FALSE
+    )
+    visible_lines <- visible_lines[!is.na(visible_lines)]
+    max_chars <- if (length(visible_lines)) {
+      max(nchar(visible_lines, type = "width", allowNA = FALSE, keepNA = FALSE), na.rm = TRUE)
+    } else 0
+    if (!is.finite(max_chars)) max_chars <- 0
+
+    plot_width_in <- suppressWarnings(as.numeric(ancho)[1])
+    if (!is.finite(plot_width_in) || plot_width_in <= 0) plot_width_in <- 10
+    estimated_label_in <- max_chars * (size_ejes_eff / 72) * 0.52 + 0.16
+    fixed_share <- w_legend_side + w_buf1 + w_buf2 + w_extra
+    available_share <- max(0, 1 - fixed_share)
+    max_label_share <- max(0.22, min(0.46, available_share - 0.50))
+    target_label_share <- min(
+      max_label_share,
+      max(0.22, estimated_label_in / plot_width_in)
+    )
+    target_bar_share <- available_share - target_label_share
+
+    if (is.finite(target_bar_share) && target_bar_share >= 0.50) {
+      w_etq <- target_label_share
+      w_bars <- target_bar_share
+    }
+  }
+
   x_legend_side0 <- if (identical(leyenda_posicion, "izquierda")) 0 else NA_real_
   x_etq0   <- if (identical(leyenda_posicion, "izquierda")) w_legend_side else 0
   x_buf10  <- x_etq0 + w_etq
@@ -1373,15 +1436,20 @@ graficar_barras_agrupadas <- function(
   y_abs <- y_main0 + y_npc * main_h
 
   # etiquetas izquierda
-  pad_x <- 0.012
-  x_lab <- x_etq0 + w_etq * (1 - pad_x)
+  pad_x <- 0.018
+  label_hjust <- if (identical(alinear_etiquetas, "izquierda")) 0 else 1
+  x_lab <- if (identical(alinear_etiquetas, "izquierda")) {
+    x_etq0 + w_etq * pad_x
+  } else {
+    x_etq0 + w_etq * (1 - pad_x)
+  }
   fontface_etq <- if ("eje_y" %in% textos_negrita) "bold" else "plain"
 
   text_args_eje_y <- list(
     text     = NULL,
     x        = x_lab,
     y        = NULL,
-    hjust    = 1,
+    hjust    = label_hjust,
     vjust    = 0.5,
     size     = size_ejes_eff,
     colour   = color_ejes,
@@ -1489,8 +1557,12 @@ graficar_barras_agrupadas <- function(
       canvas_min_filas = canvas_min_filas_eff,
       h_panel_in = h_panel_in,
       size_ejes_eff = size_ejes_eff,
+      size_texto_barras_eff = size_texto_barras_eff,
       lineheight_eje_y_eff = lineheight_eje_y_eff,
-      ancho_max_eje_y_eff = ancho_max_eje_y_eff
+      ancho_max_eje_y_eff = ancho_max_eje_y_eff,
+      canvas_w_etiquetas_eff = w_etq,
+      canvas_w_bars_eff = w_bars,
+      alinear_etiquetas = alinear_etiquetas
     )
     return(canvas)
   }
