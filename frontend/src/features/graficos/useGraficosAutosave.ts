@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { apiGraficosConfigGet, apiGraficosConfigPut } from "../../api/client";
 import { createDefaultWordPresets, normalizeGraficosConfig, normalizeWordPresets } from "../../api/graficosConfigNormalizer";
 import { DEFAULT_CANVAS_VIEWPORT, DEFAULT_DEBUG_PH, GraficosConfig, usePlanStore } from "./store";
+import { buildGraficosScopeRules } from "./configSnapshot";
 
 // Autosave del plan de gráficos. Misma mecánica que useAnaliticaAutosave:
 //
@@ -147,10 +148,12 @@ export function useGraficosAutosave() {
         inspector_tab: inspectorTab,
         density,
         canvas_viewport: canvasViewport,
-        scope_rules: {
-          ...scopeRules,
-          global: { presets, paletas, overrides_reusables: overridesReusables, debug_ph: debugPh },
-        },
+        scope_rules: buildGraficosScopeRules(scopeRules, {
+          presets,
+          paletas,
+          overrides_reusables: overridesReusables,
+          debug_ph: debugPh,
+        }),
       };
       try {
         await apiGraficosConfigPut(normalizeGraficosConfig(config, { includeLegacyAliases: true }));

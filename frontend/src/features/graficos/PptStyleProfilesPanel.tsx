@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Check, Layers3, Loader2, Palette, Sparkles } from "lucide-react";
 import type { PptStyleProfileMeta } from "../../api/client";
 import { usePlanStore } from "./store";
@@ -8,7 +7,12 @@ import { resolveGraphLucideIcon } from "./lucideRegistry";
 export function PptStyleProfilesPanel() {
   const { profiles, loading, error } = usePptStyleProfiles();
   const applyPptStyleProfile = usePlanStore((s) => s.applyPptStyleProfile);
-  const [applied, setApplied] = useState<string | null>(null);
+  const applied = usePlanStore((s) => {
+    const global = s.scopeRules.global;
+    if (!global || typeof global !== "object" || Array.isArray(global)) return null;
+    const profileId = (global as Record<string, unknown>).profile_id;
+    return typeof profileId === "string" && profileId.trim() ? profileId : null;
+  });
 
   if (loading) {
     return (
@@ -44,7 +48,7 @@ export function PptStyleProfilesPanel() {
           {appliedProfile ? <Check size={12} /> : <Layers3 size={12} />}
           <span>
             <strong>{appliedProfile ? appliedProfileTitle : "Valor por defecto"}</strong>
-            <small>{appliedProfile ? "Aplicada en esta sesión" : "Sin línea aplicada"}</small>
+            <small>{appliedProfile ? "Aplicada al plan" : "Sin línea aplicada"}</small>
           </span>
         </span>
       </div>
@@ -86,10 +90,9 @@ export function PptStyleProfilesPanel() {
                 type="button"
                 className={isApplied ? "is-applied" : ""}
                 aria-pressed={isApplied}
-                title={isApplied ? "Línea visual aplicada en esta sesión" : `Aplicar línea visual ${displayTitle}`}
+                title={isApplied ? "Línea visual aplicada al plan" : `Aplicar línea visual ${displayTitle}`}
                 onClick={() => {
                   applyPptStyleProfile(profile);
-                  setApplied(profile.name);
                 }}
               >
                 {isApplied ? <Check size={12} /> : <Sparkles size={12} />}

@@ -5,6 +5,7 @@ import { useGraficosRegistry } from "./useGraficosRegistry";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { useVariables } from "./useVariables";
 import { formatNumericRange, hasMeaningfulValue, validateNumericArgValue } from "./numericArgValidation";
+import { isDerivedReportVariableRef } from "./derivedReportVariables";
 
 // Validador del plan 100% client-side: deriva warnings/errores de lo
 // que ya vive en el store + registry + variables del instrumento. Sin
@@ -199,7 +200,9 @@ function humanizeSlot(slot: string): string {
 // que el graficador referencia pero no existen en el instrumento.
 function checkVarRefs(graf: GraficadorRef, varNames: Set<string>): string[] {
   const refs = collectVarRefs(graf.args ?? {});
-  return Array.from(new Set(refs.filter((v) => v.length > 0 && !varNames.has(v))));
+  return Array.from(new Set(refs.filter((v) => (
+    v.length > 0 && !isDerivedReportVariableRef(v) && !varNames.has(v)
+  ))));
 }
 
 function collectVarRefs(args: Record<string, unknown>): string[] {
