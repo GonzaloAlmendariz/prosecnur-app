@@ -888,10 +888,16 @@ graficar_barras_agrupadas <- function(
   # ---------------------------------------------------------------------------
   # 4) Colores + wrap
   # ---------------------------------------------------------------------------
+  # El override de colores del usuario (colores_categorias / colores_series)
+  # puede venir corto, sin nombres o como el deparse de un vector; se sanea con
+  # el helper compartido antes de scale_fill_manual para no abortar con
+  # "Insufficient values in manual scale" / "Unknown colour name".
   if (isTRUE(usar_color_categorias)) {
-    p <- p + ggplot2::scale_fill_manual(values = colores_categorias)
+    pal_cat <- .graficos_mk_palette(levels(df_long$.fill_key), pal_user = colores_categorias)
+    p <- p + ggplot2::scale_fill_manual(values = pal_cat)
   } else if (!is.null(colores_series)) {
-    p <- p + ggplot2::scale_fill_manual(values = colores_series)
+    pal_ser <- .graficos_mk_palette(levels(df_long$.serie), pal_user = colores_series)
+    p <- p + ggplot2::scale_fill_manual(values = pal_ser)
   }
 
   if (!is.null(ancho_max_eje_y_eff)) {

@@ -811,16 +811,12 @@ graficar_radar <- function(
   # ---------------------------------------------------------------------------
   pal <- NULL
   if (!is.null(colores_series)) {
-    cs <- as.character(colores_series)
-    if (is.null(names(cs))) {
-      cs <- cs[seq_len(min(length(cs), length(grupos)))]
-      cs <- stats::setNames(cs, as.character(grupos)[seq_along(cs)])
-    } else {
-      names(cs) <- trimws(as.character(names(cs)))
-    }
-    g_chr <- as.character(grupos)
-    pal <- cs[g_chr]
-    if (all(is.na(pal)) || length(pal) == 0) pal <- NULL
+    # El override del usuario (colores_series) puede venir corto, sin nombres o
+    # como el deparse de un vector; se sanea/rellena con el helper compartido a
+    # un palette limpio keyed por grupo, para no abortar scale_color_manual con
+    # "Unknown colour name".
+    pal <- .graficos_mk_palette(as.character(grupos), pal_user = colores_series)
+    if (!length(pal)) pal <- NULL
   } else if (requireNamespace("scales", quietly = TRUE)) {
     pal <- stats::setNames(scales::hue_pal()(length(grupos)), as.character(grupos))
   }

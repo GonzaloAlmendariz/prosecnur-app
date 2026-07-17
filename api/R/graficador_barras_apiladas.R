@@ -2196,7 +2196,10 @@ graficar_barras_apiladas <- function(
 
   if (!is.null(colores_grupos)) {
     if (is.null(names(colores_grupos))) colores_grupos <- stats::setNames(colores_grupos, niveles_originales)
-    valores_leyenda <- colores_grupos[niveles_leyenda]
+    # El override del usuario puede venir corto, sin nombres o como el deparse
+    # de un vector; se sanea y rellena con el helper compartido para no abortar
+    # scale_fill_manual con "Insufficient values in manual scale".
+    valores_leyenda <- .graficos_mk_palette(niveles_leyenda, pal_user = colores_grupos)
     colores_leyenda_manual <- unname(valores_leyenda)
     p_bars <- p_bars +
       ggplot2::scale_fill_manual(

@@ -533,11 +533,15 @@ graficar_barras_numericas <- function(
       )
   }
 
-  # Colores
+  # Colores. El override del usuario puede venir corto, sin nombres o como el
+  # deparse de un vector; se sanea/rellena con el helper compartido antes de
+  # scale_fill_manual para no abortar con "Insufficient values in manual scale".
   if (isTRUE(usar_color_categorias)) {
-    p <- p + ggplot2::scale_fill_manual(values = colores_categorias)
+    pal_cat <- .graficos_mk_palette(levels(df_long$.fill_key), pal_user = colores_categorias)
+    p <- p + ggplot2::scale_fill_manual(values = pal_cat)
   } else if (!is.null(colores_series)) {
-    p <- p + ggplot2::scale_fill_manual(values = colores_series)
+    pal_ser <- .graficos_mk_palette(levels(df_long$.serie), pal_user = colores_series)
+    p <- p + ggplot2::scale_fill_manual(values = pal_ser)
   }
 
   # Wrap categorias
@@ -1088,20 +1092,23 @@ graficar_histograma <- function(
   tab$.bin_label <- as.character(tab$.bin)
   tab$.grupo_label <- as.character(tab$.grupo)
 
-  if (!is.null(colores_series) && is.null(colores_grupos)) colores_grupos <- colores_series
-  if (is.null(colores_grupos) || !length(colores_grupos)) {
-    colores_grupos <- c("#06245C", "#9EC3E6", "#CA5651", "#70AD47", "#FFD966", "#7B5EA7")
-  }
-  colores_grupos <- unlist(colores_grupos, use.names = TRUE)
-  if (is.null(names(colores_grupos)) || any(!nzchar(names(colores_grupos)))) {
-    colores_grupos <- stats::setNames(rep(colores_grupos, length.out = length(niveles_grupo)), niveles_grupo)
+  # override del usuario (colores_grupos tiene prioridad sobre colores_series)
+  override_grupos <- if (!is.null(colores_grupos) && length(colores_grupos)) {
+    colores_grupos
+  } else if (!is.null(colores_series) && length(colores_series)) {
+    colores_series
   } else {
-    faltantes <- setdiff(niveles_grupo, names(colores_grupos))
-    if (length(faltantes)) {
-      extra <- rep(unname(colores_grupos), length.out = length(faltantes))
-      colores_grupos <- c(colores_grupos, stats::setNames(extra, faltantes))
-    }
-    colores_grupos <- colores_grupos[niveles_grupo]
+    NULL
+  }
+  if (!is.null(override_grupos)) {
+    # El override del usuario puede venir corto, sin nombres o como el deparse
+    # de un vector; se sanea/rellena con el helper compartido a un palette limpio
+    # keyed por grupo, para no abortar scale_fill_manual.
+    colores_grupos <- .graficos_mk_palette(niveles_grupo, pal_user = override_grupos)
+  } else {
+    # Paleta interna fija (no es override del usuario): se recicla tal cual.
+    colores_grupos <- c("#06245C", "#9EC3E6", "#CA5651", "#70AD47", "#FFD966", "#7B5EA7")
+    colores_grupos <- stats::setNames(rep(colores_grupos, length.out = length(niveles_grupo)), niveles_grupo)
   }
   legend_text_gap_pt <- max(0, as.numeric(legend_text_gap %||% 0.12)) * 28.35
   legend_item_gap_pt <- max(0, as.numeric(legend_espaciado %||% 0.6)) * 28.35

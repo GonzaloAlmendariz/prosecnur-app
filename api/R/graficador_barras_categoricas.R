@@ -300,6 +300,15 @@ graficar_barras_categoricas <- function(
   }
 
   df$label <- .barras_categoricas_make_labels(df, formato_valor, decimales, mostrar_frecuencia)
+  # Los overrides de color del usuario (colores_categorias / paleta_colores)
+  # pueden llegar cortos, sin nombres o como el deparse de un vector; se sanean
+  # y rellenan con el helper compartido a un palette limpio keyed por categoria,
+  # para que scale_fill_manual nunca reciba basura ("Unknown colour name").
+  if (!is.null(colores_categorias) && length(colores_categorias)) {
+    colores_categorias <- .graficos_mk_palette(unique(df$categoria), pal_user = colores_categorias)
+  } else if (!is.null(paleta_colores) && length(paleta_colores)) {
+    paleta_colores <- .graficos_mk_palette(unique(df$categoria), pal_user = paleta_colores)
+  }
   df$fill <- .barras_categoricas_resolve_colors(df$categoria, colores_categorias, paleta_colores)
   df$x <- factor(df$categoria, levels = df$categoria)
   if (!is.null(ancho_max_eje_x) && is.finite(suppressWarnings(as.numeric(ancho_max_eje_x)))) {

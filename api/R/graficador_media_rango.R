@@ -183,51 +183,10 @@ graficar_media_rango <- function(
     p
   }
 
-  .mk_palette <- function(levels_cat, pal_user = NULL) {
-    levels_cat <- as.character(levels_cat)
-    levels_cat <- levels_cat[!is.na(levels_cat) & nzchar(trimws(levels_cat))]
-    if (!length(levels_cat)) return(character(0))
-
-    base_pal <- c(
-      "#0B4F8C", "#2A9D8F", "#E9C46A", "#F4A261",
-      "#E76F51", "#7A9E9F", "#6D597A", "#5B8DEF"
-    )
-
-    if (is.null(pal_user) || !length(pal_user)) {
-      if (length(levels_cat) <= length(base_pal)) {
-        vals <- base_pal[seq_along(levels_cat)]
-      } else {
-        vals <- scales::hue_pal(h = c(200, 360), c = 70, l = 55)(length(levels_cat))
-      }
-      return(stats::setNames(vals, levels_cat))
-    }
-
-    pal_user <- as.character(pal_user)
-    if (!is.null(names(pal_user))) {
-      names(pal_user) <- trimws(as.character(names(pal_user)))
-      vals <- pal_user[levels_cat]
-      miss <- is.na(vals) | !nzchar(vals)
-      if (any(miss)) {
-        fallback <- setdiff(base_pal, vals[!miss])
-        if (!length(fallback)) {
-          fallback <- scales::hue_pal(h = c(200, 360), c = 70, l = 55)(sum(miss))
-        } else if (length(fallback) < sum(miss)) {
-          fallback <- c(
-            fallback,
-            scales::hue_pal(h = c(200, 360), c = 70, l = 55)(sum(miss) - length(fallback))
-          )
-        }
-        vals[miss] <- fallback[seq_len(sum(miss))]
-      }
-      return(stats::setNames(vals, levels_cat))
-    }
-
-    if (length(pal_user) < length(levels_cat)) {
-      extra <- scales::hue_pal(h = c(200, 360), c = 70, l = 55)(length(levels_cat) - length(pal_user))
-      pal_user <- c(pal_user, extra)
-    }
-    stats::setNames(pal_user[seq_along(levels_cat)], levels_cat)
-  }
+  # Saneo/relleno del override de colores centralizado en el helper compartido
+  # `.graficos_mk_palette` (api/R/graficador_paleta.R). Alias local para
+  # preservar los call-sites de este graficador.
+  .mk_palette <- .graficos_mk_palette
 
   orientacion <- match.arg(orientacion)
   modo <- match.arg(modo)
