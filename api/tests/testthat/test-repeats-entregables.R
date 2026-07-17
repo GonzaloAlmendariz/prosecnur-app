@@ -278,13 +278,14 @@ test_that("(c) el PDF de formulario con repeat renderiza sin romper", {
 
 # --- (d) Ficha técnica: grano de instancia -----------------------------------
 
-test_that("(d) la nota de grano formatea instancias vs personas y es vacía sin repeat", {
+test_that("(d) la nota de grano distingue respuestas y encuestas", {
   grain <- list(kind = "instancia", n_instancias = 3L, n_personas = 2L,
                 repeat_group = "rep_servicios", parent_base = "madre")
   nota <- .repeat_grain_ficha_nota(grain)
-  expect_match(nota, "3 filas")
+  expect_match(nota, "3 respuestas")
   expect_match(nota, "rep_servicios")
-  expect_match(nota, "2 personas")
+  expect_match(nota, "2 encuestas")
+  expect_false(grepl("casos|personas", nota, ignore.case = TRUE))
   # Bases normales: sin nota.
   expect_equal(.repeat_grain_ficha_nota(NULL), "")
   expect_equal(.repeat_grain_ficha_nota(list(kind = "persona")), "")
@@ -299,14 +300,15 @@ test_that("(d) la ficha técnica de una base hija refleja el grano de instancia"
   rows <- .ficha_tecnica_rows(data = df, instrumento = inst, reporte = "Base de datos")
   detalle_muestra <- rows$Detalle[rows$Campo == "Tamano de la muestra"]
   expect_length(detalle_muestra, 1L)
-  expect_match(detalle_muestra, "fila repetida")
-  expect_match(detalle_muestra, "2 personas")
+  expect_match(detalle_muestra, "3 respuestas")
+  expect_match(detalle_muestra, "2 encuestas")
+  expect_false(grepl("casos|personas", detalle_muestra, ignore.case = TRUE))
 
   # Sin grano (base normal): la ficha no menciona instancias.
   inst_normal <- .re_child_inst()
   rows_n <- .ficha_tecnica_rows(data = df, instrumento = inst_normal, reporte = "Base de datos")
   detalle_normal <- rows_n$Detalle[rows_n$Campo == "Tamano de la muestra"]
-  expect_false(grepl("fila repetida", detalle_normal))
+  expect_false(grepl("respuestas correspondientes", detalle_normal))
 })
 
 # --- (E) Univariados de la HIJA: sin heredadas + desglose por servicio ---------
