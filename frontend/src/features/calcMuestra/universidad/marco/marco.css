@@ -2743,6 +2743,11 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+/* Encabezados numéricos en una sola línea: sin esto «CH · eleg.» partía en dos
+   y la fila de encabezado quedaba desalineada con las demás tarjetas. */
+.cmv2-explorador-dist th[data-numeric] {
+  white-space: nowrap;
+}
 .cmv2-explorador-dist td:first-child {
   display: grid;
   grid-template-columns: minmax(80px, 1fr) minmax(60px, 120px) 44px;
