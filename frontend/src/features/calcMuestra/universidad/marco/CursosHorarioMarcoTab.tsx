@@ -47,8 +47,6 @@ import {
   reconciliarBorradorCriterios,
   type TipoBorradorCriterio,
 } from "../criterios/borradorCriterios";
-import { PresetCanonicoButton } from "../criterios/PresetCanonicoButton";
-import type { PresetCanonicoPlan } from "../criterios/presetCanonicoModel";
 import type { FacultadRef } from "../criterios/facultades";
 import type { FacultadMinRef } from "../criterios/MinElegiblesCard";
 import { setMinimoFacultad, setTasaAsistencia, tasaAsistencia } from "../criterios/minElegiblesModel";
@@ -220,10 +218,6 @@ export function CursosHorarioMarcoTab({
     setBorrador((prev) => reactivarTodas(prev, clavesTextKey));
     marcarPendiente(MANUAL_EXCLUDED_ID);
   }
-  function precargarPreset(plan: PresetCanonicoPlan) {
-    setBorrador(plan.seleccion);
-    setPendientes(new Set(plan.pendientes));
-  }
 
   // ---- confirmar / descartar GLOBAL (un solo gesto, no por tarjeta) --------
   function confirmarTodo() {
@@ -282,14 +276,6 @@ export function CursosHorarioMarcoTab({
                   Confirmar cambios
                 </button>
               </div>
-            ) : null}
-            {ready ? (
-              <PresetCanonicoButton
-                catalogo={catalogo}
-                seleccion={seleccion}
-                borradoresSinConfirmar={totalPendientes}
-                onPrecargar={precargarPreset}
-              />
             ) : null}
             <button
               type="button"
