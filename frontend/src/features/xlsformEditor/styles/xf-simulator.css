@@ -17,9 +17,12 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Por encima del resto del chrome del editor (pulso-graph-overlay usa 900). */
+/* Debe cubrir la command bar del editor (.pulso-page-frame-toolbar, z-index
+ * 1000) y el MoreViewsMenu (1200), igual que .pulso-graph-overlay (1400). El
+ * overlay se portalea a document.body, así que sin este z-index la barra
+ * «Instrumento / Constructor / Hojas» quedaba pintada ENCIMA del simulador. */
 .pulso-xfsim-overlay {
-  z-index: 940;
+  z-index: 1400;
 }
 
 /* ── Barra fina de progreso bajo el header ─────────────────────────────── */
