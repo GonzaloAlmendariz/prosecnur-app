@@ -1,6 +1,10 @@
 # Criterios adicionales del marco de aulas universitarias: docente estable,
 # nivel del curso por unidad académica, sede del operativo y los opcionales
-# c7 (prevalencia mínima de elegibles) y c8 (homogeneidad de ciclo).
+# c7 (prevalencia mínima de elegibles) y c8. El criterio 8 (acuerdo
+# metodológico 2026-07-15) tiene DOS partes EN ORDEN: (1) ≥80% de los
+# elegibles del aula de la MISMA FACULTAD del curso (require_faculty_prevalence)
+# y (2) ≥80% del MISMO NIVEL DEL CURSO (require_cycle_homogeneity, redefinido:
+# la referencia es el nivel del curso, con fallback modal MARCADO).
 #
 # Vive en archivo propio porque calc_muestra_aulas.R supera las 4400 líneas y
 # no debe seguir creciendo: calc_muestra_aulas_construir() invoca
@@ -220,6 +224,14 @@
       }
     }
     min_elig <- list(threshold = .cm_aulas_num(me$threshold, NA_real_), byFaculty = by_fac)
+    # attendance_rate: tasa de asistencia esperada, INFORMATIVA (numeric en
+    # (0, 1]). No altera el umbral efectivo — el mínimo sigue siendo el
+    # threshold/byFaculty explícito del usuario — pero debe sobrevivir los
+    # round-trips del workspace (whitelist-only). Solo se persiste junto a un
+    # threshold: sin él, minEligible ni siquiera se crea (un attendance suelto
+    # activaría la suite y neutralizaría los filtros legacy sin querer).
+    ar <- .cm_aulas_num(me$attendance_rate %||% me$tasa_asistencia, NA_real_)
+    if (is.finite(ar) && ar > 0 && ar <= 1) min_elig$attendance_rate <- ar
   }
   out <- list(byVariable = by_out, courseLevelRanges = course_ranges, minEligible = min_elig)
   if (!.cm_criterios_seleccion_activa(out)) return(list())
@@ -246,6 +258,12 @@
     session_type_excepciones = list(),
     require_min_prevalence = FALSE,
     min_prevalence_pct = 0.80,
+    # Criterio 8, parte 1 (2026-07-15): prevalencia de la FACULTAD del curso
+    # entre los elegibles del aula. Se reporta SIEMPRE antes que la parte 2.
+    require_faculty_prevalence = FALSE,
+    min_faculty_prevalence_pct = 0.80,
+    # Criterio 8, parte 2: mismo NIVEL DEL CURSO entre los elegibles (fallback
+    # modal marcado cuando el curso no declara nivel).
     require_cycle_homogeneity = FALSE,
     min_cycle_homogeneity_pct = 0.80
   )
@@ -339,6 +357,8 @@
     ),
     require_min_prevalence = .cm_aulas_bool(filters$require_min_prevalence, d$require_min_prevalence),
     min_prevalence_pct = .cm_criterios_pct(filters$min_prevalence_pct, d$min_prevalence_pct),
+    require_faculty_prevalence = .cm_aulas_bool(filters$require_faculty_prevalence, d$require_faculty_prevalence),
+    min_faculty_prevalence_pct = .cm_criterios_pct(filters$min_faculty_prevalence_pct, d$min_faculty_prevalence_pct),
     require_cycle_homogeneity = .cm_aulas_bool(filters$require_cycle_homogeneity, d$require_cycle_homogeneity),
     min_cycle_homogeneity_pct = .cm_criterios_pct(filters$min_cycle_homogeneity_pct, d$min_cycle_homogeneity_pct)
   )
@@ -574,8 +594,19 @@
 #   - cycle_homogeneity: sobre las filas ELEGIBLES del aula, proporción de
 #     estudiantes únicos (con ciclo no vacío) en el ciclo modal; los
 #     estudiantes sin ciclo no entran ni al numerador ni al denominador, y un
-#     aula sin ningún ciclo queda en NA (sin señal, pasa c8).
-.cm_criterios_stats_por_aula <- function(aula_frame, filas, patrones, teacher_orden = NULL) {
+#     aula sin ningún ciclo queda en NA (sin señal, pasa c8). Se conserva como
+#     métrica informativa; el gate c8 usa level_match_share (ver abajo).
+#   - faculty_match_share (criterio 8, parte 1): entre los elegibles únicos
+#     con facultad, proporción cuya facultad == la del CURSO (faculty_ref:
+#     faculty_curso del catálogo o facultad modal del aula). NA sin elegibles
+#     con facultad o sin referencia (sin señal, pasa).
+#   - level_match_share (criterio 8, parte 2): entre los elegibles únicos con
+#     ciclo, proporción cuyo ciclo == el NIVEL DEL CURSO (catálogo o columna
+#     course_level propia de la base; NUNCA el ciclo modal de los alumnos —
+#     esa referencia era el bug conceptual del c8 histórico). Si el curso no
+#     declara nivel, degrada al share modal y level_reference marca "modal".
+.cm_criterios_stats_por_aula <- function(aula_frame, filas, patrones, teacher_orden = NULL,
+                                         faculty_ref = NULL, course_level_cat = NULL) {
   n_aulas <- nrow(aula_frame)
   teacher_type <- character(n_aulas)
   teacher_type_top <- character(n_aulas)
@@ -584,7 +615,13 @@
   condicion_curso <- character(n_aulas)
   campus <- character(n_aulas)
   cycle_homogeneity <- rep(NA_real_, n_aulas)
+  faculty_match_share <- rep(NA_real_, n_aulas)
+  level_match_share <- rep(NA_real_, n_aulas)
+  level_reference <- character(n_aulas)
   cc_filas <- filas$condicion_curso %||% character(0)
+  fac_filas <- filas$faculty %||% character(0)
+  if (is.null(faculty_ref) || length(faculty_ref) != n_aulas) faculty_ref <- rep("", n_aulas)
+  if (is.null(course_level_cat) || length(course_level_cat) != n_aulas) course_level_cat <- rep(NA_real_, n_aulas)
   # Orden efectivo de jerarquía docente (ALTO→BAJO). Vacío → default académico.
   teacher_orden <- .cm_criterios_normalize_teacher_orden(teacher_orden)
   if (!n_aulas) {
@@ -592,7 +629,9 @@
       teacher_type = teacher_type, teacher_type_top = teacher_type_top,
       teacher_eval = teacher_eval,
       course_level_num = course_level_num, condicion_curso = condicion_curso,
-      campus = campus, cycle_homogeneity = cycle_homogeneity
+      campus = campus, cycle_homogeneity = cycle_homogeneity,
+      faculty_match_share = faculty_match_share,
+      level_match_share = level_match_share, level_reference = level_reference
     ))
   }
   idx_map <- split(seq_along(filas$classroom_id), filas$classroom_id)
@@ -610,8 +649,12 @@
     teacher_type_top[[i]] <- .cm_criterios_teacher_top(tt, teacher_orden)
     if (length(tt)) teacher_eval[[i]] <- any(.cm_aulas_contains_any(tt, patrones))
 
-    num <- .cm_criterios_parse_nivel(.cm_aulas_mode(filas$course_level[idx_all], ""))
-    if (is.na(num)) num <- .cm_criterios_parse_nivel(nivel_aula[[i]])
+    # num_curso: nivel PROPIO del curso (columna course_level de la base),
+    # SIN el fallback al ciclo modal del aula. Ese fallback solo alimenta
+    # course_level_num (filtro nivel-por-unidad, degradación documentada); la
+    # referencia del criterio 8 lo excluye a propósito.
+    num_curso <- .cm_criterios_parse_nivel(.cm_aulas_mode(filas$course_level[idx_all], ""))
+    num <- if (is.finite(num_curso)) num_curso else .cm_criterios_parse_nivel(nivel_aula[[i]])
     course_level_num[[i]] <- num
 
     campus[[i]] <- .cm_aulas_mode(filas$campus[idx_all], "")
@@ -623,12 +666,41 @@
     keep <- nzchar(sid_e) & nzchar(lvl_e)
     lvls <- lvl_e[keep][!duplicated(sid_e[keep])]
     if (length(lvls)) cycle_homogeneity[[i]] <- round(max(table(lvls)) / length(lvls), 4)
+
+    # Criterio 8, parte 1: share de elegibles únicos de la facultad del curso.
+    if (length(fac_filas) >= max(idx_e, 0L) && nzchar(faculty_ref[[i]])) {
+      fac_e <- fac_filas[idx_e]
+      keep_f <- nzchar(sid_e) & nzchar(fac_e)
+      facs <- fac_e[keep_f][!duplicated(sid_e[keep_f])]
+      if (length(facs)) {
+        faculty_match_share[[i]] <- round(
+          mean(.cm_criterios_fac_key(facs) == .cm_criterios_fac_key(faculty_ref[[i]])), 4
+        )
+      }
+    }
+
+    # Criterio 8, parte 2: la referencia de nivel es el CURSO (catálogo manda,
+    # después la columna propia de la base); sin nivel de curso, fallback al
+    # share modal HISTÓRICO, marcado en level_reference para el diagnóstico.
+    ref_nivel <- if (is.finite(course_level_cat[[i]])) course_level_cat[[i]] else num_curso
+    if (is.finite(ref_nivel)) {
+      if (length(lvls)) {
+        lv_num <- .cm_criterios_num_vec(lvls)
+        level_match_share[[i]] <- round(mean(is.finite(lv_num) & lv_num == ref_nivel), 4)
+      }
+      level_reference[[i]] <- "curso"
+    } else if (length(lvls)) {
+      level_match_share[[i]] <- cycle_homogeneity[[i]]
+      level_reference[[i]] <- "modal"
+    }
   }
   list(
     teacher_type = teacher_type, teacher_type_top = teacher_type_top,
     teacher_eval = teacher_eval,
     course_level_num = course_level_num, condicion_curso = condicion_curso,
-    campus = campus, cycle_homogeneity = cycle_homogeneity
+    campus = campus, cycle_homogeneity = cycle_homogeneity,
+    faculty_match_share = faculty_match_share,
+    level_match_share = level_match_share, level_reference = level_reference
   )
 }
 
@@ -669,13 +741,14 @@
 
 # --- Impacto medido de los opcionales ----------------------------------------
 
-# Impacto de c7 y c8 medido SIEMPRE (estén activos o no) sobre el MARCO BASE:
-# todas las reglas base aplicadas (min_eligible, docente, nivel, sede) SIN c7
-# ni c8. Para cada opcional por separado reporta cuántas aulas del marco base
-# sobreviven, la cobertura global recomputada con ese marco filtrado (misma
-# lógica de "alcanzables" del perfil: estudiantes con >= 1 fila eligible_row
-# en un aula del marco filtrado, sobre poblacion_n), qué unidades quedarían
-# con 0 aulas y el umbral configurado.
+# Impacto de c7, c8_facultad y c8 medido SIEMPRE (estén activos o no) sobre el
+# MARCO BASE: todas las reglas base aplicadas (min_eligible, docente, nivel,
+# sede) SIN los opcionales. Para cada opcional por separado reporta cuántas
+# aulas del marco base sobreviven, la cobertura global recomputada con ese
+# marco filtrado (misma lógica de "alcanzables" del perfil: estudiantes con
+# >= 1 fila eligible_row en un aula del marco filtrado, sobre poblacion_n),
+# qué unidades quedarían con 0 aulas y el umbral configurado. Orden del
+# reporte: c7 → c8_facultad → c8 (facultad ANTES que nivel, acuerdo 2026-07-15).
 calc_muestra_aulas_impacto_opcionales <- function(aula_frame,
                                                   base_ok,
                                                   evals,
@@ -710,6 +783,7 @@ calc_muestra_aulas_impacto_opcionales <- function(aula_frame,
     marco_base_aulas = as.integer(sum(marco_base)),
     opcionales = list(
       c7 = medir("c7", evals$c7, aplica$c7, umbrales$c7),
+      c8_facultad = medir("c8_facultad", evals$c8_facultad, aplica$c8_facultad, umbrales$c8_facultad),
       c8 = medir("c8", evals$c8, aplica$c8, umbrales$c8)
     )
   )
@@ -722,17 +796,21 @@ calc_muestra_aulas_impacto_opcionales <- function(aula_frame,
 # min_eligible_per_class). Nunca "des-excluye": respeta el included entrante
 # como piso y solo puede restringir más. Devuelve:
 #   - aula_frame: con columnas nuevas (teacher_type, course_level_num, campus,
-#     prevalence_ratio, cycle_homogeneity) e included/exclude_reason
+#     prevalence_ratio, cycle_homogeneity, faculty_match_share,
+#     level_match_share, level_reference) e included/exclude_reason
 #     actualizados (razones acumuladas con "|", orden min_eligible -> docente
-#     -> nivel -> sede -> c7 -> c8)
+#     -> nivel -> sede -> c7 -> c8_facultad -> c8)
 #   - flags: df por aula con min_eligible_ok/teacher_ok/course_level_ok/
-#     campus_ok/c7_ok/c8_ok (semántica "aplicado": filtro inactivo = TRUE)
+#     campus_ok/c7_ok/c8_facultad_ok/c8_ok (semántica "aplicado": filtro
+#     inactivo = TRUE)
 #   - aplica: predicados de activación (pedido en config Y señal en la base)
-#   - marco_base_aulas + opcionales: impacto medido de c7/c8 (siempre).
+#   - marco_base_aulas + opcionales: impacto medido de c7/c8_facultad/c8
+#     (siempre)
+#   - criterio8: diagnóstico de los NA y del fallback modal del criterio 8.
 #
 # filas: vectores por fila de la base ya leídos por construir():
-#   classroom_id, student_id, level, teacher_type, course_level, campus,
-#   eligible_row.
+#   classroom_id, student_id, level, faculty, teacher_type, course_level,
+#   campus, eligible_row.
 calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, cfg,
                                                   catalog_signals = list(),
                                                   empty_bucket_cols = character(0)) {
@@ -746,6 +824,7 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   mapa_nivel <- .cm_criterios_normalize_nivel_por_unidad(filtros$nivel_por_unidad)
   sedes <- .cm_aulas_chr_vec(filtros$accepted_campuses)
   pct7 <- .cm_criterios_pct(filtros$min_prevalence_pct, 0.80)
+  pct8fac <- .cm_criterios_pct(filtros$min_faculty_prevalence_pct, 0.80)
   pct8 <- .cm_criterios_pct(filtros$min_cycle_homogeneity_pct, 0.80)
 
   # Predicados de activación: pedido en config Y señal en la base. Para nivel
@@ -760,13 +839,31 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
       (any(nzchar(filas$course_level)) || any(nzchar(.cm_aulas_values(aula_frame, "level", "")))),
     sede = !suite_activa && length(sedes) > 0L && any(nzchar(filas$campus)),
     c7 = isTRUE(filtros$require_min_prevalence),
+    # Criterio 8 parte 1 (facultad): como c7, la señal se resuelve por aula
+    # (share NA pasa), basta el pedido en config.
+    c8_facultad = isTRUE(filtros$require_faculty_prevalence),
     c8 = isTRUE(filtros$require_cycle_homogeneity) && any(nzchar(filas$level))
   )
+
+  # Criterio 8 (acuerdo 2026-07-15): referencias del CURSO por aula. Facultad:
+  # faculty_curso del catálogo (autoritativa) con fallback a la facultad modal
+  # del aula; nivel: course_level del catálogo (la señal propia de la base la
+  # resuelve stats_por_aula, sin el fallback modal).
+  sig <- if (is.list(catalog_signals)) catalog_signals else list()
+  afk <- .cm_aulas_text_key(.cm_aulas_values(aula_frame, "classroom_id", ""))
+  fac_cat <- if (length(sig$faculty_curso)) unname(sig$faculty_curso[afk]) else rep(NA_character_, n_aulas)
+  fac_cat[is.na(fac_cat)] <- ""
+  faculty_ref <- ifelse(nzchar(fac_cat), fac_cat, .cm_aulas_values(aula_frame, "faculty", ""))
+  course_level_cat <- if (length(sig$course_level)) unname(sig$course_level[afk]) else rep(NA_real_, n_aulas)
 
   # Orden de jerarquía docente para la etiqueta teacher_type_top (configurable;
   # NULL/vacío → default académico). No participa de ningún gate de inclusión.
   teacher_orden <- .cm_criterios_normalize_teacher_orden((cfg %||% list())$teacher_type_orden)
-  stats <- .cm_criterios_stats_por_aula(aula_frame, filas, patrones, teacher_orden)
+  stats <- .cm_criterios_stats_por_aula(aula_frame, filas, patrones, teacher_orden,
+                                        faculty_ref = faculty_ref,
+                                        course_level_cat = course_level_cat)
+  # eligible_ratio = elegibles/matrícula administrativa: métrica referencial
+  # LEGACY del c7; NO mide facultad ni nivel (el criterio 8 vive aparte).
   ratio <- .cm_aulas_num_values(aula_frame, "eligible_ratio", NA_real_)
 
   # Evaluaciones "puras" por aula (sin importar activación): sin señal pasa.
@@ -779,7 +876,8 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
       rep(TRUE, n_aulas)
     },
     c7 = is.na(ratio) | ratio >= pct7,
-    c8 = is.na(stats$cycle_homogeneity) | stats$cycle_homogeneity >= pct8
+    c8_facultad = is.na(stats$faculty_match_share) | stats$faculty_match_share >= pct8fac,
+    c8 = is.na(stats$level_match_share) | stats$level_match_share >= pct8
   )
 
   # Flags "aplicados": filtro inactivo no restringe. El included entrante es
@@ -792,6 +890,7 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     course_level_ok = if (aplica$nivel) evals$nivel else rep(TRUE, n_aulas),
     campus_ok = if (aplica$sede) evals$campus else rep(TRUE, n_aulas),
     c7_ok = if (aplica$c7) evals$c7 else rep(TRUE, n_aulas),
+    c8_facultad_ok = if (aplica$c8_facultad) evals$c8_facultad else rep(TRUE, n_aulas),
     c8_ok = if (aplica$c8) evals$c8 else rep(TRUE, n_aulas),
     stringsAsFactors = FALSE,
     check.names = FALSE
@@ -807,6 +906,9 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   aula_frame$campus <- stats$campus
   aula_frame$prevalence_ratio <- ratio
   aula_frame$cycle_homogeneity <- stats$cycle_homogeneity
+  aula_frame$faculty_match_share <- stats$faculty_match_share
+  aula_frame$level_match_share <- stats$level_match_share
+  aula_frame$level_reference <- stats$level_reference
 
   if (n_aulas) {
     razon_base <- .cm_aulas_values(aula_frame, "exclude_reason", "")
@@ -814,13 +916,16 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     # se conserva textual en lugar de re-etiquetarla.
     razon_base[!flags$min_eligible_ok & !nzchar(razon_base)] <- "min_eligible_per_class"
     aula_frame$included <- flags$min_eligible_ok & flags$teacher_ok &
-      flags$course_level_ok & flags$campus_ok & flags$c7_ok & flags$c8_ok
+      flags$course_level_ok & flags$campus_ok & flags$c7_ok &
+      flags$c8_facultad_ok & flags$c8_ok
     aula_frame$exclude_reason <- .cm_criterios_concat_razones(list(
       ifelse(flags$min_eligible_ok, "", razon_base),
       ifelse(flags$teacher_ok, "", "teacher_type"),
       ifelse(flags$course_level_ok, "", "course_level"),
       ifelse(flags$campus_ok, "", "campus"),
       ifelse(flags$c7_ok, "", "c7_prevalencia"),
+      # Criterio 8: facultad SIEMPRE antes que nivel (acuerdo 2026-07-15).
+      ifelse(flags$c8_facultad_ok, "", "c8_facultad"),
       ifelse(flags$c8_ok, "", "c8_homogeneidad")
     ))
   }
@@ -829,9 +934,9 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   impacto <- calc_muestra_aulas_impacto_opcionales(
     aula_frame = aula_frame,
     base_ok = base_ok,
-    evals = list(c7 = evals$c7, c8 = evals$c8),
-    aplica = list(c7 = aplica$c7, c8 = aplica$c8),
-    umbrales = list(c7 = pct7, c8 = pct8),
+    evals = list(c7 = evals$c7, c8_facultad = evals$c8_facultad, c8 = evals$c8),
+    aplica = list(c7 = aplica$c7, c8_facultad = aplica$c8_facultad, c8 = aplica$c8),
+    umbrales = list(c7 = pct7, c8_facultad = pct8fac, c8 = pct8),
     filas = filas,
     population = population
   )
@@ -861,7 +966,17 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     aplica = aplica,
     marco_base_aulas = impacto$marco_base_aulas,
     opcionales = impacto$opcionales,
-    seleccion_aula = seleccion_aula
+    seleccion_aula = seleccion_aula,
+    # Diagnóstico del criterio 8: cuántas aulas quedaron sin señal (NA pasa,
+    # pero el metodólogo debe ver el alcance real del gate) y cuántas se
+    # evaluaron contra el ciclo modal por falta de nivel del curso.
+    criterio8 = list(
+      facultad_sin_dato_aulas = as.integer(sum(is.na(stats$faculty_match_share))),
+      nivel_sin_dato_aulas = as.integer(sum(is.na(stats$level_match_share))),
+      nivel_referencia_modal_aulas = as.integer(sum(stats$level_reference == "modal")),
+      umbral_facultad = round(pct8fac, 4),
+      umbral_nivel = round(pct8, 4)
+    )
   )
 }
 
@@ -1253,6 +1368,26 @@ calc_muestra_aulas_criterios_alumno <- function(criterios_seleccion, filas) {
 
 .cm_criterios_mapped <- function(col) if (nzchar(col %||% "")) col else NULL
 
+# Desglose por facultad de un subconjunto de CH. `fac_labels` trae UNA entrada
+# por curso-horario (el llamador itera valores por AULA del aula_frame, nunca
+# filas de alumnos ⇒ dedup por classroom_id garantizado por construcción).
+# Pliega variantes por clave robusta a la ñ (.cm_criterios_fac_key) y emite el
+# label canónico modal — el mismo que viaja en el frame y contra el que se
+# evalúan las excepciones por facultad de la suite. Invariante: sum(ch) ==
+# length(fac_labels), SALVO el caso tolerante sin señal de facultad (todas
+# vacías ⇒ list()); una facultad vacía puntual se conserva como record con
+# facultad = "" para no romper la suma. Orden: ch descendente.
+.cm_criterios_por_facultad <- function(fac_labels) {
+  fac_labels <- trimws(as.character(fac_labels %||% character(0)))
+  fac_labels[is.na(fac_labels)] <- ""
+  if (!length(fac_labels) || !any(nzchar(fac_labels))) return(list())
+  keys <- .cm_criterios_fac_key(fac_labels)
+  out <- unname(lapply(split(seq_along(keys), keys), function(idx) {
+    list(facultad = .cm_aulas_mode(fac_labels[idx], ""), ch = length(idx))
+  }))
+  out[order(-vapply(out, function(r) r$ch, integer(1)))]
+}
+
 # Constructor de una variable flat: categorías normalizadas con conteo por
 # unidad (aula o alumno único) y variantes crudas plegadas.
 #
@@ -1263,10 +1398,27 @@ calc_muestra_aulas_criterios_alumno <- function(criterios_seleccion, filas) {
 # menos una unidad vacía; sin columna (base sin la variable) no se inventa un
 # bucket fantasma. Los valores REALES conservan su etiqueta cruda (ADR 0035 §5):
 # el bucket es para la AUSENCIA de valor, NO un renombrado de un valor real.
-.cm_criterios_enum_flat <- function(id, meta, values, mapped_col, scope) {
+#
+# `facultades` (scope aula, «Tipo de sesión por facultad»): vector alineado con
+# `values` (una entrada por CH). Cuando llega, CADA categoría —incluido el
+# bucket sintético— gana `por_facultad` (.cm_criterios_por_facultad), el insumo
+# de la UI para decidir excepciones por facultad. NULL (scope alumno) ⇒ shape
+# intacto, sin el campo.
+.cm_criterios_enum_flat <- function(id, meta, values, mapped_col, scope, facultades = NULL) {
   values <- trimws(as.character(values %||% character(0)))
-  n_empty <- sum(!nzchar(values))
-  values <- values[nzchar(values)]
+  facs <- NULL
+  if (!is.null(facultades)) {
+    facs <- trimws(as.character(facultades))
+    # Defensivo: un vector desalineado degradaría a conteos falsos; mejor
+    # emitir el caso tolerante (por_facultad vacío) que mentir.
+    if (length(facs) != length(values)) facs <- rep("", length(values))
+  }
+  keep_idx <- which(nzchar(values))
+  empty_idx <- which(!nzchar(values))
+  n_empty <- length(empty_idx)
+  facs_empty <- if (is.null(facs)) NULL else facs[empty_idx]
+  if (!is.null(facs)) facs <- facs[keep_idx]
+  values <- values[keep_idx]
   bucket <- meta$emptyBucket
   emit_bucket <- !is.null(bucket) && nzchar(mapped_col %||% "") && n_empty > 0L
   if (!length(values) && !emit_bucket) return(NULL)
@@ -1276,15 +1428,19 @@ calc_muestra_aulas_criterios_alumno <- function(criterios_seleccion, filas) {
     idx <- which(keys == k)
     variantes <- unique(values[idx])
     label <- names(sort(table(values[idx]), decreasing = TRUE))[[1]]
-    cats[[length(cats) + 1L]] <- list(key = k, label = label,
-                                      aulas = length(idx), variants = as.list(variantes))
+    entrada <- list(key = k, label = label,
+                    aulas = length(idx), variants = as.list(variantes))
+    if (!is.null(facs)) entrada$por_facultad <- .cm_criterios_por_facultad(facs[idx])
+    cats[[length(cats) + 1L]] <- entrada
   }
   cats <- cats[order(-vapply(cats, function(c) c$aulas, integer(1)))]
   if (emit_bucket) {
     # Va al FINAL (tras ordenar por conteo) para que las categorías reales
     # encabecen; es sintético, sin variantes crudas, marcado con synthetic=TRUE.
-    cats[[length(cats) + 1L]] <- list(key = bucket$key, label = bucket$label,
-                                      aulas = n_empty, variants = list(), synthetic = TRUE)
+    entrada <- list(key = bucket$key, label = bucket$label,
+                    aulas = n_empty, variants = list(), synthetic = TRUE)
+    if (!is.null(facs_empty)) entrada$por_facultad <- .cm_criterios_por_facultad(facs_empty)
+    cats[[length(cats) + 1L]] <- entrada
   }
   out <- list(id = id, scope = scope, label = meta$label, kind = "flat",
               mappedColumn = .cm_criterios_mapped(mapped_col), categories = cats)
@@ -1413,14 +1569,172 @@ calc_muestra_aulas_criterios_catalogo <- function(aula_frame, catalog_signals,
       c1 <- cols[[sig_name]] %||% ""
       if (nzchar(c1)) c1 else .cm_aulas_scalar(mapped_columns[[base_col]], "")
     }
-    push(.cm_criterios_enum_flat("modality", registry$modality, vals$modality, col_or("modality", "modality"), "aula"))
-    push(.cm_criterios_enum_flat("session_type", registry$session_type, vals$session_type, col_or("session_type", "session_type"), "aula"))
+    # Desglose por facultad de cada categoría flat de aula: vals$faculty es la
+    # facultad EFECTIVA del CH (faculty_curso del catálogo cuando existe,
+    # fallback a la modal del frame) — la MISMA clave contra la que la suite
+    # evalúa sus excepciones por facultad, así los conteos y el selector de
+    # excepciones hablan del mismo universo.
+    push(.cm_criterios_enum_flat("modality", registry$modality, vals$modality, col_or("modality", "modality"), "aula", facultades = vals$faculty))
+    push(.cm_criterios_enum_flat("session_type", registry$session_type, vals$session_type, col_or("session_type", "session_type"), "aula", facultades = vals$faculty))
     push(.cm_criterios_enum_teacher(registry$teacher_type, vals$teacher, col_or("teacher_type", "teacher_type")))
     push(.cm_criterios_enum_valores("course_level", registry$course_level, vals$course_level, col_or("course_level", "course_level"), "aula", "range"))
-    push(.cm_criterios_enum_flat("condicion_curso", registry$condicion_curso, vals$condicion_curso, col_or("condicion_curso", "condicion_curso"), "aula"))
+    push(.cm_criterios_enum_flat("condicion_curso", registry$condicion_curso, vals$condicion_curso, col_or("condicion_curso", "condicion_curso"), "aula", facultades = vals$faculty))
     push(.cm_criterios_enum_numeric("enrolled_total", registry$enrolled_total, vals$enrolled_total, col_or("enrolled_total", "enrolled_total"), "aula"))
-    push(.cm_criterios_enum_flat("campus", registry$campus, vals$campus, col_or("campus", "campus"), "aula"))
+    push(.cm_criterios_enum_flat("campus", registry$campus, vals$campus, col_or("campus", "campus"), "aula", facultades = vals$faculty))
   }
 
   list(schema = "calc_muestra_aulas_criterios_catalogo_v1", variables = vars)
+}
+
+# =============================================================================
+# Impacto del tipo de sesión por facultad — guard §12 «doble selección del taller»
+# =============================================================================
+#
+# Bloque estructural frame$session_type_impacto (schema cm_session_type_impacto_v1):
+# para cada TIPO excluido del set base GLOBAL reporta dónde hay presencia real
+# (CH dedup por classroom_id + suma de eligible_n del frame), en qué facultades
+# una excepción lo re-incluye y —la trampa de la asesoría §12— dónde se pierde
+# de verdad (presencia SIN excepción). «Excluir taller global + exceptuarlo en
+# Arte y Diseño» perdía los talleres de EEGG en silencio; este bloque hace
+# visible esa pérdida SIN tocar la evaluación (solo LEE la config efectiva).
+#
+# Config efectiva:
+#   - suite con criterio session_type accionable → set base + excepciones por
+#     facultad de la suite; el mapa legacy H9 se IGNORA (precedencia única
+#     suite > H9, con nota en el bloque — nunca error).
+#   - sin suite y con exclude_session_patterns legacy → los patrones globales
+#     definen el set excluido y H9 exime por unidad (mismo match del filtro por
+#     fila). OJO: en este path el recorte fue POR FILA, así que los CH del tipo
+#     ya cayeron a eligible_n = 0; la señal del guard es `ch`, `elegibles`
+#     refleja el frame tal cual.
+#   - suite activa SIN criterio session_type, o sin exclusiones → tipos_excluidos
+#     vacío (la dimensión no filtra).
+
+.cm_criterios_session_impacto_schema <- "cm_session_type_impacto_v1"
+
+.cm_criterios_session_impacto_construir <- function(aula_frame, catalog_signals, cfg) {
+  out <- list(schema = .cm_criterios_session_impacto_schema, tipos_excluidos = list())
+  cfg <- cfg %||% list()
+  filtros <- if (is.list(cfg$filters)) cfg$filters else list()
+  seleccion <- .cm_criterios_normalize_seleccion(cfg$criterios_seleccion)
+  suite_activa <- .cm_criterios_seleccion_activa(seleccion)
+  crit <- (seleccion$byVariable %||% list())$session_type
+  suite_session <- suite_activa && !is.null(crit) && .cm_criterios_regla_aula_accionable(crit)
+
+  legacy_map <- .cm_criterios_normalize_session_excepciones(
+    filtros$session_type_excepciones %||% filtros$excepciones_tipo_sesion
+  )
+  legacy_patterns <- .cm_aulas_chr_vec(filtros$exclude_session_patterns)
+
+  # Precedencia única suite > H9: con criterio session_type en la suite, el
+  # mapa legacy llega pero NO participa (el gate por fila ya corre solo sin
+  # suite; ver construir()). Se documenta con nota, nunca con error.
+  if (suite_session && length(legacy_map)) {
+    out$legacy_h9_ignorado <- TRUE
+    out$nota <- paste(
+      "Las excepciones legacy de tipo de sesion (session_type_excepciones)",
+      "se ignoraron: la suite de criterios trae session_type y manda."
+    )
+  }
+
+  n <- if (is.data.frame(aula_frame)) nrow(aula_frame) else 0L
+  if (!n) return(out)
+  # Suite activa sin criterio session_type ⇒ la dimensión no filtra (suite
+  # manda); sin suite y sin patrones legacy ⇒ no hay exclusiones que medir.
+  if (!suite_session && (suite_activa || !length(legacy_patterns))) return(out)
+
+  vals <- .cm_criterios_valores_aula(
+    aula_frame, catalog_signals,
+    .cm_aulas_num_values(aula_frame, "course_level_num", NA_real_)
+  )
+  tipos_raw <- trimws(as.character(vals$session_type))
+  tipo_keys <- .cm_aulas_text_key(tipos_raw)
+  fac_raw <- trimws(as.character(vals$faculty))
+  elegibles <- .cm_aulas_num_values(aula_frame, "eligible_n", 0)
+  elegibles[!is.finite(elegibles)] <- 0
+
+  if (suite_session) {
+    # Excluido del set base GLOBAL (sin excepciones). Un include sin categorías
+    # no filtra globalmente (solo restringe vía excepciones por facultad, que
+    # no son una exclusión global): sin tipos excluidos.
+    base_excluido <- if (identical(crit$mode, "exclude")) {
+      nzchar(tipo_keys) & tipo_keys %in% crit$categories
+    } else if (length(crit$categories)) {
+      nzchar(tipo_keys) & !(tipo_keys %in% crit$categories)
+    } else {
+      rep(FALSE, n)
+    }
+    # Re-incluido en la facultad del CH: MISMO set efectivo del evaluador
+    # (.cm_criterios_eff_cats sobre la clave robusta a la ñ).
+    fac_eval <- .cm_criterios_fac_key(fac_raw)
+    exceptuado <- base_excluido & vapply(seq_len(n), function(i) {
+      cats <- .cm_criterios_eff_cats(crit, fac_eval[[i]])
+      if (!length(cats)) return(TRUE)
+      inset <- tipo_keys[[i]] %in% cats
+      if (identical(crit$mode, "exclude")) !inset else inset
+    }, logical(1))
+  } else {
+    # Path legacy: patrones globales + exención H9 por unidad. El match de
+    # unidad replica .cm_criterios_session_excepciones (text_key plano por
+    # ambos lados) sobre el valor CRUDO por aula, igual que el filtro por fila.
+    base_excluido <- nzchar(tipo_keys) & unname(.cm_aulas_contains_any(tipos_raw, legacy_patterns))
+    exceptuado <- rep(FALSE, n)
+    if (length(legacy_map)) {
+      fac_h9 <- .cm_aulas_text_key(fac_raw)
+      unidades_key <- .cm_aulas_text_key(names(legacy_map))
+      for (j in seq_along(legacy_map)) {
+        if (!nzchar(unidades_key[[j]])) next
+        idx <- which(base_excluido & fac_h9 == unidades_key[[j]])
+        if (!length(idx)) next
+        exceptuado[idx] <- exceptuado[idx] | unname(.cm_aulas_contains_any(tipos_raw[idx], legacy_map[[j]]))
+      }
+    }
+  }
+
+  idx_exc <- which(base_excluido)
+  if (!length(idx_exc)) return(out)
+
+  # Agregación por (tipo, facultad) sobre CH del frame (una fila por CH ⇒
+  # dedup por classroom_id garantizado). Presencia = solo tipos con ch > 0 por
+  # construcción. perdido_en = presencia SIN excepción (la pérdida real).
+  fac_grupo <- .cm_criterios_fac_key(fac_raw)
+  tipos_out <- list()
+  for (tk in unique(tipo_keys[idx_exc])) {
+    idx <- idx_exc[tipo_keys[idx_exc] == tk]
+    recs <- unname(lapply(split(idx, fac_grupo[idx]), function(ii) {
+      list(
+        facultad = .cm_aulas_mode(fac_raw[ii], ""),
+        ch = length(ii),
+        elegibles = as.integer(round(sum(elegibles[ii]))),
+        exceptuada = any(exceptuado[ii])
+      )
+    }))
+    recs <- recs[order(-vapply(recs, function(r) r$ch, integer(1)))]
+    presencia <- lapply(recs, function(r) list(facultad = r$facultad, ch = r$ch, elegibles = r$elegibles))
+    tipos_out[[length(tipos_out) + 1L]] <- list(
+      # `tipo` es la clave canónica (la misma de criterios_catalogo$categories
+      # y de crit$categories); `label` es la variante cruda modal, para pintar.
+      tipo = tk,
+      label = .cm_aulas_mode(tipos_raw[idx], tk),
+      facultades = presencia,
+      exceptuado_en = lapply(Filter(function(r) isTRUE(r$exceptuada), recs), function(r) r$facultad),
+      perdido_en = lapply(Filter(function(r) !isTRUE(r$exceptuada), recs), function(r) {
+        list(facultad = r$facultad, ch = r$ch, elegibles = r$elegibles)
+      })
+    )
+  }
+  tipos_out <- tipos_out[order(-vapply(tipos_out, function(t) {
+    sum(vapply(t$facultades, function(f) f$ch, integer(1)))
+  }, integer(1)))]
+  out$tipos_excluidos <- tipos_out
+  out
+}
+
+# Adjunta el bloque al frame construido (patrón .cm_*_adjuntar: un único
+# call-site en calc_muestra_aulas_construir, que no debe seguir creciendo).
+.cm_criterios_session_impacto_adjuntar <- function(out, catalog_signals) {
+  out$session_type_impacto <- .cm_criterios_session_impacto_construir(
+    out$aula_frame, catalog_signals, out$config
+  )
+  out
 }

@@ -160,7 +160,8 @@ test_that("impacto: c7/c8 se miden sobre el marco base aunque estén apagados", 
   expect_identical(perfil$marco_base_aulas, 2L)
 
   op <- perfil$opcionales
-  expect_identical(names(op), c("c7", "c8"))
+  # Criterio 8 (2026-07-15): la parte de facultad se reporta ANTES que la de nivel.
+  expect_identical(names(op), c("c7", "c8_facultad", "c8"))
   # c7 hipotético: A1 (ratio 0.5) caería -> queda 1 aula, FAC1 se rompe y la
   # cobertura baja a s3+s4 sobre la población {s1, s3, s4}.
   expect_identical(op$c7$id, "c7")

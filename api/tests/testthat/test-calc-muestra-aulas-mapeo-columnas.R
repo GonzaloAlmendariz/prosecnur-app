@@ -118,6 +118,36 @@ test_that("dual base: la enumeración mapea cada rol a su columna real del catá
   expect_true(any(grepl("REINCORPORACION|MOVILIDAD|REGULAR", cond_labels)))
 })
 
+test_that("prioridad de columnas: el nivel curricular manda sobre créditos y el total administrativo sobre la población", {
+  mp <- prosecnurapp:::.cm_aulas_config_mapping(list())
+  base <- data.frame(
+    student_id = c("s1", "s2"),
+    aula_id = "A1",
+    `Nivel según créditos` = c("7", "7"),
+    `Nivel curricular` = c("5", "5"),
+    `Matriculados población` = c(10, 10),
+    `Matriculados total` = c(40, 40),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  # Acuerdo 2026-07-15: "el nivel curricular manda; créditos es apoyo".
+  expect_identical(prosecnurapp:::.cm_aulas_col(base, mp$level), "Nivel curricular")
+  # enrolled_total = TOTAL administrativo del aula, no la población elegible.
+  expect_identical(prosecnurapp:::.cm_aulas_col(base, mp$enrolled_total), "Matriculados total")
+
+  # De punta a punta: el marco lee esas columnas (nivel 5 y matrícula 40).
+  frame <- calc_muestra_aulas_construir(
+    base_madre = cbind(base, data.frame(
+      facultad = "FAC1", sexo = c("F", "M"), edad = 20,
+      condicion = "regular", modalidad = "presencial",
+      stringsAsFactors = FALSE
+    )),
+    config = list(filters = list(min_eligible_per_class = 1L))
+  )
+  af <- frame$aula_frame
+  expect_identical(af$level, "5")
+  expect_identical(af$enrolled_total, 40L)
+})
+
 test_that("dual base: la señal per-fila del nivel del curso no queda contaminada por el código", {
   frame <- calc_muestra_aulas_construir(
     base_madre = .mapcol_matriculado(),

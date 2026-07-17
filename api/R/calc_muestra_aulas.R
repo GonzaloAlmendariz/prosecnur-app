@@ -217,7 +217,10 @@
       "programa_estudiante", "programa_alumno", "nombreesp",
       "especialidad_estudiante", "especialidad_alumno", "carrera", "especialidad"
     ),
-    level = c("level", "nivel_segun_creditos", "nivel_segun_credito", "nivel_por_creditos", "nivel_creditos", "nivel_curricular", "ciclo", "nivel_del_curso", "nivel", "nivel_estudios"),
+    # Acuerdo 2026-07-15: "el nivel curricular manda; créditos es apoyo". Las
+    # variantes curriculares/ciclo van ANTES que las de créditos para que una
+    # base con ambas columnas resuelva el rol al nivel curricular.
+    level = c("level", "nivel_curricular", "ciclo", "nivel_segun_creditos", "nivel_segun_credito", "nivel_por_creditos", "nivel_creditos", "nivel_del_curso", "nivel", "nivel_estudios"),
     # H7: formación del estudiante (PREGRADO/MAESTRIA/DOCTORADO/...). Se
     # resuelve SOLO por clave exacta (.cm_criterios_col_exacta) — el fuzzy
     # dejaría que "nivel" o "informacion" secuestren el rol.
@@ -240,7 +243,10 @@
     # condición del estudiante; en el catálogo la columna suele llamarse solo
     # "Condición" y se resuelve por señal (ver calc_muestra_aulas_catalogo.R).
     condicion_curso = c("condicion_curso", "condicion_del_curso", "condición del curso", "condicion del curso", "condicion_curso_horario"),
-    enrolled_total = c("enrolled_total", "matriculados_poblacion", "matriculados_total", "matriculados población", "matriculados total", "matriculados", "inscritos", "vacantes_ocupadas")
+    # enrolled_total es el TOTAL administrativo del aula: "matriculados_total"
+    # va ANTES que "matriculados_poblacion" (esta última es la población
+    # elegible recortada, no la matrícula del aula).
+    enrolled_total = c("enrolled_total", "matriculados_total", "matriculados total", "matriculados_poblacion", "matriculados población", "matriculados", "inscritos", "vacantes_ocupadas")
   )
   out <- defaults
   for (nm in names(mapping)) {
@@ -386,9 +392,16 @@ calc_muestra_aulas_default_config <- function() {
         active_overlap = -18
       ),
       duplicate_penalty = 1.35,
+      # Descuento secuencial de repetidos entre aulas del estrato (asesoría
+      # muestral 2026-07-15 §10). OFF por default (retro-compat/goldens);
+      # la lógica vive en calc_muestra_aulas_descuento.R.
+      sequential_discount = FALSE,
       pps_weight = 0.25,
       coverage_weight = 1,
       monte_carlo_n = 500L,
+      # F2: el MC de transparencia con engines prescritos nace apagado (0
+      # corridas): pi_final = pi_design es exacta sin simular.
+      mc_prescribed_transparency = FALSE,
       nonresponse_policy = "disposition_codes_and_adjustments",
       replacement_policy = "reservas_coordinadas_sin_redisenar"
     ),
@@ -480,9 +493,13 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
       replacement_equivalence_vars = as.list(.cm_aulas_chr_vec(selector$replacement_equivalence_vars %||% selector$variables_equivalencia_reemplazo %||% config$replacement_equivalence_vars %||% defaults$selector$replacement_equivalence_vars)),
       replacement_score_weights = selector$replacement_score_weights %||% selector$pesos_reemplazo %||% config$replacement_score_weights %||% defaults$selector$replacement_score_weights,
       duplicate_penalty = max(0, .cm_aulas_num(selector$duplicate_penalty %||% selector$penalizacion_repetidos %||% config$penalizacion_repetidos, defaults$selector$duplicate_penalty)),
+      sequential_discount = .cm_aulas_bool(selector$sequential_discount %||% selector$descuento_secuencial %||% config$sequential_discount %||% config$descuento_secuencial, defaults$selector$sequential_discount),
       pps_weight = max(0, .cm_aulas_num(selector$pps_weight %||% config$pps_weight, defaults$selector$pps_weight)),
       coverage_weight = max(0, .cm_aulas_num(selector$coverage_weight %||% config$coverage_weight, defaults$selector$coverage_weight)),
       monte_carlo_n = max(0L, .cm_aulas_int(selector$monte_carlo_n %||% selector$simulaciones, simulation_runs)),
+      # F2: opt-in del MC de transparencia para engines de diseño prescrito
+      # (por default 0 corridas: pi_final = pi_design es exacta sin simular).
+      mc_prescribed_transparency = .cm_aulas_bool(selector$mc_prescribed_transparency %||% selector$mc_transparencia_prescrita %||% config$mc_prescribed_transparency, FALSE),
       nonresponse_policy = .cm_aulas_scalar(selector$nonresponse_policy %||% selector$politica_no_respuesta %||% config$nonresponse_policy, defaults$selector$nonresponse_policy),
       replacement_policy = .cm_aulas_scalar(selector$replacement_policy %||% selector$politica_reemplazos %||% config$replacement_policy, defaults$selector$replacement_policy)
     ),
@@ -498,6 +515,13 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
     # calc_muestra_aulas_teacher_top.R.
     teacher_type_orden = .cm_criterios_normalize_teacher_orden(
       config$teacher_type_orden %||% config$orden_tipo_docente
+    ),
+    # Particularidades del marco (asesoría 2026-07-15 §12): decisiones
+    # manuales por curso-horario (incluir/excluir/revisado + nota).
+    # Normalización defensiva en calc_muestra_aulas_particularidades.R;
+    # vacío → capa sin efecto sobre el marco.
+    particularidades_decisiones = .cm_particularidades_normalize_decisiones(
+      config$particularidades_decisiones %||% config$decisiones_particularidades
     )
   )
 }
@@ -1092,6 +1116,9 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     session_ok <- !.cm_aulas_contains_any(session_type, cfg$filters$exclude_session_patterns)
     # H9: excepciones por unidad (p.ej. taller/artístico solo en Arte y
     # Diseño); la lógica vive en calc_muestra_aulas_criterios.R.
+    # Precedencia única suite > H9: con suite activa este bloque NI CORRE (gate
+    # !suite_activa de arriba); si además la suite trae session_type, el mapa
+    # legacy se ignora con nota en session_type_impacto — nunca error.
     session_ok <- .cm_criterios_session_excepciones(session_ok, faculty, session_type, cfg$filters$session_type_excepciones)
   }
   classroom_ok <- nzchar(classroom_id)
@@ -1251,6 +1278,9 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       classroom_id = classroom_id,
       student_id = student_id,
       level = level,
+      # Facultad del ESTUDIANTE por fila: insumo de faculty_match_share
+      # (criterio 8, parte 1 — acuerdo 2026-07-15).
+      faculty = faculty,
       teacher_type = teacher_type,
       course_level = course_level,
       condicion_curso = condicion_curso,
@@ -1263,6 +1293,15 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     empty_bucket_cols = .cm_criterios_empty_bucket_cols(raw, mapping, catalog_signals)
   )
   aula_frame <- criterios$aula_frame
+  # Particularidades del marco (asesoría 2026-07-15 §12): las decisiones
+  # manuales se aplican DESPUÉS de los criterios y ANTES de perfiles/auditoría
+  # — solo "excluir" saca el CH del marco (razón `particularidad_manual`);
+  # "incluir"/"revisado" documentan. Lógica en
+  # calc_muestra_aulas_particularidades.R (este archivo no debe crecer).
+  particularidades_aplicadas <- .cm_particularidades_aplicar_decisiones(
+    aula_frame, cfg$particularidades_decisiones
+  )
+  aula_frame <- particularidades_aplicadas$aula_frame
 
   included_aula_frame <- if (nrow(aula_frame)) {
     aula_frame[aula_frame$included %in% TRUE, , drop = FALSE]
@@ -1310,6 +1349,12 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     check.names = FALSE
   )
   warnings <- character(0)
+  # Guard F12 (lado construir): columna de estudiante presente pero sin
+  # valores -> no hay ids parseables, la cobertura por estudiantes unicos no
+  # es medible (el guard de .cm_aulas_coverage_overlap la reporta NA, no 0).
+  if (!any(nzchar(student_id))) {
+    warnings <- c(warnings, "La columna de estudiante no trae valores; sin ids parseables la cobertura por estudiantes unicos se reportara NA.")
+  }
   if (!any(nzchar(modality))) warnings <- c(warnings, "No se encontro modalidad; no se pudo auditar presencialidad.")
   if (!any(nzchar(condition))) warnings <- c(warnings, "No se encontro condicion academica; no se pudo aplicar filtro regular.")
   if (!any(nzchar(level))) warnings <- c(warnings, "No se encontro nivel; no se pudo excluir posgrado de forma automatica.")
@@ -1330,6 +1375,9 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     generated_at = .cm_aulas_now_iso(),
     input_mode = input_mode,
     config = cfg,
+    # W2: eco estable de los filtros efectivos del criterio 7/8 (frescura del
+    # marco en la UI). Ver .cm_aulas_filters_echo.
+    filters_echo = .cm_aulas_filters_echo(cfg),
     frame_hash = .cm_aulas_hash(list(aula_frame = aula_frame, cfg = cfg$filters)),
     population = population,
     population_pool = population_pool,
@@ -1406,6 +1454,19 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   # elemento.
   out$teacher_type_orden <- as.list(cfg$teacher_type_orden)
   out$criterios_alumno_report <- alumno_sel$report
+  # Particularidades (§12): señales detectadas + eco de decisiones, paso
+  # manual del embudo y rastro en la auditoría. Un solo call-site; la lógica
+  # vive en calc_muestra_aulas_particularidades.R.
+  out <- .cm_particularidades_adjuntar(out, catalog_signals, particularidades_aplicadas)
+  # Radiografía del marco por facultad (pestaña «Explorador de aulas»): reusa
+  # las señales ya adjuntadas en out$particularidades. Un solo call-site; la
+  # lógica vive en calc_muestra_aulas_exploracion.R (este archivo no debe
+  # crecer).
+  out <- .cm_exploracion_adjuntar(out)
+  # Impacto del tipo de sesión por facultad (guard §12 «doble selección del
+  # taller», schema cm_session_type_impacto_v1): un solo call-site; la lógica
+  # vive en calc_muestra_aulas_criterios.R (este archivo no debe crecer).
+  out <- .cm_criterios_session_impacto_adjuntar(out, catalog_signals)
   out
 }
 
@@ -1810,6 +1871,10 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   if (!is.null(seed)) set.seed(seed)
   n_total <- min(nrow(aula_frame), max(1L, .cm_aulas_int(selector$n_aulas, 1L)))
   quotas <- .cm_aulas_quota_by_stratum(aula_frame, n_total)
+  # Descuento secuencial de repetidos (asesoría muestral 2026-07-15 §10):
+  # estado del flag para esta corrida; la lógica vive en
+  # calc_muestra_aulas_descuento.R. Con OFF el path es byte-idéntico.
+  descuento <- .cm_descuento_estado(aula_frame, selector, engine)
   rows <- list()
   warnings <- character(0)
   engine_used <- character(0)
@@ -1817,19 +1882,25 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     quota <- quotas[[st]]
     cand <- aula_frame[aula_frame$stratum == st, , drop = FALSE]
     if (!nrow(cand)) next
-    picked <- .cm_aulas_pick_indices(cand, quota, selector, engine, seed = if (is.null(seed)) NULL else seed + length(rows) + 13L)
+    picked <- if (isTRUE(descuento$sequential)) {
+      .cm_descuento_pick_indices(cand, quota, selector, engine, seed = if (is.null(seed)) NULL else seed + length(rows) + 13L)
+    } else {
+      .cm_aulas_pick_indices(cand, quota, selector, engine, seed = if (is.null(seed)) NULL else seed + length(rows) + 13L)
+    }
     warnings <- c(warnings, picked$warning)
     engine_used <- c(engine_used, picked$engine_used)
     if (!length(picked$indices)) next
     row <- cand[picked$indices, , drop = FALSE]
     row$pi_design_candidate <- as.numeric(picked$pik[picked$indices])
+    row <- .cm_descuento_bind_audit(row, picked$audit)
     rows[[length(rows) + 1L]] <- row
   }
   out <- if (length(rows)) do.call(rbind, rows) else aula_frame[0, , drop = FALSE]
   rownames(out) <- NULL
   out <- .cm_aulas_annotate_selection_metrics(out, selector)
+  out <- .cm_descuento_finalize_once(out, descuento)
   attr(out, "engine_used") <- if (length(engine_used)) paste(unique(engine_used), collapse = "|") else engine
-  attr(out, "warnings") <- unique(warnings)
+  attr(out, "warnings") <- unique(c(warnings, descuento$warnings))
   out
 }
 
@@ -1858,6 +1929,10 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
 
 .cm_aulas_select_once_pool <- function(aula_frame, selector, seed = NULL, objective = NULL) {
   pool <- max(1L, .cm_aulas_int(selector$candidate_pool_size, 100L))
+  # Con sequential_discount ON cada sorteo candidato descuenta repetidos
+  # (calc_muestra_aulas_descuento.R); la penalidad por duplicados del score
+  # se mantiene aunque quede casi redundante.
+  selector <- .cm_descuento_marcar_pool(selector)
   pool_engine <- .cm_aulas_engine_key(selector$pool_base_engine %||% "cube_balanceado")
   best <- NULL
   best_score <- -Inf
@@ -2667,16 +2742,42 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   coverage_population_pct <- if (frame_n > 0) unique_covered / frame_n else NA_real_
   coverage_efficiency <- if (exposure_n > 0) unique_covered / exposure_n else NA_real_
   duplicate_loss <- if (exposure_n > 0) max(0, 1 - coverage_efficiency) else NA_real_
+  # Guard F12: si la columna de ids existe pero llega vacía (round-trips que
+  # pierden unique_student_ids), la cadena unique_covered==0 -> efficiency==0
+  # reportaba 0/100 en TODOS los métodos como si la selección fuera pésima.
+  # Cuando más del 80% de las aulas CON elegibles no trae ids parseables, la
+  # cobertura no es medible: se reporta NA + warning estructurado (attr
+  # "coverage_guard"), nunca 0.
+  elig_guard <- .cm_aulas_num_values(aula_frame, "eligible_n", NA_real_)
+  con_elegibles <- which(is.finite(elig_guard) & elig_guard > 0)
+  ids_col <- if ("unique_student_ids" %in% names(aula_frame)) "unique_student_ids" else if ("unique_student_ids_frame" %in% names(aula_frame)) "unique_student_ids_frame" else ""
+  ids_vals <- if (nzchar(ids_col)) trimws(.cm_aulas_values(aula_frame, ids_col, "")) else rep("", nrow(aula_frame))
+  sin_ids_n <- if (length(con_elegibles)) sum(!nzchar(ids_vals[con_elegibles])) else 0L
+  guard <- NULL
+  if (length(con_elegibles) && sin_ids_n / length(con_elegibles) > 0.8) {
+    guard <- list(
+      code = "cobertura_ids_no_parseables",
+      aulas_con_elegibles = length(con_elegibles),
+      aulas_sin_ids = as.integer(sin_ids_n),
+      share_sin_ids = round(sin_ids_n / length(con_elegibles), 4),
+      detalle = "La mayoria de las aulas del marco no trae ids de estudiante parseables; la cobertura se reporta NA en lugar de 0."
+    )
+    coverage_population_pct <- NA_real_
+    coverage_efficiency <- NA_real_
+    duplicate_loss <- NA_real_
+  }
   dup_tol <- .cm_aulas_num(objective$duplicate_loss_tolerance, 0.15)
   coverage_score <- if (is.finite(coverage_efficiency)) round(100 * pmin(1, coverage_efficiency), 1) else NA_real_
   duplicate_score <- if (is.finite(duplicate_loss)) round(max(0, 100 * (1 - duplicate_loss / dup_tol)), 1) else NA_real_
-  data.frame(
+  out <- data.frame(
     metric = c("population_unique_students", "selected_unique_students", "selected_student_course_exposure", "coverage_population_pct", "coverage_efficiency", "duplicate_loss"),
     value = c(frame_n, unique_covered, exposure_n, round(coverage_population_pct, 6), round(coverage_efficiency, 6), round(duplicate_loss, 6)),
     score = c(NA, NA, NA, NA, coverage_score, duplicate_score),
     stringsAsFactors = FALSE,
     check.names = FALSE
   )
+  if (!is.null(guard)) attr(out, "coverage_guard") <- guard
+  out
 }
 
 .cm_aulas_dispersion_metric <- function(profile_distributions, objective) {
@@ -2745,6 +2846,9 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   balance_metrics <- if (length(metric_rows)) do.call(rbind, metric_rows) else data.frame(stringsAsFactors = FALSE)
 
   coverage <- .cm_aulas_coverage_overlap(aula_frame, selection_df, objective, cache = cache)
+  # Guard F12: warning estructurado cuando el marco no trae ids parseables
+  # (la cobertura viaja NA, no 0); se propaga al resultado y a warnings.
+  coverage_guard <- attr(coverage, "coverage_guard")
   cov_score <- suppressWarnings(as.numeric(coverage$score[coverage$metric == "coverage_efficiency"][[1]] %||% NA_real_))
   dup_score <- suppressWarnings(as.numeric(coverage$score[coverage$metric == "duplicate_loss"][[1]] %||% NA_real_))
   dup_loss <- suppressWarnings(as.numeric(coverage$value[coverage$metric == "duplicate_loss"][[1]] %||% NA_real_))
@@ -2782,6 +2886,7 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   if (is.finite(dup_loss) && dup_loss > objective$duplicate_loss_tolerance) warnings <- c(warnings, "La perdida por estudiantes repetidos supera la tolerancia configurada.")
   if (isTRUE(weight_stability$active) && is.finite(weight_stability$cv) && weight_stability$cv > objective$weight_cv_critical) warnings <- c(warnings, "CV de pesos critico; revisar probabilidades o postestratificacion.")
   if (has_reserve && is.finite(reserve_ratio) && reserve_ratio < objective$reserve_depth_target) warnings <- c(warnings, "Profundidad de reservas menor al objetivo.")
+  if (!is.null(coverage_guard)) warnings <- c(warnings, coverage_guard$detalle)
   if (!length(warnings)) warnings <- "Sin alertas de representatividad bajo los criterios activos."
 
   list(
@@ -2805,6 +2910,8 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
     profile_distributions = profile_distributions,
     metrics = metrics,
     coverage_overlap = coverage,
+    # Guard F12: NULL (clave ausente) cuando los ids del marco son parseables.
+    coverage_guard = coverage_guard,
     weight_stability = data.frame(
       cv = weight_stability$cv,
       n_eff = weight_stability$n_eff,
@@ -2993,6 +3100,11 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
 
 .cm_aulas_reserve_depth <- function(selection_df) {
   if (!nrow(selection_df)) return(data.frame(stringsAsFactors = FALSE))
+  # Guard: la profundidad de reservas se define POR ESTRATO. Una seleccion sin
+  # columna stratum (p. ej. un aula_frame crudo pasado directo al objetivo de
+  # representatividad) no puede medirla: se devuelve vacio y los consumidores
+  # ya degradan a NA/0 (has_reserve FALSE), en vez de reventar el aggregate.
+  if (!"stratum" %in% names(selection_df)) return(data.frame(stringsAsFactors = FALSE))
   titular <- stats::aggregate(classroom_id ~ stratum, data = selection_df[selection_df$wave == "M1", , drop = FALSE], FUN = length)
   names(titular)[names(titular) == "classroom_id"] <- "titulares"
   roles <- .cm_aulas_role_values(selection_df)
@@ -3137,19 +3249,24 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   }
 }
 
-# Presupuesto de corridas Monte Carlo sensible a la escala del marco.
-# - Marcos chicos (<= 1200 aulas): corre exactamente lo solicitado
-#   (comportamiento historico; golden tests usan <= 150 aulas).
-# - Marcos grandes: escala inversamente al numero de aulas para que el
-#   total del comparador quede en minutos, no horas. La formula es
-#   deterministica (mismo marco -> mismo presupuesto) y el resultado
-#   reporta requested_runs vs executed_runs para auditoria.
-#   En 1200 aulas el presupuesto es 50 (continuo con el tope historico);
-#   en ~3000 aulas baja a ~20 corridas por metodo.
+# Presupuesto de corridas Monte Carlo por COSTO estimado (F1).
+# El costo de una corrida del comparador es ~O(n_aulas), asi que el costo total
+# por metodo es n_aulas x corridas ("aula-corridas"). Historicamente el
+# presupuesto solo se activaba con n > 1200 aulas, dejando una ventana
+# (100-499 aulas, via sincrona) donde 500 corridas x 4 metodos congelaban
+# plumber por minutos. Ahora el criterio es puramente de costo:
+# - Costo chico (n x corridas <= 60,000): corre exactamente lo solicitado
+#   (goldens historicos intactos: usan marcos <= 150 aulas con pocas corridas).
+# - Costo grande: capa a ~60,000 aula-corridas por metodo con piso de 10
+#   corridas. Para n > 1200 la formula es IDENTICA a la historica
+#   (60000 %/% n); para la ventana media ahora tambien recorta.
+# Deterministica (mismo marco -> mismo presupuesto); el resultado reporta
+# requested_runs vs executed_runs para auditoria.
 .cm_aulas_simulation_budget <- function(n_aulas, requested_runs) {
   requested_runs <- max(0L, as.integer(requested_runs))
   n_aulas <- max(1L, as.integer(n_aulas))
-  if (requested_runs <= 0L || n_aulas <= 1200L) return(requested_runs)
+  if (requested_runs <= 0L) return(requested_runs)
+  if (as.numeric(n_aulas) * requested_runs <= 60000) return(requested_runs)
   min(requested_runs, max(10L, as.integer(60000 %/% n_aulas)))
 }
 
@@ -3163,11 +3280,80 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
 # ~1.5%. Aun asi el rescate a design_pi (.cm_aulas_pi_final_rescue) garantiza
 # el invariante para cualquier presupuesto. Deliberadamente NO reusa
 # .cm_aulas_simulation_budget para no alterar el piso del comparador.
+# F1: igual que el comparador, el criterio es de COSTO (n x corridas), no de
+# n de aulas: con costo > 150,000 aula-corridas el recorte aplica tambien en
+# la ventana media (100-1200 aulas), no solo en marcos > 1200. Para n > 1200
+# la formula es identica a la historica.
 .cm_aulas_mc_final_budget <- function(n_aulas, requested_runs) {
   requested_runs <- max(0L, as.integer(requested_runs))
   n_aulas <- max(1L, as.integer(n_aulas))
-  if (requested_runs <= 0L || n_aulas <= 1200L) return(requested_runs)
+  if (requested_runs <= 0L) return(requested_runs)
+  if (as.numeric(n_aulas) * requested_runs <= 150000) return(requested_runs)
   min(requested_runs, max(50L, as.integer(150000 %/% n_aulas)))
+}
+
+# W2 (contrato UI): eco de los filtros de criterio 7/8 normalizados con los
+# que se construyo ESTE marco. Clave estable `frame$filters_echo`: la UI la
+# compara contra la config vigente para marcar "marco desactualizado" cuando
+# el usuario cambia el criterio sin reconstruir. Solo escalares saneados —
+# nunca passthrough del input crudo.
+.cm_aulas_filters_echo <- function(cfg) {
+  f <- cfg$filters %||% list()
+  list(
+    require_min_prevalence = isTRUE(f$require_min_prevalence),
+    min_prevalence_pct = .cm_aulas_num(f$min_prevalence_pct, 0.8),
+    require_faculty_prevalence = isTRUE(f$require_faculty_prevalence),
+    min_faculty_prevalence_pct = .cm_aulas_num(f$min_faculty_prevalence_pct, 0.8),
+    require_cycle_homogeneity = isTRUE(f$require_cycle_homogeneity),
+    min_cycle_homogeneity_pct = .cm_aulas_num(f$min_cycle_homogeneity_pct, 0.8)
+  )
+}
+
+# F2: corridas Monte Carlo del sorteo final segun la fuente de probabilidad.
+# - pool_controlado: pi_final SOLO puede estimarse por simulacion (la
+#   optimizacion posterior invalida las pi prescritas) -> corre el MC completo.
+# - Engines de diseño prescrito (todo lo demas): pi_final = pi_design de forma
+#   exacta y deterministica; el MC solo llenaba la columna pi_mc de
+#   transparencia. Correr 500 selecciones completas para una columna
+#   informativa congelaba la via sincrona sin aporte metodologico -> 0 por
+#   default. La transparencia queda OPT-IN via selector$mc_prescribed_transparency.
+.cm_aulas_seleccionar_mc_runs <- function(selector, engine) {
+  engine <- .cm_aulas_engine_key(engine)
+  if (engine == "pool_controlado") {
+    return(max(.cm_aulas_int(selector$simulation_runs, 0L), .cm_aulas_int(selector$monte_carlo_n, 0L)))
+  }
+  if (.cm_aulas_bool(selector$mc_prescribed_transparency, FALSE)) {
+    return(max(0L, .cm_aulas_int(selector$monte_carlo_n, 0L)))
+  }
+  0L
+}
+
+# F1: costo estimado (en "aula-corridas") de una comparacion de metodos. Cada
+# metodo corre 1 seleccion del plan completo de olas (~ n x olas) mas las
+# corridas de simulacion presupuestadas (~ n c/u, solo M1). Es una cota de
+# ORDEN para que el router decida sync vs job — no un cronometro.
+.cm_aulas_comparar_estimated_cost <- function(frame_n, config, methods = NULL, simulation_runs = NULL) {
+  frame_n <- max(0L, .cm_aulas_int(frame_n, 0L))
+  selector <- config$selector %||% list()
+  requested <- max(0L, .cm_aulas_int(simulation_runs %||% selector$simulation_runs, 0L))
+  runs <- .cm_aulas_simulation_budget(frame_n, requested)
+  methods <- .cm_aulas_chr_vec(methods %||% c("sistematico_pps", "cube_balanceado", "local_pivotal_balanceado", "pool_controlado"))
+  n_methods <- max(1L, length(unique(vapply(methods, .cm_aulas_engine_key, character(1)))))
+  waves_n <- 1L + max(0L, .cm_aulas_int(selector$replacement_waves, 0L))
+  as.numeric(frame_n) * n_methods * (waves_n + runs)
+}
+
+# F1/F2: costo estimado del sorteo final: 1 seleccion del plan de olas mas el
+# MC final presupuestado (cada corrida MC repite el plan completo de olas).
+# Con engines prescritos (mc_runs = 0 por F2) el costo colapsa a una sola
+# seleccion -> siempre sync bajo el umbral de aulas.
+.cm_aulas_seleccionar_estimated_cost <- function(frame_n, config) {
+  frame_n <- max(0L, .cm_aulas_int(frame_n, 0L))
+  selector <- config$selector %||% list()
+  engine <- .cm_aulas_engine_key(selector$selector_engine)
+  mc_runs <- .cm_aulas_mc_final_budget(frame_n, .cm_aulas_seleccionar_mc_runs(selector, engine))
+  waves_n <- 1L + max(0L, .cm_aulas_int(selector$replacement_waves, 0L))
+  as.numeric(frame_n) * waves_n * (1 + mc_runs)
 }
 
 # Rescate del invariante de pesos: un aula SELECCIONADA tiene probabilidad de
@@ -3481,10 +3667,11 @@ calc_muestra_aulas_comparar_metodos <- function(frame_result, config = list(), m
   )
 }
 
-calc_muestra_aulas_simular_reemplazos <- function(frame_result, selection_result, config = list()) {
+calc_muestra_aulas_simular_reemplazos <- function(frame_result, selection_result, config = list(), on_progress = NULL) {
   if (is.null(selection_result) || !is.list(selection_result)) {
     stop("Se requiere una seleccion de aulas antes de simular reemplazos.", call. = FALSE)
   }
+  .cm_aulas_progress(on_progress, "preparando", message = "Preparando simulación de reemplazos", force = TRUE)
   cfg <- calc_muestra_aulas_normalize_config(config %||% frame_result$config %||% selection_result$selector %||% list())
   objective <- cfg$objective
   aula_frame <- .cm_aulas_prepare_frame(frame_result, cfg)
@@ -3511,6 +3698,10 @@ calc_muestra_aulas_simular_reemplazos <- function(frame_result, selection_result
   suggestions <- list()
   impact <- list()
   for (i in seq_len(nrow(titulars))) {
+    # F10: el par titular x candidatos domina el costo (~76 s a 3k aulas);
+    # reportar por titular da progreso util sin tocar RNG ni datos.
+    .cm_aulas_progress(on_progress, "simular_reemplazos", current = i, total = nrow(titulars),
+                       message = sprintf("Simulando reemplazos: titular %d de %d", i, nrow(titulars)))
     titular <- titulars[i, , drop = FALSE]
     candidates <- reserves
     if ("selection_slot_id" %in% names(candidates) && "selection_slot_id" %in% names(titular)) {
@@ -3717,13 +3908,19 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
 
   design_pi <- .cm_aulas_design_probabilities(aula_frame, selector, engine)
   probability_source <- if (engine == "pool_controlado") "monte_carlo_after_optimization" else "prescribed_design"
-  mc_runs <- if (probability_source == "monte_carlo_after_optimization") {
-    max(.cm_aulas_int(selector$simulation_runs, 0L), .cm_aulas_int(selector$monte_carlo_n, 0L))
-  } else {
-    max(0L, .cm_aulas_int(selector$monte_carlo_n, 0L))
+  # F2: con diseño prescrito el MC era pura transparencia (pi_final = pi_design
+  # exacta); 500 corridas por default congelaban la via sincrona. La semantica
+  # (0 por default para prescritos, opt-in via mc_prescribed_transparency)
+  # vive en .cm_aulas_seleccionar_mc_runs, compartida con el estimador de
+  # costo del router.
+  mc_runs <- .cm_aulas_seleccionar_mc_runs(selector, engine)
+  if (mc_runs > 0L) {
+    .cm_aulas_progress(on_progress, "simulacion_mc", message = "Simulación Monte Carlo", force = TRUE)
   }
-  .cm_aulas_progress(on_progress, "simulacion_mc", message = "Simulación Monte Carlo", force = TRUE)
   mc <- .cm_aulas_mc_probabilities(aula_frame, selector, engine, waves, runs = mc_runs, objective = objective, on_progress = on_progress)
+  if (probability_source == "prescribed_design" && mc$runs <= 0L) {
+    mc$note <- "MC de transparencia omitido: pi prescritas por diseño (pi_final = pi_design). Activa selector$mc_prescribed_transparency para estimar pi_mc por simulacion."
+  }
   pi_mc_lookup <- mc$pi
   pi_final_lookup <- if (probability_source == "monte_carlo_after_optimization") pi_mc_lookup else design_pi
   student_pi_lookup <- .cm_aulas_student_probability_summary(aula_frame, pi_final_lookup)
@@ -3865,6 +4062,9 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
     "mc_runs", "mc_error_summary", "weight_classroom", "pi_student", "weight_student",
     "nonresponse_adjustment_flag", "poststratification_flag", "weight_warning",
     "peso_base", "selector_score", "unique_added", "duplicate_overlap",
+    # Auditoría del descuento secuencial de repetidos (solo presentes con
+    # sequential_discount ON; el intersect las omite con OFF).
+    .cm_descuento_audit_cols(),
     "active_overlap", "titular_overlap", "eligible_delta_vs_titular",
     "representativity_score", "representativity_distance", "chain_score",
     "equivalence_level", "replacement_impact_score", "chain_depth",
@@ -3948,6 +4148,10 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
     representativity_score = representativity$representativity_score,
     representativity_distance = representativity$weighted_distance,
     selection = selection_public,
+    # Contrato con el frontend del descuento secuencial de repetidos: siempre
+    # presente (mode "off" con el flag apagado); resumen bruto vs neto por
+    # estrato sobre los titulares M1. Lógica en calc_muestra_aulas_descuento.R.
+    sequential_discount = .cm_descuento_resultado(selection_df, aula_frame, selector, engine),
     quotas = .cm_aulas_records(data.frame(stratum = names(.cm_aulas_quota_by_stratum(aula_frame, selector$n_aulas)), n_aulas = as.integer(.cm_aulas_quota_by_stratum(aula_frame, selector$n_aulas)), stringsAsFactors = FALSE)),
     summary = summary,
     diagnostics = list(
@@ -4455,6 +4659,8 @@ calc_muestra_aulas_demo_hsvg_2025 <- function() {
     generated_at = .cm_aulas_now_iso(),
     input_mode = "base_madre",
     config = cfg,
+    # W2: mismo contrato de eco de filtros que el marco real.
+    filters_echo = .cm_aulas_filters_echo(cfg),
     frame_hash = .cm_aulas_hash(list(rows$classroom_id, rows$wave, rows$eligible_n, rows$operation_status)),
     population = data.frame(stringsAsFactors = FALSE),
     population_n = .cm_aulas_int(summary$population_n, .cm_aulas_unique_students_n(rows)),
@@ -4815,3 +5021,13 @@ calc_muestra_aulas_seleccionar_job <- function(frame, config = list(), progress_
   calc_muestra_aulas_seleccionar(frame, config, on_progress = on_progress)
 }
 attr(calc_muestra_aulas_seleccionar_job, "prosecnur_job_function_name") <- "calc_muestra_aulas_seleccionar_job"
+
+# F10: simular-reemplazos era deliberadamente sincrono (~76 s a 3k aulas) y
+# bloqueaba TODO el backend (plumber single-thread). Mismo patron job que
+# comparar/seleccionar: resultado identico a la via sincrona (sin RNG en el
+# callback de progreso).
+calc_muestra_aulas_simular_reemplazos_job <- function(frame, selection, config = list(), progress_path = NULL) {
+  on_progress <- .cm_aulas_job_progress_writer(progress_path)
+  calc_muestra_aulas_simular_reemplazos(frame, selection, config, on_progress = on_progress)
+}
+attr(calc_muestra_aulas_simular_reemplazos_job, "prosecnur_job_function_name") <- "calc_muestra_aulas_simular_reemplazos_job"

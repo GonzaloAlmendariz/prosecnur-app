@@ -108,10 +108,13 @@
     course_level_ok = todo_ok,
     campus_ok = todo_ok,
     c7_ok = todo_ok,
+    c8_facultad_ok = todo_ok,
     c8_ok = todo_ok,
-    aplica = list(docente = FALSE, nivel = FALSE, sede = FALSE, c7 = FALSE, c8 = FALSE),
+    aplica = list(docente = FALSE, nivel = FALSE, sede = FALSE, c7 = FALSE,
+                  c8_facultad = FALSE, c8 = FALSE),
     marco_base_aulas = NULL,
-    opcionales = NULL
+    opcionales = NULL,
+    criterio8 = NULL
   )
   if (!is.list(criterios)) return(out)
   flags <- criterios$flags
@@ -132,6 +135,7 @@
     out$course_level_ok <- leer("course_level_ok", todo_ok)
     out$campus_ok <- leer("campus_ok", todo_ok)
     out$c7_ok <- leer("c7_ok", todo_ok)
+    out$c8_facultad_ok <- leer("c8_facultad_ok", todo_ok)
     out$c8_ok <- leer("c8_ok", todo_ok)
   }
   if (is.list(criterios$aplica)) {
@@ -141,6 +145,7 @@
   }
   out$marco_base_aulas <- criterios$marco_base_aulas
   out$opcionales <- criterios$opcionales
+  out$criterio8 <- criterios$criterio8
   out
 }
 
@@ -159,6 +164,7 @@
   }
   list(
     c7 = paso("c7", filters$min_prevalence_pct %||% 0.80),
+    c8_facultad = paso("c8_facultad", filters$min_faculty_prevalence_pct %||% 0.80),
     c8 = paso("c8", filters$min_cycle_homogeneity_pct %||% 0.80)
   )
 }
@@ -348,6 +354,7 @@ calc_muestra_aulas_perfil <- function(ctx) {
   crit <- .cm_perfil_criterios(ctx$criterios, aula_frame, incluida)
   seleccion_activa <- .cm_criterios_seleccion_activa((ctx$cfg %||% list())$criterios_seleccion)
   pct7 <- .cm_aulas_num(filters$min_prevalence_pct, 0.80)
+  pct8fac <- .cm_aulas_num(filters$min_faculty_prevalence_pct, 0.80)
   pct8 <- .cm_aulas_num(filters$min_cycle_homogeneity_pct, 0.80)
   keep_aula <- eligible_student & nzchar(classroom_id)
   pasos_aula <- list(list(id = "total", label = "Curso-horario únicos", conteo = aulas_totales))
@@ -375,9 +382,17 @@ calc_muestra_aulas_perfil <- function(ctx) {
         "c7", sprintf("c7 · Prevalencia ≥ %d%%", as.integer(round(pct7 * 100))), crit$c7_ok
       )
     }
+    # Criterio 8 (acuerdo 2026-07-15): facultad SIEMPRE antes que nivel.
+    if (crit$aplica$c8_facultad) {
+      agregar_adicional(
+        "c8_facultad",
+        sprintf("c8 · Misma facultad del curso ≥ %d%%", as.integer(round(pct8fac * 100))),
+        crit$c8_facultad_ok
+      )
+    }
     if (crit$aplica$c8) {
       agregar_adicional(
-        "c8", sprintf("c8 · Homogeneidad de ciclo ≥ %d%%", as.integer(round(pct8 * 100))), crit$c8_ok
+        "c8", sprintf("c8 · Mismo nivel del curso ≥ %d%%", as.integer(round(pct8 * 100))), crit$c8_ok
       )
     }
   } else {
@@ -431,11 +446,20 @@ calc_muestra_aulas_perfil <- function(ctx) {
       conteo = sum(en_paso)
     )))
   }
+  # Criterio 8 (acuerdo 2026-07-15): facultad SIEMPRE antes que nivel.
+  if (crit$aplica$c8_facultad) {
+    en_paso <- en_paso & crit$c8_facultad_ok
+    pasos_aula <- c(pasos_aula, list(list(
+      id = "c8_facultad",
+      label = sprintf("c8 · Misma facultad del curso ≥ %d%%", as.integer(round(pct8fac * 100))),
+      conteo = sum(en_paso)
+    )))
+  }
   if (crit$aplica$c8) {
     en_paso <- en_paso & crit$c8_ok
     pasos_aula <- c(pasos_aula, list(list(
       id = "c8",
-      label = sprintf("c8 · Homogeneidad de ciclo ≥ %d%%", as.integer(round(pct8 * 100))),
+      label = sprintf("c8 · Mismo nivel del curso ≥ %d%%", as.integer(round(pct8 * 100))),
       conteo = sum(en_paso)
     )))
   }
@@ -476,6 +500,9 @@ calc_muestra_aulas_perfil <- function(ctx) {
       crit$opcionales
     } else {
       .cm_perfil_opcionales_degradados(marco_aulas, cobertura_pct, filters)
-    }
+    },
+    # Diagnóstico del criterio 8 (NA por gate y fallback modal); ausente en
+    # llamadas degradadas sin ctx$criterios (clave aditiva del contrato).
+    criterio8 = crit$criterio8
   )
 }
