@@ -259,6 +259,9 @@ export function FacultadRadiografiaCard({
               <tr key={nivel.nivel}>
                 <td>
                   <span className="cmv2-explorador-dist-label">{nivel.nivel}</span>
+                  <span className="cmv2-explorador-dist-track" aria-hidden="true">
+                    <i style={{ width: `${Math.max(2, Math.round(nivel.share * 100))}%` }} />
+                  </span>
                   <span className="cmv2-explorador-dist-pct">{fmtPct(nivel.share)}</span>
                 </td>
                 <td data-numeric="true">{fmtInt(nivel.ch)}</td>
