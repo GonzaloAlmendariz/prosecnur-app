@@ -1796,6 +1796,20 @@
 .cmv2-crit-tsf-tipo[data-checked="true"] {
   background: color-mix(in srgb, var(--cmv2-accent-soft) 45%, transparent);
 }
+/* Filas CON mini-barra (modalidad, docente con distribución): rejilla de
+   columnas fijas para que las barras y los CH formen columnas alineadas sin
+   importar el largo del label. En flex la barra arrancaba pegada al label de
+   ancho variable y no cuadraba verticalmente. Las filas sin barra (tipo y
+   condición ya llevan su radiografía aparte, o «sin distribución») siguen en el
+   flex simple label↔CH de arriba. `:has()` corre en el Chromium del shell. */
+.cmv2-crit-tsf-tipo:has(.cmv2-crit-item-share) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px 72px;
+  column-gap: 12px;
+}
+.cmv2-crit-tsf-tipo:has(.cmv2-crit-item-share) .cmv2-crit-item-count {
+  justify-self: end;
+}
 .cmv2-crit-tsf-heredar {
   justify-self: start;
   border: 0;
