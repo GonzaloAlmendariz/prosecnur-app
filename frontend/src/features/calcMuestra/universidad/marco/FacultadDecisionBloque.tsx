@@ -42,6 +42,23 @@ function parseEntero(raw: string): number | null {
   return Number.isFinite(n) ? Math.max(1, Math.round(n)) : null;
 }
 
+/**
+ * Orden del EMBUDO por facultad (reunión §4): del filtro más GENERAL al más
+ * PARTICULAR. El tipo de curso (session_type) es la decisión final —se decide
+ * viendo su radiografía— así que va al fondo; la modalidad y la condición del
+ * curso, que recortan grueso, van primero.
+ */
+const ORDEN_EMBUDO_CRITERIO: Record<string, number> = {
+  modality: 0,
+  condicion_curso: 1,
+  course_level: 2,
+  teacher_type: 3,
+  session_type: 9,
+};
+function ordenEmbudo(id: string): number {
+  return ORDEN_EMBUDO_CRITERIO[id] ?? 5;
+}
+
 /** Control por-facultad de UN criterio de set (session/condition/teacher). */
 function CriterioFacultadCard({
   variable,
@@ -237,6 +254,12 @@ export function FacultadDecisionBloque({
 }) {
   const [abierto, setAbierto] = useState(Boolean(defaultOpen));
   const { fac, facLabel, excKey, minKey } = bloque;
+  // El tipo de curso es la decisión MÁS PARTICULAR del embudo: se separa del
+  // resto para renderizarse al final, tras la bisagra de «aulas candidatas».
+  const sessionVar = variablesToggle.find((v) => v.id === SESSION_TYPE_VARIABLE_ID);
+  const generales = [...variablesToggle]
+    .filter((v) => v.id !== SESSION_TYPE_VARIABLE_ID)
+    .sort((a, b) => ordenEmbudo(a.id) - ordenEmbudo(b.id));
   const resumen = resumenDecisionFacultad(seleccion, variablesToggle, excKey, minKey);
   const estadoTexto =
     resumen.propias === 0
@@ -284,7 +307,9 @@ export function FacultadDecisionBloque({
               Cada criterio hereda el global de arriba salvo que decidas propio aquí. Nada cambia el marco hasta
               recalcular.
             </p>
-            {variablesToggle.map((variable) => (
+            {/* Criterios generales (del más amplio al más fino) + el mínimo,
+                que también recorta grueso: van antes de la bisagra. */}
+            {generales.map((variable) => (
               <CriterioFacultadCard
                 key={variable.id}
                 variable={variable}
@@ -302,6 +327,22 @@ export function FacultadDecisionBloque({
               tasa={tasa}
               onMinimoFacultad={onMinimoFacultad}
             />
+            {/* Bisagra del embudo: cuántas aulas quedan con los filtros
+                generales, antes de la decisión más particular (el tipo). */}
+            <p className="cmv2-chfp-bisagra" role="note">
+              <strong>{fmtInt(fac.ch_elegibles)}</strong> de {fmtInt(fac.ch_total)} aulas candidatas
+              con estos criterios · ahora decide el <em>tipo de curso</em>
+            </p>
+            {sessionVar ? (
+              <CriterioFacultadCard
+                variable={sessionVar}
+                seleccion={seleccion}
+                excKey={excKey}
+                facLabel={facLabel}
+                exploracion={exploracion}
+                onSel={(next) => onToggleVariable(sessionVar.id, next)}
+              />
+            ) : null}
           </div>
         </div>
       ) : null}
