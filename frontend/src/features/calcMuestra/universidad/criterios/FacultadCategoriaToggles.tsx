@@ -8,10 +8,14 @@
  * "replace") vive en tipoSesionModel.ts (testeada). Toda edición pasa por `onSel`
  * (respeta el borrador→confirmar de la superficie que lo embebe).
  */
+import { useState } from "react";
 import type { CriterioSeleccion, CriterioVariable } from "../../../../api/client";
 import { fmtInt } from "../../sharedCore";
 import { Switch } from "./Switch";
 import { heredarFacultad, toggleTipoEnFacultad, type FilaFacultad } from "./tipoSesionModel";
+
+/** A partir de tantas categorías se pliega el ruido (0 CH aquí y no activo). */
+const UMBRAL_PLEGADO = 8;
 
 export function FacultadCategoriaToggles({
   fila,
@@ -28,10 +32,21 @@ export function FacultadCategoriaToggles({
   onSel: (next: CriterioSeleccion) => void;
   ariaLabel: string;
 }) {
+  const [verTodas, setVerTodas] = useState(false);
+  // Domar listas largas (p.ej. condición del curso trae ~52 valores DTI, casi
+  // todos ruido): muestra las que tienen CH en la facultad (o están activas) y
+  // pliega el resto. Si el catálogo no trae distribución, no pliega nada.
+  const hayDistribucion = fila.tipos.some((t) => t.ch != null);
+  const relevantes = hayDistribucion
+    ? fila.tipos.filter((t) => (t.ch ?? 0) > 0 || t.activo)
+    : fila.tipos;
+  const ocultasN = fila.tipos.length - relevantes.length;
+  const plegable = hayDistribucion && fila.tipos.length >= UMBRAL_PLEGADO && ocultasN > 0;
+  const visibles = plegable && !verTodas ? relevantes : fila.tipos;
   return (
     <div className="cmv2-crit-tsf-detalle" role="group" aria-label={ariaLabel}>
       <ul className="cmv2-crit-tsf-tipos">
-        {fila.tipos.map((t) => (
+        {visibles.map((t) => (
           <li key={t.key} className="cmv2-crit-tsf-tipo" data-checked={t.activo}>
             <div className="cmv2-crit-item-main">
               <Switch
@@ -59,6 +74,18 @@ export function FacultadCategoriaToggles({
           </li>
         ))}
       </ul>
+      {plegable ? (
+        <button
+          type="button"
+          className="cmv2-crit-tsf-vertodas"
+          aria-expanded={verTodas}
+          onClick={() => setVerTodas((v) => !v)}
+        >
+          {verTodas
+            ? "Ver solo las que tienen cursos aquí"
+            : `Ver todas (${fmtInt(ocultasN)} sin cursos en esta facultad)`}
+        </button>
+      ) : null}
       {fila.decision === "propia" ? (
         <button
           type="button"
