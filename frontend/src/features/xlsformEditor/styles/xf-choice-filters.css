@@ -289,9 +289,11 @@
 }
 
 .pulso-xcf-jump {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+  /* Inline (no flex): el texto largo del antecedente debe envolver dentro de
+     su celda de ancho fijo, no estirarse sobre la columna de opción (C1). El
+     ícono fluye inline tras el texto. */
+  display: inline;
+  max-width: 100%;
   padding: 0;
   border: none;
   background: none;
@@ -299,14 +301,18 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
-  border-bottom: 1px dashed transparent;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .pulso-xcf-jump:hover {
   color: var(--pulso-primary);
-  border-bottom-color: var(--pulso-primary-border);
+  text-decoration: underline dashed;
+  text-underline-offset: 3px;
 }
 .pulso-xcf-jump svg {
-  flex: 0 0 auto;
+  margin-left: 5px;
+  vertical-align: middle;
   opacity: 0;
   color: var(--pulso-primary);
   transition: opacity var(--motion-dur-fast, 120ms) ease;
