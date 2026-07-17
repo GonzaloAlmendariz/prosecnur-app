@@ -1773,6 +1773,17 @@
   cursor: pointer;
 }
 .cmv2-crit-tsf-heredar:hover { text-decoration: underline; }
+.cmv2-crit-tsf-vertodas {
+  justify-self: start;
+  border: 0;
+  background: transparent;
+  padding: 2px 0;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--pulso-text-muted);
+  cursor: pointer;
+}
+.cmv2-crit-tsf-vertodas:hover { color: var(--cmv2-accent-fg); text-decoration: underline; }
 
 .cmv2-crit-tsf-link {
   justify-self: start;
