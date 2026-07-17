@@ -1035,10 +1035,23 @@ isTRUE_vec <- function(x) {
   if (is.null(df) || nrow(df) < 2L) return(NULL)
   tech_row <- as.character(df[1, , drop = TRUE])
   tech_row[is.na(tech_row) | !nzchar(trimws(tech_row)) | toupper(trimws(tech_row)) == "NA"] <- ""
+  key_idx <- NA_integer_
+  for (candidate in .codif_key_candidates) {
+    idx <- unname(which(tech_row == candidate)[1])
+    if (is.na(idx)) next
+    values <- if (nrow(df) > 2L) df[3:nrow(df), idx, drop = TRUE] else NULL
+    if (.codif_key_has_values(values)) {
+      key_idx <- idx
+      break
+    }
+  }
   list(
     df = df,
     tech_row = tech_row,
-    uuid_idx = unname(which(tech_row == "_uuid")[1]),
+    # Nombre legacy: desde v0.2 representa la primera llave útil de la
+    # plantilla, no necesariamente `_uuid`. Las hojas repeat de Kobo usan
+    # `_index` y pueden traer `_uuid` completamente vacío.
+    uuid_idx = key_idx,
     nuevo_cod_idx = unname(which(tech_row == "nuevo_codigo")[1]),
     nueva_et_idx  = unname(which(tech_row == "nueva_etiqueta")[1])
   )
@@ -1068,8 +1081,8 @@ isTRUE_vec <- function(x) {
 # Shared: resolve the uuid column on the raw dataset. prosecnur accepts
 # multiple naming conventions (ODK, Pulso, internal).
 .resolve_uuid_col <- function(data_df) {
-  for (cn in c("_uuid", "uuid", "respondent_id", "response_id", "Pulso_code")) {
-    if (cn %in% names(data_df)) return(cn)
+  for (cn in .codif_key_candidates) {
+    if (cn %in% names(data_df) && .codif_key_has_values(data_df[[cn]])) return(cn)
   }
   NA_character_
 }
@@ -1881,6 +1894,46 @@ isTRUE_vec <- function(x) {
   force(expr)
 }
 
+.codif_base_pair_is_adapted <- function(s, base_name) {
+  base <- ((s$estudio %||% list())$bases %||% list())[[base_name]] %||% NULL
+  if (is.null(base)) return(FALSE)
+  xls <- s$files[[as.character(base$xlsform_file_id %||% "")]] %||% NULL
+  dat <- s$files[[as.character(base$data_file_id %||% "")]] %||% NULL
+  identical(as.character((xls %||% list())$kind %||% ""), "instrumento_adaptado") &&
+    identical(as.character((dat %||% list())$kind %||% ""), "data_adaptada")
+}
+
+.codif_required_bases <- function(s) {
+  bases <- (s$estudio %||% list())$bases %||% list()
+  if (!length(bases)) return(character(0))
+  names(bases)[vapply(bases, function(base) {
+    nzchar(as.character(base$xlsform_file_id %||% "")) &&
+      nzchar(as.character(base$data_file_id %||% ""))
+  }, logical(1))]
+}
+
+.codif_all_required_bases_applied <- function(s) {
+  required <- .codif_required_bases(s)
+  if (!length(required)) return(isTRUE(s$codif_aplicado))
+  all(vapply(required, function(base_name) {
+    scoped <- (s$codif_por_base %||% list())[[base_name]] %||% list()
+    isTRUE(scoped$aplicado) && .codif_base_pair_is_adapted(s, base_name)
+  }, logical(1)))
+}
+
+.codif_sync_base_applied_state <- function(sid) {
+  s <- session_get(sid)
+  for (base_name in .codif_required_bases(s)) {
+    adapted <- .codif_base_pair_is_adapted(s, base_name)
+    current <- isTRUE(((s$codif_por_base %||% list())[[base_name]] %||% list())$aplicado)
+    if (!identical(current, adapted)) {
+      codif_set(sid, "aplicado", adapted, source = base_name)
+      s <- session_get(sid)
+    }
+  }
+  invisible(s)
+}
+
 .codif_apply_complete <- function(sid, base_name, paths) {
   data_meta <- .register_output_file(sid, "data_adaptada", paths$data_out)
   inst_meta <- .register_output_file(sid, "instrumento_adaptado", paths$inst_out)
@@ -1910,7 +1963,22 @@ isTRUE_vec <- function(x) {
   }
   session_set(sid, "codif_data_adaptada_fid", data_meta$file_id)
   session_set(sid, "codif_inst_adaptado_fid", inst_meta$file_id)
-  session_set(sid, "codif_aplicado", TRUE)
+  if (nzchar(target_base)) {
+    # `codif_data_cached()` e `codif_inst_cached()` son caches por base. Si no
+    # se invalidan, la UI continúa leyendo el par anterior aunque los archivos
+    # adaptados ya hayan reemplazado a los originales.
+    codif_set(sid, "data", NULL, source = target_base)
+    codif_set(sid, "inst", NULL, source = target_base)
+    codif_set(sid, "aplicado", TRUE, source = target_base)
+  }
+  # Migra proyectos creados antes del estado scoped: si una base ya conserva
+  # un par adaptado válido, su estado por base se reconstruye desde los archivos.
+  .codif_sync_base_applied_state(sid)
+  session_set(
+    sid,
+    "codif_aplicado",
+    if (nzchar(target_base)) .codif_all_required_bases_applied(session_get(sid)) else TRUE
+  )
   .codif_with_base_active(sid, target_base, .codif_switch_analitica_to_adapted(sid))
   list(
     ok = TRUE,
@@ -2976,6 +3044,9 @@ mount_codificacion <- function(pr) {
       data_adapt_path <- file.path(s$dir, "downloads",
         sprintf("data_codificacion_%s.xlsx", uuid::UUIDgenerate()))
       openxlsx::write.xlsx(data_adapt_df, file = data_adapt_path, overwrite = TRUE)
+      # Capturar ahora: el analista puede cambiar la base activa mientras el
+      # job trabaja. La finalización debe reemplazar la base que lanzó el job.
+      target_base <- codif_source_active(sid)
 
       job_id <- job_submit(
         sid = sid,
@@ -2995,46 +3066,7 @@ mount_codificacion <- function(pr) {
           int_vars = int_vars
         ),
         on_complete = function(j) {
-          paths <- j$result_data
-          data_meta <- .register_output_file(j$sid, "data_adaptada", paths$data_out)
-          inst_meta <- .register_output_file(j$sid, "instrumento_adaptado", paths$inst_out)
-          inst_adaptado <- reporte_instrumento(path = inst_meta$path)
-          data_adaptada <- .read_data_any(data_meta)
-          data_adaptada <- normalize_data_for_xlsform(data_adaptada, inst_adaptado)
-          rp_data_adaptada <- reporte_data(data_adaptada, instrumento = inst_adaptado)
-
-          # Desde este punto Analítica debe conversar con la base recodificada:
-          # las variables disponibles, frecuencias y cruces leen del par
-          # instrumento/data adaptado en vez del par crudo original.
-          s_now <- session_get(j$sid)
-          base_activa <- codif_source_active(j$sid)
-          if (!is.null(base_activa) && nzchar(base_activa) &&
-              !is.null(s_now$estudio) && !is.null(s_now$estudio$bases[[base_activa]])) {
-            estudio_preserve_original_base_files(j$sid, base_activa)
-            estudio_replace_base_files(
-              sid = j$sid,
-              nombre = base_activa,
-              xlsform_file_id = inst_meta$file_id,
-              data_file_id = data_meta$file_id,
-              data_ext = data_meta$ext,
-              rp_data = rp_data_adaptada,
-              rp_inst = inst_adaptado,
-              n_filas = nrow(rp_data_adaptada),
-              n_columnas = ncol(rp_data_adaptada)
-            )
-          } else {
-            session_set(j$sid, "rp_inst", inst_adaptado)
-            session_set(j$sid, "rp_data", rp_data_adaptada)
-          }
-          session_set(j$sid, "codif_data_adaptada_fid", data_meta$file_id)
-          session_set(j$sid, "codif_inst_adaptado_fid", inst_meta$file_id)
-          session_set(j$sid, "codif_aplicado", TRUE)
-          .codif_switch_analitica_to_adapted(j$sid)
-          list(
-            ok = TRUE,
-            data_adaptada = list(file_id = data_meta$file_id, size = data_meta$size),
-            instrumento_adaptado = list(file_id = inst_meta$file_id, size = inst_meta$size)
-          )
+          .codif_apply_complete(j$sid, target_base, j$result_data)
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "codificacion.aplicar")

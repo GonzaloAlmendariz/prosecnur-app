@@ -571,12 +571,16 @@ mount_sistema <- function(pr) {
       codificada_bases <- if (length(bases) > 0L) {
         lapply(names(bases), function(nm) pair_brief(nm, bases[[nm]], "codificada"))
       } else list()
-      codificada_available <- any(vapply(codificada_bases, function(b) {
+      adapted_ready <- vapply(codificada_bases, function(b) {
         isTRUE(b$available) &&
           identical((b$xlsform %||% list())$kind, "instrumento_adaptado") &&
           identical((b$data %||% list())$kind, "data_adaptada")
-      }, logical(1)))
-      if (!codificada_available && isTRUE(s$codif_aplicado) &&
+      }, logical(1))
+      # La fuente codificada pertenece al conjunto completo. En multibase no se
+      # ofrece si falta adaptar una sola tabla: evita que la UI y los reportes
+      # mezclen silenciosamente datos originales y codificados.
+      codificada_available <- length(adapted_ready) > 0L && all(adapted_ready)
+      if (!codificada_available && length(bases) <= 1L && isTRUE(s$codif_aplicado) &&
           !is.null(s$codif_inst_adaptado_fid) && !is.null(s$codif_data_adaptada_fid)) {
         codificada_available <- TRUE
         if (length(codificada_bases) == 0L) {
@@ -619,7 +623,8 @@ mount_sistema <- function(pr) {
         codif_familias_loaded = !is.null(s$codif_familias_file_id),
         codif_plantilla_template = isTRUE(s$codif_plantilla_template),
         codif_plantilla_codigos_loaded = !is.null(s$codif_plantilla_codigos_file_id),
-        codif_aplicado = isTRUE(s$codif_aplicado),
+        codif_aplicado = isTRUE(s$codif_aplicado) &&
+          (length(bases) <= 1L || isTRUE(codificada_available)),
         analitica_prep_ok = isTRUE(analitica_runtime_ready),
         analitica_codebook_ok = isTRUE(s$analitica_codebook_ok),
         analitica_frecuencias_ok = isTRUE(s$analitica_frecuencias_ok),
