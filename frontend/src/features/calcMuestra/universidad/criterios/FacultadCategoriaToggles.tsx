@@ -23,6 +23,7 @@ export function FacultadCategoriaToggles({
   sel,
   onSel,
   ariaLabel,
+  sinBarra = false,
 }: {
   /** Fila con las categorías de la facultad (CH/elegibles + activo efectivo). */
   fila: FilaFacultad;
@@ -31,6 +32,9 @@ export function FacultadCategoriaToggles({
   /** Emite la selección siguiente (compila a op "replace" de la facultad). */
   onSel: (next: CriterioSeleccion) => void;
   ariaLabel: string;
+  /** Oculta la mini-barra de proporción (cuando el criterio ya muestra su
+   *  distribución en una tabla propia, p.ej. tipo de sesión): evita el % doble. */
+  sinBarra?: boolean;
 }) {
   const [verTodas, setVerTodas] = useState(false);
   // Domar listas largas (p.ej. condición del curso trae ~52 valores DTI, casi
@@ -58,7 +62,7 @@ export function FacultadCategoriaToggles({
                 />
                 <span className="cmv2-crit-item-label">{t.label}</span>
               </div>
-              {pct != null ? (
+              {!sinBarra && pct != null ? (
                 <span className="cmv2-crit-item-share" title={`${fmtPct(pct)} de los CH de la facultad`}>
                   <span className="cmv2-crit-item-bar" aria-hidden="true">
                     <i style={{ width: `${Math.max(2, pct * 100)}%` }} />

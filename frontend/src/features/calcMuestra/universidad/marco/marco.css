@@ -2374,6 +2374,13 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   line-height: 1.5;
   color: var(--pulso-text-muted);
 }
+/* Rótulo que separa la distribución (info) de la selección (acción). */
+.cmv2-chfp-selecciona-nota {
+  margin: 8px 2px 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pulso-text-muted);
+}
 /* Bisagra del embudo: separa los filtros generales de la decisión de tipo. */
 .cmv2-chfp-bisagra {
   display: flex;

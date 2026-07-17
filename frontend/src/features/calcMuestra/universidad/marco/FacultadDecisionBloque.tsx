@@ -156,12 +156,16 @@ function CriterioFacultadCard({
           ) : variable.id === "condicion_curso" ? (
             <FacultadRadiografiaCard fac={fac} modo="condicion" />
           ) : null}
+          {variable.id === SESSION_TYPE_VARIABLE_ID ? (
+            <p className="cmv2-chfp-selecciona-nota">Marca los tipos que entran al marco de esta facultad:</p>
+          ) : null}
           <FacultadCategoriaToggles
             fila={fila}
             variable={variable}
             sel={sel}
             onSel={onSel}
             ariaLabel={`${variable.label} en ${facLabel}`}
+            sinBarra={variable.id === SESSION_TYPE_VARIABLE_ID}
           />
         </>
       ) : null}
@@ -470,8 +474,8 @@ export function FacultadDecisionBloque({
           <div className="cmv2-chfp-decision" aria-label={`Decisión de criterios para ${facLabel}`}>
             <span className="cmv2-chfp-section-eyebrow">Decisión para esta facultad</span>
             <p className="cmv2-chfp-decision-hint">
-              Cada criterio hereda el global de arriba salvo que decidas propio aquí. Nada cambia el marco hasta
-              recalcular.
+              Del filtro más general al más particular: cada criterio admite todo hasta que lo restrinjas aquí para
+              esta facultad. Nada cambia el marco hasta recalcular.
             </p>
             {/* Criterios generales (del más amplio al más fino) + el mínimo,
                 que también recorta grueso: van antes de la bisagra. El nivel
