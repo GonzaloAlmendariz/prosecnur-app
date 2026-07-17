@@ -1972,3 +1972,902 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+/* =============================================================================
+   Particularidades del marco (reunión del diseño muestral 2026-07-15).
+   Señales detectadas por el motor + decisión manual documentada por fila.
+   Prefijo cmv2-partic-*. Solo tokens var(--cmv2-* / --pulso-*).
+   ============================================================================= */
+.cmv2-partic {
+  display: grid;
+  gap: 12px;
+}
+
+.cmv2-partic-head {
+  display: grid;
+  gap: 6px;
+}
+
+.cmv2-partic-lead {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--pulso-text-muted);
+  max-width: 92ch;
+}
+.cmv2-partic-lead strong { color: var(--pulso-text); }
+
+.cmv2-partic-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px dashed var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  color: var(--pulso-text-muted);
+}
+.cmv2-partic-empty svg { flex: none; color: var(--cmv2-accent-fg); }
+.cmv2-partic-empty p { margin: 0; font-size: 12px; line-height: 1.5; }
+
+.cmv2-partic-sections {
+  display: grid;
+  gap: 10px;
+}
+
+.cmv2-partic-section {
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: color-mix(in srgb, var(--pulso-surface-2) 35%, transparent);
+}
+.cmv2-partic-section[data-tone="warn"] {
+  border-color: var(--pulso-warn-border);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 40%, var(--pulso-surface));
+}
+.cmv2-partic-section > *:not(summary) {
+  margin-left: 12px;
+  margin-right: 12px;
+}
+.cmv2-partic-section > :last-child:not(summary) {
+  margin-bottom: 12px;
+}
+
+.cmv2-partic-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 12px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 13px;
+  color: var(--pulso-text);
+}
+.cmv2-partic-summary::-webkit-details-marker { display: none; }
+.cmv2-partic-summary::before {
+  content: "▸";
+  flex: none;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+  transition: transform 0.15s ease;
+}
+details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
+.cmv2-partic-summary-icon {
+  display: inline-flex;
+  color: var(--cmv2-accent-fg);
+}
+.cmv2-partic-summary-counts {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+  white-space: nowrap;
+}
+
+.cmv2-partic-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+.cmv2-partic-note strong { color: var(--pulso-text); }
+
+.cmv2-partic-cap {
+  margin: 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-partic-subblock {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+.cmv2-partic-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+.cmv2-partic-subtitle svg { color: var(--cmv2-accent-fg); }
+
+.cmv2-partic-list {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmv2-partic-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+.cmv2-partic-row[data-decision="excluir"] {
+  border-color: var(--pulso-danger-border, var(--pulso-warn-border));
+  background: color-mix(in srgb, var(--pulso-danger-bg, var(--pulso-warn-bg)) 35%, var(--pulso-surface));
+}
+
+.cmv2-partic-row-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.cmv2-partic-row-copy strong {
+  font-size: 12px;
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+.cmv2-partic-row-meta {
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.cmv2-partic-row-actions {
+  display: inline-flex;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  overflow: hidden;
+}
+.cmv2-partic-decision-btn {
+  height: 24px;
+  padding: 0 10px;
+  border: none;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.cmv2-partic-decision-btn + .cmv2-partic-decision-btn {
+  border-left: 1px solid var(--pulso-border);
+}
+.cmv2-partic-decision-btn:hover { background: var(--pulso-surface-2); }
+.cmv2-partic-decision-btn[aria-pressed="true"] {
+  color: var(--pulso-on-accent, #fff);
+  background: var(--cmv2-accent);
+}
+.cmv2-partic-decision-btn[data-decision="excluir"][aria-pressed="true"] {
+  background: var(--pulso-danger-fg, var(--pulso-warn-fg));
+}
+
+.cmv2-partic-nota {
+  grid-column: 1 / -1;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 12px;
+}
+.cmv2-partic-nota::placeholder { color: var(--pulso-text-muted); }
+
+@media (max-width: 900px) {
+  .cmv2-partic-row { grid-template-columns: minmax(0, 1fr); }
+  .cmv2-partic-row-actions { justify-self: start; }
+}
+
+/* ============================================================================
+   Explorador de aulas (Marco → Explorador): radiografía del marco por
+   facultad. Cards comparables + drill-down ordenable con fórmula visible.
+   Colores solo con tokens (--pulso-* / --cmv2-*), paleta del módulo.
+   ============================================================================ */
+
+/* ============================================================================
+   Vista integrada FACULTAD-PRIMARIA de «Cursos-horario» (marco-ch-radiografia):
+   barra global de recálculo → base global de criterios → un bloque por facultad
+   (radiografía + decisión interleaved, información → decisión). Prefijo
+   cmv2-chfp-*. Solo tokens --pulso-* / --cmv2-*; cero hex.
+   ============================================================================ */
+.cmv2-chfp {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+}
+/* La barra global es la única acción que reconstruye el marco: sticky para que
+   el estado y el botón sigan a la vista mientras se recorren las facultades. */
+.cmv2-chfp-apply {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+.cmv2-chfp-pending {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.cmv2-chfp-section-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.cmv2-chfp-section-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+}
+.cmv2-chfp-section-copy { min-width: 0; }
+.cmv2-chfp-section-copy h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+.cmv2-chfp-section-copy p {
+  margin: 2px 0 0;
+  max-width: 78ch;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-chfp-global,
+.cmv2-chfp-facultades {
+  display: grid;
+  gap: 12px;
+}
+.cmv2-chfp-facultades {
+  padding-top: 14px;
+  border-top: 1px solid var(--cmv2-border);
+}
+.cmv2-chfp-bloques {
+  display: grid;
+  gap: 10px;
+}
+
+/* Acordeón de facultad: colapsado resume; expandido interleava radiografía y
+   decisión. */
+.cmv2-chfp-bloque {
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--cmv2-surface);
+  overflow: hidden;
+}
+.cmv2-chfp-bloque[data-open="true"] {
+  border-color: var(--cmv2-accent-border);
+  box-shadow: var(--pulso-shadow-low);
+}
+.cmv2-chfp-bloque-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.cmv2-chfp-bloque-head:hover {
+  background: color-mix(in srgb, var(--cmv2-accent) 5%, transparent);
+}
+.cmv2-chfp-bloque-head:hover .cmv2-chfp-bloque-nombre { color: var(--cmv2-accent-fg); }
+.cmv2-chfp-bloque-head:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: -2px;
+}
+.cmv2-chfp-bloque-chevron {
+  display: inline-flex;
+  color: var(--pulso-text-muted);
+}
+.cmv2-chfp-bloque-title { display: grid; gap: 2px; min-width: 0; }
+.cmv2-chfp-bloque-nombre {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pulso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cmv2-chfp-bloque-meta {
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+.cmv2-chfp-bloque-estado {
+  padding: 2px 9px;
+  border-radius: var(--pulso-radius-chip, 999px);
+  border: 1px solid var(--cmv2-border);
+  background: var(--pulso-surface);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--pulso-text-muted);
+  white-space: nowrap;
+}
+.cmv2-chfp-bloque-estado[data-decidido] {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+}
+.cmv2-chfp-bloque-hero {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+.cmv2-chfp-bloque-hero em {
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 500;
+  color: var(--pulso-text-muted);
+}
+.cmv2-chfp-bloque-body {
+  display: grid;
+  gap: 16px;
+  padding: 10px 16px 18px;
+  border-top: 1px solid var(--cmv2-border);
+}
+@media (min-width: 1180px) {
+  .cmv2-chfp-bloque-body {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 0;
+    padding: 14px 18px 20px;
+  }
+  /* La radiografía se ancla mientras se recorre la decisión: llena el espacio
+     y mantiene el terreno de la facultad a la vista al decidir. */
+  .cmv2-chfp-info {
+    position: sticky;
+    top: 60px;
+    padding-right: 24px;
+  }
+  /* Divisor vertical limpio entre información y decisión. */
+  .cmv2-chfp-decision {
+    padding-left: 24px;
+    border-left: 1px solid var(--cmv2-border);
+  }
+}
+.cmv2-chfp-info,
+.cmv2-chfp-decision {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+}
+.cmv2-chfp-section-eyebrow {
+  display: block;
+  margin-bottom: 2px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--cmv2-border);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--cmv2-accent-fg);
+}
+.cmv2-chfp-info-scroll {
+  max-height: min(60vh, 640px);
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.cmv2-chfp-decision-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+
+/* Tarjeta de un criterio decidido por facultad (session/condition/teacher/min) */
+.cmv2-chfp-crit {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+.cmv2-chfp-crit[data-decision="propia"] {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+}
+.cmv2-chfp-crit-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.cmv2-chfp-crit-head-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.cmv2-chfp-crit-chevron {
+  display: inline-flex;
+  flex: none;
+  color: var(--pulso-text-muted);
+}
+.cmv2-chfp-crit-head:hover strong { color: var(--cmv2-accent-fg); }
+.cmv2-chfp-crit-head strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+.cmv2-chfp-crit-state {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--pulso-text-muted);
+  white-space: nowrap;
+}
+.cmv2-chfp-crit-state[data-decision="propia"] { color: var(--cmv2-accent-fg); }
+.cmv2-chfp-min { display: grid; gap: 8px; }
+.cmv2-chfp-min-sug {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+.cmv2-chfp-min-sug svg { flex: none; margin-top: 1px; color: var(--cmv2-accent-fg); }
+
+@media (max-width: 1024px) {
+  .cmv2-chfp-apply { position: static; }
+  .cmv2-chfp-bloque-head {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "chevron title hero"
+      "chevron estado estado";
+    row-gap: 6px;
+  }
+  .cmv2-chfp-bloque-chevron { grid-area: chevron; }
+  .cmv2-chfp-bloque-title { grid-area: title; }
+  .cmv2-chfp-bloque-hero { grid-area: hero; }
+  .cmv2-chfp-bloque-estado { grid-area: estado; justify-self: start; }
+}
+
+.cmv2-explorador-head {
+  display: grid;
+  gap: 14px;
+}
+
+.cmv2-explorador-mision {
+  margin: 4px 0 0;
+  max-width: 72ch;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-explorador-contraste {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--cmv2-accent-border);
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-accent-soft);
+}
+.cmv2-explorador-contraste-titulo {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cmv2-accent-fg);
+}
+.cmv2-explorador-contraste ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cmv2-explorador-contraste li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+}
+.cmv2-explorador-contraste li strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.cmv2-explorador-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cmv2-explorador-buscador {
+  min-width: 220px;
+}
+.cmv2-explorador-buscador input {
+  height: 28px;
+}
+
+.cmv2-explorador-sin-resultados {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+}
+
+/* Tarjetas de perfil por facultad: anchas, apiladas y con scroll propio. El
+   académico decide criterios de aula con la radiografía completa a la vista;
+   cada tarjeta puede tomar alto libre (contenedor con scroll vertical). */
+.cmv2-explorador-facultades-scroll {
+  margin-top: 12px;
+  max-height: min(64vh, 720px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.cmv2-explorador-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.cmv2-explorador-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 14px 16px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--cmv2-surface);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.cmv2-explorador-card[data-active] {
+  border-color: var(--cmv2-accent);
+  box-shadow: 0 0 0 1px var(--cmv2-accent) inset, var(--cmv2-shadow-card);
+}
+
+.cmv2-explorador-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.cmv2-explorador-card-head:hover .cmv2-explorador-card-nombre {
+  color: var(--cmv2-accent-fg);
+}
+.cmv2-explorador-card-head:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+  border-radius: var(--pulso-radius);
+}
+
+.cmv2-explorador-card-title {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.cmv2-explorador-card-nombre {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.cmv2-explorador-card-hero {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+.cmv2-explorador-card-hero em {
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 500;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-explorador-card-meta {
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-explorador-card-body {
+  display: grid;
+  gap: 8px;
+}
+
+.cmv2-explorador-card-vacio {
+  margin: 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+/* Tabla de distribución por tipo/nivel dentro de la tarjeta. */
+.cmv2-explorador-dist th[data-numeric],
+.cmv2-explorador-dist td[data-numeric] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.cmv2-explorador-dist td:first-child {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) minmax(60px, 120px) 44px;
+  align-items: center;
+  gap: 8px;
+}
+.cmv2-explorador-dist-label {
+  overflow: hidden;
+  font-weight: 500;
+  color: var(--pulso-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cmv2-explorador-dist-track {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--pulso-surface-2, var(--pulso-surface));
+  border: 1px solid var(--cmv2-border);
+  overflow: hidden;
+}
+.cmv2-explorador-dist-track i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--cmv2-accent);
+}
+.cmv2-explorador-dist-pct {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-explorador-niveles > summary {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cmv2-accent-fg);
+  cursor: pointer;
+  list-style: revert;
+}
+.cmv2-explorador-niveles[open] > summary {
+  margin-bottom: 6px;
+}
+
+.cmv2-explorador-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cmv2-explorador-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--pulso-radius-chip, 999px);
+  border: 1px solid var(--cmv2-border);
+  background: var(--pulso-surface);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--pulso-text-muted);
+  white-space: nowrap;
+}
+.cmv2-explorador-badge[data-kind="externo"] {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+.cmv2-explorador-badge[data-kind="multi"] {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-explorador-detalle .cmv2-table-wrap {
+  margin-top: 12px;
+}
+
+.cmv2-explorador-table th[data-numeric],
+.cmv2-explorador-table td[data-numeric] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.cmv2-explorador-table th[data-numeric] .cmv2-explorador-sort {
+  justify-content: flex-end;
+}
+
+.cmv2-explorador-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+}
+.cmv2-explorador-sort:hover { color: var(--cmv2-accent-fg); }
+.cmv2-explorador-sort:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 1px;
+  border-radius: 3px;
+}
+
+.cmv2-explorador-curso {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cmv2-explorador-nota {
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+
+@media (max-width: 1024px) {
+  .cmv2-explorador-card-head {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .cmv2-explorador-dist td:first-child {
+    grid-template-columns: minmax(72px, 1fr) 40px;
+  }
+  .cmv2-explorador-dist-track {
+    display: none;
+  }
+}
+
+/* ── Boxplot de elegibles por aula (radiografía por tipo, reunión Ramiro §9) ── */
+.cmv2-boxplot-col {
+  width: 148px;
+  text-align: left;
+  vertical-align: middle;
+}
+.cmv2-boxplot {
+  display: block;
+  width: 132px;
+  height: 22px;
+  overflow: visible;
+}
+.cmv2-boxplot-whisker {
+  stroke: color-mix(in srgb, var(--pulso-text) 42%, transparent);
+  stroke-width: 1.25;
+}
+.cmv2-boxplot-cap {
+  stroke: color-mix(in srgb, var(--pulso-text) 42%, transparent);
+  stroke-width: 1.25;
+}
+.cmv2-boxplot-box {
+  fill: color-mix(in srgb, var(--cmv2-accent) 24%, transparent);
+  stroke: var(--cmv2-accent);
+  stroke-width: 1.25;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cmv2-boxplot-in 260ms ease-out both;
+}
+.cmv2-boxplot-mediana {
+  stroke: var(--cmv2-accent-fg, var(--cmv2-accent));
+  stroke-width: 2.25;
+  stroke-linecap: round;
+}
+.cmv2-boxplot-media {
+  fill: var(--pulso-warn-fg, var(--pulso-warning));
+  stroke: var(--pulso-surface);
+  stroke-width: 1;
+}
+.cmv2-boxplot-vacio {
+  color: var(--pulso-text-muted);
+}
+@keyframes cmv2-boxplot-in {
+  from { transform: scaleX(0.6); opacity: 0; }
+  to { transform: scaleX(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-boxplot-box { animation: none; }
+}
+
+.cmv2-boxplot-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin: 8px 2px 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+.cmv2-boxplot-leyenda-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.cmv2-boxplot-leyenda-nota {
+  flex: 1 1 100%;
+  color: var(--pulso-text-muted);
+}
+.cmv2-boxplot-leyenda-caja,
+.cmv2-boxplot-leyenda-mediana,
+.cmv2-boxplot-leyenda-media {
+  display: inline-block;
+  flex: none;
+}
+.cmv2-boxplot-leyenda-caja {
+  width: 16px;
+  height: 10px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--cmv2-accent) 24%, transparent);
+  border: 1px solid var(--cmv2-accent);
+}
+.cmv2-boxplot-leyenda-mediana {
+  width: 3px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--cmv2-accent-fg, var(--cmv2-accent));
+}
+.cmv2-boxplot-leyenda-media {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pulso-warn-fg, var(--pulso-warning));
+}
+@media (max-width: 1024px) {
+  .cmv2-boxplot-col {
+    display: none;
+  }
+}

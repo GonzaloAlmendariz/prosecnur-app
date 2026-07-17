@@ -57,7 +57,11 @@
 
 .cmv2-frame .pulso-page-frame-body--fill {
   min-height: 0;
-  overflow: hidden;
+  /* `clip` (no `hidden`): un contenedor `hidden` sigue siendo scrolleable por
+     foco/scrollIntoView; al enfocar una pestaña del sidebar el body se
+     desplazaba unos px y el título de la pestaña quedaba clipeado bajo la
+     banda KPI (QA 1024x600). `clip` prohíbe ese scroll fantasma. */
+  overflow: clip;
 }
 
 .cmv2-frame .pulso-page-frame-body--fill > .cmv2-workbench {
@@ -410,8 +414,10 @@
 .cmv2-command-trip-main strong {
   display: block;
   min-width: 0;
-  overflow: visible;
-  text-overflow: clip;
+  /* QA después #2: a 1024x600 el título desbordaba en corte seco y el chip
+     vecino se le encimaba — elipsis en vez de clip. */
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -640,9 +646,11 @@
   min-width: 0;
 }
 
+/* Dos escenarios visibles (el tercero vive como toggle secundario): la grilla
+   reparte el ancho entre los presentes en vez de dejar un tercio vacío. */
 .cmv2-source-mode-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 8px;
   margin-top: 12px;
 }
@@ -2476,10 +2484,13 @@
   margin-bottom: 8px;
 }
 
+/* Jerarquía del ramp (kit macOS): título de panel = 15/700 (Title 3), subhead
+   = 13/700 (Headline). Antes ambos convergían visualmente en ~14/700 y los
+   niveles competían. */
 .cmv2-subhead strong {
   color: var(--pulso-text);
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .cmv2-calc-card-head,
@@ -3503,7 +3514,7 @@
 }
 
 .cmv2-frame-card--marco_disponible {
-  --route-accent: color-mix(in srgb, var(--pulso-primary) 86%, #4f7cbf 14%);
+  --route-accent: color-mix(in srgb, var(--pulso-primary) 86%, var(--pulso-accent-steel) 14%);
 }
 
 .cmv2-frame-card--acreditacion {
@@ -3820,7 +3831,8 @@
   display: block;
   color: var(--pulso-text);
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .cmv2-pill-soft {
@@ -4971,7 +4983,11 @@
 
 @media (max-height: 720px) {
   .cmv2-module-chrome {
-    gap: 5px;
+    gap: 3px;
+  }
+
+  .cmv2-frame .pulso-page-frame-toolbar {
+    padding-block: 2px 3px;
   }
 
   .cmv2-commandbar {
@@ -4979,7 +4995,7 @@
     padding: 0 6px;
   }
 
-  
+
   .cmv2-command-current small,
   .cmv2-section-pill-copy small {
     display: none;
@@ -4987,6 +5003,25 @@
 
   .cmv2-section-rail.pulso-phase-pillbar {
     --pill-h: var(--pulso-control-height-lg);
+  }
+}
+
+/* Alturas chicas (QA 1024x600): el chrome del desk no puede comerse ~62% del
+   alto. Con ancho suficiente, la fila de guardado se fusiona con la fila de
+   la mesa + pills (en vez de apilarse en filas propias). */
+@media (max-height: 720px) and (min-width: 1000px) {
+  .cmv2-commandbar {
+    grid-template-columns: minmax(150px, 1fr) minmax(0, auto) minmax(120px, 1fr);
+  }
+
+  .cmv2-toolbar-actions {
+    grid-column: auto;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+  }
+
+  .cmv2-command-cluster {
+    margin-left: auto;
   }
 }
 

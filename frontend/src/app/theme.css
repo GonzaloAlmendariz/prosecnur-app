@@ -240,6 +240,8 @@
   --pulso-accent-rose: #c2416b;
   --pulso-accent-amber: #d97706;
   --pulso-accent-violet: #7c3aed;
+  --pulso-accent-sky: #38bdf8;
+  --pulso-accent-steel: #4f7cbf;
 
   /* Shadow específica para el panel ContextLens (deslizable desde derecha). */
   --pulso-shadow-lens: 0 20px 60px rgba(15, 23, 42, 0.18),
