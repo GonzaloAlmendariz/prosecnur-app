@@ -12,7 +12,7 @@
  * "replace") y `minEligible.byFaculty[minKey]`; nada cambia el marco hasta
  * recalcular (la barra global de la pestaña).
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Lightbulb } from "lucide-react";
 import type {
   CalcMuestraAulasExploracion,
@@ -20,13 +20,16 @@ import type {
   CriterioSeleccion,
   CriterioVariable,
   CriteriosSeleccionMarco,
+  MonitoreoRow,
 } from "../../../../api/client";
 import { rangosFacultad, seleccionVariable } from "../../dominio";
+import { aulasSupervivientesFacultad } from "../../dominio/criteriosImpacto";
 import { fmtDec, fmtInt } from "../../sharedCore";
 import { FacultadCategoriaToggles } from "../criterios/FacultadCategoriaToggles";
 import { Switch } from "../criterios/Switch";
 import { filasPorFacultad, SESSION_TYPE_VARIABLE_ID } from "../criterios/tipoSesionModel";
 import { minimoFacultad, minimoSugerido, presentesEsperados } from "../criterios/minElegiblesModel";
+import { AulasFinalesCard } from "./AulasFinalesCard";
 import { FacultadRadiografiaCard } from "./FacultadRadiografiaCard";
 import { resumenDecisionFacultad, type FacultadBloque } from "./facultadDecisionModel";
 
@@ -378,12 +381,15 @@ export function FacultadDecisionBloque({
   rangeVariable,
   seleccion,
   exploracion,
+  aulaFrame,
   umbralGeneral,
   tasa,
   defaultOpen,
   onToggleVariable,
   onRango,
   onMinimoFacultad,
+  onToggleAula,
+  onReactivarAulas,
 }: {
   bloque: FacultadBloque;
   /** Criterios de set decidibles por facultad (session/condition/teacher). */
@@ -393,18 +399,27 @@ export function FacultadDecisionBloque({
   /** Borrador de la selección de criterios. */
   seleccion: CriteriosSeleccionMarco;
   exploracion: CalcMuestraAulasExploracion | null;
+  /** Lista individual de CH del último marco (para la selección manual final). */
+  aulaFrame: MonitoreoRow[];
   umbralGeneral: number;
   tasa: number | null;
   defaultOpen?: boolean;
   onToggleVariable: (variableId: string, next: CriterioSeleccion) => void;
   onRango: (facultad: string, rangos: Array<[number, number]>) => void;
   onMinimoFacultad: (minKey: string, valor: number | null) => void;
+  /** Enciende/apaga un curso-horario puntual (excluida=true lo saca del marco). */
+  onToggleAula: (classroomId: string, excluida: boolean) => void;
+  /** Reactiva todos los CH apagados de esta facultad (claves en text_key). */
+  onReactivarAulas: (clavesTextKey: string[]) => void;
 }) {
   const [abierto, setAbierto] = useState(Boolean(defaultOpen));
   const { fac, facLabel, excKey, minKey } = bloque;
   // El tipo de curso es la decisión MÁS PARTICULAR del embudo: se separa del
   // resto para renderizarse al final, tras la bisagra de «aulas candidatas».
   const sessionVar = variablesToggle.find((v) => v.id === SESSION_TYPE_VARIABLE_ID);
+  // Lista final de cursos-horario supervivientes de la facultad (el criterio más
+  // granular): sale del aula_frame del build, ya filtrado por facultad.
+  const aulasFinales = useMemo(() => aulasSupervivientesFacultad(aulaFrame, facLabel), [aulaFrame, facLabel]);
   const generales = [...variablesToggle]
     .filter((v) => v.id !== SESSION_TYPE_VARIABLE_ID)
     .sort((a, b) => ordenEmbudo(a.id) - ordenEmbudo(b.id));
@@ -512,6 +527,15 @@ export function FacultadDecisionBloque({
                 onSel={(next) => onToggleVariable(sessionVar.id, next)}
               />
             ) : null}
+            {/* Criterio final y más granular: la lista de cursos-horario que
+                sobreviven en esta facultad, todos activos por defecto. */}
+            <AulasFinalesCard
+              aulas={aulasFinales}
+              seleccion={seleccion}
+              facLabel={facLabel}
+              onToggle={onToggleAula}
+              onReactivarTodas={onReactivarAulas}
+            />
           </div>
         </div>
       ) : null}

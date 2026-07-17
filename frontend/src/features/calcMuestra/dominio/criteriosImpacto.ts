@@ -348,3 +348,55 @@ export function computeImpactoMarco(
     pendingAlumnoVars: alumnoIds.pendientes,
   };
 }
+
+/** Un curso-horario de la lista final de selección manual por facultad. */
+export type AulaFinal = {
+  /** classroom_id crudo (para mostrar y como key del toggle). */
+  classroomId: string;
+  /** text_key del classroom_id, para casar con `manualExcludedClassrooms`. */
+  classroomKey: string;
+  /** Curso · sección (línea principal). */
+  label: string;
+  /** Horario · docente (línea secundaria; puede ir vacía). */
+  detalle: string;
+  /** Alumnos elegibles del aula (orden desc). */
+  eligibleN: number;
+};
+
+/**
+ * Cursos-horario supervivientes de una facultad para la lista final de
+ * selección manual (el criterio más granular). Son los que quedaron INCLUIDOS
+ * en el último marco construido, más los que solo salieron por exclusión manual
+ * (para poder reactivarlos). Ordenados por elegibles desc. Lee el `aula_frame`
+ * del build tal cual: el motor ya aplicó los criterios por facultad, así que no
+ * se re-filtra aquí (evita divergir del cálculo autoritativo).
+ */
+export function aulasSupervivientesFacultad(
+  aulaFrame: MonitoreoRow[] | null | undefined,
+  facultadLabel: string,
+): AulaFinal[] {
+  const facKey = textKey(facultadLabel);
+  const rows = (aulaFrame ?? []).filter((r) => {
+    if (textKey(rowStr(r, "faculty")) !== facKey) return false;
+    if (rowBool(r, "included")) return true;
+    // Excluida SOLO a mano: sigue en la lista, apagada, para poder reactivarla.
+    return rowStr(r, "exclude_reason").trim() === "manual_excluded";
+  });
+  return rows
+    .map((r): AulaFinal => {
+      const classroomId = rowStr(r, "classroom_id");
+      const curso = rowStr(r, "course_name") || rowStr(r, "label") || classroomId;
+      const seccion = rowStr(r, "section");
+      const detalle = [rowStr(r, "schedule"), rowStr(r, "teacher")].filter(Boolean).join(" · ");
+      return {
+        classroomId,
+        classroomKey: textKey(classroomId),
+        label: seccion ? `${curso} · ${seccion}` : curso,
+        detalle,
+        eligibleN: rowNum(r, "eligible_n"),
+      };
+    })
+    .sort(
+      (a, b) => (b.eligibleN || 0) - (a.eligibleN || 0) || a.label.localeCompare(b.label, "es"),
+    );
+}

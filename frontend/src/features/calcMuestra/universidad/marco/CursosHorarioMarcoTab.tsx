@@ -30,6 +30,7 @@ import {
   type CalcMuestraWorkspaceAulasConfig,
   type CriterioSeleccion,
   type CriteriosSeleccionMarco,
+  type MonitoreoRow,
 } from "../../../../api/client";
 import {
   ELEGIBLES_POR_AULA_ID,
@@ -52,6 +53,8 @@ import type { FacultadRef } from "../criterios/facultades";
 import type { FacultadMinRef } from "../criterios/MinElegiblesCard";
 import { setMinimoFacultad, setTasaAsistencia, tasaAsistencia } from "../criterios/minElegiblesModel";
 import { senalAgrupamientoDti } from "../criterios/tipoSesionModel";
+import { MANUAL_EXCLUDED_ID, reactivarTodas, setAulaExcluida } from "../criterios/aulasFinalesModel";
+import { rowsFrom } from "../../sharedCore";
 import { CursosHorarioBaseGlobal } from "./CursosHorarioBaseGlobal";
 import { FacultadDecisionBloque } from "./FacultadDecisionBloque";
 import { facultadesBloque, slugFacultad } from "./facultadDecisionModel";
@@ -85,6 +88,12 @@ export function CursosHorarioMarcoTab({
     () => normalizeCalcMuestraAulasExploracion(aulasState?.frame?.exploracion ?? null),
     [aulasState?.frame?.exploracion],
   );
+  // Lista individual de cursos-horario del último marco (para la selección
+  // manual final por facultad). El motor ya marcó `included` por facultad.
+  const aulaFrame = useMemo<MonitoreoRow[]>(
+    () => rowsFrom<MonitoreoRow>(aulasState?.frame?.aula_frame),
+    [aulasState?.frame?.aula_frame],
+  );
   const sessionTypeDominante = useMemo(
     () =>
       normalizeCalcMuestraAulasParticularidades(aulasState?.frame?.particularidades ?? null)
@@ -117,6 +126,7 @@ export function CursosHorarioMarcoTab({
     const tipos = new Map<string, TipoBorradorCriterio>();
     for (const variable of catalogo.variables) tipos.set(variable.id, variable.kind);
     tipos.set(ELEGIBLES_POR_AULA_ID, "minEligible");
+    tipos.set(MANUAL_EXCLUDED_ID, "manualExcluded");
     return tipos;
   }, [catalogo.variables]);
 
@@ -201,6 +211,14 @@ export function CursosHorarioMarcoTab({
   function editarTasa(t: number | null) {
     setBorrador((prev) => setTasaAsistencia(prev, t, minEligibleThreshold(prev, config.min_elegibles_aula)));
     marcarPendiente(ELEGIBLES_POR_AULA_ID);
+  }
+  function editarExclusionAula(classroomId: string, excluida: boolean) {
+    setBorrador((prev) => setAulaExcluida(prev, classroomId, excluida));
+    marcarPendiente(MANUAL_EXCLUDED_ID);
+  }
+  function reactivarAulas(clavesTextKey: string[]) {
+    setBorrador((prev) => reactivarTodas(prev, clavesTextKey));
+    marcarPendiente(MANUAL_EXCLUDED_ID);
   }
   function precargarPreset(plan: PresetCanonicoPlan) {
     setBorrador(plan.seleccion);
@@ -377,12 +395,15 @@ export function CursosHorarioMarcoTab({
                     rangeVariable={rangeVariable}
                     seleccion={borrador}
                     exploracion={exploracion}
+                    aulaFrame={aulaFrame}
                     umbralGeneral={umbralGeneral}
                     tasa={tasa}
                     defaultOpen={index === 0}
                     onToggleVariable={editarVariable}
                     onRango={(facultad, rangos) => editarRango(rangeVariable?.id ?? "course_level", facultad, rangos)}
                     onMinimoFacultad={editarMinimoFacultad}
+                    onToggleAula={editarExclusionAula}
+                    onReactivarAulas={reactivarAulas}
                   />
                 ))}
               </div>

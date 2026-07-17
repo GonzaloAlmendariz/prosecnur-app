@@ -14839,6 +14839,10 @@ export type CriteriosSeleccionMarco = {
    *  la SUGERENCIA de mínimos (ceil(mínimo/tasa)) pero NO altera el umbral
    *  efectivo — se persiste para trazabilidad del diseño. */
   minEligible?: { threshold: number; byFaculty?: Record<string, number>; attendance_rate?: number };
+  /** Cursos-horario apagados a mano (por `classroom_id`): el criterio más
+   *  granular del marco. Sale del marco al reconstruir; nunca incluye, solo
+   *  excluye. Se compara por text_key en el motor. */
+  manualExcludedClassrooms?: string[];
 };
 
 /**
