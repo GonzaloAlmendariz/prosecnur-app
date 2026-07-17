@@ -355,6 +355,13 @@ export function CursosHorarioMarcoTab({
                 </p>
               </div>
             </header>
+            {(totalPendientes > 0 || necesitaRecalculo) && bloques.length > 0 ? (
+              <AvisoModulo tone="warn" compact role="status" className="cmv2-chfp-aviso-recalcular">
+                Cambiaste criterios: las «aulas candidatas» y las distribuciones de abajo son del último marco
+                construido. Recalcula («Calcular población y cursos-horario elegibles») para que se ajusten en cascada
+                —cada criterio recorta y actualiza la información de los siguientes.
+              </AvisoModulo>
+            ) : null}
             {bloques.length === 0 ? (
               <AvisoModulo tone="info" role="status">
                 La radiografía por facultad se calcula junto con el marco. Ejecuta «Calcular población y cursos-horario
