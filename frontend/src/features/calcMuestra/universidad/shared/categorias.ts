@@ -252,30 +252,46 @@ export function universityRoleColumnOptions(
     .sort((a, b) => a.localeCompare(b, "es"));
 }
 
+/**
+ * Proyecta la selección MANUAL del usuario sobre la lista canónica de roles
+ * requeridos, SIN inferir ninguna columna: el mapeo es una decisión consciente
+ * 1-a-1 (§3.3.1). Antes auto-asignaba `inferUniversityColumn` a cada rol vacío,
+ * y esa auto-asignación (a) llegaba a persistirse y (b) secuestraba columnas
+ * cross-hoja — el usuario veía roles "mapeados" que nunca eligió. La sugerencia
+ * vive solo como hint NO persistido en la UI de mapeo (DefVariablesTab).
+ * `_detectedColumns` se conserva en la firma por compatibilidad de llamadas.
+ */
 export function ensureUniversityVariableMappings(
   current: CalcMuestraWorkspaceVariableMapping[] | undefined,
-  detectedColumns: string[],
+  _detectedColumns: string[],
 ) {
   const byRole = new Map((current ?? []).map((item) => [item.role, item]));
   return UNIVERSITY_REQUIRED_VARIABLES.map((base) => {
     const existing = byRole.get(base.role);
-    const inferredColumn = existing?.column ?? inferUniversityColumn(base.role, detectedColumns);
-    return { ...base, column: inferredColumn };
+    return { ...base, column: existing?.column ?? "" };
   });
 }
 
+/**
+ * Al cambiar/recargar la base solo PODA lo que ya no aplica; NUNCA auto-asigna
+ * una columna inferida (§3.3.1: el mapeo es manual 1-a-1). Antes reinfería y
+ * pisaba la elección del usuario — así teacher_type terminaba en "Condición" —.
+ * Conserva cada columna elegida que siga existiendo; limpia la que desapareció
+ * de la base o que sea una columna interna/derivada del motor (no una columna
+ * real de la hoja). Los roles sin mapear quedan vacíos (el usuario los mapea).
+ */
 export function reconcileUniversityVariableMappingsForColumns(
   current: CalcMuestraWorkspaceVariableMapping[] | undefined,
   detectedColumns: string[],
 ) {
-  if (!detectedColumns.length) return ensureUniversityVariableMappings(current, detectedColumns);
+  const base = ensureUniversityVariableMappings(current, detectedColumns);
+  if (!detectedColumns.length) return base;
   const columnSet = new Set(detectedColumns);
-  return ensureUniversityVariableMappings(current, detectedColumns).map((row) => {
+  return base.map((row) => {
     const selected = row.column?.trim() ?? "";
-    const suggested = inferUniversityColumn(row.role, detectedColumns);
-    const shouldReplace = Boolean(suggested) && (!selected || !columnSet.has(selected) || isUniversityInternalColumnName(selected));
-    if (shouldReplace) return { ...row, column: suggested };
-    if (selected && !columnSet.has(selected)) return { ...row, column: "" };
+    if (selected && (!columnSet.has(selected) || isUniversityInternalColumnName(selected))) {
+      return { ...row, column: "" };
+    }
     return row;
   });
 }
@@ -387,7 +403,10 @@ export function inferUniversityColumn(role: string, columns: string[]) {
       "especialidadestudiante", "especialidadalumno", "carrera", "especialidad",
     ],
     sex: ["sex", "sexo", "genero", "gender"],
-    level: ["level", "nivelseguncreditos", "nivelseguncredito", "nivelporcreditos", "nivelcreditos", "nivelcurricular", "ciclo", "nivel", "anio", "ano", "semestre"],
+    // Acuerdo 2026-07-15 (reunión del diseño muestral): "el nivel curricular
+    // manda; créditos es apoyo". Las variantes curriculares/ciclo van ANTES que
+    // las de créditos — espejo del orden del motor R (calc_muestra_aulas.R).
+    level: ["level", "nivelcurricular", "ciclo", "nivelseguncreditos", "nivelseguncredito", "nivelporcreditos", "nivelcreditos", "nivel", "anio", "ano", "semestre"],
     formation: ["formation", "formacion", "nivelacademico", "nivelformativo"],
     course_id: ["courseid", "cursoid", "codigocurso", "codcurso", "curso"],
     course_schedule_id: ["coursescheduleid", "cursohorario", "codigocursohorario", "idcursohorario", "seccionhorario", "nrc"],
@@ -426,8 +445,14 @@ export function inferUniversityColumn(role: string, columns: string[]) {
   // adicional" (⊇ "formacion") — misma clase de bug que el colapso de
   // identidad de aula (H4). Solo se automapea con match exacto normalizado.
   if (role === "formation") return "";
+  // Solo el sentido SEGURO del substring: la columna CONTIENE el sinónimo
+  // completo (p.ej. "Tipo de docente (categoría)" ⊇ "tipodedocente"). El sentido
+  // inverso —un sinónimo que contiene a la columna corta— secuestraba columnas
+  // genéricas hacia el rol equivocado (teacher_type ← "Condición", porque
+  // "condiciondocente" ⊇ "condicion"): misma clase de bug que ya se excluyó en
+  // formation. El match exacto de arriba ya cubrió el caso limpio.
   for (const synonym of synonyms[role] ?? []) {
-    const partial = normalized.find((item) => item.normalized.includes(synonym) || synonym.includes(item.normalized));
+    const partial = normalized.find((item) => item.normalized.includes(synonym));
     if (partial) return partial.column;
   }
   return "";
