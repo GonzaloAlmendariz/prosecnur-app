@@ -54,4 +54,36 @@ describe("presentación de Cobertura", () => {
     expect(html).toContain("Construye el marco");
     expect(html).not.toContain("cmv2-cob-card");
   });
+
+  it("frame rehidratado del .pulso (sin population) usa perfil.facultades como elegibles", () => {
+    // El backend PODA frame$population al guardar el .pulso (project_pulso.R);
+    // el perfil agregado sí persiste y trae los elegibles por facultad (n).
+    const state = frameState();
+    const frame = (state as unknown as { frame: Record<string, unknown> }).frame;
+    delete frame.population;
+    frame.perfil = {
+      schema: "calc_muestra_aulas_perfil_v1",
+      facultades: [
+        { id: "a", nombre: "Facultad A", n: 2 },
+        { id: "b", nombre: "Facultad B", n: 1 },
+      ],
+    };
+    const html = renderToStaticMarkup(<TabCobertura perfil={perfil} aulasState={state} />);
+    // KPI global de alumnos: 3 elegibles de 4 del pool — nunca 0 / 4.
+    expect(html).toContain("3 / 4");
+    expect(html).not.toContain("0 / 4");
+    // Fila de Facultad A: 2 elegibles de 3.
+    expect(html).toContain("<b>2</b>");
+  });
+
+  it("sin population NI perfil: estado honesto, nunca ceros como si fueran dato", () => {
+    const state = frameState();
+    const frame = (state as unknown as { frame: Record<string, unknown> }).frame;
+    delete frame.population;
+    const html = renderToStaticMarkup(<TabCobertura perfil={perfil} aulasState={state} />);
+    expect(html).toContain("Reconstruye el marco");
+    expect(html).not.toContain("0 / 4");
+    // El gráfico de cursos-horario sigue disponible (aula_frame sí persiste).
+    expect(html).toContain("Cursos-horario por facultad");
+  });
 });

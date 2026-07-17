@@ -11,7 +11,8 @@ import { useMemo } from "react";
 import { GraduationCap, LayoutGrid } from "lucide-react";
 import type { CalcMuestraAulasState } from "../../../../api/client";
 import type { PerfilInstitucional } from "../../dominio";
-import { fmtInt, fmtPct, rowsFrom } from "../../sharedCore";
+import { fmtInt, fmtPct, rowsFrom, safeNumber } from "../../sharedCore";
+import { AvisoModulo } from "../../universidad/shared/AvisoModulo";
 import "./cobertura.css";
 
 type FilaCob = {
@@ -135,27 +136,54 @@ export function TabCobertura({
 }) {
   const frame = aulasState?.frame ?? null;
 
-  const { alumnos, cursos } = useMemo(() => {
+  const { alumnos, cursos, alumnosSinDetalle } = useMemo(() => {
     const pool = rowsFrom<Record<string, unknown>>(frame?.population_pool);
     const elegibles = rowsFrom<Record<string, unknown>>(frame?.population);
     const aulas = rowsFrom<Record<string, unknown>>(frame?.aula_frame);
+    const clave = (nombre: string) => nombre.trim().toLocaleUpperCase("es");
 
-    // Alumnos: el pool son todos los únicos; los de `population` son elegibles.
-    // Se cuenta por facultad total (pool) e incluidos (elegibles).
-    const elegiblesPorFac = agrupaPorFacultad(elegibles, () => true);
+    // Elegibles por facultad. Fuente primaria: `population` (fresca tras
+    // construir el marco). Al guardar el .pulso el backend PODA frame$population
+    // (project_pulso.R) — el fallback es el perfil agregado persistido:
+    // perfil.facultades[].n ES el conteo de elegibles por facultad. Lectura
+    // defensiva: el payload viene de R y puede traer formas creativas.
+    const elegiblesPorFac = new Map<string, { nombre: string; n: number }>();
+    if (elegibles.length > 0) {
+      for (const [fac, { total }] of agrupaPorFacultad(elegibles, () => true)) {
+        elegiblesPorFac.set(clave(fac), { nombre: fac, n: total });
+      }
+    } else {
+      for (const fila of rowsFrom<Record<string, unknown>>(frame?.perfil?.facultades)) {
+        const nombre = leerTexto(fila, ["nombre", "id", ...FACULTY_KEYS]);
+        const n = safeNumber(fila.n, Number.NaN);
+        if (!nombre || !Number.isFinite(n) || n < 0) continue;
+        elegiblesPorFac.set(clave(nombre), { nombre, n });
+      }
+    }
+    // Sin population NI perfil utilizable: no hay dato de elegibles — jamás
+    // pintar ceros como si fueran dato (estado honesto en el render).
+    const sinDetalle = pool.length > 0 && elegiblesPorFac.size === 0;
+
     const poolPorFac = agrupaPorFacultad(pool, () => true);
     const alumnosMap = new Map<string, { incluidos: number; total: number }>();
-    for (const [fac, { total }] of poolPorFac) {
-      alumnosMap.set(fac, { incluidos: elegiblesPorFac.get(fac)?.total ?? 0, total });
-    }
-    // Facultades presentes solo en elegibles (por si el pool no las trae).
-    for (const [fac, { total }] of elegiblesPorFac) {
-      if (!alumnosMap.has(fac)) alumnosMap.set(fac, { incluidos: total, total });
+    if (!sinDetalle) {
+      for (const [fac, { total }] of poolPorFac) {
+        alumnosMap.set(fac, { incluidos: elegiblesPorFac.get(clave(fac))?.n ?? 0, total });
+      }
+      // Facultades presentes solo en elegibles (por si el pool no las trae).
+      for (const { nombre, n } of elegiblesPorFac.values()) {
+        const yaContada = [...alumnosMap.keys()].some((fac) => clave(fac) === clave(nombre));
+        if (!yaContada) alumnosMap.set(nombre, { incluidos: n, total: n });
+      }
     }
 
     const cursosMap = agrupaPorFacultad(aulas, (row) => esVerdad(row.included));
-    return { alumnos: filasCobertura(alumnosMap), cursos: filasCobertura(cursosMap) };
-  }, [frame?.population, frame?.population_pool, frame?.aula_frame]);
+    return {
+      alumnos: filasCobertura(alumnosMap),
+      cursos: filasCobertura(cursosMap),
+      alumnosSinDetalle: sinDetalle,
+    };
+  }, [frame?.population, frame?.population_pool, frame?.aula_frame, frame?.perfil]);
 
   if (!alumnos.length && !cursos.length) {
     return (
@@ -171,14 +199,21 @@ export function TabCobertura({
 
   return (
     <div className="rec-cap cmv2-cob">
-      <GraficoCobertura
-        titulo={`Alumnos por ${perfil.etiquetaUnidad}`}
-        descripcion="Elegibles que entran al marco frente a los que quedan fuera por los criterios de inclusión."
-        icon={<GraduationCap size={18} />}
-        filas={alumnos}
-        etiquetaIncluidos="Elegibles"
-        etiquetaExcluidos="No elegibles"
-      />
+      {alumnosSinDetalle ? (
+        <AvisoModulo tone="info" title={`Reconstruye el marco para ver la cobertura de alumnos por ${perfil.etiquetaUnidad}.`}>
+          Este proyecto guardado no conserva el detalle de elegibles por estudiante ni el perfil agregado
+          del marco; al reconstruirlo desde tus fuentes, la cobertura vuelve a calcularse con datos reales.
+        </AvisoModulo>
+      ) : alumnos.length > 0 && (
+        <GraficoCobertura
+          titulo={`Alumnos por ${perfil.etiquetaUnidad}`}
+          descripcion="Elegibles que entran al marco frente a los que quedan fuera por los criterios de inclusión."
+          icon={<GraduationCap size={18} />}
+          filas={alumnos}
+          etiquetaIncluidos="Elegibles"
+          etiquetaExcluidos="No elegibles"
+        />
+      )}
       <GraficoCobertura
         titulo={`Cursos-horario por ${perfil.etiquetaUnidad}`}
         descripcion="Cursos-horario incluidos en el marco frente a los excluidos por los criterios."

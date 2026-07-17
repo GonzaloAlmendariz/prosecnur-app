@@ -41,6 +41,7 @@ export function ResumenDiseno({
   aulasState: CalcMuestraAulasState | null;
 }) {
   const resetCanon = useMotorStore((s) => s.resetCanon);
+  const opcionalesActivos = useMotorStore((s) => s.decisiones.opcionalesActivos);
   const { perfil } = motor;
   const frame = aulasState?.frame ?? null;
   const frameProfile = frame?.perfil ?? null;
@@ -62,8 +63,12 @@ export function ResumenDiseno({
   // marco vigente (el frame guarda la selección con que se construyó). Si
   // difieren, la cifra de elegibles ya no corresponde y hay que reconstruir.
   const marcoDesactualizado = useMemo(
-    () => marcoCriteriosDesactualizado(frame, config.criterios_seleccion, config.teacher_type_orden),
-    [frame, config.criterios_seleccion, config.teacher_type_orden],
+    () =>
+      marcoCriteriosDesactualizado(frame, config.criterios_seleccion, config.teacher_type_orden, {
+        config,
+        opcionalesActivos,
+      }),
+    [frame, config, opcionalesActivos],
   );
   const estudiantesDesactualizados = estudiantesElegibles != null && marcoDesactualizado;
   const cursosDesactualizados = cursosHorarioElegibles != null && marcoDesactualizado;
