@@ -2413,6 +2413,11 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   border-color: var(--cmv2-accent-border);
   background: var(--cmv2-accent-soft);
 }
+/* Colapsada, TODA la tarjeta abre el criterio (no solo la fila del head): área
+   de clic generosa en el embudo vertical. */
+.cmv2-chfp-crit[data-collapsible] { cursor: pointer; }
+.cmv2-chfp-crit[data-collapsible]:hover { border-color: var(--cmv2-accent-border); }
+.cmv2-chfp-crit[data-collapsible]:hover .cmv2-chfp-crit-head strong { color: var(--cmv2-accent-fg); }
 .cmv2-chfp-crit-head {
   display: flex;
   align-items: center;
