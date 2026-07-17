@@ -10,7 +10,7 @@
  */
 import { useState } from "react";
 import type { CriterioSeleccion, CriterioVariable } from "../../../../api/client";
-import { fmtInt } from "../../sharedCore";
+import { fmtInt, fmtPct } from "../../sharedCore";
 import { Switch } from "./Switch";
 import { heredarFacultad, toggleTipoEnFacultad, type FilaFacultad } from "./tipoSesionModel";
 
@@ -46,33 +46,44 @@ export function FacultadCategoriaToggles({
   return (
     <div className="cmv2-crit-tsf-detalle" role="group" aria-label={ariaLabel}>
       <ul className="cmv2-crit-tsf-tipos">
-        {visibles.map((t) => (
-          <li key={t.key} className="cmv2-crit-tsf-tipo" data-checked={t.activo}>
-            <div className="cmv2-crit-item-main">
-              <Switch
-                checked={t.activo}
-                ariaLabel={`${t.label} en ${fila.facLabel}`}
-                onToggle={() => onSel(toggleTipoEnFacultad(variable, sel, fila.facKey, t.key))}
-              />
-              <span className="cmv2-crit-item-label">{t.label}</span>
-            </div>
-            <span className="cmv2-crit-item-count">
-              {t.ch != null ? (
-                <>
-                  {fmtInt(t.ch)} <em>CH</em>
-                </>
-              ) : (
-                <em>sin distribución</em>
-              )}
-              {t.elegibles != null ? (
-                <>
-                  {" · "}
-                  {fmtInt(t.elegibles)} <em>elegibles</em>
-                </>
+        {visibles.map((t) => {
+          const pct = fila.chTotal > 0 && t.ch != null ? t.ch / fila.chTotal : null;
+          return (
+            <li key={t.key} className="cmv2-crit-tsf-tipo" data-checked={t.activo}>
+              <div className="cmv2-crit-item-main">
+                <Switch
+                  checked={t.activo}
+                  ariaLabel={`${t.label} en ${fila.facLabel}`}
+                  onToggle={() => onSel(toggleTipoEnFacultad(variable, sel, fila.facKey, t.key))}
+                />
+                <span className="cmv2-crit-item-label">{t.label}</span>
+              </div>
+              {pct != null ? (
+                <span className="cmv2-crit-item-share" title={`${fmtPct(pct)} de los CH de la facultad`}>
+                  <span className="cmv2-crit-item-bar" aria-hidden="true">
+                    <i style={{ width: `${Math.max(2, pct * 100)}%` }} />
+                  </span>
+                  <span className="cmv2-crit-item-pct">{fmtPct(pct)}</span>
+                </span>
               ) : null}
-            </span>
-          </li>
-        ))}
+              <span className="cmv2-crit-item-count">
+                {t.ch != null ? (
+                  <>
+                    {fmtInt(t.ch)} <em>CH</em>
+                  </>
+                ) : (
+                  <em>sin distribución</em>
+                )}
+                {t.elegibles != null ? (
+                  <>
+                    {" · "}
+                    {fmtInt(t.elegibles)} <em>elegibles</em>
+                  </>
+                ) : null}
+              </span>
+            </li>
+          );
+        })}
       </ul>
       {plegable ? (
         <button

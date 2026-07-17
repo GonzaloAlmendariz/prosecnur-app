@@ -468,6 +468,40 @@
   align-items: center;
   gap: 10px;
   min-width: 0;
+  flex: 0 1 auto;
+}
+/* Barra de proporción del CH de la categoría dentro de la facultad: lectura
+   visual del peso en cualquier criterio (modalidad, condición, docente, tipo). */
+.cmv2-crit-item-share {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 36px;
+  max-width: 150px;
+}
+.cmv2-crit-item-bar {
+  flex: 1 1 auto;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--cmv2-border);
+  overflow: hidden;
+}
+.cmv2-crit-item-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--cmv2-accent-fg);
+}
+.cmv2-crit-item-tipo[data-checked="true"] .cmv2-crit-item-bar i,
+.cmv2-crit-tsf-tipo[data-checked="true"] .cmv2-crit-item-bar i { background: var(--cmv2-accent-fg); }
+.cmv2-crit-item-pct {
+  flex: none;
+  min-width: 30px;
+  text-align: right;
+  font-size: 10px;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 .cmv2-crit-item-label {
   font-size: 13px;
