@@ -344,6 +344,7 @@ const EXPLORACION: CalcMuestraAulasExploracion = {
         { tipo: "Teórico", ch: 5, ch_elegibles: 4, elegibles: 70, media_elegibles: null, elegibles_min: null, elegibles_q1: null, mediana_elegibles: null, elegibles_q3: null, elegibles_max: null },
       ],
       por_nivel: [],
+      por_condicion: [],
       n_multi_facultad: 0,
       n_local_externo: 0,
       n_sin_condicion: 0,

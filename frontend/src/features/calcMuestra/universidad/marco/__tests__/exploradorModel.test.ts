@@ -8,6 +8,7 @@ import {
 import {
   EXPLORADOR_SORT_DEFAULT,
   boxplotPosiciones,
+  condicionResumen,
   contrasteSeleccion,
   cursoRowsDesdeAulaFrame,
   cursoRowsDesdeExploracion,
@@ -33,6 +34,7 @@ function facultad(overrides: Partial<CalcMuestraAulasExploracionFacultad> = {}):
     est_aula_media: 30.4,
     por_tipo_sesion: [],
     por_nivel: [],
+    por_condicion: [],
     n_multi_facultad: 0,
     n_local_externo: 0,
     n_sin_condicion: 0,
@@ -168,6 +170,8 @@ describe("tipoSesionShares — dónde están los alumnos de la facultad", () => 
     expect(shares.map((s) => s.tipo)).toEqual(["Teórico", "Práctica", "Laboratorio"]);
     expect(shares[0].share).toBeCloseTo(2300 / 3000, 5);
     expect(shares.reduce((acc, s) => acc + s.share, 0)).toBeCloseTo(1, 5);
+    // chElegibles (P2): CH que sobreviven a los criterios, por tipo.
+    expect(shares[0].chElegibles).toBe(70);
   });
 
   it("expone la mediana por aula por tipo, con null honesto (NA del motor)", () => {
@@ -235,6 +239,31 @@ describe("tipoSesionShares — dónde están los alumnos de la facultad", () => 
     // Media > mediana: caso Ramiro (aulas gigantes jalan el promedio).
     expect(shares[0].caja!.media!).toBeGreaterThan(shares[0].caja!.mediana);
     expect(shares[1].caja).toBeNull();
+  });
+});
+
+describe("condicionResumen — condición del curso por facultad (P1)", () => {
+  it("ordena por CH desc, calcula shares y % obligatorio", () => {
+    const fac = facultad({
+      por_condicion: [
+        { condicion: "Sin dato", ch: 5, ch_elegibles: 4, elegibles: 60 },
+        { condicion: "Obligatorio", ch: 72, ch_elegibles: 60, elegibles: 1800 },
+        { condicion: "Electivo", ch: 23, ch_elegibles: 10, elegibles: 200 },
+      ],
+    });
+    const r = condicionResumen(fac);
+    expect(r.segmentos.map((s) => s.condicion)).toEqual(["Obligatorio", "Electivo", "Sin dato"]);
+    expect(r.obligatorioShare).toBeCloseTo(72 / 100, 5);
+    expect(r.segmentos[0].share).toBeCloseTo(72 / 100, 5);
+  });
+
+  it("sin condición en el contrato ⇒ vacío honesto y obligatorioShare null", () => {
+    expect(condicionResumen(facultad({ por_condicion: [] }))).toEqual({ segmentos: [], obligatorioShare: null });
+  });
+
+  it("condición presente pero sin obligatorios ⇒ share 0, no null", () => {
+    const fac = facultad({ por_condicion: [{ condicion: "Electivo", ch: 10, ch_elegibles: 5, elegibles: 50 }] });
+    expect(condicionResumen(fac).obligatorioShare).toBe(0);
   });
 });
 

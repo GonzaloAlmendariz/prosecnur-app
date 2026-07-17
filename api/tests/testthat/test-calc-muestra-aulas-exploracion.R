@@ -93,6 +93,7 @@ test_that("schema y claves exactas del contrato congelado", {
   expect_named(fi, c(
     "facultad", "ch_total", "ch_elegibles", "elegibles_total",
     "est_aula_mediana", "est_aula_media", "por_tipo_sesion", "por_nivel",
+    "por_condicion",
     "n_multi_facultad", "n_local_externo", "n_sin_condicion", "top_cursos"
   ))
   expect_named(fi$por_tipo_sesion[[1]], c(
@@ -101,6 +102,7 @@ test_that("schema y claves exactas del contrato congelado", {
     "elegibles_max"
   ))
   expect_named(fi$por_nivel[[1]], c("nivel", "ch", "elegibles", "mediana_elegibles"))
+  expect_named(fi$por_condicion[[1]], c("condicion", "ch", "ch_elegibles", "elegibles"))
   expect_named(fi$top_cursos[[1]], c(
     "id", "curso", "nivel", "tipo", "elegibles", "faculty_match_share",
     "local_externo", "multi_facultad"
@@ -179,6 +181,30 @@ test_that("distribución por nivel: universo en ch, elegibles de incluidos, orde
   expect_equal(vapply(fi$por_nivel, function(x) x$ch, integer(1)), c(2L, 1L, 1L))
   # Nivel 5 = solo A04 (excluida): universo 1, elegibles 0.
   expect_equal(vapply(fi$por_nivel, function(x) x$elegibles, numeric(1)), c(40, 20, 0))
+})
+
+test_that("distribución por condición: bucket obligatorio/sin-dato, excluidos en ch no en elegibles", {
+  exp <- .exp_frame()$exploracion
+  ing <- exp$por_facultad[[1]] # INGENIERIA (mayor elegibles)
+  cond <- vapply(ing$por_condicion, function(c) c$condicion, character(1))
+  # Orden por elegibles desc: Obligatorio (A01+A02=50) antes de Sin dato (A03=10).
+  expect_equal(cond, c("Obligatorio", "Sin dato"))
+  oblig <- ing$por_condicion[[1]]
+  # A01, A02 (incluidos) + A04 (excluido, min_eligible) → ch 3, ch_elegibles 2.
+  expect_equal(oblig$ch, 3L)
+  expect_equal(oblig$ch_elegibles, 2L)
+  expect_equal(oblig$elegibles, 50) # A04 excluido NO suma
+  sindato <- ing$por_condicion[[2]]
+  expect_equal(sindato$condicion, "Sin dato")
+  expect_equal(sindato$ch, 1L)
+  expect_equal(sindato$elegibles, 10)
+})
+
+test_that("bucket de condición: obligatorio, electivo, sin dato y otro", {
+  b <- .cm_exploracion_bucket_condicion(
+    c("OBLIGATORIO", "Electivo de la especialidad", "ELECTIVO-OBLIGATORIO", "", "Formación general", NA)
+  )
+  expect_equal(b, c("Obligatorio", "Electivo", "Obligatorio", "Sin dato", "Otro", "Sin dato"))
 })
 
 test_that("mediana_elegibles por tipo y nivel: elegibles de INCLUIDOS, no matrícula", {

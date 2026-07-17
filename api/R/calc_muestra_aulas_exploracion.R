@@ -183,6 +183,43 @@
   registros[order(clave_num, grupos, na.last = TRUE)]
 }
 
+# Bucketiza la condición del curso a las categorías de DECISIÓN (reunión Ramiro
+# §8.2: "obligatorios y de especialidad"; §3: la columna puede venir incompleta):
+# Obligatorio | Electivo | Sin dato | Otro. Vectorizado, tolerante a NA/"".
+# El orden importa: "ELECTIVO-OBLIGATORIO" contiene OBLIGATORIO ⇒ Obligatorio.
+.cm_exploracion_bucket_condicion <- function(cc) {
+  up <- toupper(trimws(as.character(cc)))
+  up[is.na(up)] <- ""
+  out <- rep("Otro", length(up))
+  out[grepl("OBLIGATORIO", up, fixed = TRUE)] <- "Obligatorio"
+  out[out == "Otro" & grepl("ELECTIVO", up, fixed = TRUE)] <- "Electivo"
+  out[!nzchar(up)] <- "Sin dato"
+  out
+}
+
+# Distribución por condición del curso dentro de una facultad (mismo patrón que
+# por_tipo_sesion pero SIN boxplot: solo conteos y elegibles del marco). Los CH
+# EXCLUIDOS cuentan en `ch` (universo) pero no en `ch_elegibles` ni `elegibles`.
+# Responde "¿cuántas aulas/elegibles son obligatorios por facultad?" — el dato
+# que, junto al tipo, define cuántas aulas sobreviven a todos los criterios.
+# Orden: elegibles desc, luego ch desc, luego condición.
+.cm_exploracion_dist_condicion <- function(cond, incl, elig, tiene_elig) {
+  grupos <- unique(cond)
+  if (!length(grupos)) return(list())
+  registros <- lapply(grupos, function(g) {
+    en_grupo <- cond == g
+    list(
+      condicion = g,
+      ch = as.integer(sum(en_grupo)),
+      ch_elegibles = as.integer(sum(en_grupo & incl)),
+      elegibles = .cm_exploracion_suma_elegibles(elig[en_grupo & incl], tiene_elig)
+    )
+  })
+  clave_elig <- vapply(registros, function(r) .cm_aulas_num(r$elegibles, NA_real_), numeric(1))
+  clave_ch <- vapply(registros, function(r) as.numeric(r$ch), numeric(1))
+  registros[order(-clave_elig, -clave_ch, grupos, na.last = TRUE)]
+}
+
 # Top de cursos por eligible_n entre los CH INCLUIDOS de la facultad (cap 15).
 # `idx_inc` son índices GLOBALES sobre los vectores de `d`. Empates y NA se
 # desempatan por id para un orden determinista build a build.
@@ -223,6 +260,9 @@
     ),
     por_nivel = .cm_exploracion_dist_nivel(
       d$niveles[idx], incl, d$elig[idx], d$tiene_elig
+    ),
+    por_condicion = .cm_exploracion_dist_condicion(
+      d$cond[idx], incl, d$elig[idx], d$tiene_elig
     ),
     n_multi_facultad = as.integer(sum(d$es_multi[idx])),
     n_local_externo = as.integer(sum(d$es_z[idx])),
@@ -279,10 +319,12 @@ calc_muestra_aulas_exploracion <- function(aula_frame, particularidades = NULL) 
   # variable y contar "sin condición" = todo el marco sería ruido.
   cc <- .cm_aulas_values(aula_frame, "condicion_curso", "")
   es_sin_cc <- if (any(nzchar(cc))) !nzchar(cc) else rep(FALSE, n)
+  cond <- .cm_exploracion_bucket_condicion(cc)
 
   d <- list(
     ids = ids, cursos = cursos, tipos = tipos, niveles = niveles,
     elig = elig, fms = fms, included = included, tiene_elig = tiene_elig,
+    cond = cond,
     es_multi = nzchar(ids) & ids %in% multi_ids,
     es_z = nzchar(ids) & ids %in% z_ids,
     es_sin_cc = es_sin_cc
