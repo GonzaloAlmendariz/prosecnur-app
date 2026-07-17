@@ -127,7 +127,7 @@ export function AulasFinalesCard({
                     {a.detalle ? <span className="cmv2-aulas-finales-detalle">{a.detalle}</span> : null}
                   </span>
                   <span className="cmv2-aulas-finales-elig">
-                    {fmtInt(a.eligibleN)} <em>eleg.</em>
+                    {fmtInt(a.eligibleN)} <em>alumnos elegibles</em>
                   </span>
                 </li>
               );
