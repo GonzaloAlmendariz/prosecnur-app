@@ -227,16 +227,21 @@ export function filasPorFacultad(args: {
     const facTexto = textKey(fac.label);
     const expFac = (exploracion?.por_facultad ?? []).find((f) => textKey(f.facultad) === facTexto) ?? null;
     const tipos: TipoFacultadDato[] = cats.map((cat) => {
-      // CH: si la categoría trae distribución, facultad ausente = 0 real; sin
+      // CH del catálogo del criterio: facultad ausente = 0 real; sin
       // distribución (catálogo viejo) el dato es desconocido → null.
       const dist = cat.por_facultad;
-      const ch =
+      const catCh =
         dist === undefined
           ? null
           : dist.find((pf) => textKey(pf.facultad) === facTexto)?.ch ?? 0;
       const expTipo = expFac?.por_tipo_sesion.find(
         (t) => textKey(t.tipo) === textKey(cat.label) || textKey(t.tipo) === textKey(cat.key),
       );
+      // Si la exploración lista el tipo (tipo de sesión en el marco vigente),
+      // el CH sale de ahí para cuadrar con la radiografía de arriba, que usa la
+      // misma fuente. El catálogo queda de respaldo para tipos que la
+      // exploración no trae (fuera del marco), donde no hay dato de exploración.
+      const ch = expTipo ? expTipo.ch : catCh;
       return {
         key: cat.key,
         label: cat.label,
