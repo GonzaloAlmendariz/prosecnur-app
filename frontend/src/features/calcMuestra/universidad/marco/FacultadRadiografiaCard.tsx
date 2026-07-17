@@ -57,6 +57,11 @@ export function FacultadRadiografiaCard({
    *  nivel) o «completo» (todo, Explorador). */
   modo?: "completo" | "resumen" | "tipos" | "condicion" | "niveles";
 }) {
+  // Guard defensivo: en dev, un render concurrente/StrictMode transitorio puede
+  // montar la tarjeta con `fac` aún sin resolver. El componente no usa hooks, así
+  // que el early-return es seguro y evita que `tipoSesionShares(undefined)` tumbe
+  // el árbol al error boundary (el retry ya renderiza con el `fac` real).
+  if (!fac) return null;
   const tipos = tipoSesionShares(fac);
   const niveles = nivelDistribucion(fac);
   const sinCondicion = shareSinCondicion(fac);
