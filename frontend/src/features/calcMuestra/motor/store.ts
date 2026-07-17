@@ -65,6 +65,13 @@ type MotorState = {
   /** Confirma (o revoca) el plan definitivo de cursos-horario por facultad. */
   confirmarCursosHorario: (final: Record<string, number> | null) => void;
   resetCanon: () => void;
+  /**
+   * Vuelve el motor al estado de fábrica (plantilla + decisiones canon, sin
+   * tocar). Lo usa la persistencia al hidratar un estudio SIN motor_recorrido
+   * después de otro estudio (F3): el store es global y sin este reset la
+   * primera interacción arrastraría el perfil del proyecto anterior.
+   */
+  resetInicial: () => void;
 };
 
 export const useMotorStore = create<MotorState>((set) => ({
@@ -165,4 +172,11 @@ export const useMotorStore = create<MotorState>((set) => ({
     })),
   resetCanon: () =>
     set((state) => ({ decisiones: decisionesPorDefecto(state.perfil), tocado: false })),
+  resetInicial: () =>
+    set(() => ({
+      fuente: "proyecto" as const,
+      perfil: clonarPerfil(PLANTILLA_UNIVERSIDAD),
+      decisiones: decisionesPorDefecto(PLANTILLA_UNIVERSIDAD),
+      tocado: false,
+    })),
 }));

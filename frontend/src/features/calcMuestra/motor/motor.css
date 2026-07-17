@@ -1923,3 +1923,43 @@
     align-items: flex-start;
   }
 }
+
+/* ---------- Alturas chicas: banda KPI slim (QA 1024x600) --------------------
+   El chrome del desk (mesa + pills + guardado + contexto + banda) consumía
+   ~62% de 600px. En viewports bajos la banda colapsa a UNA fila de 6 celdas
+   compactas: sin ícono, sin nota inferior, cifra 13px. Este bloque va al final
+   del archivo para ganar a las reglas de ancho de arriba en el cascade. */
+@media (max-height: 720px) {
+  .rec-resumen-shell {
+    gap: 2px;
+  }
+
+  .rec-resumen,
+  .rec-resumen[class] {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .rec-resumen .rec-resumen-item {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 30px;
+    padding: 4px 9px;
+    border-top: none;
+    border-left: 1px solid var(--cmv2-border);
+  }
+
+  .rec-resumen .rec-resumen-item:first-child {
+    border-left: none;
+  }
+
+  .rec-resumen-item-icon {
+    display: none;
+  }
+
+  .rec-resumen-item-copy > span {
+    display: none;
+  }
+
+  .rec-resumen-item strong {
+    font-size: 13px;
+  }
+}
