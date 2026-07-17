@@ -295,6 +295,35 @@ describe("sugerencias con la base agrupada por DTI + exclusiones §8.2", () => {
     };
     expect(sugerenciaParaFacultad(conExcluidos, "DERECHO", reglaHipotetica)).toBeNull();
   });
+
+  it("base DESAGREGADA (DTI 2026): Ingeniería SÍ recibe teórico-práctico y teórico-laboratorio (§4) — la guarda solo veta el paraguas, no los subtipos", () => {
+    const desagregada: CriterioVariable = {
+      ...VARIABLE_DTI,
+      categories: [
+        { key: "teorico_teorico", label: "TEORICO-TEORICO", aulas: 3000 },
+        { key: "teorico_practico", label: "TEORICO-PRACTICO", aulas: 700 },
+        { key: "teorico_laboratorio", label: "TEORICO-LABORATORIO", aulas: 500 },
+        { key: "laboratorio", label: "LABORATORIO", aulas: 190 },
+        { key: "practica_preprof", label: "PRACTICA SUPERVISADA PREPROFESIONAL", aulas: 40 },
+      ],
+    };
+    const sug = sugerenciaParaFacultad(desagregada, "CIENCIAS E INGENIERIA", UNIVERSITY_SESSION_TYPE_SUGERENCIAS);
+    // teórico-práctico y teórico-laboratorio (§4) + laboratorio puro; NO el
+    // teórico-teórico (no matchea la regla) ni la práctica preprofesional (§8.2).
+    expect(sug?.tipos).toEqual(["teorico_practico", "teorico_laboratorio", "laboratorio"]);
+  });
+
+  it("morfología del sello «practica»: veta la práctica preprofesional (-a), no la naturaleza teórico-práctica (-o)", () => {
+    const base: CriterioVariable = {
+      ...VARIABLE_DTI,
+      categories: [
+        { key: "teorico_practico", label: "TEORICO-PRACTICO", aulas: 700 },
+        { key: "practicas", label: "PRACTICAS PREPROFESIONALES", aulas: 40 },
+      ],
+    };
+    const sug = sugerenciaParaFacultad(base, "CIENCIAS E INGENIERIA", UNIVERSITY_SESSION_TYPE_SUGERENCIAS);
+    expect(sug?.tipos).toEqual(["teorico_practico"]);
+  });
 });
 
 const IMPACTO: CalcMuestraSessionTypeImpacto = {
