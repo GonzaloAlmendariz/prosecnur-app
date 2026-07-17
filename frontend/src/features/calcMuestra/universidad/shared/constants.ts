@@ -119,7 +119,12 @@ export const DEFAULT_UNIVERSITY_AULAS_CONFIG: CalcMuestraWorkspaceAulasConfig = 
   accepted_campuses: [],
   // H9: excepciones de tipo de sesión por unidad (nace vacío).
   session_type_excepciones: {},
+  // Métrica referencial legacy (elegibles/matrícula); NO es el criterio 8.
   min_prevalence_pct: 0.8,
+  // Criterio 8 en dos pasos ordenados (reunión Ramiro 2026-07-15): primero
+  // facultad del curso, luego nivel del curso. Ambos nacen apagados.
+  require_faculty_prevalence: false,
+  min_faculty_prevalence_pct: 0.8,
   min_cycle_homogeneity_pct: 0.8,
   usar_grupos_tamano: true,
   grupos_tamano: UNIVERSITY_AULAS_SIZE_GROUPS,
@@ -149,6 +154,13 @@ export const DEFAULT_UNIVERSITY_AULAS_CONFIG: CalcMuestraWorkspaceAulasConfig = 
   bolsas_reemplazo: 11,
   aulas_extra_operativas_default: 1,
   penalizacion_repetidos: 1.35,
+  // Descuento secuencial de repetidos (reunión Ramiro §10): ON por defecto en
+  // el frontend porque es el flujo metodológico correcto — al elegir un aula,
+  // sus alumnos se descuentan de las candidatas restantes. El default del
+  // ENGINE es false; encenderlo aquí solo surte efecto al ejecutar una
+  // selección NUEVA (acción explícita del usuario), nunca reescribe una
+  // selección ya generada.
+  sequential_discount: true,
   pps_weight: 0.25,
   coverage_weight: 1,
   monte_carlo_n: 500,
@@ -236,7 +248,6 @@ export const UNIVERSITY_REQUIRED_VARIABLES: CalcMuestraWorkspaceVariableMapping[
   { role: "session_type", label: "Tipo de curso o sesión", required: false, source_role: "catalogo_curso_horario", description: "Teórico, laboratorio, taller, seminario…; habilita el criterio de tipo de curso válido." },
   { role: "condicion_curso", label: "Condición del curso", required: false, source_role: "catalogo_curso_horario", description: "Condición del curso (obligatorio, electivo…), no la del estudiante. Puede vivir en la hoja de curso-horario o en la de matrícula; elige la columna que esté poblada." },
   { role: "enrolled_total", label: "Matriculados del curso-horario", required: false, source_role: "catalogo_curso_horario", description: "Total de inscritos por curso-horario; los elegibles (matriculados_población) los deriva el motor." },
-  { role: "condicion_curso", label: "Condición del curso", required: false, source_role: "catalogo_curso_horario", description: "Condición del curso-horario (obligatorio, electivo, taller…); distinta de la condición de matrícula del estudiante." },
   { role: "condition", label: "Condición o elegibilidad", required: true, source_role: "base_madre", description: "Filtro de población objetivo; por ejemplo regular, válido o elegible." },
 ];
 
@@ -348,6 +359,58 @@ export const ESCENARIOS_OPINION: CalcMuestraWorkspaceEscenario[] = [
       tau: 0.53,
       tasa_respuesta: 0.8,
     },
+  },
+];
+
+/**
+ * Sugerencia de tipos de sesión POR FACULTAD (reunión con el asesor muestral
+ * §4, 2026-07-15): la decisión de tipo de sesión no puede ser global a ciegas
+ * — «yo cómo sé si Arte y Diseño usa más talleres que laboratorios». Estructura
+ * DECLARATIVA con matching defensivo por substring normalizado (minúsculas,
+ * sin tildes) contra los labels reales de la base; nunca se auto-aplica
+ * (regla de la casa: control explícito y explicado, botón «usar» por facultad).
+ */
+export type SessionTypeSugerencia = {
+  /** Substrings normalizados que identifican la facultad (≥1 debe matchear). */
+  facultadPatterns: string[];
+  /**
+   * Cómo se aplica al usar la sugerencia:
+   *  - "incluir": suma los tipos matcheados al set vigente de la facultad.
+   *  - "solo": el set propio de la facultad queda EXACTAMENTE en los matcheados.
+   */
+  modo: "incluir" | "solo";
+  /** Substrings normalizados de los tipos recomendados (match contra label/clave reales). */
+  tipoPatterns: string[];
+  /** El porqué textual de la reunión — tooltip del chip «Sugerido». */
+  porque: string;
+};
+
+/**
+ * Reglas de la reunión, en orden de precedencia (la PRIMERA que matchea la
+ * facultad gana): Ingeniería va antes que el patrón genérico de ciencias para
+ * que «Ciencias e Ingeniería» reciba laboratorio y no solo teóricos.
+ */
+export const UNIVERSITY_SESSION_TYPE_SUGERENCIAS: SessionTypeSugerencia[] = [
+  {
+    facultadPatterns: ["ingenier", "sistem"],
+    modo: "incluir",
+    tipoPatterns: ["laborator", "practic"],
+    porque:
+      "Reunión con el asesor muestral: en Ingeniería y afines el laboratorio pesa mucho — sus alumnos también están en laboratorios y prácticas, no solo en cursos teóricos.",
+  },
+  {
+    facultadPatterns: ["arte y disen", "gastronom"],
+    modo: "incluir",
+    tipoPatterns: ["taller"],
+    porque:
+      "Reunión con el asesor muestral: los talleres son sus cursos principales — si TALLER queda excluido en general, aquí pierdes a sus alumnos.",
+  },
+  {
+    facultadPatterns: ["psicolog", "sociolog", "ciencia"],
+    modo: "solo",
+    tipoPatterns: ["teoric"],
+    porque:
+      "Reunión con el asesor muestral: a estos alumnos no los ves en laboratorio — los cursos teóricos concentran su matrícula.",
   },
 ];
 
