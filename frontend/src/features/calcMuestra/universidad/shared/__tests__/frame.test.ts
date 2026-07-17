@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { CalcMuestraAulasState, CriteriosSeleccionMarco } from "../../../../../api/client";
-import { marcoCriteriosDesactualizado } from "../frame";
+import type {
+  CalcMuestraAulasState,
+  CalcMuestraWorkspaceAulasConfig,
+  CriteriosSeleccionMarco,
+} from "../../../../../api/client";
+import { marcoCriteriosDesactualizado, type MarcoConfigVigente } from "../frame";
 
 // La selección que el frame ECHA desde el backend viene verbosa (fromValue "NA",
 // layer null, threshold {}, includeValues [], exceptions []); la del frontend es
@@ -130,5 +134,105 @@ describe("marcoCriteriosDesactualizado — orden de jerarquía de docente", () =
     const frameOrden = ["ordinario_principal", "contratado"];
     const configOrden = [" ordinario_principal ", "contratado", "contratado", ""];
     expect(marcoCriteriosDesactualizado(frameConOrden(frameOrden), sinCriterios, configOrden)).toBe(false);
+  });
+});
+
+// T2 — frescura del criterio 8 (composición del aula) vía frame.filters_echo:
+// el backend ecoa los filtros normalizados con que construyó el marco; se
+// comparan contra el payload EFECTIVO vigente (aulas_config ∪ opcionales
+// c7/c8 del Motor, con la misma derivación del build).
+function frameConEco(eco: Record<string, unknown> | undefined): CalcMuestraAulasState["frame"] {
+  return { ...(eco !== undefined ? { filters_echo: eco } : {}) } as unknown as CalcMuestraAulasState["frame"];
+}
+
+/** Config mínimo con la suite de criterios ACTIVA (byVariable no vacío). */
+function configSuiteActiva(extra: Record<string, unknown> = {}): CalcMuestraWorkspaceAulasConfig {
+  return {
+    criterios_seleccion: { byVariable: { formation: { mode: "include", categories: ["pregrado"] } } },
+    ...extra,
+  } as unknown as CalcMuestraWorkspaceAulasConfig;
+}
+
+const ecoApagado = {
+  require_min_prevalence: false,
+  min_prevalence_pct: 0.8,
+  require_faculty_prevalence: false,
+  min_faculty_prevalence_pct: 0.8,
+  require_cycle_homogeneity: false,
+  min_cycle_homogeneity_pct: 0.8,
+};
+
+describe("marcoCriteriosDesactualizado — filters_echo (criterio 8)", () => {
+  it("marco viejo sin filters_echo ⇒ NUNCA desactualizado por esta vía (guard de compatibilidad)", () => {
+    const vigente: MarcoConfigVigente = {
+      config: configSuiteActiva({ require_cycle_homogeneity: true }),
+    };
+    expect(marcoCriteriosDesactualizado(frameConEco(undefined), null, null, vigente)).toBe(false);
+  });
+
+  it("sin config vigente (call sites actuales) ⇒ comportamiento previo intacto", () => {
+    expect(marcoCriteriosDesactualizado(frameConEco(ecoApagado), null, null)).toBe(false);
+    expect(marcoCriteriosDesactualizado(frameConEco(ecoApagado), null, null, null)).toBe(false);
+  });
+
+  it("eco apagado + tarjeta enciende require_cycle_homogeneity ⇒ SÍ desactualizado", () => {
+    const vigente: MarcoConfigVigente = {
+      config: configSuiteActiva({ require_cycle_homogeneity: true, min_cycle_homogeneity_pct: 0.8 }),
+    };
+    expect(marcoCriteriosDesactualizado(frameConEco(ecoApagado), null, null, vigente)).toBe(true);
+  });
+
+  it("eco apagado + tarjeta apagada pero el opcional c8 del Motor está activo ⇒ SÍ desactualizado", () => {
+    const vigente: MarcoConfigVigente = {
+      config: configSuiteActiva(),
+      opcionalesActivos: ["c8"],
+    };
+    expect(marcoCriteriosDesactualizado(frameConEco(ecoApagado), null, null, vigente)).toBe(true);
+  });
+
+  it("eco apagado + opcional c7 del Motor activo ⇒ SÍ desactualizado (prevalencia referencial)", () => {
+    const vigente: MarcoConfigVigente = {
+      config: configSuiteActiva(),
+      opcionalesActivos: ["c7"],
+    };
+    expect(marcoCriteriosDesactualizado(frameConEco(ecoApagado), null, null, vigente)).toBe(true);
+  });
+
+  it("flag encendido en ambos lados: mismo umbral ⇒ NO; umbral distinto ⇒ SÍ", () => {
+    const eco = { ...ecoApagado, require_faculty_prevalence: true, min_faculty_prevalence_pct: 0.8 };
+    const igual: MarcoConfigVigente = {
+      config: configSuiteActiva({ require_faculty_prevalence: true, min_faculty_prevalence_pct: 0.8 }),
+    };
+    const distinto: MarcoConfigVigente = {
+      config: configSuiteActiva({ require_faculty_prevalence: true, min_faculty_prevalence_pct: 0.7 }),
+    };
+    expect(marcoCriteriosDesactualizado(frameConEco(eco), null, null, igual)).toBe(false);
+    expect(marcoCriteriosDesactualizado(frameConEco(eco), null, null, distinto)).toBe(true);
+  });
+
+  it("flag apagado en ambos lados: el umbral NO cuenta (no filtra nada)", () => {
+    const eco = { ...ecoApagado, min_cycle_homogeneity_pct: 0.6 };
+    const vigente: MarcoConfigVigente = {
+      config: configSuiteActiva({ require_cycle_homogeneity: false, min_cycle_homogeneity_pct: 0.9 }),
+    };
+    expect(marcoCriteriosDesactualizado(frameConEco(eco), null, null, vigente)).toBe(false);
+  });
+
+  it("suite INACTIVA ahora (payload permisivo) vs marco construido con c8 encendido ⇒ SÍ desactualizado", () => {
+    const eco = { ...ecoApagado, require_cycle_homogeneity: true };
+    const vigente: MarcoConfigVigente = {
+      // Sin criterios definidos: el build actual viajaría permisivo.
+      config: { criterios_seleccion: { byVariable: {} } } as unknown as CalcMuestraWorkspaceAulasConfig,
+      opcionalesActivos: ["c8"],
+    };
+    expect(marcoCriteriosDesactualizado(frameConEco(eco), null, null, vigente)).toBe(true);
+  });
+
+  it("eco parcial/corrupto en una pareja ⇒ esa pareja no se compara (defensivo)", () => {
+    const eco = { require_cycle_homogeneity: "TRUE", min_cycle_homogeneity_pct: 0.8 };
+    const vigente: MarcoConfigVigente = {
+      config: configSuiteActiva({ require_cycle_homogeneity: true }),
+    };
+    expect(marcoCriteriosDesactualizado(frameConEco(eco), null, null, vigente)).toBe(false);
   });
 });

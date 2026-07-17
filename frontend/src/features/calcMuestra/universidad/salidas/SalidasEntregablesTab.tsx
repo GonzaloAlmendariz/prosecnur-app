@@ -28,6 +28,7 @@ import type {
 import { Popover } from "../../../../components/Popover";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
 import { ReporteMetodologicoCard } from "../../didactica/ReporteMetodologicoCard";
+import { AvisoModulo } from "../shared/AvisoModulo";
 import { DEFAULT_UNIVERSITY_PUBLICATION_CONFIG } from "../shared/constants";
 import { PanelAvanzado } from "../ui";
 import { useValorSwap } from "../ui/useValorSwap";
@@ -48,6 +49,10 @@ export type SalidasReporteProps = {
   exportandoAulas: boolean;
   onExportarAulas?: () => void;
   aulasExportFilename?: string | null;
+  /** true cuando el estudio cambió después de generar el reporte (meta
+   *  `reporte.stale` del backend, F5): sigue descargable pero desactualizado.
+   *  Retrocompatible: si no viene, la tarjeta se comporta como hoy. */
+  stale?: boolean;
 };
 
 /** Piezas del paquete de defensa (reporte + anexo xlsx + memoria JSON). */
@@ -215,9 +220,20 @@ export function SalidasEntregablesTab({
   const workbookOn = Boolean(config.include_workbook);
   const notaPiiCambiando = useValorSwap(pii);
 
+  // El badge de desactualización se pinta FUERA de la tarjeta (didactica/ es
+  // compartida): la descarga sigue disponible, solo se avisa que el estudio
+  // cambió después de generar el reporte.
+  const { stale: reporteStale, ...reporteCard } = reporte;
+
   return (
     <div className="cmv2-sal-stack">
-      <ReporteMetodologicoCard {...reporte} />
+      <ReporteMetodologicoCard {...reporteCard} />
+      {Boolean(reporteStale) && reporte.disponible && (
+        <AvisoModulo tone="warn" role="status" compact title="Desactualizado:">
+          el estudio cambió después de generarlo. La descarga sigue disponible; vuelve a generar el
+          reporte para que refleje el diseño vigente.
+        </AvisoModulo>
+      )}
 
       <section className="cmv2-panel cmv2-sal-panel" aria-label="Política de privacidad de los entregables">
         <div className="cmv2-panel-head">

@@ -36,7 +36,7 @@ import {
 } from "./shared/study";
 import { universitySidebarTabs } from "./universidadTabs";
 import { DefBasesTab, DefEstudioTab, DefVariablesTab } from "./definicion";
-import { MarcoAulasTab, MarcoConsistenciaTab, MarcoPoblacionTab } from "./marco";
+import { CursosHorarioMarcoTab, MarcoAulasTab, MarcoConsistenciaTab, MarcoPoblacionTab } from "./marco";
 import { CriteriosMarcoTab } from "./criterios";
 import { CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoPropuestasTab } from "./calculo";
 import {
@@ -88,6 +88,7 @@ export function UniversidadDesk({
   onGenerarReporte,
   reporteEnCurso,
   reporteDisponible,
+  reporteStale,
   reporteDescargarUrl,
   onExportarAulas,
   exportandoAulas,
@@ -107,6 +108,7 @@ export function UniversidadDesk({
   onGenerarReporte: (formato: "html" | "pdf") => void;
   reporteEnCurso: boolean;
   reporteDisponible: boolean;
+  reporteStale: boolean;
   reporteDescargarUrl: string | null;
   onExportarAulas: () => void;
   exportandoAulas: boolean;
@@ -273,6 +275,7 @@ export function UniversidadDesk({
   // Motor reactivo: perfil efectivo (proyecto/manual/ejemplo) y resultados
   // en vivo, compartidos por la franja de resultados y las pestañas del motor.
   const parametrosMotor = useMotorStore((s) => s.decisiones.parametros);
+  const opcionalesActivosMotor = useMotorStore((s) => s.decisiones.opcionalesActivos);
 
   // Reconstrucción del marco duro (motor R): habilitada cuando hay una fuente
   // con archivo declarado. La suite de criterios la dispara al aplicar cambios.
@@ -281,12 +284,23 @@ export function UniversidadDesk({
   // Lleva los parámetros del diseño reactivo al estudio real y calcula con R
   // (misma vía que el resto del desk: patch compartido + prepare + calcular).
   function aplicarDisenoAlEstudio() {
+    // Puente del estadístico de estudiantes-por-aula (reunión Ramiro 2026-07-15):
+    // el puente NO pasa un divisor crudo (promedio_conglomerado queda tal cual el
+    // escenario); en su lugar viaja el MISMO estadístico elegido en el Recorrido
+    // (perfil.resumenEstAula, default min_mediana_media) para que el motor R
+    // derive el divisor con ese criterio (parametros.estadistico_conglomerado).
+    // "li_bootstrap" no existe en el backend: cae al conservador mín(media,
+    // mediana), el mismo fallback del motor TS para facultades chicas.
+    const resumen = motor.perfil.resumenEstAula;
+    const estadistico_conglomerado =
+      resumen === "media" ? "media" : resumen === "mediana" ? "mediana" : "min_media_mediana";
     aplicarParametrosDidacticos({
       z: zFromConfidence(parametrosMotor.confianza),
       p: parametrosMotor.proporcion,
       e: parametrosMotor.margenError,
       deff: parametrosMotor.deff,
       oversample_pct: Math.max(parametrosMotor.factorSobremuestra - 1, 0),
+      estadistico_conglomerado,
     });
   }
   const localTabs = universitySidebarTabs({
@@ -321,12 +335,16 @@ export function UniversidadDesk({
   // muestre aulas de un marco viejo en silencio. La permutación del método (min/
   // media/mediana/LI) queda libre: solo se gatea la frescura del marco.
   const marcoDesactualizado = useMemo(
-    () =>
-      marcoCriteriosDesactualizado(
+    () => {
+      const configVigente = normalizeUniversityAulasConfig(syncedWorkspace.aulas_config);
+      return marcoCriteriosDesactualizado(
         aulasState?.frame,
-        normalizeUniversityAulasConfig(syncedWorkspace.aulas_config).criterios_seleccion,
-      ),
-    [aulasState?.frame, syncedWorkspace.aulas_config],
+        configVigente.criterios_seleccion,
+        undefined,
+        { config: configVigente, opcionalesActivos: opcionalesActivosMotor },
+      );
+    },
+    [aulasState?.frame, syncedWorkspace.aulas_config, opcionalesActivosMotor],
   );
   const labModel = useMemo(
     () => buildClassroomLabModel({ workspace: syncedWorkspace, totalComp, facultyComp, aulasState }),
@@ -407,8 +425,9 @@ export function UniversidadDesk({
 
         {selectedSection === "marco" && (
           <div id="cmv2-section-university-marco" className="cmv2-tab-panel" role="tabpanel" aria-labelledby="cmv2-active-local-title">
-            {showLocalTab("marco-categorias") && <div id="cmv2-local-marco-categorias">
+            {showLocalTab("marco-criterios-alumno") && <div id="cmv2-local-marco-criterios-alumno">
               <CriteriosMarcoTab
+                scope="alumno"
                 workspace={syncedWorkspace}
                 aulasState={aulasState}
                 facultades={motor.perfil.facultades.map((f) => f.nombre)}
@@ -416,6 +435,19 @@ export function UniversidadDesk({
                 onReconstruir={() => void onSourceBuild(syncedWorkspace)}
                 puedeReconstruir={puedeReconstruirMarco && !busy}
                 reconstruyendo={Boolean(busy)}
+                onNavigate={onNavigate}
+              />
+            </div>}
+            {showLocalTab("marco-ch-radiografia") && <div id="cmv2-local-marco-ch-radiografia">
+              <CursosHorarioMarcoTab
+                workspace={syncedWorkspace}
+                aulasState={aulasState}
+                facultades={motor.perfil.facultades.map((f) => f.nombre)}
+                onWorkspace={onWorkspace}
+                onReconstruir={() => void onSourceBuild(syncedWorkspace)}
+                puedeReconstruir={puedeReconstruirMarco && !busy}
+                reconstruyendo={Boolean(busy)}
+                onNavigate={onNavigate}
               />
             </div>}
             {showLocalTab("marco-cobertura") && <div id="cmv2-local-marco-cobertura" className="rec-recorrido rec-recorrido--full">
@@ -516,6 +548,7 @@ export function UniversidadDesk({
                   puedeGenerar: calculationReady,
                   enCurso: reporteEnCurso,
                   disponible: reporteDisponible,
+                  stale: reporteStale,
                   formato: reporteFormato,
                   onFormato: setReporteFormato,
                   onGenerar: () => onGenerarReporte(reporteFormato),

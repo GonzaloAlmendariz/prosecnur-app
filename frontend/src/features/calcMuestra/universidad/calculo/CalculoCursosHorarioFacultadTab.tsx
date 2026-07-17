@@ -19,6 +19,7 @@ import { EmptyState } from "../../../../components/States";
 import { facultadesDesdeFrame, type FacultadDatos, type ResumenEstAula } from "../../dominio";
 import { fmtDec, fmtInt, fmtPct, rowsFrom, safeNumber } from "../../sharedCore";
 import { useMotorStore } from "../../motor/store";
+import { AvisoModulo } from "../shared/AvisoModulo";
 import { UNIVERSITY_FACULTY_COMPONENT_ID, UNIVERSITY_TOTAL_COMPONENT_ID } from "../shared/constants";
 import { classroomRowNumber, classroomRowText, compareUniversityFacultyLabels, normalizeUniversityLabel } from "../shared/format";
 import { hasUsefulResult, universityDistributionRows } from "../shared/study";
@@ -249,11 +250,11 @@ export function CalculoCursosHorarioFacultadTab({
   return (
     <div className="cmv2-calc-stack" data-marco-stale={marcoDesactualizado || undefined}>
       {marcoDesactualizado && (
-        <div className="cmv2-ch-stale-banner" role="status">
+        <AvisoModulo tone="warn" role="status">
           Los criterios cambiaron desde que se construyó el marco: el número de
           cursos-horario elegibles —y con él el de aulas— puede haber cambiado.
           Recalcula el marco en <strong>Marco → Criterios</strong> para números al día.
-        </div>
+        </AvisoModulo>
       )}
       <section className="cmv2-panel cmv2-ch-panel">
         <div className="cmv2-panel-head">
@@ -404,7 +405,7 @@ export function CalculoCursosHorarioFacultadTab({
         </div>
       </section>
 
-      <div className="cmv2-calc-confirm-bar" role="region" aria-label="Confirmar plan de cursos-horario">
+      <div className="cmv2-calc-confirm-bar cmv2-calc-confirm-bar--flujo" role="region" aria-label="Confirmar plan de cursos-horario">
         <div className="cmv2-calc-confirm-copy">
           <strong>{planIgualConfirmado ? "Plan de cursos-horario confirmado" : "Plan de cursos-horario sin confirmar"}</strong>
           <span>

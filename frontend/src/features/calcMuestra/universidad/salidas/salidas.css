@@ -1102,3 +1102,29 @@
     transform: none;
   }
 }
+
+/* --- Reporte desactualizado (meta reporte.stale, Oleada III) ------------------ */
+/* Badge no bloqueante bajo la tarjeta del reporte: la descarga sigue viva. */
+.cmv2-sal-reporte-stale {
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+  margin: -4px 0 0;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.cmv2-sal-reporte-stale svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--pulso-warn-fg);
+}
+
+.cmv2-sal-reporte-stale strong {
+  color: var(--pulso-warn-fg);
+}

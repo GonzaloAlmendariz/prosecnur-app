@@ -138,6 +138,15 @@ import {
   registrarCorrida,
 } from "./corridas";
 import type { PaqueteDefensaPaso, PaqueteDefensaPasoId } from "./universidad/salidas";
+import {
+  CM_JOB_MAX_NOT_FOUND,
+  CM_JOB_POLL_TIMEOUT_MS,
+  cmJobErrorText,
+  esJobNoEncontrado,
+  esperarJob,
+  JobCancelledError,
+} from "./hooks/jobPolling";
+import { debeResetearRailSection } from "./hooks/railReset";
 import { UniversidadDesk } from "./universidad/UniversidadDesk";
 import { JobProgressBanner } from "./JobProgressBanner";
 import { resolveUniversityLocalTab, universitySectionStates, universitySidebarTabs, type CalcMuestraSidebarTab } from "./universidad/universidadTabs";
@@ -932,42 +941,10 @@ function sidebarTabsForDeskSection({
 }
 
 // --- Jobs asíncronos de aulas (marcos grandes) ------------------------------
-// Con marcos >= umbral del backend, comparar-métodos y seleccionar responden
-// { mode: "job", job_id }: se pollea GET /api/jobs/<id> mostrando la etapa
-// del worker y el tiempo transcurrido en el busy del shell.
-const CM_JOB_POLL_INTERVAL_MS = 1500;
-const CM_JOB_POLL_TIMEOUT_MS = 30 * 60_000;
-
-function cmFormatElapsed(ms: number): string {
-  const totalSec = Math.max(0, Math.floor(ms / 1000));
-  const mm = String(Math.floor(totalSec / 60)).padStart(2, "0");
-  const ss = String(totalSec % 60).padStart(2, "0");
-  return `${mm}:${ss}`;
-}
-
-function cmJobStageMessage(snap: JobSnapshot): string | null {
-  const progress = snap.progress;
-  if (progress && typeof progress === "object" && "message" in progress && typeof progress.message === "string" && progress.message) {
-    return progress.message;
-  }
-  return null;
-}
-
-function cmJobErrorText(snap: JobSnapshot): string {
-  return typeof snap.error === "string" && snap.error
-    ? snap.error
-    : "el proceso terminó con error en el worker.";
-}
-
-// Error de control: el usuario canceló el job deliberadamente (no es un fallo
-// del worker). Se distingue para mostrar un estado limpio "Cancelado" en vez
-// del banner rojo de error.
-class JobCancelledError extends Error {
-  constructor(label: string) {
-    super(`${label}: cancelado por el usuario.`);
-    this.name = "JobCancelledError";
-  }
-}
+// Con marcos >= umbral del backend, comparar-métodos, seleccionar y
+// simular-reemplazos responden { mode: "job", job_id }: se pollea
+// GET /api/jobs/<id> mostrando la etapa del worker y el tiempo transcurrido
+// en el busy del shell. El loop de polling vive en hooks/jobPolling.ts.
 
 // Traduce el error de una operación de job en el aviso de la mesa: cancelación
 // deliberada → nota limpia (info); cualquier otro fallo → banner de error.
@@ -1014,7 +991,16 @@ export default function CalcMuestraPage() {
   // set actúa de guarda anti-loop: la persistencia del workspace re-dispara el
   // efecto, pero el file_id ya marcado no se vuelve a inspeccionar.
   const inspectedSourceFileIdsRef = useRef<Set<string>>(new Set());
+  // F13: id del interval de polling del reporte + guard de unmount. El interval
+  // se crea dentro de una función async (generarReporte): sin ref ni cleanup
+  // seguía corriendo tras desmontar la página (leak + setState sobre un
+  // componente muerto).
+  const reportePollRef = useRef<number | null>(null);
+  const unmountedRef = useRef(false);
   const [reporteEnCurso, setReporteEnCurso] = useState(false);
+  // F5: el backend ya no borra la meta del reporte en cada PUT; marca `stale`
+  // cuando el estudio cambió después de generarlo. La descarga sigue viva.
+  const [reporteStale, setReporteStale] = useState(false);
   const [exportandoAulas, setExportandoAulas] = useState(false);
   const [activeRailSection, setActiveRailSection] = useState("pathways");
   const [activeClassroomLabTab, setActiveClassroomLabTab] = useState<ClassroomLabTab>("marco");
@@ -1030,6 +1016,7 @@ export default function CalcMuestraPage() {
   const handleHydratedState = useCallback((state: CalcMuestraState) => {
     setAulasState(state.aulas ?? null);
     setAulasStateChecked(true);
+    setReporteStale(Boolean(state.reporte?.stale));
   }, []);
   useCalcMuestraAutosave(handleHydratedState);
   // Sincroniza el Motor/Recorrido con estudio.workspace.motor_recorrido
@@ -1081,10 +1068,30 @@ export default function CalcMuestraPage() {
     hasAulasDeskState
   );
 
+  // F9 (bug QA #4): resetear la sección del rail SOLO en cambio real de mesa.
+  // La decisión vive en hooks/railReset.ts (pura, testeada); antes este efecto
+  // corría también con cada flip transitorio de `recoveredAulasDesk`
+  // (aulasState → null mientras un job refresca el estado) y devolvía la vista
+  // a la sección por defecto ("Datos") al terminar el job.
+  const prevDeskRef = useRef<ActiveDesk | null>(null);
   useEffect(() => {
-    if (recoveredAulasDesk) return;
+    const prevDesk = prevDeskRef.current;
+    prevDeskRef.current = desk;
+    if (!debeResetearRailSection({ prevDesk, desk, recoveredAulasDesk, deskOverride })) return;
     setActiveRailSection(defaultRailSectionForDesk(desk));
-  }, [desk, recoveredAulasDesk]);
+  }, [desk, recoveredAulasDesk, deskOverride]);
+
+  // F13: cleanup del polling del reporte al desmontar (ver reportePollRef).
+  useEffect(() => {
+    unmountedRef.current = false;
+    return () => {
+      unmountedRef.current = true;
+      if (reportePollRef.current != null) {
+        window.clearInterval(reportePollRef.current);
+        reportePollRef.current = null;
+      }
+    };
+  }, []);
 
   // Los avisos transitorios (error/cancelado/info) no deben sobrevivir a la
   // navegación: al cambiar de sección o de pestaña del laboratorio se limpian,
@@ -1453,31 +1460,66 @@ export default function CalcMuestraPage() {
       const res = await apiCalcMuestraReporteIniciar(formato);
       setReporteMeta({ disponible: false, jobId: res.job_id });
       const start = Date.now();
-      const poll = window.setInterval(async () => {
+      let notFoundSeguidos = 0;
+      // F13: interval con ref + cleanup en unmount (efecto arriba). Una corrida
+      // nueva reemplaza al interval anterior si quedara vivo.
+      if (reportePollRef.current != null) window.clearInterval(reportePollRef.current);
+      const detener = () => {
+        if (reportePollRef.current != null) {
+          window.clearInterval(reportePollRef.current);
+          reportePollRef.current = null;
+        }
+      };
+      reportePollRef.current = window.setInterval(async () => {
+        if (unmountedRef.current) {
+          detener();
+          return;
+        }
         if (Date.now() - start > CM_JOB_POLL_TIMEOUT_MS) {
-          window.clearInterval(poll);
+          detener();
+          // Mismo criterio que esperarJob (F6): si el polling se rinde, se pide
+          // cancelar el job en el backend (best-effort).
+          void apiJobCancel(res.job_id).catch(() => undefined);
           setReporteEnCurso(false);
-          setMsg({ kind: "error", text: "El reporte superó los 30 minutos de espera. Revisa el estado del backend y reintenta." });
+          setMsg({ kind: "error", text: "El reporte superó los 30 minutos de espera. Se pidió cancelar el job; revisa el estado del backend y reintenta." });
           return;
         }
         try {
           // Pollear el JOB (no solo el state): si el worker falla, el error
           // real llega aquí en vez de dejar la UI esperando para siempre.
           const snap = await apiJobStatus(res.job_id);
+          notFoundSeguidos = 0;
+          if (unmountedRef.current) {
+            detener();
+            return;
+          }
           if (snap.status === "error" || snap.status === "cancelled") {
-            window.clearInterval(poll);
+            detener();
             setReporteEnCurso(false);
             setMsg({ kind: "error", text: `No se pudo generar el reporte: ${cmJobErrorText(snap)}` });
             return;
           }
           if (snap.status === "done") {
-            window.clearInterval(poll);
+            detener();
             setReporteEnCurso(false);
             setReporteMeta({ disponible: true, jobId: res.job_id });
             setMsg({ kind: "info", text: "Reporte metodológico listo." });
           }
-        } catch {
-          // Error transitorio: el siguiente polling vuelve a consultar.
+        } catch (e) {
+          // F6: los jobs viven en memoria del backend; 404 consecutivos
+          // significan que el job ya no existe (backend reiniciado).
+          if (esJobNoEncontrado(e)) {
+            notFoundSeguidos += 1;
+            if (notFoundSeguidos >= CM_JOB_MAX_NOT_FOUND) {
+              detener();
+              if (!unmountedRef.current) {
+                setReporteEnCurso(false);
+                setMsg({ kind: "error", text: "No se pudo generar el reporte: el backend se reinició y el job ya no existe. Vuelve a intentarlo." });
+              }
+              return;
+            }
+          }
+          // Otros errores: transitorios, el siguiente polling vuelve a consultar.
         }
       }, 2000);
     } catch (e) {
@@ -1763,30 +1805,18 @@ export default function CalcMuestraPage() {
       setWorkspace(nextWorkspace);
       await apiCalcMuestraEstudioPut({ ...estudio, workspace: nextWorkspace });
 
-      if (canBuildUniversityFrame(nextWorkspace)) {
-        setBusy("Leyendo Excel y construyendo marco");
-        const res = await apiCalcMuestraMarcoConstruir(universityMarcoPayload(nextWorkspace));
-        setAulasState(res.state.aulas ?? null);
-        const frame = res.frame ?? res.state.aulas?.frame ?? null;
-        const populationN = Math.max(
-          rowsFrom(frame?.population).length,
-          safeNumber((frame as Record<string, unknown> | null)?.population_n, 0),
-          safeNumber((frame as Record<string, unknown> | null)?.unique_students_n, 0),
-        );
-        const aulaN = rowsFrom(frame?.aula_frame).length;
-        setMsg({
-          kind: "info",
-          text: `Excel cargado. Marco construido con ${fmtInt(populationN)} estudiantes únicos y ${fmtInt(aulaN)} cursos-horario.`,
-        });
-      } else {
-        const uploadedBinding = nextBindings.find((item) => item.id === binding.id) ?? nextBindingPreview;
-        setMsg({
-          kind: "warn",
-          text: uploadedBinding.file_id
+      // Cargar la base NO construye el marco: es un paso consciente. El universo
+      // (estudiantes / cursos-horario) y el marco se calculan SOLO cuando el
+      // usuario pulsa «Construir marco» (DefBasesTab) — nada automático al subir.
+      const uploadedBinding = nextBindings.find((item) => item.id === binding.id) ?? nextBindingPreview;
+      setMsg({
+        kind: "info",
+        text: canBuildUniversityFrame(nextWorkspace)
+          ? "Excel cargado. Cuando el mapeo de variables esté completo, usa «Construir marco» para calcular el universo y el marco."
+          : uploadedBinding.file_id
             ? sourceBindingBuildMessage(uploadedBinding)
-            : "Excel cargado. Cuando estén listas las bases que se relacionan entre sí, Prosecnur podrá construir el marco.",
-        });
-      }
+            : "Excel cargado. Cuando estén listas las bases que se relacionan entre sí, usa «Construir marco».",
+      });
     } catch (e) {
       setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo cargar el Excel de la base." });
     } finally {
@@ -1797,36 +1827,17 @@ export default function CalcMuestraPage() {
 
   // Espera un job del backend actualizando el busy con etapa + tiempo
   // transcurrido. Resuelve con el snapshot "done"; lanza Error con el mensaje
-  // real del worker si el job falla, se cancela o supera el timeout.
+  // real del worker si el job falla, se cancela o supera el timeout. El loop
+  // vive en hooks/jobPolling.ts (F6: el timeout cancela el job best-effort y
+  // los 404 consecutivos cortan con mensaje claro en vez de pollear eterno).
   async function esperarJobAulas(jobId: string, label: string): Promise<JobSnapshot> {
-    const start = Date.now();
     cancelRequestedRef.current = false;
     setActiveJobId(jobId);
     try {
-      for (;;) {
-        // El usuario pidió cancelar: cortamos el polling de inmediato (el backend
-        // sigue abortando el worker en su tiempo) y señalamos cancelación limpia.
-        if (cancelRequestedRef.current) throw new JobCancelledError(label);
-        if (Date.now() - start > CM_JOB_POLL_TIMEOUT_MS) {
-          throw new Error(`${label}: superó los 30 minutos de espera. Revisa el estado del backend y reintenta.`);
-        }
-        let snap: JobSnapshot | null = null;
-        try {
-          snap = await apiJobStatus(jobId);
-        } catch {
-          // Error transitorio de red/backend: se reintenta en el próximo tick.
-        }
-        if (snap) {
-          if (snap.status === "done") return snap;
-          if (snap.status === "cancelled") throw new JobCancelledError(label);
-          if (snap.status === "error") {
-            throw new Error(`${label}: ${cmJobErrorText(snap)}`);
-          }
-          const stage = cmJobStageMessage(snap);
-          setBusy(`${label}${stage ? ` — ${stage}` : ""} · ${cmFormatElapsed(Date.now() - start)}`);
-        }
-        await new Promise((resolve) => window.setTimeout(resolve, CM_JOB_POLL_INTERVAL_MS));
-      }
+      return await esperarJob(jobId, label, {
+        cancelRequested: () => cancelRequestedRef.current,
+        onProgress: setBusy,
+      });
     } finally {
       setActiveJobId(null);
       setCancellingJob(false);
@@ -1910,10 +1921,19 @@ export default function CalcMuestraPage() {
     setBusy("Simulando reemplazos");
     try {
       const res = await apiCalcMuestraAulasSimularReemplazos({ config, objective_config: config.objective });
-      setAulasState(res.state.aulas ?? null);
+      if (res.mode === "job" && res.job_id) {
+        // Marcos grandes: el backend deriva a job (mismo patrón que comparar/
+        // seleccionar); se pollea con cancelación y banner de progreso. Con un
+        // backend viejo la respuesta sigue siendo síncrona (rama de abajo).
+        await esperarJobAulas(res.job_id, "Simulando reemplazos");
+        const state = await apiCalcMuestraState();
+        setAulasState(state.aulas ?? null);
+      } else {
+        setAulasState(res.state?.aulas ?? null);
+      }
       setMsg({ kind: "info", text: "Simulación de reemplazos lista." });
     } catch (e) {
-      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo simular reemplazos. Genera primero una selección." });
+      setMsg(msgDeFallo(e, "No se pudo simular reemplazos. Genera primero una selección."));
     } finally {
       setBusy(null);
     }
@@ -2289,6 +2309,7 @@ export default function CalcMuestraPage() {
               onGenerarReporte={(formato) => void generarReporte(formato)}
               reporteEnCurso={reporteEnCurso}
               reporteDisponible={reporteDisponible}
+              reporteStale={reporteStale}
               reporteDescargarUrl={reporteJobId ? calcMuestraReporteDescargarUrl({ inline: true }) : null}
               onExportarAulas={() => void exportarAulasAnexo()}
               exportandoAulas={exportandoAulas}

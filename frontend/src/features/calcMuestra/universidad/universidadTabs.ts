@@ -3,12 +3,13 @@ import {
   Calculator,
   CheckCircle2,
   ClipboardList,
+  Compass,
   Database,
   FileCheck2,
   FileText,
-  Filter,
   Gauge,
   Grid3X3,
+  GraduationCap,
   PieChart,
   Send,
   Sigma,
@@ -63,10 +64,14 @@ export const UNIVERSITY_LOCAL_TAB_ALIASES: Record<string, string> = {
   // Supuestos se fusionó en Diseño (§5.1.2); su slot lo ocupa la nueva pestaña
   // Cursos-horario por facultad. Un tab guardado de Supuestos va a Diseño.
   "calculo-ajustes": "calculo-diseno",
-  // Unificación de criterios (2026-07): la pestaña didáctica "Criterios" se
-  // retiró; la suite por categoría (marco-categorias) es la única superficie
-  // para definir y confirmar criterios de inclusión.
-  "marco-criterios": "marco-categorias",
+  // Split de Marco (2026-07-15): "Criterios de inclusión" (marco-categorias,
+  // que renderizaba ambos bloques) se partió en dos pestañas por el orden
+  // metodológico — primero el estudiante (elegibilidad), luego el aula con la
+  // radiografía integrada. El Explorador se absorbió en la segunda. Tabs
+  // guardados de los ids viejos aterrizan en su reemplazo.
+  "marco-criterios": "marco-criterios-alumno",
+  "marco-categorias": "marco-criterios-alumno",
+  "marco-explorador": "marco-ch-radiografia",
   // Consistencia se reubicó de Marco a Datos (§3.2): un tab guardado aterriza
   // en su nuevo hogar dentro de Datos.
   "marco-validacion": "def-consistencia",
@@ -223,8 +228,16 @@ export function universitySidebarTabs({
   }
   if (activeSection === "marco") {
     const criteriosCatalogoReady = normalizeCriteriosCatalogo(aulasState?.frame?.criterios_catalogo ?? null).variables.length > 0;
+    // Orden metodológico (reunión del diseño muestral 2026-07-15): primero
+    // definimos quién es elegible (criterios del estudiante → N elegibles),
+    // luego perfilamos dónde están esos elegibles por curso-horario decidiendo
+    // los criterios de aula CON la radiografía del marco a la vista.
     return [
-      { id: "marco-categorias", label: "Criterios de inclusión", detail: "inclusión por categoría, excepciones y su porqué", icon: Filter, status: guideStatus(criteriosCatalogoReady, hasDescriptiveFrame), targetId: "cmv2-local-marco-categorias" },
+      { id: "marco-criterios-alumno", label: "Criterios del estudiante", detail: "quién es elegible: formación, condición, edad, facultades y nivel", icon: GraduationCap, status: guideStatus(criteriosCatalogoReady, hasDescriptiveFrame), targetId: "cmv2-local-marco-criterios-alumno" },
+      // La radiografía es el contenido dominante de esta pestaña integrada, así
+      // que gatea con el marco descriptivo (igual que marco-aulas): sin frame no
+      // hay dónde perfilar los criterios de aula.
+      { id: "marco-ch-radiografia", label: "Cursos-horario: criterios + radiografía", detail: "define los criterios de aula viendo dónde están los elegibles por facultad", icon: Compass, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-ch-radiografia" },
       { id: "marco-poblacion", label: "Población", detail: "elegibles y estructura (base real)", icon: Users, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-poblacion" },
       { id: "marco-aulas", label: "Cursos-horario", detail: "unidades del marco (base real)", icon: Grid3X3, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-aulas" },
       { id: "marco-cobertura", label: "Cobertura", detail: "elegibles vs. no elegibles por facultad", icon: BarChart3, status: guideStatus(effectiveMarcoReady), targetId: "cmv2-local-marco-cobertura" },
