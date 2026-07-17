@@ -647,7 +647,7 @@ test_that("plan ACNUR/Kobo coloca mapas al inicio y omite variables no graficabl
          contexto$district_labels)
   }), use.names = FALSE), collapse = " ")
 
-  expect_equal(map_idx, 4L)
+  expect_equal(map_idx, 5L)
   map_args <- ((slides[[map_idx]]$payload %||% list())$grafico %||% list())$args %||% list()
   map_payload <- slides[[map_idx]]$payload %||% list()
   expect_identical((map_args$contexto %||% list())$titulo %||% "", "")

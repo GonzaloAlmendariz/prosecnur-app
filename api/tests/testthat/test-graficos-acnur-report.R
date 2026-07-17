@@ -293,17 +293,52 @@ test_that("ficha territorial documenta seleccion y muestra por ambito", {
   rows <- .graficos_acnur_technical_rows(context, territorial = TRUE)
   text <- .acnur_report_ascii(paste(unlist(rows, recursive = TRUE, use.names = FALSE), collapse = " "))
 
-  expect_match(text, "Encuesta presencial por conglomerados", ignore.case = TRUE)
+  # Filas nuevas de la seccion A del spec (constantes de contenido del estudio).
+  expect_match(text, "Tipo de estudio.*Cuantitativo, cuasi-experimental", ignore.case = TRUE)
+  expect_match(text, "Diseno muestral.*Territorial por conglomerados", ignore.case = TRUE)
+  expect_match(text, "seleccion probabilistica de manzanas \\(PPS\\)", ignore.case = TRUE)
+  expect_match(text, "Marco muestral.*Manzanas censales INEI 2017", ignore.case = TRUE)
+  expect_match(text, "Grupos de analisis.*Intervencion \\(SMP, SJL, Chorrillos\\)", ignore.case = TRUE)
+  expect_match(text, "Seleccion en el hogar.*ruta sistematica", ignore.case = TRUE)
+  expect_match(text, "Precision \\(diseno\\).*4.1 pp grupo", ignore.case = TRUE)
+  expect_match(text, "Fuentes de seleccion de distritos.*proGres \\(ACNUR\\).*INEI 2026", ignore.case = TRUE)
+  # Filas auto que se conservan.
   expect_match(text, "Personas de 18 anos a mas", ignore.case = TRUE)
   expect_match(text, "25 manzanas titulares por distrito", ignore.case = TRUE)
   expect_match(text, "probabilidad proporcional al numero de viviendas", ignore.case = TRUE)
   expect_match(text, "hasta 8 entrevistas por manzana", ignore.case = TRUE)
+  expect_match(text, "capacidad operativa 200/distrito \\(no analitica\\)", ignore.case = TRUE)
   expect_match(text, "Cuotas por distrito, sexo y grupo de edad", ignore.case = TRUE)
-  expect_match(text, "Muestra analizada 8 personas", ignore.case = TRUE)
+  expect_match(text, "Muestra analizada 8 personas \\(meta de diseno 1,134\\)", ignore.case = TRUE)
   expect_match(text, "Lima Norte 3 personas.*San Martin de Porres 2.*Los Olivos 1", ignore.case = TRUE)
   expect_match(text, "Lima Este 2 personas.*San Juan de Lurigancho 1.*Ate 1", ignore.case = TRUE)
   expect_match(text, "Lima Sur 3 personas.*Chorrillos 1.*San Juan de Miraflores 2", ignore.case = TRUE)
-  expect_false(grepl("PPS|semilla|metadata|trazabilidad", text, ignore.case = TRUE))
+  # Ya no debe leerse como contraste pareado ni exponer metadata interna.
+  expect_false(grepl("semilla|metadata|trazabilidad", text, ignore.case = TRUE))
+})
+
+test_that("ficha territorial se parte en dos laminas sin desbordar la tabla", {
+  style <- .graficos_acnur_table_style()
+  rows <- lapply(seq_len(16L), function(i) {
+    list(criterio = paste0("Criterio ", i), detalle = paste0("Detalle ", i))
+  })
+
+  slides <- .graficos_acnur_technical_slides(rows, style)
+  titles <- .acnur_report_ascii(vapply(
+    slides, function(slide) .graficos_scalar_chr(slide$payload$titulo, ""), character(1)
+  ))
+  counts <- vapply(slides, function(slide) length(slide$payload$filas), integer(1))
+
+  expect_length(slides, 2L)
+  expect_true(all(vapply(slides, function(slide) {
+    identical(.graficos_scalar_chr(slide$tipo, ""), "p_slide_tabla_tecnica")
+  }, logical(1))))
+  expect_equal(titles, c("Ficha tecnica", "Ficha tecnica (cont.)"))
+  expect_equal(sum(counts), 16L)
+  # Ninguna lamina desborda: filas x alto minimo <= altura fija de la tabla.
+  expect_true(all(counts * style$min_row_height <= style$table_height))
+  # Bajo el umbral queda una sola lamina.
+  expect_length(.graficos_acnur_technical_slides(rows[seq_len(9L)], style), 1L)
 })
 
 test_that("portada ACNUR usa el titulo de la fuente cuando el proyecto no tiene nombre", {
