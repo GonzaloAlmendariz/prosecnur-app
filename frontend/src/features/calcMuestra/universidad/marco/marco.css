@@ -2515,6 +2515,9 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   color: var(--pulso-text-muted);
   font-variant-numeric: tabular-nums;
 }
+/* Distribución por nivel/condición mostrada junto a su criterio en el embudo. */
+.cmv2-radiografia-niveles { margin: 2px 0 4px; }
+.cmv2-chfp-crit .cmv2-radiografia-condicion { margin: 2px 0 6px; }
 .cmv2-chfp-min-sug {
   display: flex;
   align-items: flex-start;

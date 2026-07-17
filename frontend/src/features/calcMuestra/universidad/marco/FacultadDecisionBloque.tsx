@@ -153,6 +153,8 @@ function CriterioFacultadCard({
         <>
           {variable.id === SESSION_TYPE_VARIABLE_ID ? (
             <FacultadRadiografiaCard fac={fac} modo="tipos" />
+          ) : variable.id === "condicion_curso" ? (
+            <FacultadRadiografiaCard fac={fac} modo="condicion" />
           ) : null}
           <FacultadCategoriaToggles
             fila={fila}
@@ -173,12 +175,15 @@ function NivelFacultadCard({
   seleccion,
   facKey,
   facLabel,
+  fac,
   onRango,
 }: {
   variable: CriterioVariable;
   seleccion: CriteriosSeleccionMarco;
   facKey: string;
   facLabel: string;
+  /** Radiografía de la facultad (distribución por nivel, junto al criterio). */
+  fac: CalcMuestraAulasExploracionFacultad;
   onRango: (facultad: string, rangos: Array<[number, number]>) => void;
 }) {
   const valores = (variable.values ?? []).slice().sort((a, b) => a - b);
@@ -218,6 +223,7 @@ function NivelFacultadCard({
       </button>
       {abierto ? (
         <div className="cmv2-chfp-min">
+          <FacultadRadiografiaCard fac={fac} modo="niveles" />
           <label className="cmv2-chfp-nivel-toggle">
             <Switch
               checked={activo}
@@ -492,6 +498,7 @@ export function FacultadDecisionBloque({
                     seleccion={seleccion}
                     facKey={excKey}
                     facLabel={facLabel}
+                    fac={fac}
                     onRango={onRango}
                   />,
                 ];
