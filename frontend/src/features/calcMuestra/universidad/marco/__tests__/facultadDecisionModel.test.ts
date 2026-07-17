@@ -28,6 +28,7 @@ function fac(
     est_aula_media: 27,
     por_tipo_sesion: [],
     por_nivel: [],
+    por_condicion: [],
     n_multi_facultad: 0,
     n_local_externo: 0,
     n_sin_condicion: 0,

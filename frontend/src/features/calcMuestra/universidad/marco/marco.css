@@ -2871,3 +2871,72 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
     display: none;
   }
 }
+
+/* ── Sobrevivientes + condición del curso por facultad (P1/P2) ──────────────── */
+.cmv2-radiografia-facts {
+  display: grid;
+  gap: 8px;
+  margin: 2px 0 2px;
+}
+.cmv2-radiografia-sobreviven {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+.cmv2-radiografia-sobreviven strong {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+.cmv2-radiografia-condicion {
+  display: grid;
+  gap: 6px;
+}
+.cmv2-radiografia-condicion-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--pulso-surface-2, var(--pulso-surface));
+  border: 1px solid var(--cmv2-border);
+}
+.cmv2-radiografia-condicion-bar i {
+  height: 100%;
+  min-width: 2px;
+}
+.cmv2-radiografia-condicion-leg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+.cmv2-radiografia-condicion-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.cmv2-radiografia-condicion-item i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
+}
+.cmv2-radiografia-condicion-bar i[data-kind="obligatorio"],
+.cmv2-radiografia-condicion-item i[data-kind="obligatorio"] {
+  background: var(--cmv2-accent);
+}
+.cmv2-radiografia-condicion-bar i[data-kind="electivo"],
+.cmv2-radiografia-condicion-item i[data-kind="electivo"] {
+  background: color-mix(in srgb, var(--cmv2-accent) 40%, transparent);
+}
+.cmv2-radiografia-condicion-bar i[data-kind="sindato"],
+.cmv2-radiografia-condicion-item i[data-kind="sindato"] {
+  background: color-mix(in srgb, var(--pulso-warn-fg, var(--pulso-text)) 55%, transparent);
+}
+.cmv2-radiografia-condicion-bar i[data-kind="otro"],
+.cmv2-radiografia-condicion-item i[data-kind="otro"] {
+  background: color-mix(in srgb, var(--pulso-text) 24%, transparent);
+}

@@ -15233,6 +15233,17 @@ export type CalcMuestraAulasExploracionNivel = {
   mediana_elegibles: number | null;
 };
 
+/** Distribución de una facultad por condición del curso (obligatorio/electivo/
+ *  sin dato/otro). Junto al tipo define cuántas aulas sobreviven a todos los
+ *  criterios (reunión Ramiro §8.2). Los CH excluidos cuentan en `ch` pero no
+ *  en `ch_elegibles`/`elegibles`. */
+export type CalcMuestraAulasExploracionCondicion = {
+  condicion: string;
+  ch: number;
+  ch_elegibles: number;
+  elegibles: number;
+};
+
 /** Curso-horario del top por elegibles de una facultad. */
 export type CalcMuestraAulasExploracionCurso = {
   id: string;
@@ -15256,6 +15267,7 @@ export type CalcMuestraAulasExploracionFacultad = {
   est_aula_media: number | null;
   por_tipo_sesion: CalcMuestraAulasExploracionTipoSesion[];
   por_nivel: CalcMuestraAulasExploracionNivel[];
+  por_condicion: CalcMuestraAulasExploracionCondicion[];
   n_multi_facultad: number;
   n_local_externo: number;
   n_sin_condicion: number;
@@ -15376,6 +15388,19 @@ export function normalizeCalcMuestraAulasExploracion(
           };
         })
         .filter((nivelRow): nivelRow is CalcMuestraAulasExploracionNivel => nivelRow != null);
+      const por_condicion = asList(row.por_condicion)
+        .map((condItem): CalcMuestraAulasExploracionCondicion | null => {
+          const condRow = asRecord(condItem);
+          const condicion = asText(condRow.condicion);
+          if (!condicion) return null;
+          return {
+            condicion,
+            ch: asCount(condRow.ch),
+            ch_elegibles: asCount(condRow.ch_elegibles),
+            elegibles: asCount(condRow.elegibles),
+          };
+        })
+        .filter((condRow): condRow is CalcMuestraAulasExploracionCondicion => condRow != null);
       const top_cursos = asList(row.top_cursos)
         .map((cursoItem): CalcMuestraAulasExploracionCurso | null => {
           const cursoRow = asRecord(cursoItem);
@@ -15404,6 +15429,7 @@ export function normalizeCalcMuestraAulasExploracion(
         est_aula_media: asNumOrNull(row.est_aula_media),
         por_tipo_sesion,
         por_nivel,
+        por_condicion,
         n_multi_facultad: asCount(row.n_multi_facultad),
         n_local_externo: asCount(row.n_local_externo),
         n_sin_condicion: asCount(row.n_sin_condicion),

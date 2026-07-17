@@ -234,6 +234,9 @@ export type BoxplotResumen = {
 export type TipoSesionShare = {
   tipo: string;
   ch: number;
+  /** CH de este tipo que SOBREVIVEN a los criterios vigentes (incluidos). Es la
+   *  contribución del tipo al marco: excluirlo pierde estas aulas. */
+  chElegibles: number;
   elegibles: number;
   /** Proporción 0..1 de los elegibles de la facultad en este tipo de sesión. */
   share: number;
@@ -292,11 +295,54 @@ export function tipoSesionShares(
   return limitadas.map((row) => ({
     tipo: row.tipo,
     ch: row.ch,
+    chElegibles: row.ch_elegibles,
     elegibles: row.elegibles,
     share: Math.max(0, row.elegibles) / total,
     medianaElegibles: row.mediana_elegibles,
     caja: boxplotDesdeTipo(row),
   }));
+}
+
+/* ============================================================================
+   Condición del curso (obligatorio/electivo) por facultad — define, junto al
+   tipo, cuántas aulas sobreviven a todos los criterios (reunión Ramiro §8.2).
+   ============================================================================ */
+
+export type CondicionSegmento = {
+  condicion: string;
+  ch: number;
+  chElegibles: number;
+  elegibles: number;
+  /** Proporción 0..1 del universo de CH de la facultad en esta condición. */
+  share: number;
+};
+
+export type CondicionResumen = {
+  segmentos: CondicionSegmento[];
+  /** % 0..1 de CH obligatorios sobre el universo de la facultad; `null` si no
+   *  hay CH. Es el filtro que Ramiro §8.2 quiere activar donde el dato existe. */
+  obligatorioShare: number | null;
+};
+
+/**
+ * Distribución por condición del curso de una facultad, ordenada por CH desc,
+ * con el % de obligatorios listo para mostrar. Vacío honesto cuando el contrato
+ * no trae condición (bases sin la columna).
+ */
+export function condicionResumen(facultad: CalcMuestraAulasExploracionFacultad): CondicionResumen {
+  const totalCh = facultad.por_condicion.reduce((acc, row) => acc + Math.max(0, row.ch), 0);
+  if (totalCh <= 0) return { segmentos: [], obligatorioShare: null };
+  const segmentos = [...facultad.por_condicion]
+    .sort((a, b) => b.ch - a.ch || a.condicion.localeCompare(b.condicion, "es"))
+    .map((row) => ({
+      condicion: row.condicion,
+      ch: row.ch,
+      chElegibles: row.ch_elegibles,
+      elegibles: row.elegibles,
+      share: Math.max(0, row.ch) / totalCh,
+    }));
+  const oblig = facultad.por_condicion.find((row) => row.condicion === "Obligatorio");
+  return { segmentos, obligatorioShare: oblig ? Math.max(0, oblig.ch) / totalCh : 0 };
 }
 
 /**
