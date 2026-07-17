@@ -367,30 +367,17 @@
   position: relative;
   flex: 1;
   width: 100%;
-  padding-right: 36px;
 }
 
-/* Radio explícito de la mode-card: la selección se lee de un vistazo, no solo
-   por el tinte. Absoluto: no participa del grid interno de la tarjeta. */
+/* Lenguaje de controles unificado (QA H9): las alternativas exclusivas se leen
+   por el estado de la tarjeta (borde + tinte + anillo interior), sin radio
+   suelto en la esquina. El span queda para el gap de accesibilidad futura. */
 .cmv2-defi-mode-radio {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 15px;
-  height: 15px;
-  border-radius: 999px;
-  border: 1.5px solid var(--cmv2-border-strong);
-  background: var(--cmv2-surface);
-  transition:
-    border-color var(--motion-dur-fast, 150ms) ease,
-    background var(--motion-dur-fast, 150ms) ease,
-    box-shadow var(--motion-dur-fast, 150ms) ease;
+  display: none;
 }
 
-.cmv2-source-mode-card.is-active .cmv2-defi-mode-radio {
-  border-color: var(--cmv2-accent);
-  background: var(--cmv2-accent);
-  box-shadow: inset 0 0 0 3px var(--cmv2-surface);
+.cmv2-defi-mode > .cmv2-source-mode-card.is-active {
+  box-shadow: inset 0 0 0 1px var(--cmv2-accent-border);
 }
 
 .cmv2-defi-when {
@@ -1268,15 +1255,21 @@
 
 .cmv2-defi-var-cat b {
   font-weight: 600;
+  min-width: 0;
+  flex: 0 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* La cifra nunca se parte ("3,355" se leía "3,35 / 5"): el label es el único
+   que cede espacio (ellipsis); el conteo queda entero y tabular. */
 .cmv2-defi-var-cat em {
+  flex: none;
   font-style: normal;
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-muted);
+  white-space: nowrap;
 }
 
 .cmv2-defi-var-cat.is-more {
@@ -1609,4 +1602,52 @@
   border-color: var(--cmv2-accent-border, var(--cmv2-accent));
   background: color-mix(in srgb, var(--cmv2-accent) 8%, var(--pulso-surface));
   color: var(--cmv2-accent-fg, var(--cmv2-accent));
+}
+
+/* --- Solicitud de base para DTI (reunión del diseño muestral 2026-07-15) ----
+   Botón secundario bajo las tarjetas de carga: exporta el XLSX de estructura
+   + criterios en bullets para el correo con el que se pide la base. */
+.cmv2-defi-dti {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px dashed var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: color-mix(in srgb, var(--pulso-surface-2) 40%, transparent);
+}
+
+.cmv2-defi-dti-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--cmv2-accent-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--cmv2-accent-fg);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.cmv2-defi-dti-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--cmv2-accent) 8%, var(--pulso-surface));
+}
+.cmv2-defi-dti-btn:disabled { cursor: progress; opacity: 0.7; }
+
+.cmv2-defi-dti-hint {
+  flex: 1 1 260px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-dti-error {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--pulso-danger-fg, var(--pulso-warn-fg));
 }
