@@ -108,8 +108,8 @@ test_that("plan ACNUR relacional es un solo informe y no duplica heredadas", {
   expect_setequal(
     graph_notes,
     c(
-      "Base: 3 respuestas válidas de 3 personas elegibles.",
-      "Base: 3 registros con respuesta de 3 registros en la base, aportados por 2 personas."
+      "Base: 3 de 3 respuestas (100.0%).",
+      "Base: 3 de 3 respuestas (100.0%), correspondientes a 2 personas."
     )
   )
   expect_false(any(grepl("territorial|KOICA|actor", visible_text, ignore.case = TRUE)))
