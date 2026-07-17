@@ -2462,6 +2462,17 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 }
 .cmv2-chfp-crit-state[data-decision="propia"] { color: var(--cmv2-accent-fg); }
 .cmv2-chfp-min { display: grid; gap: 8px; }
+/* Pill del mínimo propio: el número y, al lado, un hint que dice qué pasa si se
+   deja vacío (usa el general) o la unidad — sin cortar texto dentro del input. */
+.cmv2-chfp-min-input-row { display: flex; align-items: center; gap: 10px; }
+.cmv2-chfp-min-input-hint {
+  font-size: 11.5px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
 .cmv2-chfp-nivel-toggle {
   display: flex;
   align-items: center;
@@ -2748,6 +2759,19 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 .cmv2-explorador-dist th[data-numeric] {
   white-space: nowrap;
 }
+/* Columnas mejor definidas: divisor sutil antes de cada columna numérica y de la
+   de distribución. Separa el label · barra de las cifras y del boxplot, sin
+   sobrecargar (una hairline al 45% del borde). */
+.cmv2-explorador-dist th[data-numeric],
+.cmv2-explorador-dist td[data-numeric],
+.cmv2-explorador-dist th.cmv2-boxplot-col,
+.cmv2-explorador-dist td.cmv2-boxplot-col {
+  border-left: 1px solid color-mix(in srgb, var(--cmv2-border) 45%, transparent);
+}
+.cmv2-explorador-dist td[data-numeric],
+.cmv2-explorador-dist td.cmv2-boxplot-col {
+  padding-left: 12px;
+}
 .cmv2-explorador-dist td:first-child {
   display: grid;
   grid-template-columns: minmax(80px, 1fr) minmax(60px, 120px) 44px;
@@ -2892,10 +2916,18 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 }
 .cmv2-boxplot {
   display: block;
-  width: 132px;
-  height: 22px;
+  width: 140px;
+  height: 30px;
   overflow: visible;
 }
+/* Rejilla de referencia dentro de cada boxplot (el «eje» por fila): líneas
+   menores tenues + mayores (0 · mitad · max) algo más marcadas. */
+.cmv2-boxplot-grid {
+  stroke: color-mix(in srgb, var(--cmv2-border) 50%, transparent);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+.cmv2-boxplot-grid[data-mayor] { stroke: var(--cmv2-border); }
 .cmv2-boxplot-whisker {
   stroke: color-mix(in srgb, var(--pulso-text) 42%, transparent);
   stroke-width: 1.25;
@@ -2949,7 +2981,8 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 }
 .cmv2-boxplot-eje { flex: none; }
 .cmv2-boxplot-eje-line { stroke: var(--cmv2-border); stroke-width: 1; }
-.cmv2-boxplot-eje-tick { stroke: var(--cmv2-border); stroke-width: 1; }
+.cmv2-boxplot-eje-tick { stroke: color-mix(in srgb, var(--cmv2-border) 50%, transparent); stroke-width: 1; }
+.cmv2-boxplot-eje-tick[data-mayor] { stroke: var(--cmv2-border); }
 .cmv2-boxplot-eje-labels {
   display: flex;
   justify-content: space-between;
@@ -2962,11 +2995,13 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 6px 14px;
-  margin: 6px 2px 0;
+  margin: 8px 2px 0;
   font-size: 11px;
   line-height: 1.5;
   color: var(--pulso-text-muted);
+  text-align: center;
 }
 .cmv2-boxplot-leyenda-item {
   display: inline-flex;

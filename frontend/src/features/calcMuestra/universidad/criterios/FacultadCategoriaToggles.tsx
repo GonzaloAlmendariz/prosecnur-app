@@ -112,11 +112,11 @@ export function FacultadCategoriaToggles({
           className="cmv2-crit-tsf-heredar"
           onClick={() => onSel(heredarFacultad(sel, fila.facKey))}
         >
-          Volver a heredar el global
+          Quitar la restricción de esta facultad
         </button>
       ) : (
         <p className="cmv2-crit-empty-note">
-          Esta facultad hereda el set global de arriba; al tocar un tipo aquí creas su decisión propia.
+          Sin restricción propia: entran todas. Ajusta una categoría para decidir solo en esta facultad.
         </p>
       )}
     </div>

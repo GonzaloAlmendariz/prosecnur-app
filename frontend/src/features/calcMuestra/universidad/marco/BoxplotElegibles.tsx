@@ -10,10 +10,12 @@
 import { fmtDec, fmtInt } from "../../sharedCore";
 import { boxplotPosiciones, type BoxplotResumen } from "./exploradorModel";
 
-const W = 132;
-const H = 22;
-const PAD_X = 4;
+const W = 140;
+const H = 30;
+const PAD_X = 5;
 const INNER = W - PAD_X * 2;
+/** Fracciones de la rejilla de referencia (el «eje» dentro de cada boxplot). */
+const GRID = [0, 0.25, 0.5, 0.75, 1];
 
 /**
  * Eje X compartido de los boxplots de la facultad: la escala numérica de
@@ -26,8 +28,16 @@ export function BoxplotEjeX({ escalaMax }: { escalaMax: number }) {
     <div className="cmv2-boxplot-eje" style={{ width: W }}>
       <svg viewBox={`0 0 ${W} 6`} width={W} height={6} aria-hidden="true" preserveAspectRatio="none">
         <line className="cmv2-boxplot-eje-line" x1={PAD_X} y1={1} x2={W - PAD_X} y2={1} />
-        {[0, 0.5, 1].map((f) => (
-          <line key={f} className="cmv2-boxplot-eje-tick" x1={PAD_X + f * INNER} y1={0} x2={PAD_X + f * INNER} y2={5} />
+        {GRID.map((f) => (
+          <line
+            key={f}
+            className="cmv2-boxplot-eje-tick"
+            data-mayor={f === 0 || f === 0.5 || f === 1 || undefined}
+            x1={PAD_X + f * INNER}
+            y1={0}
+            x2={PAD_X + f * INNER}
+            y2={5}
+          />
         ))}
       </svg>
       <div className="cmv2-boxplot-eje-labels" aria-label={`Escala de elegibles por aula: 0 a ${fmtInt(escalaMax)}`}>
@@ -38,8 +48,8 @@ export function BoxplotEjeX({ escalaMax }: { escalaMax: number }) {
     </div>
   );
 }
-const BOX_TOP = 5;
-const BOX_H = H - 10;
+const BOX_TOP = 9;
+const BOX_H = H - 18;
 const CY = H / 2;
 
 /** Texto accesible y de tooltip con el resumen literal, sin caja negra. */
@@ -75,9 +85,21 @@ export function BoxplotElegibles({
       height={H}
       role="img"
       aria-label={texto}
-      preserveAspectRatio="none"
     >
       <title>{texto}</title>
+      {/* Rejilla de referencia: el eje de la escala DENTRO de cada boxplot, para
+          leer cada caja contra 0…max sin bajar la vista al eje común. */}
+      {GRID.map((f) => (
+        <line
+          key={f}
+          className="cmv2-boxplot-grid"
+          data-mayor={f === 0 || f === 0.5 || f === 1 || undefined}
+          x1={x(f)}
+          y1={2}
+          x2={x(f)}
+          y2={H - 2}
+        />
+      ))}
       {/* Bigote min–max */}
       <line className="cmv2-boxplot-whisker" x1={x(pos.min)} y1={CY} x2={x(pos.max)} y2={CY} />
       {/* Topes en los extremos */}
@@ -93,10 +115,10 @@ export function BoxplotElegibles({
         rx={2.5}
       />
       {/* Mediana (Q2) */}
-      <line className="cmv2-boxplot-mediana" x1={x(pos.mediana)} y1={BOX_TOP - 1} x2={x(pos.mediana)} y2={BOX_TOP + BOX_H + 1} />
+      <line className="cmv2-boxplot-mediana" x1={x(pos.mediana)} y1={BOX_TOP - 1.5} x2={x(pos.mediana)} y2={BOX_TOP + BOX_H + 1.5} />
       {/* Media: marcador aparte para ver la distorsión de las aulas gigantes */}
       {pos.media != null && (
-        <circle className="cmv2-boxplot-media" cx={x(pos.media)} cy={CY} r={2.6} />
+        <circle className="cmv2-boxplot-media" cx={x(pos.media)} cy={CY} r={3} />
       )}
     </svg>
   );
