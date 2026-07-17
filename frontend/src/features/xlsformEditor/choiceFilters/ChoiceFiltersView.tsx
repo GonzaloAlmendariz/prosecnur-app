@@ -16,6 +16,7 @@ import { ChevronLeft, SlidersHorizontal, X } from "../../../vendor/lucide-react"
 import type { BuilderStructure } from "../types";
 import { buildChoiceFilterModel } from "./buildChoiceFilterModel";
 import { ChoiceFilterCard } from "./ChoiceFilterCard";
+import { ChoiceFilterOverview } from "./ChoiceFilterOverview";
 import "../styles/xf-choice-filters.css";
 
 export type ChoiceFiltersViewProps = {
@@ -126,6 +127,8 @@ export function ChoiceFiltersView({
             </p>
           </div>
         )}
+
+        {cards.length > 0 && <ChoiceFilterOverview cards={cards} onJumpToRow={jumpTo} />}
 
         <div className="pulso-xcf-stack">
           {cards.map((card) => (
