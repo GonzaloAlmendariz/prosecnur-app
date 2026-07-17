@@ -36,7 +36,7 @@ test_that("formulario_pdf_build_model creates paper skips and matrices", {
   no_choice <- Filter(function(choice) identical(choice$code, "2"), question_p1$options)[[1]]
   matrix <- Filter(function(block) identical(block$kind, "matrix"), model$blocks)[[1]]
 
-  expect_match(no_choice$paper_skip, "Salto a la")
+  expect_match(no_choice$paper_skip, "pase a la pregunta")
   expect_equal(length(matrix$items), 3L)
   expect_equal(model$summary$n_matrices, 1L)
 })
@@ -417,7 +417,9 @@ test_that("localized label::es columns resolve into label and hint", {
   if (nzchar(pdftotext)) {
     txt <- paste(system2(pdftotext, c(tmp, "-"), stdout = TRUE), collapse = " ")
     expect_true(grepl("claramente definidas", txt))
-    expect_true(grepl("Totalmente en Desacuerdo", txt))
+    # En categorias la etiqueta de escala se envuelve; pdftotext puede partir la
+    # frase, pero la palabra distintiva del label::es debe estar (no la de en).
+    expect_true(grepl("Desacuerdo", txt))
     expect_true(grepl("SIN INF", txt))
   }
 })
@@ -439,7 +441,7 @@ test_that("xlsform_coalesce_label prefers spanish and falls back defensively", {
   expect_identical(out2, c("Plano", "Loc B"))
 })
 
-test_that("logic_language saltos uses 'Salto a la' wording", {
+test_that("logic_language saltos uses 'pase a la pregunta' wording", {
   survey <- data.frame(
     type = c("select_one yesno", "text", "text"),
     name = c("p1", "p2", "p3"),
@@ -455,7 +457,7 @@ test_that("logic_language saltos uses 'Salto a la' wording", {
   pdftotext <- Sys.which("pdftotext")
   skip_if_not(nzchar(pdftotext))
   txt <- paste(system2(pdftotext, c(tmp, "-"), stdout = TRUE), collapse = " ")
-  expect_true(grepl("Salto a la", txt))
+  expect_true(grepl("pase a la pregunta", txt))
   expect_false(grepl("En caso de", txt))
 })
 
@@ -488,7 +490,7 @@ test_that("logic_language condiciones emits openings and suppresses skips", {
   skip_if_not(nzchar(pdftotext))
   txt <- paste(system2(pdftotext, c(tmp, "-"), stdout = TRUE), collapse = " ")
   expect_true(grepl("En caso de", txt))
-  expect_false(grepl("Salto a la", txt))
+  expect_false(grepl("pase a la pregunta", txt))
 })
 
 test_that("condiciones dedups group-inherited relevant on questions", {
@@ -530,11 +532,11 @@ test_that("group-level relevant skips the WHOLE group to the first question afte
   hijo1 <- Filter(function(b) identical(b$name, "hijo1"), model$blocks)[[1]]
   no_choice <- Filter(function(c) identical(c$code, "2"), filtro$options)[[1]]
   # El salto apunta a la pregunta post-grupo (`despues`), NO a la primera hija.
-  expect_identical(no_choice$paper_skip, sprintf("Salto a la %s", despues$number))
-  expect_false(identical(no_choice$paper_skip, sprintf("Salto a la %s", hijo1$number)))
+  expect_identical(no_choice$paper_skip, sprintf("pase a la pregunta %s", despues$number))
+  expect_false(identical(no_choice$paper_skip, sprintf("pase a la pregunta %s", hijo1$number)))
 })
 
-test_that("skip that lands at questionnaire end says 'Termina la encuesta'", {
+test_that("skip that lands at questionnaire end says 'Fin de la encuesta'", {
   survey <- data.frame(
     type = c("select_one yesno", "begin_group", "text", "text", "end_group"),
     name = c("filtro", "grp", "h1", "h2", ""),
@@ -547,7 +549,7 @@ test_that("skip that lands at questionnaire end says 'Termina la encuesta'", {
   model <- formulario_pdf_build_model(survey, choices, data.frame(form_title = "T"))
   filtro <- Filter(function(b) identical(b$name, "filtro"), model$blocks)[[1]]
   no_choice <- Filter(function(c) identical(c$code, "2"), filtro$options)[[1]]
-  expect_identical(no_choice$paper_skip, "Termina la encuesta")
+  expect_identical(no_choice$paper_skip, "Fin de la encuesta")
 })
 
 test_that("no-op skip (nothing numbered is skipped) is suppressed", {
@@ -612,10 +614,10 @@ test_that("consent_var: omits consent opening (condiciones) and terminates (salt
     options = list(logic_language = "saltos", consent_var = "consent"))
   consent <- Filter(function(b) identical(b$name, "consent"), m_skip$blocks)[[1]]
   no_consent <- Filter(function(c) identical(c$code, "2"), consent$options)[[1]]
-  expect_identical(no_consent$paper_skip, "Termina la encuesta")
+  expect_identical(no_consent$paper_skip, "Fin de la encuesta")
 })
 
-test_that("OPS consent no longer emits the false 'Salto a la 4'", {
+test_that("OPS consent no longer emits the false 'pase a la pregunta 4'", {
   path <- test_path("../../inst/samples/ops_salud/instrumento.xlsx")
   skip_if_not(file.exists(path))
   survey <- readxl::read_excel(path, sheet = "survey", col_types = "text")
@@ -627,7 +629,7 @@ test_that("OPS consent no longer emits the false 'Salto a la 4'", {
   consent <- Filter(function(b) identical(b$name, "consetimiento"), m$blocks)[[1]]
   skips <- vapply(consent$options, function(o) o$paper_skip %||% "", character(1))
   # El destino real es post-grupo (no la pregunta inmediatamente siguiente Q4).
-  expect_false(any(skips == "Salto a la 4"))
+  expect_false(any(skips == "pase a la pregunta 4"))
   expect_true(any(nzchar(skips)))  # sí hay un salto real (a la seccion tras el grupo)
 
   # Con consent_var, la negativa termina la encuesta.
@@ -635,8 +637,8 @@ test_that("OPS consent no longer emits the false 'Salto a la 4'", {
     options = list(logic_language = "saltos", consent_var = "consetimiento")))
   consent2 <- Filter(function(b) identical(b$name, "consetimiento"), m2$blocks)[[1]]
   skips2 <- vapply(consent2$options, function(o) o$paper_skip %||% "", character(1))
-  expect_true(any(skips2 == "Termina la encuesta"))
-  expect_false(any(skips2 == "Salto a la 4"))
+  expect_true(any(skips2 == "Fin de la encuesta"))
+  expect_false(any(skips2 == "pase a la pregunta 4"))
 })
 
 test_that("matrix rows are numbered sequentially (not subnumbered N.j)", {
@@ -898,7 +900,7 @@ test_that("matrix with tenor keeps its numbered heading and X.j rows", {
   expect_true(grepl("1.3", txt, fixed = TRUE))
 })
 
-test_that("section kicker is suppressed when the title already starts with a number", {
+test_that("section band renders the title without a 'SECCIÓN N' kicker", {
   survey <- data.frame(
     type = c("begin_group", "text", "end_group", "begin_group", "text", "end_group"),
     name = c("s1", "q1", "", "s2", "q2", ""),
@@ -915,9 +917,9 @@ test_that("section kicker is suppressed when the title already starts with a num
   pdftotext <- Sys.which("pdftotext")
   skip_if_not(nzchar(pdftotext))
   txt <- paste(system2(pdftotext, c(tmp, "-"), stdout = TRUE), collapse = " ")
-  # s1 (titulo "1.1 ...") no emite el kicker; s2 (sin numero) si.
+  # Sin kicker "SECCIÓN N": la banda (centrada) muestra solo el titulo.
   expect_false(grepl("SECCIÓN 1", txt))
-  expect_true(grepl("SECCIÓN 2", txt))
+  expect_false(grepl("SECCIÓN 2", txt))
   # Los titulos de ambas secciones siguen presentes.
   expect_true(grepl("Caracteristicas del programa", txt, ignore.case = TRUE))
   expect_true(grepl("Datos generales del informante", txt, ignore.case = TRUE))
@@ -983,8 +985,12 @@ test_that("matrix header mode auto: short labels categorias, numeric 1-10 extrem
   expect_identical(.form_pdf_matrix_header_mode(short_scale, "auto"), "categorias")
   num_scale <- lapply(1:10, function(i) list(code = as.character(i), label = as.character(i)))
   expect_identical(.form_pdf_matrix_header_mode(num_scale, "auto"), "extremos")
+  # Etiquetas largas pero presentes -> categorias con wrap horizontal (referencia).
   long_scale <- lapply(c("Totalmente en desacuerdo", "En desacuerdo"), function(l) list(code = "x", label = l))
-  expect_identical(.form_pdf_matrix_header_mode(long_scale, "auto"), "extremos")
+  expect_identical(.form_pdf_matrix_header_mode(long_scale, "auto"), "categorias")
+  # Sin etiqueta en alguna opcion -> extremos.
+  gap_scale <- lapply(c("Totalmente en desacuerdo", "", "Totalmente de acuerdo"), function(l) list(code = "x", label = l))
+  expect_identical(.form_pdf_matrix_header_mode(gap_scale, "auto"), "extremos")
   # override explicito respeta la eleccion del usuario.
   expect_identical(.form_pdf_matrix_header_mode(num_scale, "categorias"), "categorias")
   expect_identical(.form_pdf_matrix_header_mode(short_scale, "extremos"), "extremos")
