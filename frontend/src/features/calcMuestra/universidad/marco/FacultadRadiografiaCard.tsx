@@ -51,10 +51,11 @@ export function FacultadRadiografiaCard({
   /** Standalone (Explorador): la cabecera selecciona la facultad. Sin callback
    *  no se renderiza cabecera (la embebe una superficie con su propio header). */
   onSelect?: () => void;
-  /** Qué partes mostrar: «resumen» (elegibles + condición + badges, arriba de la
-   *  facultad), «tipos» (solo la distribución por tipo con boxplot, junto al
-   *  criterio de tipo de sesión donde se decide) o «completo» (todo, Explorador). */
-  modo?: "completo" | "resumen" | "tipos";
+  /** Qué partes mostrar, cada una JUNTO al criterio donde se decide: «resumen»
+   *  (elegibles + condición + badges, arriba), «tipos» (distribución por tipo con
+   *  boxplot), «condicion» (barra obligatorio/electivo), «niveles» (tabla por
+   *  nivel) o «completo» (todo, Explorador). */
+  modo?: "completo" | "resumen" | "tipos" | "condicion" | "niveles";
 }) {
   const tipos = tipoSesionShares(fac);
   const niveles = nivelDistribucion(fac);
@@ -67,8 +68,10 @@ export function FacultadRadiografiaCard({
   // Condición del curso (obligatorio/electivo) por facultad: junto al tipo,
   // define cuántas aulas sobreviven a todos los criterios (Ramiro §8.2).
   const cond = condicionResumen(fac);
-  const verResumen = modo !== "tipos";
-  const verTipos = modo !== "resumen";
+  const verResumen = modo === "resumen" || modo === "completo";
+  const verCond = verResumen || modo === "condicion";
+  const verTipos = modo === "tipos" || modo === "completo";
+  const verNiveles = modo === "niveles" || modo === "completo";
 
   return (
     <article className="cmv2-explorador-card" data-modo={modo} data-active={active || undefined}>
@@ -108,14 +111,16 @@ export function FacultadRadiografiaCard({
           )}
         </div>
       )}
-      {verResumen && (
+      {(verResumen || verCond) && (
       <div className="cmv2-radiografia-facts">
+        {verResumen && (
         <p className="cmv2-radiografia-sobreviven">
           <strong>{fmtInt(fac.ch_elegibles)}</strong> de {fmtInt(fac.ch_total)} cursos-horario
           quedan como aulas candidatas con los criterios vigentes
           {fac.est_aula_mediana != null ? ` · mediana ${fmtDec(fac.est_aula_mediana, 0)} elegibles/aula` : ""}
         </p>
-        {cond.segmentos.length > 0 && (
+        )}
+        {verCond && cond.segmentos.length > 0 && (
           <div className="cmv2-radiografia-condicion">
             <div
               className="cmv2-radiografia-condicion-bar"
@@ -233,42 +238,39 @@ export function FacultadRadiografiaCard({
               </span>
             </p>
           )}
-          {niveles.length > 0 && (
-            <details className="cmv2-explorador-niveles">
-              <summary>Distribución por nivel del curso</summary>
-              <table className="cmv2-table cmv2-table--university cmv2-explorador-dist">
-                <thead>
-                  <tr>
-                    <th>Nivel</th>
-                    <th data-numeric="true">CH</th>
-                    <th data-numeric="true">Elegibles</th>
-                    <th data-numeric="true">Mediana por aula</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {niveles.map((nivel) => (
-                    <tr key={nivel.nivel}>
-                      <td>
-                        <span className="cmv2-explorador-dist-label">{nivel.nivel}</span>
-                        <span className="cmv2-explorador-dist-pct">{fmtPct(nivel.share)}</span>
-                      </td>
-                      <td data-numeric="true">{fmtInt(nivel.ch)}</td>
-                      <td data-numeric="true">{fmtInt(nivel.elegibles)}</td>
-                      <td data-numeric="true" title={medianaTitle(nivel.medianaElegibles)}>
-                        {nivel.medianaElegibles != null ? fmtDec(nivel.medianaElegibles, 0) : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </details>
-          )}
         </div>
       ) : verTipos ? (
         <p className="cmv2-explorador-card-vacio">
           El contrato no trae distribución por tipo de sesión para esta facultad.
         </p>
       ) : null}
+      {verNiveles && niveles.length > 0 && (
+        <table className="cmv2-table cmv2-table--university cmv2-explorador-dist cmv2-radiografia-niveles">
+          <thead>
+            <tr>
+              <th>Nivel del curso</th>
+              <th data-numeric="true">CH</th>
+              <th data-numeric="true">Elegibles</th>
+              <th data-numeric="true">Med/aula</th>
+            </tr>
+          </thead>
+          <tbody>
+            {niveles.map((nivel) => (
+              <tr key={nivel.nivel}>
+                <td>
+                  <span className="cmv2-explorador-dist-label">{nivel.nivel}</span>
+                  <span className="cmv2-explorador-dist-pct">{fmtPct(nivel.share)}</span>
+                </td>
+                <td data-numeric="true">{fmtInt(nivel.ch)}</td>
+                <td data-numeric="true">{fmtInt(nivel.elegibles)}</td>
+                <td data-numeric="true" title={medianaTitle(nivel.medianaElegibles)}>
+                  {nivel.medianaElegibles != null ? fmtDec(nivel.medianaElegibles, 0) : "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </article>
   );
 }
