@@ -43,6 +43,124 @@ make_plan_ppt_fixture <- function() {
   )
 }
 
+test_that("barras agrupadas conservan el dodge cuando una serie vale cero", {
+  skip_if_not_installed("ggplot2")
+  p <- graficar_barras_agrupadas(
+    data = data.frame(
+      categoria = "Tanto refugiados como comunidad local por igual",
+      N = 9,
+      intervencion = 4 / 9,
+      comparacion = 0,
+      stringsAsFactors = FALSE
+    ),
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = c("intervencion", "comparacion"),
+    etiquetas_series = c(
+      intervencion = "San Martín de Porres",
+      comparacion = "Los Olivos"
+    ),
+    colores_series = c(
+      `San Martín de Porres` = "#0072BC",
+      `Los Olivos` = "#00A98F"
+    ),
+    mostrar_ceros = FALSE,
+    mostrar_leyenda = FALSE,
+    usar_canvas = FALSE
+  )
+
+  built <- ggplot2::ggplot_build(p)
+  text_layer <- built$data[[2L]]
+  visible <- text_layer[nzchar(text_layer$label), , drop = FALSE]
+
+  expect_equal(nrow(text_layer), 2L)
+  expect_equal(nrow(visible), 1L)
+  expect_gt(abs(as.numeric(visible$x[[1L]]) - 1), 0.05)
+})
+
+test_that("barras agrupadas pueden alinear orden visual y leyenda", {
+  skip_if_not_installed("ggplot2")
+  p <- graficar_barras_agrupadas(
+    data = data.frame(categoria = "Respuesta", N = 10, intervencion = 0.4, comparacion = 0.6),
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = c("intervencion", "comparacion"),
+    etiquetas_series = c(intervencion = "Intervención", comparacion = "Comparación"),
+    colores_series = c(Intervención = "#0072BC", Comparación = "#00A98F"),
+    usar_canvas = FALSE,
+    invertir_series = TRUE,
+    invertir_leyenda = TRUE
+  )
+
+  bars <- ggplot2::ggplot_build(p)$data[[1L]]
+  expect_gt(bars$x[bars$fill == "#0072BC"], bars$x[bars$fill == "#00A98F"])
+  expect_true(isTRUE(p$guides$guides$fill$params$reverse))
+})
+
+test_that("barras agrupadas representan cada nivel del cruce como una serie", {
+  fx <- make_plan_ppt_fixture()
+  plan <- p_plan(slides = list(
+    p_slide_1_grafico(
+      titulo = "Pregunta por región",
+      grafico = p_barras_agrupadas(
+        var = "p1",
+        cruces = "region",
+        overrides = list(mostrar_leyenda = TRUE, leyenda_posicion = "abajo")
+      )
+    )
+  ))
+
+  out <- reporte_ppt_plan(
+    data = fx$data,
+    instrumento = fx$instrumento,
+    plan = plan,
+    presets = fx$presets,
+    solo_lista = TRUE,
+    mensajes_progreso = FALSE
+  )
+
+  expect_length(out$rendered, 1L)
+  expect_equal(
+    attr(out$rendered[[1]], "pulso_barras_series"),
+    c("Docentes", "Estudiantes", "Administrativos")
+  )
+  expect_equal(attr(out$rendered[[1]], "pulso_barras_cruce"), "region")
+})
+
+test_that("barras agrupadas pueden informar la base valida de cada grupo", {
+  fx <- make_plan_ppt_fixture()
+  fx$data <- fx$data[1:4, , drop = FALSE]
+  fx$data$p1[[4L]] <- NA_character_
+  plan <- p_plan(slides = list(
+    p_slide_1_grafico(
+      titulo = "Pregunta por región",
+      grafico = p_barras_agrupadas(
+        var = "p1",
+        cruces = "region",
+        overrides = list(base_por_grupo = TRUE, unidad_base = "personas")
+      )
+    )
+  ))
+
+  out <- reporte_ppt_plan(
+    data = fx$data,
+    instrumento = fx$instrumento,
+    plan = plan,
+    presets = fx$presets,
+    solo_lista = TRUE,
+    mensajes_progreso = FALSE
+  )
+
+  expect_equal(
+    attr(out$rendered[[1]], "pulso_barras_base_caption"),
+    "Base: Docentes (2) y Estudiantes (1)"
+  )
+  expect_equal(
+    attr(out$rendered[[1]], "pulso_barras_bases"),
+    c(Docentes = 2, Estudiantes = 1)
+  )
+})
+
 make_plan_ppt_fixture_multisource <- function() {
   est <- data.frame(
     p1 = c("Alto", "Medio", "Alto", "Bajo"),
@@ -2655,7 +2773,11 @@ test_that("reporte_ppt_plan usa frecuencias solo en barras agrupadas", {
 
   plan <- list(
     diapo_001 = p_slide_1_grafico(grafico = p_barras_apiladas("p1")),
-    diapo_002 = p_slide_1_grafico(grafico = p_barras_agrupadas("p1"))
+    diapo_002 = p_slide_1_grafico(grafico = p_barras_agrupadas("p1")),
+    diapo_003 = p_slide_1_grafico(grafico = p_barras_agrupadas(
+      "p1",
+      overrides = list(mostrar_n_en_etiquetas = TRUE)
+    ))
   )
 
   out_ppt <- tempfile(fileext = ".pptx")
@@ -2680,15 +2802,25 @@ test_that("reporte_ppt_plan usa frecuencias solo en barras agrupadas", {
 
   slide_dir <- tempfile("ppt_slides_")
   dir.create(slide_dir)
-  unzip(out_ppt, files = c("ppt/slides/slide1.xml", "ppt/slides/slide2.xml"), exdir = slide_dir)
+  unzip(out_ppt, files = c(
+    "ppt/slides/slide1.xml",
+    "ppt/slides/slide2.xml",
+    "ppt/slides/slide3.xml"
+  ), exdir = slide_dir)
   slide1_xml <- paste(readLines(file.path(slide_dir, "ppt/slides/slide1.xml"), warn = FALSE), collapse = " ")
   slide2_xml <- paste(readLines(file.path(slide_dir, "ppt/slides/slide2.xml"), warn = FALSE), collapse = " ")
+  slide3_xml <- paste(readLines(file.path(slide_dir, "ppt/slides/slide3.xml"), warn = FALSE), collapse = " ")
 
   expect_true(grepl("40%", slide1_xml, fixed = TRUE))
   expect_true(grepl("60%", slide1_xml, fixed = TRUE))
   expect_false(grepl("40% (2)", slide1_xml, fixed = TRUE))
   expect_false(grepl("60% (3)", slide1_xml, fixed = TRUE))
 
-  expect_true(grepl("40% (2)", slide2_xml, fixed = TRUE))
-  expect_true(grepl("60% (3)", slide2_xml, fixed = TRUE))
+  expect_true(grepl("40%", slide2_xml, fixed = TRUE))
+  expect_true(grepl("60%", slide2_xml, fixed = TRUE))
+  expect_false(grepl("40% (2)", slide2_xml, fixed = TRUE))
+  expect_false(grepl("60% (3)", slide2_xml, fixed = TRUE))
+
+  expect_true(grepl("40% (2)", slide3_xml, fixed = TRUE))
+  expect_true(grepl("60% (3)", slide3_xml, fixed = TRUE))
 })
