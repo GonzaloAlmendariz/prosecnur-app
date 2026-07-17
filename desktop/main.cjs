@@ -56,6 +56,11 @@ process.on("unhandledRejection", (reason) => {
 const { bootstrapMacRuntime } = require("./mac-bootstrap.cjs");
 
 const APP_NAME = "Prosecnur";
+// Isotipo canonico (branding/logo/prosecnur-appicon.svg exportado a PNG) para
+// el icono del Dock/taskbar/ventana en dev y como fallback si el bundle
+// empaquetado no trae su propio .icns/.ico. Sin esto, Electron cae a su atomo
+// default en `electron .` y en la barra de tareas de Windows sin instalador.
+const APP_ICON_PATH = path.join(__dirname, "assets", "icon.png");
 const HOST = "127.0.0.1";
 const ELECTRON_DEV = process.env.PROSECNUR_ELECTRON_DEV === "1";
 const DEFAULT_VITE_URL = "http://localhost:5173";
@@ -1682,6 +1687,7 @@ async function createWindow() {
     minWidth: 1040,
     minHeight: 700,
     title: APP_NAME,
+    icon: APP_ICON_PATH,
     backgroundColor: "#f7f4ee",
     show: false,
     webPreferences: {
@@ -1741,6 +1747,16 @@ if (!gotLock) {
 
   app.whenReady().then(async () => {
     app.setName(APP_NAME);
+    // En build empaquetado el Dock ya toma el .icns del bundle (mac/icon en
+    // desktop/package.json), pero en `electron .` (dev, no empaquetado) el
+    // Dock cae al icono generico de Electron salvo que lo fijemos a mano.
+    if (process.platform === "darwin" && app.dock && !app.isPackaged) {
+      try {
+        app.dock.setIcon(APP_ICON_PATH);
+      } catch (err) {
+        writeLog(`[icon] no se pudo fijar el icono del Dock en dev: ${err && err.message ? err.message : err}\n`);
+      }
+    }
     initLogs();
     // En .dmg empaquetado para mac, instalar R framework y paquetes la primera
     // vez antes de levantar el backend. En Windows el Setup.exe ya hizo todo
