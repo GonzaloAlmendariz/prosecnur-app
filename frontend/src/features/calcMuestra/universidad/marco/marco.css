@@ -2385,6 +2385,31 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   line-height: 1.5;
   color: var(--pulso-text-muted);
 }
+/* Bisagra del embudo: separa los filtros generales de la decisión de tipo. */
+.cmv2-chfp-bisagra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 6px;
+  margin: 4px 0;
+  padding: 9px 12px;
+  border: 1px solid var(--cmv2-accent-border);
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-accent-soft);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--pulso-text);
+}
+.cmv2-chfp-bisagra strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--cmv2-accent-fg);
+}
+.cmv2-chfp-bisagra em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--cmv2-accent-fg);
+}
 
 /* Tarjeta de un criterio decidido por facultad (session/condition/teacher/min) */
 .cmv2-chfp-crit {
