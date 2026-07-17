@@ -145,9 +145,10 @@ export function FacultadRadiografiaCard({
             <thead>
               <tr>
                 <th>Tipo</th>
-                <th data-numeric="true">CH</th>
+                <th data-numeric="true">CH · eleg.</th>
                 <th data-numeric="true">Elegibles</th>
-                <th data-numeric="true">Mediana</th>
+                <th data-numeric="true">Med · media</th>
+                <th data-numeric="true">Rango</th>
                 {hayBoxplot && <th className="cmv2-boxplot-col">Distribución</th>}
               </tr>
             </thead>
@@ -161,10 +162,22 @@ export function FacultadRadiografiaCard({
                     </span>
                     <span className="cmv2-explorador-dist-pct">{fmtPct(tipo.share)}</span>
                   </td>
-                  <td data-numeric="true">{fmtInt(tipo.ch)}</td>
+                  <td
+                    data-numeric="true"
+                    title={`${fmtInt(tipo.chElegibles)} de ${fmtInt(tipo.ch)} cursos-horario con ≥1 elegible`}
+                  >
+                    {fmtInt(tipo.ch)}
+                    <span className="cmv2-dist-sub"> · {fmtInt(tipo.chElegibles)}</span>
+                  </td>
                   <td data-numeric="true">{fmtInt(tipo.elegibles)}</td>
                   <td data-numeric="true" title={medianaTitle(tipo.medianaElegibles)}>
                     {tipo.medianaElegibles != null ? fmtDec(tipo.medianaElegibles, 0) : "—"}
+                    {tipo.caja?.media != null ? (
+                      <span className="cmv2-dist-sub"> · μ{fmtDec(tipo.caja.media, 0)}</span>
+                    ) : null}
+                  </td>
+                  <td data-numeric="true">
+                    {tipo.caja ? `${fmtInt(tipo.caja.min)}–${fmtInt(tipo.caja.max)}` : "—"}
                   </td>
                   {hayBoxplot && (
                     <td className="cmv2-boxplot-col">
