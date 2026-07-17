@@ -64833,7 +64833,7 @@ button.mon-acr-requirement-metric:active {
   --pulso-primary-strong: var(--pulso-primary);
   --pulso-success-accent: var(--pulso-accent-green);
   --pulso-muted-surface: var(--pulso-surface-3);
-  --pulso-text-muted: var(--pulso-text-soft);
+  /* --pulso-text-muted ahora es canónico en theme.css (alias de text-soft). */
   --pulso-accent: var(--pulso-module-monitoring);
   --pulso-accent-strong: color-mix(in srgb, var(--pulso-module-monitoring) 78%, var(--pulso-text) 22%);
 }
