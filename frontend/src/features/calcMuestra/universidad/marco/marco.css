@@ -2461,6 +2461,57 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 }
 .cmv2-chfp-crit-state[data-decision="propia"] { color: var(--cmv2-accent-fg); }
 .cmv2-chfp-min { display: grid; gap: 8px; }
+.cmv2-chfp-nivel-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--pulso-text);
+}
+/* Radiografía de elegibles por aula bajo el mínimo (§8.3): escala + aviso. */
+.cmv2-chfp-min-radiografia {
+  display: grid;
+  gap: 7px;
+  margin-top: 2px;
+  padding: 9px 11px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+.cmv2-chfp-min-radiografia[data-alerta] {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+}
+.cmv2-chfp-min-escala {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--cmv2-border);
+}
+.cmv2-chfp-min-escala i {
+  position: absolute;
+  top: -2px;
+  width: 2px;
+  height: 10px;
+  border-radius: 1px;
+  transform: translateX(-1px);
+}
+.cmv2-chfp-min-escala-mediana { background: var(--cmv2-accent-fg); }
+.cmv2-chfp-min-escala-corte {
+  width: 3px;
+  height: 12px;
+  top: -3px;
+  background: var(--pulso-text);
+}
+.cmv2-chfp-min-dist {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+.cmv2-chfp-min-dist strong { color: var(--pulso-text); }
+.cmv2-chfp-min-alerta { color: var(--cmv2-accent-fg); font-weight: 500; }
 .cmv2-chfp-min-sug {
   display: flex;
   align-items: flex-start;

@@ -16,13 +16,15 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight, Lightbulb } from "lucide-react";
 import type {
   CalcMuestraAulasExploracion,
+  CalcMuestraAulasExploracionFacultad,
   CriterioSeleccion,
   CriterioVariable,
   CriteriosSeleccionMarco,
 } from "../../../../api/client";
-import { seleccionVariable } from "../../dominio";
+import { rangosFacultad, seleccionVariable } from "../../dominio";
 import { fmtDec, fmtInt } from "../../sharedCore";
 import { FacultadCategoriaToggles } from "../criterios/FacultadCategoriaToggles";
+import { Switch } from "../criterios/Switch";
 import { UNIVERSITY_SESSION_TYPE_SUGERENCIAS } from "../shared/constants";
 import {
   aplicarSugerencia,
@@ -145,16 +147,99 @@ function CriterioFacultadCard({
   );
 }
 
+/** Control por-facultad del nivel/ciclo del curso (rango). */
+function NivelFacultadCard({
+  variable,
+  seleccion,
+  facKey,
+  facLabel,
+  onRango,
+}: {
+  variable: CriterioVariable;
+  seleccion: CriteriosSeleccionMarco;
+  facKey: string;
+  facLabel: string;
+  onRango: (facultad: string, rangos: Array<[number, number]>) => void;
+}) {
+  const valores = (variable.values ?? []).slice().sort((a, b) => a - b);
+  const min = valores.length ? valores[0] : 0;
+  const max = valores.length ? valores[valores.length - 1] : 0;
+  const rangos = rangosFacultad(seleccion, facKey);
+  const activo = rangos.length > 0;
+  const [abierto, setAbierto] = useState(activo);
+  const desde = activo ? rangos[0][0] : min;
+  const hasta = activo ? rangos[0][1] : max;
+  return (
+    <section className="cmv2-chfp-crit" data-decision={activo ? "propia" : "hereda"} data-open={abierto || undefined}>
+      <button
+        type="button"
+        className="cmv2-chfp-crit-head"
+        aria-expanded={abierto}
+        onClick={() => setAbierto((v) => !v)}
+      >
+        <span className="cmv2-chfp-crit-head-label">
+          <span className="cmv2-chfp-crit-chevron" aria-hidden="true">
+            {abierto ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </span>
+          <strong>{variable.label}</strong>
+        </span>
+        <span className="cmv2-chfp-crit-state" data-decision={activo ? "propia" : "hereda"}>
+          {activo ? `Niveles ${desde}–${hasta}` : "Todos los niveles"}
+        </span>
+      </button>
+      {abierto ? (
+        <div className="cmv2-chfp-min">
+          <label className="cmv2-chfp-nivel-toggle">
+            <Switch
+              checked={activo}
+              ariaLabel={`Limitar el nivel del curso en ${facLabel}`}
+              onToggle={() => onRango(facKey, activo ? [] : [[desde, hasta]])}
+            />
+            <span>Limitar a un tramo de niveles (sin esto, la facultad admite todos)</span>
+          </label>
+          {activo && valores.length ? (
+            <div className="cmv2-crit-range-inputs" data-active="true">
+              <select
+                className="cmv2-crit-range-select"
+                value={desde}
+                aria-label={`Nivel mínimo en ${facLabel}`}
+                onChange={(e) => onRango(facKey, [[Number(e.target.value), hasta]])}
+              >
+                {valores.map((v) => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+              <span className="cmv2-crit-range-dash">–</span>
+              <select
+                className="cmv2-crit-range-select"
+                value={hasta}
+                aria-label={`Nivel máximo en ${facLabel}`}
+                onChange={(e) => onRango(facKey, [[desde, Number(e.target.value)]])}
+              >
+                {valores.map((v) => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 /** Control por-facultad del mínimo de elegibles (criterio 7). */
 function MinFacultadCard({
   seleccion,
   minKey,
+  fac,
   umbralGeneral,
   tasa,
   onMinimoFacultad,
 }: {
   seleccion: CriteriosSeleccionMarco;
   minKey: string;
+  fac: CalcMuestraAulasExploracionFacultad;
   umbralGeneral: number;
   tasa: number | null;
   onMinimoFacultad: (minKey: string, valor: number | null) => void;
@@ -164,6 +249,20 @@ function MinFacultadCard({
   const base = propio ?? umbralGeneral;
   const sugerido = minimoSugerido(base, tasa);
   const presentes = presentesEsperados(base, tasa);
+  // Radiografía de elegibles por aula de la facultad (§8.3: el mínimo DEBE
+  // variar por facultad; 15 en Arte/Gastronomía deja demasiadas aulas fuera).
+  const mediana = fac.est_aula_mediana;
+  const media = fac.est_aula_media;
+  const tipos = fac.por_tipo_sesion ?? [];
+  const mins = tipos.map((t) => t.elegibles_min).filter((n): n is number => n != null);
+  const maxs = tipos.map((t) => t.elegibles_max).filter((n): n is number => n != null);
+  const distMin = mins.length ? Math.min(...mins) : null;
+  const distMax = maxs.length ? Math.max(...maxs) : null;
+  const hayDist = mediana != null && distMin != null && distMax != null && distMax > distMin;
+  // «Alto» = el mínimo supera la mediana: dejaría fuera a más de la mitad de
+  // las aulas típicas de la facultad (señal de que conviene bajarlo).
+  const minimoAlto = mediana != null && base > mediana;
+  const pos = (v: number) => (hayDist ? Math.min(100, Math.max(0, ((v - distMin!) / (distMax! - distMin!)) * 100)) : 0);
   return (
     <section className="cmv2-chfp-crit" data-decision={propio != null ? "propia" : "hereda"} data-open={abierto || undefined}>
       <button
@@ -206,6 +305,24 @@ function MinFacultadCard({
               </button>
             ) : null}
           </div>
+          {hayDist ? (
+            <div className="cmv2-chfp-min-radiografia" role="note" data-alerta={minimoAlto || undefined}>
+              <div className="cmv2-chfp-min-escala" aria-hidden="true">
+                <i className="cmv2-chfp-min-escala-mediana" style={{ left: `${pos(mediana!)}%` }} />
+                <i className="cmv2-chfp-min-escala-corte" style={{ left: `${pos(base)}%` }} />
+              </div>
+              <p className="cmv2-chfp-min-dist">
+                Elegibles por aula aquí: mediana <strong>{fmtDec(mediana!, 0)}</strong>
+                {media != null ? `, media ${fmtDec(media, 0)}` : ""} · rango {fmtInt(distMin!)}–{fmtInt(distMax!)}.
+                {minimoAlto ? (
+                  <span className="cmv2-chfp-min-alerta">
+                    {" "}El mínimo {fmtInt(base)} supera la mediana: dejaría fuera a más de la mitad de las aulas de
+                    esta facultad. En facultades chicas (arte, gastronomía) conviene bajarlo (§8.3).
+                  </span>
+                ) : null}
+              </p>
+            </div>
+          ) : null}
           {tasa != null && sugerido != null ? (
             <p className="cmv2-chfp-min-sug" role="note">
               <Lightbulb size={13} aria-hidden="true" />
@@ -232,17 +349,21 @@ function MinFacultadCard({
 export function FacultadDecisionBloque({
   bloque,
   variablesToggle,
+  rangeVariable,
   seleccion,
   exploracion,
   umbralGeneral,
   tasa,
   defaultOpen,
   onToggleVariable,
+  onRango,
   onMinimoFacultad,
 }: {
   bloque: FacultadBloque;
   /** Criterios de set decidibles por facultad (session/condition/teacher). */
   variablesToggle: CriterioVariable[];
+  /** Variable de nivel del curso (kind range), decidible por facultad; null si el catálogo no la trae. */
+  rangeVariable?: CriterioVariable | null;
   /** Borrador de la selección de criterios. */
   seleccion: CriteriosSeleccionMarco;
   exploracion: CalcMuestraAulasExploracion | null;
@@ -250,6 +371,7 @@ export function FacultadDecisionBloque({
   tasa: number | null;
   defaultOpen?: boolean;
   onToggleVariable: (variableId: string, next: CriterioSeleccion) => void;
+  onRango: (facultad: string, rangos: Array<[number, number]>) => void;
   onMinimoFacultad: (minKey: string, valor: number | null) => void;
 }) {
   const [abierto, setAbierto] = useState(Boolean(defaultOpen));
@@ -308,21 +430,39 @@ export function FacultadDecisionBloque({
               recalcular.
             </p>
             {/* Criterios generales (del más amplio al más fino) + el mínimo,
-                que también recorta grueso: van antes de la bisagra. */}
-            {generales.map((variable) => (
-              <CriterioFacultadCard
-                key={variable.id}
-                variable={variable}
-                seleccion={seleccion}
-                excKey={excKey}
-                facLabel={facLabel}
-                exploracion={exploracion}
-                onSel={(next) => onToggleVariable(variable.id, next)}
-              />
-            ))}
+                que también recorta grueso: van antes de la bisagra. El nivel
+                del curso (rango) se intercala tras la condición del curso. */}
+            {generales.flatMap((variable) => {
+              const card = (
+                <CriterioFacultadCard
+                  key={variable.id}
+                  variable={variable}
+                  seleccion={seleccion}
+                  excKey={excKey}
+                  facLabel={facLabel}
+                  exploracion={exploracion}
+                  onSel={(next) => onToggleVariable(variable.id, next)}
+                />
+              );
+              if (variable.id === "condicion_curso" && rangeVariable) {
+                return [
+                  card,
+                  <NivelFacultadCard
+                    key={rangeVariable.id}
+                    variable={rangeVariable}
+                    seleccion={seleccion}
+                    facKey={excKey}
+                    facLabel={facLabel}
+                    onRango={onRango}
+                  />,
+                ];
+              }
+              return [card];
+            })}
             <MinFacultadCard
               seleccion={seleccion}
               minKey={minKey}
+              fac={fac}
               umbralGeneral={umbralGeneral}
               tasa={tasa}
               onMinimoFacultad={onMinimoFacultad}
