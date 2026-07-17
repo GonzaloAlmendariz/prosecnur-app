@@ -229,6 +229,41 @@ calc_muestra_normalize_estudio <- function(estudio = list()) {
   )
 }
 
+# F5: ¿cambió contenido del estudio que ALIMENTA el reporte? El workspace es
+# estado de UI que el autosave pega cada ~2 s (paneles, borradores, motor/
+# recorrido) y NO participa del render del reporte, así que se excluye de la
+# comparación. Ambos lados deben venir normalizados (todas las escrituras a
+# sesión pasan por calc_muestra_normalize_estudio). prev NULL => TRUE
+# (conservador: sin baseline, asumir cambio).
+calc_muestra_estudio_cambio_relevante <- function(prev, nuevo) {
+  strip <- function(e) {
+    if (is.null(e) || !is.list(e)) return(NULL)
+    e[setdiff(names(e), "workspace")]
+  }
+  !identical(strip(prev), strip(nuevo))
+}
+
+# F5: meta del reporte tras un PUT de estudio. Antes cada PUT hacía
+# session_set(reporte, list(disponible = FALSE)): el autosave borraba
+# job_id/path y la descarga devolvía 404 (E_NO_REPORTE) aunque el archivo
+# existiera. Ahora la meta se PRESERVA y solo se marca `stale = TRUE` cuando
+# cambió contenido relevante; la descarga sigue funcionando mientras el
+# archivo exista y la UI puede avisar "desactualizado" con el flag.
+calc_muestra_reporte_meta_tras_estudio <- function(meta, prev, nuevo) {
+  meta <- if (is.list(meta)) meta else list(disponible = FALSE)
+  if (calc_muestra_estudio_cambio_relevante(prev, nuevo)) meta$stale <- TRUE
+  meta
+}
+
+# F5: marca el reporte como desactualizado preservando la meta (job_id/path/
+# disponible). Para mutaciones que SIEMPRE cambian contenido del reporte
+# (componentes, cálculo, iniciar estudio).
+calc_muestra_reporte_meta_marcar_stale <- function(meta) {
+  meta <- if (is.list(meta)) meta else list(disponible = FALSE)
+  meta$stale <- TRUE
+  meta
+}
+
 .cm_normalize_workspace <- function(ws) {
   if (is.null(ws) || !is.list(ws)) return(NULL)
   frame_modes <- c(
@@ -251,6 +286,11 @@ calc_muestra_normalize_estudio <- function(estudio = list()) {
     source_mode = calc_enum(ws$source_mode, c("base_madre", "dos_bases", "seleccion_existente"), "base_madre"),
     source_bindings = .cm_normalize_workspace_source_bindings(ws$source_bindings),
     variable_mappings = .cm_normalize_workspace_variable_mappings(ws$variable_mappings),
+    # W1: mapeos manuales de categorías (etiqueta/include por valor crudo).
+    # Declarados por el cliente TS (CalcMuestraWorkspaceCategoryMapping); el
+    # workspace es whitelist-only y sin esta entrada el round-trip PUT→GET
+    # los BORRABA en silencio (gotcha conocido del repo).
+    category_mappings = .cm_normalize_workspace_category_mappings(ws$category_mappings),
     publication_config = .cm_normalize_workspace_publication_config(ws$publication_config),
     aulas_config = .cm_normalize_workspace_aulas_config(ws$aulas_config),
     notas_diseno = calc_str(ws$notas_diseno, ""),
@@ -290,6 +330,38 @@ calc_muestra_normalize_estudio <- function(estudio = list()) {
     tocado = calc_bool(mr$tocado, default = FALSE),
     actualizado_at = calc_str(mr$actualizado_at, "")
   )
+}
+
+# W1: normalizador defensivo de los mapeos de categorías del workspace.
+# Cada entrada exige `role` no vacío; sus `values` son pares {raw, label}
+# con include (default TRUE: la categoría participa) y notas opcionales.
+# El `raw` vacío se conserva: representa la categoría "sin dato" observada.
+.cm_normalize_workspace_category_mappings <- function(items) {
+  if (is.null(items) || !is.list(items) || length(items) == 0L) return(list())
+  out <- lapply(items, function(item) {
+    if (!is.list(item)) return(NULL)
+    role <- calc_str(item$role, "")
+    if (!nzchar(role)) return(NULL)
+    values <- item$values %||% list()
+    if (!is.list(values)) values <- list()
+    values <- Filter(Negate(is.null), lapply(values, function(v) {
+      if (!is.list(v)) return(NULL)
+      list(
+        raw = calc_str(v$raw, ""),
+        label = calc_str(v$label, ""),
+        include = calc_bool(v$include, TRUE),
+        notes = calc_str(v$notes, "")
+      )
+    }))
+    list(
+      role = role,
+      label = calc_str(item$label, ""),
+      source_role = calc_str(item$source_role, ""),
+      column = calc_str(item$column, ""),
+      values = values
+    )
+  })
+  Filter(Negate(is.null), out)
 }
 
 .cm_normalize_workspace_source_bindings <- function(items) {
@@ -369,6 +441,22 @@ calc_muestra_normalize_estudio <- function(estudio = list()) {
 
 .cm_normalize_chr_list <- function(x) {
   as.list(unique(stats::na.omit(as.character(unlist(x %||% list(), use.names = FALSE)))))
+}
+
+# W1: pesos del score de reemplazo. Lista nombrada numerica; los pesos
+# conocidos del motor son la base y el input del usuario los sobreescribe
+# clave a clave (valores no numericos/no finitos se descartan). Claves
+# custom se conservan: el motor las lee por nombre con default propio.
+.cm_normalize_workspace_score_weights <- function(w) {
+  defaults <- calc_muestra_aulas_default_config()$selector$replacement_score_weights
+  if (is.null(w) || !is.list(w) || is.null(names(w))) return(defaults)
+  out <- defaults
+  for (nm in names(w)) {
+    if (!nzchar(nm)) next
+    val <- suppressWarnings(as.numeric(unlist(w[[nm]], use.names = FALSE))[1])
+    if (length(val) == 1L && is.finite(val)) out[[nm]] <- val
+  }
+  out
 }
 
 .cm_normalize_workspace_aulas_config <- function(cfg) {
@@ -452,6 +540,11 @@ calc_muestra_normalize_estudio <- function(estudio = list()) {
     accepted_campuses = .cm_normalize_chr_list(cfg$accepted_campuses),
     require_min_prevalence = calc_bool(cfg$require_min_prevalence, FALSE),
     min_prevalence_pct = calc_num(cfg$min_prevalence_pct, 0.8, min = 0, max = 1),
+    # Criterio 8, parte de FACULTAD del curso (acuerdo metodológico
+    # 2026-07-15). Whitelist-only: sin estas entradas el round-trip del
+    # proyecto BORRA el gate y no sobrevive reapertura.
+    require_faculty_prevalence = calc_bool(cfg$require_faculty_prevalence, FALSE),
+    min_faculty_prevalence_pct = calc_num(cfg$min_faculty_prevalence_pct, 0.8, min = 0, max = 1),
     require_cycle_homogeneity = calc_bool(cfg$require_cycle_homogeneity, FALSE),
     min_cycle_homogeneity_pct = calc_num(cfg$min_cycle_homogeneity_pct, 0.8, min = 0, max = 1),
     # Suite de criterios por categoría (scope alumno + aula). Whitelist-only:
@@ -469,14 +562,50 @@ calc_muestra_normalize_estudio <- function(estudio = list()) {
     simulation_runs = calc_int(cfg$simulation_runs, 500L, min = 0L, max = 100000L),
     mos_strategy = calc_str(cfg$mos_strategy, "eligible_yield_winsorized"),
     coordination_mode = calc_str(cfg$coordination_mode, "permanent_random_number"),
+    # W1: campos de reemplazos del DEFAULT_UNIVERSITY_AULAS_CONFIG (TS,
+    # shared/constants.ts). Whitelist-only: sin estas entradas el round-trip
+    # PUT→GET del estudio los BORRABA en silencio y la config de cadenas de
+    # reemplazo no sobrevivia reapertura. Defaults desde el propio motor de
+    # aulas (fuente unica, sin duplicar literales; TS y R coinciden).
+    replacement_depth_strategy = calc_str(
+      cfg$replacement_depth_strategy,
+      calc_muestra_aulas_default_config()$selector$replacement_depth_strategy
+    ),
+    min_replacements_per_titular = calc_int(cfg$min_replacements_per_titular, 1L, min = 0L, max = 1000L),
+    max_replacements_per_titular = calc_int(cfg$max_replacements_per_titular, 11L, min = 0L, max = 1000L),
+    extra_pool_policy = calc_str(
+      cfg$extra_pool_policy,
+      calc_muestra_aulas_default_config()$selector$extra_pool_policy
+    ),
+    # Ausente -> default del motor; una list() vacia explicita se respeta
+    # (mismo contrato que los patrones de exclusion).
+    replacement_equivalence_vars = if (is.null(cfg$replacement_equivalence_vars)) {
+      calc_muestra_aulas_default_config()$selector$replacement_equivalence_vars
+    } else {
+      .cm_normalize_chr_list(cfg$replacement_equivalence_vars)
+    },
+    replacement_score_weights = .cm_normalize_workspace_score_weights(cfg$replacement_score_weights),
     bolsas_reemplazo = calc_int(cfg$bolsas_reemplazo, 11L, min = 0L, max = 1000L),
     aulas_extra_operativas_default = calc_int(cfg$aulas_extra_operativas_default, 1L, min = 0L, max = 1000L),
     penalizacion_repetidos = calc_num(cfg$penalizacion_repetidos, 1.35, min = 0, max = 100),
+    # Descuento secuencial de repetidos entre aulas del estrato (asesoría
+    # muestral 2026-07-15 §10). Whitelist-only: sin esta entrada el
+    # round-trip PUT→GET del estudio BORRA el flag. Default FALSE en el
+    # engine (retro-compat); el frontend decide su default de UI.
+    sequential_discount = calc_bool(cfg$sequential_discount, FALSE),
     pps_weight = calc_num(cfg$pps_weight, 0.25, min = 0, max = 100),
     coverage_weight = calc_num(cfg$coverage_weight, 1, min = 0, max = 100),
     monte_carlo_n = calc_int(cfg$monte_carlo_n, 500L, min = 0L, max = 100000L),
     semilla = calc_int(cfg$semilla, 20260619L, min = 0L, max = .Machine$integer.max),
     objective = cfg$objective %||% list(),
+    # Particularidades del marco (asesoría muestral 2026-07-15 §12): mapa de
+    # decisiones manuales por curso-horario (incluir/excluir/revisado + nota).
+    # Whitelist-only: sin esta entrada el round-trip PUT→GET del estudio BORRA
+    # las decisiones al guardar/reabrir el proyecto. Normalizador defensivo en
+    # calc_muestra_aulas_particularidades.R.
+    particularidades_decisiones = .cm_particularidades_normalize_decisiones(
+      cfg$particularidades_decisiones
+    ),
     notas_metodologicas = calc_str(cfg$notas_metodologicas, "")
   )
 }
@@ -819,6 +948,10 @@ calc_muestra_normalize_componente <- function(comp = list()) {
       aulas_base_fijas      = calc_int(e$aulas_base_fijas, 0L, min = 0L),
       aulas_extra_operativas = calc_int(e$aulas_extra_operativas, 0L, min = 0L),
       promedio_conglomerado = calc_num(e$promedio_conglomerado, 0, min = 0, max = 1000),
+      # Mediana del tamaño de conglomerado del estrato (opcional, la aporta el
+      # perfil del marco de aulas: est_aula_mediana por facultad). Solo se usa
+      # cuando parametros$estadistico_conglomerado la pide; 0 = ausente.
+      mediana_conglomerado  = calc_num(e$mediana_conglomerado, 0, min = 0, max = 1000),
       tau                   = calc_num(e$tau, 0, min = 0, max = 1)
     )
   })
@@ -872,6 +1005,12 @@ calc_muestra_normalize_componente <- function(comp = list()) {
     cobertura_objetivo = calc_num(par$cobertura_objetivo, .CM_DEFAULTS_PARAMS$cobertura_objetivo,
                                   min = 0.01, max = 1),
     promedio_conglomerado = calc_num(par$promedio_conglomerado, 25, min = 1, max = 1000),
+    # Estadístico del tamaño de conglomerado para las cuotas por estrato.
+    # Default "media" = comportamiento histórico bit a bit (back-compat);
+    # "mediana"/"min_media_mediana" usan la mediana_conglomerado del estrato
+    # cuando el marco/perfil la aportó (declarativo si no hay mediana).
+    estadistico_conglomerado = calc_enum(par$estadistico_conglomerado,
+                                         c("media", "mediana", "min_media_mediana"), "media"),
     n_minimo_estrato  = calc_int(par$n_minimo_estrato, .CM_DEFAULTS_PARAMS$n_minimo_estrato,
                                  min = 0L, max = 10000L),
     tope_operativo    = calc_int(par$tope_operativo, .CM_DEFAULTS_PARAMS$tope_operativo,
@@ -974,6 +1113,26 @@ calc_muestra_calcular_componente <- function(comp) {
   resultado$computado_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   resultado$tecnica <- comp$tecnica
   resultado
+}
+
+# Estadístico efectivo del tamaño de conglomerado de UN estrato, según
+# parametros$estadistico_conglomerado. Decisión (mínimo cambio coherente):
+# el campo es DECLARATIVO cuando el estrato solo trae el promedio manual —
+# "mediana"/"min_media_mediana" operan únicamente si el estrato aporta
+# mediana_conglomerado (> 0, típicamente copiada del perfil del marco:
+# est_aula_mediana por facultad); sin mediana degradan DECLARADAMENTE a la
+# media. `usado` audita esa degradación por estrato en la salida de cuotas.
+.cm_estadistico_conglomerado_estrato <- function(e, par) {
+  media <- if ((e$promedio_conglomerado %||% 0) > 0) e$promedio_conglomerado else par$promedio_conglomerado
+  mediana <- calc_num(e$mediana_conglomerado, 0, min = 0, max = 1000)
+  modo <- calc_enum(par$estadistico_conglomerado, c("media", "mediana", "min_media_mediana"), "media")
+  if (identical(modo, "mediana") && mediana > 0) {
+    return(list(valor = mediana, usado = "mediana"))
+  }
+  if (identical(modo, "min_media_mediana") && mediana > 0) {
+    return(list(valor = min(media, mediana), usado = "min_media_mediana"))
+  }
+  list(valor = media, usado = "media")
 }
 
 .cm_z_estrato <- function(e, z_default) {
@@ -1090,7 +1249,8 @@ calc_muestra_calcular_componente <- function(comp) {
   for (i in seq_along(estratos)) {
     e <- estratos[[i]]
     cuota <- cuotas_estrato[i]
-    avg_e <- if (e$promedio_conglomerado > 0) e$promedio_conglomerado else par$promedio_conglomerado
+    est_e <- .cm_estadistico_conglomerado_estrato(e, par)
+    avg_e <- est_e$valor
     tau_e <- if (e$tau > 0) e$tau else par$tau
     aulas_base <- if ((e$aulas_base_fijas %||% 0L) > 0L) {
       as.integer(e$aulas_base_fijas)
@@ -1112,6 +1272,7 @@ calc_muestra_calcular_componente <- function(comp) {
       N               = e$N,
       cuota           = as.integer(cuota),
       avg_conglomerado = avg_e,
+      estadistico_usado = est_e$usado,
       tau             = tau_e,
       aulas_base      = aulas_base,
       aulas_reemplazo = aulas_reemplazo,
@@ -1141,7 +1302,10 @@ calc_muestra_calcular_componente <- function(comp) {
     aulas_por_estrato     = aulas_por_estrato,
     aulas_total           = as.integer(sum(vapply(aulas_por_estrato, function(a) a$aulas_total, integer(1)))),
     aulas_base_total      = as.integer(sum(vapply(aulas_por_estrato, function(a) a$aulas_base, integer(1)))),
-    aulas_extra_total     = as.integer(sum(vapply(aulas_por_estrato, function(a) a$aulas_reemplazo, integer(1))))
+    aulas_extra_total     = as.integer(sum(vapply(aulas_por_estrato, function(a) a$aulas_reemplazo, integer(1)))),
+    # Metadato declarado de las cuotas: qué estadístico pidió el usuario (el
+    # efectivo por estrato viaja en aulas_por_estrato$estadistico_usado).
+    estadistico_conglomerado = par$estadistico_conglomerado
   ))
 }
 
@@ -1437,7 +1601,8 @@ calc_muestra_calcular_componente <- function(comp) {
   aulas_por_estrato <- lapply(seq_along(estratos), function(i) {
     e <- estratos[[i]]
     cuota <- as.integer(cuotas[i])
-    avg_e <- if (e$promedio_conglomerado > 0) e$promedio_conglomerado else par$promedio_conglomerado
+    est_e <- .cm_estadistico_conglomerado_estrato(e, par)
+    avg_e <- est_e$valor
     tau_e <- if (e$tau > 0) e$tau else par$tau
     aulas_base <- if ((e$aulas_base_fijas %||% 0L) > 0L) {
       as.integer(e$aulas_base_fijas)
@@ -1454,6 +1619,7 @@ calc_muestra_calcular_componente <- function(comp) {
       N = e$N,
       cuota = cuota,
       avg_conglomerado = avg_e,
+      estadistico_usado = est_e$usado,
       tau = tau_e,
       aulas_base = aulas_base,
       aulas_reemplazo = aulas_extra,
@@ -1477,6 +1643,7 @@ calc_muestra_calcular_componente <- function(comp) {
     aulas_total           = as.integer(sum(vapply(aulas_por_estrato, function(a) a$aulas_total, integer(1)))),
     aulas_base_total      = as.integer(sum(vapply(aulas_por_estrato, function(a) a$aulas_base, integer(1)))),
     aulas_extra_total     = as.integer(sum(vapply(aulas_por_estrato, function(a) a$aulas_reemplazo, integer(1)))),
+    estadistico_conglomerado = par$estadistico_conglomerado,
     advertencia = "Dominios independientes: cada facultad se dimensiona con su propio margen de error y proporción de éxito."
   ))
 }

@@ -117,7 +117,8 @@ test_that("perfil: marco_base_aulas y opcionales medidos sin activar c7/c8", {
   # Sin criterios nuevos activos el marco base coincide con el marco vigente.
   expect_identical(perfil$marco_base_aulas, 1L)
   op <- perfil$opcionales
-  expect_identical(names(op), c("c7", "c8"))
+  # Criterio 8 (2026-07-15): la parte de facultad se reporta ANTES que la de nivel.
+  expect_identical(names(op), c("c7", "c8_facultad", "c8"))
   # c7 hipotético: A1 tiene 2 elegibles sobre 4 matriculados únicos -> ratio
   # 0.5 < 0.8; la única aula del marco base caería, FAC1 quedaría sin aulas y
   # la cobertura global bajaría a 0.

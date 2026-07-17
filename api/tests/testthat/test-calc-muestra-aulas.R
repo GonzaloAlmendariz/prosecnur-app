@@ -143,7 +143,10 @@ test_that("marco reconoce columnas institucionales tipo PUCP 2025", {
   expect_true(all(grepl(" C ", frame$aula_frame$label, fixed = TRUE)))
 })
 
-test_that("marco prioriza nivel segun creditos cuando existe junto a nivel curricular", {
+test_that("marco prioriza nivel curricular cuando existe junto a nivel segun creditos", {
+  # Acuerdo metodológico 2026-07-15: "el nivel curricular manda; créditos es
+  # apoyo". Este test fijaba antes la prioridad inversa (créditos primero); la
+  # reunión con el asesor muestral la revirtió deliberadamente.
   base <- data.frame(
     `Código PUCP` = paste0("20", 1:8),
     Facultad = "ESTUDIOS GENERALES LETRAS",
@@ -163,9 +166,11 @@ test_that("marco prioriza nivel segun creditos cuando existe junto a nivel curri
 
   frame <- calc_muestra_aulas_construir(base_madre = base, config = cfg)
 
-  expect_equal(sort(unique(frame$population$level)), c("1", "2", "3", "4"))
+  # Todos los estudiantes reportan el nivel CURRICULAR ("1"), no el rango 1-4
+  # de créditos.
+  expect_equal(unique(frame$population$level), "1")
   level_profile <- frame$category_profiles[frame$category_profiles$role == "level", c("raw", "count")]
-  expect_equal(level_profile$count[match(c("1", "2", "3", "4"), level_profile$raw)], rep(2L, 4))
+  expect_equal(level_profile$count[level_profile$raw == "1"], 8L)
 })
 
 test_that("marco complementa docentes desde catalogo curso-horario", {
