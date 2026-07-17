@@ -5,13 +5,15 @@
  * (grupos_tamano, persistidos en workspace.aulas_config), y la composición por
  * sexo por curso-horario con selector de facultad, orden y scroll.
  */
+import { useMemo } from "react";
 import { Grid3X3 } from "lucide-react";
 import { EmptyState } from "../../../../components/States";
-import type {
-  CalcMuestraAulasState,
-  CalcMuestraWorkspace,
-  CalcMuestraWorkspaceAulasConfig,
-  CalcMuestraWorkspaceAulasSizeGroup,
+import {
+  normalizeCalcMuestraAulasParticularidades,
+  type CalcMuestraAulasState,
+  type CalcMuestraWorkspace,
+  type CalcMuestraWorkspaceAulasConfig,
+  type CalcMuestraWorkspaceAulasSizeGroup,
 } from "../../../../api/client";
 import { embudoAulaDesdeFrame } from "../../dominio";
 import { fmtDec, fmtInt } from "../../sharedCore";
@@ -31,6 +33,8 @@ import {
 } from "./marcoCards";
 import { CursosHorarioSexo } from "./CursosHorarioSexo";
 import { GruposTamanoEditor } from "./GruposTamanoEditor";
+import { ParticularidadesPanel } from "./ParticularidadesPanel";
+import { normalizeParticularidadesDecisiones } from "./particularidadesModel";
 import "../../didactica/didactica.css";
 import "./marco.css";
 
@@ -55,6 +59,17 @@ export function MarcoAulasTab({
   const teacherCount = countDistinctByKeys(classroomRows, ["teacher", "docente", "profesor", "contacto"]);
   // Embudo medido del proyecto, con los pasos y el orden que entrega el backend.
   const embudoAula = embudoAulaDesdeFrame(frame);
+  // Particularidades detectadas (contrato calc_muestra_aulas_particularidades_v1):
+  // tolerante a ausencia — marcos viejos sin el campo se comportan como hoy y el
+  // panel muestra su estado vacío honesto.
+  const particularidades = useMemo(
+    () => normalizeCalcMuestraAulasParticularidades(frame?.particularidades ?? null),
+    [frame?.particularidades],
+  );
+  const particularidadesDecisiones = useMemo(
+    () => normalizeParticularidadesDecisiones(config.particularidades_decisiones),
+    [config.particularidades_decisiones],
+  );
 
   function updateConfig(patch: Partial<CalcMuestraWorkspaceAulasConfig>) {
     onWorkspace({
@@ -135,6 +150,12 @@ export function MarcoAulasTab({
       </section>
 
       <MarcoAulasCapacidad frame={frame} workspace={workspace} />
+
+      <ParticularidadesPanel
+        particularidades={particularidades}
+        decisiones={particularidadesDecisiones}
+        onDecisiones={(next) => updateConfig({ particularidades_decisiones: next })}
+      />
 
       <div className="cmv2-dashboard-chart-grid">
         <ClassroomPlotCard
