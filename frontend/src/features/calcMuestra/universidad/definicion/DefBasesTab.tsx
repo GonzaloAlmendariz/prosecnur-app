@@ -9,7 +9,7 @@
  * enseña las cifras reales del motor tras construir.
  */
 import { useState, type ReactNode } from "react";
-import { CheckCircle2, Database, FileSpreadsheet, Loader2, TriangleAlert, Upload } from "lucide-react";
+import { Database, FileSpreadsheet, Loader2, Upload } from "lucide-react";
 import { Popover } from "../../../../components/Popover";
 import { EmptyState } from "../../../../components/States";
 import type {
@@ -20,6 +20,7 @@ import type {
 } from "../../../../api/client";
 import { fmtInt } from "../../sharedCore";
 import { BadgeMotor } from "../../didactica/PasoDidactico";
+import { AvisoModulo } from "../shared/AvisoModulo";
 import { UNIVERSITY_REQUIRED_VARIABLES, UNIVERSITY_SOURCE_MODE_OPTIONS } from "../shared/constants";
 import {
   canBuildUniversityDeskFrameFromBindings,
@@ -37,6 +38,7 @@ import {
 import { frameAuditNumber } from "../shared/frame";
 import { FlujoVertical, TerminoChip, type FlujoEtapa } from "../ui";
 import { useValorSwap } from "../ui/useValorSwap";
+import { SolicitudDtiButton } from "./SolicitudDtiButton";
 import "./definicion.css";
 
 const MODE_BADGES: Record<CalcMuestraWorkspaceSourceMode, string> = {
@@ -442,10 +444,11 @@ export function DefBasesTab({
         );
       })()}
       {sourceMode === "dos_bases" && (
-        <div className="cmv2-source-mode-note">
-          <Database size={15} />
-          <span>Con el archivo 2025 basta usar <strong>MATRICULADO</strong> como base principal y <strong>CURSO Y HORARIO</strong> como catálogo. La hoja de inscripciones solo es necesaria si la base principal no trae curso y horario por estudiante.</span>
-        </div>
+        <AvisoModulo tone="info" icon={Database}>
+          Con el archivo 2025 basta usar <strong>MATRICULADO</strong> como base principal y{" "}
+          <strong>CURSO Y HORARIO</strong> como catálogo. La hoja de inscripciones solo es necesaria si la
+          base principal no trae curso y horario por estudiante.
+        </AvisoModulo>
       )}
       <div className="cmv2-source-binding-list cmv2-defi-upload-list cmv2-uni-stagger" aria-label="Bases declaradas">
         {sourceBindings.map((binding, index) => (
@@ -461,19 +464,15 @@ export function DefBasesTab({
           />
         ))}
       </div>
+      {sourceMode !== "seleccion_existente" && <SolicitudDtiButton />}
       {showCompat && (
-        <p className={`cmv2-defi-compat ${compatOk ? "is-ok" : "is-warn"}`} role="status">
+        <AvisoModulo tone={compatOk ? "success" : "warn"} role="status" compact>
           {compatOk
-            ? <CheckCircle2 size={14} aria-hidden="true" />
-            : <TriangleAlert size={14} aria-hidden="true" />}
-          <span>
-            {compatOk
-              ? `Compatible · ${detectedRequired.length}/${requiredVariables.length} variables requeridas detectadas · confírmalas en la pestaña Variables`
-              : `Por revisar · ${detectedRequired.length}/${requiredVariables.length} variables requeridas detectadas · faltan: ${missingRequired
-                  .map((row) => REQUIRED_SHORT_LABEL[row.role] ?? row.label.toLowerCase())
-                  .join(", ")} — mapéalas en la pestaña Variables`}
-          </span>
-        </p>
+            ? `Compatible · ${detectedRequired.length}/${requiredVariables.length} variables requeridas detectadas · confírmalas en la pestaña Variables`
+            : `Por revisar · ${detectedRequired.length}/${requiredVariables.length} variables requeridas detectadas · faltan: ${missingRequired
+                .map((row) => REQUIRED_SHORT_LABEL[row.role] ?? row.label.toLowerCase())
+                .join(", ")} — mapéalas en la pestaña Variables`}
+        </AvisoModulo>
       )}
       {sourceMode === "seleccion_existente" ? (
         <EmptyState
