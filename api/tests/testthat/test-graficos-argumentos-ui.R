@@ -1359,6 +1359,46 @@ test_that("barras de PPT pueden mostrar porcentaje con frecuencia", {
   expect_equal(layout_agrupadas$grosor_eff, 0.68 * 5 / 8, tolerance = 1e-8)
 })
 
+test_that("barras ACNUR conservan 16 pt y asignan ancho segun sus etiquetas", {
+  make_plot <- function(labels) {
+    graficar_barras_agrupadas(
+      data = data.frame(
+        categoria = labels,
+        N = rep(100, length(labels)),
+        pct = seq(0.20, 0.20 + 0.05 * (length(labels) - 1L), by = 0.05),
+        stringsAsFactors = FALSE
+      ),
+      var_categoria = "categoria",
+      var_n = "N",
+      cols_porcentaje = "pct",
+      etiquetas_series = c(pct = "Porcentaje"),
+      mostrar_valores = TRUE,
+      usar_canvas = TRUE,
+      preservar_tamanos_texto = TRUE,
+      canvas_w_adaptativo = TRUE,
+      size_ejes = 16,
+      size_texto_barras = 16 / (72.27 / 25.4),
+      ancho_max_eje_y = 38,
+      ancho = 12
+    )
+  }
+
+  short <- attr(make_plot(c("Sí", "No", "Otro")), "pulso_barras_agrupadas_layout")
+  long <- attr(make_plot(c(
+    "No recibió información antes de acercarse al servicio",
+    "Recibió información por personal de la organización",
+    "Recibió información por familiares o amistades"
+  )), "pulso_barras_agrupadas_layout")
+
+  expect_equal(short$size_ejes_eff, 16)
+  expect_equal(long$size_ejes_eff, 16)
+  expect_equal(short$size_texto_barras_eff * (72.27 / 25.4), 16, tolerance = 0.05)
+  expect_equal(long$size_texto_barras_eff * (72.27 / 25.4), 16, tolerance = 0.05)
+  expect_gt(long$canvas_w_etiquetas_eff, short$canvas_w_etiquetas_eff)
+  expect_gte(short$canvas_w_bars_eff, 0.50)
+  expect_gte(long$canvas_w_bars_eff, 0.50)
+})
+
 test_that("pie puede mostrar frecuencia junto al porcentaje", {
   p <- graficar_pie(
     data = data.frame(

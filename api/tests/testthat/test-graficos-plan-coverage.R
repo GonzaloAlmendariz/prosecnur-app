@@ -38,6 +38,64 @@ test_that("inventario de graficos prioriza recodificadas e integra campos other"
   expect_true(isTRUE(by_name$p19$section_reliable))
 })
 
+test_that("inventario reconoce una recodificada multiple almacenada solo en dummies", {
+  inst <- list(
+    survey = data.frame(
+      type = c("select_multiple original", "select_multiple recod"),
+      type_base = c("select_multiple", "select_multiple"),
+      name = c("D1_information", "D1_information_recod"),
+      label = c("Información recibida", "Información recibida recodificada"),
+      list_name = c("original", "recod"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("original", "recod", "recod"),
+      name = c("1", "1", "2"),
+      label = c("Original", "Categoría 1", "Categoría 2"),
+      stringsAsFactors = FALSE
+    )
+  )
+  data <- data.frame(
+    D1_information = c("1", "", "1"),
+    d1_information_recod.1 = c(1, 0, 0),
+    d1_information_recod.2 = c(0, 1, 0),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  aligned <- .graficos_align_recoded_dummy_names(data, inst)
+  expect_true(all(c("D1_information_recod.1", "D1_information_recod.2") %in% names(aligned)))
+  vars <- .graficos_extract_vars_from_inst(inst, data = aligned, source_kind = "kobo")
+  by_name <- stats::setNames(vars, vapply(vars, `[[`, character(1), "name"))
+
+  expect_equal(by_name$D1_information_recod$n_non_empty, 2L)
+  expect_true(isTRUE(by_name$D1_information_recod$is_preferred))
+  expect_false(isTRUE(by_name$D1_information$is_preferred))
+  expect_equal(by_name$D1_information$covered_by, "D1_information_recod")
+})
+
+test_that("actividad territorial distingue planificacion, recorrido y efectividad", {
+  progress <- data.frame(
+    id_manzana = c("A", "B", "C"),
+    ubigeo = rep("150133", 3),
+    zona = c("001", "002", "003"),
+    validas = c(0, 0, 1),
+    revision = c(0, 0, 0),
+    no_defendibles = c(0, 1, 0),
+    avance_pct = c(0, 0, 25),
+    stringsAsFactors = FALSE
+  )
+
+  expect_equal(.graficos_fieldwork_activity_mask(progress, "planned"), c(TRUE, TRUE, TRUE))
+  expect_equal(.graficos_fieldwork_activity_mask(progress, "visited"), c(FALSE, TRUE, TRUE))
+  expect_equal(.graficos_fieldwork_activity_mask(progress, "effective"), c(FALSE, FALSE, TRUE))
+
+  sets <- .graficos_zone_sets(list(block_progress = progress))
+  expect_setequal(sets$planned, paste("150133", progress$zona, sep = "::"))
+  expect_setequal(sets$visited, paste("150133", progress$zona[2:3], sep = "::"))
+  expect_identical(sets$effective, "150133::003")
+})
+
 test_that("cobertura extrae variables desde graficadores y bloques", {
   plan <- list(slides = list(
     list(
@@ -284,6 +342,25 @@ test_that("cobertura extrae variables desde graficadores y bloques", {
   sid
 }
 
+test_that("cobertura territorial usa block_progress cuando route_blocks esta vacio", {
+  reports <- list(
+    route_blocks = list(),
+    response_audit = list(),
+    block_progress = data.frame(
+      ubigeo = c("150132", "150132"),
+      zona = c("00100", "00200"),
+      validas = c(8, 0),
+      avance_pct = c(100, 0),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  sets <- .graficos_zone_sets(reports)
+
+  expect_setequal(sets$route, c("150132::00100", "150132::00200"))
+  expect_equal(sets$effective, "150132::00100")
+})
+
 .graficos_var_cruce_blocks <- function(plan) {
   grafs <- .graficos_plan_graph_specs(plan)
   out <- list()
@@ -319,6 +396,7 @@ test_that("plan sugerido de acreditacion multibase agrega comparativos por actor
   )
   expect_false(any(c("estudiantes$p_incompatible", "docentes$p_incompatible") %in% compare_refs))
   expect_equal(length(suggested$coverage$sources), 3L)
+  expect_null(suggested$report_inputs)
 })
 
 test_that("plan sugerido permite desactivar comparativos multi-actor", {
@@ -369,12 +447,174 @@ test_that("perfil ACNUR/Kobo agrega variables virtuales territoriales sin expone
 
   expect_true("__koica_group" %in% names(data))
   expect_true("__district" %in% names(data))
+  expect_true("__territory_pair" %in% names(data))
+  expect_true("__age_group" %in% names(data))
   expect_equal(
     as.character(data$`__koica_group`[1:3]),
-    c("Intervencion territorial", "Comparacion territorial", "Comparacion territorial")
+    c("Intervención territorial", "Comparación territorial", "Comparación territorial")
+  )
+  expect_equal(
+    as.character(data$`__territory_pair`[1:3]),
+    c("Lima Este", "Lima Este", "Lima Norte")
   )
   expect_false("__koica_group" %in% vapply(vars, `[[`, character(1), "name"))
   expect_false("__district" %in% vapply(vars, `[[`, character(1), "name"))
+  expect_false("__territory_pair" %in% vapply(vars, `[[`, character(1), "name"))
+  expect_false("__age_group" %in% vapply(vars, `[[`, character(1), "name"))
+})
+
+test_that("perfil territorial agrega sexo y edad sin repetir la pregunta de sexo", {
+  sid <- .graficos_acnur_test_session()
+  on.exit(session_delete(sid), add = TRUE)
+  state <- session_get(sid)
+  state$rp_inst$survey <- rbind(
+    state$rp_inst$survey,
+    data.frame(
+      type = c("select_one sex_list", "calculate"),
+      name = c("E2_sex", "E1_age_calc"),
+      label = c("¿Cuál es su sexo?", "Rango etario"),
+      group_path = c("Datos del hogar", "Datos del hogar"),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  )
+  state$rp_inst$choices <- rbind(
+    state$rp_inst$choices,
+    data.frame(
+      list_name = rep("sex_list", 3L),
+      name = c("1", "2", "3"),
+      label = c("Hombre", "Mujer", "Otro"),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  )
+  state$rp_data$E2_sex <- c("1", "2", "1", "2")
+  state$rp_data$E1_age_calc <- c("18 a 29 años", "30 a 44 años", "45 a 59 años", "60 años o más")
+  .session_env[[sid]] <- state
+
+  suggested <- .graficos_suggested_plan(
+    sid,
+    config = list(
+      profile_id = "acnur_kobo_cruncher_plus",
+      acnur_mode = "territorial",
+      include_coverage_maps = FALSE,
+      comparison_mode = "paired_district"
+    )
+  )
+  profile <- Filter(function(slide) {
+    identical(.graficos_scalar_chr(slide$tipo, ""), "p_slide_2_graficos") &&
+      identical(.graficos_scalar_chr((slide$payload %||% list())$titulo, ""), "Perfil de las personas encuestadas")
+  }, suggested$plan$slides %||% list())
+  specs <- .graficos_plan_graph_specs(suggested$plan)
+  sex_specs <- Filter(function(graf) {
+    identical(.graficos_scalar_chr((graf$args %||% list())$var, ""), "E2_sex")
+  }, specs)
+
+  expect_length(profile, 1L)
+  expect_equal(.graficos_scalar_chr(profile[[1L]]$payload$izquierda$graficador, ""), "p_pie")
+  expect_equal(.graficos_scalar_chr(profile[[1L]]$payload$derecha$graficador, ""), "p_barras_agrupadas")
+  expect_equal(.graficos_scalar_chr(profile[[1L]]$payload$derecha$args$var, ""), "__age_group")
+  expect_equal(.graficos_scalar_chr(profile[[1L]]$payload$derecha$args$cruces, ""), "__territory_pair")
+  expect_equal(
+    profile[[1L]]$payload$derecha$args$overrides$orden_categorias_manual,
+    c("18 a 29 años", "30 a 44 años", "45 a 59 años", "60 años o más")
+  )
+  expect_equal(.graficos_scalar_chr(profile[[1L]]$payload$derecha$args$overrides$leyenda_posicion, ""), "abajo")
+  expect_match(.graficos_scalar_chr(profile[[1L]]$payload$base, ""), "^Base: 4 personas$")
+  expect_match(
+    .graficos_scalar_chr(profile[[1L]]$payload$pie, ""),
+    "Hombre 2.*Mujer 2"
+  )
+  expect_equal(.graficos_scalar_chr(profile[[1L]]$payload$izquierda$args$overrides$nota_pie, "x"), "")
+  expect_equal(.graficos_scalar_chr(profile[[1L]]$payload$izquierda$args$overrides$leyenda_posicion, ""), "derecha")
+  expect_length(sex_specs, 1L)
+  expect_equal(.graficos_scalar_chr(sex_specs[[1L]]$graficador, ""), "p_pie")
+})
+
+test_that("catalogo ACNUR define tres pares territoriales sin agregarlos", {
+  pairs <- .graficos_acnur_koica_pairs()
+
+  expect_equal(vapply(pairs, `[[`, character(1), "label"), c("Lima Norte", "Lima Este", "Lima Sur"))
+  expect_equal(vapply(pairs, function(x) x$intervention$distrito, character(1)), c(
+    "San Martín de Porres", "San Juan de Lurigancho", "Chorrillos"
+  ))
+  expect_equal(vapply(pairs, function(x) x$comparison$distrito, character(1)), c(
+    "Los Olivos", "Ate", "San Juan de Miraflores"
+  ))
+  expect_true(all(vapply(pairs, function(x) length(x$districts) == 2L, logical(1))))
+})
+
+test_that("plan ACNUR pagina categorias extensas sin perder opciones", {
+  choices <- lapply(seq_len(13), function(i) {
+    list(name = paste0("c", i), label = paste("Categoria", i))
+  })
+
+  pages <- .graficos_acnur_choice_pages(list(choices = choices), max_per_slide = 8L)
+
+  expect_length(pages, 2L)
+  expect_equal(vapply(pages, `[[`, integer(1), "page"), 1:2)
+  expect_equal(vapply(pages, `[[`, integer(1), "pages"), c(2L, 2L))
+  expect_true(all(c("c9", "Categoria 9", "c13", "Categoria 13") %in% pages[[1]]$exclude_options))
+  expect_true(all(c("c1", "Categoria 1", "c8", "Categoria 8") %in% pages[[2]]$exclude_options))
+  expect_equal(.graficos_acnur_page_subtitle("Lima Norte", pages[[1]]), "Lima Norte · 1 de 2")
+  expect_equal(.graficos_acnur_page_subtitle("Lima Norte", pages[[2]]), "Lima Norte · 2 de 2")
+})
+
+test_that("paginacion ACNUR trata Otro y Otros como la misma categoria", {
+  choices <- lapply(seq_len(13), function(i) {
+    if (i == 13L) return(list(name = "96", label = "Otro"))
+    list(name = paste0("c", i), label = paste("Categoria", i))
+  })
+
+  pages <- .graficos_acnur_choice_pages(list(choices = choices), max_per_slide = 8L)
+
+  expect_true(all(c("Otro", "Otros", "Otra", "Otras", "Other", "Others") %in% pages[[1]]$exclude_options))
+  expect_false(any(c("Otro", "Otros", "Otra", "Otras", "Other", "Others") %in% pages[[2]]$exclude_options))
+})
+
+test_that("plan ACNUR compara cada pregunta por tres pares de dos distritos", {
+  sid <- .graficos_acnur_test_session()
+  on.exit(session_delete(sid), add = TRUE)
+
+  suggested <- .graficos_suggested_plan(
+    sid,
+    config = list(
+      profile_id = "acnur_kobo_cruncher_plus",
+      acnur_mode = "territorial",
+      include_coverage_maps = FALSE,
+      comparison_mode = "paired_district"
+    )
+  )
+  specs <- .graficos_plan_graph_specs(suggested$plan)
+  paired <- Filter(function(graf) {
+    args <- graf$args %||% list()
+    filters <- args$filtros %||% list()
+    identical(args$cruces %||% "", "__district") && length(filters$`__district` %||% character(0)) == 2L
+  }, specs)
+
+  expect_length(paired, 6L)
+  filters <- lapply(paired, function(graf) unname((graf$args$filtros %||% list())$`__district`))
+  expected <- lapply(.graficos_acnur_koica_pairs(), `[[`, "districts")
+  expect_equal(filters[1:3], expected)
+  expect_equal(filters[4:6], expected)
+  expect_equal(
+    vapply(paired[1:3], function(graf) (graf$args$overrides %||% list())$subtitulo %||% "", character(1)),
+    c("Lima Norte", "Lima Este", "Lima Sur")
+  )
+  expect_true(all(vapply(paired, function(graf) {
+    overrides <- graf$args$overrides %||% list()
+    colors <- overrides$colores_series %||% character(0)
+    identical(unname(colors), c("#0072BC", "#00A98F")) &&
+      isTRUE(graf$args$mostrar_ceros) &&
+      identical(overrides$minimo_cero_visual %||% 0, 0.005) &&
+      identical(overrides$color_fondo %||% "", "#FFFFFF") &&
+      identical(overrides$unidad_base %||% "", "personas") &&
+      isTRUE(overrides$base_por_grupo) &&
+      isTRUE(overrides$invertir_series) &&
+      isTRUE(overrides$invertir_leyenda) &&
+      identical(overrides$legend_espaciado %||% 0, 5)
+  }, logical(1))))
+  expect_false("__koica_group" %in% .graficos_collect_plan_refs(suggested$plan))
 })
 
 test_that("plan ACNUR/Kobo coloca mapas al inicio y omite variables no graficables", {
@@ -388,7 +628,7 @@ test_that("plan ACNUR/Kobo coloca mapas al inicio y omite variables no graficabl
       profile_id = "acnur_kobo_cruncher_plus",
       acnur_mode = "territorial",
       include_coverage_maps = TRUE,
-      comparison_mode = "koica_group"
+      comparison_mode = "paired_district"
     )
   )
   slides <- suggested$plan$slides
@@ -403,17 +643,33 @@ test_that("plan ACNUR/Kobo coloca mapas al inicio y omite variables no graficabl
     graf <- payload$grafico %||% list()
     args <- graf$args %||% list()
     contexto <- args$contexto %||% list()
-    list(payload$titulo, payload$texto, args$titulo, contexto$titulo)
+    list(payload$titulo, payload$texto, payload$filas, args$titulo, contexto$titulo,
+         contexto$district_labels)
   }), use.names = FALSE), collapse = " ")
 
-  expect_equal(map_idx, 4:10)
+  expect_equal(map_idx, 4L)
+  map_args <- ((slides[[map_idx]]$payload %||% list())$grafico %||% list())$args %||% list()
+  map_payload <- slides[[map_idx]]$payload %||% list()
+  expect_identical((map_args$contexto %||% list())$titulo %||% "", "")
+  expect_identical((map_args$contexto %||% list())$subtitle %||% "", "")
+  expect_false(isTRUE((map_args$contexto %||% list())$mostrar_titulo %||% TRUE))
+  expect_identical(((map_args$overrides %||% list())$titulo %||% ""), "")
+  expect_equal((map_payload$meta %||% list())$plot_extra_height_cm, 0)
+  map_plot <- graficar_mapa_cobertura_territorial(contexto = map_args$contexto %||% list())
+  expect_identical(attr(map_plot, "pulso_mapa_layout"), "overview_zoom_pair_key")
+  expect_false(isTRUE(attr(map_plot, "pulso_mapa_has_inset")))
+  expect_identical(attr(map_plot, "pulso_mapa_pair_count"), 3L)
+  expect_identical(attr(map_plot, "pulso_mapa_district_count"), 6L)
+  expect_length((map_args$contexto %||% list())$study_districts %||% list(), 6L)
   expect_true(length(section_idx) > 0L)
   expect_true(max(map_idx) < min(section_idx))
-  expect_true("__koica_group" %in% refs)
+  expect_true("__district" %in% refs)
+  expect_false("__koica_group" %in% refs)
   expect_false(any(c("intro_note", "calc_score", "gps_raw", "email") %in% refs))
   expect_false(grepl("KOICA", visible_text, ignore.case = TRUE))
   expect_match(visible_text, "ACNUR territorial")
-  expect_match(visible_text, "Comparacion territorial")
+  expect_match(visible_text, "Lima Norte")
+  expect_match(visible_text, "San Martín de Porres.*Los Olivos")
 })
 
 test_that("plan ACNUR/Kobo omite mapas territoriales si faltan Hojas de Ruta o Monitoreo", {
@@ -426,7 +682,7 @@ test_that("plan ACNUR/Kobo omite mapas territoriales si faltan Hojas de Ruta o M
       profile_id = "acnur_kobo_cruncher_plus",
       acnur_mode = "territorial",
       include_coverage_maps = TRUE,
-      comparison_mode = "koica_group"
+      comparison_mode = "paired_district"
     )
   )
   map_count <- sum(vapply(suggested$plan$slides, function(slide) {
@@ -461,4 +717,12 @@ test_that("plan ACNUR/Kobo respeta opciones explicitas de mapas y comparativo", 
   expect_equal(map_count, 0L)
   expect_false("__koica_group" %in% refs)
   expect_false("__district" %in% refs)
+  expect_true(is.list(suggested$report_inputs))
+  expect_false(suggested$report_inputs$map_included)
+  expect_equal(suggested$report_inputs$comparison_mode, "none")
+  expect_setequal(
+    vapply(suggested$report_inputs$derived_variables, `[[`, character(1), "name"),
+    c("__district", "__territory_pair")
+  )
+  expect_identical(suggested$report_inputs$profile, list(available = FALSE))
 })
