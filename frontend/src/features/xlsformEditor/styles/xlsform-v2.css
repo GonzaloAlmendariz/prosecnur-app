@@ -112,6 +112,29 @@
   }
 }
 
+.pulso-xlsform-frame .pulso-xlsform-toolbar-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.pulso-xlsform-frame .pulso-xlsform-toolbar-check input {
+  accent-color: var(--pulso-primary);
+  cursor: pointer;
+}
+
+.pulso-xlsform-frame .pulso-xlsform-toolbar-check:has(input:disabled) {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .pulso-xlsform-frame .pulso-xlsform-history-button {
   transition:
     color var(--motion-dur-fast) ease,

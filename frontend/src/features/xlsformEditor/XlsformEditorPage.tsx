@@ -173,6 +173,7 @@ import type {
   LogicVariable,
 } from "./logic";
 import { LogicCanvas } from "./canvas-graph/LogicCanvas";
+import { ChoiceFiltersView } from "./choiceFilters/ChoiceFiltersView";
 import { FormSimulator } from "./shell/FormSimulator";
 import { FormSummaryView } from "./shell/FormSummaryView";
 import "./styles/xlsform-v2.css";
@@ -578,6 +579,9 @@ export default function XlsformEditorPage() {
   /** Si está abierto el overlay del mapa de lógica (canvas Obsidian-style).
    *  Se accede desde el botón "Mapa de lógica" del header del constructor. */
 	  const [logicCanvasOpen, setLogicCanvasOpen] = useState(false);
+	  /** Overlay de «Filtros de opciones»: vista hermana del mapa de lógica que
+	   *  explica en lenguaje humano qué respuesta previa habilita qué opción. */
+	  const [choiceFiltersOpen, setChoiceFiltersOpen] = useState(false);
 	  const [smLogicDialogOpen, setSmLogicDialogOpen] = useState(false);
 	  const [smLogicRules, setSmLogicRules] = useState<ConfirmedRule[]>([]);
 	  const [smVisualLogicRules, setSmVisualLogicRules] = useState<SurveyMonkeyVisualLogicRule[]>([]);
@@ -602,6 +606,13 @@ export default function XlsformEditorPage() {
   const [matrizPulsoSubmitting, setMatrizPulsoSubmitting] = useState(false);
   /** Abre/cierra el diálogo "Configurar PDF" que reemplaza al viejo popover. */
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  /**
+   * Al exportar el .xlsx, por defecto NO se incluyen las columnas propias de
+   * la plataforma (namespace `paper_*` + hojas `paper`/`diagnostico`): sirven
+   * para el mapeo a PDF/Word dentro de la app, no para desplegar en Kobo/ODK.
+   * Este switch permite conservarlas cuando el usuario sí las necesita.
+   */
+  const [includeAppColumns, setIncludeAppColumns] = useState(false);
   /** Hallazgos del validador empírico (devueltos por import-with-logic).
    *  Se renderizan en panel UI dedicado, NO se exportan al .xlsx. */
   const [hallazgos, setHallazgos] = useState<Hallazgo[]>([]);
@@ -1150,6 +1161,7 @@ export default function XlsformEditorPage() {
       setEditorMode("builder");
       setBuilderWorkspaceMode("focus");
       setLogicCanvasOpen(false);
+      setChoiceFiltersOpen(false);
       setQuestionnaireViewOpen(false);
       setSmLogicRules(loadedWorkbook.surveyMonkeyLogic?.advanced_rules ?? loadedWorkbook.surveyMonkeyLogic?.rules ?? []);
       setSmVisualLogicRules(loadedWorkbook.surveyMonkeyLogic?.visual_rules ?? []);
@@ -1649,7 +1661,12 @@ export default function XlsformEditorPage() {
     setBusy("Exportando XLSForm…");
     try {
       const exportableWorkbook = { ...workbook, diagnostico: null };
-      const out = await apiXlsformEditorExport(exportableWorkbook, cleanFilename(source?.original_name), source);
+      const out = await apiXlsformEditorExport(
+        exportableWorkbook,
+        cleanFilename(source?.original_name),
+        source,
+        { include_app_columns: includeAppColumns },
+      );
       setArtifact({ file_id: out.file_id, original_name: out.original_name, extension: "xlsx" });
       // Tras un export exitoso el workbook está "guardado" (en disco).
       // Forzamos el flush del autosave también para sellar el snapshot
@@ -2781,6 +2798,7 @@ export default function XlsformEditorPage() {
             <MoreViewsMenu
               catalogsCount={catalogs.length}
               onOpenLogicCanvas={() => setLogicCanvasOpen(true)}
+              onOpenChoiceFilters={() => setChoiceFiltersOpen(true)}
               onOpenSurveyMonkeyLogic={() => setSmLogicDialogOpen(true)}
               onOpenQuestionnaireView={() => setQuestionnaireViewOpen(true)}
               onOpenCatalogsLens={() => setCatalogsLensOpen(true)}
@@ -2826,6 +2844,18 @@ export default function XlsformEditorPage() {
             >
               <Cloud size={14} /> SurveyMonkey
             </button>
+            <label
+              className="pulso-xlsform-toolbar-check"
+              title="Incluye las columnas paper_* y las hojas de la plataforma (mapeo a PDF/Word). Desmárcalo para un XLSForm ODK/Kobo limpio."
+            >
+              <input
+                type="checkbox"
+                checked={includeAppColumns}
+                onChange={(e) => setIncludeAppColumns(e.target.checked)}
+                disabled={!!busy}
+              />
+              Columnas de plataforma
+            </label>
             <button type="button" className="pulso-primary pulso-xlsform-toolbar-button" onClick={onExport} disabled={!!busy}>
               <Download size={14} /> Exportar .xlsx
             </button>
@@ -3191,6 +3221,19 @@ export default function XlsformEditorPage() {
               : "Se condicionó la visibilidad. Refínala en el inspector si quieres precisar el valor.",
           });
 	        }}
+	      />
+
+	      {/* Filtros de opciones — overlay hermano del mapa de lógica.
+	          Solo lectura: explica qué respuesta previa habilita qué opción,
+	          en lenguaje humano. Lee las filas CRUDAS de la hoja choices
+	          (con las columnas filter_*) directamente del workbook. */}
+	      <ChoiceFiltersView
+	        open={choiceFiltersOpen}
+	        onClose={() => setChoiceFiltersOpen(false)}
+	        structure={structure}
+	        choicesColumns={workbook?.choices.columns ?? []}
+	        choicesRows={workbook?.choices.rows ?? []}
+	        onSelectRow={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
 	      />
 
 	      {smLogicDialogOpen && workbook ? (

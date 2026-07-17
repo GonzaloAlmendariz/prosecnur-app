@@ -20,7 +20,7 @@
 // =============================================================================
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, X } from "lucide-react";
+import { Check, X } from "../../../vendor/lucide-react";
 import { TechTerm } from "../helpers/TechTerm";
 import type { CatalogContext, GraphNode } from "./buildGraph";
 

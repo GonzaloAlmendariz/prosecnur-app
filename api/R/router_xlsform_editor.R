@@ -17,6 +17,22 @@
   )
 }
 
+# Columnas propias de la plataforma (capa de mapeo a PDF/Word/matriz): el
+# namespace `paper_*`. Son válidas y útiles DENTRO de la app, pero no forman
+# parte del estándar XLSForm/ODK; al exportar un instrumento "limpio" para
+# desplegar en Kobo/ODK se omiten salvo que el usuario pida incluirlas.
+.xlsform_editor_app_only_cols <- function(cols) {
+  cols <- as.character(cols %||% character(0))
+  grepl("^paper_", cols, ignore.case = TRUE)
+}
+
+.xlsform_editor_strip_app_columns <- function(df) {
+  if (is.null(df) || !ncol(df)) return(df)
+  drop <- .xlsform_editor_app_only_cols(names(df))
+  if (!any(drop)) return(df)
+  df[, !drop, drop = FALSE]
+}
+
 .xlsform_editor_empty_df <- function(columns = character(0)) {
   cols <- as.character(columns %||% character(0))
   out <- as.data.frame(
@@ -1366,15 +1382,27 @@ mount_xlsform_editor <- function(pr) {
         filename <- paste0(filename, ".xlsx")
       }
 
+      # Por defecto exportamos un XLSForm ODK/Kobo limpio: sin la hoja `paper`
+      # ni las columnas `paper_*` propias de la plataforma. El usuario puede
+      # activar el switch para conservar la capa de mapeo a PDF/Word.
+      include_app_columns <- isTRUE(
+        parsed$options$include_app_columns %||% parsed$include_app_columns %||% FALSE
+      )
+
       survey <- .xlsform_editor_payload_to_df(workbook$survey, "survey")
       choices <- .xlsform_editor_payload_to_df(workbook$choices, "choices")
       settings <- .xlsform_editor_payload_to_df(workbook$settings, "settings")
-      paper <- if (!is.null(workbook$paper)) {
+      paper <- if (include_app_columns && !is.null(workbook$paper)) {
         .xlsform_editor_payload_to_df(workbook$paper, "paper")
       } else NULL
-      diagnostico <- if (!is.null(workbook$diagnostico)) {
+      diagnostico <- if (include_app_columns && !is.null(workbook$diagnostico)) {
         .xlsform_editor_payload_to_df(workbook$diagnostico, "diagnostico")
       } else NULL
+
+      if (!include_app_columns) {
+        survey <- .xlsform_editor_strip_app_columns(survey)
+        choices <- .xlsform_editor_strip_app_columns(choices)
+      }
 
       wb <- openxlsx::createWorkbook()
       openxlsx::addWorksheet(wb, "survey")

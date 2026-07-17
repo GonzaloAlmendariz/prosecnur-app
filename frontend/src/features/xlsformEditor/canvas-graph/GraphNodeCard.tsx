@@ -18,7 +18,7 @@
 //      borde contenedor.
 // =============================================================================
 
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight } from "../../../vendor/lucide-react";
 import { IconConditionalLogic } from "../../../lib/icons";
 import type { LaidOutNode } from "./autoLayout";
 import { iconForType } from "../helpers/icons";

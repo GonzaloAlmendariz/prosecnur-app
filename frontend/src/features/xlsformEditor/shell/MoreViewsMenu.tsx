@@ -12,12 +12,21 @@
 // =============================================================================
 
 import { useEffect, useRef, useState } from "react";
-import { CirclePlay, Gauge, Layers3, ListChecks, MoreHorizontal, type LucideIcon } from "lucide-react";
+import {
+  CirclePlay,
+  Gauge,
+  Layers3,
+  ListChecks,
+  MoreHorizontal,
+  SlidersHorizontal,
+  type LucideIcon,
+} from "../../../vendor/lucide-react";
 import { IconConditionalLogic } from "../../../lib/icons";
 
 export type MoreViewsMenuProps = {
   catalogsCount: number;
   onOpenLogicCanvas: () => void;
+  onOpenChoiceFilters: () => void;
   onOpenSurveyMonkeyLogic: () => void;
   onOpenQuestionnaireView: () => void;
   onOpenCatalogsLens: () => void;
@@ -37,6 +46,7 @@ type MenuItem = {
 export function MoreViewsMenu({
   catalogsCount,
   onOpenLogicCanvas,
+  onOpenChoiceFilters,
   onOpenSurveyMonkeyLogic,
   onOpenQuestionnaireView,
   onOpenCatalogsLens,
@@ -112,6 +122,16 @@ export function MoreViewsMenu({
       icon: IconConditionalLogic,
       onClick: () => {
         onOpenLogicCanvas();
+        setOpen(false);
+      },
+    },
+    {
+      key: "choice-filters",
+      label: "Filtros de opciones",
+      description: "Qué respuesta previa habilita qué opción, explicado sin fórmulas.",
+      icon: SlidersHorizontal,
+      onClick: () => {
+        onOpenChoiceFilters();
         setOpen(false);
       },
     },
