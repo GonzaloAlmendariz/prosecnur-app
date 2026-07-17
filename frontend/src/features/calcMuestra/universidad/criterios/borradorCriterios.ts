@@ -4,7 +4,7 @@ import type {
 } from "../../../../api/client";
 import { ELEGIBLES_POR_AULA_ID } from "../../dominio";
 
-export type TipoBorradorCriterio = CriterioVariable["kind"] | "minEligible";
+export type TipoBorradorCriterio = CriterioVariable["kind"] | "minEligible" | "manualExcluded";
 
 /**
  * Copia solamente el fragmento que pertenece a una variable. Así una
@@ -26,6 +26,15 @@ export function copiarVariableCriterio(
               ? { ...fuente.minEligible.byFaculty }
               : undefined,
           }
+        : undefined,
+    };
+  }
+
+  if (tipo === "manualExcluded") {
+    return {
+      ...destino,
+      manualExcludedClassrooms: fuente.manualExcludedClassrooms
+        ? [...fuente.manualExcludedClassrooms]
         : undefined,
     };
   }

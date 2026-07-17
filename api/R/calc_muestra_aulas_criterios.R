@@ -82,6 +82,7 @@
   if (is.null(sel) || !is.list(sel)) return(FALSE)
   length(sel$byVariable %||% list()) > 0L ||
     length(sel$courseLevelRanges %||% list()) > 0L ||
+    length(sel$manualExcludedClassrooms %||% character(0)) > 0L ||
     !is.null(sel$minEligible)
 }
 
@@ -233,7 +234,18 @@
     ar <- .cm_aulas_num(me$attendance_rate %||% me$tasa_asistencia, NA_real_)
     if (is.finite(ar) && ar > 0 && ar <= 1) min_elig$attendance_rate <- ar
   }
-  out <- list(byVariable = by_out, courseLevelRanges = course_ranges, minEligible = min_elig)
+  # Exclusión manual de cursos-horario (máxima granularidad, §12): lista de
+  # classroom_id apagados a mano. Se guarda como text_key para casar con el
+  # aula_frame en la evaluación. Nunca incluye, solo excluye.
+  excl_in <- x$manualExcludedClassrooms %||% x$aulas_excluidas_manual %||% character(0)
+  excl <- unique(.cm_aulas_text_key(.cm_aulas_chr_vec(excl_in)))
+  excl <- excl[nzchar(excl)]
+  out <- list(
+    byVariable = by_out,
+    courseLevelRanges = course_ranges,
+    minEligible = min_elig,
+    manualExcludedClassrooms = excl
+  )
   if (!.cm_criterios_seleccion_activa(out)) return(list())
   out
 }
@@ -1325,6 +1337,13 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     "min_eligible",
     .cm_criterios_label_min_eligible(min_elig)
   )
+  # Exclusión manual por curso-horario (el criterio más granular): apaga aulas
+  # puntuales por classroom_id tras todos los demás filtros. Solo excluye.
+  excl <- seleccion$manualExcludedClassrooms %||% character(0)
+  if (length(excl)) {
+    cid_key <- .cm_aulas_text_key(aula_frame$classroom_id %||% rep("", n))
+    add("manual_excluded", !(cid_key %in% excl), "manual_excluded", "Selección manual de cursos-horario")
+  }
   reason <- if (length(reason_cols)) .cm_criterios_concat_razones(reason_cols) else rep("", n)
   list(ok = ok, reason = reason, valores = vals, pasos = pasos)
 }
