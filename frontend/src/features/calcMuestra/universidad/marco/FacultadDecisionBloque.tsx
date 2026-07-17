@@ -25,14 +25,7 @@ import { rangosFacultad, seleccionVariable } from "../../dominio";
 import { fmtDec, fmtInt } from "../../sharedCore";
 import { FacultadCategoriaToggles } from "../criterios/FacultadCategoriaToggles";
 import { Switch } from "../criterios/Switch";
-import { UNIVERSITY_SESSION_TYPE_SUGERENCIAS } from "../shared/constants";
-import {
-  aplicarSugerencia,
-  filasPorFacultad,
-  sugerenciaAplicada,
-  sugerenciaParaFacultad,
-  SESSION_TYPE_VARIABLE_ID,
-} from "../criterios/tipoSesionModel";
+import { filasPorFacultad, SESSION_TYPE_VARIABLE_ID } from "../criterios/tipoSesionModel";
 import { minimoFacultad, minimoSugerido, presentesEsperados } from "../criterios/minElegiblesModel";
 import { FacultadRadiografiaCard } from "./FacultadRadiografiaCard";
 import { resumenDecisionFacultad, type FacultadBloque } from "./facultadDecisionModel";
@@ -88,18 +81,10 @@ function CriterioFacultadCard({
     exploracion,
   })[0];
   const propia = fila?.decision === "propia";
-  // Colapsado por defecto cuando hereda el global (el caso común): la columna
-  // queda escaneable y solo se abre lo que se está decidiendo. Una decisión
-  // propia arranca abierta para que el override quede a la vista.
+  // Colapsado por defecto cuando no hay decisión propia (el caso común): la
+  // columna queda escaneable y solo se abre lo que se está decidiendo. Una
+  // decisión propia arranca abierta para que el override quede a la vista.
   const [abierto, setAbierto] = useState(propia);
-  // Sugerencia por facultad (reunión §4 + verificación empírica): solo para el
-  // tipo de sesión, matcheando por nombre de facultad. NUNCA auto-aplicada — el
-  // académico decide con el botón «Usar» (regla de control explícito).
-  const sug =
-    variable.id === SESSION_TYPE_VARIABLE_ID
-      ? sugerenciaParaFacultad(variable, facLabel, UNIVERSITY_SESSION_TYPE_SUGERENCIAS)
-      : null;
-  const sugAlDia = sug ? sugerenciaAplicada(variable, sel, excKey, sug) : false;
   // Criterios con radiografía propia arriba (tabla de tipos o barra apilada de
   // condición): el toggle no repite la mini-barra de proporción —evita el %
   // doble e inconsistente entre la radiografía y el toggle— y un rótulo separa
@@ -131,30 +116,9 @@ function CriterioFacultadCard({
           <strong>{variable.label}</strong>
         </span>
         <span className="cmv2-chfp-crit-state" data-decision={fila.decision}>
-          {propia ? "Decisión propia" : "Hereda el global"}
+          {propia ? "Decisión propia" : "Sin restricción"}
         </span>
       </button>
-      {sug ? (
-        <div className="cmv2-chfp-crit-sug" role="note">
-          <Lightbulb size={13} aria-hidden="true" />
-          <span className="cmv2-chfp-crit-sug-copy" title={sug.porque}>
-            Sugerido: {sug.modo === "solo" ? "solo " : "incluir "}
-            {sug.labels.join(", ").toLocaleLowerCase("es")}
-          </span>
-          <button
-            type="button"
-            className="cmv2-crit-sug-btn"
-            disabled={sugAlDia}
-            title={sug.porque}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSel(aplicarSugerencia(variable, sel, excKey, sug));
-            }}
-          >
-            {sugAlDia ? "Al día" : "Usar"}
-          </button>
-        </div>
-      ) : null}
       {abierto ? (
         <>
           {variable.id === SESSION_TYPE_VARIABLE_ID ? (
@@ -335,7 +299,7 @@ function MinFacultadCard({
           <strong>Mínimo de elegibles por aula</strong>
         </span>
         <span className="cmv2-chfp-crit-state" data-decision={propio != null ? "propia" : "hereda"}>
-          {propio != null ? `Propio: ≥ ${fmtInt(propio)}` : `Hereda el general (≥ ${fmtInt(umbralGeneral)})`}
+          {propio != null ? `Propio: ≥ ${fmtInt(propio)}` : `Por defecto: ≥ ${fmtInt(umbralGeneral)}`}
         </span>
       </button>
       {abierto ? (
@@ -343,14 +307,19 @@ function MinFacultadCard({
           <div className="cmv2-chfp-min">
             <label className="cmv2-crit-num-field">
               <span>Mínimo propio de la facultad</span>
-              <input
-                type="number"
-                min={1}
-                value={propio ?? ""}
-                placeholder={`${fmtInt(umbralGeneral)} (general)`}
-                aria-label="Mínimo de elegibles propio de la facultad"
-                onChange={(e) => onMinimoFacultad(minKey, parseEntero(e.target.value))}
-              />
+              <span className="cmv2-chfp-min-input-row">
+                <input
+                  type="number"
+                  min={1}
+                  value={propio ?? ""}
+                  placeholder={fmtInt(umbralGeneral)}
+                  aria-label="Mínimo de elegibles propio de la facultad"
+                  onChange={(e) => onMinimoFacultad(minKey, parseEntero(e.target.value))}
+                />
+                <span className="cmv2-chfp-min-input-hint">
+                  {propio != null ? "elegibles por aula" : "usa el mínimo general"}
+                </span>
+              </span>
             </label>
             {propio != null ? (
               <button
@@ -358,7 +327,7 @@ function MinFacultadCard({
                 className="cmv2-crit-tsf-heredar"
                 onClick={() => onMinimoFacultad(minKey, null)}
               >
-                Volver a heredar el general
+                Quitar el mínimo propio
               </button>
             ) : null}
           </div>
@@ -442,7 +411,7 @@ export function FacultadDecisionBloque({
   const resumen = resumenDecisionFacultad(seleccion, variablesToggle, excKey, minKey);
   const estadoTexto =
     resumen.propias === 0
-      ? "Hereda el global"
+      ? "Sin ajustes propios"
       : `${resumen.propias} ${resumen.propias === 1 ? "criterio propio" : "criterios propios"}`;
 
   return (
