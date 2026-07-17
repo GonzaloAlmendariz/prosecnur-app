@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { Check, ChevronDown, Database, Search, X } from "lucide-react";
 import { useVariables, parseVarRef, formatVarRef } from "./useVariables";
 import { safeText } from "./safeText";
+import { getDerivedReportVariable } from "./derivedReportVariables";
 
 type Props = {
   value: string | null | undefined;
@@ -42,6 +43,7 @@ export default function VariablePicker({
 
   // Parsear el value actual a (source, name).
   const parsed = useMemo(() => parseVarRef(value), [value]);
+  const derivedVariable = useMemo(() => getDerivedReportVariable(value), [value]);
   const sourceKey = sources.map((source) => source.name).join("\u001F");
   const firstSourceName = sources[0]?.name ?? null;
   const valueSource = parsed.source && sources.some((source) => source.name === parsed.source)
@@ -92,6 +94,27 @@ export default function VariablePicker({
       <span className="pulso-gv2-variable-status is-error">
         {isSessionLost ? "Sesión no disponible" : error}
       </span>
+    );
+  }
+
+  if (derivedVariable) {
+    return (
+      <div className="pulso-gv2-variable-picker is-derived">
+        <div
+          className="pulso-gv2-variable-trigger has-value is-derived"
+          aria-label={`${derivedVariable.label}, variable derivada del informe`}
+        >
+          <span className="pulso-gv2-variable-trigger-icon" aria-hidden="true">
+            <Database size={14} />
+          </span>
+          <span className="pulso-gv2-variable-trigger-copy">
+            <strong>{derivedVariable.label}</strong>
+            <small>{derivedVariable.name}</small>
+          </span>
+          <span className="pulso-gv2-variable-trigger-source">Derivada del informe</span>
+        </div>
+        <span className="pulso-gv2-variable-derived-note">{derivedVariable.origin}</span>
+      </div>
     );
   }
 

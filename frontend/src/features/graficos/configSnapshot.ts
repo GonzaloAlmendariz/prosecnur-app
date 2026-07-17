@@ -3,6 +3,24 @@ import { normalizeGraficosConfig } from "../../api/graficosConfigNormalizer";
 import type { GraficosConfig } from "./store";
 import { usePlanStore } from "./store";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+export function buildGraficosScopeRules(
+  scopeRules: Record<string, unknown>,
+  globalVisualConfig: Record<string, unknown>,
+): Record<string, unknown> {
+  const currentGlobal = isRecord(scopeRules.global) ? scopeRules.global : {};
+  return {
+    ...scopeRules,
+    global: {
+      ...currentGlobal,
+      ...globalVisualConfig,
+    },
+  };
+}
+
 export function buildGraficosConfigFromStore(): GraficosConfig {
   const state = usePlanStore.getState();
   return normalizeGraficosConfig({
@@ -19,15 +37,12 @@ export function buildGraficosConfigFromStore(): GraficosConfig {
     inspector_tab: state.inspectorTab,
     density: state.density,
     canvas_viewport: state.canvasViewport,
-    scope_rules: {
-      ...state.scopeRules,
-      global: {
-        presets: state.presets,
-        paletas: state.paletas,
-        overrides_reusables: state.overridesReusables,
-        debug_ph: state.debugPh,
-      },
-    },
+    scope_rules: buildGraficosScopeRules(state.scopeRules, {
+      presets: state.presets,
+      paletas: state.paletas,
+      overrides_reusables: state.overridesReusables,
+      debug_ph: state.debugPh,
+    }),
   }) as GraficosConfig;
 }
 

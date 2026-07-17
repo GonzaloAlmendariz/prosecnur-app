@@ -10666,6 +10666,7 @@ export type ArgTipoInput =
   | "variables_list"
   | "string"
   | "textarea"
+  | "technical_rows"
   | "number"
   | "bool"
   | "choice"
@@ -11294,6 +11295,11 @@ export type GraficosSlideLayoutPreview = {
   placeholders: GraficosSlideLayoutPlaceholder[];
 };
 
+export type GraficosSlideLayoutPreviewOptions = {
+  profile_id?: string;
+  template_id?: string;
+};
+
 export async function apiGraficosPreviewSlide(
   slide: Slide,
   config?: unknown,
@@ -11316,9 +11322,15 @@ export async function apiGraficosPreviewRenderer() {
   );
 }
 
-export async function apiGraficosSlideLayoutPreview(tipo: string) {
+export async function apiGraficosSlideLayoutPreview(
+  tipo: string,
+  options: GraficosSlideLayoutPreviewOptions = {},
+) {
+  const params = new URLSearchParams({ tipo });
+  if (options.profile_id) params.set("profile_id", options.profile_id);
+  if (options.template_id) params.set("template_id", options.template_id);
   return handle<GraficosSlideLayoutPreview>(
-    await apiFetch(`/api/graficos/slide-layout-preview?tipo=${encodeURIComponent(tipo)}`, {
+    await apiFetch(`/api/graficos/slide-layout-preview?${params.toString()}`, {
       headers: headers(),
     })
   );
@@ -11381,9 +11393,41 @@ export type GraficosCoverageResponse = {
   warnings: string[];
 };
 
+export type GraficosReportTechnicalRow = {
+  criterio: string;
+  detalle: string;
+};
+
+export type GraficosReportDerivedVariable = {
+  name: string;
+  label: string;
+  origin: string;
+  source?: string;
+};
+
+export type GraficosReportInputs = {
+  period: string;
+  period_source: string;
+  technical_rows: GraficosReportTechnicalRow[];
+  derived_variables: GraficosReportDerivedVariable[];
+  profile: {
+    available: boolean;
+    sex_variable?: string;
+    age_variable?: string;
+  };
+  map_included: boolean;
+  comparison_mode: string;
+};
+
 export type GraficosSuggestedPlanResponse = {
   ok: true;
   plan: PlanJson;
+  profile_id?: string;
+  template_id?: string;
+  acnur_mode?: "general" | "territorial" | string;
+  report_scope?: string;
+  meta?: Record<string, unknown>;
+  report_inputs?: GraficosReportInputs;
   coverage: GraficosCoverageResponse;
   warnings: string[];
 };

@@ -16,6 +16,7 @@ import {
   inferNumberStep,
   isPartialNumberInput,
 } from "./argFieldNumberUtils";
+import { normalizeTechnicalRows, type TechnicalRow } from "./technicalRows";
 
 const DEFAULT_ARG_HINT = "Este ajuste define cómo se ve o se interpreta este bloque del gráfico en el slide.";
 
@@ -31,6 +32,7 @@ const DEFAULT_ARG_HINT = "Este ajuste define cómo se ve o se interpreta este bl
 //   - variables_list          → VarsListPicker
 //   - string                  → <input text>
 //   - textarea                → <textarea>
+//   - technical_rows          → editor de pares criterio / detalle
 //   - number                  → <input number>
 //   - bool                    → toggle
 //   - choice                  → radio pills
@@ -299,6 +301,12 @@ function FieldControl({
 }) {
   const shownValue = displayValue;
 
+  if (meta.tipo_input === "technical_rows" || (
+    meta.name === "filas" && (meta.tipo_input === "textarea" || meta.tipo_input === "string")
+  )) {
+    return <TechnicalRowsField value={shownValue} onChange={onChange} />;
+  }
+
   switch (meta.tipo_input) {
     case "variable":
       return <VariablePicker value={shownValue as string} onChange={(v) => onChange(v ?? "")} />;
@@ -404,6 +412,76 @@ const inputStyle: React.CSSProperties = {
   background: "white",
   outline: "none",
 };
+
+function TechnicalRowsField({
+  value,
+  onChange,
+}: {
+  value: unknown;
+  onChange: (value: TechnicalRow[]) => void;
+}) {
+  const rows = normalizeTechnicalRows(value);
+  const visibleRows = rows.length > 0 ? rows : [{ criterio: "", detalle: "" }];
+
+  function updateRow(index: number, key: keyof TechnicalRow, nextValue: string) {
+    onChange(visibleRows.map((row, rowIndex) => (
+      rowIndex === index ? { ...row, [key]: nextValue } : row
+    )));
+  }
+
+  function removeRow(index: number) {
+    onChange(rows.filter((_, rowIndex) => rowIndex !== index));
+  }
+
+  return (
+    <div className="pulso-gv2-technical-rows">
+      <div className="pulso-gv2-technical-rows-head" aria-hidden="true">
+        <span>Criterio</span>
+        <span>Detalle</span>
+      </div>
+      <div className="pulso-gv2-technical-rows-list">
+        {visibleRows.map((row, index) => (
+          <div className="pulso-gv2-technical-row" key={index}>
+            <input
+              value={row.criterio}
+              onChange={(event) => updateRow(index, "criterio", event.target.value)}
+              placeholder="Ej. Periodo de campo"
+              aria-label={`Criterio de la fila ${index + 1}`}
+            />
+            <textarea
+              value={row.detalle}
+              onChange={(event) => updateRow(index, "detalle", event.target.value)}
+              placeholder="Detalle que verá el cliente"
+              aria-label={`Detalle de la fila ${index + 1}`}
+              rows={2}
+            />
+            <button
+              type="button"
+              onClick={() => removeRow(index)}
+              disabled={rows.length === 0}
+              aria-label={`Eliminar fila ${index + 1}`}
+              title="Eliminar fila"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="pulso-gv2-technical-row-add"
+        onClick={() => onChange([...rows, { criterio: "", detalle: "" }])}
+      >
+        <Plus size={13} /> Añadir fila
+      </button>
+      {typeof value === "string" && value.trim() && (
+        <span className="pulso-gv2-technical-rows-legacy">
+          El texto anterior se conservó y se separó en filas editables.
+        </span>
+      )}
+    </div>
+  );
+}
 
 const iconPickerTriggerStyle: React.CSSProperties = {
   minHeight: 44,

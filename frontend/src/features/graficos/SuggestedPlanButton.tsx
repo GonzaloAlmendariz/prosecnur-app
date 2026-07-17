@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { BarChart3, Check, GitMerge, Loader2, Map, Sparkles, X } from "lucide-react";
+import { BarChart3, Check, Download, GitMerge, Loader2, Map, Sparkles, X } from "lucide-react";
 import {
   apiGraficosPlanSugerido,
   type GraficosSuggestedPlanResponse,
@@ -10,6 +10,8 @@ import { usePlanStore } from "./store";
 import { buildGraficosConfigFromStore } from "./configSnapshot";
 import { usePptStyleProfiles } from "./usePptStyleProfiles";
 import { useGraficosRegistry } from "./useGraficosRegistry";
+import { useOptionalProjectShell } from "../project/ProjectShell";
+import { buildSuggestedPlanRecipeMarkdown } from "./suggestedPlanRecipe";
 
 function newSlideId(prefix = "sug") {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
@@ -62,18 +64,36 @@ function clonePlanWithFreshIds(plan: PlanJson): PlanJson {
   };
 }
 
-type ComparisonMode = "koica_group" | "district" | "none";
+type ComparisonMode = "paired_district" | "district" | "none";
 
 const COMPARISON_MODE_OPTIONS: Array<{ value: ComparisonMode; label: string; hint: string }> = [
-  { value: "koica_group", label: "Comparativo", hint: "Cruza los gráficos por la variable territorial comparativa." },
-  { value: "district", label: "Distrito", hint: "Usa distrito como lectura territorial." },
+  { value: "paired_district", label: "Por pares", hint: "Compara Lima Norte, Lima Este y Lima Sur con sus dos distritos correspondientes." },
+  { value: "district", label: "Seis distritos", hint: "Muestra los seis distritos en una misma lectura territorial." },
   { value: "none", label: "Sin comparativo", hint: "Genera el plan territorial sin cruces adicionales." },
 ];
 
+function reportSourceLabel(source: string): string {
+  const labels: Record<string, string> = {
+    manual: "Definido manualmente",
+    observed: "Calculado desde la base",
+    data: "Calculado desde la base",
+    metadata: "Metadatos del proyecto",
+    project: "Configuración del proyecto",
+  };
+  return labels[source] ?? source.replaceAll("_", " ");
+}
+
+function comparisonLabel(mode: string): string {
+  return COMPARISON_MODE_OPTIONS.find((option) => option.value === mode)?.label
+    ?? (mode ? mode.replaceAll("_", " ") : "Sin comparación");
+}
+
 export function SuggestedPlanButton() {
+  const projectShell = useOptionalProjectShell();
   const currentPlan = usePlanStore((s) => s.plan);
   const loadPlan = usePlanStore((s) => s.loadPlan);
   const applyPptStyleProfile = usePlanStore((s) => s.applyPptStyleProfile);
+  const setScopeRules = usePlanStore((s) => s.setScopeRules);
   const { profiles: styleProfiles } = usePptStyleProfiles();
   const { registry } = useGraficosRegistry();
   const [open, setOpen] = useState(false);
@@ -82,7 +102,7 @@ export function SuggestedPlanButton() {
   const [result, setResult] = useState<GraficosSuggestedPlanResponse | null>(null);
   const [profileId, setProfileId] = useState<"auto" | "acnur_kobo_cruncher_plus">("auto");
   const [acnurMode, setAcnurMode] = useState<"general" | "territorial">("general");
-  const [comparisonMode, setComparisonMode] = useState<ComparisonMode>("koica_group");
+  const [comparisonMode, setComparisonMode] = useState<ComparisonMode>("paired_district");
   const rootRef = useRef<HTMLDivElement>(null);
   const territorialCoverageMeta = registry?.graficadores.find(
     (g) => g.feature_kind === "territorial_coverage" || g.requisito === "territorial_coverage",
@@ -91,6 +111,18 @@ export function SuggestedPlanButton() {
   const coverageDisabledReason =
     territorialCoverageMeta?.disabled_reason ||
     "Disponible cuando el proyecto tenga Hojas de Ruta y Monitoreo territorial.";
+  const projectIdentity = [
+    projectShell?.project.status.name,
+    projectShell?.project.status.path,
+  ].filter(Boolean).join(" ");
+
+  useEffect(() => {
+    const isAcnur = /\b(?:ACNUR|UNHCR)\b/i.test(projectIdentity);
+    setProfileId(isAcnur ? "acnur_kobo_cruncher_plus" : "auto");
+    setAcnurMode("general");
+    setComparisonMode("none");
+    setResult(null);
+  }, [projectIdentity]);
 
   useEffect(() => {
     if (!open) return;
@@ -157,9 +189,45 @@ export function SuggestedPlanButton() {
   }
 
   function applySelectedStyleProfile() {
-    if (profileId !== "acnur_kobo_cruncher_plus") return;
-    const profile = styleProfiles.find((p) => p.name === profileId);
+    if (!result) return;
+    const resolvedProfileId = result.profile_id || (profileId === "auto" ? "" : profileId);
+    const profile = styleProfiles.find((p) => p.name === resolvedProfileId);
     if (profile) applyPptStyleProfile(profile);
+
+    const identity: Record<string, unknown> = {};
+    if (resolvedProfileId) identity.profile_id = resolvedProfileId;
+    if (result.template_id) identity.template_id = result.template_id;
+    if (result.acnur_mode) identity.acnur_mode = result.acnur_mode;
+    if (result.report_scope) identity.report_scope = result.report_scope;
+    if (result.meta) identity.meta = result.meta;
+    if (!Object.keys(identity).length) return;
+
+    const currentScopeRules = usePlanStore.getState().scopeRules;
+    const currentGlobal = currentScopeRules.global;
+    setScopeRules({
+      ...currentScopeRules,
+      global: {
+        ...(currentGlobal && typeof currentGlobal === "object" && !Array.isArray(currentGlobal)
+          ? currentGlobal as Record<string, unknown>
+          : {}),
+        ...identity,
+      },
+    });
+  }
+
+  function downloadRecipe() {
+    if (!result?.report_inputs) return;
+    const markdown = buildSuggestedPlanRecipeMarkdown(result.report_inputs, {
+      acnurMode: result.acnur_mode ?? acnurMode,
+      profileLabel: "ACNUR azul",
+    });
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "guia-informe-acnur.md";
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   const summary = result?.coverage?.summary;
@@ -238,7 +306,7 @@ export function SuggestedPlanButton() {
                     title={!canIncludeCoverageMaps ? coverageDisabledReason : undefined}
                     onClick={() => {
                       setAcnurMode("territorial");
-                      setComparisonMode("koica_group");
+                      setComparisonMode("paired_district");
                       setResult(null);
                     }}
                   >
@@ -319,6 +387,72 @@ export function SuggestedPlanButton() {
                   {result.warnings.join(" · ")}
                 </div>
               ) : null}
+
+              {result.report_inputs && (
+                <section className="pulso-gv2-suggest-inputs" aria-label="Datos que usará el informe">
+                  <div className="pulso-gv2-suggest-inputs-head">
+                    <div>
+                      <strong>Datos que usará el informe</strong>
+                      <span>Revise estos datos antes de aplicar el plan.</span>
+                    </div>
+                    <button type="button" onClick={downloadRecipe}>
+                      <Download size={12} /> Descargar guía
+                    </button>
+                  </div>
+
+                  <dl className="pulso-gv2-suggest-inputs-summary">
+                    <div>
+                      <dt>Periodo</dt>
+                      <dd>{result.report_inputs.period || "No indicado"}</dd>
+                      <small>{reportSourceLabel(result.report_inputs.period_source)}</small>
+                    </div>
+                    <div>
+                      <dt>Perfil</dt>
+                      <dd>{result.report_inputs.profile?.available ? "Incluido" : "No incluido"}</dd>
+                      <small>
+                        {[result.report_inputs.profile?.sex_variable, result.report_inputs.profile?.age_variable]
+                          .filter(Boolean).join(" · ") || "Sin variables asignadas"}
+                      </small>
+                    </div>
+                    <div>
+                      <dt>Mapa</dt>
+                      <dd>{result.report_inputs.map_included ? "Incluido" : "No incluido"}</dd>
+                      <small>{comparisonLabel(result.report_inputs.comparison_mode)}</small>
+                    </div>
+                  </dl>
+
+                  <div className="pulso-gv2-suggest-inputs-block">
+                    <strong>Ficha técnica</strong>
+                    <div className="pulso-gv2-suggest-technical-summary">
+                      {result.report_inputs.technical_rows.slice(0, 4).map((row, index) => (
+                        <span key={`${row.criterio}-${index}`}>
+                          <b>{row.criterio || `Fila ${index + 1}`}</b>
+                          <em>{row.detalle || "Sin detalle"}</em>
+                        </span>
+                      ))}
+                      {result.report_inputs.technical_rows.length === 0 && <span>Sin filas definidas.</span>}
+                      {result.report_inputs.technical_rows.length > 4 && (
+                        <span>+{result.report_inputs.technical_rows.length - 4} filas en el plan</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {result.report_inputs.derived_variables.length > 0 && (
+                    <div className="pulso-gv2-suggest-inputs-block">
+                      <strong>Variables calculadas</strong>
+                      <div className="pulso-gv2-suggest-derived-list">
+                        {result.report_inputs.derived_variables.map((variable) => (
+                          <span key={`${variable.source ?? ""}-${variable.name}`} title={variable.origin}>
+                            <b>{variable.label}</b>
+                            <code>{variable.name}</code>
+                            <em>Derivada del informe</em>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )}
 
               <div className="pulso-gv2-suggest-preview">
                 {(result.plan.slides ?? []).slice(0, 10).map((slide, index) => (

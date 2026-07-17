@@ -10,6 +10,7 @@ import {
   GraficosSlideLayoutPlaceholder,
   GraficosSlideLayoutPreview,
   Slide,
+  SlideRenderedPreview,
 } from "../../api/client";
 import { buildGraficosConfigFromStore } from "./configSnapshot";
 import { graficadorDisplayName, humanizeIdentifier } from "./graficadorDisplay";
@@ -29,10 +30,11 @@ function hashSlide(slide: Slide, visualConfigHash: string): string {
 }
 
 export function SlidePreview({ slide, prepOk, compact = false }: Props) {
-  const [downloadBusy, setDownloadBusy] = useState(false);
+  const [previewBusy, setPreviewBusy] = useState(false);
   const [fileId, setFileId] = useState<string | null>(null);
-  const [downloadError, setDownloadError] = useState("");
-  const [lastDownloadHash, setLastDownloadHash] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState("");
+  const [renderedPreview, setRenderedPreview] = useState<SlideRenderedPreview | null>(null);
+  const [lastPreviewHash, setLastPreviewHash] = useState<string | null>(null);
   const [layout, setLayout] = useState<GraficosSlideLayoutPreview | null>(null);
   const [layoutLoading, setLayoutLoading] = useState(false);
   const [layoutError, setLayoutError] = useState("");
@@ -43,7 +45,8 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   const previewRootRef = useRef<HTMLDivElement>(null);
   const previewBubbleRef = useRef<HTMLDivElement>(null);
   const latestHashRef = useRef<string | null>(null);
-  const downloadSeqRef = useRef(0);
+  const previewSeqRef = useRef(0);
+  const previewInFlightRef = useRef<string | null>(null);
   const debugPh = usePlanStore((s) => s.debugPh);
   const userPresets = usePlanStore((s) => s.presets);
   const { presets: presetsDefaults } = usePresetsDefaults();
@@ -51,31 +54,46 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
     presets: s.presets,
     debugPh: s.debugPh,
     iconos: s.iconos,
+    identity: pickPresentationIdentity(s.scopeRules.global),
   }));
+  const presentationIdentityHash = usePlanStore((s) => JSON.stringify(
+    pickPresentationIdentity(s.scopeRules.global),
+  ));
+  const presentationIdentity = useMemo(
+    () => JSON.parse(presentationIdentityHash) as ReturnType<typeof pickPresentationIdentity>,
+    [presentationIdentityHash],
+  );
 
   const currentHash = hashSlide(slide, visualConfigHash);
-  const downloadFresh = !!fileId && lastDownloadHash === currentHash;
+  const previewFresh = lastPreviewHash === currentHash;
+  const downloadFresh = !!fileId && previewFresh;
+  const hasRenderedPreview = !!renderedPreview && previewFresh;
   const preIssues = useMemo(() => preValidateSlide(slide), [slide]);
   const blocked = preIssues.length > 0;
   const placeholders = layout?.placeholders?.filter((ph) => !ph.hidden && hasValidRect(ph)) ?? [];
   const hasTemplateGeometry = layout?.source === "template" && placeholders.length > 0;
-  const usesLocalFallback = !hasTemplateGeometry;
+  const usesLocalFallback = !hasRenderedPreview && !hasTemplateGeometry;
 
   useEffect(() => {
     if (latestHashRef.current === currentHash) return;
     latestHashRef.current = currentHash;
-    downloadSeqRef.current += 1;
-    setDownloadBusy(false);
+    previewSeqRef.current += 1;
+    previewInFlightRef.current = null;
+    setPreviewBusy(false);
     setFileId(null);
-    setDownloadError("");
-    setLastDownloadHash(null);
+    setPreviewError("");
+    setRenderedPreview(null);
+    setLastPreviewHash(null);
   }, [currentHash]);
 
   useEffect(() => {
     let alive = true;
     setLayoutLoading(true);
     setLayoutError("");
-    apiGraficosSlideLayoutPreview(slide.tipo)
+    apiGraficosSlideLayoutPreview(slide.tipo, {
+      profile_id: presentationIdentity.profile_id,
+      template_id: presentationIdentity.template_id,
+    })
       .then((response) => {
         if (!alive) return;
         setLayout(response);
@@ -90,7 +108,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
         if (alive) setLayoutLoading(false);
       });
     return () => { alive = false; };
-  }, [slide.tipo]);
+  }, [slide.tipo, presentationIdentity.profile_id, presentationIdentity.template_id]);
 
   useEffect(() => {
     return () => {
@@ -120,6 +138,14 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
       document.removeEventListener("keydown", onKey);
     };
   }, [isBubbleRendered]);
+
+  useEffect(() => {
+    if (!isBubbleOpen || !prepOk || blocked) return;
+    void requestRealPreview();
+    // La solicitud se deduplica por `currentHash`; solo se reintenta cuando
+    // cambia la lámina, su estilo o la identidad de la plantilla.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isBubbleOpen, currentHash, prepOk, blocked]);
 
   function openBubble() {
     if (closeTimerRef.current) {
@@ -152,71 +178,63 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
     openBubble();
   }
 
-  function triggerDownload(nextFileId: string) {
-    if (typeof document === "undefined") return;
-    const anchor = document.createElement("a");
-    anchor.href = downloadUrl(nextFileId);
-    anchor.download = "lamina-preview.pptx";
-    anchor.rel = "noreferrer";
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-  }
-
-  async function onDownloadSlide() {
-    if (downloadBusy) return;
+  async function requestRealPreview() {
+    if (previewInFlightRef.current === currentHash || previewFresh) return;
     if (!prepOk) {
-      setDownloadError("Necesitas completar la preparación de datos antes de descargar esta lámina.");
-      openBubble();
+      setPreviewError("Necesitas completar la preparación de datos para generar la vista real de esta lámina.");
       return;
     }
     if (blocked) {
-      setDownloadError(`Antes de descargar: ${preIssues.join(" · ")}`);
-      openBubble();
+      setPreviewError(`Antes de generar la vista: ${preIssues.join(" · ")}`);
       return;
     }
 
-    const requestId = downloadSeqRef.current + 1;
+    const requestId = previewSeqRef.current + 1;
     const requestHash = currentHash;
-    downloadSeqRef.current = requestId;
-    setDownloadBusy(true);
-    setDownloadError("");
-    openBubble();
+    previewSeqRef.current = requestId;
+    previewInFlightRef.current = requestHash;
+    setPreviewBusy(true);
+    setPreviewError("");
     try {
       const response = await apiGraficosPreviewSlide(
         slide,
         buildGraficosConfigFromStore(),
         {
           include_images: false,
-          render_slide_preview: false,
+          render_slide_preview: true,
         },
       );
-      if (downloadSeqRef.current !== requestId || latestHashRef.current !== requestHash) return;
+      if (previewSeqRef.current !== requestId || latestHashRef.current !== requestHash) return;
       setFileId(response.file_id);
-      setLastDownloadHash(currentHash);
-      triggerDownload(response.file_id);
+      setRenderedPreview(response.slide_preview ?? null);
+      setLastPreviewHash(requestHash);
     } catch (error) {
-      if (downloadSeqRef.current !== requestId || latestHashRef.current !== requestHash) return;
-      setDownloadError((error as Error).message);
+      if (previewSeqRef.current !== requestId || latestHashRef.current !== requestHash) return;
+      setPreviewError((error as Error).message);
     } finally {
-      if (downloadSeqRef.current === requestId) setDownloadBusy(false);
+      if (previewInFlightRef.current === requestHash) previewInFlightRef.current = null;
+      if (previewSeqRef.current === requestId) setPreviewBusy(false);
     }
   }
 
-  const stateLabel = downloadBusy
-    ? "Preparando PPTX"
-    : downloadError
-      ? "Revisa la descarga"
-      : hasTemplateGeometry
-        ? "Mostrador de lámina"
-        : "Referencia local";
-  const chromeDetail = hasTemplateGeometry
-    ? `${layout?.layout ?? "Layout PPT"} · bordes de Guías`
-    : layoutLoading
-      ? "Cargando geometría de plantilla"
-      : layoutError
-        ? "Usando distribución local"
-        : "Distribución local de referencia";
+  const stateLabel = previewBusy
+    ? "Generando vista real"
+    : hasRenderedPreview
+      ? "Vista de la lámina"
+      : previewError
+        ? "Vista de referencia"
+        : hasTemplateGeometry
+          ? "Mostrador de lámina"
+          : "Referencia local";
+  const chromeDetail = hasRenderedPreview
+    ? `Render completo · ${renderedPreview?.renderer || "motor PPT"}`
+    : hasTemplateGeometry
+      ? `${layout?.layout ?? "Layout PPT"} · geometría de plantilla`
+      : layoutLoading
+        ? "Cargando geometría de plantilla"
+        : layoutError
+          ? "Usando distribución local"
+          : "Distribución local de referencia";
   const previewStyle = {
     "--slide-guide-color": normalizeGuideColor(debugPh?.color),
     "--slide-guide-width": `${normalizeGuideWidth(debugPh?.lwd)}px`,
@@ -232,7 +250,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
         {!compact && (
           <div className="pulso-slide-preview-copy">
             <strong><Eye size={14} /> Mostrador de lámina</strong>
-            <span>Revisa placeholders, bordes y distribución sin esperar al backend.</span>
+            <span>Abre la vista completa del motor PPT; si no está disponible, conserva la referencia de distribución.</span>
           </div>
         )}
 
@@ -251,19 +269,19 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
 
       {!compact && blocked && (
         <PreviewNotice tone="warn">
-          <strong>Descarga pendiente:</strong> {preIssues.join(" · ")}
+          <strong>Vista completa pendiente:</strong> {preIssues.join(" · ")}
         </PreviewNotice>
       )}
 
       {!compact && !prepOk && (
         <PreviewNotice tone="muted">
-          El mostrador local está disponible. Para descargar el PPTX, primero prepara los datos.
+          La referencia local está disponible. Para generar la vista completa, primero prepara los datos.
         </PreviewNotice>
       )}
 
-      {!compact && downloadError && (
+      {!compact && previewError && (
         <PreviewNotice tone="warn">
-          <strong>No se pudo descargar.</strong> {humanizePreviewError(downloadError)}
+          <strong>No se pudo generar la vista real.</strong> {humanizePreviewError(previewError)}
         </PreviewNotice>
       )}
 
@@ -275,40 +293,43 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
             "is-layout-viewer",
             isBubbleOpen ? "is-open" : "",
             isBubbleClosing ? "is-closing" : "",
-            downloadBusy ? "is-loading" : "",
+            previewBusy ? "is-loading" : "",
+            hasRenderedPreview ? "has-rendered-preview" : "",
             usesLocalFallback ? "is-reference-local" : "",
           ].filter(Boolean).join(" ")}
           aria-label={stateLabel}
           role="dialog"
           aria-live="polite"
+          aria-busy={previewBusy}
           style={previewStyle}
         >
           <div className="pulso-slide-preview-bubble-arrow" />
           <div className="pulso-slide-preview-chrome">
-            <span className={`pulso-slide-preview-status is-${downloadError ? "danger" : hasTemplateGeometry ? "exact" : "local"}`}>
-              {downloadBusy ? <Loader2 size={13} className="pulso-spin" /> : <Eye size={13} />}
+            <span className={`pulso-slide-preview-status is-${previewError ? "danger" : hasRenderedPreview || hasTemplateGeometry ? "exact" : "local"}`}>
+              {previewBusy ? <Loader2 size={13} className="pulso-spin" /> : <Eye size={13} />}
               <span>
                 <strong>{stateLabel}</strong>
                 <small>{chromeDetail}</small>
               </span>
             </span>
             <span className="pulso-slide-preview-chrome-actions">
-              {downloadFresh && fileId && !downloadBusy && (
+              {downloadFresh && fileId && !previewBusy ? (
                 <a href={downloadUrl(fileId)} download="lamina-preview.pptx" className="pulso-slide-preview-download">
                   <Download size={12} />
-                  PPTX
+                  Descargar lámina
                 </a>
+              ) : (
+                <button
+                  type="button"
+                  className="pulso-slide-preview-download"
+                  onClick={() => void requestRealPreview()}
+                  disabled={previewBusy || !prepOk || blocked}
+                  title={!prepOk ? "Prepara datos antes de generar la vista" : blocked ? "Completa los gráficos requeridos antes de generar la vista" : "Generar de nuevo la vista real"}
+                >
+                  {previewBusy ? <Loader2 size={12} className="pulso-spin" /> : <Eye size={12} />}
+                  {previewBusy ? "Generando vista" : "Generar vista"}
+                </button>
               )}
-              <button
-                type="button"
-                className="pulso-slide-preview-download"
-                onClick={() => void onDownloadSlide()}
-                disabled={downloadBusy || !prepOk || blocked}
-                title={!prepOk ? "Prepara datos antes de descargar" : blocked ? "Completa los gráficos requeridos antes de descargar" : "Descargar esta lámina como PPTX"}
-              >
-                {downloadBusy ? <Loader2 size={12} className="pulso-spin" /> : <Download size={12} />}
-                Descargar lámina
-              </button>
               <button
                 type="button"
                 className="pulso-slide-preview-close"
@@ -322,10 +343,12 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
           </div>
 
           <div className="pulso-slide-preview-bubble-inner">
-            {layoutLoading ? (
+            {hasRenderedPreview && renderedPreview ? (
+              <RenderedSlideViewer preview={renderedPreview} slide={slide} />
+            ) : layoutLoading ? (
               <div className="pulso-slide-preview-placeholder">
                 <Loader2 size={18} className="pulso-spin" />
-                <span>Cargando distribución...</span>
+                <span>Cargando distribución de referencia...</span>
               </div>
             ) : hasTemplateGeometry ? (
               <SlideLayoutViewer
@@ -341,23 +364,56 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                 reason={layoutError || layout?.reason || "El backend no devolvió geometría para este tipo de lámina."}
               />
             )}
+            {previewBusy && (
+              <div className="pulso-slide-preview-render-loading" role="status">
+                <span><Loader2 size={15} className="pulso-spin" /> Generando la vista completa…</span>
+              </div>
+            )}
           </div>
 
-          {(downloadError || blocked || !prepOk) && (
+          {(previewError || blocked || !prepOk) && (
             <div className="pulso-slide-preview-bubble-note">
               <AlertCircle size={13} />
               <span>
-                {downloadError
-                  ? humanizePreviewError(downloadError)
+                {previewError
+                  ? `${humanizePreviewError(previewError)} Se mantiene la referencia de distribución.`
                   : !prepOk
-                    ? "El mostrador local no requiere backend; la descarga sí requiere datos preparados."
-                    : `Para descargar: ${preIssues.join(" · ")}`}
+                    ? "La referencia local está disponible; la vista completa requiere datos preparados."
+                    : `Para generar la vista: ${preIssues.join(" · ")}`}
               </span>
             </div>
           )}
         </div>
       ), document.body)}
     </section>
+  );
+}
+
+function RenderedSlideViewer({ preview, slide }: { preview: SlideRenderedPreview; slide: Slide }) {
+  const width = Number(preview.width);
+  const height = Number(preview.height);
+  const frameStyle: CSSProperties = {
+    aspectRatio: Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0
+      ? `${width} / ${height}`
+      : "16 / 9",
+  };
+  const src = preview.png_base64.startsWith("data:")
+    ? preview.png_base64
+    : `data:image/png;base64,${preview.png_base64}`;
+
+  return (
+    <div className="pulso-slide-preview-rendered">
+      <div className="pulso-slide-preview-rendered-frame" style={frameStyle}>
+        <img
+          src={src}
+          alt={`Vista completa de ${String(slide.payload?.titulo || SLIDE_LABELS[slide.tipo] || "la lámina")}`}
+        />
+      </div>
+      <div className="pulso-slide-preview-layout-caption">
+        <strong>{SLIDE_LABELS[slide.tipo] ?? humanizeIdentifier(slide.tipo, "Lámina")}</strong>
+        <span>Vista generada por {preview.renderer || "el motor PPT"}</span>
+      </div>
+    </div>
   );
 }
 
@@ -557,6 +613,21 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown>
     : {};
+}
+
+function pickPresentationIdentity(value: unknown) {
+  const global = asRecord(value);
+  const read = (key: string) => {
+    const field = global[key];
+    return typeof field === "string" && field.trim() ? field : undefined;
+  };
+  return {
+    profile_id: read("profile_id"),
+    template_id: read("template_id"),
+    acnur_mode: read("acnur_mode"),
+    report_scope: read("report_scope"),
+    meta: Object.keys(asRecord(global.meta)).length > 0 ? asRecord(global.meta) : undefined,
+  };
 }
 
 function readPositiveNumber(value: unknown) {
@@ -760,7 +831,7 @@ function humanizePreviewError(raw: string): string {
     return "Los datos no están listos. Ve a la fase 4 -> Preparar datos y vuelve a intentarlo.";
   }
   if (/timeout|timed out/i.test(cleaned)) {
-    return "La descarga tardó demasiado. Intenta de nuevo o simplifica el gráfico.";
+    return "La vista tardó demasiado. Intenta de nuevo o simplifica el gráfico.";
   }
   if (/subscript out of bounds|índice fuera|indice fuera|out of bounds/i.test(cleaned)) {
     return "El gráfico no pudo completar esta combinación. Revisa la variable, cruces o escala en Datos.";
@@ -768,5 +839,5 @@ function humanizePreviewError(raw: string): string {
   if (/variable.*no existe|var.*unknown|variable inv/i.test(cleaned)) {
     return "Una de las variables del gráfico no existe en el instrumento. Revísala en la pestaña Datos.";
   }
-  return cleaned || "Algo salió mal al descargar la lámina.";
+  return cleaned || "No se pudo generar la vista completa de la lámina.";
 }
