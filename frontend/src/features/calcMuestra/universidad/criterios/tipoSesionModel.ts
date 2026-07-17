@@ -23,7 +23,7 @@ import {
   removeExcepcion,
   upsertExcepcion,
 } from "../../dominio";
-import type { SessionTypeSugerencia } from "../shared/constants";
+import { UNIVERSITY_SESSION_TYPE_EXCLUIDOS_MARCO, type SessionTypeSugerencia } from "../shared/constants";
 
 /** Id de la variable del catálogo que gobierna esta vista. */
 export const SESSION_TYPE_VARIABLE_ID = "session_type";
@@ -53,6 +53,59 @@ export function textKey(s: string): string {
 function matchea(texto: string, patterns: readonly string[]): boolean {
   const t = textKey(texto);
   return patterns.some((p) => p && t.includes(textKey(p)));
+}
+
+/** Detección de subtipos agrupados entre paréntesis, p. ej. "TEORICO(A,B)". */
+const RE_SUBTIPOS_AGRUPADOS = /\([^)]{2,}\)/;
+
+/**
+ * true si el label es de naturaleza TEÓRICA (incluido el agrupado por DTI
+ * "TEORICO(TEORICO-PRACTICO,TEORICO-LABORATORIO)"). El teórico es el tipo
+ * objetivo del marco, nunca un tipo a EXCLUIR: por eso protege a la naturaleza
+ * teórico-práctica del sello "practica" si la base viene desagregada con una
+ * categoría propia "TEORICO-PRACTICO". Detectar por prefijo del label.
+ */
+function esTipoTeorico(label: string): boolean {
+  return textKey(label).startsWith("teorico");
+}
+
+/**
+ * true si el label es la etiqueta PARAGUAS agrupada por DTI (subtipos entre
+ * paréntesis, misma detección que `senalAgrupamientoDti`). El paraguas
+ * representa TODO el teórico: matchear un subtipo interno por substring
+ * ("laborator"/"practic") desde una regla no-teórica sugeriría el teórico
+ * entero (falso positivo, ya es el default global). CLAVE: la guarda es «es
+ * paraguas», no «empieza por teorico» — cuando la base venga DESAGREGADA
+ * (solicitud DTI 2026), "TEORICO-LABORATORIO" y "TEORICO-PRACTICO" llegan SIN
+ * paréntesis, no son paraguas, y la regla de Ingeniería SÍ debe sugerirlos (§4).
+ */
+function esTipoAgrupadoDti(label: string): boolean {
+  return RE_SUBTIPOS_AGRUPADOS.test(label);
+}
+
+/**
+ * true si el label lleva un sello de exclusión del marco (§8.2). Nunca marca al
+ * teórico: la naturaleza teórico-práctica no es una «práctica» excluida. Doble
+ * red: (1) `esTipoTeorico` corta cualquier sello sobre la familia teórica;
+ * (2) el sello "practica" (con -a) no matchea "teorico-practico" (con -o), así
+ * que la práctica preprofesional se veta sin tocar la naturaleza teórica.
+ */
+function tipoExcluidoDelMarco(label: string): boolean {
+  if (esTipoTeorico(label)) return false;
+  const t = textKey(label);
+  return UNIVERSITY_SESSION_TYPE_EXCLUIDOS_MARCO.some((sello) => t.includes(textKey(sello)));
+}
+
+/**
+ * Filtro de elegibilidad de un tipo como candidato de una regla de sugerencia:
+ *  (a) el paraguas agrupado por DTI solo lo sugiere una regla que apunte al
+ *      teórico — mata el falso positivo del agrupado desde reglas no-teóricas
+ *      sin bloquear los subtipos teóricos desagregados (que no son paraguas);
+ *  (b) los tipos que §8.2 excluye del marco no se sugieren nunca.
+ */
+function tipoElegibleParaSugerencia(label: string, reglaApuntaAlTeorico: boolean): boolean {
+  if (esTipoAgrupadoDti(label)) return reglaApuntaAlTeorico;
+  return !tipoExcluidoDelMarco(label);
 }
 
 // ---------------------------------------------------------------------------
@@ -217,9 +270,14 @@ export type SugerenciaResuelta = {
 
 /**
  * Primera regla cuyo patrón de facultad matchea (el orden del arreglo es la
- * precedencia), resuelta contra las categorías REALES del catálogo. Si ningún
- * tipo recomendado existe en la base, no hay sugerencia (null): jamás se
- * ofrece un «usar» que dejaría a la facultad sin tipos.
+ * precedencia), resuelta contra las categorías REALES del catálogo. Antes de
+ * matchear los `tipoPatterns`, cada categoría pasa por `tipoElegibleParaSugerencia`:
+ * el teórico agrupado por DTI no se sugiere desde reglas no-teóricas (falso
+ * positivo por substring interno) y los tipos que §8.2 excluye del marco
+ * (seminario, tesis, asesoría, investigación, prácticas, artísticas) nunca se
+ * ofrecen. Si ningún tipo recomendado existe/es elegible en la base, no hay
+ * sugerencia (null): jamás se ofrece un «usar» que dejaría a la facultad sin
+ * tipos o que recomendaría un tipo fuera del marco.
  */
 export function sugerenciaParaFacultad(
   variable: CriterioVariable,
@@ -228,8 +286,11 @@ export function sugerenciaParaFacultad(
 ): SugerenciaResuelta | null {
   const regla = sugerencias.find((s) => matchea(facLabel, s.facultadPatterns));
   if (!regla) return null;
-  const matched = categoriasDeVariable(variable).filter((c) =>
-    matchea(`${c.label} ${c.key}`, regla.tipoPatterns),
+  const reglaApuntaAlTeorico = regla.tipoPatterns.some((p) => textKey(p).startsWith("teoric"));
+  const matched = categoriasDeVariable(variable).filter(
+    (c) =>
+      tipoElegibleParaSugerencia(c.label, reglaApuntaAlTeorico) &&
+      matchea(`${c.label} ${c.key}`, regla.tipoPatterns),
   );
   if (!matched.length) return null;
   return {
@@ -382,6 +443,6 @@ export function senalAgrupamientoDti(
 ): SenalAgrupamientoDti | null {
   if (dominante?.categoria) return { origen: "particularidades", categoria: dominante.categoria };
   if (!variable) return null;
-  const agrupada = categoriasDeVariable(variable).find((c) => /\([^)]{2,}\)/.test(c.label));
+  const agrupada = categoriasDeVariable(variable).find((c) => esTipoAgrupadoDti(c.label));
   return agrupada ? { origen: "catalogo", categoria: agrupada.label } : null;
 }

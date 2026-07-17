@@ -414,6 +414,32 @@ export const UNIVERSITY_SESSION_TYPE_SUGERENCIAS: SessionTypeSugerencia[] = [
   },
 ];
 
+/**
+ * Tipos de sesión que el embudo del marco muestral EXCLUYE por metodología
+ * (§8.2 de la sistematización Ramiro 2026-07-15, paso 2: «excluir seminario,
+ * tesis, asesorías, cursos de investigación, prácticas y actividades
+ * artísticas»). Ningún matcher de sugerencias debe recomendar un tipo cuya
+ * etiqueta contenga uno de estos sellos: son cursos con baja probabilidad de
+ * encontrar estudiantes presentes, fuera del marco.
+ *
+ * Sellos = substrings normalizados (minúsculas, sin tildes) que se buscan en el
+ * label del tipo. Cubren variantes de género/número: «asesoria(s)»,
+ * «practica(s)», «artistico/a(s)». OJO — el «taller de tesis» cae aquí por el
+ * sello «tesis» (§4: se filtra por baja asistencia), pero el «taller» de
+ * arte/diseño (especialidad) NO contiene ningún sello y sigue siendo elegible.
+ * La NATURALEZA teórica (teórico-práctico / teórico-laboratorio) tampoco se
+ * excluye: las etiquetas que empiezan por «teorico» quedan fuera de este filtro
+ * en el matcher (son el tipo objetivo, no cursos a descartar).
+ */
+export const UNIVERSITY_SESSION_TYPE_EXCLUIDOS_MARCO: string[] = [
+  "seminario",
+  "tesis",
+  "asesoria",
+  "investigacion",
+  "practica",
+  "artistic",
+];
+
 export const UNIVERSITY_REFERENCE_SUCCESS_RATE: Record<string, number> = {
   "ARQUITECTURA Y URBANISMO": 0.30,
   "ARTE Y DISEÑO": 0.50,

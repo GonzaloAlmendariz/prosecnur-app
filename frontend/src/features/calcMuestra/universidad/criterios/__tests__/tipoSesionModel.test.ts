@@ -7,7 +7,7 @@ import {
   type CriterioSeleccion,
   type CriterioVariable,
 } from "../../../../../api/client";
-import { UNIVERSITY_SESSION_TYPE_SUGERENCIAS } from "../../shared/constants";
+import { UNIVERSITY_SESSION_TYPE_SUGERENCIAS, type SessionTypeSugerencia } from "../../shared/constants";
 import {
   aplicarSugerencia,
   avisosImpacto,
@@ -216,6 +216,84 @@ describe("sugerencias de la reunión — matching defensivo, nunca auto-aplicada
     expect(sugerenciaAplicada(VARIABLE, SEL_GLOBAL, "arte_y_diseno", sug)).toBe(false);
     const aplicada = aplicarSugerencia(VARIABLE, SEL_GLOBAL, "arte_y_diseno", sug);
     expect(sugerenciaAplicada(VARIABLE, aplicada, "arte_y_diseno", sug)).toBe(true);
+  });
+});
+
+/**
+ * Base 2025 tal como la entrega DTI: el tipo de sesión llega AGRUPADO
+ * ("TEORICO(TEORICO-PRACTICO,TEORICO-LABORATORIO)") y conviven categorías que
+ * §8.2 excluye del marco (seminario, práctica preprofesional, actividad
+ * artística, taller de tesis). El matcher debe distinguir el teórico objetivo
+ * de esos tipos y no producir sugerencias ruidosas en la vista facultad-primaria.
+ */
+const VARIABLE_DTI: CriterioVariable = {
+  id: "session_type",
+  scope: "aula",
+  label: "Tipo de sesión",
+  kind: "flat",
+  mappedColumn: "Tipo de curso",
+  categories: [
+    { key: "teorico_agrupado", label: "TEORICO(TEORICO-PRACTICO,TEORICO-LABORATORIO)", aulas: 4200 },
+    { key: "taller", label: "TALLER", aulas: 200 },
+    { key: "laboratorio", label: "LABORATORIO", aulas: 190 },
+    { key: "seminario", label: "SEMINARIO", aulas: 60 },
+    { key: "practica_preprof", label: "PRACTICA SUPERVISADA PREPROFESIONAL", aulas: 40 },
+    { key: "actividad_artistica", label: "ACTIVIDAD ARTISTICA", aulas: 15 },
+    { key: "taller_tesis", label: "TALLER DE TESIS", aulas: 30 },
+  ],
+};
+
+describe("sugerencias con la base agrupada por DTI + exclusiones §8.2", () => {
+  it("Ingeniería no recibe el teórico agrupado (falso positivo por substring) ni la práctica preprofesional, solo laboratorio", () => {
+    const sug = sugerenciaParaFacultad(VARIABLE_DTI, "CIENCIAS E INGENIERIA", UNIVERSITY_SESSION_TYPE_SUGERENCIAS);
+    expect(sug?.modo).toBe("incluir");
+    expect(sug?.tipos).toEqual(["laboratorio"]);
+    expect(sug?.labels).toEqual(["LABORATORIO"]);
+  });
+
+  it("la regla teórica SÍ sugiere el teórico agrupado — es su tipo objetivo, no un falso positivo", () => {
+    const sug = sugerenciaParaFacultad(VARIABLE_DTI, "PSICOLOGÍA", UNIVERSITY_SESSION_TYPE_SUGERENCIAS);
+    expect(sug?.modo).toBe("solo");
+    expect(sug?.tipos).toEqual(["teorico_agrupado"]);
+  });
+
+  it("si lo único matcheable es el agrupado teórico y una práctica excluida, no hay sugerencia (no queda nada elegible)", () => {
+    const soloAgrupadoYPractica: CriterioVariable = {
+      ...VARIABLE_DTI,
+      categories: (VARIABLE_DTI.categories ?? []).filter(
+        (c) => c.key === "teorico_agrupado" || c.key === "practica_preprof",
+      ),
+    };
+    expect(
+      sugerenciaParaFacultad(soloAgrupadoYPractica, "CIENCIAS E INGENIERIA", UNIVERSITY_SESSION_TYPE_SUGERENCIAS),
+    ).toBeNull();
+  });
+
+  it("Arte y Diseño recibe el taller de especialidad, NO el taller de tesis (§4/§8.2)", () => {
+    const sug = sugerenciaParaFacultad(VARIABLE_DTI, "ARTE Y DISEÑO", UNIVERSITY_SESSION_TYPE_SUGERENCIAS);
+    expect(sug?.tipos).toEqual(["taller"]);
+    expect(sug?.labels).toEqual(["TALLER"]);
+  });
+
+  it("una regla que matchearía tipos excluidos por §8.2 no los sugiere (seminario, asesoría, investigación, artísticas)", () => {
+    const reglaHipotetica: SessionTypeSugerencia[] = [
+      {
+        facultadPatterns: ["derecho"],
+        modo: "incluir",
+        tipoPatterns: ["seminario", "asesor", "investigac", "artistic"],
+        porque: "regla de prueba que apunta directamente a tipos fuera del marco",
+      },
+    ];
+    const conExcluidos: CriterioVariable = {
+      ...VARIABLE_DTI,
+      categories: [
+        { key: "seminario", label: "SEMINARIO", aulas: 10 },
+        { key: "asesoria", label: "ASESORÍA DE TESIS", aulas: 5 },
+        { key: "investigacion", label: "CURSO DE INVESTIGACIÓN", aulas: 5 },
+        { key: "actividad_artistica", label: "ACTIVIDAD ARTÍSTICA", aulas: 5 },
+      ],
+    };
+    expect(sugerenciaParaFacultad(conExcluidos, "DERECHO", reglaHipotetica)).toBeNull();
   });
 });
 
