@@ -67,6 +67,7 @@ function CriterioFacultadCard({
   seleccion,
   excKey,
   facLabel,
+  fac,
   exploracion,
   onSel,
 }: {
@@ -74,6 +75,8 @@ function CriterioFacultadCard({
   seleccion: CriteriosSeleccionMarco;
   excKey: string;
   facLabel: string;
+  /** Radiografía de la facultad (para el detalle por tipo junto al criterio). */
+  fac: CalcMuestraAulasExploracionFacultad;
   exploracion: CalcMuestraAulasExploracion | null;
   onSel: (next: CriterioSeleccion) => void;
 }) {
@@ -147,13 +150,18 @@ function CriterioFacultadCard({
         </div>
       ) : null}
       {abierto ? (
-        <FacultadCategoriaToggles
-          fila={fila}
-          variable={variable}
-          sel={sel}
-          onSel={onSel}
-          ariaLabel={`${variable.label} en ${facLabel}`}
-        />
+        <>
+          {variable.id === SESSION_TYPE_VARIABLE_ID ? (
+            <FacultadRadiografiaCard fac={fac} modo="tipos" />
+          ) : null}
+          <FacultadCategoriaToggles
+            fila={fila}
+            variable={variable}
+            sel={sel}
+            onSel={onSel}
+            ariaLabel={`${variable.label} en ${facLabel}`}
+          />
+        </>
       ) : null}
     </section>
   );
@@ -450,7 +458,7 @@ export function FacultadDecisionBloque({
           <div className="cmv2-chfp-info" aria-label={`Radiografía de ${facLabel}`}>
             <span className="cmv2-chfp-section-eyebrow">Información de la facultad</span>
             <div className="cmv2-chfp-info-scroll">
-              <FacultadRadiografiaCard fac={fac} />
+              <FacultadRadiografiaCard fac={fac} modo="resumen" />
             </div>
           </div>
           <div className="cmv2-chfp-decision" aria-label={`Decisión de criterios para ${facLabel}`}>
@@ -470,6 +478,7 @@ export function FacultadDecisionBloque({
                   seleccion={seleccion}
                   excKey={excKey}
                   facLabel={facLabel}
+                  fac={fac}
                   exploracion={exploracion}
                   onSel={(next) => onToggleVariable(variable.id, next)}
                 />
@@ -509,6 +518,7 @@ export function FacultadDecisionBloque({
                 seleccion={seleccion}
                 excKey={excKey}
                 facLabel={facLabel}
+                fac={fac}
                 exploracion={exploracion}
                 onSel={(next) => onToggleVariable(sessionVar.id, next)}
               />

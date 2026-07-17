@@ -22,7 +22,7 @@ import {
   shareSinCondicion,
   tipoSesionShares,
 } from "./exploradorModel";
-import { BoxplotElegibles } from "./BoxplotElegibles";
+import { BoxplotEjeX, BoxplotElegibles } from "./BoxplotElegibles";
 
 /** Color del segmento de condición por bucket (tokens del módulo). */
 function condicionKind(condicion: string): "obligatorio" | "electivo" | "sindato" | "otro" {
@@ -43,6 +43,7 @@ export function FacultadRadiografiaCard({
   fac,
   active,
   onSelect,
+  modo = "completo",
 }: {
   fac: CalcMuestraAulasExploracionFacultad;
   /** Standalone (Explorador): resalta la tarjeta seleccionada. */
@@ -50,6 +51,10 @@ export function FacultadRadiografiaCard({
   /** Standalone (Explorador): la cabecera selecciona la facultad. Sin callback
    *  no se renderiza cabecera (la embebe una superficie con su propio header). */
   onSelect?: () => void;
+  /** Qué partes mostrar: «resumen» (elegibles + condición + badges, arriba de la
+   *  facultad), «tipos» (solo la distribución por tipo con boxplot, junto al
+   *  criterio de tipo de sesión donde se decide) o «completo» (todo, Explorador). */
+  modo?: "completo" | "resumen" | "tipos";
 }) {
   const tipos = tipoSesionShares(fac);
   const niveles = nivelDistribucion(fac);
@@ -62,9 +67,11 @@ export function FacultadRadiografiaCard({
   // Condición del curso (obligatorio/electivo) por facultad: junto al tipo,
   // define cuántas aulas sobreviven a todos los criterios (Ramiro §8.2).
   const cond = condicionResumen(fac);
+  const verResumen = modo !== "tipos";
+  const verTipos = modo !== "resumen";
 
   return (
-    <article className="cmv2-explorador-card" data-active={active || undefined}>
+    <article className="cmv2-explorador-card" data-modo={modo} data-active={active || undefined}>
       {onSelect ? (
         <button type="button" className="cmv2-explorador-card-head" aria-pressed={active} onClick={onSelect}>
           <span className="cmv2-explorador-card-title">
@@ -80,7 +87,7 @@ export function FacultadRadiografiaCard({
           </span>
         </button>
       ) : null}
-      {hayBadges && (
+      {verResumen && hayBadges && (
         <div className="cmv2-explorador-card-badges">
           {fac.n_multi_facultad > 0 && (
             <span className="cmv2-explorador-badge" data-kind="multi">
@@ -101,6 +108,7 @@ export function FacultadRadiografiaCard({
           )}
         </div>
       )}
+      {verResumen && (
       <div className="cmv2-radiografia-facts">
         <p className="cmv2-radiografia-sobreviven">
           <strong>{fmtInt(fac.ch_elegibles)}</strong> de {fmtInt(fac.ch_total)} cursos-horario
@@ -136,7 +144,8 @@ export function FacultadRadiografiaCard({
           </div>
         )}
       </div>
-      {tipos.length > 0 ? (
+      )}
+      {verTipos && tipos.length > 0 ? (
         <div className="cmv2-explorador-card-body">
           <table
             className="cmv2-table cmv2-table--university cmv2-explorador-dist"
@@ -147,8 +156,7 @@ export function FacultadRadiografiaCard({
                 <th>Tipo</th>
                 <th data-numeric="true">CH · eleg.</th>
                 <th data-numeric="true">Elegibles</th>
-                <th data-numeric="true">Med · media</th>
-                <th data-numeric="true">Rango</th>
+                <th data-numeric="true">Elegibles/aula</th>
                 {hayBoxplot && <th className="cmv2-boxplot-col">Distribución</th>}
               </tr>
             </thead>
@@ -171,13 +179,21 @@ export function FacultadRadiografiaCard({
                   </td>
                   <td data-numeric="true">{fmtInt(tipo.elegibles)}</td>
                   <td data-numeric="true" title={medianaTitle(tipo.medianaElegibles)}>
-                    {tipo.medianaElegibles != null ? fmtDec(tipo.medianaElegibles, 0) : "—"}
-                    {tipo.caja?.media != null ? (
-                      <span className="cmv2-dist-sub"> · μ{fmtDec(tipo.caja.media, 0)}</span>
-                    ) : null}
-                  </td>
-                  <td data-numeric="true">
-                    {tipo.caja ? `${fmtInt(tipo.caja.min)}–${fmtInt(tipo.caja.max)}` : "—"}
+                    {tipo.medianaElegibles != null ? (
+                      <>
+                        <strong>{fmtDec(tipo.medianaElegibles, 0)}</strong>
+                        {tipo.caja?.media != null ? (
+                          <span className="cmv2-dist-sub"> · μ{fmtDec(tipo.caja.media, 0)}</span>
+                        ) : null}
+                        {tipo.caja ? (
+                          <span className="cmv2-dist-rango">
+                            {fmtInt(tipo.caja.min)}–{fmtInt(tipo.caja.max)}
+                          </span>
+                        ) : null}
+                      </>
+                    ) : (
+                      "—"
+                    )}
                   </td>
                   {hayBoxplot && (
                     <td className="cmv2-boxplot-col">
@@ -194,6 +210,12 @@ export function FacultadRadiografiaCard({
               ))}
             </tbody>
           </table>
+          {hayBoxplot && (
+            <div className="cmv2-boxplot-escala-fila">
+              <span className="cmv2-boxplot-escala-label">Elegibles por aula</span>
+              <BoxplotEjeX escalaMax={escalaMax} />
+            </div>
+          )}
           {hayBoxplot && (
             <p className="cmv2-boxplot-leyenda">
               <span className="cmv2-boxplot-leyenda-item">
@@ -242,11 +264,11 @@ export function FacultadRadiografiaCard({
             </details>
           )}
         </div>
-      ) : (
+      ) : verTipos ? (
         <p className="cmv2-explorador-card-vacio">
           El contrato no trae distribución por tipo de sesión para esta facultad.
         </p>
-      )}
+      ) : null}
     </article>
   );
 }

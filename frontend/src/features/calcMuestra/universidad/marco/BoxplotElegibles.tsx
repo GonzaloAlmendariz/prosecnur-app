@@ -7,13 +7,37 @@
  * Presentación pura: la geometría 0..1 la calcula `boxplotPosiciones` en el
  * modelo; aquí solo se dibuja. Colores por tokens `--pulso-*` (marco.css).
  */
-import { fmtDec } from "../../sharedCore";
+import { fmtDec, fmtInt } from "../../sharedCore";
 import { boxplotPosiciones, type BoxplotResumen } from "./exploradorModel";
 
 const W = 132;
 const H = 22;
 const PAD_X = 4;
 const INNER = W - PAD_X * 2;
+
+/**
+ * Eje X compartido de los boxplots de la facultad: la escala numérica de
+ * elegibles por aula (0 … max) para que las cajas se lean en unidades reales.
+ * Se dibuja UNA vez bajo la columna (misma escala `escalaMax` que las cajas).
+ */
+export function BoxplotEjeX({ escalaMax }: { escalaMax: number }) {
+  const medio = Math.round(escalaMax / 2);
+  return (
+    <div className="cmv2-boxplot-eje" style={{ width: W }}>
+      <svg viewBox={`0 0 ${W} 6`} width={W} height={6} aria-hidden="true" preserveAspectRatio="none">
+        <line className="cmv2-boxplot-eje-line" x1={PAD_X} y1={1} x2={W - PAD_X} y2={1} />
+        {[0, 0.5, 1].map((f) => (
+          <line key={f} className="cmv2-boxplot-eje-tick" x1={PAD_X + f * INNER} y1={0} x2={PAD_X + f * INNER} y2={5} />
+        ))}
+      </svg>
+      <div className="cmv2-boxplot-eje-labels" aria-label={`Escala de elegibles por aula: 0 a ${fmtInt(escalaMax)}`}>
+        <span>0</span>
+        <span>{fmtInt(medio)}</span>
+        <span>{fmtInt(escalaMax)}</span>
+      </div>
+    </div>
+  );
+}
 const BOX_TOP = 5;
 const BOX_H = H - 10;
 const CY = H / 2;

@@ -2508,6 +2508,13 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 .cmv2-chfp-min-alerta { color: var(--cmv2-accent-fg); font-weight: 500; }
 /* Sub-cifra en la tabla por tipo (media junto a mediana, CH elegibles). */
 .cmv2-dist-sub { font-size: 10px; font-weight: 400; color: var(--pulso-text-muted); }
+.cmv2-dist-rango {
+  display: block;
+  margin-top: 1px;
+  font-size: 10px;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
 .cmv2-chfp-min-sug {
   display: flex;
   align-items: flex-start;
@@ -2911,12 +2918,37 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   .cmv2-boxplot-box { animation: none; }
 }
 
+/* Eje X compartido de los boxplots: escala numérica de elegibles por aula. */
+.cmv2-boxplot-escala-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 2px 0;
+}
+.cmv2-boxplot-escala-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+.cmv2-boxplot-eje { flex: none; }
+.cmv2-boxplot-eje-line { stroke: var(--cmv2-border); stroke-width: 1; }
+.cmv2-boxplot-eje-tick { stroke: var(--cmv2-border); stroke-width: 1; }
+.cmv2-boxplot-eje-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1px;
+  font-size: 9px;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
 .cmv2-boxplot-leyenda {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 14px;
-  margin: 8px 2px 0;
+  margin: 6px 2px 0;
   font-size: 11px;
   line-height: 1.5;
   color: var(--pulso-text-muted);
