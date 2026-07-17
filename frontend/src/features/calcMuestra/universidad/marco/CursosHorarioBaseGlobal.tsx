@@ -229,6 +229,7 @@ export function CursosHorarioBaseGlobal({
   facultades,
   teacherTypeOrden,
   config,
+  soloAjustes = false,
   onSelVariable,
   onRango,
   onTeacherTypeOrden,
@@ -242,6 +243,9 @@ export function CursosHorarioBaseGlobal({
   facultades: FacultadRef[];
   teacherTypeOrden: string[] | undefined;
   config: CalcMuestraWorkspaceAulasConfig;
+  /** Solo los ajustes transversales del marco (mínimo general, tasa, composición
+   *  c8); oculta los criterios de set/rango que ya se deciden por facultad. */
+  soloAjustes?: boolean;
   onSelVariable: (variableId: string, next: CriterioSeleccion) => void;
   onRango: (facultad: string, rangos: Array<[number, number]>) => void;
   onTeacherTypeOrden: (keys: string[]) => void;
@@ -251,18 +255,19 @@ export function CursosHorarioBaseGlobal({
 }) {
   return (
     <div className="cmv2-crit-grid cmv2-chfp-global-grid">
-      {aulaVariables.map((variable) => (
-        <GlobalCriterioCard
-          key={variable.id}
-          variable={variable}
-          seleccion={seleccion}
-          facultades={facultades}
-          teacherTypeOrden={teacherTypeOrden}
-          onSelVariable={onSelVariable}
-          onRango={onRango}
-          onTeacherTypeOrden={onTeacherTypeOrden}
-        />
-      ))}
+      {!soloAjustes &&
+        aulaVariables.map((variable) => (
+          <GlobalCriterioCard
+            key={variable.id}
+            variable={variable}
+            seleccion={seleccion}
+            facultades={facultades}
+            teacherTypeOrden={teacherTypeOrden}
+            onSelVariable={onSelVariable}
+            onRango={onRango}
+            onTeacherTypeOrden={onTeacherTypeOrden}
+          />
+        ))}
       <GlobalMinCard
         seleccion={seleccion}
         fallbackUmbral={config.min_elegibles_aula}

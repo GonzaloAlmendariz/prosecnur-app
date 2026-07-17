@@ -90,11 +90,12 @@ describe("CursosHorarioMarcoTab — vista integrada facultad-primaria", () => {
     expect(html).toContain('data-audit-ready="true"');
     // Barra global de recálculo (único punto que reconstruye el marco).
     expect(html).toContain("Calcular población y cursos-horario elegibles");
-    // Base global · todas las facultades (el set por defecto que se hereda).
-    expect(html).toContain("Base global");
+    // Ajustes del marco (lo transversal: mínimo general, tasa, composición c8);
+    // los criterios de set/rango se decidieron por facultad, no aquí.
+    expect(html).toContain("Ajustes del marco");
     // Bloque de la facultad con su radiografía visible (primer bloque abierto).
     expect(html).toContain("PSICOLOGÍA");
-    expect(html).toContain("Mediana");
+    expect(html).toContain("aulas candidatas");
     // Decisión por facultad presente (mismo criterio que la base global).
     expect(html).toContain("Decisión para esta facultad");
   });
