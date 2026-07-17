@@ -161,8 +161,18 @@ matriz_pulso_detect <- function(path) {
   cols[idx[1]]
 }
 
+# Quita el indice de acreditacion de una etiqueta ("2.1.2 Gestion..." ->
+# "Gestion..."). Las cabeceras de matriz del modelo 2026 se nombran por tema,
+# no por codigo; la indexacion queda reservada a las secciones-banda.
+.matriz_pulso_strip_index <- function(x) {
+  sub("^\\s*[0-9]+(\\.[0-9]+)*[.)]?\\s+", "", as.character(x %||% ""))
+}
+
 # Construye la hoja `survey` a partir de los vectores paralelos criterio /
 # subcriterio (ya forward-filled) y afirmacion (ya filtrados a no vacíos).
+# Estructura fiel al modelo 2026: una unica seccion-banda "SECCION II: ENCUESTA"
+# y cabeceras de matriz por criterio (sin indice). El preambulo aporta la otra
+# seccion ("SECCION I: DATOS GENERALES").
 # Devuelve list(survey=df, escala=chr, n_secciones, n_questions).
 .matriz_pulso_build_survey <- function(criterio, subcriterio, afirmacion, escala = NULL) {
   n <- length(afirmacion)
@@ -171,42 +181,45 @@ matriz_pulso_detect <- function(path) {
   types <- character(0)
   names_v <- character(0)
   labels <- character(0)
-  add <- function(type, name, label) {
+  subgroups_v <- character(0)
+  relevants_v <- character(0)
+  add <- function(type, name, label, subgroup = "", relevant = "") {
     types[[length(types) + 1L]] <<- type
     names_v[[length(names_v) + 1L]] <<- name
     labels[[length(labels) + 1L]] <<- label
+    subgroups_v[[length(subgroups_v) + 1L]] <<- subgroup
+    relevants_v[[length(relevants_v) + 1L]] <<- relevant
   }
 
-  sec_i <- 0L
   grp <- 0L
   qn <- 0L
   prev_crit <- NULL
-  prev_sub <- NULL
   prev_scale <- NULL
   open <- FALSE
 
   for (i in seq_len(n)) {
-    crit <- criterio[i] %||% ""
-    if (is.null(prev_crit) || !identical(crit, prev_crit)) {
-      if (open) add("end_group", "", "")
-      sec_i <- sec_i + 1L
-      add("begin_group", sprintf("sec%d", sec_i), crit)
+    crit_raw <- criterio[i] %||% ""
+    # Cabecera de matriz = criterio SIN indice (editable; el modelo 2026 nombra
+    # las matrices por tema). Toda la encuesta cuelga de una sola seccion-banda.
+    crit_lbl <- .matriz_pulso_strip_index(crit_raw)
+    if (!open) {
+      add("begin_group", "sec_encuesta", "SECCIÓN II: ENCUESTA")
       open <- TRUE
-      prev_crit <- crit
-      # Nueva sección corta cualquier corrida en curso.
-      prev_sub <- NULL
-      prev_scale <- NULL
     }
-    # Corrida de matriz = mismo subcriterio Y misma escala consecutivos.
-    if (is.null(prev_sub) ||
-        !identical(subcriterio[i] %||% "", prev_sub) ||
+    # Corrida de matriz = mismo criterio Y misma escala consecutivos.
+    if (is.null(prev_crit) ||
+        !identical(crit_raw, prev_crit) ||
         !identical(escala[i], prev_scale)) {
       grp <- grp + 1L
-      prev_sub <- subcriterio[i] %||% ""
+      prev_crit <- crit_raw
       prev_scale <- escala[i]
     }
     qn <- qn + 1L
-    add(sprintf("select_one %s", escala[i]), sprintf("g%d_%d", grp, qn), afirmacion[i])
+    nm <- sprintf("g%d_%d", grp, qn)
+    # La logica de filtro (relevant) NO se infiere aqui: se aplica despues, en
+    # matriz_pulso_to_workbook, desde el mapa EXACTO extraido de los cuestionarios
+    # modelo 2026 (.matriz_pulso_filter_map), fiel al instrumento.
+    add(sprintf("select_one %s", escala[i]), nm, afirmacion[i], subgroup = crit_lbl, relevant = "")
   }
   if (open) add("end_group", "", "")
 
@@ -214,8 +227,10 @@ matriz_pulso_detect <- function(path) {
     type = as.character(types),
     name = as.character(names_v),
     label = as.character(labels),
+    paper_subgroup = as.character(subgroups_v),
+    paper_subletter = "",
     required = "",
-    relevant = "",
+    relevant = as.character(relevants_v),
     constraint = "",
     calculation = "",
     choice_filter = "",
@@ -227,26 +242,27 @@ matriz_pulso_detect <- function(path) {
   list(
     survey = survey,
     escala = escala,
-    n_secciones = sec_i,
+    # La encuesta es una unica seccion-banda; el preambulo aporta "DATOS GENERALES".
+    n_secciones = if (n > 0L) 1L else 0L,
     n_questions = n
   )
 }
 
-# Cataloga las corridas de matriz (subcriterio+escala contiguos) para estimar
+# Cataloga las corridas de matriz (criterio+escala contiguos) para estimar
 # cuántas se agruparán como matriz (≥2 preguntas). Devuelve el conteo.
+# `subcriterio` se mantiene en la firma por compatibilidad, pero ya no agrupa
+# (la cabecera de matriz es el criterio, no el subcriterio).
 .matriz_pulso_n_matrices <- function(criterio, subcriterio, escala) {
   n <- length(escala)
   if (!n) return(0L)
   run_len <- 0L
   matrices <- 0L
   prev_crit <- NULL
-  prev_sub <- NULL
   prev_scale <- NULL
   flush <- function() if (run_len >= 2L) matrices <<- matrices + 1L
   for (i in seq_len(n)) {
-    same <- !is.null(prev_sub) &&
+    same <- !is.null(prev_crit) &&
       identical(criterio[i] %||% "", prev_crit) &&
-      identical(subcriterio[i] %||% "", prev_sub) &&
       identical(escala[i], prev_scale)
     if (same) {
       run_len <- run_len + 1L
@@ -254,7 +270,6 @@ matriz_pulso_detect <- function(path) {
       flush()
       run_len <- 1L
       prev_crit <- criterio[i] %||% ""
-      prev_sub <- subcriterio[i] %||% ""
       prev_scale <- escala[i]
     }
   }
@@ -299,6 +314,155 @@ matriz_pulso_detect <- function(path) {
 #' Convierte una Matriz PULSO a un workbook XLSForm para una audiencia.
 #'
 #' @return list(survey, choices, settings, summary, warnings)
+# Mapa de filtros EXACTO extraido de los cuestionarios modelo 2026 (docx). Cada
+# par c(N, T) = "la pregunta N filtra: si su respuesta negativa, pasa a la
+# pregunta T" (se saltan N+1..T-1). La numeracion del modelo alinea 1:1 con el
+# orden de preguntas que produce este converter. Audiencia no mapeada -> sin
+# filtros (list()), y el instrumento queda sin logica hasta encodearla.
+.matriz_pulso_filter_map <- function(audience) {
+  key <- .matriz_pulso_norm(audience %||% "")
+  maps <- list(
+    docentes        = list(c(1, 3), c(3, 5), c(35, 37), c(55, 57), c(60, 68)),
+    estudiantes     = list(c(1, 3), c(3, 5), c(37, 40), c(40, 50)),
+    administrativos = list(c(1, 3), c(3, 5))
+  )
+  maps[[key]] %||% list()
+}
+
+# Aplica el mapa de filtros al survey: marca `relevant = ${filtro} = '1'` a las
+# preguntas dependientes (N+1..T-1) de cada filtro. Cuenta preguntas reales
+# (filas select_*), salteando begin/end_group.
+.matriz_pulso_apply_filters <- function(survey, filter_map) {
+  if (!length(filter_map)) return(survey)
+  q_rows <- which(grepl("^select_", survey$type))  # filas-pregunta, en orden
+  if (!"relevant" %in% names(survey)) survey$relevant <- rep("", nrow(survey))
+  for (fm in filter_map) {
+    n <- as.integer(fm[1]); t <- as.integer(fm[2])
+    if (is.na(n) || is.na(t) || n < 1L || n > length(q_rows) || t <= n + 1L) next
+    filter_name <- survey$name[q_rows[n]]
+    dep_q <- seq.int(n + 1L, min(t - 1L, length(q_rows)))
+    survey$relevant[q_rows[dep_q]] <- sprintf("${%s} = '1'", filter_name)
+  }
+  survey
+}
+
+# Preambulo del cuestionario (extraido de los Cuestionarios modelo 2026):
+# nota de INTRODUCCION (saludo + consentimiento) + pregunta de consentimiento +
+# SECCION I: DATOS GENERALES (demograficos por audiencia). Sin numero (paper_number
+# "-") para que la encuesta arranque en Q1 y el mapa de filtros siga valido.
+# Devuelve list(survey, choices, consent_var). Audiencia no mapeada -> preambulo
+# minimo (solo intro + consentimiento).
+.matriz_pulso_preamble <- function(audience) {
+  key <- .matriz_pulso_norm(audience %||% "")
+  noun <- switch(key, docentes = "docente", estudiantes = "estudiante",
+                 administrativos = "trabajador(a)", "participante")
+  intro <- paste0(
+    "Estimado(a) ", noun, ", la Formación General de la Facultad de Arte y Diseño de la Pontificia ",
+    "Universidad Católica del Perú y el Instituto de Analítica Social e Inteligencia Estratégica - PULSO ",
+    "PUCP vienen realizando un estudio de opinión en el marco del proceso de acreditación. El objetivo de ",
+    "la encuesta es conocer su percepción acerca de la misión, los propósitos, las competencias de salida, ",
+    "la malla curricular, las actividades de investigación y otros aspectos vinculados con la formación. Le ",
+    "invitamos a participar en un cuestionario de aproximadamente XX minutos. Toda la información brindada ",
+    "será usada solo para los fines del presente estudio, de carácter confidencial de acuerdo con la Ley N.° ",
+    "29733, Ley de Protección de Datos Personales. Agradecemos su sinceridad. Si tiene alguna duda, ",
+    "escríbanos a pulsopucp@pucp.edu.pe.")
+  rows <- list()
+  add_row <- function(type, name, label, number = "-") {
+    rows[[length(rows) + 1L]] <<- list(type = type, name = name, label = label, number = number)
+  }
+  add_row("note", "intro", intro, number = "")
+  add_row("select_one dg_sino", "consentimiento", "Hecha esta aclaración, ¿desea continuar con la encuesta?")
+  add_row("begin_group", "sec_datos", "SECCIÓN I: DATOS GENERALES", number = "")
+  if (identical(key, "docentes")) {
+    add_row("select_one dg_grado", "dg_grado", "¿Cuál es su mayor grado académico alcanzado?")
+    add_row("select_one dg_sino", "dg_exp", "¿Cuenta con experiencia en el medio profesional fuera del ámbito académico?")
+    add_row("integer", "dg_anos_exp", "¿Cuántos años de experiencia tiene en el medio profesional?")
+  } else if (identical(key, "estudiantes")) {
+    add_row("integer", "dg_edad", "¿Cuántos años tiene en la actualidad?")
+    add_row("text", "dg_codigo", "¿Cuál es su código PUCP?")
+    add_row("text", "dg_ano_ciclo", "¿En qué año y ciclo ingresó a la Facultad de Arte y Diseño? (Por ejemplo: 2026-I)")
+    add_row("text", "dg_ciclo", "¿Qué ciclo está cursando actualmente?")
+  } else if (identical(key, "administrativos")) {
+    add_row("integer", "dg_edad", "¿Cuántos años tiene en la actualidad?")
+    add_row("text", "dg_ano_ingreso", "¿En qué año ingresó a trabajar en la Facultad o el Departamento?")
+  }
+  add_row("end_group", "sec_datos_end", "", number = "")
+
+  survey <- data.frame(
+    type = vapply(rows, `[[`, character(1), "type"),
+    name = vapply(rows, `[[`, character(1), "name"),
+    label = vapply(rows, `[[`, character(1), "label"),
+    paper_subgroup = "",
+    paper_subletter = "",
+    paper_number = vapply(rows, `[[`, character(1), "number"),
+    required = "", relevant = "", constraint = "", calculation = "",
+    choice_filter = "", appearance = "",
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+  choices <- data.frame(list_name = "dg_sino", name = c("1", "2"), label = c("Sí", "No"),
+                        stringsAsFactors = FALSE)
+  if (identical(key, "docentes")) {
+    choices <- rbind(choices, data.frame(list_name = "dg_grado", name = as.character(1:5),
+      label = c("Técnico especialista", "Bachiller", "Licenciado(a)", "Magíster", "Doctor(a)"),
+      stringsAsFactors = FALSE))
+  }
+  list(survey = survey, choices = choices, consent_var = "consentimiento")
+}
+
+# Sub-preguntas (competencias) del modelo 2026. En la Matriz PULSO estas llegan
+# como UNA fila con el enunciado + las competencias concatenadas en el texto
+# (comas internas ambiguas: "Experimentacion, tecnica y produccion"), asi que el
+# desglose fiel se hardcodea desde el docx modelo (igual que el mapa de saltos).
+# Devuelve el vector de sub-preguntas si la fila es una madre; character(0) si no.
+.matriz_pulso_subquestion_children <- function(label) {
+  l <- tolower(.matriz_pulso_norm(label))
+  if (grepl("competencias de salida", l) && grepl("comunicaci", l)) {
+    return(c("Comunicación visual", "Creación",
+             "Experimentación, técnica y producción", "Representación"))
+  }
+  if (grepl("gen[eé]ricas", l) && grepl("aprendizaje aut", l)) {
+    return(c("Aprendizaje autónomo y adaptabilidad",
+             "Ética, ciudadanía y conciencia ambiental",
+             "Investigación, creación e innovación",
+             "Pensamiento crítico y creativo",
+             "Comunicación eficaz: oral, escrita y no verbal",
+             "Habilidades colaborativas"))
+  }
+  character(0)
+}
+
+# Expande las filas madre (competencias) en: enunciado madre (paper_subletter
+# "@", sin codigos al dibujar) + N sub-preguntas (paper_subletter a/b/c...,
+# numeradas por letra, sin numero de encuesta). Se aplica DESPUES del mapa de
+# filtros para no desalinear la numeracion, y conserva relevant/subgrupo.
+.matriz_pulso_expand_subquestions <- function(survey) {
+  if (!nrow(survey)) return(survey)
+  if (!"paper_subletter" %in% names(survey)) survey$paper_subletter <- ""
+  if (!"paper_number" %in% names(survey)) survey$paper_number <- ""
+  pieces <- list()
+  for (i in seq_len(nrow(survey))) {
+    row <- survey[i, , drop = FALSE]
+    kids <- if (grepl("^select_", row$type)) .matriz_pulso_subquestion_children(row$label) else character(0)
+    if (!length(kids)) { pieces[[length(pieces) + 1L]] <- row; next }
+    # Enunciado madre: texto hasta el primer ":" inclusive.
+    parent <- row
+    parent$label <- sub("\\s*:.*$", ":", row$label)
+    parent$paper_subletter <- "@"
+    pieces[[length(pieces) + 1L]] <- parent
+    for (k in seq_along(kids)) {
+      child <- row
+      child$name <- sprintf("%s_%s", row$name, letters[k])
+      child$label <- kids[k]
+      child$paper_subletter <- letters[k]
+      child$paper_number <- "-"   # sub-pregunta: sin numero de encuesta propio
+      pieces[[length(pieces) + 1L]] <- child
+    }
+  }
+  out <- do.call(rbind, pieces)
+  rownames(out) <- NULL
+  out
+}
+
 matriz_pulso_to_workbook <- function(path, audience) {
   det <- matriz_pulso_detect(path)
   if (!isTRUE(det$is_matriz)) {
@@ -368,6 +532,10 @@ matriz_pulso_to_workbook <- function(path, audience) {
   escala <- .matriz_pulso_escala_row(tipo, respuesta, afirmacion)
 
   built <- .matriz_pulso_build_survey(criterio, subcriterio, afirmacion, escala)
+  # Logica de filtro EXACTA extraida de los cuestionarios modelo 2026 (docx):
+  # cada filtro (pregunta N) salta a la pregunta T -> se marca `relevant` a las
+  # dependientes N+1..T-1. Nuestra numeracion alinea 1:1 con el modelo.
+  built$survey <- .matriz_pulso_apply_filters(built$survey, .matriz_pulso_filter_map(audience_canon))
   n_acuerdo <- sum(escala == "esc_acuerdo")
   n_satisf <- sum(escala == "esc_satisf")
   n_sino <- sum(escala == "esc_sino")
@@ -388,10 +556,22 @@ matriz_pulso_to_workbook <- function(path, audience) {
     ))
   }
 
+  # Antepone el preambulo del modelo (intro + consentimiento + datos generales).
+  # El encuesta va numerada auto (Q1..N); el preambulo sin numero ("-").
+  pre <- .matriz_pulso_preamble(audience_canon)
+  built$survey$paper_number <- ""
+  # Desglosa las sub-preguntas (competencias) en madre + a/b/c... una vez que la
+  # numeracion de encuesta ya esta congelada (post filtros).
+  built$survey <- .matriz_pulso_expand_subquestions(built$survey)
+  cols <- names(pre$survey)
+  full_survey <- rbind(pre$survey[cols], built$survey[cols])
+  full_choices <- rbind(pre$choices, .matriz_pulso_choices(used = unique(escala)))
+
   list(
-    survey = built$survey,
-    choices = .matriz_pulso_choices(used = unique(escala)),
+    survey = full_survey,
+    choices = full_choices,
     settings = .matriz_pulso_settings(audience_canon),
+    consent_var = pre$consent_var,
     summary = list(
       audience = audience_canon,
       n_questions = as.integer(built$n_questions),
@@ -399,7 +579,8 @@ matriz_pulso_to_workbook <- function(path, audience) {
       n_acuerdo = as.integer(n_acuerdo),
       n_satisf = as.integer(n_satisf),
       n_sino = as.integer(n_sino),
-      n_secciones = as.integer(built$n_secciones)
+      # Secciones-banda del cuestionario: DATOS GENERALES (preambulo) + ENCUESTA.
+      n_secciones = as.integer(built$n_secciones + 1L)
     ),
     warnings = warnings
   )

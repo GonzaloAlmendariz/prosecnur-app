@@ -111,16 +111,22 @@ if (!exists("%||%", mode = "function")) {
 
   # Grano de instancia si el entregable se genera sobre una base hija repeat
   # (ADR 0030, Fase 4). La Fase 3 deja el meta de grano en
-  # `attr(instrumento, "repeat_grain")`; aquí sólo se anexa la nota de N correcta
-  # (N=instancias ... de N personas). Bases normales -> nota vacía, sin cambios.
-  grain_nota <- .repeat_grain_ficha_nota(.repeat_grain_from_inst(instrumento))
-  muestra <- if (is.finite(n_filas) && is.finite(n_cols)) {
+  # `attr(instrumento, "repeat_grain")` (o su campo serializable equivalente).
+  # En ese grano la unidad se declara como respuestas vinculadas a encuestas;
+  # las bases normales conservan la redacción histórica de casos.
+  repeat_grain <- .repeat_grain_from_inst(instrumento)
+  grain_nota <- .repeat_grain_ficha_nota(repeat_grain)
+  muestra <- if (is.list(repeat_grain) &&
+                 identical(as.character(repeat_grain$kind %||% ""), "instancia") &&
+                 nzchar(grain_nota)) {
+    grain_nota
+  } else if (is.finite(n_filas) && is.finite(n_cols)) {
     base_txt <- sprintf(
       "Base de análisis del entregable: %s casos y %s variables.",
       format(n_filas, big.mark = ","),
       format(n_cols, big.mark = ",")
     )
-    if (nzchar(grain_nota)) paste(base_txt, grain_nota) else base_txt
+    base_txt
   } else {
     "No aplica o no disponible para este entregable."
   }

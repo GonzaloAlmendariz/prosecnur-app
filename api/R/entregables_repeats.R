@@ -102,19 +102,18 @@
   n_pers <- suppressWarnings(as.integer(grain$n_personas))
   if (length(n_inst) != 1L || is.na(n_inst)) return("")
   grupo <- as.character(grain$repeat_group %||% "")
-  grupo_txt <- if (nzchar(grupo)) sprintf(" del grupo repetible '%s'", grupo) else ""
-  pers_txt <- if (length(n_pers) == 1L && !is.na(n_pers)) {
-    sprintf(" correspondientes a %s personas", format(n_pers, big.mark = ","))
+  grupo_txt <- if (nzchar(grupo)) sprintf(" del grupo repetible «%s»", grupo) else ""
+  encuesta_txt <- if (length(n_pers) == 1L && !is.na(n_pers)) {
+    sprintf(" correspondientes a %s encuestas", format(n_pers, big.mark = ","))
   } else {
     ""
   }
   sprintf(
     paste0(
-      "Base a nivel de fila repetida: %s filas%s%s (una fila por cada opción ",
-      "marcada, no una por persona). Los porcentajes se calculan sobre filas, ",
-      "no sobre personas."
+      "%s respuestas%s%s. Cada fila representa una respuesta del bloque; ",
+      "los porcentajes se calculan sobre respuestas, no sobre encuestas."
     ),
-    format(n_inst, big.mark = ","), grupo_txt, pers_txt
+    format(n_inst, big.mark = ","), grupo_txt, encuesta_txt
   )
 }
 
@@ -123,7 +122,8 @@
 #' @keywords internal
 .repeat_grain_from_inst <- function(instrumento) {
   if (is.null(instrumento)) return(NULL)
-  attr(instrumento, "repeat_grain", exact = TRUE)
+  attr(instrumento, "repeat_grain", exact = TRUE) %||%
+    (instrumento$repeat_grain %||% NULL)
 }
 
 # --- E. Univariados de la HIJA a grano de INSTANCIA (ADR 0030, Fase 4) --------
@@ -376,6 +376,10 @@
   stripped <- .repeat_strip_inherited(data, inst)
   data <- stripped$data
   inst <- stripped$inst
+  # `reporte_frecuencias()` reconstruye una lista mínima del instrumento para
+  # la ficha técnica. Guardar el grano también como campo evita perderlo en el
+  # merge y permite declarar respuestas y encuestas con su unidad correcta.
+  inst$repeat_grain <- grain
   base_name <- as.character((grain %||% list())$base_name %||%
                               (grain %||% list())$repeat_group %||% "")
 
@@ -405,6 +409,7 @@
   stripped <- .repeat_strip_inherited(data, inst)
   data <- stripped$data
   inst <- stripped$inst
+  inst$repeat_grain <- grain
   base_name <- as.character((grain %||% list())$base_name %||%
                               (grain %||% list())$repeat_group %||% "")
 

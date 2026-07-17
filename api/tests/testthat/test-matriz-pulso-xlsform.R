@@ -32,15 +32,28 @@ test_that("matriz_pulso_to_workbook arma survey con grupos, escalas y prefijos",
   wb <- matriz_pulso_to_workbook(path, "Docentes")
   survey <- wb$survey
 
-  # Estructura de grupos: begin_group/end_group balanceados, uno por criterio.
+  # Estructura fiel al modelo 2026: dos secciones-banda, "SECCIÓN I: DATOS
+  # GENERALES" (preámbulo) + "SECCIÓN II: ENCUESTA" (toda la encuesta cuelga de
+  # una sola banda; los criterios pasan a ser cabeceras de matriz sin índice).
   n_begin <- sum(survey$type == "begin_group")
   n_end <- sum(survey$type == "end_group")
   expect_equal(n_begin, n_end)
   expect_equal(n_begin, 2L)
   expect_equal(wb$summary$n_secciones, 2L)
 
+  # La banda de la encuesta es "SECCIÓN II: ENCUESTA" (la de datos generales la
+  # aporta el preámbulo).
+  band_labels <- survey$label[survey$type == "begin_group"]
+  expect_true("SECCIÓN II: ENCUESTA" %in% band_labels)
+
+  # Las cabeceras de matriz (paper_subgroup) NO llevan índice de acreditación:
+  # son nombres temáticos limpios, como el modelo 2026.
+  headers <- unique(survey$paper_subgroup[nzchar(survey$paper_subgroup)])
+  expect_true(length(headers) > 0L)
+  expect_false(any(grepl("^[0-9]+(\\.[0-9]+)*[.)]?\\s", headers)))
+
   # Las 11 afirmaciones de Docentes se convierten en select_one.
-  questions <- survey[grepl("^select_one ", survey$type), ]
+  questions <- survey[grepl("^select_one ", survey$type) & !grepl("^(dg_|consentimiento)", survey$name), ]
   expect_equal(nrow(questions), 11L)
   expect_equal(wb$summary$n_questions, 11L)
 
@@ -82,7 +95,7 @@ test_that("matriz_pulso_to_workbook filtra por audiencia (Administrativos)", {
   skip_if_not(file.exists(path))
 
   wb <- matriz_pulso_to_workbook(path, "Administrativos")
-  questions <- wb$survey[grepl("^select_one ", wb$survey$type), ]
+  questions <- wb$survey[grepl("^select_one ", wb$survey$type) & !grepl("^(dg_|consentimiento)", wb$survey$name), ]
   # Administrativos solo tiene 4 afirmaciones con texto en el fixture.
   expect_equal(nrow(questions), 4L)
   expect_equal(wb$summary$audience, "Administrativos")
