@@ -2447,6 +2447,24 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   color: var(--pulso-text-muted);
 }
 .cmv2-chfp-min-sug svg { flex: none; margin-top: 1px; color: var(--cmv2-accent-fg); }
+/* Sugerencia por facultad del tipo de sesión (P3): nudge, nunca auto-aplicada. */
+.cmv2-chfp-crit-sug {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-accent-soft);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--pulso-text-muted);
+}
+.cmv2-chfp-crit-sug svg { flex: none; color: var(--cmv2-accent-fg); }
+.cmv2-chfp-crit-sug-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--pulso-text);
+}
 
 @media (max-width: 1024px) {
   .cmv2-chfp-apply { position: static; }
