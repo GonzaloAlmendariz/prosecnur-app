@@ -20,7 +20,7 @@ export function CodebookPane() {
   const { state } = useSession();
 
   const codes = codebook.codigos_solo_si_presentes;
-  const fuenteLabel = state?.analitica_fuente === "adaptados" ? "Codificada" : "Original";
+  const fuenteLabel = state?.analitica_fuente?.startsWith("adaptados") ? "Codificada" : "Original";
 
   function toggle(n: number) {
     setCodebook({
