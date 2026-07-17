@@ -49,6 +49,11 @@ export function FacultadCategoriaToggles({
   const visibles = plegable && !verTodas ? relevantes : fila.tipos;
   return (
     <div className="cmv2-crit-tsf-detalle" role="group" aria-label={ariaLabel}>
+      {!hayDistribucion ? (
+        <p className="cmv2-crit-empty-note">
+          Sin distribución por facultad en el catálogo — marca las categorías que apliquen.
+        </p>
+      ) : null}
       <ul className="cmv2-crit-tsf-tipos">
         {visibles.map((t) => {
           const pct = fila.chTotal > 0 && t.ch != null ? t.ch / fila.chTotal : null;
@@ -75,9 +80,9 @@ export function FacultadCategoriaToggles({
                   <>
                     {fmtInt(t.ch)} <em>CH</em>
                   </>
-                ) : (
+                ) : hayDistribucion ? (
                   <em>sin distribución</em>
-                )}
+                ) : null}
                 {t.elegibles != null ? (
                   <>
                     {" · "}
