@@ -108,6 +108,17 @@
 # el punto de uso con .cm_aulas_text_key) para poder etiquetar categorías y
 # plegar variantes. Sin catálogo → estructura vacía (fallback a la base).
 
+# ¿El rol viene MAPEADO A MANO (ADR 0035, mapeo exclusivo)? El normalizador
+# (.cm_aulas_config_mapping) deja los DEFAULTS del rol —que SIEMPRE arrancan con
+# la clave-rol sentinel (p. ej. "condicion_curso")— cuando el usuario NO lo mapeó;
+# al mapearlo a mano REEMPLAZA el vector por su columna concreta y el sentinel
+# desaparece. Así, la ausencia del sentinel en el vector normalizado es la señal
+# robusta de "mapeo manual", sin acoplar este módulo a la lista de defaults.
+.cm_catalogo_rol_mapeado_a_mano <- function(mapping, rol) {
+  claves <- .cm_aulas_text_key(.cm_aulas_chr_vec(mapping[[rol]]))
+  length(claves) > 0L && !(.cm_aulas_text_key(rol) %in% claves)
+}
+
 # Candidatos de columna del catálogo por rol de señal (además del mapping).
 .cm_catalogo_signal_candidates <- function(mapping, rol) {
   base <- switch(rol,
@@ -115,10 +126,20 @@
     session_type   = c(mapping$session_type, "tipo", "tipo_curso", "tipo_de_curso", "tipo de curso"),
     teacher_type   = mapping$teacher_type,
     course_level   = c(mapping$course_level, "nivel"),
-    # En el catálogo la condición DEL CURSO suele venir como "Condición" a secas
-    # (no hay estudiante que ambiguar); por eso se admite "condicion" además del
-    # mapping propio. En la base sí es peligroso y se resuelve por clave exacta.
-    condicion_curso = c(mapping$condicion_curso, "condicion"),
+    # En catálogos legacy la condición DEL CURSO viene como "Condición" a secas
+    # y SIN mapeo del usuario; ahí el fallback genérico "condicion" la recupera
+    # (en un catálogo mono-hoja no hay estudiante que ambiguar). Pero si el
+    # usuario mapeó condicion_curso A MANO (ADR 0035, mapeo exclusivo), NO se
+    # inyecta el genérico: en una base multi-hoja el catálogo puede traer una
+    # "Condición" HOMÓNIMA SUCIA (mezcla de OBLIGATORIO/ELECTIVO con ruido de
+    # otra dimensión) que el fallback calzaría por clave, PISANDO la columna
+    # limpia que el usuario eligió ("Condición del curso"). Con mapeo manual solo
+    # se admite su columna exacta — mismo patrón limpio que teacher_type.
+    condicion_curso = if (.cm_catalogo_rol_mapeado_a_mano(mapping, "condicion_curso")) {
+      mapping$condicion_curso
+    } else {
+      c(mapping$condicion_curso, "condicion")
+    },
     enrolled_total = mapping$enrolled_total,
     faculty_curso  = c("facultad_del_curso", "facultad del curso", mapping$faculty),
     campus         = mapping$campus,
