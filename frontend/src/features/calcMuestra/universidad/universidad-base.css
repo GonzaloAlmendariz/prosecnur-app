@@ -526,7 +526,7 @@
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--cmv2-accent-fg), color-mix(in srgb, var(--cmv2-accent) 58%, #38bdf8));
+  background: linear-gradient(90deg, var(--cmv2-accent-fg), color-mix(in srgb, var(--cmv2-accent) 58%, var(--pulso-accent-sky)));
 }
 
 .cmv2-representativity-metric-grid {
