@@ -205,6 +205,11 @@ graficar_pie <- function(
 
   `%||%` <- function(x, y) if (!is.null(x)) x else y
 
+  # El saneo/relleno del override de colores vive en el helper compartido
+  # `.graficos_mk_palette` (api/R/graficador_paleta.R). Alias local para no
+  # tocar los call-sites de este graficador.
+  .mk_palette <- .graficos_mk_palette
+
   tipo_pie           <- match.arg(tipo_pie)
   ordenar_categorias <- match.arg(ordenar_categorias)
   pos_titulo         <- match.arg(pos_titulo)
@@ -392,7 +397,11 @@ graficar_pie <- function(
     )
 
   if (!is.null(colores_categorias)) {
-    p_panel <- p_panel + ggplot2::scale_fill_manual(values = colores_categorias, drop = FALSE)
+    # El override puede llegar corto, parcial o sin nombres; `.mk_palette` lo
+    # rellena/recicla al nº de niveles del pie antes de pasarlo a la escala,
+    # evitando el crash "Insufficient values in manual scale".
+    pal_pie <- .mk_palette(levels(df$categoria), pal_user = colores_categorias)
+    p_panel <- p_panel + ggplot2::scale_fill_manual(values = pal_pie, drop = FALSE)
   }
 
   # Etiquetas %
