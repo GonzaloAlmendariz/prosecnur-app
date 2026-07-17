@@ -43,6 +43,7 @@
       "mac-bootstrap.cjs",
       "app-update.yml",
       "package.json",
+      "assets/**/*",
       "!node_modules/**/{CHANGELOG.md,README.md,readme.md}",
       "!node_modules/**/{test,tests,__tests__,powered-test,example,examples,docs}",
       "!node_modules/**/*.{md,d.ts,map}"
