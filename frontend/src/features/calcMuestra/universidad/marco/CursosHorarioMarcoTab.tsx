@@ -111,6 +111,7 @@ export function CursosHorarioMarcoTab({
     [aula],
   );
   const sessionVariable = useMemo(() => aula.find((v) => v.id === "session_type") ?? null, [aula]);
+  const rangeVariable = useMemo(() => aula.find((v) => v.kind === "range") ?? null, [aula]);
 
   const tiposBorrador = useMemo(() => {
     const tipos = new Map<string, TipoBorradorCriterio>();
@@ -365,12 +366,14 @@ export function CursosHorarioMarcoTab({
                     key={bloque.excKey || bloque.facLabel}
                     bloque={bloque}
                     variablesToggle={aulaToggle}
+                    rangeVariable={rangeVariable}
                     seleccion={borrador}
                     exploracion={exploracion}
                     umbralGeneral={umbralGeneral}
                     tasa={tasa}
                     defaultOpen={index === 0}
                     onToggleVariable={editarVariable}
+                    onRango={(facultad, rangos) => editarRango(rangeVariable?.id ?? "course_level", facultad, rangos)}
                     onMinimoFacultad={editarMinimoFacultad}
                   />
                 ))}
