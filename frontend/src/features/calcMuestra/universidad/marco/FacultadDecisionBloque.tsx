@@ -99,12 +99,21 @@ function CriterioFacultadCard({
   const sugAlDia = sug ? sugerenciaAplicada(variable, sel, excKey, sug) : false;
   if (!fila) return null;
   return (
-    <section className="cmv2-chfp-crit" data-decision={fila.decision} data-open={abierto || undefined}>
+    <section
+      className="cmv2-chfp-crit"
+      data-decision={fila.decision}
+      data-open={abierto || undefined}
+      data-collapsible={!abierto || undefined}
+      onClick={abierto ? undefined : () => setAbierto(true)}
+    >
       <button
         type="button"
         className="cmv2-chfp-crit-head"
         aria-expanded={abierto}
-        onClick={() => setAbierto((v) => !v)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setAbierto((v) => !v);
+        }}
       >
         <span className="cmv2-chfp-crit-head-label">
           <span className="cmv2-chfp-crit-chevron" aria-hidden="true">
@@ -128,7 +137,10 @@ function CriterioFacultadCard({
             className="cmv2-crit-sug-btn"
             disabled={sugAlDia}
             title={sug.porque}
-            onClick={() => onSel(aplicarSugerencia(variable, sel, excKey, sug))}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSel(aplicarSugerencia(variable, sel, excKey, sug));
+            }}
           >
             {sugAlDia ? "Al día" : "Usar"}
           </button>
@@ -170,12 +182,21 @@ function NivelFacultadCard({
   const desde = activo ? rangos[0][0] : min;
   const hasta = activo ? rangos[0][1] : max;
   return (
-    <section className="cmv2-chfp-crit" data-decision={activo ? "propia" : "hereda"} data-open={abierto || undefined}>
+    <section
+      className="cmv2-chfp-crit"
+      data-decision={activo ? "propia" : "hereda"}
+      data-open={abierto || undefined}
+      data-collapsible={!abierto || undefined}
+      onClick={abierto ? undefined : () => setAbierto(true)}
+    >
       <button
         type="button"
         className="cmv2-chfp-crit-head"
         aria-expanded={abierto}
-        onClick={() => setAbierto((v) => !v)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setAbierto((v) => !v);
+        }}
       >
         <span className="cmv2-chfp-crit-head-label">
           <span className="cmv2-chfp-crit-chevron" aria-hidden="true">
@@ -264,12 +285,21 @@ function MinFacultadCard({
   const minimoAlto = mediana != null && base > mediana;
   const pos = (v: number) => (hayDist ? Math.min(100, Math.max(0, ((v - distMin!) / (distMax! - distMin!)) * 100)) : 0);
   return (
-    <section className="cmv2-chfp-crit" data-decision={propio != null ? "propia" : "hereda"} data-open={abierto || undefined}>
+    <section
+      className="cmv2-chfp-crit"
+      data-decision={propio != null ? "propia" : "hereda"}
+      data-open={abierto || undefined}
+      data-collapsible={!abierto || undefined}
+      onClick={abierto ? undefined : () => setAbierto(true)}
+    >
       <button
         type="button"
         className="cmv2-chfp-crit-head"
         aria-expanded={abierto}
-        onClick={() => setAbierto((v) => !v)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setAbierto((v) => !v);
+        }}
       >
         <span className="cmv2-chfp-crit-head-label">
           <span className="cmv2-chfp-crit-chevron" aria-hidden="true">
