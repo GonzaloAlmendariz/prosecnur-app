@@ -314,10 +314,23 @@ job_cancel <- function(job_id) {
   j <- .jobs[[job_id]]
   if (is.null(j)) return(FALSE)
   if (j$status == "running") {
-    try(j$rx$kill(), silent = TRUE)
-    j$status <- "cancelled"
-    j$finished_at <- Sys.time()
-    .jobs[[job_id]] <- j
+    # F14: "running" es un status PEREZOSO — solo job_poll lo actualiza. Si el
+    # worker ya termino pero nadie polleo, cancelar aqui descartaria un
+    # resultado completo (y el on_complete jamas correria). Por eso, si el
+    # proceso ya no esta vivo, primero cosechamos el resultado via job_poll:
+    # si termino bien queda "done" (o "error") y NO se cancela nada.
+    alive <- tryCatch(j$rx$is_alive(), error = function(e) FALSE)
+    if (!alive) {
+      polled <- tryCatch(job_poll(job_id), error = function(e) NULL)
+      if (!is.null(polled) && polled$status %in% c("done", "error")) return(TRUE)
+      j <- .jobs[[job_id]] %||% j
+    }
+    if (identical(j$status, "running")) {
+      try(j$rx$kill(), silent = TRUE)
+      j$status <- "cancelled"
+      j$finished_at <- Sys.time()
+      .jobs[[job_id]] <- j
+    }
   }
   TRUE
 }
