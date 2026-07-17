@@ -6,22 +6,27 @@
  * reconstruye el motor R. La selección vive en workspace.aulas_config
  * (criterios_seleccion) y se autosalva con el resto del workspace.
  *
- * Principio (ADR 0035): cero categoría hardcodeada y cero preset canónico. Todo
- * sale de `criterios_catalogo` que emite el motor a partir de la base y el mapeo;
- * la selección es 100% MANUAL: sin nada guardado arranca VACÍA (ningún criterio
- * asumido) y es el académico quien marca cada uno. No se inyecta ni reconcilia a
- * un canónico por heurística.
+ * Principio (ADR 0035): cero categoría hardcodeada y cero preset automático.
+ * Todo sale de `criterios_catalogo` que emite el motor a partir de la base y el
+ * mapeo; la selección es 100% MANUAL: sin nada guardado arranca VACÍA (ningún
+ * criterio asumido) y es el académico quien marca cada uno. No se inyecta ni
+ * reconcilia a un canónico por heurística — el único canónico disponible es el
+ * botón EXPLÍCITO "Partir de los criterios HST 2025", que precarga el borrador
+ * (con resumen previo) y respeta el flujo confirmar-por-variable.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GraduationCap, Loader2, RefreshCw, School, SlidersHorizontal } from "lucide-react";
 import {
+  normalizeCalcMuestraAulasExploracion,
+  normalizeCalcMuestraAulasParticularidades,
+  normalizeCalcMuestraSessionTypeImpacto,
   normalizeCriteriosCatalogo,
   type CalcMuestraAulasState,
   type CalcMuestraWorkspace,
+  type CalcMuestraWorkspaceAulasConfig,
   type CriterioSeleccion,
   type CriteriosSeleccionMarco,
 } from "../../../../api/client";
-import { IconConfirm, IconSuccess, IconUndo } from "../../../../lib/icons";
 import {
   minEligibleThreshold,
   setMinEligible,
@@ -30,14 +35,22 @@ import {
 } from "../../dominio";
 import { ELEGIBLES_POR_AULA_ID } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
+import { AvisoModulo } from "../shared/AvisoModulo";
 import { marcoCriteriosDesactualizado } from "../shared/frame";
 import { normalizeUniversityAulasConfig } from "../shared/study";
+import { CifraFila, CifraMotor } from "../ui";
+import { useMotorStore } from "../../motor/store";
 import {
   copiarVariableCriterio,
   reconciliarBorradorCriterios,
   type TipoBorradorCriterio,
 } from "./borradorCriterios";
 import { CriterioCard } from "./CriterioCard";
+import { CriterioComposicionCard } from "./CriterioComposicionCard";
+import { PresetCanonicoButton } from "./PresetCanonicoButton";
+import type { PresetCanonicoPlan } from "./presetCanonicoModel";
+import { MinElegiblesCard, type FacultadMinRef } from "./MinElegiblesCard";
+import { setMinimoFacultad, setTasaAsistencia } from "./minElegiblesModel";
 import type { FacultadRef } from "./facultades";
 import "./criterios.css";
 
@@ -59,6 +72,8 @@ export function CriteriosMarcoTab({
   onReconstruir,
   puedeReconstruir,
   reconstruyendo,
+  onNavigate,
+  scope,
 }: {
   workspace: CalcMuestraWorkspace;
   aulasState: CalcMuestraAulasState | null;
@@ -68,12 +83,37 @@ export function CriteriosMarcoTab({
   onReconstruir?: () => void;
   puedeReconstruir?: boolean;
   reconstruyendo?: boolean;
+  /** Navegación del desk (sección, pestaña). Opcional: sin ella, la tarjeta de
+   *  tipo de sesión omite el link «Ver radiografía por facultad». */
+  onNavigate?: (section: string, tab?: string) => void;
+  /** Alcance a renderizar. "alumno" solo el bloque de criterios del estudiante
+   *  (con la salida N elegibles); "aula" solo el bloque de curso-horario;
+   *  sin scope, ambos (compatibilidad). La barra de aplicar se ve en los dos. */
+  scope?: "alumno" | "aula";
 }) {
   const catalogo = useMemo(
     () => normalizeCriteriosCatalogo(aulasState?.frame?.criterios_catalogo ?? null),
     [aulasState?.frame?.criterios_catalogo],
   );
+  // Payloads críticos para la vista por facultad del tipo de sesión (reunión
+  // §4). Todos retrocompatibles: sin los campos, la tarjeta se comporta como
+  // hoy (sin barras de elegibles, sin aviso de impacto, sin señal DTI).
+  const exploracion = useMemo(
+    () => normalizeCalcMuestraAulasExploracion(aulasState?.frame?.exploracion ?? null),
+    [aulasState?.frame?.exploracion],
+  );
+  const sessionTypeImpacto = useMemo(
+    () => normalizeCalcMuestraSessionTypeImpacto(aulasState?.frame?.session_type_impacto ?? null),
+    [aulasState?.frame?.session_type_impacto],
+  );
+  const sessionTypeDominante = useMemo(
+    () =>
+      normalizeCalcMuestraAulasParticularidades(aulasState?.frame?.particularidades ?? null)
+        ?.session_type_dominante ?? null,
+    [aulasState?.frame?.particularidades],
+  );
   const config = useMemo(() => normalizeUniversityAulasConfig(workspace.aulas_config), [workspace.aulas_config]);
+  const opcionalesActivosMotor = useMotorStore((s) => s.decisiones.opcionalesActivos);
   // Selección 100% MANUAL (ADR 0035): se muestra EXACTAMENTE lo confirmado en el
   // workspace, sin default canónico ni reconciliación silenciosa a un canónico.
   // Sin nada guardado arranca vacía (ningún criterio asumido). Persistir tal cual
@@ -114,9 +154,33 @@ export function CriteriosMarcoTab({
     return out;
   }, [facultades]);
 
+  // Facultades para los mínimos por facultad del criterio 7: preferimos las
+  // categorías del catálogo (claves normalizadas AUTORITATIVAS del motor, con
+  // conteo de CH); si el catálogo no trae la variable, caemos a los nombres del
+  // marco (mismas claves tras normalizar — el backend re-normaliza al leer).
+  const facultadesMin: FacultadMinRef[] = useMemo(() => {
+    const cats = catalogo.variables.find((v) => v.id === "faculty")?.categories ?? [];
+    if (cats.length) {
+      return cats.map((c) => ({ key: c.key, label: c.label, aulas: c.aulas > 0 ? c.aulas : null }));
+    }
+    return facRefs.map((f) => ({ key: f.key, label: f.label, aulas: null }));
+  }, [catalogo.variables, facRefs]);
+
   const alumno = catalogo.variables.filter((v) => v.scope === "alumno");
   const aula = catalogo.variables.filter((v) => v.scope === "aula");
   const ready = catalogo.variables.length > 0;
+  const showAlumno = scope !== "aula";
+  const showAula = scope !== "alumno";
+
+  // Salida visible del bloque de estudiante: N elegibles del marco (insumo que
+  // alimenta el resto del recorrido). null cuando aún no hay exploración.
+  const elegiblesTotal = exploracion?.totales.elegibles_total ?? null;
+
+  // Puente al Explorador desde la tarjeta de tipo de sesión. Depende de que el
+  // desk pase `onNavigate`; sin él, el link no se muestra. En la vista integrada
+  // (scope "aula") la radiografía ya está a la vista, así que se omite el link.
+  const onVerExplorador =
+    onNavigate && scope !== "aula" ? () => onNavigate("marco", "marco-ch-radiografia") : undefined;
 
   function patchSeleccion(next: CriteriosSeleccionMarco) {
     onWorkspace({ ...workspace, aulas_config: { ...config, criterios_seleccion: next } });
@@ -152,6 +216,24 @@ export function CriteriosMarcoTab({
     marcarPendiente(ELEGIBLES_POR_AULA_ID);
   }
 
+  // Criterio 7: mínimo propio de una facultad (null = vuelve a heredar el
+  // general) y tasa de asistencia esperada (solo informa la sugerencia).
+  function editarMinimoFacultad(facultadKey: string, valor: number | null) {
+    setBorrador((prev) => setMinimoFacultad(prev, facultadKey, valor, minEligibleThreshold(prev, config.min_elegibles_aula)));
+    marcarPendiente(ELEGIBLES_POR_AULA_ID);
+  }
+
+  function editarTasaAsistencia(tasa: number | null) {
+    setBorrador((prev) => setTasaAsistencia(prev, tasa, minEligibleThreshold(prev, config.min_elegibles_aula)));
+    marcarPendiente(ELEGIBLES_POR_AULA_ID);
+  }
+
+  // Criterio 8 (y la métrica referencial legacy): viven en aulas_config, no en
+  // criterios_seleccion — autosave inmediato, mismo patrón que teacher_type_orden.
+  function patchAulasConfig(patch: Partial<CalcMuestraWorkspaceAulasConfig>) {
+    onWorkspace({ ...workspace, aulas_config: { ...config, ...patch } });
+  }
+
   function confirmarVariable(id: string, tipo: TipoBorradorCriterio) {
     patchSeleccion(copiarVariableCriterio(seleccion, borrador, id, tipo));
     setPendientes((prev) => {
@@ -170,14 +252,25 @@ export function CriteriosMarcoTab({
     });
   }
 
-  const umbralElegibles = minEligibleThreshold(borrador, config.min_elegibles_aula);
+  // Preset explícito (reunión del diseño muestral): precarga SOLO el borrador
+  // con la selección canónica; cada variable queda pendiente de confirmar y el
+  // marco no cambia hasta recalcular. El plan reemplaza también los borradores
+  // abiertos (el botón lo advierte y pide confirmación antes).
+  function precargarPreset(plan: PresetCanonicoPlan) {
+    setBorrador(plan.seleccion);
+    setPendientes(new Set(plan.pendientes));
+  }
+
   const totalPendientes = pendientes.size;
 
   // Máquina de estados del recálculo del marco (§4.1.4): el botón exige
   // reconstruir cuando (a) es la primera vez (aún no hay marco), o (b) los
   // criterios confirmados difieren de los que construyeron el marco vigente.
   const marcoConstruido = Boolean(aulasState?.frame);
-  const marcoDesactualizado = marcoCriteriosDesactualizado(aulasState?.frame, config.criterios_seleccion, config.teacher_type_orden);
+  const marcoDesactualizado = marcoCriteriosDesactualizado(aulasState?.frame, config.criterios_seleccion, config.teacher_type_orden, {
+    config,
+    opcionalesActivos: opcionalesActivosMotor,
+  });
   const necesitaRecalculo = !marcoConstruido || marcoDesactualizado;
   const listoParaRecalcular = Boolean(puedeReconstruir) && !reconstruyendo && totalPendientes === 0;
   // El haz de luz (Anexo A.2) solo cuando hace falta reconstruir y no hay nada
@@ -201,10 +294,23 @@ export function CriteriosMarcoTab({
           aria-label="Calcular población y cursos-horario elegibles"
           data-attention={necesitaRecalculo ? "true" : "false"}
         >
-          <span className="cmv2-crit-draft-summary" data-active={totalPendientes > 0 ? "true" : "false"} data-stale={marcoDesactualizado ? "true" : "false"}>
+          <AvisoModulo
+            tone={totalPendientes > 0 || marcoDesactualizado ? "warn" : !marcoConstruido ? "info" : "success"}
+            role="status"
+            compact
+            className="cmv2-crit-draft-summary"
+          >
             {estadoResumen}
-          </span>
+          </AvisoModulo>
           <div className="cmv2-crit-apply-actions">
+            {ready ? (
+              <PresetCanonicoButton
+                catalogo={catalogo}
+                seleccion={seleccion}
+                borradoresSinConfirmar={totalPendientes}
+                onPrecargar={precargarPreset}
+              />
+            ) : null}
             <button
               type="button"
               className="cmv2-crit-apply-btn"
@@ -226,6 +332,20 @@ export function CriteriosMarcoTab({
         </div>
       )}
 
+      {showAlumno && elegiblesTotal != null && (
+        <div className="cmv2-crit-elegibles" data-audit-ready="true">
+          <CifraFila>
+            <CifraMotor
+              label="Elegibles del estudio"
+              value={fmtInt(elegiblesTotal)}
+              detalle="quiénes cumplen los criterios de estudiante — el insumo que luego perfilamos por curso-horario"
+              origen="motor"
+              hero
+            />
+          </CifraFila>
+        </div>
+      )}
+
       {!ready ? (
         <div className="cmv2-crit-empty">
           <SlidersHorizontal size={22} aria-hidden="true" />
@@ -238,7 +358,7 @@ export function CriteriosMarcoTab({
         </div>
       ) : (
         <>
-          {alumno.length > 0 && (
+          {showAlumno && alumno.length > 0 && (
             <section className="cmv2-crit-section" data-scope="alumno">
               <header className="cmv2-crit-scope-head" data-scope="alumno">
                 <span className="cmv2-crit-scope-bar" aria-hidden="true" />
@@ -268,7 +388,7 @@ export function CriteriosMarcoTab({
             </section>
           )}
 
-          {aula.length > 0 && (
+          {showAula && aula.length > 0 && (
             <section className="cmv2-crit-section" data-scope="aula">
               <header className="cmv2-crit-scope-head" data-scope="aula">
                 <span className="cmv2-crit-scope-bar" aria-hidden="true" />
@@ -294,78 +414,26 @@ export function CriteriosMarcoTab({
                     onDescartar={() => descartarVariable(variable.id, variable.kind)}
                     teacherTypeOrden={config.teacher_type_orden}
                     onTeacherTypeOrden={patchTeacherTypeOrden}
+                    exploracion={exploracion}
+                    sessionTypeImpacto={sessionTypeImpacto}
+                    sessionTypeDominante={sessionTypeDominante}
+                    onVerExplorador={onVerExplorador}
                   />
                 ))}
 
-                <article
-                  className="cmv2-crit-card"
-                  data-scope="aula"
-                  data-kind="numeric"
-                  data-pending={pendientes.has(ELEGIBLES_POR_AULA_ID) ? "true" : "false"}
-                >
-                  <header className="cmv2-crit-card-head">
-                    <div className="cmv2-crit-card-title">
-                      <strong>Elegibles por curso-horario</strong>
-                      <span className="cmv2-crit-card-meta">
-                        <span className="cmv2-crit-col">regla final del marco</span>
-                      </span>
-                    </div>
-                    <div className="cmv2-crit-card-state">
-                      <span className="cmv2-crit-head-count">≥ {fmtInt(umbralElegibles)}</span>
-                      <span
-                        className="cmv2-crit-state"
-                        data-state={pendientes.has(ELEGIBLES_POR_AULA_ID) ? "pending" : "confirmed"}
-                      >
-                        {pendientes.has(ELEGIBLES_POR_AULA_ID) ? (
-                          <span className="cmv2-crit-state-dot" aria-hidden="true" />
-                        ) : (
-                          <IconSuccess size={13} aria-hidden="true" />
-                        )}
-                        {pendientes.has(ELEGIBLES_POR_AULA_ID) ? "Cambios sin confirmar" : "Confirmado"}
-                      </span>
-                    </div>
-                  </header>
-                  <div className="cmv2-crit-card-body">
-                    <label className="cmv2-crit-num-field">
-                      <span>Mínimo de alumnos elegibles</span>
-                      <input
-                        type="number"
-                        min={1}
-                        value={umbralElegibles}
-                        onChange={(e) => editarUmbralElegibles(Math.max(1, Math.round(Number(e.target.value) || 1)))}
-                      />
-                    </label>
-                    <span className="cmv2-crit-num-hint">
-                      Excluye del marco los cursos-horario con menos elegibles que el umbral.
-                    </span>
-                  </div>
-                  {pendientes.has(ELEGIBLES_POR_AULA_ID) ? (
-                    <div className="cmv2-crit-confirm" role="status" aria-live="polite">
-                      <div className="cmv2-crit-confirm-copy">
-                        <strong>Revisa este umbral antes de incorporarlo.</strong>
-                        <span>Los demás criterios y el marco reconstruido no cambian todavía.</span>
-                      </div>
-                      <div className="cmv2-crit-confirm-actions">
-                        <button
-                          type="button"
-                          className="cmv2-crit-discard-btn"
-                          onClick={() => descartarVariable(ELEGIBLES_POR_AULA_ID, "minEligible")}
-                        >
-                          <IconUndo size={14} aria-hidden="true" />
-                          Descartar
-                        </button>
-                        <button
-                          type="button"
-                          className="cmv2-crit-confirm-btn"
-                          onClick={() => confirmarVariable(ELEGIBLES_POR_AULA_ID, "minEligible")}
-                        >
-                          <IconConfirm size={14} aria-hidden="true" />
-                          Confirmar umbral
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-                </article>
+                <MinElegiblesCard
+                  seleccion={borrador}
+                  fallbackUmbral={config.min_elegibles_aula}
+                  facultades={facultadesMin}
+                  pendiente={pendientes.has(ELEGIBLES_POR_AULA_ID)}
+                  onUmbral={editarUmbralElegibles}
+                  onMinimoFacultad={editarMinimoFacultad}
+                  onTasa={editarTasaAsistencia}
+                  onConfirmar={() => confirmarVariable(ELEGIBLES_POR_AULA_ID, "minEligible")}
+                  onDescartar={() => descartarVariable(ELEGIBLES_POR_AULA_ID, "minEligible")}
+                />
+
+                <CriterioComposicionCard config={config} onPatch={patchAulasConfig} />
               </div>
             </section>
           )}

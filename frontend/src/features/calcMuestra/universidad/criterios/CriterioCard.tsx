@@ -5,6 +5,9 @@
  * controles y a los helpers del dominio.
  */
 import type {
+  CalcMuestraAulasExploracion,
+  CalcMuestraAulasParticularidadSessionType,
+  CalcMuestraSessionTypeImpacto,
   CriterioSeleccion,
   CriterioVariable,
   CriteriosSeleccionMarco,
@@ -12,9 +15,12 @@ import type {
 import { IconConfirm, IconSuccess, IconUndo } from "../../../../lib/icons";
 import { resumenVariable, seleccionVariable, unidadCriterio } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
+import { CondicionCursoAviso } from "./CondicionCursoAviso";
 import { ControlFlat, ControlHierarchical, ControlNumeric, ControlOrdinal } from "./controles";
 import { ControlRange, ExcepcionesFacultad, type FacultadRef } from "./facultades";
 import { TeacherTypeOrden } from "./TeacherTypeOrden";
+import { SESSION_TYPE_VARIABLE_ID } from "./tipoSesionModel";
+import { TipoSesionPorFacultad } from "./TipoSesionPorFacultad";
 
 /** Conteo/resumen textual de la selección de la variable. */
 function ResumenCabecera({
@@ -78,6 +84,10 @@ export function CriterioCard({
   onDescartar,
   teacherTypeOrden,
   onTeacherTypeOrden,
+  exploracion,
+  sessionTypeImpacto,
+  sessionTypeDominante,
+  onVerExplorador,
 }: {
   variable: CriterioVariable;
   seleccion: CriteriosSeleccionMarco;
@@ -96,6 +106,14 @@ export function CriterioCard({
   teacherTypeOrden?: string[];
   /** teacher_type: persiste el nuevo orden de jerarquía (autosave del workspace). */
   onTeacherTypeOrden?: (keys: string[]) => void;
+  /** session_type: radiografía del marco (elegibles por tipo×facultad). */
+  exploracion?: CalcMuestraAulasExploracion | null;
+  /** session_type: impacto de tipos excluidos por facultad (trampa del taller). */
+  sessionTypeImpacto?: CalcMuestraSessionTypeImpacto | null;
+  /** session_type: señal de tipo de curso agrupado por DTI (particularidades). */
+  sessionTypeDominante?: CalcMuestraAulasParticularidadSessionType | null;
+  /** session_type: navega a la pestaña Explorador; sin callback no hay link. */
+  onVerExplorador?: () => void;
 }) {
   const sel = seleccionVariable(seleccion, variable.id);
   const mapeada = Boolean(variable.mappedColumn);
@@ -134,6 +152,7 @@ export function CriterioCard({
       </header>
 
       <div className="cmv2-crit-card-body">
+        {variable.id === "condicion_curso" ? <CondicionCursoAviso variable={variable} /> : null}
         {variable.kind === "flat" && <ControlFlat variable={variable} sel={sel} onSel={onSel} />}
         {variable.kind === "hierarchical" && (
           <ControlHierarchical variable={variable} sel={sel} onSel={onSel} />
@@ -148,8 +167,24 @@ export function CriterioCard({
         )}
       </div>
 
-      {(variable.kind === "flat" || variable.kind === "hierarchical") && (
-        <ExcepcionesFacultad variable={variable} sel={sel} facultades={facultades} onSel={onSel} />
+      {variable.id === SESSION_TYPE_VARIABLE_ID && (variable.kind === "flat" || variable.kind === "hierarchical") ? (
+        // Tipo de sesión: vista por facultad de primera clase (reunión §4) —
+        // reemplaza el link genérico de excepciones; compila a la MISMA
+        // estructura `exceptions` que ya persiste.
+        <TipoSesionPorFacultad
+          variable={variable}
+          sel={sel}
+          facultades={facultades}
+          onSel={onSel}
+          exploracion={exploracion}
+          impacto={sessionTypeImpacto}
+          sessionTypeDominante={sessionTypeDominante}
+          onVerExplorador={onVerExplorador}
+        />
+      ) : (
+        (variable.kind === "flat" || variable.kind === "hierarchical") && (
+          <ExcepcionesFacultad variable={variable} sel={sel} facultades={facultades} onSel={onSel} />
+        )
       )}
 
       {pendiente ? (

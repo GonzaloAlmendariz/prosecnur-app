@@ -1,0 +1,77 @@
+/**
+ * Detalle por-facultad de un criterio de curso-horario de tipo set (flat o
+ * jerárquico): toggles de las categorías de ESA facultad con su CH/elegibles y
+ * el botón «Volver a heredar el global». Extraído de TipoSesionPorFacultad para
+ * reusarse tanto ahí (tabla por facultad del tipo de sesión) como en la vista
+ * integrada facultad-primaria (decisión de session/condition/teacher junto a la
+ * radiografía). Presentacional: la compilación a `exceptions[facKey]` (op
+ * "replace") vive en tipoSesionModel.ts (testeada). Toda edición pasa por `onSel`
+ * (respeta el borrador→confirmar de la superficie que lo embebe).
+ */
+import type { CriterioSeleccion, CriterioVariable } from "../../../../api/client";
+import { fmtInt } from "../../sharedCore";
+import { Switch } from "./Switch";
+import { heredarFacultad, toggleTipoEnFacultad, type FilaFacultad } from "./tipoSesionModel";
+
+export function FacultadCategoriaToggles({
+  fila,
+  variable,
+  sel,
+  onSel,
+  ariaLabel,
+}: {
+  /** Fila con las categorías de la facultad (CH/elegibles + activo efectivo). */
+  fila: FilaFacultad;
+  variable: CriterioVariable;
+  sel: CriterioSeleccion;
+  /** Emite la selección siguiente (compila a op "replace" de la facultad). */
+  onSel: (next: CriterioSeleccion) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <div className="cmv2-crit-tsf-detalle" role="group" aria-label={ariaLabel}>
+      <ul className="cmv2-crit-tsf-tipos">
+        {fila.tipos.map((t) => (
+          <li key={t.key} className="cmv2-crit-tsf-tipo" data-checked={t.activo}>
+            <div className="cmv2-crit-item-main">
+              <Switch
+                checked={t.activo}
+                ariaLabel={`${t.label} en ${fila.facLabel}`}
+                onToggle={() => onSel(toggleTipoEnFacultad(variable, sel, fila.facKey, t.key))}
+              />
+              <span className="cmv2-crit-item-label">{t.label}</span>
+            </div>
+            <span className="cmv2-crit-item-count">
+              {t.ch != null ? (
+                <>
+                  {fmtInt(t.ch)} <em>CH</em>
+                </>
+              ) : (
+                <em>sin distribución</em>
+              )}
+              {t.elegibles != null ? (
+                <>
+                  {" · "}
+                  {fmtInt(t.elegibles)} <em>elegibles</em>
+                </>
+              ) : null}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {fila.decision === "propia" ? (
+        <button
+          type="button"
+          className="cmv2-crit-tsf-heredar"
+          onClick={() => onSel(heredarFacultad(sel, fila.facKey))}
+        >
+          Volver a heredar el global
+        </button>
+      ) : (
+        <p className="cmv2-crit-empty-note">
+          Esta facultad hereda el set global de arriba; al tocar un tipo aquí creas su decisión propia.
+        </p>
+      )}
+    </div>
+  );
+}

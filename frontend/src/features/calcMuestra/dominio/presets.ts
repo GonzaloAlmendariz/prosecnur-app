@@ -151,7 +151,7 @@ const CRITERIOS_AULA: CriterioAula[] = [
   },
   {
     id: "c7",
-    etiqueta: "c7 · Prevalencia de población ≥ 80%",
+    etiqueta: "c7 · Prevalencia de elegibles (referencial)",
     regla: "≥ 80% del curso-horario pertenece a la población objetivo",
     variable: "derivada del cruce",
     tipo: "opcional",
@@ -159,7 +159,7 @@ const CRITERIOS_AULA: CriterioAula[] = [
   },
   {
     id: "c8",
-    etiqueta: "c8 · Homogeneidad de ciclo ≥ 80%",
+    etiqueta: "c8 · Mismo nivel del curso ≥ 80%",
     regla: "≥ 80% del curso-horario está en el ciclo modal",
     variable: "derivada del cruce",
     tipo: "opcional",

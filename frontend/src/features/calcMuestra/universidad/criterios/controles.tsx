@@ -60,6 +60,11 @@ export function ControlFlat({
       <ul className="cmv2-crit-list" data-long={long ? "true" : undefined} aria-label={`Categorías de ${variable.label}`}>
         {cats.map((cat) => {
           const checked = categoriaMarcada(sel, cat.key);
+          // Solo variantes que agregan información: si la única variante es el
+          // mismo texto del label (caso típico), la línea duplicada sobra.
+          const variantes = (cat.variants ?? []).filter(
+            (variante) => variante.trim().toLocaleLowerCase("es") !== cat.label.trim().toLocaleLowerCase("es"),
+          );
           return (
             <li key={cat.key} className="cmv2-crit-item" data-checked={checked}>
               <div className="cmv2-crit-item-main">
@@ -69,9 +74,9 @@ export function ControlFlat({
               <span className="cmv2-crit-item-count">
                 {fmtInt(cat.aulas)} <em>{unidad}</em>
               </span>
-              {cat.variants?.length ? (
-                <span className="cmv2-crit-item-variants" title={cat.variants.join(" · ")}>
-                  {cat.variants.join(" · ")}
+              {variantes.length ? (
+                <span className="cmv2-crit-item-variants" title={variantes.join(" · ")}>
+                  {variantes.join(" · ")}
                 </span>
               ) : null}
             </li>
