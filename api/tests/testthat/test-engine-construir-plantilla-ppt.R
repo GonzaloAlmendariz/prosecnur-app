@@ -65,6 +65,34 @@ layout_names <- function(pptx) {
   names(layout_files_by_name(unzip_pptx(pptx)))
 }
 
+layout_c_sld_child_order <- function(pptx, layout_name) {
+  ns <- ppt_ns()
+  td <- unzip_pptx(pptx)
+  path <- layout_files_by_name(td)[[layout_name]]
+  doc <- xml2::read_xml(path)
+  c_sld <- xml2::xml_find_first(doc, ".//p:cSld", ns)
+  xml2::xml_name(xml2::xml_children(c_sld))
+}
+
+layout_top_right_picture_count <- function(pptx, layout_name) {
+  ns <- ppt_ns()
+  td <- unzip_pptx(pptx)
+  path <- layout_files_by_name(td)[[layout_name]]
+  doc <- xml2::read_xml(path)
+  presentation <- xml2::read_xml(file.path(td, "ppt", "presentation.xml"))
+  slide_size <- xml2::xml_find_first(presentation, ".//p:sldSz", ns)
+  width <- as.numeric(xml2::xml_attr(slide_size, "cx"))
+  height <- as.numeric(xml2::xml_attr(slide_size, "cy"))
+  pics <- xml2::xml_find_all(doc, ".//p:cSld/p:spTree//p:pic", ns)
+  if (!length(pics)) return(0L)
+  sum(vapply(pics, function(pic) {
+    off <- xml2::xml_find_first(pic, ".//a:xfrm/a:off", ns)
+    x <- as.numeric(xml2::xml_attr(off, "x"))
+    y <- as.numeric(xml2::xml_attr(off, "y"))
+    is.finite(x) && is.finite(y) && x >= width * 0.75 && y <= height * 0.20
+  }, logical(1)))
+}
+
 layout_placeholder_table <- function(pptx, layout_name) {
   ns <- ppt_ns()
   td <- unzip_pptx(pptx)
@@ -315,6 +343,8 @@ make_synthetic_reference <- function(base_pptx, style_static = FALSE, giz_layout
     set_layout_name(td, "1_ubicacion1", "Text slide two columns")
     set_layout_name(td, "right_2graficos_texto", "Project description")
 
+    set_layout_background(td, "Title slide 5", "0072BC")
+
     set_layout_placeholder_geom(td, "Title slide 5", "ctrTitle", 1L, list(
       x = "800000", y = "600000", cx = "6800000", cy = "900000"
     ))
@@ -434,6 +464,7 @@ test_that("modo estilo_estatico adapta layouts por familias y preserva nombres b
     destino = out_pptx,
     base = base_pptx,
     modo = "estilo_estatico",
+    omitir_logo_superior_derecho = TRUE,
     sobrescribir = TRUE,
     mensajes = FALSE
   )
@@ -460,6 +491,9 @@ test_that("modo estilo_estatico adapta layouts por familias y preserva nombres b
     geom_by_type(ref_text, "body", 1L)
   )
   expect_true("Synthetic Layout Stripe" %in% layout_static_names(out_pptx, "Graficos"))
+  expect_equal(layout_top_right_picture_count(out_pptx, "Graficos"), 0L)
+  graficos_order <- layout_c_sld_child_order(out_pptx, "Graficos")
+  expect_lt(match("bg", graficos_order), match("spTree", graficos_order))
 
   ref_two_cols <- layout_placeholder_table(ref_pptx, "Text slide two columns")
   out_two_cols <- layout_placeholder_table(out_pptx, "Graficos_2columnas")
@@ -498,6 +532,8 @@ test_that("modo estilo_estatico adapta layouts por familias y preserva nombres b
     geom_by_label(out_title, "prosecnur:title_slide:subtitle"),
     geom_by_type(ref_title, "subTitle", 1L)
   )
+  title_order <- layout_c_sld_child_order(out_pptx, "Title Slide")
+  expect_lt(match("bg", title_order), match("spTree", title_order))
 })
 
 test_that("modo estilo_estatico renderiza slides con contrato semantico", {

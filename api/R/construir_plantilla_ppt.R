@@ -55,7 +55,15 @@
   )
 }
 
-.ppt_replace_or_add_node <- function(doc_base, doc_ref, xpath, parent_xpath, ns, transform = NULL) {
+.ppt_replace_or_add_node <- function(
+    doc_base,
+    doc_ref,
+    xpath,
+    parent_xpath,
+    ns,
+    transform = NULL,
+    before_xpath = NULL
+) {
   node_ref <- xml2::xml_find_first(doc_ref, xpath, ns)
   if (inherits(node_ref, "xml_missing")) {
     stop("No se encontro el nodo requerido en la referencia: ", xpath, call. = FALSE)
@@ -68,7 +76,14 @@
   }
 
   node_base <- xml2::xml_find_first(doc_base, xpath, ns)
-  if (inherits(node_base, "xml_missing")) {
+  if (!is.null(before_xpath)) {
+    before_node <- xml2::xml_find_first(doc_base, before_xpath, ns)
+    if (inherits(before_node, "xml_missing")) {
+      stop("No se encontro el nodo de insercion requerido en la base: ", before_xpath, call. = FALSE)
+    }
+    if (!inherits(node_base, "xml_missing")) xml2::xml_remove(node_base)
+    xml2::xml_add_sibling(before_node, node_new, .where = "before")
+  } else if (inherits(node_base, "xml_missing")) {
     parent <- xml2::xml_find_first(doc_base, parent_xpath, ns)
     if (inherits(parent, "xml_missing")) {
       stop("No se encontro el nodo padre requerido en la base: ", parent_xpath, call. = FALSE)
@@ -404,6 +419,7 @@
     xpath = ".//p:cSld/p:bg",
     parent_xpath = ".//p:cSld",
     ns = ns,
+    before_xpath = ".//p:cSld/p:spTree",
     transform = function(node) {
       .ppt_prepare_node_for_copy(
         node = node,
@@ -429,7 +445,8 @@
     xpath,
     parent_xpath,
     ns,
-    transform = NULL
+    transform = NULL,
+    before_xpath = NULL
 ) {
   node_base <- xml2::xml_find_first(doc_base, xpath, ns)
   node_ref <- xml2::xml_find_first(doc_ref, xpath, ns)
@@ -450,7 +467,14 @@
     }
   }
 
-  if (inherits(node_base, "xml_missing")) {
+  if (!is.null(before_xpath)) {
+    before_node <- xml2::xml_find_first(doc_base, before_xpath, ns)
+    if (inherits(before_node, "xml_missing")) {
+      stop("No se encontro el nodo de insercion requerido en la base: ", before_xpath, call. = FALSE)
+    }
+    if (!inherits(node_base, "xml_missing")) xml2::xml_remove(node_base)
+    xml2::xml_add_sibling(before_node, node_new, .where = "before")
+  } else if (inherits(node_base, "xml_missing")) {
     parent <- xml2::xml_find_first(doc_base, parent_xpath, ns)
     if (inherits(parent, "xml_missing")) {
       stop("No se encontro el nodo padre requerido en la base: ", parent_xpath, call. = FALSE)
@@ -1160,6 +1184,7 @@
     xpath = ".//p:cSld/p:bg",
     parent_xpath = ".//p:cSld",
     ns = ns,
+    before_xpath = ".//p:cSld/p:spTree",
     transform = function(node) {
       .ppt_prepare_node_for_copy(
         node = node,
@@ -1232,6 +1257,26 @@
   xml2::write_xml(base_doc, base_layout_path, options = c("as_xml", "format"))
   xml2::write_xml(base_rels_doc, base_rels_path, options = c("as_xml", "format"))
   invisible(TRUE)
+}
+
+.ppt_remove_top_right_layout_pictures <- function(layout_path, slide_size, ns) {
+  doc <- xml2::read_xml(layout_path)
+  pics <- xml2::xml_find_all(doc, ".//p:cSld/p:spTree//p:pic", ns)
+  if (!length(pics)) return(invisible(0L))
+
+  remove <- vapply(pics, function(pic) {
+    off <- xml2::xml_find_first(pic, ".//a:xfrm/a:off", ns)
+    x <- suppressWarnings(as.numeric(xml2::xml_attr(off, "x")))
+    y <- suppressWarnings(as.numeric(xml2::xml_attr(off, "y")))
+    is.finite(x) && is.finite(y) &&
+      x >= as.numeric(slide_size$cx) * 0.75 &&
+      y <= as.numeric(slide_size$cy) * 0.20
+  }, logical(1))
+
+  if (!any(remove)) return(invisible(0L))
+  xml2::xml_remove(pics[remove])
+  xml2::write_xml(doc, layout_path, options = c("as_xml", "format"))
+  invisible(sum(remove))
 }
 
 .ppt_validate_ratio_16_9 <- function(workdir, etiqueta) {
@@ -1351,6 +1396,10 @@
 #' @param copiar_tipografias Logico. Si `TRUE` (default) reemplaza
 #'   `<a:fontScheme>` de `ppt/theme/theme1.xml` de la base con el de la
 #'   referencia.
+#' @param omitir_logo_superior_derecho Logico. Si `TRUE`, retira imágenes
+#'   estáticas ubicadas en la esquina superior derecha de los layouts. Se usa
+#'   cuando el renderer colocará la marca asociada en el pie y se quiere evitar
+#'   duplicarla. Por defecto es `FALSE`.
 #' @param sobrescribir Logico. Si `FALSE` (default) y `destino` ya
 #'   existe, la funcion falla. Usar `TRUE` para reemplazar el archivo
 #'   existente.
@@ -1383,6 +1432,7 @@ p_construir_plantilla <- function(
     modo               = c("reskin", "estilo_estatico"),
     copiar_colores     = TRUE,
     copiar_tipografias = TRUE,
+    omitir_logo_superior_derecho = FALSE,
     sobrescribir       = FALSE,
     mensajes           = TRUE
 ) {
@@ -1578,6 +1628,7 @@ p_construir_plantilla <- function(
       xpath = ".//p:cSld/p:bg",
       parent_xpath = ".//p:cSld",
       ns = ns,
+      before_xpath = ".//p:cSld/p:spTree",
       transform = function(node) {
         .ppt_prepare_node_for_copy(
           node = node,
@@ -1657,6 +1708,13 @@ p_construir_plantilla <- function(
         ns = ns,
         mensajes = mensajes
       )
+    }
+
+    if (isTRUE(omitir_logo_superior_derecho)) {
+      removed <- sum(vapply(base_layout_files, function(layout_path) {
+        .ppt_remove_top_right_layout_pictures(layout_path, slide_size, ns)
+      }, integer(1)))
+      msg("Logos superiores omitidos en layouts: ", removed)
     }
 
     xml2::write_xml(doc_master_base, master_base_path, options = c("as_xml", "format"))

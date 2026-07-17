@@ -423,6 +423,24 @@
   stats::setNames(rep_len(pal, length(levels)), levels)
 }
 
+#' Ajusta el aviso interno de opción múltiple sin restar altura a las barras.
+#'
+#' El título de la pregunta pertenece a la diapositiva, no al gráfico. Por eso
+#' este encabezado solo necesita alojar el aviso de una línea.
+#' @noRd
+.ppt_multiple_choice_notice_overrides <- function(overrides = list()) {
+  if (!is.list(overrides)) overrides <- list()
+
+  overrides$subtitulo <- "Pregunta de opción múltiple"
+  overrides$face_subtitulo <- "bold"
+
+  size_sub <- suppressWarnings(as.numeric(overrides$size_subtitulo %||% NA_real_)[1])
+  overrides$size_subtitulo <- if (is.finite(size_sub)) min(size_sub, 10.5) else 10.0
+  overrides$canvas_h_header_in <- 0.34
+  overrides$encabezado_separacion_in <- 0
+  overrides
+}
+
 #' @title Reporte PowerPoint basado en "plan" (p_* + diapo_###)
 #'
 #' @description
@@ -805,6 +823,8 @@ reporte_ppt_plan <- function(
   .styled_slide_title <- function(text, spec) {
     base_args <- presets$base$args %||% list()
     is_cover_title <- identical(as.character(spec$type)[1], "ctrTitle")
+    spec_label <- as.character(spec$ph_label %||% "")[1]
+    is_section_title <- identical(spec_label, "prosecnur:section:title")
 
     font_family <- if (is_cover_title) {
       base_args$font_family_titulo_portada %||% base_args$font_family_portada %||%
@@ -818,6 +838,8 @@ reporte_ppt_plan <- function(
 
     font_size_value <- if (is_cover_title) {
       base_args$size_titulo_portada %||% base_args$title_cover_size %||% base_args$size_titulo_slide
+    } else if (is_section_title) {
+      base_args$size_titulo_seccion %||% base_args$size_titulo_slide
     } else {
       base_args$size_titulo_slide
     }
@@ -826,6 +848,8 @@ reporte_ppt_plan <- function(
 
     color <- if (is_cover_title) {
       base_args$color_titulo_portada %||% base_args$title_cover_color %||% base_args$color_titulo
+    } else if (is_section_title) {
+      base_args$color_titulo_seccion %||% base_args$color_titulo
     } else {
       base_args$color_titulo
     }
@@ -837,6 +861,8 @@ reporte_ppt_plan <- function(
     uppercase_title <- if (is_cover_title) {
       base_args$mayusculas_titulo_portada %||% base_args$uppercase_title_cover %||%
         base_args$mayusculas_titulo_slide %||% base_args$uppercase_title_slide
+    } else if (is_section_title) {
+      base_args$mayusculas_titulo_seccion %||% FALSE
     } else {
       base_args$mayusculas_titulo_slide %||% base_args$uppercase_title_slide
     }
@@ -846,6 +872,8 @@ reporte_ppt_plan <- function(
     bold_title <- if (is_cover_title) {
       base_args$bold_titulo_portada %||% base_args$title_cover_bold %||%
         base_args$bold_titulo_slide %||% base_args$title_slide_bold
+    } else if (is_section_title) {
+      base_args$bold_titulo_seccion %||% TRUE
     } else {
       base_args$bold_titulo_slide %||% base_args$title_slide_bold
     }
@@ -2572,6 +2600,7 @@ reporte_ppt_plan <- function(
     refs <- c(
       .extract_ref_values(el$var %||% NULL),
       .extract_ref_values(el$vars %||% NULL),
+      .extract_ref_values(el$cruces %||% NULL),
       .extract_ref_values(el$cruce %||% NULL),
       .extract_ref_values(el$iter_var %||% NULL)
     )
@@ -4448,17 +4477,18 @@ reporte_ppt_plan <- function(
     .plot_note_from(plot_obj, fallback = fallback)
   }
 
-  .format_n_caption <- function(n_values) {
+  .format_n_caption <- function(n_values, unit = "egresados") {
     n_values <- suppressWarnings(as.numeric(n_values))
     n_values <- n_values[is.finite(n_values) & !is.na(n_values) & n_values > 0]
     if (!length(n_values)) return(NULL)
     n_values <- unique(round(n_values))
     n_values <- sort(n_values)
+    unit <- .clean_note_text(unit) %||% "egresados"
     fmt <- function(x) format(x, big.mark = ",", scientific = FALSE, trim = TRUE)
     if (length(n_values) == 1L) {
-      return(paste0("Base: ", fmt(n_values[[1]]), " egresados"))
+      return(paste0("Base: ", fmt(n_values[[1]]), " ", unit))
     }
-    paste0("Base: ", fmt(min(n_values)), "-", fmt(max(n_values)), " egresados")
+    paste0("Base: ", fmt(min(n_values)), "-", fmt(max(n_values)), " ", unit)
   }
 
   .force_canvas_args <- function(fun, args) {
@@ -5757,6 +5787,15 @@ reporte_ppt_plan <- function(
     var <- el$var
     filtros <- el$filtros %||% list()
     overrides <- el$overrides %||% list()
+    base_unit <- .clean_note_text(overrides$unidad_base %||% preset_args$unidad_base) %||% "egresados"
+    base_por_grupo <- isTRUE(overrides$base_por_grupo %||% preset_args$base_por_grupo)
+    overrides$unidad_base <- NULL
+    overrides$base_por_grupo <- NULL
+    preset_args$unidad_base <- NULL
+    preset_args$base_por_grupo <- NULL
+    cruce_ref <- overrides$cruces %||% el$cruces %||% preset_args$cruces %||% NULL
+    overrides$cruces <- NULL
+    preset_args$cruces <- NULL
     if (!is.null(el$mostrar_ceros)) {
       overrides$mostrar_ceros <- isTRUE(el$mostrar_ceros)
     }
@@ -5765,8 +5804,8 @@ reporte_ppt_plan <- function(
       overrides$excluir_opciones %||% NULL,
       el$excluir_opciones %||% NULL
     )
-    ctx_excluir <- .resolve_ref(var, arg_name = "var")
-    excluir_opciones <- .exclusion_for_ctx(ctx_excluir, excluir_opciones)
+    ctx_var <- .resolve_ref(var, arg_name = "var")
+    excluir_opciones <- .exclusion_for_ctx(ctx_var, excluir_opciones)
     tab <- .tab_freq(var, filtros = filtros)
     if (is.null(tab) || !nrow(tab)) return(.blank_canvas(preset_args, overrides))
 
@@ -5799,16 +5838,106 @@ reporte_ppt_plan <- function(
     # LONG: 1 fila por opcion
     # (esto evita: eje Y con "titulo" y colores distintos por opcion)
     # ----------------------------
-    df_long <- tibble::tibble(
-      categoria = as.character(tab$Opciones),
-      N         = N_total,
-      n         = suppressWarnings(as.numeric(tab$n)),
-      pct       = as.numeric(tab$n) / N_total
-    )
+    df_long <- NULL
+    etiquetas_series <- NULL
+    cols_n <- NULL
+    group_totals <- numeric(0)
+    colores_series <- NULL
+    colores_categorias <- NULL
 
-    etiquetas_series <- c(pct = "Porcentaje")
-    ln <- .list_name_of_var(var)
-    colores_categorias <- .paleta_auto(ln, env_diapos)
+    if (is.null(cruce_ref) || !is.character(cruce_ref) || length(cruce_ref) != 1L ||
+        !nzchar(trimws(cruce_ref))) {
+      df_long <- tibble::tibble(
+        categoria = as.character(tab$Opciones),
+        N         = N_total,
+        n         = suppressWarnings(as.numeric(tab$n)),
+        pct       = as.numeric(tab$n) / N_total
+      )
+      etiquetas_series <- c(pct = "Porcentaje")
+      cols_n <- c(pct = "n")
+      ln <- .list_name_of_var(var)
+      colores_categorias <- .paleta_auto(ln, env_diapos)
+    } else {
+      ctx_cruce <- .resolve_ref(cruce_ref, source = ctx_var$source, arg_name = "cruces")
+      df_cross <- .filter_data(filtros, source = ctx_var$source)
+      if (!ctx_cruce$var %in% names(df_cross)) return(.blank_canvas(preset_args, overrides))
+
+      cruce_values <- .reporte_plan_clean_chr(df_cross[[ctx_cruce$var]])
+      present_values <- unique(cruce_values[nzchar(cruce_values)])
+      cruce_list <- .list_name_from_ctx(ctx_cruce)
+      cruce_levels <- .reporte_plan_choice_levels_for_list(cruce_list, ctx_cruce$choices)
+      ordered_values <- if (nrow(cruce_levels)) {
+        c(
+          intersect(as.character(cruce_levels$code), present_values),
+          setdiff(present_values, as.character(cruce_levels$code))
+        )
+      } else {
+        present_values
+      }
+      ordered_values <- unique(ordered_values[nzchar(ordered_values)])
+      if (!length(ordered_values)) return(.blank_canvas(preset_args, overrides))
+
+      group_labels <- .reporte_plan_labels_for_levels(
+        cruce_list,
+        ordered_values,
+        ctx_cruce$choices
+      )
+      group_labels <- .reporte_plan_clean_chr(group_labels)
+      group_labels[!nzchar(group_labels)] <- ordered_values[!nzchar(group_labels)]
+
+      df_long <- tibble::tibble(
+        categoria = as.character(tab$Opciones),
+        N = N_total
+      )
+      etiquetas_series <- character(0)
+      cols_n <- character(0)
+
+      for (j in seq_along(ordered_values)) {
+        group_mask <- !is.na(cruce_values) & cruce_values == ordered_values[[j]]
+        group_data <- df_cross[group_mask, , drop = FALSE]
+        group_tab <- if (nrow(group_data)) {
+          freq_table_spss(
+            group_data,
+            ctx_var$var,
+            survey = ctx_var$survey,
+            sm_vars_force = NULL,
+            orders_list = ctx_var$orders_list,
+            mostrar_todo = TRUE
+          )
+        } else {
+          NULL
+        }
+        if (is.null(group_tab) || !nrow(group_tab)) next
+
+        group_total <- NA_real_
+        if (all(c("Opciones", "n") %in% names(group_tab))) {
+          total_idx <- which(group_tab$Opciones == "Total")
+          if (length(total_idx)) group_total <- suppressWarnings(as.numeric(group_tab$n[total_idx[[1]]]))
+        }
+        group_tab <- .reporte_plan_prepare_freq_options(group_tab, incluir_sin_n = mostrar_ceros)
+        group_tab <- .reporte_plan_filter_freq_options(group_tab, excluir_opciones)
+        if (!is.finite(group_total) || group_total <= 0 || !nrow(group_tab)) next
+
+        pct_col <- paste0("pct_", j)
+        n_col <- paste0("n_", j)
+        match_idx <- match(df_long$categoria, as.character(group_tab$Opciones))
+        group_n <- suppressWarnings(as.numeric(group_tab$n[match_idx]))
+        group_n[!is.finite(group_n) | is.na(group_n)] <- 0
+        df_long[[n_col]] <- group_n
+        df_long[[pct_col]] <- group_n / group_total
+        etiquetas_series[[pct_col]] <- group_labels[[j]]
+        cols_n[[pct_col]] <- n_col
+        group_totals[[pct_col]] <- group_total
+      }
+
+      if (!length(etiquetas_series)) return(.blank_canvas(preset_args, overrides))
+      series_keys <- .graficos_norm_text_key(unname(etiquetas_series))
+      colores_series <- ifelse(
+        grepl("intervenci", series_keys), "#0072BC",
+        ifelse(grepl("comparaci", series_keys), "#00A98F", "#B8C4CE")
+      )
+      names(colores_series) <- unname(etiquetas_series)
+    }
 
     # Detectar si la variable es select_multiple -> agregar subtitulo destacado.
     if (is.null(overrides$subtitulo)) {
@@ -5817,27 +5946,7 @@ reporte_ppt_plan <- function(
         mask <- !is.na(ctx_v$survey$name) & ctx_v$survey$name == ctx_v$var
         tps  <- unique(stats::na.omit(ctx_v$survey$type[mask]))
         if (any(grepl("^select_multiple(\\s|$)", tps))) {
-          overrides$subtitulo <- "Pregunta de opción múltiple"
-          overrides$face_subtitulo <- overrides$face_subtitulo %||% "bold"
-
-          size_sub <- suppressWarnings(as.numeric(overrides$size_subtitulo %||% NA_real_)[1])
-          overrides$size_subtitulo <- if (is.finite(size_sub)) max(size_sub, 11.2) else 11.2
-
-          titulo_sub <- as.character(overrides$titulo %||% el$title %||% "")
-          titulo_sub <- paste(strsplit(titulo_sub, "\n", fixed = TRUE)[[1]], collapse = "\n")
-          n_lineas_titulo <- max(1L, length(strsplit(titulo_sub, "\n", fixed = TRUE)[[1]]))
-          if (n_lineas_titulo <= 1L && nchar(titulo_sub) > 64L) n_lineas_titulo <- 2L
-          sep_obj <- if (n_lineas_titulo >= 3L) 0.72 else if (n_lineas_titulo >= 2L) 0.62 else 0.30
-          sep_sub <- suppressWarnings(as.numeric(overrides$encabezado_separacion_in %||% NA_real_)[1])
-          overrides$encabezado_separacion_in <- if (is.finite(sep_sub) && n_lineas_titulo <= 1L) {
-            min(sep_sub, sep_obj)
-          } else {
-            sep_obj
-          }
-
-          header_sub <- suppressWarnings(as.numeric(overrides$canvas_h_header_in %||% NA_real_)[1])
-          header_obj <- if (n_lineas_titulo >= 2L) 1.22 else 1.02
-          overrides$canvas_h_header_in <- if (is.finite(header_sub)) max(header_sub, header_obj) else header_obj
+          overrides <- .ppt_multiple_choice_notice_overrides(overrides)
         }
       }
     }
@@ -5846,25 +5955,41 @@ reporte_ppt_plan <- function(
       stop("No existe `graficar_barras_agrupadas()` en el entorno/paquete.", call. = FALSE)
     }
 
+    base_caption <- if (isTRUE(base_por_grupo) && length(group_totals)) {
+      .format_group_base_caption(
+        unname(etiquetas_series[names(group_totals)]),
+        unname(group_totals)
+      )
+    } else {
+      NULL
+    }
+
     base_args <- list(
       data                = df_long,
       var_categoria       = "categoria",
       var_n               = "N",
       cols_porcentaje     = "pct",
       etiquetas_series    = etiquetas_series,
-      cols_n              = c(pct = "n"),
-      mostrar_n_en_etiquetas = TRUE,
+      cols_n              = cols_n,
+      mostrar_n_en_etiquetas = FALSE,
+      colores_series      = colores_series,
       colores_categorias  = colores_categorias,
       mostrar_ceros       = mostrar_ceros,
       umbral_barra        = 0,
       titulo              = NULL,
       subtitulo           = NULL,
-      nota_pie            = .format_n_caption(N_total)
+      nota_pie            = base_caption %||% .format_n_caption(N_total, unit = base_unit)
     )
 
     preset_args <- preset_args %||% list()
     preset_args$mostrar_ceros <- NULL
     preset_args$excluir_opciones <- NULL
+    if (length(etiquetas_series) > 1L) {
+      base_args$cols_porcentaje <- names(etiquetas_series)
+      preset_args$colores_series <- NULL
+      preset_args$colores_categorias <- NULL
+      overrides$colores_categorias <- NULL
+    }
     if (!is.null(overrides$colores_categorias) && length(overrides$colores_categorias)) {
       preset_args$colores_series <- NULL
     }
@@ -5881,7 +6006,15 @@ reporte_ppt_plan <- function(
     args <- .force_canvas_args(fun, args)
     args <- .keep_formals(fun, args)
 
-    suppressWarnings(do.call(fun, args))
+    plot <- suppressWarnings(do.call(fun, args))
+    attr(plot, "pulso_barras_series") <- unname(etiquetas_series)
+    attr(plot, "pulso_barras_cruce") <- if (length(etiquetas_series) > 1L) cruce_ref else NULL
+    attr(plot, "pulso_barras_bases") <- stats::setNames(
+      unname(group_totals),
+      unname(etiquetas_series[names(group_totals)])
+    )
+    attr(plot, "pulso_barras_base_caption") <- base_caption
+    plot
   }
 
   .render_barras_categoricas <- function(el, preset_args) {
@@ -7317,22 +7450,41 @@ reporte_ppt_plan <- function(
     if (is.na(layout_poblacion_5)) stop("La plantilla NO tiene layout requerido: 'poblacion_5'.", call. = FALSE)
     if (is.na(layout_poblacion_6)) stop("La plantilla NO tiene layout requerido: 'poblacion_6'.", call. = FALSE)
 
-    slide_1_slots_by_layout <- list(
-      Graficos = list(
-        base  = list(type = "body", type_idx = 2),
-        right = list(type = "body", type_idx = 3)
-      ),
-      Graficos2 = list(
-        base  = list(type = "body", type_idx = 2),
-        right = list(type = "body", type_idx = 3)
-      )
-    )
-
     PPT_CONTRACT$slide_1$layout     <- layout_graficos
-    if (!is.null(slide_1_slots_by_layout[[layout_graficos]])) {
-      PPT_CONTRACT$slide_1$slots$base  <- slide_1_slots_by_layout[[layout_graficos]]$base
-      PPT_CONTRACT$slide_1$slots$right <- slide_1_slots_by_layout[[layout_graficos]]$right
+    slide_dims <- officer::slide_size(doc)
+    slide_1_layout_props <- officer::layout_properties(
+      doc,
+      layout = layout_graficos,
+      master = master
+    )
+    PPT_CONTRACT$slide_1$slots$title <- .ppt_title_spec_with_height(
+      slide_1_layout_props,
+      PPT_CONTRACT$slide_1$slots$title,
+      height = (presets$base$args %||% list())$slide_title_height
+    )
+    slide_1_bottom_specs <- .ppt_bottom_text_specs(
+      slide_1_layout_props,
+      slide_width = slide_dims$width,
+      slide_height = slide_dims$height
+    )
+    if (!is.null(slide_1_bottom_specs)) {
+      PPT_CONTRACT$slide_1$slots$base <- slide_1_bottom_specs$base
+      PPT_CONTRACT$slide_1$slots$right <- .ppt_configured_source_spec(
+        slide_1_bottom_specs$right,
+        presets$base$args %||% list()
+      )
     }
+    section_layout_props <- officer::layout_properties(
+      doc,
+      layout = PPT_CONTRACT$section$layout,
+      master = master
+    )
+    PPT_CONTRACT$section$slots$title <- .ppt_safe_section_title_spec(
+      section_layout_props,
+      slide_width = slide_dims$width,
+      slide_height = slide_dims$height,
+      spec = PPT_CONTRACT$section$slots$title
+    )
     slide_1_plot_height_cm <- suppressWarnings(as.numeric(
       (presets$base$args$slide_1_plot_height_cm %||%
         presets$base$args$alto_placeholder_1_grafico_cm %||%
@@ -7354,6 +7506,11 @@ reporte_ppt_plan <- function(
       )
     }
     PPT_CONTRACT$slide_2$layout     <- layout_doble
+    PPT_CONTRACT$slide_2$slots$title <- .ppt_title_spec_with_height(
+      officer::layout_properties(doc, layout = layout_doble, master = master),
+      PPT_CONTRACT$slide_2$slots$title,
+      height = (presets$base$args %||% list())$slide_title_height
+    )
     if (!is.na(layout_narrativo1)) PPT_CONTRACT$slide_1_narrativo$layout <- layout_narrativo1
     if (!is.na(layout_narrativo2)) PPT_CONTRACT$slide_2_narrativo$layout <- layout_narrativo2
     slide_1_narrativo_plot_height_cm <- suppressWarnings(as.numeric(
@@ -7387,6 +7544,13 @@ reporte_ppt_plan <- function(
         } else {
           plot_props$cy[[1]]
         }
+      )
+    }
+    if (!is.na(layout_narrativo1)) {
+      PPT_CONTRACT$slide_1_narrativo$slots$title <- .ppt_title_spec_with_height(
+        officer::layout_properties(doc, layout = layout_narrativo1, master = master),
+        PPT_CONTRACT$slide_1_narrativo$slots$title,
+        height = (presets$base$args %||% list())$slide_title_height
       )
     }
     if (!is.na(layout_paneles_4))  PPT_CONTRACT$paneles_4$layout <- layout_paneles_4
@@ -7443,6 +7607,7 @@ reporte_ppt_plan <- function(
       if (!isTRUE(solo_lista)) {
 
         doc <- .add_slide_strict(doc, contract$layout)
+        doc <- .ppt_add_partner_cover_logo(doc, presets$base$args %||% list())
 
         # title (requerido)
         if (!is.null(ttl) && nzchar(trimws(ttl))) {
@@ -7531,7 +7696,20 @@ reporte_ppt_plan <- function(
         nrow(subindices_df) > 0L ||
         (!is.null(title_raw) && nzchar(trimws(as.character(title_raw)[1])))
 
-      if (!isTRUE(solo_lista)) {
+      two_column_index <- isTRUE(.style_value(style, "acnur_two_column_index", FALSE))
+      if (!isTRUE(solo_lista) && isTRUE(has_custom_index) && isTRUE(two_column_index)) {
+        custom_layout <- PPT_CONTRACT$text_slide$layout %||% contract$layout
+        doc <- .add_slide_strict(doc, custom_layout)
+        font_family_default <- presets$base$args$font_family_ppt %||%
+          presets$base$args$font_family %||% "Arial"
+        doc <- .ppt_add_acnur_two_column_index(
+          doc,
+          title = title_raw %||% "Contenido",
+          sections = secciones,
+          style = style,
+          font_family = font_family_default
+        )
+      } else if (!isTRUE(solo_lista)) {
         if (isTRUE(has_custom_index)) {
           custom_layout <- contract$layout %||% NA_character_
           if (is.null(custom_layout) || is.na(custom_layout) || !nzchar(custom_layout)) {
@@ -8153,6 +8331,7 @@ reporte_ppt_plan <- function(
             )
           )
         }
+        doc <- .add_partner_footer_logo(doc)
       }
 
       if (isTRUE(build_render_meta)) {
@@ -8265,6 +8444,8 @@ reporte_ppt_plan <- function(
 
       title_slide <- slide$title %||% NULL
       slots       <- slide$slots %||% list()
+      suppress_base_placeholder <- isTRUE((slide$meta %||% list())$suppress_base_placeholder)
+      suppress_footer_placeholder <- isTRUE((slide$meta %||% list())$suppress_footer_placeholder)
       subtitle_slide <- slots$subtitle %||% NULL
       el_plot     <- slots$plot %||% NULL
 
@@ -8327,10 +8508,11 @@ reporte_ppt_plan <- function(
           plot_slot
         )
 
-        # BASE (manual o auto)
-        base_txt <- slots$base %||% NULL
+        # BASE (manual o auto). Algunos perfiles institucionales integran la
+        # base dentro del grafico y no deben materializar el marcador externo.
+        base_txt <- if (suppress_base_placeholder) "" else slots$base %||% NULL
 
-        if (is.null(base_txt)) {
+        if (!suppress_base_placeholder && is.null(base_txt)) {
           base_txt <- .base_auto_from_element(
             el         = el_plot,
             sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
@@ -8338,21 +8520,26 @@ reporte_ppt_plan <- function(
           )
         }
 
-        if (is.null(base_txt)) base_txt <- " "
-        doc <- .ph_with_strict(doc, as.character(base_txt)[1], contract$slots$base)
+        if (!suppress_base_placeholder) {
+          if (is.null(base_txt)) base_txt <- " "
+          doc <- .ph_with_strict(doc, as.character(base_txt)[1], contract$slots$base)
+        }
 
         # RIGHT (usa footer o deja en blanco)
-        right_obj <- slots$footer %||% NULL
+        right_obj <- if (suppress_footer_placeholder) NULL else slots$footer %||% NULL
 
         right_txt <- NULL
         if (inherits(right_obj, "ppt_element_text")) right_txt <- right_obj$text %||% NULL
         if (is.character(right_obj) && length(right_obj) == 1L) right_txt <- right_obj
-        if (is.null(right_txt) || !nzchar(trimws(as.character(right_txt)[1]))) {
+        if (!suppress_footer_placeholder &&
+            (is.null(right_txt) || !nzchar(trimws(as.character(right_txt)[1])))) {
           right_txt <- .ppt_note_from(p, el_plot$overrides$nota_pie %||% el_plot$nota_pie %||% NULL)
         }
 
-        if (is.null(right_txt) || !nzchar(trimws(right_txt))) right_txt <- " "
-        doc <- .ph_with_strict(doc, right_txt, contract$slots$right)
+        if (!suppress_footer_placeholder) {
+          if (is.null(right_txt) || !nzchar(trimws(right_txt))) right_txt <- " "
+          doc <- .ph_with_strict(doc, right_txt, contract$slots$right)
+        }
         doc <- .add_partner_footer_logo(doc)
       }
 
@@ -8517,9 +8704,11 @@ reporte_ppt_plan <- function(
             paste0(as.character(tag_txt)[1], "\n", as.character(tx)[1])
           else as.character(tag_txt)[1]
         } else {
-          if (!is.null(tx) && nzchar(trimws(as.character(tx)[1]))) as.character(tx)[1] else " "
+          if (!is.null(tx) && nzchar(trimws(as.character(tx)[1]))) as.character(tx)[1] else NULL
         }
-        doc <- .ph_with_strict(doc, combined, contract$slots$text)
+        if (!is.null(combined)) {
+          doc <- .ph_with_strict(doc, combined, contract$slots$text)
+        }
 
         plot_slot <- contract$slots$plot
         slide_meta <- slide$meta %||% list()
@@ -8545,15 +8734,17 @@ reporte_ppt_plan <- function(
             formato     = presets$base$args$formato %||% "Base: %s"
           )
         }
-        if (is.null(base_txt) || !nzchar(trimws(as.character(base_txt)[1]))) base_txt <- " "
-        doc <- .ph_with_strict(doc, as.character(base_txt)[1], contract$slots$base)
+        if (!is.null(base_txt) && nzchar(trimws(as.character(base_txt)[1]))) {
+          doc <- .ph_with_strict(doc, as.character(base_txt)[1], contract$slots$base)
+        }
 
         ft <- slots$footer %||% NULL
         if (is.null(ft) || !nzchar(trimws(as.character(ft)[1]))) {
           ft <- .ppt_note_from(p, el_plot$overrides$nota_pie %||% el_plot$nota_pie %||% NULL)
         }
-        if (is.null(ft) || !nzchar(trimws(as.character(ft)[1]))) ft <- " "
-        doc <- .ph_with_strict(doc, as.character(ft)[1], contract$slots$footer)
+        if (!is.null(ft) && nzchar(trimws(as.character(ft)[1]))) {
+          doc <- .ph_with_strict(doc, as.character(ft)[1], contract$slots$footer)
+        }
       }
 
       log_rows[[length(log_rows) + 1]] <- tibble::tibble(

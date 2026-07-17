@@ -27,6 +27,339 @@
 #   Objetivos_Secciones             |       1       | SKIP
 #   Title Slide                     |       1       | SKIP (logo derecho)
 
+# Unidad de análisis que acompaña a cada resultado en planes relacionales.
+# Vive fuera del renderer grande para que Gráficos, PPT y sus pruebas usen el
+# mismo vocabulario sin depender de nombres técnicos de las fuentes.
+.reporte_plan_base_label <- function(role = "principal", grain = NULL,
+                                     n_rows = NULL, prefix = "Base: ") {
+  role <- tolower(trimws(as.character(role %||% "principal")[1]))
+  grain <- grain %||% list()
+  scalar_int <- function(x, fallback = NA_integer_) {
+    out <- suppressWarnings(as.integer(x %||% fallback)[1])
+    if (is.na(out) || out < 0L) fallback else out
+  }
+  plural <- function(n, singular, plural_form) {
+    if (identical(as.integer(n), 1L)) singular else plural_form
+  }
+
+  if (role %in% c("repeat", "repetible", "instancia")) {
+    responses <- scalar_int(grain$n_instancias, scalar_int(n_rows))
+    surveys <- scalar_int(grain$n_personas)
+    if (is.na(responses)) return("")
+    response_text <- sprintf(
+      "%s %s",
+      format(responses, big.mark = ",", scientific = FALSE),
+      plural(responses, "respuesta", "respuestas")
+    )
+    if (!is.na(surveys)) {
+      response_text <- sprintf(
+        "%s de %s %s",
+        response_text,
+        format(surveys, big.mark = ",", scientific = FALSE),
+        plural(surveys, "encuesta", "encuestas")
+      )
+    }
+    return(paste0(prefix, response_text))
+  }
+
+  surveys <- scalar_int(grain$n_encuestas, scalar_int(n_rows))
+  if (is.na(surveys)) return("")
+  paste0(
+    prefix,
+    format(surveys, big.mark = ",", scientific = FALSE),
+    " ", plural(surveys, "encuesta", "encuestas")
+  )
+}
+
+.ppt_pulso_logo_asset <- function(variant = c("navy", "white", "black"),
+                                  override = NULL) {
+  variant <- match.arg(variant)
+  override <- as.character(override %||% "")[1]
+  filename <- paste0(variant, ".png")
+  candidates <- c(
+    if (nzchar(trimws(override))) override else character(0),
+    system.file("ppt_assets", "brand", "pulso-pucp", filename, package = "prosecnurapp"),
+    system.file("ppt_assets", "brand", "pulso-pucp", filename, package = "prosecnur"),
+    file.path(getwd(), "api", "inst", "ppt_assets", "brand", "pulso-pucp", filename),
+    file.path(getwd(), "inst", "ppt_assets", "brand", "pulso-pucp", filename)
+  )
+  candidates <- candidates[nzchar(candidates) & file.exists(candidates)]
+  if (!length(candidates)) return("")
+  normalizePath(candidates[[1L]], winslash = "/", mustWork = TRUE)
+}
+
+.ppt_add_partner_cover_logo <- function(doc, base_args = list()) {
+  enabled <- base_args$partner_logo_cover %||% base_args$logo_pulso_cover %||% FALSE
+  if (!isTRUE(enabled)) return(doc)
+
+  variant <- as.character(
+    base_args$partner_logo_cover_variant %||% base_args$logo_pulso_cover_variant %||% "white"
+  )[1]
+  if (!variant %in% c("navy", "white", "black")) variant <- "white"
+  path <- .ppt_pulso_logo_asset(
+    variant,
+    override = base_args$partner_logo_cover_path %||% base_args$logo_pulso_cover_path %||% NULL
+  )
+  if (!nzchar(path)) return(doc)
+
+  number <- function(x, fallback) {
+    value <- suppressWarnings(as.numeric(x %||% fallback)[1])
+    if (!is.finite(value)) fallback else value
+  }
+  height <- number(base_args$partner_logo_cover_height, 0.60)
+  width <- number(base_args$partner_logo_cover_width, height * 1078 / 423)
+  left <- number(base_args$partner_logo_cover_left, 0.46)
+  top <- number(base_args$partner_logo_cover_top, 0.30)
+
+  officer::ph_with(
+    doc,
+    value = officer::external_img(
+      src = path,
+      width = width,
+      height = height,
+      alt = "PULSO PUCP"
+    ),
+    location = officer::ph_location(
+      left = left,
+      top = top,
+      width = width,
+      height = height,
+      newlabel = "PULSO PUCP cover logo"
+    )
+  )
+}
+
+.ppt_title_spec_with_height <- function(layout_props, spec, height = NULL) {
+  height <- suppressWarnings(as.numeric(height %||% NA_real_)[1])
+  if (!is.finite(height) || height <= 0 || !is.data.frame(layout_props) || !nrow(layout_props)) {
+    return(spec)
+  }
+  types <- as.character(spec$type %||% "title")
+  candidates <- layout_props[layout_props$type %in% types, , drop = FALSE]
+  label <- as.character(spec$ph_label %||% "")[1]
+  if (nzchar(label) && "ph_label" %in% names(candidates)) {
+    labelled <- candidates[candidates$ph_label == label, , drop = FALSE]
+    if (nrow(labelled)) candidates <- labelled
+  }
+  if (!nrow(candidates)) return(spec)
+  row <- candidates[1L, , drop = FALSE]
+  spec$loc <- list(
+    left = as.numeric(row$offx[[1L]]),
+    top = as.numeric(row$offy[[1L]]),
+    width = as.numeric(row$cx[[1L]]),
+    height = max(as.numeric(row$cy[[1L]]), height)
+  )
+  spec
+}
+
+.ppt_add_acnur_two_column_index <- function(doc, title, sections, style = list(),
+                                             font_family = "Arial") {
+  clean <- function(x) {
+    x <- trimws(as.character(x %||% character(0)))
+    x[!is.na(x) & nzchar(x)]
+  }
+  number <- function(name, fallback, min = NULL, max = NULL) {
+    value <- suppressWarnings(as.numeric(style[[name]] %||% fallback)[1])
+    if (!is.finite(value)) value <- fallback
+    if (!is.null(min)) value <- base::max(min, value)
+    if (!is.null(max)) value <- base::min(max, value)
+    value
+  }
+  add_text <- function(doc, text, left, top, width, height, size, color,
+                       bold = FALSE, align = "left") {
+    value <- officer::fpar(
+      officer::ftext(
+        as.character(text)[1],
+        prop = officer::fp_text(
+          color = color,
+          font.size = size,
+          font.family = font_family,
+          bold = bold
+        )
+      ),
+      fp_p = officer::fp_par(text.align = align, line_spacing = 1)
+    )
+    officer::ph_with(
+      doc,
+      value = value,
+      location = officer::ph_location(
+        left = left,
+        top = top,
+        width = width,
+        height = height
+      )
+    )
+  }
+
+  sections <- clean(sections)
+  title <- as.character(title %||% "Contenido")[1]
+  if (!nzchar(trimws(title))) title <- "Contenido"
+  title_color <- as.character(style$title_color %||% "#081F5C")[1]
+  accent <- as.character(style$accent_color %||% "#0072BC")[1]
+  text_color <- as.character(style$text_color %||% "#081F5C")[1]
+  title_size <- number("title_size", 24, min = 18)
+  section_size <- number("section_size", 18, min = 16)
+  number_size <- number("number_size", 18, min = 16)
+  title_left <- number("title_left", 0.72, min = 0)
+  title_top <- number("title_top", 0.62, min = 0)
+  title_width <- number("title_width", 11.90, min = 4)
+  content_top <- number("content_top", 1.72, min = 1)
+  content_height <- number("content_height", 4.90, min = 2)
+  left_col <- number("left_col", 0.82, min = 0)
+  right_col <- number("right_col", 6.88, min = 4)
+  col_width <- number("col_width", 5.46, min = 3)
+  number_width <- number("number_width", 0.54, min = 0.4, max = 0.9)
+  gap <- number("number_gap", 0.16, min = 0.05, max = 0.4)
+  break_at <- suppressWarnings(as.integer(style$column_break %||% ceiling(length(sections) / 2))[1])
+  if (!is.finite(break_at) || break_at < 1L) break_at <- ceiling(length(sections) / 2)
+  break_at <- min(length(sections), break_at)
+  offset <- suppressWarnings(as.integer(style$number_offset %||% 0L)[1])
+  if (!is.finite(offset)) offset <- 0L
+
+  doc <- add_text(
+    doc, title, title_left, title_top, title_width, 0.55,
+    title_size, title_color, bold = TRUE
+  )
+  columns <- list(seq_len(break_at), if (break_at < length(sections)) seq.int(break_at + 1L, length(sections)) else integer(0))
+  max_rows <- max(1L, lengths(columns))
+  row_height <- content_height / max_rows
+  column_lefts <- c(left_col, right_col)
+
+  for (col in seq_along(columns)) {
+    indices <- columns[[col]]
+    if (!length(indices)) next
+    for (row_pos in seq_along(indices)) {
+      idx <- indices[[row_pos]]
+      top <- content_top + (row_pos - 1L) * row_height
+      label <- sections[[idx]]
+      size <- if (nchar(label, type = "width") > 58L) 16 else section_size
+      doc <- add_text(
+        doc,
+        sprintf("%02d", offset + idx),
+        column_lefts[[col]], top + 0.02, number_width, row_height - 0.04,
+        number_size, accent, bold = TRUE
+      )
+      doc <- add_text(
+        doc,
+        label,
+        column_lefts[[col]] + number_width + gap,
+        top,
+        col_width - number_width - gap,
+        row_height,
+        size,
+        text_color,
+        bold = TRUE
+      )
+    }
+  }
+  doc
+}
+
+# Resuelve los dos marcadores inferiores de texto por su geometría real. Las
+# plantillas general y ACNUR no asignan los mismos `type_idx`, por lo que usar
+# índices fijos puede enviar la fuente al pie izquierdo y hacerla chocar con el
+# logo de la institución asociada.
+.ppt_bottom_text_specs <- function(layout_props, slide_width = 13.33333,
+                                   slide_height = 7.5) {
+  if (!is.data.frame(layout_props) || !nrow(layout_props)) return(NULL)
+  required <- c("type", "type_idx", "ph_label", "offx", "offy", "cx", "cy")
+  if (!all(required %in% names(layout_props))) return(NULL)
+
+  props <- layout_props[
+    layout_props$type == "body" &
+      is.finite(layout_props$offx) & is.finite(layout_props$offy) &
+      is.finite(layout_props$cx) & is.finite(layout_props$cy) &
+      layout_props$offx >= 0 & layout_props$offy >= slide_height * 0.72 &
+      layout_props$offx + layout_props$cx <= slide_width + 0.05 &
+      layout_props$offy + layout_props$cy <= slide_height + 0.05 &
+      layout_props$cx >= 1 & layout_props$cy >= 0.10,
+    , drop = FALSE
+  ]
+  if (nrow(props) < 2L) return(NULL)
+  props <- props[order(props$offx), , drop = FALSE]
+  picks <- props[c(1L, nrow(props)), , drop = FALSE]
+
+  as_spec <- function(row, semantic_label, align) {
+    list(
+      type = "body",
+      type_idx = as.integer(row$type_idx[[1]]),
+      ph_label = semantic_label,
+      align = align,
+      loc = list(
+        left = as.numeric(row$offx[[1]]),
+        top = as.numeric(row$offy[[1]]),
+        width = as.numeric(row$cx[[1]]),
+        height = as.numeric(row$cy[[1]])
+      )
+    )
+  }
+
+  list(
+    base = as_spec(picks[1, , drop = FALSE], "prosecnur:slide_1:base", "left"),
+    right = as_spec(picks[2, , drop = FALSE], "prosecnur:slide_1:right", "right")
+  )
+}
+
+.ppt_configured_source_spec <- function(spec, base_args = list()) {
+  if (!is.list(spec)) return(spec)
+  values <- suppressWarnings(as.numeric(c(
+    base_args$source_footer_left,
+    base_args$source_footer_top,
+    base_args$source_footer_width,
+    base_args$source_footer_height
+  )))
+  if (length(values) == 4L && all(is.finite(values)) &&
+      values[[1]] >= 0 && values[[2]] >= 0 && values[[3]] > 0 && values[[4]] > 0) {
+    spec$loc <- list(
+      left = values[[1]],
+      top = values[[2]],
+      width = values[[3]],
+      height = values[[4]]
+    )
+  }
+  align <- tolower(trimws(as.character(base_args$source_footer_align %||% spec$align %||% "left")[[1]]))
+  if (!align %in% c("left", "center", "right")) align <- "left"
+  spec$align <- align
+  spec$ph_label <- "prosecnur:slide_1:right"
+  spec
+}
+
+# Conserva el placeholder nativo cuando es utilizable y aplica una ubicación
+# segura únicamente cuando la plantilla lo dejó fuera del lienzo o sin tamaño.
+.ppt_safe_section_title_spec <- function(layout_props, slide_width = 13.33333,
+                                         slide_height = 7.5, spec) {
+  if (!is.list(spec)) spec <- list(type = "title", type_idx = 1L)
+  props <- if (is.data.frame(layout_props) && nrow(layout_props)) {
+    layout_props[layout_props$type == "title", , drop = FALSE]
+  } else {
+    data.frame()
+  }
+  if (nrow(props) && !is.null(spec$type_idx) && "type_idx" %in% names(props)) {
+    indexed <- props[props$type_idx == as.integer(spec$type_idx)[1], , drop = FALSE]
+    if (nrow(indexed)) props <- indexed
+  }
+
+  valid <- nrow(props) > 0L && all(c("offx", "offy", "cx", "cy") %in% names(props))
+  if (valid) {
+    row <- props[1, , drop = FALSE]
+    values <- unlist(row[c("offx", "offy", "cx", "cy")], use.names = TRUE)
+    valid <- all(is.finite(values)) &&
+      values[["offx"]] >= 0 && values[["offy"]] >= 0 &&
+      values[["cx"]] >= 1 && values[["cy"]] >= 0.30 &&
+      values[["offx"]] + values[["cx"]] <= slide_width + 0.05 &&
+      values[["offy"]] + values[["cy"]] <= slide_height + 0.05
+  }
+  if (isTRUE(valid)) return(spec)
+
+  spec$loc <- list(
+    left = slide_width * 0.057,
+    top = slide_height * 0.325,
+    width = slide_width * 0.84,
+    height = slide_height * 0.22
+  )
+  spec
+}
+
 #' @keywords internal
 .PPT_CONTRACT <- list(
 
@@ -1634,3 +1967,30 @@ p_reset <- function(
 
 
 `%||%` <- function(x, y) if (!is.null(x)) x else y
+
+.format_group_base_caption <- function(labels, totals) {
+  labels <- trimws(as.character(labels %||% character(0)))
+  totals <- suppressWarnings(as.numeric(totals %||% numeric(0)))
+  n <- min(length(labels), length(totals))
+  if (!n) return(NULL)
+  labels <- labels[seq_len(n)]
+  totals <- totals[seq_len(n)]
+  keep <- !is.na(labels) & nzchar(labels) & is.finite(totals) & totals >= 0
+  labels <- labels[keep]
+  totals <- totals[keep]
+  if (!length(labels)) return(NULL)
+  parts <- paste0(
+    labels,
+    " (",
+    format(round(totals), big.mark = ",", scientific = FALSE, trim = TRUE),
+    ")"
+  )
+  joined <- if (length(parts) == 1L) {
+    parts
+  } else if (length(parts) == 2L) {
+    paste(parts, collapse = " y ")
+  } else {
+    paste0(paste(parts[-length(parts)], collapse = ", "), " y ", parts[[length(parts)]])
+  }
+  paste0("Base: ", joined)
+}
