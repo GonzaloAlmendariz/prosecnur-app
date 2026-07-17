@@ -89,3 +89,8 @@ output/pdf/
 output/validacion/
 output/entrega_acnur_pdm/
 output/entrega_acnur_pdm_analitica/
+
+# Toda la carpeta de entregables generados (gate 4): PPTX/PDF/XLSX/HTML/ZIP/MD.
+# Cubre los subdirectorios específicos listados arriba y cualquier corte nuevo.
+output/*
+!output/.gitkeep
