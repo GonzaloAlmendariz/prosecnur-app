@@ -110,6 +110,13 @@
   invisible(list(inst = inst_meta, data = data_meta))
 }
 
+.codif_multibase_effective_data <- function(sid, base_name) {
+  s <- session_get(sid)
+  base <- s$estudio$bases[[base_name]]
+  meta <- get_file(sid, base$data_file_id)
+  readxl::read_excel(meta$path)
+}
+
 test_that("aplicación multibase codifica madre y repeat y completa solo al final", {
   skip_if_not_installed("openxlsx")
   skip_if_not_installed("readxl")
@@ -177,4 +184,58 @@ test_that("aplicación multibase codifica madre y repeat y completa solo al fina
   )
   expect_true(.codif_base_pair_is_adapted(complete, "principal"))
   expect_true(.codif_base_pair_is_adapted(complete, "rep_servicios"))
+})
+
+test_that("aplicación repeat-aware no mezcla columnas recod entre madre y repeat", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("readxl")
+
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  dir <- file.path(session_get(sid)$dir, "qa-repeat-aware")
+  dir.create(dir, recursive = TRUE)
+
+  main <- data.frame(
+    `_uuid` = c("m-1", "m-2"),
+    `_index` = 1:2,
+    comentario_madre = c("Mejorar horarios", "Sin comentario"),
+    check.names = FALSE
+  )
+  repeat_data <- data.frame(
+    `_uuid` = c("", ""),
+    `_index` = 1:2,
+    `_parent_index` = c(1L, 2L),
+    comentario_repeat = c("Más privacidad", "Mejor señalización"),
+    check.names = FALSE
+  )
+
+  .codif_multibase_register_base(
+    sid, "principal", main, "comentario_madre", "Comentario madre"
+  )
+  .codif_multibase_register_base(
+    sid, "rep_visitas", repeat_data, "comentario_repeat", "Comentario repeat",
+    parent_base = "principal"
+  )
+
+  main_paths <- .codif_multibase_adapt(
+    dir, main, "comentario_madre", "Comentario madre"
+  )
+  repeat_paths <- .codif_multibase_adapt(
+    dir, repeat_data, "comentario_repeat", "Comentario repeat"
+  )
+
+  .codif_apply_complete(sid, "principal", main_paths)
+  .codif_apply_complete(sid, "rep_visitas", repeat_paths)
+
+  main_final <- .codif_multibase_effective_data(sid, "principal")
+  repeat_final <- .codif_multibase_effective_data(sid, "rep_visitas")
+
+  expect_true("comentario_madre_recod" %in% names(main_final))
+  expect_false("comentario_repeat_recod" %in% names(main_final))
+  expect_equal(as.character(main_final$comentario_madre_recod), c("901", NA_character_))
+
+  expect_true("comentario_repeat_recod" %in% names(repeat_final))
+  expect_false("comentario_madre_recod" %in% names(repeat_final))
+  expect_equal(as.character(repeat_final$comentario_repeat_recod), c("901", NA_character_))
+  expect_equal(as.integer(repeat_final$`_parent_index`), repeat_data$`_parent_index`)
 })
