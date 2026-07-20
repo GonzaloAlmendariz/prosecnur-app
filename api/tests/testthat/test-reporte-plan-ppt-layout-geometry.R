@@ -158,6 +158,12 @@ test_that("perfil ACNUR da contraste a las categorias y compacta el aviso", {
   expect_equal(profile$base$size_texto_barras * (72.27 / 25.4), 16, tolerance = 0.05)
   expect_true(isTRUE(profile$base$partner_logo_cover))
   expect_equal(profile$base$partner_logo_cover_variant, "white")
+  expect_equal(profile$base$partner_logo_cover_top, 6.75)
+  expect_lt(
+    profile$base$partner_logo_cover_left +
+      profile$base$partner_logo_cover_height * 1078 / 423,
+    profile$base$source_footer_left
+  )
   expect_true(isTRUE(profile$barras_agrupadas$usar_canvas))
   expect_true(isTRUE(profile$barras_agrupadas$preservar_tamanos_texto))
   expect_true(isTRUE(profile$barras_agrupadas$canvas_w_adaptativo))

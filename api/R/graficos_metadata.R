@@ -2928,7 +2928,7 @@
         partner_logo_cover = TRUE,
         partner_logo_cover_variant = "white",
         partner_logo_cover_left = 0.46,
-        partner_logo_cover_top = 0.30,
+        partner_logo_cover_top = 6.75,
         partner_logo_cover_height = 0.60,
         source_footer_left = 2.15,
         source_footer_top = 6.96,
