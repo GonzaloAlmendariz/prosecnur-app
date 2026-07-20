@@ -788,7 +788,8 @@ if (!exists("%||%", mode = "function")) {
   Filter(function(x) nrow(x) > 0L, out)
 }
 
-.ficha_tecnica_write_docx_pulso <- function(rows, path_docx, subtables = NULL, appendices = NULL) {
+.ficha_tecnica_write_docx_pulso <- function(rows, path_docx, subtables = NULL, appendices = NULL,
+                                            header = NULL) {
   if (!requireNamespace("officer", quietly = TRUE) ||
       !requireNamespace("flextable", quietly = TRUE)) {
     stop("Para generar ficha tecnica Word se requieren officer y flextable.", call. = FALSE)
@@ -833,6 +834,38 @@ if (!exists("%||%", mode = "function")) {
 
   doc <- officer::read_docx()
   doc <- officer::body_set_default_section(doc, section)
+
+  # Cabecera de portada OPT-IN: si el cfg trae claves de cabecera, se dibuja
+  # (centrada, discreta) ANTES del logo. Sin claves = portada actual intacta.
+  header <- header %||% list()
+  header_titulo <- .ficha_tecnica_scalar(header$titulo, "")
+  header_ambito <- .ficha_tecnica_scalar(header$ambito, "")
+  header_fecha <- .ficha_tecnica_scalar(header$fecha, "")
+  header_line2 <- paste(Filter(nzchar, c(header_ambito, header_fecha)), collapse = " | ")
+  if (nzchar(header_titulo)) {
+    doc <- officer::body_add_fpar(
+      doc,
+      officer::fpar(
+        officer::ftext(
+          header_titulo,
+          prop = officer::fp_text(font.size = 12, font.family = "Arial", color = blue)
+        ),
+        fp_p = officer::fp_par(text.align = "center", padding.bottom = 1)
+      )
+    )
+  }
+  if (nzchar(header_line2)) {
+    doc <- officer::body_add_fpar(
+      doc,
+      officer::fpar(
+        officer::ftext(
+          header_line2,
+          prop = officer::fp_text(font.size = 9.5, font.family = "Arial", color = "#808080")
+        ),
+        fp_p = officer::fp_par(text.align = "center", padding.bottom = 6)
+      )
+    )
+  }
 
   logo <- .ficha_tecnica_logo_path()
   if (nzchar(logo)) {
@@ -949,6 +982,42 @@ if (!exists("%||%", mode = "function")) {
       parts[hit] <- tolower(parts[hit])
     }
     paste(parts, collapse = " ")
+  }, character(1), USE.NAMES = FALSE)
+}
+
+.ficha_tecnica_district_official_names <- function(values) {
+  # Resuelve slugs/ubigeos de distrito (sjm, smp, 150133, ...) al nombre oficial
+  # completo con tildes, reutilizando el crosswalk KOICA del engine de graficos
+  # (misma fuente que produce "San Martín de Porres" / "Los Olivos" en las tablas
+  # territoriales). Los valores fuera del crosswalk caen al title-case actual.
+  values <- as.character(values %||% character(0))
+  if (!length(values)) return(character(0))
+  lookup <- character(0)
+  if (exists(".graficos_koica_crosswalk", mode = "function")) {
+    # sid = NULL -> crosswalk por defecto (kobo_code + ubigeo + distrito oficial);
+    # el tryCatch evita que un fallo del engine de graficos rompa la ficha.
+    cw <- tryCatch(.graficos_koica_crosswalk(NULL), error = function(e) NULL)
+    if (is.data.frame(cw) && nrow(cw) &&
+        all(c("distrito", "kobo_code", "ubigeo") %in% names(cw))) {
+      keys <- c(
+        .ficha_tecnica_norm_field(cw$kobo_code),
+        .ficha_tecnica_norm_field(cw$ubigeo),
+        .ficha_tecnica_norm_field(cw$distrito)
+      )
+      official <- rep(as.character(cw$distrito), times = 3L)
+      keep <- nzchar(keys)
+      keys <- keys[keep]
+      official <- official[keep]
+      dedup <- !duplicated(keys)
+      lookup <- stats::setNames(official[dedup], keys[dedup])
+    }
+  }
+  keys <- .ficha_tecnica_norm_field(values)
+  vapply(seq_along(values), function(i) {
+    mapped <- if (length(lookup)) unname(lookup[keys[[i]]]) else NA_character_
+    if (length(mapped) && !is.na(mapped) && nzchar(mapped)) return(mapped)
+    fb <- .ficha_tecnica_title_case_es(values[[i]])
+    if (length(fb) && nzchar(fb[[1]])) fb[[1]] else as.character(values[[i]])
   }, character(1), USE.NAMES = FALSE)
 }
 
@@ -1999,7 +2068,7 @@ if (!exists("%||%", mode = "function")) {
   out
 }
 
-.ficha_tecnica_sampling_stages_table <- function(summary) {
+.ficha_tecnica_sampling_stages_table <- function(summary, ambito_override = "") {
   if (is.null(summary)) return(NULL)
   method_label <- toupper(.ficha_tecnica_scalar(summary$method, "PPS"))
   measure_label <- .ficha_tecnica_scalar(summary$measure_var, "viviendas")
@@ -2010,6 +2079,10 @@ if (!exists("%||%", mode = "function")) {
     paired_by_titular_zone = "una manzana de reemplazo pareada por zona para cada manzana titular",
     "manzanas de reemplazo definidas para preservar la cobertura territorial"
   )
+  # Ámbito del estudio para el rótulo de esta subtabla; overrideable por config.
+  # Sin override se preserva el literal actual (no cambia el marco INEI).
+  ambito <- .ficha_tecnica_scalar(ambito_override, "")
+  if (!nzchar(ambito)) ambito <- "Lima Metropolitana y Callao"
   data.frame(
     Etapa = c("Primera", "Segunda", "Tercera"),
     Unidades = c("Manzanas urbanas", "Viviendas", "Personas"),
@@ -2017,11 +2090,12 @@ if (!exists("%||%", mode = "function")) {
       sprintf(
         paste0(
           "Selección aleatoria con probabilidad proporcional al tamaño, ",
-          "usando %s como medida de tamaño. Se seleccionaron %s manzanas titulares en Lima Metropolitana y Callao ",
+          "usando %s como medida de tamaño. Se seleccionaron %s manzanas titulares en %s ",
           "y se definió %s."
         ),
         measure_label,
         .ficha_tecnica_fmt_int(summary$n_blocks),
+        ambito,
         replacement_label
       ),
       sprintf(
@@ -2045,11 +2119,14 @@ if (!exists("%||%", mode = "function")) {
   )
 }
 
-.ficha_tecnica_precision_table <- function(summary) {
+.ficha_tecnica_precision_table <- function(summary, ambito_override = "") {
   if (is.null(summary)) return(NULL)
   entrevistas <- summary$total_interviews %||% summary$n_objetivo
   if (!is.finite(suppressWarnings(as.numeric(entrevistas)))) return(NULL)
-  ambito <- .ficha_tecnica_scalar(summary$coverage, "Lima Metropolitana y Callao")
+  # Override del ámbito (p.ej. "Lima Metropolitana" sin Callao); sin override se
+  # conserva el comportamiento actual basado en la cobertura del marco.
+  ambito <- .ficha_tecnica_scalar(ambito_override, "")
+  if (!nzchar(ambito)) ambito <- .ficha_tecnica_scalar(summary$coverage, "Lima Metropolitana y Callao")
   if (is.finite(summary$selected_districts)) {
     ambito <- sprintf(
       "%s, dentro de los %s distritos incluidos en el diseño",
@@ -2083,10 +2160,10 @@ if (!exists("%||%", mode = "function")) {
   )
 }
 
-.ficha_tecnica_hojas_ruta_subtables <- function(summary) {
+.ficha_tecnica_hojas_ruta_subtables <- function(summary, ambito_override = "") {
   if (is.null(summary)) return(list())
   subtables <- list()
-  precision <- .ficha_tecnica_precision_table(summary)
+  precision <- .ficha_tecnica_precision_table(summary, ambito_override = ambito_override)
   if (is.data.frame(precision) && nrow(precision)) {
     subtables$tamano_de_la_muestra <- list(
       title = "Precisión muestral estimada",
@@ -2095,7 +2172,7 @@ if (!exists("%||%", mode = "function")) {
       font_size = 12L
     )
   }
-  stages <- .ficha_tecnica_sampling_stages_table(summary)
+  stages <- .ficha_tecnica_sampling_stages_table(summary, ambito_override = ambito_override)
   if (is.data.frame(stages) && nrow(stages)) {
     subtables$procedimiento_de_muestreo <- list(
       title = "Etapas del diseño muestral",
@@ -2107,14 +2184,60 @@ if (!exists("%||%", mode = "function")) {
   subtables
 }
 
-.ficha_tecnica_hojas_ruta_appendices <- function(summary) {
+.ficha_tecnica_hojas_ruta_district_column <- function(df) {
+  if (!is.data.frame(df) || !ncol(df)) return("")
+  # Reusa el resolvedor de panel (distrito, distrito_nombre, ...).
+  col <- .ficha_tecnica_panel_district_column(df)
+  if (nzchar(col)) return(col)
+  # Variables territoriales que ya resuelve el engine de graficos/monitoreo
+  # (__district por crosswalk, Core/M5_district, M5_district, district).
+  candidates <- c("__district", "Core/M5_district", "M5_district", "district", "district_code")
+  hit <- candidates[candidates %in% names(df)]
+  if (length(hit)) return(hit[[1]])
+  norm <- stats::setNames(.ficha_tecnica_norm_field(names(df)), names(df))
+  hit <- names(norm)[norm %in% c("district", "m5_district", "core_m5_district", "district_code")]
+  if (length(hit)) hit[[1]] else ""
+}
+
+.ficha_tecnica_hojas_ruta_effective_distribution <- function(data = NULL) {
+  if (!is.data.frame(data) || !nrow(data)) return(data.frame())
+  col <- .ficha_tecnica_hojas_ruta_district_column(data)
+  if (!nzchar(col) || !col %in% names(data)) return(data.frame())
+  raw <- trimws(as.character(data[[col]]))
+  keep <- !is.na(raw) & nzchar(raw)
+  if (!any(keep)) return(data.frame())
+  # Mapea slugs/ubigeos al nombre oficial completo antes de tabular; asi la tabla
+  # muestra "San Juan de Miraflores" en vez de "Sjm" y colapsa representaciones
+  # equivalentes del mismo distrito (slug + ubigeo) en una sola fila.
+  distrito_vals <- .ficha_tecnica_district_official_names(raw[keep])
+  tab <- as.data.frame(table(distrito = distrito_vals), stringsAsFactors = FALSE)
+  names(tab) <- c("distrito", "entrevistas")
+  tab$entrevistas <- as.numeric(tab$entrevistas)
+  total <- sum(tab$entrevistas, na.rm = TRUE)
+  tab$porcentaje <- if (is.finite(total) && total > 0) tab$entrevistas / total else NA_real_
+  tab <- tab[order(-tab$entrevistas, tab$distrito), , drop = FALSE]
+  rownames(tab) <- NULL
+  tab
+}
+
+.ficha_tecnica_hojas_ruta_appendices <- function(summary, data = NULL) {
   if (is.null(summary)) return(list())
   appendices <- list()
-  table <- .ficha_tecnica_compact_distribution_table(summary$district_distribution, groups = 2L)
+  # Preferir encuestas EFECTIVAS por distrito cuando exista una base analitica
+  # con la variable de distrito; si no, caer a las PROGRAMADAS del diseno.
+  effective <- .ficha_tecnica_hojas_ruta_effective_distribution(data)
+  use_effective <- is.data.frame(effective) && nrow(effective)
+  distribution <- if (use_effective) effective else summary$district_distribution
+  note <- if (use_effective) {
+    "La tabla resume la cantidad de encuestas efectivas por distrito y su peso relativo sobre el total de la muestra."
+  } else {
+    "La tabla resume la cantidad de encuestas programadas por distrito y su peso relativo sobre el total de la muestra."
+  }
+  table <- .ficha_tecnica_compact_distribution_table(distribution, groups = 2L)
   if (is.data.frame(table) && nrow(table)) {
     appendices$distribucion_distrito <- list(
       title = "Distribución",
-      note = "La tabla resume la cantidad de encuestas programadas por distrito y su peso relativo sobre el total de la muestra.",
+      note = note,
       data = table,
       font_size = 8.1
     )
@@ -2278,7 +2401,7 @@ if (!exists("%||%", mode = "function")) {
   out
 }
 
-.ficha_tecnica_cfg_with_hojas_ruta <- function(cfg) {
+.ficha_tecnica_cfg_with_hojas_ruta <- function(cfg, data = NULL) {
   cfg <- cfg %||% list()
   ft <- cfg$ficha_tecnica %||% list()
   project_context <- ft$metodologia_contexto %||% ft$project_context %||% ft$proyecto_contexto %||% NULL
@@ -2292,8 +2415,12 @@ if (!exists("%||%", mode = "function")) {
   }
   summary <- .ficha_tecnica_hojas_ruta_summary(context)
   texts <- .ficha_tecnica_hojas_ruta_texts(summary)
-  subtables <- .ficha_tecnica_hojas_ruta_subtables(summary)
-  appendices <- .ficha_tecnica_hojas_ruta_appendices(summary)
+  # Ámbito del estudio para las subtablas de precisión/etapas; overrideable por
+  # la clave dedicada `ambito_subtablas` o, en su defecto, por `ambito_geografico`
+  # de la ficha. Sin override, las subtablas mantienen "Lima Metropolitana y Callao".
+  ambito_subtablas <- .ficha_tecnica_scalar(ft$ambito_subtablas %||% ft$ambito_geografico, "")
+  subtables <- .ficha_tecnica_hojas_ruta_subtables(summary, ambito_override = ambito_subtablas)
+  appendices <- .ficha_tecnica_hojas_ruta_appendices(summary, data = data)
   calc_context <- ft$calc_muestra_context %||% project_context
   if (is.null(calc_context)) {
     calc_context <- .ficha_tecnica_read_pulso_state(ft$calc_muestra_pulso_path %||% "")
@@ -2348,7 +2475,7 @@ if (!exists("%||%", mode = "function")) {
                                                 detalles = NULL,
                                                 template_path = NULL) {
   cfg <- cfg %||% list()
-  cfg <- .ficha_tecnica_cfg_with_hojas_ruta(cfg)
+  cfg <- .ficha_tecnica_cfg_with_hojas_ruta(cfg, data = data)
   template_path <- .ficha_tecnica_scalar(
     template_path %||% ((cfg$ficha_tecnica %||% list())$template_path),
     Sys.getenv("PROSECNUR_FICHA_TECNICA_TEMPLATE", "")
@@ -2373,7 +2500,12 @@ if (!exists("%||%", mode = "function")) {
       rows,
       path_docx,
       subtables = (cfg$ficha_tecnica %||% list())$subtables %||% NULL,
-      appendices = (cfg$ficha_tecnica %||% list())$appendices %||% NULL
+      appendices = (cfg$ficha_tecnica %||% list())$appendices %||% NULL,
+      header = list(
+        titulo = .ficha_tecnica_cfg(cfg, "header_titulo"),
+        ambito = .ficha_tecnica_cfg(cfg, "header_ambito"),
+        fecha = .ficha_tecnica_cfg(cfg, "header_fecha")
+      )
     )
   } else {
     .ficha_tecnica_write_docx_fallback(rows, path_docx)
@@ -2401,7 +2533,7 @@ if (!exists("%||%", mode = "function")) {
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("Se requiere openxlsx para agregar la ficha tecnica.", call. = FALSE)
   }
-  cfg <- .ficha_tecnica_cfg_with_hojas_ruta(cfg %||% list())
+  cfg <- .ficha_tecnica_cfg_with_hojas_ruta(cfg %||% list(), data = data)
   if (is.null(hojas)) hojas <- names(wb)
   sheet <- .ficha_tecnica_sheet_name(wb, sheet)
   rows <- .ficha_tecnica_rows(
