@@ -12,6 +12,17 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.5.13",
+    date: "2026-07-20",
+    highlights: [
+      "Codificación: permite asignar un mismo texto a varias categorías en una sola revisión, también en estudios multibase y grupos repetibles.",
+      "Gráficos y reportes: permite personalizar el título de portada para ACNUR y mejora la ficha técnica con una cabecera más clara y mayor detalle territorial.",
+      "Codificación: relaciona preguntas desde un selector, sin arrastrarlas, y hace más clara y accesible la edición de relaciones.",
+      "Navegación: permite recorrer las pestañas deslizantes con las flechas, Inicio y Fin para trabajar con mayor agilidad desde el teclado.",
+      "Cálculo de muestra: compara cada distribución con una escala propia y evita cruces incorrectos entre valores homónimos de distintos tipos de sesión.",
+    ],
+  },
+  {
     version: "0.5.12",
     date: "2026-07-17",
     highlights: [
@@ -181,6 +192,37 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     ],
   },
   {
+    version: "3.4.2",
+    date: "2026-06-18",
+    highlights: [
+      "Monitoreo: consolida el centro operativo territorial para revisar el avance, las incidencias y las decisiones de campo en un solo recorrido.",
+      "Monitoreo: refuerza los reportes publicables con controles de salida antes de compartirlos.",
+      "Carga: hace más clara la revisión de fuentes y bases vinculadas al proyecto.",
+      "Apariencia: adapta las vistas principales a pantallas compactas y reduce desplazamientos innecesarios.",
+    ],
+  },
+  {
+    version: "3.4.1",
+    date: "2026-06-17",
+    highlights: [
+      "Monitoreo: agrega una auditoría territorial por UMP que distingue la asignación declarada de la reconciliada.",
+      "Monitoreo: reconstruye las distribuciones de cuota cuando faltan filas de auditoría, para conservar una lectura completa del campo.",
+      "Monitoreo: muestra el avance por recopilador en estudios de acreditación.",
+      "Carga: permite revisar con mayor detalle los archivos SurveyMonkey recibidos como ZIP SAV antes de incorporarlos.",
+    ],
+  },
+  {
+    version: "3.4.0",
+    date: "2026-06-17",
+    highlights: [
+      "Monitoreo: publica reportes agregados como páginas de consulta de solo lectura.",
+      "Carga: importa levantamientos SurveyMonkey sin conexión desde libros de trabajo y paquetes ZIP SAV.",
+      "Codificación: exporta e importa la configuración de categorías en un archivo reutilizable.",
+      "Validación: permite excluir variables que no corresponden al control de calidad del estudio.",
+      "Monitoreo: mejora la lectura territorial de los casos y el seguimiento operativo del campo.",
+    ],
+  },
+  {
     version: "3.3.4",
     date: "2026-06-11",
     highlights: [
@@ -204,6 +246,17 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     ],
   },
   {
+    version: "3.3.2",
+    date: "2026-06-09",
+    highlights: [
+      "Codificación: conserva mejor las recodificaciones y el avance al volver al proyecto.",
+      "Analítica: limpia las opciones “Otro” en frecuencias y reportes para presentar resultados más claros.",
+      "Gráficos: ordena paletas y categorías según el instrumento y permite decidir cómo mostrar los ceros en barras agrupadas.",
+      "Carga: conserva las etiquetas originales al incorporar respuestas desde SurveyMonkey.",
+      "Reportes: mejora la composición de gráficos en las salidas de PowerPoint y Word.",
+    ],
+  },
+  {
     version: "3.3.1",
     date: "2026-06-05",
     highlights: [
@@ -214,6 +267,17 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       "Paletas: aplica colores por lista en preview/export y muestra listas de todas las fuentes en proyectos multibase.",
       "Word/PPT: refuerza presets, leyendas y composicion de graficos apilados, agrupados, numericos, pie, radar y reportes Word.",
       "Analitica multibase: mejora la seleccion y recuperacion de bases procesadas para reducir estados incompletos.",
+    ],
+  },
+  {
+    version: "0.3.3",
+    date: "2026-06-05",
+    highlights: [
+      "Gráficos: genera títulos automáticos más útiles y conserva los títulos elegidos al volver al plan.",
+      "Gráficos: ordena paletas y categorías de acuerdo con el instrumento para mantener consistencia entre láminas.",
+      "Gráficos: permite controlar la presencia de categorías con valor cero en las barras agrupadas.",
+      "Reportes: mejora la composición de barras apiladas, agrupadas y numéricas en PowerPoint y Word.",
+      "Analítica: recupera con mayor estabilidad las bases procesadas en proyectos multibase.",
     ],
   },
   {
@@ -249,6 +313,105 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       "Multibase y monitoreo: mejor importacion de familias SurveyMonkey, bases hermanas independientes, sincronizacion de fuentes, seleccion de base activa y motores mas defensivos.",
       "Home y shell: nuevo deck de modulos, Ajustes con notas/creditos/conexiones, catalogo de modulos compartido y estados de proyecto mas claros.",
       "Calidad del release: mas pruebas frontend/R para cliente API, carga multibase, codificacion, analitica, persistencia .pulso, secretos y auditoria.",
+    ],
+  },
+  {
+    version: "0.2.9",
+    date: "2026-05-27",
+    highlights: [
+      "Validación: agrega un recorrido guiado para definir y revisar transformaciones de limpieza.",
+      "Validación: fortalece las reglas personalizadas y muestra con mayor claridad cómo se aplican al instrumento.",
+      "Editor de formularios: estrena un espacio de trabajo enfocado para editar preguntas y secciones con menos distracciones.",
+      "Editor de formularios: conserva con mayor fidelidad los cambios y el punto de trabajo al reabrir el proyecto.",
+      "Carga y Gráficos: pulen la revisión de datos y los controles de configuración para reducir errores antes de procesar o exportar.",
+    ],
+  },
+  {
+    version: "0.2.8",
+    date: "2026-05-25",
+    highlights: [
+      "Gráficos: estrena un configurador avanzado con una estructura más clara para cada tipo de lámina.",
+      "Gráficos: agrega un editor visual de composición para ajustar el contenido dentro de la lámina.",
+      "Gráficos: propone paletas y mejora el selector de color para mantener una identidad consistente.",
+      "Gráficos: ordena la importación y exportación de configuraciones por secciones y valida mejor los valores numéricos.",
+      "Procesamiento: moderniza Carga, Validación, Codificación y Analítica con una navegación más compacta y aprovechamiento completo de la pantalla.",
+      "Codificación: evita que los grupos de respuestas queden cortados durante la revisión.",
+    ],
+  },
+  {
+    version: "0.2.7",
+    date: "2026-05-22",
+    highlights: [
+      "Cálculo de muestra: estrena el módulo para diseñar muestras, comparar escenarios y generar reportes metodológicos.",
+      "Enciclopedia: agrega fichas y catálogos de metodologías y tipos de estudio como apoyo para definir el diseño.",
+      "Analítica: incorpora una revisión tabular de la base para inspeccionar los datos antes del análisis.",
+      "Monitoreo: amplía el seguimiento del campo y su conexión con las fuentes del proyecto.",
+      "Hojas de ruta: mejora la preparación territorial y los reportes de recorrido.",
+      "Editor de formularios: refuerza la importación desde SurveyMonkey y los asistentes de reglas del instrumento.",
+    ],
+  },
+  {
+    version: "0.2.6",
+    date: "2026-05-15",
+    highlights: [
+      "Actualización: muestra el contenido más reciente inmediatamente después de instalar una nueva versión.",
+      "Actualización: evita que la aplicación reutilice pantallas de una versión anterior guardadas localmente.",
+      "Escritorio: aplica la recarga segura tanto en Windows como en macOS.",
+      "Arranque: abre la versión recién instalada sin exigir una limpieza manual de archivos temporales.",
+    ],
+  },
+  {
+    version: "0.2.5",
+    date: "2026-05-15",
+    highlights: [
+      "Hojas de ruta: incorpora el marco oficial INEI 2017 con cartografía y nivel socioeconómico para preparar el trabajo territorial.",
+      "Hojas de ruta: mejora el flujo operativo, la revisión de mapas y la organización de los recorridos.",
+      "Monitoreo: agrega un tablero digital de campo compatible con fuentes Kobo y SurveyMonkey.",
+      "Carga: valida que la base de datos corresponda al formulario antes de incorporarla al proyecto.",
+      "Gráficos: reconstruye correctamente los íconos al exportar las láminas.",
+    ],
+  },
+  {
+    version: "0.2.4",
+    date: "2026-05-10",
+    highlights: [
+      "Hojas de ruta: amplía la cartografía de calles y mejora la construcción de recorridos en Lima y Callao.",
+      "Hojas de ruta: refuerza los filtros y la generación de salidas para equipos de campo.",
+      "Editor de formularios: estrena un lienzo dedicado para editar preguntas, secciones y listas de opciones.",
+      "Editor de formularios: agrega edición enriquecida, lógica visual y ayudas guiadas dentro del mismo espacio de trabajo.",
+      "Inicio: unifica la navegación del proyecto y presenta con mayor claridad sus módulos y salidas.",
+    ],
+  },
+  {
+    version: "0.2.3",
+    date: "2026-05-06",
+    highlights: [
+      "Instalación Windows: cierra de forma segura la aplicación antes de reinstalar una versión.",
+      "Desinstalación Windows: libera el ejecutable antes de retirarlo para completar el proceso sin bloqueos.",
+      "Actualización Windows: evita que una instancia abierta interrumpa el reemplazo de archivos.",
+      "Escritorio: reduce la necesidad de cerrar procesos manualmente al mantener o retirar Prosecnur.",
+    ],
+  },
+  {
+    version: "0.2.2",
+    date: "2026-05-06",
+    highlights: [
+      "Escritorio: captura los errores inesperados y muestra un mensaje que se puede copiar para solicitar soporte.",
+      "Actualización: carga el actualizador de forma segura para que un fallo aislado no impida abrir la aplicación.",
+      "Instalación Windows: incluye correctamente las dependencias necesarias dentro del paquete.",
+      "Escritorio: estabiliza el arranque y el mantenimiento de la versión instalada en Windows y macOS.",
+    ],
+  },
+  {
+    version: "0.2.1",
+    date: "2026-05-06",
+    highlights: [
+      "Instalación Windows: estrena un paquete autosuficiente con el motor estadístico incluido.",
+      "Escritorio: asocia los archivos `.pulso` con Prosecnur para abrir proyectos directamente.",
+      "Actualización: incorpora la descarga de nuevas versiones desde la aplicación instalada.",
+      "Instalación macOS: agrega una imagen DMG con la identidad de Prosecnur.",
+      "Hojas de ruta: incorpora el flujo cartográfico para preparar recorridos territoriales.",
+      "Analítica y Gráficos: consolida mejoras de revisión y presentación en el primer corte instalable.",
     ],
   },
   {

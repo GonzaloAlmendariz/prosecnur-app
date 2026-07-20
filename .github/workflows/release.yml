@@ -255,7 +255,7 @@ jobs:
         with:
           tag_name: ${{ steps.tag.outputs.name }}
           name: Prosecnur ${{ steps.tag.outputs.name }}
-          generate_release_notes: true
+          body_path: .github/RELEASE_NOTES.md
           fail_on_unmatched_files: false
           files: |
             artifacts/windows/Prosecnur-Setup.exe
