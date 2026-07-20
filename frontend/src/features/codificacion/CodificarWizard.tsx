@@ -21,7 +21,7 @@ const TIPO_STYLE: Record<string, TipoStyle> = {
   select_one: { bg: "var(--tipo-so-bg)", border: "var(--tipo-so-border)", fg: "var(--tipo-so-fg)", label: "Opción única" },
   integer: { bg: "var(--tipo-int-bg)", border: "var(--tipo-int-border)", fg: "var(--tipo-int-fg)", label: "Numérica" },
   text: { bg: "var(--tipo-text-bg)", border: "var(--tipo-text-border)", fg: "var(--tipo-text-fg)", label: "Texto abierto" },
-  text_select_multiple: { bg: "var(--tipo-text-sm-bg)", border: "var(--tipo-text-sm-border)", fg: "var(--tipo-text-sm-fg)", label: "Texto abierto · múltiple" },
+  text_select_multiple: { bg: "var(--tipo-sm-bg)", border: "var(--tipo-sm-border)", fg: "var(--tipo-sm-fg)", label: "Recodificación múltiple" },
 };
 
 function tipoStyleForPregunta(p: PreguntaAbierta, arq = arquetipoOf(p)): TipoStyle {

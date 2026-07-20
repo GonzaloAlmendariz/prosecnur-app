@@ -18,6 +18,7 @@ import {
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { GrupoCodificacionCard } from "./GrupoCodificacionCard";
+import { cleanCodificacionLabel, displayCodificacionValueLabel } from "./codificacionLabels";
 
 type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
 type StatTone = "neutral" | "success" | "warn" | "info" | "muted";
@@ -35,6 +36,7 @@ export function RespuestasCodificador({ parent }: Props) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [tipo, setTipo] = useState<string>("");
   const [smOtros, setSmOtros] = useState<{ dummy_col: string; n_otros_marcados: number } | null>(null);
+  const [liveMsg, setLiveMsg] = useState("");
 
   const skipNextSave = useRef(true);
   const saveTimer = useRef<number | null>(null);
@@ -57,14 +59,15 @@ export function RespuestasCodificador({ parent }: Props) {
         // 1. Opciones existentes (preservando respuestas si ya había persistido)
         for (const o of existentes) {
           const prior = persistByCode.get(o.codigo);
+          const etiqueta = cleanCodificacionLabel(o.etiqueta || o.codigo);
           if (prior && prior.origen !== "nuevo") {
-            merged.push({ ...prior, origen: "existente", etiqueta: o.etiqueta });
+            merged.push({ ...prior, origen: "existente", etiqueta });
             persistByCode.delete(o.codigo);
           } else {
             merged.push({
               id: `ex_${o.codigo}`,
               codigo: o.codigo,
-              etiqueta: o.etiqueta,
+              etiqueta,
               respuestas: prior?.respuestas ?? [],
               origen: "existente",
             });
@@ -96,20 +99,39 @@ export function RespuestasCodificador({ parent }: Props) {
       try {
         await apiCodifGrupos(parent, grupos);
         setSaveStatus("saved");
+        announce("Cambios guardados.");
       } catch (e) {
         setSaveStatus("error");
         setError((e as Error).message);
+        announce("No se pudo guardar la codificación.");
       }
     }, 2000);
     return () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); };
   }, [grupos, parent, respuestas]);
 
-  // Reverse map: texto_normalizado → grupo (para saber qué respuestas están asignadas)
-  const asignacion = useMemo(() => {
-    const m = new Map<string, Grupo>();
-    for (const g of grupos) for (const t of g.respuestas) m.set(t, g);
+  const esSM = tipo === "select_multiple" && !!smOtros;
+
+  // Reverse map: texto_normalizado → grupos. En recodificación de
+  // select_multiple una misma respuesta puede aportar a más de una categoría.
+  const asignaciones = useMemo(() => {
+    const m = new Map<string, Grupo[]>();
+    for (const g of grupos) {
+      for (const t of g.respuestas) {
+        const current = m.get(t) ?? [];
+        if (!current.some((x) => x.id === g.id)) current.push(g);
+        m.set(t, current);
+      }
+    }
     return m;
   }, [grupos]);
+
+  const asignacion = useMemo(() => {
+    const m = new Map<string, Grupo>();
+    for (const [t, gs] of asignaciones) {
+      if (gs[0]) m.set(t, gs[0]);
+    }
+    return m;
+  }, [asignaciones]);
 
   const activeGroup = grupos.find((g) => g.id === activeGroupId) ?? null;
 
@@ -123,7 +145,7 @@ export function RespuestasCodificador({ parent }: Props) {
     });
   }, [respuestas, query]);
 
-  const codificadas = useMemo(() => asignacion.size, [asignacion]);
+  const codificadas = useMemo(() => asignaciones.size, [asignaciones]);
   const pendientes = (respuestas?.length ?? 0) - codificadas;
 
   // Para el counter de SM "Otros": conteos en términos de CASOS reales
@@ -136,12 +158,12 @@ export function RespuestasCodificador({ parent }: Props) {
   }, [respuestas]);
   const casosCodificados = useMemo(() => {
     let n = 0;
-    for (const [norm] of asignacion) {
+    for (const [norm] of asignaciones) {
       const r = (respuestas ?? []).find((x) => x.texto_normalizado === norm);
       if (r) n += r.frecuencia ?? 0;
     }
     return n;
-  }, [asignacion, respuestas]);
+  }, [asignaciones, respuestas]);
   const casosPendientesOtros = (smOtros?.n_otros_marcados ?? 0) - casosCodificados;
 
   function nextCodigo(): string {
@@ -157,6 +179,26 @@ export function RespuestasCodificador({ parent }: Props) {
     return String(Math.max(...nums) + 1);
   }
 
+  function announce(message: string) {
+    setLiveMsg(message);
+    window.setTimeout(() => setLiveMsg(""), 1200);
+  }
+
+  function respuestaLabel(texto_normalizado: string): string {
+    const found = respuestas?.find((r) => r.texto_normalizado === texto_normalizado);
+    return found ? displayCodificacionValueLabel(found.texto, found.label).label : texto_normalizado;
+  }
+
+  function grupoLabel(grupo: Grupo): string {
+    const display = displayCodificacionValueLabel(grupo.codigo, grupo.etiqueta);
+    if (display.code) return `${display.code} · ${display.label}`;
+    return display.label || `grupo ${grupo.codigo}`;
+  }
+
+  function grupoTieneRespuesta(grupo: Grupo, texto_normalizado: string): boolean {
+    return grupo.respuestas.includes(texto_normalizado);
+  }
+
   function addGroup() {
     const id = `g_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const codigo = nextCodigo();
@@ -164,6 +206,7 @@ export function RespuestasCodificador({ parent }: Props) {
     const nuevo: Grupo = { id, codigo, etiqueta, respuestas: [], origen: "nuevo" };
     setGrupos((gs) => [...gs, nuevo]);
     setActiveGroupId(id);
+    announce(`Grupo ${codigo} creado y seleccionado.`);
   }
 
   function updateGroup(id: string, patch: Partial<Grupo>) {
@@ -192,44 +235,64 @@ export function RespuestasCodificador({ parent }: Props) {
   }
 
   function toggleRespuesta(texto_normalizado: string) {
+    if (esSM && activeGroup) {
+      const alreadyInActive = grupoTieneRespuesta(activeGroup, texto_normalizado);
+      updateGroup(activeGroup.id, {
+        respuestas: alreadyInActive
+          ? activeGroup.respuestas.filter((r) => r !== texto_normalizado)
+          : [...activeGroup.respuestas, texto_normalizado],
+      });
+      announce(
+        `"${respuestaLabel(texto_normalizado)}" ${alreadyInActive ? "quitada de" : "asignada a"} ${grupoLabel(activeGroup)}.`,
+      );
+      return;
+    }
+
     const current = asignacion.get(texto_normalizado);
     if (current) {
       // Quitar de su grupo actual
       updateGroup(current.id, {
         respuestas: current.respuestas.filter((r) => r !== texto_normalizado),
       });
+      announce(`"${respuestaLabel(texto_normalizado)}" quitada de ${grupoLabel(current)}.`);
       return;
     }
     // Agregar al grupo activo (o crear uno)
     if (!activeGroupId || !activeGroup) {
-      addGroup();
-      // Wait for re-render; add on next tick
-      setTimeout(() => {
-        setGrupos((gs) => {
-          if (gs.length === 0) return gs;
-          const last = gs[gs.length - 1];
-          return gs.map((g) => g.id === last.id ? { ...g, respuestas: [...g.respuestas, texto_normalizado] } : g);
-        });
-      }, 0);
+      const id = `g_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      const codigo = nextCodigo();
+      const nuevo: Grupo = { id, codigo, etiqueta: "", respuestas: [texto_normalizado], origen: "nuevo" };
+      setGrupos((gs) => [...gs, nuevo]);
+      setActiveGroupId(id);
+      announce(`"${respuestaLabel(texto_normalizado)}" asignada al nuevo grupo ${codigo}.`);
       return;
     }
     updateGroup(activeGroup.id, {
       respuestas: [...activeGroup.respuestas, texto_normalizado],
     });
+    announce(`"${respuestaLabel(texto_normalizado)}" asignada a ${grupoLabel(activeGroup)}.`);
   }
 
   function moveToGroup(texto_normalizado: string, targetGroupId: string) {
+    const target = grupos.find((g) => g.id === targetGroupId);
+    if (esSM) {
+      setGrupos((gs) => gs.map((g) => {
+        if (g.id !== targetGroupId || g.respuestas.includes(texto_normalizado)) return g;
+        return { ...g, respuestas: [...g.respuestas, texto_normalizado] };
+      }));
+      if (target) announce(`"${respuestaLabel(texto_normalizado)}" asignada también a ${grupoLabel(target)}.`);
+      return;
+    }
     // Quitar de donde esté y agregar al target
     setGrupos((gs) => {
       const cleaned = gs.map((g) => ({ ...g, respuestas: g.respuestas.filter((r) => r !== texto_normalizado) }));
       return cleaned.map((g) => g.id === targetGroupId ? { ...g, respuestas: [...g.respuestas, texto_normalizado] } : g);
     });
+    if (target) announce(`"${respuestaLabel(texto_normalizado)}" movida a ${grupoLabel(target)}.`);
   }
 
   if (error) return <ErrorBlock label="Error cargando respuestas" detail={error} />;
   if (!respuestas) return <LoadingBlock variant="inline" label="Cargando respuestas…" />;
-
-  const esSM = tipo === "select_multiple" && !!smOtros;
 
   // Banda de KPIs: para SM el conteo es en CASOS reales (quienes marcaron
   // "Otros"); para el resto, en textos únicos. Tonos semánticos, no el accent
@@ -258,9 +321,13 @@ export function RespuestasCodificador({ parent }: Props) {
           type="button"
           className="pulso-primary pulso-cv2-newgroup"
           onClick={addGroup}
+          aria-label="Crear nuevo grupo de codificación"
         >
           <Plus size={14} /> Nuevo grupo
         </button>
+      </div>
+      <div className="pulso-sr-only" aria-live="polite" aria-atomic="true">
+        {liveMsg}
       </div>
 
       {/* Banda de KPIs (stat-row) — tonos semánticos. Para SM lleva el
@@ -295,10 +362,12 @@ export function RespuestasCodificador({ parent }: Props) {
           <div className="pulso-cv2-search">
             <Search size={14} className="pulso-cv2-search-icon" />
             <input
+              type="search"
               placeholder="Buscar respuestas…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pulso-cv2-search-input"
+              aria-label={`Buscar respuestas de ${parent}`}
             />
             {query && (
               <button
@@ -317,8 +386,16 @@ export function RespuestasCodificador({ parent }: Props) {
               <div className="pulso-cv2-resp-empty">No hay respuestas que coincidan.</div>
             )}
             {visibleRespuestas.map((r) => {
-              const grupo = asignacion.get(r.texto_normalizado);
-              const assigned = !!grupo;
+              const gruposAsignados = asignaciones.get(r.texto_normalizado) ?? [];
+              const grupo = gruposAsignados[0];
+              const assigned = gruposAsignados.length > 0;
+              const checked = esSM && activeGroup ? activeGroup.respuestas.includes(r.texto_normalizado) : assigned;
+              const display = displayCodificacionValueLabel(r.texto, r.label);
+              const gruposDisponibles = esSM
+                ? grupos.filter((g) => !g.respuestas.includes(r.texto_normalizado))
+                : grupos;
+              const puedeAsignarRapido = esSM ? gruposDisponibles.length > 0 : !assigned && grupos.length > 1;
+              const assignedLabel = gruposAsignados.map((g) => grupoLabel(g)).join("; ");
               return (
                 <div
                   key={r.texto_normalizado}
@@ -326,31 +403,27 @@ export function RespuestasCodificador({ parent }: Props) {
                 >
                   <input
                     type="checkbox"
-                    checked={assigned}
+                    checked={checked}
                     onChange={() => toggleRespuesta(r.texto_normalizado)}
-                    aria-label={`${assigned ? "Quitar" : "Agregar"} "${r.texto}" ${assigned ? `del grupo ${grupo!.etiqueta || grupo!.codigo}` : "al grupo activo"}`}
+                    aria-label={`${checked ? "Quitar" : "Agregar"} "${display.label}" ${esSM && activeGroup ? `del grupo activo ${grupoLabel(activeGroup)}` : assigned ? `del grupo ${grupo!.etiqueta || grupo!.codigo}` : "al grupo activo"}`}
                   />
                   <div className="pulso-cv2-resp-main">
-                    <div className="pulso-cv2-resp-text">
-                      {r.label ? (
-                        <>
-                          <code className="pulso-cv2-resp-code">{r.texto}</code>
-                          {r.label}
-                        </>
-                      ) : r.texto}
+                    <div className="pulso-cv2-resp-text" title={display.title}>
+                      {display.code && <code className="pulso-cv2-resp-code">{display.code}</code>}
+                      {display.label}
                     </div>
                     <div className="pulso-cv2-resp-meta">
                       <span><strong>{r.frecuencia}</strong> {r.frecuencia === 1 ? "vez" : "veces"}</span>
                       {r.variantes > 1 && <span>{r.variantes} variantes</span>}
                       {assigned && (
-                        <span className="pulso-cv2-resp-assigned">
-                          <ArrowRight size={10} /> {grupo!.codigo}{grupo!.etiqueta ? ` · ${grupo!.etiqueta}` : ""}
+                        <span className="pulso-cv2-resp-assigned" title={assignedLabel}>
+                          <ArrowRight size={10} /> {esSM && gruposAsignados.length > 1 ? `${gruposAsignados.length} categorías` : grupoLabel(grupo!)}
                         </span>
                       )}
                     </div>
                   </div>
-                  {!assigned && grupos.length > 1 && (
-                    <QuickAssignDropdown grupos={grupos} onPick={(gid) => moveToGroup(r.texto_normalizado, gid)} />
+                  {puedeAsignarRapido && (
+                    <QuickAssignDropdown grupos={gruposDisponibles} respuesta={display.label} onPick={(gid) => moveToGroup(r.texto_normalizado, gid)} />
                   )}
                 </div>
               );
@@ -389,11 +462,16 @@ export function RespuestasCodificador({ parent }: Props) {
                   onUpdate={(patch) => updateGroup(g.id, patch)}
                   onDelete={() => deleteGroup(g.id)}
                   onRemoveRespuesta={(t) => updateGroup(g.id, { respuestas: g.respuestas.filter((r) => r !== t) })}
-                  onAddRespuesta={(t) => updateGroup(g.id, { respuestas: [...g.respuestas, t] })}
+                  onAddRespuesta={(t) => {
+                    if (g.respuestas.includes(t)) return;
+                    updateGroup(g.id, { respuestas: [...g.respuestas, t] });
+                    announce(`"${respuestaLabel(t)}" agregada a ${grupoLabel(g)}.`);
+                  }}
                   onMoveUp={() => moveGroup(g.id, "up")}
                   onMoveDown={() => moveGroup(g.id, "down")}
                   isFirst={idx === 0}
                   isLast={idx === grupos.length - 1}
+                  allowMultiAssign={esSM}
                 />
               ))}
             </div>
@@ -404,9 +482,11 @@ export function RespuestasCodificador({ parent }: Props) {
   );
 }
 
-function QuickAssignDropdown({ grupos, onPick }: { grupos: Grupo[]; onPick: (gid: string) => void }) {
+function QuickAssignDropdown({ grupos, respuesta, onPick }: { grupos: Grupo[]; respuesta: string; onPick: (gid: string) => void }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const firstItemRef = useRef<HTMLButtonElement>(null);
+  const menuId = useMemo(() => `qa-${Math.random().toString(36).slice(2)}`, []);
 
   // Click-outside + Escape cierran el menú. Patrón estándar para dropdowns
   // controlados — más robusto que onMouseLeave (que se pierde si el cursor
@@ -430,6 +510,18 @@ function QuickAssignDropdown({ grupos, onPick }: { grupos: Grupo[]; onPick: (gid
     };
   }, [open]);
 
+  useEffect(() => {
+    if (open) firstItemRef.current?.focus();
+  }, [open]);
+
+  function focusSibling(current: HTMLElement, direction: 1 | -1) {
+    const items = Array.from(rootRef.current?.querySelectorAll<HTMLButtonElement>("[role='menuitem']:not(:disabled)") ?? []);
+    if (!items.length) return;
+    const idx = items.indexOf(current as HTMLButtonElement);
+    const next = items[(idx + direction + items.length) % items.length];
+    next?.focus();
+  }
+
   return (
     <div ref={rootRef} className="pulso-cv2-qa">
       <button
@@ -437,6 +529,8 @@ function QuickAssignDropdown({ grupos, onPick }: { grupos: Grupo[]; onPick: (gid
         onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-controls={open ? menuId : undefined}
+        aria-label={`Asignar "${respuesta}" a un grupo existente`}
         className={`pulso-cv2-qa-btn${open ? " is-open" : ""}`}
         title="Asignar a grupo existente"
       >
@@ -445,21 +539,45 @@ function QuickAssignDropdown({ grupos, onPick }: { grupos: Grupo[]; onPick: (gid
         <ChevronDown size={9} className="pulso-cv2-qa-caret" />
       </button>
       {open && (
-        <div role="menu" className="pulso-cv2-qa-menu">
+        <div id={menuId} role="menu" className="pulso-cv2-qa-menu" aria-label={`Grupos para asignar "${respuesta}"`}>
           {grupos.length === 0 && (
             <div className="pulso-cv2-qa-empty">Todavía no hay grupos creados.</div>
           )}
-          {grupos.map((g) => (
-            <button
-              key={g.id}
-              type="button"
-              role="menuitem"
-              onClick={(e) => { e.stopPropagation(); onPick(g.id); setOpen(false); }}
-              className="pulso-cv2-qa-item"
-            >
-              <strong>{g.codigo}</strong> {g.etiqueta || <em className="pulso-cv2-qa-unnamed">sin nombre</em>}
-            </button>
-          ))}
+          {grupos.map((g, idx) => {
+            const display = displayCodificacionValueLabel(g.codigo, g.etiqueta);
+            return (
+              <button
+                key={g.id}
+                ref={idx === 0 ? firstItemRef : undefined}
+                type="button"
+                role="menuitem"
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    focusSibling(e.currentTarget, 1);
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    focusSibling(e.currentTarget, -1);
+                  } else if (e.key === "Home") {
+                    e.preventDefault();
+                    firstItemRef.current?.focus();
+                  } else if (e.key === "End") {
+                    e.preventDefault();
+                    const items = rootRef.current?.querySelectorAll<HTMLButtonElement>("[role='menuitem']:not(:disabled)");
+                    items?.[items.length - 1]?.focus();
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    setOpen(false);
+                  }
+                }}
+                onClick={(e) => { e.stopPropagation(); onPick(g.id); setOpen(false); }}
+                className="pulso-cv2-qa-item"
+                title={display.title}
+              >
+                {display.code && <strong>{display.code}</strong>} {display.label || <em className="pulso-cv2-qa-unnamed">sin nombre</em>}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
