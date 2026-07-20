@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
 import { ArrowRight, Link2, X } from "lucide-react";
 import { PreguntaAbierta } from "../../api/client";
 
@@ -67,31 +68,32 @@ export function RelationDialog({
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="relation-dialog-title"
-      onClick={onCancel}
-      className="pulso-cv2-overlay"
-      style={{
-        position: "fixed", inset: 0, zIndex: 100,
-        background: "rgba(15, 23, 42, 0.4)",
-        backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: 20,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="pulso-cv2-dialog"
-        style={{
-          width: "min(640px, 100%)", maxHeight: "90vh",
-          background: "white", borderRadius: 10,
-          boxShadow: "var(--pulso-shadow-high)",
-          display: "flex", flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
+    <Dialog.Root open onOpenChange={(open) => { if (!open) onCancel(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay
+          className="pulso-cv2-overlay"
+          style={{
+            position: "fixed", inset: 0, zIndex: 100,
+            background: "rgba(15, 23, 42, 0.4)",
+            backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)",
+          }}
+        />
+        <Dialog.Content
+          className="pulso-cv2-dialog"
+          aria-describedby="relation-dialog-description"
+          style={{
+            position: "fixed",
+            left: "50%",
+            top: "50%",
+            translate: "-50% -50%",
+            zIndex: 101,
+            width: "min(640px, calc(100vw - 40px))", maxHeight: "90vh",
+            background: "white", borderRadius: 10,
+            boxShadow: "var(--pulso-shadow-high)",
+            display: "flex", flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
         <header
           style={{
             padding: "14px 18px",
@@ -101,17 +103,21 @@ export function RelationDialog({
         >
           <Link2 size={18} color="var(--pulso-primary)" />
           <div style={{ flex: 1 }}>
-            <h2 id="relation-dialog-title" style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>
-              Relacionar dos preguntas
-            </h2>
-            <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+            <Dialog.Title asChild>
+              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>
+                Relacionar dos preguntas
+              </h2>
+            </Dialog.Title>
+            <Dialog.Description id="relation-dialog-description" style={{ margin: "2px 0 0", fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
               Decide cuál de las dos preguntas actúa como padre y cuál provee los textos o valores que se
               van a codificar.
-            </p>
+            </Dialog.Description>
           </div>
-          <button type="button" onClick={onCancel} className="pulso-icon" aria-label="Cerrar">
-            <X size={14} />
-          </button>
+          <Dialog.Close asChild>
+            <button type="button" className="pulso-icon" aria-label="Cerrar">
+              <X size={14} />
+            </button>
+          </Dialog.Close>
         </header>
 
         <div style={{ padding: 18, overflowY: "auto", display: "flex", flexDirection: "column", gap: 18 }}>
@@ -210,9 +216,11 @@ export function RelationDialog({
             background: "var(--pulso-surface-2)",
           }}
         >
-          <button type="button" className="pulso-cv2-pill" onClick={onCancel} style={{ fontSize: 12, padding: "7px 14px" }}>
-            Cancelar
-          </button>
+          <Dialog.Close asChild>
+            <button type="button" className="pulso-cv2-pill" style={{ fontSize: 12, padding: "7px 14px" }}>
+              Cancelar
+            </button>
+          </Dialog.Close>
           <button
             type="button"
             onClick={handleConfirm}
@@ -227,8 +235,9 @@ export function RelationDialog({
             Confirmar relación
           </button>
         </footer>
-      </div>
-    </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
