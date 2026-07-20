@@ -6,6 +6,7 @@ import {
   useState,
   type CSSProperties,
   type HTMLAttributes,
+  type KeyboardEvent,
   type MutableRefObject,
   type ReactNode,
   type Ref,
@@ -61,6 +62,13 @@ type GlidingItemLike = {
   hidden: boolean;
 };
 
+export type GlidingRovingItemLike = GlidingItemLike & {
+  disabled?: boolean;
+  getAttribute(name: string): string | null;
+  hasAttribute(name: string): boolean;
+  tagName?: string;
+};
+
 export function findActiveGlidingItem<T extends GlidingItemLike>(
   items: Iterable<T>,
   activeKey: string | number | null | undefined,
@@ -70,6 +78,52 @@ export function findActiveGlidingItem<T extends GlidingItemLike>(
   return Array.from(items).find(
     (item) => item.dataset.glidingKey === serializedKey && !item.hidden,
   ) ?? null;
+}
+
+function isDisabledGlidingItem(item: GlidingRovingItemLike): boolean {
+  return Boolean(item.disabled)
+    || item.hasAttribute("disabled")
+    || item.getAttribute("aria-disabled") === "true";
+}
+
+function isRovingGlidingItem(item: GlidingRovingItemLike): boolean {
+  const role = item.getAttribute("role");
+  return Boolean(item.dataset.glidingKey)
+    && !item.hidden
+    && !isDisabledGlidingItem(item)
+    && (role === "tab" || role === "button" || item.tagName?.toLowerCase() === "button");
+}
+
+export function glidingNavigationDelta(
+  key: string,
+  orientation: GlidingTabOrientation,
+): -1 | 0 | 1 | "first" | "last" {
+  if (key === "Home") return "first";
+  if (key === "End") return "last";
+  if (orientation === "vertical") {
+    if (key === "ArrowDown") return 1;
+    if (key === "ArrowUp") return -1;
+    return 0;
+  }
+  if (key === "ArrowRight") return 1;
+  if (key === "ArrowLeft") return -1;
+  return 0;
+}
+
+export function findNextRovingGlidingItem<T extends GlidingRovingItemLike>(
+  items: Iterable<T>,
+  activeItem: T | null,
+  delta: -1 | 0 | 1 | "first" | "last",
+): T | null {
+  if (delta === 0) return null;
+  const enabledItems = Array.from(items).filter(isRovingGlidingItem);
+  if (!enabledItems.length) return null;
+  if (delta === "first") return enabledItems[0];
+  if (delta === "last") return enabledItems[enabledItems.length - 1];
+
+  const activeIndex = activeItem ? enabledItems.indexOf(activeItem) : -1;
+  const startIndex = activeIndex >= 0 ? activeIndex : delta > 0 ? -1 : 0;
+  return enabledItems[(startIndex + delta + enabledItems.length) % enabledItems.length];
 }
 
 function setForwardedRef<T>(ref: Ref<T> | undefined, value: T | null) {
@@ -94,6 +148,7 @@ export const GlidingTabList = forwardRef<HTMLElement, GlidingTabListProps>(
       indicatorClassName,
       className,
       children,
+      onKeyDown,
       ...rootProps
     },
     forwardedRef,
@@ -101,6 +156,7 @@ export const GlidingTabList = forwardRef<HTMLElement, GlidingTabListProps>(
     const rootRef = useRef<HTMLElement | null>(null);
     const hasMeasuredRef = useRef(false);
     const motionReadyRef = useRef(false);
+    const rovingFocusKeyRef = useRef<string | null>(null);
     const [geometry, setGeometry] = useState(ZERO_GEOMETRY);
     const [indicatorRadius, setIndicatorRadius] = useState("0px");
     const [visible, setVisible] = useState(false);
@@ -205,6 +261,62 @@ export const GlidingTabList = forwardRef<HTMLElement, GlidingTabListProps>(
       };
     }, [activeKey, itemSelector]);
 
+    const findRovingItems = () => {
+      const root = rootRef.current;
+      if (!root || rootProps.role !== "tablist") return [];
+      try {
+        return Array.from(root.querySelectorAll<HTMLElement>(itemSelector));
+      } catch {
+        return [];
+      }
+    };
+
+    useEffect(() => {
+      rovingFocusKeyRef.current = null;
+    }, [activeKey]);
+
+    useBrowserLayoutEffect(() => {
+      const items = findRovingItems();
+      const activeItem = findActiveGlidingItem(items, activeKey);
+      const rovingFocusItem = findActiveGlidingItem(items, rovingFocusKeyRef.current);
+      const fallbackItem = findNextRovingGlidingItem(items, null, "first");
+      const tabbableItem = rovingFocusItem && isRovingGlidingItem(rovingFocusItem)
+        ? rovingFocusItem
+        : activeItem && isRovingGlidingItem(activeItem)
+          ? activeItem
+          : fallbackItem;
+      for (const item of items) {
+        item.tabIndex = item === tabbableItem ? 0 : -1;
+      }
+    });
+
+    const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+      onKeyDown?.(event);
+      if (event.defaultPrevented || rootProps.role !== "tablist") return;
+
+      const delta = glidingNavigationDelta(event.key, orientation);
+      if (delta === 0) return;
+
+      const root = rootRef.current;
+      const items = findRovingItems();
+      if (!root || !items.length) return;
+
+      const activeElement = document.activeElement;
+      const focusedItem = activeElement instanceof HTMLElement && root.contains(activeElement)
+        ? items.find((item) => item === activeElement) ?? null
+        : null;
+      const activeItem = focusedItem ?? findActiveGlidingItem(items, activeKey);
+      const nextItem = findNextRovingGlidingItem(items, activeItem, delta);
+      if (!nextItem) return;
+
+      event.preventDefault();
+      for (const item of items) {
+        item.tabIndex = item === nextItem ? 0 : -1;
+      }
+      rovingFocusKeyRef.current = nextItem.dataset.glidingKey ?? null;
+      nextItem.focus({ preventScroll: true });
+    };
+
     const indicatorStyle: IndicatorStyle = {
       "--pulso-glide-x": `${geometry.x}px`,
       "--pulso-glide-y": `${geometry.y}px`,
@@ -226,6 +338,7 @@ export const GlidingTabList = forwardRef<HTMLElement, GlidingTabListProps>(
         className={["pulso-gliding-tab-list", className].filter(Boolean).join(" ")}
         data-gliding-orientation={orientation}
         aria-orientation={rootProps.role === "tablist" ? orientation : undefined}
+        onKeyDown={handleKeyDown}
       >
         <span
           className={indicatorClasses}
