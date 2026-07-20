@@ -1659,14 +1659,16 @@
 .graficos_acnur_intro_slides <- function(sid, include_coverage_maps = FALSE, acnur_mode = "general",
                                          coverage = NULL, index_single_limit = 8L,
                                          index_per_slide = 8L,
-                                         include_district_maps = FALSE) {
+                                         include_district_maps = FALSE,
+                                         cover_title = "") {
   territorial_mode <- identical(.graficos_scalar_chr(acnur_mode, "general"), "territorial")
   slides <- .graficos_acnur_report_intro_slides(
     sid,
     coverage,
     acnur_mode = acnur_mode,
     index_single_limit = index_single_limit,
-    index_per_slide = index_per_slide
+    index_per_slide = index_per_slide,
+    cover_title = cover_title
   )
   if (territorial_mode) {
     is_note <- vapply(slides, function(slide) {
@@ -1878,6 +1880,16 @@
   coverage_caps <- .graficos_territorial_coverage_capabilities(sid)
   include_coverage_maps <- isTRUE(include_value)
   comparison_mode <- .graficos_scalar_chr(comparison_value, "")
+  # Override OPT-IN del titulo de portada del PPT ACNUR: si el config del
+  # export trae `cover_title`/`study_title`, prevalece sobre el nombre del
+  # `.pulso` sin tocar el proyecto en disco. Vacio = comportamiento actual.
+  acnur_cover_title <- .graficos_scalar_chr(
+    raw_cfg$cover_title %||% raw_cfg$coverTitle %||%
+      raw_cfg$study_title %||% raw_cfg$studyTitle %||%
+      cfg$cover_title %||% cfg$coverTitle %||%
+      cfg$study_title %||% cfg$studyTitle,
+    ""
+  )
   acnur_mode <- .graficos_acnur_mode(raw_cfg, cfg, include_value = include_value, comparison_value = comparison_value)
   acnur_index_int <- function(value, fallback) {
     out <- suppressWarnings(as.integer(value)[1])
@@ -1942,7 +1954,8 @@
       coverage = coverage_for_plan,
       index_single_limit = acnur_index_single_limit,
       index_per_slide = acnur_index_per_slide,
-      include_district_maps = include_district_maps
+      include_district_maps = include_district_maps,
+      cover_title = acnur_cover_title
     )
   } else {
     list()
