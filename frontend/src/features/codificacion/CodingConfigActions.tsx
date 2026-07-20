@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import * as Dialog from "@radix-ui/react-dialog";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -368,7 +368,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
 
   const visibleError = error || source.error;
 
-  const importDialog = dialogOpen && typeof document !== "undefined" ? createPortal(
+  const importDialog = dialogOpen ? (
     <CodingConfigImportDialog
       onClose={() => setDialogOpen(false)}
       onImported={() => {
@@ -376,8 +376,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
         setMessage("Matriz aplicada y registrada en el historial.");
         window.setTimeout(() => setMessage(""), 3600);
       }}
-    />,
-    document.body
+    />
   ) : null;
 
   return (
@@ -511,7 +510,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
       </div>
 
       {(message || visibleError) && (
-        <div className="pulso-codificacion-matrix-feedback">
+        <div className="pulso-codificacion-matrix-feedback" role="status" aria-live="polite" aria-atomic="true">
           {message && <span className="pulso-codificacion-config-feedback is-ok">{message}</span>}
           {visibleError && <span className="pulso-codificacion-config-feedback is-error">{visibleError}</span>}
         </div>
@@ -958,24 +957,29 @@ function CodingConfigImportDialog({
   }
 
   return (
-    <div className="pulso-codificacion-import-backdrop" role="presentation" onClick={onClose}>
-      <section
-        className="pulso-codificacion-import-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="codif-import-title"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Dialog.Root open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="pulso-codificacion-import-backdrop pulso-cv2-overlay" />
+        <Dialog.Content
+          className="pulso-codificacion-import-dialog pulso-cv2-dialog"
+          aria-describedby="codif-import-description"
+        >
         <header className="pulso-codificacion-import-head">
           <span className="pulso-codificacion-import-icon" aria-hidden="true"><FileJson size={18} /></span>
           <div>
             <span className="pulso-section-eyebrow">Matrices</span>
-            <h2 id="codif-import-title">Importar matriz de codificación</h2>
-            <p>Compara origen y destino antes de traer categorías, reglas o recodificaciones al proyecto actual.</p>
+            <Dialog.Title asChild>
+              <h2>Importar matriz de codificación</h2>
+            </Dialog.Title>
+            <Dialog.Description id="codif-import-description">
+              Compara origen y destino antes de traer categorías, reglas o recodificaciones al proyecto actual.
+            </Dialog.Description>
           </div>
-          <button type="button" className="pulso-icon" onClick={onClose} aria-label="Cerrar">
-            <X size={14} />
-          </button>
+          <Dialog.Close asChild>
+            <button type="button" className="pulso-icon" aria-label="Cerrar">
+              <X size={14} />
+            </button>
+          </Dialog.Close>
         </header>
 
         <div className="pulso-codificacion-import-body">
@@ -999,7 +1003,7 @@ function CodingConfigImportDialog({
 
           {error && <Alert kind="error">{error}</Alert>}
           {result && (
-            <div className="pulso-codificacion-import-result">
+            <div className="pulso-codificacion-import-result" role="status" aria-live="polite" aria-atomic="true">
               <CheckCircle2 size={15} />
               <strong>{result}</strong>
             </div>
@@ -1010,6 +1014,9 @@ function CodingConfigImportDialog({
               <ImportSummary preview={preview} />
               <div className="pulso-codificacion-import-table-wrap">
                 <table className="pulso-codificacion-import-table">
+                  <caption className="pulso-sr-only">
+                    Variables detectadas en la matriz importada y estrategia para aplicarlas.
+                  </caption>
                   <thead>
                     <tr>
                       <th>Usar</th>
@@ -1090,7 +1097,9 @@ function CodingConfigImportDialog({
         </div>
 
         <footer className="pulso-codificacion-import-footer">
-          <button type="button" onClick={onClose}>Cancelar</button>
+          <Dialog.Close asChild>
+            <button type="button">Cancelar</button>
+          </Dialog.Close>
           <button
             type="button"
             className="pulso-primary"
@@ -1101,8 +1110,9 @@ function CodingConfigImportDialog({
             {busy === "apply" ? "Aplicando..." : `Aplicar matriz (${selectedItems.length})`}
           </button>
         </footer>
-      </section>
-    </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 

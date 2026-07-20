@@ -45,6 +45,7 @@ import { ErrorBlock, EmptyState } from "../../components/States";
 import { FilterChip } from "../../components/FilterChip";
 import { PairingDialog, PairingResult } from "./PairingDialog";
 import { RelationDialog, RelationResult } from "./RelationDialog";
+import { RelationTargetDialog } from "./RelationTargetDialog";
 
 const srOnlyStyle: React.CSSProperties = {
   position: "absolute",
@@ -97,6 +98,7 @@ export function PreguntasLanding() {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [pairingFor, setPairingFor] = useState<{ parent: PreguntaAbierta; preselectedChild?: string } | null>(null);
   const [relationFor, setRelationFor] = useState<{ source: PreguntaAbierta; target: PreguntaAbierta } | null>(null);
+  const [relationTargetFor, setRelationTargetFor] = useState<PreguntaAbierta | null>(null);
   const [busyPair, setBusyPair] = useState<string>("");
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [columnas, setColumnas] = useState<string[]>([]);
@@ -384,6 +386,15 @@ export function PreguntasLanding() {
     return data.find((p) => p.parent === activeDragId) ?? null;
   }, [activeDragId, data]);
 
+  const relationCandidates = useMemo(() => {
+    if (!data || !relationTargetFor) return [];
+    return data.filter((p) => {
+      if (p.parent === relationTargetFor.parent) return false;
+      const arq = arquetipoOf(p, adoptedBy);
+      return arq !== "adoptada" && arq !== "no-aplica";
+    });
+  }, [adoptedBy, data, relationTargetFor]);
+
   async function onDesemparejar(parent: string) {
     setBusyPair(parent);
     try {
@@ -488,6 +499,7 @@ export function PreguntasLanding() {
               onSetModoSo={setModoSoForSelectOne}
               onScrollToPadre={scrollToPadre}
               onToggleMarcada={onToggleMarcada}
+              onOpenRelation={(p) => setRelationTargetFor(p)}
             />
           ))}
         </div>
@@ -510,6 +522,18 @@ export function PreguntasLanding() {
           target={relationFor.target}
           onConfirm={onConfirmRelation}
           onCancel={() => setRelationFor(null)}
+        />
+      )}
+
+      {relationTargetFor && (
+        <RelationTargetDialog
+          source={relationTargetFor}
+          candidates={relationCandidates}
+          onCancel={() => setRelationTargetFor(null)}
+          onPick={(target) => {
+            setRelationTargetFor(null);
+            setRelationFor({ source: relationTargetFor, target });
+          }}
         />
       )}
     </div>
@@ -666,30 +690,36 @@ type SectionProps = {
   onSetModoSo: (padre: PreguntaAbierta, modo: ModoSo) => void;
   onScrollToPadre: (parent?: string) => void;
   onToggleMarcada: (parent: string, marcada: boolean) => void;
+  onOpenRelation: (p: PreguntaAbierta) => void;
 };
 
-function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnpair, busyPair, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onSetModoSo, onScrollToPadre, onToggleMarcada }: SectionProps) {
+function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnpair, busyPair, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onSetModoSo, onScrollToPadre, onToggleMarcada, onOpenRelation }: SectionProps) {
   const emparejadas = preguntas.filter((p) => isPaired(p)).length;
   const codificadas = preguntas.filter((p) => p.status === "completo").length;
+  const sectionDomId = `codif-sec-${domSafeId(id)}`;
 
   return (
-    <section aria-labelledby={`sec-${id}`} className="pulso-codificacion-question-section">
-      <header
+    <section aria-labelledby={`${sectionDomId}-button`} className="pulso-codificacion-question-section">
+      <button
+        type="button"
+        id={`${sectionDomId}-button`}
         className="pulso-codificacion-section-head"
         onClick={onToggle}
+        aria-expanded={!collapsed}
+        aria-controls={`${sectionDomId}-body`}
       >
         {collapsed ? <ChevronRightIcon size={14} /> : <ChevronDown size={14} />}
-        <h2 id={`sec-${id}`} className="pulso-codificacion-section-title">
+        <span className="pulso-codificacion-section-title">
           {label}
-        </h2>
+        </span>
         <span className="pulso-codificacion-section-meta">
           {preguntas.length} {preguntas.length === 1 ? "pregunta" : "preguntas"}
           {emparejadas > 0 && <> · <strong className="is-paired">{emparejadas} {emparejadas === 1 ? "emparejada" : "emparejadas"}</strong></>}
           {codificadas > 0 && <> · <strong className="is-coded">{codificadas} {codificadas === 1 ? "codificada" : "codificadas"}</strong></>}
         </span>
-      </header>
+      </button>
       {!collapsed && (
-        <div className="pulso-codificacion-question-grid">
+        <div id={`${sectionDomId}-body`} className="pulso-codificacion-question-grid">
           {preguntas.map((p) => (
             <PreguntaCard
               key={p.parent}
@@ -704,6 +734,7 @@ function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnp
               onSetModoSo={onSetModoSo}
               onScrollToPadre={onScrollToPadre}
               onToggleMarcada={(m) => onToggleMarcada(p.parent, m)}
+              onOpenRelation={() => onOpenRelation(p)}
             />
           ))}
         </div>
@@ -724,6 +755,7 @@ type CardProps = {
   onSetModoSo: (padre: PreguntaAbierta, modo: ModoSo) => void;
   onScrollToPadre: (parent?: string) => void;
   onToggleMarcada: (marcada: boolean) => void;
+  onOpenRelation: () => void;
 };
 
 function MarcarFooter({ p, arq, busy, onToggleMarcada }: { p: PreguntaAbierta; arq: Arquetipo; busy: boolean; onToggleMarcada: (m: boolean) => void }) {
@@ -765,7 +797,7 @@ function MarcarFooter({ p, arq, busy, onToggleMarcada }: { p: PreguntaAbierta; a
   );
 }
 
-function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onSetModoSo, onScrollToPadre, onToggleMarcada }: CardProps) {
+function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onSetModoSo, onScrollToPadre, onToggleMarcada, onOpenRelation }: CardProps) {
   const arq = arquetipoOf(p, adoptedBy);
   const tipoStyle = TIPO_STYLE[p.tipo] ?? TIPO_STYLE.text;
   const marcarFooter = <MarcarFooter p={p} arq={arq} busy={busy} onToggleMarcada={onToggleMarcada} />;
@@ -981,8 +1013,23 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         {tipoRow}
         {stats}
         <div style={{ flex: 1 }} />
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", display: "inline-flex", alignItems: "center", gap: 4 }}>
-          <GripVertical size={11} /> Arrástrala sobre la pregunta cerrada de donde proviene este texto, o marca para codificarla sola
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <GripVertical size={11} /> Arrastra sobre la pregunta origen
+          </span>
+          <button
+            type="button"
+            className="pulso-secondary pulso-codificacion-relation-button"
+            disabled={busy}
+            onPointerDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenRelation();
+            }}
+          >
+            <Link2 size={12} /> Relacionar con...
+          </button>
         </div>
         {marcarFooter}
       </article>
@@ -1352,4 +1399,8 @@ function badgeConfig(arq: Arquetipo, paired: boolean, _tipoStyle: { bg: string; 
 function truncate(s: string, n: number) {
   if (!s) return "";
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
+}
+
+function domSafeId(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9_-]+/gi, "-") || "sin-seccion";
 }

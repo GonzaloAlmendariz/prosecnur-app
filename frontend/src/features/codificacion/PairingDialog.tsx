@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
 import { Link2, X } from "lucide-react";
 import { apiCodifColumnas, PreguntaAbierta } from "../../api/client";
 
@@ -74,41 +75,47 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="pairing-title"
-      onClick={onCancel}
-      className="pulso-cv2-overlay"
-      style={{
-        position: "fixed", inset: 0, zIndex: 100,
-        background: "rgba(15, 23, 42, 0.5)",
-        backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="pulso-cv2-dialog"
-        style={{
-          background: "white", borderRadius: 10, padding: 20,
-          width: 520, maxWidth: "calc(100vw - 32px)", maxHeight: "calc(100vh - 32px)",
-          overflowY: "auto", boxShadow: "var(--pulso-shadow-med)",
-        }}
-      >
+    <Dialog.Root open onOpenChange={(open) => { if (!open) onCancel(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay
+          className="pulso-cv2-overlay"
+          style={{
+            position: "fixed", inset: 0, zIndex: 100,
+            background: "rgba(15, 23, 42, 0.5)",
+            backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)",
+          }}
+        />
+        <Dialog.Content
+          className="pulso-cv2-dialog"
+          aria-describedby="pairing-description"
+          style={{
+            position: "fixed",
+            left: "50%",
+            top: "50%",
+            translate: "-50% -50%",
+            zIndex: 101,
+            background: "white", borderRadius: 10, padding: 20,
+            width: 520, maxWidth: "calc(100vw - 32px)", maxHeight: "calc(100vh - 32px)",
+            overflowY: "auto", boxShadow: "var(--pulso-shadow-med)",
+          }}
+        >
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
           <Link2 size={16} color="var(--pulso-primary)" />
-          <h2 id="pairing-title" style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
-            Emparejar pregunta
-          </h2>
+          <Dialog.Title asChild>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
+              Emparejar pregunta
+            </h2>
+          </Dialog.Title>
           <div style={{ flex: 1 }} />
-          <button type="button" onClick={onCancel} className="pulso-icon" aria-label="Cerrar">
-            <X size={14} />
-          </button>
+          <Dialog.Close asChild>
+            <button type="button" className="pulso-icon" aria-label="Cerrar">
+              <X size={14} />
+            </button>
+          </Dialog.Close>
         </div>
-        <div style={{ fontSize: 13, color: "var(--pulso-text-soft)", marginBottom: 16 }}>
+        <Dialog.Description id="pairing-description" style={{ fontSize: 13, color: "var(--pulso-text-soft)", marginBottom: 16 }}>
           <code style={{ fontFamily: "monospace", color: "var(--pulso-primary)" }}>{pregunta.parent}</code> · {pregunta.parent_label}
-        </div>
+        </Dialog.Description>
 
         {/* Paso 1: columna hija */}
         <div style={{ marginBottom: 16 }}>
@@ -223,7 +230,9 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
         )}
 
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
-          <button type="button" className="pulso-cv2-pill" onClick={onCancel}>Cancelar</button>
+          <Dialog.Close asChild>
+            <button type="button" className="pulso-cv2-pill">Cancelar</button>
+          </Dialog.Close>
           <button
             type="button"
             className="pulso-primary pulso-cv2-pill pulso-cv2-pill--primary"
@@ -233,8 +242,9 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
             {pregunta.pareja && typeof pregunta.pareja === "object" && "child_col" in pregunta.pareja ? "Actualizar" : "Confirmar emparejamiento"}
           </button>
         </div>
-      </div>
-    </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 

@@ -38,6 +38,130 @@
   --pulso-primary-ring: rgba(15, 118, 110, 0.12);
 }
 
+/* Rail local de Codificación: en el modo icon-only el botón activo debe vivir
+ * completo dentro de la columna. El glider compartido se veía como una pieza
+ * flotante recortada al comprimirse el workbench. */
+@media (min-width: 901px) {
+  .pulso-main--processing .pulso-codificacion-frame .pulso-adaptive-rail {
+    display: grid;
+    justify-items: center;
+    align-content: start;
+  }
+
+  .pulso-main--processing .pulso-codificacion-frame .pulso-adaptive-rail > .pulso-codificacion-sidebar {
+    width: 100%;
+    justify-items: center;
+  }
+
+  :root[data-pulso-layout-mode="short"] .pulso-main--processing .pulso-codificacion-frame .pulso-codificacion-nav.pulso-gliding-tab-list,
+  .pulso-main--processing .pulso-codificacion-frame .pulso-codificacion-nav.pulso-gliding-tab-list {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-auto-flow: row;
+    justify-items: center !important;
+    align-items: center !important;
+    gap: 7px !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .pulso-main--processing .pulso-codificacion-frame .pulso-codificacion-nav > .pulso-gliding-tab-indicator {
+    display: none;
+  }
+
+  .pulso-main--processing .pulso-codificacion-frame .pulso-codificacion-nav .pulso-codificacion-nav-item,
+  .pulso-main--processing .pulso-codificacion-frame .pulso-codificacion-nav .pulso-codificacion-nav-item:is(:hover, :focus-visible, :active, .is-active) {
+    width: var(--pulso-processing-rail-item-width, 42px) !important;
+    min-width: var(--pulso-processing-rail-item-width, 42px) !important;
+    max-width: var(--pulso-processing-rail-item-width, 42px) !important;
+    height: var(--pulso-processing-rail-item-height, 42px) !important;
+    min-height: var(--pulso-processing-rail-item-height, 42px) !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    place-items: center;
+    gap: 0 !important;
+    padding: 0 !important;
+    flex: 0 0 var(--pulso-processing-rail-item-width, 42px) !important;
+    overflow: visible;
+  }
+
+  .pulso-main--processing .pulso-codificacion-frame .pulso-codificacion-nav .pulso-codificacion-nav-item[aria-selected="true"] {
+    border-color: color-mix(in srgb, var(--pulso-module-processing) 86%, var(--pulso-surface)) !important;
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--pulso-module-processing) 90%, var(--pulso-surface) 10%), var(--pulso-module-processing)) !important;
+    color: var(--pulso-surface) !important;
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--pulso-surface) 22%, transparent),
+      inset 0 -7px 11px rgba(0, 0, 0, 0.07),
+      0 8px 16px color-mix(in srgb, var(--pulso-module-processing) 22%, transparent) !important;
+  }
+
+  .pulso-main--processing .pulso-codificacion-frame .pulso-codificacion-nav .pulso-codificacion-nav-item[aria-selected="true"] .pulso-codificacion-nav-icon {
+    background: color-mix(in srgb, var(--pulso-surface) 14%, transparent);
+    border-color: color-mix(in srgb, var(--pulso-surface) 26%, transparent);
+    color: var(--pulso-surface);
+  }
+}
+
+.pulso-codificacion-frame .pulso-codificacion-content {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.pulso-codificacion-frame .pulso-codificacion-panel-body,
+.pulso-codificacion-frame .pulso-codificacion-wizard,
+.pulso-codificacion-frame .pulso-codificacion-wizard-main,
+.pulso-codificacion-frame .pulso-codificacion-coder-pane,
+.pulso-codificacion-frame .pulso-codificacion-respuestas,
+.pulso-codificacion-frame .pulso-cv2-rc,
+.pulso-codificacion-frame .pulso-cv2-split,
+.pulso-codificacion-frame .pulso-cv2-col {
+  min-height: 0;
+}
+
+.pulso-codificacion-frame .pulso-codificacion-panel-body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.pulso-codificacion-frame .pulso-codificacion-wizard {
+  flex: 1 1 auto;
+  height: 100%;
+  align-items: stretch;
+}
+
+.pulso-codificacion-frame .pulso-codificacion-wizard-sidebar {
+  position: relative;
+  top: auto;
+  max-height: none;
+  min-height: 0;
+}
+
+.pulso-codificacion-frame .pulso-codificacion-wizard-main,
+.pulso-codificacion-frame .pulso-codificacion-coder-pane,
+.pulso-codificacion-frame .pulso-codificacion-respuestas {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.pulso-codificacion-frame .pulso-codificacion-organizar,
+.pulso-codificacion-frame .pulso-codificacion-matrix-workbench,
+.pulso-codificacion-frame .pulso-codificacion-adaptar {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
 /* ── Pills gv2 ─────────────────────────────────────────────────────────── */
 /* Acciones ya etiquetadas del módulo pasan a pill sin tocar su TSX;
  * `.pulso-cv2-pill` queda para botones con estilos inline. */
@@ -92,12 +216,12 @@
  * zebra sutil y el focus ring de las celdas/filas interactivas. */
 
 .pulso-codificacion-matrix-dictionary-table tbody tr:nth-child(even):not(.is-otro):not(.is-no_contesta) td {
-  background: color-mix(in srgb, var(--pulso-surface-2) 42%, #fff);
+  background: color-mix(in srgb, var(--pulso-surface-2) 42%, var(--pulso-surface));
 }
 
 /* El hover debe seguir ganando sobre la zebra (mismo peso, declarado después). */
 .pulso-codificacion-matrix-dictionary-table tbody tr:hover:not(.is-otro):not(.is-no_contesta) td {
-  background: color-mix(in srgb, var(--pulso-module-processing-soft) 18%, #fff);
+  background: color-mix(in srgb, var(--pulso-module-processing-soft) 18%, var(--pulso-surface));
 }
 
 .pulso-codificacion-frame .pulso-codificacion-matrix-case-row:focus-visible,
@@ -121,6 +245,14 @@
   animation: pulso-cv2-pop-in var(--motion-dur-fast) var(--motion-ease-out);
   transform-origin: top center;
   border-radius: 16px !important;
+}
+
+.pulso-codificacion-import-dialog.pulso-cv2-dialog {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  z-index: 1001;
 }
 
 /* ── Accesibilidad y motion ────────────────────────────────────────────── */
@@ -257,8 +389,9 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.06fr);
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
   min-width: 0;
+  flex: 1 1 auto;
 }
 @media (max-width: 900px) {
   .pulso-cv2-split {
@@ -269,6 +402,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
 }
 /* El destino lleva superficie de acento sutil del módulo: se lee como el
    lugar donde caen/asignan las respuestas, no como columna gemela. */
@@ -344,7 +478,8 @@
 .pulso-cv2-resp-list {
   overflow-x: hidden;
   overflow-y: auto;
-  max-height: min(560px, calc(100vh - 360px));
+  min-height: 0;
+  flex: 1 1 auto;
   border: 1px solid var(--pulso-border);
   border-radius: 10px;
   background: var(--pulso-surface);
@@ -409,7 +544,7 @@
   flex-direction: column;
   gap: 10px;
   min-height: 0;
-  max-height: min(620px, calc(100vh - 360px));
+  flex: 1 1 auto;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-right: 4px;
@@ -424,7 +559,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: 10px;
   background: var(--pulso-surface);
-  cursor: pointer;
+  cursor: default;
   transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
 }
 .pulso-cv2-grupo.is-existente {
@@ -443,6 +578,45 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.pulso-cv2-active-toggle {
+  flex: 0 0 auto;
+  min-width: 64px;
+  height: 26px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) ease;
+}
+.pulso-cv2-active-toggle:hover:not(:disabled),
+.pulso-cv2-active-toggle:focus-visible {
+  border-color: var(--pulso-primary-border);
+  color: var(--pulso-primary);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline: none;
+}
+.pulso-cv2-active-toggle.is-active {
+  background: var(--pulso-primary);
+  border-color: var(--pulso-primary);
+  color: var(--pulso-surface);
+}
+.pulso-cv2-active-toggle.is-active:hover:not(:disabled),
+.pulso-cv2-active-toggle.is-active:focus-visible {
+  background: var(--pulso-primary);
+  border-color: var(--pulso-primary);
+  color: var(--pulso-surface);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
 }
 .pulso-cv2-grupo-code {
   flex-shrink: 0;
@@ -470,7 +644,7 @@
   color: var(--pulso-primary);
 }
 .pulso-cv2-grupo-label {
-  flex: 1;
+  flex: 1 1 220px;
   min-width: 0;
   height: 28px;
   padding: 0 8px;
@@ -481,6 +655,9 @@
   font-weight: 500;
   color: var(--pulso-text);
 }
+.pulso-cv2-grupo-label:not(.is-static) {
+  min-width: min(220px, 100%);
+}
 .pulso-cv2-grupo-label.is-static {
   display: flex;
   align-items: center;
@@ -490,6 +667,8 @@
   border: none;
   background: transparent;
   line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .pulso-cv2-move {
   display: inline-flex;
@@ -738,6 +917,175 @@
 .pulso-cv2-qa-item:hover {
   background: var(--pulso-surface-2);
 }
+.pulso-cv2-qa-item:focus-visible,
+.pulso-cv2-resp-row input:focus-visible,
+.pulso-cv2-chip-x:focus-visible,
+.pulso-cv2-sug:focus-visible,
+.pulso-codificacion-frame .pulso-codificacion-relation-button:focus-visible,
+.pulso-codificacion-relation-target-option:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
 .pulso-cv2-qa-unnamed {
   color: var(--pulso-text-soft);
+}
+
+.pulso-codificacion-relation-target-dialog {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  z-index: 101;
+  width: min(640px, calc(100vw - 40px));
+  min-width: 0;
+  max-height: min(680px, calc(100dvh - 40px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  box-shadow: var(--pulso-shadow-high);
+}
+
+.pulso-codificacion-relation-target-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-codificacion-relation-target-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 780;
+}
+
+.pulso-codificacion-relation-target-head p {
+  margin: 2px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.pulso-codificacion-relation-source {
+  display: grid;
+  grid-template-columns: auto minmax(0, max-content) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  margin: 12px 16px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-codificacion-relation-source span,
+.pulso-codificacion-relation-source small {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+.pulso-codificacion-relation-source strong {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.pulso-codificacion-relation-search {
+  margin: 12px 16px 8px;
+}
+
+.pulso-codificacion-relation-target-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 16px 16px;
+}
+
+.pulso-codificacion-relation-target-option {
+  display: grid;
+  grid-template-columns: minmax(72px, max-content) minmax(0, 1fr) minmax(0, 132px);
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pulso-codificacion-frame .pulso-codificacion-sections-grid {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.pulso-codificacion-frame .pulso-codificacion-sections-grid .pulso-codificacion-question-section {
+  overflow: hidden;
+}
+
+.pulso-codificacion-frame .pulso-codificacion-sections-grid .pulso-codificacion-question-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  align-items: stretch;
+}
+
+@media (max-width: 720px) {
+  .pulso-codificacion-relation-source,
+  .pulso-codificacion-relation-target-option {
+    grid-template-columns: 1fr;
+  }
+
+  .pulso-codificacion-relation-source strong,
+  .pulso-codificacion-relation-source small,
+  .pulso-codificacion-relation-target-option code,
+  .pulso-codificacion-relation-target-option span,
+  .pulso-codificacion-relation-target-option small {
+    white-space: normal;
+  }
+}
+
+.pulso-codificacion-relation-target-option:hover {
+  border-color: var(--pulso-primary-border);
+  background: var(--pulso-primary-soft);
+}
+
+.pulso-codificacion-relation-target-option code {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 160px;
+  padding: 2px 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-codificacion-relation-target-option span,
+.pulso-codificacion-relation-target-option small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-codificacion-relation-target-option span {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 620;
+}
+
+.pulso-codificacion-relation-target-option small,
+.pulso-codificacion-relation-empty {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+.pulso-codificacion-relation-empty {
+  padding: 18px;
+  text-align: center;
 }

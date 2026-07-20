@@ -78,6 +78,11 @@ export function AdaptarPane({ onBackToCodificar, onBackToMatrices }: Props) {
     n_codigos_nuevos: preguntasSoportadas.reduce((s, p) => s + p.n_codigos_nuevos, 0),
     n_codigos_reutilizados: preguntasSoportadas.reduce((s, p) => s + p.n_codigos_reutilizados, 0),
   };
+  const adaptarDisabledReason = jobId
+    ? "La adaptación ya está corriendo."
+    : t.n_preguntas === 0
+    ? "No hay codificaciones listas para adaptar."
+    : "";
 
   return (
     <section className="pulso-codificacion-adaptar">
@@ -170,10 +175,16 @@ export function AdaptarPane({ onBackToCodificar, onBackToMatrices }: Props) {
             className="pulso-primary"
             onClick={onAdaptar}
             disabled={!!jobId || t.n_preguntas === 0}
+            aria-describedby={adaptarDisabledReason ? "codificacion-adaptar-disabled-reason" : undefined}
             style={{ fontSize: 14, display: "inline-flex", alignItems: "center", gap: 6 }}
           >
             <Play size={14} /> Confirmar y adaptar respuestas
           </button>
+          {adaptarDisabledReason && (
+            <span id="codificacion-adaptar-disabled-reason" className="pulso-sr-only">
+              {adaptarDisabledReason}
+            </span>
+          )}
         </div>
       )}
 

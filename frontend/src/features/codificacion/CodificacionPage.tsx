@@ -45,10 +45,6 @@ export default function CodificacionPage() {
     navigate({ pathname: "/codificacion", search: sp.toString() ? `?${sp}` : "" });
   }
 
-  const activeStepMeta = CODIFICACION_STEPS.find((s) => s.key === step) ?? CODIFICACION_STEPS[0];
-  const ActiveIcon = activeStepMeta.icon;
-  const activeBaseName = codifSource.labelFor(codifSource.active);
-
   return (
     <PageFrame
       title="Fase 3 - Codificación"
@@ -144,21 +140,6 @@ export default function CodificacionPage() {
             />
           ) : (
             <>
-              <header className="pulso-codificacion-panel-head">
-                <span aria-hidden="true" className="pulso-codificacion-panel-icon">
-                  <ActiveIcon size={17} />
-                </span>
-                <div className="pulso-codificacion-panel-copy">
-                  <span className="pulso-section-eyebrow">Paso actual</span>
-                  <h2>{activeStepMeta.label}</h2>
-                  {activeStepMeta.hint && <p>{activeStepMeta.hint}</p>}
-                </div>
-                <span className="pulso-codificacion-base-current">
-                  <Database size={12} />
-                  {activeBaseName}
-                </span>
-              </header>
-
               <div className="pulso-codificacion-panel-body">
                 {/* `key={codifActive}` fuerza el remount de los hijos cuando
                     el analista cambia la base activa. Cada hijo tiene sus propios
@@ -313,6 +294,7 @@ function CodificacionModeSidebar({
               onClick={() => onChange(item.key)}
               className={`pulso-codificacion-nav-item${isActive ? " is-active" : ""}`}
               aria-label={`${item.label}${item.hint ? `. ${item.hint}` : ""}`}
+              title={item.hint ? `${item.label}\n${item.hint}` : item.label}
               data-rail-title={item.label}
               data-rail-desc={item.hint ?? ""}
               data-rail-tooltip={item.hint ? `${item.label}\n${item.hint}` : item.label}
