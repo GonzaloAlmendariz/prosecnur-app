@@ -972,7 +972,12 @@
 
 .graficos_acnur_report_intro_slides <- function(sid, coverage, acnur_mode = "general",
                                                 index_single_limit = 8L,
-                                                index_per_slide = 8L) {
+                                                index_per_slide = 8L,
+                                                cover_title = "") {
+  # `cover_title` es un override OPT-IN: cuando el config del export trae un
+  # titulo de portada explicito prevalece sobre el nombre del `.pulso`. Se
+  # captura antes de reasignar la variable local `cover_title`.
+  cover_title_override <- .graficos_scalar_chr(cover_title, "")
   context <- .graficos_acnur_report_context(sid, coverage)
   territorial <- identical(.graficos_scalar_chr(acnur_mode, "general"), "territorial")
   date <- .graficos_scalar_chr(
@@ -981,6 +986,7 @@
   )
   cover_title <- context$study_name
   if (territorial && identical(cover_title, "Resultados del estudio")) cover_title <- "ACNUR territorial"
+  if (nzchar(cover_title_override)) cover_title <- cover_title_override
   table_style <- .graficos_acnur_table_style()
   cover_subtitle <- if (territorial) "Resultados y cobertura territorial" else "Informe de resultados"
   if (nzchar(date)) cover_subtitle <- paste(cover_subtitle, date, sep = "\n")
