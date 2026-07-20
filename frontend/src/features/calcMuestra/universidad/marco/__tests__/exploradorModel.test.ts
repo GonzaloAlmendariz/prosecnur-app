@@ -7,13 +7,13 @@ import {
 } from "../../../../../api/client";
 import {
   EXPLORADOR_SORT_DEFAULT,
-  boxplotPosiciones,
+  boxplotPosicionesPropias,
   condicionResumen,
   contrasteSeleccion,
   cursoRowsDesdeAulaFrame,
   cursoRowsDesdeExploracion,
   elegiblesEfectivos,
-  escalaMaxElegibles,
+  hayBoxplotElegibles,
   filtrarFacultades,
   formulaEfectivos,
   nivelDistribucion,
@@ -267,24 +267,28 @@ describe("condicionResumen — condición del curso por facultad (P1)", () => {
   });
 });
 
-describe("boxplot — escala compartida y posiciones 0..1", () => {
-  it("escalaMaxElegibles: máximo de los max entre tipos con caja; 0 si ninguno", () => {
+describe("boxplot — escala propia por gráfica y posiciones 0..1", () => {
+  it("hayBoxplotElegibles: true si algún tipo trae caja; false si ninguno", () => {
     const fac = facultad({
       por_tipo_sesion: [
         tipoSesion({ tipo: "A", elegibles: 200, elegibles_min: 10, elegibles_q1: 15, mediana_elegibles: 20, elegibles_q3: 30, elegibles_max: 60 }),
-        tipoSesion({ tipo: "B", elegibles: 150, elegibles_min: 12, elegibles_q1: 18, mediana_elegibles: 25, elegibles_q3: 55, elegibles_max: 120 }),
         tipoSesion({ tipo: "C", elegibles: 90, mediana_elegibles: 14 }),
       ],
     });
-    expect(escalaMaxElegibles(tipoSesionShares(fac))).toBe(120);
-    expect(escalaMaxElegibles(tipoSesionShares(facultad({ por_tipo_sesion: [tipoSesion({ elegibles: 5, mediana_elegibles: 3 })] })))).toBe(0);
+    expect(hayBoxplotElegibles(tipoSesionShares(fac))).toBe(true);
+    expect(hayBoxplotElegibles(tipoSesionShares(facultad({ por_tipo_sesion: [tipoSesion({ elegibles: 5, mediana_elegibles: 3 })] })))).toBe(false);
   });
 
-  it("boxplotPosiciones: fracciones sobre la escala, acotadas a 0..1; media null pasa como null", () => {
-    const p = boxplotPosiciones({ min: 0, q1: 25, mediana: 50, q3: 75, max: 100, media: 60 }, 100);
+  it("boxplotPosicionesPropias: mapea [min…max] a 0..1 (min→0, max→1); media null pasa como null", () => {
+    const p = boxplotPosicionesPropias({ min: 20, q1: 40, mediana: 60, q3: 80, max: 100, media: 68 });
     expect(p).toEqual({ min: 0, q1: 0.25, mediana: 0.5, q3: 0.75, max: 1, media: 0.6 });
-    const sinMedia = boxplotPosiciones({ min: 10, q1: 20, mediana: 30, q3: 40, max: 50, media: null }, 100);
+    const sinMedia = boxplotPosicionesPropias({ min: 10, q1: 20, mediana: 30, q3: 40, max: 50, media: null });
     expect(sinMedia.media).toBeNull();
+  });
+
+  it("boxplotPosicionesPropias: rango degenerado (min==max) ⇒ todo al centro 0.5", () => {
+    const p = boxplotPosicionesPropias({ min: 20, q1: 20, mediana: 20, q3: 20, max: 20, media: 20 });
+    expect(p).toEqual({ min: 0.5, q1: 0.5, mediana: 0.5, q3: 0.5, max: 0.5, media: 0.5 });
   });
 });
 
