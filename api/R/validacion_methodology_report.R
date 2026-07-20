@@ -90,10 +90,24 @@
     }
     if (identical(out, before)) break
   }
-  # Los prefijos editoriales como [SATI_014] se retiran; si el contenido
-  # entre corchetes era una variable conocida, el pase anterior ya lo
-  # sustituyó por su etiqueta y por tanto se conserva.
-  out <- sub("^\\[[^]]+\\]\\s*", "", out, perl = TRUE)
+  # Los prefijos editoriales como [SATI_014] se retiran; si el contenido entre
+  # corchetes era una variable conocida, el pase anterior ya lo sustituyó por su
+  # etiqueta y se conserva. Un [code] inicial que quedó sin resolver pero luce
+  # como una variable (no como código editorial tipo nombre_###) se conserva
+  # como «code», de modo que el fallback de etiquetas lo muestre igual que el
+  # resto de títulos; así una variable ausente del mapa de etiquetas (p. ej. UMP)
+  # no desaparece del título dejándolo en un «debe responderse» pelado.
+  leading_bracket <- regmatches(out, regexec("^\\[([^]]+)\\]", out, perl = TRUE))[[1L]]
+  if (length(leading_bracket) == 2L) {
+    leading_code <- leading_bracket[[2L]]
+    looks_like_variable <- grepl("^[A-Za-z][A-Za-z0-9_.-]*$", leading_code, perl = TRUE) &&
+      !grepl("_[0-9]+$", leading_code, perl = TRUE)
+    if (looks_like_variable) {
+      out <- sub("^\\[([^]]+)\\]", "«\\1»", out, perl = TRUE)
+    } else {
+      out <- sub("^\\[[^]]+\\]\\s*", "", out, perl = TRUE)
+    }
+  }
   for (code in names(labels)) {
     label <- .vmr_text(labels[[code]], gsub("_+", " ", code))
     out <- gsub(

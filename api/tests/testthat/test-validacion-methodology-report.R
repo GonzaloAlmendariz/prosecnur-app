@@ -481,6 +481,18 @@ test_that("humanizador usa etiquetas declaradas sin inventar sede", {
     .vmr_humanize_title("[segmento_prioritario] «segmento_prioritario» debe responderse", labels),
     "«Grupo de atención» debe responderse"
   )
+  # Variable ausente del mapa de etiquetas (label == code, p. ej. UMP): el
+  # título debe conservar la variable entre comillas angulares, no colapsar a un
+  # «debe responderse» pelado por confundir [UMP] con un prefijo editorial.
+  ump_title <- .vmr_humanize_title("[UMP] debe responderse", list(code_pulso = "Código PULSO"))
+  expect_match(ump_title, "«UMP»", fixed = TRUE)
+  expect_false(grepl("«debe responderse»", ump_title, fixed = TRUE))
+  expect_identical(ump_title, "«UMP» debe responderse")
+  # Prefijo editorial ajeno tipo [SATI_014] (nombre_###) se sigue retirando.
+  expect_identical(
+    .vmr_humanize_title("[SATI_014] La pregunta debe responderse", list()),
+    "La pregunta debe responderse"
+  )
   expect_identical(.vmr_humanize_title("¿Pregunta de control ?"), "¿Pregunta de control?")
   expect_identical(
     .vmr_humanize_title("Pregunta de control Salto · «Pregunta de control» (condición avanzada)"),
