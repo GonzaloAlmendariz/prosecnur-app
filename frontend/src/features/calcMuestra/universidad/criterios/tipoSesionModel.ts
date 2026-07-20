@@ -221,11 +221,21 @@ export function filasPorFacultad(args: {
 }): FilaFacultad[] {
   const { variable, sel, facultades, exploracion } = args;
   const cats = categoriasDeVariable(variable);
+  // La radiografía `por_tipo_sesion` del Explorador está keyed por *tipo de
+  // sesión* (Tipo Curso); su join por nombre solo es válido para session_type.
+  // Reusarla para otra variable flat (p. ej. condicion_curso) cruza por
+  // homónimo: valores que existen en AMBAS columnas —TALLER/SEMINARIO/ACTIVIDAD—
+  // matchearían y arrastrarían el CH y los elegibles del TIPO DE SESIÓN a la
+  // categoría de condición (dato ajeno y engañoso). Fuera de session_type el CH
+  // sale solo del catálogo del propio criterio y no hay elegibles.
+  const usaExploracionTipos = variable.id === SESSION_TYPE_VARIABLE_ID;
   return facultades.map((fac) => {
     const { decision, tipos: activos } = decisionFacultad(variable, sel, fac.key);
     const activoSet = new Set(activos);
     const facTexto = textKey(fac.label);
-    const expFac = (exploracion?.por_facultad ?? []).find((f) => textKey(f.facultad) === facTexto) ?? null;
+    const expFac = usaExploracionTipos
+      ? (exploracion?.por_facultad ?? []).find((f) => textKey(f.facultad) === facTexto) ?? null
+      : null;
     const tipos: TipoFacultadDato[] = cats.map((cat) => {
       // CH del catálogo del criterio: facultad ausente = 0 real; sin
       // distribución (catálogo viejo) el dato es desconocido → null.

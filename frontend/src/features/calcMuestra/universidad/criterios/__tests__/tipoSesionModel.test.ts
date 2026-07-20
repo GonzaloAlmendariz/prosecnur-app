@@ -494,6 +494,36 @@ describe("filasPorFacultad — joins defensivos y estado de la decisión", () =>
     expect(psico.tipos.every((t) => t.elegibles === null)).toBe(true);
   });
 
+  it("otra variable flat (condicion_curso) NO cruza contra por_tipo_sesion (homónimo)", () => {
+    // La radiografía por_tipo_sesion es de *Tipo Curso*; una condición del curso
+    // que se llame igual que un tipo de sesión (TALLER) no debe heredar su CH ni
+    // sus elegibles. El CH sale solo del catálogo del propio criterio; elegibles
+    // se queda en null (esa variable no tiene fuente de elegibles).
+    const CONDICION: CriterioVariable = {
+      id: "condicion_curso",
+      scope: "aula",
+      label: "Condición del curso",
+      kind: "flat",
+      mappedColumn: "Condición del curso",
+      categories: [
+        { key: "obligatorio", label: "OBLIGATORIO", aulas: 100, por_facultad: [{ facultad: "ARTE Y DISEÑO", ch: 30 }] },
+        { key: "taller", label: "TALLER", aulas: 12, por_facultad: [{ facultad: "ARTE Y DISEÑO", ch: 7 }] },
+      ],
+    };
+    const filas = filasPorFacultad({
+      variable: CONDICION,
+      sel: { mode: "include", categories: ["obligatorio"] },
+      facultades: FACULTADES,
+      exploracion: EXPLORACION, // trae Taller ch=55 elegibles=830 en Arte y Diseño
+    });
+    const arte = filas.find((f) => f.facKey === "arte_y_diseno")!;
+    const taller = arte.tipos.find((t) => t.key === "taller")!;
+    // CH del catálogo del criterio (7), NO el del tipo de sesión Taller (55).
+    expect(taller.ch).toBe(7);
+    // Sin elegibles: no se presta la cifra del tipo de sesión.
+    expect(arte.tipos.every((t) => t.elegibles === null)).toBe(true);
+  });
+
   it("activo refleja la decisión efectiva (herencia o propia)", () => {
     const conExcepcion = toggleTipoEnFacultad(VARIABLE, SEL_GLOBAL, "arte_y_diseno", "taller");
     const filas = filasPorFacultad({ variable: VARIABLE, sel: conExcepcion, facultades: FACULTADES });
