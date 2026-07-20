@@ -1868,6 +1868,18 @@ validation_methodology_report_r <- function(model, path) {
     "  out",
     "}",
     "",
+    "# Una variable requerida se considera presente si existe como columna literal",
+    "# o si estan sus columnas dummy de select_multiple (p. ej. 'D1_information/96',",
+    "# 'D1_information_96'). Las reglas de opcion multiple operan sobre esos dummies,",
+    "# igual que el motor de la aplicacion; sin esto se marcarian como no aplicables",
+    "# aunque la base si trae la informacion.",
+    ".plan_var_present <- function(var, cols) {",
+    "  if (var %in% cols) return(TRUE)",
+    "  any(startsWith(cols, paste0(var, '/')) |",
+    "      startsWith(cols, paste0(var, '_')) |",
+    "      startsWith(cols, paste0(var, '.')))",
+    "}",
+    "",
     "validate_data <- function(data, tables = list(principal = data), collection_date_col = NULL,",
     "                          choices_map = list(), timezone = 'America/Lima', output_dir = NULL) {",
     "  if (!is.data.frame(data)) stop('data debe ser un data.frame.', call. = FALSE)",
@@ -1885,7 +1897,7 @@ validation_methodology_report_r <- function(model, path) {
     "    if (isTRUE(meta$executable) && is.data.frame(table_data)) {",
     "      variables <- strsplit(meta$variables_tecnicas, '|', fixed = TRUE)[[1]]",
     "      variables <- variables[nzchar(variables)]",
-    "      missing <- setdiff(variables, names(table_data))",
+    "      missing <- variables[!vapply(variables, .plan_var_present, logical(1), cols = names(table_data))]",
     "      if (length(missing)) {",
     "        status <- 'no_aplicable'",
     "        detail <- paste('Variables ausentes:', paste(missing, collapse = ', '))",
@@ -1942,11 +1954,21 @@ validation_methodology_report_r <- function(model, path) {
     "",
     final_summary,
     "",
-    "# CÓMO VOLVER A EJECUTAR LA VALIDACIÓN",
-    "# source('plan_validacion_limpieza.R')",
-    "# base_recibida <- read_validation_data('base.csv')",
-    "# base_validacion <- prepare_validation_universe(base_recibida)",
-    "# resultado <- validate_data(base_validacion, output_dir = 'resultados_validacion')"
+    # Cierre del .R: en la rama territorial las dos vistas (estados auditados vs.
+    # base final con variables del instrumento) no comparten una sola base, por
+    # lo que la receta de una base no corre. Se emite un bloque main ACTIVO y
+    # autonomo. La rama por defecto (PDM) conserva su receta comentada intacta.
+    if (isTRUE(universe$territorial)) {
+      vmr_territorial_runner_block(universe, script_name = basename(path))
+    } else {
+      c(
+        "# CÓMO VOLVER A EJECUTAR LA VALIDACIÓN",
+        "# source('plan_validacion_limpieza.R')",
+        "# base_recibida <- read_validation_data('base.csv')",
+        "# base_validacion <- prepare_validation_universe(base_recibida)",
+        "# resultado <- validate_data(base_validacion, output_dir = 'resultados_validacion')"
+      )
+    }
   )
   writeLines(enc2utf8(lines), path, useBytes = TRUE)
   invisible(path)
@@ -2270,13 +2292,27 @@ validation_methodology_report_pdf <- function(model, path) {
       preparation_details <- .vmr_universe_preparation_sentences(universe)
       criterion <- paste(c(count_text, preparation_details), collapse = " ")
     }
-    box_height <- if (isTRUE(universe$territorial)) 0.17 else 0.13
-    box_y <- if (isTRUE(universe$territorial)) 0.72 else 0.735
+    # El ancho de wrapping se fija al ancho REAL de la caja (0.86 npc menos
+    # padding), no a un valor conservador: a 8.6 pt en Helvetica caben ~110
+    # caracteres antes de tocar el borde derecho. La rama territorial usa ese
+    # ancho y adapta la altura al numero de lineas; la rama por defecto (PDM)
+    # conserva 82 caracteres y su geometria fija para no alterar el golden.
+    if (isTRUE(universe$territorial)) {
+      criterion_body <- .vmr_wrap(criterion, 110L)
+      n_criterion_lines <- length(strsplit(criterion_body, "\n", fixed = TRUE)[[1L]])
+      box_top <- 0.805
+      box_height <- max(0.11, 0.078 + n_criterion_lines * 0.0122)
+      box_y <- box_top - box_height / 2
+    } else {
+      criterion_body <- .vmr_wrap(criterion, 82L)
+      box_height <- 0.13
+      box_y <- 0.735
+    }
     label_y <- box_y + box_height / 2 - 0.025
     body_y <- label_y - 0.031
     grid::grid.roundrect(x = 0.5, y = box_y, width = 0.86, height = box_height, r = grid::unit(3, "mm"), gp = grid::gpar(fill = theme$soft_teal, col = NA))
     grid::grid.text("PREPARACIÓN DEL UNIVERSO", x = 0.09, y = label_y, just = "left", gp = grid::gpar(col = theme$teal, fontsize = 8, fontface = "bold"))
-    grid::grid.text(.vmr_wrap(criterion, 82L), x = 0.09, y = body_y, just = c("left", "top"), gp = grid::gpar(col = theme$text, fontsize = 8.6, lineheight = 1.15))
+    grid::grid.text(criterion_body, x = 0.09, y = body_y, just = c("left", "top"), gp = grid::gpar(col = theme$text, fontsize = 8.6, lineheight = 1.15))
   } else {
     grid::grid.roundrect(x = 0.5, y = 0.745, width = 0.86, height = 0.11, r = grid::unit(3, "mm"), gp = grid::gpar(fill = theme$soft_amber, col = NA))
     grid::grid.text(.vmr_wrap("No consta un filtro de encuestas de prueba aplicado; por ello no se presenta una fórmula de filtrado.", 76L), x = 0.09, y = 0.765, just = c("left", "top"), gp = grid::gpar(col = "#6D5315", fontsize = 9.5, lineheight = 1.18))
@@ -2349,7 +2385,7 @@ validation_methodology_report_pdf <- function(model, path) {
   }
   row_top <- decisions_top - 0.035
   for (item in scope_items) {
-    value_lines <- wrap_lines(item$value, 73L)
+    value_lines <- wrap_lines(item$value, if (isTRUE(universe$territorial)) 108L else 73L)
     row_height <- max(0.078, 0.056 + length(value_lines) * 0.017)
     row_y <- row_top - row_height / 2
     grid::grid.roundrect(x = 0.5, y = row_y, width = 0.86, height = row_height, r = grid::unit(2.5, "mm"), gp = grid::gpar(fill = theme$white, col = theme$line))
@@ -2423,7 +2459,7 @@ validation_methodology_report_pdf <- function(model, path) {
     if (chunk_idx == 1L && isTRUE(universe$territorial)) {
       reconciliation <- vmr_territorial_reconciliation_text(length(model$rules %||% list()), length(rules))
       if (nzchar(reconciliation)) {
-        note_lines <- wrap_lines(reconciliation, 88L)
+        note_lines <- wrap_lines(reconciliation, 108L)
         note_h <- max(0.09, 0.05 + length(note_lines) * 0.017)
         note_y <- max(0.12, y - note_h / 2 - 0.005)
         grid::grid.roundrect(x = 0.5, y = note_y, width = 0.86, height = note_h, r = grid::unit(3, "mm"), gp = grid::gpar(fill = theme$soft_teal, col = NA))

@@ -234,6 +234,98 @@ vmr_territorial_reconciliation_text <- function(plan_total, presented_total) {
   )
 }
 
+# --- Bloque main autonomo para el .R exportado -------------------------------
+# El .R por defecto termina con una receta COMENTADA de una sola base. El caso
+# territorial tiene dos vistas distintas (estados auditados con la etapa de
+# exclusion vs. base final con las variables del instrumento), por lo que su
+# receta de una sola base no corre de punta a punta. Este helper emite, en su
+# lugar, un bloque `main` ACTIVO y autonomo (base R + a lo sumo readxl) que:
+#   1. lee la base auditada de estados y reproduce el embudo del universo,
+#   2. lee la base final de analisis y corre las 80 reglas,
+#   3. cuadra el "incluido" del embudo con la base final y escribe los CSV.
+# Solo se usa en la rama territorial; la rama por defecto (PDM) conserva su
+# receta comentada intacta.
+vmr_territorial_runner_block <- function(universe, script_name = NULL) {
+  audit_file <- .vmr_terr_chr(universe$audit_base_file %||% "base_auditada_estados.csv")
+  analysis_file <- .vmr_terr_chr(universe$analysis_base_file %||% "base_final_analisis.csv")
+  stage_variable <- .vmr_terr_chr(universe$stage_variable %||% "etapa_exclusion")
+  total <- .vmr_terr_fmt(universe$total)
+  included <- .vmr_terr_fmt(universe$included)
+  script_label <- if (!is.null(script_name) && nzchar(script_name)) script_name else "este_script.R"
+  q <- function(x) paste0("'", x, "'")
+  c(
+    "# =============================================================================",
+    "# EJECUCION AUTONOMA — reproduce la misma base y las mismas reglas sin la app",
+    "# =============================================================================",
+    "# Este bloque corre en R base (a lo sumo readxl para Excel); no necesita el",
+    "# paquete de la aplicacion. Reproduce, a partir de dos insumos que viajan",
+    "# junto a este script, exactamente la base final de analisis y sus reglas:",
+    "#",
+    paste0("#   1) EMBUDO DEL UNIVERSO (", total, " -> ", included, ")"),
+    paste0("#      Insumo: '", audit_file, "' — una fila por registro sincronizado,"),
+    paste0("#      con su etapa de exclusion en la columna '", stage_variable, "'."),
+    "#      prepare_validation_universe() aplica el embudo y conserva los 'incluido'.",
+    "#",
+    paste0("#   2) LAS REGLAS SOBRE LA BASE FINAL (", included, ")"),
+    paste0("#      Insumo: '", analysis_file, "' — las ", included, " encuestas validas con"),
+    "#      las variables del instrumento. validate_data() corre las reglas.",
+    "#",
+    "# Como correrlo (desde una terminal, parado en la carpeta del script):",
+    paste0("#   Rscript ", script_label),
+    "# O indicando rutas explicitas (estados, base final, carpeta de salida):",
+    paste0("#   Rscript ", script_label, " ", audit_file, " ", analysis_file, " resultados_validacion"),
+    "#",
+    paste0("# Resultado esperado: embudo ", total, " -> ", included, " impreso, base final de"),
+    paste0("# ", included, " filas, las reglas evaluadas y los CSV de resultados en la salida."),
+    "# =============================================================================",
+    "",
+    "if (sys.nframe() == 0L) {",
+    "  .script_dir <- tryCatch({",
+    "    .args <- commandArgs(trailingOnly = FALSE)",
+    "    .file_arg <- sub('^--file=', '', .args[grepl('^--file=', .args)])",
+    "    if (length(.file_arg)) dirname(normalizePath(.file_arg)) else getwd()",
+    "  }, error = function(e) getwd())",
+    "  .cli <- commandArgs(trailingOnly = TRUE)",
+    paste0("  .audit_path <- if (length(.cli) >= 1L) .cli[[1L]] else file.path(.script_dir, ", q(audit_file), ")"),
+    paste0("  .analysis_path <- if (length(.cli) >= 2L) .cli[[2L]] else file.path(.script_dir, ", q(analysis_file), ")"),
+    "  .out_dir <- if (length(.cli) >= 3L) .cli[[3L]] else file.path(.script_dir, 'resultados_validacion')",
+    "",
+    "  # 1) Embudo del universo sobre la base auditada de estados.",
+    "  .base_estados <- read_validation_data(.audit_path)",
+    "  cat(sprintf('Base auditada de estados: %d filas\\n', nrow(.base_estados)))",
+    paste0("  .stage_col <- ", q(stage_variable)),
+    "  if (.stage_col %in% names(.base_estados)) {",
+    "    cat('Conteo por etapa de exclusion:\\n')",
+    "    print(table(.base_estados[[.stage_col]], useNA = 'ifany'))",
+    "  }",
+    "  .base_incluida <- prepare_validation_universe(.base_estados)",
+    "  cat(sprintf('Embudo del universo: %d -> %d (se conservan los incluido)\\n',",
+    "              nrow(.base_estados), nrow(.base_incluida)))",
+    "",
+    "  # 2) Reglas sobre la base final de analisis (variables del instrumento).",
+    "  .base_final <- read_validation_data(.analysis_path)",
+    "  cat(sprintf('Base final de analisis: %d filas\\n', nrow(.base_final)))",
+    "",
+    "  # Cuadre: el 'incluido' del embudo debe coincidir con la base final.",
+    "  if (nrow(.base_incluida) != nrow(.base_final)) {",
+    "    warning(sprintf('El embudo conserva %d registros pero la base final tiene %d.',",
+    "                    nrow(.base_incluida), nrow(.base_final)), call. = FALSE)",
+    "  } else {",
+    "    cat(sprintf('Cuadre OK: %d registros conservados = %d filas de la base final.\\n',",
+    "                nrow(.base_incluida), nrow(.base_final)))",
+    "  }",
+    "",
+    "  .resultado <- validate_data(.base_final, output_dir = .out_dir)",
+    "  .res <- .resultado$resumen_reglas",
+    "  cat(sprintf('Reglas en el resumen: %d\\n', nrow(.res)))",
+    "  cat(sprintf('Reglas evaluadas: %d\\n', sum(.res$estado == 'evaluada', na.rm = TRUE)))",
+    "  cat(sprintf('Casos encontrados (total): %d\\n', sum(.res$casos_encontrados, na.rm = TRUE)))",
+    "  cat(sprintf('Reglas con al menos un caso: %d\\n', sum(.res$casos_encontrados > 0, na.rm = TRUE)))",
+    "  cat(sprintf('CSV de resultados escritos en: %s\\n', .out_dir))",
+    "}"
+  )
+}
+
 # --- Modelo territorial (idempotente) ----------------------------------------
 vmr_territorial_universe_model <- function(universe) {
   universe$applied <- TRUE
