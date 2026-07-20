@@ -943,6 +943,7 @@ isTRUE_vec <- function(x) {
 
 .match_grupos <- function(grupos, reserved_codes = character(0)) {
   text_to_code <- new.env(parent = emptyenv())
+  text_to_codes <- list()
   new_codes <- list()  # codigo -> etiqueta, only for origen == "nuevo"
   used_codes <- unique(as.character(reserved_codes %||% character(0)))
   for (g in grupos) {
@@ -962,13 +963,16 @@ isTRUE_vec <- function(x) {
     resps <- g$respuestas %||% list()
     for (t in resps) {
       tn <- .normalize_text(as.character(t))[1]
-      if (nzchar(tn)) assign(tn, codigo_final, envir = text_to_code)
+      if (nzchar(tn)) {
+        text_to_codes[[tn]] <- unique(c(text_to_codes[[tn]] %||% character(0), codigo_final))
+        assign(tn, codigo_final, envir = text_to_code)
+      }
     }
     if (identical(origen, "nuevo")) {
       new_codes[[codigo_final]] <- .codif_group_label_or_fallback(etiqueta, codigo)
     }
   }
-  list(text_to_code = text_to_code, new_codes = new_codes)
+  list(text_to_code = text_to_code, text_to_codes = text_to_codes, new_codes = new_codes)
 }
 
 # Extract integer reglas (between/gte/lte) per grupo into a list of matcher
@@ -1438,6 +1442,7 @@ isTRUE_vec <- function(x) {
 
   lookup <- .match_grupos(grupos, reserved_codes = names(existing_code_to_col))
   text_to_code <- lookup$text_to_code
+  text_to_codes <- lookup$text_to_codes %||% list()
   new_code_to_etiqueta <- lookup$new_codes
 
   # Reservamos columnas nuevas a la derecha por cada código nuevo.
@@ -1476,14 +1481,17 @@ isTRUE_vec <- function(x) {
       t <- t[[1]]
       if (is.na(t) || !nzchar(trimws(t))) next
       tn <- .normalize_text(t)[1]
-      if (!nzchar(tn) || !exists(tn, envir = text_to_code, inherits = FALSE)) next
-      codigo <- get(tn, envir = text_to_code, inherits = FALSE)
-      if (!nzchar(codigo)) next
-      # Resuelve col destino: prioridad a existente si el codigo coincide,
-      # si no a la nueva. Si nada, skip.
-      col_idx <- existing_code_to_col[[codigo]] %||% new_code_to_col[[codigo]]
-      if (is.null(col_idx)) next
-      if (!codigo %in% names(other_code_to_col) && length(other_code_to_col)) {
+      if (!nzchar(tn)) next
+      codigos <- unique(as.character(text_to_codes[[tn]] %||% character(0)))
+      if (!length(codigos) && exists(tn, envir = text_to_code, inherits = FALSE)) {
+        codigos <- as.character(get(tn, envir = text_to_code, inherits = FALSE))
+      }
+      codigos <- codigos[nzchar(codigos)]
+      if (!length(codigos)) next
+      # Resuelve columnas destino: para select_multiple un mismo texto libre
+      # puede aportar a varias categorías y por tanto activar varias dummies.
+      has_non_other <- any(!codigos %in% names(other_code_to_col))
+      if (isTRUE(has_non_other) && length(other_code_to_col)) {
         for (other_col_idx in other_code_to_col) {
           openxlsx::writeData(
             wb, sheet = sheet, x = 0L,
@@ -1491,10 +1499,14 @@ isTRUE_vec <- function(x) {
           )
         }
       }
-      openxlsx::writeData(
-        wb, sheet = sheet, x = 1L,
-        startCol = col_idx, startRow = i, colNames = FALSE
-      )
+      for (codigo in codigos) {
+        col_idx <- existing_code_to_col[[codigo]] %||% new_code_to_col[[codigo]]
+        if (is.null(col_idx)) next
+        openxlsx::writeData(
+          wb, sheet = sheet, x = 1L,
+          startCol = col_idx, startRow = i, colNames = FALSE
+        )
+      }
     }
   }
   invisible(TRUE)

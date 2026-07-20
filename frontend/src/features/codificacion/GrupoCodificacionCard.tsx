@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { ChevronDown, ChevronUp, Inbox, Plus, Trash2, X } from "lucide-react";
 import { IconAI } from "../../lib/icons";
 import { Grupo, RespuestaUnica } from "../../api/client";
+import { displayCodificacionValueLabel } from "./codificacionLabels";
 
 // Classic Levenshtein edit distance (iterative, O(n*m) space O(n)).
 function levenshtein(a: string, b: string): number {
@@ -52,6 +53,7 @@ function truncateText(s: string, n: number) {
 export function GrupoCodificacionCard({
   grupo, respuestas, asignacion, active, onActivate, onUpdate, onDelete,
   onRemoveRespuesta, onAddRespuesta, onMoveUp, onMoveDown, isFirst, isLast,
+  allowMultiAssign = false,
 }: {
   grupo: Grupo;
   respuestas: RespuestaUnica[];
@@ -66,6 +68,7 @@ export function GrupoCodificacionCard({
   onMoveDown: () => void;
   isFirst: boolean;
   isLast: boolean;
+  allowMultiAssign?: boolean;
 }) {
   const respByNorm = useMemo(() => new Map(respuestas.map((r) => [r.texto_normalizado, r])), [respuestas]);
   const total = grupo.respuestas.reduce((sum, t) => sum + (respByNorm.get(t)?.frecuencia ?? 0), 0);
@@ -78,7 +81,8 @@ export function GrupoCodificacionCard({
     const seeds = grupo.respuestas;
     const hits: Array<{ t: RespuestaUnica; sim: number }> = [];
     for (const r of respuestas) {
-      if (asignacion.has(r.texto_normalizado)) continue;
+      if (grupo.respuestas.includes(r.texto_normalizado)) continue;
+      if (!allowMultiAssign && asignacion.has(r.texto_normalizado)) continue;
       let maxSim = 0;
       for (const s of seeds) {
         const sim = similarity(r.texto_normalizado, s);
@@ -89,21 +93,31 @@ export function GrupoCodificacionCard({
     }
     hits.sort((a, b) => b.sim - a.sim);
     return hits.slice(0, 6);
-  }, [active, grupo.respuestas, respuestas, asignacion]);
+  }, [active, grupo.respuestas, respuestas, asignacion, allowMultiAssign]);
 
   const esExistente = grupo.origen === "existente";
   const empty = grupo.respuestas.length === 0;
+  const groupDisplay = displayCodificacionValueLabel(grupo.codigo, grupo.etiqueta);
 
   return (
     <article
-      onClick={active ? undefined : onActivate}
       className={`pulso-cv2-grupo${active ? " is-active" : ""}${esExistente ? " is-existente" : ""}${empty ? " is-empty" : ""}`}
+      aria-label={`Grupo ${groupDisplay.code ? `${groupDisplay.code}, ${groupDisplay.label}` : groupDisplay.label}${active ? ", activo" : ""}`}
     >
       <div className="pulso-cv2-grupo-head">
+        <button
+          type="button"
+          className={`pulso-cv2-active-toggle${active ? " is-active" : ""}`}
+          aria-pressed={active}
+          onClick={onActivate}
+          title={active ? "Grupo activo" : "Usar este grupo como destino activo"}
+        >
+          {active ? "Activo" : "Usar"}
+        </button>
         {esExistente ? (
           <>
-            <span className="pulso-cv2-grupo-code is-static">{grupo.codigo}</span>
-            <span className="pulso-cv2-grupo-label is-static">{grupo.etiqueta}</span>
+            {groupDisplay.code && <span className="pulso-cv2-grupo-code is-static">{groupDisplay.code}</span>}
+            <span className="pulso-cv2-grupo-label is-static" title={groupDisplay.title}>{groupDisplay.label}</span>
             <span className="pulso-cv2-badge is-existente">Existente</span>
             <MoveButtons onMoveUp={onMoveUp} onMoveDown={onMoveDown} isFirst={isFirst} isLast={isLast} />
           </>
@@ -113,7 +127,6 @@ export function GrupoCodificacionCard({
               type="text"
               value={grupo.codigo}
               onChange={(e) => onUpdate({ codigo: e.target.value })}
-              onClick={(e) => e.stopPropagation()}
               placeholder="cód."
               className="pulso-cv2-grupo-code"
               aria-label="Código numérico del grupo"
@@ -122,7 +135,6 @@ export function GrupoCodificacionCard({
               type="text"
               value={grupo.etiqueta}
               onChange={(e) => onUpdate({ etiqueta: e.target.value })}
-              onClick={(e) => e.stopPropagation()}
               placeholder="Etiqueta descriptiva"
               className="pulso-cv2-grupo-label"
               aria-label="Etiqueta del grupo"
@@ -131,7 +143,7 @@ export function GrupoCodificacionCard({
             <MoveButtons onMoveUp={onMoveUp} onMoveDown={onMoveDown} isFirst={isFirst} isLast={isLast} />
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              onClick={onDelete}
               className="pulso-icon pulso-icon-danger"
               title="Eliminar grupo"
               aria-label="Eliminar grupo"
@@ -166,11 +178,12 @@ export function GrupoCodificacionCard({
         <div className="pulso-cv2-chips">
           {grupo.respuestas.map((t, idx) => {
             const r = respByNorm.get(t);
-            const display = r?.texto ?? t;
+            const formatted = displayCodificacionValueLabel(r?.texto ?? t, r?.label);
+            const display = formatted.label;
             const freq = r?.frecuencia ?? 0;
             return (
               <span key={`${t}-${idx}`} className="pulso-cv2-chip">
-                <span className="pulso-cv2-chip-text">{display}</span>
+                <span className="pulso-cv2-chip-text" title={formatted.title}>{display}</span>
                 {freq > 0 && <span className="pulso-cv2-chip-freq">×{freq}</span>}
                 <button
                   type="button"
@@ -188,7 +201,7 @@ export function GrupoCodificacionCard({
       )}
 
       {active && sugerencias.length > 0 && (
-        <div className="pulso-cv2-sugs" onClick={(e) => e.stopPropagation()}>
+        <div className="pulso-cv2-sugs">
           <div className="pulso-cv2-sugs-head">
             <IconAI size={11} /> Sugerencias similares
           </div>
@@ -219,8 +232,7 @@ export function GrupoCodificacionCard({
 }
 
 // Botones pequeños ↑/↓ para reordenar grupos (patrón copiado de
-// TimelinePanel en Fase 5 Gráficos). Se stopPropagation para no
-// disparar el onClick del article (que activa la card).
+// TimelinePanel en Fase 5 Gráficos).
 function MoveButtons({ onMoveUp, onMoveDown, isFirst, isLast }: {
   onMoveUp: () => void;
   onMoveDown: () => void;
@@ -232,7 +244,7 @@ function MoveButtons({ onMoveUp, onMoveDown, isFirst, isLast }: {
       <button
         type="button"
         className="pulso-icon"
-        onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
+        onClick={onMoveUp}
         disabled={isFirst}
         title="Subir (el orden determina cómo aparecen en el xlsx final)"
         aria-label="Subir este grupo"
@@ -242,7 +254,7 @@ function MoveButtons({ onMoveUp, onMoveDown, isFirst, isLast }: {
       <button
         type="button"
         className="pulso-icon"
-        onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
+        onClick={onMoveDown}
         disabled={isLast}
         title="Bajar (el orden determina cómo aparecen en el xlsx final)"
         aria-label="Bajar este grupo"
