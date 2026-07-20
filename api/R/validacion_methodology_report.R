@@ -584,6 +584,9 @@
 }
 
 .vmr_universe_preparation_sentences <- function(universe) {
+  if (isTRUE(universe$territorial)) {
+    return(as.character(universe$preparation_sentences %||% character(0)))
+  }
   corrections <- universe$corrections %||% list()
   exclusions <- universe$exclusion_rules %||% list()
   human_value <- function(value) {
@@ -706,6 +709,11 @@
 
 .vmr_universe_model <- function(upstream_universe = NULL) {
   universe <- upstream_universe %||% list(applied = FALSE)
+  # Embudo territorial (varias etapas heterogeneas con etiquetas a medida):
+  # se delega en el helper dedicado y no se toca la ruta por defecto.
+  if (isTRUE(universe$territorial) || length(universe$stages %||% list())) {
+    return(vmr_territorial_universe_model(universe))
+  }
   universe$corrections <- .vmr_universe_corrections(universe$corrections %||% list())
   universe$exclusion_rules <- .vmr_universe_exclusion_rules(universe$exclusion_rules %||% list())
   universe$corrected <- .vmr_universe_count(universe$corrected, 0L)
@@ -1709,9 +1717,15 @@ validation_methodology_report_r <- function(model, path) {
     paste0("# Casos encontrados: ", .vmr_script_count(model$summary$findings_total)),
     paste0("# Reglas con fórmula R: ", .vmr_script_count(sum(manifest$executable)))
   )
+  if (isTRUE(universe$territorial)) {
+    reconciliation <- vmr_territorial_reconciliation_text(length(model$rules %||% list()), length(rules))
+    if (nzchar(reconciliation)) overview <- c(overview, "#", .vmr_script_comment(reconciliation))
+  }
 
   universe_summary <- c("# DATOS INCLUIDOS EN LA VALIDACIÓN")
-  if (isTRUE(universe$applied)) {
+  if (isTRUE(universe$territorial)) {
+    universe_summary <- c(universe_summary, universe$summary_comment_lines %||% character(0))
+  } else if (isTRUE(universe$applied)) {
     rejection_count <- .vmr_universe_count(universe$excluded_rejections, 0L)
     other_exclusions <- max(0L, .vmr_universe_count(universe$excluded_rules, 0L) - rejection_count)
     universe_summary <- c(
@@ -2047,7 +2061,8 @@ validation_methodology_report_pdf <- function(model, path) {
     )
   })
   rich_preparation <- length(universe$corrections %||% list()) > 0L ||
-    length(universe$exclusion_rules %||% list()) > 0L
+    length(universe$exclusion_rules %||% list()) > 0L ||
+    isTRUE(universe$territorial)
   preparation_pages <- if (rich_preparation) 2L else 1L
   summary_chunk_count <- max(1L, ceiling(length(category_rows) / 10L))
   intro_pages <- 2L + preparation_pages + summary_chunk_count
@@ -2211,15 +2226,20 @@ validation_methodology_report_pdf <- function(model, path) {
   rejection_count <- .vmr_universe_count(universe$excluded_rejections, 0L)
   exclusion_value <- if (rejection_count > 0L) rejection_count else .vmr_universe_count(universe$excluded_rules, 0L)
   exclusion_label <- if (rejection_count > 0L) "Rechazos retirados" else "Otras exclusiones"
-  base_values <- c(
-    universe$total %||% NA_real_,
-    universe$corrected %||% 0L,
-    universe$excluded_test %||% NA_real_,
-    exclusion_value,
-    universe$included %||% NA_real_
-  )
-  base_labels <- c("Encuestas recibidas", "Reclasificadas", "Pruebas retiradas", exclusion_label, "Encuestas incluidas")
-  base_x <- seq(0.125, 0.875, length.out = 5L)
+  if (isTRUE(universe$territorial)) {
+    base_values <- universe$funnel_values
+    base_labels <- universe$funnel_labels
+  } else {
+    base_values <- c(
+      universe$total %||% NA_real_,
+      universe$corrected %||% 0L,
+      universe$excluded_test %||% NA_real_,
+      exclusion_value,
+      universe$included %||% NA_real_
+    )
+    base_labels <- c("Encuestas recibidas", "Reclasificadas", "Pruebas retiradas", exclusion_label, "Encuestas incluidas")
+  }
+  base_x <- seq(0.125, 0.875, length.out = length(base_values))
   for (i in seq_along(base_x)) {
     if (i > 1L) grid::grid.lines(x = rep(base_x[[i]] - 0.1125, 2L), y = c(0.125, 0.19), gp = grid::gpar(col = theme$line, lwd = 0.8))
     grid::grid.text(fmt(base_values[[i]]), x = base_x[[i]], y = 0.165, gp = grid::gpar(col = theme$ink, fontsize = 16, fontface = "bold"))
@@ -2233,22 +2253,30 @@ validation_methodology_report_pdf <- function(model, path) {
     invisible(NULL)
   }
   if (isTRUE(universe$applied)) {
-    rejection_count <- .vmr_universe_count(universe$excluded_rejections, 0L)
-    other_exclusions <- max(0L, .vmr_universe_count(universe$excluded_rules, 0L) - rejection_count)
-    count_text <- paste0(
-      "De ", fmt(universe$total %||% NA_real_), " encuestas recibidas, ",
-      fmt(universe$corrected %||% 0L), " se reclasificaron de prueba a real. ",
-      "Quedaron fuera ", fmt(universe$excluded_test %||% 0L),
-      if (identical(.vmr_universe_count(universe$excluded_test, 0L), 1L)) " prueba retirada" else " pruebas retiradas",
-      if (rejection_count > 0L) paste0(" y ", fmt(rejection_count), if (rejection_count == 1L) " rechazo retirado" else " rechazos retirados") else "",
-      if (other_exclusions > 0L) paste0(" y ", fmt(other_exclusions), " por otros criterios") else "",
-      ". Se incluyeron ", fmt(universe$included %||% NA_real_), " encuestas."
-    )
-    preparation_details <- .vmr_universe_preparation_sentences(universe)
-    criterion <- paste(c(count_text, preparation_details), collapse = " ")
-    grid::grid.roundrect(x = 0.5, y = 0.735, width = 0.86, height = 0.13, r = grid::unit(3, "mm"), gp = grid::gpar(fill = theme$soft_teal, col = NA))
-    grid::grid.text("PREPARACIÓN DEL UNIVERSO", x = 0.09, y = 0.775, just = "left", gp = grid::gpar(col = theme$teal, fontsize = 8, fontface = "bold"))
-    grid::grid.text(.vmr_wrap(criterion, 82L), x = 0.09, y = 0.744, just = c("left", "top"), gp = grid::gpar(col = theme$text, fontsize = 8.6, lineheight = 1.15))
+    if (isTRUE(universe$territorial)) {
+      criterion <- .vmr_text(universe$criterion_text %||% "")
+    } else {
+      rejection_count <- .vmr_universe_count(universe$excluded_rejections, 0L)
+      other_exclusions <- max(0L, .vmr_universe_count(universe$excluded_rules, 0L) - rejection_count)
+      count_text <- paste0(
+        "De ", fmt(universe$total %||% NA_real_), " encuestas recibidas, ",
+        fmt(universe$corrected %||% 0L), " se reclasificaron de prueba a real. ",
+        "Quedaron fuera ", fmt(universe$excluded_test %||% 0L),
+        if (identical(.vmr_universe_count(universe$excluded_test, 0L), 1L)) " prueba retirada" else " pruebas retiradas",
+        if (rejection_count > 0L) paste0(" y ", fmt(rejection_count), if (rejection_count == 1L) " rechazo retirado" else " rechazos retirados") else "",
+        if (other_exclusions > 0L) paste0(" y ", fmt(other_exclusions), " por otros criterios") else "",
+        ". Se incluyeron ", fmt(universe$included %||% NA_real_), " encuestas."
+      )
+      preparation_details <- .vmr_universe_preparation_sentences(universe)
+      criterion <- paste(c(count_text, preparation_details), collapse = " ")
+    }
+    box_height <- if (isTRUE(universe$territorial)) 0.17 else 0.13
+    box_y <- if (isTRUE(universe$territorial)) 0.72 else 0.735
+    label_y <- box_y + box_height / 2 - 0.025
+    body_y <- label_y - 0.031
+    grid::grid.roundrect(x = 0.5, y = box_y, width = 0.86, height = box_height, r = grid::unit(3, "mm"), gp = grid::gpar(fill = theme$soft_teal, col = NA))
+    grid::grid.text("PREPARACIÓN DEL UNIVERSO", x = 0.09, y = label_y, just = "left", gp = grid::gpar(col = theme$teal, fontsize = 8, fontface = "bold"))
+    grid::grid.text(.vmr_wrap(criterion, 82L), x = 0.09, y = body_y, just = c("left", "top"), gp = grid::gpar(col = theme$text, fontsize = 8.6, lineheight = 1.15))
   } else {
     grid::grid.roundrect(x = 0.5, y = 0.745, width = 0.86, height = 0.11, r = grid::unit(3, "mm"), gp = grid::gpar(fill = theme$soft_amber, col = NA))
     grid::grid.text(.vmr_wrap("No consta un filtro de encuestas de prueba aplicado; por ello no se presenta una fórmula de filtrado.", 76L), x = 0.09, y = 0.765, just = c("left", "top"), gp = grid::gpar(col = "#6D5315", fontsize = 9.5, lineheight = 1.18))
@@ -2271,14 +2299,34 @@ validation_methodology_report_pdf <- function(model, path) {
     grid::grid.text("FÓRMULA R USADA PARA FILTRAR", x = 0.09, y = filter_top - 0.03, just = "left", gp = grid::gpar(col = theme$mint, fontsize = 8.5, fontface = "bold"))
     grid::grid.text(paste(filter_lines, collapse = "\n"), x = 0.09, y = filter_top - 0.068, just = c("left", "top"), gp = grid::gpar(col = theme$white, fontsize = 8.6, family = "mono", lineheight = 1.12))
     decisions_top <- filter_top - filter_h - 0.045
+  } else if (isTRUE(universe$territorial)) {
+    decisions_top <- 0.575
   } else {
     decisions_top <- 0.62
   }
-  grid::grid.text("Reglas añadidas", x = 0.07, y = decisions_top, just = "left", gp = grid::gpar(col = theme$ink, fontsize = 12.5, fontface = "bold"))
+  section_title <- if (isTRUE(universe$territorial)) "Composición de la base final" else "Reglas añadidas"
+  grid::grid.text(section_title, x = 0.07, y = decisions_top, just = "left", gp = grid::gpar(col = theme$ink, fontsize = 12.5, fontface = "bold"))
   duplicate_variables <- as.character(unlist(duplicates$variables %||% list(), use.names = FALSE))
   duplicate_variables <- duplicate_variables[!is.na(duplicate_variables) & nzchar(duplicate_variables)]
   duplicate_threshold <- suppressWarnings(as.numeric(duplicates$similarity_threshold %||% 0.90))[1]
   duplicate_coverage <- suppressWarnings(as.numeric(duplicates$minimum_coverage %||% 0.80))[1]
+  if (isTRUE(universe$territorial)) {
+    breakdown <- universe$included_breakdown %||% list()
+    breakdown_value <- if (length(breakdown)) paste(vapply(breakdown, function(b) sprintf(
+      "%s %s", fmt(b$count), tolower(.vmr_text(b$label))
+    ), character(1)), collapse = " · ") else sprintf("%s registros válidos", fmt(universe$included %||% NA_real_))
+    dup_count <- .vmr_universe_count(universe$duplicates_count, 0L)
+    scope_items <- list(
+      list(label = "Casos válidos", value = sprintf(
+        "%s encuestas incluidas: %s.", fmt(universe$included %||% NA_real_), breakdown_value
+      )),
+      list(label = "Duplicados y trabajo de campo", value = sprintf(
+        "%s. Trabajo de campo: %s.",
+        if (dup_count == 0L) "No se detectaron duplicados" else sprintf("%s duplicados detectados", fmt(dup_count)),
+        .vmr_text(universe$field_window_label, "no registrado")
+      ))
+    )
+  } else {
   scope_items <- list(
     list(label = "Fechas de campo", value = if (isTRUE(field_period$enabled)) sprintf(
       "Del %s al %s, usando la variable %s (%s)",
@@ -2298,6 +2346,7 @@ validation_methodology_report_pdf <- function(model, path) {
       100 * duplicate_coverage
     ) else "No se configuró una comparación adicional por similitud de respuestas.")
   )
+  }
   row_top <- decisions_top - 0.035
   for (item in scope_items) {
     value_lines <- wrap_lines(item$value, 73L)
@@ -2370,6 +2419,17 @@ validation_methodology_report_pdf <- function(model, path) {
       grid::grid.text(if (is.finite(row_coverage)) sprintf("%.0f%%", row_coverage * 100) else "Pendiente", x = 0.82, y = y, just = "right", gp = grid::gpar(col = theme$text, fontsize = 8, fontface = "bold"))
       grid::grid.text(page_range, x = 0.91, y = y, just = "right", gp = grid::gpar(col = theme$navy, fontsize = 8, fontface = "bold"))
       y <- y - 0.055
+    }
+    if (chunk_idx == 1L && isTRUE(universe$territorial)) {
+      reconciliation <- vmr_territorial_reconciliation_text(length(model$rules %||% list()), length(rules))
+      if (nzchar(reconciliation)) {
+        note_lines <- wrap_lines(reconciliation, 88L)
+        note_h <- max(0.09, 0.05 + length(note_lines) * 0.017)
+        note_y <- max(0.12, y - note_h / 2 - 0.005)
+        grid::grid.roundrect(x = 0.5, y = note_y, width = 0.86, height = note_h, r = grid::unit(3, "mm"), gp = grid::gpar(fill = theme$soft_teal, col = NA))
+        grid::grid.text("COBERTURA DEL PLAN", x = 0.09, y = note_y + note_h / 2 - 0.022, just = "left", gp = grid::gpar(col = theme$teal, fontsize = 8, fontface = "bold"))
+        grid::grid.text(paste(note_lines, collapse = "\n"), x = 0.09, y = note_y + note_h / 2 - 0.05, just = c("left", "top"), gp = grid::gpar(col = theme$text, fontsize = 8.4, lineheight = 1.16))
+      }
     }
   }
 

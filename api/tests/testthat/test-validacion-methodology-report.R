@@ -1257,3 +1257,118 @@ test_that("reporte metodologico cruza resultados por id y renderiza PDF", {
   expect_gt(file.info(path)$size, 1000)
   expect_identical(readBin(path, "raw", 4), charToRaw("%PDF"))
 })
+
+test_that("embudo territorial: modelo, franja, formula y prepare_validation_universe", {
+  universe <- list(
+    applied = TRUE, territorial = TRUE,
+    total = 1732L, included = 1283L,
+    source_label = "sincronizados desde Kobo",
+    total_label = "Registros sincronizados",
+    included_label = "Base valida final",
+    stage_variable = "etapa_exclusion", keep_value = "incluido",
+    duplicates_count = 0L,
+    field_window_label = "mayo a 3 de julio de 2026",
+    stages = list(
+      list(id = "piloto", label = "Registros de piloto y previos",
+           short_label = "Piloto y previos",
+           excluded = 39L, remaining = 1693L, match_values = "excluido_piloto"),
+      list(id = "control_calidad", label = "Registros retirados en control de calidad de campo",
+           short_label = "Control de calidad",
+           excluded = 342L, remaining = 1351L, match_values = "excluido_anulado"),
+      list(id = "no_defendible", label = "Registros no defendibles",
+           short_label = "No defendibles",
+           excluded = 68L, remaining = 1283L, match_values = "excluido_no_defendible",
+           subcriteria = c("consentimiento no valido", "fuera del marco geografico"))
+    ),
+    included_breakdown = list(
+      list(label = "Validadas", count = 1028L),
+      list(label = "En revision defendible", count = 255L)
+    )
+  )
+  model <- build_validation_methodology_report_model(
+    .vmr_test_scope(list(rule_required("nombre", nombre = "Nombre obligatorio"))),
+    upstream_universe = universe
+  )
+  u <- model$upstream_universe
+  expect_true(isTRUE(u$territorial))
+  expect_identical(u$total, 1732L)
+  expect_identical(u$included, 1283L)
+  expect_identical(u$funnel_values, c(1732L, 39L, 342L, 68L, 1283L))
+  expect_identical(u$funnel_labels[[1L]], "Registros sincronizados")
+  expect_identical(u$funnel_labels[[5L]], "Base valida final")
+  expect_true(u$formula_available)
+
+  # Idempotencia: re-normalizar el modelo no rompe conteos.
+  again <- .vmr_universe_model(u)
+  expect_identical(again$funnel_values, u$funnel_values)
+
+  # prepare_validation_universe reproduce el embudo sobre etapa_exclusion.
+  r_path <- tempfile(fileext = ".R")
+  validation_methodology_report_r(model, r_path)
+  env <- new.env(parent = baseenv())
+  sys.source(r_path, envir = env)
+  raw <- data.frame(
+    etapa_exclusion = c(rep("incluido", 5L), rep("excluido_piloto", 2L),
+                        rep("excluido_anulado", 3L), "excluido_no_defendible"),
+    stringsAsFactors = FALSE
+  )
+  filtered <- env$prepare_validation_universe(raw)
+  expect_equal(nrow(filtered), 5L)
+  expect_true(all(filtered$etapa_exclusion == "incluido"))
+
+  script <- paste(readLines(r_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  expect_match(script, "Base final de casos validos: 1,283", fixed = TRUE)
+  expect_match(script, "excluido_no_defendible", fixed = TRUE)
+
+  report <- .vmr_test_pdf_text(model)
+  expect_match(report$text, "Base valida final", fixed = TRUE)
+  expect_match(report$text, "No defendibles", fixed = TRUE)
+  expect_match(report$text, "1,732", fixed = TRUE)
+  expect_match(report$text, "1,283", fixed = TRUE)
+  expect_false(grepl("Reclasificadas", report$text, fixed = TRUE))
+})
+
+test_that("universo por defecto no activa la rama territorial", {
+  universe <- list(
+    applied = TRUE, variable = "tipo", real_values = "real", test_values = "test",
+    total = 10L, included = 8L, excluded_test = 2L
+  )
+  model <- build_validation_methodology_report_model(
+    .vmr_test_scope(list(rule_required("nombre", nombre = "Nombre obligatorio"))),
+    upstream_universe = universe
+  )
+  expect_null(model$upstream_universe$territorial)
+  expect_null(model$upstream_universe$funnel_values)
+})
+
+test_that("embudo territorial: reconciliación 93->80 cuando el plan supera lo presentado", {
+  universe <- list(
+    applied = TRUE, territorial = TRUE, total = 100L, included = 80L,
+    stage_variable = "etapa", keep_value = "incluido",
+    stages = list(list(id = "x", label = "Excluidos", short_label = "Excluidos",
+                       excluded = 20L, remaining = 80L, match_values = "fuera"))
+  )
+  evaluation <- list(resumen_tabla = data.frame(
+    id_regla = c(rule_required("a")$id, rule_required("b")$id),
+    estado = c("correcta", "no_aplicable"),
+    n_evaluados = c(80L, NA_integer_), n_inconsistencias = c(0L, NA_integer_),
+    stringsAsFactors = FALSE
+  ))
+  model <- build_validation_methodology_report_model(
+    .vmr_test_scope(
+      list(rule_required("a", nombre = "Regla A"), rule_required("b", nombre = "Regla B")),
+      evaluation = evaluation
+    ),
+    upstream_universe = universe
+  )
+  expect_equal(length(model$rules), 2L)
+
+  r_path <- tempfile(fileext = ".R")
+  validation_methodology_report_r(model, r_path)
+  script <- paste(readLines(r_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  expect_match(script, "El plan derivó 2 reglas del instrumento; 1 aplican", fixed = TRUE)
+
+  report <- .vmr_test_pdf_text(model)
+  expect_match(report$text, "El plan derivó", fixed = TRUE)
+  expect_match(report$text, "no se materializan", fixed = TRUE)
+})
