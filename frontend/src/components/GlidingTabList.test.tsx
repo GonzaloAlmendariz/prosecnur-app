@@ -4,6 +4,9 @@ import {
   GlidingTabList,
   computeGlidingIndicatorGeometry,
   findActiveGlidingItem,
+  findNextRovingGlidingItem,
+  glidingNavigationDelta,
+  type GlidingRovingItemLike,
 } from "./GlidingTabList";
 
 describe("findActiveGlidingItem", () => {
@@ -59,6 +62,57 @@ describe("computeGlidingIndicatorGeometry", () => {
       { left: 112, top: 126, width: 148, height: 32 },
       { scrollLeft: 0, scrollTop: 0, clientLeft: 1, clientTop: 1 },
     )).toEqual({ x: 11, y: 45, width: 148, height: 32 });
+  });
+});
+
+describe("GlidingTabList roving keyboard helpers", () => {
+  const rovingItem = (
+    key: string,
+    options: {
+      role?: "tab" | "button" | "presentation";
+      hidden?: boolean;
+      disabled?: boolean;
+      ariaDisabled?: boolean;
+      tagName?: string;
+    } = {},
+  ): GlidingRovingItemLike => ({
+    dataset: { glidingKey: key },
+    hidden: options.hidden ?? false,
+    disabled: options.disabled,
+    tagName: options.tagName ?? "BUTTON",
+    getAttribute: (name) => {
+      if (name === "role") return options.role ?? "tab";
+      if (name === "aria-disabled") return options.ariaDisabled ? "true" : null;
+      return null;
+    },
+    hasAttribute: (name) => name === "disabled" && Boolean(options.disabled),
+  });
+
+  it("maps arrow keys by tablist orientation and supports Home/End", () => {
+    expect(glidingNavigationDelta("ArrowRight", "horizontal")).toBe(1);
+    expect(glidingNavigationDelta("ArrowLeft", "horizontal")).toBe(-1);
+    expect(glidingNavigationDelta("ArrowDown", "horizontal")).toBe(0);
+    expect(glidingNavigationDelta("ArrowDown", "vertical")).toBe(1);
+    expect(glidingNavigationDelta("ArrowUp", "vertical")).toBe(-1);
+    expect(glidingNavigationDelta("ArrowRight", "vertical")).toBe(0);
+    expect(glidingNavigationDelta("Home", "vertical")).toBe("first");
+    expect(glidingNavigationDelta("End", "horizontal")).toBe("last");
+  });
+
+  it("wraps roving focus and skips hidden, disabled, aria-disabled and non-tab items", () => {
+    const first = rovingItem("first");
+    const hidden = rovingItem("hidden", { hidden: true });
+    const disabled = rovingItem("disabled", { disabled: true });
+    const ariaDisabled = rovingItem("aria-disabled", { ariaDisabled: true });
+    const presentation = rovingItem("presentation", { role: "presentation", tagName: "SPAN" });
+    const last = rovingItem("last", { role: "button" });
+    const items = [first, hidden, disabled, ariaDisabled, presentation, last];
+
+    expect(findNextRovingGlidingItem(items, first, 1)).toBe(last);
+    expect(findNextRovingGlidingItem(items, last, 1)).toBe(first);
+    expect(findNextRovingGlidingItem(items, first, -1)).toBe(last);
+    expect(findNextRovingGlidingItem(items, null, "first")).toBe(first);
+    expect(findNextRovingGlidingItem(items, null, "last")).toBe(last);
   });
 });
 
