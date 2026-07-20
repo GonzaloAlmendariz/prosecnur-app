@@ -37,6 +37,14 @@ function run(root, ...args) {
   })
 }
 
+function runWithHome(root, home, ...args) {
+  return spawnSync(process.execPath, ['agentic/sync-agentic-os.mjs', ...args], {
+    cwd: root,
+    encoding: 'utf8',
+    env: { ...process.env, HOME: home, USERPROFILE: home }
+  })
+}
+
 function readManifest(root) {
   return JSON.parse(fs.readFileSync(path.join(root, 'agentic/manifest.json'), 'utf8'))
 }
@@ -55,6 +63,36 @@ test('genera exactamente los 13 agentes y mantiene check reproducible', () => {
   assert.equal(write.status, 0, write.stderr)
   assert.equal(generatedAgents(root).length, 13)
   assert.equal(run(root, '--check').status, 0)
+})
+
+test('platform=all comprueba Claude y Codex por separado', (t) => {
+  const root = fixture()
+  assert.equal(run(root, '--write').status, 0)
+  const externalSkills = readManifest(root).external_skills
+
+  for (const presentPlatform of ['claude', 'codex']) {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), `prosecnur-agentic-home-${presentPlatform}-`))
+    t.after(() => fs.rmSync(home, { recursive: true, force: true }))
+    const skillsRoot = presentPlatform === 'claude'
+      ? path.join(home, '.claude/skills')
+      : path.join(home, '.agents/skills')
+    for (const name of externalSkills) {
+      const skillFile = path.join(skillsRoot, name, 'SKILL.md')
+      fs.mkdirSync(path.dirname(skillFile), { recursive: true })
+      fs.writeFileSync(skillFile, `---\nname: ${name}\ndescription: fixture\n---\n`)
+    }
+
+    const missingPlatform = presentPlatform === 'claude' ? 'codex' : 'claude'
+    const warning = runWithHome(root, home, '--check', '--platform=all')
+    assert.equal(warning.status, 0, warning.stderr)
+    assert.match(warning.stderr, new RegExp(`skill externo no disponible para ${missingPlatform}:`))
+    assert.doesNotMatch(warning.stderr, new RegExp(`skill externo no disponible para ${presentPlatform}:`))
+
+    const strict = runWithHome(root, home, '--check', '--platform=all', '--strict-external')
+    assert.notEqual(strict.status, 0)
+    assert.match(strict.stderr, new RegExp(`skill externo no disponible para ${missingPlatform}:`))
+    assert.doesNotMatch(strict.stderr, new RegExp(`skill externo no disponible para ${presentPlatform}:`))
+  }
 })
 
 test('alta y baja canónica generan y podan solo adaptadores marcados', () => {

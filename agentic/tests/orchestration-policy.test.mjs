@@ -66,10 +66,10 @@ test('smoke escritura: una colisión detiene la oleada', () => {
   })
   assert.equal(plan.status, 'blocked')
   assert.equal(plan.reason, 'overlapping_ownership')
-  assert.deepEqual(plan.conflicts, ['api/r/contrato.r'])
+  assert.deepEqual(plan.conflicts, ['api/R/contrato.R'])
 })
 
-test('smoke escritura: normaliza paths y casing antes de comparar ownership', () => {
+test('smoke escritura: rechaza segmentos ambiguos en vez de normalizarlos', () => {
   const plan = planScenario({
     provider: 'codex',
     lines: [
@@ -78,7 +78,8 @@ test('smoke escritura: normaliza paths y casing antes de comparar ownership', ()
     ]
   })
   assert.equal(plan.status, 'blocked')
-  assert.equal(plan.reason, 'overlapping_ownership')
+  assert.equal(plan.reason, 'invalid_ownership_path')
+  assert.deepEqual(plan.invalidOwnershipPaths, ['API/R/../R/contrato.R'])
 })
 
 test('smoke escritura: ownership de directorio colisiona con sus descendientes', () => {
@@ -93,7 +94,7 @@ test('smoke escritura: ownership de directorio colisiona con sus descendientes',
   assert.equal(plan.reason, 'overlapping_ownership')
 })
 
-test('smoke escritura: normaliza directorios sin slash final de forma conservadora', () => {
+test('smoke escritura: no infiere tree por ausencia de extensión', () => {
   const plan = planScenario({
     provider: 'codex',
     lines: [
@@ -101,8 +102,8 @@ test('smoke escritura: normaliza directorios sin slash final de forma conservado
       { agent: 'autor-regresiones', profile: 'writer', ownedFiles: ['frontend/src/App.test.tsx'] }
     ]
   })
-  assert.equal(plan.status, 'blocked')
-  assert.equal(plan.reason, 'overlapping_ownership')
+  assert.equal(plan.status, 'ready')
+  assert.equal(plan.mode, 'parallel')
 })
 
 test('smoke escritura: writers sin ownership congelado no se lanzan', () => {
@@ -120,17 +121,37 @@ test('smoke escritura: writers sin ownership congelado no se lanzan', () => {
   }
 })
 
-test('smoke: un perfil desconocido no evade el límite de writers', () => {
+test('smoke: un agente no declarado se bloquea aunque use un perfil válido', () => {
   const plan = planScenario({
     provider: 'codex',
     lines: [
-      { agent: 'agente-falso', profile: 'super-writer', ownedFiles: ['api/R/falso.R'] },
+      { agent: 'agente-falso', profile: 'writer', ownedFiles: ['api/R/falso.R'] },
+      auditLines[0]
+    ]
+  })
+  assert.equal(plan.status, 'blocked')
+  assert.equal(plan.reason, 'invalid_agent')
+  assert.deepEqual(plan.invalidAgents, ['agente-falso'])
+})
+
+test('smoke: exige el perfil declarado para cada agente', () => {
+  const plan = planScenario({
+    provider: 'codex',
+    lines: [
+      { agent: 'backend-r', profile: 'read-only', ownedFiles: [] },
       auditLines[0]
     ]
   })
   assert.equal(plan.status, 'blocked')
   assert.equal(plan.reason, 'invalid_profile')
-  assert.deepEqual(plan.invalidProfiles, ['agente-falso'])
+  assert.deepEqual(plan.invalidProfiles, ['backend-r'])
+})
+
+test('smoke: rechaza provider desconocido de forma determinista', () => {
+  const plan = planScenario({ provider: 'otro', lines: auditLines })
+  assert.equal(plan.status, 'blocked')
+  assert.equal(plan.reason, 'invalid_provider')
+  assert.equal(plan.invalidProvider, 'otro')
 })
 
 test('smoke escritura: exige materializar globs antes de lanzar writers', () => {
@@ -144,6 +165,57 @@ test('smoke escritura: exige materializar globs antes de lanzar writers', () => 
   assert.equal(plan.status, 'blocked')
   assert.equal(plan.reason, 'unresolved_ownership_glob')
   assert.deepEqual(plan.unresolved, ['api/R/**'])
+})
+
+test('smoke escritura: acepta ownership tipado y detecta tree/descendiente', () => {
+  const plan = planScenario({
+    provider: 'codex',
+    lines: [
+      { agent: 'frontend-react', profile: 'writer', ownedFiles: [{ path: 'frontend/src', kind: 'tree' }] },
+      { agent: 'autor-regresiones', profile: 'writer', ownedFiles: [{ path: 'frontend/src/App.test.tsx', kind: 'file' }] }
+    ]
+  })
+  assert.equal(plan.status, 'blocked')
+  assert.equal(plan.reason, 'overlapping_ownership')
+  assert.deepEqual(plan.conflicts, ['frontend/src'])
+})
+
+test('smoke escritura: rechaza kind inválido sin inferir intención', () => {
+  const plan = planScenario({
+    provider: 'codex',
+    lines: [
+      { agent: 'backend-r', profile: 'writer', ownedFiles: [{ path: 'api/R', kind: 'directory' }] },
+      auditLines[0]
+    ]
+  })
+  assert.equal(plan.status, 'blocked')
+  assert.equal(plan.reason, 'invalid_ownership_kind')
+})
+
+test('smoke escritura: rechaza formas de path ambiguas o no portables', () => {
+  for (const ownedFile of ['/tmp/a.R', 'api/./R/a.R', 'api/../R/a.R', 'api\\R\\a.R', 'api/R/\u0007a.R']) {
+    const plan = planScenario({
+      provider: 'codex',
+      lines: [
+        { agent: 'backend-r', profile: 'writer', ownedFiles: [ownedFile] },
+        auditLines[0]
+      ]
+    })
+    assert.equal(plan.status, 'blocked', ownedFile)
+    assert.equal(plan.reason, 'invalid_ownership_path', ownedFile)
+  }
+})
+
+test('smoke escritura: preserva casing al comparar identidades', () => {
+  const plan = planScenario({
+    provider: 'codex',
+    lines: [
+      { agent: 'backend-r', profile: 'writer', ownedFiles: ['API/R/contrato.R'] },
+      { agent: 'autor-regresiones', profile: 'writer', ownedFiles: ['api/r/contrato.r'] }
+    ]
+  })
+  assert.equal(plan.status, 'ready')
+  assert.equal(plan.mode, 'parallel')
 })
 
 test('smoke trivial: una sola línea permanece single-agent', () => {

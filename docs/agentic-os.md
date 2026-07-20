@@ -20,6 +20,15 @@ Los adaptadores llevan una marca generada. El sincronizador nunca sobrescribe
 una colisión manual ni borra un archivo sin esa marca, protege `.claude/` y
 escribe cada salida mediante archivo temporal + rename atómico.
 
+Este OS local v2 no es reemplazado por el catálogo global definido en el
+[ADR 0039](adrs/0039-agentic-os-multirepo-provider-neutral.md). El núcleo
+provider-neutral vive en un checkout independiente, publica sólo nombres
+`agentic-core-*` y aporta disponibilidad. Las instrucciones, fuentes canónicas
+y overlays de este repositorio siguen teniendo autoridad. Packs de stack son
+opt-in; ningún skill específico de Prosecnur se copia globalmente. El alcance y
+los pilotos auditados se registran en el
+[informe de rollout](qa/agentic-os-rollout-2026-07-19.md).
+
 ## Contrato de orquestación
 
 Toda tarea no trivial carga `orquestar-trabajo`; los cambios y reparaciones de
@@ -34,8 +43,11 @@ La secuencia normal es:
 2. Hasta tres agentes read-only/reviewer investigan en paralelo.
 3. El lead sintetiza y congela contratos y ownership.
 4. Hasta dos writers trabajan en archivos disjuntos; el tercer worker puede
-   revisar. Antes del spawn, los globs se materializan en `ownedFiles` exactos;
-   una colisión o glob sin resolver detiene la oleada.
+   revisar. Antes del spawn, los globs se materializan en `ownedFiles`. El
+   formato preferido declara `{ path, kind: "file" | "tree" }`; los strings
+   legacy son archivos salvo cuando terminan en `/`. No se normalizan casing,
+   `.` ni `..`, y una identidad inválida, glob, path ambiguo o colisión exacta o
+   tree/descendiente detiene la oleada.
 5. Contratos, metodología y QA visual revisan en paralelo cuando aplican.
 6. `verificador` ejecuta el gate integrado de manera serial.
 
@@ -50,6 +62,11 @@ Límites de política: lead + tres workers, máximo dos writers, profundidad uno
 un reintento o reasignación. Codex aplica técnicamente hilos/profundidad; en
 Claude el lead impone el cap por contrato. Un resultado incompleto nunca se
 sintetiza como aprobado.
+
+El selector carga agentes y perfiles desde `agentic/manifest.json` y falla si
+el principal, perfil o provider no está declarado. El workflow de auditoría de
+deuda exige tres resultados válidos y exactamente los ejes únicos 1–8 antes de
+abrir la fase de síntesis; no descarta parciales silenciosamente.
 
 ## Perfiles y especialistas
 
@@ -101,6 +118,10 @@ warnings; `--strict-external` las vuelve error):
 ```bash
 node agentic/sync-agentic-os.mjs --check --platform=all
 ```
+
+Con `--platform=all`, cada skill externo se comprueba por separado para Claude
+y Codex. Que exista en un proveedor no satisface ni oculta la ausencia en el
+otro.
 
 Después de editar una fuente canónica o el manifiesto:
 
