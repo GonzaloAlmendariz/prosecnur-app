@@ -1372,3 +1372,60 @@ test_that("embudo territorial: reconciliación 93->80 cuando el plan supera lo p
   expect_match(report$text, "El plan derivó", fixed = TRUE)
   expect_match(report$text, "no se materializan", fixed = TRUE)
 })
+
+test_that("script R territorial emite un bloque main ACTIVO y autonomo sin ejecutar al hacer source", {
+  universe <- list(
+    applied = TRUE, territorial = TRUE, total = 100L, included = 80L,
+    stage_variable = "etapa", keep_value = "incluido",
+    audit_base_file = "estados_prueba.csv",
+    analysis_base_file = "final_prueba.csv",
+    stages = list(list(id = "x", label = "Excluidos", short_label = "Excluidos",
+                       excluded = 20L, remaining = 80L, match_values = "fuera"))
+  )
+  model <- build_validation_methodology_report_model(
+    .vmr_test_scope(list(rule_required("nombre", nombre = "Nombre obligatorio"))),
+    upstream_universe = universe
+  )
+  dir <- tempfile("vmr-terr-")
+  dir.create(dir)
+  r_path <- file.path(dir, "reporte.R")
+  validation_methodology_report_r(model, r_path)
+  script <- paste(readLines(r_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+
+  # Main activo (no comentado) protegido por el guard de ejecucion directa.
+  expect_match(script, "if (sys.nframe() == 0L) {", fixed = TRUE)
+  expect_match(script, "prepare_validation_universe(.base_estados)", fixed = TRUE)
+  expect_match(script, "validate_data(.base_final", fixed = TRUE)
+  # Reparte de los nombres de insumo declarados en el universo.
+  expect_match(script, "estados_prueba.csv", fixed = TRUE)
+  expect_match(script, "final_prueba.csv", fixed = TRUE)
+  # La receta comentada de una sola base NO debe aparecer en la rama territorial.
+  expect_false(grepl("# base_recibida <- read_validation_data", script, fixed = TRUE))
+
+  # Al hacer source (no ejecucion directa) no corre trabajo ni escribe archivos.
+  before <- sort(list.files(dir, all.files = TRUE, no.. = TRUE))
+  env <- new.env(parent = baseenv())
+  expect_error(sys.source(r_path, envir = env), NA)
+  after <- sort(list.files(dir, all.files = TRUE, no.. = TRUE))
+  expect_equal(after, before)
+  expect_true(exists("prepare_validation_universe", envir = env, mode = "function", inherits = FALSE))
+})
+
+test_that("script R considera presentes las variables select_multiple por sus columnas dummy", {
+  model <- build_validation_methodology_report_model(
+    .vmr_test_scope(list(rule_required("nombre", nombre = "Nombre obligatorio")))
+  )
+  r_path <- tempfile(fileext = ".R")
+  validation_methodology_report_r(model, r_path)
+  env <- new.env(parent = baseenv())
+  sys.source(r_path, envir = env)
+
+  present <- get(".plan_var_present", envir = env)
+  # Columna literal presente.
+  expect_true(present("edad", c("edad", "id")))
+  # Ausente por completo.
+  expect_false(present("D1_information", c("id", "edad")))
+  # Presente por dummies de select_multiple, aunque falte la columna resumen.
+  expect_true(present("D1_information", c("id", "D1_information/96", "D1_information/98")))
+  expect_true(present("D1_information", c("id", "D1_information_96")))
+})
