@@ -33,6 +33,7 @@ const GRUPOS = [
   { label: 'ejes-frontend', ejes: 'los ejes 4 (deriva de tokens CSS con hex hardcodeado), 5 (higiene TS: any y ts-ignore) y 7 (componentes .tsx de más de 1000 líneas)' },
   { label: 'ejes-proceso', ejes: 'los ejes 6 (archivos R sin test por nombre, con los 10 más grandes sin cubrir) y 8 (volumen sin commitear del working tree)' },
 ]
+const EJES_ESPERADOS = [1, 2, 3, 4, 5, 6, 7, 8]
 
 phase('Medición')
 const resultados = await parallel(
@@ -49,8 +50,24 @@ const resultados = await parallel(
   )
 )
 
+if (!Array.isArray(resultados) || resultados.length !== GRUPOS.length ||
+    resultados.some(resultado => !resultado || typeof resultado !== 'object' || !Array.isArray(resultado.mediciones))) {
+  throw new Error('Auditoría de deuda incompleta: se requieren 3 resultados válidos antes de la síntesis')
+}
+
+const mediciones = resultados.flatMap(resultado => resultado.mediciones)
+const ejes = mediciones.map(medicion => medicion?.eje)
+const ejesUnicos = [...new Set(ejes)].sort((a, b) => a - b)
+if (mediciones.length !== EJES_ESPERADOS.length ||
+    ejesUnicos.length !== EJES_ESPERADOS.length ||
+    ejesUnicos.some((eje, index) => eje !== EJES_ESPERADOS[index])) {
+  throw new Error(
+    `Auditoría de deuda incompleta: se requieren exactamente los ejes únicos 1..8 antes de la síntesis; ` +
+    `recibidos=${JSON.stringify(ejes)}`
+  )
+}
+
 phase('Síntesis')
-const mediciones = resultados.filter(Boolean).flatMap(r => r.mediciones)
 const sintesis = await agent(
   `Lee docs/qa/deuda-baseline.md desde la raíz actual y compara contra estas mediciones de hoy:\n` +
     JSON.stringify(mediciones, null, 2) +

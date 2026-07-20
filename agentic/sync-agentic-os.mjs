@@ -423,17 +423,20 @@ function validateProviderConfiguration() {
 
 function validateExternalSkills() {
   if (platform === 'none') return
+  const requestedPlatforms = platform === 'all' ? ['claude', 'codex'] : [platform]
   for (const name of manifest.external_skills) {
-    const candidates = []
-    if (platform === 'all' || platform === 'claude') candidates.push(path.join(os.homedir(), '.claude', 'skills', name, 'SKILL.md'))
-    if (platform === 'all' || platform === 'codex') {
-      candidates.push(path.join(os.homedir(), '.agents', 'skills', name, 'SKILL.md'))
-      candidates.push(path.join(os.homedir(), '.codex', 'skills', name, 'SKILL.md'))
-    }
-    if (!candidates.some((candidate) => fs.existsSync(candidate))) {
-      const message = `skill externo no disponible para ${platform}: ${name}`
-      if (strictExternal) fail(message)
-      else warnings.push(message)
+    for (const requestedPlatform of requestedPlatforms) {
+      const candidates = requestedPlatform === 'claude'
+        ? [path.join(os.homedir(), '.claude', 'skills', name, 'SKILL.md')]
+        : [
+            path.join(os.homedir(), '.agents', 'skills', name, 'SKILL.md'),
+            path.join(os.homedir(), '.codex', 'skills', name, 'SKILL.md')
+          ]
+      if (!candidates.some((candidate) => fs.existsSync(candidate))) {
+        const message = `skill externo no disponible para ${requestedPlatform}: ${name}`
+        if (strictExternal) fail(message)
+        else warnings.push(message)
+      }
     }
   }
 }
