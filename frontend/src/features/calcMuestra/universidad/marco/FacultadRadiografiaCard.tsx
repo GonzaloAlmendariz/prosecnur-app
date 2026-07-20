@@ -17,12 +17,12 @@ import type { CalcMuestraAulasExploracionFacultad } from "../../../../api/client
 import { fmtDec, fmtInt, fmtPct } from "../../sharedCore";
 import {
   condicionResumen,
-  escalaMaxElegibles,
+  hayBoxplotElegibles,
   nivelDistribucion,
   shareSinCondicion,
   tipoSesionShares,
 } from "./exploradorModel";
-import { BoxplotEjeX, BoxplotElegibles } from "./BoxplotElegibles";
+import { BoxplotElegibles } from "./BoxplotElegibles";
 
 /** Color del segmento de condición por bucket (tokens del módulo). */
 function condicionKind(condicion: string): "obligatorio" | "electivo" | "sindato" | "otro" {
@@ -65,10 +65,9 @@ export function FacultadRadiografiaCard({
   const tipos = tipoSesionShares(fac);
   const niveles = nivelDistribucion(fac);
   const sinCondicion = shareSinCondicion(fac);
-  // Escala compartida entre los tipos de esta facultad: los boxplots se leen
-  // sobre el mismo eje y son comparables.
-  const escalaMax = escalaMaxElegibles(tipos);
-  const hayBoxplot = escalaMax > 0;
+  // Cada boxplot usa su ESCALA PROPIA (por gráfica): la comparación entre tipos
+  // se lee en las cifras de la tabla, no en el ancho de la caja.
+  const hayBoxplot = hayBoxplotElegibles(tipos);
   const hayBadges = fac.n_multi_facultad > 0 || fac.n_local_externo > 0 || (sinCondicion != null && sinCondicion > 0);
   // Condición del curso (obligatorio/electivo) por facultad: junto al tipo,
   // define cuántas aulas sobreviven a todos los criterios (Ramiro §8.2).
@@ -174,11 +173,13 @@ export function FacultadRadiografiaCard({
               {tipos.map((tipo) => (
                 <tr key={tipo.tipo}>
                   <td>
-                    <span className="cmv2-explorador-dist-label">{tipo.tipo}</span>
-                    <span className="cmv2-explorador-dist-track" aria-hidden="true">
-                      <i style={{ width: `${Math.max(2, Math.round(tipo.share * 100))}%` }} />
-                    </span>
-                    <span className="cmv2-explorador-dist-pct">{fmtPct(tipo.share)}</span>
+                    <div className="cmv2-explorador-dist-cell">
+                      <span className="cmv2-explorador-dist-label" title={tipo.tipo}>{tipo.tipo}</span>
+                      <span className="cmv2-explorador-dist-track" aria-hidden="true">
+                        <i style={{ width: `${Math.max(2, Math.round(tipo.share * 100))}%` }} />
+                      </span>
+                      <span className="cmv2-explorador-dist-pct">{fmtPct(tipo.share)}</span>
+                    </div>
                   </td>
                   <td
                     data-numeric="true"
@@ -208,7 +209,7 @@ export function FacultadRadiografiaCard({
                   {hayBoxplot && (
                     <td className="cmv2-boxplot-col">
                       {tipo.caja ? (
-                        <BoxplotElegibles caja={tipo.caja} escalaMax={escalaMax} tipo={tipo.tipo} />
+                        <BoxplotElegibles caja={tipo.caja} tipo={tipo.tipo} />
                       ) : (
                         <span className="cmv2-boxplot-vacio" title={medianaTitle(tipo.medianaElegibles)}>
                           —
@@ -221,12 +222,6 @@ export function FacultadRadiografiaCard({
             </tbody>
           </table>
           {hayBoxplot && (
-            <div className="cmv2-boxplot-escala-fila">
-              <span className="cmv2-boxplot-escala-label">Elegibles por aula</span>
-              <BoxplotEjeX escalaMax={escalaMax} />
-            </div>
-          )}
-          {hayBoxplot && (
             <p className="cmv2-boxplot-leyenda">
               <span className="cmv2-boxplot-leyenda-item">
                 <span className="cmv2-boxplot-leyenda-caja" aria-hidden="true" />caja Q1–Q3
@@ -238,8 +233,9 @@ export function FacultadRadiografiaCard({
                 <span className="cmv2-boxplot-leyenda-media" aria-hidden="true" />media
               </span>
               <span className="cmv2-boxplot-leyenda-nota">
-                Misma escala entre tipos; la media a la derecha de la mediana señala aulas grandes que
-                jalan el promedio.
+                Escala propia por tipo (elegibles por aula): los números rotulan los cuartiles
+                (Q1 · mediana · Q3) y la media, cada uno sobre su marca. La media a la derecha de la
+                mediana señala aulas grandes que jalan el promedio.
               </span>
             </p>
           )}
@@ -263,11 +259,13 @@ export function FacultadRadiografiaCard({
             {niveles.map((nivel) => (
               <tr key={nivel.nivel}>
                 <td>
-                  <span className="cmv2-explorador-dist-label">{nivel.nivel}</span>
-                  <span className="cmv2-explorador-dist-track" aria-hidden="true">
-                    <i style={{ width: `${Math.max(2, Math.round(nivel.share * 100))}%` }} />
-                  </span>
-                  <span className="cmv2-explorador-dist-pct">{fmtPct(nivel.share)}</span>
+                  <div className="cmv2-explorador-dist-cell">
+                    <span className="cmv2-explorador-dist-label">{nivel.nivel}</span>
+                    <span className="cmv2-explorador-dist-track" aria-hidden="true">
+                      <i style={{ width: `${Math.max(2, Math.round(nivel.share * 100))}%` }} />
+                    </span>
+                    <span className="cmv2-explorador-dist-pct">{fmtPct(nivel.share)}</span>
+                  </div>
                 </td>
                 <td data-numeric="true">{fmtInt(nivel.ch)}</td>
                 <td data-numeric="true">{fmtInt(nivel.elegibles)}</td>

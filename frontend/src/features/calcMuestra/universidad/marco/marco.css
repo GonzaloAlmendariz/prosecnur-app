@@ -2841,7 +2841,34 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   color: var(--pulso-text-muted);
 }
 
-/* Tabla de distribución por tipo/nivel dentro de la tarjeta. */
+/* Tabla de distribución por tipo/nivel dentro de la tarjeta. Layout FIJO: sin
+   él la primera columna (label + barra + %) se comía ~60% del ancho y empujaba
+   las cifras a un bloque apretado a la derecha con un hueco enorme en medio. Con
+   anchos explícitos por columna las cifras quedan a distancia pareja del label y
+   todas las tarjetas de facultad alinean igual. */
+.cmv2-explorador-dist {
+  table-layout: fixed;
+  width: 100%;
+}
+/* Centrado vertical en TODAS las celdas: la base `.cmv2-table td` fija
+   `vertical-align: top` con la misma especificidad, así que en una fila con
+   boxplot (30px) el label, las cifras y la caja arrancaban pegados arriba y la
+   fila se leía torcida. Encadenamos ambas clases del <table> para ganar por
+   especificidad, no por orden de cascada. */
+.cmv2-table.cmv2-explorador-dist th,
+.cmv2-table.cmv2-explorador-dist td {
+  vertical-align: middle;
+}
+/* Anchos por columna (fixed layout los respeta desde la fila de encabezado): las
+   3–4 columnas de cifras fijas y la 1.ª (Tipo/Nivel) toma el resto. */
+.cmv2-explorador-dist th:nth-child(2),
+.cmv2-explorador-dist td:nth-child(2) { width: 92px; }
+.cmv2-explorador-dist th:nth-child(3),
+.cmv2-explorador-dist td:nth-child(3) { width: 88px; }
+.cmv2-explorador-dist th:nth-child(4),
+.cmv2-explorador-dist td:nth-child(4) { width: 116px; }
+.cmv2-explorador-dist th.cmv2-boxplot-col,
+.cmv2-explorador-dist td.cmv2-boxplot-col { width: 220px; }
 .cmv2-explorador-dist th[data-numeric],
 .cmv2-explorador-dist td[data-numeric] {
   text-align: right;
@@ -2865,11 +2892,16 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 .cmv2-explorador-dist td.cmv2-boxplot-col {
   padding-left: 12px;
 }
-.cmv2-explorador-dist td:first-child {
+/* Contenido de la 1.ª columna (label · barra · %) en un DIV interno, no en el
+   `td`: un `td` con `display:grid` NO se estira a la altura de la fila (se queda
+   en su alto de contenido y se ancla arriba), así que quedaba 8px más alto que
+   las cifras. Con el grid en un div hijo, el `td` sigue siendo table-cell y su
+   `vertical-align: middle` centra el bloque contra las demás columnas. */
+.cmv2-explorador-dist-cell {
   display: grid;
-  grid-template-columns: minmax(80px, 1fr) minmax(60px, 120px) 44px;
+  grid-template-columns: minmax(0, 1fr) 88px 42px;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 .cmv2-explorador-dist-label {
   overflow: hidden;
@@ -2993,7 +3025,7 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
     flex-direction: column;
     gap: 6px;
   }
-  .cmv2-explorador-dist td:first-child {
+  .cmv2-explorador-dist-cell {
     grid-template-columns: minmax(72px, 1fr) 40px;
   }
   .cmv2-explorador-dist-track {
@@ -3003,24 +3035,30 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 
 /* ── Boxplot de elegibles por aula (radiografía por tipo, reunión Ramiro §9) ── */
 .cmv2-boxplot-col {
-  width: 148px;
   text-align: left;
   vertical-align: middle;
 }
 .cmv2-boxplot {
   display: block;
-  width: 140px;
-  height: 30px;
+  width: 200px;
+  height: 46px;
   overflow: visible;
 }
-/* Rejilla de referencia dentro de cada boxplot (el «eje» por fila): líneas
-   menores tenues + mayores (0 · mitad · max) algo más marcadas. */
-.cmv2-boxplot-grid {
-  stroke: color-mix(in srgb, var(--cmv2-border) 50%, transparent);
-  stroke-width: 1;
-  shape-rendering: crispEdges;
+/* Etiquetas de valor dentro del boxplot (cuartiles Q1·Q3 abajo, mediana + media
+   arriba): dan la escala PROPIA de cada gráfica alineadas a su marca. */
+.cmv2-boxplot-val {
+  fill: var(--pulso-text-muted);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
 }
-.cmv2-boxplot-grid[data-mayor] { stroke: var(--cmv2-border); }
+.cmv2-boxplot-val--med {
+  fill: var(--cmv2-accent-fg, var(--pulso-text));
+  font-weight: 600;
+}
+.cmv2-boxplot-val--mean {
+  fill: var(--pulso-warn-fg, var(--pulso-warning));
+  font-weight: 600;
+}
 .cmv2-boxplot-whisker {
   stroke: color-mix(in srgb, var(--pulso-text) 42%, transparent);
   stroke-width: 1.25;
@@ -3058,32 +3096,6 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   .cmv2-boxplot-box { animation: none; }
 }
 
-/* Eje X compartido de los boxplots: escala numérica de elegibles por aula. */
-.cmv2-boxplot-escala-fila {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 8px 2px 0;
-}
-.cmv2-boxplot-escala-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--pulso-text-muted);
-}
-.cmv2-boxplot-eje { flex: none; }
-.cmv2-boxplot-eje-line { stroke: var(--cmv2-border); stroke-width: 1; }
-.cmv2-boxplot-eje-tick { stroke: color-mix(in srgb, var(--cmv2-border) 50%, transparent); stroke-width: 1; }
-.cmv2-boxplot-eje-tick[data-mayor] { stroke: var(--cmv2-border); }
-.cmv2-boxplot-eje-labels {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 1px;
-  font-size: 9px;
-  color: var(--pulso-text-muted);
-  font-variant-numeric: tabular-nums;
-}
 .cmv2-boxplot-leyenda {
   display: flex;
   flex-wrap: wrap;

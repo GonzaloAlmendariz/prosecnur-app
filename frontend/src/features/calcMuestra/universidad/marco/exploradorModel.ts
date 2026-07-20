@@ -350,11 +350,12 @@ export function condicionResumen(facultad: CalcMuestraAulasExploracionFacultad):
  * facultad, para que los boxplots se lean sobre el MISMO eje y sean
  * comparables. 0 si ningún tipo trae caja (el llamador omite el boxplot).
  */
-export function escalaMaxElegibles(tipos: TipoSesionShare[]): number {
-  return tipos.reduce((acc, t) => (t.caja ? Math.max(acc, t.caja.max) : acc), 0);
+/** ¿Al menos un tipo trae boxplot? Gate de render de la columna Distribución. */
+export function hayBoxplotElegibles(tipos: TipoSesionShare[]): boolean {
+  return tipos.some((t) => t.caja != null);
 }
 
-/** Marcas del boxplot como fracción 0..1 de la escala compartida. */
+/** Marcas del boxplot como fracción 0..1 de su escala PROPIA. */
 export type BoxplotPosiciones = {
   min: number;
   q1: number;
@@ -366,11 +367,16 @@ export type BoxplotPosiciones = {
 };
 
 /**
- * Posiciones 0..1 de cada marca sobre la escala compartida. Escala 0 (ningún
- * dato) ⇒ todo colapsa a 0 (el llamador no llega aquí sin caja).
+ * Posiciones 0..1 de cada marca sobre la escala PROPIA del boxplot [min…max]:
+ * cada gráfica usa TODO su ancho (escala por gráfica, no compartida entre tipos),
+ * así una distribución estrecha —SEMINARIO 18–23— se lee con el mismo detalle
+ * que una ancha —TEÓRICO 15–156—. El min ancla en 0 y el max en 1; las etiquetas
+ * numéricas de los extremos dan la escala real de cada una. Rango degenerado
+ * (min==max, un único valor) ⇒ todo al centro (0.5).
  */
-export function boxplotPosiciones(caja: BoxplotResumen, escalaMax: number): BoxplotPosiciones {
-  const frac = (v: number) => (escalaMax > 0 ? Math.min(1, Math.max(0, v / escalaMax)) : 0);
+export function boxplotPosicionesPropias(caja: BoxplotResumen): BoxplotPosiciones {
+  const span = caja.max - caja.min;
+  const frac = (v: number) => (span > 0 ? Math.min(1, Math.max(0, (v - caja.min) / span)) : 0.5);
   return {
     min: frac(caja.min),
     q1: frac(caja.q1),
