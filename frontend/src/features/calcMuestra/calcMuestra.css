@@ -5560,7 +5560,7 @@
     overflow: visible;
   }
   .cmv2-section-local-tab[data-rail-tooltip]::before {
-    content: "";
+    content: none;
     position: absolute;
     left: calc(100% + 12px);
     top: 50%;
