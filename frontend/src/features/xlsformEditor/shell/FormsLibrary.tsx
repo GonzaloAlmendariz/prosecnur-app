@@ -22,6 +22,7 @@
 
 import { useMemo, type ReactNode } from "react";
 import { Layers, Lock } from "../../../vendor/lucide-react";
+import type { XlsformFormPublication } from "../../../api/client";
 import { AddFormCard } from "./AddFormCard";
 import { FormCard } from "./FormCard";
 import { HubFlowDiagram } from "./HubFlowDiagram";
@@ -47,6 +48,12 @@ export type FormsLibraryProps = {
   onImportXls: () => void;
   onImportSurveyMonkey: () => void;
   onDuplicate?: (id: string) => void;
+  publications: Record<string, XlsformFormPublication>;
+  publishingFormId: string | null;
+  confirmingLogicFormId: string | null;
+  publicationErrors: Record<string, string>;
+  onPublish: (id: string) => void;
+  onConfirmLogic: (id: string) => void;
   resumeBanner?: ReactNode;
 };
 
@@ -61,6 +68,12 @@ export function FormsLibrary({
   onImportXls,
   onImportSurveyMonkey,
   onDuplicate,
+  publications,
+  publishingFormId,
+  confirmingLogicFormId,
+  publicationErrors,
+  onPublish,
+  onConfirmLogic,
   resumeBanner,
 }: FormsLibraryProps) {
   // Métricas por formulario, calculadas sobre el workbook local. Se recomputa
@@ -123,6 +136,20 @@ export function FormsLibrary({
             onRename={onRename}
             onDelete={onDelete}
             onDuplicate={onDuplicate}
+            publication={publications[entry.id] ?? {
+              status: "draft",
+              draft_content_sha256: "",
+              latest_revision: null,
+              blockers: [],
+              warnings: [],
+              can_publish: false,
+              can_delete: true,
+            }}
+            isPublishing={publishingFormId === entry.id}
+            isConfirmingLogic={confirmingLogicFormId === entry.id}
+            publicationError={publicationErrors[entry.id]}
+            onPublish={onPublish}
+            onConfirmLogic={onConfirmLogic}
           />
         ))}
 
