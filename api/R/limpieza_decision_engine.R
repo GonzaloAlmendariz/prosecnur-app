@@ -1123,7 +1123,25 @@
   wb <- openxlsx::createWorkbook(creator = "prosecnur")
   st_head <- openxlsx::createStyle(textDecoration = "bold", fgFill = "#E8EAED")
 
+  excel_safe_table <- function(df) {
+    df <- tibble::as_tibble(df)
+    list_cols <- vapply(df, is.list, logical(1))
+    if (!any(list_cols)) return(df)
+    df[list_cols] <- lapply(df[list_cols], function(column) {
+      vapply(column, function(value) {
+        as.character(jsonlite::toJSON(
+          value,
+          auto_unbox = TRUE,
+          null = "null",
+          na = "null"
+        ))
+      }, character(1))
+    })
+    df
+  }
+
   write_sheet <- function(name, df) {
+    df <- excel_safe_table(df)
     openxlsx::addWorksheet(wb, name)
     openxlsx::writeData(wb, name, df)
     if (nrow(df) >= 0L && ncol(df) > 0L) {
