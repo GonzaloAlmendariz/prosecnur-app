@@ -34,6 +34,13 @@ import {
   apiMonitoreoTerritorialUmpReconciliation,
   apiUpload,
   apiCargaRefreshKoboIndependent,
+  apiCargaProcessingIntake,
+  apiCargaProcessingIntakeSave,
+  apiCargaProcessingIntakeValidate,
+  apiCargaAcreditacionBatchPreview,
+  apiCargaAcreditacionBatchPromote,
+  apiProcessingReleases,
+  apiProcessingReleaseApprove,
   apiEstudioActiveBaseSet,
   apiEstudioApplyIndependentTemplateLogic,
   apiEstudioPromoteIndependentSiblings,
@@ -50,6 +57,8 @@ import {
   apiV2InstrumentoVariablesExcluidas,
   apiV2InstrumentoVariablesExcluidasSave,
   apiGraficosPpt,
+  apiGraficosConsolidadoPreflight,
+  apiGraficosPptConsolidado,
   apiGraficosSlideLayoutPreview,
   apiGraficosPreviewSlide,
   apiGraficosShareExport,
@@ -69,7 +78,13 @@ import {
   apiXlsformEditorSmListSurveys,
   apiXlsformEditorSmTokenLoad,
   apiXlsformEditorSmTokenSave,
+  apiXlsformFormConfirmLogic,
+  apiXlsformFormGet,
+  apiXlsformFormPublishRevision,
+  apiXlsformFormsList,
   invalidateMonitoreoStateWarmCache,
+  normalizeXlsformFormPublication,
+  normalizeProcessingIntakePayload,
   type MonitoreoConfig,
   type XlsformEditorWorkbook,
 } from "./client";
@@ -121,6 +136,644 @@ function jsonResponse(body: unknown) {
     headers: { "Content-Type": "application/json" },
   });
 }
+
+describe("XLSForm instrument revision client", () => {
+  beforeEach(() => {
+    vi.stubGlobal("localStorage", makeLocalStorage());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  test("normalizes the four remote publication states defensively", async () => {
+    const revision = {
+      schema: "instrument_revision/v1",
+      revision_id: "rev-1",
+      form_id: "actor-a",
+      revision_no: 1,
+      content_sha256: "published-hash",
+      xlsform_file_id: "file-xlsx-1",
+      published_at: "2026-07-20T12:00:00Z",
+    };
+    const fetchMock = vi.fn(async () => jsonResponse({
+      ok: true,
+      active_form_id: "draft-form",
+      forms: [
+        {
+          id: "draft-form",
+          name: "Borrador",
+          publication: {
+            status: "draft",
+            draft_content_sha256: "draft-hash",
+            latest_revision: null,
+            blockers: [],
+            warnings: [],
+            can_publish: true,
+            can_delete: true,
+          },
+        },
+        {
+          id: "published-form",
+          name: "Publicado",
+          publication: {
+            status: "published",
+            draft_content_sha256: "published-hash",
+            latest_revision: revision,
+            blockers: [],
+            warnings: [],
+            can_publish: false,
+            can_delete: false,
+          },
+        },
+        {
+          id: "changed-form",
+          name: "Cambios",
+          publication: {
+            status: "changes_pending",
+            draft_content_sha256: "new-hash",
+            latest_revision: revision,
+            blockers: [],
+            warnings: [],
+            can_publish: true,
+            can_delete: false,
+          },
+        },
+        {
+          id: "blocked-form",
+          name: "Bloqueado",
+          publication: {
+            status: "blocked",
+            draft_content_sha256: "blocked-hash",
+            latest_revision: null,
+            blockers: [{
+              id: "missing_name",
+              title: "Falta name",
+              detail: "Revisa la fila",
+              row_index: 3,
+            }],
+            warnings: [],
+            can_publish: false,
+            can_delete: true,
+          },
+        },
+      ],
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiXlsformFormsList();
+
+    expect(result.forms.map((form) => form.publication.status)).toEqual([
+      "draft",
+      "published",
+      "changes_pending",
+      "blocked",
+    ]);
+    expect(result.forms[1]?.publication.latest_revision?.revision_no).toBe(1);
+    expect(result.forms[3]?.publication.blockers[0]?.rowIndex).toBe(3);
+  });
+
+  test("round-trips the safe SurveyMonkey source allowlist without secrets", async () => {
+    const source = {
+      schema: "survey_source/v1",
+      kind: "surveymonkey",
+      original_name: "Docentes",
+      actor_key: "docentes",
+      survey_id: "sm-123",
+      survey_title: "Encuesta a docentes",
+      translated_at: "2026-07-20T12:00:00Z",
+      definition_sha256: "a".repeat(64),
+      definition_fetched_at: "2026-07-20T11:00:00Z",
+      question_count: 38,
+      logic_status: "pending_manual_confirmation",
+      publication_guard: "Confirma manualmente la lógica antes de publicar.",
+      variants: [{ survey_id: "sm-124", channel: "personalizado" }],
+      remote_payload_sha256_observed: "b".repeat(64),
+      definition_hash_scope: "survey+choices+settings",
+      provenance: { provider: "surveymonkey_api", token: "discard" },
+      logic_confirmed_at: "2026-07-20T13:00:00Z",
+      logic_confirmation_method: "analyst_review",
+      logic_review: { reviewer: "analista", authorization: "discard" },
+      token: "discard",
+      unapproved_field: "discard",
+    };
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({
+      ok: true,
+      active_form_id: "form-docentes",
+      forms: [{ id: "form-docentes", name: "Docentes", source }],
+    })));
+
+    const result = await apiXlsformFormsList();
+    const normalized = result.forms[0]?.source as Record<string, unknown>;
+
+    expect(normalized).toMatchObject({
+      schema: "survey_source/v1",
+      kind: "surveymonkey",
+      original_name: "Docentes",
+      actor_key: "docentes",
+      survey_id: "sm-123",
+      definition_sha256: "a".repeat(64),
+      logic_status: "pending_manual_confirmation",
+      variants: [{ survey_id: "sm-124", channel: "personalizado" }],
+      provenance: { provider: "surveymonkey_api" },
+      logic_review: { reviewer: "analista" },
+    });
+    expect(normalized).not.toHaveProperty("token");
+    expect(normalized).not.toHaveProperty("unapproved_field");
+    expect(normalized.provenance).not.toHaveProperty("token");
+    expect(normalized.logic_review).not.toHaveProperty("authorization");
+  });
+
+  test("infers blocker precedence when a malformed payload declares draft", () => {
+    const publication = normalizeXlsformFormPublication({
+      status: "draft",
+      draft_content_sha256: "hash",
+      blockers: [{ id: "bad_logic", title: "Lógica inválida", detail: "relevant" }],
+      can_publish: true,
+      can_delete: true,
+    });
+
+    // El normalizador preserva el contrato remoto; el helper de presentación
+    // aplica la precedencia defensiva sin reescribir estado del backend.
+    expect(publication.status).toBe("draft");
+    expect(publication.blockers).toHaveLength(1);
+  });
+
+  test("publishes the exact form id with the expected draft hash", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        created: true,
+        revision: {
+          schema: "instrument_revision/v1",
+          revision_id: "rev-actor-a-1",
+          form_id: "actor / A",
+          revision_no: 1,
+          content_sha256: "draft-hash-123",
+          xlsform_file_id: "file-xlsx-1",
+          published_at: "2026-07-20T12:00:00Z",
+        },
+        publication: {
+          status: "published",
+          draft_content_sha256: "draft-hash-123",
+          latest_revision: {
+            schema: "instrument_revision/v1",
+            revision_id: "rev-actor-a-1",
+            form_id: "actor / A",
+            revision_no: 1,
+            content_sha256: "draft-hash-123",
+            xlsform_file_id: "file-xlsx-1",
+            published_at: "2026-07-20T12:00:00Z",
+          },
+          blockers: [],
+          warnings: [],
+          can_publish: false,
+          can_delete: false,
+        },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiXlsformFormPublishRevision("actor / A", "draft-hash-123");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/xlsform-editor/forms/actor%20%2F%20A/revisions",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      expected_content_sha256: "draft-hash-123",
+    });
+    expect(result.revision.form_id).toBe("actor / A");
+    expect(result.publication.status).toBe("published");
+  });
+
+  test("confirma la lógica por formulario y hash sin publicar", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        source: {
+          schema: "survey_source/v1",
+          kind: "surveymonkey",
+          original_name: "Docentes",
+          survey_id: "sm-123",
+          logic_status: "confirmed",
+          logic_confirmed_at: "2026-07-20T22:00:00Z",
+          logic_confirmation_method: "editor_manual_review",
+          logic_review: { content_sha256: "draft-hash-123" },
+        },
+        publication: {
+          status: "draft",
+          draft_content_sha256: "draft-hash-123",
+          latest_revision: null,
+          blockers: [],
+          warnings: [],
+          can_publish: true,
+          can_delete: true,
+        },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiXlsformFormConfirmLogic("actor / A", "draft-hash-123");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/xlsform-editor/forms/actor%20%2F%20A/logic-confirmation",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      expected_content_sha256: "draft-hash-123",
+    });
+    expect(result.source?.logic_status).toBe("confirmed");
+    expect(result.publication.status).toBe("draft");
+    expect(result.publication.can_publish).toBe(true);
+    expect(result.publication.latest_revision).toBeNull();
+  });
+
+  test("preserva la procedencia acreditada completa y descarta secretos", async () => {
+    const source = {
+      schema: "acreditacion_actor_instrument_draft/v1",
+      kind: "surveymonkey",
+      original_name: "Administrativos",
+      actor_key: "administrativos",
+      survey_id: "527574340",
+      survey_title: "Encuesta Administrativos",
+      definition_sha256: "abc123",
+      definition_fetched_at: "2026-07-20T12:00:00Z",
+      question_count: 15,
+      logic_status: "pending_manual_confirmation",
+      publication_guard: "missing_form_id_until_logic_confirmed",
+      variants: [{ survey_id: "527574340", channel: "web", token: "no-copiar" }],
+      definition_hash_scope: "survey+choices+settings",
+      authorization: "Bearer no-copiar",
+    };
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({
+      ok: true,
+      form: {
+        id: "acrconta-administrativos",
+        name: "Administrativos",
+        workbook: {
+          survey: { columns: [], rows: [] },
+          choices: { columns: [], rows: [] },
+          settings: { columns: [], rows: [] },
+        },
+        source,
+        hallazgos: [],
+        saved_at: "2026-07-20T12:00:00Z",
+      },
+    })));
+
+    const result = await apiXlsformFormGet("acrconta-administrativos");
+
+    expect(result.form?.source).toMatchObject({
+      schema: source.schema,
+      actor_key: source.actor_key,
+      survey_id: source.survey_id,
+      definition_sha256: source.definition_sha256,
+      logic_status: source.logic_status,
+      variants: [{ survey_id: "527574340", channel: "web" }],
+    });
+    expect(result.form?.source).not.toHaveProperty("authorization");
+    expect(result.form?.source?.variants?.[0]).not.toHaveProperty("token");
+  });
+});
+
+describe("Processing intake client", () => {
+  beforeEach(() => {
+    vi.stubGlobal("localStorage", makeLocalStorage());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const response = {
+    ok: true,
+    intake: {
+      schema: "processing_intake/v1",
+      processing_mode: "independent_siblings",
+      family_id: "family-1",
+      revision: 3,
+      entries: {
+        docentes: {
+          entry_id: "entry-1",
+          base: "base_1",
+          base_label: "Docentes",
+          actor_key: "actor_1",
+          actor: "Docentes",
+          instrument_revision_id: "rev-1",
+          status: "stale",
+          form_id: "form-docentes",
+          latest_revision_id: "rev-2",
+          blocking_reasons: [],
+        },
+      },
+    },
+    revisions: [
+      {
+        schema: "instrument_revision/v1",
+        revision_id: "rev-1",
+        form_id: "form-docentes",
+        revision_no: 1,
+        content_sha256: "hash-1",
+        xlsform_file_id: "file-1",
+        published_at: "2026-07-20T12:00:00Z",
+        form_name: "Encuesta Docentes",
+        is_latest: false,
+      },
+      {
+        schema: "instrument_revision/v1",
+        revision_id: "rev-2",
+        form_id: "form-docentes",
+        revision_no: 2,
+        content_sha256: "hash-2",
+        xlsform_file_id: "file-2",
+        published_at: "2026-07-20T13:00:00Z",
+        form_name: "Encuesta Docentes",
+        is_latest: true,
+      },
+    ],
+    validation: { valid: true, blockers: [], warnings: [], entries: [], max_entries: 10 },
+  };
+
+  test("normalizes named R entry lists without replacing historical revisions", () => {
+    const result = normalizeProcessingIntakePayload(response);
+    expect(result.intake.entries).toHaveLength(1);
+    expect(result.intake.entries[0]).toMatchObject({
+      entry_id: "entry-1",
+      base: "base_1",
+      actor_key: "actor_1",
+      instrument_revision_id: "rev-1",
+      latest_revision_id: "rev-2",
+      status: "stale",
+    });
+    expect(result.revisions.map((revision) => revision.revision_id)).toEqual(["rev-1", "rev-2"]);
+  });
+
+  test("normalizes structured blocking reasons and catalog availability", () => {
+    const result = normalizeProcessingIntakePayload({
+      ...response,
+      revisions: [{
+        ...response.revisions[0],
+        available: false,
+        blocking_reasons: [{ code: "E_FILE_MISSING", message: "No existe el XLSX publicado." }],
+      }],
+      intake: {
+        ...response.intake,
+        entries: [{
+          ...response.intake.entries.docentes,
+          status: "blocked",
+          blocking_reasons: [{ code: "E_FILE_MISSING", message: "No existe el XLSX publicado." }],
+        }],
+      },
+    });
+
+    expect(result.revisions[0]).toMatchObject({
+      available: false,
+      blocking_reasons: [{ code: "E_FILE_MISSING", message: "No existe el XLSX publicado." }],
+    });
+    expect(result.intake.entries[0]?.blocking_reasons[0]?.message).toContain("XLSX");
+  });
+
+  test("keeps candidate readiness returned by the read-only validation endpoint", () => {
+    const candidate = response.intake.entries.docentes;
+    const result = normalizeProcessingIntakePayload({
+      ...response,
+      intake: { ...response.intake, entries: [] },
+      validation: {
+        valid: true,
+        blockers: [],
+        warnings: [],
+        max_entries: 10,
+        entries: [candidate],
+      },
+    });
+    expect(result.intake.entries).toHaveLength(0);
+    expect(result.validation.entries).toMatchObject([{ entry_id: "entry-1", status: "stale" }]);
+    expect(result.validation.max_entries).toBe(10);
+  });
+
+  test("lists the intake from its authoritative endpoint", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(response));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiCargaProcessingIntake();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/carga/processing-intake",
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+    expect(result.intake.revision).toBe(3);
+  });
+
+  test.each([
+    ["save", apiCargaProcessingIntakeSave, "PUT", "/api/carga/processing-intake"],
+    ["validate", apiCargaProcessingIntakeValidate, "POST", "/api/carga/processing-intake/validate"],
+  ] as const)("%s sends stable identities and never sends derived status", async (_name, action, method, url) => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse(response);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await action({
+      expected_revision: 3,
+      entries: [{
+        entry_id: "entry-1",
+        base: "base_1",
+        base_label: "Docentes visibles",
+        actor_key: "actor_1",
+        actor: "Docentes visibles",
+        instrument_revision_id: "rev-1",
+      }],
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(url, expect.objectContaining({ method }));
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      expected_revision: 3,
+      entries: [{
+        entry_id: "entry-1",
+        base: "base_1",
+        base_label: "Docentes visibles",
+        actor_key: "actor_1",
+        actor: "Docentes visibles",
+        instrument_revision_id: "rev-1",
+      }],
+    });
+    expect(String(sentInit?.body)).not.toContain("status");
+  });
+});
+
+describe("accreditation monitoring batch client", () => {
+  beforeEach(() => vi.stubGlobal("localStorage", makeLocalStorage()));
+  afterEach(() => vi.unstubAllGlobals());
+
+  const preview = {
+    ok: true,
+    schema: "accreditation_processing_batch/v1",
+    detected: true,
+    ready: true,
+    replacement_required: false,
+    already_materialized: false,
+    pins: {
+      intake_revision: 2,
+      family_id: "family-1",
+      cache_token: "cache-1",
+      preview_fingerprint: "preview-1",
+    },
+    totals: { selected: 410, excluded: 109, total_rollup: 519 },
+    entries: [],
+    blockers: [],
+  };
+
+  test("previews only through the batch endpoint", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(preview));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiCargaAcreditacionBatchPreview();
+
+    expect(result.totals.selected).toBe(410);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/carga/monitoreo-handoff/preview-batch",
+      expect.objectContaining({ method: "POST", body: "{}" }),
+    );
+  });
+
+  test("promote copies every preview pin and a single replacement decision", async () => {
+    let sentInit: RequestInit | undefined;
+    vi.stubGlobal("fetch", vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        promoted: true,
+        already_materialized: false,
+        batch_id: "batch-1",
+        base_names: ["administrativos", "docentes", "egresados", "estudiantes"],
+        counts: { administrativos: 15, docentes: 52, egresados: 178, estudiantes: 165 },
+        estudio: { ok: true, nombre: "ACRDCONTA", processing_mode: "independent_siblings", active_base: "administrativos", n_bases: 4, bases: {} },
+      });
+    }));
+
+    await apiCargaAcreditacionBatchPromote(preview.pins, true);
+
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      expected_intake_revision: 2,
+      expected_family_id: "family-1",
+      expected_cache_token: "cache-1",
+      preview_fingerprint: "preview-1",
+      confirm_replacement: true,
+    });
+  });
+});
+
+describe("processing releases client", () => {
+  beforeEach(() => vi.stubGlobal("localStorage", makeLocalStorage()));
+  afterEach(() => vi.unstubAllGlobals());
+
+  const catalog = {
+    ok: true,
+    schema: "processing_release_catalog/v1",
+    detected: true,
+    family_id: "family-1",
+    active_base: "docentes",
+    all_approved: false,
+    entries: [{
+      base: "docentes",
+      base_label: "Docentes",
+      actor: "Docentes",
+      entry_id: "entry-docentes",
+      family_id: "family-1",
+      instrument_revision_id: "revision-docentes",
+      status: "ready",
+      ready: true,
+      approved: false,
+      input_fingerprint: "fingerprint-docentes",
+      blockers: [],
+      pins: {},
+      release: null,
+    }],
+  };
+
+  test("lists the read-only release catalog", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(catalog));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiProcessingReleases();
+
+    expect(result.entries[0]?.status).toBe("ready");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/processing/releases",
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
+
+  test("approval sends the exact base fingerprint", async () => {
+    let sentInit: RequestInit | undefined;
+    vi.stubGlobal("fetch", vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse(catalog);
+    }));
+
+    await apiProcessingReleaseApprove({
+      base: "docentes",
+      expected_input_fingerprint: "fingerprint-docentes",
+    });
+
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      base: "docentes",
+      expected_input_fingerprint: "fingerprint-docentes",
+    });
+  });
+});
+
+describe("consolidated graphics client", () => {
+  beforeEach(() => vi.stubGlobal("localStorage", makeLocalStorage()));
+  afterEach(() => vi.unstubAllGlobals());
+
+  test("reads release-gated preflight", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({
+      ok: true,
+      schema: "graficos_consolidado/v1",
+      ready: true,
+      blockers: [],
+      source_order: ["docentes", "estudiantes", "administrativos"],
+      releases: [],
+      input_fingerprint: "fingerprint",
+      plan_sha256: "plan",
+      n_slides: 4,
+      warnings: [],
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiGraficosConsolidadoPreflight();
+
+    expect(result.ready).toBe(true);
+    expect(result.source_order).toHaveLength(3);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/graficos/consolidado/preflight",
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
+
+  test("starts one consolidated PPT job with global style", async () => {
+    let sentInit: RequestInit | undefined;
+    vi.stubGlobal("fetch", vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({ ok: true, job_id: "job-1", kind: "graficos.ppt_consolidado" });
+    }));
+
+    await apiGraficosPptConsolidado({ multi_apiladas: { mostrar_leyenda: true } }, { template_id: "generic_16_9" });
+
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      presets: { multi_apiladas: { mostrar_leyenda: true } },
+      config: { template_id: "generic_16_9" },
+    });
+  });
+});
 
 describe("XLSForm editor PDF client", () => {
   beforeEach(() => {
