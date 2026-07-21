@@ -1,0 +1,242 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AlertTriangle, Archive, CheckCircle2, ChevronDown, Download, LayoutGrid, Loader2 } from "../../vendor/lucide-react";
+import {
+  apiGraficosConfigGet,
+  apiGraficosConsolidadoPreflight,
+  apiGraficosPptAll,
+  apiGraficosPptConsolidado,
+  downloadUrl,
+  type GraficosConsolidadoPreflight,
+} from "../../api/client";
+import { JobProgress } from "../../components/JobProgress";
+import { useSession } from "../../lib/SessionContext";
+import { buildGraficosConfigFromStore } from "./configSnapshot";
+import { type GraficosConfig, usePlanStore } from "./store";
+import { processingBaseScopePresentation } from "../procesamiento/baseScopeModel";
+import {
+  multibaseReportMenuPresentation,
+  type SharedReportPreflightStatus,
+} from "./multibaseReportMenuModel";
+
+type ExportResult = {
+  ok: true;
+  file_id: string;
+  filename?: string;
+  size: number;
+  n_slides: number;
+};
+
+type ExportAllResult = {
+  ok: true;
+  file_id: string;
+  filename?: string;
+  size: number;
+  n_bases: number;
+  bases: Array<{ nombre: string; filename: string; n_slides: number }>;
+};
+
+type GroupJob = { kind: "ppt_consolidado" | "ppt_all"; id: string };
+
+export function MultibaseReportMenu() {
+  const { state, refresh } = useSession();
+  const [open, setOpen] = useState(false);
+  const [job, setJob] = useState<GroupJob | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [preflightStatus, setPreflightStatus] = useState<SharedReportPreflightStatus>("idle");
+  const [preflight, setPreflight] = useState<GraficosConsolidadoPreflight | null>(null);
+  const [error, setError] = useState("");
+  const [consolidated, setConsolidated] = useState<{ fileId: string; filename: string } | null>(null);
+  const [allBases, setAllBases] = useState<{ fileId: string; filename: string } | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const preflightRequestRef = useRef(0);
+  const visible = processingBaseScopePresentation(
+    state?.estudio_processing_mode,
+    state?.n_bases,
+  ).showSharedReports;
+  const busy = Boolean(job) || starting;
+  const presentation = multibaseReportMenuPresentation(preflightStatus, preflight, busy);
+
+  const loadPreflight = useCallback(async () => {
+    const requestId = preflightRequestRef.current + 1;
+    preflightRequestRef.current = requestId;
+    setPreflightStatus("loading");
+    try {
+      const result = await apiGraficosConsolidadoPreflight();
+      if (preflightRequestRef.current !== requestId) return;
+      setPreflight(result);
+      setPreflightStatus(result.ready ? "ready" : "blocked");
+    } catch (cause) {
+      if (preflightRequestRef.current !== requestId) return;
+      setPreflight(null);
+      setPreflightStatus("error");
+      setError(cause instanceof Error ? cause.message : "No se pudo comprobar el informe compartido.");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    function closeOutside(event: MouseEvent) {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
+    }
+    function closeEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", closeOutside);
+    document.addEventListener("keydown", closeEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOutside);
+      document.removeEventListener("keydown", closeEscape);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (open && visible) void loadPreflight();
+  }, [loadPreflight, open, visible]);
+
+  useEffect(() => {
+    setConsolidated(null);
+    setAllBases(null);
+    setError("");
+    setStarting(false);
+    setPreflight(null);
+    setPreflightStatus("idle");
+    preflightRequestRef.current += 1;
+  }, [state?.session_id]);
+
+  if (!visible) return null;
+
+  async function reportConfig() {
+    const remote = await apiGraficosConfigGet();
+    usePlanStore.getState().hydrate(remote.config as GraficosConfig);
+    const current = usePlanStore.getState();
+    return {
+      presets: current.presets,
+      config: buildGraficosConfigFromStore(),
+    };
+  }
+
+  async function startConsolidated() {
+    if (presentation.sharedDisabled) return;
+    setError("");
+    setStarting(true);
+    try {
+      const prepared = await reportConfig();
+      const result = await apiGraficosPptConsolidado(prepared.presets, prepared.config);
+      setJob({ kind: "ppt_consolidado", id: result.job_id });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo iniciar el informe compartido.");
+      void loadPreflight();
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  async function startAllBases() {
+    if (presentation.packageDisabled) return;
+    setError("");
+    setStarting(true);
+    try {
+      const result = await apiGraficosPptAll();
+      setJob({ kind: "ppt_all", id: result.job_id });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo iniciar el paquete por bases.");
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  function onDone(result: ExportResult | ExportAllResult) {
+    if (job?.kind === "ppt_consolidado") {
+      setConsolidated({ fileId: result.file_id, filename: result.filename ?? "informe_compartido.pptx" });
+    } else {
+      setAllBases({ fileId: result.file_id, filename: result.filename ?? "reportes_por_base.zip" });
+    }
+    setJob(null);
+    void refresh();
+  }
+
+  return (
+    <div className={`pulso-multibase-reports${open ? " is-open" : ""}`} ref={rootRef}>
+      <button
+        type="button"
+        className="pulso-multibase-reports-trigger"
+        onClick={() => setOpen((current) => !current)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label="Entregables del conjunto de bases"
+        title="Entregables que reúnen las bases independientes"
+      >
+        {busy ? <Loader2 size={14} className="pulso-spin" /> : <LayoutGrid size={14} />}
+        <span>Conjunto</span>
+        <ChevronDown size={12} />
+      </button>
+
+      {open && (
+        <div className="pulso-multibase-reports-popover" role="dialog" aria-label="Reportes del conjunto de bases">
+          <div className="pulso-multibase-reports-head">
+            <span aria-hidden="true"><LayoutGrid size={15} /></span>
+            <div>
+              <strong>Reportes del conjunto</strong>
+              <small>{state?.n_bases ?? 0} bases independientes</small>
+            </div>
+          </div>
+
+          <div className="pulso-multibase-reports-preflight" data-tone={presentation.tone} role="status">
+            <span aria-hidden="true">
+              {presentation.tone === "ready" ? <CheckCircle2 size={14} /> : presentation.tone === "blocked" ? <AlertTriangle size={14} /> : <Loader2 size={14} className="pulso-spin" />}
+            </span>
+            <div>
+              <strong>{presentation.tone === "ready" ? "Listo para componer" : presentation.tone === "blocked" ? "Revisión requerida" : "Comprobando informe"}</strong>
+              <small>{presentation.detail}</small>
+            </div>
+          </div>
+
+          {preflightStatus === "blocked" && preflight?.blockers.length ? (
+            <ul className="pulso-multibase-reports-blockers">
+              {preflight.blockers.slice(0, 3).map((blocker) => (
+                <li key={`${blocker.code}-${blocker.message}`}>{blocker.message}</li>
+              ))}
+            </ul>
+          ) : null}
+
+          <button type="button" className="pulso-multibase-report-option" onClick={() => void startConsolidated()} disabled={presentation.sharedDisabled}>
+            <span aria-hidden="true"><LayoutGrid size={15} /></span>
+            <span>
+              <strong>Informe compartido</strong>
+              <small>PPTX conjunto; compara actores cuando las preguntas son compatibles</small>
+            </span>
+          </button>
+          <button type="button" className="pulso-multibase-report-option" onClick={() => void startAllBases()} disabled={presentation.packageDisabled}>
+            <span aria-hidden="true"><Archive size={15} /></span>
+            <span>
+              <strong>Archivos por base</strong>
+              <small>ZIP con un PPTX independiente por base</small>
+            </span>
+          </button>
+
+          {job && (
+            <JobProgress<ExportResult | ExportAllResult>
+              label={job.kind === "ppt_consolidado" ? "Construyendo informe compartido" : "Empaquetando bases"}
+              jobId={job.id}
+              onDone={onDone}
+              onError={(message) => { setError(message); setJob(null); }}
+              onCancelled={() => setJob(null)}
+            />
+          )}
+
+          {error && <div className="pulso-multibase-reports-error" role="alert">{error}</div>}
+          {(consolidated || allBases) && (
+            <div className="pulso-multibase-reports-files">
+              {consolidated && (
+                <a href={downloadUrl(consolidated.fileId)}><Download size={12} /> {consolidated.filename}</a>
+              )}
+              {allBases && (
+                <a href={downloadUrl(allBases.fileId)}><Download size={12} /> {allBases.filename}</a>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

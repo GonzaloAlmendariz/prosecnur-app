@@ -1,6 +1,6 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertCircle, AlertTriangle, AlignJustify, Archive, ArrowRight, Check, CheckCircle2, ChevronDown, Database, Download, FileText, GanttChart, LayoutGrid, RotateCcw, Loader2, Rows3, Undo2, Redo2, Settings2, PanelTopDashed, SlidersHorizontal, Upload, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, AlignJustify, ArrowRight, Check, CheckCircle2, ChevronDown, Database, Download, FileText, GanttChart, LayoutGrid, RotateCcw, Loader2, Rows3, Undo2, Redo2, Settings2, PanelTopDashed, SlidersHorizontal, Upload, X } from "lucide-react";
 import {
   apiGraficosConfigGet,
   apiGraficosConfigExport,
@@ -525,33 +525,25 @@ const jsonIoStyles: Record<string, CSSProperties> = {
 export function GraficosHeader({
   onExportPpt,
   onExportWord,
-  onExportPptAll,
   pptFileId,
   docxFileId,
-  zipFileId,
   pptFilename,
   docxFilename,
-  zipFilename,
   exportBusy,
   exportJobKind,
   canExport,
   prepReady,
-  showExportAll,
 }: {
   onExportPpt: () => void;
   onExportWord: () => void;
-  onExportPptAll: () => void;
   pptFileId: string | null;
   docxFileId: string | null;
-  zipFileId: string | null;
   pptFilename: string | null;
   docxFilename: string | null;
-  zipFilename: string | null;
   exportBusy: boolean;
-  exportJobKind: "ppt" | "word" | "ppt_all" | null;
+  exportJobKind: "ppt" | "word" | null;
   canExport: boolean;
   prepReady: boolean;
-  showExportAll: boolean;
 }) {
   const dirty = usePlanStore((s) => s.dirty);
   const hydrated = usePlanStore((s) => s.hydrated);
@@ -593,7 +585,7 @@ export function GraficosHeader({
   const validator = usePlanValidator();
   const canExportFinal = canExport && validator.canExport;
   const prepBlocked = !prepReady;
-  const generatedReports = Number(Boolean(pptFileId)) + Number(Boolean(docxFileId)) + Number(Boolean(zipFileId));
+  const generatedReports = Number(Boolean(pptFileId)) + Number(Boolean(docxFileId));
 
   useEffect(() => {
     if (!exportMenuOpen) return;
@@ -1105,7 +1097,7 @@ export function GraficosHeader({
                   setJsonMenuOpen(false);
                   setExportMenuOpen((v) => !v);
                 }}
-                disabled={!canExportFinal && !pptFileId && !docxFileId && !zipFileId && !showExportAll}
+                disabled={!canExportFinal && !pptFileId && !docxFileId}
                 aria-haspopup="dialog"
                 aria-expanded={exportMenuOpen}
                 title={canExportFinal ? "Exportar el reporte en PowerPoint o Word" : "Revisa el estado del plan antes de exportar"}
@@ -1169,32 +1161,7 @@ export function GraficosHeader({
                     </button>
                   </div>
 
-                  {showExportAll && (
-                    <>
-                      <div className="pulso-gv2-export-menu-divider" role="separator" />
-                      <div className="pulso-gv2-export-menu-actions pulso-gv2-export-menu-actions--single">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setExportMenuOpen(false);
-                            onExportPptAll();
-                          }}
-                          disabled={exportBusy}
-                          title="Genera un PowerPoint por cada base del proyecto y los junta en un ZIP"
-                        >
-                          <span className="pulso-gv2-export-menu-action-icon" aria-hidden="true">
-                            {exportJobKind === "ppt_all" ? <Loader2 size={14} className="pulso-spin" /> : <Archive size={14} />}
-                          </span>
-                          <span>
-                            <strong>Todas las bases</strong>
-                            <small>ZIP con un PPTX por base</small>
-                          </span>
-                        </button>
-                      </div>
-                    </>
-                  )}
-
-                  {(pptFileId || docxFileId || zipFileId || saveStatus) && (
+                  {(pptFileId || docxFileId || saveStatus) && (
                     <div className="pulso-gv2-export-menu-files">
                       {pptFileId && !exportBusy && (
                         <a href={downloadUrl(pptFileId)}>
@@ -1204,11 +1171,6 @@ export function GraficosHeader({
                       {docxFileId && !exportBusy && (
                         <a href={downloadUrl(docxFileId)}>
                           <Download size={12} /> {docxFilename ?? "reporte.docx"}
-                        </a>
-                      )}
-                      {zipFileId && !exportBusy && (
-                        <a href={downloadUrl(zipFileId)}>
-                          <Download size={12} /> {zipFilename ?? "reporte_todas_bases.zip"}
                         </a>
                       )}
                       {saveStatus && (

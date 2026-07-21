@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { GraficadorRef } from "../../api/client";
 import { VarWithSource, formatVarRef, parseVarRef, useVariables } from "./useVariables";
+import VariableRespondentSummary from "./VariableRespondentSummaryView";
 
 type Props = {
   graf: GraficadorRef;
@@ -570,6 +571,7 @@ function MultiVarPicker({
           );
         })}
       </div>
+      <VariableRespondentSummary refs={value} variables={variables} multi={multi} />
       <VariableChoicePopover
         variables={variables}
         multi={multi}
@@ -728,6 +730,8 @@ function VariableChoicePopover({
         )}
         <ChevronDown size={14} className="pulso-gv2-variable-trigger-chevron" />
       </button>
+
+      <VariableRespondentSummary refs={value ? [value] : []} variables={variables} multi={multi} />
 
       {open && typeof document !== "undefined" && createPortal((
         <div

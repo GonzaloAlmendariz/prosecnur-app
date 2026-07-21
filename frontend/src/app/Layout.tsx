@@ -13,6 +13,8 @@ import {
 } from "../lib/modules";
 import ModuleWarmupBoundary, { RouteLoadingFallback } from "./ModuleWarmupBoundary";
 import { GlidingTabList } from "../components/GlidingTabList";
+import { MultibaseReportMenu } from "../features/graficos/MultibaseReportMenu";
+import { processingBaseScopePresentation } from "../features/procesamiento/baseScopeModel";
 
 // Layout global de la app. El header muestra marca, navegación, proyecto
 // activo y errores de sesión solo cuando existen. El topbar local de etapas
@@ -317,9 +319,8 @@ function SiblingWorkbenchSelector({
   const [open, setOpen] = useState(false);
   const inRow = placement === "row";
   const baseCount = state?.n_bases ?? 0;
-  const independent = visible &&
-    state?.estudio_processing_mode === "independent_siblings" &&
-    baseCount > 0;
+  const baseScope = processingBaseScopePresentation(state?.estudio_processing_mode, baseCount);
+  const independent = visible && baseScope.showBasePicker;
 
   async function load() {
     if (!independent) return;
@@ -346,7 +347,7 @@ function SiblingWorkbenchSelector({
 
   if (!independent || !estudio) {
     if (inRow && visible && baseCount > 0) {
-      const modeLabel = independent ? "Preparando selector" : baseCount === 1 ? "Base única" : "Bases combinadas";
+      const modeLabel = independent ? "Preparando selector" : baseScope.summaryLabel;
       return (
         <div
           className="pulso-sibling-switcher is-row is-summary"
@@ -536,7 +537,10 @@ export default function Layout() {
         <div className="pulso-processing-phase-row">
           <ProcessingPhaseDock items={items} />
           <div className="pulso-processing-phase-side pulso-processing-phase-side--right">
-            <SiblingWorkbenchSelector visible={showFases} placement="row" />
+            <div className="pulso-base-workbench" role="group" aria-label="Visor de bases del procesamiento">
+              <SiblingWorkbenchSelector visible={showFases} placement="row" />
+              <MultibaseReportMenu />
+            </div>
           </div>
         </div>
       )}
