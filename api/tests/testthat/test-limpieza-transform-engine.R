@@ -172,3 +172,37 @@ test_that("adjust_select_multiple_values advierte columnas dummy faltantes sin f
   expect_true(any(grepl("codigo(s) 2", out$warnings, fixed = TRUE)))
   expect_equal(out$impact$cells_changed, 2L)
 })
+
+test_that("export de limpieza admite columnas lista heterogeneas en el residual final", {
+  path <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(path), add = TRUE)
+
+  residual <- tibble::tibble(
+    variable = c("p3", "p10_1"),
+    inconsistencias = c(0L, 1L),
+    variable_roles = list(
+      list(target = NA_character_, drivers = character(0), all = character(0)),
+      list(target = "p10_1", drivers = c("p3", "p4"), all = c("p10_1", "p3", "p4"))
+    ),
+    presentation = list(list(), list(label = "Fila sintetica", codes = c("1", "2")))
+  )
+  preview <- list(
+    logs = list(
+      excluded_cases = tibble::tibble(),
+      trace = tibble::tibble(),
+      transformations = tibble::tibble(),
+      warnings = character(0)
+    ),
+    evaluacion_final = list(resumen = residual)
+  )
+
+  expect_no_error(.limpieza_export_excel(
+    path = path,
+    summary = list(status = "ready"),
+    decisions = list(),
+    preview = preview
+  ))
+  expect_true(file.exists(path))
+  expect_true("Residual_final" %in% openxlsx::getSheetNames(path))
+  expect_equal(nrow(openxlsx::read.xlsx(path, sheet = "Residual_final")), 2L)
+})
