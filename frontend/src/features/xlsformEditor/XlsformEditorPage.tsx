@@ -9,6 +9,7 @@ import {
   type CSSProperties,
 } from "react";
 import { createPortal } from "react-dom";
+import { useLocation } from "react-router-dom";
 import {
   CalendarDays,
   CheckCircle2,
@@ -37,13 +38,17 @@ import {
   apiXlsformEditorSmInterpretRule,
   apiXlsformEditorValidate,
   apiXlsformFormActivate,
+  apiXlsformFormConfirmLogic,
   apiXlsformFormDelete,
   apiXlsformFormGet,
+  apiXlsformFormPublishRevision,
   apiXlsformFormsList,
   downloadUrl,
   type ChoiceCodeMap,
   type Hallazgo,
   type SurveyMonkeyVisualLogicRule,
+  type XlsformFormPublication,
+  type XlsformFormSource,
 } from "../../api/client";
 import { useProjectShell } from "../project/ProjectShell";
 import { ImportSurveyMonkeyDialog } from "./shell/ImportSurveyMonkeyDialog";
@@ -63,6 +68,7 @@ import { ConfigIoButtons } from "../../components/ConfigIoButtons";
 import SaveEntregableButton from "../project/SaveEntregableButton";
 import { sanitizeFilenameStem } from "../project/FilenameInput";
 import { useSession } from "../../lib/SessionContext";
+import { editorFormIdFromSearch, editorRequestedFormExists } from "./state/editorDeepLink";
 
 // -----------------------------------------------------------------------------
 // Tipos, parsing y helpers extraídos a submódulos durante el revamp Sub-PR 1.
@@ -535,6 +541,8 @@ export default function XlsformEditorPage() {
   // descarga clásica del navegador.
   const { project } = useProjectShell();
   const { sessionId } = useSession();
+  const location = useLocation();
+  const requestedFormId = editorFormIdFromSearch(location.search);
   // Estado del workbook + dirty + lastSavedAt + history (undo/redo) en un
   // solo reducer para mantener consistencia transaccional. Las acciones
   // disponibles son SET (mutación normal), LOAD (importar/restaurar),
@@ -551,6 +559,15 @@ export default function XlsformEditorPage() {
   // Biblioteca multi-formulario del proyecto: entradas ligeras (sin workbook)
   // que alimentan el conmutador rápido del toolbar y — en Oleada 3 — el hub.
   const [forms, setForms] = useState<LibraryEntry[]>([]);
+  // Estado remoto de publicación: nunca se mezcla con LibraryEntry ni se
+  // persiste en localStorage. El backend es la única autoridad sobre hashes,
+  // revisiones, bloqueos y protección de borrado.
+  const [publicationUi, setPublicationUi] = useState<{
+    byFormId: Record<string, XlsformFormPublication>;
+    publishingFormId: string | null;
+    confirmingLogicFormId: string | null;
+    errorsByFormId: Record<string, string>;
+  }>({ byFormId: {}, publishingFormId: null, confirmingLogicFormId: null, errorsByFormId: {} });
   // Ref al activeFormId para consultarlo desde callbacks async (switchToForm)
   // sin re-crear la callback en cada cambio.
   const activeFormIdRef = useRef<string | null>(activeFormId);
@@ -563,7 +580,7 @@ export default function XlsformEditorPage() {
   const [error, setError] = useState("");
   const [status, setStatus] = useState("Todavía no hay un formulario abierto.");
   const [artifact, setArtifact] = useState<{ file_id: string; original_name: string; extension: "xlsx" | "pdf" | "docx" } | null>(null);
-  const [source, setSource] = useState<{ kind: string | null; original_name: string | null } | null>(null);
+  const [source, setSource] = useState<XlsformFormSource | null>(null);
   const [catalogFocus, setCatalogFocus] = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
   /** Si está abierto el ContextLens de catálogos. Click en el botón
@@ -638,10 +655,42 @@ export default function XlsformEditorPage() {
   // hay proyecto). Determina el bucket de localStorage para que el
   // banner "Tenías un formulario abierto" sea independiente por proyecto.
   const projectScope = project.status.path ?? null;
+  const projectScopeRef = useRef(projectScope);
+  useEffect(() => {
+    projectScopeRef.current = projectScope;
+  }, [projectScope]);
 
   // Refresca la lista ligera de formularios de la biblioteca del scope.
   const refreshForms = useCallback(() => {
     setForms(listForms(projectScope));
+  }, [projectScope]);
+
+  const refreshBackendFormIndex = useCallback(async () => {
+    const backend = await apiXlsformFormsList();
+    // Una respuesta del proyecto anterior nunca debe repintar la biblioteca
+    // después de un cambio de .pulso.
+    if (projectScopeRef.current !== projectScope) return backend;
+    for (const entry of backend.forms) {
+      const savedAtMs = typeof entry.saved_at === "number"
+        ? entry.saved_at
+        : Date.parse(entry.saved_at) || Date.now();
+      upsertLibraryEntry(projectScope, {
+        id: entry.id,
+        name: entry.name,
+        savedAt: savedAtMs,
+        source: entry.source,
+        nQuestions: entry.n_questions,
+        nSections: entry.n_sections,
+      });
+    }
+    setForms(listForms(projectScope));
+    setPublicationUi((prev) => ({
+      ...prev,
+      byFormId: Object.fromEntries(
+        backend.forms.map((entry) => [entry.id, entry.publication]),
+      ),
+    }));
+    return backend;
   }, [projectScope]);
 
   // Tope de 6 formularios por proyecto (fuente de verdad en persistence).
@@ -666,19 +715,149 @@ export default function XlsformEditorPage() {
   const onRenameForm = useCallback((id: string, name: string) => {
     const next = renameForm(projectScope, id, name);
     setForms(next.forms);
-  }, [projectScope]);
+    const renamed = loadForm(projectScope, id);
+    if (renamed) {
+      void syncFormToBackend(id, renamed.workbook, {
+        sourceKind: renamed.sourceKind,
+        sourceName: renamed.sourceName,
+        source: renamed.source,
+        hallazgos: renamed.hallazgos,
+      })
+        .then(refreshBackendFormIndex)
+        .catch(() => refreshBackendFormIndex().catch(() => undefined));
+    } else {
+      void refreshBackendFormIndex().catch(() => undefined);
+    }
+  }, [projectScope, refreshBackendFormIndex]);
 
-  // Elimina un formulario desde el hub (local + backend). deleteForm reasigna
-  // el activo al más reciente si borramos el que estaba marcado activo.
-  const onDeleteForm = useCallback((id: string) => {
-    const next = deleteForm(projectScope, id);
-    setForms(next.forms);
-    void apiXlsformFormDelete(id).catch(() => {
-      // ignore — el borrado local ya basta para la sesión; el backend
-      // reintenta la próxima vez que se reabra y reconcilie la colección.
-    });
-    toasts.push({ kind: "info", title: "Formulario eliminado", durationMs: 4000 });
-  }, [projectScope, toasts]);
+  // El backend decide primero: una revisión publicada no puede desaparecer
+  // por una carrera entre dos ventanas. Solo tras confirmar el DELETE se
+  // elimina la copia local y se actualiza el hub.
+  const onDeleteForm = useCallback(async (id: string) => {
+    try {
+      await apiXlsformFormDelete(id);
+      const next = deleteForm(projectScope, id);
+      setForms(next.forms);
+      setPublicationUi((prev) => {
+        const { [id]: _removed, ...byFormId } = prev.byFormId;
+        const { [id]: _removedError, ...errorsByFormId } = prev.errorsByFormId;
+        return { ...prev, byFormId, errorsByFormId };
+      });
+      toasts.push({ kind: "info", title: "Formulario eliminado", durationMs: 4000 });
+    } catch (err: unknown) {
+      await refreshBackendFormIndex().catch(() => undefined);
+      const detail = err instanceof Error ? err.message : "El backend rechazó la eliminación.";
+      toasts.push({
+        kind: "danger",
+        title: "No se pudo eliminar el formulario",
+        detail,
+        durationMs: 6000,
+      });
+    }
+  }, [projectScope, refreshBackendFormIndex, toasts]);
+
+  const onPublishForm = useCallback(async (id: string) => {
+    const publication = publicationUi.byFormId[id];
+    if (!publication?.can_publish || !publication.draft_content_sha256) return;
+    setPublicationUi((prev) => ({
+      ...prev,
+      publishingFormId: id,
+      errorsByFormId: { ...prev.errorsByFormId, [id]: "" },
+    }));
+    try {
+      const result = await apiXlsformFormPublishRevision(
+        id,
+        publication.draft_content_sha256,
+      );
+      await refreshBackendFormIndex();
+      toasts.push({
+        kind: result.created ? "success" : "info",
+        title: result.created ? `Revisión ${result.revision.revision_no} publicada` : "Revisión ya vigente",
+        detail: "El instrumento publicado quedó fijado para el procesamiento multibase.",
+        durationMs: 5000,
+      });
+    } catch (err: unknown) {
+      // Ante hash obsoleto (409), validación o cualquier rechazo, no hacemos
+      // optimismo: recargamos el estado remoto y mostramos el error original.
+      await refreshBackendFormIndex().catch(() => undefined);
+      const detail = err instanceof Error ? err.message : "El backend rechazó la publicación.";
+      setPublicationUi((prev) => ({
+        ...prev,
+        errorsByFormId: { ...prev.errorsByFormId, [id]: detail },
+      }));
+      toasts.push({
+        kind: "danger",
+        title: "No se pudo publicar la revisión",
+        detail,
+        durationMs: 7000,
+      });
+    } finally {
+      setPublicationUi((prev) => ({
+        ...prev,
+        publishingFormId: prev.publishingFormId === id ? null : prev.publishingFormId,
+      }));
+    }
+  }, [publicationUi.byFormId, refreshBackendFormIndex, toasts]);
+
+  const onConfirmFormLogic = useCallback(async (id: string) => {
+    const publication = publicationUi.byFormId[id];
+    if (!publication?.draft_content_sha256) return;
+    setPublicationUi((prev) => ({
+      ...prev,
+      confirmingLogicFormId: id,
+      errorsByFormId: { ...prev.errorsByFormId, [id]: "" },
+    }));
+    try {
+      const result = await apiXlsformFormConfirmLogic(
+        id,
+        publication.draft_content_sha256,
+      );
+      const local = loadForm(projectScope, id);
+      if (local && result.source) {
+        saveForm(projectScope, id, local.workbook, {
+          sourceKind: result.source.kind,
+          sourceName: result.source.original_name,
+          source: result.source,
+          hallazgos: local.hallazgos,
+        });
+      }
+      const indexed = listForms(projectScope).find((entry) => entry.id === id);
+      if (indexed) {
+        upsertLibraryEntry(projectScope, { ...indexed, source: result.source ?? indexed.source });
+      }
+      setPublicationUi((prev) => ({
+        ...prev,
+        byFormId: { ...prev.byFormId, [id]: result.publication },
+      }));
+      await refreshBackendFormIndex();
+      toasts.push({
+        kind: "success",
+        title: "Lógica revisada y confirmada",
+        detail: "La confirmación quedó ligada a este contenido. Publica la revisión cuando estés listo.",
+        durationMs: 6000,
+      });
+    } catch (err: unknown) {
+      await refreshBackendFormIndex().catch(() => undefined);
+      const detail = err instanceof Error ? err.message : "El backend rechazó la confirmación de lógica.";
+      setPublicationUi((prev) => ({
+        ...prev,
+        errorsByFormId: { ...prev.errorsByFormId, [id]: detail },
+      }));
+      toasts.push({
+        kind: "danger",
+        title: "No se pudo confirmar la lógica",
+        detail,
+        durationMs: 7000,
+      });
+    } finally {
+      setPublicationUi((prev) => ({
+        ...prev,
+        confirmingLogicFormId: prev.confirmingLogicFormId === id
+          ? null
+          : prev.confirmingLogicFormId,
+      }));
+    }
+  }, [projectScope, publicationUi.byFormId, refreshBackendFormIndex, toasts]);
 
   // Ref a switchToForm para invocarlo desde el efecto de scope sin problemas
   // de orden de declaración (la callback se define más abajo).
@@ -701,12 +880,19 @@ export default function XlsformEditorPage() {
       dispatch({ type: "CLEAR" });
     }
     setRestoreOffer(null);
+    setPublicationUi({
+      byFormId: {},
+      publishingFormId: null,
+      confirmingLogicFormId: null,
+      errorsByFormId: {},
+    });
 
     // Migración legacy → biblioteca (idempotente) + primer listado local.
     const migrated = migrateLegacySingleForm(projectScope);
     setForms(migrated.forms);
     let localActive = migrated.activeFormId;
     let formCount = migrated.forms.length;
+    let backendFormIds = new Set<string>();
 
     let cancelled = false;
     void (async () => {
@@ -715,28 +901,13 @@ export default function XlsformEditorPage() {
       // workbook se baja on-demand al abrirlos (switchToForm reconcilia con
       // apiXlsformFormGet).
       try {
-        const backend = await apiXlsformFormsList();
+        const backend = await refreshBackendFormIndex();
         if (cancelled) return;
-        for (const entry of backend.forms) {
-          // `saved_at` del backend es ISO string; la biblioteca guarda ms epoch.
-          const savedAtMs =
-            typeof entry.saved_at === "number"
-              ? entry.saved_at
-              : Date.parse(entry.saved_at) || Date.now();
-          upsertLibraryEntry(projectScope, {
-            id: entry.id,
-            name: entry.name,
-            savedAt: savedAtMs,
-            source: entry.source,
-            nQuestions: entry.n_questions,
-            nSections: entry.n_sections,
-          });
-        }
+        backendFormIds = new Set(backend.forms.map((form) => form.id));
         if (backend.active_form_id && !localActive) {
           localActive = backend.active_form_id;
         }
         if (backend.forms.length > 0) {
-          setForms(listForms(projectScope));
           formCount = backend.forms.length;
         }
       } catch {
@@ -747,7 +918,23 @@ export default function XlsformEditorPage() {
       // muestra las tarjetas) para que el usuario elija; solo con UN formulario
       // entramos directo a editarlo. El activo queda apuntado para "Ver todos"
       // / el conmutador del toolbar.
-      if (localActive && formCount <= 1) {
+      if (requestedFormId) {
+        const requestedExists = editorRequestedFormExists(
+          requestedFormId,
+          listForms(projectScope).map((form) => form.id),
+          backendFormIds,
+        ) || localActive === requestedFormId;
+        if (requestedExists) {
+          await switchToFormRef.current?.(requestedFormId);
+          return;
+        }
+        toasts.push({
+          kind: "danger",
+          title: "No se encontró el formulario vinculado",
+          detail: "El plan de ingreso apunta a un form_id que ya no está disponible en este proyecto.",
+          durationMs: 6000,
+        });
+      } else if (localActive && formCount <= 1) {
         await switchToFormRef.current?.(localActive);
       }
     })();
@@ -756,7 +943,7 @@ export default function XlsformEditorPage() {
     };
     // workbookRef y switchToForm intencionalmente fuera de deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectScope, restoreKey]);
+  }, [projectScope, refreshBackendFormIndex, requestedFormId, restoreKey]);
 
   // Ref que sigue al workbook actual sin disparar el efecto de scope
   // cuando muta. Lo consultamos al detectar switch de proyecto.
@@ -778,6 +965,7 @@ export default function XlsformEditorPage() {
       {
         sourceKind: source?.kind ?? null,
         sourceName: source?.original_name ?? null,
+        source,
       },
       projectScope,
     );
@@ -1143,7 +1331,7 @@ export default function XlsformEditorPage() {
   const openWorkbookAsForm = useCallback(
     (
       next: XlsformEditorWorkbook,
-      nextSource: { kind: string | null; original_name: string | null },
+      nextSource: XlsformFormSource,
       nextStatus: string,
       opts?: { formId?: string; register?: boolean; activate?: boolean; hallazgos?: Hallazgo[] },
     ): string => {
@@ -1169,6 +1357,7 @@ export default function XlsformEditorPage() {
       const sourceMeta = {
         sourceKind: nextSource.kind,
         sourceName: nextSource.original_name,
+        source: nextSource,
       };
       const savedAt = saveForm(projectScope, formId, loadedWorkbook, sourceMeta);
       setActiveForm(projectScope, formId);
@@ -1226,7 +1415,7 @@ export default function XlsformEditorPage() {
   const loadWorkbook = useCallback(
     (
       next: XlsformEditorWorkbook,
-      nextSource: { kind: string | null; original_name: string | null },
+      nextSource: XlsformFormSource,
       nextStatus: string,
       hallazgosForBackend?: Hallazgo[],
     ) => {
@@ -1258,6 +1447,7 @@ export default function XlsformEditorPage() {
             savedAt: r.form.saved_at,
             sourceName: r.form.source?.original_name ?? null,
             sourceKind: r.form.source?.kind ?? null,
+            source: r.form.source,
             hallazgos: r.form.hallazgos,
           };
           remoteHallazgos = r.form.hallazgos;
@@ -1278,7 +1468,10 @@ export default function XlsformEditorPage() {
       setHallazgos(reconciled === remote ? remoteHallazgos : []);
       openWorkbookAsForm(
         reconciled.workbook,
-        { kind: reconciled.sourceKind, original_name: reconciled.sourceName },
+        reconciled.source ?? {
+          kind: reconciled.sourceKind,
+          original_name: reconciled.sourceName,
+        },
         "Cambiaste de formulario.",
         { formId: id, register: false },
       );
@@ -1317,7 +1510,7 @@ export default function XlsformEditorPage() {
     if (!snap) return;
     loadWorkbook(
       snap.workbook,
-      { kind: snap.sourceKind ?? null, original_name: snap.sourceName ?? null },
+      snap.source ?? { kind: snap.sourceKind ?? null, original_name: snap.sourceName ?? null },
       "Continuamos con el formulario guardado en este proyecto.",
     );
   }, [restoreOffer, loadWorkbook]);
@@ -1493,7 +1686,7 @@ export default function XlsformEditorPage() {
   // Callback del modal cuando completa con éxito (ya con o sin reglas aplicadas)
   async function onSurveyMonkeyImportComplete(payload: {
     workbook: XlsformEditorWorkbook;
-    source: { kind: string | null; original_name: string | null };
+    source: XlsformFormSource;
     hallazgos: Hallazgo[];
     surveyMonkeyRules?: ConfirmedRule[];
     surveyMonkeyVisualRules?: SurveyMonkeyVisualLogicRule[];
@@ -1809,10 +2002,24 @@ export default function XlsformEditorPage() {
   // el formulario abierto y despacha CLEAR. El conmutador del toolbar y —en
   // Oleada 3— el hub usan esto para "Ver todos".
   function onBackToHub() {
+    const formId = activeFormIdRef.current;
+    const currentWorkbook = workbookRef.current;
     persistence.flush();
     resetMessages();
     dispatch({ type: "CLEAR" });
     refreshForms();
+    if (formId && currentWorkbook) {
+      void syncFormToBackend(formId, currentWorkbook, {
+        sourceKind: source?.kind ?? null,
+        sourceName: source?.original_name ?? null,
+        source,
+        hallazgos,
+      })
+        .then(refreshBackendFormIndex)
+        .catch(() => refreshBackendFormIndex().catch(() => undefined));
+    } else {
+      void refreshBackendFormIndex().catch(() => undefined);
+    }
   }
 
   // Guard del tope de 6: avisa con un toast amable y bloquea la creación. Se
@@ -2902,6 +3109,12 @@ export default function XlsformEditorPage() {
           onOpen={(id) => { void switchToForm(id); }}
           onDelete={onDeleteForm}
           onRename={onRenameForm}
+          publications={publicationUi.byFormId}
+          publishingFormId={publicationUi.publishingFormId}
+          confirmingLogicFormId={publicationUi.confirmingLogicFormId}
+          publicationErrors={publicationUi.errorsByFormId}
+          onPublish={(id) => { void onPublishForm(id); }}
+          onConfirmLogic={(id) => { void onConfirmFormLogic(id); }}
           onNewBlank={onNewWorkbook}
           onImportXls={() => {
             if (blockUntilRestoreDecision("importar otro XLSForm")) return;

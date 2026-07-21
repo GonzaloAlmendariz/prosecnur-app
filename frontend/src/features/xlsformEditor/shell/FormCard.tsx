@@ -19,8 +19,11 @@ import {
   Trash2,
   Clock,
   FolderOpen,
+  Lock,
 } from "../../../vendor/lucide-react";
+import type { XlsformFormPublication } from "../../../api/client";
 import type { LibraryEntry } from "../state/persistence";
+import { FormPublicationStatus } from "./InstrumentRevisionStatus";
 import {
   formatRelativeSavedAt,
   normalizeOrigin,
@@ -37,6 +40,12 @@ export type FormCardProps = {
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
   onDuplicate?: (id: string) => void;
+  publication: XlsformFormPublication;
+  isPublishing: boolean;
+  isConfirmingLogic: boolean;
+  publicationError?: string;
+  onPublish: (id: string) => void;
+  onConfirmLogic: (id: string) => void;
 };
 
 const ORIGIN_ACCENT: Record<FormOrigin, { accent: string; soft: string }> = {
@@ -59,6 +68,12 @@ export function FormCard({
   onRename,
   onDelete,
   onDuplicate,
+  publication,
+  isPublishing,
+  isConfirmingLogic,
+  publicationError,
+  onPublish,
+  onConfirmLogic,
 }: FormCardProps) {
   const origin = normalizeOrigin(entry.source?.kind ?? null);
   const accent = ORIGIN_ACCENT[origin];
@@ -196,12 +211,18 @@ export function FormCard({
                 type="button"
                 role="menuitem"
                 className="pulso-xf-home-card-menu-item is-danger"
+                disabled={!publication.can_delete}
+                title={publication.can_delete
+                  ? "Eliminar formulario"
+                  : "Las revisiones publicadas son inmutables y no se pueden eliminar"}
                 onClick={() => {
+                  if (!publication.can_delete) return;
                   setMenuOpen(false);
                   setConfirmDelete(true);
                 }}
               >
-                <Trash2 size={15} /> Eliminar
+                {publication.can_delete ? <Trash2 size={15} /> : <Lock size={15} />}
+                {publication.can_delete ? "Eliminar" : "Publicado: no eliminable"}
               </button>
             </div>
           )}
@@ -249,6 +270,15 @@ export function FormCard({
               </span>
             </span>
           </div>
+          <FormPublicationStatus
+            formId={entry.id}
+            publication={publication}
+            isPublishing={isPublishing}
+            isConfirmingLogic={isConfirmingLogic}
+            error={publicationError}
+            onPublish={() => onPublish(entry.id)}
+            onConfirmLogic={() => onConfirmLogic(entry.id)}
+          />
           <div className="pulso-xf-home-card-foot">
             <span className="pulso-xf-home-card-saved">
               <Clock size={12} /> {formatRelativeSavedAt(entry.savedAt)}

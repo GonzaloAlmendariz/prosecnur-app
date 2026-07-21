@@ -13,6 +13,7 @@ import {
   saveForm,
   saveSnapshot,
   setActiveForm,
+  upsertLibraryEntry,
   type PersistedSnapshot,
   workbookHasSurveyMonkeyLogic,
 } from "./persistence";
@@ -286,6 +287,43 @@ describe("deriveFormName cascada", () => {
 });
 
 describe("biblioteca multi-formulario (round-trip)", () => {
+  test("conserva source rico saneado en el índice local", () => {
+    const storage = makeStorage();
+    vi.stubGlobal("localStorage", storage);
+    const source = {
+      schema: "survey_source/v1",
+      kind: "surveymonkey",
+      original_name: "Docentes",
+      actor_key: "docentes",
+      survey_id: "sm-123",
+      definition_sha256: "a".repeat(64),
+      logic_status: "pending_manual_confirmation",
+      publication_guard: "Confirmar lógica.",
+      provenance: { provider: "surveymonkey_api", token: "discard" },
+      token: "discard",
+    };
+
+    upsertLibraryEntry(null, {
+      id: "form-docentes",
+      name: "Docentes",
+      savedAt: 123,
+      source: source as never,
+    });
+
+    expect(listForms(null)[0]?.source).toEqual({
+      schema: "survey_source/v1",
+      kind: "surveymonkey",
+      original_name: "Docentes",
+      actor_key: "docentes",
+      survey_id: "sm-123",
+      definition_sha256: "a".repeat(64),
+      logic_status: "pending_manual_confirmation",
+      publication_guard: "Confirmar lógica.",
+      provenance: { provider: "surveymonkey_api" },
+    });
+    expect(storage.getItem("pulso.xlsformEditor.library.v1.no-project")).not.toContain("discard");
+  });
+
   test("saveForm/listForms/loadForm/setActiveForm/deleteForm mantienen el indice consistente", () => {
     vi.stubGlobal("localStorage", makeStorage());
     vi.stubGlobal("sessionStorage", makeStorage());

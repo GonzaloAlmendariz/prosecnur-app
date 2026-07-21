@@ -30,7 +30,9 @@ import {
   apiXlsformEditorStateSave,
   apiXlsformEditorStateLoad,
   apiXlsformFormSave,
+  normalizeXlsformFormSource,
   type Hallazgo,
+  type XlsformFormSource,
 } from "../../../api/client";
 
 const STORAGE_PREFIX = "pulso.xlsformEditor.workbook.v2";
@@ -104,7 +106,16 @@ function libraryKey(scope: ProjectScope): string {
 // conmutador del toolbar sin cargar los workbooks.
 
 /** Origen de un formulario (import xlsform / surveymonkey / blank…). */
-export type FormSource = { kind: string | null; original_name: string | null } | null;
+export type FormSource = XlsformFormSource | null;
+
+export type FormPersistenceMeta = {
+  /** Campos legacy; siguen leyéndose y escribiéndose para snapshots antiguos. */
+  sourceName: string | null;
+  sourceKind: string | null;
+  /** Procedencia rica ya saneada. Si existe, prevalece sobre los campos legacy. */
+  source?: FormSource;
+  hallazgos?: Hallazgo[];
+};
 
 /** Entrada ligera del índice de la biblioteca (sin workbook). */
 export type LibraryEntry = {
@@ -129,11 +140,16 @@ function emptyIndex(): LibraryIndex {
 }
 
 function normalizeSource(value: unknown): FormSource {
-  if (!isPlainRecord(value)) return null;
-  const kind = nullableString(value.kind);
-  const originalName = nullableString(value.original_name);
-  if (kind == null && originalName == null) return null;
-  return { kind, original_name: originalName };
+  return normalizeXlsformFormSource(value);
+}
+
+function sourceFromMeta(meta: FormPersistenceMeta): FormSource {
+  const source: Record<string, unknown> = isPlainRecord(meta.source) ? meta.source : {};
+  return normalizeSource({
+    ...source,
+    kind: nullableString(source.kind) ?? nullableString(meta.sourceKind),
+    original_name: nullableString(source.original_name) ?? nullableString(meta.sourceName),
+  });
 }
 
 function normalizeEntry(value: unknown): LibraryEntry | null {
@@ -239,11 +255,17 @@ export function loadForm(scope: ProjectScope, formId: string): PersistedSnapshot
     const meta = metaRaw
       ? JSON.parse(metaRaw) as Record<string, unknown>
       : { savedAt: Date.now(), sourceName: null, sourceKind: null };
+    const source = normalizeSource(meta.source ?? {
+      kind: meta.sourceKind,
+      original_name: meta.sourceName,
+    });
     return {
       workbook,
       savedAt: savedAtOrNow(meta.savedAt),
-      sourceName: nullableString(meta.sourceName),
-      sourceKind: nullableString(meta.sourceKind),
+      sourceName: source?.original_name ?? nullableString(meta.sourceName),
+      sourceKind: source?.kind ?? nullableString(meta.sourceKind),
+      source,
+      hallazgos: Array.isArray(meta.hallazgos) ? meta.hallazgos as Hallazgo[] : undefined,
     };
   } catch {
     return null;
@@ -256,28 +278,33 @@ export function saveForm(
   scope: ProjectScope,
   formId: string,
   workbook: XlsformEditorWorkbook,
-  meta: { sourceName: string | null; sourceKind: string | null },
+  meta: FormPersistenceMeta,
 ): number | null {
   try {
     const savedAt = Date.now();
     localStorage.setItem(formWorkbookKey(scope, formId), JSON.stringify(workbook));
+    const source = sourceFromMeta(meta);
     localStorage.setItem(
       formMetaKey(scope, formId),
       JSON.stringify({
         savedAt,
-        sourceName: nullableString(meta.sourceName),
-        sourceKind: nullableString(meta.sourceKind),
+        sourceName: source?.original_name ?? nullableString(meta.sourceName),
+        sourceKind: source?.kind ?? nullableString(meta.sourceKind),
+        source,
+        hallazgos: meta.hallazgos ?? [],
       }),
     );
     const index = readIndex(scope);
     const existingIdx = index.forms.findIndex((f) => f.id === formId);
-    const source = normalizeSource({ kind: meta.sourceKind, original_name: meta.sourceName });
     const ordinal = existingIdx >= 0 ? existingIdx + 1 : index.forms.length + 1;
+    const existing = existingIdx >= 0 ? index.forms[existingIdx] : undefined;
     const entry: LibraryEntry = {
       id: formId,
       name: deriveFormName(workbook, source, ordinal),
       savedAt,
       source,
+      nQuestions: existing?.nQuestions,
+      nSections: existing?.nSections,
     };
     const forms = existingIdx >= 0
       ? index.forms.map((f, i) => (i === existingIdx ? entry : f))
@@ -294,10 +321,11 @@ export function saveForm(
  *  aún no se ha bajado a esta máquina. */
 export function upsertLibraryEntry(scope: ProjectScope, entry: LibraryEntry): void {
   const index = readIndex(scope);
+  const sanitizedEntry = { ...entry, source: normalizeSource(entry.source) };
   const existingIdx = index.forms.findIndex((f) => f.id === entry.id);
   const forms = existingIdx >= 0
-    ? index.forms.map((f, i) => (i === existingIdx ? { ...f, ...entry } : f))
-    : [...index.forms, entry];
+    ? index.forms.map((f, i) => (i === existingIdx ? { ...f, ...sanitizedEntry } : f))
+    : [...index.forms, sanitizedEntry];
   writeIndex(scope, { activeFormId: index.activeFormId, forms });
 }
 
@@ -339,7 +367,7 @@ export function renameForm(
   const snap = loadForm(scope, formId);
   if (snap) {
     const workbook = writeSettingValue(snap.workbook, "form_title", trimmed);
-    const meta = { sourceName: snap.sourceName, sourceKind: snap.sourceKind };
+    const meta = { sourceName: snap.sourceName, sourceKind: snap.sourceKind, source: snap.source };
     saveForm(scope, formId, workbook, meta);
     // Rename opera sobre un formulario existente: nunca dispara E_FORM_LIMIT,
     // pero blindamos el promise huérfano por si el re-throw del tope aflora.
@@ -390,6 +418,7 @@ export function migrateLegacySingleForm(scope: ProjectScope): LibraryIndex {
   saveForm(scope, formId, legacy.workbook, {
     sourceName: legacy.sourceName,
     sourceKind: legacy.sourceKind,
+    source: legacy.source,
   });
   setActiveForm(scope, formId);
   return readIndex(scope);
@@ -414,6 +443,8 @@ export type PersistedSnapshot = {
   sourceName: string | null;
   /** Tipo de origen: "xlsform" | "surveymonkey" | "blank" | null. */
   sourceKind: string | null;
+  /** Procedencia completa y saneada; ausente en snapshots legacy. */
+  source?: FormSource;
   /** Hallazgos del validador (si vinieron del último import). */
   hallazgos?: Hallazgo[];
 };
@@ -504,9 +535,18 @@ export function reconcileSnapshotWithBackend(
   if (!local) return remote;
   if (!remote) return local;
 
+  const mergedMetadata: PersistedSnapshot = {
+    ...local,
+    savedAt: Math.max(local.savedAt, remote.savedAt),
+    source: remote.source ?? local.source,
+    sourceName: remote.source?.original_name ?? remote.sourceName ?? local.sourceName,
+    sourceKind: remote.source?.kind ?? remote.sourceKind ?? local.sourceKind,
+    hallazgos: remote.hallazgos ?? local.hallazgos,
+  };
+
   const localLogic = cloneSurveyMonkeyLogic(local.workbook.surveyMonkeyLogic);
   const remoteLogic = cloneSurveyMonkeyLogic(remote.workbook.surveyMonkeyLogic);
-  if (!remoteLogic || !workbookHasSurveyMonkeyLogic(remote.workbook)) return local;
+  if (!remoteLogic || !workbookHasSurveyMonkeyLogic(remote.workbook)) return mergedMetadata;
 
   const localHasLogic = workbookHasSurveyMonkeyLogic(local.workbook);
   const mergedLogic: SurveyMonkeyLogic = localHasLogic && localLogic
@@ -522,8 +562,7 @@ export function reconcileSnapshotWithBackend(
     : remoteLogic;
 
   return {
-    ...local,
-    savedAt: Math.max(local.savedAt, remote.savedAt),
+    ...mergedMetadata,
     workbook: {
       ...local.workbook,
       surveyMonkeyLogic: mergedLogic,
@@ -543,18 +582,21 @@ export function reconcileSnapshotWithBackend(
  */
 export function saveSnapshot(
   workbook: XlsformEditorWorkbook,
-  meta: { sourceName: string | null; sourceKind: string | null },
+  meta: FormPersistenceMeta,
   scope: ProjectScope = null,
 ): number | null {
   try {
     const savedAt = Date.now();
     localStorage.setItem(workbookKey(scope), JSON.stringify(workbook));
+    const source = sourceFromMeta(meta);
     localStorage.setItem(
       metaKey(scope),
       JSON.stringify({
         savedAt,
-        sourceName: nullableString(meta.sourceName),
-        sourceKind: nullableString(meta.sourceKind),
+        sourceName: source?.original_name ?? nullableString(meta.sourceName),
+        sourceKind: source?.kind ?? nullableString(meta.sourceKind),
+        source,
+        hallazgos: meta.hallazgos ?? [],
       }),
     );
     return savedAt;
@@ -604,11 +646,17 @@ export function loadSnapshot(scope: ProjectScope = null): PersistedSnapshot | nu
       ? JSON.parse(metaRaw) as Record<string, unknown>
       : { savedAt: Date.now(), sourceName: null, sourceKind: null };
     if (!workbook) return null;
+    const source = normalizeSource(meta.source ?? {
+      kind: meta.sourceKind,
+      original_name: meta.sourceName,
+    });
     return {
       workbook,
       savedAt: savedAtOrNow(meta.savedAt),
-      sourceName: nullableString(meta.sourceName),
-      sourceKind: nullableString(meta.sourceKind),
+      sourceName: source?.original_name ?? nullableString(meta.sourceName),
+      sourceKind: source?.kind ?? nullableString(meta.sourceKind),
+      source,
+      hallazgos: Array.isArray(meta.hallazgos) ? meta.hallazgos as Hallazgo[] : undefined,
     };
   } catch {
     return null;
@@ -659,12 +707,13 @@ export async function clearSnapshotFromBackend(): Promise<void> {
  *  `syncFormToBackend`. */
 export async function syncSnapshotToBackend(
   workbook: XlsformEditorWorkbook,
-  meta: { sourceName: string | null; sourceKind: string | null; hallazgos?: Hallazgo[] },
+  meta: FormPersistenceMeta,
 ): Promise<void> {
   try {
+    const source = sourceFromMeta(meta);
     await apiXlsformEditorStateSave({
       workbook,
-      source: { kind: nullableString(meta.sourceKind), original_name: nullableString(meta.sourceName) },
+      source,
       hallazgos: meta.hallazgos ?? [],
       saved_at: Date.now(),
     });
@@ -680,10 +729,10 @@ export async function syncSnapshotToBackend(
 export async function syncFormToBackend(
   formId: string,
   workbook: XlsformEditorWorkbook,
-  meta: { sourceName: string | null; sourceKind: string | null; hallazgos?: Hallazgo[] },
+  meta: FormPersistenceMeta,
 ): Promise<void> {
   try {
-    const source = { kind: nullableString(meta.sourceKind), original_name: nullableString(meta.sourceName) };
+    const source = sourceFromMeta(meta);
     await apiXlsformFormSave({
       id: formId,
       name: deriveFormName(workbook, source),
@@ -722,6 +771,7 @@ export async function loadSnapshotFromBackend(): Promise<PersistedSnapshot | nul
       savedAt: savedAtOrNow(st.saved_at),
       sourceName: nullableString(st.source?.original_name),
       sourceKind: nullableString(st.source?.kind),
+      source: normalizeSource(st.source),
       hallazgos: st.hallazgos ?? [],
     };
   } catch {
@@ -739,7 +789,7 @@ export type PersistenceScheduler = {
   schedule: (
     formId: string,
     workbook: XlsformEditorWorkbook,
-    meta: { sourceName: string | null; sourceKind: string | null },
+    meta: FormPersistenceMeta,
     scope?: ProjectScope,
   ) => void;
   /** Fuerza el guardado pendiente inmediato (cancela debounce). Usa el
@@ -764,7 +814,7 @@ export function createPersistenceScheduler(
   let pending: {
     formId: string;
     workbook: XlsformEditorWorkbook;
-    meta: { sourceName: string | null; sourceKind: string | null };
+    meta: FormPersistenceMeta;
     scope: ProjectScope;
   } | null = null;
 
