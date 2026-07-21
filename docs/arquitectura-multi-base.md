@@ -63,8 +63,10 @@ s$rp_inst_sources = list(docentes = <rp_inst>, ...)
   Gráficos puede referenciar variables con `fuente$variable`.
 - `independent_siblings`: familia de formularios hermanos, como
   Ingeniería SurveyMonkey. Cada base conserva XLSForm, data, validación,
-  codificación y entregables propios. La configuración metodológica de
-  Analítica/Gráficos es común, pero se ejecuta sobre `active_base`.
+  codificación, configuración analítica, configuración de gráficos y
+  entregables propios; se ejecutan sobre `active_base`. Una plantilla o
+  configuración puede propagarse de forma explícita y auditable, pero no se
+  comparte por referencia mutable entre hermanas.
   Cuando una familia declara `logic_policy = "shared_template"`, el
   estudio conserva una `template_base` y copia la lógica compartida a los
   hermanos nuevos: tanto estado de codificación como columnas XLSForm de
@@ -80,6 +82,17 @@ guardan metadata de origen:
 source_kind, survey_id, source_title, sibling_family_id,
 imported_at, response_filter
 ```
+
+Cuando los instrumentos se preparan antes que la data, no se registran bases
+incompletas. El Editor publica revisiones XLSForm inmutables y Carga las vincula
+a un plan de ingreso. Monitoreo materializa las bases hermanas solo despues de
+seleccionar el corte reconciliado y validar todos los pares instrumento+data.
+Validacion, Codificacion y Analitica permanecen aisladas por base; un informe
+unico se construye despues como composicion de revisiones aprobadas, sin apilar
+las bases. El contrato y el orden de implementacion estan en el
+[ADR 0040](adrs/0040-flujo-acreditacion-formularios-monitoreo-procesamiento-ppt.md)
+y el
+[plan end-to-end](qa/carga/acreditacion_editor_monitoreo_procesamiento_plan.md).
 
 `response_filter` describe el alcance real importado, no un ajuste por
 meta. Puede registrar `response_statuses`, `collector_ids` por fuente,
@@ -326,9 +339,11 @@ globalmente y resume estados por base desde `/api/estudio`.
 
 ## Patrones a mantener
 
-1. **El motor es puro single-base**. Las funciones `reporte_*` reciben
-   dataframes. La multi-base vive en la capa API (routers +
-   `helpers_multibase.R`).
+1. **Los motores metodologicos siguen siendo single-base salvo contratos
+   multifuente explicitos**. La mayoria de funciones `reporte_*` recibe un
+   dataframe y se envuelve con `run_report_multibase()`. La excepcion relevante
+   es `reporte_ppt_plan()`, que tambien acepta listas nombradas de data e
+   instrumento para referencias `fuente$variable`.
 2. **Campos legacy se preservan como alias**. `s$rp_data` apunta a la
    primera base para que rutas no migradas sigan funcionando. La
    migración es incremental.
@@ -341,15 +356,20 @@ globalmente y resume estados por base desde `/api/estudio`.
    el selector de base en `CodificacionPage`, y los chips de descarga
    por base en `GenerateFooter`. Con 1 sola base, toda esa UI está
    oculta → flujo idéntico a v0.1.
-5. **`independent_siblings` usa base activa, no batch**. El usuario elige
-   una carrera/base y genera entregables para esa fuente. No existe en v1
-   un ZIP de PPT/Word/codebook para todas las carreras.
+5. **`independent_siblings` procesa por base activa**. Validacion,
+   Codificacion y Analitica conservan estado por hermana. Algunos entregables
+   tienen ejecucion batch —por ejemplo `ppt-all` genera un PPT por base dentro
+   de un ZIP—, pero eso no equivale a un informe consolidado multifuente.
 
 ## Qué no cubre la v0.2
 
-- **Batch independiente de entregables**: v1 no genera PPT/Word/Excel para
-  todas las carreras en una sola acción. El usuario trabaja por base
-  activa.
-- **Configuraciones analíticas por base**: `analitica_config` y
-  `graficos_config` siguen siendo compartidas. Si una base no tiene una
-  variable del plan, el error debe nombrar base y variable faltante.
+- **PPT consolidado de hermanas aprobadas**: el motor puede resolver fuentes
+  multiples, pero el export normal sigue scopeado a la base activa y
+  `ppt-all` produce varios archivos. El adaptador consolidado se define en el
+  ADR 0040.
+- **Aprobacion versionada de Procesamiento**: los estados por base existen,
+  pero falta un release metodologico con fingerprint que Graficos pueda fijar
+  sin inferir readiness desde flags parciales.
+- **Ingreso instrumento-primero**: una base sigue requiriendo el par
+  instrumento+data. Los instrumentos preparados antes del corte usan el plan
+  de ingreso definido en el ADR 0040.

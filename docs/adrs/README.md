@@ -52,10 +52,16 @@ Usar la [plantilla ADR](0000-template.md). Cada decision debe incluir:
 | [0028](0028-plan-trabajo-cronograma-sincronico.md) | Reemplazado por 0029 | 2026-06-29 | Plan de trabajo modela cronogramas sincronicos con evidencia operativa |
 | [0029](0029-reorientacion-por-proyecto-bitacora-y-overview.md) | Aceptado | 2026-07-09 | Reorientacion por proyecto: modulo Bitacora unico, Home adaptativo y overview de proyecto |
 | [0030](0030-grupos-repeat-end-to-end.md) | Aceptado | 2026-07-10 | Soporte de grupos repeat (begin_repeat) end-to-end: base hija long canonica y reconexion de la validacion multi-tabla |
+| [0031](0031-script-replicacion-base-analitica.md) | Aceptado | 2026-07-10 | Analitica puede entregar un script R reproducible de la base final |
+| [0032](0032-handoff-instrumento-siempre-local.md) | Aceptado | 2026-07-11 | El handoff Monitoreo a Procesamiento usa siempre un XLSForm local |
+| [0033](0033-reconciliacion-variables-data-xlsform.md) | Aceptado | 2026-07-11 | Las variables extra de data se reconcilian explicitamente contra el XLSForm |
+| [0034](0034-label-overrides-etiquetas-por-proyecto.md) | Aceptado | 2026-07-12 | Los overrides de etiquetas se conservan por proyecto |
 | [0035](0035-calc-muestra-mapeo-manual-exclusivo-por-hoja.md) | Aceptado | 2026-07-14 | Calculo de muestra (aulas): definicion de datos manual, exclusiva y por hoja (sin fuzzy, sin data hardcodeada) |
+| [0035 — Editor](0035-editor-xlsform-coleccion-multi-formulario.md) | Aceptado | 2026-07-14 | El Editor XLSForm mantiene una coleccion multi-formulario; comparte numero historico con el ADR de Calculo de muestra |
 | [0036](0036-filtro-universo-manual-en-carga.md) | Aceptado | 2026-07-14 | El filtro manual real/prueba se materializa en Carga y se hereda a repeats |
 | [0037](0037-reporte-metodologico-validacion.md) | Aceptado | 2026-07-14 | Validacion genera un reporte metodologico exhaustivo basado en el plan efectivo y distingue la naturaleza de cada formula |
 | [0038](0038-identidad-visual-v1-1.md) | Aceptado | 2026-07-15 | Identidad visual v1.1 «La señal ordenada»: isotipo canonico unico, patrones maestros y paquete branding/ como referencia normativa |
 | [0039](0039-agentic-os-multirepo-provider-neutral.md) | Aceptado | 2026-07-19 | Agentic OS multirepo neutral al proveedor: núcleo global namespaced, packs opt-in y overlays locales |
+| [0040](0040-flujo-acreditacion-formularios-monitoreo-procesamiento-ppt.md) | Aceptado | 2026-07-20 | Acreditacion enlaza revisiones XLSForm, efectivos reconciliados, procesamiento independiente y un PPT consolidado |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).
