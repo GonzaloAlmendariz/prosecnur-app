@@ -1994,3 +1994,56 @@ p_reset <- function(
   }
   paste0("Base: ", joined)
 }
+
+.format_actor_base_caption <- function(sources, totals) {
+  sources <- trimws(as.character(sources %||% character(0)))
+  totals <- suppressWarnings(as.numeric(totals %||% numeric(0)))
+  n <- min(length(sources), length(totals))
+  if (!n) return(NULL)
+
+  sources <- sources[seq_len(n)]
+  totals <- totals[seq_len(n)]
+  keep <- !is.na(sources) & nzchar(sources) & is.finite(totals) & totals > 0
+  sources <- sources[keep]
+  totals <- round(totals[keep])
+  if (!length(sources)) return(NULL)
+
+  actor_order <- unique(sources)
+  parts <- vapply(actor_order, function(source) {
+    actor <- gsub("_+", " ", source)
+    actor <- tools::toTitleCase(actor)
+    actor_totals <- sort(unique(totals[sources == source]))
+    total_text <- if (length(actor_totals) == 1L) {
+      format(actor_totals[[1L]], big.mark = ",", scientific = FALSE, trim = TRUE)
+    } else {
+      paste0(
+        format(min(actor_totals), big.mark = ",", scientific = FALSE, trim = TRUE),
+        "-",
+        format(max(actor_totals), big.mark = ",", scientific = FALSE, trim = TRUE),
+        " según variable"
+      )
+    }
+    paste0(actor, " (", total_text, ")")
+  }, character(1))
+
+  joined <- if (length(parts) == 1L) {
+    parts
+  } else if (length(parts) == 2L) {
+    paste(parts, collapse = " y ")
+  } else {
+    paste0(paste(parts[-length(parts)], collapse = ", "), " y ", parts[[length(parts)]])
+  }
+  paste0("Base: ", joined)
+}
+
+.format_actor_base_caption_from_refs <- function(refs, totals) {
+  refs <- trimws(as.character(refs %||% character(0)))
+  qualified <- grepl("$", refs, fixed = TRUE)
+  if (!any(qualified)) return(NULL)
+  .format_actor_base_caption(sub("\\$.*$", "", refs[qualified]), totals[qualified])
+}
+
+.with_actor_base_caption <- function(plot, caption) {
+  if (!is.null(caption)) attr(plot, "pulso_actor_base_caption") <- caption
+  plot
+}

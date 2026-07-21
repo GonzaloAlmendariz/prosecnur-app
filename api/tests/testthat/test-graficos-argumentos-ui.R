@@ -922,7 +922,7 @@ test_that("preset Pulso PPT usa paleta y escala de texto institucional", {
     stringsAsFactors = FALSE
   )
   expect_equal(.reporte_plan_labels_for_levels("likert", c("1", "2"), choices), c("Nada", "Mucho"))
-  expect_equal(.reporte_plan_legend_labels_for_levels("likert", c("1", "2"), choices), c("1 Nada", "2 Mucho"))
+  expect_equal(.reporte_plan_legend_labels_for_levels("likert", c("1", "2"), choices), c("Nada", "Mucho"))
 })
 
 test_that("metadata principal no expone editores tecnicos JSON", {
