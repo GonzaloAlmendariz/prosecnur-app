@@ -38,6 +38,89 @@
   --pulso-primary-ring: rgba(15, 118, 110, 0.12);
 }
 
+/* ── Aprobación metodológica independiente ─────────────────────────────── */
+
+.pulso-analitica-frame .pulso-processing-release {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 16px;
+  padding: 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-analitica-frame .pulso-processing-release-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 220px;
+  flex: 1;
+}
+
+.pulso-analitica-frame .pulso-processing-release-main > div {
+  display: grid;
+  gap: 2px;
+}
+
+.pulso-analitica-frame .pulso-processing-release-main span,
+.pulso-analitica-frame .pulso-processing-release-main small {
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+}
+
+.pulso-analitica-frame .pulso-processing-release-main strong {
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+.pulso-analitica-frame .pulso-processing-release-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--pulso-radius);
+  color: var(--pulso-primary);
+  background: var(--pulso-primary-soft);
+}
+
+.pulso-analitica-frame .pulso-processing-release-icon.is-success {
+  color: var(--pulso-success-fg);
+  background: var(--pulso-success-bg);
+}
+
+.pulso-analitica-frame .pulso-processing-release-blockers {
+  max-width: 360px;
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+}
+
+.pulso-analitica-frame .pulso-processing-release-blockers summary {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.pulso-analitica-frame .pulso-processing-release-blockers ul {
+  margin: 8px 0 0;
+  padding-left: 16px;
+}
+
+.pulso-analitica-frame .pulso-processing-release-error {
+  margin: 0;
+  color: var(--pulso-danger-fg);
+  font-size: 11px;
+}
+
+@media (max-width: 900px) {
+  .pulso-analitica-frame .pulso-processing-release {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 /* ── 1. Botones → pills gv2 ────────────────────────────────────────────── */
 /* El press scale(0.97) ya lo aporta el `button:where(:active)` global. */
 
