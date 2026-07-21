@@ -2003,6 +2003,15 @@ mount_carga <- function(pr) {
       .carga_monitoreo_handoff_promote(sid, parsed)
     })) |>
 
+    plumber::pr_post("/api/carga/monitoreo-handoff/preview-batch", wrap_endpoint(function(req, res, ...) {
+      carga_acreditacion_batch_preview(session_header(req))
+    })) |>
+
+    plumber::pr_post("/api/carga/monitoreo-handoff/promote-batch", wrap_endpoint(function(req, res, ...) {
+      parsed <- .carga_parse_json_body(req)
+      carga_acreditacion_batch_promote(session_header(req), parsed)
+    })) |>
+
     plumber::pr_post("/api/carga/platform/kobo/assets", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .carga_parse_json_body(req)
