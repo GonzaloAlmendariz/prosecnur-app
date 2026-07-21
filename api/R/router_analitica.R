@@ -2139,7 +2139,13 @@
     data_sources <- normalized$data_sources
     inst_sources <- normalized$inst_sources
   }
-  list(data_sources = data_sources, inst_sources = inst_sources)
+  contracted <- instrument_analysis_apply_sources(s, data_sources, inst_sources)
+  list(
+    data_sources = contracted$data_sources,
+    inst_sources = contracted$inst_sources,
+    instrument_analysis_audits = contracted$audits,
+    instrument_analysis_warnings = as.list(contracted$warnings)
+  )
 }
 
 .zip_files <- function(zip_path, files, names_in_zip = NULL) {
