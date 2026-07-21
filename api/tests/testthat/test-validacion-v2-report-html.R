@@ -121,3 +121,39 @@ test_that("build_report_html renderiza decisiones con columna status sin crashea
   expect_true(grepl("RC_002", html, fixed = TRUE))
   expect_true(grepl("ready", html, fixed = TRUE))
 })
+
+test_that("reporte residual tolera metadatos anidados de tamanos distintos", {
+  limpieza_payload <- list(
+    before_after_preview = list(
+      residual_final = list(list(
+        id_regla = "R_DEGREE_YEAR",
+        nombre_regla = "Anio de titulo coherente con egreso",
+        n_inconsistencias = 3L,
+        porcentaje = 12.5,
+        variable_roles = list(
+          target = "p8",
+          compare = "p5",
+          drivers = "p7",
+          gate = "p7",
+          all = c("p5", "p7", "p8"),
+          labels = list(p5 = "Anio de egreso", p8 = "Anio del titulo"),
+          tables = list(p5 = "principal", p8 = "principal")
+        ),
+        presentation = list(
+          nombre_humano = "Anio de titulo coherente con egreso",
+          nombre_tecnico = "coh_p8_degree_year",
+          objetivo = "Evitar titulos anteriores al egreso",
+          detalle_condicion = "Si p7 es 1, p8 debe ser mayor o igual que p5",
+          subtipo_semantico = "if_then",
+          gate_humano = "Tiene titulo"
+        )
+      ))
+    )
+  )
+
+  html <- .report_residual_table(limpieza_payload)
+
+  expect_true(grepl("R_DEGREE_YEAR", html, fixed = TRUE))
+  expect_true(grepl("Anio de titulo coherente con egreso", html, fixed = TRUE))
+  expect_true(grepl(">3<", html, fixed = TRUE))
+})

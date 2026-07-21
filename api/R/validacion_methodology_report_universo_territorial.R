@@ -6,7 +6,7 @@
 # (`validacion_methodology_report.R`). El modelo por defecto asume una unica
 # variable real/prueba mas exclusiones simples; esto no expresa bien un embudo
 # de varias etapas heterogeneas con etiquetas a medida (piloto, control de
-# calidad de campo, casos no defendibles con subcriterios) como el que necesita
+# calidad de campo, exclusiones por criterios de validez con subcriterios) como el que necesita
 # el monitoreo territorial.
 #
 # Cuando `upstream_universe` declara `territorial = TRUE` (o trae `stages`), el
@@ -25,7 +25,7 @@
 #       id = "piloto", label = "...", excluded = 39L, remaining = 1693L,
 #       match_values = "excluido_piloto", subcriteria = c("...")
 #     ), ...),
-#     included_breakdown = list(list(label = "Validadas", count = 1028L), ...),
+#     included_breakdown = list(list(label = "...", count = 0L), ...),  # opcional
 #     duplicates_count = 0L,
 #     field_window_label = "mayo a 3 de julio de 2026"
 #   )
@@ -152,10 +152,10 @@ vmr_territorial_universe_criterion <- function(universe) {
     parts <- vapply(breakdown, function(b) {
       sprintf("%s %s", .vmr_terr_fmt(b$count), .vmr_lower_first(.vmr_terr_chr(b$label)))
     }, character(1))
-    sprintf(" La base final de casos válidos reúne %s registros (%s).",
+    sprintf(" La base final reúne %s casos válidos (%s).",
             .vmr_terr_fmt(universe$included), paste(parts, collapse = " y "))
   } else {
-    sprintf(" La base final de casos válidos reúne %s registros.", .vmr_terr_fmt(universe$included))
+    sprintf(" La base final reúne %s casos válidos.", .vmr_terr_fmt(universe$included))
   }
   dup <- .vmr_terr_int(universe$duplicates_count, NA_integer_)
   dup_txt <- if (!is.na(dup)) {
@@ -228,7 +228,10 @@ vmr_territorial_reconciliation_text <- function(plan_total, presented_total) {
       "El plan derivó %s reglas del instrumento; %s aplican a la base final de análisis. ",
       "Las %s restantes no se evalúan porque sus variables no se materializan en esa base ",
       "(verificaciones de tiempos/duración, variables derivadas y el resumen de una pregunta ",
-      "de opción múltiple cuyas categorías sí se validan de forma individual)."
+      "de opción múltiple cuyas categorías sí se validan de forma individual). ",
+      "Nota: para las preguntas obligatorias con lógica de salto, la comprobación de completitud ",
+      "y la de salto se cuentan en ambas familias; por eso el total por familia no representa ",
+      "verificaciones mutuamente excluyentes."
     ),
     .vmr_terr_fmt(plan_total), .vmr_terr_fmt(presented_total), .vmr_terr_fmt(unpresented)
   )
@@ -249,6 +252,7 @@ vmr_territorial_runner_block <- function(universe, script_name = NULL) {
   audit_file <- .vmr_terr_chr(universe$audit_base_file %||% "base_auditada_estados.csv")
   analysis_file <- .vmr_terr_chr(universe$analysis_base_file %||% "base_final_analisis.csv")
   stage_variable <- .vmr_terr_chr(universe$stage_variable %||% "etapa_exclusion")
+  key_column <- .vmr_terr_chr(universe$key_column %||% "")
   total <- .vmr_terr_fmt(universe$total)
   included <- .vmr_terr_fmt(universe$included)
   script_label <- if (!is.null(script_name) && nzchar(script_name)) script_name else "este_script.R"
@@ -306,12 +310,27 @@ vmr_territorial_runner_block <- function(universe, script_name = NULL) {
     "  .base_final <- read_validation_data(.analysis_path)",
     "  cat(sprintf('Base final de analisis: %d filas\\n', nrow(.base_final)))",
     "",
-    "  # Cuadre: el 'incluido' del embudo debe coincidir con la base final.",
-    "  if (nrow(.base_incluida) != nrow(.base_final)) {",
+    paste0("  .key_column <- ", q(key_column)),
+    "  # Cuadre por IDENTIDAD cuando ambas bases comparten la llave: los registros",
+    "  # 'incluido' del embudo deben ser exactamente los de la base final. Sin",
+    "  # llave comun, se verifica solo la cantidad de registros.",
+    "  if (nzchar(.key_column) && .key_column %in% names(.base_incluida) && .key_column %in% names(.base_final)) {",
+    "    .keep_keys <- as.character(.base_incluida[[.key_column]])",
+    "    .final_keys <- as.character(.base_final[[.key_column]])",
+    "    .faltan <- setdiff(.keep_keys, .final_keys)",
+    "    .sobran <- setdiff(.final_keys, .keep_keys)",
+    "    if (length(.faltan) == 0L && length(.sobran) == 0L) {",
+    "      cat(sprintf('Cuadre por identidad OK: los %d registros conservados son exactamente los %d de la base final.\\n',",
+    "                  length(.keep_keys), length(.final_keys)))",
+    "    } else {",
+    "      warning(sprintf('Descuadre por identidad: %d solo en el embudo, %d solo en la base final.',",
+    "                      length(.faltan), length(.sobran)), call. = FALSE)",
+    "    }",
+    "  } else if (nrow(.base_incluida) != nrow(.base_final)) {",
     "    warning(sprintf('El embudo conserva %d registros pero la base final tiene %d.',",
     "                    nrow(.base_incluida), nrow(.base_final)), call. = FALSE)",
     "  } else {",
-    "    cat(sprintf('Cuadre OK: %d registros conservados = %d filas de la base final.\\n',",
+    "    cat(sprintf('Cuadre por cantidad OK: %d registros conservados = %d filas de la base final.\\n',",
     "                nrow(.base_incluida), nrow(.base_final)))",
     "  }",
     "",
