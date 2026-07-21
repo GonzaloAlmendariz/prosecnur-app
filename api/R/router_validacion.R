@@ -927,6 +927,11 @@ mount_validacion <- function(pr) {
         incluir = incluir_final,
         compatibility = compat
       )
+      revision_validation_contract <- instrument_validation_contract(
+        session_get(sid),
+        (base_meta %||% list())$instrument_revision_id
+      )
+      bundle <- instrument_validation_append_rules(bundle, revision_validation_contract)
       bundle <- .validacion_patch_integrated_bundle(bundle, base_meta)
       bundle <- validation_operational_append_rules(bundle, op_config)
       plan <- bundle$plan %||% compile_rules_to_plan(bundle$rules)
@@ -939,6 +944,7 @@ mount_validacion <- function(pr) {
       )
       plan_result <- list(plan = plan, bundle = bundle, resumen = resumen,
                           operational_config = op_config,
+                          instrument_validation_contract = bundle$instrument_validation_contract %||% NULL,
                           secciones = inst$meta$section_map, meta = inst$meta)
       validacion_scope_set(sid, base, "plan_result", plan_result)
       validacion_scope_set(sid, base, "operational_config", op_config)
