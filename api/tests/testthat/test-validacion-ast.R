@@ -1407,3 +1407,35 @@ test_that("restore_instrument_case_aliases repone nombres del instrumento tras n
   expect_equal(aliased$principal$PERprofile, aliased$principal$perprofile)
   expect_equal(aliased$principal$Country, aliased$principal$country)
 })
+
+test_that(".find_select_multiple_dummies resuelve dummies en minuscula y con prefijo de grupo", {
+  # Base real de ACG: el instrumento declara `D1_information` (mayuscula) pero la
+  # base exporta los dummies en minuscula con punto, y el canonico con prefijo de
+  # grupo `d.`. La resolucion case-sensitive fallaba y creia que nadie marco 96.
+  nombres <- c(
+    "D1_information_text", "d.d1_information", "d.d1_information_text",
+    paste0("d1_information.", c(1:8, 96)),
+    paste0("d1_information_recod.", c(1:8, 96))
+  )
+  dummies <- .find_select_multiple_dummies("D1_information", nombres)
+  codigos <- vapply(dummies, .vd_sm_dummy_code, character(1), parent = "D1_information")
+
+  expect_true("d1_information.96" %in% dummies)     # opcion 96 (Otro) resuelta
+  expect_true("96" %in% codigos)
+  expect_length(dummies, 9L)                        # 8 opciones + 96
+  expect_false(any(grepl("recod", dummies)))        # otra variable, no se mezcla
+  expect_false(any(grepl("_text$", dummies)))       # texto libre, no es opcion
+
+  # Prefijo de grupo por ruta (d.<var>.<code>) tambien se resuelve.
+  expect_true("d.d1_information.5" %in%
+    .find_select_multiple_dummies("D1_information", c("d.d1_information.5", "otra.1")))
+
+  # No rompe la resolucion case-correcta ya existente.
+  expect_setequal(
+    .find_select_multiple_dummies("servicios", c("servicios.1", "servicios.2", "servicios.99")),
+    c("servicios.1", "servicios.2", "servicios.99")
+  )
+  expect_identical(
+    .vd_sm_dummy_code("servicios.99", "servicios"), "99"
+  )
+})

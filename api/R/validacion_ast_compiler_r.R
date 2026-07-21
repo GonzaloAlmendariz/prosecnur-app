@@ -539,10 +539,13 @@ ast_to_r <- function(x) {
 
 .vd_sm_dummy_code <- function(col, parent) {
   esc <- gsub("([][{}()+*^$?.|\\\\])", "\\\\\\1", parent, perl = TRUE)
-  pat <- paste0("^", esc, "([_/.])(.+)$")
-  if (!grepl(pat, col, perl = TRUE)) return(NA_character_)
-  code <- sub(pat, "\\2", col, perl = TRUE)
-  code <- sub("^0+([0-9]+)$", "\\1", code)
+  # Case-insensitive y tolerante a prefijo de grupo por ruta (`d.`/`grupo/`),
+  # consistente con .find_select_multiple_dummies. El codigo es lo que sigue al
+  # nombre de la variable + separador.
+  pat <- paste0("(?:^|[/.])", esc, "[_/.](.+)$")
+  m <- regmatches(col, regexec(pat, col, perl = TRUE, ignore.case = TRUE))[[1L]]
+  if (length(m) < 2L) return(NA_character_)
+  code <- sub("^0+([0-9]+)$", "\\1", m[[2L]])
   if (!nzchar(code)) NA_character_ else code
 }
 
@@ -552,8 +555,8 @@ ast_to_r <- function(x) {
     cols <- .find_select_multiple_dummies(var, names(data))
   } else {
     esc <- gsub("([][{}()+*^$?.|\\\\])", "\\\\\\1", var, perl = TRUE)
-    cols <- names(data)[grepl(paste0("^", esc, "[_/.][^_/.]+$"), names(data), perl = TRUE)]
-    cols <- cols[!grepl("_(other|specify|otro|texto)$", cols, ignore.case = TRUE)]
+    cols <- names(data)[grepl(paste0("(^|[/.])", esc, "[_/.][^_/.]+$"), names(data), perl = TRUE, ignore.case = TRUE)]
+    cols <- cols[!grepl("_(other|specify|otro|texto|text)$", cols, ignore.case = TRUE)]
   }
   codes <- vapply(cols, .vd_sm_dummy_code, character(1), parent = var)
   ok <- !is.na(codes) & nzchar(codes)

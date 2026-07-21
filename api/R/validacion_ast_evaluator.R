@@ -736,11 +736,18 @@ evaluate_rules <- function(rules,
   # así que un pseudo-nombre como `count-selected(${services})` (el compare var
   # de una regla repeat_length) reventaba grepl con "Invalid contents of {}".
   target_esc <- gsub("([.\\\\+*?^$(){}|\\[\\]])", "\\\\\\1", target, perl = TRUE)
-  pat <- sprintf("^%s[_/.][^_/.]+$", target_esc)
-  matches <- data_names[grepl(pat, data_names)]
-  # Filtrar columnas tipo "_other" o "_specify" que NO son opciones marcables
-  # sino texto libre asociado.
-  matches <- matches[!grepl("_(other|specify|otro|texto)$", matches, ignore.case = TRUE)]
+  # Resolucion robusta de dummies:
+  #  - CASE-INSENSITIVE: el instrumento declara `D1_information` pero la base
+  #    exporta `d1_information.96` (minuscula).
+  #  - Tolerante a un prefijo de grupo por ruta (p. ej. `d.d1_information.96`):
+  #    la variable puede ser el primer segmento o venir precedida por un
+  #    separador de ruta `.`/`/` (nunca `_`, que es intra-variable).
+  # El codigo de la opcion es el ultimo segmento (`[^_/.]+$`).
+  pat <- sprintf("(^|[/.])%s[_/.][^_/.]+$", target_esc)
+  matches <- data_names[grepl(pat, data_names, perl = TRUE, ignore.case = TRUE)]
+  # Filtrar columnas de texto libre asociado (no son opciones marcables):
+  # "_other"/"_specify"/"_otro"/"_texto"/"_text".
+  matches <- matches[!grepl("_(other|specify|otro|texto|text)$", matches, ignore.case = TRUE)]
   matches
 }
 
