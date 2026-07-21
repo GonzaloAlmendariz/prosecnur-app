@@ -1620,6 +1620,45 @@
   candidates[ord][seq_len(min(length(candidates), as.integer(max_slides %||% 4L)))]
 }
 
+.graficos_multisource_comparison_overrides <- function(choice_n) {
+  show_top2 <- as.integer(choice_n %||% 0L) %in% c(4L, 5L)
+  common <- list(
+    canvas_w_grupo = 0,
+    canvas_w_buf_grupo_etq = 0,
+    canvas_w_etiquetas = 0.18,
+    canvas_w_buf_etq_bars = 0.02,
+    canvas_h_header_in = 0,
+    canvas_h_legend_in = 0.38,
+    canvas_h_caption_in = 0,
+    nota_pie = "",
+    size_ejes = 19,
+    size_texto_barras = 7,
+    size_texto_barras_peq = 7,
+    size_leyenda = 18,
+    size_barra_extra = 18,
+    size_titulo_extra = 17,
+    mostrar_n_en_etiquetas = FALSE,
+    etiquetas_arriba_si_no_caben = FALSE,
+    repeler_etiquetas_peq = TRUE,
+    desplazamiento_max_etiquetas_peq = 0.12
+  )
+  utils::modifyList(common, if (show_top2) {
+    list(
+      canvas_w_bars = 0.66,
+      canvas_w_buf_bars_extra = 0.02,
+      canvas_w_extra = 0.12,
+      mostrar_barra_extra = TRUE
+    )
+  } else {
+    list(
+      canvas_w_bars = 0.80,
+      canvas_w_buf_bars_extra = 0,
+      canvas_w_extra = 0,
+      mostrar_barra_extra = FALSE
+    )
+  })
+}
+
 .graficos_multisource_comparison_slides <- function(coverage, max_slides = 4L) {
   candidates <- .graficos_multisource_comparison_candidates(coverage, max_slides = max_slides)
   if (!length(candidates)) return(list(slides = list(), refs = character(0)))
@@ -1631,19 +1670,19 @@
     titulos_grupo <- stats::setNames(candidate$label, candidate$key)
     slides[[length(slides) + 1L]] <- list(
       id = .graficos_plan_slide_id("auto"),
-      tipo = "p_slide_1_grafico_narrativo",
+      tipo = "p_slide_1_grafico",
       payload = list(
         titulo = paste("Comparativo por actor:", candidate$label),
-        texto = "",
         grafico = list(
           graficador = "p_barras_multiapiladas",
           args = list(
             modo = "var_cruce",
             vars = vars,
             titulos_grupo = titulos_grupo,
-            titulo = candidate$label,
+            titulo = "",
             top2box = candidate$choice_n %in% c(4L, 5L),
-            wrap_y = 60
+            wrap_y = 60,
+            overrides = .graficos_multisource_comparison_overrides(candidate$choice_n)
           )
         ),
         base = "",

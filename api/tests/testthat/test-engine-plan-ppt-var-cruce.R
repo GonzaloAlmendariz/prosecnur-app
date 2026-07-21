@@ -935,7 +935,7 @@ test_that("barras agrupadas excluyen egresados sin grado y recalculan porcentaje
   labels <- .ppt_plan_text_labels(out$rendered[[1]])
   expect_true("bach" %in% labels)
   expect_false("sin" %in% labels)
-  expect_true("Base: 2 egresados" %in% labels)
+  expect_true("Base: 2 respuestas" %in% labels)
 })
 
 test_that("reporte_ppt_plan inserta slide Otros como lista de respuestas abiertas", {
@@ -1573,6 +1573,67 @@ test_that("var_cruce acepta listas equivalentes aunque el list_name difiera", {
     )
     expect_true(inherits(out$rendered[[1]], "ggplot"))
   })
+})
+
+test_that("var_cruce excluye no respuesta y omite fuentes con denominador cero", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  fx <- make_plan_ppt_fixture_var_cruce_equivalent_lists()
+  fx$data$estudiantes <- data.frame(
+    p1 = c("1", "2", "99", "", NA),
+    stringsAsFactors = FALSE
+  )
+  fx$data$administrativos <- data.frame(
+    q1 = c("4", "99", "99", "", NA),
+    stringsAsFactors = FALSE
+  )
+  fx$data$sin_validos <- data.frame(
+    z1 = c("99", "", NA),
+    stringsAsFactors = FALSE
+  )
+  fx$instrumento$sin_validos <- list(
+    survey = data.frame(
+      name = "z1",
+      type = "select_one lst_zero",
+      list_name = "lst_zero",
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = rep("lst_zero", 5),
+      name = c("1", "2", "3", "4", "99"),
+      label = c("Muy insatisfecho", "Insatisfecho", "Satisfecho", "Muy satisfecho", "SIN INF"),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = NULL
+  )
+
+  out <- reporte_ppt_plan(
+    data = fx$data,
+    instrumento = fx$instrumento,
+    plan = list(
+      diapo_001 = p_slide_1_grafico(
+        grafico = p_barras_multiapiladas(
+          modo = "var_cruce",
+          vars = list(sat = c(
+            "estudiantes$p1",
+            "administrativos$q1",
+            "sin_validos$z1"
+          )),
+          titulos_grupo = c(sat = "Satisfaccion"),
+          overrides = list(excluir_opciones = "99")
+        )
+      )
+    ),
+    presets = fx$presets,
+    solo_lista = TRUE,
+    mensajes_progreso = FALSE
+  )
+  labels <- .ppt_plan_text_labels(out$rendered[[1]])
+
+  expect_true(inherits(out$rendered[[1]], "ggplot"))
+  expect_false(any(c("99", "SIN INF", "sin_validos") %in% labels))
+  expect_true(all(c("Estudiantes", "Administrativos", "2", "1") %in% labels))
 })
 
 test_that("var_cruce multi-fuente convive con title y section en el log del plan", {

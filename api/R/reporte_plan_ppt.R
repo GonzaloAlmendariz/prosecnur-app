@@ -273,29 +273,7 @@
 
 #' @noRd
 .reporte_plan_legend_labels_for_levels <- function(list_name, levels, choices_use = NULL) {
-  levels <- .reporte_plan_clean_chr(levels)
-  out <- .reporte_plan_labels_for_levels(list_name, levels, choices_use = choices_use)
-  choices_levels <- .reporte_plan_choice_levels_for_list(list_name, choices_use)
-  if (!nrow(choices_levels) || !length(levels)) return(out)
-
-  codes <- rep(NA_character_, length(levels))
-  for (i in seq_along(levels)) {
-    idx <- which(choices_levels$code == levels[i] | choices_levels$label == levels[i])
-    if (length(idx)) codes[i] <- choices_levels$code[idx[1]]
-  }
-
-  numeric_codes <- grepl("^[0-9]+$", codes)
-  if (sum(numeric_codes, na.rm = TRUE) < 2L) return(out)
-
-  for (i in which(numeric_codes)) {
-    code <- codes[i]
-    label <- out[i]
-    if (is.na(label) || !nzchar(trimws(label))) next
-    if (!grepl(paste0("^", .reporte_plan_regex_escape(code), "\\b"), label, perl = TRUE)) {
-      out[i] <- paste(code, label)
-    }
-  }
-  out
+  .reporte_plan_labels_for_levels(list_name, levels, choices_use = choices_use)
 }
 
 #' @noRd
@@ -4318,6 +4296,7 @@ reporte_ppt_plan <- function(
         .base_auto_from_element(block_el, sufijo_auto = suf, formato = fmt),
         error = function(e) NULL
       )
+      base_b <- attr(p_b, "pulso_actor_base_caption", exact = TRUE) %||% base_b
 
       render_meta[[length(render_meta) + 1]] <<- list(
         kind      = "chart",
@@ -4477,13 +4456,13 @@ reporte_ppt_plan <- function(
     .plot_note_from(plot_obj, fallback = fallback)
   }
 
-  .format_n_caption <- function(n_values, unit = "egresados") {
+  .format_n_caption <- function(n_values, unit = "respuestas") {
     n_values <- suppressWarnings(as.numeric(n_values))
     n_values <- n_values[is.finite(n_values) & !is.na(n_values) & n_values > 0]
     if (!length(n_values)) return(NULL)
     n_values <- unique(round(n_values))
     n_values <- sort(n_values)
-    unit <- .clean_note_text(unit) %||% "egresados"
+    unit <- .clean_note_text(unit) %||% "respuestas"
     fmt <- function(x) format(x, big.mark = ",", scientific = FALSE, trim = TRUE)
     if (length(n_values) == 1L) {
       return(paste0("Base: ", fmt(n_values[[1]]), " ", unit))
@@ -5219,6 +5198,8 @@ reporte_ppt_plan <- function(
       if (!length(rows)) return(.blank_canvas(preset_args_multi, el$overrides %||% list()))
       df_block <- dplyr::bind_rows(rows)
 
+      actor_caption <- .format_actor_base_caption_from_refs(names(N_by_v), N_by_v)
+
       base_args <- list(
         data             = df_block,
         var_categoria    = "categoria",
@@ -5232,7 +5213,7 @@ reporte_ppt_plan <- function(
         colores_grupos   = colores_grupos,
         titulo           = NULL,
         subtitulo        = NULL,
-        nota_pie         = .format_n_caption(N_by_v)
+        nota_pie         = actor_caption %||% .format_n_caption(N_by_v)
       )
 
       base_args <- .apply_top2box_alias(base_args)
@@ -5247,7 +5228,7 @@ reporte_ppt_plan <- function(
       fun  <- graficar_barras_apiladas
       args <- .force_canvas_args(fun, args)
       args <- .keep_formals(fun, args)
-      return(suppressWarnings(do.call(fun, args)))
+      return(.with_actor_base_caption(suppressWarnings(do.call(fun, args)), actor_caption))
     }
 
     # ============================================================
@@ -5746,6 +5727,13 @@ reporte_ppt_plan <- function(
       if (!length(rows)) return(.blank_canvas(preset_args_multi, el$overrides %||% list()))
       df_block <- dplyr::bind_rows(rows)
 
+      actor_caption <- if (is.list(vars) && !is.character(vars) &&
+                           any(grepl("$", .extract_ref_values(vars), fixed = TRUE))) {
+        .format_actor_base_caption(df_block$categoria, df_block$N)
+      } else {
+        NULL
+      }
+
       base_args <- list(
         data                   = df_block,
         var_categoria          = ".categoria_id",
@@ -5762,7 +5750,7 @@ reporte_ppt_plan <- function(
         colores_grupos         = colores_grupos,
         titulo                 = NULL,
         subtitulo              = NULL,
-        nota_pie               = .format_n_caption(df_block$N),
+        nota_pie               = actor_caption %||% .format_n_caption(df_block$N),
         usar_canvas            = TRUE,
         canvas_w_grupo         = if (!sin_grupo_word) 0.24 else 0,
         canvas_w_buf_grupo_etq = if (!sin_grupo_word) 0.03 else 0,
@@ -5775,7 +5763,7 @@ reporte_ppt_plan <- function(
       fun  <- graficar_barras_apiladas
       args <- .force_canvas_args(fun, args)
       args <- .keep_formals(fun, args)
-      return(suppressWarnings(do.call(fun, args)))
+      return(.with_actor_base_caption(suppressWarnings(do.call(fun, args)), actor_caption))
     }
 
     stop("multiapiladas: modo no soportado: ", modo, call. = FALSE)
@@ -5787,7 +5775,7 @@ reporte_ppt_plan <- function(
     var <- el$var
     filtros <- el$filtros %||% list()
     overrides <- el$overrides %||% list()
-    base_unit <- .clean_note_text(overrides$unidad_base %||% preset_args$unidad_base) %||% "egresados"
+    base_unit <- .clean_note_text(overrides$unidad_base %||% preset_args$unidad_base) %||% "respuestas"
     base_por_grupo <- isTRUE(overrides$base_por_grupo %||% preset_args$base_por_grupo)
     overrides$unidad_base <- NULL
     overrides$base_por_grupo <- NULL
