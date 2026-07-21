@@ -169,7 +169,7 @@
       paper_rows = as.integer(if (is.null(paper)) 0L else nrow(paper)),
       diagnostico_rows = as.integer(if (is.null(diagnostico)) 0L else nrow(diagnostico))
     ),
-    source = c(list(
+    source = .xlsform_forms_merge_source(list(
       kind = if (is.null(source_kind) || !nzchar(source_kind)) NA_character_ else as.character(source_kind)[1],
       original_name = if (is.null(source_name) || !nzchar(source_name)) NA_character_ else as.character(source_name)[1]
     ), source_meta %||% list()),
@@ -1100,7 +1100,8 @@ mount_xlsform_editor <- function(pr) {
         source = entry$source,
         saved_at = entry$saved_at,
         hallazgos = entry$hallazgos,
-        workbook = entry$workbook
+        workbook = entry$workbook,
+        publication = .xlsform_revision_publication(s, entry)
       ))
     })) |>
     plumber::pr_post("/api/xlsform-editor/forms", wrap_endpoint(function(req, res, ...) {
@@ -1135,6 +1136,44 @@ mount_xlsform_editor <- function(pr) {
       .session_env[[sid]] <- s
       list(ok = TRUE, id = entry$id, saved_at = entry$saved_at,
            active_form_id = s$xlsform_active_form_id %||% NULL)
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/forms/<id>/revisions", wrap_endpoint(function(req, res, id = "", ...) {
+      sid <- session_header(req)
+      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
+        stop_api(404, "E_FORM_NOT_FOUND", "No hay sesión con formularios.")
+      }
+      parsed <- .xlsform_editor_parse_body(req)
+      result <- xlsform_revision_publish(
+        sid,
+        form_id = as.character(id %||% "")[1],
+        expected_content_sha256 = parsed$expected_content_sha256
+      )
+      fresh <- session_get(sid)
+      fresh_entry <- .xlsform_forms_get(fresh, as.character(id %||% "")[1])
+      res$status <- if (isTRUE(result$created)) 201L else 200L
+      list(
+        ok = TRUE,
+        created = isTRUE(result$created),
+        revision = result$revision,
+        publication = .xlsform_revision_publication(fresh, fresh_entry)
+      )
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/forms/<id>/logic-confirmation", wrap_endpoint(function(req, res, id = "", ...) {
+      sid <- session_header(req)
+      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
+        stop_api(404, "E_FORM_NOT_FOUND", "No hay sesión con formularios.")
+      }
+      parsed <- .xlsform_editor_parse_body(req)
+      result <- xlsform_forms_confirm_logic(
+        sid,
+        form_id = as.character(id %||% "")[1],
+        expected_content_sha256 = parsed$expected_content_sha256
+      )
+      list(
+        ok = TRUE,
+        source = result$source,
+        publication = result$publication
+      )
     })) |>
     plumber::pr_post("/api/xlsform-editor/forms/activate", wrap_endpoint(function(req, res, ...) {
       # Cambia el formulario activo → re-deriva el espejo s$xlsform_state.
@@ -1359,9 +1398,12 @@ mount_xlsform_editor <- function(pr) {
         source_kind = "surveymonkey",
         source_name = source_name,
         source_meta = list(
+          schema = "survey_source/v1",
           survey_id = survey_id,
           survey_title = source_name,
-          translated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+          translated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+          logic_status = "pending_manual_confirmation",
+          publication_guard = "Confirma manualmente la lógica en el Editor antes de publicar este instrumento."
         )
       )
       payload$hallazgos <- hallazgos
@@ -1441,7 +1483,7 @@ mount_xlsform_editor <- function(pr) {
       meta <- save_upload(sid, kind = "xlsform", original_name = filename, raw_bytes = bytes)
       if (length(source_meta %||% list())) {
         s <- session_get(sid)
-        s$files[[meta$file_id]]$source <- source_meta
+        s$files[[meta$file_id]]$source <- .xlsform_forms_sanitize_source(source_meta)
         s <- .mark_project_dirty(s)
         .session_env[[sid]] <- s
         meta <- s$files[[meta$file_id]]

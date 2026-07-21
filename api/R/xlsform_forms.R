@@ -35,6 +35,55 @@
   format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
 }
 
+# `source` viaja dentro del proyecto `.pulso`, por lo que solo puede contener
+# procedencia reproducible. El filtrado es recursivo para cubrir tanto objetos
+# JSON anidados como vectores nombrados que puedan llegar desde código legacy.
+.xlsform_forms_sanitize_source <- function(value) {
+  secret_key <- "token|secret|password|credential|authorization|api[_-]?key|cookie"
+  sanitize <- function(node) {
+    if (is.null(node)) return(NULL)
+    if (is.environment(node) || is.function(node) || is.raw(node)) return(NULL)
+
+    keys <- names(node)
+    if (!is.null(keys)) {
+      keep <- !grepl(secret_key, keys, ignore.case = TRUE)
+      node <- node[keep]
+    }
+    if (!is.list(node)) return(node)
+    lapply(node, sanitize)
+  }
+  out <- sanitize(value %||% list()) %||% list()
+  if (!is.list(out)) list() else out
+}
+
+# Los autosaves antiguos enviaban solo `{kind, original_name}`. Fusionar el
+# patch con la procedencia previa evita que ese payload parcial borre el survey
+# remoto, sus hashes o la revisión manual de lógica. Las listas sin nombres
+# (por ejemplo `variants`) son valores completos y se reemplazan como unidad.
+.xlsform_forms_merge_source <- function(previous, patch) {
+  previous <- .xlsform_forms_sanitize_source(previous)
+  patch <- .xlsform_forms_sanitize_source(patch)
+  if (!length(patch)) return(previous)
+  if (!is.list(previous) || !is.list(patch)) return(patch)
+
+  patch_names <- names(patch)
+  if (is.null(patch_names) || any(!nzchar(patch_names))) return(patch)
+  previous_names <- names(previous)
+  out <- if (is.null(previous_names) || any(!nzchar(previous_names))) list() else previous
+  for (key in patch_names) {
+    prior_value <- out[[key]]
+    next_value <- patch[[key]]
+    if (is.list(prior_value) && is.list(next_value) &&
+        length(names(prior_value) %||% character(0)) &&
+        length(names(next_value) %||% character(0))) {
+      out[[key]] <- .xlsform_forms_merge_source(prior_value, next_value)
+    } else {
+      out[[key]] <- next_value
+    }
+  }
+  .xlsform_forms_sanitize_source(out)
+}
+
 # TRUE si `id` NO existe aún en la colección: es una CREACIÓN, no un upsert de
 # actualización. Un id vacío/ausente también cuenta como creación (as_entry le
 # generará un uuid nuevo).
@@ -97,7 +146,7 @@
 .xlsform_forms_as_entry <- function(state, id = NULL, name = NULL) {
   state <- state %||% list()
   workbook <- state$workbook %||% list()
-  source <- state$source %||% list()
+  source <- .xlsform_forms_sanitize_source(state$source %||% list())
   hallazgos <- state$hallazgos %||% list()
   saved_at <- as.character(state$saved_at %||% "")[1]
   if (!nzchar(saved_at)) saved_at <- .xlsform_forms_now()
@@ -120,7 +169,7 @@
 .xlsform_forms_entry_to_state <- function(entry) {
   list(
     workbook = entry$workbook,
-    source = entry$source,
+    source = .xlsform_forms_sanitize_source(entry$source),
     hallazgos = entry$hallazgos,
     saved_at = entry$saved_at
   )
@@ -174,11 +223,12 @@
     list(
       id = id,
       name = as.character(e$name %||% "")[1],
-      source = e$source %||% list(),
+      source = .xlsform_forms_sanitize_source(e$source %||% list()),
       saved_at = as.character(e$saved_at %||% "")[1],
       n_questions = counts$n_questions,
       n_sections = counts$n_sections,
-      active = identical(id, active)
+      active = identical(id, active),
+      publication = .xlsform_revision_publication(s, e)
     )
   })
 }
@@ -188,7 +238,11 @@
   forms <- s$xlsform_forms %||% list()
   id <- as.character(id %||% "")[1]
   if (!nzchar(id)) return(NULL)
-  forms[[id]]
+  entry <- forms[[id]]
+  if (!is.null(entry)) {
+    entry$source <- .xlsform_forms_sanitize_source(entry$source %||% list())
+  }
+  entry
 }
 
 # Único mutador que re-deriva el espejo `s$xlsform_state` desde la colección.
@@ -216,6 +270,11 @@
     id <- uuid::UUIDgenerate()
     entry$id <- id
   }
+  previous <- forms[[id]]
+  entry$source <- .xlsform_forms_merge_source(
+    previous$source %||% list(),
+    entry$source %||% list()
+  )
   first <- length(forms) == 0L
   forms[[id]] <- entry
   s$xlsform_forms <- forms
@@ -230,12 +289,83 @@
   s
 }
 
+# Confirma explícitamente que una persona revisó la lógica correspondiente al
+# hash actual del workbook. La confirmación no se infiere de que existan reglas:
+# queda ligada al contenido y se invalida automáticamente cuando este cambia.
+xlsform_forms_confirm_logic <- function(sid, form_id, expected_content_sha256) {
+  expected <- as.character(expected_content_sha256 %||% "")[1]
+  if (is.na(expected) || !grepl("^[0-9a-f]{64}$", expected)) {
+    stop_api(
+      400,
+      "E_REVISION_EXPECTED_HASH",
+      "expected_content_sha256 debe ser un SHA-256 lowercase de 64 caracteres."
+    )
+  }
+
+  s <- session_get(sid, required = FALSE)
+  form_id <- as.character(form_id %||% "")[1]
+  entry <- if (is.null(s)) NULL else .xlsform_forms_get(s, form_id)
+  if (is.null(entry)) {
+    stop_api(404, "E_FORM_NOT_FOUND", sprintf("No existe el formulario '%s'.", form_id))
+  }
+
+  content_sha256 <- .xlsform_revision_hash(entry$workbook %||% list())
+  if (!identical(content_sha256, expected)) {
+    stop_api(409, "E_FORM_DRAFT_STALE", "El borrador cambió desde que se calculó el hash esperado.")
+  }
+
+  now <- .xlsform_forms_now()
+  source <- .xlsform_forms_sanitize_source(entry$source %||% list())
+  source$logic_status <- "confirmed"
+  source$logic_confirmed_at <- now
+  source$logic_confirmation_method <- "editor_manual_review"
+  source$logic_review <- .xlsform_forms_merge_source(
+    source$logic_review %||% list(),
+    list(content_sha256 = content_sha256)
+  )
+  if (is.list(source$variants) && length(source$variants)) {
+    source$variants <- lapply(source$variants, function(variant) {
+      if (!is.list(variant)) return(variant)
+      definition_sha256 <- as.character(variant$definition_sha256 %||% "")[1]
+      variant$review_status <- "confirmed"
+      variant$logic_confirmed_at <- now
+      variant$logic_confirmation_method <- "editor_manual_review"
+      variant$logic_review <- .xlsform_forms_merge_source(
+        variant$logic_review %||% list(),
+        list(
+          content_sha256 = content_sha256,
+          definition_sha256 = definition_sha256
+        )
+      )
+      variant
+    })
+  }
+  entry$source <- source
+  entry$saved_at <- now
+  s <- .xlsform_forms_upsert(s, entry)
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+
+  fresh_entry <- .xlsform_forms_get(s, form_id)
+  list(
+    source = fresh_entry$source,
+    publication = .xlsform_revision_publication(s, fresh_entry)
+  )
+}
+
 # Borra una entrada. Si era la activa, reasigna al más reciente por saved_at
 # (o limpia el espejo si la colección queda vacía).
 .xlsform_forms_delete <- function(s, id) {
   forms <- s$xlsform_forms %||% list()
   id <- as.character(id %||% "")[1]
   if (!nzchar(id) || is.null(forms[[id]])) return(s)
+  if (length(.xlsform_revision_for_form(s, id))) {
+    stop_api(
+      409,
+      "E_FORM_HAS_REVISIONS",
+      "El formulario tiene revisiones publicadas y no puede eliminarse."
+    )
+  }
 
   was_active <- identical(as.character(s$xlsform_active_form_id %||% "")[1], id)
   forms[[id]] <- NULL
@@ -253,8 +383,26 @@
 # datos anidados (p. ej. workbook$surveyMonkeyLogic) porque copia el workbook
 # tal cual.
 .xlsform_forms_seed_from_legacy <- function(s) {
-  # Idempotente: si ya existe la colección (aunque esté vacía), no toca nada.
-  if (!is.null(s$xlsform_forms)) return(s)
+  # Una colección existente no necesita migrarse, pero sí se normaliza para
+  # que proyectos creados antes del saneado no vuelvan a guardar secretos.
+  if (!is.null(s$xlsform_forms)) {
+    forms <- s$xlsform_forms %||% list()
+    forms <- lapply(forms, function(entry) {
+      entry$source <- .xlsform_forms_sanitize_source(entry$source %||% list())
+      entry
+    })
+    s$xlsform_forms <- forms
+    active <- as.character(s$xlsform_active_form_id %||% "")[1]
+    if (nzchar(active) && !is.null(forms[[active]])) {
+      return(.xlsform_forms_set_active(s, active))
+    }
+    if (!is.null(s$xlsform_state)) {
+      s$xlsform_state$source <- .xlsform_forms_sanitize_source(
+        s$xlsform_state$source %||% list()
+      )
+    }
+    return(s)
+  }
   st <- s$xlsform_state
   if (is.null(st) || !is.list(st) || is.null(st$workbook)) return(s)
 
