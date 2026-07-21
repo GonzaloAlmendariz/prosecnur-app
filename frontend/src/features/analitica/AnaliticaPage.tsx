@@ -39,6 +39,7 @@ import { FichaTecnicaPane } from "./panes/FichaTecnicaPane";
 import { PonderacionPane } from "./panes/PonderacionPane";
 import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
 import { ProcessingPrereqGate } from "../procesamiento/ProcessingPrereqGate";
+import { ProcessingReleasePanel } from "./ProcessingReleasePanel";
 import "./analitica-v2.css";
 
 // Revisión de data primero; enumeradores vive en Monitoreo.
@@ -201,6 +202,8 @@ export default function AnaliticaPage() {
                 </div>
                 <AnaliticaHeader prepBusy={prepBusy} prepError={prepError} variant="panel" />
               </header>
+
+              {independentSiblings ? <ProcessingReleasePanel activeBase={state?.active_base} /> : null}
 
               <div className="pulso-analitica-panel-body">
                 {prepBusy ? (

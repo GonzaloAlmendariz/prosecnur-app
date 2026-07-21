@@ -67,6 +67,8 @@ import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
 import { repeatContextFromBase } from "../../lib/rosterExplorer";
 import { defaultEsquemaBase } from "./esquemaBaseModel";
 import { CargaUniverseFilter } from "./CargaUniverseFilter";
+import { ProcessingIntakePanel } from "./ProcessingIntakePanel";
+import { AcreditacionBatchPanel } from "./AcreditacionBatchPanel";
 
 // Fase 1 — Carga de insumos.
 //
@@ -979,6 +981,14 @@ export default function CargaPage() {
             <div className="pulso-carga-scrollarea">
             {activeCargaTab === "insumos" ? (
               <>
+                <ProcessingIntakePanel
+                  sessionId={sessionId}
+                  suggestions={processingSuggestions?.groups}
+                />
+                <AcreditacionBatchPanel
+                  sessionId={sessionId}
+                  onPromoted={onEstudioChanged}
+                />
                 <BasesPanel
                   estudio={estudio}
                   onChanged={onEstudioChanged}
@@ -1150,6 +1160,14 @@ export default function CargaPage() {
 
           {activeCargaTab === "insumos" ? (
             <>
+          <ProcessingIntakePanel
+            sessionId={sessionId}
+            suggestions={processingSuggestions?.groups}
+          />
+          <AcreditacionBatchPanel
+            sessionId={sessionId}
+            onPromoted={onEstudioChanged}
+          />
           {sourceMode === "files" && showFieldWorkHandoff && handoffStatus && (
             <FieldWorkHandoffCallout
               status={handoffStatus}
