@@ -1391,6 +1391,7 @@ test_that("script R territorial emite un bloque main ACTIVO y autonomo sin ejecu
     stage_variable = "etapa", keep_value = "incluido",
     audit_base_file = "estados_prueba.csv",
     analysis_base_file = "final_prueba.csv",
+    key_column = "response_id",
     stages = list(list(id = "x", label = "Excluidos", short_label = "Excluidos",
                        excluded = 20L, remaining = 80L, match_values = "fuera"))
   )
@@ -1411,6 +1412,9 @@ test_that("script R territorial emite un bloque main ACTIVO y autonomo sin ejecu
   # Reparte de los nombres de insumo declarados en el universo.
   expect_match(script, "estados_prueba.csv", fixed = TRUE)
   expect_match(script, "final_prueba.csv", fixed = TRUE)
+  # Cuadre por identidad usando la llave declarada.
+  expect_match(script, "response_id", fixed = TRUE)
+  expect_match(script, "Cuadre por identidad OK", fixed = TRUE)
   # La receta comentada de una sola base NO debe aparecer en la rama territorial.
   expect_false(grepl("# base_recibida <- read_validation_data", script, fixed = TRUE))
 

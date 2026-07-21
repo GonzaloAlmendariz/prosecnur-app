@@ -205,9 +205,17 @@
 .report_residual_table <- function(limpieza_payload) {
   residual <- limpieza_payload$before_after_preview$residual_final %||% list()
   if (!length(residual)) return('<p class="empty">Sin residual final calculado todavía.</p>')
-  df <- tibble::as_tibble(dplyr::bind_rows(residual))
-  keep <- intersect(c("id_regla", "nombre_regla", "n_inconsistencias", "porcentaje"), names(df))
-  if (!length(keep)) keep <- names(df)
+  display_fields <- c("id_regla", "nombre_regla", "n_inconsistencias", "porcentaje")
+  residual_display <- lapply(residual, function(row) {
+    if (!is.list(row) && !is.data.frame(row)) return(NULL)
+    row[intersect(display_fields, names(row))]
+  })
+  residual_display <- Filter(function(row) length(row) > 0L, residual_display)
+  if (!length(residual_display)) {
+    return('<p class="empty">Residual final en formato inesperado.</p>')
+  }
+  df <- tibble::as_tibble(dplyr::bind_rows(residual_display))
+  keep <- intersect(display_fields, names(df))
   df <- utils::head(df[, keep, drop = FALSE], 30L)
   headers <- paste(sprintf("<th>%s</th>", .report_escape(names(df))), collapse = "")
   rows <- vapply(seq_len(nrow(df)), function(i) {

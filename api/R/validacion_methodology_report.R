@@ -2362,14 +2362,14 @@ validation_methodology_report_pdf <- function(model, path) {
   duplicate_coverage <- suppressWarnings(as.numeric(duplicates$minimum_coverage %||% 0.80))[1]
   if (isTRUE(universe$territorial)) {
     breakdown <- universe$included_breakdown %||% list()
-    breakdown_value <- if (length(breakdown)) paste(vapply(breakdown, function(b) sprintf(
-      "%s %s", fmt(b$count), tolower(.vmr_text(b$label))
-    ), character(1)), collapse = " · ") else sprintf("%s registros válidos", fmt(universe$included %||% NA_real_))
     dup_count <- .vmr_universe_count(universe$duplicates_count, 0L)
+    valid_value <- if (length(breakdown)) sprintf(
+      "%s casos válidos (%s).",
+      fmt(universe$included %||% NA_real_),
+      paste(vapply(breakdown, function(b) sprintf("%s %s", fmt(b$count), tolower(.vmr_text(b$label))), character(1)), collapse = " · ")
+    ) else sprintf("%s casos válidos.", fmt(universe$included %||% NA_real_))
     scope_items <- list(
-      list(label = "Casos válidos", value = sprintf(
-        "%s encuestas incluidas: %s.", fmt(universe$included %||% NA_real_), breakdown_value
-      )),
+      list(label = "Casos válidos", value = valid_value),
       list(label = "Duplicados y trabajo de campo", value = sprintf(
         "%s. Trabajo de campo: %s.",
         if (dup_count == 0L) "No se detectaron duplicados" else sprintf("%s duplicados detectados", fmt(dup_count)),
