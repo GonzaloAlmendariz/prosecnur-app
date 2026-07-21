@@ -1260,6 +1260,15 @@
       }
     }
   }
+  # Editor XLSForm: cada revisión publicada es un input inmutable y su archivo
+  # debe sobrevivir aunque todavía no esté enlazado a una base de Procesamiento.
+  # El registro viaja en state.rds; aquí preservamos todos los XLSX que refiere.
+  if (!is.null(s$instrument_revisions) && length(s$instrument_revisions)) {
+    for (revision in unname(s$instrument_revisions)) {
+      fid <- as.character(revision$xlsform_file_id %||% "")[1]
+      if (nzchar(fid)) out <- c(out, fid)
+    }
+  }
   # Codificación: el xlsx de familias y la plantilla de códigos editada
   # por el analista son inputs (los outputs como data_adaptada NO).
   if (!is.null(s$codif_por_base) && length(s$codif_por_base) > 0L) {

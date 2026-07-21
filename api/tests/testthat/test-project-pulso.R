@@ -315,6 +315,8 @@ test_that("build_pulso + load_pulso preservan estado simple", {
   expect_equal(s$instrumento$survey$name[1], "p1")
   expect_equal(nrow(s$plan_result$plan), 2L)
   expect_equal(s$reglas_custom[[1]]$nombre, "Rango edad")
+  # Proyectos previos a instrument_revision/v1 siguen abriendo sin migración.
+  expect_null(s$instrument_revisions)
 })
 
 # ----- Files físicos ----------------------------------------------------------
@@ -338,6 +340,77 @@ test_that("load_pulso restaura los archivos físicos con paths correctos", {
   # Bytes preservados
   bytes <- readBin(meta$path, "raw", n = 100)
   expect_identical(bytes, .tiny_xlsx_bytes())
+})
+
+test_that("round-trip .pulso conserva todas las revisiones XLSForm publicadas", {
+  sid <- session_create()
+  tmp <- tempfile(fileext = ".pulso")
+  on.exit({ unlink(tmp, force = TRUE); session_delete(sid) }, add = TRUE)
+
+  workbook <- list(
+    survey = list(
+      columns = list("type", "name", "label"),
+      rows = list(list("text", "q1", "Pregunta uno"))
+    ),
+    choices = list(
+      columns = list("list_name", "name", "label"),
+      rows = list()
+    ),
+    settings = list(
+      columns = list("form_title", "form_id", "version", "default_language"),
+      rows = list(list("Instrumento", "instrumento", "1", "es"))
+    )
+  )
+  entry <- .xlsform_forms_as_entry(
+    list(workbook = workbook, source = list(kind = "xlsform")),
+    id = "form-roundtrip"
+  )
+  s <- session_get(sid)
+  s <- .xlsform_forms_upsert(s, entry)
+  .session_env[[sid]] <- s
+
+  v1 <- xlsform_revision_publish(
+    sid,
+    "form-roundtrip",
+    .xlsform_revision_hash(workbook)
+  )$revision
+  s <- session_get(sid)
+  edited <- s$xlsform_forms[["form-roundtrip"]]
+  edited$workbook$survey$rows[[1]][3] <- "Pregunta dos"
+  s <- .xlsform_forms_upsert(s, edited)
+  .session_env[[sid]] <- s
+  v2 <- xlsform_revision_publish(
+    sid,
+    "form-roundtrip",
+    .xlsform_revision_hash(edited$workbook)
+  )$revision
+
+  expected_ids <- c(v1$xlsform_file_id, v2$xlsform_file_id)
+  expect_setequal(.pulso_collect_input_fids(session_get(sid)), expected_ids)
+  original_bytes <- lapply(expected_ids, function(fid) {
+    meta <- get_file(sid, fid)
+    readBin(meta$path, "raw", n = file.info(meta$path)$size)
+  })
+
+  build_pulso(sid, tmp, project_name = "Revisiones")
+  loaded <- load_pulso(tmp)
+  on.exit(session_delete(loaded$session_id), add = TRUE)
+  restored <- session_get(loaded$session_id)
+
+  expect_length(restored$instrument_revisions, 2L)
+  expect_equal(
+    vapply(unname(restored$instrument_revisions), `[[`, character(1), "content_sha256"),
+    c(v1$content_sha256, v2$content_sha256)
+  )
+  expect_setequal(names(restored$files), expected_ids)
+  for (i in seq_along(expected_ids)) {
+    meta <- restored$files[[expected_ids[[i]]]]
+    expect_true(file.exists(meta$path))
+    expect_identical(
+      readBin(meta$path, "raw", n = file.info(meta$path)$size),
+      original_bytes[[i]]
+    )
+  }
 })
 
 test_that("build_pulso incluye bases declaradas en calculo de muestra", {
