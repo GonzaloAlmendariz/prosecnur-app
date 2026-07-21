@@ -2123,6 +2123,46 @@ export type XlsformEditorWorkbook = {
   surveyMonkeyLogic?: SurveyMonkeyLogicState | null;
 };
 
+export type XlsformSourceValue =
+  | string
+  | number
+  | boolean
+  | null
+  | XlsformSourceValue[]
+  | XlsformSourceRecord;
+
+export type XlsformSourceRecord = {
+  [key: string]: XlsformSourceValue;
+};
+
+/**
+ * Procedencia portable de un instrumento. La allowlist impide que credenciales
+ * o campos accidentales de respuestas remotas terminen en localStorage o en el
+ * `.pulso`; `kind` y `original_name` conservan compatibilidad con snapshots
+ * anteriores del editor.
+ */
+export type XlsformFormSource = {
+  schema?: string | null;
+  kind: string | null;
+  original_name: string | null;
+  actor_key?: string | null;
+  survey_id?: string | null;
+  survey_title?: string | null;
+  translated_at?: string | null;
+  definition_sha256?: string | null;
+  definition_fetched_at?: string | null;
+  question_count?: number | null;
+  logic_status?: string | null;
+  publication_guard?: string | null;
+  variants?: XlsformSourceRecord[];
+  remote_payload_sha256_observed?: string | null;
+  definition_hash_scope?: string | null;
+  provenance?: XlsformSourceRecord;
+  logic_confirmed_at?: string | null;
+  logic_confirmation_method?: string | null;
+  logic_review?: XlsformSourceRecord;
+};
+
 export type XlsformEditorPayload = {
   ok: true;
   workbook: XlsformEditorWorkbook;
@@ -2133,13 +2173,7 @@ export type XlsformEditorPayload = {
     paper_rows?: number;
     diagnostico_rows: number;
   };
-  source: {
-    kind: string | null;
-    original_name: string | null;
-    survey_id?: string | null;
-    survey_title?: string | null;
-    translated_at?: string | null;
-  };
+  source: XlsformFormSource;
   warnings: string[];
 };
 
@@ -2232,13 +2266,7 @@ function normalizeEditorPayload(value: unknown): XlsformEditorPayload {
       paper_rows: Number(summaryRaw.paper_rows ?? 0),
       diagnostico_rows: Number(summaryRaw.diagnostico_rows ?? 0),
     },
-    source: {
-      kind: sourceRaw.kind == null ? null : String(sourceRaw.kind),
-      original_name: sourceRaw.original_name == null ? null : String(sourceRaw.original_name),
-      survey_id: sourceRaw.survey_id == null ? null : String(sourceRaw.survey_id),
-      survey_title: sourceRaw.survey_title == null ? null : String(sourceRaw.survey_title),
-      translated_at: sourceRaw.translated_at == null ? null : String(sourceRaw.translated_at),
-    },
+    source: normalizeXlsformFormSource(sourceRaw) ?? { kind: null, original_name: null },
     warnings: Array.isArray(raw.warnings)
       ? raw.warnings.map((item) => String(item))
       : [],
@@ -2922,7 +2950,7 @@ function normalizeRecordArray(value: unknown): Record<string, unknown>[] {
 // abierto; sessionStorage queda como cache local del lado del navegador.
 export type PersistedXlsformState = {
   workbook: XlsformEditorWorkbook;
-  source: { kind: string | null; original_name: string | null } | null;
+  source: XlsformFormSource | null;
   hallazgos: Hallazgo[];
   saved_at: number;
 };
@@ -2936,10 +2964,20 @@ export async function apiXlsformEditorStateLoad(): Promise<{
     await apiFetch("/api/xlsform-editor/state", { method: "GET", headers: headers() }),
   );
   const r = (raw ?? {}) as Record<string, unknown>;
+  const stateRaw = r.state && typeof r.state === "object" && !Array.isArray(r.state)
+    ? r.state as Record<string, unknown>
+    : null;
   return {
     ok: true,
-    has_state: r.has_state === true,
-    state: r.has_state === true ? (r.state as PersistedXlsformState) : null,
+    has_state: r.has_state === true && stateRaw != null,
+    state: r.has_state === true && stateRaw != null
+      ? {
+          workbook: stateRaw.workbook as XlsformEditorWorkbook,
+          source: normalizeXlsformFormSource(stateRaw.source),
+          hallazgos: Array.isArray(stateRaw.hallazgos) ? stateRaw.hallazgos as Hallazgo[] : [],
+          saved_at: Number(stateRaw.saved_at) || 0,
+        }
+      : null,
   };
 }
 
@@ -2951,7 +2989,7 @@ export async function apiXlsformEditorStateSave(state: PersistedXlsformState): P
     await apiFetch("/api/xlsform-editor/state", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify(state),
+      body: JSON.stringify({ ...state, source: normalizeXlsformFormSource(state.source) }),
     }),
   );
   const r = (raw ?? {}) as Record<string, unknown>;
@@ -2974,16 +3012,50 @@ export async function apiXlsformEditorStateClear(): Promise<{ ok: true }> {
 // autoritativo del `id` (lo genera con crypto.randomUUID()).
 
 /** Entrada ligera del índice de la biblioteca (sin workbook). */
+export type XlsformPublicationStatus =
+  | "draft"
+  | "published"
+  | "changes_pending"
+  | "blocked";
+
+export type XlsformPublicationDiagnostic = {
+  id: string;
+  title: string;
+  detail: string;
+  rowIndex?: number;
+};
+
+export type XlsformInstrumentRevision = {
+  schema: string;
+  revision_id: string;
+  form_id: string;
+  revision_no: number;
+  content_sha256: string;
+  xlsform_file_id: string;
+  published_at: string;
+};
+
+export type XlsformFormPublication = {
+  status: XlsformPublicationStatus;
+  draft_content_sha256: string;
+  latest_revision: XlsformInstrumentRevision | null;
+  blockers: XlsformPublicationDiagnostic[];
+  warnings: XlsformPublicationDiagnostic[];
+  can_publish: boolean;
+  can_delete: boolean;
+};
+
 export type FormLibraryEntry = {
   id: string;
   name: string;
-  source: { kind: string | null; original_name: string | null } | null;
+  source: XlsformFormSource | null;
   saved_at: number;
   active: boolean;
   /** Conteos calculados en el backend sobre el workbook (para tarjetas del hub
    * sin traer el workbook completo). Ausentes en índices locales antiguos. */
   n_questions?: number;
   n_sections?: number;
+  publication: XlsformFormPublication;
 };
 
 /** Formulario completo persistido (con workbook + hallazgos). */
@@ -2991,21 +3063,183 @@ export type PersistedXlsformForm = {
   id: string;
   name?: string;
   workbook: XlsformEditorWorkbook;
-  source: { kind: string | null; original_name: string | null } | null;
+  source: XlsformFormSource | null;
   hallazgos: Hallazgo[];
   saved_at: number;
 };
 
-function normalizeFormSource(
-  value: unknown,
-): { kind: string | null; original_name: string | null } | null {
+const XLSFORM_SOURCE_FIELDS = [
+  "schema",
+  "kind",
+  "original_name",
+  "actor_key",
+  "survey_id",
+  "survey_title",
+  "translated_at",
+  "definition_sha256",
+  "definition_fetched_at",
+  "question_count",
+  "logic_status",
+  "publication_guard",
+  "variants",
+  "remote_payload_sha256_observed",
+  "definition_hash_scope",
+  "provenance",
+  "logic_confirmed_at",
+  "logic_confirmation_method",
+  "logic_review",
+] as const;
+
+const SENSITIVE_SOURCE_KEY = /(?:^|[_-])(?:token|authorization|password|secret|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|cookie|credential|session)(?:$|[_-])/i;
+
+function sanitizeXlsformSourceValue(value: unknown, depth = 0): XlsformSourceValue | undefined {
+  if (depth > 12) return undefined;
+  if (value == null) return null;
+  if (typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => sanitizeXlsformSourceValue(item, depth + 1))
+      .filter((item): item is XlsformSourceValue => item !== undefined);
+  }
+  if (typeof value !== "object") return undefined;
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([key]) => !SENSITIVE_SOURCE_KEY.test(key))
+    .flatMap(([key, item]) => {
+      const sanitized = sanitizeXlsformSourceValue(item, depth + 1);
+      return sanitized === undefined ? [] : [[key, sanitized] as const];
+    });
+  return Object.fromEntries(entries) as XlsformSourceRecord;
+}
+
+/** Normaliza y sanea la procedencia usando exclusivamente su allowlist pública. */
+export function normalizeXlsformFormSource(value: unknown): XlsformFormSource | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const raw = value as Record<string, unknown>;
+  const allowed = Object.fromEntries(
+    XLSFORM_SOURCE_FIELDS
+      .filter((key) => Object.prototype.hasOwnProperty.call(raw, key))
+      .map((key) => [key, raw[key]]),
+  );
+  const sanitized = sanitizeXlsformSourceValue(allowed);
+  if (!sanitized || Array.isArray(sanitized) || typeof sanitized !== "object") return null;
+  const safe = sanitized as XlsformSourceRecord;
+  const kind = typeof safe.kind === "string" && safe.kind.trim() ? safe.kind : null;
+  const originalName = typeof safe.original_name === "string" && safe.original_name.trim()
+    ? safe.original_name
+    : null;
+  const variants = Array.isArray(safe.variants)
+    ? safe.variants.filter((item): item is XlsformSourceRecord => (
+        Boolean(item) && typeof item === "object" && !Array.isArray(item)
+      ))
+    : undefined;
+  const provenance = safe.provenance && typeof safe.provenance === "object" && !Array.isArray(safe.provenance)
+    ? safe.provenance as XlsformSourceRecord
+    : undefined;
+  const logicReview = safe.logic_review && typeof safe.logic_review === "object" && !Array.isArray(safe.logic_review)
+    ? safe.logic_review as XlsformSourceRecord
+    : undefined;
+  const questionCount = typeof safe.question_count === "number" && Number.isFinite(safe.question_count)
+    ? safe.question_count
+    : null;
+  const normalized: XlsformFormSource = {
+    kind,
+    original_name: originalName,
+  };
+  for (const field of XLSFORM_SOURCE_FIELDS) {
+    if (field === "kind" || field === "original_name" || field === "variants"
+      || field === "provenance" || field === "logic_review" || field === "question_count") continue;
+    const item = safe[field];
+    if (typeof item === "string" || item === null) {
+      normalized[field] = item;
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(safe, "question_count")) normalized.question_count = questionCount;
+  if (variants) normalized.variants = variants;
+  if (provenance) normalized.provenance = provenance;
+  if (logicReview) normalized.logic_review = logicReview;
+  const hasRichMetadata = Object.keys(normalized).some((key) => key !== "kind" && key !== "original_name");
+  return kind == null && originalName == null && !hasRichMetadata ? null : normalized;
+}
+
+function normalizePublicationDiagnostic(value: unknown): XlsformPublicationDiagnostic | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const v = value as Record<string, unknown>;
-  const kind = typeof v.kind === "string" && v.kind.trim() ? v.kind : null;
-  const originalName =
-    typeof v.original_name === "string" && v.original_name.trim() ? v.original_name : null;
-  if (kind == null && originalName == null) return null;
-  return { kind, original_name: originalName };
+  const id = typeof v.id === "string" && v.id.trim() ? v.id : "publication_diagnostic";
+  const title = typeof v.title === "string" && v.title.trim() ? v.title : "Revisar formulario";
+  const detail = typeof v.detail === "string" ? v.detail : "";
+  const rawRowIndex = v.rowIndex ?? v.row_index;
+  const rowIndex = typeof rawRowIndex === "number" && Number.isFinite(rawRowIndex)
+    ? rawRowIndex
+    : undefined;
+  return { id, title, detail, ...(rowIndex == null ? {} : { rowIndex }) };
+}
+
+function normalizeInstrumentRevision(value: unknown): XlsformInstrumentRevision | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const v = value as Record<string, unknown>;
+  const revisionId = typeof v.revision_id === "string" ? v.revision_id : "";
+  const formId = typeof v.form_id === "string" ? v.form_id : "";
+  const contentSha256 = typeof v.content_sha256 === "string" ? v.content_sha256 : "";
+  const xlsformFileId = typeof v.xlsform_file_id === "string" ? v.xlsform_file_id : "";
+  const revisionNo = Number(v.revision_no);
+  if (!revisionId || !formId || !contentSha256 || !xlsformFileId || !Number.isFinite(revisionNo)) {
+    return null;
+  }
+  return {
+    schema: typeof v.schema === "string" && v.schema ? v.schema : "instrument_revision/v1",
+    revision_id: revisionId,
+    form_id: formId,
+    revision_no: revisionNo,
+    content_sha256: contentSha256,
+    xlsform_file_id: xlsformFileId,
+    published_at: typeof v.published_at === "string" ? v.published_at : "",
+  };
+}
+
+export function normalizeXlsformFormPublication(value: unknown): XlsformFormPublication {
+  const v = value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+  const latestRevision = normalizeInstrumentRevision(v.latest_revision);
+  const blockers = Array.isArray(v.blockers)
+    ? v.blockers
+      .map(normalizePublicationDiagnostic)
+      .filter((item): item is XlsformPublicationDiagnostic => item != null)
+    : [];
+  const warnings = Array.isArray(v.warnings)
+    ? v.warnings
+      .map(normalizePublicationDiagnostic)
+      .filter((item): item is XlsformPublicationDiagnostic => item != null)
+    : [];
+  const draftContentSha256 = typeof v.draft_content_sha256 === "string"
+    ? v.draft_content_sha256
+    : "";
+  const declaredStatus = v.status;
+  const inferredStatus: XlsformPublicationStatus = blockers.length > 0
+    ? "blocked"
+    : latestRevision == null
+      ? "draft"
+      : draftContentSha256 === latestRevision.content_sha256
+        ? "published"
+        : "changes_pending";
+  const status: XlsformPublicationStatus =
+    declaredStatus === "draft"
+      || declaredStatus === "published"
+      || declaredStatus === "changes_pending"
+      || declaredStatus === "blocked"
+      ? declaredStatus
+      : inferredStatus;
+  const canPublishDefault = status !== "published" && status !== "blocked" && Boolean(draftContentSha256);
+  return {
+    status,
+    draft_content_sha256: draftContentSha256,
+    latest_revision: latestRevision,
+    blockers,
+    warnings,
+    can_publish: typeof v.can_publish === "boolean" ? v.can_publish : canPublishDefault,
+    can_delete: typeof v.can_delete === "boolean" ? v.can_delete : latestRevision == null,
+  };
 }
 
 function normalizeFormEntry(value: unknown): FormLibraryEntry | null {
@@ -3019,11 +3253,12 @@ function normalizeFormEntry(value: unknown): FormLibraryEntry | null {
   return {
     id,
     name: typeof v.name === "string" && v.name.trim() ? v.name : "Formulario",
-    source: normalizeFormSource(v.source),
+    source: normalizeXlsformFormSource(v.source),
     saved_at: savedAt,
     active: v.active === true,
     n_questions: typeof v.n_questions === "number" ? v.n_questions : undefined,
     n_sections: typeof v.n_sections === "number" ? v.n_sections : undefined,
+    publication: normalizeXlsformFormPublication(v.publication),
   };
 }
 
@@ -3069,7 +3304,7 @@ export async function apiXlsformFormGet(id: string): Promise<{
       id: typeof formRaw.id === "string" ? formRaw.id : id,
       name: typeof formRaw.name === "string" ? formRaw.name : undefined,
       workbook,
-      source: normalizeFormSource(formRaw.source),
+      source: normalizeXlsformFormSource(formRaw.source),
       hallazgos: Array.isArray(formRaw.hallazgos) ? (formRaw.hallazgos as Hallazgo[]) : [],
       saved_at: savedAt,
     },
@@ -3086,7 +3321,7 @@ export async function apiXlsformFormSave(form: PersistedXlsformForm): Promise<{
     await apiFetch("/api/xlsform-editor/forms", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, source: normalizeXlsformFormSource(form.source) }),
     }),
   );
   const r = (raw ?? {}) as Record<string, unknown>;
@@ -3133,6 +3368,61 @@ export async function apiXlsformFormDelete(id: string): Promise<{
   return {
     ok: true,
     active_form_id: typeof r.active_form_id === "string" ? r.active_form_id : null,
+  };
+}
+
+export async function apiXlsformFormPublishRevision(
+  id: string,
+  expectedContentSha256: string,
+): Promise<{
+  ok: true;
+  created: boolean;
+  revision: XlsformInstrumentRevision;
+  publication: XlsformFormPublication;
+}> {
+  const raw = await handle<unknown>(
+    await apiFetch(`/api/xlsform-editor/forms/${encodeURIComponent(id)}/revisions`, {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ expected_content_sha256: expectedContentSha256 }),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const revision = normalizeInstrumentRevision(r.revision);
+  if (!revision) {
+    throw new ApiError(
+      "E_INVALID_RESPONSE",
+      "El backend no devolvió una revisión de instrumento válida",
+    );
+  }
+  return {
+    ok: true,
+    created: r.created === true,
+    revision,
+    publication: normalizeXlsformFormPublication(r.publication),
+  };
+}
+
+export async function apiXlsformFormConfirmLogic(
+  id: string,
+  expectedContentSha256: string,
+): Promise<{
+  ok: true;
+  source: XlsformFormSource | null;
+  publication: XlsformFormPublication;
+}> {
+  const raw = await handle<unknown>(
+    await apiFetch(`/api/xlsform-editor/forms/${encodeURIComponent(id)}/logic-confirmation`, {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ expected_content_sha256: expectedContentSha256 }),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    ok: true,
+    source: normalizeXlsformFormSource(r.source),
+    publication: normalizeXlsformFormPublication(r.publication),
   };
 }
 
@@ -4087,6 +4377,403 @@ export async function apiCargaMonitoreoHandoffPromote(
         ...(payload.universe ? { universe: payload.universe } : {}),
         ...(payload.base_nombre ? { base_nombre: payload.base_nombre } : {}),
       }),
+    }),
+  );
+}
+
+// ── Plan de ingreso de instrumentos publicados ─────────────────────────────
+// Este estado vive antes de `s$estudio`: fija qué revisión inmutable corresponde
+// a cada actor, pero no crea bases incompletas. `status` y los diagnósticos son
+// siempre proyecciones del servidor; el cliente solo guarda las identidades y
+// etiquetas editables mediante revisión optimista.
+export type ProcessingIntakeStatus =
+  | "instrument_ready"
+  | "data_preview_ready"
+  | "blocked"
+  | "materialized"
+  | "stale";
+
+export type ProcessingIntakeBindingInput = {
+  entry_id: string;
+  /** Clave técnica inmutable del destino; nunca es el nombre visible. */
+  base: string;
+  base_label: string;
+  actor_key: string;
+  actor: string;
+  instrument_revision_id: string;
+};
+
+export type ProcessingIntakeEntry = ProcessingIntakeBindingInput & {
+  status: ProcessingIntakeStatus;
+  form_id: string;
+  latest_revision_id: string;
+  blocking_reasons: ProcessingIntakeBlockingReason[];
+};
+
+export type ProcessingIntakeRevision = XlsformInstrumentRevision & {
+  form_name: string;
+  source_label: string;
+  is_latest: boolean;
+  available: boolean;
+  blocking_reasons: ProcessingIntakeBlockingReason[];
+};
+
+export type ProcessingIntakeBlockingReason = {
+  code: string;
+  message: string;
+};
+
+export type ProcessingIntakeValidationIssue = {
+  code: string;
+  message: string;
+  entry_id: string;
+};
+
+export type ProcessingIntakeValidation = {
+  valid: boolean;
+  blockers: ProcessingIntakeValidationIssue[];
+  warnings: ProcessingIntakeValidationIssue[];
+  entries: ProcessingIntakeEntry[];
+  max_entries: number;
+};
+
+export type ProcessingIntakePlan = {
+  schema: "processing_intake/v1" | string;
+  processing_mode: "independent_siblings" | string;
+  family_id: string;
+  revision: number;
+  entries: ProcessingIntakeEntry[];
+};
+
+export type ProcessingIntakePayload = {
+  ok: true;
+  intake: ProcessingIntakePlan;
+  revisions: ProcessingIntakeRevision[];
+  validation: ProcessingIntakeValidation;
+};
+
+function processingIntakeRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function processingIntakeArray(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === "object") return Object.values(value as Record<string, unknown>);
+  return [];
+}
+
+function processingIntakeString(value: unknown): string {
+  return typeof value === "string" && value !== "NA" ? value : "";
+}
+
+function normalizeProcessingIntakeStatus(value: unknown): ProcessingIntakeStatus {
+  if (
+    value === "instrument_ready"
+    || value === "data_preview_ready"
+    || value === "materialized"
+    || value === "stale"
+  ) return value;
+  return "blocked";
+}
+
+function normalizeProcessingIntakeBlockingReason(value: unknown): ProcessingIntakeBlockingReason | null {
+  if (typeof value === "string" && value.trim()) {
+    return { code: "E_PROCESSING_INTAKE_BLOCKED", message: value.trim() };
+  }
+  const row = processingIntakeRecord(value);
+  const message = processingIntakeString(row.message) || processingIntakeString(row.detail);
+  if (!message) return null;
+  return {
+    code: processingIntakeString(row.code) || "E_PROCESSING_INTAKE_BLOCKED",
+    message,
+  };
+}
+
+function normalizeProcessingIntakeBinding(value: unknown): ProcessingIntakeEntry | null {
+  const row = processingIntakeRecord(value);
+  const entryId = processingIntakeString(row.entry_id);
+  const base = processingIntakeString(row.base);
+  const actorKey = processingIntakeString(row.actor_key);
+  if (!entryId || !base || !actorKey) return null;
+  return {
+    entry_id: entryId,
+    base,
+    base_label: processingIntakeString(row.base_label) || base,
+    actor_key: actorKey,
+    actor: processingIntakeString(row.actor) || actorKey,
+    instrument_revision_id: processingIntakeString(row.instrument_revision_id),
+    status: normalizeProcessingIntakeStatus(row.status),
+    form_id: processingIntakeString(row.form_id),
+    latest_revision_id: processingIntakeString(row.latest_revision_id),
+    blocking_reasons: processingIntakeArray(row.blocking_reasons)
+      .map(normalizeProcessingIntakeBlockingReason)
+      .filter((reason): reason is ProcessingIntakeBlockingReason => reason != null),
+  };
+}
+
+function normalizeProcessingIntakeRevision(value: unknown): ProcessingIntakeRevision | null {
+  const row = processingIntakeRecord(value);
+  const revision = normalizeInstrumentRevision(row);
+  if (!revision) return null;
+  return {
+    ...revision,
+    form_name: processingIntakeString(row.form_name) || processingIntakeString(row.name),
+    source_label: processingIntakeString(row.source_label),
+    is_latest: row.is_latest === true || row.latest === true,
+    available: row.available !== false,
+    blocking_reasons: processingIntakeArray(row.blocking_reasons)
+      .map(normalizeProcessingIntakeBlockingReason)
+      .filter((reason): reason is ProcessingIntakeBlockingReason => reason != null),
+  };
+}
+
+function normalizeProcessingIntakeIssue(value: unknown): ProcessingIntakeValidationIssue | null {
+  if (typeof value === "string") {
+    return { code: "E_PROCESSING_INTAKE_INVALID", message: value, entry_id: "" };
+  }
+  const row = processingIntakeRecord(value);
+  const message = processingIntakeString(row.message) || processingIntakeString(row.detail);
+  if (!message) return null;
+  return {
+    code: processingIntakeString(row.code) || "E_PROCESSING_INTAKE_INVALID",
+    message,
+    entry_id: processingIntakeString(row.entry_id),
+  };
+}
+
+export function normalizeProcessingIntakePayload(value: unknown): ProcessingIntakePayload {
+  const root = processingIntakeRecord(value);
+  const intake = processingIntakeRecord(root.intake);
+  const validation = processingIntakeRecord(root.validation);
+  const entries = processingIntakeArray(intake.entries)
+    .map(normalizeProcessingIntakeBinding)
+    .filter((entry): entry is ProcessingIntakeEntry => entry != null);
+  const revisions = processingIntakeArray(root.revisions)
+    .map(normalizeProcessingIntakeRevision)
+    .filter((revision): revision is ProcessingIntakeRevision => revision != null);
+  const blockers = processingIntakeArray(validation.blockers)
+    .map(normalizeProcessingIntakeIssue)
+    .filter((issue): issue is ProcessingIntakeValidationIssue => issue != null);
+  const warnings = processingIntakeArray(validation.warnings)
+    .map(normalizeProcessingIntakeIssue)
+    .filter((issue): issue is ProcessingIntakeValidationIssue => issue != null);
+  const validatedEntries = processingIntakeArray(validation.entries)
+    .map(normalizeProcessingIntakeBinding)
+    .filter((entry): entry is ProcessingIntakeEntry => entry != null);
+  const revision = Number(intake.revision);
+  const maxEntries = Number(validation.max_entries);
+  return {
+    ok: true,
+    intake: {
+      schema: processingIntakeString(intake.schema) || "processing_intake/v1",
+      processing_mode: processingIntakeString(intake.processing_mode) || "independent_siblings",
+      family_id: processingIntakeString(intake.family_id),
+      revision: Number.isFinite(revision) ? revision : 0,
+      entries,
+    },
+    revisions,
+    validation: {
+      valid: typeof validation.valid === "boolean" ? validation.valid : blockers.length === 0,
+      blockers,
+      warnings,
+      entries: validatedEntries,
+      max_entries: Number.isFinite(maxEntries) ? maxEntries : 10,
+    },
+  };
+}
+
+function processingIntakeWireEntries(entries: ProcessingIntakeBindingInput[]) {
+  return entries.map((entry) => ({
+    entry_id: entry.entry_id,
+    base: entry.base,
+    base_label: entry.base_label,
+    actor_key: entry.actor_key,
+    actor: entry.actor,
+    instrument_revision_id: entry.instrument_revision_id,
+  }));
+}
+
+export async function apiCargaProcessingIntake(): Promise<ProcessingIntakePayload> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/carga/processing-intake", { headers: headers() }),
+  );
+  return normalizeProcessingIntakePayload(raw);
+}
+
+export async function apiCargaProcessingIntakeSave(payload: {
+  expected_revision: number;
+  entries: ProcessingIntakeBindingInput[];
+}): Promise<ProcessingIntakePayload> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/carga/processing-intake", {
+      method: "PUT",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        expected_revision: payload.expected_revision,
+        entries: processingIntakeWireEntries(payload.entries),
+      }),
+    }),
+  );
+  return normalizeProcessingIntakePayload(raw);
+}
+
+export async function apiCargaProcessingIntakeValidate(payload: {
+  expected_revision: number;
+  entries: ProcessingIntakeBindingInput[];
+}): Promise<ProcessingIntakePayload> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/carga/processing-intake/validate", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        expected_revision: payload.expected_revision,
+        entries: processingIntakeWireEntries(payload.entries),
+      }),
+    }),
+  );
+  return normalizeProcessingIntakePayload(raw);
+}
+
+// ── Handoff batch de acreditación desde Monitoreo ──────────────────────────
+// El preview fija el intake y el cache persistido de Monitoreo. La promoción
+// reutiliza esos pins y crea/reemplaza el lote completo; nunca una base aislada.
+export type AcreditacionBatchPins = {
+  intake_revision: number;
+  family_id: string;
+  cache_token: string;
+  preview_fingerprint: string;
+};
+
+export type AcreditacionBatchEntry = {
+  entry_id: string;
+  base: string;
+  base_label: string;
+  actor_key: string;
+  actor: string;
+  instrument_revision_id: string;
+  selected: number;
+  excluded: number;
+  status: "ready" | "blocked" | "already_materialized" | string;
+  compatibility: {
+    ok: boolean;
+    message: string;
+    missing_columns: string[];
+    extra_columns: string[];
+  };
+  extras: Array<{ name: string; fill_pct: number; n_fill: number; kind: string }>;
+  extras_checksum: string;
+  blocking_reasons: ProcessingIntakeBlockingReason[];
+};
+
+export type AcreditacionBatchPreview = {
+  ok: true;
+  schema: "accreditation_processing_batch/v1" | string;
+  detected: boolean;
+  ready: boolean;
+  replacement_required: boolean;
+  already_materialized: boolean;
+  pins: AcreditacionBatchPins;
+  totals: { selected: number; excluded: number; total_rollup: number };
+  entries: AcreditacionBatchEntry[];
+  blockers: ProcessingIntakeBlockingReason[];
+};
+
+export type AcreditacionBatchPromoteResult = {
+  ok: true;
+  promoted: boolean;
+  already_materialized: boolean;
+  batch_id: string;
+  base_names: string[];
+  counts: Record<string, number>;
+  estudio: EstudioPayload;
+};
+
+export async function apiCargaAcreditacionBatchPreview(): Promise<AcreditacionBatchPreview> {
+  return handle<AcreditacionBatchPreview>(
+    await apiFetch("/api/carga/monitoreo-handoff/preview-batch", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: "{}",
+    }),
+  );
+}
+
+export async function apiCargaAcreditacionBatchPromote(
+  pins: AcreditacionBatchPins,
+  confirmReplacement = false,
+): Promise<AcreditacionBatchPromoteResult> {
+  return handle<AcreditacionBatchPromoteResult>(
+    await apiFetch("/api/carga/monitoreo-handoff/promote-batch", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        expected_intake_revision: pins.intake_revision,
+        expected_family_id: pins.family_id,
+        expected_cache_token: pins.cache_token,
+        preview_fingerprint: pins.preview_fingerprint,
+        confirm_replacement: confirmReplacement,
+      }),
+    }),
+  );
+}
+
+// ── Aprobacion metodologica independiente por base ────────────────────────
+export type ProcessingReleaseStatus = "pending" | "ready" | "approved" | "stale" | string;
+
+export type ProcessingReleaseBlocker = {
+  code: string;
+  message: string;
+};
+
+export type ProcessingReleaseEntry = {
+  base: string;
+  base_label: string;
+  actor: string;
+  entry_id: string;
+  family_id: string;
+  instrument_revision_id: string;
+  status: ProcessingReleaseStatus;
+  ready: boolean;
+  approved: boolean;
+  input_fingerprint: string;
+  blockers: ProcessingReleaseBlocker[];
+  pins: Record<string, unknown>;
+  release: null | {
+    schema: "processing_release/v1" | string;
+    release_id: string;
+    processing_intake_entry_id: string;
+    input_fingerprint: string;
+    approved_at: string;
+  };
+};
+
+export type ProcessingReleaseCatalog = {
+  ok: true;
+  schema: "processing_release_catalog/v1" | string;
+  detected: boolean;
+  family_id: string;
+  active_base: string;
+  all_approved: boolean;
+  entries: ProcessingReleaseEntry[];
+};
+
+export async function apiProcessingReleases(): Promise<ProcessingReleaseCatalog> {
+  return handle<ProcessingReleaseCatalog>(
+    await apiFetch("/api/processing/releases", { headers: headers() }),
+  );
+}
+
+export async function apiProcessingReleaseApprove(payload: {
+  base: string;
+  expected_input_fingerprint: string;
+}): Promise<ProcessingReleaseCatalog> {
+  return handle<ProcessingReleaseCatalog>(
+    await apiFetch("/api/processing/releases/approve", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
     }),
   );
 }
@@ -11497,6 +12184,47 @@ export async function apiGraficosPptAll() {
       // handler. Un body explicito evita esa ambiguedad.
       body: JSON.stringify({}),
     })
+  );
+}
+
+export type GraficosConsolidadoPreflight = {
+  ok: true;
+  schema: "graficos_consolidado/v1" | string;
+  ready: boolean;
+  blockers: Array<{ code: string; message: string; bases?: string[]; refs?: string[] }>;
+  source_order: string[];
+  releases: Array<{
+    base: string;
+    actor: string;
+    release_id: string;
+    input_fingerprint: string;
+    n_rows: number;
+    weighting_sha256: string;
+  }>;
+  input_fingerprint: string;
+  plan_sha256: string;
+  n_slides: number;
+  n_comparison_slides: number;
+  warnings: string[];
+};
+
+/** Un único PPTX que compone todas las bases hermanas aprobadas. */
+export async function apiGraficosConsolidadoPreflight() {
+  return handle<GraficosConsolidadoPreflight>(
+    await apiFetch("/api/graficos/consolidado/preflight", { headers: headers() }),
+  );
+}
+
+export async function apiGraficosPptConsolidado(
+  presets?: Record<string, unknown>,
+  config?: unknown,
+) {
+  return handle<JobStart>(
+    await apiFetch("/api/graficos/consolidado/ppt", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ presets, config }),
+    }),
   );
 }
 
