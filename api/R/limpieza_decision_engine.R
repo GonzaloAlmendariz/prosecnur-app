@@ -6,15 +6,31 @@
   format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
 }
 
+# Estado APLICADO/cache de una base codificada. Al re-limpiar la base este
+# estado queda stale y debe invalidarse (forzar re-aplicar). Las DEFINICIONES
+# de codificación (grupos_recod, familias_*, marcadas, respuestas_recod,
+# plantillas…) NO son estado stale: son el trabajo del usuario y se preservan.
+# Histórico: una re-finalización de limpieza borraba `codif_por_base[[base]]`
+# entero, destruyendo silenciosamente todo el catálogo de codificación de esa
+# base (el usuario quedaba "descodificado" aunque su data adaptada seguía viva).
+.codif_applied_cache_keys <- c("aplicado", "inst", "data")
+
+.codif_strip_applied_state <- function(entry) {
+  if (!is.list(entry) || !length(entry)) return(entry)
+  entry[setdiff(names(entry), .codif_applied_cache_keys)]
+}
+
 .limpieza_invalidate_downstream <- function(sid, base_nombre = NULL) {
   s <- session_get(sid, required = FALSE)
   if (is.null(s)) return(invisible(FALSE))
 
   resolved <- tryCatch(.resolve_base_nombre(s, base_nombre), error = function(e) NULL)
   if (!is.null(resolved) && nzchar(resolved)) {
-    if (!is.null(s$codif_por_base)) s$codif_por_base[[resolved]] <- list()
-  } else {
-    s$codif_por_base <- list()
+    if (!is.null(s$codif_por_base) && !is.null(s$codif_por_base[[resolved]])) {
+      s$codif_por_base[[resolved]] <- .codif_strip_applied_state(s$codif_por_base[[resolved]])
+    }
+  } else if (is.list(s$codif_por_base) && length(s$codif_por_base)) {
+    s$codif_por_base <- lapply(s$codif_por_base, .codif_strip_applied_state)
   }
 
   s$codif_aplicado <- FALSE
