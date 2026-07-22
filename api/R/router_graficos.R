@@ -664,6 +664,10 @@
     # que tablas y PPT respeten la misma secuencia. Va después de normalize
     # (que re-fija los `names` al orden del instrumento).
     src <- tryCatch(.graficos_apply_orden_categorias_sources(sid, src), error = function(e) src)
+    # Última etapa: re-anclar current_code/current_label en bases hija repeat que
+    # la fuente analítica/adaptada haya stripeado, para que la apertura por
+    # servicio (filtros = list(current_code = ...)) no reviente el render.
+    src <- tryCatch(.graficos_reanchor_repeat_service_cols(sid, src), error = function(e) src)
     src
   }
 
