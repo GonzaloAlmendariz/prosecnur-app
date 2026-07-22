@@ -312,8 +312,12 @@
   )
 }
 
-.graficos_acnur_question_semantics <- function(sid, source_name, variable) {
-  ctx <- .graficos_acnur_source_context(sid, source_name)
+.graficos_acnur_question_semantics <- function(sid, source_name, variable, ctx = NULL) {
+  # `ctx` depende solo de (sid, source_name), no de la variable. El caller lo
+  # precomputa una vez por fuente y lo pasa: sin esto, .graficos_acnur_source_context
+  # (que recarga y normaliza TODAS las bases) corría una vez por variable — el
+  # cuello de botella del plan sugerido (perfilado: 82% del tiempo, ~27s).
+  ctx <- ctx %||% .graficos_acnur_source_context(sid, source_name)
   data <- ctx$data
   name <- .graficos_scalar_chr(variable$name, "")
   if (!is.data.frame(data) || !name %in% names(data)) {

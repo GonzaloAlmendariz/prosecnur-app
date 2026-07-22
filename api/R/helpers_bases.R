@@ -464,13 +464,18 @@
   as.character(choices$name[idx[1]])
 }
 
-.bases_code_from_value <- function(value, choices) {
+.bases_code_from_value <- function(value, choices, codes = NULL, labels_norm = NULL) {
   raw <- trimws(as.character(value %||% ""))
   if (is.na(raw) || !nzchar(raw)) return(NA_character_)
-  codes <- as.character(choices$name)
+  # `codes` y `labels_norm` son invariantes de la variable (dependen solo de
+  # `choices`, no del valor). El caller los precomputa una vez y los pasa para
+  # no re-normalizar el vector de etiquetas en cada fila — ese re-cálculo por
+  # fila era el cuello de botella del plan sugerido (perfilado: ~40s → normali-
+  # zación de texto repetida). Se mantiene el fallback por compatibilidad.
+  if (is.null(codes)) codes <- as.character(choices$name)
   if (raw %in% codes) return(raw)
   raw_norm <- .bases_norm_text(raw)
-  labels_norm <- .bases_norm_text(choices$label)
+  if (is.null(labels_norm)) labels_norm <- .bases_norm_text(choices$label)
   idx <- which(labels_norm == raw_norm)[1]
   if (!is.na(idx)) return(as.character(choices$name[idx]))
   NA_character_
@@ -480,7 +485,15 @@
   raw <- as.character(parent)
   other_txt <- trimws(as.character(other))
   other_txt[is.na(other_txt)] <- ""
-  out <- vapply(raw, .bases_code_from_value, character(1), choices = choices)
+  # Precompute invariantes una vez y resuelve por valor ÚNICO (muchas filas
+  # comparten el mismo código/etiqueta), en vez de re-normalizar por fila.
+  codes <- as.character(choices$name)
+  labels_norm <- .bases_norm_text(choices$label)
+  uniq_raw <- unique(raw)
+  uniq_out <- vapply(uniq_raw, .bases_code_from_value, character(1),
+                     choices = choices, codes = codes, labels_norm = labels_norm,
+                     USE.NAMES = FALSE)
+  out <- uniq_out[match(raw, uniq_raw)]
   raw_txt <- trimws(raw)
   raw_txt[is.na(raw_txt)] <- ""
   has_other <- nzchar(other_txt)
@@ -502,6 +515,9 @@
   other_txt <- trimws(as.character(other))
   other_txt[is.na(other_txt)] <- ""
   codes <- as.character(choices$name)
+  # Invariantes de la variable: normaliza las etiquetas una sola vez (antes se
+  # re-normalizaban por fila dentro de .bases_code_from_value).
+  labels_norm <- .bases_norm_text(choices$label)
   vapply(seq_along(raw), function(i) {
     raw_i <- trimws(raw[[i]] %||% "")
     if (is.na(raw_i)) raw_i <- ""
@@ -509,7 +525,7 @@
     has_other <- nzchar(other_i)
     if (!nzchar(raw_i) && !has_other) return(NA_character_)
 
-    direct <- .bases_code_from_value(raw_i, choices)
+    direct <- .bases_code_from_value(raw_i, choices, codes = codes, labels_norm = labels_norm)
     selected <- if (!is.na(direct)) direct else character(0)
     if (!length(selected) && nzchar(raw_i)) {
       toks <- strsplit(raw_i, "[\\s;,]+", perl = TRUE)[[1]]
