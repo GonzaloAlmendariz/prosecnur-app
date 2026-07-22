@@ -846,13 +846,59 @@ validacion_key_present_any <- function(s, key) {
   s$graficos_ppt_ok <- FALSE
   s$graficos_word_ok <- FALSE
 
+  invalidate_all <- is.null(base_nombre) || !nzchar(base_nombre)
+  targets <- if (!invalidate_all) {
+    as.character(base_nombre)
+  } else {
+    unique(c(
+      names((s$estudio %||% list())$bases %||% list()),
+      names(s$codif_por_base %||% list()),
+      names(s$analitica_rp_data_sources %||% list()),
+      names(s$analitica_rp_inst_sources %||% list()),
+      names(s$analitica_status_por_base %||% list())
+    ))
+  }
+
+  # El caché singular representa una sola base. Su clave moderna termina en
+  # `:<base>`; para proyectos legacy sin ese sufijo, la base activa es la mejor
+  # evidencia disponible. Una invalidación de una hermana no debe descartarlo.
+  known_bases <- unique(c(
+    names((s$estudio %||% list())$bases %||% list()),
+    names(s$analitica_rp_data_sources %||% list()),
+    names(s$analitica_rp_inst_sources %||% list()),
+    targets
+  ))
+  cache_source <- as.character(s$analitica_fuente %||% "")[1]
+  if (is.na(cache_source)) cache_source <- ""
+  source_matches <- known_bases[vapply(known_bases, function(bn) {
+    identical(cache_source, bn) || endsWith(cache_source, paste0(":", bn))
+  }, logical(1))]
+  cache_base <- if (length(source_matches)) {
+    source_matches[which.max(nchar(source_matches))]
+  } else {
+    .estudio_active_base_name(s, fallback_first = TRUE)
+  }
+  clear_singular_cache <- invalidate_all ||
+    (!is.null(cache_base) && cache_base %in% targets)
+  if (isTRUE(clear_singular_cache)) {
+    # Retener los nombres con valor NULL evita el partial matching de `$`
+    # contra `analitica_rp_*_sources` cuando se consulta el estado después.
+    s[c("analitica_rp_data", "analitica_rp_inst", "analitica_fuente")] <-
+      list(NULL, NULL, NULL)
+  }
+
+  # Codificación y Analítica dependen de la pareja invalidada. Limpiar
+  # solo sus entradas evita perder el avance independiente de bases hermanas.
+  for (bn in targets) {
+    if (is.list(s$codif_por_base)) s$codif_por_base[[bn]] <- NULL
+    if (is.list(s$analitica_rp_data_sources)) s$analitica_rp_data_sources[[bn]] <- NULL
+    if (is.list(s$analitica_rp_inst_sources)) s$analitica_rp_inst_sources[[bn]] <- NULL
+    if (is.list(s$analitica_status_por_base)) s$analitica_status_por_base[[bn]] <- NULL
+  }
+
   if (!is.null(s$estudio) && length(s$estudio$bases) > 0L) {
-    targets <- if (!is.null(base_nombre) && nzchar(base_nombre)) {
-      intersect(base_nombre, names(s$estudio$bases))
-    } else {
-      names(s$estudio$bases)
-    }
-    for (bn in targets) {
+    validation_targets <- intersect(targets, names(s$estudio$bases))
+    for (bn in validation_targets) {
       previous <- s$estudio$bases[[bn]]$validacion %||% list()
       s$estudio$bases[[bn]]$validacion <- .validacion_empty_scope(
         operational_config = previous$operational_config %||% NULL

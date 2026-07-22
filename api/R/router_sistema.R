@@ -632,8 +632,12 @@ mount_sistema <- function(pr) {
         analitica_spss_ok = isTRUE(s$analitica_spss_ok),
         analitica_enumeradores_ok = isTRUE(s$analitica_enumeradores_ok),
         analitica_dim_ok = isTRUE(s$analitica_dim_ok),
-        analitica_multibase_available = isTRUE(s$analitica_multibase_available) ||
-          isTRUE(tryCatch(.analitica_multibase_available(sid), error = function(e) FALSE)),
+        # Este endpoint es una lectura de estado: no debe preparar, reparar ni
+        # cachear la fuente analitica. La disponibilidad se sella cuando el
+        # usuario ejecuta Preparar o construye una base integrada; recalcularla
+        # aqui invocaba .load_rp_sources() y ensuciaba el proyecto solo por
+        # abrir una pantalla.
+        analitica_multibase_available = isTRUE(s$analitica_multibase_available),
         analitica_multibase_ok = isTRUE(s$analitica_multibase_ok),
         analitica_panel_ok = isTRUE(s$analitica_panel_ok),
         analitica_ficha_tecnica_ok = isTRUE(s$analitica_ficha_tecnica_ok),

@@ -342,6 +342,71 @@ test_that("load_pulso restaura los archivos físicos con paths correctos", {
   expect_identical(bytes, .tiny_xlsx_bytes())
 })
 
+test_that("round-trip .pulso conserva identidades portables del consolidado y resuelve iconos", {
+  skip_if_not_installed("png")
+  sid <- session_create()
+  tmp <- tempfile(fileext = ".pulso")
+  icon_path <- tempfile(fileext = ".png")
+  on.exit({
+    unlink(c(tmp, icon_path), force = TRUE)
+    session_delete(sid)
+  }, add = TRUE)
+
+  png::writePNG(array(1, dim = c(2, 2, 4)), icon_path)
+  icon_meta <- .register_output_file(
+    sid,
+    "graficos_icon",
+    icon_path,
+    original_name = "icono-portable.png"
+  )
+  portable_icon <- list(
+    id = "ico-portable",
+    nombre = "Icono portable",
+    file_id = icon_meta$file_id,
+    path = icon_meta$path
+  )
+  config <- list(
+    plan = list(slides = list()),
+    iconos = list(portable_icon),
+    profile_id = "acreditacion"
+  )
+  s <- session_get(sid)
+  s$graficos_consolidado_draft <- list(
+    schema = "graficos_consolidado_draft/v1",
+    revision = 3L,
+    config = config
+  )
+  s$graficos_consolidado <- list(
+    schema = "graficos_consolidado/v1",
+    revision = 2L,
+    config = config,
+    icon_registry = list("ico-portable" = icon_meta$path)
+  )
+  .session_env[[sid]] <- s
+
+  build_pulso(sid, tmp, project_name = "Consolidado portable")
+  loaded <- load_pulso(tmp)
+  on.exit(session_delete(loaded$session_id), add = TRUE)
+  restored <- session_get(loaded$session_id)
+  draft_icon <- restored$graficos_consolidado_draft$config$iconos[[1]]
+  recipe_icon <- restored$graficos_consolidado$config$iconos[[1]]
+
+  expect_equal(draft_icon$file_id, icon_meta$file_id)
+  expect_equal(recipe_icon$file_id, icon_meta$file_id)
+  expect_null(draft_icon$path)
+  expect_null(recipe_icon$path)
+  expect_null(restored$graficos_consolidado$icon_registry)
+  expect_true(icon_meta$file_id %in% names(restored$files))
+  expect_true(file.exists(restored$files[[icon_meta$file_id]]$path))
+
+  registry <- .graficos_icon_registry(
+    loaded$session_id,
+    restored$graficos_consolidado_draft$config
+  )
+  expect_equal(registry[["ico-portable"]], restored$files[[icon_meta$file_id]]$path)
+  expect_equal(registry[[icon_meta$file_id]], restored$files[[icon_meta$file_id]]$path)
+})
+
 test_that("round-trip .pulso conserva todas las revisiones XLSForm publicadas", {
   sid <- session_create()
   tmp <- tempfile(fileext = ".pulso")

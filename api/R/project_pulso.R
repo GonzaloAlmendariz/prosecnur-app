@@ -114,6 +114,20 @@
   # invalidamos: la próxima llamada a .dashboard_dim_ctx() lo reconstruye
   # con el namespace activo, donde sí existe.
   s$dashboard_dim_ctx <- NULL
+  .pulso_sanitize_graficos_consolidado_state(s)
+}
+
+.pulso_sanitize_graficos_consolidado_state <- function(s) {
+  files <- s$files %||% list()
+  draft <- s$graficos_consolidado_draft
+  if (is.list(draft)) {
+    draft$config <- .graficos_consolidado_portable_config(draft$config, files)
+    s$graficos_consolidado_draft <- draft
+  }
+  recipe <- s$graficos_consolidado
+  if (is.list(recipe)) {
+    s$graficos_consolidado <- .graficos_consolidado_portable_recipe(recipe, files)
+  }
   s
 }
 
@@ -140,6 +154,23 @@
       invisible(NULL)
     }
   )
+}
+
+.pulso_restore_active_stage_flags_after_load <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s) || is.null(s$estudio) || !length(s$estudio$bases %||% list())) {
+    return(invisible(FALSE))
+  }
+  active <- .estudio_active_base_name(s, fallback_first = TRUE)
+  if (is.null(active) || !nzchar(as.character(active))) return(invisible(FALSE))
+
+  # `_pulso_strip_caches()` pone en FALSE los mirrors globales de Analítica
+  # porque sus objetos runtime no viajan en el ZIP. En un estudio de bases
+  # independientes, el estado autoritativo sí persiste por base; al abrir hay
+  # que reproyectarlo sobre la base activa sin ensuciar el proyecto.
+  restored <- .estudio_apply_stage_flags(s, active)
+  .session_env[[sid]] <- restored
+  invisible(TRUE)
 }
 
 .pulso_valid_inst_cache <- function(x) {
@@ -1025,19 +1056,22 @@
   if (is.null(s)) return(invisible(NULL))
   inst <- s$rp_inst %||% s$instrumento
   changed <- FALSE
+  validation_inputs_changed <- FALSE
 
   renorm_one <- function(data, instrumento) {
     if (is.null(data) || is.null(instrumento)) return(NULL)
     compat_prev <- attr(data, "xlsform_compatibility", exact = TRUE)
     already_normalized <- !is.null(attr(data, "xlsform_normalized"))
-    out <- if (already_normalized) {
-      data
-    } else {
-      tryCatch(
-        normalize_data_for_xlsform(data, instrumento),
-        error = function(e) NULL
-      )
-    }
+    # El rebuild de este mismo load coloca el sello después de normalizar el
+    # archivo canónico y antes de expandirlo para reportes. Validar otra vez la
+    # forma expandida contra el XLSForm produce falsos `missing_columns` (la
+    # madre de un select_multiple ya fue sustituida por dummies) y no mide un
+    # cambio real del input. El sello es, por tanto, el guard idempotente.
+    if (already_normalized) return(NULL)
+    out <- tryCatch(
+      normalize_data_for_xlsform(data, instrumento),
+      error = function(e) NULL
+    )
     if (is.null(out)) return(NULL)
     compat <- tryCatch(
       validate_data_xlsform_compatibility(out, instrumento),
@@ -1066,7 +1100,12 @@
   normalize_pair <- function(data, instrumento) {
     if (is.null(data) || is.null(instrumento)) return(NULL)
     out_data <- renorm_one(data, instrumento)
-    if (is.null(out_data)) out_data <- data
+    # `NULL` significa que el cache ya es canónico y su compatibilidad no
+    # cambió. No vuelvas a aplicar el contexto de reporte: además de ser
+    # redundante, algunos instrumentos producen diferencias de atributos que
+    # marcaban `changed = TRUE` y borraban auditorías/releases válidas al
+    # reabrir el mismo `.pulso`.
+    if (is.null(out_data)) return(NULL)
     out_inst <- instrumento
     if (exists(".bases_normalize_report_context", mode = "function")) {
       ctx <- tryCatch(
@@ -1090,6 +1129,7 @@
       inst <- new_rp$inst
       s$data_xlsform_compatibility <- attr(new_rp$data, "xlsform_compatibility", exact = TRUE)
       changed <- TRUE
+      validation_inputs_changed <- TRUE
     }
   }
 
@@ -1112,6 +1152,7 @@
           s$estudio$bases[[b]]$compatibilidad <- attr(new_b$data, "xlsform_compatibility", exact = TRUE)
         }
         changed <- TRUE
+        validation_inputs_changed <- TRUE
       }
     }
   }
@@ -1147,14 +1188,16 @@
 
   if (!changed) return(invisible(NULL))
 
-  # La auditoría cacheada está escrita contra los nombres viejos: invalidar
-  # para que la próxima visita a Validación corra una auditoría fresca con
-  # la data ya normalizada.
-  s$evaluacion <- NULL
-  if (length(s$estudio$bases)) {
-    for (b in names(s$estudio$bases)) {
-      if (!is.null(s$estudio$bases[[b]]$validacion)) {
-        s$estudio$bases[[b]]$validacion$evaluacion <- NULL
+  # Solo un cambio en las fuentes que consume Validación invalida su
+  # auditoría. Renormalizar caches de Analítica o Dashboard no cambia aquello
+  # que Validación revisó y no debe volver stale releases independientes.
+  if (isTRUE(validation_inputs_changed)) {
+    s$evaluacion <- NULL
+    if (length(s$estudio$bases)) {
+      for (b in names(s$estudio$bases)) {
+        if (!is.null(s$estudio$bases[[b]]$validacion)) {
+          s$estudio$bases[[b]]$validacion$evaluacion <- NULL
+        }
       }
     }
   }
@@ -1299,6 +1342,20 @@
       out <- c(out, s$dashboard_source$data_file_id)
     }
   }
+  # El draft y la receta consolidada guardan identidades de iconos por
+  # file_id. Esos PNG son inputs editables del plan y deben viajar en el ZIP.
+  add_consolidated_icon_fids <- function(config) {
+    iconos <- (config %||% list())$iconos %||% list()
+    if (!is.list(iconos)) return()
+    for (icono in iconos) {
+      if (!is.list(icono)) next
+      fid <- as.character((icono %||% list())$file_id %||% "")
+      fid <- fid[!is.na(fid) & nzchar(fid)]
+      if (length(fid)) out <<- c(out, fid[[1]])
+    }
+  }
+  add_consolidated_icon_fids((s$graficos_consolidado_draft %||% list())$config)
+  add_consolidated_icon_fids((s$graficos_consolidado %||% list())$config)
   out <- c(out, .pulso_collect_calc_muestra_fids(s))
   # Monitoreo territorial: algunos insumos nacen dentro de Monitoreo, pero
   # luego son referencia canónica del proyecto. Si no viajan en el .pulso,
@@ -1637,6 +1694,9 @@ build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwri
 
   s <- session_get(sid)
   .pulso_refuse_empty_project_overwrite(s, dest_path, allow_empty_overwrite = allow_empty_overwrite)
+  # Convierte referencias legacy path-only a file_id antes de decidir qué
+  # inputs viajan. Opera sobre una copia y no altera la sesión abierta.
+  s <- .pulso_sanitize_graficos_consolidado_state(s)
 
   # Staging temp para armar el zip.
   stage_dir <- tempfile("pulso_stage_")
@@ -1811,8 +1871,11 @@ load_pulso <- function(src_path) {
     }
   }
 
-  # 6) Reescribir paths en s_saved$files y fusionar con el sess fresco
+  # 6) Convertir referencias legacy mientras todavía coinciden con los paths
+  # guardados, reescribir el file store y fusionar con la sesión fresca.
+  s_saved <- .pulso_sanitize_graficos_consolidado_state(s_saved)
   s_saved <- .pulso_rewrite_paths(s_saved, uploads_dir)
+  s_saved <- .pulso_sanitize_graficos_consolidado_state(s_saved)
   s_saved$id  <- new_sid           # preservar sid nuevo
   s_saved$dir <- new_sess$dir      # preservar tempdir nuevo
   s_saved$project_path <- normalizePath(src_path, mustWork = FALSE)
@@ -1872,6 +1935,7 @@ load_pulso <- function(src_path) {
     )
   }
   .pulso_renormalize_after_load(new_sid)
+  .pulso_restore_active_stage_flags_after_load(new_sid)
 
   list(
     ok            = TRUE,

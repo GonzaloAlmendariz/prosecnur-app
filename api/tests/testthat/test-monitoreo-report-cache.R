@@ -319,3 +319,47 @@ test_that("prewarm territorial batch cachea scopes iniciales y prepara GPS una s
   expect_false(any(vapply(second$scopes, function(item) identical(item$cache_source, "build"), logical(1))))
   expect_equal(gps_calls, 1L)
 })
+
+test_that("cache ligero derivado no ensucia un proyecto abierto", {
+  sid <- .monitoreo_report_cache_test_session("pilot")
+  on.exit(session_delete(sid), add = TRUE)
+
+  s <- session_get(sid)
+  s$monitoreo_config$monitoreo_profile <- list(family = "acreditacion", status = "active")
+  s$monitoreo_snapshot$config <- s$monitoreo_config
+  s$monitoreo_snapshot$dashboard <- NULL
+  s$monitoreo_snapshot$dashboard_cache_key <- NULL
+  s$monitoreo_snapshot$dashboard_cache_token <- NULL
+  s$monitoreo_dashboard_light_cache <- NULL
+  s$monitoreo_dashboard_light_cache_token <- NULL
+  s$project_path <- file.path(s$dir, "proyecto-abierto.pulso")
+  s$project_dirty <- FALSE
+  .session_env[[sid]] <- s
+
+  first <- .monitoreo_state_payload(sid, include_reports = FALSE)
+  after_miss <- session_get(sid)
+  first_cache <- after_miss$monitoreo_dashboard_light_cache
+
+  expect_true(is.list(first$dashboard))
+  expect_true(is.list(first_cache))
+  expect_false(
+    isTRUE(after_miss$project_dirty),
+    info = "poblar un cache derivado durante GET no debe pedir guardar el proyecto"
+  )
+
+  session_set(sid, "project_dirty", FALSE)
+  second <- .monitoreo_state_payload(sid, include_reports = FALSE)
+  after_hit <- session_get(sid)
+
+  expect_identical(second$dashboard, first$dashboard)
+  expect_identical(after_hit$monitoreo_dashboard_light_cache, first_cache)
+  expect_false(
+    isTRUE(after_hit$project_dirty),
+    info = "leer el cache derivado tampoco debe pedir guardar el proyecto"
+  )
+
+  changed_config <- after_hit$monitoreo_config
+  changed_config$regression_marker <- TRUE
+  session_set(sid, "monitoreo_config", changed_config)
+  expect_true(isTRUE(session_get(sid)$project_dirty))
+})
