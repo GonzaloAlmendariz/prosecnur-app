@@ -441,6 +441,32 @@ describe("XLSForm instrument revision client", () => {
     expect(result.form?.source).not.toHaveProperty("authorization");
     expect(result.form?.source?.variants?.[0]).not.toHaveProperty("token");
   });
+
+  test("normaliza diagnostico={} de R antes de entregar el workbook al editor", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({
+      ok: true,
+      form: {
+        id: "form-diagnostico-vacio",
+        workbook: {
+          survey: { name: "survey", columns: ["type", "name", "label"], rows: [] },
+          choices: { name: "choices", columns: ["list_name", "name", "label"], rows: [] },
+          settings: { name: "settings", columns: ["form_title", "form_id"], rows: [] },
+          diagnostico: {},
+        },
+        hallazgos: [],
+        saved_at: "2026-07-22T12:00:00Z",
+      },
+    })));
+
+    const result = await apiXlsformFormGet("form-diagnostico-vacio");
+    const diagnostico = result.form?.workbook.diagnostico ?? null;
+
+    expect(() => diagnostico === null ? [] : [...diagnostico.columns]).not.toThrow();
+    if (diagnostico !== null) {
+      expect(Array.isArray(diagnostico.columns)).toBe(true);
+      expect(Array.isArray(diagnostico.rows)).toBe(true);
+    }
+  });
 });
 
 describe("Processing intake client", () => {

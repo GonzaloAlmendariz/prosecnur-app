@@ -54,15 +54,25 @@ export function getFormPublicationView(
       : "Publicar";
 
   if (status === "blocked") {
+    const firstBlocker = publication.blockers[0];
+    const blockerDetail = firstBlocker?.detail || firstBlocker?.title;
+    const remainingBlockers = Math.max(0, publication.blockers.length - 1);
+    const blockerSummary = blockerDetail
+      ? ` Para publicar, corrige: ${blockerDetail}${remainingBlockers > 0
+        ? ` Hay ${remainingBlockers} ${remainingBlockers === 1
+          ? "observación adicional"
+          : "observaciones adicionales"}.`
+        : ""}`
+      : " Revisa las observaciones antes de publicar.";
     return {
       status,
-      label: "Bloqueado",
+      label: "Publicación bloqueada",
       tone: "danger",
       actionLabel,
       actionDisabled: true,
       reason: hasPublishedRevision
-        ? `La revisión ${publication.latest_revision?.revision_no} sigue disponible; revisa el borrador antes de publicar sus cambios.`
-        : "Revisa el formulario antes de publicar su primera versión.",
+        ? `Puedes abrir y editar el borrador. La revisión ${publication.latest_revision?.revision_no} sigue disponible.${blockerSummary}`
+        : `Puedes abrir y editar el formulario.${blockerSummary}`,
     };
   }
 

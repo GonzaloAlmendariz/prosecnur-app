@@ -82,9 +82,9 @@ describe("getFormPublicationView", () => {
       can_publish: false,
     }))).toMatchObject({
       status: "blocked",
-      label: "Bloqueado",
+      label: "Publicación bloqueada",
       actionDisabled: true,
-      reason: "Revisa el formulario antes de publicar su primera versión.",
+      reason: expect.stringMatching(/abrir.*editar/i),
     });
   });
 
@@ -112,7 +112,7 @@ describe("getFormPublicationView", () => {
     expect(view).toMatchObject({
       status: "blocked",
       actionDisabled: true,
-      reason: "Revisa el formulario antes de publicar su primera versión.",
+      reason: expect.stringMatching(/abrir.*editar/i),
     });
   });
 
