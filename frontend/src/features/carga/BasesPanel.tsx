@@ -30,8 +30,6 @@ import {
   apiSurveyMonkeyMultibaseListSurveys,
   apiSurveyMonkeyMultibaseRefresh,
   apiSurveyMonkeyMultibaseRefreshPlan,
-  apiSurveyMonkeyMultibaseSavBundleImport,
-  apiSurveyMonkeyMultibaseSavBundleInspect,
   apiSurveyMonkeyMultibaseWorkbookImport,
   apiSurveyMonkeyMultibaseWorkbookInspect,
   apiXlsformEditorSmInterpretRule,
@@ -62,9 +60,6 @@ import type {
   SurveyMonkeyRefreshBasePlan,
   SurveyMonkeyRefreshPlan,
   SurveyMonkeyRefreshResult,
-  SurveyMonkeySavBundleFileInspection,
-  SurveyMonkeySavBundleImportResult,
-  SurveyMonkeySavBundleInspection,
   SurveyMonkeyWorkbookImportResult,
   SurveyMonkeyWorkbookInspection,
   RuleInterpretation,
@@ -74,6 +69,14 @@ import { RepeatBadge } from "../../components/RepeatBadge";
 import { GlidingTabList } from "../../components/GlidingTabList";
 import { isRepeatChildBase } from "../../lib/repeatIdentity";
 import { IntegratedInstrumentsWizard } from "./IntegratedInstrumentsWizard";
+import { SavBundleImportPanel } from "./SavBundleImportPanel";
+
+export {
+  smSavBundleInspectionCanImport,
+  smSavBundleInspectionWarningCount,
+  smSavBundleIssueGroups,
+  smSavBundleVariableLabel,
+} from "./savBundleImportModel";
 
 // Panel de bases del estudio (multi-base nativo).
 //
@@ -795,25 +798,6 @@ export function smWorkbookInspectionCanImport(inspection?: SurveyMonkeyWorkbookI
   return !!inspection && inspection.ok && inspection.n_matched > 0 && inspection.n_blocking === 0;
 }
 
-export function smSavBundleInspectionWarningCount(inspection?: SurveyMonkeySavBundleInspection | null) {
-  if (!inspection) return 0;
-  const fileWarnings = inspection.files.reduce((sum, file) => sum + file.warnings.length, 0);
-  return inspection.warnings.length + fileWarnings;
-}
-
-export function smSavBundleInspectionCanImport(inspection?: SurveyMonkeySavBundleInspection | null) {
-  return !!inspection && inspection.ok && inspection.n_matched > 0 && inspection.n_blocking === 0;
-}
-
-export type SmSavBundleIssueGroup = {
-  key: string;
-  label: string;
-  reason: string;
-  variables: string[];
-  notes: string[];
-  tone: "warning" | "danger" | "neutral";
-};
-
 function smWorkbookMissingLabel(sheet: SurveyMonkeyWorkbookInspection["sheets"][number]) {
   const count = sheet.missing_variables.length;
   if (!count) return "Sin variables faltantes";
@@ -837,86 +821,6 @@ function smWorkbookSheetIssueTitle(sheet: SurveyMonkeyWorkbookInspection["sheets
     notes.push(`Errores Excel detectados${sample ? `: ${sample}` : ""}`);
   }
   return notes.join(" · ");
-}
-
-export function smSavBundleIssueGroups(file: SurveyMonkeySavBundleFileInspection): SmSavBundleIssueGroup[] {
-  const groups: SmSavBundleIssueGroup[] = [];
-  if (file.blocking || file.warnings.length) {
-    groups.push({
-      key: "warnings",
-      label: file.blocking ? "Bloqueo de inspección" : "Advertencias de inspección",
-      reason: file.blocking
-        ? "El archivo no se puede aplicar hasta resolver esta condición."
-        : "La importación puede continuar, pero conviene revisar estos avisos antes de reemplazar las respuestas.",
-      variables: [],
-      notes: file.warnings,
-      tone: file.blocking ? "danger" : "warning",
-    });
-  }
-  if (file.missing_variables.length) {
-    groups.push({
-      key: "missing",
-      label: "Faltantes en SAV",
-      reason: "El formulario vigente espera estas variables, pero no se encontró una columna equivalente en el SAV. Se crearán vacías para conservar la estructura.",
-      variables: file.missing_variables,
-      notes: [],
-      tone: "warning",
-    });
-  }
-  if (file.blank_filled_variables.length) {
-    groups.push({
-      key: "blank-filled",
-      label: "Rellenadas en blanco",
-      reason: "La política de actualización permite completar estas variables como columnas vacías sin bloquear la importación.",
-      variables: file.blank_filled_variables,
-      notes: [],
-      tone: "neutral",
-    });
-  }
-  if (file.all_empty_variables.length) {
-    groups.push({
-      key: "all-empty",
-      label: "Sin datos observados",
-      reason: "La variable existe o fue reconocida en la normalización, pero todas sus filas llegan vacías en este SAV.",
-      variables: file.all_empty_variables,
-      notes: [],
-      tone: "warning",
-    });
-  }
-  return groups;
-}
-
-export function smSavBundleVariableLabel(variable: string, lookup?: Map<string, string>) {
-  return String(lookup?.get(variable) || "").replace(/\s+/g, " ").trim();
-}
-
-function smSavBundleVariableSummary(file: SurveyMonkeySavBundleFileInspection) {
-  if (file.missing_variables.length) {
-    const sample = file.missing_variables.slice(0, 4).join(", ");
-    return `${file.missing_variables.length} faltante${file.missing_variables.length === 1 ? "" : "s"}${sample ? `: ${sample}${file.missing_variables.length > 4 ? ", ..." : ""}` : ""}`;
-  }
-  if (file.blank_filled_variables.length) {
-    const sample = file.blank_filled_variables.slice(0, 4).join(", ");
-    return `${file.blank_filled_variables.length} rellenada${file.blank_filled_variables.length === 1 ? "" : "s"} en blanco${sample ? `: ${sample}${file.blank_filled_variables.length > 4 ? ", ..." : ""}` : ""}`;
-  }
-  if (file.all_empty_variables.length) {
-    const sample = file.all_empty_variables.slice(0, 4).join(", ");
-    return `${file.all_empty_variables.length} sin datos observados${sample ? `: ${sample}${file.all_empty_variables.length > 4 ? ", ..." : ""}` : ""}`;
-  }
-  if (file.warnings.length) return `Revisar detalle: ${file.warnings[0]}`;
-  return "Variables esperadas disponibles";
-}
-
-function smSavBundleImpactLabel(file: SurveyMonkeySavBundleFileInspection) {
-  const delta = file.change_plan?.impact?.rows_delta;
-  const prefix = delta == null ? "" : delta > 0 ? `+${delta} filas · ` : `${delta} filas · `;
-  return `${prefix}${file.n_output_columns} columnas finales`;
-}
-
-function smSavBundleIssueLabel(file: SurveyMonkeySavBundleFileInspection) {
-  if (file.blocking) return file.warnings[0] || "Archivo bloqueado";
-  if (file.warnings.length) return file.warnings[0];
-  return "Lista para actualizar";
 }
 
 type SmImportScopeFields = {
@@ -953,6 +857,11 @@ export function independentSiblingsCapacity(estudio: Pick<EstudioPayload, "max_b
     maxBases,
     capacityLeft: Math.max(0, maxBases - estudio.n_bases),
   };
+}
+
+export function independentSiblingsCapacityLabel(activeBases: number, maxBases: number) {
+  const activeLabel = activeBases === 1 ? "base activa" : "bases activas";
+  return `${activeBases} ${activeLabel} · capacidad máxima ${maxBases}`;
 }
 
 function smDefaultScopeFields(): SmImportScopeFields {
@@ -3907,10 +3816,6 @@ function IndependentSiblingsSurveyMonkeyWizard({
   const [workbookInspection, setWorkbookInspection] = useState<SurveyMonkeyWorkbookInspection | null>(null);
   const [workbookImportResult, setWorkbookImportResult] = useState<SurveyMonkeyWorkbookImportResult | null>(null);
   const [koboRefreshResult, setKoboRefreshResult] = useState<KoboIndependentRefreshResult | null>(null);
-  const [savBundleFile, setSavBundleFile] = useState<File | null>(null);
-  const [savBundleFileId, setSavBundleFileId] = useState("");
-  const [savBundleInspection, setSavBundleInspection] = useState<SurveyMonkeySavBundleInspection | null>(null);
-  const [savBundleImportResult, setSavBundleImportResult] = useState<SurveyMonkeySavBundleImportResult | null>(null);
   const [editingAliasBase, setEditingAliasBase] = useState<string | null>(null);
   const [editingAliasDraft, setEditingAliasDraft] = useState("");
   const [monitoringSuggestions, setMonitoringSuggestions] = useState<EstudioProcessingSuggestions | null>(null);
@@ -3962,7 +3867,6 @@ function IndependentSiblingsSurveyMonkeyWizard({
   const canImport = hasSelectedWork && selectedInputs.length <= capacityLeft && !hasAliasIssues && !hasMergeTargetIssues && !modeConflict && !busy && !disabled;
   const overIndependentLimit = selectedInputs.length > capacityLeft;
   const canImportWorkbook = smWorkbookInspectionCanImport(workbookInspection) && !busy && !disabled;
-  const canImportSavBundle = smSavBundleInspectionCanImport(savBundleInspection) && !busy && !disabled;
   const hasCanonicalReference = canonicalOptions.length > 0;
   const selectedCanonical = canonicalOptions.find((option) => option.fileId === canonicalFileId) ?? canonicalOptions[0] ?? null;
   const canonicalReferenceKind = selectedCanonical?.fileId ? "Base existente" : "Formulario cargado en Carga/Editor";
@@ -4544,67 +4448,6 @@ function IndependentSiblingsSurveyMonkeyWizard({
     }
   }
 
-  function pickSavBundleFile(file: File | null) {
-    setSavBundleFile(file);
-    setSavBundleFileId("");
-    setSavBundleInspection(null);
-    setSavBundleImportResult(null);
-    setError("");
-  }
-
-  async function inspectSavBundle() {
-    if (!savBundleFile && !savBundleFileId) return;
-    setError("");
-    setSavBundleInspection(null);
-    setSavBundleImportResult(null);
-    setBusy("Inspeccionando ZIP SAV...");
-    try {
-      let fileId = savBundleFileId;
-      if (!fileId) {
-        if (!savBundleFile) throw new Error("Selecciona un ZIP con archivos .sav.");
-        const upload = await apiUpload(savBundleFile, "sav_bundle");
-        fileId = upload.file_id;
-        setSavBundleFileId(fileId);
-      }
-      const result = await apiSurveyMonkeyMultibaseSavBundleInspect({
-        file_id: fileId,
-        missing_required_policy: "fill_blank_warn",
-      });
-      setSavBundleInspection(result);
-      if (!result.ok) {
-        setError("Hay archivos SAV sin base asignada o asignaciones duplicadas. Revisa los nombres antes de aplicar.");
-      }
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy("");
-    }
-  }
-
-  async function importSavBundle() {
-    if (!savBundleFileId || !savBundleInspection) return;
-    setError("");
-    setSavBundleImportResult(null);
-    setBusy("Aplicando actualización ZIP SAV...");
-    try {
-      const result = await apiSurveyMonkeyMultibaseSavBundleImport({
-        file_id: savBundleFileId,
-        missing_required_policy: "fill_blank_warn",
-      });
-      setSavBundleImportResult(result);
-      setSavBundleInspection(result.inspection);
-      await onImported(result.estudio);
-      window.dispatchEvent(new Event("pulso:session-changed"));
-      window.dispatchEvent(new CustomEvent("pulso:active-base-changed", {
-        detail: { active: result.estudio.active_base, processing_mode: result.estudio.processing_mode },
-      }));
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy("");
-    }
-  }
-
   async function loadRefreshPlan(forceRefresh = false) {
     setError("");
     setRefreshResult(null);
@@ -4793,7 +4636,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
             puede servir como referencia para alinear saltos, cierres y preguntas comunes.
           </p>
           <div className="pulso-sm-family-meter pulso-sm-independent-meter" aria-label="Resumen de familia independiente">
-            <span><b>{selectedTotal}</b>/{independentMaxBases} bases</span>
+            <span>{independentSiblingsCapacityLabel(selectedTotal, independentMaxBases)}</span>
             <span>{hasCanonicalReference ? "Plantilla lista" : "Plantilla pendiente"}</span>
             <span>{hasExistingIndependentBases ? "Actualización disponible" : "Por configurar"}</span>
           </div>
@@ -5019,7 +4862,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
         <div className="pulso-sm-family-config">
           <div className="pulso-sm-family-config-head">
             <strong>Familia cargada</strong>
-            <span>{estudio.n_bases}/{independentMaxBases} bases · listas para procesar por base activa</span>
+            <span>{independentSiblingsCapacityLabel(estudio.n_bases, independentMaxBases)} · listas para procesar por base activa</span>
           </div>
           <div className="pulso-sm-workbook-import is-workbook" aria-label="Importar Excel exportado por SurveyMonkey">
             <div className="pulso-sm-family-config-head">
@@ -5141,184 +4984,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
               </div>
             )}
           </div>
-          <div className="pulso-sm-workbook-import is-sav" aria-label="Importar ZIP SAV SurveyMonkey">
-            <div className="pulso-sm-family-config-head">
-              <div>
-                <strong>Importar ZIP SAV</strong>
-                <span>
-                  Reemplaza de forma controlada las respuestas activas de bases existentes. El formulario de cada carrera se conserva.
-                </span>
-              </div>
-              <div className="pulso-sm-family-actions">
-                <button
-                  type="button"
-                  className="pulso-sm-secondary"
-                  disabled={disabled || !!busy || !savBundleFile}
-                  onClick={inspectSavBundle}
-                >
-                  {busy ? <Loader2 size={13} className="pulso-spin" /> : <Database size={13} />}
-                  Inspeccionar
-                </button>
-                <button
-                  type="button"
-                  disabled={!canImportSavBundle}
-                  onClick={importSavBundle}
-                >
-                  {busy ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
-                  Aplicar actualización
-                </button>
-              </div>
-            </div>
-            <div className="pulso-sm-workbook-toolbar">
-              <FilePicker
-                icon={Database}
-                title="ZIP con SAV"
-                accept=".zip,application/zip,application/x-zip-compressed"
-                acceptLabel="ZIP"
-                file={savBundleFile}
-                onPick={pickSavBundleFile}
-              />
-              <div className="pulso-sm-workbook-summary">
-                {savBundleInspection ? (
-                  <>
-                    <span className={`pulso-sm-family-status${savBundleInspection.ok ? "" : " is-warning"}`}>
-                      {savBundleInspection.ok ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
-                      {savBundleInspection.n_matched}/{savBundleInspection.n_files} archivos listos
-                    </span>
-                    <small>
-                      {smSavBundleInspectionWarningCount(savBundleInspection)} advertencias · {savBundleInspection.filename}
-                    </small>
-                    <small>Se reemplazarán solo las respuestas. El formulario no cambiará.</small>
-                  </>
-                ) : (
-                  <>
-                    <span className="pulso-sm-family-status is-neutral">
-                      <Database size={12} />
-                      Sin inspección
-                    </span>
-                    <small>Los archivos .sav se emparejan por carrera y se preparan contra el formulario vigente.</small>
-                  </>
-                )}
-              </div>
-            </div>
-            {savBundleInspection && !savBundleImportResult && (
-              <div className="pulso-sm-multibase-warning">
-                <AlertTriangle size={15} />
-                <span>
-                  Plan inspeccionado pendiente de aplicar. Todavía no se reemplazó ninguna base ni se guardó el ZIP en el proyecto:
-                  pulsa <strong>Aplicar actualización</strong> para cambiar las respuestas activas.
-                </span>
-              </div>
-            )}
-            {savBundleInspection && (
-              <div className="pulso-sm-family-table is-sav-bundle" role="table" aria-label="Plan de actualización ZIP SAV">
-                <div className="pulso-sm-family-row is-head is-sav-row" role="row">
-                  <span>Archivo</span>
-                  <span>Base</span>
-                  <span>Actualmente</span>
-                  <span>Después de aplicar</span>
-                  <span>Impacto</span>
-                </div>
-                {savBundleInspection.files.map((file) => {
-                  const issueGroups = smSavBundleIssueGroups(file);
-                  const hasIssues = issueGroups.length > 0;
-                  const issueVariableCount = issueGroups.reduce((sum, group) => sum + group.variables.length + group.notes.length, 0);
-                  const fileBase = file.base_name ? existingBaseByName.get(file.base_name) : undefined;
-                  const fileLabelLookup = smXlsformVariableLabelLookup(fileBase);
-                  const currentRows = file.change_plan?.current?.n_rows;
-                  const currentColumns = file.change_plan?.current?.n_columns;
-                  const incoming = file.change_plan?.incoming;
-                  return (
-                    <div className={`pulso-sm-family-row is-sav-row${file.blocking ? " is-invalid" : hasIssues ? " is-warning" : ""}`} role="row" key={file.entry_name || file.file_name}>
-                      <div className="pulso-sm-family-origin-cell">
-                        <strong>{file.file_name || file.entry_name}</strong>
-                        <small>{file.n_rows} filas · {file.n_columns} columnas SAV</small>
-                      </div>
-                      <div className="pulso-sm-family-origin-cell">
-                        <strong>{file.base_name || "Sin match"}</strong>
-                        <small>{file.matched ? "Match automático" : "Bloqueada"}</small>
-                      </div>
-                      <div className="pulso-sm-family-data-cell">
-                        <span className="pulso-sm-family-status is-neutral">
-                          <Database size={12} />
-                          {currentRows ?? "?"} filas
-                        </span>
-                        <small>{currentColumns ?? "?"} columnas actuales · formulario preservado</small>
-                      </div>
-                      <div className="pulso-sm-family-data-cell">
-                        <span className={`pulso-sm-family-status${file.blocking ? " is-warning" : " is-neutral"}`}>
-                          {file.blocking ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
-                          {incoming?.normalized_rows ?? file.n_rows} filas
-                        </span>
-                        <small>{smSavBundleImpactLabel(file)}</small>
-                      </div>
-                      <div className="pulso-sm-family-data-cell">
-                        <span className={`pulso-sm-family-status${hasIssues ? " is-warning" : " is-neutral"}`}>
-                          {hasIssues ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
-                          {file.matched_variables}/{file.expected_variables} variables
-                        </span>
-                        <small title={[...file.warnings, ...file.all_empty_variables, ...file.missing_variables].join("\n")}>
-                          {file.blocking ? smSavBundleIssueLabel(file) : smSavBundleVariableSummary(file)}
-                        </small>
-                      </div>
-                      {issueGroups.length > 0 ? (
-                        <div className="pulso-sm-sav-detail-tray" aria-label={`Detalle de advertencias para ${file.file_name || file.entry_name}`}>
-                          <div className="pulso-sm-family-detail-head">
-                            <span>
-                              <AlertTriangle size={13} />
-                              Motivos de revisión
-                            </span>
-                            <em>
-                              {issueVariableCount} detalle{issueVariableCount === 1 ? "" : "s"} · {file.action === "replace_data" ? "reemplazo controlado" : file.action}
-                            </em>
-                          </div>
-                          <div className="pulso-sm-sav-issue-grid">
-                            {issueGroups.map((group) => (
-                              <div className={`pulso-sm-sav-issue-card is-${group.tone}`} key={group.key}>
-                                <strong>
-                                  {group.label}
-                                  <span>{group.variables.length || group.notes.length}</span>
-                                </strong>
-                                <p>{group.reason}</p>
-                                {group.variables.length > 0 ? (
-                                  <div className="pulso-sm-sav-variable-list" aria-label={`${group.label}: variables`}>
-                                    {group.variables.map((variable) => {
-                                      const variableLabel = smSavBundleVariableLabel(variable, fileLabelLookup);
-                                      return (
-                                        <span className="pulso-sm-sav-variable-item" key={variable} title={variableLabel ? `${variable} · ${variableLabel}` : variable}>
-                                          <code>{variable}</code>
-                                          <span>{variableLabel || "Sin etiqueta de formulario"}</span>
-                                        </span>
-                                      );
-                                    })}
-                                  </div>
-                                ) : null}
-                                {group.notes.length > 0 ? (
-                                  <div className="pulso-sm-sav-note-list" aria-label={`${group.label}: notas`}>
-                                    {group.notes.map((note) => (
-                                      <span key={note}>{note}</span>
-                                    ))}
-                                  </div>
-                                ) : null}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            {savBundleImportResult && (
-              <div className="pulso-sm-multibase-warning">
-                <CheckCircle2 size={15} />
-                <span>
-                  Actualizadas {savBundleImportResult.imported_bases} bases desde {savBundleImportResult.filename}. Se reemplazaron las respuestas activas y se conservó cada formulario.
-                </span>
-              </div>
-            )}
-          </div>
+          <SavBundleImportPanel bases={existingBases} disabled={disabled || !!busy} onImported={onImported} />
           <div className="pulso-sm-family-table" role="table" aria-label="Bases hermanas independientes cargadas">
             <div className="pulso-sm-family-row is-head" role="row">
               <span>#</span>

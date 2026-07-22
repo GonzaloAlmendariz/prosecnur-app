@@ -3,6 +3,7 @@ import type { EstudioMultiIntegrated, EstudioProcessingSuggestions } from "../..
 import {
   INDEPENDENT_SIBLINGS_MAX_BASES,
   independentSiblingsCapacity,
+  independentSiblingsCapacityLabel,
   integratedHistoryArray,
   integratedLabelOverrideGroups,
   integratedLabelOverrideEntries,
@@ -41,6 +42,11 @@ import {
 } from "./BasesPanel";
 
 describe("BasesPanel integrated history helpers", () => {
+  test("describes active independent bases without ambiguous fractions", () => {
+    expect(independentSiblingsCapacityLabel(1, 10)).toBe("1 base activa · capacidad máxima 10");
+    expect(independentSiblingsCapacityLabel(4, 10)).toBe("4 bases activas · capacidad máxima 10");
+  });
+
   test("summarizes workbook inspection state for visual controls", () => {
     const inspection = {
       ok: true,
@@ -98,6 +104,7 @@ describe("BasesPanel integrated history helpers", () => {
       n_matched: 2,
       n_blocking: 0,
       blocking_files: [],
+      inspection_fingerprint: "inspection-sav",
       warnings: ["Variable sin datos observados"],
       files: [
         {
@@ -116,6 +123,17 @@ describe("BasesPanel integrated history helpers", () => {
           blank_filled_variables: [],
           all_empty_variables: [],
           metadata_columns: ["respondent_id"],
+          instrument_revision: {
+            status: "pinned_healthy" as const,
+            healthy: true,
+            revision_id: "rev-civil",
+            revision_hash: "hash",
+            base_revision_hash: "hash",
+            base_xlsform_file_id: "xls",
+            revision_xlsform_file_id: "xls",
+            reasons: [],
+            warning: "",
+          },
           warnings: [],
           change_plan: {
             action: "replace_data",
@@ -152,6 +170,17 @@ describe("BasesPanel integrated history helpers", () => {
           blank_filled_variables: [],
           all_empty_variables: ["p28"],
           metadata_columns: ["respondent_id"],
+          instrument_revision: {
+            status: "legacy_unpinned" as const,
+            healthy: null,
+            revision_id: "",
+            revision_hash: "",
+            base_revision_hash: "",
+            base_xlsform_file_id: "xls2",
+            revision_xlsform_file_id: "",
+            reasons: ["instrument_revision_id_missing"],
+            warning: "Sin pin publicado",
+          },
           warnings: ["El archivo tiene 1 variables esperadas presentes pero completamente vacías."],
           change_plan: {
             action: "replace_data",
