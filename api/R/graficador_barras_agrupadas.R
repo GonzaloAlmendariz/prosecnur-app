@@ -1,3 +1,36 @@
+# Grosor efectivo de las barras bajo el modo canvas.
+#
+# El piso de filas virtuales (`canvas_min_filas`) existe para que una barra
+# aislada no se vea desproporcionada frente a graficos de muchas filas, pero
+# adelgaza tanto las barras de 1-3 categorias que el panel queda aireado y con
+# las barras muy separadas (caso tipico: dicotomicas Si/No). Para pocas
+# categorias subimos el piso de grosor de modo que las barras llenen el panel y
+# queden en linea con el grosor de los graficos de mas filas, sin exceder nunca
+# el grosor base. Los graficos con muchas categorias conservan el grosor previo.
+.barras_agrupadas_grosor_eff <- function(n_categorias, grosor_barras,
+                                         canvas_min_filas, usar_canvas = TRUE) {
+  grosor_base <- suppressWarnings(as.numeric(grosor_barras)[1])
+  if (!is.finite(grosor_base) || is.na(grosor_base) || grosor_base <= 0) {
+    grosor_base <- 0.6
+  }
+  n_categorias <- suppressWarnings(as.numeric(n_categorias)[1])
+  if (!isTRUE(usar_canvas) || !is.finite(n_categorias) || n_categorias <= 0) {
+    return(grosor_base)
+  }
+  min_filas <- suppressWarnings(as.numeric(canvas_min_filas)[1])
+  if (!is.finite(min_filas) || is.na(min_filas) || min_filas < 1) min_filas <- 1
+
+  filas_grosor <- max(n_categorias, min_filas)
+  grosor_eff <- grosor_base * n_categorias / filas_grosor
+  grosor_eff <- max(0.42, min(grosor_base, grosor_eff))
+
+  if (n_categorias <= 3L) {
+    piso_pocas_cats <- min(grosor_base, 0.62 + 0.05 * (n_categorias - 2L))
+    grosor_eff <- max(grosor_eff, piso_pocas_cats)
+  }
+  grosor_eff
+}
+
 .barras_agrupadas_sentence_case <- function(x) {
   unname(vapply(
     as.character(x),
@@ -655,15 +688,12 @@ graficar_barras_agrupadas <- function(
     canvas_min_filas_eff <- 1
   }
 
-  grosor_barras_eff <- suppressWarnings(as.numeric(grosor_barras)[1])
-  if (!is.finite(grosor_barras_eff) || is.na(grosor_barras_eff) || grosor_barras_eff <= 0) {
-    grosor_barras_eff <- 0.6
-  }
-  if (isTRUE(usar_canvas) && n_categorias > 0) {
-    filas_grosor <- max(n_categorias, canvas_min_filas_eff)
-    grosor_barras_eff <- grosor_barras_eff * n_categorias / filas_grosor
-    grosor_barras_eff <- max(0.42, min(grosor_barras, grosor_barras_eff))
-  }
+  grosor_barras_eff <- .barras_agrupadas_grosor_eff(
+    n_categorias      = n_categorias,
+    grosor_barras     = grosor_barras,
+    canvas_min_filas  = canvas_min_filas_eff,
+    usar_canvas       = usar_canvas
+  )
 
   size_ejes_eff <- suppressWarnings(as.numeric(size_ejes)[1])
   if (!is.finite(size_ejes_eff) || is.na(size_ejes_eff) || size_ejes_eff <= 0) {

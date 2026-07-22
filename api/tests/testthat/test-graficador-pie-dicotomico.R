@@ -87,3 +87,24 @@ test_that("override malformado del round-trip UI (deparse / no-color) no crashea
     NA
   )
 })
+
+test_that("pie angosto envuelve un titulo largo dentro de su canvas", {
+  skip_if_not_installed("cowplot")
+  p <- graficar_pie(
+    data = .pie_fixture_3cat(),
+    var_categoria = "opcion",
+    var_pct = "pct",
+    var_n = "n",
+    titulo = paste(
+      "¿El trabajo que realiza actualmente y por el cual recibe una remuneración",
+      "se encuentra relacionado con el quehacer contable?"
+    ),
+    ancho = 5.95,
+    alto = 5.14,
+    usar_canvas = TRUE,
+    exportar = "rplot"
+  )
+
+  expect_gte(attr(p, "pulso_title_lines", exact = TRUE), 2L)
+  expect_gt(attr(p, "pulso_canvas_title_height", exact = TRUE), 0.16)
+})
