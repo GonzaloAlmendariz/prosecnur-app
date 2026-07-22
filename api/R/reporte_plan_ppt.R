@@ -1123,6 +1123,67 @@ reporte_ppt_plan <- function(
     )
   }
 
+  .element_adapt_to_plot_slot <- function(el, spec) {
+    if (!inherits(el, "ppt_element") || is.null(spec) || is.null(spec$loc)) return(el)
+    loc <- spec$loc
+    if (is.numeric(loc) && length(loc) >= 4L) {
+      loc <- list(left = loc[[1]], top = loc[[2]], width = loc[[3]], height = loc[[4]])
+    }
+    if (!is.list(loc) || !all(c("width", "height") %in% names(loc))) return(el)
+    width <- suppressWarnings(as.numeric(loc$width)[1])
+    height <- suppressWarnings(as.numeric(loc$height)[1])
+    if (!is.finite(width) || !is.finite(height) || width <= 0 || height <= 0) return(el)
+
+    el$overrides <- el$overrides %||% list()
+    if (is.null(el$overrides$ancho)) el$overrides$ancho <- width
+    if (is.null(el$overrides$alto)) el$overrides$alto <- height
+
+    # The editorial preset is calibrated for a full-width plot. Two-chart
+    # layouts have roughly half that width, so the same 16 pt axes/legend
+    # produce collisions even though the underlying plot is valid. Adapt only
+    # implicit styling; an explicit user override remains authoritative.
+    etype <- el$.element_type %||% ""
+    if (identical(etype, "barras_apiladas")) {
+      split_ref <- el$cruce %||% el$grupo %||%
+        el$overrides$cruce %||% el$overrides$grupo %||% NULL
+      has_split <- !is.null(split_ref) && length(split_ref) > 0L &&
+        any(nzchar(trimws(as.character(split_ref))))
+      if (!has_split) {
+        # A simple one-question chart already names the question in its title;
+        # repeating it as a y-axis row wastes the first column and compresses
+        # the bar, especially in a two-chart composition.
+        if (is.null(el$overrides$canvas_w_etiquetas)) el$overrides$canvas_w_etiquetas <- 0
+        if (is.null(el$overrides$canvas_w_buf_etq_bars)) el$overrides$canvas_w_buf_etq_bars <- 0
+      }
+    }
+    if (identical(etype, "barras_multiapiladas") &&
+        identical(el$modo %||% "", "var") && length(el$vars %||% character(0)) >= 3L) {
+      # Automatic ordinal batteries need denser editorial typography than a
+      # shared actor comparison. Their long row labels otherwise collide with
+      # the title/legend even on a full-width slide.
+      if (is.null(el$overrides$size_leyenda)) el$overrides$size_leyenda <- 11
+      if (is.null(el$overrides$size_ejes)) el$overrides$size_ejes <- 11
+      if (is.null(el$overrides$size_barra_extra)) el$overrides$size_barra_extra <- 11
+      if (is.null(el$overrides$size_titulo_extra)) el$overrides$size_titulo_extra <- 11
+      if (is.null(el$overrides$size_nota_pie)) el$overrides$size_nota_pie <- 10
+      if (is.null(el$overrides$canvas_h_legend_in)) el$overrides$canvas_h_legend_in <- 0.55
+      if (is.null(el$overrides$canvas_h_caption_in)) el$overrides$canvas_h_caption_in <- 0.34
+      if (is.null(el$overrides$umbral_ocultar_etiqueta)) el$overrides$umbral_ocultar_etiqueta <- 0.15
+      if (is.null(el$overrides$etiquetas_arriba_si_no_caben)) {
+        el$overrides$etiquetas_arriba_si_no_caben <- FALSE
+      }
+    }
+    if (width < 7.25 && etype %in% c("barras_apiladas", "barras_multiapiladas")) {
+      if (is.null(el$overrides$size_leyenda)) el$overrides$size_leyenda <- 10
+      if (is.null(el$overrides$size_ejes)) el$overrides$size_ejes <- 11
+      if (is.null(el$overrides$size_barra_extra)) el$overrides$size_barra_extra <- 11
+      if (is.null(el$overrides$size_titulo_extra)) el$overrides$size_titulo_extra <- 11
+      if (is.null(el$overrides$canvas_h_legend_in)) el$overrides$canvas_h_legend_in <- 0.68
+      if (is.null(el$overrides$umbral_ocultar_etiqueta)) el$overrides$umbral_ocultar_etiqueta <- 0.15
+    }
+    el
+  }
+
   .resolve_partner_logo_path <- function(path = NULL) {
     raw <- path %||% ""
     raw <- as.character(raw)[1]
@@ -5404,6 +5465,7 @@ reporte_ppt_plan <- function(
 
       vars  <- el$vars
       cruce <- el$cruce %||% NULL
+      usar_layout_multiactor <- FALSE
 
       titulos_grupo  <- el$titulos_grupo %||% character(0)
       sin_grupo_word <- isTRUE(el$.word_sin_grupo)  # TRUE al renderizar para Word
@@ -5416,6 +5478,8 @@ reporte_ppt_plan <- function(
         flat_refs <- .extract_ref_values(group_refs)
         ctx_all <- lapply(flat_refs, .resolve_ref, arg_name = "vars")
         src_all <- unique(vapply(ctx_all, `[[`, character(1), "source"))
+        usar_layout_multiactor <- length(src_all) > 1L &&
+          length(group_ids) > 0L && all(nzchar(trimws(group_ids)))
 
         if (!is.null(cruce) && nzchar(trimws(as.character(cruce)[1])) && length(src_all) > 1L) {
           stop("multiapiladas (modo='var_cruce'): cuando `vars` usa varias fuentes, `cruces` debe ser NULL.", call. = FALSE)
@@ -5758,7 +5822,26 @@ reporte_ppt_plan <- function(
       )
       base_args <- .apply_top2box_alias(base_args)
 
-      args <- .merge_args(base_args, preset_args_single, preset_args_multi, overrides)
+      args <- .merge_args(base_args, preset_args_single, preset_args_multi)
+      if (isTRUE(usar_layout_multiactor)) {
+        effective_args <- .merge_args(args, overrides)
+        extra_preset <- as.character(effective_args$barra_extra_preset %||% "ninguno")[1]
+        show_flag <- effective_args$mostrar_barra_extra
+        if (is.null(show_flag)) show_flag <- TRUE
+        show_extra <- isTRUE(el$top2box) ||
+          isTRUE(show_flag) ||
+          (!is.na(extra_preset) && extra_preset != "ninguno")
+        if (!is.null(overrides$mostrar_barra_extra)) {
+          show_extra <- isTRUE(overrides$mostrar_barra_extra)
+        }
+        args <- .merge_args(
+          args,
+          .reporte_plan_multiactor_canvas_defaults(isTRUE(show_extra))
+        )
+        args$mostrar_barra_extra <- isTRUE(show_extra)
+      }
+
+      args <- .merge_args(args, overrides)
       args$usar_canvas <- TRUE
       fun  <- graficar_barras_apiladas
       args <- .force_canvas_args(fun, args)
@@ -8448,6 +8531,7 @@ reporte_ppt_plan <- function(
         message("  • graficos a crear: 1")
       }
 
+      el_plot <- .element_adapt_to_plot_slot(el_plot, contract$slots$plot)
       el_plot <- .inject_var_titulo(el_plot)
       p <- .render_element(el_plot)
 
@@ -8555,6 +8639,8 @@ reporte_ppt_plan <- function(
         stop("En `p_slide_2_graficos()`, `izquierda` y `derecha` deben ser `ppt_element`.", call. = FALSE)
       }
 
+      el_left  <- .element_adapt_to_plot_slot(el_left, contract$slots$left)
+      el_right <- .element_adapt_to_plot_slot(el_right, contract$slots$right)
       el_left  <- .inject_var_titulo(el_left)
       el_right <- .inject_var_titulo(el_right)
       pL <- .render_element(el_left)
@@ -8656,6 +8742,7 @@ reporte_ppt_plan <- function(
         message("  • graficos a crear: 1")
       }
 
+      el_plot <- .element_adapt_to_plot_slot(el_plot, contract$slots$plot)
       p <- .render_element(el_plot)
       if (is.null(p)) {
         vv <- .element_var_label(el_plot) %||% "<sin vars>"
@@ -8714,16 +8801,21 @@ reporte_ppt_plan <- function(
           plot_slot
         )
 
-        base_txt <- slots$base %||% NULL
-        if (is.null(base_txt)) {
-          base_txt <- .base_auto_from_element(
-            el          = el_plot,
-            sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
-            formato     = presets$base$args$formato %||% "Base: %s"
-          )
-        }
-        if (!is.null(base_txt) && nzchar(trimws(as.character(base_txt)[1]))) {
-          doc <- .ph_with_strict(doc, as.character(base_txt)[1], contract$slots$base)
+        suppress_base_placeholder <- isTRUE((slide$meta %||% list())$suppress_base_placeholder)
+        if (suppress_base_placeholder) {
+          doc <- .ph_with_strict(doc, " ", contract$slots$base)
+        } else {
+          base_txt <- slots$base %||% NULL
+          if (is.null(base_txt)) {
+            base_txt <- .base_auto_from_element(
+              el          = el_plot,
+              sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
+              formato     = presets$base$args$formato %||% "Base: %s"
+            )
+          }
+          if (!is.null(base_txt) && nzchar(trimws(as.character(base_txt)[1]))) {
+            doc <- .ph_with_strict(doc, as.character(base_txt)[1], contract$slots$base)
+          }
         }
 
         ft <- slots$footer %||% NULL
@@ -8758,6 +8850,8 @@ reporte_ppt_plan <- function(
         stop("slide_2_narrativo: `left` y `right` deben ser `ppt_element`.", call. = FALSE)
       }
 
+      el_left  <- .element_adapt_to_plot_slot(el_left, contract$slots$left)
+      el_right <- .element_adapt_to_plot_slot(el_right, contract$slots$right)
       el_left  <- .inject_var_titulo(el_left)
       el_right <- .inject_var_titulo(el_right)
       pL <- .render_element(el_left)
@@ -8814,8 +8908,9 @@ reporte_ppt_plan <- function(
         doc <- .ph_with_strict(doc, rvg::dml(ggobj = pL, bg = "transparent"), contract$slots$left)
         doc <- .ph_with_strict(doc, rvg::dml(ggobj = pR, bg = "transparent"), contract$slots$right)
 
-        base_txt <- slots$base %||% NULL
-        if (is.null(base_txt)) {
+        suppress_base_placeholder <- isTRUE((slide$meta %||% list())$suppress_base_placeholder)
+        base_txt <- if (suppress_base_placeholder) " " else slots$base %||% NULL
+        if (!suppress_base_placeholder && is.null(base_txt)) {
           base_txt <- .base_auto_from_element(
             el          = el_left,
             sufijo_auto = presets$base$args$sufijo_auto %||% NULL,

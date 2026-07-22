@@ -1477,8 +1477,14 @@ p_barras_multiapiladas <- function(
     stop("`top2box` debe ser logical(1).", call. = FALSE)
   }
   top2box_labels <- .ppt_as_chr_vec(top2box_labels)
+  # La UI serializa un campo opcional vacio como `[]`, que jsonlite
+  # reconstruye como `list()`. Semánticamente equivale a NULL: el renderer
+  # debe usar las dos ultimas categorias de la escala.
+  if (!is.null(top2box_labels) && !length(top2box_labels)) {
+    top2box_labels <- NULL
+  }
   if (!is.null(top2box_labels)) {
-    if (!is.character(top2box_labels) || !length(top2box_labels)) {
+    if (!is.character(top2box_labels)) {
       stop("`top2box_labels` debe ser NULL o character() no vacio.", call. = FALSE)
     }
     top2box_labels <- trimws(top2box_labels)
