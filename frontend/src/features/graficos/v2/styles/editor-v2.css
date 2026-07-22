@@ -1078,9 +1078,23 @@
 }
 
 .pulso-gv2-suggest-trigger {
-  border-color: var(--pulso-primary-border) !important;
-  background: color-mix(in srgb, var(--pulso-primary-soft) 70%, white) !important;
-  color: var(--pulso-primary) !important;
+  /* Alineado al accent del módulo (teal), no al navy global: la toolbar de
+     gráficos usa --gv2-accent y el trigger debe leerse como parte de ella,
+     no como un botón "especial". Tratamiento sobrio: superficie con un velo
+     de accent + borde e ícono en accent. */
+  border-color: color-mix(in srgb, var(--gv2-accent-border) 62%, var(--pulso-border)) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-surface) 94%, var(--gv2-accent-soft)), var(--pulso-surface)) !important;
+  color: color-mix(in srgb, var(--gv2-accent) 88%, var(--pulso-text)) !important;
+}
+.pulso-gv2-suggest-trigger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--gv2-accent) 46%, var(--gv2-accent-border)) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv2-accent-soft) 70%, white), var(--gv2-accent-soft)) !important;
+  color: var(--gv2-accent) !important;
+}
+.pulso-gv2-suggest-trigger .pulso-gv2-suggest-trigger-label {
+  font-weight: 650;
 }
 
 .pulso-gv2-suggest-popover {
@@ -1325,6 +1339,16 @@
   border: 1px solid var(--pulso-info-border);
   background: var(--pulso-info-bg);
   color: var(--pulso-info-fg);
+  align-items: flex-start;
+}
+.pulso-gv2-suggest-state > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pulso-gv2-suggest-state small {
+  font-weight: 600;
+  opacity: 0.72;
 }
 
 .pulso-gv2-suggest-error {
@@ -4744,7 +4768,9 @@
 .pulso-gv2-graf-picker-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1100;
+  /* El toolbar sticky del editor vive en 1200. El selector es un portal
+     modal y debe cubrirlo, junto con el aviso de preflight, por completo. */
+  z-index: 2300;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -5897,7 +5923,7 @@
     rgba(15, 23, 42, 0.46);
   backdrop-filter: blur(7px) saturate(0.98);
   -webkit-backdrop-filter: blur(7px) saturate(0.98);
-  z-index: 1000;
+  z-index: 1400;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -6149,7 +6175,10 @@
   background: rgba(15, 23, 42, 0.42);
   backdrop-filter: blur(8px) saturate(1.04);
   -webkit-backdrop-filter: blur(8px) saturate(1.04);
-  z-index: 1100;
+  /* Debe quedar por encima de la toolbar de gráficos (.pulso-page-frame-toolbar
+     z-index: 1200) y de la fila de estado con popover de salud (z-index: 1300),
+     que si no se filtran por encima del diálogo modal. */
+  z-index: 1500;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -12830,6 +12859,28 @@
   --gv2-glass-border: color-mix(in srgb, var(--gv2-accent-border) 74%, var(--pulso-border));
 }
 
+/* El diálogo "Estilo global" se monta en un portal sobre document.body, fuera de
+   .pulso-graficos-frame, así que no hereda el accent del módulo Procesamiento.
+   Sin este re-scopeo, los controles seleccionados que se apoyan en --pulso-primary
+   (indicador deslizante del rail, botones arg-preset activos como "Vacío") caían al
+   navy global y desentonaban con el verde del módulo. */
+.pulso-gv2-estilo-dialog {
+  --pulso-primary: var(--pulso-module-processing);
+  --pulso-primary-soft: var(--pulso-module-processing-soft);
+  --pulso-primary-border: var(--pulso-module-processing-border);
+  --module-accent: var(--pulso-module-processing);
+  --module-accent-soft: var(--pulso-module-processing-soft);
+  --module-accent-border: var(--pulso-module-processing-border);
+}
+
+/* La columna de configuración del diálogo es más angosta que el inspector. El
+   margen lateral de .pulso-gv2-arg-body (margin: 0 8px) empujaba las tarjetas ~6px
+   fuera de la columna, que .pulso-gv2-presets-detail recorta con overflow-x: hidden.
+   Sin margen lateral las tarjetas calzan exactas en el ancho de la columna. */
+.pulso-gv2-estilo-dialog .pulso-gv2-presets-body .pulso-gv2-arg-body {
+  margin-inline: 0;
+}
+
 .pulso-gv2-shell {
   border-color: color-mix(in srgb, var(--gv2-accent-border) 68%, var(--pulso-border));
   border-radius: 12px;
@@ -14579,6 +14630,59 @@
 
   .pulso-gv2-slot-state-pill {
     justify-self: start;
+  }
+}
+
+.pulso-graficos-shared-gate {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.pulso-graficos-shared-gate > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.pulso-graficos-shared-gate span {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.pulso-graficos-shared-gate-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pulso-graficos-shared-gate-actions a {
+  color: var(--pulso-warn-fg);
+  font-size: 11px;
+  font-weight: 800;
+  text-underline-offset: 2px;
+}
+
+.pulso-graficos-shared-gate-actions .pulso-secondary {
+  min-height: 28px;
+  padding: 4px 9px;
+  font-size: 10.5px;
+}
+
+@media (max-width: 980px) {
+  .pulso-graficos-shared-gate {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .pulso-graficos-shared-gate-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 
