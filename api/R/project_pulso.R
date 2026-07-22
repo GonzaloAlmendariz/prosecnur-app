@@ -164,11 +164,20 @@
   active <- .estudio_active_base_name(s, fallback_first = TRUE)
   if (is.null(active) || !nzchar(as.character(active))) return(invisible(FALSE))
 
-  # `_pulso_strip_caches()` pone en FALSE los mirrors globales de Analítica
+  # `_pulso_strip_caches()` pone en FALSE algunos mirrors globales de Analítica
   # porque sus objetos runtime no viajan en el ZIP. En un estudio de bases
   # independientes, el estado autoritativo sí persiste por base; al abrir hay
   # que reproyectarlo sobre la base activa sin ensuciar el proyecto.
-  restored <- .estudio_apply_stage_flags(s, active)
+  #
+  # `capture` ANTES de `apply` es el patrón canónico (ver `estudio_active_base_set`
+  # y la promoción a independent_siblings): sin la captura previa, `apply`
+  # trataría como FALSE cualquier flag que sólo vivía en el mirror global
+  # persistido —p. ej. `analitica_dim_ok` de proyectos de base única o de la
+  # referencia de auditoría— y lo borraría al reabrir. Con la captura, ese flag
+  # se promueve al mapa por base y `apply` lo devuelve idéntico, mientras los
+  # flags que sí viven por base se siguen reproyectando.
+  restored <- .estudio_capture_stage_flags(s, active)
+  restored <- .estudio_apply_stage_flags(restored, active)
   .session_env[[sid]] <- restored
   invisible(TRUE)
 }
