@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { BarChart3, CheckCircle2, Layers3, Plus, Search, SearchX, X } from "lucide-react";
 import { GraficadorMetadata } from "../../api/client";
@@ -53,6 +53,51 @@ export default function GraficadorPicker({
   const [query, setQuery] = useState("");
   const { state } = useSession();
   const dimOk = !!state?.analitica_dim_ok;
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  const onCancelRef = useRef(onCancel);
+
+  useEffect(() => {
+    onCancelRef.current = onCancel;
+  }, [onCancel]);
+
+  useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const focusTimer = window.setTimeout(() => searchRef.current?.focus(), 0);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCancelRef.current();
+        return;
+      }
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
+      )).filter((element) => element.getClientRects().length > 0);
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialogRef.current.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener("keydown", onKey);
+      previousFocus?.focus();
+    };
+  }, []);
 
   const categoriasConItems = useMemo(() => {
     if (!registry) return [];
@@ -95,8 +140,11 @@ export default function GraficadorPicker({
       aria-modal="true"
       aria-labelledby="graf-picker-title"
       className="pulso-gv2-graf-picker-backdrop"
+      data-audit-ready="graficador-picker"
     >
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className="pulso-gv2-graf-picker"
       >
@@ -125,11 +173,11 @@ export default function GraficadorPicker({
           <div className="pulso-gv2-graf-picker-search">
             <Search size={15} className="pulso-gv2-graf-picker-search-icon" />
             <input
+              ref={searchRef}
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar por nombre o descripción…"
-              autoFocus
               aria-label="Buscar graficador"
             />
             {query && (

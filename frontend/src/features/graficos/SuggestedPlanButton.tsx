@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { BarChart3, Check, Download, GitMerge, Loader2, Map, Sparkles, X } from "lucide-react";
+import { BarChart3, Check, Download, GitMerge, LayoutTemplate, Loader2, Map, RefreshCw, Wand2, X } from "lucide-react";
 import {
   apiGraficosPlanSugerido,
   type GraficosSuggestedPlanResponse,
@@ -167,7 +167,16 @@ export function SuggestedPlanButton() {
       setResult(next);
     } catch (e) {
       setResult(null);
-      setError((e as Error).message);
+      const raw = (e as Error).message || "";
+      // "Failed to fetch" (o timeouts de red) no significan un error del plan:
+      // suelen ser una conexión que se cae mientras el backend aún trabaja.
+      // Mostramos una guía accionable en vez del mensaje técnico crudo.
+      const isNetwork = /failed to fetch|networkerror|load failed|fetch|timeout|timed out|aborted/i.test(raw);
+      setError(
+        isNetwork
+          ? "No se pudo completar la generación (la conexión se interrumpió). Vuelve a intentar con «Actualizar propuesta»."
+          : raw,
+      );
     } finally {
       setBusy(false);
     }
@@ -219,7 +228,7 @@ export function SuggestedPlanButton() {
     if (!result?.report_inputs) return;
     const markdown = buildSuggestedPlanRecipeMarkdown(result.report_inputs, {
       acnurMode: result.acnur_mode ?? acnurMode,
-      profileLabel: "ACNUR azul",
+      profileLabel: "ACNUR",
     });
     const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -239,19 +248,19 @@ export function SuggestedPlanButton() {
         className="pulso-gv2-pill-button pulso-gv2-suggest-trigger"
         onClick={generate}
         disabled={busy}
-        aria-label="Sugerir plan de gráficos"
-        title="Sugerir plan de gráficos"
+        aria-label="Planes predeterminados de gráficos"
+        title="Planes predeterminados de gráficos"
       >
-        {busy ? <Loader2 size={12} className="pulso-spin" /> : <Sparkles size={12} />}
-        <span className="pulso-gv2-suggest-trigger-label">Sugerir</span>
+        {busy ? <Loader2 size={13} className="pulso-spin" /> : <LayoutTemplate size={14} />}
+        <span className="pulso-gv2-suggest-trigger-label">Planes</span>
       </button>
 
       {open && (
         <div className="pulso-gv2-suggest-popover" role="dialog" aria-label="Plan de gráficos sugerido">
           <div className="pulso-gv2-suggest-head">
             <div>
-              <strong>Plan de gráficos sugerido</strong>
-              <span>Previsualiza la propuesta antes de aplicarla al plan actual.</span>
+              <strong>Planes predeterminados</strong>
+              <span>Elige un plan base y previsualízalo antes de aplicarlo al plan actual.</span>
             </div>
             <button type="button" onClick={() => setOpen(false)} aria-label="Cerrar">
               <X size={13} />
@@ -269,7 +278,7 @@ export function SuggestedPlanButton() {
                   setResult(null);
                 }}
               >
-                <Sparkles size={13} /> Automático
+                <Wand2 size={13} /> Automático
               </button>
               <button
                 type="button"
@@ -280,7 +289,7 @@ export function SuggestedPlanButton() {
                   setResult(null);
                 }}
               >
-                <BarChart3 size={13} /> ACNUR azul
+                <BarChart3 size={13} /> ACNUR
               </button>
             </div>
 
@@ -315,8 +324,8 @@ export function SuggestedPlanButton() {
                 </div>
                 {acnurMode === "general" ? (
                   <div className="pulso-gv2-suggest-option-text">
-                    <strong>ACNUR normal</strong>
-                    <small>Usa el azul ACNUR, sin mapas territoriales ni comparativos.</small>
+                    <strong>ACNUR general</strong>
+                    <small>Usa la identidad ACNUR, sin mapas territoriales ni comparativos.</small>
                   </div>
                 ) : (
                   <div className="pulso-gv2-suggest-comparison">
@@ -351,7 +360,7 @@ export function SuggestedPlanButton() {
               onClick={generate}
               disabled={busy}
             >
-              {busy ? <Loader2 size={12} className="pulso-spin" /> : <Sparkles size={12} />}
+              {busy ? <Loader2 size={12} className="pulso-spin" /> : <RefreshCw size={12} />}
               Actualizar propuesta
             </button>
           </div>
@@ -359,7 +368,10 @@ export function SuggestedPlanButton() {
           {busy && (
             <div className="pulso-gv2-suggest-state">
               <Loader2 size={15} className="pulso-spin" />
-              Revisando variables, recodificadas y secciones del instrumento…
+              <span>
+                Revisando variables, recodificadas y secciones del instrumento…
+                <small>En estudios grandes puede tardar unos segundos.</small>
+              </span>
             </div>
           )}
 
