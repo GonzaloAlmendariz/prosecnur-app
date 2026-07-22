@@ -12,6 +12,14 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.5.17",
+    date: "2026-07-22",
+    highlights: [
+      "Gráficos: corrige un fallo que impedía generar el reporte de estudios con grupos repetibles (por ejemplo, varios servicios atendidos por una misma persona) cuando las bases estaban codificadas — ahora cada servicio se grafica correctamente con sus respuestas recodificadas.",
+      "Procesamiento: cada base usa su propia versión de los datos —codificada si ya la aplicaste, original si no— de forma fluida, para que las recodificaciones de una base se reflejen en los reportes sin necesidad de codificar todas las bases del estudio.",
+    ],
+  },
+  {
     version: "0.5.16",
     date: "2026-07-22",
     highlights: [

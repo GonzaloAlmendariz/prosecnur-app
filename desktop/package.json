@@ -1,6 +1,6 @@
 {
   "name": "prosecnur-desktop",
-  "version": "0.5.16",
+  "version": "0.5.17",
   "private": true,
   "description": "Desktop shell for Prosecnur",
   "main": "main.cjs",
