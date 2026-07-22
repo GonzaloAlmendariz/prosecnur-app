@@ -12,6 +12,19 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.5.15",
+    date: "2026-07-22",
+    highlights: [
+      "Gráficos: los grupos repetibles (por ejemplo, varios servicios atendidos por una misma persona) ahora se abren por servicio —una sección por servicio, titulada con su nombre y con su propia base de respuestas—, de modo que cada servicio se lee por separado en lugar de mezclarse en un solo gráfico.",
+      "Gráficos: avisa cuando hay recodificaciones definidas pero todavía sin aplicar, o desfasadas del catálogo, para que el reporte no muestre por error las categorías originales.",
+      "Gráficos: el informe consolidado del estudio guarda su avance automáticamente y comparte el mismo alcance entre variables, cobertura y vista previa; además genera el plan sugerido mucho más rápido.",
+      "Carga: estrena el ingreso multiactor de acreditación con un catálogo de actores del estudio, y la importación de bases SAV con una revisión de la normalización antes de incorporarlas.",
+      "Editor de formularios: registra el origen SurveyMonkey de cada formulario y permite asignar actores, para trazar de dónde viene cada instrumento.",
+      "Reportes PPT: las barras Sí/No se ven más llenas y equilibradas, las láminas de sección se diferencian con tipografía y un acento propio, y se renueva el acceso a los planes predeterminados junto con el diálogo de estilo global.",
+      "Correcciones: el informe de gráficos incluye todas las bases del estudio y no solo la del grupo repetible; Validación mantiene consistentes las preguntas de opción múltiple al reconstruir la base; y abrir pantallas de solo lectura deja de marcar el proyecto como editado.",
+    ],
+  },
+  {
     version: "0.5.14",
     date: "2026-07-21",
     highlights: [
