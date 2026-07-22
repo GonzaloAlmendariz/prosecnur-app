@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { GraficadorRef } from "../../api/client";
+import { mergeMultiApiladasArgsPatch } from "./multiApiladasExtraBarModel";
 import { VarWithSource, formatVarRef, parseVarRef, useVariables } from "./useVariables";
 import VariableRespondentSummary from "./VariableRespondentSummaryView";
 
@@ -37,6 +38,7 @@ type TopicBlock = {
 };
 
 type MultiBlock = {
+  [key: string]: unknown;
   modo?: string;
   vars?: unknown;
   var?: unknown;
@@ -47,6 +49,7 @@ type MultiBlock = {
   top2box?: unknown;
   top2box_labels?: unknown;
   titulos_grupo?: unknown;
+  overrides?: unknown;
 };
 
 const INTENTS: {
@@ -107,7 +110,7 @@ export default function MultiApiladasBuilder({ graf, onArgs }: Props) {
   const hasErrors = issues.some((i) => i.kind === "error");
 
   function commitArgs(patch: Record<string, unknown>) {
-    onArgs(patch);
+    onArgs(mergeMultiApiladasArgsPatch(args, patch));
   }
 
   function setIntent(next: Intent) {
@@ -337,7 +340,9 @@ function MultiListBlocks({ args, onArgs, variables, multi, sourceCount }: Builde
             multi={multi}
             sourceCount={sourceCount}
             onChange={(patch) => {
-              const next = normalized.map((b, i) => i === index ? { ...b, ...patch } : b);
+              const next = normalized.map((b, i) => (
+                i === index ? mergeMultiApiladasArgsPatch(b, patch) : b
+              ));
               commit(next);
             }}
             onRemove={() => commit(normalized.filter((_, i) => i !== index))}

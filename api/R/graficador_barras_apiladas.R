@@ -1695,6 +1695,7 @@ graficar_barras_apiladas <- function(
   # 3) Etiquetas internas (%) con asignación exacta (suma 100.00 si decimales=2, etc.)
   # ---------------------------------------------------------------------------
   labels_arriba_activas <- FALSE
+  labels_rendered <- character(0)
   if (isTRUE(mostrar_valores)) {
 
     niveles_fill       <- levels(df_long$.grupo)
@@ -1942,6 +1943,7 @@ graficar_barras_apiladas <- function(
               show.legend = FALSE
             )
         }
+        labels_rendered <- as.character(df_lab$lab)
         p_bars <- p_bars +
           ggplot2::geom_text(
             data    = df_lab,
@@ -1966,6 +1968,7 @@ graficar_barras_apiladas <- function(
       df_lab <- df_lab |>
         dplyr::mutate(
           .tamano_etq = dplyr::case_when(
+            .valor_plot <= umbral_ocultar_etiqueta_eff ~ "ninguna",
             .valor_plot >= umbral_etiqueta_normal_eff  ~ "grande",
             .valor_plot > umbral_ocultar_etiqueta_eff  ~ "peq",
             TRUE                                        ~ "ninguna"
@@ -2162,6 +2165,7 @@ graficar_barras_apiladas <- function(
               show.legend = FALSE
             )
         }
+        labels_rendered <- as.character(df_lab$lab)
         p_bars <- p_bars +
           ggplot2::geom_text(
             data    = df_lab,
@@ -2470,11 +2474,28 @@ graficar_barras_apiladas <- function(
     h_panel_in <- max(h_panel_in, panel_min)
   }
 
-  has_header  <- (!is.null(titulo) && nzchar(titulo)) || (!is.null(subtitulo) && nzchar(subtitulo))
+  titulo_canvas <- as.character(titulo %||% "")[1]
+  title_lines <- if (nzchar(trimws(titulo_canvas))) 1L else 0L
+  if (title_lines > 0L && requireNamespace("stringr", quietly = TRUE)) {
+    chart_width <- suppressWarnings(as.numeric(ancho)[1])
+    if (!is.finite(chart_width) || chart_width <= 0) chart_width <- 10
+    wrap_width <- max(24L, as.integer(floor(chart_width * 7.2)))
+    titulo_canvas <- stringr::str_wrap(titulo_canvas, width = wrap_width)
+    title_lines <- length(strsplit(titulo_canvas, "\n", fixed = TRUE)[[1]])
+  }
+
+  has_header  <- nzchar(trimws(titulo_canvas)) || (!is.null(subtitulo) && nzchar(subtitulo))
   has_legend  <- isTRUE(mostrar_leyenda) && length(niveles_leyenda) > 0
   has_caption <- !is.null(caption_text) && nzchar(caption_text)
 
   h_header_in  <- if (has_header)  canvas_h_header_in  else 0
+  if (title_lines > 1L) {
+    subtitle_extra_in <- if (!is.null(subtitulo) && nzchar(subtitulo)) 0.16 else 0
+    h_header_in <- max(
+      h_header_in,
+      title_lines * suppressWarnings(as.numeric(size_titulo)[1]) / 72 * 1.18 + subtitle_extra_in
+    )
+  }
   h_legend_in  <- if (has_legend && !legend_is_side)  canvas_h_legend_in  else 0
   h_caption_in <- if (has_caption) canvas_h_caption_in else 0
   if (isTRUE(needs_tall_label_slot) && has_legend && !legend_is_side) {
@@ -2573,7 +2594,7 @@ graficar_barras_apiladas <- function(
     dy_head <- encabezado_desplazamiento_in / h_total_in
     sep     <- encabezado_separacion_in     / h_total_in
 
-    has_t <- (!is.null(titulo) && nzchar(titulo))
+    has_t <- nzchar(trimws(titulo_canvas))
     has_s <- (!is.null(subtitulo) && nzchar(subtitulo))
 
     if (has_t && has_s) {
@@ -2589,7 +2610,7 @@ graficar_barras_apiladas <- function(
 
     if (has_t) {
       canvas <- canvas + cowplot::draw_text(
-        text  = titulo,
+        text  = titulo_canvas,
         x     = hjust_titulo,
         y     = y_title,
         hjust = hjust_titulo,
@@ -2651,7 +2672,18 @@ graficar_barras_apiladas <- function(
   pad_in <- canvas_pad_bars_y_in %||% 0
   if (!is.finite(pad_in) || is.na(pad_in) || pad_in < 0) pad_in <- 0
   if (isTRUE(needs_tall_label_slot)) {
-    pad_in <- max(pad_in, 0.16)
+    label_size_for_pad <- size_ejes_num
+    if (max_lineas_eje_y_est >= 9L) {
+      label_size_for_pad <- min(label_size_for_pad, 11.8)
+    } else if (max_lineas_eje_y_est >= 8L) {
+      label_size_for_pad <- min(label_size_for_pad, 12.4)
+    } else if (max_lineas_eje_y_est >= 7L) {
+      label_size_for_pad <- min(label_size_for_pad, 12.9)
+    } else {
+      label_size_for_pad <- min(label_size_for_pad, 13.8)
+    }
+    label_half_height_in <- max_lineas_eje_y_est * label_size_for_pad * 0.80 / 72 / 2
+    pad_in <- max(pad_in, label_half_height_in + 0.25)
   }
   pad_npc <- pad_in / h_total_in
 
@@ -2780,19 +2812,22 @@ graficar_barras_apiladas <- function(
     }
   }
 
-  for (i in seq_len(n_categorias)) {
-    canvas <- canvas + cowplot::draw_text(
-      text     = etiquetas_vec[i],
-      x        = x_lab,
-      y        = y_abs[i],
-      hjust    = 1,
-      vjust    = 0.5,
-      size     = size_ejes_eff,
-      colour   = color_ejes,
-      family = font_family,
-      fontface = fontface_etq,
-      lineheight = lineheight_eje_y_eff
-    )
+  draw_y_labels <- is.finite(w_etq) && w_etq > sqrt(.Machine$double.eps)
+  if (draw_y_labels) {
+    for (i in seq_len(n_categorias)) {
+      canvas <- canvas + cowplot::draw_text(
+        text     = etiquetas_vec[i],
+        x        = x_lab,
+        y        = y_abs[i],
+        hjust    = 1,
+        vjust    = 0.5,
+        size     = size_ejes_eff,
+        colour   = color_ejes,
+        family = font_family,
+        fontface = fontface_etq,
+        lineheight = lineheight_eje_y_eff
+      )
+    }
   }
 
   # Extra (columna derecha)
@@ -2849,21 +2884,45 @@ graficar_barras_apiladas <- function(
       fills_manual <- unname(colores_leyenda_manual)
       n_items <- length(labels_manual)
       n_per_row <- min(max(1L, n_por_fila), n_items)
-      n_rows <- ceiling(n_items / n_per_row)
-      row_ids <- ceiling(seq_len(n_items) / n_per_row)
-      row_h <- legend_h / max(1, n_rows)
-      key_side_y <- min(row_h * 0.82, max(0.034, legend_key_cm * 0.11))
       aspect_yx <- suppressWarnings(as.numeric(legend_key_aspect_yx)[1])
       if (!is.finite(aspect_yx) || aspect_yx <= 0) {
         aspect_yx <- suppressWarnings(as.numeric(alto)[1] / as.numeric(ancho)[1])
       }
       if (!is.finite(aspect_yx) || aspect_yx <= 0) aspect_yx <- 0.6
-      key_h <- key_side_y
-      key_w <- key_side_y * aspect_yx
-      key_gap <- min(0.012, max(0.007, legend_gap_npc * 0.60))
       key_size_mm <- max(2.4, suppressWarnings(as.numeric(legend_key_cm)[1]) * 10)
       if (!is.finite(key_size_mm)) key_size_mm <- 3
       fontface_ley <- if ("leyenda" %in% textos_negrita) "bold" else "plain"
+      chart_width_in <- suppressWarnings(as.numeric(ancho)[1])
+      if (!is.finite(chart_width_in) || chart_width_in <= 0) chart_width_in <- 10
+      estimate_text_width <- function(label_chars) {
+        # Average glyph width is roughly 0.52 em. Convert points to inches and
+        # then to the canvas' normalized x coordinates so narrow PPT slots do
+        # not incorrectly keep long legends on a single row.
+        pmax(0.016, label_chars * size_leyenda * 0.52 / 72 / chart_width_in)
+      }
+
+      repeat {
+        n_rows <- ceiling(n_items / n_per_row)
+        row_ids <- ceiling(seq_len(n_items) / n_per_row)
+        row_h <- legend_h / max(1, n_rows)
+        key_side_y <- min(row_h * 0.82, max(0.034, legend_key_cm * 0.11))
+        key_h <- key_side_y
+        key_w <- key_side_y * aspect_yx
+        key_gap <- min(0.012, max(0.007, legend_gap_npc * 0.60))
+        slot_gap <- min(0.040, max(0.026, legend_gap_npc * 1.80))
+        label_chars_all <- nchar(
+          gsub("\\s+", " ", gsub("\n", " ", labels_manual)),
+          type = "width"
+        )
+        text_w_all <- estimate_text_width(label_chars_all)
+        item_w_all <- key_w + key_gap + text_w_all
+        row_widths <- vapply(seq_len(n_rows), function(row_index) {
+          idx <- which(row_ids == row_index)
+          sum(item_w_all[idx], na.rm = TRUE) + slot_gap * max(0L, length(idx) - 1L)
+        }, numeric(1))
+        if (n_per_row <= 1L || max(row_widths, na.rm = TRUE) <= 0.96) break
+        n_per_row <- n_per_row - 1L
+      }
 
       for (r in seq_len(n_rows)) {
         idx_row <- which(row_ids == r)
@@ -2871,9 +2930,8 @@ graficar_barras_apiladas <- function(
         if (!n_row) next
         labels_row <- labels_manual[idx_row]
         label_chars <- nchar(gsub("\\s+", " ", gsub("\n", " ", labels_row)), type = "width")
-        text_w <- pmax(0.016, label_chars * size_leyenda * 0.00055)
+        text_w <- estimate_text_width(label_chars)
         item_w <- key_w + key_gap + text_w
-        slot_gap <- min(0.040, max(0.026, legend_gap_npc * 1.80))
         row_w <- sum(item_w, na.rm = TRUE) + slot_gap * max(0L, n_row - 1L)
         if (is.finite(legend_ancho_rel)) row_w <- max(row_w, legend_ancho_rel)
         row_w <- max(0.12, min(0.98, row_w))
@@ -2898,7 +2956,7 @@ graficar_barras_apiladas <- function(
               key_square_width_unit = key_w / aspect_yx,
               key_square_height_unit = key_h,
               key_aspect_yx = aspect_yx,
-              key_marker = "point_square",
+              key_marker = "rect_square",
               key_size_mm = key_size_mm,
               x_text = x_left + key_w + key_gap,
               x_item_right = x_left + item_w[j],
@@ -2906,12 +2964,13 @@ graficar_barras_apiladas <- function(
             )
           )
           canvas <- canvas + ggplot2::annotate(
-            "point",
-            x = x_left + key_w * 0.5,
-            y = y_row,
-            shape = 15,
-            size = key_size_mm,
-            colour = fills_manual[idx]
+            "rect",
+            xmin = x_left,
+            xmax = x_left + key_w,
+            ymin = y_row - key_h * 0.5,
+            ymax = y_row + key_h * 0.5,
+            fill = fills_manual[idx],
+            colour = NA
           )
           canvas <- canvas + cowplot::draw_text(
             labels_manual[idx],
@@ -2969,11 +3028,18 @@ graficar_barras_apiladas <- function(
     attr(canvas, "alto_word_sugerido") <- h_total_in
     attr(canvas, "pulso_labels_above_bars") <- isTRUE(labels_arriba_activas)
     attr(canvas, "pulso_needs_tall_plot_slot") <- isTRUE(labels_arriba_activas) || isTRUE(needs_tall_label_slot)
+    attr(canvas, "pulso_title_lines") <- as.integer(title_lines)
+    attr(canvas, "pulso_canvas_title_height_in") <- as.numeric(h_header_in)
+    attr(canvas, "pulso_draw_y_labels") <- isTRUE(draw_y_labels)
+    attr(canvas, "pulso_umbral_ocultar_etiqueta") <- as.numeric(umbral_ocultar_etiqueta_eff)
+    attr(canvas, "pulso_labels_rendered") <- labels_rendered
     attr(canvas, "pulso_barras_apiladas_layout") <- list(
       n_categorias = n_categorias,
       y_axis_max = y_axis_max,
       grosor_eff = grosor_eff,
-      h_panel_in = h_panel_in
+      h_panel_in = h_panel_in,
+      pad_in = pad_in,
+      h_bars_area_in = h_bars_area * h_total_in
     )
     if (!is.null(legend_manual_layout)) {
       layout_attr <- attr(canvas, "pulso_barras_apiladas_layout")
