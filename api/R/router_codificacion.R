@@ -1925,6 +1925,13 @@ isTRUE_vec <- function(x) {
 }
 
 .codif_all_required_bases_applied <- function(s) {
+  # `codif_aplicado` global = "todas las bases requeridas ya adaptadas". Es un
+  # indicador de COMPLETITUD, no la fuente de verdad de la resolución de fuente:
+  # desde la relajación del invariante de fuente única, analítica resuelve
+  # adaptada/original POR BASE (`.analitica_pair_for_base`) leyendo el kind del
+  # par de cada base, sin gatear en este flag. Mantenerlo estricto conserva su
+  # sentido de progreso sin bloquear que una madre codificada muestre sus recods
+  # mientras su hija repeat sigue pendiente.
   required <- .codif_required_bases(s)
   if (!length(required)) return(isTRUE(s$codif_aplicado))
   all(vapply(required, function(base_name) {

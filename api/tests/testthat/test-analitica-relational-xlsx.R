@@ -111,7 +111,7 @@ test_that("el Excel estándar madre-repeat es un libro relacional de cuatro hoja
   expect_equal(nrow(response_labels), 4L)
 })
 
-test_that("la fuente codificada multibase exige todos los pares adaptados", {
+test_that("la fuente codificada multibase se resuelve POR BASE, no exige todas", {
   fixture <- .arx_test_session()
   on.exit(session_delete(fixture$sid), add = TRUE)
   s <- session_get(fixture$sid)
@@ -125,12 +125,33 @@ test_that("la fuente codificada multibase exige todos los pares adaptados", {
   s$analitica_config$fuente_preferida <- "adaptados"
   .session_env[[fixture$sid]] <- s
 
+  # Madre adaptada + hija sin par adaptado: el estudio prefiere adaptados (antes
+  # caía a originales por exigir TODAS). `.analitica_all_bases_adapted` sigue
+  # siendo un predicado estricto de completitud y devuelve FALSE.
   expect_false(.analitica_all_bases_adapted(s))
-  expect_equal(.analitica_effective_source(s, s$analitica_config), "originales")
-  expect_null(.analitica_pair_for_base(
-    s, s$estudio$bases$principal, "originales", "principal"
-  ))
+  expect_equal(.analitica_effective_source(s, s$analitica_config), "adaptados")
 
+  # Fuente POR BASE: la madre resuelve su par adaptado; la hija, su original.
+  madre_pair <- .analitica_pair_for_base(
+    s, s$estudio$bases$principal, "adaptados", "principal"
+  )
+  expect_equal(madre_pair$xls$kind, "instrumento_adaptado")
+  expect_equal(madre_pair$data$kind, "data_adaptada")
+  hija_pair <- .analitica_pair_for_base(
+    s, s$estudio$bases$rep_servicios, "adaptados", "rep_servicios"
+  )
+  expect_equal(hija_pair$xls$kind, "xlsform")
+  expect_equal(hija_pair$data$kind, "data")
+
+  # `fuente_preferida = "originales"` explícito fuerza original en todas.
+  expect_equal(
+    .analitica_effective_source(
+      s, modifyList(s$analitica_config, list(fuente_preferida = "originales"))
+    ),
+    "originales"
+  )
+
+  # Ambas adaptadas: el estudio sigue en adaptados y ahora sí completo.
   s$files[["xls-child"]]$kind <- "instrumento_adaptado"
   s$files[["data-child"]]$kind <- "data_adaptada"
   .session_env[[fixture$sid]] <- s
