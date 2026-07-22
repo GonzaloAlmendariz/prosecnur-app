@@ -430,8 +430,28 @@ graficar_pie <- function(
   # 3) CANVAS
   # ---------------------------------------------------------------------------
   p_final <- p_panel
+  title_lines <- if (!is.null(titulo) && nzchar(trimws(as.character(titulo)[1]))) 1L else 0L
+  canvas_title_height_eff <- canvas_h_title
 
   if (isTRUE(usar_canvas)) {
+
+    title_text <- as.character(titulo %||% "")[1]
+    if (nzchar(trimws(title_text)) && requireNamespace("stringr", quietly = TRUE)) {
+      chart_width <- suppressWarnings(as.numeric(ancho)[1])
+      if (!is.finite(chart_width) || chart_width <= 0) chart_width <- 10
+      wrap_width <- max(24L, as.integer(floor(chart_width * 7.2)))
+      title_text <- stringr::str_wrap(title_text, width = wrap_width)
+      titulo <- title_text
+      title_lines <- length(strsplit(title_text, "\n", fixed = TRUE)[[1]])
+    }
+    if (title_lines > 1L) {
+      subtitle_extra <- if (!is.null(subtitulo) && nzchar(trimws(as.character(subtitulo)[1]))) 0.05 else 0
+      canvas_title_height_eff <- max(
+        canvas_h_title,
+        min(0.36, 0.08 * title_lines + 0.02 + subtitle_extra)
+      )
+      canvas_h_title <- canvas_title_height_eff
+    }
 
     .wrap_debug <- function(g) {
       if (!isTRUE(debug_ph_bordes)) return(g)
@@ -590,6 +610,8 @@ graficar_pie <- function(
   # ---------------------------------------------------------------------------
   # 4) Exportación
   # ---------------------------------------------------------------------------
+  attr(p_final, "pulso_title_lines") <- as.integer(title_lines)
+  attr(p_final, "pulso_canvas_title_height") <- as.numeric(canvas_title_height_eff)
   if (exportar == "rplot") return(p_final)
 
   if (is.null(path_salida) || !nzchar(path_salida)) {
