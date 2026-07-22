@@ -1128,9 +1128,9 @@ attr(.project_warmup_job, "prosecnur_job_function_name") <- ".project_warmup_job
         snapshot_current,
         incoming_report_cache
       )
-      session_set(sid, "monitoreo_snapshot", snapshot_current)
+      s_current$monitoreo_snapshot <- snapshot_current
+      .session_env[[sid]] <- s_current
       changed <- TRUE
-      s_current <- session_get(sid)
     }
     incoming_map_cache <- territorial$territorial_map_cache %||% NULL
     if (is.list(incoming_map_cache) &&
@@ -1139,7 +1139,8 @@ attr(.project_warmup_job, "prosecnur_job_function_name") <- ".project_warmup_job
         s_current$monitoreo_territorial_map_cache %||% list(),
         incoming_map_cache
       )
-      session_set(sid, "monitoreo_territorial_map_cache", merged_map_cache)
+      s_current$monitoreo_territorial_map_cache <- merged_map_cache
+      .session_env[[sid]] <- s_current
       changed <- TRUE
     }
   }
@@ -1158,10 +1159,7 @@ attr(.project_warmup_job, "prosecnur_job_function_name") <- ".project_warmup_job
     result$merge_reason <- "El proyecto activo cambio antes de terminar el warmup."
     return(.project_warmup_public_result(result))
   }
-  changed <- .project_warmup_merge_session_patch(j$sid, result$session_patch %||% list())
-  if (isTRUE(changed) && exists(".monitoreo_mark_project_dirty_if_open", mode = "function")) {
-    tryCatch(.monitoreo_mark_project_dirty_if_open(j$sid), error = function(e) NULL)
-  }
+  .project_warmup_merge_session_patch(j$sid, result$session_patch %||% list())
   .project_warmup_public_result(result)
 }
 

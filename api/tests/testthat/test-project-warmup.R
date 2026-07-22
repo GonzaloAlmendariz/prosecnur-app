@@ -28,6 +28,34 @@ test_that("project warmup reports module tasks without generating deliverables",
   expect_identical(after_downloads, before_downloads)
 })
 
+test_that("completar warmup fusiona caches sin marcar el proyecto como editado", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  project_path <- tempfile(fileext = ".pulso")
+  s <- session_get(sid)
+  s$project_path <- project_path
+  s$project_dirty <- FALSE
+  .session_env[[sid]] <- s
+
+  result <- .project_warmup_on_complete(list(
+    sid = sid,
+    result_data = list(
+      ok = TRUE,
+      project_path = project_path,
+      session_patch = list(monitoreo = list(
+        monitoreo_dashboard_light_cache = list(marker = "warmup"),
+        monitoreo_dashboard_light_cache_token = "token-warmup"
+      ))
+    )
+  ))
+  after <- session_get(sid)
+
+  expect_false(isTRUE(after$project_dirty))
+  expect_identical(after$monitoreo_dashboard_light_cache$marker, "warmup")
+  expect_identical(after$monitoreo_dashboard_light_cache_token, "token-warmup")
+  expect_null(result$session_patch)
+})
+
 test_that("project warmup implementation does not call external sync, full reports or final artifact APIs", {
   candidates <- c(
     "R/project_warmup.R",

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { warmupModuleIds, WARMUP_MODULES } from "./warmupRegistry";
+import { graficosWarmupScope, warmupModuleIds, WARMUP_MODULES } from "./warmupRegistry";
 
 describe("warmup registry", () => {
   test("incluye todos los modulos instalados y librerias pesadas", () => {
@@ -31,5 +31,11 @@ describe("warmup registry", () => {
     const ids = warmupModuleIds();
     expect(new Set(ids).size).toBe(ids.length);
     expect(WARMUP_MODULES.every((entry) => typeof entry.load === "function")).toBe(true);
+  });
+
+  test("precarga el catalogo conjunto cuando la ruta de graficos es consolidada", () => {
+    expect(graficosWarmupScope("?scope=consolidado")).toBe("consolidated");
+    expect(graficosWarmupScope("?scope=consolidado&slide=portada")).toBe("consolidated");
+    expect(graficosWarmupScope("")).toBe("active");
   });
 });
