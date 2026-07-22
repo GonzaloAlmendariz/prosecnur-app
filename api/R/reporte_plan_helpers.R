@@ -71,6 +71,19 @@
   )
 }
 
+.reporte_plan_multiactor_canvas_defaults <- function(show_extra = FALSE) {
+  show_extra <- isTRUE(show_extra)
+  list(
+    canvas_w_grupo = 0.13,
+    canvas_w_buf_grupo_etq = 0.01,
+    canvas_w_etiquetas = 0.17,
+    canvas_w_buf_etq_bars = 0.01,
+    canvas_w_bars = if (show_extra) 0.56 else 0.68,
+    canvas_w_buf_bars_extra = if (show_extra) 0.02 else 0,
+    canvas_w_extra = if (show_extra) 0.10 else 0
+  )
+}
+
 .ppt_pulso_logo_asset <- function(variant = c("navy", "white", "black"),
                                   override = NULL) {
   variant <- match.arg(variant)
@@ -329,6 +342,10 @@
 .ppt_safe_section_title_spec <- function(layout_props, slide_width = 13.33333,
                                          slide_height = 7.5, spec) {
   if (!is.list(spec)) spec <- list(type = "title", type_idx = 1L)
+  # Marcamos el placeholder como titulo de seccion para que el estilizador de
+  # PPT aplique la tipografia de seccion del perfil (tamano/color/bold propios,
+  # ej. ACNUR 30pt azul institucional) en lugar del estilo de titulo de slide.
+  spec$ph_label <- "prosecnur:section:title"
   props <- if (is.data.frame(layout_props) && nrow(layout_props)) {
     layout_props[layout_props$type == "title", , drop = FALSE]
   } else {
@@ -351,11 +368,14 @@
   }
   if (isTRUE(valid)) return(spec)
 
+  # Titulo de seccion desplazado a la derecha del acento vertical de la
+  # plantilla y centrado verticalmente, para que la lamina lea como un divisor
+  # intencional y no como un titulo flotando en un lienzo vacio.
   spec$loc <- list(
-    left = slide_width * 0.057,
-    top = slide_height * 0.325,
-    width = slide_width * 0.84,
-    height = slide_height * 0.22
+    left = slide_width * 0.082,
+    top = slide_height * 0.335,
+    width = slide_width * 0.82,
+    height = slide_height * 0.26
   )
   spec
 }
