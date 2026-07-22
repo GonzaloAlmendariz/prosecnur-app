@@ -67,7 +67,12 @@
 }
 
 .analitica_global_adapted_pair <- function(s) {
-  if (!isTRUE(s$codif_aplicado)) return(NULL)
+  # Antes exigíamos `s$codif_aplicado` (flag global "todas las bases aplicadas").
+  # Con la fuente POR BASE ese flag queda FALSE mientras falte codificar una
+  # tabla, y bloqueaba el par adaptado global aunque los fids apunten a
+  # artefactos adaptados válidos. La evidencia real es el kind de los archivos
+  # (se valida abajo), no el flag de completitud: no gatear por él evita que una
+  # base pendiente congele el par adaptado de la base activa.
   xls <- .analitica_file_by_id(s, s$codif_inst_adaptado_fid)
   dat <- .analitica_file_by_id(s, s$codif_data_adaptada_fid)
   if (is.null(xls) || is.null(dat)) return(NULL)
@@ -105,8 +110,48 @@
   !is.null(base_name) && nzchar(base_name) && identical(base_name, active)
 }
 
+# ¿ESTA base debe leerse de su par adaptado? Regla POR BASE: usa adaptada si
+# tiene par adaptado PROPIO (kind del meta de la base). El par adaptado global
+# (`codif_inst_adaptado_fid`) solo es atribuible sin ambigüedad a una base cuando
+# el estudio tiene una sola tabla (single-base / legacy: codif fija fids globales
+# sin actualizar el meta por base). En multibase, una base sin par adaptado
+# propio usa SU original: nunca hereda el par adaptado de OTRA tabla (evita que,
+# tras codificar la hija, la madre pendiente muestre el instrumento de la hija
+# solo porque `codif_source_active` revirtió a la base default).
+.analitica_base_prefers_adapted <- function(s, base_meta, base_name = NULL) {
+  if (isTRUE(.analitica_pair_is_adapted(s, base_meta))) return(TRUE)
+  bases <- names((s$estudio %||% list())$bases %||% list())
+  if (length(bases) > 1L) return(FALSE)
+  !is.null(.analitica_global_adapted_pair(s))
+}
+
+# ¿EXISTE al menos un par adaptado que el estudio pueda mostrar? Espejo relajado
+# de `.analitica_all_bases_adapted`: la fuente ya no es única por corrida, así
+# que basta con que UNA base prefiera adaptados para que el estudio los prefiera.
+# La resolución fina —adaptada u original— la hace `.analitica_pair_for_base` por
+# base.
+.analitica_any_base_adapted <- function(s, bases = NULL) {
+  bases <- bases %||% ((s$estudio %||% list())$bases %||% list())
+  if (!length(bases)) return(!is.null(.analitica_global_adapted_pair(s)))
+  base_names <- names(bases)
+  any(vapply(seq_along(bases), function(i) {
+    .analitica_base_prefers_adapted(s, bases[[i]], base_names[i])
+  }, logical(1)))
+}
+
 .analitica_pair_for_base <- function(s, base_meta, fuente, base_name = NULL) {
   fuente <- as.character(fuente %||% "adaptados")
+  # Fuente POR BASE (ADR 0030 + relajación del invariante de fuente única). Si el
+  # estudio prefiere adaptados pero ESTA base no tiene par adaptado propio ni
+  # puede tomar el par adaptado global de su base activa, se degrada a original
+  # SOLO para ella. Así una madre codificada convive con una hija repeat original
+  # (o al revés) en la misma corrida, sin colapsar todo el estudio a una fuente.
+  # `fuente_preferida = "originales"` explícito no entra aquí: fuerza original en
+  # todas las bases.
+  if (!identical(fuente, "originales") &&
+      !isTRUE(.analitica_base_prefers_adapted(s, base_meta, base_name))) {
+    fuente <- "originales"
+  }
   if (identical(fuente, "originales")) {
     xls_id <- .analitica_original_member_id(
       s,
@@ -158,11 +203,17 @@
   if (identical(pref, "originales")) return("originales")
 
   bases <- bases %||% ((s$estudio %||% list())$bases %||% list())
-  # En un estudio con varias tablas la fuente es una propiedad del conjunto:
-  # nunca mezclar una base codificada con otra original bajo una misma corrida.
-  # La fuente adaptada se habilita únicamente cuando TODAS las bases requeridas
-  # tienen su par instrumento+datos adaptado.
-  has_adapted <- .analitica_all_bases_adapted(s, bases)
+  # Fuente POR BASE (relaja el invariante histórico "fuente única por corrida").
+  # Antes se exigía que TODAS las bases tuvieran par adaptado; si faltaba una, el
+  # estudio ENTERO caía a originales y no se veía ninguna recodificación en un
+  # madre+repeat salvo codificar ambas. Ahora el estudio prefiere adaptados en
+  # cuanto EXISTE al menos un par adaptado, y cada base resuelve su propia fuente
+  # en `.analitica_pair_for_base` (adaptada si tiene par adaptado, original si
+  # no). El candado de mezcla se conserva por base: la hija repeat sin codificar
+  # usa su original para sus columnas nativas, pero HEREDA la caracterización de
+  # la madre en la fuente de la MADRE (adaptada si la madre está codificada).
+  # `fuente_preferida = "originales"` explícito sigue forzando original en todas.
+  has_adapted <- .analitica_any_base_adapted(s, bases)
   if (isTRUE(has_adapted)) "adaptados" else "originales"
 }
 
