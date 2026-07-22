@@ -22,6 +22,7 @@ import { SuggestedPlanButton } from "./SuggestedPlanButton";
 import { usePlanValidator } from "./usePlanValidator";
 import { EstiloGlobalDialog } from "./v2/shell/EstiloGlobalDialog";
 import { useProjectShell } from "../project/ProjectShell";
+import type { GraficosReportScope } from "./reportScope";
 
 type GraficosJsonSectionId =
   | "plan"
@@ -533,6 +534,7 @@ export function GraficosHeader({
   exportJobKind,
   canExport,
   prepReady,
+  reportScope,
 }: {
   onExportPpt: () => void;
   onExportWord: () => void;
@@ -544,6 +546,7 @@ export function GraficosHeader({
   exportJobKind: "ppt" | "word" | null;
   canExport: boolean;
   prepReady: boolean;
+  reportScope: GraficosReportScope;
 }) {
   const dirty = usePlanStore((s) => s.dirty);
   const hydrated = usePlanStore((s) => s.hydrated);
@@ -584,8 +587,9 @@ export function GraficosHeader({
   // Los warnings no bloquean — aparecen en el badge pero el export corre.
   const validator = usePlanValidator();
   const canExportFinal = canExport && validator.canExport;
-  const prepBlocked = !prepReady;
-  const generatedReports = Number(Boolean(pptFileId)) + Number(Boolean(docxFileId));
+  const isSharedReport = reportScope === "consolidated";
+  const prepBlocked = !isSharedReport && !prepReady;
+  const generatedReports = Number(Boolean(pptFileId)) + Number(Boolean(!isSharedReport && docxFileId));
 
   useEffect(() => {
     if (!exportMenuOpen) return;
@@ -803,6 +807,9 @@ export function GraficosHeader({
               hydrated={hydrated}
               dirty={dirty}
             />
+            {isSharedReport && (
+              <span className="pulso-gv2-pill-button" role="status">Informe compartido</span>
+            )}
           </div>
         </div>
 
@@ -1097,10 +1104,12 @@ export function GraficosHeader({
                   setJsonMenuOpen(false);
                   setExportMenuOpen((v) => !v);
                 }}
-                disabled={!canExportFinal && !pptFileId && !docxFileId}
+                disabled={!canExportFinal && !pptFileId && (isSharedReport || !docxFileId)}
                 aria-haspopup="dialog"
                 aria-expanded={exportMenuOpen}
-                title={canExportFinal ? "Exportar el reporte en PowerPoint o Word" : "Revisa el estado del plan antes de exportar"}
+                title={canExportFinal
+                  ? isSharedReport ? "Exportar el informe compartido en PowerPoint" : "Exportar el reporte en PowerPoint o Word"
+                  : "Revisa el estado del plan antes de exportar"}
               >
                 {exportBusy ? <Loader2 size={13} className="pulso-spin" /> : <Download size={13} />}
                 <span>Exportar</span>
@@ -1115,8 +1124,8 @@ export function GraficosHeader({
                       <Download size={15} />
                     </span>
                     <div>
-                      <strong>Exportar reporte</strong>
-                      <span>Elige el archivo final que necesitas generar.</span>
+                      <strong>{isSharedReport ? "Exportar informe compartido" : "Exportar reporte"}</strong>
+                      <span>{isSharedReport ? "Genera el PPTX conjunto de todas las fuentes." : "Elige el archivo final que necesitas generar."}</span>
                     </div>
                   </div>
 
@@ -1143,7 +1152,7 @@ export function GraficosHeader({
                         <small>PPTX editable</small>
                       </span>
                     </button>
-                    <button
+                    {!isSharedReport && <button
                       type="button"
                       onClick={() => {
                         setExportMenuOpen(false);
@@ -1158,7 +1167,7 @@ export function GraficosHeader({
                         <strong>Word</strong>
                         <small>DOCX narrativo</small>
                       </span>
-                    </button>
+                    </button>}
                   </div>
 
                   {(pptFileId || docxFileId || saveStatus) && (
@@ -1168,7 +1177,7 @@ export function GraficosHeader({
                           <Download size={12} /> {pptFilename ?? "reporte.pptx"}
                         </a>
                       )}
-                      {docxFileId && !exportBusy && (
+                      {!isSharedReport && docxFileId && !exportBusy && (
                         <a href={downloadUrl(docxFileId)}>
                           <Download size={12} /> {docxFilename ?? "reporte.docx"}
                         </a>

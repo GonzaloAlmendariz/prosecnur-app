@@ -140,6 +140,25 @@ library(testthat)
   }), recursive = FALSE)
 }
 
+.gcc_test_with_comparison_refs <- function(plan, refs) {
+  slides <- plan$slides %||% list()
+  for (slide_idx in seq_along(slides)) {
+    payload <- (slides[[slide_idx]] %||% list())$payload %||% list()
+    for (slot in names(payload)) {
+      graph <- payload[[slot]]
+      if (!is.list(graph) ||
+          !identical(graph$graficador %||% "", "p_barras_multiapiladas") ||
+          !identical((graph$args %||% list())$modo %||% "", "var_cruce")) next
+      graph$args$vars <- stats::setNames(list(refs), "satisfaccion")
+      payload[[slot]] <- graph
+      slides[[slide_idx]]$payload <- payload
+      plan$slides <- slides
+      return(plan)
+    }
+  }
+  stop("El plan de prueba no contiene una comparacion multifuente.")
+}
+
 .gcc_test_release_projection <- function(sid) {
   lapply(processing_release_get(sid)$entries, function(entry) list(
     base = entry$base,
@@ -202,6 +221,65 @@ test_that("preflight consolidado repetido preserva releases y codificacion aprob
   }, logical(1))))
 })
 
+test_that("preflight bloquea una variable inexistente antes del job", {
+  sid <- .gcc_test_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  suggested <- graficos_consolidado_preflight(sid)
+  plan <- .gcc_test_with_comparison_refs(
+    suggested$plan,
+    c("docentes$p_sat", "estudiantes$variable_ausente")
+  )
+
+  preflight <- graficos_consolidado_preflight(sid, config = list(plan = plan))
+  blockers <- Filter(
+    function(item) identical(item$code, "unknown_variable_reference"),
+    preflight$blockers
+  )
+
+  expect_false(preflight$ready)
+  expect_length(blockers, 1L)
+  expect_equal(blockers[[1]]$references[[1]]$ref, "estudiantes$variable_ausente")
+  expect_equal(blockers[[1]]$references[[1]]$source, "estudiantes")
+  expect_equal(blockers[[1]]$references[[1]]$variable, "variable_ausente")
+  expect_true(nzchar(blockers[[1]]$references[[1]]$slide_id))
+  expect_equal(
+    .gcc_test_api_error(graficos_consolidado_start(sid, config = list(plan = plan)))$code,
+    "E_GRAFICOS_CONSOLIDADO_NOT_READY"
+  )
+})
+
+test_that("preflight bloquea comparaciones con escala codigo-etiqueta incompatible", {
+  sid <- .gcc_test_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  suggested <- graficos_consolidado_preflight(sid)
+  plan <- .gcc_test_with_comparison_refs(
+    suggested$plan,
+    c("docentes$p_sat", "estudiantes$q_sat")
+  )
+  s <- session_get(sid)
+  s$rp_inst_sources$docentes$survey$list_name[] <- "likert_compartida"
+  s$rp_inst_sources$docentes$choices$list_name[] <- "likert_compartida"
+  s$rp_inst_sources$estudiantes$survey$list_name[] <- "likert_compartida"
+  s$rp_inst_sources$estudiantes$choices$list_name[] <- "likert_compartida"
+  s$rp_inst_sources$estudiantes$choices$label[[1]] <- "Totalmente en desacuerdo"
+  .session_env[[sid]] <- s
+
+  preflight <- graficos_consolidado_preflight(sid, config = list(plan = plan))
+  blockers <- Filter(
+    function(item) identical(item$code, "incompatible_comparison_scale"),
+    preflight$blockers
+  )
+
+  expect_false(preflight$ready)
+  expect_length(blockers, 1L)
+  expect_equal(
+    unlist(blockers[[1]]$refs),
+    c("docentes$p_sat", "estudiantes$q_sat")
+  )
+  expect_true(nzchar(blockers[[1]]$slide_id))
+  expect_match(blockers[[1]]$message, "escala", ignore.case = TRUE)
+})
+
 test_that("una release stale bloquea antes de encolar", {
   sid <- .gcc_test_setup()
   on.exit(session_delete(sid), add = TRUE)
@@ -213,10 +291,44 @@ test_that("una release stale bloquea antes de encolar", {
   preflight <- graficos_consolidado_preflight(sid)
   err <- .gcc_test_api_error(graficos_consolidado_start(sid))
 
+  release_blocker <- Filter(
+    function(x) identical(x$code, "processing_release_not_approved"),
+    preflight$blockers
+  )[[1]]
+  docentes <- Filter(
+    function(item) identical(item$base, "docentes"),
+    release_blocker$requirements
+  )[[1]]
+
   expect_false(preflight$ready)
   expect_true(any(vapply(preflight$blockers, function(x) x$code == "processing_release_not_approved", logical(1))))
+  expect_identical(docentes$status, "stale")
+  expect_length(docentes$blockers, 0L)
   expect_equal(err$code, "E_GRAFICOS_CONSOLIDADO_NOT_READY")
   expect_identical(session_get(sid), before)
+})
+
+test_that("preflight explica el requisito pendiente de cada actor", {
+  sid <- .gcc_test_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  s$estudio$bases$estudiantes$validacion$evaluacion <- NULL
+  .session_env[[sid]] <- s
+
+  preflight <- graficos_consolidado_preflight(sid)
+  release_blocker <- Filter(
+    function(x) identical(x$code, "processing_release_not_approved"),
+    preflight$blockers
+  )[[1]]
+  estudiantes <- Filter(
+    function(item) identical(item$base, "estudiantes"),
+    release_blocker$requirements
+  )[[1]]
+
+  expect_false(preflight$ready)
+  expect_identical(estudiantes$actor, "Estudiantes")
+  expect_identical(estudiantes$status, "stale")
+  expect_true("validation_pending" %in% vapply(estudiantes$blockers, `[[`, character(1), "code"))
 })
 
 test_that("runner genera un unico PPTX multifuente legible", {
@@ -425,13 +537,27 @@ test_that("preflight consume exclusiones y denominador de la revision", {
 })
 
 test_that("start persiste receta global y encola exactamente un job", {
+  skip_if_not_installed("png")
   sid <- .gcc_test_setup()
   on.exit(session_delete(sid), add = TRUE)
   active_before <- session_get(sid)$estudio$active_base
   captured <- NULL
+  icon_path <- file.path(session_get(sid)$dir, "icono-consolidado.png")
+  png::writePNG(array(1, dim = c(2, 2, 4)), icon_path)
+  icon_meta <- .register_output_file(
+    sid,
+    "graficos_icon",
+    icon_path,
+    original_name = "icono-consolidado.png"
+  )
+  config <- list(iconos = list(list(
+    id = "ico-consolidado",
+    file_id = icon_meta$file_id,
+    path = icon_meta$path
+  )))
 
   result <- testthat::with_mocked_bindings(
-    graficos_consolidado_start(sid),
+    graficos_consolidado_start(sid, config = config),
     job_submit = function(...) {
       captured <<- list(...)
       "job-consolidado-1"
@@ -446,6 +572,13 @@ test_that("start persiste receta global y encola exactamente un job", {
   expect_equal(length(s$graficos_consolidado$releases), 3L)
   expect_equal(s$estudio$active_base, active_before)
   expect_equal(.pulso_strip_caches(s)$graficos_consolidado$input_fingerprint, result$input_fingerprint)
+  expect_null(s$graficos_consolidado$icon_registry)
+  expect_null(s$graficos_consolidado$config$iconos[[1]]$path)
+  expect_equal(s$graficos_consolidado$config$iconos[[1]]$file_id, icon_meta$file_id)
+
+  runtime_recipe <- readRDS(captured$args$recipe_path)
+  expect_equal(runtime_recipe$icon_registry[["ico-consolidado"]], icon_meta$path)
+  expect_equal(runtime_recipe$icon_registry[[icon_meta$file_id]], icon_meta$path)
 })
 
 test_that("job real genera y registra un PPTX con un unico manifiesto", {

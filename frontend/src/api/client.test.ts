@@ -250,6 +250,7 @@ describe("XLSForm instrument revision client", () => {
       variants: [{ survey_id: "sm-124", channel: "personalizado" }],
       remote_payload_sha256_observed: "b".repeat(64),
       definition_hash_scope: "survey+choices+settings",
+      translation_profile: "surveymonkey_api_xlsform/v1",
       provenance: { provider: "surveymonkey_api", token: "discard" },
       logic_confirmed_at: "2026-07-20T13:00:00Z",
       logic_confirmation_method: "analyst_review",
@@ -273,6 +274,7 @@ describe("XLSForm instrument revision client", () => {
       actor_key: "docentes",
       survey_id: "sm-123",
       definition_sha256: "a".repeat(64),
+      translation_profile: "surveymonkey_api_xlsform/v1",
       logic_status: "pending_manual_confirmation",
       variants: [{ survey_id: "sm-124", channel: "personalizado" }],
       provenance: { provider: "surveymonkey_api" },
@@ -482,6 +484,13 @@ describe("Processing intake client", () => {
         xlsform_file_id: "file-1",
         published_at: "2026-07-20T12:00:00Z",
         form_name: "Encuesta Docentes",
+        source: {
+          schema: "survey_source/v1",
+          kind: "surveymonkey",
+          original_name: "Docentes",
+          actor_key: "docentes",
+          access_token: "never-store",
+        },
         is_latest: false,
       },
       {
@@ -511,6 +520,12 @@ describe("Processing intake client", () => {
       status: "stale",
     });
     expect(result.revisions.map((revision) => revision.revision_id)).toEqual(["rev-1", "rev-2"]);
+    expect(result.revisions[0]?.source).toEqual({
+      schema: "survey_source/v1",
+      kind: "surveymonkey",
+      original_name: "Docentes",
+      actor_key: "docentes",
+    });
   });
 
   test("normalizes structured blocking reasons and catalog availability", () => {
@@ -766,11 +781,11 @@ describe("consolidated graphics client", () => {
       return jsonResponse({ ok: true, job_id: "job-1", kind: "graficos.ppt_consolidado" });
     }));
 
-    await apiGraficosPptConsolidado({ multi_apiladas: { mostrar_leyenda: true } }, { template_id: "generic_16_9" });
+    await apiGraficosPptConsolidado({ multi_apiladas: { mostrar_leyenda: true } }, 7);
 
     expect(JSON.parse(String(sentInit?.body))).toEqual({
       presets: { multi_apiladas: { mostrar_leyenda: true } },
-      config: { template_id: "generic_16_9" },
+      expected_revision: 7,
     });
   });
 });
@@ -1109,6 +1124,59 @@ describe("SurveyMonkey token client", () => {
     for (const body of bodies.slice(1)) {
       expect(body).not.toHaveProperty("token");
     }
+  });
+
+  test("normaliza la definición inmutable devuelta por el preview", async () => {
+    const definition = {
+      schema: "surveymonkey_definition/v1",
+      sha256: "a".repeat(64),
+      fetched_at: "2026-07-21T12:00:00Z",
+      survey_id: "123456789",
+      question_count: 38,
+      hash_scope: "xlsform_base+translation_profile",
+      translation_profile: "surveymonkey_api_xlsform/v1",
+    };
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({
+      ok: true,
+      paginas: {},
+      pages: [],
+      summary: { title: "Docentes", language: "es", n_paginas: 0, n_preguntas: 38, n_required: 0, n_validation: 0 },
+      style: { prefix: "p", pad: 0 },
+      definition,
+    })));
+
+    const result = await apiXlsformEditorSmFetchSurveyInfo(null, "123456789");
+
+    expect(result.definition).toEqual(definition);
+  });
+
+  test("import SurveyMonkey envía el hash y perfil observados en preview", async () => {
+    let sentBody: Record<string, unknown> | null = null;
+    vi.stubGlobal("fetch", vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentBody = JSON.parse(String(init?.body ?? "{}"));
+      return jsonResponse({
+        ok: true,
+        workbook,
+        summary: { survey_rows: 1, choices_rows: 0, settings_rows: 1, paper_rows: 1, diagnostico_rows: 0 },
+        source: { kind: "surveymonkey", original_name: "Docentes" },
+        warnings: [],
+        hallazgos: [],
+      });
+    }));
+    const expectedHash = "a".repeat(64);
+    const smApi = {
+      survey_id: "123456789",
+      expected_definition_sha256: expectedHash,
+      expected_translation_profile: "surveymonkey_api_xlsform/v1",
+    } as unknown as Parameters<typeof apiXlsformEditorImportSurveyMonkeyWithLogic>[5];
+
+    await apiXlsformEditorImportSurveyMonkeyWithLogic(null, "", {}, {}, "es", smApi);
+
+    expect(sentBody).toMatchObject({
+      survey_id: "123456789",
+      expected_definition_sha256: expectedHash,
+      expected_translation_profile: "surveymonkey_api_xlsform/v1",
+    });
   });
 });
 
@@ -2780,6 +2848,7 @@ describe("Monitoreo client", () => {
           n_matched: 1,
           n_blocking: 0,
           blocking_files: [],
+          inspection_fingerprint: "inspection-sav-1",
           files: [{
             file_name: "Revision Civil.sav",
             entry_name: "Bases finales/Revision Civil.sav",
@@ -2796,6 +2865,60 @@ describe("Monitoreo client", () => {
             blank_filled_variables: [],
             all_empty_variables: ["p28"],
             metadata_columns: ["respondent_id", "collector_id"],
+            instrument_revision: {
+              status: "pinned_healthy",
+              healthy: true,
+              revision_id: "revision-civil-publicada-001",
+              revision_hash: "sha-healthy",
+              base_revision_hash: "sha-healthy",
+              base_xlsform_file_id: "xls",
+              revision_xlsform_file_id: "xls",
+              reasons: [],
+            },
+            normalization_review: {
+              schema: "sav_normalization_review/v1",
+              normalizer_contract: "sav_to_xlsform/v1",
+              fingerprint: "review-civil-1",
+              privacy: {
+                response_values_included: false,
+                direct_identifier_values_included: false,
+                free_text_values_included: false,
+                schema_names_included: true,
+                xlsform_labels_included: true,
+                choice_catalog_included: true,
+              },
+              summary: {
+                total_variables: 2,
+                expected_variables: 1,
+                source_only_variables: 1,
+                status_counts: { unchanged: 0, transformed: 1, warning: 0, source_only: 1 },
+                operation_counts: { rename_source: 1, recode_choice_map: 1, preserve_metadata: 1 },
+                alerts: 1,
+              },
+              alerts: [{ severity: "warning", code: "W_LABEL", count: 1, variables: ["p12"], message: "Revisar etiquetas" }],
+              variables: [{
+                variable: "p12",
+                source_columns: ["P12"],
+                xlsform: { name: "p12", label: "Satisfacción", type: "select_one escala", type_base: "select_one", list_name: "escala" },
+                status: "transformed",
+                operations: ["rename_source", "recode_choice_map"],
+                catalog: {
+                  list_name: "escala",
+                  choices: [{ name: 1, label: "Sí" }, { name: 2, label: "No" }],
+                  mappings: [
+                    { source_code: "1.00", source_column: "P12", source_label: "Sí SAV", xls_code: 1, xls_label: "Sí", match: "recode" },
+                    { source_code: 2, source_column: "P12", source_label: "No", xls_code: 2, xls_label: "No", match: "direct" },
+                  ],
+                },
+              }, {
+                variable: "collector_id",
+                source_columns: ["collector_id"],
+                xlsform: null,
+                status: "source_only",
+                operations: ["preserve_metadata"],
+                catalog: null,
+              }],
+            },
             warnings: ["El archivo Civil tiene 1 variables esperadas presentes pero completamente vacías."],
             change_plan: changePlan,
           }],
@@ -2803,6 +2926,12 @@ describe("Monitoreo client", () => {
         });
       }
       expect(url).toMatch(/\/sav-bundle\/import$/);
+      expect(JSON.parse(String(init?.body))).toEqual({
+        file_id: "zip-sav",
+        file_base_map: { "Bases finales/Revision Civil.sav": "ingenieria_civil" },
+        missing_required_policy: "fill_blank_warn",
+        expected_inspection_fingerprint: "inspection-sav-1",
+      });
       return jsonResponse({
         ok: true,
         file_id: "zip-sav",
@@ -2827,6 +2956,7 @@ describe("Monitoreo client", () => {
           n_matched: 1,
           n_blocking: 0,
           blocking_files: [],
+          inspection_fingerprint: "inspection-sav-1",
           files: [],
           warnings: [],
         },
@@ -2850,10 +2980,47 @@ describe("Monitoreo client", () => {
     expect(inspection.files[0].change_plan.effects.xlsform).toBe("preserved");
     expect(inspection.files[0].change_plan.impact.rows_delta).toBe(6);
     expect(inspection.files[0].all_empty_variables).toEqual(["p28"]);
+    expect(inspection.inspection_fingerprint).toBe("inspection-sav-1");
+    expect(inspection.files[0].instrument_revision).toMatchObject({
+      status: "pinned_healthy",
+      revision_id: "revision-civil-publicada-001",
+      reasons: [],
+    });
+    expect(inspection.files[0].normalization_review).toMatchObject({
+      fingerprint: "review-civil-1",
+      privacy: { response_values_included: false },
+      summary: {
+        total_variables: 2,
+        expected_variables: 1,
+        source_only_variables: 1,
+        status_counts: { unchanged: 0, transformed: 1, warning: 0, source_only: 1 },
+      },
+    });
+    expect(inspection.files[0].normalization_review?.variables[0]).toMatchObject({
+      id: "p12",
+      source_columns: [{ name: "P12", storage_type: "", labelled: null }],
+      operations: [{ kind: "rename_source" }, { kind: "recode_choice_map" }],
+      catalog: {
+        choices: [{ name: "1", value: "1", label: "Sí" }, { name: "2", value: "2", label: "No" }],
+        mappings: [
+          { source: "1.00", source_column: "P12", target: "1", match: "recode" },
+          { source: "2", source_column: "P12", target: "2", match: "direct" },
+        ],
+      },
+      alerts: [{ severity: "warning", code: "W_LABEL", count: 1, variables: ["p12"], message: "Revisar etiquetas" }],
+    });
+    expect(inspection.files[0].normalization_review?.variables[1]).toMatchObject({
+      id: "collector_id",
+      status: "source_only",
+      source_columns: [{ name: "collector_id" }],
+      xlsform: null,
+    });
 
     const imported = await apiSurveyMonkeyMultibaseSavBundleImport({
       file_id: "zip-sav",
+      file_base_map: { "Bases finales/Revision Civil.sav": "ingenieria_civil" },
       missing_required_policy: "fill_blank_warn",
+      expected_inspection_fingerprint: inspection.inspection_fingerprint,
     });
     expect(imported.imported_bases).toBe(1);
     expect(imported.results[0].snapshot_file_id).toBe("snap-sav");

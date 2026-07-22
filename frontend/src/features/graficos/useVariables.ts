@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { apiGraficosVariables, VarInfo, VariablesBySource } from "../../api/client";
+import { useGraficosReportScope, type GraficosReportScope } from "./reportScope";
 import { safeText } from "./safeText";
 
 // Hook de variables del estudio (multi-base, v0.2+).
@@ -20,16 +22,28 @@ import { safeText } from "./safeText";
 
 export type VarWithSource = VarInfo & { source: string };
 
-let cache: VariablesBySource | null = null;
-let pending: Promise<VariablesBySource> | null = null;
+const cache: Record<GraficosReportScope, VariablesBySource | null> = {
+  active: null,
+  consolidated: null,
+};
+const pending: Record<GraficosReportScope, Promise<VariablesBySource> | null> = {
+  active: null,
+  consolidated: null,
+};
 
 if (typeof window !== "undefined") {
   const clearCache = () => {
-    cache = null;
-    pending = null;
+    cache.active = null;
+    cache.consolidated = null;
+    pending.active = null;
+    pending.consolidated = null;
+  };
+  const clearActiveCache = () => {
+    cache.active = null;
+    pending.active = null;
   };
   window.addEventListener("pulso:session-changed", clearCache);
-  window.addEventListener("pulso:active-base-changed", clearCache);
+  window.addEventListener("pulso:active-base-changed", clearActiveCache);
 }
 
 export function useVariables(): {
@@ -39,50 +53,66 @@ export function useVariables(): {
   loading: boolean;
   error: string;
 } {
-  const [data, setData] = useState<VariablesBySource | null>(cache);
-  const [loading, setLoading] = useState<boolean>(!cache);
+  const location = useLocation();
+  const reportScope = useGraficosReportScope(location.search);
+  const [data, setData] = useState<VariablesBySource | null>(cache[reportScope]);
+  const [loading, setLoading] = useState<boolean>(!cache[reportScope]);
   const [error, setError] = useState<string>("");
   // `gen` avanza en cada invalidación (cambio de sesión) para gatillar
   // re-fetch del efecto aunque el cache ya se haya limpiado.
   const [gen, setGen] = useState(0);
 
   useEffect(() => {
-    function onSessionChanged() {
+    function invalidateCurrentScope() {
       setData(null);
       setLoading(true);
+      setError("");
       setGen((g) => g + 1);
     }
-    window.addEventListener("pulso:session-changed", onSessionChanged);
-    window.addEventListener("pulso:active-base-changed", onSessionChanged);
+    function onActiveBaseChanged() {
+      if (reportScope === "active") invalidateCurrentScope();
+    }
+    window.addEventListener("pulso:session-changed", invalidateCurrentScope);
+    window.addEventListener("pulso:active-base-changed", onActiveBaseChanged);
     return () => {
-      window.removeEventListener("pulso:session-changed", onSessionChanged);
-      window.removeEventListener("pulso:active-base-changed", onSessionChanged);
+      window.removeEventListener("pulso:session-changed", invalidateCurrentScope);
+      window.removeEventListener("pulso:active-base-changed", onActiveBaseChanged);
     };
-  }, []);
+  }, [reportScope]);
 
   useEffect(() => {
-    if (cache) {
-      setData(cache);
+    setError("");
+    if (cache[reportScope]) {
+      setData(cache[reportScope]);
       setLoading(false);
       return;
     }
-    if (!pending) {
-      pending = apiGraficosVariables().then((r) => {
-        cache = r;
-        pending = null;
+    setData(null);
+    setLoading(true);
+    if (!pending[reportScope]) {
+      pending[reportScope] = apiGraficosVariables(reportScope).then((r) => {
+        cache[reportScope] = r;
+        pending[reportScope] = null;
         return r;
+      }).catch((cause) => {
+        pending[reportScope] = null;
+        throw cause;
       });
     }
-    pending
+    let alive = true;
+    pending[reportScope]
       .then((r) => {
+        if (!alive) return;
         setData(r);
         setLoading(false);
       })
       .catch((e) => {
+        if (!alive) return;
         setError((e as Error).message);
         setLoading(false);
       });
-  }, [gen]);
+    return () => { alive = false; };
+  }, [gen, reportScope]);
 
   const sources = (data?.sources ?? []).map((source) => {
     const sourceName = safeText(source.name, "default");
@@ -104,8 +134,10 @@ export function useVariables(): {
 }
 
 export function invalidateVariables() {
-  cache = null;
-  pending = null;
+  cache.active = null;
+  cache.consolidated = null;
+  pending.active = null;
+  pending.consolidated = null;
 }
 
 // Helper: parsea un value "fuente$variable" a sus partes. Si no tiene

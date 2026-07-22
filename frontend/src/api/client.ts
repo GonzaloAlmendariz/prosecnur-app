@@ -1137,6 +1137,114 @@ export type SurveyMonkeySavBundleChangePlan = {
   };
 };
 
+export type SurveyMonkeySavBundleMissingRequiredPolicy = "strict" | "fill_blank_warn";
+
+export type SurveyMonkeySavBundleInstrumentRevision = {
+  status: "pinned_healthy" | "legacy_unpinned" | "blocked";
+  healthy: boolean | null;
+  revision_id: string;
+  revision_hash: string;
+  base_revision_hash: string;
+  base_xlsform_file_id: string;
+  revision_xlsform_file_id: string;
+  reasons: string[];
+  warning: string;
+};
+
+export type SurveyMonkeySavNormalizationStatus = "unchanged" | "transformed" | "warning" | "source_only";
+
+export type SurveyMonkeySavNormalizationSourceColumn = {
+  name: string;
+  storage_type: string;
+  label: string;
+  labelled: boolean | null;
+};
+
+export type SurveyMonkeySavNormalizationXlsform = {
+  name: string;
+  label: string;
+  type: string;
+  type_base: string;
+  list_name: string;
+};
+
+export type SurveyMonkeySavNormalizationOperation = {
+  kind: string;
+  label: string;
+  detail: string;
+  source: string;
+  target: string;
+};
+
+export type SurveyMonkeySavNormalizationCatalogChoice = {
+  name: string;
+  value: string;
+  label: string;
+};
+
+export type SurveyMonkeySavNormalizationCatalogMapping = {
+  source_code: string;
+  source_column: string;
+  source_label: string;
+  xls_code: string;
+  xls_label: string;
+  match: string;
+  source: string;
+  target: string;
+  target_label: string;
+};
+
+export type SurveyMonkeySavNormalizationCatalog = {
+  list_name: string;
+  origin: string;
+  sealed_sha256: string;
+  choices: SurveyMonkeySavNormalizationCatalogChoice[];
+  mappings: SurveyMonkeySavNormalizationCatalogMapping[];
+};
+
+export type SurveyMonkeySavNormalizationAlert = {
+  severity: "info" | "warning" | "error";
+  code: string;
+  count: number;
+  variables: string[];
+  message: string;
+};
+
+export type SurveyMonkeySavNormalizationVariable = {
+  id: string;
+  variable: string;
+  source_columns: SurveyMonkeySavNormalizationSourceColumn[];
+  xlsform: SurveyMonkeySavNormalizationXlsform | null;
+  status: SurveyMonkeySavNormalizationStatus;
+  operations: SurveyMonkeySavNormalizationOperation[];
+  catalog: SurveyMonkeySavNormalizationCatalog | null;
+  alerts: SurveyMonkeySavNormalizationAlert[];
+};
+
+export type SurveyMonkeySavNormalizationReview = {
+  schema: string;
+  normalizer_contract: string;
+  fingerprint: string;
+  privacy: {
+    response_values_included: false;
+    direct_identifier_values_included: false;
+    free_text_values_included: false;
+    schema_names_included: true;
+    xlsform_labels_included: true;
+    choice_catalog_included: true;
+  };
+  summary: {
+    total_variables: number;
+    expected_variables: number;
+    source_only_variables: number;
+    status_counts: Record<SurveyMonkeySavNormalizationStatus, number>;
+    operation_counts: Record<string, number>;
+    alerts: number;
+  };
+  alerts: SurveyMonkeySavNormalizationAlert[];
+  variables: SurveyMonkeySavNormalizationVariable[];
+};
+
 export type SurveyMonkeySavBundleFileInspection = {
   file_name: string;
   entry_name: string;
@@ -1153,6 +1261,8 @@ export type SurveyMonkeySavBundleFileInspection = {
   blank_filled_variables: string[];
   all_empty_variables: string[];
   metadata_columns: string[];
+  instrument_revision: SurveyMonkeySavBundleInstrumentRevision;
+  normalization_review?: SurveyMonkeySavNormalizationReview | null;
   warnings: string[];
   change_plan: SurveyMonkeySavBundleChangePlan;
 };
@@ -1165,6 +1275,7 @@ export type SurveyMonkeySavBundleInspection = {
   n_matched: number;
   n_blocking: number;
   blocking_files: string[];
+  inspection_fingerprint: string;
   files: SurveyMonkeySavBundleFileInspection[];
   change_plan: SurveyMonkeySavBundleFileInspection[];
   warnings: string[];
@@ -1662,6 +1773,266 @@ function normalizeSavBundleChangePlan(raw: unknown): SurveyMonkeySavBundleChange
   };
 }
 
+function normalizeSavBundleInstrumentRevision(raw: unknown): SurveyMonkeySavBundleInstrumentRevision {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const rawStatus = String(r.status ?? "blocked");
+  const status: SurveyMonkeySavBundleInstrumentRevision["status"] = (
+    rawStatus === "pinned_healthy" || rawStatus === "legacy_unpinned"
+  ) ? rawStatus : "blocked";
+  return {
+    status,
+    healthy: typeof r.healthy === "boolean" ? r.healthy : null,
+    revision_id: String(r.revision_id ?? ""),
+    revision_hash: String(r.revision_hash ?? ""),
+    base_revision_hash: String(r.base_revision_hash ?? ""),
+    base_xlsform_file_id: String(r.base_xlsform_file_id ?? ""),
+    revision_xlsform_file_id: String(r.revision_xlsform_file_id ?? ""),
+    reasons: normalizeWorkbookStringArray(r.reasons),
+    warning: String(r.warning ?? ""),
+  };
+}
+
+function savNormalizationRecord(value: unknown): Record<string, unknown> | null {
+  return value != null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function savNormalizationRecords(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  return value == null ? [] : [value];
+}
+
+function savNormalizationString(value: unknown, fallback = ""): string {
+  if (value == null || value === "NA") return fallback;
+  return String(value).trim();
+}
+
+function savNormalizationCount(value: unknown, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function normalizeSavNormalizationSourceColumn(raw: unknown): SurveyMonkeySavNormalizationSourceColumn | null {
+  if (typeof raw === "string" || typeof raw === "number") {
+    const name = savNormalizationString(raw);
+    return name ? { name, storage_type: "", label: "", labelled: null } : null;
+  }
+  const row = savNormalizationRecord(raw);
+  if (!row) return null;
+  const name = savNormalizationString(row.name ?? row.column ?? row.source);
+  if (!name) return null;
+  return {
+    name,
+    storage_type: savNormalizationString(row.storage_type ?? row.type),
+    label: savNormalizationString(row.label ?? row.variable_label),
+    labelled: typeof row.labelled === "boolean" ? row.labelled : null,
+  };
+}
+
+function normalizeSavNormalizationXlsform(raw: unknown): SurveyMonkeySavNormalizationXlsform | null {
+  const row = savNormalizationRecord(raw);
+  if (!row) return null;
+  const name = savNormalizationString(row.name ?? row.variable);
+  if (!name) return null;
+  return {
+    name,
+    label: savNormalizationString(row.label),
+    type: savNormalizationString(row.type),
+    type_base: savNormalizationString(row.type_base ?? row.base_type),
+    list_name: savNormalizationString(row.list_name ?? row.catalog),
+  };
+}
+
+function normalizeSavNormalizationOperation(raw: unknown): SurveyMonkeySavNormalizationOperation | null {
+  if (typeof raw === "string" || typeof raw === "number") {
+    const kind = savNormalizationString(raw);
+    return kind ? { kind, label: kind, detail: "", source: "", target: "" } : null;
+  }
+  const row = savNormalizationRecord(raw);
+  if (!row) return null;
+  const kind = savNormalizationString(row.kind ?? row.operation ?? row.code ?? row.type, "transform");
+  return {
+    kind,
+    label: savNormalizationString(row.label ?? row.title, kind),
+    detail: savNormalizationString(row.detail ?? row.message ?? row.description),
+    source: savNormalizationString(row.source ?? row.from ?? row.before),
+    target: savNormalizationString(row.target ?? row.to ?? row.after),
+  };
+}
+
+function normalizeSavNormalizationChoice(raw: unknown): SurveyMonkeySavNormalizationCatalogChoice | null {
+  if (typeof raw === "string" || typeof raw === "number") {
+    const value = savNormalizationString(raw);
+    return value ? { name: value, value, label: "" } : null;
+  }
+  const row = savNormalizationRecord(raw);
+  if (!row) return null;
+  const value = savNormalizationString(row.value ?? row.name ?? row.code);
+  if (!value) return null;
+  return { name: value, value, label: savNormalizationString(row.label ?? row.text) };
+}
+
+function normalizeSavNormalizationMapping(raw: unknown): SurveyMonkeySavNormalizationCatalogMapping | null {
+  if (Array.isArray(raw)) {
+    const source = savNormalizationString(raw[0]);
+    const target = savNormalizationString(raw[1]);
+    return source || target ? {
+      source_code: source,
+      source_column: "",
+      source_label: "",
+      xls_code: target,
+      xls_label: "",
+      match: "",
+      source,
+      target,
+      target_label: "",
+    } : null;
+  }
+  const row = savNormalizationRecord(raw);
+  if (!row) return null;
+  const source = savNormalizationString(row.source_code ?? row.source ?? row.from ?? row.source_value ?? row.sav);
+  const target = savNormalizationString(row.xls_code ?? row.target ?? row.to ?? row.target_value ?? row.xlsform);
+  if (!source && !target) return null;
+  return {
+    source_code: source,
+    source_column: savNormalizationString(row.source_column ?? row.column),
+    source_label: savNormalizationString(row.source_label ?? row.from_label),
+    xls_code: target,
+    xls_label: savNormalizationString(row.xls_label ?? row.target_label ?? row.to_label),
+    match: savNormalizationString(row.match ?? row.status),
+    source,
+    target,
+    target_label: savNormalizationString(row.xls_label ?? row.target_label ?? row.to_label),
+  };
+}
+
+function normalizeSavNormalizationCatalog(raw: unknown): SurveyMonkeySavNormalizationCatalog | null {
+  const row = savNormalizationRecord(raw);
+  if (!row) return null;
+  return {
+    list_name: savNormalizationString(row.list_name ?? row.name),
+    origin: savNormalizationString(row.origin ?? row.source),
+    sealed_sha256: savNormalizationString(row.sealed_sha256 ?? row.sha256 ?? row.fingerprint),
+    choices: savNormalizationRecords(row.choices)
+      .map(normalizeSavNormalizationChoice)
+      .filter((item): item is SurveyMonkeySavNormalizationCatalogChoice => item != null),
+    mappings: savNormalizationRecords(row.mappings ?? row.mapping)
+      .map(normalizeSavNormalizationMapping)
+      .filter((item): item is SurveyMonkeySavNormalizationCatalogMapping => item != null),
+  };
+}
+
+function normalizeSavNormalizationAlert(raw: unknown): SurveyMonkeySavNormalizationAlert | null {
+  if (typeof raw === "string" || typeof raw === "number") {
+    const message = savNormalizationString(raw);
+    return message ? { severity: "warning", code: "", count: 1, variables: [], message } : null;
+  }
+  const row = savNormalizationRecord(raw);
+  if (!row) return null;
+  const rawSeverity = savNormalizationString(row.severity ?? row.level ?? row.tone).toLowerCase();
+  const severity: SurveyMonkeySavNormalizationAlert["severity"] = rawSeverity === "error"
+    ? "error"
+    : rawSeverity === "info"
+      ? "info"
+      : "warning";
+  const message = savNormalizationString(row.message ?? row.detail ?? row.label ?? row.code);
+  if (!message) return null;
+  return {
+    severity,
+    code: savNormalizationString(row.code),
+    count: savNormalizationCount(row.count, 1),
+    variables: normalizeWorkbookStringArray(row.variables),
+    message,
+  };
+}
+
+function normalizeSavNormalizationVariable(raw: unknown, index: number): SurveyMonkeySavNormalizationVariable | null {
+  const row = savNormalizationRecord(raw);
+  if (!row) return null;
+  const sourceColumns = savNormalizationRecords(row.source_columns ?? row.sources)
+    .map(normalizeSavNormalizationSourceColumn)
+    .filter((item): item is SurveyMonkeySavNormalizationSourceColumn => item != null);
+  const xlsform = normalizeSavNormalizationXlsform(row.xlsform ?? row.target);
+  const rawStatus = savNormalizationString(row.status).toLowerCase();
+  const status: SurveyMonkeySavNormalizationStatus = (
+    rawStatus === "unchanged" || rawStatus === "transformed" || rawStatus === "source_only"
+  ) ? rawStatus : "warning";
+  const id = savNormalizationString(row.id ?? row.variable, xlsform?.name || sourceColumns[0]?.name || `variable-${index + 1}`);
+  return {
+    id,
+    variable: savNormalizationString(row.variable, id),
+    source_columns: sourceColumns,
+    xlsform,
+    status,
+    operations: savNormalizationRecords(row.operations)
+      .map(normalizeSavNormalizationOperation)
+      .filter((item): item is SurveyMonkeySavNormalizationOperation => item != null),
+    catalog: normalizeSavNormalizationCatalog(row.catalog),
+    alerts: savNormalizationRecords(row.alerts)
+      .map(normalizeSavNormalizationAlert)
+      .filter((item): item is SurveyMonkeySavNormalizationAlert => item != null),
+  };
+}
+
+function normalizeSavNormalizationReview(raw: unknown): SurveyMonkeySavNormalizationReview | null {
+  const row = savNormalizationRecord(raw);
+  if (!row) return null;
+  const variables = savNormalizationRecords(row.variables)
+    .map(normalizeSavNormalizationVariable)
+    .filter((item): item is SurveyMonkeySavNormalizationVariable => item != null);
+  const summary = savNormalizationRecord(row.summary) ?? {};
+  const statusCounts = savNormalizationRecord(summary.status_counts) ?? summary;
+  const operationCounts = savNormalizationRecord(summary.operation_counts) ?? {};
+  const alerts = savNormalizationRecords(row.alerts)
+    .map(normalizeSavNormalizationAlert)
+    .filter((item): item is SurveyMonkeySavNormalizationAlert => item != null);
+  const variablesWithAlerts = variables.map((variable) => {
+    const names = new Set([
+      variable.id,
+      variable.variable,
+      variable.xlsform?.name ?? "",
+      ...variable.source_columns.map((column) => column.name),
+    ].filter(Boolean));
+    const related = alerts.filter((alert) => alert.variables.some((name) => names.has(name)));
+    return { ...variable, alerts: [...variable.alerts, ...related] };
+  });
+  const countStatus = (status: SurveyMonkeySavNormalizationStatus) => variablesWithAlerts.filter((variable) => variable.status === status).length;
+  return {
+    schema: savNormalizationString(row.schema),
+    normalizer_contract: savNormalizationString(row.normalizer_contract ?? row.contract),
+    fingerprint: savNormalizationString(row.fingerprint ?? row.sha256),
+    privacy: {
+      response_values_included: false,
+      direct_identifier_values_included: false,
+      free_text_values_included: false,
+      schema_names_included: true,
+      xlsform_labels_included: true,
+      choice_catalog_included: true,
+    },
+    summary: {
+      total_variables: savNormalizationCount(summary.total_variables ?? summary.total ?? summary.variables ?? summary.n_variables, variables.length),
+      expected_variables: savNormalizationCount(
+        summary.expected_variables,
+        variablesWithAlerts.filter((variable) => variable.xlsform != null).length,
+      ),
+      source_only_variables: savNormalizationCount(summary.source_only_variables, countStatus("source_only")),
+      status_counts: {
+        unchanged: savNormalizationCount(statusCounts.unchanged ?? summary.n_unchanged, countStatus("unchanged")),
+        transformed: savNormalizationCount(statusCounts.transformed ?? summary.n_transformed, countStatus("transformed")),
+        warning: savNormalizationCount(statusCounts.warning ?? statusCounts.warnings ?? summary.n_warning, countStatus("warning")),
+        source_only: savNormalizationCount(statusCounts.source_only ?? summary.n_source_only, countStatus("source_only")),
+      },
+      operation_counts: Object.fromEntries(
+        Object.entries(operationCounts).map(([key, value]) => [key, savNormalizationCount(value, 0)]),
+      ),
+      alerts: savNormalizationCount(summary.alerts, alerts.reduce((sum, alert) => sum + alert.count, 0)),
+    },
+    alerts,
+    variables: variablesWithAlerts,
+  };
+}
+
 function normalizeSavBundleInspection(raw: unknown): SurveyMonkeySavBundleInspection {
   const r = (raw ?? {}) as Record<string, unknown>;
   const files = normalizeRecordArray(r.files).map((file): SurveyMonkeySavBundleFileInspection => ({
@@ -1680,6 +2051,8 @@ function normalizeSavBundleInspection(raw: unknown): SurveyMonkeySavBundleInspec
     blank_filled_variables: normalizeWorkbookStringArray(file.blank_filled_variables),
     all_empty_variables: normalizeWorkbookStringArray(file.all_empty_variables),
     metadata_columns: normalizeWorkbookStringArray(file.metadata_columns),
+    instrument_revision: normalizeSavBundleInstrumentRevision(file.instrument_revision),
+    normalization_review: normalizeSavNormalizationReview(file.normalization_review),
     warnings: normalizeWorkbookStringArray(file.warnings),
     change_plan: normalizeSavBundleChangePlan(file.change_plan),
   }));
@@ -1691,6 +2064,7 @@ function normalizeSavBundleInspection(raw: unknown): SurveyMonkeySavBundleInspec
     n_matched: Number(r.n_matched ?? files.filter((file) => file.matched && !file.blocking).length),
     n_blocking: Number(r.n_blocking ?? files.filter((file) => file.blocking).length),
     blocking_files: normalizeWorkbookStringArray(r.blocking_files),
+    inspection_fingerprint: String(r.inspection_fingerprint ?? ""),
     files,
     change_plan: files,
     warnings: normalizeWorkbookStringArray(r.warnings),
@@ -1700,7 +2074,7 @@ function normalizeSavBundleInspection(raw: unknown): SurveyMonkeySavBundleInspec
 export async function apiSurveyMonkeyMultibaseSavBundleInspect(payload: {
   file_id: string;
   file_base_map?: Record<string, string>;
-  missing_required_policy?: "fill_blank_warn" | string;
+  missing_required_policy: SurveyMonkeySavBundleMissingRequiredPolicy;
 }) {
   const raw = await handle<unknown>(
     await apiFetch("/api/surveymonkey/multibase/sav-bundle/inspect", {
@@ -1714,8 +2088,9 @@ export async function apiSurveyMonkeyMultibaseSavBundleInspect(payload: {
 
 export async function apiSurveyMonkeyMultibaseSavBundleImport(payload: {
   file_id: string;
-  file_base_map?: Record<string, string>;
-  missing_required_policy?: "fill_blank_warn" | string;
+  file_base_map: Record<string, string>;
+  missing_required_policy: SurveyMonkeySavBundleMissingRequiredPolicy;
+  expected_inspection_fingerprint: string;
 }) {
   const raw = await handle<unknown>(
     await apiFetch("/api/surveymonkey/multibase/sav-bundle/import", {
@@ -2157,6 +2532,7 @@ export type XlsformFormSource = {
   variants?: XlsformSourceRecord[];
   remote_payload_sha256_observed?: string | null;
   definition_hash_scope?: string | null;
+  translation_profile?: string | null;
   provenance?: XlsformSourceRecord;
   logic_confirmed_at?: string | null;
   logic_confirmation_method?: string | null;
@@ -2860,6 +3236,17 @@ export type SurveyMonkeyApiInfo = {
     n_validation: number;
   };
   style: { prefix: string; pad: number };
+  definition: SurveyMonkeyDefinition | null;
+};
+
+export type SurveyMonkeyDefinition = {
+  schema: string;
+  sha256: string;
+  fetched_at: string;
+  survey_id: string;
+  question_count: number;
+  hash_scope: string;
+  translation_profile: string;
 };
 
 export async function apiXlsformEditorSmFetchSurveyInfo(
@@ -2878,6 +3265,9 @@ export async function apiXlsformEditorSmFetchSurveyInfo(
   const pagesRaw = Array.isArray(r.pages) ? (r.pages as Record<string, unknown>[]) : [];
   const summaryRaw = (r.summary ?? {}) as Record<string, unknown>;
   const styleRaw = (r.style ?? {}) as Record<string, unknown>;
+  const definitionRaw = r.definition && typeof r.definition === "object" && !Array.isArray(r.definition)
+    ? r.definition as Record<string, unknown>
+    : null;
   const paginas: Record<string, string[]> = {};
   for (const [k, v] of Object.entries(paginasRaw)) {
     paginas[k] = normalizeStringArray(v);
@@ -2929,6 +3319,19 @@ export async function apiXlsformEditorSmFetchSurveyInfo(
       prefix: String(styleRaw.prefix ?? "p"),
       pad: Number(styleRaw.pad ?? 0),
     },
+    definition: definitionRaw
+      ? {
+          schema: String(definitionRaw.schema ?? "surveymonkey_definition/v1"),
+          sha256: String(definitionRaw.sha256 ?? ""),
+          fetched_at: definitionRaw.fetched_at == null || definitionRaw.fetched_at === "NA"
+            ? ""
+            : String(definitionRaw.fetched_at),
+          survey_id: String(definitionRaw.survey_id ?? survey_id),
+          question_count: Number(definitionRaw.question_count ?? summaryRaw.n_preguntas ?? 0),
+          hash_scope: String(definitionRaw.hash_scope ?? ""),
+          translation_profile: String(definitionRaw.translation_profile ?? ""),
+        }
+      : null,
   };
 }
 
@@ -3084,6 +3487,7 @@ const XLSFORM_SOURCE_FIELDS = [
   "variants",
   "remote_payload_sha256_observed",
   "definition_hash_scope",
+  "translation_profile",
   "provenance",
   "logic_confirmed_at",
   "logic_confirmation_method",
@@ -3606,7 +4010,11 @@ export async function apiXlsformEditorImportSurveyMonkeyWithLogic(
   paginas: Record<string, string[]>,
   paginas_labels: Record<string, string>,
   lang = "es",
-  smApi?: { survey_id: string },
+  smApi?: {
+    survey_id: string;
+    expected_definition_sha256?: string;
+    expected_translation_profile?: string;
+  },
   choice_order_overrides?: Record<string, string[]>,
   choice_code_maps: ChoiceCodeMap[] = [],
 ): Promise<EditorPayloadWithHallazgos> {
@@ -3621,6 +4029,8 @@ export async function apiXlsformEditorImportSurveyMonkeyWithLogic(
         paginas_labels,
         lang,
         survey_id: smApi?.survey_id ?? "",
+        expected_definition_sha256: smApi?.expected_definition_sha256 ?? "",
+        expected_translation_profile: smApi?.expected_translation_profile ?? "",
         choice_order_overrides: choice_order_overrides ?? {},
         choice_code_maps,
       }),
@@ -3756,6 +4166,7 @@ export async function apiXlsformEditorExport(
   source?: XlsformEditorPayload["source"] | null,
   options?: { include_app_columns?: boolean },
 ) {
+  const safeSource = normalizeXlsformFormSource(source);
   return handle<{
     ok: true;
     file_id: string;
@@ -3765,7 +4176,7 @@ export async function apiXlsformEditorExport(
     await apiFetch("/api/xlsform-editor/export", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ workbook, filename, source, options }),
+      body: JSON.stringify({ workbook, filename, source: safeSource, options }),
     })
   );
 }
@@ -4413,6 +4824,8 @@ export type ProcessingIntakeEntry = ProcessingIntakeBindingInput & {
 export type ProcessingIntakeRevision = XlsformInstrumentRevision & {
   form_name: string;
   source_label: string;
+  /** Procedencia congelada al publicar; actor_key nunca se infiere del nombre. */
+  source: XlsformFormSource | null;
   is_latest: boolean;
   available: boolean;
   blocking_reasons: ProcessingIntakeBlockingReason[];
@@ -4521,6 +4934,7 @@ function normalizeProcessingIntakeRevision(value: unknown): ProcessingIntakeRevi
     ...revision,
     form_name: processingIntakeString(row.form_name) || processingIntakeString(row.name),
     source_label: processingIntakeString(row.source_label),
+    source: normalizeXlsformFormSource(row.source),
     is_latest: row.is_latest === true || row.latest === true,
     available: row.available !== false,
     blocking_reasons: processingIntakeArray(row.blocking_reasons)
@@ -11635,6 +12049,29 @@ export async function apiGraficosConfigPut(config: unknown) {
   );
 }
 
+export type GraficosConsolidadoDraft = {
+  ok: true;
+  schema: "graficos_consolidado_draft/v1" | string;
+  revision: number;
+  config: unknown;
+};
+
+export async function apiGraficosConsolidadoDraftGet() {
+  return handle<GraficosConsolidadoDraft>(
+    await apiFetch("/api/graficos/consolidado/draft", { headers: headers() }),
+  );
+}
+
+export async function apiGraficosConsolidadoDraftPut(config: unknown, expectedRevision: number) {
+  return handle<GraficosConsolidadoDraft>(
+    await apiFetch("/api/graficos/consolidado/draft", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config, expected_revision: expectedRevision }),
+    }),
+  );
+}
+
 export async function apiGraficosConfigExport() {
   return handle<{ ok: true; version: string; exported_at: string; config: unknown }>(
     await apiFetch("/api/graficos/config/export", { headers: headers() })
@@ -11928,6 +12365,7 @@ export type PreviewSlideOptions = {
   preview_quality?: "quick" | "normal";
   include_images?: boolean;
   render_slide_preview?: boolean;
+  scope?: "consolidated";
 };
 
 export type PreviewSlideResponse = {
@@ -12034,9 +12472,10 @@ export type VariablesBySource = {
   processing_mode?: string | null;
 };
 
-export async function apiGraficosVariables() {
+export async function apiGraficosVariables(scope: "active" | "consolidated" = "active") {
+  const query = scope === "consolidated" ? "?scope=consolidado" : "";
   return handle<VariablesBySource>(
-    await apiFetch("/api/graficos/variables", { headers: headers() })
+    await apiFetch(`/api/graficos/variables${query}`, { headers: headers() })
   );
 }
 
@@ -12120,12 +12559,20 @@ export type GraficosSuggestedPlanResponse = {
   warnings: string[];
 };
 
-export async function apiGraficosPlanCoverage(plan: PlanJson, config?: unknown) {
+export async function apiGraficosPlanCoverage(
+  plan: PlanJson,
+  config?: unknown,
+  scope: "active" | "consolidated" = "active",
+) {
   return handle<GraficosCoverageResponse>(
     await apiFetch("/api/graficos/plan/coverage", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ plan, config }),
+      body: JSON.stringify({
+        plan,
+        config,
+        ...(scope === "consolidated" ? { scope: "consolidado" } : {}),
+      }),
     })
   );
 }
@@ -12191,7 +12638,19 @@ export type GraficosConsolidadoPreflight = {
   ok: true;
   schema: "graficos_consolidado/v1" | string;
   ready: boolean;
-  blockers: Array<{ code: string; message: string; bases?: string[]; refs?: string[] }>;
+  blockers: Array<{
+    code: string;
+    message: string;
+    bases?: string[];
+    refs?: string[];
+    requirements?: Array<{
+      base: string;
+      actor: string;
+      status: string;
+      ready: boolean;
+      blockers: Array<{ code: string; message: string }>;
+    }>;
+  }>;
   source_order: string[];
   releases: Array<{
     base: string;
@@ -12217,13 +12676,13 @@ export async function apiGraficosConsolidadoPreflight() {
 
 export async function apiGraficosPptConsolidado(
   presets?: Record<string, unknown>,
-  config?: unknown,
+  expectedRevision?: number,
 ) {
   return handle<JobStart>(
     await apiFetch("/api/graficos/consolidado/ppt", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ presets, config }),
+      body: JSON.stringify({ presets, expected_revision: expectedRevision }),
     }),
   );
 }

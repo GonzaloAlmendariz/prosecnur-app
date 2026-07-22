@@ -44,6 +44,15 @@ function isProcesamientoRoute(pathname: string): boolean {
   );
 }
 
+export function processingHeaderReportScope(
+  pathname: string,
+  search: string,
+): "active" | "consolidated" {
+  if (pathname !== "/graficos") return "active";
+  const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  return params.get("scope") === "consolidado" ? "consolidated" : "active";
+}
+
 function procesamientoIndex(pathname: string): number | null {
   const index = PROCESAMIENTO_PATHS.findIndex(
     (p) => pathname === p || pathname.startsWith(`${p}/`),
@@ -309,9 +318,11 @@ function statusOn(value: unknown) {
 function SiblingWorkbenchSelector({
   visible,
   placement = "floating",
+  reportScope = "active",
 }: {
   visible: boolean;
   placement?: "floating" | "row";
+  reportScope?: "active" | "consolidated";
 }) {
   const { state, refresh } = useSession();
   const [estudio, setEstudio] = useState<EstudioPayload | null>(null);
@@ -321,9 +332,11 @@ function SiblingWorkbenchSelector({
   const baseCount = state?.n_bases ?? 0;
   const baseScope = processingBaseScopePresentation(state?.estudio_processing_mode, baseCount);
   const independent = visible && baseScope.showBasePicker;
+  const consolidated = independent && reportScope === "consolidated";
+  const needsBasePicker = independent && !consolidated;
 
   async function load() {
-    if (!independent) return;
+    if (!needsBasePicker) return;
     try {
       setEstudio(await apiEstudioGet());
     } catch {
@@ -343,9 +356,29 @@ function SiblingWorkbenchSelector({
       window.removeEventListener("pulso:session-changed", onChanged);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [independent, state?.active_base, state?.n_bases]);
+  }, [needsBasePicker, state?.active_base, state?.n_bases]);
 
-  if (!independent || !estudio) {
+  if (consolidated) {
+    return (
+      <div
+        className="pulso-sibling-switcher is-row is-summary is-consolidated"
+        aria-label={`Alcance del informe: todas las bases (${baseCount})`}
+        title={`Informe compartido con ${baseCount} bases independientes`}
+      >
+        <div className="pulso-sibling-trigger pulso-sibling-trigger--summary" role="status">
+          <span className="pulso-sibling-trigger-icon" aria-hidden="true">
+            <Database size={14} />
+          </span>
+          <span className="pulso-sibling-trigger-copy">
+            <strong>Todas las bases</strong>
+          </span>
+          <span className="pulso-sibling-trigger-progress" aria-hidden="true">{baseCount} fuentes</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!needsBasePicker || !estudio) {
     if (inRow && visible && baseCount > 0) {
       const modeLabel = independent ? "Preparando selector" : baseScope.summaryLabel;
       return (
@@ -499,6 +532,7 @@ export default function Layout() {
   const isHome = location.pathname === "/";
   const policy = routePolicy(location.pathname);
   const routeMotionKey = location.pathname;
+  const reportScope = processingHeaderReportScope(location.pathname, location.search);
   const previousPathRef = useRef(location.pathname);
   const previousPhaseIndex = procesamientoIndex(previousPathRef.current);
   const currentPhaseIndex = procesamientoIndex(location.pathname);
@@ -538,7 +572,7 @@ export default function Layout() {
           <ProcessingPhaseDock items={items} />
           <div className="pulso-processing-phase-side pulso-processing-phase-side--right">
             <div className="pulso-base-workbench" role="group" aria-label="Visor de bases del procesamiento">
-              <SiblingWorkbenchSelector visible={showFases} placement="row" />
+              <SiblingWorkbenchSelector visible={showFases} placement="row" reportScope={reportScope} />
               <MultibaseReportMenu />
             </div>
           </div>

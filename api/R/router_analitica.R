@@ -45,6 +45,20 @@
   as.character((meta %||% list())$kind %||% "")
 }
 
+.analitica_original_member_id <- function(s, current_id, original_id, adapted_kind) {
+  current_id <- as.character(current_id %||% "")
+  original_id <- as.character(original_id %||% "")
+  current <- .analitica_file_by_id(s, current_id)
+
+  # "Original" representa la fuente vigente antes de codificar, no cualquier
+  # respaldo historico. Un reemplazo SAV sigue siendo original mientras su
+  # archivo actual no sea el artefacto adaptado de Codificacion.
+  if (!is.null(current) && !identical(.analitica_file_kind(current), adapted_kind)) {
+    return(current_id)
+  }
+  if (nzchar(original_id)) original_id else current_id
+}
+
 .analitica_pair_is_adapted <- function(s, base_meta) {
   xls <- .analitica_file_by_id(s, base_meta$xlsform_file_id)
   dat <- .analitica_file_by_id(s, base_meta$data_file_id)
@@ -94,12 +108,22 @@
 .analitica_pair_for_base <- function(s, base_meta, fuente, base_name = NULL) {
   fuente <- as.character(fuente %||% "adaptados")
   if (identical(fuente, "originales")) {
-    xls_id <- as.character(base_meta$original_xlsform_file_id %||% base_meta$xlsform_file_id %||% "")
+    xls_id <- .analitica_original_member_id(
+      s,
+      base_meta$xlsform_file_id,
+      base_meta$original_xlsform_file_id,
+      "instrumento_adaptado"
+    )
     filtered_id <- if (isTRUE((base_meta$universe_filter %||% list())$enabled)) {
       as.character((base_meta$universe_filter %||% list())$effective_data_file_id %||% "")
     } else ""
     data_id <- if (nzchar(filtered_id)) filtered_id else
-      as.character(base_meta$original_data_file_id %||% base_meta$data_file_id %||% "")
+      .analitica_original_member_id(
+        s,
+        base_meta$data_file_id,
+        base_meta$original_data_file_id,
+        "data_adaptada"
+      )
   } else {
     xls_id <- as.character(base_meta$xlsform_file_id %||% "")
     data_id <- as.character(base_meta$data_file_id %||% "")
@@ -127,13 +151,13 @@
   list(xls = xls, data = dat)
 }
 
-.analitica_effective_source <- function(s, cfg) {
+.analitica_effective_source <- function(s, cfg, bases = NULL) {
   pref <- as.character((cfg %||% list())$fuente_preferida %||% "adaptados")
   if (identical(pref, "auto")) pref <- "adaptados"
   if (!pref %in% c("originales", "adaptados")) pref <- "adaptados"
   if (identical(pref, "originales")) return("originales")
 
-  bases <- (s$estudio %||% list())$bases %||% list()
+  bases <- bases %||% ((s$estudio %||% list())$bases %||% list())
   # En un estudio con varias tablas la fuente es una propiedad del conjunto:
   # nunca mezclar una base codificada con otra original bajo una misma corrida.
   # La fuente adaptada se habilita únicamente cuando TODAS las bases requeridas
@@ -144,7 +168,10 @@
 
 .analitica_cfg_with_effective_source <- function(sid, cfg) {
   out <- cfg %||% list()
-  out$fuente_preferida <- .analitica_effective_source(session_get(sid), out)
+  s <- session_get(sid)
+  bases <- (s$estudio %||% list())$bases %||% list()
+  bases <- .analitica_scope_bases(sid, bases)
+  out$fuente_preferida <- .analitica_effective_source(s, out, bases)
   out
 }
 
@@ -512,9 +539,9 @@
 
 .analitica_prepare_context <- function(sid, cfg) {
   s <- session_get(sid)
-  fuente <- .analitica_effective_source(s, cfg)
   bases <- (s$estudio %||% list())$bases %||% list()
   bases <- .analitica_scope_bases(sid, bases)
+  fuente <- .analitica_effective_source(s, cfg, bases)
 
   if (length(bases) > 0L) {
     data_sources <- list()
@@ -556,9 +583,9 @@
 .analitica_source_pairs <- function(sid, cfg = NULL) {
   s <- session_get(sid)
   cfg <- cfg %||% .analitica_get_config(sid)
-  fuente <- .analitica_effective_source(s, cfg)
   bases <- (s$estudio %||% list())$bases %||% list()
   bases <- .analitica_scope_bases(sid, bases)
+  fuente <- .analitica_effective_source(s, cfg, bases)
 
   if (length(bases) > 0L) {
     pairs <- list()
