@@ -413,14 +413,20 @@ async function warmupMonitoreoLocalData() {
   return { family: family || "sin perfil", profile: familyProfile?.chunk };
 }
 
+export function graficosWarmupScope(search: string): "active" | "consolidated" {
+  const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  return params.get("scope") === "consolidado" ? "consolidated" : "active";
+}
+
 async function warmupGraficosLocalData() {
   const api = await import("../api/client");
+  const scope = graficosWarmupScope(typeof window === "undefined" ? "" : window.location.search);
   return Promise.allSettled([
     api.apiGraficosRegistry(),
     api.apiGraficosPresetsMetadata(),
     api.apiGraficosTemplates(),
     api.apiGraficosConfigGet(),
-    api.apiGraficosVariables(),
+    api.apiGraficosVariables(scope),
   ]);
 }
 
