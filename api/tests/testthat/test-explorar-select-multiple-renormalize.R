@@ -124,3 +124,93 @@ test_that("select_multiple conserva sus dummies tras rebuild + renormalize al ab
   expect_equal(unname(counts["security"]), 1L)
   expect_equal(unname(counts["other"]), 3L)    # 2 solas + 1 "distance other"
 })
+
+test_that("reabrir un cache ya canonico conserva la auditoria de Validacion", {
+  skip_if_not_installed("openxlsx")
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  xls_path <- tempfile(fileext = ".xlsx")
+  dat_path <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(c(xls_path, dat_path)), add = TRUE)
+
+  .esm_write_xlsform(xls_path)
+  raw <- .esm_write_data(dat_path)
+  inst <- reporte_instrumento(path = xls_path)
+
+  session_set(sid, "files", list(
+    `xls-esm` = list(file_id = "xls-esm", kind = "xlsform", path = xls_path, ext = "xlsx"),
+    `dat-esm` = list(file_id = "dat-esm", kind = "data", path = dat_path, ext = "xlsx")
+  ))
+  estudio_add_base(
+    sid,
+    nombre = "pdm",
+    xlsform_file_id = "xls-esm",
+    data_file_id = "dat-esm",
+    data_ext = "xlsx",
+    rp_data = raw,
+    rp_inst = inst,
+    n_filas = nrow(raw),
+    n_columnas = ncol(raw)
+  )
+  validacion_scope_set(
+    sid,
+    "pdm",
+    "evaluacion",
+    list(resumen = list(n_reglas = 1L), reglas_meta = list(schema = "test"))
+  )
+
+  .pulso_rebuild_estudio_runtime_sources(sid)
+  expect_false(is.null(validacion_scope_get(sid, "pdm", "evaluacion")))
+
+  .pulso_renormalize_after_load(sid)
+
+  expect_false(is.null(validacion_scope_get(sid, "pdm", "evaluacion")))
+
+  # Si el cache pierde el sello canónico, la renormalización sí puede cambiar
+  # el contenido auditado y debe obligar a revisar otra vez.
+  s <- session_get(sid)
+  stale <- s$rp_data_sources$pdm
+  attr(stale, "xlsform_normalized") <- NULL
+  s$rp_data_sources$pdm <- stale
+  s$rp_data <- stale
+  s$estudio$bases$pdm$validacion$evaluacion <- list(
+    resumen = list(n_reglas = 1L),
+    reglas_meta = list(schema = "test")
+  )
+  .session_env[[sid]] <- s
+
+  .pulso_renormalize_after_load(sid)
+
+  expect_null(validacion_scope_get(sid, "pdm", "evaluacion"))
+})
+
+test_that("reabrir restaura los hitos de la base activa sin ensuciar el proyecto", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  s <- session_get(sid)
+  s$estudio <- list(
+    processing_mode = "independent_siblings",
+    active_base = "egresados",
+    bases = list(egresados = list(nombre = "egresados"))
+  )
+  s$analitica_status_por_base <- list(egresados = list(
+    analitica_prep_ok = TRUE,
+    analitica_frecuencias_ok = TRUE,
+    analitica_cruces_ok = TRUE
+  ))
+  s$analitica_prep_ok <- FALSE
+  s$analitica_frecuencias_ok <- FALSE
+  s$analitica_cruces_ok <- FALSE
+  s$project_dirty <- FALSE
+  .session_env[[sid]] <- s
+
+  expect_true(.pulso_restore_active_stage_flags_after_load(sid))
+
+  restored <- session_get(sid)
+  expect_true(restored$analitica_prep_ok)
+  expect_true(restored$analitica_frecuencias_ok)
+  expect_true(restored$analitica_cruces_ok)
+  expect_false(restored$project_dirty)
+})

@@ -305,9 +305,12 @@
     data_sources <- estudio_data_sources(sid)
     inst_sources <- estudio_inst_sources(sid)
   }
-  effective_base <- if (!is.null(base_nombre) && nzchar(base_nombre)) base_nombre
-                     else if (length(data_sources) > 0L) names(data_sources)[1]
-                     else NULL
+  effective_base <- if (!is.null(base_nombre) && nzchar(base_nombre)) {
+    base_nombre
+  } else {
+    estudio_active_base(sid) %||%
+      if (length(data_sources) > 0L) names(data_sources)[1] else NULL
+  }
   if (is.null(effective_base) ||
       is.null(data_sources[[effective_base]]) ||
       is.null(inst_sources[[effective_base]])) {
@@ -315,9 +318,12 @@
       tryCatch(.pulso_rebuild_estudio_runtime_sources(sid), error = function(e) NULL)
       data_sources <- estudio_data_sources(sid)
       inst_sources <- estudio_inst_sources(sid)
-      effective_base <- if (!is.null(base_nombre) && nzchar(base_nombre)) base_nombre
-                         else if (length(data_sources) > 0L) names(data_sources)[1]
-                         else NULL
+      effective_base <- if (!is.null(base_nombre) && nzchar(base_nombre)) {
+        base_nombre
+      } else {
+        estudio_active_base(sid) %||%
+          if (length(data_sources) > 0L) names(data_sources)[1] else NULL
+      }
     }
   }
   if (is.null(effective_base) ||
@@ -363,15 +369,9 @@
 # data de s$files (comportamiento viejo). Lanza 409 si falta alguno.
 .resolve_base_files <- function(sid, base_nombre = NULL) {
   s <- session_get(sid)
-  # Si la base viene nombrada o el estudio existe con bases, usar scope.
-  if (!is.null(base_nombre) && nzchar(base_nombre)) {
-    # Valida existencia y resuelve.
-    b_resolved <- .resolve_base_nombre(s, base_nombre)
-  } else if (!is.null(s$estudio) && length(s$estudio$bases) > 0L) {
-    b_resolved <- names(s$estudio$bases)[1]
-  } else {
-    b_resolved <- NULL
-  }
+  # En multibase, omitir el nombre significa trabajar sobre la base activa.
+  # `.resolve_base_nombre()` conserva el fallback legacy sin estudio.
+  b_resolved <- .resolve_base_nombre(s, base_nombre)
   if (!is.null(b_resolved)) {
     meta_b <- s$estudio$bases[[b_resolved]]
     xls_meta <- get_file(sid, meta_b$xlsform_file_id)
