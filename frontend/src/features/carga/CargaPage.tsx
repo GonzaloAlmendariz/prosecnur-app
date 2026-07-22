@@ -210,6 +210,7 @@ export default function CargaPage() {
   const [detectedKoboSource, setDetectedKoboSource] = useState<DetectedKoboSource | null>(null);
   const [processingSuggestions, setProcessingSuggestions] = useState<EstudioProcessingSuggestions | null>(null);
   const [processingSuggestionsStatus, setProcessingSuggestionsStatus] = useState("");
+  const [intakeRefreshToken, setIntakeRefreshToken] = useState(0);
   const [handoffStatus, setHandoffStatus] = useState<CargaMonitoreoHandoffStatus | null>(null);
   const [handoffMessage, setHandoffMessage] = useState("");
   // Reconciliación de variables data ↔ XLSForm. `reconInfo` alimenta el panel
@@ -620,6 +621,10 @@ export default function CargaPage() {
       isIndependentStudy ||
       !(hasDefaultStudyBase)
     );
+  const plannedPublics = Math.max(
+    processingSuggestions?.summary.actors_count ?? 0,
+    processingSuggestions?.groups.length ?? 0,
+  );
 
   // Payload del estudio — cargamos on-demand cuando entramos a modo
   // multi-base para mostrar el BasesPanel con detalle de cada base.
@@ -837,6 +842,7 @@ export default function CargaPage() {
           <ContextBarDivider />
           <MultiBaseToggle
             on={isMultiBase}
+            plannedPublics={!isMultiBase && plannedPublics > 1 ? plannedPublics : 0}
             canTurnOff={isMultiBase && (state?.n_bases ?? 0) <= 1}
             bases={state?.n_bases ?? 0}
             disabled={!!busy}
@@ -954,7 +960,7 @@ export default function CargaPage() {
         <AdaptiveSplitView
           ariaLabel="Mesa de trabajo de varias bases"
           railLabel="Pestañas de carga"
-          className="pulso-upload-section pulso-carga-workbench"
+          className="pulso-upload-section pulso-carga-workbench pulso-carga-workbench--multibase"
           rail={(
             <CargaWorkspaceSidebar
               active={activeCargaTab}
@@ -984,9 +990,11 @@ export default function CargaPage() {
                 <ProcessingIntakePanel
                   sessionId={sessionId}
                   suggestions={processingSuggestions?.groups}
+                  onPlanSaved={() => setIntakeRefreshToken((current) => current + 1)}
                 />
                 <AcreditacionBatchPanel
                   sessionId={sessionId}
+                  refreshToken={intakeRefreshToken}
                   onPromoted={onEstudioChanged}
                 />
                 <BasesPanel
@@ -1163,9 +1171,11 @@ export default function CargaPage() {
           <ProcessingIntakePanel
             sessionId={sessionId}
             suggestions={processingSuggestions?.groups}
+            onPlanSaved={() => setIntakeRefreshToken((current) => current + 1)}
           />
           <AcreditacionBatchPanel
             sessionId={sessionId}
+            refreshToken={intakeRefreshToken}
             onPromoted={onEstudioChanged}
           />
           {sourceMode === "files" && showFieldWorkHandoff && handoffStatus && (
@@ -2756,15 +2766,34 @@ function ContinuarCTA() {
 //     con tooltip "quita las bases extra primero". El botón "Cerrar
 //     estudio" del panel cubre el caso destructivo.
 function MultiBaseToggle({
-  on, canTurnOff, bases, disabled, onTurnOn, onTurnOff,
+  on, plannedPublics, canTurnOff, bases, disabled, onTurnOn, onTurnOff,
 }: {
   on: boolean;
+  plannedPublics: number;
   canTurnOff: boolean;
   bases: number;
   disabled: boolean;
   onTurnOn: () => Promise<void>;
   onTurnOff: () => Promise<void>;
 }) {
+  if (!on && plannedPublics > 1) {
+    return (
+      <div
+        role="status"
+        aria-label={`${plannedPublics} públicos detectados con bases separadas planificadas`}
+        className="pulso-multibase-toggle is-planned"
+      >
+        <span className="pulso-multibase-planned-icon" aria-hidden="true"><Database size={16} /></span>
+        <div className="pulso-multibase-toggle-copy">
+          <div className="pulso-multibase-toggle-title">Bases separadas por público</div>
+          <div className="pulso-multibase-toggle-hint">
+            {plannedPublics} públicos detectados; las bases se crearán juntas al completar las asignaciones.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const locked = on && !canTurnOff;
   const effectiveDisabled = disabled || locked;
 

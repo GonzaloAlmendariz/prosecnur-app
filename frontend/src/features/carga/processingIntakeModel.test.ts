@@ -1,10 +1,17 @@
 import { describe, expect, test } from "vitest";
-import type { ProcessingIntakeEntry, ProcessingIntakeRevision } from "../../api/client";
+import type {
+  EstudioProcessingSuggestionGroup,
+  ProcessingIntakeEntry,
+  ProcessingIntakeRevision,
+} from "../../api/client";
 import {
   newProcessingIntakeBinding,
   processingIntakeBindingFingerprint,
   processingIntakeDraftValid,
+  processingIntakeEntriesFromGuidedPlan,
   processingIntakeEntryFormId,
+  processingIntakeGuidedPlan,
+  processingIntakePlanComplete,
   processingIntakeResolvedEntry,
   processingIntakeRevisionLabel,
   processingIntakeStatusView,
@@ -21,10 +28,29 @@ const revision: ProcessingIntakeRevision = {
   published_at: "2026-07-20T12:00:00Z",
   form_name: "Encuesta Docentes",
   source_label: "SurveyMonkey",
+  source: { kind: "surveymonkey", original_name: "Docentes", actor_key: "docentes" },
   is_latest: false,
   available: true,
   blocking_reasons: [],
 };
+
+function group(actorKey: string, actor: string): EstudioProcessingSuggestionGroup {
+  return {
+    id: `group-${actorKey}`,
+    project_kind: "acreditacion",
+    actor,
+    actor_key: actorKey,
+    platform: "surveymonkey",
+    label: actor,
+    recommended_base_name: actor,
+    source_count: 1,
+    response_count: 12,
+    importable: true,
+    import_mode: "surveymonkey_independent_sibling",
+    confidence: "high",
+    sources: [],
+  };
+}
 
 test("stable keys come from the UUID, never from visible labels", () => {
   const entry = newProcessingIntakeBinding("AB-CD", {
@@ -71,12 +97,61 @@ test("resolves the editor link by form_id from the immutable revision", () => {
 });
 
 test("suggestions are matched by actor_key rather than actor label", () => {
-  const groups = [
-    { actor_key: "docentes", actor: "Docentes", recommended_base_name: "Docentes" },
-    { actor_key: "egresados", actor: "Egresados", recommended_base_name: "Egresados" },
-  ] as any[];
+  const groups = [group("docentes", "Docentes"), group("egresados", "Egresados")];
   const entries = [{ ...newProcessingIntakeBinding("entry-1"), actor_key: "docentes", actor: "Nombre cambiado" }];
   expect(processingIntakeSuggestedGroups(groups, entries).map((group) => group.actor_key)).toEqual(["egresados"]);
+});
+
+describe("guided exact actor links", () => {
+  test("prefers the unique latest available revision with the same explicit actor_key", () => {
+    const historical = { ...revision, revision_id: "rev-old", revision_no: 1, is_latest: false };
+    const latest = { ...revision, revision_id: "rev-new", revision_no: 2, is_latest: true };
+    const plan = processingIntakeGuidedPlan([group("docentes", "Docentes")], [historical, latest]);
+
+    expect(plan.ready).toBe(true);
+    expect(plan.links[0]).toMatchObject({ status: "ready", revision: { revision_id: "rev-new" } });
+    expect(processingIntakeEntriesFromGuidedPlan(plan, [], () => "uuid-1")).toMatchObject([{
+      entry_id: "uuid-1",
+      actor_key: "docentes",
+      instrument_revision_id: "rev-new",
+    }]);
+  });
+
+  test("never guesses from labels and reports missing or ambiguous assignments", () => {
+    const sameLabelWrongKey: ProcessingIntakeRevision = {
+      ...revision,
+      source: { ...(revision.source ?? { kind: null, original_name: null }), actor_key: "otro_actor" },
+    };
+    const missing = processingIntakeGuidedPlan(
+      [group("docentes", "Nombre idéntico al formulario")],
+      [{ ...sameLabelWrongKey, form_name: "Nombre idéntico al formulario" }],
+    );
+    expect(missing).toMatchObject({ ready: false, links: [{ status: "missing", revision: null }] });
+
+    const ambiguous = processingIntakeGuidedPlan(
+      [group("docentes", "Docentes")],
+      [
+        { ...revision, revision_id: "rev-a", is_latest: true },
+        { ...revision, revision_id: "rev-b", is_latest: true },
+      ],
+    );
+    expect(ambiguous).toMatchObject({ ready: false, links: [{ status: "ambiguous", revision: null }] });
+  });
+
+  test("keeps stable intake identities when preparing the plan again", () => {
+    const plan = processingIntakeGuidedPlan([group("docentes", "Docentes actualizados")], [revision]);
+    const existing = [{
+      ...newProcessingIntakeBinding("stable-entry", group("docentes", "Nombre anterior")),
+      base_label: "Base conservada",
+      instrument_revision_id: "rev-old",
+    }];
+    expect(processingIntakeEntriesFromGuidedPlan(plan, existing, () => "unused")[0]).toMatchObject({
+      entry_id: "stable-entry",
+      base_label: "Base conservada",
+      actor: "Docentes actualizados",
+      instrument_revision_id: "rev-1",
+    });
+  });
 });
 
 describe("processing intake draft validation", () => {
@@ -86,5 +161,30 @@ describe("processing intake draft validation", () => {
     expect(processingIntakeDraftValid([valid])).toBe(true);
     expect(processingIntakeDraftValid([{ ...valid, instrument_revision_id: "" }])).toBe(false);
     expect(processingIntakeDraftValid([valid, { ...valid, actor: "Otro" }])).toBe(false);
+  });
+});
+
+describe("processing intake materialized plan", () => {
+  function materializedEntry(actorKey: string): ProcessingIntakeEntry {
+    return {
+      ...newProcessingIntakeBinding(`entry-${actorKey}`, group(actorKey, actorKey)),
+      instrument_revision_id: `rev-${actorKey}`,
+      status: "materialized",
+      form_id: `form-${actorKey}`,
+      latest_revision_id: `rev-${actorKey}`,
+      blocking_reasons: [],
+    };
+  }
+
+  test("is complete only when every suggested actor already has a materialized base", () => {
+    const suggestions = [group("docentes", "Docentes"), group("egresados", "Egresados")];
+    const entries = [materializedEntry("docentes"), materializedEntry("egresados")];
+
+    expect(processingIntakePlanComplete(entries, suggestions)).toBe(true);
+    expect(processingIntakePlanComplete([
+      { ...entries[0], status: "instrument_ready" },
+      entries[1],
+    ], suggestions)).toBe(false);
+    expect(processingIntakePlanComplete([entries[0]], suggestions)).toBe(false);
   });
 });
