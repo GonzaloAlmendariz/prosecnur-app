@@ -3498,7 +3498,12 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
               territorial_report_cache_built <- TRUE
             }
           }
-          session_set(sid, "monitoreo_snapshot", snapshot)
+          # El dashboard y sus reportes son caches derivados de un GET. Usar
+          # session_set() aqui marcaria el .pulso como editado solo por abrir
+          # cualquier modulo durante el warm start.
+          cache_state <- session_get(sid)
+          cache_state$monitoreo_snapshot <- snapshot
+          .session_env[[sid]] <- cache_state
         }
       }
       s <- session_get(sid)
