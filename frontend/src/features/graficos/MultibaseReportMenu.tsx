@@ -1,20 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AlertTriangle, Archive, CheckCircle2, ChevronDown, Download, LayoutGrid, Loader2 } from "../../vendor/lucide-react";
 import {
-  apiGraficosConfigGet,
   apiGraficosConsolidadoPreflight,
   apiGraficosPptAll,
-  apiGraficosPptConsolidado,
   downloadUrl,
   type GraficosConsolidadoPreflight,
 } from "../../api/client";
 import { JobProgress } from "../../components/JobProgress";
 import { useSession } from "../../lib/SessionContext";
-import { buildGraficosConfigFromStore } from "./configSnapshot";
-import { type GraficosConfig, usePlanStore } from "./store";
 import { processingBaseScopePresentation } from "../procesamiento/baseScopeModel";
 import {
   multibaseReportMenuPresentation,
+  sharedReportPendingRequirements,
   type SharedReportPreflightStatus,
 } from "./multibaseReportMenuModel";
 
@@ -35,9 +33,10 @@ type ExportAllResult = {
   bases: Array<{ nombre: string; filename: string; n_slides: number }>;
 };
 
-type GroupJob = { kind: "ppt_consolidado" | "ppt_all"; id: string };
+type GroupJob = { kind: "ppt_all"; id: string };
 
 export function MultibaseReportMenu() {
+  const navigate = useNavigate();
   const { state, refresh } = useSession();
   const [open, setOpen] = useState(false);
   const [job, setJob] = useState<GroupJob | null>(null);
@@ -45,7 +44,6 @@ export function MultibaseReportMenu() {
   const [preflightStatus, setPreflightStatus] = useState<SharedReportPreflightStatus>("idle");
   const [preflight, setPreflight] = useState<GraficosConsolidadoPreflight | null>(null);
   const [error, setError] = useState("");
-  const [consolidated, setConsolidated] = useState<{ fileId: string; filename: string } | null>(null);
   const [allBases, setAllBases] = useState<{ fileId: string; filename: string } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const preflightRequestRef = useRef(0);
@@ -55,6 +53,7 @@ export function MultibaseReportMenu() {
   ).showSharedReports;
   const busy = Boolean(job) || starting;
   const presentation = multibaseReportMenuPresentation(preflightStatus, preflight, busy);
+  const pendingRequirements = sharedReportPendingRequirements(preflight);
 
   const loadPreflight = useCallback(async () => {
     const requestId = preflightRequestRef.current + 1;
@@ -94,7 +93,6 @@ export function MultibaseReportMenu() {
   }, [loadPreflight, open, visible]);
 
   useEffect(() => {
-    setConsolidated(null);
     setAllBases(null);
     setError("");
     setStarting(false);
@@ -105,30 +103,10 @@ export function MultibaseReportMenu() {
 
   if (!visible) return null;
 
-  async function reportConfig() {
-    const remote = await apiGraficosConfigGet();
-    usePlanStore.getState().hydrate(remote.config as GraficosConfig);
-    const current = usePlanStore.getState();
-    return {
-      presets: current.presets,
-      config: buildGraficosConfigFromStore(),
-    };
-  }
-
-  async function startConsolidated() {
-    if (presentation.sharedDisabled) return;
-    setError("");
-    setStarting(true);
-    try {
-      const prepared = await reportConfig();
-      const result = await apiGraficosPptConsolidado(prepared.presets, prepared.config);
-      setJob({ kind: "ppt_consolidado", id: result.job_id });
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo iniciar el informe compartido.");
-      void loadPreflight();
-    } finally {
-      setStarting(false);
-    }
+  function configureConsolidated() {
+    if (presentation.sharedConfigureDisabled) return;
+    setOpen(false);
+    navigate("/graficos?scope=consolidado");
   }
 
   async function startAllBases() {
@@ -146,11 +124,7 @@ export function MultibaseReportMenu() {
   }
 
   function onDone(result: ExportResult | ExportAllResult) {
-    if (job?.kind === "ppt_consolidado") {
-      setConsolidated({ fileId: result.file_id, filename: result.filename ?? "informe_compartido.pptx" });
-    } else {
-      setAllBases({ fileId: result.file_id, filename: result.filename ?? "reportes_por_base.zip" });
-    }
+    setAllBases({ fileId: result.file_id, filename: result.filename ?? "reportes_por_base.zip" });
     setJob(null);
     void refresh();
   }
@@ -191,7 +165,16 @@ export function MultibaseReportMenu() {
             </div>
           </div>
 
-          {preflightStatus === "blocked" && preflight?.blockers.length ? (
+          {preflightStatus === "blocked" && pendingRequirements.length ? (
+            <ul className="pulso-multibase-reports-blockers is-detailed">
+              {pendingRequirements.map((requirement) => (
+                <li key={requirement.base}>
+                  <strong>{requirement.actor}</strong>
+                  <span>{requirement.detail}</span>
+                </li>
+              ))}
+            </ul>
+          ) : preflightStatus === "blocked" && preflight?.blockers.length ? (
             <ul className="pulso-multibase-reports-blockers">
               {preflight.blockers.slice(0, 3).map((blocker) => (
                 <li key={`${blocker.code}-${blocker.message}`}>{blocker.message}</li>
@@ -199,11 +182,11 @@ export function MultibaseReportMenu() {
             </ul>
           ) : null}
 
-          <button type="button" className="pulso-multibase-report-option" onClick={() => void startConsolidated()} disabled={presentation.sharedDisabled}>
+          <button type="button" className="pulso-multibase-report-option" onClick={configureConsolidated} disabled={presentation.sharedConfigureDisabled}>
             <span aria-hidden="true"><LayoutGrid size={15} /></span>
             <span>
-              <strong>Informe compartido</strong>
-              <small>PPTX conjunto; compara actores cuando las preguntas son compatibles</small>
+              <strong>Configurar informe compartido</strong>
+              <small>Edita láminas con el catálogo de todas las fuentes</small>
             </span>
           </button>
           <button type="button" className="pulso-multibase-report-option" onClick={() => void startAllBases()} disabled={presentation.packageDisabled}>
@@ -216,7 +199,7 @@ export function MultibaseReportMenu() {
 
           {job && (
             <JobProgress<ExportResult | ExportAllResult>
-              label={job.kind === "ppt_consolidado" ? "Construyendo informe compartido" : "Empaquetando bases"}
+              label="Empaquetando bases"
               jobId={job.id}
               onDone={onDone}
               onError={(message) => { setError(message); setJob(null); }}
@@ -225,11 +208,8 @@ export function MultibaseReportMenu() {
           )}
 
           {error && <div className="pulso-multibase-reports-error" role="alert">{error}</div>}
-          {(consolidated || allBases) && (
+          {allBases && (
             <div className="pulso-multibase-reports-files">
-              {consolidated && (
-                <a href={downloadUrl(consolidated.fileId)}><Download size={12} /> {consolidated.filename}</a>
-              )}
               {allBases && (
                 <a href={downloadUrl(allBases.fileId)}><Download size={12} /> {allBases.filename}</a>
               )}

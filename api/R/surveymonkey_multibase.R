@@ -4994,7 +4994,8 @@ mount_surveymonkey_multibase <- function(pr) {
         sid = sid,
         file_id = parsed$file_id %||% parsed$sav_bundle_file_id,
         file_base_map = parsed$file_base_map %||% parsed$sav_base_map %||% list(),
-        missing_policy = .sm_mb_scalar(parsed$missing_required_policy %||% parsed$missing_policy, "fill_blank_warn")
+        missing_policy = .sm_mb_scalar(parsed$missing_required_policy %||% parsed$missing_policy, "fill_blank_warn"),
+        expected_inspection_fingerprint = parsed$expected_inspection_fingerprint
       )
     })) |>
     plumber::pr_post("/api/surveymonkey/multibase/decision-preview", wrap_endpoint(function(req, res, ...) {

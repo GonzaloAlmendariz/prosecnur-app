@@ -19,6 +19,7 @@ type PageFrameProps = {
   className?: string;
   resetScrollKey?: unknown;
   density?: "normal" | "compact";
+  auditReady?: string | false;
 };
 
 export function PageFrame({
@@ -34,6 +35,7 @@ export function PageFrame({
   className,
   resetScrollKey,
   density = "normal",
+  auditReady,
 }: PageFrameProps) {
   const headerRef = useRef<HTMLElement | null>(null);
   const toolbarRef = useRef<HTMLDivElement | null>(null);
@@ -96,7 +98,7 @@ export function PageFrame({
   }, [resetScrollKey]);
 
   return (
-    <section className={classes}>
+    <section className={classes} data-audit-ready={auditReady || undefined}>
       {headerMode === "sr-only" ? (
         <header ref={headerRef} className="pulso-sr-only">
           <h1>{title}</h1>

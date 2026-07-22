@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
   apiGraficosPlanCoverage,
   type GraficosCoverageResponse,
@@ -6,6 +7,7 @@ import {
 } from "../../api/client";
 import { usePlanStore } from "./store";
 import { buildGraficosConfigFromStore } from "./configSnapshot";
+import { parseGraficosReportScope } from "./reportScope";
 
 const COVERAGE_DEBOUNCE_MS = 350;
 
@@ -16,6 +18,8 @@ export type PlanCoverageState = {
 };
 
 export function usePlanCoverage(): PlanCoverageState {
+  const location = useLocation();
+  const reportScope = parseGraficosReportScope(location.search);
   const plan = usePlanStore((s) => s.plan);
   const scopeRules = usePlanStore((s) => s.scopeRules);
   const hydrated = usePlanStore((s) => s.hydrated);
@@ -30,7 +34,11 @@ export function usePlanCoverage(): PlanCoverageState {
       setLoading(true);
       setError("");
       try {
-        const result = await apiGraficosPlanCoverage(plan, buildGraficosConfigFromStore());
+        const result = await apiGraficosPlanCoverage(
+          plan,
+          buildGraficosConfigFromStore(),
+          reportScope,
+        );
         if (!cancelled) setCoverage(result);
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
@@ -43,7 +51,7 @@ export function usePlanCoverage(): PlanCoverageState {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [plan, scopeRules, hydrated]);
+  }, [plan, scopeRules, hydrated, reportScope]);
 
   return { coverage, loading, error };
 }

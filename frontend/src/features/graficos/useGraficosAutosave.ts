@@ -1,8 +1,14 @@
-import { useEffect, useRef } from "react";
-import { apiGraficosConfigGet, apiGraficosConfigPut } from "../../api/client";
+import { useCallback, useEffect, useRef } from "react";
+import {
+  apiGraficosConfigGet,
+  apiGraficosConfigPut,
+  apiGraficosConsolidadoDraftGet,
+  apiGraficosConsolidadoDraftPut,
+} from "../../api/client";
 import { createDefaultWordPresets, normalizeGraficosConfig, normalizeWordPresets } from "../../api/graficosConfigNormalizer";
 import { DEFAULT_CANVAS_VIEWPORT, DEFAULT_DEBUG_PH, GraficosConfig, usePlanStore } from "./store";
 import { buildGraficosScopeRules } from "./configSnapshot";
+import type { GraficosReportScope } from "./reportScope";
 
 // Autosave del plan de gráficos. Misma mecánica que useAnaliticaAutosave:
 //
@@ -75,7 +81,7 @@ function mergeWithDefaults(remote: unknown): GraficosConfig {
   };
 }
 
-export function useGraficosAutosave() {
+export function useGraficosAutosave(reportScope: GraficosReportScope = "active") {
   const plan = usePlanStore((s) => s.plan);
   const presets = usePlanStore((s) => s.presets);
   const wPresets = usePlanStore((s) => s.wPresets);
@@ -94,6 +100,41 @@ export function useGraficosAutosave() {
   const hydrate = usePlanStore((s) => s.hydrate);
   const markClean = usePlanStore((s) => s.markClean);
   const timer = useRef<number | null>(null);
+  const draftRevision = useRef<number | null>(null);
+  const saveInFlight = useRef<Promise<number> | null>(null);
+
+  const persistConsolidated = useCallback(async (config: unknown): Promise<number> => {
+    const previous = saveInFlight.current;
+    const operation = (async () => {
+      if (previous) await previous;
+      if (draftRevision.current == null) {
+        throw new Error("El borrador compartido aun no termino de cargar.");
+      }
+      const saved = await apiGraficosConsolidadoDraftPut(config, draftRevision.current);
+      draftRevision.current = saved.revision;
+      return saved.revision;
+    })();
+    saveInFlight.current = operation;
+    try {
+      return await operation;
+    } finally {
+      if (saveInFlight.current === operation) saveInFlight.current = null;
+    }
+  }, []);
+
+  const saveConsolidatedNow = useCallback(async (config: unknown): Promise<number> => {
+    if (reportScope !== "consolidated") {
+      throw new Error("El guardado inmediato solo aplica al informe compartido.");
+    }
+    if (timer.current) {
+      window.clearTimeout(timer.current);
+      timer.current = null;
+    }
+    const normalized = normalizeGraficosConfig(config, { includeLegacyAliases: true });
+    const revision = await persistConsolidated(normalized);
+    markClean();
+    return revision;
+  }, [markClean, persistConsolidated, reportScope]);
 
   // 1) Hidratación inicial + re-hidratación cuando la sesión o la base
   // activa cambian. En independent_siblings el backend devuelve una config
@@ -105,9 +146,18 @@ export function useGraficosAutosave() {
     async function hydrateFromBackend() {
       if (cancelled) return;
       try {
+        if (reportScope === "consolidated") {
+          const r = await apiGraficosConsolidadoDraftGet();
+          if (!cancelled) {
+            draftRevision.current = r.revision;
+            hydrate(mergeWithDefaults(r.config));
+          }
+          return;
+        }
         const r = await apiGraficosConfigGet();
         if (!cancelled) hydrate(mergeWithDefaults(r.config));
       } catch {
+        draftRevision.current = null;
         if (!cancelled) hydrate(DEFAULT_CONFIG);
       }
     }
@@ -118,16 +168,19 @@ export function useGraficosAutosave() {
       if (timer.current) window.clearTimeout(timer.current);
       void hydrateFromBackend();
     }
+    function rehydrateActiveConfig() {
+      if (reportScope === "active") rehydrateScopedConfig();
+    }
     window.addEventListener("pulso:session-changed", rehydrateScopedConfig);
-    window.addEventListener("pulso:active-base-changed", rehydrateScopedConfig);
+    window.addEventListener("pulso:active-base-changed", rehydrateActiveConfig);
     return () => {
       cancelled = true;
       if (timer.current) window.clearTimeout(timer.current);
       window.removeEventListener("pulso:session-changed", rehydrateScopedConfig);
-      window.removeEventListener("pulso:active-base-changed", rehydrateScopedConfig);
+      window.removeEventListener("pulso:active-base-changed", rehydrateActiveConfig);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [reportScope]);
 
   // 2) Autosave debounced.
   useEffect(() => {
@@ -156,7 +209,12 @@ export function useGraficosAutosave() {
         }),
       };
       try {
-        await apiGraficosConfigPut(normalizeGraficosConfig(config, { includeLegacyAliases: true }));
+        const normalized = normalizeGraficosConfig(config, { includeLegacyAliases: true });
+        if (reportScope === "consolidated") {
+          await persistConsolidated(normalized);
+        } else {
+          await apiGraficosConfigPut(normalized);
+        }
         markClean();
       } catch {
         // Silencioso por ahora; el próximo cambio reintenta.
@@ -170,6 +228,10 @@ export function useGraficosAutosave() {
     paletas, iconos, overridesReusables, debugPh,
     viewMode, inspectorTab, density, canvasViewport,
     scopeRules,
+    reportScope,
+    persistConsolidated,
     dirty, hydrated, markClean,
   ]);
+
+  return { saveConsolidatedNow };
 }

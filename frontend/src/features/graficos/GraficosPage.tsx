@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { ArrowRight, BarChart2, CheckCircle2, Database, FileSpreadsheet } from "lucide-react";
 import {
   apiGraficosPpt,
+  apiGraficosPptConsolidado,
+  apiGraficosConsolidadoPreflight,
   apiGraficosWord,
   apiGraficosValidar,
+  type GraficosConsolidadoPreflight,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
@@ -19,9 +22,17 @@ import { GraficosHeader } from "./GraficosHeader";
 import { EditorShell } from "./v2/shell/EditorShell";
 import { useShortcutsV2 } from "./v2/shortcuts/useShortcutsV2";
 import { buildGraficosConfigFromStore } from "./configSnapshot";
+import { GraficosReportScopeProvider, parseGraficosReportScope } from "./reportScope";
+import {
+  sharedReportPendingRequirements,
+  type SharedReportPreflightStatus,
+} from "./multibaseReportMenuModel";
 
 type ExportResult = { ok: true; file_id: string; filename?: string; size: number; n_slides: number };
 export default function GraficosPage() {
+  const location = useLocation();
+  const reportScope = parseGraficosReportScope(location.search);
+  const isSharedReport = reportScope === "consolidated";
   const { state, refresh } = useSession();
   const plan = usePlanStore((s) => s.plan);
   const presets = usePlanStore((s) => s.presets);
@@ -29,7 +40,7 @@ export default function GraficosPage() {
   const hydrated = usePlanStore((s) => s.hydrated);
 
   // Autosave: hidrata al montar + guarda debounced 2s en cada cambio.
-  useGraficosAutosave();
+  const { saveConsolidatedNow } = useGraficosAutosave(reportScope);
   // Atajos: Cmd/Ctrl+Z (undo), +Shift+Z (redo), +D (duplicar), ? (ayuda).
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   useGraficosShortcuts({ onOpenHelp: () => setShortcutsOpen(true) });
@@ -45,9 +56,38 @@ export default function GraficosPage() {
   const [pptFilename, setPptFilename] = useState<string | null>(null);
   const [docxFilename, setDocxFilename] = useState<string | null>(null);
   const [exportJob, setExportJob] = useState<{ kind: "ppt" | "word"; id: string } | null>(null);
+  const [sharedPreflight, setSharedPreflight] = useState<GraficosConsolidadoPreflight | null>(null);
+  const [sharedPreflightStatus, setSharedPreflightStatus] = useState<SharedReportPreflightStatus>("idle");
+  const [sharedPreflightError, setSharedPreflightError] = useState("");
 
   const prepOk = !!state?.analitica_prep_ok;
-  const canExport = prepOk && plan.slides.length > 0 && hydrated;
+  const sharedReady = sharedPreflightStatus === "ready" && sharedPreflight?.ready === true;
+  const canExport = (isSharedReport ? sharedReady : prepOk) && plan.slides.length > 0 && hydrated;
+  const pendingSharedRequirements = sharedReportPendingRequirements(sharedPreflight);
+
+  const loadSharedPreflight = useCallback(async () => {
+    setSharedPreflightStatus("loading");
+    setSharedPreflightError("");
+    try {
+      const result = await apiGraficosConsolidadoPreflight();
+      setSharedPreflight(result);
+      setSharedPreflightStatus(result.ready ? "ready" : "blocked");
+      return result;
+    } catch (cause) {
+      setSharedPreflight(null);
+      setSharedPreflightStatus("error");
+      setSharedPreflightError(cause instanceof Error ? cause.message : "No se pudo comprobar el informe compartido.");
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isSharedReport) return;
+    void loadSharedPreflight();
+    const reload = () => { void loadSharedPreflight(); };
+    window.addEventListener("pulso:session-changed", reload);
+    return () => window.removeEventListener("pulso:session-changed", reload);
+  }, [isSharedReport, loadSharedPreflight, state?.session_id]);
   useEffect(() => {
     function onActiveBaseChanged() {
       setPptFileId(null);
@@ -59,19 +99,37 @@ export default function GraficosPage() {
     }
     window.addEventListener("pulso:active-base-changed", onActiveBaseChanged);
     return () => window.removeEventListener("pulso:active-base-changed", onActiveBaseChanged);
-  }, []);
+  }, [reportScope]);
 
   async function onExport(kind: "ppt" | "word") {
+    if (isSharedReport && kind === "word") return;
     setError(null); setWarns([]); setBusyValidating(`validando ${kind}…`);
     try {
+      if (isSharedReport) {
+        const readiness = await loadSharedPreflight();
+        if (!readiness?.ready) {
+          setError({
+            message: "El informe compartido todavía no está listo para exportarse.",
+            hint: "Puedes seguir configurando sus láminas. Completa y aprueba cada base en Analítica, luego vuelve a comprobar.",
+          });
+          return;
+        }
+      }
       const v = await apiGraficosValidar(plan);
       setWarns(v.warnings);
       if (!v.ok) {
         setError(humanizeGraficosExportError(v.errors.join("; "), plan));
         return;
       }
-      const fn = kind === "ppt" ? apiGraficosPpt : apiGraficosWord;
-      const out = await fn(plan, presets, wPresets, buildGraficosConfigFromStore());
+      const config = buildGraficosConfigFromStore();
+      const sharedRevision = isSharedReport
+        ? await saveConsolidatedNow(config)
+        : null;
+      const out = isSharedReport
+        ? await apiGraficosPptConsolidado(presets, sharedRevision ?? undefined)
+        : kind === "ppt"
+          ? await apiGraficosPpt(plan, presets, wPresets, config)
+          : await apiGraficosWord(plan, presets, wPresets, config);
       setExportJob({ kind, id: out.job_id });
     } catch (e: unknown) {
       setError(humanizeGraficosExportError((e as Error).message, plan));
@@ -103,19 +161,59 @@ export default function GraficosPage() {
   }
 
   return (
+    <GraficosReportScopeProvider scope={reportScope}>
     <>
     <PageFrame
       title="Fase 5 - Reportes gráficos"
-      lead="Editor bloque por bloque con autoguardado y exportación PPT/Word."
+      lead={isSharedReport
+        ? "Informe compartido editable con el catálogo de todas las fuentes."
+        : "Editor bloque por bloque con autoguardado y exportación PPT/Word."}
       className="pulso-graficos-frame"
       headerMode="sr-only"
       bodyMode="fill"
-      resetScrollKey={state?.active_base ?? ""}
+      auditReady={hydrated && (!isSharedReport || ["ready", "blocked"].includes(sharedPreflightStatus))
+        ? isSharedReport ? "graficos-consolidado" : "graficos"
+        : false}
+      resetScrollKey={`${state?.active_base ?? ""}:${reportScope}`}
       toolbar={
         <>
-          {!prepOk && (
+          {!isSharedReport && !prepOk && (
             <Alert kind="warn">
               Primero prepara los datos en <strong>4. Analítica</strong>. La exportación se activa cuando la base queda lista para generar reportes.
+            </Alert>
+          )}
+
+          {isSharedReport && sharedPreflightStatus === "loading" && (
+            <Alert kind="info">Comprobando las aprobaciones de todas las bases…</Alert>
+          )}
+
+          {isSharedReport && sharedPreflightStatus === "blocked" && (
+            <Alert kind="warn">
+              <div className="pulso-graficos-shared-gate">
+                <div>
+                  <strong>Puedes diseñar el informe, pero todavía no exportarlo.</strong>
+                  <span>
+                    {pendingSharedRequirements.length
+                      ? pendingSharedRequirements.map((item) => `${item.actor}: ${item.detail}`).join(" · ")
+                      : sharedPreflight?.blockers.map((blocker) => blocker.message).join(" · ")}
+                  </span>
+                </div>
+                <div className="pulso-graficos-shared-gate-actions">
+                  <Link to="/analitica">Completar bases en Analítica</Link>
+                  <button type="button" className="pulso-secondary" onClick={() => void loadSharedPreflight()}>
+                    Volver a comprobar
+                  </button>
+                </div>
+              </div>
+            </Alert>
+          )}
+
+          {isSharedReport && sharedPreflightStatus === "error" && (
+            <Alert kind="error">
+              {sharedPreflightError || "No se pudo comprobar el informe compartido."}{" "}
+              <button type="button" className="pulso-secondary" onClick={() => void loadSharedPreflight()}>
+                Reintentar
+              </button>
             </Alert>
           )}
 
@@ -130,13 +228,14 @@ export default function GraficosPage() {
             exportJobKind={exportJob?.kind ?? null}
             canExport={canExport}
             prepReady={prepOk}
+            reportScope={reportScope}
           />
 
           {exportJob && (
             <JobProgress<ExportResult>
               label={
                 exportJob.kind === "ppt"
-                  ? "Exportando PPT"
+                  ? isSharedReport ? "Exportando informe compartido" : "Exportando PPT"
                   : "Exportando Word"
               }
               jobId={exportJob.id}
@@ -182,7 +281,7 @@ export default function GraficosPage() {
         </>
       }
     >
-      {prepOk ? (
+      {isSharedReport || prepOk ? (
         <EditorShell />
       ) : (
         <GraficosPrepBlocked />
@@ -191,6 +290,7 @@ export default function GraficosPage() {
 
       {shortcutsOpen && <ShortcutsModal onClose={() => setShortcutsOpen(false)} />}
     </>
+    </GraficosReportScopeProvider>
   );
 }
 
