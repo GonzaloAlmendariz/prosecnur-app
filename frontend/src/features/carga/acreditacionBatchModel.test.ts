@@ -3,6 +3,7 @@ import type { AcreditacionBatchPreview } from "../../api/client";
 import {
   acreditacionBatchCanPromote,
   acreditacionBatchEntryDetail,
+  acreditacionBatchFailureView,
   acreditacionBatchTotalLabel,
 } from "./acreditacionBatchModel";
 
@@ -52,5 +53,13 @@ describe("acreditacion batch model", () => {
     expect(acreditacionBatchTotalLabel(preview)).toContain("410 efectivas");
     expect(acreditacionBatchTotalLabel(preview)).toContain("109 fuera");
     expect(acreditacionBatchEntryDetail(preview.entries[0])).toContain("excluida");
+  });
+
+  test("translates the missing intake error into one contextual requirement", () => {
+    const view = acreditacionBatchFailureView("E_ACREDITACION_BATCH_INTAKE", "raw backend message");
+    expect(view.guided).toBe(true);
+    expect(view.message).toBe("Falta asignar un formulario publicado a uno o más públicos antes de crear las bases.");
+    expect(view.message).not.toContain("1.");
+    expect(view.message).not.toContain("E_ACREDITACION_BATCH_INTAKE");
   });
 });

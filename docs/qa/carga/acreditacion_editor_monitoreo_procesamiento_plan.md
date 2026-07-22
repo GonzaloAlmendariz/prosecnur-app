@@ -416,6 +416,106 @@ seleccionadas tienen `response_row` valido y unico, `response_id` unico y llave
 actor+caso unica. La materializacion real queda deliberadamente bloqueada hasta
 publicar y vincular los XLSForm exactos del proyecto.
 
+#### Cierre del puente operativo — 2026-07-21
+
+El estado anterior era metodologicamente seguro, pero dejaba al usuario en un
+callejon sin salida: el proyecto original no tenia formularios ni revisiones y
+Procesamiento mostraba `E_ACREDITACION_BATCH_INTAKE` sin ofrecer la transicion
+que faltaba. La correccion mantiene el bloqueo metodologico y hace ejecutable el
+recorrido completo:
+
+- el Editor muestra en cada tarjeta el actor explicito del instrumento y guarda
+  `source.actor_key`; nunca lo infiere del nombre del archivo o formulario;
+- cambiar el actor crea un borrador nuevo y no modifica una revision publicada;
+- Procesamiento propone solo coincidencias exactas y unicas entre
+  `suggestion.actor_key` y `revision.source.actor_key`; faltantes o ambiguedades
+  vuelven al Editor y requieren decision humana;
+- el backend rechaza un binding si el actor declarado por la revision no
+  coincide con el actor del intake;
+- guardar el plan refresca inmediatamente el preview del lote, sin conservar el
+  error visual anterior, y el codigo interno se traduce a una guia de tres pasos;
+- el ZIP-SAV valida la revision pinneada antes de normalizar y prepara todos los
+  actores antes de una unica asignacion de estado; un fallo revierte el lote;
+- la normalizacion SAV usa una sola pasada canonica, conserva la reconstruccion
+  `select_multiple` y distingue faltantes reales de columnas rellenadas por la
+  politica legacy.
+
+Evidencia de cierre:
+
+- `test-processing-intake.R`: 62 expectativas verdes;
+- `test-carga-acreditacion-batch.R`: 95 expectativas verdes;
+- `test-surveymonkey-sav-bundle.R`: 52 expectativas verdes;
+- `test-data-normalizer.R`: 81 expectativas verdes;
+- frontend focal: 114 pruebas verdes y `tsc -b` limpio;
+- ACRDCONTA v7 leido sin guardar: cuatro coincidencias actor-revision, intake
+  valido, preview listo y 15 + 52 + 178 + 165 = 410 efectivas;
+- QA visual en `1710x1107` y `1024x600`: cero overflow, scroll jail, page error
+  o recurso fallido; la copia original muestra el recorrido recuperable y v7
+  muestra los cuatro actores explicitamente;
+- interaccion real en navegador: Administrativos cambio temporalmente a
+  Egresados, el backend persistio `source.actor_key`, y al restaurarlo volvio a
+  Administrativos; el `.pulso` fuente permanecio sin cambios.
+
+#### Scope lock — pulido del handoff y ZIP-SAV acreditado (2026-07-21)
+
+- modulo: seccion Carga de Procesamiento, sin crear una navegacion adicional;
+- archivos previstos: UI/modelo focal de intake y ZIP-SAV, cliente API,
+  importador SAV y pruebas; documentacion QA de esta iteracion;
+- excluidos: motores de Monitoreo, Graficos/PPT, tema global, migraciones,
+  proyectos `.pulso` reales y servicios externos;
+- riesgo principal: mostrar un mapeo archivo -> actor/base y aplicar despues un
+  plan distinto por cambio de politica, base, instrumento o contenido del ZIP;
+- baseline: 114 pruebas frontend focales, typecheck, 62 expectativas de intake,
+  95 del batch, 52 del ZIP-SAV y 81 del normalizador, todas verdes;
+- stopping rule: `Aplicar actualizacion` solo se habilita si el mapa, la politica
+  y el fingerprint backend corresponden exactamente a la inspeccion visible;
+  cualquier divergencia falla cerrada sin mutar sesion ni artefactos.
+
+Contrato congelado:
+
+- la identidad publica de cada archivo es su `entry_name` completo dentro del
+  ZIP; `file_name` se usa solo para presentacion y no puede colisionar carpetas;
+- el valor de `file_base_map` es `EstudioBase.nombre`; la UI lo acompana con el
+  actor/alias visible y permite corregir cada asignacion explicitamente;
+- `missing_required_policy` acepta solo `strict` o `fill_blank_warn`: estricto
+  bloquea variables esperadas ausentes y compatibilidad las agrega vacias con
+  advertencia auditable;
+- la inspeccion devuelve `inspection_fingerprint`; la importacion exige
+  `expected_inspection_fingerprint`, vuelve a preparar el lote y responde
+  `E_SM_SAV_STALE` si no coincide antes de publicar ningun archivo;
+- cada fila conserva la evidencia `instrument_revision`: revision publicada y
+  saludable, base legacy sin pin o revision bloqueada;
+- cambiar archivo, mapa o politica invalida localmente la inspeccion y obliga a
+  reinspeccionar; frontend y backend protegen el mismo borde;
+- la guia canonica vive en el plan de ingreso; el panel del lote enlaza solo al
+  requisito bloqueado y no repite una segunda secuencia de tres pasos.
+
+Resultado integrado:
+
+- el flujo SAV se extrajo de `BasesPanel` a un componente y modelo propios;
+  inicia en estricto, permite mapear cada `entry_name`, muestra el pin de la
+  revision y conserva visible una inspeccion stale sin permitir aplicarla;
+- el servidor firma ZIP, politica, mapa resuelto, plan de cambio y pins de
+  base/revision/XLSForm; acredita de nuevo antes de publicar los artefactos;
+- ACRDCONTA v7 revelo que el XLSForm operativo puede evolucionar despues de la
+  materializacion: la cadena sigue siendo valida cuando
+  `original_xlsform_file_id` coincide con el snapshot publicado y el hash de
+  revision es exacto. La normalizacion SAV usa siempre el archivo publicado,
+  mientras current/original/revision quedan incluidos en el fingerprint;
+- frontend focal: 125 pruebas y typecheck verdes; backend: 46 expectativas del
+  preview SAV y 119 del bundle, sin fallos, warnings ni skips;
+- QA real sobre la copia v7, sin guardar: cuatro selects actor/base, 4/4
+  revisiones saludables, `Aplicar actualizacion` habilitado con el plan vigente
+  y deshabilitado al cambiar una asignacion; 1710x1107 y 1024x600 sin overflow,
+  scroll jail, errores de consola, pagina, API o recursos;
+- evidencia temporal: `/tmp/acrdconta-sav-polish-final/`.
+
+Gate independiente: `ACCEPT`. El verificador reprodujo 46 + 119 expectativas
+R, 125 pruebas frontend focales, 1327 de la suite integrada, typecheck y
+`git diff --check`, todos verdes. Confirmo tambien que las dos guardas stale
+ocurren antes del staging y antes de publicar, y que la copia v7 termino
+`dirty=false` con su SHA-256 original.
+
 ### Fase 4 — Procesamiento independiente y aprobacion por base
 
 Responsabilidad: Validacion, Codificacion y Analitica, conservando ownership
@@ -1058,9 +1158,316 @@ Reparaciones descubiertas por la ejecucion real:
 4. `excluir_opciones` llega al renderer del PPT como `character`, no como
    `list`, conservando `99` y `Prefiero no responder` fuera del denominador.
 
+## Iteracion de reparacion — reapertura de releases ACRDCONTA
+
+Scope lock:
+
+- modulo: persistencia `.pulso` y reconstruccion runtime multibase;
+- archivos previstos: `api/R/project_pulso.R`, una prueba focal de reapertura
+  y este registro de evidencia;
+- excluidos: instrumentos, bases reales, reglas metodologicas, aprobaciones y
+  renderer PPT;
+- riesgo principal: conservar una evaluacion cuando una renormalizacion real
+  haya cambiado el contenido que audito;
+- validacion minima: regresion que preserve la evaluacion ante una
+  reconstruccion canonica idempotente y la invalide ante un cambio real, mas
+  reapertura de la copia ACRDCONTA con cuatro releases vigentes.
+
+Baseline observado: el `state.rds` persistido contiene evaluacion, limpieza,
+Analitica y release aprobada para los cuatro actores, pero la sesion reabierta
+los proyecta como pendientes. La primera divergencia es
+`.pulso_renormalize_after_load()`: aunque `renorm_one()` declara el cache ya
+normalizado devolviendo `NULL`, `normalize_pair()` vuelve a aplicar el contexto
+de reporte y el flag global `changed` borra todas las evaluaciones.
+
+Scope lock adicional del renderer:
+
+- modulo: leyenda manual de `graficar_barras_apiladas()`;
+- archivos previstos: `api/R/graficador_barras_apiladas.R` y su prueba focal;
+- excluidos: porcentajes, denominadores, colores, plan, releases y datos;
+- riesgo principal: deformar las claves de color o alterar su alineacion;
+- validacion minima: geometria fisicamente cuadrada, ausencia de `GeomPoint`
+  en la leyenda manual, render aislado de la lamina 61 y render completo 94/94.
+
+Baseline observado: la lamina 61 (`egresados$p12`, seis categorias) derriba el
+proceso dentro de `rvg`/`grid` al serializar `GeomPoint(shape = 15)`; las
+coordenadas, colores y tamanos son finitos, y el mismo grafico se construye
+correctamente hasta el borde vectorial. El marcador es decorativo y puede
+representarse de forma equivalente con `GeomRect`, evitando el fallo nativo.
+
+Scope lock adicional de composicion:
+
+- modulos: adaptacion del grafico a su placeholder, titulo de pie/apiladas,
+  leyenda manual y base narrativa sugerida;
+- archivos previstos: `reporte_plan_ppt.R`, graficadores de pie/apiladas,
+  `graficos_plan_coverage.R` y pruebas focales;
+- excluidos: seleccion de variables, filtros, porcentajes, colores y releases;
+- riesgo principal: que la correccion de una lamina angosta degrade las
+  comparaciones de ancho completo;
+- validacion minima: fixture angosto con titulo envuelto y leyenda en varias
+  filas, comparaciones 2-5 intactas, lamina 61 sin solapes y deck 94/94.
+
+Baseline visual: las comparaciones Likert 2 y 4 son legibles; 3 y 5 conservan
+titulo y bases correctas pero el logo de plantilla no siempre aparece en el
+render de LibreOffice. La lamina 61 superpone los titulos de ambos graficos,
+fuerza seis etiquetas de leyenda en una sola fila y repite una base global de
+178 sobre denominadores validos 172/167 ya mostrados por cada grafico.
+
 El orden operativo estable queda fijado como: publicar revisiones ->
 materializar efectivos -> codificar -> preparar/generar Analitica -> construir
 plan y auditar la fuente ya codificada -> finalizar Limpieza -> aprobar release
 -> ejecutar el PPT. Dos preflights consecutivos sobre el estado final
 preservaron las cuatro releases aprobadas y devolvieron 94 laminas sin
 bloqueantes.
+
+### Evidencia de cierre de reapertura y composicion — 2026-07-22
+
+Resultado de la reapertura idempotente:
+
+- Administrativos, Docentes, Egresados y Estudiantes reabren con release
+  aprobada y vigente;
+- el preflight consolidado queda `ready=true`, conserva 94 laminas y cuatro
+  comparaciones por actor;
+- la restauracion de flags runtime no marca el proyecto como modificado;
+- una renormalizacion real sigue invalidando la evaluacion, mientras un cache
+  ya marcado `xlsform_normalized` la conserva;
+- original y copia de QA conservaron el mismo SHA-256
+  `1b217a33beb4fcf3e7f9296cb803a3018df48111d9f3c9a92c9fbb53e27d0bfe`.
+
+Resultado del renderer real:
+
+- PPT temporal auditado:
+  `/tmp/prosecnur-multiactor-qa.978C0m/slides-001-094-current.pptx`;
+- SHA-256:
+  `8a381171c69d7e6a48e6fa698ace4351e036b2d545fb7920b8baf9011009b1a3`;
+- 94 XML de slide, ZIP integro y `slides_test.py` sin overflow;
+- las laminas 2-5 mantienen actores, escalas, Top 2 Box opcional, leyendas sin
+  codigos y denominadores correctos;
+- la lamina 61 conserva bases especificas 172/167, envuelve titulos, reparte
+  seis categorias en dos columnas, omite etiquetas diminutas que no caben y no
+  repite una base global;
+- las baterias ordinales ajustan tipografia, margen y leyenda segun el numero y
+  alto real de sus filas; no colapsan baterias cortas ni invaden titulo/base en
+  enunciados extensos;
+- recorrido visual 94/94 sobre
+  `/tmp/prosecnur-multiactor-qa.978C0m/montage-all-final3.png` sin colisiones
+  sistematicas observadas.
+
+Contrato de iteracion:
+
+- falla inicial: reapertura destructiva de evaluaciones y composicion PPT no
+  sensible al placeholder;
+- cambios focales: renormalizacion idempotente, restauracion runtime,
+  marcadores de leyenda rectangulares, ancho fisico de texto, adaptacion por
+  slot, padding proporcional y supresion de bases globales redundantes;
+- pruebas focales verdes: reapertura, engine PPT, pie angosto, draft y
+  preflight consolidado; `git diff --check` limpio;
+- resultado: mejor y reproducible; no se guardo ni modifico el `.pulso` real.
+
+### Addendum de verificacion independiente — 2026-07-22
+
+El primer gate independiente rechazo el cierre por tres colisiones internas que
+la inspeccion estructural de PowerPoint no puede detectar: laminas 60, 68 y 85.
+La causa no estaba en los datos ni en la composicion del slide, sino en el orden
+de clasificacion de etiquetas del grafico: el umbral de tamano normal se
+evaluaba antes que el umbral de ocultamiento, por lo que segmentos de 11-13 %
+seguian recibiendo texto en slots de media lamina.
+
+Reparacion focal:
+
+- el umbral de ocultamiento prevalece sobre cualquier regla de tamano;
+- los slots angostos conservan etiquetas solo por encima de 15 %;
+- el renderer expone `pulso_labels_rendered` para probar exactamente que
+  etiquetas entraron al grafico;
+- una regresion con segmentos 21/13/26/16/9/15 exige que solo se rendericen
+  21 %, 26 % y 16 %.
+
+Evidencia posterior a la reparacion:
+
+- PPT completo:
+  `/tmp/prosecnur-multiactor-qa.978C0m/slides-001-094-current.pptx`;
+- SHA-256:
+  `251211cc46744fa0a86eb6300cb299c63e05917c65afc4ac2ed0d61f943c3836`;
+- 94 XML de slide, ZIP integro y `slides_test.py` sin overflow;
+- montaje completo:
+  `/tmp/prosecnur-multiactor-qa.978C0m/montage-all-final4.png`;
+- montaje de laminas criticas:
+  `/tmp/prosecnur-multiactor-qa.978C0m/montage-critical-final4.png`;
+- laminas 60, 68 y 85 sin colisiones; comparaciones 2-5, baterias 6/7/16/31/79
+  y lamina 61 sin regresion visual;
+- prueba focal del engine: 150 aprobadas, cero fallos; omisiones por paquete no
+  instalado y advertencias conocidas de Arial en PostScript;
+- `git diff --check` limpio;
+- original y copia de QA conservan el SHA-256
+  `1b217a33beb4fcf3e7f9296cb803a3018df48111d9f3c9a92c9fbb53e27d0bfe`.
+
+Veredicto independiente final: **APROBADO**. El verificador genero un render
+nuevo de 94/94 laminas, confirmo ausencia de colisiones en 60/68/85 y ausencia
+de regresiones en 2-5 y 61. No reporto hallazgos bloqueantes.
+
+## Auditoria integral de cierre — Editor, SAV certificado y receta portable
+
+### Editor multiinstrumento
+
+La auditoria visual independiente recorrio `/editor-xlsform` con una copia
+temporal del proyecto canonico en `1710x1107` y `1024x600`:
+
+- exporto un XLSForm fisico de 12 630 bytes y lo reimporto como segundo
+  formulario, conservando tarjetas, activo, estados y metricas independientes;
+- verifico la biblioteca vacia y cargada, la logica visible, el modal de
+  SurveyMonkey, el foco inicial, el ciclo de teclado, `Escape`, restauracion de
+  foco y scroll interno con footer persistente;
+- no encontro overflow global, scroll jail, errores de pagina, API o recursos;
+- confirmo por contrato y pruebas que `actor_key` se persiste, no se infiere de
+  una etiqueta y bloquea la publicacion si falta o no pertenece al catalogo;
+- el recorrido remoto de SurveyMonkey queda deliberadamente pendiente de una
+  encuesta controlada y credenciales fuera de `.pulso`; no se simulo red ni se
+  expusieron secretos.
+
+Gate focal: 39/39 pruebas frontend, 114/114 de formularios, 23/23 de columnas
+exportadas y 31/31 de procedencia SurveyMonkey. El unico hallazgo visual P3 es
+que dos toasts consecutivos pueden cubrir temporalmente una tarjeta en el
+viewport corto; desaparecen y no bloquean interaccion.
+
+### Reparacion contractual SAV/SPSS
+
+Scope lock:
+
+- modulo: importacion certificada de ZIP/SAV y su trazabilidad contra una
+  revision publicada del Editor;
+- archivos: `surveymonkey_sav_bundle.R` y pruebas focales de bundle, mapas,
+  linaje y pipeline;
+- excluidos: UI, conectores remotos, secretos, proyectos reales y renderer;
+- riesgo: aceptar una normalizacion semanticamente plausible pero no sellada
+  por el instrumento publicado;
+- stopping rule: un flujo acreditado falla cerrado ante revision ausente,
+  enferma o mapas inferidos, y una prueba con SAV fisico llega a los
+  consumidores reales.
+
+La evidencia roja reprodujo cuatro fallos de acreditacion, dos errores de mapas
+y siete fallos de historial. La reparacion:
+
+- exige revision publicada y saludable en `independent_siblings`;
+- marca el modo legacy no hermanado como `certifiable = FALSE`;
+- rechaza mapas inferidos no sellados con
+  `E_SM_SAV_UNSEALED_CHOICE_MAP`;
+- registra origen y SHA-256 de los mapas aplicados, mas las recodificaciones de
+  `select_one ... other`;
+- conserva hasta 20 importaciones previas con bundle, snapshot, data, fecha,
+  archivo y revision.
+
+La regresion integrada publica el instrumento en el Editor, crea un SAV fisico
+dentro de un ZIP, fija su SHA-256, reconstruye `select_multiple`, recodifica
+`Otro`, importa, ejecuta reglas AST de Validacion, genera el codebook de
+Analitica y construye la plantilla de Codificacion sin IDs simulados ni red.
+Las cuatro suites focales terminaron `DONE`.
+
+### Preflight semantico y portabilidad del informe compartido
+
+Scope lock:
+
+- modulo: preflight consolidado, receta de sesion y round-trip `.pulso`;
+- archivos: `graficos_consolidado.R`, `router_graficos.R`,
+  `project_pulso.R` y pruebas focales;
+- excluidos: renderer PPT, frontend, SAV, migraciones de schema y datos reales;
+- riesgo: declarar listo un informe que falle tarde o persistir rutas absolutas
+  de la maquina que lo creo;
+- stopping rule: referencias y escalas invalidas bloquean antes del job y todo
+  icono viaja por identidad portable.
+
+La evidencia roja mostro seis fallos: el preflight aceptaba una variable
+inexistente o escalas distintas; el round-trip agrego cinco fallos por paths,
+registry y PNG ausente. La reparacion incorpora:
+
+- `unknown_variable_reference`, con actor, variable, slide y slot;
+- `incompatible_comparison_scale`, con firma exacta `codigo=etiqueta` por
+  fuente;
+- receta y draft persistidos solo con `file_id`, sin `icon_registry` ni
+  `iconos[*].path`;
+- resolucion del registry exclusivamente en el snapshot runtime del job;
+- compatibilidad legacy que convierte paths pertenecientes al file store a
+  `file_id` y conserva el PNG al reconstruir el proyecto.
+
+Gate focal independiente: 83 expectativas del consolidado, 14 del draft, 148
+de `.pulso` y 8 de iconos, sin fallos, warnings ni omisiones.
+
+### Reejecucion real ACRDCONTA
+
+Sobre la copia QA, dos reaperturas consecutivas devolvieron `ready=true`, cero
+bloqueantes, 94 laminas, cuatro comparaciones y `dirty=false`. El preflight
+nuevo reconocio cuatro releases independientes:
+
+- Administrativos: 15 registros;
+- Docentes: 52 registros;
+- Egresados: 178 registros;
+- Estudiantes: 165 registros.
+
+Entregable regenerado:
+
+- PPT:
+  `/tmp/prosecnur-multiactor-qa.978C0m/slides-001-094-semantic-preflight.pptx`;
+- SHA-256:
+  `79d9834285e48d2f3c784b460445a57b9ee0d921f0d2fbe484bd9e133fc9261d`;
+- manifiesto:
+  `/tmp/prosecnur-multiactor-qa.978C0m/slides-001-094-semantic-preflight-manifest.json`;
+- SHA-256 del manifiesto:
+  `b725318ac953c1ae001f0c467490a94793b25970c53dbdbf76b2f6ed1540645d`;
+- 94 XML, ZIP integro, `slides_test.py` sin overflow y render independiente
+  94/94 en
+  `/tmp/prosecnur-multiactor-qa.978C0m/montage-all-semantic-preflight.png`.
+
+El proyecto original y la copia QA conservaron el mismo SHA-256 antes y
+despues:
+`1b217a33beb4fcf3e7f9296cb803a3018df48111d9f3c9a92c9fbb53e27d0bfe`.
+
+Gate amplio posterior: typecheck frontend limpio, 145 archivos/1384 pruebas
+frontend verdes y 30 suites R del recorrido Editor -> Monitoreo -> SAV ->
+Validacion -> Codificacion -> Analitica -> release -> PPT terminadas sin
+fallos. Persisten 18 warnings conocidos por Arial ausente en la base PostScript
+del entorno de test; el render real de PowerPoint no presenta overflow.
+
+### Iteracion visual final — actores y notificaciones del Editor
+
+Scope lock: solo `ToastDeck.tsx` y su regresion; fuera de alcance quedaron
+backend, `.pulso`, logica XLSForm, navegacion, tema global y archivos
+congelados. El riesgo era ocultar una accion util o alterar el auto-cierre al
+compactar mensajes.
+
+La biblioteca real de ACRDCONTA completo la evidencia que el fixture generico
+no podia ofrecer:
+
+- cuatro tarjetas para Administrativos, Estudiantes, Docentes y Egresados;
+- etapa `Publico`, selector etiquetado y actor explicito en cada formulario;
+- actores alcanzables en `1710x1107` y `1024x600`;
+- `data-audit-ready=true`, cero overflow, scroll jail, errores de consola, API
+  o recursos.
+
+Primera iteracion:
+
+- falla: dos eliminaciones consecutivas apilaban avisos sobre la biblioteca;
+- cambio: avisos equivalentes se agrupan con contador `xN`, los avisos con
+  accion no se fusionan y el deck queda limitado a tres piezas;
+- regresion: dos avisos iguales producen un solo elemento con `x2` y
+  `aria-label="Repetida 2 veces"`;
+- resultado inicial: la coalescencia paso, pero el QA visual rechazo el cierre
+  porque en `1024x600`, tras `scrollTop=826`, el deck quedaba fuera del viewport
+  (`top=-333`, `bottom=-283`).
+
+Segunda iteracion causal:
+
+- causa: `ToastDeck` estaba dentro del cuerpo animado de `PageFrame`; el
+  `transform` retenido convertia su `position: fixed` en relativo al contenedor
+  desplazado;
+- cambio: el deck se monta mediante `createPortal(..., document.body)` y queda
+  en la capa global de feedback;
+- resultado compacto: deck `top=526`, `bottom=576` dentro de `1024x600`, un
+  solo status `x2`, sin solape;
+- resultado grande: deck `top=1033`, `bottom=1083` dentro de `1710x1107`;
+- evidencia:
+  `/tmp/prosecnur-qa-toast-portal.MZ3FcT/interactive/toast-1024x600.png` y
+  `/tmp/prosecnur-qa-toast-portal.MZ3FcT/interactive/toast-1710x1107.png`;
+- QA independiente: **APROBADO VISUAL**.
+
+Gate posterior: typecheck limpio, 146 archivos/1386 pruebas frontend verdes y
+`git diff --check` sin salida. Los servidores privados se cerraron y el
+proyecto fuente y su copia conservaron el SHA-256 original.

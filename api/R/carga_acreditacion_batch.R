@@ -211,6 +211,57 @@
   list(intake = intake, entries = validation$entries[ord])
 }
 
+.acb_revision_choice_maps <- function(revision) {
+  maps <- revision$choice_code_maps %||% list()
+  if (!is.list(maps)) maps <- list()
+  sealed_sha256 <- .acb_scalar(
+    revision$choice_code_maps_sha256 %||%
+      (revision$logic_audit %||% list())$choice_code_maps_sha256
+  )
+  computed_sha256 <- .xlsform_editor_sm_hash(maps)
+  if (nzchar(sealed_sha256) && !identical(sealed_sha256, computed_sha256)) {
+    .acb_error(
+      422,
+      "E_ACREDITACION_BATCH_CHOICE_MAP_HASH",
+      "Los mapas de códigos de la revisión publicada no coinciden con su sello SHA-256."
+    )
+  }
+  list(
+    maps = maps,
+    sealed_sha256 = if (nzchar(sealed_sha256)) sealed_sha256 else computed_sha256
+  )
+}
+
+.acb_normalization_audit <- function(normalization, revision_maps, compatibility) {
+  applied_maps <- normalization$choice_code_maps %||% list()
+  applied_named <- .dn_choice_code_maps_named(applied_maps)
+  sealed_named <- .dn_choice_code_maps_named(revision_maps$maps)
+  unsealed <- setdiff(names(applied_named), names(sealed_named))
+  if (length(unsealed)) {
+    .acb_error(
+      422,
+      "E_ACREDITACION_BATCH_UNSEALED_CHOICE_MAP",
+      "La data efectiva requiere mapas de códigos que no están sellados en la revisión publicada.",
+      details = list(variables = as.list(sort(unsealed)))
+    )
+  }
+  list(
+    schema = "xlsform_normalization_audit/v1",
+    aliases = as.list(unname(normalization$aliases %||% character(0))),
+    select_multiple = normalization$select_multiple %||% list(),
+    single_child_collapses = as.list(unname(normalization$single_child_collapses %||% character(0))),
+    select_one_other_recodes = as.list(normalization$select_one_other_recodes %||% character(0)),
+    dropped_columns = as.list(unname(normalization$dropped_columns %||% character(0))),
+    choice_code_maps = list(
+      origin = if (length(applied_named)) "published_revision" else "none",
+      sealed_sha256 = revision_maps$sealed_sha256,
+      applied_sha256 = .xlsform_editor_sm_hash(unname(applied_named)),
+      variables = as.list(sort(names(applied_named)))
+    ),
+    compatibility = unclass(compatibility)
+  )
+}
+
 .acb_prepare_entry <- function(s, context, selection, intake_entry) {
   actor_key <- .acb_scalar(intake_entry$actor_key)
   actor_cases <- selection$selected[selection$selected$actor_key == actor_key, , drop = FALSE]
@@ -230,14 +281,29 @@
     monitoreo_sources = s$monitoreo_sources %||% list()
   )
   data_df <- mapping$data
+  revision_maps <- .acb_revision_choice_maps(revision)
   data_df <- normalize_data_for_xlsform(
-    data_df, rp_inst, choice_code_maps = s$choice_code_maps_confirmed$maps %||% NULL
+    data_df, rp_inst, choice_code_maps = revision_maps$maps
   )
   normalization <- attr(data_df, "xlsform_normalized") %||% list()
   data_df <- sanitize_base_data(data_df, rp_inst, monitoreo_handoff = TRUE)
   extras <- .reconciliacion_variables_extra(data_df, rp_inst, monitoreo_handoff = TRUE)
   data_df <- .carga_reorder_data_columns(data_df, rp_inst)
   compatibility <- validate_data_xlsform_compatibility(data_df, rp_inst)
+  normalization_audit <- .acb_normalization_audit(
+    normalization,
+    revision_maps,
+    compatibility
+  )
+  choice_domain_issues <- .sm_sav_choice_domain_issues(data_df, rp_inst)
+  if (length(choice_domain_issues)) {
+    .acb_error(
+      422,
+      "E_ACREDITACION_BATCH_UNKNOWN_CHOICE_CODES",
+      "La data efectiva contiene códigos que no pertenecen al catálogo de la revisión publicada.",
+      details = list(variables = choice_domain_issues)
+    )
+  }
   trace_checksum <- .acb_hash(actor_cases[order(actor_cases$response_row), c(
     "actor_key", "response_id", "response_row", "case_key"
   ), drop = FALSE])
@@ -258,7 +324,8 @@
     source_mapping_fingerprint = mapping$fingerprint,
     extras = extras,
     extras_checksum = .acb_hash(extras),
-    normalization = normalization,
+    normalization = normalization_audit,
+    normalization_fingerprint = .acb_hash(normalization_audit),
     compatibility = compatibility
   )
 }
@@ -279,7 +346,8 @@
     rows = item$n_filas,
     data_checksum = item$data_checksum,
     trace_checksum = item$trace_checksum,
-    source_mapping_fingerprint = item$source_mapping_fingerprint
+    source_mapping_fingerprint = item$source_mapping_fingerprint,
+    normalization_fingerprint = item$normalization_fingerprint
   ))
   preview_fingerprint <- .acb_hash(list(
     schema = .ACREDITACION_BATCH_SCHEMA,
@@ -381,7 +449,8 @@
       source_mapping = list(
         fingerprint = item$source_mapping_fingerprint,
         audit = item$source_mapping_audit
-      )
+      ),
+      normalization = item$normalization
     )
   })
   blockers <- unname(unlist(lapply(entries, `[[`, "blocking_reasons"), recursive = FALSE))
@@ -540,8 +609,10 @@ carga_acreditacion_batch_preview <- function(sid) {
         cache_token_sha256 = prep$context$cache_fingerprint,
         selection_sha256 = item$trace_checksum,
         source_mapping_sha256 = item$source_mapping_fingerprint,
-        source_mapping = item$source_mapping_audit
+        source_mapping = item$source_mapping_audit,
+        normalization_sha256 = item$normalization_fingerprint
       ),
+      normalization = item$normalization,
       variables_extra_incluidas = list(),
       variables_extra_checksum = item$extras_checksum,
       checksum = list(

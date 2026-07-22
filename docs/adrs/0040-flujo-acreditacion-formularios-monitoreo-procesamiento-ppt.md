@@ -45,6 +45,8 @@ s$instrument_revisions[[revision_id]] <- list(
   form_id = form_id,
   revision_no = revision_no,
   content_sha256 = content_sha256,
+  choice_code_maps = choice_code_maps,
+  choice_code_maps_sha256 = choice_code_maps_sha256,
   xlsform_file_id = xlsform_file_id,
   source = source,
   logic_audit = logic_audit,
@@ -67,12 +69,15 @@ de llegar a `s$xlsform_forms`, localStorage o `.pulso`.
 
 Una fuente versionada con `logic_status = "pending_manual_confirmation"` no es
 publicable. La confirmacion es una accion explicita del Editor, registrada por
-el servidor y ligada al `content_sha256` exacto del workbook. Si el workbook
-cambia, la confirmacion queda obsoleta y debe repetirse. Las fuentes legacy sin
-`schema` ni `logic_status` conservan compatibilidad. Al publicar, el backend
-revalida workbook y procedencia inmediatamente antes del commit y fija en
-`logic_audit` el estado, timestamp, metodo, hash del workbook y hash de la
-fuente saneada.
+el servidor y ligada al `content_sha256` exacto del workbook y al hash de sus
+`choice_code_maps`. Si el workbook o ese mapa cambia, la confirmacion queda
+obsoleta y debe repetirse. La revision conserva el mapa SurveyMonkey
+`codigo_fuente -> codigo_XLSForm` que gobierna la normalizacion de respuestas;
+un mapa no firmado o cuyo hash no coincide bloquea el ingreso. Las revisiones
+legacy sin mapas, `schema` o `logic_status` conservan compatibilidad. Al
+publicar, el backend revalida workbook y procedencia inmediatamente antes del
+commit y fija en `logic_audit` el estado, timestamp, metodo, hash del workbook,
+hash de mapas y hash de la fuente saneada.
 
 ### 2. Los instrumentos listos se preparan en un plan de ingreso
 
@@ -155,6 +160,21 @@ estados derivados. Cada base conserva la revision del instrumento, el token del
 corte, el checksum de seleccion, conteos incluidos/excluidos y el reporte de
 normalizacion. Reemplazar una base invalida exclusivamente sus derivados.
 
+#### 4.1. Un bundle SAV reemplaza la fuente original vigente
+
+El ingreso offline ZIP-SAV usa la revision publicada de cada actor y sus
+`choice_code_maps`; nunca infiere el catalogo desde los valores observados. El
+SAV normalizado se convierte en el nuevo `original_data_file_id`. Los IDs
+anteriores se conservan solo dentro del linaje de la importacion y no pueden
+seguir actuando como fuente de Codificacion o Analitica.
+
+Si la base tenia un `universe_filter` habilitado, el commit rematerializa el
+universo efectivo sobre el SAV nuevo antes de publicar el lote. El
+`source_data_file_id`, el `effective_data_file_id` y `data_file_id` quedan
+alineados con esa nueva fuente. La importacion, la reaplicacion del filtro y la
+publicacion de artefactos forman una sola operacion atomica: cualquier fallo
+restaura sesion y manifiesto fisico sin archivos huerfanos.
+
 ### 5. Procesamiento publica una revision aprobada por base
 
 Validacion, Codificacion y Analitica siguen ejecutandose de manera independiente
@@ -207,6 +227,26 @@ Las barras multiapiladas solo comparan escalas compatibles por firma
 y ponderacion de su actor; nunca se suman ni promedian denominadores entre
 bases. Una incompatibilidad bloquea o exige bloques separados, nunca una
 recodificacion implicita.
+
+#### 6.1. La autoria compartida usa un borrador global propio
+
+El editor distingue el plan de cada base del plan del informe compartido. Este
+ultimo se persiste como `graficos_consolidado_draft/v1`, con configuracion,
+plan y revision optimista, y no depende de `active_base`. Los proyectos que no
+tienen el estado nuevo parten de un borrador vacio; ninguna configuracion por
+base se migra o copia implicitamente.
+
+Abrir, editar y guardar el borrador no exige releases aprobadas. El catalogo de
+variables del modo consolidado expone todas las hermanas y las referencias se
+guardan como `actor$variable`. El preview usa esas mismas fuentes sin cambiar la
+base activa. El preflight y el job final consumen exactamente el plan autorado;
+solo si el borrador no contiene slides se permite derivar el plan sugerido.
+
+La aprobacion vigente de todas las bases participantes sigue siendo un gate de
+generacion, no de autoria. Inmediatamente antes de encolar, el backend vuelve a
+validar releases, referencias, escalas, denominadores y revision del borrador.
+El ZIP por bases conserva su contrato independiente y el modo consolidado solo
+ofrece PPTX, pues Word permanece scopeado por base.
 
 ## Consecuencias
 

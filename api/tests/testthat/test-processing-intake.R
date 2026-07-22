@@ -1,7 +1,8 @@
 library(testthat)
 
 .pi_add_revision <- function(sid, form_id, revision_no, revision_id,
-                             variant = "a", form_name = NULL) {
+                             variant = "a", form_name = NULL,
+                             source_actor_key = NULL, source_schema = NULL) {
   s <- session_get(sid)
   file_id <- paste0("file-", revision_id)
   path <- file.path(s$dir, "uploads", paste0(file_id, ".xlsx"))
@@ -31,6 +32,9 @@ library(testthat)
     ext = "xlsx"
   )
   s$instrument_revisions <- s$instrument_revisions %||% list()
+  source <- list(kind = "surveymonkey", survey_id = paste0("survey-", form_id))
+  if (!is.null(source_actor_key)) source$actor_key <- source_actor_key
+  if (!is.null(source_schema)) source$schema <- source_schema
   s$instrument_revisions[[revision_id]] <- list(
     schema = "instrument_revision/v1",
     revision_id = revision_id,
@@ -38,7 +42,7 @@ library(testthat)
     revision_no = as.integer(revision_no),
     content_sha256 = .xlsform_revision_hash(workbook),
     xlsform_file_id = file_id,
-    source = list(kind = "surveymonkey", survey_id = paste0("survey-", form_id)),
+    source = source,
     published_at = sprintf("2026-07-%02dT12:00:00Z", as.integer(revision_no))
   )
   s$xlsform_forms <- s$xlsform_forms %||% list()
@@ -213,6 +217,92 @@ test_that("actor_key duplicado y snapshot físico alterado bloquean el plan", {
                 vapply(altered$validation$entries[[1]]$blocking_reasons,
                        `[[`, character(1), "code"))
   expect_null(session_get(sid)$processing_intake)
+})
+
+test_that("actor_key del intake acredita exactamente la revisión publicada", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  accreditation_schema <- "acreditacion_actor_instrument_draft/v1"
+  .pi_add_revision(
+    sid, "form-docentes", 1L, "rev-docentes-1", "a", "Docentes",
+    source_actor_key = "docentes", source_schema = accreditation_schema
+  )
+  .pi_add_revision(
+    sid, "form-egresados", 1L, "rev-egresados-1", "b", "Egresados",
+    source_actor_key = "egresados"
+  )
+  .pi_add_revision(
+    sid, "form-administrativos", 1L, "rev-administrativos-1", "c", "Administrativos",
+    source_schema = NULL
+  )
+  state <- session_get(sid)
+  state$monitoreo_config <- list(monitoreo_profile = list(family = "acreditacion"))
+  .session_env[[sid]] <- state
+
+  matched <- processing_intake_validate(
+    sid, list(.pi_entry("docentes", "rev-docentes-1"))
+  )
+  expect_true(matched$validation$valid)
+  expect_equal(matched$validation$entries[[1]]$status, "instrument_ready")
+  docentes_revision <- Filter(
+    function(revision) identical(revision$revision_id, "rev-docentes-1"),
+    matched$revisions
+  )[[1]]
+  expect_equal(docentes_revision$source$actor_key, "docentes")
+
+  mismatched <- processing_intake_validate(
+    sid, list(.pi_entry("docentes", "rev-egresados-1"))
+  )
+  expect_false(mismatched$validation$valid)
+  expect_equal(mismatched$validation$entries[[1]]$status, "blocked")
+  expect_true("E_PROCESSING_INTAKE_INSTRUMENT_ACTOR_MISMATCH" %in%
+                vapply(mismatched$validation$blockers, `[[`, character(1), "code"))
+  expect_equal(mismatched$validation$blockers[[1]]$field, "actor_key")
+
+  missing <- processing_intake_validate(
+    sid, list(.pi_entry("administrativos", "rev-administrativos-1"))
+  )
+  expect_false(missing$validation$valid)
+  expect_equal(missing$validation$entries[[1]]$status, "blocked")
+  expect_true("E_PROCESSING_INTAKE_INSTRUMENT_ACTOR_REQUIRED" %in%
+                vapply(missing$validation$blockers, `[[`, character(1), "code"))
+  expect_equal(missing$validation$blockers[[1]]$field, "actor_key")
+})
+
+test_that("intake rechaza actor fuera del catálogo aunque revisión y entrada coincidan", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  .pi_add_revision(
+    sid, "form-ajeno", 1L, "rev-ajeno-1", "a", "Actor ajeno",
+    source_actor_key = "egresados",
+    source_schema = "acreditacion_actor_instrument_draft/v1"
+  )
+  state <- session_get(sid)
+  state$monitoreo_config <- list(monitoreo_profile = list(family = "acreditacion"))
+  state$monitoreo_sources <- list(list(
+    id = "sm-docentes",
+    kind = "surveymonkey",
+    enabled = TRUE,
+    role = "respuestas",
+    survey_id = "survey-docentes",
+    label = "SurveyMonkey · Docentes",
+    dimensions = list(actor = "Docentes")
+  ))
+  .session_env[[sid]] <- state
+
+  result <- processing_intake_validate(
+    sid, list(.pi_entry("egresados", "rev-ajeno-1"))
+  )
+
+  expect_false(result$validation$valid)
+  expect_equal(result$validation$entries[[1]]$status, "blocked")
+  expect_true("E_PROCESSING_INTAKE_INSTRUMENT_ACTOR_NOT_IN_CATALOG" %in%
+                vapply(result$validation$blockers, `[[`, character(1), "code"))
+  expect_true("actor_key" %in% vapply(
+    result$validation$blockers,
+    function(blocker) blocker$field %||% "",
+    character(1)
+  ))
 })
 
 test_that("materialized exige coincidencia triple de entrada, familia y revisión", {

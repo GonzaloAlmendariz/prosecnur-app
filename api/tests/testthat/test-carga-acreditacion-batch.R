@@ -35,7 +35,11 @@ library(testthat)
     revision_no = 1L,
     content_sha256 = .xlsform_revision_hash(workbook),
     xlsform_file_id = file_id,
-    source = list(kind = "surveymonkey", survey_id = paste0("survey-", key)),
+    source = list(
+      kind = "surveymonkey",
+      survey_id = paste0("survey-", key),
+      actor_key = key
+    ),
     published_at = "2026-07-20T12:00:00Z"
   )
   .session_env[[sid]] <- s
@@ -144,6 +148,115 @@ library(testthat)
   tryCatch(expr, api_error = function(e) e)
 }
 
+.acb_test_choice_map_setup <- function() {
+  sid <- session_create()
+  maps <- list(
+    list(
+      variable = "p1", type = "select_one", list_name = "yesno",
+      mappings = list(
+        list(source_code = "10", source_label = "Sí", xls_code = "1", xls_label = "Sí"),
+        list(source_code = "0", source_label = "Otro", xls_code = "14", xls_label = "Otro")
+      )
+    ),
+    list(
+      variable = "p2", type = "select_multiple", list_name = "multi",
+      mappings = list(
+        list(source_code = "1", source_column = "q0002_0001", xls_code = "a", xls_label = "A"),
+        list(source_code = "2", source_column = "q0002_0002", xls_code = "b", xls_label = "B")
+      )
+    )
+  )
+  workbook <- list(
+    survey = list(
+      columns = list("type", "name", "label"),
+      rows = list(
+        list("select_one yesno", "p1", "Respuesta"),
+        list("select_multiple multi", "p2", "Opciones"),
+        list("integer", "p3", "Edad"),
+        list("text", "p4", "Comentario")
+      )
+    ),
+    choices = list(
+      columns = list("list_name", "name", "label"),
+      rows = list(
+        list("yesno", "1", "Sí"),
+        list("yesno", "14", "Otro"),
+        list("multi", "a", "A"),
+        list("multi", "b", "B")
+      )
+    ),
+    settings = list(
+      columns = list("form_title", "form_id", "version", "default_language"),
+      rows = list(list("Actor", "actor", "1", "es"))
+    )
+  )
+  revision_id <- "rev-actor-maps"
+  xls_path <- file.path(session_get(sid)$dir, "uploads", "actor-maps.xlsx")
+  writeBin(.xlsform_revision_materialize(workbook), xls_path)
+  revision_hash <- .xlsform_revision_hash(workbook)
+  maps_hash <- .xlsform_editor_sm_hash(maps)
+
+  sav_path <- tempfile(fileext = ".sav")
+  haven::write_sav(data.frame(
+    response_id = c("R-1", "R-2", "R-3"),
+    respondent_id = c("R-1", "R-2", "R-3"),
+    q0001 = haven::labelled(c(10, 0, 10), labels = c("Sí" = 10, "Otro" = 0)),
+    q0002_0001 = c(1, 1, NA),
+    q0002_0002 = c(1, NA, 1),
+    q0003 = c(19, 26, NA),
+    q0004 = c("uno", "dos", "tres"),
+    extra_manual = c("editado-a", "editado-b", "editado-c"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  ), sav_path)
+  data <- as.data.frame(haven::read_sav(sav_path), stringsAsFactors = FALSE, check.names = FALSE)
+  data$actor <- "Actor"
+  data$dim_actor <- "Actor"
+  data$.source_id <- "src-actor"
+  data$.source_role <- "respuestas"
+
+  selected <- lapply(1:2, function(i) list(
+    actor = "Actor", response_id = paste0("R-", i), response_row = i,
+    case_key = paste0("case-", i), counts_in_advance = TRUE,
+    platform_state = "Completa", advancement = "effective"
+  ))
+  excluded <- list(list(
+    actor = "Actor", response_id = "R-3", response_row = 3L,
+    case_key = "case-3", counts_in_advance = FALSE,
+    platform_state = "Parcial", advancement = "partial"
+  ))
+
+  s <- session_get(sid)
+  s$files[["file-rev-actor-maps"]] <- list(
+    file_id = "file-rev-actor-maps", kind = "xlsform", original_name = "actor.xlsx",
+    path = xls_path, size = file.info(xls_path)$size, ext = "xlsx"
+  )
+  s$instrument_revisions[[revision_id]] <- list(
+    schema = "instrument_revision/v1", revision_id = revision_id,
+    form_id = "form-actor", revision_no = 1L, content_sha256 = revision_hash,
+    xlsform_file_id = "file-rev-actor-maps", choice_code_maps = maps,
+    choice_code_maps_sha256 = maps_hash,
+    source = list(kind = "surveymonkey", survey_id = "survey-actor", actor_key = "actor"),
+    published_at = "2026-07-22T00:00:00Z"
+  )
+  s$monitoreo_sources <- list(list(
+    id = "src-actor", role = "respuestas", actor = "Actor", actor_key = "actor",
+    survey_id = "survey-actor"
+  ))
+  s$monitoreo_config <- list(monitoreo_profile = list(family = "acreditacion"))
+  s$monitoreo_snapshot <- list(data = data, synced_at = "2026-07-22T00:00:00Z")
+  s$monitoreo_dashboard_cache_queries_summary <- list(
+    acreditacion_reports = list(internal_queries = list(
+      schema = "monitoreo_acreditacion_internal_queries_v1",
+      case_rollup = c(selected, excluded)
+    ))
+  )
+  .session_env[[sid]] <- s
+  processing_intake_save(sid, 0L, list(.acb_test_entry("actor", "Actor", revision_id)))
+  .acb_test_refresh_token(sid)
+  list(sid = sid, maps_hash = maps_hash)
+}
+
 .acb_test_mock_binding <- function(name, value) {
   target <- environment(carga_acreditacion_batch_promote)
   previous <- get(name, envir = target, inherits = FALSE)
@@ -174,6 +287,48 @@ test_that("preview fuera de acreditación es 200 lógico y no muta", {
   s$monitoreo_snapshot <- list(data = data.frame(id = 1L))
   .session_env[[sid]] <- s
   expect_false(carga_acreditacion_batch_preview(sid)$detected)
+})
+
+test_that("batch usa mapas sellados de la revisión y persiste auditoría", {
+  setup <- .acb_test_choice_map_setup()
+  on.exit(session_delete(setup$sid), add = TRUE)
+
+  preview <- carga_acreditacion_batch_preview(setup$sid)
+  expect_true(preview$ready)
+  expect_equal(preview$totals, list(selected = 2L, excluded = 1L, total_rollup = 3L))
+  expect_true(preview$entries[[1]]$compatibility$ok)
+
+  promoted <- carga_acreditacion_batch_promote(
+    setup$sid,
+    .acb_test_promote_args(preview)
+  )
+  expect_true(promoted$promoted)
+  s <- session_get(setup$sid)
+  base <- s$estudio$bases$actor
+  out <- suppressWarnings(readxl::read_excel(get_file(setup$sid, base$data_file_id)$path))
+
+  expect_equal(as.character(out$p1), c("1", "14"))
+  expect_equal(as.character(out$p2), c("a b", "a"))
+  expect_false(any(grepl("^q0002_", names(out))))
+  expect_identical(base$normalization$choice_code_maps$origin, "published_revision")
+  expect_identical(base$normalization$choice_code_maps$sealed_sha256, setup$maps_hash)
+  expect_true(base$normalization$compatibility$ok)
+})
+
+test_that("batch bloquea mapas inferidos que no están sellados", {
+  setup <- .acb_test_choice_map_setup()
+  on.exit(session_delete(setup$sid), add = TRUE)
+  s <- session_get(setup$sid)
+  s$instrument_revisions[["rev-actor-maps"]]$choice_code_maps <- list()
+  s$instrument_revisions[["rev-actor-maps"]]$choice_code_maps_sha256 <-
+    .xlsform_editor_sm_hash(list())
+  .session_env[[setup$sid]] <- s
+
+  err <- .acb_test_api_error(carga_acreditacion_batch_preview(setup$sid))
+
+  expect_s3_class(err, "api_error")
+  expect_identical(err$code, "E_ACREDITACION_BATCH_UNSEALED_CHOICE_MAP")
+  expect_gt(length(unlist(err$details$variables, use.names = FALSE)), 0L)
 })
 
 test_that("preview usa sólo case_rollup persistido y expone el wire batch exacto", {

@@ -232,17 +232,62 @@
   list(ok = !length(reasons), revision = revision, file = meta, reasons = reasons)
 }
 
+.processing_intake_is_acreditacion <- function(s) {
+  .acreditacion_actor_profile_active(s)
+}
+
+.processing_intake_actor_binding_reasons <- function(s, entry, revision) {
+  source <- revision$source %||% list()
+  if (!is.list(source)) source <- list()
+  source_actor_key <- .processing_intake_scalar(source$actor_key)
+  source_schema <- .processing_intake_scalar(source$schema)
+
+  if (nzchar(source_actor_key) && !identical(source_actor_key, entry$actor_key)) {
+    return(list(list(
+      code = "instrument_actor_mismatch",
+      message = sprintf(
+        "La revisión publicada corresponde al actor_key '%s', no a '%s'.",
+        source_actor_key,
+        entry$actor_key
+      ),
+      field = "actor_key"
+    )))
+  }
+  if (!nzchar(source_actor_key) &&
+      (identical(source_schema, .ACREDITACION_ACTOR_INSTRUMENT_SCHEMA) ||
+       .processing_intake_is_acreditacion(s))) {
+    return(list(list(
+      code = "instrument_actor_required",
+      message = "La revisión publicada de acreditación debe declarar source.actor_key.",
+      field = "actor_key"
+    )))
+  }
+  catalog <- .acreditacion_actor_catalog(s)
+  if (length(catalog) && !(entry$actor_key %in% catalog)) {
+    return(list(list(
+      code = "instrument_actor_not_in_catalog",
+      message = paste0(
+        "El público asignado ya no pertenece a las fuentes activas de ",
+        "acreditación en Monitoreo."
+      ),
+      field = "actor_key"
+    )))
+  }
+  list()
+}
+
 .processing_intake_derive_entry <- function(s, entry, family_id = NULL) {
   health <- .processing_intake_revision_health(s, entry$instrument_revision_id)
   revision <- health$revision %||% list()
   form_id <- .processing_intake_scalar(revision$form_id)
   latest <- .processing_intake_latest_revision(s, form_id)
   latest_id <- .processing_intake_scalar((latest %||% list())$revision_id)
-  reasons <- health$reasons
+  actor_binding_reasons <- .processing_intake_actor_binding_reasons(s, entry, revision)
+  reasons <- c(health$reasons, actor_binding_reasons)
   status <- "instrument_ready"
 
   base <- (((s$estudio %||% list())$bases %||% list())[[entry$base]]) %||% NULL
-  if (!isTRUE(health$ok)) {
+  if (!isTRUE(health$ok) || length(actor_binding_reasons)) {
     status <- "blocked"
   } else if (!is.null(base)) {
     materialized_revision <- .processing_intake_scalar(base$instrument_revision_id)
@@ -367,7 +412,7 @@
           .processing_intake_scalar(reason$message, "La entrada está bloqueada."),
           i,
           entry$entry_id,
-          "instrument_revision_id"
+          .processing_intake_scalar(reason$field, "instrument_revision_id")
         )
       }
     } else if (identical(entry$status, "stale")) {
@@ -477,6 +522,22 @@ processing_intake_save <- function(sid, expected_revision, entries) {
       "E_PROCESSING_INTAKE_STALE",
       "El plan cambió durante el guardado.",
       details = list(expected_revision = expected_revision, current_revision = fresh_current$revision)
+    )
+  }
+  fresh_validation <- .processing_intake_validate_state(
+    fresh,
+    proposed_entries,
+    family_id = fresh_current$family_id
+  )
+  if (!isTRUE(fresh_validation$valid)) {
+    stop_api(
+      422,
+      "E_PROCESSING_INTAKE_INVALID",
+      "El plan de ingreso cambió a un estado bloqueante durante el guardado.",
+      details = list(
+        blockers = fresh_validation$blockers,
+        warnings = fresh_validation$warnings
+      )
     )
   }
   family_id <- fresh_current$family_id

@@ -1,5 +1,23 @@
 import type { AcreditacionBatchEntry, AcreditacionBatchPreview } from "../../api/client";
 
+export type AcreditacionBatchFailureView = {
+  message: string;
+  guided: boolean;
+};
+
+export function acreditacionBatchFailureView(
+  code: string,
+  fallbackMessage: string,
+): AcreditacionBatchFailureView {
+  if (code === "E_ACREDITACION_BATCH_INTAKE") {
+    return {
+      guided: true,
+      message: "Falta asignar un formulario publicado a uno o más públicos antes de crear las bases.",
+    };
+  }
+  return { guided: false, message: fallbackMessage || "No se pudo preparar el corte de Monitoreo." };
+}
+
 export function acreditacionBatchCanPromote(preview: AcreditacionBatchPreview | null): boolean {
   return Boolean(
     preview?.detected

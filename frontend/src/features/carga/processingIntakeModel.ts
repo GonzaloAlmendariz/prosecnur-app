@@ -12,6 +12,20 @@ export type ProcessingIntakeStatusView = {
   tone: "ready" | "warning" | "danger" | "info";
 };
 
+export type ProcessingIntakeGuidedLink = {
+  actor_key: string;
+  actor: string;
+  suggestion: EstudioProcessingSuggestionGroup;
+  status: "ready" | "missing" | "ambiguous";
+  revision: ProcessingIntakeRevision | null;
+  detail: string;
+};
+
+export type ProcessingIntakeGuidedPlan = {
+  ready: boolean;
+  links: ProcessingIntakeGuidedLink[];
+};
+
 const STATUS_VIEW: Record<ProcessingIntakeStatus, ProcessingIntakeStatusView> = {
   instrument_ready: {
     label: "Instrumento listo",
@@ -124,6 +138,117 @@ export function processingIntakeSuggestedGroups(
 ): EstudioProcessingSuggestionGroup[] {
   const used = new Set(entries.map((entry) => entry.actor_key));
   return groups.filter((group) => group.actor_key && !used.has(group.actor_key));
+}
+
+export function processingIntakePlanComplete(
+  entries: ProcessingIntakeEntry[],
+  groups: EstudioProcessingSuggestionGroup[],
+): boolean {
+  if (entries.length === 0 || entries.some((entry) => entry.status !== "materialized")) {
+    return false;
+  }
+  const materializedActors = new Set(entries.map((entry) => entry.actor_key).filter(Boolean));
+  const expectedActors = Array.from(new Set(groups.map((group) => group.actor_key).filter(Boolean)));
+  return expectedActors.every((actorKey) => materializedActors.has(actorKey));
+}
+
+/**
+ * Vincula actores e instrumentos únicamente por actor_key explícito. La
+ * revisión vigente y disponible gana sobre revisiones históricas; cualquier
+ * empate real queda para resolución humana en el Editor.
+ */
+export function processingIntakeGuidedPlan(
+  groups: EstudioProcessingSuggestionGroup[],
+  revisions: ProcessingIntakeRevision[],
+): ProcessingIntakeGuidedPlan {
+  const groupsByActor = new Map<string, EstudioProcessingSuggestionGroup[]>();
+  for (const group of groups) {
+    if (!group.actor_key) continue;
+    groupsByActor.set(group.actor_key, [...(groupsByActor.get(group.actor_key) ?? []), group]);
+  }
+
+  const links = Array.from(groupsByActor.entries()).map(([actorKey, actorGroups]): ProcessingIntakeGuidedLink => {
+    const suggestion = actorGroups[0];
+    if (actorGroups.length !== 1) {
+      return {
+        actor_key: actorKey,
+        actor: suggestion.actor,
+        suggestion,
+        status: "ambiguous",
+        revision: null,
+        detail: "Monitoreo devolvió más de un actor con la misma clave. Revísalo antes de vincular.",
+      };
+    }
+
+    const exact = revisions.filter((revision) => revision.source?.actor_key === actorKey);
+    const available = exact.filter((revision) => revision.available);
+    const latestAvailable = available.filter((revision) => revision.is_latest);
+    const selected = latestAvailable.length === 1
+      ? latestAvailable[0]
+      : latestAvailable.length === 0 && available.length === 1
+        ? available[0]
+        : null;
+
+    if (selected) {
+      return {
+        actor_key: actorKey,
+        actor: suggestion.actor,
+        suggestion,
+        status: "ready",
+        revision: selected,
+        detail: `Vínculo exacto con ${processingIntakeRevisionLabel(selected)}.`,
+      };
+    }
+
+    if (available.length > 1 || latestAvailable.length > 1) {
+      return {
+        actor_key: actorKey,
+        actor: suggestion.actor,
+        suggestion,
+        status: "ambiguous",
+        revision: null,
+        detail: "Hay más de una revisión disponible para esta clave de actor. Corrige la asignación en el Editor.",
+      };
+    }
+
+    return {
+      actor_key: actorKey,
+      actor: suggestion.actor,
+      suggestion,
+      status: "missing",
+      revision: null,
+      detail: exact.length > 0
+        ? "El actor está asignado, pero no tiene una revisión publicada disponible."
+        : "Ninguna revisión publicada tiene esta clave de actor.",
+    };
+  });
+
+  return {
+    ready: links.length > 0 && links.every((link) => link.status === "ready"),
+    links,
+  };
+}
+
+export function processingIntakeEntriesFromGuidedPlan(
+  plan: ProcessingIntakeGuidedPlan,
+  existing: ProcessingIntakeBindingInput[],
+  newId: () => string,
+): ProcessingIntakeBindingInput[] {
+  return plan.links.flatMap((link) => {
+    if (link.status !== "ready" || !link.revision) return [];
+    const current = existing.find((entry) => entry.actor_key === link.actor_key);
+    if (current) {
+      return [{
+        ...current,
+        actor: link.actor,
+        instrument_revision_id: link.revision.revision_id,
+      }];
+    }
+    return [{
+      ...newProcessingIntakeBinding(newId(), link.suggestion),
+      instrument_revision_id: link.revision.revision_id,
+    }];
+  });
 }
 
 export function processingIntakeDraftValid(entries: ProcessingIntakeBindingInput[]): boolean {
