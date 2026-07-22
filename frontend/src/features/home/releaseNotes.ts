@@ -12,6 +12,13 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.5.18",
+    date: "2026-07-22",
+    highlights: [
+      "Codificación: volver a limpiar o ajustar una base que ya habías codificado ya no borra tu trabajo de codificación. Antes, re-finalizar la limpieza de esa base eliminaba en silencio todo el catálogo de grupos; ahora solo se marca para volver a aplicarse con un clic, conservando intactas todas tus definiciones.",
+    ],
+  },
+  {
     version: "0.5.17",
     date: "2026-07-22",
     highlights: [
