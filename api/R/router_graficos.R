@@ -331,11 +331,12 @@
     ico <- as.list(ico)
     id <- .graficos_icon_ref(ico$id %||% "")
     file_id <- .graficos_icon_ref(ico$file_id %||% "")
-    path <- .graficos_icon_ref(ico$path %||% "")
-    if (!nzchar(path) && nzchar(file_id)) {
+    path <- ""
+    if (nzchar(file_id)) {
       meta <- tryCatch(get_file(sid, file_id), error = function(e) NULL)
       path <- .graficos_icon_ref(meta$path %||% "")
     }
+    if (!nzchar(path)) path <- .graficos_icon_ref(ico$path %||% "")
     if (!nzchar(path) || !file.exists(path)) next
     if (nzchar(id)) out[[id]] <- path
     if (nzchar(file_id)) out[[file_id]] <- path
@@ -625,6 +626,24 @@
   src
 }
 
+# Un reporte de Gráficos es del ESTUDIO completo: para estudios multibase que NO
+# son hermanos independientes (p. ej. madre + hijo repeat), TODAS las bases del
+# estudio deben estar presentes. Analítica scopea `rp_data_sources` a la base de
+# análisis (`.analitica_repair_project_context` deja solo la base hija repeat),
+# así que las fuentes cacheadas pueden venir incompletas. Cuando falta una base
+# del estudio, forzamos la reconstrucción (`.pulso_rebuild_estudio_runtime_sources`
+# repuebla todas las bases desde sus archivos, conservando `current_code`).
+.graficos_sources_cover_study_bases <- function(sid, data_sources) {
+  s <- session_get(sid, required = FALSE)
+  bases <- names((s$estudio %||% list())$bases %||% list())
+  if (length(bases) <= 1L) return(TRUE)
+  if (exists("estudio_is_independent_siblings", mode = "function") &&
+      isTRUE(tryCatch(estudio_is_independent_siblings(sid), error = function(e) FALSE))) {
+    return(TRUE)
+  }
+  all(bases %in% names(data_sources %||% list()))
+}
+
 .graficos_processing_sources <- function(sid) {
   normalize_sources <- function(src) {
     if (exists(".bases_normalize_source_contexts", mode = "function")) {
@@ -650,7 +669,10 @@
 
   sources <- .graficos_raw_processing_sources(sid)
   valid <- .graficos_filter_valid_sources(sources$data_sources, sources$inst_sources)
-  if (.graficos_sources_usable(valid$data_sources, valid$inst_sources)) return(finalize_sources(valid))
+  if (.graficos_sources_usable(valid$data_sources, valid$inst_sources) &&
+      .graficos_sources_cover_study_bases(sid, valid$data_sources)) {
+    return(finalize_sources(valid))
+  }
 
   if (.graficos_rebuild_runtime_sources(sid)) {
     sources <- .graficos_raw_processing_sources(sid)
@@ -1320,6 +1342,30 @@
     # Si no está activo, forzar FALSE por si el analista había dejado
     # debug_ph_bordes=TRUE en algún preset legacy.
     presets_json$base$debug_ph_bordes <- FALSE
+  }
+
+  # 3) Titulo de seccion: los divisores por seccion se leen mejor con un titulo
+  # mas grande y en negrita que el titulo de slide. Rellenamos solo los estilos
+  # de seccion ausentes (un valor explicito del perfil o del analista siempre
+  # manda) para que los divisores luzcan intencionales aun cuando la config
+  # guardada del proyecto predate los estilos de seccion del perfil.
+  size_slide <- suppressWarnings(as.numeric(presets_json$base$size_titulo_slide %||% NA_real_)[1])
+  if (is.null(presets_json$base$size_titulo_seccion) &&
+      is.finite(size_slide) && size_slide > 0) {
+    presets_json$base$size_titulo_seccion <- round(size_slide * 1.3, 1)
+  }
+  if (is.null(presets_json$base$bold_titulo_seccion)) {
+    presets_json$base$bold_titulo_seccion <- TRUE
+  }
+  # Color del titulo de seccion: si el perfil/analista no lo fijo, usamos el
+  # color de subtitulo (secundario de marca, ej. azul/navy institucional) para
+  # que el divisor tenga un acento cromatico coherente con la identidad en vez
+  # de repetir el color del cuerpo. Si tampoco hay subtitulo, cae al color de
+  # titulo por el fallback del estilizador.
+  if (is.null(presets_json$base$color_titulo_seccion) &&
+      !is.null(presets_json$base$color_subtitulo) &&
+      nzchar(trimws(as.character(presets_json$base$color_subtitulo)[1]))) {
+    presets_json$base$color_titulo_seccion <- as.character(presets_json$base$color_subtitulo)[1]
   }
 
   presets_json
@@ -2445,7 +2491,7 @@ mount_graficos <- function(pr) {
       # por-slot o JSON avanzado.
       .presets_metadata_payload()
     })) |>
-    plumber::pr_get("/api/graficos/variables", wrap_endpoint(function(req, res) {
+    plumber::pr_get("/api/graficos/variables", wrap_endpoint(function(req, res, scope = "") {
       # Devuelve las variables agrupadas por fuente (multi-base, v0.2+).
       # Respuesta:
       #   {
@@ -2460,7 +2506,8 @@ mount_graficos <- function(pr) {
       # (back-compat visual: sin dropdown de fuente), o el dropdown cuando
       # multi=true.
       sid <- session_header(req)
-      .graficos_variables_sources_payload(sid, scoped = TRUE)
+      scope <- tolower(trimws(as.character(scope %||% "")[1]))
+      .graficos_variables_sources_payload(sid, scoped = !identical(scope, "consolidado"))
     })) |>
     plumber::pr_post("/api/graficos/plan/coverage", wrap_endpoint(function(req, res, ...) {
       # Diagnostico vivo de cobertura del plan de graficos. No bloquea
@@ -2481,7 +2528,11 @@ mount_graficos <- function(pr) {
       .graficos_plan_coverage(
         sid,
         plan = parsed$plan %||% NULL,
-        config = parsed$config %||% NULL
+        config = parsed$config %||% NULL,
+        scoped = !identical(
+          tolower(trimws(as.character(parsed$scope %||% "")[1])),
+          "consolidado"
+        )
       )
     })) |>
     plumber::pr_post("/api/graficos/plan/sugerido", wrap_endpoint(function(req, res, ...) {
@@ -2577,7 +2628,7 @@ mount_graficos <- function(pr) {
       # Sincrónico (no callr) porque el tamaño es chico. Si en el futuro
       # vemos timeouts con dimensiones/FODA, migramos a job_submit.
       sid <- session_header(req)
-      s <- .require_rp_data(sid)
+      s <- session_get(sid)
 
       body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
       if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
@@ -2586,6 +2637,30 @@ mount_graficos <- function(pr) {
         jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
         error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
       )
+      preview_scope <- tolower(trimws(as.character(parsed$scope %||% "")[1]))
+      consolidated_scope <- identical(preview_scope, "consolidated")
+      preview_sources <- if (isTRUE(consolidated_scope)) {
+        .graficos_consolidado_sources(sid)
+      } else {
+        .graficos_processing_sources(sid)
+      }
+      if (!.graficos_sources_usable(preview_sources$data_sources, preview_sources$inst_sources)) {
+        stop_api(
+          409,
+          "E_NO_VALID_RP_DATA",
+          if (isTRUE(consolidated_scope)) {
+            "Las fuentes procesadas del consolidado no estan disponibles o quedaron incompletas."
+          } else {
+            .graficos_base_error(
+              sid,
+              paste(
+                "La fuente procesada para Graficos no esta disponible o quedo incompleta.",
+                "Vuelve a aplicar la codificacion o recarga la base desde Fase 1."
+              )
+            )
+          }
+        )
+      }
       slide <- parsed$slide
       if (is.null(slide)) stop_api(400, "E_NO_SLIDE", "Body debe incluir 'slide'.")
       preview_quality <- tolower(as.character(parsed$preview_quality %||% "quick"))
@@ -2627,7 +2702,9 @@ mount_graficos <- function(pr) {
       palette_env <- .graficos_palette_env(cfg$paletas %||% list(), parent = parent.frame())
       preview_cache_key <- digest::digest(list(
         slide = slide,
-        active_base = .graficos_active_base_name(sid),
+        scope = if (isTRUE(consolidated_scope)) "consolidated" else "active_base",
+        source_names = names(preview_sources$data_sources),
+        active_base = if (isTRUE(consolidated_scope)) "" else .graficos_active_base_name(sid),
         template_id = delivery$template_id,
         template_hash = if (!is.na(template_pptx) && file.exists(template_pptx)) {
           digest::digest(file = template_pptx, algo = "xxhash64")
@@ -2777,12 +2854,11 @@ mount_graficos <- function(pr) {
       # `data` e `instrumento` se pasan como listas nombradas (multi-base).
       # Cuando hay 1 sola base, el scoping devuelve
       # `list(<nombre> = df)` y el motor maneja ese caso como single-base.
-      scoped_sources <- .graficos_processing_sources(sid)
       tryCatch({
         slide_r <- rebuild_slide(slide)
         reporte_ppt_plan(
-          data = scoped_sources$data_sources,
-          instrumento = scoped_sources$inst_sources,
+          data = preview_sources$data_sources,
+          instrumento = preview_sources$inst_sources,
           path_ppt = out_path,
           presets = build_presets(presets_json),
           plan = do.call(p_plan, list(slides = list(slide_r))),
