@@ -22,12 +22,6 @@ export function isConfirmableLogicBlocker(blockerId: string): boolean {
   return CONFIRMABLE_LOGIC_BLOCKER_IDS.has(blockerId);
 }
 
-function blockerReason(publication: XlsformFormPublication): string | null {
-  const blocker = publication.blockers[0];
-  if (!blocker) return null;
-  return blocker.detail ? `${blocker.title}: ${blocker.detail}` : blocker.title;
-}
-
 /**
  * Deriva toda la presentación de publicación sin estado local. Los blockers
  * tienen precedencia sobre un status remoto contradictorio para no ofrecer una
@@ -45,7 +39,7 @@ export function getFormPublicationView(
   if (status === "published") {
     return {
       status,
-      label: `Publicado · rev. ${publication.latest_revision?.revision_no ?? "—"}`,
+      label: `Disponible · revisión ${publication.latest_revision?.revision_no ?? "—"}`,
       tone: "success",
       actionLabel: null,
       actionDisabled: true,
@@ -66,7 +60,9 @@ export function getFormPublicationView(
       tone: "danger",
       actionLabel,
       actionDisabled: true,
-      reason: blockerReason(publication) ?? "Corrige los bloqueos del formulario antes de publicarlo.",
+      reason: hasPublishedRevision
+        ? `La revisión ${publication.latest_revision?.revision_no} sigue disponible; revisa el borrador antes de publicar sus cambios.`
+        : "Revisa el formulario antes de publicar su primera versión.",
     };
   }
 
@@ -76,10 +72,16 @@ export function getFormPublicationView(
 
   return {
     status,
-    label: status === "changes_pending" ? "Cambios sin publicar" : "Borrador",
+    label: status === "changes_pending" && hasPublishedRevision
+      ? `Revisión ${publication.latest_revision?.revision_no} disponible`
+      : status === "changes_pending"
+        ? "Cambios sin publicar"
+        : "Borrador",
     tone: status === "changes_pending" ? "warning" : "neutral",
     actionLabel,
     actionDisabled: isPublishing || !publication.can_publish,
-    reason: cannotPublishReason,
+    reason: status === "changes_pending" && hasPublishedRevision
+      ? "El borrador tiene cambios, pero no reemplaza la revisión disponible hasta que lo publiques."
+      : cannotPublishReason,
   };
 }

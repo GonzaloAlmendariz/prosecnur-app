@@ -56,12 +56,12 @@ export function NewFormActions({
     },
     {
       key: "xlsform",
-      title: "Importar XLSForm",
-      description: "Abre un archivo .xlsx existente y mantiene su estructura.",
+      title: "Importar como nuevo",
+      description: "Crea un borrador nuevo desde un .xlsx; publicación y público se revisan en este proyecto.",
       icon: <Upload size={variant === "menu" ? 18 : 22} />,
       onClick: onImportXls,
-      accent: "var(--pulso-module-processing)",
-      accentSoft: "var(--pulso-module-processing-soft)",
+      accent: "var(--pulso-module-editor)",
+      accentSoft: "var(--pulso-module-editor-soft)",
     },
     {
       key: "surveymonkey",
@@ -78,8 +78,8 @@ export function NewFormActions({
         />
       ),
       onClick: onImportSurveyMonkey,
-      accent: "var(--pulso-module-sample)",
-      accentSoft: "var(--pulso-module-sample-soft)",
+      accent: "var(--pulso-module-editor)",
+      accentSoft: "var(--pulso-module-editor-soft)",
     },
   ];
 

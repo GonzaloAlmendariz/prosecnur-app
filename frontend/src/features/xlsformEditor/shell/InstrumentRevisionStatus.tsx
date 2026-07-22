@@ -9,15 +9,18 @@ import {
   getFormPublicationView,
   isConfirmableLogicBlocker,
 } from "./formPublicationView";
+import type { FormWorkflowPrimaryAction } from "./formWorkflowView";
 
 export type FormPublicationStatusProps = {
   formId: string;
-  publication: XlsformFormPublication;
+  publication: XlsformFormPublication | null;
   isPublishing: boolean;
   isConfirmingLogic: boolean;
   error?: string | null;
   onPublish: () => void;
   onConfirmLogic: () => void;
+  primaryAction?: FormWorkflowPrimaryAction;
+  onAssignAudience?: () => void;
 };
 
 export function FormPublicationStatus({
@@ -28,17 +31,46 @@ export function FormPublicationStatus({
   error,
   onPublish,
   onConfirmLogic,
+  primaryAction,
+  onAssignAudience,
 }: FormPublicationStatusProps) {
+  if (!publication) {
+    return (
+      <div className="pulso-xf-publication is-neutral" aria-busy="true">
+        <div className="pulso-xf-publication-row">
+          <span className="pulso-xf-publication-label">
+            <RefreshCw size={13} aria-hidden="true" />
+            Consultando revisión…
+          </span>
+        </div>
+        <span className="pulso-xf-publication-live" aria-live="polite">
+          Consultando el estado de publicación del formulario…
+        </span>
+      </div>
+    );
+  }
   const view = getFormPublicationView(publication, isPublishing);
   const logicBlocker = publication.blockers.find((blocker) => (
     isConfirmableLogicBlocker(blocker.id)
   ));
-  const actionLabel = logicBlocker
-    ? (isConfirmingLogic ? "Confirmando…" : "Confirmar lógica revisada")
-    : view.actionLabel;
-  const actionDisabled = logicBlocker
-    ? isConfirmingLogic || !publication.draft_content_sha256
-    : view.actionDisabled;
+  const resolvedAction = primaryAction ?? (logicBlocker ? "review_logic" : undefined);
+  const actionLabel = resolvedAction === "review_logic"
+    ? (isConfirmingLogic ? "Guardando revisión…" : "Abrir y revisar lógica")
+    : resolvedAction === "assign_audience"
+      ? "Elegir público"
+      : resolvedAction === "open"
+        ? null
+        : view.actionLabel;
+  const actionDisabled = resolvedAction === "review_logic"
+    ? isConfirmingLogic
+    : resolvedAction === "assign_audience"
+      ? false
+      : view.actionDisabled;
+  const actionHandler = resolvedAction === "review_logic"
+    ? onConfirmLogic
+    : resolvedAction === "assign_audience"
+      ? onAssignAudience
+      : onPublish;
   const reasonId = `pulso-xf-publication-reason-${formId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
   const StatusIcon = view.status === "published"
     ? CheckCircle2
@@ -61,7 +93,7 @@ export function FormPublicationStatus({
             className="pulso-xf-publication-action"
             disabled={actionDisabled}
             aria-describedby={view.reason ? reasonId : undefined}
-            onClick={logicBlocker ? onConfirmLogic : onPublish}
+            onClick={actionHandler}
           >
             {actionLabel}
           </button>

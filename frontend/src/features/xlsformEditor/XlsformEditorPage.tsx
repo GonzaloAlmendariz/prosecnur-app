@@ -27,6 +27,7 @@ import {
 import { IconForward, IconHint, IconNew, IconRedo, IconSearch, IconUndo } from "../../lib/icons";
 import {
   apiSaveEntregable,
+  apiEstudioProcessingSuggestions,
   apiUpload,
   apiXlsformEditorExport,
   apiXlsformEditorExportPdf,
@@ -42,8 +43,10 @@ import {
   apiXlsformFormDelete,
   apiXlsformFormGet,
   apiXlsformFormPublishRevision,
+  apiXlsformFormSave,
   apiXlsformFormsList,
   downloadUrl,
+  normalizeXlsformFormSource,
   type ChoiceCodeMap,
   type Hallazgo,
   type SurveyMonkeyVisualLogicRule,
@@ -147,6 +150,13 @@ import {
   type PersistedSnapshot,
 } from "./state/persistence";
 import { FormsLibrary } from "./shell/FormsLibrary";
+import { XlsformTransferNotice } from "./shell/XlsformTransferNotice";
+import {
+  formSourceWithActorKey,
+  instrumentActorOptions,
+  type InstrumentActorOption,
+} from "./shell/actorAssignmentModel";
+import { instrumentActorLabel } from "./shell/formWorkflowView";
 import { FormSwitcher } from "./shell/FormSwitcher";
 import { ConfigurarPdfDialog } from "./shell/ConfigurarPdfDialog";
 import { QuestionnaireProgressPanel } from "./shell/QuestionnaireProgressPanel";
@@ -559,6 +569,12 @@ export default function XlsformEditorPage() {
   // Biblioteca multi-formulario del proyecto: entradas ligeras (sin workbook)
   // que alimentan el conmutador rápido del toolbar y — en Oleada 3 — el hub.
   const [forms, setForms] = useState<LibraryEntry[]>([]);
+  const [instrumentActorCatalog, setInstrumentActorCatalog] = useState<{
+    status: "loading" | "ready" | "empty" | "error";
+    options: InstrumentActorOption[];
+  }>({ status: "loading", options: [] });
+  const instrumentActors = instrumentActorCatalog.options;
+  const [assigningActorFormId, setAssigningActorFormId] = useState<string | null>(null);
   // Estado remoto de publicación: nunca se mezcla con LibraryEntry ni se
   // persiste en localStorage. El backend es la única autoridad sobre hashes,
   // revisiones, bloqueos y protección de borrado.
@@ -600,6 +616,7 @@ export default function XlsformEditorPage() {
 	   *  explica en lenguaje humano qué respuesta previa habilita qué opción. */
 	  const [choiceFiltersOpen, setChoiceFiltersOpen] = useState(false);
 	  const [smLogicDialogOpen, setSmLogicDialogOpen] = useState(false);
+	  const [logicReviewFormId, setLogicReviewFormId] = useState<string | null>(null);
 	  const [smLogicRules, setSmLogicRules] = useState<ConfirmedRule[]>([]);
 	  const [smVisualLogicRules, setSmVisualLogicRules] = useState<SurveyMonkeyVisualLogicRule[]>([]);
 	  const [smLogicChoiceOverrides, setSmLogicChoiceOverrides] = useState<Record<string, string[]>>({});
@@ -659,6 +676,24 @@ export default function XlsformEditorPage() {
   useEffect(() => {
     projectScopeRef.current = projectScope;
   }, [projectScope]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setInstrumentActorCatalog({ status: "loading", options: [] });
+    void apiEstudioProcessingSuggestions()
+      .then((result) => {
+        if (cancelled) return;
+        const options = instrumentActorOptions(result.groups);
+        setInstrumentActorCatalog({
+          status: options.length > 0 ? "ready" : "empty",
+          options,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setInstrumentActorCatalog({ status: "error", options: [] });
+      });
+    return () => { cancelled = true; };
+  }, [projectScope, sessionId]);
 
   // Refresca la lista ligera de formularios de la biblioteca del scope.
   const refreshForms = useCallback(() => {
@@ -730,6 +765,75 @@ export default function XlsformEditorPage() {
     }
   }, [projectScope, refreshBackendFormIndex]);
 
+  const onAssignFormActor = useCallback(async (id: string, actorKey: string) => {
+    if (actorKey && !instrumentActors.some((actor) => actor.actor_key === actorKey)) return;
+    setAssigningActorFormId(id);
+    setPublicationUi((prev) => ({
+      ...prev,
+      errorsByFormId: { ...prev.errorsByFormId, [id]: "" },
+    }));
+    try {
+      const local = loadForm(projectScope, id);
+      const remote = local ? null : (await apiXlsformFormGet(id)).form;
+      const snapshot = local ?? (remote ? {
+        workbook: remote.workbook,
+        savedAt: remote.saved_at,
+        sourceName: remote.source?.original_name ?? null,
+        sourceKind: remote.source?.kind ?? null,
+        source: remote.source,
+        hallazgos: remote.hallazgos,
+      } : null);
+      if (!snapshot) throw new Error("No se pudo abrir el formulario para asignar el actor.");
+      const nextSource = formSourceWithActorKey(snapshot.source ?? null, actorKey);
+      const savedAt = Date.now();
+      await apiXlsformFormSave({
+        id,
+        name: deriveFormName(snapshot.workbook, nextSource),
+        workbook: snapshot.workbook,
+        source: nextSource,
+        hallazgos: snapshot.hallazgos ?? [],
+        saved_at: savedAt,
+      });
+      saveForm(projectScope, id, snapshot.workbook, {
+        sourceKind: nextSource.kind,
+        sourceName: nextSource.original_name,
+        source: nextSource,
+        hallazgos: snapshot.hallazgos,
+      });
+      setForms(listForms(projectScope));
+      await refreshBackendFormIndex().catch(() => undefined);
+      const actor = instrumentActors.find((option) => option.actor_key === actorKey);
+      toasts.push({
+        kind: "success",
+        title: actor ? `Público asignado: ${instrumentActorLabel(actor)}` : "Asignación de público retirada",
+        detail: publicationUi.byFormId[id]?.latest_revision
+          ? "La revisión ya publicada sigue intacta. Publica el borrador para usar la nueva asignación."
+          : "El público quedó guardado en el borrador del instrumento.",
+        durationMs: 6000,
+      });
+    } catch {
+      setPublicationUi((prev) => ({
+        ...prev,
+        errorsByFormId: {
+          ...prev.errorsByFormId,
+          [id]: "No se guardó el público. El formulario conserva su asignación anterior.",
+        },
+      }));
+      toasts.push({
+        kind: "danger",
+        title: "No se pudo guardar el público",
+        detail: "El formulario conserva su asignación anterior. Comprueba la sesión e inténtalo nuevamente.",
+        durationMs: 6000,
+      });
+    } finally {
+      setAssigningActorFormId((current) => current === id ? null : current);
+    }
+  }, [instrumentActors, projectScope, publicationUi.byFormId, refreshBackendFormIndex, toasts]);
+
+  // Ref a switchToForm para invocarlo desde el hub y el efecto de scope sin
+  // problemas de orden de declaración (la callback se define más abajo).
+  const switchToFormRef = useRef<((id: string) => Promise<void>) | null>(null);
+
   // El backend decide primero: una revisión publicada no puede desaparecer
   // por una carrera entre dos ventanas. Solo tras confirmar el DELETE se
   // elimina la copia local y se actualiza el hub.
@@ -799,32 +903,65 @@ export default function XlsformEditorPage() {
     }
   }, [publicationUi.byFormId, refreshBackendFormIndex, toasts]);
 
-  const onConfirmFormLogic = useCallback(async (id: string) => {
-    const publication = publicationUi.byFormId[id];
-    if (!publication?.draft_content_sha256) return;
+  const openFormLogicReview = useCallback(async (id: string) => {
+    const switchForm = switchToFormRef.current;
+    if (!switchForm) return;
+    await switchForm(id);
+    setLogicReviewFormId(id);
+    setSmLogicDialogOpen(true);
+  }, []);
+
+  const persistAndConfirmFormLogic = useCallback(async (
+    id: string,
+    nextWorkbook: XlsformEditorWorkbook,
+    nextSource: XlsformFormSource | null,
+    nextHallazgos: Hallazgo[],
+  ): Promise<boolean> => {
     setPublicationUi((prev) => ({
       ...prev,
       confirmingLogicFormId: id,
       errorsByFormId: { ...prev.errorsByFormId, [id]: "" },
     }));
     try {
+      // El workbook revisado se guarda primero de forma explícita. Recién con
+      // el hash que devuelve el índice refrescado confirmamos la metodología;
+      // así nunca confirmamos por accidente el borrador anterior.
+      await apiXlsformFormSave({
+        id,
+        name: deriveFormName(nextWorkbook, nextSource),
+        workbook: nextWorkbook,
+        source: nextSource,
+        hallazgos: nextHallazgos,
+        saved_at: Date.now(),
+      });
+      const localSavedAt = saveForm(projectScope, id, nextWorkbook, {
+        sourceKind: nextSource?.kind ?? null,
+        sourceName: nextSource?.original_name ?? null,
+        source: nextSource,
+        hallazgos: nextHallazgos,
+      });
+      setForms(listForms(projectScope));
+      if (activeFormIdRef.current === id) {
+        dispatch({ type: "SET", workbook: nextWorkbook });
+        if (localSavedAt != null) dispatch({ type: "MARK_SAVED", savedAt: localSavedAt });
+      }
+      const indexed = await refreshBackendFormIndex();
+      const refreshedPublication = indexed.forms.find((form) => form.id === id)?.publication;
+      const refreshedHash = refreshedPublication?.draft_content_sha256;
+      if (!refreshedHash) throw new Error("missing refreshed publication hash");
       const result = await apiXlsformFormConfirmLogic(
         id,
-        publication.draft_content_sha256,
+        refreshedHash,
       );
-      const local = loadForm(projectScope, id);
-      if (local && result.source) {
-        saveForm(projectScope, id, local.workbook, {
-          sourceKind: result.source.kind,
-          sourceName: result.source.original_name,
-          source: result.source,
-          hallazgos: local.hallazgos,
-        });
-      }
-      const indexed = listForms(projectScope).find((entry) => entry.id === id);
-      if (indexed) {
-        upsertLibraryEntry(projectScope, { ...indexed, source: result.source ?? indexed.source });
-      }
+      const confirmedSource = result.source ?? nextSource;
+      saveForm(projectScope, id, nextWorkbook, {
+        sourceKind: confirmedSource?.kind ?? null,
+        sourceName: confirmedSource?.original_name ?? null,
+        source: confirmedSource,
+        hallazgos: nextHallazgos,
+      });
+      setForms(listForms(projectScope));
+      if (activeFormIdRef.current === id) setSource(confirmedSource);
       setPublicationUi((prev) => ({
         ...prev,
         byFormId: { ...prev.byFormId, [id]: result.publication },
@@ -836,9 +973,10 @@ export default function XlsformEditorPage() {
         detail: "La confirmación quedó ligada a este contenido. Publica la revisión cuando estés listo.",
         durationMs: 6000,
       });
-    } catch (err: unknown) {
+      return true;
+    } catch {
       await refreshBackendFormIndex().catch(() => undefined);
-      const detail = err instanceof Error ? err.message : "El backend rechazó la confirmación de lógica.";
+      const detail = "No se guardó la confirmación. El formulario sigue abierto para que puedas intentarlo nuevamente.";
       setPublicationUi((prev) => ({
         ...prev,
         errorsByFormId: { ...prev.errorsByFormId, [id]: detail },
@@ -849,6 +987,7 @@ export default function XlsformEditorPage() {
         detail,
         durationMs: 7000,
       });
+      return false;
     } finally {
       setPublicationUi((prev) => ({
         ...prev,
@@ -857,11 +996,7 @@ export default function XlsformEditorPage() {
           : prev.confirmingLogicFormId,
       }));
     }
-  }, [projectScope, publicationUi.byFormId, refreshBackendFormIndex, toasts]);
-
-  // Ref a switchToForm para invocarlo desde el efecto de scope sin problemas
-  // de orden de declaración (la callback se define más abajo).
-  const switchToFormRef = useRef<((id: string) => Promise<void>) | null>(null);
+  }, [projectScope, refreshBackendFormIndex, toasts]);
 
   // Al montar — y al cambiar de proyecto — sembramos la biblioteca
   // multi-formulario: migramos cualquier snapshot legacy mono-formulario,
@@ -1571,8 +1706,8 @@ export default function XlsformEditorPage() {
       setSmLogicChoiceOverrides({});
       toasts.push({
         kind: "success",
-        title: "Formulario importado",
-        detail: `Abrimos ${file.name} en el constructor.`,
+        title: "Borrador importado como nuevo",
+        detail: `Abrimos ${file.name} como un formulario nuevo. Revisa lógica y público antes de publicar.`,
       });
     } catch (e: unknown) {
       const msg = (e as Error).message;
@@ -1735,11 +1870,12 @@ export default function XlsformEditorPage() {
   }
 
   async function applySurveyMonkeyLogicFromEditor() {
-    if (!workbook) return;
+    if (!workbook || !activeFormId) return;
+    const isReviewConfirmation = logicReviewFormId === activeFormId;
     const visualText = compileVisualLogicRules(smVisualLogicRules);
     const advancedText = smLogicRules.map((r) => r.texto).join("\n");
     const reglasText = [visualText, advancedText].filter((part) => part.trim()).join("\n");
-    if (!reglasText.trim()) {
+    if (!reglasText.trim() && !isReviewConfirmation) {
       toasts.push({
         kind: "warn",
         title: "Sin lógica configurada",
@@ -1747,46 +1883,64 @@ export default function XlsformEditorPage() {
       });
       return;
     }
-    setBusy("Aplicando lógica SurveyMonkey…");
+    setBusy(isReviewConfirmation ? "Guardando la revisión de lógica…" : "Aplicando lógica SurveyMonkey…");
     try {
-      const choiceCodeMaps = choiceCodeMapsWithOverrides(
-        workbook,
-        smLogicChoiceOverrides,
-        workbook.surveyMonkeyLogic?.choice_code_maps ?? [],
-      );
-      const result = await apiXlsformEditorSmApplyLogic(
-        workbook,
-        reglasText,
-        {},
-        smLogicChoiceOverrides,
-        source?.original_name ?? "XLSForm actual",
-        choiceCodeMaps,
-        true,
-      );
-      const refreshedRules = await refreshSurveyMonkeyAdvancedRules(
-        smLogicRules,
-        workbookWithSurveyMonkeyLogic(result.workbook, smLogicRules, smVisualLogicRules, smLogicChoiceOverrides, choiceCodeMaps),
-        smLogicChoiceOverrides,
-      );
-      const nextWorkbook = workbookWithSurveyMonkeyLogic(
-        result.workbook,
-        refreshedRules,
-        smVisualLogicRules,
-        smLogicChoiceOverrides,
-        choiceCodeMaps,
-      );
+      let nextWorkbook = workbook;
+      let refreshedRules = smLogicRules;
+      if (reglasText.trim()) {
+        const choiceCodeMaps = choiceCodeMapsWithOverrides(
+          workbook,
+          smLogicChoiceOverrides,
+          workbook.surveyMonkeyLogic?.choice_code_maps ?? [],
+        );
+        const result = await apiXlsformEditorSmApplyLogic(
+          workbook,
+          reglasText,
+          {},
+          smLogicChoiceOverrides,
+          source?.original_name ?? "XLSForm actual",
+          choiceCodeMaps,
+          true,
+        );
+        refreshedRules = await refreshSurveyMonkeyAdvancedRules(
+          smLogicRules,
+          workbookWithSurveyMonkeyLogic(result.workbook, smLogicRules, smVisualLogicRules, smLogicChoiceOverrides, choiceCodeMaps),
+          smLogicChoiceOverrides,
+        );
+        nextWorkbook = workbookWithSurveyMonkeyLogic(
+          result.workbook,
+          refreshedRules,
+          smVisualLogicRules,
+          smLogicChoiceOverrides,
+          choiceCodeMaps,
+        );
+      }
       setSmLogicRules(refreshedRules);
-      dispatch({ type: "SET", workbook: nextWorkbook });
-      setArtifact(null);
+      if (isReviewConfirmation) {
+        const confirmed = await persistAndConfirmFormLogic(
+          activeFormId,
+          nextWorkbook,
+          source,
+          hallazgos,
+        );
+        if (!confirmed) return;
+        setLogicReviewFormId(null);
+      } else {
+        dispatch({ type: "SET", workbook: nextWorkbook });
+        setArtifact(null);
+        toasts.push({
+          kind: "success",
+          title: "Lógica SurveyMonkey recalculada",
+          detail: "Los saltos del modal reemplazaron la lógica previa en los destinos afectados.",
+        });
+      }
       setSmLogicDialogOpen(false);
+    } catch {
       toasts.push({
-        kind: "success",
-        title: "Lógica SurveyMonkey recalculada",
-        detail: "Los saltos del modal reemplazaron la lógica previa en los destinos afectados.",
+        kind: "danger",
+        title: "No se pudo aplicar la lógica",
+        detail: "Revisa la sesión del proyecto e inténtalo nuevamente. Tus cambios siguen abiertos en el editor.",
       });
-    } catch (e) {
-      const msg = (e as Error).message;
-      toasts.push({ kind: "danger", title: "No se pudo aplicar la lógica", detail: msg });
     } finally {
       setBusy("");
     }
@@ -1857,7 +2011,7 @@ export default function XlsformEditorPage() {
       const out = await apiXlsformEditorExport(
         exportableWorkbook,
         cleanFilename(source?.original_name),
-        source,
+        normalizeXlsformFormSource(source),
         { include_app_columns: includeAppColumns },
       );
       setArtifact({ file_id: out.file_id, original_name: out.original_name, extension: "xlsx" });
@@ -2910,6 +3064,7 @@ export default function XlsformEditorPage() {
       lead="Constructor visual, hojas técnicas y exportación XLSForm en un mismo workbench."
       className="pulso-xlsform-frame"
       headerMode="sr-only"
+      auditReady={workbook ? "xlsform-editor" : false}
       resetScrollKey={`${workbook ? "workbook" : "empty"}:${editorMode}`}
       toolbar={workbook ? (
         <div className="pulso-xlsform-commandbar" aria-label="Comandos del formulario activo">
@@ -3006,7 +3161,10 @@ export default function XlsformEditorPage() {
               catalogsCount={catalogs.length}
               onOpenLogicCanvas={() => setLogicCanvasOpen(true)}
               onOpenChoiceFilters={() => setChoiceFiltersOpen(true)}
-              onOpenSurveyMonkeyLogic={() => setSmLogicDialogOpen(true)}
+              onOpenSurveyMonkeyLogic={() => {
+                setLogicReviewFormId(null);
+                setSmLogicDialogOpen(true);
+              }}
               onOpenQuestionnaireView={() => setQuestionnaireViewOpen(true)}
               onOpenCatalogsLens={() => setCatalogsLensOpen(true)}
               onOpenSimulator={() => setSimulatorOpen(true)}
@@ -3038,9 +3196,9 @@ export default function XlsformEditorPage() {
               onClick={() => xlsInputRef.current?.click()}
               className="pulso-xlsform-toolbar-button"
               disabled={!canCreateForm}
-              title={canCreateForm ? "Importar un XLSForm" : `Límite de ${MAX_FORMS} formularios por proyecto`}
+              title={canCreateForm ? "Importar un XLSForm como formulario nuevo" : `Límite de ${MAX_FORMS} formularios por proyecto`}
             >
-              <Upload size={14} /> Importar
+              <Upload size={14} /> Importar como nuevo
             </button>
             <button
               type="button"
@@ -3114,7 +3272,11 @@ export default function XlsformEditorPage() {
           confirmingLogicFormId={publicationUi.confirmingLogicFormId}
           publicationErrors={publicationUi.errorsByFormId}
           onPublish={(id) => { void onPublishForm(id); }}
-          onConfirmLogic={(id) => { void onConfirmFormLogic(id); }}
+          onConfirmLogic={(id) => { void openFormLogicReview(id); }}
+          actorOptions={instrumentActors}
+          actorCatalogStatus={instrumentActorCatalog.status}
+          assigningActorFormId={assigningActorFormId}
+          onActorChange={(id, actorKey) => { void onAssignFormActor(id, actorKey); }}
           onNewBlank={onNewWorkbook}
           onImportXls={() => {
             if (blockUntilRestoreDecision("importar otro XLSForm")) return;
@@ -3141,7 +3303,7 @@ export default function XlsformEditorPage() {
 
       {workbook && artifact && (
         <Panel
-          title="Export listo"
+          title={artifact.extension === "xlsx" ? "XLSForm listo" : "Documento listo"}
           hint={project.status.has_project
             ? "El archivo quedó en sesión y puedes guardarlo en el proyecto."
             : "El archivo quedó listo para descargar en esta sesión."}
@@ -3169,6 +3331,11 @@ export default function XlsformEditorPage() {
             <FileSpreadsheet size={16} />
             <span>{artifact.original_name}</span>
           </div>
+          {artifact.extension === "xlsx" ? (
+            <div style={{ marginTop: 10 }}>
+              <XlsformTransferNotice variant="export" compact />
+            </div>
+          ) : null}
         </Panel>
       )}
 
@@ -3336,35 +3503,6 @@ export default function XlsformEditorPage() {
                     }}
                   />
 
-                  {artifact && (
-                    <Panel
-                      title="Último export"
-                      hint="Tu versión descargable queda disponible dentro de la sesión."
-                      actions={(
-                        <SaveEntregableButton
-                          fileId={artifact.file_id}
-                          defaultName={artifact.original_name.replace(/\.(xlsx|pdf|docx)$/i, "")}
-                          extension={artifact.extension}
-                          label="Descargar export"
-                          icon={artifact.extension === "pdf" ? <FileText size={14} /> : <Download size={14} />}
-                          className="pulso-primary"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 6,
-                            padding: "6px 12px",
-                            borderRadius: 6,
-                            fontSize: 13,
-                            border: "1px solid var(--pulso-primary)",
-                          }}
-                        />
-                      )}
-                    >
-                      <span style={{ fontSize: 13, color: "var(--pulso-text-soft)" }}>
-                        {artifact.original_name}
-                      </span>
-                    </Panel>
-                  )}
                 </div>
               </div>
             )}
@@ -3449,7 +3587,7 @@ export default function XlsformEditorPage() {
 	        onSelectRow={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
 	      />
 
-	      {smLogicDialogOpen && workbook ? (
+	      {smLogicDialogOpen && workbook ? createPortal((
 	        <SurveyMonkeyLogicPopup
 	          workbook={workbook}
 	          sourceName={source?.original_name ?? null}
@@ -3458,14 +3596,18 @@ export default function XlsformEditorPage() {
 	          existingKoboLogic={extractExistingKoboLogic(workbook)}
 	          overrides={smLogicChoiceOverrides}
 	          busy={Boolean(busy)}
+	          reviewConfirmation={logicReviewFormId === activeFormId}
 	          onLogicDraftChange={updateSurveyMonkeyLogicDraft}
 	          onRulesChange={(nextRules) => updateSurveyMonkeyLogicDraft(nextRules)}
 	          onVisualRulesChange={updateSurveyMonkeyVisualRulesDraft}
 	          onOverridesChange={updateSurveyMonkeyOverridesDraft}
-	          onClose={() => setSmLogicDialogOpen(false)}
+	          onClose={() => {
+	            setSmLogicDialogOpen(false);
+	            setLogicReviewFormId(null);
+	          }}
 	          onApply={applySurveyMonkeyLogicFromEditor}
 	        />
-	      ) : null}
+	      ), document.body) : null}
 
 	      {questionnaireViewOpen ? createPortal((
         <div
@@ -4119,6 +4261,7 @@ function SurveyMonkeyLogicPopup({
   existingKoboLogic,
   overrides,
   busy,
+  reviewConfirmation,
   onLogicDraftChange,
   onRulesChange,
   onVisualRulesChange,
@@ -4133,6 +4276,7 @@ function SurveyMonkeyLogicPopup({
   existingKoboLogic: Array<{ name: string; label: string; relevant: string }>;
   overrides: Record<string, string[]>;
   busy: boolean;
+  reviewConfirmation: boolean;
   onLogicDraftChange: (
     rules: ConfirmedRule[],
     visualRules: SurveyMonkeyVisualLogicRule[],
@@ -4147,6 +4291,54 @@ function SurveyMonkeyLogicPopup({
 }) {
   const [logicPackWarnings, setLogicPackWarnings] = useState<SurveyMonkeyLogicPackWarning[]>([]);
   const refreshedOnOpenRef = useRef(false);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  // El diálogo es una superficie modal real: el primer foco entra en la X,
+  // Tab/Shift+Tab no escapan al editor que queda detrás y al cerrar devolvemos
+  // el foco al control que lo abrió. Escape comparte la misma ruta de cierre.
+  useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const focusTimer = window.setTimeout(() => closeButtonRef.current?.focus(), 0);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
+      )).filter((element) => element.getClientRects().length > 0);
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialogRef.current.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener("keydown", onKey);
+      previousFocus?.focus();
+    };
+  }, []);
 
   useEffect(() => {
     if (refreshedOnOpenRef.current || rules.length === 0) return;
@@ -4235,10 +4427,14 @@ function SurveyMonkeyLogicPopup({
       role="dialog"
       aria-modal="true"
       aria-label="Lógica SurveyMonkey"
+      data-audit-ready="xlsform-logic"
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 260,
+        // El toolbar del PageFrame usa z-index 1000. Este diálogo vive en un
+        // portal y debe cubrirlo por completo para que encabezado, contenido y
+        // pie formen una sola superficie modal accesible.
+        zIndex: 2300,
         background: "rgba(15, 23, 42, 0.45)",
         display: "flex",
         alignItems: "center",
@@ -4247,6 +4443,8 @@ function SurveyMonkeyLogicPopup({
       }}
     >
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         style={{
           width: "min(980px, 100%)",
           maxHeight: "min(860px, calc(100vh - 48px))",
@@ -4284,6 +4482,7 @@ function SurveyMonkeyLogicPopup({
             </div>
           </div>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             aria-label="Cerrar lógica SurveyMonkey"
@@ -4350,7 +4549,9 @@ function SurveyMonkeyLogicPopup({
           }}
         >
           <span style={{ color: "var(--pulso-muted, #6b7280)", fontSize: 12 }}>
-            {visualActionCountForFooter(visualRules) + rules.length} salto{visualActionCountForFooter(visualRules) + rules.length === 1 ? "" : "s"} configurado{visualActionCountForFooter(visualRules) + rules.length === 1 ? "" : "s"}
+            {reviewConfirmation && visualActionCountForFooter(visualRules) + rules.length === 0
+              ? "Sin saltos configurados; confirma si ya verificaste que el formulario no los necesita."
+              : `${visualActionCountForFooter(visualRules) + rules.length} salto${visualActionCountForFooter(visualRules) + rules.length === 1 ? "" : "s"} configurado${visualActionCountForFooter(visualRules) + rules.length === 1 ? "" : "s"}`}
           </span>
           <div style={{ display: "inline-flex", gap: 8 }}>
             <button type="button" onClick={onClose} disabled={busy}>
@@ -4360,10 +4561,10 @@ function SurveyMonkeyLogicPopup({
               type="button"
               className="pulso-primary"
               onClick={onApply}
-              disabled={busy || (rules.length === 0 && visualActionCountForFooter(visualRules) === 0)}
+              disabled={busy || (!reviewConfirmation && rules.length === 0 && visualActionCountForFooter(visualRules) === 0)}
               style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
             >
-              <CheckCircle2 size={14} /> Recalcular y aplicar
+              <CheckCircle2 size={14} /> {reviewConfirmation ? "Confirmar lógica revisada" : "Recalcular y aplicar"}
             </button>
           </div>
         </footer>

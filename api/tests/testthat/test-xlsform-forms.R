@@ -281,6 +281,66 @@ test_that("publication bloqueada tiene precedencia y ast raw queda como warning"
   expect_true(publication$can_delete)
 })
 
+test_that("publicación exige al menos una pregunta sustantiva", {
+  structural_only <- make_state("Sin preguntas")
+  structural_only$workbook$survey <- list(
+    columns = list("type", "name", "label"),
+    rows = list(
+      list("begin_group", "grupo", "Grupo"),
+      list("note", "nota", "Texto informativo"),
+      list("calculate", "calculo", ""),
+      list("hidden", "oculta", "Campo oculto"),
+      list("start", "inicio", ""),
+      list("end_group", "grupo", "")
+    )
+  )
+  entry <- .xlsform_forms_as_entry(structural_only, id = "form-sin-preguntas")
+  publication <- .xlsform_revision_publication(list(), entry)
+
+  expect_equal(publication$status, "blocked")
+  expect_false(publication$can_publish)
+  expect_true("no_substantive_questions" %in%
+                vapply(publication$blockers, `[[`, character(1), "id"))
+})
+
+test_that("catálogo de actores de Monitoreo gobierna publicación de acreditación", {
+  s <- list(
+    monitoreo_config = list(monitoreo_profile = list(family = "acreditacion")),
+    monitoreo_sources = list(list(
+      id = "sm-docentes",
+      kind = "surveymonkey",
+      enabled = TRUE,
+      role = "respuestas",
+      survey_id = "survey-docentes",
+      label = "SurveyMonkey · Docentes",
+      dimensions = list(actor = "Docentes")
+    ))
+  )
+  accreditation_state <- make_state("Instrumento de acreditación")
+  accreditation_state$source <- list(
+    schema = "acreditacion_actor_instrument_draft/v1",
+    kind = "xlsform"
+  )
+
+  missing <- .xlsform_forms_as_entry(accreditation_state, id = "form-sin-actor")
+  missing_publication <- .xlsform_revision_publication(s, missing)
+  expect_false(missing_publication$can_publish)
+  expect_true("actor_required" %in%
+                vapply(missing_publication$blockers, `[[`, character(1), "id"))
+
+  outside <- accreditation_state
+  outside$source$actor_key <- "egresados"
+  outside_entry <- .xlsform_forms_as_entry(outside, id = "form-actor-ajeno")
+  outside_publication <- .xlsform_revision_publication(s, outside_entry)
+  expect_false(outside_publication$can_publish)
+  expect_true("actor_not_in_catalog" %in%
+                vapply(outside_publication$blockers, `[[`, character(1), "id"))
+
+  generic <- make_state("Instrumento genérico")
+  generic_entry <- .xlsform_forms_as_entry(generic, id = "form-generico")
+  expect_true(.xlsform_revision_publication(list(), generic_entry)$can_publish)
+})
+
 test_that("logic_status pendiente bloquea publicar pero fuentes legacy siguen compatibles", {
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
@@ -404,6 +464,50 @@ test_that("variantes SurveyMonkey se sellan al confirmar y vuelven stale si camb
   )
 })
 
+test_that("confirmación top-level sella contenido, definición y mapas SurveyMonkey", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  definition_sha256 <- paste(rep("d", 64L), collapse = "")
+  state <- make_state("Instrumento SurveyMonkey")
+  state$source <- list(
+    schema = "survey_source/v1",
+    kind = "surveymonkey",
+    survey_id = "sm-top-level",
+    definition_sha256 = definition_sha256,
+    logic_status = "pending_manual_confirmation",
+    publication_guard = "Revisa la traducción antes de publicar."
+  )
+  entry <- .xlsform_forms_as_entry(state, id = "form-sm-top-level")
+  s <- .xlsform_forms_upsert(session_get(sid), entry)
+  .session_env[[sid]] <- s
+
+  content_sha256 <- .xlsform_revision_hash(entry$workbook)
+  confirmed <- xlsform_forms_confirm_logic(sid, entry$id, content_sha256)
+  expect_equal(
+    confirmed$source$logic_review,
+    list(
+      content_sha256 = content_sha256,
+      choice_code_maps_sha256 = .xlsform_editor_sm_hash(list()),
+      definition_sha256 = definition_sha256
+    )
+  )
+
+  changed <- session_get(sid)
+  changed_entry <- .xlsform_forms_get(changed, entry$id)
+  changed_entry$source$definition_sha256 <- paste(rep("e", 64L), collapse = "")
+  changed <- .xlsform_forms_upsert(changed, changed_entry)
+  .session_env[[sid]] <- changed
+
+  publication <- .xlsform_revision_publication(
+    changed,
+    .xlsform_forms_get(changed, entry$id)
+  )
+  expect_true("logic_confirmation_stale" %in%
+                vapply(publication$blockers, `[[`, character(1), "id"))
+  expect_false(publication$can_publish)
+})
+
 test_that("logic_status activa el gate aunque el source use schema de acreditación", {
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
@@ -420,6 +524,7 @@ test_that("logic_status activa el gate aunque el source use schema de acreditaci
   state$source <- list(
     schema = "acreditacion_actor_instrument_draft/v1",
     kind = "surveymonkey",
+    actor_key = "docentes",
     logic_status = "pending_manual_confirmation",
     variants = list(list(
       survey_id = "sm-acreditacion-variante",

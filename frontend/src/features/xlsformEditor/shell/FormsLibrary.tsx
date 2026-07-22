@@ -24,10 +24,11 @@ import { useMemo, type ReactNode } from "react";
 import { Layers, Lock } from "../../../vendor/lucide-react";
 import type { XlsformFormPublication } from "../../../api/client";
 import { AddFormCard } from "./AddFormCard";
-import { FormCard } from "./FormCard";
+import { FormCard, type ActorCatalogStatus } from "./FormCard";
 import { HubFlowDiagram } from "./HubFlowDiagram";
 import { computeFormMetrics, type FormCardMetrics } from "./formCardMetrics";
 import { computeHomeSlots } from "./homeSlots";
+import type { InstrumentActorOption } from "./actorAssignmentModel";
 import {
   loadForm,
   MAX_FORMS,
@@ -54,6 +55,10 @@ export type FormsLibraryProps = {
   publicationErrors: Record<string, string>;
   onPublish: (id: string) => void;
   onConfirmLogic: (id: string) => void;
+  actorOptions: InstrumentActorOption[];
+  onActorChange: (id: string, actorKey: string) => void;
+  actorCatalogStatus?: ActorCatalogStatus;
+  assigningActorFormId?: string | null;
   resumeBanner?: ReactNode;
 };
 
@@ -74,6 +79,10 @@ export function FormsLibrary({
   publicationErrors,
   onPublish,
   onConfirmLogic,
+  actorOptions,
+  onActorChange,
+  actorCatalogStatus = "ready",
+  assigningActorFormId = null,
   resumeBanner,
 }: FormsLibraryProps) {
   // Métricas por formulario, calculadas sobre el workbook local. Se recomputa
@@ -136,20 +145,16 @@ export function FormsLibrary({
             onRename={onRename}
             onDelete={onDelete}
             onDuplicate={onDuplicate}
-            publication={publications[entry.id] ?? {
-              status: "draft",
-              draft_content_sha256: "",
-              latest_revision: null,
-              blockers: [],
-              warnings: [],
-              can_publish: false,
-              can_delete: true,
-            }}
+            publication={publications[entry.id] ?? null}
             isPublishing={publishingFormId === entry.id}
             isConfirmingLogic={confirmingLogicFormId === entry.id}
             publicationError={publicationErrors[entry.id]}
             onPublish={onPublish}
             onConfirmLogic={onConfirmLogic}
+            actorOptions={actorOptions}
+            onActorChange={onActorChange}
+            actorCatalogStatus={actorCatalogStatus}
+            isAssigningActor={assigningActorFormId === entry.id}
           />
         ))}
 
@@ -184,13 +189,14 @@ export function FormsLibrary({
         </p>
       )}
 
-      <footer className="pulso-xf-home-guide">
+      <footer className={`pulso-xf-home-guide${empty ? "" : " is-compact"}`}>
         <span className="pulso-xf-home-guide-eyebrow">Cómo funciona</span>
         <p className="pulso-xf-home-guide-copy">
-          Cada formulario sigue estos cuatro pasos. El editor guarda los cambios
-          automáticamente y exporta como XLSForm o PDF cuando esté listo.
+          {empty
+            ? "Construye el instrumento paso a paso; el editor guarda los cambios automáticamente."
+            : "Origen, lógica y público preparan una revisión estable para Procesamiento."}
         </p>
-        <HubFlowDiagram />
+        {empty ? <HubFlowDiagram /> : null}
       </footer>
     </section>
   );

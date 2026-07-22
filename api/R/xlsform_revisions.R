@@ -147,7 +147,29 @@
   ))
 }
 
-.xlsform_revision_logic_blockers <- function(source, content_sha256) {
+.xlsform_revision_choice_code_maps <- function(workbook) {
+  maps <- ((workbook %||% list())$surveyMonkeyLogic %||% list())$choice_code_maps %||% list()
+  if (!is.list(maps)) return(list())
+  .xlsform_forms_sanitize_source(maps)
+}
+
+.xlsform_revision_choice_code_maps_hash <- function(workbook) {
+  .xlsform_editor_sm_hash(.xlsform_revision_choice_code_maps(workbook))
+}
+
+.xlsform_revision_stored_choice_code_maps_hash <- function(revision) {
+  revision <- revision %||% list()
+  stored <- as.character(
+    revision$choice_code_maps_sha256 %||%
+      (revision$logic_audit %||% list())$choice_code_maps_sha256 %||%
+      ""
+  )[1]
+  if (nzchar(stored)) return(stored)
+  maps <- revision$choice_code_maps %||% list()
+  .xlsform_editor_sm_hash(if (is.list(maps)) maps else list())
+}
+
+.xlsform_revision_logic_blockers <- function(source, content_sha256, workbook = list()) {
   source <- .xlsform_forms_sanitize_source(source)
   logic_status <- as.character(source$logic_status %||% "")[1]
   if (identical(logic_status, "pending_manual_confirmation")) {
@@ -166,8 +188,25 @@
   blockers <- list()
   if (!identical(logic_status, "confirmed")) return(blockers)
 
-  reviewed_hash <- as.character((source$logic_review %||% list())$content_sha256 %||% "")[1]
-  if (!identical(reviewed_hash, content_sha256)) {
+  logic_review <- source$logic_review %||% list()
+  reviewed_hash <- as.character(logic_review$content_sha256 %||% "")[1]
+  choice_code_maps <- .xlsform_revision_choice_code_maps(workbook)
+  choice_code_maps_sha256 <- .xlsform_revision_choice_code_maps_hash(workbook)
+  reviewed_maps_sha256 <- as.character(
+    logic_review$choice_code_maps_sha256 %||% ""
+  )[1]
+  current_definition <- as.character(source$definition_sha256 %||% "")[1]
+  reviewed_definition <- as.character(logic_review$definition_sha256 %||% "")[1]
+  maps_stale <- if (nzchar(reviewed_maps_sha256)) {
+    !identical(reviewed_maps_sha256, choice_code_maps_sha256)
+  } else {
+    length(choice_code_maps) > 0L
+  }
+  top_level_stale <- !identical(reviewed_hash, content_sha256) ||
+    (nzchar(current_definition) &&
+      !identical(reviewed_definition, current_definition)) ||
+    maps_stale
+  if (top_level_stale) {
     blockers <- c(blockers, list(list(
       id = "logic_confirmation_stale",
       level = "error",
@@ -218,6 +257,7 @@
 }
 
 .xlsform_revision_logic_audit <- function(source, content_sha256, source_sha256,
+                                           choice_code_maps_sha256,
                                            warnings, validated_at) {
   source <- .xlsform_forms_sanitize_source(source)
   list(
@@ -226,18 +266,104 @@
     method = source$logic_confirmation_method %||% NULL,
     content_sha256 = content_sha256,
     source_sha256 = source_sha256,
+    choice_code_maps_sha256 = choice_code_maps_sha256,
     diagnostics = warnings %||% list(),
     validated_at = validated_at
   )
+}
+
+.xlsform_revision_has_substantive_questions <- function(workbook) {
+  survey <- (workbook %||% list())$survey %||% list()
+  columns <- vapply(
+    survey$columns %||% list(),
+    .xlsform_revision_utf8_cell,
+    character(1)
+  )
+  type_index <- match("type", tolower(trimws(columns)))
+  rows <- survey$rows %||% list()
+  if (is.na(type_index) || !length(rows)) return(FALSE)
+
+  excluded <- c(
+    "begin_group", "end_group", "begin_repeat", "end_repeat",
+    "note", "calculate", "hidden",
+    "start", "end", "today", "deviceid", "subscriberid", "simserial",
+    "phonenumber", "username", "email", "audit", "background-audio",
+    "instanceid"
+  )
+  any(vapply(rows, function(row) {
+    row <- row %||% list()
+    if (!is.list(row)) row <- as.list(row)
+    type <- if (length(row) >= type_index) {
+      .xlsform_revision_utf8_cell(row[[type_index]])
+    } else {
+      ""
+    }
+    base <- tolower(trimws(sub("\\s.*$", "", type)))
+    nzchar(base) && !(base %in% excluded)
+  }, logical(1)))
+}
+
+.xlsform_revision_domain_blockers <- function(s, workbook, source) {
+  blockers <- list()
+  if (!.xlsform_revision_has_substantive_questions(workbook)) {
+    blockers[[length(blockers) + 1L]] <- list(
+      id = "no_substantive_questions",
+      level = "error",
+      title = "Instrumento sin preguntas sustantivas",
+      detail = paste0(
+        "Agrega al menos una pregunta antes de publicar; grupos, metadata, ",
+        "notas, cálculos y campos ocultos no cuentan como preguntas."
+      )
+    )
+  }
+
+  if (!.acreditacion_actor_profile_active(s) &&
+      !.acreditacion_actor_instrument(source)) {
+    return(blockers)
+  }
+  actor_key <- .estudio_scalar((source %||% list())$actor_key, "")
+  if (!nzchar(actor_key) || identical(actor_key, "sin_actor")) {
+    blockers[[length(blockers) + 1L]] <- list(
+      id = "actor_required",
+      level = "error",
+      title = "Actor de acreditación obligatorio",
+      detail = "Asigna un actor del catálogo de Monitoreo antes de publicar."
+    )
+    return(blockers)
+  }
+
+  catalog <- .acreditacion_actor_catalog(s)
+  if (length(catalog) && !(actor_key %in% catalog)) {
+    blockers[[length(blockers) + 1L]] <- list(
+      id = "actor_not_in_catalog",
+      level = "error",
+      title = "Actor fuera del catálogo",
+      detail = paste0(
+        "El público asignado ya no pertenece a las fuentes activas de ",
+        "acreditación en Monitoreo."
+      )
+    )
+  }
+  blockers
 }
 
 .xlsform_revision_publication <- function(s, entry) {
   form_id <- as.character(entry$id %||% "")[1]
   draft_hash <- .xlsform_revision_hash(entry$workbook %||% list())
   draft_source_hash <- .xlsform_revision_source_hash(entry$source %||% list())
+  draft_maps_hash <- .xlsform_revision_choice_code_maps_hash(entry$workbook %||% list())
   diagnostics <- .xlsform_revision_diagnostics(entry$workbook %||% list())
-  logic_blockers <- .xlsform_revision_logic_blockers(entry$source, draft_hash)
-  blockers <- c(logic_blockers, diagnostics$blockers)
+  logic_blockers <- .xlsform_revision_logic_blockers(
+    entry$source,
+    draft_hash,
+    entry$workbook %||% list()
+  )
+  domain_blockers <- .xlsform_revision_domain_blockers(
+    s,
+    entry$workbook %||% list(),
+    entry$source
+  )
+  blockers <- c(logic_blockers, domain_blockers, diagnostics$blockers)
   latest <- .xlsform_revision_latest(s, form_id)
 
   status <- if (length(blockers)) {
@@ -249,6 +375,14 @@
       identical(
         as.character((latest$logic_audit %||% list())$source_sha256 %||% "")[1],
         draft_source_hash
+      ) &&
+      identical(
+        as.character(
+          latest$choice_code_maps_sha256 %||%
+            (latest$logic_audit %||% list())$choice_code_maps_sha256 %||%
+            .xlsform_editor_sm_hash(list())
+        )[1],
+        draft_maps_hash
       )
   ) {
     "published"
@@ -260,6 +394,7 @@
     status = status,
     draft_content_sha256 = draft_hash,
     draft_source_sha256 = draft_source_hash,
+    draft_choice_code_maps_sha256 = draft_maps_hash,
     latest_revision = latest,
     blockers = blockers,
     warnings = diagnostics$warnings,
@@ -377,9 +512,11 @@ xlsform_revision_publish <- function(sid, form_id, expected_content_sha256) {
   }
   source <- .xlsform_forms_sanitize_source(entry$source %||% list())
   source_hash <- .xlsform_revision_source_hash(source)
+  choice_code_maps_hash <- .xlsform_revision_choice_code_maps_hash(entry$workbook %||% list())
   diagnostics <- .xlsform_revision_diagnostics(entry$workbook %||% list())
   blockers <- c(
-    .xlsform_revision_logic_blockers(source, current_hash),
+    .xlsform_revision_logic_blockers(source, current_hash, entry$workbook %||% list()),
+    .xlsform_revision_domain_blockers(s, entry$workbook %||% list(), source),
     diagnostics$blockers
   )
   if (length(blockers)) {
@@ -394,7 +531,8 @@ xlsform_revision_publish <- function(sid, form_id, expected_content_sha256) {
   latest <- .xlsform_revision_latest(s, form_id)
   latest_source_hash <- as.character((latest$logic_audit %||% list())$source_sha256 %||% "")[1]
   if (!is.null(latest) && identical(latest$content_sha256, current_hash) &&
-      identical(latest_source_hash, source_hash)) {
+      identical(latest_source_hash, source_hash) &&
+      identical(.xlsform_revision_stored_choice_code_maps_hash(latest), choice_code_maps_hash)) {
     meta <- (s$files %||% list())[[as.character(latest$xlsform_file_id %||% "")[1]]]
     if (is.null(meta) || is.null(meta$path) || !file.exists(meta$path)) {
       stop_api(500, "E_INSTRUMENT_REVISION_COMMIT_FAILED", "La última revisión registrada no conserva su snapshot XLSX.")
@@ -423,12 +561,23 @@ xlsform_revision_publish <- function(sid, form_id, expected_content_sha256) {
   }
   fresh_source <- .xlsform_forms_sanitize_source(fresh_entry$source %||% list())
   fresh_source_hash <- .xlsform_revision_source_hash(fresh_source)
+  fresh_choice_code_maps <- .xlsform_revision_choice_code_maps(fresh_entry$workbook %||% list())
+  fresh_choice_code_maps_hash <- .xlsform_revision_choice_code_maps_hash(fresh_entry$workbook %||% list())
   if (!identical(fresh_source_hash, source_hash)) {
     stop_api(409, "E_FORM_DRAFT_STALE", "La procedencia del formulario cambió durante la publicación.")
   }
   fresh_diagnostics <- .xlsform_revision_diagnostics(fresh_entry$workbook %||% list())
   fresh_blockers <- c(
-    .xlsform_revision_logic_blockers(fresh_source, fresh_hash),
+    .xlsform_revision_logic_blockers(
+      fresh_source,
+      fresh_hash,
+      fresh_entry$workbook %||% list()
+    ),
+    .xlsform_revision_domain_blockers(
+      fresh,
+      fresh_entry$workbook %||% list(),
+      fresh_source
+    ),
     fresh_diagnostics$blockers
   )
   if (length(fresh_blockers)) {
@@ -442,7 +591,11 @@ xlsform_revision_publish <- function(sid, form_id, expected_content_sha256) {
   latest <- .xlsform_revision_latest(fresh, form_id)
   latest_source_hash <- as.character((latest$logic_audit %||% list())$source_sha256 %||% "")[1]
   if (!is.null(latest) && identical(latest$content_sha256, fresh_hash) &&
-      identical(latest_source_hash, fresh_source_hash)) {
+      identical(latest_source_hash, fresh_source_hash) &&
+      identical(
+        .xlsform_revision_stored_choice_code_maps_hash(latest),
+        fresh_choice_code_maps_hash
+      )) {
     committed <- TRUE
     unlink(staged$pending_path, force = TRUE)
     return(list(created = FALSE, revision = latest))
@@ -459,12 +612,15 @@ xlsform_revision_publish <- function(sid, form_id, expected_content_sha256) {
     form_id = form_id,
     revision_no = as.integer(revision_no),
     content_sha256 = fresh_hash,
+    choice_code_maps = fresh_choice_code_maps,
+    choice_code_maps_sha256 = fresh_choice_code_maps_hash,
     xlsform_file_id = staged$meta$file_id,
     source = fresh_source,
     logic_audit = .xlsform_revision_logic_audit(
       fresh_source,
       content_sha256 = fresh_hash,
       source_sha256 = fresh_source_hash,
+      choice_code_maps_sha256 = fresh_choice_code_maps_hash,
       warnings = fresh_diagnostics$warnings,
       validated_at = now
     ),

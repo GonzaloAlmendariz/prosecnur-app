@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 import {
   Plus,
   X,
@@ -9,8 +10,7 @@ import {
   KeyRound,
   Search,
   ShieldCheck,
-  AlertTriangle,
-} from "lucide-react";
+} from "../../../vendor/lucide-react";
 import { IconConditionalLogic, IconChecklist } from "../../../lib/icons";
 import {
   apiXlsformEditorImportSurveyMonkeyWithLogic,
@@ -24,11 +24,14 @@ import {
   type SurveyMonkeyListItem,
   type SurveyMonkeyTokenState,
   type SurveyMonkeyTokenInfo,
+  type SurveyMonkeyDefinition,
   type SurveyMonkeyVisualLogicRule,
   type ChoiceCodeMap,
   type EditorPayloadWithHallazgos,
 } from "../../../api/client";
 import { compileVisualLogicRules, RuleWizard, type VisualLogicPage, type VisualLogicQuestion } from "./RuleWizard";
+import { XlsformTransferNotice } from "./XlsformTransferNotice";
+import "../styles/xf-surveymonkey-dialog.css";
 
 // Modal de importación SurveyMonkey. El flujo principal usa solo la API:
 //   1. Conecta token + encuesta.
@@ -271,7 +274,6 @@ export function shouldShowManualPageQuestionsInput(page: Pick<PageEntry, "questi
 
 export function ImportSurveyMonkeyDialog({
   fileId,
-  fileName,
   onCancel,
   onComplete,
 }: {
@@ -306,6 +308,7 @@ export function ImportSurveyMonkeyDialog({
   const [smApiSuccess, setSmApiSuccess] = useState<string | null>(null);
   const [smApiError, setSmApiError] = useState<string | null>(null);
   const [smFetchedSurveyId, setSmFetchedSurveyId] = useState<string | null>(null);
+  const [smDefinition, setSmDefinition] = useState<SurveyMonkeyDefinition | null>(null);
   const [smSurveyList, setSmSurveyList] = useState<SurveyMonkeyListItem[] | null>(null);
   const [smSurveyMeta, setSmSurveyMeta] = useState<{
     totalRecent: number;
@@ -320,6 +323,8 @@ export function ImportSurveyMonkeyDialog({
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewChecked, setReviewChecked] = useState(false);
   const [visualPending, setVisualPending] = useState(false);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
   function applySmTokenState(next: SurveyMonkeyTokenState) {
     setSmTokenState(next);
@@ -358,6 +363,7 @@ export function ImportSurveyMonkeyDialog({
     setSmToken(next);
     setSmTokenStatus(null);
     setSmFetchedSurveyId(null);
+    setSmDefinition(null);
     setSmSurveyMeta(null);
   }
 
@@ -416,6 +422,8 @@ export function ImportSurveyMonkeyDialog({
     setSmSurveyMeta(null);
     setSmApiSuccess(null);
     setSmApiError(null);
+    setSmFetchedSurveyId(null);
+    setSmDefinition(null);
     try {
       applySmTokenState(await apiXlsformEditorSmTokenClear());
     } catch {
@@ -484,6 +492,7 @@ export function ImportSurveyMonkeyDialog({
     setSmApiError(null);
     setSmApiSuccess(null);
     setSmFetchedSurveyId(null);
+    setSmDefinition(null);
     try {
       const info = await apiXlsformEditorSmFetchSurveyInfo(
         fileId ?? null,
@@ -511,6 +520,7 @@ export function ImportSurveyMonkeyDialog({
       setVisualRules([]);
       setChoiceCodeMaps([]);
       setSmFetchedSurveyId(cleanedId);
+      setSmDefinition(info.definition);
       setSmApiSuccess(
         `${info.summary.title ?? "Survey"} · ${info.summary.n_paginas} secciones · ${info.summary.n_preguntas} preguntas mapeadas` +
           (info.summary.n_required > 0 || info.summary.n_validation > 0
@@ -524,22 +534,54 @@ export function ImportSurveyMonkeyDialog({
     }
   }
 
-  // Escape para cancelar — pero solo si no hay progreso. Si el usuario ya
-  // armó páginas o reglas, confirma antes de cerrar para no tirar trabajo.
+  const requestClose = useCallback(() => {
+    const hasProgress = Boolean(
+      smFetchedSurveyId
+      || smSurveyId.trim()
+      || pages.length > 0
+      || wizardRules.length > 0
+      || visualRules.length > 0,
+    );
+    if (!hasProgress || window.confirm("¿Cerrar y descartar lo configurado?")) {
+      onCancel();
+    }
+  }, [onCancel, pages.length, smFetchedSurveyId, smSurveyId, visualRules.length, wizardRules.length]);
+
+  // Un único sheet modal: Escape, Cancelar y la X pasan por la misma
+  // protección de descarte. El foco se limita al sheet y vuelve al disparador.
   useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const focusTimer = window.setTimeout(() => closeButtonRef.current?.focus(), 0);
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      const hasProgress =
-        pages.length > 0 ||
-        wizardRules.length > 0 ||
-        visualRules.length > 0;
-      if (!hasProgress || window.confirm("¿Cerrar y descartar lo configurado?")) {
-        onCancel();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        requestClose();
+        return;
+      }
+      if (e.key !== "Tab" || !sheetRef.current) return;
+      const focusable = Array.from(sheetRef.current.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
+      ));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
       }
     };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onCancel, pages, wizardRules, visualRules]);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener("keydown", onKey);
+      previousFocus?.focus();
+    };
+  }, [requestClose]);
 
   const reglasText = [
     compileVisualLogicRules(visualRules),
@@ -557,6 +599,11 @@ export function ImportSurveyMonkeyDialog({
       setError("Confirma o descarta la lógica visual pendiente antes de revisar la importación final.");
       return;
     }
+    if (!smDefinition?.sha256 || !smDefinition.translation_profile) {
+      setError("La vista previa no devolvió una huella verificable. Vuelve a conectar la encuesta antes de crear el borrador.");
+      return;
+    }
+    setError(null);
     setReviewChecked(false);
     setReviewOpen(true);
   }
@@ -584,7 +631,11 @@ export function ImportSurveyMonkeyDialog({
         pagesToRecord(pages),
         pageLabelsToRecord(pages),
         "es",
-        { survey_id: smFetchedSurveyId },
+        {
+          survey_id: smFetchedSurveyId,
+          expected_definition_sha256: smDefinition?.sha256,
+          expected_translation_profile: smDefinition?.translation_profile,
+        },
         choiceOrderOverrides,
         choiceCodeMaps,
       );
@@ -611,7 +662,7 @@ export function ImportSurveyMonkeyDialog({
     setPages((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   }
 
-  return (
+  const dialog = (
     <div
       role="dialog"
       aria-modal="true"
@@ -619,10 +670,10 @@ export function ImportSurveyMonkeyDialog({
       style={{
         position: "fixed",
         inset: 0,
-        // Modal full-screen: debe ir por encima del chrome del módulo
-        // (`.pulso-page-frame-toolbar` es z-index 1000). Con 200 el toolbar
-        // se colaba. Mismo criterio que el overlay del mapa / ContextLens.
-        zIndex: 1400,
+        // Modal full-screen: debe cubrir también el chrome global del editor.
+        // Los menús del editor llegan a la capa 2300; este diálogo comparte
+        // esa capa y, al montarse después, queda como superficie activa.
+        zIndex: 2300,
         background: "rgba(15, 23, 42, 0.45)",
         display: "flex",
         alignItems: "center",
@@ -633,6 +684,7 @@ export function ImportSurveyMonkeyDialog({
       {/* Sin onClick={onCancel} en el backdrop — un click accidental no debe
           tirar el progreso del usuario. Solo se cierra con la X o Escape. */}
       <div
+        ref={sheetRef}
         style={{
           width: "min(980px, 100%)",
           maxHeight: "90vh",
@@ -655,17 +707,18 @@ export function ImportSurveyMonkeyDialog({
         >
           <div>
             <h2 id="sm-import-title" style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>
-              Importar desde SurveyMonkey
+              Traducir encuesta de SurveyMonkey
             </h2>
             <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--pulso-muted, #6b7280)" }}>
-              {fileName}
-              {apiQuestions.length ? ` · ${apiQuestions.length} preguntas desde API` : null}
+              Crea un borrador XLSForm editable desde la definición original
+              {apiQuestions.length ? ` · ${apiQuestions.length} preguntas` : null}
             </p>
           </div>
           <button
+            ref={closeButtonRef}
             type="button"
-            onClick={onCancel}
-            aria-label="Cancelar"
+            onClick={requestClose}
+            aria-label="Cerrar importación de SurveyMonkey"
             style={{
               background: "transparent",
               border: "none",
@@ -681,20 +734,46 @@ export function ImportSurveyMonkeyDialog({
         <div style={{ padding: 20, overflowY: "auto", flex: 1, minHeight: "var(--pulso-operational-min-dialog-body, 240px)", fontSize: 14 }}>
           {loading ? (
             <p style={{ color: "var(--pulso-muted, #6b7280)" }}>Preparando importador…</p>
-          ) : error ? (
-            <div
-              style={{
-                padding: 12,
-                background: "#fef2f2",
-                color: "#991b1b",
-                borderRadius: 6,
-                fontSize: 13,
-              }}
-            >
-              {error}
-            </div>
           ) : (
             <>
+              {error ? (
+                <div
+                  role="alert"
+                  style={{
+                    marginBottom: 14,
+                    padding: 12,
+                    background: "var(--pulso-danger-bg)",
+                    color: "var(--pulso-danger-fg)",
+                    border: "1px solid var(--pulso-danger-border)",
+                    borderRadius: 6,
+                    fontSize: 13,
+                  }}
+                >
+                  {error}
+                </div>
+              ) : null}
+              {reviewOpen ? (
+                <FinalImportReviewModal
+                  surveyId={smFetchedSurveyId ?? ""}
+                  sectionCount={pages.length}
+                  questionCount={apiQuestions.length}
+                  visualRuleCount={visualActionCount}
+                  advancedRuleCount={wizardRules.length}
+                  overrideCount={overrideCount}
+                  definitionSha256={smDefinition?.sha256}
+                  translationProfile={smDefinition?.translation_profile}
+                  checked={reviewChecked}
+                  submitting={submitting}
+                  onCheckedChange={setReviewChecked}
+                  onCancel={() => {
+                    if (submitting) return;
+                    setError(null);
+                    setReviewOpen(false);
+                  }}
+                  onConfirm={handleApply}
+                />
+              ) : (
+                <>
               <ImportFlowSummary
                 connected={Boolean(smFetchedSurveyId)}
                 sectionCount={pages.length}
@@ -718,6 +797,7 @@ export function ImportSurveyMonkeyDialog({
                 onSurveyIdChange={(next) => {
                   setSmSurveyId(next);
                   setSmFetchedSurveyId(null);
+                  setSmDefinition(null);
                 }}
                 onTokenChange={handleTokenChange}
                 onTokenBlur={handleTokenBlur}
@@ -801,11 +881,13 @@ export function ImportSurveyMonkeyDialog({
                 />
                 </div>
               </section>
+                </>
+              )}
             </>
           )}
         </div>
 
-        <footer
+        {!reviewOpen ? <footer
           style={{
             padding: "12px 20px",
             borderTop: "1px solid var(--pulso-border, #e5e7eb)",
@@ -818,7 +900,7 @@ export function ImportSurveyMonkeyDialog({
         >
           <button
             type="button"
-            onClick={onCancel}
+            onClick={requestClose}
             disabled={submitting}
             style={{
               background: "transparent",
@@ -837,8 +919,8 @@ export function ImportSurveyMonkeyDialog({
               onClick={openReview}
               disabled={submitting || loading || !smFetchedSurveyId || visualPending}
               style={{
-                background: smFetchedSurveyId && !visualPending ? "var(--pulso-accent, #2563eb)" : "#cbd5e1",
-                color: "white",
+                background: smFetchedSurveyId && !visualPending ? "var(--pulso-module-editor)" : "var(--pulso-border-strong)",
+                color: "var(--pulso-surface-raised)",
                 border: "none",
                 borderRadius: 6,
                 padding: "8px 16px",
@@ -848,41 +930,28 @@ export function ImportSurveyMonkeyDialog({
                 fontWeight: 500,
               }}
             >
-              {submitting ? "Importando…" : "Revisar importación"}
+              {submitting ? "Preparando…" : "Revisar borrador"}
             </button>
           </div>
-        </footer>
-
-        {reviewOpen ? (
-          <FinalImportReviewModal
-            surveyId={smFetchedSurveyId ?? ""}
-            sectionCount={pages.length}
-            questionCount={apiQuestions.length}
-            visualRuleCount={visualActionCount}
-            advancedRuleCount={wizardRules.length}
-            overrideCount={overrideCount}
-            checked={reviewChecked}
-            submitting={submitting}
-            onCheckedChange={setReviewChecked}
-            onCancel={() => {
-              if (submitting) return;
-              setReviewOpen(false);
-            }}
-            onConfirm={handleApply}
-          />
-        ) : null}
+        </footer> : null}
       </div>
     </div>
   );
+
+  // El PageFrame y la barra global crean contextos de apilado propios. El
+  // portal evita que el diálogo quede recortado o por debajo de ese chrome.
+  return typeof document === "undefined" ? dialog : createPortal(dialog, document.body);
 }
 
-function FinalImportReviewModal({
+export function FinalImportReviewModal({
   surveyId,
   sectionCount,
   questionCount,
   visualRuleCount,
   advancedRuleCount,
   overrideCount,
+  definitionSha256,
+  translationProfile,
   checked,
   submitting,
   onCheckedChange,
@@ -895,6 +964,8 @@ function FinalImportReviewModal({
   visualRuleCount: number;
   advancedRuleCount: number;
   overrideCount: number;
+  definitionSha256?: string | null;
+  translationProfile?: string | null;
   checked: boolean;
   submitting: boolean;
   onCheckedChange: (value: boolean) => void;
@@ -903,90 +974,57 @@ function FinalImportReviewModal({
 }) {
   const totalRules = visualRuleCount + advancedRuleCount;
   const rows = [
-    ["Encuesta", surveyId || "Sin Survey ID"],
+    ["Survey ID", surveyId || "Sin Survey ID"],
     ["Secciones", String(sectionCount)],
     ["Preguntas", String(questionCount)],
     ["Reglas", `${totalRules} (${visualRuleCount} visuales, ${advancedRuleCount} avanzadas)`],
-    ["Overrides", String(overrideCount)],
+    ["Ajustes de opciones", String(overrideCount)],
+    ["Huella", definitionSha256 ? `${definitionSha256.slice(0, 12)}…` : "No disponible"],
+    ["Perfil", translationProfile || "No disponible"],
   ];
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="sm-final-review-title"
-      style={{
-        position: "absolute",
-        inset: 0,
-        zIndex: 4,
-        background: "rgba(15, 23, 42, 0.4)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
-      }}
-    >
-      <div
-        style={{
-          width: "min(520px, 100%)",
-          borderRadius: 12,
-          background: "white",
-          boxShadow: "var(--pulso-shadow-high)",
-          border: "1px solid var(--pulso-border, #e5e7eb)",
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ padding: "16px 18px", borderBottom: "1px solid var(--pulso-border, #e5e7eb)", background: "#f8fafc" }}>
-          <h3 id="sm-final-review-title" style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#0f172a" }}>
-            Revisión final
-          </h3>
-          <p style={{ margin: "4px 0 0", fontSize: 12, color: "#64748b", lineHeight: 1.45 }}>
-            Al importar se crearán secciones, preguntas, opciones, validaciones y reglas en el XLSForm actual.
-          </p>
-        </div>
-        <div style={{ padding: 18, display: "grid", gap: 14, maxHeight: "min(520px, calc(100dvh - 180px))", minHeight: "var(--pulso-operational-min-dialog-body, 240px)", overflowY: "auto" }}>
-          <div style={{ display: "grid", gap: 7 }}>
-            {rows.map(([label, value]) => (
-              <div key={label} style={{ display: "grid", gridTemplateColumns: "120px minmax(0, 1fr)", gap: 10, fontSize: 13 }}>
-                <span style={{ color: "#64748b", fontWeight: 700 }}>{label}</span>
-                <strong style={{ color: "#0f172a", overflowWrap: "anywhere" }}>{value}</strong>
-              </div>
-            ))}
+    <section className="pulso-xf-sm-review" aria-labelledby="sm-final-review-title">
+      <header>
+        <h3 id="sm-final-review-title" className="pulso-xf-sm-review-heading">
+          Resumen antes de crear el borrador
+        </h3>
+        <p className="pulso-xf-sm-review-copy">
+          Se crearán secciones, preguntas, opciones, validaciones y reglas en un formulario nuevo y editable.
+        </p>
+      </header>
+      <div className="pulso-xf-sm-review-rows">
+        {rows.map(([label, value]) => (
+          <div key={label} className="pulso-xf-sm-review-row">
+            <span>{label}</span>
+            <strong>{value}</strong>
           </div>
-          <div style={{ display: "flex", gap: 10, padding: 12, border: "1px solid #fde68a", borderRadius: 8, background: "#fffbeb", color: "#92400e", fontSize: 12, lineHeight: 1.45 }}>
-            <AlertTriangle size={16} style={{ flex: "0 0 auto", marginTop: 1 }} />
-            <span>Revisa bien la lógica antes de continuar. Estos cambios se aplican juntos al formulario y, si están mal, obligan a rehacer pasos avanzados.</span>
-          </div>
-          <label style={{ display: "flex", gap: 9, alignItems: "flex-start", fontSize: 13, color: "#334155", lineHeight: 1.45 }}>
-            <input
-              type="checkbox"
-              checked={checked}
-              disabled={submitting}
-              onChange={(event) => onCheckedChange(event.target.checked)}
-              style={{ marginTop: 2 }}
-            />
-            <span>Confirmo que revisé páginas, preguntas y lógica de ramificación antes de aplicar la importación.</span>
-          </label>
-        </div>
-        <div style={{ padding: "12px 18px", borderTop: "1px solid var(--pulso-border, #e5e7eb)", display: "flex", justifyContent: "flex-end", gap: 10, background: "#f9fafb" }}>
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={submitting}
-            style={{ border: "1px solid var(--pulso-border, #e5e7eb)", background: "white", borderRadius: 6, padding: "8px 12px", cursor: submitting ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 700 }}
-          >
-            Volver a revisar
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={!checked || submitting}
-            style={{ border: "none", background: checked ? "#16a34a" : "#cbd5e1", color: "white", borderRadius: 6, padding: "8px 14px", cursor: checked && !submitting ? "pointer" : "not-allowed", fontSize: 13, fontWeight: 800 }}
-          >
-            {submitting ? "Importando..." : "Aplicar importación"}
-          </button>
-        </div>
+        ))}
       </div>
-    </div>
+      <XlsformTransferNotice />
+      <label className="pulso-xf-sm-review-check">
+        <input
+          type="checkbox"
+          autoFocus
+          checked={checked}
+          disabled={submitting}
+          onChange={(event) => onCheckedChange(event.target.checked)}
+        />
+        <span>Revisé este resumen y quiero crear el borrador XLSForm.</span>
+      </label>
+      <footer style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+        <button type="button" onClick={onCancel} disabled={submitting}>
+          Volver a revisar
+        </button>
+        <button
+          type="button"
+          className="pulso-primary"
+          onClick={onConfirm}
+          disabled={!checked || submitting}
+        >
+          {submitting ? "Creando borrador…" : "Crear borrador XLSForm"}
+        </button>
+      </footer>
+    </section>
   );
 }
 
@@ -1175,8 +1213,12 @@ function SmApiSection({
           <StepHint icon={<IconChecklist size={14} />} title="3. Completa" text="Prosecnur rellena secciones y catálogos automáticamente." />
         </div>
 
+        <label className="pulso-xf-sm-field-label" htmlFor="pulso-sm-api-token">
+          Token de acceso de SurveyMonkey
+        </label>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
           <input
+            id="pulso-sm-api-token"
             type="password"
             value={token}
             placeholder={tokenState.has_token ? "Token guardado en backend" : "Token de SurveyMonkey"}
@@ -1291,6 +1333,7 @@ function SmApiSection({
               <label className="pulso-sm-search">
                 <Search size={14} />
                 <input
+                  aria-label="Filtrar encuestas por nombre o ID"
                   value={surveyQuery}
                   onChange={(e) => setSurveyQuery(e.target.value)}
                   placeholder="Filtrar por nombre o ID"
@@ -1331,8 +1374,12 @@ function SmApiSection({
           </div>
         ) : null}
 
+        <label className="pulso-xf-sm-field-label" htmlFor="pulso-sm-survey-id">
+          Encuesta de SurveyMonkey
+        </label>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
           <input
+            id="pulso-sm-survey-id"
             type="text"
             value={surveyId}
             placeholder="Pega el enlace de SurveyMonkey o el ID de la encuesta"
@@ -1351,7 +1398,7 @@ function SmApiSection({
             onClick={onFetch}
             disabled={fetching || !surveyId.trim() || !tokenUi.hasUsableToken}
             style={{
-              background: "var(--pulso-accent, #2563eb)",
+              background: "var(--pulso-module-editor)",
               color: "white",
               border: "none",
               borderRadius: 4,
@@ -1365,13 +1412,13 @@ function SmApiSection({
           </button>
         </div>
         {successMessage ? (
-          <div style={{ padding: 10, background: "#dcfce7", color: "#166534", borderRadius: 6, fontSize: 12, display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <div role="status" aria-live="polite" style={{ padding: 10, background: "var(--pulso-success-bg)", color: "var(--pulso-success-fg)", borderRadius: 6, fontSize: 12, display: "flex", gap: 8, alignItems: "flex-start" }}>
             <ShieldCheck size={15} style={{ marginTop: 1, flex: "0 0 auto" }} />
             <span>{successMessage}. También se usarán los nombres reales de las opciones al importar.</span>
           </div>
         ) : null}
         {errorMessage ? (
-          <div style={{ padding: 8, background: "#fef2f2", color: "#991b1b", borderRadius: 4, fontSize: 12 }}>
+          <div role="alert" style={{ padding: 8, background: "var(--pulso-danger-bg)", color: "var(--pulso-danger-fg)", borderRadius: 4, fontSize: 12 }}>
             {errorMessage}
           </div>
         ) : null}
@@ -1400,7 +1447,7 @@ function StepHint({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#111827", marginBottom: 4 }}>
-        <span style={{ color: "var(--pulso-accent, #2563eb)", display: "inline-flex" }}>{icon}</span>
+        <span style={{ color: "var(--pulso-module-editor)", display: "inline-flex" }}>{icon}</span>
         <span>{title}</span>
       </div>
       <p style={{ margin: 0, fontSize: 11, lineHeight: 1.35, color: "var(--pulso-muted, #6b7280)" }}>{text}</p>
@@ -1412,7 +1459,7 @@ function TokenStatusBadge({ status }: { status: SurveyMonkeyTokenInfo | null }) 
   if (!status) return null;
   if (status.ok) {
     return (
-      <span style={{ fontSize: 11, color: "#166534", display: "inline-flex", alignItems: "center", gap: 4 }}>
+      <span role="status" aria-live="polite" style={{ fontSize: 11, color: "var(--pulso-success-fg)", display: "inline-flex", alignItems: "center", gap: 4 }}>
         <Check size={12} /> Conexión lista
         {status.n_surveys_visible != null && status.n_surveys_visible >= 0
           ? ` · ${status.n_surveys_visible} encuesta(s) visibles`
@@ -1421,7 +1468,7 @@ function TokenStatusBadge({ status }: { status: SurveyMonkeyTokenInfo | null }) 
     );
   }
   return (
-    <span style={{ fontSize: 11, color: "#991b1b", display: "inline-flex", alignItems: "center", gap: 4 }}>
+    <span role="alert" style={{ fontSize: 11, color: "var(--pulso-danger-fg)", display: "inline-flex", alignItems: "center", gap: 4 }}>
       {status.status_code === 401 ? "No pude conectar. Revisa o genera un token nuevo." : status.error}
     </span>
   );
@@ -1432,9 +1479,11 @@ function TokenStatusBadge({ status }: { status: SurveyMonkeyTokenInfo | null }) 
 // con `value` externo cuando cambia desde afuera (ej. auto-completar
 // desde la API). Commit ocurre en blur.
 function PageQuestionsInput({
+  id,
   value,
   onCommit,
 }: {
+  id: string;
   value: string[];
   onCommit: (qs: string[]) => void;
 }) {
@@ -1448,6 +1497,7 @@ function PageQuestionsInput({
 
   return (
     <input
+      id={id}
       type="text"
       value={text}
       placeholder="Q24  o  Q25-Q31  o  Q24, Q26-Q28"
@@ -1528,10 +1578,11 @@ function PageMapEditor({
               >
                 <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                   <div style={{ width: 84, flex: "0 0 auto" }}>
-                    <label style={{ display: "block", marginBottom: 3, fontSize: 11, color: "var(--pulso-muted, #6b7280)" }}>
+                    <label htmlFor={`pulso-sm-page-${p.id}`} style={{ display: "block", marginBottom: 3, fontSize: 11, color: "var(--pulso-muted, #6b7280)" }}>
                       Página SM
                     </label>
                     <input
+                      id={`pulso-sm-page-${p.id}`}
                       type="text"
                       value={p.pageId}
                       placeholder="16"
@@ -1627,10 +1678,11 @@ function PageMapEditor({
                     ) : null}
                     {shouldShowManualPageQuestionsInput(p) ? (
                     <div style={{ marginTop: 8 }}>
-                      <label style={{ display: "block", marginBottom: 3, fontSize: 11, color: "var(--pulso-muted, #6b7280)" }}>
+                      <label htmlFor={`pulso-sm-page-questions-${p.id}`} style={{ display: "block", marginBottom: 3, fontSize: 11, color: "var(--pulso-muted, #6b7280)" }}>
                         Preguntas SM para lógica de página (manual avanzado)
                       </label>
                       <PageQuestionsInput
+                        id={`pulso-sm-page-questions-${p.id}`}
                         value={p.questions}
                         onCommit={(qs) => onUpdate(p.id, {
                           questions: qs,

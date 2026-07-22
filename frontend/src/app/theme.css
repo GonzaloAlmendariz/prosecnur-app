@@ -2255,7 +2255,7 @@ a { color: var(--pulso-primary); }
   background: var(--pulso-primary);
 }
 .pulso-sibling-menu {
-  z-index: 82;
+  z-index: 1300;
   width: min(264px, calc(100vw - 40px));
   min-width: min(264px, calc(100vw - 40px));
   max-height: min(56vh, 430px);
@@ -39464,6 +39464,30 @@ button.pulso-focus-calculation-recipe {
   box-shadow: var(--xls-shadow-hairline);
 }
 
+/* Dentro del shell de viewport el alto disponible lo decide PageFrame. No
+   imponemos los 560 px del documento largo: esa cota hacía que el workbench
+   quedara recortado en 1024×600 y dejaba controles fuera de todo scroll. */
+.pulso-main--viewport .pulso-xlsform-frame .pulso-xlsform-workbench-panel,
+.pulso-main--viewport .pulso-xlsform-frame .pulso-builder-grid,
+.pulso-main--viewport .pulso-xlsform-frame .pulso-xlsform-workbench-column,
+.pulso-main--viewport .pulso-xlsform-frame .pulso-xlsform-sidebar-panel,
+.pulso-main--viewport .pulso-xlsform-frame .pulso-focus-workspace {
+  min-height: 0;
+}
+
+.pulso-main--viewport .pulso-xlsform-frame .pulso-xlsform-workbench-panel,
+.pulso-main--viewport .pulso-xlsform-frame .pulso-builder-grid,
+.pulso-main--viewport .pulso-xlsform-frame .pulso-xlsform-workbench-column,
+.pulso-main--viewport .pulso-xlsform-frame .pulso-xlsform-sidebar-panel,
+.pulso-main--viewport .pulso-xlsform-frame .pulso-focus-workspace {
+  height: 100%;
+}
+
+.pulso-main--viewport .pulso-xlsform-frame .pulso-xlsform-workbench-panel {
+  flex: 1 1 auto;
+  margin-bottom: 0;
+}
+
 .pulso-focus-workspace-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -42558,11 +42582,22 @@ button.pulso-focus-calculation-recipe {
   .pulso-focused-node-layout,
   .pulso-focus-settings-layout {
     grid-template-columns: minmax(0, 1fr);
-    overflow: auto;
+    grid-auto-rows: max-content;
+    align-content: start;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .pulso-focus-preview-pane,
   .pulso-focus-config-pane {
+    overflow: visible;
+  }
+
+  /* En una sola columna el layout exterior es el único dueño del scroll.
+     Dejar además un body interno de apenas 24 px obligaba a dos gestos de
+     scroll para llegar a los campos de configuración. */
+  .pulso-focus-config-body {
+    flex: 0 0 auto;
     overflow: visible;
   }
 }

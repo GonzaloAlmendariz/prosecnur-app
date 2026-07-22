@@ -1,10 +1,57 @@
-import { describe, expect, test } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { readFileSync } from "node:fs";
+import { describe, expect, test, vi } from "vitest";
 import {
+  FinalImportReviewModal,
+  ImportSurveyMonkeyDialog,
   shouldShowManualPageQuestionsInput,
   surveyMonkeyTokenUiState,
   visualPagesFromEntries,
   visualQuestionsFromPages,
 } from "./ImportSurveyMonkeyDialog";
+
+describe("FinalImportReviewModal", () => {
+  test("describe el resultado como borrador y no como aprobación", () => {
+    const markup = renderToStaticMarkup(createElement(FinalImportReviewModal, {
+      surveyId: "123456789",
+      sectionCount: 2,
+      questionCount: 12,
+      visualRuleCount: 1,
+      advancedRuleCount: 0,
+      overrideCount: 0,
+      checked: false,
+      submitting: false,
+      onCheckedChange: vi.fn(),
+      onCancel: vi.fn(),
+      onConfirm: vi.fn(),
+    }));
+
+    expect(markup).toContain("borrador editable");
+    expect(markup).toContain("no publica");
+    expect(markup).toContain("no confirma");
+    expect(markup).toContain('autofocus=""');
+    expect(markup).not.toMatch(/aprobad[oa]/i);
+  });
+});
+
+describe("ImportSurveyMonkeyDialog", () => {
+  test("se renderiza por encima del chrome fijo del editor", () => {
+    const markup = renderToStaticMarkup(createElement(ImportSurveyMonkeyDialog, {
+      fileName: "",
+      onCancel: vi.fn(),
+      onComplete: vi.fn(),
+    }));
+
+    expect(markup).toContain("z-index:2300");
+  });
+
+  test("escapa de los contextos de apilado del editor mediante un portal", () => {
+    const source = readFileSync(new URL("./ImportSurveyMonkeyDialog.tsx", import.meta.url), "utf8");
+
+    expect(source).toContain("createPortal(dialog, document.body)");
+  });
+});
 
 describe("surveyMonkeyTokenUiState", () => {
   test("muestra máscara de backend sin repoblar el input con texto plano", () => {
