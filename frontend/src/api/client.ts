@@ -2569,6 +2569,36 @@ function normalizeSheet(value: unknown, fallbackName?: string): XlsformEditorShe
   });
 }
 
+function isPersistedSheetPayload(value: unknown): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const raw = value as Record<string, unknown>;
+  return Array.isArray(raw.columns) && Array.isArray(raw.rows);
+}
+
+function normalizePersistedXlsformWorkbook(value: unknown): XlsformEditorWorkbook | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const raw = value as Record<string, unknown>;
+  if (
+    !isPersistedSheetPayload(raw.survey)
+    || !isPersistedSheetPayload(raw.choices)
+    || !isPersistedSheetPayload(raw.settings)
+  ) {
+    return null;
+  }
+  return {
+    survey: normalizeSheet(raw.survey, "survey"),
+    choices: normalizeSheet(raw.choices, "choices"),
+    settings: normalizeSheet(raw.settings, "settings"),
+    paper: isPersistedSheetPayload(raw.paper) ? normalizeSheet(raw.paper, "paper") : null,
+    diagnostico: isPersistedSheetPayload(raw.diagnostico)
+      ? normalizeSheet(raw.diagnostico, "diagnostico")
+      : null,
+    surveyMonkeyLogic: normalizeSurveyMonkeyLogicState(
+      raw.surveyMonkeyLogic ?? raw.survey_monkey_logic,
+    ),
+  };
+}
+
 function collapseMultilingualColumns(sheet: XlsformEditorSheet): XlsformEditorSheet {
   const multilingualBases = new Set(["label", "hint", "constraint_message", "required_message"]);
   const aliasEntries = sheet.columns
@@ -3697,8 +3727,8 @@ export async function apiXlsformFormGet(id: string): Promise<{
   );
   const r = (raw ?? {}) as Record<string, unknown>;
   const formRaw = (r.form ?? {}) as Record<string, unknown>;
-  const workbook = formRaw.workbook as XlsformEditorWorkbook | undefined;
-  if (!workbook || typeof workbook !== "object") return { ok: true, form: null };
+  const workbook = normalizePersistedXlsformWorkbook(formRaw.workbook);
+  if (!workbook) return { ok: true, form: null };
   const savedAt = typeof formRaw.saved_at === "number" && Number.isFinite(formRaw.saved_at)
     ? formRaw.saved_at
     : Number(formRaw.saved_at) || 0;
