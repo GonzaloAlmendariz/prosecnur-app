@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useLocation } from "react-router-dom";
 import { AlertCircle, Download, Eye, Loader2, X } from "lucide-react";
 import {
   apiGraficosPreviewSlide,
@@ -17,7 +18,9 @@ import { graficadorDisplayName, humanizeIdentifier } from "./graficadorDisplay";
 import { graficadorToPresetType } from "./graficadorPresetMap";
 import { SLIDE_GRAF_SLOTS, SLIDE_LABELS, usePlanStore } from "./store";
 import SlidePreviewMockup from "./SlidePreviewMockup";
+import { hasConfiguredChartDataArgs } from "./slidePreviewModel";
 import { usePresetsDefaults } from "./usePresetsDefaults";
+import { parseGraficosReportScope } from "./reportScope";
 
 type Props = {
   slide: Slide;
@@ -30,6 +33,9 @@ function hashSlide(slide: Slide, visualConfigHash: string): string {
 }
 
 export function SlidePreview({ slide, prepOk, compact = false }: Props) {
+  const location = useLocation();
+  const reportScope = parseGraficosReportScope(location.search);
+  const canPreview = reportScope === "consolidated" || prepOk;
   const [previewBusy, setPreviewBusy] = useState(false);
   const [fileId, setFileId] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState("");
@@ -64,7 +70,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
     [presentationIdentityHash],
   );
 
-  const currentHash = hashSlide(slide, visualConfigHash);
+  const currentHash = hashSlide(slide, `${reportScope}:${visualConfigHash}`);
   const previewFresh = lastPreviewHash === currentHash;
   const downloadFresh = !!fileId && previewFresh;
   const hasRenderedPreview = !!renderedPreview && previewFresh;
@@ -140,12 +146,12 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   }, [isBubbleRendered]);
 
   useEffect(() => {
-    if (!isBubbleOpen || !prepOk || blocked) return;
+    if (!isBubbleOpen || !canPreview || blocked) return;
     void requestRealPreview();
     // La solicitud se deduplica por `currentHash`; solo se reintenta cuando
     // cambia la lámina, su estilo o la identidad de la plantilla.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isBubbleOpen, currentHash, prepOk, blocked]);
+  }, [isBubbleOpen, currentHash, canPreview, blocked]);
 
   function openBubble() {
     if (closeTimerRef.current) {
@@ -180,7 +186,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
 
   async function requestRealPreview() {
     if (previewInFlightRef.current === currentHash || previewFresh) return;
-    if (!prepOk) {
+    if (!canPreview) {
       setPreviewError("Necesitas completar la preparación de datos para generar la vista real de esta lámina.");
       return;
     }
@@ -202,6 +208,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
         {
           include_images: false,
           render_slide_preview: true,
+          ...(reportScope === "consolidated" ? { scope: "consolidated" as const } : {}),
         },
       );
       if (previewSeqRef.current !== requestId || latestHashRef.current !== requestHash) return;
@@ -273,7 +280,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
         </PreviewNotice>
       )}
 
-      {!compact && !prepOk && (
+      {!compact && !canPreview && (
         <PreviewNotice tone="muted">
           La referencia local está disponible. Para generar la vista completa, primero prepara los datos.
         </PreviewNotice>
@@ -323,8 +330,8 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                   type="button"
                   className="pulso-slide-preview-download"
                   onClick={() => void requestRealPreview()}
-                  disabled={previewBusy || !prepOk || blocked}
-                  title={!prepOk ? "Prepara datos antes de generar la vista" : blocked ? "Completa los gráficos requeridos antes de generar la vista" : "Generar de nuevo la vista real"}
+                  disabled={previewBusy || !canPreview || blocked}
+                  title={!canPreview ? "Prepara datos antes de generar la vista" : blocked ? "Completa los gráficos requeridos antes de generar la vista" : "Generar de nuevo la vista real"}
                 >
                   {previewBusy ? <Loader2 size={12} className="pulso-spin" /> : <Eye size={12} />}
                   {previewBusy ? "Generando vista" : "Generar vista"}
@@ -371,13 +378,13 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
             )}
           </div>
 
-          {(previewError || blocked || !prepOk) && (
+          {(previewError || blocked || !canPreview) && (
             <div className="pulso-slide-preview-bubble-note">
               <AlertCircle size={13} />
               <span>
                 {previewError
                   ? `${humanizePreviewError(previewError)} Se mantiene la referencia de distribución.`
-                  : !prepOk
+                  : !canPreview
                     ? "La referencia local está disponible; la vista completa requiere datos preparados."
                     : `Para generar la vista: ${preIssues.join(" · ")}`}
               </span>
@@ -804,10 +811,7 @@ function preValidateSlide(slide: Slide): string[] {
       issues.push(`elige un gráfico para ${slotLabel} en la pestaña Datos`);
       continue;
     }
-    const args = (v.args ?? {}) as Record<string, unknown>;
-    const hasVar = typeof args.var === "string" && args.var.length > 0;
-    const hasVars = Array.isArray(args.vars) && (args.vars as unknown[]).length > 0;
-    if (!hasVar && !hasVars) {
+    if (!hasConfiguredChartDataArgs(v.args ?? {})) {
       issues.push(`configura la variable principal de ${slotLabel} en la pestaña Datos`);
     }
   }
