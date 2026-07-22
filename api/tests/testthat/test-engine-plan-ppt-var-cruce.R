@@ -161,6 +161,32 @@ test_that("barras agrupadas pueden informar la base valida de cada grupo", {
   )
 })
 
+test_that("composiciones de dos columnas ocultan etiquetas apiladas sin espacio", {
+  fx <- make_plan_ppt_fixture()
+  plan <- p_plan(slides = list(
+    p_slide_2_graficos_narrativo(
+      titulo = "Dos preguntas",
+      izquierda = p_barras_apiladas("p1"),
+      derecha = p_barras_apiladas("p1")
+    )
+  ))
+
+  out <- reporte_ppt_plan(
+    data = fx$data,
+    instrumento = fx$instrumento,
+    plan = plan,
+    presets = fx$presets,
+    solo_lista = TRUE,
+    mensajes_progreso = FALSE
+  )
+
+  expect_length(out$rendered, 2L)
+  expect_equal(
+    vapply(out$rendered, attr, numeric(1), which = "pulso_umbral_ocultar_etiqueta"),
+    c(0.15, 0.15)
+  )
+})
+
 make_plan_ppt_fixture_multisource <- function() {
   est <- data.frame(
     p1 = c("Alto", "Medio", "Alto", "Bajo"),
@@ -530,6 +556,20 @@ test_that("p_barras_multiapiladas valida modo var_cruce", {
       vars = list(
         mision = c("docentes$p1", "estudiantes$p1", "administrativos$q1")
       )
+    )
+  )
+
+  expect_no_error(
+    p_barras_multiapiladas(
+      modo = "multilista",
+      bloques = list(list(
+        modo = "var_cruce",
+        vars = list(
+          satisfaccion = c("docentes$p1", "administrativos$q1")
+        ),
+        top2box = TRUE,
+        top2box_labels = list()
+      ))
     )
   )
 })
@@ -2402,6 +2442,45 @@ test_that("graficar_barras_apiladas modera layout canvas con una sola barra", {
   expect_equal(layout$grosor_eff, 0.70)
 })
 
+test_that("multiapiladas multiactor reservan la mayor parte del canvas para las barras", {
+  layout_with_extra <- prosecnurapp:::.reporte_plan_multiactor_canvas_defaults(
+    show_extra = TRUE
+  )
+  layout_without_extra <- prosecnurapp:::.reporte_plan_multiactor_canvas_defaults(
+    show_extra = FALSE
+  )
+
+  width_names <- c(
+    "canvas_w_grupo",
+    "canvas_w_buf_grupo_etq",
+    "canvas_w_etiquetas",
+    "canvas_w_buf_etq_bars",
+    "canvas_w_bars",
+    "canvas_w_buf_bars_extra",
+    "canvas_w_extra"
+  )
+  label_names <- c(
+    "canvas_w_grupo",
+    "canvas_w_buf_grupo_etq",
+    "canvas_w_etiquetas",
+    "canvas_w_buf_etq_bars"
+  )
+  width_sum <- function(layout, names) {
+    sum(as.numeric(unlist(layout[names], use.names = FALSE)))
+  }
+
+  total_with_extra <- width_sum(layout_with_extra, width_names)
+  total_without_extra <- width_sum(layout_without_extra, width_names)
+
+  expect_lte(width_sum(layout_with_extra, label_names) / total_with_extra, 0.35)
+  expect_lte(width_sum(layout_without_extra, label_names) / total_without_extra, 0.35)
+  expect_gte(layout_with_extra$canvas_w_bars / total_with_extra, 0.55)
+  expect_gte(layout_without_extra$canvas_w_bars / total_without_extra, 0.60)
+  expect_gt(layout_with_extra$canvas_w_extra, 0)
+  expect_equal(layout_without_extra$canvas_w_extra, 0)
+  expect_equal(layout_without_extra$canvas_w_buf_bars_extra, 0)
+})
+
 test_that("graficar_barras_apiladas compacta la leyenda manual al centro", {
   p <- prosecnurapp::graficar_barras_apiladas(
     data = data.frame(
@@ -2448,7 +2527,7 @@ test_that("graficar_barras_apiladas compacta la leyenda manual al centro", {
   expect_lt(max(legend$x_item_right), 0.90)
   expect_gt(min(legend$key_height), 0.02)
   expect_gt(min(legend$key_width), 0.02)
-  expect_equal(legend$key_marker, rep("point_square", 4))
+  expect_equal(legend$key_marker, rep("rect_square", 4))
   expect_true(all(is.finite(legend$key_size_mm)))
   expect_gte(min(legend$key_size_mm), 2.4)
   expect_equal(
@@ -2456,6 +2535,8 @@ test_that("graficar_barras_apiladas compacta la leyenda manual al centro", {
     legend$key_height_physical_in,
     tolerance = 1e-8
   )
+  expect_false(any(vapply(p$layers, function(layer) inherits(layer$geom, "GeomPoint"), logical(1))))
+  expect_gte(sum(vapply(p$layers, function(layer) inherits(layer$geom, "GeomRect"), logical(1))), 4)
 
   p_compuesto <- prosecnurapp::graficar_barras_apiladas(
     data = data.frame(
@@ -2493,12 +2574,143 @@ test_that("graficar_barras_apiladas compacta la leyenda manual al centro", {
   )
 
   legend_compuesto <- attr(p_compuesto, "pulso_barras_apiladas_layout")$legend_manual
-  expect_equal(legend_compuesto$key_marker, rep("point_square", 4))
+  expect_equal(legend_compuesto$key_marker, rep("rect_square", 4))
   expect_equal(legend_compuesto$key_aspect_yx, rep(0.30, 4), tolerance = 1e-8)
   expect_equal(
     legend_compuesto$key_square_width_unit,
     legend_compuesto$key_square_height_unit,
     tolerance = 1e-8
+  )
+
+  p_angosto <- prosecnurapp::graficar_barras_apiladas(
+    data = data.frame(
+      categoria = "Item",
+      N = 100,
+      pct_1 = 0.05,
+      pct_2 = 0.20,
+      pct_3 = 0.25,
+      pct_4 = 0.20,
+      pct_5 = 0.15,
+      pct_6 = 0.15,
+      stringsAsFactors = FALSE
+    ),
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = paste0("pct_", 1:6),
+    etiquetas_grupos = stats::setNames(
+      c(
+        "Menos de 1,500",
+        "Entre 1,500 y 3,000",
+        "Entre 3,001 y 4,500",
+        "Entre 4,501 y 6,000",
+        "Entre 6,001 y 7,500",
+        "Más de 7,500"
+      ),
+      paste0("pct_", 1:6)
+    ),
+    colores_grupos = stats::setNames(
+      c("#081F5C", "#CA5651", "#85BB85", "#EFD25E", "#BFBFBF", "#E4A34C"),
+      c(
+        "Menos de 1,500",
+        "Entre 1,500 y 3,000",
+        "Entre 3,001 y 4,500",
+        "Entre 4,501 y 6,000",
+        "Entre 6,001 y 7,500",
+        "Más de 7,500"
+      )
+    ),
+    usar_canvas = TRUE,
+    mostrar_valores = FALSE,
+    mostrar_leyenda = TRUE,
+    legend_n_por_fila = 6,
+    ancho = 5.95,
+    alto = 5.14
+  )
+  legend_angosto <- attr(p_angosto, "pulso_barras_apiladas_layout")$legend_manual
+  expect_gte(length(unique(legend_angosto$row)), 2)
+  expect_lte(max(legend_angosto$x_item_right), 0.99)
+  expect_gte(min(legend_angosto$x_left), 0.01)
+})
+
+test_that("barras apiladas no dibujan etiquetas de fila cuando su columna mide cero", {
+  skip_if_not_installed("cowplot")
+
+  p <- graficar_barras_apiladas(
+    data = data.frame(
+      categoria = "Pregunta ya incluida en el titulo",
+      N = 100,
+      si = 0.60,
+      no = 0.40,
+      stringsAsFactors = FALSE
+    ),
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = c("si", "no"),
+    etiquetas_grupos = c(si = "Si", no = "No"),
+    usar_canvas = TRUE,
+    canvas_w_etiquetas = 0,
+    canvas_w_buf_etq_bars = 0,
+    mostrar_leyenda = FALSE
+  )
+
+  expect_false(isTRUE(attr(p, "pulso_draw_y_labels", exact = TRUE)))
+})
+
+test_that("barras apiladas no colapsan baterias con etiquetas cortas", {
+  skip_if_not_installed("cowplot")
+
+  p <- graficar_barras_apiladas(
+    data = data.frame(
+      categoria = paste("Pregunta", 1:4),
+      N = rep(100, 4),
+      de_acuerdo = c(0.60, 0.55, 0.70, 0.65),
+      desacuerdo = c(0.40, 0.45, 0.30, 0.35),
+      stringsAsFactors = FALSE
+    ),
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = c("de_acuerdo", "desacuerdo"),
+    etiquetas_grupos = c(de_acuerdo = "De acuerdo", desacuerdo = "En desacuerdo"),
+    usar_canvas = TRUE,
+    mostrar_leyenda = TRUE,
+    etiquetas_arriba_si_no_caben = FALSE,
+    alto_por_categoria = 0.58,
+    canvas_pad_bars_y_in = 0.08
+  )
+
+  layout <- attr(p, "pulso_barras_apiladas_layout", exact = TRUE)
+  expect_lte(layout$pad_in, 0.10)
+  expect_gt(layout$h_bars_area_in, 1.9)
+})
+
+test_that("umbral de ocultamiento prevalece sobre el tamano normal", {
+  skip_if_not_installed("cowplot")
+
+  p <- graficar_barras_apiladas(
+    data = data.frame(
+      categoria = "Item",
+      N = 100,
+      p1 = 0.21,
+      p2 = 0.13,
+      p3 = 0.26,
+      p4 = 0.16,
+      p5 = 0.09,
+      p6 = 0.15,
+      stringsAsFactors = FALSE
+    ),
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = paste0("p", 1:6),
+    etiquetas_grupos = stats::setNames(paste0("Opcion ", 1:6), paste0("p", 1:6)),
+    usar_canvas = TRUE,
+    mostrar_leyenda = TRUE,
+    umbral_etiqueta_normal = 0.085,
+    umbral_ocultar_etiqueta = 0.15
+  )
+
+  expect_setequal(
+    attr(p, "pulso_labels_rendered", exact = TRUE),
+    c("21%", "26%", "16%")
   )
 })
 
