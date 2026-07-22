@@ -2,8 +2,8 @@
 // shell/homeSlots.ts — cómputo de slots del "Espacio de formularios"
 // =============================================================================
 // Lógica pura del hub: a partir del número de formularios existentes decide si
-// se puede crear otro (tope MAX_FORMS), si estamos en el límite y cuántos slots
-// fantasma pintar para insinuar la capacidad total sin ser ruidoso.
+// se puede crear otro (tope MAX_FORMS) y si estamos en el límite. La capacidad
+// se comunica con texto; no se reservan tarjetas vacías en la grilla.
 //
 // Extraído del .tsx para poder testearlo sin montar React (rule 6).
 // =============================================================================
@@ -19,7 +19,7 @@ export type HomeSlots = {
   atLimit: boolean;
   /** Aún hay cupo para un formulario más. */
   canCreate: boolean;
-  /** Slots fantasma restantes tras formularios + tarjeta de creación. */
+  /** Compatibilidad de shape: la interfaz ya no dibuja slots fantasma. */
   ghostSlots: number;
 };
 
@@ -28,14 +28,11 @@ export function computeHomeSlots(count: number, max: number = MAX_FORMS): HomeSl
   const safeMax = Math.max(1, Math.floor(max));
   const clamped = Math.max(0, Math.min(Math.floor(count), safeMax));
   const canCreate = clamped < safeMax;
-  // El slot de creación (hero o tile) ya ocupa uno cuando hay cupo; el resto
-  // hasta safeMax son fantasmas.
-  const usedSlots = clamped + (canCreate ? 1 : 0);
   return {
     count: clamped,
     empty: clamped === 0,
     atLimit: !canCreate,
     canCreate,
-    ghostSlots: Math.max(0, safeMax - usedSlots),
+    ghostSlots: 0,
   };
 }

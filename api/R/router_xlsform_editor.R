@@ -753,10 +753,12 @@ mount_xlsform_editor <- function(pr) {
       settings <- .xlsform_editor_read_sheet(meta$path, "settings", .xlsform_editor_default_columns("settings"))
       paper <- .xlsform_editor_read_sheet(meta$path, "paper", .xlsform_editor_default_columns("paper"))
 
+      source <- .xlsform_editor_reimport_source(meta)
       .xlsform_editor_workbook_payload(
         sheets = list(survey = survey, choices = choices, settings = settings, paper = paper),
-        source_kind = "xlsform",
-        source_name = meta$original_name
+        source_kind = source$kind %||% "xlsform",
+        source_name = source$original_name %||% meta$original_name,
+        source_meta = source
       )
     })) |>
     plumber::pr_post("/api/xlsform-editor/import-matriz-pulso", wrap_endpoint(function(req, res, ...) {
@@ -991,6 +993,11 @@ mount_xlsform_editor <- function(pr) {
         sm_api_fetch_survey_details(survey_id, token),
         error = function(e) stop_api(400, "E_SM_API_FAILED", conditionMessage(e))
       )
+      definition <- .xlsform_editor_sm_definition(
+        details,
+        survey_id = survey_id,
+        translation_profile = .XLSFORM_EDITOR_SM_TRANSLATION_PROFILE
+      )
 
       paginas <- sm_api_extract_paginas(details, style = style)
       pages <- sm_api_extract_pages(details, style = style)
@@ -1001,7 +1008,8 @@ mount_xlsform_editor <- function(pr) {
         paginas = paginas,
         pages = pages,
         summary = summary,
-        style = list(prefix = style$prefix, pad = as.integer(style$pad))
+        style = list(prefix = style$prefix, pad = as.integer(style$pad)),
+        definition = definition
       )
     })) |>
     plumber::pr_get("/api/xlsform-editor/state", wrap_endpoint(function(req, res, ...) {
@@ -1334,10 +1342,16 @@ mount_xlsform_editor <- function(pr) {
       lang <- as.character(parsed$lang %||% "es")
       reglas_text <- as.character(parsed$reglas %||% "")
       paginas_in <- parsed$paginas
-	      paginas_labels_in <- parsed$paginas_labels
-	      overrides_in <- parsed$choice_order_overrides
-	      choice_code_maps <- .xlsform_editor_choice_code_maps(parsed, req)
-	      survey_id <- as.character(parsed$survey_id %||% "")
+      paginas_labels_in <- parsed$paginas_labels
+      overrides_in <- parsed$choice_order_overrides
+      choice_code_maps <- .xlsform_editor_choice_code_maps(parsed, req)
+      survey_id <- as.character(parsed$survey_id %||% "")
+      expected_definition_sha256 <- as.character(
+        parsed$expected_definition_sha256 %||% ""
+      )
+      expected_translation_profile <- as.character(
+        parsed$expected_translation_profile %||% ""
+      )
 
       if (!nzchar(survey_id)) {
         stop_api(400, "E_MISSING_SURVEY_ID", "Falta 'survey_id' del survey en SurveyMonkey.")
@@ -1366,6 +1380,16 @@ mount_xlsform_editor <- function(pr) {
       details <- tryCatch(
         sm_api_fetch_survey_details(survey_id, token),
         error = function(e) stop_api(400, "E_SM_API_FAILED", conditionMessage(e))
+      )
+      definition <- .xlsform_editor_sm_definition(
+        details,
+        survey_id = survey_id,
+        translation_profile = .XLSFORM_EDITOR_SM_TRANSLATION_PROFILE
+      )
+      .xlsform_editor_sm_assert_definition(
+        definition,
+        expected_sha256 = expected_definition_sha256,
+        expected_profile = expected_translation_profile
       )
       out <- tryCatch(
         sm_api_xlsform(details, style = .sm_api_default_style(), lang = lang),
@@ -1397,13 +1421,17 @@ mount_xlsform_editor <- function(pr) {
         ),
         source_kind = "surveymonkey",
         source_name = source_name,
-        source_meta = list(
-          schema = "survey_source/v1",
-          survey_id = survey_id,
+        source_meta = .xlsform_editor_sm_source(
+          definition,
+          details = details,
           survey_title = source_name,
-          translated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
-          logic_status = "pending_manual_confirmation",
-          publication_guard = "Confirma manualmente la lógica en el Editor antes de publicar este instrumento."
+          logic_provenance = .xlsform_editor_sm_logic_provenance(
+            rules_text = reglas_text,
+            paginas = paginas,
+            paginas_labels = paginas_labels,
+            choice_order_overrides = choice_order_overrides,
+            choice_code_maps = choice_code_maps
+          )
         )
       )
       payload$hallazgos <- hallazgos

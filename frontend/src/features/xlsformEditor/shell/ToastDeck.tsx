@@ -5,6 +5,7 @@
 // mensajes efímeros tras un import/export. Los toasts:
 //   - Aparecen en la esquina inferior-derecha con `slide-in-up`.
 //   - Se auto-dismissan tras 3s (configurable por toast).
+//   - Agrupan operaciones consecutivas equivalentes y limitan el deck a 3.
 //   - Tienen tonos `success` / `info` / `warn` / `danger`.
 //   - Soportan acción opcional (un botón al lado del mensaje, ej. "Descargar").
 //   - Se cierran manualmente con la X o Esc cuando el último tiene foco.
@@ -21,6 +22,7 @@
 // =============================================================================
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -31,6 +33,8 @@ export type Toast = {
   kind: ToastKind;
   title: string;
   detail?: string;
+  /** Cantidad de avisos consecutivos equivalentes agrupados en esta pieza. */
+  occurrences?: number;
   /** ms hasta auto-dismiss. 0 = no auto. Default 3500. */
   durationMs?: number;
   /** Acción opcional: botón al lado del mensaje. */
@@ -40,7 +44,7 @@ export type Toast = {
   };
 };
 
-export type ToastInput = Omit<Toast, "id">;
+export type ToastInput = Omit<Toast, "id" | "occurrences">;
 
 export type UseToastDeck = {
   items: Toast[];
@@ -52,6 +56,34 @@ export type UseToastDeck = {
 // -----------------------------------------------------------------------------
 // Hook
 // -----------------------------------------------------------------------------
+
+const TOAST_DECK_LIMIT = 3;
+
+function canCoalesceToast(previous: Toast | undefined, incoming: Toast): boolean {
+  if (!previous || previous.action || incoming.action) return false;
+  return previous.kind === incoming.kind
+    && previous.title === incoming.title
+    && (previous.detail ?? "") === (incoming.detail ?? "");
+}
+
+/**
+ * Mantiene el deck compacto y estable sobre viewports cortos. Los avisos
+ * consecutivos equivalentes se convierten en una sola pieza con contador; los
+ * avisos distintos conservan orden, pero nunca forman una pila sin límite.
+ */
+export function compactToastQueue(previous: Toast[], incoming: Toast): Toast[] {
+  const last = previous.at(-1);
+  if (canCoalesceToast(last, incoming)) {
+    return [
+      ...previous.slice(0, -1),
+      {
+        ...incoming,
+        occurrences: (last?.occurrences ?? 1) + 1,
+      },
+    ].slice(-TOAST_DECK_LIMIT);
+  }
+  return [...previous, incoming].slice(-TOAST_DECK_LIMIT);
+}
 
 export function useToastDeck(): UseToastDeck {
   const [items, setItems] = useState<Toast[]>([]);
@@ -65,7 +97,7 @@ export function useToastDeck(): UseToastDeck {
     counterRef.current += 1;
     const id = `t-${Date.now()}-${counterRef.current}`;
     const toast: Toast = { ...input, id };
-    setItems((prev) => [...prev, toast]);
+    setItems((prev) => compactToastQueue(prev, toast));
     const duration = toast.durationMs ?? 3500;
     if (duration > 0) {
       window.setTimeout(() => {
@@ -122,7 +154,7 @@ export function ToastDeck({
   onDismiss: (id: string) => void;
 }) {
   if (items.length === 0) return null;
-  return (
+  const deck = (
     <div
       role="region"
       aria-label="Notificaciones"
@@ -137,12 +169,18 @@ export function ToastDeck({
         maxWidth: 420,
         pointerEvents: "none",
       }}
+      data-toast-count={items.length}
+      data-toast-portal="body"
     >
       {items.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onDismiss={onDismiss} />
       ))}
     </div>
   );
+  // PageFrame anima su cuerpo con `transform`; un fixed dentro de ese árbol
+  // deja de estar anclado al viewport y se desplaza junto con la biblioteca.
+  // El portal mantiene las notificaciones en la capa global de feedback.
+  return typeof document === "undefined" ? deck : createPortal(deck, document.body);
 }
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string) => void }) {
@@ -162,6 +200,11 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
     <div
       role="status"
       className={closing ? "pulso-toast-out" : "pulso-toast-in"}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape") return;
+        event.preventDefault();
+        setClosing(true);
+      }}
       style={{
         display: "flex",
         alignItems: "flex-start",
@@ -176,7 +219,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
         pointerEvents: "auto",
       }}
     >
-      <Icon size={16} color={meta.fg} />
+      <Icon size={16} color={meta.fg} style={{ flexShrink: 0, marginTop: 1 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 700, lineHeight: 1.35 }}>{toast.title}</div>
         {toast.detail && (
@@ -185,6 +228,31 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
           </div>
         )}
       </div>
+      {(toast.occurrences ?? 1) > 1 && (
+        <span
+          aria-label={`Repetida ${toast.occurrences} veces`}
+          title={`${toast.occurrences} avisos agrupados`}
+          style={{
+            alignSelf: "center",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minWidth: 26,
+            height: 20,
+            padding: "0 6px",
+            borderRadius: "var(--pulso-radius-chip)",
+            border: `1px solid ${meta.border}`,
+            background: "var(--pulso-surface-raised)",
+            color: meta.fg,
+            fontSize: 11,
+            fontWeight: 700,
+            lineHeight: 1,
+            flexShrink: 0,
+          }}
+        >
+          ×{toast.occurrences}
+        </span>
+      )}
       {toast.action && (
         <button
           type="button"

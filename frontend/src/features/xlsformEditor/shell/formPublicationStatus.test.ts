@@ -54,7 +54,7 @@ describe("getFormPublicationView", () => {
       can_delete: false,
     }))).toMatchObject({
       status: "published",
-      label: "Publicado · rev. 2",
+      label: "Disponible · revisión 2",
       actionLabel: null,
     });
 
@@ -71,8 +71,9 @@ describe("getFormPublicationView", () => {
       },
     }))).toMatchObject({
       status: "changes_pending",
-      label: "Cambios sin publicar",
+      label: "Revisión 1 disponible",
       actionLabel: "Publicar nueva revisión",
+      reason: "El borrador tiene cambios, pero no reemplaza la revisión disponible hasta que lo publiques.",
     });
 
     expect(getFormPublicationView(publication({
@@ -83,7 +84,7 @@ describe("getFormPublicationView", () => {
       status: "blocked",
       label: "Bloqueado",
       actionDisabled: true,
-      reason: "Falta name: Fila 3",
+      reason: "Revisa el formulario antes de publicar su primera versión.",
     });
   });
 
@@ -111,7 +112,7 @@ describe("getFormPublicationView", () => {
     expect(view).toMatchObject({
       status: "blocked",
       actionDisabled: true,
-      reason: "Lógica pendiente de confirmación: Confirma manualmente la lógica antes de publicar.",
+      reason: "Revisa el formulario antes de publicar su primera versión.",
     });
   });
 

@@ -319,9 +319,19 @@ xlsform_forms_confirm_logic <- function(sid, form_id, expected_content_sha256) {
   source$logic_status <- "confirmed"
   source$logic_confirmed_at <- now
   source$logic_confirmation_method <- "editor_manual_review"
+  definition_sha256 <- as.character(source$definition_sha256 %||% "")[1]
+  top_level_review <- list(
+    content_sha256 = content_sha256,
+    choice_code_maps_sha256 = .xlsform_revision_choice_code_maps_hash(
+      entry$workbook %||% list()
+    )
+  )
+  if (nzchar(definition_sha256)) {
+    top_level_review$definition_sha256 <- definition_sha256
+  }
   source$logic_review <- .xlsform_forms_merge_source(
     source$logic_review %||% list(),
-    list(content_sha256 = content_sha256)
+    top_level_review
   )
   if (is.list(source$variants) && length(source$variants)) {
     source$variants <- lapply(source$variants, function(variant) {

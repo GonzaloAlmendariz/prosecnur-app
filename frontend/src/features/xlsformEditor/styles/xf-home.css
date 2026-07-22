@@ -175,6 +175,7 @@
 }
 
 .pulso-xf-home-card-name {
+  margin: 0;
   font-size: 14px;
   font-weight: 700;
   color: var(--pulso-text);
@@ -243,6 +244,90 @@
 .pulso-xf-home-card-metric-label {
   font-size: 11.5px;
   color: var(--pulso-text-soft);
+}
+
+.pulso-xf-home-card-actor {
+  display: grid;
+  gap: 4px;
+  padding: 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 9px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-xf-home-card-actor > span {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pulso-xf-home-card-actor select {
+  width: 100%;
+  height: 28px;
+  padding: 3px 7px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 12px;
+}
+
+.pulso-xf-home-card-actor select:focus {
+  outline: 2px solid var(--pulso-primary-focus);
+  border-color: var(--pulso-module-editor-border);
+}
+
+.pulso-xf-home-card-actor small {
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.pulso-xf-home-card-workflow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.pulso-xf-home-card-stage {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-xf-home-card-stage-title {
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pulso-xf-home-card-stage strong {
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  line-height: 1.3;
+}
+
+.pulso-xf-home-card-stage small {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.pulso-xf-home-card-stage.is-success {
+  border-color: var(--pulso-success-border);
+}
+
+.pulso-xf-home-card-stage.is-warning {
+  border-color: var(--pulso-warn-border);
+}
+
+.pulso-xf-home-card-stage.is-danger {
+  border-color: var(--pulso-danger-border);
 }
 
 .pulso-xf-home-card-foot {
@@ -472,7 +557,7 @@
 .pulso-xf-publication-reason,
 .pulso-xf-publication-error {
   margin: 0;
-  font-size: 10.5px;
+  font-size: 11px;
   line-height: 1.4;
 }
 
@@ -809,6 +894,23 @@
   color: var(--pulso-text-soft);
   line-height: 1.5;
   max-width: 300px;
+}
+
+.pulso-xf-home-guide.is-compact {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-top: 10px;
+}
+
+.pulso-xf-home-guide.is-compact .pulso-xf-home-guide-copy {
+  max-width: none;
+}
+
+@media (max-width: 520px) {
+  .pulso-xf-home-card-workflow {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* El diagrama ocupa la columna derecha y abarca ambas filas — compacto.

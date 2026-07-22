@@ -25,25 +25,25 @@ const NODES = [
     key: "secciones" as const,
     title: "Secciones",
     subtitle: "agrupa preguntas relacionadas",
-    color: "#2457d6",
+    color: "var(--pulso-module-editor)",
   },
   {
     key: "preguntas" as const,
     title: "Preguntas",
     subtitle: "define tipo, texto y opciones",
-    color: "#0f766e",
+    color: "var(--pulso-module-editor)",
   },
   {
     key: "logica" as const,
     title: "Lógica",
     subtitle: "cuándo aparece y cómo se valida",
-    color: "#7c3aed",
+    color: "var(--pulso-module-editor)",
   },
   {
     key: "exportar" as const,
     title: "Exportar",
     subtitle: "como XLSForm (.xlsx) o PDF",
-    color: "#d4396a",
+    color: "var(--pulso-module-editor)",
   },
 ];
 
@@ -61,9 +61,7 @@ export function HubFlowDiagram({ highlight }: HubFlowDiagramProps) {
       >
         <title id="hub-flow-title">Cómo funciona Prosecnur</title>
         <desc id="hub-flow-desc">
-          Cuatro etapas: pensar las preguntas, armar el formulario en este
-          editor, salir a encuestar con KoBo o ODK Collect, y analizar los
-          datos recolectados.
+          Cuatro etapas: Secciones, Preguntas, Lógica y Exportar.
         </desc>
 
         {/* Flechas entre nodos (las dibujamos primero para que queden
@@ -104,9 +102,9 @@ function FlowNode({
   highlighted: boolean;
 }) {
   const cx = NODE_X[index]!;
-  const fill = highlighted ? node.color : "white";
+  const fill = highlighted ? node.color : "var(--pulso-surface)";
   const stroke = node.color;
-  const iconColor = highlighted ? "white" : node.color;
+  const iconColor = highlighted ? "var(--pulso-surface)" : node.color;
 
   return (
     <g
@@ -178,7 +176,7 @@ function FlowNode({
             x={0}
             y={2}
             textAnchor="middle"
-            fill="white"
+            fill="var(--pulso-surface)"
             className="pulso-hub-flow-pin-text"
           >
             Estás aquí
@@ -298,11 +296,11 @@ function FlowArrow({ index, copy }: { index: number; copy: string }) {
   return (
     <g className="pulso-hub-flow-arrow">
       {/* Línea */}
-      <line x1={x1} y1={y} x2={x2 - 6} y2={y} stroke="#cbd5e1" strokeWidth={1.5} />
+      <line x1={x1} y1={y} x2={x2 - 6} y2={y} stroke="var(--pulso-border-strong)" strokeWidth={1.5} />
       {/* Punta */}
       <path
         d={`M ${x2 - 8} ${y - 4} L ${x2} ${y} L ${x2 - 8} ${y + 4} Z`}
-        fill="#cbd5e1"
+        fill="var(--pulso-border-strong)"
       />
       {/* Microcopy arriba de la flecha */}
       <text
