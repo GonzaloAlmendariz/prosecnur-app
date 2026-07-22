@@ -1411,7 +1411,8 @@
           derecha = graphs[[i + 1L]]$graf,
           base = base_label,
           pie = "",
-          etiqueta = ""
+          etiqueta = "",
+          meta = list(suppress_base_placeholder = TRUE)
         )
       )
       i <- i + 2L
@@ -1425,7 +1426,8 @@
           grafico = graphs[[i]]$graf,
           base = base_label,
           pie = "",
-          etiqueta = ""
+          etiqueta = "",
+          meta = list(suppress_base_placeholder = TRUE)
         )
       )
       i <- i + 1L
@@ -1978,6 +1980,14 @@
   if (isTRUE(use_multisource_report)) {
     warnings <- c(warnings, all_coverage$warnings %||% list())
   }
+  # Avisa recodificaciones definidas pero sin aplicar (el plan graficaría la
+  # original) o materializadas con drift respecto al catálogo vigente. Degrada
+  # a "sin avisos" ante cualquier fallo: nunca rompe la generación del plan.
+  recod_gate_warnings <- tryCatch(
+    .graficos_recod_gate_session(sid)$warnings,
+    error = function(e) character(0)
+  )
+  if (length(recod_gate_warnings)) warnings <- c(warnings, as.list(recod_gate_warnings))
   if (requested_coverage_maps && !isTRUE(coverage_caps$has_coverage_maps)) {
     warnings <- c(
       warnings,
@@ -2035,6 +2045,35 @@
     }, vars)
     if (!length(vars)) next
 
+    # Contexto de la fuente (bases + instrumento normalizados): invariante por
+    # variable, se computa UNA vez por fuente y se reusa en todas sus variables.
+    # Antes se reconstruía dentro de .graficos_acnur_question_semantics por cada
+    # variable, recargando todas las bases N veces (perfil: ~27s / 82%).
+    acnur_source_ctx <- if (identical(profile_id, "acnur_kobo_cruncher_plus")) {
+      .graficos_acnur_source_context(sid, source)
+    } else {
+      NULL
+    }
+
+    # ADR 0030: en una fuente hija repeat a grano de INSTANCIA, abrir POR SERVICIO
+    # (una sección por servicio, título = nombre del servicio, `srv_*` filtradas
+    # por `current_code`) en vez del pooling que mezcla servicios. Degrada al
+    # pooled si el servicio no se resuelve (nunca rompe).
+    if (identical(profile_id, "acnur_kobo_cruncher_plus") &&
+        is.list(acnur_source_ctx) && isTRUE(acnur_source_ctx$is_repeat)) {
+      service_pack <- tryCatch(
+        .graficos_repeat_service_plan(
+          sid, source, vars, acnur_source_ctx, profile_id,
+          categories_per_slide = acnur_categories_per_slide
+        ),
+        error = function(e) NULL
+      )
+      if (is.list(service_pack) && isTRUE(service_pack$handled)) {
+        slides <- c(slides, service_pack$slides %||% list())
+        next
+      }
+    }
+
     section_key <- vapply(vars, function(v) {
       if (isTRUE(v$section_reliable)) {
         path <- .graficos_scalar_chr(v$group_path %||% v$seccion, "")
@@ -2089,7 +2128,8 @@
                 ),
                 base = .graficos_scalar_chr(src$base_label, ""),
                 pie = "",
-                etiqueta = ""
+                etiqueta = "",
+                meta = list(suppress_base_placeholder = TRUE)
               )
             )
             used[chunk] <- TRUE
@@ -2104,7 +2144,7 @@
         ref <- .graficos_scalar_chr(v$name)
         if (!identical(source, "default")) ref <- paste0(source, "$", ref)
         semantics <- if (identical(profile_id, "acnur_kobo_cruncher_plus")) {
-          .graficos_acnur_question_semantics(sid, source, v)
+          .graficos_acnur_question_semantics(sid, source, v, ctx = acnur_source_ctx)
         } else {
           list(
             note = .graficos_scalar_chr(src$base_label, ""),
