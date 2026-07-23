@@ -1,0 +1,200 @@
+# graficos_jobs.R — workers de los jobs de exportación de Gráficos
+# (PPT, PPT multibase en ZIP y Word).
+#
+# Historia: estos tres workers vivían como closures anónimos triplicados
+# dentro de router_graficos.R (~600 líneas casi idénticas cada uno). Cada
+# copia re-implementaba a mano el bootstrap que jobs.R ya resuelve:
+# cargar el paquete en el subproceso callr, resolver funciones del
+# namespace vigente vía `.pkg_fn` (el bug histórico de lexical scoping
+# contra el paquete INSTALADO) y duplicaba los helpers de rebuild que ya
+# existen como funciones top-level (.graficos_rebuild_slide_json y cía.).
+#
+# Ahora son funciones top-level del paquete con la marca
+# `prosecnur_job_function_name`: el bootstrap de job_submit() (jobs.R)
+# hace el load_all()/library() en el worker y RE-OBTIENE cada función
+# fresca del namespace recién cargado. Con eso, todas las referencias por
+# nombre pelado (reporte_ppt_plan, p_plan, .graficos_rebuild_slide_json…)
+# resuelven contra el código dev vigente, sin `.pkg_fn` ni load_all manual.
+# Mismo patrón que graficos_consolidado_job_runner y los jobs de
+# calc-muestra.
+
+# Prefija los errores del worker con la base activa, para que el usuario
+# sepa QUÉ base rompió en estudios multibase. Con base vacía/NULL devuelve
+# el mensaje tal cual (proyectos single-base).
+.graficos_job_base_error <- function(active_base) {
+  function(msg) {
+    if (!is.null(active_base) && nzchar(as.character(active_base))) {
+      sprintf("Base '%s': %s", as.character(active_base), msg)
+    } else {
+      msg
+    }
+  }
+}
+
+# Rearma los slides de un plan JSON con las funciones reales del paquete.
+# `report = NULL` omite el progreso por-slide (el worker multibase reporta
+# por base, no por slide — divergencia deliberada que se conserva).
+# `item_label` conserva el vocabulario de cada entregable en el mensaje de
+# progreso: "slide" para PPT, "seccion" para Word.
+.graficos_job_rebuild_slides <- function(plan, slide_registry, graficador_registry,
+                                         icon_registry, report = NULL,
+                                         base_error = identity,
+                                         item_label = "slide") {
+  slides <- plan$slides %||% list()
+  total_slides <- length(slides)
+  slides_r <- vector("list", total_slides)
+  for (i in seq_len(total_slides)) {
+    if (is.function(report)) {
+      report(
+        "rebuild",
+        current = i,
+        total = total_slides,
+        percent = 5 + round(45 * (i - 1) / max(1, total_slides)),
+        message = sprintf("Armando %s %s de %s...", item_label, i, total_slides)
+      )
+    }
+    slides_r[[i]] <- tryCatch(
+      .graficos_rebuild_slide_json(
+        slides[[i]],
+        slide_registry = slide_registry,
+        graficador_registry = graficador_registry,
+        icon_registry = icon_registry
+      ),
+      error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
+    )
+  }
+  slides_r
+}
+
+# Worker del job `graficos.ppt` (POST /api/graficos/ppt): exporta el PPT
+# de la base activa. Los data/instrumento viajan por RDS (job_save_rds)
+# porque las listas multibase no sobreviven la serialización de args.
+graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, paletas,
+                                    slide_registry, graficador_registry,
+                                    icon_registry, active_base,
+                                    template_pptx, auto_otros_slides,
+                                    result_path, progress_path = NULL) {
+  report <- job_progress_writer(progress_path)
+  base_error <- .graficos_job_base_error(active_base)
+  report("loading", percent = 2, message = "Cargando datos y plantilla...")
+  palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
+  slides_r <- .graficos_job_rebuild_slides(
+    plan, slide_registry, graficador_registry, icon_registry,
+    report = report, base_error = base_error, item_label = "slide"
+  )
+  report("render", percent = 60, message = "Renderizando presentación...")
+  tryCatch(
+    reporte_ppt_plan(
+      data = readRDS(rp_data_path),
+      instrumento = readRDS(rp_inst_path),
+      path_ppt = result_path,
+      presets = .build_presets(presets),
+      plan = p_plan(slides = slides_r),
+      env_diapos = palette_env,
+      template_pptx = template_pptx,
+      auto_otros_slides = auto_otros_slides,
+      mensajes_progreso = FALSE
+    ),
+    error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
+  )
+  report("export", percent = 96, message = "Guardando PPTX...")
+  list(path = result_path, n_slides = length(slides_r))
+}
+attr(graficos_job_worker_ppt, "prosecnur_job_function_name") <- "graficos_job_worker_ppt"
+
+# Worker del job `graficos.ppt_all` (POST /api/graficos/ppt-all): exporta
+# el PPT de TODAS las bases de un multibase independiente en un ZIP.
+# `per_base_path` apunta a un RDS con la config YA GUARDADA por base
+# (plan/presets/paletas/iconos/plantilla/filename) — cada base se renderiza
+# con su propia receta, tal como quedó en el editor.
+graficos_job_worker_ppt_all <- function(rp_data_path, rp_inst_path, per_base_path, bases,
+                                        slide_registry, graficador_registry,
+                                        result_path, progress_path = NULL) {
+  report <- job_progress_writer(progress_path)
+  report("loading", percent = 2, message = "Cargando datos y plantillas...")
+
+  all_data <- readRDS(rp_data_path)
+  all_inst <- readRDS(rp_inst_path)
+  per_base <- readRDS(per_base_path)
+
+  stage <- tempfile("ppt_all_stage_")
+  dir.create(stage, recursive = TRUE)
+  n_bases <- length(bases)
+  results <- vector("list", n_bases)
+  for (i in seq_along(bases)) {
+    base <- bases[[i]]
+    base_error <- .graficos_job_base_error(base)
+    report(
+      "render",
+      current = i,
+      total = n_bases,
+      percent = round(90 * (i - 1) / max(1, n_bases)),
+      message = sprintf("Generando %s (%d/%d)...", base, i, n_bases)
+    )
+    info <- per_base[[base]]
+    # Sin progreso por-slide: el usuario ve una fase "render" por base.
+    slides_r <- .graficos_job_rebuild_slides(
+      info$plan, slide_registry, graficador_registry, info$icon_registry,
+      report = NULL, base_error = base_error
+    )
+    palette_env <- .graficos_palette_env(info$paletas, parent = parent.frame())
+    out_path <- file.path(stage, info$filename)
+    tryCatch(
+      reporte_ppt_plan(
+        data = stats::setNames(list(all_data[[base]]), base),
+        instrumento = stats::setNames(list(all_inst[[base]]), base),
+        path_ppt = out_path,
+        presets = .build_presets(info$presets),
+        plan = p_plan(slides = slides_r),
+        env_diapos = palette_env,
+        template_pptx = info$template_pptx,
+        auto_otros_slides = isTRUE(info$auto_otros_slides),
+        mensajes_progreso = FALSE
+      ),
+      error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
+    )
+    results[[i]] <- list(nombre = base, filename = info$filename, n_slides = length(slides_r))
+  }
+  report("zip", percent = 95, message = "Empaquetando ZIP...")
+  old_wd <- setwd(stage)
+  on.exit(setwd(old_wd), add = TRUE)
+  zip::zip(zipfile = result_path, files = vapply(results, function(r) r$filename, character(1)))
+  setwd(old_wd)
+  report("export", percent = 99, message = "Guardando ZIP...")
+  list(path = result_path, bases = results)
+}
+attr(graficos_job_worker_ppt_all, "prosecnur_job_function_name") <- "graficos_job_worker_ppt_all"
+
+# Worker del job `graficos.word` (POST /api/graficos/word): mismo pipeline
+# que /ppt pero renderiza con reporte_word_plan (presets Word aparte y sin
+# plantilla PPTX ni slides automáticas de "otros").
+graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, w_presets,
+                                     paletas, slide_registry, graficador_registry,
+                                     icon_registry, active_base,
+                                     result_path, progress_path = NULL) {
+  report <- job_progress_writer(progress_path)
+  base_error <- .graficos_job_base_error(active_base)
+  report("loading", percent = 2, message = "Cargando datos y plantilla...")
+  palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
+  slides_r <- .graficos_job_rebuild_slides(
+    plan, slide_registry, graficador_registry, icon_registry,
+    report = report, base_error = base_error, item_label = "seccion"
+  )
+  report("render", percent = 60, message = "Renderizando documento...")
+  tryCatch(
+    reporte_word_plan(
+      data = readRDS(rp_data_path),
+      instrumento = readRDS(rp_inst_path),
+      path_docx = result_path,
+      presets_ppt = .build_presets(presets),
+      presets_word = .build_w_presets(w_presets),
+      plan = p_plan(slides = slides_r),
+      env_diapos = palette_env,
+      mensajes_progreso = FALSE
+    ),
+    error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
+  )
+  report("export", percent = 96, message = "Guardando DOCX...")
+  list(path = result_path, n_slides = length(slides_r))
+}
+attr(graficos_job_worker_word, "prosecnur_job_function_name") <- "graficos_job_worker_word"
