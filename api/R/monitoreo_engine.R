@@ -4171,6 +4171,8 @@ monitoreo_demo_payload <- function(seed = 20260514L, n = 96L) {
   if (is.finite(fetched_count)) out$fetched_count <- fetched_count
   remote_total <- suppressWarnings(as.integer(value$remote_total %||% value$remoteTotal %||% NA_integer_)[1])
   if (is.finite(remote_total)) out$remote_total <- remote_total
+  sm_modified_at <- .monitoreo_scalar(value$sm_modified_at %||% value$smModifiedAt, "")
+  if (nzchar(sm_modified_at)) out$sm_modified_at <- sm_modified_at
   out
 }
 
@@ -5763,97 +5765,10 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
   requests
 }
 
+# Batch + skip por hash: la implementación vive en monitoreo_sync_incremental.R
+# (unidad 3.8; este archivo está congelado a crecimiento).
 monitoreo_sheets_publish_tabs <- function(spreadsheet_id, tabs) {
-  spreadsheet_id <- .monitoreo_extract_spreadsheet_id(spreadsheet_id)
-  if (!nzchar(spreadsheet_id)) stop("Falta spreadsheet_id para publicar.", call. = FALSE)
-  tab_names <- names(tabs)
-  .monitoreo_sheets_validate_controlled_tabs(tab_names)
-
-  meta <- .monitoreo_sheets_metadata(spreadsheet_id)
-  tab_map <- .monitoreo_sheets_tab_map(meta)
-  missing_tabs <- setdiff(tab_names, names(tab_map))
-  if (length(missing_tabs)) {
-    .monitoreo_sheets_batch_update(
-      spreadsheet_id,
-      lapply(missing_tabs, function(tab_name) {
-        list(addSheet = list(properties = list(title = tab_name)))
-      })
-    )
-    meta <- .monitoreo_sheets_metadata(spreadsheet_id)
-    tab_map <- .monitoreo_sheets_tab_map(meta)
-  }
-
-  metadata_requests <- list()
-  for (tab_name in tab_names) {
-    tab <- tab_map[[tab_name]]
-    if (is.null(tab) || is.na(tab$sheet_id)) {
-      stop(sprintf("No se pudo preparar la pestana controlada %s.", tab_name), call. = FALSE)
-    }
-    if (!.monitoreo_sheets_has_owner_metadata(tab)) {
-      metadata_requests[[length(metadata_requests) + 1L]] <- list(
-        createDeveloperMetadata = list(
-          developerMetadata = list(
-            metadataKey = .monitoreo_sheets_owner_key(),
-            metadataValue = .monitoreo_sheets_owner_value(),
-            visibility = "DOCUMENT",
-            location = list(sheetId = tab$sheet_id)
-          )
-        )
-      )
-    }
-  }
-  .monitoreo_sheets_batch_update(spreadsheet_id, metadata_requests)
-
-  reset_requests <- list()
-  for (tab_name in tab_names) {
-    tab <- tab_map[[tab_name]]
-    sheet_id <- tab$sheet_id %||% NA_integer_
-    if (is.null(tab) || is.na(sheet_id)) next
-    reset_requests <- c(reset_requests, .monitoreo_sheets_reset_tab_requests(sheet_id, tab, tabs[[tab_name]]))
-  }
-  .monitoreo_sheets_batch_update(spreadsheet_id, reset_requests)
-
-  written_ranges <- list()
-  for (tab_name in tab_names) {
-    range <- .monitoreo_sheets_quote_sheet(tab_name)
-    encoded_range <- utils::URLencode(range, reserved = TRUE)
-    clear_url <- paste0(.monitoreo_sheets_api_base(spreadsheet_id), "/values/", encoded_range, ":clear")
-    update_url <- paste0(
-      .monitoreo_sheets_api_base(spreadsheet_id),
-      "/values/",
-      encoded_range,
-      "?valueInputOption=RAW"
-    )
-    .monitoreo_google_api(clear_url, method = "POST", body = structure(list(), names = character()))
-    .monitoreo_google_api(
-      update_url,
-      method = "PUT",
-      body = list(majorDimension = "ROWS", values = .monitoreo_sheets_values_rows(tabs[[tab_name]]))
-    )
-    written_ranges[[length(written_ranges) + 1L]] <- list(
-      tab = tab_name,
-      range = range,
-      rows = length(tabs[[tab_name]] %||% list())
-    )
-  }
-  format_requests <- list()
-  for (tab_name in tab_names) {
-    tab <- tab_map[[tab_name]]
-    sheet_id <- tab$sheet_id %||% NA_integer_
-    if (is.null(tab) || is.na(sheet_id)) next
-    format_requests <- c(format_requests, .monitoreo_sheets_professional_format_requests(sheet_id, tab_name, tabs[[tab_name]]))
-  }
-  .monitoreo_sheets_batch_update(spreadsheet_id, format_requests)
-
-  list(
-    ok = TRUE,
-    spreadsheet_id = spreadsheet_id,
-    spreadsheet_url = paste0("https://docs.google.com/spreadsheets/d/", spreadsheet_id, "/edit"),
-    controlled_tabs = as.list(tab_names),
-    written_ranges = written_ranges,
-    updated_at = .monitoreo_now_iso(),
-    mode = "controlled_write"
-  )
+  .monitoreo_sync_sheets_publish_tabs(spreadsheet_id, tabs)
 }
 
 monitoreo_sheets_list_spreadsheets <- function(limit = 50L) {
@@ -5998,6 +5913,7 @@ monitoreo_sync_source <- function(source, since = NULL, progress = NULL, sid = N
           progress = progress
         ),
         error = function(e) {
+          warning(sprintf("Kobo: la consulta incremental fallo (%s); se hara una actualizacion completa.", conditionMessage(e)), call. = FALSE)
           if (!is.null(progress)) progress(3L, 8L, "Kobo: consulta incremental no disponible; actualización completa")
           NULL
         }
@@ -6089,10 +6005,12 @@ monitoreo_sync_source <- function(source, since = NULL, progress = NULL, sid = N
           survey_id = source$survey_id,
           token = token,
           since = since,
+          start_modified_at = .monitoreo_sm_cursor_for_fetch(source, advance_mode),
           progress = progress,
           base_url = base_url
         )
         df <- sm_api_flatten_responses(details, payload$data)
+        attr(df, "sm_sync_payload") <- payload[c("count", "total", "cursor_enabled", "cursor_applied", "max_modified_at")]
         df <- sm_api_enrich_response_recipients(
           df,
           token = token,
@@ -6126,7 +6044,13 @@ monitoreo_sync_source <- function(source, since = NULL, progress = NULL, sid = N
     survey_title <- .monitoreo_scalar(attr(data, "survey_title", exact = TRUE), "")
     if (nzchar(survey_title)) source$survey_title <- survey_title
     if (nzchar(selected_profile_id)) source$connection_profile_id <- selected_profile_id
-    attr(data, "sync_mode") <- if (advance_mode) "advance" else if (is.null(since)) "full" else "incremental"
+    sm_payload <- attr(data, "sm_sync_payload", exact = TRUE) %||% list()
+    attr(data, "sm_sync_payload") <- NULL
+    # Con cursor operativo la data es un DELTA: modo "incremental" para que el
+    # merge del router haga upsert por response_id en vez de reemplazo total.
+    sm_mode <- if (isTRUE(sm_payload$cursor_enabled)) "incremental" else if (advance_mode) "advance" else if (is.null(since)) "full" else "incremental"
+    attr(data, "sync_mode") <- sm_mode
+    attr(data, "sync_cursor") <- .monitoreo_sm_sync_cursor_attr(source, sm_payload, sm_mode, nrow(data))
   } else if (identical(kind, "google_sheets")) {
     data <- monitoreo_sheets_read_source(source)
     attr(data, "sync_mode") <- "full"

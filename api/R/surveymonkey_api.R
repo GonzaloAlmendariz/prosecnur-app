@@ -45,6 +45,65 @@
   h
 }
 
+# Handle autenticado estándar del conector SM (headers Bearer + Accept JSON).
+.sm_api_auth_handle <- function(token) {
+  h <- .sm_api_new_handle()
+  curl::handle_setheaders(h,
+    "Authorization" = paste("Bearer", token),
+    "Accept" = "application/json"
+  )
+  h
+}
+
+# Seam de transporte: única llamada real a curl del conector SM. Los tests
+# la mockean (testthat::local_mocked_bindings) para simular la API sin red.
+.sm_api_http_fetch <- function(url, handle) {
+  curl::curl_fetch_memory(url, handle = handle)
+}
+
+.sm_api_max_retries <- function() 3L
+
+# Seam de espera: mockeable en tests para registrar los backoffs sin dormir.
+.sm_api_retry_sleep <- function(seconds) {
+  seconds <- suppressWarnings(as.numeric(seconds)[1])
+  if (is.finite(seconds) && seconds > 0) Sys.sleep(min(seconds, 60))
+  invisible(NULL)
+}
+
+# Espera ante un 429: respeta Retry-After si viene; si no, backoff
+# exponencial acotado (1s, 2s, 4s).
+.sm_api_retry_after_seconds <- function(res, attempt) {
+  headers <- tryCatch(curl::parse_headers_list(res$headers), error = function(e) list())
+  retry_after <- suppressWarnings(as.numeric(headers[["retry-after"]] %||% NA_real_)[1])
+  if (is.finite(retry_after) && retry_after >= 0) return(min(retry_after, 60))
+  min(2^(max(1L, attempt) - 1L), 30)
+}
+
+# Transporte compartido por TODAS las llamadas SM: reintenta HTTP 429 con
+# backoff (máx 3 reintentos) y luego falla con stop_api E_SM_RATE_LIMIT.
+# `build_handle` es una closure que construye un handle fresco por intento
+# (los handles curl no se reusan tras un fetch fallido).
+.sm_api_fetch_with_retry <- function(url, build_handle) {
+  attempt <- 1L
+  repeat {
+    res <- .sm_api_http_fetch(url, build_handle())
+    if (!identical(as.integer(res$status_code), 429L)) return(res)
+    if (attempt > .sm_api_max_retries()) {
+      stop_api(
+        429,
+        "E_SM_RATE_LIMIT",
+        paste(
+          "SurveyMonkey limito la tasa de peticiones (HTTP 429) y se agotaron los reintentos.",
+          "Espera unos minutos y vuelve a sincronizar."
+        ),
+        details = list(retries = .sm_api_max_retries())
+      )
+    }
+    .sm_api_retry_sleep(.sm_api_retry_after_seconds(res, attempt))
+    attempt <- attempt + 1L
+  }
+}
+
 #' Trae la estructura completa de un survey desde la API v3 de SurveyMonkey.
 #'
 #' @param survey_id ID numérico del survey (visible en la URL del constructor).
@@ -63,12 +122,7 @@ sm_api_fetch_survey_details <- function(survey_id, token, base_url = "https://ap
   }
 
   url <- sprintf("%s/surveys/%s/details", sub("/$", "", base_url), survey_id)
-  h <- .sm_api_new_handle()
-  curl::handle_setheaders(h,
-    "Authorization" = paste("Bearer", token),
-    "Accept" = "application/json"
-  )
-  res <- curl::curl_fetch_memory(url, handle = h)
+  res <- .sm_api_fetch_with_retry(url, function() .sm_api_auth_handle(token))
   body <- rawToChar(res$content)
   Encoding(body) <- "UTF-8"
 
@@ -112,12 +166,7 @@ sm_api_check_token <- function(token, base_url = "https://api.surveymonkey.com/v
   if (!requireNamespace("jsonlite", quietly = TRUE)) stop("Paquete 'jsonlite' no instalado.", call. = FALSE)
 
   url <- sprintf("%s/surveys?per_page=1", sub("/$", "", base_url))
-  h <- .sm_api_new_handle()
-  curl::handle_setheaders(h,
-    "Authorization" = paste("Bearer", token),
-    "Accept" = "application/json"
-  )
-  res <- curl::curl_fetch_memory(url, handle = h)
+  res <- .sm_api_fetch_with_retry(url, function() .sm_api_auth_handle(token))
   body <- rawToChar(res$content)
   Encoding(body) <- "UTF-8"
 
@@ -169,12 +218,7 @@ sm_api_list_surveys <- function(token, base_url = "https://api.surveymonkey.com/
     "%s/surveys?per_page=%d&sort_by=date_modified&sort_order=DESC&include=date_modified,nickname,response_count",
     sub("/$", "", base_url), as.integer(per_page)
   )
-  h <- .sm_api_new_handle()
-  curl::handle_setheaders(h,
-    "Authorization" = paste("Bearer", token),
-    "Accept" = "application/json"
-  )
-  res <- curl::curl_fetch_memory(url, handle = h)
+  res <- .sm_api_fetch_with_retry(url, function() .sm_api_auth_handle(token))
   body <- rawToChar(res$content)
   Encoding(body) <- "UTF-8"
 
@@ -229,12 +273,10 @@ sm_api_list_surveys <- function(token, base_url = "https://api.surveymonkey.com/
   if (!requireNamespace("curl", quietly = TRUE)) stop("Paquete 'curl' no instalado.", call. = FALSE)
   if (!requireNamespace("jsonlite", quietly = TRUE)) stop("Paquete 'jsonlite' no instalado.", call. = FALSE)
 
-  h <- .sm_api_new_handle()
-  curl::handle_setheaders(h,
-    "Authorization" = paste("Bearer", token),
-    "Accept" = "application/json"
+  res <- .sm_api_fetch_with_retry(
+    .sm_api_build_url(path, base_url = base_url, query = query),
+    function() .sm_api_auth_handle(token)
   )
-  res <- curl::curl_fetch_memory(.sm_api_build_url(path, base_url = base_url, query = query), handle = h)
   body <- rawToChar(res$content)
   Encoding(body) <- "UTF-8"
 
@@ -453,6 +495,7 @@ sm_api_fetch_collector_recipient_rows <- function(collector_id,
   if (!is.finite(max_details)) max_details <- 1000L
   max_details <- max(0L, max_details)
   out <- list()
+  detail_failures <- 0L
   for (i in seq_along(rows)) {
     row <- rows[[i]]
     rid <- trimws(as.character(row$id %||% row$recipient_id %||% ""))
@@ -460,11 +503,23 @@ sm_api_fetch_collector_recipient_rows <- function(collector_id,
     if (isTRUE(include_details) && nzchar(rid) && i <= max_details) {
       detail <- tryCatch(
         sm_api_fetch_collector_recipient_detail(collector_id, rid, token, base_url = base_url),
-        error = function(e) NULL
+        error = function(e) {
+          detail_failures <<- detail_failures + 1L
+          NULL
+        }
       )
       if (is.list(detail) && length(detail)) src <- utils::modifyList(row, detail)
     }
     out[[length(out) + 1L]] <- .sm_api_recipient_row(src)
+  }
+  if (detail_failures > 0L) {
+    warning(
+      sprintf(
+        "SurveyMonkey: %d detalle(s) de destinatario del colector %s no se pudieron obtener; esas filas usan solo los datos del listado.",
+        detail_failures, collector_id
+      ),
+      call. = FALSE
+    )
   }
   if (!length(out)) return(data.frame())
   cols <- unique(unlist(lapply(out, names), use.names = FALSE))
@@ -481,6 +536,63 @@ sm_api_fetch_collector_recipient_rows <- function(collector_id,
   df
 }
 
+# Cache de PROCESO de filas de destinatarios por colector (unidad 3.8,
+# semantica congelada por el lead: cache derivable). NO vive en la sesion ni
+# viaja en el .pulso: project_pulso.R (strip list) esta fuera del alcance de
+# esta unidad, asi que el cache se guarda en un env del paquete — perderlo al
+# reiniciar el proceso solo implica re-pedir detalles (benigno). No contiene
+# tokens ni credenciales; solo las filas ya normalizadas del listado/detalle.
+.sm_api_recipients_cache <- new.env(parent = emptyenv())
+
+.sm_api_recipients_cache_key <- function(collector_id, base_url, include_details) {
+  paste(
+    trimws(as.character(base_url %||% "")[1]),
+    trimws(as.character(collector_id %||% "")[1]),
+    if (isTRUE(include_details)) "detail" else "listing",
+    sep = "|"
+  )
+}
+
+.sm_api_recipients_cache_get <- function(collector_id, base_url, include_details) {
+  key <- .sm_api_recipients_cache_key(collector_id, base_url, include_details)
+  value <- .sm_api_recipients_cache[[key]]
+  if (is.data.frame(value)) value else data.frame()
+}
+
+.sm_api_recipients_cache_add <- function(collector_id, base_url, include_details, rows_df) {
+  if (!is.data.frame(rows_df) || !nrow(rows_df) || !"recipient_id" %in% names(rows_df)) {
+    return(invisible(NULL))
+  }
+  key <- .sm_api_recipients_cache_key(collector_id, base_url, include_details)
+  current <- .sm_api_recipients_cache_get(collector_id, base_url, include_details)
+  combined <- .sm_api_bind_recipient_rows(current, rows_df)
+  if (nrow(combined)) {
+    keep <- !duplicated(trimws(as.character(combined$recipient_id)), fromLast = TRUE)
+    combined <- combined[keep, , drop = FALSE]
+    rownames(combined) <- NULL
+  }
+  .sm_api_recipients_cache[[key]] <- combined
+  invisible(NULL)
+}
+
+.sm_api_recipients_cache_clear <- function() {
+  rm(list = ls(envir = .sm_api_recipients_cache), envir = .sm_api_recipients_cache)
+  invisible(NULL)
+}
+
+# rbind con union de columnas (rellena NA) para filas de destinatarios que
+# pueden traer sets distintos de columnas recipient_cv_*.
+.sm_api_bind_recipient_rows <- function(a, b) {
+  a <- if (is.data.frame(a)) a else data.frame()
+  b <- if (is.data.frame(b)) b else data.frame()
+  if (!nrow(a)) return(b)
+  if (!nrow(b)) return(a)
+  cols <- union(names(a), names(b))
+  for (col in setdiff(cols, names(a))) a[[col]] <- NA_character_
+  for (col in setdiff(cols, names(b))) b[[col]] <- NA_character_
+  rbind(a[, cols, drop = FALSE], b[, cols, drop = FALSE])
+}
+
 sm_api_enrich_response_recipients <- function(data,
                                               token,
                                               base_url = "https://api.surveymonkey.com/v3",
@@ -491,21 +603,42 @@ sm_api_enrich_response_recipients <- function(data,
   collector_ids <- collector_ids[nzchar(collector_ids) & !is.na(collector_ids)]
   if (!length(collector_ids)) return(data)
   enriched <- data
+  failed_collectors <- character(0)
   for (collector_id in collector_ids) {
     idx <- which(trimws(as.character(enriched$collector_id)) == collector_id)
     recipient_ids <- unique(trimws(as.character(enriched$recipient_id[idx])))
     recipient_ids <- recipient_ids[nzchar(recipient_ids) & !is.na(recipient_ids)]
     if (!length(recipient_ids)) next
-    recipient_rows <- tryCatch(
-      sm_api_fetch_collector_recipient_rows(
-        collector_id,
-        token,
-        base_url = base_url,
-        recipient_ids = recipient_ids,
-        include_details = include_details
-      ),
-      error = function(e) data.frame()
-    )
+    cached <- .sm_api_recipients_cache_get(collector_id, base_url, include_details)
+    cached_ids <- if (nrow(cached) && "recipient_id" %in% names(cached)) {
+      trimws(as.character(cached$recipient_id))
+    } else {
+      character(0)
+    }
+    missing_ids <- setdiff(recipient_ids, cached_ids)
+    fetched <- data.frame()
+    if (length(missing_ids)) {
+      fetched <- tryCatch(
+        sm_api_fetch_collector_recipient_rows(
+          collector_id,
+          token,
+          base_url = base_url,
+          recipient_ids = missing_ids,
+          include_details = include_details
+        ),
+        error = function(e) {
+          failed_collectors <<- c(failed_collectors, collector_id)
+          data.frame()
+        }
+      )
+      if (is.data.frame(fetched) && nrow(fetched)) {
+        .sm_api_recipients_cache_add(collector_id, base_url, include_details, fetched)
+      }
+    }
+    if (length(cached_ids)) {
+      cached <- cached[cached_ids %in% recipient_ids, , drop = FALSE]
+    }
+    recipient_rows <- .sm_api_bind_recipient_rows(cached, fetched)
     if (!is.data.frame(recipient_rows) || !nrow(recipient_rows) || !"recipient_id" %in% names(recipient_rows)) next
     for (col in setdiff(names(recipient_rows), "recipient_id")) {
       if (!col %in% names(enriched)) enriched[[col]] <- NA_character_
@@ -516,6 +649,15 @@ sm_api_enrich_response_recipients <- function(data,
     for (col in setdiff(names(recipient_rows), "recipient_id")) {
       enriched[[col]][idx[has_match]] <- as.character(recipient_rows[[col]][match_pos[has_match]])
     }
+  }
+  if (length(failed_collectors)) {
+    warning(
+      sprintf(
+        "SurveyMonkey: fallo el enriquecimiento de destinatarios en %d colector(es) (%s); esas filas quedan sin datos de destinatario.",
+        length(unique(failed_collectors)), paste(unique(failed_collectors), collapse = ", ")
+      ),
+      call. = FALSE
+    )
   }
   enriched
 }
@@ -599,14 +741,17 @@ sm_api_collector_recipient_summary <- function(collector_id,
 #' Descargar respuestas bulk de SurveyMonkey API v3
 #'
 #' Requiere scope `responses_read_detail`. El filtro `since` se aplica
-#' localmente sobre `date_modified` porque la API documentada no ofrece un
-#' parametro estable para fecha minima en este endpoint.
+#' localmente sobre `date_modified`. `start_modified_at` viaja al servidor
+#' como query param del endpoint bulk (delta server-side); su operacion real
+#' se verifica en el caller paginado (ver fallback detectable en
+#' [sm_api_fetch_all_responses_bulk()]).
 #'
 #' @param survey_id ID numerico de SurveyMonkey.
 #' @param token Personal Access Token.
 #' @param page Pagina.
 #' @param per_page Tamano de pagina.
-#' @param since Fecha/hora minima opcional para `date_modified`.
+#' @param since Fecha/hora minima opcional para `date_modified` (filtro local).
+#' @param start_modified_at Cursor opcional enviado al servidor.
 #' @param base_url URL base API.
 #' @return Lista JSON de `/surveys/{id}/responses/bulk`.
 #' @export
@@ -615,6 +760,7 @@ sm_api_fetch_responses_bulk <- function(survey_id,
                                         page = 1L,
                                         per_page = 100L,
                                         since = NULL,
+                                        start_modified_at = NULL,
                                         base_url = "https://api.surveymonkey.com/v3") {
   survey_id <- trimws(as.character(survey_id %||% "")[1])
   token <- as.character(token %||% "")[1]
@@ -636,12 +782,11 @@ sm_api_fetch_responses_bulk <- function(survey_id,
     page,
     per_page
   )
-  h <- .sm_api_new_handle()
-  curl::handle_setheaders(h,
-    "Authorization" = paste("Bearer", token),
-    "Accept" = "application/json"
-  )
-  res <- curl::curl_fetch_memory(url, handle = h)
+  cursor <- trimws(as.character(start_modified_at %||% "")[1])
+  if (nzchar(cursor) && !is.na(cursor)) {
+    url <- paste0(url, "&start_modified_at=", utils::URLencode(cursor, reserved = TRUE))
+  }
+  res <- .sm_api_fetch_with_retry(url, function() .sm_api_auth_handle(token))
   body <- rawToChar(res$content)
   Encoding(body) <- "UTF-8"
 
@@ -680,13 +825,47 @@ sm_api_fetch_responses_bulk <- function(survey_id,
   parsed
 }
 
+# Feature flag del cursor server-side de SurveyMonkey (unidad 3.8). Default
+# ON; PROSECNUR_SM_CURSOR=0 lo apaga. RIESGO documentado: `start_modified_at`
+# no se pudo validar contra la API real en esta unidad (sin red permitida).
+# La red de seguridad es doble: (1) fallback DETECTABLE — si la primera
+# pagina trae items anteriores al cursor, el filtro remoto no opero y se emite
+# warning; (2) el delta se re-filtra SIEMPRE localmente contra el cursor, asi
+# los numeros no cambian aunque el servidor ignore el parametro.
+.sm_cursor_flag_enabled <- function(value = Sys.getenv("PROSECNUR_SM_CURSOR", unset = "")) {
+  !tolower(trimws(as.character(value %||% "")[1])) %in% c("0", "false", "off", "no")
+}
+
+# Mayor `date_modified` (string original) entre las respuestas crudas.
+.sm_api_max_modified_at <- function(rows) {
+  best_raw <- ""
+  best_ts <- as.POSIXct(NA)
+  for (r in rows %||% list()) {
+    raw <- as.character(r$date_modified %||% r$date_created %||% "")[1]
+    if (is.na(raw) || !nzchar(raw)) next
+    ts <- .sm_api_parse_time(raw)
+    if (is.na(ts)) next
+    if (is.na(best_ts) || ts > best_ts) {
+      best_ts <- ts
+      best_raw <- raw
+    }
+  }
+  best_raw
+}
+
 sm_api_fetch_all_responses_bulk <- function(survey_id,
                                             token,
                                             per_page = 100L,
                                             since = NULL,
+                                            start_modified_at = NULL,
                                             max_pages = 500L,
                                             progress = NULL,
                                             base_url = "https://api.surveymonkey.com/v3") {
+  cursor <- trimws(as.character(start_modified_at %||% "")[1])
+  cursor_enabled <- nzchar(cursor) && !is.na(cursor) && .sm_cursor_flag_enabled()
+  cursor_ts <- if (cursor_enabled) .sm_api_parse_time(cursor) else as.POSIXct(NA)
+  cursor_applied <- cursor_enabled
+  first_page_checked <- FALSE
   page <- 1L
   out <- list()
   total <- NA_integer_
@@ -697,9 +876,26 @@ sm_api_fetch_all_responses_bulk <- function(survey_id,
       page = page,
       per_page = per_page,
       since = NULL,
+      start_modified_at = if (cursor_enabled) cursor else NULL,
       base_url = base_url
     )
     rows <- payload$data %||% list()
+    if (cursor_enabled && !first_page_checked) {
+      first_page_checked <- TRUE
+      if (!is.na(cursor_ts) && length(rows)) {
+        stale <- vapply(rows, function(r) {
+          mod <- .sm_api_parse_time(r$date_modified %||% r$date_created %||% NA_character_)
+          !is.na(mod) && mod < cursor_ts
+        }, logical(1))
+        if (any(stale)) {
+          cursor_applied <- FALSE
+          warning(
+            "SurveyMonkey ignoro 'start_modified_at'; se descargara el historial completo y el delta se filtrara localmente.",
+            call. = FALSE
+          )
+        }
+      }
+    }
     if (length(rows)) out <- c(out, rows)
     total <- suppressWarnings(as.integer(payload$total %||% total))
     if (!is.null(progress)) {
@@ -712,6 +908,10 @@ sm_api_fetch_all_responses_bulk <- function(survey_id,
       stop("Se alcanzo el limite de paginas configurado para SurveyMonkey.", call. = FALSE)
     }
   }
+  max_modified_at <- .sm_api_max_modified_at(out)
+  # Cinturon local del delta: garantiza los mismos numeros aunque el servidor
+  # haya ignorado el cursor. Con filtro remoto operativo es un no-op barato.
+  if (cursor_enabled && is.null(since)) since <- cursor
   if (!is.null(since) && length(out)) {
     since_ts <- .sm_api_parse_time(since)
     if (!is.na(since_ts)) {
@@ -721,7 +921,16 @@ sm_api_fetch_all_responses_bulk <- function(survey_id,
       }, out)
     }
   }
-  list(ok = TRUE, count = length(out), total = if (is.finite(total)) total else length(out), data = out)
+  list(
+    ok = TRUE,
+    count = length(out),
+    total = if (is.finite(total)) total else length(out),
+    data = out,
+    cursor_requested = cursor,
+    cursor_enabled = cursor_enabled,
+    cursor_applied = cursor_enabled && cursor_applied,
+    max_modified_at = max_modified_at
+  )
 }
 
 sm_api_check_responses_scope <- function(survey_id, token, base_url = "https://api.surveymonkey.com/v3") {
