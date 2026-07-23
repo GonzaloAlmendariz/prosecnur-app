@@ -476,6 +476,10 @@
   )
   payload <- list(
     schema = "surveymonkey_sav_variable_review/v1",
+    # El stage de reconciliación canónica (.dn_reconcile_canonical_names) es
+    # ADITIVO al normalizador: es no-op sobre data ya bien calzada y sólo actúa
+    # sobre mismatches de nombre (CamelCase/acentos de SM, dedup `_NNN` de Kobo).
+    # Por eso el contrato NO sube a /v2 — esa decisión la toma el lead/usuario.
     normalizer_contract = "normalize_data_for_xlsform/v1",
     privacy = list(
       response_values_included = FALSE,

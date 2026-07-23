@@ -795,7 +795,12 @@
 # (router_carga.R) y `.monitoreo_processing_handoff_complete_expected_columns`
 # (router_monitoreo.R).
 .dn_backfill_missing_columns <- function(data, expected) {
-  data <- as.data.frame(data %||% data.frame(), stringsAsFactors = FALSE, check.names = FALSE)
+  # Guard H4: NO usar `data %||% data.frame()` directo. Con un data.frame de
+  # exactamente 1 columna, el `%||%` del namespace evalúa `is.na()` sobre un
+  # vector (length(df)==1 dispara la rama is.na) y revienta con
+  # "'length = N' in coercion to logical(1)". El chequeo explícito lo evita.
+  if (!is.data.frame(data)) data <- data.frame()
+  data <- as.data.frame(data, stringsAsFactors = FALSE, check.names = FALSE)
   expected <- as.character(expected %||% character(0))
   missing <- setdiff(expected, names(data))
   if (length(missing)) {
@@ -879,6 +884,13 @@ normalize_data_for_xlsform <- function(data,
   #    q0017_0001 -> p17_1 aunque el XLSForm canonico espera p17.
   collapse_info <- .dn_collapse_single_child_columns(out, survey)
   out <- collapse_info$data
+  # 3b. Reconciliación por slug canónico: conecta columnas que calzan con una
+  #     variable del survey por nombre canónico (CamelCase/acentos de SM) o por
+  #     el sufijo de dedup `_NNN` de Kobo. Corre DESPUÉS de los aliasing por
+  #     convención (q->p, padding, collapse) y ANTES de reconstruir
+  #     select_multiple, para que las columnas ya lleguen con su nombre canónico.
+  canon_info <- .dn_reconcile_canonical_names(out, instrumento)
+  out <- canon_info$data
   # 4. Si el SAV y el XLSForm usan codigos distintos para las mismas etiquetas,
   #    construimos un mapa SAV/API -> XLSForm. En select_multiple ese mapa se
   #    usa al reconstruir la madre; en select_one recodificamos aqui.
@@ -896,8 +908,8 @@ normalize_data_for_xlsform <- function(data,
   out <- other_recode_info$data
   sm_rows <- survey[grepl("^select_multiple\\b", as.character(survey$type)), , drop = FALSE]
 
-  dropped <- unique(c(q2p_info$dropped, alias_info$dropped, collapse_info$dropped))
-  aliased_combined <- c(q2p_info$aliased, alias_info$aliased)
+  dropped <- unique(c(q2p_info$dropped, alias_info$dropped, collapse_info$dropped, canon_info$dropped))
+  aliased_combined <- c(q2p_info$aliased, alias_info$aliased, canon_info$aliased)
   single_child_collapses <- collapse_info$collapsed
   select_one_other_recodes <- c(choice_map_recode$recoded, other_recode_info$recoded)
   if (length(select_one_other_recodes)) {
