@@ -105,11 +105,13 @@ test_that("plan ACNUR relacional es un solo informe y no duplica heredadas", {
     meta <- (slide$payload %||% list())$meta %||% list()
     isTRUE(meta$suppress_base_placeholder) && isTRUE(meta$suppress_footer_placeholder)
   }, logical(1))))
+  # Base principal y base repeat (pooled) comparten el formato limpio sin unidad
+  # ni conteo de personas; el nombre del servicio solo se anexa cuando la fuente
+  # se abre POR SERVICIO (no es el caso de este fixture pooled).
   expect_setequal(
     graph_notes,
     c(
-      "Base: 3 de 3 respuestas (100.0%).",
-      "Base: 3 de 3 respuestas (100.0%), correspondientes a 2 personas."
+      "Base: 3 de 3 (100.0%)."
     )
   )
   expect_false(any(grepl("territorial|KOICA|actor", visible_text, ignore.case = TRUE)))

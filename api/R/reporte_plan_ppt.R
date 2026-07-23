@@ -3709,7 +3709,10 @@ reporte_ppt_plan <- function(
 
   .filter_data <- function(filtros = list(), source = NULL, ref = NULL) {
     src <- .resolve_source_name(source = source, ref = ref, arg_name = "var")
-    .apply_named_filters(data_sources[[src]], filters = filtros %||% list(), arg_name = "filtros")
+    # `_safe`: un filtro con valor real sobre una columna ausente en la fuente
+    # resuelta degrada ESA lamina a canvas en blanco (0 filas) en vez de matar
+    # el reporte. Ver reporte_filter_guards.R (bug ACNUR multibase madre+repeat).
+    .apply_named_filters_safe(data_sources[[src]], filters = filtros %||% list(), arg_name = "filtros")
   }
 
   .blank_canvas <- function(preset_args = list(), overrides = list(), mensaje = "Sin datos para mostrar") {
@@ -8483,6 +8486,9 @@ reporte_ppt_plan <- function(
         doc <- .ph_with_strict(doc, title, contract$slots$title)
         # subtitle no tiene placeholder real en Section Header;
         # se ignora en PPT (solo se usa en Word via build_render_meta).
+        # El separador también lleva el logo PULSO (helper en
+        # reporte_plan_helpers.R), como portada/ficha/gráficos.
+        doc <- .ppt_add_partner_section_logo(doc, presets$base$args %||% list())
       }
 
       if (isTRUE(build_render_meta)) {

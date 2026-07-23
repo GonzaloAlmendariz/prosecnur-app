@@ -287,7 +287,14 @@
   var_labels <- (inst %||% list())$var_labels
   get_lbl <- function(v) {
     lb <- attr(df[[v]], "label", exact = TRUE)
-    if (is.null(lb) || is.na(lb) || !nzchar(lb)) lb <- var_labels[[v]] %||% ""
+    if (is.null(lb) || is.na(lb) || !nzchar(lb)) {
+      # `var_labels` es un vector atómico NOMBRADO: `[[v]]` con un `v` ausente
+      # revienta con "subscript out of bounds" (a diferencia de una lista, que
+      # devuelve NULL). Cae aquí una variable que no trae etiqueta en el
+      # instrumento (p.ej. `SPACE_nolabel`); las recodificadas/calculates del
+      # instrumento adaptado SÍ tienen etiqueta y no llegan a este fallback.
+      lb <- if (!is.null(var_labels) && v %in% names(var_labels)) var_labels[[v]] else ""
+    }
     if (is.null(lb) || is.na(lb) || !nzchar(lb)) {
       ov <- (ord %||% list())[[v]]
       lb <- (ov %||% list())$var_label %||% ""

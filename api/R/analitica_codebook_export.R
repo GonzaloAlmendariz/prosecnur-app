@@ -14,6 +14,21 @@
 #   (`ficha_tecnica = FALSE`). Antes se colaba una 2ª hoja "tras bambalinas".
 # - PDF (`reporte_codebook_pdf`): título/subtítulo/período se toman de
 #   `cfg$codebook$*_pdf`, igual que en el panel multibase.
+# Variables de metadata/control operativo del formulario (consentimiento, QA
+# "¿es prueba?", disponibilidad del respondiente…) que no son análisis. Reusa el
+# mismo clasificador que el auto-plan de Gráficos para que el libro de códigos
+# quede CONSISTENTE con el PPT: si no se grafican, tampoco se documentan.
+.analitica_operational_metadata_vars <- function(inst) {
+  if (!exists(".graficos_is_operational_metadata", mode = "function")) return(character(0))
+  vl <- (inst %||% list())$var_labels
+  nms <- names(vl %||% character(0))
+  if (!length(nms)) return(character(0))
+  hit <- vapply(seq_along(nms), function(i) {
+    isTRUE(.graficos_is_operational_metadata(nms[[i]], as.character(vl[[i]] %||% "")))
+  }, logical(1))
+  nms[hit]
+}
+
 .analitica_codebook_render_fn <- function(cfg, formato, codes, numericas_arg, excluidas,
                                           sid = NULL) {
   cb_cfg <- cfg$codebook %||% list()
@@ -33,7 +48,11 @@
       reviewed$data <- plan$data
       reviewed$inst <- plan$inst
     }
-    data_out <- .analitica_filter_data(reviewed$data, reviewed$inst, numericas_arg, excluidas)
+    excluidas_eff <- union(
+      as.character(excluidas %||% character(0)),
+      .analitica_operational_metadata_vars(reviewed$inst)
+    )
+    data_out <- .analitica_filter_data(reviewed$data, reviewed$inst, numericas_arg, excluidas_eff)
 
     if (identical(formato, "pdf")) {
       reporte_codebook_pdf(

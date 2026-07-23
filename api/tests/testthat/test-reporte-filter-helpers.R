@@ -128,3 +128,55 @@ test_that("apply_named_filters: detector dashboard estricto no se confunde con r
   expect_equal(out$sexo, "Mujer")
 })
 
+# --- Bug multibase madre+repeat: current_code fantasma (leak de simplifyDataFrame)
+
+test_that("apply_named_filters: un filtro con valor NA es no-op, no un error (leak fantasma)", {
+  # La base madre no tiene `current_code`. El parseo del plan JSON rectangulariza
+  # el arreglo de slides y le inyecta un `current_code = NA` fantasma heredado de
+  # las laminas por-servicio de la base hija. Debe ser NO-OP, jamas un stop().
+  df <- data.frame(testreal = c("si", "no", "si"), stringsAsFactors = FALSE)
+
+  # Forma named-list con valor NA.
+  expect_identical(.apply_named_filters(df, list(current_code = NA_character_)), df)
+  # Forma data.frame de una sola columna NA (exactamente como llega tras el
+  # `simplifyDataFrame` de plumber: structure(list(current_code = NA), class = "data.frame")).
+  phantom <- structure(list(current_code = NA_character_),
+                       row.names = 5L, class = "data.frame")
+  expect_identical(.apply_named_filters(df, phantom), df)
+  # Valor vacio "" tambien es no-op.
+  expect_identical(.apply_named_filters(df, list(current_code = "")), df)
+})
+
+test_that("apply_named_filters: filtro con valor REAL sobre columna ausente aborta con condicion clasificada", {
+  df <- data.frame(testreal = c("si", "no"), stringsAsFactors = FALSE)
+  cnd <- tryCatch(
+    .apply_named_filters(df, list(current_code = "cepr")),
+    pulso_filter_missing_column = function(c) c
+  )
+  expect_s3_class(cnd, "pulso_filter_missing_column")
+  expect_identical(cnd$variable, "current_code")
+  expect_match(conditionMessage(cnd), "current_code")
+})
+
+test_that("apply_named_filters_safe: valor real sobre columna ausente degrada a 0 filas con warning", {
+  df <- data.frame(testreal = c("si", "no", "si"), stringsAsFactors = FALSE)
+  expect_warning(
+    out <- .apply_named_filters_safe(df, list(current_code = "cepr")),
+    "ausente"
+  )
+  expect_equal(nrow(out), 0L)
+  expect_identical(names(out), names(df))
+})
+
+test_that("apply_named_filters_safe: filtro con valor real sobre columna presente filtra normal", {
+  # La hija repeat SI tiene current_code: el filtro por servicio se aplica.
+  df <- data.frame(
+    current_code = c("salud", "salud", "legal", "cepr"),
+    srv_claridad = c("muy", "poco", "muy", "nada"),
+    stringsAsFactors = FALSE
+  )
+  out <- .apply_named_filters_safe(df, list(current_code = "salud"))
+  expect_equal(nrow(out), 2L)
+  expect_true(all(out$current_code == "salud"))
+})
+

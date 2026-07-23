@@ -146,6 +146,34 @@ test_that("ARREGLO 2: reporte_codebook_pdf genera un PDF no vacío", {
   expect_equal(rawToChar(readBin(con, "raw", n = 5)), "%PDF-")
 })
 
+test_that("reporte_codebook_pdf no revienta con una variable sin etiqueta ausente de var_labels", {
+  # Regresión: `var_labels[[v]]` (vector atómico nombrado) reventaba con
+  # "subscript out of bounds" cuando `v` (p.ej. `SPACE_nolabel`) no estaba en el
+  # instrumento. Antes mataba TODO el libro de códigos PDF.
+  skip_if_not(exists("reporte_codebook_pdf", mode = "function"))
+  df <- data.frame(SPACE_nolabel = c("1", "0", "1"), stringsAsFactors = FALSE)
+  attr(df$SPACE_nolabel, "labels") <- stats::setNames(c("Sí", "No"), c("1", "0"))
+  attr(df, "instrumento_reporte") <- list(var_labels = c(otra_var = "Otra pregunta"))
+  path <- tempfile(fileext = ".pdf"); on.exit(unlink(path), add = TRUE)
+  expect_error(reporte_codebook_pdf(df = df, output_file = path, titulo = "X"), NA)
+  expect_true(file.exists(path))
+})
+
+test_that(".analitica_operational_metadata_vars aísla la metadata y respeta timing/preguntas reales", {
+  skip_if_not(exists(".analitica_operational_metadata_vars", mode = "function"))
+  inst <- list(var_labels = c(
+    Consent = "¿Acepta continuar con la encuesta?",
+    testreal = "¿Es una entrevista real o una prueba?",
+    Registered_person_available = "¿Algún miembro mayor de edad está disponible para responder?",
+    timing = "¿Cuánto tiempo le tomó llegar?",
+    transport = "¿Qué medio de transporte utilizó?"
+  ))
+  meta <- .analitica_operational_metadata_vars(inst)
+  expect_true(all(c("Consent", "testreal", "Registered_person_available") %in% meta))
+  expect_false("timing" %in% meta)
+  expect_false("transport" %in% meta)
+})
+
 # ---- Conteo de páginas físicas del PDF -------------------------------------
 # El árbol de páginas de grDevices::pdf() es ASCII plano, así que /Count N es
 # fiable. Se lee en crudo (byte a byte) para no tropezar con los streams

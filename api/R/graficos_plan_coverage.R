@@ -901,11 +901,42 @@
   )
 }
 
+#' Preguntas de control operativo del formulario (introducción/tamizaje): NO son
+#' variables de análisis y no deben graficarse en el auto-plan aunque sean
+#' `select_one` sustantivas. Cubre el bloque canónico KOBO/XLSForm de:
+#'   - consentimiento / aceptación de participar,
+#'   - control de calidad "entrevista real vs. prueba",
+#'   - tamizaje de disponibilidad del/la respondiente,
+#'   - metadato de tiempo/timing de la visita.
+#' Coincidencia por nombre + etiqueta normalizados (ascii, minúsculas, `_`),
+#' con patrones acotados para no capturar preguntas reales (transporte, acceso,
+#' seguridad, censo, etc.).
+#' @keywords internal
+.graficos_is_operational_metadata <- function(name, label = "") {
+  name_key <- .graficos_norm_text_key(name)
+  label_key <- .graficos_norm_text_key(label)
+  consent <- grepl("(^|_)(consent|consentimiento)($|_)", name_key, perl = TRUE) ||
+    grepl("acepta_continuar|desea_continuar_con_la_encuesta|consentimiento_informado",
+          label_key, perl = TRUE)
+  qa_test <- grepl("(^|_)test_?real($|_)|(^|_)es_prueba($|_)", name_key, perl = TRUE) ||
+    grepl("entrevista_real|real_o_una_prueba|real_o_prueba|es_una_prueba",
+          label_key, perl = TRUE)
+  availability <- grepl("registered_person|person_available|persona_disponible",
+                        name_key, perl = TRUE) ||
+    grepl("disponible_para_responder|mayor_de_edad_esta_disponible", label_key, perl = TRUE)
+  # `timing` ("¿Cuánto tiempo le tomó llegar?") NO es metadata: es una pregunta
+  # de acceso sustantiva (ya es select_one con rangos), así que se grafica.
+  consent || qa_test || availability
+}
+
 .graficos_graphable_reason <- function(item) {
   tipo <- .graficos_base_type(item$tipo)
   if (!isTRUE(item$data_available)) return(list(graphable = FALSE, reason = "vacía"))
   if (.graficos_is_identifier_like(item$name, item$label)) {
     return(list(graphable = FALSE, reason = "identificador/contacto/texto sensible"))
+  }
+  if (.graficos_is_operational_metadata(item$name, item$label)) {
+    return(list(graphable = FALSE, reason = "metadato/control operativo del formulario"))
   }
   if (tipo %in% c("select_one", "select_multiple")) {
     return(list(graphable = TRUE, reason = ""))
