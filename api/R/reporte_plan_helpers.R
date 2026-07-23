@@ -2122,3 +2122,73 @@ p_reset <- function(
   if (!is.null(caption)) attr(plot, "pulso_actor_base_caption") <- caption
   plot
 }
+
+# -----------------------------------------------------------------------------
+# Adaptación del elemento al slot de gráfico del layout.
+# Extraída VERBATIM del closure `.element_adapt_to_plot_slot` dentro de
+# `reporte_ppt_plan()` (reporte_plan_ppt.R, congelado a crecimiento): es una
+# función pura sobre (el, spec), no captura estado del motor. El motor la llama
+# vía un delegado de una línea.
+# -----------------------------------------------------------------------------
+
+#' @noRd
+.reporte_plan_element_adapt_to_plot_slot <- function(el, spec) {
+  if (!inherits(el, "ppt_element") || is.null(spec) || is.null(spec$loc)) return(el)
+  loc <- spec$loc
+  if (is.numeric(loc) && length(loc) >= 4L) {
+    loc <- list(left = loc[[1]], top = loc[[2]], width = loc[[3]], height = loc[[4]])
+  }
+  if (!is.list(loc) || !all(c("width", "height") %in% names(loc))) return(el)
+  width <- suppressWarnings(as.numeric(loc$width)[1])
+  height <- suppressWarnings(as.numeric(loc$height)[1])
+  if (!is.finite(width) || !is.finite(height) || width <= 0 || height <= 0) return(el)
+
+  el$overrides <- el$overrides %||% list()
+  if (is.null(el$overrides$ancho)) el$overrides$ancho <- width
+  if (is.null(el$overrides$alto)) el$overrides$alto <- height
+
+  # The editorial preset is calibrated for a full-width plot. Two-chart
+  # layouts have roughly half that width, so the same 16 pt axes/legend
+  # produce collisions even though the underlying plot is valid. Adapt only
+  # implicit styling; an explicit user override remains authoritative.
+  etype <- el$.element_type %||% ""
+  if (identical(etype, "barras_apiladas")) {
+    split_ref <- el$cruce %||% el$grupo %||%
+      el$overrides$cruce %||% el$overrides$grupo %||% NULL
+    has_split <- !is.null(split_ref) && length(split_ref) > 0L &&
+      any(nzchar(trimws(as.character(split_ref))))
+    if (!has_split) {
+      # A simple one-question chart already names the question in its title;
+      # repeating it as a y-axis row wastes the first column and compresses
+      # the bar, especially in a two-chart composition.
+      if (is.null(el$overrides$canvas_w_etiquetas)) el$overrides$canvas_w_etiquetas <- 0
+      if (is.null(el$overrides$canvas_w_buf_etq_bars)) el$overrides$canvas_w_buf_etq_bars <- 0
+    }
+  }
+  if (identical(etype, "barras_multiapiladas") &&
+      identical(el$modo %||% "", "var") && length(el$vars %||% character(0)) >= 3L) {
+    # Automatic ordinal batteries need denser editorial typography than a
+    # shared actor comparison. Their long row labels otherwise collide with
+    # the title/legend even on a full-width slide.
+    if (is.null(el$overrides$size_leyenda)) el$overrides$size_leyenda <- 11
+    if (is.null(el$overrides$size_ejes)) el$overrides$size_ejes <- 11
+    if (is.null(el$overrides$size_barra_extra)) el$overrides$size_barra_extra <- 11
+    if (is.null(el$overrides$size_titulo_extra)) el$overrides$size_titulo_extra <- 11
+    if (is.null(el$overrides$size_nota_pie)) el$overrides$size_nota_pie <- 10
+    if (is.null(el$overrides$canvas_h_legend_in)) el$overrides$canvas_h_legend_in <- 0.55
+    if (is.null(el$overrides$canvas_h_caption_in)) el$overrides$canvas_h_caption_in <- 0.34
+    if (is.null(el$overrides$umbral_ocultar_etiqueta)) el$overrides$umbral_ocultar_etiqueta <- 0.15
+    if (is.null(el$overrides$etiquetas_arriba_si_no_caben)) {
+      el$overrides$etiquetas_arriba_si_no_caben <- FALSE
+    }
+  }
+  if (width < 7.25 && etype %in% c("barras_apiladas", "barras_multiapiladas")) {
+    if (is.null(el$overrides$size_leyenda)) el$overrides$size_leyenda <- 10
+    if (is.null(el$overrides$size_ejes)) el$overrides$size_ejes <- 11
+    if (is.null(el$overrides$size_barra_extra)) el$overrides$size_barra_extra <- 11
+    if (is.null(el$overrides$size_titulo_extra)) el$overrides$size_titulo_extra <- 11
+    if (is.null(el$overrides$canvas_h_legend_in)) el$overrides$canvas_h_legend_in <- 0.68
+    if (is.null(el$overrides$umbral_ocultar_etiqueta)) el$overrides$umbral_ocultar_etiqueta <- 0.15
+  }
+  el
+}
