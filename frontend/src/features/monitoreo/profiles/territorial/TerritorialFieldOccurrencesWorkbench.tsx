@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import {
   AlertTriangle,
@@ -458,7 +458,7 @@ function buildOccurrenceAlertReviewItems({
   return [...missingItems, ...outsideItems, ...observationItems, ...highNonEffectiveItems];
 }
 
-export function TerritorialFieldOccurrencesWorkbench({
+function TerritorialFieldOccurrencesWorkbenchImpl({
   activeLocalTab,
   busy = false,
   reports,
@@ -1988,3 +1988,8 @@ function OccurrenceAlertLine({ label, value, hint }: { label: string; value: num
     </p>
   );
 }
+
+// React.memo (unidad 3.6): la página re-renderiza en cada poll de sync y
+// transición de scopes; con props estabilizadas en el caller, este workbench
+// solo se re-renderiza cuando cambian sus datos reales.
+export const TerritorialFieldOccurrencesWorkbench = memo(TerritorialFieldOccurrencesWorkbenchImpl);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import {
   AlertTriangle,
@@ -168,7 +168,7 @@ const ADVANCE_GPS_LEGEND = [
   { key: "geo_sin_gps", label: "Sin GPS" },
 ] as const;
 
-export function TerritorialAdvanceWorkbench({
+function TerritorialAdvanceWorkbenchImpl({
   activeLocalTab,
   reports,
   syncedAt,
@@ -2944,3 +2944,8 @@ function formatDate(value: string) {
   if (Number.isNaN(date.getTime())) return value || "Sin corte";
   return date.toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" });
 }
+
+// React.memo (unidad 3.6): la página re-renderiza en cada poll de sync y
+// transición de scopes; con props estabilizadas en el caller, este workbench
+// solo se re-renderiza cuando cambian sus datos reales.
+export const TerritorialAdvanceWorkbench = memo(TerritorialAdvanceWorkbenchImpl);

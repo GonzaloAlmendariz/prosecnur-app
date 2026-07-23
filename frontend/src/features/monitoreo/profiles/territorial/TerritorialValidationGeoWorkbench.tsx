@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from "react";
 import { ArrowRight, CheckCircle2, ChevronDown, ClipboardCheck, Loader2, MapPin, Maximize2, Minus, Plus, Route, Save, Trash2, XCircle } from "lucide-react";
@@ -195,7 +195,7 @@ function territorialSpatialPendingChangeStatusLabel(change: TerritorialPendingSp
 const LIMA_DISTRICT_FEATURES = (districtCoverage as unknown as { features: TerritorialDistrictFeature[] }).features;
 const CARTOGRAPHY_CACHE = new Map<string, Promise<TerritorialCartographyBundle>>();
 
-export function TerritorialValidationGeoWorkbench({
+function TerritorialValidationGeoWorkbenchImpl({
   reports,
   selectedResponseId,
   onOpenReconciliation,
@@ -388,7 +388,7 @@ export function TerritorialValidationGeoWorkbench({
   );
 }
 
-export function TerritorialSpatialReconciliationWorkbench({
+function TerritorialSpatialReconciliationWorkbenchImpl({
   phase,
   reports,
   saving = false,
@@ -3069,3 +3069,13 @@ function formatMetric(value: unknown) {
   if (Number.isFinite(n)) return new Intl.NumberFormat("es-PE").format(n);
   return String(value);
 }
+
+// React.memo (unidad 3.6): la página re-renderiza en cada poll de sync y
+// transición de scopes; con props estabilizadas en el caller, este workbench
+// solo se re-renderiza cuando cambian sus datos reales.
+export const TerritorialValidationGeoWorkbench = memo(TerritorialValidationGeoWorkbenchImpl);
+
+// React.memo (unidad 3.6): la página re-renderiza en cada poll de sync y
+// transición de scopes; con props estabilizadas en el caller, este workbench
+// solo se re-renderiza cuando cambian sus datos reales.
+export const TerritorialSpatialReconciliationWorkbench = memo(TerritorialSpatialReconciliationWorkbenchImpl);

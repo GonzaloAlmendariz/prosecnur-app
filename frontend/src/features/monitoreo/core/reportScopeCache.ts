@@ -97,6 +97,28 @@ export class MonitoreoScopeCache {
     return null;
   }
 
+  /**
+   * Invalidación selectiva (unidad 3.4): borra TODOS los scopes de una
+   * fase+fuente territorial, conservando las entradas de la otra fase y de
+   * otras fuentes. Una mutación territorial (anulación, ajuste operativo,
+   * reconciliación) cambia válidas/KPIs en cualquier scope de SU fase, así
+   * que dentro de la fase mutada se invalida en bloque (esto además cubre
+   * los alias que deja un scope `full`); pero los datos de la otra fase no
+   * se ven afectados y siguen calientes.
+   */
+  invalidateTerritorial(input: { phase: string; source: string }) {
+    const fullKey = monitoreoScopeCacheKey({
+      family: "territorial",
+      phase: input.phase,
+      source: input.source,
+      scope: "full",
+    });
+    const prefix = fullKey.slice(0, -"full".length);
+    for (const key of Array.from(this.entries.keys())) {
+      if (key.startsWith(prefix)) this.entries.delete(key);
+    }
+  }
+
   clear() {
     this.entries.clear();
   }
