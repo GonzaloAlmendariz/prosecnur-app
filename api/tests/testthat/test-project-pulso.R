@@ -1297,3 +1297,24 @@ test_that("build_pulso excluye dashboard_rp_inst y dashboard_rp_data del state",
 test_that("load_pulso falla con mensaje claro si el archivo no existe", {
   expect_error(load_pulso("/tmp/noexiste.pulso"), class = "api_error")
 })
+
+# --- Unidad 3.7: fugas de caché que viajaban en el .pulso (censo 2026-07-23)
+
+test_that("el strip resetea la familia scoped de caches de dashboard y las fugas hermanas", {
+  s <- list(
+    monitoreo_dashboard_cache_full = list(pesado = TRUE),
+    monitoreo_dashboard_cache_token_full = "tok",
+    monitoreo_dashboard_cache_queries_summary = list(pesado = TRUE),
+    graficos_preview_cache = list(png = raw(10)),
+    explorador_cache = list(hashes = "x"),
+    monitoreo_config = list(family = "territorial")
+  )
+  out <- .pulso_strip_caches(s)
+  expect_null(out$monitoreo_dashboard_cache_full)
+  expect_null(out$monitoreo_dashboard_cache_token_full)
+  expect_null(out$monitoreo_dashboard_cache_queries_summary)
+  expect_null(out$graficos_preview_cache)
+  expect_null(out$explorador_cache)
+  # Lo que no es cache sobrevive intacto.
+  expect_identical(out$monitoreo_config, s$monitoreo_config)
+})

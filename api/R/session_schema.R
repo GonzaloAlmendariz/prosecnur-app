@@ -129,7 +129,17 @@
           nodo <- lhs
           while (is.call(nodo) && !identical(nodo[[2]], quote(s))) nodo <- nodo[[2]]
           clave <- nodo[[3]]
-          clave_chr <- if (is.name(clave)) as.character(clave) else if (is.character(clave)) clave else NA_character_
+          # En `s$clave` el nombre ES la clave; en `s[[x]]` solo cuenta un
+          # string literal — un símbolo (`s[[k]]` dentro de un for) es una
+          # variable, no una clave censable.
+          op_acceso <- as.character(nodo[[1]])[1]
+          clave_chr <- if (is.character(clave)) {
+            clave
+          } else if (is.name(clave) && identical(op_acceso, "$")) {
+            as.character(clave)
+          } else {
+            NA_character_
+          }
           if (!is.na(clave_chr)) {
             top_level <- identical(lhs, nodo)
             acumulado[[length(acumulado) + 1L]] <<- data.frame(
@@ -204,7 +214,7 @@ session_schema <- function() {
     "reglas_custom",               "literal", "persistible",    "session_store.R",   "directa",     "scope legacy single-base (validacion_scope_set)",
     "validacion_operational_config", "literal", "persistible",  "session_store.R",   "directa",     "scope legacy single-base",
     "validacion_variables_excluidas", "literal", "persistible", "session_store.R",   "directa",     "scope legacy single-base",
-    "explorador_cache",            "literal", "persistible",    "session_store.R",   "directa",     "cache legacy en raíz; solo la variante scoped por base se strippea (deuda)",
+    "explorador_cache",            "literal", "cache_stripped", "session_store.R",   "directa",     "cache legacy en raíz; strippeado en save desde 2026-07-23 (unidad 3.7)",
     "limpieza_draft",              "literal", "persistible",    "session_store.R",   "directa",     "scope legacy single-base",
     "limpieza_preview",            "literal", "persistible",    "session_store.R",   "directa",     "scope legacy single-base",
     "limpieza_artifacts",          "literal", "persistible",    "session_store.R",   "directa",     "scope legacy single-base",
@@ -261,7 +271,7 @@ session_schema <- function() {
     "graficos_word_ok",            "literal", "persistible",    "router_graficos.R", "session_set", "",
     "graficos_presets_defaults",   "literal", "persistible",    "router_graficos.R", "session_set", "",
     "graficos_overrides_defaults", "literal", "persistible",    "router_graficos.R", "session_set", "",
-    "graficos_preview_cache",      "literal", "persistible",    "router_graficos.R", "session_set", "pese al nombre, HOY viaja en el .pulso (no está en el strip) — deuda anotada",
+    "graficos_preview_cache",      "literal", "cache_stripped", "router_graficos.R", "session_set", "cache runtime pese al nombre; strippeado en save desde 2026-07-23 (unidad 3.7)",
     "graficos_share_snapshot",     "literal", "persistible",    "graficos_share.R",  "session_set", "",
     "graficos_consolidado",        "literal", "persistible",    "graficos_consolidado.R", "directa", "sanitizada en save: file refs convertidas a forma portable",
     "graficos_consolidado_draft",  "literal", "persistible",    "graficos_consolidado.R", "directa", "sanitizada en save: file refs convertidas a forma portable",
@@ -334,7 +344,7 @@ session_schema <- function() {
     "^monitoreo_publication_preflight_events_[a-z0-9_]+$",     "patron", "persistible", "router_monitoreo.R", "session_set", "clave por audiencia (client/internal)",
     "^monitoreo_publication_evidence_pack_events_[a-z0-9_]+$", "patron", "persistible", "router_monitoreo.R", "session_set", "clave por audiencia (client/internal)",
     "^monitoreo_publication_sheet_events_[a-z0-9_]+$",         "patron", "persistible", "router_monitoreo.R", "session_set", "clave por audiencia (client/internal)",
-    "^monitoreo_dashboard_cache(_token)?_[a-z0-9_]+$",         "patron", "persistible", "router_monitoreo.R", "session_set", "cache scoped por report_scope; HOY viaja en el .pulso (el strip solo cubre la clave sin scope) — deuda anotada, no cambiar comportamiento desde el gate"
+    "^monitoreo_dashboard_cache(_token)?_[a-z0-9_]+$",         "patron", "cache_stripped", "router_monitoreo.R", "session_set", "cache scoped por report_scope; strippeado en save por grep de familia desde 2026-07-23 (unidad 3.7)"
   )
   stopifnot(length(tabla) %% 6L == 0L)
   m <- matrix(tabla, ncol = 6L, byrow = TRUE)

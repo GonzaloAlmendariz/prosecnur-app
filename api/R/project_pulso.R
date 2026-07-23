@@ -63,6 +63,19 @@
   s$monitoreo_dashboard_cache_token <- NULL
   s$monitoreo_dashboard_light_cache <- NULL
   s$monitoreo_dashboard_light_cache_token <- NULL
+  # Las variantes SCOPED (monitoreo_dashboard_cache_<scope> y su token) son la
+  # familia real que llena el .pulso: hasta 7 scopes × dashboard completo. El
+  # strip por clave exacta de arriba no las cubría (fuga detectada por el
+  # censo de session_schema.R, 2026-07-23). Mismo criterio: derivables, se
+  # reconstruyen en el primer GET tras cargar.
+  scoped_cache_keys <- grep("^monitoreo_dashboard_cache(_token)?_",
+                            names(s), value = TRUE)
+  for (k in scoped_cache_keys) s[[k]] <- NULL
+  # Fugas hermanas del mismo censo: preview de graficos (cache runtime pese al
+  # nombre) y el explorador_cache legacy que vivia en la RAIZ de la sesion
+  # (solo la variante por base se strippeaba arriba).
+  s$graficos_preview_cache <- NULL
+  s$explorador_cache <- NULL
   if (!is.null(s$calc_muestra_aulas_frame) && is.list(s$calc_muestra_aulas_frame)) {
     frame <- s$calc_muestra_aulas_frame
     if (is.data.frame(frame$aula_frame) && nrow(frame$aula_frame)) {
