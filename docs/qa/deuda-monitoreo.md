@@ -225,11 +225,17 @@ Acreditación y Telefónico (par Avance/Todo + % real vía `runProfileSourceSync
 - Dedup de frontera del cursor SM (3.10b): fetched 0 en las 4 fuentes, el no-op se
   dispara ("Sin respuestas nuevas"). Skip de details/enrichment (3.10c): el pull con
   cursores tarda **4.7s las 4 fuentes** in-process (antes ~23s con details+enrichment).
-- **Pendiente 3.10d (forense preciso)**: en el job real, el worker termina TODO a t+13s
-  (spawn+load ~10s incluidos), pero el job no pasa a done hasta t+54s/t+206s — el gap
-  vive en el harvest/on_complete del main process para SM, con varianza enorme.
-  ACNURCG (Kobo) no lo sufre (9s total). Diagnóstico con Rprof pendiente (candidatos:
-  deserialización del resultado, save del .pulso, token candidates).
+- **3.10d RESUELTO (causa raíz)**: el on_complete hidrataba collectors SM con red
+  síncrona DENTRO del event loop de plumber (ninguna respuesta HTTP sale mientras
+  dura) — el guard solo saltaba mode "advance" y con cursor el summary reporta
+  "incremental"; como el avance nunca trae collectors del worker, CONTA pagaba 37s+
+  de red en CADA avance. Fix 18d4d72d (guard advance+incremental) con test rojo→verde;
+  validado e2e: Avance SM con delta 0 = **13s** (antes 54-206s), a la par del
+  benchmark Kobo (9s). El profile acreditación validado visual con CONTA (ok=true).
+- **Residual 3.10e (abierto)**: bloqueo intermitente del main thread (~178s en 1 de 3
+  corridas post-fix, GETs de poll con timeout) — algo distinto a collectors bloquea el
+  event loop esporádicamente. Serie: 46s siembra / 178s bloqueado / 13s ok. Siguiente
+  paso: logging con timestamps en harvest/on_complete.
 
 ## Histórico de mediciones
 
