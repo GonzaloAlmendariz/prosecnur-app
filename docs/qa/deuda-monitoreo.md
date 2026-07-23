@@ -218,6 +218,19 @@ solo spinner; y el monolito alimenta al chrome un **% simulado por escalones**
 (`MonitoreoPage.tsx:4444-4479`) en vez del progreso real del job. Plantillas a copiar:
 Acreditación y Telefónico (par Avance/Todo + % real vía `runProfileSourceSync`).
 
+**Validación e2e del path acreditación (CONTA, 2026-07-23, unidades 3.10b/c):**
+
+- POST /config: **6.2s sin congelar** (antes: doble rebuild full — el bug era de esta
+  familia). GET state: build 4.8s, hit 0.8s.
+- Dedup de frontera del cursor SM (3.10b): fetched 0 en las 4 fuentes, el no-op se
+  dispara ("Sin respuestas nuevas"). Skip de details/enrichment (3.10c): el pull con
+  cursores tarda **4.7s las 4 fuentes** in-process (antes ~23s con details+enrichment).
+- **Pendiente 3.10d (forense preciso)**: en el job real, el worker termina TODO a t+13s
+  (spawn+load ~10s incluidos), pero el job no pasa a done hasta t+54s/t+206s — el gap
+  vive en el harvest/on_complete del main process para SM, con varianza enorme.
+  ACNURCG (Kobo) no lo sufre (9s total). Diagnóstico con Rprof pendiente (candidatos:
+  deserialización del resultado, save del .pulso, token candidates).
+
 ## Histórico de mediciones
 
 | Fecha | Nota |
