@@ -650,3 +650,31 @@ test_that("kobo: el fallback incremental->full ya no es silencioso (warning)", {
   )
   expect_identical(attr(data, "sync_mode", exact = TRUE), "full")
 })
+
+# --- Regresión: el modo solicitado no se degrada entre fuentes (bug del
+# shadowing de `sync_mode` en monitoreo_sync_sources — detectado e2e con
+# ACNURCG: la fuente 1 devolvía "incremental" y pisaba la variable del loop,
+# las fuentes 2..N caían a full re-download en cada Avance).
+
+test_that("advance llega intacto a TODAS las fuentes aunque la primera devuelva incremental", {
+  modos_recibidos <- character(0)
+  falso_df <- function() {
+    df <- data.frame(x = 1)
+    attr(df, "sync_mode") <- "incremental"
+    attr(df, "sync_cursor") <- list(kobo_max_id = 99L, mode = "incremental", fetched_count = 0L)
+    df
+  }
+  testthat::local_mocked_bindings(
+    monitoreo_sync_source = function(source, since = NULL, progress = NULL, sid = NULL,
+                                     connection_token = NULL, sync_mode = "full") {
+      modos_recibidos <<- c(modos_recibidos, sync_mode)
+      falso_df()
+    }
+  )
+  fuentes <- list(
+    list(id = "kobo_a", kind = "kobo", label = "A", enabled = TRUE, role = "respuestas"),
+    list(id = "kobo_b", kind = "kobo", label = "B", enabled = TRUE, role = "respuestas")
+  )
+  invisible(monitoreo_sync_sources(fuentes, sync_mode = "advance", build_dashboard = FALSE))
+  expect_identical(modos_recibidos, c("advance", "advance"))
+})
