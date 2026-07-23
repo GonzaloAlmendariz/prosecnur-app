@@ -44,7 +44,10 @@
 }
 
 .monitoreo_dashboard_cache_token <- function(snapshot, data, cfg, report_scope = "full") {
-  cfg_json <- .monitoreo_dashboard_config_json(cfg)
+  # Unidad 3.4b: al token entra solo la partición del config que afecta el
+  # cálculo de reportes (ver monitoreo_perf_config_for_cache_token); editar
+  # metadata de publicación/inspección ya no invalida los 7 scopes.
+  cfg_json <- .monitoreo_dashboard_config_json(monitoreo_perf_config_for_cache_token(cfg))
   # Fingerprint barato en vez de sha256 de la data (ver monitoreo_perf.R).
   data_hash <- tryCatch(monitoreo_data_fingerprint(data, snapshot$synced_at %||% ""), error = function(e) "")
   report_schema <- if (identical(cfg$monitoreo_profile$family %||% "", "territorial")) {
@@ -426,7 +429,10 @@
     cut = cut_label,
     project = project_label
   )
-  tabs <- monitoreo_publication_sheets_tabs(
+  # Unidad 3.8b: preflight y publish comparten el MISMO payload de tabs por
+  # corte; la caché por token evita computarlo dos veces (ver monitoreo_perf.R).
+  tabs_key <- monitoreo_perf_publication_tabs_key(sid, snapshot, cfg, audience, include_targets, report_scope, spreadsheet_id, publication_family)
+  tabs <- monitoreo_perf_publication_tabs_cached(sid, audience, tabs_key, function() monitoreo_publication_sheets_tabs(
     snapshot$data,
     cfg,
     audience = audience,
@@ -434,7 +440,7 @@
     dashboard = dashboard,
     synced_at = snapshot$synced_at %||% "",
     context = list(session_id = sid, spreadsheet_id = spreadsheet_id, spreadsheet_url = spreadsheet_url, family = publication_family)
-  )
+  ))
   elapsed <- as.numeric(difftime(Sys.time(), started, units = "secs"))
   performance <- parsed$performance %||% parsed$performance_items %||% list()
   if (!is.list(performance)) performance <- list()
@@ -4802,10 +4808,6 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   )
 }
 
-.monitoreo_sheets_publish_local <- function(spreadsheet_id, tabs) {
-  monitoreo_sheets_publish_tabs(spreadsheet_id, tabs)
-}
-
 .monitoreo_client_report_model_for_snapshot <- function(snapshot, cfg, include_targets = FALSE) {
   if (is.null(snapshot) || !is.data.frame(snapshot$data) || !nrow(snapshot$data)) {
     stop_api(409, "E_NO_MONITOREO_DATA", "Sincroniza datos antes de generar el reporte a cliente.")
@@ -5887,8 +5889,7 @@ mount_monitoreo <- function(pr) {
       sid <- .monitoreo_session(req, res)
       parsed <- .monitoreo_parse_body(req)
       s <- session_get(sid)
-      sources_before <- monitoreo_normalize_sources(s$monitoreo_sources %||% list())
-      sources <- sources_before
+      sources <- monitoreo_normalize_sources(s$monitoreo_sources %||% list())
       sources <- Filter(function(src) identical(src$kind, "google_sheets") && isTRUE(src$enabled), sources)
       if (length(parsed$source_ids %||% list())) {
         wanted <- .monitoreo_chr_vec(parsed$source_ids)
@@ -5899,90 +5900,17 @@ mount_monitoreo <- function(pr) {
         stop_api(409, "E_NO_MONITOREO_SOURCES", "No hay fuentes activas de encuesta principal para sincronizar.")
       }
       cfg <- .monitoreo_request_config(parsed$config %||% NULL, s$monitoreo_config %||% list(), data.frame())
+      # Unidad 3.8b: opt-in async — el fetch corre en un worker y el resultado
+      # se aplica en on_complete con la MISMA función del camino síncrono
+      # (monitoreo_sheets_sync_apply_result, ver monitoreo_sync_incremental.R).
+      if (.monitoreo_bool(parsed$async %||% parsed$run_async %||% parsed$runAsync, FALSE)) {
+        return(monitoreo_sheets_sync_submit_job(sid, sources, cfg))
+      }
       result <- tryCatch(
         monitoreo_sync_sources(sources, cfg, since = NULL, sid = sid),
         error = .monitoreo_sheets_stop
       )
-      s_current <- session_get(sid)
-      prev_snapshot <- s_current$monitoreo_snapshot %||% NULL
-      prev_data <- if (!is.null(prev_snapshot) && is.data.frame(prev_snapshot$data)) prev_snapshot$data else data.frame()
-      synced_source_ids <- .monitoreo_sync_successful_source_ids(
-        result$sync_summary %||% list(),
-        result$data
-      )
-      incremental_source_ids <- .monitoreo_sync_incremental_source_ids(result$sync_summary %||% list())
-      combined_data <- .monitoreo_merge_sync_result_data(
-        prev_data,
-        result$data,
-        synced_source_ids = synced_source_ids,
-        incremental_source_ids = incremental_source_ids
-      )
-      current_cfg <- .monitoreo_request_config(NULL, s_current$monitoreo_config %||% list(), combined_data)
-      result$config <- monitoreo_normalize_config(result$config, combined_data, previous_config = current_cfg)
-      current_family <- current_cfg$monitoreo_profile$family %||% ""
-      result_family <- result$config$monitoreo_profile$family %||% ""
-      if (identical(result_family, "territorial") && identical(current_family, "territorial")) {
-        current_phase <- .monitoreo_territorial_phase(current_cfg$territorial$active_route_phase, "pilot")
-        result$config$territorial$active_route_phase <- current_phase
-        result$config$territorial$phase_sources <- current_cfg$territorial$phase_sources
-        result$config$territorial <- monitoreo_territorial_normalize_config(
-          result$config$territorial,
-          result$data,
-          previous = current_cfg$territorial
-        )
-      }
-      result$dashboard <- .monitoreo_dashboard_for_session(sid, combined_data, result$config)
-      synced_sources <- monitoreo_normalize_sources(result$sources %||% list())
-      sources_now <- sources_before
-      if (length(synced_sources)) {
-        source_ids_now <- vapply(sources_now, function(src) .monitoreo_scalar(src$id, ""), character(1))
-        for (src in synced_sources) {
-          sid_src <- .monitoreo_scalar(src$id, "")
-          if (!nzchar(sid_src)) next
-          idx <- match(sid_src, source_ids_now)
-          if (!is.na(idx) && is.finite(idx) && idx > 0L) {
-            sources_now[[idx]] <- utils::modifyList(sources_now[[idx]], src)
-          } else {
-            sources_now[[length(sources_now) + 1L]] <- src
-            source_ids_now <- c(source_ids_now, sid_src)
-          }
-        }
-      }
-      ids <- synced_source_ids
-      if (!length(ids)) ids <- unique(as.character(result$data$.source_id %||% character(0)))
-      sources_now <- lapply(sources_now, function(src) {
-        sid_src <- .monitoreo_scalar(src$id, "")
-        if (nzchar(sid_src) && sid_src %in% ids) src$last_sync_at <- result$synced_at
-        src
-      })
-      artifacts <- monitoreo_snapshot_artifacts(
-        combined_data,
-        result$config,
-        sources = sources_now,
-        dashboard = result$dashboard,
-        synced_at = result$synced_at,
-        errors = result$errors,
-        sync_summary = result$sync_summary %||% list()
-      )
-      snapshot <- c(list(
-        synced_at = result$synced_at,
-        data = combined_data,
-        config = result$config,
-        dashboard = result$dashboard,
-        variables = if (nrow(combined_data)) monitoreo_variables(combined_data) else list(),
-        errors = result$errors
-      ), artifacts)
-      session_set(sid, "monitoreo_sources", sources_now)
-      session_set(sid, "monitoreo_config", result$config)
-      session_set(sid, "monitoreo_snapshot", snapshot)
-      tryCatch(.monitoreo_mark_project_dirty_if_open(sid), error = function(e) NULL)
-      list(
-        ok = TRUE,
-        synced_at = result$synced_at,
-        n_rows = as.integer(nrow(combined_data)),
-        n_sources = as.integer(length(sources_now)),
-        state = .monitoreo_state_payload(sid)
-      )
+      monitoreo_sheets_sync_apply_result(sid, result)
     })) |>
     plumber::pr_post("/api/monitoreo/sheets/publish", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
@@ -5996,12 +5924,9 @@ mount_monitoreo <- function(pr) {
       spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, "internal")
       if (!nzchar(spreadsheet_id)) stop_api(400, "E_SHEETS_SPREADSHEET", "Falta spreadsheet_id destino.")
       tabs <- .monitoreo_sheets_publish_payload(snapshot, cfg)
-      published <- tryCatch(.monitoreo_sheets_publish_local(spreadsheet_id, tabs), error = .monitoreo_sheets_stop)
-      session_set(sid, "monitoreo_sheet_publish_events", c(
-        s$monitoreo_sheet_publish_events %||% list(),
-        list(c(published, list(tabs = names(tabs))))
-      ))
-      published
+      monitoreo_sheets_publish_dispatch(sid, spreadsheet_id, tabs, parsed,
+        event_key = "monitoreo_sheet_publish_events",
+        event_extra = list(tabs = names(tabs)))
     })) |>
     plumber::pr_post("/api/monitoreo/client-report/sheets/publish", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
@@ -6015,12 +5940,9 @@ mount_monitoreo <- function(pr) {
       spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, "client")
       if (!nzchar(spreadsheet_id)) stop_api(400, "E_SHEETS_SPREADSHEET", "Falta spreadsheet_id destino para el reporte a cliente.")
       tabs <- .monitoreo_client_report_tabs_payload(model)
-      published <- tryCatch(.monitoreo_sheets_publish_local(spreadsheet_id, tabs), error = .monitoreo_sheets_stop)
-      session_set(sid, "monitoreo_client_report_sheet_events", c(
-        s$monitoreo_client_report_sheet_events %||% list(),
-        list(c(published, list(tabs = names(tabs), include_targets = include_targets)))
-      ))
-      published
+      monitoreo_sheets_publish_dispatch(sid, spreadsheet_id, tabs, parsed,
+        event_key = "monitoreo_client_report_sheet_events",
+        event_extra = list(tabs = names(tabs), include_targets = include_targets))
     })) |>
     plumber::pr_post("/api/monitoreo/publish", wrap_endpoint(function(req, res, ...) {
       stop_api(
@@ -6126,18 +6048,15 @@ mount_monitoreo <- function(pr) {
         )
       }
       tabs <- bundle$tabs
-      published <- tryCatch(.monitoreo_sheets_publish_local(spreadsheet_id, tabs), error = .monitoreo_sheets_stop)
-      event_key <- paste0("monitoreo_publication_sheet_events_", audience)
-      session_set(sid, event_key, c(
-        s[[event_key]] %||% list(),
-        list(c(published, list(
+      published <- monitoreo_sheets_publish_dispatch(sid, spreadsheet_id, tabs, parsed,
+        event_key = paste0("monitoreo_publication_sheet_events_", audience),
+        event_extra = list(
           audience = audience,
           tabs = names(tabs),
           include_targets = bundle$include_targets,
           confirmed_full_data = .monitoreo_publication_confirmed_full_data(parsed),
           preflight = bundle$preflight$scorecard
-        )))
-      ))
+        ))
       c(published, list(audience = audience, preflight = bundle$preflight))
     })) |>
     plumber::pr_post("/api/monitoreo/client-report/pdf", wrap_endpoint(function(req, res, ...) {
@@ -8056,10 +7975,7 @@ mount_monitoreo <- function(pr) {
 	          result <- j$result_data
 	          family <- result$config$monitoreo_profile$family %||% ""
 	          complete_report("merge", percent = 82, message = "Uniendo respuestas nuevas...")
-	          synced_source_ids <- .monitoreo_sync_successful_source_ids(
-	            result$sync_summary %||% list(),
-	            result$data
-	          )
+	          synced_source_ids <- .monitoreo_sync_successful_source_ids(result$sync_summary %||% list(), result$data)
 	          s_prev <- session_get(j$sid)
 	          prev_snapshot <- s_prev$monitoreo_snapshot %||% NULL
 	          prev_data <- if (!is.null(prev_snapshot) && is.data.frame(prev_snapshot$data)) prev_snapshot$data else data.frame()
@@ -8118,6 +8034,8 @@ mount_monitoreo <- function(pr) {
 	          )
 	          session_set(j$sid, "monitoreo_sources", sources_now)
 	          dashboard_data <- .monitoreo_apply_source_metadata_to_data(combined_data, sources_now)
+	          noop_payload <- monitoreo_sync_noop_result(j$sid, prev_snapshot, dashboard_data, result, sync_mode, complete_report)
+	          if (!is.null(noop_payload)) return(noop_payload)
 	          complete_report("dashboard", percent = 90, message = if (identical(report_scope, "advance_summary")) {
 	            "Preparando avance y gráficos..."
 	          } else {

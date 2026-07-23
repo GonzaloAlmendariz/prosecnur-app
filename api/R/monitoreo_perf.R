@@ -18,6 +18,12 @@
 #      keyed por el fingerprint barato.
 #   4. Unidad 3.5: cap de payload para response_audit y map$points en la
 #      frontera pública del dashboard (aditivo: truncated + total_rows).
+#   5. Unidad 3.4b: partición del config para el token de caché — los campos
+#      puramente de metadata/publicación (timestamps de inspección, linkage
+#      del form de ocurrencias, parámetros de supervisión bajo demanda) salen
+#      del token para que editarlos no invalide los 7 scopes del dashboard.
+#   6. Unidad 3.8b: caché del payload de tabs de publicación (el preflight y
+#      el publish computaban el mismo bundle dos veces por ciclo).
 
 # --- Fingerprint barato de la data -----------------------------------------
 
@@ -48,6 +54,55 @@ monitoreo_data_fingerprint <- function(data, synced_at = "") {
     .monitoreo_scalar(synced_at, ""),
     sep = ":"
   )
+}
+
+# --- Unidad 3.4b: partición del config para el token de caché ----------------
+
+# Devuelve la copia del config que entra al token de caché del dashboard.
+# Regla conservadora: SOLO se excluyen campos que con certeza no cambian
+# ningún número ni etiqueta del dashboard cacheado; ante la duda el campo se
+# queda en el token. Hoy salen:
+#   - supervision_n / supervision_seed: solo alimentan el endpoint bajo
+#     demanda /supervision/sample (monitoreo_supervision_sample), nunca el
+#     build del dashboard.
+#   - territorial$inspected_at (y el de cada phase_source): timestamp de la
+#     última inspección del asset Kobo; cambia en cada re-inspección sin
+#     alterar cálculo alguno.
+#   - territorial$field_occurrences$<linkage/timestamps/urls>: la metadata de
+#     despliegue del form de ocurrencias (títulos, urls, ids de archivo,
+#     generated_at/uploaded_at/last_sync_at) se reescribe en cada ciclo de
+#     ocurrencias y era la causa #1 de invalidaciones nucleares. Los campos
+#     que SÍ discriminan datos (enabled, route_phase, route_choices,
+#     code_var/start_time_var/end_time_var, form_id, asset_uid, source_id,
+#     version_id) permanecen en el token.
+# client_report$channel_labels se queda a propósito: son etiquetas, no
+# números, pero viajan horneadas dentro del dashboard cacheado (client_report
+# embebido) y excluirlas serviría alias obsoletos. Pendiente documentado: el
+# mapeo fino por scope individual.
+monitoreo_perf_config_for_cache_token <- function(cfg) {
+  if (is.null(cfg) || !is.list(cfg)) return(cfg)
+  cfg$supervision_n <- NULL
+  cfg$supervision_seed <- NULL
+  territorial <- cfg$territorial
+  if (is.list(territorial)) {
+    territorial$inspected_at <- NULL
+    if (is.list(territorial$phase_sources)) {
+      territorial$phase_sources <- lapply(territorial$phase_sources, function(ps) {
+        if (is.list(ps)) ps$inspected_at <- NULL
+        ps
+      })
+    }
+    if (is.list(territorial$field_occurrences)) {
+      solo_metadata <- c(
+        "form_title", "asset_name", "base_url", "survey_url", "asset_url",
+        "connection_profile_id", "status", "generated_at", "uploaded_at",
+        "last_sync_at", "xlsform_file_id", "xlsform_filename"
+      )
+      for (campo in solo_metadata) territorial$field_occurrences[[campo]] <- NULL
+    }
+    cfg$territorial <- territorial
+  }
+  cfg
 }
 
 # --- Contador de builds del dashboard --------------------------------------
@@ -166,6 +221,80 @@ monitoreo_perf_variables_cache_invalidate <- function(sid = NULL) {
       rm(list = sid_key, envir = .monitoreo_perf_variables_cache)
     }
   }
+  # La invalidación nuclear del dashboard (única llamadora en producción)
+  # también debe soltar las tabs de publicación cacheadas: derivan de la misma
+  # data/config que acaba de declararse sucia.
+  monitoreo_perf_publication_tabs_invalidate(sid)
+  invisible(NULL)
+}
+
+# --- Unidad 3.8b: caché del payload de tabs de publicación -------------------
+
+# El flujo real del frontend es preflight → publish sobre el MISMO corte: ambos
+# endpoints llamaban .monitoreo_publication_preflight_bundle y pagaban dos
+# veces monitoreo_publication_sheets_tabs (recorrido completo de la base). La
+# caché vive en un env de proceso con UNA entrada por sid+audiencia (memoria
+# acotada, nada persiste en el .pulso) y la frescura viaja en la key: token de
+# dashboard (fingerprint de data + config particionado + scope) + audiencia +
+# include_targets + spreadsheet destino + familia + firma del snapshot de
+# ocurrencias (que alimenta las tabs internas territoriales y NO está cubierto
+# por el token del dashboard).
+.monitoreo_perf_publication_tabs_cache <- new.env(parent = emptyenv())
+
+monitoreo_perf_publication_tabs_key <- function(sid,
+                                                snapshot,
+                                                cfg,
+                                                audience = "client",
+                                                include_targets = FALSE,
+                                                report_scope = "full",
+                                                spreadsheet_id = "",
+                                                family = "") {
+  occ <- tryCatch(
+    session_get(sid, required = FALSE)$monitoreo_territorial_occurrences_snapshot,
+    error = function(e) NULL
+  )
+  occ_sig <- if (is.list(occ)) {
+    paste(
+      .monitoreo_scalar(occ$synced_at %||% occ$generated_at, ""),
+      if (is.data.frame(occ$data)) nrow(occ$data) else 0L,
+      sep = ":"
+    )
+  } else {
+    ""
+  }
+  paste(
+    .monitoreo_dashboard_cache_token(
+      list(synced_at = snapshot$synced_at %||% ""),
+      snapshot$data,
+      cfg,
+      report_scope = report_scope
+    ),
+    .monitoreo_scalar(audience, "client"),
+    isTRUE(include_targets),
+    .monitoreo_scalar(spreadsheet_id, ""),
+    .monitoreo_scalar(family, ""),
+    occ_sig,
+    sep = "|"
+  )
+}
+
+monitoreo_perf_publication_tabs_cached <- function(sid, audience, key, build) {
+  slot <- paste(.monitoreo_scalar(sid, ""), .monitoreo_scalar(audience, "client"), sep = "|")
+  if (!nzchar(.monitoreo_scalar(sid, ""))) return(build())
+  hit <- .monitoreo_perf_publication_tabs_cache[[slot]]
+  if (is.list(hit) && identical(hit$key, key)) return(hit$value)
+  value <- build()
+  assign(slot, list(key = key, value = value), envir = .monitoreo_perf_publication_tabs_cache)
+  value
+}
+
+monitoreo_perf_publication_tabs_invalidate <- function(sid = NULL) {
+  slots <- ls(envir = .monitoreo_perf_publication_tabs_cache)
+  if (!is.null(sid)) {
+    sid_key <- .monitoreo_scalar(sid, "")
+    slots <- slots[startsWith(slots, paste0(sid_key, "|"))]
+  }
+  if (length(slots)) rm(list = slots, envir = .monitoreo_perf_publication_tabs_cache)
   invisible(NULL)
 }
 
