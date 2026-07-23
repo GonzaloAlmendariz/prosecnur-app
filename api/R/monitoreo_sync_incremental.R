@@ -629,6 +629,258 @@ monitoreo_sync_noop_result <- function(sid,
   )
 }
 
+# --- Unidad 3.11: Avance con delta real = merge + guardar; dashboards lazy ---
+#
+# El on_complete de /api/monitoreo/sync corre en el MAIN THREAD de plumber:
+# mientras dura, ninguna respuesta HTTP sale. Hasta 3.11 ese on_complete
+# construía el dashboard completo (include_reports=TRUE) + los artefactos del
+# snapshot (source_metadata + report bundle + 2 modelos de publicación para
+# chart_models), y en CONTA real eso costaba minutos con el pull ya resuelto
+# en segundos. Ahora el on_complete solo hace lo NO diferible:
+#   - merge incremental (necesita prev_data de la sesión in-memory; los
+#     workers callr no la ven — invariante de la unidad),
+#   - normalización de config + metadata de fuentes (cursores/last_sync_at),
+#   - source_metadata ligero (la UI lo lee del state apenas refresca:
+#     clasificación de colectores y filtros telefónicos; se mide aparte en la
+#     fase `artifacts` del log),
+#   - escritura del snapshot y marca de dirty.
+# Los dashboards se construyen LAZY: el primer GET de cada scope tras el sync
+# (.monitoreo_state_payload) detecta el token nuevo, construye SOLO ese scope
+# y lo escribe como caché en sesión/snapshot — progresivo, un request por
+# scope, sin bloquear el resto del event loop entre medio.
+#
+# Diferidos deliberados (censo de consumidores 2026-07-23):
+#   - dashboard por scope → lazy en state (mecánica ya existente).
+#   - snapshot$reports y snapshot$chart_models → NADIE los lee hoy: el
+#     frontend los tiene tipados pero sin consumo, y el public-report arma su
+#     propio modelo fresco. Se dejan de generar en el sync; si un consumidor
+#     real aparece, se construyen en ese consumidor.
+#   - snapshot$variables → derivable; el state lo sirve vía
+#     monitoreo_variables_cached (fingerprint barato) en cada GET.
+#
+# Persistencia / warm start — DECISIÓN (a): save inmediato sin dashboards
+# frescos + re-save por el ciclo normal. El on_complete deja project_dirty
+# activo; el .pulso que el dueño guarde justo después del sync viaja sin
+# dashboards (frío para los scopes no vistos, benigno: el primer GET los
+# reconstruye). En el ciclo NORMAL la página refresca su scope apenas el job
+# termina: ese GET escribe el dashboard construido dentro del snapshot en
+# sesión (report_scope full y el caché territorial por scope, que además
+# re-marca dirty), así que el guardado que cierra la sesión persiste un
+# .pulso caliente para lo que el dueño realmente usó.
+#
+# Instrumentación (cubre el residual 3.10e): cada fase emite
+# `[monitoreo] oncomplete fase=<x> ms=<n>` vía message() para diagnosticar
+# bloqueos del event loop en producción sin Rprof.
+
+.monitoreo_sync_oncomplete_log <- function(fase, started_at, extra = list()) {
+  .monitoreo_log_timing("oncomplete", c(
+    list(fase = fase, ms = .monitoreo_timing_ms(started_at)),
+    extra
+  ))
+}
+
+# Artefactos ligeros del snapshot: SOLO source_metadata (+ status). Reemplaza
+# a monitoreo_snapshot_artifacts en el on_complete del sync; los campos
+# reports/chart_models quedan diferidos (ver censo arriba). `config` llega ya
+# normalizado por el caller (no se re-normaliza: era un costo repetido).
+monitoreo_sync_snapshot_artifacts_light <- function(data,
+                                                    config = list(),
+                                                    sources = list(),
+                                                    errors = list(),
+                                                    sync_summary = list(),
+                                                    generated_at = .monitoreo_now_iso()) {
+  if (is.null(data) || !is.data.frame(data)) data <- data.frame()
+  source_metadata <- tryCatch(
+    .monitoreo_snapshot_source_metadata(data, config, sources, generated_at = generated_at, sync_summary = sync_summary),
+    error = function(e) list(schema = "monitoreo_source_metadata_v1", generated_at = generated_at, error = conditionMessage(e))
+  )
+  has_errors <- length(errors %||% list()) > 0L ||
+    nzchar(.monitoreo_scalar(source_metadata$error %||% "", ""))
+  list(
+    generated_at = generated_at,
+    generation_version = "monitoreo_snapshot_v2",
+    generation_status = if (isTRUE(has_errors)) "partial" else "complete",
+    source_metadata = source_metadata,
+    sync_errors = errors %||% list()
+  )
+}
+
+# on_complete de /api/monitoreo/sync (el router lo llama con una línea).
+# Réplica del flujo histórico HASTA el no-op check inclusive; de ahí en
+# adelante difiere dashboard/artefactos pesados según el censo de arriba.
+monitoreo_sync_apply_deferred <- function(sid, result, sync_mode = "full", report = NULL) {
+  complete_report <- if (is.function(report)) report else function(...) invisible(NULL)
+  t_total <- Sys.time()
+  sync_mode <- .monitoreo_sync_mode(sync_mode)
+  family <- result$config$monitoreo_profile$family %||% ""
+
+  # -- merge: upsert incremental sobre la data previa de la sesión ------------
+  complete_report("merge", percent = 82, message = "Uniendo respuestas nuevas...")
+  t_fase <- Sys.time()
+  synced_source_ids <- .monitoreo_sync_successful_source_ids(result$sync_summary %||% list(), result$data)
+  s_prev <- session_get(sid)
+  prev_snapshot <- s_prev$monitoreo_snapshot %||% NULL
+  prev_data <- if (!is.null(prev_snapshot) && is.data.frame(prev_snapshot$data)) prev_snapshot$data else data.frame()
+  incremental_source_ids <- .monitoreo_sync_incremental_source_ids(result$sync_summary %||% list())
+  combined_data <- .monitoreo_merge_sync_result_data(
+    prev_data,
+    result$data,
+    synced_source_ids = synced_source_ids,
+    incremental_source_ids = incremental_source_ids
+  )
+  .monitoreo_sync_oncomplete_log("merge", t_fase, list(rows = nrow(combined_data)))
+
+  # -- normalize: config del resultado sobre la config vigente ----------------
+  t_fase <- Sys.time()
+  s_current <- session_get(sid)
+  current_cfg <- .monitoreo_request_config(NULL, s_current$monitoreo_config %||% list(), combined_data)
+  result$config <- monitoreo_normalize_config(result$config, combined_data, previous_config = current_cfg)
+  current_family <- current_cfg$monitoreo_profile$family %||% ""
+  family <- result$config$monitoreo_profile$family %||% family
+  if (identical(family, "territorial") && identical(current_family, "territorial")) {
+    current_phase <- .monitoreo_territorial_phase(current_cfg$territorial$active_route_phase, "pilot")
+    result$config$territorial$active_route_phase <- current_phase
+    result$config$territorial$phase_sources <- current_cfg$territorial$phase_sources
+    result$config$territorial <- monitoreo_territorial_normalize_config(
+      result$config$territorial,
+      combined_data,
+      previous = current_cfg$territorial
+    )
+  }
+  report_scope <- if (.monitoreo_sync_mode_is_advance(sync_mode)) "advance_summary" else "full"
+  session_set(sid, "monitoreo_config", result$config)
+  .monitoreo_sync_oncomplete_log("normalize", t_fase)
+
+  # -- sources: cursores, last_sync_at e hidratación de colectores ------------
+  t_fase <- Sys.time()
+  s_now <- session_get(sid)
+  synced_sources <- monitoreo_normalize_sources(result$sources %||% list())
+  sources_now <- monitoreo_normalize_sources(s_now$monitoreo_sources %||% list())
+  if (length(synced_sources)) {
+    source_ids_now <- vapply(sources_now, function(src) .monitoreo_scalar(src$id, ""), character(1))
+    for (src in synced_sources) {
+      sid_src <- .monitoreo_scalar(src$id, "")
+      if (!nzchar(sid_src)) next
+      idx <- match(sid_src, source_ids_now)
+      if (!is.na(idx) && is.finite(idx) && idx > 0L) {
+        sources_now[[idx]] <- utils::modifyList(sources_now[[idx]], src)
+      } else {
+        sources_now[[length(sources_now) + 1L]] <- src
+        source_ids_now <- c(source_ids_now, sid_src)
+      }
+    }
+  }
+  ids <- synced_source_ids
+  if (!length(ids)) ids <- unique(as.character(result$data$.source_id %||% character(0)))
+  sources_now <- lapply(sources_now, function(src) {
+    if (src$id %in% ids) src$last_sync_at <- result$synced_at
+    src
+  })
+  sources_now <- .monitoreo_hydrate_missing_surveymonkey_collectors(
+    sid,
+    sources_now,
+    synced_source_ids = ids,
+    sync_summary = result$sync_summary %||% list()
+  )
+  session_set(sid, "monitoreo_sources", sources_now)
+  dashboard_data <- .monitoreo_apply_source_metadata_to_data(combined_data, sources_now)
+  .monitoreo_sync_oncomplete_log("sources", t_fase)
+
+  # -- no-op de delta 0 (unidad 3.10): INTACTO ---------------------------------
+  noop_payload <- monitoreo_sync_noop_result(sid, prev_snapshot, dashboard_data, result, sync_mode, complete_report)
+  if (!is.null(noop_payload)) {
+    .monitoreo_sync_oncomplete_log("total", t_total, list(noop = "1"))
+    return(noop_payload)
+  }
+
+  # -- artifacts: solo el source_metadata ligero -------------------------------
+  complete_report("metadata", percent = 90, message = "Actualizando metadata de fuentes...")
+  t_fase <- Sys.time()
+  artifacts <- monitoreo_sync_snapshot_artifacts_light(
+    dashboard_data,
+    result$config,
+    sources = sources_now,
+    errors = result$errors,
+    sync_summary = result$sync_summary %||% list()
+  )
+  .monitoreo_sync_oncomplete_log("artifacts", t_fase)
+
+  # -- save: snapshot sin dashboard (lazy) + dirty -----------------------------
+  complete_report("save", percent = 96, message = "Guardando cambios del proyecto...")
+  t_fase <- Sys.time()
+  snapshot <- c(list(
+    synced_at = result$synced_at,
+    data = combined_data,
+    config = result$config,
+    errors = result$errors
+  ), artifacts)
+  # El fact territorial del home se conserva del corte previo (stale pero
+  # informativo) hasta que el primer GET territorial lo re-espeje con el
+  # tablero fresco (ver monitoreo_overview_facts.R). Antes se recalculaba
+  # aquí desde el dashboard recién construido; sin build no hay fuente nueva.
+  if (identical(family, "territorial") && is.list(prev_snapshot) &&
+      !is.null(prev_snapshot$territorial_overview_facts)) {
+    snapshot$territorial_overview_facts <- prev_snapshot$territorial_overview_facts
+  }
+  # Sin dashboard ni dashboard_cache_token: .monitoreo_snapshot_dashboard_valid
+  # devuelve FALSE de entrada (snapshot$dashboard no es lista), así que el
+  # PRIMER GET de cada scope construye con la data nueva sin poder rescatar el
+  # tablero previo por el fallback de config (semántica de frescura intacta).
+  # La invalidación explícita suelta además los caches por-scope de la sesión
+  # (los tokens ya no matchearían, pero liberar la memoria y las tabs de
+  # publicación cacheadas es barato y sin ambigüedad).
+  .monitoreo_invalidate_dashboard_caches(sid)
+  session_set(sid, "monitoreo_snapshot", snapshot)
+  tryCatch(.monitoreo_mark_project_dirty_if_open(sid), error = function(e) NULL)
+  .monitoreo_sync_oncomplete_log("save", t_fase)
+
+  if (identical(family, "territorial")) {
+    synced_kobo <- Filter(function(src) {
+      identical(src$kind, "kobo") &&
+        !identical(.monitoreo_scalar(src$role, ""), "ocurrencias_campo") &&
+        (!length(ids) || src$id %in% ids)
+    }, sources_now)
+    if (length(synced_kobo)) {
+      for (src in synced_kobo) {
+        phase <- .monitoreo_source_territorial_phase(src)
+        if (!phase %in% c("pilot", "field")) phase <- .monitoreo_territorial_phase(result$config$territorial$active_route_phase, "pilot")
+        phase_src <- .monitoreo_territorial_phase_source(result$config$territorial, phase)
+        .monitoreo_territorial_history_add(sid, list(
+          type = "sync",
+          asset_uid = .monitoreo_scalar(src$asset_uid %||% phase_src$asset_uid, ""),
+          asset_name = .monitoreo_scalar(src$label %||% phase_src$kobo_asset_name, ""),
+          version_id = .monitoreo_scalar(phase_src$kobo_version_id, ""),
+          source_id = .monitoreo_scalar(src$id, ""),
+          response_count = .monitoreo_snapshot_count(combined_data, .monitoreo_scalar(src$id, "")),
+          status = if (length(result$errors %||% list())) "warning" else "ok",
+          message = if (length(result$errors %||% list())) "Sincronización Kobo completada con alertas." else "Respuestas Kobo sincronizadas."
+        ))
+      }
+    }
+  }
+  .monitoreo_sync_oncomplete_log("total", t_total)
+  list(
+    ok = TRUE,
+    synced_at = result$synced_at,
+    n_rows = as.integer(if (identical(family, "territorial")) {
+      nrow(.monitoreo_territorial_filter_data_for_phase(dashboard_data, result$config))
+    } else {
+      nrow(dashboard_data)
+    }),
+    n_sources = as.integer(result$n_sources),
+    # El dashboard ya no viaja en el resultado del job: ningún consumidor lo
+    # leía (las 4 páginas refrescan su scope vía GET al terminar el job) y
+    # construirlo aquí era justamente el costo diferido. El marcador permite
+    # distinguir el contrato nuevo en logs/QA.
+    dashboard = NULL,
+    dashboard_deferred = TRUE,
+    sync_mode = sync_mode,
+    report_scope = report_scope,
+    errors = result$errors,
+    sync_summary = result$sync_summary %||% list()
+  )
+}
+
 # --- Unidad 3.8b: post-proceso del sync de fuentes Google Sheets -------------
 
 # Lógica movida SIN cambios funcionales desde el endpoint síncrono

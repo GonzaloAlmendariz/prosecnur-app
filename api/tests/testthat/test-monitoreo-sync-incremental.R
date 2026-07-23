@@ -1360,3 +1360,172 @@ test_that("hidratación de collectors sí corre en full con filas", {
   ))
   expect_identical(fetches, 1L)
 })
+
+# --- I. Unidad 3.11: Avance con delta real = merge + guardar; dashboards lazy -
+
+# Resultado de worker con delta real en kobo_a: r2 EDITADA (duracion 700) y
+# r5 nueva; kobo_b sigue en delta 0. El upsert debe reemplazar r2 sin duplicar.
+.msi_delta_result <- function(cfg) {
+  nuevos <- data.frame(
+    response_id = c("r2", "r5"),
+    enumerador = c("Luis", "Rosa"),
+    estado = c("completed", "completed"),
+    fecha = c("2026-07-01T10:00:00Z", "2026-07-21T09:00:00Z"),
+    duracion = c(700, 500),
+    .source_id = rep("kobo_a", 2L),
+    .source_kind = rep("kobo", 2L),
+    .source_label = rep("Kobo A", 2L),
+    stringsAsFactors = FALSE
+  )
+  list(
+    ok = TRUE,
+    synced_at = "2026-07-21T00:00:00Z",
+    n_rows = 2L,
+    n_sources = 2L,
+    errors = list(),
+    data = nuevos,
+    sources = list(),
+    sync_summary = list(
+      kobo_a = list(source_id = "kobo_a", kind = "kobo", mode = "incremental", rows = 2L,
+                    cursor = list(fetched_count = 2L, mode = "incremental")),
+      kobo_b = list(source_id = "kobo_b", kind = "kobo", mode = "incremental", rows = 0L,
+                    cursor = list(fetched_count = 0L, mode = "incremental"))
+    ),
+    config = cfg
+  )
+}
+
+test_that("3.11: sync con delta => on_complete SIN builds; el GET siguiente construye SOLO su scope", {
+  sid <- .msi_noop_session()
+  on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  result <- .msi_delta_result(s$monitoreo_config)
+
+  monitoreo_perf_reset_dashboard_build_count()
+  # Instrumentación 3.10e/3.11: cada fase del on_complete queda en el log.
+  withr::local_envvar(PULSO_MONITOREO_TIMINGS = "1")
+  expect_message(
+    payload <- monitoreo_sync_apply_deferred(sid, result, sync_mode = "advance"),
+    "\\[monitoreo\\] oncomplete fase=merge ms="
+  )
+
+  # (i) CERO builds de dashboard dentro del on_complete.
+  expect_identical(monitoreo_perf_dashboard_build_count(), 0L)
+  expect_true(isTRUE(payload$ok))
+  expect_true(isTRUE(payload$dashboard_deferred))
+  expect_null(payload$dashboard)
+  expect_identical(payload$report_scope, "advance_summary")
+  expect_identical(payload$n_rows, 5L)
+
+  # (iii) merge consistente: upsert de r2 (sin duplicados) + alta de r5.
+  snap <- session_get(sid)$monitoreo_snapshot
+  expect_identical(snap$synced_at, "2026-07-21T00:00:00Z")
+  expect_identical(nrow(snap$data), 5L)
+  expect_identical(sum(snap$data$response_id == "r2"), 1L)
+  expect_identical(snap$data$duracion[snap$data$response_id == "r2"], 700)
+  expect_true("r5" %in% snap$data$response_id)
+  # Snapshot sin dashboard ni token: el validador de frescura NO puede
+  # rescatar el tablero viejo por el fallback de config.
+  expect_null(snap$dashboard)
+  expect_null(snap$dashboard_cache_token)
+  # source_metadata ligero presente (la UI lo lee apenas refresca); los
+  # artefactos pesados quedaron diferidos.
+  expect_identical(.monitoreo_scalar(snap$source_metadata$schema, ""), "monitoreo_source_metadata_v1")
+  expect_null(snap$chart_models)
+  expect_null(snap$reports)
+  expect_identical(snap$generation_status, "complete")
+  # Los caches por-scope de la sesión quedaron invalidados.
+  s_despues <- session_get(sid)
+  expect_null(s_despues$monitoreo_dashboard_cache_full)
+  expect_null(s_despues$monitoreo_dashboard_cache_token_full)
+  # last_sync_at fresco en las fuentes sincronizadas.
+  expect_identical(s_despues$monitoreo_sources[[1]]$last_sync_at, "2026-07-21T00:00:00Z")
+
+  # El PRIMER GET de un scope construye SOLO ese scope con la data nueva.
+  state <- .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "advance_summary")
+  expect_identical(monitoreo_perf_dashboard_build_count(), 1L)
+  expect_identical(state$n_rows, 5L)
+  s_get <- session_get(sid)
+  expect_true(is.list(s_get$monitoreo_dashboard_cache_advance_summary))
+  expect_null(s_get$monitoreo_dashboard_cache_full)
+  expect_null(s_get$monitoreo_dashboard_cache_source)
+
+  # Repetir el mismo scope = cache hit, sin build nuevo.
+  invisible(.monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "advance_summary"))
+  expect_identical(monitoreo_perf_dashboard_build_count(), 1L)
+
+  # Otro scope = UN build más, solo el suyo.
+  invisible(.monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "source"))
+  expect_identical(monitoreo_perf_dashboard_build_count(), 2L)
+})
+
+test_that("3.11: delta 0 sigue en no-op a través del on_complete diferido", {
+  sid <- .msi_noop_session()
+  on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  snapshot_antes <- s$monitoreo_snapshot
+  result <- .msi_noop_result(snapshot_antes$data, s$monitoreo_config)
+
+  monitoreo_perf_reset_dashboard_build_count()
+  payload <- suppressMessages(monitoreo_sync_apply_deferred(sid, result, sync_mode = "advance"))
+
+  expect_true(isTRUE(payload$noop))
+  expect_identical(monitoreo_perf_dashboard_build_count(), 0L)
+  # El snapshot vigente no se toca (ni synced_at ni token): warm intacto.
+  expect_identical(session_get(sid)$monitoreo_snapshot$synced_at, snapshot_antes$synced_at)
+  expect_identical(
+    session_get(sid)$monitoreo_snapshot$dashboard_cache_token,
+    snapshot_antes$dashboard_cache_token
+  )
+  expect_true(is.list(payload$dashboard))
+})
+
+test_that("3.11 decisión (a): el save inmediato deja un .pulso cargable y el ciclo normal lo calienta", {
+  sid <- .msi_noop_session()
+  on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  result <- .msi_delta_result(s$monitoreo_config)
+
+  # Proyecto "abierto": el on_complete debe dejar project_dirty listo para el
+  # save inmediato (decisión (a): guardar sin dashboards frescos es válido).
+  ruta <- tempfile(fileext = ".pulso")
+  on.exit(unlink(ruta), add = TRUE)
+  session_set(sid, "project_path", ruta)
+  session_set(sid, "project_dirty", FALSE)
+  invisible(suppressMessages(monitoreo_sync_apply_deferred(sid, result, sync_mode = "advance")))
+  expect_true(isTRUE(session_get(sid)$project_dirty))
+
+  # Save inmediato post-sync: .pulso sin dashboards pero CARGABLE y con la
+  # data mergeada (frío para scopes no vistos = benigno, se reconstruyen).
+  saved <- build_pulso(sid, ruta)
+  expect_true(isTRUE(saved$ok))
+  cargado <- load_pulso(ruta)
+  expect_true(isTRUE(cargado$ok))
+  sid2 <- cargado$session_id
+  on.exit(session_delete(sid2), add = TRUE)
+  snap2 <- session_get(sid2)$monitoreo_snapshot
+  expect_identical(nrow(snap2$data), 5L)
+  expect_null(snap2$dashboard)
+
+  # Ciclo normal de uso: el GET full reconstruye y escribe el dashboard DENTRO
+  # del snapshot en sesión; el siguiente save persiste un .pulso caliente.
+  monitoreo_perf_reset_dashboard_build_count()
+  invisible(.monitoreo_state_payload(sid2, include_reports = TRUE, report_scope = "full"))
+  expect_identical(monitoreo_perf_dashboard_build_count(), 1L)
+  snap_caliente <- session_get(sid2)$monitoreo_snapshot
+  expect_true(is.list(snap_caliente$dashboard))
+  expect_true(nzchar(.monitoreo_scalar(snap_caliente$dashboard_cache_token, "")))
+  saved2 <- build_pulso(sid2, ruta)
+  expect_true(isTRUE(saved2$ok))
+  recargado <- load_pulso(ruta)
+  expect_true(isTRUE(recargado$ok))
+  sid3 <- recargado$session_id
+  on.exit(session_delete(sid3), add = TRUE)
+  snap3 <- session_get(sid3)$monitoreo_snapshot
+  # Warm start: el GET tras reabrir sirve del snapshot sin build nuevo.
+  expect_true(is.list(snap3$dashboard))
+  monitoreo_perf_reset_dashboard_build_count()
+  state3 <- .monitoreo_state_payload(sid3, include_reports = TRUE, report_scope = "full")
+  expect_identical(monitoreo_perf_dashboard_build_count(), 0L)
+  expect_identical(state3$n_rows, 5L)
+})
