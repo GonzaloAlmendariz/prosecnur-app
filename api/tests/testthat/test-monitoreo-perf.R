@@ -374,6 +374,105 @@ test_that("el dashboard público aplica el cap sin mutar el dashboard almacenado
   expect_null(dashboard$territorial_reports$response_audit_truncated)
 })
 
+# --- Unidad 3.4b: partición del config en el token ---------------------------
+
+test_that("3.4b: metadata de publicación/inspección fuera del token; campos de cálculo dentro", {
+  data <- .monitoreo_perf_test_data()
+  cfg <- .monitoreo_perf_test_cfg(data)
+  snapshot <- list(synced_at = "2026-06-15T00:00:00Z")
+  token <- .monitoreo_dashboard_cache_token(snapshot, data, cfg)
+
+  # supervision_* solo alimenta /supervision/sample bajo demanda: editarlo ya
+  # no invalida los 7 scopes.
+  cfg_sup <- cfg
+  cfg_sup$supervision_n <- 55L
+  cfg_sup$supervision_seed <- 99L
+  expect_identical(token, .monitoreo_dashboard_cache_token(snapshot, data, cfg_sup))
+
+  # Timestamps de inspección y metadata de despliegue del form de ocurrencias
+  # (la causa histórica de invalidaciones nucleares por ciclo de ocurrencias).
+  cfg_meta <- cfg
+  cfg_meta$territorial$inspected_at <- "2026-07-23T10:00:00Z"
+  cfg_meta$territorial$phase_sources$pilot$inspected_at <- "2026-07-23T10:00:00Z"
+  cfg_meta$territorial$field_occurrences$last_sync_at <- "2026-07-23T10:00:00Z"
+  cfg_meta$territorial$field_occurrences$uploaded_at <- "2026-07-23T09:00:00Z"
+  cfg_meta$territorial$field_occurrences$form_title <- "Ocurrencias v2"
+  cfg_meta$territorial$field_occurrences$survey_url <- "https://ee.example.test/x"
+  expect_identical(token, .monitoreo_dashboard_cache_token(snapshot, data, cfg_meta))
+
+  # Conservador: todo lo que discrimina números sigue invalidando.
+  cfg_calc <- cfg
+  cfg_calc$valid_statuses <- list("completed", "approved")
+  expect_false(identical(token, .monitoreo_dashboard_cache_token(snapshot, data, cfg_calc)))
+  cfg_occ <- cfg
+  cfg_occ$territorial$field_occurrences$enabled <- TRUE
+  expect_false(identical(token, .monitoreo_dashboard_cache_token(snapshot, data, cfg_occ)))
+  cfg_phase <- cfg
+  cfg_phase$territorial$active_route_phase <- "field"
+  expect_false(identical(token, .monitoreo_dashboard_cache_token(snapshot, data, cfg_phase)))
+  # La identidad del source de ocurrencias sí discrimina (source_id/asset).
+  cfg_src <- cfg
+  cfg_src$territorial$field_occurrences$source_id <- "otro_source"
+  expect_false(identical(token, .monitoreo_dashboard_cache_token(snapshot, data, cfg_src)))
+})
+
+# --- Unidad 3.8b: caché de tabs de publicación --------------------------------
+
+test_that("3.8b: las tabs de publicación se cachean por key y la invalidación nuclear las suelta", {
+  builds <- 0L
+  build <- function() {
+    builds <<- builds + 1L
+    list("Cliente - Portada" = list(list("A", as.character(builds))))
+  }
+  sid <- "sid-tabs-cache"
+  on.exit(monitoreo_perf_publication_tabs_invalidate(), add = TRUE)
+
+  t1 <- monitoreo_perf_publication_tabs_cached(sid, "client", "key-a", build)
+  t2 <- monitoreo_perf_publication_tabs_cached(sid, "client", "key-a", build)
+  expect_identical(builds, 1L)
+  expect_identical(t1, t2)
+
+  # Audiencias con slots separados (client no pisa internal).
+  monitoreo_perf_publication_tabs_cached(sid, "internal", "key-a", build)
+  expect_identical(builds, 2L)
+  monitoreo_perf_publication_tabs_cached(sid, "client", "key-a", build)
+  expect_identical(builds, 2L)
+
+  # Key nueva (corte/config/destino distinto) recomputa.
+  monitoreo_perf_publication_tabs_cached(sid, "client", "key-b", build)
+  expect_identical(builds, 3L)
+
+  # La invalidación nuclear del dashboard también limpia esta caché.
+  monitoreo_perf_variables_cache_invalidate(sid)
+  monitoreo_perf_publication_tabs_cached(sid, "client", "key-b", build)
+  expect_identical(builds, 4L)
+
+  # Sin sid no se cachea (computa directo).
+  monitoreo_perf_publication_tabs_cached("", "client", "key-b", build)
+  expect_identical(builds, 5L)
+})
+
+test_that("3.8b: la key de tabs discrimina corte/audiencia/destino y tolera metadata de publicación", {
+  data <- .monitoreo_perf_test_data()
+  cfg <- .monitoreo_perf_test_cfg(data)
+  snapshot <- list(synced_at = "2026-06-15T00:00:00Z", data = data)
+  k <- monitoreo_perf_publication_tabs_key("sid-key-x", snapshot, cfg, "client", FALSE, "full", "sheet_1", "acreditacion")
+
+  expect_identical(k, monitoreo_perf_publication_tabs_key("sid-key-x", snapshot, cfg, "client", FALSE, "full", "sheet_1", "acreditacion"))
+  expect_false(identical(k, monitoreo_perf_publication_tabs_key("sid-key-x", snapshot, cfg, "internal", FALSE, "full", "sheet_1", "acreditacion")))
+  expect_false(identical(k, monitoreo_perf_publication_tabs_key("sid-key-x", snapshot, cfg, "client", TRUE, "full", "sheet_1", "acreditacion")))
+  expect_false(identical(k, monitoreo_perf_publication_tabs_key("sid-key-x", snapshot, cfg, "client", FALSE, "full", "sheet_2", "acreditacion")))
+
+  snapshot_resync <- snapshot
+  snapshot_resync$synced_at <- "2026-06-16T00:00:00Z"
+  expect_false(identical(k, monitoreo_perf_publication_tabs_key("sid-key-x", snapshot_resync, cfg, "client", FALSE, "full", "sheet_1", "acreditacion")))
+
+  # Coherente con 3.4b: metadata que no entra al token tampoco rompe la key.
+  cfg_meta <- cfg
+  cfg_meta$supervision_n <- 99L
+  expect_identical(k, monitoreo_perf_publication_tabs_key("sid-key-x", snapshot, cfg_meta, "client", FALSE, "full", "sheet_1", "acreditacion"))
+})
+
 test_that("el token del dashboard usa el fingerprint barato y respeta la frescura por config", {
   data <- .monitoreo_perf_test_data()
   cfg <- .monitoreo_perf_test_cfg(data)

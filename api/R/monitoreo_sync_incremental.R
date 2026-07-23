@@ -1,5 +1,5 @@
 # monitoreo_sync_incremental.R — Sync rápido Kobo/SurveyMonkey + publicación
-# Sheets efectiva (unidad 3.8 del plan de mejoras).
+# Sheets efectiva (unidades 3.8/3.8b/3.10 del plan de mejoras).
 #
 # Este archivo aloja la lógica nueva del ciclo sync→sheets para no hacer crecer
 # el engine congelado (`monitoreo_engine.R` llama hacia acá):
@@ -291,4 +291,284 @@
     updated_at = .monitoreo_now_iso(),
     mode = "controlled_write"
   )
+}
+
+# --- Unidad 3.10: Avance sin cambios = no-op rápido --------------------------
+
+# TRUE solo si el sync trae al menos una fuente y TODAS reportan delta 0. La
+# señal autoritativa es fetched_count del cursor (lo que el servidor entregó);
+# si el cursor no la trae (fuentes sin cursor, p. ej. Sheets) cae a las filas
+# del resultado. Una fuente en modo full con filas > 0 nunca es delta 0: la
+# re-descarga completa no puede probar identidad de contenido barata (el
+# fingerprint solo ve dims/nombres), así que sigue el flujo normal.
+.monitoreo_sync_summary_delta_cero <- function(sync_summary = list()) {
+  if (is.null(sync_summary) || !is.list(sync_summary) || !length(sync_summary)) return(FALSE)
+  all(vapply(sync_summary, function(item) {
+    if (!is.list(item)) return(FALSE)
+    cursor <- item$cursor %||% list()
+    fetched <- suppressWarnings(as.integer(cursor$fetched_count %||% NA_integer_))[1]
+    if (!is.na(fetched) && is.finite(fetched)) return(fetched == 0L)
+    rows <- suppressWarnings(as.integer(item$rows %||% NA_integer_))[1]
+    !is.na(rows) && is.finite(rows) && rows == 0L
+  }, logical(1)))
+}
+
+# Cortocircuito del on_complete de /api/monitoreo/sync: si TODAS las fuentes
+# reportan delta 0 Y el snapshot vigente sigue siendo válido para la data
+# mergeada + config recién normalizada (mismo token de caché — fingerprint de
+# data, config particionado y scope), no hay nada que reconstruir. Se
+# devuelven los metadatos frescos (last_sync_at y cursores ya quedaron
+# escritos en monitoreo_sources por el caller) sobre el dashboard vigente:
+# cero builds, cero snapshot_artifacts, y el save queda en el flag barato de
+# project_dirty. El snapshot NO se toca (ni synced_at): tocarlo invalidaría el
+# token y forzaría el rebuild que justamente se evita. Devuelve NULL cuando el
+# sync trae cambios (o cualquier duda) y el flujo normal debe continuar.
+monitoreo_sync_noop_result <- function(sid,
+                                       prev_snapshot,
+                                       dashboard_data,
+                                       result,
+                                       sync_mode = "full",
+                                       report = NULL) {
+  if (length(result$errors %||% list())) return(NULL)
+  if (!.monitoreo_sync_summary_delta_cero(result$sync_summary %||% list())) return(NULL)
+  if (!is.list(prev_snapshot) || !is.list(prev_snapshot$dashboard)) return(NULL)
+  if (!nzchar(.monitoreo_scalar(prev_snapshot$dashboard_cache_token, ""))) return(NULL)
+  prev_scope <- .monitoreo_report_scope(prev_snapshot$dashboard_report_scope %||% "full")
+  family <- result$config$monitoreo_profile$family %||% ""
+  display_data <- if (identical(family, "territorial")) {
+    .monitoreo_territorial_filter_data_for_phase(dashboard_data, result$config)
+  } else {
+    dashboard_data
+  }
+  # El validador canónico decide: mismo token (con el synced_at y scope del
+  # snapshot VIGENTE, no los del sync entrante) ⇒ el dashboard sigue válido.
+  token <- .monitoreo_dashboard_cache_token(
+    list(synced_at = prev_snapshot$synced_at %||% ""),
+    display_data,
+    result$config,
+    report_scope = prev_scope
+  )
+  valido <- tryCatch(
+    .monitoreo_snapshot_dashboard_valid(prev_snapshot, display_data, result$config, token, report_scope = prev_scope),
+    error = function(e) FALSE
+  )
+  if (!isTRUE(valido)) return(NULL)
+  if (is.function(report)) {
+    report("save", percent = 96, message = "Sin respuestas nuevas: solo se actualizan metadatos de fuentes.")
+  }
+  tryCatch(.monitoreo_mark_project_dirty_if_open(sid), error = function(e) NULL)
+  list(
+    ok = TRUE,
+    noop = TRUE,
+    # synced_at conserva el del snapshot (es lo que verá /state); el momento
+    # real de la verificación viaja aparte para la UI.
+    synced_at = .monitoreo_scalar(prev_snapshot$synced_at, result$synced_at %||% ""),
+    checked_at = .monitoreo_scalar(result$synced_at, .monitoreo_now_iso()),
+    n_rows = as.integer(nrow(display_data)),
+    n_sources = as.integer(result$n_sources %||% 0L),
+    dashboard = .monitoreo_public_dashboard(prev_snapshot$dashboard),
+    sync_mode = .monitoreo_sync_mode(sync_mode),
+    report_scope = prev_scope,
+    errors = result$errors %||% list(),
+    sync_summary = result$sync_summary %||% list()
+  )
+}
+
+# --- Unidad 3.8b: post-proceso del sync de fuentes Google Sheets -------------
+
+# Lógica movida SIN cambios funcionales desde el endpoint síncrono
+# /api/monitoreo/sheets/sync (router congelado a crecimiento) para poder
+# reutilizarla como on_complete del job async. Único desvío deliberado: las
+# fuentes base se leen FRESCAS de la sesión al aplicar el resultado (antes se
+# capturaban antes del fetch), para no pisar ediciones hechas mientras el job
+# corría — mismo criterio que el on_complete de /api/monitoreo/sync.
+monitoreo_sheets_sync_apply_result <- function(sid, result, report = NULL) {
+  if (is.function(report)) report("merge", percent = 84, message = "Uniendo datos de Sheets...")
+  s_current <- session_get(sid)
+  sources_before <- monitoreo_normalize_sources(s_current$monitoreo_sources %||% list())
+  prev_snapshot <- s_current$monitoreo_snapshot %||% NULL
+  prev_data <- if (!is.null(prev_snapshot) && is.data.frame(prev_snapshot$data)) prev_snapshot$data else data.frame()
+  synced_source_ids <- .monitoreo_sync_successful_source_ids(
+    result$sync_summary %||% list(),
+    result$data
+  )
+  incremental_source_ids <- .monitoreo_sync_incremental_source_ids(result$sync_summary %||% list())
+  combined_data <- .monitoreo_merge_sync_result_data(
+    prev_data,
+    result$data,
+    synced_source_ids = synced_source_ids,
+    incremental_source_ids = incremental_source_ids
+  )
+  current_cfg <- .monitoreo_request_config(NULL, s_current$monitoreo_config %||% list(), combined_data)
+  result$config <- monitoreo_normalize_config(result$config, combined_data, previous_config = current_cfg)
+  current_family <- current_cfg$monitoreo_profile$family %||% ""
+  result_family <- result$config$monitoreo_profile$family %||% ""
+  if (identical(result_family, "territorial") && identical(current_family, "territorial")) {
+    current_phase <- .monitoreo_territorial_phase(current_cfg$territorial$active_route_phase, "pilot")
+    result$config$territorial$active_route_phase <- current_phase
+    result$config$territorial$phase_sources <- current_cfg$territorial$phase_sources
+    result$config$territorial <- monitoreo_territorial_normalize_config(
+      result$config$territorial,
+      result$data,
+      previous = current_cfg$territorial
+    )
+  }
+  if (is.function(report)) report("dashboard", percent = 90, message = "Preparando tablero local...")
+  result$dashboard <- .monitoreo_dashboard_for_session(sid, combined_data, result$config)
+  synced_sources <- monitoreo_normalize_sources(result$sources %||% list())
+  sources_now <- sources_before
+  if (length(synced_sources)) {
+    source_ids_now <- vapply(sources_now, function(src) .monitoreo_scalar(src$id, ""), character(1))
+    for (src in synced_sources) {
+      sid_src <- .monitoreo_scalar(src$id, "")
+      if (!nzchar(sid_src)) next
+      idx <- match(sid_src, source_ids_now)
+      if (!is.na(idx) && is.finite(idx) && idx > 0L) {
+        sources_now[[idx]] <- utils::modifyList(sources_now[[idx]], src)
+      } else {
+        sources_now[[length(sources_now) + 1L]] <- src
+        source_ids_now <- c(source_ids_now, sid_src)
+      }
+    }
+  }
+  ids <- synced_source_ids
+  if (!length(ids)) ids <- unique(as.character(result$data$.source_id %||% character(0)))
+  sources_now <- lapply(sources_now, function(src) {
+    sid_src <- .monitoreo_scalar(src$id, "")
+    if (nzchar(sid_src) && sid_src %in% ids) src$last_sync_at <- result$synced_at
+    src
+  })
+  artifacts <- monitoreo_snapshot_artifacts(
+    combined_data,
+    result$config,
+    sources = sources_now,
+    dashboard = result$dashboard,
+    synced_at = result$synced_at,
+    errors = result$errors,
+    sync_summary = result$sync_summary %||% list()
+  )
+  snapshot <- c(list(
+    synced_at = result$synced_at,
+    data = combined_data,
+    config = result$config,
+    dashboard = result$dashboard,
+    variables = if (nrow(combined_data)) monitoreo_variables(combined_data) else list(),
+    errors = result$errors
+  ), artifacts)
+  session_set(sid, "monitoreo_sources", sources_now)
+  session_set(sid, "monitoreo_config", result$config)
+  session_set(sid, "monitoreo_snapshot", snapshot)
+  if (is.function(report)) report("save", percent = 97, message = "Guardando cambios del proyecto...")
+  tryCatch(.monitoreo_mark_project_dirty_if_open(sid), error = function(e) NULL)
+  list(
+    ok = TRUE,
+    synced_at = result$synced_at,
+    n_rows = as.integer(nrow(combined_data)),
+    n_sources = as.integer(length(sources_now)),
+    state = .monitoreo_state_payload(sid)
+  )
+}
+
+# Variante async del sync de fuentes Sheets: el fetch (red) corre en un worker
+# callr con el runner canónico de sync (monitoreo_sync_job_runner) y el
+# on_complete aplica el resultado en el main thread con la misma función que
+# el camino síncrono. RESTRICCIÓN de workers respetada: el worker no toca la
+# sesión in-memory — fuentes y config viajan por RDS y la credencial de Google
+# se resuelve dentro del worker desde el secret store en disco
+# (~/.prosecnurapp/secrets), igual que ya ocurre cuando /api/monitoreo/sync
+# corre fuentes google_sheets en modo full.
+monitoreo_sheets_sync_submit_job <- function(sid, sources, cfg) {
+  sources_path <- job_save_rds(sid, "monitoreo_sheets_sources", sources)
+  cfg_path <- job_save_rds(sid, "monitoreo_sheets_config", cfg)
+  runner <- monitoreo_sync_job_runner
+  attr(runner, "prosecnur_job_function_name") <- "monitoreo_sync_job_runner"
+  job_id <- job_submit(
+    sid = sid,
+    kind = "monitoreo.sheets_sync",
+    func = runner,
+    args = list(
+      sources_path = sources_path,
+      cfg_path = cfg_path,
+      connection_tokens_path = NULL,
+      since = NULL,
+      sid = sid,
+      sync_mode = "full"
+    ),
+    on_complete = function(j) {
+      report <- if (!is.null(j$progress_path)) job_progress_writer(j$progress_path) else NULL
+      monitoreo_sheets_sync_apply_result(j$sid, j$result_data, report = report)
+    }
+  )
+  list(ok = TRUE, job_id = job_id, kind = "monitoreo.sheets_sync", async = TRUE)
+}
+
+# --- Unidad 3.8b: publicación Sheets con opt-in async ------------------------
+
+# Runner del job de publicación. Función top-level del paquete (trampa de
+# namespace de callr cubierta por la marca prosecnur_job_function_name que le
+# pega el dispatch). El payload de tabs viaja por RDS (nunca dentro del
+# closure) y la credencial Google se lee del secret store en disco dentro del
+# worker; jamás se serializa un token en args.
+monitoreo_sheets_publish_job_runner <- function(tabs_path, spreadsheet_id, progress_path = NULL) {
+  report <- if (!is.null(progress_path)) job_progress_writer(progress_path) else function(...) invisible(NULL)
+  report("prepare", percent = 10, message = "Preparando pestañas controladas...")
+  tabs <- readRDS(tabs_path)
+  report("publish", percent = 45, message = "Publicando en Google Sheets...")
+  out <- monitoreo_sheets_publish_tabs(spreadsheet_id, tabs)
+  report("export", percent = 96, message = "Publicación en Sheets completada.")
+  out
+}
+
+# Bitácora de publicación en sesión (compartida por los 3 endpoints de
+# publish). En modo síncrono se escribe inline; en async la escribe el
+# on_complete (main thread), nunca el worker.
+.monitoreo_sheets_publish_event_append <- function(sid, event_key, published, extra = list()) {
+  event_key <- .monitoreo_scalar(event_key, "")
+  if (!nzchar(event_key)) return(invisible(NULL))
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(invisible(NULL))
+  session_set(sid, event_key, c(
+    s[[event_key]] %||% list(),
+    list(c(published, extra))
+  ))
+  invisible(NULL)
+}
+
+# Fachada única de publicación para los endpoints de Sheets. Contrato:
+#   - default (async ausente/false): comportamiento histórico — publica
+#     síncrono, registra el evento y devuelve el resultado (el frontend
+#     actual espera MonitoreoSheetsPublishResult inline).
+#   - async=true (opt-in, adopción futura del frontend): devuelve
+#     {ok, job_id, kind} al instante y la publicación (red) corre en un
+#     worker; el evento se registra en on_complete solo si terminó bien.
+monitoreo_sheets_publish_dispatch <- function(sid,
+                                              spreadsheet_id,
+                                              tabs,
+                                              parsed = list(),
+                                              event_key = "",
+                                              event_extra = list()) {
+  async <- .monitoreo_bool(parsed$async %||% parsed$run_async %||% parsed$runAsync, FALSE)
+  if (!isTRUE(async)) {
+    published <- tryCatch(monitoreo_sheets_publish_tabs(spreadsheet_id, tabs), error = .monitoreo_sheets_stop)
+    .monitoreo_sheets_publish_event_append(sid, event_key, published, event_extra)
+    return(published)
+  }
+  tabs_path <- job_save_rds(sid, "monitoreo_sheets_tabs", tabs)
+  runner <- monitoreo_sheets_publish_job_runner
+  attr(runner, "prosecnur_job_function_name") <- "monitoreo_sheets_publish_job_runner"
+  job_id <- job_submit(
+    sid = sid,
+    kind = "monitoreo.sheets_publish",
+    func = runner,
+    args = list(tabs_path = tabs_path, spreadsheet_id = spreadsheet_id),
+    on_complete = function(j) {
+      tryCatch(unlink(tabs_path), error = function(e) NULL)
+      published <- j$result_data
+      if (identical(j$status, "done") && is.list(published)) {
+        .monitoreo_sheets_publish_event_append(j$sid, event_key, published, event_extra)
+      }
+      published
+    }
+  )
+  list(ok = TRUE, job_id = job_id, kind = "monitoreo.sheets_publish", async = TRUE)
 }

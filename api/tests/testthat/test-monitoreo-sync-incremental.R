@@ -679,6 +679,299 @@ test_that("advance llega intacto a TODAS las fuentes aunque la primera devuelva 
   expect_identical(modos_recibidos, c("advance", "advance"))
 })
 
+# --- G. Unidad 3.10: Avance sin cambios = no-op rápido -----------------------
+
+.msi_noop_data <- function() {
+  data.frame(
+    response_id = c("r1", "r2", "r3", "r4"),
+    enumerador = c("Ana", "Luis", "Ana", "Luis"),
+    estado = rep("completed", 4L),
+    fecha = rep("2026-07-01T10:00:00Z", 4L),
+    duracion = rep(600, 4L),
+    .source_id = c("kobo_a", "kobo_a", "kobo_b", "kobo_b"),
+    .source_kind = rep("kobo", 4L),
+    .source_label = c("Kobo A", "Kobo A", "Kobo B", "Kobo B"),
+    stringsAsFactors = FALSE
+  )
+}
+
+# Sesión con snapshot construido por el camino real (.monitoreo_state_payload
+# persiste el token vigente igual que en producción).
+.msi_noop_session <- function() {
+  sid <- session_create()
+  data <- .msi_noop_data()
+  cfg <- monitoreo_normalize_config(list(
+    id_var = "response_id",
+    enumerator_var = "enumerador",
+    date_var = "fecha",
+    duration_var = "duracion",
+    status_var = "estado",
+    valid_statuses = c("completed")
+  ), data)
+  session_set(sid, "monitoreo_config", cfg)
+  session_set(sid, "monitoreo_sources", list(
+    list(id = "kobo_a", kind = "kobo", label = "Kobo A", enabled = TRUE),
+    list(id = "kobo_b", kind = "kobo", label = "Kobo B", enabled = TRUE)
+  ))
+  session_set(sid, "monitoreo_snapshot", list(
+    data = data,
+    config = cfg,
+    synced_at = "2026-07-20T00:00:00Z"
+  ))
+  invisible(.monitoreo_state_payload(sid))
+  sid
+}
+
+# Resultado de worker con delta 0 en las DOS fuentes (cursores intactos).
+.msi_noop_result <- function(data, cfg) {
+  list(
+    ok = TRUE,
+    synced_at = "2026-07-21T00:00:00Z",
+    n_rows = 0L,
+    n_sources = 2L,
+    errors = list(),
+    data = data[0, , drop = FALSE],
+    sync_summary = list(
+      kobo_a = list(source_id = "kobo_a", kind = "kobo", mode = "incremental", rows = 0L,
+                    cursor = list(fetched_count = 0L, mode = "incremental")),
+      kobo_b = list(source_id = "kobo_b", kind = "kobo", mode = "incremental", rows = 0L,
+                    cursor = list(fetched_count = 0L, mode = "incremental"))
+    ),
+    config = cfg
+  )
+}
+
+test_that("delta cero: la señal autoritativa es fetched_count con fallback a rows", {
+  expect_false(.monitoreo_sync_summary_delta_cero(list()))
+  expect_false(.monitoreo_sync_summary_delta_cero(NULL))
+  expect_true(.monitoreo_sync_summary_delta_cero(list(
+    a = list(source_id = "a", cursor = list(fetched_count = 0L), rows = 0L),
+    b = list(source_id = "b", cursor = list(fetched_count = 0L), rows = 0L)
+  )))
+  # Una fuente con delta rompe el no-op aunque las demás estén en cero.
+  expect_false(.monitoreo_sync_summary_delta_cero(list(
+    a = list(source_id = "a", cursor = list(fetched_count = 0L), rows = 0L),
+    b = list(source_id = "b", cursor = list(fetched_count = 3L), rows = 3L)
+  )))
+  # Full re-download con filas nunca es delta 0 (no se puede probar identidad
+  # de contenido barata); full/sheets con 0 filas sí (fallback a rows).
+  expect_false(.monitoreo_sync_summary_delta_cero(list(
+    a = list(source_id = "a", mode = "full", rows = 1697L, cursor = list())
+  )))
+  expect_true(.monitoreo_sync_summary_delta_cero(list(
+    a = list(source_id = "a", mode = "full", rows = 0L, cursor = list())
+  )))
+})
+
+test_that("3.10: Avance con delta 0 en dos fuentes = no-op (0 builds, snapshot intacto)", {
+  sid <- .msi_noop_session()
+  on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  prev_snapshot <- s$monitoreo_snapshot
+  expect_true(nzchar(prev_snapshot$dashboard_cache_token %||% ""))
+  snapshot_antes <- prev_snapshot
+
+  prev_data <- prev_snapshot$data
+  result <- .msi_noop_result(prev_data, s$monitoreo_config)
+  # Réplica del on_complete real: merge incremental + normalización de config
+  # + metadata de fuentes con last_sync_at fresco.
+  combined <- .monitoreo_merge_sync_result_data(
+    prev_data, result$data,
+    synced_source_ids = c("kobo_a", "kobo_b"),
+    incremental_source_ids = c("kobo_a", "kobo_b")
+  )
+  current_cfg <- .monitoreo_request_config(NULL, s$monitoreo_config, combined)
+  result$config <- monitoreo_normalize_config(result$config, combined, previous_config = current_cfg)
+  sources_now <- lapply(monitoreo_normalize_sources(s$monitoreo_sources), function(src) {
+    src$last_sync_at <- result$synced_at
+    src
+  })
+  dashboard_data <- .monitoreo_apply_source_metadata_to_data(combined, sources_now)
+
+  monitoreo_perf_reset_dashboard_build_count()
+  noop <- monitoreo_sync_noop_result(sid, prev_snapshot, dashboard_data, result, "advance", NULL)
+
+  expect_true(is.list(noop))
+  expect_true(isTRUE(noop$noop))
+  expect_true(isTRUE(noop$ok))
+  # CERO builds del dashboard y el snapshot vigente no se toca.
+  expect_identical(monitoreo_perf_dashboard_build_count(), 0L)
+  expect_identical(session_get(sid)$monitoreo_snapshot$synced_at, snapshot_antes$synced_at)
+  expect_identical(
+    session_get(sid)$monitoreo_snapshot$dashboard_cache_token,
+    snapshot_antes$dashboard_cache_token
+  )
+  # La respuesta refleja el corte vigente + el momento real de verificación.
+  expect_identical(noop$synced_at, "2026-07-20T00:00:00Z")
+  expect_identical(noop$checked_at, "2026-07-21T00:00:00Z")
+  expect_identical(noop$report_scope, "full")
+  expect_identical(noop$n_rows, 4L)
+  expect_true(is.list(noop$dashboard))
+})
+
+test_that("3.10: una fuente con delta, datos cambiados o errores => flujo normal (NULL)", {
+  sid <- .msi_noop_session()
+  on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  prev_snapshot <- s$monitoreo_snapshot
+  prev_data <- prev_snapshot$data
+  base_result <- .msi_noop_result(prev_data, s$monitoreo_config)
+  sources_now <- monitoreo_normalize_sources(s$monitoreo_sources)
+  dashboard_data <- .monitoreo_apply_source_metadata_to_data(prev_data, sources_now)
+  combined_cfg <- monitoreo_normalize_config(s$monitoreo_config, prev_data)
+  base_result$config <- combined_cfg
+
+  # (a) Una fuente reporta delta => no-op descartado por sync_summary.
+  con_delta <- base_result
+  con_delta$sync_summary$kobo_b$rows <- 2L
+  con_delta$sync_summary$kobo_b$cursor$fetched_count <- 2L
+  expect_null(monitoreo_sync_noop_result(sid, prev_snapshot, dashboard_data, con_delta, "advance", NULL))
+
+  # (b) Delta 0 reportado pero el esquema mergeado cambió => token distinto.
+  data_cambiada <- dashboard_data
+  data_cambiada$columna_nueva <- "x"
+  expect_null(monitoreo_sync_noop_result(sid, prev_snapshot, data_cambiada, base_result, "advance", NULL))
+
+  # (c) Errores de sync => conservador, flujo normal.
+  con_errores <- base_result
+  con_errores$errors <- list(list(source_id = "kobo_b", message = "timeout"))
+  expect_null(monitoreo_sync_noop_result(sid, prev_snapshot, dashboard_data, con_errores, "advance", NULL))
+
+  # (d) Sin snapshot previo válido => flujo normal.
+  expect_null(monitoreo_sync_noop_result(sid, NULL, dashboard_data, base_result, "advance", NULL))
+  sin_token <- prev_snapshot
+  sin_token$dashboard_cache_token <- NULL
+  expect_null(monitoreo_sync_noop_result(sid, sin_token, dashboard_data, base_result, "advance", NULL))
+})
+
+# --- H. Unidad 3.8b: publicación Sheets con opt-in async ----------------------
+
+test_that("3.8b: dispatch síncrono publica inline y registra el evento (contrato vigente)", {
+  skip_if_not_installed("digest")
+  mock <- .msi_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  payload <- .msi_sheets_payload_8()
+  out <- monitoreo_sheets_publish_dispatch(
+    sid, "sheet_abc", payload, list(),
+    event_key = "monitoreo_sheet_publish_events",
+    event_extra = list(tabs = names(payload))
+  )
+  expect_true(isTRUE(out$ok))
+  expect_null(out$job_id)
+  expect_equal(length(out$written_ranges), 8L)
+  events <- session_get(sid)$monitoreo_sheet_publish_events
+  expect_length(events, 1L)
+  expect_identical(events[[1]]$tabs, names(payload))
+})
+
+test_that("3.8b: async=true devuelve {job_id} al instante; el evento lo escribe on_complete", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  captured <- new.env(parent = emptyenv())
+  testthat::local_mocked_bindings(
+    job_submit = function(sid, kind, func, args = list(), result_filename = NULL, on_complete = NULL, libpath = NULL) {
+      captured$kind <- kind
+      captured$func_name <- attr(func, "prosecnur_job_function_name", exact = TRUE)
+      captured$args <- args
+      captured$on_complete <- on_complete
+      "job-fixture-1"
+    }
+  )
+
+  payload <- .msi_sheets_payload_8()
+  out <- monitoreo_sheets_publish_dispatch(
+    sid, "sheet_abc", payload, list(async = TRUE),
+    event_key = "monitoreo_sheet_publish_events",
+    event_extra = list(tabs = names(payload))
+  )
+  expect_identical(out$job_id, "job-fixture-1")
+  expect_identical(out$kind, "monitoreo.sheets_publish")
+  expect_true(isTRUE(out$async))
+  expect_identical(captured$kind, "monitoreo.sheets_publish")
+  # Trampa de namespace callr cubierta: el runner viaja con su nombre marcado.
+  expect_identical(captured$func_name, "monitoreo_sheets_publish_job_runner")
+  # El payload viaja por RDS (nunca dentro del closure).
+  expect_true(file.exists(captured$args$tabs_path))
+  expect_identical(readRDS(captured$args$tabs_path), payload)
+  expect_identical(captured$args$spreadsheet_id, "sheet_abc")
+  # Sin evento hasta que el job termine bien.
+  expect_null(session_get(sid)$monitoreo_sheet_publish_events)
+
+  published <- list(ok = TRUE, spreadsheet_id = "sheet_abc")
+  res <- captured$on_complete(list(sid = sid, status = "done", result_data = published, progress_path = NULL))
+  expect_true(isTRUE(res$ok))
+  events <- session_get(sid)$monitoreo_sheet_publish_events
+  expect_length(events, 1L)
+  expect_identical(events[[1]]$tabs, names(payload))
+
+  # Un job fallido NO registra evento.
+  captured$on_complete(list(sid = sid, status = "error", result_data = NULL, progress_path = NULL))
+  expect_length(session_get(sid)$monitoreo_sheet_publish_events, 1L)
+})
+
+test_that("3.8b: el runner del job publica leyendo las tabs por RDS y reporta progreso", {
+  skip_if_not_installed("digest")
+  mock <- .msi_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  payload <- .msi_sheets_payload_8()
+  tabs_path <- tempfile(fileext = ".rds")
+  saveRDS(payload, tabs_path)
+  progress_path <- tempfile(fileext = ".progress")
+  on.exit(unlink(c(tabs_path, progress_path)), add = TRUE)
+
+  out <- monitoreo_sheets_publish_job_runner(tabs_path, "sheet_abc", progress_path)
+  expect_true(isTRUE(out$ok))
+  expect_equal(length(out$written_ranges), 8L)
+  expect_true(file.exists(progress_path))
+})
+
+test_that("3.8b: monitoreo_sheets_sync_apply_result persiste snapshot, fuentes y devuelve state", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  source <- list(id = "sheets_1", kind = "google_sheets", label = "Hoja campo", enabled = TRUE)
+  session_set(sid, "monitoreo_sources", list(source))
+  session_set(sid, "monitoreo_config", list())
+
+  df <- data.frame(
+    response_id = c("s1", "s2"),
+    estado = c("completed", "completed"),
+    fecha = c("2026-07-22T10:00:00Z", "2026-07-22T11:00:00Z"),
+    .source_id = rep("sheets_1", 2L),
+    .source_kind = rep("google_sheets", 2L),
+    .source_label = rep("Hoja campo", 2L),
+    stringsAsFactors = FALSE
+  )
+  result <- list(
+    ok = TRUE,
+    synced_at = "2026-07-23T12:00:00Z",
+    n_rows = 2L,
+    n_sources = 1L,
+    errors = list(),
+    data = df,
+    sources = list(source),
+    config = monitoreo_normalize_config(list(), df),
+    sync_summary = list(sheets_1 = list(
+      source_id = "sheets_1", kind = "google_sheets", mode = "full", rows = 2L, cursor = list()
+    ))
+  )
+
+  out <- monitoreo_sheets_sync_apply_result(sid, result)
+  expect_true(isTRUE(out$ok))
+  expect_identical(out$n_rows, 2L)
+  expect_identical(out$n_sources, 1L)
+  expect_true(is.list(out$state))
+
+  s <- session_get(sid)
+  expect_identical(s$monitoreo_snapshot$synced_at, "2026-07-23T12:00:00Z")
+  expect_identical(nrow(s$monitoreo_snapshot$data), 2L)
+  expect_identical(s$monitoreo_sources[[1]]$last_sync_at, "2026-07-23T12:00:00Z")
+  expect_true(is.list(s$monitoreo_snapshot$dashboard))
+})
+
 test_that("el formato no congela la unica fila visible de una pestaña solo-header", {
   reqs_vacia <- .monitoreo_sheets_professional_format_requests(1L, "Corte", rows = list(list("encabezado")))
   frozen <- reqs_vacia[[1]]$updateSheetProperties$properties$gridProperties$frozenRowCount
