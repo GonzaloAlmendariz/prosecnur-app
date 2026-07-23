@@ -628,6 +628,176 @@ test_that("multibase: fuentes SM distintas mantienen cursores independientes", {
   ))
 })
 
+# --- F-bis. Unidad 3.10b: dedup de la frontera inclusiva del cursor SM -------
+#
+# start_modified_at es INCLUSIVO: el bulk re-entrega las respuestas cuyo
+# date_modified == cursor. El cursor guarda esa frontera (sm_boundary) y el
+# fetch descuenta las ya conocidas para que fetched_count sea el delta
+# efectivo (con 0 en todas las fuentes aplica el no-op de 3.10).
+
+.msi_sm_mock_engine_bindings <- function(handler) {
+  testthat::local_mocked_bindings(
+    .sm_api_http_fetch = handler,
+    sm_api_fetch_survey_details = function(survey_id, token, base_url = NULL) .msi_sm_details_fixture(),
+    .monitoreo_surveymonkey_token_candidates = function(...) {
+      list(list(token = "tok-fixture-sanitizado", profile_id = "perfil-fixture"))
+    },
+    .env = parent.frame()
+  )
+}
+
+# Siembra un cursor con frontera: Avance desde r296 sobre un pool de 300
+# (delta real 5, frontera = r300). Devuelve la fuente lista para el segundo
+# Avance con el cursor persistido.
+.msi_sm_seeded_source <- function(responses) {
+  mock <- .msi_sm_bulk_mock(responses, honor_cursor = TRUE)
+  .msi_sm_mock_engine_bindings(mock$handler)
+  source <- list(
+    id = "surveymonkey_900100",
+    kind = "surveymonkey",
+    survey_id = "900100",
+    enabled = TRUE,
+    sync_cursor = list(sm_modified_at = responses[[296L]]$date_modified)
+  )
+  data <- monitoreo_sync_source(source, sync_mode = "advance")
+  cursor <- attr(data, "sync_cursor", exact = TRUE)
+  source$sync_cursor <- cursor
+  list(source = source, data = data, cursor = cursor)
+}
+
+test_that("3.10b: el primer Avance siembra la frontera (sm_boundary) junto al cursor", {
+  skip_if_not_installed("digest")
+  responses <- .msi_sm_responses(300L)
+  seeded <- .msi_sm_seeded_source(responses)
+  expect_equal(nrow(seeded$data), 5L)
+  expect_equal(seeded$cursor$sm_modified_at, responses[[300L]]$date_modified)
+  boundary <- unlist(seeded$cursor$sm_boundary)
+  expect_length(boundary, 1L)
+  expect_true(startsWith(boundary, "r300|"))
+})
+
+test_that("3.10b: segundo Avance solo-frontera => delta efectivo 0 y no-op aplicable", {
+  skip_if_not_installed("digest")
+  responses <- .msi_sm_responses(300L)
+  seeded <- .msi_sm_seeded_source(responses)
+
+  # Sin cambios remotos: el bulk re-entrega SOLO la fila de frontera conocida.
+  mock2 <- .msi_sm_bulk_mock(responses, honor_cursor = TRUE)
+  .msi_sm_mock_engine_bindings(mock2$handler)
+  data2 <- monitoreo_sync_source(seeded$source, sync_mode = "advance")
+
+  expect_equal(nrow(data2), 0L)
+  expect_identical(attr(data2, "sync_mode", exact = TRUE), "incremental")
+  cursor2 <- attr(data2, "sync_cursor", exact = TRUE)
+  expect_identical(cursor2$fetched_count, 0L)
+  # El cursor y su frontera quedan intactos para el próximo Avance.
+  expect_equal(cursor2$sm_modified_at, responses[[300L]]$date_modified)
+  expect_setequal(unlist(cursor2$sm_boundary), unlist(seeded$cursor$sm_boundary))
+  # La condición del no-op de 3.10 lee el fetched YA deduplicado.
+  expect_true(.monitoreo_sync_summary_delta_cero(list(
+    sm = list(source_id = "surveymonkey_900100", kind = "surveymonkey",
+              mode = "incremental", rows = 0L, cursor = cursor2)
+  )))
+})
+
+test_that("3.10b: frontera conocida + 1 respuesta nueva => delta efectivo 1 y el cursor avanza", {
+  skip_if_not_installed("digest")
+  responses <- .msi_sm_responses(300L)
+  seeded <- .msi_sm_seeded_source(responses)
+
+  # Llega r301 (timestamp posterior); la frontera vieja se descuenta.
+  responses_nuevo <- .msi_sm_responses(301L)
+  mock2 <- .msi_sm_bulk_mock(responses_nuevo, honor_cursor = TRUE)
+  .msi_sm_mock_engine_bindings(mock2$handler)
+  data2 <- monitoreo_sync_source(seeded$source, sync_mode = "advance")
+
+  expect_equal(nrow(data2), 1L)
+  expect_equal(data2$response_id, "r301")
+  cursor2 <- attr(data2, "sync_cursor", exact = TRUE)
+  expect_identical(cursor2$fetched_count, 1L)
+  expect_equal(cursor2$sm_modified_at, responses_nuevo[[301L]]$date_modified)
+  # La frontera se REEMPLAZA por la del nuevo máximo (r301, no r300).
+  boundary2 <- unlist(cursor2$sm_boundary)
+  expect_length(boundary2, 1L)
+  expect_true(startsWith(boundary2, "r301|"))
+  expect_false(.monitoreo_sync_summary_delta_cero(list(
+    sm = list(source_id = "surveymonkey_900100", mode = "incremental", rows = 1L, cursor = cursor2)
+  )))
+})
+
+test_that("3.10b: respuesta de frontera con date_modified AVANZADO cuenta como delta (edición real)", {
+  skip_if_not_installed("digest")
+  responses <- .msi_sm_responses(300L)
+  seeded <- .msi_sm_seeded_source(responses)
+
+  # r300 fue editada después del corte: mismo id, date_modified posterior.
+  responses_edit <- responses
+  responses_edit[[300L]]$date_modified <- "2026-07-01T00:06:40Z"
+  mock2 <- .msi_sm_bulk_mock(responses_edit, honor_cursor = TRUE)
+  .msi_sm_mock_engine_bindings(mock2$handler)
+  data2 <- monitoreo_sync_source(seeded$source, sync_mode = "advance")
+
+  expect_equal(nrow(data2), 1L)
+  expect_equal(data2$response_id, "r300")
+  cursor2 <- attr(data2, "sync_cursor", exact = TRUE)
+  expect_identical(cursor2$fetched_count, 1L)
+  expect_equal(cursor2$sm_modified_at, "2026-07-01T00:06:40Z")
+})
+
+test_that("3.10b: caso patológico — mismo id y date_modified pero payload editado => delta (fingerprint distinto)", {
+  skip_if_not_installed("digest")
+  responses <- .msi_sm_responses(300L)
+  seeded <- .msi_sm_seeded_source(responses)
+
+  # Edición sin avance de date_modified: SOLO se trata como sin-cambios si el
+  # fingerprint coincide; acá cambió el contenido, así que cuenta como delta.
+  responses_patho <- responses
+  responses_patho[[300L]]$pages <- list(list(id = "p1", questions = list()))
+  mock2 <- .msi_sm_bulk_mock(responses_patho, honor_cursor = TRUE)
+  .msi_sm_mock_engine_bindings(mock2$handler)
+  data2 <- monitoreo_sync_source(seeded$source, sync_mode = "advance")
+
+  expect_equal(nrow(data2), 1L)
+  expect_equal(data2$response_id, "r300")
+  cursor2 <- attr(data2, "sync_cursor", exact = TRUE)
+  expect_identical(cursor2$fetched_count, 1L)
+})
+
+test_that("3.10b: cursor previo sin frontera sembrada (upgrade) no descuenta nada y se auto-siembra", {
+  skip_if_not_installed("digest")
+  responses <- .msi_sm_responses(300L)
+  mock <- .msi_sm_bulk_mock(responses, honor_cursor = TRUE)
+  .msi_sm_mock_engine_bindings(mock$handler)
+  # Cursor de una versión anterior: solo sm_modified_at, sin sm_boundary.
+  source <- list(
+    id = "surveymonkey_900100", kind = "surveymonkey", survey_id = "900100",
+    enabled = TRUE, sync_cursor = list(sm_modified_at = responses[[300L]]$date_modified)
+  )
+  data <- monitoreo_sync_source(source, sync_mode = "advance")
+  # La frontera re-cuenta una vez (comportamiento previo)...
+  expect_equal(nrow(data), 1L)
+  cursor_out <- attr(data, "sync_cursor", exact = TRUE)
+  # ...pero este mismo fetch la siembra para el próximo Avance.
+  expect_true(startsWith(unlist(cursor_out$sm_boundary), "r300|"))
+})
+
+test_that("3.10b: sm_boundary sobrevive los normalizadores y es independiente por fuente", {
+  normalized <- .monitoreo_normalize_sync_cursor(list(
+    sm_modified_at = "2026-07-01T00:05:00Z",
+    sm_boundary = list("r300|fp-fixture-abc")
+  ))
+  expect_identical(normalized$sm_boundary, list("r300|fp-fixture-abc"))
+
+  sources <- monitoreo_normalize_sources(list(
+    list(kind = "surveymonkey", survey_id = "111", enabled = TRUE,
+         sync_cursor = list(sm_modified_at = "2026-07-01T00:05:00Z", sm_boundary = list("rA|f1"))),
+    list(kind = "surveymonkey", survey_id = "222", enabled = TRUE,
+         sync_cursor = list(sm_modified_at = "2026-07-02T00:00:00Z", sm_boundary = list("rB|f2")))
+  ))
+  expect_identical(.monitoreo_sm_source_boundary(sources[[1]]), "rA|f1")
+  expect_identical(.monitoreo_sm_source_boundary(sources[[2]]), "rB|f2")
+})
+
 test_that("kobo: el fallback incremental->full ya no es silencioso (warning)", {
   testthat::local_mocked_bindings(
     kobo_api_fetch_all_asset_data = function(asset_uid, token, base_url = NULL, page_size = 1000L,

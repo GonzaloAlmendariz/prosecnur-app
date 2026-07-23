@@ -44,6 +44,132 @@
   .monitoreo_scalar(cursor$sm_modified_at, "")
 }
 
+# --- Unidad 3.10b: dedup de la frontera inclusiva del cursor SM --------------
+#
+# `start_modified_at` es INCLUSIVO en /responses/bulk: cada Avance re-entrega
+# las respuestas cuyo `date_modified` == cursor (1-3 filas en la práctica), así
+# que `fetched_count` nunca llegaba a 0 y el no-op de 3.10 jamás aplicaba en
+# proyectos SurveyMonkey. El cursor guarda ahora, además de `sm_modified_at`,
+# la lista `sm_boundary` de respuestas observadas EN ese timestamp de frontera
+# como "response_id|fingerprint"; tras el fetch se descuentan las ya conocidas
+# y `count` pasa a ser el DELTA EFECTIVO. El campo vive dentro de
+# `monitoreo_sources[[i]]$sync_cursor` (clave ya censada como persistible en
+# session_schema.R; no se crean claves de sesión nuevas). Perderlo ⇒ la
+# frontera re-cuenta como delta una vez y se re-siembra sola (benigno).
+
+# Campos SM del cursor normalizado. El normalizador canónico
+# (`.monitoreo_normalize_sync_cursor`, engine congelado a crecimiento) delega
+# acá: los campos nuevos del cursor SM se censan en esta función.
+.monitoreo_sync_cursor_sm_fields <- function(out, value) {
+  sm_modified_at <- .monitoreo_scalar(value$sm_modified_at %||% value$smModifiedAt, "")
+  if (nzchar(sm_modified_at)) out$sm_modified_at <- sm_modified_at
+  boundary <- .monitoreo_sm_boundary_normalize(value$sm_boundary %||% value$smBoundary)
+  if (length(boundary)) out$sm_boundary <- as.list(boundary)
+  out
+}
+
+# Tope defensivo del set de frontera (respuestas con el MISMO date_modified;
+# en la práctica 1-3). Si se excede se conservan las últimas: una entrada
+# evictada solo re-cuenta como delta en el próximo Avance (sin no-op; benigno).
+.monitoreo_sm_boundary_cap <- 200L
+
+.monitoreo_sm_boundary_normalize <- function(value) {
+  entries <- as.character(unlist(value %||% list(), use.names = FALSE))
+  entries <- entries[!is.na(entries) & nzchar(entries)]
+  entries <- unique(entries)
+  if (length(entries) > .monitoreo_sm_boundary_cap) {
+    entries <- entries[(length(entries) - .monitoreo_sm_boundary_cap + 1L):length(entries)]
+  }
+  entries
+}
+
+.monitoreo_sm_source_boundary <- function(source) {
+  cursor <- .monitoreo_normalize_sync_cursor(source$sync_cursor %||% source$syncCursor)
+  .monitoreo_sm_boundary_normalize(cursor$sm_boundary)
+}
+
+# Fingerprint de contenido de una respuesta cruda del bulk. Excluye campos de
+# navegación (href/analyze_url/edit_url) que no son contenido del caso. Sin el
+# paquete `digest` devuelve "" y la fila NUNCA se trata como conocida —
+# SUPUESTO documentado (stopping rule 3.10b): una respuesta de frontera con el
+# mismo id y el mismo date_modified pero payload editado (caso patológico)
+# solo se considera sin-cambios si su fingerprint coincide con el persistido;
+# sin fingerprint verificable se cuenta como delta y sigue el flujo normal.
+.monitoreo_sm_response_fingerprint <- function(r) {
+  if (!is.list(r)) return("")
+  if (!requireNamespace("digest", quietly = TRUE)) return("")
+  drop <- intersect(names(r) %||% character(0), c("href", "analyze_url", "edit_url"))
+  if (length(drop)) r <- r[setdiff(names(r), drop)]
+  digest::digest(r, algo = "sha256")
+}
+
+.monitoreo_sm_boundary_entry <- function(r) {
+  id <- .monitoreo_scalar(r$id %||% r$response_id, "")
+  if (!nzchar(id)) return("")
+  fp <- .monitoreo_sm_response_fingerprint(r)
+  if (!nzchar(fp)) return("")
+  paste(id, fp, sep = "|")
+}
+
+# Entradas de frontera del fetch actual: respuestas cuyo date_modified es el
+# máximo observado (el timestamp que será el próximo cursor).
+.monitoreo_sm_boundary_entries <- function(rows, max_modified_at) {
+  max_ts <- .sm_api_parse_time(max_modified_at)
+  if (is.na(max_ts)) return(character(0))
+  entries <- character(0)
+  for (r in rows %||% list()) {
+    ts <- .sm_api_parse_time(r$date_modified %||% r$date_created %||% NA_character_)
+    if (is.na(ts) || ts != max_ts) next
+    entry <- .monitoreo_sm_boundary_entry(r)
+    if (nzchar(entry)) entries <- c(entries, entry)
+  }
+  .monitoreo_sm_boundary_normalize(entries)
+}
+
+# Fetch SM del engine con dedup de frontera. Llama al bulk canónico (fallback
+# detectable y kill-switch PROSECNUR_SM_CURSOR intactos ahí) y descuenta las
+# filas de frontera cuyo (response_id + fingerprint) ya son conocidos del
+# cursor: `count` queda como delta efectivo, que es lo que viaja a
+# `fetched_count` y lee `.monitoreo_sync_summary_delta_cero` (no-op 3.10).
+# Cursor previo SIN frontera sembrada (proyectos de versiones anteriores):
+# la frontera re-cuenta como delta una vez y este mismo fetch la siembra.
+.monitoreo_sm_fetch_incremental <- function(source,
+                                            advance_mode,
+                                            token,
+                                            since = NULL,
+                                            progress = NULL,
+                                            base_url = "https://api.surveymonkey.com/v3") {
+  cursor <- .monitoreo_sm_cursor_for_fetch(source, advance_mode)
+  payload <- sm_api_fetch_all_responses_bulk(
+    survey_id = source$survey_id,
+    token = token,
+    since = since,
+    start_modified_at = cursor,
+    progress = progress,
+    base_url = base_url
+  )
+  known <- if (is.null(cursor)) character(0) else .monitoreo_sm_source_boundary(source)
+  if (length(known)) {
+    cursor_ts <- .sm_api_parse_time(cursor)
+    if (!is.na(cursor_ts)) {
+      keep <- vapply(payload$data %||% list(), function(r) {
+        ts <- .sm_api_parse_time(r$date_modified %||% r$date_created %||% NA_character_)
+        # Solo se descuenta la frontera exacta; un date_modified distinto
+        # (edición real posterior al corte) SIEMPRE cuenta como delta.
+        if (is.na(ts) || ts != cursor_ts) return(TRUE)
+        entry <- .monitoreo_sm_boundary_entry(r)
+        !nzchar(entry) || !(entry %in% known)
+      }, logical(1))
+      if (!all(keep)) {
+        payload$data <- (payload$data %||% list())[keep]
+        payload$count <- length(payload$data)
+      }
+    }
+  }
+  payload$boundary <- .monitoreo_sm_boundary_entries(payload$data, payload$max_modified_at)
+  payload
+}
+
 # Cursor a enviar al endpoint bulk: solo en modo avance, con flag ON y con
 # cursor previo. Sin cursor (primer sync) el modo avance baja todo y siembra
 # el cursor para el siguiente ciclo — igual que Kobo.
@@ -56,16 +182,31 @@
 
 # Construye el sync_cursor persistible tras un sync SM. Avanza sm_modified_at
 # al máximo `date_modified` visto; si el delta vino vacío conserva el cursor
-# previo. `payload` es el subset de campos que el engine adjunta como attr.
+# previo. `payload` es el subset de campos que el engine adjunta como attr
+# (incluye `boundary`, las entradas de frontera del fetch — unidad 3.10b).
 .monitoreo_sm_sync_cursor_attr <- function(source, payload, mode, n_rows) {
   payload <- payload %||% list()
   previous <- .monitoreo_sm_source_cursor(source)
+  prev_boundary <- .monitoreo_sm_source_boundary(source)
+  seen_boundary <- .monitoreo_sm_boundary_normalize(payload$boundary)
   max_seen <- .monitoreo_scalar(payload$max_modified_at, "")
   value <- previous
+  boundary <- prev_boundary
   if (nzchar(max_seen)) {
     prev_ts <- .sm_api_parse_time(previous)
     seen_ts <- .sm_api_parse_time(max_seen)
-    value <- if (is.na(prev_ts) || (!is.na(seen_ts) && seen_ts >= prev_ts)) max_seen else previous
+    if (is.na(prev_ts) || (!is.na(seen_ts) && seen_ts >= prev_ts)) {
+      value <- max_seen
+      # La frontera acompaña al cursor: si el timestamp AVANZÓ la reemplazan
+      # las respuestas del nuevo máximo; si es el MISMO se acumulan las nuevas
+      # (otra respuesta puede caer en el mismo segundo de frontera después).
+      same_ts <- !is.na(prev_ts) && !is.na(seen_ts) && seen_ts == prev_ts
+      boundary <- if (same_ts) {
+        .monitoreo_sm_boundary_normalize(c(prev_boundary, seen_boundary))
+      } else {
+        seen_boundary
+      }
+    }
   }
   n_rows <- suppressWarnings(as.integer(n_rows %||% 0L))
   if (!is.finite(n_rows)) n_rows <- 0L
@@ -76,6 +217,7 @@
     remote_total = suppressWarnings(as.integer(payload$total %||% payload$count %||% n_rows))
   )
   if (nzchar(value %||% "")) out$sm_modified_at <- value
+  if (nzchar(value %||% "") && length(boundary)) out$sm_boundary <- as.list(boundary)
   .monitoreo_normalize_sync_cursor(out)
 }
 
