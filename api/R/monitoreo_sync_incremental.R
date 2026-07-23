@@ -221,6 +221,119 @@
   .monitoreo_normalize_sync_cursor(out)
 }
 
+# --- Unidad 3.10c: el pull SM con delta 0 no paga details ni enrichment ------
+#
+# Intento completo de sync SurveyMonkey para UN candidato de token. El bloque
+# SM del engine congelado (monitoreo_sync_source) delega acá. Reordenado en
+# 3.10c: cuando hay cursor operativo (modo avance + cursor persistido + flag
+# ON — único caso donde el skip puede pagar) el bulk incremental corre
+# PRIMERO y, si el delta efectivo es 0 (dedup de frontera 3.10b), se hace
+# SKIP TOTAL de survey details, flatten y enrichment. Sin cursor operativo
+# (full o primer Avance) el orden HISTÓRICO se conserva — details antes del
+# bulk — para no cambiar en qué request tropieza un token inválido (el
+# fallback de perfiles alternativos está fijado por test en
+# test-monitoreo-engine.R). Con delta > 0 los details siguen pidiéndose ANTES
+# del flatten (alimentan columnas/labels) y el enrichment corre después,
+# idéntico al flujo previo.
+#
+# El df del skip es un data.frame() de 0 filas SIN columnas del snapshot:
+# verificado contra .monitoreo_merge_sync_result_data (router_monitoreo.R) —
+# .monitoreo_bind_rows filtra los dfs sin filas y el upsert no ve claves
+# nuevas, así que el merge con delta 0 es no-op garantizado sin exigir shape.
+.monitoreo_sm_sync_attempt <- function(source,
+                                       advance_mode,
+                                       token,
+                                       since = NULL,
+                                       progress = NULL,
+                                       base_url = "https://api.surveymonkey.com/v3") {
+  payload <- NULL
+  sm_payload <- NULL
+  fetch_bulk <- function() {
+    payload <<- .monitoreo_sm_fetch_incremental(
+      source = source,
+      advance_mode = advance_mode,
+      token = token,
+      since = since,
+      progress = progress,
+      base_url = base_url
+    )
+    sm_payload <<- payload[c("count", "total", "cursor_enabled", "cursor_applied", "max_modified_at", "boundary")]
+    invisible(NULL)
+  }
+  if (!is.null(.monitoreo_sm_cursor_for_fetch(source, advance_mode))) {
+    fetch_bulk()
+    if (isTRUE(payload$cursor_enabled) && !length(payload$data %||% list())) {
+      # Delta efectivo 0 con cursor operativo: cero requests adicionales.
+      df <- data.frame()
+      attr(df, "sm_sync_payload") <- sm_payload
+      attr(df, "survey_title") <- .monitoreo_scalar(source$survey_title, "")
+      return(df)
+    }
+  }
+  details <- sm_api_fetch_survey_details(source$survey_id, token, base_url = base_url)
+  survey_title <- .monitoreo_scalar(details$title, source$survey_title %||% "")
+  collector_sync_error <- ""
+  collectors_meta <- list()
+  if (!isTRUE(advance_mode)) {
+    collectors_meta <- tryCatch(
+      .monitoreo_sm_collectors_meta(source$survey_id, token, base_url),
+      error = function(e) {
+        collector_sync_error <<- conditionMessage(e)
+        list()
+      }
+    )
+  }
+  if (is.null(payload)) fetch_bulk()
+  df <- sm_api_flatten_responses(details, payload$data)
+  attr(df, "sm_sync_payload") <- sm_payload
+  df <- sm_api_enrich_response_recipients(
+    df,
+    token = token,
+    base_url = base_url,
+    include_details = !isTRUE(advance_mode)
+  )
+  if (!isTRUE(advance_mode)) {
+    attr(df, "monitoreo_source_collectors") <- collectors_meta
+    if (nzchar(collector_sync_error)) attr(df, "monitoreo_source_collectors_error") <- collector_sync_error
+  }
+  attr(df, "survey_title") <- survey_title
+  df
+}
+
+# Metadata de colectores (solo sync completo; el modo avance nunca la pide).
+# Movida SIN cambios funcionales desde el bloque SM del engine congelado
+# (unidad 3.10c); el orden relativo details→collectors se conserva.
+.monitoreo_sm_collectors_meta <- function(survey_id, token, base_url) {
+  collectors <- sm_api_fetch_collectors(survey_id, token, base_url = base_url)
+  out <- list()
+  for (collector in collectors$data %||% list()) {
+    collector_id <- .monitoreo_scalar(collector$id %||% collector$collector_id, "")
+    if (!nzchar(collector_id)) next
+    detail <- tryCatch(
+      sm_api_fetch_collector_detail(collector_id, token, base_url = base_url),
+      error = function(e) collector
+    )
+    out[[collector_id]] <- list(
+      id = collector_id,
+      collector_id = collector_id,
+      name = .monitoreo_scalar(
+        detail$name %||% detail$title %||% detail$collector_name %||% detail$collectorName %||%
+          detail$display_name %||% detail$displayName %||% detail$nickname %||%
+          (detail$metadata %||% list())$name %||% (detail$metadata %||% list())$title %||%
+          (detail$collector %||% list())$name %||% (detail$collector %||% list())$title %||%
+          collector$name %||% collector$title %||% collector$collector_name %||% collector$collectorName %||%
+          collector$display_name %||% collector$displayName %||% collector$nickname,
+        ""
+      ),
+      type = .monitoreo_scalar(detail$type %||% detail$collector_type %||% detail$collectorType %||% collector$type, ""),
+      url = .monitoreo_scalar(detail$url %||% collector$url %||% detail$href %||% collector$href, ""),
+      response_count = as.integer(.monitoreo_num(detail$response_count %||% collector$response_count, 0)),
+      synced_at = .monitoreo_now_iso()
+    )
+  }
+  unname(out)
+}
+
 # --- Publicación Google Sheets: batch + skip por hash -----------------------
 
 .monitoreo_sync_sheets_tab_state_key <- function() "prosecnur.tab_state"

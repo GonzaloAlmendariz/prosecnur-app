@@ -5963,73 +5963,28 @@ monitoreo_sync_source <- function(source, since = NULL, progress = NULL, sid = N
     for (candidate in token_candidates) {
       token <- .monitoreo_scalar(candidate$token, "")
       candidate_profile_id <- .monitoreo_scalar(candidate$profile_id, "")
-      attempt <- tryCatch({
-        details <- sm_api_fetch_survey_details(source$survey_id, token, base_url = base_url)
-        source$survey_title <- .monitoreo_scalar(details$title, source$survey_title %||% "")
-        collector_sync_error <- ""
-        collectors_meta <- list()
-        if (!advance_mode) {
-          collectors_meta <- tryCatch({
-            collectors <- sm_api_fetch_collectors(source$survey_id, token, base_url = base_url)
-            out <- list()
-            for (collector in collectors$data %||% list()) {
-              collector_id <- .monitoreo_scalar(collector$id %||% collector$collector_id, "")
-              if (!nzchar(collector_id)) next
-              detail <- tryCatch(
-                sm_api_fetch_collector_detail(collector_id, token, base_url = base_url),
-                error = function(e) collector
-              )
-              out[[collector_id]] <- list(
-                id = collector_id,
-                collector_id = collector_id,
-                name = .monitoreo_scalar(
-                  detail$name %||% detail$title %||% detail$collector_name %||% detail$collectorName %||%
-                    detail$display_name %||% detail$displayName %||% detail$nickname %||%
-                    (detail$metadata %||% list())$name %||% (detail$metadata %||% list())$title %||%
-                    (detail$collector %||% list())$name %||% (detail$collector %||% list())$title %||%
-                    collector$name %||% collector$title %||% collector$collector_name %||% collector$collectorName %||%
-                    collector$display_name %||% collector$displayName %||% collector$nickname,
-                  ""
-                ),
-                type = .monitoreo_scalar(detail$type %||% detail$collector_type %||% detail$collectorType %||% collector$type, ""),
-                url = .monitoreo_scalar(detail$url %||% collector$url %||% detail$href %||% collector$href, ""),
-                response_count = as.integer(.monitoreo_num(detail$response_count %||% collector$response_count, 0)),
-                synced_at = .monitoreo_now_iso()
-              )
-            }
-            unname(out)
-          }, error = function(e) {
-            collector_sync_error <<- conditionMessage(e)
-            list()
-          })
-        }
-        payload <- .monitoreo_sm_fetch_incremental(
+      # 3.10c: el intento completo vive en monitoreo_sync_incremental.R —
+      # con cursor operativo (Avance) el bulk incremental corre PRIMERO y un
+      # delta efectivo 0 salta survey details, flatten y enrichment por
+      # completo; sin cursor se conserva el orden histórico. Con delta > 0
+      # el flujo es idéntico al previo (details antes del flatten,
+      # enrichment después; collectors solo en sync completo). survey_title,
+      # collectors y sm_sync_payload viajan como attrs del df, igual que
+      # antes.
+      attempt <- tryCatch(
+        .monitoreo_sm_sync_attempt(
           source = source,
           advance_mode = advance_mode,
           token = token,
           since = since,
           progress = progress,
           base_url = base_url
-        )
-        df <- sm_api_flatten_responses(details, payload$data)
-        attr(df, "sm_sync_payload") <- payload[c("count", "total", "cursor_enabled", "cursor_applied", "max_modified_at", "boundary")]
-        df <- sm_api_enrich_response_recipients(
-          df,
-          token = token,
-          base_url = base_url,
-          include_details = !advance_mode
-        )
-        if (!advance_mode) {
-          attr(df, "monitoreo_source_collectors") <- collectors_meta
-          if (nzchar(collector_sync_error)) attr(df, "monitoreo_source_collectors_error") <- collector_sync_error
+        ),
+        error = function(e) {
+          last_error <<- list(profile_id = candidate_profile_id, message = conditionMessage(e))
+          NULL
         }
-        attr(df, "connection_profile_id") <- candidate_profile_id
-        attr(df, "survey_title") <- source$survey_title
-        df
-      }, error = function(e) {
-        last_error <<- list(profile_id = candidate_profile_id, message = conditionMessage(e))
-        NULL
-      })
+      )
       if (!is.null(attempt)) {
         data <- attempt
         selected_profile_id <- candidate_profile_id

@@ -798,6 +798,169 @@ test_that("3.10b: sm_boundary sobrevive los normalizadores y es independiente po
   expect_identical(.monitoreo_sm_source_boundary(sources[[2]]), "rB|f2")
 })
 
+# --- F-ter. Unidad 3.10c: el pull SM con delta 0 no paga details/enrichment --
+#
+# Mock de servidor SM completo sobre el seam .sm_api_http_fetch: sirve bulk,
+# details, collectors y recipients con fixtures sintéticas y CUENTA los
+# requests por categoría. A diferencia de .msi_sm_mock_engine_bindings, acá
+# los survey details NO van mockeados aparte: pasan por el transporte, que es
+# exactamente lo que 3.10c debe evitar cuando el delta efectivo es 0.
+
+.msi_sm_full_mock <- function(responses, recipients_body = '{"data":[],"total":0}') {
+  bulk <- .msi_sm_bulk_mock(responses, honor_cursor = TRUE)
+  env <- new.env(parent = emptyenv())
+  env$bulk <- 0L
+  env$details <- 0L
+  env$collectors <- 0L
+  env$recipients <- 0L
+  env$other <- 0L
+  details_body <- as.character(jsonlite::toJSON(.msi_sm_details_fixture(), auto_unbox = TRUE, null = "null"))
+  handler <- function(url, handle) {
+    if (grepl("/responses/bulk", url, fixed = TRUE)) {
+      env$bulk <- env$bulk + 1L
+      return(bulk$handler(url, handle))
+    }
+    if (grepl("/details", url, fixed = TRUE)) {
+      env$details <- env$details + 1L
+      return(.msi_res(200L, details_body))
+    }
+    # OJO: recipients antes que collectors — la URL de destinatarios
+    # (/collectors/{id}/recipients) contiene ambos segmentos.
+    if (grepl("/recipients", url, fixed = TRUE)) {
+      env$recipients <- env$recipients + 1L
+      return(.msi_res(200L, recipients_body))
+    }
+    if (grepl("/collectors", url, fixed = TRUE)) {
+      env$collectors <- env$collectors + 1L
+      return(.msi_res(200L, '{"data":[],"total":0}'))
+    }
+    env$other <- env$other + 1L
+    .msi_res(200L, "{}")
+  }
+  list(env = env, handler = handler)
+}
+
+.msi_sm_full_mock_bindings <- function(handler) {
+  testthat::local_mocked_bindings(
+    .sm_api_http_fetch = handler,
+    .monitoreo_surveymonkey_token_candidates = function(...) {
+      list(list(token = "tok-fixture-sanitizado", profile_id = "perfil-fixture"))
+    },
+    .env = parent.frame()
+  )
+}
+
+test_that("3.10c: Avance con delta 0 => SOLO bulk (0 details, 0 collectors, 0 recipients) y merge no-op", {
+  skip_if_not_installed("digest")
+  responses <- .msi_sm_responses(300L)
+  source <- list(
+    id = "surveymonkey_900100", kind = "surveymonkey", survey_id = "900100",
+    enabled = TRUE, sync_cursor = list(sm_modified_at = responses[[296L]]$date_modified)
+  )
+  # Siembra: el primer Avance (delta 5 > 0) SÍ paga details — hay filas que
+  # aplanar y los details alimentan columnas/labels del flatten.
+  mock1 <- .msi_sm_full_mock(responses)
+  .msi_sm_full_mock_bindings(mock1$handler)
+  data1 <- monitoreo_sync_source(source, sync_mode = "advance")
+  expect_equal(nrow(data1), 5L)
+  expect_identical(mock1$env$details, 1L)
+  source$sync_cursor <- attr(data1, "sync_cursor", exact = TRUE)
+
+  # Sin cambios remotos: delta efectivo 0 tras el dedup de frontera (3.10b).
+  mock2 <- .msi_sm_full_mock(responses)
+  .msi_sm_full_mock_bindings(mock2$handler)
+  data2 <- monitoreo_sync_source(source, sync_mode = "advance")
+
+  expect_equal(nrow(data2), 0L)
+  expect_gte(mock2$env$bulk, 1L)
+  expect_identical(mock2$env$details, 0L)
+  expect_identical(mock2$env$collectors, 0L)
+  expect_identical(mock2$env$recipients, 0L)
+  expect_identical(mock2$env$other, 0L)
+
+  # La semántica de 3.10/3.10b queda intacta: incremental, cursor y frontera
+  # preservados, no-op aplicable.
+  expect_identical(attr(data2, "sync_mode", exact = TRUE), "incremental")
+  cursor2 <- attr(data2, "sync_cursor", exact = TRUE)
+  expect_identical(cursor2$fetched_count, 0L)
+  expect_equal(cursor2$sm_modified_at, responses[[300L]]$date_modified)
+  expect_true(startsWith(unlist(cursor2$sm_boundary), "r300|"))
+  expect_true(.monitoreo_sync_summary_delta_cero(list(
+    sm = list(source_id = "surveymonkey_900100", mode = "incremental", rows = 0L, cursor = cursor2)
+  )))
+
+  # El df vacío del skip (0 filas, SIN columnas del snapshot) atraviesa el
+  # merge del router como no-op garantizado: .monitoreo_bind_rows filtra dfs
+  # sin filas y el upsert no ve claves nuevas.
+  prev <- data.frame(
+    .source_id = c("surveymonkey_900100", "surveymonkey_900100"),
+    response_id = c("r299", "r300"),
+    valor = c("a", "b"),
+    stringsAsFactors = FALSE
+  )
+  merged <- .monitoreo_merge_sync_result_data(
+    prev, data2,
+    synced_source_ids = "surveymonkey_900100",
+    incremental_source_ids = "surveymonkey_900100"
+  )
+  expect_equal(merged, prev)
+})
+
+test_that("3.10c: Avance con delta > 0 => details antes del flatten y enrichment después (flujo intacto)", {
+  skip_if_not_installed("digest")
+  responses <- .msi_sm_responses(300L)
+  source <- list(
+    id = "surveymonkey_900100", kind = "surveymonkey", survey_id = "900100",
+    enabled = TRUE, sync_cursor = list(sm_modified_at = responses[[296L]]$date_modified)
+  )
+  mock1 <- .msi_sm_full_mock(responses)
+  .msi_sm_full_mock_bindings(mock1$handler)
+  data1 <- monitoreo_sync_source(source, sync_mode = "advance")
+  source$sync_cursor <- attr(data1, "sync_cursor", exact = TRUE)
+
+  # Llega r301 con colector y destinatario: delta efectivo 1.
+  responses_nuevo <- .msi_sm_responses(301L)
+  responses_nuevo[[301L]]$collector_id <- "col-310c"
+  responses_nuevo[[301L]]$recipient_id <- "rcp-310c"
+  .sm_api_recipients_cache_clear()
+  mock2 <- .msi_sm_full_mock(
+    responses_nuevo,
+    recipients_body = '{"data":[{"id":"rcp-310c","email":"fixture-310c@example.org"}],"total":1}'
+  )
+  .msi_sm_full_mock_bindings(mock2$handler)
+  data2 <- monitoreo_sync_source(source, sync_mode = "advance")
+
+  expect_equal(nrow(data2), 1L)
+  expect_equal(data2$response_id, "r301")
+  # details se pagó UNA vez (columnas/labels del flatten)...
+  expect_identical(mock2$env$details, 1L)
+  # ...y el enrichment de destinatarios corrió después del flatten.
+  expect_gte(mock2$env$recipients, 1L)
+  expect_equal(data2$recipient_email, "fixture-310c@example.org")
+  # Modo avance: la metadata de collectors sigue sin pedirse (igual que antes).
+  expect_identical(mock2$env$collectors, 0L)
+  cursor2 <- attr(data2, "sync_cursor", exact = TRUE)
+  expect_identical(cursor2$fetched_count, 1L)
+  expect_equal(cursor2$sm_modified_at, responses_nuevo[[301L]]$date_modified)
+})
+
+test_that("3.10c: full (sin cursor) con 0 respuestas NO se salta details/collectors (refresca título)", {
+  responses_vacias <- list()
+  mock <- .msi_sm_full_mock(responses_vacias)
+  .msi_sm_full_mock_bindings(mock$handler)
+  source <- list(
+    id = "surveymonkey_900100", kind = "surveymonkey", survey_id = "900100",
+    enabled = TRUE
+  )
+  data <- monitoreo_sync_source(source, sync_mode = "full")
+  expect_equal(nrow(data), 0L)
+  # El skip exige cursor operativo: un full con 0 respuestas sigue el flujo
+  # normal para refrescar survey_title y la metadata de colectores.
+  expect_identical(mock$env$details, 1L)
+  expect_gte(mock$env$collectors, 1L)
+  expect_identical(attr(data, "survey_title", exact = TRUE), "Encuesta fixture 3.8")
+})
+
 test_that("kobo: el fallback incremental->full ya no es silencioso (warning)", {
   testthat::local_mocked_bindings(
     kobo_api_fetch_all_asset_data = function(asset_uid, token, base_url = NULL, page_size = 1000L,
