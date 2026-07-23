@@ -1,3 +1,447 @@
+/* =========================================================================
+   Movido desde app/theme.css (refactor 2026-07: theme.css = tokens + kit).
+   Bloques byte-idénticos; prepend para conservar el orden de cascada (theme.css cargaba antes que este archivo).
+   ========================================================================= */
+
+.pulso-codificacion-matrix-focus-chip.is-all {
+  max-width: none;
+}
+
+.pulso-codificacion-matrix-focus-chip.is-active small {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.pulso-codificacion-matrix-focus-chip:active {
+  transform: scale(0.98);
+}
+
+.pulso-codificacion-matrix-search:focus-within {
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-primary) 12%, transparent);
+}
+
+.pulso-codificacion-matrix-search input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
+.pulso-codificacion-matrix-search input::placeholder {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-codificacion-matrix-search button {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-codificacion-matrix-case-row:hover {
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
+}
+
+.pulso-codificacion-matrix-case-row:active {
+  transform: scale(0.992);
+}
+
+.pulso-codificacion-matrix-case-row > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.pulso-codificacion-matrix-case-row small + small {
+  color: color-mix(in srgb, var(--pulso-primary) 70%, var(--pulso-text-soft));
+  font-weight: 720;
+}
+
+.pulso-codificacion-matrix-case-row em {
+  justify-self: end;
+  max-width: 100%;
+  border: 1px solid var(--pulso-primary-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  padding: 3px 7px;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 780;
+  white-space: nowrap;
+}
+
+.pulso-codificacion-matrix-case-row em.is-otro {
+  border-color: color-mix(in srgb, var(--pulso-warn-accent) 34%, var(--pulso-warn-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 76%, #fff 24%);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-codificacion-matrix-case-row em.is-no_contesta {
+  border-color: color-mix(in srgb, var(--pulso-border) 86%, var(--pulso-text-soft));
+  background: color-mix(in srgb, var(--pulso-surface-2) 84%, #fff 16%);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-codificacion-matrix-case-editor > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.pulso-codificacion-matrix-case-editor select,
+.pulso-codificacion-matrix-case-editor input {
+  min-width: 0;
+  min-height: 32px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--pulso-text);
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.pulso-codificacion-matrix-case-editor > div:last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pulso-codificacion-matrix-case-editor button {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: #fff;
+  color: var(--pulso-text-soft);
+  padding: 4px 9px;
+  font-size: 10.5px;
+  font-weight: 780;
+}
+
+.pulso-codificacion-matrix-case-editor button.is-primary {
+  border-color: var(--pulso-primary);
+  background: var(--pulso-primary);
+  color: #fff;
+}
+
+.pulso-codificacion-matrix-variable-row:hover {
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
+}
+
+.pulso-codificacion-matrix-variable-row:active {
+  transform: scale(0.992);
+}
+
+.pulso-codificacion-matrix-variable-row input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--pulso-primary);
+}
+
+.pulso-codificacion-matrix-dictionary-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--pulso-border);
+  background:
+    linear-gradient(180deg, #fff, color-mix(in srgb, var(--pulso-surface-2) 72%, #fff));
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: 860;
+  line-height: 1.1;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.pulso-codificacion-matrix-dictionary-table td {
+  vertical-align: top;
+  padding: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 70%, transparent);
+  color: var(--pulso-text-soft);
+  font-weight: 720;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-codificacion-matrix-dictionary-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.pulso-codificacion-matrix-dictionary-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--pulso-module-processing-soft) 18%, #fff);
+}
+
+.pulso-codificacion-matrix-dictionary-table tbody tr.is-otro td {
+  background: color-mix(in srgb, var(--pulso-warn-bg) 38%, #fff 62%);
+}
+
+.pulso-codificacion-matrix-dictionary-table tbody tr.is-no_contesta td {
+  background: color-mix(in srgb, var(--pulso-surface-2) 62%, #fff 38%);
+}
+
+.pulso-codificacion-matrix-dictionary-table tbody tr.is-otro:hover td {
+  background: color-mix(in srgb, var(--pulso-warn-bg) 58%, #fff 42%);
+}
+
+.pulso-codificacion-matrix-dictionary-table tbody tr.is-no_contesta:hover td {
+  background: color-mix(in srgb, var(--pulso-surface-2) 82%, #fff 18%);
+}
+
+.pulso-codificacion-matrix-empty svg {
+  color: var(--pulso-primary);
+}
+
+.pulso-codificacion-matrix-empty strong {
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+.pulso-codificacion-matrix-standard strong {
+  color: var(--pulso-text);
+  font-size: 11.5px;
+}
+
+.pulso-codificacion-import-head h2 {
+  margin: 1px 0 2px;
+  color: var(--pulso-text);
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.pulso-codificacion-import-picker strong {
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.pulso-codificacion-import-pill strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-codificacion-import-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-header-row);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.pulso-codificacion-import-table td {
+  vertical-align: top;
+  padding: 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 72%, transparent);
+  color: var(--pulso-text);
+}
+
+.pulso-codificacion-import-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.pulso-codificacion-import-table code {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 760;
+}
+
+.pulso-codificacion-import-table input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  margin: 2px 0 0;
+  accent-color: var(--pulso-primary);
+}
+
+.pulso-codificacion-import-table select {
+  width: 100%;
+  min-width: 150px;
+  min-height: 30px;
+  font-size: 11.5px;
+}
+
+.pulso-codificacion-sidebar-head strong {
+  color: var(--pulso-text);
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.pulso-codificacion-nav-copy strong {
+  color: var(--pulso-text);
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.pulso-codificacion-nav-item:hover:not(:disabled) .pulso-codificacion-nav-copy span,
+.pulso-codificacion-nav-item:focus-visible .pulso-codificacion-nav-copy span,
+.pulso-codificacion-nav-item.is-active .pulso-codificacion-nav-copy span {
+  max-height: 14px;
+  opacity: 1;
+}
+
+.pulso-codificacion-nav-item.is-active .pulso-codificacion-nav-copy strong,
+.pulso-codificacion-nav-item.is-active .pulso-codificacion-nav-copy span {
+  color: #fff;
+}
+
+.pulso-codificacion-panel-copy h2 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 13.5px;
+  font-weight: 820;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-codificacion-panel-body .pulso-codificacion-section-head {
+  top: 0;
+}
+
+.pulso-codificacion-question-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 42%),
+    color-mix(in srgb, var(--pulso-module-processing-soft) 28%, transparent);
+  opacity: 0;
+  transition: opacity var(--motion-dur-fast) ease;
+}
+
+.pulso-codificacion-question-card:hover {
+  transform: translateY(-1px);
+}
+
+.pulso-codificacion-question-grid > article:hover {
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.1);
+}
+
+.pulso-codificacion-soft-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.pulso-codificacion-adaptar-bridge-copy strong {
+  display: block;
+  color: var(--pulso-text);
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+/* Botón de navegación tipo "ghost" — ni primary ni outline, solo hover
+   con background soft. Usado en nav prev/next del CodificarWizard y
+   cualquier otra navegación contextual donde el botón no debe competir
+   visualmente con el CTA principal. */
+button.pulso-ghost-nav {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--pulso-text);
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+button.pulso-ghost-nav:hover:not(:disabled) {
+  background: var(--pulso-surface);
+  border-color: var(--pulso-border);
+  color: var(--pulso-primary);
+}
+
+button.pulso-ghost-nav:disabled {
+  color: var(--pulso-text-soft);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pulso-codificacion-status {
+  flex: 1 1 auto;
+}
+
+.pulso-codificacion-config-actions {
+  flex: 0 0 auto;
+}
+
+.pulso-codificacion-panel-copy h2 {
+  font-size: 16px;
+  font-weight: 840;
+}
+
+.pulso-codificacion-loading-step > span {
+  grid-area: icon;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+
+.pulso-codificacion-loading-step strong,
+.pulso-codificacion-loading-step small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-codificacion-loading-step strong {
+  grid-area: label;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 820;
+  line-height: 1.2;
+}
+
+.pulso-codificacion-loading-step small {
+  grid-area: hint;
+  color: var(--pulso-text-soft);
+  font-size: 10.8px;
+  font-weight: 620;
+  line-height: 1.25;
+}
+
+.pulso-codificacion-section-meta strong {
+  font-weight: 820;
+}
+
+.pulso-codificacion-question-grid > article {
+  min-width: 0;
+}
+
+.pulso-codificacion-sections-grid .pulso-codificacion-question-card {
+  min-height: 206px;
+  border-radius: 14px;
+}
+
 /* =============================================================================
  * codificacion-v2.css — capa visual gv2 del módulo Codificación
  * =============================================================================
@@ -1088,4 +1532,130 @@
 .pulso-codificacion-relation-empty {
   padding: 18px;
   text-align: center;
+}
+
+/* =========================================================================
+   Movido desde app/theme.css (refactor 2026-07: theme.css = tokens + kit).
+   Bloques byte-idénticos; append: sin solape de selectores con el resto del archivo.
+   ========================================================================= */
+
+.pulso-codificacion-matrix-hero-copy h3 {
+  color: var(--pulso-text);
+  font-size: 15px;
+  line-height: 1.22;
+}
+
+.pulso-codificacion-matrix-panel-actions button {
+  min-height: 26px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: #fff;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 760;
+  padding: 3px 8px;
+}
+
+.pulso-codificacion-matrix-base-card.is-focused {
+  border-color: var(--pulso-primary-border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), color-mix(in srgb, var(--pulso-module-processing-soft) 20%, #fff)),
+    #fff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.07);
+}
+
+.pulso-codificacion-matrix-base-card header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 1px 2px 0;
+}
+
+.pulso-codificacion-matrix-base-card header strong {
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.18;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-codificacion-matrix-base-card header > span {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: #fff;
+  color: var(--pulso-text-soft);
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+.pulso-codificacion-import-footer button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+}
+
+.pulso-codificacion-shell.is-empty {
+  min-height: 420px;
+}
+
+.pulso-codificacion-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 13px;
+  padding: 4px 0;
+}
+
+.pulso-codificacion-search-clear:active {
+  transform: scale(0.94);
+}
+
+.pulso-codificacion-sidebar-question:hover {
+  border-color: var(--pulso-primary-border);
+  background: var(--pulso-primary-soft);
+}
+
+.pulso-codificacion-sidebar-question:active {
+  transform: scale(0.99);
+}
+
+.pulso-codificacion-sidebar-question.is-active {
+  border-color: var(--pulso-primary);
+  background: var(--pulso-primary-soft);
+  box-shadow: 0 7px 18px rgba(0, 36, 87, 0.1);
+}
+
+.pulso-codificacion-loading-copy h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: clamp(17px, 1.35vw, 22px);
+  font-weight: 860;
+  letter-spacing: 0;
+  line-height: 1.14;
+}
+
+.pulso-codificacion-loading-line.is-title {
+  width: 62%;
+  height: 14px;
+}
+
+.pulso-codificacion-loading-line.is-short {
+  width: 42%;
+}
+
+.pulso-codificacion-loading-line.is-soft {
+  width: 78%;
+  opacity: 0.62;
 }

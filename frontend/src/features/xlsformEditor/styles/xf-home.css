@@ -1,3 +1,21 @@
+/* =========================================================================
+   Movido desde app/theme.css (refactor 2026-07: theme.css = tokens + kit).
+   Bloques byte-idénticos; prepend para conservar el orden de cascada (theme.css cargaba antes que este archivo).
+   ========================================================================= */
+
+/* === HubFlowDiagram (SVG del flujo en el EmptyHome) === */
+.pulso-hub-flow {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
+}
+
+.pulso-hub-flow-svg {
+  width: 100%;
+  max-width: 880px;
+  height: auto;
+}
+
 /* ==========================================================================
    xf-home.css — hub / biblioteca de formularios del editor XLSForm
    --------------------------------------------------------------------------

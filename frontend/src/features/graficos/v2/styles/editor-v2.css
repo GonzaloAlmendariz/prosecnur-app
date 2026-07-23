@@ -1,3 +1,20 @@
+/* =========================================================================
+   Movido desde app/theme.css (refactor 2026-07: theme.css = tokens + kit).
+   Bloques byte-idénticos; prepend para conservar el orden de cascada (theme.css cargaba antes que este archivo).
+   ========================================================================= */
+
+.pulso-graficos-blocked {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
 /* =============================================================================
  * editor-v2.css — animaciones y estilos del editor de plan PPT v2
  * =============================================================================
@@ -32885,4 +32902,53 @@
     flex-direction: column;
     gap: 2px;
   }
+}
+
+/* =========================================================================
+   Movido desde app/theme.css (refactor 2026-07: theme.css = tokens + kit).
+   Bloques byte-idénticos; append: sin solape de selectores con el resto del archivo.
+   ========================================================================= */
+
+/* Input tipo "inline-edit" — se ve como heading plano en reposo y
+   se revela como un input editable al focus. Usado en headers donde
+   el nombre del item es la pieza principal del UI (OverridesEditor). */
+input.pulso-inline-edit {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--pulso-text);
+  outline: none;
+  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+  width: 100%;
+}
+
+input.pulso-inline-edit:hover:not(:focus) {
+  background: var(--pulso-surface);
+  border-color: var(--pulso-border);
+}
+
+input.pulso-inline-edit:focus {
+  background: white;
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+/* Botón de "Agregar slide" en el TimelinePanel — ghost con hover soft
+   primary. Sin estilo persistente para que visualmente los botones no
+   compitan con los items del plan (arriba en la misma columna). */
+button.pulso-timeline-add {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--pulso-text);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+button.pulso-timeline-add:hover:not(:disabled) {
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
 }
