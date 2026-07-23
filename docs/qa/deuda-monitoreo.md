@@ -155,6 +155,45 @@ Arquitectura (reducción por extracción, nunca reescritura big-bang):
 10. Al final del camino: retirar la superficie legacy (`?monitoreoSurface`), las páginas de
     comparación dev y el propio `MonitoreoPage.tsx`.
 
+## 4. Ciclo sync→dashboard→Sheets (diagnóstico 2026-07-23, unidad 3.8)
+
+El corazón del monitoreo en tiempo real. Causas priorizadas:
+
+1. **SurveyMonkey siempre baja todo**: `sm_api_fetch_all_responses_bulk`
+   (`surveymonkey_api.R:683-725`) pagina secuencial con `since=NULL` y filtra el delta
+   LOCALMENTE tras descargar; la API v3 sí soporta `start_modified_at` (validar contra un
+   survey real antes de comprometerlo). El enriquecimiento de destinatarios hace hasta 1
+   request por destinatario (~840+ requests con 3 colectores × 800), sin ningún manejo de
+   rate limit ni backoff 429 (los fallos caen a `tryCatch → NULL` desperdiciando 20s c/u).
+2. **Sheets reescribe el 100% en serie y en main-thread**: `monitoreo_sheets_publish_tabs`
+   (`monitoreo_engine.R:5766-5857`) hace clear+PUT por pestaña (~20-25 requests por
+   publicación) aunque nada cambió; `/publication/sheets` y `/sheets/sync` corren síncronos
+   en plumber (`router_monitoreo.R:6107-6147`, :5908-5940) y el bundle del preflight se
+   computa DOS veces. Palanca: `values:batchUpdate` único + skip por hash + job.
+3. **Post-pull O(histórico), no O(delta)**: `kobo_api_flatten_results` hace round-trip
+   toJSON/fromJSON del total; `monitoreo_normalize_config` se recalcula sobre el frame
+   combinado completo en cada sync.
+4. **Incremental solo Kobo y frágil**: cursor `_id > n` solo en modo advance, con fallback
+   SILENCIOSO a full ante cualquier error; no ve ediciones/borrados. No existe auto-sync
+   (todo manual); nada impide un tick de 1-2 min una vez que SM sea incremental y el
+   post-pull sea O(delta).
+5. **Transporte sin red de seguridad**: Kobo sin timeout (socket colgado = sync infinito),
+   ninguno con retries, paginación estrictamente secuencial (Kobo expone `count`: las
+   páginas 2..N podrían ir en paralelo con `curl::multi`).
+
+Hipótesis falsable: cursor SM server-side + batchUpdate con skip por hash ⇒ ciclo
+sync→sheets con delta pequeño baja de minutos a <10s sin cambiar ningún número.
+
+## 5. Uniformidad de controles de avance (inventario 2026-07-23, unidad 3.9)
+
+`shell/MonitoreoModuleChrome.tsx` es el canónico de facto (los 5 paths lo montan). Las
+divergencias: Aulas con label "Vista" y sin sync de fuente; Territorial sin botón "Todo"
+en el chrome (el sync completo vive escondido en `TerritorialSourceConsole.syncKobo`) y
+con barra de progreso bespoke; `SourceSyncActions` triplicado (monolito/acred/tel) con
+solo spinner; y el monolito alimenta al chrome un **% simulado por escalones**
+(`MonitoreoPage.tsx:4444-4479`) en vez del progreso real del job. Plantillas a copiar:
+Acreditación y Telefónico (par Avance/Todo + % real vía `runProfileSourceSync`).
+
 ## Histórico de mediciones
 
 | Fecha | Nota |
