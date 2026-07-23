@@ -228,6 +228,26 @@ if (!exists("%||%", mode = "function")) {
     stringsAsFactors = FALSE
   )
 
+  # Sello de ponderacion (unidad 1.2): la ficha declara el estado de ponderacion
+  # de la corrida solo cuando existe informacion (estado adjunto a la base o
+  # config de ponderacion habilitada); sin esa informacion la ficha queda
+  # identica a la historica. El texto explicito del usuario
+  # (cfg$ficha_tecnica$ponderacion) manda sobre el sello automatico.
+  sello_pond <- if (exists("reporte_ponderacion_sello_para_corrida", mode = "function")) {
+    tryCatch(reporte_ponderacion_sello_para_corrida(data, cfg), error = function(e) "")
+  } else {
+    ""
+  }
+  pond_usuario <- .ficha_tecnica_cfg(cfg, "ponderacion", "")
+  if (nzchar(sello_pond) && !nzchar(pond_usuario)) {
+    base_rows <- rbind(base_rows, data.frame(
+      Campo = "Ponderacion",
+      Detalle = sello_pond,
+      Observacion = "Generado automáticamente desde el estado de ponderación de la corrida.",
+      stringsAsFactors = FALSE
+    ))
+  }
+
   if (is.list(detalles) && length(detalles)) {
     extra <- data.frame(
       Campo = names(detalles),

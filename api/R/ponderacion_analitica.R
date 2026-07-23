@@ -73,16 +73,50 @@
 }
 
 # Adjunta la columna `peso` si la ponderacion esta activa; si no, deja `data`
-# intacta. Silencioso ante errores (nunca rompe la generacion del reporte).
+# intacta. Nunca rompe la generacion del reporte, pero el fallback a base SIN
+# ponderar ya no es silencioso (unidad 1.2): emite warning() con el motivo y
+# registra el estado en attr(data, "ponderacion_estado") para que el sello de
+# los entregables lo declare (reporte_ponderacion_sello.R).
 .analitica_ponderacion_apply <- function(data, cfg) {
   pond <- (cfg %||% list())$ponderacion
   if (!is.list(pond) || !isTRUE(.analitica_ponderacion_scalar(pond$enabled, FALSE))) return(data)
   if (!is.data.frame(data) || !nrow(data)) return(data)
+
+  fallback <- function(motivo) {
+    warning(sprintf(
+      "Ponderación configurada pero no aplicada: %s; el reporte sale SIN ponderar.",
+      motivo
+    ), call. = FALSE)
+    attr(data, "ponderacion_estado") <-
+      reporte_ponderacion_estado("no_aplicada", motivo = motivo)
+    data
+  }
+
   norm <- .analitica_ponderacion_normalize(pond)
-  if (!isTRUE(norm$enabled) || (is.null(norm$design) && is.null(norm$rake))) return(data)
-  res <- tryCatch(ponderacion_compute(data, norm), error = function(e) NULL)
-  if (is.null(res) || !isTRUE(res$ok)) return(data)
+  if (!isTRUE(norm$enabled) || (is.null(norm$design) && is.null(norm$rake))) {
+    return(fallback("configuración incompleta (sin diseño ni márgenes utilizables)"))
+  }
+  res <- tryCatch(ponderacion_compute(data, norm), error = function(e) e)
+  if (inherits(res, "error")) {
+    return(fallback(sprintf("el cálculo de pesos falló (%s)", conditionMessage(res))))
+  }
+  if (is.null(res) || !isTRUE(res$ok)) {
+    motivo_res <- as.character((res %||% list())$reason %||% "motivo desconocido")[1]
+    return(fallback(sprintf("el motor no produjo pesos (%s)", motivo_res)))
+  }
+  if (!isTRUE(res$design_applied) && !isTRUE(res$rake_applied)) {
+    # ponderacion_compute devuelve ok=TRUE con peso constante 1 cuando ninguna
+    # variable de calibracion existe en la base: eso ES un fallback disfrazado.
+    return(fallback("ninguna variable de calibración existe en la base"))
+  }
   data[["peso"]] <- as.numeric(res$peso)
+  attr(data, "ponderacion_estado") <- reporte_ponderacion_estado(
+    "aplicada",
+    diagnostics = res$diagnostics,
+    design_applied = res$design_applied,
+    rake_applied = res$rake_applied,
+    converged = res$converged
+  )
   data
 }
 
