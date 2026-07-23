@@ -3484,7 +3484,7 @@ reporte_ppt_plan <- function(
 
   # Caption "Base: N" degradable: si el calculo falla por datos, la lamina sale
   # sin caption (warning) en vez de matar el deck (reporte_plan_condiciones.R).
-  .base_auto_from_element <- function(el, sufijo_auto = NULL, formato = "Base: %s") .plan_base_caption_segura(.base_auto_from_element_impl, el, sufijo_auto, formato)
+  .base_auto_from_element <- function(el, sufijo_auto = NULL, formato = "Base: %s") .reporte_plan_nota_base_sellada(.plan_base_caption_segura(.base_auto_from_element_impl, el, sufijo_auto, formato), data_sources, source = tryCatch(.element_source(el), error = function(e) NULL))
   .base_auto_from_element_impl <- function(el, sufijo_auto = NULL, formato = "Base: %s") {
     if (is.null(el) || !inherits(el, "ppt_element")) return(NULL)
 
@@ -4042,8 +4042,8 @@ reporte_ppt_plan <- function(
   .plot_note_from <- function(plot_obj, fallback = NULL) {
     note_attr <- attr(plot_obj, "note_outside", exact = TRUE)
     note_attr <- .clean_note_text(note_attr)
-    if (!is.null(note_attr)) return(note_attr)
-    .clean_note_text(fallback)
+    nota <- if (is.null(note_attr)) .clean_note_text(fallback) else note_attr
+    .reporte_plan_nota_base_sellada(nota, data_sources)
   }
 
   .ppt_note_from <- function(plot_obj, fallback = NULL) {

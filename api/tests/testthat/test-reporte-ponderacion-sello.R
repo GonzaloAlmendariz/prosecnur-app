@@ -158,6 +158,171 @@ test_that("render real: la ficha tecnica Word imprime el sello de ponderacion", 
   )))
 })
 
+# =============================================================================
+# Unidad 1.2b — cableado del sello en las notas de base de las láminas.
+# Producción: .reporte_plan_nota_base_sellada (reporte_plan_opciones.R) via
+# hooks .plot_note_from/.ppt_note_from y .base_auto_from_element (plan PPT).
+# =============================================================================
+
+test_that("los estados por fuente se leen del attr y las hijas repeat heredan", {
+  madre <- data.frame(x = 1:4)
+  attr(madre, "ponderacion_estado") <- reporte_ponderacion_estado(
+    "aplicada", diagnostics = list(n = 4, n_eff = 150, deff = 1.1)
+  )
+  # Hija repeat: peso heredado SIN atributo -> n_eff propio (36/12 = 3).
+  hija_con_peso <- data.frame(y = 1:4, peso = c(1, 1, 1, 3))
+  # Hija sin peso (la herencia relacional no adjuntó pesos) -> fallback.
+  hija_sin_peso <- data.frame(z = 1:2)
+
+  estados <- .reporte_plan_pond_estados(list(
+    default = madre, rep_ok = hija_con_peso, rep_sin = hija_sin_peso
+  ))
+  expect_identical(estados$default$status, "aplicada")
+  expect_false(isTRUE(estados$default$heredado))
+  expect_identical(estados$rep_ok$status, "aplicada")
+  expect_true(isTRUE(estados$rep_ok$heredado))
+  expect_equal(estados$rep_ok$n_eff, 3, tolerance = 1e-9)
+  expect_identical(estados$rep_sin$status, "no_aplicada")
+
+  # Corrida sin attr en NINGUNA fuente: una columna `peso` sustantiva del
+  # instrumento no dispara el sello por sí sola.
+  sin_info <- .reporte_plan_pond_estados(list(
+    default = data.frame(x = 1), otra = data.frame(peso = c(1, 2))
+  ))
+  expect_true(all(vapply(sin_info, is.null, logical(1))))
+})
+
+test_that("la nota de base se sella por fuente y es idempotente y conservadora", {
+  madre <- data.frame(x = 1:4)
+  attr(madre, "ponderacion_estado") <- reporte_ponderacion_estado(
+    "aplicada", diagnostics = list(n = 4, n_eff = 150, deff = 1.1)
+  )
+  hija <- data.frame(y = 1:4, peso = c(1, 1, 1, 3))
+  ds <- list(default = madre, rep = hija)
+
+  # Sin fuente atribuible (nota de pie): manda la fuente principal.
+  expect_identical(
+    .reporte_plan_nota_base_sellada("Base: 4 de 4 (100.0%).", ds),
+    "Base: 4 de 4 (100.0%). · Base ponderada (n_eff = 150)"
+  )
+  # Con fuente (slot de base): manda el estado de ESA base (n_eff propio).
+  expect_identical(
+    .reporte_plan_nota_base_sellada("Base: 2 de 4 (50.0%)", ds, source = "rep"),
+    "Base: 2 de 4 (50.0%) · Base ponderada (n_eff = 3)"
+  )
+  # Idempotencia: una nota ya sellada no duplica el sello.
+  sellada <- .reporte_plan_nota_base_sellada("Base: 4 de 4 (100.0%).", ds)
+  expect_identical(.reporte_plan_nota_base_sellada(sellada, ds), sellada)
+  # Notas que no declaran base quedan intactas.
+  expect_identical(
+    .reporte_plan_nota_base_sellada("Fuente: encuesta KOICA 2026", ds),
+    "Fuente: encuesta KOICA 2026"
+  )
+  expect_null(.reporte_plan_nota_base_sellada(NULL, ds))
+  # Corrida sin información de ponderación: la nota vuelve idéntica.
+  expect_identical(
+    .reporte_plan_nota_base_sellada("Base: 4 de 4 (100.0%).", list(default = data.frame(x = 1))),
+    "Base: 4 de 4 (100.0%)."
+  )
+})
+
+.sello_deck_fixture <- function(estado = NULL) {
+  data <- data.frame(
+    testreal = c("si", "no", "si", "si"),
+    stringsAsFactors = FALSE
+  )
+  attr(data$testreal, "label") <- "Test real"
+  if (!is.null(estado)) attr(data, "ponderacion_estado") <- estado
+  inst <- list(
+    survey = data.frame(
+      name = "testreal",
+      type = "select_one lst_sino",
+      list_name = "lst_sino",
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("lst_sino", "lst_sino"),
+      name = c("si", "no"),
+      label = c("Sí", "No"),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = NULL
+  )
+  plan <- p_plan(slides = list(
+    p_slide_1_grafico(
+      titulo = "Lámina con nota de base",
+      grafico = p_barras_agrupadas(
+        "testreal",
+        overrides = list(nota_pie = "Base: 4 de 4 (100.0%).")
+      )
+    )
+  ))
+  list(
+    data = data, inst = inst, plan = plan,
+    presets = p_presets(
+      barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)
+    )
+  )
+}
+
+.sello_deck_xml <- function(fx) {
+  out_ppt <- tempfile(fileext = ".pptx")
+  reporte_ppt_plan(
+    data = fx$data,
+    instrumento = fx$inst,
+    plan = fx$plan,
+    presets = fx$presets,
+    path_ppt = out_ppt,
+    mensajes_progreso = FALSE
+  )
+  on.exit(unlink(out_ppt), add = TRUE)
+  paste(
+    readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"),
+    collapse = "\n"
+  )
+}
+
+test_that("render real: la lámina con ponderación aplicada sella la nota de base", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  fx <- .sello_deck_fixture(reporte_ponderacion_estado(
+    "aplicada", diagnostics = list(n = 4, n_eff = 187.4, deff = 1.05)
+  ))
+  xml <- .sello_deck_xml(fx)
+  expect_match(
+    xml,
+    "Base: 4 de 4 (100.0%). · Base ponderada (n_eff = 187)",
+    fixed = TRUE
+  )
+})
+
+test_that("render real: la corrida con fallback declara la base sin ponderar", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  fx <- .sello_deck_fixture(reporte_ponderacion_estado(
+    "no_aplicada", motivo = "el cálculo de pesos falló (targets incompatibles)"
+  ))
+  xml <- .sello_deck_xml(fx)
+  expect_match(
+    xml,
+    "Base: 4 de 4 (100.0%). · Base sin ponderar (ponderación configurada no aplicada)",
+    fixed = TRUE
+  )
+})
+
+test_that("render real: la corrida sin config deja la nota histórica intacta", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  xml <- .sello_deck_xml(.sello_deck_fixture(NULL))
+  expect_match(xml, "Base: 4 de 4 (100.0%).", fixed = TRUE)
+  expect_false(grepl("Base ponderada", xml, fixed = TRUE))
+  expect_false(grepl("Base sin ponderar", xml, fixed = TRUE))
+  expect_false(grepl(" · ", xml, fixed = TRUE))
+})
+
 test_that("p_base_nota_con_sello anexa el sello sin tocar notas sin estado", {
   nota <- "Base: 100 de 200 (50.0%)"
   # Sin estado: la nota queda intacta (los decks historicos no cambian).
