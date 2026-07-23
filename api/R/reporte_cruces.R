@@ -228,7 +228,6 @@ label_variable <- function(var, dic_vars = NULL, labels_override = NULL, data = 
 }
 
 .dim_pregunta_editorial <- function(var, label = NULL, data = NULL) {
-  `%||%` <- function(x, y) if (!is.null(x)) x else y
   v <- as.character(var)[1]
   lbl <- .dim_label_limpio(label %||% .dim_pretty_label(v, data))
   m <- regexec("^p([0-9]+(?:\\.[0-9]+)?)$", v)
@@ -1777,8 +1776,6 @@ exportar_cruces_multi <- function(data,
 # =============================================================================
 
 .dim_footer_from_meta <- function(data, fuente = "Pulso PUCP") {
-  `%||%` <- function(x, y) if (!is.null(x)) x else y
-
   rec_meta <- attr(data, "recodificacion_items_meta", exact = TRUE)
   idx_meta <- attr(data, "indices_meta", exact = TRUE)
 
@@ -1952,7 +1949,6 @@ exportar_cruces_multi <- function(data,
                                 show_sig = TRUE,
                                 alpha = 0.05,
                                 estilo = c("tecnico", "editorial")) {
-  `%||%` <- function(x, y) if (!is.null(x)) x else y
   estilo <- match.arg(estilo)
 
   rec_meta <- attr(data, "recodificacion_items_meta", exact = TRUE)
@@ -2154,7 +2150,6 @@ exportar_dimensiones_multi <- function(data,
                                        brecha_cortes = c(0, 30),
                                        repeat_design = NULL,
                                        ficha_tecnica = NULL) {
-  `%||%` <- function(x, y) if (!is.null(x)) x else y
   estilo_metodologia <- match.arg(estilo_metodologia)
   semaforo_modo <- .dim_normalize_semaforo_modo(semaforo_modo)
   semaforo_anclas_degradado <- .dim_normalize_degradado_anclas(

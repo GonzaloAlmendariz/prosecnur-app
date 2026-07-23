@@ -3,7 +3,6 @@
 # (con armonización de clave para joins: evita _index double vs character)
 # =============================================================================
 
-`%||%` <- function(a,b) if (is.null(a) || (length(a)==1 && is.na(a))) b else a
 nz      <- function(x) !is.na(x) & nzchar(trimws(as.character(x)))
 
 # -------- utilidades básicas ---------------------------------------------------

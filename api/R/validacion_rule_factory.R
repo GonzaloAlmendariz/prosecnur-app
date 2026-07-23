@@ -6,7 +6,8 @@
 # =============================================================================
 # Utilidades básicas
 # =============================================================================
-`%||%` <- function(a, b) if (is.null(a) || (length(a) == 1 && is.na(a))) b else a
+# `%||%` canónico: vive en helpers_calc_comunes.R (misma semántica que la
+# redefinición que históricamente vivía aquí y ganaba la collation).
 as_chr1 <- function(x){ if (is.null(x) || length(x) == 0) return(""); x <- suppressWarnings(as.character(x)); if (!length(x) || is.na(x[1])) "" else x[1] }
 nz1 <- function(x) is.character(x) && length(x) == 1 && !is.na(x) && nzchar(trimws(x))
 regex_escape <- function(s) gsub("([\\^$.|?*+(){}\\[\\]\\\\])", "\\\\\\1", s, perl = TRUE)

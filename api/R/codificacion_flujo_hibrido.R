@@ -8,7 +8,6 @@
 #' @name ppra_flujo_hibrido
 NULL
 
-`%||%` <- function(x,y) if (is.null(x) || (length(x)==1 && is.na(x))) y else x
 nzchr   <- function(x) is.character(x) && length(x)==1 && !is.na(x) && nzchar(x)
 
 # -- utilidades ---------------------------------------------------------------
@@ -297,8 +296,6 @@ normalizar_labels_inst <- function(inst){
   }
 
   # -- helpers locales --------------------------------------------------------
-  `%||%` <- function(x, y) if (is.null(x) || (length(x) == 1 && is.na(x))) y else x
-
   norm_list_name <- function(x){
     x <- tolower(trimws(as.character(x)))
     x <- gsub("\\s+", "_", x)
@@ -1796,7 +1793,6 @@ label_es_from_survey <- function(var_orig, survey){
 }
 
 # ---- utilidades locales usadas arriba ---------------------------------------
-`%||%` <- function(x, y) if (is.null(x) || (length(x) == 1 && is.na(x))) y else x
 nzchr   <- function(x) is.character(x) && length(x) == 1 && !is.na(x) && nzchar(x)
 
 
@@ -1979,7 +1975,6 @@ escribir_plantilla_familias <- function(inst, dat, path = "familias.xlsx", inclu
   }
 
   # --- auxiliares mínimos, SIN normalizar el instrumento ---
-  `%||%` <- function(x, y) if (is.null(x) || (length(x) == 1 && is.na(x))) y else x
   .type_base <- function(x) sub("\\s.*$", "", as.character(x %||% ""))
 
   # columnas auxiliares locales (no modifican inst en disco)
@@ -2167,7 +2162,6 @@ escribir_plantilla_familias_repeat <- function(inst,
                                                     verbose = TRUE){
   stopifnot(is.list(inst), is.list(tabs), "survey" %in% names(inst))
 
-  `%||%` <- function(x, y) if (is.null(x) || (length(x)==1 && is.na(x))) y else x
   nzchr   <- function(x) is.character(x) && length(x)==1 && !is.na(x) && nzchar(x)
 
   # --- 1) Detector repeat-aware (no duplica el survey) -----------------------
@@ -3536,8 +3530,6 @@ construir_plantilla_desde_familias <- function(inst, dat, split){
 # ------ 6) Exportador a Excel con formato -----------------------------------
 
 
-`%||%` <- function(x, y) if (is.null(x) || (length(x) == 1 && is.na(x))) y else x
-
 safe_sheet_name <- function(x, used = character(0)) {
   x <- as.character(x %||% "Hoja")
   x <- trimws(x)
@@ -4201,7 +4193,6 @@ exportar_plantilla_codificacion_xlsx <- function(plantilla,
 #' @export
 construir_plantilla_desde_familias_repeat <- function(inst, tabs, fam) {
   stopifnot(is.list(inst), is.list(tabs), is.list(fam))
-  `%||%` <- function(x, y) if (is.null(x) || (length(x) == 1 && is.na(x))) y else x
 
   # --------- Helpers ---------------------------------------------------------
   nm_norm <- function(x) janitor::make_clean_names(tolower(trimws(as.character(x %||% ""))))

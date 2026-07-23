@@ -168,8 +168,6 @@ ll_link_children <- function(parent_df, child_df, child_name, parent_label, fk =
   list(counts = counts, parent_aug = parent_aug)
 }
 
-`%||%` <- function(a,b) if (is.null(a) || (length(a)==1 && is.na(a))) b else a
-
 # -------------------- Helpers de repeat_count --------------------------------
 
 ll_norm_expr <- function(x){

@@ -162,5 +162,3 @@ odk_has_lex_issues <- function(expr) {
   length(m)
 }
 
-# Operador %||% por si no está cargado desde otro archivo.
-`%||%` <- function(a, b) if (is.null(a)) b else a

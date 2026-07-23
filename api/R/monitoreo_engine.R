@@ -4,11 +4,8 @@
   format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
 }
 
-.monitoreo_scalar <- function(x, default = "") {
-  if (is.null(x) || length(x) == 0L) return(default)
-  out <- as.character(x)[1]
-  if (is.na(out)) default else out
-}
+# Alias fino: comportamiento idéntico a calc_str (helpers_calc_comunes.R).
+.monitoreo_scalar <- function(x, default = "") calc_str(x, default)
 
 .monitoreo_chr_vec <- function(x) {
   if (is.null(x)) return(character(0))

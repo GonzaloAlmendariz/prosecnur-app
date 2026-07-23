@@ -87,5 +87,3 @@ apply_public_mode_filter <- function(pr) {
   })
 }
 
-# `%||%` para no depender de magrittr/rlang acá.
-`%||%` <- function(a, b) if (is.null(a) || identical(a, "")) b else a
