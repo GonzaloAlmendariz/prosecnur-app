@@ -6170,15 +6170,20 @@ monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progr
       if (is.list(source_collectors)) sources[[i]]$collectors <- .monitoreo_normalize_source_collectors(source_collectors)
       collector_sync_error <- .monitoreo_scalar(attr(df, "monitoreo_source_collectors_error", exact = TRUE), "")
       if (nzchar(collector_sync_error)) sources[[i]]$collectors_error <- collector_sync_error
-      sync_mode <- .monitoreo_scalar(attr(df, "sync_mode", exact = TRUE), "full")
+      # OJO: variable propia. Reasignar `sync_mode` acá pisaba el modo
+      # SOLICITADO del loop: la fuente 1 devolvía "incremental" y las
+      # fuentes 2..N ya no entraban a la rama advance — full re-download
+      # de cada fuente siguiente en cada Avance (detectado e2e con
+      # ACNURCG, 2 fuentes Kobo: pilot incremental / campo full 1697).
+      result_sync_mode <- .monitoreo_scalar(attr(df, "sync_mode", exact = TRUE), "full")
       sync_cursor <- attr(df, "sync_cursor", exact = TRUE)
       if (is.list(sync_cursor)) sources[[i]]$sync_cursor <- .monitoreo_normalize_sync_cursor(sync_cursor)
-      sources[[i]]$last_sync_mode <- sync_mode
+      sources[[i]]$last_sync_mode <- result_sync_mode
       sync_summary[[.monitoreo_scalar(src$id, paste0("source_", i))]] <- list(
         source_id = .monitoreo_scalar(src$id, ""),
         source_label = .monitoreo_scalar(src$label, ""),
         kind = .monitoreo_scalar(src$kind, ""),
-        mode = sync_mode,
+        mode = result_sync_mode,
         rows = as.integer(nrow(df)),
         connection_profile_id = .monitoreo_scalar(sources[[i]]$connection_profile_id, ""),
         cursor = if (is.list(sync_cursor)) .monitoreo_normalize_sync_cursor(sync_cursor) else list()
