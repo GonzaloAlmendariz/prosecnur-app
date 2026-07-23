@@ -2945,3 +2945,29 @@ p_ggplot_raw <- function(gg, titulo = NULL) {
   class(el) <- c("ppt_element", "list")
   el
 }
+
+# ---- Sello de ponderacion (Plan de mejoras 2026-07, unidad 1.2) --------------
+
+#' @title Anexar el sello de ponderacion a la nota de base de una lamina
+#' @description Toma la nota de base ya armada ("Base: N de M (pct)") y le anexa
+#'   el texto canonico del sello de ponderacion (`reporte_ponderacion_sello()`).
+#'   Pura y sin side effects: con `estado = NULL` (la corrida no trae
+#'   informacion de ponderacion) la nota queda intacta, de modo que ningun deck
+#'   historico sin ponderacion cambia. El cableado desde el plan PPT esta
+#'   pendiente porque el punto natural vive en archivos fuera de esta unidad
+#'   (.graficos_acnur_base_summary en graficos_acnur_report.R y su consumo en
+#'   reporte_plan_ppt.R, congelado).
+#' @param base Texto de la nota de base (`character(1)`) o NULL.
+#' @param estado Objeto de estado de ponderacion (`reporte_ponderacion_estado()`
+#'   o el atributo `ponderacion_estado` de la base) o NULL.
+#' @return `character(1)` con la nota sellada, o NULL si no hay nada que decir.
+#' @family reporte
+#' @keywords internal
+p_base_nota_con_sello <- function(base, estado = NULL) {
+  base <- .ppt_norm_text1(base, blank = NULL)
+  if (is.null(estado)) return(base)
+  sello <- reporte_ponderacion_sello(estado)
+  if (is.null(sello) || !nzchar(sello)) return(base)
+  if (is.null(base)) return(sello)
+  paste(base, sello, sep = " · ")
+}

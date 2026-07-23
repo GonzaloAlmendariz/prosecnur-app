@@ -288,8 +288,12 @@ test_that("una release stale bloquea antes de encolar", {
   .session_env[[sid]] <- s
   before <- session_get(sid)
 
-  preflight <- graficos_consolidado_preflight(sid)
-  err <- .gcc_test_api_error(graficos_consolidado_start(sid))
+  # La config de ponderacion incompleta de arriba es solo un MARCADOR de
+  # staleness; dispara legitimamente el warning "configurada pero no aplicada"
+  # del contrato del sello (reporte_ponderacion_sello.R), que aqui no es el
+  # objeto bajo prueba.
+  preflight <- suppressWarnings(graficos_consolidado_preflight(sid))
+  err <- .gcc_test_api_error(suppressWarnings(graficos_consolidado_start(sid)))
 
   release_blocker <- Filter(
     function(x) identical(x$code, "processing_release_not_approved"),
