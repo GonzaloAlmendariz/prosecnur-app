@@ -195,3 +195,158 @@ test_that("apply_named_filters_safe: filtro con valor real sobre columna present
   expect_true(all(out$current_code == "salud"))
 })
 
+# =============================================================================
+# Politica canonica 5.6 — estos tests FIJAN la tabla declarada en la cabecera
+# de reporte_filter_helpers.R (op × NA × coercion × multivalor + modos).
+# =============================================================================
+
+test_that("politica 5.6: NA nunca satisface neq ni notin (sin dato != distinto de)", {
+  # Antes neq/notin RETENIAN los NA (divergencia accidental respecto de eq).
+  df <- data.frame(
+    sexo = c("Mujer", "Hombre", NA_character_, "Mujer"),
+    stringsAsFactors = FALSE
+  )
+
+  out_neq <- .apply_named_filters(
+    df,
+    list(list(variable = "sexo", op = "neq", value = "Mujer"))
+  )
+  expect_equal(nrow(out_neq), 1L)
+  expect_equal(out_neq$sexo, "Hombre")
+
+  out_notin <- .apply_named_filters(
+    df,
+    list(list(variable = "sexo", op = "notin", value = "Mujer,Otro"))
+  )
+  expect_equal(nrow(out_notin), 1L)
+  expect_equal(out_notin$sexo, "Hombre")
+
+  # eq ya excluia NA; sigue igual.
+  out_eq <- .apply_named_filters(
+    df,
+    list(list(variable = "sexo", op = "eq", value = "Mujer"))
+  )
+  expect_equal(nrow(out_eq), 2L)
+  expect_true(all(out_eq$sexo == "Mujer"))
+})
+
+test_that("politica 5.6: contains multivaluado es OR sobre TODOS los valores", {
+  # Antes contains usaba solo vals[1] sin avisar.
+  df <- data.frame(
+    texto = c("Lima centro", "Cusco urbano", "Arequipa", NA_character_),
+    stringsAsFactors = FALSE
+  )
+  out <- .apply_named_filters(
+    df,
+    list(list(variable = "texto", op = "contains", value = "lima, cusco"))
+  )
+  expect_equal(nrow(out), 2L)
+  expect_setequal(out$texto, c("Lima centro", "Cusco urbano"))
+})
+
+test_that("politica 5.6: puente numerico — '1.0' del filtro alcanza al 1 de una columna numeric", {
+  df <- data.frame(
+    codigo = c(1, 2, 3, NA_real_),
+    stringsAsFactors = FALSE
+  )
+
+  out <- .apply_named_filters(
+    df,
+    list(list(variable = "codigo", op = "eq", value = "1.0"))
+  )
+  expect_equal(out$codigo, 1)
+
+  # El puente tambien aplica a la negacion: neq "1.0" excluye los 1 y los NA.
+  out_neq <- .apply_named_filters(
+    df,
+    list(list(variable = "codigo", op = "neq", value = "1.0"))
+  )
+  expect_equal(out_neq$codigo, c(2, 3))
+
+  # Y al formato legacy de lista nombrada (path de reportes).
+  out_named <- .apply_named_filters(df, list(codigo = "1.00"))
+  expect_equal(out_named$codigo, 1)
+})
+
+test_that("politica 5.6: SIN puente numerico en columnas character ('01' != '1')", {
+  # Los codigos string del catalogo se comparan literales: puentear fusionaria
+  # codigos distintos como "01" y "1".
+  df <- data.frame(distrito = c("01", "1", "10"), stringsAsFactors = FALSE)
+
+  out <- .apply_named_filters(
+    df,
+    list(list(variable = "distrito", op = "eq", value = "1"))
+  )
+  expect_equal(out$distrito, "1")
+})
+
+test_that("politica 5.6: gt/lt con umbral no numerico avisa y deja 0 filas (fallo visible)", {
+  df <- data.frame(edad = c(25, 40), stringsAsFactors = FALSE)
+  expect_warning(
+    out <- .apply_named_filters(
+      df,
+      list(list(variable = "edad", op = "gt", value = "abc"))
+    ),
+    "umbral no numerico"
+  )
+  expect_equal(nrow(out), 0L)
+})
+
+test_that("politica 5.6: mode lenient ignora columnas ausentes y no-ops en silencio", {
+  df <- data.frame(sexo = c("Mujer", "Hombre"), stringsAsFactors = FALSE)
+
+  # Columna ausente: en strict aborta con condicion clasificada; en lenient next.
+  expect_warning(
+    out <- .apply_named_filters(df, list(no_existe = "X"), mode = "lenient"),
+    NA
+  )
+  expect_identical(out, df)
+
+  # Filtro NA'd: en strict warning de no-op; en lenient silencio.
+  expect_warning(
+    out2 <- .apply_named_filters(df, list(sexo = NA_character_), mode = "lenient"),
+    NA
+  )
+  expect_identical(out2, df)
+
+  # Y el filtro con valor real sobre columna presente SI filtra en lenient.
+  out3 <- .apply_named_filters(df, list(sexo = "Mujer"), mode = "lenient")
+  expect_equal(out3$sexo, "Mujer")
+})
+
+test_that("politica 5.6: el formato dashboard activa lenient automaticamente y comparte la politica", {
+  df <- data.frame(
+    sexo = c("Mujer", "Hombre", NA_character_),
+    edad = c(25, 40, 30),
+    stringsAsFactors = FALSE
+  )
+
+  # Var ausente ignorada + filtro real aplicado, en una sola pasada.
+  out <- .apply_named_filters(
+    df,
+    list(
+      list(var = "no_existe", valores = list("X")),
+      list(var = "sexo", valores = list("Mujer"))
+    )
+  )
+  expect_equal(nrow(out), 1L)
+  expect_equal(out$sexo, "Mujer")
+
+  # El puente numerico tambien rige para el formato dashboard.
+  out2 <- .apply_named_filters(
+    df,
+    list(list(var = "edad", valores = list("25.0")))
+  )
+  expect_equal(out2$edad, 25)
+})
+
+test_that("politica 5.6: apply_named_filters_safe respeta el modo lenient", {
+  df <- data.frame(sexo = c("Mujer", "Hombre"), stringsAsFactors = FALSE)
+  # En lenient la columna ausente NO degrada a 0 filas: se ignora.
+  expect_warning(
+    out <- .apply_named_filters_safe(df, list(no_existe = "X"), mode = "lenient"),
+    NA
+  )
+  expect_identical(out, df)
+})
+
