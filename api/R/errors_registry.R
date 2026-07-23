@@ -552,6 +552,8 @@ errores_registrados <- function() {
     "E_REPLACEMENT_ZONE_INSUFFICIENT",                       "hojas_ruta_engine.R",               "indirecto",
     "E_REPLACEMENT_ZONE_MISMATCH",                           "hojas_ruta_engine.R",               "indirecto",
     "E_REPORTE_FAILED",                                      "analitica_script_replica.R",        "500",
+    "E_REPORTE_PLAN_INPUT",                                  "reporte_plan_condiciones.R",        "indirecto",
+    "E_REPORTE_PLAN_SPEC",                                   "reporte_plan_condiciones.R",        "indirecto",
     "E_REVISION_EXPECTED_HASH",                              "xlsform_forms.R",                   "400",
     "E_ROUTE_INSTRUCTIONS_MISSING",                          "hojas_ruta_engine.R",               "indirecto",
     "E_ROUTE_N_NOT_MULTIPLE",                                "hojas_ruta_engine.R",               "indirecto",

@@ -22,7 +22,7 @@
 }
 
 .ppt_chk_meta <- function(meta) {
-  if (!is.list(meta)) stop("`meta` debe ser una lista.", call. = FALSE)
+  if (!is.list(meta)) .plan_spec_abort("`meta` debe ser una lista.")
   invisible(TRUE)
 }
 
@@ -39,13 +39,13 @@
       if (is.list(v) && length(v) == 1L && is.null(names(v))) v[[1]] else v
     })
   }
-  if (!is.list(estilo)) stop("`estilo` debe ser una lista.", call. = FALSE)
+  if (!is.list(estilo)) .plan_spec_abort("`estilo` debe ser una lista.")
   estilo
 }
 
 .ppt_chk_element <- function(x, nm) {
   if (is.null(x) || !inherits(x, "ppt_element")) {
-    stop("`", nm, "` debe ser un `ppt_element` (p_*()).", call. = FALSE)
+    .plan_spec_abort("`", nm, "` debe ser un `ppt_element` (p_*()).")
   }
   invisible(TRUE)
 }
@@ -54,7 +54,7 @@
   ok <- inherits(x, c("ppt_element", "ppt_element_text")) ||
     (is.character(x) && length(x) == 1L)
   if (!ok) {
-    stop("`", nm, "` debe ser un `p_*()` compatible o `character(1)`.", call. = FALSE)
+    .plan_spec_abort("`", nm, "` debe ser un `p_*()` compatible o `character(1)`.")
   }
   invisible(TRUE)
 }
@@ -63,7 +63,7 @@
   text_parts <- character(0)
 
   if (!is.null(texto)) {
-    if (!is.character(texto)) stop("`texto` debe ser character o NULL.", call. = FALSE)
+    if (!is.character(texto)) .plan_spec_abort("`texto` debe ser character o NULL.")
     texto <- as.character(texto)
     texto <- texto[!is.na(texto)]
     texto <- trimws(texto)
@@ -72,7 +72,7 @@
   }
 
   if (!is.null(bullets)) {
-    if (!is.character(bullets)) stop("`bullets` debe ser character o NULL.", call. = FALSE)
+    if (!is.character(bullets)) .plan_spec_abort("`bullets` debe ser character o NULL.")
     bullets <- as.character(bullets)
     bullets <- bullets[!is.na(bullets)]
     bullets <- trimws(bullets)
@@ -94,7 +94,7 @@
   if (is.character(x) && length(x) == 1L) {
     return(.ppt_norm_text1(x, blank = blank))
   }
-  stop("`", nm, "` debe ser `character(1)`, `p_text()` o NULL.", call. = FALSE)
+  .plan_spec_abort("`", nm, "` debe ser `character(1)`, `p_text()` o NULL.")
 }
 
 .ppt_parse_technical_table_rows <- function(filas) {
@@ -107,7 +107,7 @@
   normalize_df <- function(df) {
     df <- as.data.frame(df, stringsAsFactors = FALSE, check.names = FALSE)
     if (ncol(df) < 2L) {
-      stop("`filas` debe tener al menos dos columnas: etiqueta y detalle.", call. = FALSE)
+      .plan_spec_abort("`filas` debe tener al menos dos columnas: etiqueta y detalle.")
     }
     df <- df[, seq_len(2L), drop = FALSE]
     names(df) <- c("criterio", "detalle")
@@ -115,7 +115,7 @@
     df$detalle <- clean(df$detalle)
     df <- df[nzchar(df$criterio) | nzchar(df$detalle), , drop = FALSE]
     if (!nrow(df)) {
-      stop("`filas` debe contener al menos una fila con texto.", call. = FALSE)
+      .plan_spec_abort("`filas` debe contener al menos una fila con texto.")
     }
     df
   }
@@ -126,7 +126,7 @@
     lines <- clean(lines)
     lines <- lines[nzchar(lines)]
     if (!length(lines)) {
-      stop("`filas` debe contener al menos una fila con texto.", call. = FALSE)
+      .plan_spec_abort("`filas` debe contener al menos una fila con texto.")
     }
     rows <- lapply(lines, function(line) {
       parts <- regexpr("\\s*[:|\\t]\\s*", line, perl = TRUE)
@@ -184,7 +184,7 @@
     }
   }
 
-  stop("`filas` debe ser un data.frame, una lista de filas o texto en formato 'Campo: valor'.", call. = FALSE)
+  .plan_spec_abort("`filas` debe ser un data.frame, una lista de filas o texto en formato 'Campo: valor'.")
 }
 
 .ppt_as_slide <- function(slide) {
@@ -211,7 +211,7 @@
 #' @export
 p_plan <- function(..., slides = NULL) {
   out <- if (!is.null(slides)) {
-    if (!is.list(slides)) stop("`slides` debe ser lista.", call. = FALSE)
+    if (!is.list(slides)) .plan_spec_abort("`slides` debe ser lista.")
     slides
   } else {
     list(...)
@@ -224,8 +224,8 @@ p_plan <- function(..., slides = NULL) {
 
   bad <- vapply(out, function(x) !inherits(x, "ppt_slide"), logical(1))
   if (any(bad)) {
-    stop("`p_plan()`: todos los elementos deben ser `ppt_slide`. Malos: ",
-         paste(which(bad), collapse = ", "), call. = FALSE)
+    .plan_spec_abort("`p_plan()`: todos los elementos deben ser `ppt_slide`. Malos: ",
+                     paste(which(bad), collapse = ", "))
   }
 
   class(out) <- c("ppt_plan", "list")
@@ -249,7 +249,7 @@ p_plan <- function(..., slides = NULL) {
 #' @export
 p_slide_seccion <- function(titulo, subtitulo = NULL, introduccion_word = NULL, meta = list()) {
   titulo <- .ppt_norm_text1(titulo)
-  if (is.null(titulo)) stop("`titulo` debe ser un texto no vacio.", call. = FALSE)
+  if (is.null(titulo)) .plan_spec_abort("`titulo` debe ser un texto no vacio.")
 
   subtitulo <- .ppt_norm_text1(subtitulo, blank = NULL)
   introduccion_word <- .ppt_norm_text1(introduccion_word, blank = NULL)
@@ -287,11 +287,11 @@ p_slide_texto <- function(
     meta = list()
 ) {
   titulo <- .ppt_norm_text1(titulo)
-  if (is.null(titulo)) stop("`titulo` debe ser un texto no vacio.", call. = FALSE)
+  if (is.null(titulo)) .plan_spec_abort("`titulo` debe ser un texto no vacio.")
 
   body_text <- .ppt_norm_text_lines(texto = texto, bullets = bullets, blank = NULL)
   if (is.null(body_text)) {
-    stop("`texto` o `bullets` debe contener al menos una linea no vacia.", call. = FALSE)
+    .plan_spec_abort("`texto` o `bullets` debe contener al menos una linea no vacia.")
   }
 
   body_base <- .ppt_norm_text_like(base, nm = "base", blank = NULL)
@@ -332,7 +332,7 @@ p_slide_tabla_tecnica <- function(
     meta = list()
 ) {
   titulo <- .ppt_norm_text1(titulo)
-  if (is.null(titulo)) stop("`titulo` debe ser un texto no vacio.", call. = FALSE)
+  if (is.null(titulo)) .plan_spec_abort("`titulo` debe ser un texto no vacio.")
 
   filas <- .ppt_parse_technical_table_rows(filas)
 
@@ -373,7 +373,7 @@ p_slide_portada <- function(
     meta = list()
 ) {
   titulo <- .ppt_norm_text1(titulo)
-  if (is.null(titulo)) stop("`titulo` debe ser texto no vacio.", call. = FALSE)
+  if (is.null(titulo)) .plan_spec_abort("`titulo` debe ser texto no vacio.")
 
   .ppt_chk_meta(meta)
 
@@ -1221,15 +1221,15 @@ p_slide_6_graficos_poblacion <- function(
 #' @keywords internal
 .ppt_norm_filters <- function(filtros) {
   if (is.null(filtros)) return(list())
-  if (!is.list(filtros)) stop("`filtros` debe ser lista.", call. = FALSE)
+  if (!is.list(filtros)) .plan_spec_abort("`filtros` debe ser lista.")
 
   nms <- names(filtros)
   if (length(filtros) && is.null(nms)) {
-    stop("`filtros` debe ser una lista nombrada por variable.", call. = FALSE)
+    .plan_spec_abort("`filtros` debe ser una lista nombrada por variable.")
   }
   if (!is.null(nms)) {
     if (any(!nzchar(trimws(nms)))) {
-      stop("`filtros` debe ser una lista nombrada por variable.", call. = FALSE)
+      .plan_spec_abort("`filtros` debe ser una lista nombrada por variable.")
     }
     names(filtros) <- trimws(nms)
   }
@@ -1239,7 +1239,7 @@ p_slide_6_graficos_poblacion <- function(
 
 .ppt_norm_chr_vec_arg <- function(x, nm) {
   if (is.null(x)) return(NULL)
-  if (!is.character(x)) stop("`", nm, "` debe ser NULL o character().", call. = FALSE)
+  if (!is.character(x)) .plan_spec_abort("`", nm, "` debe ser NULL o character().")
   x <- trimws(as.character(x))
   x <- x[!is.na(x) & nzchar(x)]
   if (!length(x)) return(NULL)
@@ -1257,7 +1257,7 @@ p_slide_6_graficos_poblacion <- function(
 #' @export
 p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), mostrar_ceros = NULL, excluir_opciones = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
-    stop("`var` debe ser character(1) no vacio.", call. = FALSE)
+    .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
   var <- trimws(var)
 
@@ -1265,16 +1265,16 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
 
   if (!is.null(cruces)) {
     if (!is.character(cruces) || length(cruces) != 1L || !nzchar(trimws(cruces))) {
-      stop("`cruces` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`cruces` debe ser NULL o character(1) no vacio.")
     }
     cruces <- trimws(cruces)
   }
 
-  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
-  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
   if (!is.null(mostrar_ceros) &&
       (!is.logical(mostrar_ceros) || length(mostrar_ceros) != 1L || is.na(mostrar_ceros))) {
-    stop("`mostrar_ceros` debe ser NULL o logical(1).", call. = FALSE)
+    .plan_spec_abort("`mostrar_ceros` debe ser NULL o logical(1).")
   }
   filtros <- .ppt_norm_filters(filtros)
   excluir_opciones <- .ppt_norm_chr_vec_arg(excluir_opciones, "excluir_opciones")
@@ -1328,19 +1328,19 @@ p_barras_categoricas <- function(
     ...
 ) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
-    stop("`var` debe ser character(1) no vacio.", call. = FALSE)
+    .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
   var <- trimws(var)
   titulo <- .ppt_norm_text1(titulo, blank = NULL)
-  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
   extra <- list(...)
   if (length(extra)) overrides <- utils::modifyList(overrides, extra)
   if (!is.null(max_categorias)) overrides$max_categorias <- overrides$max_categorias %||% max_categorias
   if (!is.null(mostrar_promedio)) overrides$mostrar_promedio <- overrides$mostrar_promedio %||% isTRUE(mostrar_promedio)
-  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
   if (!is.null(mostrar_ceros) &&
       (!is.logical(mostrar_ceros) || length(mostrar_ceros) != 1L || is.na(mostrar_ceros))) {
-    stop("`mostrar_ceros` debe ser NULL o logical(1).", call. = FALSE)
+    .plan_spec_abort("`mostrar_ceros` debe ser NULL o logical(1).")
   }
   filtros <- .ppt_norm_filters(filtros)
   excluir_opciones <- .ppt_norm_chr_vec_arg(excluir_opciones, "excluir_opciones")
@@ -1368,7 +1368,7 @@ p_barras_categoricas <- function(
 #' @export
 p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), excluir_opciones = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
-    stop("`var` debe ser character(1) no vacio.", call. = FALSE)
+    .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
   var <- trimws(var)
 
@@ -1376,13 +1376,13 @@ p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = lis
 
   if (!is.null(cruces)) {
     if (!is.character(cruces) || length(cruces) != 1L || !nzchar(trimws(cruces))) {
-      stop("`cruces` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`cruces` debe ser NULL o character(1) no vacio.")
     }
     cruces <- trimws(cruces)
   }
 
-  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
-  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
   filtros <- .ppt_norm_filters(filtros)
   excluir_opciones <- .ppt_norm_chr_vec_arg(excluir_opciones, "excluir_opciones")
 
@@ -1458,23 +1458,23 @@ p_barras_multiapiladas <- function(
 
   if (!is.null(numerar_oe) &&
       (!is.logical(numerar_oe) || length(numerar_oe) != 1L || is.na(numerar_oe))) {
-    stop("`numerar_oe` debe ser NULL o logical(1).", call. = FALSE)
+    .plan_spec_abort("`numerar_oe` debe ser NULL o logical(1).")
   }
 
   if (!is.null(cruces)) {
     if (!is.character(cruces) || length(cruces) != 1L || !nzchar(trimws(cruces))) {
-      stop("`cruces` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`cruces` debe ser NULL o character(1) no vacio.")
     }
     cruces <- trimws(cruces)
   }
 
   if (!is.numeric(wrap_y) || length(wrap_y) != 1L || !is.finite(wrap_y) || wrap_y < 10) {
-    stop("`wrap_y` debe ser numerico (>=10).", call. = FALSE)
+    .plan_spec_abort("`wrap_y` debe ser numerico (>=10).")
   }
 
   # NOTE: top2box_codes se deja por compatibilidad futura; por ahora se usa top2box_labels
   if (!is.logical(top2box) || length(top2box) != 1L || is.na(top2box)) {
-    stop("`top2box` debe ser logical(1).", call. = FALSE)
+    .plan_spec_abort("`top2box` debe ser logical(1).")
   }
   top2box_labels <- .ppt_as_chr_vec(top2box_labels)
   # La UI serializa un campo opcional vacio como `[]`, que jsonlite
@@ -1485,7 +1485,7 @@ p_barras_multiapiladas <- function(
   }
   if (!is.null(top2box_labels)) {
     if (!is.character(top2box_labels)) {
-      stop("`top2box_labels` debe ser NULL o character() no vacio.", call. = FALSE)
+      .plan_spec_abort("`top2box_labels` debe ser NULL o character() no vacio.")
     }
     top2box_labels <- trimws(top2box_labels)
     top2box_labels <- top2box_labels[nzchar(top2box_labels)]
@@ -1494,14 +1494,14 @@ p_barras_multiapiladas <- function(
   titulos_grupo <- .ppt_as_chr_vec(titulos_grupo, keep_names = TRUE)
   if (!is.null(titulos_grupo)) {
     if (!is.character(titulos_grupo) || !length(titulos_grupo)) {
-      stop("`titulos_grupo` debe ser NULL o character() no vacio.", call. = FALSE)
+      .plan_spec_abort("`titulos_grupo` debe ser NULL o character() no vacio.")
     }
     titulos_grupo <- trimws(titulos_grupo)
     titulos_grupo <- titulos_grupo[nzchar(titulos_grupo)]
     if (!length(titulos_grupo)) {
       titulos_grupo <- NULL
     } else if (is.null(names(titulos_grupo)) || any(!nzchar(trimws(names(titulos_grupo))))) {
-      stop("`titulos_grupo` debe ser un vector nombrado por variable.", call. = FALSE)
+      .plan_spec_abort("`titulos_grupo` debe ser un vector nombrado por variable.")
     } else {
       names(titulos_grupo) <- trimws(names(titulos_grupo))
       titulos_grupo <- titulos_grupo[nzchar(names(titulos_grupo))]
@@ -1509,28 +1509,28 @@ p_barras_multiapiladas <- function(
     }
   }
 
-  if (!is.list(overrides)) stop("`overrides` debe ser una lista.", call. = FALSE)
-  if (!is.list(base)) stop("`base` debe ser una lista.", call. = FALSE)
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser una lista.")
+  if (!is.list(base)) .plan_spec_abort("`base` debe ser una lista.")
   filtros <- .ppt_norm_filters(filtros)
 
   if (identical(modo, "multilista")) {
     if (!is.list(bloques) || !length(bloques)) {
-      stop("modo='multilista': `bloques` debe ser una lista no vacia.", call. = FALSE)
+      .plan_spec_abort("modo='multilista': `bloques` debe ser una lista no vacia.")
     }
 
     bloques_norm <- lapply(seq_along(bloques), function(i) {
       block <- bloques[[i]]
       if (!is.list(block)) {
-        stop("modo='multilista': cada bloque debe ser una lista.", call. = FALSE)
+        .plan_spec_abort("modo='multilista': cada bloque debe ser una lista.")
       }
 
       modo_block <- block[["modo", exact = TRUE]] %||% NULL
       if (!is.character(modo_block) || length(modo_block) != 1L || !nzchar(trimws(modo_block))) {
-        stop("modo='multilista': cada bloque debe definir `modo`.", call. = FALSE)
+        .plan_spec_abort("modo='multilista': cada bloque debe definir `modo`.")
       }
       modo_block <- trimws(modo_block)
       if (identical(modo_block, "multilista")) {
-        stop("modo='multilista': no se permiten bloques anidados de tipo `multilista`.", call. = FALSE)
+        .plan_spec_abort("modo='multilista': no se permiten bloques anidados de tipo `multilista`.")
       }
 
       filtros_block <- utils::modifyList(filtros, .ppt_norm_filters(block[["filtros", exact = TRUE]] %||% list()))
@@ -1593,12 +1593,12 @@ p_barras_multiapiladas <- function(
   }
 
   if (identical(modo, "var")) {
-    if (is.null(vars)) stop("modo='var': `vars` no puede ser NULL.", call. = FALSE)
+    if (is.null(vars)) .plan_spec_abort("modo='var': `vars` no puede ser NULL.")
     vars <- .ppt_as_chr_vec(vars)
-    if (!is.character(vars) || length(vars) < 1L) stop("modo='var': `vars` debe ser character() con >= 1 variable.", call. = FALSE)
+    if (!is.character(vars) || length(vars) < 1L) .plan_spec_abort("modo='var': `vars` debe ser character() con >= 1 variable.")
     vars <- trimws(vars)
     vars <- vars[nzchar(vars)]
-    if (!length(vars)) stop("modo='var': `vars` quedo vacio luego de limpiar.", call. = FALSE)
+    if (!length(vars)) .plan_spec_abort("modo='var': `vars` quedo vacio luego de limpiar.")
 
     el <- list(
       .element_type  = "barras_multiapiladas",
@@ -1622,37 +1622,37 @@ p_barras_multiapiladas <- function(
   }
 
   if (identical(modo, "var_cruce")) {
-    if (is.null(vars)) stop("modo='var_cruce': `vars` no puede ser NULL.", call. = FALSE)
+    if (is.null(vars)) .plan_spec_abort("modo='var_cruce': `vars` no puede ser NULL.")
     if (is.character(vars)) {
-      if (length(vars) < 1L) stop("modo='var_cruce': `vars` debe ser character() con >= 1 variable.", call. = FALSE)
+      if (length(vars) < 1L) .plan_spec_abort("modo='var_cruce': `vars` debe ser character() con >= 1 variable.")
       vars <- trimws(vars)
       vars <- vars[nzchar(vars)]
-      if (!length(vars)) stop("modo='var_cruce': `vars` quedo vacio luego de limpiar.", call. = FALSE)
+      if (!length(vars)) .plan_spec_abort("modo='var_cruce': `vars` quedo vacio luego de limpiar.")
 
-      if (is.null(cruces)) stop("modo='var_cruce': `cruces` es obligatorio (character(1)).", call. = FALSE)
+      if (is.null(cruces)) .plan_spec_abort("modo='var_cruce': `cruces` es obligatorio (character(1)).")
     } else if (is.list(vars)) {
-      if (!length(vars)) stop("modo='var_cruce': `vars` no puede ser una lista vacia.", call. = FALSE)
+      if (!length(vars)) .plan_spec_abort("modo='var_cruce': `vars` no puede ser una lista vacia.")
       if (is.null(names(vars)) || any(!nzchar(trimws(names(vars))))) {
-        stop("modo='var_cruce': cuando `vars` es lista, debe ser una lista nombrada.", call. = FALSE)
+        .plan_spec_abort("modo='var_cruce': cuando `vars` es lista, debe ser una lista nombrada.")
       }
       names(vars) <- trimws(names(vars))
       vars <- vars[nzchar(names(vars))]
-      if (!length(vars)) stop("modo='var_cruce': `vars` quedo vacio luego de limpiar.", call. = FALSE)
+      if (!length(vars)) .plan_spec_abort("modo='var_cruce': `vars` quedo vacio luego de limpiar.")
 
       vars <- lapply(vars, function(x) {
         x <- .ppt_as_chr_vec(x)
         if (!is.character(x) || !length(x)) {
-          stop("modo='var_cruce': cada bloque de `vars` debe ser character() no vacio.", call. = FALSE)
+          .plan_spec_abort("modo='var_cruce': cada bloque de `vars` debe ser character() no vacio.")
         }
         x <- trimws(x)
         x <- x[nzchar(x)]
         if (!length(x)) {
-          stop("modo='var_cruce': un bloque de `vars` quedo vacio luego de limpiar.", call. = FALSE)
+          .plan_spec_abort("modo='var_cruce': un bloque de `vars` quedo vacio luego de limpiar.")
         }
         x
       })
     } else {
-      stop("modo='var_cruce': `vars` debe ser character() o lista nombrada.", call. = FALSE)
+      .plan_spec_abort("modo='var_cruce': `vars` debe ser character() o lista nombrada.")
     }
 
     el <- list(
@@ -1678,11 +1678,11 @@ p_barras_multiapiladas <- function(
 
   # modo == "cruce"
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
-    stop("modo='cruce': `var` debe ser character(1) no vacio.", call. = FALSE)
+    .plan_spec_abort("modo='cruce': `var` debe ser character(1) no vacio.")
   }
   var <- trimws(var)
 
-  if (is.null(cruces)) stop("modo='cruce': `cruces` es obligatorio (character(1)).", call. = FALSE)
+  if (is.null(cruces)) .plan_spec_abort("modo='cruce': `cruces` es obligatorio (character(1)).")
 
   el <- list(
     .element_type  = "barras_multiapiladas",
@@ -1715,14 +1715,14 @@ p_barras_multiapiladas <- function(
 #' @export
 p_pie <- function(var, titulo = NULL, overrides = list(), base = list(), filtros = list()) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
-    stop("`var` debe ser character(1) no vacio.", call. = FALSE)
+    .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
   var <- trimws(var)
 
   titulo <- .ppt_norm_text1(titulo, blank = NULL)
 
-  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
-  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
   filtros <- .ppt_norm_filters(filtros)
 
   el <- list(
@@ -1743,14 +1743,14 @@ p_pie <- function(var, titulo = NULL, overrides = list(), base = list(), filtros
 #' @export
 p_donut <- function(var, titulo = NULL, overrides = list(), base = list(), filtros = list()) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
-    stop("`var` debe ser character(1) no vacio.", call. = FALSE)
+    .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
   var <- trimws(var)
 
   titulo <- .ppt_norm_text1(titulo, blank = NULL)
 
-  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
-  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
   filtros <- .ppt_norm_filters(filtros)
 
   el <- list(
@@ -1782,20 +1782,20 @@ p_nube_palabras <- function(
     filtros = list()
 ) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
-    stop("`var` debe ser character(1) no vacio.", call. = FALSE)
+    .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
   var <- trimws(var)
 
   if (!is.null(parent_var)) {
     if (!is.character(parent_var) || length(parent_var) != 1L || !nzchar(trimws(parent_var))) {
-      stop("`parent_var` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`parent_var` debe ser NULL o character(1) no vacio.")
     }
     parent_var <- trimws(parent_var)
   }
 
   titulo <- .ppt_norm_text1(titulo, blank = NULL)
-  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
-  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
   filtros <- .ppt_norm_filters(filtros)
 
   el <- list(
@@ -1839,14 +1839,14 @@ p_numerico <- function(
 
   if (!is.null(var)) {
     if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
-      stop("`var` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`var` debe ser NULL o character(1) no vacio.")
     }
     var <- trimws(var)
   }
 
   if (!is.null(cruce)) {
     if (!is.character(cruce) || length(cruce) != 1L || !nzchar(trimws(cruce))) {
-      stop("`cruce` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`cruce` debe ser NULL o character(1) no vacio.")
     }
     cruce <- trimws(cruce)
   }
@@ -1854,7 +1854,7 @@ p_numerico <- function(
   titulo  <- .ppt_norm_text1(titulo,  blank = NULL)
   formato <- .ppt_norm_text1(formato, blank = NULL)
 
-  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
   filtros <- .ppt_norm_filters(filtros)
 
   el <- list(
@@ -1898,26 +1898,26 @@ p_histograma <- function(
     ...
 ) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
-    stop("`var` debe ser character(1) no vacio.", call. = FALSE)
+    .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
   var <- trimws(var)
 
   if (!is.null(grupo)) {
     if (!is.character(grupo) || length(grupo) != 1L || !nzchar(trimws(grupo))) {
-      stop("`grupo` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`grupo` debe ser NULL o character(1) no vacio.")
     }
     grupo <- trimws(grupo)
   }
 
   titulo <- .ppt_norm_text1(titulo, blank = NULL)
-  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
   extra <- list(...)
   if (length(extra)) overrides <- utils::modifyList(overrides, extra)
   if (!is.null(modo)) {
     modo <- match.arg(modo, c("porcentaje_total", "porcentaje_bin", "conteo"))
     overrides$modo <- overrides$modo %||% modo
   }
-  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
   filtros <- .ppt_norm_filters(filtros)
 
   el <- list(
@@ -1972,52 +1972,52 @@ p_boxplot <- function(
 ) {
   modo_semaforo <- .dim_normalize_semaforo_modo(modo_semaforo)
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
-    stop("`var` debe ser character(1) no vacio.", call. = FALSE)
+    .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
   var <- trimws(var)
 
   if (!is.null(cruce)) {
     if (!is.character(cruce) || length(cruce) != 1L || !nzchar(trimws(cruce))) {
-      stop("`cruce` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`cruce` debe ser NULL o character(1) no vacio.")
     }
     cruce <- trimws(cruce)
   }
 
   titulo <- .ppt_norm_text1(titulo, blank = NULL)
-  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
-  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
   filtros <- .ppt_norm_filters(filtros)
 
   if (!is.null(decimales_promedio)) {
     decimales_promedio <- suppressWarnings(as.integer(decimales_promedio)[1])
     if (!is.finite(decimales_promedio) || is.na(decimales_promedio) || !(decimales_promedio %in% 0:2)) {
-      stop("`decimales_promedio` debe ser NULL o entero en {0, 1, 2}.", call. = FALSE)
+      .plan_spec_abort("`decimales_promedio` debe ser NULL o entero en {0, 1, 2}.")
     }
   }
   if (!is.null(tamano_promedio)) {
     tamano_promedio <- suppressWarnings(as.numeric(tamano_promedio)[1])
     if (!is.finite(tamano_promedio) || is.na(tamano_promedio) || tamano_promedio <= 0) {
-      stop("`tamano_promedio` debe ser NULL o numerico positivo.", call. = FALSE)
+      .plan_spec_abort("`tamano_promedio` debe ser NULL o numerico positivo.")
     }
   }
   if (!is.null(cortes_chip)) {
     cortes_chip <- suppressWarnings(as.numeric(cortes_chip))
     cortes_chip <- cortes_chip[is.finite(cortes_chip)]
     if (length(cortes_chip) < 2L) {
-      stop("`cortes_chip` debe ser NULL o numerico con al menos 2 valores.", call. = FALSE)
+      .plan_spec_abort("`cortes_chip` debe ser NULL o numerico con al menos 2 valores.")
     }
     cortes_chip <- sort(unique(cortes_chip))[1:2]
   }
   if (!is.null(chip_colores)) {
     if (!is.atomic(chip_colores) || !length(chip_colores)) {
-      stop("`chip_colores` debe ser NULL o vector atomico no vacio.", call. = FALSE)
+      .plan_spec_abort("`chip_colores` debe ser NULL o vector atomico no vacio.")
     }
     chip_colores <- as.character(chip_colores)
     if (length(chip_colores) < 3L) {
       nms <- names(chip_colores)
       ok_nms <- !is.null(nms) && all(c("rojo", "ambar", "verde") %in% tolower(trimws(as.character(nms))))
       if (!ok_nms) {
-        stop("`chip_colores` debe tener largo >= 3 o nombres rojo/ambar/verde.", call. = FALSE)
+        .plan_spec_abort("`chip_colores` debe tener largo >= 3 o nombres rojo/ambar/verde.")
       }
     }
   }
@@ -2080,55 +2080,55 @@ p_media_rango <- function(
 ) {
   modo_semaforo <- .dim_normalize_semaforo_modo(modo_semaforo)
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
-    stop("`var` debe ser character(1) no vacio.", call. = FALSE)
+    .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
   var <- trimws(var)
 
   if (!is.null(cruce)) {
     if (!is.character(cruce) || length(cruce) != 1L || !nzchar(trimws(cruce))) {
-      stop("`cruce` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`cruce` debe ser NULL o character(1) no vacio.")
     }
     cruce <- trimws(cruce)
   }
 
   titulo <- .ppt_norm_text1(titulo, blank = NULL)
-  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
-  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
   filtros <- .ppt_norm_filters(filtros)
 
   if (!is.null(decimales_promedio)) {
     decimales_promedio <- suppressWarnings(as.integer(decimales_promedio)[1])
     if (!is.finite(decimales_promedio) || is.na(decimales_promedio) || !(decimales_promedio %in% 0:2)) {
-      stop("`decimales_promedio` debe ser NULL o entero en {0, 1, 2}.", call. = FALSE)
+      .plan_spec_abort("`decimales_promedio` debe ser NULL o entero en {0, 1, 2}.")
     }
   }
   if (!is.null(tamano_promedio)) {
     tamano_promedio <- suppressWarnings(as.numeric(tamano_promedio)[1])
     if (!is.finite(tamano_promedio) || is.na(tamano_promedio) || tamano_promedio <= 0) {
-      stop("`tamano_promedio` debe ser NULL o numerico positivo.", call. = FALSE)
+      .plan_spec_abort("`tamano_promedio` debe ser NULL o numerico positivo.")
     }
   }
   if (!is.null(mostrar_ref_label) && !isTRUE(mostrar_ref_label) && !identical(mostrar_ref_label, FALSE)) {
-    stop("`mostrar_ref_label` debe ser NULL, TRUE o FALSE.", call. = FALSE)
+    .plan_spec_abort("`mostrar_ref_label` debe ser NULL, TRUE o FALSE.")
   }
   if (!is.null(cortes_chip)) {
     cortes_chip <- suppressWarnings(as.numeric(cortes_chip))
     cortes_chip <- cortes_chip[is.finite(cortes_chip)]
     if (length(cortes_chip) < 2L) {
-      stop("`cortes_chip` debe ser NULL o numerico con al menos 2 valores.", call. = FALSE)
+      .plan_spec_abort("`cortes_chip` debe ser NULL o numerico con al menos 2 valores.")
     }
     cortes_chip <- sort(unique(cortes_chip))[1:2]
   }
   if (!is.null(chip_colores)) {
     if (!is.atomic(chip_colores) || !length(chip_colores)) {
-      stop("`chip_colores` debe ser NULL o vector atomico no vacio.", call. = FALSE)
+      .plan_spec_abort("`chip_colores` debe ser NULL o vector atomico no vacio.")
     }
     chip_colores <- as.character(chip_colores)
     if (length(chip_colores) < 3L) {
       nms <- names(chip_colores)
       ok_nms <- !is.null(nms) && all(c("rojo", "ambar", "verde") %in% tolower(trimws(as.character(nms))))
       if (!ok_nms) {
-        stop("`chip_colores` debe tener largo >= 3 o nombres rojo/ambar/verde.", call. = FALSE)
+        .plan_spec_abort("`chip_colores` debe tener largo >= 3 o nombres rojo/ambar/verde.")
       }
     }
   }
@@ -2194,56 +2194,56 @@ p_radar_tabla <- function(
 
   if (identical(modo, "sm")) {
     if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
-      stop("p_radar_tabla(modo='sm'): `var` debe ser character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("p_radar_tabla(modo='sm'): `var` debe ser character(1) no vacio.")
     }
     var <- trimws(var)
-    if (!is.null(vars)) stop("p_radar_tabla(modo='sm'): no usar `vars`.", call. = FALSE)
+    if (!is.null(vars)) .plan_spec_abort("p_radar_tabla(modo='sm'): no usar `vars`.")
   }
 
   if (identical(modo, "box")) {
     if (is.character(vars)) {
       if (length(vars) < 1L) {
-        stop("p_radar_tabla(modo='box'): `vars` debe ser character() con >=1 variable.", call. = FALSE)
+        .plan_spec_abort("p_radar_tabla(modo='box'): `vars` debe ser character() con >=1 variable.")
       }
       vars <- trimws(vars); vars <- vars[nzchar(vars)]
-      if (!length(vars)) stop("p_radar_tabla(modo='box'): `vars` quedo vacio.", call. = FALSE)
+      if (!length(vars)) .plan_spec_abort("p_radar_tabla(modo='box'): `vars` quedo vacio.")
     } else if (is.list(vars)) {
       if (!length(vars)) {
-        stop("p_radar_tabla(modo='box'): `vars` no puede ser una lista vacia.", call. = FALSE)
+        .plan_spec_abort("p_radar_tabla(modo='box'): `vars` no puede ser una lista vacia.")
       }
       if (is.null(names(vars)) || any(!nzchar(trimws(names(vars))))) {
-        stop("p_radar_tabla(modo='box'): cuando `vars` es lista, debe ser una lista nombrada.", call. = FALSE)
+        .plan_spec_abort("p_radar_tabla(modo='box'): cuando `vars` es lista, debe ser una lista nombrada.")
       }
       names(vars) <- trimws(names(vars))
       vars <- vars[nzchar(names(vars))]
-      if (!length(vars)) stop("p_radar_tabla(modo='box'): `vars` quedo vacio luego de limpiar.", call. = FALSE)
+      if (!length(vars)) .plan_spec_abort("p_radar_tabla(modo='box'): `vars` quedo vacio luego de limpiar.")
 
       vars <- lapply(vars, function(x) {
         if (!is.character(x) || !length(x)) {
-          stop("p_radar_tabla(modo='box'): cada bloque de `vars` debe ser character() no vacio.", call. = FALSE)
+          .plan_spec_abort("p_radar_tabla(modo='box'): cada bloque de `vars` debe ser character() no vacio.")
         }
         x <- trimws(x)
         x <- x[nzchar(x)]
         if (!length(x)) {
-          stop("p_radar_tabla(modo='box'): un bloque de `vars` quedo vacio luego de limpiar.", call. = FALSE)
+          .plan_spec_abort("p_radar_tabla(modo='box'): un bloque de `vars` quedo vacio luego de limpiar.")
         }
         x
       })
     } else {
-      stop("p_radar_tabla(modo='box'): `vars` debe ser character() o lista nombrada.", call. = FALSE)
+      .plan_spec_abort("p_radar_tabla(modo='box'): `vars` debe ser character() o lista nombrada.")
     }
 
-    if (!is.null(var)) stop("p_radar_tabla(modo='box'): no usar `var`.", call. = FALSE)
+    if (!is.null(var)) .plan_spec_abort("p_radar_tabla(modo='box'): no usar `var`.")
 
     if (!is.character(box_labels) || length(box_labels) != 2L) {
-      stop("p_radar_tabla(modo='box'): `box_labels` debe ser character(2).", call. = FALSE)
+      .plan_spec_abort("p_radar_tabla(modo='box'): `box_labels` debe ser character(2).")
     }
     box_labels <- as.character(box_labels)
   }
 
   if (!is.null(cruce)) {
     if (!is.character(cruce) || length(cruce) != 1L || !nzchar(trimws(cruce))) {
-      stop("`cruce` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`cruce` debe ser NULL o character(1) no vacio.")
     }
     cruce <- trimws(cruce)
   }
@@ -2252,16 +2252,16 @@ p_radar_tabla <- function(
 
   if (!is.null(top_n)) {
     if (!is.numeric(top_n) || length(top_n) != 1L || !is.finite(top_n) || top_n < 3) {
-      stop("`top_n` debe ser numerico >= 3 (o NULL).", call. = FALSE)
+      .plan_spec_abort("`top_n` debe ser numerico >= 3 (o NULL).")
     }
     top_n <- as.integer(top_n)
   }
 
-  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
-  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
   if (!is.null(colores_series)) {
     if (!is.atomic(colores_series) || is.null(names(colores_series))) {
-      stop("`colores_series` debe ser NULL o un vector nombrado.", call. = FALSE)
+      .plan_spec_abort("`colores_series` debe ser NULL o un vector nombrado.")
     }
   }
   filtros <- .ppt_norm_filters(filtros)
@@ -2323,44 +2323,44 @@ p_dim_heatmap <- function(
   modo_semaforo <- .dim_normalize_semaforo_modo(modo_semaforo)
 
   if (!is.character(objetivo) || length(objetivo) != 1L || !nzchar(trimws(objetivo))) {
-    stop("`objetivo` debe ser character(1) no vacio.", call. = FALSE)
+    .plan_spec_abort("`objetivo` debe ser character(1) no vacio.")
   }
   objetivo <- trimws(objetivo)
 
   if (!is.null(cruce)) {
     if (!is.character(cruce) || length(cruce) != 1L || !nzchar(trimws(cruce))) {
-      stop("`cruce` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`cruce` debe ser NULL o character(1) no vacio.")
     }
     cruce <- trimws(cruce)
   }
 
   if (!is.null(iter_var)) {
     if (!is.character(iter_var) || length(iter_var) != 1L || !nzchar(trimws(iter_var))) {
-      stop("`iter_var` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`iter_var` debe ser NULL o character(1) no vacio.")
     }
     iter_var <- trimws(iter_var)
   }
 
   if (!is.null(iter_level)) {
     if (!is.character(iter_level) || length(iter_level) != 1L || !nzchar(trimws(iter_level))) {
-      stop("`iter_level` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`iter_level` debe ser NULL o character(1) no vacio.")
     }
     iter_level <- trimws(iter_level)
   }
 
   if (!is.null(incluir_total)) {
     if (!is.logical(incluir_total) || length(incluir_total) != 1L || is.na(incluir_total)) {
-      stop("`incluir_total` debe ser NULL o logical(1).", call. = FALSE)
+      .plan_spec_abort("`incluir_total` debe ser NULL o logical(1).")
     }
   }
   if (!is.logical(brecha_filas) || length(brecha_filas) != 1L || is.na(brecha_filas)) {
-    stop("`brecha_filas` debe ser logical(1).", call. = FALSE)
+    .plan_spec_abort("`brecha_filas` debe ser logical(1).")
   }
   if (!is.logical(brecha_cols) || length(brecha_cols) != 1L || is.na(brecha_cols)) {
-    stop("`brecha_cols` debe ser logical(1).", call. = FALSE)
+    .plan_spec_abort("`brecha_cols` debe ser logical(1).")
   }
   if (!is.logical(aplicar_gradiente_brecha) || length(aplicar_gradiente_brecha) != 1L || is.na(aplicar_gradiente_brecha)) {
-    stop("`aplicar_gradiente_brecha` debe ser logical(1).", call. = FALSE)
+    .plan_spec_abort("`aplicar_gradiente_brecha` debe ser logical(1).")
   }
 
   etiq_brecha_filas <- .ppt_norm_text1(etiq_brecha_filas, blank = "Brecha")
@@ -2377,18 +2377,18 @@ p_dim_heatmap <- function(
   if (!is.null(size_ejes_x)) {
     size_ejes_x <- suppressWarnings(as.numeric(size_ejes_x))
     if (!is.finite(size_ejes_x) || is.na(size_ejes_x) || size_ejes_x <= 0) {
-      stop("`size_ejes_x` debe ser NULL o numerico positivo.", call. = FALSE)
+      .plan_spec_abort("`size_ejes_x` debe ser NULL o numerico positivo.")
     }
   }
   titulo_total_x <- .ppt_norm_text1(titulo_total_x, blank = "Total")
   titulo_total_y <- .ppt_norm_text1(titulo_total_y, blank = "Total cruce")
   if (!is.logical(mostrar_n_cruce_x) || length(mostrar_n_cruce_x) != 1L || is.na(mostrar_n_cruce_x)) {
-    stop("`mostrar_n_cruce_x` debe ser logical(1).", call. = FALSE)
+    .plan_spec_abort("`mostrar_n_cruce_x` debe ser logical(1).")
   }
 
   filtros <- .ppt_norm_filters(filtros)
-  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
-  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
 
   if (is.null(overrides$modo_semaforo)) overrides$modo_semaforo <- modo_semaforo
 
@@ -2432,16 +2432,16 @@ p_dim_heatmap_criterios <- function(
     source = NULL
 ) {
   if (!is.list(config_criterios) || !length(config_criterios)) {
-    stop("`config_criterios` debe ser una lista no vacia.", call. = FALSE)
+    .plan_spec_abort("`config_criterios` debe ser una lista no vacia.")
   }
-  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
-  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
 
   vars_flat <- unlist(lapply(config_criterios, function(cfg) cfg$vars %||% character(0)), use.names = FALSE)
   vars_flat <- as.character(vars_flat)
   vars_flat <- vars_flat[!is.na(vars_flat) & nzchar(trimws(vars_flat))]
   if (!length(vars_flat)) {
-    stop("`config_criterios` debe incluir al menos una variable en `vars`.", call. = FALSE)
+    .plan_spec_abort("`config_criterios` debe incluir al menos una variable en `vars`.")
   }
 
   el <- list(
@@ -2477,52 +2477,52 @@ p_dim_radar <- function(
   modo <- match.arg(modo)
 
   if (!is.character(objetivo) || length(objetivo) != 1L || !nzchar(trimws(objetivo))) {
-    stop("`objetivo` debe ser character(1) no vacio.", call. = FALSE)
+    .plan_spec_abort("`objetivo` debe ser character(1) no vacio.")
   }
   objetivo <- trimws(objetivo)
 
   if (!is.null(cruce)) {
     if (!is.character(cruce) || length(cruce) != 1L || !nzchar(trimws(cruce))) {
-      stop("`cruce` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`cruce` debe ser NULL o character(1) no vacio.")
     }
     cruce <- trimws(cruce)
   }
 
   if (!is.null(iter_var)) {
     if (!is.character(iter_var) || length(iter_var) != 1L || !nzchar(trimws(iter_var))) {
-      stop("`iter_var` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`iter_var` debe ser NULL o character(1) no vacio.")
     }
     iter_var <- trimws(iter_var)
   }
 
   if (!is.null(iter_level)) {
     if (!is.character(iter_level) || length(iter_level) != 1L || !nzchar(trimws(iter_level))) {
-      stop("`iter_level` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`iter_level` debe ser NULL o character(1) no vacio.")
     }
     iter_level <- trimws(iter_level)
   }
 
   if (!is.null(incluir_total)) {
     if (!is.logical(incluir_total) || length(incluir_total) != 1L || is.na(incluir_total)) {
-      stop("`incluir_total` debe ser NULL o logical(1).", call. = FALSE)
+      .plan_spec_abort("`incluir_total` debe ser NULL o logical(1).")
     }
   }
 
   if (!is.null(inicio_eje_pct)) {
     inicio_eje_pct <- suppressWarnings(as.numeric(inicio_eje_pct)[1])
     if (!is.finite(inicio_eje_pct) || inicio_eje_pct < 0 || inicio_eje_pct >= 100) {
-      stop("`inicio_eje_pct` debe ser NULL o un numero en [0, 100).", call. = FALSE)
+      .plan_spec_abort("`inicio_eje_pct` debe ser NULL o un numero en [0, 100).")
     }
   }
 
   filtros <- .ppt_norm_filters(filtros)
-  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
-  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
 
   if (!is.null(radar_min_ejes)) {
     radar_min_ejes <- suppressWarnings(as.integer(radar_min_ejes)[1])
     if (!is.finite(radar_min_ejes) || is.na(radar_min_ejes) || radar_min_ejes < 1L) {
-      stop("`radar_min_ejes` debe ser NULL o entero >= 1.", call. = FALSE)
+      .plan_spec_abort("`radar_min_ejes` debe ser NULL o entero >= 1.")
     }
   }
 
@@ -2565,52 +2565,52 @@ p_dim_comparativo_radarbar <- function(
   modo <- match.arg(modo)
 
   if (!is.character(objetivo) || length(objetivo) != 1L || !nzchar(trimws(objetivo))) {
-    stop("`objetivo` debe ser character(1) no vacio.", call. = FALSE)
+    .plan_spec_abort("`objetivo` debe ser character(1) no vacio.")
   }
   objetivo <- trimws(objetivo)
 
   if (!is.null(cruce)) {
     if (!is.character(cruce) || length(cruce) != 1L || !nzchar(trimws(cruce))) {
-      stop("`cruce` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`cruce` debe ser NULL o character(1) no vacio.")
     }
     cruce <- trimws(cruce)
   }
 
   if (!is.null(iter_var)) {
     if (!is.character(iter_var) || length(iter_var) != 1L || !nzchar(trimws(iter_var))) {
-      stop("`iter_var` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`iter_var` debe ser NULL o character(1) no vacio.")
     }
     iter_var <- trimws(iter_var)
   }
 
   if (!is.null(iter_level)) {
     if (!is.character(iter_level) || length(iter_level) != 1L || !nzchar(trimws(iter_level))) {
-      stop("`iter_level` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`iter_level` debe ser NULL o character(1) no vacio.")
     }
     iter_level <- trimws(iter_level)
   }
 
   if (!is.null(incluir_total)) {
     if (!is.logical(incluir_total) || length(incluir_total) != 1L || is.na(incluir_total)) {
-      stop("`incluir_total` debe ser NULL o logical(1).", call. = FALSE)
+      .plan_spec_abort("`incluir_total` debe ser NULL o logical(1).")
     }
   }
 
   radar_min_ejes <- suppressWarnings(as.integer(radar_min_ejes)[1])
   if (!is.finite(radar_min_ejes) || is.na(radar_min_ejes) || radar_min_ejes < 1L) {
-    stop("`radar_min_ejes` debe ser entero >= 1.", call. = FALSE)
+    .plan_spec_abort("`radar_min_ejes` debe ser entero >= 1.")
   }
 
   if (!is.null(inicio_eje_pct)) {
     inicio_eje_pct <- suppressWarnings(as.numeric(inicio_eje_pct)[1])
     if (!is.finite(inicio_eje_pct) || inicio_eje_pct < 0 || inicio_eje_pct >= 100) {
-      stop("`inicio_eje_pct` debe ser NULL o un numero en [0, 100).", call. = FALSE)
+      .plan_spec_abort("`inicio_eje_pct` debe ser NULL o un numero en [0, 100).")
     }
   }
 
   filtros <- .ppt_norm_filters(filtros)
-  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
-  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
 
   el <- list(
     .element_type = "dim_comparativo_radarbar",
@@ -2680,66 +2680,66 @@ p_dim_foda <- function(
 
   if (!is.null(objetivo)) {
     if (!is.character(objetivo) || length(objetivo) != 1L || !nzchar(trimws(objetivo))) {
-      stop("`objetivo` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`objetivo` debe ser NULL o character(1) no vacio.")
     }
     objetivo <- trimws(objetivo)
   }
 
   if (identical(nivel, "indicadores") && (is.null(objetivo) || !nzchar(objetivo))) {
-    stop("`objetivo` es requerido cuando `nivel = 'indicadores'`.", call. = FALSE)
+    .plan_spec_abort("`objetivo` es requerido cuando `nivel = 'indicadores'`.")
   }
   if (!is.null(source)) {
     if (!is.character(source) || length(source) != 1L || !nzchar(trimws(source))) {
-      stop("`source` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`source` debe ser NULL o character(1) no vacio.")
     }
     source <- trimws(source)
   }
   if (!is.null(cruce)) {
     if (!is.character(cruce) || length(cruce) != 1L || !nzchar(trimws(cruce))) {
-      stop("`cruce` debe ser NULL o character(1) no vacio.", call. = FALSE)
+      .plan_spec_abort("`cruce` debe ser NULL o character(1) no vacio.")
     }
     cruce <- trimws(cruce)
   }
   if (identical(modo_foda, "matriz") && !is.null(cruce)) {
-    stop("`cruce` solo se admite con `modo_foda = 'dispersion'`.", call. = FALSE)
+    .plan_spec_abort("`cruce` solo se admite con `modo_foda = 'dispersion'`.")
   }
   if (!is.logical(incluir_total) || length(incluir_total) != 1L || is.na(incluir_total)) {
-    stop("`incluir_total` debe ser logical(1).", call. = FALSE)
+    .plan_spec_abort("`incluir_total` debe ser logical(1).")
   }
   if (!is.logical(solo_indice_general_cruce) || length(solo_indice_general_cruce) != 1L || is.na(solo_indice_general_cruce)) {
-    stop("`solo_indice_general_cruce` debe ser logical(1).", call. = FALSE)
+    .plan_spec_abort("`solo_indice_general_cruce` debe ser logical(1).")
   }
 
   if (!is.logical(usar_pesos) || length(usar_pesos) != 1L || is.na(usar_pesos)) {
-    stop("`usar_pesos` debe ser logical(1).", call. = FALSE)
+    .plan_spec_abort("`usar_pesos` debe ser logical(1).")
   }
   if (!is.null(chip_width_rel)) ancho_chip_rel <- chip_width_rel
   if (!is.null(score_suffix)) sufijo_puntaje <- score_suffix
 
   ancho_tarjeta_base_rel <- suppressWarnings(as.numeric(ancho_tarjeta_base_rel)[1])
   if (!is.finite(ancho_tarjeta_base_rel) || is.na(ancho_tarjeta_base_rel) || ancho_tarjeta_base_rel <= 0) {
-    stop("`ancho_tarjeta_base_rel` debe ser numerico positivo.", call. = FALSE)
+    .plan_spec_abort("`ancho_tarjeta_base_rel` debe ser numerico positivo.")
   }
   factor_ancho_matriz <- suppressWarnings(as.numeric(factor_ancho_matriz)[1])
   if (!is.finite(factor_ancho_matriz) || is.na(factor_ancho_matriz) || factor_ancho_matriz <= 0) {
-    stop("`factor_ancho_matriz` debe ser numerico positivo.", call. = FALSE)
+    .plan_spec_abort("`factor_ancho_matriz` debe ser numerico positivo.")
   }
   factor_ancho_dispersion <- suppressWarnings(as.numeric(factor_ancho_dispersion)[1])
   if (!is.finite(factor_ancho_dispersion) || is.na(factor_ancho_dispersion) || factor_ancho_dispersion <= 0) {
-    stop("`factor_ancho_dispersion` debe ser numerico positivo.", call. = FALSE)
+    .plan_spec_abort("`factor_ancho_dispersion` debe ser numerico positivo.")
   }
   if (!is.null(ancho_recuadro_rel)) {
     ancho_recuadro_rel <- suppressWarnings(as.numeric(ancho_recuadro_rel)[1])
     if (!is.finite(ancho_recuadro_rel) || is.na(ancho_recuadro_rel) || ancho_recuadro_rel <= 0) {
-      stop("`ancho_recuadro_rel` debe ser NULL o numerico positivo.", call. = FALSE)
+      .plan_spec_abort("`ancho_recuadro_rel` debe ser NULL o numerico positivo.")
     }
   }
   if (!is.logical(ancho_recuadro_auto) || length(ancho_recuadro_auto) != 1L || is.na(ancho_recuadro_auto)) {
-    stop("`ancho_recuadro_auto` debe ser logical(1).", call. = FALSE)
+    .plan_spec_abort("`ancho_recuadro_auto` debe ser logical(1).")
   }
   ancho_chip_rel <- suppressWarnings(as.numeric(ancho_chip_rel)[1])
   if (!is.finite(ancho_chip_rel) || is.na(ancho_chip_rel) || ancho_chip_rel <= 0) {
-    stop("`ancho_chip_rel` debe ser numerico positivo.", call. = FALSE)
+    .plan_spec_abort("`ancho_chip_rel` debe ser numerico positivo.")
   }
   sufijo_puntaje <- as.character(sufijo_puntaje %||% " pts")[1]
   if (is.na(sufijo_puntaje)) sufijo_puntaje <- " pts"
@@ -2748,34 +2748,34 @@ p_dim_foda <- function(
     cortes_chip <- suppressWarnings(as.numeric(cortes_chip))
     cortes_chip <- cortes_chip[is.finite(cortes_chip)]
     if (length(cortes_chip) < 2L) {
-      stop("`cortes_chip` debe ser NULL o numerico con al menos 2 valores.", call. = FALSE)
+      .plan_spec_abort("`cortes_chip` debe ser NULL o numerico con al menos 2 valores.")
     }
     cortes_chip <- sort(unique(cortes_chip))[1:2]
   }
   if (!is.null(tamano_texto_tarjeta)) {
     tamano_texto_tarjeta <- suppressWarnings(as.numeric(tamano_texto_tarjeta)[1])
     if (!is.finite(tamano_texto_tarjeta) || is.na(tamano_texto_tarjeta) || tamano_texto_tarjeta <= 0) {
-      stop("`tamano_texto_tarjeta` debe ser NULL o numerico positivo.", call. = FALSE)
+      .plan_spec_abort("`tamano_texto_tarjeta` debe ser NULL o numerico positivo.")
     }
   }
   if (!is.null(tamano_texto_chip)) {
     tamano_texto_chip <- suppressWarnings(as.numeric(tamano_texto_chip)[1])
     if (!is.finite(tamano_texto_chip) || is.na(tamano_texto_chip) || tamano_texto_chip <= 0) {
-      stop("`tamano_texto_chip` debe ser NULL o numerico positivo.", call. = FALSE)
+      .plan_spec_abort("`tamano_texto_chip` debe ser NULL o numerico positivo.")
     }
   }
   if (!is.logical(tarjetas_color_solido) || length(tarjetas_color_solido) != 1L || is.na(tarjetas_color_solido)) {
-    stop("`tarjetas_color_solido` debe ser logical(1).", call. = FALSE)
+    .plan_spec_abort("`tarjetas_color_solido` debe ser logical(1).")
   }
   if (!is.logical(mostrar_subtitulo_area) || length(mostrar_subtitulo_area) != 1L || is.na(mostrar_subtitulo_area)) {
-    stop("`mostrar_subtitulo_area` debe ser logical(1).", call. = FALSE)
+    .plan_spec_abort("`mostrar_subtitulo_area` debe ser logical(1).")
   }
   if (!is.logical(sd_tecnico) || length(sd_tecnico) != 1L || is.na(sd_tecnico)) {
-    stop("`sd_tecnico` debe ser logical(1).", call. = FALSE)
+    .plan_spec_abort("`sd_tecnico` debe ser logical(1).")
   }
   if (!is.null(etiqueta_cruce_en_dos_lineas)) {
     if (!is.logical(etiqueta_cruce_en_dos_lineas) || length(etiqueta_cruce_en_dos_lineas) != 1L || is.na(etiqueta_cruce_en_dos_lineas)) {
-      stop("`etiqueta_cruce_en_dos_lineas` debe ser NULL o logical(1).", call. = FALSE)
+      .plan_spec_abort("`etiqueta_cruce_en_dos_lineas` debe ser NULL o logical(1).")
     }
     disposicion_recuadro <- if (isTRUE(etiqueta_cruce_en_dos_lineas)) "dos_lineas" else "una_linea"
   }
@@ -2783,18 +2783,18 @@ p_dim_foda <- function(
   disposicion_recuadro <- match.arg(disposicion_recuadro, c("dos_lineas", "una_linea", "sin_cruce"))
   color_indice_total <- as.character(color_indice_total %||% "#FF6A00")[1]
   if (!nzchar(trimws(color_indice_total)) || is.na(color_indice_total)) {
-    stop("`color_indice_total` debe ser character(1) no vacio.", call. = FALSE)
+    .plan_spec_abort("`color_indice_total` debe ser character(1) no vacio.")
   }
   if (!is.null(titulos_areas_foda)) {
     if (!is.character(titulos_areas_foda) || !length(titulos_areas_foda)) {
-      stop("`titulos_areas_foda` debe ser NULL o un vector character.", call. = FALSE)
+      .plan_spec_abort("`titulos_areas_foda` debe ser NULL o un vector character.")
     }
     titulos_areas_foda <- as.character(titulos_areas_foda)
     llaves <- c("fortaleza", "oportunidad", "debilidad", "amenaza")
     nms <- names(titulos_areas_foda %||% character(0))
     if (is.null(nms) || !any(nzchar(trimws(nms)))) {
       if (length(titulos_areas_foda) < 4L) {
-        stop("`titulos_areas_foda` debe tener 4 valores o venir nombrado por cuadrante.", call. = FALSE)
+        .plan_spec_abort("`titulos_areas_foda` debe tener 4 valores o venir nombrado por cuadrante.")
       }
       titulos_areas_foda <- titulos_areas_foda[seq_along(llaves)]
       names(titulos_areas_foda) <- llaves
@@ -2806,33 +2806,33 @@ p_dim_foda <- function(
         if (length(hit)) out[[k]] <- titulos_areas_foda[hit[1]]
       }
       if (all(is.na(out))) {
-        stop("`titulos_areas_foda` nombrado debe usar: fortaleza, oportunidad, debilidad, amenaza.", call. = FALSE)
+        .plan_spec_abort("`titulos_areas_foda` nombrado debe usar: fortaleza, oportunidad, debilidad, amenaza.")
       }
       titulos_areas_foda <- out
     }
   }
   jitter_x_rel <- suppressWarnings(as.numeric(jitter_x_rel)[1])
   if (!is.finite(jitter_x_rel) || is.na(jitter_x_rel) || jitter_x_rel < 0) {
-    stop("`jitter_x_rel` debe ser numerico en [0, +Inf).", call. = FALSE)
+    .plan_spec_abort("`jitter_x_rel` debe ser numerico en [0, +Inf).")
   }
   jitter_y_rel <- suppressWarnings(as.numeric(jitter_y_rel)[1])
   if (!is.finite(jitter_y_rel) || is.na(jitter_y_rel) || jitter_y_rel < 0) {
-    stop("`jitter_y_rel` debe ser numerico en [0, +Inf).", call. = FALSE)
+    .plan_spec_abort("`jitter_y_rel` debe ser numerico en [0, +Inf).")
   }
   iter_separacion <- suppressWarnings(as.integer(iter_separacion)[1])
   if (!is.finite(iter_separacion) || is.na(iter_separacion) || iter_separacion < 0L) {
-    stop("`iter_separacion` debe ser entero >= 0.", call. = FALSE)
+    .plan_spec_abort("`iter_separacion` debe ser entero >= 0.")
   }
   factor_reduccion_tarjeta_dispersion <- suppressWarnings(as.numeric(factor_reduccion_tarjeta_dispersion)[1])
   if (!is.finite(factor_reduccion_tarjeta_dispersion) ||
       is.na(factor_reduccion_tarjeta_dispersion) ||
       factor_reduccion_tarjeta_dispersion <= 0) {
-    stop("`factor_reduccion_tarjeta_dispersion` debe ser numerico positivo.", call. = FALSE)
+    .plan_spec_abort("`factor_reduccion_tarjeta_dispersion` debe ser numerico positivo.")
   }
 
   filtros <- .ppt_norm_filters(filtros)
-  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
-  if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
   if (is.null(overrides$modo_foda)) overrides$modo_foda <- modo_foda
   if (!is.null(cruce) && is.null(overrides$cruce)) overrides$cruce <- cruce
   if (is.null(overrides$incluir_total)) overrides$incluir_total <- isTRUE(incluir_total)
@@ -2899,9 +2899,8 @@ p_dim_radar_tabla <- function(
     overrides = list(),
     base = list()
 ) {
-  stop(
-    "`p_dim_radar_tabla()` fue retirado del flujo PPT. Use `p_dim_radar()` o `p_dim_heatmap()`.",
-    call. = FALSE
+  .plan_spec_abort(
+    "`p_dim_radar_tabla()` fue retirado del flujo PPT. Use `p_dim_radar()` o `p_dim_heatmap()`."
   )
 }
 
@@ -2909,12 +2908,12 @@ p_dim_radar_tabla <- function(
 #' @family reporte
 #' @export
 p_text <- function(text, overrides = list()) {
-  if (missing(text) || is.null(text)) stop("`text` no puede ser NULL.", call. = FALSE)
-  if (!is.character(text) || length(text) != 1L) stop("`text` debe ser character(1).", call. = FALSE)
+  if (missing(text) || is.null(text)) .plan_spec_abort("`text` no puede ser NULL.")
+  if (!is.character(text) || length(text) != 1L) .plan_spec_abort("`text` debe ser character(1).")
 
   text <- .ppt_norm_text1(text, blank = " ")
 
-  if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
+  if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
 
   el <- list(
     .element_type = "text",
@@ -2935,7 +2934,7 @@ p_text <- function(text, overrides = list()) {
 #' @export
 p_ggplot_raw <- function(gg, titulo = NULL) {
   if (!inherits(gg, "gg") && !inherits(gg, "ggplot"))
-    stop("`gg` debe ser un objeto ggplot.", call. = FALSE)
+    .plan_spec_abort("`gg` debe ser un objeto ggplot.")
   el <- list(
     .element_type = "ggplot_raw",
     gg            = gg,
