@@ -28,7 +28,7 @@ const apiProxyTarget =
 
 function manualChunks(id: string) {
   const normalized = id.split(path.sep).join("/");
-  if (normalized.includes("/src/api/client.ts")) return "api-client";
+  if (normalized.includes("/src/api/")) return "api-client";
   if (
     normalized.includes("/src/vendor/lucide-react.ts") ||
     normalized.includes("/node_modules/lucide-react/")
