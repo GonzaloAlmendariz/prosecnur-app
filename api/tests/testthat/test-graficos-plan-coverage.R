@@ -38,6 +38,71 @@ test_that("inventario de graficos prioriza recodificadas e integra campos other"
   expect_true(isTRUE(by_name$p19$section_reliable))
 })
 
+test_that("el auto-plan excluye metadata/QA/control operativo y conserva preguntas reales y _recod", {
+  # El clasificador de control operativo aísla las preguntas de introducción del
+  # formulario (consentimiento, QA entrevista real vs. prueba, tamizaje de
+  # disponibilidad) sin capturar preguntas sustantivas ni recodificadas. `timing`
+  # ("¿cuánto tiempo le tomó llegar?") NO es metadata: es acceso, y se grafica.
+  meta <- list(
+    c("testreal", "¿Es una entrevista real o una prueba?"),
+    c("Consent", "¿Acepta continuar con la encuesta?"),
+    c("Registered_person_available",
+      "En estos momentos, ¿Algún miembro mayor de edad está disponible para responder esta encuesta?")
+  )
+  for (m in meta) {
+    expect_true(.graficos_is_operational_metadata(m[[1]], m[[2]]),
+                info = paste("debía excluirse:", m[[1]]))
+  }
+  reales <- list(
+    c("transport", "¿Qué medio de transporte utilizó para llegar?"),
+    c("reason_edp", "¿Cuáles fueron los motivos principales?"),
+    c("Feel_safe_reporting", "¿Se sentiría seguro/a dando retroalimentación?"),
+    c("censo_2025_inei", "¿Su hogar participó en el Censo Nacional 2025?"),
+    c("transport_recod", "Medio de transporte (recodificado)"),
+    c("timing", "¿Cuánto tiempo le tomó aproximadamente llegar al Espacio de Protección?")
+  )
+  for (r in reales) {
+    expect_false(.graficos_is_operational_metadata(r[[1]], r[[2]]),
+                 info = paste("no debía excluirse:", r[[1]]))
+  }
+
+  inst <- list(
+    survey = data.frame(
+      type = c("select_one Yes_no", "select_one testreal", "select_one acceso",
+               "select_one acceso", "select_one acceso"),
+      type_base = rep("select_one", 5),
+      name = c("Consent", "testreal", "transport", "transport_recod", "timing"),
+      label = c("¿Acepta continuar con la encuesta?", "¿Es una entrevista real o una prueba?",
+                "¿Qué medio de transporte utilizó?", "Transporte (recodificado)",
+                "¿Cuánto tiempo le tomó llegar?"),
+      group_name = c("Intro", "Intro", "Acceso", "Acceso", "Acceso"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("Yes_no", "Yes_no", "testreal", "testreal", "acceso", "acceso"),
+      name = c("1", "0", "1", "0", "bus", "pie"),
+      label = c("Sí", "No", "Real", "Prueba", "Bus", "A pie"),
+      stringsAsFactors = FALSE
+    )
+  )
+  data <- data.frame(
+    Consent = c("1", "1", "1"),
+    testreal = c("1", "1", "0"),
+    transport = c("bus", "pie", "bus"),
+    transport_recod = c("bus", "pie", "bus"),
+    timing = c("bus", "pie", "bus"),
+    stringsAsFactors = FALSE
+  )
+  vars <- .graficos_extract_vars_from_inst(inst, data = data, source_kind = "kobo")
+  by_name <- stats::setNames(vars, vapply(vars, `[[`, character(1), "name"))
+
+  expect_false(isTRUE(by_name$Consent$graphable))
+  expect_match(by_name$Consent$exclusion_reason, "metadato|operativo")
+  expect_false(isTRUE(by_name$testreal$graphable))
+  expect_true(isTRUE(by_name$timing$graphable))
+  expect_true(isTRUE(by_name$transport_recod$graphable))
+})
+
 test_that("inventario reconoce una recodificada multiple almacenada solo en dummies", {
   inst <- list(
     survey = data.frame(

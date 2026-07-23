@@ -48,7 +48,9 @@
   base_note <- .graficos_scalar_chr(base_note, "")
   label <- .graficos_scalar_chr(label, "")
   if (!nzchar(base_note) || !nzchar(label)) return(base_note)
-  paste0(sub("[.]\\s*$", "", base_note), " · ", label, ".")
+  # Formato editorial: "Base: <n> de <total> (<pct>) - <servicio>". Guion con
+  # espacios (no " · ") y sin punto final, para leerse como un rótulo continuo.
+  paste0(sub("[.]\\s*$", "", base_note), " - ", label)
 }
 
 #' Orden de servicios por frecuencia (desc), estable ante empates por primer

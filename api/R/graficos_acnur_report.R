@@ -303,11 +303,13 @@
 }
 
 .graficos_acnur_base_summary <- function(n, total, unit = "respuestas") {
+  # `unit` se conserva por compatibilidad de firma con callers previos, pero el
+  # formato profesional ya no expone la palabra unidad ("respuestas"): la base es
+  # simplemente "Base: <n> de <total> (<pct>)".
   sprintf(
-    "Base: %s de %s %s (%s)",
+    "Base: %s de %s (%s)",
     .graficos_acnur_number(n),
     .graficos_acnur_number(total),
-    unit,
     .graficos_acnur_pct(n, total)
   )
 }
@@ -359,36 +361,17 @@
   } else if (!ctx$is_repeat) {
     note <- paste0(.graficos_acnur_base_summary(n_valid, total, "respuestas"), ".")
   } else {
-    link <- .graficos_scalar_chr(ctx$base$link_key, "")
-    if (!nzchar(link) || !link %in% names(data)) {
-      candidates <- c("_parent_index", "_submission__id")
-      link <- candidates[candidates %in% names(data)][1] %||% ""
-    }
-    people <- NA_integer_
-    if (nzchar(link)) {
-      keys <- trimws(as.character(data[[link]][substantive]))
-      people <- length(unique(keys[!is.na(keys) & nzchar(keys)]))
-    }
-    if (!is.finite(people) || is.na(people)) {
-      people <- suppressWarnings(as.integer((attr(ctx$inst, "repeat_grain", exact = TRUE) %||% list())$n_personas)[1])
-    }
-    unit <- ctx$unit %||% list(singular = "registro", plural = "registros")
-    response_unit <- if (identical(unit$plural, "servicios")) {
-      "respuestas de servicio"
-    } else if (isTRUE(unit$inferred) && nzchar(.graficos_scalar_chr(unit$singular, ""))) {
-      paste("respuestas de", unit$singular)
-    } else {
-      "respuestas"
-    }
-    base_phrase <- .graficos_acnur_base_summary(n_valid, total, response_unit)
-    people_phrase <- if (is.finite(people) && !is.na(people)) {
-      sprintf(", correspondientes a %s personas", .graficos_acnur_number(people))
-    } else ""
+    # Base por servicio/instancia: mismo formato limpio que la base principal
+    # ("Base: <n> de <total> (<pct>)"). El nombre del servicio se anexa aparte en
+    # `.graficos_repeat_service_note`; aquí ya no se declara la unidad
+    # ("respuestas de servicio") ni el conteo de personas ("correspondientes a
+    # X personas"), por pedido editorial.
+    base_phrase <- .graficos_acnur_base_summary(n_valid, total)
     if (multiple) {
-      note <- sprintf("%s%s; %s menciones. Los porcentajes no suman 100%%.",
-                      base_phrase, people_phrase, .graficos_acnur_number(sum(lengths(tokens[substantive]))))
+      note <- sprintf("%s; %s menciones. Los porcentajes no suman 100%%.",
+                      base_phrase, .graficos_acnur_number(sum(lengths(tokens[substantive]))))
     } else {
-      note <- sprintf("%s%s.", base_phrase, people_phrase)
+      note <- sprintf("%s.", base_phrase)
     }
   }
   special_note <- .graficos_acnur_special_note(values[answered], specials)

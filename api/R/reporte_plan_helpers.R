@@ -142,6 +142,61 @@
   )
 }
 
+#' Logo PULSO en las láminas de SEPARADOR DE SECCIÓN.
+#'
+#' Las secciones traen del master solo el logo del socio (UNHCR) sobre la banda
+#' azul al pie; el resto de láminas (portada/ficha/gráficos) muestran PULSO +
+#' socio. Este helper añade el logo PULSO también al separador, de forma
+#' consistente con la portada (variante clara sobre fondo oscuro). Gated por el
+#' preset `partner_logo_section` (por defecto hereda de `partner_logo_cover`).
+#' La geometría reusa por defecto la de la portada (`partner_logo_cover_*`), con
+#' overrides opcionales `partner_logo_section_*`.
+#' @keywords internal
+.ppt_add_partner_section_logo <- function(doc, base_args = list()) {
+  enabled <- base_args$partner_logo_section %||% base_args$logo_pulso_section %||%
+    base_args$partner_logo_cover %||% base_args$logo_pulso_cover %||% FALSE
+  if (!isTRUE(enabled)) return(doc)
+
+  variant <- as.character(
+    base_args$partner_logo_section_variant %||% base_args$partner_logo_cover_variant %||%
+      base_args$logo_pulso_cover_variant %||% "white"
+  )[1]
+  if (!variant %in% c("navy", "white", "black")) variant <- "white"
+  path <- .ppt_pulso_logo_asset(
+    variant,
+    override = base_args$partner_logo_section_path %||% base_args$partner_logo_cover_path %||%
+      base_args$logo_pulso_cover_path %||% NULL
+  )
+  if (!nzchar(path)) return(doc)
+
+  number <- function(x, fallback) {
+    value <- suppressWarnings(as.numeric(x %||% fallback)[1])
+    if (!is.finite(value)) fallback else value
+  }
+  height <- number(base_args$partner_logo_section_height %||% base_args$partner_logo_cover_height, 0.60)
+  width <- number(base_args$partner_logo_section_width %||% base_args$partner_logo_cover_width,
+                  height * 1078 / 423)
+  left <- number(base_args$partner_logo_section_left %||% base_args$partner_logo_cover_left, 0.46)
+  top <- number(base_args$partner_logo_section_top %||% base_args$partner_logo_cover_top, 6.75)
+
+  officer::ph_with(
+    doc,
+    value = officer::external_img(
+      src = path,
+      width = width,
+      height = height,
+      alt = "PULSO PUCP"
+    ),
+    location = officer::ph_location(
+      left = left,
+      top = top,
+      width = width,
+      height = height,
+      newlabel = "PULSO PUCP section logo"
+    )
+  )
+}
+
 .ppt_title_spec_with_height <- function(layout_props, spec, height = NULL) {
   height <- suppressWarnings(as.numeric(height %||% NA_real_)[1])
   if (!is.finite(height) || height <= 0 || !is.data.frame(layout_props) || !nrow(layout_props)) {

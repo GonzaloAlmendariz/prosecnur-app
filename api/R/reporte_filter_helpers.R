@@ -30,7 +30,7 @@
       # Mientras el usuario edita una fila incompleta, no debe romper el export.
       if (!nzchar(nm) || !length(vals)) next
       if (!(nm %in% names(out))) {
-        stop("La variable de filtro `", nm, "` no existe en `data`.", call. = FALSE)
+        .filter_abort_missing_column(nm, arg_name)
       }
 
       xv_chr <- trimws(as.character(out[[nm]]))
@@ -113,14 +113,22 @@
   }
 
   for (nm in f_names) {
-    if (!(nm %in% names(out))) {
-      stop("La variable de filtro `", nm, "` no existe en `data`.", call. = FALSE)
-    }
-
     vals <- as.character(filters[[nm]])
     vals <- trimws(vals[!is.na(vals)])
     vals <- vals[nzchar(vals)]
+
+    # Un filtro con valores todos vacios/NA no restringe nada: es un no-op.
+    # Debe evaluarse ANTES de exigir la columna. El parseo del plan JSON
+    # (plumber `simplifyDataFrame`) rectangulariza el arreglo de slides y
+    # filtra columnas de `filtros` de unas laminas a otras como `NA`: una
+    # lamina de la base madre puede heredar un `current_code = NA` fantasma
+    # de las laminas por-servicio de la base hija repeat. Ese fantasma no
+    # debe romper el reporte. Ver reporte_filter_guards.R.
     if (!length(vals)) next
+
+    if (!(nm %in% names(out))) {
+      .filter_abort_missing_column(nm, arg_name)
+    }
 
     xv <- trimws(as.character(out[[nm]]))
     keep <- !is.na(xv) & xv %in% vals
