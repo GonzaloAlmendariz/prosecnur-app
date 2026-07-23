@@ -45,7 +45,8 @@
 
 .monitoreo_dashboard_cache_token <- function(snapshot, data, cfg, report_scope = "full") {
   cfg_json <- .monitoreo_dashboard_config_json(cfg)
-  data_hash <- tryCatch(monitoreo_snapshot_hash(data), error = function(e) "")
+  # Fingerprint barato en vez de sha256 de la data (ver monitoreo_perf.R).
+  data_hash <- tryCatch(monitoreo_data_fingerprint(data, snapshot$synced_at %||% ""), error = function(e) "")
   report_schema <- if (identical(cfg$monitoreo_profile$family %||% "", "territorial")) {
     get0(".monitoreo_territorial_report_cache_schema", ifnotfound = "")
   } else {
@@ -2376,7 +2377,8 @@
   context
 }
 
-.monitoreo_territorial_report_cache_schema <- "monitoreo_territorial_report_cache_v26"
+# v27: la llave pasó de sha256(data) a monitoreo_data_fingerprint().
+.monitoreo_territorial_report_cache_schema <- "monitoreo_territorial_report_cache_v27"
 .monitoreo_territorial_report_cache_limit <- 18L
 
 .monitoreo_territorial_report_cache_key_info <- function(sid, snapshot, data, cfg, report_scope = "full") {
@@ -2390,7 +2392,8 @@
     context <- .monitoreo_territorial_context(sid, cfg, phase = phase)
     route_hash <- .monitoreo_territorial_route_hash(context, phase = phase)
   }
-  snapshot_hash <- monitoreo_snapshot_hash(phase_data)
+  # Fingerprint barato de la data por fase (ver monitoreo_perf.R).
+  snapshot_hash <- monitoreo_data_fingerprint(phase_data, snapshot$synced_at %||% "")
   config_hash <- .monitoreo_cache_digest(list(
     profile = cfg$monitoreo_profile %||% list(),
     territorial = cfg$territorial %||% list(),
@@ -3004,6 +3007,7 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
 }
 
 .monitoreo_dashboard_for_session <- function(sid, data, cfg, include_reports = TRUE, report_scope = "full", cached_acreditacion_reports = NULL) {
+  .monitoreo_perf_note_dashboard_build()
   family <- cfg$monitoreo_profile$family %||% "acreditacion"
   territorial_context <- NULL
   kobo_schema <- NULL
@@ -3643,19 +3647,15 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   cfg <- monitoreo_normalize_config(cfg, data)
   session_set(sid, "monitoreo_config", cfg)
   if (isTRUE(rebuild_dashboard) && !is.null(snapshot) && nrow(data)) {
-    snapshot$config <- cfg
-    snapshot$dashboard <- .monitoreo_dashboard_for_session(sid, data, cfg)
-    snapshot$dashboard_cache_key <- .monitoreo_dashboard_cache_key
-    snapshot$dashboard_cache_token <- .monitoreo_dashboard_cache_token(snapshot, data, cfg, report_scope = "full")
-    snapshot$dashboard_report_scope <- "full"
-    # Fact territorial del home coherente con el tablero recien reconstruido
-    # (ver monitoreo_overview_facts.R). No-op fuera de territorial.
-    snapshot <- monitoreo_snapshot_refresh_territorial_facts(snapshot, snapshot$dashboard)$snapshot
+    # Build lazy (ver monitoreo_perf.R): antes se reconstruia el dashboard full
+    # inline y la invalidacion de abajo anulaba el token recien escrito (doble
+    # build por request); ahora construye el proximo state payload via
+    # cache-miss. snapshot$config queda intacto a proposito (fallback vigente).
     if (nzchar(.monitoreo_scalar(snapshot$generated_at, ""))) {
       snapshot$generation_status <- "stale"
       snapshot$pending_regeneration <- TRUE
+      session_set(sid, "monitoreo_snapshot", snapshot)
     }
-    session_set(sid, "monitoreo_snapshot", snapshot)
   }
   .monitoreo_invalidate_dashboard_caches(sid)
   cfg
