@@ -56,9 +56,10 @@
 #' con 0 filas — el renderer cae naturalmente en su rama "Sin datos" y produce
 #' un canvas en blanco para ESA lamina. Emite `warning()` para trazabilidad.
 #' @keywords internal
-.apply_named_filters_safe <- function(df, filters = list(), arg_name = "filtros") {
+.apply_named_filters_safe <- function(df, filters = list(), arg_name = "filtros",
+                                      mode = c("strict", "lenient")) {
   tryCatch(
-    .apply_named_filters(df, filters = filters, arg_name = arg_name),
+    .apply_named_filters(df, filters = filters, arg_name = arg_name, mode = mode),
     pulso_filter_missing_column = function(cnd) {
       warning(sprintf(
         paste0("Filtro `%s` referencia una columna ausente en la fuente resuelta; ",
