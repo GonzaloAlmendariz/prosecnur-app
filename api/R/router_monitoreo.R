@@ -5616,7 +5616,11 @@ monitoreo_production_report_pdf_job_runner <- function(model_path,
     if (!identical(.monitoreo_scalar(source$kind, ""), "surveymonkey")) next
     if (length(synced_source_ids) && !source_id %in% synced_source_ids) next
     summary <- (sync_summary %||% list())[[source_id]] %||% list()
-    if (identical(.monitoreo_scalar(summary$mode, ""), "advance")) next
+    # Un avance no trae collectors del worker y con cursor reporta mode
+    # "incremental": hidratar aca implica red sincrona DENTRO del event loop
+    # (congela todas las respuestas HTTP; forense 3.10d: 37s por avance).
+    # Solo un sync full con filas justifica pagar la red en el on_complete.
+    if (.monitoreo_scalar(summary$mode, "") %in% c("advance", "incremental")) next
     if (length(.monitoreo_normalize_source_collectors(source$collectors %||% list()))) next
     collectors <- .monitoreo_fetch_surveymonkey_collectors_for_source(sid, source)
     if (length(collectors)) sources[[i]]$collectors <- collectors
