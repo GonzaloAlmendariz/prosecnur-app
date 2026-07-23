@@ -90,6 +90,7 @@
 
 .monitoreo_invalidate_dashboard_caches <- function(sid, snapshot = NULL) {
   s <- session_get(sid)
+  monitoreo_perf_variables_cache_invalidate(sid)
   for (scope in c("source", "route_summary", "advance_summary", "validation_summary", "queries_summary", "phone_summary", "full")) {
     s[[paste("monitoreo_dashboard_cache", scope, sep = "_")]] <- NULL
     s[[paste("monitoreo_dashboard_cache_token", scope, sep = "_")]] <- NULL
@@ -117,17 +118,9 @@
   sid
 }
 
+# Transpose vectorizado (unidad 3.3b): implementación en monitoreo_perf.R.
 .monitoreo_df_records <- function(x) {
-  if (is.null(x)) return(list())
-  if (!is.data.frame(x)) x <- as.data.frame(x, stringsAsFactors = FALSE)
-  if (!nrow(x)) return(list())
-  unname(lapply(seq_len(nrow(x)), function(i) {
-    row <- as.list(x[i, , drop = FALSE])
-    lapply(row, function(v) {
-      if (length(v) == 0L) return(NA)
-      v[[1]]
-    })
-  }))
+  monitoreo_perf_df_records(x)
 }
 
 .monitoreo_public_dashboard <- function(dashboard, include_reports = TRUE) {
@@ -143,7 +136,8 @@
     out$acreditacion_reports <- dashboard$acreditacion_reports
   }
   if (isTRUE(include_reports) && !is.null(dashboard$territorial_reports)) {
-    out$territorial_reports <- dashboard$territorial_reports
+    # Cap de payload en la frontera HTTP (unidad 3.5, monitoreo_perf.R).
+    out$territorial_reports <- monitoreo_perf_cap_territorial_reports(dashboard$territorial_reports)
   }
   if (isTRUE(include_reports) && !is.null(dashboard$aulas_universitarias_reports)) {
     out$aulas_universitarias_reports <- dashboard$aulas_universitarias_reports
@@ -3611,7 +3605,7 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
     sync_errors = snapshot$sync_errors %||% snapshot$errors %||% list(),
     pending_regeneration = isTRUE(snapshot$pending_regeneration),
     n_rows = as.integer(nrow(display_data)),
-    variables = if (nrow(display_data)) monitoreo_variables(display_data) else list(),
+    variables = monitoreo_variables_cached(sid, display_data, snapshot$synced_at %||% "", cfg),
     dashboard = .monitoreo_public_dashboard(dashboard, include_reports = include_reports),
     territorial_phase_coherence = territorial_phase_coherence,
     territorial_map_cache = territorial_map_cache,
