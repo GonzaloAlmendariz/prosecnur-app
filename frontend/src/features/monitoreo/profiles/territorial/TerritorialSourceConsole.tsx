@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -272,7 +272,7 @@ function sourceReadinessItems(config: MonitoreoConfig, reports: MonitoreoTerrito
   });
 }
 
-export function TerritorialSourceConsole({
+function TerritorialSourceConsoleImpl({
   activeLocalTab,
   busy = false,
   phase,
@@ -1814,3 +1814,8 @@ function TerritorialSourceMetric({
     </article>
   );
 }
+
+// React.memo (unidad 3.6): la página re-renderiza en cada poll de sync y
+// transición de scopes; con props estabilizadas en el caller, este workbench
+// solo se re-renderiza cuando cambian sus datos reales.
+export const TerritorialSourceConsole = memo(TerritorialSourceConsoleImpl);

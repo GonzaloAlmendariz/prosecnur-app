@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import {
   Activity,
@@ -167,6 +167,10 @@ type TerritorialAdvanceLocalTab = typeof TERRITORIAL_ADVANCE_TABS[number]["key"]
 function defaultLocalTabForView(view: WorkbenchView) {
   return TERRITORIAL_LOCAL_TABS[view]?.[0]?.key ?? "";
 }
+
+// Fallback estable para callbacks opcionales: una lambda inline nueva por
+// render rompería el React.memo de los workbenches hijos.
+const noop = () => undefined;
 
 function isTerritorialAdvanceLocalTab(value: unknown): value is TerritorialAdvanceLocalTab {
   return TERRITORIAL_ADVANCE_TABS.some((tab) => tab.key === value);
@@ -449,7 +453,9 @@ function territorialReportKpis(
   };
 }
 
-function TerritorialWorkbenchRail({
+// memo: la página re-renderiza cada 1.4s durante un sync (poll del job) y en
+// cada transición de scopes pendientes; el rail solo depende de estas props.
+const TerritorialWorkbenchRail = memo(function TerritorialWorkbenchRail({
   activeDef,
   activeLocalTab,
   activeView,
@@ -560,12 +566,12 @@ function TerritorialWorkbenchRail({
         },
       ]}
       summary={summary}
-      onLocalTabChange={(key) => onLocalTabChange(key)}
+      onLocalTabChange={onLocalTabChange}
     />
   );
-}
+});
 
-function TerritorialWorkbenchHead({
+const TerritorialWorkbenchHead = memo(function TerritorialWorkbenchHead({
   activeDef,
   activeSources,
   headerAvance,
@@ -602,7 +608,7 @@ function TerritorialWorkbenchHead({
       ]}
     />
   );
-}
+});
 
 function StatTile({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "good" | "warn" | "danger" }) {
   return (
@@ -1115,6 +1121,15 @@ function ValidationView({
     onSelectedResponseChange?.(responseId);
   }, [controlledSelectedResponseId, onSelectedResponseChange]);
   const gpsPoints = useMemo(() => (reports ? makeGpsMapPoints(reports) : []), [reports]);
+  // Handlers estables: los workbenches de validación están memoizados y una
+  // arrow inline nueva por render anularía ese memo.
+  const openReconciliationTab = useCallback(() => onLocalTabChange?.("reconciliacion"), [onLocalTabChange]);
+  const openGeolocationTab = useCallback(() => onLocalTabChange?.("geolocalizacion"), [onLocalTabChange]);
+  const openGeoCaseFromDuration = useCallback((row: TerritorialResponseAuditRow) => {
+    const responseId = String(row.response_id ?? "").trim();
+    if (responseId) selectResponse(responseId);
+    onLocalTabChange?.("geolocalizacion");
+  }, [onLocalTabChange, selectResponse]);
   if (!reports) {
     return <EmptyPanel icon={ShieldAlert} title="Validación pendiente" detail="Todavía no hay auditoría territorial hidratada." />;
   }
@@ -1123,7 +1138,7 @@ function ValidationView({
       <TerritorialValidationGeoWorkbench
         reports={reports}
         selectedResponseId={selectedResponseId}
-        onOpenReconciliation={() => onLocalTabChange?.("reconciliacion")}
+        onOpenReconciliation={openReconciliationTab}
       />
     );
   }
@@ -1132,7 +1147,7 @@ function ValidationView({
       <TerritorialSpatialReconciliationWorkbench
         phase={phase}
         reports={reports}
-        onOpenMap={() => onLocalTabChange?.("geolocalizacion")}
+        onOpenMap={openGeolocationTab}
         onSelectResponse={selectResponse}
         onStateChange={onStateChange}
       />
@@ -1145,11 +1160,7 @@ function ValidationView({
         reports={reports}
         selectedResponseId={selectedResponseId}
         onSelectResponse={selectResponse}
-        onOpenGeoCase={(row) => {
-          const responseId = String(row.response_id ?? "").trim();
-          if (responseId) selectResponse(responseId);
-          onLocalTabChange?.("geolocalizacion");
-        }}
+        onOpenGeoCase={openGeoCaseFromDuration}
       />
     );
   }
@@ -1327,9 +1338,9 @@ function renderView(
         reports={reports}
         state={options.state ?? null}
         onError={options.onError}
-        onReload={options.onReload ?? (() => undefined)}
-        onSyncKobo={options.onSyncKobo ?? (() => undefined)}
-        onStateChange={options.onStateChange ?? (() => undefined)}
+        onReload={options.onReload ?? noop}
+        onSyncKobo={options.onSyncKobo ?? noop}
+        onStateChange={options.onStateChange ?? noop}
       />
     );
   }
@@ -1342,7 +1353,7 @@ function renderView(
         reports={reports}
         state={options.state ?? null}
         onError={options.onError}
-        onReload={options.onReload ?? (() => undefined)}
+        onReload={options.onReload ?? noop}
       />
     );
   }
@@ -1505,6 +1516,16 @@ export default function TerritorialMonitoreoPage() {
   const clearScopeStateCache = useCallback(() => {
     scopeStateCacheRef.current.clear();
     monitoreoScopeCache.clear();
+  }, []);
+
+  // Invalidación selectiva (unidad 3.4): borra los scopes de UNA fase+fuente
+  // (estados locales y caché compartido de reportes) sin tocar el resto.
+  const invalidateScopeStateForSource = useCallback((phaseValue: MonitoreoTerritorialPhase, sourceValue: string) => {
+    const prefix = `${phaseValue}|${sourceValue}|`;
+    for (const key of Array.from(scopeStateCacheRef.current.keys())) {
+      if (key.startsWith(prefix)) scopeStateCacheRef.current.delete(key);
+    }
+    monitoreoScopeCache.invalidateTerritorial({ phase: phaseValue, source: sourceValue });
   }, []);
 
   useEffect(() => {
@@ -1837,11 +1858,20 @@ export default function TerritorialMonitoreoPage() {
   }, [chromeSyncJob, chromeSyncJobId, refreshCurrentView]);
   const applyTerritorialPageState = useCallback((next: MonitoreoState) => {
     const withPhase = withTerritorialPhase(next, phase);
-    clearScopeStateCache();
+    // Invalidación selectiva (3.4f): una mutación territorial (ajuste
+    // operativo, anulación, reconciliación, cambio de fuente) altera los
+    // reportes de TODOS los scopes de su fase+fuente —una anulación cambia
+    // válidas en avance, validación y consultas—, así que esa fase+fuente se
+    // invalida en bloque. Los scopes de la otra fase y de otras fuentes no
+    // dependen de esos datos y se conservan calientes en lugar del clear
+    // total que forzaba a re-hidratar todo el módulo.
+    const nextSource = territorialSourceKeyFromState(withPhase, phase);
+    invalidateScopeStateForSource(phase, nextSource);
+    if (sourceKey !== nextSource) invalidateScopeStateForSource(phase, sourceKey);
     rememberScopeState(withPhase);
     setState(withPhase);
     setError("");
-  }, [clearScopeStateCache, phase, rememberScopeState]);
+  }, [invalidateScopeStateForSource, phase, rememberScopeState, sourceKey]);
   const applyOperationalAdjustment = useCallback(async (
     adjustment: MonitoreoTerritorialOperationalAdjustment,
   ) => {
@@ -1921,6 +1951,9 @@ export default function TerritorialMonitoreoPage() {
       setLoadingView(null);
     }
   }, [activeLocalTabs, activeView, clearScopeStateCache, phase, rememberScopeState]);
+  const handlePhaseChange = useCallback((nextPhase: MonitoreoTerritorialPhase) => {
+    void changeTerritorialPhase(nextPhase);
+  }, [changeTerritorialPhase]);
   const primarySources = state?.sources.filter((source) => source.role !== "ocurrencias_campo") ?? [];
   const activeSources = primarySources.filter((source) => source.enabled).length;
   const sourceTotal = primarySources.length;
@@ -1997,9 +2030,7 @@ export default function TerritorialMonitoreoPage() {
             localTabs={localTabs}
             loadingView={loadingView}
             onLocalTabChange={changeLocalTab}
-            onPhaseChange={(nextPhase) => {
-              void changeTerritorialPhase(nextPhase);
-            }}
+            onPhaseChange={handlePhaseChange}
             phase={phase}
             pilotPhaseHealth={pilotPhaseHealth}
             reportReady={reportReady}

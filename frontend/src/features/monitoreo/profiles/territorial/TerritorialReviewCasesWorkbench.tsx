@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import {
   Clock,
   ContactRound,
@@ -92,7 +92,7 @@ const DEFAULT_DURATION_CONFIG = {
   max_duration_seconds: 7200,
 };
 
-export function TerritorialReviewCasesWorkbench({
+function TerritorialReviewCasesWorkbenchImpl({
   activeLocalTab,
   busy = false,
   config,
@@ -943,3 +943,8 @@ function shortenMiddle(value: string, maxLength: number) {
 function uniqueNonEmpty(values: string[]) {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
 }
+
+// React.memo (unidad 3.6): la página re-renderiza en cada poll de sync y
+// transición de scopes; con props estabilizadas en el caller, este workbench
+// solo se re-renderiza cuando cambian sus datos reales.
+export const TerritorialReviewCasesWorkbench = memo(TerritorialReviewCasesWorkbenchImpl);

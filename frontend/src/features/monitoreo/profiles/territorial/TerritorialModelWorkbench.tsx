@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   BarChart3,
@@ -256,7 +256,7 @@ function isTerminalJob(job: JobSnapshot | null) {
   return job?.status === "done" || job?.status === "error" || job?.status === "cancelled";
 }
 
-export function TerritorialModelWorkbench({
+function TerritorialModelWorkbenchImpl({
   activeLocalTab,
   busy = false,
   phase,
@@ -850,3 +850,8 @@ function RouteBlockContext({
     </section>
   );
 }
+
+// React.memo (unidad 3.6): la página re-renderiza en cada poll de sync y
+// transición de scopes; con props estabilizadas en el caller, este workbench
+// solo se re-renderiza cuando cambian sus datos reales.
+export const TerritorialModelWorkbench = memo(TerritorialModelWorkbenchImpl);

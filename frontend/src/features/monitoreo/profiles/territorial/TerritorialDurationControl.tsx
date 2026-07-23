@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { CalendarRange, Clock, ContactRound, MapPin, ShieldAlert } from "lucide-react";
 import type {
@@ -74,7 +74,7 @@ type TerritorialDurationDailyHover = {
   x: number;
 };
 
-export function TerritorialDurationControl({
+function TerritorialDurationControlImpl({
   config,
   reports,
   selectedResponseId,
@@ -832,3 +832,8 @@ function shortenMiddle(value: string, maxLength: number) {
   const side = Math.max(3, Math.floor((maxLength - 1) / 2));
   return `${value.slice(0, side)}...${value.slice(-side)}`;
 }
+
+// React.memo (unidad 3.6): la página re-renderiza en cada poll de sync y
+// transición de scopes; con props estabilizadas en el caller, este workbench
+// solo se re-renderiza cuando cambian sus datos reales.
+export const TerritorialDurationControl = memo(TerritorialDurationControlImpl);

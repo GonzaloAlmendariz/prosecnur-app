@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { Eye, Hash, Loader2, RefreshCw, Search, Trash2 } from "lucide-react";
 import {
   apiMonitoreoTerritorialProductionAnnulmentApply,
@@ -45,7 +45,7 @@ type TerritorialProductionAnnulmentWorkspaceProps = {
   onStateChange?: (state: MonitoreoState) => void;
 };
 
-export function TerritorialProductionAnnulmentWorkspace({
+function TerritorialProductionAnnulmentWorkspaceImpl({
   reports,
   phase,
   onStateChange,
@@ -585,3 +585,8 @@ function normalizeMatch(value: unknown) {
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ");
 }
+
+// React.memo (unidad 3.6): la página re-renderiza en cada poll de sync y
+// transición de scopes; con props estabilizadas en el caller, este workbench
+// solo se re-renderiza cuando cambian sus datos reales.
+export const TerritorialProductionAnnulmentWorkspace = memo(TerritorialProductionAnnulmentWorkspaceImpl);

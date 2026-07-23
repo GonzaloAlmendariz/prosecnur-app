@@ -119,6 +119,14 @@ function territorialState(scope: MonitoreoTerritorialDashboard["report_scope"]):
   };
 }
 
+function pilotState(scope: MonitoreoTerritorialDashboard["report_scope"]): MonitoreoState {
+  const state = territorialState(scope);
+  const reports = state.dashboard?.territorial_reports;
+  if (reports) reports.active_route_phase = "pilot";
+  if (state.config?.territorial) state.config.territorial.active_route_phase = "pilot";
+  return state;
+}
+
 describe("MonitoreoScopeCache", () => {
   it("keeps background queries from replacing the active advance scope", () => {
     const cache = new MonitoreoScopeCache();
@@ -137,5 +145,31 @@ describe("MonitoreoScopeCache", () => {
       view: "consultas",
       preferredScope: "queries_summary",
     })?.reports.report_scope).toBe("queries_summary");
+  });
+
+  it("invalidates only the mutated phase+source and keeps the other phase warm", () => {
+    const cache = new MonitoreoScopeCache();
+    cache.putTerritorialState(territorialState("advance_summary"));
+    cache.putTerritorialState(territorialState("queries_summary"));
+    cache.putTerritorialState(pilotState("advance_summary"));
+
+    cache.invalidateTerritorial({ phase: "field", source: "source-field" });
+
+    expect(cache.getTerritorial({ phase: "field", source: "source-field", scope: "advance_summary" })).toBeNull();
+    expect(cache.getTerritorial({ phase: "field", source: "source-field", scope: "queries_summary" })).toBeNull();
+    expect(cache.getTerritorial({ phase: "pilot", source: "source-pilot", scope: "advance_summary" })?.reports.report_scope)
+      .toBe("advance_summary");
+  });
+
+  it("drops the full-scope aliases when invalidating a phase+source", () => {
+    const cache = new MonitoreoScopeCache();
+    cache.putTerritorialState(territorialState("full"));
+    expect(cache.getTerritorial({ phase: "field", source: "source-field", scope: "advance_summary" })).not.toBeNull();
+
+    cache.invalidateTerritorial({ phase: "field", source: "source-field" });
+
+    expect(cache.getTerritorial({ phase: "field", source: "source-field", scope: "full" })).toBeNull();
+    expect(cache.getTerritorial({ phase: "field", source: "source-field", scope: "advance_summary" })).toBeNull();
+    expect(cache.getTerritorial({ phase: "field", source: "source-field", scope: "validation_summary" })).toBeNull();
   });
 });

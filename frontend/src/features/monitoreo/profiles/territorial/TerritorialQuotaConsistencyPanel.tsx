@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { CalendarRange, Clock, ContactRound, ListChecks, Search, Table2, Target, XCircle } from "lucide-react";
 import type {
   MonitoreoTerritorialDashboard,
@@ -23,7 +23,7 @@ type TerritorialQuotaSummary = {
   districts_with_gap: number;
 };
 
-export function TerritorialQuotaConsistencyPanel({ reports }: { reports: MonitoreoTerritorialDashboard }) {
+function TerritorialQuotaConsistencyPanelImpl({ reports }: { reports: MonitoreoTerritorialDashboard }) {
   const quota = reports.route_quota_progress ?? null;
   const blocks = quota?.blocks ?? [];
   const [search, setSearch] = useState("");
@@ -730,3 +730,8 @@ function normalizeMatch(value: unknown) {
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ");
 }
+
+// React.memo (unidad 3.6): la página re-renderiza en cada poll de sync y
+// transición de scopes; con props estabilizadas en el caller, este workbench
+// solo se re-renderiza cuando cambian sus datos reales.
+export const TerritorialQuotaConsistencyPanel = memo(TerritorialQuotaConsistencyPanelImpl);

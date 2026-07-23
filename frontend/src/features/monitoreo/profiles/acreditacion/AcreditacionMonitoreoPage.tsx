@@ -18710,6 +18710,12 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     });
   }, [route.family]);
 
+  // Nota (unidad 3.4): a diferencia del perfil territorial (invalidación
+  // selectiva por fase+fuente), aquí el caché guarda MonitoreoState COMPLETOS
+  // keyed solo por scope; toda mutación de este perfil cambia config/KPIs que
+  // cualquier vista lee del state cacheado, así que conservar scopes tras una
+  // mutación mostraría estado visiblemente stale. El clear total sigue siendo
+  // la invalidación correcta para este perfil.
   const clearScopeStateCache = useCallback(() => {
     scopeCacheEpochRef.current += 1;
     stateByScopeRef.current.clear();
