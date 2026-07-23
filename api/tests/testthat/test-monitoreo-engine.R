@@ -3883,24 +3883,54 @@ test_that("Google Sheets publica solo pestanas Prosecnur controladas", {
   }
   on.exit(set_google_api(old_api), add = TRUE)
 
+  # Mock con estado: registra las pestanas creadas y su developerMetadata
+  # (ownership + estado hash de la unidad 3.8) para reflejarlos en la
+  # siguiente lectura de metadata, como hace la API real.
   calls <- list()
   sheet_id <- 10L
-  sheets <- list(list(properties = list(sheetId = 1L, title = "Barrido", gridProperties = list(rowCount = 1000L, columnCount = 26L))))
+  sheets <- list(Barrido = list(sheetId = 1L, title = "Barrido", developer_metadata = list()))
+  apply_metadata <- function(target_sheet_id, key, value, update = FALSE) {
+    for (nm in names(sheets)) {
+      if (!identical(sheets[[nm]]$sheetId, target_sheet_id)) next
+      md <- sheets[[nm]]$developer_metadata
+      if (isTRUE(update)) {
+        for (j in seq_along(md)) {
+          if (identical(md[[j]]$metadataKey, key)) md[[j]]$metadataValue <- value
+        }
+      } else {
+        md[[length(md) + 1L]] <- list(metadataKey = key, metadataValue = value)
+      }
+      sheets[[nm]]$developer_metadata <<- md
+    }
+  }
   set_google_api(function(url, method = "GET", body = NULL) {
     calls[[length(calls) + 1L]] <<- list(url = url, method = method, body = body)
     if (grepl("[?]fields=", url)) {
-      return(list(spreadsheetId = "sheet_abc", sheets = sheets))
+      return(list(spreadsheetId = "sheet_abc", sheets = unname(lapply(sheets, function(s) list(
+        properties = list(sheetId = s$sheetId, title = s$title, gridProperties = list(rowCount = 1000L, columnCount = 26L)),
+        developerMetadata = s$developer_metadata
+      )))))
+    }
+    if (grepl("/values:batchUpdate$", url)) {
+      return(list(totalUpdatedSheets = length(body$data %||% list())))
     }
     if (grepl(":batchUpdate$", url)) {
       for (request in body$requests %||% list()) {
         title <- request$addSheet$properties$title %||% ""
         if (nzchar(title)) {
-          sheets[[length(sheets) + 1L]] <<- list(properties = list(
-            sheetId = sheet_id,
-            title = title,
-            gridProperties = list(rowCount = 1000L, columnCount = 26L)
-          ))
+          sheets[[title]] <<- list(sheetId = sheet_id, title = title, developer_metadata = list())
           sheet_id <<- sheet_id + 1L
+        }
+        cdm <- request$createDeveloperMetadata$developerMetadata
+        if (!is.null(cdm)) apply_metadata(cdm$location$sheetId, cdm$metadataKey, cdm$metadataValue)
+        udm <- request$updateDeveloperMetadata
+        if (!is.null(udm)) {
+          apply_metadata(
+            udm$developerMetadata$location$sheetId,
+            udm$developerMetadata$metadataKey,
+            udm$developerMetadata$metadataValue,
+            update = TRUE
+          )
         }
       }
       return(list(replies = list()))
@@ -3920,28 +3950,31 @@ test_that("Google Sheets publica solo pestanas Prosecnur controladas", {
   expect_equal(out$controlled_tabs, as.list(names(payload)))
   metadata_calls <- calls[vapply(calls, function(call) grepl("[?]fields=", call$url), logical(1))]
   expect_true(any(grepl("frozenRowCount", vapply(metadata_calls, `[[`, character(1), "url"), fixed = TRUE)))
-  write_calls <- calls[vapply(calls, function(call) grepl("/values/", call$url), logical(1))]
-  expect_equal(length(write_calls), 8L)
-  expect_false(any(grepl("Barrido", vapply(write_calls, `[[`, character(1), "url"), fixed = TRUE)))
-  expect_true(all(grepl("Prosecnur", vapply(write_calls, `[[`, character(1), "url"), fixed = TRUE)))
-  clear_calls <- write_calls[vapply(write_calls, function(call) identical(call$method, "POST"), logical(1))]
-  expect_equal(length(clear_calls), 4L)
-  expect_equal(as.character(jsonlite::toJSON(clear_calls[[1]]$body, auto_unbox = TRUE, null = "null")), "{}")
 
-  batch_calls <- calls[vapply(calls, function(call) grepl(":batchUpdate$", call$url), logical(1))]
+  # Un solo values:batchUpdate con las 4 pestanas controladas (antes: clear+PUT por pestana).
+  values_calls <- calls[vapply(calls, function(call) grepl("/values:batchUpdate$", call$url), logical(1))]
+  expect_equal(length(values_calls), 1L)
+  ranges <- vapply(values_calls[[1]]$body$data, function(entry) entry$range, character(1))
+  expect_equal(length(ranges), 4L)
+  expect_false(any(grepl("Barrido", ranges, fixed = TRUE)))
+  expect_true(all(grepl("Prosecnur", ranges, fixed = TRUE)))
+
+  batch_calls <- calls[vapply(calls, function(call) {
+    grepl(":batchUpdate$", call$url) && !grepl("/values:batchUpdate$", call$url)
+  }, logical(1))]
   add_titles <- unlist(lapply(batch_calls[[1]]$body$requests, function(request) request$addSheet$properties$title %||% NULL), use.names = FALSE)
-  metadata_keys <- unlist(lapply(batch_calls[[2]]$body$requests, function(request) {
+  expect_equal(sort(add_titles), sort(names(payload)))
+  reset_batch <- batch_calls[[2]]$body$requests
+  metadata_keys <- unlist(lapply(reset_batch, function(request) {
     request$createDeveloperMetadata$developerMetadata$metadataKey %||% NULL
   }), use.names = FALSE)
-  expect_equal(sort(add_titles), sort(names(payload)))
   expect_equal(metadata_keys, rep("prosecnur.owner", 4L))
-  reset_requests <- batch_calls[[3]]$body$requests
-  expect_true(any(vapply(reset_requests, function(request) !is.null(request$unmergeCells), logical(1))))
-  expect_true(any(vapply(reset_requests, function(request) !is.null(request$updateCells), logical(1))))
-  expect_true(any(vapply(reset_requests, function(request) {
+  expect_true(any(vapply(reset_batch, function(request) !is.null(request$unmergeCells), logical(1))))
+  expect_true(any(vapply(reset_batch, function(request) !is.null(request$updateCells), logical(1))))
+  expect_true(any(vapply(reset_batch, function(request) {
     !is.null(request$updateSheetProperties$properties$gridProperties$rowCount)
   }, logical(1))))
-  format_requests <- batch_calls[[4]]$body$requests
+  format_requests <- batch_calls[[3]]$body$requests
   frozen <- unlist(lapply(format_requests, function(request) {
     request$updateSheetProperties$properties$gridProperties$frozenRowCount %||% NULL
   }), use.names = FALSE)
@@ -3949,18 +3982,21 @@ test_that("Google Sheets publica solo pestanas Prosecnur controladas", {
   expect_true(all(frozen == 1L))
   expect_true(any(vapply(format_requests, function(request) !is.null(request$setBasicFilter), logical(1))))
 
-  first_batch_count <- length(batch_calls)
+  # Republicar sin cambios: skip por hash — nada de addSheet, values ni formato.
+  first_calls <- length(calls)
   out2 <- monitoreo_sheets_publish_tabs("sheet_abc", payload)
   expect_true(out2$ok)
-  batch_calls2 <- calls[vapply(calls, function(call) grepl(":batchUpdate$", call$url), logical(1))]
-  second_batch_calls <- batch_calls2[seq.int(first_batch_count + 1L, length(batch_calls2))]
-  second_add_titles <- unlist(lapply(second_batch_calls, function(batch) {
-    lapply(batch$body$requests %||% list(), function(request) request$addSheet$properties$title %||% NULL)
-  }), use.names = FALSE)
-  expect_length(second_add_titles, 0L)
-  expect_true(any(vapply(unlist(lapply(second_batch_calls, function(batch) batch$body$requests %||% list()), recursive = FALSE), function(request) {
-    !is.null(request$updateCells)
-  }, logical(1))))
+  second_calls <- calls[seq.int(first_calls + 1L, length(calls))]
+  has_digest <- requireNamespace("digest", quietly = TRUE)
+  if (has_digest) {
+    expect_lte(length(second_calls), 3L)
+    expect_false(any(vapply(second_calls, function(call) grepl("/values:batchUpdate$", call$url), logical(1))))
+    expect_setequal(unlist(out2$skipped_tabs), names(payload))
+    expect_length(out2$written_ranges, 0L)
+  } else {
+    # Sin digest el skip se desactiva y se republica todo (paridad previa).
+    expect_true(any(vapply(second_calls, function(call) grepl("/values:batchUpdate$", call$url), logical(1))))
+  }
 })
 
 test_that("Google Sheets con encabezado vacio produce data frame vacio", {
@@ -8731,7 +8767,7 @@ test_that("sync SurveyMonkey prueba perfil alternativo y persiste nombres de rec
       expect_equal(token, "token_ok")
       list(id = collector_id, name = "Aulas faltantes", type = "weblink")
     }),
-    .with_mocked_monitoreo_binding("sm_api_fetch_all_responses_bulk", function(survey_id, token, since = NULL, progress = NULL, base_url = "https://api.surveymonkey.com/v3") {
+    .with_mocked_monitoreo_binding("sm_api_fetch_all_responses_bulk", function(survey_id, token, since = NULL, start_modified_at = NULL, progress = NULL, base_url = "https://api.surveymonkey.com/v3") {
       expect_equal(token, "token_ok")
       list(data = list(list(id = "r1")))
     }),

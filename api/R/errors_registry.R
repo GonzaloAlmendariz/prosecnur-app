@@ -582,6 +582,7 @@ errores_registrados <- function() {
     "E_SM_NO_RESPONSES",                                     "surveymonkey_multibase.R",          "409",
     "E_SM_NO_SURVEYS",                                       "surveymonkey_multibase.R",          "400",
     "E_SM_NO_XLSFORM",                                       "surveymonkey_multibase.R",          "409",
+    "E_SM_RATE_LIMIT",                                       "surveymonkey_api.R",                "429",
     "E_SM_RAW_SNAPSHOT_FILE_MISSING",                        "surveymonkey_multibase.R",          "409",
     "E_SM_RAW_SNAPSHOT_MISSING",                             "surveymonkey_multibase.R",          "409",
     "E_SM_RAW_SNAPSHOT_SAVE",                                "surveymonkey_multibase.R",          "500",

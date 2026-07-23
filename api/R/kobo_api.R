@@ -10,6 +10,77 @@ kobo_api_default_base_url <- function() {
   sub("/+$", "", base)
 }
 
+# Timeouts del transporte Kobo (unidad 3.8): antes el handle iba sin timeout
+# y un socket colgado dejaba el sync infinito. Overridables por env.
+.kobo_api_timeout_seconds <- function(value = Sys.getenv("PROSECNUR_KOBO_TIMEOUT_SECONDS", unset = ""),
+                                      default = 120,
+                                      min_seconds = 5,
+                                      max_seconds = 600) {
+  seconds <- suppressWarnings(as.numeric(value %||% default))
+  if (!is.finite(seconds) || seconds <= 0) seconds <- default
+  min(max_seconds, max(min_seconds, seconds))
+}
+
+.kobo_api_connect_timeout_seconds <- function(timeout_seconds = .kobo_api_timeout_seconds(),
+                                              value = Sys.getenv("PROSECNUR_KOBO_CONNECT_TIMEOUT_SECONDS", unset = "")) {
+  timeout_seconds <- .kobo_api_timeout_seconds(timeout_seconds)
+  seconds <- suppressWarnings(as.numeric(value %||% min(10, timeout_seconds)))
+  if (!is.finite(seconds) || seconds <= 0) seconds <- min(10, timeout_seconds)
+  min(timeout_seconds, max(1, seconds))
+}
+
+.kobo_api_new_handle <- function() {
+  h <- curl::new_handle()
+  timeout <- .kobo_api_timeout_seconds()
+  curl::handle_setopt(
+    h,
+    timeout = timeout,
+    connecttimeout = .kobo_api_connect_timeout_seconds(timeout)
+  )
+  h
+}
+
+.kobo_api_auth_handle <- function(token) {
+  h <- .kobo_api_new_handle()
+  curl::handle_setheaders(h,
+    "Authorization" = paste("Token", token),
+    "Accept" = "application/json"
+  )
+  h
+}
+
+# Seam de transporte GET (mockeable en tests, sin red).
+.kobo_api_http_fetch <- function(url, handle) {
+  curl::curl_fetch_memory(url, handle = handle)
+}
+
+# Seam de espera entre reintentos (mockeable en tests).
+.kobo_api_retry_sleep <- function(seconds) {
+  seconds <- suppressWarnings(as.numeric(seconds)[1])
+  if (is.finite(seconds) && seconds > 0) Sys.sleep(min(seconds, 30))
+  invisible(NULL)
+}
+
+# GET con reintento simple (max 2 reintentos) para la paginacion de datos:
+# reintenta errores de transporte (socket/timeout) y HTTP 429/5xx; los 4xx
+# de auth/no-encontrado no se reintentan. Los POST/PATCH (import/deploy) no
+# pasan por aca: no son idempotentes.
+.kobo_api_fetch_with_retry <- function(url, build_handle, max_retries = 2L) {
+  attempt <- 0L
+  repeat {
+    res <- tryCatch(.kobo_api_http_fetch(url, build_handle()), error = function(e) e)
+    transient <- inherits(res, "error") ||
+      as.integer(res$status_code) %in% c(429L, 500L, 502L, 503L, 504L)
+    if (!isTRUE(transient)) return(res)
+    if (attempt >= max_retries) {
+      if (inherits(res, "error")) stop(res)
+      return(res)
+    }
+    attempt <- attempt + 1L
+    .kobo_api_retry_sleep(attempt)
+  }
+}
+
 .kobo_api_fetch_json <- function(url, token) {
   if (!nzchar(token)) stop("Falta el token de KoboToolbox.", call. = FALSE)
   if (!requireNamespace("curl", quietly = TRUE)) {
@@ -19,12 +90,7 @@ kobo_api_default_base_url <- function() {
     stop("El paquete R 'jsonlite' no esta instalado.", call. = FALSE)
   }
 
-  h <- curl::new_handle()
-  curl::handle_setheaders(h,
-    "Authorization" = paste("Token", token),
-    "Accept" = "application/json"
-  )
-  res <- curl::curl_fetch_memory(url, handle = h)
+  res <- .kobo_api_fetch_with_retry(url, function() .kobo_api_auth_handle(token))
   body <- rawToChar(res$content)
   Encoding(body) <- "UTF-8"
 
@@ -55,11 +121,7 @@ kobo_api_default_base_url <- function() {
     stop("El paquete R 'jsonlite' no esta instalado.", call. = FALSE)
   }
 
-  h <- curl::new_handle()
-  curl::handle_setheaders(h,
-    "Authorization" = paste("Token", token),
-    "Accept" = "application/json"
-  )
+  h <- .kobo_api_auth_handle(token)
   method <- toupper(as.character(method %||% "GET")[1])
   if (!identical(method, "GET")) curl::handle_setopt(h, customrequest = method)
   if (!is.null(form)) {
