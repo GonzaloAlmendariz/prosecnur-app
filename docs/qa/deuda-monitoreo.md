@@ -200,8 +200,11 @@ sync→sheets con delta pequeño baja de minutos a <10s sin cambiar ningún núm
   4 pestañas skipeadas por hash (antes ~20-25 requests reescribiendo siempre). Destapó
   otro bug preexistente (corte 3.4.2): `frozenRowCount=1` en pestaña solo-header hace
   que Google rechace el batch entero — fix `5639bfad`.
-- **Pendiente medido**: con delta 0, el Avance sigue costando ~69s de
-  merge+normalize+rebuild+save en main-thread (unidad 3.10: cortocircuito a no-op).
+- **Cierre de fase (2026-07-23, tras unidades 3.3–3.6 y 3.10/3.8b/3.4b)**: Avance con
+  delta 0 medido e2e en ACNURCG = **9s** (meta <10s cumplida; antes ~69-77s; el primer
+  Avance de cada sesión tarda ~88s porque siembra el token — los tokens ya no viajan en
+  el .pulso por diseño). `monitoreo_variables` 310ms→0.03ms en hit; transpose 12×;
+  payloads −59%; publicación Sheets con async=true opt-in y preflight sin doble cómputo.
   CONTA no tiene spreadsheets de publicación persistidos en su `.pulso`; la validación
   del path cliente queda pendiente de los IDs.
 
