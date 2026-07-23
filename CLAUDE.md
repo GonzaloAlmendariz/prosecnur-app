@@ -66,7 +66,7 @@ Regla transversal: **toda rama que toque código termina en el agente `verificad
 - Colores solo con tokens `--pulso-*` de `theme.css`; no hex hardcodeado en CSS de features.
 - Íconos lucide siempre vía el shim `src/vendor/lucide-react.ts`.
 - Estado duro en el backend scopeado por base; estado UI efímero en el store zustand del feature (patrón de `validacion/store.ts`). No añadir racimos de `useState` a páginas que ya tienen decenas.
-- Funciones nuevas de API en `client.ts` con tipos; si el payload es crítico, normalizador defensivo (patrón `normalizeGraficosShareInspect`).
+- Funciones nuevas de API en su módulo de dominio de `src/api/` (`monitoreo.ts`, `graficos.ts`, …; `client.ts` es solo el barrel de compatibilidad y no crece); si el payload es crítico, normalizador defensivo (patrón `normalizeGraficosShareInspect`).
 - Si la vista participa del QA visual, registrar su readiness en el QA contract (`data-audit-ready`).
 
 ## Comandos de verificación
