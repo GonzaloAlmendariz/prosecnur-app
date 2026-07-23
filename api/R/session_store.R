@@ -52,6 +52,8 @@ session_get <- function(sid, required = TRUE) {
   s
 }
 
+# NOTA: las claves top-level de sesión están censadas en session_schema.R
+# (clave nueva ⇒ fila nueva ahí, mismo commit; gate en test-session-schema.R).
 session_set <- function(sid, key, value) {
   s <- session_get(sid)
   s[[key]] <- value
