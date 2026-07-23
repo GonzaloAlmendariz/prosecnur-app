@@ -408,23 +408,6 @@
   accent-color: var(--pulso-primary);
 }
 
-.mon-territorial-source-progress {
-  width: 100%;
-  height: 5px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--pulso-primary-soft) 38%, #fff);
-  margin-top: 6px;
-}
-
-.mon-territorial-source-progress span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--pulso-primary);
-  transition: width 180ms ease;
-}
-
 .mon-page .mon-territorial-route-workbench[data-model-tab="tabla"] .mon-territorial-route-table-card {
   height: min(680px, calc(100vh - 330px));
   min-height: 440px;

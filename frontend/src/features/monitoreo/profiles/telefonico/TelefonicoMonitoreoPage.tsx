@@ -115,6 +115,7 @@ import {
   type AcreditacionPhoneSourceSlot,
   type AcreditacionTelephoneChannel,
 } from "./TelefonicoSourcesModel";
+import { SourceSyncActions, type SourceSyncActionsProgress } from "../../components";
 import type { MonitoreoReportScope } from "../types";
 import "../../monitoreo.css";
 import "../../shell/monitoreoShell.css";
@@ -8340,6 +8341,7 @@ function AcreditacionSourceStatusStrip({
   activeTab,
   status,
   busy,
+  progress = null,
   onSourceTabChange,
   onSyncSheets,
   onSyncSurvey,
@@ -8351,6 +8353,7 @@ function AcreditacionSourceStatusStrip({
   activeTab?: AcreditacionSourceTab;
   status?: AcreditacionActionStatus;
   busy: boolean;
+  progress?: SourceSyncActionsProgress | null;
   onSourceTabChange?: (tab: AcreditacionSourceTab) => void;
   onSyncSheets: () => Promise<void>;
   onSyncSurvey: () => Promise<void>;
@@ -8433,6 +8436,7 @@ function AcreditacionSourceStatusStrip({
         surveyCount={surveyCount}
         totalCount={activeSources.length}
         busy={busy}
+        progress={progress}
         surveyLabel={phoneContract ? "Kobo" : "encuestas"}
         surveyTitle={phoneContract ? "fuentes Kobo activas" : "encuestas de plataforma activas"}
         onSyncSheets={onSyncSheets}
@@ -10604,11 +10608,15 @@ async function waitForSourceSyncJob(
   throw new Error("La sincronización sigue en ejecución. Vuelve a actualizar la vista en unos segundos.");
 }
 
+// Adaptador local sobre la tira canónica compartida (components/SourceSyncActions):
+// conserva la firma histórica de este profile y aplica el vocabulario uniforme
+// (fuentes por nombre + "Todo" para el sync completo).
 function AcreditacionSourceSyncActions({
   sheetCount,
   surveyCount,
   totalCount,
   busy,
+  progress = null,
   surveyLabel = "encuestas",
   surveyTitle = "encuestas de plataforma activas",
   onSyncSheets,
@@ -10619,6 +10627,7 @@ function AcreditacionSourceSyncActions({
   surveyCount: number;
   totalCount: number;
   busy: boolean;
+  progress?: SourceSyncActionsProgress | null;
   surveyLabel?: string;
   surveyTitle?: string;
   onSyncSheets: () => Promise<void>;
@@ -10626,20 +10635,17 @@ function AcreditacionSourceSyncActions({
   onSyncAll: () => Promise<void>;
 }) {
   return (
-    <div className="mon-source-sync-actions mon-acr-source-sync-actions" aria-label="Actualizar fuentes de acreditación">
-      <button type="button" onClick={() => { void onSyncSheets(); }} disabled={busy || !sheetCount} title={sheetCount ? `${sheetCount} fuentes Sheets activas` : "Sin fuentes Sheets activas"}>
-        {busy ? <Loader2 size={13} className="pulso-spin" /> : <Layers3 size={13} />}
-        <span>Actualizar Sheets</span>
-      </button>
-      <button type="button" onClick={() => { void onSyncSurvey(); }} disabled={busy || !surveyCount} title={surveyCount ? `${surveyCount} ${surveyTitle}` : `Sin ${surveyTitle}`}>
-        {busy ? <Loader2 size={13} className="pulso-spin" /> : <QrCode size={13} />}
-        <span>Actualizar {surveyLabel}</span>
-      </button>
-      <button type="button" className="is-primary" onClick={() => { void onSyncAll(); }} disabled={busy || !totalCount} title={totalCount ? `${totalCount} fuentes activas` : "Sin fuentes activas"}>
-        {busy ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
-        <span>Actualizar todo</span>
-      </button>
-    </div>
+    <SourceSyncActions
+      className="mon-acr-source-sync-actions"
+      ariaLabel="Actualizar fuentes telefónicas"
+      busy={busy}
+      progress={progress}
+      actions={[
+        { key: "sheets", label: "Sheets", title: sheetCount ? `${sheetCount} fuentes Sheets activas` : "Sin fuentes Sheets activas", icon: Layers3, disabled: !sheetCount, onRun: onSyncSheets },
+        { key: "survey", label: surveyLabel, title: surveyCount ? `${surveyCount} ${surveyTitle}` : `Sin ${surveyTitle}`, icon: QrCode, disabled: !surveyCount, onRun: onSyncSurvey },
+        { key: "all", label: "Todo", title: totalCount ? `${totalCount} fuentes activas` : "Sin fuentes activas", icon: RefreshCw, disabled: !totalCount, primary: true, onRun: onSyncAll },
+      ]}
+    />
   );
 }
 
@@ -11328,6 +11334,7 @@ function AcreditacionSourcesWorkbench({
   );
   const [syncBusy, setSyncBusy] = useState<"sheets" | "survey" | "all" | null>(null);
   const [syncStatus, setSyncStatus] = useState<AcreditacionActionStatus>(null);
+  const [syncProgress, setSyncProgress] = useState<SourceSyncActionsProgress | null>(null);
   const isPhoneSourceModel = isTelefonicoMonitoreoState(state);
   const platformSources = isPhoneSourceModel ? acreditacionKoboResponseSources(operationalSources) : operationalSources.filter(isPlatformResponseSource);
   const sheetSources = operationalSources.filter((source) => source.kind === "google_sheets");
@@ -11362,10 +11369,12 @@ function AcreditacionSourcesWorkbench({
     }
     setSyncBusy(kind);
     setSyncStatus({ tone: "info", message: `${label}: creando job local...` });
+    setSyncProgress({ percent: 2, phase: "Preparando", message: `${label}: creando job local...` });
     try {
       const start = await apiMonitoreoSync(undefined, sourceIds, { syncMode });
       setSyncStatus({ tone: "info", message: `${label}: job ${start.job_id} en ejecución.` });
-      await waitForSourceSyncJob(start.job_id);
+      setSyncProgress({ percent: 8, phase: "En cola", message: `${label}: job ${start.job_id} en ejecución.` });
+      await waitForSourceSyncJob(start.job_id, (progress) => setSyncProgress(progress));
       const next = await apiMonitoreoState({
         includeReports: true,
         reportScope: "source",
@@ -11379,6 +11388,7 @@ function AcreditacionSourcesWorkbench({
       setSyncStatus({ tone: "error", message });
     } finally {
       setSyncBusy(null);
+      setSyncProgress(null);
     }
   };
 
@@ -11390,6 +11400,7 @@ function AcreditacionSourcesWorkbench({
       activeTab={activeTab}
       status={syncStatus}
       busy={Boolean(syncBusy)}
+      progress={syncProgress}
       onSourceTabChange={onSourceTabChange}
       onSyncSheets={syncSheets}
       onSyncSurvey={() => syncExternal("survey", activeSurveySources.map((source) => source.id), isPhoneSourceModel ? "Actualizacion Kobo" : "Actualizacion de plataforma", "full")}
@@ -20971,7 +20982,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
 	    setSourceSyncProgress({
 	      mode: syncMode,
 	      percent: 2,
-	      phase: "prepare",
+	      phase: "Preparando",
 	      message: syncMode === "full" ? "Preparando actualización completa..." : "Preparando avance...",
 	    });
 	    setError("");
@@ -20981,7 +20992,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
 	      setSourceSyncProgress({
 	        mode: syncMode,
 	        percent: 8,
-	        phase: "queued",
+	        phase: "En cola",
 	        message: `Job ${start.job_id} en cola.`,
 	      });
 	      setActionStatus({ tone: "info", message: `Sincronizacion ${syncMode === "full" ? "completa" : "de avance"} en job ${start.job_id}.` });
