@@ -143,8 +143,11 @@ Arquitectura (reducción por extracción, nunca reescritura big-bang):
 
 6. **Cortar la atadura CSS**: particionar `monitoreo.css` por familia + kit común y resolver
    los 98 selectores duplicados. Es el prerrequisito de cualquier extracción limpia.
-7. **Re-unificar el fork acred↔telefónico** en un core compartido parametrizado por familia
-   (los diffs medidos son mínimos: 8/55, 22/247 líneas) antes de seguir divergiendo.
+7. **Independizar telefónico de acreditación** (decisión del dueño 2026-07-23: son
+   productos INDEPENDIENTES — no fusionar en core parametrizado). Extraer al kit solo
+   infraestructura genérica sin semántica de familia; dar a telefónico endpoints y paths
+   propios (hoy 0: vive como if family=="telefonico" — acoplamiento, no independencia);
+   el costo fix×2 en semántica de familia se acepta como precio de la independencia.
 8. **Completar aulas/cursos-horario como módulo piloto**: migrar import/sync/agenda del
    monolito y RecopiladoresPage al profile, borrar los endpoints sin consumidor. Es el tipo
    más cerca de ser 100% modular y valida el camino para los demás.
