@@ -165,7 +165,11 @@ test_that("cambio de respuestas invalida reporte GPS sin invalidar hash de ruta"
   .monitoreo_report_cache_clear_runtime(sid, "validation_summary")
 
   s <- session_get(sid)
+  # Emula un sync real: en produccion la data solo muta junto con un synced_at
+  # nuevo (o con cambio de filas via pruning); el token de cache es un
+  # fingerprint barato que ya no hashea el contenido (ver monitoreo_perf.R).
   s$monitoreo_snapshot$data$`_geolocation`[[2]] <- "-12.5 -77.5"
+  s$monitoreo_snapshot$synced_at <- "2026-06-16T00:00:00Z"
   .session_env[[sid]] <- s
 
   changed <- .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = "validation_summary")
