@@ -241,6 +241,17 @@
     NULL
   }
   if (is.null(key)) return(NULL)
+  # `_submission__id` NO es llave de instancia: una submission puede tener
+  # varias filas hija (una por servicio) y `match()` tomaria siempre la
+  # PRIMERA — todas las instancias heredarian el servicio de la primera fila,
+  # produciendo laminas "por servicio" con datos de otro servicio. Con
+  # multiplicidad >1 se aborta el re-anclaje (mejor "Sin datos" que un
+  # servicio equivocado). `_index` si es llave de instancia y no se toca.
+  if (identical(key, "_submission__id")) {
+    raw_keys <- as.character(raw[[key]])
+    raw_keys <- raw_keys[!is.na(raw_keys) & nzchar(raw_keys)]
+    if (anyDuplicated(raw_keys) > 0L) return(NULL)
+  }
   pos <- match(as.character(data[[key]]), as.character(raw[[key]]))
   if (all(is.na(pos))) return(NULL)
   svc <- as.character(raw[[service_col]][pos])

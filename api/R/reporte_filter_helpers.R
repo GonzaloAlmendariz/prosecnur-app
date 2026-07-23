@@ -124,7 +124,21 @@
     # lamina de la base madre puede heredar un `current_code = NA` fantasma
     # de las laminas por-servicio de la base hija repeat. Ese fantasma no
     # debe romper el reporte. Ver reporte_filter_guards.R.
-    if (!length(vals)) next
+    #
+    # El no-op deja rastro (espejo del warning de columna ausente en
+    # reporte_filter_guards.R): si un filtro GENUINO llega NA'd por otro bug,
+    # ampliaria la base de la lamina sin señal alguna — la direccion de fallo
+    # mas peligrosa porque produce numeros que parecen correctos.
+    if (!length(vals)) {
+      if (length(filters[[nm]])) {
+        warning(sprintf(
+          paste0("Filtro `%s` con valores vacios/NA se degrada a no-op: ",
+                 "la lamina se calcula SIN esa restriccion."),
+          nm
+        ), call. = FALSE)
+      }
+      next
+    }
 
     if (!(nm %in% names(out))) {
       .filter_abort_missing_column(nm, arg_name)
