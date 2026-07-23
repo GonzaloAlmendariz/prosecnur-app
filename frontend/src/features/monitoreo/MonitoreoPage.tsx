@@ -60,8 +60,6 @@ import {
   apiJobStatus,
   apiMonitoreoAcreditacionSeguimiento,
   apiMonitoreoAcreditacionCaseReconciliation,
-  apiMonitoreoAulasImportFromCalcMuestra,
-  apiMonitoreoAulasSync,
   apiMonitoreoClientReportPdf,
   apiMonitoreoConfig,
   apiMonitoreoCierre,
@@ -117,7 +115,6 @@ import {
   MonitoreoConfig,
   MonitoreoAcreditacion,
   MonitoreoAulasConfig,
-  MonitoreoAulasDashboard,
   MonitoreoClientReport,
   MonitoreoAcreditacionReports,
   MonitoreoAcreditacionComponente,
@@ -974,14 +971,6 @@ const TERRITORIAL_WORKBENCH_VIEWS: typeof WORKBENCH_VIEWS = [
   { key: "ocurrencias", label: "Ocurrencias de campo", desc: "Estados y UMP", icon: ClipboardCheck },
 ];
 
-const AULAS_WORKBENCH_VIEWS: typeof WORKBENCH_VIEWS = [
-  { key: "fuentes", label: "Fuentes", desc: "Plan, agenda y respuestas", icon: PlugZap },
-  { key: "modelo", label: "Agenda de aulas", desc: "Horario, responsable, links y QR", icon: CalendarRange },
-  { key: "avance", label: "Avance", desc: "Aulas aplicadas, cuotas y brechas", icon: BarChart3 },
-  { key: "calidad", label: "Validación", desc: "Collector, aula, horarios y duplicados", icon: ShieldAlert },
-  { key: "consultas", label: "Consultas", desc: "Trazabilidad aula por aula", icon: Search },
-];
-
 const TERRITORIAL_BOOT_STEP_DEFS: Array<{
   key: TerritorialBootStepKey;
   view: WorkbenchView;
@@ -1038,9 +1027,11 @@ const TERRITORIAL_BOOT_STEP_DEFS: Array<{
   },
 ];
 
+// 4.1: la familia aulas_universitarias ya no se renderiza en este monolito
+// (vive en profiles/aulas/AulasMonitoreoPage.tsx); aquí solo quedan
+// territorial (superficie legacy) y acreditación/telefónico.
 function workbenchViewsForRoute(route: { family: MonitoreoRouteFamily }) {
   if (route.family === "territorial") return TERRITORIAL_WORKBENCH_VIEWS;
-  if (route.family === "aulas_universitarias") return AULAS_WORKBENCH_VIEWS;
   return WORKBENCH_VIEWS;
 }
 
@@ -1088,38 +1079,6 @@ function localTabsForWorkbenchView(route: { family: MonitoreoRouteFamily }, view
       telefonico: [],
     };
     return territorialTabs[view] ?? [];
-  }
-
-  if (route.family === "aulas_universitarias") {
-    const aulasTabs: Record<WorkbenchView, MonitoreoLocalTabDefinition[]> = {
-      fuentes: [
-        { key: "plan", label: "Plan", desc: "Calc-muestra", icon: CalendarRange },
-        { key: "agenda", label: "Agenda", desc: "Aulas y responsables", icon: Table2 },
-        { key: "respuestas", label: "Respuestas", desc: "Fuentes activas", icon: PlugZap },
-      ],
-      modelo: [
-        { key: "agenda", label: "Agenda", desc: "Horario y aula", icon: CalendarRange },
-        { key: "links", label: "Links y QR", desc: "Recopiladores", icon: QrCode },
-        { key: "reemplazos", label: "Reemplazos", desc: "Reservas usadas", icon: Route },
-      ],
-      avance: [
-        { key: "resumen", label: "Resumen", desc: "Aulas aplicadas", icon: BarChart3 },
-        { key: "cuotas", label: "Cuotas", desc: "Brechas", icon: Target },
-        { key: "ritmo", label: "Ritmo", desc: "Aplicación diaria", icon: CalendarRange },
-      ],
-      calidad: [
-        { key: "collector", label: "Collector", desc: "Link y aula", icon: Link2 },
-        { key: "horarios", label: "Horarios", desc: "Cruce agenda", icon: Clock },
-        { key: "duplicados", label: "Duplicados", desc: "Respuestas repetidas", icon: ShieldAlert },
-      ],
-      consultas: [
-        { key: "trazabilidad", label: "Trazabilidad", desc: "Aula por aula", icon: Search },
-        { key: "estado", label: "Estado operativo", desc: "Caídas y reemplazos", icon: ClipboardCheck },
-      ],
-      ocurrencias: [],
-      telefonico: [],
-    };
-    return aulasTabs[view] ?? [];
   }
 
   const acreditacionTabs: Record<WorkbenchView, MonitoreoLocalTabDefinition[]> = {
@@ -4585,35 +4544,6 @@ export default function MonitoreoPage() {
     }
   }
 
-  async function importAulasFromCalcMuestra() {
-    setSavingConfig(true);
-    setError("");
-    try {
-      const result = await apiMonitoreoAulasImportFromCalcMuestra();
-      applyMonitoreoState(result.state);
-      setConfig(mergeConfig(result.state.config));
-      setActiveView("modelo");
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSavingConfig(false);
-    }
-  }
-
-  async function syncAulasUniversitarias() {
-    setSavingSource(true);
-    setError("");
-    try {
-      const result = await apiMonitoreoAulasSync();
-      applyMonitoreoState(result.state);
-      setConfig(mergeConfig(result.state.config));
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSavingSource(false);
-    }
-  }
-
   async function saveAcreditacionSeguimiento(payload: MonitoreoAcreditacionSeguimientoPayload) {
     setSavingAcreditacion(true);
     setError("");
@@ -4702,6 +4632,26 @@ export default function MonitoreoPage() {
     );
   }
 
+  // Unidad 4.1: la operación de cursos-horario (import desde calc-muestra,
+  // sync de campo, vistas) vive completa en profiles/aulas/. Este monolito
+  // solo es alcanzable como superficie legacy (?monitoreoSurface=), así que
+  // delega en lugar de duplicar la vista.
+  if (route.family === "aulas_universitarias") {
+    return (
+      <PageFrame
+        title={route.label}
+        headerMode="sr-only"
+        bodyMode="fill"
+        className="mon-page"
+        density="compact"
+      >
+        <Alert kind="info">
+          El monitoreo por cursos-horario vive en su perfil modular. Abre Monitoreo sin la superficie legacy para operarlo.
+        </Alert>
+      </PageFrame>
+    );
+  }
+
   const clientPublicationSheets = state?.publication?.client_last_sheets?.audience === "client"
     ? state.publication.client_last_sheets
     : null;
@@ -4716,31 +4666,23 @@ export default function MonitoreoPage() {
   const chromeGeneratedAt =
     route.family === "territorial"
       ? dashboard?.territorial_reports?.generated_at ?? ""
-      : route.family === "aulas_universitarias"
-        ? dashboard?.aulas_universitarias_reports?.generated_at ?? ""
-        : dashboard?.acreditacion_reports?.generated_at ?? state?.synced_at ?? "";
+      : dashboard?.acreditacion_reports?.generated_at ?? state?.synced_at ?? "";
   const chromeGenerationStatus = showTerritorialReportStatus ? territorialReportStatusTone : "";
   const activeTerritorialReportPayloadSize = Number(activeTerritorialReportMeta?.payload_size);
   const activeTerritorialReportSizeKb = Number.isFinite(activeTerritorialReportPayloadSize) && activeTerritorialReportPayloadSize > 0
     ? Math.round(activeTerritorialReportPayloadSize / 1024)
     : null;
-  const chromeSyncAllDisabled = route.family === "aulas_universitarias"
-    ? false
-    : !activeSourceIds.length;
+  const chromeSyncAllDisabled = !activeSourceIds.length;
   const chromeSyncAdvanceDisabled = route.family === "territorial"
     ? !activeTerritorialKoboSourceIds.length
-    : route.family === "aulas_universitarias"
-      ? false
-      : !activeSourceIds.length;
+    : !activeSourceIds.length;
   const syncChromeAdvance = () => {
-    if (route.family === "aulas_universitarias") return syncAulasUniversitarias();
     if (route.family === "territorial") {
       return syncExternalSources(activeTerritorialKoboSourceIds, `Actualizando ${territorialPhaseLabel(activeTerritorialPhase)}`, { syncMode: "advance" });
     }
     return syncExternalSources(activeSourceIds, "Actualizando avance", { syncMode: "advance" });
   };
   const syncChromeAll = () => {
-    if (route.family === "aulas_universitarias") return syncAulasUniversitarias();
     return syncExternalSources(activeSourceIds, "Actualizando todas las fuentes", { syncMode: "full" });
   };
   const openOutputsTab = () => {
@@ -4850,31 +4792,21 @@ export default function MonitoreoPage() {
             sourceTotal={sources.length}
             config={config}
             actions={activeView === "fuentes" ? (
-              route.family === "aulas_universitarias" ? (
-                <AulasSourceActions
-                  busy={savingConfig || savingSource || Boolean(sourceSyncJob)}
-                  imported={Boolean(config.aulas_universitarias.enabled && config.aulas_universitarias.selection_run_id)}
-                  activeSources={activePrimarySources.length}
-                  onImportFromCalc={importAulasFromCalcMuestra}
-                  onSync={syncAulasUniversitarias}
-                />
-              ) : (
-                <SourceSyncActions
-                  busy={savingSource || Boolean(sourceSyncJob)}
-                  progress={sourceSyncJob}
-                  actions={monitoreoSourceSyncActionItems({
-                    routeFamily: route.family,
-                    sheetCount: activeSheetSourceIds.length,
-                    surveyMonkeyCount: activeSurveyMonkeySourceIds.length,
-                    koboCount: activeKoboSourceIds.length,
-                    totalCount: activeSourceIds.length,
-                    onSyncSheets: () => syncSheetSources(activeSheetSourceIds),
-                    onSyncSurveyMonkey: () => syncExternalSources(activeSurveyMonkeySyncIds, "Actualizando SurveyMonkey"),
-                    onSyncKobo: () => syncExternalSources(activeKoboSyncIds, "Actualizando Kobo"),
-                    onSyncAll: () => syncExternalSources(activeSourceIds, "Actualizando todas las fuentes"),
-                  })}
-                />
-              )
+              <SourceSyncActions
+                busy={savingSource || Boolean(sourceSyncJob)}
+                progress={sourceSyncJob}
+                actions={monitoreoSourceSyncActionItems({
+                  routeFamily: route.family,
+                  sheetCount: activeSheetSourceIds.length,
+                  surveyMonkeyCount: activeSurveyMonkeySourceIds.length,
+                  koboCount: activeKoboSourceIds.length,
+                  totalCount: activeSourceIds.length,
+                  onSyncSheets: () => syncSheetSources(activeSheetSourceIds),
+                  onSyncSurveyMonkey: () => syncExternalSources(activeSurveyMonkeySyncIds, "Actualizando SurveyMonkey"),
+                  onSyncKobo: () => syncExternalSources(activeKoboSyncIds, "Actualizando Kobo"),
+                  onSyncAll: () => syncExternalSources(activeSourceIds, "Actualizando todas las fuentes"),
+                })}
+              />
             ) : null}
           />
         ) : null}
@@ -4956,18 +4888,6 @@ export default function MonitoreoPage() {
 	                  loading={territorialActiveViewHydrating}
 	                  error={territorialActiveViewError}
 	                />
-                  ) : route.family === "aulas_universitarias" ? (
-                    <AulasUniversitariasView
-                      view="avance"
-                      config={config.aulas_universitarias}
-                      dashboard={dashboard?.aulas_universitarias_reports ?? null}
-                      sources={sources}
-                      syncedAt={state?.synced_at ?? ""}
-                      nRows={state?.n_rows ?? 0}
-                      busy={savingConfig || savingSource}
-                      onImportFromCalc={importAulasFromCalcMuestra}
-                      onSync={syncAulasUniversitarias}
-                    />
                   ) : (
                     <AvanceView
                       sources={sources}
@@ -5006,18 +4926,6 @@ export default function MonitoreoPage() {
 		                  onReviewFiltersChange={setTerritorialReviewFilters}
 		                  activeLocalTab={territorialLocalTabs.consultas}
 	                />
-                  ) : route.family === "aulas_universitarias" ? (
-                    <AulasUniversitariasView
-                      view="consultas"
-                      config={config.aulas_universitarias}
-                      dashboard={dashboard?.aulas_universitarias_reports ?? null}
-                      sources={sources}
-                      syncedAt={state?.synced_at ?? ""}
-                      nRows={state?.n_rows ?? 0}
-                      busy={savingConfig || savingSource}
-                      onImportFromCalc={importAulasFromCalcMuestra}
-                      onSync={syncAulasUniversitarias}
-                    />
                   ) : (
                     <ConsultasView
                       reports={dashboard?.acreditacion_reports ?? null}
@@ -5064,18 +4972,6 @@ export default function MonitoreoPage() {
 			                  error={territorialActiveViewError}
 			                  onSyncKobo={() => syncExternalSources(activeTerritorialKoboSourceIds, `Actualizando ${territorialPhaseLabel(activeTerritorialPhase)}`)}
 			                />
-                  ) : route.family === "aulas_universitarias" ? (
-                    <AulasUniversitariasView
-                      view="modelo"
-                      config={config.aulas_universitarias}
-                      dashboard={dashboard?.aulas_universitarias_reports ?? null}
-                      sources={sources}
-                      syncedAt={state?.synced_at ?? ""}
-                      nRows={state?.n_rows ?? 0}
-                      busy={savingConfig || savingSource}
-                      onImportFromCalc={importAulasFromCalcMuestra}
-                      onSync={syncAulasUniversitarias}
-                    />
                   ) : (
                     <OperationalModelPanel
                       mode={activeModelMode}
@@ -5144,18 +5040,6 @@ export default function MonitoreoPage() {
 		                    phaseCoherence={territorialPhaseCoherence}
 		                    onSyncKobo={() => syncExternalSources(activeTerritorialKoboSourceIds, `Actualizando ${territorialPhaseLabel(activeTerritorialPhase)}`)}
 	                  />
-                    ) : route.family === "aulas_universitarias" ? (
-                      <AulasUniversitariasView
-                        view="fuentes"
-                        config={config.aulas_universitarias}
-                        dashboard={dashboard?.aulas_universitarias_reports ?? null}
-                        sources={sources}
-                        syncedAt={state?.synced_at ?? ""}
-                        nRows={state?.n_rows ?? 0}
-                        busy={savingConfig || savingSource}
-                        onImportFromCalc={importAulasFromCalcMuestra}
-                        onSync={syncAulasUniversitarias}
-                      />
                     ) : (
                       <SourcePanel
                         className="mon-fill-panel mon-source-fill-panel"
@@ -5213,508 +5097,11 @@ export default function MonitoreoPage() {
                       onProductionAnnulmentRevert={revertTerritorialProductionAnnulment}
                     />
                 )}
-                {activeView === "calidad" && route.family === "aulas_universitarias" && (
-                  <AulasUniversitariasView
-                    view="calidad"
-                    config={config.aulas_universitarias}
-                    dashboard={dashboard?.aulas_universitarias_reports ?? null}
-                    sources={sources}
-                    syncedAt={state?.synced_at ?? ""}
-                    nRows={state?.n_rows ?? 0}
-                    busy={savingConfig || savingSource}
-                    onImportFromCalc={importAulasFromCalcMuestra}
-                    onSync={syncAulasUniversitarias}
-                  />
-                )}
               </>
             )}
       </MonitoreoWorkbenchChrome>
     </PageFrame>
   );
-}
-
-function AulasSourceActions({
-  busy,
-  imported,
-  activeSources,
-  onImportFromCalc,
-  onSync,
-}: {
-  busy: boolean;
-  imported: boolean;
-  activeSources: number;
-  onImportFromCalc: () => Promise<void>;
-  onSync: () => Promise<void>;
-}) {
-  return (
-    <div className="mon-aulas-strip-actions" aria-label="Acciones de aulas universitarias">
-      <button
-        type="button"
-        onClick={() => { void onImportFromCalc().catch(() => undefined); }}
-        disabled={busy}
-        title="Importar titulares y reservas desde calc-muestra"
-      >
-        {busy ? <Loader2 size={13} className="pulso-spin" /> : <Download size={13} />}
-        <span>Importar plan</span>
-      </button>
-      <button
-        type="button"
-        className="is-primary"
-        onClick={() => { void onSync().catch(() => undefined); }}
-        disabled={busy || !imported}
-        title={imported ? `${activeSources} fuentes activas` : "Primero importa un plan de aulas"}
-      >
-        {busy ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
-        <span>Sincronizar campo</span>
-      </button>
-    </div>
-  );
-}
-
-function AulasUniversitariasView({
-  view,
-  config,
-  dashboard,
-  sources,
-  syncedAt,
-  nRows,
-  busy,
-  onImportFromCalc,
-  onSync,
-}: {
-  view: WorkbenchView;
-  config: MonitoreoAulasConfig;
-  dashboard: MonitoreoAulasDashboard | null;
-  sources: MonitoreoSource[];
-  syncedAt: string;
-  nRows: number;
-  busy: boolean;
-  onImportFromCalc: () => Promise<void>;
-  onSync: () => Promise<void>;
-}) {
-  const [tableQuery, setTableQuery] = useState("");
-  const plan = dashboard?.agenda?.length ? dashboard.agenda : config.plan;
-  const kpis = dashboard?.kpis ?? {
-    total_aulas: plan.length,
-    aulas_aplicadas: plan.filter((row) => row.operational_status === "aplicada" || row.operational_status === "cerrada").length,
-    respuestas_total: 0,
-    respuestas_validas: 0,
-    filter_passed: 0,
-    filter_rejected: 0,
-    brechas: 0,
-    quota_cells: 0,
-    quota_cells_ok: 0,
-    quota_cells_pending: 0,
-  };
-  const activeSources = sources.filter((source) => source.enabled);
-  const imported = Boolean(config.enabled && config.selection_run_id);
-  const totalAulas = kpis.total_aulas ?? plan.length;
-  const titularCount = kpis.aulas_titulares ?? plan.filter((row) => String(row.wave).toUpperCase() === "M1").length;
-  const reserveCount = Math.max(0, plan.length - titularCount);
-  const appliedCount = kpis.aulas_aplicadas ?? 0;
-  const validCount = kpis.respuestas_validas ?? 0;
-  const gapCount = kpis.brechas ?? 0;
-  const replacementCount = kpis.reemplazos_usados ?? 0;
-  const sexQuotaRows = (dashboard?.quotas_sex_faculty ?? []) as MonitoreoRow[];
-  const courseStatusRows = (dashboard?.course_status ?? []) as MonitoreoRow[];
-  const quotaCells = kpis.quota_cells ?? sexQuotaRows.length;
-  const quotaCellsOk = kpis.quota_cells_ok ?? sexQuotaRows.filter((row) => String(row.status ?? "") === "cumplida").length;
-  const quotaCellsPending = kpis.quota_cells_pending ?? sexQuotaRows.filter((row) => ["pendiente", "en_riesgo"].includes(String(row.status ?? ""))).length;
-  const filterPassed = kpis.filter_passed ?? 0;
-  const filterRejected = kpis.filter_rejected ?? 0;
-  const representativity = dashboard?.representativity ?? null;
-  const effectiveRepresentativity = Number(representativity?.effective_score ?? kpis.representativity_effective_score ?? Number.NaN);
-  const representativityLoss = Number(representativity?.score_loss ?? kpis.representativity_score_loss ?? Number.NaN);
-  const expectedValid = plan.reduce((sum, row) => sum + (Number(row.expected_valid) || 0), 0);
-  const appliedPct = safePercent(appliedCount, totalAulas);
-  const validPct = expectedValid ? safePercent(validCount, expectedValid) : null;
-  const cutAt = dashboard?.generated_at || syncedAt || config.imported_at;
-  const validationWarnings = dashboard?.validation?.filter((row) => String(row.status ?? "").toLowerCase() !== "ok").length ?? 0;
-  const sourceKinds = Array.from(new Set(activeSources.map((source) => source.kind).filter(Boolean))).join(" · ") || "sin fuentes";
-  const pendingOperational = plan.filter((row) => {
-    const status = String(row.operational_status || "");
-    return ["planificada", "contactada", "agendada", "en_campo", "parcial", "reemplazo_pendiente"].includes(status);
-  }).length;
-  const methodologyReady = Boolean(config.frame_hash || Object.keys(config.methodology ?? {}).length);
-  const viewTitle: Record<string, string> = {
-    fuentes: "Fuentes",
-    modelo: "Agenda de aulas",
-    avance: "Avance",
-    calidad: "Validación",
-    consultas: "Consultas",
-  };
-  const viewDetail: Record<string, string> = {
-    fuentes: "Plan importado, agenda Sheets y respuestas agregadas por aula/link.",
-    modelo: "Aulas titulares y reservas con horario, docente, responsable y estado.",
-    avance: "Aulas aplicadas, respuestas validas y brechas por dominio.",
-    calidad: "Consistencia de collector/link/aula y controles para respuestas anonimas.",
-    consultas: "Trazabilidad aula por aula sin exigir identificador personal.",
-  };
-  const table = (() => {
-    if (view === "fuentes") {
-      return {
-        rows: activeSources.map((source) => ({
-          Fuente: source.label || source.id,
-          Tipo: source.kind,
-          Rol: source.role,
-          Estado: source.enabled ? "activa" : "inactiva",
-          Actualizacion: source.last_sync_at || "",
-        })),
-        columns: ["Fuente", "Tipo", "Rol", "Estado", "Actualizacion"],
-        title: "Fuentes operativas",
-        hint: `${activeSources.length.toLocaleString("es-PE")} activas · ${sourceKinds}`,
-        empty: "Sin fuentes activas conectadas.",
-      };
-    }
-    if (view === "avance") {
-      if (sexQuotaRows.length) {
-        return {
-          rows: sexQuotaRows,
-          columns: ["faculty", "sex", "target", "observed", "missing", "progress_pct", "status", "source"],
-          title: "Cuota sexo por facultad",
-          hint: "Meta del diseño de calc-muestra contra respuestas válidas observadas",
-          empty: "Sin cuota sexo por facultad calculada.",
-        };
-      }
-      return {
-        rows: dashboard?.avance_por_estrato ?? [],
-        columns: ["stratum", "aulas", "aulas_aplicadas", "respuestas_validas", "brecha", "avance_aulas_pct", "avance_respuestas_pct"],
-        title: "Avance por dominio",
-        hint: "Aulas, respuestas válidas y brecha por estrato operativo",
-        empty: "Sin avance por estrato disponible.",
-      };
-    }
-    if (view === "calidad") {
-      return {
-        rows: dashboard?.validation ?? [],
-        columns: ["check", "status", "detail"],
-        title: "Validación de enlace aula-respuesta",
-        hint: "Collector, link, aula, horarios y privacidad",
-        empty: "Sin validaciones operativas calculadas.",
-      };
-    }
-    if (view === "consultas") {
-      return {
-        rows: courseStatusRows.length ? courseStatusRows : plan,
-        columns: courseStatusRows.length
-          ? ["operational_code", "course_name", "schedule", "faculty", "responsible", "operational_status", "application_state", "responses_total", "respuestas_validas", "filter_passed", "filter_rejected", "expected_valid", "brecha"]
-          : ["wave", "classroom_id", "course_name", "faculty", "program", "operational_status", "respuestas_validas", "brecha"],
-        title: "Trazabilidad aula por aula",
-        hint: "Curso-horario, filtro, válidas y brecha sin reconstruir identidad estudiantil",
-        empty: "Sin aulas en el plan.",
-      };
-    }
-    return {
-      rows: plan,
-      columns: ["wave", "orden", "classroom_id", "course_name", "schedule", "teacher", "responsible", "link", "operational_status", "replacement_for"],
-      title: "Agenda ejecutable",
-      hint: "Titulares M1, reservas, responsables, links y estados de campo",
-      empty: "Sin agenda importada.",
-    };
-  })();
-  const allRows = table.rows as Array<Record<string, unknown>>;
-  const normalizedTableQuery = normalizeMatch(tableQuery);
-  const filteredRows = normalizedTableQuery
-    ? allRows.filter((row) => aulasRowSearchText(row, table.columns).includes(normalizedTableQuery))
-    : allRows;
-  const rows = filteredRows.slice(0, 80);
-  const hiddenRows = Math.max(0, filteredRows.length - rows.length);
-  const kpiCards: Array<{ label: string; value: string; hint: string; tone: MonitoringSemanticTone; icon: typeof CalendarRange; percent?: number | null }> = [
-    { label: "Plan de aulas", value: formatMetric(totalAulas), hint: `${formatMetric(titularCount)} titulares · ${formatMetric(reserveCount)} reservas`, tone: imported ? "base" : "warning", icon: CalendarRange, percent: totalAulas ? 100 : 0 },
-    { label: "Aulas aplicadas", value: formatMetric(appliedCount), hint: `${formatPercentLabel(appliedPct)} del plan`, tone: appliedCount ? "effective" : "warning", icon: CheckCircle2, percent: appliedPct },
-    { label: "Respuestas válidas", value: formatMetric(validCount), hint: expectedValid ? `${formatPercentLabel(validPct)} de rendimiento esperado` : `${formatMetric(nRows)} registros`, tone: validCount ? "effective" : "warning", icon: BarChart3, percent: validPct },
-    { label: "Brecha operativa", value: formatMetric(gapCount), hint: `${formatMetric(replacementCount)} reemplazos usados`, tone: gapCount ? "warning" : "ready", icon: ShieldAlert, percent: totalAulas ? safePercent(totalAulas - Math.min(gapCount, totalAulas), totalAulas) : null },
-    { label: "Cuota sexo/facultad", value: quotaCells ? `${formatMetric(quotaCellsOk)}/${formatMetric(quotaCells)}` : "S/D", hint: quotaCellsPending ? `${formatMetric(quotaCellsPending)} celdas con brecha` : "celdas del diseño", tone: quotaCellsPending ? "warning" : quotaCells ? "ready" : "pending", icon: Target, percent: quotaCells ? safePercent(quotaCellsOk, quotaCells) : null },
-    { label: "Representatividad efectiva", value: Number.isFinite(effectiveRepresentativity) ? `${Math.round(effectiveRepresentativity)}/100` : "S/D", hint: Number.isFinite(representativityLoss) ? `pérdida ${representativityLoss.toFixed(1)} pts` : "plan vs campo", tone: Number.isFinite(representativityLoss) && representativityLoss > 10 ? "warning" : "ready", icon: Target, percent: Number.isFinite(effectiveRepresentativity) ? effectiveRepresentativity : null },
-  ];
-  const handoffCards: Array<{ label: string; value: string; hint: string; tone: MonitoringSemanticTone; icon: typeof Layers3 }> = [
-    { label: "Selección", value: imported ? "Conectada" : "Pendiente", hint: config.selection_run_id || "selection_run_id", tone: imported ? "ready" : "warning", icon: Target },
-    { label: "Marco institucional", value: config.frame_hash ? "Hash listo" : "Sin hash", hint: config.frame_hash ? aulasShortId(config.frame_hash) : "requiere marco", tone: config.frame_hash ? "base" : "warning", icon: Link2 },
-    { label: "Metodología", value: methodologyReady ? "Trazable" : "Pendiente", hint: "semilla, cuotas y bitácora", tone: methodologyReady ? "ready" : "warning", icon: FileCheck2 },
-  ];
-  const pipelineSteps: Array<{ label: string; value: string; hint: string; tone: MonitoringSemanticTone; icon: typeof CalendarRange }> = [
-    { label: "Marco", value: config.frame_hash ? "cerrado" : "pendiente", hint: "base madre / dos bases", tone: config.frame_hash ? "ready" : "warning", icon: Layers3 },
-    { label: "Selección", value: imported ? "importada" : "pendiente", hint: "M1 + bolsas", tone: imported ? "ready" : "warning", icon: Target },
-    { label: "Agenda", value: plan.length ? formatMetric(plan.length) : "S/D", hint: `${formatMetric(pendingOperational)} activas`, tone: plan.length ? "base" : "warning", icon: CalendarRange },
-    { label: "Campo", value: appliedCount ? formatMetric(appliedCount) : "sin corte", hint: sourceKinds, tone: appliedCount ? "effective" : "pending", icon: QrCode },
-    { label: "Cierre", value: gapCount ? "brecha" : "controlado", hint: cutAt ? formatDate(cutAt) : "sin corte", tone: gapCount ? "warning" : "ready", icon: ClipboardCheck },
-  ];
-  return (
-    <section className={`mon-aulas-view is-${view}`}>
-      <div className="mon-aulas-commandbar">
-        <div className="mon-aulas-title">
-          <span className="mon-aulas-title-icon" aria-hidden="true"><CalendarRange size={17} /></span>
-          <div>
-            <span className="pulso-section-eyebrow">Monitoreo de aulas universitarias</span>
-            <h3>{viewTitle[view] ?? "Aulas"}</h3>
-            <p>{viewDetail[view] ?? ""}</p>
-          </div>
-        </div>
-        <div className="mon-aulas-actions">
-          <button type="button" className="pulso-button pulso-button--secondary" onClick={() => { void onImportFromCalc().catch(() => undefined); }} disabled={busy}>
-            {busy ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
-            <span>Importar plan</span>
-          </button>
-          <button type="button" className="pulso-button" onClick={() => { void onSync().catch(() => undefined); }} disabled={busy || !imported}>
-            {busy ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />}
-            <span>Sincronizar campo</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="mon-aulas-kpis" aria-label="Resumen de aulas universitarias">
-        {kpiCards.map((card) => {
-          const Icon = card.icon;
-          const pct = card.percent == null ? null : Math.max(0, Math.min(100, card.percent));
-          return (
-            <div key={card.label} className={`mon-aulas-kpi is-${card.tone}`} style={{ "--aulas-kpi-progress": `${pct ?? 0}%` } as CSSProperties}>
-              <span className="mon-aulas-kpi-icon" aria-hidden="true"><Icon size={15} /></span>
-              <span>{card.label}</span>
-              <strong>{card.value}</strong>
-              <em>{card.hint}</em>
-              {pct == null ? null : <i aria-hidden="true" />}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="mon-aulas-operational-grid">
-        <article className="mon-aulas-handoff" aria-label="Conexión entre cálculo de muestra y monitoreo">
-          <header>
-            <span><Link2 size={14} /> Handoff calc-muestra → monitoreo</span>
-            <em className={imported ? "is-ready" : "is-warning"}>{imported ? "conectado" : "pendiente"}</em>
-          </header>
-          <div>
-            {handoffCards.map((card) => {
-              const Icon = card.icon;
-              return (
-                <span key={card.label} className={`mon-aulas-handoff-card is-${card.tone}`}>
-                  <Icon size={14} />
-                  <b>{card.label}</b>
-                  <strong>{card.value}</strong>
-                  <small>{card.hint}</small>
-                </span>
-              );
-            })}
-          </div>
-        </article>
-
-        <article className="mon-aulas-pipeline" aria-label="Pipeline operativo de aulas">
-          {pipelineSteps.map((step, index) => {
-            const Icon = step.icon;
-            return (
-              <span key={step.label} className={`mon-aulas-pipeline-step is-${step.tone}`}>
-                <i aria-hidden="true"><Icon size={14} /></i>
-                <b>{step.label}</b>
-                <strong>{step.value}</strong>
-                <small>{step.hint}</small>
-                {index < pipelineSteps.length - 1 ? <ArrowRight size={13} aria-hidden="true" /> : null}
-              </span>
-            );
-          })}
-        </article>
-	      </div>
-
-	      {representativity ? (
-	        <article className="mon-aulas-representativity" aria-label="Representatividad efectiva del campo">
-	          <header>
-	            <span><Target size={14} /> Representatividad planificada vs efectiva</span>
-	            <em className={representativity.warning ? "is-warning" : "is-ready"}>{representativity.warning || "sin alerta severa"}</em>
-	          </header>
-	          <div>
-	            <span><b>Plan</b><strong>{Number.isFinite(Number(representativity.planned_score)) ? `${Math.round(Number(representativity.planned_score))}/100` : "S/D"}</strong></span>
-	            <span><b>Efectivo</b><strong>{Number.isFinite(Number(representativity.effective_score)) ? `${Math.round(Number(representativity.effective_score))}/100` : "S/D"}</strong></span>
-	            <span><b>Distancia</b><strong>{Number.isFinite(Number(representativity.effective_distance)) ? Number(representativity.effective_distance).toFixed(3) : "S/D"}</strong></span>
-	            <span><b>Aulas efectivas</b><strong>{formatMetric(Number(representativity.effective_aulas ?? 0))}</strong></span>
-	          </div>
-	        </article>
-	      ) : null}
-
-	      <div className="mon-aulas-meta" aria-label="Condiciones de privacidad y publicación">
-        <span><FileCheck2 size={13} /> {config.anonymous_responses ? "Encuesta anónima: no exige student_id" : "Privacidad por revisar"}</span>
-        <span><Layers3 size={13} /> {sourceKinds}</span>
-        <span><CheckCircle2 size={13} /> Filtro: {formatMetric(filterPassed)} pasan · {formatMetric(filterRejected)} no pasan</span>
-        <span><ShieldAlert size={13} /> {validationWarnings ? `${validationWarnings} controles con alerta` : "validación operativa OK"}</span>
-        <span><ClipboardCheck size={13} /> Cliente: agregados sin PII</span>
-      </div>
-
-      <section className="mon-aulas-table-shell" aria-label={table.title}>
-        <header className="mon-aulas-table-head">
-          <div>
-            <span className="pulso-section-eyebrow">{table.title}</span>
-            <strong>{table.hint}</strong>
-          </div>
-          <div className="mon-aulas-table-tools">
-            <label className="mon-aulas-search">
-              <Search size={13} aria-hidden="true" />
-              <input
-                type="text"
-                role="searchbox"
-                value={tableQuery}
-                onChange={(event) => setTableQuery(event.target.value)}
-                placeholder="Buscar aula, curso o fuente"
-                aria-label="Buscar aula, curso, fuente o estado"
-              />
-              {tableQuery ? (
-                <button type="button" onClick={() => setTableQuery("")} aria-label="Limpiar busqueda de aulas">
-                  <X size={12} />
-                </button>
-              ) : null}
-            </label>
-            <em>{rows.length.toLocaleString("es-PE")}{hiddenRows ? ` de ${filteredRows.length.toLocaleString("es-PE")}` : ""} filas</em>
-          </div>
-        </header>
-        <div className="mon-aulas-table-wrap">
-          {rows.length ? (
-            <table className="mon-aulas-table">
-              <thead>
-                <tr>
-                  {table.columns.map((column) => <th key={column}>{aulasColumnLabel(column)}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, idx) => (
-                  <tr key={`aulas-row-${idx}`}>
-                    {table.columns.map((column) => (
-                      <td key={column}>{aulasCellValue(row as Record<string, unknown>, column)}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <EmptyState icon={<CalendarRange size={18} />} title={tableQuery ? "Sin coincidencias para la búsqueda." : table.empty} />
-          )}
-        </div>
-      </section>
-    </section>
-  );
-}
-
-const AULAS_STATUS_LABELS: Record<string, string> = {
-  planificada: "Planificada",
-  contactada: "Contactada",
-  agendada: "Agendada",
-  en_campo: "En campo",
-  aplicada: "Aplicada",
-  parcial: "Parcial",
-  sin_acceso: "Sin acceso",
-  cancelada: "Cancelada",
-  reemplazo_pendiente: "Reemplazo pendiente",
-  reemplazada: "Reemplazada",
-  cerrada: "Cerrada",
-  activa: "Activa",
-  inactiva: "Inactiva",
-  ok: "OK",
-  warning: "Alerta",
-  error: "Error",
-  cumplida: "Cumplida",
-  en_riesgo: "En riesgo",
-  pendiente: "Pendiente",
-  sin_meta: "Sin meta",
-  en_aplicacion: "En aplicación",
-  lista: "Lista",
-  cerrando: "Cerrando",
-};
-
-function aulasShortId(value: unknown, limit = 18) {
-  const text = String(value ?? "").trim();
-  if (!text) return "pendiente";
-  if (text.length <= limit) return text;
-  return `${text.slice(0, 8)}…${text.slice(-6)}`;
-}
-
-function aulasStatusLabel(value: unknown) {
-  const key = String(value ?? "").trim().toLowerCase();
-  return AULAS_STATUS_LABELS[key] ?? String(value ?? "S/D");
-}
-
-function aulasStatusTone(value: unknown): MonitoringSemanticTone {
-  const key = String(value ?? "").trim().toLowerCase();
-  if (["aplicada", "cerrada", "activa", "ok"].includes(key)) return "ready";
-  if (["cumplida", "lista", "cerrando"].includes(key)) return "ready";
-  if (["parcial", "contactada", "agendada", "en_campo", "en_aplicacion"].includes(key)) return "partial";
-  if (["planificada", "reemplazo_pendiente", "pendiente", "sin_meta"].includes(key)) return "pending";
-  if (["sin_acceso", "cancelada", "reemplazada", "warning", "en_riesgo"].includes(key)) return "warning";
-  if (["error", "inactiva"].includes(key)) return "refusal";
-  return "base";
-}
-
-function aulasRowSearchText(row: Record<string, unknown>, columns: string[]) {
-  return normalizeMatch(columns.map((column) => {
-    const value = row[column];
-    if (value == null) return "";
-    if (["operational_status", "status", "Estado"].includes(column)) return aulasStatusLabel(value);
-    return String(value);
-  }).join(" "));
-}
-
-function aulasColumnLabel(column: string) {
-  const labels: Record<string, string> = {
-    stratum: "Estrato",
-    aulas: "Aulas",
-    aulas_aplicadas: "Aplicadas",
-    respuestas_validas: "Válidas",
-    brecha: "Brecha",
-    avance_aulas_pct: "% aulas",
-    avance_respuestas_pct: "% respuestas",
-    classroom_id: "Aula",
-    course_name: "Curso",
-    faculty: "Facultad",
-    program: "Programa",
-    operational_status: "Estado",
-    replacement_for: "Reemplaza a",
-    schedule: "Horario",
-    teacher: "Docente",
-    responsible: "Responsable",
-    link: "Link",
-    wave: "Ola",
-    orden: "Orden",
-    check: "Control",
-    status: "Estado",
-    detail: "Detalle",
-    sex: "Sexo",
-    target: "Meta",
-    observed: "Observado",
-    missing: "Brecha",
-    progress_pct: "% avance",
-    source: "Fuente",
-    operational_code: "Código",
-    application_state: "Aplicación",
-    responses_total: "Respuestas",
-    filter_passed: "Pasan filtro",
-    filter_rejected: "No pasan filtro",
-    expected_valid: "Meta aula",
-  };
-  return labels[column] ?? column;
-}
-
-function aulasCellValue(row: Record<string, unknown>, column: string) {
-  const value = row[column];
-  if (value == null || value === "") return "—";
-  const columnKey = column.toLowerCase();
-  if (["operational_status", "application_state", "status", "Estado"].includes(column)) {
-    const tone = aulasStatusTone(value);
-    return <span className={`mon-aulas-badge is-${tone}`}>{aulasStatusLabel(value)}</span>;
-  }
-  if (typeof value === "number") {
-    if (!Number.isFinite(value)) return "—";
-    if (columnKey.includes("pct")) return formatPercentLabel(Math.abs(value) <= 1 ? value * 100 : value);
-    return value.toLocaleString("es-PE");
-  }
-  if (typeof value === "boolean") return value ? "Sí" : "No";
-  const text = String(value);
-  if (columnKey.includes("fecha") || column === "Actualizacion" || columnKey.endsWith("_at")) return text ? formatDate(text) : "—";
-  if (columnKey === "link" && /^https?:\/\//i.test(text)) {
-    return (
-      <a className="mon-aulas-table-link" href={text} target="_blank" rel="noreferrer">
-        <ExternalLink size={12} />
-        <span>Abrir</span>
-      </a>
-    );
-  }
-  if (["selection_run_id", "frame_hash", "collector_id"].includes(columnKey)) return aulasShortId(text);
-  return text;
 }
 
 function MonitoreoRailOutputsControl({
@@ -6854,19 +6241,16 @@ function WorkbenchHead({
   const meta = views.find((item) => item.key === activeView) ?? views[0];
   const Icon = meta.icon;
   const territorial = route.family === "territorial" ? territorialReportsFromDashboard(dashboard) : null;
-  const aulas = route.family === "aulas_universitarias" ? dashboard?.aulas_universitarias_reports ?? null : null;
   const sourceValidity = territorial?.source_validity ?? null;
   const sourceEffectiveCount = numberOrNull(sourceValidity?.effective_count);
   const territorialAdvance = territorial ? territorialAdvanceModel(territorial) : null;
-  const valid = aulas?.kpis?.respuestas_validas ?? territorialAdvance?.validas ?? numberOrNull(dashboard?.kpis?.valid) ?? 0;
+  const valid = territorialAdvance?.validas ?? numberOrNull(dashboard?.kpis?.valid) ?? 0;
   const validityPill = route.family === "territorial" && activeView === "fuentes"
     ? (sourceEffectiveCount == null ? "por definir" : `${sourceEffectiveCount.toLocaleString("es-PE")} efectivas`)
     : `${valid.toLocaleString("es-PE")} válidas`;
   const lastPill = territorial
     ? (territorialAdvance?.meta == null ? "meta por definir" : `${formatMetric(territorialAdvance.meta)} meta`)
-    : aulas
-      ? `${formatMetric(aulas.kpis.total_aulas)} aulas`
-      : `${strategyCount} mecanismos`;
+    : `${strategyCount} mecanismos`;
   return (
     <MonitoreoWorkbenchHead
       icon={Icon}
@@ -7100,46 +6484,6 @@ function workbenchClarityItems({
         { label: "GPS revisión", value: formatMetric(geoReview), hint: "150 m+, lejos o sin cruce", tone: geoReview ? "warning" : "ready", icon: ShieldAlert },
         { label: "Duración", value: formatMetric(durationReview), hint: "cortas o muy cortas", tone: durationReview ? "warning" : "ready", icon: Clock },
       ],
-    };
-    return byView[activeView];
-  }
-  if (route.family === "aulas_universitarias") {
-    const aulas = dashboard?.aulas_universitarias_reports ?? null;
-    const kpis = aulas?.kpis;
-    const total = kpis?.total_aulas ?? config.aulas_universitarias.plan.length;
-    const applied = kpis?.aulas_aplicadas ?? 0;
-    const gap = kpis?.brechas ?? 0;
-    const replacements = kpis?.reemplazos_usados ?? 0;
-    const cutAt = aulas?.generated_at || config.aulas_universitarias.imported_at;
-    const validationWarnings = aulas?.validation?.filter((row) => String(row.status ?? "").toLowerCase() !== "ok").length ?? 0;
-    const byView: Record<WorkbenchView, Array<{ label: string; value: string; hint: string; tone: MonitoringSemanticTone; icon: typeof BarChart3 }>> = {
-      fuentes: [
-        { label: "Plan", value: config.aulas_universitarias.selection_run_id ? "Importado" : "Pendiente", hint: config.aulas_universitarias.selection_run_id || "calc-muestra", tone: config.aulas_universitarias.selection_run_id ? "ready" : "warning", icon: PlugZap },
-        { label: "Fuentes", value: `${activeSources}/${sourceTotal || 0}`, hint: "agenda y respuestas", tone: activeSources ? "base" : "warning", icon: Layers3 },
-        { label: "Registros", value: formatMetric(nRows), hint: "respuestas agregables", tone: nRows ? "ready" : "warning", icon: ClipboardCheck },
-      ],
-      modelo: [
-        { label: "Aulas", value: formatMetric(total), hint: "titulares y reservas", tone: total ? "base" : "warning", icon: CalendarRange },
-        { label: "Titulares", value: formatMetric(kpis?.aulas_titulares ?? config.aulas_universitarias.plan.filter((row) => row.wave === "M1").length), hint: "M1", tone: "base", icon: Target },
-        { label: "Reemplazos", value: formatMetric(replacements), hint: "usados", tone: replacements ? "warning" : "ready", icon: Route },
-      ],
-      avance: [
-        { label: "Aplicadas", value: formatMetric(applied), hint: total ? `${formatPercentLabel(safePercent(applied, total))}` : "sin plan", tone: applied ? "effective" : "warning", icon: CheckCircle2 },
-        { label: "Válidas", value: formatMetric(kpis?.respuestas_validas ?? 0), hint: "por aula/link", tone: kpis?.respuestas_validas ? "effective" : "warning", icon: BarChart3 },
-        { label: "Brechas", value: formatMetric(gap), hint: "aulas/cuotas", tone: gap ? "warning" : "ready", icon: ShieldAlert },
-      ],
-      calidad: [
-        { label: "Validación", value: validationWarnings ? formatMetric(validationWarnings) : "OK", hint: "collector/link/aula", tone: validationWarnings ? "warning" : "ready", icon: ShieldAlert },
-        { label: "Anonimato", value: config.aulas_universitarias.anonymous_responses ? "Activo" : "Revisar", hint: "sin student_id requerido", tone: config.aulas_universitarias.anonymous_responses ? "ready" : "warning", icon: FileCheck2 },
-        { label: "Hash", value: config.aulas_universitarias.frame_hash ? "Listo" : "Pendiente", hint: "marco institucional", tone: config.aulas_universitarias.frame_hash ? "base" : "warning", icon: Link2 },
-      ],
-      consultas: [
-        { label: "Aulas trazables", value: formatMetric(config.aulas_universitarias.plan.length), hint: "agenda operativa", tone: config.aulas_universitarias.plan.length ? "base" : "warning", icon: Search },
-        { label: "Caídas", value: formatMetric(config.aulas_universitarias.plan.filter((row) => ["sin_acceso", "cancelada", "reemplazada"].includes(String(row.operational_status))).length), hint: "requieren lectura", tone: "warning", icon: AlertTriangle },
-        { label: "Corte", value: cutAt ? "Listo" : "Pendiente", hint: cutAt ? formatDate(cutAt) : "sin sync", tone: cutAt ? "ready" : "warning", icon: RefreshCw },
-      ],
-      ocurrencias: [],
-      telefonico: [],
     };
     return byView[activeView];
   }
