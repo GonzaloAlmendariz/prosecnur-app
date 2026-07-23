@@ -48,9 +48,15 @@ implícitos. Todo con compatibilidad total (cero cambio de callers).
 **Gate de fase**: typecheck + vitest + testthat completos; QA visual para 2.2; métricas de
 `deuda-baseline.md` eje 1 congeladas de verdad en la siguiente medición.
 
-## Fase 3 — Performance de Monitoreo (retorno inmediato, sin tocar arquitectura)
+## Fase 3 — Efectividad de Monitoreo (norte corregido 2026-07-23)
 
-Ataca la lentitud percibida hoy. Orden por impacto según `deuda-monitoreo.md` §2.
+Aclaración del dueño: la efectividad de Monitoreo NO es solo carga barata. Son tres cosas,
+en este orden: **(1) sincronización rápida desde Kobo/SurveyMonkey** — el corazón del
+monitoreo casi en tiempo real — y **publicación efectiva en Sheets**; **(2) mostrar toda la
+información de forma efectiva y actualizarla rápido**; **(3) uniformidad entre paths**
+(botones de avance y estados visuales de carga hoy inconsistentes entre territorial,
+acreditación, telefónico y aulas). Las unidades 3.1–3.7 (backend barato) siguen siendo
+prerrequisito; 3.8 y 3.9 son el objetivo de cara al usuario.
 
 | # | Unidad | Detalle | Tamaño | Rama |
 |---|---|---|---|---|
@@ -61,10 +67,16 @@ Ataca la lentitud percibida hoy. Orden por impacto según `deuda-monitoreo.md` �
 | 3.5 | **Caps de payload** | `response_audit`/`map_points` en `validation_summary`/`full` con cap/paginación (espejo del `head(5000)` de queries_summary). | S | 1 |
 | 3.6 | **Memoización de render** | `React.memo` en los componentes de charts/tablas grandes de las páginas de Monitoreo; memoizar props de `PlotlyChart` en los callers que faltan. | S–M | 2 |
 
+| 3.7 | **Sanear fugas de caché del .pulso** | Detectadas por el censo: `monitoreo_dashboard_cache(_token)_<scope>`, `graficos_preview_cache` y `explorador_cache` legacy hoy viajan en el .pulso. Strip + back-compat de load_pulso. | S | 1 |
+| 3.8 | **Sync rápido Kobo/SM + Sheets efectivo** | El ciclo sync→dashboard→sheets del monitoreo en tiempo real: pull incremental en vez de completo, manejo de rate limits, costo post-pull proporcional al delta, publicación a Sheets por batch/job. Diagnóstico dedicado primero. | L | 4→1 |
+| 3.9 | **Uniformar botón de avance y estados de carga** | Un patrón canónico de control de sync (botón + progreso honesto + estado stale/error) compartido por los 4 paths. Inventario comparativo primero; el patrón del fix del botón Avance (progreso monótono + shimmer) es el candidato base. | M | 2 |
+
 **Gate de fase**: benchmark antes/después reproducible (patrón `Rprof` del fix de Avance:
 build fresco, GET /state con hit y con miss, guardar config) + suite testthat de monitoreo +
-QA visual de las 4 familias. **Meta medible: guardar config/ajustes nunca congela la app;
-GET /state con cache hit < 300 ms en la base ACNURCG.**
+QA visual de las 4 familias. **Metas medibles: guardar config/ajustes nunca congela la app;
+GET /state con cache hit < 300 ms en la base ACNURCG; un sync incremental típico tarda
+segundos (proporcional al delta), no minutos; los 4 paths comparten el mismo control de
+avance con el mismo vocabulario de estados.**
 
 ## Fase 4 — Desacople de Monitoreo (arquitectura, por extracción)
 
