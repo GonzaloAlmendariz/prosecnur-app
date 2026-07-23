@@ -3979,7 +3979,11 @@ test_that("Google Sheets publica solo pestanas Prosecnur controladas", {
     request$updateSheetProperties$properties$gridProperties$frozenRowCount %||% NULL
   }), use.names = FALSE)
   expect_true(length(frozen) >= 4L)
-  expect_true(all(frozen == 1L))
+  # Contrato del fix solo-header (5639bfad): frozen 1 en pestañas con datos,
+  # 0 cuando solo hay encabezado (congelar todas las filas visibles hace que
+  # Google rechace el batch entero).
+  expect_true(all(frozen %in% c(0L, 1L)))
+  expect_true(any(frozen == 1L))
   expect_true(any(vapply(format_requests, function(request) !is.null(request$setBasicFilter), logical(1))))
 
   # Republicar sin cambios: skip por hash — nada de addSheet, values ni formato.

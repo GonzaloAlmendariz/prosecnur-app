@@ -6997,16 +6997,9 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
   out
 }
 
+# Transpose vectorizado (unidad 3.3b): implementación en monitoreo_perf.R.
 .monitoreo_territorial_df_rows <- function(df) {
-  if (is.null(df) || !is.data.frame(df) || !nrow(df)) return(list())
-  unname(lapply(seq_len(nrow(df)), function(i) {
-    row <- as.list(df[i, , drop = FALSE])
-    lapply(row, function(v) {
-      if (length(v) == 0L) return(NA)
-      v <- v[[1]]
-      if (is.factor(v)) as.character(v) else v
-    })
-  }))
+  monitoreo_perf_df_rows(df)
 }
 
 # Caché de proceso: variantes de id de manzana (dropear el 0 operacional final)
