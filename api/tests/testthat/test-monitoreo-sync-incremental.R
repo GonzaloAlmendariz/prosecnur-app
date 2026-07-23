@@ -1313,3 +1313,50 @@ test_that("el formato no congela la unica fila visible de una pestaña solo-head
   frozen2 <- reqs_datos[[1]]$updateSheetProperties$properties$gridProperties$frozenRowCount
   expect_identical(frozen2, 1L)
 })
+
+# --- 3.10d: la hidratación de collectors NO hace red en un avance sin filas
+# nuevas (el on_complete corre dentro del event loop de plumber: cada request
+# síncrono ahí congela TODAS las respuestas HTTP; forense: 37s por avance).
+
+test_that("hidratación de collectors se salta el avance incremental con delta 0", {
+  fetches <- 0L
+  testthat::local_mocked_bindings(
+    .monitoreo_fetch_surveymonkey_collectors_for_source = function(sid, source) {
+      fetches <<- fetches + 1L
+      stop("red prohibida en este contrato")
+    }
+  )
+  fuentes <- list(list(
+    id = "surveymonkey_x", kind = "surveymonkey", label = "X",
+    enabled = TRUE, role = "respuestas", collectors = list()
+  ))
+  resumen <- list(surveymonkey_x = list(
+    mode = "incremental", rows = 0L, cursor = list(fetched_count = 0L)
+  ))
+  out <- .monitoreo_hydrate_missing_surveymonkey_collectors(
+    "sid-falso", fuentes, synced_source_ids = "surveymonkey_x", sync_summary = resumen
+  )
+  expect_identical(fetches, 0L)
+  expect_length(out, 1L)
+})
+
+test_that("hidratación de collectors sí corre en full con filas", {
+  fetches <- 0L
+  testthat::local_mocked_bindings(
+    .monitoreo_fetch_surveymonkey_collectors_for_source = function(sid, source) {
+      fetches <<- fetches + 1L
+      list()
+    }
+  )
+  fuentes <- list(list(
+    id = "surveymonkey_x", kind = "surveymonkey", label = "X",
+    enabled = TRUE, role = "respuestas", collectors = list()
+  ))
+  resumen <- list(surveymonkey_x = list(
+    mode = "full", rows = 25L, cursor = list(fetched_count = 25L)
+  ))
+  invisible(.monitoreo_hydrate_missing_surveymonkey_collectors(
+    "sid-falso", fuentes, synced_source_ids = "surveymonkey_x", sync_summary = resumen
+  ))
+  expect_identical(fetches, 1L)
+})
