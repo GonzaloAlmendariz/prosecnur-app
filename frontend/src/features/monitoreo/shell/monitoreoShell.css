@@ -359,6 +359,100 @@
   transform: none;
 }
 
+/* Tira compartida de acciones de sincronización de fuentes (SourceSyncActions):
+   mismo lenguaje de progreso que los botones Avance/Todo del chrome — relleno
+   por % real (var --mon-sync-progress) + sheen indeterminado mientras el motor
+   trabaja. La geometría/colores base viven en monitoreo.css. */
+.mon-source-sync-actions button {
+  position: relative;
+  overflow: hidden;
+}
+
+.mon-source-sync-actions button::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--mon-sync-progress, 0%);
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    width 240ms ease,
+    opacity 160ms ease;
+}
+
+.mon-source-sync-actions button.is-syncing::before {
+  opacity: 0.12;
+}
+
+.mon-source-sync-actions button.is-syncing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 22%,
+    color-mix(in srgb, currentColor 24%, transparent) 50%,
+    transparent 78%
+  );
+  background-size: 220% 100%;
+  animation: mon-sync-shimmer 1.15s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mon-source-sync-actions button.is-syncing::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+.mon-source-sync-actions button svg,
+.mon-source-sync-actions button span,
+.mon-source-sync-actions button strong {
+  position: relative;
+  z-index: 1;
+}
+
+.mon-source-sync-actions button .mon-source-sync-progress {
+  min-width: 3.2ch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: currentColor;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  padding: 2px 4px;
+}
+
+/* El botón que sincroniza queda disabled mientras corre, pero no debe verse
+   gris muerto: conserva su identidad y comunica trabajo en curso. */
+.mon-source-sync-actions button.is-syncing:disabled {
+  border-color: color-mix(in srgb, var(--pulso-primary) 34%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--pulso-surface-2) 74%, #fff 26%)),
+    var(--pulso-surface);
+  color: color-mix(in srgb, var(--pulso-primary) 78%, var(--pulso-text));
+  cursor: progress;
+}
+
+.mon-source-sync-actions button.is-full.is-syncing:disabled {
+  border-color: color-mix(in srgb, var(--pulso-primary) 76%, #fff);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-primary) 98%, #fff 2%), color-mix(in srgb, var(--pulso-primary) 88%, #000 12%)),
+    var(--pulso-primary);
+  color: #fff;
+}
+
+.mon-source-sync-actions button.is-full.is-syncing .mon-source-sync-progress {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 .mon-command-generation {
   min-width: 78px;
   max-width: 126px;

@@ -278,7 +278,19 @@ import { useSession } from "../../lib/SessionContext";
 import { useAnaliticaAutosave } from "../analitica/useAnaliticaAutosave";
 import { EnumeradoresPane } from "../analitica/panes/EnumeradoresPane";
 import districtCoverage from "../hojasRuta/limaDistrictCoverage.json";
-import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead } from "./components";
+import {
+  MonitoreoWorkbenchChrome,
+  MonitoreoWorkbenchHead,
+  SourceSyncActions,
+  SourceSyncPendingProgress,
+  monitoreoSourceSyncActionItems,
+} from "./components";
+import {
+  mergeSourceSyncJobProgress,
+  sourceSyncStagePatch,
+  sourceSyncStageState,
+  type SourceSyncJobState,
+} from "./syncProgress";
 import { MonitoreoModuleChrome } from "./shell/MonitoreoModuleChrome";
 import {
   EMPTY_INTERNAL_QUERY_FILTERS,
@@ -795,14 +807,6 @@ type SourceSyncRateLimitNotice = {
   detail: string;
   sources: string[];
   messages: string[];
-};
-type SourceSyncJobState = {
-  jobId: string | null;
-  label: string;
-  mode?: "advance" | "full";
-  phase: string;
-  message: string;
-  percent: number;
 };
 type MonitoreoPublishAudience = "client" | "internal";
 type MonitoreoRouteFamily = MonitoreoProfile["family"];
@@ -4441,43 +4445,19 @@ export default function MonitoreoPage() {
     setSavingSource(true);
     setError("");
     setSourceSyncRateLimitNotice(null);
-    setSourceSyncJob({
-      jobId: null,
-      label,
-      mode: syncMode,
-      phase: "Preparando",
-      message: "Guardando configuración y preparando actualización...",
-      percent: 4,
-    });
+    setSourceSyncJob(sourceSyncStageState("prepare", { label, mode: syncMode }));
     if (route.family === "territorial") resetTerritorialReportRequests();
     try {
       const configForSync = configWithTerritorialPhase(config, selectedRoutePhaseRef.current);
-      setSourceSyncJob({
-        jobId: null,
+      setSourceSyncJob(sourceSyncStageState("config", {
         label,
         mode: syncMode,
-        phase: "Configuración",
-        message: route.family === "territorial" ? "Guardando la configuración territorial local..." : "Guardando la configuración local...",
-        percent: 8,
-      });
+        message: route.family === "territorial" ? "Guardando la configuración territorial local..." : undefined,
+      }));
       await apiMonitoreoConfig(configForSync);
-      setSourceSyncJob({
-        jobId: null,
-        label,
-        mode: syncMode,
-        phase: "Iniciando",
-        message: "Creando el job de actualización...",
-        percent: 12,
-      });
+      setSourceSyncJob(sourceSyncStageState("start", { label, mode: syncMode }));
       const start = await startMonitoreoSourceSyncJob(configForSync, sourceIds, { syncMode });
-      setSourceSyncJob({
-        jobId: start.job_id,
-        label,
-        mode: syncMode,
-        phase: "En cola",
-        message: "Esperando al motor local de actualización...",
-        percent: 14,
-      });
+      setSourceSyncJob(sourceSyncStageState("queued", { label, mode: syncMode, jobId: start.job_id }));
     } catch (e) {
       setSourceSyncJob(null);
       setError((e as Error).message);
@@ -4559,14 +4539,7 @@ export default function MonitoreoPage() {
     if (!shouldSyncFieldOccurrencesAfterSourceSync(result)) return;
     const mode = result.sync_mode === "advance" ? "advance" : "full";
     setOccurrencesBusy("sync");
-    setSourceSyncJob({
-      jobId: null,
-      label: "Actualizando ocurrencias",
-      mode,
-      phase: "Ocurrencias",
-      message: "Sincronizando reportes de trabajo de campo...",
-      percent: 94,
-    });
+    setSourceSyncJob(sourceSyncStageState("occurrences", { label: "Actualizando ocurrencias", mode }));
     try {
       const occurrencesResult = await apiMonitoreoTerritorialOccurrencesSync();
       applyMonitoreoState(stateWithTerritorialPhase(occurrencesResult.state, selectedRoutePhaseRef.current));
@@ -4887,16 +4860,19 @@ export default function MonitoreoPage() {
                 />
               ) : (
                 <SourceSyncActions
-                  sheetCount={activeSheetSourceIds.length}
-                  surveyMonkeyCount={activeSurveyMonkeySourceIds.length}
-                  koboCount={activeKoboSourceIds.length}
-                  routeFamily={route.family}
-                  totalCount={activeSourceIds.length}
                   busy={savingSource || Boolean(sourceSyncJob)}
-                  onSyncSheets={() => syncSheetSources(activeSheetSourceIds)}
-                  onSyncSurveyMonkey={() => syncExternalSources(activeSurveyMonkeySyncIds, "Actualizando SurveyMonkey")}
-                  onSyncKobo={() => syncExternalSources(activeKoboSyncIds, "Actualizando Kobo")}
-                  onSyncAll={() => syncExternalSources(activeSourceIds, "Actualizando todas las fuentes")}
+                  progress={sourceSyncJob}
+                  actions={monitoreoSourceSyncActionItems({
+                    routeFamily: route.family,
+                    sheetCount: activeSheetSourceIds.length,
+                    surveyMonkeyCount: activeSurveyMonkeySourceIds.length,
+                    koboCount: activeKoboSourceIds.length,
+                    totalCount: activeSourceIds.length,
+                    onSyncSheets: () => syncSheetSources(activeSheetSourceIds),
+                    onSyncSurveyMonkey: () => syncExternalSources(activeSurveyMonkeySyncIds, "Actualizando SurveyMonkey"),
+                    onSyncKobo: () => syncExternalSources(activeKoboSyncIds, "Actualizando Kobo"),
+                    onSyncAll: () => syncExternalSources(activeSourceIds, "Actualizando todas las fuentes"),
+                  })}
                 />
               )
             ) : null}
@@ -4929,22 +4905,11 @@ export default function MonitoreoPage() {
                         onProgress={(progress: JobProgressData | null) => {
                           if (!progress) return;
                           const activeJobId = sourceSyncJob.jobId;
-                          setSourceSyncJob((current) => {
-                            if (!current || current.jobId !== activeJobId) return current;
-                            const nextPercent = Number(progress.percent);
-                            return {
-                              ...current,
-                              phase: progress.phase || current.phase,
-                              message: progress.message || current.message,
-                              // Progreso monótono: nunca retrocede. Evita el salto
-                              // a 0% cuando el primer poll del job llega antes de que
-                              // el worker reporte, o cuando las fases del worker y del
-                              // on_complete se solapan.
-                              percent: Number.isFinite(nextPercent)
-                                ? Math.max(current.percent, Math.min(100, nextPercent))
-                                : current.percent,
-                            };
-                          });
+                          setSourceSyncJob((current) => (
+                            !current || current.jobId !== activeJobId
+                              ? current
+                              : mergeSourceSyncJobProgress(current, progress)
+                          ));
                         }}
                         onDone={async (result) => {
                           const rateLimitNotice = buildSourceSyncRateLimitNotice(result);
@@ -4952,16 +4917,7 @@ export default function MonitoreoPage() {
                           // Mantener el botón en estado "trabajando" mientras se
                           // recarga el tablero, en vez de volver a gris apenas termina
                           // el job y dejar el contenido cargando por detrás.
-                          setSourceSyncJob((current) =>
-                            current
-                              ? {
-                                  ...current,
-                                  phase: "Finalizando",
-                                  message: "Cargando el tablero actualizado...",
-                                  percent: Math.max(current.percent, 99),
-                                }
-                              : current,
-                          );
+                          setSourceSyncJob((current) => (current ? sourceSyncStagePatch(current, "finalize") : current));
                           try {
                             await syncFieldOccurrencesAfterSourceSync(result);
                             await refresh();
@@ -6977,79 +6933,6 @@ function WorkbenchClarityStrip({
       </div>
       {actions ?? <SemanticStatusLegend />}
     </section>
-  );
-}
-
-function SourceSyncPendingProgress({ job }: { job: SourceSyncJobState }) {
-  const percent = Math.max(0, Math.min(100, Number.isFinite(job.percent) ? job.percent : 0));
-  return (
-    <div className="job-progress" aria-live="polite">
-      <div className="job-progress-head">
-        <div className="job-progress-title">
-          <Loader2 size={14} className="pulso-spin" />
-          <strong>{job.label}</strong>
-          <span className="job-progress-phase">{job.phase}</span>
-        </div>
-      </div>
-      <div
-        className="job-progress-bar"
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round(percent)}
-      >
-        <div className="job-progress-bar-fill" style={{ width: `${percent}%` }} />
-      </div>
-      <div className="job-progress-foot">
-        <span className="job-progress-message">{job.message}</span>
-        <span className="job-progress-percent">{Math.round(percent)}%</span>
-      </div>
-    </div>
-  );
-}
-
-function SourceSyncActions({
-  sheetCount,
-  surveyMonkeyCount,
-  koboCount,
-  routeFamily,
-  totalCount,
-  busy,
-  onSyncSheets,
-  onSyncSurveyMonkey,
-  onSyncKobo,
-  onSyncAll,
-}: {
-  sheetCount: number;
-  surveyMonkeyCount: number;
-  koboCount: number;
-  routeFamily: MonitoreoRouteFamily;
-  totalCount: number;
-  busy: boolean;
-  onSyncSheets: () => Promise<void>;
-  onSyncSurveyMonkey: () => Promise<void>;
-  onSyncKobo: () => Promise<void>;
-  onSyncAll: () => Promise<void>;
-}) {
-  const primaryExternal = routeFamily === "territorial"
-    ? { count: koboCount, label: "Actualizar Kobo", title: koboCount ? `${koboCount} fuentes Kobo activas` : "Sin fuentes Kobo activas", icon: ClipboardCheck, action: onSyncKobo }
-    : { count: surveyMonkeyCount, label: "Actualizar SurveyMonkey", title: surveyMonkeyCount ? `${surveyMonkeyCount} encuestas activas` : "Sin encuestas SurveyMonkey activas", icon: ClipboardCheck, action: onSyncSurveyMonkey };
-  const ExternalIcon = primaryExternal.icon;
-  return (
-    <div className="mon-source-sync-actions" aria-label="Actualizar fuentes">
-      <button type="button" onClick={() => { void onSyncSheets().catch(() => undefined); }} disabled={busy || !sheetCount} title={sheetCount ? `${sheetCount} fuentes Sheets activas` : "Sin fuentes Sheets activas"}>
-        {busy ? <Loader2 size={13} className="pulso-spin" /> : <Layers3 size={13} />}
-        <span>Actualizar Sheets</span>
-      </button>
-      <button type="button" onClick={() => { void primaryExternal.action().catch(() => undefined); }} disabled={busy || !primaryExternal.count} title={primaryExternal.title}>
-        {busy ? <Loader2 size={13} className="pulso-spin" /> : <ExternalIcon size={13} />}
-        <span>{primaryExternal.label}</span>
-      </button>
-      <button type="button" className="is-primary" onClick={() => { void onSyncAll().catch(() => undefined); }} disabled={busy || !totalCount} title={totalCount ? `${totalCount} fuentes activas` : "Sin fuentes activas"}>
-        {busy ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
-        <span>Actualizar todo</span>
-      </button>
-    </div>
   );
 }
 

@@ -347,7 +347,12 @@ export default function AulasMonitoreoPage() {
   const dashboard = dashboardFromState(state);
   const sourceTotal = state?.sources?.length ?? 0;
   const activeSources = (state?.sources ?? []).filter((source) => source.enabled).length;
-  const refreshTitle = loading ? "Actualizando vista de cursos-horario..." : `Actualizar ${activeDef.shortLabel ?? activeDef.label}`;
+  // Recarga local honesta: /api/monitoreo/aulas/sync no trae datos de una
+  // fuente externa (solo recalcula el dashboard desde el snapshot local), así
+  // que el chrome no ofrece "Avance"; cablear un sync real queda para la 4.1.
+  const refreshTitle = loading
+    ? "Actualizando vista de cursos-horario..."
+    : `Recargar ${activeDef.shortLabel ?? activeDef.label} desde la memoria local del proyecto`;
 
   const loadView = useCallback(async (view: WorkbenchView, force = false) => {
     setLoading(true);
@@ -390,7 +395,7 @@ export default function AulasMonitoreoPage() {
         hasSnapshot={Boolean(state?.has_snapshot)}
         syncing={loading}
         advanceSyncDisabled={loading}
-        advanceSyncLabel="Vista"
+        advanceSyncLabel="Actualizar"
         advanceSyncTitle={refreshTitle}
         onSyncAdvance={() => { void loadView(activeView, true); }}
         onViewChange={(view) => {

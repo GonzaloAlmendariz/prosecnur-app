@@ -21,11 +21,9 @@ import {
   XCircle,
 } from "lucide-react";
 import {
-  apiJobStatus,
   apiMonitoreoKoboAssets,
   apiMonitoreoSheetsSource,
   apiMonitoreoSheetsSync,
-  apiMonitoreoSync,
   apiMonitoreoTerritorialConfig,
   apiMonitoreoTerritorialEnumeratorsCodes,
   apiMonitoreoTerritorialEnumeratorsTemplate,
@@ -33,7 +31,6 @@ import {
   apiMonitoreoTerritorialInspectKobo,
   apiMonitoreoTerritorialReconciliationBatch,
   apiMonitoreoTerritorialSource,
-  type JobSnapshot,
   type MonitoreoConfig,
   type MonitoreoKoboAssetItem,
   type MonitoreoSource,
@@ -64,7 +61,9 @@ export type TerritorialSourceConsoleProps = {
   busy?: boolean;
   onStateChange: (state: MonitoreoState) => void;
   onReload: () => void;
-  onSyncKobo?: () => Promise<void> | void;
+  // Sync canónico de la página: encola el job y su progreso vive en el chrome
+  // (botones Avance/Todo con % real); la consola ya no corre un sync propio.
+  onSyncKobo: () => Promise<void> | void;
   onError?: (message: string) => void;
 };
 
@@ -225,36 +224,6 @@ function selectedOptionLabel(variables: MonitoreoVariable[], name = "") {
   return variable?.label || variable?.name || name || "Por definir";
 }
 
-function jobProgressText(job: JobSnapshot | null) {
-  const progress = job?.progress;
-  if (!progress) return "";
-  if ("message" in progress && typeof progress.message === "string" && progress.message) return progress.message;
-  if ("phase" in progress && typeof progress.phase === "string" && progress.phase) return progress.phase;
-  return "";
-}
-
-function jobProgressPercent(job: JobSnapshot | null) {
-  const progress = job?.progress;
-  if (!progress) return null;
-  if ("percent" in progress && typeof progress.percent === "number" && Number.isFinite(progress.percent)) {
-    return Math.max(0, Math.min(100, Math.round(progress.percent)));
-  }
-  if (
-    "current" in progress
-    && "total" in progress
-    && typeof progress.current === "number"
-    && typeof progress.total === "number"
-    && progress.total > 0
-  ) {
-    return Math.max(0, Math.min(100, Math.round((progress.current / progress.total) * 100)));
-  }
-  return null;
-}
-
-function isTerminalJob(job: JobSnapshot | null) {
-  return job?.status === "done" || job?.status === "error" || job?.status === "cancelled";
-}
-
 function variableOptions(variables: MonitoreoVariable[], reports: MonitoreoTerritorialDashboard | null) {
   const byName = new Map<string, { name: string; label: string; type: string }>();
   for (const variable of variables) {
@@ -331,8 +300,6 @@ export function TerritorialSourceConsole({
   const [message, setMessage] = useState("");
   const [sheetSpreadsheetId, setSheetSpreadsheetId] = useState("");
   const [sheetRange, setSheetRange] = useState("");
-  const [syncJob, setSyncJob] = useState<JobSnapshot | null>(null);
-  const [syncJobId, setSyncJobId] = useState("");
   const [selectedBatchIds, setSelectedBatchIds] = useState<Set<string>>(() => new Set());
   const [batchApplying, setBatchApplying] = useState(false);
   const [batchMessage, setBatchMessage] = useState("");
@@ -344,7 +311,6 @@ export function TerritorialSourceConsole({
   const [rosterFormat, setRosterFormat] = useState<"PXXX" | "DNI">("PXXX");
   const [rosterSearch, setRosterSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const syncJobReloadedRef = useRef("");
 
   const koboSource = config ? koboSourceForPhase(sources, config, phase) : null;
   const routeSheetSource = routeSheetSourceForPhase(sources, phase);
@@ -404,46 +370,6 @@ export function TerritorialSourceConsole({
       return next.size === current.size ? current : next;
     });
   }, [batchRecommendations, selectedBatchIds.size]);
-
-  useEffect(() => {
-    if (!syncJobId) return;
-    if (isTerminalJob(syncJob)) {
-      if (syncJob?.status === "done" && syncJobReloadedRef.current !== syncJobId) {
-        syncJobReloadedRef.current = syncJobId;
-        onReload();
-      }
-      return;
-    }
-
-    let cancelled = false;
-    const poll = async () => {
-      try {
-        const next = await apiJobStatus(syncJobId);
-        if (cancelled) return;
-        setSyncJob(next);
-        if (next.status === "done" && syncJobReloadedRef.current !== syncJobId) {
-          syncJobReloadedRef.current = syncJobId;
-          onReload();
-        }
-        if (next.status === "error" || next.status === "cancelled") {
-          setSyncJobId("");
-        }
-      } catch (error) {
-        if (!cancelled) {
-          notifyError(error);
-          setSyncJobId("");
-        }
-      }
-    };
-    void poll();
-    const timer = window.setInterval(() => {
-      void poll();
-    }, 1400);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [notifyError, onReload, syncJob?.status, syncJobId]);
 
   const loadAssets = useCallback(async () => {
     setAssetsLoading(true);
@@ -523,24 +449,14 @@ export function TerritorialSourceConsole({
     setSaving(true);
     setMessage("");
     try {
-      if (onSyncKobo) {
-        await Promise.resolve(onSyncKobo());
-        setMessage(`Actualización ${phaseLabel(phase)} en cola.`);
-        return;
-      }
-      const result = await apiMonitoreoSync(config, [koboSource.id]);
-      setSyncJobId(result.job_id);
-      syncJobReloadedRef.current = "";
-      const first = await apiJobStatus(result.job_id).catch(() => null);
-      setSyncJob(first);
-      setMessage(`Sincronización Kobo en cola: ${result.job_id}.`);
-      onReload();
+      await Promise.resolve(onSyncKobo());
+      setMessage(`Actualización ${phaseLabel(phase)} en cola.`);
     } catch (error) {
       notifyError(error);
     } finally {
       setSaving(false);
     }
-  }, [config, koboSource?.id, notifyError, onReload, onSyncKobo, phase]);
+  }, [config, koboSource?.id, notifyError, onSyncKobo, phase]);
 
   const toggleBatchRecommendation = useCallback((clientId: string) => {
     setSelectedBatchIds((current) => {
@@ -891,7 +807,6 @@ export function TerritorialSourceConsole({
     return "muted";
   };
   const routeSheetMetrics = routeSheet?.metrics;
-  const syncProgressPercent = jobProgressPercent(syncJob);
   const batchCodeCount = batchRecommendations.filter((item) => item.kind === "code").length;
   const batchUmpCount = batchRecommendations.filter((item) => item.kind === "ump").length;
   const hasBatchRecommendations = batchRecommendations.length > 0;
@@ -1262,19 +1177,6 @@ export function TerritorialSourceConsole({
                 <span>Sincronizar respuestas</span>
               </button>
             </div>
-            {syncJob ? (
-              <div className="mon-territorial-route-sheet-source-note is-ready">
-                <div>
-                  Job {syncJob.id}: {syncJob.status} · {jobProgressText(syncJob) || "en cola"}
-                  {syncProgressPercent == null ? null : ` · ${syncProgressPercent}%`}
-                </div>
-                {syncProgressPercent == null ? null : (
-                  <div className="mon-territorial-source-progress" aria-label={`Progreso ${syncProgressPercent}%`}>
-                    <span style={{ width: `${syncProgressPercent}%` }} />
-                  </div>
-                )}
-              </div>
-            ) : null}
             {sourceCoherence?.drift?.length ? (
               <div className="mon-territorial-alert-list">
                 {sourceCoherence.drift.slice(0, 6).map((alert) => (

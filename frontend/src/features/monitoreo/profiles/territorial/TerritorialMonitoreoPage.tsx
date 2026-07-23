@@ -1328,7 +1328,7 @@ function renderView(
         state={options.state ?? null}
         onError={options.onError}
         onReload={options.onReload ?? (() => undefined)}
-        onSyncKobo={options.onSyncKobo}
+        onSyncKobo={options.onSyncKobo ?? (() => undefined)}
         onStateChange={options.onStateChange ?? (() => undefined)}
       />
     );
@@ -1440,6 +1440,7 @@ export default function TerritorialMonitoreoPage() {
   const activeLocalTabsRef = useRef<Partial<Record<WorkbenchView, string>>>(activeLocalTabs);
   const [chromeSyncJob, setChromeSyncJob] = useState<JobSnapshot<MonitoreoSyncResult> | null>(null);
   const [chromeSyncJobId, setChromeSyncJobId] = useState("");
+  const [chromeSyncMode, setChromeSyncMode] = useState<"advance" | "full">("advance");
   const chromeSyncReloadedRef = useRef("");
   const [pendingScopes, setPendingScopes] = useState<Set<string>>(() => new Set());
 
@@ -1760,6 +1761,7 @@ export default function TerritorialMonitoreoPage() {
       return;
     }
     setError("");
+    setChromeSyncMode(syncMode);
     setChromeSyncJob(null);
     setChromeSyncJobId("");
     chromeSyncReloadedRef.current = "";
@@ -1932,7 +1934,7 @@ export default function TerritorialMonitoreoPage() {
   const chromeSyncing = Boolean(chromeSyncJobId);
   const chromeBusy = activeLoading || mutationBusy || chromeSyncing;
   const chromeSyncProgress = chromeSyncing ? {
-    active: "advance" as const,
+    active: chromeSyncMode,
     percent: jobProgressPercent(chromeSyncJob),
     phase: jobProgressPhase(chromeSyncJob) ?? "Actualizando",
     message: jobProgressMessage(chromeSyncJob) ?? "Sincronizando respuestas territoriales...",
@@ -1970,6 +1972,10 @@ export default function TerritorialMonitoreoPage() {
         syncing={chromeSyncing}
         syncProgress={chromeSyncProgress}
         viewMetrics={sectionViewMetrics}
+        syncDisabled={!state || chromeBusy}
+        syncLabel="Todo"
+        syncTitle="Actualizar todas las respuestas Kobo de la fase activa"
+        onSyncAll={syncField}
         advanceSyncDisabled={!state || chromeBusy}
         advanceSyncLabel="Avance"
         advanceSyncTitle="Actualizar avance territorial"
