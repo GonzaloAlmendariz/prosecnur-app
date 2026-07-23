@@ -39,6 +39,29 @@ test_that("job selftest: submit por HTTP, poll hasta done y shape del snapshot",
   expect_equal(as.numeric(snap$progress$percent), 100)
 })
 
+test_that("job selftest con archivo: /result sirve el archivo por streaming httpuv", {
+  srv <- http_contract_server()
+  http_contract_skip_if_no_jobs_runtime()
+
+  r <- http_post_json(srv, "/api/jobs/_selftest", body = list(seconds = 0, file = TRUE))
+  expect_identical(r$status, 200L)
+  job_id <- r$json$job_id
+  expect_true(is.character(job_id) && nzchar(job_id))
+
+  snap <- http_wait_job(srv, job_id, timeout_secs = 300)
+  expect_identical(snap$status, "done")
+  expect_true(isTRUE(snap$has_file_result))
+  expect_identical(snap$result_filename, "selftest.txt")
+
+  # La descarga viaja como body de archivo (`c(file=...)` -> bodyFile de
+  # httpuv): mismos bytes que el archivo en disco, sin readBin a RAM en el
+  # proceso del server.
+  d <- http_get(srv, paste0("/api/jobs/", job_id, "/result"))
+  expect_identical(d$status, 200L)
+  expect_identical(rawToChar(d$raw), "selftest-file-ok\n")
+  expect_match(d$content_type, "text/plain")
+})
+
 test_that("pedir el resultado de un job que no termino responde el contrato de error", {
   srv <- http_contract_server()
 

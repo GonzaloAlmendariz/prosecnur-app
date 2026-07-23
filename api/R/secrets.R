@@ -2,14 +2,21 @@
 # Persistencia local de secretos (token API SurveyMonkey, etc.)
 #
 # Guarda secretos cifrados con AES-256-CBC en el directorio del usuario
-# (~/.prosecnurapp/secrets/{name}.dat). La clave de cifrado se deriva de
-# `Sys.info()[["user"]]` + machine_id (hostname) + un salt fijo via PBKDF2,
-# de modo que el archivo cifrado solo es leíble desde el mismo sistema/usuario
-# que lo escribió.
+# (~/.prosecnurapp/secrets/{name}.dat). La clave de cifrado se deriva con un
+# ÚNICO SHA-256 sobre salt fijo + `Sys.info()[["user"]]` + hostname (NO es un
+# KDF con iteraciones tipo PBKDF2/scrypt), de modo que el archivo cifrado solo
+# es leíble desde el mismo sistema/usuario que lo escribió.
 #
-# No es seguridad criptográfica perfecta — alguien con acceso completo al
-# sistema puede derivar la misma clave — pero protege el "open file in
-# text editor" / accidental commit a git scenarios.
+# Threat model honesto: los insumos de la clave (user, hostname, salt en el
+# fuente) son públicos para cualquiera con acceso a esta máquina, así que un
+# atacante local puede derivar la misma clave trivialmente — un KDF lento no
+# cambiaría eso, porque aquí no hay passphrase secreta que estirar. Lo que SÍ
+# cubre: abrir el .dat en un editor de texto, commits accidentales a git, y
+# copiar el archivo a otra máquina/usuario (allí no descifra).
+#
+# Migrar a un KDF real (con passphrase del usuario) exigiría una migración de
+# los secretos ya cifrados (descifrar con la clave actual y re-cifrar) — es
+# una unidad futura deliberada, no un cambio drop-in en .derive_key().
 # =============================================================================
 
 # Salt fijo identificador de prosecnur. Cambiarlo invalida todos los secretos
@@ -30,7 +37,9 @@
 }
 
 .derive_key <- function() {
-  # PBKDF2-HMAC-SHA256 sobre user+host+salt → 32 bytes (AES-256).
+  # SHA-256 simple de salt||user:host → 32 bytes (AES-256). NO es PBKDF2 (ver
+  # threat model arriba). NO cambiar esta derivación: rompería el descifrado
+  # de todos los secretos ya guardados en disco.
   if (!requireNamespace("openssl", quietly = TRUE)) {
     stop("Paquete 'openssl' no instalado.", call. = FALSE)
   }

@@ -117,6 +117,18 @@ session_header <- function(req) {
 #   Cuando un router migra a multi-base, deja de leer esos campos y pasa
 #   a usar s$rp_data_sources / s$rp_inst_sources.
 #
+#   Plan de retiro del espejo (auditoría 2026-07, unidad 5.8): bloqueado por
+#   routers no migrados; candidato a retiro cuando el censo de consumidores
+#   (`grep -rl '\$rp_data\b\|\$rp_inst\b' api/R/`) baje a cero — revisar en la
+#   auditoría mensual de deuda (/auditoria-deuda). Censo al 2026-07-23:
+#   ~30 archivos, concentrados en routers (analitica, carga, dashboard,
+#   diseno_estudio, estudio, graficos, hojas_ruta, plan_trabajo, sistema),
+#   dashboard_* (source, pane, resumen, secciones, dimensiones, relacion,
+#   curacion, base_datos), surveymonkey_* (multibase, sav_bundle, workbook),
+#   carga_* (acreditacion_batch, universe_filter, xlsx_repeats), y
+#   graficos_plan_coverage / graficos_share / ponderacion_analitica /
+#   reconciliacion_variables / project_pulso / project_warmup / audit_projects.
+#
 #   Legacy también: s$analitica_fuente = "<fuente>:<nombre>" sigue siendo
 #   string único; representa la fuente de la PRIMERA base del estudio.
 
