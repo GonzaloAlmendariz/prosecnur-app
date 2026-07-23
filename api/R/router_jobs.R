@@ -17,15 +17,18 @@ mount_jobs <- function(pr) {
         stop_api(404, "E_NO_RESULT_FILE", "Job has no file result")
       }
       original <- sub("^[^_]+__", "", basename(j$result_path))
-      n <- file.info(j$result_path)$size
-      bytes <- readBin(j$result_path, what = "raw", n = n)
       res$setHeader("Content-Type", mime::guess_type(j$result_path))
-      res$setHeader("Content-Length", as.character(n))
       res$setHeader("Content-Disposition", sprintf('attachment; filename="%s"', original))
-      res$body <- bytes
+      # Body de archivo estilo Rook (`c(file = path)`): plumber lo pasa tal
+      # cual en toResponse() y httpuv sirve el archivo desde disco por
+      # streaming, con Content-Length derivado del tamaño real. Antes se hacía
+      # readBin del resultado completo a RAM, lo que dolía con PPT/XLSX
+      # grandes. El contrato del frontend (jobResultUrl como href de descarga)
+      # no cambia: mismos status, headers y bytes.
+      res$body <- c(file = normalizePath(j$result_path))
       res
     })) |>
-    plumber::pr_post("/api/jobs/_selftest", wrap_endpoint(function(req, res, seconds = 2) {
+    plumber::pr_post("/api/jobs/_selftest", wrap_endpoint(function(req, res, seconds = 2, file = "false") {
       sid <- session_header(req)
       if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
         sid <- session_create()
@@ -33,15 +36,33 @@ mount_jobs <- function(pr) {
       }
       secs <- suppressWarnings(as.numeric(seconds))
       if (is.na(secs) || secs < 0) secs <- 2
-      job_id <- job_submit(
-        sid = sid,
-        kind = "selftest",
-        func = function(seconds) {
-          Sys.sleep(seconds)
-          list(ok = TRUE, slept = seconds, pid = Sys.getpid())
-        },
-        args = list(seconds = secs)
-      )
+      # file=true: variante con resultado de archivo, para ejercitar por el
+      # wire la descarga de /result (body httpuv `c(file=...)`) sin necesitar
+      # un proyecto cargado. Contenido determinista para asertar bytes.
+      con_archivo <- isTRUE(as.logical(file))
+      if (con_archivo) {
+        job_id <- job_submit(
+          sid = sid,
+          kind = "selftest_file",
+          func = function(seconds, result_path) {
+            Sys.sleep(seconds)
+            writeLines("selftest-file-ok", result_path)
+            list(ok = TRUE, slept = seconds, pid = Sys.getpid())
+          },
+          args = list(seconds = secs),
+          result_filename = "selftest.txt"
+        )
+      } else {
+        job_id <- job_submit(
+          sid = sid,
+          kind = "selftest",
+          func = function(seconds) {
+            Sys.sleep(seconds)
+            list(ok = TRUE, slept = seconds, pid = Sys.getpid())
+          },
+          args = list(seconds = secs)
+        )
+      }
       list(job_id = job_id)
     }))
 }
