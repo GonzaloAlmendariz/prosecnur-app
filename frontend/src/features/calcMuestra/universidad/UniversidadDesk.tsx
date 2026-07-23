@@ -58,7 +58,7 @@ import {
 } from "./salidas";
 import { zFromConfidence } from "../didactica/motorPreview";
 import type { MotorEfectivo } from "../motor/usePerfilEfectivo";
-import { useMotorStore } from "../motor/store";
+import { useMotorStore } from "../store";
 import { TabCobertura } from "../motor/pestanas/TabCobertura";
 import { TabDistribucion } from "../motor/pestanas/TabDistribucion";
 import { UniversityTabHeader } from "./ui/UniversityTabHeader";

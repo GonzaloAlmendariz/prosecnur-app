@@ -1,9 +1,12 @@
-/**
- * Estado UI del motor muestral (efímero, patrón del feature store): fuente de
- * datos, perfil editable y decisiones de cálculo. El estado duro del estudio
- * sigue viviendo en el backend vía el store del módulo.
- */
 import { create } from "zustand";
+import type {
+  CalcMuestraEstudio,
+  CalcMuestraComponente,
+  CalcMuestraWorkspace,
+  CalcMuestraWorkspaceMotorRecorrido,
+} from "../../api/client";
+import { DEFAULT_CALC_MUESTRA_ESTUDIO } from "../../api/client";
+import { EMPTY_WORKSPACE } from "./workspaceDefaults";
 import {
   decisionesPorDefecto,
   perfilPorId,
@@ -14,7 +17,117 @@ import {
   type ParametrosMuestra,
   type PerfilInstitucional,
   type ResumenEstAula,
-} from "../dominio";
+} from "./dominio";
+
+// =============================================================================
+// Store de Cálculo de muestra — hogar canónico único del feature
+// =============================================================================
+// Antes vivían dos stores en carpetas distintas (`store/calcMuestraStore.ts`
+// y `motor/store.ts`), lo que generaba ambigüedad de hogar. Este archivo los
+// consolida siguiendo el patrón de `validacion/store.ts`:
+//
+// 1. `useCalcMuestraStore` — espejo local del ESTADO DURO del estudio, que
+//    vive en el backend (`calc_muestra_estudio` de la sesión). Hidrata al
+//    montar, marca `dirty` con cada cambio y el autosave debounced
+//    (`useCalcMuestraAutosave`) lo persiste. Cambiar de proyecto pasa por
+//    `hydrate()` (pulso:session-changed), que deja `dirty` en false.
+//
+// 2. `useMotorStore` — estado UI del motor muestral (perfil editable,
+//    decisiones de cálculo, fuente de datos). Es efímero por diseño: se
+//    serializa hacia `workspace.motor_recorrido` del estudio mediante
+//    `useMotorPersistencia`, que SUSCRIBE a este store y sincroniza hacia
+//    `useCalcMuestraStore`. Por esa suscripción cruzada los dos hooks se
+//    mantienen como `create()` separados: fusionarlos en un solo store haría
+//    que la sincronización motor→estudio se re-dispare a sí misma.
+
+// ----- Estado duro del estudio (espejo del backend) --------------------------
+
+type EstudioState = {
+  estudio: CalcMuestraEstudio;
+  hydrated: boolean;
+  dirty: boolean;
+  calculando: boolean;
+  reporteDisponible: boolean;
+  reporteJobId: string | null;
+};
+
+type EstudioActions = {
+  hydrate: (estudio: CalcMuestraEstudio) => void;
+  replaceEstudio: (estudio: CalcMuestraEstudio) => void;
+  patchEstudio: (patch: Partial<CalcMuestraEstudio>) => void;
+  setWorkspace: (workspace: CalcMuestraWorkspace | null) => void;
+  /** Patchea SOLO motor_recorrido preservando el resto del workspace. */
+  setWorkspaceMotorRecorrido: (mr: CalcMuestraWorkspaceMotorRecorrido) => void;
+  setTitulo: (titulo: string) => void;
+  setContexto: (campo: "cliente" | "tipo_cliente" | "descripcion_libre", valor: string) => void;
+  setComponentes: (comps: CalcMuestraComponente[]) => void;
+  setCalculando: (v: boolean) => void;
+  setReporteMeta: (m: { disponible: boolean; jobId?: string | null }) => void;
+  markClean: () => void;
+};
+
+const initialEstudio: EstudioState = {
+  estudio: DEFAULT_CALC_MUESTRA_ESTUDIO,
+  hydrated: false,
+  dirty: false,
+  calculando: false,
+  reporteDisponible: false,
+  reporteJobId: null,
+};
+
+export const useCalcMuestraStore = create<EstudioState & EstudioActions>((set) => ({
+  ...initialEstudio,
+  hydrate: (estudio) =>
+    set(() => ({
+      estudio,
+      hydrated: true,
+      dirty: false,
+    })),
+  replaceEstudio: (estudio) =>
+    set(() => ({
+      estudio,
+      dirty: true,
+    })),
+  patchEstudio: (patch) =>
+    set((s) => ({
+      estudio: { ...s.estudio, ...patch },
+      dirty: true,
+    })),
+  setWorkspace: (workspace) =>
+    set((s) => ({
+      estudio: { ...s.estudio, workspace },
+      dirty: true,
+    })),
+  setWorkspaceMotorRecorrido: (mr) =>
+    set((s) => ({
+      estudio: {
+        ...s.estudio,
+        workspace: { ...(s.estudio.workspace ?? EMPTY_WORKSPACE), motor_recorrido: mr },
+      },
+      dirty: true,
+    })),
+  setTitulo: (titulo) =>
+    set((s) => ({ estudio: { ...s.estudio, titulo }, dirty: true })),
+  setContexto: (campo, valor) =>
+    set((s) => ({
+      estudio: { ...s.estudio, contexto: { ...s.estudio.contexto, [campo]: valor } },
+      dirty: true,
+    })),
+  setComponentes: (componentes) =>
+    set((s) => ({
+      estudio: { ...s.estudio, componentes },
+      dirty: true,
+    })),
+  setCalculando: (calculando) => set(() => ({ calculando })),
+  setReporteMeta: ({ disponible, jobId }) =>
+    set(() => ({
+      reporteDisponible: disponible,
+      reporteJobId: jobId ?? null,
+    })),
+  markClean: () => set(() => ({ dirty: false })),
+}));
+
+// ----- Estado UI del motor muestral (efímero, serializado al workspace) -----
 
 export type FuenteDatos = "proyecto" | "manual";
 

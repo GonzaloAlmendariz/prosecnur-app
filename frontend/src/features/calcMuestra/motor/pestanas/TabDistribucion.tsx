@@ -10,7 +10,7 @@ import { fmtDec, fmtInt } from "../../sharedCore";
 import { normalizeUniversityLabel } from "../../universidad/shared/format";
 import { BarrasDistribucion } from "../componentes/BarrasDistribucion";
 import { BarrasFacultad } from "../componentes/BarrasFacultad";
-import { useMotorStore } from "../store";
+import { useMotorStore } from "../../store";
 
 export function TabDistribucion({
   perfil,

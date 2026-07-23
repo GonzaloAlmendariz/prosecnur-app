@@ -23,8 +23,7 @@
  */
 import { useEffect } from "react";
 import type { CalcMuestraEstudio } from "../../../api/client";
-import { useCalcMuestraStore } from "../store/calcMuestraStore";
-import { useMotorStore } from "./store";
+import { useCalcMuestraStore, useMotorStore } from "../store";
 import {
   motorRecorridoIgual,
   normalizarMotorRecorrido,

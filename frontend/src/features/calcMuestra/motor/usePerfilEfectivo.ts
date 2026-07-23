@@ -15,7 +15,7 @@ import {
   type ResultadoEscenario2,
 } from "../dominio";
 import { datosDelProyecto } from "./datosProyecto";
-import { useMotorStore } from "./store";
+import { useMotorStore } from "../store";
 
 export type MotorEfectivo = {
   perfil: PerfilInstitucional;

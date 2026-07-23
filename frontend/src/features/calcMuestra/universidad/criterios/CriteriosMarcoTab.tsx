@@ -39,7 +39,7 @@ import { AvisoModulo } from "../shared/AvisoModulo";
 import { marcoCriteriosDesactualizado } from "../shared/frame";
 import { normalizeUniversityAulasConfig } from "../shared/study";
 import { CifraFila, CifraMotor } from "../ui";
-import { useMotorStore } from "../../motor/store";
+import { useMotorStore } from "../../store";
 import {
   copiarVariableCriterio,
   reconciliarBorradorCriterios,
