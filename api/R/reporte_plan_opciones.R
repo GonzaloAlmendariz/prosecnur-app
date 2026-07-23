@@ -20,6 +20,8 @@
 #   - Paletas por list_name (.reporte_plan_palette_for_levels,
 #      .reporte_plan_pulso_palette_for_levels).
 #   - Aviso interno de opción múltiple (.ppt_multiple_choice_notice_overrides).
+#   - Sello de ponderación en notas de base (.reporte_plan_pond_estados,
+#      .reporte_plan_nota_base_sellada — unidad 1.2b, hooks en reporte_plan_ppt.R).
 
 #' @noRd
 .reporte_plan_regex_escape <- function(x) {
@@ -432,4 +434,100 @@
   overrides$canvas_h_header_in <- 0.34
   overrides$encabezado_separacion_in <- 0
   overrides
+}
+
+# ---- Sello de ponderación en notas de base (Plan de mejoras 2026-07, 1.2b) ---
+#
+# Cableado de producción del sello (reporte_ponderacion_sello.R) en las notas
+# "Base: N" de las láminas PPT/Word. El estado se lee POR BASE de la corrida
+# (attr `ponderacion_estado` que dejó .analitica_ponderacion_apply); las hijas
+# repeat, que heredan `peso` de la madre sin atributo (ponderacion_analitica.R),
+# derivan su estado con los mismos criterios de reporte_ponderacion_estado_corrida.
+# Si NINGUNA fuente trae el atributo, la corrida no trae información de
+# ponderación y toda nota queda intacta (los decks históricos no cambian).
+
+#' Estados de ponderación por fuente de una corrida de reporte.
+#'
+#' Devuelve una lista nombrada (misma forma que `data_sources`) con el estado
+#' de ponderación de cada fuente, o `NULL` por fuente cuando la corrida no trae
+#' información de ponderación. Reglas, en orden:
+#'   1. attr `ponderacion_estado` de la fuente (madre / base normal);
+#'   2. sin attr pero con columna `peso` y otra fuente de la corrida sí trae
+#'      attr => hija repeat con peso heredado: estado aplicado con diagnósticos
+#'      recalculados sobre el peso heredado (mismo criterio que
+#'      `reporte_ponderacion_estado_corrida`); se marca `heredado = TRUE`;
+#'   3. sin attr ni `peso` en una corrida que SÍ trae ponderación => fallback
+#'      "configurada no aplicada" (la fuente quedó sin pesos);
+#'   4. ninguna fuente con attr => todo NULL. Una columna `peso` sustantiva del
+#'      instrumento NO dispara el sello por sí sola.
+#' @noRd
+.reporte_plan_pond_estados <- function(data_sources) {
+  if (!is.list(data_sources) || !length(data_sources)) return(list())
+  estados <- lapply(data_sources, function(d) {
+    if (is.data.frame(d)) attr(d, "ponderacion_estado", exact = TRUE) else NULL
+  })
+  con_attr <- Filter(function(e) is.list(e) && length(e), estados)
+  if (!length(con_attr)) return(estados)
+
+  for (nm in names(estados)) {
+    if (is.list(estados[[nm]]) && length(estados[[nm]])) next
+    d <- data_sources[[nm]]
+    if (is.data.frame(d) && "peso" %in% names(d)) {
+      diag <- tryCatch(.ponderacion_diagnostics(d[["peso"]]), error = function(e) NULL)
+      estado <- reporte_ponderacion_estado("aplicada", diagnostics = diag)
+    } else {
+      estado <- reporte_ponderacion_estado(
+        "no_aplicada",
+        motivo = "la corrida no adjuntó pesos (fallback a base sin ponderar)"
+      )
+    }
+    estado$heredado <- TRUE
+    estados[[nm]] <- estado
+  }
+  estados
+}
+
+#' Resuelve el estado de ponderación aplicable a una nota de base.
+#'
+#' Con `source` conocida (slot de base: el elemento declara su fuente) manda el
+#' estado de ESA base — decisión del lead: el estado se lee por base de la
+#' corrida. Sin fuente atribuible (notas de pie: el choke point no conoce el
+#' elemento) manda la primera fuente con estado PROPIO (la principal/madre);
+#' como el plan es por base, en la práctica todos los estados de una corrida
+#' cuentan la misma historia salvo el n_eff de hijas repeat (documentado como
+#' revisión pendiente en la unidad 1.2b).
+#' @noRd
+.reporte_plan_pond_estado_para_nota <- function(estados, source = NULL) {
+  estados <- Filter(function(e) is.list(e) && length(e), estados %||% list())
+  if (!length(estados)) return(NULL)
+  src <- if (is.null(source)) "" else as.character(source)[1]
+  if (!is.na(src) && nzchar(src) && src %in% names(estados)) return(estados[[src]])
+  propios <- Filter(function(e) !isTRUE(e$heredado), estados)
+  if (length(propios)) propios[[1]] else estados[[1]]
+}
+
+#' Anexa el sello de ponderación a una nota de base de lámina, si corresponde.
+#'
+#' Idempotente y conservadora:
+#'   - solo toca notas que declaran base ("Base:" en el texto); el resto de
+#'     notas de pie (fuentes, aclaraciones) quedan intactas;
+#'   - corrida sin información de ponderación => la nota vuelve idéntica
+#'     (byte a byte) — los entregables históricos no cambian;
+#'   - si la nota ya contiene el sello (cadenas anidadas de .ppt_note_from),
+#'     no lo duplica.
+#' El texto del sello es el canónico de reporte_ponderacion_sello.R vía
+#' `p_base_nota_con_sello()` (reporte_plan_slides.R).
+#' @noRd
+.reporte_plan_nota_base_sellada <- function(nota, data_sources, source = NULL) {
+  nota1 <- if (is.null(nota)) NA_character_ else as.character(nota)[1]
+  if (is.na(nota1) || !nzchar(trimws(nota1))) return(nota)
+  if (!grepl("\\bBase:", nota1)) return(nota)
+  estado <- .reporte_plan_pond_estado_para_nota(
+    .reporte_plan_pond_estados(data_sources),
+    source = source
+  )
+  if (is.null(estado)) return(nota)
+  sello <- reporte_ponderacion_sello(estado)
+  if (is.null(sello) || !nzchar(sello) || grepl(sello, nota1, fixed = TRUE)) return(nota)
+  p_base_nota_con_sello(nota1, estado)
 }

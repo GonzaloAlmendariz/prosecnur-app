@@ -2950,10 +2950,10 @@ p_ggplot_raw <- function(gg, titulo = NULL) {
 #'   el texto canonico del sello de ponderacion (`reporte_ponderacion_sello()`).
 #'   Pura y sin side effects: con `estado = NULL` (la corrida no trae
 #'   informacion de ponderacion) la nota queda intacta, de modo que ningun deck
-#'   historico sin ponderacion cambia. El cableado desde el plan PPT esta
-#'   pendiente porque el punto natural vive en archivos fuera de esta unidad
-#'   (.graficos_acnur_base_summary en graficos_acnur_report.R y su consumo en
-#'   reporte_plan_ppt.R, congelado).
+#'   historico sin ponderacion cambia. Llamador de produccion (unidad 1.2b):
+#'   `.reporte_plan_nota_base_sellada()` (reporte_plan_opciones.R), enganchada
+#'   en reporte_plan_ppt.R via `.plot_note_from`/`.ppt_note_from` (notas de pie
+#'   PPT/Word) y `.base_auto_from_element` (slot de base, por fuente).
 #' @param base Texto de la nota de base (`character(1)`) o NULL.
 #' @param estado Objeto de estado de ponderacion (`reporte_ponderacion_estado()`
 #'   o el atributo `ponderacion_estado` de la base) o NULL.
