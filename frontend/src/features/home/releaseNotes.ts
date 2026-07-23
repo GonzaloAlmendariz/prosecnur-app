@@ -12,6 +12,16 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.5.19",
+    date: "2026-07-22",
+    highlights: [
+      "Gráficos (crítico): corrige un fallo que impedía generar el reporte PPT de estudios con varias bases (madre + grupos repetibles) — todas las láminas fallaban con un error de «current_code». Ahora el informe se genera completo, con cada servicio graficado por separado y las láminas de la base madre sobre su total. Además, si alguna lámina no encuentra los datos de un filtro, esa lámina queda en blanco en lugar de tumbar todo el reporte.",
+      "Codificación (crítico): aplicar la codificación de una base en un estudio con varias bases (por ejemplo, madre + grupos repetibles) ya no borra su catálogo de grupos. Antes, al aplicar, la base quedaba marcada como codificada pero perdía todas sus definiciones editables; ahora se conservan intactas. Complementa el arreglo de la 0.5.18, que cubría el mismo problema al re-limpiar.",
+      "Libro de códigos (crítico): corrige un error que impedía generar el libro de códigos en PDF («subscript out of bounds») cuando alguna variable no traía etiqueta. Ahora sale en PDF y Excel sin problemas.",
+      "Reportes ACNUR: pulido del PPT — las etiquetas de categoría se alinean a la derecha (pegadas a sus barras), la línea de base es más limpia («Base: 427 de 430 (99.3%)», y por servicio con el nombre del servicio), el logo PULSO acompaña al de ACNUR también en las láminas de sección, y el informe grafica solo preguntas del instrumento (deja fuera campos de control como consentimiento o «¿es una prueba?»). El libro de códigos aplica el mismo criterio, para quedar consistente con el informe.",
+    ],
+  },
+  {
     version: "0.5.18",
     date: "2026-07-22",
     highlights: [
