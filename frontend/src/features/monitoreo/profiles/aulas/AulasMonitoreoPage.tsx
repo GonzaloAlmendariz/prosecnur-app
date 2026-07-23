@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { AlertCircle, CalendarRange, CheckCircle2 } from "lucide-react";
 import {
+  apiMonitoreoAulasImportFromCalcMuestra,
+  apiMonitoreoAulasSync,
   apiMonitoreoState,
   type MonitoreoAulasDashboard,
   type MonitoreoRow,
   type MonitoreoState,
 } from "../../../../api/client";
+import { AulasOperationsPanel, aulasPlanImported } from "./AulasOperationsPanel";
 import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "../../../aulasFlow/AulasApplicationFlow";
 import { MODULE_TONES } from "../../../../lib/modules";
 import { AULAS_WORKBENCH_VIEWS, MONITOREO_ROUTES, type WorkbenchView } from "../../core/monitoreoRegistry";
@@ -251,26 +254,37 @@ function HandoffTracePanel({ dashboard }: { dashboard: MonitoreoAulasDashboard |
   );
 }
 
-function renderAulasView(view: WorkbenchView, dashboard: MonitoreoAulasDashboard | null) {
+function renderAulasView(view: WorkbenchView, dashboard: MonitoreoAulasDashboard | null, operations?: ReactNode) {
+  if (view === "fuentes") {
+    // Las operaciones (importar plan / sincronizar campo) se muestran incluso
+    // sin dashboard: importar el plan es justamente la acción de arranque.
+    const rows: MonitoreoRow[] = dashboard
+      ? [
+        { campo: "corrida", valor: dashboard.selection_run_id ?? "S/D" },
+        { campo: "marco", valor: dashboard.frame_hash ?? "S/D" },
+        { campo: "anonimas", valor: Boolean(dashboard.anonymous_responses) },
+        { campo: "generado", valor: dashboard.generated_at },
+      ]
+      : [];
+    return (
+      <div className="mon-profile-stack aulas-fuentes-stack">
+        {operations}
+        <section className="mon-profile-panel">
+          <div className="mon-profile-panel-head">
+            <h3>Fuente y plan</h3>
+            <span>{fmt(rows.length)} campos</span>
+          </div>
+          <DataTable
+            rows={rows as Array<Record<string, unknown>>}
+            empty="No hay metadatos del plan de cursos-horario. Importa el plan desde el cálculo de muestra."
+            preferredColumns={["campo", "valor"]}
+          />
+        </section>
+      </div>
+    );
+  }
   if (!dashboard) {
     return <EmptyPanel title="Resumen pendiente" detail="Todavía no hay un panel local preparado para cursos-horario." />;
-  }
-  if (view === "fuentes") {
-    const rows: MonitoreoRow[] = [
-      { campo: "corrida", valor: dashboard.selection_run_id ?? "S/D" },
-      { campo: "marco", valor: dashboard.frame_hash ?? "S/D" },
-      { campo: "anonimas", valor: Boolean(dashboard.anonymous_responses) },
-      { campo: "generado", valor: dashboard.generated_at },
-    ];
-    return (
-      <section className="mon-profile-panel">
-        <div className="mon-profile-panel-head">
-          <h3>Fuente y plan</h3>
-          <span>{fmt(rows.length)} campos</span>
-        </div>
-        <DataTable rows={rows as Array<Record<string, unknown>>} empty="No hay metadatos del plan de cursos-horario." preferredColumns={["campo", "valor"]} />
-      </section>
-    );
   }
   if (view === "modelo") {
     return (
@@ -338,6 +352,7 @@ export default function AulasMonitoreoPage() {
   const [activeView, setActiveView] = useState<WorkbenchView>(() => initialMonitoreoView("avance", AULAS_WORKBENCH_VIEWS));
   useMonitoreoTabParam(activeView);
   const [loading, setLoading] = useState(true);
+  const [mutating, setMutating] = useState(false);
   const [error, setError] = useState("");
 
   const activeDef = useMemo(
@@ -345,14 +360,17 @@ export default function AulasMonitoreoPage() {
     [activeView],
   );
   const dashboard = dashboardFromState(state);
+  const aulasConfig = state?.config?.aulas_universitarias ?? null;
+  const imported = aulasPlanImported(aulasConfig);
   const sourceTotal = state?.sources?.length ?? 0;
   const activeSources = (state?.sources ?? []).filter((source) => source.enabled).length;
-  // Recarga local honesta: /api/monitoreo/aulas/sync no trae datos de una
-  // fuente externa (solo recalcula el dashboard desde el snapshot local), así
-  // que el chrome no ofrece "Avance"; cablear un sync real queda para la 4.1.
-  const refreshTitle = loading
+  const busy = loading || mutating;
+  const refreshTitle = busy
     ? "Actualizando vista de cursos-horario..."
     : `Recargar ${activeDef.shortLabel ?? activeDef.label} desde la memoria local del proyecto`;
+  const advanceTitle = imported
+    ? "Recalcular el corte de campo de cursos-horario con el snapshot y la agenda locales"
+    : "Primero importa el plan desde el cálculo de muestra (sección Fuentes)";
 
   const loadView = useCallback(async (view: WorkbenchView, force = false) => {
     setLoading(true);
@@ -376,14 +394,49 @@ export default function AulasMonitoreoPage() {
     void loadView(activeView);
   }, [activeView, loadView]);
 
+  // Flujos movidos del monolito (unidad 4.1) sin reescribir la lógica:
+  // importAulasFromCalcMuestra / syncAulasUniversitarias de MonitoreoPage.tsx.
+  const importPlan = useCallback(async () => {
+    setMutating(true);
+    setError("");
+    try {
+      const result = await apiMonitoreoAulasImportFromCalcMuestra();
+      setState(result.state);
+      // El monolito aterrizaba en la agenda tras importar; se conserva.
+      setActiveView("modelo");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setMutating(false);
+    }
+  }, []);
+
+  const syncField = useCallback(async () => {
+    setMutating(true);
+    setError("");
+    try {
+      const result = await apiMonitoreoAulasSync();
+      setState(result.state);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setMutating(false);
+    }
+  }, []);
+
   return (
     <div className="mon-profile-page is-aulas-flow" style={MODULE_TONES.monitoreo as CSSProperties}>
+      <span
+        hidden
+        data-audit-ready="monitoreo-aulas"
+        data-audit-has-dashboard={dashboard ? "true" : "false"}
+      />
       <MonitoreoModuleChrome
         routes={[AULAS_ROUTE]}
         route={AULAS_ROUTE}
         routeSelected
         activeView={activeView}
-        saving={loading}
+        saving={busy}
         syncedAt={state?.synced_at ?? ""}
         generatedAt={state?.generated_at ?? state?.synced_at ?? ""}
         generationStatus={state?.generation_status ?? ""}
@@ -393,11 +446,15 @@ export default function AulasMonitoreoPage() {
         activeSources={activeSources}
         nRows={state?.n_rows ?? 0}
         hasSnapshot={Boolean(state?.has_snapshot)}
-        syncing={loading}
-        advanceSyncDisabled={loading}
-        advanceSyncLabel="Actualizar"
-        advanceSyncTitle={refreshTitle}
-        onSyncAdvance={() => { void loadView(activeView, true); }}
+        syncing={busy}
+        advanceSyncDisabled={busy || !imported}
+        advanceSyncLabel="Avance"
+        advanceSyncTitle={advanceTitle}
+        onSyncAdvance={() => { void syncField(); }}
+        syncDisabled={busy}
+        syncLabel="Recargar"
+        syncTitle={refreshTitle}
+        onSyncAll={() => { void loadView(activeView, true); }}
         onViewChange={(view) => {
           if (view !== activeView) setActiveView(view);
         }}
@@ -432,7 +489,19 @@ export default function AulasMonitoreoPage() {
           />
           <div className="aulas-mon-view">
             {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
-            {loading ? <EmptyPanel title="Preparando vista" detail="Leyendo cache local del proyecto..." /> : renderAulasView(activeView, dashboard)}
+            {loading ? (
+              <EmptyPanel title="Preparando vista" detail="Leyendo cache local del proyecto..." />
+            ) : renderAulasView(
+              activeView,
+              dashboard,
+              <AulasOperationsPanel
+                config={aulasConfig}
+                sources={state?.sources ?? []}
+                busy={busy}
+                onImportPlan={() => { void importPlan(); }}
+                onSyncField={() => { void syncField(); }}
+              />,
+            )}
           </div>
         </section>
       </main>

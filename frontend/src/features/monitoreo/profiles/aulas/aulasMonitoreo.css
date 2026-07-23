@@ -106,6 +106,12 @@
   grid-template-rows: auto minmax(0, 1fr);
 }
 
+/* Fuentes: operación del plan (auto) + metadatos (1fr) */
+.mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-stack.aulas-fuentes-stack {
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+}
+
 /* Panel/section directa (fuentes, calidad, consultas) tambien llena */
 .mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-panel,
 .mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-empty {
@@ -142,6 +148,131 @@
 /* El HandoffTracePanel no debe estirarse como la tabla */
 .mon-profile-page.is-aulas-flow .aulas-mon-view .mon-aulas-handoff-panel {
   align-content: start;
+}
+
+/* ── Operación del plan (unidad 4.1: acciones movidas del monolito) ──────
+   Import desde calc-muestra + sincronización del corte de campo. Métrica del
+   kit macOS: botones de 28px, texto de control 13px/500, fila compacta. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .aulas-ops-panel {
+  grid-template-rows: auto auto auto;
+  align-content: start;
+  gap: 10px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ops-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ops-grid article {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "icon label"
+    "icon value"
+    "icon hint";
+  column-gap: 8px;
+  row-gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--pulso-surface-2) 60%, #fff);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ops-grid article i {
+  grid-area: icon;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  color: var(--pulso-text-soft);
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 8%, #fff);
+  border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring) 16%, var(--pulso-border));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ops-grid article.is-ready i {
+  color: color-mix(in srgb, var(--pulso-module-monitoring) 80%, var(--pulso-text));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ops-grid article span {
+  grid-area: label;
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ops-grid article strong {
+  grid-area: value;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ops-grid article.is-waiting strong {
+  color: color-mix(in srgb, var(--pulso-warn-fg) 72%, var(--pulso-text));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ops-grid article small {
+  grid-area: hint;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ops-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ops-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ops-actions button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--pulso-surface-2) 70%, #fff);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ops-actions button.is-primary {
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 55%, var(--pulso-border));
+  background: var(--pulso-module-monitoring);
+  color: #fff;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ops-actions button.is-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 88%, #000);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ops-actions button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ops-actions em {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-style: normal;
 }
 
 /* Cabecera de panel: el eyebrow/contador queda discreto y con el conteo a la
