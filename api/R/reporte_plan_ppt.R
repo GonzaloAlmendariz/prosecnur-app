@@ -89,7 +89,7 @@ reporte_ppt_plan <- function(
     stop("Se requieren los paquetes 'officer' y 'rvg'.", call. = FALSE)
   }
   if (!is.logical(auto_otros_slides) || length(auto_otros_slides) != 1L || is.na(auto_otros_slides)) {
-    stop("`auto_otros_slides` debe ser logical(1).", call. = FALSE)
+    .plan_input_abort("`auto_otros_slides` debe ser logical(1).")
   }
 
   .is_data_sources <- function(x) {
@@ -109,14 +109,14 @@ reporte_ppt_plan <- function(
   .normalize_named_sources <- function(x, arg_name) {
     nms <- names(x)
     if (is.null(nms) || any(!nzchar(trimws(nms)))) {
-      stop("`", arg_name, "` debe ser una lista nombrada cuando contiene varias fuentes.", call. = FALSE)
+      .plan_input_abort("`", arg_name, "` debe ser una lista nombrada cuando contiene varias fuentes.")
     }
     names(x) <- trimws(nms)
     x
   }
 
   if (!is.data.frame(data) && !.is_data_sources(data)) {
-    stop("`data` debe ser un data.frame/tibble o una lista nombrada de data.frames.", call. = FALSE)
+    .plan_input_abort("`data` debe ser un data.frame/tibble o una lista nombrada de data.frames.")
   }
 
   data_sources <- if (is.data.frame(data)) {
@@ -127,11 +127,11 @@ reporte_ppt_plan <- function(
 
   if (is.null(instrumento)) {
     if (length(data_sources) != 1L) {
-      stop("Cuando `data` contiene varias fuentes, `instrumento` debe proveerse explicitamente como lista nombrada.", call. = FALSE)
+      .plan_input_abort("Cuando `data` contiene varias fuentes, `instrumento` debe proveerse explicitamente como lista nombrada.")
     }
     instrumento <- attr(data_sources[[1]], "instrumento_reporte", exact = TRUE)
     if (is.null(instrumento)) {
-      stop("No se proporciono `instrumento` y `data` no tiene atributo `instrumento_reporte`.", call. = FALSE)
+      .plan_input_abort("No se proporciono `instrumento` y `data` no tiene atributo `instrumento_reporte`.")
     }
   }
 
@@ -140,15 +140,14 @@ reporte_ppt_plan <- function(
   } else if (is.list(instrumento) && !is.null(instrumento$survey)) {
     stats::setNames(list(instrumento), names(data_sources)[1])
   } else {
-    stop("`instrumento` debe ser un objeto con `$survey` o una lista nombrada de instrumentos.", call. = FALSE)
+    .plan_input_abort("`instrumento` debe ser un objeto con `$survey` o una lista nombrada de instrumentos.")
   }
 
   missing_inst <- setdiff(names(data_sources), names(instrument_sources))
   if (length(missing_inst)) {
-    stop(
+    .plan_input_abort(
       "`instrumento` no contiene definicion para estas fuentes de `data`: ",
-      paste(missing_inst, collapse = ", "),
-      call. = FALSE
+      paste(missing_inst, collapse = ", ")
     )
   }
 
@@ -315,7 +314,7 @@ reporte_ppt_plan <- function(
 
   .add_slide_strict <- function(doc, layout_name) {
     if (!.layout_exists(layout_name)) {
-      stop("La plantilla NO tiene el layout requerido: '", layout_name, "'.", call. = FALSE)
+      .plan_input_abort("La plantilla NO tiene el layout requerido: '", layout_name, "'.")
     }
     officer::add_slide(doc, layout = layout_name, master = master)
   }
@@ -333,10 +332,9 @@ reporte_ppt_plan <- function(
 
   .select_placeholder_props <- function(props, spec, layout_name, master_name) {
     if (!nrow(props)) {
-      stop(
+      .plan_input_abort(
         "No se encontro placeholder para layout='", layout_name %||% "<NA>",
-        "', master='", master_name %||% "<NA>", "'.",
-        call. = FALSE
+        "', master='", master_name %||% "<NA>", "'."
       )
     }
 
@@ -350,11 +348,10 @@ reporte_ppt_plan <- function(
 
     props <- props[props$type %in% spec$type, , drop = FALSE]
     if (!nrow(props)) {
-      stop(
+      .plan_input_abort(
         "No se encontro placeholder type='", spec$type,
         "' en layout='", layout_name %||% "<NA>",
-        "', master='", master_name %||% "<NA>", "'.",
-        call. = FALSE
+        "', master='", master_name %||% "<NA>", "'."
       )
     }
 
@@ -513,13 +510,13 @@ reporte_ppt_plan <- function(
 
   .ph_with_strict <- function(doc, value, spec) {
     if (is.null(spec) || is.null(spec$type)) {
-      stop("Placeholder spec invalido (NULL o sin $type).", call. = FALSE)
+      .plan_input_abort("Placeholder spec invalido (NULL o sin $type).")
     }
     type_idx <- spec$type_idx %||% NULL
     if (!is.null(type_idx)) {
       type_idx <- suppressWarnings(as.integer(type_idx))
       if (length(type_idx) != 1L || is.na(type_idx)) {
-        stop("`type_idx` debe ser un entero escalar.", call. = FALSE)
+        .plan_input_abort("`type_idx` debe ser un entero escalar.")
       }
     }
 
@@ -555,7 +552,7 @@ reporte_ppt_plan <- function(
       }
       required_loc <- c("left", "top", "width", "height")
       if (!is.list(explicit_loc) || !all(required_loc %in% names(explicit_loc))) {
-        stop("`spec$loc` debe incluir left, top, width y height.", call. = FALSE)
+        .plan_input_abort("`spec$loc` debe incluir left, top, width y height.")
       }
       loc <- officer::ph_location(
         left = as.numeric(explicit_loc$left),
@@ -667,11 +664,10 @@ reporte_ppt_plan <- function(
       error = identity
     )
     if (inherits(out, "error")) {
-      stop(
+      .plan_input_abort(
         "No se pudo insertar en placeholder type='", spec$type,
         "' type_idx=", spec$type_idx %||% "NULL",
-        ". Error: ", conditionMessage(out),
-        call. = FALSE
+        ". Error: ", conditionMessage(out)
       )
     }
     out
@@ -2010,7 +2006,7 @@ reporte_ppt_plan <- function(
       ids <- as.integer(sub("^diapo_(\\d{3})$", "\\1", names(objs)))
       if (length(ids) > 1) {
         dif <- diff(ids)
-        if (any(dif != 1L)) stop("strict_diapos=TRUE: los `diapo_###` no son consecutivos.", call. = FALSE)
+        if (any(dif != 1L)) .plan_input_abort("strict_diapos=TRUE: los `diapo_###` no son consecutivos.")
       }
     }
     objs
@@ -2074,18 +2070,17 @@ reporte_ppt_plan <- function(
     src <- if (length(candidates)) candidates[1] else NA_character_
 
     if (is.na(src) || !nzchar(trimws(src))) {
-      stop(
-        "La referencia de `", arg_name, "` requiere prefijo `fuente$` porque `data` contiene varias fuentes.",
-        call. = FALSE
+      .plan_input_abort(
+        "La referencia de `", arg_name, "` requiere prefijo `fuente$` porque `data` contiene varias fuentes."
       )
     }
     src <- trimws(src)
 
     if (!src %in% names(data_sources)) {
-      stop("La fuente `", src, "` no existe en `data`.", call. = FALSE)
+      .plan_input_abort("La fuente `", src, "` no existe en `data`.")
     }
     if (!src %in% names(instrument_sources)) {
-      stop("La fuente `", src, "` no existe en `instrumento`.", call. = FALSE)
+      .plan_input_abort("La fuente `", src, "` no existe en `instrumento`.")
     }
 
     src
@@ -2096,7 +2091,7 @@ reporte_ppt_plan <- function(
     inst <- instrument_sources[[src]]
     surv <- inst$survey %||% NULL
     if (is.null(surv) || !"name" %in% names(surv)) {
-      stop("`instrumento[['", src, "']]$survey` debe existir y contener al menos la columna `name`.", call. = FALSE)
+      .plan_input_abort("`instrumento[['", src, "']]$survey` debe existir y contener al menos la columna `name`.")
     }
     list(
       source = src,
@@ -2111,7 +2106,7 @@ reporte_ppt_plan <- function(
   .resolve_ref <- function(ref, source = NULL, arg_name = "var") {
     ref_info <- .parse_ref_parts(ref)
     if (is.na(ref_info$var) || !nzchar(ref_info$var)) {
-      stop("`", arg_name, "` debe ser character(1) no vacio.", call. = FALSE)
+      .plan_input_abort("`", arg_name, "` debe ser character(1) no vacio.")
     }
     ctx <- .source_ctx(.resolve_source_name(source = source, ref = ref, arg_name = arg_name))
     ctx$var_requested <- ref_info$var
@@ -2160,7 +2155,7 @@ reporte_ppt_plan <- function(
       .resolve_ref(ref, source = source, arg_name = arg_name)$source
     }, character(1)))
     if (length(srcs) != 1L) {
-      stop("Las referencias de `", arg_name, "` deben pertenecer a una sola fuente en este grafico.", call. = FALSE)
+      .plan_input_abort("Las referencias de `", arg_name, "` deben pertenecer a una sola fuente en este grafico.")
     }
     srcs[1]
   }
@@ -2183,7 +2178,7 @@ reporte_ppt_plan <- function(
       .resolve_ref(ref, source = explicit_source, arg_name = "var")$source
     }, character(1)))
     if (!allow_multi && length(srcs) != 1L) {
-      stop("El elemento usa variables de varias fuentes; este renderer requiere una sola.", call. = FALSE)
+      .plan_input_abort("El elemento usa variables de varias fuentes; este renderer requiere una sola.")
     }
     srcs
   }
@@ -3487,7 +3482,10 @@ reporte_ppt_plan <- function(
     sprintf(formato, base_core)
   }
 
-  .base_auto_from_element <- function(el, sufijo_auto = NULL, formato = "Base: %s") {
+  # Caption "Base: N" degradable: si el calculo falla por datos, la lamina sale
+  # sin caption (warning) en vez de matar el deck (reporte_plan_condiciones.R).
+  .base_auto_from_element <- function(el, sufijo_auto = NULL, formato = "Base: %s") .plan_base_caption_segura(.base_auto_from_element_impl, el, sufijo_auto, formato)
+  .base_auto_from_element_impl <- function(el, sufijo_auto = NULL, formato = "Base: %s") {
     if (is.null(el) || !inherits(el, "ppt_element")) return(NULL)
 
     etype <- el$.element_type %||% ""
@@ -3709,13 +3707,13 @@ reporte_ppt_plan <- function(
 
   .placeholder_props_current <- function(doc, spec) {
     if (is.null(spec) || is.null(spec$type)) {
-      stop("Placeholder spec invalido (NULL o sin $type).", call. = FALSE)
+      .plan_input_abort("Placeholder spec invalido (NULL o sin $type).")
     }
     type_idx <- spec$type_idx %||% NULL
     if (!is.null(type_idx)) {
       type_idx <- suppressWarnings(as.integer(type_idx))
       if (length(type_idx) != 1L || is.na(type_idx)) {
-        stop("`type_idx` debe ser un entero escalar.", call. = FALSE)
+        .plan_input_abort("`type_idx` debe ser un entero escalar.")
       }
     }
 
@@ -3982,7 +3980,7 @@ reporte_ppt_plan <- function(
         el_for_word$overrides$delta_rel_cerca_ref <- 0.34
       }
     }
-    p_word <- tryCatch(.render_element(el_for_word), error = function(e) plot)
+    p_word <- tryCatch(.render_element_impl(el_for_word), error = function(e) plot)
 
     base <- tryCatch(
       .base_auto_from_element(el, sufijo_auto = suf, formato = fmt),
@@ -4080,27 +4078,30 @@ reporte_ppt_plan <- function(
     overrides
   }
 
-  # Dispatcher generico: renderiza cualquier ppt_element
-  .render_element <- function(el) {
+  # Dispatcher generico: renderiza cualquier ppt_element. La cascara degrada
+  # `pulso_slide_render_error` a canvas "Sin datos" (reporte_plan_condiciones.R)
+  # para que un fallo por-lamina no mate el deck completo.
+  .render_element <- function(el) .plan_render_element_degradable(.render_element_impl, el)
+
+  .render_element_impl <- function(el) {
 
     if (is.null(el) || !inherits(el, "ppt_element")) {
-      stop(".render_element(): `el` debe ser `ppt_element`.", call. = FALSE)
+      .slide_abort_render(".render_element(): `el` debe ser `ppt_element`.")
     }
 
     etype <- el$.element_type %||% NA_character_
     if (is.na(etype) || !nzchar(etype)) {
-      stop(".render_element(): elemento sin `.element_type`.", call. = FALSE)
+      .slide_abort_render(".render_element(): elemento sin `.element_type`.")
     }
     if (identical(etype, "dim_radar_tabla")) {
-      stop(
-        "`dim_radar_tabla` fue retirado del flujo PPT. Use `p_dim_radar()` o `p_dim_heatmap()`.",
-        call. = FALSE
+      .slide_abort_render(
+        "`dim_radar_tabla` fue retirado del flujo PPT. Use `p_dim_radar()` o `p_dim_heatmap()`."
       )
     }
 
     fn_name <- paste0(".render_", etype)
     if (!exists(fn_name, mode = "function", inherits = TRUE)) {
-      stop("No existe renderer para etype='", etype, "' (se esperaba ", fn_name, "()).", call. = FALSE)
+      .slide_abort_render("No existe renderer para etype='", etype, "' (se esperaba ", fn_name, "()).")
     }
     fn <- get(fn_name, mode = "function", inherits = TRUE)
 
@@ -4140,10 +4141,9 @@ reporte_ppt_plan <- function(
       )
       out <- tryCatch(.call_keep_formals(fn, args), error = identity)
       if (inherits(out, "error")) {
-        stop(
+        .slide_abort_render(
           "Renderer encontrado (", fn_name, ") pero fallo al ejecutarse: ",
-          conditionMessage(out),
-          call. = FALSE
+          conditionMessage(out)
         )
       }
       return(out)
@@ -4180,10 +4180,9 @@ reporte_ppt_plan <- function(
       out2 <- tryCatch(do.call(fn, list(el = el)), error = identity)
       if (!inherits(out2, "error")) return(out2)
 
-      stop(
+      .slide_abort_render(
         "Renderer encontrado (", fn_name, ") pero fallo al ejecutarse: ",
-        conditionMessage(out),
-        call. = FALSE
+        conditionMessage(out)
       )
     }
 
@@ -6940,7 +6939,7 @@ reporte_ppt_plan <- function(
     }
 
   } else {
-    if (!is.list(plan)) stop("`plan` debe ser una lista de slides.", call. = FALSE)
+    if (!is.list(plan)) .plan_input_abort("`plan` debe ser una lista de slides.")
     .validate_plan(plan, strict = strict_diapos)
   }
 
@@ -6949,7 +6948,7 @@ reporte_ppt_plan <- function(
     .validate_plan(plan, strict = strict_diapos)
   }
 
-  if (!length(plan)) stop("No hay diapositivas...", call. = FALSE)
+  if (!length(plan)) .plan_input_abort("No hay diapositivas...")
 
   # ---------------------------------------------------------------------------
   # 7) Abrir plantilla / doc (solo si exporta)
@@ -6993,14 +6992,14 @@ reporte_ppt_plan <- function(
 
     } else {
       # Plantilla externa explicita
-      if (!file.exists(template_pptx)) stop("No existe `template_pptx`: ", template_pptx, call. = FALSE)
+      if (!file.exists(template_pptx)) .plan_input_abort("No existe `template_pptx`: ", template_pptx)
       if (isTRUE(mensajes_progreso)) message("Usando plantilla externa: ", template_pptx)
       doc <- officer::read_pptx(path = template_pptx)
     }
 
     layout_info <- tryCatch(officer::layout_summary(doc), error = function(e) NULL)
     if (is.null(layout_info) || !nrow(layout_info)) {
-      stop("No se pudo leer `layout_summary()` del PPT.", call. = FALSE)
+      .plan_input_abort("No se pudo leer `layout_summary()` del PPT.")
     }
 
     .pick_layout <- function(candidates) {
@@ -7029,32 +7028,32 @@ reporte_ppt_plan <- function(
     layout_poblacion_6 <- .pick_layout(c("poblacion_6"))
 
     if (is.na(layout_graficos)) {
-      stop("La plantilla NO tiene layout requerido: 'Graficos' o 'Graficos2'.", call. = FALSE)
+      .plan_input_abort("La plantilla NO tiene layout requerido: 'Graficos' o 'Graficos2'.")
     }
     if (is.na(layout_doble)) {
-      stop("La plantilla NO tiene layout requerido: 'Graficos_2columnas'.", call. = FALSE)
+      .plan_input_abort("La plantilla NO tiene layout requerido: 'Graficos_2columnas'.")
     }
     if (is.na(layout_title)) {
-      stop("La plantilla NO tiene layout requerido: 'Title Slide'.", call. = FALSE)
+      .plan_input_abort("La plantilla NO tiene layout requerido: 'Title Slide'.")
     }
     if (is.na(layout_poblacion4)) {
-      stop("La plantilla NO tiene layout requerido: 'poblacion_4'.", call. = FALSE)
+      .plan_input_abort("La plantilla NO tiene layout requerido: 'poblacion_4'.")
     }
     if (is.na(layout_text_right)) {
-      stop("La plantilla NO tiene layout requerido: 'right_grafico_texto'.", call. = FALSE)
+      .plan_input_abort("La plantilla NO tiene layout requerido: 'right_grafico_texto'.")
     }
     if (is.na(layout_text_left)) {
-      stop("La plantilla NO tiene layout requerido: 'left_grafico_texto'.", call. = FALSE)
+      .plan_input_abort("La plantilla NO tiene layout requerido: 'left_grafico_texto'.")
     }
     if (is.na(layout_text_right2)) {
-      stop("La plantilla NO tiene layout requerido: 'right_2graficos_texto'.", call. = FALSE)
+      .plan_input_abort("La plantilla NO tiene layout requerido: 'right_2graficos_texto'.")
     }
     if (is.na(layout_text_left2)) {
-      stop("La plantilla NO tiene layout requerido: 'left_2graficos_texto'.", call. = FALSE)
+      .plan_input_abort("La plantilla NO tiene layout requerido: 'left_2graficos_texto'.")
     }
-    if (is.na(layout_poblacion_2)) stop("La plantilla NO tiene layout requerido: 'poblacion_2'.", call. = FALSE)
-    if (is.na(layout_poblacion_5)) stop("La plantilla NO tiene layout requerido: 'poblacion_5'.", call. = FALSE)
-    if (is.na(layout_poblacion_6)) stop("La plantilla NO tiene layout requerido: 'poblacion_6'.", call. = FALSE)
+    if (is.na(layout_poblacion_2)) .plan_input_abort("La plantilla NO tiene layout requerido: 'poblacion_2'.")
+    if (is.na(layout_poblacion_5)) .plan_input_abort("La plantilla NO tiene layout requerido: 'poblacion_5'.")
+    if (is.na(layout_poblacion_6)) .plan_input_abort("La plantilla NO tiene layout requerido: 'poblacion_6'.")
 
     PPT_CONTRACT$slide_1$layout     <- layout_graficos
     slide_dims <- officer::slide_size(doc)
@@ -7186,7 +7185,7 @@ reporte_ppt_plan <- function(
 
     slide <- plan[[i]]
     if (!inherits(slide, "ppt_slide")) {
-      stop("Cada slide debe tener clase `ppt_slide`.", call. = FALSE)
+      .plan_input_abort("Cada slide debe tener clase `ppt_slide`.")
     }
 
     stype <- slide$.slide_type %||% NA_character_
@@ -7219,7 +7218,7 @@ reporte_ppt_plan <- function(
         if (!is.null(ttl) && nzchar(trimws(ttl))) {
           doc <- .ph_with_strict(doc, ttl, contract$slots$title)
         } else {
-          stop("title_slide requiere `title` no vacio.", call. = FALSE)
+          .plan_input_abort("title_slide requiere `title` no vacio.")
         }
 
         # opcionales (solo si vienen)
@@ -7548,7 +7547,7 @@ reporte_ppt_plan <- function(
       if (!is.null(slots$grosor_flecha)) style$grosor_flecha <- slots$grosor_flecha
 
       if (is.null(contract$layout) || is.na(contract$layout) || !nzchar(contract$layout)) {
-        stop("La plantilla NO tiene layout requerido para `top_two_box`: 'Title and Content' o 'General Objective'.", call. = FALSE)
+        .plan_input_abort("La plantilla NO tiene layout requerido para `top_two_box`: 'Title and Content' o 'General Objective'.")
       }
 
       if (!isTRUE(solo_lista)) {
@@ -7662,7 +7661,7 @@ reporte_ppt_plan <- function(
       txt <- slots$text %||% NULL
 
       if (is.null(contract$layout) || is.na(contract$layout) || !nzchar(contract$layout)) {
-        stop("La plantilla NO tiene layout requerido para `text_slide`: 'Title and Content' o 'General Objective'.", call. = FALSE)
+        .plan_input_abort("La plantilla NO tiene layout requerido para `text_slide`: 'Title and Content' o 'General Objective'.")
       }
 
       if (!isTRUE(solo_lista)) {
@@ -7693,7 +7692,7 @@ reporte_ppt_plan <- function(
           )
           doc <- .ph_with_strict(doc, title_value, contract$slots$title)
         } else {
-          stop("text_slide requiere `title` no vacio.", call. = FALSE)
+          .plan_input_abort("text_slide requiere `title` no vacio.")
         }
 
         if (is.null(txt) || !nzchar(trimws(as.character(txt)[1]))) txt <- " "
@@ -7844,13 +7843,13 @@ reporte_ppt_plan <- function(
       base_txt <- slots$base %||% NULL
 
       if (is.null(contract$layout) || is.na(contract$layout) || !nzchar(contract$layout)) {
-        stop("La plantilla NO tiene layout requerido para `technical_table`: 'Title and Content' o 'General Objective'.", call. = FALSE)
+        .plan_input_abort("La plantilla NO tiene layout requerido para `technical_table`: 'Title and Content' o 'General Objective'.")
       }
       if (is.null(title_slide) || !nzchar(trimws(as.character(title_slide)[1]))) {
-        stop("technical_table requiere `title` no vacio.", call. = FALSE)
+        .plan_input_abort("technical_table requiere `title` no vacio.")
       }
       if (is.null(table_data) || !is.data.frame(table_data) || ncol(table_data) < 2L || !nrow(table_data)) {
-        stop("technical_table requiere `slots$table` como data.frame con al menos dos columnas y una fila.", call. = FALSE)
+        .plan_input_abort("technical_table requiere `slots$table` como data.frame con al menos dos columnas y una fila.")
       }
 
       if (!isTRUE(solo_lista)) {
@@ -7968,12 +7967,12 @@ reporte_ppt_plan <- function(
       el_icon <- slots$icon %||% NULL
 
       if (!inherits(el_icon, "ppt_element")) {
-        stop("En `p_slide_objetivo_icono()`, `icono` debe ser `ppt_element`.", call. = FALSE)
+        el_icon <- .plan_elemento_degradado("En `p_slide_objetivo_icono()`, `icono` debe ser `ppt_element`.")
       }
 
       p_icon <- .render_element(el_icon)
       if (is.null(p_icon)) {
-        stop("No se pudo renderizar `icono` en `p_slide_objetivo_icono()`.", call. = FALSE)
+        p_icon <- .plan_canvas_render_nulo("No se pudo renderizar `icono` en `p_slide_objetivo_icono()`.")
       }
       rendered[[length(rendered) + 1]] <- p_icon
 
@@ -8059,7 +8058,7 @@ reporte_ppt_plan <- function(
       el_plot     <- slots$plot %||% NULL
 
       if (!inherits(el_plot, "ppt_element")) {
-        stop("En `p_slide_1_grafico()`, `grafico` debe ser `ppt_element`.", call. = FALSE)
+        el_plot <- .plan_elemento_degradado("En `p_slide_1_grafico()`, `grafico` debe ser `ppt_element`.")
       }
 
       etype <- el_plot$.element_type %||% NA_character_
@@ -8075,7 +8074,7 @@ reporte_ppt_plan <- function(
 
       if (is.null(p)) {
         vv <- .element_var_label(el_plot) %||% "<sin vars>"
-        stop("No se pudo renderizar elemento: ", etype, " (", vv, ").", call. = FALSE)
+        p <- .plan_canvas_render_nulo("No se pudo renderizar elemento: ", etype, " (", vv, ").")
       }
 
       rendered[[length(rendered) + 1]] <- p
@@ -8173,9 +8172,8 @@ reporte_ppt_plan <- function(
       el_left  <- slots$left  %||% NULL
       el_right <- slots$right %||% NULL
 
-      if (!inherits(el_left, "ppt_element") || !inherits(el_right, "ppt_element")) {
-        stop("En `p_slide_2_graficos()`, `izquierda` y `derecha` deben ser `ppt_element`.", call. = FALSE)
-      }
+      if (!inherits(el_left, "ppt_element"))  el_left  <- .plan_elemento_degradado("En `p_slide_2_graficos()`, `izquierda` debe ser `ppt_element`.")
+      if (!inherits(el_right, "ppt_element")) el_right <- .plan_elemento_degradado("En `p_slide_2_graficos()`, `derecha` debe ser `ppt_element`.")
 
       el_left  <- .element_adapt_to_plot_slot(el_left, contract$slots$left)
       el_right <- .element_adapt_to_plot_slot(el_right, contract$slots$right)
@@ -8184,8 +8182,8 @@ reporte_ppt_plan <- function(
       pL <- .render_element(el_left)
       pR <- .render_element(el_right)
 
-      if (is.null(pL)) stop("No se pudo renderizar left: ",  el_left$.element_type  %||% "<NA>", call. = FALSE)
-      if (is.null(pR)) stop("No se pudo renderizar right: ", el_right$.element_type %||% "<NA>", call. = FALSE)
+      if (is.null(pL)) pL <- .plan_canvas_render_nulo("No se pudo renderizar left: ",  el_left$.element_type  %||% "<NA>")
+      if (is.null(pR)) pR <- .plan_canvas_render_nulo("No se pudo renderizar right: ", el_right$.element_type %||% "<NA>")
 
       rendered[[length(rendered) + 1]] <- pL
       rendered[[length(rendered) + 1]] <- pR
@@ -8272,7 +8270,7 @@ reporte_ppt_plan <- function(
       el_plot     <- slots$plot %||% NULL
 
       if (!inherits(el_plot, "ppt_element")) {
-        stop("slide_1_narrativo: `plot` debe ser `ppt_element`.", call. = FALSE)
+        el_plot <- .plan_elemento_degradado("slide_1_narrativo: `plot` debe ser `ppt_element`.")
       }
 
       if (isTRUE(mensajes_progreso)) {
@@ -8284,7 +8282,7 @@ reporte_ppt_plan <- function(
       p <- .render_element(el_plot)
       if (is.null(p)) {
         vv <- .element_var_label(el_plot) %||% "<sin vars>"
-        stop("slide_1_narrativo: no se pudo renderizar plot (", el_plot$.element_type %||% "<NA>", " | ", vv, ").", call. = FALSE)
+        p <- .plan_canvas_render_nulo("slide_1_narrativo: no se pudo renderizar plot (", el_plot$.element_type %||% "<NA>", " | ", vv, ").")
       }
       rendered[[length(rendered) + 1]] <- p
 
@@ -8384,9 +8382,8 @@ reporte_ppt_plan <- function(
       el_left  <- slots$left  %||% NULL
       el_right <- slots$right %||% NULL
 
-      if (!inherits(el_left, "ppt_element") || !inherits(el_right, "ppt_element")) {
-        stop("slide_2_narrativo: `left` y `right` deben ser `ppt_element`.", call. = FALSE)
-      }
+      if (!inherits(el_left, "ppt_element"))  el_left  <- .plan_elemento_degradado("slide_2_narrativo: `left` debe ser `ppt_element`.")
+      if (!inherits(el_right, "ppt_element")) el_right <- .plan_elemento_degradado("slide_2_narrativo: `right` debe ser `ppt_element`.")
 
       el_left  <- .element_adapt_to_plot_slot(el_left, contract$slots$left)
       el_right <- .element_adapt_to_plot_slot(el_right, contract$slots$right)
@@ -8395,8 +8392,8 @@ reporte_ppt_plan <- function(
       pL <- .render_element(el_left)
       pR <- .render_element(el_right)
 
-      if (is.null(pL)) stop("slide_2_narrativo: no se pudo renderizar left.",  call. = FALSE)
-      if (is.null(pR)) stop("slide_2_narrativo: no se pudo renderizar right.", call. = FALSE)
+      if (is.null(pL)) pL <- .plan_canvas_render_nulo("slide_2_narrativo: no se pudo renderizar left.")
+      if (is.null(pR)) pR <- .plan_canvas_render_nulo("slide_2_narrativo: no se pudo renderizar right.")
 
       rendered[[length(rendered) + 1]] <- pL
       rendered[[length(rendered) + 1]] <- pR
@@ -8500,10 +8497,10 @@ reporte_ppt_plan <- function(
       el_bl <- slots$bottom_left  %||% NULL
       el_br <- slots$bottom_right %||% NULL
 
-      if (!inherits(el_ul, "ppt_element")) stop("paneles_4: `up_left` debe ser `ppt_element`.", call. = FALSE)
-      if (!inherits(el_ur, "ppt_element")) stop("paneles_4: `up_right` debe ser `ppt_element`.", call. = FALSE)
-      if (!inherits(el_bl, "ppt_element")) stop("paneles_4: `bottom_left` debe ser `ppt_element`.", call. = FALSE)
-      if (!inherits(el_br, "ppt_element")) stop("paneles_4: `bottom_right` debe ser `ppt_element`.", call. = FALSE)
+      if (!inherits(el_ul, "ppt_element")) el_ul <- .plan_elemento_degradado("paneles_4: `up_left` debe ser `ppt_element`.")
+      if (!inherits(el_ur, "ppt_element")) el_ur <- .plan_elemento_degradado("paneles_4: `up_right` debe ser `ppt_element`.")
+      if (!inherits(el_bl, "ppt_element")) el_bl <- .plan_elemento_degradado("paneles_4: `bottom_left` debe ser `ppt_element`.")
+      if (!inherits(el_br, "ppt_element")) el_br <- .plan_elemento_degradado("paneles_4: `bottom_right` debe ser `ppt_element`.")
 
       el_ul <- .inject_var_titulo(el_ul)
       el_ur <- .inject_var_titulo(el_ur)
@@ -8514,10 +8511,10 @@ reporte_ppt_plan <- function(
       pBL <- .render_element(.inject_title_override(el_bl))
       pBR <- .render_element(.inject_title_override(el_br))
 
-      if (is.null(pUL)) stop("paneles_4: no se pudo renderizar up_left.", call. = FALSE)
-      if (is.null(pUR)) stop("paneles_4: no se pudo renderizar up_right.", call. = FALSE)
-      if (is.null(pBL)) stop("paneles_4: no se pudo renderizar bottom_left.", call. = FALSE)
-      if (is.null(pBR)) stop("paneles_4: no se pudo renderizar bottom_right.", call. = FALSE)
+      if (is.null(pUL)) pUL <- .plan_canvas_render_nulo("paneles_4: no se pudo renderizar up_left.")
+      if (is.null(pUR)) pUR <- .plan_canvas_render_nulo("paneles_4: no se pudo renderizar up_right.")
+      if (is.null(pBL)) pBL <- .plan_canvas_render_nulo("paneles_4: no se pudo renderizar bottom_left.")
+      if (is.null(pBR)) pBR <- .plan_canvas_render_nulo("paneles_4: no se pudo renderizar bottom_right.")
 
       rendered[[length(rendered) + 1]] <- pUL
       rendered[[length(rendered) + 1]] <- pUR
@@ -8621,10 +8618,10 @@ reporte_ppt_plan <- function(
       el_bl <- slots$bottom_left  %||% NULL
       el_br <- slots$bottom_right %||% NULL
 
-      if (!inherits(el_ul, "ppt_element")) stop("poblacion_4: `up_left` debe ser `ppt_element`.", call. = FALSE)
-      if (!inherits(el_ur, "ppt_element")) stop("poblacion_4: `up_right` debe ser `ppt_element`.", call. = FALSE)
-      if (!inherits(el_bl, "ppt_element")) stop("poblacion_4: `bottom_left` debe ser `ppt_element`.", call. = FALSE)
-      if (!inherits(el_br, "ppt_element")) stop("poblacion_4: `bottom_right` debe ser `ppt_element`.", call. = FALSE)
+      if (!inherits(el_ul, "ppt_element")) el_ul <- .plan_elemento_degradado("poblacion_4: `up_left` debe ser `ppt_element`.")
+      if (!inherits(el_ur, "ppt_element")) el_ur <- .plan_elemento_degradado("poblacion_4: `up_right` debe ser `ppt_element`.")
+      if (!inherits(el_bl, "ppt_element")) el_bl <- .plan_elemento_degradado("poblacion_4: `bottom_left` debe ser `ppt_element`.")
+      if (!inherits(el_br, "ppt_element")) el_br <- .plan_elemento_degradado("poblacion_4: `bottom_right` debe ser `ppt_element`.")
 
       el_ul <- .inject_var_titulo(el_ul)
       el_ur <- .inject_var_titulo(el_ur)
@@ -8635,10 +8632,10 @@ reporte_ppt_plan <- function(
       pBL <- .render_element(.inject_title_override(el_bl))
       pBR <- .render_element(.inject_title_override(el_br))
 
-      if (is.null(pUL)) stop("poblacion_4: no se pudo renderizar up_left (",      el_ul$.element_type %||% "<NA>", ").", call. = FALSE)
-      if (is.null(pUR)) stop("poblacion_4: no se pudo renderizar up_right (",     el_ur$.element_type %||% "<NA>", ").", call. = FALSE)
-      if (is.null(pBL)) stop("poblacion_4: no se pudo renderizar bottom_left (",  el_bl$.element_type %||% "<NA>", ").", call. = FALSE)
-      if (is.null(pBR)) stop("poblacion_4: no se pudo renderizar bottom_right (", el_br$.element_type %||% "<NA>", ").", call. = FALSE)
+      if (is.null(pUL)) pUL <- .plan_canvas_render_nulo("poblacion_4: no se pudo renderizar up_left (",      el_ul$.element_type %||% "<NA>", ").")
+      if (is.null(pUR)) pUR <- .plan_canvas_render_nulo("poblacion_4: no se pudo renderizar up_right (",     el_ur$.element_type %||% "<NA>", ").")
+      if (is.null(pBL)) pBL <- .plan_canvas_render_nulo("poblacion_4: no se pudo renderizar bottom_left (",  el_bl$.element_type %||% "<NA>", ").")
+      if (is.null(pBR)) pBR <- .plan_canvas_render_nulo("poblacion_4: no se pudo renderizar bottom_right (", el_br$.element_type %||% "<NA>", ").")
 
       rendered[[length(rendered) + 1]] <- pUL
       rendered[[length(rendered) + 1]] <- pUR
@@ -8682,11 +8679,11 @@ reporte_ppt_plan <- function(
         el_icon <- slots$icon %||% NULL
         if (!is.null(el_icon)) {
           if (!inherits(el_icon, "ppt_element")) {
-            stop("En `p_slide_4_graficos_poblacion()`, `icono` debe ser `ppt_element`.", call. = FALSE)
+            el_icon <- .plan_elemento_degradado("En `p_slide_4_graficos_poblacion()`, `icono` debe ser `ppt_element`.")
           }
           p_icon <- .render_element(el_icon)
           if (is.null(p_icon)) {
-            stop("No se pudo renderizar `icono` en `p_slide_4_graficos_poblacion()`.", call. = FALSE)
+            p_icon <- .plan_canvas_render_nulo("No se pudo renderizar `icono` en `p_slide_4_graficos_poblacion()`.")
           }
           doc <- .ph_with_strict(
             doc,
@@ -8739,7 +8736,7 @@ reporte_ppt_plan <- function(
 
       el_plot <- slots$plot %||% NULL
       if (!inherits(el_plot, "ppt_element")) {
-        stop("text_r: `plot` debe ser `ppt_element`.", call. = FALSE)
+        el_plot <- .plan_elemento_degradado("text_r: `plot` debe ser `ppt_element`.")
       }
 
       # render plot
@@ -8751,7 +8748,7 @@ reporte_ppt_plan <- function(
       p <- .render_element(el_plot)
       if (is.null(p)) {
         vv <- .element_var_label(el_plot) %||% "<sin vars>"
-        stop("text_r: no se pudo renderizar plot (", el_plot$.element_type %||% "<NA>", " | ", vv, ").", call. = FALSE)
+        p <- .plan_canvas_render_nulo("text_r: no se pudo renderizar plot (", el_plot$.element_type %||% "<NA>", " | ", vv, ").")
       }
       rendered[[length(rendered) + 1]] <- p
 
@@ -8835,7 +8832,7 @@ reporte_ppt_plan <- function(
 
       el_plot <- slots$plot %||% NULL
       if (!inherits(el_plot, "ppt_element")) {
-        stop("text_l: `plot` debe ser `ppt_element`.", call. = FALSE)
+        el_plot <- .plan_elemento_degradado("text_l: `plot` debe ser `ppt_element`.")
       }
 
       if (isTRUE(mensajes_progreso)) {
@@ -8846,7 +8843,7 @@ reporte_ppt_plan <- function(
       p <- .render_element(el_plot)
       if (is.null(p)) {
         vv <- .element_var_label(el_plot) %||% "<sin vars>"
-        stop("text_l: no se pudo renderizar plot (", el_plot$.element_type %||% "<NA>", " | ", vv, ").", call. = FALSE)
+        p <- .plan_canvas_render_nulo("text_l: no se pudo renderizar plot (", el_plot$.element_type %||% "<NA>", " | ", vv, ").")
       }
       rendered[[length(rendered) + 1]] <- p
 
@@ -8929,14 +8926,14 @@ reporte_ppt_plan <- function(
       el1 <- slots$plot1 %||% NULL
       el2 <- slots$plot2 %||% NULL
 
-      if (!inherits(el1, "ppt_element")) stop("text_r2: `plot1` debe ser `ppt_element`.", call. = FALSE)
-      if (!inherits(el2, "ppt_element")) stop("text_r2: `plot2` debe ser `ppt_element`.", call. = FALSE)
+      if (!inherits(el1, "ppt_element")) el1 <- .plan_elemento_degradado("text_r2: `plot1` debe ser `ppt_element`.")
+      if (!inherits(el2, "ppt_element")) el2 <- .plan_elemento_degradado("text_r2: `plot2` debe ser `ppt_element`.")
 
       p1 <- .render_element(el1)
       p2 <- .render_element(el2)
 
-      if (is.null(p1)) stop("text_r2: no se pudo renderizar plot1.", call. = FALSE)
-      if (is.null(p2)) stop("text_r2: no se pudo renderizar plot2.", call. = FALSE)
+      if (is.null(p1)) p1 <- .plan_canvas_render_nulo("text_r2: no se pudo renderizar plot1.")
+      if (is.null(p2)) p2 <- .plan_canvas_render_nulo("text_r2: no se pudo renderizar plot2.")
 
       rendered[[length(rendered) + 1]] <- p1
       rendered[[length(rendered) + 1]] <- p2
@@ -9014,14 +9011,14 @@ reporte_ppt_plan <- function(
       el1 <- slots$plot1 %||% NULL
       el2 <- slots$plot2 %||% NULL
 
-      if (!inherits(el1, "ppt_element")) stop("text_l2: `plot1` debe ser `ppt_element`.", call. = FALSE)
-      if (!inherits(el2, "ppt_element")) stop("text_l2: `plot2` debe ser `ppt_element`.", call. = FALSE)
+      if (!inherits(el1, "ppt_element")) el1 <- .plan_elemento_degradado("text_l2: `plot1` debe ser `ppt_element`.")
+      if (!inherits(el2, "ppt_element")) el2 <- .plan_elemento_degradado("text_l2: `plot2` debe ser `ppt_element`.")
 
       p1 <- .render_element(el1)
       p2 <- .render_element(el2)
 
-      if (is.null(p1)) stop("text_l2: no se pudo renderizar plot1.", call. = FALSE)
-      if (is.null(p2)) stop("text_l2: no se pudo renderizar plot2.", call. = FALSE)
+      if (is.null(p1)) p1 <- .plan_canvas_render_nulo("text_l2: no se pudo renderizar plot1.")
+      if (is.null(p2)) p2 <- .plan_canvas_render_nulo("text_l2: no se pudo renderizar plot2.")
 
       rendered[[length(rendered) + 1]] <- p1
       rendered[[length(rendered) + 1]] <- p2
@@ -9099,14 +9096,14 @@ reporte_ppt_plan <- function(
       el_left  <- slots$left  %||% NULL
       el_right <- slots$right %||% NULL
 
-      if (!inherits(el_left, "ppt_element"))  stop("poblacion_2: `left` debe ser `ppt_element`.", call. = FALSE)
-      if (!inherits(el_right, "ppt_element")) stop("poblacion_2: `right` debe ser `ppt_element`.", call. = FALSE)
+      if (!inherits(el_left, "ppt_element"))  el_left <- .plan_elemento_degradado("poblacion_2: `left` debe ser `ppt_element`.")
+      if (!inherits(el_right, "ppt_element")) el_right <- .plan_elemento_degradado("poblacion_2: `right` debe ser `ppt_element`.")
 
       pL <- .render_element(.inject_title_override(el_left))
       pR <- .render_element(.inject_title_override(el_right))
 
-      if (is.null(pL)) stop("poblacion_2: no se pudo renderizar left.", call. = FALSE)
-      if (is.null(pR)) stop("poblacion_2: no se pudo renderizar right.", call. = FALSE)
+      if (is.null(pL)) pL <- .plan_canvas_render_nulo("poblacion_2: no se pudo renderizar left.")
+      if (is.null(pR)) pR <- .plan_canvas_render_nulo("poblacion_2: no se pudo renderizar right.")
 
       rendered[[length(rendered) + 1]] <- pL
       rendered[[length(rendered) + 1]] <- pR
@@ -9139,11 +9136,11 @@ reporte_ppt_plan <- function(
         icon_val <- slots$icon %||% NULL
         if (!is.null(icon_val)) {
           if (!inherits(icon_val, "ppt_element")) {
-            stop("En `p_slide_2_graficos_poblacion()`, `icono` debe ser `ppt_element`.", call. = FALSE)
+            icon_val <- .plan_elemento_degradado("En `p_slide_2_graficos_poblacion()`, `icono` debe ser `ppt_element`.")
           }
           p_icon <- .render_element(icon_val)
           if (is.null(p_icon)) {
-            stop("No se pudo renderizar `icono` en `p_slide_2_graficos_poblacion()`.", call. = FALSE)
+            p_icon <- .plan_canvas_render_nulo("No se pudo renderizar `icono` en `p_slide_2_graficos_poblacion()`.")
           }
           doc <- .ph_with_strict(
             doc,
@@ -9170,10 +9167,10 @@ reporte_ppt_plan <- function(
       title_slide <- slots$title %||% slide$title %||% NULL
 
       pics <- lapply(1:5, function(i) slots[[paste0("pic", i)]] %||% NULL)
-      for (i in 1:5) if (!inherits(pics[[i]], "ppt_element")) stop("poblacion_5: `pic", i, "` debe ser `ppt_element`.", call. = FALSE)
+      for (i in 1:5) if (!inherits(pics[[i]], "ppt_element")) pics[[i]] <- .plan_elemento_degradado("poblacion_5: `pic", i, "` debe ser `ppt_element`.")
 
       plots <- lapply(pics, function(pic) .render_element(.inject_title_override(pic)))
-      for (i in 1:5) if (is.null(plots[[i]])) stop("poblacion_5: no se pudo renderizar pic", i, ".", call. = FALSE)
+      for (i in 1:5) if (is.null(plots[[i]])) plots[[i]] <- .plan_canvas_render_nulo("poblacion_5: no se pudo renderizar pic", i, ".")
 
       rendered <- c(rendered, plots)
 
@@ -9192,11 +9189,11 @@ reporte_ppt_plan <- function(
         el_icon <- slots$icon %||% NULL
         if (!is.null(el_icon)) {
           if (!inherits(el_icon, "ppt_element")) {
-            stop("En `p_slide_5_graficos_poblacion()`, `icono` debe ser `ppt_element`.", call. = FALSE)
+            el_icon <- .plan_elemento_degradado("En `p_slide_5_graficos_poblacion()`, `icono` debe ser `ppt_element`.")
           }
           p_icon <- .render_element(el_icon)
           if (is.null(p_icon)) {
-            stop("No se pudo renderizar `icono` en `p_slide_5_graficos_poblacion()`.", call. = FALSE)
+            p_icon <- .plan_canvas_render_nulo("No se pudo renderizar `icono` en `p_slide_5_graficos_poblacion()`.")
           }
           doc <- .ph_with_strict(
             doc,
@@ -9232,10 +9229,10 @@ reporte_ppt_plan <- function(
       title_slide <- slots$title %||% slide$title %||% NULL
 
       pics <- lapply(1:6, function(i) slots[[paste0("pic", i)]] %||% NULL)
-      for (i in 1:6) if (!inherits(pics[[i]], "ppt_element")) stop("poblacion_6: `pic", i, "` debe ser `ppt_element`.", call. = FALSE)
+      for (i in 1:6) if (!inherits(pics[[i]], "ppt_element")) pics[[i]] <- .plan_elemento_degradado("poblacion_6: `pic", i, "` debe ser `ppt_element`.")
 
       plots <- lapply(pics, function(pic) .render_element(.inject_title_override(pic)))
-      for (i in 1:6) if (is.null(plots[[i]])) stop("poblacion_6: no se pudo renderizar pic", i, ".", call. = FALSE)
+      for (i in 1:6) if (is.null(plots[[i]])) plots[[i]] <- .plan_canvas_render_nulo("poblacion_6: no se pudo renderizar pic", i, ".")
 
       rendered <- c(rendered, plots)
 
@@ -9254,11 +9251,11 @@ reporte_ppt_plan <- function(
         el_icon <- slots$icon %||% NULL
         if (!is.null(el_icon)) {
           if (!inherits(el_icon, "ppt_element")) {
-            stop("En `p_slide_6_graficos_poblacion()`, `icono` debe ser `ppt_element`.", call. = FALSE)
+            el_icon <- .plan_elemento_degradado("En `p_slide_6_graficos_poblacion()`, `icono` debe ser `ppt_element`.")
           }
           p_icon <- .render_element(el_icon)
           if (is.null(p_icon)) {
-            stop("No se pudo renderizar `icono` en `p_slide_6_graficos_poblacion()`.", call. = FALSE)
+            p_icon <- .plan_canvas_render_nulo("No se pudo renderizar `icono` en `p_slide_6_graficos_poblacion()`.")
           }
           doc <- .ph_with_strict(
             doc,
@@ -9284,7 +9281,7 @@ reporte_ppt_plan <- function(
       next
     }
 
-    stop("Tipo de slide no implementado: ", stype, call. = FALSE)
+    .plan_input_abort("Tipo de slide no implementado: ", stype)
   }
 
   log <- dplyr::bind_rows(log_rows)
@@ -9385,9 +9382,9 @@ p_presets <- function(
 
   normalize_block <- function(x) {
     if (is.null(x)) return(list(args = list()))
-    if (!is.list(x)) stop("Cada preset debe ser una lista.", call. = FALSE)
+    if (!is.list(x)) .plan_input_abort("Cada preset debe ser una lista.")
     if (!is.null(x$args)) {
-      if (!is.list(x$args)) stop("`args` debe ser una lista.", call. = FALSE)
+      if (!is.list(x$args)) .plan_input_abort("`args` debe ser una lista.")
       return(x)
     }
     list(args = x)

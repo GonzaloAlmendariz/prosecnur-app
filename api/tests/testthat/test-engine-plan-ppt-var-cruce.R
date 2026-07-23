@@ -1573,8 +1573,11 @@ test_that("var_cruce multi-fuente no acepta cruces explicito", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
 
-  expect_error(
-    render_var_cruce_multisource_plot(
+  # Unidad 5.1: el conflicto de spec detectado DENTRO del renderer ya no mata
+  # el deck completo — degrada ESA lamina a canvas "Sin datos" con warning que
+  # conserva el mensaje historico.
+  expect_warning(
+    p <- render_var_cruce_multisource_plot(
       vars = list(
         mision = c("docentes$p1", "estudiantes$p1", "administrativos$q1")
       ),
@@ -1582,6 +1585,7 @@ test_that("var_cruce multi-fuente no acepta cruces explicito", {
     ),
     "`cruces` debe ser NULL"
   )
+  expect_s3_class(p, "ggplot")
 })
 
 test_that("var_cruce acepta listas equivalentes aunque el list_name difiera", {
