@@ -97,8 +97,6 @@ auditar_consistencia_corpus <- function(corpus,
   )
 }
 
-`%||%` <- function(a, b) if (is.null(a) || (length(a) == 1 && is.na(a))) b else a
-
 .audit_validate_corpus <- function(corpus) {
   if (!is.data.frame(corpus)) {
     stop("`corpus` debe ser un data.frame o tibble.", call. = FALSE)

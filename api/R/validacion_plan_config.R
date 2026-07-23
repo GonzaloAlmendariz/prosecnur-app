@@ -167,9 +167,6 @@ expr_no_other_no_text <- function(mult, other_txt, config = acnur_config()) {
           pat, mult, other_txt, other_txt)
 }
 
-# Operador %||% auxiliar
-`%||%` <- function(a, b) if (is.null(a)) b else a
-
 
 #' Construir mapa de secciones (group -> prefix) de forma automática
 #'

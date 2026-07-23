@@ -13,8 +13,6 @@
 # del API. Por eso se valida con `requireNamespace()` y se falla con mensajes
 # accionables si falta algo.
 
-`%||%` <- function(x, y) if (is.null(x) || length(x) == 0L) y else x
-
 #' Release pinned de Overture Maps Transportation
 #'
 #' Overture publica releases mensuales con tag `YYYY-MM-DD.0` en

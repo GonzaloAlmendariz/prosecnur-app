@@ -2041,8 +2041,6 @@ p_reset <- function(
 
 
 
-`%||%` <- function(x, y) if (!is.null(x)) x else y
-
 .format_group_base_caption <- function(labels, totals) {
   labels <- trimws(as.character(labels %||% character(0)))
   totals <- suppressWarnings(as.numeric(totals %||% numeric(0)))

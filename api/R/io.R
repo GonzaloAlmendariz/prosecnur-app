@@ -68,8 +68,6 @@ parse_multipart_upload <- function(req) {
   parsed
 }
 
-`%||%` <- function(a, b) if (is.null(a)) b else a
-
 # Multipart text fields arrive inconsistently in plumber (as character, list, or
 # empty list) depending on the client's Content-Type. This helper normalizes them
 # by first reading the auto-parsed value and, if empty, re-parsing the raw body.

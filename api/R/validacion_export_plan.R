@@ -2,8 +2,6 @@
 # Exportar Plan de Limpieza a Excel — versión “pro” y editable (Ajustado)
 # =====================================================================
 
-`%||%` <- function(a, b) if (is.null(a) || (length(a)==1 && is.na(a))) b else a
-
 # ---------- Paletas / niveles ----------
 .categoria_levels <- c(
   "Saltos de preguntas",

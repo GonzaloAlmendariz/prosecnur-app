@@ -1127,8 +1127,6 @@ surveymonkey_validar_logica <- function(xlsform, sm, threshold = 0.95) {
   }))
 }
 
-`%||%` <- function(a, b) if (is.null(a)) b else a
-
 .sm_empty_validacion <- function() {
   tibble::tibble(
     target = character(0),

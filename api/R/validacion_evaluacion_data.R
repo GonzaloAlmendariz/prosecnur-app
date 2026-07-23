@@ -22,10 +22,6 @@
 # Utilidades pequeñas
 # -------------------------------------------------------------------
 
-#' Operador null-coalescing muy simple
-#' @keywords internal
-`%||%` <- function(a, b) if (is.null(a) || (length(a)==1 && is.na(a))) b else a
-
 #' Chequeo de string no-vacío
 #' @keywords internal
 .nz <- function(x) is.character(x) && length(x)==1 && !is.na(x) && nzchar(trimws(x))
@@ -1410,8 +1406,6 @@ total_inconsistencias <- function(evaluacion) {
 #   (mapeo regla -> grupo via prefijo en inst$meta$section_map)
 # -------------------------------------------------------------------
 
-`%||%` <- function(a,b) if (is.null(a) || (length(a)==1 && is.na(a))) b else a
-
 # coalesce que ignora columnas ausentes
 .safe_coalesce <- function(df, cols, fill = NA_character_) {
   exist <- cols[cols %in% names(df)]
@@ -1699,7 +1693,6 @@ render_bloques_kable <- function(
     map_clean_to_original = NULL,
     usar_mapeo = FALSE
 ){
-  `%||%` <- function(a,b) if (is.null(a) || (length(a)==1 && is.na(a))) b else a
   nz  <- function(x) is.character(x) && length(x)==1 && !is.na(x) && nzchar(trimws(x))
   esc <- function(x) htmltools::htmlEscape(as.character(x %||% ""))
 

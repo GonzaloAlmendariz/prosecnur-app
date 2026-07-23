@@ -2,12 +2,6 @@
 # Validación AST — runtime AST-first, import/export y compatibilidad
 # =============================================================================
 
-`%||%` <- function(a, b) {
-  if (is.null(a)) return(b)
-  if (!is.list(a) && !is.data.frame(a) && length(a) == 1L && is.na(a)) return(b)
-  a
-}
-
 # -----------------------------------------------------------------------------
 # Include flags v2 → AST / compat
 # -----------------------------------------------------------------------------

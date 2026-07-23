@@ -8,8 +8,6 @@
 
 # ---- Helpers internos --------------------------------------------------------
 
-`%||%` <- function(x, y) if (!is.null(x)) x else y
-
 .ppt_norm_text1 <- function(x, blank = NULL) {
   if (is.null(x)) return(NULL)
   if (length(x) == 0L) return(blank)

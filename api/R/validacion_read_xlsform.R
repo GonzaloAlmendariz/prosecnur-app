@@ -11,7 +11,6 @@
 # ============================================================
 
 # -------------------- Helpers básicos --------------------
-`%||%` <- function(a, b) if (is.null(a)) b else a
 .nz <- function(x) { !is.null(x) && length(x) > 0 && !is.na(x) && nzchar(x) }
 .fmt_name_label <- function(name, label) {
   nm <- as.character(name %||% "")
@@ -1004,7 +1003,6 @@ GraficarSecciones <- function(inst,
   for (p in req) if (!requireNamespace(p, quietly = TRUE)) {
     stop("Falta el paquete '", p, "'. Instálalo.", call. = FALSE)
   }
-  `%||%` <- function(a,b) if (is.null(a)) b else a
   .wrap <- function(x, width=40) stringr::str_wrap(as.character(x %||% ""), width=width)
 
   sm <- inst$meta$section_map %||% tibble::tibble()
@@ -1350,7 +1348,6 @@ GraficarPreguntas <- function(inst,
   for (p in req) if (!requireNamespace(p, quietly = TRUE))
     stop("Falta el paquete '", p, "'.", call. = FALSE)
 
-  `%||%` <- function(a,b) if (is.null(a)) b else a
   .cut <- function(s, n = 12) {
     s <- as.character(s %||% "")
     ifelse(nchar(s) > n, substr(s, 1, n), s)  # cortar SIN “...”
