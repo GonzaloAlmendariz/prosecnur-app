@@ -344,7 +344,7 @@ session_schema <- function() {
     "^monitoreo_publication_preflight_events_[a-z0-9_]+$",     "patron", "persistible", "router_monitoreo.R", "session_set", "clave por audiencia (client/internal)",
     "^monitoreo_publication_evidence_pack_events_[a-z0-9_]+$", "patron", "persistible", "router_monitoreo.R", "session_set", "clave por audiencia (client/internal)",
     "^monitoreo_publication_sheet_events_[a-z0-9_]+$",         "patron", "persistible", "router_monitoreo.R", "session_set", "clave por audiencia (client/internal)",
-    "^monitoreo_dashboard_cache(_token)?_[a-z0-9_]+$",         "patron", "cache_stripped", "router_monitoreo.R", "session_set", "cache scoped por report_scope; strippeado en save por grep de familia desde 2026-07-23 (unidad 3.7)"
+    "^monitoreo_dashboard_cache(_token)?_[a-z0-9_]+$",         "patron", "persistible", "router_monitoreo.R", "session_set", "cache scoped por report_scope; PERSISTE por decision del dueño (warm start intencional 2026-07-23: el .pulso puede pesar mas a cambio de abrir caliente)"
   )
   stopifnot(length(tabla) %% 6L == 0L)
   m <- matrix(tabla, ncol = 6L, byrow = TRUE)

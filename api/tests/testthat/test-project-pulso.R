@@ -1300,7 +1300,9 @@ test_that("load_pulso falla con mensaje claro si el archivo no existe", {
 
 # --- Unidad 3.7: fugas de caché que viajaban en el .pulso (censo 2026-07-23)
 
-test_that("el strip resetea la familia scoped de caches de dashboard y las fugas hermanas", {
+test_that("el strip conserva el warm start de monitoreo y resetea las fugas hermanas", {
+  # Decision del dueño (2026-07-23): los caches scoped de dashboard VIAJAN en
+  # el .pulso — abrir caliente es intencional aunque el archivo pese mas.
   s <- list(
     monitoreo_dashboard_cache_full = list(pesado = TRUE),
     monitoreo_dashboard_cache_token_full = "tok",
@@ -1310,11 +1312,10 @@ test_that("el strip resetea la familia scoped de caches de dashboard y las fugas
     monitoreo_config = list(family = "territorial")
   )
   out <- .pulso_strip_caches(s)
-  expect_null(out$monitoreo_dashboard_cache_full)
-  expect_null(out$monitoreo_dashboard_cache_token_full)
-  expect_null(out$monitoreo_dashboard_cache_queries_summary)
+  expect_identical(out$monitoreo_dashboard_cache_full, s$monitoreo_dashboard_cache_full)
+  expect_identical(out$monitoreo_dashboard_cache_token_full, "tok")
+  expect_identical(out$monitoreo_dashboard_cache_queries_summary, s$monitoreo_dashboard_cache_queries_summary)
   expect_null(out$graficos_preview_cache)
   expect_null(out$explorador_cache)
-  # Lo que no es cache sobrevive intacto.
   expect_identical(out$monitoreo_config, s$monitoreo_config)
 })
