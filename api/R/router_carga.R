@@ -287,9 +287,35 @@ summarize_instrumento <- function(inst) {
 # sí es sospechoso y debe romper el chequeo estricto.
 .carga_backfill_missing_expected <- function(data, instrumento) {
   if (!is.data.frame(data)) return(data)
+  expected <- .dn_expected_data_names(instrumento)
+  # Backstop anti-máscara (H2): el backfill benigno rellena como NA las
+  # esperadas ausentes asumiendo "pregunta sin respuestas". Ese supuesto SÓLO
+  # vale para faltantes sueltos (asset curado que viaja junto). Si tras el canon
+  # una FRACCIÓN MASIVA de las esperadas sigue ausente, no es un puñado de
+  # preguntas vacías: es un fallo de compatibilidad wholesale (data que no
+  # corresponde al instrumento, o un canon que no conectó nada). Rellenarlo
+  # produciría un demo/import vacío que enmascara el bug y pasa el assert en
+  # verde. Umbral GENEROSO (>50%) para no falsos-positivar los casos legítimos
+  # (demos actuales: 0/64, 1/349, 0 tras canon — muy por debajo). No relaja
+  # validate_data_xlsform_compatibility; sólo evita que el backfill la burle.
+  if (length(expected)) {
+    missing <- setdiff(expected, names(data))
+    if (length(missing) > 0.5 * length(expected)) {
+      stop_api(
+        400,
+        "E_DATA_XLSFORM_INCOMPATIBLE",
+        sprintf(
+          paste0("La data no calza con el XLSForm tras la reconciliación: faltan ",
+                 "%d de %d variable(s) esperada(s) (%.0f%%). Es un desajuste de ",
+                 "versión o de asset, no preguntas vacías; el backfill no lo cubre."),
+          length(missing), length(expected), 100 * length(missing) / length(expected)
+        )
+      )
+    }
+  }
   # Delega en el helper compartido (ADR 0030 Fase 1). El set esperado de la base
   # ancha excluye repeat/matrix-header/calculate (.dn_expected_data_names).
-  .dn_backfill_missing_columns(data, .dn_expected_data_names(instrumento))
+  .dn_backfill_missing_columns(data, expected)
 }
 
 read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL, choice_code_maps = NULL) {

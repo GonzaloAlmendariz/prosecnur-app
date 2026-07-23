@@ -376,6 +376,16 @@ mount_sistema <- function(pr) {
         rp_inst <- reporte_instrumento(path = xls_meta$path)
         data_df <- .read_data_from_path(dat_meta$path, dat_meta$ext)
         data_df <- normalize_data_for_xlsform(data_df, rp_inst)
+        # Backfill benigno DESPUÉS del canon: el instrumento y la data del demo
+        # son un asset curado que viaja junto, así que un faltante que sobrevive
+        # a la reconciliación canónica = pregunta sin respuestas (ej. ops_salud
+        # `n_cuesitonario`, un integer con typo horneado que nunca recolectó nada),
+        # no un desajuste de versión. Corre tras el canon a propósito: si el canon
+        # ya conectó las columnas reales (acreditación), el backfill no rellena
+        # nada real con NA; si el canon fallara, no queremos que el backfill
+        # enmascare el bug produciendo un demo vacío — de ahí que el assert
+        # estricto siga corriendo justo después.
+        data_df <- .carga_backfill_missing_expected(data_df, rp_inst)
         .carga_assert_data_xlsform_compatible(data_df, rp_inst)
         rp_data <- reporte_data(data_df, instrumento = rp_inst)
 
