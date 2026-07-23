@@ -5489,8 +5489,12 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
     "Auditoría técnica", "Auditoria tecnica", "Base técnica", "Base tecnica",
     "Trazabilidad del corte", "Registros del corte"
   )
+  # Congelar el encabezado SOLO si queda al menos una fila visible sin
+  # congelar: con una pestaña de solo-header (row_count == 1) Google rechaza
+  # el batch entero ("No se pueden inmovilizar todas las filas visibles").
+  # Detectado e2e publicando el interno de ACNURCG (pestaña vacía del corte).
   requests <- list(list(updateSheetProperties = list(
-    properties = list(sheetId = sheet_id, gridProperties = list(frozenRowCount = min(1L, row_count))),
+    properties = list(sheetId = sheet_id, gridProperties = list(frozenRowCount = if (row_count > 1L) 1L else 0L)),
     fields = "gridProperties.frozenRowCount"
   )))
   if (!row_count) return(requests)

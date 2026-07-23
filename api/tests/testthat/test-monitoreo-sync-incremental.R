@@ -678,3 +678,12 @@ test_that("advance llega intacto a TODAS las fuentes aunque la primera devuelva 
   invisible(monitoreo_sync_sources(fuentes, sync_mode = "advance", build_dashboard = FALSE))
   expect_identical(modos_recibidos, c("advance", "advance"))
 })
+
+test_that("el formato no congela la unica fila visible de una pestaña solo-header", {
+  reqs_vacia <- .monitoreo_sheets_professional_format_requests(1L, "Corte", rows = list(list("encabezado")))
+  frozen <- reqs_vacia[[1]]$updateSheetProperties$properties$gridProperties$frozenRowCount
+  expect_identical(frozen, 0L)
+  reqs_datos <- .monitoreo_sheets_professional_format_requests(1L, "Corte", rows = list(list("encabezado"), list("dato")))
+  frozen2 <- reqs_datos[[1]]$updateSheetProperties$properties$gridProperties$frozenRowCount
+  expect_identical(frozen2, 1L)
+})
