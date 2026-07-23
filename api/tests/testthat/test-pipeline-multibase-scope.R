@@ -227,7 +227,12 @@ test_that("Validacion Explorar sin base explicita usa la base activa", {
   )
 })
 
-test_that("invalidar una base limpia su pipeline y preserva el de su hermana", {
+test_that("invalidar una base limpia su pipeline, preserva su catálogo de codificación y no toca a su hermana", {
+  # `marker` representa una DEFINICIÓN del catálogo de codificación (grupos_recod,
+  # familias, marcadas…): trabajo del usuario que se PRESERVA al invalidar. Solo
+  # el estado aplicado/cache (aplicado/inst/data) se limpia. Ver
+  # .codif_strip_applied_state (fix del borrado de codificación al aplicar en
+  # multibase).
   state <- list(
     estudio = list(bases = list(
       a = list(validacion = list(plan_result = data.frame(rule = "a"))),
@@ -256,7 +261,8 @@ test_that("invalidar una base limpia su pipeline y preserva el de su hermana", {
   expect_identical(
     list(
       a_limpia = c(
-        codif = is.null(invalidated$codif_por_base$a),
+        codif_definicion = identical(invalidated$codif_por_base$a$marker, "codif-a"),
+        codif_aplicado = is.null(invalidated$codif_por_base$a$aplicado),
         data_cache = is.null(invalidated$analitica_rp_data_sources$a),
         inst_cache = is.null(invalidated$analitica_rp_inst_sources$a),
         status = is.null(invalidated$analitica_status_por_base$a),
@@ -284,7 +290,8 @@ test_that("invalidar una base limpia su pipeline y preserva el de su hermana", {
     ),
     list(
       a_limpia = c(
-        codif = TRUE,
+        codif_definicion = TRUE,
+        codif_aplicado = TRUE,
         data_cache = TRUE,
         inst_cache = TRUE,
         status = TRUE,

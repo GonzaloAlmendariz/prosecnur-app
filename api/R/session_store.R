@@ -889,8 +889,16 @@ validacion_key_present_any <- function(s, key) {
 
   # Codificación y Analítica dependen de la pareja invalidada. Limpiar
   # solo sus entradas evita perder el avance independiente de bases hermanas.
+  # OJO: el catálogo de codificación (grupos_recod, familias, marcadas) es
+  # trabajo del usuario, NO caché derivable — se PRESERVA. Solo se invalida el
+  # estado aplicado/cache (aplicado/inst/data). Histórico: aplicar la
+  # codificación en un estudio multibase (madre+repeat) invalidaba aquí la base
+  # y borraba TODO su catálogo, dejando list(aplicado=TRUE) — el usuario quedaba
+  # "descodificado". Mismo patrón que .limpieza_invalidate_downstream.
   for (bn in targets) {
-    if (is.list(s$codif_por_base)) s$codif_por_base[[bn]] <- NULL
+    if (is.list(s$codif_por_base)) {
+      s$codif_por_base[[bn]] <- .codif_strip_applied_state(s$codif_por_base[[bn]])
+    }
     if (is.list(s$analitica_rp_data_sources)) s$analitica_rp_data_sources[[bn]] <- NULL
     if (is.list(s$analitica_rp_inst_sources)) s$analitica_rp_inst_sources[[bn]] <- NULL
     if (is.list(s$analitica_status_por_base)) s$analitica_status_por_base[[bn]] <- NULL
