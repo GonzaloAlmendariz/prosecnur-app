@@ -1,3 +1,550 @@
+/* =========================================================================
+   Movido desde app/theme.css (refactor 2026-07: theme.css = tokens + kit).
+   Bloques byte-idénticos; prepend para conservar el orden de cascada (theme.css cargaba antes que este archivo).
+   ========================================================================= */
+
+.pulso-graph-body.has-edge-panel .pulso-graph-minimap {
+  right: calc(clamp(380px, 32vw, 520px) + 28px);
+}
+
+.pulso-graph-detail header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pulso-graph-detail p {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.4;
+}
+
+.pulso-graph-detail p code {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  background: var(--pulso-surface-2);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--pulso-primary);
+}
+
+.pulso-graph-detail-link {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 11.5px;
+  color: var(--pulso-text);
+  transition: background 120ms ease, border-color 120ms ease;
+  /* Permitir flow natural: la fila puede ser multi-línea si la
+   * expresión es larga. Antes el span tenía white-space: nowrap +
+   * ellipsis, lo que truncaba "satisfaccion si consent = 'Sí' y..." */
+  flex-wrap: wrap;
+}
+
+.pulso-graph-detail-link:hover {
+  background: var(--pulso-primary-soft);
+  border-color: var(--pulso-primary-border);
+}
+
+.pulso-graph-legend ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pulso-graph-legend svg {
+  flex-shrink: 0;
+}
+
+.pulso-graph-toolbar-btn:hover:not(:disabled) {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  border-color: var(--pulso-border);
+}
+
+.pulso-graph-toolbar-btn.is-on {
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  border-color: var(--pulso-primary-border);
+}
+
+.pulso-graph-toolbar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pulso-graph-toolbar-layer-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 4px 0 2px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--pulso-text-muted);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pulso-graph-toolbar-segment {
+  display: inline-flex;
+  border: 1px solid var(--pulso-border);
+  border-radius: 9px;
+  overflow: hidden;
+  background: rgba(248, 250, 252, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.pulso-graph-toolbar-segment button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  min-height: 30px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.pulso-graph-toolbar-segment button:hover:not(.is-on) {
+  background: white;
+  color: var(--pulso-text);
+}
+
+.pulso-graph-toolbar-segment button.is-on {
+  background: var(--pulso-primary);
+  color: white;
+}
+
+.pulso-graph-toolbar-segment button + button {
+  border-left: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.pulso-graph-edge.is-fresh path:not([stroke="transparent"]) {
+  animation: pulso-graph-edge-fresh 600ms ease-out both;
+}
+
+.pulso-graph-condpicker > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--pulso-surface-2);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-graph-condpicker-close {
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--pulso-text-soft);
+  border-radius: 5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pulso-graph-condpicker-close:hover {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+}
+
+.pulso-graph-condpicker-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--pulso-text);
+  transition: background 100ms ease;
+}
+
+.pulso-graph-condpicker-option:hover {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-graph-condpicker-option.is-on {
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+}
+
+.pulso-graph-condpicker-option input {
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--pulso-primary);
+}
+
+.pulso-graph-condpicker-value {
+  padding: 6px 14px 0;
+}
+
+.pulso-graph-condpicker-value input,
+.pulso-graph-condpicker-value select {
+  width: 100%;
+  padding: 7px 9px;
+  font-size: 12.5px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: white;
+}
+
+.pulso-graph-condpicker-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-graph-condpicker-actions button {
+  padding: 6px 11px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--pulso-border);
+  background: white;
+  color: var(--pulso-text);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.pulso-graph-condpicker-actions button:hover:not(:disabled) {
+  background: var(--pulso-surface-2);
+  border-color: var(--pulso-primary);
+}
+
+.pulso-graph-condpicker-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pulso-graph-legend.is-collapsed .pulso-graph-legend-toggle {
+  position: static;
+  width: 32px;
+  height: 32px;
+  font-size: 15px;
+  background: white;
+  border: 1px solid var(--pulso-border);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-graph-legend-toggle:hover {
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  border-color: var(--pulso-primary-border);
+}
+
+/* Tooltip de hover — el path SVG ya nos da `midY` con offset cuando
+ * lane está fuera del bloque; aquí solo aseguramos que la card del
+ * tooltip no se solape con cards: usamos pointer-events:none y
+ * z-index alto. */
+.pulso-graph-edge-label {
+  z-index: 30;
+}
+
+/* Permitimos selección en los componentes donde tiene sentido copiar
+ * texto (códigos, expresiones, IDs técnicos). */
+.pulso-graph-detail,
+.pulso-graph-detail *,
+.pulso-graph-edge-label,
+.pulso-graph-edge-label *,
+.pulso-graph-condpicker,
+.pulso-graph-condpicker *,
+.pulso-graph-legend.is-open,
+.pulso-graph-legend.is-open *,
+.pulso-graph-edge-panel,
+.pulso-graph-edge-panel * {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.pulso-graph-edge-panel header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--pulso-border);
+  position: sticky;
+  top: -22px;
+  z-index: 2;
+  background: rgba(248, 250, 252, 0.98);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.pulso-graph-edge-panel-card-clickable {
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 100ms ease;
+}
+
+.pulso-graph-edge-panel-card-clickable:hover {
+  background: rgba(36, 87, 214, 0.05);
+  border-color: var(--pulso-primary-border);
+}
+
+.pulso-graph-edge-panel-card-clickable.pulso-graph-edge-panel-card-section:hover {
+  background: rgba(15, 118, 110, 0.05);
+  border-color: rgba(15, 118, 110, 0.4);
+}
+
+.pulso-graph-edge-panel-card-section .pulso-graph-edge-panel-card-icon {
+  background: rgba(15, 118, 110, 0.10);
+  box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.16);
+  color: #0f766e;
+}
+
+.pulso-graph-edge-panel-card-clickable:hover .pulso-graph-edge-panel-card-chevron {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+.pulso-graph-edge-panel-btn:active {
+  transform: translateY(0);
+}
+
+/* Variante destructiva (Eliminar relación): soft por defecto, se
+ * afirma en rojo al hover / en la confirmación. */
+.pulso-graph-edge-panel-btn.is-danger {
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  border: 1px solid var(--pulso-danger-border);
+  box-shadow: none;
+}
+
+.pulso-graph-edge-panel-btn.is-danger:hover {
+  background: var(--pulso-danger-fg);
+  color: white;
+  border-color: var(--pulso-danger-fg);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--pulso-danger-fg) 28%, transparent);
+}
+
+.pulso-graph-edge-panel-confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pulso-graph-edge-panel-confirm-actions .pulso-graph-edge-panel-btn {
+  width: auto;
+  flex: 1 1 0;
+}
+
+/* La leyenda colapsada → panel premium cuando se abre */
+.pulso-graph-legend.is-open {
+  width: 336px;
+  max-height: calc(100vh - 150px);
+  overflow: auto;
+  padding: 16px 16px 14px;
+  border-radius: 16px;
+  border-color: color-mix(in srgb, var(--pulso-primary) 14%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97), color-mix(in srgb, var(--pulso-surface-2) 34%, #ffffff)),
+    #ffffff;
+  box-shadow: var(--pulso-shadow-popover, 0 18px 46px rgba(15, 23, 42, 0.18));
+  backdrop-filter: blur(16px) saturate(1.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
+}
+
+.pulso-graph-edge {
+  animation: pulso-graph-edge-appear 320ms cubic-bezier(0.18, 0.89, 0.32, 1.18) both;
+}
+
+/* La pulse de "fresh" tiene precedencia visual sobre la appear. */
+.pulso-graph-edge.is-fresh path:not([stroke="transparent"]) {
+  animation: pulso-graph-edge-fresh 600ms ease-out both;
+}
+
+/* Edge clickeable: hover con leve subida de luminosidad. */
+.pulso-graph-edge.is-clickable:hover path:not([stroke="transparent"]) {
+  filter: drop-shadow(0 0 6px rgba(36, 87, 214, 0.18));
+}
+
+/* ─── Indicador de zoom flotante ─────────────────────────────────── */
+/* Posicionado top-LEFT debajo del header, en zona típicamente vacía
+ * del lienzo. Antes estaba en bottom-left donde solía solaparse con
+ * cards arrastradas o paneles. */
+.pulso-graph-zoom-indicator {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--pulso-text);
+  box-shadow: var(--pulso-shadow-soft);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  z-index: 35;
+  transition: background 140ms ease, transform 100ms ease, opacity 200ms ease;
+  font-variant-numeric: tabular-nums;
+  min-width: 44px;
+  text-align: center;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  /* Sutil por defecto, más visible al hover. */
+  opacity: 0.65;
+}
+
+.pulso-graph-zoom-indicator:hover {
+  background: var(--pulso-surface-2);
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.pulso-graph-zoom-indicator:active {
+  transform: translateY(0);
+}
+
+/* ─── Selección de edge: glow sutil ─────────────────────────────── */
+.pulso-graph-edge.is-clickable[opacity="1"] path:not([stroke="transparent"]):first-of-type {
+  /* Para los seleccionados, opacity llega a 1 (highlighted) — no
+   * podemos detectar "selected" via CSS porque viene como prop. Lo
+   * dejamos sutil con drop-shadow al hover. */
+}
+
+/* ─── Empty state pulido ────────────────────────────────────────── */
+.pulso-graph-empty {
+  position: absolute;
+  inset: auto;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border: 1px solid var(--pulso-border);
+  border-radius: 14px;
+  padding: 32px 28px;
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.10);
+  animation: pulso-graph-empty-in 280ms cubic-bezier(0.18, 0.89, 0.32, 1.18) both;
+  pointer-events: none;
+}
+
+.pulso-graph-empty p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.55;
+}
+
+.pulso-graph-empty p code {
+  font-family: ui-monospace, monospace;
+  font-size: 11.5px;
+  background: var(--pulso-surface-2);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--pulso-primary);
+}
+
+.pulso-graph-empty-no-edges {
+  top: auto;
+  bottom: 24px;
+  transform: translateX(-50%);
+  padding: 10px 14px;
+  max-width: 560px;
+  background: rgba(255, 255, 255, 0.92);
+  border-style: dashed;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(10px);
+  animation-name: pulso-graph-empty-bottom-in;
+}
+
+.pulso-graph-empty-no-edges p {
+  font-size: 12px;
+}
+
+/* ─── Loading spinner ───────────────────────────────────────────── */
+.pulso-graph-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 24px 32px;
+  border-radius: 12px;
+  box-shadow: var(--pulso-shadow-soft);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: pulso-graph-empty-in 200ms ease both;
+}
+
+.pulso-graph-detail header {
+  align-items: flex-start !important;
+  gap: 10px !important;
+}
+
+/* ─── Mini-map ──────────────────────────────────────────────────── */
+.pulso-graph-minimap {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  box-shadow: var(--pulso-shadow-soft);
+  padding: 4px;
+  z-index: 35;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: pulso-edge-panel-in 240ms cubic-bezier(0.18, 0.89, 0.32, 1.18) both;
+}
+
+.pulso-graph-minimap svg {
+  display: block;
+  cursor: crosshair;
+  border-radius: 5px;
+}
+
+.pulso-graph-minimap svg rect {
+  transition: fill 140ms ease;
+}
+
+.pulso-graph-legend.is-collapsed .pulso-graph-legend-toggle {
+  animation: pulso-graph-legend-attention 2.4s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+.pulso-graph-legend.is-collapsed:hover .pulso-graph-legend-toggle {
+  animation: none;
+}
+
 /* =============================================================================
  * xf-graph.css — mapa de lógica (LogicCanvas): capa visual v2
  * =============================================================================

@@ -1,3 +1,29 @@
+/* =========================================================================
+   Movido desde app/theme.css (refactor 2026-07: theme.css = tokens + kit).
+   Bloques byte-idénticos; prepend para conservar el orden de cascada (theme.css cargaba antes que este archivo).
+   ========================================================================= */
+
+.pulso-inspector-clone-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--pulso-warn-fg, #aa7300);
+  background: white;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--pulso-warn-fg, #aa7300);
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background 120ms ease;
+}
+
+.pulso-inspector-clone-btn:hover {
+  background: var(--pulso-warn-fg, #aa7300);
+  color: white;
+}
+
 /* =============================================================================
  * xf-inspector.css — pulido visual del inspector del editor XLSForm
  * =============================================================================

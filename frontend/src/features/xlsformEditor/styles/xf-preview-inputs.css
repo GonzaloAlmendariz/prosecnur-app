@@ -1,3 +1,15 @@
+/* =========================================================================
+   Movido desde app/theme.css (refactor 2026-07: theme.css = tokens + kit).
+   Bloques byte-idénticos; prepend para conservar el orden de cascada (theme.css cargaba antes que este archivo).
+   ========================================================================= */
+
+/* === EditableChoiceList === */
+.pulso-choices-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* =============================================================================
  * xf-preview-inputs.css — inputs de vista previa por tipo (canvas/previewInputs.tsx)
  * =============================================================================
