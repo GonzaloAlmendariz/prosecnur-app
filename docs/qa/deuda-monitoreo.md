@@ -184,6 +184,27 @@ El corazón del monitoreo en tiempo real. Causas priorizadas:
 Hipótesis falsable: cursor SM server-side + batchUpdate con skip por hash ⇒ ciclo
 sync→sheets con delta pequeño baja de minutos a <10s sin cambiar ningún número.
 
+**Resultado de la validación e2e (2026-07-23, proyectos reales, unidad 3.8):**
+
+- **SurveyMonkey (CONTA, 4 fuentes)**: `/responses/bulk` SÍ respeta `start_modified_at`
+  server-side — la incertidumbre quedó resuelta afirmativamente. Avance 1 (siembra
+  cursores): fetched 16/197/47/19. Avance 2: incremental en las 4 fuentes, fetched
+  3/2/2/1, sin fallback. Kill-switch `PROSECNUR_SM_CURSOR=0` disponible.
+- **Kobo (ACNURCG, 2 fuentes)**: incremental verificado (fetched 0 en ambas). La
+  validación destapó un **bug latente preexistente**: el loop de `monitoreo_sync_sources`
+  pisaba el modo solicitado con el modo resultante de cada fuente — solo la fuente 1
+  aprovechaba el incremental y las 2..N re-bajaban TODO en cada Avance (1,697
+  submissions). Fix `46c724c4` con test de regresión.
+- **Sheets (interno ACNURCG, Google API real)**: publicación con cambios = **3s** (un
+  batch, 4 pestañas); re-publicación sin cambios = **1s** con `written_ranges: []` y las
+  4 pestañas skipeadas por hash (antes ~20-25 requests reescribiendo siempre). Destapó
+  otro bug preexistente (corte 3.4.2): `frozenRowCount=1` en pestaña solo-header hace
+  que Google rechace el batch entero — fix `5639bfad`.
+- **Pendiente medido**: con delta 0, el Avance sigue costando ~69s de
+  merge+normalize+rebuild+save en main-thread (unidad 3.10: cortocircuito a no-op).
+  CONTA no tiene spreadsheets de publicación persistidos en su `.pulso`; la validación
+  del path cliente queda pendiente de los IDs.
+
 ## 5. Uniformidad de controles de avance (inventario 2026-07-23, unidad 3.9)
 
 `shell/MonitoreoModuleChrome.tsx` es el canónico de facto (los 5 paths lo montan). Las
