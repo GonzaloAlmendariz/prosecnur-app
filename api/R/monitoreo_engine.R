@@ -4171,9 +4171,7 @@ monitoreo_demo_payload <- function(seed = 20260514L, n = 96L) {
   if (is.finite(fetched_count)) out$fetched_count <- fetched_count
   remote_total <- suppressWarnings(as.integer(value$remote_total %||% value$remoteTotal %||% NA_integer_)[1])
   if (is.finite(remote_total)) out$remote_total <- remote_total
-  sm_modified_at <- .monitoreo_scalar(value$sm_modified_at %||% value$smModifiedAt, "")
-  if (nzchar(sm_modified_at)) out$sm_modified_at <- sm_modified_at
-  out
+  .monitoreo_sync_cursor_sm_fields(out, value)
 }
 
 .monitoreo_normalize_source_collectors <- function(value = NULL) {
@@ -6005,16 +6003,16 @@ monitoreo_sync_source <- function(source, since = NULL, progress = NULL, sid = N
             list()
           })
         }
-        payload <- sm_api_fetch_all_responses_bulk(
-          survey_id = source$survey_id,
+        payload <- .monitoreo_sm_fetch_incremental(
+          source = source,
+          advance_mode = advance_mode,
           token = token,
           since = since,
-          start_modified_at = .monitoreo_sm_cursor_for_fetch(source, advance_mode),
           progress = progress,
           base_url = base_url
         )
         df <- sm_api_flatten_responses(details, payload$data)
-        attr(df, "sm_sync_payload") <- payload[c("count", "total", "cursor_enabled", "cursor_applied", "max_modified_at")]
+        attr(df, "sm_sync_payload") <- payload[c("count", "total", "cursor_enabled", "cursor_applied", "max_modified_at", "boundary")]
         df <- sm_api_enrich_response_recipients(
           df,
           token = token,
