@@ -143,6 +143,7 @@ jobs:
             libudunits2-dev \
             libxml2-dev \
             libxt6 \
+            poppler-utils \
             qpdf
 
       - name: Install R package dependencies
@@ -151,6 +152,16 @@ jobs:
 
       - name: R load_all
         run: Rscript -e "dir.create(Sys.getenv('R_LIBS_USER'), recursive = TRUE, showWarnings = FALSE); .libPaths(c(Sys.getenv('R_LIBS_USER'), .libPaths())); pkgload::load_all('api', quiet = TRUE)"
+
+      # Los workers callr de jobs deserializan closures contra el paquete
+      # INSTALADO (trampa conocida: jobs.R re-resuelve por nombre en el
+      # namespace instalado). Sin este paso, los tests de contrato HTTP que
+      # disparan jobs reales se skipean en CI.
+      - name: R CMD INSTALL (runtime de jobs)
+        run: |
+          R_LIB="$(Rscript -e 'cat(Sys.getenv("R_LIBS_USER"))')"
+          mkdir -p "$R_LIB"
+          R CMD INSTALL --no-docs --no-multiarch --library="$R_LIB" api
 
       - name: R tests
         run: Rscript -e "dir.create(Sys.getenv('R_LIBS_USER'), recursive = TRUE, showWarnings = FALSE); .libPaths(c(Sys.getenv('R_LIBS_USER'), .libPaths())); pkgload::load_all('api', quiet = TRUE); testthat::test_dir('api/tests/testthat', reporter = 'summary')"
