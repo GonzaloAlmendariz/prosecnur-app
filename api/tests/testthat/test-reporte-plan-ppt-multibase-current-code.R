@@ -107,15 +107,18 @@ test_that("el current_code fantasma (NA) en una lamina de la madre NO revienta e
     )
   ))
 
+  # El filtro fantasma degrada a no-op CON rastro (warning de
+  # reporte_filter_helpers.R); aqui el objeto bajo prueba es que el render no
+  # aborte, asi que el warning esperado se suprime explicitamente.
   out <- expect_no_error(
-    reporte_ppt_plan(
+    suppressWarnings(reporte_ppt_plan(
       data = fx$data,
       instrumento = fx$instrumento,
       plan = plan,
       presets = fx$presets,
       solo_lista = TRUE,
       mensajes_progreso = FALSE
-    )
+    ))
   )
 
   expect_length(out$rendered, 2L)

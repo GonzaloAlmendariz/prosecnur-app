@@ -136,15 +136,30 @@ test_that("apply_named_filters: un filtro con valor NA es no-op, no un error (le
   # las laminas por-servicio de la base hija. Debe ser NO-OP, jamas un stop().
   df <- data.frame(testreal = c("si", "no", "si"), stringsAsFactors = FALSE)
 
-  # Forma named-list con valor NA.
-  expect_identical(.apply_named_filters(df, list(current_code = NA_character_)), df)
+  # Forma named-list con valor NA. El no-op ademas deja rastro (warning) para
+  # que un filtro genuino NA'd por otro bug no infle denominadores en silencio.
+  expect_warning(
+    out <- .apply_named_filters(df, list(current_code = NA_character_)),
+    "se degrada a no-op"
+  )
+  expect_identical(out, df)
   # Forma data.frame de una sola columna NA (exactamente como llega tras el
   # `simplifyDataFrame` de plumber: structure(list(current_code = NA), class = "data.frame")).
   phantom <- structure(list(current_code = NA_character_),
                        row.names = 5L, class = "data.frame")
-  expect_identical(.apply_named_filters(df, phantom), df)
-  # Valor vacio "" tambien es no-op.
-  expect_identical(.apply_named_filters(df, list(current_code = "")), df)
+  expect_warning(out2 <- .apply_named_filters(df, phantom), "se degrada a no-op")
+  expect_identical(out2, df)
+  # Valor vacio "" tambien es no-op (con rastro).
+  expect_warning(out3 <- .apply_named_filters(df, list(current_code = "")), "se degrada a no-op")
+  expect_identical(out3, df)
+})
+
+test_that("apply_named_filters: el warning de no-op identifica el filtro degradado", {
+  df <- data.frame(sexo = c("Mujer", "Hombre"), stringsAsFactors = FALSE)
+  expect_warning(
+    .apply_named_filters(df, list(current_code = NA_character_)),
+    "current_code"
+  )
 })
 
 test_that("apply_named_filters: filtro con valor REAL sobre columna ausente aborta con condicion clasificada", {
