@@ -5,7 +5,7 @@
  */
 import type { PerfilInstitucional, ResultadoEscenario1, ResultadoEscenario2 } from "../../dominio";
 import { fmtDec, fmtInt } from "../../sharedCore";
-import { useMotorStore } from "../store";
+import { useMotorStore } from "../../store";
 import { ComparadorEscenarios } from "../componentes/ComparadorEscenarios";
 import { FormulaViva } from "../componentes/FormulaViva";
 import { NotaPorQue } from "../componentes/NotaPorQue";

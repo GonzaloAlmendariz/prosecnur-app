@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_CALC_MUESTRA_ESTUDIO } from "../../../../api/client";
-import { useCalcMuestraStore } from "../../store/calcMuestraStore";
+import { useCalcMuestraStore } from "../../store";
 import { autosaveEstudioActual } from "../useCalcMuestraAutosave";
 
 beforeEach(() => {

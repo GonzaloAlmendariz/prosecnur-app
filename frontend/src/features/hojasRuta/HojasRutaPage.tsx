@@ -70,6 +70,13 @@ import {
   clearHojasRutaWorkspaceSnapshot,
   setHojasRutaWorkspaceSnapshot,
 } from "./configSnapshot";
+import { useHojasRutaStore } from "./store";
+import type {
+  HojasRutaBlockLayerMode,
+  HojasRutaDeliveryTab,
+  HojasRutaMapLevel,
+  HojasRutaStage,
+} from "./store";
 import "./hojasRuta.css";
 
 type GeoPosition = [number, number];
@@ -93,10 +100,6 @@ type DistrictFeature = {
   };
   geometry: DistrictGeometry;
 };
-type HojasRutaStage = "territorio" | "poblacion" | "muestra" | "manzanas" | "entrega";
-type HojasRutaMapLevel = HojasRutaUiState["map_level"];
-type HojasRutaBlockLayerMode = "field" | "nse";
-type HojasRutaDeliveryTab = "cuotas" | "titulares" | "reemplazos";
 const HOJAS_RUTA_STAGES: HojasRutaStage[] = ["territorio", "poblacion", "muestra", "manzanas", "entrega"];
 const HOJAS_RUTA_STAGE_ORDER: Record<HojasRutaStage, number> = {
   territorio: 0,
@@ -6566,10 +6569,18 @@ export default function HojasRutaPage() {
       return resolved ? normalizeHojasRutaConfig(resolved) : resolved;
     });
   }, []);
-  const [activePhase, setActivePhase] = useState<HojasRutaPhase>("field");
+  // Estado UI de módulo (fase/etapa activa, vista del mapa, pestañas
+  // secundarias, descartes de alertas, borrador de reemplazos manuales):
+  // vive en useHojasRutaStore (features/hojasRuta/store.ts) para sobrevivir
+  // a la navegación y resetearse al cambiar de proyecto. Los payloads del
+  // backend (state, config, runs, población/cuotas/muestra, mapas) y el
+  // estado de jobs siguen siendo useState locales: se hidratan en loadState.
+  const activePhase = useHojasRutaStore((s) => s.activePhase);
+  const setActivePhase = useHojasRutaStore((s) => s.setActivePhase);
   const [runs, setRuns] = useState<Partial<Record<HojasRutaPhase, HojasRutaRun>>>({});
   const [phaseNotice, setPhaseNotice] = useState<HojasRutaState["phase_notice"]>(null);
-  const [activeStage, setActiveStage] = useState<HojasRutaStage>("territorio");
+  const activeStage = useHojasRutaStore((s) => s.activeStage);
+  const setActiveStage = useHojasRutaStore((s) => s.setActiveStage);
   const [population, setPopulation] = useState<PopulationPlan | null>(null);
   const [populationExport, setPopulationExport] = useState<HojasRutaPopulationExportResult | null>(null);
   const [sampleSizePreview, setSampleSizePreview] = useState<HojasRutaSampleSizePreview | null>(null);
@@ -6584,35 +6595,57 @@ export default function HojasRutaPage() {
   const [routeWorkbook, setRouteWorkbook] = useState<HojasRutaWorkbookResult | null>(null);
   const [manualReplacementJobId, setManualReplacementJobId] = useState<string | null>(null);
   const [manualReplacementResult, setManualReplacementResult] = useState<HojasRutaManualReplacementResult | null>(null);
-  const [manualReplacementQuery, setManualReplacementQuery] = useState("");
-  const [manualReplacementSelectedIds, setManualReplacementSelectedIds] = useState<string[]>([]);
-  const [manualReplacementCount, setManualReplacementCount] = useState(1);
-  const [manualReplacementPolicy, setManualReplacementPolicy] = useState<HojasRutaReplacementPolicy>("alternate_zone_same_district");
-  const [deliveryBlocksPage, setDeliveryBlocksPage] = useState(0);
-  const [deliveryReplacementsPage, setDeliveryReplacementsPage] = useState(0);
-  const [deliveryReviewTab, setDeliveryReviewTab] = useState<HojasRutaDeliveryTab>("cuotas");
-  const [dismissedPhaseNotice, setDismissedPhaseNotice] = useState("");
-  const [dismissedPopulationAlerts, setDismissedPopulationAlerts] = useState<string[]>([]);
-  const [dismissedDeliveryAlerts, setDismissedDeliveryAlerts] = useState<string[]>([]);
+  const manualReplacementQuery = useHojasRutaStore((s) => s.manualReplacementQuery);
+  const setManualReplacementQuery = useHojasRutaStore((s) => s.setManualReplacementQuery);
+  const manualReplacementSelectedIds = useHojasRutaStore((s) => s.manualReplacementSelectedIds);
+  const setManualReplacementSelectedIds = useHojasRutaStore((s) => s.setManualReplacementSelectedIds);
+  const manualReplacementCount = useHojasRutaStore((s) => s.manualReplacementCount);
+  const setManualReplacementCount = useHojasRutaStore((s) => s.setManualReplacementCount);
+  const manualReplacementPolicy = useHojasRutaStore((s) => s.manualReplacementPolicy);
+  const setManualReplacementPolicy = useHojasRutaStore((s) => s.setManualReplacementPolicy);
+  const deliveryBlocksPage = useHojasRutaStore((s) => s.deliveryBlocksPage);
+  const setDeliveryBlocksPage = useHojasRutaStore((s) => s.setDeliveryBlocksPage);
+  const deliveryReplacementsPage = useHojasRutaStore((s) => s.deliveryReplacementsPage);
+  const setDeliveryReplacementsPage = useHojasRutaStore((s) => s.setDeliveryReplacementsPage);
+  const deliveryReviewTab = useHojasRutaStore((s) => s.deliveryReviewTab);
+  const setDeliveryReviewTab = useHojasRutaStore((s) => s.setDeliveryReviewTab);
+  const dismissedPhaseNotice = useHojasRutaStore((s) => s.dismissedPhaseNotice);
+  const setDismissedPhaseNotice = useHojasRutaStore((s) => s.setDismissedPhaseNotice);
+  const dismissedPopulationAlerts = useHojasRutaStore((s) => s.dismissedPopulationAlerts);
+  const setDismissedPopulationAlerts = useHojasRutaStore((s) => s.setDismissedPopulationAlerts);
+  const dismissedDeliveryAlerts = useHojasRutaStore((s) => s.dismissedDeliveryAlerts);
+  const setDismissedDeliveryAlerts = useHojasRutaStore((s) => s.setDismissedDeliveryAlerts);
   const [randomPdf, setRandomPdf] = useState<HojasRutaRandomPdfResult | null>(null);
-  const [randomPreference, setRandomPreference] = useState<HojasRutaRandomPreference>("balanced");
-  const [ageDraftMode, setAgeDraftMode] = useState<HojasRutaAgeRangeMode>("manual");
-  const [ageDraftScope, setAgeDraftScope] = useState<HojasRutaAgeRangeScope>("selected");
-  const [mapUbigeo, setMapUbigeo] = useState<string>("");
-  const [mapZona, setMapZona] = useState<string>("");
-  const [mapLevel, setMapLevel] = useState<HojasRutaMapLevel>("distritos");
+  const randomPreference = useHojasRutaStore((s) => s.randomPreference);
+  const setRandomPreference = useHojasRutaStore((s) => s.setRandomPreference);
+  const ageDraftMode = useHojasRutaStore((s) => s.ageDraftMode);
+  const setAgeDraftMode = useHojasRutaStore((s) => s.setAgeDraftMode);
+  const ageDraftScope = useHojasRutaStore((s) => s.ageDraftScope);
+  const setAgeDraftScope = useHojasRutaStore((s) => s.setAgeDraftScope);
+  const mapUbigeo = useHojasRutaStore((s) => s.mapUbigeo);
+  const setMapUbigeo = useHojasRutaStore((s) => s.setMapUbigeo);
+  const mapZona = useHojasRutaStore((s) => s.mapZona);
+  const setMapZona = useHojasRutaStore((s) => s.setMapZona);
+  const mapLevel = useHojasRutaStore((s) => s.mapLevel);
+  const setMapLevel = useHojasRutaStore((s) => s.setMapLevel);
   const [zoneMap, setZoneMap] = useState<HojasRutaZoneMap | null>(null);
   const [blockMap, setBlockMap] = useState<HojasRutaBlockMap | null>(null);
   const [contextMap, setContextMap] = useState<HojasRutaContextMap | null>(null);
   const [streetMap, setStreetMap] = useState<HojasRutaStreetMap | null>(null);
   const [zoneMapLoading, setZoneMapLoading] = useState(false);
   const [blockMapLoading, setBlockMapLoading] = useState(false);
-  const [draftTerritories, setDraftTerritories] = useState<string[]>([]);
-  const [routeHistory, setRouteHistory] = useState<HojasRutaRouteSnapshot[]>([]);
-  const [mapSelectionMode, setMapSelectionMode] = useState(false);
-  const [sampleListTab, setSampleListTab] = useState<"titulares" | "reemplazos">("titulares");
-  const [blockLayerMode, setBlockLayerMode] = useState<HojasRutaBlockLayerMode>("field");
-  const [samplingInspectorCollapsed, setSamplingInspectorCollapsed] = useState(false);
+  const draftTerritories = useHojasRutaStore((s) => s.draftTerritories);
+  const setDraftTerritories = useHojasRutaStore((s) => s.setDraftTerritories);
+  const routeHistory = useHojasRutaStore((s) => s.routeHistory);
+  const setRouteHistory = useHojasRutaStore((s) => s.setRouteHistory);
+  const mapSelectionMode = useHojasRutaStore((s) => s.mapSelectionMode);
+  const setMapSelectionMode = useHojasRutaStore((s) => s.setMapSelectionMode);
+  const sampleListTab = useHojasRutaStore((s) => s.sampleListTab);
+  const setSampleListTab = useHojasRutaStore((s) => s.setSampleListTab);
+  const blockLayerMode = useHojasRutaStore((s) => s.blockLayerMode);
+  const setBlockLayerMode = useHojasRutaStore((s) => s.setBlockLayerMode);
+  const samplingInspectorCollapsed = useHojasRutaStore((s) => s.samplingInspectorCollapsed);
+  const setSamplingInspectorCollapsed = useHojasRutaStore((s) => s.setSamplingInspectorCollapsed);
   const previousActiveStageRef = useRef<HojasRutaStage>(activeStage);
   const blockMapCacheRef = useRef<Map<string, HojasRutaBlockMap>>(new Map());
   const zoneMapCacheRef = useRef<Map<string, HojasRutaZoneMap>>(new Map());

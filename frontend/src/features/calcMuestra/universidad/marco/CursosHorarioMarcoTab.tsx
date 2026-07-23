@@ -39,7 +39,7 @@ import {
   setRangosFacultad,
   setSeleccionVariable,
 } from "../../dominio";
-import { useMotorStore } from "../../motor/store";
+import { useMotorStore } from "../../store";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { marcoCriteriosDesactualizado } from "../shared/frame";
 import { normalizeUniversityAulasConfig } from "../shared/study";

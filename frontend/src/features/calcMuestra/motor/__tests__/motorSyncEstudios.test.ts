@@ -14,8 +14,7 @@ import {
 } from "../../../../api/client";
 import { decisionesPorDefecto, PLANTILLA_UNIVERSIDAD } from "../../dominio";
 import { EMPTY_WORKSPACE } from "../../workspaceDefaults";
-import { useCalcMuestraStore } from "../../store/calcMuestraStore";
-import { useMotorStore } from "../store";
+import { useCalcMuestraStore, useMotorStore } from "../../store";
 import { serializarMotorRecorrido } from "../persistencia";
 import {
   crearMotorSyncSesion,

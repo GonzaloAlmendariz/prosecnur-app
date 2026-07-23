@@ -70,6 +70,13 @@ import { GlidingTabList } from "../../components/GlidingTabList";
 import { isRepeatChildBase } from "../../lib/repeatIdentity";
 import { IntegratedInstrumentsWizard } from "./IntegratedInstrumentsWizard";
 import { SavBundleImportPanel } from "./SavBundleImportPanel";
+import { useCargaStore } from "./store";
+import type {
+  MultiBaseStrategy,
+  SmExtraSourceDraft,
+  SmImportScopeDraft,
+  SmImportScopeFields,
+} from "./store";
 
 export {
   smSavBundleInspectionCanImport,
@@ -115,8 +122,6 @@ type Props = {
   initialStrategy?: MultiBaseStrategy;
 };
 
-type MultiBaseStrategy = "separate" | "integrated" | "independent";
-
 const MULTI_BASE_STRATEGY_COPY: Record<MultiBaseStrategy, { label: string; detail: string }> = {
   separate: {
     label: "Mantener bases separadas",
@@ -148,8 +153,13 @@ export function BasesPanel({
   const [error, setError] = useState<string>("");
   const [editingEstudioNombre, setEditingEstudioNombre] = useState(false);
   const [estudioDraft, setEstudioDraft] = useState("");
-  const [strategy, setStrategy] = useState<MultiBaseStrategy>(initialStrategy ?? "separate");
-  const [showNewIntegration, setShowNewIntegration] = useState(false);
+  // Mesa de trabajo multi-base: vive en useCargaStore (features/carga/store.ts)
+  // para sobrevivir a la navegación dentro del proyecto; los efectos de abajo
+  // la re-derivan del estudio persistido (processing_mode / integración).
+  const strategy = useCargaStore((s) => s.strategy);
+  const setStrategy = useCargaStore((s) => s.setStrategy);
+  const showNewIntegration = useCargaStore((s) => s.showNewIntegration);
+  const setShowNewIntegration = useCargaStore((s) => s.setShowNewIntegration);
 
   // Consumir la señal de auto-open una sola vez al montar/recibir true.
   useEffect(() => {
@@ -822,31 +832,6 @@ function smWorkbookSheetIssueTitle(sheet: SurveyMonkeyWorkbookInspection["sheets
   }
   return notes.join(" · ");
 }
-
-type SmImportScopeFields = {
-  collectorIds: string;
-  dateModifiedGte: string;
-  dateModifiedLte: string;
-  includeCompleted: boolean;
-  includePartial: boolean;
-  keepMissingStatus: boolean;
-  collectionStrategy: "campo" | "whatsapp_link" | "web_link" | "email" | "otro";
-  channel: string;
-};
-
-type SmExtraSourceDraft = SmImportScopeFields & {
-  key: string;
-  surveyId: string;
-  label: string;
-  query?: string;
-};
-
-type SmImportScopeDraft = SmImportScopeFields & {
-  alias: string;
-  logicRules: string;
-  targetBaseName?: string;
-  extraSources: SmExtraSourceDraft[];
-};
 
 export const INDEPENDENT_SIBLINGS_MAX_BASES = 10;
 const SM_CHANNEL_OPTIONS = ["Correo", "Telefónico", "WhatsApp", "Ficha QR", "SMS", "Mixto"] as const;
@@ -3798,17 +3783,29 @@ function IndependentSiblingsSurveyMonkeyWizard({
     cacheStatus: string;
     refreshError: string;
   } | null>(null);
-  const [query, setQuery] = useState("");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [scopeDrafts, setScopeDrafts] = useState<Record<string, SmImportScopeDraft>>({});
+  // Borrador del wizard (filtro, selección, scope, reglas, canónico):
+  // vive en useCargaStore para sobrevivir al unmount del panel. Los
+  // payloads del backend (catálogo, auditorías, resultados) siguen locales.
+  const query = useCargaStore((s) => s.smCatalogQuery);
+  const setQuery = useCargaStore((s) => s.setSmCatalogQuery);
+  const selectedIds = useCargaStore((s) => s.smSelectedIds);
+  const setSelectedIds = useCargaStore((s) => s.setSmSelectedIds);
+  const scopeDrafts = useCargaStore((s) => s.smScopeDrafts);
+  const setScopeDrafts = useCargaStore((s) => s.setSmScopeDrafts);
   const [audit, setAudit] = useState<SurveyMonkeyMultibaseAudit | null>(null);
   const [logicSync, setLogicSync] = useState<EstudioLogicSyncResult | null>(null);
   const [canonicalRepairResult, setCanonicalRepairResult] = useState<EstudioLogicSyncResult | null>(null);
-  const [canonicalFileId, setCanonicalFileId] = useState(canonicalOptions[0]?.fileId ?? "");
-  const [surveyMonkeyLogicRules, setSurveyMonkeyLogicRules] = useState("");
+  const canonicalFileId = useCargaStore((s) => s.smCanonicalFileId);
+  const setCanonicalFileId = useCargaStore((s) => s.setSmCanonicalFileId);
+  const surveyMonkeyLogicRules = useCargaStore((s) => s.smSharedLogicRules);
+  const setSurveyMonkeyLogicRules = useCargaStore((s) => s.setSmSharedLogicRules);
   const [surveyMonkeyLogicPreview, setSurveyMonkeyLogicPreview] = useState<SmLogicPreviewRow[] | null>(null);
   const [smConnection, setSmConnection] = useState<ConnectionTokenState | null>(null);
-  const [showSurveyCatalog, setShowSurveyCatalog] = useState(estudio.n_bases === 0);
+  // Tri-estado en el store: `null` = sin decisión del usuario → default del
+  // useState original (`estudio.n_bases === 0`).
+  const smShowSurveyCatalogRaw = useCargaStore((s) => s.smShowSurveyCatalog);
+  const setShowSurveyCatalog = useCargaStore((s) => s.setSmShowSurveyCatalog);
+  const showSurveyCatalog = smShowSurveyCatalogRaw ?? estudio.n_bases === 0;
   const [refreshPlan, setRefreshPlan] = useState<SurveyMonkeyRefreshPlan | null>(null);
   const [refreshResult, setRefreshResult] = useState<SurveyMonkeyRefreshResult | null>(null);
   const [workbookFile, setWorkbookFile] = useState<File | null>(null);

@@ -18,7 +18,7 @@ import type { CalcMuestraAulasState, CalcMuestraComponente } from "../../../../a
 import { EmptyState } from "../../../../components/States";
 import { facultadesDesdeFrame, type FacultadDatos, type ResumenEstAula } from "../../dominio";
 import { fmtDec, fmtInt, fmtPct, rowsFrom, safeNumber } from "../../sharedCore";
-import { useMotorStore } from "../../motor/store";
+import { useMotorStore } from "../../store";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { UNIVERSITY_FACULTY_COMPONENT_ID, UNIVERSITY_TOTAL_COMPONENT_ID } from "../shared/constants";
 import { classroomRowNumber, classroomRowText, compareUniversityFacultyLabels, normalizeUniversityLabel } from "../shared/format";

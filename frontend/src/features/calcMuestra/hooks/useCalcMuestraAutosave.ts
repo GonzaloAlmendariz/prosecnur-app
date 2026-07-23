@@ -5,7 +5,7 @@ import {
   type CalcMuestraEstudio,
   type CalcMuestraState,
 } from "../../../api/client";
-import { useCalcMuestraStore } from "../store/calcMuestraStore";
+import { useCalcMuestraStore } from "../store";
 
 /**
  * Cuerpo del autosave (exportado para test). PUT del estudio vigente y

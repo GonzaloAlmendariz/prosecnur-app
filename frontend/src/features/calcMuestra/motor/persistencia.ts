@@ -28,7 +28,7 @@ import {
   type ResumenEstAula,
   type SelloCifra,
 } from "../dominio";
-import type { FuenteDatos } from "./store";
+import type { FuenteDatos } from "../store";
 
 export const MOTOR_RECORRIDO_SCHEMA = "calc_muestra_workspace_motor_v1";
 

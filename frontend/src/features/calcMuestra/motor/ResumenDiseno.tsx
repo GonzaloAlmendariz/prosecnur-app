@@ -17,7 +17,7 @@ import {
   UNIVERSITY_TOTAL_COMPONENT_ID,
 } from "../universidad/shared/constants";
 import { normalizeUniversityAulasConfig } from "../universidad/shared/study";
-import { useMotorStore } from "./store";
+import { useMotorStore } from "../store";
 import type { MotorEfectivo } from "./usePerfilEfectivo";
 import "./motor.css";
 
