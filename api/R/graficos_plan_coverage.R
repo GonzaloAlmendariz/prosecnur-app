@@ -1313,7 +1313,15 @@
     return(list(list(exclude_options = NULL, page = 1L, pages = 1L)))
   }
 
-  chunks <- split(seq_len(n_choices), ceiling(seq_len(n_choices) / max_per_slide))
+  # Reparto EQUITATIVO, no "llenar y desbordar": con 11 opciones y tope 10, el
+  # corte por bloques daba 10 + 1 (una lámina saturada y otra casi vacía). Se
+  # calcula primero cuántas páginas hacen falta y luego se distribuyen las
+  # opciones lo más parejo posible entre ellas (11 -> 6 + 5), que es lo legible.
+  n_pages <- as.integer(ceiling(n_choices / max_per_slide))
+  sizes <- rep(n_choices %/% n_pages, n_pages)
+  resto <- n_choices %% n_pages
+  if (resto > 0L) sizes[seq_len(resto)] <- sizes[seq_len(resto)] + 1L
+  chunks <- split(seq_len(n_choices), rep(seq_len(n_pages), sizes))
   lapply(seq_along(chunks), function(page_idx) {
     keep_idx <- chunks[[page_idx]]
     exclude_idx <- setdiff(seq_len(n_choices), keep_idx)
@@ -1977,10 +1985,14 @@
       cfg$acnur_index_per_slide %||% cfg$acnurIndexPerSlide,
     8L
   )
+  # 10 opciones por lámina: por encima de eso las etiquetas largas se pisan.
+  # Cuando se supera, `.graficos_acnur_choice_pages` reparte equitativamente
+  # entre las láminas necesarias (11 -> 6 + 5), así que el tope no produce una
+  # lámina saturada. Configurable por estudio.
   acnur_categories_per_slide <- acnur_index_int(
     raw_cfg$acnur_categories_per_slide %||% raw_cfg$acnurCategoriesPerSlide %||%
       cfg$acnur_categories_per_slide %||% cfg$acnurCategoriesPerSlide,
-    8L
+    10L
   )
   if (identical(profile_id, "acnur_kobo_cruncher_plus")) {
     if (identical(acnur_mode, "territorial")) {
