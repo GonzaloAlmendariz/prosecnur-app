@@ -58,6 +58,8 @@ export type SheetsViewProps = {
 
 type TabKey = "survey" | "choices" | "settings" | "paper";
 
+const SHEET_PANEL_ID = "xlsform-sheet-panel";
+
 const TAB_HELP: Record<TabKey, { label: string; code: string; detail: string }> = {
   survey: {
     label: "Preguntas",
@@ -227,9 +229,11 @@ export function SheetsView({
           return (
             <button
               key={tab}
+              id={`xlsform-sheet-tab-${tab}`}
               type="button"
               role="tab"
               aria-selected={activeTab === tab}
+              aria-controls={SHEET_PANEL_ID}
               data-gliding-key={tab}
               className={`pulso-xfs-tab${activeTab === tab ? " is-active" : ""}`}
               onClick={() => setActiveTab(tab)}
@@ -312,7 +316,14 @@ export function SheetsView({
         </span>
       )}
 
-      <div className="pulso-xfs-table-wrap" key={activeTab}>
+      <div
+        id={SHEET_PANEL_ID}
+        role="tabpanel"
+        aria-labelledby={`xlsform-sheet-tab-${activeTab}`}
+        tabIndex={0}
+        className="pulso-xfs-table-wrap"
+        key={activeTab}
+      >
         <SheetTable
           sheet={sheet}
           visibleColumns={visibleColumns}
