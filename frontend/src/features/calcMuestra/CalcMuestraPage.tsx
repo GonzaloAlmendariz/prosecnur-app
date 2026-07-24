@@ -2362,7 +2362,13 @@ function CalcMuestraSectionRail({
   if (sections.length === 0) return null;
   return (
     <div className="cmv2-section-rail-wrap" aria-label={`${railTitleForDesk(desk)}: secciones`}>
-      <GlidingTabList as="nav" activeKey={activeSection} className="pulso-phase-pillbar cmv2-section-rail" role="tablist" aria-label={`${railTitleForDesk(desk)}: secciones`}>
+      <GlidingTabList
+        activeKey={activeSection}
+        mode="tabs"
+        className="pulso-phase-pillbar cmv2-section-rail"
+        role="group"
+        aria-label={`${railTitleForDesk(desk)}: secciones`}
+      >
         <ol className="pulso-phase-pill-list">
           {sections.map((item, index) => {
             const active = activeSection === item.id;
@@ -2372,11 +2378,9 @@ function CalcMuestraSectionRail({
               <li key={item.id} className="pulso-phase-pill-item">
                 <button
                   type="button"
-                  role="tab"
                   data-gliding-key={item.id}
                   className={`pulso-phase-pill cmv2-section-pill ${active ? "is-active" : ""}${stateClass}`}
-                  aria-current={active ? "page" : undefined}
-                  aria-selected={active}
+                  aria-pressed={active}
                   title={`${item.label}: ${item.detail}${state ? ` · ${guidedStatusLabel(state)}` : ""}`}
                   onClick={() => onSection(item)}
                 >
