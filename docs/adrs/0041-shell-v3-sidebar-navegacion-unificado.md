@@ -67,6 +67,9 @@ vive en el selector de contexto del sidebar.
   `body` seguirá sin scroll en workbenches.
 - El estado expandido/colapsado será preferencia local y no se persistirá
   dentro de `.pulso`.
+- Cambiar de módulo cambiará el acento contextual del shell a la familia
+  canónica de ese módulo; superficies de contenido, series de datos y estados
+  semánticos no heredarán ese cambio.
 - La identidad v3 deberá registrar la excepción local al taste baseline previo
   y la evidencia que la autoriza.
 
@@ -81,6 +84,9 @@ El shell v3 no puede hacerse default hasta demostrar:
 - QA visual a 1440×1000, 1280×800, 1100×600 y 900×800;
 - cero scroll global y cero scroll jail;
 - consola limpia;
+- recorrido de los ocho módulos que demuestre el cambio de acento en contexto,
+  selección, icono, tintes/bordes y foco contextual, sin alterar éxito, alerta,
+  peligro, información ni superficies de datos;
 - aprobación humana de `branding/direccion-creativa-v3.md`.
 
 Fuente de ejecución: `docs/plan-revamp-ui-2026-07.md`.

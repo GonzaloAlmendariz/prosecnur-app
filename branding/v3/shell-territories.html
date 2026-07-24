@@ -22,6 +22,13 @@
       --processing: #0f766e;
       --processing-soft: rgba(15, 118, 110, .12);
       --processing-border: rgba(15, 118, 110, .30);
+      --bitacora: #a16207;
+      --sample: #7c3aed;
+      --forms: #6d5dfc;
+      --routes: #c2410c;
+      --collectors: #0891b2;
+      --monitoring: #be123c;
+      --dashboard: #2563eb;
       --danger: #991b1b;
       --danger-soft: #fef2f2;
       --success: #166534;
@@ -124,6 +131,7 @@
 
     .decision .eyebrow,
     .territory-head .eyebrow,
+    .spectrum .eyebrow,
     .section-label,
     .mini-label {
       color: var(--soft);
@@ -176,6 +184,115 @@
     .jump a:first-child {
       color: var(--paper);
       background: var(--navy);
+    }
+
+    .spectrum {
+      scroll-margin-top: 86px;
+      padding: 20px 22px 22px;
+      border: 1px solid rgba(0, 36, 87, .12);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, .82);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .spectrum-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(220px, 400px);
+      gap: 20px;
+      align-items: end;
+      margin-bottom: 16px;
+    }
+
+    .spectrum h2 {
+      margin: 5px 0 6px;
+      color: var(--navy);
+      font-size: 24px;
+      letter-spacing: -.025em;
+    }
+
+    .spectrum p {
+      max-width: 780px;
+      margin: 0;
+      color: var(--soft);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .state-example {
+      justify-self: end;
+      padding: 10px 12px;
+      border: 1px solid var(--processing-border);
+      border-radius: 12px;
+      color: var(--processing);
+      background: var(--processing-soft);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .module-spectrum {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .module-card {
+      position: relative;
+      min-width: 0;
+      min-height: 78px;
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      overflow: hidden;
+      border: 1px solid color-mix(in srgb, var(--module-accent) 30%, var(--border));
+      border-radius: 13px;
+      background: color-mix(in srgb, var(--paper) 92%, var(--module-accent));
+    }
+
+    .module-card::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 3px;
+      background: var(--module-accent);
+    }
+
+    .module-swatch {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+      color: var(--paper);
+      background: var(--module-accent);
+      box-shadow: 0 5px 12px color-mix(in srgb, var(--module-accent) 22%, transparent);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .module-meta { min-width: 0; }
+
+    .module-meta strong,
+    .module-meta span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .module-meta strong {
+      color: var(--ink);
+      font-size: 12px;
+    }
+
+    .module-meta span {
+      margin-top: 3px;
+      color: var(--module-accent);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .02em;
     }
 
     .territory {
@@ -673,18 +790,18 @@
     }
 
     .territory-c .context-icon {
-      color: var(--navy);
-      background: var(--mist);
+      color: var(--processing);
+      background: var(--processing-soft);
     }
 
     .territory-c .tab.active {
-      color: var(--navy);
+      color: var(--processing);
       background: transparent;
     }
 
     .territory-c .tab.active::before {
       inset-block: 4px;
-      background: var(--navy);
+      background: var(--processing);
     }
 
     .territory-c .topbar,
@@ -701,8 +818,8 @@
 
     .territory-c .kpi::after {
       inset-inline: 12px;
-      background: var(--navy);
-      opacity: .28;
+      background: var(--processing);
+      opacity: .44;
     }
 
     .territory-notes {
@@ -760,8 +877,9 @@
 
     @media (max-width: 900px) {
       .page { width: min(100% - 16px, 1500px); padding-top: 8px; }
-      .intro, .territory-head { grid-template-columns: 1fr; }
-      .score { justify-self: start; }
+      .intro, .territory-head, .spectrum-head { grid-template-columns: 1fr; }
+      .score, .state-example { justify-self: start; }
+      .module-spectrum { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .mock { grid-template-columns: 56px minmax(0, 1fr) !important; min-height: 620px; }
       .side-brand strong,
       .context-copy,
@@ -781,6 +899,10 @@
       .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .kpi:nth-child(3) { border-left: 0; border-top: 1px solid var(--border); }
       .kpi:nth-child(4) { border-top: 1px solid var(--border); }
+    }
+
+    @media (max-width: 540px) {
+      .module-spectrum { grid-template-columns: 1fr; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -821,11 +943,65 @@
     </header>
 
     <nav class="jump" aria-label="Territorios">
+      <a href="#espectro">Espectro modular</a>
       <a href="#territorio-a">A · Instrumento sereno</a>
       <a href="#territorio-b">B · Cartografía modular</a>
       <a href="#territorio-c">C · Mesa editorial</a>
       <a href="#gate">Gate de aprobación</a>
     </nav>
+
+    <section class="spectrum" id="espectro">
+      <header class="spectrum-head">
+        <div>
+          <span class="eyebrow">Invariante aprobado</span>
+          <h2>Ocho módulos, ocho acentos reconocibles</h2>
+          <p>
+            A, B y C comparan materialidad, densidad y cantidad de señal; no
+            eligen una paleta nueva. Al cambiar de módulo cambia el acento de
+            contexto, selección, icono y foco, mientras los datos y estados
+            semánticos conservan sus propios colores.
+          </p>
+        </div>
+        <div class="state-example">
+          Las maquetas inferiores muestran Procesamiento (#0F766E) como un
+          estado del shell, no como el color de toda la app.
+        </div>
+      </header>
+      <div class="module-spectrum" aria-label="Espectro cromático por módulo">
+        <div class="module-card" style="--module-accent: var(--bitacora)">
+          <span class="module-swatch">B</span>
+          <span class="module-meta"><strong>Bitácora</strong><span>#A16207</span></span>
+        </div>
+        <div class="module-card" style="--module-accent: var(--sample)">
+          <span class="module-swatch">M</span>
+          <span class="module-meta"><strong>Cálculo de muestra</strong><span>#7C3AED</span></span>
+        </div>
+        <div class="module-card" style="--module-accent: var(--forms)">
+          <span class="module-swatch">F</span>
+          <span class="module-meta"><strong>Formularios</strong><span>#6D5DFC</span></span>
+        </div>
+        <div class="module-card" style="--module-accent: var(--routes)">
+          <span class="module-swatch">H</span>
+          <span class="module-meta"><strong>Hojas de ruta</strong><span>#C2410C</span></span>
+        </div>
+        <div class="module-card" style="--module-accent: var(--collectors)">
+          <span class="module-swatch">QR</span>
+          <span class="module-meta"><strong>Fichas QR</strong><span>#0891B2</span></span>
+        </div>
+        <div class="module-card" style="--module-accent: var(--monitoring)">
+          <span class="module-swatch">M</span>
+          <span class="module-meta"><strong>Monitoreo</strong><span>#BE123C</span></span>
+        </div>
+        <div class="module-card" style="--module-accent: var(--processing)">
+          <span class="module-swatch">P</span>
+          <span class="module-meta"><strong>Procesamiento</strong><span>#0F766E</span></span>
+        </div>
+        <div class="module-card" style="--module-accent: var(--dashboard)">
+          <span class="module-swatch">D</span>
+          <span class="module-meta"><strong>Dashboard</strong><span>#2563EB</span></span>
+        </div>
+      </div>
+    </section>
 
     <article class="territory territory-a" id="territorio-a">
       <header class="territory-head">
