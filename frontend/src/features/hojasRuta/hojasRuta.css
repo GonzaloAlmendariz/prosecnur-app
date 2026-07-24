@@ -4473,6 +4473,9 @@
 }
 
 .hojas-ruta-allocation-cards button {
+  display: grid;
+  align-content: center;
+  gap: 3px;
   min-width: 0;
   min-height: 64px;
   padding: 10px 11px;
@@ -4481,6 +4484,7 @@
   background: white;
   color: var(--pulso-text);
   text-align: left;
+  white-space: normal;
   cursor: pointer;
   transition: border-color .12s ease, background .12s ease;
 }
@@ -4505,11 +4509,11 @@
   font-weight: 900;
   color: var(--pulso-text);
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
 }
 
 .hojas-ruta-allocation-cards span {
-  margin-top: 3px;
+  margin-top: 0;
   color: var(--pulso-text-soft);
   font-size: 11px;
   line-height: 1.35;
