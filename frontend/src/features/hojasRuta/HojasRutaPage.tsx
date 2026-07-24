@@ -7600,6 +7600,19 @@ export default function HojasRutaPage() {
     }
   }
 
+  function selectRandomPreference(nextPreference: HojasRutaRandomPreference) {
+    if (nextPreference !== randomPreference) setRandomPreference(nextPreference);
+  }
+
+  function selectRandomPreferenceFromKey(key: string, itemIndex: number) {
+    let nextIndex: number | null = null;
+    if (key === "Home") nextIndex = 0;
+    else if (key === "End") nextIndex = randomPreferenceOptions.length - 1;
+    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % randomPreferenceOptions.length;
+    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + randomPreferenceOptions.length) % randomPreferenceOptions.length;
+    if (nextIndex != null) selectRandomPreference(randomPreferenceOptions[nextIndex].key);
+  }
+
   function setSampleSizeMode(mode: SampleSizeMode) {
     if (!config) return;
     patchConfig({
@@ -9019,20 +9032,24 @@ export default function HojasRutaPage() {
                   <Panel title="PDF de prueba" eyebrow="Validacion rapida">
                     <div className="hojas-ruta-random-pdf-card">
                       <span>Abre una hoja aleatoria para revisar el formato antes de generar o entregar el ZIP.</span>
-                      <div className="hojas-ruta-random-options" role="radiogroup" aria-label="Preferencia de PDF aleatorio">
-                        {randomPreferenceOptions.map((option) => (
+                      <GlidingTabList activeKey={randomPreference} mode="tabs" className="hojas-ruta-random-options" role="radiogroup" aria-label="Preferencia de PDF aleatorio">
+                        {randomPreferenceOptions.map((option, itemIndex) => (
                           <button
                             key={option.key}
                             type="button"
+                            role="radio"
+                            data-gliding-key={option.key}
+                            aria-checked={option.key === randomPreference}
                             title={option.title}
                             className={option.key === randomPreference ? "is-active" : ""}
-                            onClick={() => setRandomPreference(option.key)}
+                            onClick={() => selectRandomPreference(option.key)}
+                            onKeyDown={(event) => selectRandomPreferenceFromKey(event.key, itemIndex)}
                             disabled={!frame?.ok || !!jobId || busy !== ""}
                           >
                             {option.label}
                           </button>
                         ))}
-                      </div>
+                      </GlidingTabList>
                       <button
                         type="button"
                         style={{ ...btnSecondary, width: "100%", justifyContent: "center" }}
