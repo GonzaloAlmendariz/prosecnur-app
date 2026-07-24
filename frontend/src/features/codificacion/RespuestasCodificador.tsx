@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import {
-  ArrowRight,
+  CheckSquare,
   ChevronDown,
   Inbox,
+  Layers,
+  ListChecks,
   ListPlus,
   Plus,
   Search,
+  Square,
   Target,
   X,
 } from "lucide-react";
@@ -19,6 +23,46 @@ import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { GrupoCodificacionCard } from "./GrupoCodificacionCard";
 import { cleanCodificacionLabel, displayCodificacionValueLabel } from "./codificacionLabels";
+import { grupoAccentColor } from "./codificacionGrupoColor";
+
+// Estilo inline que expone el color de acento del grupo como custom property
+// para que el CSS lo mezcle con las superficies (color-mix) y adapte a claro/
+// oscuro. Casteo a CSSProperties porque las custom props no están tipadas.
+function accentStyle(accent: string): CSSProperties {
+  return { "--cv2-chip-accent": accent } as CSSProperties;
+}
+
+function truncateChip(s: string, n: number): string {
+  if (!s) return "";
+  return s.length > n ? `${s.slice(0, n - 1)}…` : s;
+}
+
+// Chips de color de las categorías a las que pertenece una respuesta. En
+// select_multiple una respuesta puede aparecer en varias — cada chip lleva el
+// color del grupo, así se ve de un vistazo la multi-pertenencia.
+function GrupoMembershipChips({ grupos }: { grupos: Grupo[] }) {
+  return (
+    <span className="pulso-cv2-memberships">
+      {grupos.map((g) => {
+        const d = displayCodificacionValueLabel(g.codigo, g.etiqueta);
+        const accent = grupoAccentColor(g.codigo, g.id);
+        const full = d.code ? `${d.code} · ${d.label}` : d.label;
+        const primary = truncateChip(d.label || d.code || "sin nombre", 16);
+        return (
+          <span
+            key={g.id}
+            className="pulso-cv2-member-chip"
+            style={accentStyle(accent)}
+            title={full}
+          >
+            <span className="pulso-cv2-member-dot" aria-hidden="true" />
+            <span className="pulso-cv2-member-code">{primary}</span>
+          </span>
+        );
+      })}
+    </span>
+  );
+}
 
 type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
 type StatTone = "neutral" | "success" | "warn" | "info" | "muted";
@@ -291,6 +335,23 @@ export function RespuestasCodificador({ parent }: Props) {
     if (target) announce(`"${respuestaLabel(texto_normalizado)}" movida a ${grupoLabel(target)}.`);
   }
 
+  // Multi-select real (SM): togglea la pertenencia de una respuesta en UN grupo
+  // sin tocar los demás, de modo que la misma respuesta puede quedar marcada en
+  // varias categorías a la vez.
+  function toggleRespuestaEnGrupo(texto_normalizado: string, groupId: string) {
+    const g = grupos.find((x) => x.id === groupId);
+    if (!g) return;
+    const has = g.respuestas.includes(texto_normalizado);
+    updateGroup(groupId, {
+      respuestas: has
+        ? g.respuestas.filter((r) => r !== texto_normalizado)
+        : [...g.respuestas, texto_normalizado],
+    });
+    announce(
+      `"${respuestaLabel(texto_normalizado)}" ${has ? "quitada de" : "asignada también a"} ${grupoLabel(g)}.`,
+    );
+  }
+
   if (error) return <ErrorBlock label="Error cargando respuestas" detail={error} />;
   if (!respuestas) return <LoadingBlock variant="inline" label="Cargando respuestas…" />;
 
@@ -357,7 +418,18 @@ export function RespuestasCodificador({ parent }: Props) {
         {/* ORIGEN — respuestas únicas */}
         <section className="pulso-cv2-col pulso-cv2-col--origen">
           <div className="pulso-cv2-col-head">
-            <span className="pulso-cv2-col-title">Respuestas únicas</span>
+            <span className="pulso-cv2-col-title">
+              Respuestas únicas
+              {esSM && (
+                <span
+                  className="pulso-cv2-multi-hint"
+                  title="Cada respuesta puede pertenecer a varias categorías a la vez"
+                  aria-label="Cada respuesta puede pertenecer a varias categorías a la vez"
+                >
+                  <Layers size={11} aria-hidden="true" /> multi
+                </span>
+              )}
+            </span>
             <span className="pulso-cv2-col-count">
               {codificadas} de {respuestas.length} codificadas
             </span>
@@ -394,11 +466,12 @@ export function RespuestasCodificador({ parent }: Props) {
               const assigned = gruposAsignados.length > 0;
               const checked = esSM && activeGroup ? activeGroup.respuestas.includes(r.texto_normalizado) : assigned;
               const display = displayCodificacionValueLabel(r.texto, r.label);
-              const gruposDisponibles = esSM
-                ? grupos.filter((g) => !g.respuestas.includes(r.texto_normalizado))
-                : grupos;
-              const puedeAsignarRapido = esSM ? gruposDisponibles.length > 0 : !assigned && grupos.length > 1;
-              const assignedLabel = gruposAsignados.map((g) => grupoLabel(g)).join("; ");
+              const gruposDisponibles = grupos.filter((g) => !g.respuestas.includes(r.texto_normalizado));
+              const puedeAsignarRapidoSO = !assigned && grupos.length > 1;
+              const assignedIds = new Set(gruposAsignados.map((g) => g.id));
+              const checkboxLabel = esSM && activeGroup
+                ? `${checked ? "Quitar" : "Agregar"} "${display.label}" ${checked ? "del" : "al"} grupo activo ${grupoLabel(activeGroup)}${gruposAsignados.length > 1 ? `; en ${gruposAsignados.length} grupos` : ""}`
+                : `${checked ? "Quitar" : "Agregar"} "${display.label}" ${assigned ? `del grupo ${grupo!.etiqueta || grupo!.codigo}` : "al grupo activo"}`;
               return (
                 <div
                   key={r.texto_normalizado}
@@ -408,7 +481,7 @@ export function RespuestasCodificador({ parent }: Props) {
                     type="checkbox"
                     checked={checked}
                     onChange={() => toggleRespuesta(r.texto_normalizado)}
-                    aria-label={`${checked ? "Quitar" : "Agregar"} "${display.label}" ${esSM && activeGroup ? `del grupo activo ${grupoLabel(activeGroup)}` : assigned ? `del grupo ${grupo!.etiqueta || grupo!.codigo}` : "al grupo activo"}`}
+                    aria-label={checkboxLabel}
                   />
                   <div className="pulso-cv2-resp-main">
                     <div className="pulso-cv2-resp-text" title={display.title}>
@@ -418,16 +491,27 @@ export function RespuestasCodificador({ parent }: Props) {
                     <div className="pulso-cv2-resp-meta">
                       <span><strong>{r.frecuencia}</strong> {r.frecuencia === 1 ? "vez" : "veces"}</span>
                       {r.variantes > 1 && <span>{r.variantes} variantes</span>}
-                      {assigned && (
-                        <span className="pulso-cv2-resp-assigned" title={assignedLabel}>
-                          <ArrowRight size={10} /> {esSM && gruposAsignados.length > 1 ? `${gruposAsignados.length} categorías` : grupoLabel(grupo!)}
-                        </span>
-                      )}
+                      {assigned && <GrupoMembershipChips grupos={gruposAsignados} />}
                     </div>
                   </div>
-                  {puedeAsignarRapido && (
-                    <QuickAssignDropdown grupos={gruposDisponibles} respuesta={display.label} onPick={(gid) => moveToGroup(r.texto_normalizado, gid)} />
-                  )}
+                  {esSM
+                    ? grupos.length > 0 && (
+                        <QuickAssignDropdown
+                          mode="multi"
+                          grupos={grupos}
+                          asignados={assignedIds}
+                          respuesta={display.label}
+                          onToggle={(gid) => toggleRespuestaEnGrupo(r.texto_normalizado, gid)}
+                        />
+                      )
+                    : puedeAsignarRapidoSO && (
+                        <QuickAssignDropdown
+                          mode="single"
+                          grupos={gruposDisponibles}
+                          respuesta={display.label}
+                          onPick={(gid) => moveToGroup(r.texto_normalizado, gid)}
+                        />
+                      )}
                 </div>
               );
             })}
@@ -485,7 +569,20 @@ export function RespuestasCodificador({ parent }: Props) {
   );
 }
 
-function QuickAssignDropdown({ grupos, respuesta, onPick }: { grupos: Grupo[]; respuesta: string; onPick: (gid: string) => void }) {
+type QuickAssignProps =
+  | { mode: "single"; grupos: Grupo[]; respuesta: string; onPick: (gid: string) => void }
+  | {
+      mode: "multi";
+      grupos: Grupo[];
+      asignados: Set<string>;
+      respuesta: string;
+      onToggle: (gid: string) => void;
+    };
+
+function QuickAssignDropdown(props: QuickAssignProps) {
+  const { mode, grupos, respuesta } = props;
+  const isMulti = mode === "multi";
+  const asignadosCount = isMulti ? grupos.filter((g) => props.asignados.has(g.id)).length : 0;
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const firstItemRef = useRef<HTMLButtonElement>(null);
@@ -518,12 +615,14 @@ function QuickAssignDropdown({ grupos, respuesta, onPick }: { grupos: Grupo[]; r
   }, [open]);
 
   function focusSibling(current: HTMLElement, direction: 1 | -1) {
-    const items = Array.from(rootRef.current?.querySelectorAll<HTMLButtonElement>("[role='menuitem']:not(:disabled)") ?? []);
+    const items = Array.from(rootRef.current?.querySelectorAll<HTMLButtonElement>("[role='menuitem']:not(:disabled),[role='menuitemcheckbox']:not(:disabled)") ?? []);
     if (!items.length) return;
     const idx = items.indexOf(current as HTMLButtonElement);
     const next = items[(idx + direction + items.length) % items.length];
     next?.focus();
   }
+
+  const itemRole = isMulti ? "menuitemcheckbox" : "menuitem";
 
   return (
     <div ref={rootRef} className="pulso-cv2-qa">
@@ -533,27 +632,34 @@ function QuickAssignDropdown({ grupos, respuesta, onPick }: { grupos: Grupo[]; r
         aria-expanded={open}
         aria-haspopup="menu"
         aria-controls={open ? menuId : undefined}
-        aria-label={`Asignar "${respuesta}" a un grupo existente`}
-        className={`pulso-cv2-qa-btn${open ? " is-open" : ""}`}
-        title="Asignar a grupo existente"
+        aria-label={isMulti
+          ? `Editar grupos de "${respuesta}" (marca varios)${asignadosCount > 0 ? `, en ${asignadosCount}` : ""}`
+          : `Asignar "${respuesta}" a un grupo existente`}
+        className={`pulso-cv2-qa-btn${open ? " is-open" : ""}${isMulti ? " is-multi" : ""}`}
+        title={isMulti ? "Marcar en varias categorías" : "Asignar a grupo existente"}
       >
-        <ListPlus size={11} />
-        <span>asignar</span>
+        {isMulti ? <ListChecks size={11} /> : <ListPlus size={11} />}
+        <span>{isMulti ? "grupos" : "asignar"}</span>
+        {isMulti && asignadosCount > 0 && <span className="pulso-cv2-qa-count">{asignadosCount}</span>}
         <ChevronDown size={9} className="pulso-cv2-qa-caret" />
       </button>
       {open && (
-        <div id={menuId} role="menu" className="pulso-cv2-qa-menu" aria-label={`Grupos para asignar "${respuesta}"`}>
+        <div id={menuId} role="menu" className="pulso-cv2-qa-menu" aria-label={`Grupos para "${respuesta}"`}>
           {grupos.length === 0 && (
             <div className="pulso-cv2-qa-empty">Todavía no hay grupos creados.</div>
           )}
           {grupos.map((g, idx) => {
             const display = displayCodificacionValueLabel(g.codigo, g.etiqueta);
+            const checked = isMulti && props.asignados.has(g.id);
+            const accent = grupoAccentColor(g.codigo, g.id);
             return (
               <button
                 key={g.id}
                 ref={idx === 0 ? firstItemRef : undefined}
                 type="button"
-                role="menuitem"
+                role={itemRole}
+                aria-checked={isMulti ? checked : undefined}
+                style={accentStyle(accent)}
                 onKeyDown={(e) => {
                   if (e.key === "ArrowDown") {
                     e.preventDefault();
@@ -566,18 +672,35 @@ function QuickAssignDropdown({ grupos, respuesta, onPick }: { grupos: Grupo[]; r
                     firstItemRef.current?.focus();
                   } else if (e.key === "End") {
                     e.preventDefault();
-                    const items = rootRef.current?.querySelectorAll<HTMLButtonElement>("[role='menuitem']:not(:disabled)");
+                    const items = rootRef.current?.querySelectorAll<HTMLButtonElement>("[role='menuitem'],[role='menuitemcheckbox']");
                     items?.[items.length - 1]?.focus();
                   } else if (e.key === "Escape") {
                     e.preventDefault();
                     setOpen(false);
                   }
                 }}
-                onClick={(e) => { e.stopPropagation(); onPick(g.id); setOpen(false); }}
-                className="pulso-cv2-qa-item"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (props.mode === "multi") {
+                    props.onToggle(g.id);
+                    // El menú multi NO se cierra: el usuario puede marcar varias.
+                  } else {
+                    props.onPick(g.id);
+                    setOpen(false);
+                  }
+                }}
+                className={`pulso-cv2-qa-item${isMulti ? " is-check" : ""}${checked ? " is-checked" : ""}`}
                 title={display.title}
               >
-                {display.code && <strong>{display.code}</strong>} {display.label || <em className="pulso-cv2-qa-unnamed">sin nombre</em>}
+                {isMulti && (
+                  <span className="pulso-cv2-qa-check" aria-hidden="true">
+                    {checked ? <CheckSquare size={13} /> : <Square size={13} />}
+                  </span>
+                )}
+                <span className="pulso-cv2-qa-dot" aria-hidden="true" />
+                <span className="pulso-cv2-qa-item-label">
+                  {display.code && <strong>{display.code}</strong>} {display.label || <em className="pulso-cv2-qa-unnamed">sin nombre</em>}
+                </span>
               </button>
             );
           })}
