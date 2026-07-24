@@ -1060,7 +1060,7 @@ function phaseLabel(phase: GatePhase) {
 function BootBrandMark() {
   return (
     <span className="boot-mark" aria-hidden="true">
-      <svg viewBox="0 0 64 64" width="44" height="44" role="img">
+      <svg viewBox="0 0 64 64" width="44" height="44">
         <rect width="64" height="64" rx="15.4" fill="var(--pulso-primary)" />
         <rect className="boot-mark-bar" x="12" y="30" width="7" height="18" rx="3.5" fill="#fff" />
         <rect className="boot-mark-bar" x="23" y="22" width="7" height="26" rx="3.5" fill="#fff" />

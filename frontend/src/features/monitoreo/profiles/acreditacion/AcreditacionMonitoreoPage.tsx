@@ -4133,7 +4133,7 @@ function normalizeAcreditacionReports(reports: MonitoreoAcreditacionReports | nu
 function rowValue(row: Record<string, unknown>, key: string) {
   const value = row[key];
   if (value == null) return "";
-  if (typeof value === "boolean") return value ? "Si" : "No";
+  if (typeof value === "boolean") return value ? "Sí" : "No";
   return String(value);
 }
 

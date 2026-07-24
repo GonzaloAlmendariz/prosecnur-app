@@ -148,6 +148,7 @@ import {
 import { debeResetearRailSection } from "./hooks/railReset";
 import { UniversidadDesk } from "./universidad/UniversidadDesk";
 import { JobProgressBanner } from "./JobProgressBanner";
+import { presentResultadoPrecision } from "./resultadoPrecision";
 import { resolveUniversityLocalTab, universitySectionStates, universitySidebarTabs, type CalcMuestraSidebarTab } from "./universidad/universidadTabs";
 import "./universidad/universidad-base.css";
 import "./calcMuestra.css";
@@ -3199,6 +3200,11 @@ function ResultadoPanel({
             <tbody>
               {componentes.map((comp) => {
                 const r = comp.resultado;
+                const precision = presentResultadoPrecision({
+                  naturaleza: comp.naturaleza,
+                  precisionAlcanzada: r?.precision_alcanzada,
+                  coberturaObjetivo: r?.cobertura_objetivo,
+                });
                 return (
                   <tr key={comp.id}>
                     <td>
@@ -3209,7 +3215,10 @@ function ResultadoPanel({
                     <td>{fmtInt(comp.marco.marco_validado)}</td>
                     <td>{fmtInt(r?.n_objetivo)}</td>
                     <td>{fmtInt(r?.n_operativo)}</td>
-                    <td>{r?.precision_alcanzada ? fmtPct(r.precision_alcanzada) : r?.cobertura_objetivo ? fmtPct(r.cobertura_objetivo) : "—"}</td>
+                    <td>
+                      {precision.value}
+                      {precision.note && <small>{precision.note}</small>}
+                    </td>
                     <td className="cmv2-note-cell">{criterioSalida(comp)}</td>
                   </tr>
                 );

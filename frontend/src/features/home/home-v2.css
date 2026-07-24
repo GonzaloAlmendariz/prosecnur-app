@@ -1349,6 +1349,99 @@
 .home-mc-kebab:hover { background: var(--pulso-surface-2); color: var(--pulso-text); }
 .home-mc-kebab:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--pulso-primary-focus); }
 
+.home-mc-menu-popover {
+  z-index: 74;
+  width: min(280px, calc(100vw - 24px));
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  padding: 6px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: var(--pulso-shadow-popover);
+}
+
+.home-mc-menu-actions {
+  display: grid;
+  gap: 2px;
+}
+
+.home-mc-menu-actions button {
+  min-height: 32px;
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-mc-menu-actions button:hover,
+.home-mc-menu-actions button:focus-visible {
+  outline: none;
+  background: var(--pulso-surface-2);
+}
+
+.home-mc-menu-actions button.is-destructive {
+  color: var(--pulso-danger-fg);
+}
+
+.home-mc-menu-progress {
+  display: grid;
+  gap: 3px;
+  margin-top: 6px;
+  border-top: 1px solid var(--pulso-border-soft);
+  padding: 10px 8px 4px;
+}
+
+.home-mc-menu-progress > span,
+.home-mc-menu-progress dt {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 720;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.home-mc-menu-progress > strong {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.home-mc-menu-progress > small {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+.home-mc-menu-progress dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 7px 0 0;
+}
+
+.home-mc-menu-progress dl div {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.home-mc-menu-progress dt,
+.home-mc-menu-progress dd {
+  overflow: hidden;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-mc-menu-progress dd {
+  font-size: 12px;
+  font-weight: 740;
+}
+
 .home-mc-status {
   display: inline-flex;
   align-items: center;
@@ -1827,14 +1920,15 @@
   position: fixed;
   inset: 0;
   z-index: 75;
-  display: grid;
-  place-items: center;
-  padding: 24px;
   background: rgba(8, 20, 40, 0.5);
   backdrop-filter: blur(3px);
 }
 
 .home-confirm {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 76;
   width: min(430px, 100%);
   display: flex;
   flex-direction: column;
@@ -1844,6 +1938,7 @@
   padding: 20px;
   background: var(--pulso-surface);
   box-shadow: 0 30px 80px rgba(0, 20, 50, 0.32);
+  transform: translate(-50%, -50%);
 }
 
 .home-confirm strong { font-size: 16px; font-weight: 760; }

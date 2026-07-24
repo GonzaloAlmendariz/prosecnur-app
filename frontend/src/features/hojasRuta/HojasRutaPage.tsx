@@ -4270,7 +4270,7 @@ function TerritoryMapExplorer({
               <MiniMetric label="Codigo INEI" value={activeTerritory.ubigeo} />
               <MiniMetric label="Viviendas 2017" value={formatNumber(activeTerritory.viviendas)} />
               <MiniMetric label="Manzanas censales" value={formatNumber(activeTerritory.manzanas)} />
-              <MiniMetric label="Poblacion 2017" value={formatNumber(activeTerritory.poblacion)} />
+              <MiniMetric label="Población 2017" value={formatNumber(activeTerritory.poblacion)} />
             </div>
           ) : (
             <div className="hojas-ruta-focus-empty">Sin distrito enfocado</div>
@@ -5174,7 +5174,7 @@ function PopulationMatrixPreview({
       </div>
       <div className="hojas-ruta-pop-summary">
         <div>
-          <span>Poblacion base</span>
+          <span>Población base</span>
           <strong>{formatNumber(Math.round(totalPopulation))}</strong>
         </div>
         <div>
@@ -5198,7 +5198,7 @@ function PopulationMatrixPreview({
               {ageGroups.map((age) => (
                 <th key={age} className="is-age-head" colSpan={hasSexBreakdown ? 2 : 1}>{age}</th>
               ))}
-              <th className="is-total-head is-final-sticky" rowSpan={2}>Poblacion</th>
+              <th className="is-total-head is-final-sticky" rowSpan={2}>Población</th>
             </tr>
             <tr>
               {ageGroups.flatMap((age) => hasSexBreakdown
@@ -5344,14 +5344,14 @@ function QuotaMatrixPreview({
     <div className="hojas-ruta-pop-preview">
       <div className="hojas-ruta-pop-toolbar">
         <div>
-          <div className="hojas-ruta-pop-title">Poblacion y cuotas</div>
-          <div className="hojas-ruta-pop-caption">Cada fila conserva poblacion base, N asignado y margen de error estimado.</div>
+          <div className="hojas-ruta-pop-title">Población y cuotas</div>
+          <div className="hojas-ruta-pop-caption">Cada fila conserva población base, N asignado y margen de error estimado.</div>
         </div>
         <StatusPill ok={quota.ok} text={`${formatNumber(quota.total_asignado)} / ${formatNumber(quota.n_objetivo)} encuestas`} />
       </div>
       <div className="hojas-ruta-pop-summary">
         <div>
-          <span>Poblacion base</span>
+          <span>Población base</span>
           <strong>{formatNumber(Math.round(totalPopulation))}</strong>
         </div>
         <div>
@@ -5368,14 +5368,14 @@ function QuotaMatrixPreview({
         </div>
       </div>
       <div className="hojas-ruta-pop-table">
-        <table aria-label="Matriz de poblacion y cuotas">
+        <table aria-label="Matriz de población y cuotas">
           <thead>
             <tr>
               <th className="is-district-head" rowSpan={2}>Distrito</th>
               {ageGroups.map((age) => (
                 <th key={age} className="is-age-head" colSpan={hasSexBreakdown ? 2 : 1}>{age}</th>
               ))}
-              <th className="is-total-head" rowSpan={2}>Poblacion</th>
+              <th className="is-total-head" rowSpan={2}>Población</th>
               <th className="is-total-head" rowSpan={2}>N asignado</th>
               <th
                 className="is-total-head is-final-sticky"
@@ -7707,7 +7707,7 @@ export default function HojasRutaPage() {
     {
       key: "poblacion",
       n: 2,
-      label: "Poblacion",
+      label: "Población",
       icon: BarChart3,
       hint: "Matriz INEI 2017",
       done: !!population?.ok,
@@ -7892,7 +7892,7 @@ export default function HojasRutaPage() {
                     <MiniMetric label="Distritos disponibles" value={formatNumber(frame.n_distritos)} />
                     <MiniMetric label="Manzanas censales" value={formatNumber(frame.n_manzanas)} />
                     <MiniMetric label="Viviendas censadas" value={formatNumber(frame.viviendas)} />
-                    <MiniMetric label="Poblacion censada" value={formatNumber(frame.poblacion)} />
+                    <MiniMetric label="Población censada" value={formatNumber(frame.poblacion)} />
                   </div>
                   <div className="hojas-ruta-cartography-row is-compact">
                     <Layers size={16} color="var(--pulso-primary)" />

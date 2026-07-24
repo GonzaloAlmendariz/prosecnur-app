@@ -93,7 +93,7 @@ const INTENTS: {
     key: "combinar",
     title: "Combinar bloques",
     description: "Varios bloques verticales, incluso con escalas distintas.",
-    example: "Un bloque Likert y otro Si/No en la misma lamina.",
+    example: "Un bloque Likert y otro Sí/No en la misma lamina.",
     Icon: Rows3,
   },
 ];
