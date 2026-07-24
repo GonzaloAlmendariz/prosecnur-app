@@ -85,6 +85,8 @@ type DataPreview = Awaited<ReturnType<typeof apiCargaData>>["preview"];
 type IconCmp = typeof Database;
 type SourceMode = "files" | "platform";
 type CargaWorkspaceTab = "insumos" | "base";
+const CARGA_WORKSPACE_PANEL_ID = "carga-workspace-panel";
+const cargaWorkspaceTabId = (tab: CargaWorkspaceTab) => `carga-workspace-tab-${tab}`;
 type DetectedKoboSource = KoboSourceSpec & {
   ok: true;
   detected: true;
@@ -969,7 +971,13 @@ export default function CargaPage() {
             />
           )}
         >
-          <div className="pulso-carga-content pulso-content-area pulso-carga-content--multi pulso-carga-content--framed">
+          <div
+            id={CARGA_WORKSPACE_PANEL_ID}
+            role="tabpanel"
+            aria-labelledby={cargaWorkspaceTabId(activeCargaTab)}
+            tabIndex={0}
+            className="pulso-carga-content pulso-content-area pulso-carga-content--multi pulso-carga-content--framed"
+          >
             {/* Banda fija (fuera del scroller) + área scrolleable propia: el
                 suitebar se queda arriba sin tapar el contenido, que desliza por
                 debajo en su propio contenedor. */}
@@ -1122,7 +1130,13 @@ export default function CargaPage() {
         )}
       >
 
-        <div className="pulso-carga-content pulso-content-area">
+        <div
+          id={CARGA_WORKSPACE_PANEL_ID}
+          role="tabpanel"
+          aria-labelledby={cargaWorkspaceTabId(activeCargaTab)}
+          tabIndex={0}
+          className="pulso-carga-content pulso-content-area"
+        >
           <CargaSuiteBar
             modeLabel={sourceMode === "files" ? "Carga manual" : "Carga conectada"}
             headline={allReady ? "Insumos listos para validar" : sourceMode === "platform" ? "Importa desde una plataforma" : "Carga formulario y respuestas"}
@@ -2066,11 +2080,13 @@ function CargaWorkspaceTabs({
       aria-label="Vista de carga"
     >
       <button
+        id={cargaWorkspaceTabId("insumos")}
         type="button"
         className={`pulso-compact-tab pulso-carga-view-tab${sidebarClass}${active === "insumos" ? " is-active" : ""}`}
         onClick={() => onChange("insumos")}
         role="tab"
         aria-selected={active === "insumos"}
+        aria-controls={CARGA_WORKSPACE_PANEL_ID}
         data-gliding-key="insumos"
         aria-label="Preparar carga. Formulario, respuestas y fuentes"
         data-rail-title="Preparar"
@@ -2081,6 +2097,7 @@ function CargaWorkspaceTabs({
         <span className="pulso-carga-tab-label">Preparar</span>
       </button>
       <button
+        id={cargaWorkspaceTabId("base")}
         type="button"
         className={`pulso-compact-tab pulso-carga-view-tab${sidebarClass}${active === "base" ? " is-active" : ""}${baseReady ? " is-ready" : " is-pending"}`}
         onClick={() => {
@@ -2088,6 +2105,7 @@ function CargaWorkspaceTabs({
         }}
         role="tab"
         aria-selected={active === "base"}
+        aria-controls={CARGA_WORKSPACE_PANEL_ID}
         data-gliding-key="base"
         aria-disabled={!baseReady}
         aria-label={baseReady ? "Ver base. Respuestas cargadas" : "Ver base. Pendiente hasta completar insumos"}
