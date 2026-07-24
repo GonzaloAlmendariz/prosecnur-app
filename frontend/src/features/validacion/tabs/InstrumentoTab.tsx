@@ -502,8 +502,8 @@ export default function InstrumentoTab() {
     );
   }
 
-  return (
-    <div className="pulso-instrumento-workbench">
+  const panelContent = (
+    <>
       {/* --- Paso 1: Construir plan --- */}
       <section
         className={`pulso-instrumento-step pulso-instrumento-step--plan${estado.plan_construido ? "" : " is-setup"}`}
@@ -801,6 +801,16 @@ export default function InstrumentoTab() {
         </div>
       )}
       {error && <ErrorBlock label="Error" detail={error} />}
+    </>
+  );
+
+  if (error) {
+    return <div className="pulso-instrumento-workbench">{panelContent}</div>;
+  }
+
+  return (
+    <div className="pulso-instrumento-workbench" data-audit-ready="validacion-instrumento">
+      {panelContent}
     </div>
   );
 }

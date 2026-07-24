@@ -312,7 +312,10 @@ export function RespuestasCodificador({ parent }: Props) {
       ];
 
   return (
-    <div className="pulso-codificacion-respuestas pulso-cv2-rc">
+    <div
+      className="pulso-codificacion-respuestas pulso-cv2-rc"
+      data-audit-ready="codificacion-codificar"
+    >
       {/* Toolbar: guardado + acción. La banda de KPIs va debajo, full-width. */}
       <div className="pulso-cv2-rc-toolbar">
         <SaveStatusIndicator state={saveStatus} variant="badge" />

@@ -169,8 +169,8 @@ export default function ReglasCustomTab() {
   // (flatVars se calcula arriba, antes de los early returns, para
   // mantener el orden de hooks estable entre renders.)
 
-  return (
-    <div className={`pulso-criterios-tab${showEditor ? " is-editing" : ""}`}>
+  const panelContent = (
+    <>
       {/* Header + acciones */}
       <section
         className="pulso-criterios-toolbar"
@@ -316,6 +316,17 @@ export default function ReglasCustomTab() {
 
       {busy && <LoadingBlock variant="inline" label={busy} />}
       {error && <ErrorBlock label="Error" detail={error} />}
+    </>
+  );
+
+  const rootClassName = `pulso-criterios-tab${showEditor ? " is-editing" : ""}`;
+  if (error) {
+    return <div className={rootClassName}>{panelContent}</div>;
+  }
+
+  return (
+    <div className={rootClassName} data-audit-ready="validacion-reglas_custom">
+      {panelContent}
     </div>
   );
 }

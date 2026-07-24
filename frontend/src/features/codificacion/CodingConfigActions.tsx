@@ -381,6 +381,9 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
 
   return (
     <div className="pulso-codificacion-matrix-workbench" aria-label="Matrices y mapeo de codificación">
+      {!source.loading && !source.error && !error && map !== null && (
+        <span data-audit-ready="codificacion-matrices" hidden />
+      )}
       <section className="pulso-codificacion-matrix-hero">
         <span className="pulso-codificacion-matrix-hero-icon" aria-hidden="true">
           <Network size={18} />

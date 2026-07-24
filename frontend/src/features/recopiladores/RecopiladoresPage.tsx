@@ -1865,7 +1865,7 @@ export default function RecopiladoresPage() {
   }
 
   return (
-    <div className="rec-page" style={MODULE_TONES.recopiladores as CSSProperties}>
+    <div className="rec-page" style={MODULE_TONES.recopiladores as CSSProperties} data-audit-ready={!loading && (state !== null || calcState !== null) ? "recopiladores" : undefined}>
       <header className="rec-topbar">
         <div className="rec-brand">
           <span><QrCode size={18} /></span>

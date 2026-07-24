@@ -8,6 +8,7 @@ import { PageFrame } from "../../components/PageFrame";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { StepMeta } from "../../components/Stepper";
 import { GlidingTabList } from "../../components/GlidingTabList";
+import { LoadingBlock } from "../../components/States";
 import { PreguntasLanding } from "./PreguntasLanding";
 import { CodificarWizard } from "./CodificarWizard";
 import { AdaptarPane } from "./AdaptarPane";
@@ -112,6 +113,11 @@ export default function CodificacionPage() {
           className="pulso-codificacion-content pulso-content-area"
           role="tabpanel"
           aria-labelledby={`codificacion-step-${step}`}
+          data-audit-ready={
+            !prereqOk && !codifSource.loading && !codifSource.error
+              ? `codificacion-${step}`
+              : undefined
+          }
         >
           {!prereqOk ? (
             <ProcessingPrereqGate
@@ -140,31 +146,39 @@ export default function CodificacionPage() {
             />
           ) : (
             <>
-              <div className="pulso-codificacion-panel-body">
-                {/* `key={codifActive}` fuerza el remount de los hijos cuando
-                    el analista cambia la base activa. Cada hijo tiene sus propios
-                    useEffect([]) que refetchean familias/preguntas/columnas del
-                    backend; al remontarse cargan el estado scoped de la base
-                    nueva sin tener que refactorear 8 archivos con listeners. */}
-                {step === "organizar" && <PreguntasLanding key={codifActive} />}
-                {step === "codificar" && <CodificarWizard key={codifActive} onBackToOrganizar={() => goStep("organizar")} />}
-                {step === "matrices" && (
-                  <CodingConfigActions
-                    key={codifActive}
-                    onImported={() => {
-                      setImportRevision((n) => n + 1);
-                      void refreshSession();
-                    }}
-                  />
-                )}
-                {step === "adaptar" && (
-                  <AdaptarPane
-                    key={codifActive}
-                    onBackToCodificar={() => goStep("codificar")}
-                    onBackToMatrices={() => goStep("matrices")}
-                  />
-                )}
-              </div>
+              {codifSource.loading && (
+                <LoadingBlock label="Cargando base de codificación…" />
+              )}
+              {!codifSource.loading && (
+                <div
+                  key={`${step}:${codifActive}`}
+                  className="pulso-codificacion-panel-body"
+                >
+                  {/* `key={codifActive}` fuerza el remount de los hijos cuando
+                      el analista cambia la base activa. Cada hijo tiene sus propios
+                      useEffect([]) que refetchean familias/preguntas/columnas del
+                      backend; al remontarse cargan el estado scoped de la base
+                      nueva sin tener que refactorear 8 archivos con listeners. */}
+                  {step === "organizar" && <PreguntasLanding key={codifActive} />}
+                  {step === "codificar" && <CodificarWizard key={codifActive} onBackToOrganizar={() => goStep("organizar")} />}
+                  {step === "matrices" && (
+                    <CodingConfigActions
+                      key={codifActive}
+                      onImported={() => {
+                        setImportRevision((n) => n + 1);
+                        void refreshSession();
+                      }}
+                    />
+                  )}
+                  {step === "adaptar" && (
+                    <AdaptarPane
+                      key={codifActive}
+                      onBackToCodificar={() => goStep("codificar")}
+                      onBackToMatrices={() => goStep("matrices")}
+                    />
+                  )}
+                </div>
+              )}
             </>
           )}
         </main>

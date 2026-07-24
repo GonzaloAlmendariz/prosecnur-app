@@ -191,7 +191,7 @@ export function IntegerCodificador({ parent }: Props) {
   if (!respuestas) return <LoadingBlock variant="inline" label="Cargando valores…" />;
 
   return (
-    <div>
+    <div data-audit-ready="codificacion-codificar">
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
         <SaveStatusIndicator state={saveStatus} variant="badge" />
         <span style={{ fontSize: 13, color: "var(--pulso-text-soft)" }}>

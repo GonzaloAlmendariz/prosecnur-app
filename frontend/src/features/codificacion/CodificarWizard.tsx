@@ -91,24 +91,27 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
 
   if (marcadas.length === 0) {
     return (
-      <EmptyState
-        icon={<ClipboardList size={22} />}
-        title="No hay preguntas marcadas para codificar"
-        hint="Vuelve al paso 1 · Organizar y marca las preguntas que quieres codificar (o empareja las SO/SM con sus 'Otros, especifique')."
-        cta={
-          <button
-            type="button"
-            className="pulso-primary"
-            onClick={onBackToOrganizar}
-            style={{
-              fontSize: 12, padding: "7px 14px",
-              display: "inline-flex", alignItems: "center", gap: 6,
-            }}
-          >
-            <ArrowLeft size={13} /> Volver a organizar
-          </button>
-        }
-      />
+      <>
+        <span data-audit-ready="codificacion-codificar" hidden />
+        <EmptyState
+          icon={<ClipboardList size={22} />}
+          title="No hay preguntas marcadas para codificar"
+          hint="Vuelve al paso 1 · Organizar y marca las preguntas que quieres codificar (o empareja las SO/SM con sus 'Otros, especifique')."
+          cta={
+            <button
+              type="button"
+              className="pulso-primary"
+              onClick={onBackToOrganizar}
+              style={{
+                fontSize: 12, padding: "7px 14px",
+                display: "inline-flex", alignItems: "center", gap: 6,
+              }}
+            >
+              <ArrowLeft size={13} /> Volver a organizar
+            </button>
+          }
+        />
+      </>
     );
   }
 
@@ -313,10 +316,13 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
       {/* Codificador */}
       {codificableInline ? (
         arq === "auto"
-          ? <IntegerCodificador parent={p.parent} />
-          : <RespuestasCodificador parent={p.parent} />
+          ? <IntegerCodificador key={p.parent} parent={p.parent} />
+          : <RespuestasCodificador key={p.parent} parent={p.parent} />
       ) : (
-        <div style={{ padding: 18, background: "white", border: "1px solid var(--pulso-border)", borderRadius: 8 }}>
+        <div
+          data-audit-ready="codificacion-codificar"
+          style={{ padding: 18, background: "white", border: "1px solid var(--pulso-border)", borderRadius: 8 }}
+        >
           <div style={{ fontSize: 13, color: "var(--pulso-text-soft)", lineHeight: 1.6 }}>
             Esta pregunta tiene <strong>{p.n_respuestas}</strong> respuestas
             ({<strong>{p.n_unicas}</strong>} únicas) en la columna <code style={{ fontFamily: "monospace" }}>{p.col_efectiva}</code>.

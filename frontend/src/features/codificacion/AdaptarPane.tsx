@@ -85,7 +85,10 @@ export function AdaptarPane({ onBackToCodificar, onBackToMatrices }: Props) {
     : "";
 
   return (
-    <section className="pulso-codificacion-adaptar">
+    <section
+      className="pulso-codificacion-adaptar"
+      data-audit-ready="codificacion-adaptar"
+    >
       {/* Header con totales */}
       <div className="pulso-codificacion-adaptar-stats">
         <Stat label="Preguntas" value={t.n_preguntas} />
