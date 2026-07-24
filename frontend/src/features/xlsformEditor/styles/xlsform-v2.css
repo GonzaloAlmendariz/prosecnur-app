@@ -163,6 +163,21 @@
   }
 }
 
+/* Cluster de salida: la casilla es una opción del .xlsx, no una acción
+   hermana, así que comparten una misma cápsula y se leen como un solo control
+   con su ajuste. Antes la casilla flotaba entre botones del mismo peso y la
+   banda se leía como un mosaico de piezas sin relación. */
+.pulso-xlsform-frame .pulso-xf-export-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 2px 2px 2px 4px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-surface) 72%, transparent);
+}
+
 .pulso-xlsform-frame .pulso-xlsform-toolbar-check {
   display: inline-flex;
   align-items: center;
@@ -898,9 +913,12 @@
 }
 
 /* ── Commandbar: breakpoint intermedio ─────────────────────────────────── */
-/* Los pills v2 son más anchos que los botones previos; entre 1101 y 1520px
-   los tres grupos ya no caben en una fila. Las acciones bajan a fila propia
-   (mismo patrón que theme.css aplica recién a ≤1180px). */
+/* Entre 1101 y 1520px las acciones siguen bajando a fila propia. Se probó
+   devolverlas a su columna tras recoger los seis controles en tres, y a 1280px
+   el resultado era peor: el selector de formulario tapaba las métricas y el
+   badge de avisos quedaba bajo el menú de ingreso. La zona de contexto por sí
+   sola —selector, métricas y dos chips de estado— ya no deja sitio. Dos filas
+   ordenadas leen mejor que una fila que se pisa. */
 
 @media (min-width: 1101px) and (max-width: 1520px) {
   .pulso-xlsform-commandbar {
