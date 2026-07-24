@@ -22,6 +22,9 @@ brief de la evolución v3:
   centrado como navegación primaria y el rail icon-only expandido de la v1.2.
 - El chrome se vuelve silencioso de verdad; los datos y las tareas ganan el
   primer viewport.
+- Cada módulo conserva su acento distintivo actual. Cambiar de módulo cambia
+  la señal contextual del shell, no los colores semánticos ni la paleta del
+  contenido.
 - El sistema se completa con roles explícitos de espaciado, tipografía,
   capas, navegación y estados.
 - Windows sigue siendo el release bloqueante; macOS define la gramática, no
@@ -37,10 +40,44 @@ brief de la evolución v3:
 | `ev-v3-brand` | artefacto canónico | `branding/direccion-creativa.md`, ADR 0038 y `branding/logo/` | equity que no cambia |
 | `ev-v3-layout` | contrato | `docs/ui-layout-grammar.md` | PageFrame, breakpoints y No Scroll Jail |
 | `ev-v3-runtime` | hecho | app real con proyecto canónico | workflows densos, estados y restricciones |
+| `ev-v3-module-color` | decisión humana | aclaración del 23 de julio de 2026 + `frontend/src/lib/modules.ts` | conservar los ocho acentos modulares canónicos |
 
 Cuando una regla v1.2 contradice la decisión actual, manda `ev-v3-plan`. La
 regla reemplazada se conserva como evidencia histórica y se registra en el ADR
 del shell; no se borra silenciosamente.
+
+### Decisión humana vigente: espectro modular
+
+La v3 conserva como invariante los ocho acentos distintivos actuales. Este
+invariante ya está decidido y no forma parte del gate pendiente de territorio:
+elegir A, B, C o un híbrido define materialidad, densidad, ritmo y cantidad de
+señal, pero **no elige una paleta modular nueva** ni vuelve todos los módulos
+navy.
+
+| Módulo | Token canónico actual | Acento |
+| --- | --- | --- |
+| Bitácora | `--pulso-module-encyclopedia` | `#A16207` |
+| Cálculo de muestra | `--pulso-module-sample` | `#7C3AED` |
+| Formularios | `--pulso-module-editor` | `#6D5DFC` |
+| Hojas de ruta | `--pulso-module-routes` | `#C2410C` |
+| Fichas QR | `--pulso-module-collectors` | `#0891B2` |
+| Monitoreo | `--pulso-module-monitoring` | `#BE123C` |
+| Procesamiento | `--pulso-module-processing` | `#0F766E` |
+| Dashboard | `--pulso-module-dashboard` | `#2563EB` |
+
+Cada familia conserva además sus roles derivados `-soft` y `-border`. El shell
+los consume mediante los aliases contextuales `--module-accent`,
+`--module-accent-soft` y `--module-accent-border`; así puede cambiar de módulo
+sin reescribir componentes.
+
+**Roles permitidos:** contexto de módulo, rail y superficie de selección,
+icono modular, tintes y bordes de procedencia, y foco contextual cuando el
+control pertenece al módulo.
+
+**Roles prohibidos:** contenido o superficies de datos, series de
+visualización por defecto, y estados semánticos como éxito, alerta, peligro e
+información. Esos roles conservan tokens propios y no cambian al navegar entre
+módulos.
 
 ## Norte: «La señal ordenada, ahora habitable»
 
@@ -56,7 +93,8 @@ mientras el proyecto cambia de módulo, sección y pestaña.
 
 Los tres territorios respetan el sidebar unificado, la marca, la paleta y la
 geometría obligatoria. Cambian la relación entre densidad, materialidad,
-tipografía y señal modular. El comparador visual vive en
+tipografía y señal modular. Los ejemplos muestran Procesamiento como un estado
+del shell, no como una elección cromática global. El comparador visual vive en
 `branding/v3/shell-territories.html`.
 
 ### A · Instrumento sereno — recomendado
@@ -289,9 +327,11 @@ externa usa `--prosecnur-*`. No se agregan hex a CSS de features.
 
 ### Color
 
-- Se conserva la paleta v1.2 y el espectro de ocho módulos.
+- Se conserva la paleta v1.2 y el espectro de ocho módulos definido en
+  `ev-v3-module-color`; A/B/C no sustituyen ni uniforman ese espectro.
 - Sidebar y header son 60/30: superficies frías y navy estructural.
-- El 10% de acento aparece en selección, foco contextual e icono de módulo.
+- El 10% de acento cambia con el módulo y aparece solo en contexto, selección,
+  icono, tintes/bordes de procedencia y foco contextual.
 - Éxito, alerta, peligro e info no cambian con el módulo.
 - Datos secuenciales: `#DBE8FF → #7AA2F8 → #2457D6 → #002457`.
 - Una personalización de entregable puede reemplazar la paleta del artefacto,
