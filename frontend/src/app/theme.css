@@ -20860,46 +20860,12 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   z-index: 1;
 }
 
-.home-cinema-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  min-width: 0;
-}
-
-.home-cinema-titleblock {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.home-cinema-eyebrow {
-  font-size: 10px;
-  font-weight: 820;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--home-mod-accent, var(--pulso-primary));
-}
-
-.home-cinema-titleblock h2 {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: 18.5px;
-  font-weight: 820;
-  letter-spacing: 0;
-  line-height: 1.12;
-  text-wrap: balance;
-}
-
 .home-cinema-deck-wrap {
   position: relative;
   z-index: 1;
-  /* Sin panel lateral: el deck ocupa TODO el ancho del stage (aunque la base y
-     sus ~12 variantes sigan declarando 2 columnas, el deck-wrap las cruza). Así
-     las cartas respiran a lo ancho y los vecinos no quedan tapados. */
-  grid-column: 1 / -1;
+  /* Sin panel lateral: el deck-wrap ES el stage (una sola área). Rellena la
+     altura real del stage (flex:1) para que el deck NUNCA colapse. */
+  flex: 1 1 auto;
   height: 100%;
   min-height: 0;
   display: grid;
@@ -20944,23 +20910,16 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 
-.home-cinema-counter {
-  min-width: 38px;
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-  font-weight: 800;
-  text-align: center;
-  letter-spacing: 0;
-}
-
 .home-cinema-stage {
   position: relative;
   align-self: stretch;
   height: 100%;
   min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(500px, 1.1fr) minmax(360px, 0.9fr);
-  gap: clamp(14px, 1.55vw, 24px);
+  /* Una sola área a altura definida (antes: grid de 2 columnas legacy con panel
+     lateral, que dejaba el deck sin altura y lo colapsaba). El deck-wrap hereda
+     el `1fr` real del stage y el deck deja de recortarse hacia arriba. */
+  display: flex;
+  flex-direction: column;
   align-items: stretch;
   overflow: visible;
 }
@@ -20969,13 +20928,14 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   position: relative;
   z-index: 1;
   isolation: isolate;
+  flex: 1 1 auto;
   height: 100%;
-  min-height: min(100%, clamp(320px, 48vh, 540px));
+  min-height: 0;
   border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  perspective: 1200px;
+  perspective: 1500px;
   transform-style: preserve-3d;
   overflow: visible;
 }
@@ -21000,7 +20960,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .home-cinema-card {
   --card-x: 0px;
   --card-y: 0px;
-  --card-rotate: 0deg;
+  --card-depth: 0px;
   --card-tilt: 0deg;
   --card-scale: 1;
   --card-opacity: 1;
@@ -21034,12 +20994,14 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   white-space: normal;
   cursor: pointer;
   opacity: var(--card-opacity);
+  /* Coverflow: retroceso en Z + rotateY hacia adentro; la escala va al final
+     para no pelear con el foreshortening del giro. Sin rotateZ (el mazo no
+     rueda, abanica). */
   transform:
     translate(-50%, -50%)
-    translate3d(var(--card-x), var(--card-y), 0)
-    scale(var(--card-scale))
+    translate3d(var(--card-x), var(--card-y), var(--card-depth))
     rotateY(var(--card-tilt))
-    rotateZ(var(--card-rotate));
+    scale(var(--card-scale));
   transform-style: preserve-3d;
   backface-visibility: hidden;
   isolation: isolate;
@@ -21130,7 +21092,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
    de preset (0,2,0).
    ===================================================================== */
 .home-cinema .home-cinema-card.is-focused {
-  width: min(clamp(452px, 40vw, 564px), calc(100% - 40px));
+  width: min(var(--home-card-width, 468px), calc(100% - 40px));
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -21199,10 +21161,59 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   text-align: left;
 }
 
-/* Vecinos: posters compactos solo-ícono que asoman a los lados del enfocado. */
+/* Vecinos: cartas del mazo con la MISMA silueta (retrato, mismas esquinas) que
+   la ficha, sólo más angostas. Muestran su cara compacta —sello de ícono en el
+   color del módulo + nombre + tagline en una línea— para leerse como carta, no
+   como tile. Asoman a los lados del enfocado y se tuckean detrás unas de otras. */
 .home-cinema .home-cinema-card:not(.is-focused) {
-  width: min(196px, calc(100% - 24px));
-  min-height: 196px;
+  width: min(var(--home-neighbor-width, 292px), calc(100% - 24px));
+  min-height: var(--home-neighbor-height, 356px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 22px 18px;
+}
+
+.home-cinema-poster-label {
+  max-width: 100%;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: 720;
+  line-height: 1.16;
+  letter-spacing: -0.008em;
+  text-align: center;
+  text-wrap: balance;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.home-cinema-poster-tagline {
+  max-width: 100%;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: 560;
+  line-height: 1.32;
+  text-align: center;
+  text-wrap: balance;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.home-cinema-card.is-focused .home-cinema-poster-label,
+.home-cinema-card.is-focused .home-cinema-poster-tagline {
+  display: none;
+}
+
+/* En compacto la cara del vecino se reduce al sello + nombre (sin tagline) para
+   no apretar la carta cuando el abanico está angosto. */
+.home-cinema[data-density="compact"] .home-cinema-poster-tagline {
+  display: none;
 }
 
 .home-cinema[data-density="compact"] .home-cinema-card {
@@ -21223,39 +21234,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   width: 62px;
   height: 62px;
   border-radius: 18px;
-}
-
-.home-cinema[data-density="compact"] .home-cinema-card-title {
-  font-size: 18px;
-  line-height: 1.08;
-}
-
-.home-cinema-card-kicker,
-.home-cinema-card-meta {
-  width: fit-content;
-  max-width: 100%;
-  padding: 4px 8px;
-  border-radius: 999px;
-  color: var(--home-mod-accent, var(--pulso-primary));
-  background: color-mix(in srgb, var(--home-mod-accent-soft, var(--pulso-primary-soft)) 86%, #fff 14%);
-  border: 1px solid var(--home-mod-accent-border, var(--pulso-primary-border));
-  font-size: 10px;
-  font-weight: 820;
-  line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.home-cinema-card-title {
-  width: min(100%, 280px);
-  color: var(--pulso-text);
-  font-size: 26px;
-  font-weight: 860;
-  line-height: 1.06;
-  letter-spacing: 0;
-  white-space: normal;
-  text-wrap: balance;
-  text-align: center;
 }
 
 .home-cinema-card-tagline {
@@ -21281,153 +21259,9 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   overflow: hidden;
 }
 
-.home-cinema-card-meta {
-  align-self: end;
-  color: var(--pulso-text-soft);
-  background: rgba(255, 255, 255, 0.76);
-}
-
-.home-cinema-card-kicker,
 .home-cinema-card-tagline,
-.home-cinema-card-blurb,
-.home-cinema-card-meta {
+.home-cinema-card-blurb {
   display: none;
-}
-
-.home-cinema-panel {
-  position: relative;
-  z-index: 2;
-  height: 100%;
-  min-width: 0;
-  min-height: min(calc(var(--home-card-min-height, 342px) + 48px), 100%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: clamp(22px, 2.3vw, 34px);
-  border-radius: 20px;
-  background:
-    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--home-mod-accent-soft, var(--pulso-primary-soft)) 52%, transparent) 0 24%, transparent 58%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(251, 253, 255, 0.94)),
-    var(--pulso-surface);
-  border: 1px solid color-mix(in srgb, var(--home-mod-accent-border, var(--pulso-border)) 52%, var(--pulso-border));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    inset 0 -1px 0 rgba(15, 23, 42, 0.025),
-    0 14px 34px rgba(15, 23, 42, 0.065);
-  text-align: center;
-  overflow-x: hidden;
-  overflow-y: auto;
-  animation: home-panel-enter-forward 260ms cubic-bezier(0.19, 1, 0.22, 1) both;
-  will-change: transform, opacity;
-}
-
-.home-cinema-panel > * {
-  width: min(100%, 640px);
-}
-
-.home-cinema[data-motion="backward"] .home-cinema-panel {
-  animation-name: home-panel-enter-backward;
-}
-
-.home-cinema-panel-top {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  position: relative;
-}
-
-.home-cinema-panel-icon {
-  width: 62px;
-  height: 62px;
-  border-radius: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: var(--home-mod-accent, var(--pulso-primary));
-  background:
-    linear-gradient(180deg, #fff, color-mix(in srgb, var(--home-mod-accent-soft, var(--pulso-primary-soft)) 76%, #fff 24%));
-  border: 1px solid var(--home-mod-accent-border, var(--pulso-primary-border));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 14px 28px color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 14%, transparent);
-}
-
-.home-cinema-panel-soon {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
-  width: fit-content;
-  max-width: 100%;
-  padding: 5px 9px;
-  border-radius: 999px;
-  color: var(--home-mod-accent, var(--pulso-primary));
-  background: color-mix(in srgb, var(--home-mod-accent-soft, var(--pulso-primary-soft)) 86%, #fff 14%);
-  border: 1px solid var(--home-mod-accent-border, var(--pulso-primary-border));
-  font-size: 10px;
-  font-weight: 840;
-  line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.home-cinema-panel h3 {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: 25px;
-  font-weight: 860;
-  letter-spacing: 0;
-  line-height: 1.08;
-  text-wrap: balance;
-}
-
-.home-cinema-panel-tagline {
-  margin: 0;
-  color: var(--home-mod-accent, var(--pulso-primary));
-  font-size: 13px;
-  font-weight: 760;
-  line-height: 1.35;
-  text-wrap: balance;
-}
-
-.home-cinema-panel-blurb {
-  margin: 0;
-  color: var(--pulso-text-soft);
-  font-size: 13px;
-  line-height: 1.48;
-  text-wrap: pretty;
-}
-
-.home-cinema-feature-list {
-  margin: 8px 0 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 8px;
-  min-height: 0;
-  flex: 0 1 auto;
-}
-
-.home-cinema-feature-list li {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 9px;
-  align-items: center;
-  min-height: 34px;
-  padding: 8px 10px;
-  border-radius: 11px;
-  border: 1px solid color-mix(in srgb, var(--home-mod-accent-border, var(--pulso-border)) 42%, #fff 58%);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.86), color-mix(in srgb, var(--home-mod-accent-soft, var(--pulso-surface-2)) 34%, #fff 66%));
-  color: var(--pulso-text);
-  font-size: 12px;
-  line-height: 1.24;
-  opacity: 1;
-  text-align: left;
 }
 
 .home-cinema-cta {
@@ -21458,35 +21292,22 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   transition: transform var(--motion-dur-fast) cubic-bezier(0.19, 1, 0.22, 1);
 }
 
-.home-cinema-soon {
-  margin-top: 8px;
-  align-self: center;
-  width: fit-content;
-  max-width: min(100%, 420px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--home-mod-accent-soft, var(--pulso-surface-2)) 72%, #fff 28%);
-  border: 1px dashed var(--home-mod-accent-border, var(--pulso-border));
-}
-
 .home-cinema-strip {
   justify-self: center;
   width: fit-content;
   /* Techo de ancho: el strip es un índice secundario, no debe estirarse a
      media pantalla en monitores anchos. Con los chips compactos su ancho
-     natural (~810px, 8 módulos) queda por debajo del tope y se centra; el
-     tope solo evita el desborde patológico y el overflow-x es la red final. */
-  max-width: min(100%, 860px);
+     natural (~810px, 8 módulos) queda por debajo del tope y se centra. Si el
+     ancho no alcanza, los 8 chips ENVUELVEN a dos filas centradas en vez de
+     ocultarse tras un scroll invisible. */
+  max-width: min(100%, 900px);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 5px;
+  row-gap: 4px;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
   padding: 4px;
   border-radius: 15px;
   border: 1px solid color-mix(in srgb, var(--pulso-border) 70%, #fff 30%);
@@ -22881,13 +22702,11 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
     overflow: visible;
   }
 
-  .home-cinema-controls {
-    display: none;
-  }
-
   .home-cinema-deck {
-    min-height: 210px;
-    max-height: 228px;
+    /* El deck rellena el stage (una sola área): sin techo legacy que lo capara
+       a ~228px y recortara la ficha hacia arriba bajo la barra del picker. */
+    min-height: 0;
+    max-height: none;
     overflow: visible;
   }
 
