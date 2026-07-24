@@ -1053,11 +1053,15 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
           )}
 
           <div className="pulso-integrated-diff-list">
-            {groupedDiffs.slice(0, 24).map((group) => {
+            {groupedDiffs.slice(0, 24).map((group, groupIndex) => {
               const diff = group.representative;
               const resolved = groupResolved(group, decisions);
               const activeId = activeWordingTabs[group.id] ?? group.diffs[0]?.id ?? "";
               const activeDiff = group.diffs.find((item) => item.id === activeId) ?? group.diffs[0] ?? diff;
+              const activeDiffIndex = Math.max(0, group.diffs.findIndex((item) => item.id === activeDiff.id));
+              const hasOriginTabs = group.diffs.length > 1;
+              const originPanelId = `integrated-origin-panel-${groupIndex}`;
+              const activeOriginTabId = `integrated-origin-tab-${groupIndex}-${activeDiffIndex}`;
               return (
                 <div key={group.id} className={`pulso-integrated-diff is-${diff.severity}${group.kind !== "single" ? " is-wording" : ""}`}>
                   <div>
@@ -1076,12 +1080,14 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
                       <div className="pulso-integrated-wording-review">
                         {group.diffs.length > 1 && (
                           <GlidingTabList activeKey={activeDiff.id} className="pulso-integrated-origin-tabs" role="tablist" aria-label={`Orígenes ${diff.variable}`}>
-                            {group.diffs.map((item) => (
+                            {group.diffs.map((item, itemIndex) => (
                               <button
                                 key={item.id}
+                                id={`integrated-origin-tab-${groupIndex}-${itemIndex}`}
                                 type="button"
                                 role="tab"
                                 aria-selected={item.id === activeDiff.id}
+                                aria-controls={originPanelId}
                                 data-gliding-key={item.id}
                                 className={item.id === activeDiff.id ? "is-active" : ""}
                                 onClick={() => setActiveWordingTabs((prev) => ({ ...prev, [group.id]: item.id }))}
@@ -1092,7 +1098,13 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
                           </GlidingTabList>
                         )}
                         {group.kind === "wording" ? (
-                          <div className="pulso-integrated-wording-grid">
+                          <div
+                            id={hasOriginTabs ? originPanelId : undefined}
+                            className="pulso-integrated-wording-grid"
+                            role={hasOriginTabs ? "tabpanel" : undefined}
+                            aria-labelledby={hasOriginTabs ? activeOriginTabId : undefined}
+                            tabIndex={hasOriginTabs ? 0 : undefined}
+                          >
                             <span>
                               <b>{diffRefOriginLabel(activeDiff)}</b>
                               <small><TextDiff value={activeDiff.ref} against={activeDiff.current} /></small>
@@ -1103,7 +1115,13 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
                             </span>
                           </div>
                         ) : (
-                          <div className="pulso-integrated-wording-grid is-compact">
+                          <div
+                            id={hasOriginTabs ? originPanelId : undefined}
+                            className="pulso-integrated-wording-grid is-compact"
+                            role={hasOriginTabs ? "tabpanel" : undefined}
+                            aria-labelledby={hasOriginTabs ? activeOriginTabId : undefined}
+                            tabIndex={hasOriginTabs ? 0 : undefined}
+                          >
                             <span>
                               <b>{diffRefOriginLabel(activeDiff)}</b>
                               <small>{activeDiff.ref || "Sin detalle"}</small>
