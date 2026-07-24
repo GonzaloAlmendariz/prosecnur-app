@@ -492,7 +492,29 @@
     cfg <- if (is.list(configs) && !is.null(configs[[nm]])) configs[[nm]] else global_cfg
     orden_cfg <- .orden_categorias_from_cfg(cfg)
     if (!length(orden_cfg)) next
-    inst_sources[[nm]] <- .apply_orden_categorias(inst_sources[[nm]], orden_cfg)
+    inst <- .apply_orden_categorias(inst_sources[[nm]], orden_cfg)
+    inst_sources[[nm]] <- inst
+
+    # `reporte_data()` adjunta el instrumento ORIGINAL en
+    # `attr(data, "instrumento_reporte")`, y ese attr manda sobre `inst` en los
+    # consumidores que lo leen como fallback (`.analitica_order_sm_dummy_cols`,
+    # los graficadores de dimensiones). Sin sincronizarlo, el override del
+    # analista viviría solo en `inst_sources` y el orden volvería a divergir.
+    # Mismo patrón que el review de Analítica (router_analitica.R).
+    # Se sincroniza POR VARIABLE, no reemplazando el `orders_list` entero: si el
+    # inst_source trae menos variables que el attr (o ninguna), un reemplazo
+    # total borraría órdenes que el attr sí tenía.
+    d <- src$data_sources[[nm]]
+    if (is.data.frame(d) && length(inst$orders_list)) {
+      ir <- attr(d, "instrumento_reporte", exact = TRUE)
+      if (is.list(ir)) {
+        ol <- ir$orders_list %||% list()
+        for (var in names(inst$orders_list)) ol[[var]] <- inst$orders_list[[var]]
+        ir$orders_list <- ol
+        attr(d, "instrumento_reporte") <- ir
+        src$data_sources[[nm]] <- d
+      }
+    }
   }
   src$inst_sources <- inst_sources
   src
@@ -664,6 +686,12 @@
     # que tablas y PPT respeten la misma secuencia. Va después de normalize
     # (que re-fija los `names` al orden del instrumento).
     src <- tryCatch(.graficos_apply_orden_categorias_sources(sid, src), error = function(e) src)
+    # Los dummies de select_multiple llegan de `reporte_data()` en el orden
+    # arbitrario en que los generó la codificación. Se reordenan con el MISMO
+    # helper que usa Analítica para que la variable se lea igual en la base
+    # final, el libro de códigos, las frecuencias y el PPT del cliente. Va
+    # después del override de orden de categorías, que es el que manda.
+    src <- tryCatch(.graficos_order_sm_dummy_sources(src), error = function(e) src)
     # Última etapa: re-anclar current_code/current_label en bases hija repeat que
     # la fuente analítica/adaptada haya stripeado, para que la apertura por
     # servicio (filtros = list(current_code = ...)) no reviente el render.
