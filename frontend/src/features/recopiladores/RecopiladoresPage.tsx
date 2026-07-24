@@ -1874,15 +1874,15 @@ export default function RecopiladoresPage() {
             <strong>Fichas QR para intervenciones por cursos-horario</strong>
           </div>
         </div>
-        {/* Rail de secciones canónico (.pulso-phase-pillbar, patrón maestro #2):
+        {/* Selector de etapas (.pulso-phase-pillbar):
             mismas píldoras centradas de Monitoreo/Bitácora, con número de fase
             19×19 y estado done derivado de los hitos existentes. El acento
             activo entra por --module-accent/--pulso-primary del scope. */}
         <GlidingTabList
-          as="nav"
           activeKey={activeSection}
+          mode="tabs"
           className="pulso-phase-pillbar rec-section-pillbar"
-          role="tablist"
+          role="group"
           aria-label="Secciones de fichas QR"
         >
           <ol className="pulso-phase-pill-list">
@@ -1892,10 +1892,8 @@ export default function RecopiladoresPage() {
                 <li key={section.id} className="pulso-phase-pill-item">
                   <button
                     type="button"
-                    role="tab"
                     data-gliding-key={section.id}
-                    aria-selected={active}
-                    aria-current={active ? "page" : undefined}
+                    aria-pressed={active}
                     className={`pulso-phase-pill rec-section-pill${active ? " is-active" : ""}${sectionDone[section.id] ? " is-done" : ""}`}
                     title={`${section.label}: ${section.detail}`}
                     aria-label={`${section.label}: ${section.detail}`}
