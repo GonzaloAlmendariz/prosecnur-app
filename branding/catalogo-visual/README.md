@@ -179,7 +179,7 @@ Los colores semánticos mantienen sus propios tokens y señales no cromáticas.
 | Cálculo de muestra | `#7C3AED` |
 | Editor de formularios | `#6D5DFC` |
 | Hojas de ruta | `#C2410C` |
-| Fichas QR | `#0891B2` |
+| Fichas QR | `#106E8C` |
 | Monitoreo | `#BE123C` |
 | Procesamiento | `#0F766E` |
 | Dashboard | `#2563EB` |

@@ -5,8 +5,8 @@
     "name": "Prosecnur — La señal ordenada (identidad visual v1.2)",
     "mode": "reconstruction",
     "status": "frozen",
-    "version": "1.2.0",
-    "manifest_hash": "sha256:ba38c9d50d5e5db7d2f9f97b7b81c395809d23b62929edf4a90e38cda40b35f5",
+    "version": "1.2.1",
+    "manifest_hash": "sha256:930fe502548ef92703911a240184eb792bbe58ac98d814211654aeee0dfd7c57",
     "owners": [
       "Gonzalo Almendáriz (PULSO PUCP)"
     ]
@@ -272,6 +272,18 @@
         "ev-direccion-creativa",
         "ev-theme-css"
       ]
+    },
+    {
+      "id": "dec-acento-collectors-aa",
+      "gate": "change-request",
+      "owner": "Gonzalo Almendáriz (PULSO PUCP)",
+      "timestamp": "2026-07-24T18:00:00Z",
+      "status": "approved",
+      "rationale": "El acento de Fichas QR pasa de #0891B2 a #106E8C. El valor anterior daba 3.68:1 sobre blanco —suficiente para superficies de UI (3:1) pero insuficiente para texto normal AA (4.5:1)— y se usaba como color de tipografía de 10 y 11px en recopiladores.css (labels de .rec-brand small, .rec-toolbar span, .rec-next span y hermanos), donde no califica como texto grande. El valor nuevo da 5.78:1 y conserva la distinción modular: ΔE76 de 25.0 frente al teal de Procesamiento #0F766E, prácticamente igual a los 26.9 del valor anterior. El invariante de los ocho acentos distintivos se mantiene —siguen siendo ocho y siguen siendo distinguibles—; lo que se corrige es la legibilidad de uno de ellos, no la estructura del espectro.",
+      "evidence_ids": [
+        "ev-direccion-creativa",
+        "ev-theme-css"
+      ]
     }
   ],
   "territories": [
@@ -502,7 +514,7 @@
         },
         {
           "name": "module-collectors",
-          "value": "#0891B2",
+          "value": "#106E8C",
           "role": "accent"
         },
         {
@@ -947,8 +959,8 @@
           "path": "branding/manual-identidad.html",
           "ownership": "manual_template",
           "status": "current",
-          "identity_version": "1.2.0",
-          "manifest_hash": "sha256:ba38c9d50d5e5db7d2f9f97b7b81c395809d23b62929edf4a90e38cda40b35f5"
+          "identity_version": "1.2.1",
+          "manifest_hash": "sha256:930fe502548ef92703911a240184eb792bbe58ac98d814211654aeee0dfd7c57"
         },
         {
           "id": "prosecnur-brand-css",
@@ -956,8 +968,8 @@
           "path": "branding/tokens/prosecnur-brand.css",
           "ownership": "manual_template",
           "status": "current",
-          "identity_version": "1.2.0",
-          "manifest_hash": "sha256:ba38c9d50d5e5db7d2f9f97b7b81c395809d23b62929edf4a90e38cda40b35f5"
+          "identity_version": "1.2.1",
+          "manifest_hash": "sha256:930fe502548ef92703911a240184eb792bbe58ac98d814211654aeee0dfd7c57"
         }
       ]
     },
@@ -980,7 +992,7 @@
         "id": "accesibilidad-contraste-foco",
         "type": "accessibility",
         "status": "waived",
-        "evidence": "Waived para el freeze con evidencia parcial de sesión: contraste WCAG calculado en vivo en el manual (navy 15.1:1, señal 6.2:1), focus rings y prefers-reduced-motion verificados en QA de los capítulos y en BootGate/QR. Barrido AA completo (triadas, DPI Windows) agendado en oleadas R del plan-rebranding.md; revisar antes de 2026-09-30. Owner: lead de diseño."
+        "evidence": "Waived para el freeze con evidencia parcial de sesión: contraste WCAG calculado en vivo en el manual (navy 15.1:1, señal 6.2:1), focus rings y prefers-reduced-motion verificados en QA de los capítulos y en BootGate/QR. 2026-07-24: barrido de los diez acentos sobre blanco ejecutado — nueve cumplían AA de texto y Fichas QR (3.68:1) no; corregido a #106E8C (5.78:1) por dec-acento-collectors-aa, de modo que los diez acentos cumplen ahora AA de texto normal. Pendiente del waiver: triadas sobre fondos no blancos y DPI Windows, agendado en oleadas R del plan-rebranding.md; revisar antes de 2026-09-30. Owner: lead de diseño."
       },
       {
         "id": "qa-visual-matriz",
@@ -1032,8 +1044,8 @@
       "path": "branding/identity/tokens.css",
       "ownership": "generated",
       "status": "current",
-      "identity_version": "1.2.0",
-      "manifest_hash": "sha256:ba38c9d50d5e5db7d2f9f97b7b81c395809d23b62929edf4a90e38cda40b35f5"
+      "identity_version": "1.2.1",
+      "manifest_hash": "sha256:930fe502548ef92703911a240184eb792bbe58ac98d814211654aeee0dfd7c57"
     },
     {
       "id": "identity-reference-doc",
@@ -1041,8 +1053,8 @@
       "path": "branding/identity/identity-reference.html",
       "ownership": "generated",
       "status": "current",
-      "identity_version": "1.2.0",
-      "manifest_hash": "sha256:ba38c9d50d5e5db7d2f9f97b7b81c395809d23b62929edf4a90e38cda40b35f5"
+      "identity_version": "1.2.1",
+      "manifest_hash": "sha256:930fe502548ef92703911a240184eb792bbe58ac98d814211654aeee0dfd7c57"
     }
   ],
   "extensions": {
@@ -1123,7 +1135,7 @@
           "titulo": "Plan de trabajo (fusionado en Bitácora)"
         },
         "recopiladores": {
-          "accent": "#0891B2",
+          "accent": "#106E8C",
           "css": "--pulso-module-collectors",
           "titulo": "Fichas QR para cursos-horario"
         },

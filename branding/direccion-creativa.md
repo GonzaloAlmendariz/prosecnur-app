@@ -50,7 +50,7 @@ el acento (modular o señal) aparece de forma puntual e intencional.
 **Espectro modular** (la dimensión dinámica de la identidad; cada módulo
 tiñe su chrome, nunca el contenido): Editor `#6D5DFC` · Procesamiento
 `#0F766E` · Dashboard `#2563EB` · Hojas de ruta `#C2410C` · Muestra
-`#7C3AED` · Bitácora `#A16207` · Recopiladores `#0891B2` · Monitoreo `#BE123C`.
+`#7C3AED` · Bitácora `#A16207` · Recopiladores `#106E8C` · Monitoreo `#BE123C`.
 
 ## Tipografía — «Voz nativa»
 

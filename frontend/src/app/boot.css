@@ -53,9 +53,9 @@
   --pulso-module-workplan: var(--pulso-module-encyclopedia);
   --pulso-module-workplan-soft: var(--pulso-module-encyclopedia-soft);
   --pulso-module-workplan-border: var(--pulso-module-encyclopedia-border);
-  --pulso-module-collectors: #0891b2;
-  --pulso-module-collectors-soft: rgba(8, 145, 178, 0.13);
-  --pulso-module-collectors-border: rgba(8, 145, 178, 0.3);
+  --pulso-module-collectors: #106e8c;
+  --pulso-module-collectors-soft: rgba(16, 110, 140, 0.13);
+  --pulso-module-collectors-border: rgba(16, 110, 140, 0.3);
   --pulso-module-monitoring: #be123c;
   --pulso-module-monitoring-soft: rgba(190, 18, 60, 0.12);
   --pulso-module-monitoring-border: rgba(190, 18, 60, 0.3);
