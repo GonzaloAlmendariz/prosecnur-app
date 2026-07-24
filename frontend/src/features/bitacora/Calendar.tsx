@@ -79,6 +79,22 @@ type DragState = {
   moved: boolean;
 };
 
+type CalendarView = "month" | "week";
+
+const CALENDAR_VIEW_A11Y: Record<
+  CalendarView,
+  { tabId: string; panelId: string }
+> = {
+  month: {
+    tabId: "bitacora-calendar-tab-month",
+    panelId: "bitacora-calendar-panel-month",
+  },
+  week: {
+    tabId: "bitacora-calendar-tab-week",
+    panelId: "bitacora-calendar-panel-week",
+  },
+};
+
 function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
@@ -132,7 +148,7 @@ export function Calendar({
   const tasks = state.plan.tasks ?? [];
   const { events, undated } = useMemo(() => buildEvents(tasks), [tasks]);
 
-  const [view, setView] = useState<"month" | "week">("month");
+  const [view, setView] = useState<CalendarView>("month");
   const [cursor, setCursor] = useState<Date>(() => {
     if (events.length) {
       const earliest = events.reduce((min, ev) => (ev.start < min ? ev.start : min), events[0].start);
@@ -292,20 +308,27 @@ export function Calendar({
           onToday={goToday}
           onCreate={() => setModal({ mode: "create", date: todayIso })}
         />
-        <div className="bcal-empty">
-          <span className="bcal-empty-icon" aria-hidden="true"><CalendarDays size={26} /></span>
-          <strong>Tu calendario está vacío</strong>
-          <p>Crea actividades, hitos y entregables, o carga un cronograma de ejemplo para ver el calendario en acción.</p>
-          <div className="bcal-empty-actions">
-            <button type="button" className="plan-button plan-button--primary" onClick={() => setModal({ mode: "create", date: todayIso })}>
-              <Plus size={15} /> <span>Nueva actividad</span>
-            </button>
-            <button type="button" className="plan-button" onClick={seedSample} disabled={seeding}>
-              {seeding ? <Loader2 size={15} className="spin" /> : <Sparkles size={15} />}
-              <span>Cargar ejemplo</span>
-            </button>
+        <section
+          id={CALENDAR_VIEW_A11Y[view].panelId}
+          role="tabpanel"
+          aria-labelledby={CALENDAR_VIEW_A11Y[view].tabId}
+          tabIndex={0}
+        >
+          <div className="bcal-empty">
+            <span className="bcal-empty-icon" aria-hidden="true"><CalendarDays size={26} /></span>
+            <strong>Tu calendario está vacío</strong>
+            <p>Crea actividades, hitos y entregables, o carga un cronograma de ejemplo para ver el calendario en acción.</p>
+            <div className="bcal-empty-actions">
+              <button type="button" className="plan-button plan-button--primary" onClick={() => setModal({ mode: "create", date: todayIso })}>
+                <Plus size={15} /> <span>Nueva actividad</span>
+              </button>
+              <button type="button" className="plan-button" onClick={seedSample} disabled={seeding}>
+                {seeding ? <Loader2 size={15} className="spin" /> : <Sparkles size={15} />}
+                <span>Cargar ejemplo</span>
+              </button>
+            </div>
           </div>
-        </div>
+        </section>
         {modal && (
           <EventModal modal={modal} onClose={() => setModal(null)} onChange={(next) => { onChange(next); setModal(null); }} />
         )}
@@ -336,26 +359,33 @@ export function Calendar({
 
       {error && <Alert kind="error">{error}</Alert>}
 
-      {view === "month" ? (
-        <MonthView
-          cursor={cursor}
-          events={events}
-          todayIso={todayIso}
-          draggingId={dragging?.task.id ?? null}
-          onCreate={(iso) => setModal({ mode: "create", date: iso })}
-          onEventPointerDown={beginDrag}
-        />
-      ) : (
-        <WeekView
-          cursor={cursor}
-          events={events}
-          todayIso={todayIso}
-          draggingId={dragging?.task.id ?? null}
-          timeGridRef={timeGridRef}
-          onCreateAt={(iso, time) => setModal({ mode: "create", date: iso, time })}
-          onEventPointerDown={beginDrag}
-        />
-      )}
+      <section
+        id={CALENDAR_VIEW_A11Y[view].panelId}
+        role="tabpanel"
+        aria-labelledby={CALENDAR_VIEW_A11Y[view].tabId}
+        tabIndex={0}
+      >
+        {view === "month" ? (
+          <MonthView
+            cursor={cursor}
+            events={events}
+            todayIso={todayIso}
+            draggingId={dragging?.task.id ?? null}
+            onCreate={(iso) => setModal({ mode: "create", date: iso })}
+            onEventPointerDown={beginDrag}
+          />
+        ) : (
+          <WeekView
+            cursor={cursor}
+            events={events}
+            todayIso={todayIso}
+            draggingId={dragging?.task.id ?? null}
+            timeGridRef={timeGridRef}
+            onCreateAt={(iso, time) => setModal({ mode: "create", date: iso, time })}
+            onEventPointerDown={beginDrag}
+          />
+        )}
+      </section>
 
       {undated.length > 0 && (
         <div className="bcal-tray">
@@ -394,8 +424,8 @@ export function Calendar({
 function CalendarToolbar({
   view, onView, title, onPrev, onNext, onToday, onCreate,
 }: {
-  view: "month" | "week";
-  onView: (v: "month" | "week") => void;
+  view: CalendarView;
+  onView: (v: CalendarView) => void;
   title: string;
   onPrev: () => void;
   onNext: () => void;
@@ -412,8 +442,30 @@ function CalendarToolbar({
       </div>
       <div className="bcal-toolbar-right">
         <GlidingTabList activeKey={view} className="bcal-segmented" role="tablist" aria-label="Vista del calendario">
-          <button type="button" role="tab" data-gliding-key="month" aria-selected={view === "month"} className={view === "month" ? "is-active" : ""} onClick={() => onView("month")}>Mes</button>
-          <button type="button" role="tab" data-gliding-key="week" aria-selected={view === "week"} className={view === "week" ? "is-active" : ""} onClick={() => onView("week")}>Semana</button>
+          <button
+            id={CALENDAR_VIEW_A11Y.month.tabId}
+            type="button"
+            role="tab"
+            data-gliding-key="month"
+            aria-selected={view === "month"}
+            aria-controls={CALENDAR_VIEW_A11Y.month.panelId}
+            className={view === "month" ? "is-active" : ""}
+            onClick={() => onView("month")}
+          >
+            Mes
+          </button>
+          <button
+            id={CALENDAR_VIEW_A11Y.week.tabId}
+            type="button"
+            role="tab"
+            data-gliding-key="week"
+            aria-selected={view === "week"}
+            aria-controls={CALENDAR_VIEW_A11Y.week.panelId}
+            className={view === "week" ? "is-active" : ""}
+            onClick={() => onView("week")}
+          >
+            Semana
+          </button>
         </GlidingTabList>
         <button type="button" className="plan-button plan-button--primary" onClick={onCreate}>
           <Plus size={15} /> <span>Nueva actividad</span>
