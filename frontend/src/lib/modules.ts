@@ -1,14 +1,20 @@
 import type { CSSProperties } from "react";
-import type { LucideIcon } from "lucide-react";
+import { CalendarDays, type LucideIcon } from "../vendor/lucide-react";
 import {
+  IconBranching,
+  IconChecklist,
   IconCollector,
   IconDashboard,
   IconEditor,
+  IconEncyclopedia,
+  IconGpsValid,
   IconMonitor,
+  IconOpen,
   IconProcessing,
   IconRoutes,
   IconSample,
   IconStudyDesign,
+  IconWorkPlan,
 } from "./icons";
 
 export type ProsecnurModuleSlug =
@@ -28,6 +34,34 @@ export type ProsecnurModuleTone = {
   accentBorder: string;
 };
 
+export type ProsecnurNavigationLayoutPolicy = "viewport" | "legacy-scroll";
+
+export type ProsecnurNavigationLeafMeta = {
+  id: string;
+  label: string;
+  shortLabel?: string;
+  icon: LucideIcon;
+  to: string;
+  layoutPolicy: ProsecnurNavigationLayoutPolicy;
+};
+
+export type ProsecnurModuleSectionMeta = ProsecnurNavigationLeafMeta & {
+  tabs?: readonly ProsecnurNavigationLeafMeta[];
+};
+
+export type ResolvedProsecnurNavigationItem = ProsecnurNavigationLeafMeta & {
+  lockedReason?: string;
+};
+
+export type ProsecnurNavigationLandingKind = "section" | "entrypoint";
+
+export const PROSECNUR_NAVIGATION_CONTRACT = {
+  version: 1,
+  coverage: "primary-routes-v1",
+  tabsCoverage: "deferred",
+  consumableByShell: false,
+} as const;
+
 export type ProsecnurModuleMeta = {
   slug: ProsecnurModuleSlug;
   title: string;
@@ -38,6 +72,8 @@ export type ProsecnurModuleMeta = {
   icon: LucideIcon;
   tone: ProsecnurModuleTone;
   to?: string;
+  landingKind: ProsecnurNavigationLandingKind;
+  sections: readonly ProsecnurModuleSectionMeta[];
 };
 
 export type ActiveProsecnurModuleMeta = ProsecnurModuleMeta & { to: string };
@@ -108,6 +144,30 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     icon: IconStudyDesign,
     tone: MODULE_TONES["diseno-estudio"],
     to: "/bitacora",
+    landingKind: "section",
+    sections: [
+      {
+        id: "bitacora",
+        label: "Bitácora",
+        icon: IconStudyDesign,
+        to: "/bitacora",
+        layoutPolicy: "viewport",
+      },
+      {
+        id: "cronograma",
+        label: "Cronograma",
+        icon: IconWorkPlan,
+        to: "/bitacora?tab=cronograma",
+        layoutPolicy: "viewport",
+      },
+      {
+        id: "calendario",
+        label: "Calendario",
+        icon: CalendarDays,
+        to: "/bitacora?tab=calendario",
+        layoutPolicy: "viewport",
+      },
+    ],
   },
   {
     slug: "calc-muestra",
@@ -126,6 +186,16 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     icon: IconSample,
     tone: MODULE_TONES["calc-muestra"],
     to: "/calc-muestra",
+    landingKind: "section",
+    sections: [
+      {
+        id: "calc-muestra",
+        label: "Cálculo de muestra",
+        icon: IconSample,
+        to: "/calc-muestra",
+        layoutPolicy: "viewport",
+      },
+    ],
   },
   {
     slug: "editor-xlsform",
@@ -144,6 +214,16 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     icon: IconEditor,
     tone: MODULE_TONES["editor-xlsform"],
     to: "/editor-xlsform",
+    landingKind: "section",
+    sections: [
+      {
+        id: "formularios",
+        label: "Formularios",
+        icon: IconEditor,
+        to: "/editor-xlsform",
+        layoutPolicy: "viewport",
+      },
+    ],
   },
   {
     slug: "hojas-ruta",
@@ -162,6 +242,16 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     icon: IconRoutes,
     tone: MODULE_TONES["hojas-ruta"],
     to: "/hojas-ruta",
+    landingKind: "section",
+    sections: [
+      {
+        id: "hojas-ruta",
+        label: "Hojas de ruta",
+        icon: IconRoutes,
+        to: "/hojas-ruta",
+        layoutPolicy: "viewport",
+      },
+    ],
   },
   {
     slug: "recopiladores",
@@ -180,6 +270,16 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     icon: IconCollector,
     tone: MODULE_TONES.recopiladores,
     to: "/recopiladores",
+    landingKind: "section",
+    sections: [
+      {
+        id: "recopiladores",
+        label: "Fichas QR",
+        icon: IconCollector,
+        to: "/recopiladores",
+        layoutPolicy: "viewport",
+      },
+    ],
   },
   {
     slug: "monitoreo",
@@ -197,6 +297,16 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     icon: IconMonitor,
     tone: MODULE_TONES.monitoreo,
     to: "/monitoreo",
+    landingKind: "section",
+    sections: [
+      {
+        id: "monitoreo",
+        label: "Monitoreo",
+        icon: IconMonitor,
+        to: "/monitoreo",
+        layoutPolicy: "viewport",
+      },
+    ],
   },
   {
     slug: "procesamiento",
@@ -215,6 +325,44 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     icon: IconProcessing,
     tone: MODULE_TONES.procesamiento,
     to: "/procesamiento",
+    landingKind: "entrypoint",
+    sections: [
+      {
+        id: "carga",
+        label: "Carga",
+        icon: IconOpen,
+        to: "/carga",
+        layoutPolicy: "viewport",
+      },
+      {
+        id: "validacion",
+        label: "Validación",
+        icon: IconGpsValid,
+        to: "/validacion",
+        layoutPolicy: "viewport",
+      },
+      {
+        id: "codificacion",
+        label: "Codificación",
+        icon: IconChecklist,
+        to: "/codificacion",
+        layoutPolicy: "viewport",
+      },
+      {
+        id: "analitica",
+        label: "Analítica",
+        icon: IconBranching,
+        to: "/analitica",
+        layoutPolicy: "viewport",
+      },
+      {
+        id: "graficos",
+        label: "Gráficos",
+        icon: IconDashboard,
+        to: "/graficos",
+        layoutPolicy: "viewport",
+      },
+    ],
   },
   {
     slug: "dashboard",
@@ -233,6 +381,27 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     icon: IconDashboard,
     tone: MODULE_TONES.dashboard,
     to: "/tablero",
+    landingKind: "section",
+    sections: [
+      {
+        id: "dashboard",
+        label: "Dashboard",
+        icon: IconDashboard,
+        to: "/tablero",
+        layoutPolicy: "viewport",
+      },
+    ],
+  },
+];
+
+export const PROSECNUR_GLOBAL_NAV_ITEMS: readonly ProsecnurNavigationLeafMeta[] = [
+  {
+    id: "enciclopedia",
+    label: "Enciclopedia metodológica",
+    shortLabel: "Enciclopedia",
+    icon: IconEncyclopedia,
+    to: "/enciclopedia",
+    layoutPolicy: "legacy-scroll",
   },
 ];
 
