@@ -17490,8 +17490,7 @@ button.mon-territorial-ump-audit-scrim {
   padding-right: 12px;
 }
 
-.mon-acr-fixed-source-summary,
-.mon-acr-model-actions {
+.mon-acr-fixed-source-summary {
   min-width: 0;
   display: flex;
   align-items: center;
@@ -17985,8 +17984,7 @@ button.mon-territorial-ump-audit-scrim {
   overflow-wrap: anywhere;
 }
 
-.mon-acr-platform-actions,
-.mon-acr-sheet-actions {
+.mon-acr-platform-actions {
   min-width: 0;
   display: flex;
   align-items: center;
@@ -17999,15 +17997,6 @@ button.mon-territorial-ump-audit-scrim {
   min-width: 170px;
 }
 
-.mon-acr-sheet-form {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(210px, 1fr) minmax(170px, 0.7fr) minmax(150px, 0.58fr);
-  gap: 8px;
-  padding: 0;
-}
-
-.mon-acr-sheet-form label,
 .mon-acr-survey-add-head label,
 .mon-acr-survey-source label {
   min-width: 0;
@@ -18015,17 +18004,12 @@ button.mon-territorial-ump-audit-scrim {
   gap: 4px;
 }
 
-.mon-acr-sheet-form label > span,
 .mon-acr-survey-add-head label > span,
 .mon-acr-survey-source label > span {
   color: var(--pulso-text-soft);
   font-size: 9.5px;
   font-weight: 820;
   text-transform: uppercase;
-}
-
-.mon-acr-sheet-actions {
-  grid-column: 1 / -1;
 }
 
 .mon-acr-survey-source-list {
