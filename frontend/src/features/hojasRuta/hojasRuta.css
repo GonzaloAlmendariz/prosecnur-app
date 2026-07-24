@@ -3952,11 +3952,15 @@
 }
 
 .hojas-ruta-review-table.is-block-table col.is-district {
-  width: 16%;
+  width: 15%;
+}
+
+.hojas-ruta-review-table.is-block-table col.is-route {
+  width: 8%;
 }
 
 .hojas-ruta-review-table.is-block-table col.is-block-id {
-  width: 22%;
+  width: 21%;
 }
 
 .hojas-ruta-review-table.is-block-table col.is-zone {
@@ -3964,16 +3968,19 @@
 }
 
 .hojas-ruta-review-table.is-block-table col.is-nse {
-  width: 11%;
+  width: 10%;
 }
 
-.hojas-ruta-review-table.is-block-table col.is-households,
+.hojas-ruta-review-table.is-block-table col.is-households {
+  width: 9%;
+}
+
 .hojas-ruta-review-table.is-block-table col.is-interviews {
   width: 10%;
 }
 
 .hojas-ruta-review-table.is-block-table col.is-method {
-  width: 24%;
+  width: 18%;
 }
 
 .hojas-ruta-review-table.is-replacement-table col.is-district {
