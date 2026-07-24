@@ -1,6 +1,8 @@
 # Prosecnur — Dirección creativa v3
 
-Versión vigente 3.0 · julio 2026.
+Versión vigente 3.1 · julio 2026 (re-editada 2026-07-24 por la indicación 5:
+el shell canónico es el chrome horizontal — top bar de secciones + rail de
+pestañas — uniformado y pulido; el sidebar unificado quedó revertido, ADR 0042).
 
 Estado: **Vigente y en ejecución por instrucción del dueño**.
 Modo de identidad: **evolución**. La marca, el isotipo y los activos congelados
@@ -18,9 +20,12 @@ brief de la evolución v3:
 - Se conservan sin redibujo el isotipo, las diez variantes de
   `branding/logo/`, la marca de dos tintas, la jerarquía Prosecnur · PULSO PUCP,
   la arquitectura No Scroll Jail y el warm start de proyectos `.pulso`.
-- La UI v3 migra la navegación de módulo, sección y pestaña a un **sidebar
-  unificado**. Esta decisión humana del 23 de julio de 2026 reemplaza el rail
-  centrado como navegación primaria y el rail icon-only expandido de la v1.2.
+- La UI v3 **ratifica el concepto del shell vigente** — top bar superior con
+  las secciones del módulo y rail icon-compressed con las pestañas — y ordena
+  su **uniformidad en los 8 módulos y su pulido macOS-like** (decisión humana
+  del 24 de julio de 2026, indicación 5 y ADR 0042, que reemplaza la decisión
+  sidebar del día anterior). Los patrones maestros #1–#3 de la v1.2 se
+  re-ratifican y refinan.
 - El chrome se vuelve silencioso de verdad; los datos y las tareas ganan el
   primer viewport.
 - Cada módulo conserva su acento distintivo actual. Cambiar de módulo cambia
@@ -37,7 +42,7 @@ brief de la evolución v3:
 | --- | --- | --- | --- |
 | `ev-v3-index` | precedencia | `docs/plan-revamp-ui-2026-07-INDICE.md` | contrato vigente, arbitrajes y gobierno por revisión |
 | `ev-v3-plan` | decisión | `docs/plan-revamp-ui-2026-07.md` | UI v3, fases, loop y reglas duras |
-| `ev-v3-guide` | dirección del dueño | `docs/plan-revamp-ui-2026-07-guia-sidebar.md` | geometría 248/64, esquina, scroll, semántica y teclado |
+| `ev-v3-guide` | dirección del dueño | `docs/plan-revamp-ui-2026-07-indicacion-5.md` + ADR 0042 | shell canónico horizontal, programa de uniformidad y pulido (la guía-sidebar quedó superseded como histórico) |
 | `ev-v3-baseline` | hecho | baseline visual del 23 de julio de 2026 | divergencia real entre módulos y chrome |
 | `ev-v3-brand` | artefacto canónico | `branding/direccion-creativa.md`, ADR 0038 y `branding/logo/` | equity que no cambia |
 | `ev-v3-layout` | contrato | `docs/ui-layout-grammar.md` | PageFrame, breakpoints y No Scroll Jail |
@@ -84,39 +89,41 @@ módulos.
 ## Norte: «La señal ordenada, ahora habitable»
 
 La v1.2 hizo reconocible la marca; la v3 hace habitable el sistema completo.
-La señal no vive en gradientes, rails repetidos o marcos decorativos: vive en
-la continuidad del sidebar, el rail activo de dos píxeles, el acento modular
-justo y el dato que aparece antes que el chrome.
+La señal no vive en gradientes, marcos decorativos ni dialectos por módulo:
+vive en la continuidad de la command bar, la selección inequívoca, el acento
+modular justo y el dato que aparece antes que el chrome.
 
 La interfaz debe sentirse como un instrumento sereno que permanece estable
 mientras el proyecto cambia de módulo, sección y pestaña.
 
 ## Territorios considerados
 
-Los tres territorios respetan el sidebar unificado, la marca, la paleta y la
-geometría obligatoria. Cambian la relación entre densidad, materialidad,
-tipografía y señal modular. Los ejemplos muestran Procesamiento como un estado
-del shell, no como una elección cromática global. El comparador visual vive en
-`branding/v3/shell-territories.html`.
+Los tres territorios fueron evaluados originalmente sobre el supuesto del
+sidebar (revertido); su relación entre densidad, materialidad, tipografía y
+señal modular sigue vigente aplicada al chrome horizontal. Los ejemplos
+muestran Procesamiento como un estado del shell, no como una elección
+cromática global. El comparador visual vive en
+`branding/v3/shell-territories.html` (histórico, anatomía sidebar).
 
-### A · Instrumento sereno — vigente
+### A · Instrumento sereno — vigente (re-aplicado al chrome horizontal)
 
-**Tesis:** una columna de navegación material, continua y silenciosa sostiene
+**Tesis:** una capa de navegación material, continua y silenciosa sostiene
 un canvas sólido donde la información manda.
 
-- Sidebar con una sola superficie fría, un hairline vertical y material
+- Command bar con una sola superficie fría, hairline inferior y material
   simulado únicamente en navegación y flyouts.
-- Selección por rail de 2px + fondo suave + peso 600; nunca solo por color.
-- Header del sidebar de 52px, sin gradiente decorativo ni segunda navegación.
-- Densidad media-alta: filas 28/24, iconos 18, tipografía 13/12.5.
+- Selección por fondo suave + peso 600 + señal física (rail/gradiente del
+  primario); nunca solo por color.
+- Header global sin gradiente decorativo ni segunda navegación redundante.
+- Densidad media-alta: controles 28/32, iconos 18, tipografía 13/12.5.
 - El acento del módulo aparece en la selección, el icono de contexto y
   hairlines; los semánticos conservan su significado.
 - La firma reconocible es la **traza contenida**: una línea activa que une
-  contexto, destino seleccionado y KPIs sin convertirse en decoración.
+  contexto, sección seleccionada y KPIs sin convertirse en decoración.
 
-Riesgo: si el material del sidebar gana demasiado contraste, vuelve a competir
-con el dato. Condición de descarte: el primer viewport parece una vitrina de
-navegación.
+Riesgo: si el material de la command bar gana demasiado contraste, vuelve a
+competir con el dato. Condición de descarte: el primer viewport parece una
+vitrina de navegación.
 
 ### B · Cartografía modular
 
@@ -171,96 +178,90 @@ nueva.
 
 Esta sección es normativa desde la instrucción de ejecución del dueño.
 
-### Anatomía del shell
+### Anatomía del shell (chrome horizontal canónico — ADR 0042)
 
 ```text
-┌──────────────────────┬──────────────────────────────────────────────┐
-│ Marca + contexto     │ Toolbar operativa local opcional            │
-│ 248px / 64px         ├──────────────────────────────────────────────┤
-│ Archivo · Home       │                                              │
-│ SECCIÓN              ├──────────────────────────────────────────────┤
-│  ◫ Pestaña           │                                              │
-│  ◇ Pestaña activa    │              Superficie de trabajo           │
-│                      │                                              │
-│ OTRA SECCIÓN         │        cada región posee su propio scroll    │
-│                      │                                              │
-│──────────────────────│                                              │
-│ Buscar · Ajustes     │                                              │
-└──────────────────────┴──────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│ Header global: isotipo · dock de módulos (+ label del activo) ·    │
+│ proyecto · sesión                                                  │
+├────────────────────────────────────────────────────────────────────┤
+│ Command bar del módulo:  contexto │ rail de SECCIONES │ acciones   │
+├──────┬─────────────────────────────────────────────────────────────┤
+│ rail │  Título compacto de la pestaña activa                       │
+│ de   │                                                             │
+│ pes- │              Superficie de trabajo                          │
+│ tañas│        cada región posee su propio scroll                   │
+│ (56) │                                                             │
+└──────┴─────────────────────────────────────────────────────────────┘
 ```
 
-#### Sidebar expandido
+#### Header global (identidad)
 
-- Ancho: `248px`.
-- Padding exterior: `8px`.
-- Zona superior: header único de `52px` con isotipo squircle de `28px`, módulo
-  activo y chevron del switcher; no contiene acciones crecientes.
-- Zona central: `flex: 1; min-height: 0; overflow-y: auto`;
-  `scrollbar-gutter: stable`.
-- Sección: fuente de datos en sentence case; fila de `28px`, texto
-  `13px/500`; cualquier mayúscula es solo CSS.
-- Subfila: `24px`, indent `28px`, texto `12.5px`; máximo dos niveles.
-- Activo: rail físico de `2px`, superficie `--module-accent-soft`, texto
-  principal y peso 600; `aria-current="page"`.
-- Utilidades: filas normales separadas por hairline; no forman parte del árbol
-  de destinos.
+- Marca (isotipo canónico), dock de módulos icon-only con label visible del
+  módulo activo, píldora de proyecto y estado de sesión. Nada más crece ahí.
+- Superficie fría con hairline; sin gradientes apilados, sin papel
+  cuadriculado, sin blur duplicado.
+- Dock: semántica de links (`nav > ul > li > a`), tooltip por hover **y**
+  foco, `aria-current="page"`, tile «Agregar» como acción diferenciada y
+  estrategia de overflow declarada para catálogos de 9+ módulos.
 
-#### Sidebar colapsado
+#### Command bar del módulo (navegación de secciones)
 
-- Ancho: `64px`.
-- Cada sección conserva icono, nombre accesible y estado activo.
-- El flyout se abre por hover **y** foco; puede persistir al mover el puntero o
-  foco dentro; Escape lo cierra y restaura el foco.
-- El flyout contiene labels completos; nunca depende solo del tooltip.
-- No se oculta ningún destino por falta de alto: la zona central scrollea.
+- Tres zonas: contexto (módulo/mesa/perfil) | rail de secciones (pillbar) |
+  acciones del módulo. Un solo componente compartido (`ModuleCommandBar`).
+- Material translúcido contenido (la única capa con material junto a flyouts
+  y popovers); borde teñido por `--module-accent`; altura mínima 46, controles
+  de 32.
+- Pills de sección: 32–34px, sentence case en datos, numeración SOLO con
+  pipeline real (progreso), activo por gradiente del primario + peso + señal
+  física — nunca solo color; `aria-current="page"` (links, no tabs ARIA).
+- **Overflow con dignidad** (verificado a 1024×600): envolver controles →
+  compactar labels → menú. Los chips de estado nunca desaparecen sin
+  alternativa.
 
-#### Contrato anti-deformación
+#### Rail de pestañas (tercer nivel, icon-compressed)
 
-- Solo existen dos anchos persistentes: `248px` y `64px`.
-- Ambos estados empujan el lienzo; el sidebar persistente nunca se superpone.
-- El flyout transitorio de `240px` es la única superposición de navegación y
-  nunca provoca reflow.
-- A `1024×600`, el lienzo expandido conserva al menos `712px`.
-- Las rutas de canvas total pueden declarar `railMode: "collapsed"` en el
-  manifiesto; no usan lógica ad hoc.
-- Las secciones cartográficas pueden declarar la misma preferencia: Hojas usa
-  rail colapsado al entrar en Territorio y Manzanas, sin crear un tercer ancho.
-- Una superficie primaria cartográfica conserva al menos `500×250px` útiles a
-  `1024×600` en su rail recomendado, con intersección `0` entre overlays.
+- Siempre comprimido (~56px), empuja el canvas, jamás overlay.
+- Cada ítem: `aria-label` con título y detalle; burbuja flotante por hover
+  **y** `:focus-visible` (radio 10, material blanco, título + subtítulo);
+  Escape cierra.
+- **Identificación persistente obligatoria**: título compacto de la pestaña
+  activa al inicio del workbench (ícono en tile + título + subtítulo).
+- Grupos con separadores visibles cuando hay 7+ destinos; dots de estado con
+  leyenda (tooltip y/o badge con dato real). En apilado angosto (<921px) el
+  rail vive expandido en flujo.
 
-#### Chrome global y command surface local
+#### Command surface local (operación)
 
-- En workbenches ricos no existe una franja global persistente sobre el
-  lienzo: proyecto/archivo, guardado y Home viven en el sidebar.
-- Los `52px` corresponden al header del sidebar, no a una fila horizontal que
-  reste alto al canvas; la superficie de trabajo comienza en `y=0`.
-- La command surface local contiene únicamente KPIs, readiness, fase y
-  acciones que operan sobre la vista. Puede envolver de forma deliberada, pero
-  no oculta estado ni compite con la superficie primaria.
+- Contiene únicamente KPIs, readiness, fase y acciones que operan sobre la
+  vista; separada de la navegación (norma navegar/operar/identidad). Puede
+  envolver de forma deliberada, pero no oculta estado ni compite con la
+  superficie primaria.
 - La banda multibase de Procesamiento es toolbar contextual, no navegación de
   shell.
-- Superficie sólida Hielo/Papel con hairline; sin papel cuadriculado, orbes,
-  gradientes apilados ni blur duplicado.
+- Superficie sólida Hielo/Papel con hairline; el mapa/canvas cartográfico
+  conserva su área útil según las indicaciones 3–4.
 
 ### Navegación y semántica
 
-- Módulo = selector de contexto en la zona superior + destino en el Home.
-- Sección = categoría del sidebar; no usa número salvo progreso real.
-- Pestaña = link con icono + label dentro de la sección activa.
-- Tabs ARIA se reservan a paneles locales sin navegación.
-- Estructura base: `aside > nav > section > ul > li > a`.
-- Política de foco: tras navegación por sidebar se mantiene el foco en el link
-  activado; el título de ventana y `aria-current` anuncian el nuevo contexto.
-- En colapsado, flechas recorren el flyout cuando adopta semántica de widget;
-  una lista simple conserva navegación nativa por Tab.
+- Módulo = dock del header + cards del Home.
+- Sección = pill de la command bar; no usa número salvo progreso real.
+- Pestaña = ítem del rail con nombre accesible completo + título compacto
+  persistente.
+- Tabs ARIA se reservan a paneles locales sin navegación; las rutas usan
+  links con `aria-current="page"`.
+- Política de foco: tras navegar se mantiene el foco en el control activado;
+  el título de ventana y `aria-current` anuncian el nuevo contexto.
 
 ### Economía del chrome
 
-- Material solo en sidebar, flyouts, popovers y command surfaces.
+- Material solo en command bar, flyouts, popovers y command surfaces.
 - Formularios, tablas, cards de dato y editores usan superficies sólidas.
 - No hay franja H1 visible por defecto; el H1 accesible puede ser `sr-only`.
-- No hay segunda barra para repetir la jerarquía del sidebar.
-- No hay header horizontal de archivo/Home sobre los workbenches.
+- No hay segunda barra que repita la jerarquía de la command bar ni del rail
+  (regla: nunca duplicar la navegación de un nivel en otro).
+- El header global es delgado y de identidad (marca, dock, proyecto, sesión);
+  no acumula acciones ni navegación de sección.
 - Una vista poblada muestra datos reales en el primer viewport.
 - El espacio vacío pertenece a una región y conserva su geometría.
 
@@ -290,13 +291,13 @@ Capas
 --z-boot: 1600
 
 Navegación
---sidebar-width: 248px
---sidebar-collapsed-width: 64px
---sidebar-header-height: 52px
---nav-item-height: 28px
---subnav-item-height: 24px
+--commandbar-min-height: 46px
+--commandbar-control-height: 32px
+--section-pill-height: 32px
+--tab-rail-width: 56px
+--nav-item-height: 32px
 --active-rail-width: 2px
---sidebar-icon-size: 18px
+--nav-icon-size: 18px
 ```
 
 Los aliases operativos finales usarán namespace `--pulso-*`; la compilación
@@ -304,39 +305,45 @@ externa usa `--prosecnur-*`. No se agregan hex a CSS de features.
 
 ### Patrones maestros v3
 
-#### Se retiran como navegación primaria
+#### Se retiran
 
-1. Pillbar centrado de secciones.
-2. Rail icon-only de tercer nivel en estado expandido.
-3. ModuleSwitcher icon-only en el header.
-4. Overlays artesanales sin focus trap.
-5. Fondos decorativos y gradientes apilados en el shell.
+1. Overlays artesanales sin focus trap.
+2. Fondos decorativos y gradientes apilados en el shell.
+3. Implementaciones por-módulo del chrome (pills, toolbars y steppers ad-hoc):
+   solo existe el componente compartido.
+4. El shell sidebar tras flag (`AppSidebar`/`shellV3`), pendiente de retiro
+   con confirmación del dueño (ADR 0042).
 
-#### Sobreviven refinados
+#### Sobreviven refinados (re-ratificados por ADR 0042)
 
-1. KPI discreto 21/900 con hairline de acento.
-2. Switch maestro 44×24.
-3. Procedencia y herencia por barra lateral semántica.
-4. Burbuja de ayuda para estado colapsado, con hover y foco.
-5. Física Pulso y firma de arranque del isotipo.
-6. PageFrame y No Scroll Jail.
-7. Espectro modular aplicado solo al chrome.
+1. Command bar de módulo de 3 zonas (patrón #1) — ahora obligatoria en los 8
+   módulos.
+2. Pillbar de secciones (patrón #2) — numeración solo con pipeline real.
+3. Rail icon-compressed de pestañas (patrón #3) — con burbuja hover/foco y
+   título compacto persistente obligatorio.
+4. KPI discreto 21/900 con hairline de acento.
+5. Switch maestro 44×24.
+6. Procedencia y herencia por barra lateral semántica.
+7. Física Pulso y firma de arranque del isotipo.
+8. PageFrame y No Scroll Jail.
+9. Espectro modular aplicado solo al chrome.
 
 #### Se incorporan
 
-1. `AppSidebar`, `SidebarSection` y `SidebarTab`.
+1. `ModuleCommandBar`, `SectionPillbar` y rail de pestañas como componentes
+   únicos compartidos, alimentados por el manifiesto.
 2. `PulsoButton`.
 3. `PulsoDialog` y `PulsoPopover` sobre Radix.
-4. Progreso secuencial en el propio sidebar mediante numeración, badges y
-   candados; no se duplica con un stepper en el canvas.
+4. Progreso secuencial como estado del pillbar (numeración, badges, candados)
+   o `StageStepper` compartido interno a la sección; nunca ambos a la vez.
 5. Empty state y spinner únicos.
+6. Gestor de módulos («+») como modal sobre la vista actual.
 
 ### Motion
 
 - Press `120ms`, fast `160ms`, base `220ms`, panel `280ms`, slow `420ms`.
-- Sidebar expandir/colapsar: `180ms`, easing de salida.
-- Filas al expandir: stagger discreto de `60ms`.
-- Flyout: `160ms`, easing de salida, opacity + x de 6px.
+- Hover de pill: fill que crece desde el centro (opacity + scaleX .94→1).
+- Burbuja del rail / flyouts: `160ms`, easing de salida, opacity + x de 6px.
 - Navegación por teclado no espera animación.
 - `prefers-reduced-motion` elimina desplazamiento y reduce la transición a
   cambio de estado inmediato.
@@ -345,7 +352,7 @@ externa usa `--prosecnur-*`. No se agregan hex a CSS de features.
 
 - Se conserva la paleta v1.2 y el espectro de ocho módulos definido en
   `ev-v3-module-color`; A/B/C no sustituyen ni uniforman ese espectro.
-- Sidebar y header son 60/30: superficies frías y navy estructural.
+- Command bar y header son 60/30: superficies frías y navy estructural.
 - El 10% de acento cambia con el módulo y aparece solo en contexto, selección,
   icono, tintes/bordes de procedencia y foco contextual.
 - Éxito, alerta, peligro e info no cambian con el módulo.
@@ -384,13 +391,17 @@ no se presenta como feature.
 
 ## Pruebas representativas de convergencia
 
-1. Home con ocho módulos, menú destructivo y picker.
-2. Procesamiento/Analítica con doce destinos en ventana de 600px de alto.
-3. Monitoreo con cuatro perfiles y labels largos.
-4. Muestra/Hojas con recorrido, progreso y gating visibles solo en el sidebar.
-5. Dashboard con paleta secuencial Pulso.
+1. Home con ocho módulos, menú destructivo y gestor de módulos como modal.
+2. Procesamiento/Analítica con doce destinos en el rail agrupado, en ventana
+   de 600px de alto.
+3. Monitoreo con cuatro perfiles, secciones canónicas y toolbar operativa
+   separada, con labels largos.
+4. Muestra/Hojas con recorrido y gating como progreso del pillbar y KPIs en
+   la command surface sin colisión (fix de la evidencia de la indicación 2).
+5. Dashboard con paleta secuencial Pulso y command bar canónica.
 6. Vacío, carga, error y recuperación sin colapsar regiones.
-7. Sidebar 248/64 y flyout con teclado, Escape y foco restaurado.
+7. Command bar con overflow a menú y rail con burbuja: teclado completo,
+   Escape y foco restaurado.
 8. Viewports 1440×1000, 1361×987, 1280×800, 1100×600, 1024×600 y
    900×800.
 9. Windows con Segoe UI, peso 600 y DPI 125–150%.
@@ -398,9 +409,11 @@ no se presenta como feature.
 
 ## Gobierno por revisión
 
-La dirección ejecutada es **A · Instrumento sereno**, con la anatomía
-`248/64/52`, filas `28/24`, rail activo de `2px`, flyout de `240px` y sin
-drawer. La instrucción de ejecutar el plan constituye aprobación operativa.
+La dirección ejecutada es **A · Instrumento sereno**, aplicada al chrome
+horizontal canónico (ADR 0042): command bar de 3 zonas (mínimo 46, controles
+32, pills 32–34), rail de pestañas de 56px con burbuja y título compacto,
+header global delgado. La instrucción de ejecutar el plan constituye
+aprobación operativa.
 
 Cada iteración entrega evidencia para revisión, corrección o veto del dueño;
 no solicita permiso para continuar. Solo el dueño declara el cierre global del

@@ -1,10 +1,16 @@
 # ADR 0041: Shell v3 con sidebar de navegación unificado
 
-Estado: Aceptado
+Estado: Reemplazado por ADR 0042 (2026-07-24)
 
 Fecha: 2026-07-23
 
 Refinado: 2026-07-24 por la guía creativa vigente del dueño
+
+> **Nota de reversión (2026-07-24)**: el dueño revirtió esta decisión el mismo
+> día siguiente (indicación 5). El shell canónico conserva el top bar de
+> secciones + rail de pestañas; el foco pasa a uniformidad y pulido
+> macOS-like. Ver `docs/adrs/0042-chrome-modulo-uniforme-topbar.md`. Este ADR
+> se conserva como registro histórico; no ejecutar.
 
 ## Contexto
 
