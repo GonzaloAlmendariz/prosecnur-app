@@ -132,6 +132,22 @@ interna**. Un editor de 3 columnas + rail de 64px sigue teniendo más lienzo que
   real —secciones + pestañas + estado— que es exactamente el caso que la propia matriz
   reserva para sidebars. **Requiere el ADR nuevo antes de la Oleada 1** (plan §4.5).
 
+## 7b. Arbitraje con el contrato StageStepper (conflicto detectado 2026-07-23)
+
+Existe un contrato paralelo (sesión Codex) que fija un StageStepper único, dentro del
+canvas y con todos los labels. **Ambos contratos son incompatibles como estado final**: si
+el recorrido migra al sidebar, un stepper en el canvas duplica navegación (regla de la
+casa: nunca duplicar la navegación de un nivel en otro). Resolución:
+
+- **Destino (v3)**: el recorrido vive SOLO en el sidebar; no existe StageStepper en el
+  canvas. El progreso secuencial se expresa en el propio sidebar (numeración, badges de
+  estado, candados de gating) — el sidebar ES el stepper.
+- **Interino (v2, opcional)**: el StageStepper en canvas es válido únicamente como mejora
+  de la banda actual mientras el shell v3 no exista, y nace marcado para morir en la
+  Oleada 1. Si se implementa, que sea barato y sin API nueva que luego haya que deprecar.
+- **Quién decide**: el dueño. Si la Oleada 1 del sidebar está cerca, lo económico es NO
+  invertir en el stepper interino y arrancar el ADR + shell.
+
 ## 8. Definición de "se ve perfecto" (gate creativo por ventana)
 
 Una ventana migrada aprueba solo si: (1) la esquina superior izquierda tiene UN dueño y
