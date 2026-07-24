@@ -1624,7 +1624,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       "La bitacora guarda motor, semilla, fallback y advertencias.",
       "Modo avanzado para reducir concentracion por programa, nivel u horario.",
       "Las aulas seleccionadas salen con peso de aula y pesos estudiantiles agregados.",
-      "Monitoreo mide caidas y sesgos sin exigir identificador personal en respuestas.",
+      "Monitoreo mide caídas y sesgos sin exigir identificador personal en respuestas.",
       "Las reservas se trazan por ola y motivo, sin cambiar el marco base.",
       "El workbook permite auditoria metodologica y operativa."
     ),
@@ -2974,7 +2974,7 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
     regla = c(
       .cm_aulas_scalar(selector$nonresponse_policy, "disposition_codes_and_adjustments"),
       "Registrar aplicada, parcial, sin_acceso, cancelada, reemplazada y cerrada.",
-      "Ajuste posterior por dominio si hay caidas diferenciales.",
+      "Ajuste posterior por dominio si hay caídas diferenciales.",
       "No exigir student_id; agregar por aula, collector, link y fecha."
     ),
     fuente = c(
