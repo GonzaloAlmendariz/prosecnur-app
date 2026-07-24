@@ -600,6 +600,21 @@
     labels <- labels[o]
   }
 
+  # Los valores especiales (estándar de la casa: códigos numéricos en [80,100))
+  # van SIEMPRE al final de la lista, sin importar en qué orden los haya creado
+  # el analista. Sin esto, una recodificación que estrena el 96 antes que el 1
+  # dejaba "Otros" a la cabeza del catálogo en el libro de códigos y en los
+  # gráficos. El resto conserva su orden relativo.
+  if (length(codes) > 1L) {
+    code_num <- suppressWarnings(as.numeric(codes))
+    is_special <- !is.na(code_num) & code_num >= 80 & code_num < 100
+    if (any(is_special) && !all(is_special)) {
+      o <- c(which(!is_special), which(is_special))
+      codes  <- codes[o]
+      labels <- labels[o]
+    }
+  }
+
   # fila nueva en survey (debajo de la base si existe)
   new_row <- survey[0,]
   new_row[1, setdiff(names(survey), character(0))] <- NA
