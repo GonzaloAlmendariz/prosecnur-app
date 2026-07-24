@@ -1485,3 +1485,24 @@ test_that("PPT usa textos pulidos para selección múltiple y Top 2 Box", {
   expect_false(grepl("N =", xml, fixed = TRUE))
   expect_true(grepl("Pregunta de opción múltiple", xml, fixed = TRUE))
 })
+
+test_that("el tipo de un bloque recod se resuelve tambien con codigos no numericos", {
+  survey <- data.frame(
+    name = c("services_recod", "obstacle_recod", "recomendation_recod", "recomendation", "edad"),
+    type = c("select_multiple services_recod", "select_multiple obstacle_recod",
+             "select_one lst_recomendation_recod", "text", "integer"),
+    stringsAsFactors = FALSE
+  )
+  tm <- pulso_recod_type_map(survey)
+
+  # Dummies con codigo NO numerico: antes caian al color generico.
+  expect_equal(pulso_recod_resolve_type("services_recod.legal", tm), "sm")
+  expect_equal(pulso_recod_resolve_type("obstacle_recod.ubi", tm), "sm")
+  # Dummy con codigo numerico: sigue funcionando.
+  expect_equal(pulso_recod_resolve_type("services_recod.96", tm), "sm")
+  # Texto recodificado a variable independiente: resuelve por la propia _recod.
+  expect_equal(pulso_recod_resolve_type("recomendation_recod", tm), "so")
+  # Numericas siguen siendo int, y lo desconocido sigue sin tipo.
+  expect_equal(pulso_recod_resolve_type("edad", tm), "int")
+  expect_true(is.na(pulso_recod_resolve_type("no_existe", tm)))
+})
