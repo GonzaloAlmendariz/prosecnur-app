@@ -1,11 +1,12 @@
 # Prosecnur — Dirección creativa v3
 
-Versión propuesta 3.0 · julio 2026.
+Versión vigente 3.0 · julio 2026.
 
-Estado: **Propuesta, pendiente del gate humano de territorio y congelamiento**.
-Modo de identidad: **evolución**. La identidad v1.2 sigue siendo la identidad
-congelada y operativa hasta que esta propuesta sea aprobada, codificada en
-`branding/identity.json` y compilada de forma determinista.
+Estado: **Vigente y en ejecución por instrucción del dueño**.
+Modo de identidad: **evolución**. La marca, el isotipo y los activos congelados
+de v1.2 se conservan; esta dirección v3 gobierna desde ahora el shell y la
+convergencia visual. El dueño la revisa dentro del bucle y puede corregirla o
+vetarla sin que exista un permiso intermedio.
 
 ## Brief aprobado para la evolución
 
@@ -34,25 +35,26 @@ brief de la evolución v3:
 
 | ID | Tipo | Fuente | Decisión que controla |
 | --- | --- | --- | --- |
-| `ev-v3-plan` | decisión | `docs/plan-revamp-ui-2026-07.md` | UI v3, sidebar unificado, fases y métricas |
-| `ev-v3-guide` | referencia | `Art_app/docs/guia-general-ui-alto-sidebar-secciones-pestanas.md` | geometría, scroll, semántica y teclado |
+| `ev-v3-index` | precedencia | `docs/plan-revamp-ui-2026-07-INDICE.md` | contrato vigente, arbitrajes y gobierno por revisión |
+| `ev-v3-plan` | decisión | `docs/plan-revamp-ui-2026-07.md` | UI v3, fases, loop y reglas duras |
+| `ev-v3-guide` | dirección del dueño | `docs/plan-revamp-ui-2026-07-guia-sidebar.md` | geometría 248/64, esquina, scroll, semántica y teclado |
 | `ev-v3-baseline` | hecho | baseline visual del 23 de julio de 2026 | divergencia real entre módulos y chrome |
 | `ev-v3-brand` | artefacto canónico | `branding/direccion-creativa.md`, ADR 0038 y `branding/logo/` | equity que no cambia |
 | `ev-v3-layout` | contrato | `docs/ui-layout-grammar.md` | PageFrame, breakpoints y No Scroll Jail |
 | `ev-v3-runtime` | hecho | app real con proyecto canónico | workflows densos, estados y restricciones |
 | `ev-v3-module-color` | decisión humana | aclaración del 23 de julio de 2026 + `frontend/src/lib/modules.ts` | conservar los ocho acentos modulares canónicos |
 
-Cuando una regla v1.2 contradice la decisión actual, manda `ev-v3-plan`. La
-regla reemplazada se conserva como evidencia histórica y se registra en el ADR
-del shell; no se borra silenciosamente.
+Cuando una regla v1.2 o el plan base contradicen la decisión actual, manda la
+precedencia de `ev-v3-index`. La regla reemplazada se conserva como evidencia
+histórica y se registra en el ADR del shell; no se borra silenciosamente.
 
 ### Decisión humana vigente: espectro modular
 
 La v3 conserva como invariante los ocho acentos distintivos actuales. Este
-invariante ya está decidido y no forma parte del gate pendiente de territorio:
-elegir A, B, C o un híbrido define materialidad, densidad, ritmo y cantidad de
-señal, pero **no elige una paleta modular nueva** ni vuelve todos los módulos
-navy.
+invariante ya está decidido. La dirección ejecutada es A · Instrumento sereno;
+los territorios B y C quedan como alternativas históricas, no como decisiones
+pendientes. Ningún territorio elige una paleta modular nueva ni vuelve todos
+los módulos navy.
 
 | Módulo | Token canónico actual | Acento |
 | --- | --- | --- |
@@ -83,7 +85,7 @@ módulos.
 
 La v1.2 hizo reconocible la marca; la v3 hace habitable el sistema completo.
 La señal no vive en gradientes, rails repetidos o marcos decorativos: vive en
-la continuidad del sidebar, el rail activo de tres píxeles, el acento modular
+la continuidad del sidebar, el rail activo de dos píxeles, el acento modular
 justo y el dato que aparece antes que el chrome.
 
 La interfaz debe sentirse como un instrumento sereno que permanece estable
@@ -97,16 +99,16 @@ tipografía y señal modular. Los ejemplos muestran Procesamiento como un estado
 del shell, no como una elección cromática global. El comparador visual vive en
 `branding/v3/shell-territories.html`.
 
-### A · Instrumento sereno — recomendado
+### A · Instrumento sereno — vigente
 
 **Tesis:** una columna de navegación material, continua y silenciosa sostiene
 un canvas sólido donde la información manda.
 
 - Sidebar con una sola superficie fría, un hairline vertical y material
   simulado únicamente en navegación y flyouts.
-- Selección por rail de 3px + fondo suave + peso 600; nunca solo por color.
-- Header contextual de 44px, sin gradiente decorativo ni segunda navegación.
-- Densidad media-alta: filas 36/34, iconos 18, tipografía 14 y micro 11.
+- Selección por rail de 2px + fondo suave + peso 600; nunca solo por color.
+- Header del sidebar de 52px, sin gradiente decorativo ni segunda navegación.
+- Densidad media-alta: filas 28/24, iconos 18, tipografía 13/12.5.
 - El acento del módulo aparece en la selección, el icono de contexto y
   hairlines; los semánticos conservan su significado.
 - La firma reconocible es la **traza contenida**: una línea activa que une
@@ -161,20 +163,20 @@ humana.
 | Coste de implementación/gobierno | 10 | 8 | 6 | 8 |
 | **Total** | **100** | **93** | **80** | **86** |
 
-**Recomendación de dirección:** A · Instrumento sereno. Conserva el ADN de
-«La señal ordenada», cumple mejor la guía y reduce la deriva sin convertir la
-v3 en una marca nueva.
+**Dirección adoptada:** A · Instrumento sereno. Conserva el ADN de «La señal
+ordenada», cumple la guía y reduce la deriva sin convertir la v3 en una marca
+nueva.
 
 ## Sistema propuesto de «Instrumento sereno»
 
-Esta sección se vuelve normativa únicamente después de la aprobación humana.
+Esta sección es normativa desde la instrucción de ejecución del dueño.
 
 ### Anatomía del shell
 
 ```text
 ┌──────────────────────┬──────────────────────────────────────────────┐
 │ Marca + contexto     │ Proyecto · estado · acciones contextuales   │
-│ 224px / 56px         ├──────────────────────────────────────────────┤
+│ 248px / 64px         ├──────────────────────────────────────────────┤
 │                      │ Toolbar local opcional                       │
 │ SECCIÓN              ├──────────────────────────────────────────────┤
 │  ◫ Pestaña           │                                              │
@@ -189,39 +191,43 @@ Esta sección se vuelve normativa únicamente después de la aprobación humana.
 
 #### Sidebar expandido
 
-- Ancho: `224px`.
+- Ancho: `248px`.
 - Padding exterior: `8px`.
-- Zona superior: marca de 40px + selector de contexto de 36px, separadas por
-  `8px`; no contiene acciones crecientes.
+- Zona superior: header único de `52px` con isotipo squircle de `28px`, módulo
+  activo y chevron del switcher; no contiene acciones crecientes.
 - Zona central: `flex: 1; min-height: 0; overflow-y: auto`;
   `scrollbar-gutter: stable`.
-- Sección: fuente de datos en sentence case; visual `11px/600`, mayúsculas por
-  CSS, tracking `0.06em`; `16px` antes y `6px` después.
-- Pestaña: `34px` de alto, icono `18px`, gap `8px`, label `14px/500`.
-- Activo: rail físico de `3px`, superficie `--module-accent-soft`, texto
+- Sección: fuente de datos en sentence case; fila de `28px`, texto
+  `13px/500`; cualquier mayúscula es solo CSS.
+- Subfila: `24px`, indent `28px`, texto `12.5px`; máximo dos niveles.
+- Activo: rail físico de `2px`, superficie `--module-accent-soft`, texto
   principal y peso 600; `aria-current="page"`.
-- Utilidades: filas de `36px` separadas por hairline; no forman parte del árbol
+- Utilidades: filas normales separadas por hairline; no forman parte del árbol
   de destinos.
 
 #### Sidebar colapsado
 
-- Ancho: `56px`.
+- Ancho: `64px`.
 - Cada sección conserva icono, nombre accesible y estado activo.
 - El flyout se abre por hover **y** foco; puede persistir al mover el puntero o
   foco dentro; Escape lo cierra y restaura el foco.
 - El flyout contiene labels completos; nunca depende solo del tooltip.
 - No se oculta ningún destino por falta de alto: la zona central scrollea.
 
-#### Drawer
+#### Contrato anti-deformación
 
-- Se activa a `≤900px` de ancho.
-- Ancho: `min(288px, calc(100vw - 24px))`.
-- Es modal para teclado, con backdrop discreto, focus trap, Escape y
-  restauración. El canvas no cambia de dueño de scroll.
+- Solo existen dos anchos persistentes: `248px` y `64px`.
+- Ambos estados empujan el lienzo; el sidebar persistente nunca se superpone.
+- El flyout transitorio de `240px` es la única superposición de navegación y
+  nunca provoca reflow.
+- A `1024×600`, el lienzo expandido conserva al menos `712px`.
+- Las rutas de canvas total pueden declarar `railMode: "collapsed"` en el
+  manifiesto; no usan lógica ad hoc.
 
 #### Header contextual
 
-- Altura base: `44px`; compacto `40px`.
+- El toolbar pertenece al lienzo y empieza a la derecha del sidebar. Su
+  geometría se alinea con el header de `52px` sin cruzar la esquina.
 - Contiene únicamente proyecto/contexto, estado de sesión y acciones que
   operan sobre la vista.
 - La banda multibase de Procesamiento es toolbar contextual, no navegación de
@@ -252,8 +258,8 @@ Esta sección se vuelve normativa únicamente después de la aprobación humana.
 
 ### Tokens v3
 
-Los nombres se codificarán en `branding/identity.json` después del gate y se
-compilarán antes de entrar a `theme.css`.
+Los nombres se codifican en `branding/identity.json` y se compilan antes de
+entrar a `theme.css`; esa promoción es una unidad determinista separada.
 
 ```text
 Espaciado
@@ -276,11 +282,12 @@ Capas
 --z-boot: 1600
 
 Navegación
---sidebar-width: 224px
---sidebar-collapsed-width: 56px
---nav-item-height: 36px
---subnav-item-height: 34px
---active-rail-width: 3px
+--sidebar-width: 248px
+--sidebar-collapsed-width: 64px
+--sidebar-header-height: 52px
+--nav-item-height: 28px
+--subnav-item-height: 24px
+--active-rail-width: 2px
 --sidebar-icon-size: 18px
 ```
 
@@ -312,15 +319,16 @@ externa usa `--prosecnur-*`. No se agregan hex a CSS de features.
 1. `AppSidebar`, `SidebarSection` y `SidebarTab`.
 2. `PulsoButton`.
 3. `PulsoDialog` y `PulsoPopover` sobre Radix.
-4. `StageStepper` para secuencias reales dentro del canvas.
+4. Progreso secuencial en el propio sidebar mediante numeración, badges y
+   candados; no se duplica con un stepper en el canvas.
 5. Empty state y spinner únicos.
 
 ### Motion
 
 - Press `120ms`, fast `160ms`, base `220ms`, panel `280ms`, slow `420ms`.
-- Sidebar expandir/colapsar: `220ms`, easing drawer.
+- Sidebar expandir/colapsar: `180ms`, easing de salida.
+- Filas al expandir: stagger discreto de `60ms`.
 - Flyout: `160ms`, easing de salida, opacity + x de 6px.
-- Drawer: `280ms`, easing drawer.
 - Navegación por teclado no espera animación.
 - `prefers-reduced-motion` elimina desplazamiento y reduce la transición a
   cambio de estado inmediato.
@@ -353,29 +361,27 @@ hex de features por debajo del umbral del plan. El shell debe usar roles
 semánticos desde el inicio para no bloquearlo, pero un tema oscuro incompleto
 no se presenta como feature.
 
-## Pruebas representativas antes del freeze
+## Pruebas representativas de convergencia
 
 1. Home con ocho módulos, menú destructivo y picker.
 2. Procesamiento/Analítica con doce destinos en ventana de 600px de alto.
 3. Monitoreo con cuatro perfiles y labels largos.
-4. Muestra/Hojas con steppers reales dentro del canvas.
+4. Muestra/Hojas con recorrido, progreso y gating visibles solo en el sidebar.
 5. Dashboard con paleta secuencial Pulso.
 6. Vacío, carga, error y recuperación sin colapsar regiones.
-7. Sidebar 224/56/drawer con teclado, Escape y foco restaurado.
-8. Viewports 1440×1000, 1280×800, 1100×600 y 900×800.
+7. Sidebar 248/64 y flyout con teclado, Escape y foco restaurado.
+8. Viewports 1440×1000, 1361×987, 1280×800, 1100×600, 1024×600 y
+   900×800.
 9. Windows con Segoe UI, peso 600 y DPI 125–150%.
 10. `prefers-reduced-motion`.
 
-## Gate humano pendiente
+## Gobierno por revisión
 
-La dirección recomendada es **A · Instrumento sereno**.
+La dirección ejecutada es **A · Instrumento sereno**, con la anatomía
+`248/64/52`, filas `28/24`, rail activo de `2px`, flyout de `240px` y sin
+drawer. La instrucción de ejecutar el plan constituye aprobación operativa.
 
-Antes de escribir el shell v3 se requiere una respuesta humana explícita que:
-
-1. seleccione A, B, C o indique un híbrido deliberado;
-2. apruebe o ajuste las medidas 224/56/44 y el drawer de 288px;
-3. confirme que el tema oscuro permanece diferido;
-4. autorice promover `branding/identity.json` de v1.2 frozen a v3 propuesta,
-   validarla, congelarla y compilar sus derivados.
-
-El silencio no constituye aprobación.
+Cada iteración entrega evidencia para revisión, corrección o veto del dueño;
+no solicita permiso para continuar. Solo el dueño declara el cierre global del
+bucle. El tema oscuro permanece diferido según el plan y la promoción
+determinista de `branding/identity.json` se valida como una unidad propia.

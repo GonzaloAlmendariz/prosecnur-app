@@ -347,7 +347,7 @@
       width: 100%;
       min-height: 680px;
       display: grid;
-      grid-template-columns: 224px minmax(0, 1fr);
+      grid-template-columns: 248px minmax(0, 1fr);
       overflow: hidden;
       border: 1px solid var(--border-strong);
       border-radius: 18px;
@@ -364,7 +364,8 @@
     }
 
     .side-top {
-      padding: 12px 10px 10px;
+      height: 52px;
+      padding: 6px 8px;
       border-bottom: 1px solid rgba(0, 36, 87, .08);
     }
 
@@ -389,17 +390,17 @@
     }
 
     .context {
-      min-height: 36px;
+      min-height: 40px;
       display: grid;
       grid-template-columns: 28px minmax(0, 1fr) auto;
       align-items: center;
       gap: 7px;
-      margin-top: 8px;
+      margin-top: 0;
       padding: 4px 8px 4px 4px;
-      border: 1px solid var(--processing-border);
+      border: 1px solid transparent;
       border-radius: 10px;
-      background: var(--paper);
-      box-shadow: 0 1px 2px rgba(0, 36, 87, .04);
+      background: transparent;
+      box-shadow: none;
     }
 
     .context-icon {
@@ -411,6 +412,12 @@
       color: var(--processing);
       background: var(--processing-soft);
       font-weight: 800;
+    }
+
+    .context-icon img {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
     }
 
     .context-copy { min-width: 0; }
@@ -441,7 +448,7 @@
 
     .tab {
       position: relative;
-      min-height: 34px;
+      min-height: 28px;
       display: grid;
       grid-template-columns: 18px minmax(0, 1fr) auto;
       align-items: center;
@@ -474,7 +481,7 @@
       position: absolute;
       inset-block: 6px;
       left: -1px;
-      width: 3px;
+      width: 2px;
       border-radius: 999px;
       background: var(--processing);
     }
@@ -490,13 +497,24 @@
       text-align: center;
     }
 
+    .subtabs {
+      display: grid;
+      gap: 0;
+    }
+
+    .subtabs .tab {
+      min-height: 24px;
+      padding-left: 28px;
+      font-size: 12.5px;
+    }
+
     .side-bottom {
       padding: 8px;
       border-top: 1px solid rgba(0, 36, 87, .08);
     }
 
     .utility {
-      min-height: 36px;
+      min-height: 28px;
       display: grid;
       grid-template-columns: 18px minmax(0, 1fr);
       align-items: center;
@@ -510,7 +528,7 @@
       min-width: 0;
       min-height: 0;
       display: grid;
-      grid-template-rows: 44px minmax(0, 1fr);
+      grid-template-rows: 52px minmax(0, 1fr);
       overflow: hidden;
     }
 
@@ -728,7 +746,7 @@
     }
 
     /* B · Cartografía modular */
-    .territory-b .mock { grid-template-columns: 236px minmax(0, 1fr); }
+    .territory-b .mock { grid-template-columns: 248px minmax(0, 1fr); }
 
     .territory-b .sidebar {
       background:
@@ -777,7 +795,7 @@
     .territory-b .kpi::after { opacity: 1; }
 
     /* C · Mesa editorial */
-    .territory-c .mock { grid-template-columns: 216px minmax(0, 1fr); }
+    .territory-c .mock { grid-template-columns: 248px minmax(0, 1fr); }
 
     .territory-c .sidebar {
       border-right-color: var(--border-strong);
@@ -880,7 +898,7 @@
       .intro, .territory-head, .spectrum-head { grid-template-columns: 1fr; }
       .score, .state-example { justify-self: start; }
       .module-spectrum { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .mock { grid-template-columns: 56px minmax(0, 1fr) !important; min-height: 620px; }
+      .mock { grid-template-columns: 64px minmax(0, 1fr) !important; min-height: 620px; }
       .side-brand strong,
       .context-copy,
       .context > span:last-child,
@@ -922,7 +940,7 @@
           <img src="../logo/prosecnur-isotipo.svg" alt="">
           <div>
             <strong>Prosecnur</strong>
-            <span>Dirección creativa v3 · propuesta</span>
+            <span>Dirección creativa v3 · vigente</span>
           </div>
         </div>
         <h1>La señal ordenada, ahora habitable.</h1>
@@ -933,7 +951,7 @@
         </p>
       </div>
       <aside class="decision">
-        <span class="eyebrow">Recomendación</span>
+        <span class="eyebrow">Dirección adoptada</span>
         <strong>A · Instrumento sereno</strong>
         <p>
           Es el balance más sólido entre continuidad de marca, densidad de
@@ -947,7 +965,7 @@
       <a href="#territorio-a">A · Instrumento sereno</a>
       <a href="#territorio-b">B · Cartografía modular</a>
       <a href="#territorio-c">C · Mesa editorial</a>
-      <a href="#gate">Gate de aprobación</a>
+      <a href="#gate">Gobierno por revisión</a>
     </nav>
 
     <section class="spectrum" id="espectro">
@@ -1006,7 +1024,7 @@
     <article class="territory territory-a" id="territorio-a">
       <header class="territory-head">
         <div>
-          <span class="eyebrow">Territorio A · recomendado</span>
+          <span class="eyebrow">Territorio A · vigente</span>
           <h2>Instrumento sereno</h2>
           <p>
             Una columna material continua sostiene un canvas sólido. La traza
@@ -1018,31 +1036,26 @@
       <div class="mock">
         <aside class="sidebar" aria-label="Sidebar de referencia">
           <div class="side-top">
-            <div class="side-brand">
-              <img src="../logo/prosecnur-isotipo.svg" alt="">
-              <strong>Prosecnur</strong>
-            </div>
             <div class="context">
-              <span class="context-icon">↗</span>
-              <span class="context-copy"><strong>Procesamiento</strong><span>Auditoría canónica</span></span>
+              <span class="context-icon"><img src="../logo/prosecnur-isotipo.svg" alt=""></span>
+              <span class="context-copy"><strong>Procesamiento</strong><span>Módulo activo</span></span>
               <span aria-hidden="true">⌄</span>
             </div>
           </div>
           <div class="side-nav">
             <section class="section-block">
               <span class="section-label">Procesamiento</span>
-              <div class="tab"><span class="icon">↥</span><span>Carga</span><span class="count">2</span></div>
-              <div class="tab active"><span class="icon">✓</span><span>Validación</span><span class="count">12</span></div>
-              <div class="tab"><span class="icon">✎</span><span>Codificación</span><span></span></div>
-              <div class="tab"><span class="icon">⌁</span><span>Analítica</span><span></span></div>
-              <div class="tab"><span class="icon">▥</span><span>Gráficos</span><span class="count">4</span></div>
-            </section>
-            <section class="section-block">
-              <span class="section-label">Validación</span>
-              <div class="tab"><span class="icon">◎</span><span>Explorar</span><span></span></div>
-              <div class="tab active"><span class="icon">⌘</span><span>Reglas del formulario</span><span></span></div>
-              <div class="tab"><span class="icon">◇</span><span>Criterios</span><span></span></div>
-              <div class="tab"><span class="icon">✓</span><span>Cierre</span><span></span></div>
+              <div class="tab"><span class="icon">①</span><span>Carga</span><span class="count">✓</span></div>
+              <div class="tab active"><span class="icon">②</span><span>Validación</span><span class="count">12</span></div>
+              <div class="subtabs">
+                <div class="tab"><span class="icon">◎</span><span>Explorar</span><span></span></div>
+                <div class="tab active"><span class="icon">⌘</span><span>Reglas del formulario</span><span></span></div>
+                <div class="tab"><span class="icon">◇</span><span>Criterios</span><span></span></div>
+                <div class="tab"><span class="icon">✓</span><span>Cierre</span><span></span></div>
+              </div>
+              <div class="tab"><span class="icon">③</span><span>Codificación</span><span></span></div>
+              <div class="tab"><span class="icon">④</span><span>Analítica</span><span></span></div>
+              <div class="tab"><span class="icon">⑤</span><span>Gráficos</span><span class="count">4</span></div>
             </section>
           </div>
           <div class="side-bottom">
@@ -1081,7 +1094,7 @@
         </section>
       </div>
       <div class="territory-notes">
-        <div class="note"><strong>Firma</strong><p>Rail activo de 3px, material solo en navegación y hairline de acento en KPI.</p></div>
+        <div class="note"><strong>Firma</strong><p>Rail activo de 2px, material solo en navegación y hairline de acento en KPI.</p></div>
         <div class="note"><strong>Fortaleza</strong><p>Máxima continuidad entre módulos sin borrar su acento ni competir con los datos.</p></div>
         <div class="note"><strong>Riesgo controlado</strong><p>El material pierde protagonismo fuera del sidebar; formularios y datos siguen sólidos.</p></div>
       </div>
@@ -1102,24 +1115,22 @@
       <div class="mock">
         <aside class="sidebar" aria-label="Sidebar de referencia">
           <div class="side-top">
-            <div class="side-brand"><img src="../logo/prosecnur-isotipo.svg" alt=""><strong>Prosecnur</strong></div>
-            <div class="context"><span class="context-icon">↗</span><span class="context-copy"><strong>Procesamiento</strong><span>Auditoría canónica</span></span><span>⌄</span></div>
+            <div class="context"><span class="context-icon"><img src="../logo/prosecnur-isotipo.svg" alt=""></span><span class="context-copy"><strong>Procesamiento</strong><span>Módulo activo</span></span><span>⌄</span></div>
           </div>
           <div class="side-nav">
             <section class="section-block">
               <span class="section-label">Procesamiento</span>
-              <div class="tab"><span class="icon">↥</span><span>Carga</span><span class="count">2</span></div>
-              <div class="tab active"><span class="icon">✓</span><span>Validación</span><span class="count">12</span></div>
-              <div class="tab"><span class="icon">✎</span><span>Codificación</span><span></span></div>
-              <div class="tab"><span class="icon">⌁</span><span>Analítica</span><span></span></div>
-              <div class="tab"><span class="icon">▥</span><span>Gráficos</span><span class="count">4</span></div>
-            </section>
-            <section class="section-block">
-              <span class="section-label">Validación</span>
-              <div class="tab"><span class="icon">◎</span><span>Explorar</span><span></span></div>
-              <div class="tab active"><span class="icon">⌘</span><span>Reglas del formulario</span><span></span></div>
-              <div class="tab"><span class="icon">◇</span><span>Criterios</span><span></span></div>
-              <div class="tab"><span class="icon">✓</span><span>Cierre</span><span></span></div>
+              <div class="tab"><span class="icon">①</span><span>Carga</span><span class="count">✓</span></div>
+              <div class="tab active"><span class="icon">②</span><span>Validación</span><span class="count">12</span></div>
+              <div class="subtabs">
+                <div class="tab"><span class="icon">◎</span><span>Explorar</span><span></span></div>
+                <div class="tab active"><span class="icon">⌘</span><span>Reglas del formulario</span><span></span></div>
+                <div class="tab"><span class="icon">◇</span><span>Criterios</span><span></span></div>
+                <div class="tab"><span class="icon">✓</span><span>Cierre</span><span></span></div>
+              </div>
+              <div class="tab"><span class="icon">③</span><span>Codificación</span><span></span></div>
+              <div class="tab"><span class="icon">④</span><span>Analítica</span><span></span></div>
+              <div class="tab"><span class="icon">⑤</span><span>Gráficos</span><span class="count">4</span></div>
             </section>
           </div>
           <div class="side-bottom"><div class="utility"><span>⌕</span><span>Buscar</span></div><div class="utility"><span>⚙</span><span>Configuración</span></div></div>
@@ -1165,24 +1176,22 @@
       <div class="mock">
         <aside class="sidebar" aria-label="Sidebar de referencia">
           <div class="side-top">
-            <div class="side-brand"><img src="../logo/prosecnur-isotipo.svg" alt=""><strong>Prosecnur</strong></div>
-            <div class="context"><span class="context-icon">↗</span><span class="context-copy"><strong>Procesamiento</strong><span>Auditoría canónica</span></span><span>⌄</span></div>
+            <div class="context"><span class="context-icon"><img src="../logo/prosecnur-isotipo.svg" alt=""></span><span class="context-copy"><strong>Procesamiento</strong><span>Módulo activo</span></span><span>⌄</span></div>
           </div>
           <div class="side-nav">
             <section class="section-block">
               <span class="section-label">Procesamiento</span>
-              <div class="tab"><span class="icon">↥</span><span>Carga</span><span class="count">2</span></div>
-              <div class="tab active"><span class="icon">✓</span><span>Validación</span><span class="count">12</span></div>
-              <div class="tab"><span class="icon">✎</span><span>Codificación</span><span></span></div>
-              <div class="tab"><span class="icon">⌁</span><span>Analítica</span><span></span></div>
-              <div class="tab"><span class="icon">▥</span><span>Gráficos</span><span class="count">4</span></div>
-            </section>
-            <section class="section-block">
-              <span class="section-label">Validación</span>
-              <div class="tab"><span class="icon">◎</span><span>Explorar</span><span></span></div>
-              <div class="tab active"><span class="icon">⌘</span><span>Reglas del formulario</span><span></span></div>
-              <div class="tab"><span class="icon">◇</span><span>Criterios</span><span></span></div>
-              <div class="tab"><span class="icon">✓</span><span>Cierre</span><span></span></div>
+              <div class="tab"><span class="icon">①</span><span>Carga</span><span class="count">✓</span></div>
+              <div class="tab active"><span class="icon">②</span><span>Validación</span><span class="count">12</span></div>
+              <div class="subtabs">
+                <div class="tab"><span class="icon">◎</span><span>Explorar</span><span></span></div>
+                <div class="tab active"><span class="icon">⌘</span><span>Reglas del formulario</span><span></span></div>
+                <div class="tab"><span class="icon">◇</span><span>Criterios</span><span></span></div>
+                <div class="tab"><span class="icon">✓</span><span>Cierre</span><span></span></div>
+              </div>
+              <div class="tab"><span class="icon">③</span><span>Codificación</span><span></span></div>
+              <div class="tab"><span class="icon">④</span><span>Analítica</span><span></span></div>
+              <div class="tab"><span class="icon">⑤</span><span>Gráficos</span><span class="count">4</span></div>
             </section>
           </div>
           <div class="side-bottom"><div class="utility"><span>⌕</span><span>Buscar</span></div><div class="utility"><span>⚙</span><span>Configuración</span></div></div>
@@ -1214,13 +1223,14 @@
     </article>
 
     <section class="gate" id="gate">
-      <span class="mini-label">Gate humano pendiente</span>
-      <h2>Seleccionar, ajustar o combinar deliberadamente</h2>
+      <span class="mini-label">Gobierno por revisión</span>
+      <h2>Ejecutar, demostrar y corregir por el bucle</h2>
       <p>
-        Recomendación: aprobar A · Instrumento sereno con 224px expandido,
-        56px colapsado, header de 44px y drawer de 288px. El tema oscuro queda
-        diferido hasta reducir la deriva de hex. Ningún shell v3 se escribe
-        antes de esta aprobación.
+        A · Instrumento sereno está vigente con 248px expandido, 64px
+        colapsado, header de 52px, filas 28/24 y flyout transitorio de 240px.
+        El sidebar persistente empuja el lienzo; no existe drawer. La
+        instrucción de ejecutar es la aprobación operativa y cada iteración
+        entrega evidencia para revisión, corrección o veto del dueño.
       </p>
     </section>
   </main>
