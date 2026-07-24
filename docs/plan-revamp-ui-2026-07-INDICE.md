@@ -12,6 +12,7 @@ dueño se agregan como filas — el plan base NO se edita para agregarlas.
 | 1 | `docs/plan-revamp-ui-2026-07.md` | Plan base v2.0 (fases, diagnóstico, loop §12) | Vigente |
 | 2 | `docs/plan-revamp-ui-2026-07-indicacion-2.md` | Indicación 2: implicancias del sidebar por clase de ventana, evidencia en vivo, orden de migración | Vigente |
 | 3 | `docs/plan-revamp-ui-2026-07-guia-sidebar.md` | Guía creativa del shell: resolución de la "L" (source list full-height), anatomía 248/64, switcher + gestor de módulos, contrato anti-deformación, gate "se ve perfecto" | Vigente |
+| 4 | `docs/plan-revamp-ui-2026-07-indicacion-3.md` | Indicación 3: workbench robusto, mapa/canvas como superficie primaria, chrome global al sidebar y rail por sección | Vigente |
 
 ## Arbitrajes activos (resoluciones de conflicto entre documentos)
 
@@ -24,6 +25,12 @@ dueño se agregan como filas — el plan base NO se edita para agregarlas.
   guía (248px/64px, columna full-height dueña de la esquina, toolbar pertenece al lienzo)
   difieran, **manda la guía** — son la misma dirección con métricas y resolución de esquina
   refinadas; el ADR de §4.5 fija los números finales.
+- **Chrome horizontal y superficie primaria** (indicación 3, 2026-07-24): en workbenches
+  ricos, proyecto/archivo, guardado y Home viven en el sidebar; no queda una franja global
+  persistente de `52px` sobre el canvas. Los `52px` siguen rigiendo el header del sidebar.
+  KPIs, readiness y fase siguen siendo operación del lienzo, pero en una command surface
+  compacta. En etapas dominadas por mapa/canvas, la preferencia declarativa es rail de
+  `64px`; esto manda sobre el default expandido general de la clase A.
 
 ## Regla de gobierno: revisión, no permiso (indicación del dueño, 2026-07-23)
 
