@@ -2729,11 +2729,7 @@ reporte_ppt_plan <- function(
     tab_raw <- tryCatch(.tab_freq(var, filtros = filtros, source = el$source %||% NULL), error = function(e) NULL)
     if (is.null(tab_raw) || !is.data.frame(tab_raw) || !nrow(tab_raw)) return(NULL)
 
-    excluir_opciones <- .reporte_plan_excluir_opciones(
-      preset_args$excluir_opciones %||% NULL,
-      overrides$excluir_opciones %||% NULL,
-      el$excluir_opciones %||% NULL
-    )
+    excluir_opciones <- .reporte_plan_excluir_cascada(preset_args, overrides, el)
     excluir_opciones <- .exclusion_for_ctx(ctx, excluir_opciones)
 
     mostrar_ceros <- .should_show_zero_options(
@@ -3491,21 +3487,15 @@ reporte_ppt_plan <- function(
     etype <- el$.element_type %||% ""
     excluir_base <- switch(
       etype,
-      barras_apiladas = .reporte_plan_excluir_opciones(
-        presets$barras_apiladas$args$excluir_opciones %||% NULL,
-        (el$overrides %||% list())$excluir_opciones %||% NULL,
-        el$excluir_opciones %||% NULL
+      barras_apiladas = .reporte_plan_excluir_cascada(
+        presets$barras_apiladas$args, el$overrides %||% list(), el
       ),
-      barras_agrupadas = .reporte_plan_excluir_opciones(
-        presets$barras_agrupadas$args$excluir_opciones %||% NULL,
-        (el$overrides %||% list())$excluir_opciones %||% NULL,
-        el$excluir_opciones %||% NULL
+      barras_agrupadas = .reporte_plan_excluir_cascada(
+        presets$barras_agrupadas$args, el$overrides %||% list(), el
       ),
-      barras_multiapiladas = .reporte_plan_excluir_opciones(
-        presets$barras_apiladas$args$excluir_opciones %||% NULL,
-        presets$multi_apiladas$args$excluir_opciones %||% NULL,
-        (el$overrides %||% list())$excluir_opciones %||% NULL,
-        el$excluir_opciones %||% NULL
+      barras_multiapiladas = .reporte_plan_excluir_cascada(
+        presets$barras_apiladas$args, el$overrides %||% list(), el,
+        preset_args_extra = presets$multi_apiladas$args
       ),
       NULL
     )
@@ -4261,11 +4251,7 @@ reporte_ppt_plan <- function(
     var <- el$var
     filtros <- el$filtros %||% list()
     overrides <- el$overrides %||% list()
-    excluir_opciones <- .reporte_plan_excluir_opciones(
-      preset_args$excluir_opciones %||% NULL,
-      overrides$excluir_opciones %||% NULL,
-      el$excluir_opciones %||% NULL
-    )
+    excluir_opciones <- .reporte_plan_excluir_cascada(preset_args, overrides, el)
     ctx_excluir <- .resolve_ref(var, arg_name = "var")
     excluir_opciones <- .exclusion_for_ctx(ctx_excluir, excluir_opciones)
     tab <- .tab_freq(var, filtros = filtros)
@@ -4389,11 +4375,8 @@ reporte_ppt_plan <- function(
     preset_args_multi  <- preset_args_multi  %||% list()
     preset_args_single <- preset_args_single %||% list()
     overrides          <- el$overrides %||% list()
-    excluir_opciones <- .reporte_plan_excluir_opciones(
-      preset_args_single$excluir_opciones %||% NULL,
-      preset_args_multi$excluir_opciones %||% NULL,
-      overrides$excluir_opciones %||% NULL,
-      el$excluir_opciones %||% NULL
+    excluir_opciones <- .reporte_plan_excluir_cascada(
+      preset_args_single, overrides, el, preset_args_extra = preset_args_multi
     )
     preset_args_single$excluir_opciones <- NULL
     preset_args_multi$excluir_opciones <- NULL
@@ -5404,11 +5387,7 @@ reporte_ppt_plan <- function(
     if (!is.null(el$mostrar_ceros)) {
       overrides$mostrar_ceros <- isTRUE(el$mostrar_ceros)
     }
-    excluir_opciones <- .reporte_plan_excluir_opciones(
-      preset_args$excluir_opciones %||% NULL,
-      overrides$excluir_opciones %||% NULL,
-      el$excluir_opciones %||% NULL
-    )
+    excluir_opciones <- .reporte_plan_excluir_cascada(preset_args, overrides, el)
     ctx_var <- .resolve_ref(var, arg_name = "var")
     excluir_opciones <- .exclusion_for_ctx(ctx_var, excluir_opciones)
     tab <- .tab_freq(var, filtros = filtros)
@@ -5630,11 +5609,7 @@ reporte_ppt_plan <- function(
     if (!is.null(el$mostrar_ceros)) {
       overrides$mostrar_ceros <- isTRUE(el$mostrar_ceros)
     }
-    excluir_opciones <- .reporte_plan_excluir_opciones(
-      preset_args$excluir_opciones %||% NULL,
-      overrides$excluir_opciones %||% NULL,
-      el$excluir_opciones %||% NULL
-    )
+    excluir_opciones <- .reporte_plan_excluir_cascada(preset_args, overrides, el)
     ctx <- tryCatch(.resolve_ref(var, arg_name = "var"), error = function(e) NULL)
     if (!is.null(ctx)) {
       excluir_opciones <- .exclusion_for_ctx(ctx, excluir_opciones)
