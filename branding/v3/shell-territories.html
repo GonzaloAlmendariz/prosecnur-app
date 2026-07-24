@@ -1,0 +1,1052 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prosecnur UI v3 · territorios del shell</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --navy: #002457;
+      --signal: #2457d6;
+      --ink: #17212f;
+      --soft: #5f6b7a;
+      --faint: #8792a2;
+      --paper: #ffffff;
+      --ice: #fafbff;
+      --mist: #f2f5fa;
+      --canvas: #f3f5f9;
+      --deep: #e9edf5;
+      --border: #e2e7f0;
+      --border-strong: #cbd5e4;
+      --processing: #0f766e;
+      --processing-soft: rgba(15, 118, 110, .12);
+      --processing-border: rgba(15, 118, 110, .30);
+      --danger: #991b1b;
+      --danger-soft: #fef2f2;
+      --success: #166534;
+      --success-soft: #dcfce7;
+      --shadow-soft: 0 6px 18px rgba(0, 36, 87, .06);
+      --shadow-high: 0 24px 60px rgba(0, 36, 87, .14);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      min-width: 320px;
+      background: var(--deep);
+      color: var(--ink);
+    }
+
+    body {
+      margin: 0;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .76), transparent 420px),
+        var(--deep);
+    }
+
+    button, a { font: inherit; }
+
+    .page {
+      width: min(1500px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 64px;
+    }
+
+    .intro {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 390px);
+      gap: 28px;
+      align-items: end;
+      margin-bottom: 22px;
+      padding: 26px 28px;
+      border: 1px solid rgba(0, 36, 87, .12);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, .82);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(14px) saturate(1.08);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .brand img {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 36, 87, .17);
+    }
+
+    .brand strong {
+      color: var(--navy);
+      font-size: 18px;
+      letter-spacing: -.02em;
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 2px;
+      color: var(--soft);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 860px;
+      color: var(--navy);
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 1.04;
+      letter-spacing: -.035em;
+    }
+
+    .lead {
+      max-width: 780px;
+      margin: 14px 0 0;
+      color: var(--soft);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .decision {
+      padding: 18px;
+      border: 1px solid var(--processing-border);
+      border-radius: 16px;
+      background: color-mix(in srgb, var(--paper) 88%, var(--processing-soft));
+    }
+
+    .decision .eyebrow,
+    .territory-head .eyebrow,
+    .section-label,
+    .mini-label {
+      color: var(--soft);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .decision strong {
+      display: block;
+      margin: 7px 0 8px;
+      color: var(--processing);
+      font-size: 17px;
+    }
+
+    .decision p {
+      margin: 0;
+      color: var(--soft);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .jump {
+      position: sticky;
+      z-index: 20;
+      top: 8px;
+      display: flex;
+      gap: 8px;
+      margin-bottom: 18px;
+      padding: 7px;
+      overflow-x: auto;
+      border: 1px solid rgba(0, 36, 87, .12);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .86);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(14px);
+    }
+
+    .jump a {
+      flex: 0 0 auto;
+      padding: 8px 12px;
+      border-radius: 9px;
+      color: var(--soft);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .jump a:first-child {
+      color: var(--paper);
+      background: var(--navy);
+    }
+
+    .territory {
+      scroll-margin-top: 86px;
+      margin-top: 22px;
+      padding: 18px;
+      border: 1px solid rgba(0, 36, 87, .12);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, .78);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .territory-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(220px, 420px);
+      gap: 20px;
+      align-items: end;
+      margin: 2px 4px 16px;
+    }
+
+    .territory h2 {
+      margin: 5px 0 5px;
+      color: var(--navy);
+      font-size: 24px;
+      letter-spacing: -.025em;
+    }
+
+    .territory-head p {
+      margin: 0;
+      color: var(--soft);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .score {
+      justify-self: end;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      color: var(--soft);
+    }
+
+    .score strong {
+      color: var(--navy);
+      font-size: 28px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .score.recommended strong { color: var(--processing); }
+
+    .mock {
+      width: 100%;
+      min-height: 680px;
+      display: grid;
+      grid-template-columns: 224px minmax(0, 1fr);
+      overflow: hidden;
+      border: 1px solid var(--border-strong);
+      border-radius: 18px;
+      background: var(--canvas);
+      box-shadow: var(--shadow-high);
+    }
+
+    .sidebar {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      border-right: 1px solid var(--border);
+      color: var(--ink);
+    }
+
+    .side-top {
+      padding: 12px 10px 10px;
+      border-bottom: 1px solid rgba(0, 36, 87, .08);
+    }
+
+    .side-brand {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 0 8px;
+    }
+
+    .side-brand img {
+      width: 27px;
+      height: 27px;
+      border-radius: 8px;
+    }
+
+    .side-brand strong {
+      color: var(--navy);
+      font-size: 14px;
+      letter-spacing: -.01em;
+    }
+
+    .context {
+      min-height: 36px;
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 7px;
+      margin-top: 8px;
+      padding: 4px 8px 4px 4px;
+      border: 1px solid var(--processing-border);
+      border-radius: 10px;
+      background: var(--paper);
+      box-shadow: 0 1px 2px rgba(0, 36, 87, .04);
+    }
+
+    .context-icon {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      color: var(--processing);
+      background: var(--processing-soft);
+      font-weight: 800;
+    }
+
+    .context-copy { min-width: 0; }
+    .context-copy strong,
+    .context-copy span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .context-copy strong { font-size: 12px; }
+    .context-copy span { color: var(--soft); font-size: 10px; }
+
+    .side-nav {
+      min-height: 0;
+      padding: 10px 8px 18px;
+      overflow-y: auto;
+      scrollbar-gutter: stable;
+    }
+
+    .section-block + .section-block { margin-top: 16px; }
+
+    .section-label {
+      display: block;
+      padding: 0 8px 6px;
+    }
+
+    .tab {
+      position: relative;
+      min-height: 34px;
+      display: grid;
+      grid-template-columns: 18px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      margin: 2px 0;
+      padding: 0 8px;
+      border-radius: 9px;
+      color: var(--soft);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .tab .icon {
+      width: 18px;
+      height: 18px;
+      display: grid;
+      place-items: center;
+      color: inherit;
+      font-size: 11px;
+    }
+
+    .tab.active {
+      color: var(--processing);
+      font-weight: 650;
+      background: var(--processing-soft);
+    }
+
+    .tab.active::before {
+      content: "";
+      position: absolute;
+      inset-block: 6px;
+      left: -1px;
+      width: 3px;
+      border-radius: 999px;
+      background: var(--processing);
+    }
+
+    .tab .count {
+      min-width: 20px;
+      padding: 2px 5px;
+      border-radius: 999px;
+      color: var(--soft);
+      background: rgba(95, 107, 122, .08);
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+    }
+
+    .side-bottom {
+      padding: 8px;
+      border-top: 1px solid rgba(0, 36, 87, .08);
+    }
+
+    .utility {
+      min-height: 36px;
+      display: grid;
+      grid-template-columns: 18px minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
+      padding: 0 8px;
+      color: var(--soft);
+      font-size: 12px;
+    }
+
+    .main {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 44px minmax(0, 1fr);
+      overflow: hidden;
+    }
+
+    .topbar {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, .92);
+    }
+
+    .project,
+    .top-actions {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .project strong {
+      overflow: hidden;
+      color: var(--ink);
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .saved {
+      padding: 4px 7px;
+      border: 1px solid #f0d799;
+      border-radius: 999px;
+      color: #8a5000;
+      background: #fff4e0;
+      font-size: 10px;
+      font-weight: 650;
+    }
+
+    .top-action {
+      height: 28px;
+      padding: 0 9px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--soft);
+      background: var(--paper);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .top-action.primary {
+      border-color: var(--processing);
+      color: var(--paper);
+      background: var(--processing);
+    }
+
+    .workspace {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      gap: 12px;
+      padding: 14px;
+      overflow: hidden;
+    }
+
+    .command-row,
+    .kpis,
+    .data-card {
+      border: 1px solid var(--border);
+      background: var(--paper);
+    }
+
+    .command-row {
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 6px 8px 6px 12px;
+      border-radius: 12px;
+    }
+
+    .command-row strong { font-size: 13px; }
+    .command-row span { color: var(--soft); font-size: 11px; }
+
+    .search {
+      min-width: 220px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 9px;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      color: var(--faint);
+      background: var(--ice);
+      font-size: 11px;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .kpi {
+      position: relative;
+      min-width: 0;
+      padding: 11px 12px 12px;
+    }
+
+    .kpi + .kpi { border-left: 1px solid var(--border); }
+
+    .kpi::after {
+      content: "";
+      position: absolute;
+      inset: auto 10px 0;
+      height: 2px;
+      border-radius: 999px;
+      background: var(--processing);
+      opacity: .72;
+    }
+
+    .kpi strong {
+      display: block;
+      font-size: 21px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -.02em;
+    }
+
+    .kpi span {
+      display: block;
+      margin-top: 2px;
+      overflow: hidden;
+      color: var(--soft);
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: .05em;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .data-card {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 42px minmax(0, 1fr);
+      overflow: hidden;
+      border-radius: 14px;
+    }
+
+    .data-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .data-head strong { font-size: 13px; }
+    .data-head span { color: var(--soft); font-size: 11px; }
+
+    .table {
+      min-height: 0;
+      padding: 0 12px 12px;
+      overflow: auto;
+    }
+
+    .row {
+      min-width: 720px;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr .8fr .7fr .7fr .7fr;
+      align-items: center;
+      min-height: 44px;
+      border-bottom: 1px solid var(--border);
+      color: var(--soft);
+      font-size: 11px;
+    }
+
+    .row.head {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      min-height: 34px;
+      color: var(--ink);
+      background: var(--ice);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .row strong { color: var(--ink); }
+
+    .status {
+      width: fit-content;
+      padding: 4px 7px;
+      border-radius: 999px;
+      color: var(--success);
+      background: var(--success-soft);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    /* A · Instrumento sereno */
+    .territory-a .sidebar {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .76), rgba(250, 251, 255, .84)),
+        rgba(255, 255, 255, .74);
+      backdrop-filter: blur(18px) saturate(1.08);
+    }
+
+    /* B · Cartografía modular */
+    .territory-b .mock { grid-template-columns: 236px minmax(0, 1fr); }
+
+    .territory-b .sidebar {
+      background:
+        linear-gradient(180deg, rgba(15, 118, 110, .09), rgba(255, 255, 255, .88) 210px),
+        var(--ice);
+    }
+
+    .territory-b .side-nav {
+      position: relative;
+      padding-left: 14px;
+    }
+
+    .territory-b .section-block {
+      position: relative;
+      padding-left: 10px;
+    }
+
+    .territory-b .section-block::before {
+      content: "";
+      position: absolute;
+      top: 9px;
+      bottom: 6px;
+      left: 1px;
+      width: 1px;
+      background: color-mix(in srgb, var(--processing) 35%, var(--border));
+    }
+
+    .territory-b .section-label::before {
+      content: "";
+      position: absolute;
+      left: -3px;
+      width: 9px;
+      height: 9px;
+      border: 2px solid var(--processing);
+      border-radius: 50%;
+      background: var(--paper);
+    }
+
+    .territory-b .tab.active {
+      color: var(--paper);
+      background: linear-gradient(135deg, var(--processing), #168e84);
+      box-shadow: 0 6px 16px rgba(15, 118, 110, .18);
+    }
+
+    .territory-b .tab.active::before { display: none; }
+    .territory-b .kpi::after { opacity: 1; }
+
+    /* C · Mesa editorial */
+    .territory-c .mock { grid-template-columns: 216px minmax(0, 1fr); }
+
+    .territory-c .sidebar {
+      border-right-color: var(--border-strong);
+      background: var(--paper);
+    }
+
+    .territory-c .context {
+      border-color: var(--border);
+      box-shadow: none;
+    }
+
+    .territory-c .context-icon {
+      color: var(--navy);
+      background: var(--mist);
+    }
+
+    .territory-c .tab.active {
+      color: var(--navy);
+      background: transparent;
+    }
+
+    .territory-c .tab.active::before {
+      inset-block: 4px;
+      background: var(--navy);
+    }
+
+    .territory-c .topbar,
+    .territory-c .command-row,
+    .territory-c .kpis,
+    .territory-c .data-card {
+      box-shadow: none;
+    }
+
+    .territory-c .workspace {
+      gap: 10px;
+      background: var(--ice);
+    }
+
+    .territory-c .kpi::after {
+      inset-inline: 12px;
+      background: var(--navy);
+      opacity: .28;
+    }
+
+    .territory-notes {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .note {
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--ice);
+    }
+
+    .note strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 12px;
+    }
+
+    .note p {
+      margin: 0;
+      color: var(--soft);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .gate {
+      margin-top: 22px;
+      padding: 22px;
+      border: 1px solid var(--processing-border);
+      border-radius: 18px;
+      background:
+        linear-gradient(135deg, rgba(15, 118, 110, .08), transparent 55%),
+        var(--paper);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .gate h2 {
+      margin: 6px 0 8px;
+      color: var(--processing);
+      font-size: 22px;
+    }
+
+    .gate p {
+      max-width: 860px;
+      margin: 0;
+      color: var(--soft);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 900px) {
+      .page { width: min(100% - 16px, 1500px); padding-top: 8px; }
+      .intro, .territory-head { grid-template-columns: 1fr; }
+      .score { justify-self: start; }
+      .mock { grid-template-columns: 56px minmax(0, 1fr) !important; min-height: 620px; }
+      .side-brand strong,
+      .context-copy,
+      .context > span:last-child,
+      .section-label,
+      .tab > span:not(.icon),
+      .tab .count,
+      .utility > span:not(:first-child) { display: none; }
+      .side-top { padding-inline: 8px; }
+      .side-brand { padding: 0; justify-content: center; }
+      .context { grid-template-columns: 1fr; padding: 4px; }
+      .tab { grid-template-columns: 1fr; padding: 0; place-items: center; }
+      .tab.active::before { left: -1px; }
+      .utility { grid-template-columns: 1fr; padding: 0; place-items: center; }
+      .territory-notes { grid-template-columns: 1fr; }
+      .search { min-width: 0; width: 42px; overflow: hidden; }
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .kpi:nth-child(3) { border-left: 0; border-top: 1px solid var(--border); }
+      .kpi:nth-child(4) { border-top: 1px solid var(--border); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="intro">
+      <div>
+        <div class="brand">
+          <img src="../logo/prosecnur-isotipo.svg" alt="">
+          <div>
+            <strong>Prosecnur</strong>
+            <span>Dirección creativa v3 · propuesta</span>
+          </div>
+        </div>
+        <h1>La señal ordenada, ahora habitable.</h1>
+        <p class="lead">
+          Tres territorios para el mismo contrato estructural: sidebar
+          unificado, chrome silencioso, módulos reconocibles y datos en el
+          primer viewport. El isotipo y la marca canónica no cambian.
+        </p>
+      </div>
+      <aside class="decision">
+        <span class="eyebrow">Recomendación</span>
+        <strong>A · Instrumento sereno</strong>
+        <p>
+          Es el balance más sólido entre continuidad de marca, densidad de
+          trabajo, accesibilidad y resiliencia macOS/Windows.
+        </p>
+      </aside>
+    </header>
+
+    <nav class="jump" aria-label="Territorios">
+      <a href="#territorio-a">A · Instrumento sereno</a>
+      <a href="#territorio-b">B · Cartografía modular</a>
+      <a href="#territorio-c">C · Mesa editorial</a>
+      <a href="#gate">Gate de aprobación</a>
+    </nav>
+
+    <article class="territory territory-a" id="territorio-a">
+      <header class="territory-head">
+        <div>
+          <span class="eyebrow">Territorio A · recomendado</span>
+          <h2>Instrumento sereno</h2>
+          <p>
+            Una columna material continua sostiene un canvas sólido. La traza
+            activa une contexto, destino y KPIs sin decorar el contenido.
+          </p>
+        </div>
+        <div class="score recommended"><strong>93</strong><span>/ 100</span></div>
+      </header>
+      <div class="mock">
+        <aside class="sidebar" aria-label="Sidebar de referencia">
+          <div class="side-top">
+            <div class="side-brand">
+              <img src="../logo/prosecnur-isotipo.svg" alt="">
+              <strong>Prosecnur</strong>
+            </div>
+            <div class="context">
+              <span class="context-icon">↗</span>
+              <span class="context-copy"><strong>Procesamiento</strong><span>Auditoría canónica</span></span>
+              <span aria-hidden="true">⌄</span>
+            </div>
+          </div>
+          <div class="side-nav">
+            <section class="section-block">
+              <span class="section-label">Procesamiento</span>
+              <div class="tab"><span class="icon">↥</span><span>Carga</span><span class="count">2</span></div>
+              <div class="tab active"><span class="icon">✓</span><span>Validación</span><span class="count">12</span></div>
+              <div class="tab"><span class="icon">✎</span><span>Codificación</span><span></span></div>
+              <div class="tab"><span class="icon">⌁</span><span>Analítica</span><span></span></div>
+              <div class="tab"><span class="icon">▥</span><span>Gráficos</span><span class="count">4</span></div>
+            </section>
+            <section class="section-block">
+              <span class="section-label">Validación</span>
+              <div class="tab"><span class="icon">◎</span><span>Explorar</span><span></span></div>
+              <div class="tab active"><span class="icon">⌘</span><span>Reglas del formulario</span><span></span></div>
+              <div class="tab"><span class="icon">◇</span><span>Criterios</span><span></span></div>
+              <div class="tab"><span class="icon">✓</span><span>Cierre</span><span></span></div>
+            </section>
+          </div>
+          <div class="side-bottom">
+            <div class="utility"><span>⌕</span><span>Buscar</span></div>
+            <div class="utility"><span>⚙</span><span>Configuración</span></div>
+          </div>
+        </aside>
+        <section class="main">
+          <header class="topbar">
+            <div class="project"><strong>prosecnur_audit_reference</strong><span class="saved">Sin guardar</span></div>
+            <div class="top-actions"><button class="top-action">2 bases</button><button class="top-action primary">Crear regla</button></div>
+          </header>
+          <div class="workspace">
+            <div class="command-row">
+              <div><strong>Reglas del formulario</strong> <span>12 activas · 2 por revisar</span></div>
+              <div class="search">⌕ Variables, etiquetas o fuente</div>
+            </div>
+            <div class="kpis">
+              <div class="kpi"><strong>12</strong><span>Reglas activas</span></div>
+              <div class="kpi"><strong>4</strong><span>Variables objetivo</span></div>
+              <div class="kpi"><strong>2</strong><span>Por revisar</span></div>
+              <div class="kpi"><strong>98%</strong><span>Cobertura</span></div>
+            </div>
+            <section class="data-card">
+              <div class="data-head"><strong>Reglas aplicadas</strong><span>Ordenadas por última edición</span></div>
+              <div class="table">
+                <div class="row head"><span>Regla</span><span>Variable</span><span>Fuente</span><span>Casos</span><span>Estado</span><span>Acción</span></div>
+                <div class="row"><strong>Edad dentro del rango</strong><span>p_edad</span><span>formulario</span><span>72</span><span class="status">Al día</span><span>Revisar</span></div>
+                <div class="row"><strong>Consentimiento requerido</strong><span>consent</span><span>base principal</span><span>72</span><span class="status">Al día</span><span>Revisar</span></div>
+                <div class="row"><strong>Distrito válido</strong><span>distrito</span><span>catálogo</span><span>68</span><span class="status">Al día</span><span>Revisar</span></div>
+                <div class="row"><strong>Universidad informada</strong><span>universidad</span><span>formulario</span><span>70</span><span class="status">Al día</span><span>Revisar</span></div>
+                <div class="row"><strong>Curso-horario trazable</strong><span>course_id</span><span>repeat</span><span>48</span><span class="status">Al día</span><span>Revisar</span></div>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
+      <div class="territory-notes">
+        <div class="note"><strong>Firma</strong><p>Rail activo de 3px, material solo en navegación y hairline de acento en KPI.</p></div>
+        <div class="note"><strong>Fortaleza</strong><p>Máxima continuidad entre módulos sin borrar su acento ni competir con los datos.</p></div>
+        <div class="note"><strong>Riesgo controlado</strong><p>El material pierde protagonismo fuera del sidebar; formularios y datos siguen sólidos.</p></div>
+      </div>
+    </article>
+
+    <article class="territory territory-b" id="territorio-b">
+      <header class="territory-head">
+        <div>
+          <span class="eyebrow">Territorio B</span>
+          <h2>Cartografía modular</h2>
+          <p>
+            El sidebar hace visible la ruta de trabajo con conectores,
+            agrupaciones espaciales y una selección modular más expresiva.
+          </p>
+        </div>
+        <div class="score"><strong>80</strong><span>/ 100</span></div>
+      </header>
+      <div class="mock">
+        <aside class="sidebar" aria-label="Sidebar de referencia">
+          <div class="side-top">
+            <div class="side-brand"><img src="../logo/prosecnur-isotipo.svg" alt=""><strong>Prosecnur</strong></div>
+            <div class="context"><span class="context-icon">↗</span><span class="context-copy"><strong>Procesamiento</strong><span>Auditoría canónica</span></span><span>⌄</span></div>
+          </div>
+          <div class="side-nav">
+            <section class="section-block">
+              <span class="section-label">Procesamiento</span>
+              <div class="tab"><span class="icon">↥</span><span>Carga</span><span class="count">2</span></div>
+              <div class="tab active"><span class="icon">✓</span><span>Validación</span><span class="count">12</span></div>
+              <div class="tab"><span class="icon">✎</span><span>Codificación</span><span></span></div>
+              <div class="tab"><span class="icon">⌁</span><span>Analítica</span><span></span></div>
+              <div class="tab"><span class="icon">▥</span><span>Gráficos</span><span class="count">4</span></div>
+            </section>
+            <section class="section-block">
+              <span class="section-label">Validación</span>
+              <div class="tab"><span class="icon">◎</span><span>Explorar</span><span></span></div>
+              <div class="tab active"><span class="icon">⌘</span><span>Reglas del formulario</span><span></span></div>
+              <div class="tab"><span class="icon">◇</span><span>Criterios</span><span></span></div>
+              <div class="tab"><span class="icon">✓</span><span>Cierre</span><span></span></div>
+            </section>
+          </div>
+          <div class="side-bottom"><div class="utility"><span>⌕</span><span>Buscar</span></div><div class="utility"><span>⚙</span><span>Configuración</span></div></div>
+        </aside>
+        <section class="main">
+          <header class="topbar"><div class="project"><strong>prosecnur_audit_reference</strong><span class="saved">Sin guardar</span></div><div class="top-actions"><button class="top-action">2 bases</button><button class="top-action primary">Crear regla</button></div></header>
+          <div class="workspace">
+            <div class="command-row"><div><strong>Reglas del formulario</strong> <span>Ruta activa · Validación</span></div><div class="search">⌕ Variables, etiquetas o fuente</div></div>
+            <div class="kpis"><div class="kpi"><strong>12</strong><span>Reglas activas</span></div><div class="kpi"><strong>4</strong><span>Variables objetivo</span></div><div class="kpi"><strong>2</strong><span>Por revisar</span></div><div class="kpi"><strong>98%</strong><span>Cobertura</span></div></div>
+            <section class="data-card">
+              <div class="data-head"><strong>Mapa de reglas aplicadas</strong><span>Fuente → criterio → decisión</span></div>
+              <div class="table">
+                <div class="row head"><span>Regla</span><span>Variable</span><span>Fuente</span><span>Casos</span><span>Estado</span><span>Acción</span></div>
+                <div class="row"><strong>Edad dentro del rango</strong><span>p_edad</span><span>formulario</span><span>72</span><span class="status">Al día</span><span>Revisar</span></div>
+                <div class="row"><strong>Consentimiento requerido</strong><span>consent</span><span>base principal</span><span>72</span><span class="status">Al día</span><span>Revisar</span></div>
+                <div class="row"><strong>Distrito válido</strong><span>distrito</span><span>catálogo</span><span>68</span><span class="status">Al día</span><span>Revisar</span></div>
+                <div class="row"><strong>Universidad informada</strong><span>universidad</span><span>formulario</span><span>70</span><span class="status">Al día</span><span>Revisar</span></div>
+                <div class="row"><strong>Curso-horario trazable</strong><span>course_id</span><span>repeat</span><span>48</span><span class="status">Al día</span><span>Revisar</span></div>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
+      <div class="territory-notes">
+        <div class="note"><strong>Firma</strong><p>Conectores de ruta, selección llena y agrupaciones más espaciales.</p></div>
+        <div class="note"><strong>Fortaleza</strong><p>Hace muy clara la procedencia en Muestra, Hojas de ruta y Monitoreo.</p></div>
+        <div class="note"><strong>Riesgo</strong><p>Más color y profundidad aumentan el coste de gobernar ocho módulos.</p></div>
+      </div>
+    </article>
+
+    <article class="territory territory-c" id="territorio-c">
+      <header class="territory-head">
+        <div>
+          <span class="eyebrow">Territorio C</span>
+          <h2>Mesa editorial</h2>
+          <p>
+            Tipografía, ritmo y hairlines gobiernan. El acento casi desaparece
+            del chrome para maximizar la concentración prolongada.
+          </p>
+        </div>
+        <div class="score"><strong>86</strong><span>/ 100</span></div>
+      </header>
+      <div class="mock">
+        <aside class="sidebar" aria-label="Sidebar de referencia">
+          <div class="side-top">
+            <div class="side-brand"><img src="../logo/prosecnur-isotipo.svg" alt=""><strong>Prosecnur</strong></div>
+            <div class="context"><span class="context-icon">↗</span><span class="context-copy"><strong>Procesamiento</strong><span>Auditoría canónica</span></span><span>⌄</span></div>
+          </div>
+          <div class="side-nav">
+            <section class="section-block">
+              <span class="section-label">Procesamiento</span>
+              <div class="tab"><span class="icon">↥</span><span>Carga</span><span class="count">2</span></div>
+              <div class="tab active"><span class="icon">✓</span><span>Validación</span><span class="count">12</span></div>
+              <div class="tab"><span class="icon">✎</span><span>Codificación</span><span></span></div>
+              <div class="tab"><span class="icon">⌁</span><span>Analítica</span><span></span></div>
+              <div class="tab"><span class="icon">▥</span><span>Gráficos</span><span class="count">4</span></div>
+            </section>
+            <section class="section-block">
+              <span class="section-label">Validación</span>
+              <div class="tab"><span class="icon">◎</span><span>Explorar</span><span></span></div>
+              <div class="tab active"><span class="icon">⌘</span><span>Reglas del formulario</span><span></span></div>
+              <div class="tab"><span class="icon">◇</span><span>Criterios</span><span></span></div>
+              <div class="tab"><span class="icon">✓</span><span>Cierre</span><span></span></div>
+            </section>
+          </div>
+          <div class="side-bottom"><div class="utility"><span>⌕</span><span>Buscar</span></div><div class="utility"><span>⚙</span><span>Configuración</span></div></div>
+        </aside>
+        <section class="main">
+          <header class="topbar"><div class="project"><strong>prosecnur_audit_reference</strong><span class="saved">Sin guardar</span></div><div class="top-actions"><button class="top-action">2 bases</button><button class="top-action primary">Crear regla</button></div></header>
+          <div class="workspace">
+            <div class="command-row"><div><strong>Reglas del formulario</strong> <span>12 activas · orden editorial</span></div><div class="search">⌕ Variables, etiquetas o fuente</div></div>
+            <div class="kpis"><div class="kpi"><strong>12</strong><span>Reglas activas</span></div><div class="kpi"><strong>4</strong><span>Variables objetivo</span></div><div class="kpi"><strong>2</strong><span>Por revisar</span></div><div class="kpi"><strong>98%</strong><span>Cobertura</span></div></div>
+            <section class="data-card">
+              <div class="data-head"><strong>Reglas aplicadas</strong><span>Lectura densa y estable</span></div>
+              <div class="table">
+                <div class="row head"><span>Regla</span><span>Variable</span><span>Fuente</span><span>Casos</span><span>Estado</span><span>Acción</span></div>
+                <div class="row"><strong>Edad dentro del rango</strong><span>p_edad</span><span>formulario</span><span>72</span><span class="status">Al día</span><span>Revisar</span></div>
+                <div class="row"><strong>Consentimiento requerido</strong><span>consent</span><span>base principal</span><span>72</span><span class="status">Al día</span><span>Revisar</span></div>
+                <div class="row"><strong>Distrito válido</strong><span>distrito</span><span>catálogo</span><span>68</span><span class="status">Al día</span><span>Revisar</span></div>
+                <div class="row"><strong>Universidad informada</strong><span>universidad</span><span>formulario</span><span>70</span><span class="status">Al día</span><span>Revisar</span></div>
+                <div class="row"><strong>Curso-horario trazable</strong><span>course_id</span><span>repeat</span><span>48</span><span class="status">Al día</span><span>Revisar</span></div>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
+      <div class="territory-notes">
+        <div class="note"><strong>Firma</strong><p>Reglas, tipografía y contraste; el acento queda en el rail mínimo y acciones clave.</p></div>
+        <div class="note"><strong>Fortaleza</strong><p>Excelente para lectura prolongada, Validación, Bitácora y documentos densos.</p></div>
+        <div class="note"><strong>Riesgo</strong><p>Reduce la identidad modular y puede perder energía en estados vacíos o de arranque.</p></div>
+      </div>
+    </article>
+
+    <section class="gate" id="gate">
+      <span class="mini-label">Gate humano pendiente</span>
+      <h2>Seleccionar, ajustar o combinar deliberadamente</h2>
+      <p>
+        Recomendación: aprobar A · Instrumento sereno con 224px expandido,
+        56px colapsado, header de 44px y drawer de 288px. El tema oscuro queda
+        diferido hasta reducir la deriva de hex. Ningún shell v3 se escribe
+        antes de esta aprobación.
+      </p>
+    </section>
+  </main>
+</body>
+</html>
