@@ -552,6 +552,123 @@ button.pulso-secondary:hover:not(:disabled) {
   border-color: var(--pulso-primary-border);
 }
 
+/* PulsoButton — primitivo único para superficies nuevas o migradas.
+   El acento conserva el color distintivo del módulo y lo oscurece lo
+   necesario para sostener texto blanco incluso en el cian de Fichas QR. */
+.pulso-button {
+  --pulso-button-height: var(--pulso-control-height-md);
+  --pulso-button-accent: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 82%, #001b33 18%);
+  --pulso-button-accent-strong: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 70%, #001b33 30%);
+  --pulso-button-accent-soft: var(--module-accent-soft, var(--pulso-primary-soft));
+  --pulso-button-accent-border: var(--module-accent-border, var(--pulso-primary-border));
+  min-height: var(--pulso-button-height);
+  padding-block: 0;
+  border-radius: 8px;
+}
+
+.pulso-button--sm {
+  --pulso-button-height: var(--pulso-control-height-sm);
+  padding-inline: 9px;
+  font-size: 12px;
+}
+
+.pulso-button--md {
+  --pulso-button-height: var(--pulso-control-height-md);
+  padding-inline: 12px;
+}
+
+.pulso-button--lg {
+  --pulso-button-height: var(--pulso-control-height-lg);
+  padding-inline: 16px;
+  font-size: 13px;
+}
+
+.pulso-button--primary {
+  border-color: var(--pulso-button-accent);
+  background: var(--pulso-button-accent);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 3px 9px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 18%, transparent);
+}
+
+.pulso-button--primary:hover:not(:disabled) {
+  border-color: var(--pulso-button-accent-strong);
+  background: var(--pulso-button-accent-strong);
+  color: #fff;
+}
+
+.pulso-button--secondary {
+  border-color: color-mix(in srgb, var(--pulso-button-accent) 32%, var(--pulso-border));
+  background: var(--pulso-surface);
+  color: var(--pulso-button-accent);
+}
+
+.pulso-button--secondary:hover:not(:disabled) {
+  border-color: var(--pulso-button-accent-border);
+  background: color-mix(in srgb, var(--pulso-button-accent-soft) 72%, var(--pulso-surface));
+  color: var(--pulso-button-accent-strong);
+}
+
+.pulso-button--ghost,
+.pulso-button--icon {
+  border-color: transparent;
+  background: transparent;
+  color: var(--pulso-button-accent);
+  box-shadow: none;
+}
+
+.pulso-button--ghost:hover:not(:disabled),
+.pulso-button--icon:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--pulso-button-accent-border) 62%, transparent);
+  background: color-mix(in srgb, var(--pulso-button-accent-soft) 70%, var(--pulso-surface));
+  color: var(--pulso-button-accent-strong);
+}
+
+.pulso-button--danger {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  box-shadow: none;
+}
+
+.pulso-button--danger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--pulso-danger-fg) 44%, var(--pulso-danger-border));
+  background: color-mix(in srgb, var(--pulso-danger-bg) 86%, var(--pulso-danger-border));
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-button--icon {
+  width: var(--pulso-button-height);
+  min-width: var(--pulso-button-height);
+  padding: 0;
+}
+
+.pulso-button:focus-visible {
+  border-color: var(--pulso-button-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 24%, transparent);
+}
+
+.pulso-button--danger:focus-visible {
+  border-color: var(--pulso-danger-fg);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-danger-fg) 24%, transparent);
+}
+
+.pulso-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-button {
+    transition: none;
+  }
+
+  .pulso-button:active:not(:disabled) {
+    transform: none;
+  }
+}
+/* /PulsoButton */
+
 .pulso-empty-cta:hover {
   background: #013371;
   border-color: #013371;
