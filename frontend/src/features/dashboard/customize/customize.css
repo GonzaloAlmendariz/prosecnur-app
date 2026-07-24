@@ -694,37 +694,46 @@
   font-style: italic;
 }
 
-/* ======= Command bar editor — fuera del Dashboard final, arriba centrada ======= */
+/* ======= Command bar del editor — capa interna, nunca en modo público =======
+ * Geometría y material vienen del patrón maestro .pulso-command-bar
+ * (theme.css). Antes era una cápsula centrada con lenguaje propio —gradiente
+ * radial, borde de acento del editor, sombra de 38px y blur de 16— y la línea
+ * de última publicación colgaba debajo. Ahora usa las tres zonas del canon:
+ * contexto (publicación) | edición | salida.
+ *
+ * La fila de secciones de más abajo (.dash-tab-nav-wrap.is-public) NO hereda
+ * el maestro a propósito: se renderiza también en modo público, así que su
+ * aspecto lo ve el cliente del estudio y cambiarlo es una decisión de marca,
+ * no de chrome. */
 .dashboard-scope .dash-admin-toolbar {
-  align-items: center;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.86), transparent 62%),
-    var(--dash-editor-material);
-  border: 1px solid color-mix(in srgb, var(--dash-borde) 66%, var(--dash-editor-accent) 34%);
-  border-radius: 999px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.88),
-    0 16px 38px rgba(15, 23, 42, 0.09),
-    0 4px 12px color-mix(in srgb, var(--dash-editor-accent) 11%, transparent);
-  display: inline-flex;
-  gap: 4px;
-  margin: 0 auto 12px;
-  padding: 4px;
-  backdrop-filter: saturate(1.12) blur(16px);
-  -webkit-backdrop-filter: saturate(1.12) blur(16px);
-}
-.dashboard-scope .dash-admin-toolbar.dash-editor-commandbar {
-  margin: 0 auto 12px;
-  padding: 4px;
+  --command-bar-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  --command-bar-accent: var(--dash-editor-accent);
+  --command-bar-accent-mix: 34%;
+  width: 100%;
+  margin: 0 0 12px;
 }
 .dashboard-scope .dash-admin-toolbar-wrap {
-  align-items: center;
+  align-items: stretch;
   display: flex;
   flex-direction: column;
   gap: 4px;
   justify-content: center;
   margin-bottom: 14px;
   margin-top: 4px;
+}
+
+/* Zona de contexto: la publicación más reciente. Vacía cuando el dashboard
+   todavía no se publicó, que es el estado inicial. */
+.dashboard-scope .dash-admin-toolbar-context {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  padding-left: 8px;
+}
+
+/* Zona de salida, alineada al extremo como en el resto de los módulos. */
+.dashboard-scope .dash-admin-toolbar-group.is-output {
+  justify-self: end;
 }
 .dashboard-scope .dash-admin-toolbar-wrap.dash-editor-commandbar-wrap {
   align-items: center;
@@ -779,11 +788,14 @@
   display: inline-flex;
   gap: 4px;
 }
-/* Línea bajo el toolbar con info del último deploy: "Última publicación
- * <repo_id> — hace X". Aparece solo si existe `last_deploy` en config. */
+/* Info del último deploy: "Última publicación <repo_id> — hace X". Vive en la
+ * zona de contexto de la banda; antes colgaba como línea suelta bajo ella. */
 .dashboard-scope .dash-admin-toolbar-deploy-info {
+  overflow: hidden;
   color: var(--dash-texto-suave);
   font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .dashboard-scope .dash-admin-toolbar-deploy-info a {
   color: var(--dash-editor-accent);
@@ -838,14 +850,8 @@
     var(--dash-shadow-sm);
 }
 
-/* ── Separador entre los grupos de la admin toolbar (edición vs preview). */
-.dashboard-scope .dash-admin-toolbar-sep {
-  background: color-mix(in srgb, var(--dash-borde) 70%, var(--dash-editor-accent) 30%);
-  display: inline-block;
-  height: 16px;
-  margin: 0 2px;
-  width: 1px;
-}
+/* El separador entre edición y salida se retiró junto con su marcado: las
+   zonas de la banda maestra ya separan ambos grupos. */
 
 /* ── Chip flotante para salir de "Vista previa".
  * Vive arriba a la derecha (no central como la admin toolbar) para
