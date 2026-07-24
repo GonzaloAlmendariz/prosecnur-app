@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { DashboardKpi } from "../../../../api/client";
 import { PlotlyChart } from "../../shared/PlotlyChart";
 import { useDashboardStore } from "../../store";
+import { dashboardSeriesColor } from "../../theme/pulsoDashboardPalette";
 
 // Card de KPI estilo "medio donut" del legacy. Espejo de
 // .construir_kpi_halfdonut_safe / output$kpi_panel en
@@ -9,17 +10,6 @@ import { useDashboardStore } from "../../store";
 //
 // Render: título wrapped + donut Plotly (hole=0.68, rotation=180) +
 // leyenda HTML con swatches debajo.
-
-const PALETTE = [
-  "#1f77b4",
-  "#ff7f0e",
-  "#2ca02c",
-  "#d62728",
-  "#9467bd",
-  "#8c564b",
-  "#e377c2",
-  "#7f7f7f",
-];
 
 export function KpiCard({ kpi }: { kpi: DashboardKpi }) {
   const palette = useDashboardStore((s) =>
@@ -38,7 +28,7 @@ export function KpiCard({ kpi }: { kpi: DashboardKpi }) {
   }
 
   const colors = useMemo(
-    () => kpi.dist.map((d, i) => palette?.[d.label] || d.color || PALETTE[i % PALETTE.length]),
+    () => kpi.dist.map((d, i) => dashboardSeriesColor(i, d.label, palette, d.color)),
     [kpi.dist, palette],
   );
 

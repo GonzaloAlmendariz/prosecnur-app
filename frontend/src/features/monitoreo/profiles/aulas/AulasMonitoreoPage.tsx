@@ -79,7 +79,7 @@ function dashboardFromState(state: MonitoreoState | null) {
 function rowValue(row: Record<string, unknown>, key: string) {
   const value = row[key];
   if (value == null) return "";
-  if (typeof value === "boolean") return value ? "Si" : "No";
+  if (typeof value === "boolean") return value ? "Sí" : "No";
   if (key === "package_status") return packageStatusText(value);
   if (key === "link") return String(value).trim() ? "Guardado" : "";
   return String(value);

@@ -10,6 +10,7 @@ import {
 } from "../../shared/FullscreenWrapper";
 import { FiltrosMultiRow } from "../ResumenTab/FiltrosMultiRow";
 import { PlotlyChart } from "../../shared/PlotlyChart";
+import { dashboardSeriesColor } from "../../theme/pulsoDashboardPalette";
 import "./relacion.css";
 
 // Tab Relaciones — cruce var_principal × var_segmento, opcionalmente
@@ -402,7 +403,7 @@ function CrucesView({
         // - hover muestra n + % completo
         // - color de texto contrastante con el color del segmento
         const horizontalTraces = cruce.plot_traces.map((t, fi) => {
-          const segColor = t.marker?.color || "#1f77b4";
+          const segColor = dashboardSeriesColor(fi, t.name, undefined, t.marker?.color);
           const ns = (cruce.celdas[fi] ?? []).map((c) => c?.n ?? 0);
           const pcts = t.y as number[];
           return {
@@ -418,6 +419,7 @@ function CrucesView({
             textposition: "inside" as const,
             insidetextanchor: "middle" as const,
             textfont: { color: contrastTextColor(segColor), size: 11 },
+            marker: { ...t.marker, color: segColor },
             cliponaxis: false,
             constraintext: "none" as const,
             customdata: ns,

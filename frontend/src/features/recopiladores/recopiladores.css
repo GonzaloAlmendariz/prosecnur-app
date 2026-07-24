@@ -641,6 +641,10 @@
   gap: 10px;
 }
 
+.rec-content.is-package-output:has(> .rec-error) {
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+}
+
 .rec-content.is-package-save {
   grid-template-rows: auto auto minmax(0, 1fr);
   gap: 10px;

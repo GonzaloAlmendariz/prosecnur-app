@@ -1,8 +1,16 @@
-import { forwardRef, type CSSProperties } from "react";
+import { forwardRef, useRef, useState, type CSSProperties } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import * as Popover from "@radix-ui/react-popover";
 import { ArrowRight, MoreHorizontal, TriangleAlert } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { homeModuleVars, type ProsecnurModuleMeta } from "../../lib/modules";
 import type { ModuleCardView, ModuleCardViz } from "./moduleCardModel";
+import {
+  MISSION_CONTROL_MENU_ITEMS,
+  transitionMissionControlMenu,
+  type MissionControlMenuEvent,
+  type MissionControlMenuState,
+} from "./missionControlMenu";
 
 export type {
   ModuleCardFact,
@@ -163,6 +171,22 @@ export const ModuleStatusCard = forwardRef<
 >(function ModuleStatusCard({ module, view, index, onRequestRemove }, ref) {
   const navigate = useNavigate();
   const Icon = module.icon;
+  const kebabRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const [menuState, setMenuState] = useState<MissionControlMenuState>({ kind: "closed" });
+  const [showProgress, setShowProgress] = useState(false);
+
+  function applyMenuEvent(event: MissionControlMenuEvent) {
+    const transition = transitionMissionControlMenu(menuState, event);
+    setMenuState(transition.state);
+    if (transition.command?.type === "open") {
+      navigate(view.action.route);
+    } else if (transition.command?.type === "view-progress") {
+      setShowProgress(true);
+    } else if (transition.command?.type === "remove") {
+      onRequestRemove(transition.command.slug);
+    }
+  }
 
   return (
     <div
@@ -235,15 +259,123 @@ export const ModuleStatusCard = forwardRef<
         </span>
       </button>
 
-      <button
-        type="button"
-        className="home-mc-kebab"
-        aria-label={`Opciones de ${module.shortLabel}`}
-        title="Opciones"
-        onClick={() => onRequestRemove(module.slug)}
+      <Popover.Root
+        open={menuState.kind === "menu"}
+        onOpenChange={(open) => {
+          if (open) {
+            setShowProgress(false);
+            setMenuState(
+              transitionMissionControlMenu(menuState, {
+                type: "open",
+                slug: module.slug,
+              }).state,
+            );
+          } else if (menuState.kind === "menu") {
+            setMenuState(transitionMissionControlMenu(menuState, { type: "escape" }).state);
+          }
+        }}
       >
-        <MoreHorizontal size={16} aria-hidden="true" />
-      </button>
+        <Popover.Trigger asChild>
+          <button
+            ref={kebabRef}
+            type="button"
+            className="home-mc-kebab"
+            aria-label={`Opciones de ${module.shortLabel}`}
+            title="Opciones"
+          >
+            <MoreHorizontal size={16} aria-hidden="true" />
+          </button>
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content
+            className="home-mc-menu-popover"
+            align="end"
+            sideOffset={6}
+            collisionPadding={12}
+          >
+            <div className="home-mc-menu-actions" role="menu" aria-label={`Opciones de ${module.shortLabel}`}>
+              {MISSION_CONTROL_MENU_ITEMS.map((item) => (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={item.section === "destructive" ? "is-destructive" : undefined}
+                  aria-expanded={item.action === "view-progress" ? showProgress : undefined}
+                  onClick={() => applyMenuEvent({ type: "select", action: item.action })}
+                  key={item.action}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            {showProgress && (
+              <div className="home-mc-menu-progress" aria-live="polite">
+                <span>Avance</span>
+                <strong>{view.sub}</strong>
+                <small>{view.statusLabel}</small>
+                {view.facts.length > 0 && (
+                  <dl>
+                    {view.facts.slice(0, 4).map((fact) => (
+                      <div key={fact.label}>
+                        <dt>{fact.label}</dt>
+                        <dd>{fact.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </div>
+            )}
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
+
+      <Dialog.Root
+        open={menuState.kind === "confirm-remove"}
+        onOpenChange={(open) => {
+          if (!open && menuState.kind === "confirm-remove") {
+            setMenuState(transitionMissionControlMenu(menuState, { type: "escape" }).state);
+          }
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className="home-confirm-backdrop" />
+          <Dialog.Content
+            className="home-confirm"
+            onOpenAutoFocus={(event) => {
+              event.preventDefault();
+              cancelRef.current?.focus();
+            }}
+            onCloseAutoFocus={(event) => {
+              if (!kebabRef.current?.isConnected) return;
+              event.preventDefault();
+              kebabRef.current.focus();
+            }}
+          >
+            <Dialog.Title asChild>
+              <strong>¿Quitar {module.shortLabel} del proyecto?</strong>
+            </Dialog.Title>
+            <Dialog.Description asChild>
+              <p>
+                El módulo dejará de aparecer en este proyecto. Puedes volver a agregarlo cuando
+                quieras; su información no se borra.
+              </p>
+            </Dialog.Description>
+            <div className="home-confirm-actions">
+              <Dialog.Close asChild>
+                <button ref={cancelRef} type="button" className="plan-button">
+                  Cancelar
+                </button>
+              </Dialog.Close>
+              <button
+                type="button"
+                className="home-confirm-remove"
+                onClick={() => applyMenuEvent({ type: "confirm-remove" })}
+              >
+                Quitar del proyecto
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   );
 });

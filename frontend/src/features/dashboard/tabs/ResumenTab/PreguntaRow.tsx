@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { DashboardResumenRow } from "../../../../api/client";
 import { PlotlyChart } from "../../shared/PlotlyChart";
 import { useDashboardStore } from "../../store";
+import { dashboardSeriesColor } from "../../theme/pulsoDashboardPalette";
 
 // Renderiza una pregunta del cuestionario como una "fila" del Resumen.
 // Espejo del layout `.summary-row` del legacy (interactivo_resumen.R:1349):
@@ -40,14 +41,14 @@ export function PreguntaRow({ row }: { row: DashboardResumenRow }) {
     <div className="dash-pregunta-row">
       <div className="dash-pregunta-label">{row.label}</div>
       <div className="dash-sm-options">
-        {orderedOptions.map((opt) => (
+        {orderedOptions.map((opt, index) => (
           <div key={opt.col_dummy}>
             <div className="dash-sm-option-label">{opt.label}</div>
             <SmBar
               pctYes={opt.pct_yes}
               nYes={opt.n_yes}
               nTotal={opt.n_total}
-              color={palette?.[opt.label] || opt.color}
+              color={dashboardSeriesColor(index, opt.label, palette, opt.color)}
               decimals={decimals}
             />
           </div>
@@ -94,7 +95,7 @@ function SoBar({
       let acc = 0;
       const annotations: unknown[] = [];
       const traces = dist.map((d, i) => {
-        const segColor = palette?.[d.label] || d.color || legendColor(i);
+        const segColor = dashboardSeriesColor(i, d.label, palette, d.color);
         const showLabel = d.pct >= MIN_VISIBLE_PCT_LABEL;
         const xMid = Math.min(0.995, Math.max(0.005, acc + d.pct / 2));
         acc += d.pct;
@@ -179,30 +180,13 @@ function SoLegend({
         <span key={d.code} className="dash-so-legend-item">
           <span
             className="dash-so-legend-swatch"
-            style={{ background: palette?.[d.label] || d.color || legendColor(i) }}
+            style={{ background: dashboardSeriesColor(i, d.label, palette, d.color) }}
           />
           {d.label}
         </span>
       ))}
     </div>
   );
-}
-
-// Plotly asigna colores por trace en orden. Replicamos el orden default
-// (azules) para la leyenda. Cuando se conecte la paleta dinámica
-// (Fase 3), esto leerá del tema.
-function legendColor(i: number): string {
-  const palette = [
-    "#1f77b4",
-    "#ff7f0e",
-    "#2ca02c",
-    "#d62728",
-    "#9467bd",
-    "#8c564b",
-    "#e377c2",
-    "#7f7f7f",
-  ];
-  return palette[i % palette.length];
 }
 
 function SmBar({

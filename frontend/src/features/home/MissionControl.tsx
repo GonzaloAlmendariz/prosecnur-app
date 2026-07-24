@@ -1,5 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useLayoutEffect, useRef } from "react";
 import { Plus } from "lucide-react";
 import { PROSECNUR_PRIMARY_ACTIVE_MODULES } from "../../lib/modules";
 import type { ProjectOverview } from "../../api/client";
@@ -21,16 +20,12 @@ export function MissionControl({
   onAddModule: () => void;
   onRemoveModule: (slug: string) => void;
 }) {
-  const [confirmSlug, setConfirmSlug] = useState<string | null>(null);
-
   const cards = PROSECNUR_PRIMARY_ACTIVE_MODULES.filter((module) =>
     addedSlugs.includes(module.slug),
   ).map((module) => ({
     module,
     view: buildModuleCardView(module, overview, proc),
   }));
-
-  const confirmModule = cards.find((card) => card.module.slug === confirmSlug)?.module;
 
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const prevRects = useRef<Map<string, DOMRect>>(new Map());
@@ -117,43 +112,10 @@ export function MissionControl({
             module={module}
             view={view}
             index={index}
-            onRequestRemove={setConfirmSlug}
+            onRequestRemove={onRemoveModule}
           />
         ))}
       </div>
-
-      {confirmModule && createPortal(
-        <div
-          className="home-confirm-backdrop"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setConfirmSlug(null)}
-        >
-          <div className="home-confirm" onClick={(event) => event.stopPropagation()}>
-            <strong>¿Quitar {confirmModule.shortLabel} del proyecto?</strong>
-            <p>
-              El módulo dejará de aparecer en este proyecto. Puedes volver a agregarlo cuando
-              quieras; su información no se borra.
-            </p>
-            <div className="home-confirm-actions">
-              <button type="button" className="plan-button" onClick={() => setConfirmSlug(null)}>
-                Cancelar
-              </button>
-              <button
-                type="button"
-                className="home-confirm-remove"
-                onClick={() => {
-                  onRemoveModule(confirmModule.slug);
-                  setConfirmSlug(null);
-                }}
-              >
-                Quitar del proyecto
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body,
-      )}
     </section>
   );
 }

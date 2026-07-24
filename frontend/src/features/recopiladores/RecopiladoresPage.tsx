@@ -2319,7 +2319,7 @@ export default function RecopiladoresPage() {
                   <section className="rec-package-panel rec-package-blocks-panel">
                     <div>
                       <span>Bloques de impresión</span>
-                      <strong>{packageGroups.length ? `${fmt(packageGroups.length)} grupos para repartir` : "Sin bloques todavía"}</strong>
+                      <strong>{packageGroups.length ? `${fmt(packageGroups.length)} ${packageGroups.length === 1 ? "grupo" : "grupos"} para repartir` : "Sin bloques todavía"}</strong>
                     </div>
                     <div className="rec-package-group-list">
                       {packageGroups.slice(0, 10).map((group) => (

@@ -933,7 +933,7 @@ function DenseObjectTable({ rows, maxCols = 7 }: { rows: object[]; maxCols?: num
 
 function formatCell(value: unknown) {
   if (value === null || value === undefined) return "";
-  if (typeof value === "boolean") return value ? "Si" : "No";
+  if (typeof value === "boolean") return value ? "Sí" : "No";
   if (typeof value === "number") return Number.isInteger(value) ? value : value.toFixed(3);
   return String(value);
 }
