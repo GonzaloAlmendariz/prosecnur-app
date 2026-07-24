@@ -261,13 +261,17 @@ async function runViewport(opts, setup, viewport) {
 
   await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
   await page.waitForLoadState("networkidle", { timeout: opts.timeoutMs }).catch(() => {});
-  if (opts.waitSelector) {
-    await page.locator(opts.waitSelector).first().waitFor({ state: "attached", timeout: opts.timeoutMs }).catch(() => {});
-  }
   for (const tab of opts.clickTabs) {
     await clickNamedControl(page, tab, opts.timeoutMs);
     await page.waitForLoadState("networkidle", { timeout: opts.timeoutMs }).catch(() => {});
     await page.waitForTimeout(350);
+  }
+  let waitSelectorMatched = true;
+  if (opts.waitSelector) {
+    waitSelectorMatched = await page.locator(opts.waitSelector).first()
+      .waitFor({ state: "attached", timeout: opts.timeoutMs })
+      .then(() => true)
+      .catch(() => false);
   }
   await page.screenshot({ path: screenshotPath });
   await page.screenshot({ path: fullScreenshotPath, fullPage: true });
@@ -346,6 +350,7 @@ async function runViewport(opts, setup, viewport) {
   await browser.close();
   return {
     viewport,
+    waitSelectorMatched,
     screenshot: screenshotPath,
     fullScreenshot: fullScreenshotPath,
     ...dom,
@@ -379,18 +384,22 @@ async function main() {
   };
   const failedChecks = viewports.flatMap((item) => item.checks.filter((check) => !check.ok));
   const visualIssues = viewports.flatMap((item) => item.issues);
-  report.ok = failedChecks.length === 0 && visualIssues.length === 0;
+  const waitSelectorMisses = viewports.filter((item) => !item.waitSelectorMatched).length;
+  report.ok = failedChecks.length === 0 && visualIssues.length === 0 && waitSelectorMisses === 0;
   report.summary = {
     screenshots: viewports.flatMap((item) => [item.screenshot, item.fullScreenshot]),
     failedChecks: failedChecks.length,
     visualIssues: visualIssues.length,
+    waitSelectorMisses,
   };
   const reportPath = path.join(opts.out, "report.json");
   await fs.writeFile(reportPath, JSON.stringify(report, null, 2));
   console.log(`[visual-qa] report: ${reportPath}`);
   for (const shot of report.summary.screenshots) console.log(`[visual-qa] screenshot: ${shot}`);
   if (!report.ok) {
-    console.log(`[visual-qa] failedChecks=${failedChecks.length} visualIssues=${visualIssues.length}`);
+    console.log(
+      `[visual-qa] failedChecks=${failedChecks.length} visualIssues=${visualIssues.length} waitSelectorMisses=${waitSelectorMisses}`,
+    );
     if (opts.failOnIssues) process.exitCode = 1;
   }
 }

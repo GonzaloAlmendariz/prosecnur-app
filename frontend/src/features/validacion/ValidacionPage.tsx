@@ -76,6 +76,7 @@ export default function ValidacionPage() {
   const setActiveTab = useValidacionStore((s) => s.setActiveTab);
   const baseNombre = useValidacionStore((s) => s.baseNombre);
   const setBaseNombre = useValidacionStore((s) => s.setBaseNombre);
+  const version = useValidacionStore((s) => s.version);
   const resetForSession = useValidacionStore((s) => s.resetForSession);
 
   const [estudio, setEstudio] = useState<EstudioPayload | null>(null);
@@ -97,6 +98,7 @@ export default function ValidacionPage() {
   // Cargar el estudio para poblar el BaseSelector (si multi-base).
   useEffect(() => {
     let cancel = false;
+    setEstudio(null);
     setLoadError("");
     apiEstudioGet()
       .then((p) => {
@@ -133,8 +135,10 @@ export default function ValidacionPage() {
   const showBaseSelector = prereqsOk && !!estudio && estudio.n_bases > 1 && !independentSiblings;
   const selectedBase = baseNombre && estudio?.bases ? estudio.bases[baseNombre] : null;
   const displayBaseName = selectedBase?.source_alias || selectedBase?.source_title || (baseNombre && baseNombre !== "default" ? baseNombre : "Base única");
+  const activePanelScope = { activeTab, baseNombre, version } as const;
 
   async function handleBaseChange(next: string) {
+    setEstudio(null);
     setBaseNombre(next);
     try {
       const r = await apiEstudioActiveBaseSet(next);
@@ -211,10 +215,12 @@ export default function ValidacionPage() {
         )}
       >
         <main
+          key={`${activePanelScope.activeTab}:${activePanelScope.baseNombre ?? ""}:${activePanelScope.version}`}
           id="validacion-panel"
           className={`pulso-validacion-content pulso-content-area${activeTab === "reglas_custom" ? " is-contained-scroll" : ""}`}
           role="tabpanel"
           aria-labelledby={`validacion-tab-${activeTab}`}
+          data-audit-ready={!prereqsOk && estudio !== null && !loadError ? `validacion-${activeTab}` : undefined}
         >
           {!prereqsOk ? (
             <EmptyState

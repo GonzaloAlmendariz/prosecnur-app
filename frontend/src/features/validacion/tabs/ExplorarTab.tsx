@@ -158,6 +158,7 @@ export default function ExplorarTab({
   useEffect(() => {
     let cancel = false;
     setLoading(true);
+    setError("");
     apiV2ExplorarVariables(baseNombre, fuente)
       .then((i) => {
         if (!cancel) setInv(i);
@@ -324,7 +325,7 @@ export default function ExplorarTab({
       />
     );
   }
-  if (!inv || inv.n_variables === 0) {
+  if (!inv) {
     return (
       <EmptyState
         icon={<Compass size={20} />}
@@ -333,9 +334,20 @@ export default function ExplorarTab({
       />
     );
   }
+  if (inv.n_variables === 0) {
+    return (
+      <div data-audit-ready="validacion-explorar" style={{ display: "contents" }}>
+        <EmptyState
+          icon={<Compass size={20} />}
+          title="Sin preguntas o campos para explorar"
+          hint="La base no tiene columnas reconocibles. Revisa la carga en la Fase 1."
+        />
+      </div>
+    );
+  }
 
-  return (
-    <div className="pulso-validacion-explorar-layout">
+  const panelContent = (
+    <>
       {/* --- Sidebar: picker --------------------------------------------- */}
       <aside className="pulso-validacion-explorar-sidebar">
         <div className="pulso-validacion-explorar-picker-head">
@@ -462,6 +474,28 @@ export default function ExplorarTab({
         )}
         {error && <ErrorBlock label="Error" detail={error} />}
       </main>
+    </>
+  );
+
+  const scopedInventoryEmpty = (scopedInv?.n_variables ?? inv.n_variables) === 0;
+  const primaryResultPending =
+    !scopedInventoryEmpty &&
+    (
+      !selected ||
+      (!selectedRepeatIsEmpty && (!uni || uni.var !== selected.name)) ||
+      (!!cruzar && !biv)
+    );
+
+  if (busy || error || primaryResultPending) {
+    return <div className="pulso-validacion-explorar-layout">{panelContent}</div>;
+  }
+
+  return (
+    <div
+      className="pulso-validacion-explorar-layout"
+      data-audit-ready="validacion-explorar"
+    >
+      {panelContent}
     </div>
   );
 }

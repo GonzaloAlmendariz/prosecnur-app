@@ -87,6 +87,7 @@ export default function BitacoraPage() {
 
   return (
     <PageFrame
+      auditReady={!loading && !error ? `bitacora-${tab}` : false}
       title="Bitácora"
       headerMode="sr-only"
       layout="workbench"

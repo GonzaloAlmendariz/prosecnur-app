@@ -579,7 +579,10 @@ export default function LimpiezaTab() {
   const auditReady = !!data.progreso.auditoria_corrida;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div
+      data-audit-ready="validacion-limpieza"
+      style={{ display: "flex", flexDirection: "column", gap: 16 }}
+    >
       <StatusBar
         auditReady={auditReady}
         canFinalize={canFinalize}

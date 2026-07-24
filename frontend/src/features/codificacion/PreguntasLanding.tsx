@@ -433,7 +433,10 @@ export function PreguntasLanding() {
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-    <div className="pulso-codificacion-organizar">
+    <div
+      className="pulso-codificacion-organizar"
+      data-audit-ready="codificacion-organizar"
+    >
       {/* Barra de navegación operativa: filtros agrupados + search. El
           flujo de alto nivel vive en CodificacionPage; acá solo los
           controles del paso "Organizar". */}
