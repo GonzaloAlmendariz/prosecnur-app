@@ -22,30 +22,18 @@
   gap: 0;
 }
 
+/* Geometría, material y sombra vienen del patrón maestro .pulso-command-bar
+   (theme.css). Aquí solo viven las zonas de Monitoreo y su acento. */
+/* Las columnas las fijan los estados de abajo (con y sin rail de secciones),
+   no la base: aquí solo el acento y los alias de control. */
 .mon-commandbar {
-  --mon-topbar-radius: 18px;
-  --mon-topbar-control-radius: 9999px;
-  --mon-topbar-control-height: 32px;
+  --command-bar-accent: var(--mon-shell-border);
+  --mon-topbar-radius: var(--command-bar-radius);
+  --mon-topbar-control-radius: var(--command-bar-control-radius);
+  --mon-topbar-control-height: var(--command-bar-control-height);
   width: min(100%, calc(100vw - 24px));
   max-width: 1500px;
-  min-height: 46px;
-  display: grid;
-  grid-template-columns: minmax(188px, max-content) minmax(560px, 1fr) minmax(278px, max-content);
-  align-items: center;
   justify-content: stretch;
-  gap: 6px;
-  border: 1px solid color-mix(in srgb, var(--mon-shell-border) 34%, var(--pulso-material-border));
-  border-radius: var(--mon-topbar-radius);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 253, 0.84)),
-    var(--pulso-material-bg);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    inset 0 -1px 0 rgba(15, 23, 42, 0.025),
-    0 10px 28px rgba(15, 23, 42, 0.055);
-  padding: 4px;
-  backdrop-filter: blur(18px) saturate(1.08);
-  -webkit-backdrop-filter: blur(18px) saturate(1.08);
 }
 
 .mon-commandbar:not(.has-section-rail) {

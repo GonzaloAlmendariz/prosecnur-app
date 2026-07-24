@@ -232,7 +232,7 @@ export function MonitoreoModuleChrome({
   return (
     <div className="mon-module-chrome" data-audit-chrome="monitoring">
       <div
-        className={`mon-commandbar${sectionRail ? " has-section-rail" : ""}`}
+        className={`pulso-command-bar mon-commandbar${sectionRail ? " has-section-rail" : ""}`}
         aria-label="Contexto operativo de monitoreo"
         data-route-family={route?.family ?? "none"}
         data-view-count={views.length}

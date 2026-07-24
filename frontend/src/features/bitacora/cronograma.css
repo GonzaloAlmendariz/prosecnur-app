@@ -26,32 +26,20 @@
   box-shadow: var(--pulso-shadow-low);
 }
 
+/* Geometría, material y sombra vienen del patrón maestro .pulso-command-bar
+   (theme.css). Aquí solo viven las zonas del cronograma y su acento. */
 .plan-commandbar {
-  --plan-topbar-radius: 18px;
-  --plan-topbar-control-radius: 9999px;
-  --plan-topbar-control-height: 32px;
+  --command-bar-columns: minmax(206px, max-content) minmax(360px, 1fr) max-content;
+  --command-bar-accent: var(--plan-accent-border);
+  --command-bar-accent-mix: 36%;
+  --plan-topbar-radius: var(--command-bar-radius);
+  --plan-topbar-control-radius: var(--command-bar-control-radius);
+  --plan-topbar-control-height: var(--command-bar-control-height);
   flex: 0 0 auto;
   width: min(100%, calc(100vw - 24px));
   max-width: 1500px;
-  min-height: 46px;
-  display: grid;
-  grid-template-columns: minmax(206px, max-content) minmax(360px, 1fr) max-content;
-  align-items: center;
   justify-content: stretch;
-  gap: 6px;
   align-self: center;
-  border: 1px solid color-mix(in srgb, var(--plan-accent-border) 36%, var(--pulso-material-border));
-  border-radius: var(--plan-topbar-radius);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 253, 0.84)),
-    var(--pulso-material-bg);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    inset 0 -1px 0 rgba(15, 23, 42, 0.025),
-    0 10px 28px rgba(15, 23, 42, 0.055);
-  padding: 4px;
-  backdrop-filter: blur(18px) saturate(1.08);
-  -webkit-backdrop-filter: blur(18px) saturate(1.08);
 }
 
 .plan-commandbar-main,

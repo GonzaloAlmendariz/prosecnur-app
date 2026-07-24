@@ -7724,7 +7724,7 @@ export default function HojasRutaPage() {
       )}
 
       {frame?.ok && (
-        <div className="hojas-ruta-commandbar" aria-label="Contexto operativo de hojas de ruta">
+        <div className="pulso-command-bar hojas-ruta-commandbar" aria-label="Contexto operativo de hojas de ruta">
           <div className="hojas-ruta-command-summary" aria-label="Resumen del marco">
             <HeaderSummaryPill label="Base" value={frame.ok ? "Cargada" : "Pendiente"} />
             <HeaderSummaryPill label="Distritos" value={formatNumber(selectedTerritories.length)} />

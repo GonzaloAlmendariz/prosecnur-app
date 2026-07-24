@@ -64,32 +64,18 @@
   gap: 7px;
 }
 
+/* Geometría, material y sombra vienen del patrón maestro .pulso-command-bar
+   (theme.css): contexto (KPIs) | secciones (rail centrado) | acciones, todo en
+   una fila. Aquí solo viven las zonas de Hojas y su acento naranja.
+   Antes esta banda era una copia del patrón que había derivado en gap, padding,
+   opacidad y sombra; al heredar recupera la geometría común. */
 .hojas-ruta-commandbar {
-  /* Command bar canónica de tres zonas en UNA fila (patrón de Monitoreo
-     .mon-commandbar): contexto (KPIs) | secciones (rail centrado) | acciones.
-     El rail ya no cae a una fila propia; convive al lado del contexto y las
-     acciones. El acento de módulo (naranja Hojas) se conserva vía variable. */
-  --commandbar-control-height: 32px;
-  display: grid;
   /* Contexto y acciones a su ancho de contenido; el rail (columna central)
      absorbe el apriete y hace scroll interno con dignidad si no alcanza. */
-  grid-template-columns: max-content minmax(0, 1fr) max-content;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  min-height: 46px;
-  padding: 4px 6px;
-  border: 1px solid color-mix(in srgb, var(--module-accent-border) 76%, var(--pulso-border));
-  border-radius: 18px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 250, 252, 0.76)),
-    var(--pulso-material-bg-chrome);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.88),
-    inset 0 -1px 0 rgba(15, 23, 42, 0.035),
-    0 12px 28px rgba(15, 23, 42, 0.07);
-  backdrop-filter: saturate(1.16) blur(18px);
-  -webkit-backdrop-filter: saturate(1.16) blur(18px);
+  --command-bar-columns: max-content minmax(0, 1fr) max-content;
+  --command-bar-accent: var(--module-accent-border);
+  --command-bar-accent-mix: 76%;
+  --commandbar-control-height: var(--command-bar-control-height);
 }
 
 /* Zona 1 — contexto: sub-píldora que agrupa los KPIs como tokens finos. */

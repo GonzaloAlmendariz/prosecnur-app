@@ -177,7 +177,7 @@ export function CronogramaSection({
 
   return (
     <div className="plan-shell plan-shell--embedded">
-      <div className="plan-commandbar" aria-label="Acciones del cronograma">
+      <div className="pulso-command-bar plan-commandbar" aria-label="Acciones del cronograma">
         <div className="plan-command-metrics plan-command-side" aria-label="Resumen del cronograma">
           {readinessMetrics.map((metric) => (
             <span key={metric.label} className="plan-command-token">
