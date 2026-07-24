@@ -46,6 +46,9 @@ function mergeWithDefaults(remote: unknown): AnaliticaConfig {
         ? r.fuente_preferida
         : "adaptados",
     variables_excluidas: Array.isArray(r.variables_excluidas) ? r.variables_excluidas : [],
+    // Contrato con el backend: ausente/no-boolean = color signature activa.
+    color_recodificaciones:
+      typeof r.color_recodificaciones === "boolean" ? r.color_recodificaciones : true,
     datos: {
       variable_labels:
         r.datos?.variable_labels && typeof r.datos.variable_labels === "object" && !Array.isArray(r.datos.variable_labels)

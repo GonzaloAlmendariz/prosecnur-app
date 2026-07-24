@@ -1,4 +1,4 @@
-import { BookOpen, CheckCircle2, Download, FileSpreadsheet, FileText, Info } from "lucide-react";
+import { BookOpen, CheckCircle2, Download, FileSpreadsheet, FileText, Info, Palette } from "lucide-react";
 import { apiAnaliticaCodebook, apiAnaliticaConfigPut, downloadUrl, type MultiBaseResult } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
 import { useAnaliticaStore } from "../store";
@@ -14,6 +14,8 @@ export function CodebookPane() {
   const codebook = useAnaliticaStore((s) => s.config.codebook);
   const config = useAnaliticaStore((s) => s.config);
   const setCodebook = useAnaliticaStore((s) => s.setCodebook);
+  const colorRecods = useAnaliticaStore((s) => s.config.color_recodificaciones);
+  const setColorRecodificaciones = useAnaliticaStore((s) => s.setColorRecodificaciones);
   const excluidasCount = useAnaliticaStore((s) => s.config.variables_excluidas.length);
   const run = useReporteRun();
   const runPdf = useReporteRun();
@@ -108,6 +110,32 @@ export function CodebookPane() {
                 </label>
               );
             })}
+          </div>
+        </Section>
+
+        <Section
+          title="Presentación de recodificaciones"
+          subtitle={<>
+            Marca visualmente las variables recodificadas en los entregables para ubicarlas de un vistazo. Afecta el instrumento, la base de datos y el libro de códigos.
+          </>}
+        >
+          <div className="analitica-control-grid">
+            <label className={`analitica-control-card ${colorRecods ? "is-active" : ""}`}>
+              <input
+                type="checkbox"
+                checked={colorRecods}
+                onChange={(e) => setColorRecodificaciones(e.target.checked)}
+              />
+              <span className="analitica-control-icon">
+                {colorRecods ? <CheckCircle2 size={15} /> : <Palette size={15} />}
+              </span>
+              <span>
+                <span className="analitica-control-title">Resaltar recodificaciones con color</span>
+                <span className="analitica-control-copy">
+                  Pinta las variables recodificadas con un color de fondo en el instrumento, la base de datos y el libro de códigos.
+                </span>
+              </span>
+            </label>
           </div>
         </Section>
 

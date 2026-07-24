@@ -365,6 +365,12 @@ export type AnaliticaConfig = {
   // las tablas: una lista ordinal conserva el orden del instrumento aunque se
   // elija desc/asc. Ver `esListaOrdinalEfectiva` (ordenCategoriasModel.ts).
   listas_ordinales: Record<string, boolean>;
+  // Color signature de recodificaciones: cuando está activo, el backend pinta
+  // las variables recodificadas con un color de fondo en el instrumento
+  // (XLSForm final), la base de datos (BBDD Excel) y el libro de códigos.
+  // Contrato compartido con el backend (`/api/analitica/config`): ausente
+  // (undefined) = activo por default (true). Solo el frontend lo togglea.
+  color_recodificaciones: boolean;
 };
 
 // ----- Defaults --------------------------------------------------------------
@@ -374,6 +380,7 @@ export const DEFAULT_CONFIG: AnaliticaConfig = {
   fuente_preferida: "adaptados",
   orden_categorias: {},
   listas_ordinales: {},
+  color_recodificaciones: true,
   ficha_tecnica: { layout: "pulso_oficial" },
   secciones: [],
   numericas: [],
@@ -510,6 +517,7 @@ type AnaliticaStore = {
 
   // Setters granulares — cada uno marca dirty para disparar autosave.
   setFuente: (f: FuentePreferida) => void;
+  setColorRecodificaciones: (v: boolean) => void;
   setSecciones: (s: SeccionConfig[]) => void;
   moveSeccion: (id: string, direction: "up" | "down") => void;
   renameSeccion: (id: string, nombre: string) => void;
@@ -589,6 +597,9 @@ export const useAnaliticaStore = create<AnaliticaStore>((set) => ({
 
   setFuente: (f) =>
     set((s) => dirty({ config: { ...s.config, fuente_preferida: f } })),
+
+  setColorRecodificaciones: (v) =>
+    set((s) => dirty({ config: { ...s.config, color_recodificaciones: v } })),
 
   setSecciones: (secciones) =>
     set((s) => dirty({ config: { ...s.config, secciones } })),
