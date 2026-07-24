@@ -3067,7 +3067,7 @@ export default function XlsformEditorPage() {
       auditReady={workbook ? "xlsform-editor" : false}
       resetScrollKey={`${workbook ? "workbook" : "empty"}:${editorMode}`}
       toolbar={workbook ? (
-        <div className="pulso-xlsform-commandbar" aria-label="Comandos del formulario activo">
+        <div className="pulso-command-bar pulso-xlsform-commandbar" aria-label="Comandos del formulario activo">
           <div className="pulso-xlsform-commandbar-group pulso-xlsform-commandbar-group--document">
             <div className="pulso-xlsform-document-strip" aria-label="Resumen del formulario">
               <FormSwitcher
