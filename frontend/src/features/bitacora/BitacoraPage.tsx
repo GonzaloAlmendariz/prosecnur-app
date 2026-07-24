@@ -102,7 +102,7 @@ export default function BitacoraPage() {
         {/* Command bar material de 3 zonas (patrón maestro 1, espejo del
             mon-commandbar): contexto (dot + kicker) | rail de secciones
             canónico (.pulso-phase-pillbar) | acciones (refresh). */}
-        <div className="bitacora-commandbar" aria-label="Contexto de la bitácora">
+        <div className="pulso-command-bar bitacora-commandbar" aria-label="Contexto de la bitácora">
           <span className="bitacora-command-context">
             <span className="bitacora-command-dot" aria-hidden="true" />
             <span className="bitacora-command-kicker">Bitácora</span>
