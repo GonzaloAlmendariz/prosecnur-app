@@ -413,6 +413,7 @@ errores_registrados <- function() {
     "E_NO_REGLAS_ACTIVAS",                                   "router_validacion.R",               "409",
     "E_NO_REPORTE",                                          "router_calc_muestra.R",             "404",
     "E_NO_REPORTE_CLIENTE",                                  "router_monitoreo.R",                "404",
+    "E_NO_REPORTE_TELEFONICO",                               "router_monitoreo_telefonico.R",     "404",
     "E_NO_RESULT_FILE",                                      "router_jobs.R",                     "404",
     "E_NO_RP_DATA",                                          "router_analitica.R",                "409",
     "E_NO_RP_INST",                                          "router_analitica.R",                "409",
