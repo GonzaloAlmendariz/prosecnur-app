@@ -917,7 +917,9 @@ a { color: var(--pulso-primary); }
   gap: 3px;
   max-width: min(328px, 32vw);
   min-width: 0;
+  margin: 0;
   padding: 3px;
+  list-style: none;
   border-radius: 15px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(245, 248, 252, 0.56)),
@@ -932,6 +934,10 @@ a { color: var(--pulso-primary); }
   transition:
     border-color var(--motion-dur-fast) var(--motion-ease-out),
     box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-module-dock-item {
+  display: inline-flex;
 }
 
 .pulso-module-dock::-webkit-scrollbar {

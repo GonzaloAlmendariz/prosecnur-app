@@ -132,6 +132,18 @@ describe("GlidingTabList navigation contract", () => {
     expect(dock).toMatch(/aria-current=\{active\s*\?\s*"page"\s*:\s*undefined\}/);
   });
 
+  test("the module switcher keeps links inside a semantic navigation list", () => {
+    const layout = fs.readFileSync(path.join(srcDir, "app", "Layout.tsx"), "utf8");
+    const switcher = layout.slice(
+      layout.indexOf("function ModuleSwitcher("),
+      layout.indexOf("function siblingSourceTitle("),
+    );
+
+    expect(switcher).toMatch(/<nav[\s\S]*?<ul[^>]*className="pulso-module-dock"[\s\S]*?<li[\s\S]*?<NavLink/);
+    expect(switcher).not.toMatch(/<NavLink[\s\S]*?role="listitem"/);
+    expect(switcher).toMatch(/aria-current=\{isCurrent\s*\?\s*"page"\s*:\s*undefined\}/);
+  });
+
   test("every literal tablist uses the shared indicator or a justified opt-out", () => {
     const offenders: string[] = [];
 

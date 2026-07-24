@@ -252,43 +252,45 @@ function ModuleSwitcher() {
       aria-label="Cambiar módulo"
       title={activeItem ? `Módulo actual: ${activeItem.title}` : "Cambiar módulo"}
     >
-      <div className="pulso-module-dock" role="list">
+      <ul className="pulso-module-dock">
         {visibleItems.map((item) => {
           const Icon = item.icon;
           const isCurrent = item.to === active;
           return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              role="listitem"
-              aria-current={isCurrent ? "page" : undefined}
-              aria-label={item.title}
-              title={item.title}
-              style={moduleChromeVars(item)}
-              className={[
-                "pulso-module-tile",
-                isCurrent ? "is-current" : "",
-              ].filter(Boolean).join(" ")}
-            >
-              <span className="pulso-module-tile-icon" aria-hidden="true">
-                <Icon size={16} strokeWidth={2.25} />
-              </span>
-              <span className="pulso-module-tile-label">{item.shortLabel}</span>
-            </NavLink>
+            <li className="pulso-module-dock-item" key={item.to}>
+              <NavLink
+                to={item.to}
+                aria-current={isCurrent ? "page" : undefined}
+                aria-label={item.title}
+                title={item.title}
+                style={moduleChromeVars(item)}
+                className={[
+                  "pulso-module-tile",
+                  isCurrent ? "is-current" : "",
+                ].filter(Boolean).join(" ")}
+              >
+                <span className="pulso-module-tile-icon" aria-hidden="true">
+                  <Icon size={16} strokeWidth={2.25} />
+                </span>
+                <span className="pulso-module-tile-label">{item.shortLabel}</span>
+              </NavLink>
+            </li>
           );
         })}
-        <NavLink
-          to="/?agregar=1"
-          className="pulso-module-tile pulso-module-tile-add"
-          aria-label="Agregar módulo"
-          title="Agregar módulo"
-        >
-          <span className="pulso-module-tile-icon" aria-hidden="true">
-            <Plus size={16} strokeWidth={2.4} />
-          </span>
-          <span className="pulso-module-tile-label">Agregar</span>
-        </NavLink>
-      </div>
+        <li className="pulso-module-dock-item">
+          <NavLink
+            to="/?agregar=1"
+            className="pulso-module-tile pulso-module-tile-add"
+            aria-label="Agregar módulo"
+            title="Agregar módulo"
+          >
+            <span className="pulso-module-tile-icon" aria-hidden="true">
+              <Plus size={16} strokeWidth={2.4} />
+            </span>
+            <span className="pulso-module-tile-label">Agregar</span>
+          </NavLink>
+        </li>
+      </ul>
     </nav>
   );
 }
