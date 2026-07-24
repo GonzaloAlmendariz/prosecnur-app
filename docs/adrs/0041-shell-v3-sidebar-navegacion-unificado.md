@@ -40,8 +40,10 @@ Prosecnur adopta un shell v3 con sidebar izquierdo unificado:
 - flyout transitorio accesible de 240px en el estado colapsado;
 - los estados persistentes de 248/64 siempre empujan el lienzo; solo el flyout
   transitorio puede superponerse y nunca provoca reflow;
-- toolbar del lienzo, a la derecha del sidebar, para proyecto, sesión, KPIs,
-  chips de estado, fase operativa y acciones contextuales;
+- proyecto/archivo, guardado y Home en el sidebar, sin franja global
+  persistente encima de los workbenches ricos;
+- command surface local del lienzo para KPIs, chips de estado, fase operativa
+  y acciones contextuales, compacta y subordinada a la superficie primaria;
 - switcher de módulo en el header del sidebar, con popover-grid para los ocho
   módulos y acceso a «Agregar módulo»;
 - gestor de módulos como modal sobre la vista actual, sin expulsar al usuario
@@ -105,9 +107,15 @@ tiene un único dueño.
 - Hojas de Ruta y Cálculo nacen expandidos; Procesamiento y Monitoreo usan
   sidebar según su jerarquía; Editor XLSForm, Dashboard y mapas nacen
   colapsados; el homepage conserva un shell mínimo sin secciones.
+- Dentro de Hojas, Territorio y Manzanas declaran preferencia colapsada al
+  entrar; Población, Muestra y Entrega conservan preferencia expandida. La
+  selección manual permanece hasta el siguiente cambio de sección.
 - A 1024×600 el lienzo expandido deberá conservar al menos 712px. Las rutas que
   no puedan cumplirlo declararán `railMode: "collapsed"` en el manifiesto, sin
   lógica ad hoc.
+- Los workbenches cartográficos no aprueban solo por evitar overflow: su mapa
+  debe conservar al menos `500×250px` útiles a 1024×600 en el rail recomendado
+  y sus overlays deben tener intersección cero.
 - Cambiar de módulo cambiará el acento contextual del shell a la familia
   canónica de ese módulo; superficies de contenido, series de datos y estados
   semánticos no heredarán ese cambio.

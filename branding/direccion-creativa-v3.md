@@ -175,9 +175,9 @@ Esta sección es normativa desde la instrucción de ejecución del dueño.
 
 ```text
 ┌──────────────────────┬──────────────────────────────────────────────┐
-│ Marca + contexto     │ Proyecto · estado · acciones contextuales   │
+│ Marca + contexto     │ Toolbar operativa local opcional            │
 │ 248px / 64px         ├──────────────────────────────────────────────┤
-│                      │ Toolbar local opcional                       │
+│ Archivo · Home       │                                              │
 │ SECCIÓN              ├──────────────────────────────────────────────┤
 │  ◫ Pestaña           │                                              │
 │  ◇ Pestaña activa    │              Superficie de trabajo           │
@@ -223,13 +223,20 @@ Esta sección es normativa desde la instrucción de ejecución del dueño.
 - A `1024×600`, el lienzo expandido conserva al menos `712px`.
 - Las rutas de canvas total pueden declarar `railMode: "collapsed"` en el
   manifiesto; no usan lógica ad hoc.
+- Las secciones cartográficas pueden declarar la misma preferencia: Hojas usa
+  rail colapsado al entrar en Territorio y Manzanas, sin crear un tercer ancho.
+- Una superficie primaria cartográfica conserva al menos `500×250px` útiles a
+  `1024×600` en su rail recomendado, con intersección `0` entre overlays.
 
-#### Header contextual
+#### Chrome global y command surface local
 
-- El toolbar pertenece al lienzo y empieza a la derecha del sidebar. Su
-  geometría se alinea con el header de `52px` sin cruzar la esquina.
-- Contiene únicamente proyecto/contexto, estado de sesión y acciones que
-  operan sobre la vista.
+- En workbenches ricos no existe una franja global persistente sobre el
+  lienzo: proyecto/archivo, guardado y Home viven en el sidebar.
+- Los `52px` corresponden al header del sidebar, no a una fila horizontal que
+  reste alto al canvas; la superficie de trabajo comienza en `y=0`.
+- La command surface local contiene únicamente KPIs, readiness, fase y
+  acciones que operan sobre la vista. Puede envolver de forma deliberada, pero
+  no oculta estado ni compite con la superficie primaria.
 - La banda multibase de Procesamiento es toolbar contextual, no navegación de
   shell.
 - Superficie sólida Hielo/Papel con hairline; sin papel cuadriculado, orbes,
@@ -253,6 +260,7 @@ Esta sección es normativa desde la instrucción de ejecución del dueño.
 - Formularios, tablas, cards de dato y editores usan superficies sólidas.
 - No hay franja H1 visible por defecto; el H1 accesible puede ser `sr-only`.
 - No hay segunda barra para repetir la jerarquía del sidebar.
+- No hay header horizontal de archivo/Home sobre los workbenches.
 - Una vista poblada muestra datos reales en el primer viewport.
 - El espacio vacío pertenece a una región y conserva su geometría.
 
