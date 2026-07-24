@@ -14,6 +14,17 @@ import { EmptyState } from "../../shared/EmptyState";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
 import "./baseDatos.css";
 
+const BASE_DATA_VIEW_A11Y = {
+  codigos: {
+    tabId: "dashboard-base-data-tab-codigos",
+    panelId: "dashboard-base-data-panel",
+  },
+  etiquetas: {
+    tabId: "dashboard-base-data-tab-etiquetas",
+    panelId: "dashboard-base-data-panel",
+  },
+} as const;
+
 // Tab Base de datos — fiel al legacy `prosecnur::reporte_interactivo()`:
 // toolbar pegada a la tabla con [Dicc] [Reset] [Buscar], fila de filtros
 // por columna bajo el header, sidebar con vista/secciones/descarga.
@@ -97,9 +108,11 @@ export function BaseDatosTab() {
           </div>
           <GlidingTabList className="dash-source-segments" activeKey={baseDatos.modo} role="tablist" aria-label="Modo de vista">
             <button
+              id={BASE_DATA_VIEW_A11Y.codigos.tabId}
               type="button"
               role="tab"
               aria-selected={baseDatos.modo === "codigos"}
+              aria-controls={BASE_DATA_VIEW_A11Y.codigos.panelId}
               data-gliding-key="codigos"
               className={`dash-source-segment ${baseDatos.modo === "codigos" ? "is-active" : ""}`}
               onClick={() => setBaseDatos({ modo: "codigos", page: 1 })}
@@ -107,9 +120,11 @@ export function BaseDatosTab() {
               Códigos
             </button>
             <button
+              id={BASE_DATA_VIEW_A11Y.etiquetas.tabId}
               type="button"
               role="tab"
               aria-selected={baseDatos.modo === "etiquetas"}
+              aria-controls={BASE_DATA_VIEW_A11Y.etiquetas.panelId}
               data-gliding-key="etiquetas"
               className={`dash-source-segment ${baseDatos.modo === "etiquetas" ? "is-active" : ""}`}
               onClick={() => setBaseDatos({ modo: "etiquetas", page: 1 })}
@@ -195,7 +210,12 @@ export function BaseDatosTab() {
       </aside>
 
       {/* ───── Main ───── */}
-      <main>
+      <main
+        id={BASE_DATA_VIEW_A11Y[baseDatos.modo].panelId}
+        role="tabpanel"
+        aria-labelledby={BASE_DATA_VIEW_A11Y[baseDatos.modo].tabId}
+        tabIndex={0}
+      >
         {!baseDatos.variables.length ? (
           <EmptyState
             title="Selecciona variables"
