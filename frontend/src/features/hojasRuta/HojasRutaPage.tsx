@@ -1032,7 +1032,7 @@ function HojasRutaStageRail({
 }) {
   return (
     <div className="pulso-phase-rail hojas-ruta-stage-rail" aria-label="Etapas de hojas de ruta">
-      <GlidingTabList as="nav" activeKey={current} className="pulso-phase-pillbar" role="tablist" aria-label="Etapas de hojas de ruta">
+      <GlidingTabList activeKey={current} mode="tabs" className="pulso-phase-pillbar" role="group" aria-label="Etapas de hojas de ruta">
         <ul className="pulso-phase-pill-list">
           {steps.map((step) => {
             const active = step.key === current;
@@ -1042,9 +1042,8 @@ function HojasRutaStageRail({
               <li key={step.key} className="pulso-phase-pill-item">
                 <button
                   type="button"
-                  role="tab"
                   data-gliding-key={step.key}
-                  aria-selected={active}
+                  aria-pressed={active}
                   aria-current={active ? "step" : undefined}
                   aria-disabled={step.disabled || undefined}
                   disabled={step.disabled}
