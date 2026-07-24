@@ -16,22 +16,25 @@ function sourceFiles(dir: string): string[] {
 }
 
 describe("monitoreo profile import boundary", () => {
-  for (const folder of profileFolders) {
-    test(`${folder} no importa MonitoreoPage`, () => {
-      const files = sourceFiles(path.join(profilesDir, folder));
-      const offenders = files
-        .filter((file) => {
-          const source = fs.readFileSync(file, "utf8");
-          return Array.from(source.matchAll(importSpecifier)).some((match) => {
-            const specifier = match[1] ?? match[2] ?? "";
-            return path.basename(specifier) === "MonitoreoPage";
-          });
-        })
-        .map((file) => path.relative(profilesDir, file));
+  // El monolito MonitoreoPage.tsx se retiró en la unidad 4.5 (2026-07-23).
+  // Este guard evita que resucite como archivo o como specifier de import.
+  test("el monolito MonitoreoPage.tsx no existe ni se importa", () => {
+    const monolithPath = path.join(profilesDir, "..", "MonitoreoPage.tsx");
+    expect(fs.existsSync(monolithPath)).toBe(false);
 
-      expect(offenders).toEqual([]);
-    });
-  }
+    const files = sourceFiles(path.join(profilesDir, ".."));
+    const offenders = files
+      .filter((file) => {
+        const source = fs.readFileSync(file, "utf8");
+        return Array.from(source.matchAll(importSpecifier)).some((match) => {
+          const specifier = match[1] ?? match[2] ?? "";
+          return path.basename(specifier) === "MonitoreoPage";
+        });
+      })
+      .map((file) => path.relative(profilesDir, file));
+
+    expect(offenders).toEqual([]);
+  });
 
   test("telefonico no importa la UI de acreditacion", () => {
     const files = sourceFiles(path.join(profilesDir, "telefonico"));

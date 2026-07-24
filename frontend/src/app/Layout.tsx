@@ -74,8 +74,6 @@ const VIEWPORT_PATHS = new Set([
   "/recopiladores",
   "/hojas-ruta",
   "/monitoreo",
-  "/monitoreo/comparar-territorial",
-  "/monitoreo/comparar-acreditacion",
 ]);
 
 function routePolicy(pathname: string): "viewport" | "legacy-scroll" {
