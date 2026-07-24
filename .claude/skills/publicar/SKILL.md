@@ -17,6 +17,10 @@ Corre exactamente lo que corre `quality.yml`, en este orden (lo barato primero):
 4. Suite R **completa** (la parcial no sirve para publicar; es el 78% del CI y donde vive el 90% de los fallos históricos):
    `LC_ALL=en_US.UTF-8 Rscript -e 'pkgload::load_all("api", quiet=TRUE); testthat::test_dir("api/tests/testthat", reporter="summary")'`
    (~10-15 min local; lánzala en background y sigue con otras verificaciones mientras corre)
+5. Auditorías de dependencias (baratas, ~10 s c/u; córrelas mientras la suite R está en background):
+   `pnpm -C frontend audit --audit-level=high` y `pnpm -C desktop audit --audit-level=high`.
+   El job Frontend del CI corre AMBAS y falla el gate ante cualquier HIGH. Es **advisory drift**: un advisory nuevo publicado entre cortes enrojece `main` sin que cambies una línea (el corte 0.5.19 rebotó 3 veces por esto: postcss `<8.5.12` vía vite, y `app-builder-lib`/`builder-util-runtime` vía electron-builder). Fix: override de la versión parcheada en el `package.json` correspondiente (`pnpm.overrides`) + `pnpm install --no-frozen-lockfile` para actualizar el lock, y verifica que `--frozen-lockfile` quede consistente (lo que usa el CI). Reglas de la casa del desktop audit: `docs/qa/deuda-baseline.md` y la memoria del advisory drift.
+6. Node del CI: el runner usa Node 24, que **escala a fatal** warnings que tu Node local puede tragar (ej. un comentario CSS con `*/` prematuro rompió el `esbuild css minify` solo en CI). Si el `vite build` local pasa pero dudas, revisa que no haya warnings de `css-syntax-error`/`Unexpected` en su salida.
 
 Cualquier fallo → se arregla ANTES de pushear. Sin excepciones: un push con la suite roja le cuesta 20 min a cada push posterior hasta que alguien lo arregle.
 
@@ -34,7 +38,16 @@ Cualquier fallo → se arregla ANTES de pushear. Sin excepciones: un push con la
    - **TS2307 import muerto** → típico tras borrar páginas; buscar imports huérfanos en `App.tsx`/`warmupRegistry.ts`.
    - **Golden no portable** (calc-muestra-aulas RDS macOS≠Linux) → regenerar el golden en el runner (patrón del workflow "TMP Gen Golden Aulas"), no ajustar el test a ciegas.
    - **Contrato QA de monitoreo** → pestañas/vistas nuevas sin registrar en el QA contract del cliente.
+   - **Advisory drift** (`X vulnerabilities found` con un HIGH en el paso de audit) → override de la versión parcheada en `pnpm.overrides` del `package.json` (frontend o desktop) + actualizar el lock; NO tocar código de producto. Si el paso 5 del pre-flight se hubiera corrido, no llega acá.
 3. Aplica el fix, repite pre-flight focalizado en lo tocado, push, y vuelve a monitorear. Máximo contexto en cada iteración: el correo "all jobs have failed" casi siempre es UNA causa raíz repetida.
+
+## Fase 4 — Si fue un tag (release público): verifica el release, no solo el run
+
+El workflow Release sube los instaladores con `softprops/action-gh-release`. Su paso final de *policy* (immutable releases) puede tirar `Error creating policy` y/o GitHub puede devolver 504 en la publicación — dejando el release como **draft** o con **assets faltantes** aunque los builds hayan pasado. Verifica el resultado REAL, no el color del job:
+
+1. `gh api repos/<owner>/<repo>/releases/tags/<tag> --jq '"draft=\(.draft) assets=\([.assets[].name]|join(","))"'` (más liviano que `gh release view`, que 504ea con assets grandes).
+2. Deben estar **AMBOS** manifiestos de auto-update: `latest.yml` (Windows) y `latest-mac.yml` (macOS). Si falta uno, el auto-update de esa plataforma no ve la versión. Recupéralo re-ejecutando el job de publicación (`gh run rerun <run> --failed`): re-descarga los artefactos y re-sube lo que falte; la infra suele recuperarse del 504/policy en el reintento.
+3. Si quedó draft: `gh release edit <tag> --draft=false --latest` (reintenta ante 504). Las notas del Release salen de `/notas-parche`, no del `generate_release_notes` genérico ni del `.github/RELEASE_NOTES.md` (que puede estar congelado en una versión vieja).
 
 ## Reglas
 
