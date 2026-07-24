@@ -4141,6 +4141,15 @@ function buildSuiteMetrics(
   };
 }
 
+/**
+ * Estado del formulario (procedencia y guardado). Es información, no un
+ * control: se lee como texto con un punto de color, sin cápsula ni borde.
+ *
+ * Antes era una pastilla con fondo y borde por cada estado, con los estilos
+ * inline. Sumadas al selector, al segmentado, al menú y a los botones, la
+ * banda acumulaba nueve cajas con el mismo tratamiento y nada destacaba: el
+ * peso visual de un dato pasivo igualaba al de la acción principal.
+ */
 function StatusChip({
   label,
   tone,
@@ -4148,44 +4157,9 @@ function StatusChip({
   label: string;
   tone: "neutral" | "info" | "warn" | "success";
 }) {
-  const tokens = {
-    neutral: {
-      bg: "var(--pulso-surface)",
-      border: "var(--pulso-border)",
-      fg: "var(--pulso-text-soft)",
-    },
-    info: {
-      bg: "var(--pulso-info-bg)",
-      border: "var(--pulso-info-border)",
-      fg: "var(--pulso-info-fg)",
-    },
-    warn: {
-      bg: "var(--pulso-warn-bg)",
-      border: "var(--pulso-warn-border)",
-      fg: "var(--pulso-warn-fg)",
-    },
-    success: {
-      bg: "var(--pulso-success-bg)",
-      border: "var(--pulso-success-border)",
-      fg: "var(--pulso-success-fg)",
-    },
-  }[tone];
   return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "5px 10px",
-        borderRadius: 999,
-        background: tokens.bg,
-        border: `1px solid ${tokens.border}`,
-        color: tokens.fg,
-        fontSize: 11,
-        fontWeight: 700,
-      }}
-    >
-      {tone === "success" ? <CheckCircle2 size={12} /> : <span style={{ width: 7, height: 7, borderRadius: 999, background: "currentColor", opacity: 0.7 }} />}
+    <span className={`pulso-xf-status is-${tone}`}>
+      <span className="pulso-xf-status-dot" aria-hidden="true" />
       {label}
     </span>
   );
