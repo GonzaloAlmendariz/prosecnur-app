@@ -4284,22 +4284,30 @@
     min-height: 640px;
   }
 
+  /* Etapa Manzanas apilada: el mapa manda su propia altura (no hereda el 100%
+     del workbench de dos columnas) para no colapsar en alturas compactas. Las
+     filas crecen a contenido y el scroll vive en el propio layout. */
+  .hojas-ruta-sampling-layout {
+    grid-auto-rows: max-content;
+  }
+
+  .hojas-ruta-sampling-layout .hojas-ruta-map-column {
+    height: auto;
+    min-height: 0;
+  }
+
   .hojas-ruta-sampling-layout .hojas-ruta-map-holder {
-    min-height: 640px;
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 0;
   }
 
   .hojas-ruta-sampling-map-explorer {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(390px, 1fr) auto;
+    height: clamp(340px, 64vh, 660px);
   }
 
-  .hojas-ruta-sampling-lima-context {
-    border-right: 0;
-    border-bottom: 1px solid var(--pulso-border);
-  }
-
-  .hojas-ruta-sampling-inspector {
-    max-height: 360px;
+  .hojas-ruta-sampling-map-explorer .hojas-ruta-sampling-lima-context {
+    min-height: 0;
   }
 
   .hojas-ruta-route-load-grid {
@@ -4347,8 +4355,9 @@
     min-height: 0;
   }
 
-  .hojas-ruta-map-explorer,
-  .hojas-ruta-sampling-layout .hojas-ruta-map-holder {
+  /* Solo el workbench de Territorio (dos columnas con altura llena) resetea
+     el mínimo; la etapa Manzanas apilada conserva su altura cartográfica. */
+  .hojas-ruta-workbench .hojas-ruta-map-explorer {
     min-height: 0;
   }
 }
@@ -4372,8 +4381,21 @@
     min-height: 560px;
   }
 
-  .hojas-ruta-sampling-layout .hojas-ruta-map-holder {
-    min-height: 560px;
+  /* En anchos muy estrechos el inspector ya no cabe al costado: mapa arriba,
+     inspector debajo con su propio scroll. */
+  .hojas-ruta-sampling-map-explorer {
+    height: auto;
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(300px, 52vh) auto;
+  }
+
+  .hojas-ruta-sampling-map-explorer .hojas-ruta-sampling-lima-context {
+    border-right: 0;
+    border-bottom: 1px solid var(--pulso-border);
+  }
+
+  .hojas-ruta-sampling-inspector {
+    max-height: min(360px, 55vh);
   }
 
   .hojas-ruta-method-selector,
