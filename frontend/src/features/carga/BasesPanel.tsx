@@ -411,15 +411,15 @@ export function BasesPanel({
 
       <GlidingTabList
         activeKey={strategy}
+        mode="tabs"
         className="pulso-multi-strategy"
-        role="tablist"
+        role="group"
         aria-label="Forma de trabajar varias bases"
       >
         <button
           type="button"
           className={strategy === "separate" ? "is-active" : ""}
-          role="tab"
-          aria-selected={strategy === "separate"}
+          aria-pressed={strategy === "separate"}
           data-gliding-key="separate"
           onClick={() => requestStrategyChange("separate")}
           title="Mantener bases separadas - formulario y respuestas por base"
@@ -433,8 +433,7 @@ export function BasesPanel({
         <button
           type="button"
           className={strategy === "integrated" ? "is-active" : ""}
-          role="tab"
-          aria-selected={strategy === "integrated"}
+          aria-pressed={strategy === "integrated"}
           data-gliding-key="integrated"
           onClick={() => requestStrategyChange("integrated")}
           title="Unificar bases compatibles - formulario comun y base final"
@@ -448,8 +447,7 @@ export function BasesPanel({
         <button
           type="button"
           className={strategy === "independent" ? "is-active" : ""}
-          role="tab"
-          aria-selected={strategy === "independent"}
+          aria-pressed={strategy === "independent"}
           data-gliding-key="independent"
           onClick={() => requestStrategyChange("independent")}
           title="Fuentes independientes - entregables por encuesta"
