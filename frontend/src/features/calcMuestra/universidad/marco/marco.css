@@ -1720,7 +1720,7 @@
 
 /* =============================================================================
    Inventario de únicos (fase Datos → Consistencia). Embudo de deduplicación de
-   la base cruda a alumnos y cursos-horario únicos. Solo tokens cmv2-*/pulso-*.
+   la base cruda a alumnos y cursos-horario únicos. Solo tokens cmv2- y pulso-.
    ============================================================================= */
 .cmv2-inv {
   display: grid;
