@@ -1101,12 +1101,11 @@ function PhaseHeaderControl({
 
   return (
     <div className="hojas-ruta-phase-header" aria-label="Fase de aplicación" title={pilotSummary || undefined}>
-      <GlidingTabList activeKey={activePhase} className="hojas-ruta-phase-tabs" role="tablist" aria-label="Fase de aplicación de campo">
+      <GlidingTabList activeKey={activePhase} mode="tabs" className="hojas-ruta-phase-tabs" role="group" aria-label="Fase de aplicación de campo">
         <button
           type="button"
-          role="tab"
           data-gliding-key="pilot"
-          aria-selected={activePhase === "pilot"}
+          aria-pressed={activePhase === "pilot"}
           className={activePhase === "pilot" ? "is-active" : ""}
           onClick={() => onPhaseChange("pilot")}
           disabled={!pilotRun || busy.startsWith("phase-")}
@@ -1115,9 +1114,8 @@ function PhaseHeaderControl({
         </button>
         <button
           type="button"
-          role="tab"
           data-gliding-key="field"
-          aria-selected={activePhase === "field"}
+          aria-pressed={activePhase === "field"}
           className={activePhase === "field" ? "is-active" : ""}
           onClick={() => onPhaseChange("field")}
           disabled={busy.startsWith("phase-")}
