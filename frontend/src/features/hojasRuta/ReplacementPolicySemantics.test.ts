@@ -11,14 +11,10 @@ describe("Hojas replacement-policy semantics", () => {
       source.indexOf('<div className="hojas-ruta-replacement-status">', labelIndex),
     );
 
-    expect(selector).toContain("<GlidingTabList");
-    expect(selector).toContain('role="radiogroup"');
-    expect(selector).toContain('role="radio"');
-    expect(selector).toContain("aria-checked={replacementPolicy === option.key}");
-    expect(selector).toContain("data-gliding-key={option.key}");
-    expect(selector).toContain("onKeyDown={(event) => selectReplacementPolicyFromKey");
-    expect(source).toContain(
-      "if (nextPolicy !== replacementPolicy) patchConfig({ replacement_policy: nextPolicy })",
-    );
+    expect(selector).toContain("<GlidingRadioGroup");
+    expect(selector).toContain("value={replacementPolicy}");
+    expect(selector).toContain("options={replacementPolicyOptions}");
+    expect(selector).toContain("onValueChange={(nextPolicy) => patchConfig({ replacement_policy: nextPolicy })}");
+    expect(source).not.toContain("selectReplacementPolicyFromKey");
   });
 });

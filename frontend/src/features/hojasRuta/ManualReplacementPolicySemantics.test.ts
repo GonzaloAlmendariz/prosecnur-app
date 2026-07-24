@@ -11,14 +11,10 @@ describe("Hojas manual replacement-policy semantics", () => {
       source.indexOf("{manualReplacementSelectedIds.length", labelIndex),
     );
 
-    expect(selector).toContain("<GlidingTabList");
-    expect(selector).toContain('role="radiogroup"');
-    expect(selector).toContain('role="radio"');
-    expect(selector).toContain("aria-checked={manualReplacementPolicy === option.key}");
-    expect(selector).toContain("data-gliding-key={option.key}");
-    expect(selector).toContain("onKeyDown={(event) => selectManualReplacementPolicyFromKey");
-    expect(source).toContain(
-      "if (nextPolicy !== manualReplacementPolicy) setManualReplacementPolicy(nextPolicy)",
-    );
+    expect(selector).toContain("<GlidingRadioGroup");
+    expect(selector).toContain("value={manualReplacementPolicy}");
+    expect(selector).toContain("options={replacementPolicyOptions}");
+    expect(selector).toContain("onValueChange={setManualReplacementPolicy}");
+    expect(source).not.toContain("selectManualReplacementPolicyFromKey");
   });
 });

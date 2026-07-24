@@ -44,6 +44,7 @@ export type GlidingTabListProps = Omit<HTMLAttributes<HTMLElement>, "children"> 
   orientation?: GlidingTabOrientation;
   itemSelector?: string;
   indicatorClassName?: string;
+  onRovingKeyChange?: (serializedKey: string) => void;
   children: ReactNode;
 };
 
@@ -156,6 +157,7 @@ export const GlidingTabList = forwardRef<HTMLElement, GlidingTabListProps>(
       orientation = "horizontal",
       itemSelector = DEFAULT_ITEM_SELECTOR,
       indicatorClassName,
+      onRovingKeyChange,
       className,
       children,
       onKeyDown,
@@ -325,8 +327,10 @@ export const GlidingTabList = forwardRef<HTMLElement, GlidingTabListProps>(
       for (const item of items) {
         item.tabIndex = item === nextItem ? 0 : -1;
       }
-      rovingFocusKeyRef.current = nextItem.dataset.glidingKey ?? null;
+      const nextKey = nextItem.dataset.glidingKey;
+      rovingFocusKeyRef.current = nextKey ?? null;
       nextItem.focus({ preventScroll: true });
+      if (nextKey) onRovingKeyChange?.(nextKey);
     };
 
     const indicatorStyle: IndicatorStyle = {

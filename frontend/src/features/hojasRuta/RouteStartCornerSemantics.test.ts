@@ -11,14 +11,10 @@ describe("Hojas route-start corner semantics", () => {
       source.indexOf('<div className="hojas-ruta-route-jump-group">', labelIndex),
     );
 
-    expect(selector).toContain("<GlidingTabList");
-    expect(selector).toContain('role="radiogroup"');
-    expect(selector).toContain('role="radio"');
-    expect(selector).toContain("aria-checked={routeStartCorner === option.key}");
-    expect(selector).toContain("data-gliding-key={option.key}");
-    expect(selector).toContain("onKeyDown={(event) => selectRouteStartCornerFromKey");
-    expect(source).toContain(
-      "if (nextCorner !== routeStartCorner) patchConfig({ route_start_corner: nextCorner })",
-    );
+    expect(selector).toContain("<GlidingRadioGroup");
+    expect(selector).toContain("value={routeStartCorner}");
+    expect(selector).toContain("options={routeStartCornerOptions}");
+    expect(selector).toContain("onValueChange={(nextCorner) => patchConfig({ route_start_corner: nextCorner })}");
+    expect(source).not.toContain("selectRouteStartCornerFromKey");
   });
 });

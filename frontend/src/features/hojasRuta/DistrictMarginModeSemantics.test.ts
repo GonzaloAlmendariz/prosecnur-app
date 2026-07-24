@@ -11,15 +11,11 @@ describe("Hojas district-margin mode semantics", () => {
       source.indexOf('className="hojas-ruta-sample-note"', labelIndex),
     );
 
-    expect(selector).toContain("<GlidingTabList");
-    expect(selector).toContain('role="radiogroup"');
-    expect(selector).toContain('mode="tabs"');
-    expect(selector.match(/role="radio"/g)).toHaveLength(2);
-    expect(selector.match(/aria-checked=/g)).toHaveLength(2);
-    expect(selector.match(/data-gliding-key=/g)).toHaveLength(2);
-    expect(selector.match(/onKeyDown=/g)).toHaveLength(2);
-    expect(source).toContain(
-      "if (nextMode !== enforceFloor) onSampleSizeChange({ enforce_district_floor: nextMode })",
-    );
+    expect(selector).toContain("<GlidingRadioGroup");
+    expect(selector).toContain("value={enforceFloor}");
+    expect(selector).toContain("options={[true, false] as const}");
+    expect(selector).toContain('getOptionKey={(option) => option ? "enforce" : "warn"}');
+    expect(selector).toContain("onValueChange={(nextMode) => onSampleSizeChange({ enforce_district_floor: nextMode })}");
+    expect(source).not.toContain("selectDistrictMarginModeFromKey");
   });
 });

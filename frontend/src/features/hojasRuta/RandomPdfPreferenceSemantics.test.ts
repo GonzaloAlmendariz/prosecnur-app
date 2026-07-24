@@ -11,14 +11,10 @@ describe("Hojas random PDF preference semantics", () => {
       source.indexOf('<button\n                        type="button"', labelIndex),
     );
 
-    expect(selector).toContain("<GlidingTabList");
-    expect(selector).toContain('role="radiogroup"');
-    expect(selector).toContain('role="radio"');
-    expect(selector).toContain("aria-checked={option.key === randomPreference}");
-    expect(selector).toContain("data-gliding-key={option.key}");
-    expect(selector).toContain("onKeyDown={(event) => selectRandomPreferenceFromKey");
-    expect(source).toContain(
-      "if (nextPreference !== randomPreference) setRandomPreference(nextPreference)",
-    );
+    expect(selector).toContain("<GlidingRadioGroup");
+    expect(selector).toContain("value={randomPreference}");
+    expect(selector).toContain("options={randomPreferenceOptions}");
+    expect(selector).toContain("onValueChange={setRandomPreference}");
+    expect(source).not.toContain("selectRandomPreferenceFromKey");
   });
 });

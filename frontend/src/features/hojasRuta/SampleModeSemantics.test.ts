@@ -10,17 +10,16 @@ describe("Hojas de ruta sample mode semantics", () => {
     );
     const anchor = source.indexOf('aria-label="Modo de muestra"');
     const selector = source.slice(
-      source.lastIndexOf("<GlidingTabList", anchor),
-      source.indexOf("</GlidingTabList>", anchor),
+      source.lastIndexOf("<GlidingRadioGroup", anchor),
+      source.indexOf("</GlidingRadioGroup>", anchor),
     );
 
-    expect(selector).toContain('role="radiogroup"');
-    expect(selector).toContain('mode="tabs"');
-    expect(selector).toContain('role="radio"');
-    expect(selector).toContain("aria-checked={mode === item}");
-    expect(selector).toContain("onKeyDown=");
-    expect(selector).toContain("selectSampleModeFromKey(");
-    expect(source).toContain("if (nextMode !== mode) onModeChange(nextMode)");
+    expect(selector).toContain("<GlidingRadioGroup");
+    expect(selector).toContain("value={mode}");
+    expect(selector).toContain("options={sampleModes}");
+    expect(selector).toContain("getOptionValue={(item) => item}");
+    expect(selector).toContain("onValueChange={onModeChange}");
+    expect(source).not.toContain("selectSampleModeFromKey");
     expect(selector).not.toContain('role="tablist"');
     expect(selector).not.toContain('role="tab"');
     expect(selector).not.toContain("aria-selected=");

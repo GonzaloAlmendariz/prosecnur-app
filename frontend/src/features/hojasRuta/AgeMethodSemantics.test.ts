@@ -11,12 +11,11 @@ describe("Hojas age-method semantics", () => {
       source.indexOf('{ageDraftMode === "manual" ?', labelIndex),
     );
 
-    expect(selector).toContain("<GlidingTabList");
-    expect(selector).toContain('role="radiogroup"');
-    expect(selector).toContain('role="radio"');
-    expect(selector).toContain("aria-checked={ageMethod === method}");
-    expect(selector).toContain("data-gliding-key={method}");
-    expect(selector).toContain("onKeyDown={(event) => selectAgeMethodFromKey");
+    expect(selector).toContain("<GlidingRadioGroup");
+    expect(selector).toContain("value={ageMethod}");
+    expect(selector).toContain("options={ageMethodOptions}");
+    expect(selector).toContain("onValueChange={selectAgeMethod}");
+    expect(source).not.toContain("selectAgeMethodFromKey");
     expect(source).toContain(
       'const ageMethod = ageDraftMode === "manual" ? "manual" : "cuts"',
     );
