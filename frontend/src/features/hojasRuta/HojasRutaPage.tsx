@@ -7090,6 +7090,19 @@ export default function HojasRutaPage() {
     }
   }
 
+  function selectRouteStartCorner(nextCorner: HojasRutaRouteStartCorner) {
+    if (nextCorner !== routeStartCorner) patchConfig({ route_start_corner: nextCorner });
+  }
+
+  function selectRouteStartCornerFromKey(key: string, itemIndex: number) {
+    let nextIndex: number | null = null;
+    if (key === "Home") nextIndex = 0;
+    else if (key === "End") nextIndex = routeStartCornerOptions.length - 1;
+    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % routeStartCornerOptions.length;
+    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + routeStartCornerOptions.length) % routeStartCornerOptions.length;
+    if (nextIndex != null) selectRouteStartCorner(routeStartCornerOptions[nextIndex].key);
+  }
+
   function toggleDraftTerritory(ubigeo: string) {
     const set = new Set(draftTerritories);
     if (set.has(ubigeo)) set.delete(ubigeo);
@@ -8382,20 +8395,22 @@ export default function HojasRutaPage() {
                       <div className="hojas-ruta-pdf-controls">
                         <div className="hojas-ruta-segmented-field">
                           <span>Esquina inicial</span>
-                          <div className="hojas-ruta-segmented" role="radiogroup" aria-label="Esquina inicial">
-                            {routeStartCornerOptions.map((option) => (
+                          <GlidingTabList activeKey={routeStartCorner} mode="tabs" className="hojas-ruta-segmented" role="radiogroup" aria-label="Esquina inicial">
+                            {routeStartCornerOptions.map((option, itemIndex) => (
                               <button
                                 key={option.key}
                                 type="button"
                                 role="radio"
+                                data-gliding-key={option.key}
                                 aria-checked={routeStartCorner === option.key}
                                 className={routeStartCorner === option.key ? "is-active" : ""}
-                                onClick={() => patchConfig({ route_start_corner: option.key })}
+                                onClick={() => selectRouteStartCorner(option.key)}
+                                onKeyDown={(event) => selectRouteStartCornerFromKey(event.key, itemIndex)}
                               >
                                 {option.label === "Automática" ? "Auto" : option.label}
                               </button>
                             ))}
-                          </div>
+                          </GlidingTabList>
                         </div>
                         <div className="hojas-ruta-route-jump-group">
                           <span>Constante de salto</span>
