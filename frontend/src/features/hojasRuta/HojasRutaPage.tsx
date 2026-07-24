@@ -393,6 +393,9 @@ const routeJumpModeOptions: Array<{ key: HojasRutaRouteJumpMode; label: string; 
   { key: "manual", label: "Manual", hint: "Mismo salto para todas" },
 ];
 
+const ageMethodOptions = ["manual", "cuts"] as const;
+type HojasRutaAgeMethod = (typeof ageMethodOptions)[number];
+
 const replacementPolicyOptions: Array<{ key: HojasRutaReplacementPolicy; label: string; hint: string }> = [
   { key: "alternate_zone_same_district", label: "Otra zona", hint: "Mismo distrito, prioriza zonas libres" },
   { key: "paired_by_titular_zone", label: "Misma zona", hint: "Respaldo dentro de la zona titular" },
@@ -6903,6 +6906,7 @@ export default function HojasRutaPage() {
   const routeStatus = useMemo(() => routeMultipleStatus(config, state?.territories ?? []), [config, state?.territories]);
   const currentAgeSignature = ageRangesSignature(config);
   const ageDraftUsesCuts = ageDraftMode !== "manual";
+  const ageMethod = ageDraftMode === "manual" ? "manual" : "cuts";
   const ageDraftMatchesConfig = !!config
     && config.age_range_mode === ageDraftMode
     && (!ageDraftUsesCuts || (config.age_range_scope ?? "selected") === ageDraftScope);
@@ -7276,6 +7280,20 @@ export default function HojasRutaPage() {
     }
     if (!AGE_RANGE_CUT_MODES.includes(mode as (typeof AGE_RANGE_CUT_MODES)[number])) return;
     setError("");
+  }
+
+  function selectAgeMethod(nextMethod: HojasRutaAgeMethod) {
+    if (nextMethod === ageMethod) return;
+    setAgeRangeModeDraft(nextMethod === "manual" ? "manual" : "terciles");
+  }
+
+  function selectAgeMethodFromKey(key: string, itemIndex: number) {
+    let nextIndex: number | null = null;
+    if (key === "Home") nextIndex = 0;
+    else if (key === "End") nextIndex = ageMethodOptions.length - 1;
+    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % ageMethodOptions.length;
+    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + ageMethodOptions.length) % ageMethodOptions.length;
+    if (nextIndex != null) selectAgeMethod(ageMethodOptions[nextIndex]);
   }
 
   function editManualAgeRanges(age_ranges: HojasRutaAgeRange[]) {
@@ -8060,18 +8078,19 @@ export default function HojasRutaPage() {
                           Primero elige si definirás los rangos a mano o si Prosecnur calculará cortes con población 18+.
                         </span>
                       </div>
-                      <div className="hojas-ruta-age-method-row" role="radiogroup" aria-label="Forma de definir rangos de edad">
-                        {(["manual", "terciles"] as HojasRutaAgeRangeMode[]).map((mode) => {
-                          const isManual = mode === "manual";
-                          const selected = isManual ? ageDraftMode === "manual" : ageDraftMode !== "manual";
+                      <GlidingTabList activeKey={ageMethod} mode="tabs" className="hojas-ruta-age-method-row" role="radiogroup" aria-label="Forma de definir rangos de edad">
+                        {ageMethodOptions.map((method, itemIndex) => {
+                          const isManual = method === "manual";
                           return (
                             <button
-                              key={mode}
+                              key={method}
                               type="button"
                               role="radio"
-                              aria-checked={selected}
-                              className={selected ? "is-active" : ""}
-                              onClick={() => setAgeRangeModeDraft(isManual ? "manual" : (ageDraftMode === "manual" ? "terciles" : ageDraftMode))}
+                              data-gliding-key={method}
+                              aria-checked={ageMethod === method}
+                              className={ageMethod === method ? "is-active" : ""}
+                              onClick={() => selectAgeMethod(method)}
+                              onKeyDown={(event) => selectAgeMethodFromKey(event.key, itemIndex)}
                               disabled={!canConfigureAgeRanges || busy !== ""}
                             >
                               <strong>{isManual ? "Manual" : "Cortes poblacionales"}</strong>
@@ -8079,7 +8098,7 @@ export default function HojasRutaPage() {
                             </button>
                           );
                         })}
-                      </div>
+                      </GlidingTabList>
 
                       {ageDraftMode === "manual" ? (
                         <AgeRangesEditor
