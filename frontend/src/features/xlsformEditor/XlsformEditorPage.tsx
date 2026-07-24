@@ -104,6 +104,7 @@ import {
   buildType,
   cleanFilename,
   formatSource,
+  formatSourceLong,
   parseType,
   slug,
 } from "./parsing/parseType";
@@ -3089,7 +3090,11 @@ export default function XlsformEditorPage() {
                   lleva al aviso. Tenerlo dos veces sumaba ruido sin informar. */}
             </div>
             <div className="pulso-xlsform-state-strip" aria-label="Estado del formulario">
-              <StatusChip label={formatSource(source?.kind ?? null)} tone="info" />
+              <StatusChip
+                label={formatSource(source?.kind ?? null)}
+                title={formatSourceLong(source?.kind ?? null)}
+                tone="info"
+              />
               <StatusChip
                 label={formatSaveStatus(dirty, lastSavedAt)}
                 tone={dirty ? "warn" : lastSavedAt != null ? "info" : "success"}
@@ -3189,21 +3194,42 @@ export default function XlsformEditorPage() {
               onImportXlsform={() => xlsInputRef.current?.click()}
               onImportSurveyMonkey={onImportSurveyMonkey}
             />
-            {/* Salidas del editor. La casilla es una opción del .xlsx, no una
-                acción hermana, así que se lee dentro del mismo cluster. */}
+            {/* Salidas del editor. El destino no es una acción hermana sino el
+                ajuste del .xlsx, así que comparte cápsula con Exportar.
+                Antes era una casilla llamada «Columnas de plataforma», que
+                describía la mecánica (qué columnas se incluyen) en vez de la
+                consecuencia, y con un nombre ambiguo: «plataforma» podía
+                leerse como Kobo o como Prosecnur, que son justo las dos
+                opciones opuestas. */}
             <div className="pulso-xf-export-cluster">
-              <label
-                className="pulso-xlsform-toolbar-check"
-                title="Incluye las columnas paper_* y las hojas de la plataforma (mapeo a PDF/Word). Desmárcalo para un XLSForm ODK/Kobo limpio."
+              <div
+                className="pulso-mode-toggle pulso-xf-target-toggle"
+                role="radiogroup"
+                aria-label="Destino del archivo exportado"
               >
-                <input
-                  type="checkbox"
-                  checked={includeAppColumns}
-                  onChange={(e) => setIncludeAppColumns(e.target.checked)}
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={!includeAppColumns}
+                  className={!includeAppColumns ? "is-on" : ""}
+                  onClick={() => setIncludeAppColumns(false)}
                   disabled={!!busy}
-                />
-                Columnas de plataforma
-              </label>
+                  title="XLSForm estándar, listo para subir a Kobo u ODK. Sin las hojas ni las columnas propias de Prosecnur."
+                >
+                  Kobo / ODK
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={includeAppColumns}
+                  className={includeAppColumns ? "is-on" : ""}
+                  onClick={() => setIncludeAppColumns(true)}
+                  disabled={!!busy}
+                  title="Conserva la capa de Prosecnur: la hoja paper con el mapeo al cuestionario impreso (PDF/Word), la hoja diagnostico y las columnas paper_*."
+                >
+                  Prosecnur
+                </button>
+              </div>
               <button type="button" className="pulso-primary pulso-xlsform-toolbar-button" onClick={onExport} disabled={!!busy}>
                 <Download size={14} /> Exportar .xlsx
               </button>
@@ -4153,12 +4179,15 @@ function buildSuiteMetrics(
 function StatusChip({
   label,
   tone,
+  title,
 }: {
   label: string;
   tone: "neutral" | "info" | "warn" | "success";
+  /** Texto explicado, cuando la etiqueta visible va abreviada. */
+  title?: string;
 }) {
   return (
-    <span className={`pulso-xf-status is-${tone}`}>
+    <span className={`pulso-xf-status is-${tone}`} title={title}>
       <span className="pulso-xf-status-dot" aria-hidden="true" />
       {label}
     </span>

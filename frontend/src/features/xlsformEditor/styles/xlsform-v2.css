@@ -184,6 +184,26 @@
   }
 }
 
+/* ── Zona de contexto en una sola línea ────────────────────────────────── */
+/* Identidad del formulario (selector · métricas · estado) leída de corrido.
+   Antes el estado caía a un segundo renglón bajo el selector y el bloque
+   quedaba descolgado, con la cápsula del selector cortada arriba. Con las
+   etiquetas de procedencia abreviadas el conjunto entra de una vez; el
+   separador marca dónde termina el documento y empieza su estado. */
+
+.pulso-xlsform-frame .pulso-xlsform-commandbar-group--document {
+  align-items: center;
+  gap: 8px;
+}
+
+.pulso-xlsform-frame .pulso-xlsform-state-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 10px;
+  border-left: 1px solid var(--pulso-border);
+}
+
 /* ── Estado del formulario: dato, no control ───────────────────────────── */
 /* Procedencia y guardado se leen como texto con un punto de color. Sin
    cápsula: una pastilla con borde los ponía al mismo nivel visual que los
@@ -252,10 +272,28 @@
   align-items: center;
   gap: 4px;
   min-width: 0;
-  padding: 2px 2px 2px 4px;
+  padding: 2px;
   border: 1px solid var(--pulso-border);
   border-radius: 999px;
   background: color-mix(in srgb, var(--pulso-surface) 72%, transparent);
+}
+
+/* El selector de destino vive dentro de la cápsula del cluster, así que no
+   trae la suya: dos contenedores anidados para un solo control se leen como
+   ruido. Los segmentos conservan su pastilla activa, que es la señal útil.
+   Lleva las dos clases en el selector a propósito: .pulso-mode-toggle se
+   redeclara más tarde en theme.css y con una sola clase perdería. */
+.pulso-xlsform-frame .pulso-mode-toggle.pulso-xf-target-toggle {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.pulso-xlsform-frame .pulso-xf-target-toggle button {
+  font-size: 11.5px;
+  white-space: nowrap;
 }
 
 .pulso-xlsform-frame .pulso-xlsform-toolbar-check {
