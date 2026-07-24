@@ -14,17 +14,15 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronLeft,
-  Cloud,
   Download,
   FileSpreadsheet,
   FileText,
   ListChecks,
   Plus,
   Trash2,
-  Upload,
   X,
 } from "lucide-react";
-import { IconForward, IconHint, IconNew, IconRedo, IconSearch, IconUndo } from "../../lib/icons";
+import { IconForward, IconHint, IconRedo, IconSearch, IconUndo } from "../../lib/icons";
 import {
   apiSaveEntregable,
   apiEstudioProcessingSuggestions,
@@ -180,6 +178,7 @@ import {
   type SectionBoundaryState,
 } from "./canvas/FocusedWorkspace";
 import { MoreViewsMenu } from "./shell/MoreViewsMenu";
+import { FormIntakeMenu } from "./shell/FormIntakeMenu";
 import { Coachmarks } from "./shell/Coachmarks";
 import { iconForType } from "./helpers/icons";
 import { paletteForType } from "./helpers/paletteForType";
@@ -3085,11 +3084,9 @@ export default function XlsformEditorPage() {
                 value={catalogs.length}
                 label={catalogs.length === readyCatalogsCount ? "listas" : "listas preparadas"}
               />
-              <DocumentMetric
-                value={diagnostics.filter((diagnostic) => diagnostic.level === "warn").length}
-                label="avisos"
-                tone={diagnostics.some((diagnostic) => diagnostic.level === "warn") ? "warn" : "success"}
-              />
+              {/* El conteo de avisos no se repite acá: DiagnosticsBadge, en la
+                  zona de modos, ya es el indicador de diagnósticos y además
+                  lleva al aviso. Tenerlo dos veces sumaba ruido sin informar. */}
             </div>
             <div className="pulso-xlsform-state-strip" aria-label="Estado del formulario">
               <StatusChip label={formatSource(source?.kind ?? null)} tone="info" />
@@ -3182,48 +3179,35 @@ export default function XlsformEditorPage() {
           </div>
 
           <div className="pulso-xlsform-commandbar-group pulso-xlsform-commandbar-group--actions">
-            <button
-              type="button"
-              onClick={onNewWorkbook}
-              className="pulso-xlsform-toolbar-button"
-              disabled={!canCreateForm}
-              title={canCreateForm ? "Crear un formulario nuevo" : `Límite de ${MAX_FORMS} formularios por proyecto`}
-            >
-              <IconNew size={14} /> Nuevo formulario
-            </button>
-            <button
-              type="button"
-              onClick={() => xlsInputRef.current?.click()}
-              className="pulso-xlsform-toolbar-button"
-              disabled={!canCreateForm}
-              title={canCreateForm ? "Importar un XLSForm como formulario nuevo" : `Límite de ${MAX_FORMS} formularios por proyecto`}
-            >
-              <Upload size={14} /> Importar como nuevo
-            </button>
-            <button
-              type="button"
-              onClick={onImportSurveyMonkey}
-              className="pulso-xlsform-toolbar-button"
-              disabled={!canCreateForm}
-              title={canCreateForm ? "Traducir una encuesta de SurveyMonkey" : `Límite de ${MAX_FORMS} formularios por proyecto`}
-            >
-              <Cloud size={14} /> SurveyMonkey
-            </button>
-            <label
-              className="pulso-xlsform-toolbar-check"
-              title="Incluye las columnas paper_* y las hojas de la plataforma (mapeo a PDF/Word). Desmárcalo para un XLSForm ODK/Kobo limpio."
-            >
-              <input
-                type="checkbox"
-                checked={includeAppColumns}
-                onChange={(e) => setIncludeAppColumns(e.target.checked)}
-                disabled={!!busy}
-              />
-              Columnas de plataforma
-            </label>
-            <button type="button" className="pulso-primary pulso-xlsform-toolbar-button" onClick={onExport} disabled={!!busy}>
-              <Download size={14} /> Exportar .xlsx
-            </button>
+            {/* Traer un formulario al proyecto: una sola intención con tres
+                orígenes, recogida en su menú. Antes eran tres botones sueltos
+                del mismo peso que exportar, que es lo que se hace a diario. */}
+            <FormIntakeMenu
+              canCreate={canCreateForm}
+              maxForms={MAX_FORMS}
+              onNewBlank={onNewWorkbook}
+              onImportXlsform={() => xlsInputRef.current?.click()}
+              onImportSurveyMonkey={onImportSurveyMonkey}
+            />
+            {/* Salidas del editor. La casilla es una opción del .xlsx, no una
+                acción hermana, así que se lee dentro del mismo cluster. */}
+            <div className="pulso-xf-export-cluster">
+              <label
+                className="pulso-xlsform-toolbar-check"
+                title="Incluye las columnas paper_* y las hojas de la plataforma (mapeo a PDF/Word). Desmárcalo para un XLSForm ODK/Kobo limpio."
+              >
+                <input
+                  type="checkbox"
+                  checked={includeAppColumns}
+                  onChange={(e) => setIncludeAppColumns(e.target.checked)}
+                  disabled={!!busy}
+                />
+                Columnas de plataforma
+              </label>
+              <button type="button" className="pulso-primary pulso-xlsform-toolbar-button" onClick={onExport} disabled={!!busy}>
+                <Download size={14} /> Exportar .xlsx
+              </button>
+            </div>
             <button
               type="button"
               className="pulso-xlsform-toolbar-button"
