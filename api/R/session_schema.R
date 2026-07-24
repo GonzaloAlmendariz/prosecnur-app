@@ -297,6 +297,7 @@ session_schema <- function() {
     "monitoreo_aulas_publication", "literal", "persistible",    "router_monitoreo.R", "session_set", "",
     "monitoreo_client_report_pdf", "literal", "persistible",    "router_monitoreo.R", "session_set", "",
     "monitoreo_production_report_pdf", "literal", "persistible", "router_monitoreo.R", "session_set", "",
+    "monitoreo_telefonico_report_pdf", "literal", "persistible", "router_monitoreo_telefonico.R", "session_set", "meta del PDF de avance telefonico; analoga a client/production_report_pdf",
     "monitoreo_client_report_sheet_events", "literal", "persistible", "router_monitoreo.R", "directa",     "escrita via event_key dinamico (.monitoreo_sheets_publish_event_append, 3.8b); el literal vive en router_monitoreo.R:5944",
     "monitoreo_sheet_publish_events", "literal", "persistible", "router_monitoreo.R", "directa",     "escrita via event_key dinamico (.monitoreo_sheets_publish_event_append, 3.8b); el literal vive en router_monitoreo.R:5928",
     "monitoreo_territorial_map_cache", "literal", "persistible", "router_monitoreo.R", "session_set", "cache que viaja deliberadamente (geometría de ruta costosa de recomputar)",
