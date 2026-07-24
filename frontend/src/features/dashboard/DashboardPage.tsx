@@ -156,7 +156,29 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
         ) : null
       ) : (
         <div className="dash-admin-toolbar-wrap dash-editor-commandbar-wrap">
-          <div className="dash-admin-toolbar dash-editor-commandbar" role="toolbar" aria-label="Edición del dashboard">
+          {/* Capa de edición: interna, nunca visible en modo público. Adopta la
+              banda canónica de tres zonas —contexto | edición | salida— igual
+              que el resto de los módulos. La fila de secciones de más abajo NO
+              la adopta a propósito: esa sí la ve el cliente del estudio y su
+              aspecto es una decisión de marca aparte. */}
+          <div className="pulso-command-bar dash-admin-toolbar dash-editor-commandbar" role="toolbar" aria-label="Edición del dashboard">
+            <div className="dash-admin-toolbar-context">
+              {config.last_deploy && (
+                <span className="dash-admin-toolbar-deploy-info">
+                  Última publicación{" "}
+                  <a
+                    href={config.last_deploy.url || config.last_deploy.app_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Abrir Space en Hugging Face"
+                  >
+                    {config.last_deploy.repo_id}
+                  </a>
+                  {" — "}
+                  <RelativeTime iso={config.last_deploy.published_at} />
+                </span>
+              )}
+            </div>
             <div className="dash-admin-toolbar-group" aria-label="Fuente y diseño">
               <button
                 type="button"
@@ -184,8 +206,7 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
                 <Settings size={13} /> Personalizar
               </button>
             </div>
-            <span className="dash-admin-toolbar-sep" aria-hidden="true" />
-            <div className="dash-admin-toolbar-group" aria-label="Previsualización y publicación">
+            <div className="dash-admin-toolbar-group is-output" aria-label="Previsualización y publicación">
               <button
                 type="button"
                 disabled={!hasDashboardSource}
@@ -208,21 +229,6 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
               </button>
             </div>
           </div>
-          {config.last_deploy && (
-            <div className="dash-admin-toolbar-deploy-info">
-              Última publicación{" "}
-              <a
-                href={config.last_deploy.url || config.last_deploy.app_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Abrir Space en Hugging Face"
-              >
-                {config.last_deploy.repo_id}
-              </a>
-              {" — "}
-              <RelativeTime iso={config.last_deploy.published_at} />
-            </div>
-          )}
         </div>
       )}
 
