@@ -4,13 +4,13 @@ Revamp y reformulación estética completa — módulo · sección · pestaña.
 
 | Campo | Valor |
 | --- | --- |
-| Versión | 2.0 |
-| Fecha | 2026-07-23 |
-| Estado | Propuesto (pendiente de aprobación del usuario) |
-| Meta | **UI v3**: tercera generación de la interfaz (las superficies actuales son la generación v2), completamente renovada, con una **identidad visual v3 evolucionada y mejorada** dirigida por Claude y aprobada por el usuario. El isotipo y la marca canónica (ADR 0038) se conservan; todo lo demás evoluciona. |
+| Versión | 3.0 (re-editada 2026-07-24 por la indicación 5) |
+| Fecha | 2026-07-23 · re-edición 2026-07-24 |
+| Estado | Vigente, en ejecución por el bucle (§12) |
+| Meta | **UI v3**: tercera generación de la interfaz (las superficies actuales son la generación v2), completamente renovada, con una **identidad visual v3 evolucionada y mejorada** dirigida por Claude y revisada por el usuario. El isotipo y la marca canónica (ADR 0038) se conservan; todo lo demás evoluciona. |
 | Alcance | Toda la app: shell, homepage, 8 módulos, sus secciones y pestañas |
 | Modo | **Bucle de convergencia** (§12): el plan itera auditar→ejecutar→verificar y solo se cierra cuando el usuario lo declara |
-| Decisión estructural | **Sidebar unificado** (2026-07-23, decisión del usuario): la navegación de secciones y pestañas migra de la top bar centrada al sidebar izquierdo de la guía; supersede el patrón maestro #2 y reforma el #3 del ADR 0038 (requiere ADR nuevo, ver §4.5) |
+| Decisión estructural | **Top bar ratificada + uniformidad** (2026-07-24, indicación 5, ADR 0042): el concepto vigente — top bar de secciones + rail icon-compressed de pestañas — se conserva como canon; el foco del revamp es **uniformarlo en los 8 módulos y pulirlo a nivel macOS-like**. Revierte la decisión sidebar del 2026-07-23 (ADR 0041 → Reemplazado). |
 | Normas | `branding/direccion-creativa.md` v1.2 (ADR 0038) · guía general de UI de escritorio (`Art_app/docs/guia-general-ui-alto-sidebar-secciones-pestanas.md`) · `docs/ui-layout-grammar.md` |
 | Diagnóstico | Tres líneas independientes ejecutadas el 2026-07-23: inventario de navegación (código), auditoría de código contra la guía (file:line), QA visual en vivo con `prosecnur_audit_reference.pulso` (40+ capturas, 1280×800 y 1100×600, botones/popovers/teclado reales) |
 
@@ -22,8 +22,8 @@ La app tiene **una arquitectura de layout ejemplar y una marca canónica sólida
 
 Por eso la meta no es «aplicar la v1.2»: es **UI v3** — la tercera generación de la interfaz, con una **identidad visual v3 evolucionada** que Claude dirige y el usuario aprueba. Qué se conserva y qué evoluciona:
 
-- **Se conserva (canónico, intocable)**: el isotipo y las 10 variantes de `branding/logo/`, la marca en dos tintas (navy + blanco), la jerarquía de emisión (Prosecnur · PULSO PUCP), la arquitectura de scroll (No Scroll Jail) y el warm start.
-- **Evoluciona bajo dirección v3**: el shell de navegación (→ **sidebar unificado** de la guía, decisión del usuario), la economía del chrome (silencio real: fuera gradientes apilados y fondos decorativos), el sistema de tokens (roles completos: espaciado, tipografía, z, navegación), los materiales y la elevación (recalibrados para el sidebar), los patrones maestros (los que la evidencia desmiente se reemplazan; los que funcionan — switch, KPI discreto, procedencia, burbuja de tooltip — se conservan y refinan), el espectro modular (se conserva la lógica; se recalibra si el sidebar lo pide) y la voz verbal en superficie (saldar el texto crudo del dominio).
+- **Se conserva (canónico, intocable)**: el isotipo y las 10 variantes de `branding/logo/`, la marca en dos tintas (navy + blanco), la jerarquía de emisión (Prosecnur · PULSO PUCP), la arquitectura de scroll (No Scroll Jail), el warm start, **y el concepto del shell** — top bar superior con las secciones del módulo + sidebar de íconos (rail icon-compressed) con las pestañas — ratificado por el usuario el 2026-07-24 (indicación 5, ADR 0042): «funciona muy bien a nivel conceptual».
+- **Evoluciona bajo dirección v3**: la **ejecución visual de ese chrome** (uniformidad total entre los 8 módulos + pulido macOS-like: hoy conviven cuatro lenguajes de sección y hay módulos que no usan el chrome o lo usan diferente), la economía del chrome (silencio real: fuera gradientes apilados y fondos decorativos), el sistema de tokens (roles completos: espaciado, tipografía, z, navegación), los materiales y la elevación, los patrones maestros (los #1–#3 se re-ratifican y refinan; overlays artesanales y decoración del shell se retiran), el espectro modular (se conserva) y la voz verbal en superficie (saldar el texto crudo del dominio).
 
 El trabajo avanza con fundaciones compartidas primero y luego módulo por módulo, sección por sección, pestaña por pestaña, **en loops explícitos** (§12): cada fase es un loop interno de auditar→ejecutar→verificar→iterar, y el plan entero es un loop global que **solo el usuario cierra** cuando declare que la v3 está completa.
 
@@ -123,12 +123,12 @@ Fuera de la jerarquía: `/enciclopedia` (layout legacy, ruta huérfana, no apare
 
 **Norte**: una identidad v3 evolucionada — heredera de «La señal ordenada» pero corregida por la evidencia — gobernando el 100% de la superficie, con la guía de UI de escritorio como contrato geométrico/semántico. Seis decisiones rectoras:
 
-1. **Sidebar unificado como columna vertebral** (decisión del usuario, 2026-07-23). El shell v3 adopta la anatomía de la guía: **sidebar izquierdo** con tres zonas — arriba marca + contexto (proyecto/módulo activo), centro navegación con **SECCIONES en mayúsculas por CSS** y debajo sus **pestañas con ícono + label** (solo las de la sección activa expandidas), abajo utilidades (buscar, configuración, logs). Ancho expandido `--sidebar-width: 224px`, colapsado 56px con flyout accesible (hover **y** foco, Escape, restauración). La top bar centrada (pillbar, patrón maestro #2) y el rail icon-compressed como navegación primaria de tercer nivel (patrón #3) **se retiran como patrones de navegación**; sobreviven sus mejores piezas (burbuja de tooltip, título compacto de contexto, material contenido) dentro del sidebar. En ventanas angostas/bajas el sidebar colapsa a íconos y luego a drawer, según la gramática de layout.
-2. **Chrome silencioso, dato protagonista.** El header pierde los gradientes apilados y el fondo decorativo; con el sidebar como hogar de la navegación, el header global se adelgaza (o desaparece en favor del encabezado de vista). El material (blur/translúcido) queda SOLO en el sidebar y capas de comando. Proporción 60/30/10 real.
-3. **Un solo lenguaje por nivel de jerarquía.** Módulo = destino del selector de contexto del sidebar (+ homepage). Sección = grupo en mayúsculas del sidebar (número SOLO donde hay pipeline real, como progreso «Paso N»). Pestaña = ítem ícono+label bajo su sección. Stepper reservado a flujos con secuencia real **dentro del canvas** (hojas de ruta, fichas QR, mesas de muestra), con un único componente compartido y labels visibles en todos los pasos.
-4. **Primitivos antes que páginas.** Botón, diálogo/popover, empty state, spinner, sidebar: primero el primitivo compartido, después la migración módulo a módulo. Nada del revamp se implementa con una familia nueva por módulo.
-5. **Manifiesto de navegación total.** `lib/modules.ts` se extiende a secciones y pestañas: labels (sentence case en datos, mayúsculas por CSS), rutas, íconos, política de layout (`viewport` por defecto; `legacy-scroll` como excepción declarada) y estado de bloqueo derivan de UNA fuente que alimenta el sidebar, el router y el homepage.
-6. **Semántica honesta.** Links para rutas (`aria-current="page"`), tabs ARIA solo con tabpanel real, selector segmentado para modos de vista. Teclado completo del sidebar expandido Y colapsado (guía §13.1–13.2). Se corrige de raíz, no cosméticamente.
+1. **Chrome de módulo uniforme como columna vertebral** (indicación 5, ADR 0042). El shell canónico es el concepto vigente, ejecutado con disciplina: **command bar superior de tres zonas** — contexto | rail de secciones (pillbar) | acciones — y **rail icon-compressed de pestañas** con burbuja hover/foco + título compacto de pestaña activa en el workbench (patrones maestros #1–#3 re-ratificados). Los 8 módulos usan LOS MISMOS componentes (`ModuleCommandBar`, `SectionPillbar`, rail canónico) alimentados por el manifiesto; las variaciones (densidad, numeración solo con pipeline real, progreso) se declaran, no se improvisan. **Overflow con dignidad**: la command bar define su degradación (envolver → compactar → menú) verificada a 1024×600 — los chips de estado nunca desaparecen sin alternativa (salda la colisión KPIs↔recorrido documentada en la indicación 2).
+2. **Chrome silencioso, dato protagonista.** El header y la command bar pierden los gradientes apilados y el fondo decorativo; el material (blur/translúcido) queda SOLO en las capas de navegación y comando. Separación estricta **navegar** (secciones/pestañas) / **operar** (KPIs, fase, acciones de la command surface) / **identidad** (proyecto, guardado, Home en el header global). Proporción 60/30/10 real, factura macOS-like.
+3. **Un solo lenguaje por nivel de jerarquía.** Módulo = homepage + dock del header (pulido). Sección = pill de la command bar (número SOLO donde hay pipeline real, como progreso). Pestaña = ítem del rail icon-compressed (con identificación persistente vía título compacto). Stepper compartido solo para flujos secuenciales internos a una sección, con labels visibles en todos los pasos.
+4. **Primitivos antes que páginas.** Botón, diálogo/popover, empty state, spinner, command bar: primero el primitivo compartido, después la migración módulo a módulo. Nada del revamp se implementa con una familia nueva por módulo.
+5. **Manifiesto de navegación total.** `lib/modules.ts` se extiende a secciones y pestañas: labels (sentence case en datos, mayúsculas por CSS), rutas, íconos, política de layout (`viewport` por defecto; `legacy-scroll` como excepción declarada) y estado de bloqueo derivan de UNA fuente que alimenta la command bar, el rail, el router y el homepage.
+6. **Semántica honesta.** Links para rutas (`aria-current="page"`), tabs ARIA solo con tabpanel real, selector segmentado para modos de vista. Teclado completo en command bar y rail de pestañas (el rail comprimido cumple los requisitos de icon-only de la guía §10.6: nombre accesible, burbuja por hover **y** foco, Escape). Se corrige de raíz, no cosméticamente.
 
 ---
 
@@ -138,7 +138,7 @@ Fuera de la jerarquía: `/enciclopedia` (layout legacy, ruta huérfana, no apare
 
 ### 4.0 Congelar la dirección v3 (primer entregable de la fase)
 
-Claude redacta **`branding/direccion-creativa-v3.md`**: la evolución de la dirección v1.2 con las decisiones de §3 aterrizadas — anatomía exacta del sidebar (zonas, medidas, estados, material), header adelgazado, patrones maestros v3 (cuáles se retiran, cuáles sobreviven refinados), roles de token nuevos, voz de secciones/pestañas, y mocks estáticos del shell (HTML de referencia como `identity-reference.html`). **El usuario la aprueba antes de escribir código del shell**; su aprobación congela el contrato visual de la v3. Se acompaña del ADR de §4.5.
+Claude mantiene **`branding/direccion-creativa-v3.md`**: la evolución de la dirección v1.2 con las decisiones de §3 aterrizadas — anatomía exacta del **chrome de módulo horizontal** (command bar de 3 zonas: medidas, densidades, material, overflow; rail de pestañas: ancho, burbuja, título compacto), patrones maestros v3 (los #1–#3 refinados como norma; qué se retira: overlays artesanales, decoración del shell), roles de token nuevos, voz de secciones/pestañas, y mocks estáticos del chrome (HTML de referencia). La ejecución avanza y el usuario la revisa/veta por el bucle (gobierno por revisión, INDICE). Se acompaña de los ADRs de §4.5.
 
 ### 4.1 Tokens (theme.css + docs)
 
@@ -154,8 +154,8 @@ Claude redacta **`branding/direccion-creativa-v3.md`**: la evolución de la dire
 - **`PulsoDialog` / `PulsoPopover`** (sobre Radix, ya en deps): focus trap, foco inicial, restauración de foco, Escape, `--z-*`, motion `panel`. Los ~50 diálogos artesanales migran por oleada; **prohibido** crear overlays a mano desde la Fase 0.
 - **`EmptyState` y spinner únicos** (evolución de `States.tsx`): geometría que conserva la región (guía §22), un solo `@keyframes`.
 - **`PageHeader` real o su eliminación formal**: dado que la identidad manda «sin franjas de título» (`headerMode="sr-only"`), se decide: PageHeader muere como componente visual y se documenta el patrón «identidad en el chrome» como norma (recomendado), o se adopta. No puede seguir como letra muerta.
-- **`AppSidebar` + `SidebarSection` + `SidebarTab`**: el primitivo central de la v3, alimentado por el manifiesto (§4.3). Implementa la anatomía de la guía §8: zona superior (marca + contexto), zona central `flex:1; min-height:0; overflow-y:auto` con secciones en mayúsculas por CSS y pestañas ícono+label, zona inferior de utilidades; estado colapsado 56px con flyout accesible; semántica `nav > section > ul > li > a` (guía §12.1) con `aria-current="page"`; teclado completo expandido y colapsado. Se construye UNA vez y todos los módulos lo consumen.
-- **`StageStepper` compartido**: stepper canónico para flujos secuenciales dentro del canvas (labels visibles en TODOS los pasos — corrige el paso 4 icon-only de Hojas de ruta).
+- **`ModuleCommandBar` + `SectionPillbar` + rail de pestañas canónico**: el primitivo central de la v3, alimentado por el manifiesto (§4.3). Command bar de 3 zonas (contexto | secciones | acciones) con material contenido, acento por `--module-accent`, degradación de overflow declarada (envolver → compactar → menú) y semántica de links con `aria-current="page"`; pillbar con numeración solo-pipeline; rail icon-compressed con `aria-label` completo, burbuja hover+foco y **título compacto de pestaña activa** en el workbench (la identificación persistente que legitima el rail comprimido). Se construye UNA vez y los 8 módulos lo consumen; hoy cada módulo trae su versión o ninguna.
+- **`StageStepper` compartido**: stepper canónico para flujos secuenciales internos a una sección (labels visibles en TODOS los pasos — corrige el paso 4 icon-only de Hojas de ruta).
 
 ### 4.3 Manifiesto de navegación
 
@@ -171,24 +171,23 @@ Claude redacta **`branding/direccion-creativa-v3.md`**: la evolución de la dire
 
 ### 4.5 ADRs de la v3
 
-- **ADR «Shell v3: sidebar de navegación unificado»**: documenta la decisión del usuario (2026-07-23), supersede el patrón maestro #2 (pillbar centrado) y reforma el #3 (rail icon-compressed pasa de navegación primaria a estado colapsado del sidebar) del ADR 0038; referencia la guía como contrato geométrico.
-- **ADR-lite** por: manifiesto de navegación extendido, hogar de Enciclopedia, política de tema oscuro, dirección v3 (`direccion-creativa-v3.md`).
+- **ADR 0042 «Chrome de módulo uniforme»** (aceptado 2026-07-24): ratifica el top bar de secciones + rail de pestañas como canon, ordena la uniformidad en los 8 módulos y el pulido macOS-like; reemplaza al ADR 0041 (sidebar), que queda como registro histórico.
+- **ADR-lite** por: manifiesto de navegación extendido, hogar de Enciclopedia, política de tema oscuro, dirección v3 (`direccion-creativa-v3.md`), y retiro del código sidebar tras flag (borrado con confirmación explícita del usuario).
 
 **Gate Fase 0**: typecheck + vitest + test de contrato de navegación nuevo (rutas únicas, labels no vacíos, icono en toda pestaña, cero labels con numeración ornamental — pseudotests de la guía §25.2) + `make ui-quick-check` en matriz.
 
 ---
 
-## 5. Fase 1 — Shell v3 (sidebar), Homepage y BootGate (revamp mayor)
+## 5. Fase 1 — Chrome canónico del shell, Homepage y BootGate (revamp mayor)
 
-El capítulo prioritario: aquí nace físicamente la v3. Hoy el Home funciona pero su chrome grita: gradientes apilados, papel cuadriculado, cards con micro-roturas, footer con targets de 11px, picker sin disciplina modal, «···» que solo destruye — y la navegación vive repartida entre header, top bar y rails.
+El capítulo prioritario: aquí nace visualmente la v3. Hoy el Home funciona pero su chrome grita: gradientes apilados, papel cuadriculado, cards con micro-roturas, footer con targets de 11px, picker sin disciplina modal, «···» que solo destruye — y la command bar existe pero no es uniforme ni pulida.
 
-### 5.0 Migración del shell al sidebar unificado
+### 5.0 El chrome canónico del shell (indicación 5 / ADR 0042)
 
-- `Layout.tsx` se reescribe alrededor de `AppSidebar`: grid `var(--sidebar-width) minmax(0, 1fr)` (guía §6.2), sin scroll global. El **ProcessingPhaseDock, el ModuleSwitcher del header y los rails icon-compressed de tercer nivel se retiran** como navegación; sus rutas y estados migran al sidebar vía manifiesto.
-- **Contenido del sidebar por contexto**: en el homepage del proyecto, el sidebar muestra los módulos agregados (como destinos) + utilidades; dentro de un módulo, muestra la marca + selector de módulo (contexto, zona superior), las SECCIONES del módulo activo en mayúsculas y las pestañas de la sección activa (guía §5.2 SHOULD). El acento del módulo tiñe la selección vía `--module-accent` (chrome, nunca contenido).
-- **El header global se adelgaza**: conserva solo lo que no es navegación — indicador de proyecto (con acceso a cambiar), estado de sesión, y la banda multibase de Procesamiento (`SiblingWorkbenchSelector` + `MultibaseReportMenu`) como toolbar contextual del área de trabajo, no del shell.
-- **Estados responsivos** (gramática de layout actualizada en esta fase): expandido >1320px · colapsado a íconos ≤1320px · drawer ≤900px · ventana baja: la zona central del sidebar scrollea (guía §7.5). El estado expandido/colapsado se recuerda (`localStorage`, junto a `pulso.layoutPreset`).
-- **Migración por interruptor**: el shell v3 entra detrás de un flag de dev (`?shell=v3` o env) hasta que la matriz de QA pase completa; luego se hace default y el shell v2 se retira en la misma fase (sin convivencia larga de dos shells).
+- **Se construye `ModuleCommandBar` (§4.2)** y Procesamiento se re-viste primero como referencia viva del canon; el resto de módulos adopta en las fases 2–6 según el orden de la indicación 5 §6.
+- **Header global pulido, no eliminado**: conserva marca (isotipo canónico), dock de módulos, indicador de proyecto y estado de sesión — pero pierde los gradientes apilados, el blur duplicado y el fondo cuadriculado; superficie fría con hairline, factura macOS-like. La banda multibase de Procesamiento (`SiblingWorkbenchSelector` + `MultibaseReportMenu`) se re-viste como toolbar contextual con los primitivos.
+- **Separación navegar/operar/identidad** aplicada al shell completo: las secciones navegan (command bar), los KPIs/fase/acciones operan (command surface del módulo), el proyecto/guardado/Home identifican (header). Es la norma que salda la colisión de Hojas de ruta.
+- **Disposición del código sidebar** (flag `shellV3`, `AppSidebar.tsx`, `sidebar-v3.css`): no se promociona; se retira en oleada de limpieza con confirmación explícita del usuario (§4.5). Hasta entonces el flag queda inerte.
 
 ### 5.1 BootGate / chooser
 
@@ -199,17 +198,18 @@ El capítulo prioritario: aquí nace físicamente la v3. Hoy el Home funciona pe
 
 ### 5.2 Homepage del proyecto (MissionControl) — reestructuración
 
-- **Chrome**: fondo cuadriculado decorativo fuera; superficie Hielo/Niebla lisa; con la navegación en el sidebar (§5.0), el header se adelgaza y el material queda solo en el sidebar. El acento del módulo activo tiñe la selección vía `--module-accent` (ya existe), jamás el contenido.
+- **Chrome**: fondo cuadriculado decorativo fuera; superficie Hielo/Niebla lisa; el header pulido de §5.0 con material contenido solo en la capa de navegación. El acento del módulo activo tiñe la selección vía `--module-accent` (ya existe), jamás el contenido.
 - **Cards de módulo**: rediseño sobre el patrón KPI discreto — tile de ícono con acento del módulo, título, facts reales en mini-grid **con gaps corregidos** (fix colisión «20 jun. 20260»), hairline de acento de 2px al pie; hover-lift `med`; skeleton que conserva geometría (ya existe, se mantiene).
 - **Menú «···» real**: Abrir · Ver avance/facts · (separador) · Quitar del proyecto. El confirm destructivo pasa a `PulsoDialog` (cierra con Escape, foco inicial en «Cancelar»).
 - **Picker de módulos**: conserva el overlay «cinema» (está pulido) pero migra a `PulsoDialog` full-screen: focus trap, foco inicial, restauración; fix del deep-link `/?agregar=1`.
 - **Footer**: targets ≥ 28px de alto de control, íconos 16px, labels visibles; acceso a Enciclopedia si se decide como utilidad global.
 - **Modo setup (carrusel)**: misma dirección de quietud; el carrusel hereda las cards nuevas.
 
-### 5.3 Selector de módulos (ahora en el sidebar)
+### 5.3 Selector de módulos (dock del header, pulido)
 
-- El dock icon-only del header **se retira** (§5.0): el cambio de módulo vive en la zona superior del sidebar como selector de contexto (módulo activo con label visible + flyout/menú con los módulos agregados y la acción «Agregar módulo» diferenciada como acción, no como destino). Semántica de links correcta; tooltip por hover+foco en colapsado.
-- Botón sin nombre accesible del header: nombrar (aplica al header adelgazado).
+- **El dock icon-only se conserva y se pule** (es el estado colapsado legítimo de la guía §10.6): semántica de links correcta (fuera `role="listitem"`), tooltip por hover+foco, **label visible del módulo activo junto al dock** (identificación persistente), tile «Agregar» diferenciado como acción, y estrategia de overflow para cuando el catálogo supere el ancho (hoy 8 íconos + «+» están al límite, evidencia de la indicación 2 §1.4).
+- **Gestor de módulos («+») rediseñado como modal** sobre la vista actual (indicación 5 §3.3): nunca expulsa a otra ruta; al cerrar, se vuelve exactamente a donde se estaba; el dock del carrusel muestra los 8+ módulos completos; fix del deep-link `/?agregar=1`.
+- Botón sin nombre accesible del header: nombrar.
 
 **Gate Fase 1**: QA visual before/after del Home, BootGate y header en 1280×800 / 1440×1000 / 1100×600, claro (y oscuro cuando exista), teclado completo (tab por cards, menú «···», picker, Escape en todo), consola limpia.
 
@@ -217,7 +217,7 @@ El capítulo prioritario: aquí nace físicamente la v3. Hoy el Home funciona pe
 
 ## 6. Fase 2 — Procesamiento (sección por sección)
 
-Las 5 fases (Carga → Gráficos) se convierten en las **secciones del sidebar** del módulo (grupo «PROCESAMIENTO» o grupos por fase, según defina la dirección v3), con la numeración como progreso real («Paso N») y las pestañas de cada sección con ícono + label debajo. Los antiguos rails icon-compressed de subtabs desaparecen: sus destinos son ahora las pestañas del sidebar. El `SiblingWorkbenchSelector` (multibase) y `MultibaseReportMenu` viven como toolbar contextual del área de trabajo (§5.0), re-vestidos con los primitivos sin cambiar su contrato.
+Procesamiento ya es el ejemplar del concepto (ProcessingPhaseDock con las 5 fases numeradas — numeración legítima: pipeline real) y en la Fase 1 se re-viste como **referencia viva del canon** (`ModuleCommandBar` + `SectionPillbar` desde el manifiesto). Sus rails icon-compressed de pestañas se conservan y se elevan al patrón canónico (burbuja + título compacto + `data-audit-ready`). El `SiblingWorkbenchSelector` (multibase) y `MultibaseReportMenu` viven como toolbar contextual del área de trabajo (§5.0), re-vestidos con los primitivos sin cambiar su contrato.
 
 ### 6.1 Carga (`/carga`, subtabs insumos/base + segmented de origen)
 
@@ -237,8 +237,8 @@ Las 5 fases (Carga → Gráficos) se convierten en las **secciones del sidebar**
 
 ### 6.4 Analítica (12 sub-vistas en 3 grupos)
 
-- **El rail más denso de la app (~11 íconos icon-only) es el caso que mejor resuelve el sidebar unificado**: sus 3 grupos (Formulario / Base de datos / Reportes) se vuelven secciones en mayúsculas del sidebar y las 12 sub-vistas, pestañas con ícono + label — el reconocimiento deja de depender del ícono. Los dots de estado ganan **leyenda** (tooltip y/o badge con dato real).
-- Si 12 destinos saturan el sidebar a ventana baja, la zona central scrollea (comportamiento canónico de la guía); no se ocultan destinos.
+- **El rail más denso de la app (~11 íconos icon-only)**: se reorganiza con el patrón canónico — separadores de grupo (Formulario / Base de datos / Reportes) visibles en el rail comprimido, burbuja hover/foco con título+subtítulo, **título compacto de la pestaña activa** en el workbench, y **leyenda de los dots de estado** (tooltip y/o badge con dato real).
+- Si la agrupación no basta para el reconocimiento (gate visual de la fase), se evalúa promover grupos a secciones de la command bar — decisión de diseño en la oleada, con QA before/after; nunca se ocultan destinos.
 
 ### 6.5 Gráficos (prep → editor v2 → exportar)
 
@@ -248,7 +248,7 @@ Las 5 fases (Carga → Gráficos) se convierten en las **secciones del sidebar**
 - Popovers de `GraficosHeader` (role="dialog" sin modal ni trap) migran a `PulsoPopover`.
 - `editor-v2.css` (33k) congela crecimiento: cambios en archivo nuevo.
 
-**Gate Fase 2**: QA visual de las 5 secciones y sus pestañas en el sidebar (cada pestaña visitada y capturada), matriz de viewports (incluido sidebar colapsado y drawer), teclado completo del sidebar, consola limpia, `data-audit-ready` completo en las 5.
+**Gate Fase 2**: QA visual de las 5 secciones y sus pestañas (cada pestaña visitada y capturada), matriz de viewports con 1024×600 incluido (chips y pills sin recortes), teclado completo de command bar y rail, consola limpia, `data-audit-ready` completo en las 5.
 
 ---
 
@@ -256,7 +256,7 @@ Las 5 fases (Carga → Gráficos) se convierten en las **secciones del sidebar**
 
 Restricción dura: `MonitoreoPage.tsx` y `monitoreo.css` congelados; los perfiles telefónico/acreditación ya nacieron gigantes — **cero crecimiento de esos archivos**; todo cambio en `monitoreo_revamp_*.css` / componentes nuevos.
 
-- **Navegación al sidebar unificado**: los grupos de cada perfil (fuentes / modelo / calidad / consultas / avance / ocurrencias…) se vuelven secciones en mayúsculas del sidebar y sus tabs, pestañas con ícono + label — desaparece el icon-only en expandido de Telefónico y Acreditación (violación MUST 5.4) sin necesidad de tocar los page-files gigantes más allá del punto de montaje del rail. El título compacto de la pestaña activa al inicio del workbench se conserva como identificación persistente.
+- **Chrome canónico**: la command bar de Monitoreo se descarga separando navegar de operar (indicación 5): las secciones/grupos de cada perfil van al rail de secciones canónico y la toolbar operativa densa (Modo, Avance, Regenerado, corte) queda en la command surface — hoy ambas cosas compiten en una sola banda apretada. Los rails de pestañas de Telefónico y Acreditación adoptan el patrón #3 completo: rail comprimido + burbuja + **título compacto de la pestaña activa al inicio del workbench** (la identificación persistente que hoy falta y que legitima el icon-only).
 - **Voz del dominio**: mapa de labels es-PE para checks y headers (fuera «anonymous_responses», «WAVE», «TITULAR OPERATIONAL CODE», «RESPUESTAS VALIDAS» sin tilde, «PCT»); hashes truncados con copy-al-click; «6 alertas» → «6 checks al día» cuando todo está ok (estado ok con señal visual, no texto plano).
 - **Paletas paralelas hex** (`monitoreo.css:349-367,440`): los accents por fuente se re-declaran como tokens (`--pulso-source-*`) en theme.css y los nuevos archivos los consumen; el CSS congelado se migra oportunísticamente (solo donde ya se toque).
 - Toolbar única muy cargada: sostiene 1100×600, pero al migrar al command bar canónico (patrón #1: contexto | rail | acciones) se descarga con overflow a menú.
@@ -272,7 +272,7 @@ Restricción dura: `MonitoreoPage.tsx` y `monitoreo.css` congelados; los perfile
 
 - **Fix inmediato (oleada 0): «NaN%»** → «—» con nota «No aplica (componente no probabilístico)».
 - Mesas: el selector de mesa (`?mesa=`) se presenta con el lenguaje de sección canónico; el stepper de Acreditación migra al `StageStepper` compartido.
-- Tabs de Aulas (grupos Definición/Marco/Cálculo/Salidas de `universidadTabs.ts`): migran al sidebar unificado como secciones + pestañas con label, con leyenda para los dots de estado.
+- Tabs de Aulas (grupos Definición/Marco/Cálculo/Salidas de `universidadTabs.ts`): adoptan el rail de pestañas canónico con separadores de grupo, burbuja, título compacto y leyenda para los dots de estado.
 - El subsistema visual `universidad/` (aulas.css, criterios.css, marco.css, didáctica) se alinea a tokens en las superficies que se toquen; no se reescribe entero (es la vista más densa y funciona).
 - «Desplaza para ver más»: sustituir el chip por affordance de scroll estándar (sombra de borde/gutter estable).
 
@@ -293,7 +293,7 @@ Restricción dura: `MonitoreoPage.tsx` y `monitoreo.css` congelados; los perfile
 
 - **Fix del clipping** de mini-KPIs en «PDF FINAL» (paso Paquete).
 - Copy: «1 grupos» → concordancia; «caidas» → «caídas».
-- Adoptar `PageFrame` (hoy fuera del arquetipo) + secciones Preparación/Fichas/Paquete en el sidebar unificado (con progreso real si se decide tratarlas como pipeline) + `data-audit-ready`.
+- Adoptar `PageFrame` (hoy fuera del arquetipo) + secciones Preparación/Fichas/Paquete en la command bar canónica (con progreso real si se decide tratarlas como pipeline) + `data-audit-ready`.
 
 ### 9.2 Bitácora (Bitácora/Cronograma/Calendario)
 
@@ -316,7 +316,7 @@ Restricción dura: `MonitoreoPage.tsx` y `monitoreo.css` congelados; los perfile
 ### 10.1 Dashboard (`/tablero`)
 
 - **Charts a la fuente cromática única**: default = secuencial navy + semánticos del sistema (`pulso_plotly_palette` ya existe como ancla en R); la personalización de paletas del entregable sigue disponible, pero **el default es Pulso** (regla: «si un número aparece en pantalla, en un PDF y en un PPT, cuenta la misma historia con la misma paleta»).
-- Lenguaje de UI propio (links subrayados, segmented azul, toolbar de texto): migrar chrome a los primitivos y sus tabs configurables al sidebar unificado; `dash-*` deja de crecer. Adoptar `PageFrame` (gramática `dash-*` tiene migración dedicada pendiente en la gramática de layout — este es el momento).
+- Lenguaje de UI propio (links subrayados, segmented azul, toolbar de texto): migrar chrome a los primitivos y sus tabs configurables a la command bar canónica; `dash-*` deja de crecer. Adoptar `PageFrame` (gramática `dash-*` tiene migración dedicada pendiente en la gramática de layout — este es el momento).
 - Cuidar el contrato de deploy público (`PublicArtifactApp`): la identidad por defecto viaja también al artefacto exportado.
 
 ### 10.2 Enciclopedia
@@ -376,7 +376,7 @@ Los bugs D6 #1–#7 + copy (#12) + Escape del confirm (#4) + `svg role` del Boot
 Oleada 0  Quick fixes (bugs visibles)                    ~sin dependencias
 Fase 0    Dirección v3 congelada + fundaciones (tokens,  bloqueante
           primitivos, AppSidebar, manifiesto, semántica)
-Fase 1    Shell v3 (sidebar) + Home + BootGate           requiere F0
+Fase 1    Chrome canónico + Home + BootGate              requiere F0
 Fase 2    Procesamiento (5 secciones)                    requiere F0
 Fase 3    Monitoreo (4 perfiles, archivos nuevos)        requiere F0
 Fase 4    Calc-muestra + Hojas de ruta                   requiere F0
@@ -407,8 +407,8 @@ Las fases 2–6 son paralelizables entre sí por oleadas de máx. 2 writers con 
 | `calc(100dvh - Npx)` | ~30 | 0 |
 | Valores z-index fuera de tokens | ≥8 valores | 0 |
 | `data-audit-ready` en vistas del contrato | ~60% | 100% |
-| Módulos navegando por el sidebar unificado v3 | 0/8 | 8/8 |
-| Pestañas icon-only en estado expandido | 2 vistas | 0 |
+| Módulos con el chrome canónico (command bar + pillbar + rail) | 1/8 parcial | 8/8 |
+| Rails de pestañas sin identificación persistente (título compacto) | mayoría | 0 |
 | Checklist MUST de la guía (§5, §26) | parcial | 100% |
 | Familias de botón por módulo | ≥7 | 1 (`PulsoButton`) |
 | Familias de empty-state | 194 | 1 |

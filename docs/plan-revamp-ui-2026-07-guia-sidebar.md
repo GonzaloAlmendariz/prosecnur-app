@@ -1,5 +1,11 @@
 # UI v3 — Guía creativa del shell: el sidebar unificado y la resolución de la "L"
 
+> **SUPERSEDED (2026-07-24, indicación 5).** El dueño revirtió la decisión del
+> sidebar unificado: el shell canónico conserva el top bar de secciones + rail
+> de pestañas, con foco en uniformidad y pulido macOS-like. Este documento se
+> conserva solo como registro histórico — **no ejecutar**. Ver
+> `docs/plan-revamp-ui-2026-07-indicacion-5.md` y ADR 0042.
+
 Anexo de dirección de diseño para `plan-revamp-ui-2026-07.md`. Responde la preocupación
 central del dueño (2026-07-23): "ya hay una barra superior con el logo — ¿cómo hacemos el
 sidebar sin que se vea como una L?" Fundada en la gramática de la casa
