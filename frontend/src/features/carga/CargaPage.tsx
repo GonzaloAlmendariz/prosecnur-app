@@ -1131,13 +1131,25 @@ export default function CargaPage() {
               : "Carga primero el formulario y luego las respuestas para reconstruir variables, códigos y compatibilidad antes de validar."}
             allReady={allReady}
             controls={activeCargaTab === "insumos" ? (
-                <GlidingTabList activeKey={sourceMode} className="pulso-carga-source-switch pulso-compact-tabs pulso-carga-origin-tabs" role="tablist" aria-label="Origen de carga">
+                <GlidingTabList
+                  activeKey={sourceMode}
+                  mode="tabs"
+                  className="pulso-carga-source-switch pulso-compact-tabs pulso-carga-origin-tabs"
+                  role="radiogroup"
+                  aria-label="Origen de carga"
+                >
                   <button
                     type="button"
                     className={`pulso-compact-tab pulso-carga-origin-tab${sourceMode === "files" ? " is-active" : ""}`}
                     onClick={() => setSourceMode("files")}
-                    role="tab"
-                    aria-selected={sourceMode === "files"}
+                    onKeyDown={(event) => {
+                      if (event.key === "Home") setSourceMode("files");
+                      else if (event.key === "End" || event.key === "ArrowLeft" || event.key === "ArrowRight") {
+                        setSourceMode("platform");
+                      }
+                    }}
+                    role="radio"
+                    aria-checked={sourceMode === "files"}
                     data-gliding-key="files"
                     title="Carga manual - XLSForm y respuestas desde archivos locales"
                   >
@@ -1148,8 +1160,14 @@ export default function CargaPage() {
                     type="button"
                     className={`pulso-compact-tab pulso-carga-origin-tab${sourceMode === "platform" ? " is-active" : ""}`}
                     onClick={() => setSourceMode("platform")}
-                    role="tab"
-                    aria-selected={sourceMode === "platform"}
+                    onKeyDown={(event) => {
+                      if (event.key === "End") setSourceMode("platform");
+                      else if (event.key === "Home" || event.key === "ArrowLeft" || event.key === "ArrowRight") {
+                        setSourceMode("files");
+                      }
+                    }}
+                    role="radio"
+                    aria-checked={sourceMode === "platform"}
                     data-gliding-key="platform"
                     title="Plataforma - importar desde SurveyMonkey o KoboToolbox"
                   >
