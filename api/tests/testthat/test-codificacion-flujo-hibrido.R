@@ -19,7 +19,7 @@
 
 source("setup-load-all.R")
 
-.cfh_write_xlsform <- function(path, con_repeat = FALSE) {
+.cfh_write_xlsform <- function(path, con_repeat = FALSE, con_recod = FALSE) {
   base_survey <- data.frame(
     type  = c("select_one lst_srv", "text", "select_multiple lst_temas",
               "text", "text", "integer", "note"),
@@ -31,6 +31,18 @@ source("setup-load-all.R")
                               "Introducción"),
     stringsAsFactors = FALSE, check.names = FALSE
   )
+  if (isTRUE(con_recod)) {
+    # Simula el instrumento ADAPTADO: el apply per-base materializa las
+    # salidas *_recod como filas del survey (select_one). El flujo de
+    # codificación no debe reofrecerlas como preguntas a codificar.
+    base_survey <- rbind(base_survey, data.frame(
+      type = c("select_one lst_recod"),
+      name = c("p3_recod"),
+      label = c("Comment (recoded)"),
+      `label::Spanish (es)` = c("Comentario libre (recodificado)"),
+      stringsAsFactors = FALSE, check.names = FALSE
+    ))
+  }
   if (isTRUE(con_repeat)) {
     base_survey <- rbind(base_survey, data.frame(
       type = c("begin repeat", "text", "end repeat"),
@@ -47,6 +59,15 @@ source("setup-load-all.R")
     `label::Spanish (es)` = c("Salud", "Otro", "Agua", "Refugio", "Otro"),
     stringsAsFactors = FALSE, check.names = FALSE
   )
+  if (isTRUE(con_recod)) {
+    choices <- rbind(choices, data.frame(
+      list_name = c("lst_recod", "lst_recod"),
+      name = c("1", "2"),
+      label = c("Praise", "Complaint"),
+      `label::Spanish (es)` = c("Elogio", "Queja"),
+      stringsAsFactors = FALSE, check.names = FALSE
+    ))
+  }
   wb <- openxlsx::createWorkbook()
   openxlsx::addWorksheet(wb, "survey")
   openxlsx::writeData(wb, "survey", base_survey)
@@ -136,6 +157,39 @@ test_that("sugerencia: escribir_plantilla_familias emite el draft canónico de f
   expect_identical(fam$parent_label[fam$parent == "p3"], "Comentario libre")
   expect_identical(fam$q_order, sort(fam$q_order))
   expect_true(all(fam$use))
+})
+
+test_that("sugerencia: las salidas *_recod del instrumento adaptado NO se ofrecen como preguntas", {
+  # Regresión: tras aplicar la codificación, el apply per-base re-apunta el
+  # XLSForm de la base al instrumento ADAPTADO, que incluye las columnas
+  # *_recod en el survey. escribir_plantilla_familias re-escaneaba ese
+  # instrumento y reofrecía las salidas recod como preguntas codificables
+  # (visto en ACNUR PDM: srv_*_why_recod aparecían como tarjetas). Un recod
+  # es la SALIDA de la recodificación, jamás una entrada a codificar.
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("readxl")
+
+  td <- tempfile("cfh-recod-")
+  dir.create(td)
+  inst <- leer_instrumento_xlsform(
+    .cfh_write_xlsform(file.path(td, "instrumento_adaptado.xlsx"), con_recod = TRUE)
+  )
+  # El survey adaptado sí contiene la fila recod...
+  expect_true("p3_recod" %in% inst$survey$name)
+
+  dat <- .cfh_data()
+  dat$p3_recod <- c("1", "2", "", "1")
+
+  fam_path <- tempfile("familias-recod-", fileext = ".xlsx")
+  on.exit(unlink(fam_path), add = TRUE)
+  escribir_plantilla_familias(inst = inst, dat = list(raw = dat), path = fam_path)
+  fam <- readxl::read_excel(fam_path, sheet = "familias")
+
+  # ...pero la plantilla de familias NO la ofrece como pregunta.
+  expect_false(any(grepl("_recod$", as.character(fam$parent))))
+  expect_false("p3_recod" %in% fam$parent)
+  # Las preguntas legítimas siguen presentes.
+  expect_true(all(c("p1", "p2", "p3", "edad") %in% fam$parent))
 })
 
 test_that("confirmación: leer_familias_clasificar clasifica por tipo con adopciones y huérfanas", {

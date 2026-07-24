@@ -1994,8 +1994,12 @@ escribir_plantilla_familias <- function(inst, dat, path = "familias.xlsx", inclu
     "integer",
     if (isTRUE(incluir_text_vars)) "text" else character(0)
   )
+  # Las columnas `_recod` son la SALIDA materializada de una recodificación ya
+  # aplicada (el apply per-base re-apunta el XLSForm de la base al instrumento
+  # adaptado, que las incluye en el survey). Nunca son una pregunta a codificar:
+  # excluirlas evita que el flujo de codificación reofrezca sus propias salidas.
   cand <- tb %>%
-    dplyr::filter(.data$type_base %in% tipos_objetivo) %>%
+    dplyr::filter(.data$type_base %in% tipos_objetivo, !grepl("_recod$", .data$name)) %>%
     dplyr::transmute(
       parent       = .data$name,
       parent_label = label_es_from_inst(.data$name, inst),  # <- ESPAÑOL desde survey_raw
@@ -2174,8 +2178,10 @@ escribir_plantilla_familias_repeat <- function(inst,
     "integer",
     if (isTRUE(incluir_text_vars)) "text" else character(0)
   )
+  # Excluir las salidas `_recod` (ver nota en escribir_plantilla_familias):
+  # un recod materializado no es una pregunta a codificar.
   det <- det %>%
-    dplyr::filter(.data$type_base %in% tipos_obj)
+    dplyr::filter(.data$type_base %in% tipos_obj, !grepl("_recod$", .data$var_name))
 
   # Secciones presentes en detector, ordenando "main" primero
   sections <- unique(det$repeat_section)
