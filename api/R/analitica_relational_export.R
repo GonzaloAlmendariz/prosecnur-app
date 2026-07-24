@@ -199,7 +199,8 @@
   }, numeric(1))
 }
 
-.arx_write_sheet <- function(wb, sheet, data, labels = FALSE) {
+.arx_write_sheet <- function(wb, sheet, data, labels = FALSE, color_recod = FALSE,
+                             type_map = NULL) {
   data <- .arx_plain(data)
   openxlsx::addWorksheet(wb, sheet, tabColour = if (labels) "#2F855A" else "#6B7280")
   openxlsx::writeData(
@@ -228,6 +229,14 @@
     )
     openxlsx::addStyle(wb, sheet, label_style, rows = 2L, cols = seq_along(data), gridExpand = TRUE)
   }
+  # Firma de color de recods POR TIPO (dummies SM en verde vía type_map).
+  pulso_xlsx_highlight_recod_cols(
+    wb, sheet, colnames = names(data),
+    header_rows = seq_len(data_row - 1L),
+    first_data_row = data_row,
+    last_data_row = if (nrow(data) > 0L) data_row + nrow(data) - 1L else NULL,
+    enabled = color_recod, type_map = type_map
+  )
   openxlsx::freezePane(wb, sheet, firstActiveRow = data_row)
   openxlsx::setColWidths(
     wb, sheet, cols = seq_along(data),
@@ -269,6 +278,7 @@
     }
   }
 
+  color_recod <- .analitica_color_recod_enabled(cfg)
   wb <- openxlsx::createWorkbook()
   sheets <- character(0)
   rows <- list()
@@ -278,8 +288,9 @@
     sheets <- c(sheets, sheet_codes)
     sheet_labels <- .arx_unique_sheet(role, "etiquetas", sheets)
     sheets <- c(sheets, sheet_labels)
-    .arx_write_sheet(wb, sheet_codes, prepared[[nombre]]$codigos, labels = FALSE)
-    .arx_write_sheet(wb, sheet_labels, prepared[[nombre]]$etiquetas, labels = TRUE)
+    tmap <- pulso_recod_type_map((prepared[[nombre]]$inst %||% list())$survey)
+    .arx_write_sheet(wb, sheet_codes, prepared[[nombre]]$codigos, labels = FALSE, color_recod = color_recod, type_map = tmap)
+    .arx_write_sheet(wb, sheet_labels, prepared[[nombre]]$etiquetas, labels = TRUE, color_recod = color_recod, type_map = tmap)
     rows[[nombre]] <- nrow(prepared[[nombre]]$codigos)
   }
   openxlsx::saveWorkbook(wb, path_xlsx, overwrite = TRUE)

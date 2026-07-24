@@ -748,6 +748,16 @@
       fname <- sub("\\.[^.]+$", ".xlsx", fname)
       path_out <- .session_tmp(sid, sprintf("%s_%s", uuid::UUIDgenerate(), fname))
       .analitica_patch_xlsform_file_for_integrated_key(path_in, path_out, base_meta)
+    } else if (identical(role, "instrumento") &&
+               identical(kind, "bases_instrumento_codificado") &&
+               identical(tolower(ext), "xlsx")) {
+      # Instrumento codificado: re-emitir el XLSForm aplicando (o no) la firma de
+      # color de recods EN EL EXPORT, gated por el switch de Analitica. El
+      # archivo adaptado fuente no es fuente de verdad del color; lo decidimos
+      # aqui a partir del tipo (SM/SO/INTEGER) leido del survey.
+      color_recod <- .analitica_color_recod_enabled(cfg %||% .analitica_get_config(sid))
+      sheets <- .analitica_read_xlsform_all_sheets(path_in)
+      .analitica_write_xlsform_sheets(sheets, path_out, color_recod = color_recod)
     } else {
       copied <- file.copy(path_in, path_out, overwrite = TRUE)
       if (!isTRUE(copied)) {
@@ -1270,7 +1280,8 @@
                                           bases_df, path, valores = "ambos",
                                           decision_audit_df = NULL,
                                           decision_case_audit_df = NULL,
-                                          ficha_tecnica = NULL) {
+                                          ficha_tecnica = NULL,
+                                          color_recod = FALSE, type_map = NULL) {
   if (!requireNamespace("openxlsx", quietly = TRUE)) stop("Se requiere openxlsx.", call. = FALSE)
   wb <- openxlsx::createWorkbook()
 
@@ -1288,6 +1299,13 @@
     header2 <- openxlsx::createStyle(textDecoration = "italic", fontColour = "#5F6368", fgFill = "#F6F7F9")
     openxlsx::addStyle(wb, sheet_name, header1, rows = 1L, cols = seq_along(data), gridExpand = TRUE)
     openxlsx::addStyle(wb, sheet_name, header2, rows = 2L, cols = seq_along(data), gridExpand = TRUE)
+    pulso_xlsx_highlight_recod_cols(
+      wb, sheet_name, colnames = names(data),
+      header_rows = 1:2,
+      first_data_row = 3L,
+      last_data_row = if (nrow(data) > 0L) nrow(data) + 2L else NULL,
+      enabled = color_recod, type_map = type_map
+    )
     openxlsx::freezePane(wb, sheet_name, firstActiveRow = 3L)
     openxlsx::setColWidths(wb, sheet_name, cols = seq_along(data), widths = "auto")
   }
@@ -1380,6 +1398,7 @@
   bases_rows <- list()
   decision_audit_rows <- list()
   decision_case_audit_rows <- list()
+  unified_type_map <- list()  # nombre_var -> tipo, acumulado entre bases hermanas
 
   for (nombre in names(bases)) {
     pair <- .analitica_pair_for_base(s, bases[[nombre]], fuente, nombre)
@@ -1458,6 +1477,7 @@
     df_lab <- .aplicar_etiquetas(rp_data, rp_inst, valores = "etiquetas", multi_select = multi_select)
     dfs_cod[[nombre]] <- df_cod
     dfs_lab[[nombre]] <- df_lab
+    unified_type_map <- utils::modifyList(unified_type_map, pulso_recod_type_map(rp_inst$survey))
     bases_rows[[length(bases_rows) + 1L]] <- data.frame(
       base_nombre = nombre,
       alias = alias,
@@ -1612,7 +1632,9 @@
                                 bases_df, out_path, valores = valores,
                                 decision_audit_df = decision_audit_df,
                                 decision_case_audit_df = decision_case_audit_df,
-                                ficha_tecnica = FALSE)
+                                ficha_tecnica = FALSE,
+                                color_recod = .analitica_color_recod_enabled(cfg),
+                                type_map = unified_type_map)
   meta <- .register_output_file(sid, "bases_unificadas", out_path, original_name = out_name)
   list(
     ok = TRUE,
@@ -2270,6 +2292,13 @@
   s$analitica_config %||% .analitica_default_config()
 }
 
+# ¿Aplicar la firma de color de recodificaciones en los entregables? Default
+# TRUE (feature conocida que estaba rota): configs persistidas antes del flag no
+# lo traen y deben seguir coloreando. El FALSE explicito del analista se respeta.
+.analitica_color_recod_enabled <- function(cfg) {
+  isTRUE((cfg %||% list())$color_recodificaciones %||% TRUE)
+}
+
 .analitica_config_set <- function(sid, cfg) {
   active <- .analitica_scoped_base(sid)
   if (nzchar(active)) {
@@ -2850,18 +2879,27 @@
   inst
 }
 
-.analitica_write_final_xlsform <- function(rp_inst, path) {
+.analitica_write_final_xlsform <- function(rp_inst, path, color_recod = FALSE) {
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("El paquete 'openxlsx' es necesario para exportar el XLSForm final.", call. = FALSE)
   }
   survey <- .analitica_xlsform_sheet_df(rp_inst$survey_raw %||% rp_inst$survey, c("type", "name", "label"))
   choices <- .analitica_xlsform_sheet_df(rp_inst$choices_raw %||% rp_inst$choices, c("list_name", "name", "label"))
   settings <- .analitica_xlsform_sheet_df(rp_inst$settings, c("form_title", "form_id"))
+  .analitica_write_xlsform_sheets(
+    list(survey = survey, choices = choices, settings = settings),
+    path, color_recod = color_recod
+  )
+}
 
+# Escritor compartido del XLSForm (survey/choices/settings + hojas extra) con la
+# firma de color de recodificaciones opcional. Es el UNICO punto de export que
+# decide el color, gated por `color_recod`: asi el mismo archivo sale coloreado
+# (ON) o limpio (OFF) sin depender de si la codificacion pinto el archivo fuente.
+.analitica_write_xlsform_sheets <- function(sheets, path, color_recod = FALSE) {
   wb <- openxlsx::createWorkbook(creator = "prosecnur")
   header_style <- openxlsx::createStyle(textDecoration = "bold", fgFill = "#E8EAED")
   text_style <- openxlsx::createStyle(numFmt = "@")
-  sheets <- list(survey = survey, choices = choices, settings = settings)
   for (sheet in names(sheets)) {
     df <- sheets[[sheet]]
     openxlsx::addWorksheet(wb, sheet)
@@ -2872,8 +2910,80 @@
       openxlsx::setColWidths(wb, sheet, cols = seq_len(ncol(df)), widths = "auto")
     }
   }
+  if (isTRUE(color_recod)) .analitica_paint_xlsform_recods(wb, sheets)
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   invisible(path)
+}
+
+# Pinta las filas `_recod` del `survey` (por tipo: SM verde, SO azul, INTEGER
+# morado) y sus choice-lists nuevas con la paleta canonica. Idempotente:
+# stack = TRUE apila el relleno sobre el formato base ya escrito.
+.analitica_paint_xlsform_recods <- function(wb, sheets) {
+  survey <- sheets$survey
+  if (is.null(survey) || !all(c("type", "name") %in% names(survey)) || nrow(survey) == 0L) {
+    return(invisible(NULL))
+  }
+  pal <- pulso_recod_palette()
+  is_recod <- pulso_recod_is_name(survey$name)
+  types <- vapply(as.character(survey$type), pulso_recod_type_from_xlsform, character(1))
+  list_of <- vapply(as.character(survey$type), .extract_listname, character(1))
+  # Fila del survey: matiz un pelo mas marcado (row) que la superficie (choices).
+  surf <- c(sm = pal$sm_row, so = pal$so_row, int = pal$int_row)
+  chc  <- c(sm = pal$sm,     so = pal$so,     int = pal$int)
+
+  # survey: fila por tipo (+1 por el encabezado del XLSX).
+  for (tp in c("sm", "so", "int")) {
+    rows <- which(is_recod & !is.na(types) & types == tp)
+    if (length(rows)) {
+      openxlsx::addStyle(wb, "survey", pulso_recod_fill_style(surf[[tp]]),
+                         rows = rows + 1L, cols = seq_len(ncol(survey)),
+                         gridExpand = TRUE, stack = TRUE)
+    }
+  }
+
+  # choices: mapea list_name -> tipo desde las filas recod del survey (cuando el
+  # `type` conserva el list_name). Si el type viene "stripped" (p.ej. el XLSForm
+  # reconstruido desde rp_inst), la lista igual se colorea por su nombre `_recod`
+  # con el color generico. Asi el instrumento real sale por-tipo y el
+  # reconstruido no queda sin firma.
+  choices <- sheets$choices
+  if (!is.null(choices) && "list_name" %in% names(choices) && nrow(choices) > 0L) {
+    ln_type <- list()  # list: `[[missing]]` devuelve NULL (un vector atomico
+    # reventaria con "subscript out of bounds").
+    for (r in which(is_recod)) {
+      ln <- list_of[r]
+      if (!is.na(ln) && nzchar(ln) && !is.na(types[r])) ln_type[[ln]] <- types[r]
+    }
+    # Fallback para el XLSForm reconstruido (type stripped): resuelve el tipo de
+    # la lista `_recod` por su nombre contra el mapa nombre_var->tipo del survey.
+    type_map <- pulso_recod_type_map(survey)
+    cl <- as.character(choices$list_name)
+    candidates <- unique(c(names(ln_type), cl[pulso_recod_is_name(cl)]))
+    for (ln in candidates) {
+      crows <- which(cl == ln)
+      if (!length(crows)) next
+      tp <- ln_type[[ln]]
+      if (is.null(tp) || !(tp %in% names(chc))) tp <- pulso_recod_resolve_type(ln, type_map)
+      hex <- if (!is.null(tp) && !is.na(tp) && tp %in% names(chc)) chc[[tp]] else pal$generic
+      openxlsx::addStyle(wb, "choices", pulso_recod_fill_style(hex),
+                         rows = crows + 1L, cols = seq_len(ncol(choices)),
+                         gridExpand = TRUE, stack = TRUE)
+    }
+  }
+  invisible(NULL)
+}
+
+# Lee todas las hojas de un XLSForm como data.frames de texto (preserva codigos
+# como "1"/"01" sin coerciones). Se usa para re-emitir el instrumento adaptado
+# con la firma de color al exportarlo.
+.analitica_read_xlsform_all_sheets <- function(path) {
+  sn <- readxl::excel_sheets(path)
+  stats::setNames(lapply(sn, function(s) {
+    as.data.frame(
+      readxl::read_excel(path, sheet = s, col_types = "text"),
+      stringsAsFactors = FALSE, check.names = FALSE
+    )
+  }), sn)
 }
 
 # Lee `cruces_vars` de la config (schema v2 o v1 legacy) y devuelve
@@ -2919,6 +3029,10 @@
 	    list(
 	      version = 3L,
 	    fuente_preferida = "adaptados",
+	    # Firma de color de recodificaciones en los entregables (instrumento
+	    # codificado, BBDD xlsx, libro de codigos). Default TRUE: los `_recod`
+	    # salen resaltados con la paleta pastel. El switch (frontend) lo apaga.
+	    color_recodificaciones = TRUE,
 	    ficha_tecnica = list(),
 	    secciones = list(),
 	    numericas = list(),
@@ -3659,7 +3773,10 @@ mount_analitica <- function(pr) {
         fn = function(rp_data, rp_inst, out_path) {
           reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
           final_inst <- .analitica_filter_xlsform_inst(reviewed$inst, excluidas)
-          .analitica_write_final_xlsform(final_inst, out_path)
+          .analitica_write_final_xlsform(
+            final_inst, out_path,
+            color_recod = .analitica_color_recod_enabled(cfg)
+          )
         }
       )
       .analitica_status_set(sid, "analitica_codebook_ok", TRUE)
@@ -4515,7 +4632,9 @@ mount_analitica <- function(pr) {
             df_lab,
             out_path,
             valores = valores,
-            ficha_tecnica = FALSE
+            ficha_tecnica = FALSE,
+            color_recod = .analitica_color_recod_enabled(cfg),
+            type_map = pulso_recod_type_map(rp_inst$survey)
           )
         }
       )

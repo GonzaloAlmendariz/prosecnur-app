@@ -61,7 +61,8 @@ reporte_codebook <- function(data,
                              sheet     = "Codebook",
                              ord       = NULL,
                              codigos_solo_si_presentes = NULL,
-                             ficha_tecnica = NULL) {
+                             ficha_tecnica = NULL,
+                             color_recod = FALSE) {
 
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("El paquete 'openxlsx' es necesario para `reporte_codebook()`. ",
@@ -90,7 +91,8 @@ reporte_codebook <- function(data,
     sheet   = sheet,
     df_name = df_name,
     codigos_solo_si_presentes = codigos_solo_si_presentes,
-    ficha_tecnica = ficha_tecnica
+    ficha_tecnica = ficha_tecnica,
+    color_recod = color_recod
   )
 }
 
@@ -104,7 +106,8 @@ reporte_codebook <- function(data,
                                     sheet   = "Codebook",
                                     df_name = "df",
                                     codigos_solo_si_presentes = NULL,
-                                    ficha_tecnica = NULL) {
+                                    ficha_tecnica = NULL,
+                                    color_recod = FALSE) {
 
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("El paquete 'openxlsx' es necesario para generar el codebook.",
@@ -218,6 +221,14 @@ reporte_codebook <- function(data,
   st_vals     <- .st$st_vals
   st_btm      <- .st$st_btm
 
+  # Firma de color de recods: tinte MUY tenue SOLO en la tabla `Codigo | Etiqueta`
+  # de una variable `_recod` (nunca el nombre ni la etiqueta de la variable ni
+  # zonas alrededor), coloreado POR TIPO. Los dummies SM se resuelven a su
+  # variable padre (verde). Gated por `color_recod`.
+  recod_type_map <- if (isTRUE(color_recod)) {
+    pulso_recod_type_map((attr(df, "instrumento_reporte", exact = TRUE) %||% list())$survey)
+  } else list()
+
   # ---- recorrer variables ----
   for (v in vars_to_write) {
 
@@ -304,6 +315,22 @@ reporte_codebook <- function(data,
       wb, sheet, style = st_vals,
       rows = vals_start:vals_end, cols = 2:3, gridExpand = TRUE
     )
+
+    # 5a) tinte de recod: SOLO la tabla `Codigo | Etiqueta` (columnas B y C). El
+    # ENCABEZADO (fila "Valor", blk_start+1) va un paso mas oscuro que el CUERPO
+    # (filas de valores), como en las tablas normales. No pinta el nombre, la
+    # etiqueta de la variable, la columna "Valores validos" ni zonas alrededor.
+    if (isTRUE(color_recod) && pulso_recod_is_name(v)) {
+      tp <- pulso_recod_resolve_type(v, recod_type_map)
+      openxlsx::addStyle(
+        wb, sheet, openxlsx::createStyle(fgFill = pulso_recod_codebook_header_color(tp)),
+        rows = blk_start + 1L, cols = 2:3, gridExpand = TRUE, stack = TRUE
+      )
+      openxlsx::addStyle(
+        wb, sheet, openxlsx::createStyle(fgFill = pulso_recod_codebook_color(tp)),
+        rows = vals_start:vals_end, cols = 2:3, gridExpand = TRUE, stack = TRUE
+      )
+    }
 
     # 5) cuadro del bloque (marco exterior definido)
     pulso_xlsx_box(wb, sheet, r1 = blk_start, r2 = vals_end, c1 = 1, c2 = 3)

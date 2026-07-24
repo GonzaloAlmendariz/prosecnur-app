@@ -33,6 +33,7 @@
                                           sid = NULL) {
   cb_cfg <- cfg$codebook %||% list()
   codigos <- if (length(codes) > 0L) codes else NULL
+  color_recod <- .analitica_color_recod_enabled(cfg)
 
   function(rp_data, rp_inst, out_path) {
     reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
@@ -63,7 +64,8 @@
         ord = (attr(data_out, "instrumento_reporte", exact = TRUE) %||% list())$orders_list,
         codigos_solo_si_presentes = codigos,
         periodo = calc_str(cb_cfg$periodo_pdf, ""),
-        incluir_indice = FALSE  # el libro de códigos va directo al contenido, sin índice
+        incluir_indice = FALSE,  # el libro de códigos va directo al contenido, sin índice
+        color_recod = color_recod
       )
     } else {
       reporte_codebook(
@@ -71,7 +73,8 @@
         path_xlsx = out_path,
         codigos_solo_si_presentes = codigos,
         # ARREGLO 3: el libro de códigos NO embebe la ficha técnica.
-        ficha_tecnica = FALSE
+        ficha_tecnica = FALSE,
+        color_recod = color_recod
       )
     }
   }
