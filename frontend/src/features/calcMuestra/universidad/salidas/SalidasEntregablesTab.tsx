@@ -273,20 +273,34 @@ export function SalidasEntregablesTab({
         </div>
         <GlidingTabList
           activeKey={pii}
+          mode="tabs"
           className="pulso-segmented cmv2-sal-pii-segment"
-          role="tablist"
+          role="radiogroup"
           aria-label="Política de identificadores"
           data-pii={pii}
         >
-          {PII_OPTIONS.map((option) => (
+          {PII_OPTIONS.map((option, index) => (
             <button
               key={option.id}
               type="button"
-              role="tab"
+              role="radio"
               data-gliding-key={option.id}
               className={pii === option.id ? "is-active" : ""}
-              aria-selected={pii === option.id}
+              aria-checked={pii === option.id}
               onClick={() => updateConfig({ pii_policy: option.id })}
+              onKeyDown={(event) => {
+                const targetIndex = event.key === "Home"
+                  ? 0
+                  : event.key === "End"
+                    ? PII_OPTIONS.length - 1
+                    : event.key === "ArrowRight"
+                      ? (index + 1) % PII_OPTIONS.length
+                      : event.key === "ArrowLeft"
+                        ? (index - 1 + PII_OPTIONS.length) % PII_OPTIONS.length
+                        : -1;
+                if (targetIndex < 0) return;
+                updateConfig({ pii_policy: PII_OPTIONS[targetIndex].id });
+              }}
             >
               {option.label}
             </button>
