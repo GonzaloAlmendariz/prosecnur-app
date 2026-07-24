@@ -1825,19 +1825,39 @@ function PlatformImportPanel({
   const selectedReady = isSurveyMonkey ? Boolean(selectedSurvey) : Boolean(selectedAsset);
   const rowsCount = isSurveyMonkey ? smSurveys.length : koboAssets.length;
   const providerName = providerLabel(provider);
+  const providerOptions: CargaPlatformProvider[] = ["surveymonkey", "kobo"];
 
   return (
     <section className="pulso-platform-import" aria-label="Carga desde plataforma">
       <div className="pulso-platform-topbar">
-        <GlidingTabList activeKey={provider} className="pulso-platform-provider-tabs pulso-compact-tabs" role="tablist" aria-label="Proveedor">
-          {(["surveymonkey", "kobo"] as CargaPlatformProvider[]).map((item) => (
+        <GlidingTabList
+          activeKey={provider}
+          mode="tabs"
+          className="pulso-platform-provider-tabs pulso-compact-tabs"
+          role="radiogroup"
+          aria-label="Proveedor"
+        >
+          {providerOptions.map((item, index) => (
             <button
               key={item}
               type="button"
               className={`pulso-compact-tab${provider === item ? " is-active" : ""}`}
               onClick={() => onProviderChange(item)}
-              role="tab"
-              aria-selected={provider === item}
+              onKeyDown={(event) => {
+                const targetIndex = event.key === "Home"
+                  ? 0
+                  : event.key === "End"
+                    ? providerOptions.length - 1
+                    : event.key === "ArrowRight"
+                      ? (index + 1) % providerOptions.length
+                      : event.key === "ArrowLeft"
+                        ? (index - 1 + providerOptions.length) % providerOptions.length
+                        : -1;
+                if (targetIndex < 0) return;
+                onProviderChange(providerOptions[targetIndex]);
+              }}
+              role="radio"
+              aria-checked={provider === item}
               data-gliding-key={item}
               title={`${providerLabel(item)} - seleccionar proveedor de origen`}
             >
