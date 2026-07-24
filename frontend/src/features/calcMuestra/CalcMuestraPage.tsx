@@ -2117,7 +2117,7 @@ export default function CalcMuestraPage() {
       title="Cálculo de muestra y marco muestral"
       toolbar={
         <div className={`cmv2-module-chrome ${desk === "sin_definir" ? "is-picker" : ""}`}>
-          <div className={`cmv2-commandbar ${desk === "sin_definir" ? "is-picker" : ""}`} role="toolbar" aria-label="Comandos de cálculo de muestra">
+          <div className={`pulso-command-bar cmv2-commandbar ${desk === "sin_definir" ? "is-picker" : ""}`} role="toolbar" aria-label="Comandos de cálculo de muestra">
             {desk === "sin_definir" ? (
               <div className="cmv2-toolbar-context" aria-label="Contexto del módulo">
                 <span className="cmv2-toolbar-icon"><Calculator size={18} /></span>
