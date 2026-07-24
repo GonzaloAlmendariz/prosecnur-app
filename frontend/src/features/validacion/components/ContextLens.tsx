@@ -16,7 +16,7 @@
 // =============================================================================
 
 import type { CSSProperties, ReactNode } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { GlidingTabList } from "../../../components/GlidingTabList";
@@ -66,6 +66,13 @@ const WIDTHS: Record<NonNullable<ContextLensProps["variant"]>, string> = {
   full: "min(1180px, 96vw)",
 };
 
+export function contextLensTabA11y(contextLensId: string, index: number) {
+  return {
+    tabId: `${contextLensId}-tab-${index}`,
+    panelId: `${contextLensId}-tabpanel`,
+  };
+}
+
 export default function ContextLens({
   open,
   onClose,
@@ -80,6 +87,7 @@ export default function ContextLens({
   placement = "right",
   ariaLabel,
 }: ContextLensProps) {
+  const contextLensId = useId();
   const [internalActiveTab, setInternalActiveTab] = useState<string>(
     activeTabId ?? tabs?.[0]?.id ?? "",
   );
@@ -150,6 +158,10 @@ export default function ContextLens({
   if (!open && !closing) return null;
 
   const activeTab = tabs?.find((t) => t.id === effectiveTab) ?? tabs?.[0];
+  const activeTabIndex = tabs?.findIndex((tab) => tab.id === activeTab?.id) ?? -1;
+  const activeTabA11y = tabs && tabs.length > 1 && activeTabIndex >= 0
+    ? contextLensTabA11y(contextLensId, activeTabIndex)
+    : undefined;
 
   const isCenter = placement === "center";
   const animIn = isCenter ? "pulso-lens-fade-in" : "pulso-lens-slide-in";
@@ -291,19 +303,27 @@ export default function ContextLens({
             role="tablist"
             aria-label="Secciones del panel"
           >
-            {tabs.map((tab) => (
-              <TabButton
-                key={tab.id}
-                tab={tab}
-                active={tab.id === effectiveTab}
-                onClick={() => handleTab(tab.id)}
-              />
-            ))}
+            {tabs.map((tab, index) => {
+              const tabA11y = contextLensTabA11y(contextLensId, index);
+              return (
+                <TabButton
+                  key={tab.id}
+                  tab={tab}
+                  tabA11y={tabA11y}
+                  active={tab.id === effectiveTab}
+                  onClick={() => handleTab(tab.id)}
+                />
+              );
+            })}
           </GlidingTabList>
         )}
 
         {/* Content */}
         <div
+          id={activeTabA11y?.panelId}
+          role={activeTabA11y ? "tabpanel" : undefined}
+          aria-labelledby={activeTabA11y?.tabId}
+          tabIndex={activeTabA11y ? 0 : undefined}
           style={{
             flex: 1,
             overflowY: "auto",
@@ -325,10 +345,12 @@ export default function ContextLens({
 
 function TabButton({
   tab,
+  tabA11y,
   active,
   onClick,
 }: {
   tab: ContextLensTab;
+  tabA11y: ReturnType<typeof contextLensTabA11y>;
   active: boolean;
   onClick: () => void;
 }) {
@@ -350,9 +372,11 @@ function TabButton({
   };
   return (
     <button
+      id={tabA11y.tabId}
       type="button"
       role="tab"
       aria-selected={active}
+      aria-controls={tabA11y.panelId}
       data-gliding-key={tab.id}
       onClick={onClick}
       style={style}
