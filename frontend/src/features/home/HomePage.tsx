@@ -167,7 +167,7 @@ export default function HomePage() {
         onClose={() => setSettingsOpen(false)}
       />
 
-      {pickerOpen && hasModules && createPortal(
+      {pickerOpen && createPortal(
         <ModulePickerDialog picker={picker} onClose={closePicker} />,
         document.body,
       )}
