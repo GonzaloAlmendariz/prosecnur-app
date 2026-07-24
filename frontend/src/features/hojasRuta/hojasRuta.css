@@ -6907,6 +6907,10 @@
   box-shadow: var(--routes-active-shadow);
 }
 
+.hojas-ruta-frame .hojas-ruta-route-jump-options button.is-active small {
+  color: white;
+}
+
 .hojas-ruta-frame .hojas-ruta-phase-header .hojas-ruta-phase-tabs {
   border-radius: 18px;
 }
