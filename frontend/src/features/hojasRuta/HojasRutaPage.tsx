@@ -101,6 +101,12 @@ type DistrictFeature = {
   geometry: DistrictGeometry;
 };
 const HOJAS_RUTA_STAGES: HojasRutaStage[] = ["territorio", "poblacion", "muestra", "manzanas", "entrega"];
+const HOJAS_SAMPLE_LIST_PANEL_ID = "hojas-ruta-sample-list-panel";
+
+function hojasSampleListTabId(tab: "titulares" | "reemplazos") {
+  return `hojas-ruta-sample-list-tab-${tab}`;
+}
+
 const HOJAS_RUTA_STAGE_ORDER: Record<HojasRutaStage, number> = {
   territorio: 0,
   poblacion: 1,
@@ -8417,22 +8423,26 @@ export default function HojasRutaPage() {
                     </div>
                     {sampleListRows.length ? (
                       <div className="hojas-ruta-sample-table-shell">
-                        <GlidingTabList activeKey={sampleListTab} className="hojas-ruta-sample-tabs" role="tablist" aria-label="Tipo de manzanas seleccionadas">
+                        <GlidingTabList activeKey={sampleListTab} mode="tabs" className="hojas-ruta-sample-tabs" role="tablist" aria-label="Tipo de manzanas seleccionadas">
                           <button
+                            id={hojasSampleListTabId("titulares")}
                             type="button"
                             role="tab"
                             data-gliding-key="titulares"
                             aria-selected={sampleListTab === "titulares"}
+                            aria-controls={HOJAS_SAMPLE_LIST_PANEL_ID}
                             className={sampleListTab === "titulares" ? "is-active" : ""}
                             onClick={() => setSampleListTab("titulares")}
                           >
                             Titulares <span>{formatNumber(selectedBlocks.length)}</span>
                           </button>
                           <button
+                            id={hojasSampleListTabId("reemplazos")}
                             type="button"
                             role="tab"
                             data-gliding-key="reemplazos"
                             aria-selected={sampleListTab === "reemplazos"}
+                            aria-controls={HOJAS_SAMPLE_LIST_PANEL_ID}
                             className={sampleListTab === "reemplazos" ? "is-active" : ""}
                             onClick={() => setSampleListTab("reemplazos")}
                           >
@@ -8443,7 +8453,13 @@ export default function HojasRutaPage() {
                           <strong>{sampleListTotalLabel}</strong>
                           <span>{sampleListTab === "titulares" ? "UMPs titulares seleccionadas para campo, con ID de manzana como referencia." : "Reemplazos R asociados a su UMP titular y al sorteo."}</span>
                         </div>
-                        <div className="hojas-ruta-review-table-wrap is-sample-list">
+                        <div
+                          id={HOJAS_SAMPLE_LIST_PANEL_ID}
+                          className="hojas-ruta-review-table-wrap is-sample-list"
+                          role="tabpanel"
+                          aria-labelledby={hojasSampleListTabId(sampleListTab)}
+                          tabIndex={0}
+                        >
                           <table className="hojas-ruta-review-table">
                             <thead>
                               <tr>
