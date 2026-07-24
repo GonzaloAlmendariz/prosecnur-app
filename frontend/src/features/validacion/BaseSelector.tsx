@@ -7,7 +7,7 @@ import { isRepeatChildBase } from "../../lib/repeatIdentity";
 // =============================================================================
 // BaseSelector — selector de base arriba del todo en Fase 2
 // =============================================================================
-// Multi-base: grupo de chips tipo "tabs" con el nombre de cada base.
+// Multi-base: grupo de botones segmentados con el nombre de cada base.
 // Single-base (sin estudio o con 1 sola base): se oculta, no tiene sentido
 // ofrecer un selector. El valor `null` significa "usa la primera base por
 // defecto" y el backend lo resuelve.
@@ -32,7 +32,7 @@ export default function BaseSelector({ estudio, selected, onChange, disabled, cl
   return (
     <GlidingTabList
       activeKey={activeKey}
-      role="tablist"
+      role="group"
       aria-label="Base activa para validar"
       className={["pulso-validacion-base-selector", className].filter(Boolean).join(" ")}
     >
@@ -52,8 +52,8 @@ export default function BaseSelector({ estudio, selected, onChange, disabled, cl
           return (
             <button
               key={b.nombre}
-              role="tab"
-              aria-selected={active}
+              type="button"
+              aria-pressed={active}
               data-gliding-key={b.nombre}
               onClick={() => onChange(b.nombre)}
               disabled={disabled || active}
