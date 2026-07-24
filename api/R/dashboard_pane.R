@@ -247,23 +247,17 @@
 
 # ------------------------------------------------------------
 # Filtros — aplica una lista de filtros activos (sec/var/valores) al
-# data frame. Espejo de la lógica `data_filtrada` del legacy
-# (interactivo_resumen.R:949). Filtros se evalúan contra el VALOR CRUDO
-# (no etiqueta) ya que el frontend manda los `value` del catálogo.
+# data frame. Desde la unidad 5.6b delega en la política canónica de
+# filtros (reporte_filter_helpers.R) en modo lenient: vars inexistentes
+# y filtros incompletos se ignoran en silencio (post-curación el
+# dashboard no debe romper), y la igualdad gana el puente numérico
+# canónico ("1.0" del filtro alcanza al 1 de una columna numeric).
+# Filtros se evalúan contra el VALOR CRUDO (no etiqueta) ya que el
+# frontend manda los `value` del catálogo.
 .dashboard_apply_filtros <- function(df, filtros = list()) {
   if (!is.data.frame(df) || !nrow(df)) return(df)
   if (is.null(filtros) || !length(filtros)) return(df)
-
-  for (f in filtros) {
-    var <- as.character(f$var %||% "")[1]
-    vals <- as.character(unlist(f$valores %||% list()))
-    vals <- vals[!is.na(vals) & nzchar(trimws(vals))]
-    if (!nzchar(var) || !length(vals) || !(var %in% names(df))) next
-    xv <- trimws(as.character(df[[var]]))
-    keep <- !is.na(xv) & xv %in% vals
-    df <- df[keep, , drop = FALSE]
-  }
-  df
+  .apply_named_filters(df, filtros, arg_name = "filtros", mode = "lenient")
 }
 
 # ------------------------------------------------------------

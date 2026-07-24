@@ -22,6 +22,8 @@
 #   - Aviso interno de opción múltiple (.ppt_multiple_choice_notice_overrides).
 #   - Sello de ponderación en notas de base (.reporte_plan_pond_estados,
 #      .reporte_plan_nota_base_sellada — unidad 1.2b, hooks en reporte_plan_ppt.R).
+#   - Puente opt-in de códigos especiales a excluir_opciones
+#      (.reporte_plan_excluir_cascada y helpers — unidad 5.6b).
 
 #' @noRd
 .reporte_plan_regex_escape <- function(x) {
@@ -530,4 +532,124 @@
   sello <- reporte_ponderacion_sello(estado)
   if (is.null(sello) || !nzchar(sello) || grepl(sello, nota1, fixed = TRUE)) return(nota)
   p_base_nota_con_sello(nota1, estado)
+}
+
+# ---- Puente de códigos especiales a excluir_opciones (Plan 2026-07, 5.6b) ----
+#
+# Las TABLAS de Analítica condicionan los códigos especiales del codebook
+# (`codigos_solo_si_presentes`, default 96/97/98/99) de forma global; en las
+# LÁMINAS del plan PPT/Word esa coherencia quedaba 100% a cargo del usuario,
+# que debía repetir `excluir_opciones` a mano. Este puente lo vuelve UNA
+# decisión de configuración: el campo `excluir_codigos_especiales`.
+#
+# Reglas (directiva del dueño — control explícito, nunca caja negra):
+#   - DEFAULT APAGADO: sin el campo en ningún nivel, la salida es byte-idéntica
+#     a la histórica (ninguna lámina cambia).
+#   - Se activa por config explícita en cualquier nivel de la cascada del plan:
+#     preset args del tipo de gráfico (nivel corrida — es la superficie donde
+#     hoy viven los `excluir_opciones` default), `overrides` de la lámina o el
+#     elemento. El nivel MÁS específico manda (overrides > elemento > preset):
+#     un `FALSE` por lámina apaga el puente aunque el preset lo active.
+#   - Valores: TRUE = códigos default del codebook (96/97/98/99, el mismo
+#     default que usan las tablas); vector de códigos = esos códigos; FALSE =
+#     apagado explícito. El futuro toggle de UI debe mandar la lista real de
+#     `codigos_solo_si_presentes` del proyecto, no TRUE pelado.
+#   - Los códigos activos se SUMAN como base de la unión histórica de
+#     `excluir_opciones`: lo que el usuario ya excluía por lámina sigue
+#     aplicando tal cual (misma semántica de unión que siempre tuvo la cascada).
+
+#' Etiquetas canónicas del estándar de valores especiales de la casa.
+#' El remapeo de Limpieza es POR ETIQUETA: en bases remapeadas la opción ya no
+#' es "99" sino "No responde", así que la exclusión debe conocer ambas caras.
+#' @noRd
+.reporte_plan_codigos_especiales_canon <- function() {
+  c(
+    "90" = "No aplica",
+    "94" = "NS/NR",
+    "95" = "No piensa votar",
+    "96" = "Blanco/Viciado",
+    "97" = "No votó",
+    "98" = "No sabe",
+    "99" = "No responde"
+  )
+}
+
+#' Normaliza el valor configurado de `excluir_codigos_especiales`.
+#' Devuelve NULL cuando el nivel NO define el campo (sigue la cascada),
+#' character(0) cuando lo apaga explícitamente (FALSE) y un vector de códigos
+#' cuando lo activa. `list()` vacío cuenta como ausente: es la forma en que
+#' jsonlite entrega campos vacíos del payload (trampa conocida del plan JSON).
+#' @noRd
+.reporte_plan_codigos_especiales_normalize <- function(val) {
+  if (is.null(val)) return(NULL)
+  if (is.list(val)) val <- unlist(val, use.names = FALSE)
+  if (is.null(val) || !length(val)) return(NULL)
+  if (is.logical(val)) {
+    if (isTRUE(val[1])) return(c("96", "97", "98", "99"))
+    if (identical(val[1], FALSE)) return(character(0))
+    return(NULL) # NA lógico = ausente
+  }
+  out <- trimws(as.character(val))
+  out <- out[!is.na(out) & nzchar(out)]
+  if (!length(out)) return(NULL)
+  unique(out)
+}
+
+#' Resuelve el campo a lo largo de la cascada: gana el PRIMER nivel que lo
+#' define (los niveles llegan del más específico al más general). Sin
+#' definición en ningún nivel => character(0) (puente apagado).
+#' @noRd
+.reporte_plan_codigos_especiales_activos <- function(...) {
+  for (val in list(...)) {
+    res <- .reporte_plan_codigos_especiales_normalize(val)
+    if (!is.null(res)) return(res)
+  }
+  character(0)
+}
+
+#' Expande códigos activos a `código + etiqueta canónica` para que la
+#' exclusión alcance tanto bases con códigos crudos como bases remapeadas por
+#' etiqueta. `.exclusion_for_choices` (reporte_plan_ppt.R) completa después el
+#' mapeo código↔label específico del catálogo de choices de cada variable.
+#' @noRd
+.reporte_plan_codigos_especiales_expandir <- function(codigos) {
+  if (is.null(codigos) || !length(codigos)) return(NULL)
+  canon <- .reporte_plan_codigos_especiales_canon()
+  labels <- unname(canon[codigos])
+  labels <- labels[!is.na(labels)]
+  unique(c(codigos, labels))
+}
+
+#' Cascada canónica de `excluir_opciones` de un elemento del plan.
+#'
+#' Reemplaza 1:1 las uniones manuales `preset_args$excluir_opciones +
+#' overrides$excluir_opciones + el$excluir_opciones` de reporte_plan_ppt.R
+#' (archivo congelado a crecimiento) y les suma, SOLO si el usuario activó
+#' `excluir_codigos_especiales`, los códigos especiales como base. Con el
+#' campo ausente el resultado es idéntico al histórico.
+#'
+#' `preset_args_extra` cubre el caso multiapiladas, cuya cascada histórica
+#' une dos presets (barras_apiladas + multi_apiladas) en ese orden.
+#' @noRd
+.reporte_plan_excluir_cascada <- function(preset_args, overrides, el,
+                                          preset_args_extra = NULL) {
+  if (!is.list(preset_args)) preset_args <- list()
+  if (!is.list(preset_args_extra)) preset_args_extra <- list()
+  if (!is.list(overrides)) overrides <- list()
+  el_list <- if (is.list(el)) el else list()
+
+  codigos <- .reporte_plan_codigos_especiales_activos(
+    overrides$excluir_codigos_especiales,
+    el_list$excluir_codigos_especiales,
+    preset_args$excluir_codigos_especiales,
+    preset_args_extra$excluir_codigos_especiales
+  )
+
+  .reporte_plan_excluir_opciones(
+    preset_args$excluir_opciones %||% NULL,
+    preset_args_extra$excluir_opciones %||% NULL,
+    overrides$excluir_opciones %||% NULL,
+    el_list$excluir_opciones %||% NULL,
+    .reporte_plan_codigos_especiales_expandir(codigos)
+  )
 }
