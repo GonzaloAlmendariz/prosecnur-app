@@ -1,14 +1,50 @@
 # Inventario contextual de la interfaz
 
 Este documento es el índice humano del catálogo exhaustivo. La unidad auditable
-continúa siendo cada registro de `catalogo.json`: allí están cada ocurrencia
-JSX, botón, switcher, checkbox, radio, campo, pestaña, overlay, estado, tabla,
-mapa, gráfico, contenedor, texto e icono con su archivo, línea, columna,
-componente, condición de render, handlers, clases y fuentes CSS.
+continúa siendo cada registro de [`../data/catalogo.json`](../data/catalogo.json):
+allí están cada ocurrencia
+JSX, cada variante declarada y cada plantilla dinámica de botón, switcher,
+checkbox, radio, campo, pestaña, overlay, estado, tabla, mapa, gráfico,
+contenedor, texto e icono con su archivo, línea, columna, fuente de render,
+componente o registro, condición, handlers, clases y fuentes CSS.
+
+Las configuraciones con apariencia de copy de interfaz cuyo consumidor no se
+puede resolver estáticamente también se preservan, pero en la capa separada
+`declaración-sin-sink-resuelto`. Esta distinción evita convertir corpus,
+presets técnicos u objetos CSS-in-JS en botones o pestañas confirmados, sin
+perder la evidencia necesaria para una revisión posterior.
+
+Además, ningún array u objeto candidato queda reducido a una cifra agregada:
+`declarationCandidates` publica un ledger individual con archivo, línea,
+contenedor, copy, evidencia y una disposición explícita
+(`representado-por-descendiente`, `técnico`, `probable-visual` o
+`no-resuelto`). Esta capa es auditable desde el filtro “Solo ledger de
+candidatos” y no se mezcla con los elementos cuyo render sí está confirmado.
+
+El contenido que no existe en JSX y aparece mediante `content:` en un
+pseudo-elemento CSS se conserva en `contenido-generado-css`, incluyendo texto
+literal, símbolos y valores derivados con `attr(...)`, junto con su selector,
+fuente y estados.
 
 Aquí se agrupan esas ocurrencias con el lenguaje operativo canónico:
 `módulo → sección → pestaña`. No se declara todavía una variante correcta ni
 se intenta unificar componentes.
+
+El catálogo usa dos scopes documentales cuando el código no demuestra una sola
+pestaña: `Transversal / sin pestaña local` y
+`Varias pestañas / contexto dinámico`. Esos scopes evitan convertir nombres de
+archivo o inferencias débiles en pestañas ficticias. El snapshot abarca todas
+las fuentes productivas `.ts/.tsx/.js/.jsx` y hojas `.css` detectadas; sus
+totales exactos quedan registrados en `summary.productionSourceFilesScanned` y
+`summary.productionStyleFilesScanned`. Arrays, tuplas, records, factories y
+props semánticas se expanden por variante,
+mientras los datos de runtime se describen mediante proveedor y plantilla sin
+inventar instancias.
+
+Los tags polimórficos (`Tag`) y los iconos enlazados en runtime (`Icon`,
+`ActiveIcon`, `SelectedIcon`) mantienen en cada ocurrencia su binding,
+expresión proveedora y opciones o fallbacks demostrables. De ese modo un host
+dinámico no queda reducido a un componente genérico sin procedencia.
 
 ## Global
 

@@ -12,12 +12,15 @@ const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, "..");
 const FRONTEND_ROOT = path.join(REPO_ROOT, "frontend", "src");
 const OUTPUT_DIR = path.join(REPO_ROOT, "branding", "catalogo-visual");
-const OUTPUT_JSON = path.join(OUTPUT_DIR, "catalogo.json");
-const OUTPUT_JS = path.join(OUTPUT_DIR, "catalogo-data.js");
+const OUTPUT_DATA_DIR = path.join(OUTPUT_DIR, "data");
+const OUTPUT_JSON = path.join(OUTPUT_DATA_DIR, "catalogo.json");
+const OUTPUT_JS = path.join(OUTPUT_DATA_DIR, "catalogo-data.js");
 const MANUAL_PATH = path.join(REPO_ROOT, "branding", "manual-identidad.html");
 const MANUAL_START = "<!-- VISUAL_CATALOG:START -->";
 const MANUAL_END = "<!-- VISUAL_CATALOG:END -->";
 const CHECK_MODE = process.argv.includes("--check");
+const TAB_SCOPE_TRANSVERSAL = "Transversal / sin pestaña local";
+const TAB_SCOPE_MULTIPLE = "Varias pestañas / contexto dinámico";
 
 const requireFromFrontend = createRequire(
   path.join(REPO_ROOT, "frontend", "package.json"),
@@ -671,6 +674,49 @@ const DECLARED_VISUAL_SURFACES = [
     "Render dinámico del tipo de pregunta, opciones, reglas, apariencias, grupos y estados de respuesta.",
     "frontend/src/features/xlsformEditor/canvas/previewInputs.tsx",
   ),
+  markdownRuntimeSurface(
+    "span",
+    "Markdown: encabezado o color",
+    "Genera un span para encabezados de nivel visual y fragmentos con color saneado.",
+    64,
+  ),
+  markdownRuntimeSurface(
+    "a",
+    "Markdown: enlace",
+    "Genera un enlace interactivo con protocolo permitido, pestaña nueva y protección noopener/noreferrer.",
+    78,
+    "Navegación",
+  ),
+  markdownRuntimeSurface(
+    "strong",
+    "Markdown: negrita",
+    "Genera énfasis fuerte desde marcadores **texto** o __texto__.",
+    89,
+  ),
+  markdownRuntimeSurface(
+    "em",
+    "Markdown: cursiva",
+    "Genera énfasis en cursiva desde marcadores *texto* o _texto_.",
+    95,
+  ),
+  markdownRuntimeSurface(
+    "s",
+    "Markdown: tachado",
+    "Genera texto tachado desde marcadores ~~texto~~.",
+    99,
+  ),
+  markdownRuntimeSurface(
+    "br",
+    "Markdown: salto de línea",
+    "Genera un salto de línea visual para cada salto simple del contenido.",
+    114,
+  ),
+  markdownRuntimeSurface(
+    "p",
+    "Markdown: párrafo",
+    "Genera párrafos de vista previa, incluido el estado vacío y la separación por dobles saltos.",
+    107,
+  ),
   surface(
     "hojas-ruta",
     "territorio",
@@ -775,6 +821,58 @@ const DECLARED_VISUAL_SURFACES = [
     "Heatmap, barras, radar, FODA, matriz, dispersión e indicador ensamblado con SVG/Plotly.",
     "frontend/src/features/dashboard/tabs/DimensionesTab/index.tsx",
   ),
+  {
+    ...surface(
+      "dashboard",
+      "tablero",
+      "Varias pestañas / contexto dinámico",
+      "Pestañas del manifiesto del dashboard",
+      "Cada pestaña habilitada por el manifiesto se materializa como navegación y contenido; el conjunto depende de la configuración publicada.",
+      "frontend/src/features/dashboard/DashboardPage.tsx",
+    ),
+    provider: "manifest.tabs y config.tabs_enabled",
+    renderedWhen: "Cuando el manifiesto contiene una pestaña habilitada.",
+    states: ["habilitada", "deshabilitada", "activa", "inactiva"],
+  },
+  {
+    ...surface(
+      "formularios",
+      "constructor",
+      "Varias pestañas / contexto dinámico",
+      "Preguntas, grupos y opciones del formulario activo",
+      "El editor materializa filas, tarjetas, inputs, opciones, lógica y validaciones a partir del workbook XLSForm abierto.",
+      "frontend/src/features/xlsformEditor/XlsformEditorPage.tsx",
+    ),
+    provider: "Workbook XLSForm, hojas survey/choices/settings y estado del editor",
+    renderedWhen: "Cuando existe un formulario activo y sus filas pasan los filtros de la vista.",
+    states: ["sin-formulario", "cargando", "editable", "solo-lectura", "con-error"],
+  },
+  {
+    ...surface(
+      "monitoreo",
+      "compartido",
+      "Varias pestañas / contexto dinámico",
+      "Rail de trabajo por perfil de Monitoreo",
+      "El rail compartido materializa secciones, pestañas locales, badges y bloqueos definidos por el perfil activo.",
+      "frontend/src/features/monitoreo/components/MonitoreoWorkbenchRail.tsx",
+    ),
+    provider: "profile.views, sectionStates, tabStates y localTabs",
+    renderedWhen: "Cuando Monitoreo resuelve un perfil operativo y sus vistas disponibles.",
+    states: ["activa", "completada", "bloqueada", "con-badge", "colapsada"],
+  },
+  {
+    ...surface(
+      "procesamiento",
+      "entrada",
+      "Varias pestañas / contexto dinámico",
+      "Filas, columnas y opciones de bases cargadas",
+      "Visores y tablas materializan columnas, registros, filtros y opciones a partir de las bases activas del proyecto.",
+      "frontend/src/features/procesamiento/ProcessingSheetViewer.tsx",
+    ),
+    provider: "Metadatos y filas de la base activa",
+    renderedWhen: "Cuando existe una base cargada y la vista solicita una hoja o subconjunto.",
+    states: ["sin-base", "cargando", "con-datos", "filtrada", "con-error"],
+  },
 ];
 
 const SOURCE_CONTEXT_RULES = [
@@ -962,6 +1060,75 @@ const CATEGORY_DESCRIPTIONS = {
   Otro: "Elemento visual no clasificado por una receta más específica.",
 };
 
+const UI_DECLARATION_CONTAINER_PATTERN =
+  /(?:^|[_\-\s])(tabs?|pesta(?:n|ñ)as?|sections?|secciones?|options?|opciones?|choices?|menu|actions?|acciones?|commands?|comandos?|steps?|pasos?|stages?|fases?|views?|vistas?|modes?|modos?|presets?|methods?|m[eé]todos?|types?|tipos?|statuses?|estados?|filters?|filtros?|categories?|categor[ií]as?|palettes?|paletas?|slides?|templates?|plantillas?|recipes?|recetas?|rails?|navigation|navegaci[oó]n|routes?|rutas?|providers?|proveedores?|formats?|formatos?|techniques?|t[eé]cnicas?|modules?|m[oó]dulos?|profiles?|perfiles?|registr(?:y|ies)|registros?|catalogs?|cat[aá]logos?|reports?|reportes?|items?|elementos?|controls?|controles?|fields?|campos?|panels?|paneles?|cards?|tarjetas?|metrics?|m[eé]tricas?|nodes?|nodos?|groups?|grupos?|legends?|leyendas?|series?|columns?|columnas?|rows?|filas?|switchers?|toggles?|chips?|badges?|tiles?|bloques?|presentations?|presentaciones?|labels?|etiquetas?|copy|copies|notes?|notas?|sidebars?|toolbars?|headers?|cabeceras?|buttons?|botones?)(?:$|[_\-\s])/i;
+
+const UI_DECLARATION_TECHNICAL_KEYS = new Set([
+  "chunk",
+  "family",
+  "loadPage",
+  "reportScopes",
+  "warmupScopes",
+]);
+
+const UI_DECLARATION_PRIMARY_KEYS = [
+  "label",
+  "title",
+  "text",
+  "name",
+  "caption",
+  "tabLabel",
+  "shortLabel",
+];
+
+const UI_DECLARATION_DETAIL_KEYS = [
+  "description",
+  "desc",
+  "hint",
+  "subtitle",
+  "eyebrow",
+  "placeholder",
+  "help",
+  "ariaLabel",
+  "aria-label",
+];
+
+const UI_DECLARATION_PROPERTY_KEYS = new Set([
+  ...UI_DECLARATION_PRIMARY_KEYS,
+  ...UI_DECLARATION_DETAIL_KEYS,
+  "id",
+  "key",
+  "value",
+  "to",
+  "href",
+  "route",
+  "icon",
+  "kind",
+  "type",
+  "role",
+  "variant",
+  "size",
+  "status",
+  "state",
+  "disabled",
+  "enabled",
+  "active",
+  "selected",
+  "checked",
+  "visible",
+  "hidden",
+  "available",
+  "required",
+  "readOnly",
+  "loading",
+  "busy",
+  "done",
+  "badge",
+  "count",
+  "disabledReason",
+  "lockedReason",
+]);
+
 function rule(pattern, module, section, tab) {
   return { pattern, module, section, tab };
 }
@@ -975,6 +1142,34 @@ function surface(module, section, tab, label, usage, sourceFile) {
     label,
     usage,
     source: { file: sourceFile },
+  };
+}
+
+function markdownRuntimeSurface(tag, label, usage, line, category = "Texto") {
+  return {
+    module: "formularios",
+    section: "constructor",
+    tab: TAB_SCOPE_MULTIPLE,
+    category,
+    kind: tag === "a" ? "Enlace Markdown generado" : "Nodo Markdown generado",
+    tag: `<${tag}>`,
+    label,
+    usage,
+    provider:
+      "renderMarkdown / renderMarkdownInline → HTML saneado → dangerouslySetInnerHTML",
+    renderedWhen:
+      "Cuando una etiqueta, ayuda o vista previa del formulario contiene el marcador Markdown correspondiente.",
+    states: [
+      "contenido-ausente",
+      "contenido-renderizado",
+      ...(tag === "a" ? ["url-segura", "url-reemplazada-por-#"] : []),
+    ],
+    interactive: tag === "a",
+    source: {
+      file: "frontend/src/features/xlsformEditor/helpers/markdown.ts",
+      line,
+      column: 1,
+    },
   };
 }
 
@@ -1021,20 +1216,145 @@ function isProductionJsxFile(file) {
   return true;
 }
 
+function isProductionSourceFile(file) {
+  if (!/\.[jt]sx?$/i.test(file)) return false;
+  if (/\.(?:test|spec)\.[jt]sx?$/i.test(file)) return false;
+  if (/[\\/]__tests__[\\/]/.test(file)) return false;
+  if (/[\\/]__mocks__[\\/]/.test(file)) return false;
+  return true;
+}
+
+function isProductionDeclarationSourceFile(file) {
+  return isProductionSourceFile(file);
+}
+
+function scriptKindFor(file) {
+  if (file.endsWith(".tsx")) return ts.ScriptKind.TSX;
+  if (file.endsWith(".jsx")) return ts.ScriptKind.JSX;
+  if (file.endsWith(".js")) return ts.ScriptKind.JS;
+  return ts.ScriptKind.TS;
+}
+
+function cssContentDeclarations(source) {
+  const declarations = [];
+  const stack = [];
+  let segmentStart = 0;
+  let quote = null;
+  let escaped = false;
+  let inComment = false;
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    const next = source[index + 1];
+    if (inComment) {
+      if (char === "*" && next === "/") {
+        inComment = false;
+        index += 1;
+      }
+      continue;
+    }
+    if (quote) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === quote) quote = null;
+      continue;
+    }
+    if (char === "/" && next === "*") {
+      inComment = true;
+      index += 1;
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      quote = char;
+      continue;
+    }
+    if (char === "{") {
+      if (stack.length) stack[stack.length - 1].hasNested = true;
+      stack.push({
+        selector: source
+          .slice(segmentStart, index)
+          .replace(/\/\*[\s\S]*?\*\//g, " ")
+          .trim(),
+        bodyStart: index + 1,
+        hasNested: false,
+      });
+      segmentStart = index + 1;
+      continue;
+    }
+    if (char !== "}") continue;
+    const block = stack.pop();
+    if (
+      block &&
+      !block.hasNested &&
+      block.selector &&
+      !block.selector.startsWith("@")
+    ) {
+      const body = source.slice(block.bodyStart, index);
+      const sanitizedBody = body.replace(
+        /\/\*[\s\S]*?\*\//g,
+        (comment) => comment.replace(/[^\n]/g, " "),
+      );
+      const contentPattern =
+        /(?:^|;)\s*content\s*:\s*((?:"(?:\\.|[^"])*"|'(?:\\.|[^'])*'|[^;])*)/gm;
+      for (const match of sanitizedBody.matchAll(contentPattern)) {
+        const contentOffset = match[0].indexOf("content");
+        declarations.push({
+          selector: block.selector,
+          value: match[1].trim(),
+          position:
+            block.bodyStart + (match.index ?? 0) + Math.max(0, contentOffset),
+        });
+      }
+    }
+    segmentStart = index + 1;
+  }
+  return declarations;
+}
+
 function buildCssIndex() {
   const index = new Map();
+  const generatedContent = [];
   const cssFiles = walkFiles(
     FRONTEND_ROOT,
     (file) => file.endsWith(".css") && !file.endsWith(".min.css"),
   );
+  const fileAudit = [];
   const classPattern = /\.(-?[_a-zA-Z]+[_a-zA-Z0-9-]*)/g;
   for (const file of cssFiles) {
     const source = fs.readFileSync(file, "utf8");
     const lineStarts = computeLineStarts(source);
+    let classSelectors = 0;
+    let stateSelectors = 0;
     for (const match of source.matchAll(classPattern)) {
+      classSelectors += 1;
       const className = match[1];
       const sourceLine = lineAndColumn(lineStarts, match.index ?? 0).line;
-      const record = { file: relativePath(file), line: sourceLine };
+      const selectorStart = source.lastIndexOf("}", match.index ?? 0) + 1;
+      const selectorEnd = source.indexOf("{", match.index ?? 0);
+      const selector =
+        selectorEnd >= (match.index ?? 0)
+          ? source.slice(selectorStart, selectorEnd)
+          : "";
+      const pseudoStates = [
+        ...(selector.match(
+          /:(?:hover|focus-visible|focus|active|disabled|checked|selected|open|visited)/g,
+        ) ?? []),
+        ...(selector.match(/\.(?:is|has)-[a-z0-9_-]+/gi) ?? []),
+        ...(selector.match(
+          /\[(?:aria|data)-(?:selected|expanded|pressed|checked|state|disabled)[^\]]*\]/gi,
+        ) ?? []),
+      ];
+      const states = pseudoStates.filter(
+        (state) => !isVisualVariantToken(state),
+      );
+      const variants = pseudoStates.filter(isVisualVariantToken);
+      if (states.length > 0) stateSelectors += 1;
+      const record = {
+        file: relativePath(file),
+        line: sourceLine,
+        states: [...new Set(states)],
+        variants: [...new Set(variants)],
+      };
       const current = index.get(className) ?? [];
       if (
         !current.some(
@@ -1046,8 +1366,111 @@ function buildCssIndex() {
       }
       index.set(className, current);
     }
+    for (const declaration of cssContentDeclarations(source)) {
+      const value = declaration.value;
+      const literalMatch = value.match(/^(["'])([\s\S]*)\1$/);
+      const literal = literalMatch ? literalMatch[2] : value;
+      if (
+        !literal.trim() ||
+        /^(?:none(?:\s*!important)?|normal|initial|inherit|unset|revert|revert-layer)$/i.test(
+          value,
+        )
+      ) {
+        continue;
+      }
+      const selector = declaration.selector;
+      const pseudoStates = [
+        ...(selector.match(
+          /:(?:hover|focus-visible|focus|active|disabled|checked|selected|open|visited)/g,
+        ) ?? []),
+        ...(selector.match(/\.(?:is|has)-[a-z0-9_-]+/gi) ?? []),
+        ...(selector.match(
+          /\[(?:aria|data)-(?:selected|expanded|pressed|checked|state|disabled)[^\]]*\]/gi,
+        ) ?? []),
+      ];
+      const states = pseudoStates.filter(
+        (state) => !isVisualVariantToken(state),
+      );
+      const variants = pseudoStates.filter(isVisualVariantToken);
+      const sourceRelativePath = relativePath(file);
+      const sourcePosition = lineAndColumn(
+        lineStarts,
+        declaration.position,
+      );
+      const condition = `Coincide con el selector CSS: ${selector}`;
+      const context = inferContext(
+        sourceRelativePath,
+        "CSSGeneratedContent",
+        condition,
+      );
+      const symbolOnly = !/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]/.test(literal);
+      generatedContent.push({
+        id: sha256(
+          `${sourceRelativePath}:${sourcePosition.line}:${sourcePosition.column}:css-content:${selector}:${value}`,
+        ).slice(0, 16),
+        sourceType: "contenido-generado-css",
+        module: context.module,
+        section: context.section,
+        tab: context.tab,
+        contextConfidence: context.confidence,
+        componentContext: selector,
+        category: symbolOnly ? "Iconografía" : "Texto",
+        kind: "Contenido generado por CSS",
+        tag: `css:${selector.match(/::?(?:before|after|marker)/i)?.[0] ?? "content"}`,
+        label: literal,
+        detail: value !== literal ? value : null,
+        usage:
+          "Presenta texto, símbolo o contenido derivado mediante la propiedad CSS content.",
+        renderedWhen: condition,
+        interactive: false,
+        nativeElement: false,
+        attributes: {
+          content: value,
+          selector,
+        },
+        spreads: [],
+        classNames: [
+          ...new Set(
+            [...selector.matchAll(classPattern)].map((match) => match[1]),
+          ),
+        ],
+        states: states.map((state) => `css:${state}`),
+        visualVariants: variants.map((variant) => `css:${variant}`),
+        stateModel: states.length
+          ? "Estados de interacción o disponibilidad codificados en el selector del pseudo-elemento."
+          : "Se muestra cuando coincide el selector; no declara un estado de interacción adicional.",
+        handlers: [],
+        importSource: null,
+        definitionFile: sourceRelativePath,
+        styleSources: [`${sourceRelativePath}:${sourcePosition.line}`],
+        styleStates: states,
+        styleVariants: variants,
+        declarationEvidence: "propiedad-css-content",
+        ancestry: [],
+        renderSource: {
+          file: sourceRelativePath,
+          line: sourcePosition.line,
+          column: sourcePosition.column,
+          resolution: "pseudo-elemento-css",
+        },
+        source: {
+          file: sourceRelativePath,
+          line: sourcePosition.line,
+          column: sourcePosition.column,
+        },
+      });
+    }
+    fileAudit.push({
+      file: relativePath(file),
+      sha256: sha256(source),
+      classSelectors,
+      stateSelectors,
+      generatedContent: generatedContent.filter(
+        (entry) => entry.source.file === relativePath(file),
+      ).length,
+    });
   }
-  return index;
+  return { index, files: fileAudit, generatedContent };
 }
 
 function computeLineStarts(source) {
@@ -1097,6 +1520,12 @@ function buildImportIndex(sourceFile, sourcePath) {
           definitionFile: resolveImportFile(sourcePath, moduleSpecifier),
         });
       }
+    } else if (bindings && ts.isNamespaceImport(bindings)) {
+      imports.set(bindings.name.text, {
+        importSource: moduleSpecifier,
+        importedName: "*",
+        definitionFile: resolveImportFile(sourcePath, moduleSpecifier),
+      });
     }
   }
   return imports;
@@ -1189,10 +1618,17 @@ function extractDirectText(openingNode, sourceFile) {
 
 function cleanText(value, maxLength = 160) {
   if (value === undefined || value === null) return "";
-  const normalized = String(value)
+  let normalized = String(value)
     .replace(/\s+/g, " ")
-    .replace(/^["'`]|["'`]$/g, "")
     .trim();
+  const quote = normalized.charAt(0);
+  if (
+    normalized.length >= 2 &&
+    ["\"", "'", "`"].includes(quote) &&
+    normalized.charAt(normalized.length - 1) === quote
+  ) {
+    normalized = normalized.slice(1, -1);
+  }
   if (normalized.length <= maxLength) return normalized;
   return `${normalized.slice(0, Math.max(0, maxLength - 1))}…`;
 }
@@ -1296,9 +1732,37 @@ function refineContext(
 ) {
   const haystack =
     `${sourceRelativePath} ${nearestComponent} ${renderCondition ?? ""}`.toLowerCase();
+  const sourceBaseName = path
+    .basename(sourceRelativePath)
+    .replace(/\.[^.]+$/, "")
+    .toLowerCase();
+  const componentName = String(nearestComponent ?? "").toLowerCase();
+  const matchesNamedContext = (needle) => {
+    const normalized = String(needle).toLowerCase();
+    return componentName === normalized || sourceBaseName === normalized;
+  };
   const next = { ...context };
 
   if (context.module === "hojas-ruta") {
+    const componentSections = {
+      LimaCoverageMap: "territorio",
+      DistrictSelectorGrid: "territorio",
+      IncludedDistrictTable: "territorio",
+      TerritoryMapExplorer: "territorio",
+      PopulationMatrixPreview: "poblacion",
+      SampleSizeWorkbench: "muestra",
+      QuotaMatrixPreview: "muestra",
+      SamplingMapExplorer: "manzanas",
+      BlockCanvasMap: "manzanas",
+      ZoneGeometryMap: "manzanas",
+      BlockGeometryMap: "manzanas",
+      DeliveryTablePager: "entrega",
+    };
+    const componentSection = componentSections[nearestComponent];
+    if (componentSection) {
+      next.section = componentSection;
+      next.confidence = "exacta-por-componente";
+    }
     for (const id of ["territorio", "poblacion", "muestra", "manzanas", "entrega"]) {
       if (haystack.includes(id)) {
         next.section = id;
@@ -1369,7 +1833,7 @@ function refineContext(
       SalidasMonitoreoTab: "Pase a Monitoreo",
     };
     for (const [needle, tab] of Object.entries(fileTabMap)) {
-      if (haystack.includes(needle.toLowerCase())) {
+      if (matchesNamedContext(needle)) {
         next.tab = tab;
         next.confidence = "exacta-por-componente";
       }
@@ -1401,14 +1865,30 @@ function refineContext(
       ["llamadas", /llamada|consultado|tiempo|incidencia|supervisi[oó]n/],
       ["agenda", /agenda|curso.?horario/],
     ];
-    const profile = context.section.split("-")[0];
+    const profile =
+      sourceRelativePath.match(
+        /features\/monitoreo\/profiles\/(territorial|acreditacion|aulas|telefonico)\//,
+      )?.[1] ?? context.section.split("-")[0];
+    let matchedSection = false;
     for (const [suffix, pattern] of sectionNeedles) {
       if (pattern.test(haystack)) {
         const candidate = `${profile}-${suffix}`;
         const valid = HIERARCHY.find((item) => item.module === "monitoreo")
           ?.sections.some((section) => section.id === candidate);
-        if (valid) next.section = candidate;
+        if (valid) {
+          next.section = candidate;
+          matchedSection = true;
+        }
       }
+    }
+    if (
+      !matchedSection &&
+      /(?:Territorial|Acreditacion|Telefonico|Aulas)MonitoreoPage$/i.test(
+        path.basename(sourceRelativePath).replace(/\.[^.]+$/, ""),
+      )
+    ) {
+      next.section = "compartido";
+      next.confidence = "scope-transversal-perfil";
     }
   }
 
@@ -1427,7 +1907,7 @@ function refineContext(
       CatalogWorkspace: "Formularios",
     };
     for (const [needle, tab] of Object.entries(formTabMap)) {
-      if (haystack.includes(needle.toLowerCase())) next.tab = tab;
+      if (matchesNamedContext(needle)) next.tab = tab;
     }
   }
 
@@ -1467,11 +1947,15 @@ function refineContext(
       EstiloGlobalDialog: "Estilo global",
     };
     for (const [needle, tab] of Object.entries(processingTabs)) {
-      if (haystack.includes(needle.toLowerCase())) next.tab = tab;
+      if (matchesNamedContext(needle)) next.tab = tab;
     }
   }
 
   if (context.module === "dashboard") {
+    const dashboardTabDirectory =
+      sourceRelativePath.match(
+        /features\/dashboard\/tabs\/(ResumenTab|RelacionTab|BaseDatosTab|DimensionesTab)(?:\/|\.tsx?$)/,
+      )?.[1] ?? null;
     const dashboardTabs = {
       ResumenTab: "Resumen",
       RelacionTab: "Relaciones",
@@ -1483,8 +1967,12 @@ function refineContext(
       DashboardCustomizeDialog: "Personalizar",
       DashboardPublishDialog: "Publicación",
     };
+    if (dashboardTabDirectory) {
+      next.tab = dashboardTabs[dashboardTabDirectory];
+      next.confidence = "exacta-por-directorio-de-pestaña";
+    }
     for (const [needle, tab] of Object.entries(dashboardTabs)) {
-      if (haystack.includes(needle.toLowerCase())) next.tab = tab;
+      if (matchesNamedContext(needle)) next.tab = tab;
     }
   }
 
@@ -1496,47 +1984,171 @@ function capitalize(value) {
 }
 
 function isIconComponent(tagName, importInfo) {
-  if (/^(?:Icon[A-Z]|Lucide|svg$|path$|g$|rect$|circle$|line$|polyline$|polygon$)/.test(tagName)) {
+  if (
+    /^(?:Icon|ActiveIcon|SelectedIcon|Icon[A-Z]|Lucide|svg$|path$|g$|rect$|circle$|line$|polyline$|polygon$)/.test(
+      tagName,
+    )
+  ) {
     return true;
   }
   const source = importInfo?.importSource ?? "";
   return /lucide|\/icons(?:\.|$)/i.test(source);
 }
 
+function attributeLiteralOptions(value, allowedValues) {
+  const source = String(value ?? "").trim();
+  const options = new Set();
+  if (/^[A-Za-z][A-Za-z0-9_-]*$/.test(source)) {
+    options.add(source.toLowerCase());
+  }
+  for (const match of source.matchAll(/(["'])(.*?)\1/g)) {
+    options.add(match[2].toLowerCase());
+  }
+  return new Set(
+    [...options].filter((option) => allowedValues.has(option)),
+  );
+}
+
+const INPUT_TYPE_OPTIONS = new Set([
+  "button",
+  "checkbox",
+  "color",
+  "date",
+  "datetime-local",
+  "email",
+  "file",
+  "hidden",
+  "image",
+  "month",
+  "number",
+  "password",
+  "radio",
+  "range",
+  "reset",
+  "search",
+  "submit",
+  "tel",
+  "text",
+  "time",
+  "url",
+  "week",
+]);
+
+const ROLE_OPTIONS = new Set([
+  "alert",
+  "button",
+  "checkbox",
+  "dialog",
+  "menuitem",
+  "progressbar",
+  "radio",
+  "status",
+  "switch",
+  "tab",
+  "textbox",
+]);
+
 function classifyElement(tagName, attributes, importInfo) {
   const lowerTag = tagName.toLowerCase();
-  const role = String(attributes.role ?? "").toLowerCase();
-  const inputType = String(attributes.type ?? "text").toLowerCase();
-  const joined = `${tagName} ${attributes.className ?? ""} ${role}`.toLowerCase();
+  const roleOptions = attributeLiteralOptions(attributes.role, ROLE_OPTIONS);
+  const inputTypeOptions = attributeLiteralOptions(
+    attributes.type ?? "text",
+    INPUT_TYPE_OPTIONS,
+  );
+  const joined =
+    `${tagName} ${attributes.className ?? ""} ${attributes.role ?? ""}`.toLowerCase();
+  const componentName = tagName.split(".").at(-1) ?? tagName;
+  const customComponent = /^[A-Z]/.test(componentName);
 
-  if (isIconComponent(tagName, importInfo)) {
-    return { category: "Iconografía", kind: "Icono" };
-  }
-  if (role === "switch" || /switch|toggle/.test(joined)) {
+  if (
+    roleOptions.has("switch") ||
+    (customComponent && /switch|toggle/i.test(componentName))
+  ) {
     return { category: "Selección", kind: "Switcher" };
   }
-  if (role === "checkbox" || /checkbox/.test(joined)) {
+  if (
+    roleOptions.has("checkbox") ||
+    (customComponent && /checkbox/i.test(componentName))
+  ) {
     return { category: "Selección", kind: "Checkbox" };
   }
-  if (role === "radio" || /radiogroup|radio-group/.test(joined)) {
+  if (
+    roleOptions.has("radio") ||
+    (customComponent && /radiogroup|radio/i.test(componentName))
+  ) {
     return { category: "Selección", kind: "Radio" };
   }
   if (
-    role === "tab" ||
-    /(?:^|[\s_-])tabs?(?:$|[\s_-])/.test(joined)
+    roleOptions.has("tab") ||
+    (customComponent && /tab(?:strip|list|chip|button)?$/i.test(componentName)) ||
+    (["button", "a"].includes(lowerTag) &&
+      /(?:^|[\s_-])tabs?(?:$|[\s_-])/.test(joined))
   ) {
     return { category: "Navegación", kind: "Pestaña" };
   }
-  if (lowerTag === "button" || /button|btn|action/.test(joined)) {
+  if (
+    lowerTag === "button" ||
+    roleOptions.has("button") ||
+    (customComponent && /(?:button|action|trigger|control)$/i.test(componentName))
+  ) {
     return { category: "Acción", kind: "Botón" };
   }
+  if (isIconComponent(tagName, importInfo)) {
+    return { category: "Iconografía", kind: "Icono" };
+  }
+  if (roleOptions.has("textbox")) {
+    return { category: "Campo", kind: "Editor de texto enriquecido" };
+  }
   if (lowerTag === "input") {
-    if (inputType === "checkbox") return { category: "Selección", kind: "Checkbox" };
-    if (inputType === "radio") return { category: "Selección", kind: "Radio" };
-    if (inputType === "range") return { category: "Campo", kind: "Slider" };
-    if (inputType === "file") return { category: "Campo", kind: "Selector de archivo" };
-    if (inputType === "search") return { category: "Campo", kind: "Campo de búsqueda" };
-    if (inputType === "number") return { category: "Campo", kind: "Campo numérico" };
+    if (inputTypeOptions.has("checkbox") && inputTypeOptions.has("radio")) {
+      return {
+        category: "Selección",
+        kind: "Radio / Checkbox dinámico",
+      };
+    }
+    if (inputTypeOptions.has("checkbox")) {
+      return { category: "Selección", kind: "Checkbox" };
+    }
+    if (inputTypeOptions.has("radio")) {
+      return { category: "Selección", kind: "Radio" };
+    }
+    if (inputTypeOptions.has("range")) {
+      return { category: "Campo", kind: "Slider" };
+    }
+    if (inputTypeOptions.has("file")) {
+      return { category: "Campo", kind: "Selector de archivo" };
+    }
+    if (inputTypeOptions.has("search")) {
+      return { category: "Campo", kind: "Campo de búsqueda" };
+    }
+    if (
+      inputTypeOptions.size > 1 &&
+      [...inputTypeOptions].some((type) =>
+        ["date", "datetime-local", "month", "number", "time", "week"].includes(
+          type,
+        ),
+      )
+    ) {
+      return { category: "Campo", kind: "Campo de tipo dinámico" };
+    }
+    if (inputTypeOptions.has("number")) {
+      return { category: "Campo", kind: "Campo numérico" };
+    }
+    if (
+      inputTypeOptions.has("date") ||
+      inputTypeOptions.has("datetime-local") ||
+      inputTypeOptions.has("month") ||
+      inputTypeOptions.has("time") ||
+      inputTypeOptions.has("week")
+    ) {
+      return { category: "Campo", kind: "Campo de fecha/tiempo" };
+    }
+    if (
+      attributes.type !== undefined &&
+      inputTypeOptions.size === 0
+    ) {
+      return { category: "Campo", kind: "Campo de tipo dinámico" };
+    }
     return { category: "Campo", kind: "Campo de texto" };
   }
   if (lowerTag === "select" || /select|picker|combobox/.test(joined)) {
@@ -1565,7 +2177,7 @@ function classifyElement(tagName, attributes, importInfo) {
   }
   if (
     lowerTag === "dialog" ||
-    role === "dialog" ||
+    roleOptions.has("dialog") ||
     /dialog|modal|drawer|sheet|popover|tooltip|flyout/.test(joined)
   ) {
     return {
@@ -1583,7 +2195,7 @@ function classifyElement(tagName, attributes, importInfo) {
     /alert|notice|toast|banner|status|badge|chip|progress|loading|empty|error|warning|success/.test(
       joined,
     ) ||
-    ["alert", "status", "progressbar"].includes(role)
+    ["alert", "status", "progressbar"].some((role) => roleOptions.has(role))
   ) {
     return {
       category: "Feedback",
@@ -1678,7 +2290,34 @@ function classifyElement(tagName, attributes, importInfo) {
   return { category: "Otro", kind: "Componente visual" };
 }
 
-function extractStates(attributes, classNames) {
+function semanticVisualVariants(tagName, attributes) {
+  const variants = [];
+  if (tagName.toLowerCase() === "input") {
+    const inputTypes = attributeLiteralOptions(
+      attributes.type ?? "text",
+      INPUT_TYPE_OPTIONS,
+    );
+    for (const type of inputTypes) variants.push(`type=${type}`);
+    if (attributes.type !== undefined && inputTypes.size === 0) {
+      variants.push(`type-dinámico=${cleanText(attributes.type, 80)}`);
+    }
+  }
+  for (const role of attributeLiteralOptions(
+    attributes.role,
+    ROLE_OPTIONS,
+  )) {
+    variants.push(`role=${role}`);
+  }
+  return variants;
+}
+
+function isVisualVariantToken(value) {
+  return /(?:^|[.:\-_])(?:is-)?(?:compact|dense|small|medium|large|sm|md|lg|xl|text-sm|wide|narrow)(?:$|[.:\-_])/i.test(
+    String(value),
+  );
+}
+
+function extractStates(attributes, classNames, cssStates = []) {
   const states = [];
   const stateProps = [
     "disabled",
@@ -1696,8 +2335,6 @@ function extractStates(attributes, classNames) {
     "aria-pressed",
     "aria-checked",
     "data-state",
-    "variant",
-    "size",
   ];
   for (const key of stateProps) {
     if (attributes[key] !== undefined) {
@@ -1705,8 +2342,14 @@ function extractStates(attributes, classNames) {
     }
   }
   for (const className of classNames) {
-    if (/^(?:is|has)-/.test(className)) states.push(`clase:${className}`);
+    if (
+      /^(?:is|has)-/.test(className) &&
+      !isVisualVariantToken(className)
+    ) {
+      states.push(`clase:${className}`);
+    }
   }
+  for (const cssState of cssStates) states.push(`css:${cssState}`);
   return [...new Set(states)];
 }
 
@@ -1746,6 +2389,1833 @@ function usageFor(category, kind, handlers, condition) {
   return `${base}${action}${render}`;
 }
 
+function unwrapExpression(node) {
+  let current = node;
+  while (
+    current &&
+    (ts.isParenthesizedExpression(current) ||
+      ts.isAsExpression(current) ||
+      ts.isTypeAssertionExpression(current) ||
+      ts.isNonNullExpression(current) ||
+      (typeof ts.isSatisfiesExpression === "function" &&
+        ts.isSatisfiesExpression(current)))
+  ) {
+    current = current.expression;
+  }
+  return current;
+}
+
+function propertyNameText(name, sourceFile) {
+  if (!name) return "";
+  if (
+    ts.isIdentifier(name) ||
+    ts.isStringLiteral(name) ||
+    ts.isNumericLiteral(name)
+  ) {
+    return name.text;
+  }
+  return cleanText(name.getText(sourceFile), 80);
+}
+
+function literalVariants(node, sourceFile) {
+  const current = unwrapExpression(node);
+  if (!current) return [];
+  if (
+    ts.isStringLiteral(current) ||
+    ts.isNoSubstitutionTemplateLiteral(current) ||
+    ts.isNumericLiteral(current)
+  ) {
+    return [cleanText(current.text, 240)].filter(Boolean);
+  }
+  if (current.kind === ts.SyntaxKind.TrueKeyword) return ["true"];
+  if (current.kind === ts.SyntaxKind.FalseKeyword) return ["false"];
+  if (ts.isConditionalExpression(current)) {
+    return [
+      ...literalVariants(current.whenTrue, sourceFile),
+      ...literalVariants(current.whenFalse, sourceFile),
+    ];
+  }
+  if (
+    ts.isBinaryExpression(current) &&
+    current.operatorToken.kind === ts.SyntaxKind.PlusToken
+  ) {
+    const left = literalVariants(current.left, sourceFile);
+    const right = literalVariants(current.right, sourceFile);
+    if (left.length && right.length) {
+      return left.flatMap((a) => right.map((b) => `${a}${b}`));
+    }
+  }
+  if (ts.isTemplateExpression(current)) {
+    return [cleanText(current.getText(sourceFile), 240)];
+  }
+  if (ts.isArrowFunction(current) || ts.isFunctionExpression(current)) {
+    if (!ts.isBlock(current.body)) {
+      return literalVariants(current.body, sourceFile);
+    }
+    const variants = [];
+    const collectReturns = (candidate) => {
+      if (
+        candidate !== current.body &&
+        (ts.isArrowFunction(candidate) ||
+          ts.isFunctionExpression(candidate) ||
+          ts.isFunctionDeclaration(candidate))
+      ) {
+        return;
+      }
+      if (ts.isReturnStatement(candidate) && candidate.expression) {
+        variants.push(...literalVariants(candidate.expression, sourceFile));
+        return;
+      }
+      ts.forEachChild(candidate, collectReturns);
+    };
+    collectReturns(current.body);
+    return [...new Set(variants)];
+  }
+  return [];
+}
+
+function simpleDeclaredValue(node, sourceFile) {
+  const variants = literalVariants(node, sourceFile);
+  if (variants.length) return [...new Set(variants)].join(" / ");
+  return cleanText(unwrapExpression(node)?.getText(sourceFile) ?? "", 180);
+}
+
+function normalizeDeclarationContainer(value) {
+  return String(value)
+    .replace(/([a-záéíóúñ])([A-ZÁÉÍÓÚÑ])/g, "$1-$2")
+    .replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]+/g, "-")
+    .toLowerCase();
+}
+
+function isUiDeclarationContainer(value) {
+  const normalized = `-${normalizeDeclarationContainer(value)}-`;
+  return UI_DECLARATION_CONTAINER_PATTERN.test(normalized);
+}
+
+function collectIdentifiers(node, target) {
+  if (ts.isIdentifier(node)) target.add(node.text);
+  ts.forEachChild(node, (child) => collectIdentifiers(child, target));
+}
+
+function collectJsxReferencedIdentifiers(sourceFile) {
+  const identifiers = new Set();
+  const visit = (node) => {
+    if (ts.isJsxExpression(node) && node.expression) {
+      const expression = unwrapExpression(node.expression);
+      const attribute = ts.isJsxAttribute(node.parent) ? node.parent : null;
+      const attributeName = attribute
+        ? propertyNameText(attribute.name, sourceFile)
+        : "";
+      if (
+        attribute &&
+        (isUiDeclarationContainer(attributeName) ||
+          /^(?:items|values|data|options|tabs|sections|steps|choices|methods|modes|presets)$/i.test(
+            attributeName,
+          ))
+      ) {
+        collectIdentifiers(expression, identifiers);
+      }
+      const inspectCalls = (candidate) => {
+        if (
+          ts.isCallExpression(candidate) &&
+          ts.isPropertyAccessExpression(candidate.expression) &&
+          /^(?:map|flatMap)$/.test(candidate.expression.name.text)
+        ) {
+          collectIdentifiers(candidate.expression.expression, identifiers);
+        }
+        ts.forEachChild(candidate, inspectCalls);
+      };
+      inspectCalls(expression);
+      if (
+        !attribute &&
+        ts.isIdentifier(expression) &&
+        isUiDeclarationContainer(expression.text)
+      ) {
+        identifiers.add(expression.text);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return identifiers;
+}
+
+function isInlineRenderedArray(arrayNode) {
+  let current = arrayNode;
+  while (
+    current.parent &&
+    (ts.isParenthesizedExpression(current.parent) ||
+      ts.isAsExpression(current.parent) ||
+      (typeof ts.isSatisfiesExpression === "function" &&
+        ts.isSatisfiesExpression(current.parent)))
+  ) {
+    current = current.parent;
+  }
+  const parent = current.parent;
+  if (ts.isJsxExpression(parent)) return true;
+  if (
+    ts.isPropertyAccessExpression(parent) &&
+    parent.expression === current &&
+    /^(?:map|flatMap)$/.test(parent.name.text) &&
+    ts.isCallExpression(parent.parent)
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function isLiteralDeclarationContainer(containerName) {
+  return /tab|pesta|option|opcion|choice|menu|action|accion|command|comando|step|paso|stage|fase|view|vista|mode|modo|preset|method|metodo|status|estado|filter|filtro|category|categoria|palette|paleta|slide|template|plantilla|report|reporte|format|formato|technique|tecnica|provider|proveedor|label|etiqueta|panel|section|seccion|button|boton|switch|toggle/i.test(
+    normalizeDeclarationContainer(containerName),
+  );
+}
+
+function declarationClassification(containerName) {
+  const normalized = normalizeDeclarationContainer(containerName);
+  if (/tab|pesta/.test(normalized)) {
+    return { category: "Navegación", kind: "Pestaña declarada" };
+  }
+  if (
+    /section|seccion|view|vista|nav|rail|route|ruta|module|modulo|panel/.test(
+      normalized,
+    )
+  ) {
+    return { category: "Navegación", kind: "Navegación declarada" };
+  }
+  if (/menu|action|accion|command|comando|cta|tool|control/.test(normalized)) {
+    return { category: "Acción", kind: "Acción declarada" };
+  }
+  if (/switch|toggle/.test(normalized)) {
+    return { category: "Selección", kind: "Switcher declarado" };
+  }
+  if (/check/.test(normalized)) {
+    return { category: "Selección", kind: "Checkbox declarado" };
+  }
+  if (/step|paso|stage|fase/.test(normalized)) {
+    return { category: "Navegación", kind: "Paso declarado" };
+  }
+  if (/slide|chart|graph|visual|template|plantilla|report|reporte/.test(normalized)) {
+    return {
+      category: "Datos y visualización",
+      kind: "Visualización declarada",
+    };
+  }
+  if (/card|tarjeta|metric|metrica|legend|leyenda|series|column|columna|row|fila|tile|node|nodo/.test(normalized)) {
+    return {
+      category: "Datos y visualización",
+      kind: "Contenido visual declarado",
+    };
+  }
+  if (
+    /option|opcion|choice|mode|modo|preset|method|metodo|type|tipo|status|estado|filter|filtro|category|categoria|palette|paleta|format|formato|technique|tecnica|provider|proveedor/.test(
+      normalized,
+    )
+  ) {
+    return { category: "Selección", kind: "Opción declarada" };
+  }
+  return { category: "Texto", kind: "Contenido declarado" };
+}
+
+function monitoringDeclaredSection(profile, tabId) {
+  const prefixMap = {
+    acreditacion: "acreditacion",
+    telefónico: "telefonico",
+    telefonico: "telefonico",
+    territorial: "territorial",
+    "cursos-horario": "aulas",
+    aulas: "aulas",
+  };
+  const prefix = prefixMap[profile] ?? "acreditacion";
+  const suffixMap = {
+    fuentes: prefix === "territorial" ? "fuente" : "fuentes",
+    modelo: prefix === "territorial" ? "umps" : prefix === "aulas" ? "agenda" : "modelo",
+    calidad: "validacion",
+    consultas: "consultas",
+    avance: "avance",
+    ocurrencias: "ocurrencias",
+    telefonico: prefix === "telefonico" ? "llamadas" : "telefonico",
+  };
+  return `${prefix}-${suffixMap[tabId] ?? tabId}`;
+}
+
+function normalizedVocabulary(value) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/gi, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function refineDeclaredContext(
+  context,
+  attributes,
+  label,
+  containerName,
+  ancestryLabels,
+) {
+  const next = { ...context };
+  const route = attributes.to ?? attributes.href ?? attributes.route ?? "";
+  let url = null;
+  if (route.startsWith("/")) {
+    try {
+      url = new URL(route, "https://catalogo.prosecnur.local");
+    } catch {
+      url = null;
+    }
+  }
+  if (url) {
+    const pathname = url.pathname;
+    const routeMap = [
+      [/^\/bitacora/, "bitacora", "bitacora"],
+      [/^\/calc-muestra|^\/muestra/, "calculo-muestra", "mesas"],
+      [/^\/editor-xlsform/, "formularios", "biblioteca"],
+      [/^\/hojas-ruta/, "hojas-ruta", url.searchParams.get("stage") || "territorio"],
+      [/^\/recopiladores/, "fichas-qr", "preparacion"],
+      [/^\/monitoreo/, "monitoreo", "acreditacion-fuentes"],
+      [/^\/carga/, "procesamiento", "carga"],
+      [/^\/validacion/, "procesamiento", "validacion"],
+      [/^\/codificacion/, "procesamiento", "codificacion"],
+      [/^\/analitica/, "procesamiento", "analitica"],
+      [/^\/graficos/, "procesamiento", "graficos"],
+      [/^\/tablero/, "dashboard", "tablero"],
+      [/^\/enciclopedia/, "enciclopedia", "enciclopedia"],
+    ];
+    for (const [pattern, module, section] of routeMap) {
+      if (pattern.test(pathname)) {
+        next.module = module;
+        next.section = section;
+        next.confidence = "exacta-por-ruta-declarada";
+        break;
+      }
+    }
+    if (next.module === "hojas-ruta") {
+      next.tab = url.searchParams.get("tab")
+        ? capitalize(url.searchParams.get("tab"))
+        : null;
+    }
+    if (next.module === "monitoreo") {
+      const profileLabel = ancestryLabels
+        .map((value) => value.toLowerCase())
+        .find((value) =>
+          ["acreditación", "acreditacion", "telefónico", "telefonico", "territorial", "cursos-horario", "aulas"].includes(
+            value,
+          ),
+        );
+      const tabId = url.searchParams.get("tab");
+      if (tabId) {
+        next.section = monitoringDeclaredSection(
+          profileLabel ?? "acreditacion",
+          tabId,
+        );
+      }
+    }
+  }
+  const normalizedContainer = normalizeDeclarationContainer(containerName);
+  const normalizedLabel = normalizedVocabulary(label);
+  const normalizedAncestry = ancestryLabels.map(normalizedVocabulary);
+
+  if (next.module === "calculo-muestra" && /classroom-lab-tabs/.test(normalizedContainer)) {
+    next.section = "universidad-seleccion";
+    next.tab = label;
+    next.confidence = "exacta-por-registro";
+  }
+
+  if (next.module === "hojas-ruta") {
+    const stageMap = {
+      territorio: "territorio",
+      poblacion: "poblacion",
+      muestra: "muestra",
+      manzanas: "manzanas",
+      entrega: "entrega",
+    };
+    const stageKey = Object.keys(stageMap).find(
+      (key) =>
+        normalizedLabel === key ||
+        normalizedContainer.endsWith(`-${key}`) ||
+        normalizedAncestry.includes(key),
+    );
+    if (
+      stageKey &&
+      /stage-presentation|stage-order|sections?/.test(normalizedContainer)
+    ) {
+      next.section = stageMap[stageKey];
+      next.tab = TAB_SCOPE_TRANSVERSAL;
+      next.confidence = "exacta-por-registro";
+    }
+    if (/delivery-tab|delivery-tab-label/.test(normalizedContainer)) {
+      next.section = "entrega";
+      next.tab = label;
+      next.confidence = "exacta-por-registro";
+    }
+  }
+
+  if (next.module === "fichas-qr") {
+    const sectionByToken = {
+      preparacion: "preparacion",
+      fichas: "fichas",
+      paquete: "paquete",
+    };
+    const tabByToken = {
+      agenda: ["preparacion", "Agenda"],
+      enlaces: ["preparacion", "Enlaces"],
+      vista: ["fichas", "Vista previa"],
+      listado: ["fichas", "Lista"],
+      salida: ["paquete", "PDF final"],
+      retorno: ["paquete", "Monitoreo"],
+    };
+    const token = Object.keys(tabByToken).find((key) =>
+      normalizedContainer.endsWith(`-${key}`),
+    );
+    if (token) {
+      [next.section, next.tab] = tabByToken[token];
+      next.confidence = "exacta-por-registro";
+    } else {
+      const sectionToken = Object.keys(sectionByToken).find(
+        (key) =>
+          normalizedContainer.endsWith(`-${key}`) ||
+          normalizedLabel === key,
+      );
+      if (sectionToken && /sections?/.test(normalizedContainer)) {
+        next.section = sectionByToken[sectionToken];
+        next.tab = /section-tabs/.test(normalizedContainer)
+          ? label
+          : TAB_SCOPE_TRANSVERSAL;
+        next.confidence = "exacta-por-registro";
+      }
+    }
+  }
+
+  if (next.module === "monitoreo") {
+    const profile =
+      /territorial/.test(normalizedContainer)
+        ? "territorial"
+        : /telefonico/.test(normalizedContainer)
+          ? "telefonico"
+          : /aulas|cursos-horario/.test(normalizedContainer)
+            ? "aulas"
+            : /acreditacion/.test(normalizedContainer)
+              ? "acreditacion"
+              : null;
+    const view = [
+      "fuentes",
+      "modelo",
+      "calidad",
+      "consultas",
+      "avance",
+      "ocurrencias",
+      "telefonico",
+    ].find((value) => normalizedContainer.includes(`-${value}`));
+    if (profile && view) {
+      const candidate = monitoringDeclaredSection(profile, view);
+      const valid = HIERARCHY.find((item) => item.module === "monitoreo")
+        ?.sections.some((section) => section.id === candidate);
+      if (valid) {
+        next.section = candidate;
+        next.tab = label;
+        next.confidence = "exacta-por-registro";
+      }
+    }
+  }
+
+  if (
+    next.module === "dashboard" &&
+    /(?:^|-)panels?(?:-|$)/.test(normalizedContainer)
+  ) {
+    next.section = "configuracion";
+    next.tab = "Personalizar";
+    next.confidence = "exacta-por-registro";
+  }
+
+  const classification = declarationClassification(containerName);
+  if (
+    classification.kind === "Pestaña declarada" &&
+    next.module !== "global" &&
+    !next.tab
+  ) {
+    next.tab = label;
+  }
+  return next;
+}
+
+function declaredStateModel(attributes) {
+  const stateKeys = [
+    "disabled",
+    "enabled",
+    "active",
+    "selected",
+    "checked",
+    "visible",
+    "hidden",
+    "available",
+    "required",
+    "readOnly",
+    "loading",
+    "busy",
+    "status",
+    "state",
+    "done",
+    "badge",
+    "count",
+    "disabledReason",
+    "lockedReason",
+  ];
+  const states = stateKeys
+    .filter((key) => attributes[key] !== undefined)
+    .map((key) => `${key}=${cleanText(attributes[key], 80)}`);
+  return {
+    states,
+    stateModel: states.length
+      ? "Estados declarados en la configuración."
+      : "Sin estado propio declarado; hereda disponibilidad y selección del componente consumidor.",
+  };
+}
+
+function buildExternalUiUsageIndex(sourceFiles) {
+  const usageIndex = new Map();
+  const addUsage = (key, usage) => {
+    const usages = usageIndex.get(key) ?? [];
+    usages.push(usage);
+    usageIndex.set(key, usages);
+  };
+  for (const file of sourceFiles) {
+    const source = fs.readFileSync(file, "utf8");
+    const sourceRelativePath = relativePath(file);
+    const sourceFile = ts.createSourceFile(
+      sourceRelativePath,
+      source,
+      ts.ScriptTarget.Latest,
+      true,
+      scriptKindFor(file),
+    );
+    const lineStarts = computeLineStarts(source);
+    const bindings = new Map();
+    for (const statement of sourceFile.statements) {
+      if (
+        !ts.isImportDeclaration(statement) ||
+        !ts.isStringLiteral(statement.moduleSpecifier)
+      ) {
+        continue;
+      }
+      const definitionFile = resolveImportFile(
+        file,
+        statement.moduleSpecifier.text,
+      );
+      if (!definitionFile || !statement.importClause) continue;
+      const clause = statement.importClause;
+      if (clause.name) {
+        bindings.set(clause.name.text, {
+          definitionFile,
+          importedName: "default",
+        });
+      }
+      if (clause.namedBindings && ts.isNamedImports(clause.namedBindings)) {
+        for (const specifier of clause.namedBindings.elements) {
+          bindings.set(specifier.name.text, {
+            definitionFile,
+            importedName:
+              specifier.propertyName?.text ?? specifier.name.text,
+          });
+        }
+      }
+    }
+    const visit = (node) => {
+      if (
+        ts.isCallExpression(node) &&
+        node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+        node.arguments.length === 1 &&
+        ts.isStringLiteral(node.arguments[0])
+      ) {
+        const definitionFile = resolveImportFile(
+          file,
+          node.arguments[0].text,
+        );
+        if (definitionFile) {
+          const position = lineAndColumn(
+            lineStarts,
+            node.getStart(sourceFile),
+          );
+          addUsage(`${definitionFile}::default`, {
+            file: sourceRelativePath,
+            line: position.line,
+            column: position.column,
+            score: 1,
+            resolution: "import-dinámico-interarchivo",
+          });
+        }
+      }
+      if (ts.isIdentifier(node) && bindings.has(node.text)) {
+        const parent = node.parent;
+        const isBinding =
+          (ts.isImportClause(parent) && parent.name === node) ||
+          (ts.isImportSpecifier(parent) &&
+            (parent.name === node || parent.propertyName === node));
+        if (!isBinding) {
+          const binding = bindings.get(node.text);
+          let current = parent;
+          let score = isUiDeclarationContainer(binding.importedName) ? 1 : 2;
+          while (current && !ts.isSourceFile(current)) {
+            if (ts.isJsxExpression(current) || ts.isJsxAttribute(current)) {
+              score = 0;
+              break;
+            }
+            if (
+              ts.isCallExpression(current) &&
+              ts.isPropertyAccessExpression(current.expression) &&
+              /^(?:map|flatMap|filter|find)$/.test(
+                current.expression.name.text,
+              )
+            ) {
+              score = Math.min(score, 1);
+            }
+            current = current.parent;
+          }
+          if (score <= 1) {
+            const position = lineAndColumn(
+              lineStarts,
+              node.getStart(sourceFile),
+            );
+            const key = `${binding.definitionFile}::${binding.importedName}`;
+            addUsage(key, {
+              file: sourceRelativePath,
+              line: position.line,
+              column: position.column,
+              score,
+              resolution:
+                score === 0
+                  ? "sink-jsx-interarchivo"
+                  : "consumidor-interarchivo",
+            });
+          }
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sourceFile);
+  }
+  for (const usages of usageIndex.values()) {
+    usages.sort(
+      (a, b) =>
+        a.score - b.score ||
+        a.file.localeCompare(b.file) ||
+        a.line - b.line ||
+        a.column - b.column,
+    );
+  }
+  return usageIndex;
+}
+
+function scanDeclarationFile(file, externalUsageIndex = new Map()) {
+  const source = fs.readFileSync(file, "utf8");
+  const sourceRelativePath = relativePath(file);
+  const sourceFile = ts.createSourceFile(
+    sourceRelativePath,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    scriptKindFor(file),
+  );
+  const lineStarts = computeLineStarts(source);
+  const jsxReferences = collectJsxReferencedIdentifiers(sourceFile);
+  const declarations = [];
+  const visitedArrays = new Set();
+  const visitedRecords = new Set();
+  const expandedCandidatePositions = new Set();
+  const localInitializers = new Map();
+  const defaultExportedLocalNames = new Set(
+    sourceFile.statements
+      .filter(
+        (statement) =>
+          ts.isExportAssignment(statement) &&
+          !statement.isExportEquals &&
+          ts.isIdentifier(statement.expression),
+      )
+      .map((statement) => statement.expression.text),
+  );
+
+  const isStyleObjectContext = (node) => {
+    let current = node;
+    while (current && !ts.isSourceFile(current)) {
+      if (
+        ts.isVariableDeclaration(current) &&
+        ts.isIdentifier(current.name)
+      ) {
+        const name = current.name.text;
+        const typeText = current.type?.getText(sourceFile) ?? "";
+        return (
+          /\bCSSProperties\b/.test(typeText) ||
+          /^[a-z][A-Za-z0-9]*(?:Style|Styles)$/.test(name)
+        );
+      }
+      current = current.parent;
+    }
+    return false;
+  };
+
+  const indexInitializers = (node) => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer
+    ) {
+      localInitializers.set(node.name.text, unwrapExpression(node.initializer));
+    }
+    ts.forEachChild(node, indexInitializers);
+  };
+  indexInitializers(sourceFile);
+
+  const resolveLocalExpression = (node, seen = new Set()) => {
+    const current = unwrapExpression(node);
+    if (!current) return null;
+    if (ts.isIdentifier(current)) {
+      if (seen.has(current.text)) return current;
+      const resolved = localInitializers.get(current.text);
+      if (!resolved) return current;
+      return resolveLocalExpression(resolved, new Set([...seen, current.text]));
+    }
+    if (ts.isPropertyAccessExpression(current)) {
+      const owner = resolveLocalExpression(current.expression, seen);
+      if (owner && ts.isObjectLiteralExpression(owner)) {
+        const property = owner.properties.find(
+          (candidate) =>
+            ts.isPropertyAssignment(candidate) &&
+            propertyNameText(candidate.name, sourceFile) === current.name.text,
+        );
+        if (property && ts.isPropertyAssignment(property)) {
+          return resolveLocalExpression(property.initializer, seen);
+        }
+      }
+    }
+    return current;
+  };
+
+  const resolvedObjectProperties = (objectNode, seen = new Set()) => {
+    const properties = [];
+    for (const property of objectNode.properties) {
+      if (ts.isPropertyAssignment(property)) {
+        properties.push(property);
+        continue;
+      }
+      if (ts.isSpreadAssignment(property)) {
+        const spread = resolveLocalExpression(property.expression, seen);
+        if (
+          spread &&
+          ts.isObjectLiteralExpression(spread) &&
+          !seen.has(spread.getStart(sourceFile))
+        ) {
+          properties.push(
+            ...resolvedObjectProperties(
+              spread,
+              new Set([...seen, spread.getStart(sourceFile)]),
+            ),
+          );
+        }
+      }
+    }
+    return properties;
+  };
+  const renderReferenceCache = new Map();
+  const localRenderReference = (containerName, fallbackPosition) => {
+    const rootName = String(containerName).split(".")[0];
+    if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(rootName)) {
+      return {
+        file: sourceRelativePath,
+        ...lineAndColumn(lineStarts, fallbackPosition),
+        resolution: "declaración-inline",
+      };
+    }
+    if (renderReferenceCache.has(rootName)) {
+      return renderReferenceCache.get(rootName);
+    }
+    const externalReferences = [
+      ...(externalUsageIndex.get(`${sourceRelativePath}::${rootName}`) ?? []),
+      ...(defaultExportedLocalNames.has(rootName)
+        ? externalUsageIndex.get(`${sourceRelativePath}::default`) ?? []
+        : []),
+    ].sort(
+      (a, b) =>
+        a.score - b.score ||
+        a.file.localeCompare(b.file) ||
+        a.line - b.line ||
+        a.column - b.column,
+    );
+    if (externalReferences.length > 0) {
+      const [externalReference] = externalReferences;
+      renderReferenceCache.set(rootName, externalReference);
+      return externalReference;
+    }
+    const candidates = [];
+    const findReferences = (node) => {
+      if (ts.isIdentifier(node) && node.text === rootName) {
+        const parent = node.parent;
+        const isDeclarationName =
+          (ts.isVariableDeclaration(parent) && parent.name === node) ||
+          (ts.isPropertyAssignment(parent) && parent.name === node) ||
+          (ts.isImportSpecifier(parent) && parent.name === node);
+        if (!isDeclarationName) {
+          let current = parent;
+          let score = 2;
+          while (current && !ts.isSourceFile(current)) {
+            if (ts.isJsxExpression(current) || ts.isJsxAttribute(current)) {
+              score = 0;
+              break;
+            }
+            if (
+              ts.isCallExpression(current) ||
+              ts.isReturnStatement(current)
+            ) {
+              score = Math.min(score, 1);
+            }
+            current = current.parent;
+          }
+          candidates.push({ score, position: node.getStart(sourceFile) });
+        }
+      }
+      ts.forEachChild(node, findReferences);
+    };
+    findReferences(sourceFile);
+    candidates.sort(
+      (a, b) => a.score - b.score || a.position - b.position,
+    );
+    const chosen = candidates[0];
+    const reference = {
+      file: sourceRelativePath,
+      ...lineAndColumn(
+        lineStarts,
+        chosen?.position ?? fallbackPosition,
+      ),
+      resolution: chosen
+        ? chosen.score === 0
+          ? "sink-jsx-local"
+          : "consumidor-local"
+        : "declaración; consumidor interarchivo no resuelto",
+    };
+    renderReferenceCache.set(rootName, reference);
+    return reference;
+  };
+
+  const emitObject = (
+    objectNode,
+    containerName,
+    ancestryLabels,
+    evidence,
+  ) => {
+    const attributes = {};
+    const labelVariants = [];
+    const detailVariants = [];
+    for (const property of resolvedObjectProperties(objectNode)) {
+      const key = propertyNameText(property.name, sourceFile);
+      if (!UI_DECLARATION_PROPERTY_KEYS.has(key)) continue;
+      const initializer =
+        resolveLocalExpression(property.initializer) ?? property.initializer;
+      attributes[key] = simpleDeclaredValue(initializer, sourceFile);
+      if (UI_DECLARATION_PRIMARY_KEYS.includes(key)) {
+        labelVariants.push(
+          ...literalVariants(initializer, sourceFile),
+        );
+      }
+      if (UI_DECLARATION_DETAIL_KEYS.includes(key)) {
+        detailVariants.push(
+          ...literalVariants(initializer, sourceFile),
+        );
+      }
+    }
+    const labels = [...new Set(labelVariants.filter(Boolean))];
+    if (!labels.length) return [];
+    expandedCandidatePositions.add(objectNode.getStart(sourceFile));
+    const emittedLabels = [];
+    labels.forEach((label, variantIndex) => {
+      const recordKey = `${objectNode.getStart(sourceFile)}:${label}`;
+      if (visitedRecords.has(recordKey)) return;
+      visitedRecords.add(recordKey);
+      const position = lineAndColumn(
+        lineStarts,
+        objectNode.getStart(sourceFile),
+      );
+      const nearestComponent = findNearestComponentName(
+        objectNode,
+        sourceFile,
+      );
+      const rawCondition = findRenderCondition(objectNode, sourceFile);
+      const condition =
+        rawCondition === "Siempre que se renderiza su componente contenedor"
+          ? `Cuando ${containerName} se consume desde ${nearestComponent}`
+          : rawCondition;
+      const baseContext = inferContext(
+        sourceRelativePath,
+        nearestComponent,
+        condition,
+      );
+      const context = refineDeclaredContext(
+        baseContext,
+        attributes,
+        label,
+        containerName,
+        ancestryLabels,
+      );
+      const classification = declarationClassification(containerName);
+      const { states, stateModel } = declaredStateModel(attributes);
+      const detail = [...new Set(detailVariants.filter(Boolean))].join(" · ");
+      const id = sha256(
+        `${sourceRelativePath}:${position.line}:${position.column}:declaration:${containerName}:${variantIndex}:${label}`,
+      ).slice(0, 16);
+      declarations.push({
+        id,
+        sourceType: "declaración",
+        module: context.module,
+        section: context.section,
+        tab: context.tab,
+        contextConfidence: context.confidence,
+        componentContext: containerName,
+        category: classification.category,
+        kind: classification.kind,
+        tag: `config:${containerName}`,
+        label,
+        detail: detail || null,
+        usage: `${CATEGORY_DESCRIPTIONS[classification.category]} Declarado en ${containerName}${detail ? `: ${detail}` : ""}.`,
+        renderedWhen: condition,
+        interactive: ["Acción", "Campo", "Navegación", "Selección"].includes(
+          classification.category,
+        ),
+        nativeElement: false,
+        attributes,
+        spreads: [],
+        classNames: [],
+        states,
+        visualVariants: ["variant", "size"]
+          .filter((key) => attributes[key] !== undefined)
+          .map((key) => `${key}=${cleanText(attributes[key], 80)}`),
+        stateModel,
+        handlers: [],
+        importSource: null,
+        definitionFile: sourceRelativePath,
+        styleSources: [],
+        declarationEvidence: evidence,
+        ancestry: ancestryLabels,
+        renderSource: localRenderReference(
+          containerName,
+          objectNode.getStart(sourceFile),
+        ),
+        source: {
+          file: sourceRelativePath,
+          line: position.line,
+          column: position.column,
+        },
+      });
+      emittedLabels.push(label);
+    });
+    return emittedLabels;
+  };
+
+  const emitLiteral = (
+    literalNode,
+    containerName,
+    ancestryLabels,
+    evidence,
+    extraAttributes = {},
+    explicitDetail = null,
+  ) => {
+    const labels = literalVariants(literalNode, sourceFile);
+    if (labels.length) {
+      expandedCandidatePositions.add(literalNode.getStart(sourceFile));
+    }
+    for (const [variantIndex, label] of labels.entries()) {
+      if (!label) continue;
+      const position = lineAndColumn(
+        lineStarts,
+        literalNode.getStart(sourceFile),
+      );
+      const recordKey = `${literalNode.getStart(sourceFile)}:${label}`;
+      if (visitedRecords.has(recordKey)) continue;
+      visitedRecords.add(recordKey);
+      const nearestComponent = findNearestComponentName(
+        literalNode,
+        sourceFile,
+      );
+      const rawCondition = findRenderCondition(literalNode, sourceFile);
+      const condition =
+        rawCondition === "Siempre que se renderiza su componente contenedor"
+          ? `Cuando ${containerName} se consume desde ${nearestComponent}`
+          : rawCondition;
+      const baseContext = inferContext(
+        sourceRelativePath,
+        nearestComponent,
+        condition,
+      );
+      const context = refineDeclaredContext(
+        baseContext,
+        extraAttributes,
+        label,
+        containerName,
+        ancestryLabels,
+      );
+      const classification = declarationClassification(containerName);
+      const { states, stateModel } = declaredStateModel(extraAttributes);
+      declarations.push({
+        id: sha256(
+          `${sourceRelativePath}:${position.line}:${position.column}:literal:${containerName}:${variantIndex}:${label}`,
+        ).slice(0, 16),
+        sourceType: "declaración",
+        module: context.module,
+        section: context.section,
+        tab: context.tab,
+        contextConfidence: context.confidence,
+        componentContext: containerName,
+        category: classification.category,
+        kind: classification.kind,
+        tag: `config:${containerName}`,
+        label,
+        detail: explicitDetail,
+        usage: `${CATEGORY_DESCRIPTIONS[classification.category]} Opción literal declarada en ${containerName}${explicitDetail ? `: ${explicitDetail}` : ""}.`,
+        renderedWhen: condition,
+        interactive: ["Acción", "Campo", "Navegación", "Selección"].includes(
+          classification.category,
+        ),
+        nativeElement: false,
+        attributes: extraAttributes,
+        spreads: [],
+        classNames: [],
+        states,
+        visualVariants: ["variant", "size"]
+          .filter((key) => extraAttributes[key] !== undefined)
+          .map((key) => `${key}=${cleanText(extraAttributes[key], 80)}`),
+        stateModel,
+        handlers: [],
+        importSource: null,
+        definitionFile: sourceRelativePath,
+        styleSources: [],
+        declarationEvidence: evidence,
+        ancestry: ancestryLabels,
+        renderSource: localRenderReference(
+          containerName,
+          literalNode.getStart(sourceFile),
+        ),
+        source: {
+          file: sourceRelativePath,
+          line: position.line,
+          column: position.column,
+        },
+      });
+    }
+  };
+
+  const processArray = (
+    arrayNode,
+    containerName,
+    ancestryLabels = [],
+    evidence = "registro-ui",
+  ) => {
+    const current = unwrapExpression(arrayNode);
+    if (!current || !ts.isArrayLiteralExpression(current)) return;
+    expandedCandidatePositions.add(current.getStart(sourceFile));
+    const arrayKey = `${current.getStart(sourceFile)}:${containerName}`;
+    if (visitedArrays.has(arrayKey)) return;
+    visitedArrays.add(arrayKey);
+    for (const element of current.elements) {
+      const item = unwrapExpression(element);
+      if (!item || ts.isSpreadElement(item)) continue;
+      if (ts.isArrayLiteralExpression(item)) {
+        const tuple = item.elements
+          .map((tupleItem) => unwrapExpression(tupleItem))
+          .filter(Boolean);
+        const labelNode = tuple[1] ?? tuple[0];
+        const labelValues = labelNode
+          ? literalVariants(labelNode, sourceFile)
+          : [];
+        if (labelValues.length) {
+          const value = tuple[0]
+            ? simpleDeclaredValue(tuple[0], sourceFile)
+            : "";
+          const detail = tuple[2]
+            ? simpleDeclaredValue(tuple[2], sourceFile)
+            : null;
+          emitLiteral(
+            labelNode,
+            containerName,
+            ancestryLabels,
+            `${evidence}-tupla`,
+            value ? { value } : {},
+            detail,
+          );
+        } else {
+          processArray(
+            item,
+            `${containerName}.tuple`,
+            ancestryLabels,
+            evidence,
+          );
+        }
+        continue;
+      }
+      if (
+        ts.isStringLiteral(item) ||
+        ts.isNoSubstitutionTemplateLiteral(item) ||
+        ts.isNumericLiteral(item) ||
+        ts.isConditionalExpression(item)
+      ) {
+        if (
+          evidence !== "nombre-de-registro-ui" ||
+          isLiteralDeclarationContainer(containerName)
+        ) {
+          emitLiteral(item, containerName, ancestryLabels, evidence);
+        }
+        continue;
+      }
+      if (!ts.isObjectLiteralExpression(item)) continue;
+      const emittedLabels = emitObject(
+        item,
+        containerName,
+        ancestryLabels,
+        evidence,
+      );
+      const nextAncestry = [...ancestryLabels, ...emittedLabels].slice(-8);
+      for (const property of item.properties) {
+        if (!ts.isPropertyAssignment(property)) continue;
+        const propertyName = propertyNameText(property.name, sourceFile);
+        if (UI_DECLARATION_TECHNICAL_KEYS.has(propertyName)) continue;
+        const initializer = unwrapExpression(property.initializer);
+        if (
+          initializer &&
+          ts.isArrayLiteralExpression(initializer)
+        ) {
+          processArray(
+            initializer,
+            `${containerName}.${propertyName}`,
+            nextAncestry,
+            evidence,
+          );
+        } else if (initializer && ts.isObjectLiteralExpression(initializer)) {
+          processRecord(
+            initializer,
+            `${containerName}.${propertyName}`,
+            nextAncestry,
+            evidence,
+          );
+        }
+      }
+    }
+  };
+
+  const processRecord = (
+    objectNode,
+    containerName,
+    ancestryLabels = [],
+    evidence = "registro-ui",
+  ) => {
+    const emittedLabels = emitObject(
+      objectNode,
+      containerName,
+      ancestryLabels,
+      evidence,
+    );
+    const nextAncestry = [...ancestryLabels, ...emittedLabels].slice(-8);
+    const objectHasOwnLabel = emittedLabels.length > 0;
+    for (const property of objectNode.properties) {
+      if (!ts.isPropertyAssignment(property)) continue;
+      const propertyName = propertyNameText(property.name, sourceFile);
+      if (UI_DECLARATION_TECHNICAL_KEYS.has(propertyName)) continue;
+      const initializer = unwrapExpression(property.initializer);
+      if (!initializer) continue;
+      const nestedContainer = `${containerName}.${propertyName}`;
+      if (ts.isArrayLiteralExpression(initializer)) {
+        processArray(initializer, nestedContainer, nextAncestry, evidence);
+        continue;
+      }
+      if (ts.isObjectLiteralExpression(initializer)) {
+        processRecord(initializer, nestedContainer, nextAncestry, evidence);
+        continue;
+      }
+      if (
+        !objectHasOwnLabel &&
+        (ts.isStringLiteral(initializer) ||
+          ts.isNoSubstitutionTemplateLiteral(initializer)) &&
+        !UI_DECLARATION_DETAIL_KEYS.includes(propertyName) &&
+        !/^(?:id|key|value|type|kind|color|className|icon|route|to|href)$/i.test(
+          propertyName,
+        )
+      ) {
+        emitLiteral(
+          initializer,
+          containerName,
+          [...nextAncestry, propertyName],
+          `${evidence}-record`,
+          { key: propertyName },
+        );
+      }
+    }
+  };
+
+  const arraysFromInitializer = (initializer) => {
+    const current = unwrapExpression(initializer);
+    if (!current) return [];
+    if (ts.isArrayLiteralExpression(current)) return [current];
+    if (ts.isConditionalExpression(current)) {
+      return [
+        ...arraysFromInitializer(current.whenTrue),
+        ...arraysFromInitializer(current.whenFalse),
+      ];
+    }
+    if (ts.isBlock(current)) {
+      const arrays = [];
+      const collectReturns = (node) => {
+        if (ts.isReturnStatement(node) && node.expression) {
+          arrays.push(...arraysFromInitializer(node.expression));
+          return;
+        }
+        ts.forEachChild(node, collectReturns);
+      };
+      collectReturns(current);
+      return arrays;
+    }
+    if (
+      ts.isCallExpression(current) &&
+      current.arguments.length
+    ) {
+      return current.arguments.flatMap((argument) =>
+        arraysFromInitializer(argument),
+      );
+    }
+    if (
+      ts.isArrowFunction(current) ||
+      ts.isFunctionExpression(current)
+    ) {
+      return arraysFromInitializer(current.body);
+    }
+    return [];
+  };
+
+  const objectFromInitializer = (initializer) => {
+    const current = unwrapExpression(initializer);
+    return current && ts.isObjectLiteralExpression(current) ? current : null;
+  };
+
+  const callContainerName = (call) => {
+    if (ts.isIdentifier(call.expression)) return call.expression.text;
+    if (ts.isPropertyAccessExpression(call.expression)) {
+      return call.expression.name.text;
+    }
+    return cleanText(call.expression.getText(sourceFile), 80);
+  };
+
+  const enclosingPropertyName = (node) => {
+    let current = node.parent;
+    while (current && !ts.isSourceFile(current)) {
+      if (ts.isPropertyAssignment(current)) {
+        return propertyNameText(current.name, sourceFile);
+      }
+      if (
+        ts.isVariableDeclaration(current) ||
+        ts.isFunctionDeclaration(current)
+      ) {
+        break;
+      }
+      current = current.parent;
+    }
+    return "";
+  };
+
+  const hasUiDeclarationAncestor = (node) => {
+    let current = node.parent;
+    while (current && !ts.isSourceFile(current)) {
+      if (
+        ts.isVariableDeclaration(current) &&
+        ts.isIdentifier(current.name) &&
+        isUiDeclarationContainer(current.name.text)
+      ) {
+        return true;
+      }
+      if (
+        ts.isPropertyAssignment(current) &&
+        isUiDeclarationContainer(propertyNameText(current.name, sourceFile))
+      ) {
+        return true;
+      }
+      current = current.parent;
+    }
+    return false;
+  };
+
+  const visit = (node) => {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
+      const name = node.name.text;
+      const arrays = node.initializer
+        ? arraysFromInitializer(node.initializer)
+        : [];
+      const object = node.initializer
+        ? objectFromInitializer(node.initializer)
+        : null;
+      const hasUiEvidence =
+        jsxReferences.has(name) || isUiDeclarationContainer(name);
+      if (
+        arrays.length &&
+        hasUiEvidence &&
+        !isStyleObjectContext(node)
+      ) {
+        for (const array of arrays) {
+          processArray(
+            array,
+            name,
+            [],
+            jsxReferences.has(name)
+              ? "referenciada-desde-jsx"
+              : "nombre-de-registro-ui",
+          );
+        }
+      }
+      if (object && hasUiEvidence && !isStyleObjectContext(node)) {
+        processRecord(
+          object,
+          name,
+          [],
+          jsxReferences.has(name)
+            ? "referenciada-desde-jsx"
+            : "nombre-de-registro-ui",
+        );
+      }
+    }
+    if (ts.isPropertyAssignment(node)) {
+      const name = propertyNameText(node.name, sourceFile);
+      const arrays = arraysFromInitializer(node.initializer);
+      const standaloneUiProperty =
+        isUiDeclarationContainer(name) &&
+        !hasUiDeclarationAncestor(node) &&
+        !isStyleObjectContext(node);
+      if (arrays.length && standaloneUiProperty) {
+        for (const array of arrays) {
+          processArray(array, name, [], "propiedad-de-registro-ui");
+        }
+      }
+      const object = objectFromInitializer(node.initializer);
+      if (object && standaloneUiProperty) {
+        processRecord(object, name, [], "propiedad-de-registro-ui");
+      }
+    }
+    if (ts.isCallExpression(node)) {
+      const callName = callContainerName(node);
+      if (isUiDeclarationContainer(callName)) {
+        const propertyName = enclosingPropertyName(node);
+        const containerName = propertyName
+          ? `${callName}.${propertyName}`
+          : callName;
+        for (const argument of node.arguments) {
+          const current = unwrapExpression(argument);
+          if (current && ts.isArrayLiteralExpression(current)) {
+            processArray(
+              current,
+              containerName,
+              [],
+              "array-en-factory-ui",
+            );
+          } else if (current && ts.isObjectLiteralExpression(current)) {
+            processRecord(
+              current,
+              containerName,
+              [],
+              "objeto-en-factory-ui",
+            );
+          }
+        }
+      }
+    }
+    if (ts.isReturnStatement(node) && node.expression) {
+      const current = unwrapExpression(node.expression);
+      const functionName = findNearestComponentName(node, sourceFile);
+      if (
+        current &&
+        ts.isArrayLiteralExpression(current) &&
+        isUiDeclarationContainer(functionName)
+      ) {
+        processArray(
+          current,
+          functionName,
+          [],
+          "array-retornado-por-factory-ui",
+        );
+      }
+    }
+    if (ts.isArrayLiteralExpression(node)) {
+      let current = node.parent;
+      let insideJsx = false;
+      while (current && !ts.isSourceFile(current)) {
+        if (ts.isJsxExpression(current)) {
+          insideJsx = true;
+          break;
+        }
+        current = current.parent;
+      }
+      if (insideJsx && isInlineRenderedArray(node)) {
+        processArray(node, "inline-jsx-options", [], "array-inline-en-jsx");
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+
+  const candidatePositions = new Map();
+  const collectCandidates = (node) => {
+    if (isStyleObjectContext(node)) return;
+    if (ts.isArrayLiteralExpression(node)) {
+      const hasVisibleShape = node.elements.some((element) => {
+        const current = unwrapExpression(element);
+        if (!current) return false;
+        if (
+          ts.isStringLiteral(current) ||
+          ts.isNoSubstitutionTemplateLiteral(current)
+        ) {
+          return true;
+        }
+        if (ts.isArrayLiteralExpression(current)) {
+          return current.elements.some(
+            (item) => literalVariants(item, sourceFile).length > 0,
+          );
+        }
+        if (ts.isObjectLiteralExpression(current)) {
+          return current.properties.some(
+            (property) =>
+              ts.isPropertyAssignment(property) &&
+              (UI_DECLARATION_PRIMARY_KEYS.includes(
+                propertyNameText(property.name, sourceFile),
+              ) ||
+                UI_DECLARATION_DETAIL_KEYS.includes(
+                  propertyNameText(property.name, sourceFile),
+                )),
+          );
+        }
+        return false;
+      });
+      if (hasVisibleShape) {
+        candidatePositions.set(node.getStart(sourceFile), {
+          node,
+          kind: "array-o-tupla",
+        });
+      }
+    }
+    if (ts.isObjectLiteralExpression(node)) {
+      const hasVisibleProperty = node.properties.some(
+        (property) =>
+          ts.isPropertyAssignment(property) &&
+          (UI_DECLARATION_PRIMARY_KEYS.includes(
+            propertyNameText(property.name, sourceFile),
+          ) ||
+            UI_DECLARATION_DETAIL_KEYS.includes(
+              propertyNameText(property.name, sourceFile),
+            )),
+      );
+      if (hasVisibleProperty) {
+        candidatePositions.set(node.getStart(sourceFile), {
+          node,
+          kind: "objeto-con-copy-ui",
+        });
+      }
+    }
+    ts.forEachChild(node, collectCandidates);
+  };
+  collectCandidates(sourceFile);
+  const expandedCandidates = [...candidatePositions.keys()].filter((position) =>
+    expandedCandidatePositions.has(position),
+  ).length;
+  const ignoredCandidates = candidatePositions.size - expandedCandidates;
+  const candidateContainerName = (node) => {
+    let current = node;
+    while (current && !ts.isSourceFile(current)) {
+      if (
+        ts.isVariableDeclaration(current) &&
+        ts.isIdentifier(current.name)
+      ) {
+        return current.name.text;
+      }
+      if (ts.isPropertyAssignment(current)) {
+        return propertyNameText(current.name, sourceFile);
+      }
+      current = current.parent;
+    }
+    return findNearestComponentName(node, sourceFile);
+  };
+  const candidateLabel = (node, kind, position) => {
+    const values = [];
+    const addFromObject = (objectNode) => {
+      for (const property of resolvedObjectProperties(objectNode)) {
+        if (!ts.isPropertyAssignment(property)) continue;
+        const key = propertyNameText(property.name, sourceFile);
+        if (
+          !UI_DECLARATION_PRIMARY_KEYS.includes(key) &&
+          !UI_DECLARATION_DETAIL_KEYS.includes(key)
+        ) {
+          continue;
+        }
+        values.push(
+          ...literalVariants(
+            resolveLocalExpression(property.initializer) ??
+              property.initializer,
+            sourceFile,
+          ),
+        );
+      }
+    };
+    if (ts.isObjectLiteralExpression(node)) {
+      addFromObject(node);
+    } else if (ts.isArrayLiteralExpression(node)) {
+      for (const element of node.elements.slice(0, 4)) {
+        const current = unwrapExpression(element);
+        if (!current) continue;
+        values.push(...literalVariants(current, sourceFile));
+        if (ts.isObjectLiteralExpression(current)) addFromObject(current);
+        if (ts.isArrayLiteralExpression(current)) {
+          for (const item of current.elements.slice(0, 3)) {
+            values.push(...literalVariants(item, sourceFile));
+          }
+        }
+      }
+    }
+    const uniqueValues = [...new Set(values.filter(Boolean))].slice(0, 3);
+    return uniqueValues.length
+      ? uniqueValues.join(" / ")
+      : `${kind} en línea ${position.line}`;
+  };
+  const candidateSignals = (node, containerName) => {
+    let current = node.parent;
+    let jsxAncestor = false;
+    let returnedFromComponent = false;
+    let technicalControlFlow = false;
+    while (current && !ts.isSourceFile(current)) {
+      if (ts.isJsxExpression(current) || ts.isJsxAttribute(current)) {
+        jsxAncestor = true;
+      }
+      if (ts.isReturnStatement(current)) returnedFromComponent = true;
+      if (
+        ts.isCallExpression(current) &&
+        ts.isPropertyAccessExpression(current.expression) &&
+        /^(?:filter|includes|some|every|sort)$/.test(
+          current.expression.name.text,
+        )
+      ) {
+        technicalControlFlow = true;
+      }
+      current = current.parent;
+    }
+    const rootName = String(containerName).split(".")[0];
+    const uiReference =
+      jsxReferences.has(rootName) || isUiDeclarationContainer(containerName);
+    const normalizedContainer = normalizeDeclarationContainer(containerName);
+    const technicalContainer =
+      /(?:^|-)(?:allowlists?|payloads?|patches?|headers?|scopes?|keys?|aliases?|requests?|responses?|query|variables?|params?)(?:-|$)/.test(
+        normalizedContainer,
+      );
+    return {
+      jsxAncestor,
+      returnedFromComponent,
+      technicalControlFlow,
+      uiReference,
+      technicalContainer,
+    };
+  };
+  const candidateLedger = [];
+  const dispositionCounts = {
+    "representado-por-descendiente": 0,
+    técnico: 0,
+    "probable-visual": 0,
+    "no-resuelto": 0,
+  };
+  for (const [candidateStart, candidate] of candidatePositions) {
+    if (expandedCandidatePositions.has(candidateStart)) continue;
+    const { node, kind } = candidate;
+    const candidateEnd = node.getEnd();
+    const representedByDescendant = [...expandedCandidatePositions].some(
+      (position) => position > candidateStart && position < candidateEnd,
+    );
+    const containerName = candidateContainerName(node);
+    const signals = candidateSignals(node, containerName);
+    let disposition = "no-resuelto";
+    let sinkEvidence =
+      "Sin sink visual estático ni descendiente confirmado.";
+    if (representedByDescendant) {
+      disposition = "representado-por-descendiente";
+      sinkEvidence =
+        "Uno o más descendientes del candidato ya están catalogados como declaraciones visuales confirmadas.";
+    } else if (
+      sourceRelativePath.startsWith("frontend/src/api/") ||
+      signals.technicalContainer ||
+      (signals.technicalControlFlow &&
+        !signals.jsxAncestor &&
+        !signals.uiReference)
+    ) {
+      disposition = "técnico";
+      sinkEvidence =
+        "Heurística técnica: estructura de API/estado/control de flujo sin sink JSX demostrado.";
+    } else if (
+      signals.jsxAncestor ||
+      signals.uiReference ||
+      (/\.[jt]sx$/i.test(sourceRelativePath) &&
+        signals.returnedFromComponent)
+    ) {
+      disposition = "probable-visual";
+      sinkEvidence =
+        "Existe señal de consumo UI, pero no un sink visual estático suficiente para afirmar render confirmado.";
+    }
+    dispositionCounts[disposition] += 1;
+    const position = lineAndColumn(lineStarts, candidateStart);
+    const endPosition = lineAndColumn(lineStarts, candidateEnd);
+    const nearestComponent = findNearestComponentName(node, sourceFile);
+    const condition = findRenderCondition(node, sourceFile);
+    const context = inferContext(
+      sourceRelativePath,
+      nearestComponent,
+      condition,
+    );
+    const label = candidateLabel(node, kind, position);
+    const dispositionUsage = {
+      "representado-por-descendiente":
+        "Estructura candidata conservada como evidencia; sus elementos visibles descendientes ya se enumeran por separado.",
+      técnico:
+        "Estructura candidata conservada para auditoría; la evidencia disponible la sitúa en configuración técnica, API, estado o control de flujo.",
+      "probable-visual":
+        "Candidato probablemente visual que requiere confirmar su consumidor o instancia de runtime antes de promoverlo a elemento visible.",
+      "no-resuelto":
+        "Candidato con copy visual cuya función no puede decidirse estáticamente; queda individualizado para revisión futura.",
+    }[disposition];
+    candidateLedger.push({
+      id: sha256(
+        `${sourceRelativePath}:${position.line}:${position.column}:candidate:${kind}`,
+      ).slice(0, 16),
+      sourceType: "auditoría-candidato",
+      module: context.module,
+      section: context.section,
+      tab: context.tab,
+      contextConfidence: context.confidence,
+      componentContext: containerName,
+      category: kind === "array-o-tupla" ? "Estructura" : "Texto",
+      kind: "Candidato de declaración visual",
+      tag: `candidate:${kind}`,
+      label,
+      detail: cleanText(node.getText(sourceFile), 240),
+      usage: dispositionUsage,
+      renderedWhen:
+        disposition === "representado-por-descendiente"
+          ? "El contenedor participa en una declaración visual cuyos descendientes confirmados se catalogan individualmente."
+          : "Render no confirmado; registro de auditoría, no afirmación de visibilidad.",
+      interactive: false,
+      potentiallyInteractive: disposition === "probable-visual",
+      nativeElement: false,
+      visibilityStatus: disposition,
+      attributes: {
+        candidateKind: kind,
+        disposition,
+        sinkEvidence,
+        startLine: position.line,
+        endLine: endPosition.line,
+      },
+      spreads: [],
+      classNames: [],
+      states: [],
+      visualVariants: [],
+      stateModel:
+        "Sin estado visual confirmado; el candidato permanece separado de los elementos visibles.",
+      handlers: [],
+      importSource: null,
+      definitionFile: sourceRelativePath,
+      styleSources: [],
+      declarationEvidence: "ledger-individual-de-candidatos",
+      ancestry: [],
+      renderSource: {
+        file: sourceRelativePath,
+        line: position.line,
+        column: position.column,
+        resolution: `auditoría-${disposition}`,
+      },
+      source: {
+        file: sourceRelativePath,
+        line: position.line,
+        column: position.column,
+      },
+    });
+  }
+
+  return {
+    file: sourceRelativePath,
+    sha256: sha256(source),
+    declarations,
+    candidateLedger,
+    candidateAudit: {
+      candidates: candidatePositions.size,
+      expanded: expandedCandidates,
+      ignored: ignoredCandidates,
+      ledgered: candidateLedger.length,
+      dispositions: dispositionCounts,
+      ignoredReason:
+        ignoredCandidates > 0
+          ? "Cada candidato no expandido se conserva en el ledger individual con evidencia y disposición explícitas."
+          : null,
+    },
+  };
+}
+
+const DYNAMIC_VISUAL_BINDING_NAMES = new Set([
+  "Icon",
+  "ActiveIcon",
+  "SelectedIcon",
+  "Tag",
+]);
+
+function buildDynamicVisualBindingIndex(sourceFile, lineStarts) {
+  const typeOptions = new Map();
+  const addTypeOptions = (name, typeNode) => {
+    if (!name || !typeNode) return;
+    const values = typeOptions.get(name) ?? new Set();
+    const visitType = (node) => {
+      if (
+        ts.isLiteralTypeNode(node) &&
+        ts.isStringLiteral(node.literal)
+      ) {
+        values.add(node.literal.text);
+      }
+      ts.forEachChild(node, visitType);
+    };
+    visitType(typeNode);
+    if (values.size) typeOptions.set(name, values);
+  };
+  const collectTypes = (node) => {
+    if (
+      (ts.isPropertySignature(node) || ts.isParameter(node)) &&
+      node.type
+    ) {
+      addTypeOptions(propertyNameText(node.name, sourceFile), node.type);
+    }
+    ts.forEachChild(node, collectTypes);
+  };
+  collectTypes(sourceFile);
+
+  const scopeFor = (node) => {
+    let current = node.parent;
+    while (current && !ts.isSourceFile(current)) {
+      if (
+        ts.isFunctionLike(current) ||
+        ts.isBlock(current) ||
+        ts.isModuleBlock(current)
+      ) {
+        return {
+          start: current.getStart(sourceFile),
+          end: current.getEnd(),
+        };
+      }
+      current = current.parent;
+    }
+    return {
+      start: sourceFile.getStart(sourceFile),
+      end: sourceFile.getEnd(),
+    };
+  };
+  const expressionOptions = (expression, bindingName) => {
+    const values = new Set();
+    if (!expression) return values;
+    for (const value of literalVariants(expression, sourceFile)) {
+      values.add(value);
+    }
+    const visitExpression = (node) => {
+      if (
+        ts.isStringLiteral(node) ||
+        ts.isNoSubstitutionTemplateLiteral(node)
+      ) {
+        values.add(node.text);
+      }
+      if (
+        bindingName !== "Tag" &&
+        ts.isIdentifier(node) &&
+        /^[A-Z][A-Za-z0-9]*$/.test(node.text) &&
+        !["React", "ElementType"].includes(node.text)
+      ) {
+        values.add(node.text);
+      }
+      if (ts.isIdentifier(node)) {
+        for (const option of typeOptions.get(node.text) ?? []) {
+          values.add(option);
+        }
+      }
+      ts.forEachChild(node, visitExpression);
+    };
+    visitExpression(expression);
+    return values;
+  };
+  const bindings = [];
+  const addBinding = (name, node, expression, provider) => {
+    if (!DYNAMIC_VISUAL_BINDING_NAMES.has(name)) return;
+    const scope = scopeFor(node);
+    const position = lineAndColumn(
+      lineStarts,
+      node.getStart(sourceFile),
+    );
+    bindings.push({
+      name,
+      role: name === "Tag" ? "tag-polimórfico" : "icono-dinámico",
+      provider: cleanText(provider, 180),
+      options: [
+        ...expressionOptions(expression, name),
+        ...(name === "Tag"
+          ? [...(typeOptions.get(provider) ?? [])]
+          : []),
+      ].filter(Boolean),
+      declarationStart: node.getStart(sourceFile),
+      scopeStart: scope.start,
+      scopeEnd: scope.end,
+      source: {
+        line: position.line,
+        column: position.column,
+      },
+    });
+  };
+  const collectBindings = (node) => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer
+    ) {
+      addBinding(
+        node.name.text,
+        node,
+        node.initializer,
+        node.initializer.getText(sourceFile),
+      );
+    }
+    if (
+      ts.isBindingElement(node) &&
+      ts.isIdentifier(node.name)
+    ) {
+      const property = propertyNameText(
+        node.propertyName ?? node.name,
+        sourceFile,
+      );
+      addBinding(
+        node.name.text,
+        node,
+        node.initializer,
+        node.initializer
+          ? `${property} ?? ${node.initializer.getText(sourceFile)}`
+          : `prop:${property}`,
+      );
+    }
+    ts.forEachChild(node, collectBindings);
+  };
+  collectBindings(sourceFile);
+  return bindings;
+}
+
+function resolveDynamicVisualBinding(bindings, tagName, position) {
+  return (
+    bindings
+      .filter(
+        (binding) =>
+          binding.name === tagName &&
+          binding.declarationStart <= position &&
+          binding.scopeStart <= position &&
+          binding.scopeEnd >= position,
+      )
+      .sort(
+        (a, b) =>
+          a.scopeEnd - a.scopeStart - (b.scopeEnd - b.scopeStart) ||
+          b.declarationStart - a.declarationStart,
+      )[0] ?? null
+  );
+}
+
 function scanJsxFile(file, cssIndex) {
   const source = fs.readFileSync(file, "utf8");
   const sourceRelativePath = relativePath(file);
@@ -1754,10 +4224,28 @@ function scanJsxFile(file, cssIndex) {
     source,
     ts.ScriptTarget.Latest,
     true,
-    file.endsWith(".jsx") ? ts.ScriptKind.JSX : ts.ScriptKind.TSX,
+    scriptKindFor(file),
   );
   const imports = buildImportIndex(sourceFile, file);
   const lineStarts = computeLineStarts(source);
+  const dynamicVisualBindings = buildDynamicVisualBindingIndex(
+    sourceFile,
+    lineStarts,
+  );
+  const localDeclarations = new Set();
+  const collectLocalDeclarations = (node) => {
+    if (
+      (ts.isFunctionDeclaration(node) ||
+        ts.isClassDeclaration(node) ||
+        ts.isVariableDeclaration(node)) &&
+      node.name &&
+      ts.isIdentifier(node.name)
+    ) {
+      localDeclarations.add(node.name.text);
+    }
+    ts.forEachChild(node, collectLocalDeclarations);
+  };
+  collectLocalDeclarations(sourceFile);
   const entries = [];
 
   const visit = (node) => {
@@ -1773,11 +4261,49 @@ function scanJsxFile(file, cssIndex) {
         nearestComponent,
         condition,
       );
-      const importInfo = imports.get(tagName.split(".")[0]) ?? null;
-      const classification = classifyElement(tagName, attributes, importInfo);
+      const rootTagName = tagName.split(".")[0];
+      const dynamicBinding = resolveDynamicVisualBinding(
+        dynamicVisualBindings,
+        rootTagName,
+        node.getStart(sourceFile),
+      );
+      const catalogAttributes = dynamicBinding
+        ? {
+            ...attributes,
+            dynamicProvider: dynamicBinding.provider,
+            dynamicOptions: dynamicBinding.options.length
+              ? [...new Set(dynamicBinding.options)].join(" / ")
+              : "runtime-no-enumerable-estáticamente",
+          }
+        : attributes;
+      const importInfo =
+        imports.get(rootTagName) ??
+        (localDeclarations.has(rootTagName)
+          ? {
+              importSource: "(declaración local)",
+              importedName: rootTagName,
+              definitionFile: sourceRelativePath,
+            }
+          : null);
+      const classification = dynamicBinding
+        ? dynamicBinding.role === "icono-dinámico"
+          ? { category: "Iconografía", kind: "Icono dinámico" }
+          : attributeLiteralOptions(
+                catalogAttributes.role,
+                ROLE_OPTIONS,
+              ).has("textbox")
+            ? {
+                category: "Campo",
+                kind: "Editor de texto enriquecido polimórfico",
+              }
+            : {
+                category: "Estructura",
+                kind: "Contenedor polimórfico",
+              }
+        : classifyElement(tagName, catalogAttributes, importInfo);
       const directText = extractDirectText(node, sourceFile);
-      const label = inferLabel(tagName, attributes, directText);
-      const handlers = extractHandlers(attributes);
+      const label = inferLabel(tagName, catalogAttributes, directText);
+      const handlers = extractHandlers(catalogAttributes);
       const styleSources = [
         ...new Set(
           classNames.flatMap((className) =>
@@ -1787,12 +4313,35 @@ function scanJsxFile(file, cssIndex) {
           ),
         ),
       ].slice(0, 12);
+      const cssStates = [
+        ...new Set(
+          classNames.flatMap((className) =>
+            (cssIndex.get(className) ?? []).flatMap(
+              (record) => record.states ?? [],
+            ),
+          ),
+        ),
+      ];
+      const cssVariants = [
+        ...new Set(
+          classNames.flatMap((className) =>
+            (cssIndex.get(className) ?? []).flatMap(
+              (record) => record.variants ?? [],
+            ),
+          ),
+        ),
+      ];
+      const classVariants = classNames
+        .filter(isVisualVariantToken)
+        .map((className) => `clase:${className}`);
       const id = sha256(
         `${sourceRelativePath}:${position.line}:${position.column}:${tagName}`,
       ).slice(0, 16);
+      const states = extractStates(attributes, classNames, cssStates);
 
       entries.push({
         id,
+        sourceType: "jsx",
         module: context.module,
         section: context.section,
         tab: context.tab,
@@ -1815,15 +4364,58 @@ function scanJsxFile(file, cssIndex) {
           classification.category === "Navegación" ||
           classification.category === "Selección" ||
           handlers.length > 0,
-        nativeElement: /^[a-z]/.test(tagName),
-        attributes,
+        nativeElement:
+          /^[a-z]/.test(tagName) ||
+          dynamicBinding?.role === "tag-polimórfico",
+        attributes: catalogAttributes,
         spreads,
         classNames,
-        states: extractStates(attributes, classNames),
+        states,
+        visualVariants: ["variant", "size"]
+          .filter((key) => catalogAttributes[key] !== undefined)
+          .map(
+            (key) => `${key}=${cleanText(catalogAttributes[key], 80)}`,
+          )
+          .concat(
+            dynamicBinding
+              ? [
+                  `provider=${cleanText(dynamicBinding.provider, 100)}`,
+                  ...[...new Set(dynamicBinding.options)].map(
+                    (option) =>
+                      `${dynamicBinding.role === "tag-polimórfico" ? "tag-option" : "icon-option"}=${cleanText(option, 80)}`,
+                  ),
+                ]
+              : [],
+            semanticVisualVariants(tagName, catalogAttributes),
+            classVariants,
+            cssVariants.map((variant) => `css:${variant}`),
+          ),
+        stateModel: states.length
+          ? "Estados explícitos en props o clases de esta ocurrencia."
+          : "Sin estado explícito en esta ocurrencia; puede heredar estado del componente o de sus datos.",
         handlers,
-        importSource: importInfo?.importSource ?? null,
+        importSource:
+          dynamicBinding
+            ? "(binding dinámico local)"
+            : importInfo?.importSource ?? null,
         definitionFile: importInfo?.definitionFile ?? null,
         styleSources,
+        styleStates: cssStates,
+        styleVariants: cssVariants,
+        dynamicProviderSource: dynamicBinding
+          ? {
+              file: sourceRelativePath,
+              line: dynamicBinding.source.line,
+              column: dynamicBinding.source.column,
+              provider: dynamicBinding.provider,
+            }
+          : null,
+        renderSource: {
+          file: sourceRelativePath,
+          line: position.line,
+          column: position.column,
+          resolution: "jsx-directo",
+        },
         source: {
           file: sourceRelativePath,
           line: position.line,
@@ -1842,23 +4434,202 @@ function scanJsxFile(file, cssIndex) {
   };
 }
 
-function summarize(entries, files) {
+function hierarchyWithContextScopes(rawDeclarations = []) {
+  return HIERARCHY.map((module) => ({
+    ...module,
+    sections: module.sections.map((section) => ({
+      ...section,
+      tabs: [
+        ...new Set([
+          ...section.tabs,
+          ...rawDeclarations
+            .filter(
+              (entry) =>
+                entry.module === module.module &&
+                entry.section === section.id &&
+                entry.kind === "Pestaña declarada" &&
+                entry.tab === entry.label &&
+                Boolean(
+                  entry.attributes?.label ||
+                    entry.attributes?.title ||
+                    entry.attributes?.tabLabel,
+                ),
+            )
+            .map((entry) => entry.label),
+          TAB_SCOPE_TRANSVERSAL,
+          TAB_SCOPE_MULTIPLE,
+        ]),
+      ],
+    })),
+  }));
+}
+
+function canonicalizeCatalogContext(item, hierarchy) {
+  const next = { ...item };
+  const module =
+    hierarchy.find((candidate) => candidate.module === next.module) ??
+    hierarchy.find((candidate) => candidate.module === "global");
+  if (!module) return next;
+  if (module.module !== next.module) {
+    next.rawModule = next.module;
+    next.module = module.module;
+  }
+  let section = module.sections.find(
+    (candidate) => candidate.id === next.section,
+  );
+  if (!section) {
+    next.rawSection = next.section;
+    section =
+      module.sections.find((candidate) =>
+        ["compartido", "compartidos"].includes(candidate.id),
+      ) ?? module.sections[0];
+    next.section = section.id;
+  }
+
+  const rawTab = next.tab;
+  const exactTab = section.tabs.find((candidate) => candidate === rawTab);
+  const normalizedTab = section.tabs.find(
+    (candidate) =>
+      normalizedVocabulary(candidate) === normalizedVocabulary(rawTab),
+  );
+  const composite =
+    typeof rawTab === "string" &&
+    (rawTab.includes("/") || rawTab.includes(" / ") || rawTab.includes("·"));
+  const canonicalTab =
+    exactTab ??
+    normalizedTab ??
+    (composite ? TAB_SCOPE_MULTIPLE : TAB_SCOPE_TRANSVERSAL);
+  if (canonicalTab !== rawTab) next.rawTab = rawTab ?? null;
+  next.tab = canonicalTab;
+  next.contextScope =
+    canonicalTab === TAB_SCOPE_TRANSVERSAL
+      ? "transversal"
+      : canonicalTab === TAB_SCOPE_MULTIPLE
+        ? "múltiple-o-dinámico"
+        : "pestaña-exacta";
+  next.rawContextConfidence = next.contextConfidence;
+  next.contextConfidence =
+    next.contextScope === "pestaña-exacta"
+      ? "vocabulario-canónico"
+      : `scope-${next.contextScope}`;
+  next.contextBasis =
+    next.contextScope === "pestaña-exacta"
+      ? "Pestaña declarada en la jerarquía y fuente conservada en el registro."
+      : next.contextScope === "múltiple-o-dinámico"
+        ? "El elemento se comparte entre varias pestañas o su pestaña depende de datos de runtime."
+        : "El elemento pertenece a la sección, pero no a una única pestaña local demostrable estáticamente.";
+  return next;
+}
+
+function dynamicTemplateEntries(hierarchy) {
+  return DECLARED_VISUAL_SURFACES.map((surface, index) =>
+    canonicalizeCatalogContext(
+      {
+        id: sha256(
+          `${surface.source.file}:${surface.label}:plantilla-dinamica:${index}`,
+        ).slice(0, 16),
+        sourceType: "plantilla-dinámica",
+        module: surface.module,
+        section: surface.section,
+        tab: surface.tab,
+        contextConfidence: "declarada-manualmente",
+        componentContext: surface.label,
+        category: surface.category,
+        kind: surface.kind ?? "Plantilla visual dinámica",
+        tag: surface.tag ?? "runtime-template",
+        label: surface.label,
+        detail: surface.provider ?? null,
+        usage: surface.usage,
+        renderedWhen:
+          surface.renderedWhen ??
+          "Cuando el proyecto o proveedor de datos entrega instancias compatibles.",
+        interactive: surface.interactive ?? true,
+        nativeElement: false,
+        attributes: {
+          provider:
+            surface.provider ??
+            "Datos del proyecto, API o librería visual en tiempo de ejecución",
+          ...(surface.tag ? { runtimeTag: surface.tag } : {}),
+        },
+        spreads: [],
+        classNames: [],
+        states: surface.states ?? [
+          "sin-datos",
+          "cargando",
+          "con-datos",
+          "error",
+        ],
+        visualVariants: [],
+        stateModel:
+          "Colección no enumerable estáticamente: el catálogo documenta su plantilla, proveedor, sink y estados, sin inventar instancias.",
+        handlers: [],
+        importSource: null,
+        definitionFile: surface.source.file,
+        styleSources: [],
+        declarationEvidence: "plantilla-runtime-declarada",
+        ancestry: [],
+        renderSource: surface.renderSource ?? surface.source,
+        source: {
+          file: surface.source.file,
+          line: surface.source.line ?? 1,
+          column: surface.source.column ?? 1,
+        },
+      },
+      hierarchy,
+    ),
+  );
+}
+
+function summarize(
+  entries,
+  files,
+  declarations,
+  unresolvedDeclarations,
+  declarationCandidates,
+  cssGeneratedContent,
+  dynamicTemplates,
+  sourceFilesScanned,
+  styleFilesScanned,
+) {
+  const visibleCatalogItems = [
+    ...entries,
+    ...declarations,
+    ...cssGeneratedContent,
+    ...dynamicTemplates,
+  ];
+  const catalogItems = [
+    ...visibleCatalogItems,
+    ...unresolvedDeclarations,
+    ...declarationCandidates,
+  ];
   const countBy = (key) =>
     Object.fromEntries(
-      [...new Set(entries.map((entry) => entry[key] ?? "(sin valor)"))]
+      [...new Set(catalogItems.map((entry) => entry[key] ?? "(sin valor)"))]
         .sort()
         .map((value) => [
           value,
-          entries.filter((entry) => (entry[key] ?? "(sin valor)") === value)
-            .length,
+          catalogItems.filter(
+            (entry) => (entry[key] ?? "(sin valor)") === value,
+          ).length,
         ]),
     );
 
   return {
     productionJsxFiles: files.length,
+    productionSourceFilesScanned: sourceFilesScanned,
+    productionStyleFilesScanned: styleFilesScanned,
     filesWithVisualElements: files.filter((file) => file.entries.length > 0).length,
     sourceOccurrences: entries.length,
+    declaredElements: declarations.length,
+    unresolvedDeclarations: unresolvedDeclarations.length,
+    declarationCandidates: declarationCandidates.length,
+    cssGeneratedContent: cssGeneratedContent.length,
+    dynamicTemplates: dynamicTemplates.length,
+    catalogItems: catalogItems.length,
     interactiveOccurrences: entries.filter((entry) => entry.interactive).length,
+    interactiveCatalogItems: visibleCatalogItems.filter(
+      (entry) => entry.interactive,
+    ).length,
     nativeOccurrences: entries.filter((entry) => entry.nativeElement).length,
     customComponentOccurrences: entries.filter((entry) => !entry.nativeElement).length,
     byModule: countBy("module"),
@@ -1868,10 +4639,21 @@ function summarize(entries, files) {
 }
 
 function buildCatalog() {
-  const cssIndex = buildCssIndex();
+  const cssAudit = buildCssIndex();
+  const cssIndex = cssAudit.index;
   const jsxFiles = walkFiles(FRONTEND_ROOT, isProductionJsxFile);
   const files = jsxFiles.map((file) => scanJsxFile(file, cssIndex));
-  const entries = files
+  const declarationSourceFiles = walkFiles(
+    FRONTEND_ROOT,
+    isProductionDeclarationSourceFile,
+  );
+  const externalUiUsageIndex = buildExternalUiUsageIndex(
+    declarationSourceFiles,
+  );
+  const declarationScans = declarationSourceFiles.map((file) =>
+    scanDeclarationFile(file, externalUiUsageIndex),
+  );
+  const rawEntries = files
     .flatMap((file) => file.entries)
     .sort(
       (a, b) =>
@@ -1879,12 +4661,95 @@ function buildCatalog() {
         a.source.line - b.source.line ||
         a.source.column - b.source.column,
     );
+  const rawDeclarations = declarationScans
+    .flatMap((file) => file.declarations)
+    .sort(
+      (a, b) =>
+        a.source.file.localeCompare(b.source.file) ||
+        a.source.line - b.source.line ||
+        a.source.column - b.source.column ||
+        a.label.localeCompare(b.label, "es"),
+    );
+  const rawResolvedDeclarations = rawDeclarations.filter(
+    (entry) =>
+      !entry.renderSource?.resolution?.includes("no resuelto"),
+  );
+  const rawUnresolvedDeclarations = rawDeclarations.filter((entry) =>
+    entry.renderSource?.resolution?.includes("no resuelto"),
+  );
+  const rawDeclarationCandidates = declarationScans
+    .flatMap((file) => file.candidateLedger)
+    .sort(
+      (a, b) =>
+        a.source.file.localeCompare(b.source.file) ||
+        a.source.line - b.source.line ||
+        a.source.column - b.source.column,
+    );
+  const hierarchy = hierarchyWithContextScopes(rawResolvedDeclarations);
+  const entries = rawEntries.map((entry) =>
+    canonicalizeCatalogContext(entry, hierarchy),
+  );
+  const declarations = rawResolvedDeclarations.map((entry) =>
+    canonicalizeCatalogContext(entry, hierarchy),
+  );
+  const unresolvedDeclarations = rawUnresolvedDeclarations.map((entry) =>
+    canonicalizeCatalogContext(
+      {
+        ...entry,
+        sourceType: "declaración-sin-sink-resuelto",
+        potentiallyInteractive: entry.interactive,
+        interactive: false,
+        visibilityStatus: "candidato-no-confirmado",
+        usage:
+          `Candidato visual conservado para auditoría; no se encontró un consumidor estático que confirme su render. ${entry.usage}`,
+        renderedWhen:
+          "Consumidor visual no resuelto estáticamente; puede cargarse de forma indirecta, pertenecer a una ruta futura o ser configuración no visual.",
+      },
+      hierarchy,
+    ),
+  );
+  const declarationCandidates = rawDeclarationCandidates.map((entry) =>
+    canonicalizeCatalogContext(entry, hierarchy),
+  );
+  const cssGeneratedContent = cssAudit.generatedContent.map((entry) =>
+    canonicalizeCatalogContext(entry, hierarchy),
+  );
+  const dynamicTemplates = dynamicTemplateEntries(hierarchy);
+  const declarationAudit = declarationScans.reduce(
+    (audit, file) => {
+      audit.candidates += file.candidateAudit.candidates;
+      audit.expanded += file.candidateAudit.expanded;
+      audit.ignored += file.candidateAudit.ignored;
+      audit.ledgered += file.candidateAudit.ledgered;
+      for (const [disposition, count] of Object.entries(
+        file.candidateAudit.dispositions,
+      )) {
+        audit.dispositions[disposition] =
+          (audit.dispositions[disposition] ?? 0) + count;
+      }
+      return audit;
+    },
+    {
+      candidates: 0,
+      expanded: 0,
+      ignored: 0,
+      ledgered: 0,
+      dispositions: {},
+      dynamicTemplates: dynamicTemplates.length,
+      unresolved: unresolvedDeclarations.length,
+      ignoredReason:
+        "Todo candidato no expandido se publica en el ledger individual; su disposición no se confunde con visibilidad confirmada.",
+    },
+  );
   const sourceSnapshotHash = sha256(
-    files.map((file) => `${file.file}:${file.sha256}`).join("\n"),
+    [
+      ...declarationScans.map((file) => `${file.file}:${file.sha256}`),
+      ...cssAudit.files.map((file) => `${file.file}:${file.sha256}`),
+    ].join("\n"),
   );
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     catalogLanguage: "es-PE",
     title: "Catálogo visual real de Prosecnur",
     purpose:
@@ -1893,26 +4758,73 @@ function buildCatalog() {
     sourceSnapshotHash,
     coverage: {
       root: "frontend/src",
-      extensions: [".tsx", ".jsx"],
-      exclusions: ["*.test.*", "*.spec.*", "__tests__/**", "__snapshots__/**"],
-      unit: "ocurrencia JSX en código fuente productivo",
+      extensions: [".ts", ".tsx", ".js", ".jsx", ".css"],
+      exclusions: [
+        "*.test.*",
+        "*.spec.*",
+        "__tests__/**",
+        "__mocks__/**",
+        "__snapshots__/**",
+      ],
+      unit:
+        "ocurrencia JSX, elemento visible declarado en registros/arrays, contenido generado por CSS, plantilla visual dinámica o candidato declarativo individualizado de código productivo",
       limitations: [
         "Una ocurrencia dentro de un map representa el patrón visual, no cada fila de datos en runtime.",
+        "Las opciones literales declaradas fuera del JSX se registran individualmente cuando el array se consume desde JSX o tiene semántica explícita de UI.",
         "Canvas, Plotly y SVG generados por librerías se registran por su componente anfitrión y sus nodos JSX declarados.",
         "La asignación de pestaña puede ser heurística cuando el mismo componente compartido se usa en varios contextos.",
+        "Los registros con sourceType auditoría-candidato conservan copy potencialmente visual sin afirmar que llegue a renderizarse.",
       ],
     },
     modules: MODULES,
-    hierarchy: HIERARCHY,
+    hierarchy,
     declaredVisualSurfaces: DECLARED_VISUAL_SURFACES,
+    declarationAudit,
     categoryDescriptions: CATEGORY_DESCRIPTIONS,
-    summary: summarize(entries, files),
+    summary: summarize(
+      entries,
+      files,
+      declarations,
+      unresolvedDeclarations,
+      declarationCandidates,
+      cssGeneratedContent,
+      dynamicTemplates,
+      declarationSourceFiles.length,
+      cssAudit.files.length,
+    ),
     files: files.map(({ file, sha256: fileHash, entries: fileEntries }) => ({
       file,
       sha256: fileHash,
       occurrences: fileEntries.length,
     })),
+    sourceFiles: declarationScans.map(
+      ({ file, sha256: fileHash, candidateAudit }) => ({
+        file,
+        sha256: fileHash,
+        candidateAudit,
+      }),
+    ),
+    styleFiles: cssAudit.files,
+    declarationFiles: declarationScans
+      .filter((file) => file.declarations.length > 0)
+      .map(({ file, sha256: fileHash, declarations: fileDeclarations }) => ({
+        file,
+        sha256: fileHash,
+        declarations: fileDeclarations.length,
+        resolved: fileDeclarations.filter(
+          (entry) =>
+            !entry.renderSource?.resolution?.includes("no resuelto"),
+        ).length,
+        unresolved: fileDeclarations.filter((entry) =>
+          entry.renderSource?.resolution?.includes("no resuelto"),
+        ).length,
+      })),
     entries,
+    declarations,
+    unresolvedDeclarations,
+    declarationCandidates,
+    cssGeneratedContent,
+    dynamicTemplates,
   };
 }
 
@@ -1946,11 +4858,11 @@ function buildManualCatalogSection() {
 .cv-head{display:grid;gap:8px;margin-bottom:24px}
 .cv-head h2{margin:0;color:var(--bk-navy);font-size:28px;letter-spacing:-.02em}
 .cv-head p{max-width:900px;margin:0;color:var(--bk-ink-soft);font-size:14px;line-height:1.6}
-.cv-meta{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:20px 0}
+.cv-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:20px 0}
 .cv-stat{padding:12px;border:1px solid var(--bk-border);border-radius:var(--bk-radius-card);background:var(--bk-paper)}
 .cv-stat strong{display:block;color:var(--bk-navy);font-size:22px;font-variant-numeric:tabular-nums}
 .cv-stat span{display:block;margin-top:3px;color:var(--bk-ink-soft);font-size:11px}
-.cv-controls{position:sticky;top:46px;z-index:40;display:grid;grid-template-columns:minmax(220px,2fr) repeat(4,minmax(140px,1fr));gap:8px;padding:12px;border:1px solid var(--bk-border);border-radius:var(--bk-radius-panel);background:rgba(255,255,255,.94);box-shadow:var(--bk-shadow-soft);backdrop-filter:blur(14px)}
+.cv-controls{position:sticky;top:46px;z-index:40;display:grid;grid-template-columns:minmax(220px,2fr) repeat(5,minmax(120px,1fr));gap:8px;padding:12px;border:1px solid var(--bk-border);border-radius:var(--bk-radius-panel);background:rgba(255,255,255,.94);box-shadow:var(--bk-shadow-soft);backdrop-filter:blur(14px)}
 .cv-controls input,.cv-controls select{width:100%;height:32px;border:1px solid var(--bk-border-strong);border-radius:10px;background:var(--bk-paper);color:var(--bk-ink);font:inherit;font-size:12px;padding:0 10px}
 .cv-controls :focus-visible{outline:none;box-shadow:0 0 0 3px var(--bk-focus)}
 .cv-hierarchy{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:16px 0 24px}
@@ -1987,8 +4899,8 @@ function buildManualCatalogSection() {
     <div class="cv-head">
       <span class="bb-ch-num">11 · Catálogo visual real</span>
       <h2>Todo lo que la aplicación dibuja hoy</h2>
-      <p>Inventario descriptivo —no normativo— de cada ocurrencia JSX productiva. Conserva las diferencias actuales para que una sesión posterior pueda compararlas y unificarlas con evidencia. La procedencia siempre sigue <strong>módulo → sección → pestaña</strong> e incluye archivo, línea, componente, clases, estados y fuente de estilo.</p>
-      <p class="bb-spec">Fuente generada: <code>branding/catalogo-visual/catalogo.json</code>. Unidad: ocurrencia declarada en código; los elementos repetidos por datos se registran como patrón de render. Índice humano: <a href="catalogo-visual/inventario-contextual.md">inventario-contextual.md</a>.</p>
+      <p>Inventario descriptivo —no normativo— de cada ocurrencia JSX productiva, cada variante visible declarada en arrays, tuplas, records o factories de interfaz y cada colección visual que solo puede materializarse con datos de runtime. Conserva las diferencias actuales para que una sesión posterior pueda compararlas y unificarlas con evidencia. La procedencia siempre sigue <strong>módulo → sección → pestaña</strong> e incluye archivo, línea, componente o registro, condición de uso, estados y fuente visual.</p>
+      <p class="bb-spec">Fuente generada: <code>branding/catalogo-visual/data/catalogo.json</code>. Un elemento repetido por datos se registra como patrón de render y como <em>plantilla dinámica</em>; sus labels literales se enumeran individualmente cuando existen en el código. Las declaraciones con copy visual pero sin consumidor demostrable se preservan en una capa de <em>candidatos sin sink resuelto</em>: siguen siendo consultables, pero no se presentan como interfaz confirmada. El texto y los símbolos creados exclusivamente mediante <code>content:</code> se registran como <em>contenido generado por CSS</em>. Los elementos transversales usan <code>Transversal / sin pestaña local</code> o <code>Varias pestañas / contexto dinámico</code>, nunca una pestaña inventada. Índice humano: <a href="catalogo-visual/docs/inventario-contextual.md">inventario-contextual.md</a>.</p>
     </div>
     <div class="cv-meta" id="cv-meta" aria-live="polite"></div>
     <div class="cv-hierarchy" id="cv-hierarchy"></div>
@@ -2003,11 +4915,12 @@ function buildManualCatalogSection() {
       <select id="cv-section" aria-label="Filtrar por sección"><option value="">Todas las secciones</option></select>
       <select id="cv-tab" aria-label="Filtrar por pestaña"><option value="">Todas las pestañas</option></select>
       <select id="cv-category" aria-label="Filtrar por categoría"><option value="">Todas las categorías</option></select>
+      <select id="cv-origin" aria-label="Filtrar por origen"><option value="">Todos los orígenes</option><option value="jsx">Solo JSX</option><option value="declaración">Solo declaraciones confirmadas</option><option value="declaración-sin-sink-resuelto">Solo declaraciones sin sink</option><option value="auditoría-candidato">Solo ledger de candidatos</option><option value="contenido-generado-css">Solo contenido generado por CSS</option><option value="plantilla-dinámica">Solo plantillas dinámicas</option></select>
     </div>
     <p class="cv-results" id="cv-results" aria-live="polite"></p>
     <div class="cv-table-wrap" tabindex="0" aria-label="Inventario exhaustivo de elementos visuales">
       <table class="cv-table">
-        <thead><tr><th>Módulo · sección · pestaña</th><th>Categoría</th><th>Elemento</th><th>Label / contenido</th><th>Uso y estado</th><th>Fuente React</th><th>Fuente visual</th></tr></thead>
+        <thead><tr><th>Módulo · sección · pestaña</th><th>Categoría</th><th>Elemento</th><th>Label / contenido</th><th>Uso y estado</th><th>Declaración / render</th><th>Fuente visual</th></tr></thead>
         <tbody id="cv-body"></tbody>
       </table>
     </div>
@@ -2018,20 +4931,21 @@ function buildManualCatalogSection() {
     </div>
   </div>
 </section>
-<script src="catalogo-visual/catalogo-data.js"></script>
+<script src="catalogo-visual/data/catalogo-data.js"></script>
 <script>
 (function(){
   "use strict";
   var body=document.getElementById("cv-body");
   if(!body)return;
   var catalogPromise=window.__PROSECNUR_VISUAL_CATALOG_PROMISE__;
-  if(!catalogPromise){body.innerHTML='<tr><td colspan="7" class="cv-empty">No se pudo cargar catalogo-visual/catalogo-data.js.</td></tr>';return;}
+  if(!catalogPromise){body.innerHTML='<tr><td colspan="7" class="cv-empty">No se pudo cargar catalogo-visual/data/catalogo-data.js.</td></tr>';return;}
   catalogPromise.then(function(catalog){
-  var state={page:0,size:120,rows:catalog.entries.slice()};
+  var catalogItems=(catalog.entries||[]).concat(catalog.declarations||[],catalog.unresolvedDeclarations||[],catalog.declarationCandidates||[],catalog.cssGeneratedContent||[],catalog.dynamicTemplates||[]);
+  var state={page:0,size:120,rows:catalogItems.slice()};
   var els={
     search:document.getElementById("cv-search"),module:document.getElementById("cv-module"),
     section:document.getElementById("cv-section"),tab:document.getElementById("cv-tab"),
-    category:document.getElementById("cv-category"),results:document.getElementById("cv-results"),
+    category:document.getElementById("cv-category"),origin:document.getElementById("cv-origin"),results:document.getElementById("cv-results"),
     prev:document.getElementById("cv-prev"),next:document.getElementById("cv-next"),page:document.getElementById("cv-page")
   };
   function esc(value){return String(value==null?"":value).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]})}
@@ -2040,7 +4954,7 @@ function buildManualCatalogSection() {
   options(els.module,catalog.modules.map(function(item){return item.id}),"Todos los módulos");
   options(els.category,Object.keys(catalog.summary.byCategory),"Todas las categorías");
   function syncDependentOptions(){
-    var scoped=catalog.entries.filter(function(row){return !els.module.value||row.module===els.module.value});
+    var scoped=catalogItems.filter(function(row){return !els.module.value||row.module===els.module.value});
     var oldSection=els.section.value,oldTab=els.tab.value;
     options(els.section,uniq(scoped.map(function(row){return row.section})),"Todas las secciones");
     if(Array.from(els.section.options).some(function(o){return o.value===oldSection}))els.section.value=oldSection;
@@ -2051,13 +4965,14 @@ function buildManualCatalogSection() {
   function filterRows(){
     syncDependentOptions();
     var query=els.search.value.trim().toLowerCase();
-    state.rows=catalog.entries.filter(function(row){
+    state.rows=catalogItems.filter(function(row){
       if(els.module.value&&row.module!==els.module.value)return false;
       if(els.section.value&&row.section!==els.section.value)return false;
       if(els.tab.value&&row.tab!==els.tab.value)return false;
       if(els.category.value&&row.category!==els.category.value)return false;
+      if(els.origin.value&&row.sourceType!==els.origin.value)return false;
       if(!query)return true;
-      return [row.label,row.tag,row.kind,row.category,row.source.file,row.componentContext,(row.classNames||[]).join(" ")].join(" ").toLowerCase().includes(query);
+      return [row.label,row.detail,row.tag,row.kind,row.category,row.source.file,row.componentContext,row.renderedWhen,(row.classNames||[]).join(" ")].join(" ").toLowerCase().includes(query);
     });
     state.page=0;render();
   }
@@ -2068,23 +4983,30 @@ function buildManualCatalogSection() {
     body.innerHTML=visible.length?visible.map(function(row){
       var context=[row.module,row.section,row.tab].filter(Boolean).map(esc).join(" → ");
       var states=(row.states||[]).slice(0,4).map(function(s){return '<span class="cv-chip">'+esc(s)+'</span>'}).join(" ");
+      var variants=(row.visualVariants||[]).slice(0,3).map(function(s){return '<span class="cv-chip">'+esc(s)+'</span>'}).join(" ");
       var styles=(row.styleSources||[]).slice(0,3).map(function(s){return '<span class="cv-source cv-path">'+esc(s)+"</span>"}).join("");
-      return '<tr data-cv-id="'+esc(row.id)+'"><td>'+context+'<small class="cv-path">'+esc(row.componentContext)+'</small></td><td><span class="cv-chip">'+esc(row.category)+'</span><br>'+esc(row.kind)+'</td><td><code>'+esc(row.tag)+'</code><small class="cv-path">'+esc((row.classNames||[]).join(" · "))+'</small></td><td><span class="cv-label">'+esc(row.label)+'</span></td><td>'+esc(row.usage)+'<div>'+states+'</div></td><td><span class="cv-source cv-path">'+esc(row.source.file)+":"+row.source.line+":"+row.source.column+"</span>"+(row.definitionFile?'<small class="cv-path">define: '+esc(row.definitionFile)+'</small>':"")+"</td><td>"+(styles||'<small>inline / herencia / sin clase resuelta</small>')+"</td></tr>";
+      var renderSource=row.renderSource||row.source;
+      var renderMeta=renderSource?'<small class="cv-path">render: '+esc(renderSource.file)+":"+esc(renderSource.line||"—")+(renderSource.resolution?" · "+esc(renderSource.resolution):"")+"</small>":"";
+      var provider=row.dynamicProviderSource?'<small class="cv-path">proveedor: '+esc(row.dynamicProviderSource.file)+":"+esc(row.dynamicProviderSource.line)+" · "+esc(row.dynamicProviderSource.provider)+"</small>":"";
+      return '<tr data-cv-id="'+esc(row.id)+'"><td>'+context+'<small class="cv-path">'+esc(row.componentContext)+'</small><small class="cv-path">'+esc(row.contextBasis||"")+'</small></td><td><span class="cv-chip">'+esc(row.category)+'</span><br>'+esc(row.kind)+'</td><td><span class="cv-chip">'+esc(row.sourceType||"jsx")+'</span><br><code>'+esc(row.tag)+'</code><small class="cv-path">'+esc((row.classNames||[]).join(" · "))+'</small></td><td><span class="cv-label">'+esc(row.label)+'</span>'+(row.detail?'<small class="cv-path">'+esc(row.detail)+'</small>':"")+'</td><td>'+esc(row.usage)+'<small class="cv-path">'+esc(row.renderedWhen)+'</small><div>'+states+variants+'</div>'+(states? "":'<small class="cv-path">'+esc(row.stateModel||"Sin estado explícito")+'</small>')+'</td><td><span class="cv-source cv-path">'+esc(row.source.file)+":"+row.source.line+":"+row.source.column+"</span>"+renderMeta+provider+(row.definitionFile&&row.definitionFile!==row.source.file?'<small class="cv-path">define: '+esc(row.definitionFile)+'</small>':"")+"</td><td>"+(styles||'<small>'+(String(row.sourceType||"").indexOf("declaración")===0?"estilo del componente consumidor":"inline / herencia / sin clase resuelta")+'</small>')+"</td></tr>";
     }).join(""):'<tr><td colspan="7" class="cv-empty">No hay elementos para estos filtros.</td></tr>';
     els.results.textContent=state.rows.length.toLocaleString("es-PE")+" elementos · mostrando "+(visible.length?start+1:0)+"–"+(start+visible.length);
     els.page.textContent="Página "+(state.page+1)+" de "+pages;
     els.prev.disabled=state.page===0;els.next.disabled=state.page>=pages-1;
   }
-  [els.search,els.module,els.section,els.tab,els.category].forEach(function(el){el.addEventListener(el===els.search?"input":"change",filterRows)});
+  [els.search,els.module,els.section,els.tab,els.category,els.origin].forEach(function(el){el.addEventListener(el===els.search?"input":"change",filterRows)});
   els.prev.addEventListener("click",function(){state.page-=1;render()});
   els.next.addEventListener("click",function(){state.page+=1;render()});
   var summary=catalog.summary,meta=document.getElementById("cv-meta");
   meta.innerHTML=[
     [summary.sourceOccurrences,"ocurrencias JSX"],
-    [summary.interactiveOccurrences,"interactivas"],
-    [summary.productionJsxFiles,"archivos productivos"],
-    [Object.keys(summary.byModule).length,"ámbitos/módulos"],
-    [Object.keys(summary.byKind).length,"tipos visuales"]
+    [summary.declaredElements,"declaraciones visibles"],
+    [summary.declarationCandidates,"ledger de candidatos"],
+    [summary.dynamicTemplates,"plantillas dinámicas"],
+    [summary.interactiveCatalogItems,"interactivas"],
+    [summary.productionSourceFilesScanned,"fuentes productivas"],
+    [summary.productionStyleFilesScanned,"hojas CSS"],
+    [Object.keys(summary.byModule).length,"ámbitos/módulos"]
   ].map(function(item){return '<div class="cv-stat"><strong>'+Number(item[0]).toLocaleString("es-PE")+'</strong><span>'+item[1]+'</span></div>'}).join("");
   var hierarchy=document.getElementById("cv-hierarchy");
   hierarchy.innerHTML=catalog.hierarchy.map(function(module){
@@ -2159,8 +5081,15 @@ function main() {
     [
       `${mode} catálogo visual: OK`,
       `archivos TSX/JSX: ${catalog.summary.productionJsxFiles}`,
+      `fuentes productivas: ${catalog.summary.productionSourceFilesScanned}`,
+      `hojas CSS: ${catalog.summary.productionStyleFilesScanned}`,
       `ocurrencias JSX: ${catalog.summary.sourceOccurrences}`,
-      `interactivas: ${catalog.summary.interactiveOccurrences}`,
+      `declaraciones visibles: ${catalog.summary.declaredElements}`,
+      `candidatos sin sink resuelto: ${catalog.summary.unresolvedDeclarations}`,
+      `candidatos individualizados en ledger: ${catalog.summary.declarationCandidates}`,
+      `contenidos generados por CSS: ${catalog.summary.cssGeneratedContent}`,
+      `plantillas dinámicas: ${catalog.summary.dynamicTemplates}`,
+      `interactivas catalogadas: ${catalog.summary.interactiveCatalogItems}`,
       `snapshot: ${catalog.sourceSnapshotHash}`,
     ].join("\n") + "\n",
   );

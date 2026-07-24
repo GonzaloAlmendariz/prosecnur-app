@@ -3842,11 +3842,11 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
 .cv-head{display:grid;gap:8px;margin-bottom:24px}
 .cv-head h2{margin:0;color:var(--bk-navy);font-size:28px;letter-spacing:-.02em}
 .cv-head p{max-width:900px;margin:0;color:var(--bk-ink-soft);font-size:14px;line-height:1.6}
-.cv-meta{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:20px 0}
+.cv-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:20px 0}
 .cv-stat{padding:12px;border:1px solid var(--bk-border);border-radius:var(--bk-radius-card);background:var(--bk-paper)}
 .cv-stat strong{display:block;color:var(--bk-navy);font-size:22px;font-variant-numeric:tabular-nums}
 .cv-stat span{display:block;margin-top:3px;color:var(--bk-ink-soft);font-size:11px}
-.cv-controls{position:sticky;top:46px;z-index:40;display:grid;grid-template-columns:minmax(220px,2fr) repeat(4,minmax(140px,1fr));gap:8px;padding:12px;border:1px solid var(--bk-border);border-radius:var(--bk-radius-panel);background:rgba(255,255,255,.94);box-shadow:var(--bk-shadow-soft);backdrop-filter:blur(14px)}
+.cv-controls{position:sticky;top:46px;z-index:40;display:grid;grid-template-columns:minmax(220px,2fr) repeat(5,minmax(120px,1fr));gap:8px;padding:12px;border:1px solid var(--bk-border);border-radius:var(--bk-radius-panel);background:rgba(255,255,255,.94);box-shadow:var(--bk-shadow-soft);backdrop-filter:blur(14px)}
 .cv-controls input,.cv-controls select{width:100%;height:32px;border:1px solid var(--bk-border-strong);border-radius:10px;background:var(--bk-paper);color:var(--bk-ink);font:inherit;font-size:12px;padding:0 10px}
 .cv-controls :focus-visible{outline:none;box-shadow:0 0 0 3px var(--bk-focus)}
 .cv-hierarchy{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:16px 0 24px}
@@ -3883,8 +3883,8 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
     <div class="cv-head">
       <span class="bb-ch-num">11 · Catálogo visual real</span>
       <h2>Todo lo que la aplicación dibuja hoy</h2>
-      <p>Inventario descriptivo —no normativo— de cada ocurrencia JSX productiva. Conserva las diferencias actuales para que una sesión posterior pueda compararlas y unificarlas con evidencia. La procedencia siempre sigue <strong>módulo → sección → pestaña</strong> e incluye archivo, línea, componente, clases, estados y fuente de estilo.</p>
-      <p class="bb-spec">Fuente generada: <code>branding/catalogo-visual/catalogo.json</code>. Unidad: ocurrencia declarada en código; los elementos repetidos por datos se registran como patrón de render. Índice humano: <a href="catalogo-visual/inventario-contextual.md">inventario-contextual.md</a>.</p>
+      <p>Inventario descriptivo —no normativo— de cada ocurrencia JSX productiva, cada variante visible declarada en arrays, tuplas, records o factories de interfaz y cada colección visual que solo puede materializarse con datos de runtime. Conserva las diferencias actuales para que una sesión posterior pueda compararlas y unificarlas con evidencia. La procedencia siempre sigue <strong>módulo → sección → pestaña</strong> e incluye archivo, línea, componente o registro, condición de uso, estados y fuente visual.</p>
+      <p class="bb-spec">Fuente generada: <code>branding/catalogo-visual/data/catalogo.json</code>. Un elemento repetido por datos se registra como patrón de render y como <em>plantilla dinámica</em>; sus labels literales se enumeran individualmente cuando existen en el código. Las declaraciones con copy visual pero sin consumidor demostrable se preservan en una capa de <em>candidatos sin sink resuelto</em>: siguen siendo consultables, pero no se presentan como interfaz confirmada. El texto y los símbolos creados exclusivamente mediante <code>content:</code> se registran como <em>contenido generado por CSS</em>. Los elementos transversales usan <code>Transversal / sin pestaña local</code> o <code>Varias pestañas / contexto dinámico</code>, nunca una pestaña inventada. Índice humano: <a href="catalogo-visual/docs/inventario-contextual.md">inventario-contextual.md</a>.</p>
     </div>
     <div class="cv-meta" id="cv-meta" aria-live="polite"></div>
     <div class="cv-hierarchy" id="cv-hierarchy"></div>
@@ -3899,11 +3899,12 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
       <select id="cv-section" aria-label="Filtrar por sección"><option value="">Todas las secciones</option></select>
       <select id="cv-tab" aria-label="Filtrar por pestaña"><option value="">Todas las pestañas</option></select>
       <select id="cv-category" aria-label="Filtrar por categoría"><option value="">Todas las categorías</option></select>
+      <select id="cv-origin" aria-label="Filtrar por origen"><option value="">Todos los orígenes</option><option value="jsx">Solo JSX</option><option value="declaración">Solo declaraciones confirmadas</option><option value="declaración-sin-sink-resuelto">Solo declaraciones sin sink</option><option value="auditoría-candidato">Solo ledger de candidatos</option><option value="contenido-generado-css">Solo contenido generado por CSS</option><option value="plantilla-dinámica">Solo plantillas dinámicas</option></select>
     </div>
     <p class="cv-results" id="cv-results" aria-live="polite"></p>
     <div class="cv-table-wrap" tabindex="0" aria-label="Inventario exhaustivo de elementos visuales">
       <table class="cv-table">
-        <thead><tr><th>Módulo · sección · pestaña</th><th>Categoría</th><th>Elemento</th><th>Label / contenido</th><th>Uso y estado</th><th>Fuente React</th><th>Fuente visual</th></tr></thead>
+        <thead><tr><th>Módulo · sección · pestaña</th><th>Categoría</th><th>Elemento</th><th>Label / contenido</th><th>Uso y estado</th><th>Declaración / render</th><th>Fuente visual</th></tr></thead>
         <tbody id="cv-body"></tbody>
       </table>
     </div>
@@ -3914,20 +3915,21 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
     </div>
   </div>
 </section>
-<script src="catalogo-visual/catalogo-data.js"></script>
+<script src="catalogo-visual/data/catalogo-data.js"></script>
 <script>
 (function(){
   "use strict";
   var body=document.getElementById("cv-body");
   if(!body)return;
   var catalogPromise=window.__PROSECNUR_VISUAL_CATALOG_PROMISE__;
-  if(!catalogPromise){body.innerHTML='<tr><td colspan="7" class="cv-empty">No se pudo cargar catalogo-visual/catalogo-data.js.</td></tr>';return;}
+  if(!catalogPromise){body.innerHTML='<tr><td colspan="7" class="cv-empty">No se pudo cargar catalogo-visual/data/catalogo-data.js.</td></tr>';return;}
   catalogPromise.then(function(catalog){
-  var state={page:0,size:120,rows:catalog.entries.slice()};
+  var catalogItems=(catalog.entries||[]).concat(catalog.declarations||[],catalog.unresolvedDeclarations||[],catalog.declarationCandidates||[],catalog.cssGeneratedContent||[],catalog.dynamicTemplates||[]);
+  var state={page:0,size:120,rows:catalogItems.slice()};
   var els={
     search:document.getElementById("cv-search"),module:document.getElementById("cv-module"),
     section:document.getElementById("cv-section"),tab:document.getElementById("cv-tab"),
-    category:document.getElementById("cv-category"),results:document.getElementById("cv-results"),
+    category:document.getElementById("cv-category"),origin:document.getElementById("cv-origin"),results:document.getElementById("cv-results"),
     prev:document.getElementById("cv-prev"),next:document.getElementById("cv-next"),page:document.getElementById("cv-page")
   };
   function esc(value){return String(value==null?"":value).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]})}
@@ -3936,7 +3938,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
   options(els.module,catalog.modules.map(function(item){return item.id}),"Todos los módulos");
   options(els.category,Object.keys(catalog.summary.byCategory),"Todas las categorías");
   function syncDependentOptions(){
-    var scoped=catalog.entries.filter(function(row){return !els.module.value||row.module===els.module.value});
+    var scoped=catalogItems.filter(function(row){return !els.module.value||row.module===els.module.value});
     var oldSection=els.section.value,oldTab=els.tab.value;
     options(els.section,uniq(scoped.map(function(row){return row.section})),"Todas las secciones");
     if(Array.from(els.section.options).some(function(o){return o.value===oldSection}))els.section.value=oldSection;
@@ -3947,13 +3949,14 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
   function filterRows(){
     syncDependentOptions();
     var query=els.search.value.trim().toLowerCase();
-    state.rows=catalog.entries.filter(function(row){
+    state.rows=catalogItems.filter(function(row){
       if(els.module.value&&row.module!==els.module.value)return false;
       if(els.section.value&&row.section!==els.section.value)return false;
       if(els.tab.value&&row.tab!==els.tab.value)return false;
       if(els.category.value&&row.category!==els.category.value)return false;
+      if(els.origin.value&&row.sourceType!==els.origin.value)return false;
       if(!query)return true;
-      return [row.label,row.tag,row.kind,row.category,row.source.file,row.componentContext,(row.classNames||[]).join(" ")].join(" ").toLowerCase().includes(query);
+      return [row.label,row.detail,row.tag,row.kind,row.category,row.source.file,row.componentContext,row.renderedWhen,(row.classNames||[]).join(" ")].join(" ").toLowerCase().includes(query);
     });
     state.page=0;render();
   }
@@ -3964,23 +3967,30 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
     body.innerHTML=visible.length?visible.map(function(row){
       var context=[row.module,row.section,row.tab].filter(Boolean).map(esc).join(" → ");
       var states=(row.states||[]).slice(0,4).map(function(s){return '<span class="cv-chip">'+esc(s)+'</span>'}).join(" ");
+      var variants=(row.visualVariants||[]).slice(0,3).map(function(s){return '<span class="cv-chip">'+esc(s)+'</span>'}).join(" ");
       var styles=(row.styleSources||[]).slice(0,3).map(function(s){return '<span class="cv-source cv-path">'+esc(s)+"</span>"}).join("");
-      return '<tr data-cv-id="'+esc(row.id)+'"><td>'+context+'<small class="cv-path">'+esc(row.componentContext)+'</small></td><td><span class="cv-chip">'+esc(row.category)+'</span><br>'+esc(row.kind)+'</td><td><code>'+esc(row.tag)+'</code><small class="cv-path">'+esc((row.classNames||[]).join(" · "))+'</small></td><td><span class="cv-label">'+esc(row.label)+'</span></td><td>'+esc(row.usage)+'<div>'+states+'</div></td><td><span class="cv-source cv-path">'+esc(row.source.file)+":"+row.source.line+":"+row.source.column+"</span>"+(row.definitionFile?'<small class="cv-path">define: '+esc(row.definitionFile)+'</small>':"")+"</td><td>"+(styles||'<small>inline / herencia / sin clase resuelta</small>')+"</td></tr>";
+      var renderSource=row.renderSource||row.source;
+      var renderMeta=renderSource?'<small class="cv-path">render: '+esc(renderSource.file)+":"+esc(renderSource.line||"—")+(renderSource.resolution?" · "+esc(renderSource.resolution):"")+"</small>":"";
+      var provider=row.dynamicProviderSource?'<small class="cv-path">proveedor: '+esc(row.dynamicProviderSource.file)+":"+esc(row.dynamicProviderSource.line)+" · "+esc(row.dynamicProviderSource.provider)+"</small>":"";
+      return '<tr data-cv-id="'+esc(row.id)+'"><td>'+context+'<small class="cv-path">'+esc(row.componentContext)+'</small><small class="cv-path">'+esc(row.contextBasis||"")+'</small></td><td><span class="cv-chip">'+esc(row.category)+'</span><br>'+esc(row.kind)+'</td><td><span class="cv-chip">'+esc(row.sourceType||"jsx")+'</span><br><code>'+esc(row.tag)+'</code><small class="cv-path">'+esc((row.classNames||[]).join(" · "))+'</small></td><td><span class="cv-label">'+esc(row.label)+'</span>'+(row.detail?'<small class="cv-path">'+esc(row.detail)+'</small>':"")+'</td><td>'+esc(row.usage)+'<small class="cv-path">'+esc(row.renderedWhen)+'</small><div>'+states+variants+'</div>'+(states? "":'<small class="cv-path">'+esc(row.stateModel||"Sin estado explícito")+'</small>')+'</td><td><span class="cv-source cv-path">'+esc(row.source.file)+":"+row.source.line+":"+row.source.column+"</span>"+renderMeta+provider+(row.definitionFile&&row.definitionFile!==row.source.file?'<small class="cv-path">define: '+esc(row.definitionFile)+'</small>':"")+"</td><td>"+(styles||'<small>'+(String(row.sourceType||"").indexOf("declaración")===0?"estilo del componente consumidor":"inline / herencia / sin clase resuelta")+'</small>')+"</td></tr>";
     }).join(""):'<tr><td colspan="7" class="cv-empty">No hay elementos para estos filtros.</td></tr>';
     els.results.textContent=state.rows.length.toLocaleString("es-PE")+" elementos · mostrando "+(visible.length?start+1:0)+"–"+(start+visible.length);
     els.page.textContent="Página "+(state.page+1)+" de "+pages;
     els.prev.disabled=state.page===0;els.next.disabled=state.page>=pages-1;
   }
-  [els.search,els.module,els.section,els.tab,els.category].forEach(function(el){el.addEventListener(el===els.search?"input":"change",filterRows)});
+  [els.search,els.module,els.section,els.tab,els.category,els.origin].forEach(function(el){el.addEventListener(el===els.search?"input":"change",filterRows)});
   els.prev.addEventListener("click",function(){state.page-=1;render()});
   els.next.addEventListener("click",function(){state.page+=1;render()});
   var summary=catalog.summary,meta=document.getElementById("cv-meta");
   meta.innerHTML=[
     [summary.sourceOccurrences,"ocurrencias JSX"],
-    [summary.interactiveOccurrences,"interactivas"],
-    [summary.productionJsxFiles,"archivos productivos"],
-    [Object.keys(summary.byModule).length,"ámbitos/módulos"],
-    [Object.keys(summary.byKind).length,"tipos visuales"]
+    [summary.declaredElements,"declaraciones visibles"],
+    [summary.declarationCandidates,"ledger de candidatos"],
+    [summary.dynamicTemplates,"plantillas dinámicas"],
+    [summary.interactiveCatalogItems,"interactivas"],
+    [summary.productionSourceFilesScanned,"fuentes productivas"],
+    [summary.productionStyleFilesScanned,"hojas CSS"],
+    [Object.keys(summary.byModule).length,"ámbitos/módulos"]
   ].map(function(item){return '<div class="cv-stat"><strong>'+Number(item[0]).toLocaleString("es-PE")+'</strong><span>'+item[1]+'</span></div>'}).join("");
   var hierarchy=document.getElementById("cv-hierarchy");
   hierarchy.innerHTML=catalog.hierarchy.map(function(module){
