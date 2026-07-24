@@ -63,5 +63,6 @@ Usar la [plantilla ADR](0000-template.md). Cada decision debe incluir:
 | [0038](0038-identidad-visual-v1-1.md) | Aceptado | 2026-07-15 | Identidad visual v1.1 «La señal ordenada»: isotipo canonico unico, patrones maestros y paquete branding/ como referencia normativa |
 | [0039](0039-agentic-os-multirepo-provider-neutral.md) | Aceptado | 2026-07-19 | Agentic OS multirepo neutral al proveedor: núcleo global namespaced, packs opt-in y overlays locales |
 | [0040](0040-flujo-acreditacion-formularios-monitoreo-procesamiento-ppt.md) | Aceptado | 2026-07-20 | Acreditacion enlaza revisiones XLSForm, efectivos reconciliados, procesamiento independiente y un PPT consolidado |
+| [0041](0041-shell-v3-sidebar-navegacion-unificado.md) | Aceptado | 2026-07-23 | Shell v3 con sidebar unificado para módulos, secciones y pestañas; supersede los patrones de navegación primaria del ADR 0038 |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).
