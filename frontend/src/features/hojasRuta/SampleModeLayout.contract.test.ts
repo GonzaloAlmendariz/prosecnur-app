@@ -26,12 +26,14 @@ describe("Hojas sample-mode card layout", () => {
 
   test("keeps the active treatment tied to the Hojas module accent", () => {
     const css = fs.readFileSync(path.join(featureDir, "hojasRuta.css"), "utf8");
+    // Canon de selección v3: fondo con tinte suave del acento + rail físico
+    // (inset del acento sólido). Ambos tokens viven en la regla base activa.
     const activeRule = cssRuleBody(
       css,
-      ".hojas-ruta-frame .hojas-ruta-sample-mode-cards button.is-active",
+      ".hojas-ruta-sample-mode-cards button.is-active",
     );
 
-    expect(activeRule).toContain("var(--module-accent)");
     expect(activeRule).toContain("var(--module-accent-soft)");
+    expect(activeRule).toContain("var(--module-accent)");
   });
 });
