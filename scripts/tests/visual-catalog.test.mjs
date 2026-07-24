@@ -877,7 +877,7 @@ test("los ocho módulos mantienen sus acentos distintivos en el catálogo", () =
       calculo: "#7C3AED",
       formularios: "#6D5DFC",
       hojas: "#C2410C",
-      fichas: "#0891B2",
+      fichas: "#106E8C",
       monitoreo: "#BE123C",
       procesamiento: "#0F766E",
       dashboard: "#2563EB",

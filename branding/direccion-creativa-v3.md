@@ -67,7 +67,7 @@ los módulos navy.
 | Cálculo de muestra | `--pulso-module-sample` | `#7C3AED` |
 | Formularios | `--pulso-module-editor` | `#6D5DFC` |
 | Hojas de ruta | `--pulso-module-routes` | `#C2410C` |
-| Fichas QR | `--pulso-module-collectors` | `#0891B2` |
+| Fichas QR | `--pulso-module-collectors` | `#106E8C` |
 | Monitoreo | `--pulso-module-monitoring` | `#BE123C` |
 | Procesamiento | `--pulso-module-processing` | `#0F766E` |
 | Dashboard | `--pulso-module-dashboard` | `#2563EB` |
@@ -76,6 +76,18 @@ Cada familia conserva además sus roles derivados `-soft` y `-border`. El shell
 los consume mediante los aliases contextuales `--module-accent`,
 `--module-accent-soft` y `--module-accent-border`; así puede cambiar de módulo
 sin reescribir componentes.
+
+**Corrección de legibilidad del 24 de julio de 2026.** Fichas QR pasó de
+`#0891B2` a `#106E8C` (decisión `dec-acento-collectors-aa` del manifiesto,
+identidad 1.2.1). El valor anterior daba 3.68:1 sobre blanco: suficiente para
+superficies de UI, insuficiente para el texto normal de AA, y el acento se
+usaba como color de labels de 10 y 11px. El valor nuevo da 5.78:1 y mantiene
+ΔE76 de 25.0 contra el teal de Procesamiento, casi los 26.9 del anterior. El
+invariante no se reabre: siguen siendo ocho acentos y siguen siendo
+distinguibles entre sí; lo que cambió es la legibilidad de uno, no la
+estructura del espectro. Un acento nuevo debe cumplir **4.5:1 sobre blanco**
+—porque en este sistema los acentos rotulan texto pequeño— y separarse con
+holgura de sus vecinos.
 
 **Roles permitidos:** contexto de módulo, rail y superficie de selección,
 icono modular, tintes y bordes de procedencia, y foco contextual cuando el

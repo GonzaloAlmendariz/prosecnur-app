@@ -61,7 +61,7 @@ const MODULES = [
   {
     id: "fichas-qr",
     label: "Fichas QR",
-    accent: "#0891B2",
+    accent: "#106E8C",
     aliases: ["recopiladores"],
   },
   {
