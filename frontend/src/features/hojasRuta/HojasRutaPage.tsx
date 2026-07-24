@@ -395,6 +395,7 @@ const routeJumpModeOptions: Array<{ key: HojasRutaRouteJumpMode; label: string; 
 
 const ageMethodOptions = ["manual", "cuts"] as const;
 type HojasRutaAgeMethod = (typeof ageMethodOptions)[number];
+const ageScopeOptions: HojasRutaAgeRangeScope[] = ["selected", "frame"];
 
 const replacementPolicyOptions: Array<{ key: HojasRutaReplacementPolicy; label: string; hint: string }> = [
   { key: "alternate_zone_same_district", label: "Otra zona", hint: "Mismo distrito, prioriza zonas libres" },
@@ -7272,6 +7273,19 @@ export default function HojasRutaPage() {
     setAgeDraftScope(scope);
   }
 
+  function selectAgeScope(nextScope: HojasRutaAgeRangeScope) {
+    if (nextScope !== ageDraftScope) setAgeRangeScope(nextScope);
+  }
+
+  function selectAgeScopeFromKey(key: string, itemIndex: number) {
+    let nextIndex: number | null = null;
+    if (key === "Home") nextIndex = 0;
+    else if (key === "End") nextIndex = ageScopeOptions.length - 1;
+    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % ageScopeOptions.length;
+    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + ageScopeOptions.length) % ageScopeOptions.length;
+    if (nextIndex != null) selectAgeScope(ageScopeOptions[nextIndex]);
+  }
+
   function setAgeRangeModeDraft(mode: HojasRutaAgeRangeMode) {
     setAgeDraftMode(mode);
     if (mode === "manual") {
@@ -8113,22 +8127,24 @@ export default function HojasRutaPage() {
                               text="Puedes calcular los cortes solo con los distritos confirmados del estudio o con todo el marco INEI 2017 disponible. Esto cambia los límites de edad cuando la estructura etaria de tus distritos difiere del marco completo."
                             />
                           </div>
-                          <div className="hojas-ruta-age-scope-row" role="radiogroup" aria-label="Base para cortes automaticos">
-                            {(["selected", "frame"] as HojasRutaAgeRangeScope[]).map((scope) => (
+                          <GlidingTabList activeKey={ageDraftScope} mode="tabs" className="hojas-ruta-age-scope-row" role="radiogroup" aria-label="Base para cortes automaticos">
+                            {ageScopeOptions.map((scope, itemIndex) => (
                               <button
                                 key={scope}
                                 type="button"
                                 role="radio"
+                                data-gliding-key={scope}
                                 aria-checked={ageDraftScope === scope}
                                 className={ageDraftScope === scope ? "is-active" : ""}
-                                onClick={() => setAgeRangeScope(scope)}
+                                onClick={() => selectAgeScope(scope)}
+                                onKeyDown={(event) => selectAgeScopeFromKey(event.key, itemIndex)}
                                 disabled={!canConfigureAgeRanges || busy !== ""}
                               >
                                 <strong>{AGE_RANGE_SCOPE_LABELS[scope].title}</strong>
                                 <span>{AGE_RANGE_SCOPE_LABELS[scope].hint}</span>
                               </button>
                             ))}
-                          </div>
+                          </GlidingTabList>
                           <div className="hojas-ruta-age-preset-row" aria-label="Presets de rangos de edad">
                             {AGE_RANGE_CUT_MODES.map((mode) => (
                               <button
