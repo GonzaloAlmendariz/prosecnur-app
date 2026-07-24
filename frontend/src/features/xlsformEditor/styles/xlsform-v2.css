@@ -136,6 +136,27 @@
 
 /* ── Botones del commandbar → pills con feedback de presión ────────────── */
 
+/* ── Jerarquía de los controles de la banda ────────────────────────────── */
+/* Solo la acción principal (Exportar .xlsx, .pulso-primary) lleva relleno. El
+   resto vive sin borde en reposo y lo gana al pasar por encima: así la banda
+   tiene un único punto focal en vez de nueve cajas compitiendo. El contorno
+   sigue apareciendo en hover y foco, de modo que nada pierde affordance. */
+.pulso-xlsform-frame .pulso-xlsform-toolbar-button:not(.pulso-primary),
+.pulso-xlsform-frame .pulso-xf-intake-trigger,
+.pulso-xlsform-frame .pulso-more-views-trigger {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pulso-xlsform-frame .pulso-xlsform-toolbar-button:not(.pulso-primary):hover:not(:disabled),
+.pulso-xlsform-frame .pulso-xf-intake-trigger:hover:not(:disabled),
+.pulso-xlsform-frame .pulso-more-views-trigger:hover:not(:disabled),
+.pulso-xlsform-frame .pulso-more-views-wrapper.is-open .pulso-more-views-trigger {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface);
+}
+
 .pulso-xlsform-frame .pulso-xlsform-toolbar-button {
   border-radius: 999px;
   padding: 4px 12px;
@@ -161,6 +182,65 @@
     border-color: var(--pulso-primary-border);
     box-shadow: var(--pulso-shadow-soft);
   }
+}
+
+/* ── Estado del formulario: dato, no control ───────────────────────────── */
+/* Procedencia y guardado se leen como texto con un punto de color. Sin
+   cápsula: una pastilla con borde los ponía al mismo nivel visual que los
+   botones y la banda entera se volvía indistinguible. */
+
+.pulso-xlsform-frame .pulso-xf-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: 620;
+  white-space: nowrap;
+}
+
+.pulso-xlsform-frame .pulso-xf-status-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+.pulso-xlsform-frame .pulso-xf-status.is-info .pulso-xf-status-dot {
+  background: var(--pulso-info-fg);
+  opacity: 0.7;
+}
+
+.pulso-xlsform-frame .pulso-xf-status.is-success .pulso-xf-status-dot {
+  background: var(--pulso-success-fg);
+  opacity: 0.85;
+}
+
+/* El único estado que sí debe llamar la atención: hay algo sin guardar. */
+.pulso-xlsform-frame .pulso-xf-status.is-warn {
+  color: var(--pulso-warn-fg);
+  font-weight: 700;
+}
+
+.pulso-xlsform-frame .pulso-xf-status.is-warn .pulso-xf-status-dot {
+  background: var(--pulso-warn-fg);
+  opacity: 1;
+}
+
+/* «Sin avisos» es la ausencia de un problema: no merece una cápsula verde
+   compitiendo con la acción principal. Queda como texto con su check y
+   recupera todo el peso —fondo y borde— en cuanto hay algo que revisar. */
+.pulso-xlsform-frame .pulso-diagnostics-badge.tone-ok {
+  border-color: transparent;
+  background: transparent;
+}
+
+.pulso-xlsform-frame .pulso-diagnostics-badge.tone-ok:hover {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
 }
 
 /* Cluster de salida: la casilla es una opción del .xlsx, no una acción
@@ -213,14 +293,14 @@
 
 /* ── Menú "Más vistas" → popover glass animado ─────────────────────────── */
 
+/* Geometría del trigger. El fondo y el borde los gobierna la jerarquía de la
+   banda (más arriba): transparentes en reposo, visibles en hover y foco. */
 .pulso-xlsform-frame .pulso-more-views-trigger {
   min-height: 26px;
   border-radius: 999px;
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 650;
-  background: var(--pulso-surface);
-  border-color: var(--pulso-primary-border);
   transition:
     border-color var(--motion-dur-fast) ease,
     color var(--motion-dur-fast) ease,

@@ -28492,13 +28492,13 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   animation: pulso-xls-popover-in 170ms var(--motion-ease-out) both;
 }
 
+/* Geometría de los controles secundarios del editor. El fondo y el borde los
+   gobierna la jerarquía de la banda en xlsform-v2.css —transparentes en
+   reposo, visibles en hover y foco—, así que no se declaran acá. */
 .pulso-xlsform-frame .pulso-more-views-trigger,
 .pulso-xlsform-frame .pulso-diagnostics-badge {
   min-height: 30px;
   border-radius: var(--xls-radius-control);
-  border-color: var(--xls-border);
-  background: var(--xls-toolbar-strong);
-  box-shadow: var(--xls-shadow-hairline);
   white-space: nowrap;
 }
 
