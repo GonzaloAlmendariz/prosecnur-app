@@ -42,6 +42,8 @@ type Props = {
   onImported: (payload: EstudioPayload) => Promise<void>;
 };
 
+type IntegratedSourceMode = "manual" | "surveymonkey";
+
 function normalizeSearch(value: string) {
   return value
     .normalize("NFD")
@@ -318,7 +320,7 @@ function diffSummary(groups: DiffGroup[]) {
 
 export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImported }: Props) {
   const canonicalSignature = canonicalOptions.map((option) => `${option.fileId}:${option.label}`).join("|");
-  const [sourceMode, setSourceMode] = useState<"manual" | "surveymonkey">("manual");
+  const [sourceMode, setSourceMode] = useState<IntegratedSourceMode>("manual");
   const [guideOptions, setGuideOptions] = useState<CanonicalOption[]>(canonicalOptions);
   const [guideFileId, setGuideFileId] = useState(canonicalOptions[0]?.fileId ?? "");
   const [guideSurveyId, setGuideSurveyId] = useState("");
@@ -544,6 +546,14 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
     setActiveWordingTabs({});
   }
 
+  function selectSourceMode(mode: IntegratedSourceMode) {
+    if (mode === sourceMode) return;
+    setSourceMode(mode);
+    setGuideSurveyId("");
+    setRows(mode === "manual" ? [makeManualOrigin(), makeManualOrigin()] : []);
+    resetAudit();
+  }
+
   function patchRow(localId: string, patch: Partial<DraftOrigin>) {
     setRows((prev) => prev.map((row) => row.localId === localId ? { ...row, ...patch } : row));
     resetAudit();
@@ -753,27 +763,45 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
       </div>
 
       <div className="pulso-integrated-sourcebar">
-        <GlidingTabList activeKey={sourceMode} className="pulso-integrated-source-tabs" role="tablist" aria-label="Fuente de instrumentos hermanos">
+        <GlidingTabList
+          activeKey={sourceMode}
+          mode="tabs"
+          className="pulso-integrated-source-tabs"
+          role="radiogroup"
+          aria-label="Fuente de instrumentos hermanos"
+        >
           <button
             type="button"
-            role="tab"
-            aria-selected={sourceMode === "manual"}
+            role="radio"
+            aria-checked={sourceMode === "manual"}
             data-gliding-key="manual"
             className={sourceMode === "manual" ? "is-active" : ""}
             title="Archivos manuales"
-            onClick={() => { setSourceMode("manual"); setGuideSurveyId(""); setRows([makeManualOrigin(), makeManualOrigin()]); resetAudit(); }}
+            onClick={() => selectSourceMode("manual")}
+            onKeyDown={(event) => {
+              if (event.key === "Home") selectSourceMode("manual");
+              else if (event.key === "End" || event.key === "ArrowLeft" || event.key === "ArrowRight") {
+                selectSourceMode("surveymonkey");
+              }
+            }}
           >
             <FileSpreadsheet size={14} />
             <span className="pulso-integrated-source-label">Archivos manuales</span>
           </button>
           <button
             type="button"
-            role="tab"
-            aria-selected={sourceMode === "surveymonkey"}
+            role="radio"
+            aria-checked={sourceMode === "surveymonkey"}
             data-gliding-key="surveymonkey"
             className={sourceMode === "surveymonkey" ? "is-active" : ""}
             title="SurveyMonkey"
-            onClick={() => { setSourceMode("surveymonkey"); setRows([]); setGuideSurveyId(""); resetAudit(); }}
+            onClick={() => selectSourceMode("surveymonkey")}
+            onKeyDown={(event) => {
+              if (event.key === "End") selectSourceMode("surveymonkey");
+              else if (event.key === "Home" || event.key === "ArrowLeft" || event.key === "ArrowRight") {
+                selectSourceMode("manual");
+              }
+            }}
           >
             <Cloud size={14} />
             <span className="pulso-integrated-source-label">SurveyMonkey</span>
