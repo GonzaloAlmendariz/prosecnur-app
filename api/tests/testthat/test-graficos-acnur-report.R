@@ -367,7 +367,7 @@ test_that("pregunta principal declara su base especifica y no el universo fijo",
   note <- .acnur_report_ascii(.acnur_report_graph_note(graph))
 
   expect_false(is.null(graph))
-  expect_equal(note, "Base: 3 de 4 (75.0%).")
+  expect_equal(note, "N = 3 (75.0% del total).")
   expect_false(grepl("4 encuestas", note, ignore.case = TRUE))
 })
 
@@ -380,10 +380,10 @@ test_that("opcion multiple separa personas que respondieron y menciones", {
   note <- .acnur_report_ascii(.acnur_report_graph_note(graph))
 
   expect_false(is.null(graph))
-  expect_match(note, "Base: 3 de 4 \\(75.0%\\)", ignore.case = TRUE)
+  expect_match(note, "N = 3 \\(75.0% del total\\)", ignore.case = TRUE)
   expect_match(note, "5 menciones", ignore.case = TRUE)
   expect_match(note, "no suman 100%", fixed = TRUE)
-  expect_false(grepl("Base: 5 personas", note, ignore.case = TRUE))
+  expect_false(grepl("N = 5 personas", note, ignore.case = TRUE))
 })
 
 test_that("pregunta repetible distingue servicios y personas unicas", {
@@ -395,7 +395,7 @@ test_that("pregunta repetible distingue servicios y personas unicas", {
   note <- .acnur_report_ascii(.acnur_report_graph_note(graph))
 
   expect_false(is.null(graph))
-  expect_match(note, "Base: 4 de 5 \\(80.0%\\)", ignore.case = TRUE)
+  expect_match(note, "N = 4 \\(80.0% del total\\)", ignore.case = TRUE)
   expect_false(grepl("correspondientes a", note, ignore.case = TRUE))
   expect_false(grepl("respuestas de servicio", note, ignore.case = TRUE))
   expect_match(note, "1 respuesta: .*Prefiere no responder", ignore.case = TRUE)
