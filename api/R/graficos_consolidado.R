@@ -146,6 +146,8 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
   }
   src <- .graficos_align_recoded_dummy_sources(src)
   src <- .graficos_apply_orden_categorias_sources(sid, src)
+  # Mismo orden de dummies que la vista de Analítica y que el PPT por base.
+  src <- tryCatch(.graficos_order_sm_dummy_sources(src), error = function(e) src)
   common <- intersect(names(src$data_sources), names(src$inst_sources))
   if (!is.null(source_order)) common <- source_order[source_order %in% common]
   list(data_sources = src$data_sources[common], inst_sources = src$inst_sources[common])
