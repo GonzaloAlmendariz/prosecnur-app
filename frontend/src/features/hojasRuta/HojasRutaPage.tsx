@@ -5565,6 +5565,18 @@ function SampleSizeWorkbench({
   const responseTone = settings.response_rate >= 0.75 ? "ok" : settings.response_rate >= 0.55 ? "info" : "warn";
   const proportionTone = settings.expected_proportion >= 0.35 && settings.expected_proportion <= 0.65 ? "ok" : "info";
 	  const allocationMode = settings.allocation_mode ?? "proportional";
+  const allocationModes = Object.keys(ALLOCATION_LABELS) as AllocationMode[];
+  function selectAllocationMode(nextMode: AllocationMode) {
+    if (nextMode !== allocationMode) onSampleSizeChange({ allocation_mode: nextMode });
+  }
+  function selectAllocationModeFromKey(key: string, itemIndex: number) {
+    let nextIndex: number | null = null;
+    if (key === "Home") nextIndex = 0;
+    else if (key === "End") nextIndex = allocationModes.length - 1;
+    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % allocationModes.length;
+    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + allocationModes.length) % allocationModes.length;
+    if (nextIndex != null) selectAllocationMode(allocationModes[nextIndex]);
+  }
 	  const enforceFloor = settings.enforce_district_floor ?? true;
   const districtMarginModes = [true, false] as const;
   function selectDistrictMarginMode(nextMode: boolean) {
@@ -6136,21 +6148,23 @@ function SampleSizeWorkbench({
                       : "El N total ya está fijado; aquí solo decides cómo repartirlo entre distritos."}
                   </span>
 	              </div>
-              <div className="hojas-ruta-allocation-cards" role="radiogroup" aria-label="Modo de asignación">
-                {(Object.keys(ALLOCATION_LABELS) as AllocationMode[]).map((m) => (
+              <GlidingTabList activeKey={allocationMode} mode="tabs" className="hojas-ruta-allocation-cards" role="radiogroup" aria-label="Modo de asignación">
+                {allocationModes.map((m, itemIndex) => (
                   <button
                     key={m}
                     type="button"
                     role="radio"
+                    data-gliding-key={m}
                     aria-checked={allocationMode === m}
                     className={allocationMode === m ? "is-active" : ""}
-                    onClick={() => onSampleSizeChange({ allocation_mode: m })}
+                    onClick={() => selectAllocationMode(m)}
+                    onKeyDown={(event) => selectAllocationModeFromKey(event.key, itemIndex)}
                   >
                     <strong>{ALLOCATION_LABELS[m].title}</strong>
                     <span>{ALLOCATION_LABELS[m].hint}</span>
                   </button>
                 ))}
-              </div>
+              </GlidingTabList>
 	              {isCalculatorMode ? (
                   <p className="hojas-ruta-sample-note">
                     El uso del margen distrital se define arriba, junto al umbral: puede ser requisito de cálculo o solo máximo permitido para alertas.
