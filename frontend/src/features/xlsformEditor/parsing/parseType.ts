@@ -162,15 +162,34 @@ export function slug(input: string, fallback = "campo"): string {
   return safe || fallback;
 }
 
-/** Etiqueta humana de un origen de workbook (importado vs nuevo). */
+/**
+ * Etiqueta corta del origen de un workbook, para la banda de comandos.
+ *
+ * Se dice «Desde X» y no «Importado desde X»: la procedencia es un dato de
+ * consulta ocasional y su versión larga empujaba el estado del formulario a
+ * una segunda línea. El texto completo vive en `formatSourceLong`, que la
+ * banda expone como title.
+ */
 export function formatSource(kind: string | null): string {
   switch (kind) {
     case "surveymonkey":
-      return "Importado desde SurveyMonkey";
+      return "Desde SurveyMonkey";
     case "xlsform":
-      return "Importado desde XLSForm";
+      return "Desde XLSForm";
     default:
-      return "Constructor nuevo";
+      return "Nuevo";
+  }
+}
+
+/** Versión explicada del origen, para tooltips y textos de apoyo. */
+export function formatSourceLong(kind: string | null): string {
+  switch (kind) {
+    case "surveymonkey":
+      return "Importado desde una encuesta de SurveyMonkey";
+    case "xlsform":
+      return "Importado desde un archivo XLSForm";
+    default:
+      return "Creado desde cero en el constructor";
   }
 }
 
