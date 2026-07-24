@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, SetStateAction } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AlertTriangle, BarChart3, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, CircleHelp, Download, FileSpreadsheet, FileText, Info, Layers, Loader2, MapPinned, Plus, Play, Search, Shuffle, Target, Trash2, X } from "lucide-react";
 import {
   apiHojasRutaBlockMap,
@@ -64,13 +65,15 @@ import { Panel } from "../../components/Panel";
 import { EmptyState, LoadingBlock } from "../../components/States";
 import { GlidingRadioGroup } from "../../components/GlidingRadioGroup";
 import { GlidingTabList } from "../../components/GlidingTabList";
-import type { StepMeta } from "../../components/Stepper";
+import { useRegisterModuleNavigationRuntime } from "../../lib/moduleNavigationRuntime";
 import { useSession } from "../../lib/SessionContext";
 import districtCoverage from "./limaDistrictCoverage.json";
 import {
   clearHojasRutaWorkspaceSnapshot,
   setHojasRutaWorkspaceSnapshot,
 } from "./configSnapshot";
+import { containerPointToLogical, paddedGeometryViewBoxFromExtents, uniformContainTransform } from "./cartographicViewport";
+import { buildHojasRutaNavigation, buildHojasRutaNavigationSearch } from "./hojasRutaNavigation";
 import { useHojasRutaStore } from "./store";
 import type {
   HojasRutaBlockLayerMode,
@@ -120,7 +123,9 @@ const HOJAS_RUTA_STAGE_ORDER: Record<HojasRutaStage, number> = {
   manzanas: 3,
   entrega: 4,
 };
-
+const HOJAS_RUTA_STAGE_ICONS: Record<HojasRutaStage, typeof MapPinned> = {
+  territorio: MapPinned, poblacion: BarChart3, muestra: Target, manzanas: Shuffle, entrega: FileText,
+};
 const DISTRICT_FEATURES = (districtCoverage as unknown as { features: DistrictFeature[] }).features;
 const DISTRICT_FEATURE_BY_UBIGEO = new Map(DISTRICT_FEATURES.map((feature) => [feature.properties.ubigeo, feature]));
 const MAP_SIZE = 560;
@@ -1035,61 +1040,6 @@ function compactPhaseNotice(message: string) {
   const match = message.match(/corrida de ([\d.,]+)\s+entrevistas/i);
   if (match) return `Piloto guardado · ${match[1]} entrevistas`;
   return message.replace(/\s+/g, " ").trim();
-}
-
-function HojasRutaStageRail({
-  steps,
-  current,
-  onChange,
-}: {
-  steps: StepMeta<HojasRutaStage>[];
-  current: HojasRutaStage;
-  onChange: (stage: HojasRutaStage) => void;
-}) {
-  return (
-    <div className="pulso-phase-rail hojas-ruta-stage-rail" aria-label="Etapas de hojas de ruta">
-      <GlidingTabList activeKey={current} mode="tabs" className="pulso-phase-pillbar" role="group" aria-label="Etapas de hojas de ruta">
-        <ul className="pulso-phase-pill-list">
-          {steps.map((step) => {
-            const active = step.key === current;
-            const done = !!step.done;
-            const Icon = step.icon;
-            return (
-              <li key={step.key} className="pulso-phase-pill-item">
-                <button
-                  type="button"
-                  data-gliding-key={step.key}
-                  aria-pressed={active}
-                  aria-current={active ? "step" : undefined}
-                  aria-disabled={step.disabled || undefined}
-                  disabled={step.disabled}
-                  title={step.disabled ? step.disabledReason : step.hint}
-                  className={[
-                    "pulso-phase-pill",
-                    active ? "is-active" : "",
-                    done ? "is-done" : "",
-                    step.disabled ? "is-disabled" : "",
-                  ].filter(Boolean).join(" ")}
-                  onClick={() => {
-                    if (!step.disabled) onChange(step.key);
-                  }}
-                >
-                  <span className="pulso-phase-pill-circle" aria-hidden="true" />
-                  <span className="pulso-phase-pill-stack">
-                    <span className="pulso-phase-pill-label">
-                      <span className="pulso-phase-pill-number" aria-hidden="true">{step.n}</span>
-                      <Icon size={13} aria-hidden="true" />
-                      {step.label}
-                    </span>
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </GlidingTabList>
-    </div>
-  );
 }
 
 function PhaseHeaderControl({
@@ -2728,6 +2678,7 @@ function ZoomControls({
   return (
     <div
       className="hojas-ruta-zoom"
+      data-audit-map-overlay="zoom"
       aria-label="Controles de zoom"
       onPointerDown={stopInteraction}
       onPointerMove={stopInteraction}
@@ -2809,27 +2760,30 @@ function BlockCanvasMap({
 
   const screenToMapPoint = useCallback((event: { clientX: number; clientY: number; currentTarget: HTMLCanvasElement }) => {
     const rect = event.currentTarget.getBoundingClientRect();
-    const viewX = ((event.clientX - rect.left) / Math.max(1, rect.width)) * BLOCK_MAP_WIDTH;
-    const viewY = ((event.clientY - rect.top) / Math.max(1, rect.height)) * BLOCK_MAP_HEIGHT;
+    const contain = uniformContainTransform(rect, { width: BLOCK_MAP_WIDTH, height: BLOCK_MAP_HEIGHT });
+    const point = contain && containerPointToLogical({ x: event.clientX - rect.left, y: event.clientY - rect.top }, contain);
+    if (!point) return null;
     return {
-      x: BLOCK_MAP_WIDTH / 2 + (viewX - BLOCK_MAP_WIDTH / 2 - pan.x) / zoom,
-      y: BLOCK_MAP_HEIGHT / 2 + (viewY - BLOCK_MAP_HEIGHT / 2 - pan.y) / zoom,
+      x: BLOCK_MAP_WIDTH / 2 + (point.x - BLOCK_MAP_WIDTH / 2 - pan.x) / zoom,
+      y: BLOCK_MAP_HEIGHT / 2 + (point.y - BLOCK_MAP_HEIGHT / 2 - pan.y) / zoom,
     };
   }, [pan.x, pan.y, zoom]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const draw = () => {
     const rect = canvas.getBoundingClientRect();
+    const contain = uniformContainTransform(rect, { width: BLOCK_MAP_WIDTH, height: BLOCK_MAP_HEIGHT });
+    if (!contain) return;
     const ratio = window.devicePixelRatio || 1;
     canvas.width = Math.max(1, Math.round(rect.width * ratio));
     canvas.height = Math.max(1, Math.round(rect.height * ratio));
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.setTransform((rect.width * ratio) / BLOCK_MAP_WIDTH, 0, 0, (rect.height * ratio) / BLOCK_MAP_HEIGHT, 0, 0);
-    ctx.clearRect(0, 0, BLOCK_MAP_WIDTH, BLOCK_MAP_HEIGHT);
     ctx.fillStyle = MAP_GEOMETRY_STYLE.background;
-    ctx.fillRect(0, 0, BLOCK_MAP_WIDTH, BLOCK_MAP_HEIGHT);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(contain.scale * ratio, 0, 0, contain.scale * ratio, contain.offsetX * ratio, contain.offsetY * ratio);
     ctx.save();
     ctx.translate(BLOCK_MAP_WIDTH / 2 + pan.x, BLOCK_MAP_HEIGHT / 2 + pan.y);
     ctx.scale(zoom, zoom);
@@ -3025,12 +2979,17 @@ function BlockCanvasMap({
       ctx.fillText(boundary.label, boundary.labelX, boundary.labelY);
     }
     ctx.restore();
+    };
+    draw();
+    const observer = new ResizeObserver(draw); observer.observe(canvas);
+    return () => observer.disconnect();
   }, [activeZone, boundaries, hoveredId, inspectedId, layerMode, pan, pilotSet, projected, projectedContext, projectedStreets, replacementSet, selectedSet, zoom, zoneOutlines]);
 
   return (
     <div style={{ position: "relative", height: "100%" }}>
       <canvas
         ref={canvasRef}
+        data-audit-map-subject
         aria-label="Mapa de manzanas del distrito"
         onPointerDown={(event) => {
           gestureRef.current = { x: event.clientX, y: event.clientY, moved: false };
@@ -3043,6 +3002,11 @@ function BlockCanvasMap({
             return;
           }
           const point = screenToMapPoint(event);
+          if (!point) {
+            commitHover(null);
+            event.currentTarget.style.cursor = "default";
+            return;
+          }
           hoverPointRef.current = point;
           hoverTargetRef.current = event.currentTarget;
           if (hoverFrameRef.current != null) return;
@@ -3074,7 +3038,7 @@ function BlockCanvasMap({
             return;
           }
           const point = screenToMapPoint(event);
-          const hit = featureAtBlockPoint(interactiveProjected, point.x, point.y);
+          const hit = point ? featureAtBlockPoint(interactiveProjected, point.x, point.y) : null;
           onInspect(hit?.id ?? null);
         }}
         style={{ width: "100%", height: "100%", display: "block", background: "#f8fafc" }}
@@ -3249,7 +3213,7 @@ function ZoneGeometryMap({
       </svg>
       {!compact ? <ZoomControls value={navigation.zoom} min={1} max={BLOCK_MAP_MAX_ZOOM} onChange={navigation.setZoom} onReset={navigation.reset} /> : null}
       {!compact ? (
-        <div className="hojas-ruta-map-legend" aria-hidden="true">
+        <div className="hojas-ruta-map-legend" data-audit-map-overlay="legend" aria-hidden="true">
           <span><i /> Manzanas</span>
           <span><i className="is-green-context" /> Areas verdes</span>
           <span><i className="is-water-context" /> Agua</span>
@@ -3411,7 +3375,7 @@ function BlockGeometryMap({
       ) : (
         <svg viewBox={`0 0 ${BLOCK_MAP_WIDTH} ${BLOCK_MAP_HEIGHT}`} role="img" aria-label="Mapa de manzanas del distrito" style={{ width: "100%", height: "100%", display: "block" }}>
           <rect x="0" y="0" width={BLOCK_MAP_WIDTH} height={BLOCK_MAP_HEIGHT} fill={MAP_GEOMETRY_STYLE.background} />
-          <g transform={navigation.transform}>
+          <g transform={navigation.transform} data-audit-map-subject>
             {projectedContext.map((context, index) => {
               const style = contextClassStyle(context.featureClass, context.kind, context.sourceKind);
               if (!context.d || (!context.hasPolygons && !context.hasLines)) return null;
@@ -3716,14 +3680,14 @@ function BlockGeometryMap({
       )}
       <ZoomControls value={navigation.zoom} min={1} max={BLOCK_MAP_MAX_ZOOM} onChange={navigation.setZoom} onReset={navigation.reset} />
       {layerMode === "nse" ? (
-        <div className="hojas-ruta-nse-legend" aria-hidden="true">
+        <div className="hojas-ruta-nse-legend" data-audit-map-overlay="legend" aria-hidden="true">
           {Object.values(NSE_STYLE).map((item) => (
             <span key={item.label}><i style={{ background: colorWithAlpha(item.fill, 0.48), borderColor: colorWithAlpha(item.stroke, 0.72) }} /> {item.label}</span>
           ))}
           <span><i className="is-empty" /> Sin dato / sin población</span>
         </div>
       ) : (
-        <div className="hojas-ruta-map-legend" aria-hidden="true">
+        <div className="hojas-ruta-map-legend" data-audit-map-overlay="legend" aria-hidden="true">
           <span><i /> Contexto</span>
           <span><i className="is-focus" /> En foco</span>
           <span><i className="is-selected" /> Titular</span>
@@ -3733,7 +3697,7 @@ function BlockGeometryMap({
       )}
       {streetMap?.ok ? <div className="hojas-ruta-osm-attribution">{streetAttribution}</div> : null}
       {detailFeature && (
-        <div className="hojas-ruta-block-popup">
+        <div className="hojas-ruta-block-popup" data-audit-map-overlay="info">
           <div className="hojas-ruta-block-popup-head">
             <div>
               <strong>Manzana {detailFeature.label}</strong>
@@ -3808,7 +3772,6 @@ function LimaCoverageMap({
   selected,
   activeUbigeo,
   compact = false,
-  showHeader = false,
   selectionMode = false,
   onFocus,
   onToggleSelection,
@@ -3817,16 +3780,19 @@ function LimaCoverageMap({
   selected: string[];
   activeUbigeo?: string;
   compact?: boolean;
-  showHeader?: boolean;
   selectionMode?: boolean;
   onFocus: (ubigeo: string) => void;
   onToggleSelection?: (ubigeo: string) => void;
 }) {
   const [hovered, setHovered] = useState<string | null>(null);
   const pendingDistrictClickRef = useRef<{ ubigeo: string; pointerId: number; x: number; y: number } | null>(null);
-  const navigation = useMapNavigation(MAP_SIZE, MAP_SIZE, 1, LIMA_MAP_MAX_ZOOM, compact ? 1 : 1.28);
+  const navigation = useMapNavigation(MAP_SIZE, MAP_SIZE, 1, LIMA_MAP_MAX_ZOOM);
   const byUbigeo = useMemo(() => new Map(territories.map((t) => [t.ubigeo, t])), [territories]);
   const projectedDistricts = useMemo(() => buildProjectedDistricts(), []);
+  const overviewViewBox = useMemo(() => {
+    const box = paddedGeometryViewBoxFromExtents(projectedDistricts, { x: 0, y: 0, width: MAP_SIZE, height: MAP_SIZE });
+    return box ? `${box.x} ${box.y} ${box.width} ${box.height}` : `0 0 ${MAP_SIZE} ${MAP_SIZE}`;
+  }, [projectedDistricts]);
   const activeOnMap = activeUbigeo && (compact || selected.includes(activeUbigeo)) ? activeUbigeo : "";
   const infoUbigeo = hovered ?? activeOnMap;
   const infoTerritory = infoUbigeo ? byUbigeo.get(infoUbigeo) : null;
@@ -3864,17 +3830,6 @@ function LimaCoverageMap({
 
   return (
     <div className={`hojas-ruta-lima-map${compact ? " is-compact" : ""}`}>
-      {!compact && showHeader && (
-        <div style={{ padding: "10px 12px", borderBottom: "1px solid var(--pulso-border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: "var(--pulso-text)" }}>Mapa de distritos</div>
-            <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2 }}>
-              {selectionMode ? "Click agrega o quita distritos del borrador" : "Click en un distrito para ver sus zonas"}
-            </div>
-          </div>
-          <StatusPill ok text={`${selected.length} en cuotas`} />
-        </div>
-      )}
       <div
         ref={(node) => {
           navigation.wheelHostRef.current = compact ? null : node;
@@ -3883,14 +3838,14 @@ function LimaCoverageMap({
         {...mapHandlers}
       >
         <svg
-          viewBox={compact ? compactViewBox : `0 0 ${MAP_SIZE} ${MAP_SIZE}`}
+          viewBox={compact ? compactViewBox : overviewViewBox}
           preserveAspectRatio="xMidYMid meet"
           role="img"
           aria-label="Mapa real de distritos cubiertos"
           style={{ width: "100%", height: "100%", display: "block", background: MAP_GEOMETRY_STYLE.background }}
         >
           <rect x="0" y="0" width="560" height="560" fill={MAP_GEOMETRY_STYLE.background} />
-          <g transform={mapTransformValue}>
+          <g transform={mapTransformValue} data-audit-map-subject>
           {orderedDistricts.map((district) => {
             const inQuotaFrame = byUbigeo.has(district.ubigeo);
             const isSelected = selected.includes(district.ubigeo);
@@ -3961,14 +3916,14 @@ function LimaCoverageMap({
         </svg>
         {!compact && <ZoomControls value={navigation.zoom} min={1} max={LIMA_MAP_MAX_ZOOM} onChange={navigation.setZoom} onReset={navigation.reset} />}
         {!compact && (
-          <div className="hojas-ruta-map-legend" aria-hidden="true">
+          <div className="hojas-ruta-map-legend" data-audit-map-overlay="legend" aria-hidden="true">
             <span><i /> Contexto</span>
             <span><i className="is-focus" /> En foco</span>
             <span><i className="is-selected" /> {selectionMode ? "En borrador" : "En cuotas"}</span>
           </div>
         )}
         {!compact && infoDistrict && (
-          <div className="hojas-ruta-map-info">
+          <div className="hojas-ruta-map-info" data-audit-map-overlay="info">
             <div style={{ fontSize: 12, fontWeight: 850 }}>{infoTerritory?.distrito ?? infoDistrict.properties.distrito}</div>
             <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 4 }}>
               {infoDistrict.properties.ubigeo} · {selectionMode ? "click agrega/quita" : "click abre zonas"}
@@ -4301,6 +4256,7 @@ function TerritoryMapExplorer({
           ) : enableMapSelection ? (
             <button
               type="button"
+              data-audit-primary-action
               style={{ ...(mapSelectionMode ? btnPrimary : btnSecondary), padding: "6px 10px", fontSize: 12 }}
               onClick={() => onMapSelectionModeChange(!mapSelectionMode)}
               aria-pressed={mapSelectionMode}
@@ -4332,7 +4288,7 @@ function TerritoryMapExplorer({
           <StatusPill ok text={`${selected.length} en cuotas`} />
         </div>
       </div>
-      <div className="hojas-ruta-map-stage">
+      <div className="hojas-ruta-map-stage" data-audit-map-viewport="territorio">
         {zoneMapLoading || blockMapLoading ? (
           <LoadingBlock label={mapLevel === "manzanas" ? "Cargando manzanas locales" : "Cargando zonas locales"} />
         ) : showingBlocks && blockMap ? (
@@ -4558,7 +4514,7 @@ function SamplingMapExplorer({
             <StatusPill ok text={`${formatNumber(selected.length)} distritos`} />
           </div>
         </div>
-        <div className="hojas-ruta-map-stage">
+        <div className="hojas-ruta-map-stage" data-audit-map-viewport="manzanas">
           {zoneMapLoading || blockMapLoading ? (
             <LoadingBlock label={blockMapLoading ? "Cargando manzanas, calles y NSE" : "Cargando zonas del distrito"} />
           ) : showingBlocks && blockMap ? (
@@ -6555,6 +6511,8 @@ function SampleSizeWorkbench({
 
 export default function HojasRutaPage() {
   const { sessionId } = useSession();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [state, setState] = useState<HojasRutaState | null>(null);
   const [config, setConfigState] = useState<HojasRutaIntegratedConfig | null>(null);
   const setConfig = useCallback((next: SetStateAction<HojasRutaIntegratedConfig | null>) => {
@@ -6845,6 +6803,41 @@ export default function HojasRutaPage() {
   const canGenerate = !!sample?.ok && !hasBlockingSampleAlerts && !jobId && !manualReplacementJobId;
   const selectedBlocks = useMemo(() => sample?.blocks ?? [], [sample]);
   const replacementBlocks = useMemo(() => sample?.replacement_blocks ?? [], [sample]);
+  const hojasRutaNavigation = useMemo(() => buildHojasRutaNavigation({
+    search: location.search,
+    persistedStage: activeStage,
+    persistedDeliveryTab: deliveryReviewTab,
+    selectedTerritoryCount: selectedTerritories.length,
+    populationOk: !!population?.ok,
+    quotaExists: !!quota,
+    quotaOk: !!quota?.ok,
+    quotaRowCount: quota?.table.length ?? 0,
+    quotaTotal: quota?.total_asignado,
+    sampleExists: !!sample,
+    sampleOk: !!sample?.ok,
+    sampleBlockCount: selectedBlocks.length,
+    replacementCount: replacementBlocks.length,
+    resultReady: !!result,
+  }), [activeStage, deliveryReviewTab, location.search, population?.ok, quota, replacementBlocks.length, result, sample, selectedBlocks.length, selectedTerritories.length]);
+  useRegisterModuleNavigationRuntime(
+    loading || !config ? null : hojasRutaNavigation.runtime,
+  );
+  useEffect(() => {
+    if (loading || !config) return;
+    if (activeStage !== hojasRutaNavigation.activeStage) {
+      setActiveStage(hojasRutaNavigation.activeStage);
+    }
+    if (deliveryReviewTab !== hojasRutaNavigation.activeDeliveryTab) {
+      setDeliveryReviewTab(hojasRutaNavigation.activeDeliveryTab);
+    }
+    if (location.search !== hojasRutaNavigation.normalizedSearch) {
+      navigate({
+        pathname: location.pathname,
+        search: hojasRutaNavigation.normalizedSearch,
+        hash: location.hash,
+      }, { replace: true });
+    }
+  }, [activeStage, config, deliveryReviewTab, hojasRutaNavigation, loading, location.hash, location.pathname, location.search, navigate, setActiveStage, setDeliveryReviewTab]);
   const routeWorkbookInvalidationKey = useMemo(() => {
     if (!config || !sample?.ok) return "";
     return JSON.stringify({
@@ -7501,7 +7494,7 @@ export default function HojasRutaPage() {
     setConfirmedAgeSignature(ageRangesSignature(restoredConfig));
     setAgeDraftMode(restoredConfig.age_range_mode ?? "manual");
     setAgeDraftScope(restoredConfig.age_range_scope ?? "selected");
-    setActiveStage("manzanas");
+    selectStage("manzanas", true);
     const firstBlock = (snapshot.sample.blocks ?? [])[0] ?? snapshot.sample.replacement_blocks?.[0];
     if (firstBlock?.ubigeo) {
       setMapUbigeo(firstBlock.ubigeo);
@@ -7693,64 +7686,27 @@ export default function HojasRutaPage() {
   const sampleListTotalLabel = sampleListTab === "titulares"
     ? `${formatNumber(selectedBlocks.length)} UMPs titulares`
     : `${formatNumber(replacementBlocks.length)} reemplazos R`;
-  const stageSteps: StepMeta<HojasRutaStage>[] = [
-    {
-      key: "territorio",
-      n: 1,
-      label: "Territorio",
-      icon: MapPinned,
-      hint: "Distritos y manzanas",
-      done: selectedTerritories.length > 0,
-    },
-    {
-      key: "poblacion",
-      n: 2,
-      label: "Población",
-      icon: BarChart3,
-      hint: "Matriz INEI 2017",
-      done: !!population?.ok,
-      disabled: selectedTerritories.length === 0,
-      disabledReason: "Confirma al menos un distrito.",
-    },
-    {
-      key: "muestra",
-      n: 3,
-      label: "Muestra",
-      icon: Target,
-      hint: "N y cuotas",
-      done: !!quota?.ok,
-      disabled: !population?.ok,
-      disabledReason: "Calcula primero la matriz poblacional.",
-    },
-    {
-      key: "manzanas",
-      n: 4,
-      label: "Manzanas",
-      icon: Shuffle,
-      hint: "Seleccion de campo",
-      done: !!sample?.ok,
-      disabled: !quota?.ok,
-      disabledReason: "Calcula primero las cuotas.",
-    },
-    {
-      key: "entrega",
-      n: 5,
-      label: "Entrega",
-      icon: FileText,
-      hint: "Revision y ZIP",
-      done: !!result,
-      disabled: !sample?.ok,
-      disabledReason: "Selecciona primero las manzanas.",
-    },
-  ];
-  const currentStage = stageSteps.some((step) => step.key === activeStage && !step.disabled)
-    ? activeStage
-    : [...stageSteps].reverse().find((step) => !step.disabled)?.key ?? "territorio";
-  const deliveryReviewTabs: Array<{ key: HojasRutaDeliveryTab; label: string; count: number; disabled?: boolean }> = [
-    { key: "cuotas", label: "Cuotas", count: quota?.table.length ?? 0, disabled: !quota },
-    { key: "titulares", label: "Titulares", count: selectedBlocks.length, disabled: !sample },
-    { key: "reemplazos", label: "Reemplazos", count: replacementBlocks.length, disabled: !sample || replacementBlocks.length === 0 },
-  ];
+  const currentStage = hojasRutaNavigation.activeStage;
+  const currentDeliveryTab = hojasRutaNavigation.activeDeliveryTab;
+  const deliveryReviewTabs = hojasRutaNavigation.deliveryTabs;
+  function selectStage(stage: HojasRutaStage, force = false) {
+    if (!force && hojasRutaNavigation.sections.find((item) => item.key === stage)?.disabled) return;
+    setActiveStage(stage);
+    navigate({
+      pathname: location.pathname,
+      search: buildHojasRutaNavigationSearch(location.search, stage, stage === "entrega" ? currentDeliveryTab : undefined),
+      hash: location.hash,
+    });
+  }
+  function selectDeliveryReviewTab(tab: HojasRutaDeliveryTab) {
+    if (deliveryReviewTabs.find((item) => item.key === tab)?.disabled) return;
+    setDeliveryReviewTab(tab);
+    navigate({
+      pathname: location.pathname,
+      search: buildHojasRutaNavigationSearch(location.search, "entrega", tab),
+      hash: location.hash,
+    });
+  }
   const visiblePhaseNotice = phaseNotice?.message && dismissedPhaseNotice !== phaseNotice.message
     ? phaseNotice.message
     : "";
@@ -7783,11 +7739,45 @@ export default function HojasRutaPage() {
           </div>
 
           <div className="hojas-ruta-stage-rail-wrap">
-            <HojasRutaStageRail
-              steps={stageSteps}
-              current={currentStage}
-              onChange={setActiveStage}
-            />
+            <div className="pulso-phase-rail hojas-ruta-stage-rail" aria-label="Etapas de hojas de ruta">
+              <GlidingTabList activeKey={currentStage} mode="tabs" className="pulso-phase-pillbar" role="group" aria-label="Etapas de hojas de ruta">
+                <ul className="pulso-phase-pill-list">
+                  {hojasRutaNavigation.sections.map((step) => {
+                    const active = step.key === currentStage;
+                    const Icon = HOJAS_RUTA_STAGE_ICONS[step.key];
+                    return (
+                      <li key={step.key} className="pulso-phase-pill-item">
+                        <button
+                          type="button"
+                          data-gliding-key={step.key}
+                          aria-pressed={active}
+                          aria-current={active ? "step" : undefined}
+                          aria-disabled={step.disabled || undefined}
+                          disabled={step.disabled}
+                          title={step.disabled ? step.disabledReason : step.hint}
+                          className={[
+                            "pulso-phase-pill",
+                            active ? "is-active" : "",
+                            step.done ? "is-done" : "",
+                            step.disabled ? "is-disabled" : "",
+                          ].filter(Boolean).join(" ")}
+                          onClick={() => selectStage(step.key)}
+                        >
+                          <span className="pulso-phase-pill-circle" aria-hidden="true" />
+                          <span className="pulso-phase-pill-stack">
+                            <span className="pulso-phase-pill-label">
+                              <span className="pulso-phase-pill-number" aria-hidden="true">{step.n}</span>
+                              <Icon size={13} aria-hidden="true" />
+                              {step.label}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </GlidingTabList>
+            </div>
           </div>
 
           <div className="hojas-ruta-command-actions" aria-label="Fase de aplicación y avisos">
@@ -7837,6 +7827,9 @@ export default function HojasRutaPage() {
         hidden
         data-audit-ready="hojas-ruta"
         data-audit-stage={currentStage}
+        data-audit-phase={activePhase}
+        data-audit-delivery-tab={currentDeliveryTab}
+        data-audit-navigation="stage-rail-v2"
         data-audit-frame-ok={frame?.ok ? "true" : "false"}
       />
       {!frame?.ok ? (
@@ -7918,7 +7911,7 @@ export default function HojasRutaPage() {
                   </div>
                   <div className="hojas-ruta-confirm-bar">
                     <span>La muestra usara solo distritos confirmados.</span>
-                    <button type="button" onClick={confirmDraftTerritories} disabled={!draftChanged}>
+                    <button type="button" data-audit-primary-action onClick={confirmDraftTerritories} disabled={!draftChanged}>
                       Confirmar seleccion
                     </button>
                   </div>
@@ -8474,7 +8467,7 @@ export default function HojasRutaPage() {
                       </div>
                     )}
                     <div className="hojas-ruta-action-row hojas-ruta-sample-next">
-                      <button type="button" style={btnPrimary} onClick={() => setActiveStage("entrega")}>
+                      <button type="button" style={btnPrimary} onClick={() => selectStage("entrega")}>
                         Revisar entrega
                       </button>
                       <span className="hojas-ruta-soft-text">El ZIP final separará Titulares, Reemplazos y Zonas.</span>
@@ -8537,8 +8530,7 @@ export default function HojasRutaPage() {
                             <span>La asignación de cuotas y manzanas está lista para generar entregables.</span>
                           </div>
                         )}
-
-                        <GlidingTabList activeKey={deliveryReviewTab} mode="tabs" className="hojas-ruta-delivery-tabs" role="tablist" aria-label="Revisión de entregables">
+                        <GlidingTabList activeKey={currentDeliveryTab} mode="tabs" className="hojas-ruta-delivery-tabs" role="tablist" aria-label="Revisión de entregables">
                           {deliveryReviewTabs.map((tab) => (
                             <button
                               key={tab.key}
@@ -8546,11 +8538,11 @@ export default function HojasRutaPage() {
                               type="button"
                               role="tab"
                               data-gliding-key={tab.key}
-                              aria-selected={deliveryReviewTab === tab.key}
+                              aria-selected={currentDeliveryTab === tab.key}
                               aria-controls={HOJAS_DELIVERY_REVIEW_PANEL_ID}
-                              className={deliveryReviewTab === tab.key ? "is-active" : ""}
+                              className={currentDeliveryTab === tab.key ? "is-active" : ""}
                               disabled={tab.disabled}
-                              onClick={() => setDeliveryReviewTab(tab.key)}
+                              onClick={() => selectDeliveryReviewTab(tab.key)}
                             >
                               {tab.label}
                               <span>{formatNumber(tab.count)}</span>
@@ -8561,10 +8553,10 @@ export default function HojasRutaPage() {
                         <div
                           id={HOJAS_DELIVERY_REVIEW_PANEL_ID}
                           role="tabpanel"
-                          aria-labelledby={hojasDeliveryReviewTabId(deliveryReviewTab)}
+                          aria-labelledby={hojasDeliveryReviewTabId(currentDeliveryTab)}
                           tabIndex={0}
                         >
-                          {deliveryReviewTab === "cuotas" && (
+                          {currentDeliveryTab === "cuotas" && (
                           <section className="hojas-ruta-delivery-section">
                             <div className="hojas-ruta-section-title">
                               <strong>Cuotas por perfil</strong>
@@ -8603,7 +8595,7 @@ export default function HojasRutaPage() {
                           </section>
                           )}
 
-                          {deliveryReviewTab === "titulares" && sample && (
+                          {currentDeliveryTab === "titulares" && sample && (
                           <section className="hojas-ruta-delivery-section">
                               <div className="hojas-ruta-section-title">
                                 <strong>UMPs de campo</strong>
@@ -8656,7 +8648,7 @@ export default function HojasRutaPage() {
                           </section>
                           )}
 
-                          {deliveryReviewTab === "reemplazos" && (
+                          {currentDeliveryTab === "reemplazos" && (
                           sample && replacementBlocks.length ? (
                             <section className="hojas-ruta-delivery-section">
                               <div className="hojas-ruta-section-title">
