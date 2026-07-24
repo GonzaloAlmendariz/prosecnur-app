@@ -908,6 +908,7 @@ async function clickNamedControl(page, label, timeoutMs) {
   const clickTimeout = Math.min(timeoutMs, DEFAULT_CLICK_TIMEOUT_MS);
   const candidates = [
     page.getByRole("tab", { name: startsWithPattern }).first(),
+    page.getByRole("link", { name: startsWithPattern }).first(),
     page.locator("button").filter({ hasText: pattern }).first(),
     page.getByRole("button", { name: startsWithPattern }).first(),
     page.getByText(pattern).last(),

@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
-  CalendarDays,
-  CalendarRange,
-  ClipboardList,
   Loader2,
   RefreshCw,
 } from "lucide-react";
@@ -17,7 +14,11 @@ import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
 import { PageFrame } from "../../components/PageFrame";
 import { GlidingTabList } from "../../components/GlidingTabList";
-import { moduleChromeVars, PROSECNUR_MODULES } from "../../lib/modules";
+import {
+  moduleChromeVars,
+  PROSECNUR_MODULES,
+  type ProsecnurModuleSectionMeta,
+} from "../../lib/modules";
 import { LogbookSection } from "./LogbookSection";
 import { CronogramaSection } from "./CronogramaSection";
 import { Calendar } from "./Calendar";
@@ -28,11 +29,13 @@ type Tab = "bitacora" | "cronograma" | "calendario";
 const BITACORA_MODULE =
   PROSECNUR_MODULES.find((module) => module.slug === "diseno-estudio") ?? PROSECNUR_MODULES[0];
 
-const TABS: Array<{ key: Tab; label: string; icon: typeof ClipboardList }> = [
-  { key: "bitacora", label: "Bitácora", icon: ClipboardList },
-  { key: "cronograma", label: "Cronograma", icon: CalendarRange },
-  { key: "calendario", label: "Calendario", icon: CalendarDays },
-];
+type BitacoraSection = ProsecnurModuleSectionMeta & { id: Tab };
+
+function isBitacoraSection(section: ProsecnurModuleSectionMeta): section is BitacoraSection {
+  return section.id === "bitacora" || section.id === "cronograma" || section.id === "calendario";
+}
+
+const BITACORA_SECTIONS = BITACORA_MODULE.sections.filter(isBitacoraSection);
 
 function tabFromSearch(search: string): Tab {
   const value = new URLSearchParams(search).get("tab");
@@ -106,25 +109,22 @@ export default function BitacoraPage() {
           </span>
           <GlidingTabList
             as="nav"
+            mode="nav"
             activeKey={tab}
-            role="tablist"
             className="pulso-phase-pillbar bitacora-section-rail"
             aria-label="Secciones de la bitácora"
           >
             <ol className="pulso-phase-pill-list">
-              {TABS.map((item) => {
+              {BITACORA_SECTIONS.map((item) => {
                 const Icon = item.icon;
-                const active = tab === item.key;
+                const active = tab === item.id;
                 return (
-                  <li key={item.key} className="pulso-phase-pill-item">
-                    <button
-                      type="button"
-                      role="tab"
-                      data-gliding-key={item.key}
+                  <li key={item.id} className="pulso-phase-pill-item">
+                    <Link
+                      to={item.to}
+                      data-gliding-key={item.id}
                       className={`pulso-phase-pill bitacora-section-pill${active ? " is-active" : ""}`}
-                      aria-selected={active}
                       aria-current={active ? "page" : undefined}
-                      onClick={() => setTab(item.key)}
                     >
                       <span className="pulso-phase-pill-circle" aria-hidden="true" />
                       <span className="pulso-phase-pill-stack">
@@ -137,7 +137,7 @@ export default function BitacoraPage() {
                           <span className="pulso-phase-pill-text">{item.label}</span>
                         </span>
                       </span>
-                    </button>
+                    </Link>
                   </li>
                 );
               })}
