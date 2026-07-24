@@ -979,9 +979,6 @@ export default function CargaPage() {
               detail={cargaBaseOptions.length > 0
                 ? `${cargaBaseOptions.length} base${cargaBaseOptions.length === 1 ? "" : "s"} listas para revisar, comparar y consolidar.`
                 : "Elige entre carga manual, fuentes conectadas o organización independiente desde Monitoreo."}
-              hasXlsform={hasXlsform}
-              hasData={hasData}
-              pendingChoiceMapping={pendingChoiceMapping}
               allReady={allReady}
             />
             <div className="pulso-carga-scrollarea">
@@ -1132,9 +1129,6 @@ export default function CargaPage() {
             detail={sourceMode === "platform"
               ? "Lee SurveyMonkey o KoboToolbox, selecciona una fuente y deja el instrumento con su base listos en el mismo flujo."
               : "Carga primero el formulario y luego las respuestas para reconstruir variables, códigos y compatibilidad antes de validar."}
-            hasXlsform={hasXlsform}
-            hasData={hasData}
-            pendingChoiceMapping={pendingChoiceMapping}
             allReady={allReady}
             controls={activeCargaTab === "insumos" ? (
                 <GlidingTabList activeKey={sourceMode} className="pulso-carga-source-switch pulso-compact-tabs pulso-carga-origin-tabs" role="tablist" aria-label="Origen de carga">
@@ -2410,18 +2404,12 @@ function CargaSuiteBar({
   modeLabel,
   headline,
   detail,
-  hasXlsform,
-  hasData,
-  pendingChoiceMapping,
   allReady,
   controls,
 }: {
   modeLabel: string;
   headline: string;
   detail: string;
-  hasXlsform: boolean;
-  hasData: boolean;
-  pendingChoiceMapping: boolean;
   allReady: boolean;
   controls?: ReactNode;
 }) {
@@ -2436,14 +2424,6 @@ function CargaSuiteBar({
           <strong>{headline}</strong>
           <p>{detail}</p>
         </div>
-      </div>
-      <div className="pulso-carga-suitebar-meter" aria-label="Estado de insumos">
-        <CargaProgressMeter
-          hasXlsform={hasXlsform}
-          hasData={hasData}
-          pendingChoiceMapping={pendingChoiceMapping}
-          allReady={allReady}
-        />
       </div>
       {controls && (
         <div className="pulso-carga-suitebar-controls">
