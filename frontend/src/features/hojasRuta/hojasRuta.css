@@ -3980,21 +3980,28 @@
   width: 11%;
 }
 
-.hojas-ruta-review-table.is-replacement-table col.is-block-id,
-.hojas-ruta-review-table.is-replacement-table col.is-replaces {
-  width: 15%;
+.hojas-ruta-review-table.is-replacement-table col.is-route {
+  width: 7%;
+}
+
+.hojas-ruta-review-table.is-replacement-table col.is-block-id {
+  width: 16%;
 }
 
 .hojas-ruta-review-table.is-replacement-table col.is-zone {
-  width: 11%;
+  width: 12%;
 }
 
 .hojas-ruta-review-table.is-replacement-table col.is-nse {
-  width: 10%;
+  width: 9%;
+}
+
+.hojas-ruta-review-table.is-replacement-table col.is-replaces {
+  width: 14%;
 }
 
 .hojas-ruta-review-table.is-replacement-table col.is-range {
-  width: 22%;
+  width: 15%;
 }
 
 .hojas-ruta-review-table.is-replacement-table col.is-households {
@@ -4002,7 +4009,7 @@
 }
 
 .hojas-ruta-review-table.is-replacement-table col.is-method {
-  width: 13%;
+  width: 9%;
 }
 
 .hojas-ruta-review-table th,
