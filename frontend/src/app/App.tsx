@@ -101,10 +101,6 @@ const MonitoreoShell = lazyWithReload(
   () => import("../features/monitoreo/MonitoreoShell"),
   "MonitoreoShell",
 );
-const MonitoreoTerritorialCompare = lazyWithReload(
-  () => import("../features/monitoreo/MonitoreoTerritorialCompare"),
-  "MonitoreoTerritorialCompare",
-);
 
 export default function App() {
   useApplyLayoutPreset();
@@ -170,8 +166,6 @@ export default function App() {
                   <Route path="/enciclopedia/metodologia/:id" element={<FichaMetodologica />} />
                   <Route path="/muestra" element={<MuestraHub />} />
                   <Route path="/muestra-aulas" element={<Navigate to="/calc-muestra?mesa=aulas" replace />} />
-                  <Route path="/monitoreo/comparar-territorial" element={<MonitoreoTerritorialCompare />} />
-                  <Route path="/monitoreo/comparar-acreditacion" element={<MonitoreoTerritorialCompare />} />
                   <Route path="/monitoreo" element={<MonitoreoShell />} />
                   <Route path="/editor-xlsform" element={<XlsformEditorPage />} />
                   <Route path="/tablero" element={<DashboardPage />} />

@@ -17,8 +17,6 @@ const isFastBuild =
   process.env.npm_lifecycle_event === "build:fast" ||
   process.env.VITE_PULSO_FAST_BUILD === "1";
 const traceBuild = process.env.VITE_PULSO_TRACE_BUILD === "1";
-const monitoreoPageSource = path.resolve(__dirname, "src/features/monitoreo/MonitoreoPage.tsx");
-const monitoreoPageVirtual = "\0virtual:monitoreo-page";
 
 const isPublicMode = process.env.VITE_PULSO_PUBLIC_MODE === "true";
 const devPort = Number(process.env.VITE_DEV_PORT || process.env.PORT || "5173");
@@ -86,39 +84,6 @@ function injectPublicMetaTags(): Plugin {
   };
 }
 
-function virtualMonitoreoPage(): Plugin {
-  return {
-    name: "pulso-virtual-monitoreo-page",
-    enforce: "pre",
-    async resolveId(source, importer) {
-      if (source === "virtual:monitoreo-page") return monitoreoPageVirtual;
-      if (importer === monitoreoPageVirtual && (source.startsWith("./") || source.startsWith("../"))) {
-        return this.resolve(path.resolve(path.dirname(monitoreoPageSource), source), undefined, { skipSelf: true });
-      }
-      return null;
-    },
-    load(id) {
-      if (id !== monitoreoPageVirtual) return null;
-      this.addWatchFile(monitoreoPageSource);
-      const source = fs.readFileSync(monitoreoPageSource, "utf8");
-      const result = ts.transpileModule(source, {
-        fileName: monitoreoPageSource,
-        compilerOptions: {
-          jsx: ts.JsxEmit.ReactJSX,
-          target: ts.ScriptTarget.ES2020,
-          module: ts.ModuleKind.ESNext,
-          esModuleInterop: true,
-          sourceMap: false,
-        },
-        reportDiagnostics: false,
-      });
-      return {
-        code: result.outputText,
-        map: null,
-      };
-    },
-  };
-}
 
 function traceBuildModules(): Plugin {
   let count = 0;
@@ -128,9 +93,6 @@ function traceBuildModules(): Plugin {
     async transform(_code, id) {
       count += 1;
       const normalized = id.split(path.sep).join("/");
-      if (normalized.includes("/src/features/monitoreo/MonitoreoPage.compiled.js")) {
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      }
       if (traceBuild) {
         if (
           count % 50 === 0 ||
@@ -148,10 +110,7 @@ function traceBuildModules(): Plugin {
 export default defineConfig({
   plugins: [
     traceBuildModules(),
-    virtualMonitoreoPage(),
-    react({
-      exclude: [/src\/features\/monitoreo\/MonitoreoPage\.tsx$/],
-    }),
+    react(),
     injectPublicMetaTags(),
   ],
   base: normalizedBasePath,

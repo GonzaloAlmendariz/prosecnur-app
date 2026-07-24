@@ -65,8 +65,7 @@ export function initialMonitoreoView(
 
 /**
  * Sincroniza la sección activa del workbench de Monitoreo con el query param
- * `?tab=` (replaceState, sin ensuciar el historial). Vive en archivo propio
- * porque MonitoreoPage.tsx está congelado a crecimiento. El deep-link de dev
+ * `?tab=` (replaceState, sin ensuciar el historial). El deep-link de dev
  * (/ver-ui, `?pulso=` + ruta) consume este param para aterrizar en la pestaña
  * exacta.
  */
