@@ -212,6 +212,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
     <a href="#voz">08 Voz</a>
     <a href="#pantallas">09 Pantallas</a>
     <a href="#adopcion">10 Adopción</a>
+    <a href="#catalogo-real">11 Catálogo real</a>
   </div>
 </nav>
 
@@ -3833,6 +3834,171 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
     </div>
   </div>
 </section>
+
+<!-- VISUAL_CATALOG:START -->
+<section class="bb-ch" id="catalogo-real">
+<style>
+#catalogo-real{--cv-accent:var(--bk-navy);color:var(--bk-ink)}
+.cv-head{display:grid;gap:8px;margin-bottom:24px}
+.cv-head h2{margin:0;color:var(--bk-navy);font-size:28px;letter-spacing:-.02em}
+.cv-head p{max-width:900px;margin:0;color:var(--bk-ink-soft);font-size:14px;line-height:1.6}
+.cv-meta{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:20px 0}
+.cv-stat{padding:12px;border:1px solid var(--bk-border);border-radius:var(--bk-radius-card);background:var(--bk-paper)}
+.cv-stat strong{display:block;color:var(--bk-navy);font-size:22px;font-variant-numeric:tabular-nums}
+.cv-stat span{display:block;margin-top:3px;color:var(--bk-ink-soft);font-size:11px}
+.cv-controls{position:sticky;top:46px;z-index:40;display:grid;grid-template-columns:minmax(220px,2fr) repeat(4,minmax(140px,1fr));gap:8px;padding:12px;border:1px solid var(--bk-border);border-radius:var(--bk-radius-panel);background:rgba(255,255,255,.94);box-shadow:var(--bk-shadow-soft);backdrop-filter:blur(14px)}
+.cv-controls input,.cv-controls select{width:100%;height:32px;border:1px solid var(--bk-border-strong);border-radius:10px;background:var(--bk-paper);color:var(--bk-ink);font:inherit;font-size:12px;padding:0 10px}
+.cv-controls :focus-visible{outline:none;box-shadow:0 0 0 3px var(--bk-focus)}
+.cv-hierarchy{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:16px 0 24px}
+.cv-module{border:1px solid var(--bk-border);border-top:3px solid var(--cv-module-accent,var(--bk-navy));border-radius:var(--bk-radius-card);background:var(--bk-paper);padding:12px}
+.cv-module h3{margin:0 0 8px;font-size:14px}
+.cv-module details{border-top:1px solid var(--bk-border);padding:7px 0}
+.cv-module summary{cursor:pointer;font-size:12px;font-weight:600}
+.cv-module ul{margin:6px 0 0;padding-left:18px;color:var(--bk-ink-soft);font-size:11px}
+.cv-dynamic{margin:0 0 24px}
+.cv-dynamic h3{margin:0 0 4px;color:var(--bk-navy);font-size:17px}
+.cv-dynamic>p{margin:0 0 10px;color:var(--bk-ink-soft);font-size:12px}
+.cv-dynamic-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px}
+.cv-dynamic-card{border:1px solid var(--bk-border);border-radius:var(--bk-radius-card);background:var(--bk-paper);padding:11px}
+.cv-dynamic-card strong,.cv-dynamic-card small{display:block}
+.cv-dynamic-card p{margin:6px 0;color:var(--bk-ink-soft);font-size:11px;line-height:1.45}
+.cv-results{margin:12px 0 8px;color:var(--bk-ink-soft);font-size:12px}
+.cv-table-wrap{overflow:auto;max-height:72vh;border:1px solid var(--bk-border);border-radius:var(--bk-radius-panel);background:var(--bk-paper)}
+.cv-table{width:100%;min-width:1220px;border-collapse:separate;border-spacing:0;font-size:11px}
+.cv-table th{position:sticky;top:0;z-index:2;padding:9px 8px;border-bottom:1px solid var(--bk-border-strong);background:var(--bk-ice);color:var(--bk-ink-soft);text-align:left;text-transform:uppercase;letter-spacing:.04em}
+.cv-table td{padding:8px;border-bottom:1px solid var(--bk-border);vertical-align:top}
+.cv-table tr:hover td{background:var(--bk-mist)}
+.cv-source{font-family:var(--bk-mono);font-size:10px;color:var(--bk-navy)}
+.cv-label{font-weight:600;color:var(--bk-ink)}
+.cv-path{display:block;max-width:280px;white-space:normal;overflow-wrap:anywhere}
+.cv-chip{display:inline-flex;align-items:center;min-height:20px;padding:0 7px;border:1px solid var(--bk-border);border-radius:999px;background:var(--bk-ice);font-size:10px;white-space:nowrap}
+.cv-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px}
+.cv-pagination button{height:28px;padding:0 12px;border:1px solid var(--bk-border-strong);border-radius:10px;background:var(--bk-paper);color:var(--bk-ink);font:inherit;font-size:12px;cursor:pointer}
+.cv-pagination button:disabled{opacity:.45;cursor:not-allowed}
+.cv-empty{padding:28px;text-align:center;color:var(--bk-ink-soft)}
+@media(max-width:900px){.cv-meta{grid-template-columns:repeat(2,minmax(0,1fr))}.cv-controls{position:static;grid-template-columns:1fr 1fr}.cv-controls input{grid-column:1/-1}}
+@media(max-width:560px){.cv-meta,.cv-controls{grid-template-columns:1fr}}
+</style>
+  <div class="bb-wrap">
+    <div class="cv-head">
+      <span class="bb-ch-num">11 · Catálogo visual real</span>
+      <h2>Todo lo que la aplicación dibuja hoy</h2>
+      <p>Inventario descriptivo —no normativo— de cada ocurrencia JSX productiva. Conserva las diferencias actuales para que una sesión posterior pueda compararlas y unificarlas con evidencia. La procedencia siempre sigue <strong>módulo → sección → pestaña</strong> e incluye archivo, línea, componente, clases, estados y fuente de estilo.</p>
+      <p class="bb-spec">Fuente generada: <code>branding/catalogo-visual/catalogo.json</code>. Unidad: ocurrencia declarada en código; los elementos repetidos por datos se registran como patrón de render. Índice humano: <a href="catalogo-visual/inventario-contextual.md">inventario-contextual.md</a>.</p>
+    </div>
+    <div class="cv-meta" id="cv-meta" aria-live="polite"></div>
+    <div class="cv-hierarchy" id="cv-hierarchy"></div>
+    <div class="cv-dynamic">
+      <h3>Superficies dinámicas y condicionales</h3>
+      <p>Registro complementario de mapas, Plotly, SVG, canvas, QR y documentos cuyo contenido final no aparece completo como nodos JSX estáticos.</p>
+      <div class="cv-dynamic-grid" id="cv-dynamic-grid"></div>
+    </div>
+    <div class="cv-controls" aria-label="Filtros del catálogo visual">
+      <input id="cv-search" type="search" placeholder="Buscar label, componente, clase o archivo" aria-label="Buscar en el catálogo visual">
+      <select id="cv-module" aria-label="Filtrar por módulo"><option value="">Todos los módulos</option></select>
+      <select id="cv-section" aria-label="Filtrar por sección"><option value="">Todas las secciones</option></select>
+      <select id="cv-tab" aria-label="Filtrar por pestaña"><option value="">Todas las pestañas</option></select>
+      <select id="cv-category" aria-label="Filtrar por categoría"><option value="">Todas las categorías</option></select>
+    </div>
+    <p class="cv-results" id="cv-results" aria-live="polite"></p>
+    <div class="cv-table-wrap" tabindex="0" aria-label="Inventario exhaustivo de elementos visuales">
+      <table class="cv-table">
+        <thead><tr><th>Módulo · sección · pestaña</th><th>Categoría</th><th>Elemento</th><th>Label / contenido</th><th>Uso y estado</th><th>Fuente React</th><th>Fuente visual</th></tr></thead>
+        <tbody id="cv-body"></tbody>
+      </table>
+    </div>
+    <div class="cv-pagination">
+      <button type="button" id="cv-prev">Anterior</button>
+      <span id="cv-page" class="bb-spec"></span>
+      <button type="button" id="cv-next">Siguiente</button>
+    </div>
+  </div>
+</section>
+<script src="catalogo-visual/catalogo-data.js"></script>
+<script>
+(function(){
+  "use strict";
+  var body=document.getElementById("cv-body");
+  if(!body)return;
+  var catalogPromise=window.__PROSECNUR_VISUAL_CATALOG_PROMISE__;
+  if(!catalogPromise){body.innerHTML='<tr><td colspan="7" class="cv-empty">No se pudo cargar catalogo-visual/catalogo-data.js.</td></tr>';return;}
+  catalogPromise.then(function(catalog){
+  var state={page:0,size:120,rows:catalog.entries.slice()};
+  var els={
+    search:document.getElementById("cv-search"),module:document.getElementById("cv-module"),
+    section:document.getElementById("cv-section"),tab:document.getElementById("cv-tab"),
+    category:document.getElementById("cv-category"),results:document.getElementById("cv-results"),
+    prev:document.getElementById("cv-prev"),next:document.getElementById("cv-next"),page:document.getElementById("cv-page")
+  };
+  function esc(value){return String(value==null?"":value).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]})}
+  function options(select,values,label){select.innerHTML='<option value="">'+label+'</option>'+values.map(function(value){return '<option value="'+esc(value)+'">'+esc(value)+'</option>'}).join("")}
+  function uniq(values){return Array.from(new Set(values.filter(Boolean))).sort(function(a,b){return String(a).localeCompare(String(b),"es")})}
+  options(els.module,catalog.modules.map(function(item){return item.id}),"Todos los módulos");
+  options(els.category,Object.keys(catalog.summary.byCategory),"Todas las categorías");
+  function syncDependentOptions(){
+    var scoped=catalog.entries.filter(function(row){return !els.module.value||row.module===els.module.value});
+    var oldSection=els.section.value,oldTab=els.tab.value;
+    options(els.section,uniq(scoped.map(function(row){return row.section})),"Todas las secciones");
+    if(Array.from(els.section.options).some(function(o){return o.value===oldSection}))els.section.value=oldSection;
+    scoped=scoped.filter(function(row){return !els.section.value||row.section===els.section.value});
+    options(els.tab,uniq(scoped.map(function(row){return row.tab})),"Todas las pestañas");
+    if(Array.from(els.tab.options).some(function(o){return o.value===oldTab}))els.tab.value=oldTab;
+  }
+  function filterRows(){
+    syncDependentOptions();
+    var query=els.search.value.trim().toLowerCase();
+    state.rows=catalog.entries.filter(function(row){
+      if(els.module.value&&row.module!==els.module.value)return false;
+      if(els.section.value&&row.section!==els.section.value)return false;
+      if(els.tab.value&&row.tab!==els.tab.value)return false;
+      if(els.category.value&&row.category!==els.category.value)return false;
+      if(!query)return true;
+      return [row.label,row.tag,row.kind,row.category,row.source.file,row.componentContext,(row.classNames||[]).join(" ")].join(" ").toLowerCase().includes(query);
+    });
+    state.page=0;render();
+  }
+  function render(){
+    var pages=Math.max(1,Math.ceil(state.rows.length/state.size));
+    state.page=Math.max(0,Math.min(state.page,pages-1));
+    var start=state.page*state.size,visible=state.rows.slice(start,start+state.size);
+    body.innerHTML=visible.length?visible.map(function(row){
+      var context=[row.module,row.section,row.tab].filter(Boolean).map(esc).join(" → ");
+      var states=(row.states||[]).slice(0,4).map(function(s){return '<span class="cv-chip">'+esc(s)+'</span>'}).join(" ");
+      var styles=(row.styleSources||[]).slice(0,3).map(function(s){return '<span class="cv-source cv-path">'+esc(s)+"</span>"}).join("");
+      return '<tr data-cv-id="'+esc(row.id)+'"><td>'+context+'<small class="cv-path">'+esc(row.componentContext)+'</small></td><td><span class="cv-chip">'+esc(row.category)+'</span><br>'+esc(row.kind)+'</td><td><code>'+esc(row.tag)+'</code><small class="cv-path">'+esc((row.classNames||[]).join(" · "))+'</small></td><td><span class="cv-label">'+esc(row.label)+'</span></td><td>'+esc(row.usage)+'<div>'+states+'</div></td><td><span class="cv-source cv-path">'+esc(row.source.file)+":"+row.source.line+":"+row.source.column+"</span>"+(row.definitionFile?'<small class="cv-path">define: '+esc(row.definitionFile)+'</small>':"")+"</td><td>"+(styles||'<small>inline / herencia / sin clase resuelta</small>')+"</td></tr>";
+    }).join(""):'<tr><td colspan="7" class="cv-empty">No hay elementos para estos filtros.</td></tr>';
+    els.results.textContent=state.rows.length.toLocaleString("es-PE")+" elementos · mostrando "+(visible.length?start+1:0)+"–"+(start+visible.length);
+    els.page.textContent="Página "+(state.page+1)+" de "+pages;
+    els.prev.disabled=state.page===0;els.next.disabled=state.page>=pages-1;
+  }
+  [els.search,els.module,els.section,els.tab,els.category].forEach(function(el){el.addEventListener(el===els.search?"input":"change",filterRows)});
+  els.prev.addEventListener("click",function(){state.page-=1;render()});
+  els.next.addEventListener("click",function(){state.page+=1;render()});
+  var summary=catalog.summary,meta=document.getElementById("cv-meta");
+  meta.innerHTML=[
+    [summary.sourceOccurrences,"ocurrencias JSX"],
+    [summary.interactiveOccurrences,"interactivas"],
+    [summary.productionJsxFiles,"archivos productivos"],
+    [Object.keys(summary.byModule).length,"ámbitos/módulos"],
+    [Object.keys(summary.byKind).length,"tipos visuales"]
+  ].map(function(item){return '<div class="cv-stat"><strong>'+Number(item[0]).toLocaleString("es-PE")+'</strong><span>'+item[1]+'</span></div>'}).join("");
+  var hierarchy=document.getElementById("cv-hierarchy");
+  hierarchy.innerHTML=catalog.hierarchy.map(function(module){
+    var moduleMeta=catalog.modules.find(function(item){return item.id===module.module})||{};
+    return '<article class="cv-module" style="--cv-module-accent:'+esc(moduleMeta.accent||"#002457")+'"><h3>'+esc(moduleMeta.label||module.module)+'</h3>'+module.sections.map(function(section){return '<details><summary>'+esc(section.label)+'</summary><ul>'+((section.tabs||[]).length?section.tabs.map(function(tab){return '<li>'+esc(tab)+'</li>'}).join(""):'<li>Sin pestañas locales declaradas</li>')+'</ul></details>'}).join("")+'</article>';
+  }).join("");
+  var dynamicGrid=document.getElementById("cv-dynamic-grid");
+  dynamicGrid.innerHTML=(catalog.declaredVisualSurfaces||[]).map(function(item){
+    return '<article class="cv-dynamic-card"><small>'+[item.module,item.section,item.tab].filter(Boolean).map(esc).join(" → ")+'</small><strong>'+esc(item.label)+'</strong><p>'+esc(item.usage)+'</p><span class="cv-source cv-path">'+esc(item.source.file)+'</span></article>';
+  }).join("");
+  syncDependentOptions();render();
+  window.dispatchEvent(new Event("scroll"));
+  }).catch(function(error){
+    body.innerHTML='<tr><td colspan="7" class="cv-empty">No se pudo descomprimir el catálogo: '+String(error&&error.message||error)+'</td></tr>';
+  });
+})();
+</script>
+<!-- VISUAL_CATALOG:END -->
 
 <footer class="bb-foot">
   <div class="bb-wrap bb-foot-inner">
