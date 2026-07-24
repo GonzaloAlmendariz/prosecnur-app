@@ -102,9 +102,14 @@ type DistrictFeature = {
 };
 const HOJAS_RUTA_STAGES: HojasRutaStage[] = ["territorio", "poblacion", "muestra", "manzanas", "entrega"];
 const HOJAS_SAMPLE_LIST_PANEL_ID = "hojas-ruta-sample-list-panel";
+const HOJAS_DELIVERY_REVIEW_PANEL_ID = "hojas-ruta-delivery-review-panel";
 
 function hojasSampleListTabId(tab: "titulares" | "reemplazos") {
   return `hojas-ruta-sample-list-tab-${tab}`;
+}
+
+function hojasDeliveryReviewTabId(tab: HojasRutaDeliveryTab) {
+  return `hojas-ruta-delivery-review-tab-${tab}`;
 }
 
 const HOJAS_RUTA_STAGE_ORDER: Record<HojasRutaStage, number> = {
@@ -8572,14 +8577,16 @@ export default function HojasRutaPage() {
                           </div>
                         )}
 
-                        <GlidingTabList activeKey={deliveryReviewTab} className="hojas-ruta-delivery-tabs" role="tablist" aria-label="Revisión de entregables">
+                        <GlidingTabList activeKey={deliveryReviewTab} mode="tabs" className="hojas-ruta-delivery-tabs" role="tablist" aria-label="Revisión de entregables">
                           {deliveryReviewTabs.map((tab) => (
                             <button
                               key={tab.key}
+                              id={hojasDeliveryReviewTabId(tab.key)}
                               type="button"
                               role="tab"
                               data-gliding-key={tab.key}
                               aria-selected={deliveryReviewTab === tab.key}
+                              aria-controls={HOJAS_DELIVERY_REVIEW_PANEL_ID}
                               className={deliveryReviewTab === tab.key ? "is-active" : ""}
                               disabled={tab.disabled}
                               onClick={() => setDeliveryReviewTab(tab.key)}
@@ -8590,7 +8597,13 @@ export default function HojasRutaPage() {
                           ))}
                         </GlidingTabList>
 
-                        {deliveryReviewTab === "cuotas" && (
+                        <div
+                          id={HOJAS_DELIVERY_REVIEW_PANEL_ID}
+                          role="tabpanel"
+                          aria-labelledby={hojasDeliveryReviewTabId(deliveryReviewTab)}
+                          tabIndex={0}
+                        >
+                          {deliveryReviewTab === "cuotas" && (
                           <section className="hojas-ruta-delivery-section">
                             <div className="hojas-ruta-section-title">
                               <strong>Cuotas por perfil</strong>
@@ -8627,9 +8640,9 @@ export default function HojasRutaPage() {
                               </table>
                             </div>
                           </section>
-                        )}
+                          )}
 
-                        {deliveryReviewTab === "titulares" && sample && (
+                          {deliveryReviewTab === "titulares" && sample && (
                           <section className="hojas-ruta-delivery-section">
                               <div className="hojas-ruta-section-title">
                                 <strong>UMPs de campo</strong>
@@ -8680,9 +8693,9 @@ export default function HojasRutaPage() {
                               onPageChange={setDeliveryBlocksPage}
                             />
                           </section>
-                        )}
+                          )}
 
-                        {deliveryReviewTab === "reemplazos" && (
+                          {deliveryReviewTab === "reemplazos" && (
                           sample && replacementBlocks.length ? (
                             <section className="hojas-ruta-delivery-section">
                               <div className="hojas-ruta-section-title">
@@ -8741,7 +8754,8 @@ export default function HojasRutaPage() {
                               Esta corrida no tiene manzanas de reemplazo configuradas.
                             </div>
                           )
-                        )}
+                          )}
+                        </div>
                       </div>
                     )}
                   </Panel>
