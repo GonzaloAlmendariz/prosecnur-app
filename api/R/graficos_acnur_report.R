@@ -308,8 +308,9 @@
   # es la estándar de informes de investigación: "N = <n> (<pct> del total)",
   # con el denominador implícito en el porcentaje.
   sprintf(
-    "N = %s (%s del total)",
+    "N = %s de %s (%s)",
     .graficos_acnur_number(n),
+    .graficos_acnur_number(total),
     .graficos_acnur_pct(n, total)
   )
 }
@@ -344,12 +345,17 @@
   allowed <- vapply(variable$choices %||% list(),
                     function(x) .graficos_scalar_chr((x %||% list())$name, ""),
                     character(1))
-  allowed <- setdiff(allowed[nzchar(allowed)], specials$codes)
+  # Los valores especiales ("Prefiere no responder", "Prefiere no decir") se
+  # grafican como una categoria mas y cuentan en el denominador: en el perfil
+  # ACNUR el no-respuesta es un hallazgo, no un descarte. `specials` se sigue
+  # calculando porque otras partes lo usan para ordenar y etiquetar.
+  allowed <- allowed[nzchar(allowed)]
   tokens <- if (multiple) .graficos_acnur_multi_tokens(values, allowed) else vector("list", length(values))
   if (multiple) substantive <- lengths(tokens) > 0L
   n_answered <- sum(answered)
-  n_valid <- sum(substantive)
-  n_special <- max(0L, n_answered - n_valid)
+  # La base es quien respondio, con especial o sin el.
+  n_valid <- n_answered
+  n_special <- max(0L, n_answered - sum(substantive))
 
   if (!ctx$is_repeat && multiple) {
     mentions <- sum(lengths(tokens[substantive]))
@@ -374,11 +380,9 @@
       note <- sprintf("%s.", base_phrase)
     }
   }
-  special_note <- .graficos_acnur_special_note(values[answered], specials)
-  if (nzchar(special_note)) note <- paste0(sub("[.]$", "", note), "; ", special_note, ".")
   list(
     note = note,
-    exclude_options = exclusions,
+    exclude_options = character(0),
     source_note = ""
   )
 }
