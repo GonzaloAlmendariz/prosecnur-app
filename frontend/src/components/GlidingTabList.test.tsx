@@ -114,6 +114,14 @@ describe("GlidingTabList roving keyboard helpers", () => {
     expect(findNextRovingGlidingItem(items, null, "first")).toBe(first);
     expect(findNextRovingGlidingItem(items, null, "last")).toBe(last);
   });
+
+  it("treats plain anchors as roving items only in nav mode", () => {
+    const first = rovingItem("carga", { role: "presentation", tagName: "A" });
+    const last = rovingItem("validacion", { role: "presentation", tagName: "A" });
+
+    expect(findNextRovingGlidingItem([first, last], first, 1)).toBeNull();
+    expect(findNextRovingGlidingItem([first, last], first, 1, "nav")).toBe(last);
+  });
 });
 
 describe("GlidingTabList SSR", () => {
@@ -171,5 +179,22 @@ describe("GlidingTabList SSR", () => {
     expect(html).toContain('data-gliding-key="locked"');
     expect(html).toContain('aria-disabled="true"');
     expect(html).toContain("disabled");
+  });
+
+  it("renders nav mode without tab semantics while keeping measurable links", () => {
+    const html = renderToStaticMarkup(
+      <GlidingTabList mode="nav" activeKey="/validacion" aria-label="Secciones">
+        <a href="/carga" data-gliding-key="/carga">Carga</a>
+        <a href="/validacion" data-gliding-key="/validacion" aria-current="page">
+          Validación
+        </a>
+      </GlidingTabList>,
+    );
+
+    expect(html).toContain('data-gliding-mode="nav"');
+    expect(html).not.toContain('role="tablist"');
+    expect(html).not.toContain('role="tab"');
+    expect(html).not.toContain("aria-orientation");
+    expect(html).toContain('aria-current="page"');
   });
 });

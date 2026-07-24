@@ -118,6 +118,20 @@ describe("GlidingTabList navigation contract", () => {
     );
   });
 
+  test("Processing uses link navigation semantics with opt-in roving focus", () => {
+    const layout = fs.readFileSync(path.join(srcDir, "app", "Layout.tsx"), "utf8");
+    const dock = layout.slice(
+      layout.indexOf("function ProcessingPhaseDock("),
+      layout.indexOf("function SessionErrorChip("),
+    );
+
+    expect(dock).toMatch(/<GlidingTabList[\s\S]*?mode="nav"/);
+    expect(dock).not.toMatch(/role="tablist"/);
+    expect(dock).not.toMatch(/role="tab"/);
+    expect(dock).not.toMatch(/aria-selected=/);
+    expect(dock).toMatch(/aria-current=\{active\s*\?\s*"page"\s*:\s*undefined\}/);
+  });
+
   test("every literal tablist uses the shared indicator or a justified opt-out", () => {
     const offenders: string[] = [];
 

@@ -166,9 +166,8 @@ function ProcessingPhaseDock({ items }: { items: NavItem[] }) {
     >
       <GlidingTabList
         activeKey={activeItem?.to}
+        mode="nav"
         className="pulso-phase-pillbar pulso-processing-phase-bar"
-        role="tablist"
-        aria-label="Secciones de procesamiento"
       >
         <ol className="pulso-phase-pill-list pulso-processing-phase-list">
           {items.map((it) => (
@@ -186,9 +185,8 @@ function ProcessingPhaseDockItem({ it, active }: { it: NavItem; active: boolean 
     <li className="pulso-processing-phase-item">
       <NavLink
         to={it.to}
-        role="tab"
         data-gliding-key={it.to}
-        aria-selected={active}
+        aria-current={active ? "page" : undefined}
         title={it.blockedReason ?? (it.done ? `${it.label}: sección lista` : `Abrir ${it.label}`)}
         aria-label={it.blockedReason ? `${it.label}. ${it.blockedReason}` : `${it.label}. ${it.done ? "Sección lista." : "Abrir sección."}`}
         className={({ isActive }) => [
