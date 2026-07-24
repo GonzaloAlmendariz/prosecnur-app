@@ -5566,6 +5566,18 @@ function SampleSizeWorkbench({
   const proportionTone = settings.expected_proportion >= 0.35 && settings.expected_proportion <= 0.65 ? "ok" : "info";
 	  const allocationMode = settings.allocation_mode ?? "proportional";
 	  const enforceFloor = settings.enforce_district_floor ?? true;
+  const districtMarginModes = [true, false] as const;
+  function selectDistrictMarginMode(nextMode: boolean) {
+    if (nextMode !== enforceFloor) onSampleSizeChange({ enforce_district_floor: nextMode });
+  }
+  function selectDistrictMarginModeFromKey(key: string, itemIndex: number) {
+    let nextIndex: number | null = null;
+    if (key === "Home") nextIndex = 0;
+    else if (key === "End") nextIndex = districtMarginModes.length - 1;
+    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % districtMarginModes.length;
+    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + districtMarginModes.length) % districtMarginModes.length;
+    if (nextIndex != null) selectDistrictMarginMode(districtMarginModes[nextIndex]);
+  }
   const isCalculatorMode = mode === "calculator";
   const isExternalMode = mode !== "calculator";
 	  const overrides = settings.design_effect_overrides ?? {};
@@ -5975,7 +5987,9 @@ function SampleSizeWorkbench({
 	              </div>
                 {isCalculatorMode ? (
                   <div style={{ display: "grid", gap: 8 }}>
-                    <div
+                    <GlidingTabList
+                      activeKey={enforceFloor ? "enforce" : "warn"}
+                      mode="tabs"
                       className="hojas-ruta-action-row is-tight"
                       role="radiogroup"
                       aria-label="Uso del margen distrital"
@@ -5984,9 +5998,11 @@ function SampleSizeWorkbench({
                       <button
                         type="button"
                         role="radio"
+                        data-gliding-key="enforce"
                         aria-checked={enforceFloor}
                         style={districtMarginModeButtonStyle(enforceFloor)}
-                        onClick={() => onSampleSizeChange({ enforce_district_floor: true })}
+                        onClick={() => selectDistrictMarginMode(true)}
+                        onKeyDown={(event) => selectDistrictMarginModeFromKey(event.key, 0)}
                       >
                         <strong>Requisito de cálculo</strong>
                         <span>Garantizar el margen por distrito.</span>
@@ -5994,14 +6010,16 @@ function SampleSizeWorkbench({
                       <button
                         type="button"
                         role="radio"
+                        data-gliding-key="warn"
                         aria-checked={!enforceFloor}
                         style={districtMarginModeButtonStyle(!enforceFloor)}
-                        onClick={() => onSampleSizeChange({ enforce_district_floor: false })}
+                        onClick={() => selectDistrictMarginMode(false)}
+                        onKeyDown={(event) => selectDistrictMarginModeFromKey(event.key, 1)}
                       >
                         <strong>Solo máximo permitido</strong>
                         <span>No sube el N; solo alerta si se excede.</span>
                       </button>
-                    </div>
+                    </GlidingTabList>
                     <p className="hojas-ruta-sample-note">{districtMarginModeHelp}</p>
                   </div>
                 ) : null}
