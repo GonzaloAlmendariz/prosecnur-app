@@ -7707,7 +7707,7 @@
     grid-template-areas:
       "main metrics"
       "owner metrics"
-      "risk risk"
+      "risk risk";
     gap: 7px 8px;
   }
 
