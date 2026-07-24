@@ -509,7 +509,7 @@ function blockNseLabel(block: Partial<HojasRutaSamplePreview["blocks"][number]> 
   const nivel = String(block?.nse_nivel ?? "").trim();
   if (nivel && !["NA", "NaN"].includes(nivel)) return nivel;
   const codigo = String(block?.nse_codigo ?? "").trim();
-  if (codigo && !["NA", "NaN"].includes(codigo)) return `Codigo ${codigo}`;
+  if (codigo && !["NA", "NaN"].includes(codigo)) return `Código ${codigo}`;
   return "";
 }
 
@@ -881,7 +881,7 @@ function allocateByMode(
 
 function methodLabel(method: SamplingMethod) {
   if (method === "pps") return "PPS estratificado";
-  if (method === "sistematico") return "Sistematico";
+  if (method === "sistematico") return "Sistemático";
   return "Conglomerado fijo";
 }
 
@@ -4235,7 +4235,7 @@ function TerritoryMapExplorer({
                 <span>Distrito enfocado</span>
                 <strong>{activeTerritory.distrito}</strong>
               </div>
-              <MiniMetric label="Codigo INEI" value={activeTerritory.ubigeo} />
+              <MiniMetric label="Código INEI" value={activeTerritory.ubigeo} />
               <MiniMetric label="Viviendas 2017" value={formatNumber(activeTerritory.viviendas)} />
               <MiniMetric label="Manzanas censales" value={formatNumber(activeTerritory.manzanas)} />
               <MiniMetric label="Población 2017" value={formatNumber(activeTerritory.poblacion)} />
@@ -4261,7 +4261,7 @@ function TerritoryMapExplorer({
               onClick={() => onMapSelectionModeChange(!mapSelectionMode)}
               aria-pressed={mapSelectionMode}
             >
-              <CheckCircle2 size={13} /> Seleccion en mapa
+              <CheckCircle2 size={13} /> Selección en mapa
             </button>
           ) : null}
           {showingBlocks ? (
@@ -4877,13 +4877,13 @@ function SamplingMethodExplainer({
     {
       id: "pps",
       title: "PPS estratificado",
-      body: "Cada distrito compite dentro de su estrato; una manzana con mas viviendas tiene mas probabilidad.",
+      body: "Cada distrito compite dentro de su estrato; una manzana con más viviendas tiene más probabilidad.",
       accent: "#0f766e",
     },
     {
       id: "sistematico",
-      title: "Sistematico",
-      body: "Ordena las manzanas, calcula un salto y arranca desde una posicion aleatoria reproducible.",
+      title: "Sistemático",
+      body: "Ordena las manzanas, calcula un salto y arranca desde una posición aleatoria reproducible.",
       accent: "#1d4ed8",
     },
     {
@@ -4935,7 +4935,7 @@ function SamplingMethodExplainer({
       onValueChange={onChange}
       getOptionProps={(method) => ({ style: { "--method-accent": method.accent } as React.CSSProperties })}
       className="hojas-ruta-method-selector"
-      aria-label="Metodo de seleccion de manzanas"
+      aria-label="Método de selección de manzanas"
     >
       {(method) => <>
         <Diagram method={method.id} accent={method.accent} />
@@ -5131,7 +5131,7 @@ function PopulationMatrixPreview({
       <div className="hojas-ruta-pop-toolbar">
         <div>
           <div className="hojas-ruta-pop-title">Matriz poblacional</div>
-          <div className="hojas-ruta-pop-caption">Base INEI 2017 segun distritos y cortes activos.</div>
+          <div className="hojas-ruta-pop-caption">Base INEI 2017 según distritos y cortes activos.</div>
         </div>
         {actions}
       </div>
@@ -7904,9 +7904,9 @@ export default function HojasRutaPage() {
                     </div>
                   </div>
                   <div className="hojas-ruta-confirm-bar">
-                    <span>La muestra usara solo distritos confirmados.</span>
+                    <span>La muestra usará solo distritos confirmados.</span>
                     <button type="button" data-audit-primary-action onClick={confirmDraftTerritories} disabled={!draftChanged}>
-                      Confirmar seleccion
+                      Confirmar selección
                     </button>
                   </div>
                   <DistrictSelectorGrid
@@ -8000,7 +8000,7 @@ export default function HojasRutaPage() {
                             onValueChange={setAgeDraftScope}
                             getOptionProps={() => ({ disabled: !canConfigureAgeRanges || busy !== "" })}
                             className="hojas-ruta-age-scope-row"
-                            aria-label="Base para cortes automaticos"
+                            aria-label="Base para cortes automáticos"
                           >
                             {(scope) => <>
                               <strong>{AGE_RANGE_SCOPE_LABELS[scope].title}</strong>
@@ -8799,14 +8799,14 @@ export default function HojasRutaPage() {
                         <input
                           value={manualReplacementQuery}
                           onChange={(event) => setManualReplacementQuery(event.target.value)}
-                          placeholder="Buscar UMP titular por codigo, zona o distrito"
+                          placeholder="Buscar UMP titular por código, zona o distrito"
                           disabled={!sample?.ok || !!jobId || !!manualReplacementJobId}
                         />
                       </div>
                       <div className="hojas-ruta-manual-results">
                         {!sample?.ok ? (
                           <div className="hojas-ruta-block-list-empty">
-                            Genera primero la seleccion de UMPs.
+                            Genera primero la selección de UMPs.
                           </div>
                         ) : !manualReplacementQueryText ? (
                           <div className="hojas-ruta-manual-summary">
@@ -8915,7 +8915,7 @@ export default function HojasRutaPage() {
                     </div>
                   </Panel>
 
-                  <Panel title="PDF de prueba" eyebrow="Validacion rapida">
+                  <Panel title="PDF de prueba" eyebrow="Validación rápida">
                     <div className="hojas-ruta-random-pdf-card">
                       <span>Abre una hoja aleatoria para revisar el formato antes de generar o entregar el ZIP.</span>
                       <GlidingRadioGroup
