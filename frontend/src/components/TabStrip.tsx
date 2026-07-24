@@ -27,6 +27,7 @@ export type TabMeta<K extends string = string> = {
 };
 
 type Props<K extends string = string> = {
+  idBase: string;
   tabs: TabMeta<K>[];
   active: K;
   onChange: (key: K) => void;
@@ -36,8 +37,25 @@ type Props<K extends string = string> = {
   className?: string;
 };
 
+export function tabA11yIds(idBase: string, key: string) {
+  return {
+    tabId: `${idBase}-tab-${key}`,
+    panelId: `${idBase}-panel-${key}`,
+  };
+}
+
+export function tabPanelProps(idBase: string, key: string) {
+  const { tabId, panelId } = tabA11yIds(idBase, key);
+  return {
+    id: panelId,
+    role: "tabpanel" as const,
+    "aria-labelledby": tabId,
+    tabIndex: 0,
+  };
+}
+
 export function TabStrip<K extends string = string>({
-  tabs, active, onChange, ariaLabel, variant = "segmented", className,
+  idBase, tabs, active, onChange, ariaLabel, variant = "segmented", className,
 }: Props<K>) {
   return (
     <GlidingTabList
@@ -53,6 +71,7 @@ export function TabStrip<K extends string = string>({
       {tabs.map((t, i) => (
         <TabChip
           key={t.key}
+          idBase={idBase}
           meta={t}
           active={active === t.key}
           last={i === tabs.length - 1}
@@ -66,20 +85,24 @@ export function TabStrip<K extends string = string>({
 }
 
 function TabChip<K extends string = string>({
-  meta, active, last, onClick,
+  idBase, meta, active, last, onClick,
 }: {
+  idBase: string;
   meta: TabMeta<K>;
   active: boolean;
   last: boolean;
   onClick: () => void;
 }) {
   const Icon = meta.icon;
+  const { tabId, panelId } = tabA11yIds(idBase, meta.key);
   return (
     <button
+      id={tabId}
       type="button"
       role="tab"
       data-gliding-key={meta.key}
       aria-selected={active}
+      aria-controls={panelId}
       aria-disabled={meta.disabled || undefined}
       disabled={meta.disabled}
       title={meta.disabled ? meta.disabledReason : meta.desc}

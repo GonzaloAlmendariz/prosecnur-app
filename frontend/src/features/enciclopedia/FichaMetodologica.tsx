@@ -6,7 +6,11 @@ import {
   type EnciclopediaFicha,
 } from "../../api/client";
 import { PageFrame } from "../../components/PageFrame";
-import { TabStrip, type TabMeta } from "../../components/TabStrip";
+import {
+  TabStrip,
+  tabPanelProps,
+  type TabMeta,
+} from "../../components/TabStrip";
 import { Panel } from "../../components/Panel";
 import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
@@ -130,9 +134,16 @@ export default function FichaMetodologica() {
         Volver al catálogo
       </Link>
 
-      <TabStrip tabs={tabs} active={tab} onChange={setTab} ariaLabel="Secciones de la ficha" />
+      <TabStrip
+        idBase="ficha-metodologica"
+        tabs={tabs}
+        active={tab}
+        onChange={setTab}
+        ariaLabel="Secciones de la ficha"
+      />
 
-      {tab === "definicion" && (
+      <section {...tabPanelProps("ficha-metodologica", tab)}>
+        {tab === "definicion" && (
         <>
           <Panel eyebrow="Definición" title="¿Qué es esta técnica?">
             <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--pulso-text)" }}>
@@ -167,7 +178,7 @@ export default function FichaMetodologica() {
         </>
       )}
 
-      {tab === "formulas" && (
+        {tab === "formulas" && (
         <Panel eyebrow={`${ficha.formulas.length} fórmulas`} title="Expresiones técnicas">
           <div style={{ display: "grid", gap: 12 }}>
             {ficha.formulas.map((f, i) => (
@@ -192,7 +203,7 @@ export default function FichaMetodologica() {
         </Panel>
       )}
 
-      {tab === "parametros" && (
+        {tab === "parametros" && (
         <Panel eyebrow="Parámetros típicos" title="Rangos recomendados">
           <div style={{ overflowX: "auto" }}>
             <table style={tableStyle}>
@@ -217,7 +228,7 @@ export default function FichaMetodologica() {
         </Panel>
       )}
 
-      {tab === "decisiones" && (
+        {tab === "decisiones" && (
         <>
           <Panel eyebrow="Decisiones" title="Decisiones técnicas">
             <div style={{ display: "grid", gap: 8 }}>
@@ -270,7 +281,7 @@ export default function FichaMetodologica() {
         </>
       )}
 
-      {tab === "aplicaciones" && (
+        {tab === "aplicaciones" && (
         <Panel
           eyebrow="Aplicaciones internas"
           title={`${ficha.aplicaciones_internas.length} estudios documentados`}
@@ -295,7 +306,8 @@ export default function FichaMetodologica() {
             </div>
           )}
         </Panel>
-      )}
+        )}
+      </section>
     </PageFrame>
   );
 }
