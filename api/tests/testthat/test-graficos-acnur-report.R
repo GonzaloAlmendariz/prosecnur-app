@@ -683,3 +683,33 @@ test_that("respuestas especiales se reconocen aunque la etiqueta traiga traducci
   expect_equal(specials$codes, "98")
   expect_equal(specials$labels, "Prefiere no decir")
 })
+
+test_that("el paginado de categorias reparte equitativamente, no llena y desborda", {
+  mk <- function(n) {
+    list(choices = lapply(seq_len(n), function(i) {
+      list(name = as.character(i), label = paste0("opcion ", i))
+    }))
+  }
+  n_por_lamina <- function(n, tope) {
+    pages <- .graficos_acnur_choice_pages(mk(n), max_per_slide = tope)
+    vapply(pages, function(p) {
+      excl <- unique(as.character(p$exclude_options %||% character(0)))
+      sum(!(as.character(seq_len(n)) %in% excl))
+    }, numeric(1))
+  }
+
+  # Hasta el tope: una sola lamina.
+  expect_equal(length(.graficos_acnur_choice_pages(mk(10), max_per_slide = 10L)), 1L)
+
+  # 11 opciones con tope 10 -> 6 + 5 (antes 10 + 1).
+  expect_equal(n_por_lamina(11, 10L), c(6, 5))
+  # 21 con tope 10 -> 7 + 7 + 7 (antes 10 + 10 + 1).
+  expect_equal(n_por_lamina(21, 10L), c(7, 7, 7))
+
+  # Invariantes: se conservan todas las opciones y ninguna lamina pasa el tope.
+  for (n in c(11, 12, 15, 17, 25)) {
+    tam <- n_por_lamina(n, 10L)
+    expect_equal(sum(tam), n)
+    expect_lte(max(tam), 10)
+  }
+})

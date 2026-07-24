@@ -582,7 +582,7 @@
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
       list(name = "max_categorias", label = "Máximo de categorías", tipo_input = "number", grupo = "filtro",
-           default = 10,
+           default = 12,
            descripcion = "Si hay más categorías, conserva las principales y agrupa el resto como Otros solo en el gráfico."),
       list(name = "agrupar_resto_en_otros", label = "Agrupar excedente en Otros", tipo_input = "bool", grupo = "filtro",
            default = TRUE,
@@ -1557,7 +1557,7 @@
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
       list(name = "max_categorias",       label = "Máximo de categorías",  tipo_input = "number", grupo = "filtro",
-           default = 10,
+           default = 12,
            descripcion = "Número máximo de opciones visibles. Si hay más, conserva las más frecuentes y agrupa el resto como Otros solo en el gráfico."),
       list(name = "agrupar_resto_en_otros", label = "Agrupar excedente en Otros", tipo_input = "bool", grupo = "filtro",
            default = TRUE,
@@ -2455,7 +2455,11 @@
 
     mostrar_leyenda          = FALSE,
     orden_barras             = "instrumento",
-    max_categorias           = 10,
+    # 12 y no 10: una lista de opciones que ya trae 10 categorías del
+    # instrumento suele ganar 1-2 más al codificar los "Otros" abiertos, y con
+    # el tope en 10 la pregunta se partía en dos láminas. Sigue siendo
+    # parametrizable por gráfico desde la UI (stepper, rango 2-30).
+    max_categorias           = 12,
     agrupar_resto_en_otros   = TRUE,
     etiqueta_otros           = "Otros",
     otros_al_final           = TRUE,
