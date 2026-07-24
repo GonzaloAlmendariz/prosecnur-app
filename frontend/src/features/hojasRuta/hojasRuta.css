@@ -65,15 +65,20 @@
 }
 
 .hojas-ruta-commandbar {
+  /* Command bar canónica de tres zonas en UNA fila (patrón de Monitoreo
+     .mon-commandbar): contexto (KPIs) | secciones (rail centrado) | acciones.
+     El rail ya no cae a una fila propia; convive al lado del contexto y las
+     acciones. El acento de módulo (naranja Hojas) se conserva vía variable. */
+  --commandbar-control-height: 32px;
   display: grid;
-  /* Dos filas como el patrón de Procesamiento: resumen + acciones arriba y
-     el rail de etapas en fila propia. Evita que el rail se clipee y deje
-     pasos icon-only sin label cuando la banda no alcanza. */
-  grid-template-columns: minmax(0, 1fr) max-content;
+  /* Contexto y acciones a su ancho de contenido; el rail (columna central)
+     absorbe el apriete y hace scroll interno con dignidad si no alcanza. */
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
   align-items: center;
-  gap: 8px 10px;
+  gap: 8px;
   min-width: 0;
-  padding: 8px 10px;
+  min-height: 46px;
+  padding: 4px 6px;
   border: 1px solid color-mix(in srgb, var(--module-accent-border) 76%, var(--pulso-border));
   border-radius: 18px;
   background:
@@ -87,22 +92,28 @@
   -webkit-backdrop-filter: saturate(1.16) blur(18px);
 }
 
+/* Zona 1 — contexto: sub-píldora que agrupa los KPIs como tokens finos. */
 .hojas-ruta-command-summary {
   grid-column: 1;
-  grid-row: 1;
   min-width: 0;
-  max-width: min(100%, 620px);
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, max-content));
+  min-height: 36px;
+  display: inline-flex;
   align-items: center;
-  gap: 4px 8px;
+  gap: 0;
   justify-self: start;
-  overflow: visible;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--module-accent-border) 30%, var(--pulso-material-border));
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(248, 250, 253, 0.72)),
+    color-mix(in srgb, var(--pulso-material-bg) 84%, #fff);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  padding: 2px;
 }
 
+/* Zona 3 — acciones: aviso de piloto + toggle Piloto/Campo, a la derecha. */
 .hojas-ruta-command-actions {
-  grid-column: 2;
-  grid-row: 1;
+  grid-column: 3;
   min-width: 0;
   max-width: min(100%, 560px);
   display: inline-flex;
@@ -174,61 +185,17 @@
   transform: scale(0.94);
 }
 
-.hojas-ruta-command-readiness {
-  grid-column: 1 / -1;
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 0;
-  flex-wrap: nowrap;
-  justify-self: start;
-}
-
-.hojas-ruta-command-current {
-  min-width: 176px;
-  max-width: 280px;
-  display: grid;
-  gap: 2px;
-  padding: 0 9px;
-  border-inline: 1px solid color-mix(in srgb, var(--module-accent-border) 54%, transparent);
-}
-
-.hojas-ruta-command-current span,
-.hojas-ruta-command-current strong {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.hojas-ruta-command-current span {
-  color: var(--module-accent);
-  font-size: 10px;
-  font-weight: 860;
-  line-height: 1.15;
-  text-transform: uppercase;
-}
-
-.hojas-ruta-command-current strong {
-  color: var(--pulso-text);
-  font-size: 12.5px;
-  font-weight: 900;
-  line-height: 1.2;
-}
-
+/* Zona 2 — secciones: el rail vive en la columna central y se autocentra. */
 .hojas-ruta-stage-rail-wrap {
-  grid-column: 1 / -1;
-  grid-row: 2;
-  width: fit-content;
-  max-width: 100%;
+  grid-column: 2;
   min-width: 0;
+  max-width: 100%;
   display: flex;
-  justify-self: center;
   justify-content: center;
 }
 
 .hojas-ruta-stage-rail {
-  max-width: min(720px, 100%);
+  max-width: 100%;
   min-width: 0;
 }
 
@@ -1232,47 +1199,51 @@
   min-width: 0;
 }
 
+/* KPI como token fino dentro de la sub-píldora de contexto (la píldora aporta
+   el borde/fondo; el token es plano con separador hairline entre pares). */
 .hojas-ruta-header-pill {
   display: inline-flex;
   flex-direction: column;
   justify-content: center;
   gap: 1px;
   flex: 0 1 auto;
-  min-width: 92px;
-  max-width: 156px;
-  min-height: 36px;
-  padding: 6px 10px;
-  border: 1px solid color-mix(in srgb, var(--module-accent-border) 34%, var(--pulso-border));
-  border-radius: 14px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.86));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.86),
-    0 1px 2px rgba(15, 23, 42, 0.035);
+  min-width: 58px;
+  max-width: 148px;
+  min-height: var(--commandbar-control-height, 32px);
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.hojas-ruta-header-pill + .hojas-ruta-header-pill {
+  border-left: 1px solid color-mix(in srgb, var(--module-accent-border) 30%, var(--pulso-border));
 }
 
 .hojas-ruta-header-pill small,
 .hojas-ruta-header-pill strong {
   display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .hojas-ruta-header-pill small {
   color: var(--pulso-text-soft);
-  font-size: 9.8px;
+  font-size: 9.5px;
   font-weight: 850;
   line-height: 1.05;
   letter-spacing: 0;
   text-transform: uppercase;
-  white-space: normal;
 }
 
 .hojas-ruta-header-pill strong {
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 900;
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
 .hojas-ruta-phase-header {
@@ -2128,63 +2099,14 @@
   color: #94a3b8;
 }
 
-.hojas-ruta-command-readiness .hojas-ruta-readiness-item {
-  display: inline-flex;
-  grid-template-columns: none;
-  grid-template-rows: none;
-  align-items: center;
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: none;
-  min-height: 28px;
-  padding: 5px 9px;
-  border: 0;
-  border-radius: 0;
-  gap: 5px;
-  background: transparent;
-  box-shadow: none;
-  color: var(--pulso-text-soft);
-  /* El chip nunca parte palabras («Territori o»): label a ancho real y
-     valor con elipsis si el espacio no alcanza. */
-  white-space: nowrap;
-}
-
-.hojas-ruta-command-readiness .hojas-ruta-readiness-item:first-child {
-  border-radius: 999px 0 0 999px;
-  padding-left: 8px;
-}
-
-.hojas-ruta-command-readiness .hojas-ruta-readiness-item:last-child {
-  border-radius: 0 999px 999px 0;
-  padding-right: 10px;
-}
-
-.hojas-ruta-command-readiness .hojas-ruta-readiness-item + .hojas-ruta-readiness-item {
-  border-left: 1px solid color-mix(in srgb, var(--pulso-success-border) 42%, rgba(255, 255, 255, 0.82));
-}
-
 .hojas-ruta-readiness-item.is-ok {
   border-color: var(--pulso-success-border);
   background: var(--pulso-success-bg);
   color: var(--pulso-success-fg);
 }
 
-.hojas-ruta-command-readiness .hojas-ruta-readiness-item.is-ok {
-  background:
-    linear-gradient(180deg, rgba(240, 253, 244, 0.9), rgba(220, 252, 231, 0.68));
-  color: var(--pulso-success-fg);
-}
-
 .hojas-ruta-readiness-item svg {
   grid-row: 1 / 3;
-}
-
-.hojas-ruta-command-readiness .hojas-ruta-readiness-item svg {
-  display: block;
-  width: 12px;
-  height: 12px;
-  flex: 0 0 auto;
-  stroke-width: 2.35;
 }
 
 .hojas-ruta-readiness-item span {
@@ -2197,20 +2119,6 @@
   text-transform: uppercase;
 }
 
-.hojas-ruta-command-readiness .hojas-ruta-readiness-item span {
-  min-width: max-content;
-  flex: 0 0 auto;
-  font-size: 10px;
-  line-height: 1.05;
-  letter-spacing: 0;
-  overflow-wrap: normal;
-  text-transform: none;
-}
-
-.hojas-ruta-command-readiness .hojas-ruta-readiness-item span::after {
-  content: ":";
-}
-
 .hojas-ruta-readiness-item strong {
   margin: 0;
   color: var(--pulso-text);
@@ -2219,31 +2127,14 @@
   line-height: 1.15;
 }
 
-.hojas-ruta-command-readiness .hojas-ruta-readiness-item strong {
-  color: inherit;
-  min-width: 0;
-  flex: 0 1 auto;
-  overflow: hidden;
-  font-size: 11px;
-  line-height: 1.05;
-  overflow-wrap: normal;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .hojas-ruta-sample-mode-cards {
   display: flex;
   align-items: stretch;
   gap: 3px;
   padding: 3px;
-  border: 1px solid color-mix(in srgb, var(--module-accent-border) 50%, var(--pulso-border));
+  border: 1px solid var(--pulso-border);
   border-radius: 14px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 250, 252, 0.76)),
-    var(--pulso-material-bg);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 5px 14px rgba(124, 45, 18, 0.06);
+  background: var(--pulso-surface);
   overflow-x: auto;
 }
 
@@ -2276,12 +2167,9 @@
 }
 
 .hojas-ruta-sample-mode-cards button.is-active {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--module-accent) 86%, #fff 14%), var(--module-accent));
-  color: white;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.24),
-    0 7px 16px rgba(124, 45, 18, 0.16);
+  background: var(--module-accent-soft);
+  color: var(--pulso-text);
+  box-shadow: inset 0 0 0 1.5px var(--module-accent);
 }
 
 .hojas-ruta-sample-mode-cards strong,
@@ -2643,7 +2531,7 @@
   min-width: 0;
   min-height: 58px;
   padding: 8px 10px;
-  border: 1px solid #d7e4e0;
+  border: 1px solid var(--pulso-border);
   border-radius: 8px;
   background: white;
   color: var(--pulso-text);
@@ -2652,8 +2540,8 @@
 }
 
 .hojas-ruta-design-presets button.is-active {
-  border-color: var(--pulso-primary);
-  background: #eef8f5;
+  border-color: var(--module-accent);
+  background: var(--module-accent-soft);
 }
 
 .hojas-ruta-design-presets strong,
@@ -2910,7 +2798,7 @@
   min-width: 0;
   min-height: 132px;
   padding: 10px;
-  border: 1px solid #dbe7e3;
+  border: 1px solid var(--pulso-border);
   border-radius: 8px;
   background: white;
   color: var(--pulso-text);
@@ -2918,17 +2806,17 @@
 }
 
 .hojas-ruta-n-choice-card.is-active {
-  border-color: #0f766e;
-  background: #ecfdf5;
+  border-color: var(--module-accent);
+  background: var(--module-accent-soft);
 }
 
 .hojas-ruta-n-choice-card.is-warn {
-  border-color: #fed7aa;
-  background: #fff7ed;
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
 }
 
 .hojas-ruta-n-choice-card.is-custom {
-  background: #fbfefd;
+  background: var(--pulso-surface-2);
 }
 
 .hojas-ruta-n-choice-card span,
@@ -3203,8 +3091,8 @@
 }
 
 .hojas-ruta-random-options button.is-active {
-  border-color: var(--pulso-primary);
-  background: #eef8f5;
+  border-color: var(--module-accent);
+  background: var(--module-accent-soft);
   color: var(--pulso-text);
 }
 
@@ -3305,11 +3193,17 @@
   white-space: nowrap;
 }
 
-.hojas-ruta-phase-tabs button.is-active,
-.hojas-ruta-segmented button.is-active {
-  background: #0f766e;
+.hojas-ruta-phase-tabs button.is-active {
+  background: var(--module-accent);
   color: white;
-  box-shadow: 0 6px 14px rgba(15, 118, 110, 0.16);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--module-accent) 16%, transparent);
+}
+
+/* Segmented de selección (no navegación): tinte suave + anillo del módulo. */
+.hojas-ruta-segmented button.is-active {
+  background: var(--module-accent-soft);
+  color: color-mix(in srgb, var(--module-accent) 78%, var(--pulso-text));
+  box-shadow: inset 0 0 0 1.5px var(--module-accent);
 }
 
 .hojas-ruta-phase-tabs button:disabled,
@@ -4154,39 +4048,64 @@
 @media (max-width: 1180px) {
   .hojas-ruta-commandbar {
     align-items: center;
-    gap: 7px;
-    padding: 6px 8px;
+    gap: 6px;
+    padding: 4px 6px;
     border-radius: 16px;
+    /* El rail (superficie prioritaria) tiene ancho garantizado para sus 5
+       etapas; el contexto se acota y hace scroll interno si no alcanza. */
+    grid-template-columns: minmax(0, 272px) minmax(0, 1fr) max-content;
   }
 
   .hojas-ruta-command-summary {
-    max-width: min(100%, 320px);
-    grid-template-columns: repeat(2, minmax(0, max-content));
-    gap: 3px 4px;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
-  .hojas-ruta-command-readiness {
+  .hojas-ruta-command-summary::-webkit-scrollbar {
     display: none;
   }
 
+  .hojas-ruta-command-summary .hojas-ruta-header-pill {
+    padding: 3px 7px;
+  }
+
+  /* En compacto el contexto cede el KPI menos informativo (Base, siempre
+     "Cargada" cuando la banda aparece) para que los demás muestren su valor
+     completo sin truncar, junto al rail entero. */
+  .hojas-ruta-command-summary .hojas-ruta-header-pill:first-child {
+    display: none;
+  }
+
+  .hojas-ruta-command-summary .hojas-ruta-header-pill:nth-child(2) {
+    border-left: 0;
+  }
+
   .hojas-ruta-command-actions {
-    max-width: min(100%, 420px);
+    max-width: min(100%, 340px);
     gap: 6px;
   }
 
   .hojas-ruta-phase-notice-chip {
-    max-width: 190px;
-  }
-
-  .hojas-ruta-command-current {
-    flex: 1 1 260px;
-    max-width: none;
-    border-inline: 0;
-    padding-inline: 2px;
+    max-width: 150px;
   }
 
   .hojas-ruta-stage-rail {
     max-width: 100%;
+  }
+
+  /* Compacta el rail para que las 5 etapas convivan en una fila sin scroll:
+     se retira el icono decorativo y se ajustan padding/tipografía. */
+  .hojas-ruta-stage-rail .pulso-phase-pillbar {
+    --pill-pad-x: 7px;
+  }
+
+  .hojas-ruta-stage-rail .pulso-phase-pill {
+    font-size: 12px;
+  }
+
+  .hojas-ruta-stage-rail .pulso-phase-pill svg {
+    display: none;
   }
 
   .hojas-ruta-workbench,
@@ -4520,7 +4439,7 @@
   min-width: 0;
   min-height: 64px;
   padding: 10px 11px;
-  border: 1px solid #d7e4e0;
+  border: 1px solid var(--pulso-border);
   border-radius: 8px;
   background: white;
   color: var(--pulso-text);
@@ -4531,13 +4450,13 @@
 }
 
 .hojas-ruta-allocation-cards button:hover {
-  border-color: var(--pulso-primary);
+  border-color: var(--module-accent-border);
 }
 
 .hojas-ruta-allocation-cards button.is-active {
-  border-color: var(--pulso-primary);
-  background: #eef8f5;
-  box-shadow: 0 1px 0 rgba(15, 118, 110, 0.08) inset;
+  border-color: var(--module-accent);
+  background: var(--module-accent-soft);
+  box-shadow: inset 0 0 0 0.5px var(--module-accent);
 }
 
 .hojas-ruta-allocation-cards strong,
@@ -4725,13 +4644,13 @@
 }
 
 .hojas-ruta-sample-result-breakdown > div.is-bind.is-active {
-  border-color: #0f766e;
-  background: #ecfdf5;
+  border-color: var(--module-accent);
+  background: var(--module-accent-soft);
 }
 
 .hojas-ruta-sample-result-breakdown > div.is-recommended {
-  border-color: #0f766e;
-  background: #f0fdf9;
+  border-color: var(--module-accent-border);
+  background: color-mix(in srgb, var(--module-accent-soft) 40%, #fff);
 }
 
 .hojas-ruta-sample-result-breakdown span {
@@ -4790,13 +4709,9 @@
   min-height: 20px;
   margin-left: 1px;
   padding: 0;
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 72%, var(--module-accent-border) 28%);
+  border: 1px solid var(--pulso-border);
   border-radius: 999px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.74),
-    0 1px 2px rgba(15, 23, 42, 0.055);
+  background: var(--pulso-surface);
   color: var(--pulso-text-soft);
   cursor: help;
   line-height: 0;
@@ -4812,13 +4727,9 @@
 
 .hojas-ruta-inline-help button:hover,
 .hojas-ruta-inline-help button:focus-visible {
-  border-color: var(--pulso-primary);
+  border-color: var(--module-accent-border);
   background: color-mix(in srgb, var(--module-accent-soft) 68%, white);
-  color: var(--pulso-primary);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.78),
-    0 0 0 3px color-mix(in srgb, var(--module-accent) 10%, transparent),
-    0 2px 5px rgba(15, 23, 42, 0.08);
+  color: color-mix(in srgb, var(--module-accent) 78%, var(--pulso-text));
 }
 
 .hojas-ruta-inline-help button:focus-visible {
@@ -5318,9 +5229,9 @@
 }
 
 .hojas-ruta-segmented button.is-active {
-  border-color: #0f766e;
-  background: #ecfdf5;
-  color: #064e3b;
+  border-color: var(--module-accent);
+  background: var(--module-accent-soft);
+  color: color-mix(in srgb, var(--module-accent) 78%, var(--pulso-text));
 }
 
 .hojas-ruta-segmented-field.is-replacement-policy {
@@ -5375,7 +5286,7 @@
   justify-content: center;
   gap: 1px;
   padding: 6px 8px;
-  border: 1px solid #d5e0e8;
+  border: 1px solid var(--pulso-border);
   border-radius: 7px;
   background: white;
   color: var(--pulso-text);
@@ -5384,9 +5295,9 @@
 }
 
 .hojas-ruta-route-jump-options button.is-active {
-  border-color: #0f766e;
-  background: #ecfdf5;
-  color: #064e3b;
+  border-color: var(--module-accent);
+  background: var(--module-accent-soft);
+  color: color-mix(in srgb, var(--module-accent) 78%, var(--pulso-text));
 }
 
 .hojas-ruta-route-jump-options strong,
@@ -5854,8 +5765,8 @@
 }
 
 .hojas-ruta-manual-results button.is-active {
-  border-color: #0f766e;
-  background: #ecfdf5;
+  border-color: var(--module-accent);
+  background: var(--module-accent-soft);
 }
 
 .hojas-ruta-manual-results button strong,
@@ -6125,9 +6036,7 @@
 
 .hojas-ruta-frame :is(
   .hojas-ruta-phase-tabs button.is-active,
-  .hojas-ruta-segmented button.is-active,
   .hojas-ruta-map-layer-toggle button.is-active,
-  .hojas-ruta-sample-mode-cards button.is-active,
   .hojas-ruta-mode-switch button.is-active
 ) {
   border-color: var(--module-accent);
@@ -6145,8 +6054,8 @@
   .hojas-ruta-n-choice-card.is-active
 ) {
   border-color: var(--module-accent);
-  background: color-mix(in srgb, var(--module-accent-soft) 78%, #fff);
-  color: var(--module-accent);
+  background: var(--module-accent-soft);
+  color: var(--pulso-text);
 }
 
 .hojas-ruta-frame :is(
@@ -6566,9 +6475,9 @@
   gap: 8px;
   margin-bottom: 10px;
   padding: 9px 10px;
-  border: 1px solid #d7e4e0;
+  border: 1px solid var(--pulso-border);
   border-radius: 8px;
-  background: #f8fbfa;
+  background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 11.5px;
   line-height: 1.4;
@@ -6583,10 +6492,6 @@
 
 .hojas-ruta-age-help > span:not(.hojas-ruta-inline-help) {
   min-width: 0;
-}
-
-.hojas-ruta-age-help .hojas-ruta-inline-help {
-  color: var(--pulso-text);
 }
 
 .hojas-ruta-age-method-row {
@@ -6616,8 +6521,8 @@
 
 .hojas-ruta-age-method-row button:hover:not(:disabled),
 .hojas-ruta-age-scope-row button:hover:not(:disabled) {
-  border-color: #89cdbd;
-  background: #fbfefd;
+  border-color: var(--module-accent-border);
+  background: var(--pulso-surface);
 }
 
 .hojas-ruta-age-method-row button:active:not(:disabled),
@@ -6627,9 +6532,9 @@
 
 .hojas-ruta-age-method-row button.is-active,
 .hojas-ruta-age-scope-row button.is-active {
-  border-color: #0f766e;
-  background: #ecfdf5;
-  color: #064e3b;
+  border-color: var(--module-accent);
+  background: var(--module-accent-soft);
+  color: var(--pulso-text);
 }
 
 .hojas-ruta-age-method-row button:disabled,
@@ -6689,9 +6594,9 @@
 }
 
 .hojas-ruta-age-preset-row button.is-active {
-  border-color: #0f766e;
-  background: #ecfdf5;
-  color: #064e3b;
+  border-color: var(--module-accent);
+  background: var(--module-accent-soft);
+  color: color-mix(in srgb, var(--module-accent) 78%, var(--pulso-text));
 }
 
 .hojas-ruta-age-preset-row button:disabled {
@@ -6759,9 +6664,10 @@
 
 .hojas-ruta-age-generated-row small {
   flex: 0 0 auto;
-  color: #0f766e;
+  color: color-mix(in srgb, var(--module-accent) 78%, var(--pulso-text));
   font-size: 11px;
   font-weight: 850;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
@@ -6817,9 +6723,9 @@
 }
 
 .hojas-ruta-age-row button.is-active {
-  border-color: #0f766e;
-  background: #ecfdf5;
-  color: #064e3b;
+  border-color: var(--module-accent);
+  background: var(--module-accent-soft);
+  color: color-mix(in srgb, var(--module-accent) 78%, var(--pulso-text));
 }
 
 .hojas-ruta-age-row button.is-trash {
@@ -6910,16 +6816,12 @@
   box-shadow: var(--routes-soft-shadow);
 }
 
+/* Material translúcido solo en navegación (tabs y toggles de vista). */
 .hojas-ruta-frame :is(
-  .hojas-ruta-sample-mode-cards,
   .hojas-ruta-mode-switch,
   .hojas-ruta-phase-tabs,
-  .hojas-ruta-segmented,
   .hojas-ruta-map-layer-toggle,
-  .hojas-ruta-sample-tabs,
-  .hojas-ruta-age-method-row,
-  .hojas-ruta-age-scope-row,
-  .hojas-ruta-age-preset-row
+  .hojas-ruta-sample-tabs
 ) {
   border-color: color-mix(in srgb, var(--module-accent-border) 46%, var(--pulso-border));
   border-radius: 14px;
@@ -6931,14 +6833,55 @@
     inset 0 -1px 0 rgba(15, 23, 42, 0.03);
 }
 
+/* Segmented de selección: contenedor único, plano, sin material. */
+.hojas-ruta-frame :is(
+  .hojas-ruta-segmented,
+  .hojas-ruta-sample-mode-cards,
+  .hojas-ruta-age-preset-row:has(button)
+) {
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+  box-shadow: none;
+}
+
+.hojas-ruta-frame .hojas-ruta-age-preset-row:has(button) {
+  display: inline-flex;
+  flex-wrap: wrap;
+  padding: 3px;
+  gap: 3px;
+}
+
+.hojas-ruta-frame .hojas-ruta-segmented {
+  padding: 3px;
+  gap: 3px;
+}
+
+.hojas-ruta-frame .hojas-ruta-age-preset-row button,
+.hojas-ruta-frame .hojas-ruta-segmented button {
+  border-color: transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+}
+
+.hojas-ruta-frame .hojas-ruta-age-preset-row button {
+  min-height: 28px;
+}
+
+.hojas-ruta-frame .hojas-ruta-segmented button {
+  min-height: 32px;
+}
+
+.hojas-ruta-frame .hojas-ruta-age-preset-row button:hover:not(:disabled):not(.is-active),
+.hojas-ruta-frame .hojas-ruta-segmented button:hover:not(:disabled):not(.is-active) {
+  color: var(--pulso-text);
+}
+
 .hojas-ruta-frame :is(
   .hojas-ruta-phase-tabs button.is-active,
-  .hojas-ruta-segmented button.is-active,
   .hojas-ruta-map-layer-toggle button.is-active,
-  .hojas-ruta-sample-mode-cards button.is-active,
   .hojas-ruta-mode-switch button.is-active,
-  .hojas-ruta-method-selector button.is-active,
-  .hojas-ruta-route-jump-options button.is-active,
   .hojas-ruta-delivery-tabs button.is-active
 ) {
   border-color: color-mix(in srgb, var(--module-accent) 88%, #111827);
@@ -6946,10 +6889,6 @@
     linear-gradient(180deg, color-mix(in srgb, var(--module-accent) 82%, #fff 18%), color-mix(in srgb, var(--module-accent) 94%, #111827 6%));
   color: #fff;
   box-shadow: var(--routes-active-shadow);
-}
-
-.hojas-ruta-frame .hojas-ruta-route-jump-options button.is-active small {
-  color: white;
 }
 
 .hojas-ruta-frame .hojas-ruta-phase-header .hojas-ruta-phase-tabs {
@@ -6961,6 +6900,8 @@
   border-radius: 14px;
 }
 
+/* Canon de selección: tinte suave plano + borde 1.5px del módulo, sin
+   gradientes, sin insets dobles y sin sombras difusas. */
 .hojas-ruta-frame :is(
   .hojas-ruta-sample-tabs button.is-active,
   .hojas-ruta-design-presets button.is-active,
@@ -6971,15 +6912,114 @@
   .hojas-ruta-age-preset-row button.is-active,
   .hojas-ruta-age-row button.is-active,
   .hojas-ruta-sample-result-breakdown > div.is-bind.is-active,
-  .hojas-ruta-manual-results button.is-active
+  .hojas-ruta-manual-results button.is-active,
+  .hojas-ruta-route-jump-options button.is-active,
+  .hojas-ruta-random-options button.is-active,
+  .hojas-ruta-sample-mode-cards button.is-active,
+  .hojas-ruta-segmented button.is-active
 ) {
-  border-color: color-mix(in srgb, var(--module-accent) 72%, var(--module-accent-border));
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--module-accent-soft) 82%, #fff), rgba(255, 255, 255, 0.92));
-  color: color-mix(in srgb, var(--module-accent) 82%, #111827);
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--module-accent) 18%, transparent),
-    0 6px 14px rgba(124, 45, 18, 0.08);
+  border-color: var(--module-accent);
+  background: var(--module-accent-soft);
+  color: var(--pulso-text);
+  box-shadow: inset 0 0 0 0.5px var(--module-accent);
+}
+
+/* Thumbs sin borde propio (segmented y cards en bandeja): el anillo hace de
+   borde 1.5px completo. */
+.hojas-ruta-frame :is(.hojas-ruta-sample-mode-cards, .hojas-ruta-segmented) button.is-active {
+  box-shadow: inset 0 0 0 1.5px var(--module-accent);
+}
+
+/* Segmented activo: tinte + anillo + texto en acento (dos señales mínimas). */
+.hojas-ruta-frame :is(
+  .hojas-ruta-age-preset-row button.is-active,
+  .hojas-ruta-segmented button.is-active,
+  .hojas-ruta-random-options button.is-active
+) {
+  color: color-mix(in srgb, var(--module-accent) 78%, var(--pulso-text));
+}
+
+/* Título del estado seleccionado en acento oscurecido (AA sobre el tinte). */
+.hojas-ruta-frame :is(
+  .hojas-ruta-design-presets button.is-active,
+  .hojas-ruta-n-choice-card.is-active,
+  .hojas-ruta-allocation-cards button.is-active,
+  .hojas-ruta-age-method-row button.is-active,
+  .hojas-ruta-age-scope-row button.is-active,
+  .hojas-ruta-manual-results button.is-active,
+  .hojas-ruta-route-jump-options button.is-active,
+  .hojas-ruta-sample-mode-cards button.is-active
+) strong {
+  color: color-mix(in srgb, var(--module-accent) 78%, var(--pulso-text));
+}
+
+/* Texto descriptivo del seleccionado: tinta suave legible, nunca acento.
+   Sobre el tinte peach del acento, --pulso-text-soft cae a ~4.46:1 (bajo AA);
+   se oscurece un paso hacia Tinta para librar AA con holgura (~6.7:1) sin
+   igualar la prominencia del título. */
+.hojas-ruta-frame :is(
+  .hojas-ruta-age-method-row button.is-active,
+  .hojas-ruta-age-scope-row button.is-active,
+  .hojas-ruta-sample-mode-cards button.is-active,
+  .hojas-ruta-allocation-cards button.is-active,
+  .hojas-ruta-design-presets button.is-active
+) span,
+.hojas-ruta-frame :is(
+  .hojas-ruta-manual-results button.is-active,
+  .hojas-ruta-route-jump-options button.is-active
+) small {
+  color: color-mix(in srgb, var(--pulso-text) 35%, var(--pulso-text-soft));
+}
+
+/* Señal física adicional del canon: check discreto en la esquina superior. */
+.hojas-ruta-frame :is(
+  .hojas-ruta-n-choice-card,
+  .hojas-ruta-age-method-row button,
+  .hojas-ruta-age-scope-row button,
+  .hojas-ruta-sample-mode-cards button,
+  .hojas-ruta-allocation-cards button,
+  .hojas-ruta-design-presets button
+) {
+  position: relative;
+  padding-right: 24px;
+}
+
+.hojas-ruta-frame :is(
+  .hojas-ruta-n-choice-card.is-active,
+  .hojas-ruta-age-method-row button.is-active,
+  .hojas-ruta-age-scope-row button.is-active,
+  .hojas-ruta-sample-mode-cards button.is-active,
+  .hojas-ruta-allocation-cards button.is-active,
+  .hojas-ruta-design-presets button.is-active
+)::after {
+  content: "";
+  position: absolute;
+  top: 11px;
+  right: 10px;
+  width: 8px;
+  height: 4px;
+  border-left: 2px solid var(--module-accent);
+  border-bottom: 2px solid var(--module-accent);
+  transform: rotate(-45deg);
+  pointer-events: none;
+}
+
+/* El indicador gliding compartido no pinta relleno en grupos de selección:
+   el estado vive en el propio control (evita el doble relleno "inflado"). */
+.hojas-ruta-frame :is(
+  .hojas-ruta-age-method-row,
+  .hojas-ruta-age-scope-row,
+  .hojas-ruta-sample-mode-cards,
+  .hojas-ruta-segmented,
+  .hojas-ruta-allocation-cards,
+  .hojas-ruta-method-selector,
+  .hojas-ruta-route-jump-options,
+  .hojas-ruta-random-options,
+  .hojas-ruta-action-row
+) {
+  --pulso-gliding-indicator-bg: transparent;
+  --pulso-gliding-indicator-border: transparent;
+  --pulso-gliding-indicator-shadow: none;
 }
 
 .hojas-ruta-frame :is(
@@ -7009,24 +7049,11 @@
     0 8px 18px rgba(124, 45, 18, 0.17);
 }
 
-.hojas-ruta-frame .hojas-ruta-sample-mode-cards button.is-active {
-  border-color: color-mix(in srgb, var(--module-accent) 70%, var(--module-accent-border));
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--module-accent-soft) 82%, #fff), rgba(255, 255, 255, 0.94));
-  color: color-mix(in srgb, var(--module-accent) 82%, #111827);
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--module-accent) 18%, transparent),
-    0 6px 14px rgba(124, 45, 18, 0.08);
-}
-
 .hojas-ruta-frame .hojas-ruta-method-selector button.is-active {
   border-color: color-mix(in srgb, var(--method-accent) 72%, var(--module-accent-border));
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--method-accent) 9%, #fff), rgba(255, 255, 255, 0.96));
+  background: color-mix(in srgb, var(--method-accent) 9%, #fff);
   color: var(--pulso-text);
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--method-accent) 24%, transparent),
-    0 8px 18px rgba(15, 23, 42, 0.06);
+  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--method-accent) 72%, var(--module-accent-border));
 }
 
 .hojas-ruta-frame .hojas-ruta-method-selector button.is-active strong {
@@ -7035,10 +7062,4 @@
 
 .hojas-ruta-frame .hojas-ruta-method-selector button.is-active span {
   color: #405066;
-}
-
-@media (max-width: 720px) {
-  .hojas-ruta-command-readiness .hojas-ruta-readiness-item {
-    width: auto;
-  }
 }
