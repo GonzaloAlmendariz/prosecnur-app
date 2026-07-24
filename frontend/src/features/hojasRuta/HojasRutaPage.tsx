@@ -7103,6 +7103,19 @@ export default function HojasRutaPage() {
     if (nextIndex != null) selectRouteStartCorner(routeStartCornerOptions[nextIndex].key);
   }
 
+  function selectRouteJumpMode(nextMode: HojasRutaRouteJumpMode) {
+    if (nextMode !== routeJumpMode) patchConfig({ route_jump_mode: nextMode });
+  }
+
+  function selectRouteJumpModeFromKey(key: string, itemIndex: number) {
+    let nextIndex: number | null = null;
+    if (key === "Home") nextIndex = 0;
+    else if (key === "End") nextIndex = routeJumpModeOptions.length - 1;
+    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % routeJumpModeOptions.length;
+    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + routeJumpModeOptions.length) % routeJumpModeOptions.length;
+    if (nextIndex != null) selectRouteJumpMode(routeJumpModeOptions[nextIndex].key);
+  }
+
   function toggleDraftTerritory(ubigeo: string) {
     const set = new Set(draftTerritories);
     if (set.has(ubigeo)) set.delete(ubigeo);
@@ -8414,21 +8427,23 @@ export default function HojasRutaPage() {
                         </div>
                         <div className="hojas-ruta-route-jump-group">
                           <span>Constante de salto</span>
-                          <div className="hojas-ruta-route-jump-options" role="radiogroup" aria-label="Constante de salto">
-                            {routeJumpModeOptions.map((option) => (
+                          <GlidingTabList activeKey={routeJumpMode} mode="tabs" className="hojas-ruta-route-jump-options" role="radiogroup" aria-label="Constante de salto">
+                            {routeJumpModeOptions.map((option, itemIndex) => (
                               <button
                                 key={option.key}
                                 type="button"
                                 role="radio"
+                                data-gliding-key={option.key}
                                 aria-checked={routeJumpMode === option.key}
                                 className={routeJumpMode === option.key ? "is-active" : ""}
-                                onClick={() => patchConfig({ route_jump_mode: option.key })}
+                                onClick={() => selectRouteJumpMode(option.key)}
+                                onKeyDown={(event) => selectRouteJumpModeFromKey(event.key, itemIndex)}
                               >
                                 <strong>{option.label}</strong>
                                 <small>{option.hint}</small>
                               </button>
                             ))}
-                          </div>
+                          </GlidingTabList>
                         </div>
                         <Field label="Salto manual">
                           <NumericInput
