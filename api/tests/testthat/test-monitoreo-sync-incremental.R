@@ -911,7 +911,13 @@ test_that("3.10c: Avance con delta > 0 => details antes del flatten y enrichment
   responses <- .msi_sm_responses(300L)
   source <- list(
     id = "surveymonkey_900100", kind = "surveymonkey", survey_id = "900100",
-    enabled = TRUE, sync_cursor = list(sm_modified_at = responses[[296L]]$date_modified)
+    enabled = TRUE, sync_cursor = list(sm_modified_at = responses[[296L]]$date_modified),
+    # Fuente en régimen: collectors ya persistidos (3.10e siembra en el primer
+    # avance de una fuente SIN collectors; ese caso tiene su propio test).
+    collectors = list(list(
+      collector_id = "col-310c", name = "Web Link 1", type = "weblink",
+      synced_at = "2026-07-01T00:00:00Z"
+    ))
   )
   mock1 <- .msi_sm_full_mock(responses)
   .msi_sm_full_mock_bindings(mock1$handler)
@@ -937,7 +943,8 @@ test_that("3.10c: Avance con delta > 0 => details antes del flatten y enrichment
   # ...y el enrichment de destinatarios corrió después del flatten.
   expect_gte(mock2$env$recipients, 1L)
   expect_equal(data2$recipient_email, "fixture-310c@example.org")
-  # Modo avance: la metadata de collectors sigue sin pedirse (igual que antes).
+  # Modo avance en régimen (collectors persistidos): la metadata de
+  # collectors sigue sin pedirse (igual que antes).
   expect_identical(mock2$env$collectors, 0L)
   cursor2 <- attr(data2, "sync_cursor", exact = TRUE)
   expect_identical(cursor2$fetched_count, 1L)
@@ -1314,51 +1321,182 @@ test_that("el formato no congela la unica fila visible de una pestaña solo-head
   expect_identical(frozen2, 1L)
 })
 
-# --- 3.10d: la hidratación de collectors NO hace red en un avance sin filas
-# nuevas (el on_complete corre dentro del event loop de plumber: cada request
-# síncrono ahí congela TODAS las respuestas HTTP; forense: 37s por avance).
+# --- 3.10e: el on_complete NUNCA hace red por collectors (full NI avance).
+# Corre dentro del event loop de plumber: cada request síncrono ahí congela
+# TODAS las respuestas HTTP (forense 3.11: ~33s por sync full de CONTA con 4
+# fuentes SM sin collectors persistidos). El worker es el ÚNICO que baja
+# collectors; el on_complete solo los persiste — y el merge ya no los pierde
+# (modifyList no actualiza listas sin nombre: causa raíz del re-pago).
 
-test_that("hidratación de collectors se salta el avance incremental con delta 0", {
+.msi_sm_oncomplete_session <- function(collectors = list()) {
+  sid <- session_create()
+  data <- data.frame(
+    response_id = c("r1", "r2"),
+    enumerador = c("Ana", "Luis"),
+    estado = rep("completed", 2L),
+    fecha = rep("2026-07-01T10:00:00Z", 2L),
+    duracion = rep(600, 2L),
+    .source_id = rep("surveymonkey_900100", 2L),
+    .source_kind = rep("surveymonkey", 2L),
+    .source_label = rep("SM", 2L),
+    stringsAsFactors = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    id_var = "response_id",
+    enumerator_var = "enumerador",
+    date_var = "fecha",
+    duration_var = "duracion",
+    status_var = "estado",
+    valid_statuses = c("completed")
+  ), data)
+  session_set(sid, "monitoreo_config", cfg)
+  session_set(sid, "monitoreo_sources", list(list(
+    id = "surveymonkey_900100", kind = "surveymonkey", label = "SM",
+    enabled = TRUE, survey_id = "900100", collectors = collectors
+  )))
+  session_set(sid, "monitoreo_snapshot", list(
+    data = data, config = cfg, synced_at = "2026-07-20T00:00:00Z"
+  ))
+  sid
+}
+
+# Resultado de worker full para la fuente SM; collectors/collectors_error
+# simulan lo que el worker adjunta vía attrs y el loop del engine copia.
+.msi_sm_full_result <- function(sid, mode = "full", collectors = NULL, collectors_error = "") {
+  s <- session_get(sid)
+  data <- s$monitoreo_snapshot$data
+  source <- list(
+    id = "surveymonkey_900100", kind = "surveymonkey", label = "SM",
+    enabled = TRUE, survey_id = "900100"
+  )
+  if (!is.null(collectors)) source$collectors <- collectors
+  if (nzchar(collectors_error)) source$collectors_error <- collectors_error
+  list(
+    ok = TRUE,
+    synced_at = "2026-07-21T00:00:00Z",
+    n_rows = nrow(data),
+    n_sources = 1L,
+    errors = list(),
+    data = data,
+    sources = list(source),
+    sync_summary = list(surveymonkey_900100 = list(
+      source_id = "surveymonkey_900100", kind = "surveymonkey", mode = mode,
+      rows = nrow(data), cursor = list()
+    )),
+    config = s$monitoreo_config
+  )
+}
+
+.msi_collectors_fixture <- function() {
+  list(list(
+    id = "col_web_1", collector_id = "col_web_1", name = "Web Link 1",
+    type = "weblink", url = "https://sm.example/colweb1",
+    response_count = 2L, synced_at = "2026-07-21T00:00:00Z"
+  ))
+}
+
+test_that("3.10e: los collectors del worker sobreviven al merge y persisten en la sesion", {
+  sid <- .msi_sm_oncomplete_session(collectors = list())
+  on.exit(session_delete(sid), add = TRUE)
   fetches <- 0L
   testthat::local_mocked_bindings(
-    .monitoreo_fetch_surveymonkey_collectors_for_source = function(sid, source) {
+    .sm_api_http_fetch = function(url, handle) {
       fetches <<- fetches + 1L
-      stop("red prohibida en este contrato")
+      stop("red prohibida en el on_complete")
     }
   )
-  fuentes <- list(list(
-    id = "surveymonkey_x", kind = "surveymonkey", label = "X",
-    enabled = TRUE, role = "respuestas", collectors = list()
-  ))
-  resumen <- list(surveymonkey_x = list(
-    mode = "incremental", rows = 0L, cursor = list(fetched_count = 0L)
-  ))
-  out <- .monitoreo_hydrate_missing_surveymonkey_collectors(
-    "sid-falso", fuentes, synced_source_ids = "surveymonkey_x", sync_summary = resumen
-  )
+  result <- .msi_sm_full_result(sid, mode = "full", collectors = .msi_collectors_fixture())
+  payload <- monitoreo_sync_apply_deferred(sid, result, sync_mode = "full")
+  expect_true(isTRUE(payload$ok))
+  # Cero red en main: los collectors llegaron del worker y NO se re-pagan.
   expect_identical(fetches, 0L)
-  expect_length(out, 1L)
+  fuentes <- session_get(sid)$monitoreo_sources
+  guardados <- .monitoreo_normalize_source_collectors(fuentes[[1]]$collectors)
+  expect_length(guardados, 1L)
+  expect_identical(guardados[[1]]$collector_id, "col_web_1")
+  expect_identical(guardados[[1]]$name, "Web Link 1")
 })
 
-test_that("hidratación de collectors sí corre en full con filas", {
+test_that("3.10e: full sin collectors del worker => warning con causa y CERO red en main", {
+  sid <- .msi_sm_oncomplete_session(collectors = list())
+  on.exit(session_delete(sid), add = TRUE)
   fetches <- 0L
   testthat::local_mocked_bindings(
-    .monitoreo_fetch_surveymonkey_collectors_for_source = function(sid, source) {
+    .sm_api_http_fetch = function(url, handle) {
       fetches <<- fetches + 1L
-      list()
+      stop("red prohibida en el on_complete")
     }
   )
-  fuentes <- list(list(
-    id = "surveymonkey_x", kind = "surveymonkey", label = "X",
-    enabled = TRUE, role = "respuestas", collectors = list()
-  ))
-  resumen <- list(surveymonkey_x = list(
-    mode = "full", rows = 25L, cursor = list(fetched_count = 25L)
-  ))
-  invisible(.monitoreo_hydrate_missing_surveymonkey_collectors(
-    "sid-falso", fuentes, synced_source_ids = "surveymonkey_x", sync_summary = resumen
-  ))
-  expect_identical(fetches, 1L)
+  result <- .msi_sm_full_result(
+    sid, mode = "full", collectors = list(),
+    collectors_error = "HTTP 429 en /collectors"
+  )
+  expect_warning(
+    payload <- monitoreo_sync_apply_deferred(sid, result, sync_mode = "full"),
+    "sin collectors tras un sync completo.*HTTP 429"
+  )
+  expect_true(isTRUE(payload$ok))
+  expect_identical(fetches, 0L)
+  # La fuente queda sin collectors (el proximo sync los reintenta en worker).
+  fuentes <- session_get(sid)$monitoreo_sources
+  expect_length(.monitoreo_normalize_source_collectors(fuentes[[1]]$collectors), 0L)
+})
+
+test_that("3.10e: el avance tampoco hace red por collectors en el on_complete", {
+  sid <- .msi_sm_oncomplete_session(collectors = list())
+  on.exit(session_delete(sid), add = TRUE)
+  fetches <- 0L
+  testthat::local_mocked_bindings(
+    .sm_api_http_fetch = function(url, handle) {
+      fetches <<- fetches + 1L
+      stop("red prohibida en el on_complete")
+    }
+  )
+  result <- .msi_sm_full_result(sid, mode = "incremental")
+  payload <- monitoreo_sync_apply_deferred(sid, result, sync_mode = "advance")
+  expect_true(isTRUE(payload$ok))
+  expect_identical(fetches, 0L)
+})
+
+test_that("3.10e: el primer avance de una fuente sin collectors los siembra EN EL WORKER", {
+  responses <- .msi_sm_responses(30L)
+  mock <- .msi_sm_bulk_mock(responses, honor_cursor = TRUE)
+  collector_list_calls <- 0L
+  testthat::local_mocked_bindings(
+    .sm_api_http_fetch = mock$handler,
+    sm_api_fetch_survey_details = function(survey_id, token, base_url = NULL) .msi_sm_details_fixture(),
+    sm_api_fetch_collectors = function(survey_id, token, base_url = NULL) {
+      collector_list_calls <<- collector_list_calls + 1L
+      list(data = list(list(
+        id = "col_web_1", name = "Web Link 1", type = "weblink",
+        url = "https://sm.example/colweb1", response_count = 30L
+      )))
+    },
+    sm_api_fetch_collector_detail = function(collector_id, token, base_url = NULL) {
+      list(id = collector_id, name = "Web Link 1", type = "weblink",
+           url = "https://sm.example/colweb1", response_count = 30L)
+    }
+  )
+  fuente_sin <- list(
+    id = "surveymonkey_900100", kind = "surveymonkey",
+    survey_id = "900100", enabled = TRUE
+  )
+  df <- .monitoreo_sm_sync_attempt(
+    source = fuente_sin, advance_mode = TRUE, token = "tok-fixture-sanitizado"
+  )
+  expect_identical(collector_list_calls, 1L)
+  meta <- .monitoreo_normalize_source_collectors(attr(df, "monitoreo_source_collectors", exact = TRUE))
+  expect_length(meta, 1L)
+  expect_identical(meta[[1]]$collector_id, "col_web_1")
+
+  # En regimen (collectors ya persistidos) el avance NO vuelve a pedirlos.
+  fuente_con <- fuente_sin
+  fuente_con$collectors <- meta
+  df2 <- .monitoreo_sm_sync_attempt(
+    source = fuente_con, advance_mode = TRUE, token = "tok-fixture-sanitizado"
+  )
+  expect_identical(collector_list_calls, 1L)
+  expect_null(attr(df2, "monitoreo_source_collectors", exact = TRUE))
 })
 
 # --- I. Unidad 3.11: Avance con delta real = merge + guardar; dashboards lazy -
