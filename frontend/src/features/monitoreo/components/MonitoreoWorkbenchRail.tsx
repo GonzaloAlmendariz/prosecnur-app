@@ -178,7 +178,6 @@ export function MonitoreoWorkbenchRail({
                 role="tab"
                 data-gliding-key={tab.key}
                 aria-selected={active}
-                aria-current={active ? "page" : undefined}
                 aria-label={`${tab.label}: ${tab.detail}`}
                 title={`${tab.label}: ${tab.detail}`}
                 className={`mon-nav-item is-${activeView}-${tab.key}${active ? " is-active" : ""}`}
