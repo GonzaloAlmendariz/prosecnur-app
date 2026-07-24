@@ -18135,7 +18135,7 @@ function acreditacionRailAdvanceStats(state: MonitoreoState | null, reports: Mon
   };
 }
 
-function localTabsForAcreditacionView(
+export function localTabsForAcreditacionView(
   view: WorkbenchView,
   state: MonitoreoState | null,
   reports: MonitoreoAcreditacionReports | null,
@@ -18144,7 +18144,13 @@ function localTabsForAcreditacionView(
   const isPhoneRoute = route.family === "telefonico" || isTelefonicoMonitoreoState(state);
   const sourceStats = acreditacionRailSourceStats(state, reports);
   const modelStats = acreditacionRailModelStats(state, reports);
-  const phoneStats = isPhoneRoute ? acreditacionRailPhoneStats(state, reports) : null;
+  // La ruta de acreditación posee legítimamente la sección Teléfono: sus
+  // pestañas no pueden depender de que la familia sea "telefonico" (gate de
+  // 0.5.1 que dejaba el rail VACÍO en proyectos de acreditación aunque el
+  // backend traiga los bloques monitoreo_telefonico completos).
+  const phoneStats = isPhoneRoute || view === "telefonico"
+    ? acreditacionRailPhoneStats(state, reports)
+    : null;
   const advanceStats = acreditacionRailAdvanceStats(state, reports);
 
   if (view === "fuentes") {
