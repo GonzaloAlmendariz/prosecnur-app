@@ -274,7 +274,14 @@
   survey_title <- .monitoreo_scalar(details$title, source$survey_title %||% "")
   collector_sync_error <- ""
   collectors_meta <- list()
-  if (!isTRUE(advance_mode)) {
+  # 3.10e: el sync completo SIEMPRE trae collectors; un avance los siembra UNA
+  # vez cuando la fuente no los tiene persistidos (CONTA vivía en avance
+  # perpetuo con collectors=0). Siempre EN EL WORKER: el on_complete de main
+  # tiene prohibida la red. El early-return de delta 0 (arriba) no cambia:
+  # cero requests adicionales sigue fijado por test.
+  needs_collectors <- !isTRUE(advance_mode) ||
+    !length(.monitoreo_normalize_source_collectors(source$collectors %||% list()))
+  if (isTRUE(needs_collectors)) {
     collectors_meta <- tryCatch(
       .monitoreo_sm_collectors_meta(source$survey_id, token, base_url),
       error = function(e) {
@@ -292,7 +299,7 @@
     base_url = base_url,
     include_details = !isTRUE(advance_mode)
   )
-  if (!isTRUE(advance_mode)) {
+  if (isTRUE(needs_collectors)) {
     attr(df, "monitoreo_source_collectors") <- collectors_meta
     if (nzchar(collector_sync_error)) attr(df, "monitoreo_source_collectors_error") <- collector_sync_error
   }
@@ -300,7 +307,8 @@
   df
 }
 
-# Metadata de colectores (solo sync completo; el modo avance nunca la pide).
+# Metadata de colectores (sync completo y primer avance de una fuente sin
+# collectors persistidos — 3.10e; el avance en régimen nunca la pide).
 # Movida SIN cambios funcionales desde el bloque SM del engine congelado
 # (unidad 3.10c); el orden relativo details→collectors se conserva.
 .monitoreo_sm_collectors_meta <- function(survey_id, token, base_url) {
@@ -705,6 +713,42 @@ monitoreo_sync_snapshot_artifacts_light <- function(data,
   )
 }
 
+# 3.10e: reemplazo SIN RED de la hidratación de collectors que vivía en el
+# router. Una fuente SM sincronizada en full que quedó sin collectors implica
+# que el fetch del worker falló (la causa viaja en collectors_error); se deja
+# constancia y el próximo sync la reintenta en el worker — jamás en main.
+.monitoreo_sync_warn_missing_sm_collectors <- function(sources,
+                                                       synced_source_ids = character(0),
+                                                       sync_summary = list(),
+                                                       raw_sources = list()) {
+  synced_source_ids <- as.character(synced_source_ids %||% character(0))
+  # monitoreo_normalize_sources descarta collectors_error: la causa hay que
+  # leerla de las fuentes CRUDAS que devolvió el worker.
+  raw_errors <- list()
+  for (raw in raw_sources %||% list()) {
+    if (!is.list(raw)) next
+    rid <- .monitoreo_scalar(raw$id, "")
+    causa_raw <- .monitoreo_scalar(raw$collectors_error, "")
+    if (nzchar(rid) && nzchar(causa_raw)) raw_errors[[rid]] <- causa_raw
+  }
+  for (source in sources %||% list()) {
+    if (!identical(.monitoreo_scalar(source$kind, ""), "surveymonkey")) next
+    source_id <- .monitoreo_scalar(source$id, "")
+    if (length(synced_source_ids) && !source_id %in% synced_source_ids) next
+    summary <- (sync_summary %||% list())[[source_id]] %||% list()
+    if (!identical(.monitoreo_scalar(summary$mode, ""), "full")) next
+    if (length(.monitoreo_normalize_source_collectors(source$collectors %||% list()))) next
+    causa <- .monitoreo_scalar(source$collectors_error, "")
+    if (!nzchar(causa)) causa <- .monitoreo_scalar(raw_errors[[source_id]], "")
+    if (!nzchar(causa)) causa <- "el worker no devolvio collectors"
+    warning(sprintf(
+      "Fuente SurveyMonkey %s sin collectors tras un sync completo (%s); se reintentara en el proximo sync sin bloquear el event loop.",
+      source_id, causa
+    ), call. = FALSE)
+  }
+  invisible(NULL)
+}
+
 # on_complete de /api/monitoreo/sync (el router lo llama con una línea).
 # Réplica del flujo histórico HASTA el no-op check inclusive; de ahí en
 # adelante difiere dashboard/artefactos pesados según el censo de arriba.
@@ -751,7 +795,7 @@ monitoreo_sync_apply_deferred <- function(sid, result, sync_mode = "full", repor
   session_set(sid, "monitoreo_config", result$config)
   .monitoreo_sync_oncomplete_log("normalize", t_fase)
 
-  # -- sources: cursores, last_sync_at e hidratación de colectores ------------
+  # -- sources: cursores, last_sync_at y collectors traídos por el worker -----
   t_fase <- Sys.time()
   s_now <- session_get(sid)
   synced_sources <- monitoreo_normalize_sources(result$sources %||% list())
@@ -763,7 +807,17 @@ monitoreo_sync_apply_deferred <- function(sid, result, sync_mode = "full", repor
       if (!nzchar(sid_src)) next
       idx <- match(sid_src, source_ids_now)
       if (!is.na(idx) && is.finite(idx) && idx > 0L) {
-        sources_now[[idx]] <- utils::modifyList(sources_now[[idx]], src)
+        merged <- utils::modifyList(sources_now[[idx]], src)
+        # 3.10e (causa raíz del re-pago de red en full): modifyList NO
+        # actualiza componentes sin nombre y los collectors normalizados
+        # viajan unname() — la recursión modifyList(collectors_viejos,
+        # collectors_nuevos_sin_nombre) devolvía la lista vieja (vacía en
+        # CONTA) y los collectors recién bajados por el worker se perdían.
+        # Se re-aplican explícitos; con lista vacía del worker se conserva
+        # lo persistido (mismo criterio "solo completa faltantes" de antes).
+        worker_collectors <- .monitoreo_normalize_source_collectors(src$collectors %||% list())
+        if (length(worker_collectors)) merged$collectors <- worker_collectors
+        sources_now[[idx]] <- merged
       } else {
         sources_now[[length(sources_now) + 1L]] <- src
         source_ids_now <- c(source_ids_now, sid_src)
@@ -776,11 +830,17 @@ monitoreo_sync_apply_deferred <- function(sid, result, sync_mode = "full", repor
     if (src$id %in% ids) src$last_sync_at <- result$synced_at
     src
   })
-  sources_now <- .monitoreo_hydrate_missing_surveymonkey_collectors(
-    sid,
+  # 3.10e: el on_complete NUNCA hace red por collectors (corre dentro del
+  # event loop de plumber: cada request síncrono congela TODAS las respuestas
+  # HTTP; forense 3.11: ~33s por sync full de CONTA). El worker ya los baja en
+  # full — y ahora sobreviven al merge de arriba. Si aun así faltan (el fetch
+  # del worker falló), se advierte con la causa y el próximo sync los
+  # reintenta EN EL WORKER.
+  .monitoreo_sync_warn_missing_sm_collectors(
     sources_now,
     synced_source_ids = ids,
-    sync_summary = result$sync_summary %||% list()
+    sync_summary = result$sync_summary %||% list(),
+    raw_sources = result$sources %||% list()
   )
   session_set(sid, "monitoreo_sources", sources_now)
   dashboard_data <- .monitoreo_apply_source_metadata_to_data(combined_data, sources_now)

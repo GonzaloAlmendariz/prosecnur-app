@@ -5606,27 +5606,12 @@ monitoreo_production_report_pdf_job_runner <- function(model_path,
   list()
 }
 
-.monitoreo_hydrate_missing_surveymonkey_collectors <- function(sid, sources, synced_source_ids = character(0), sync_summary = list()) {
-  sources <- monitoreo_normalize_sources(sources)
-  if (!length(sources)) return(sources)
-  synced_source_ids <- as.character(synced_source_ids %||% character(0))
-  for (i in seq_along(sources)) {
-    source <- sources[[i]]
-    source_id <- .monitoreo_scalar(source$id, "")
-    if (!identical(.monitoreo_scalar(source$kind, ""), "surveymonkey")) next
-    if (length(synced_source_ids) && !source_id %in% synced_source_ids) next
-    summary <- (sync_summary %||% list())[[source_id]] %||% list()
-    # Un avance no trae collectors del worker y con cursor reporta mode
-    # "incremental": hidratar aca implica red sincrona DENTRO del event loop
-    # (congela todas las respuestas HTTP; forense 3.10d: 37s por avance).
-    # Solo un sync full con filas justifica pagar la red en el on_complete.
-    if (.monitoreo_scalar(summary$mode, "") %in% c("advance", "incremental")) next
-    if (length(.monitoreo_normalize_source_collectors(source$collectors %||% list()))) next
-    collectors <- .monitoreo_fetch_surveymonkey_collectors_for_source(sid, source)
-    if (length(collectors)) sources[[i]]$collectors <- collectors
-  }
-  sources
-}
+# 3.10e: la hidratación de collectors que vivía aquí se eliminó — hacía red
+# SM síncrona DENTRO del event loop (forense 3.11: ~33s por sync full de
+# CONTA). Los collectors los baja SIEMPRE el worker (sync completo y primer
+# avance de una fuente sin collectors) y el on_complete solo los persiste;
+# ver .monitoreo_sm_sync_attempt y .monitoreo_sync_warn_missing_sm_collectors
+# en monitoreo_sync_incremental.R.
 
 .monitoreo_acreditacion_apply_case_reconciliation <- function(data, config = list(), payload = list()) {
   if (!is.list(payload)) payload <- list()
