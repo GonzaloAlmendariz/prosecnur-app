@@ -12,6 +12,7 @@ import {
   moduleChromeVars,
 } from "../lib/modules";
 import { ModuleNavigationRuntimeProvider } from "../lib/moduleNavigationRuntime";
+import { ModulePickerHost } from "../features/home/ModulePickerHost";
 import ModuleWarmupBoundary, { RouteLoadingFallback } from "./ModuleWarmupBoundary";
 import { GlidingTabList } from "../components/GlidingTabList";
 import { MultibaseReportMenu } from "../features/graficos/MultibaseReportMenu";
@@ -39,6 +40,15 @@ const PROCESAMIENTO_PATHS = [
 ];
 
 const MODULE_SWITCHER_ITEMS = PROSECNUR_PRIMARY_ACTIVE_MODULES;
+
+// Añade `agregar=1` a los params actuales sin perder los demás. El selector de
+// módulos se abre sobre la ruta ACTUAL (lo materializa <ModulePickerHost/>),
+// nunca saltando a `/`.
+function withAgregar(search: string): string {
+  const params = new URLSearchParams(search);
+  params.set("agregar", "1");
+  return `?${params.toString()}`;
+}
 
 function isProcesamientoRoute(pathname: string): boolean {
   return PROCESAMIENTO_PATHS.some(
@@ -266,7 +276,7 @@ function ModuleSwitcher() {
         })}
         <li className="pulso-module-dock-item">
           <NavLink
-            to="/?agregar=1"
+            to={{ pathname: location.pathname, search: withAgregar(location.search) }}
             className="pulso-module-tile pulso-module-tile-add"
             aria-label="Agregar módulo"
             title="Agregar módulo"
@@ -595,6 +605,7 @@ export default function Layout() {
   return (
     <ModuleNavigationRuntimeProvider>
       <div className="pulso-shell">{canvas}</div>
+      <ModulePickerHost />
     </ModuleNavigationRuntimeProvider>
   );
 }

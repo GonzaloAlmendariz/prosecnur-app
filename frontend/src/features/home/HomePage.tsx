@@ -1,5 +1,4 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import { Power, Settings2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useLayoutPreset } from "../../lib/layoutPreference";
@@ -9,7 +8,6 @@ import { useProjectModules } from "../project/ProjectModulesContext";
 import { GlobalSettingsDialog } from "./GlobalSettingsDialog";
 import { MissionControl, type ProcState } from "./MissionControl";
 import { ModuleCarousel } from "./ModuleCarousel";
-import { ModulePickerDialog } from "./ModulePickerDialog";
 import { RELEASE_NOTES } from "./releaseNotes";
 import "./home-v2.css";
 
@@ -79,7 +77,6 @@ export default function HomePage() {
   const proc = useProcesamientoState();
   const [layoutPreset] = useLayoutPreset();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
   const { overview, loading, addedSlugs, addModule, removeModule } = useProjectModules();
 
   useEffect(() => {
@@ -87,18 +84,7 @@ export default function HomePage() {
     if (params.get("settings") === "connections" || params.get("settings") === "configuracion") {
       setSettingsOpen(true);
     }
-    if (params.get("agregar") === "1") setPickerOpen(true);
   }, [location.search]);
-
-  useEffect(() => {
-    if (!pickerOpen) return;
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") closePicker();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pickerOpen]);
 
   const hasModules = addedSlugs.length > 0;
 
@@ -111,13 +97,13 @@ export default function HomePage() {
     [addedSlugs, addModule, removeModule],
   );
 
-  function closePicker() {
-    setPickerOpen(false);
+  // El selector de módulos es un overlay global (<ModulePickerHost/> en el
+  // Layout) disparado por `?agregar=1` sobre la ruta actual. Desde el home la
+  // ruta es `/`; preservamos los params existentes al abrirlo.
+  function openPicker() {
     const params = new URLSearchParams(location.search);
-    if (params.has("agregar")) {
-      params.delete("agregar");
-      navigate({ pathname: "/", search: params.toString() ? `?${params.toString()}` : "" }, { replace: true });
-    }
+    params.set("agregar", "1");
+    navigate({ pathname: location.pathname, search: `?${params.toString()}` });
   }
 
   let content: ReactNode;
@@ -130,7 +116,7 @@ export default function HomePage() {
           overview={overview}
           proc={proc}
           addedSlugs={addedSlugs}
-          onAddModule={() => setPickerOpen(true)}
+          onAddModule={openPicker}
           onRemoveModule={removeModule}
         />
       </div>
@@ -166,11 +152,6 @@ export default function HomePage() {
         pulsoName={PULSO_FULL_NAME}
         onClose={() => setSettingsOpen(false)}
       />
-
-      {pickerOpen && createPortal(
-        <ModulePickerDialog picker={picker} onClose={closePicker} />,
-        document.body,
-      )}
     </div>
   );
 }
