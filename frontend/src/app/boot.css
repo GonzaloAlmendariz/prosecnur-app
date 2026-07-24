@@ -13,8 +13,10 @@
   --pulso-text-faint: #8792a2;
   --pulso-shadow-high: 0 24px 60px rgba(0, 36, 87, 0.14);
   --pulso-info-bg: rgba(0, 36, 87, 0.04);
-  --pulso-info-border: rgba(0, 36, 87, 0.18);
-  --pulso-info-fg: #002457;
+  /* Derivados del primario, como en theme.css. Antes eran los mismos valores
+     escritos a mano: resolvían igual, pero nada ataba uno a otro. */
+  --pulso-info-border: var(--pulso-primary-border);
+  --pulso-info-fg: var(--pulso-primary);
   --pulso-danger-bg: #fef2f2;
   --pulso-danger-border: #fecaca;
   --pulso-danger-fg: #991b1b;
@@ -59,8 +61,11 @@
   --pulso-module-monitoring: #be123c;
   --pulso-module-monitoring-soft: rgba(190, 18, 60, 0.12);
   --pulso-module-monitoring-border: rgba(190, 18, 60, 0.3);
-  --pulso-warn-fg: #92400e;
-  --pulso-warn-border: rgba(217, 119, 6, 0.4);
+  /* Alineados a theme.css: eran #92400e y rgba(217,119,6,.4), que daban un
+     ámbar distinto al de la app (ΔE76 14,0 en el texto, perceptible). El
+     BootGate mostraba sus avisos en otro color que el resto del producto. */
+  --pulso-warn-fg: #8a5000;
+  --pulso-warn-border: #f0d799;
   /* Peso de trabajo de controles del kit macOS 26: Medium (500); la jerarquía
      se hace con tamaño y color, no con bold. Mirror de theme.css para que el
      chunk de entrada (boot.css) siga la misma disciplina. Windows compensa a
