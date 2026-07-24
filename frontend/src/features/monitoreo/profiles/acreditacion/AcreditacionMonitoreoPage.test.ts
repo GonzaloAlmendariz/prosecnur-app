@@ -1400,3 +1400,51 @@ describe("Acreditacion phone alert supervision model", () => {
     ]);
   });
 });
+
+// --- Regresión (corte 0.5.1, df6133e0): la sección Teléfono de un proyecto
+// ACREDITACIÓN perdía TODAS sus pestañas porque phoneStats solo se calculaba
+// cuando la familia era "telefonico" — el rail quedaba vacío aunque el
+// backend trajera los bloques monitoreo_telefonico completos.
+import { localTabsForAcreditacionView } from "./AcreditacionMonitoreoPage";
+import { MONITOREO_ROUTES } from "../../core/monitoreoRegistry";
+import type { MonitoreoState } from "../../../../api/monitoreo";
+
+describe("localTabsForAcreditacionView — sección Teléfono en familia acreditación", () => {
+  const acreditacionRoute = MONITOREO_ROUTES.find((r) => r.family === "acreditacion")!;
+  const state = {
+    monitoreo_profile: { family: "acreditacion" },
+    sources: [],
+  } as unknown as MonitoreoState;
+  const reports = {
+    sheets: [
+      {
+        id: "monitoreo_telefonico",
+        title: "Monitoreo telefónico",
+        blocks: [
+          {
+            id: "resumen_telefonico",
+            title: "Resumen",
+            rows: [{ metrica: "Efectivas", valor: 141 }],
+          },
+          {
+            id: "estatus_telefonico",
+            title: "Estatus",
+            rows: [{ estatus: "Efectivo", casos: 141 }],
+          },
+        ],
+      },
+    ],
+  } as unknown as Parameters<typeof localTabsForAcreditacionView>[2];
+
+  test("la vista telefonico devuelve las 6 pestañas ricas aunque la familia sea acreditacion", () => {
+    const tabs = localTabsForAcreditacionView("telefonico", state, reports, acreditacionRoute as never);
+    expect(tabs.map((t) => t.key)).toEqual([
+      "resumen",
+      "dia",
+      "incidencia",
+      "responsables",
+      "alertas",
+      "supervision",
+    ]);
+  });
+});
