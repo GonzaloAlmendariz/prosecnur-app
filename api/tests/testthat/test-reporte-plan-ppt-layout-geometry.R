@@ -114,6 +114,64 @@ test_that("titulo de seccion usa fallback solo si el placeholder esta fuera del 
   expect_lte(acnur_safe$loc$top + acnur_safe$loc$height, 7.5)
 })
 
+test_that("el fallback del titulo de seccion queda emparejado con el acento del layout", {
+  # GUARD DE REGRESION. La geometria del fallback (0.082 / 0.335 / 0.26) NO es
+  # arbitraria: el layout trae una barra de acento y el titulo se ubica a su
+  # derecha y centrado sobre ella. "Alinear" este left con el margen de las
+  # laminas de contenido (0.88 cm) hace que el acento parta la primera letra.
+  acnur <- file.path("..", "..", "inst", "plantillas", "plantilla_acnur_16_9.pptx")
+  td <- tempfile("acnur_acento_")
+  dir.create(td)
+  utils::unzip(acnur, exdir = td)
+  ns <- c(
+    p = "http://schemas.openxmlformats.org/presentationml/2006/main",
+    a = "http://schemas.openxmlformats.org/drawingml/2006/main"
+  )
+  layout_files <- list.files(file.path(td, "ppt", "slideLayouts"),
+                             pattern = "^slideLayout[0-9]+\\.xml$", full.names = TRUE)
+  layout_names <- vapply(layout_files, function(candidate) {
+    xml2::xml_attr(xml2::xml_find_first(xml2::read_xml(candidate), ".//p:cSld", ns), "name")
+  }, character(1))
+  xml <- xml2::read_xml(layout_files[match("Section Header", layout_names)])
+  accent <- xml2::xml_find_first(
+    xml, ".//p:sp[.//p:cNvPr[@name='prosecnur:section:accent']]", ns
+  )
+  expect_false(inherits(accent, "xml_missing"))
+  off <- xml2::xml_find_first(accent, ".//a:xfrm/a:off", ns)
+  ext <- xml2::xml_find_first(accent, ".//a:xfrm/a:ext", ns)
+  emu_in <- 914400
+  accent_left <- as.numeric(xml2::xml_attr(off, "x")) / emu_in
+  accent_right <- accent_left + as.numeric(xml2::xml_attr(ext, "cx")) / emu_in
+  accent_center_y <- (as.numeric(xml2::xml_attr(off, "y")) +
+                        as.numeric(xml2::xml_attr(ext, "cy")) / 2) / emu_in
+
+  spec <- list(type = "title", type_idx = 1L, ph_label = "prosecnur:section:title")
+  safe <- .ppt_safe_section_title_spec(
+    .ppt_test_layout_props(acnur, "Section Header"), 13.33333, 7.5, spec
+  )
+
+  # El titulo arranca DESPUES del acento, no encima ni a su izquierda.
+  expect_gt(safe$loc$left, accent_right)
+  # Y su caja esta centrada a la misma altura que el acento.
+  expect_equal(safe$loc$top + safe$loc$height / 2, accent_center_y, tolerance = 1e-3)
+  # El texto se ancla al centro de esa caja; si no, se despega hacia arriba.
+  expect_equal(safe$anchor, "ctr")
+})
+
+test_that("una plantilla con Section Header usable conserva su geometria propia", {
+  general <- .ppt_test_layout_props(
+    file.path("..", "..", "inst", "plantillas", "plantilla_16_9.pptx"),
+    "Section Header"
+  )
+  spec <- list(type = "title", type_idx = 1L, ph_label = "prosecnur:section:title")
+
+  safe <- .ppt_safe_section_title_spec(general, 13.33333, 7.5, spec)
+
+  expect_null(safe$loc)
+  # Sin fallback tampoco forzamos anclaje: manda el placeholder de la plantilla.
+  expect_null(safe$anchor)
+})
+
 test_that(".ppt_section_title_size respeta el valor explicito y deriva del titulo de slide", {
   # Un valor explicito del perfil o del analista siempre manda.
   expect_equal(.ppt_section_title_size(30, 24), 30)
@@ -149,6 +207,87 @@ test_that("router y motor derivan el mismo cuerpo para el titulo de seccion", {
   # Sin ningun size no se inventa uno.
   empty <- .enriquecer_presets(list(base = list()))
   expect_null(empty$base$size_titulo_seccion)
+})
+
+test_that("el titulo de seccion no depende de cuantas laminas lo preceden", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+  skip_if_not_installed("flextable")
+
+  template <- file.path("..", "..", "inst", "plantillas", "plantilla_acnur_16_9.pptx")
+  dat <- data.frame(x = rep(c("Si", "No"), 20), stringsAsFactors = FALSE)
+  inst <- list(
+    survey = data.frame(
+      name = "x", type = "select_one l", label = "P", list_name = "l",
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = "l", name = c("Si", "No"), label = c("Si", "No"),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = NULL
+  )
+  presets <- p_presets(base = list(size_titulo_slide = 22.5))
+  seccion <- p_slide_seccion("Acceso al Espacio de Proteccion")
+  ficha <- p_slide_tabla_tecnica(
+    titulo = "Ficha tecnica",
+    filas = data.frame(Campo = "Universo", Valor = "Adultos", stringsAsFactors = FALSE)
+  )
+
+  medir <- function(plan) {
+    out <- tempfile(fileext = ".pptx")
+    reporte_ppt_plan(
+      data = dat, instrumento = inst, plan = plan, presets = presets,
+      path_ppt = out, template_pptx = template, mensajes_progreso = FALSE
+    )
+    td <- tempfile("seccion_")
+    dir.create(td)
+    utils::unzip(out, exdir = td)
+    ns <- c(
+      p = "http://schemas.openxmlformats.org/presentationml/2006/main",
+      a = "http://schemas.openxmlformats.org/drawingml/2006/main"
+    )
+    slides <- list.files(file.path(td, "ppt", "slides"), pattern = "^slide[0-9]+\\.xml$",
+                         full.names = TRUE)
+    for (path in slides) {
+      xml <- xml2::read_xml(path)
+      node <- xml2::xml_find_first(
+        xml, ".//p:sp[.//p:cNvPr[@name='prosecnur:section:title']]", ns
+      )
+      if (inherits(node, "xml_missing")) next
+      off <- xml2::xml_find_first(node, ".//p:spPr/a:xfrm/a:off", ns)
+      ext <- xml2::xml_find_first(node, ".//p:spPr/a:xfrm/a:ext", ns)
+      sz <- xml2::xml_attr(xml2::xml_find_first(node, ".//a:rPr[@sz]", ns), "sz")
+      anchor <- xml2::xml_attr(xml2::xml_find_first(node, ".//a:bodyPr", ns), "anchor")
+      return(list(
+        left = as.numeric(xml2::xml_attr(off, "x")) / 914400,
+        center_y = (as.numeric(xml2::xml_attr(off, "y")) +
+                      as.numeric(xml2::xml_attr(ext, "cy")) / 2) / 914400,
+        sz = sz,
+        anchor = anchor
+      ))
+    }
+    NULL
+  }
+
+  con_ficha <- medir(list(a = p_slide_portada("T"), b = ficha, c = seccion))
+  sin_ficha <- medir(list(a = p_slide_portada("T"), c = seccion))
+
+  expect_false(is.null(con_ficha))
+  expect_false(is.null(sin_ficha))
+  expect_equal(con_ficha$sz, sin_ficha$sz)
+  expect_equal(con_ficha$left, sin_ficha$left)
+  expect_equal(con_ficha$anchor, sin_ficha$anchor)
+
+  # Y el cuerpo es el derivado de size_titulo_slide, no un default heredado.
+  expect_equal(as.integer(con_ficha$sz), 2920L)
+
+  # officer emite un `<a:bodyPr/>` vacio; sin el parche el texto se anclaria
+  # arriba y el titulo se despegaria del acento del layout.
+  expect_equal(con_ficha$anchor, "ctr")
+
+  # La caja sigue centrada sobre el acento del layout (8.858 cm en 16:9).
+  expect_equal(con_ficha$center_y, 8.858 / 2.54, tolerance = 1e-3)
 })
 
 test_that("un footer configurado puede ubicarse despues del logo PULSO", {

@@ -675,6 +675,9 @@ reporte_ppt_plan <- function(
         ". Error: ", conditionMessage(out)
       )
     }
+    if (!is.null(spec$anchor)) {
+      out <- .ppt_set_shape_anchor(out, spec$ph_label, spec$anchor)
+    }
     out
   }
 
