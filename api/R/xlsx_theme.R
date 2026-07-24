@@ -155,7 +155,11 @@ pulso_recod_type_map <- function(survey) {
 pulso_recod_resolve_type <- function(name, type_map = NULL) {
   if (is.null(type_map) || !length(type_map)) return(NA_character_)
   nm <- as.character(name %||% "")
-  base <- sub("[./][0-9]+$", "", nm)                 # <var>_recod.96 -> <var>_recod
+  # El sufijo de dummy es el CODIGO de la opcion, y un codigo no tiene por que
+  # ser numerico: `services_recod.legal`, `obstacle_recod.ubi`. Con el patron
+  # limitado a digitos esos bloques no resolvian su tipo y caian al color
+  # generico, que es justo el caso que se veia como "dummies en morado".
+  base <- sub("[./][^./]+$", "", nm)                 # <var>_recod.96 / .legal -> <var>_recod
   candidates <- unique(c(base, sub("_recod$", "", base)))  # + variable padre original
   for (k in candidates) {
     v <- type_map[[k]]
