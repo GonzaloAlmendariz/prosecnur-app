@@ -271,7 +271,7 @@ export async function resolveWinners(ties, { bundleDir = BUNDLE_DIR } = {}) {
       if (!decls.size) return;
       const pos = orden++;
       for (const sel of rule.selectors ?? [rule.selector]) {
-        const key = `${normSel(sel)} ${cond}`;
+        const key = `${normSel(sel)}\u0000${cond}`;
         if (!indice.has(key)) indice.set(key, []);
         indice.get(key).push({ chunk: f, pos, decls });
       }
@@ -279,7 +279,7 @@ export async function resolveWinners(ties, { bundleDir = BUNDLE_DIR } = {}) {
   }
 
   const resolved = ties.map((tie) => {
-    const apariciones = indice.get(`${normSel(tie.selector)} ${normCond(tie.cond)}`) ?? [];
+    const apariciones = indice.get(`${normSel(tie.selector)}\u0000${normCond(tie.cond)}`) ?? [];
     const porChunk = new Map();
     for (const a of apariciones) {
       if (!porChunk.has(a.chunk)) porChunk.set(a.chunk, []);
