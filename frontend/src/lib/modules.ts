@@ -1,5 +1,17 @@
 import type { CSSProperties } from "react";
-import { CalendarDays, type LucideIcon } from "../vendor/lucide-react";
+import {
+  BarChart3,
+  CalendarDays,
+  CalendarRange,
+  ClipboardCheck,
+  ListChecks,
+  PhoneCall,
+  PlugZap,
+  Route,
+  Search,
+  ShieldAlert,
+  type LucideIcon,
+} from "../vendor/lucide-react";
 import {
   IconBranching,
   IconChecklist,
@@ -49,6 +61,12 @@ export type ProsecnurModuleSectionMeta = ProsecnurNavigationLeafMeta & {
   tabs?: readonly ProsecnurNavigationLeafMeta[];
 };
 
+export type ProsecnurModuleSectionSetMeta = {
+  id: string;
+  label: string;
+  sections: readonly ProsecnurModuleSectionMeta[];
+};
+
 export type ResolvedProsecnurNavigationItem = ProsecnurNavigationLeafMeta & {
   lockedReason?: string;
 };
@@ -58,6 +76,7 @@ export type ProsecnurNavigationLandingKind = "section" | "entrypoint";
 export const PROSECNUR_NAVIGATION_CONTRACT = {
   version: 1,
   coverage: "primary-routes-v1",
+  profiledSectionsCoverage: "monitoring-profiles-v1",
   tabsCoverage: "deferred",
   consumableByShell: false,
 } as const;
@@ -74,6 +93,7 @@ export type ProsecnurModuleMeta = {
   to?: string;
   landingKind: ProsecnurNavigationLandingKind;
   sections: readonly ProsecnurModuleSectionMeta[];
+  sectionSets?: readonly ProsecnurModuleSectionSetMeta[];
 };
 
 export type ActiveProsecnurModuleMeta = ProsecnurModuleMeta & { to: string };
@@ -305,6 +325,53 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         icon: IconMonitor,
         to: "/monitoreo",
         layoutPolicy: "viewport",
+      },
+    ],
+    sectionSets: [
+      {
+        id: "acreditacion",
+        label: "Acreditación",
+        sections: [
+          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?tab=fuentes", layoutPolicy: "viewport" },
+          { id: "modelo", label: "Modelo operativo", icon: ListChecks, to: "/monitoreo?tab=modelo", layoutPolicy: "viewport" },
+          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?tab=consultas", layoutPolicy: "viewport" },
+          { id: "telefonico", label: "Monitoreo telefónico", icon: PhoneCall, to: "/monitoreo?tab=telefonico", layoutPolicy: "viewport" },
+          { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?tab=avance", layoutPolicy: "viewport" },
+        ],
+      },
+      {
+        id: "telefonico",
+        label: "Telefónico",
+        sections: [
+          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?tab=fuentes", layoutPolicy: "viewport" },
+          { id: "modelo", label: "Modelo operativo", icon: ListChecks, to: "/monitoreo?tab=modelo", layoutPolicy: "viewport" },
+          { id: "telefonico", label: "Llamadas", icon: PhoneCall, to: "/monitoreo?tab=telefonico", layoutPolicy: "viewport" },
+          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?tab=consultas", layoutPolicy: "viewport" },
+          { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?tab=avance", layoutPolicy: "viewport" },
+        ],
+      },
+      {
+        id: "territorial",
+        label: "Territorial",
+        sections: [
+          { id: "fuentes", label: "Fuente", icon: PlugZap, to: "/monitoreo?tab=fuentes", layoutPolicy: "viewport" },
+          { id: "modelo", label: "UMPs", icon: Route, to: "/monitoreo?tab=modelo", layoutPolicy: "viewport" },
+          { id: "calidad", label: "Validación", icon: ShieldAlert, to: "/monitoreo?tab=calidad", layoutPolicy: "viewport" },
+          { id: "consultas", label: "Consultas internas", icon: Search, to: "/monitoreo?tab=consultas", layoutPolicy: "viewport" },
+          { id: "avance", label: "Avance territorial", icon: BarChart3, to: "/monitoreo?tab=avance", layoutPolicy: "viewport" },
+          { id: "ocurrencias", label: "Ocurrencias de campo", icon: ClipboardCheck, to: "/monitoreo?tab=ocurrencias", layoutPolicy: "viewport" },
+        ],
+      },
+      {
+        id: "aulas",
+        label: "Cursos-horario",
+        sections: [
+          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?tab=fuentes", layoutPolicy: "viewport" },
+          { id: "modelo", label: "Agenda de cursos-horario", icon: CalendarRange, to: "/monitoreo?tab=modelo", layoutPolicy: "viewport" },
+          { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?tab=avance", layoutPolicy: "viewport" },
+          { id: "calidad", label: "Validación", icon: ShieldAlert, to: "/monitoreo?tab=calidad", layoutPolicy: "viewport" },
+          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?tab=consultas", layoutPolicy: "viewport" },
+        ],
       },
     ],
   },
