@@ -2233,12 +2233,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #b7dfd3;
+  border: 1px solid color-mix(in srgb, var(--module-accent) 30%, var(--pulso-border));
   border-radius: 999px;
-  background: #ecfdf5;
-  color: #065f46;
+  background: color-mix(in srgb, var(--module-accent) 12%, #fff);
+  color: var(--module-accent);
   font-size: 12px;
-  font-weight: 950;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 
@@ -4532,9 +4532,9 @@
   justify-content: space-between;
   gap: 12px;
   padding: 14px 16px;
-  border: 1px solid #b7dfd3;
+  border: 1px solid color-mix(in srgb, var(--module-accent) 28%, var(--pulso-border));
   border-radius: 10px;
-  background: linear-gradient(135deg, #f2fbf7 0%, #e8f6f0 100%);
+  background: color-mix(in srgb, var(--module-accent) 6%, #fff);
 }
 
 .hojas-ruta-sample-result-headline {
@@ -4545,22 +4545,22 @@
 }
 
 .hojas-ruta-sample-result-headline .eyebrow {
-  color: #0f3e35;
+  color: var(--module-accent);
   font-size: 10.5px;
-  font-weight: 900;
+  font-weight: 850;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .hojas-ruta-sample-result-headline .hojas-ruta-inline-help {
-  color: #0f3e35;
+  color: var(--module-accent);
   font-size: 10.5px;
-  font-weight: 900;
+  font-weight: 850;
   letter-spacing: 0.04em;
 }
 
 .hojas-ruta-sample-result-headline strong {
-  color: var(--pulso-success-fg);
+  color: var(--pulso-text);
   font-size: 21px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
@@ -4576,7 +4576,7 @@
   flex: 1 1 420px;
   max-width: 720px;
   padding: 10px 12px;
-  border: 1px solid rgba(15, 118, 110, 0.18);
+  border: 1px solid color-mix(in srgb, var(--module-accent) 18%, var(--pulso-border));
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.68);
 }
@@ -4587,7 +4587,7 @@
 }
 
 .hojas-ruta-sample-result-rationale strong {
-  color: #064e3b;
+  color: var(--pulso-text);
   font-size: 12px;
   font-weight: 900;
 }
@@ -5118,11 +5118,11 @@
 }
 
 .hojas-ruta-method-selector button.is-active {
-  border-color: var(--method-accent);
-  background: #f8fffc;
+  border-color: var(--module-accent);
+  background: color-mix(in srgb, var(--module-accent) 6%, #fff);
   color: var(--pulso-text);
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--method-accent) 24%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--module-accent) 24%, transparent),
     0 8px 18px rgba(15, 23, 42, 0.06);
 }
 
@@ -5143,7 +5143,7 @@
 }
 
 .hojas-ruta-method-selector button.is-active strong {
-  color: color-mix(in srgb, var(--method-accent) 72%, #111827);
+  color: color-mix(in srgb, var(--module-accent) 72%, #111827);
 }
 
 .hojas-ruta-method-selector span {
@@ -7050,14 +7050,14 @@
 }
 
 .hojas-ruta-frame .hojas-ruta-method-selector button.is-active {
-  border-color: color-mix(in srgb, var(--method-accent) 72%, var(--module-accent-border));
-  background: color-mix(in srgb, var(--method-accent) 9%, #fff);
+  border-color: var(--module-accent);
+  background: color-mix(in srgb, var(--module-accent) 8%, #fff);
   color: var(--pulso-text);
-  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--method-accent) 72%, var(--module-accent-border));
+  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--module-accent) 60%, var(--module-accent-border));
 }
 
 .hojas-ruta-frame .hojas-ruta-method-selector button.is-active strong {
-  color: color-mix(in srgb, var(--method-accent) 72%, #111827);
+  color: color-mix(in srgb, var(--module-accent) 72%, #111827);
 }
 
 .hojas-ruta-frame .hojas-ruta-method-selector button.is-active span {
