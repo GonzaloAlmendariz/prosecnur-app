@@ -2229,9 +2229,12 @@
 }
 
 .hojas-ruta-sample-mode-cards button {
+  display: grid;
+  align-content: center;
+  gap: 3px;
   flex: 1 1 0;
   min-width: 150px;
-  min-height: 46px;
+  min-height: 64px;
   padding: 7px 10px;
   border: 0;
   border-radius: 11px;
@@ -2276,7 +2279,7 @@
 }
 
 .hojas-ruta-sample-mode-cards button span {
-  margin-top: 2px;
+  margin-top: 0;
   color: color-mix(in srgb, currentColor 82%, transparent);
   font-size: 10px;
   font-weight: 650;
