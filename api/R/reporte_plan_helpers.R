@@ -219,6 +219,36 @@
   NA_real_
 }
 
+# `officer::ph_location()` (0.7.1) no expone el anclaje vertical, asi que lo
+# fijamos sobre el XML de la shape recien insertada. La ubicamos por el nombre
+# que `newlabel=` dejo en <p:cNvPr>, la misma convencion de etiquetado semantico
+# que usa el resto del contrato. Devuelve el doc intacto si no encuentra nada:
+# es un ajuste cosmetico y no debe tumbar un export.
+.ppt_set_shape_anchor <- function(doc, ph_label, anchor = "ctr") {
+  label <- as.character(ph_label %||% "")[1]
+  anchor <- as.character(anchor %||% "")[1]
+  if (!nzchar(label) || !nzchar(anchor)) return(doc)
+  slide <- tryCatch(doc$slide$get_slide(doc$cursor), error = function(e) NULL)
+  if (is.null(slide)) return(doc)
+  xml <- tryCatch(slide$get(), error = function(e) NULL)
+  if (is.null(xml)) return(doc)
+  ns <- c(
+    p = "http://schemas.openxmlformats.org/presentationml/2006/main",
+    a = "http://schemas.openxmlformats.org/drawingml/2006/main"
+  )
+  nodes <- tryCatch(
+    xml2::xml_find_all(
+      xml,
+      sprintf(".//p:sp[.//p:nvSpPr/p:cNvPr[@name=\"%s\"]]//a:bodyPr", label),
+      ns
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(nodes) || !length(nodes)) return(doc)
+  for (node in nodes) xml2::xml_set_attr(node, "anchor", anchor)
+  doc
+}
+
 .ppt_title_spec_with_height <- function(layout_props, spec, height = NULL) {
   height <- suppressWarnings(as.numeric(height %||% NA_real_)[1])
   if (!is.finite(height) || height <= 0 || !is.data.frame(layout_props) || !nrow(layout_props)) {
@@ -448,12 +478,23 @@
   # Titulo de seccion desplazado a la derecha del acento vertical de la
   # plantilla y centrado verticalmente, para que la lamina lea como un divisor
   # intencional y no como un titulo flotando en un lienzo vacio.
+  #
+  # OJO: estas constantes NO son arbitrarias y no hay que "alinearlas" con el
+  # margen de las laminas de contenido (0.88 cm). El layout trae una barra de
+  # acento (`prosecnur:section:accent`) en x 2.06-2.39 cm centrada en y 8.86 cm;
+  # el 0.082 deja el titulo justo a su derecha y el 0.335 + 0.26 centran la caja
+  # sobre ella. Bajar el left a 0.88 hace que el acento parta la primera letra.
   spec$loc <- list(
     left = slide_width * 0.082,
     top = slide_height * 0.335,
     width = slide_width * 0.82,
     height = slide_height * 0.26
   )
+  # El texto va centrado en su caja para quedar a la altura del acento. Sin esto
+  # officer emite un `<a:bodyPr/>` vacio y, como la shape lleva un `<p:ph/>` sin
+  # type ni idx, no resuelve contra el placeholder `title` del layout: hereda el
+  # body del master (anchor="t") y el titulo se despega hacia arriba de la barra.
+  spec$anchor <- "ctr"
   spec
 }
 
