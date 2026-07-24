@@ -4933,6 +4933,19 @@ function SamplingMethodExplainer({
     },
   ];
 
+  function selectMethod(nextMethod: SamplingMethod) {
+    if (nextMethod !== value) onChange(nextMethod);
+  }
+
+  function selectMethodFromKey(key: string, itemIndex: number) {
+    let nextIndex: number | null = null;
+    if (key === "Home") nextIndex = 0;
+    else if (key === "End") nextIndex = methods.length - 1;
+    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % methods.length;
+    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + methods.length) % methods.length;
+    if (nextIndex != null) selectMethod(methods[nextIndex].id);
+  }
+
   function Diagram({ method, accent }: { method: SamplingMethod; accent: string }) {
     if (method === "pps") {
       return (
@@ -4967,17 +4980,18 @@ function SamplingMethodExplainer({
   }
 
   return (
-    <div className="hojas-ruta-method-selector" role="radiogroup" aria-label="Metodo de seleccion de manzanas">
-      {methods.map((method) => {
+    <GlidingTabList activeKey={value} mode="tabs" className="hojas-ruta-method-selector" role="radiogroup" aria-label="Metodo de seleccion de manzanas">
+      {methods.map((method, itemIndex) => {
         const active = method.id === value;
         return (
           <button
             key={method.id}
             type="button"
             role="radio"
+            data-gliding-key={method.id}
             aria-checked={active}
-            aria-pressed={active}
-            onClick={() => onChange(method.id)}
+            onClick={() => selectMethod(method.id)}
+            onKeyDown={(event) => selectMethodFromKey(event.key, itemIndex)}
             className={active ? "is-active" : ""}
             style={{ "--method-accent": method.accent } as React.CSSProperties}
           >
@@ -4987,7 +5001,7 @@ function SamplingMethodExplainer({
           </button>
         );
       })}
-    </div>
+    </GlidingTabList>
   );
 }
 
