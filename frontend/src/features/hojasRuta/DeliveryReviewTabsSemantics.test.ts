@@ -7,16 +7,22 @@ describe("Hojas delivery-review tabs semantics", () => {
     const source = fs.readFileSync(path.join(__dirname, "HojasRutaPage.tsx"), "utf8");
     const reviewTabs = source.slice(
       source.indexOf('aria-label="Revisión de entregables"'),
-      source.indexOf('<JobProgress<HojasRutaJobResult>'),
+      source.indexOf("id={HOJAS_DELIVERY_REVIEW_PANEL_ID}"),
+    );
+    const reviewPanel = source.slice(
+      source.indexOf("id={HOJAS_DELIVERY_REVIEW_PANEL_ID}"),
+      source.indexOf("<JobProgress<HojasRutaJobResult>"),
     );
 
     expect(reviewTabs).toContain("id={hojasDeliveryReviewTabId(tab.key)}");
     expect(reviewTabs).toContain("aria-controls={HOJAS_DELIVERY_REVIEW_PANEL_ID}");
-    expect(reviewTabs).toContain("id={HOJAS_DELIVERY_REVIEW_PANEL_ID}");
-    expect(reviewTabs).toContain('role="tabpanel"');
-    expect(reviewTabs).toContain(
-      "aria-labelledby={hojasDeliveryReviewTabId(deliveryReviewTab)}",
+    expect(reviewTabs).toContain("aria-selected={currentDeliveryTab === tab.key}");
+    expect(reviewTabs).toContain("selectDeliveryReviewTab(tab.key)");
+    expect(reviewPanel).toContain("id={HOJAS_DELIVERY_REVIEW_PANEL_ID}");
+    expect(reviewPanel).toContain('role="tabpanel"');
+    expect(reviewPanel).toContain(
+      "aria-labelledby={hojasDeliveryReviewTabId(currentDeliveryTab)}",
     );
-    expect(reviewTabs).toContain("tabIndex={0}");
+    expect(reviewPanel).toContain("tabIndex={0}");
   });
 });
