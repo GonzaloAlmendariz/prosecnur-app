@@ -7727,15 +7727,9 @@ export default function HojasRutaPage() {
         <div className="hojas-ruta-commandbar" aria-label="Contexto operativo de hojas de ruta">
           <div className="hojas-ruta-command-summary" aria-label="Resumen del marco">
             <HeaderSummaryPill label="Base" value={frame.ok ? "Cargada" : "Pendiente"} />
-            <HeaderSummaryPill label="Distritos incluidos" value={formatNumber(selectedTerritories.length)} />
+            <HeaderSummaryPill label="Distritos" value={formatNumber(selectedTerritories.length)} />
             <HeaderSummaryPill label="Población" value={selectedPopulation > 0 ? formatNumber(selectedPopulation) : formatNumber(frame.poblacion ?? 0)} />
-            <HeaderSummaryPill label="Manzanas censales" value={selectedManzanas > 0 ? formatNumber(selectedManzanas) : formatNumber(frame.n_manzanas ?? 0)} />
-            <div className="hojas-ruta-command-readiness" aria-label="Estado del generador">
-              <ReadinessItem ok={selectedTerritories.length > 0} label="Territorio" value={`${selectedTerritories.length} distritos`} />
-              <ReadinessItem ok={!!population?.ok} label="Población" value={population?.ok ? "lista" : "pendiente"} />
-              <ReadinessItem ok={!!quota?.ok} label="Cuotas" value={quota?.ok ? `${formatNumber(quota.total_asignado)} entrevistas` : "pendientes"} />
-              <ReadinessItem ok={!!sample?.ok} label="Campo" value={sample?.ok ? `${formatNumber(sample.n_blocks)} manzanas` : "pendiente"} />
-            </div>
+            <HeaderSummaryPill label="Manz. censales" value={selectedManzanas > 0 ? formatNumber(selectedManzanas) : formatNumber(frame.n_manzanas ?? 0)} />
           </div>
 
           <div className="hojas-ruta-stage-rail-wrap">
