@@ -5492,6 +5492,18 @@ function SampleSizeWorkbench({
 }) {
   const settings = normalizeSampleSizeSettings(config.sample_size);
   const mode = config.sample_size_mode ?? "calculator";
+  const sampleModes: SampleSizeMode[] = ["calculator", "external_total", "external_district"];
+  function selectSampleMode(nextMode: SampleSizeMode) {
+    if (nextMode !== mode) onModeChange(nextMode);
+  }
+  function selectSampleModeFromKey(key: string, itemIndex: number) {
+    let nextIndex: number | null = null;
+    if (key === "Home") nextIndex = 0;
+    else if (key === "End") nextIndex = sampleModes.length - 1;
+    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % sampleModes.length;
+    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + sampleModes.length) % sampleModes.length;
+    if (nextIndex != null) selectSampleMode(sampleModes[nextIndex]);
+  }
   const districtRowsByUbigeo = new Map((preview?.district_rows ?? []).map((row) => [row.ubigeo, row]));
   const nDistrictTotal = Object.values(config.n_por_distrito ?? {}).reduce((sum, value) => sum + Number(value || 0), 0);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -5711,16 +5723,17 @@ function SampleSizeWorkbench({
               <small>Primero decide si Prosecnur calcula el tamaño muestral o si estás validando un N ya aprobado.</small>
             </div>
           </div>
-          <GlidingTabList activeKey={mode} className="hojas-ruta-sample-mode-cards" role="tablist" aria-label="Modo de muestra">
-            {(["calculator", "external_total", "external_district"] as SampleSizeMode[]).map((item) => (
+          <GlidingTabList activeKey={mode} mode="tabs" className="hojas-ruta-sample-mode-cards" role="radiogroup" aria-label="Modo de muestra">
+            {sampleModes.map((item, itemIndex) => (
               <button
                 key={item}
                 type="button"
-                role="tab"
+                role="radio"
                 data-gliding-key={item}
-                aria-selected={mode === item}
+                aria-checked={mode === item}
                 className={mode === item ? "is-active" : ""}
-                onClick={() => onModeChange(item)}
+                onClick={() => selectSampleMode(item)}
+                onKeyDown={(event) => selectSampleModeFromKey(event.key, itemIndex)}
               >
                 <strong>{modeCopy[item].title}</strong>
                 <span>{modeCopy[item].detail}</span>
