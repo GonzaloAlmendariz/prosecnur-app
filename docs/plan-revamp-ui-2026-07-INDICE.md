@@ -13,6 +13,7 @@ dueño se agregan como filas — el plan base NO se edita para agregarlas.
 | 2 | `docs/plan-revamp-ui-2026-07-indicacion-2.md` | Indicación 2: implicancias del sidebar por clase de ventana, evidencia en vivo, orden de migración | Vigente |
 | 3 | `docs/plan-revamp-ui-2026-07-guia-sidebar.md` | Guía creativa del shell: resolución de la "L" (source list full-height), anatomía 248/64, switcher + gestor de módulos, contrato anti-deformación, gate "se ve perfecto" | Vigente |
 | 4 | `docs/plan-revamp-ui-2026-07-indicacion-3.md` | Indicación 3: workbench robusto, mapa/canvas como superficie primaria, chrome global al sidebar y rail por sección | Vigente |
+| 5 | `docs/plan-revamp-ui-2026-07-indicacion-4.md` | Indicación 4: Lima se compone en vertical, el encuadre sigue la geografía y el workbench supera el gate meramente métrico | Vigente |
 
 ## Arbitrajes activos (resoluciones de conflicto entre documentos)
 
@@ -31,6 +32,11 @@ dueño se agregan como filas — el plan base NO se edita para agregarlas.
   KPIs, readiness y fase siguen siendo operación del lienzo, pero en una command surface
   compacta. En etapas dominadas por mapa/canvas, la preferencia declarativa es rail de
   `64px`; esto manda sobre el default expandido general de la clase A.
+- **Área mínima vs composición geográfica** (indicación 4, 2026-07-24): el mínimo
+  `500×250px` de la indicación 3 deja de ser suficiente como criterio de aprobación.
+  Para Lima manda un viewport vertical o casi cuadrado, una geometría focal que ocupe el
+  encuadre y una jerarquía profesional mapa → operación → evidencia → explicación. Las
+  relaciones de aspecto y ocupación de la indicación 4 gobiernan el piloto Hojas.
 
 ## Regla de gobierno: revisión, no permiso (indicación del dueño, 2026-07-23)
 

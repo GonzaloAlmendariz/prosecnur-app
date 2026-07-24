@@ -353,6 +353,19 @@ externa usa `--prosecnur-*`. No se agregan hex a CSS de features.
 - Una personalización de entregable puede reemplazar la paleta del artefacto,
   pero el default siempre es Pulso.
 
+### Composición cartográfica
+
+- El rectángulo sigue a la geografía: Lima se encuadra en vertical o casi
+  cuadrado; una superficie grande pero panorámica no cuenta como dominante.
+- El mapa es una región continua. Títulos, métricas y explicación se desplazan
+  al inspector o se compactan antes de reducir el viewport cartográfico.
+- La geometría focal ocupa la altura útil sin deformación; `viewBox`,
+  `preserveAspectRatio` y layout se verifican juntos.
+- Zoom, leyenda, información y acción principal tienen esquinas o regiones
+  propias, sin colisión ni mosaico de popovers.
+- La jerarquía es mapa → operación → evidencia → explicación. Se evita tratar
+  cada dato como una tarjeta equivalente.
+
 ### Voz
 
 - Secciones y tabs se guardan en sentence case; las mayúsculas son CSS.
