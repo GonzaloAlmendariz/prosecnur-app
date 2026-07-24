@@ -1,8 +1,10 @@
 import { useMemo } from "react";
 import { ChevronDown, ChevronUp, Inbox, Plus, Trash2, X } from "lucide-react";
 import { IconAI } from "../../lib/icons";
+import type { CSSProperties } from "react";
 import { Grupo, RespuestaUnica } from "../../api/client";
 import { displayCodificacionValueLabel } from "./codificacionLabels";
+import { grupoAccentColor } from "./codificacionGrupoColor";
 
 // Classic Levenshtein edit distance (iterative, O(n*m) space O(n)).
 function levenshtein(a: string, b: string): number {
@@ -98,6 +100,7 @@ export function GrupoCodificacionCard({
   const esExistente = grupo.origen === "existente";
   const empty = grupo.respuestas.length === 0;
   const groupDisplay = displayCodificacionValueLabel(grupo.codigo, grupo.etiqueta);
+  const accentStyle = { "--cv2-chip-accent": grupoAccentColor(grupo.codigo, grupo.id) } as CSSProperties;
 
   return (
     <article
@@ -105,6 +108,7 @@ export function GrupoCodificacionCard({
       aria-label={`Grupo ${groupDisplay.code ? `${groupDisplay.code}, ${groupDisplay.label}` : groupDisplay.label}${active ? ", activo" : ""}`}
     >
       <div className="pulso-cv2-grupo-head">
+        <span className="pulso-cv2-grupo-color" style={accentStyle} aria-hidden="true" />
         <button
           type="button"
           className={`pulso-cv2-active-toggle${active ? " is-active" : ""}`}

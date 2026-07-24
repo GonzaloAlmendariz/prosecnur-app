@@ -982,6 +982,62 @@ button.pulso-ghost-nav:disabled {
   color: var(--pulso-success-fg);
 }
 
+/* Chips de color de las categorías a las que pertenece la respuesta.
+   En select_multiple pueden ser varias — cada una con el color de su grupo,
+   dejando ver de un vistazo la multi-pertenencia. */
+.pulso-cv2-memberships {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.pulso-cv2-member-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 7px 0 6px;
+  border-radius: var(--pulso-radius-chip);
+  border: 1px solid color-mix(in srgb, var(--cv2-chip-accent, var(--pulso-border)) 42%, var(--pulso-border));
+  background: color-mix(in srgb, var(--cv2-chip-accent, var(--pulso-surface)) 12%, var(--pulso-surface));
+  color: var(--pulso-text);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  max-width: 168px;
+}
+.pulso-cv2-member-dot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cv2-chip-accent, var(--pulso-primary));
+}
+.pulso-cv2-member-code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Micro-indicador de tipo en la cabecera de la columna origen (solo SM):
+   señala que una respuesta puede vivir en varias categorías. */
+.pulso-cv2-multi-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 17px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: var(--pulso-radius-chip);
+  border: 1px solid var(--pulso-primary-border);
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
 /* ── Lista de grupos (destino) ────────────────────────────────────────────── */
 .pulso-cv2-grupos-list {
   display: flex;
@@ -1347,7 +1403,9 @@ button.pulso-ghost-nav:disabled {
   color: var(--pulso-text-soft);
 }
 .pulso-cv2-qa-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 7px;
   width: 100%;
   padding: 5px 8px;
   border: none;
@@ -1372,6 +1430,72 @@ button.pulso-ghost-nav:disabled {
 }
 .pulso-cv2-qa-unnamed {
   color: var(--pulso-text-soft);
+}
+
+/* Punto de color del grupo (cabecera de la tarjeta) — misma semilla de color
+   que los chips de pertenencia en la fila de respuesta: ata visualmente la
+   categoría con las respuestas que caen en ella. */
+.pulso-cv2-grupo-color {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--cv2-chip-accent, var(--pulso-primary));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cv2-chip-accent, var(--pulso-border)) 34%, transparent);
+}
+
+/* Botón "grupos" (multi-select) y su contador de pertenencias. */
+.pulso-cv2-qa-btn.is-multi.is-open,
+.pulso-cv2-qa-btn.is-multi:hover {
+  border-color: var(--pulso-primary-border);
+  color: var(--pulso-primary);
+}
+.pulso-cv2-qa-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-primary);
+  color: var(--pulso-surface);
+  font-size: 9px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ítems del menú multi: casilla + punto de color + etiqueta. El estado
+   marcado se lee como checkbox (aria-checked) con superficie de acento. */
+.pulso-cv2-qa-item.is-check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.pulso-cv2-qa-item.is-checked {
+  background: var(--pulso-primary-soft);
+}
+.pulso-cv2-qa-check {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--pulso-text-soft);
+}
+.pulso-cv2-qa-item.is-checked .pulso-cv2-qa-check {
+  color: var(--pulso-primary);
+}
+.pulso-cv2-qa-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cv2-chip-accent, var(--pulso-primary));
+}
+.pulso-cv2-qa-item-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pulso-codificacion-relation-target-dialog {
