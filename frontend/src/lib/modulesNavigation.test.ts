@@ -89,6 +89,7 @@ describe("manifiesto primario de navegación", () => {
     expect(PROSECNUR_NAVIGATION_CONTRACT).toEqual({
       version: 1,
       coverage: "primary-routes-v1",
+      profiledSectionsCoverage: "monitoring-profiles-v1",
       tabsCoverage: "deferred",
       consumableByShell: false,
     });
@@ -150,6 +151,78 @@ describe("manifiesto primario de navegación", () => {
     for (const module of PROSECNUR_MODULES) {
       expect(module.tone).toBe(MODULE_TONES[module.slug]);
     }
+  });
+
+  it("declara las secciones estables de Monitoreo por perfil sin cargar features", () => {
+    const monitoring = PROSECNUR_MODULES.find((module) => module.slug === "monitoreo");
+
+    expect(monitoring).toBeDefined();
+    for (const set of monitoring?.sectionSets ?? []) {
+      expect(set.label).toMatch(/[a-záéíóúüñ]/);
+      for (const section of set.sections) {
+        expect(section.icon).toBeTruthy();
+        expect(section.label[0]).toBe(section.label[0].toLocaleUpperCase("es-PE"));
+        expect(section.label).toMatch(/[a-záéíóúüñ]/);
+        expect(section).not.toHaveProperty("lockedReason");
+      }
+    }
+
+    expect(monitoring?.sectionSets?.map((set) => ({
+      id: set.id,
+      label: set.label,
+      sections: set.sections.map(({ id, label, to, layoutPolicy }) => ({
+        id,
+        label,
+        to,
+        layoutPolicy,
+      })),
+    }))).toEqual([
+      {
+        id: "acreditacion",
+        label: "Acreditación",
+        sections: [
+          { id: "fuentes", label: "Fuentes", to: "/monitoreo?tab=fuentes", layoutPolicy: "viewport" },
+          { id: "modelo", label: "Modelo operativo", to: "/monitoreo?tab=modelo", layoutPolicy: "viewport" },
+          { id: "consultas", label: "Consultas", to: "/monitoreo?tab=consultas", layoutPolicy: "viewport" },
+          { id: "telefonico", label: "Monitoreo telefónico", to: "/monitoreo?tab=telefonico", layoutPolicy: "viewport" },
+          { id: "avance", label: "Avance", to: "/monitoreo?tab=avance", layoutPolicy: "viewport" },
+        ],
+      },
+      {
+        id: "telefonico",
+        label: "Telefónico",
+        sections: [
+          { id: "fuentes", label: "Fuentes", to: "/monitoreo?tab=fuentes", layoutPolicy: "viewport" },
+          { id: "modelo", label: "Modelo operativo", to: "/monitoreo?tab=modelo", layoutPolicy: "viewport" },
+          { id: "telefonico", label: "Llamadas", to: "/monitoreo?tab=telefonico", layoutPolicy: "viewport" },
+          { id: "consultas", label: "Consultas", to: "/monitoreo?tab=consultas", layoutPolicy: "viewport" },
+          { id: "avance", label: "Avance", to: "/monitoreo?tab=avance", layoutPolicy: "viewport" },
+        ],
+      },
+      {
+        id: "territorial",
+        label: "Territorial",
+        sections: [
+          { id: "fuentes", label: "Fuente", to: "/monitoreo?tab=fuentes", layoutPolicy: "viewport" },
+          { id: "modelo", label: "UMPs", to: "/monitoreo?tab=modelo", layoutPolicy: "viewport" },
+          { id: "calidad", label: "Validación", to: "/monitoreo?tab=calidad", layoutPolicy: "viewport" },
+          { id: "consultas", label: "Consultas internas", to: "/monitoreo?tab=consultas", layoutPolicy: "viewport" },
+          { id: "avance", label: "Avance territorial", to: "/monitoreo?tab=avance", layoutPolicy: "viewport" },
+          { id: "ocurrencias", label: "Ocurrencias de campo", to: "/monitoreo?tab=ocurrencias", layoutPolicy: "viewport" },
+        ],
+      },
+      {
+        id: "aulas",
+        label: "Cursos-horario",
+        sections: [
+          { id: "fuentes", label: "Fuentes", to: "/monitoreo?tab=fuentes", layoutPolicy: "viewport" },
+          { id: "modelo", label: "Agenda de cursos-horario", to: "/monitoreo?tab=modelo", layoutPolicy: "viewport" },
+          { id: "avance", label: "Avance", to: "/monitoreo?tab=avance", layoutPolicy: "viewport" },
+          { id: "calidad", label: "Validación", to: "/monitoreo?tab=calidad", layoutPolicy: "viewport" },
+          { id: "consultas", label: "Consultas", to: "/monitoreo?tab=consultas", layoutPolicy: "viewport" },
+        ],
+      },
+    ]);
   });
 
   it("modela Enciclopedia como utilidad global y no como módulo del proyecto", () => {
