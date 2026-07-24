@@ -939,7 +939,8 @@
 # use) y la fila 2 son los labels de variable (legible). Los datos
 # empiezan en la fila 3. El analista puede ocultar la fila 2 desde Excel
 # si prefiere una tabla plana.
-.bases_write_xlsx <- function(df_cod, df_lab, path, valores = "ambos", ficha_tecnica = NULL) {
+.bases_write_xlsx <- function(df_cod, df_lab, path, valores = "ambos", ficha_tecnica = NULL,
+                              color_recod = FALSE, type_map = NULL) {
   # Suprimir las llaves técnicas de enlace repeat en ambas hojas (ADR 0030,
   # Fase 4). No toca las columnas heredadas de la madre (attr repeat_inherited).
   df_cod <- .repeat_drop_technical_cols(df_cod)
@@ -998,6 +999,15 @@
       header2 <- openxlsx::createStyle(textDecoration = "italic", fontColour = "#5F6368", fgFill = "#F6F7F9")
       openxlsx::addStyle(wb, sheet_name, header2, rows = 2L, cols = seq_along(data), gridExpand = TRUE)
     }
+    # Firma de color de recods: distingue las columnas `_recod` POR TIPO (los
+    # dummies SM salen verdes vía type_map).
+    pulso_xlsx_highlight_recod_cols(
+      wb, sheet_name, colnames = names(data),
+      header_rows = seq_len(data_row - 1L),
+      first_data_row = data_row,
+      last_data_row = if (nrow(data) > 0L) data_row + nrow(data) - 1L else NULL,
+      enabled = color_recod, type_map = type_map
+    )
     openxlsx::freezePane(wb, sheet_name, firstActiveRow = data_row)
     openxlsx::setColWidths(wb, sheet_name, cols = seq_along(data), widths = col_widths(data, con_etiquetas, cap))
   }

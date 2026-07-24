@@ -212,11 +212,25 @@
   tb$name_h + q_h + tb$gap_q + tb$hdr_h + rows_h + tb$gap_bottom
 }
 
-.codebook_pdf_draw_block <- function(block, x, y, w, pal) {
+.codebook_pdf_draw_block <- function(block, x, y, w, pal, color_recod = FALSE,
+                                     type_map = NULL) {
   tb <- .CODEBOOK_TBL
   y0 <- y
   header_fill <- "#e9eef6"; zebra_fill <- "#f6f8fb"
   frame_col   <- "#c3ccdb"; div_col    <- "#c9d1de"
+
+  # Firma de color de recods: tinte MUY tenue POR TIPO SOLO en la TABLA
+  # `Codigo | Etiqueta` (nunca el nombre ni la pregunta ni zonas alrededor). Los
+  # dummies SM se resuelven a su padre (verde) via type_map. El relleno de la
+  # tabla se dibuja mas abajo, en la seccion 3.
+  is_recod <- isTRUE(color_recod) && pulso_recod_is_name(block$name)
+  table_tint <- NULL
+  if (is_recod) {
+    tp <- pulso_recod_resolve_type(block$name, type_map)
+    table_tint <- pulso_recod_codebook_color(tp)            # cuerpo: faint
+    header_fill <- pulso_recod_codebook_header_color(tp)    # encabezado: un paso mas oscuro
+    zebra_fill  <- table_tint
+  }
 
   # 1) nombre de variable (navy, bold) con numeración editorial "01 ·"
   name_x <- x
@@ -242,6 +256,12 @@
   x_div  <- x + code_w
   x2     <- x + w
   tbl_top <- y
+  # 3.0) tinte de recod: relleno tenue UNIFORME de TODA la tabla (encabezado +
+  # filas), acotado a la tabla. Se dibuja primero; el texto queda encima.
+  if (!is.null(table_tint)) {
+    rows_h <- sum(vapply(block$labels, function(l) .codebook_pdf_row_h(l, w, code_w), numeric(1)))
+    .cb_rect(x, tbl_top, w, tb$hdr_h + rows_h, table_tint)
+  }
   # 3a) encabezado
   .cb_rect(x, y, w, tb$hdr_h, header_fill)
   grid::grid.text("Código", x = grid::unit(x + code_w / 2, "npc"),
@@ -412,7 +432,8 @@ reporte_codebook_pdf <- function(df, output_file,
                                  ord = NULL,
                                  codigos_solo_si_presentes = NULL,
                                  periodo = "",
-                                 incluir_indice = TRUE) {
+                                 incluir_indice = TRUE,
+                                 color_recod = FALSE) {
   stopifnot(is.data.frame(df))
   pal <- .codebook_pdf_palette()
   geo <- .codebook_pdf_geometry()
@@ -421,6 +442,12 @@ reporte_codebook_pdf <- function(df, output_file,
 
   blocks <- .codebook_pdf_build_blocks(df, ord = ord, codigos_cond_chr = codigos_cond_chr)
   if (!length(blocks)) stop("No hay variables con etiquetas de valor para el libro de codigos.", call. = FALSE)
+
+  # Mapa nombre_variable -> tipo para resolver el color por tipo de los bloques
+  # recod (incluidos los dummies SM).
+  recod_type_map <- if (isTRUE(color_recod)) {
+    pulso_recod_type_map((attr(df, "instrumento_reporte", exact = TRUE) %||% list())$survey)
+  } else list()
 
   grDevices::pdf(output_file, paper = "a4",
                  width = .CODEBOOK_PDF_PAGE_W, height = .CODEBOOK_PDF_PAGE_H, onefile = TRUE)
@@ -486,7 +513,7 @@ reporte_codebook_pdf <- function(df, output_file,
       if (current_col == 1L) current_col <- 2L else new_page()
     }
     if (is.na(divider_top)) divider_top <- y[current_col]
-    y[current_col] <- .codebook_pdf_draw_block(block, geo$col_x[current_col], y[current_col], geo$col_w, pal)
+    y[current_col] <- .codebook_pdf_draw_block(block, geo$col_x[current_col], y[current_col], geo$col_w, pal, color_recod = color_recod, type_map = recod_type_map)
   }
   flush_divider(geo$y_bottom)
 

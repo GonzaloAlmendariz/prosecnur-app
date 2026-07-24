@@ -78,6 +78,153 @@ pulso_xlsx_palette <- function() {
 #' @noRd
 pulso_xlsx_font <- function() "Arial"
 
+# =============================================================================
+# Firma de color de recodificaciones (feature: cfg$color_recodificaciones)
+# -----------------------------------------------------------------------------
+# La codificacion crea variables `<var>_recod` (SM, SO, INTEGER). Cuando el
+# switch de Analitica esta encendido (default TRUE), los entregables resaltan
+# esas variables con una firma de color POR TIPO (SM verde, SO azul, INTEGER
+# morado). El tono es SUAVE (pastel muy claro): se nota sin competir con el
+# texto. Para los dummies de select_multiple (`<var>_recod.<code>`) el tipo se
+# resuelve desde la variable padre en el survey, de modo que salgan VERDES (SM)
+# y no en el lavanda generico (que solo es fallback cuando el tipo no se resuelve).
+# =============================================================================
+
+#' Paleta suave de la firma de recodificaciones (pastel claro por tipo)
+#' @noRd
+pulso_recod_palette <- function() {
+  list(
+    # Superficie (BBDD columnas `_recod`, choices del instrumento).
+    sm  = "#EEF8EE", so  = "#EAF2FF", int = "#F2EBF9",
+    # Fila del survey del instrumento: un matiz apenas mas marcado, misma familia.
+    sm_row = "#E3F3E3", so_row = "#DEEDFF", int_row = "#E9DFF5",
+    # Fallback cuando no se puede resolver el tipo: lavanda muy claro.
+    generic = "#F2EBF9",
+    # Tinte MUY tenue, exclusivo del CUERPO de la TABLA `Codigo | Etiqueta` del
+    # libro de codigos: se nota apenas y no compite con el texto.
+    sm_faint = "#F4FBF4", so_faint = "#F4F9FF", int_faint = "#FAF6FD",
+    generic_faint = "#FAF6FD",
+    # Encabezado `Codigo | Etiqueta` de la tabla recod: un paso mas oscuro que el
+    # cuerpo faint (misma familia por tipo), analogo al header gris vs cuerpo
+    # blanco de las tablas normales. Sigue siendo suave.
+    sm_head = "#E4F3E4", so_head = "#E4F0FF", int_head = "#EFE6F8",
+    generic_head = "#EFE6F8"
+  )
+}
+
+# ¿El nombre de variable/columna corresponde a una recodificacion? Cubre el
+# sufijo `_recod`, sus dummies de select_multiple (`<var>_recod/<code>`,
+# `<var>_recod.<code>`) y variantes `_recod_label`.
+#' @noRd
+pulso_recod_is_name <- function(name) {
+  nm <- as.character(name %||% "")
+  grepl("_recod", nm, fixed = TRUE)
+}
+
+# Clasifica el tipo de recod a partir de la columna `type` del survey XLSForm.
+# Devuelve "sm" | "so" | "int" | NA_character_.
+#' @noRd
+pulso_recod_type_from_xlsform <- function(type_str) {
+  t <- tolower(trimws(as.character(type_str %||% "")))
+  if (!nzchar(t)) return(NA_character_)
+  if (startsWith(t, "select_multiple")) return("sm")
+  if (startsWith(t, "select_one"))      return("so")
+  if (startsWith(t, "integer") || startsWith(t, "decimal") || startsWith(t, "range")) return("int")
+  NA_character_
+}
+
+# Construye el mapa `nombre_variable -> tipo` ("sm"/"so"/"int") desde el survey
+# de un rp_inst. Incluye tanto las variables originales como las `_recod`.
+#' @noRd
+pulso_recod_type_map <- function(survey) {
+  if (is.null(survey) || !all(c("type", "name") %in% names(survey))) return(list())
+  nm <- as.character(survey$name); tp <- as.character(survey$type)
+  out <- list()
+  for (i in seq_along(nm)) {
+    t <- pulso_recod_type_from_xlsform(tp[i])
+    if (!is.na(t) && !is.na(nm[i]) && nzchar(nm[i])) out[[nm[i]]] <- t
+  }
+  out
+}
+
+# Resuelve el tipo de una columna/bloque recod (incluidos los dummies de SM).
+# Estrategia: quita el sufijo de dummy `.N`/`/N`, prueba el nombre recod tal
+# cual y, si no esta en el mapa, quita `_recod` para caer en la variable padre
+# ORIGINAL. Devuelve "sm"/"so"/"int" o NA si no se puede resolver.
+#' @noRd
+pulso_recod_resolve_type <- function(name, type_map = NULL) {
+  if (is.null(type_map) || !length(type_map)) return(NA_character_)
+  nm <- as.character(name %||% "")
+  base <- sub("[./][0-9]+$", "", nm)                 # <var>_recod.96 -> <var>_recod
+  candidates <- unique(c(base, sub("_recod$", "", base)))  # + variable padre original
+  for (k in candidates) {
+    v <- type_map[[k]]
+    if (!is.null(v) && !is.na(v) && nzchar(v)) return(v)
+  }
+  NA_character_
+}
+
+# Color de superficie (relleno de area) para un tipo de recod. NA -> generico.
+#' @noRd
+pulso_recod_area_color <- function(tp) {
+  pal <- pulso_recod_palette()
+  switch(as.character(tp %||% ""),
+         sm = pal$sm, so = pal$so, int = pal$int, pal$generic)
+}
+
+# Tinte MUY tenue para el CUERPO de la tabla `Codigo | Etiqueta` del libro de
+# codigos. Solo las celdas de la tabla llevan color (no el nombre ni la etiqueta
+# de la variable). NA -> generico tenue.
+#' @noRd
+pulso_recod_codebook_color <- function(tp) {
+  pal <- pulso_recod_palette()
+  switch(as.character(tp %||% ""),
+         sm = pal$sm_faint, so = pal$so_faint, int = pal$int_faint, pal$generic_faint)
+}
+
+# Tinte del ENCABEZADO `Codigo | Etiqueta` de la tabla recod: un paso mas oscuro
+# que el cuerpo (misma familia por tipo). NA -> generico.
+#' @noRd
+pulso_recod_codebook_header_color <- function(tp) {
+  pal <- pulso_recod_palette()
+  switch(as.character(tp %||% ""),
+         sm = pal$sm_head, so = pal$so_head, int = pal$int_head, pal$generic_head)
+}
+
+# Estilo de relleno para un color de recod (createStyle con fgFill).
+#' @noRd
+pulso_recod_fill_style <- function(hex) {
+  openxlsx::createStyle(fgFill = hex)
+}
+
+# Resalta en una hoja XLSX las COLUMNAS `_recod` (cabecera + celdas de datos)
+# con el color de recod POR TIPO. `colnames` es el vector de nombres tecnicos en
+# el orden de las columnas escritas; `type_map` (de pulso_recod_type_map) resuelve
+# el tipo, incluidos los dummies de SM. Sin mapa, cae al generico. No hace nada
+# si `enabled` es FALSE. stack = TRUE preserva el resto de formato.
+#' @noRd
+pulso_xlsx_highlight_recod_cols <- function(wb, sheet, colnames,
+                                            header_rows = 1L,
+                                            first_data_row = NULL,
+                                            last_data_row = NULL,
+                                            enabled = TRUE,
+                                            type_map = NULL) {
+  if (!isTRUE(enabled)) return(invisible(NULL))
+  cols <- which(pulso_recod_is_name(colnames))
+  if (!length(cols)) return(invisible(NULL))
+  for (c in cols) {
+    hex <- pulso_recod_area_color(pulso_recod_resolve_type(colnames[c], type_map))
+    style <- pulso_recod_fill_style(hex)
+    rows <- as.integer(header_rows)
+    if (!is.null(first_data_row) && !is.null(last_data_row) && last_data_row >= first_data_row) {
+      rows <- c(rows, seq.int(first_data_row, last_data_row))
+    }
+    openxlsx::addStyle(wb, sheet, style, rows = rows, cols = c,
+                       gridExpand = TRUE, stack = TRUE)
+  }
+  invisible(NULL)
+}
+
 # Estilos de borde reutilizables para dar un "cuadro" claro a cada tabla:
 # marco exterior (arriba/abajo/izq/der) y separador vertical entre grupos de cruce.
 # Minimalismo con claridad: gris medio (rule_strong), no negro.
