@@ -88,16 +88,17 @@
 }
 
 .home-cinema-card:not(.is-focused) {
-  grid-template-rows: auto;
-  align-content: center;
-  justify-items: center;
-  filter: saturate(0.84) brightness(0.98);
+  /* Vecinos legibles: menos desaturación que antes (0.84 -> 0.96) y borde/sombra
+     un punto más definidos para que se lean como posters, no como fantasmas. */
+  filter: saturate(0.96);
+  border-color: color-mix(in srgb, var(--home-mod-accent-border, var(--pulso-border)) 80%, #fff 20%);
   background:
-    linear-gradient(145deg, color-mix(in srgb, var(--home-mod-accent-soft, var(--pulso-primary-soft)) 58%, #fff 42%) 0%, rgba(255, 255, 255, 0.98) 48%, #fff 100%),
+    linear-gradient(145deg, color-mix(in srgb, var(--home-mod-accent-soft, var(--pulso-primary-soft)) 64%, #fff 36%) 0%, rgba(255, 255, 255, 0.98) 52%, #fff 100%),
     var(--pulso-surface);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 18px 34px rgba(15, 23, 42, 0.09);
+    0 20px 38px color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 10%, transparent),
+    0 8px 20px rgba(15, 23, 42, 0.1);
 }
 
 .home-cinema-card.is-focused {
@@ -173,37 +174,24 @@
 }
 
 .home-cinema .home-cinema-card:not(.is-focused) .home-cinema-card-icon {
-  width: 66px;
-  height: 66px;
-  border-radius: 18px;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
 }
 
 .home-cinema .home-cinema-card:not(.is-focused) .home-cinema-card-icon svg {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
 }
 
 .home-cinema[data-density="compact"] .home-cinema-card-tagline,
-.home-cinema[data-density="compact"] .home-cinema-card-blurb,
-.home-cinema[data-density="compact"] .home-cinema-card-meta {
+.home-cinema[data-density="compact"] .home-cinema-card-blurb {
   display: none;
 }
 
-.home-cinema[data-density="compact"] .home-cinema-panel .home-cinema-feature-list {
-  display: none;
-}
-
-.home-cinema-card:not(.is-focused) .home-cinema-card-kicker,
-.home-cinema-card:not(.is-focused) .home-cinema-card-title,
 .home-cinema-card:not(.is-focused) .home-cinema-card-tagline,
-.home-cinema-card:not(.is-focused) .home-cinema-card-blurb,
-.home-cinema-card:not(.is-focused) .home-cinema-card-meta {
+.home-cinema-card:not(.is-focused) .home-cinema-card-blurb {
   display: none;
-}
-
-.home-cinema-card.is-focused .home-cinema-card-kicker,
-.home-cinema-card.is-focused .home-cinema-card-meta {
-  display: inline-flex;
 }
 
 .home-cinema-card.is-focused .home-cinema-card-tagline {
@@ -214,10 +202,8 @@
   display: -webkit-box;
 }
 
-.home-cinema[data-density="compact"] .home-cinema-card.is-focused .home-cinema-card-kicker,
 .home-cinema[data-density="compact"] .home-cinema-card.is-focused .home-cinema-card-tagline,
-.home-cinema[data-density="compact"] .home-cinema-card.is-focused .home-cinema-card-blurb,
-.home-cinema[data-density="compact"] .home-cinema-card.is-focused .home-cinema-card-meta {
+.home-cinema[data-density="compact"] .home-cinema-card.is-focused .home-cinema-card-blurb {
   display: none;
 }
 
@@ -225,36 +211,15 @@
   .home-cinema-card:not(.is-focused):hover {
     transform:
       translate(-50%, -50%)
-      translate3d(var(--card-x), calc(var(--card-y) - 8px), 0)
-      scale(calc(var(--card-scale) + 0.025))
+      translate3d(var(--card-x), calc(var(--card-y) - 8px), calc(var(--card-depth) + 28px))
       rotateY(var(--card-tilt))
-      rotateZ(var(--card-rotate));
+      scale(calc(var(--card-scale) + 0.03));
     filter: saturate(1);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.88),
       0 28px 54px color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 18%, transparent),
       0 10px 24px rgba(15, 23, 42, 0.13);
   }
-}
-
-.home-cinema-feature-list li:nth-child(1) { animation-delay: 80ms; }
-
-.home-cinema-feature-list li:nth-child(2) { animation-delay: 130ms; }
-
-.home-cinema-feature-list li:nth-child(3) { animation-delay: 180ms; }
-
-.home-cinema-feature-list li:nth-child(4) { animation-delay: 230ms; }
-
-.home-cinema-feature-list li:nth-child(5) { animation-delay: 280ms; }
-
-.home-cinema-feature-list svg {
-  width: 17px;
-  height: 17px;
-  padding: 2px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--home-mod-accent-soft, var(--pulso-primary-soft)) 72%, #fff 28%);
-  color: var(--home-mod-accent, var(--pulso-primary));
-  box-sizing: border-box;
 }
 
 .home-cinema-cta:hover {
@@ -272,23 +237,6 @@
   transform: scale(0.97);
 }
 
-.home-cinema-soon span {
-  color: var(--home-mod-accent, var(--pulso-primary));
-  font-size: 10px;
-  font-weight: 840;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.home-cinema-soon strong {
-  color: var(--pulso-text);
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.home-cinema-strip::-webkit-scrollbar {
-  display: none;
-}
 
 .home-cinema-dot::after {
   content: "";
@@ -564,6 +512,73 @@
 
   .home-cinema-card-blurb {
     -webkit-line-clamp: 2;
+  }
+}
+
+/* Ventanas de poca altura (p. ej. 1024x640): la ficha enfocada (~476px de
+   contenido) supera el alto del deck (~410px) y su borde inferior rozaba la tira
+   de dots. Comprimimos un punto el sello, gaps, padding, filas de features y el
+   blurb (2 líneas) para que la ficha quepa en el deck y NO toque el strip, sin
+   reintroducir recorte superior (sigue centrada, card.top/icon.top >= stage.top).
+   Especificidad (0,3,0)/(0,4,0) + orden posterior: gana a la base de theme.css. */
+@media (max-height: 720px) {
+  /* Poca altura: subimos el mazo un pelo (hay margen superior de sobra) para
+     que el borde inferior de la ficha no roce la tira, sin encoger contenido; el
+     centrado por `top:50%` desperdiciaba la mitad del recorte hacia arriba. */
+  .home-cinema .home-cinema-card {
+    top: 47%;
+  }
+
+  .home-cinema .home-cinema-card.is-focused {
+    gap: 6px;
+    padding: 18px 26px 14px;
+  }
+
+  .home-cinema-card-head {
+    gap: 6px;
+  }
+
+  .home-cinema .home-cinema-card.is-focused .home-cinema-card-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+  }
+
+  .home-cinema .home-cinema-card.is-focused .home-cinema-card-icon svg {
+    width: 29px;
+    height: 29px;
+  }
+
+  .home-cinema-card-name {
+    font-size: 20px;
+  }
+
+  .home-cinema .home-cinema-card.is-focused .home-cinema-card-tagline {
+    font-size: 12px;
+  }
+
+  .home-cinema .home-cinema-card.is-focused .home-cinema-card-blurb {
+    -webkit-line-clamp: 2;
+    line-height: 1.4;
+  }
+
+  .home-cinema-card-features {
+    margin-top: 1px;
+    gap: 5px 8px;
+  }
+
+  /* El alto de la ficha lo domina el wrap de las features (texto de 2-3 líneas);
+     bajar un punto tipografía/interlineado/min-height es lo que de verdad recorta. */
+  .home-cinema-card-features li {
+    min-height: 30px;
+    padding: 5px 10px;
+    font-size: 11px;
+    line-height: 1.2;
+  }
+
+  .home-cinema .home-cinema-card.is-focused .home-cinema-cta,
+  .home-cinema .home-cinema-card.is-focused .home-cinema-picker-actions {
+    margin-top: 2px;
   }
 }
 
@@ -2026,24 +2041,20 @@
   grid-template-rows: minmax(0, 1fr) auto;
 }
 
-/* El carrusel llena el área de setup (proyecto nuevo). */
+/* El carrusel llena el área de setup (proyecto nuevo) pero con un techo de ancho
+   centrado, para no estirarse a lo bruto en monitores anchos (misma cota que el
+   picker). */
 .home-setup .home-cinema {
   flex: 1;
   min-height: 0;
-  /* Con más especificidad que la base de theme.css (que aún declara 3 filas
-     `auto minmax(0,1fr) auto` de cuando el carrusel tenía cabecera): el strip
-     debe vivir en una fila `auto` (alto de contenido), no en la fila flexible
-     `1fr` — si no, se estira a ~118px de alto y queda un lozenge inflado. */
+  width: min(1120px, 100%);
+  margin-inline: auto;
+  /* El strip vive en una fila `auto` (alto de contenido), no en la fila flexible
+     `1fr` — si no, se estira y queda un lozenge inflado. */
   grid-template-rows: minmax(0, 1fr) auto;
 }
 
 /* --- Carrusel en modo selector (curaduría de módulos) ------------------ */
-
-/* En el pop-over de curaduría hay alto de sobra: las features del módulo
-   enfocado se muestran SIEMPRE (la base las oculta según densidad/altura). */
-.home-picker-overlay .home-cinema-panel .home-cinema-feature-list {
-  display: grid !important;
-}
 
 .home-cinema-picker-actions {
   display: flex;
@@ -2225,30 +2236,23 @@
 }
 
 /* La caja llena el stage (marco visible con flechas y strip dentro) y centra su
-   contenido con align-content. Si una ventana muy baja no da, el stage hace
-   scroll (overflow-y arriba) en vez de solapar. */
+   contenido con align-content. Techo de ancho centrado (misma cota que el
+   setup) para no estirarse a lo bruto en monitores anchos. Si una ventana muy
+   baja no da, el stage hace scroll (overflow-y arriba) en vez de solapar. */
 .home-picker-stage .home-cinema {
-  width: min(1240px, 100%);
+  width: min(1120px, 100%);
   height: 100%;
 }
 
 /* =====================================================================
    Pop-over "Módulos del proyecto": el carrusel reutiliza la MISMA gramática
-   que el setup ("Arma tu proyecto") —deck | panel lado a lado y strip abajo—
-   para que ambos se vean igual de definidos. Antes el pop-over tenía un
-   coverflow apilado propio (deck arriba / detalle abajo) que se leía menos
-   resuelto y, con los posters ahora solo-ícono, dejaba sin nombre al módulo
-   enfocado. Se conservan únicamente dos ajustes propios del pop-over: el
-   strip en una fila `auto` (evita el lozenge inflado en un contenedor alto) y
-   las features SIEMPRE visibles (aquí sobra alto; no se ocultan por densidad).
+   que el setup ("Arma tu proyecto") —deck cinematográfico + strip abajo— para
+   que ambos se vean igual de definidos: stage en fila `1fr` (el deck rellena y
+   no se recorta) y strip en fila `auto` (evita el lozenge inflado).
    ===================================================================== */
 .home-picker-overlay.is-cinema .home-cinema {
   grid-template-rows: minmax(0, 1fr) auto;
   align-content: stretch;
-}
-
-.home-picker-overlay.is-cinema .home-cinema-panel .home-cinema-feature-list {
-  display: grid;
 }
 
 /* =====================================================================
@@ -2492,6 +2496,40 @@
 
 :root[data-pulso-layout-preset="short"] .home-cinema-deck-wrap {
   overflow: visible;
+}
+
+/* =====================================================================
+   Deck moderno: el carrusel es una sola área que RELLENA el stage. Las
+   variantes legacy de `min/max-height` sobre `.home-cinema-deck` venían del
+   layout con panel lateral (deck pequeño al lado de un panel) y hoy sólo lo
+   colapsan o lo capan (p. ej. `max-height:228px` en `@media (max-height:700px)`,
+   que a 1024x640 recortaba la ficha hacia arriba bajo la barra del picker).
+   Como este bloque va al final (gana el desempate por orden de fuente sobre
+   theme.css y sobre los bloques anteriores), el deck queda libre para heredar la
+   altura real del stage. Nota: los presets short/compact conservan su propio
+   alto (especificidad 0,3,0) porque son elecciones explícitas de poco alto.
+   ===================================================================== */
+.home-cinema-stage {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.home-cinema-deck-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.home-cinema-deck {
+  min-height: 0;
+  max-height: none;
+  height: 100%;
+}
+
+/* Con el deck lleno hay sitio para las flechas incluso en ventanas bajas:
+   la regla legacy que las ocultaba a poca altura ya no aplica. */
+.home-cinema-deck-wrap .home-cinema-controls {
+  display: inline-flex;
 }
 
 /* ── Ajustes globales (modal centrado) ─────────────────────────────────── */

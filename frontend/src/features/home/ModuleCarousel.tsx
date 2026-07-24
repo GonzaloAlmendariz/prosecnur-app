@@ -25,29 +25,43 @@ export type ModulePicker = {
 
 type ModuleMotionDirection = "forward" | "backward";
 type CinemaDensity = "compact" | "standard" | "roomy";
+// Coverflow de mazo: los vecinos son cartas con la misma silueta que la ficha
+// enfocada, abanicadas con solape (`cardStep` corto + `stepDecay` que comprime
+// las cartas del fondo) y profundidad 3D (`tiltBase/tiltStep` de rotateY hacia
+// adentro, `zStep` de retroceso, caída de escala/opacidad por distancia).
 type CinemaMetrics = {
   cardWidth: number;
   cardMinHeight: number;
+  neighborWidth: number;
   cardStep: number;
+  stepDecay: number;
   cardYOffset: number;
-  cardRotate: number;
-  cardTilt: number;
+  zStep: number;
+  tiltBase: number;
+  tiltStep: number;
   scaleDrop: number;
   minScale: number;
+  opacityDrop: number;
+  minOpacity: number;
   hiddenDistance: number;
   density: CinemaDensity;
 };
 
 const DEFAULT_CINEMA_METRICS: CinemaMetrics = {
-  cardWidth: 372,
-  cardMinHeight: 398,
-  cardStep: 236,
-  cardYOffset: 10,
-  cardRotate: 4.5,
-  cardTilt: 10,
-  scaleDrop: 0.105,
-  minScale: 0.72,
-  hiddenDistance: 1,
+  cardWidth: 468,
+  cardMinHeight: 452,
+  neighborWidth: 292,
+  cardStep: 258,
+  stepDecay: 0.5,
+  cardYOffset: 14,
+  zStep: 62,
+  tiltBase: 24,
+  tiltStep: 9,
+  scaleDrop: 0.1,
+  minScale: 0.66,
+  opacityDrop: 0.12,
+  minOpacity: 0.62,
+  hiddenDistance: 2,
   density: "roomy",
 };
 
@@ -63,6 +77,8 @@ export function ModuleCarousel({ picker }: { picker: ModulePicker }) {
     ...homeModuleVars(focused),
     "--home-card-width": `${metrics.cardWidth}px`,
     "--home-card-min-height": `${metrics.cardMinHeight}px`,
+    "--home-neighbor-width": `${metrics.neighborWidth}px`,
+    "--home-neighbor-height": `${Math.round(metrics.neighborWidth * 1.22)}px`,
   } as CSSProperties;
 
   function focusBy(delta: number) {
@@ -136,14 +152,23 @@ export function ModuleCarousel({ picker }: { picker: ModulePicker }) {
               const distance = Math.abs(offset);
               const hidden = distance > metrics.hiddenDistance;
               const added = picker.isAdded(mod.slug);
+              // Abanico coverflow: X con solape (`fanExtent` acumula pasos que
+              // se comprimen), rotateY hacia adentro creciente, retroceso en Z
+              // y caída de escala/opacidad por distancia. El signo lleva la
+              // carta al lado correcto y le hace mirar hacia el centro.
+              const dir = offset === 0 ? 0 : offset > 0 ? 1 : -1;
+              const extent = fanExtent(distance, metrics.cardStep, metrics.stepDecay);
+              const tilt = distance === 0 ? 0 : metrics.tiltBase + (distance - 1) * metrics.tiltStep;
+              const scale = Math.max(metrics.minScale, 1 - distance * metrics.scaleDrop);
+              const opacity = hidden ? 0 : Math.max(metrics.minOpacity, 1 - distance * metrics.opacityDrop);
               const cardStyle = {
                 ...homeModuleVars(mod),
-                "--card-x": `${offset * metrics.cardStep}px`,
+                "--card-x": `${dir * extent}px`,
                 "--card-y": `${distance * metrics.cardYOffset}px`,
-                "--card-rotate": `${offset * -metrics.cardRotate}deg`,
-                "--card-tilt": `${offset * -metrics.cardTilt}deg`,
-                "--card-scale": `${Math.max(metrics.minScale, 1 - distance * metrics.scaleDrop)}`,
-                "--card-opacity": hidden ? "0" : "1",
+                "--card-depth": `${-distance * metrics.zStep}px`,
+                "--card-tilt": `${dir * tilt}deg`,
+                "--card-scale": `${scale}`,
+                "--card-opacity": `${opacity}`,
                 "--card-z": `${80 - distance}`,
               } as CSSProperties;
 
@@ -154,7 +179,10 @@ export function ModuleCarousel({ picker }: { picker: ModulePicker }) {
                 "is-active",
               ].filter(Boolean).join(" ");
 
-              // Vecinos: poster compacto (solo ícono), clickeable para enfocarlo.
+              // Vecinos: cartas del mazo (misma silueta que la enfocada) que
+              // muestran su cara compacta —sello de ícono en el color del
+              // módulo + nombre + tagline en una línea—; clickeables para
+              // traerlas al frente.
               if (!isFocused) {
                 return (
                   <button
@@ -172,8 +200,10 @@ export function ModuleCarousel({ picker }: { picker: ModulePicker }) {
                       </span>
                     )}
                     <span className="home-cinema-card-icon" aria-hidden="true">
-                      <Icon size={40} strokeWidth={1.65} />
+                      <Icon size={30} strokeWidth={1.65} />
                     </span>
+                    <span className="home-cinema-poster-label">{mod.shortLabel ?? mod.title}</span>
+                    <span className="home-cinema-poster-tagline">{mod.tagline}</span>
                   </button>
                 );
               }
@@ -328,19 +358,30 @@ function computeCinemaMetrics(
     presetShort;
   const presetRoomy = layoutPreset === "large";
   const presetBalanced = layoutPreset === "portable";
-  const crampedHeight = height < (presetShort ? 250 : 220) && width < 620;
-  const shortDeck = height < (presetShort ? 350 : presetRoomy ? 360 : 335) || presetShort;
-  const tallDeck = height >= 560 && width >= 680;
-  const compact = presetCompact || width < 500 || crampedHeight || shortDeck;
-  const roomy = !compact && (presetRoomy || tallDeck || (width > 640 && height > 365));
+  // Solo colapsamos a densidad compacta (tagline/blurb ocultos) en alturas
+  // realmente diminutas: con el deck rellenando el stage (fix del recorte), a
+  // 640px de ventana el deck mide ~470px y NO debe leerse como "compact".
+  const crampedHeight = height < (presetShort ? 240 : 200) && width < 620;
+  const shortDeck = height < (presetShort ? 320 : 288) || presetShort;
+  const tallDeck = height >= 520 && width >= 680;
+  // Deck ancho: hay lienzo de sobra → mostramos ±2 vecinos y una ficha más
+  // grande para comunicar amplitud en vez de quedar subpoblado.
+  const wideDeck = !presetCompact && width >= 1000 && height >= 380;
+  const compact = presetCompact || width < 480 || crampedHeight || shortDeck;
+  const roomy = !compact && (presetRoomy || tallDeck || wideDeck || (width > 640 && height > 340));
   const density: CinemaDensity = compact ? "compact" : roomy ? "roomy" : "standard";
-  const widthFactor = compact ? 0.64 : presetRoomy ? 0.54 : presetBalanced ? 0.52 : tallDeck ? 0.51 : 0.48;
+  // Ancho de la ficha SIN angostar (features envuelven menos = ficha más baja,
+  // evita el roce inferior en poca altura); a ±1 lo saca a la vista el paso
+  // largo del abanico, no una ficha más delgada.
+  const widthFactor = compact ? 0.64 : presetRoomy ? 0.5 : presetBalanced ? 0.5 : wideDeck ? 0.44 : 0.48;
+  // Ficha ~440-520 (un pelo más angosta que antes) para que los vecinos del
+  // abanico asomen a los lados en vez de quedar tapados por la ficha.
   const cardWidthMax = compact
     ? presetShort ? 316 : 334
-    : presetRoomy ? 456 : tallDeck ? 420 : roomy ? 380 : 340;
+    : wideDeck ? 522 : presetRoomy ? 500 : tallDeck ? 470 : roomy ? 452 : 400;
   const cardWidth = Math.round(clamp(
     width * widthFactor,
-    compact ? 216 : 276,
+    compact ? 216 : 300,
     cardWidthMax,
   ));
   const cardMinHeight = Math.round(
@@ -349,31 +390,51 @@ function computeCinemaMetrics(
       : shortDeck
       ? clamp(height - (presetShort ? 34 : 24), 180, presetShort ? 226 : 258)
       : clamp(
-          height - (compact ? 28 : presetRoomy ? 72 : tallDeck ? 86 : 30),
-          compact ? 248 : 292,
-          presetRoomy ? 520 : tallDeck ? 470 : roomy ? 390 : 326,
+          height - (compact ? 28 : presetRoomy ? 72 : tallDeck ? 86 : 40),
+          compact ? 248 : 300,
+          wideDeck ? 560 : presetRoomy ? 540 : tallDeck ? 500 : roomy ? 460 : 360,
         ),
   );
-  // Ficha enfocada ancha (~400-500px) + vecinos solo-ícono a los lados: el
-  // paso debe separarlos lo suficiente para que los vecinos ASOMEN limpios en
-  // vez de quedar tapados detrás de la ficha.
-  const cardStep = Math.round(clamp(
-    width * (presetShort ? 0.24 : compact ? 0.3 : 0.35),
-    presetShort ? 96 : compact ? 108 : 320,
-    compact ? (presetShort ? 128 : 188) : presetRoomy ? 430 : tallDeck ? 410 : roomy ? 400 : 372,
+  // Vecinos: cartas con la misma silueta (retrato) que la ficha, un pelo más
+  // angostas para que asomen a los lados del enfocado como un mazo.
+  const neighborWidth = Math.round(clamp(
+    cardWidth * (compact ? 0.62 : 0.6),
+    compact ? 188 : 248,
+    wideDeck ? 332 : compact ? 260 : 312,
   ));
-  const cardYOffset = Math.round(clamp(height * 0.024, compact ? 4 : 7, tallDeck ? 16 : 12));
+  // Primer paso del abanico: como la ficha es más ancha que un vecino, el paso
+  // debe sacar a ±1 fuera del ancho de la ficha para que muestre su cara (sello
+  // + nombre) y no quede tragado; los siguientes se tuckean detrás porque
+  // `fanExtent` comprime cada paso con `stepDecay`. Con deck ancho ±3.
+  const cardStep = Math.round(clamp(
+    cardWidth * (compact ? 0.56 : wideDeck ? 0.68 : 0.72),
+    compact ? 146 : wideDeck ? 292 : 268,
+    compact ? (presetShort ? 190 : 214) : wideDeck ? 344 : 336,
+  ));
+  const cardYOffset = Math.round(clamp(height * 0.022, compact ? 6 : 10, tallDeck ? 18 : 15));
+  // En compacto angosto sólo cabe ±1 sin recortar; en compacto ancho y en
+  // estándar/roomy ±2; con deck ancho ±3 para que el mazo tenga grosor visible.
+  const hiddenDistance = compact
+    ? (presetShort || width < 520 ? 1 : 2)
+    : wideDeck
+    ? 3
+    : 2;
 
   return {
     cardWidth,
     cardMinHeight,
+    neighborWidth,
     cardStep,
+    stepDecay: compact ? 0.52 : wideDeck ? 0.5 : 0.48,
     cardYOffset,
-    cardRotate: compact ? 2.2 : tallDeck ? 4.6 : roomy ? 4.2 : 3.4,
-    cardTilt: compact ? 4 : tallDeck ? 10 : roomy ? 9 : 7,
-    scaleDrop: compact ? 0.092 : roomy ? 0.1 : 0.095,
-    minScale: compact ? 0.76 : 0.72,
-    hiddenDistance: 1,
+    zStep: compact ? 40 : wideDeck ? 66 : 60,
+    tiltBase: compact ? 18 : tallDeck ? 24 : roomy ? 23 : 21,
+    tiltStep: compact ? 7 : 9,
+    scaleDrop: compact ? 0.11 : 0.1,
+    minScale: compact ? 0.7 : wideDeck ? 0.64 : 0.66,
+    opacityDrop: compact ? 0.14 : 0.12,
+    minOpacity: compact ? 0.7 : 0.62,
+    hiddenDistance,
     density,
   };
 }
@@ -382,16 +443,34 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+// Extensión horizontal acumulada del abanico: el primer paso es el más largo y
+// cada carta adicional aporta menos (multiplicado por `decay`), de modo que las
+// cartas del fondo se comprimen contra la más cercana al centro.
+function fanExtent(distance: number, step: number, decay: number): number {
+  let extent = 0;
+  let increment = step;
+  for (let i = 0; i < distance; i += 1) {
+    extent += increment;
+    increment *= decay;
+  }
+  return Math.round(extent);
+}
+
 function sameCinemaMetrics(a: CinemaMetrics, b: CinemaMetrics): boolean {
   return (
     a.cardWidth === b.cardWidth &&
     a.cardMinHeight === b.cardMinHeight &&
+    a.neighborWidth === b.neighborWidth &&
     a.cardStep === b.cardStep &&
+    a.stepDecay === b.stepDecay &&
     a.cardYOffset === b.cardYOffset &&
-    a.cardRotate === b.cardRotate &&
-    a.cardTilt === b.cardTilt &&
+    a.zStep === b.zStep &&
+    a.tiltBase === b.tiltBase &&
+    a.tiltStep === b.tiltStep &&
     a.scaleDrop === b.scaleDrop &&
     a.minScale === b.minScale &&
+    a.opacityDrop === b.opacityDrop &&
+    a.minOpacity === b.minOpacity &&
     a.hiddenDistance === b.hiddenDistance &&
     a.density === b.density
   );
