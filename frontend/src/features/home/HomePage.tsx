@@ -218,10 +218,10 @@ function HomeFooter({
           className="home-footer-notes"
           onClick={onOpenSettings}
         >
-          <Settings2 size={11} /> Configuración
+          <Settings2 size={14} aria-hidden="true" /> Configuración
         </button>
         <button type="button" className="home-footer-quit" onClick={onClose}>
-          <Power size={11} /> Cerrar aplicación
+          <Power size={14} aria-hidden="true" /> Cerrar aplicación
         </button>
       </div>
     </footer>
