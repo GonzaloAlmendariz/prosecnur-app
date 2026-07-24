@@ -7116,6 +7116,19 @@ export default function HojasRutaPage() {
     if (nextIndex != null) selectRouteJumpMode(routeJumpModeOptions[nextIndex].key);
   }
 
+  function selectReplacementPolicy(nextPolicy: HojasRutaReplacementPolicy) {
+    if (nextPolicy !== replacementPolicy) patchConfig({ replacement_policy: nextPolicy });
+  }
+
+  function selectReplacementPolicyFromKey(key: string, itemIndex: number) {
+    let nextIndex: number | null = null;
+    if (key === "Home") nextIndex = 0;
+    else if (key === "End") nextIndex = replacementPolicyOptions.length - 1;
+    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % replacementPolicyOptions.length;
+    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + replacementPolicyOptions.length) % replacementPolicyOptions.length;
+    if (nextIndex != null) selectReplacementPolicy(replacementPolicyOptions[nextIndex].key);
+  }
+
   function toggleDraftTerritory(ubigeo: string) {
     const set = new Set(draftTerritories);
     if (set.has(ubigeo)) set.delete(ubigeo);
@@ -8495,19 +8508,23 @@ export default function HojasRutaPage() {
                         </div>
                         <div className="hojas-ruta-segmented-field is-replacement-policy">
                           <span>Ubicación del reemplazo</span>
-                          <div className="hojas-ruta-segmented">
-                            {replacementPolicyOptions.map((option) => (
+                          <GlidingTabList activeKey={replacementPolicy} mode="tabs" className="hojas-ruta-segmented" role="radiogroup" aria-label="Ubicación del reemplazo de campo">
+                            {replacementPolicyOptions.map((option, itemIndex) => (
                               <button
                                 key={option.key}
                                 type="button"
+                                role="radio"
+                                data-gliding-key={option.key}
+                                aria-checked={replacementPolicy === option.key}
                                 className={replacementPolicy === option.key ? "is-active" : ""}
-                                onClick={() => patchConfig({ replacement_policy: option.key })}
+                                onClick={() => selectReplacementPolicy(option.key)}
+                                onKeyDown={(event) => selectReplacementPolicyFromKey(event.key, itemIndex)}
                                 title={option.hint}
                               >
                                 {option.label}
                               </button>
                             ))}
-                          </div>
+                          </GlidingTabList>
                         </div>
                         <div className="hojas-ruta-replacement-status">
                           <StatusPill ok text={replacementPolicy === "alternate_zone_same_district" ? "Mismo distrito" : "Misma zona"} />
