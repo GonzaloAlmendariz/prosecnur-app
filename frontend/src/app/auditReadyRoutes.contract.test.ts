@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { describe, expect, test } from "vitest";
+import { PROSECNUR_MODULES } from "../lib/modules";
 
 const srcDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -186,22 +187,10 @@ function literalClassNames(tag: JsxTag): string[] {
     : [];
 }
 
-function bitacoraKeys(sourceFile: ts.SourceFile): string[] {
-  const tabs = sourceFile.statements
-    .filter(ts.isVariableStatement)
-    .flatMap((statement) => statement.declarationList.declarations)
-    .find((declaration) => ts.isIdentifier(declaration.name) && declaration.name.text === "TABS");
-  const initializer = tabs?.initializer;
-  if (!initializer || !ts.isArrayLiteralExpression(initializer)) return [];
-
-  return initializer.elements.flatMap((element) => {
-    if (!ts.isObjectLiteralExpression(element)) return [];
-    const key = element.properties.find(
-      (property): property is ts.PropertyAssignment =>
-        ts.isPropertyAssignment(property) && property.name.getText(sourceFile) === "key",
-    );
-    return key && ts.isStringLiteral(key.initializer) ? [key.initializer.text] : [];
-  });
+function bitacoraKeys(): string[] {
+  return PROSECNUR_MODULES
+    .find((module) => module.slug === "diseno-estudio")
+    ?.sections.map((section) => section.id) ?? [];
 }
 
 function hasBitacoraTabKey(node: ts.Node): boolean {
@@ -386,10 +375,10 @@ describe("audit-ready route root contract", () => {
   });
 
   test("Bitácora publishes an exact semantic key for each guarded tab", () => {
-    const { sourceFile, tag } = defaultPageRoot("features/bitacora/BitacoraPage.tsx", "PageFrame");
+    const { tag } = defaultPageRoot("features/bitacora/BitacoraPage.tsx", "PageFrame");
     const value = readinessValue(tag, "auditReady", "Bitácora");
 
-    expect(bitacoraKeys(sourceFile), "Bitácora audit tab keys").toEqual([
+    expect(bitacoraKeys(), "Bitácora audit tab keys").toEqual([
       "bitacora",
       "cronograma",
       "calendario",
