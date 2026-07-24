@@ -25,6 +25,24 @@ dueño se agregan como filas — el plan base NO se edita para agregarlas.
   difieran, **manda la guía** — son la misma dirección con métricas y resolución de esquina
   refinadas; el ADR de §4.5 fija los números finales.
 
+## Regla de gobierno: revisión, no permiso (indicación del dueño, 2026-07-23)
+
+La instrucción del dueño de ejecutar este plan **ES la aprobación**. Ningún agente vuelve a
+pedir confirmación para avanzar sobre algo que el dueño ya decidió o que un documento del
+contrato ya fija. En concreto:
+
+- El gate del §4.0 del plan base ("el usuario aprueba la dirección antes de escribir código
+  del shell") se **reinterpreta**: la dirección v3 se redacta y la ejecución AVANZA de
+  inmediato; el dueño la revisa en paralelo y corrige por el bucle (§12) — para eso existe
+  el bucle. Los gates de fase entregan EVIDENCIA para revisión y veto, no piden permiso
+  para empezar.
+- Las únicas pausas legítimas que esperan al dueño: (a) un **conflicto entre documentos sin
+  arbitrar** en este índice; (b) una **decisión de producto genuinamente nueva** que ninguna
+  indicación previa cubre (se formula la pregunta concreta con recomendación y se continúa
+  con lo no bloqueado); (c) **borrados o acciones irreversibles** fuera de lo ya autorizado.
+- "El usuario declara el cierre" (§12) sigue intacto: el dueño cierra el loop cuando quiera
+  — pero el loop nunca se detiene a esperar bendiciones intermedias.
+
 ## Reglas del índice
 
 1. Indicación nueva del dueño ⇒ fila nueva acá (mismo commit que el documento).
