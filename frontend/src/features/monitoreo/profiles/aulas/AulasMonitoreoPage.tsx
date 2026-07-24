@@ -15,6 +15,11 @@ import { MODULE_TONES } from "../../../../lib/modules";
 import { AULAS_WORKBENCH_VIEWS, MONITOREO_ROUTES, type WorkbenchView } from "../../core/monitoreoRegistry";
 import { initialMonitoreoView, useMonitoreoTabParam } from "../../useMonitoreoTabParam";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
+import {
+  aulasFieldLabel,
+  presentAulasRow,
+  summarizeAulasValidation,
+} from "./aulasPresentation";
 import type { MonitoreoReportScope } from "../types";
 import "../profilePage.css";
 import "../../shell/monitoreoShell.css";
@@ -35,36 +40,6 @@ function pct(value: unknown) {
   return `${Math.round(n)}%`;
 }
 
-function columnLabel(column: string) {
-  const labels: Record<string, string> = {
-    operational_code: "Código de ficha",
-    label: "Curso-horario",
-    course_name: "Curso",
-    section: "Sección",
-    schedule: "Horario",
-    link: "Enlace Kobo",
-    package_status: "Ficha PDF",
-    responsible: "Responsable",
-    collector_id: "Origen",
-    classroom_id: "ID de curso-horario",
-    teacher: "Docente",
-    faculty: "Facultad",
-    program: "Carrera",
-  };
-  return labels[column] ?? column.replaceAll("_", " ");
-}
-
-function packageStatusText(value: unknown) {
-  const status = String(value ?? "").trim().toLowerCase();
-  if (!status) return "";
-  const labels: Record<string, string> = {
-    pdf_preparado: "PDF preparado",
-    listo_para_pdf: "Listo para PDF",
-    pendiente_enlace: "Falta enlace",
-  };
-  return labels[status] ?? String(value);
-}
-
 function scopeForView(view: WorkbenchView): MonitoreoReportScope {
   if (view === "calidad") return "validation_summary";
   if (view === "consultas") return "queries_summary";
@@ -74,15 +49,6 @@ function scopeForView(view: WorkbenchView): MonitoreoReportScope {
 
 function dashboardFromState(state: MonitoreoState | null) {
   return state?.dashboard?.aulas_universitarias_reports ?? null;
-}
-
-function rowValue(row: Record<string, unknown>, key: string) {
-  const value = row[key];
-  if (value == null) return "";
-  if (typeof value === "boolean") return value ? "Sí" : "No";
-  if (key === "package_status") return packageStatusText(value);
-  if (key === "link") return String(value).trim() ? "Guardado" : "";
-  return String(value);
 }
 
 function compactColumns(rows: Array<Record<string, unknown>>, preferred: string[] = []) {
@@ -138,16 +104,17 @@ function DataTable({
 }) {
   if (!rows.length) return <p className="mon-profile-muted">{empty}</p>;
   const columns = compactColumns(rows, preferredColumns);
+  const presentedRows = rows.map(presentAulasRow);
   return (
     <div className="mon-profile-table-wrap">
       <table className="mon-profile-table">
         <thead>
-          <tr>{columns.map((column) => <th key={column}>{columnLabel(column)}</th>)}</tr>
+          <tr>{columns.map((column) => <th key={column}>{aulasFieldLabel(column)}</th>)}</tr>
         </thead>
         <tbody>
-          {rows.slice(0, 80).map((row, index) => (
+          {presentedRows.slice(0, 80).map((row, index) => (
             <tr key={index}>
-              {columns.map((column) => <td key={column}>{rowValue(row, column)}</td>)}
+              {columns.map((column) => <td key={column}>{String(row[column] ?? "")}</td>)}
             </tr>
           ))}
         </tbody>
@@ -306,13 +273,18 @@ function renderAulasView(view: WorkbenchView, dashboard: MonitoreoAulasDashboard
   }
   if (view === "calidad") {
     const rows = (dashboard.validation ?? []) as Array<Record<string, unknown>>;
+    const summary = summarizeAulasValidation(rows);
     return (
       <section className="mon-profile-panel">
         <div className="mon-profile-panel-head">
           <h3>Validación de cursos-horario</h3>
-          <span>{fmt(rows.length)} alertas</span>
+          <span>{summary.label}</span>
         </div>
-        <DataTable rows={rows} empty="No hay alertas de validacion para este corte." />
+        <DataTable
+          rows={rows}
+          empty="No hay controles de validación para este corte."
+          preferredColumns={["check", "status", "detail"]}
+        />
       </section>
     );
   }
