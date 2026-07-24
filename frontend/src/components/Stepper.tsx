@@ -1,5 +1,5 @@
 import { Check } from "lucide-react";
-import { GlidingTabList } from "./GlidingTabList";
+import { StageStepper } from "./StageStepper";
 
 // Stepper — navegación SECUENCIAL entre pasos de un flujo.
 //
@@ -33,7 +33,7 @@ export type StepMeta<K extends string = string> = {
 };
 
 type Props<K extends string = string> = {
-  steps: StepMeta<K>[];
+  steps: readonly StepMeta<K>[];
   current: K;
   onChange: (key: K) => void;
   /** ariaLabel para el container (ej. "Fases del procesamiento"). */
@@ -43,89 +43,20 @@ type Props<K extends string = string> = {
 export function Stepper<K extends string = string>({
   steps, current, onChange, ariaLabel,
 }: Props<K>) {
-  const currentIdx = steps.findIndex((s) => s.key === current);
   return (
-    <GlidingTabList
-      activeKey={current}
-      role="tablist"
-      aria-label={ariaLabel ?? "Stepper"}
-      className="pulso-stepper"
-    >
-      {steps.map((s, i) => {
-        const isActive = s.key === current;
-        const isDone = typeof s.done === "boolean" ? s.done : currentIdx > i;
-        return (
-          <div key={s.key} className="pulso-stepper-node">
-            <StepChip
-              meta={s}
-              active={isActive}
-              done={isDone}
-              glidingKey={s.key}
-              onClick={() => {
-                if (!s.disabled) onChange(s.key);
-              }}
-            />
-            {i < steps.length - 1 && <StepConnector done={isDone} />}
-          </div>
-        );
-      })}
-    </GlidingTabList>
-  );
-}
-
-function StepConnector({ done }: { done: boolean }) {
-  return (
-    <div
-      aria-hidden="true"
-      className={`pulso-step-connector ${done ? "is-done" : ""}`}
-    >
-      {done && <span />}
-    </div>
-  );
-}
-
-function StepChip({
-  meta, active, done, glidingKey, onClick,
-}: {
-  meta: StepMeta;
-  active: boolean;
-  done: boolean;
-  glidingKey: string;
-  onClick: () => void;
-}) {
-  const Icon = meta.icon;
-  return (
-    <button
-      type="button"
-      role="tab"
-      data-gliding-key={glidingKey}
-      aria-selected={active}
-      aria-current={active ? "step" : undefined}
-      aria-disabled={meta.disabled || undefined}
-      disabled={meta.disabled}
-      onClick={onClick}
-      title={meta.disabled ? meta.disabledReason : active ? "Paso actual" : done ? "Completado" : "Pendiente"}
-      className={[
-        "pulso-step-chip",
-        active ? "is-active" : "",
-        done ? "is-done" : "",
-        meta.disabled ? "is-disabled" : "",
-      ].filter(Boolean).join(" ")}
-    >
-      <span aria-hidden="true" className="pulso-step-icon">
-        {done && !active ? <Check size={13} /> : <Icon size={13} />}
-      </span>
-      <span className="pulso-step-copy">
-        <span className="pulso-step-label">
-          <span className="pulso-step-number">{meta.n}</span>
-          {meta.label}
-        </span>
-        {meta.hint && (
-          <span className="pulso-step-hint">
-            {meta.hint}
-          </span>
-        )}
-      </span>
-    </button>
+    <StageStepper
+      stages={steps.map((step) => ({
+        key: step.key,
+        label: step.label,
+        description: step.hint,
+        icon: step.icon,
+        completed: step.done,
+        disabled: step.disabled,
+        disabledReason: step.disabledReason,
+      }))}
+      currentStage={current}
+      onStageChange={onChange}
+      ariaLabel={ariaLabel ?? "Stepper"}
+    />
   );
 }
