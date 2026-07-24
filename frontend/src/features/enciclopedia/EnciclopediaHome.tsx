@@ -12,7 +12,11 @@ import {
   type EnciclopediaTiposEstudioCatalogo,
 } from "../../api/client";
 import { PageFrame } from "../../components/PageFrame";
-import { TabStrip, type TabMeta } from "../../components/TabStrip";
+import {
+  TabStrip,
+  tabPanelProps,
+  type TabMeta,
+} from "../../components/TabStrip";
 import { Panel } from "../../components/Panel";
 import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
@@ -70,17 +74,25 @@ export default function EnciclopediaHome() {
       title="Enciclopedia metodológica"
       lead="Catálogo de diez técnicas muestrales cuantitativas, glosario de términos, comparador y tabla de estudios aplicados."
     >
-      <TabStrip tabs={tabs} active={tab} onChange={setTab} ariaLabel="Secciones de la enciclopedia" />
+      <TabStrip
+        idBase="enciclopedia-main"
+        tabs={tabs}
+        active={tab}
+        onChange={setTab}
+        ariaLabel="Secciones de la enciclopedia"
+      />
 
-      {tab === "catalogo" && (catalogo ? (
-        <CatalogoPane catalogo={catalogo} busqueda={busqueda} setBusqueda={setBusqueda} />
-      ) : <LoadingBlock label="Cargando catálogo…" />)}
-      {tab === "glosario" && (glosario ? <GlosarioPane glosario={glosario} /> : <LoadingBlock label="Cargando glosario…" />)}
-      {tab === "comparador" && (catalogo ? (
-        <ComparadorPane catalogo={catalogo} seleccion={seleccionComp} setSeleccion={setSeleccionComp} />
-      ) : <LoadingBlock label="Cargando…" />)}
-      {tab === "estudios" && (tabla ? <TablaEstudiosPane tabla={tabla} tipos={tipos} /> : <LoadingBlock label="Cargando estudios…" />)}
-      {tab === "tipos" && (tipos ? <TiposEstudioPane tipos={tipos} /> : <LoadingBlock label="Cargando tipos…" />)}
+      <section {...tabPanelProps("enciclopedia-main", tab)}>
+        {tab === "catalogo" && (catalogo ? (
+          <CatalogoPane catalogo={catalogo} busqueda={busqueda} setBusqueda={setBusqueda} />
+        ) : <LoadingBlock label="Cargando catálogo…" />)}
+        {tab === "glosario" && (glosario ? <GlosarioPane glosario={glosario} /> : <LoadingBlock label="Cargando glosario…" />)}
+        {tab === "comparador" && (catalogo ? (
+          <ComparadorPane catalogo={catalogo} seleccion={seleccionComp} setSeleccion={setSeleccionComp} />
+        ) : <LoadingBlock label="Cargando…" />)}
+        {tab === "estudios" && (tabla ? <TablaEstudiosPane tabla={tabla} tipos={tipos} /> : <LoadingBlock label="Cargando estudios…" />)}
+        {tab === "tipos" && (tipos ? <TiposEstudioPane tipos={tipos} /> : <LoadingBlock label="Cargando tipos…" />)}
+      </section>
     </PageFrame>
   );
 }
