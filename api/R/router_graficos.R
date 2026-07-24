@@ -1353,10 +1353,12 @@
   # de seccion ausentes (un valor explicito del perfil o del analista siempre
   # manda) para que los divisores luzcan intencionales aun cuando la config
   # guardada del proyecto predate los estilos de seccion del perfil.
-  size_slide <- suppressWarnings(as.numeric(presets_json$base$size_titulo_slide %||% NA_real_)[1])
-  if (is.null(presets_json$base$size_titulo_seccion) &&
-      is.finite(size_slide) && size_slide > 0) {
-    presets_json$base$size_titulo_seccion <- round(size_slide * 1.3, 1)
+  # La regla vive en .ppt_section_title_size() (reporte_plan_helpers.R), que es
+  # la misma que aplica el motor: si se duplicara aqui, un export por router y
+  # otro directo (preview, Word) volverian a dar tamanos distintos.
+  if (is.null(presets_json$base$size_titulo_seccion)) {
+    derived <- .ppt_section_title_size(size_slide = presets_json$base$size_titulo_slide)
+    if (is.finite(derived)) presets_json$base$size_titulo_seccion <- derived
   }
   if (is.null(presets_json$base$bold_titulo_seccion)) {
     presets_json$base$bold_titulo_seccion <- TRUE

@@ -114,6 +114,43 @@ test_that("titulo de seccion usa fallback solo si el placeholder esta fuera del 
   expect_lte(acnur_safe$loc$top + acnur_safe$loc$height, 7.5)
 })
 
+test_that(".ppt_section_title_size respeta el valor explicito y deriva del titulo de slide", {
+  # Un valor explicito del perfil o del analista siempre manda.
+  expect_equal(.ppt_section_title_size(30, 24), 30)
+  # Derivado: mismo redondeo que aplicaba la capa router.
+  expect_equal(.ppt_section_title_size(NULL, 22.5), 29.2)
+  expect_equal(.ppt_section_title_size(NA_real_, 22.5), 29.2)
+  # Un valor presente pero invalido tampoco gana: se trata como "no configurado".
+  expect_equal(.ppt_section_title_size(0, 22.5), 29.2)
+  expect_equal(.ppt_section_title_size("", 22.5), 29.2)
+  # Sin nada utilizable devuelve NA para que el llamador aplique su default.
+  expect_true(is.na(.ppt_section_title_size(NULL, NULL)))
+  expect_true(is.na(.ppt_section_title_size(NULL, 0)))
+  expect_true(is.na(.ppt_section_title_size("", "")))
+})
+
+test_that("router y motor derivan el mismo cuerpo para el titulo de seccion", {
+  # Si estas dos capas divergen, el mismo proyecto exporta tamanos distintos
+  # segun entre por el router (/api/graficos/ppt) o directo (preview, Word).
+  for (size_slide in c(18, 22.5, 24, 30)) {
+    enriched <- .enriquecer_presets(list(base = list(size_titulo_slide = size_slide)))
+    expect_equal(
+      enriched$base$size_titulo_seccion,
+      .ppt_section_title_size(NULL, size_slide)
+    )
+  }
+
+  # Un size_titulo_seccion explicito sobrevive al enriquecido.
+  explicit <- .enriquecer_presets(
+    list(base = list(size_titulo_slide = 24, size_titulo_seccion = 30))
+  )
+  expect_equal(explicit$base$size_titulo_seccion, 30)
+
+  # Sin ningun size no se inventa uno.
+  empty <- .enriquecer_presets(list(base = list()))
+  expect_null(empty$base$size_titulo_seccion)
+})
+
 test_that("un footer configurado puede ubicarse despues del logo PULSO", {
   spec <- list(
     type = "body",

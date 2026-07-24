@@ -197,6 +197,28 @@
   )
 }
 
+# Los divisores por seccion se leen mejor con un cuerpo mas grande que el titulo
+# de slide. El ratio y la derivacion viven aqui, en un solo lugar, porque los
+# consumen dos capas: la del router (.enriquecer_presets(), que precocina los
+# presets antes del worker) y la del motor (.styled_slide_title(), que ademas
+# atiende paths que NO pasan por el router: preview de lamina, Word directo,
+# tests). Cuando cada capa tenia su propia regla, el mismo proyecto exportaba
+# el titulo de seccion en 29.2 pt o en 22.5 pt segun por donde entrara.
+.PPT_SECTION_TITLE_RATIO <- 1.3
+
+# Devuelve el cuerpo del titulo de seccion en puntos, o NA_real_ si no hay nada
+# utilizable (el llamador aplica su propio default). Un valor explicito del
+# perfil o del analista siempre manda sobre el derivado.
+.ppt_section_title_size <- function(size_seccion = NULL, size_slide = NULL) {
+  explicit <- suppressWarnings(as.numeric(size_seccion %||% NA_real_)[1])
+  if (is.finite(explicit) && explicit > 0) return(explicit)
+  slide <- suppressWarnings(as.numeric(size_slide %||% NA_real_)[1])
+  if (is.finite(slide) && slide > 0) {
+    return(round(slide * .PPT_SECTION_TITLE_RATIO, 1))
+  }
+  NA_real_
+}
+
 .ppt_title_spec_with_height <- function(layout_props, spec, height = NULL) {
   height <- suppressWarnings(as.numeric(height %||% NA_real_)[1])
   if (!is.finite(height) || height <= 0 || !is.data.frame(layout_props) || !nrow(layout_props)) {
