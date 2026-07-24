@@ -16,6 +16,9 @@
   --bitacora-accent: var(--module-accent, var(--pulso-module-encyclopedia));
   --bitacora-accent-soft: var(--module-accent-soft, var(--pulso-module-encyclopedia-soft));
   --bitacora-accent-border: var(--module-accent-border, var(--pulso-module-encyclopedia-border));
+  --diseno-accent: var(--bitacora-accent);
+  --diseno-accent-soft: var(--bitacora-accent-soft);
+  --diseno-accent-border: var(--bitacora-accent-border);
   --pulso-primary: var(--bitacora-accent);
   --pulso-primary-soft: var(--bitacora-accent-soft);
   --pulso-primary-border: var(--bitacora-accent-border);
@@ -156,6 +159,11 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+.bitacora-body > .diseno-bitacora-grid {
+  min-height: 0;
+  overflow-y: auto;
 }
 
 /* El cronograma embebido no dibuja su propio marco de página. */
