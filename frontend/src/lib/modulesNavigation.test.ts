@@ -44,10 +44,14 @@ const EXPECTED_PRIMARY_NAVIGATION: Record<
     ],
   },
   "hojas-ruta": {
-    landingKind: "section",
+    landingKind: "entrypoint",
     to: "/hojas-ruta",
     sections: [
-      { id: "hojas-ruta", label: "Hojas de ruta", to: "/hojas-ruta", layoutPolicy: "viewport" },
+      { id: "territorio", label: "Territorio", to: "/hojas-ruta?stage=territorio", layoutPolicy: "viewport" },
+      { id: "poblacion", label: "Población", to: "/hojas-ruta?stage=poblacion", layoutPolicy: "viewport" },
+      { id: "muestra", label: "Muestra", to: "/hojas-ruta?stage=muestra", layoutPolicy: "viewport" },
+      { id: "manzanas", label: "Manzanas", to: "/hojas-ruta?stage=manzanas", layoutPolicy: "viewport" },
+      { id: "entrega", label: "Entrega", to: "/hojas-ruta?stage=entrega", layoutPolicy: "viewport" },
     ],
   },
   recopiladores: {
@@ -85,13 +89,14 @@ const EXPECTED_PRIMARY_NAVIGATION: Record<
 };
 
 describe("manifiesto primario de navegación", () => {
-  it("declara una cobertura parcial que el shell todavía no puede consumir", () => {
+  it("declara la cobertura v2 que el shell consume solo con runtime de Hojas", () => {
     expect(PROSECNUR_NAVIGATION_CONTRACT).toEqual({
-      version: 1,
+      version: 2,
       coverage: "primary-routes-v1",
       profiledSectionsCoverage: "monitoring-profiles-v1",
-      tabsCoverage: "deferred",
-      consumableByShell: false,
+      tabsCoverage: "hojas-ruta-v1",
+      shellCoverage: "hojas-ruta-v1",
+      consumableByShell: true,
     });
   });
 
@@ -121,8 +126,8 @@ describe("manifiesto primario de navegación", () => {
       if (module.landingKind === "section") {
         expect(module.sections.some((section) => section.to === module.to)).toBe(true);
       } else {
-        expect(module.slug).toBe("procesamiento");
-        expect(module.to).toBe("/procesamiento");
+        expect(["procesamiento", "hojas-ruta"]).toContain(module.slug);
+        expect(["/procesamiento", "/hojas-ruta"]).toContain(module.to);
       }
 
       for (const section of module.sections) {
@@ -137,11 +142,44 @@ describe("manifiesto primario de navegación", () => {
         expect(section).not.toHaveProperty("lockedReason");
         sectionIds.push(section.id);
         sectionRoutes.push(section.to);
+        for (const tab of section.tabs ?? []) {
+          expect(tab.id.trim()).not.toBe("");
+          expect(tab.label.trim()).not.toBe("");
+          expect(tab.label[0]).toBe(tab.label[0].toLocaleUpperCase("es-PE"));
+          expect(tab.label).toMatch(/[a-záéíóúüñ]/);
+          expect(tab.to).toMatch(/^\//);
+          expect(tab.layoutPolicy).toBe("viewport");
+          expect(tab.icon).toBeTruthy();
+          expect(tab).not.toHaveProperty("lockedReason");
+          sectionIds.push(tab.id);
+          sectionRoutes.push(tab.to);
+        }
       }
     }
 
     expect(new Set(sectionIds).size).toBe(sectionIds.length);
     expect(new Set(sectionRoutes).size).toBe(sectionRoutes.length);
+  });
+
+  it("define las cinco etapas y los tres destinos subordinados de Entrega", () => {
+    const routes = PROSECNUR_MODULES.find(
+      (module) => module.slug === "hojas-ruta",
+    );
+    const delivery = routes?.sections.find((section) => section.id === "entrega");
+
+    expect(routes?.tone.accent).toBe("var(--pulso-module-routes)");
+    expect(routes?.sections.map(({ id, label, to }) => ({ id, label, to }))).toEqual([
+      { id: "territorio", label: "Territorio", to: "/hojas-ruta?stage=territorio" },
+      { id: "poblacion", label: "Población", to: "/hojas-ruta?stage=poblacion" },
+      { id: "muestra", label: "Muestra", to: "/hojas-ruta?stage=muestra" },
+      { id: "manzanas", label: "Manzanas", to: "/hojas-ruta?stage=manzanas" },
+      { id: "entrega", label: "Entrega", to: "/hojas-ruta?stage=entrega" },
+    ]);
+    expect(delivery?.tabs?.map(({ id, label, to }) => ({ id, label, to }))).toEqual([
+      { id: "cuotas", label: "Cuotas", to: "/hojas-ruta?stage=entrega&tab=cuotas" },
+      { id: "titulares", label: "Titulares", to: "/hojas-ruta?stage=entrega&tab=titulares" },
+      { id: "reemplazos", label: "Reemplazos", to: "/hojas-ruta?stage=entrega&tab=reemplazos" },
+    ]);
   });
 
   it("mantiene ocho acentos de módulo distintos y fuera de los estados semánticos", () => {

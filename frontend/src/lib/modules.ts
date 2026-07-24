@@ -4,12 +4,16 @@ import {
   CalendarDays,
   CalendarRange,
   ClipboardCheck,
+  FileText,
   ListChecks,
+  MapPinned,
   PhoneCall,
   PlugZap,
   Route,
   Search,
   ShieldAlert,
+  Shuffle,
+  Target,
   type LucideIcon,
 } from "../vendor/lucide-react";
 import {
@@ -74,11 +78,12 @@ export type ResolvedProsecnurNavigationItem = ProsecnurNavigationLeafMeta & {
 export type ProsecnurNavigationLandingKind = "section" | "entrypoint";
 
 export const PROSECNUR_NAVIGATION_CONTRACT = {
-  version: 1,
+  version: 2,
   coverage: "primary-routes-v1",
   profiledSectionsCoverage: "monitoring-profiles-v1",
-  tabsCoverage: "deferred",
-  consumableByShell: false,
+  tabsCoverage: "hojas-ruta-v1",
+  shellCoverage: "hojas-ruta-v1",
+  consumableByShell: true,
 } as const;
 
 export type ProsecnurModuleMeta = {
@@ -262,14 +267,65 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     icon: IconRoutes,
     tone: MODULE_TONES["hojas-ruta"],
     to: "/hojas-ruta",
-    landingKind: "section",
+    landingKind: "entrypoint",
     sections: [
       {
-        id: "hojas-ruta",
-        label: "Hojas de ruta",
-        icon: IconRoutes,
-        to: "/hojas-ruta",
+        id: "territorio",
+        label: "Territorio",
+        icon: MapPinned,
+        to: "/hojas-ruta?stage=territorio",
         layoutPolicy: "viewport",
+      },
+      {
+        id: "poblacion",
+        label: "Población",
+        icon: BarChart3,
+        to: "/hojas-ruta?stage=poblacion",
+        layoutPolicy: "viewport",
+      },
+      {
+        id: "muestra",
+        label: "Muestra",
+        icon: Target,
+        to: "/hojas-ruta?stage=muestra",
+        layoutPolicy: "viewport",
+      },
+      {
+        id: "manzanas",
+        label: "Manzanas",
+        icon: Shuffle,
+        to: "/hojas-ruta?stage=manzanas",
+        layoutPolicy: "viewport",
+      },
+      {
+        id: "entrega",
+        label: "Entrega",
+        icon: FileText,
+        to: "/hojas-ruta?stage=entrega",
+        layoutPolicy: "viewport",
+        tabs: [
+          {
+            id: "cuotas",
+            label: "Cuotas",
+            icon: BarChart3,
+            to: "/hojas-ruta?stage=entrega&tab=cuotas",
+            layoutPolicy: "viewport",
+          },
+          {
+            id: "titulares",
+            label: "Titulares",
+            icon: MapPinned,
+            to: "/hojas-ruta?stage=entrega&tab=titulares",
+            layoutPolicy: "viewport",
+          },
+          {
+            id: "reemplazos",
+            label: "Reemplazos",
+            icon: Shuffle,
+            to: "/hojas-ruta?stage=entrega&tab=reemplazos",
+            layoutPolicy: "viewport",
+          },
+        ],
       },
     ],
   },
