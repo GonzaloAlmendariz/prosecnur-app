@@ -71,6 +71,14 @@ function chromeSyncProgressStyle(progress: MonitoreoModuleSyncProgress | null | 
   return { "--mon-sync-progress": `${percent}%` } as CSSProperties;
 }
 
+export function monitoreoViewHref(view: WorkbenchView, currentHref?: string) {
+  const href = currentHref
+    ?? (typeof window === "undefined" ? "http://localhost/monitoreo" : window.location.href);
+  const url = new URL(href, "http://localhost");
+  url.searchParams.set("tab", view);
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
 type ChromeGenerationInfo = {
   label: string;
   value: string;
@@ -166,7 +174,7 @@ export function MonitoreoModuleChrome({
       aria-label="Secciones de monitoreo"
       data-view-count={views.length}
     >
-      <GlidingTabList as="nav" activeKey={activeView} className="pulso-phase-pillbar mon-section-rail" role="tablist" aria-label={`Secciones de ${route.shortLabel}`}>
+      <GlidingTabList as="nav" mode="nav" activeKey={activeView} className="pulso-phase-pillbar mon-section-rail" aria-label={`Secciones de ${route.shortLabel}`}>
         <ol className="pulso-phase-pill-list">
           {views.map((item, index) => {
             const selected = item.key === activeView;
@@ -175,19 +183,33 @@ export function MonitoreoModuleChrome({
             const accessibilityLabel = metric ? `${displayLabel}, ${metric}: ${item.desc}` : `${displayLabel}: ${item.desc}`;
             return (
               <li key={item.key} className="pulso-phase-pill-item">
-                <button
-                  type="button"
-                  role="tab"
+                <a
+                  href={saving ? undefined : monitoreoViewHref(item.key)}
                   data-gliding-key={item.key}
                   className={`pulso-phase-pill mon-section-pill is-${item.key}${selected ? " is-active" : ""}${saving ? " is-disabled" : ""}`}
                   aria-label={accessibilityLabel}
                   aria-current={selected ? "page" : undefined}
-                  aria-selected={selected}
+                  aria-disabled={saving ? "true" : undefined}
                   data-view-key={item.key}
-                  disabled={saving}
+                  tabIndex={saving ? -1 : undefined}
                   title={metric ? `${item.label}: ${metric} · ${item.desc}` : `${item.label}: ${item.desc}`}
-                  onClick={() => {
-                    if (!saving) onViewChange?.(item.key);
+                  onClick={(event) => {
+                    if (saving) {
+                      event.preventDefault();
+                      return;
+                    }
+                    if (
+                      !onViewChange
+                      || event.button !== 0
+                      || event.metaKey
+                      || event.ctrlKey
+                      || event.shiftKey
+                      || event.altKey
+                    ) {
+                      return;
+                    }
+                    event.preventDefault();
+                    onViewChange(item.key);
                   }}
                 >
                   <span className="pulso-phase-pill-circle" aria-hidden="true" />
@@ -198,7 +220,7 @@ export function MonitoreoModuleChrome({
                       {metric ? <em className="pulso-phase-pill-metric">{metric}</em> : null}
                     </span>
                   </span>
-                </button>
+                </a>
               </li>
             );
           })}
