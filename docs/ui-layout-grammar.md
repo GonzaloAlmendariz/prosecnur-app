@@ -104,6 +104,33 @@ Es una galería de tarjetas o alternativas seleccionables. En compacto reduce co
 
 Es un panel cartográfico o geográfico. Debe preservar área mínima del mapa y mover filtros, leyendas y acciones a rail, hoja o bloque apilado cuando el alto sea bajo.
 
+## Foco post-navegación
+
+La app aplica una sola política de foco al cambiar de contexto:
+
+- Una navegación de ruta conserva el foco en el enlace activado. El nuevo
+  contexto se anuncia actualizando el título de ventana y
+  `aria-current="page"`; no se mueve el foco al canvas ni a un encabezado por
+  defecto.
+- El enlace activo debe seguir montado después del cambio. Si el estado
+  responsivo lo desmonta —por ejemplo, al cerrar un drawer— el foco vuelve al
+  control que abre la navegación. Solo cuando ese control también deja de
+  existir puede pasar al contenedor principal con `tabIndex="-1"`.
+- Atrás/Adelante del navegador y la restauración de una sesión no roban el
+  foco a un control que todavía existe.
+- Las pestañas ARIA de un panel local conservan el foco en la pestaña
+  seleccionada. Las flechas cambian la selección según el patrón roving; no
+  mueven el foco al panel.
+- Flyouts, popovers y diálogos restauran el foco en su disparador al cerrar.
+  Escape debe completar esa restauración antes de devolver el control al
+  shell.
+- La actualización de foco y atributos accesibles no espera a que termine una
+  animación.
+
+Esta política aplica igual en sidebar expandido, colapsado y drawer. Las rutas
+usan enlaces con `aria-current`; `role="tab"` se reserva a tabs asociados con
+un panel local.
+
 ## Reglas de implementación
 
 - No mezclar más de un dueño de scroll por pantalla.
