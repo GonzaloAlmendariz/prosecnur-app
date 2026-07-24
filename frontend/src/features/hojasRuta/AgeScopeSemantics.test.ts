@@ -11,14 +11,10 @@ describe("Hojas age-scope semantics", () => {
       source.indexOf('<div className="hojas-ruta-age-preset-row"', labelIndex),
     );
 
-    expect(selector).toContain("<GlidingTabList");
-    expect(selector).toContain('role="radiogroup"');
-    expect(selector).toContain('role="radio"');
-    expect(selector).toContain("aria-checked={ageDraftScope === scope}");
-    expect(selector).toContain("data-gliding-key={scope}");
-    expect(selector).toContain("onKeyDown={(event) => selectAgeScopeFromKey");
-    expect(source).toContain(
-      "if (nextScope !== ageDraftScope) setAgeRangeScope(nextScope)",
-    );
+    expect(selector).toContain("<GlidingRadioGroup");
+    expect(selector).toContain("value={ageDraftScope}");
+    expect(selector).toContain("options={ageScopeOptions}");
+    expect(selector).toContain("onValueChange={setAgeDraftScope}");
+    expect(source).not.toContain("selectAgeScopeFromKey");
   });
 });

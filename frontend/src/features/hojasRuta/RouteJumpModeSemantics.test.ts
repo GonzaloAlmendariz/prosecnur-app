@@ -11,14 +11,10 @@ describe("Hojas route-jump mode semantics", () => {
       source.indexOf('<Field label="Salto manual">', labelIndex),
     );
 
-    expect(selector).toContain("<GlidingTabList");
-    expect(selector).toContain('role="radiogroup"');
-    expect(selector).toContain('role="radio"');
-    expect(selector).toContain("aria-checked={routeJumpMode === option.key}");
-    expect(selector).toContain("data-gliding-key={option.key}");
-    expect(selector).toContain("onKeyDown={(event) => selectRouteJumpModeFromKey");
-    expect(source).toContain(
-      "if (nextMode !== routeJumpMode) patchConfig({ route_jump_mode: nextMode })",
-    );
+    expect(selector).toContain("<GlidingRadioGroup");
+    expect(selector).toContain("value={routeJumpMode}");
+    expect(selector).toContain("options={routeJumpModeOptions}");
+    expect(selector).toContain("onValueChange={(nextMode) => patchConfig({ route_jump_mode: nextMode })}");
+    expect(source).not.toContain("selectRouteJumpModeFromKey");
   });
 });

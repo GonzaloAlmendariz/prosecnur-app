@@ -62,6 +62,7 @@ import { JobProgress } from "../../components/JobProgress";
 import { PageFrame } from "../../components/PageFrame";
 import { Panel } from "../../components/Panel";
 import { EmptyState, LoadingBlock } from "../../components/States";
+import { GlidingRadioGroup } from "../../components/GlidingRadioGroup";
 import { GlidingTabList } from "../../components/GlidingTabList";
 import type { StepMeta } from "../../components/Stepper";
 import { useSession } from "../../lib/SessionContext";
@@ -4937,19 +4938,6 @@ function SamplingMethodExplainer({
     },
   ];
 
-  function selectMethod(nextMethod: SamplingMethod) {
-    if (nextMethod !== value) onChange(nextMethod);
-  }
-
-  function selectMethodFromKey(key: string, itemIndex: number) {
-    let nextIndex: number | null = null;
-    if (key === "Home") nextIndex = 0;
-    else if (key === "End") nextIndex = methods.length - 1;
-    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % methods.length;
-    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + methods.length) % methods.length;
-    if (nextIndex != null) selectMethod(methods[nextIndex].id);
-  }
-
   function Diagram({ method, accent }: { method: SamplingMethod; accent: string }) {
     if (method === "pps") {
       return (
@@ -4984,28 +4972,21 @@ function SamplingMethodExplainer({
   }
 
   return (
-    <GlidingTabList activeKey={value} mode="tabs" className="hojas-ruta-method-selector" role="radiogroup" aria-label="Metodo de seleccion de manzanas">
-      {methods.map((method, itemIndex) => {
-        const active = method.id === value;
-        return (
-          <button
-            key={method.id}
-            type="button"
-            role="radio"
-            data-gliding-key={method.id}
-            aria-checked={active}
-            onClick={() => selectMethod(method.id)}
-            onKeyDown={(event) => selectMethodFromKey(event.key, itemIndex)}
-            className={active ? "is-active" : ""}
-            style={{ "--method-accent": method.accent } as React.CSSProperties}
-          >
-            <Diagram method={method.id} accent={method.accent} />
-            <strong>{method.title}</strong>
-            <span>{method.body}</span>
-          </button>
-        );
-      })}
-    </GlidingTabList>
+    <GlidingRadioGroup
+      value={value}
+      options={methods}
+      getOptionValue={(method) => method.id}
+      onValueChange={onChange}
+      getOptionProps={(method) => ({ style: { "--method-accent": method.accent } as React.CSSProperties })}
+      className="hojas-ruta-method-selector"
+      aria-label="Metodo de seleccion de manzanas"
+    >
+      {(method) => <>
+        <Diagram method={method.id} accent={method.accent} />
+        <strong>{method.title}</strong>
+        <span>{method.body}</span>
+      </>}
+    </GlidingRadioGroup>
   );
 }
 
@@ -5522,17 +5503,6 @@ function SampleSizeWorkbench({
   const settings = normalizeSampleSizeSettings(config.sample_size);
   const mode = config.sample_size_mode ?? "calculator";
   const sampleModes: SampleSizeMode[] = ["calculator", "external_total", "external_district"];
-  function selectSampleMode(nextMode: SampleSizeMode) {
-    if (nextMode !== mode) onModeChange(nextMode);
-  }
-  function selectSampleModeFromKey(key: string, itemIndex: number) {
-    let nextIndex: number | null = null;
-    if (key === "Home") nextIndex = 0;
-    else if (key === "End") nextIndex = sampleModes.length - 1;
-    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % sampleModes.length;
-    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + sampleModes.length) % sampleModes.length;
-    if (nextIndex != null) selectSampleMode(sampleModes[nextIndex]);
-  }
   const districtRowsByUbigeo = new Map((preview?.district_rows ?? []).map((row) => [row.ubigeo, row]));
   const nDistrictTotal = Object.values(config.n_por_distrito ?? {}).reduce((sum, value) => sum + Number(value || 0), 0);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -5570,30 +5540,7 @@ function SampleSizeWorkbench({
   const proportionTone = settings.expected_proportion >= 0.35 && settings.expected_proportion <= 0.65 ? "ok" : "info";
 	  const allocationMode = settings.allocation_mode ?? "proportional";
   const allocationModes = Object.keys(ALLOCATION_LABELS) as AllocationMode[];
-  function selectAllocationMode(nextMode: AllocationMode) {
-    if (nextMode !== allocationMode) onSampleSizeChange({ allocation_mode: nextMode });
-  }
-  function selectAllocationModeFromKey(key: string, itemIndex: number) {
-    let nextIndex: number | null = null;
-    if (key === "Home") nextIndex = 0;
-    else if (key === "End") nextIndex = allocationModes.length - 1;
-    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % allocationModes.length;
-    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + allocationModes.length) % allocationModes.length;
-    if (nextIndex != null) selectAllocationMode(allocationModes[nextIndex]);
-  }
 	  const enforceFloor = settings.enforce_district_floor ?? true;
-  const districtMarginModes = [true, false] as const;
-  function selectDistrictMarginMode(nextMode: boolean) {
-    if (nextMode !== enforceFloor) onSampleSizeChange({ enforce_district_floor: nextMode });
-  }
-  function selectDistrictMarginModeFromKey(key: string, itemIndex: number) {
-    let nextIndex: number | null = null;
-    if (key === "Home") nextIndex = 0;
-    else if (key === "End") nextIndex = districtMarginModes.length - 1;
-    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % districtMarginModes.length;
-    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + districtMarginModes.length) % districtMarginModes.length;
-    if (nextIndex != null) selectDistrictMarginMode(districtMarginModes[nextIndex]);
-  }
   const isCalculatorMode = mode === "calculator";
   const isExternalMode = mode !== "calculator";
 	  const overrides = settings.design_effect_overrides ?? {};
@@ -5776,23 +5723,19 @@ function SampleSizeWorkbench({
               <small>Primero decide si Prosecnur calcula el tamaño muestral o si estás validando un N ya aprobado.</small>
             </div>
           </div>
-          <GlidingTabList activeKey={mode} mode="tabs" className="hojas-ruta-sample-mode-cards" role="radiogroup" aria-label="Modo de muestra">
-            {sampleModes.map((item, itemIndex) => (
-              <button
-                key={item}
-                type="button"
-                role="radio"
-                data-gliding-key={item}
-                aria-checked={mode === item}
-                className={mode === item ? "is-active" : ""}
-                onClick={() => selectSampleMode(item)}
-                onKeyDown={(event) => selectSampleModeFromKey(event.key, itemIndex)}
-              >
-                <strong>{modeCopy[item].title}</strong>
-                <span>{modeCopy[item].detail}</span>
-              </button>
-            ))}
-          </GlidingTabList>
+          <GlidingRadioGroup
+            value={mode}
+            options={sampleModes}
+            getOptionValue={(item) => item}
+            onValueChange={onModeChange}
+            className="hojas-ruta-sample-mode-cards"
+            aria-label="Modo de muestra"
+          >
+            {(item) => <>
+              <strong>{modeCopy[item].title}</strong>
+              <span>{modeCopy[item].detail}</span>
+            </>}
+          </GlidingRadioGroup>
         </section>
 
         <div className="hojas-ruta-sample-size-flow">
@@ -6003,39 +5946,25 @@ function SampleSizeWorkbench({
 	              </div>
                 {isCalculatorMode ? (
                   <div style={{ display: "grid", gap: 8 }}>
-                    <GlidingTabList
-                      activeKey={enforceFloor ? "enforce" : "warn"}
-                      mode="tabs"
+                    <GlidingRadioGroup
+                      value={enforceFloor}
+                      options={[true, false] as const}
+                      getOptionValue={(option) => option}
+                      getOptionKey={(option) => option ? "enforce" : "warn"}
+                      onValueChange={(nextMode) => onSampleSizeChange({ enforce_district_floor: nextMode })}
+                      getOptionProps={(option) => ({ style: districtMarginModeButtonStyle(option === enforceFloor) })}
                       className="hojas-ruta-action-row is-tight"
-                      role="radiogroup"
                       aria-label="Uso del margen distrital"
                       style={{ alignItems: "stretch" }}
                     >
-                      <button
-                        type="button"
-                        role="radio"
-                        data-gliding-key="enforce"
-                        aria-checked={enforceFloor}
-                        style={districtMarginModeButtonStyle(enforceFloor)}
-                        onClick={() => selectDistrictMarginMode(true)}
-                        onKeyDown={(event) => selectDistrictMarginModeFromKey(event.key, 0)}
-                      >
+                      {(option) => option ? <>
                         <strong>Requisito de cálculo</strong>
                         <span>Garantizar el margen por distrito.</span>
-                      </button>
-                      <button
-                        type="button"
-                        role="radio"
-                        data-gliding-key="warn"
-                        aria-checked={!enforceFloor}
-                        style={districtMarginModeButtonStyle(!enforceFloor)}
-                        onClick={() => selectDistrictMarginMode(false)}
-                        onKeyDown={(event) => selectDistrictMarginModeFromKey(event.key, 1)}
-                      >
+                      </> : <>
                         <strong>Solo máximo permitido</strong>
                         <span>No sube el N; solo alerta si se excede.</span>
-                      </button>
-                    </GlidingTabList>
+                      </>}
+                    </GlidingRadioGroup>
                     <p className="hojas-ruta-sample-note">{districtMarginModeHelp}</p>
                   </div>
                 ) : null}
@@ -6152,23 +6081,19 @@ function SampleSizeWorkbench({
                       : "El N total ya está fijado; aquí solo decides cómo repartirlo entre distritos."}
                   </span>
 	              </div>
-              <GlidingTabList activeKey={allocationMode} mode="tabs" className="hojas-ruta-allocation-cards" role="radiogroup" aria-label="Modo de asignación">
-                {allocationModes.map((m, itemIndex) => (
-                  <button
-                    key={m}
-                    type="button"
-                    role="radio"
-                    data-gliding-key={m}
-                    aria-checked={allocationMode === m}
-                    className={allocationMode === m ? "is-active" : ""}
-                    onClick={() => selectAllocationMode(m)}
-                    onKeyDown={(event) => selectAllocationModeFromKey(event.key, itemIndex)}
-                  >
-                    <strong>{ALLOCATION_LABELS[m].title}</strong>
-                    <span>{ALLOCATION_LABELS[m].hint}</span>
-                  </button>
-                ))}
-              </GlidingTabList>
+              <GlidingRadioGroup
+                value={allocationMode}
+                options={allocationModes}
+                getOptionValue={(option) => option}
+                onValueChange={(nextMode) => onSampleSizeChange({ allocation_mode: nextMode })}
+                className="hojas-ruta-allocation-cards"
+                aria-label="Modo de asignación"
+              >
+                {(option) => <>
+                  <strong>{ALLOCATION_LABELS[option].title}</strong>
+                  <span>{ALLOCATION_LABELS[option].hint}</span>
+                </>}
+              </GlidingRadioGroup>
 	              {isCalculatorMode ? (
                   <p className="hojas-ruta-sample-note">
                     El uso del margen distrital se define arriba, junto al umbral: puede ser requisito de cálculo o solo máximo permitido para alertas.
@@ -7090,58 +7015,6 @@ export default function HojasRutaPage() {
     }
   }
 
-  function selectRouteStartCorner(nextCorner: HojasRutaRouteStartCorner) {
-    if (nextCorner !== routeStartCorner) patchConfig({ route_start_corner: nextCorner });
-  }
-
-  function selectRouteStartCornerFromKey(key: string, itemIndex: number) {
-    let nextIndex: number | null = null;
-    if (key === "Home") nextIndex = 0;
-    else if (key === "End") nextIndex = routeStartCornerOptions.length - 1;
-    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % routeStartCornerOptions.length;
-    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + routeStartCornerOptions.length) % routeStartCornerOptions.length;
-    if (nextIndex != null) selectRouteStartCorner(routeStartCornerOptions[nextIndex].key);
-  }
-
-  function selectRouteJumpMode(nextMode: HojasRutaRouteJumpMode) {
-    if (nextMode !== routeJumpMode) patchConfig({ route_jump_mode: nextMode });
-  }
-
-  function selectRouteJumpModeFromKey(key: string, itemIndex: number) {
-    let nextIndex: number | null = null;
-    if (key === "Home") nextIndex = 0;
-    else if (key === "End") nextIndex = routeJumpModeOptions.length - 1;
-    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % routeJumpModeOptions.length;
-    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + routeJumpModeOptions.length) % routeJumpModeOptions.length;
-    if (nextIndex != null) selectRouteJumpMode(routeJumpModeOptions[nextIndex].key);
-  }
-
-  function selectReplacementPolicy(nextPolicy: HojasRutaReplacementPolicy) {
-    if (nextPolicy !== replacementPolicy) patchConfig({ replacement_policy: nextPolicy });
-  }
-
-  function selectReplacementPolicyFromKey(key: string, itemIndex: number) {
-    let nextIndex: number | null = null;
-    if (key === "Home") nextIndex = 0;
-    else if (key === "End") nextIndex = replacementPolicyOptions.length - 1;
-    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % replacementPolicyOptions.length;
-    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + replacementPolicyOptions.length) % replacementPolicyOptions.length;
-    if (nextIndex != null) selectReplacementPolicy(replacementPolicyOptions[nextIndex].key);
-  }
-
-  function selectManualReplacementPolicy(nextPolicy: HojasRutaReplacementPolicy) {
-    if (nextPolicy !== manualReplacementPolicy) setManualReplacementPolicy(nextPolicy);
-  }
-
-  function selectManualReplacementPolicyFromKey(key: string, itemIndex: number) {
-    let nextIndex: number | null = null;
-    if (key === "Home") nextIndex = 0;
-    else if (key === "End") nextIndex = replacementPolicyOptions.length - 1;
-    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % replacementPolicyOptions.length;
-    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + replacementPolicyOptions.length) % replacementPolicyOptions.length;
-    if (nextIndex != null) selectManualReplacementPolicy(replacementPolicyOptions[nextIndex].key);
-  }
-
   function toggleDraftTerritory(ubigeo: string) {
     const set = new Set(draftTerritories);
     if (set.has(ubigeo)) set.delete(ubigeo);
@@ -7321,23 +7194,6 @@ export default function HojasRutaPage() {
     setRandomPdf(null);
   }
 
-  function setAgeRangeScope(scope: HojasRutaAgeRangeScope) {
-    setAgeDraftScope(scope);
-  }
-
-  function selectAgeScope(nextScope: HojasRutaAgeRangeScope) {
-    if (nextScope !== ageDraftScope) setAgeRangeScope(nextScope);
-  }
-
-  function selectAgeScopeFromKey(key: string, itemIndex: number) {
-    let nextIndex: number | null = null;
-    if (key === "Home") nextIndex = 0;
-    else if (key === "End") nextIndex = ageScopeOptions.length - 1;
-    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % ageScopeOptions.length;
-    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + ageScopeOptions.length) % ageScopeOptions.length;
-    if (nextIndex != null) selectAgeScope(ageScopeOptions[nextIndex]);
-  }
-
   function setAgeRangeModeDraft(mode: HojasRutaAgeRangeMode) {
     setAgeDraftMode(mode);
     if (mode === "manual") {
@@ -7351,15 +7207,6 @@ export default function HojasRutaPage() {
   function selectAgeMethod(nextMethod: HojasRutaAgeMethod) {
     if (nextMethod === ageMethod) return;
     setAgeRangeModeDraft(nextMethod === "manual" ? "manual" : "terciles");
-  }
-
-  function selectAgeMethodFromKey(key: string, itemIndex: number) {
-    let nextIndex: number | null = null;
-    if (key === "Home") nextIndex = 0;
-    else if (key === "End") nextIndex = ageMethodOptions.length - 1;
-    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % ageMethodOptions.length;
-    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + ageMethodOptions.length) % ageMethodOptions.length;
-    if (nextIndex != null) selectAgeMethod(ageMethodOptions[nextIndex]);
   }
 
   function editManualAgeRanges(age_ranges: HojasRutaAgeRange[]) {
@@ -7682,19 +7529,6 @@ export default function HojasRutaPage() {
     } finally {
       setBusy("");
     }
-  }
-
-  function selectRandomPreference(nextPreference: HojasRutaRandomPreference) {
-    if (nextPreference !== randomPreference) setRandomPreference(nextPreference);
-  }
-
-  function selectRandomPreferenceFromKey(key: string, itemIndex: number) {
-    let nextIndex: number | null = null;
-    if (key === "Home") nextIndex = 0;
-    else if (key === "End") nextIndex = randomPreferenceOptions.length - 1;
-    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % randomPreferenceOptions.length;
-    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + randomPreferenceOptions.length) % randomPreferenceOptions.length;
-    if (nextIndex != null) selectRandomPreference(randomPreferenceOptions[nextIndex].key);
   }
 
   function setSampleSizeMode(mode: SampleSizeMode) {
@@ -8144,27 +7978,20 @@ export default function HojasRutaPage() {
                           Primero elige si definirás los rangos a mano o si Prosecnur calculará cortes con población 18+.
                         </span>
                       </div>
-                      <GlidingTabList activeKey={ageMethod} mode="tabs" className="hojas-ruta-age-method-row" role="radiogroup" aria-label="Forma de definir rangos de edad">
-                        {ageMethodOptions.map((method, itemIndex) => {
-                          const isManual = method === "manual";
-                          return (
-                            <button
-                              key={method}
-                              type="button"
-                              role="radio"
-                              data-gliding-key={method}
-                              aria-checked={ageMethod === method}
-                              className={ageMethod === method ? "is-active" : ""}
-                              onClick={() => selectAgeMethod(method)}
-                              onKeyDown={(event) => selectAgeMethodFromKey(event.key, itemIndex)}
-                              disabled={!canConfigureAgeRanges || busy !== ""}
-                            >
-                              <strong>{isManual ? "Manual" : "Cortes poblacionales"}</strong>
-                              <span>{isManual ? "Escribes y confirmas tus propios rangos." : "Prosecnur calcula grupos con peso poblacional parecido."}</span>
-                            </button>
-                          );
-                        })}
-                      </GlidingTabList>
+                      <GlidingRadioGroup
+                        value={ageMethod}
+                        options={ageMethodOptions}
+                        getOptionValue={(method) => method}
+                        onValueChange={selectAgeMethod}
+                        getOptionProps={() => ({ disabled: !canConfigureAgeRanges || busy !== "" })}
+                        className="hojas-ruta-age-method-row"
+                        aria-label="Forma de definir rangos de edad"
+                      >
+                        {(method) => <>
+                          <strong>{method === "manual" ? "Manual" : "Cortes poblacionales"}</strong>
+                          <span>{method === "manual" ? "Escribes y confirmas tus propios rangos." : "Prosecnur calcula grupos con peso poblacional parecido."}</span>
+                        </>}
+                      </GlidingRadioGroup>
 
                       {ageDraftMode === "manual" ? (
                         <AgeRangesEditor
@@ -8179,24 +8006,20 @@ export default function HojasRutaPage() {
                               text="Puedes calcular los cortes solo con los distritos confirmados del estudio o con todo el marco INEI 2017 disponible. Esto cambia los límites de edad cuando la estructura etaria de tus distritos difiere del marco completo."
                             />
                           </div>
-                          <GlidingTabList activeKey={ageDraftScope} mode="tabs" className="hojas-ruta-age-scope-row" role="radiogroup" aria-label="Base para cortes automaticos">
-                            {ageScopeOptions.map((scope, itemIndex) => (
-                              <button
-                                key={scope}
-                                type="button"
-                                role="radio"
-                                data-gliding-key={scope}
-                                aria-checked={ageDraftScope === scope}
-                                className={ageDraftScope === scope ? "is-active" : ""}
-                                onClick={() => selectAgeScope(scope)}
-                                onKeyDown={(event) => selectAgeScopeFromKey(event.key, itemIndex)}
-                                disabled={!canConfigureAgeRanges || busy !== ""}
-                              >
-                                <strong>{AGE_RANGE_SCOPE_LABELS[scope].title}</strong>
-                                <span>{AGE_RANGE_SCOPE_LABELS[scope].hint}</span>
-                              </button>
-                            ))}
-                          </GlidingTabList>
+                          <GlidingRadioGroup
+                            value={ageDraftScope}
+                            options={ageScopeOptions}
+                            getOptionValue={(scope) => scope}
+                            onValueChange={setAgeDraftScope}
+                            getOptionProps={() => ({ disabled: !canConfigureAgeRanges || busy !== "" })}
+                            className="hojas-ruta-age-scope-row"
+                            aria-label="Base para cortes automaticos"
+                          >
+                            {(scope) => <>
+                              <strong>{AGE_RANGE_SCOPE_LABELS[scope].title}</strong>
+                              <span>{AGE_RANGE_SCOPE_LABELS[scope].hint}</span>
+                            </>}
+                          </GlidingRadioGroup>
                           <div className="hojas-ruta-age-preset-row" aria-label="Presets de rangos de edad">
                             {AGE_RANGE_CUT_MODES.map((mode) => (
                               <button
@@ -8434,42 +8257,32 @@ export default function HojasRutaPage() {
                       <div className="hojas-ruta-pdf-controls">
                         <div className="hojas-ruta-segmented-field">
                           <span>Esquina inicial</span>
-                          <GlidingTabList activeKey={routeStartCorner} mode="tabs" className="hojas-ruta-segmented" role="radiogroup" aria-label="Esquina inicial">
-                            {routeStartCornerOptions.map((option, itemIndex) => (
-                              <button
-                                key={option.key}
-                                type="button"
-                                role="radio"
-                                data-gliding-key={option.key}
-                                aria-checked={routeStartCorner === option.key}
-                                className={routeStartCorner === option.key ? "is-active" : ""}
-                                onClick={() => selectRouteStartCorner(option.key)}
-                                onKeyDown={(event) => selectRouteStartCornerFromKey(event.key, itemIndex)}
-                              >
-                                {option.label === "Automática" ? "Auto" : option.label}
-                              </button>
-                            ))}
-                          </GlidingTabList>
+                          <GlidingRadioGroup
+                            value={routeStartCorner}
+                            options={routeStartCornerOptions}
+                            getOptionValue={(option) => option.key}
+                            onValueChange={(nextCorner) => patchConfig({ route_start_corner: nextCorner })}
+                            className="hojas-ruta-segmented"
+                            aria-label="Esquina inicial"
+                          >
+                            {(option) => option.label === "Automática" ? "Auto" : option.label}
+                          </GlidingRadioGroup>
                         </div>
                         <div className="hojas-ruta-route-jump-group">
                           <span>Constante de salto</span>
-                          <GlidingTabList activeKey={routeJumpMode} mode="tabs" className="hojas-ruta-route-jump-options" role="radiogroup" aria-label="Constante de salto">
-                            {routeJumpModeOptions.map((option, itemIndex) => (
-                              <button
-                                key={option.key}
-                                type="button"
-                                role="radio"
-                                data-gliding-key={option.key}
-                                aria-checked={routeJumpMode === option.key}
-                                className={routeJumpMode === option.key ? "is-active" : ""}
-                                onClick={() => selectRouteJumpMode(option.key)}
-                                onKeyDown={(event) => selectRouteJumpModeFromKey(event.key, itemIndex)}
-                              >
-                                <strong>{option.label}</strong>
-                                <small>{option.hint}</small>
-                              </button>
-                            ))}
-                          </GlidingTabList>
+                          <GlidingRadioGroup
+                            value={routeJumpMode}
+                            options={routeJumpModeOptions}
+                            getOptionValue={(option) => option.key}
+                            onValueChange={(nextMode) => patchConfig({ route_jump_mode: nextMode })}
+                            className="hojas-ruta-route-jump-options"
+                            aria-label="Constante de salto"
+                          >
+                            {(option) => <>
+                              <strong>{option.label}</strong>
+                              <small>{option.hint}</small>
+                            </>}
+                          </GlidingRadioGroup>
                         </div>
                         <Field label="Salto manual">
                           <NumericInput
@@ -8521,23 +8334,17 @@ export default function HojasRutaPage() {
                         </div>
                         <div className="hojas-ruta-segmented-field is-replacement-policy">
                           <span>Ubicación del reemplazo</span>
-                          <GlidingTabList activeKey={replacementPolicy} mode="tabs" className="hojas-ruta-segmented" role="radiogroup" aria-label="Ubicación del reemplazo de campo">
-                            {replacementPolicyOptions.map((option, itemIndex) => (
-                              <button
-                                key={option.key}
-                                type="button"
-                                role="radio"
-                                data-gliding-key={option.key}
-                                aria-checked={replacementPolicy === option.key}
-                                className={replacementPolicy === option.key ? "is-active" : ""}
-                                onClick={() => selectReplacementPolicy(option.key)}
-                                onKeyDown={(event) => selectReplacementPolicyFromKey(event.key, itemIndex)}
-                                title={option.hint}
-                              >
-                                {option.label}
-                              </button>
-                            ))}
-                          </GlidingTabList>
+                          <GlidingRadioGroup
+                            value={replacementPolicy}
+                            options={replacementPolicyOptions}
+                            getOptionValue={(option) => option.key}
+                            onValueChange={(nextPolicy) => patchConfig({ replacement_policy: nextPolicy })}
+                            getOptionProps={(option) => ({ title: option.hint })}
+                            className="hojas-ruta-segmented"
+                            aria-label="Ubicación del reemplazo de campo"
+                          >
+                            {(option) => option.label}
+                          </GlidingRadioGroup>
                         </div>
                         <div className="hojas-ruta-replacement-status">
                           <StatusPill ok text={replacementPolicy === "alternate_zone_same_district" ? "Mismo distrito" : "Misma zona"} />
@@ -9080,24 +8887,20 @@ export default function HojasRutaPage() {
                       </div>
                       <div className="hojas-ruta-segmented-field is-replacement-policy is-manual">
                         <span>Ubicación del reemplazo</span>
-                        <GlidingTabList activeKey={manualReplacementPolicy} mode="tabs" className="hojas-ruta-segmented" role="radiogroup" aria-label="Ubicación del reemplazo puntual">
-                          {replacementPolicyOptions.map((option, itemIndex) => (
-                            <button
-                              key={`manual-policy:${option.key}`}
-                              type="button"
-                              role="radio"
-                              data-gliding-key={option.key}
-                              aria-checked={manualReplacementPolicy === option.key}
-                              className={manualReplacementPolicy === option.key ? "is-active" : ""}
-                              onClick={() => selectManualReplacementPolicy(option.key)}
-                              onKeyDown={(event) => selectManualReplacementPolicyFromKey(event.key, itemIndex)}
-                              disabled={!sample?.ok || !!jobId || !!manualReplacementJobId}
-                              title={option.hint}
-                            >
-                              {option.label}
-                            </button>
-                          ))}
-                        </GlidingTabList>
+                        <GlidingRadioGroup
+                          value={manualReplacementPolicy}
+                          options={replacementPolicyOptions}
+                          getOptionValue={(option) => option.key}
+                          onValueChange={setManualReplacementPolicy}
+                          getOptionProps={(option) => ({
+                            disabled: !sample?.ok || !!jobId || !!manualReplacementJobId,
+                            title: option.hint,
+                          })}
+                          className="hojas-ruta-segmented"
+                          aria-label="Ubicación del reemplazo puntual"
+                        >
+                          {(option) => option.label}
+                        </GlidingRadioGroup>
                       </div>
                       {manualReplacementSelectedIds.length ? (
                         <div className="hojas-ruta-manual-selected">
@@ -9129,24 +8932,20 @@ export default function HojasRutaPage() {
                   <Panel title="PDF de prueba" eyebrow="Validacion rapida">
                     <div className="hojas-ruta-random-pdf-card">
                       <span>Abre una hoja aleatoria para revisar el formato antes de generar o entregar el ZIP.</span>
-                      <GlidingTabList activeKey={randomPreference} mode="tabs" className="hojas-ruta-random-options" role="radiogroup" aria-label="Preferencia de PDF aleatorio">
-                        {randomPreferenceOptions.map((option, itemIndex) => (
-                          <button
-                            key={option.key}
-                            type="button"
-                            role="radio"
-                            data-gliding-key={option.key}
-                            aria-checked={option.key === randomPreference}
-                            title={option.title}
-                            className={option.key === randomPreference ? "is-active" : ""}
-                            onClick={() => selectRandomPreference(option.key)}
-                            onKeyDown={(event) => selectRandomPreferenceFromKey(event.key, itemIndex)}
-                            disabled={!frame?.ok || !!jobId || busy !== ""}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </GlidingTabList>
+                      <GlidingRadioGroup
+                        value={randomPreference}
+                        options={randomPreferenceOptions}
+                        getOptionValue={(option) => option.key}
+                        onValueChange={setRandomPreference}
+                        getOptionProps={(option) => ({
+                          disabled: !frame?.ok || !!jobId || busy !== "",
+                          title: option.title,
+                        })}
+                        className="hojas-ruta-random-options"
+                        aria-label="Preferencia de PDF aleatorio"
+                      >
+                        {(option) => option.label}
+                      </GlidingRadioGroup>
                       <button
                         type="button"
                         style={{ ...btnSecondary, width: "100%", justifyContent: "center" }}

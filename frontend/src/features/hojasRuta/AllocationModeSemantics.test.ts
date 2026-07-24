@@ -11,15 +11,11 @@ describe("Hojas allocation-mode semantics", () => {
       source.indexOf("{isCalculatorMode ?", labelIndex),
     );
 
-    expect(selector).toContain("<GlidingTabList");
-    expect(selector).toContain('role="radiogroup"');
-    expect(selector).toContain('mode="tabs"');
-    expect(selector).toContain('role="radio"');
-    expect(selector).toContain("aria-checked={allocationMode === m}");
-    expect(selector).toContain("data-gliding-key={m}");
-    expect(selector).toContain("onKeyDown={(event) => selectAllocationModeFromKey");
-    expect(source).toContain(
-      "if (nextMode !== allocationMode) onSampleSizeChange({ allocation_mode: nextMode })",
-    );
+    expect(selector).toContain("<GlidingRadioGroup");
+    expect(selector).toContain("value={allocationMode}");
+    expect(selector).toContain("options={allocationModes}");
+    expect(selector).toContain("getOptionValue={(option) => option}");
+    expect(selector).toContain("onValueChange={(nextMode) => onSampleSizeChange({ allocation_mode: nextMode })}");
+    expect(source).not.toContain("selectAllocationModeFromKey");
   });
 });
