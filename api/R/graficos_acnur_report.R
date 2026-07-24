@@ -304,12 +304,12 @@
 
 .graficos_acnur_base_summary <- function(n, total, unit = "respuestas") {
   # `unit` se conserva por compatibilidad de firma con callers previos, pero el
-  # formato profesional ya no expone la palabra unidad ("respuestas"): la base es
-  # simplemente "Base: <n> de <total> (<pct>)".
+  # formato profesional no expone la palabra unidad ("respuestas"). La notación
+  # es la estándar de informes de investigación: "N = <n> (<pct> del total)",
+  # con el denominador implícito en el porcentaje.
   sprintf(
-    "Base: %s de %s (%s)",
+    "N = %s (%s del total)",
     .graficos_acnur_number(n),
-    .graficos_acnur_number(total),
     .graficos_acnur_pct(n, total)
   )
 }

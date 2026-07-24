@@ -2656,11 +2656,10 @@ reporte_ppt_plan <- function(
       filtros = filtros %||% list(),
       n = length(respuestas),
       respuestas = respuestas,
-      base = paste0(
-        "Base: ",
+      base = .apply_base_format(paste0(
         format(as.integer(length(respuestas)), big.mark = ",", scientific = FALSE, trim = TRUE),
         " respuestas en Otros en la pregunta ", title
-      )
+      ))
     )
   }
 
@@ -2812,7 +2811,7 @@ reporte_ppt_plan <- function(
       n = length(respuestas),
       n_agrupado = n_agrupado,
       respuestas = respuestas,
-      base = paste0("Base: ", fmt_n(n_agrupado), " respuestas agrupadas en Otros en la pregunta ", as.character(title)[1]),
+      base = .apply_base_format(paste0(fmt_n(n_agrupado), " respuestas agrupadas en Otros en la pregunta ", as.character(title)[1])),
       kind = "grouped_otros"
     )
   }
@@ -2997,7 +2996,7 @@ reporte_ppt_plan <- function(
     )
     total_paginas <- length(paginas)
     n_txt <- format(as.integer(length(respuestas)), big.mark = ",", scientific = FALSE, trim = TRUE)
-    base_txt <- info$base %||% paste0("Base: ", n_txt, " respuestas en Otros en la pregunta ", info$title)
+    base_txt <- info$base %||% .apply_base_format(paste0(n_txt, " respuestas en Otros en la pregunta ", info$title))
 
     lapply(seq_along(paginas), function(i) {
       title <- paste0("Otros: ", info$title)
@@ -3044,11 +3043,10 @@ reporte_ppt_plan <- function(
     combined$respuestas <- respuestas
     combined$normalizar_respuestas <- "ninguna"
     combined$n <- length(respuestas)
-    combined$base <- paste0(
-      "Base: ",
+    combined$base <- .apply_base_format(paste0(
       format(as.integer(n_total), big.mark = ",", scientific = FALSE, trim = TRUE),
       " respuestas en Otros en la pregunta ", combined$title
-    )
+    ))
     combined
   }
 
@@ -4040,6 +4038,18 @@ reporte_ppt_plan <- function(
     .plot_note_from(plot_obj, fallback = fallback)
   }
 
+  # Aplica el formato de base declarado en presets (p.ej. "Base: %s" o "N = %s")
+  # sobre un nucleo ya compuesto. Degrada al prefijo clasico si el formato no
+  # trae marcador, para que un preset mal escrito no rompa el render.
+  .apply_base_format <- function(core) {
+    fmt <- presets$base$args$formato %||% "Base: %s"
+    fmt <- as.character(fmt)[1]
+    if (is.na(fmt) || !nzchar(fmt) || !grepl("%s", fmt, fixed = TRUE)) {
+      return(paste0("Base: ", core))
+    }
+    tryCatch(sprintf(fmt, core), error = function(e) paste0("Base: ", core))
+  }
+
   .format_n_caption <- function(n_values, unit = "respuestas") {
     n_values <- suppressWarnings(as.numeric(n_values))
     n_values <- n_values[is.finite(n_values) & !is.na(n_values) & n_values > 0]
@@ -4048,10 +4058,15 @@ reporte_ppt_plan <- function(
     n_values <- sort(n_values)
     unit <- .clean_note_text(unit) %||% "respuestas"
     fmt <- function(x) format(x, big.mark = ",", scientific = FALSE, trim = TRUE)
-    if (length(n_values) == 1L) {
-      return(paste0("Base: ", fmt(n_values[[1]]), " ", unit))
+    core <- if (length(n_values) == 1L) {
+      paste0(fmt(n_values[[1]]), " ", unit)
+    } else {
+      paste0(fmt(min(n_values)), "-", fmt(max(n_values)), " ", unit)
     }
-    paste0("Base: ", fmt(min(n_values)), "-", fmt(max(n_values)), " ", unit)
+    # El prefijo sale del preset (`presets$base$args$formato`) igual que en
+    # `.base_auto_from_var`: un estudio que declara "N = %s" no debe quedar con
+    # dos prefijos distintos segun que camino compuso la nota de base.
+    .apply_base_format(core)
   }
 
   .force_canvas_args <- function(fun, args) {
