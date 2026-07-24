@@ -8,13 +8,24 @@ import ProjectIndicator from "../features/project/ProjectIndicator";
 import { useOptionalProjectShell } from "../features/project/ProjectShell";
 import { useProjectModules } from "../features/project/ProjectModulesContext";
 import {
+  PROSECNUR_GLOBAL_NAV_ITEMS,
   PROSECNUR_PRIMARY_ACTIVE_MODULES,
   moduleChromeVars,
 } from "../lib/modules";
+import {
+  defaultSidebarCollapsed,
+  isShellV3Enabled,
+  readSidebarCollapsed,
+  withShellV3Query,
+  writeSidebarCollapsed,
+} from "../lib/shellV3";
 import ModuleWarmupBoundary, { RouteLoadingFallback } from "./ModuleWarmupBoundary";
 import { GlidingTabList } from "../components/GlidingTabList";
 import { MultibaseReportMenu } from "../features/graficos/MultibaseReportMenu";
 import { processingBaseScopePresentation } from "../features/procesamiento/baseScopeModel";
+import { AppSidebar } from "./AppSidebar";
+import { BrandMark } from "./BrandMark";
+import { ModuleManagerDialog } from "./ModuleManagerDialog";
 
 // Layout global de la app. El header muestra marca, navegación, proyecto
 // activo y errores de sesión solo cuando existen. El topbar local de etapas
@@ -136,21 +147,6 @@ function Brand() {
         Prosecnur
       </span>
     </NavLink>
-  );
-}
-
-// Isotipo canónico de la identidad (branding/logo/prosecnur-isotipo.svg):
-// squircle navy + 4 pastillas en perfil de latido. Fuente única de la
-// geometría: branding/direccion-creativa.md
-function BrandMark() {
-  return (
-    <svg className="pulso-brand-mark" width="22" height="22" viewBox="0 0 64 64" aria-hidden="true">
-      <rect width="64" height="64" rx="15.4" fill="var(--pulso-primary)" />
-      <rect x="12" y="30" width="7" height="18" rx="3.5" fill="white" />
-      <rect x="23" y="22" width="7" height="26" rx="3.5" fill="white" />
-      <rect x="34" y="28" width="7" height="20" rx="3.5" fill="white" />
-      <rect x="45" y="16" width="7" height="32" rx="3.5" fill="white" />
-    </svg>
   );
 }
 
@@ -541,18 +537,62 @@ export default function Layout() {
         : "back"
       : "default";
   const projectShell = useOptionalProjectShell();
+  const projectModules = useProjectModules();
+  const shellV3 = isShellV3Enabled(location.search);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const storage =
+      typeof window === "undefined" ? undefined : window.localStorage;
+    return (
+      readSidebarCollapsed(storage) ??
+      defaultSidebarCollapsed(activeModule?.slug, location.pathname)
+    );
+  });
+  const [moduleManagerOpen, setModuleManagerOpen] = useState(false);
+  const moduleManagerReturnFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     previousPathRef.current = location.pathname;
   }, [location.pathname]);
 
-  return (
-    <div className="pulso-shell">
-      <header className="pulso-app-header">
-        <div className="pulso-nav-cluster" aria-label="Navegación principal">
-          <Brand />
-          <ModuleSwitcher />
-        </div>
+  useEffect(() => {
+    if (!shellV3) return;
+    const storage =
+      typeof window === "undefined" ? undefined : window.localStorage;
+    if (readSidebarCollapsed(storage) != null) return;
+    setSidebarCollapsed(
+      defaultSidebarCollapsed(activeModule?.slug, location.pathname),
+    );
+  }, [activeModule?.slug, location.pathname, shellV3]);
+
+  function updateSidebarCollapsed(collapsed: boolean) {
+    setSidebarCollapsed(collapsed);
+    writeSidebarCollapsed(
+      typeof window === "undefined" ? undefined : window.localStorage,
+      collapsed,
+    );
+  }
+
+  function openModuleManager(returnFocusTo?: HTMLElement | null) {
+    moduleManagerReturnFocusRef.current = returnFocusTo ?? null;
+    setModuleManagerOpen(true);
+  }
+
+  const canvas = (
+    <>
+      <header
+        className={[
+          "pulso-app-header",
+          shellV3 ? "pulso-app-header--v3" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        {!shellV3 ? (
+          <div className="pulso-nav-cluster" aria-label="Navegación principal">
+            <Brand />
+            <ModuleSwitcher />
+          </div>
+        ) : null}
         <div className="pulso-app-header-spacer" />
         <div className="pulso-app-header-actions">
           {projectShell ? (
@@ -600,6 +640,51 @@ export default function Layout() {
           </div>
         </div>
       </main>
+    </>
+  );
+
+  return (
+    <div
+      className={[
+        "pulso-shell",
+        shellV3 ? "pulso-shell--v3" : "",
+        shellV3 && sidebarCollapsed
+          ? "pulso-shell--sidebar-collapsed"
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      style={
+        shellV3 && activeModule ? moduleChromeVars(activeModule) : undefined
+      }
+    >
+      {shellV3 ? (
+        <>
+          <AppSidebar
+            modules={PROSECNUR_PRIMARY_ACTIVE_MODULES}
+            activeModule={activeModule}
+            addedSlugs={projectModules.addedSlugs}
+            globalItems={PROSECNUR_GLOBAL_NAV_ITEMS}
+            collapsed={sidebarCollapsed}
+            onCollapsedChange={updateSidebarCollapsed}
+            onManageModules={openModuleManager}
+            getHref={(href) => withShellV3Query(href, location.search)}
+          />
+          <div className="pulso-shell-v3-canvas">{canvas}</div>
+        </>
+      ) : (
+        canvas
+      )}
+      {shellV3 ? (
+        <ModuleManagerDialog
+          open={moduleManagerOpen}
+          onOpenChange={setModuleManagerOpen}
+          modules={PROSECNUR_PRIMARY_ACTIVE_MODULES}
+          addedSlugs={projectModules.addedSlugs}
+          onAddModule={projectModules.addModule}
+          returnFocusTo={moduleManagerReturnFocusRef.current}
+        />
+      ) : null}
     </div>
   );
 }
