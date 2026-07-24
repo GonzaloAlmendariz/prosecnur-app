@@ -2956,20 +2956,22 @@ a { color: var(--pulso-primary); }
   min-width: 0;
 }
 
+/* Banda de secciones de la familia Procesamiento. Geometría y material vienen
+   del patrón maestro .pulso-command-bar; aquí solo el acento, el encaje en el
+   shell (vive entre el header y el main, así que pone su propio margen) y el
+   z-index del menú multibase.
+
+   Antes era una franja a sangre con material propio y el visor de bases
+   flotaba en position:absolute por encima. El dock ya declaraba grid-column 2
+   y justify-self center para un grid de tres zonas que su padre flex nunca le
+   dio; al heredar el maestro esas reglas vuelven a tener efecto. */
 .pulso-processing-phase-row {
+  --command-bar-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr);
+  --command-bar-accent: var(--pulso-module-processing-border);
+  --command-bar-accent-mix: 24%;
   position: relative;
   flex: 0 0 auto;
-  width: 100%;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 5px 14px 6px;
-  border-bottom: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 18%, var(--pulso-border));
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(245, 248, 252, 0.34)),
-    color-mix(in srgb, var(--pulso-module-processing-soft) 12%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.54);
+  margin: 0 14px 6px;
   z-index: 44;
 }
 
@@ -2980,14 +2982,15 @@ a { color: var(--pulso-primary); }
   align-items: center;
 }
 
+/* Tercera zona de la banda (acciones). Antes flotaba en absolute sobre la
+   franja; ahora ocupa su columna como en el resto de los módulos. */
 .pulso-processing-phase-side--right {
-  position: absolute;
-  top: 50%;
-  right: 14px;
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
   max-width: min(360px, calc(100vw - 28px));
   gap: 6px;
   justify-content: flex-end;
-  transform: translateY(-50%);
 }
 
 .pulso-base-workbench {
@@ -3236,6 +3239,7 @@ a { color: var(--pulso-primary); }
   --pulso-primary-soft: var(--pulso-module-processing-soft);
   --pulso-primary-border: var(--pulso-module-processing-border);
   grid-column: 2;
+  grid-row: 1;
   justify-self: center;
   width: fit-content;
   max-width: min(720px, calc(100vw - 24px));
@@ -3305,11 +3309,7 @@ a { color: var(--pulso-primary); }
 
 @media (max-width: 1120px) {
   .pulso-processing-phase-row {
-    padding-inline: 10px;
-  }
-
-  .pulso-processing-phase-side--right {
-    right: 10px;
+    margin-inline: 10px;
   }
 
   .pulso-multibase-reports-trigger span {

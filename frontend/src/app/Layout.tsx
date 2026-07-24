@@ -565,7 +565,7 @@ export default function Layout() {
         </div>
       </header>
       {showFases && (
-        <div className="pulso-processing-phase-row">
+        <div className="pulso-command-bar pulso-processing-phase-row">
           <ProcessingPhaseDock items={items} />
           <div className="pulso-processing-phase-side pulso-processing-phase-side--right">
             <div className="pulso-base-workbench" role="group" aria-label="Visor de bases del procesamiento">
