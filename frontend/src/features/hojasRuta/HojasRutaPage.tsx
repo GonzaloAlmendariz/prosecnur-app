@@ -137,22 +137,26 @@ const LIMA_MAP_MAX_ZOOM = 5;
 const BLOCK_MAP_MAX_ZOOM = 10;
 const STREET_MAP_CLIENT_CACHE_VERSION = "street-context-neighbor-v2";
 const CONTEXT_MAP_CLIENT_CACHE_VERSION = "context-neighbor-curated-v2";
+// Paleta cartografica en hex/rgba concretos (el mapa se pinta en <canvas>, donde
+// no resuelven las CSS vars). Foco/cuotas se alinean al acento naranja
+// (--pulso-module-routes = #c2410c) para no dejar verde compitiendo: foco =
+// contorno palido, cuotas = relleno solido. Reemplazo (azul)/piloto (ambar) propios.
 const MAP_GEOMETRY_STYLE = {
   background: "#f7f5e8",
   contextFill: "rgba(248,246,226,0.76)",
   contextStroke: "rgba(31,41,55,0.66)",
   mutedFill: "rgba(248,246,226,0.64)",
   mutedStroke: "rgba(51,65,85,0.46)",
-  focusFill: "rgba(213,241,232,0.72)",
-  focusStroke: "#0f766e",
-  selectedFill: "#0f766e",
-  selectedStroke: "#064e3b",
+  focusFill: "rgba(194,65,12,0.14)",
+  focusStroke: "#c2410c",
+  selectedFill: "#c2410c",
+  selectedStroke: "#7c2d12",
   replacementFill: "#bfdbfe",
   replacementStroke: "#1d4ed8",
   pilotFill: "#fde68a",
   pilotStroke: "#b45309",
-  hoverStroke: "#022c22",
-  inspectedFill: "rgba(15,118,110,0.2)",
+  hoverStroke: "#431407",
+  inspectedFill: "rgba(194,65,12,0.18)",
 } as const;
 
 function streetMapCacheKey(ubigeo: string) {
@@ -1007,24 +1011,20 @@ function HojasRutaNoticeTray({
   );
 }
 
-function StatusPill({ ok, text }: { ok: boolean; text: string }) {
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        borderRadius: 999,
-        padding: "3px 8px",
-        fontSize: 11,
-        fontWeight: 700,
-        background: ok ? "var(--pulso-success-bg)" : "var(--pulso-warn-bg)",
-        border: `1px solid ${ok ? "var(--pulso-success-border)" : "var(--pulso-warn-border)"}`,
-        color: ok ? "var(--pulso-success-fg)" : "var(--pulso-warn-fg)",
-      }}
-    >
-      {text}
-    </span>
-  );
+// A5 — tono "draft" (neutro) para que "en borrador" no comparta el verde de "confirmado".
+type StatusPillTone = "success" | "warn" | "draft";
+const STATUS_PILL_PALETTE: Record<StatusPillTone, { bg: string; border: string; fg: string }> = {
+  success: { bg: "var(--pulso-success-bg)", border: "var(--pulso-success-border)", fg: "var(--pulso-success-fg)" },
+  warn: { bg: "var(--pulso-warn-bg)", border: "var(--pulso-warn-border)", fg: "var(--pulso-warn-fg)" },
+  draft: { bg: "var(--pulso-bg)", border: "var(--pulso-border-strong)", fg: "var(--pulso-text-soft)" },
+};
+function StatusPill({ ok, text, tone }: { ok?: boolean; text: string; tone?: StatusPillTone }) {
+  const p = STATUS_PILL_PALETTE[tone ?? (ok ? "success" : "warn")];
+  const style: React.CSSProperties = {
+    display: "inline-flex", alignItems: "center", borderRadius: 999, padding: "3px 8px",
+    fontSize: 11, fontWeight: 700, background: p.bg, border: `1px solid ${p.border}`, color: p.fg,
+  };
+  return <span style={style}>{text}</span>;
 }
 
 function HeaderSummaryPill({ label, value }: { label: string; value: string }) {
@@ -4284,7 +4284,7 @@ function TerritoryMapExplorer({
               </button>
             </div>
           ) : null}
-          {!showingZones && !showingBlocks && mapSelectionMode ? <StatusPill ok={draft.length > 0} text={`${draft.length} en borrador`} /> : null}
+          {!showingZones && !showingBlocks && mapSelectionMode ? <StatusPill tone="draft" text={`${draft.length} en borrador`} /> : null}
           <StatusPill ok text={`${selected.length} en cuotas`} />
         </div>
       </div>
@@ -4878,7 +4878,7 @@ function SamplingMethodExplainer({
       id: "pps",
       title: "PPS estratificado",
       body: "Cada distrito compite dentro de su estrato; una manzana con más viviendas tiene más probabilidad.",
-      accent: "#0f766e",
+      accent: "var(--module-accent)", // inline SVG resuelve la CSS var; sin teal compitiendo
     },
     {
       id: "sistematico",
@@ -7900,7 +7900,7 @@ export default function HojasRutaPage() {
                     </div>
                     <div className="hojas-ruta-confirmed-pills">
                       <StatusPill ok={selectedTerritories.length > 0} text={`${selectedTerritories.length} confirmados`} />
-                      <StatusPill ok={draftTerritories.length > 0} text={`${draftTerritories.length} en borrador`} />
+                      <StatusPill tone="draft" text={`${draftTerritories.length} en borrador`} />
                     </div>
                   </div>
                   <div className="hojas-ruta-confirm-bar">

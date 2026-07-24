@@ -210,7 +210,7 @@
 
 .hojas-ruta-stage-rail .pulso-phase-pill {
   border: 0;
-  font-weight: 780;
+  font-weight: 800;
 }
 
 .hojas-ruta-stage-rail .pulso-phase-pill svg {
@@ -295,13 +295,21 @@
   flex-direction: column;
 }
 
+/* A1 — Eyebrow unico (naranja). Local + global (.pulso-section-eyebrow) se
+   homogenizan al acento del modulo con un peso unico (~700). El override
+   global va scopeado bajo .hojas-ruta-frame para no afectar otros modulos. */
 .hojas-ruta-workbench-eyebrow,
 .hojas-ruta-side-kicker {
-  color: var(--pulso-primary);
+  color: var(--module-accent);
   font-size: 11px;
-  font-weight: 850;
-  letter-spacing: 0;
+  font-weight: 700;
+  letter-spacing: 0.4px;
   text-transform: uppercase;
+}
+
+.hojas-ruta-frame .pulso-section-eyebrow {
+  color: var(--module-accent);
+  font-weight: 700;
 }
 
 .hojas-ruta-side-copy,
@@ -348,11 +356,13 @@
   flex-wrap: wrap;
 }
 
+/* A2 — Titulo de panel unico (~15px). map-title, side-title y el
+   .pulso-panel-title (override scopeado) miden lo mismo en las 5 etapas. */
 .hojas-ruta-map-title {
   color: var(--pulso-text);
-  font-size: 18px;
-  line-height: 1.2;
-  font-weight: 850;
+  font-size: 15px;
+  line-height: 1.25;
+  font-weight: 800;
 }
 
 .hojas-ruta-focus-strip {
@@ -380,8 +390,8 @@
 
 .hojas-ruta-focus-name {
   min-width: 148px;
-  border-color: #cfe0dc;
-  background: #f4fbf8;
+  border-color: color-mix(in srgb, var(--module-accent-border) 30%, var(--pulso-border));
+  background: color-mix(in srgb, var(--module-accent) 5%, #fff);
 }
 
 .hojas-ruta-focus-name span,
@@ -448,9 +458,9 @@
 }
 
 .hojas-ruta-map-layer-toggle button.is-active {
-  background: #ecfdf5;
-  color: #0f766e;
-  box-shadow: inset 0 0 0 1px #99f6e4;
+  background: color-mix(in srgb, var(--module-accent) 12%, #fff);
+  color: var(--module-accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--module-accent) 40%, #fff);
 }
 
 .hojas-ruta-map-layer-toggle button:disabled {
@@ -545,13 +555,13 @@
 }
 
 .hojas-ruta-map-legend i.is-focus {
-  border-color: #0f766e;
-  background: rgba(213, 241, 232, 0.72);
+  border-color: var(--module-accent);
+  background: color-mix(in srgb, var(--module-accent) 14%, #fff);
 }
 
 .hojas-ruta-map-legend i.is-selected {
-  border-color: #064e3b;
-  background: #0f766e;
+  border-color: color-mix(in srgb, var(--module-accent) 78%, #111827);
+  background: var(--module-accent);
 }
 
 .hojas-ruta-map-legend i.is-replacement {
@@ -732,7 +742,7 @@
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--pulso-border);
-  color: #0f766e;
+  color: var(--module-accent);
 }
 
 .hojas-ruta-zone-info-selected strong,
@@ -869,9 +879,15 @@
 .hojas-ruta-side-title {
   margin-top: 3px;
   color: var(--pulso-text);
-  font-size: 16px;
-  font-weight: 850;
+  font-size: 15px;
+  font-weight: 800;
   line-height: 1.25;
+}
+
+/* A2 — sube el panel-title global (14px) a la escala del modulo (~15px),
+   scopeado para no tocar theme.css ni otros modulos. */
+.hojas-ruta-frame .pulso-panel-title {
+  font-size: 15px;
 }
 
 .hojas-ruta-side-title.is-small {
@@ -1059,7 +1075,7 @@
 }
 
 .hojas-ruta-district-tools button:hover:not(:disabled) {
-  border-color: #89cdbd;
+  border-color: color-mix(in srgb, var(--module-accent-border) 55%, var(--pulso-border));
 }
 
 .hojas-ruta-district-tools button:active:not(:disabled) {
@@ -1103,7 +1119,7 @@
 }
 
 .hojas-ruta-district-card:hover {
-  border-color: #89cdbd;
+  border-color: color-mix(in srgb, var(--module-accent-border) 55%, var(--pulso-border));
   background: #fbfefd;
 }
 
@@ -1129,8 +1145,8 @@
   width: 54px;
   height: 44px;
   margin-right: 8px;
-  border: 1px solid #cfe0dc;
-  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, var(--module-accent-border) 30%, var(--pulso-border));
+  border-radius: 8px;
   background: white;
   color: var(--pulso-primary);
   display: inline-flex;
@@ -1149,7 +1165,7 @@
 
 .hojas-ruta-district-card-map:hover {
   border-color: var(--pulso-primary);
-  background: #f1fbf8;
+  background: color-mix(in srgb, var(--module-accent) 5%, #fff);
 }
 
 .hojas-ruta-district-card-map:active {
@@ -1161,7 +1177,7 @@
 }
 
 .hojas-ruta-district-card.is-active {
-  border-color: #89cdbd;
+  border-color: color-mix(in srgb, var(--module-accent-border) 55%, var(--pulso-border));
 }
 
 .hojas-ruta-district-card.is-draft {
@@ -1303,7 +1319,7 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(248, 250, 252, 0.64));
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 860;
+  font-weight: 850;
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1336,7 +1352,7 @@
   color: var(--pulso-text);
   padding: 0 28px 0 11px;
   font-size: 12px;
-  font-weight: 880;
+  font-weight: 900;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.82),
     0 1px 2px rgba(15, 23, 42, 0.04);
@@ -1353,7 +1369,7 @@
   background: rgba(255, 255, 255, 0.74);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 860;
+  font-weight: 850;
 }
 
 .hojas-ruta-stage-shell {
@@ -1680,13 +1696,13 @@
 }
 
 .hojas-ruta-mini-table > div {
-  border-color: #d9e6e2;
+  border-color: color-mix(in srgb, var(--module-accent-border) 26%, var(--pulso-border));
   background: linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%);
 }
 
 .hojas-ruta-mini-table > div:hover {
-  border-color: #99d5c6;
-  background: #f2fbf7;
+  border-color: color-mix(in srgb, var(--module-accent-border) 52%, var(--pulso-border));
+  background: color-mix(in srgb, var(--module-accent) 5%, #fff);
 }
 
 .hojas-ruta-selected-row {
@@ -1875,7 +1891,7 @@
   min-width: 0;
   padding: 9px 10px;
   border: 1px solid rgba(226, 232, 240, 0.76);
-  border-radius: 9px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.72);
 }
 
@@ -1966,8 +1982,8 @@
   min-width: 50px;
   padding: 5px 8px;
   border-radius: 999px;
-  background: #e6f7ef;
-  color: #126b51;
+  background: color-mix(in srgb, var(--module-accent) 8%, #fff);
+  color: var(--module-accent);
   font-size: 13px;
   font-style: normal;
   font-weight: 900;
@@ -1975,7 +1991,7 @@
 }
 
 .hojas-ruta-mini-table small {
-  color: #3f7f68;
+  color: color-mix(in srgb, var(--module-accent) 70%, var(--pulso-text-soft));
   font-size: 10px;
   font-weight: 850;
 }
@@ -2147,7 +2163,7 @@
   min-height: 64px;
   padding: 7px 10px;
   border: 0;
-  border-radius: 11px;
+  border-radius: 10px;
   background: transparent;
   color: var(--pulso-text);
   text-align: left;
@@ -2250,7 +2266,7 @@
 .hojas-ruta-flow-step-head strong {
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 950;
+  font-weight: 900;
   line-height: 1.2;
 }
 
@@ -2354,8 +2370,8 @@
 }
 
 .hojas-ruta-sample-advice-item.is-ok {
-  border-color: #b7dfd3;
-  background: #f2fbf7;
+  border-color: color-mix(in srgb, var(--module-accent-border) 45%, var(--pulso-border));
+  background: color-mix(in srgb, var(--module-accent) 5%, #fff);
 }
 
 .hojas-ruta-sample-advice-item.is-info {
@@ -2463,8 +2479,8 @@
 }
 
 .hojas-ruta-sample-primary-action {
-  border-color: #b7dfd3;
-  background: #f2fbf7;
+  border-color: color-mix(in srgb, var(--module-accent-border) 45%, var(--pulso-border));
+  background: color-mix(in srgb, var(--module-accent) 5%, #fff);
 }
 
 .hojas-ruta-sample-primary-action button,
@@ -2598,9 +2614,9 @@
   align-items: center;
   margin-top: 9px;
   padding: 10px;
-  border: 1px solid #b7dfd3;
+  border: 1px solid color-mix(in srgb, var(--module-accent-border) 45%, var(--pulso-border));
   border-radius: 8px;
-  background: #f2fbf7;
+  background: color-mix(in srgb, var(--module-accent) 5%, #fff);
 }
 
 .hojas-ruta-deff-recommendation span,
@@ -2619,7 +2635,7 @@
   margin-top: 2px;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 950;
+  font-weight: 900;
 }
 
 .hojas-ruta-deff-recommendation p {
@@ -2681,7 +2697,7 @@
   min-width: 0;
   padding: 7px 8px;
   border: 1px solid #e2eaf0;
-  border-radius: 7px;
+  border-radius: 8px;
   background: white;
 }
 
@@ -2700,7 +2716,7 @@
   margin-top: 2px;
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 950;
+  font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
 
@@ -2868,7 +2884,7 @@
   min-height: 32px;
   margin-top: auto;
   border: 1px solid var(--pulso-border);
-  border-radius: 7px;
+  border-radius: 8px;
   background: white;
   color: var(--pulso-text);
   font-size: 12px;
@@ -3082,7 +3098,7 @@
   min-height: 34px;
   padding: 6px 8px;
   border: 1px solid var(--pulso-border);
-  border-radius: 7px;
+  border-radius: 8px;
   background: white;
   color: var(--pulso-text-soft);
   font-size: 11px;
@@ -3145,7 +3161,7 @@
 }
 
 .hojas-ruta-phase-bar {
-  border: 1px solid #d7e4e0;
+  border: 1px solid color-mix(in srgb, var(--module-accent-border) 26%, var(--pulso-border));
   border-radius: 8px;
   background: rgba(248, 251, 250, 0.94);
   padding: 10px;
@@ -3237,7 +3253,7 @@
 
 .hojas-ruta-phase-notice {
   border: 1px solid #bfdbfe;
-  border-radius: 7px;
+  border-radius: 8px;
   background: #eff6ff;
   color: #1e3a8a;
   padding: 8px 10px;
@@ -3262,7 +3278,7 @@
 .hojas-ruta-phase-reset {
   min-height: 32px;
   border: 1px solid #cbd5e1;
-  border-radius: 7px;
+  border-radius: 8px;
   background: white;
   color: var(--pulso-text);
   padding: 0 10px;
@@ -3406,7 +3422,7 @@
   gap: 5px;
   padding: 0 10px;
   border: 1px solid #b7c7d3;
-  border-radius: 7px;
+  border-radius: 8px;
   background: white;
   color: var(--pulso-primary);
   font-size: 12px;
@@ -3487,7 +3503,7 @@
 
 .hojas-ruta-sampling-zone-list button.is-active {
   border-color: var(--pulso-primary);
-  background: #ecfdf5;
+  background: color-mix(in srgb, var(--module-accent) 12%, #fff);
   box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.18);
 }
 
@@ -3536,7 +3552,7 @@
 }
 
 .hojas-ruta-zone-row-status strong {
-  color: #0f766e;
+  color: var(--module-accent);
   font-size: 11.5px;
   line-height: 1.18;
   font-weight: 900;
@@ -3554,7 +3570,7 @@
 }
 
 .hojas-ruta-zone-row-status.is-assigned strong {
-  color: #0f766e;
+  color: var(--module-accent);
 }
 
 .hojas-ruta-inspector-block-row {
@@ -3702,9 +3718,9 @@
 }
 
 .hojas-ruta-pop-table thead tr:first-child th {
-  background: linear-gradient(180deg, #f7fbfa 0%, #eff8f5 100%);
-  border-bottom-color: #d4e6df;
-  color: #0f3e35;
+  background: linear-gradient(180deg, #f7fbfa 0%, color-mix(in srgb, var(--module-accent) 6%, #fff) 100%);
+  border-bottom-color: color-mix(in srgb, var(--module-accent-border) 28%, var(--pulso-border));
+  color: var(--module-accent);
 }
 
 .hojas-ruta-pop-table thead tr:first-child th.is-final-sticky {
@@ -3751,7 +3767,7 @@
 
 .hojas-ruta-pop-table .is-district-head {
   z-index: 6;
-  background: linear-gradient(180deg, #f7fbfa 0%, #eff8f5 100%);
+  background: linear-gradient(180deg, #f7fbfa 0%, color-mix(in srgb, var(--module-accent) 6%, #fff) 100%);
   vertical-align: middle;
 }
 
@@ -3764,11 +3780,11 @@
 }
 
 .hojas-ruta-pop-table tbody tr:hover td {
-  background: #f2fbf7;
+  background: color-mix(in srgb, var(--module-accent) 5%, #fff);
 }
 
 .hojas-ruta-pop-table tbody tr:hover .is-final-sticky {
-  background: #eaf7f2;
+  background: color-mix(in srgb, var(--module-accent) 7%, #fff);
 }
 
 .hojas-ruta-pop-table tbody tr:nth-child(even) td.is-row-label {
@@ -3776,7 +3792,7 @@
 }
 
 .hojas-ruta-pop-table tbody tr:hover td.is-row-label {
-  background: #f2fbf7;
+  background: color-mix(in srgb, var(--module-accent) 5%, #fff);
 }
 
 .hojas-ruta-pop-table .is-row-label {
@@ -3802,21 +3818,21 @@
   position: sticky;
   bottom: 0;
   z-index: 3;
-  border-top: 1px solid #b9e5d6;
+  border-top: 1px solid color-mix(in srgb, var(--module-accent-border) 45%, var(--pulso-border));
   border-bottom: 0;
-  background: #ecfdf5;
-  color: #0f3e35;
+  background: color-mix(in srgb, var(--module-accent) 12%, #fff);
+  color: var(--module-accent);
   font-weight: 900;
   box-shadow: 0 -10px 18px rgba(15, 23, 42, 0.055);
 }
 
 .hojas-ruta-pop-table tfoot td.is-row-label {
   z-index: 7;
-  background: #dcfce7;
+  background: color-mix(in srgb, var(--module-accent) 18%, #fff);
 }
 
 .hojas-ruta-pop-table tfoot .is-final-sticky {
-  background: #dcfce7;
+  background: color-mix(in srgb, var(--module-accent) 18%, #fff);
 }
 
 .hojas-ruta-pop-footnote {
@@ -3979,7 +3995,7 @@
 
 .hojas-ruta-table-pager button {
   border: 1px solid var(--pulso-border);
-  border-radius: 7px;
+  border-radius: 8px;
   background: #ffffff;
   color: var(--pulso-text);
   font-size: 11px;
@@ -4018,12 +4034,12 @@
 }
 
 .hojas-ruta-review-table tbody tr:hover td {
-  background: #f2fbf7;
+  background: color-mix(in srgb, var(--module-accent) 5%, #fff);
 }
 
 .hojas-ruta-review-table tbody tr.is-selected td {
   background: rgba(15, 118, 110, 0.095);
-  box-shadow: inset 3px 0 0 #0f766e;
+  box-shadow: inset 3px 0 0 var(--module-accent);
 }
 
 .hojas-ruta-review-table-wrap.is-sample-list tbody tr {
@@ -4603,7 +4619,7 @@
   flex: 0 0 auto;
   padding: 9px 13px;
   border: 1px solid var(--pulso-primary);
-  border-radius: 7px;
+  border-radius: 8px;
   background: white;
   color: var(--pulso-primary);
   font-size: 12px;
@@ -5034,13 +5050,13 @@
   justify-content: center;
   gap: 2px;
   padding: 10px 12px;
-  border: 1px solid #b7dfd3;
+  border: 1px solid color-mix(in srgb, var(--module-accent-border) 45%, var(--pulso-border));
   border-radius: 8px;
-  background: linear-gradient(135deg, #f2fbf7 0%, #e8f6f0 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--module-accent) 5%, #fff) 0%, color-mix(in srgb, var(--module-accent) 8%, #fff) 100%);
 }
 
 .hojas-ruta-sampling-summary-hero .eyebrow {
-  color: #0f3e35;
+  color: var(--module-accent);
   font-size: 10.5px;
   font-weight: 900;
   letter-spacing: 0.04em;
@@ -5048,7 +5064,7 @@
 }
 
 .hojas-ruta-sampling-summary-hero strong {
-  color: #064e3b;
+  color: var(--module-accent);
   font-size: 21px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
@@ -5186,7 +5202,7 @@
   flex-direction: column;
   gap: 10px;
   padding: 12px;
-  border: 1px solid #d9e6e2;
+  border: 1px solid color-mix(in srgb, var(--module-accent-border) 26%, var(--pulso-border));
   border-radius: 8px;
   background: #fbfefd;
 }
@@ -5220,7 +5236,7 @@
   min-width: 0;
   min-height: 36px;
   border: 1px solid #d5e0e8;
-  border-radius: 7px;
+  border-radius: 8px;
   background: white;
   color: var(--pulso-text);
   font-size: 12px;
@@ -5287,7 +5303,7 @@
   gap: 1px;
   padding: 6px 8px;
   border: 1px solid var(--pulso-border);
-  border-radius: 7px;
+  border-radius: 8px;
   background: white;
   color: var(--pulso-text);
   text-align: left;
@@ -5320,9 +5336,9 @@
   display: grid;
   gap: 3px;
   padding: 9px 10px;
-  border: 1px solid #cfe0dc;
+  border: 1px solid color-mix(in srgb, var(--module-accent-border) 30%, var(--pulso-border));
   border-radius: 8px;
-  background: #f8fffc;
+  background: color-mix(in srgb, var(--module-accent) 4%, #fff);
 }
 
 .hojas-ruta-jump-formula span {
@@ -5388,7 +5404,7 @@
   width: 100%;
   min-height: 34px;
   border: 1px solid #cbd8e3;
-  border-radius: 7px;
+  border-radius: 8px;
   background: white;
   color: var(--pulso-text);
   font-size: 13px;
@@ -5426,7 +5442,7 @@
   color: var(--pulso-primary);
   font-size: 20px;
   line-height: 1;
-  font-weight: 950;
+  font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
 
@@ -5460,9 +5476,9 @@
   display: inline-flex;
   align-items: center;
   border: 1px solid rgba(13, 148, 136, 0.28);
-  border-radius: 7px;
+  border-radius: 8px;
   background: rgba(240, 253, 250, 0.88);
-  color: #0f766e;
+  color: var(--module-accent);
   font-size: 13px;
   font-weight: 850;
   padding: 0 9px;
@@ -5471,9 +5487,9 @@
 .hojas-ruta-sampling-runbar {
   margin-top: 12px;
   padding: 12px;
-  border: 1px solid #b7dfd3;
+  border: 1px solid color-mix(in srgb, var(--module-accent-border) 45%, var(--pulso-border));
   border-radius: 8px;
-  background: #f2fbf7;
+  background: color-mix(in srgb, var(--module-accent) 5%, #fff);
 }
 
 .hojas-ruta-replacement-grid {
@@ -5544,8 +5560,8 @@
 
 .hojas-ruta-sample-tabs button.is-active {
   border-color: var(--pulso-primary);
-  background: #f0fdfa;
-  color: #064e3b;
+  background: color-mix(in srgb, var(--module-accent) 6%, #fff);
+  color: var(--module-accent);
 }
 
 .hojas-ruta-sample-tabs button span {
@@ -5836,11 +5852,11 @@
   align-items: center;
   gap: 5px;
   min-height: 26px;
-  border: 1px solid #b7d7cc;
+  border: 1px solid color-mix(in srgb, var(--module-accent-border) 45%, var(--pulso-border));
   border-radius: 999px;
   padding: 4px 8px;
-  background: #f0fdfa;
-  color: #0f766e;
+  background: color-mix(in srgb, var(--module-accent) 6%, #fff);
+  color: var(--module-accent);
   font-size: 10.5px;
   font-weight: 850;
 }
@@ -5896,7 +5912,7 @@
 .hojas-ruta-route-history-actions button {
   min-height: 30px;
   border: 1px solid var(--pulso-border);
-  border-radius: 7px;
+  border-radius: 8px;
   background: white;
   color: var(--pulso-text);
   font-size: 11.5px;
@@ -6011,12 +6027,12 @@
 
 /* Sample plain card variantes */
 .hojas-ruta-sample-plain-card.is-success {
-  border-color: #b7dfd3;
-  background: #f2fbf7;
+  border-color: color-mix(in srgb, var(--module-accent-border) 45%, var(--pulso-border));
+  background: color-mix(in srgb, var(--module-accent) 5%, #fff);
 }
 
 .hojas-ruta-sample-plain-card.is-success strong {
-  color: #064e3b;
+  color: var(--module-accent);
 }
 
 /* Output list: contenedor compacto */
@@ -6300,16 +6316,16 @@
 
 .hojas-ruta-block-popup-assignment {
   padding: 7px 9px;
-  border: 1px solid #b7dfd3;
+  border: 1px solid color-mix(in srgb, var(--module-accent-border) 45%, var(--pulso-border));
   border-radius: 6px;
-  background: #f2fbf7;
+  background: color-mix(in srgb, var(--module-accent) 5%, #fff);
   display: flex;
   flex-direction: column;
   gap: 1px;
 }
 
 .hojas-ruta-block-popup-assignment strong {
-  color: #064e3b;
+  color: var(--module-accent);
   font-size: 12.5px;
   font-weight: 900;
 }
@@ -6407,7 +6423,7 @@
 .hojas-ruta-sample-formula-body li {
   padding: 9px 11px;
   border: 1px solid #e2eaf0;
-  border-radius: 7px;
+  border-radius: 8px;
   background: #fbfdfe;
   display: flex;
   flex-direction: column;
@@ -6415,8 +6431,8 @@
 }
 
 .hojas-ruta-sample-formula-body li.is-bind {
-  border-color: #0f766e;
-  background: #ecfdf5;
+  border-color: var(--module-accent);
+  background: color-mix(in srgb, var(--module-accent) 12%, #fff);
 }
 
 .hojas-ruta-sample-formula-body .step {
@@ -6429,7 +6445,7 @@
   display: inline-block;
   padding: 1px 6px;
   background: #f1f5f9;
-  border-radius: 4px;
+  border-radius: 6px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
   font-size: 11px;
   color: #334155;
@@ -6451,7 +6467,7 @@
 }
 
 .hojas-ruta-sample-formula-body li.is-bind em strong {
-  color: #064e3b;
+  color: var(--module-accent);
 }
 
 .hojas-ruta-sample-formula-foot {
@@ -6748,7 +6764,7 @@
 .hojas-ruta-route-check {
   min-height: 54px;
   border: 1px solid #e2eaf0;
-  border-radius: 7px;
+  border-radius: 8px;
   background: #f8fafc;
   padding: 8px 10px;
   display: flex;
@@ -6770,12 +6786,12 @@
 }
 
 .hojas-ruta-route-check.is-ok {
-  border-color: #86efac;
-  background: #ecfdf5;
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
 }
 
 .hojas-ruta-route-check.is-neutral {
-  border-color: #d7e4e0;
+  border-color: color-mix(in srgb, var(--module-accent-border) 26%, var(--pulso-border));
   background: #f8fbfa;
 }
 
