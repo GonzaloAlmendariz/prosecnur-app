@@ -7129,6 +7129,19 @@ export default function HojasRutaPage() {
     if (nextIndex != null) selectReplacementPolicy(replacementPolicyOptions[nextIndex].key);
   }
 
+  function selectManualReplacementPolicy(nextPolicy: HojasRutaReplacementPolicy) {
+    if (nextPolicy !== manualReplacementPolicy) setManualReplacementPolicy(nextPolicy);
+  }
+
+  function selectManualReplacementPolicyFromKey(key: string, itemIndex: number) {
+    let nextIndex: number | null = null;
+    if (key === "Home") nextIndex = 0;
+    else if (key === "End") nextIndex = replacementPolicyOptions.length - 1;
+    else if (key === "ArrowRight") nextIndex = (itemIndex + 1) % replacementPolicyOptions.length;
+    else if (key === "ArrowLeft") nextIndex = (itemIndex - 1 + replacementPolicyOptions.length) % replacementPolicyOptions.length;
+    if (nextIndex != null) selectManualReplacementPolicy(replacementPolicyOptions[nextIndex].key);
+  }
+
   function toggleDraftTerritory(ubigeo: string) {
     const set = new Set(draftTerritories);
     if (set.has(ubigeo)) set.delete(ubigeo);
@@ -9067,22 +9080,24 @@ export default function HojasRutaPage() {
                       </div>
                       <div className="hojas-ruta-segmented-field is-replacement-policy is-manual">
                         <span>Ubicación del reemplazo</span>
-                        <div className="hojas-ruta-segmented" role="radiogroup" aria-label="Ubicación del reemplazo puntual">
-                          {replacementPolicyOptions.map((option) => (
+                        <GlidingTabList activeKey={manualReplacementPolicy} mode="tabs" className="hojas-ruta-segmented" role="radiogroup" aria-label="Ubicación del reemplazo puntual">
+                          {replacementPolicyOptions.map((option, itemIndex) => (
                             <button
                               key={`manual-policy:${option.key}`}
                               type="button"
                               role="radio"
+                              data-gliding-key={option.key}
                               aria-checked={manualReplacementPolicy === option.key}
                               className={manualReplacementPolicy === option.key ? "is-active" : ""}
-                              onClick={() => setManualReplacementPolicy(option.key)}
+                              onClick={() => selectManualReplacementPolicy(option.key)}
+                              onKeyDown={(event) => selectManualReplacementPolicyFromKey(event.key, itemIndex)}
                               disabled={!sample?.ok || !!jobId || !!manualReplacementJobId}
                               title={option.hint}
                             >
                               {option.label}
                             </button>
                           ))}
-                        </div>
+                        </GlidingTabList>
                       </div>
                       {manualReplacementSelectedIds.length ? (
                         <div className="hojas-ruta-manual-selected">
