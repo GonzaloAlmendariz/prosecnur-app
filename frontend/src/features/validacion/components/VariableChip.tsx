@@ -182,7 +182,7 @@ export default function VariableChip({
   };
 
   const typeLabelStyle: CSSProperties = {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: 800,
     letterSpacing: 0.3,
     opacity: 0.75,
@@ -317,7 +317,7 @@ function VariableHoverCard({
             borderRadius: "var(--pulso-radius-chip)",
             background: tokens.bg,
             color: tokens.fg,
-            fontSize: 9,
+            fontSize: 10,
             fontWeight: 800,
             letterSpacing: 0.3,
             border: `1px solid ${tokens.border}`,

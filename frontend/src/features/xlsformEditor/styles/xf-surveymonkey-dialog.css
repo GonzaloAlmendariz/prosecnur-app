@@ -38,7 +38,7 @@
   margin-bottom: 5px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .pulso-xf-sm-review {
@@ -50,7 +50,7 @@
   margin: 0;
   color: var(--pulso-text);
   font-size: 17px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-xf-sm-review-copy {
@@ -74,7 +74,7 @@
 
 .pulso-xf-sm-review-row > span {
   color: var(--pulso-text-soft);
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .pulso-xf-sm-review-row > strong {

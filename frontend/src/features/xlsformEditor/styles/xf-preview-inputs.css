@@ -44,7 +44,7 @@
 .pulso-xfpi-count {
   flex-shrink: 0;
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   padding: 2px 9px;
   border-radius: 999px;
   background: var(--pulso-surface-2);
@@ -183,7 +183,7 @@
   align-self: flex-start;
   margin-top: 9px;
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-text-muted);
   white-space: nowrap;
 }
@@ -303,7 +303,7 @@
   border-radius: 6px;
   border: 1.5px solid var(--pulso-primary);
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
 }
 

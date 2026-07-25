@@ -123,7 +123,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: 9.8,
+    fontSize: 10,
     fontWeight: 800,
   },
   popover: {
@@ -192,7 +192,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     gap: 6,
     padding: "0 13px",
     fontSize: 11.2,
-    fontWeight: 760,
+    fontWeight: 800,
     cursor: "pointer",
     whiteSpace: "nowrap",
     boxShadow: "0 8px 18px rgba(15, 23, 42, 0.06)",
@@ -209,7 +209,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     background: "var(--pulso-info-bg)",
     color: "var(--pulso-info-fg)",
     fontSize: 11,
-    fontWeight: 740,
+    fontWeight: 700,
   },
   planTable: {
     marginTop: 8,
@@ -230,7 +230,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
   planRowHead: {
     background: "var(--pulso-header-row)",
     color: "var(--pulso-text-soft)",
-    fontSize: 9.5,
+    fontSize: 10,
     fontWeight: 800,
     letterSpacing: "0.08em",
     textTransform: "uppercase",
@@ -252,7 +252,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
   },
   warningText: {
     color: "var(--pulso-warn-fg)",
-    fontWeight: 720,
+    fontWeight: 700,
     lineHeight: 1.35,
   },
   advancedToggle: {
@@ -326,7 +326,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     color: "var(--pulso-text-soft)",
     fontSize: 11.1,
     lineHeight: 1.4,
-    fontWeight: 560,
+    fontWeight: 600,
   },
   close: {
     width: 30,
@@ -389,7 +389,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     color: "var(--pulso-text)",
     fontSize: 12,
     lineHeight: 1.15,
-    fontWeight: 740,
+    fontWeight: 700,
     letterSpacing: "-0.01em",
   },
   optionHelp: {
@@ -456,7 +456,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     flexBasis: "auto",
     textTransform: "uppercase",
     letterSpacing: "0.08em",
-    fontSize: 9.4,
+    fontSize: 10,
   },
   radio: {
     display: "inline-flex",
@@ -468,7 +468,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     background: "rgba(255,255,255,0.74)",
     border: "1px solid color-mix(in srgb, var(--pulso-border) 80%, transparent)",
     color: "var(--pulso-text)",
-    fontWeight: 720,
+    fontWeight: 700,
   },
   actions: {
     display: "flex",
@@ -488,7 +488,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     justifyContent: "center",
     gap: 6,
     fontSize: 11,
-    fontWeight: 750,
+    fontWeight: 700,
   },
   msg: {
     fontSize: 11,

@@ -97,7 +97,7 @@
 .rec-metric span {
   color: var(--rec-accent);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -280,13 +280,13 @@
 .rec-top-status strong {
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .rec-top-status small {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
   text-transform: uppercase;
 }
 
@@ -426,7 +426,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.16;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -521,7 +521,7 @@
   margin: 0 0 3px;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
 }
 
@@ -570,7 +570,7 @@
       var(--pulso-surface);
     color: var(--pulso-text);
     font-size: 11px;
-    font-weight: 760;
+    font-weight: var(--pulso-weight-heavy);
     line-height: 1.22;
     text-align: left;
     white-space: pre-line;
@@ -719,7 +719,7 @@
 .rec-next span {
   color: var(--rec-accent);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -729,7 +729,7 @@
   margin-top: 2px;
   color: var(--pulso-text);
   font-size: 16px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .rec-next p {
@@ -737,7 +737,7 @@
   margin: 3px 0 0;
   color: var(--pulso-text-soft);
   font-size: 13px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 
@@ -797,7 +797,7 @@
 .rec-return-command-strip span {
   color: var(--rec-accent);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -812,7 +812,7 @@
   margin-top: 2px;
   color: var(--pulso-text);
   font-size: 16px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
 }
 
@@ -826,7 +826,7 @@
   margin: 3px 0 0;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
 }
 
@@ -891,7 +891,7 @@
   background: color-mix(in srgb, var(--pulso-surface-2) 66%, #fff);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.15;
 }
 
@@ -939,7 +939,7 @@
   background: #fff;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .rec-link-process svg {
@@ -971,7 +971,7 @@
   color: var(--pulso-text);
   font-size: 12px;
   font-style: normal;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.05;
 }
 
@@ -1007,7 +1007,7 @@
 
 .rec-metric strong {
   font-size: 21px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -1046,7 +1046,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .rec-readiness strong {
@@ -1066,7 +1066,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .rec-readiness li.is-ready {
@@ -1169,7 +1169,7 @@
 .rec-audit-strip strong {
   margin-right: auto;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .rec-audit-strip span {
@@ -1181,7 +1181,7 @@
   background: #fff;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   padding: 3px 8px;
 }
 
@@ -1239,7 +1239,7 @@
 .rec-link-import-head small {
   color: var(--rec-accent);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -1256,7 +1256,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 
@@ -1280,7 +1280,7 @@
 .rec-kobo-controls label span {
   color: var(--rec-accent);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -1288,7 +1288,7 @@
 .rec-kobo-controls label small {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.3;
 }
 
@@ -1377,7 +1377,7 @@
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
   padding: 8px 10px;
 }
@@ -1410,7 +1410,7 @@
   background: #fff;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   padding: 3px 8px;
 }
 
@@ -1672,7 +1672,7 @@
   color: var(--rec-accent);
   background: color-mix(in srgb, var(--rec-accent) 7%, #fff);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
 }
 
@@ -1689,7 +1689,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.45;
 }
 
@@ -1723,14 +1723,14 @@
 .rec-ficha dt {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
 }
 
 .rec-ficha dd {
   color: var(--pulso-text);
   font-size: 16px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.18;
   overflow-wrap: anywhere;
 }
@@ -1738,7 +1738,7 @@
 .rec-ficha-url dd {
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   line-height: 1.25;
   word-break: break-all;
 }
@@ -1768,7 +1768,7 @@
 .rec-ficha-log-heading strong {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.2;
   text-transform: uppercase;
 }
@@ -1804,7 +1804,7 @@
 .rec-ficha-log-label {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.2;
   text-transform: uppercase;
 }
@@ -1818,7 +1818,7 @@
   border-bottom: 1px solid var(--pulso-border-strong);
   color: var(--pulso-text);
   font-size: 15px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
   overflow-wrap: anywhere;
 }
@@ -1842,7 +1842,7 @@
 .rec-ficha-footer strong {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.2;
   text-transform: uppercase;
 }
@@ -1874,7 +1874,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -1902,7 +1902,7 @@
   border-radius: 999px;
   padding: 3px 8px;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .rec-status.is-ready {
@@ -2012,14 +2012,14 @@
 .rec-package-return-status span {
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   line-height: 1.35;
 }
 
 .rec-package-output-main > div:nth-child(2) span {
   color: var(--rec-accent);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -2035,7 +2035,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.4;
 }
 
@@ -2064,7 +2064,7 @@
 .rec-package-output-main dt {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -2072,7 +2072,7 @@
 .rec-package-output-main dd {
   color: var(--pulso-text);
   font-size: 20px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
@@ -2145,7 +2145,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .rec-package-flow li > svg {
@@ -2164,7 +2164,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 
@@ -2221,7 +2221,7 @@
   background: var(--rec-accent-soft);
   color: var(--rec-accent);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .rec-package-detail-grid {
@@ -2250,7 +2250,7 @@
 .rec-package-panel > div:first-child span {
   color: var(--rec-accent);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -2285,8 +2285,8 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.76);
   color: var(--module-accent);
-  font-size: 9.5px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   text-transform: uppercase;
 }
@@ -2316,7 +2316,7 @@
   background: #fff;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .rec-engine-stages strong,
@@ -2330,14 +2330,14 @@
 .rec-engine-stages strong {
   color: var(--pulso-text);
   font-size: 10.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .rec-engine-stages em {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
 }
 
 .rec-engine-stages > div.is-ready {
@@ -2412,13 +2412,13 @@
 .rec-engine-groups header strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .rec-engine-groups header span {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
 }
 
 .rec-engine-groups dl {
@@ -2445,8 +2445,8 @@
 
 .rec-engine-groups dt {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -2455,7 +2455,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2465,7 +2465,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .rec-engine-note {
@@ -2483,7 +2483,7 @@
 .rec-engine-note span {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.28;
 }
 
@@ -2519,7 +2519,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   white-space: nowrap;
 }
 
@@ -2565,7 +2565,7 @@
   gap: 8px;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .rec-return-list svg {
@@ -2605,7 +2605,7 @@
 .rec-return-guide > div span {
   color: var(--rec-accent);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -2647,7 +2647,7 @@
 .rec-return-head span {
   color: var(--rec-accent);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -2663,7 +2663,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 
@@ -2687,7 +2687,7 @@
   color: #fff;
   font: inherit;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   white-space: nowrap;
   transition:
     transform var(--motion-dur-press) var(--motion-ease-out),
@@ -2734,7 +2734,7 @@
   background: color-mix(in srgb, var(--pulso-surface-2) 68%, #fff);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .rec-return-message {
@@ -2743,7 +2743,7 @@
   border-radius: 8px;
   padding: 8px 10px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   line-height: 1.35;
 }
 
@@ -2792,7 +2792,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -2848,7 +2848,7 @@
 .rec-return-table tr.is-ready td:nth-child(3),
 .rec-return-table tr.is-ready td:nth-child(4) {
   color: var(--pulso-success-fg);
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .rec-print-package {
@@ -2883,7 +2883,7 @@
 .rec-print-cover span {
   color: var(--rec-accent);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -2899,7 +2899,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.4;
 }
 
@@ -2929,7 +2929,7 @@
 .rec-print-cover dt {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -2937,14 +2937,14 @@
 .rec-print-cover dd {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   overflow-wrap: anywhere;
 }
 
 .rec-return-table tr.is-waiting td:nth-child(3),
 .rec-return-table tr.is-waiting td:nth-child(4) {
   color: var(--pulso-warn-fg);
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 @media (max-width: 1180px) {

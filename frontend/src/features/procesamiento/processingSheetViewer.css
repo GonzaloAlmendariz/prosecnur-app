@@ -72,7 +72,7 @@
   color: var(--pulso-text);
   display: block;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -94,7 +94,7 @@
   color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 74%, var(--pulso-text));
   display: inline-flex;
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   margin-top: 3px;
   white-space: nowrap;
@@ -131,7 +131,7 @@
   border-radius: 6px;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   height: 28px;
   padding: 0 10px;
   transition:
@@ -227,7 +227,7 @@
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.12px;
 }
 
@@ -238,7 +238,7 @@
   color: color-mix(in srgb, var(--legend-color) 74%, #1f2937);
   display: inline-flex;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   gap: 6px;
   height: 22px;
   padding: 0 8px;
@@ -308,7 +308,7 @@
   color: var(--pulso-text);
   display: block;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
@@ -316,7 +316,7 @@
   color: var(--pulso-text-soft);
   display: block;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.45;
   margin-top: 3px;
 }
@@ -337,7 +337,7 @@
   color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 62%, var(--pulso-text-soft));
   display: inline-flex;
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   gap: 6px;
   height: 25px;
   padding: 0 10px;
@@ -459,7 +459,7 @@
 .pulso-processing-sheet-table thead tr:first-child th button span {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.18;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -469,7 +469,7 @@
 .pulso-processing-sheet-table thead tr:first-child th button small {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -479,9 +479,9 @@
 .pulso-processing-sheet-table thead tr:first-child th button em {
   border-radius: 999px;
   color: #fff;
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   height: 16px;
   justify-self: start;
   line-height: 16px;
@@ -561,7 +561,7 @@
     1px 0 0 color-mix(in srgb, var(--pulso-border) 70%, transparent),
     8px 0 18px rgba(15, 23, 42, 0.055);
   color: var(--pulso-text-soft) !important;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   left: 0;
   min-width: 52px !important;
   position: sticky;
@@ -579,7 +579,7 @@
 
 .pulso-processing-sheet.is-wide .pulso-processing-sheet-footer > span {
   color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 58%, var(--pulso-text-soft));
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-processing-sheet-table .is-original {
@@ -643,7 +643,7 @@
 
 .pulso-processing-sheet-empty-cell {
   color: var(--pulso-text-soft) !important;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   height: 120px;
   text-align: center !important;
 }
@@ -728,7 +728,7 @@
   color: var(--pulso-text);
   display: block;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
@@ -736,7 +736,7 @@
   color: var(--pulso-text-soft);
   display: block;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -750,7 +750,7 @@
   border-radius: 8px;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   height: 34px;
   min-width: 210px;
   padding: 0 28px 0 10px;
@@ -759,7 +759,7 @@
 .pulso-processing-sheet-footer > span {
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-processing-sheet-pager {
@@ -775,7 +775,7 @@
   border-radius: 8px;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   height: 34px;
   padding: 0 26px 0 10px;
 }
@@ -1013,7 +1013,7 @@
   border: none;
   background: transparent;
   color: var(--module-accent, #0f766e);
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   font-size: 11.5px;
   cursor: pointer;
   padding: 2px 4px;
@@ -1042,7 +1042,7 @@
   background: color-mix(in srgb, var(--module-accent, #0f766e) 12%, var(--pulso-surface, #fff));
   color: var(--module-accent, #0f766e);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: background var(--motion-dur-fast, 160ms) ease;
 }
@@ -1172,7 +1172,7 @@
 }
 .pulso-sheet-filter-head-name {
   font-size: 12.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text, #17212f);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1181,7 +1181,7 @@
 .pulso-sheet-filter-head-kind {
   flex: 0 0 auto;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.4px;
   color: var(--module-accent, #0f766e);

@@ -8,7 +8,7 @@
 .ter-panel-head span {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .ter-panel h3 {
@@ -42,8 +42,8 @@
 
 .ter-stat span {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -117,7 +117,7 @@
 .ter-dl dt {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -126,7 +126,7 @@
   margin: 0;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .ter-alert-list {
@@ -144,7 +144,7 @@
   color: var(--pulso-warn-fg);
   padding: 8px 10px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .ter-map-lite {
@@ -188,7 +188,7 @@
   color: var(--pulso-text-soft);
   font: inherit;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   padding: 0 10px;
   cursor: pointer;
 }
@@ -309,7 +309,7 @@
   min-width: 38px;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   text-align: center;
 }
 
@@ -326,7 +326,7 @@
   gap: 5px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .ter-lite-map__legend i {
@@ -386,14 +386,14 @@
   background: var(--pulso-header-row);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .ter-table td {
   color: var(--pulso-text);
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .mon-territorial-source-chipset span.is-active {
@@ -568,9 +568,9 @@
 
 .mon-territorial-demographic-summary {
   align-content: start;
-  border-color: color-mix(in srgb, var(--exec-navy) 18%, var(--pulso-border));
+  border-color: color-mix(in srgb, var(--exec-accent) 18%, var(--pulso-border));
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--exec-navy) 6%, #fff), rgba(255, 255, 255, 0.98)),
+    linear-gradient(135deg, color-mix(in srgb, var(--exec-accent) 6%, #fff), rgba(255, 255, 255, 0.98)),
     #fff;
 }
 
@@ -601,16 +601,16 @@
 .mon-territorial-demographic-districts > header span {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 870;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-demographic-summary > header em,
 .mon-territorial-demographic-quota > header em,
 .mon-territorial-demographic-districts > header em {
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-demographic-summary-main {
@@ -620,9 +620,9 @@
 }
 
 .mon-territorial-demographic-summary-main strong {
-  color: var(--exec-navy);
+  color: var(--exec-accent);
   font-size: 21px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -632,7 +632,7 @@
   overflow: hidden;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -670,7 +670,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
-  border: 1px solid color-mix(in srgb, var(--exec-navy) 12%, var(--pulso-border));
+  border: 1px solid color-mix(in srgb, var(--exec-accent) 12%, var(--pulso-border));
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.78);
   padding: 7px;
@@ -688,8 +688,8 @@
 
 .mon-territorial-demographic-summary dt {
   color: var(--pulso-text-soft);
-  font-size: 8.5px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -697,7 +697,7 @@
 .mon-territorial-demographic-summary dd {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-demographic-quota-list {
@@ -746,14 +746,14 @@
 .mon-territorial-demographic-quota-list strong {
   color: var(--pulso-text);
   font-size: 10.5px;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-demographic-quota-list em {
   color: var(--pulso-text-soft);
-  font-size: 9.3px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-demographic-districts {
@@ -807,14 +807,14 @@
 .mon-territorial-demographic-districts article strong {
   color: var(--pulso-text);
   font-size: 10.5px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-demographic-districts article em {
   color: var(--demographic-district-color);
   font-size: 10px;
   font-style: normal;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-demographic-districts article.is-warning > i em {
@@ -833,8 +833,8 @@
   border-radius: var(--pulso-radius-chip);
   background: rgba(255, 255, 255, 0.82);
   color: var(--pulso-text-soft);
-  font-size: 8.7px;
-  font-weight: 780;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   padding: 4px 6px;
 }
 
@@ -867,7 +867,7 @@
   min-height: 20px;
   background: color-mix(in srgb, #fff 78%, transparent);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
-  font-size: 9.5px;
+  font-size: 10px;
   padding: 4px 7px;
 }
 
@@ -916,8 +916,8 @@
   gap: 5px;
   border-right: 1px solid color-mix(in srgb, var(--pulso-border) 80%, transparent);
   color: var(--pulso-primary);
-  font-size: 9.5px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.04em;
   padding-right: 8px;
   text-transform: uppercase;
@@ -926,7 +926,7 @@
 .mon-territorial-advance-map-focus-strip strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-advance-map-focus-strip em,
@@ -934,12 +934,12 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-advance-map-focus-strip b {
   color: var(--pulso-text);
-  font-weight: 830;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-advance-map-focus-strip i {
@@ -1031,14 +1031,14 @@
   stroke-width: 1.55;
   paint-order: stroke;
   font-size: 3.25px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0;
 }
 
 .mon-territorial-validation-geo-street-labels text.is-major {
   fill: rgba(15, 23, 42, 0.84);
   font-size: 3.7px;
-  font-weight: 940;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-spatial-candidate-status {
@@ -1047,8 +1047,8 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--spatial-tone) 7%, #fff);
   color: color-mix(in srgb, var(--spatial-tone) 74%, var(--pulso-text));
-  font-size: 9.5px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   padding: 5px 7px;
   white-space: nowrap;
@@ -1067,7 +1067,7 @@
     #fff;
   color: #155e75;
   font-size: 9px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   padding: 6px 8px;
 }
 
@@ -1098,7 +1098,7 @@
   border: 1px solid color-mix(in srgb, currentColor 20%, var(--pulso-border));
   border-radius: 999px;
   font-size: 8.2px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0;
   line-height: 1;
   padding: 3px 6px;
@@ -1164,8 +1164,8 @@
   border-radius: 999px;
   background: color-mix(in srgb, #dbeafe 78%, #fff);
   color: #1d4ed8;
-  font-size: 9px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   vertical-align: middle;
 }
@@ -1198,13 +1198,13 @@
   color: var(--pulso-text);
   font: inherit;
   font-size: 0.76rem;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   outline: none;
 }
 
 .mon-operational-adjustments__search input::placeholder {
   color: var(--pulso-text-faint);
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-operational-adjustments__search button {
@@ -1235,7 +1235,7 @@
 .mon-operational-applied-segment button strong {
   color: inherit;
   font-size: 0.72rem;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
@@ -1277,7 +1277,7 @@
 .mon-operational-applied-audit strong {
   color: var(--pulso-text);
   font-size: 0.82rem;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
@@ -1285,7 +1285,7 @@
   color: var(--pulso-text-muted);
   font-size: 0.57rem;
   font-style: normal;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.05em;
   line-height: 1;
   text-transform: uppercase;
@@ -1332,7 +1332,7 @@
   grid-column: 1;
   color: currentColor;
   font-size: 0.66rem;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
@@ -1341,7 +1341,7 @@
   color: color-mix(in srgb, currentColor 70%, var(--pulso-text-muted));
   font-size: 0.61rem;
   font-style: normal;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
 }
 
@@ -1471,7 +1471,7 @@
 .mon-operational-package-ledger header span {
   color: var(--pulso-text-muted);
   font-size: 0.66rem;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -1479,7 +1479,7 @@
 .mon-operational-package-ledger header strong {
   color: var(--pulso-text);
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   white-space: nowrap;
 }
 
@@ -1511,7 +1511,7 @@
   background: #fff;
   color: var(--op-surplus);
   font-size: 0.82rem;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-operational-package-ledger article strong,
@@ -1525,14 +1525,14 @@
 .mon-operational-package-ledger article strong {
   color: var(--pulso-text);
   font-size: 0.78rem;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-operational-package-ledger article em {
   color: var(--pulso-text-muted);
   font-size: 0.68rem;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-operational-applied__state {
@@ -1545,7 +1545,7 @@
   border-radius: 999px;
   color: var(--pulso-success-fg);
   font-size: 0.64rem;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.045em;
   line-height: 1;
   padding: 4px 8px;
@@ -1580,7 +1580,7 @@
 .mon-operational-applied__cell small {
   color: var(--pulso-text-faint);
   font-size: 0.55rem;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.05em;
   line-height: 1;
   text-transform: uppercase;
@@ -1589,14 +1589,14 @@
 .mon-operational-applied__cell strong {
   color: var(--pulso-text);
   font-size: 0.78rem;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
 }
 
 .mon-operational-applied__cell em {
   color: var(--pulso-text-muted);
   font-size: 0.68rem;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
 }
 
@@ -1612,7 +1612,7 @@
   background: rgba(255, 255, 255, 0.78);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   padding: 5px 8px;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
 }
@@ -1652,16 +1652,16 @@
   align-items: center;
   gap: 5px;
   color: color-mix(in srgb, var(--pulso-module-monitoring) 70%, var(--pulso-text-soft));
-  font-size: 9px;
-  font-weight: 880;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .mon-territorial-route-context-family header strong {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-route-context-family > div {
@@ -1723,23 +1723,23 @@
   grid-area: title;
   color: var(--pulso-text);
   font-size: 10.6px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-route-context-family-row em {
   grid-area: meta;
   justify-self: end;
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-route-context-family-row small {
   grid-area: hint;
   color: var(--pulso-text-soft);
-  font-size: 8.8px;
-  font-weight: 740;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-route-context-family-row strong,
@@ -1785,7 +1785,7 @@
   max-width: 100%;
   color: var(--pulso-text);
   font-size: 17px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.12;
   text-align: left;
   white-space: normal;
@@ -1797,7 +1797,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.3;
 }
 
@@ -1811,7 +1811,7 @@
 .mon-territorial-filter-config-summary p small {
   color: var(--pulso-text-muted);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 
@@ -1840,8 +1840,8 @@
   border: 1px solid color-mix(in srgb, currentColor 28%, transparent);
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-success-fg);
-  font-size: 9px;
-  font-weight: 890;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.04em;
   line-height: 1;
   padding: 4px 8px;
@@ -1862,7 +1862,7 @@
 .mon-territorial-filter-config-state strong {
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
 }
 
@@ -1870,7 +1870,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.25;
   white-space: normal;
 }
@@ -1901,7 +1901,7 @@
   margin-left: auto;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-reconciliation-console > header {
@@ -1948,7 +1948,7 @@
   gap: 6px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.035em;
   text-transform: uppercase;
 }
@@ -1956,7 +1956,7 @@
 .mon-territorial-reconciliation-panel > header strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   white-space: nowrap;
 }
 
@@ -1989,7 +1989,7 @@
 }
 
 .mon-territorial-reconciliation-panel.is-ump .mon-territorial-reconciliation-metrics em {
-  font-size: 7px;
+  font-size: 10px;
   letter-spacing: 0;
 }
 
@@ -2003,7 +2003,7 @@
 }
 
 .mon-territorial-reconciliation-panel.is-code .mon-territorial-reconciliation-metrics em {
-  font-size: 7.2px;
+  font-size: 10px;
   letter-spacing: 0;
 }
 
@@ -2036,8 +2036,8 @@
   color: var(--pulso-text-muted);
   cursor: pointer;
   font: inherit;
-  font-size: 8.5px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.015em;
   line-height: 1;
   padding: 3px 5px;
@@ -2063,8 +2063,8 @@
 
 .mon-territorial-reconciliation-code-lenses button strong {
   color: inherit;
-  font-size: 9.5px;
-  font-weight: 930;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
@@ -2094,15 +2094,15 @@
 .mon-territorial-reconciliation-metrics strong {
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.05;
 }
 
 .mon-territorial-reconciliation-metrics em {
   color: var(--pulso-text-soft);
-  font-size: 7.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.03em;
   line-height: 1.15;
   text-transform: uppercase;
@@ -2146,7 +2146,7 @@
   color: var(--pulso-text);
   font: inherit;
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-reconciliation-review-lens-field input::placeholder {
@@ -2182,8 +2182,8 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.78);
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 880;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   padding: 5px 8px;
   white-space: nowrap;
@@ -2212,8 +2212,8 @@
 .mon-territorial-reconciliation-list-head span {
   min-width: 0;
   overflow: hidden;
-  font-size: 7.6px;
-  font-weight: 930;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   line-height: 1;
   text-overflow: ellipsis;
@@ -2275,8 +2275,8 @@
   border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-success-fg);
-  font-size: 9px;
-  font-weight: 880;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.035em;
   text-transform: uppercase;
 }
@@ -2313,7 +2313,7 @@
 .mon-territorial-reconciliation-list strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-reconciliation-list em,
@@ -2321,20 +2321,20 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-reconciliation-code-main strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0;
 }
 
 .mon-territorial-reconciliation-code-context strong,
 .mon-territorial-reconciliation-code-target strong {
   font-size: 10.5px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
 }
 
@@ -2349,14 +2349,14 @@
 .mon-territorial-reconciliation-ump-main strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0;
 }
 
 .mon-territorial-reconciliation-ump-route strong,
 .mon-territorial-reconciliation-ump-evidence strong {
   font-size: 10.5px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
 }
 
@@ -2379,15 +2379,15 @@
 .mon-territorial-reconciliation-queue-ready strong {
   color: var(--pulso-success-fg);
   font-size: 12.5px;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
 .mon-territorial-reconciliation-queue-ready em {
   color: var(--pulso-text-soft);
-  font-size: 7.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.035em;
   line-height: 1;
   text-transform: uppercase;
@@ -2408,8 +2408,8 @@
   color: var(--pulso-text-muted);
   cursor: pointer;
   font: inherit;
-  font-size: 8.5px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.015em;
   line-height: 1;
   padding: 3px 5px;
@@ -2431,8 +2431,8 @@
 
 .mon-territorial-reconciliation-queue-lenses button strong {
   color: inherit;
-  font-size: 9.5px;
-  font-weight: 930;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
@@ -2454,8 +2454,8 @@
 .mon-territorial-reconciliation-queue-list-head span {
   min-width: 0;
   overflow: hidden;
-  font-size: 7.4px;
-  font-weight: 930;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.055em;
   line-height: 1;
   text-overflow: ellipsis;
@@ -2525,7 +2525,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 10px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2534,7 +2534,7 @@
 .mon-territorial-reconciliation-queue-evidence strong {
   color: var(--pulso-text);
   font-size: 10px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.1;
 }
 
@@ -2550,20 +2550,20 @@
 .mon-territorial-reconciliation-queue-list strong {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-reconciliation-queue-list em {
   color: var(--pulso-warn-fg);
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-reconciliation-queue-list small {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 720;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-source-workgrid--filter .mon-territorial-source-card:not(.mon-territorial-filter-config-summary) {
@@ -2587,8 +2587,8 @@
   align-items: center;
   gap: 6px;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.035em;
   line-height: 1;
   text-transform: uppercase;
@@ -2604,7 +2604,7 @@
   color: var(--pulso-text);
   font: inherit;
   font-size: 12px;
-  font-weight: 730;
+  font-weight: var(--pulso-weight-bold);
   padding: 7px 9px;
 }
 
@@ -2646,16 +2646,16 @@
   grid-area: label;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.08;
 }
 
 .mon-field-occurrences-connect-summary em {
   grid-area: value;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.08;
 }
 
@@ -2693,7 +2693,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.065em;
   text-transform: uppercase;
 }
@@ -2703,7 +2703,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 15px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2724,7 +2724,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 
@@ -2763,15 +2763,15 @@
 .mon-field-occurrences-rhythm-kpis strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.05;
 }
 
 .mon-field-occurrences-rhythm-kpis em {
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.035em;
   line-height: 1.08;
   text-transform: uppercase;
@@ -2815,7 +2815,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.045em;
   line-height: 1.1;
   text-overflow: ellipsis;
@@ -2834,7 +2834,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 15px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2850,7 +2850,7 @@
   background: color-mix(in srgb, var(--occurrence-review-color) 7%, #fff);
   color: color-mix(in srgb, var(--occurrence-review-color) 76%, var(--pulso-text));
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   padding: 0 10px;
   white-space: nowrap;
@@ -2887,7 +2887,7 @@
   color: var(--pulso-text);
   font: inherit;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-field-occurrences-alerts-toolbar select {
@@ -2898,7 +2898,7 @@
     linear-gradient(135deg, var(--pulso-text-soft) 50%, transparent 50%) calc(100% - 10px) 15px / 5px 5px no-repeat,
     #fff;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-field-occurrences-alert-list {
@@ -2923,7 +2923,7 @@
   color: var(--pulso-text-soft);
   font-size: 12px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   text-align: center;
 }
 
@@ -2984,8 +2984,8 @@
 
 .mon-field-occurrences-alert-row > div > span {
   color: color-mix(in srgb, var(--occurrence-alert-color) 70%, var(--pulso-text-soft));
-  font-size: 9.5px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.045em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -2995,7 +2995,7 @@
 .mon-field-occurrences-alert-row strong {
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
   white-space: nowrap;
 }
@@ -3005,7 +3005,7 @@
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.24;
 }
 
@@ -3022,8 +3022,8 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--occurrence-alert-color) 7%, #fff);
   color: color-mix(in srgb, var(--occurrence-alert-color) 78%, var(--pulso-text));
-  font-size: 9.5px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.1;
   padding: 5px 8px;
   text-overflow: ellipsis;
@@ -3038,7 +3038,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   text-transform: none;
 }
@@ -3087,14 +3087,14 @@
 .mon-field-occurrences-history-list strong {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   white-space: nowrap;
 }
 
 .mon-field-occurrences-history-list span {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -3107,7 +3107,7 @@
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-field-occurrences-history-list small {
@@ -3126,7 +3126,7 @@
   gap: 5px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.045em;
   line-height: 1.12;
   text-transform: uppercase;
@@ -3143,7 +3143,7 @@
 .mon-field-occurrences-register-head > div:first-child > strong {
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
 }
 
@@ -3151,7 +3151,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-field-occurrences-register-kpis span {
@@ -3176,15 +3176,15 @@
 .mon-field-occurrences-register-kpis strong {
   color: var(--pulso-text);
   font-size: 16px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
 .mon-field-occurrences-register-kpis em {
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.035em;
   line-height: 1.05;
   text-transform: uppercase;
@@ -3250,7 +3250,7 @@
 .mon-field-occurrences-register-row b {
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
   white-space: nowrap;
 }
@@ -3263,7 +3263,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -3279,7 +3279,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-reconciliation-batchstate {
@@ -3293,7 +3293,7 @@
   background: color-mix(in srgb, var(--pulso-success-bg) 36%, #fff);
   color: var(--pulso-success-fg);
   font-size: 10.5px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   padding: 8px 12px;
   white-space: nowrap;
 }
@@ -3346,7 +3346,7 @@
   color: var(--pulso-muted, #657186);
   font-size: 11.5px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 /* =============================================================
@@ -3475,7 +3475,7 @@
 .mon-territorial-district-progress-card .mon-territorial-district-shape text {
   fill: #fff;
   font-size: 9px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0;
   pointer-events: none;
 }
@@ -3500,7 +3500,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   padding: 4px 8px;
 }
 
@@ -3515,7 +3515,9 @@
   --exec-land: var(--pulso-accent-green, #168a55);
   --exec-land-soft: rgba(15, 118, 110, 0.1);
   --exec-route: var(--pulso-accent-cyan, #0e7490);
-  --exec-navy: var(--pulso-module-monitoring, #be123c);
+  /* Se llamaba `--exec-navy` pero resuelve al carmesí del módulo: el nombre
+     mentía y arrastró al carmesí a lugares donde se lee como alarma. */
+  --exec-accent: var(--pulso-module-monitoring, #be123c);
   --exec-amber: var(--pulso-warn-accent);
   --exec-rose: var(--pulso-module-monitoring);
   gap: 8px;
@@ -3543,7 +3545,7 @@
   gap: 6px;
   color: var(--exec-land);
   font-size: 10px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -3551,7 +3553,7 @@
 .mon-territorial-exec-commandbar > div:first-child > strong {
   color: var(--pulso-text);
   font-size: 15px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-exec-commandbar-meta span {
@@ -3563,7 +3565,7 @@
   background: rgba(255, 255, 255, 0.82);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   padding: 4px 8px;
 }
 
@@ -3601,7 +3603,7 @@
 .mon-territorial-exec-progress-main > div > span {
   color: var(--exec-land);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -3609,7 +3611,7 @@
 .mon-territorial-exec-progress-main > div > strong {
   color: var(--pulso-text);
   font-size: 21px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -3618,7 +3620,7 @@
   color: var(--pulso-text-soft);
   font-size: 12px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-exec-ring,
@@ -3653,7 +3655,7 @@
   align-self: center;
   color: var(--pulso-text);
   font-size: 21px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -3662,8 +3664,8 @@
   align-self: end;
   margin-bottom: 25px;
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -3675,11 +3677,15 @@
   box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
+/* Barra de avance: verde→cian, el mismo gradiente que usan las otras barras de
+ * progreso del módulo. Antes terminaba en el carmesí de `--exec-accent`, así que
+ * un avance de 107% —un éxito— se leía como alarma al llegar al final. El color
+ * acá codifica progreso; el estado se comunica con el número y su etiqueta. */
 .mon-territorial-exec-progress-track i {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--exec-land), var(--exec-route), var(--exec-navy));
+  background: linear-gradient(90deg, var(--exec-land), var(--exec-route));
 }
 
 .mon-territorial-exec-progress-facts {
@@ -3709,15 +3715,15 @@
 
 .mon-territorial-exec-progress-facts dt {
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
 .mon-territorial-exec-progress-facts dd {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   margin: 0;
   white-space: nowrap;
 }
@@ -3730,7 +3736,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 690;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.38;
 }
 
@@ -3762,7 +3768,7 @@
   gap: 6px;
   color: var(--exec-land);
   font-size: 10px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -3776,7 +3782,7 @@
   min-width: 0;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.18;
 }
 
@@ -3788,7 +3794,7 @@
   color: var(--exec-land);
   font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   padding: 4px 8px;
 }
 
@@ -3828,13 +3834,13 @@
 
 .mon-territorial-exec-ump-stack span strong {
   font-size: 11px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-exec-ump-stack span em {
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -3883,7 +3889,7 @@
 .mon-territorial-exec-cut > div strong {
   color: var(--pulso-text);
   font-size: 18px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
@@ -3893,9 +3899,9 @@
   min-width: 0;
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.18;
   text-overflow: ellipsis;
 }
@@ -3977,8 +3983,8 @@
 
 .mon-territorial-exec-ump-state-list header span {
   color: var(--exec-state-color);
-  font-size: 8.8px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
@@ -3986,7 +3992,7 @@
 .mon-territorial-exec-ump-state-list header strong {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-exec-ump-state-list i {
@@ -4047,7 +4053,7 @@
 .mon-territorial-exec-district-card .mon-territorial-district-shape text {
   fill: #fff;
   font-size: 9px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0;
   pointer-events: none;
 }
@@ -4063,8 +4069,8 @@
 .mon-territorial-exec-district-pct::after {
   content: "avance";
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.08em;
   line-height: 1;
   text-transform: uppercase;
@@ -4108,8 +4114,8 @@
   border-radius: var(--pulso-radius-chip);
   background: rgba(255, 255, 255, 0.78);
   color: var(--pulso-text-soft);
-  font-size: 8.7px;
-  font-weight: 790;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   padding: 4px 6px;
 }
@@ -4149,14 +4155,14 @@
 .mon-territorial-exec-distribution > header span {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 870;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-exec-distribution > header em {
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-exec-sex-chart {
@@ -4172,14 +4178,14 @@
   height: 108px;
   background:
     radial-gradient(circle at center, #fff 0 58%, transparent 59%),
-    conic-gradient(var(--exec-navy) var(--exec-ring), var(--exec-land) 0);
+    conic-gradient(var(--exec-accent) var(--exec-ring), var(--exec-land) 0);
 }
 
 .mon-territorial-exec-sex-ring strong {
   align-self: center;
   color: var(--pulso-text);
   font-size: 21px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -4188,8 +4194,8 @@
   align-self: end;
   margin-bottom: 27px;
   color: var(--pulso-text-soft);
-  font-size: 8px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-exec-distribution-list {
@@ -4235,14 +4241,14 @@
 .mon-territorial-exec-distribution-list strong {
   color: var(--pulso-text);
   font-size: 10.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-exec-distribution-list em {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-exec-empty {
@@ -4266,13 +4272,13 @@
 .mon-territorial-exec-empty strong {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-exec-empty span {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-exec-priority-groups article {
@@ -4308,7 +4314,7 @@
 .mon-territorial-exec-priority-groups article > header strong {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-exec-priority-groups article > header em {
@@ -4316,9 +4322,9 @@
   border-radius: var(--pulso-radius-chip);
   background: color-mix(in srgb, var(--pulso-warn-bg) 42%, #fff);
   color: var(--pulso-warn-fg);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   padding: 3px 6px;
 }
 
@@ -4383,14 +4389,14 @@
 .mon-territorial-exec-priority strong {
   color: var(--pulso-text);
   font-size: 10.5px;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-exec-priority em {
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-exec-priority b {
@@ -4399,13 +4405,13 @@
   gap: 1px;
   color: var(--priority-color);
   font-size: 15px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-exec-priority b small {
   color: var(--pulso-text-soft);
-  font-size: 8px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   text-transform: uppercase;
 }
@@ -4431,7 +4437,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   padding: 8px;
 }
 
@@ -4461,8 +4467,8 @@
   align-items: center;
   gap: 6px;
   color: var(--pulso-primary);
-  font-size: 9.5px;
-  font-weight: 890;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -4470,14 +4476,14 @@
 .mon-territorial-advance-map-head strong {
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-advance-map-head em {
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 730;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-advance-map-selection span {
@@ -4486,7 +4492,7 @@
 
 .mon-territorial-advance-map-selection strong {
   font-size: 11px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-advance-map-viewport:active {
@@ -4576,14 +4582,14 @@
 .mon-territorial-advance-map-footer strong {
   color: var(--pulso-text);
   font-size: 16px;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-advance-map-footer em {
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -4603,8 +4609,8 @@
 
 .mon-territorial-ump-select span {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 840;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -4618,7 +4624,7 @@
   color: var(--pulso-text);
   font: inherit;
   font-size: 12px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   padding: 0 9px;
 }
 
@@ -4654,8 +4660,8 @@
   z-index: 2;
   background: color-mix(in srgb, var(--pulso-surface-2) 92%, #fff);
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
 }
 
@@ -4690,13 +4696,13 @@
 
 .mon-territorial-ump-table td strong {
   color: var(--pulso-text);
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-ump-table td small {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-progress-cell {
@@ -4723,7 +4729,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   padding: 3px 8px;
   white-space: nowrap;
 }
@@ -4786,7 +4792,7 @@
   cursor: pointer;
   font: inherit;
   font-size: 10px;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
   padding: 4px 9px;
   white-space: nowrap;
 }
@@ -4863,7 +4869,7 @@
   gap: 6px;
   color: var(--pulso-primary);
   font-size: 10px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -4871,7 +4877,7 @@
 .mon-territorial-ump-map-nav > header strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-ump-map-nav > header em {
@@ -4882,7 +4888,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   padding: 4px 8px;
 }
 
@@ -4892,7 +4898,7 @@
   border-radius: 10px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
   padding: 10px;
 }
@@ -4960,15 +4966,15 @@
   align-items: center;
   gap: 4px;
   color: var(--pulso-primary);
-  font-size: 9.5px;
-  font-weight: 880;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
 }
 
 .mon-territorial-ump-map-nav-focus strong {
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-ump-map-nav-focus em,
@@ -4976,7 +4982,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-ump-map-nav-focus dl {
@@ -5008,8 +5014,8 @@
 
 .mon-territorial-ump-map-nav-focus dt {
   color: var(--pulso-text-muted);
-  font-size: 8.5px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -5017,7 +5023,7 @@
   margin: 0;
   color: var(--pulso-text);
   font-size: 10px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-ump-map-nav-ring {
@@ -5073,7 +5079,7 @@
 .mon-territorial-ump-map-nav-row strong {
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-ump-map-nav-row em,
@@ -5081,15 +5087,15 @@
 .mon-territorial-ump-map-nav-meta small,
 .mon-territorial-ump-map-nav-row footer small {
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-ump-map-nav-row b {
   color: color-mix(in srgb, var(--pulso-text) 84%, var(--ump-nav-color));
-  font-size: 8.8px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: none;
 }
 
@@ -5185,8 +5191,8 @@
   border-radius: var(--pulso-radius-chip);
   background: color-mix(in srgb, var(--ump-nav-color) 7%, #fff);
   color: color-mix(in srgb, var(--pulso-text) 84%, var(--ump-nav-color));
-  font-size: 8.8px;
-  font-weight: 860;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   padding: 1px 5px;
 }
 
@@ -5223,7 +5229,7 @@
   gap: 6px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -5235,7 +5241,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.18;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -5250,7 +5256,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
@@ -5272,7 +5278,7 @@
 .mon-territorial-ump-detail-status strong {
   color: var(--pulso-text);
   font-size: 18px;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
@@ -5305,9 +5311,9 @@
 .mon-territorial-ump-detail-grid dt,
 .mon-territorial-ump-gps-strip em {
   color: var(--pulso-text-soft);
-  font-size: 8.8px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
 }
 
@@ -5318,7 +5324,7 @@
   margin: 0;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.16;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -5350,7 +5356,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 
@@ -5389,8 +5395,8 @@
   border-radius: 8px;
   background: color-mix(in srgb, var(--pulso-success-bg) 62%, #fff);
   color: var(--pulso-success-fg);
-  font-size: 9px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-ump-response span.is-no-gps {
@@ -5403,7 +5409,7 @@
   min-width: 0;
   overflow: hidden;
   font-size: 11.5px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -5415,7 +5421,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 710;
+  font-weight: var(--pulso-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -5423,8 +5429,8 @@
 .mon-territorial-ump-response small {
   grid-area: status;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 790;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 
@@ -5500,7 +5506,7 @@
   gap: 6px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -5508,7 +5514,7 @@
 .mon-territorial-validation-geo-reconciliation-entry strong {
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.1;
 }
 
@@ -5516,7 +5522,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
 }
 
@@ -5532,7 +5538,7 @@
   color: color-mix(in srgb, var(--pulso-accent) 72%, var(--pulso-text));
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
   font-size: 11px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   min-height: 34px;
   padding: 8px 11px;
@@ -5618,7 +5624,7 @@
   grid-area: value;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
@@ -5629,7 +5635,7 @@
   color: var(--pulso-text-soft);
   font-size: 8.4px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
   text-overflow: clip;
   text-transform: uppercase;
@@ -5699,7 +5705,7 @@
   gap: 6px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
 }
 
@@ -5707,7 +5713,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 660;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.22;
 }
 
@@ -5715,7 +5721,7 @@
   flex: 0 0 auto;
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   white-space: nowrap;
 }
 
@@ -5764,7 +5770,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -5778,7 +5784,7 @@
 .mon-territorial-spatial-reconciliation-panel > header strong {
   color: var(--pulso-text);
   font-size: 18px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.05;
 }
 
@@ -5787,7 +5793,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 11.5px;
-  font-weight: 660;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 
@@ -5804,15 +5810,15 @@
 .mon-territorial-spatial-reconciliation-metrics strong {
   color: var(--pulso-text);
   font-size: 16px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-spatial-reconciliation-metrics em {
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -5837,13 +5843,13 @@
 .mon-territorial-spatial-empty strong {
   color: #0f5132;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-spatial-empty span {
   color: #416558;
   font-size: 11px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   text-transform: none;
 }
 
@@ -5882,7 +5888,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -5892,7 +5898,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -5908,7 +5914,7 @@
 .mon-territorial-spatial-pattern-actions small {
   color: color-mix(in srgb, var(--spatial-tone) 72%, var(--pulso-text));
   font-size: 10px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   white-space: nowrap;
 }
 
@@ -5923,7 +5929,7 @@
   background: rgba(255, 255, 255, 0.9);
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   min-height: 32px;
   padding: 0 10px;
@@ -5968,7 +5974,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -5988,7 +5994,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -5998,7 +6004,7 @@
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -6016,7 +6022,7 @@
   background: #f8fafc;
   color: #475569;
   font-size: 10px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   padding: 5px 7px;
 }
@@ -6061,7 +6067,7 @@
 .mon-territorial-spatial-impact strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-spatial-impact mark {
@@ -6145,7 +6151,7 @@
   gap: 8px;
   color: var(--pulso-text-soft);
   font-size: 9.5px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -6262,7 +6268,7 @@
 .mon-territorial-geo-district-risk strong {
   color: color-mix(in srgb, var(--geo-risk-color) 82%, var(--pulso-text));
   font-size: 10.2px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   white-space: nowrap;
 }
@@ -6271,7 +6277,7 @@
   color: var(--pulso-text-soft);
   font-size: 7.6px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   line-height: 1.1;
   text-transform: uppercase;
@@ -6288,7 +6294,7 @@
   border-radius: var(--pulso-radius-chip);
   background: rgba(255, 255, 255, 0.72);
   font-size: 7.8px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   padding: 0 5px;
   white-space: nowrap;
@@ -6534,7 +6540,7 @@
 .mon-territorial-geo-case-main .mon-territorial-geo-case-stamp .is-time {
   color: color-mix(in srgb, var(--pulso-text) 78%, var(--pulso-text-soft));
   font-variant-numeric: tabular-nums;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-geo-case-demo {
@@ -6546,7 +6552,7 @@
   color: color-mix(in srgb, var(--pulso-text) 78%, var(--geo-row-color));
   font-size: 8.8px;
   font-style: normal;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0;
   line-height: 1;
   padding: 3px 6px;
@@ -6589,7 +6595,7 @@
   border-top: 1px dashed color-mix(in srgb, var(--pulso-border) 84%, #fff);
   color: var(--pulso-text-faint);
   font-size: 9px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -6634,7 +6640,7 @@
   gap: 6px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   line-height: 1;
   text-transform: uppercase;
@@ -6650,7 +6656,7 @@
 .mon-territorial-source-title strong {
   color: var(--pulso-text);
   font-size: 17px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.12;
   white-space: nowrap;
 }
@@ -6659,22 +6665,22 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 
 .mon-territorial-source-top-metrics strong {
   color: var(--pulso-text);
   font-size: 16px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
 .mon-territorial-source-top-metrics em {
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
   text-transform: uppercase;
 }
@@ -6697,7 +6703,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   padding: 4px 8px;
   white-space: nowrap;
 }
@@ -6713,7 +6719,7 @@
 .mon-territorial-source-status strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
   white-space: normal;
 }
@@ -6723,7 +6729,7 @@
   color: var(--pulso-text-muted);
   font-size: 10px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   max-width: 100%;
 }
 
@@ -6766,8 +6772,8 @@
 .mon-territorial-source-card dt,
 .mon-territorial-source-stats em {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -6778,7 +6784,7 @@
   margin: 3px 0 0;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -6818,7 +6824,7 @@
   cursor: pointer;
   font: inherit;
   font-size: 11px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   padding: 5px 10px;
 }
 
@@ -6847,7 +6853,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 830;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.18;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -6861,7 +6867,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -6908,7 +6914,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   text-align: center;
   padding: 12px;
 }
@@ -6930,14 +6936,14 @@
 .mon-territorial-form-apply strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 830;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-form-apply em {
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .mon-territorial-form-detail {
@@ -6978,7 +6984,7 @@
 .mon-territorial-form-detail-main strong {
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -6987,7 +6993,7 @@
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 
@@ -7000,8 +7006,8 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-success-bg);
   color: var(--pulso-success-fg);
-  font-size: 9px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   line-height: 1;
   padding: 4px 9px;
@@ -7051,8 +7057,8 @@
   min-width: 0;
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 8.8px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.035em;
   line-height: 1;
   text-overflow: ellipsis;
@@ -7065,7 +7071,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 15px;
-  font-weight: 890;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -7075,9 +7081,9 @@
   min-width: 0;
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 710;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -7174,7 +7180,7 @@
 .mon-territorial-form-readiness strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
   white-space: nowrap;
 }
@@ -7183,7 +7189,7 @@
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -7197,8 +7203,8 @@
   border-radius: var(--pulso-radius-chip);
   background: rgba(255, 255, 255, 0.72);
   color: currentColor;
-  font-size: 9px;
-  font-weight: 860;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.035em;
   padding: 4px 8px;
   text-transform: uppercase;
@@ -7250,16 +7256,16 @@
   grid-area: label;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.1;
 }
 
 .mon-territorial-source-checklist em {
   grid-area: detail;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.1;
 }
 
@@ -7273,9 +7279,9 @@
   border-radius: var(--pulso-radius-chip);
   background: #fff;
   color: var(--pulso-text-soft);
-  font-size: 8.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 870;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.035em;
   padding: 3px 7px;
   text-transform: uppercase;
@@ -7324,7 +7330,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 16px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -7335,9 +7341,9 @@
   min-width: 0;
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 8.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.035em;
   line-height: 1;
   text-overflow: ellipsis;
@@ -7357,7 +7363,7 @@
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-text-faint);
   font-size: 10px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   padding: 4px 7px;
 }
@@ -7430,7 +7436,7 @@
   gap: 6px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -7440,7 +7446,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 18px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.12;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -7452,7 +7458,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -7474,8 +7480,8 @@
   min-width: 0;
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -7486,7 +7492,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 21px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -7498,7 +7504,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 690;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -7510,7 +7516,7 @@
 }
 
 .mon-territorial-route-metrics .mon-territorial-route-kpi span {
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .mon-territorial-route-metrics .mon-territorial-route-kpi strong {
@@ -7518,7 +7524,7 @@
 }
 
 .mon-territorial-route-metrics .mon-territorial-route-kpi em {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .mon-territorial-route-table-card header,
@@ -7539,7 +7545,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -7554,8 +7560,8 @@
   min-width: 0;
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 8.5px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   line-height: 1;
   text-overflow: ellipsis;
@@ -7574,13 +7580,13 @@
   color: var(--pulso-text);
   font: inherit;
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   outline: none;
 }
 
 .mon-territorial-route-search-field input::placeholder {
   color: var(--pulso-text-faint);
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-route-table-filters button:disabled {
@@ -7671,7 +7677,7 @@
 .mon-territorial-route-accordion-title strong {
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.16;
   text-transform: uppercase;
   white-space: nowrap;
@@ -7680,9 +7686,9 @@
 .mon-territorial-route-accordion-title em {
   display: -webkit-box;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
   white-space: normal;
   -webkit-box-orient: vertical;
@@ -7691,8 +7697,8 @@
 
 .mon-territorial-route-accordion-title small {
   color: color-mix(in srgb, var(--pulso-module-monitoring) 55%, var(--pulso-text-soft));
-  font-size: 9px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -7706,7 +7712,7 @@
   max-width: 100%;
   color: var(--pulso-text);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   text-align: right;
   white-space: nowrap;
 }
@@ -7778,7 +7784,7 @@
 .mon-territorial-route-replacement-row strong {
   color: var(--pulso-text);
   font-size: 10.8px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   white-space: nowrap;
 }
 
@@ -7787,9 +7793,9 @@
 .mon-territorial-route-replacement-row em,
 .mon-territorial-route-replacement-row small {
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 
@@ -7808,7 +7814,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.3;
 }
 
@@ -7831,8 +7837,8 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 8px;
-  font-weight: 880;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   margin-top: 4px;
   padding: 3px 6px;
@@ -7898,7 +7904,7 @@
 .mon-territorial-route-map-placeholder strong {
   color: var(--pulso-text);
   font-size: 16px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
 }
 
@@ -7907,7 +7913,7 @@
   color: var(--pulso-text-soft);
   font-size: 12px;
   font-style: normal;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.45;
 }
 
@@ -7975,7 +7981,7 @@
   min-width: 0;
   color: var(--pulso-text);
   font-size: 16px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.12;
   overflow: hidden;
   overflow-wrap: anywhere;
@@ -7987,7 +7993,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-route-context-hero p {
@@ -7996,15 +8002,15 @@
   margin: 0;
   color: var(--pulso-warn-fg);
   font-size: 10px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
 .mon-territorial-route-context-metrics em {
   color: var(--pulso-text-soft);
-  font-size: 8.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 870;
+  font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
 }
 
@@ -8013,7 +8019,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -8066,9 +8072,9 @@
   min-width: 0;
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 8.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 870;
+  font-weight: var(--pulso-weight-black);
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -8077,7 +8083,7 @@
 .mon-territorial-route-quota-chips strong {
   color: var(--pulso-text);
   font-size: 17px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0;
 }
 
@@ -8100,7 +8106,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   padding: 10px;
 }
 
@@ -8187,7 +8193,7 @@
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-variant-numeric: tabular-nums;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   text-align: center;
   letter-spacing: 0;
@@ -8639,7 +8645,7 @@
 .mon-territorial-map-caption {
   fill: rgba(71, 85, 105, 0.78);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   text-anchor: start;
 }
 
@@ -8657,7 +8663,7 @@
   padding: 7px 9px;
   color: var(--pulso-warn-fg);
   font-size: 11px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-map-legend span::before {
@@ -8676,7 +8682,7 @@
   padding-inline: 2px;
   color: color-mix(in srgb, var(--pulso-text-soft) 82%, #475467);
   font-size: 10px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
 }
 
@@ -8688,7 +8694,7 @@
   border-color: rgba(15, 118, 110, 0.28);
   background: rgba(255, 255, 255, 0.84);
   color: #0f766e;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-map-legend span.is-route-selected::before {
@@ -8742,7 +8748,7 @@
   padding: 18px;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   text-align: center;
 }
 
@@ -8754,7 +8760,7 @@
   overflow: hidden;
   color: var(--pulso-primary);
   font-size: 10px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0;
   line-height: 1.1;
   text-overflow: ellipsis;
@@ -8775,7 +8781,7 @@
   color: var(--pulso-text);
   font: inherit;
   font-size: 12px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   outline: 0;
 }
 
@@ -8798,7 +8804,7 @@
   min-width: 22px;
   color: currentColor;
   font-size: 11px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   text-align: right;
 }
 
@@ -8815,7 +8821,7 @@
   color: var(--pulso-text-soft);
   cursor: pointer;
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   padding: 6px 8px;
   transition:
     background var(--motion-dur-fast) var(--motion-ease-out),
@@ -8841,7 +8847,7 @@
   min-width: 18px;
   color: currentColor;
   font-size: 11px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   text-align: right;
 }
 
@@ -8866,14 +8872,14 @@
 .mon-territorial-quota-empty strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-quota-empty span {
   max-width: 460px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 
@@ -8918,8 +8924,8 @@
 
 .mon-territorial-quota-block-meta strong {
   color: var(--pulso-text-soft);
-  font-size: 8.5px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -8927,7 +8933,7 @@
   color: var(--pulso-text);
   font-size: 10px;
   font-style: normal;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
@@ -8948,15 +8954,15 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .mon-territorial-quota-margin-group > header strong {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 790;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 
@@ -8967,7 +8973,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.3;
   padding: 8px;
 }
@@ -9000,7 +9006,7 @@
   grid-area: label;
   color: var(--pulso-text);
   font-size: 10.5px;
-  font-weight: 790;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-quota-margin-row em {
@@ -9008,7 +9014,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-quota-margin-row i {
@@ -9031,8 +9037,8 @@
   grid-area: missing;
   justify-self: end;
   color: var(--quota-row-accent);
-  font-size: 8.8px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-quota-margin-adjustment {
@@ -9052,8 +9058,8 @@
   border-radius: var(--pulso-radius-chip);
   background: color-mix(in srgb, var(--pulso-surface-2) 74%, #fff);
   color: var(--pulso-text-soft);
-  font-size: 8.5px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   padding: 3px 6px;
 }
@@ -9085,14 +9091,14 @@
   gap: 6px;
   color: var(--pulso-primary);
   font-size: 10px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
 }
 
 .mon-territorial-quota-observed > header strong {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 
@@ -9156,8 +9162,8 @@
 .mon-territorial-quota-observed thead th {
   background: color-mix(in srgb, var(--pulso-surface-2) 74%, #fff);
   color: var(--pulso-text-soft);
-  font-size: 8.8px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -9165,14 +9171,14 @@
 .mon-territorial-quota-observed tbody th,
 .mon-territorial-quota-observed tfoot th {
   color: var(--pulso-text);
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   text-align: left;
   white-space: nowrap;
 }
 
 .mon-territorial-quota-observed tbody td {
   font-size: 11px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-quota-observed td.has-adjustment {
@@ -9185,7 +9191,7 @@
 
 .mon-territorial-quota-observed tbody td.is-empty {
   color: var(--pulso-text-faint);
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-quota-observed td.is-total,
@@ -9206,16 +9212,16 @@
 
 .mon-territorial-quota-observed td strong,
 .mon-territorial-quota-observed tfoot strong {
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-quota-observed td em,
 .mon-territorial-quota-observed tfoot em {
   margin-left: 3px;
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-quota-observed-empty {
@@ -9265,7 +9271,7 @@
   gap: 5px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
 }
 
@@ -9276,7 +9282,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.18;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -9322,15 +9328,15 @@
 
 .mon-duration-overview dt {
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 840;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
 .mon-duration-overview dd {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-duration-lower-grid > .mon-duration-panel {
@@ -9358,7 +9364,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   padding: 5px 8px;
 }
@@ -9389,7 +9395,7 @@
   gap: 6px;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-duration-category-grid article > span i {
@@ -9403,7 +9409,7 @@
 .mon-duration-category-grid article > strong {
   color: var(--pulso-text);
   font-size: 21px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
   line-height: 0.95;
@@ -9417,7 +9423,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
@@ -9456,15 +9462,15 @@
 
 .mon-duration-rule-row strong {
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
 .mon-duration-rule-row b {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-duration-daily-chart {
@@ -9522,7 +9528,7 @@
 .mon-duration-daily-rows time {
   color: var(--pulso-text);
   font-size: 10.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -9599,15 +9605,15 @@
 .mon-duration-daily-value strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   line-height: 1.05;
 }
 
 .mon-duration-daily-value small {
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   overflow: hidden;
   max-width: 78px;
@@ -9624,9 +9630,9 @@
   border-radius: var(--pulso-radius-chip);
   background: color-mix(in srgb, var(--pulso-surface-2) 82%, #fff);
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   padding: 4px 7px;
   white-space: nowrap;
@@ -9682,20 +9688,20 @@
 
 .mon-duration-daily-tooltip strong {
   font-size: 11px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-duration-daily-tooltip span {
   color: var(--pulso-text);
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-duration-daily-tooltip em {
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-duration-daily footer {
@@ -9710,7 +9716,7 @@
   gap: 5px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-duration-daily footer i {
@@ -9789,8 +9795,8 @@
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--pulso-surface-2) 92%, #fff), #fff);
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
 }
 
@@ -9845,7 +9851,7 @@
   margin-top: 3px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-duration-reason-stack {
@@ -9869,7 +9875,7 @@
   color: var(--pulso-warn-fg);
   font-size: 10px;
   font-style: normal;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   padding: 4px 7px;
   text-overflow: ellipsis;
@@ -9888,7 +9894,7 @@
   display: block;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -9905,7 +9911,7 @@
   cursor: pointer;
   font: inherit;
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   padding: 0;
   text-align: left;
@@ -9967,7 +9973,7 @@
 .mon-territorial-review-select span {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   line-height: 1.15;
   text-transform: uppercase;
@@ -9976,7 +9982,7 @@
 .mon-territorial-review-hero strong {
   color: var(--pulso-text);
   font-size: 21px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   line-height: 1.08;
 }
@@ -9986,7 +9992,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.45;
 }
 
@@ -10027,21 +10033,21 @@
 
 .mon-territorial-review-metrics em {
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-review-metrics strong {
   grid-column: 2;
   color: var(--pulso-text);
   font-size: 19px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
 .mon-territorial-review-metrics small {
   grid-column: 2;
-  font-size: 9.5px;
-  font-weight: 720;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-review-select {
@@ -10060,7 +10066,7 @@
   color: var(--pulso-text);
   font: inherit;
   font-size: 12px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   outline: none;
   padding: 7px 8px;
 }
@@ -10083,7 +10089,7 @@
   color: var(--pulso-text-soft);
   font: inherit;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   padding: 0 10px;
   cursor: pointer;
 }
@@ -10134,7 +10140,7 @@
   gap: 6px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   line-height: 1.2;
   text-transform: uppercase;
@@ -10145,7 +10151,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 15px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.12;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -10157,7 +10163,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -10202,22 +10208,22 @@
 }
 
 .mon-territorial-route-sheet-metrics em {
-  font-size: 9.5px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-route-sheet-metrics strong {
   grid-column: 2;
   color: var(--pulso-text);
   font-size: 17px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
 .mon-territorial-route-sheet-metrics small {
   grid-column: 2;
-  font-size: 9px;
-  font-weight: 720;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-route-sheet-actions {
@@ -10261,7 +10267,7 @@
 .mon-territorial-review-table-shell > header strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-review-table-shell > header em {
@@ -10269,7 +10275,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-review-table-scroll {
@@ -10308,7 +10314,7 @@
   background: color-mix(in srgb, var(--pulso-surface-2) 78%, #fff);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-review-table th:nth-child(1) { width: 6%; }
@@ -10377,14 +10383,14 @@
 .mon-territorial-review-table strong {
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-review-table small {
   margin-top: 2px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-review-observed.is-duration.is-duration-none,
@@ -10448,7 +10454,7 @@
   background: #fff;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   padding: 5px 7px;
   white-space: nowrap;
@@ -10478,7 +10484,7 @@
   color: var(--pulso-text);
   font: inherit;
   font-size: 10.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   padding: 0 8px;
   cursor: pointer;
 }
@@ -10617,7 +10623,7 @@
   padding: 10px 12px;
   border-radius: 14px;
   font-size: 0.86rem;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-operational-adjustments__notice.is-ready {
@@ -10711,7 +10717,7 @@
 .mon-operational-node small {
   color: var(--pulso-text-muted);
   font-size: 0.64rem;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   line-height: 1;
   text-transform: uppercase;
@@ -10756,13 +10762,13 @@
 .mon-operational-node-meta b {
   max-width: 100%;
   overflow: hidden;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .mon-operational-node-meta i {
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-operational-node-meta i.is-priority {
@@ -10773,7 +10779,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--pulso-warn-bg) 74%, #fff 26%);
   color: var(--pulso-warn-fg);
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   padding: 2px 7px;
 }
 
@@ -10804,7 +10810,7 @@
   background: color-mix(in srgb, var(--pulso-surface) 80%, var(--op-surplus-soft));
   color: color-mix(in srgb, var(--op-surplus) 54%, var(--pulso-warn-fg));
   font-size: 0.52rem;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   letter-spacing: 0;
   white-space: nowrap;
@@ -10814,7 +10820,7 @@
   max-width: none;
   color: currentColor;
   font-size: 0.54rem;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.07em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -10898,7 +10904,7 @@
 .mon-operational-adjustments__note span {
   color: var(--pulso-text-muted);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
@@ -10947,7 +10953,7 @@
 .mon-operational-applied small {
   color: var(--pulso-text-faint);
   font-size: 0.68rem;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-operational-applied__tag {
@@ -10957,7 +10963,7 @@
   background: var(--pulso-muted-surface);
   color: var(--pulso-text-muted);
   font-size: 0.72rem;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-operational-adjustments__empty {
@@ -11003,7 +11009,7 @@
   cursor: pointer;
   font: inherit;
   font-size: 0.76rem;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   padding: 0 12px;
 }
 
@@ -11044,7 +11050,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -11055,7 +11061,7 @@
   overflow: hidden;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -11064,7 +11070,7 @@
 .mon-field-occurrences-side p strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-field-occurrences-side p.is-warning {
@@ -11110,7 +11116,7 @@
   background: color-mix(in srgb, var(--pulso-surface-2) 82%, #fff);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -11172,7 +11178,7 @@
 .mon-advance-daily-table tbody th span {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-advance-daily-table tbody th em {
@@ -11180,17 +11186,17 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-advance-daily-table td {
   color: var(--pulso-text);
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-advance-daily-table td.is-filled {
   color: var(--pulso-text);
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   background: color-mix(in srgb, var(--advance-day-row) 5%, #fff);
 }
 
@@ -11335,7 +11341,7 @@
 .mon-territorial-enumerator-state strong {
   color: var(--pulso-text);
   font-size: 15px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
   white-space: nowrap;
 }
@@ -11344,7 +11350,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 
@@ -11376,14 +11382,14 @@
 .mon-territorial-enumerator-fieldchips strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-enumerator-fieldchips em {
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 830;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -11395,8 +11401,8 @@
 
 .mon-territorial-enumerator-mode > span {
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.035em;
   text-transform: uppercase;
 }
@@ -11421,7 +11427,7 @@
   color: var(--pulso-text-soft);
   font: inherit;
   font-size: 11px;
-  font-weight: 830;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
 }
 
@@ -11441,7 +11447,7 @@
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.25;
 }
 
@@ -11449,7 +11455,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.38;
 }
 
@@ -11493,7 +11499,7 @@
   color: var(--pulso-text);
   font: inherit;
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   outline: none;
 }
 
@@ -11506,7 +11512,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   padding: 4px 8px;
   white-space: nowrap;
 }
@@ -11524,7 +11530,7 @@
   cursor: pointer;
   font: inherit;
   font-size: 10.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   padding: 6px 9px;
 }
 
@@ -11543,7 +11549,7 @@
   border-bottom: 1px solid var(--pulso-border);
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   padding: 9px 10px;
   text-align: left;
   text-overflow: ellipsis;
@@ -11557,8 +11563,8 @@
   z-index: 1;
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.035em;
   text-transform: uppercase;
 }
@@ -11583,7 +11589,7 @@
   width: 116px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-enumerator-table td span {
@@ -11595,7 +11601,7 @@
   background: color-mix(in srgb, var(--pulso-primary-soft) 24%, #fff);
   color: var(--pulso-primary);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   padding: 3px 8px;
 }
@@ -11623,14 +11629,14 @@
 .mon-territorial-enumerator-empty strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-enumerator-empty em {
   max-width: 320px;
   font-size: 11px;
   font-style: normal;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
 }
 
@@ -11651,8 +11657,8 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.02em;
   padding: 3px 7px;
 }
@@ -11727,7 +11733,7 @@
   min-width: 46px;
   color: var(--pulso-text);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-route-panel {
@@ -11755,7 +11761,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 15px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -11765,9 +11771,9 @@
   min-width: 0;
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 8.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -11786,7 +11792,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 19px;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.12;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -11799,7 +11805,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -11853,8 +11859,8 @@
   align-items: center;
   gap: 6px;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 880;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -11866,7 +11872,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -11953,7 +11959,7 @@
 .mon-territorial-route-coverage-labels text {
   fill: var(--pulso-text);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   paint-order: stroke;
   pointer-events: none;
   stroke: rgba(255, 255, 255, 0.94);
@@ -11964,14 +11970,14 @@
 .mon-territorial-route-coverage-labels text.is-active {
   fill: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 940;
+  font-weight: var(--pulso-weight-black);
   stroke-width: 4.4px;
 }
 
 .mon-territorial-route-coverage-caption {
   fill: rgba(15, 23, 42, 0.72);
   font-size: 11px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   paint-order: stroke;
   stroke: rgba(255, 255, 255, 0.88);
   stroke-width: 3px;
@@ -11989,7 +11995,7 @@
   background: rgba(255, 255, 255, 0.88);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   padding: 5px 8px;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
 }
@@ -12013,9 +12019,9 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--route-district-color, var(--pulso-border)) 8%, #fff);
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   padding: 3px 7px;
 }
 
@@ -12089,7 +12095,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.08;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -12139,15 +12145,15 @@
 .mon-territorial-route-bucket-panel article strong {
   color: var(--pulso-text);
   font-size: 10.5px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-route-bucket-panel article em,
 .mon-territorial-route-bucket-panel p {
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 730;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-route-bucket-panel article i {
@@ -12210,7 +12216,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -12221,9 +12227,9 @@
   min-width: 0;
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 730;
+  font-weight: var(--pulso-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -12254,8 +12260,8 @@
   display: grid;
   gap: 4px;
   color: var(--pulso-text-soft);
-  font-size: 8.5px;
-  font-weight: 760;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-route-mini-stack > i {
@@ -12359,8 +12365,8 @@
 
 .mon-territorial-route-context-details summary span {
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 880;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -12369,7 +12375,7 @@
   min-width: 0;
   overflow: hidden;
   font-size: 11px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -12393,7 +12399,7 @@
   background: color-mix(in srgb, var(--pulso-surface-2) 70%, #fff);
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 730;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
   padding: 8px 9px;
 }
@@ -12503,9 +12509,9 @@
 .mon-territorial-enumerator-table td em {
   display: block;
   color: var(--pulso-primary);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   margin-top: 2px;
 }
@@ -12518,8 +12524,8 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 860;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   padding: 3px 7px;
   white-space: nowrap;
@@ -12562,7 +12568,7 @@
   overflow: visible;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.16;
   white-space: normal;
 }
@@ -12641,14 +12647,14 @@
 
 .mon-territorial-phase-source-strip strong {
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-phase-source-strip em {
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -12661,7 +12667,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   padding: 4px 8px;
 }
 
@@ -12675,7 +12681,7 @@
   grid-area: name;
   color: var(--pulso-text-muted);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-source-workgrid.is-single .mon-territorial-form-picker {
@@ -12733,14 +12739,14 @@
 .mon-territorial-route-sheet-source-copy strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-route-sheet-source-copy em {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-route-sheet-source-metrics {
@@ -12767,7 +12773,7 @@
 .mon-territorial-route-sheet-source-metrics strong {
   color: var(--pulso-text);
   font-size: 16px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
@@ -12775,9 +12781,9 @@
   min-width: 0;
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 9.2px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -12799,8 +12805,8 @@
 
 .mon-territorial-route-sheet-source-form label span {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -12834,7 +12840,7 @@
   color: var(--pulso-text);
   font: inherit;
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   padding: 0 10px;
   text-decoration: none;
 }
@@ -12861,7 +12867,7 @@
   background: color-mix(in srgb, var(--note-color, var(--pulso-success-fg)) 8%, #fff);
   color: color-mix(in srgb, var(--note-color, var(--pulso-success-fg)) 84%, var(--pulso-text));
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   padding: 7px 9px;
 }
 
@@ -12907,7 +12913,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   line-height: 1.1;
   text-overflow: ellipsis;
@@ -12926,7 +12932,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -12940,8 +12946,8 @@
 
 .mon-field-occurrences-connect-controls label > span {
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   line-height: 1;
   text-transform: uppercase;
@@ -12959,7 +12965,7 @@
   color: var(--pulso-text);
   font: inherit;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-field-occurrences-connect-error,
@@ -12968,7 +12974,7 @@
   margin: 0;
   border-radius: 10px;
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.3;
   padding: 8px 10px;
 }
@@ -13015,7 +13021,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -13067,14 +13073,14 @@
 .mon-field-occurrences-fieldcheck b {
   color: inherit;
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-field-occurrences-fieldcheck span em {
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-field-occurrences-asset:hover:not(:disabled) {
@@ -13103,7 +13109,7 @@
 
 .mon-field-occurrences-asset strong {
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.1;
 }
 
@@ -13111,7 +13117,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
 }
 
@@ -13156,7 +13162,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   line-height: 1.15;
   text-overflow: ellipsis;
@@ -13169,7 +13175,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -13199,15 +13205,15 @@
 .mon-field-occurrences-command-metrics strong {
   color: var(--pulso-text);
   font-size: 15px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
 .mon-field-occurrences-command-metrics em {
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   line-height: 1.08;
   text-transform: uppercase;
@@ -13270,7 +13276,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.14;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -13282,7 +13288,7 @@
   grid-area: value;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-field-occurrences-chart-card.is-outcomes article i {
@@ -13303,7 +13309,7 @@
   color: var(--pulso-text-soft);
   font-size: 12px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-field-occurrences-daily-bars {
@@ -13332,15 +13338,15 @@
 .mon-field-occurrences-daily-label strong {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.1;
 }
 
 .mon-field-occurrences-daily-label em {
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
 }
 
@@ -13410,15 +13416,15 @@
   grid-area: value;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-field-occurrences-daily-values em {
   grid-area: label;
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.05;
 }
 
@@ -13531,7 +13537,7 @@
   gap: 5px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.045em;
   line-height: 1.12;
   text-transform: uppercase;
@@ -13548,7 +13554,7 @@
 .mon-field-occurrences-workspace-title strong {
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
 }
 
@@ -13556,7 +13562,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-field-occurrences-workspace-stats span {
@@ -13607,16 +13613,16 @@
 .mon-field-occurrences-workspace-stats strong {
   color: var(--pulso-text);
   font-size: 16px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
 .mon-field-occurrences-workspace-stats em {
   overflow: visible;
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.035em;
   line-height: 1.05;
   text-overflow: clip;
@@ -13688,9 +13694,9 @@
 .mon-field-occurrences-ump-index > header span,
 .mon-field-occurrences-ump-index > header em {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.045em;
   text-transform: uppercase;
 }
@@ -13698,7 +13704,7 @@
 .mon-field-occurrences-ump-index > header strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-field-occurrences-ump-row {
@@ -13834,8 +13840,8 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--occurrence-status-color, var(--pulso-primary)) 8%, #fff);
   color: color-mix(in srgb, var(--occurrence-status-color, var(--pulso-primary)) 76%, var(--pulso-text));
-  font-size: 9.5px;
-  font-weight: 880;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   padding: 5px 7px;
   flex: 0 0 auto;
@@ -13910,7 +13916,7 @@
   background: color-mix(in srgb, var(--occurrence-outcome-color, var(--occurrence-status-color)) 7%, #fff);
   color: color-mix(in srgb, var(--occurrence-outcome-color, var(--occurrence-status-color)) 72%, var(--pulso-text));
   font-size: 10px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.12;
   padding: 4px 8px;
   white-space: normal;
@@ -13920,7 +13926,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   white-space: normal;
 }
@@ -13931,8 +13937,8 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.74);
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 760;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.12;
   padding: 4px 7px;
   white-space: normal;
@@ -14084,13 +14090,13 @@
 .mon-field-occurrences-detail-notice strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-field-occurrences-detail-notice span {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   white-space: normal;
 }
 
@@ -14147,7 +14153,7 @@
   overflow: hidden;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.045em;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -14213,7 +14219,7 @@
   color: var(--pulso-text-soft);
   font-size: 12px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-field-occurrences-district-coverage > span,
@@ -14291,14 +14297,14 @@
 .mon-field-occurrences-district-counts strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-field-occurrences-district-counts em {
   color: var(--pulso-text-soft);
-  font-size: 8.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -14329,7 +14335,7 @@
 .mon-field-occurrences-district-outcomes em {
   min-width: 0;
   overflow: visible;
-  font-size: 9.5px;
+  font-size: 10px;
   line-height: 1.08;
   text-overflow: clip;
   white-space: normal;
@@ -14337,13 +14343,13 @@
 
 .mon-field-occurrences-district-outcomes b {
   color: var(--pulso-text);
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-field-occurrences-district-outcomes em {
   color: var(--pulso-text-soft);
   font-style: normal;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-field-occurrences-district-outcomes .is-empty {
@@ -14446,8 +14452,8 @@
 
 .mon-field-occurrences-intents-card span {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 880;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.045em;
   line-height: 1.05;
   text-transform: uppercase;
@@ -14456,7 +14462,7 @@
 .mon-field-occurrences-intents-card strong {
   color: var(--pulso-text);
   font-size: 21px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -14465,7 +14471,7 @@
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
 }
 
@@ -14564,8 +14570,8 @@
   align-items: center;
   gap: 6px;
   color: var(--pulso-primary);
-  font-size: 9px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
@@ -14574,7 +14580,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -14584,7 +14590,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -14604,15 +14610,15 @@
 .mon-territorial-reconciliation-batchcounts strong {
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
 .mon-territorial-reconciliation-batchcounts em {
   color: var(--pulso-text-soft);
-  font-size: 8.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -14666,14 +14672,14 @@
   margin: 0;
   color: var(--pulso-text);
   font-size: 16px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-reconciliation-dialog [data-radix-dialog-description] {
   margin: 4px 0 0;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 
@@ -14696,7 +14702,7 @@
   background: color-mix(in srgb, var(--pulso-warn-bg) 44%, #fff);
   color: var(--pulso-warn-fg);
   font-size: 11px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   padding: 8px 10px;
 }
 
@@ -14736,28 +14742,28 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 8.5px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
 }
 
 .mon-territorial-reconciliation-confirm-list strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
 }
 
 .mon-territorial-reconciliation-confirm-list em {
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 730;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-reconciliation-confirm-list small {
   color: var(--pulso-primary);
-  font-size: 9px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
 }
 
@@ -14767,7 +14773,7 @@
   place-items: center;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-territorial-enumerator-roster {
@@ -14814,7 +14820,7 @@
 }
 
 .mon-territorial-source-console.is-tab-reconciliation .mon-territorial-source-title span {
-  font-size: 8.5px;
+  font-size: 10px;
 }
 
 .mon-territorial-source-console.is-tab-reconciliation .mon-territorial-source-title strong {
@@ -14824,7 +14830,7 @@
 }
 
 .mon-territorial-source-console.is-tab-reconciliation .mon-territorial-source-title em {
-  font-size: 9.5px;
+  font-size: 10px;
 }
 
 .mon-territorial-source-console.is-tab-reconciliation .mon-territorial-source-top-metrics {
@@ -14842,7 +14848,7 @@
 }
 
 .mon-territorial-source-console.is-tab-reconciliation .mon-territorial-source-top-metrics em {
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .mon-territorial-source-console.is-tab-reconciliation .mon-territorial-source-command > .pulso-button {
@@ -14873,7 +14879,7 @@
 }
 
 .mon-territorial-source-console.is-tab-reconciliation .mon-territorial-source-tabbar em {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .mon-territorial-reconciliation-batchcopy {
@@ -14888,8 +14894,8 @@
   align-items: center;
   gap: 6px;
   color: var(--pulso-primary);
-  font-size: 8.5px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
@@ -14898,7 +14904,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -14907,9 +14913,9 @@
 .mon-territorial-reconciliation-batchcopy > em {
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -14927,7 +14933,7 @@
 }
 
 .mon-territorial-reconciliation-batchcounts em {
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0;
 }
 
@@ -14948,7 +14954,7 @@
   border: 1px solid color-mix(in srgb, var(--pulso-success-border) 42%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--pulso-success-bg) 36%, #fff);
-  font-size: 7.5px;
+  font-size: 10px;
   justify-content: center;
   padding: 3px 7px;
 }
@@ -14958,7 +14964,7 @@
 }
 
 .mon-territorial-reconciliation-batchbar.is-empty .mon-territorial-reconciliation-batchcopy > em {
-  font-size: 8.8px;
+  font-size: 10px;
 }
 
 .mon-territorial-reconciliation-batchbar.is-empty .mon-territorial-reconciliation-batchcounts span {
@@ -14995,7 +15001,7 @@
 }
 
 .mon-territorial-enumerator-roster.is-reconciliation .mon-territorial-enumerator-block-head em {
-  font-size: 9.5px;
+  font-size: 10px;
   line-height: 1.2;
 }
 
@@ -15017,7 +15023,7 @@
 
 .mon-territorial-enumerator-roster.is-reconciliation .mon-territorial-enumerator-metrics em {
   overflow: hidden;
-  font-size: 8px;
+  font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -15054,7 +15060,7 @@
 }
 
 .mon-territorial-enumerator-roster.is-reconciliation .mon-operational-variable-trigger em {
-  font-size: 8.8px;
+  font-size: 10px;
 }
 
 .mon-territorial-enumerator-roster.is-reconciliation .mon-operational-variable-trigger > span {
@@ -15077,7 +15083,7 @@
   overflow: hidden;
   min-height: 26px;
   border-radius: 8px;
-  font-size: 9.5px;
+  font-size: 10px;
   line-height: 1.2;
   padding: 6px 8px;
   text-overflow: ellipsis;
@@ -15148,7 +15154,7 @@
 }
 
 .mon-territorial-source-console.is-tab-form .mon-territorial-source-title span {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .mon-territorial-source-console.is-tab-form .mon-territorial-source-title strong {
@@ -15176,7 +15182,7 @@
 }
 
 .mon-territorial-source-console.is-tab-form .mon-territorial-source-top-metrics em {
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .mon-territorial-source-console.is-tab-form .mon-territorial-source-command > .pulso-button {
@@ -15210,7 +15216,7 @@
 }
 
 .mon-territorial-source-console.is-tab-form .mon-territorial-source-tabbar em {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .mon-territorial-source-console.is-tab-form .mon-territorial-source-workgrid.is-single {
@@ -15281,7 +15287,7 @@
 .mon-territorial-source-console.is-tab-form .mon-territorial-phase-source-strip em,
 .mon-territorial-source-console.is-tab-form .mon-territorial-phase-source-strip small,
 .mon-territorial-source-console.is-tab-form .mon-territorial-phase-source-strip i {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .mon-territorial-source-console.is-tab-form .mon-territorial-form-picker.is-selected {
@@ -15452,7 +15458,7 @@
 }
 
 .mon-territorial-source-console.is-tab-form .mon-territorial-field-start-card > header span {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .mon-territorial-source-console.is-tab-form .mon-territorial-field-start-card > header strong {
@@ -15618,7 +15624,7 @@
   overflow: hidden;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -15708,7 +15714,7 @@
 .mon-territorial-loading-foot {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.1;
   text-transform: uppercase;
 }
@@ -15719,7 +15725,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 16px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.12;
   text-overflow: ellipsis;
   -webkit-box-orient: vertical;
@@ -15732,7 +15738,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.42;
 }
 
@@ -15771,14 +15777,14 @@
 .mon-territorial-loading-steps strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.14;
 }
 
 .mon-territorial-loading-steps small {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-loading-preview span.is-route { --loading-preview-color: #0f766e; }
@@ -15800,9 +15806,9 @@
 
 .mon-territorial-loading-preview em {
   color: color-mix(in srgb, var(--loading-preview-color) 72%, var(--pulso-text-soft));
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0;
   line-height: 1.1;
   text-transform: uppercase;
@@ -15811,14 +15817,14 @@
 .mon-territorial-loading-preview strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.08;
 }
 
 .mon-territorial-loading-preview small {
   color: var(--pulso-text-muted);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.12;
 }
 
@@ -15841,7 +15847,7 @@
 .mon-territorial-review-table-tools em {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-territorial-review-table th:last-child,
@@ -15907,7 +15913,7 @@
   gap: 6px;
   color: var(--pulso-danger, #be123c);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -15961,7 +15967,7 @@
   color: var(--pulso-muted, #657186);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -16050,7 +16056,7 @@
 
 .mon-production-annulments__responsible em {
   color: var(--pulso-danger, #be123c);
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-production-annulments__actions {
@@ -16078,7 +16084,7 @@
   background: #fff1f2;
   color: #991b1b;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   padding: 8px 10px;
 }
 
@@ -16113,7 +16119,7 @@
   background: #fff7f9;
   color: var(--pulso-muted, #657186);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -16163,7 +16169,7 @@
 .mon-production-annulments__history-list article > div:first-child span {
   color: var(--pulso-danger, #be123c);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -16198,7 +16204,7 @@
 .mon-production-annulments__history-list article > div:nth-child(2) span {
   color: var(--pulso-muted, #657186);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }

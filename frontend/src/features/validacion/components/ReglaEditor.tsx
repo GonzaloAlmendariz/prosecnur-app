@@ -905,7 +905,7 @@ function Step2({
               <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {v.label}
               </span>
-              <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: "var(--pulso-surface-2)", color: "var(--pulso-text-soft)", fontFamily: "ui-monospace, monospace" }}>
+              <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: "var(--pulso-surface-2)", color: "var(--pulso-text-soft)", fontFamily: "ui-monospace, monospace" }}>
                 {variableTipoLabel(v.tipo)}
               </span>
             </label>

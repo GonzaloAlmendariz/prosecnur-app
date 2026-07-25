@@ -79,7 +79,7 @@
 }
 
 .pulso-error-block-detail {
-  font-weight: 400;
+  font-weight: var(--pulso-weight-regular);
 }
 
 /* Código E_* del contrato de errores: mono, menor y atenuado, siempre

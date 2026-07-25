@@ -1323,7 +1323,7 @@ const chipStyle: React.CSSProperties = {
 const chipLabelStyle: React.CSSProperties = {
   maxWidth: 220,
   color: "var(--pulso-text)",
-  fontWeight: 760,
+  fontWeight: 800,
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -1338,7 +1338,7 @@ const chipCodeStyle: React.CSSProperties = {
   color: "var(--pulso-text-soft)",
   fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
   fontSize: 10,
-  fontWeight: 760,
+  fontWeight: 800,
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -1366,7 +1366,7 @@ const blockIntentButtonStyle: React.CSSProperties = {
   background: "rgba(255, 255, 255, 0.76)",
   color: "var(--pulso-text-soft)",
   fontSize: 10.4,
-  fontWeight: 740,
+  fontWeight: 700,
   cursor: "pointer",
 };
 

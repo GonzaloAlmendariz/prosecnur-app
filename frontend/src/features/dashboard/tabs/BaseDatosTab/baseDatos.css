@@ -73,7 +73,7 @@
   cursor: pointer;
   display: inline-flex;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   gap: 6px;
   padding: 7px 11px;
   transition:
@@ -112,7 +112,7 @@
 .dashboard-scope .dash-dt-search-label {
   color: var(--dash-texto-suave);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 .dashboard-scope .dash-dt-search-input {
   appearance: none;
@@ -137,7 +137,7 @@
   text-align: left;
   text-transform: none;
   letter-spacing: normal;
-  font-weight: 400;
+  font-weight: var(--pulso-weight-regular);
   top: 32px;
   z-index: 1;
   border-bottom: 1px solid var(--dash-divider);
@@ -184,7 +184,7 @@
 .dashboard-scope .dash-base-download-summary strong {
   color: var(--dash-primario);
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .dashboard-scope .dash-base-secciones {
@@ -222,7 +222,7 @@
 .dashboard-scope .dash-base-seccion-check strong {
   color: var(--dash-primario);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
 }
 
@@ -290,7 +290,7 @@
   border-bottom: 1px solid var(--dash-borde);
   color: var(--dash-primario);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   padding: 9px 10px;
   position: sticky;
   text-align: left;
@@ -353,6 +353,6 @@
 
 .dashboard-scope .dash-diccionario-meta strong {
   color: var(--dash-primario);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   margin-right: 6px;
 }

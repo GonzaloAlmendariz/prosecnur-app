@@ -71,6 +71,7 @@ export default function EnciclopediaHome() {
   return (
     <PageFrame
       auditReady={catalogo !== null && glosario !== null && tabla !== null && tipos !== null ? "enciclopedia" : false}
+      className="pulso-enciclopedia-frame"
       title="Enciclopedia metodológica"
       lead="Catálogo de diez técnicas muestrales cuantitativas, glosario de términos, comparador y tabla de estudios aplicados."
     >

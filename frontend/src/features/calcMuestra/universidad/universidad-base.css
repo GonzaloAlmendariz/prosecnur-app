@@ -61,7 +61,7 @@
   margin: 0;
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
@@ -166,7 +166,7 @@
   display: block;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
@@ -176,7 +176,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 730;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 
@@ -213,7 +213,7 @@
   display: block;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -225,7 +225,7 @@
   margin-top: 5px;
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
 }
 
@@ -237,7 +237,7 @@
   margin-top: 5px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 
@@ -271,7 +271,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-classroom-route-preview span.is-primary {
@@ -376,7 +376,7 @@
   display: block;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -391,7 +391,7 @@
   margin-top: 4px;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
@@ -410,7 +410,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 730;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 
@@ -467,7 +467,7 @@
   margin-top: 6px;
   color: var(--cmv2-accent-fg);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
@@ -499,13 +499,13 @@
   color: var(--pulso-text);
   font-size: 11px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
 .cmv2-objective-row em {
   color: var(--pulso-text-soft);
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   text-align: right;
 }
 
@@ -546,7 +546,7 @@
 .cmv2-simulation-grid small {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -557,7 +557,7 @@
 .cmv2-simulation-grid strong {
   color: var(--pulso-text);
   font-size: 17px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
 }
 
@@ -568,7 +568,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 
@@ -605,7 +605,7 @@
 .cmv2-profile-bars strong {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-profile-bars span,
@@ -613,7 +613,7 @@
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .cmv2-profile-track {
@@ -737,7 +737,7 @@
 .cmv2-classroom-overlap-graph text {
   fill: var(--pulso-text);
   font-size: 8px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-classroom-replacement-stack {
@@ -765,7 +765,7 @@
   margin-top: 2px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 730;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 
@@ -810,7 +810,7 @@
   background: var(--cmv2-surface);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   white-space: nowrap;
 }
@@ -818,8 +818,8 @@
 .cmv2-backend-field-strip code {
   color: var(--cmv2-accent-fg);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 9.5px;
-  font-weight: 860;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
 }
 
 .cmv2-replacement-chain-table td strong,
@@ -835,7 +835,7 @@
   margin-top: 2px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 730;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.25;
 }
 
@@ -890,7 +890,7 @@
   background: var(--cmv2-accent-soft);
   color: var(--cmv2-accent-fg);
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   line-height: 1;
 }
@@ -911,7 +911,7 @@
   color: var(--cmv2-accent-fg);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   letter-spacing: 0;
   line-height: 1;
@@ -923,7 +923,7 @@
   margin-bottom: 4px;
   min-height: 18px;
   padding: 2px 7px;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .cmv2-chain-slot {
@@ -980,7 +980,7 @@
   color: var(--pulso-text-soft);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   letter-spacing: 0;
   line-height: 1;
@@ -1041,14 +1041,14 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
 .cmv2-chain-empty-slot b {
   color: var(--pulso-text);
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
 }
 
@@ -1075,7 +1075,7 @@
   background: var(--cmv2-accent-soft);
   color: var(--cmv2-accent-fg);
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
 }
 
@@ -1089,7 +1089,7 @@
 .cmv2-handoff-map small {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -1099,7 +1099,7 @@
   margin-top: 3px;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
@@ -1108,7 +1108,7 @@
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 730;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.3;
 }
 

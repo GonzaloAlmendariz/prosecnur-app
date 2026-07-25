@@ -89,7 +89,7 @@
 .pulso-xf-tech {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.88em;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   font-style: normal;
   color: var(--pulso-text-muted, #9aa4b2);
   letter-spacing: 0.01em;
@@ -116,7 +116,7 @@
   min-height: 26px;
   padding: 4px 13px;
   border-radius: 999px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   transition:
     background var(--motion-dur-fast) ease,
     color var(--motion-dur-fast) ease,
@@ -160,7 +160,7 @@
 .pulso-xlsform-frame .pulso-xlsform-toolbar-button {
   border-radius: 999px;
   padding: 4px 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   transition:
     background var(--motion-dur-fast) ease,
     border-color var(--motion-dur-fast) ease,
@@ -216,7 +216,7 @@
   min-width: 0;
   color: var(--pulso-text-soft);
   font-size: 11.5px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }
 
@@ -242,7 +242,7 @@
 /* El único estado que sí debe llamar la atención: hay algo sin guardar. */
 .pulso-xlsform-frame .pulso-xf-status.is-warn {
   color: var(--pulso-warn-fg);
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .pulso-xlsform-frame .pulso-xf-status.is-warn .pulso-xf-status-dot {
@@ -302,7 +302,7 @@
   gap: 6px;
   padding: 4px 8px;
   font-size: 12px;
-  font-weight: 550;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-soft);
   cursor: pointer;
   user-select: none;
@@ -338,7 +338,7 @@
   border-radius: 999px;
   padding: 4px 12px;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   transition:
     border-color var(--motion-dur-fast) ease,
     color var(--motion-dur-fast) ease,
@@ -446,7 +446,7 @@
 .pulso-xf-pdf-dialog-heading h2 {
   margin: 0;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
@@ -505,7 +505,7 @@
 .pulso-xf-pdf-section-title {
   margin: 0;
   font-size: 11px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--pulso-text-muted);
@@ -538,7 +538,7 @@
 
 .pulso-xf-pdf-field-label {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
@@ -595,7 +595,7 @@
 
 .pulso-xf-pdf-card-text strong {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
@@ -639,7 +639,7 @@
 
 .pulso-xf-pdf-switch-text strong {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
@@ -739,7 +739,7 @@
 
 .pulso-xf-pdf-matrix-info strong {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
@@ -792,7 +792,7 @@
 
 .pulso-xf-pdf-control label {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
@@ -870,7 +870,7 @@
   height: 32px;
   padding: 0 16px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text);
   background: var(--pulso-surface);
   border: 1px solid var(--pulso-border);
@@ -891,7 +891,7 @@
   height: 32px;
   padding: 0 18px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: #fff;
   background: var(--pulso-primary);
   border: 1px solid var(--pulso-primary);
@@ -965,7 +965,7 @@
 .pulso-xlsform-frame .pulso-xf-form-switcher-trigger {
   gap: 6px;
   max-width: 240px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-xlsform-frame .pulso-xf-form-switcher-label {
@@ -1170,7 +1170,7 @@
   overflow: hidden;
   color: var(--pulso-primary);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1192,7 +1192,7 @@
 }
 
 .pulso-outline-closelabel {
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: color-mix(in srgb, var(--pulso-text) 78%, var(--pulso-text-soft));
 }
 
@@ -1208,7 +1208,7 @@
 }
 
 .pulso-diagnostics-badge-label {
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .pulso-diagnostics-popover-list {
@@ -1308,7 +1308,7 @@
 }
 
 .pulso-collapsible-title {
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   flex-shrink: 0;
 }
 
@@ -1323,13 +1323,13 @@
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-collapsible-hint {
   font-size: 11px;
   color: var(--pulso-text-soft);
-  font-weight: 400;
+  font-weight: var(--pulso-weight-regular);
   margin-left: auto;
   flex: 1;
   text-align: right;
@@ -1390,7 +1390,7 @@
   border-radius: 6px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 }
@@ -1408,7 +1408,7 @@
 .pulso-canvas-breadcrumb-current {
   padding: 3px 8px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
   background: var(--pulso-primary-soft);
   border: 1px solid var(--pulso-primary-border);
@@ -1486,7 +1486,7 @@
 
 .pulso-typepicker-family-header strong {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
@@ -1546,7 +1546,7 @@
   background: var(--pulso-primary-bg, rgba(36, 87, 214, 0.1));
   border-color: var(--pulso-primary);
   color: var(--pulso-primary);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-catalogchip-actions {
@@ -1565,7 +1565,7 @@
   background: var(--pulso-surface-2);
   font-size: 11px;
   color: var(--pulso-text-soft);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.4px;
   text-transform: uppercase;
 }
@@ -1597,7 +1597,7 @@
 
 .pulso-catalogchip-pop-item-count.is-empty {
   color: color-mix(in srgb, var(--pulso-warn-fg) 82%, var(--pulso-text-soft));
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .pulso-catalogchip-pop-empty {
@@ -1715,8 +1715,8 @@
 }
 
 .pulso-cataloglibrary-item-unused {
-  font-size: 9.5px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--pulso-warn-fg);
@@ -1767,7 +1767,7 @@
   background: var(--pulso-primary);
   color: white;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: background 140ms ease;
 }
@@ -1818,7 +1818,7 @@
 
 .pulso-catalogworkspace-listname-label {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.4px;
   color: var(--pulso-text-soft);
@@ -1828,7 +1828,7 @@
   flex: 1;
   font-family: ui-monospace, monospace;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   background: rgba(0, 0, 0, 0.04);
   border: 1px solid transparent;
@@ -1867,7 +1867,7 @@
   background: color-mix(in srgb, var(--pulso-warn-bg) 34%, #ffffff);
   color: color-mix(in srgb, var(--pulso-warn-fg) 82%, #253149);
   font-size: 10.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1883,7 +1883,7 @@
   height: 28px;
   border-radius: 7px;
   font-size: 11px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   cursor: pointer;
   transition:
     background-color var(--motion-dur-fast) var(--motion-ease-out),
@@ -1944,7 +1944,7 @@
     color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
   color: #5b6677;
   font-size: 11.8px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 
@@ -1955,7 +1955,7 @@
 
 .pulso-catalogworkspace-draft-note strong {
   color: #1f2a3d;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-catalogworkspace-name:hover {
@@ -1977,7 +1977,7 @@
   background: var(--pulso-primary);
   color: white;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   flex-shrink: 0;
   transition: background 140ms ease;
@@ -2084,7 +2084,7 @@
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.4px;
   color: var(--pulso-text-soft);
@@ -2100,7 +2100,7 @@
 .pulso-choice-row-fields-header span {
   flex: 1;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.4px;
   color: var(--pulso-text-soft);
@@ -2158,7 +2158,7 @@
   align-items: center;
   justify-content: center;
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-text-soft);
   background: var(--pulso-surface-2);
   border-radius: 4px;
@@ -2329,14 +2329,14 @@
 .pulso-constraint-shortcuts-head strong {
   color: #1f2a3d;
   font-size: 12.3px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
 .pulso-constraint-shortcuts-head small {
   color: var(--pulso-text-soft);
   font-size: 10.6px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 
@@ -2370,14 +2370,14 @@
 .pulso-constraint-shortcut-copy strong {
   color: #1f2a3d;
   font-size: 11.7px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
 .pulso-constraint-shortcut-copy small {
   color: #667386;
   font-size: 10.3px;
-  font-weight: 630;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.25;
 }
 
@@ -2385,7 +2385,7 @@
   color: color-mix(in srgb, var(--pulso-primary) 74%, #253149);
   font-size: 10.3px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.25;
 }
 
@@ -2421,7 +2421,7 @@
 
 .pulso-logic-builder-manual label > span {
   font-size: 11px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.45px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
@@ -2600,7 +2600,7 @@
   border: 1px solid color-mix(in srgb, var(--pulso-primary) 18%, var(--pulso-border));
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 10px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   text-transform: uppercase;
 }
@@ -2619,7 +2619,7 @@
   white-space: nowrap;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-logic-predicate-option {
@@ -2634,7 +2634,7 @@
   background: transparent;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   text-align: left;
   cursor: pointer;
 }
@@ -2706,7 +2706,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease;
 }
@@ -2750,7 +2750,7 @@
 
 .pulso-logic-group-prompt {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
@@ -2791,7 +2791,7 @@
 .pulso-logic-group-sep {
   align-self: flex-start;
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--pulso-primary);
@@ -2893,7 +2893,7 @@ button.pulso-focus-calculation-recipe {
 
 .pulso-logic-ifblock-branchlabel {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--pulso-text-soft);
@@ -2945,7 +2945,7 @@ button.pulso-focus-calculation-recipe {
   background: rgba(255, 255, 255, 0.72);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 
@@ -3030,7 +3030,7 @@ button.pulso-focus-calculation-recipe {
   color: var(--pulso-text);
   font-size: 17px;
   line-height: 1.22;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
 }
 
@@ -3056,7 +3056,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-questionnaire-quality strong {
   font-size: 24px;
   line-height: 1;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-primary);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
@@ -3065,7 +3065,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-questionnaire-quality span {
   color: var(--pulso-text-soft);
   font-size: 11.5px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .pulso-questionnaire-quality-bar {
@@ -3120,7 +3120,7 @@ button.pulso-focus-calculation-recipe {
   color: var(--pulso-text);
   font-size: 19px;
   line-height: 1;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
 }
 
@@ -3128,7 +3128,7 @@ button.pulso-focus-calculation-recipe {
   min-width: 0;
   color: var(--pulso-text-soft);
   font-size: 11.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3158,7 +3158,7 @@ button.pulso-focus-calculation-recipe {
   color: var(--pulso-text);
   font-size: 13px;
   line-height: 1.35;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-questionnaire-map-header p {
@@ -3189,7 +3189,7 @@ button.pulso-focus-calculation-recipe {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   line-height: 1.1;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   font-style: normal;
   white-space: nowrap;
 }
@@ -3279,7 +3279,7 @@ button.pulso-focus-calculation-recipe {
   color: var(--pulso-text);
   font-size: 14px;
   line-height: 1.3;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   overflow-wrap: anywhere;
 }
 
@@ -3287,7 +3287,7 @@ button.pulso-focus-calculation-recipe {
   color: var(--pulso-text-soft);
   font-size: 11px;
   line-height: 1.35;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   overflow-wrap: anywhere;
 }
 
@@ -3384,7 +3384,7 @@ button.pulso-focus-calculation-recipe {
   border: 1px solid color-mix(in srgb, var(--pulso-border) 78%, #fff 22%);
   color: #64748b;
   font-size: 10.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
@@ -3411,7 +3411,7 @@ button.pulso-focus-calculation-recipe {
   color: var(--pulso-text);
   font-size: 12.5px;
   line-height: 1.35;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   overflow-wrap: anywhere;
   /* `.pulso-questionnaire-question` es un <button>: el título heredaba
      `white-space: nowrap` del reset de botones y no envolvía, desbordando
@@ -3428,7 +3428,7 @@ button.pulso-focus-calculation-recipe {
   color: var(--pulso-text-soft);
   font-size: 11px;
   line-height: 1.35;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   white-space: normal;
 }
 
@@ -3596,7 +3596,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-form-canvas-empty-title {
   margin: 0;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
   letter-spacing: -0.2px;
 }
@@ -3639,7 +3639,7 @@ button.pulso-focus-calculation-recipe {
   margin-top: 8px;
   padding: 10px 22px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: white;
   background: #0f766e;
   border: none;
@@ -3682,7 +3682,7 @@ button.pulso-focus-calculation-recipe {
   border-radius: 999px;
   background: rgba(247, 175, 0, 0.12);
   color: var(--pulso-warn-fg, #aa7300);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-canvas-section-name {
@@ -3697,7 +3697,7 @@ button.pulso-focus-calculation-recipe {
   display: block;
   padding: 6px 10px 0;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--pulso-text-soft);
@@ -3718,7 +3718,7 @@ button.pulso-focus-calculation-recipe {
   padding: 2px 5px 4px;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
@@ -3731,7 +3731,7 @@ button.pulso-focus-calculation-recipe {
   display: block;
   padding: 8px 10px 4px;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.4px;
   color: var(--pulso-text-soft);
@@ -3790,7 +3790,7 @@ button.pulso-focus-calculation-recipe {
   background: white;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   line-height: 1.5;
   color: var(--pulso-text);
@@ -3843,7 +3843,7 @@ button.pulso-focus-calculation-recipe {
   display: block;
   color: #1f2a3d;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
@@ -3851,7 +3851,7 @@ button.pulso-focus-calculation-recipe {
   margin: 3px 0 0;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 630;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.4;
 }
 
@@ -3941,7 +3941,7 @@ button.pulso-focus-calculation-recipe {
   gap: 5px;
   color: #566172;
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
   pointer-events: none;
 }
@@ -3966,7 +3966,7 @@ button.pulso-focus-calculation-recipe {
   color: var(--pulso-primary);
   cursor: pointer;
   font-size: 10.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   pointer-events: auto;
 }
 
@@ -3976,7 +3976,7 @@ button.pulso-focus-calculation-recipe {
   overflow: hidden;
   font-family: ui-monospace, monospace;
   font-size: 10px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -4125,7 +4125,7 @@ button.pulso-focus-calculation-recipe {
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.55px;
   color: var(--pulso-primary);
@@ -4134,7 +4134,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-coachmarks-callout-title {
   margin: 0;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.2px;
   color: var(--pulso-text);
 }
@@ -4175,7 +4175,7 @@ button.pulso-focus-calculation-recipe {
   border: none;
   padding: 8px 16px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   border-radius: 6px;
   cursor: pointer;
   transition:
@@ -4238,11 +4238,11 @@ button.pulso-focus-calculation-recipe {
 .pulso-catalog-info-value {
   font-size: 13px;
   color: var(--pulso-text);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-catalog-info-muted {
-  font-weight: 400;
+  font-weight: var(--pulso-weight-regular);
   color: var(--pulso-text-soft);
   font-size: 11px;
 }
@@ -4361,7 +4361,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-context-panel-header-meta strong {
   font-size: 13px;
   color: var(--pulso-text);
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.3;
   word-break: break-word;
 }
@@ -4409,7 +4409,7 @@ button.pulso-focus-calculation-recipe {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
 }
 
@@ -4421,7 +4421,7 @@ button.pulso-focus-calculation-recipe {
   height: 16px;
   padding: 0 5px;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
   border-radius: 999px;
@@ -4460,7 +4460,7 @@ button.pulso-focus-calculation-recipe {
 
 .pulso-more-views-matrix-tenor label {
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.4px;
   color: var(--pulso-text-soft);
@@ -4518,7 +4518,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-hub-flow-node-title {
   font-family: inherit;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: -0.1px;
 }
 
@@ -4530,7 +4530,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-hub-flow-pin-text {
   font-family: inherit;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.2px;
   text-transform: uppercase;
 }
@@ -4559,7 +4559,7 @@ button.pulso-focus-calculation-recipe {
 
 .pulso-hub-outputs-eyebrow {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
@@ -4580,7 +4580,7 @@ button.pulso-focus-calculation-recipe {
   border-radius: 999px;
   font-size: 12px;
   color: var(--pulso-text);
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
 }
 
 .pulso-hub-outputs-icon {
@@ -4640,7 +4640,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-logic-tree-raw-eyebrow {
   display: block;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--pulso-text-soft);
@@ -4670,12 +4670,12 @@ button.pulso-focus-calculation-recipe {
 .pulso-xlsform-document-metric strong {
   color: #1f2a3d;
   font-variant-numeric: tabular-nums;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-xlsform-document-metric span {
   color: inherit;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .pulso-xlsform-outline-chrome > div {
@@ -4689,7 +4689,7 @@ button.pulso-focus-calculation-recipe {
   overflow: hidden;
   color: #162135;
   font-size: 13.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4803,7 +4803,7 @@ button.pulso-focus-calculation-recipe {
 
 .pulso-focus-rule-item-copy p b {
   color: #142033;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-validation-message-status.is-ok {
@@ -4838,7 +4838,7 @@ button.pulso-focus-calculation-recipe {
   list-style: none;
   color: #253149;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-required-message-block > summary::-webkit-details-marker {
@@ -4860,7 +4860,7 @@ button.pulso-focus-calculation-recipe {
   margin-left: auto;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -4880,7 +4880,7 @@ button.pulso-focus-calculation-recipe {
   cursor: pointer;
   color: #253149;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-custom-validation p {
@@ -4942,7 +4942,7 @@ button.pulso-focus-calculation-recipe {
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 11.4px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.4;
 }
 
@@ -4990,7 +4990,7 @@ button.pulso-focus-calculation-recipe {
 
 .pulso-focus-note-preset-copy em {
   color: color-mix(in srgb, var(--pulso-primary) 75%, #253149);
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-choice-filter-head {
@@ -5024,7 +5024,7 @@ button.pulso-focus-calculation-recipe {
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 11.5px;
-  font-weight: 610;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.42;
 }
 
@@ -5036,7 +5036,7 @@ button.pulso-focus-calculation-recipe {
   color: var(--pulso-primary);
   font-family: ui-monospace, monospace;
   font-size: 10px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-choice-filter-head p code {
@@ -5089,7 +5089,7 @@ button.pulso-focus-calculation-recipe {
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.38;
   overflow-wrap: anywhere;
 }
@@ -5127,7 +5127,7 @@ button.pulso-focus-calculation-recipe {
   gap: 6px;
   color: color-mix(in srgb, var(--pulso-primary) 76%, #253149);
   font-size: 11.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.3;
   list-style: none;
 }
@@ -5155,7 +5155,7 @@ button.pulso-focus-calculation-recipe {
   cursor: pointer;
   color: color-mix(in srgb, var(--pulso-primary) 76%, #253149);
   font-size: 11.2px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.3;
 }
 
@@ -5184,13 +5184,13 @@ button.pulso-focus-calculation-recipe {
 .pulso-focus-choice-filter-builder-head strong {
   color: #1f2a3d;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-choice-filter-builder-head small {
   color: var(--pulso-text-soft);
   font-size: 10.7px;
-  font-weight: 630;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.32;
 }
 
@@ -5212,7 +5212,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-focus-choice-filter-builder-row label span {
   color: #667386;
   font-size: 10px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -5245,7 +5245,7 @@ button.pulso-focus-calculation-recipe {
   background: color-mix(in srgb, var(--pulso-primary) 9%, #ffffff);
   color: color-mix(in srgb, var(--pulso-primary) 76%, #253149); /* AA en texto chico sobre soft (patrón del scope) */
   font-size: 11px;
-  font-weight: 790;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 
@@ -5292,14 +5292,14 @@ button.pulso-focus-calculation-recipe {
 .pulso-focus-validation-presets-head strong {
   color: #1f2a3d;
   font-size: 12.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
 .pulso-focus-validation-presets-head small {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 
@@ -5363,7 +5363,7 @@ button.pulso-focus-calculation-recipe {
   min-width: 0;
   color: #1f2a3d;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -5375,7 +5375,7 @@ button.pulso-focus-calculation-recipe {
   min-width: 0;
   color: #667386;
   font-size: 10.5px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.25;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -5388,7 +5388,7 @@ button.pulso-focus-calculation-recipe {
   color: color-mix(in srgb, var(--pulso-success-fg) 76%, #253149);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.25;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -5403,8 +5403,8 @@ button.pulso-focus-calculation-recipe {
   background: color-mix(in srgb, var(--pulso-primary) 6%, #ffffff);
   color: var(--pulso-primary);
   font-family: ui-monospace, monospace;
-  font-size: 9px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-required-message-assistant {
@@ -5466,14 +5466,14 @@ button.pulso-focus-calculation-recipe {
 .pulso-focus-message-presets-head strong {
   color: #1f2a3d;
   font-size: 12.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
 .pulso-focus-message-presets-head small {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 
@@ -5554,14 +5554,14 @@ button.pulso-focus-calculation-recipe {
 .pulso-focus-message-preset-copy strong {
   color: #1f2a3d;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
 .pulso-focus-message-preset-copy small {
   color: #667386;
   font-size: 10.5px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.25;
 }
 
@@ -5569,7 +5569,7 @@ button.pulso-focus-calculation-recipe {
   color: color-mix(in srgb, var(--pulso-success-fg) 74%, #253149);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.25;
 }
 
@@ -5615,7 +5615,7 @@ button.pulso-focus-calculation-recipe {
   cursor: pointer;
   color: color-mix(in srgb, var(--pulso-primary) 76%, #253149);
   font-size: 11.2px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.3;
 }
 
@@ -5671,7 +5671,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-focus-repeat-head strong {
   color: #1f2a3d;
   font-size: 12.8px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
@@ -5679,7 +5679,7 @@ button.pulso-focus-calculation-recipe {
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 11.4px;
-  font-weight: 610;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.42;
 }
 
@@ -5717,7 +5717,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-focus-repeat-builder label > span {
   color: #667386;
   font-size: 10px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -5829,7 +5829,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-focus-constraint-message-guidance strong {
   color: #253149;
   font-size: 11.2px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
@@ -5876,7 +5876,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-focus-media-head strong {
   color: #1f2a3d;
   font-size: 12.8px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
@@ -5884,7 +5884,7 @@ button.pulso-focus-calculation-recipe {
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 11.4px;
-  font-weight: 610;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.42;
 }
 
@@ -5930,14 +5930,14 @@ button.pulso-focus-calculation-recipe {
 .pulso-focus-media-field-head strong {
   color: #1f2a3d;
   font-size: 11.8px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
 .pulso-focus-media-field-head small {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.28;
 }
 
@@ -5995,7 +5995,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-focus-presentation-guide strong {
   color: #1f2a3d;
   font-size: 12.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.3;
 }
 
@@ -6057,7 +6057,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-focus-data-contract-head strong {
   color: #1f2a3d;
   font-size: 12.8px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
@@ -6066,7 +6066,7 @@ button.pulso-focus-calculation-recipe {
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 11.4px;
-  font-weight: 610;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.45;
 }
 
@@ -6121,7 +6121,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-focus-select-data-guide-head strong {
   color: #1f2a3d;
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
@@ -6134,7 +6134,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-focus-select-data-guide-grid strong {
   color: #253149;
   font-size: 11.2px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
@@ -6142,7 +6142,7 @@ button.pulso-focus-calculation-recipe {
   color: var(--pulso-text-soft);
   font-size: 10.8px;
   font-style: normal;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.32;
 }
 
@@ -6203,7 +6203,7 @@ button.pulso-focus-calculation-recipe {
 .pulso-focus-name-assistant-head strong {
   color: #1f2a3d;
   font-size: 12.7px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
@@ -6212,7 +6212,7 @@ button.pulso-focus-calculation-recipe {
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 11.2px;
-  font-weight: 610;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.42;
 }
 
@@ -6245,7 +6245,7 @@ button.pulso-focus-calculation-recipe {
   cursor: pointer;
   color: #253149;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-disclosure[open] summary {
@@ -6300,14 +6300,14 @@ button.pulso-focus-calculation-recipe {
 
 .pulso-focus-overview-toolbar span {
   color: var(--pulso-text);
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-overview-toolbar strong {
   border: 1px solid var(--xls-border);
   background: #ffffff;
   color: var(--pulso-text-soft);
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .pulso-focus-overview-stage {
@@ -6377,7 +6377,7 @@ button.pulso-focus-calculation-recipe {
   overflow: hidden;
   color: var(--pulso-text-soft);
   font-size: 10.8px;
-  font-weight: 630;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -6402,7 +6402,7 @@ button.pulso-focus-calculation-recipe {
   padding: 1px 3px 0;
   color: #667386;
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   line-height: 1.2;
   text-transform: uppercase;
@@ -6441,8 +6441,8 @@ button.pulso-focus-calculation-recipe {
   border-radius: 999px;
   background: color-mix(in srgb, var(--pulso-primary-soft) 48%, #ffffff);
   color: color-mix(in srgb, var(--pulso-primary) 88%, #253149);
-  font-size: 9.5px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -6452,7 +6452,7 @@ button.pulso-focus-calculation-recipe {
   display: block;
   font-size: 10.5px;
   color: var(--pulso-text-soft);
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.34;
   overflow-wrap: break-word;
   white-space: normal;
@@ -6471,7 +6471,7 @@ button.pulso-focus-calculation-recipe {
   display: block;
   color: #596679;
   font-size: 10px;
-  font-weight: 610;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.34;
   overflow-wrap: break-word;
   white-space: normal;
@@ -6513,14 +6513,14 @@ button.pulso-focus-calculation-recipe {
 .pulso-add-element-menu-empty strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-add-element-menu-empty span {
   max-width: 360px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.4;
 }
 
@@ -6533,7 +6533,7 @@ button.pulso-focus-calculation-recipe {
   padding: 0 2px 1px;
   color: #667386;
   font-size: 10.5px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .pulso-add-element-menu-footer span {

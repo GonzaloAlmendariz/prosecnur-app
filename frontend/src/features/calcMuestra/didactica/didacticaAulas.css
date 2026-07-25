@@ -31,7 +31,7 @@
   align-items: center;
   gap: 5px;
   font-size: 10.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--pulso-text-muted);
@@ -96,7 +96,7 @@
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.03em;
   border: 1px solid var(--pulso-success-border, var(--cmv2-accent-border));
   color: var(--pulso-success-fg, var(--cmv2-accent));
@@ -123,7 +123,7 @@
 .cmv2-did-aulas-method-metric dt {
   margin: 0;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--pulso-text-muted);
@@ -132,7 +132,7 @@
 .cmv2-did-aulas-method-metric dd {
   margin: 0;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
 }
@@ -191,7 +191,7 @@
   border-radius: 999px;
   font-family: var(--pulso-font-mono, ui-monospace, "SF Mono", Menlo, monospace);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--cmv2-accent);
   background: var(--cmv2-accent-soft);
   border: 1px solid var(--cmv2-accent-border);
@@ -200,7 +200,7 @@
 
 .cmv2-did-chain-label {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -274,14 +274,14 @@
 
 .cmv2-did-chain-nivel {
   font-size: 10.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-muted);
   white-space: nowrap;
 }
 
 .cmv2-did-chain-delta {
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
   padding: 1px 6px;
   border-radius: 999px;
@@ -302,7 +302,7 @@
 
 .cmv2-did-chain-warning {
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   padding: 1px 6px;

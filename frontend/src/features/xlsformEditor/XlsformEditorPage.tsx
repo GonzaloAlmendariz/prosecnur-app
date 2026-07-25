@@ -4626,7 +4626,7 @@ function RestoreOfferBanner({
           <IconHint size={16} />
         </span>
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: "block", fontSize: 13, fontWeight: 780 }}>
+          <span style={{ display: "block", fontSize: 13, fontWeight: 800 }}>
             Continuar formulario guardado
           </span>
           <span style={{ display: "block", fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
@@ -4646,7 +4646,7 @@ function RestoreOfferBanner({
             gap: 6,
             color: "var(--pulso-info-fg)",
             fontSize: 12,
-            fontWeight: 760,
+            fontWeight: 800,
             whiteSpace: "nowrap",
           }}
         >
@@ -4667,7 +4667,7 @@ function RestoreOfferBanner({
           background: "#ffffff",
           color: "var(--pulso-text-soft)",
           fontSize: 12,
-          fontWeight: 720,
+          fontWeight: 700,
         }}
       >
         <Trash2 size={14} /> Descartar guardado

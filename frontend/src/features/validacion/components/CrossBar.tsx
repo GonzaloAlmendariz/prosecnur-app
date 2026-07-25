@@ -414,7 +414,7 @@ function CrossPopover({
               >
                 <span
                   style={{
-                    fontSize: 9,
+                    fontSize: 10,
                     fontWeight: 800,
                     padding: "2px 5px",
                     borderRadius: 3,

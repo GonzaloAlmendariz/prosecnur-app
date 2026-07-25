@@ -49,7 +49,7 @@
   align-items: center;
   gap: 6px;
   border-radius: 999px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition:
     transform var(--motion-dur-press) var(--motion-ease-out),
@@ -142,7 +142,7 @@
 
 .pulso-xftr-cat-label {
   font-size: 10px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--pulso-text-muted);
@@ -188,7 +188,7 @@
   align-items: center;
   gap: 4px;
   font-size: 12.5px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   min-width: 0;
 }
@@ -213,7 +213,7 @@
   border-radius: 8px;
   background: var(--pulso-surface-2);
   font: inherit;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-primary);
   text-align: center;
   transition:
@@ -277,7 +277,7 @@
   padding: 2px 9px;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
   animation: pulso-xftr-fade-up var(--motion-dur-fast) var(--motion-ease-out) both;
 }
@@ -308,7 +308,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
@@ -347,7 +347,7 @@
   flex: 1;
   min-width: 120px;
   font-size: 12.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
@@ -364,7 +364,7 @@
   border-radius: 999px;
   background: var(--pulso-surface-2);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text-muted);
   white-space: nowrap;
 }

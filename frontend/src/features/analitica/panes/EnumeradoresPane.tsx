@@ -788,7 +788,7 @@ function CortesPicker({
                     <code style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 12, color: active ? "var(--pulso-primary)" : "var(--pulso-text)" }}>{v.name}</code>
                     <span style={{ marginLeft: 6, fontSize: 11, color: "var(--pulso-text-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.label}</span>
                   </div>
-                  <span style={{ fontSize: 9, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.3 }}>{v.tipo}</span>
+                  <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.3 }}>{v.tipo}</span>
                 </label>
               );
             })

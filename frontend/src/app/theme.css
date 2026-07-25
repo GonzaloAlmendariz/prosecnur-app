@@ -213,10 +213,21 @@
   --pulso-control-height-sm: 28px;
   --pulso-control-height-md: 28px;
   --pulso-control-height-lg: 36px;
+  /* Escala tipográfica de peso. Seis escalones y nada entre medio: antes había
+   * 44 valores distintos repartidos en ~4.800 declaraciones (570, 580, 770,
+   * 910, 940 con un puñado de usos cada uno), lo que hacía que dos elementos
+   * del mismo rango se vieran distinto según el archivo que los definía.
+   * Cualquier peso nuevo usa uno de estos tokens; no se escriben literales. */
+  --pulso-weight-regular: 400;
+  --pulso-weight-medium: 500;
+  --pulso-weight-semibold: 600;
+  --pulso-weight-bold: 700;
+  --pulso-weight-heavy: 800;
+  --pulso-weight-black: 900;
   /* Peso de trabajo de controles del kit: Medium (500); la jerarquía se hace
    * con tamaño y color, no con bold. Windows compensa vía data-platform
    * porque Segoe UI renderiza Medium más liviano que SF Pro. */
-  --pulso-control-weight: 500;
+  --pulso-control-weight: var(--pulso-weight-medium);
   --pulso-control-check-size: 16px;
   /* Track cóncavo del switch maestro (`.pulso-switch`) y sus réplicas por
    * feature; ADR 0038 / gate 2026-07-16. El encendido NO se tokeniza aquí:
@@ -267,7 +278,107 @@
 }
 
 :root[data-platform="windows"] {
-  --pulso-control-weight: 600;
+  --pulso-control-weight: var(--pulso-weight-semibold);
+}
+
+/* =============================================================================
+ * Paleta de módulo — mecanismo único
+ * ---------------------------------------------------------------------------
+ * Cada módulo tiene paleta propia (regla de la casa). Antes eso se conseguía de
+ * dos maneras distintas y con cinco alcances: `--module-accent` en el frame de
+ * Hojas de ruta y Cálculo de muestra, override de `--pulso-primary` en el frame
+ * del Editor y —solo— en el dock de fases de Procesamiento, más un parche
+ * suelto en un diálogo de Gráficos. Los módulos restantes no hacían ninguna de
+ * las dos y hardcodeaban `var(--pulso-module-*)` en cada regla: 421 usos en
+ * Monitoreo y 224 en Procesamiento contra 3 en Hojas de ruta.
+ *
+ * Acá viven todos, en un solo lugar y con el mismo contrato: el frame del
+ * módulo declara su acento y de ahí lo toman tanto el kit compartido
+ * (`--module-accent`) como los componentes que leen el primario directo
+ * (`--pulso-primary`). Un módulo nuevo agrega una línea a esta tabla; no
+ * inventa un mecanismo.
+ *
+ * Dashboard queda fuera a propósito: conserva su gramática `dash-*` hasta la
+ * migración dedicada (docs/ui-layout-grammar.md).
+ * ---------------------------------------------------------------------- */
+
+/* `.pulso-gv2-estilo-dialog` entra acá aunque no sea un frame: se monta en un
+ * portal sobre document.body, fuera del frame de Gráficos, así que no hereda
+ * nada y necesita declarar su pertenencia explícitamente. */
+.pulso-carga-frame,
+.pulso-validacion-frame,
+.pulso-codificacion-frame,
+.pulso-analitica-frame,
+.pulso-graficos-frame,
+.pulso-processing-phase-dock,
+.pulso-gv2-estilo-dialog {
+  --module-accent: var(--pulso-module-processing);
+  --module-accent-soft: var(--pulso-module-processing-soft);
+  --module-accent-border: var(--pulso-module-processing-border);
+}
+
+.pulso-xlsform-frame {
+  --module-accent: var(--pulso-module-editor);
+  --module-accent-soft: var(--pulso-module-editor-soft);
+  --module-accent-border: var(--pulso-module-editor-border);
+}
+
+.mon-module-chrome {
+  --module-accent: var(--pulso-module-monitoring);
+  --module-accent-soft: var(--pulso-module-monitoring-soft);
+  --module-accent-border: var(--pulso-module-monitoring-border);
+}
+
+.bitacora-frame {
+  --module-accent: var(--pulso-module-workplan);
+  --module-accent-soft: var(--pulso-module-workplan-soft);
+  --module-accent-border: var(--pulso-module-workplan-border);
+}
+
+.rec-page {
+  --module-accent: var(--pulso-module-collectors);
+  --module-accent-soft: var(--pulso-module-collectors-soft);
+  --module-accent-border: var(--pulso-module-collectors-border);
+}
+
+.pulso-enciclopedia-frame {
+  --module-accent: var(--pulso-module-encyclopedia);
+  --module-accent-soft: var(--pulso-module-encyclopedia-soft);
+  --module-accent-border: var(--pulso-module-encyclopedia-border);
+}
+
+.hojas-ruta-frame {
+  --module-accent: var(--pulso-module-routes);
+  --module-accent-soft: var(--pulso-module-routes-soft);
+  --module-accent-border: var(--pulso-module-routes-border);
+}
+
+.cmv2-frame.pulso-page-frame {
+  --module-accent: var(--pulso-module-sample);
+  --module-accent-soft: var(--pulso-module-sample-soft);
+  --module-accent-border: var(--pulso-module-sample-border);
+}
+
+/* Los componentes que leen `--pulso-primary` directo —el indicador deslizante
+ * del rail, los presets activos, los focus ring— siguen al acento del módulo en
+ * vez de caer al navy global. Es la misma cadena, declarada una sola vez. */
+.pulso-carga-frame,
+.pulso-validacion-frame,
+.pulso-codificacion-frame,
+.pulso-analitica-frame,
+.pulso-graficos-frame,
+.pulso-processing-phase-dock,
+.pulso-gv2-estilo-dialog,
+.pulso-xlsform-frame,
+.mon-module-chrome,
+.bitacora-frame,
+.rec-page,
+.pulso-enciclopedia-frame,
+.hojas-ruta-frame,
+.cmv2-frame.pulso-page-frame {
+  --pulso-primary: var(--module-accent);
+  --pulso-primary-soft: var(--module-accent-soft);
+  --pulso-primary-border: var(--module-accent-border);
 }
 
 /* Repeat / roster en modo oscuro (ADR 0030 Fase 5). El naranja suave se
@@ -1022,7 +1133,7 @@ a { color: var(--pulso-primary); }
 
 .pulso-module-switcher-label {
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   text-transform: uppercase;
   color: var(--pulso-text-faint);
@@ -1147,7 +1258,7 @@ a { color: var(--pulso-primary); }
   color: white;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.2);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   white-space: nowrap;
   opacity: 0;
@@ -1282,7 +1393,7 @@ a { color: var(--pulso-primary); }
   max-width: 96px;
   color: var(--pulso-primary);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   line-height: 1.1;
   overflow: hidden;
@@ -1338,7 +1449,7 @@ a { color: var(--pulso-primary); }
 .pulso-brand-wordmark {
   color: var(--pulso-primary);
   font-size: 18px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
 }
 
@@ -1360,7 +1471,7 @@ a { color: var(--pulso-primary); }
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-text-faint);
   font-size: 11px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
   opacity: 0.92;
   overflow: hidden;
@@ -1462,7 +1573,7 @@ a { color: var(--pulso-primary); }
   padding: 4px 8px 4px 9px;
   border-radius: 14px;
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1;
   cursor: pointer;
   color: var(--pulso-text-soft);
@@ -1507,7 +1618,7 @@ a { color: var(--pulso-primary); }
   white-space: nowrap;
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1555,7 +1666,7 @@ a { color: var(--pulso-primary); }
   background: rgba(255, 255, 255, 0.68);
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 
@@ -1622,7 +1733,7 @@ a { color: var(--pulso-primary); }
 .pulso-project-menu-label {
   color: var(--pulso-text-faint);
   font-size: 10px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -1634,7 +1745,7 @@ a { color: var(--pulso-primary); }
   border-radius: 7px;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-project-menu-path {
@@ -1657,7 +1768,7 @@ a { color: var(--pulso-primary); }
   box-shadow: none;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   text-align: left;
 }
 
@@ -1675,7 +1786,7 @@ a { color: var(--pulso-primary); }
   color: var(--pulso-text-faint);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .pulso-project-menu-scrim {
@@ -1756,7 +1867,7 @@ a { color: var(--pulso-primary); }
   min-width: 0;
   color: var(--pulso-text-faint);
   font-size: 10.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -1784,7 +1895,7 @@ a { color: var(--pulso-primary); }
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 18px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   line-height: 1.18;
   text-overflow: ellipsis;
@@ -1797,7 +1908,7 @@ a { color: var(--pulso-primary); }
   overflow: hidden;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1823,7 +1934,7 @@ a { color: var(--pulso-primary); }
   max-width: 58ch;
   color: var(--pulso-text-soft);
   font-size: 13px;
-  font-weight: 560;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.55;
 }
 
@@ -1839,7 +1950,7 @@ a { color: var(--pulso-primary); }
   background: color-mix(in srgb, var(--pulso-surface-2) 84%, #fff 16%);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-project-confirm-state.is-dirty {
@@ -1871,7 +1982,7 @@ a { color: var(--pulso-primary); }
   grid-column: 1 / -1;
   color: var(--pulso-text-faint);
   font-size: 10px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -1904,7 +2015,7 @@ a { color: var(--pulso-primary); }
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
   white-space: nowrap;
   transition:
@@ -1948,7 +2059,7 @@ a { color: var(--pulso-primary); }
   padding: 9px 10px;
   background: var(--pulso-success-bg);
   font-size: 12px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-success-fg) !important;
 }
 
@@ -1958,7 +2069,7 @@ a { color: var(--pulso-primary); }
   padding: 9px 10px;
   background: var(--pulso-danger-bg);
   font-size: 12px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-danger-fg) !important;
 }
 
@@ -2005,7 +2116,7 @@ a { color: var(--pulso-primary); }
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 660;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
   cursor: pointer;
   transition:
@@ -2044,7 +2155,7 @@ a { color: var(--pulso-primary); }
   border-color: var(--pulso-primary);
   background: var(--pulso-primary);
   color: #fff;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
@@ -2187,8 +2298,8 @@ a { color: var(--pulso-primary); }
   justify-content: space-between;
   gap: 6px;
   color: var(--pulso-text-faint);
-  font-size: 9.5px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -2262,7 +2373,7 @@ a { color: var(--pulso-primary); }
   color: var(--pulso-text);
   font-size: 12.5px;
   line-height: 1.22;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   white-space: normal;
   overflow-wrap: anywhere;
 }
@@ -2277,7 +2388,7 @@ a { color: var(--pulso-primary); }
 .pulso-sibling-option-copy small {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.25;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -2297,9 +2408,9 @@ a { color: var(--pulso-primary); }
   align-items: center;
   gap: 4px;
   color: var(--pulso-text-faint);
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 .pulso-sibling-switcher-status span::before,
@@ -2396,8 +2507,8 @@ a { color: var(--pulso-primary); }
   border-radius: 999px;
   background: color-mix(in srgb, var(--pulso-module-processing-soft) 58%, #fff);
   color: color-mix(in srgb, var(--pulso-module-processing) 82%, var(--pulso-text));
-  font-size: 9px;
-  font-weight: 860;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   white-space: nowrap;
 }
@@ -2421,7 +2532,7 @@ a { color: var(--pulso-primary); }
   border-radius: 14px;
 }
 .pulso-main--processing .pulso-sibling-switcher-top {
-  font-size: 9.5px;
+  font-size: 10px;
 }
 .pulso-main--processing .pulso-sibling-trigger {
   grid-template-columns: 26px minmax(0, 1fr) 16px;
@@ -2455,13 +2566,13 @@ a { color: var(--pulso-primary); }
 .pulso-main--processing .pulso-sibling-switcher-status span {
   justify-content: center;
   gap: 3px;
-  font-size: 9px;
+  font-size: 10px;
 }
 .pulso-main--processing .pulso-sibling-switcher-status em {
   grid-column: 1 / -1;
   justify-content: center;
   margin-left: 0;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 @media (max-height: 700px) {
@@ -2647,7 +2758,7 @@ a { color: var(--pulso-primary); }
   text-decoration: none;
   border-radius: 9999px;
   font-size: 12.5px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
@@ -2719,7 +2830,7 @@ a { color: var(--pulso-primary); }
   align-items: center;
   justify-content: center;
   font-size: 10.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   background: var(--pulso-surface-2);
   border: 1px solid var(--pulso-border);
   font-variant-numeric: tabular-nums;
@@ -3039,7 +3150,7 @@ a { color: var(--pulso-primary); }
   background: color-mix(in srgb, var(--pulso-module-processing-soft) 48%, #fff);
   color: color-mix(in srgb, var(--pulso-module-processing) 86%, var(--pulso-text));
   font-size: 11px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), var(--pulso-shadow-low);
   cursor: pointer;
 }
@@ -3170,7 +3281,7 @@ a { color: var(--pulso-primary); }
 
 .pulso-multibase-reports-preflight small {
   color: var(--pulso-text-soft);
-  font-size: 9.8px;
+  font-size: 10px;
 }
 
 .pulso-multibase-reports-preflight[data-tone="ready"] {
@@ -3197,7 +3308,7 @@ a { color: var(--pulso-primary); }
   margin: 0;
   padding: 0 4px 0 24px;
   color: var(--pulso-text-soft);
-  font-size: 9.8px;
+  font-size: 10px;
   line-height: 1.35;
 }
 
@@ -3225,7 +3336,7 @@ a { color: var(--pulso-primary); }
   gap: 6px;
   color: var(--pulso-module-processing);
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   text-decoration: none;
   overflow-wrap: anywhere;
 }
@@ -3235,9 +3346,6 @@ a { color: var(--pulso-primary); }
 }
 
 .pulso-processing-phase-dock {
-  --pulso-primary: var(--pulso-module-processing);
-  --pulso-primary-soft: var(--pulso-module-processing-soft);
-  --pulso-primary-border: var(--pulso-module-processing-border);
   grid-column: 2;
   grid-row: 1;
   justify-self: center;
@@ -3265,7 +3373,7 @@ a { color: var(--pulso-primary); }
 .pulso-processing-phase-link {
   min-width: 0;
   border: 0;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   color: color-mix(in srgb, var(--pulso-module-processing) 76%, var(--pulso-text));
 }
 
@@ -3396,7 +3504,7 @@ a { color: var(--pulso-primary); }
   margin: 0;
   color: color-mix(in srgb, var(--pulso-text-soft) 82%, var(--module-accent));
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -3405,7 +3513,7 @@ a { color: var(--pulso-primary); }
   margin: 0;
   color: color-mix(in srgb, var(--pulso-text) 86%, var(--module-accent));
   font-size: clamp(30px, 4vw, 50px);
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.05;
   letter-spacing: 0;
 }
@@ -3420,7 +3528,7 @@ a { color: var(--pulso-primary); }
   justify-self: center;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-module-warmup-track {
@@ -3577,7 +3685,7 @@ a { color: var(--pulso-primary); }
   margin: 0;
   color: var(--pulso-text);
   font-size: 20px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   line-height: 1.2;
 }
@@ -3857,7 +3965,7 @@ a { color: var(--pulso-primary); }
   gap: 6px;
   min-width: 0;
   font-size: 12px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4027,7 +4135,7 @@ a { color: var(--pulso-primary); }
   color: var(--pulso-text-soft);
   background: var(--pulso-surface-2);
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-step-chip.is-done .pulso-step-icon {
   color: white;
@@ -4049,18 +4157,18 @@ a { color: var(--pulso-primary); }
   align-items: center;
   gap: 5px;
   font-size: 13px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-step-number {
   font-family: ui-monospace, monospace;
   font-size: 10px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   opacity: 0.7;
 }
 .pulso-step-hint {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
 }
 .pulso-step-chip.is-active .pulso-step-hint {
   color: rgba(255, 255, 255, 0.82);
@@ -4358,7 +4466,9 @@ a { color: var(--pulso-primary); }
  * ---------------------------------------------------------------------- */
 
 .pulso-command-bar {
-  --command-bar-columns: minmax(0, max-content) minmax(0, 1fr) max-content;
+  /* Las tres zonas pueden encogerse. Una columna `max-content` a secas se niega
+     a hacerlo y empuja la barra más allá del viewport en vez de apretar. */
+  --command-bar-columns: minmax(0, max-content) minmax(0, 1fr) minmax(0, max-content);
   --command-bar-accent: var(--module-accent, var(--pulso-material-border));
   --command-bar-accent-mix: 34%;
   --command-bar-radius: 18px;
@@ -4497,7 +4607,7 @@ a { color: var(--pulso-primary); }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }
 
@@ -4520,6 +4630,16 @@ a { color: var(--pulso-primary); }
   overflow: auto;
   background: color-mix(in srgb, var(--pulso-surface-2) 86%, transparent);
   border-right: 1px solid var(--pulso-border);
+}
+
+/* Estado del rail de pestañas (ADR 0044). Vive en su propia línea porque el
+ * título del rail es identidad fija: cuando el estado ocupaba ese slot, cada
+ * sección de Procesamiento se llamaba distinto según cómo estuviera. */
+.pulso-sidebar-head-status {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-medium);
+  line-height: 1.3;
 }
 
 .pulso-content-area {
@@ -5177,7 +5297,7 @@ a { color: var(--pulso-primary); }
   background: rgba(255, 255, 255, 0.86);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 .pulso-validacion-status-dot {
@@ -5201,7 +5321,7 @@ a { color: var(--pulso-primary); }
   gap: 5px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   white-space: nowrap;
@@ -5225,7 +5345,7 @@ a { color: var(--pulso-primary); }
   padding: 4px 10px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11.5px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   cursor: pointer;
   transition:
     transform var(--motion-dur-press) var(--motion-ease-out),
@@ -5237,7 +5357,7 @@ a { color: var(--pulso-primary); }
 .pulso-validacion-base-chip > span:not(.pulso-repeat-badge) {
   font-size: 10px;
   opacity: 0.72;
-  font-weight: 520;
+  font-weight: var(--pulso-weight-medium);
 }
 .pulso-validacion-base-chip:hover:not(:disabled) {
   border-color: var(--pulso-primary-border);
@@ -5345,7 +5465,7 @@ a { color: var(--pulso-primary); }
   border: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
 }
 .pulso-validacion-nav-item.is-active .pulso-validacion-nav-index {
@@ -5460,7 +5580,7 @@ a { color: var(--pulso-primary); }
   padding: 4px 10px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10.5px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 .pulso-validacion-panel-body {
@@ -5501,13 +5621,13 @@ a { color: var(--pulso-primary); }
 }
 .pulso-regla-execution-copy strong {
   font-size: 11px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
 }
 .pulso-regla-detection-note strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 .pulso-regla-detection-note span {
@@ -5578,7 +5698,7 @@ a { color: var(--pulso-primary); }
 .pulso-regla-design-copy strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.28;
 }
 .pulso-regla-design-steps {
@@ -5607,13 +5727,13 @@ a { color: var(--pulso-primary); }
   background: white;
   color: var(--pulso-primary);
   font-size: 10px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-regla-design-step strong {
   display: block;
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 .pulso-regla-settings-group {
@@ -5638,14 +5758,14 @@ a { color: var(--pulso-primary); }
   display: block;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 .pulso-regla-settings-group-head > span {
   min-width: 0;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
   padding: 3px 8px;
   border: 1px solid var(--pulso-border);
@@ -5672,7 +5792,7 @@ a { color: var(--pulso-primary); }
 .pulso-regla-setting-main strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -5781,7 +5901,7 @@ a { color: var(--pulso-primary); }
 .pulso-validacion-explorar-picker-head span {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   line-height: 1.2;
   text-transform: uppercase;
@@ -5790,7 +5910,7 @@ a { color: var(--pulso-primary); }
   min-width: 0;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 .pulso-validacion-explorar-main {
@@ -5846,7 +5966,7 @@ a { color: var(--pulso-primary); }
   gap: 6px;
   color: var(--pulso-validacion-kpi-fg);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.5px;
   line-height: 1.15;
   text-transform: uppercase;
@@ -5854,7 +5974,7 @@ a { color: var(--pulso-primary); }
 .pulso-validacion-kpi-title {
   color: var(--pulso-text);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.3;
 }
 .pulso-validacion-kpi-icon {
@@ -5871,7 +5991,7 @@ a { color: var(--pulso-primary); }
 .pulso-validacion-kpi-value {
   color: var(--pulso-validacion-kpi-fg);
   font-size: 40px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
   line-height: 1;
@@ -5940,7 +6060,7 @@ a { color: var(--pulso-primary); }
 
   .pulso-validacion-kpi-eyebrow {
     gap: 5px;
-    font-size: 9px;
+    font-size: 10px;
     letter-spacing: 0.35px;
   }
 
@@ -6061,7 +6181,7 @@ a { color: var(--pulso-primary); }
   grid-area: label;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
@@ -6194,7 +6314,7 @@ a { color: var(--pulso-primary); }
   background: rgba(255, 255, 255, 0.86);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 .pulso-codificacion-status-pill.is-done {
@@ -6223,7 +6343,7 @@ a { color: var(--pulso-primary); }
   gap: 5px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   white-space: nowrap;
@@ -6247,7 +6367,7 @@ a { color: var(--pulso-primary); }
   padding: 4px 10px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11.5px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   cursor: pointer;
   transition:
     transform var(--motion-dur-press) var(--motion-ease-out),
@@ -6295,7 +6415,7 @@ a { color: var(--pulso-primary); }
   background: #fff;
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 .pulso-codificacion-config-button:hover:not(:disabled) {
@@ -6309,7 +6429,7 @@ a { color: var(--pulso-primary); }
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-codificacion-config-feedback.is-ok {
   color: var(--pulso-success-fg);
@@ -6382,7 +6502,7 @@ a { color: var(--pulso-primary); }
   background: rgba(255, 255, 255, 0.84);
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-codificacion-matrix-stat strong {
   color: var(--pulso-text);
@@ -6465,7 +6585,7 @@ a { color: var(--pulso-primary); }
 .pulso-codificacion-matrix-focus-group > span {
   color: var(--pulso-primary);
   font-size: 10px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
 }
 .pulso-codificacion-matrix-focus-scroll {
@@ -6490,7 +6610,7 @@ a { color: var(--pulso-primary); }
   background: rgba(255, 255, 255, 0.82);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
   transition:
     background var(--motion-dur-fast) ease,
@@ -6514,7 +6634,7 @@ a { color: var(--pulso-primary); }
   color: var(--pulso-text-soft);
   padding: 1px 6px;
   font-size: 10px;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
 }
 .pulso-codificacion-matrix-focus-chip.is-active {
@@ -6719,7 +6839,7 @@ a { color: var(--pulso-primary); }
   color: var(--pulso-primary);
   padding: 3px 7px;
   font-size: 11px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
 }
 .pulso-codificacion-matrix-variable-copy {
@@ -6751,7 +6871,7 @@ a { color: var(--pulso-primary); }
   color: var(--pulso-text-soft);
   padding: 3px 7px;
   font-size: 10px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 .pulso-codificacion-matrix-state.is-completo {
@@ -6785,7 +6905,7 @@ a { color: var(--pulso-primary); }
 .pulso-codificacion-matrix-base-card small {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-codificacion-matrix-dictionary-table-wrap {
   min-width: 0;
@@ -6830,13 +6950,13 @@ a { color: var(--pulso-primary); }
   padding: 2px 6px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-codificacion-matrix-dictionary-table strong {
   display: block;
   color: var(--pulso-text);
   font-size: 11.2px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.35;
   white-space: normal;
 }
@@ -6850,8 +6970,8 @@ a { color: var(--pulso-primary); }
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
   padding: 2px 6px;
-  font-size: 9.5px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
   white-space: normal;
 }
@@ -6895,7 +7015,7 @@ a { color: var(--pulso-primary); }
 }
 .pulso-codificacion-matrix-standard span {
   color: var(--pulso-primary);
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 .pulso-codificacion-matrix-standard small {
@@ -7042,7 +7162,7 @@ a { color: var(--pulso-primary); }
   background: #fff;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-codificacion-import-pill.is-ok {
   border-color: var(--pulso-success-border);
@@ -7063,7 +7183,7 @@ a { color: var(--pulso-primary); }
   margin-left: auto;
   color: var(--pulso-text-soft);
   font-size: 11.5px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-codificacion-import-table-wrap {
   min-height: var(--pulso-operational-min-list);
@@ -7107,7 +7227,7 @@ a { color: var(--pulso-primary); }
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
   font-size: 10.5px !important;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 .pulso-codificacion-import-status.is-compatible {
@@ -7140,7 +7260,7 @@ a { color: var(--pulso-primary); }
   background: color-mix(in srgb, var(--pulso-success-bg) 72%, #fff 28%);
   color: var(--pulso-success-fg) !important;
   font-size: 10.5px !important;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-codificacion-import-footer {
   display: flex;
@@ -7233,7 +7353,7 @@ a { color: var(--pulso-primary); }
   border: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
 }
 .pulso-codificacion-nav-item.is-active .pulso-codificacion-nav-index {
@@ -7351,7 +7471,7 @@ a { color: var(--pulso-primary); }
   padding: 4px 10px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10.5px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 .pulso-codificacion-panel-body {
@@ -7508,7 +7628,7 @@ a { color: var(--pulso-primary); }
 .pulso-codificacion-wizard-count {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.5px;
   margin-bottom: 4px;
   padding: 0 4px;
@@ -7561,7 +7681,7 @@ a { color: var(--pulso-primary); }
   max-width: 58%;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
   border: 1px solid var(--pulso-border);
   border-radius: 6px;
@@ -7573,7 +7693,7 @@ a { color: var(--pulso-primary); }
 .pulso-codificacion-sidebar-question-label {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.28;
   display: -webkit-box;
   max-height: 46px;
@@ -7588,7 +7708,7 @@ a { color: var(--pulso-primary); }
   gap: 3px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -7611,7 +7731,7 @@ a { color: var(--pulso-primary); }
   color: var(--pulso-text);
   cursor: pointer;
   font-size: 11.5px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   padding: 5px 10px;
   transition:
     background var(--motion-dur-fast) ease,
@@ -7663,7 +7783,7 @@ a { color: var(--pulso-primary); }
   justify-content: center;
   flex-shrink: 0;
   font-size: 11px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-codificacion-coder-meta {
   display: flex;
@@ -7675,7 +7795,7 @@ a { color: var(--pulso-primary); }
 .pulso-codificacion-coder-code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   padding: 2px 8px;
   border: 1px solid var(--pulso-border);
   border-radius: 6px;
@@ -7684,7 +7804,7 @@ a { color: var(--pulso-primary); }
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 10px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
   letter-spacing: 0;
 }
@@ -7694,7 +7814,7 @@ a { color: var(--pulso-primary); }
   color: var(--pulso-text);
   font-size: 20px;
   line-height: 1.28;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0;
 }
 .pulso-codificacion-coder-nav {
@@ -7774,7 +7894,7 @@ a { color: var(--pulso-primary); }
   background: rgba(255, 255, 255, 0.86);
   color: var(--pulso-primary);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 .pulso-codificacion-adaptar-actions {
@@ -8272,7 +8392,7 @@ a { color: var(--pulso-primary); }
 /* Tipografía */
 h1.pulso-page-title {
   font-size: 22px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: -0.3px;
   color: var(--pulso-primary);
   margin: 0 0 4px 0;
@@ -8285,7 +8405,7 @@ h1.pulso-page-title {
 }
 .pulso-section-title {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   margin: 0 0 8px 0;
   color: var(--pulso-text);
   display: flex;
@@ -8297,7 +8417,7 @@ h1.pulso-page-title {
   text-transform: uppercase;
   letter-spacing: 0.7px;
   color: var(--pulso-text-soft);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 /* Alerts */
@@ -8398,7 +8518,7 @@ h1.pulso-page-title {
 }
 .pulso-panel-title {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   color: var(--pulso-text);
   margin: 0;
@@ -8446,8 +8566,8 @@ h1.pulso-page-title {
 }
 .pulso-carga-progress-label {
   color: color-mix(in srgb, var(--pulso-module-processing, var(--pulso-primary)) 76%, var(--pulso-text-soft));
-  font-size: 9.5px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.05em;
   line-height: 1;
   text-transform: uppercase;
@@ -8470,8 +8590,8 @@ h1.pulso-page-title {
   border: 1px solid currentColor;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.72);
-  font-size: 9px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   opacity: 0.88;
 }
@@ -8490,13 +8610,13 @@ h1.pulso-page-title {
 .pulso-carga-progress-copy strong {
   color: var(--pulso-text);
   font-size: 10.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.05;
 }
 .pulso-carga-progress-copy small {
   color: currentColor;
-  font-size: 9px;
-  font-weight: 680;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1;
 }
 .pulso-upload-grid {
@@ -8530,7 +8650,7 @@ h1.pulso-page-title {
 .pulso-carga-stage-kicker {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
@@ -8577,7 +8697,7 @@ h1.pulso-page-title {
   border: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
 }
 .pulso-carga-stage-item.is-ready .pulso-carga-stage-index {
@@ -8638,15 +8758,15 @@ h1.pulso-page-title {
 }
 .pulso-carga-stage-mode span {
   min-width: 0;
-  font-size: 9.5px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
   letter-spacing: 0.45px;
 }
 .pulso-carga-stage-mode strong {
   min-width: 0;
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   text-align: right;
 }
 
@@ -8750,7 +8870,7 @@ h1.pulso-page-title {
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -8811,7 +8931,7 @@ h1.pulso-page-title {
   gap: 0;
   overflow: hidden;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   transition:
     flex-basis var(--motion-dur-base) var(--motion-ease-out),
     gap var(--motion-dur-fast) ease,
@@ -8989,8 +9109,8 @@ h1.pulso-page-title {
   display: block;
   margin-bottom: 3px;
   color: var(--pulso-module-processing, var(--pulso-primary));
-  font-size: 9.5px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.055em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -9000,7 +9120,7 @@ h1.pulso-page-title {
   display: block;
   color: var(--pulso-text);
   font-size: clamp(15px, 1.1vw, 18px);
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.14;
 }
 
@@ -9045,7 +9165,7 @@ h1.pulso-page-title {
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.12;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -9057,7 +9177,7 @@ h1.pulso-page-title {
   overflow: hidden;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.18;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -9084,7 +9204,7 @@ h1.pulso-page-title {
   background: rgba(255, 255, 255, 0.76);
   color: color-mix(in srgb, var(--pulso-module-processing, var(--pulso-primary)) 66%, var(--pulso-text-soft));
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-carga-study-loading {
@@ -9117,7 +9237,7 @@ h1.pulso-page-title {
   display: block;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
@@ -9150,7 +9270,7 @@ h1.pulso-page-title {
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 10.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -9218,7 +9338,7 @@ h1.pulso-page-title {
   background: #fff;
   color: var(--pulso-primary);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
   white-space: nowrap;
   transition:
@@ -9301,7 +9421,7 @@ h1.pulso-page-title {
   background: #fff;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-sm-multibase-name {
   display: inline-flex;
@@ -9309,7 +9429,7 @@ h1.pulso-page-title {
   gap: 7px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-sm-multibase-name input,
 .pulso-sm-multibase-name select,
@@ -9401,7 +9521,7 @@ h1.pulso-page-title {
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 .pulso-sm-survey-card {
@@ -9470,7 +9590,7 @@ h1.pulso-page-title {
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 .pulso-sm-survey-card-meta b {
@@ -9487,7 +9607,7 @@ h1.pulso-page-title {
   border: 1px solid var(--pulso-border);
   font-size: 10px;
   font-style: normal;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 .pulso-sm-survey-card.is-selected em {
@@ -9512,7 +9632,7 @@ h1.pulso-page-title {
   background: rgba(255, 255, 255, 0.78);
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sm-family-meter b {
   color: var(--pulso-primary);
@@ -9598,14 +9718,14 @@ h1.pulso-page-title {
 .pulso-sm-logic-reference-rules-title label {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.25px;
   text-transform: uppercase;
 }
 .pulso-sm-logic-reference-rules-title span {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 .pulso-sm-logic-reference-guide {
@@ -9625,7 +9745,7 @@ h1.pulso-page-title {
   background: color-mix(in srgb, var(--pulso-primary-soft) 52%, #fff 48%);
   color: color-mix(in srgb, var(--pulso-primary) 72%, var(--pulso-text));
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   white-space: nowrap;
 }
@@ -9648,7 +9768,7 @@ h1.pulso-page-title {
 .pulso-sm-logic-preview > strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sm-logic-preview-list {
   display: grid;
@@ -9674,14 +9794,14 @@ h1.pulso-page-title {
   color: var(--pulso-primary);
   font-size: 10px;
   font-style: normal;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   padding: 2px 6px;
 }
 .pulso-sm-logic-reference-rules small {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 .pulso-sm-logic-reference-status {
@@ -9701,7 +9821,7 @@ h1.pulso-page-title {
   background: var(--pulso-success-bg);
   color: var(--pulso-success-fg);
   font-size: 11px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 .pulso-sm-logic-reference-status small {
@@ -9709,7 +9829,7 @@ h1.pulso-page-title {
   max-width: 100%;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -9778,7 +9898,7 @@ h1.pulso-page-title {
 }
 .pulso-sm-logic-repair-copy b {
   color: var(--pulso-primary);
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sm-family-config {
   position: relative;
@@ -9800,7 +9920,7 @@ h1.pulso-page-title {
   gap: 10px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sm-family-config-head strong {
   color: var(--pulso-text);
@@ -9849,8 +9969,8 @@ h1.pulso-page-title {
   background: transparent;
   box-shadow: none;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.35px;
   text-transform: uppercase;
   align-items: center;
@@ -9986,7 +10106,7 @@ h1.pulso-page-title {
   gap: 8px;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sm-sav-issue-card strong span {
   flex: 0 0 auto;
@@ -10023,7 +10143,7 @@ h1.pulso-page-title {
   min-width: 0;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
@@ -10035,7 +10155,7 @@ h1.pulso-page-title {
   background: rgba(255, 255, 255, 0.86);
   color: var(--pulso-warn-fg);
   font-size: 10px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   padding: 3px 7px;
 }
@@ -10050,7 +10170,7 @@ h1.pulso-page-title {
   background: color-mix(in srgb, var(--pulso-primary-soft) 64%, #fff);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 .pulso-sm-refresh-result-copy {
@@ -10062,14 +10182,14 @@ h1.pulso-page-title {
   min-width: 0;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
 .pulso-sm-channel-readonly > span {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.35px;
   text-transform: uppercase;
 }
@@ -10077,7 +10197,7 @@ h1.pulso-page-title {
   min-width: 0;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
@@ -10111,8 +10231,8 @@ h1.pulso-page-title {
   border: 1px solid var(--pulso-primary-border);
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
-  font-size: 9.5px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sm-inline-edit {
   width: 24px;
@@ -10140,8 +10260,8 @@ h1.pulso-page-title {
 }
 .pulso-sm-target-field > span {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.35px;
   text-transform: uppercase;
 }
@@ -10161,7 +10281,7 @@ h1.pulso-page-title {
   white-space: nowrap;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 690;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-sm-family-origin-cell small {
   min-width: 0;
@@ -10169,7 +10289,7 @@ h1.pulso-page-title {
   overflow-wrap: anywhere;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 690;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 .pulso-sm-family-base-cell em {
@@ -10179,7 +10299,7 @@ h1.pulso-page-title {
   color: var(--pulso-warn-fg);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sm-family-origin-cell strong {
   min-width: 0;
@@ -10217,7 +10337,7 @@ h1.pulso-page-title {
   gap: 6px;
   color: var(--pulso-primary);
   font-size: 10.5px;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 .pulso-sm-family-detail-head em {
@@ -10226,7 +10346,7 @@ h1.pulso-page-title {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -10254,7 +10374,7 @@ h1.pulso-page-title {
   background: color-mix(in srgb, var(--pulso-primary-soft) 78%, #fff);
   color: var(--pulso-primary);
   font-size: 10.5px;
-  font-weight: 810;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
   white-space: nowrap;
 }
@@ -10289,8 +10409,8 @@ h1.pulso-page-title {
 }
 .pulso-sm-source-table-head {
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 840;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.28px;
   text-transform: uppercase;
   border-bottom: 1px solid var(--pulso-border);
@@ -10328,8 +10448,8 @@ h1.pulso-page-title {
 }
 .pulso-sm-source-title-cell small {
   color: var(--pulso-text-soft);
-  font-size: 9.4px;
-  font-weight: 680;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-sm-source-details {
   min-width: 0;
@@ -10375,13 +10495,13 @@ h1.pulso-page-title {
   background: #fff;
   color: var(--pulso-primary);
   font-size: 10.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
 }
 .pulso-sm-existing-collectors summary em {
   color: var(--pulso-text-soft);
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-sm-decision-suite summary {
   min-height: 28px;
@@ -10394,13 +10514,13 @@ h1.pulso-page-title {
   background: color-mix(in srgb, #fff 92%, var(--pulso-primary-soft));
   color: var(--pulso-primary);
   font-size: 10.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
 }
 .pulso-sm-decision-suite summary em {
   color: var(--pulso-text-soft);
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-sm-decision-panel {
   display: grid;
@@ -10429,7 +10549,7 @@ h1.pulso-page-title {
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 790;
+  font-weight: var(--pulso-weight-heavy);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -10437,7 +10557,7 @@ h1.pulso-page-title {
   flex: 0 0 auto;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-sm-decision-signature {
   display: grid;
@@ -10454,7 +10574,7 @@ h1.pulso-page-title {
   gap: 8px;
   color: var(--pulso-primary);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sm-decision-metric {
   display: grid;
@@ -10474,8 +10594,8 @@ h1.pulso-page-title {
 }
 .pulso-sm-decision-metric small {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 760;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 .pulso-sm-decision-metric.is-good {
@@ -10509,7 +10629,7 @@ h1.pulso-page-title {
   gap: 8px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 .pulso-sm-source-audit-head em,
@@ -10544,8 +10664,8 @@ h1.pulso-page-title {
   border-bottom: 1px solid var(--pulso-border);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 790;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 .pulso-sm-source-audit-grid > strong,
@@ -10556,7 +10676,7 @@ h1.pulso-page-title {
   border-top: 1px solid color-mix(in srgb, var(--pulso-border) 72%, transparent);
   color: var(--pulso-text);
   font-size: 10.5px;
-  font-weight: 660;
+  font-weight: var(--pulso-weight-bold);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -10578,13 +10698,13 @@ h1.pulso-page-title {
 .pulso-sm-case-completion-top b {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
 }
 .pulso-sm-case-completion-top span {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 760;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
 }
 .pulso-sm-case-completion-track {
@@ -10601,8 +10721,8 @@ h1.pulso-page-title {
   margin: 0 6px 3px 0;
   padding: 2px 6px;
   border-radius: 999px;
-  font-size: 9.5px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -10630,14 +10750,14 @@ h1.pulso-page-title {
   gap: 4px 6px;
   margin-top: 1px;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 690;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.25;
 }
 .pulso-sm-case-evidence strong {
   color: var(--pulso-primary);
-  font-size: 9.5px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sm-case-evidence-chip {
   display: inline-flex;
@@ -10648,8 +10768,8 @@ h1.pulso-page-title {
   border-radius: 999px;
   background: #fff;
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 790;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 .pulso-sm-case-evidence-chip.is-match {
@@ -10679,15 +10799,15 @@ h1.pulso-page-title {
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .pulso-sm-case-ids small {
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -10712,12 +10832,12 @@ h1.pulso-page-title {
   background: #fff;
   color: var(--pulso-text);
   font-size: 10.5px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-sm-case-filters strong {
   color: var(--pulso-primary);
   font-size: 10.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sm-case-action {
   min-height: 26px;
@@ -10732,7 +10852,7 @@ h1.pulso-page-title {
   color: var(--pulso-primary);
   cursor: pointer;
   font-size: 10px;
-  font-weight: 790;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 .pulso-sm-case-action.is-remove {
@@ -10743,7 +10863,7 @@ h1.pulso-page-title {
 .pulso-sm-case-action-note {
   color: var(--pulso-text-faint);
   font-size: 10px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-sm-case-empty {
   min-height: 44px;
@@ -10756,7 +10876,7 @@ h1.pulso-page-title {
   background: #fff;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-sm-collector-picks {
   display: grid;
@@ -10775,7 +10895,7 @@ h1.pulso-page-title {
 .pulso-sm-collector-picks-head span {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 .pulso-sm-collector-picks-head small {
@@ -10783,7 +10903,7 @@ h1.pulso-page-title {
   overflow: hidden;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -10819,7 +10939,7 @@ h1.pulso-page-title {
 .pulso-sm-collector-picks-grid small {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
 }
 .pulso-sm-rule-board {
   min-width: 0;
@@ -10847,7 +10967,7 @@ h1.pulso-page-title {
 .pulso-sm-rule-advanced summary > span {
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sm-rule-section-head span,
 .pulso-sm-rule-advanced summary em {
@@ -10856,7 +10976,7 @@ h1.pulso-page-title {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -10875,7 +10995,7 @@ h1.pulso-page-title {
   gap: 4px;
   color: var(--pulso-text);
   font-size: 10px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sm-decision-controls label > span {
   color: var(--pulso-text-soft);
@@ -10912,13 +11032,13 @@ h1.pulso-page-title {
 .pulso-sm-decision-impact-copy strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sm-decision-impact-copy span,
 .pulso-sm-decision-impact small {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 .pulso-sm-decision-impact dl {
@@ -10936,7 +11056,7 @@ h1.pulso-page-title {
   padding: 8px 9px;
   border-radius: 8px;
   font-size: 11px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 .pulso-sm-decision-actions {
@@ -11044,7 +11164,7 @@ h1.pulso-page-title {
 .pulso-sm-case-audit summary > span {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sm-source-audit-grid > span {
   background: color-mix(in srgb, var(--pulso-surface-2) 82%, #fff);
@@ -11133,8 +11253,8 @@ h1.pulso-page-title {
 .pulso-sm-case-audit-head > span {
   padding: 7px 8px;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -11232,7 +11352,7 @@ h1.pulso-page-title {
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
   font-size: 10.5px;
-  font-weight: 790;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 .pulso-sm-channel-select {
@@ -11244,7 +11364,7 @@ h1.pulso-page-title {
   gap: 4px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sm-channel-select > span {
   overflow: hidden;
@@ -11283,7 +11403,7 @@ h1.pulso-page-title {
 .pulso-sm-consent-summary strong {
   color: #6d28d9;
   font-size: 11px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
 }
 .pulso-sm-consent-summary > span {
   white-space: normal;
@@ -11301,7 +11421,7 @@ h1.pulso-page-title {
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 .pulso-sm-refresh-campaign {
@@ -11347,7 +11467,7 @@ h1.pulso-page-title {
   background: #fff;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sm-token-strip {
   display: flex;
@@ -11369,7 +11489,7 @@ h1.pulso-page-title {
   gap: 8px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-sm-token-strip-main span {
   min-width: 0;
@@ -11402,7 +11522,7 @@ h1.pulso-page-title {
   min-width: 0;
   color: var(--pulso-success-fg);
   font-size: 11px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sm-logic-sync-head strong {
   color: var(--pulso-text);
@@ -11445,7 +11565,7 @@ h1.pulso-page-title {
 .pulso-sm-logic-sync-row small {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-sm-selected-head {
   display: flex;
@@ -11503,8 +11623,8 @@ h1.pulso-page-title {
 .pulso-sm-alias-field > span,
 .pulso-sm-original-title > span {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.35px;
   text-transform: uppercase;
 }
@@ -11523,7 +11643,7 @@ h1.pulso-page-title {
 }
 .pulso-sm-original-title strong {
   padding: 6px 9px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -11539,7 +11659,7 @@ h1.pulso-page-title {
   border: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sm-survey-scope-card {
   display: grid;
@@ -11563,7 +11683,7 @@ h1.pulso-page-title {
   background: #fff;
   color: var(--pulso-primary);
   font-size: 10.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 .pulso-sm-scope-editor {
@@ -11586,7 +11706,7 @@ h1.pulso-page-title {
   gap: 5px;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 .pulso-sm-extra-results {
@@ -11686,7 +11806,7 @@ h1.pulso-page-title {
   font-family: ui-monospace, monospace;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 .pulso-multibase-study-action,
@@ -11699,7 +11819,7 @@ h1.pulso-page-title {
   border-radius: 7px;
   cursor: pointer;
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1;
   min-height: 30px;
   transition:
@@ -11810,7 +11930,7 @@ h1.pulso-page-title {
   background: var(--pulso-success-bg);
   color: var(--pulso-success-fg);
   font-size: 10.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
 }
 .pulso-base-row-meta {
@@ -11898,8 +12018,8 @@ h1.pulso-page-title {
 }
 .pulso-integrated-history-metrics small {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 780;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
   text-transform: uppercase;
 }
@@ -11936,8 +12056,8 @@ h1.pulso-page-title {
 }
 .pulso-integrated-history-file small {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.25px;
   text-transform: uppercase;
 }
@@ -12067,7 +12187,7 @@ h1.pulso-page-title {
   gap: 6px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-integrated-guide-control {
   display: grid;
@@ -12357,7 +12477,7 @@ h1.pulso-page-title {
   justify-content: center;
   gap: 0;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   overflow: hidden;
   transition:
     flex-basis var(--motion-dur-base) var(--motion-ease-out),
@@ -12402,7 +12522,7 @@ h1.pulso-page-title {
   color: var(--pulso-text-soft);
   background: #fff;
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-platform-controls {
   display: grid;
@@ -12475,7 +12595,7 @@ h1.pulso-page-title {
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-data-review-card {
@@ -12526,7 +12646,7 @@ h1.pulso-page-title {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   text-align: left;
 }
 
@@ -12546,7 +12666,7 @@ h1.pulso-page-title {
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-data-review-section-actions {
@@ -12576,7 +12696,7 @@ h1.pulso-page-title {
   background: linear-gradient(180deg, #fff, #fbfdff);
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
   transition:
     background var(--motion-dur-fast) ease,
@@ -12616,7 +12736,7 @@ h1.pulso-page-title {
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-data-review-label {
@@ -12627,7 +12747,7 @@ h1.pulso-page-title {
 
 .pulso-data-review-label span {
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-text-soft);
 }
 .pulso-data-review-input {
@@ -12643,7 +12763,7 @@ h1.pulso-page-title {
 .pulso-data-review-section-input {
   max-width: 320px;
   padding: 5px 8px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-data-review-restore-button {
   display: inline-flex;
@@ -12684,7 +12804,7 @@ h1.pulso-page-title {
   gap: 7px;
   min-width: 0;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-data-review-options-panel {
@@ -12755,7 +12875,7 @@ h1.pulso-page-title {
 }
 .pulso-demo-eyebrow {
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--pulso-text-soft);
@@ -12841,7 +12961,7 @@ h1.pulso-page-title {
 }
 .pulso-demo-chip-title {
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 .pulso-demo-chip.is-active .pulso-demo-chip-title {
@@ -12853,7 +12973,7 @@ h1.pulso-page-title {
 }
 .pulso-demo-chip-remove {
   font-size: 10px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   padding: 3px 8px;
   border-radius: 6px;
   border-color: var(--pulso-primary-border);
@@ -12896,7 +13016,7 @@ h1.pulso-page-title {
 }
 .pulso-continue-cta-title {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-success-fg);
 }
 .pulso-continue-cta-note {
@@ -12909,7 +13029,7 @@ h1.pulso-page-title {
 .pulso-continue-cta-link {
   text-decoration: none;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   padding: 7px 13px;
   border-radius: 6px;
   display: inline-flex;
@@ -13310,7 +13430,7 @@ h1.pulso-page-title {
 }
 .pulso-analitica-source-copy strong {
   color: var(--pulso-text);
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-analitica-sourcebar.is-adapted .pulso-analitica-source-copy strong {
   color: var(--tipo-sm-fg);
@@ -13411,12 +13531,12 @@ h1.pulso-page-title {
 }
 .pulso-analitica-source-option-copy strong {
   font-size: 11.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-analitica-source-option-copy span {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 720;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-analitica-source-option.is-active .pulso-analitica-source-option-copy span {
   color: var(--pulso-primary);
@@ -13443,7 +13563,7 @@ h1.pulso-page-title {
 }
 .pulso-active-base-control .pulso-section-eyebrow {
   margin: 0;
-  font-size: 9.5px;
+  font-size: 10px;
   white-space: nowrap;
 }
 .pulso-active-base-control select {
@@ -13454,7 +13574,7 @@ h1.pulso-page-title {
   background-color: transparent;
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   box-shadow: none;
 }
 .pulso-active-base-control select:focus {
@@ -13554,7 +13674,7 @@ h1.pulso-page-title {
   display: block;
   max-height: 0;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
+  font-size: 10px;
   line-height: 1.25;
   opacity: 0;
   transition:
@@ -13603,14 +13723,14 @@ h1.pulso-page-title {
 .pulso-analitica-nav-tooltip strong,
 .pulso-validacion-nav-tooltip strong {
   font-size: 11.8px;
-  font-weight: 830;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.18;
 }
 .pulso-analitica-nav-tooltip span,
 .pulso-validacion-nav-tooltip span {
   color: var(--pulso-text-soft);
   font-size: 10.4px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.22;
 }
 
@@ -13990,19 +14110,19 @@ h1.pulso-page-title {
 .pulso-sibling-tooltip strong {
   color: var(--pulso-text);
   font-size: 11.6px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-sibling-tooltip span {
   color: var(--pulso-text-soft);
   font-size: 10.2px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .pulso-sibling-tooltip small {
   color: color-mix(in srgb, var(--pulso-module-processing) 76%, var(--pulso-text-soft));
-  font-size: 9.8px;
-  font-weight: 760;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-sibling-switcher.is-compact::after {
@@ -14020,8 +14140,8 @@ h1.pulso-page-title {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.96);
   color: color-mix(in srgb, var(--pulso-module-processing) 88%, var(--pulso-text));
-  font-size: 8.5px;
-  font-weight: 840;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   box-shadow: 0 7px 18px rgba(15, 23, 42, 0.12);
   pointer-events: none;
@@ -14220,7 +14340,7 @@ h1.pulso-page-title {
   color: var(--pulso-text-soft);
   padding: 3px 8px;
   font-size: 10.5px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 .pulso-analitica-prep-pill.is-busy {
@@ -14305,8 +14425,8 @@ h1.pulso-page-title {
   min-width: 0;
   overflow: hidden;
   color: color-mix(in srgb, var(--pulso-module-processing) 82%, var(--pulso-text-soft));
-  font-size: 9.5px;
-  font-weight: 840;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.06em;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -14318,7 +14438,7 @@ h1.pulso-page-title {
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -14365,7 +14485,7 @@ h1.pulso-page-title {
   background: rgba(255, 255, 255, 0.82);
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   white-space: nowrap;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
@@ -14419,7 +14539,7 @@ h1.pulso-page-title {
 .pulso-data-review-structure-copy strong {
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
 }
 .pulso-data-review-structure-copy span {
@@ -14448,7 +14568,7 @@ h1.pulso-page-title {
   background: rgba(255, 255, 255, 0.82);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 .pulso-data-review-detect-button {
@@ -14498,7 +14618,7 @@ h1.pulso-page-title {
 .analitica-section-title {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.4;
 }
 .analitica-section-subtitle {
@@ -14526,7 +14646,7 @@ h1.pulso-page-title {
   padding: 9px 12px;
   text-align: left;
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   text-transform: uppercase;
   transition:
@@ -14552,7 +14672,7 @@ h1.pulso-page-title {
   white-space: nowrap;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 560;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0;
   text-transform: none;
 }
@@ -14644,7 +14764,7 @@ h1.pulso-page-title {
   border-radius: 9px;
   background: transparent;
   font-size: 11.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   color: var(--pulso-text-soft);
   box-shadow: none;
@@ -14713,8 +14833,8 @@ h1.pulso-page-title {
 }
 .analitica-panel-docbar-copy span {
   color: color-mix(in srgb, var(--pulso-module-processing) 72%, var(--pulso-text-soft));
-  font-size: 9.5px;
-  font-weight: 840;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.06em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -14722,13 +14842,13 @@ h1.pulso-page-title {
 .analitica-panel-docbar-copy strong {
   color: var(--pulso-text);
   font-size: 13.5px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.18;
 }
 .analitica-panel-docbar-copy small {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
 }
 .analitica-report-overview--panel {
@@ -14766,7 +14886,7 @@ h1.pulso-page-title {
   min-width: 0;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 .analitica-panel-field select,
 .analitica-panel-field input,
@@ -14781,7 +14901,7 @@ h1.pulso-page-title {
   background: #fff;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
 }
 .analitica-panel-status-row {
   display: inline-flex;
@@ -14791,7 +14911,7 @@ h1.pulso-page-title {
   min-width: 0;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
 }
 .analitica-panel-badge {
   display: inline-flex;
@@ -14848,7 +14968,7 @@ h1.pulso-page-title {
   white-space: nowrap;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 .analitica-panel-contract-copy small {
   min-width: 0;
@@ -14857,7 +14977,7 @@ h1.pulso-page-title {
   white-space: nowrap;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
 }
 .analitica-panel-table-wrap {
   max-width: 100%;
@@ -14889,7 +15009,7 @@ h1.pulso-page-title {
   background: color-mix(in srgb, var(--pulso-surface-2) 82%, #fff 18%);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 .analitica-panel-empty {
@@ -14903,7 +15023,7 @@ h1.pulso-page-title {
   margin-bottom: 10px;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 .analitica-panel-output-grid {
   display: grid;
@@ -14933,7 +15053,7 @@ h1.pulso-page-title {
 .analitica-panel-export-summary-head strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 .analitica-panel-export-summary-head small {
   color: var(--pulso-text-soft);
@@ -14960,12 +15080,12 @@ h1.pulso-page-title {
 .analitica-panel-export-check strong {
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 .analitica-panel-export-check small {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
 }
 .analitica-panel-format-grid {
   display: grid;
@@ -14991,7 +15111,7 @@ h1.pulso-page-title {
 .analitica-panel-format-head strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 .analitica-panel-format-head small {
   margin-top: 3px;
@@ -15009,7 +15129,7 @@ h1.pulso-page-title {
   gap: 5px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 .analitica-panel-mini-select select {
@@ -15021,7 +15141,7 @@ h1.pulso-page-title {
   background: #fff;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   text-transform: none;
 }
 .analitica-codebook-panel {
@@ -15074,8 +15194,8 @@ h1.pulso-page-title {
 }
 .analitica-bases-docbar-copy span {
   color: color-mix(in srgb, var(--pulso-module-processing) 72%, var(--pulso-text-soft));
-  font-size: 9.5px;
-  font-weight: 840;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.06em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -15090,13 +15210,13 @@ h1.pulso-page-title {
 .analitica-bases-docbar-copy strong {
   color: var(--pulso-text);
   font-size: 13.5px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.18;
 }
 .analitica-bases-docbar-copy small {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
 }
 .analitica-bases-docbar-stats {
@@ -15115,8 +15235,8 @@ h1.pulso-page-title {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.86);
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -15126,7 +15246,7 @@ h1.pulso-page-title {
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   line-height: 1.22;
   text-overflow: ellipsis;
@@ -15177,14 +15297,14 @@ h1.pulso-page-title {
 .analitica-bases-guide-context strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.16;
   white-space: nowrap;
 }
 .analitica-bases-guide-context span {
   color: var(--pulso-text-soft);
   font-size: 10.8px;
-  font-weight: 610;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.28;
 }
 .analitica-bases-guide-options {
@@ -15208,13 +15328,13 @@ h1.pulso-page-title {
 .analitica-bases-guide-options strong {
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.12;
 }
 .analitica-bases-guide-options small {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.12;
 }
 /* Nota de contexto full-width (reemplaza la guía de 3 opciones falsas). */
@@ -15233,13 +15353,13 @@ h1.pulso-page-title {
 }
 .analitica-bases-intro strong {
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-text);
   line-height: 1.16;
 }
 .analitica-bases-intro span {
   font-size: 11px;
-  font-weight: 610;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
   line-height: 1.32;
 }
@@ -15262,7 +15382,7 @@ h1.pulso-page-title {
 }
 .analitica-pane-group-label {
   font-size: 12px;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.4px;
   text-transform: uppercase;
   color: var(--pulso-module-processing);
@@ -15270,7 +15390,7 @@ h1.pulso-page-title {
 .analitica-pane-group-hint {
   min-width: 0;
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
 }
 .analitica-pane-group-body {
@@ -15328,7 +15448,7 @@ h1.pulso-page-title {
 .analitica-bases-source-copy strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 .analitica-bases-source-copy span {
@@ -15361,13 +15481,13 @@ h1.pulso-page-title {
   color: var(--pulso-module-processing);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 .analitica-bases-file-note div {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 610;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.45;
 }
 .analitica-bases-check-option {
@@ -15384,12 +15504,12 @@ h1.pulso-page-title {
   gap: 2px;
 }
 .analitica-bases-check-option strong {
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 .analitica-bases-check-option small {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.45;
 }
 .analitica-bases-writer-status {
@@ -15400,7 +15520,7 @@ h1.pulso-page-title {
   gap: 8px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 610;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 .analitica-bases-unified-card {
@@ -15433,12 +15553,12 @@ h1.pulso-page-title {
 .analitica-bases-unified-proof strong {
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 .analitica-bases-unified-proof small {
   color: var(--pulso-text-soft);
   font-size: 10.4px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 .analitica-bases-unified-actions {
   min-width: 0;
@@ -15452,7 +15572,7 @@ h1.pulso-page-title {
   min-height: 0;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 .analitica-bases-radio-group {
@@ -15490,13 +15610,13 @@ h1.pulso-page-title {
 .analitica-bases-radio-copy strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 .analitica-bases-radio-copy small {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.45;
 }
 .analitica-frecuencias-panel {
@@ -15546,8 +15666,8 @@ h1.pulso-page-title {
 }
 .analitica-frecuencias-docbar-copy span {
   color: color-mix(in srgb, var(--pulso-module-processing) 72%, var(--pulso-text-soft));
-  font-size: 9.5px;
-  font-weight: 840;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.06em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -15562,13 +15682,13 @@ h1.pulso-page-title {
 .analitica-frecuencias-docbar-copy strong {
   color: var(--pulso-text);
   font-size: 13.5px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.18;
 }
 .analitica-frecuencias-docbar-copy small {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
 }
 .analitica-frecuencias-docbar-stats {
@@ -15587,8 +15707,8 @@ h1.pulso-page-title {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.86);
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -15598,7 +15718,7 @@ h1.pulso-page-title {
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   line-height: 1.22;
   text-overflow: ellipsis;
@@ -15627,7 +15747,7 @@ h1.pulso-page-title {
   color: var(--pulso-text-soft);
   cursor: pointer;
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   transition:
     background var(--motion-dur-fast) ease,
     border-color var(--motion-dur-fast) ease,
@@ -15681,8 +15801,8 @@ h1.pulso-page-title {
 }
 .analitica-cruces-docbar-copy span {
   color: color-mix(in srgb, var(--pulso-module-processing) 72%, var(--pulso-text-soft));
-  font-size: 9.5px;
-  font-weight: 840;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.06em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -15697,13 +15817,13 @@ h1.pulso-page-title {
 .analitica-cruces-docbar-copy strong {
   color: var(--pulso-text);
   font-size: 13.5px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.18;
 }
 .analitica-cruces-docbar-copy small {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
 }
 .analitica-cruces-docbar-stats {
@@ -15722,8 +15842,8 @@ h1.pulso-page-title {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.86);
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -15733,7 +15853,7 @@ h1.pulso-page-title {
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   line-height: 1.22;
   text-overflow: ellipsis;
@@ -15752,7 +15872,7 @@ h1.pulso-page-title {
   color: var(--pulso-text);
   cursor: pointer;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   transition:
     background var(--motion-dur-fast) ease,
     border-color var(--motion-dur-fast) ease,
@@ -15805,8 +15925,8 @@ h1.pulso-page-title {
 }
 .analitica-dimensiones-docbar-copy span {
   color: color-mix(in srgb, var(--pulso-module-processing) 72%, var(--pulso-text-soft));
-  font-size: 9.5px;
-  font-weight: 840;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.06em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -15821,13 +15941,13 @@ h1.pulso-page-title {
 .analitica-dimensiones-docbar-copy strong {
   color: var(--pulso-text);
   font-size: 13.5px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.18;
 }
 .analitica-dimensiones-docbar-copy small {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
 }
 .analitica-dimensiones-docbar-stats {
@@ -15846,8 +15966,8 @@ h1.pulso-page-title {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.86);
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -15857,7 +15977,7 @@ h1.pulso-page-title {
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   line-height: 1.22;
   text-overflow: ellipsis;
@@ -15897,7 +16017,7 @@ h1.pulso-page-title {
 .analitica-dimensiones-empty-copy strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 .analitica-dimensiones-empty-copy span {
@@ -15939,7 +16059,7 @@ h1.pulso-page-title {
   margin: 0 0 8px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   line-height: 1.2;
   text-transform: uppercase;
@@ -15960,7 +16080,7 @@ h1.pulso-page-title {
   background: var(--pulso-surface-2, #f4f5f9);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.03em;
   text-align: left;
   text-transform: uppercase;
@@ -16028,7 +16148,7 @@ h1.pulso-page-title {
   margin: 0;
   color: var(--pulso-text);
   font-size: 20px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0;
   line-height: 1.18;
 }
@@ -16093,8 +16213,8 @@ h1.pulso-page-title {
 .analitica-dimensiones-guide-head span,
 .analitica-dimensiones-guide-result span {
   color: color-mix(in srgb, var(--pulso-module-processing) 72%, var(--pulso-text-soft));
-  font-size: 9px;
-  font-weight: 840;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.05em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -16103,7 +16223,7 @@ h1.pulso-page-title {
 .analitica-dimensiones-guide-result strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 .analitica-dimensiones-guide-steps {
@@ -16132,7 +16252,7 @@ h1.pulso-page-title {
 .analitica-dimensiones-guide-steps strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 .analitica-dimensiones-guide-steps span {
@@ -16393,7 +16513,7 @@ h1.pulso-page-title {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 4px;
-    font-size: 9.7px;
+    font-size: 10px;
     line-height: 1.15;
   }
 
@@ -16517,8 +16637,8 @@ h1.pulso-page-title {
 }
 .analitica-codebook-docbar-copy span {
   color: color-mix(in srgb, var(--pulso-module-processing) 72%, var(--pulso-text-soft));
-  font-size: 9.5px;
-  font-weight: 840;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.06em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -16533,13 +16653,13 @@ h1.pulso-page-title {
 .analitica-codebook-docbar-copy strong {
   color: var(--pulso-text);
   font-size: 13.5px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.18;
 }
 .analitica-codebook-docbar-copy small {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
 }
 .analitica-codebook-docbar-stats {
@@ -16558,8 +16678,8 @@ h1.pulso-page-title {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.86);
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -16569,7 +16689,7 @@ h1.pulso-page-title {
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   line-height: 1.22;
   text-overflow: ellipsis;
@@ -16612,7 +16732,7 @@ h1.pulso-page-title {
   color: var(--pulso-text-soft);
   cursor: pointer;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   transition:
     transform var(--motion-dur-press) var(--motion-ease-out),
     border-color var(--motion-dur-fast) ease,
@@ -16622,7 +16742,7 @@ h1.pulso-page-title {
 .analitica-codebook-code code {
   color: var(--pulso-text);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 .analitica-codebook-xlsform {
   margin-top: 12px;
@@ -16649,7 +16769,7 @@ h1.pulso-page-title {
   gap: 7px;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 .analitica-codebook-download,
 .analitica-codebook-pending,
@@ -16658,7 +16778,7 @@ h1.pulso-page-title {
   align-items: center;
   gap: 5px;
   border-radius: var(--pulso-radius-chip);
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   text-decoration: none;
 }
 .analitica-codebook-download {
@@ -16679,7 +16799,7 @@ h1.pulso-page-title {
   gap: 6px;
   color: var(--pulso-success-fg);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 .analitica-codebook-base-links {
   display: flex;
@@ -16751,8 +16871,8 @@ h1.pulso-page-title {
 }
 .analitica-ficha-docbar-copy span {
   color: color-mix(in srgb, var(--pulso-module-processing) 72%, var(--pulso-text-soft));
-  font-size: 9.5px;
-  font-weight: 840;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.06em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -16760,13 +16880,13 @@ h1.pulso-page-title {
 .analitica-ficha-docbar-copy strong {
   color: var(--pulso-text);
   font-size: 13.5px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.18;
 }
 .analitica-ficha-docbar-copy small {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
 }
 .analitica-report-overview--ficha {
@@ -16844,7 +16964,7 @@ h1.pulso-page-title {
   .analitica-ficha-docbar-copy span,
   .analitica-dimensiones-docbar-copy span
 ) {
-  font-size: 8.8px;
+  font-size: 10px;
   letter-spacing: 0.04em;
   line-height: 1;
 }
@@ -16903,7 +17023,7 @@ h1.pulso-page-title {
   gap: 5px;
   padding: 4px 8px;
   border-radius: 999px;
-  font-size: 8.8px;
+  font-size: 10px;
   line-height: 1;
   white-space: nowrap;
 }
@@ -16949,7 +17069,7 @@ h1.pulso-page-title {
 .pulso-main--processing .analitica-panel-docbar .analitica-stat-label,
 .pulso-main--processing .analitica-ficha-docbar .analitica-stat-label {
   margin: 0;
-  font-size: 8.8px;
+  font-size: 10px;
   line-height: 1;
   white-space: nowrap;
 }
@@ -17147,7 +17267,7 @@ h1.pulso-page-title {
   color: var(--pulso-primary);
   text-decoration: none;
   font-size: 12px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
 }
 .analitica-per-base-card {
   margin-top: 10px;
@@ -17162,7 +17282,7 @@ h1.pulso-page-title {
 .analitica-per-base-title {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
 }
 
 @media (max-width: 920px) {
@@ -17569,7 +17689,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   overflow: hidden;
   overflow-wrap: anywhere;
   max-width: 100%;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-outline-subtitle {
   font-size: 11px;
@@ -17585,7 +17705,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 
 .pulso-outline-row--section .pulso-outline-title,
 .pulso-outline-row--repeat .pulso-outline-title {
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.005em;
 }
 .pulso-outline-row--repeat .pulso-outline-typeicon {
@@ -17600,7 +17720,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-top: 1px dashed color-mix(in srgb, var(--pulso-primary) 30%, var(--pulso-border));
 }
 .pulso-outline-closerow .pulso-outline-title {
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: color-mix(in srgb, var(--pulso-text) 62%, var(--pulso-text-soft));
 }
 /* El grip del cierre no espera al hover: la reubicación es su función
@@ -17626,7 +17746,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-outline-required {
   font-size: 12px;
   color: var(--pulso-warn-fg);
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   flex-shrink: 0;
 }
 
@@ -17636,7 +17756,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   margin-bottom: 6px;
 }
 .pulso-outline-settings .pulso-outline-title {
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 /* -----------------------------------------------------------------------------
@@ -17653,7 +17773,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: white;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease;
 }
@@ -17789,7 +17909,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   padding: 3px 9px;
   border-radius: 999px;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.4px;
   text-transform: uppercase;
 }
@@ -17798,7 +17918,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   align-items: center;
   padding: 2px 7px;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-text-soft);
   background: var(--pulso-surface-2);
   border: 1px solid var(--pulso-border);
@@ -17809,7 +17929,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   align-items: center;
   padding: 2px 7px;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.3px;
   color: var(--pulso-warn-fg);
   background: var(--pulso-warn-bg);
@@ -17821,7 +17941,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   align-items: center;
   padding: 2px 7px;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.3px;
   color: var(--pulso-info-fg);
   background: var(--pulso-info-bg);
@@ -17838,7 +17958,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   margin: 0;
   font-size: 22px;
   line-height: 1.25;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
   letter-spacing: -0.2px;
 }
@@ -17950,7 +18070,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-question-map-legend-title {
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
   letter-spacing: 0.3px;
   color: var(--pulso-text);
@@ -17967,8 +18087,8 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 9px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   border: 1px solid currentColor;
   flex-shrink: 0;
 }
@@ -18015,7 +18135,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   cursor: pointer;
   transition: border-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
               box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1),
@@ -18113,7 +18233,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   gap: 4px;
   color: var(--question-accent, var(--pulso-primary));
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 .pulso-question-map-tile code {
@@ -18263,7 +18383,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-question-logic-map-center code {
   color: var(--pulso-primary);
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   font-size: 12px;
 }
 .pulso-question-logic-map-center span {
@@ -18287,14 +18407,14 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border: 1px solid var(--pulso-primary-border);
   border-radius: 999px;
   padding: 1px 6px;
-  font-size: 9px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 .pulso-question-logic-node code {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-question-logic-node em {
   color: var(--pulso-text-soft);
@@ -18339,7 +18459,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border: 1.5px dashed var(--pulso-border);
   border-radius: 10px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   cursor: not-allowed;
 }
 
@@ -18502,7 +18622,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-bottom: 2px solid transparent;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
   border-radius: 6px 6px 0 0;
@@ -18545,7 +18665,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-inspector-field-label {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 .pulso-inspector-field-control {
@@ -18575,7 +18695,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   font-size: 12px;
 }
 .pulso-inspector-toggle strong {
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 .pulso-inspector-toggle em {
@@ -18598,7 +18718,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-inspector-eyebrow-title {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.7px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
@@ -18724,7 +18844,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-typepicker-trigger-label {
   flex: 1;
   text-align: left;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
 }
 
 .pulso-typepicker-pop {
@@ -18770,7 +18890,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-typepicker-item.is-active {
   background: var(--type-accent-soft);
   border-color: var(--type-accent);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 /* ============================================================================
@@ -18822,7 +18942,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-catalogchip-meta span.is-empty {
   color: color-mix(in srgb, var(--pulso-warn-fg) 84%, var(--pulso-text));
-  font-weight: 730;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-catalogchip-edit {
   display: inline-flex;
@@ -18835,7 +18955,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border: none;
   cursor: pointer;
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   transition: background 140ms ease;
 }
 .pulso-catalogchip-edit:hover {
@@ -18869,7 +18989,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: var(--pulso-primary-bg, rgba(36, 87, 214, 0.06));
   color: var(--pulso-primary);
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: background 140ms ease;
 }
@@ -18906,7 +19026,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border: 1px solid var(--pulso-border);
   color: var(--pulso-primary);
   font-size: 10.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   letter-spacing: 0;
   text-transform: none;
@@ -18936,7 +19056,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-catalogchip-pop-item.is-active {
   background: var(--pulso-primary-bg, rgba(36, 87, 214, 0.08));
   color: var(--pulso-primary);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 /* ============================================================================
@@ -19019,7 +19139,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-template-card-meta strong {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-text);
   letter-spacing: -0.1px;
 }
@@ -19138,7 +19258,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-logic-builder-status {
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--pulso-warn-fg, #b45309);
@@ -19159,7 +19279,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: var(--pulso-primary);
   color: white;
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: background 140ms ease;
 }
@@ -19259,7 +19379,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: color-mix(in srgb, var(--pulso-primary) 74%, #253149);
   font-family: ui-monospace, monospace;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 
@@ -19328,8 +19448,8 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-logic-condition-label {
   display: none;
   color: #667386;
-  font-size: 9.5px;
-  font-weight: 780;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   line-height: 1;
   text-transform: uppercase;
@@ -19523,7 +19643,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -19577,7 +19697,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   font-style: normal;
   font-size: 12px;
   color: var(--pulso-text);
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -19590,7 +19710,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   gap: 8px;
   width: 100%;
   font-size: 12px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   padding: 6px 8px;
   border-radius: 7px;
   border: 1px solid var(--pulso-border);
@@ -19614,7 +19734,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-logic-predicate-pop {
   position: absolute;
@@ -19651,7 +19771,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border: none;
   background: transparent;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text-soft);
   cursor: pointer;
   text-transform: lowercase;
@@ -19678,7 +19798,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border: 1px dashed var(--pulso-primary);
   border-radius: 7px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: background 140ms ease;
 }
@@ -19692,7 +19812,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 
 .pulso-logic-current-text strong {
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   font-size: 12px;
 }
 .pulso-logic-current-text em {
@@ -19737,7 +19857,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-logic-calc-template strong {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
 }
 .pulso-logic-calc-template span {
@@ -19808,7 +19928,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-focus-calculation-recipes-head strong {
   color: #1f2a3d;
   font-size: 12.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
@@ -19816,7 +19936,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 11.3px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.38;
 }
 
@@ -19855,7 +19975,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   min-width: 0;
   color: #1f2a3d;
   font-size: 11.8px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -19867,7 +19987,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   min-width: 0;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.25;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -19881,8 +20001,8 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: color-mix(in srgb, var(--pulso-primary) 6%, #ffffff);
   color: var(--pulso-primary);
   font-family: ui-monospace, monospace;
-  font-size: 9.5px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-calculation-recipe-row {
@@ -19908,7 +20028,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-color: color-mix(in srgb, var(--pulso-primary) 20%, var(--xls-border));
   background: color-mix(in srgb, var(--pulso-primary) 7%, #ffffff);
   color: var(--pulso-primary);
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 /* Editor libre — textarea con toolbar */
@@ -19927,7 +20047,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-radius: 6px;
   color: var(--pulso-primary);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: background 140ms ease;
 }
@@ -20044,7 +20164,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-radius: 7px;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: background 140ms ease;
 }
@@ -20059,7 +20179,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-graph-header-title strong {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-text);
 }
 .pulso-graph-header-title span {
@@ -20133,7 +20253,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-radius: 6px;
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: background 140ms ease, border-color 140ms ease;
 }
@@ -20178,7 +20298,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-graph-detail header strong {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
   line-height: 1.3;
   flex: 1;
@@ -20196,7 +20316,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border: none;
   border-radius: 9px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
   transition: background 140ms ease, transform 100ms ease, box-shadow 140ms ease;
@@ -20255,7 +20375,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-graph-edgepicker-header strong {
   display: block;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--pulso-text-soft);
@@ -20343,7 +20463,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-graph-edgepicker-meta strong {
   font-size: 12.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
 }
 .pulso-graph-edgepicker-meta span {
@@ -20354,7 +20474,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-graph-edgepicker-replace {
   font-style: normal;
   color: var(--pulso-warn-fg, #b45309);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 /* ============================================================================
@@ -20532,7 +20652,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
  * uppercase porque clutter visual. La meta debajo da el contexto. */
 .home-proj-name {
   font-size: 16.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-text);
   letter-spacing: -0.012em;
   line-height: 1.2;
@@ -20626,7 +20746,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   padding: 9px 14px;
   border-radius: 9px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   letter-spacing: -0.005em;
   transition:
@@ -20729,7 +20849,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-text-soft);
   letter-spacing: -0.003em;
 }
@@ -20822,7 +20942,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 
 .home-recent-name {
   font-size: 12.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-text);
   letter-spacing: -0.005em;
   line-height: 1.25;
@@ -20834,7 +20954,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 
 .home-recent-meta {
   font-size: 10.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
   line-height: 1.2;
 }
@@ -21171,7 +21291,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .home-cinema-card-name {
   margin: 0;
   font-size: 22px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.08;
   letter-spacing: -0.012em;
   color: var(--pulso-text);
@@ -21227,7 +21347,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   max-width: 100%;
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.16;
   letter-spacing: -0.008em;
   text-align: center;
@@ -21242,7 +21362,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   max-width: 100%;
   color: var(--pulso-text-soft);
   font-size: 11.5px;
-  font-weight: 560;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.32;
   text-align: center;
   text-wrap: balance;
@@ -21287,7 +21407,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   width: 100%;
   color: var(--pulso-text-soft);
   font-size: 13px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
   white-space: normal;
   text-wrap: balance;
@@ -21328,7 +21448,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
     inset 0 1px 0 rgba(255, 255, 255, 0.28),
     0 10px 22px color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 20%, transparent);
   font-size: 13px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
   transition:
     transform var(--motion-dur-press) var(--motion-ease-out),
@@ -21384,7 +21504,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: transparent;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   cursor: pointer;
   white-space: nowrap;
   transition:
@@ -21728,7 +21848,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
  * protagonista absoluto: tipografía grande, peso alto, balance editorial. */
 .home-tile-title {
   font-size: 20px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-text);
   letter-spacing: 0;
   line-height: 1.15;
@@ -21746,7 +21866,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   top: 14px;
   right: 16px;
   font-size: 10px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--home-mod-accent, var(--pulso-text-soft));
@@ -22060,7 +22180,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .home-detail-title {
   margin: 0;
   font-size: 24px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: -0.01em;
   color: var(--pulso-text);
   line-height: 1.15;
@@ -22070,7 +22190,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   margin: 0;
   font-size: 14px;
   color: var(--home-mod-accent, var(--pulso-primary));
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.005em;
 }
 
@@ -22113,7 +22233,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   margin-top: auto;
   padding: 11px 18px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   border-radius: 10px;
   background: var(--home-mod-accent, var(--pulso-primary));
   color: white;
@@ -22165,7 +22285,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 
 .home-detail-soon-badge {
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   padding: 3px 8px;
@@ -22278,7 +22398,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .home-footer-author {
   color: var(--pulso-text-soft);
   text-decoration: none;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -22465,7 +22585,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   }
 
   .home-cinema-eyebrow {
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .home-cinema-titleblock h2 {
@@ -22599,7 +22719,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
     top: 8px;
     right: 10px;
     padding: 2px 6px;
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .pulso-main--viewport .home-footer {
@@ -22730,7 +22850,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   }
 
   .home-cinema-eyebrow {
-    font-size: 8.5px;
+    font-size: 10px;
   }
 
   .home-cinema-titleblock h2 {
@@ -23124,7 +23244,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 12px;
   color: var(--pulso-text);
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
 }
 
 /* Bloques del detail panel (Depende de / Condiciona a). */
@@ -23137,7 +23257,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-graph-detail-block-label {
   font-size: 10px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
@@ -23165,7 +23285,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   font-family: ui-monospace, monospace;
   font-size: 11px;
   color: var(--pulso-primary);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   flex-shrink: 0;
 }
 .pulso-graph-detail-link span {
@@ -23202,8 +23322,8 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-graph-legend strong {
   display: block;
-  font-size: 9.5px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--pulso-text-soft);
@@ -23250,7 +23370,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border: 1px solid transparent;
   border-radius: 8px;
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
@@ -23318,11 +23438,11 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   padding: 2px 6px;
   border-radius: 5px;
   color: var(--pulso-primary);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 .pulso-graph-condpicker-pair span {
   color: var(--pulso-text-soft);
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-graph-condpicker-prompt {
   margin: 0;
@@ -23360,7 +23480,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-graph-condpicker-existing > span {
   flex-shrink: 0;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text-soft);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -23368,7 +23488,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-graph-condpicker-existing > code {
   font-family: ui-sans-serif, system-ui, sans-serif;
   color: var(--pulso-primary);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -23382,7 +23502,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: var(--pulso-primary);
   color: white;
   border-color: var(--pulso-primary);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -23416,11 +23536,11 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   left: 0;
   top: 0;
   color: var(--pulso-primary);
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-graph-legend-explainer li strong {
   color: var(--pulso-text);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 /* ============================================================================
@@ -23452,7 +23572,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-radius: 6px;
   color: var(--pulso-text-soft);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -23472,8 +23592,8 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
  * partía cada frase en dos líneas con una palabra en mayúsculas. */
 .pulso-graph-legend-types strong {
   display: block;
-  font-size: 9.5px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
@@ -23491,7 +23611,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   letter-spacing: normal;
   text-transform: none;
   margin-top: 0;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
 }
 .pulso-graph-legend-types {
@@ -23582,7 +23702,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-graph-edge-panel-eyebrow {
   font-size: 11px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--pulso-primary);
@@ -23610,7 +23730,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-graph-edge-panel-block-label {
   font-size: 10.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.7px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
@@ -23623,7 +23743,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 
 /* Contador de ramas en eyebrow. */
 .pulso-graph-edge-panel-bundle-count {
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-soft);
   text-transform: none;
   letter-spacing: 0;
@@ -23665,7 +23785,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-graph-edge-panel-card-text strong {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   line-height: 1.3;
   margin-bottom: 3px;
@@ -23720,7 +23840,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-graph-edge-panel-condition-title {
   font-size: 10.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.7px;
   text-transform: uppercase;
   color: var(--pulso-primary);
@@ -23760,13 +23880,13 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: rgba(36, 87, 214, 0.10);
   color: var(--pulso-primary);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.4px;
 }
 .pulso-graph-edge-panel-condition-or em {
   font-size: 11.5px;
   font-style: normal;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text-soft);
 }
 /* Contenedor lógico de un grupo (posible cabecera "Y" + filas). Es un
@@ -23784,7 +23904,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   gap: 10px;
   padding: 0 2px 2px;
   font-size: 10.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
@@ -23809,7 +23929,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 550;
+  font-weight: var(--pulso-weight-medium);
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
@@ -23827,7 +23947,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: rgba(36, 87, 214, 0.10);
   color: var(--pulso-primary);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.3px;
 }
 .pulso-graph-edge-panel-condition-join.is-and {
@@ -23852,7 +23972,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   gap: 10px;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.6px;
   text-transform: uppercase;
 }
@@ -23867,7 +23987,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: rgba(36, 87, 214, 0.10);
   color: var(--pulso-primary);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.4px;
 }
 .pulso-graph-edge-panel-nested-or-list {
@@ -23884,7 +24004,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-graph-edge-panel-nested-question strong {
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 .pulso-graph-edge-panel-nested-question code {
@@ -23895,7 +24015,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-graph-edge-panel-nested-question span {
   color: var(--pulso-primary);
   font-size: 11.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
 }
 .pulso-graph-edge-panel-option-grid {
   display: flex;
@@ -23913,7 +24033,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border: 1px solid var(--pulso-border);
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 550;
+  font-weight: var(--pulso-weight-medium);
   line-height: 1.25;
 }
 .pulso-graph-edge-panel-option-chip em {
@@ -23925,9 +24045,9 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-radius: 999px;
   background: rgba(36, 87, 214, 0.10);
   color: var(--pulso-primary);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-graph-edge-panel-nested-or-item {
   display: flex;
@@ -23967,7 +24087,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   width: 100%;
   padding: 11px 14px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   background: var(--pulso-primary);
   color: white;
   border: none;
@@ -24024,7 +24144,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-graph-legend-head strong {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
 }
 .pulso-graph-legend-head p {
@@ -24086,7 +24206,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-graph-legend-section-head strong {
   font-size: 12.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
 }
 .pulso-graph-legend-section-head span {
@@ -24149,7 +24269,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   padding: 2px 7px;
   font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 10.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.5;
   background: linear-gradient(180deg, #fff, var(--pulso-surface-2));
   border: 1px solid color-mix(in srgb, var(--pulso-border) 88%, #0000 12%);
@@ -24208,7 +24328,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   padding: 8px 16px;
   border-radius: 9px;
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.20);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -24249,7 +24369,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-graph-empty strong {
   display: block;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
   margin-bottom: 8px;
 }
@@ -24306,7 +24426,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-graph-detail-title strong {
   font-size: 13.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
   line-height: 1.25;
   white-space: nowrap;
@@ -24403,7 +24523,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border: none;
   padding: 6px 14px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
   border-radius: 6px;
   cursor: pointer;
@@ -24442,7 +24562,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-bottom: 2px solid transparent;
   padding: 8px 14px;
   font-size: 12.5px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text-soft);
   cursor: pointer;
   display: inline-flex;
@@ -24471,7 +24591,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: var(--pulso-text-soft);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 10px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 .pulso-sheets-tabs button.is-active .pulso-sheets-tab-name code {
   background: color-mix(in srgb, var(--pulso-primary) 12%, #ffffff);
@@ -24488,7 +24608,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: var(--pulso-text-soft);
   border-radius: 9px;
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   font-family: ui-sans-serif, system-ui, sans-serif;
 }
 .pulso-sheets-tabs button.is-active .pulso-sheets-tab-count {
@@ -24540,7 +24660,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-sheets-guide strong {
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-sheets-guide span {
@@ -24573,7 +24693,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-radius: 6px;
   padding: 6px 12px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   cursor: pointer;
   display: inline-flex;
@@ -24631,7 +24751,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   padding: 7px 10px;
   text-align: left;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text-soft);
   font-family: ui-monospace, monospace;
   text-transform: lowercase;
@@ -24654,7 +24774,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: var(--pulso-text);
   font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 11.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 
@@ -24662,7 +24782,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   display: inline-flex;
   color: color-mix(in srgb, var(--pulso-text-soft) 80%, white);
   font-size: 10px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   text-transform: none;
   letter-spacing: 0;
 }
@@ -24698,9 +24818,9 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-radius: 5px;
   background: color-mix(in srgb, #f59e0b 12%, white);
   color: #9a5b13;
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-sheets-table tbody td {
@@ -24735,7 +24855,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: var(--pulso-text-soft);
   font-variant-numeric: tabular-nums;
   min-width: 20px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-sheets-row-actions button {
   appearance: none;
@@ -24823,7 +24943,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   pointer-events: none;
 }
 .pulso-md-editor strong {
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-md-editor em {
   font-style: italic;
@@ -24847,7 +24967,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   display: block;
   margin: 0;
   font-size: 1.18em;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.35;
   color: var(--pulso-text);
 }
@@ -24877,7 +24997,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   pointer-events: none;
 }
 .pulso-rich-inline strong {
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-rich-inline em {
   font-style: italic;
@@ -24934,7 +25054,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   flex: 1;
   margin: 0;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
   line-height: 1.3;
   min-width: 0;
@@ -25034,7 +25154,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-canvas-addbetween-menu-item strong {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 .pulso-canvas-addbetween-menu-item em {
   font-style: normal;
@@ -25074,7 +25194,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-listname-label {
   font-size: 11px;
   color: var(--pulso-text-soft);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 @keyframes pulso-coachmarks-fade-in {
@@ -25102,7 +25222,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-catalog-info-label {
   font-size: 11px;
   color: var(--pulso-text-soft);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 /* === MoreViewsMenu (popover ⋯ en el header del editor) === */
@@ -25147,7 +25267,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   display: block;
   padding: 6px 10px 4px;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--pulso-text-soft);
@@ -25156,7 +25276,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   display: block;
   padding: 4px 10px 2px;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--pulso-text-soft);
@@ -25259,7 +25379,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: var(--pulso-primary);
 }
 .pulso-inspector-advanced-toggle span {
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
 }
 .pulso-inspector-advanced-body {
@@ -25289,7 +25409,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: rgba(247, 175, 0, 0.06);
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-warn-fg, #8a5a00);
   cursor: pointer;
   align-self: flex-start;
@@ -25307,7 +25427,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-inspector-conditional-required-rule span {
   color: var(--pulso-text-soft);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 .pulso-inspector-conditional-required-rule strong {
   color: var(--pulso-text);
@@ -25365,7 +25485,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: transparent;
   padding: 5px 7px;
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-text-soft);
   cursor: pointer;
   min-width: 54px;
@@ -25429,7 +25549,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: transparent;
   border-radius: 7px;
   font-size: 11px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text-soft);
   cursor: pointer;
 }
@@ -25460,7 +25580,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-logic-tree-multi-var {
   min-width: 0;
   grid-column: 2;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
   line-height: 1.2;
 }
@@ -25469,7 +25589,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: var(--pulso-text-soft);
   font-size: 11.5px;
   font-style: normal;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
 }
 .pulso-logic-tree-multi-values {
   grid-column: 2;
@@ -25575,7 +25695,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .job-progress-title strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .job-progress-phase {
@@ -25585,7 +25705,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: white;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.02em;
 }
 
@@ -25599,7 +25719,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: white;
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   cursor: pointer;
 }
 
@@ -25652,13 +25772,13 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   flex: 0 0 auto;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .job-progress-percent em {
   color: var(--pulso-text-soft);
   font-style: normal;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   font-size: 11.5px;
 }
 
@@ -25671,10 +25791,8 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
  * ========================================================================== */
 
 .pulso-xlsform-frame {
-  /* Acento por módulo (ADR 0038): el workbench del editor habla violeta editor. */
-  --pulso-primary: var(--pulso-module-editor);
-  --pulso-primary-soft: var(--pulso-module-editor-soft);
-  --pulso-primary-border: var(--pulso-module-editor-border);
+  /* Acento por módulo (ADR 0038): el workbench del editor habla violeta editor.
+     La cadena de acento se declara en la tabla de paletas de módulo, arriba. */
   --xls-bg: #f3f5f8;
   --xls-bg-elevated: #fafbfe;
   --xls-content: #ffffff;
@@ -25707,7 +25825,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-xlsform-frame .pulso-page-frame-title {
   color: #142033;
   font-size: 18px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-xlsform-frame .pulso-page-frame-lead {
@@ -25747,7 +25865,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-color: var(--xls-border);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   box-shadow: var(--xls-shadow-hairline);
   line-height: 1;
   white-space: nowrap;
@@ -25876,7 +25994,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   white-space: nowrap;
   color: #263348;
   font-size: 12px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-xlsform-toolbar-button {
@@ -25891,7 +26009,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-color: var(--xls-border);
   box-shadow: var(--xls-shadow-hairline);
   font-size: 12px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 
@@ -26075,7 +26193,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   overflow: hidden;
   color: #142033;
   font-size: 18px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   line-height: 1.18;
   text-overflow: ellipsis;
@@ -26140,13 +26258,13 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-focus-status-chip strong {
   color: #172136;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-status-chip small {
   color: #667386;
-  font-size: 9.5px;
-  font-weight: 740;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .pulso-focus-workspace-controls {
@@ -26178,7 +26296,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-radius: 7px;
   background: transparent;
   color: #5c6675;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   transition:
     background-color var(--motion-dur-fast) var(--motion-ease-out),
     color var(--motion-dur-fast) var(--motion-ease-out),
@@ -26219,7 +26337,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
   font-size: 12px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   transition:
     background-color var(--motion-dur-fast) var(--motion-ease-out),
     border-color var(--motion-dur-fast) var(--motion-ease-out),
@@ -26275,7 +26393,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-focus-pane-head strong {
   color: #253149;
   font-size: 13px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-question-preview,
@@ -26334,7 +26452,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-focus-fact span {
   color: #667386;
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -26344,7 +26462,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   overflow: hidden;
   color: #253149;
   font-size: 13px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -26382,7 +26500,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   overflow: hidden;
   color: #1d2a3f;
   font-size: 13px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -26406,7 +26524,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: #ffffff;
   color: #334155;
   font-size: 12px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   cursor: pointer;
   transition:
     background-color var(--motion-dur-fast) var(--motion-ease-out),
@@ -26430,7 +26548,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 
 .pulso-focus-section-boundary-hint strong {
   color: #324157;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-quicklook {
@@ -26460,7 +26578,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   overflow: hidden;
   color: #5c6675;
   font-size: 11.5px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -26506,7 +26624,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: #667386;
   font-size: 10px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.08em;
   line-height: 1.2;
   text-transform: uppercase;
@@ -26516,7 +26634,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   overflow: hidden;
   color: #1f2a3d;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -26593,7 +26711,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-focus-rule-section-head strong {
   display: block;
   font-size: 12.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.01em;
   color: #1f2a44;
 }
@@ -26652,7 +26770,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-focus-rule-context-head strong {
   color: #445066;
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-rule-card,
@@ -26694,7 +26812,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-focus-validation-card span {
   color: #667386;
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -26702,7 +26820,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-focus-validation-card strong {
   color: #1f2a3d;
   font-size: 12.5px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 
@@ -26734,7 +26852,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: color-mix(in srgb, var(--pulso-primary) 9%, #ffffff);
   color: color-mix(in srgb, var(--pulso-primary) 76%, #253149); /* AA en texto chico sobre soft (patrón del scope) */
   font-size: 11px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-rule-item-copy {
@@ -26749,7 +26867,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   overflow: hidden;
   color: #253149;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.28;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -26770,7 +26888,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: #ffffff;
   color: #253149;
   font-size: 11.5px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
   text-transform: none;
 }
@@ -26786,7 +26904,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-focus-soft-empty span {
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.45;
   text-transform: none;
 }
@@ -26808,7 +26926,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: var(--pulso-text-soft);
   cursor: pointer;
   font-size: 11px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .pulso-focus-rule-card code,
@@ -26855,14 +26973,14 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-focus-validation-message-status strong {
   color: #253149;
   font-size: 11.8px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
 .pulso-focus-validation-message-status small {
   color: var(--pulso-text-soft);
   font-size: 10.7px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
 }
 
@@ -26919,14 +27037,14 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-focus-regex-shortcuts-head strong {
   color: #1f2a3d;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
 .pulso-focus-regex-shortcuts-head small {
   color: var(--pulso-text-soft);
   font-size: 10.8px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 
@@ -26965,7 +27083,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   min-width: 0;
   color: #1f2a3d;
   font-size: 11.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -26979,7 +27097,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.25;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -26987,7 +27105,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 
 .pulso-focus-regex-shortcut-copy em {
   color: color-mix(in srgb, var(--pulso-primary) 72%, #253149);
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-regex-shortcut code {
@@ -26999,15 +27117,15 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: color-mix(in srgb, var(--pulso-primary) 6%, #ffffff);
   color: var(--pulso-primary);
   font-family: ui-monospace, monospace;
-  font-size: 9.5px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   overflow-wrap: anywhere;
 }
 
 .pulso-focus-note-authoring-head strong {
   color: #1f2a3d;
   font-size: 12.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
@@ -27017,7 +27135,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   min-width: 0;
   color: #1f2a3d;
   font-size: 11.8px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -27031,7 +27149,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.25;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -27046,8 +27164,8 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: color-mix(in srgb, var(--pulso-primary) 6%, #ffffff);
   color: var(--pulso-primary);
   font-family: ui-monospace, monospace;
-  font-size: 9px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-choice-filter {
@@ -27071,14 +27189,14 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-focus-choice-filter-head strong {
   color: #1f2a3d;
   font-size: 12.8px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
 .pulso-focus-choice-filter-state strong {
   color: #1f2a3d;
   font-size: 12px;
-  font-weight: 790;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
@@ -27093,7 +27211,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: color-mix(in srgb, var(--pulso-primary) 5%, #ffffff);
   color: color-mix(in srgb, var(--pulso-primary) 82%, #253149);
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
@@ -27133,14 +27251,14 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-focus-choice-filter-suggestions-head strong {
   color: #1f2a3d;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
 .pulso-focus-choice-filter-suggestions-head small {
   color: var(--pulso-text-soft);
   font-size: 10.8px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 
@@ -27190,14 +27308,14 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-focus-choice-filter-suggestion strong {
   color: #1f2a3d;
   font-size: 11.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
 .pulso-focus-choice-filter-suggestion small {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.25;
 }
 
@@ -27211,7 +27329,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: color-mix(in srgb, var(--pulso-primary) 78%, #253149);
   font-family: ui-monospace, monospace;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-choice-filter-chips button,
@@ -27252,7 +27370,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: rgba(255, 255, 255, 0.72);
   color: #667386;
   font-size: 10.4px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
@@ -27265,7 +27383,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: color-mix(in srgb, var(--pulso-primary) 7%, #ffffff);
   color: var(--pulso-primary);
   font-size: 11px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-repeat-builder button:disabled {
@@ -27276,7 +27394,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-focus-constraint-message-guidance span {
   color: var(--pulso-text-soft);
   font-size: 10.7px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 
@@ -27301,7 +27419,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: color-mix(in srgb, var(--pulso-primary) 5%, #ffffff);
   color: color-mix(in srgb, var(--pulso-primary) 82%, #253149);
   font-size: 10.2px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   overflow-wrap: anywhere;
   text-align: left;
@@ -27322,7 +27440,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: var(--pulso-info-fg);
   font-family: ui-monospace, monospace;
   font-size: 10px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   overflow-wrap: anywhere;
 }
 
@@ -27356,7 +27474,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: rgba(255, 255, 255, 0.72);
   color: #667386;
   font-size: 10.4px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
@@ -27402,7 +27520,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: color-mix(in srgb, var(--pulso-primary) 74%, #253149);
   font-family: ui-monospace, monospace;
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -27412,7 +27530,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-focus-name-suggestions span {
   color: #667386;
   font-size: 10px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-focus-overview .pulso-form-canvas {
@@ -27441,7 +27559,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: var(--xls-content);
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   text-align: left;
   transition:
     background-color var(--motion-dur-fast) var(--motion-ease-out),
@@ -27631,7 +27749,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .pulso-xlsform-frame .pulso-outline-title {
   display: block;
   font-size: 12px;
-  font-weight: 690;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.22;
   white-space: nowrap;
   overflow: hidden;
@@ -27807,7 +27925,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
 .pulso-xlsform-frame .pulso-canvas-card-typebadge {
   padding: 2px 8px;
-  font-size: 9.5px;
+  font-size: 10px;
   letter-spacing: 0.2px;
   background: color-mix(in srgb, var(--type-accent-soft, var(--pulso-surface-2)) 74%, #ffffff);
   border-color: color-mix(in srgb, var(--type-accent, var(--pulso-primary)) 34%, var(--xls-border));
@@ -27934,7 +28052,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 830;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.12;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -27966,13 +28084,13 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   background: color-mix(in srgb, var(--pulso-info-bg) 34%, #ffffff);
   color: color-mix(in srgb, var(--pulso-text-soft) 86%, var(--pulso-info-fg));
   font-size: 10.6px;
-  font-weight: 630;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.32;
 }
 
 .pulso-add-element-menu-guidance strong {
   color: var(--pulso-text);
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-add-element-menu-tools {
@@ -28010,7 +28128,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   background: transparent;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 660;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .pulso-add-element-menu-filters {
@@ -28034,7 +28152,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   color: #596679;
   cursor: pointer;
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   transition:
     background-color var(--motion-dur-fast) var(--motion-ease-out),
@@ -28664,7 +28782,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
 .pulso-analitica-source-copy strong {
   font-size: 13px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
 }
 
@@ -28678,7 +28796,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   background: rgba(255, 255, 255, 0.72);
   color: color-mix(in srgb, var(--pulso-text-soft) 88%, var(--pulso-primary));
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .pulso-analitica-source-switch {
@@ -28717,7 +28835,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 253, 0.86)) !important;
   color: var(--pulso-text) !important;
-  font-weight: 760 !important;
+  font-weight: var(--pulso-weight-heavy) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.82),
     0 5px 14px rgba(15, 23, 42, 0.035) !important;
@@ -28745,7 +28863,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
 .pulso-analitica-sidebar-head strong {
   font-size: 13px;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-analitica-nav {
@@ -28811,7 +28929,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
 .pulso-analitica-nav-copy strong {
   font-size: 11.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-analitica-nav-done {
@@ -28904,7 +29022,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     padding: 0;
     border: 0;
     background: transparent;
-    font-size: 9.8px;
+    font-size: 10px;
     line-height: 1.1;
   }
 
@@ -29097,7 +29215,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   padding: 4px 8px;
   border-radius: 999px;
   font-size: 10.2px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
 }
@@ -29179,7 +29297,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
 .pulso-codificacion-panel-copy p {
   font-size: 11.8px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-codificacion-panel-body {
@@ -29246,7 +29364,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 12.5px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.45;
 }
 
@@ -29349,7 +29467,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   line-height: 1.15;
   text-overflow: ellipsis;
@@ -29361,7 +29479,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   margin-left: auto;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1;
   white-space: nowrap;
 }
@@ -29498,14 +29616,14 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 
 .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pill {
   font-size: 11.7px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   padding-inline: clamp(7px, 0.62vw, var(--pill-pad-x));
 }
 
 .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pill-number {
   min-width: 17px;
   height: 17px;
-  font-size: 9.8px;
+  font-size: 10px;
 }
 
 .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pill:hover:not(.is-blocked):not(.is-disabled):not(.is-active) .pulso-phase-pill-circle {
@@ -29631,7 +29749,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 .pulso-processing-prereq-eyebrow {
   color: color-mix(in srgb, var(--pulso-module-processing) 76%, var(--pulso-text-soft));
   font-size: 10px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   line-height: 1;
   text-transform: uppercase;
@@ -29641,7 +29759,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   margin: 0;
   color: var(--pulso-text);
   font-size: clamp(21px, 2vw, 28px);
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.05;
 }
 
@@ -29650,7 +29768,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 13.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.38;
 }
 
@@ -29675,7 +29793,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     linear-gradient(180deg, color-mix(in srgb, var(--pulso-module-processing) 88%, #ffffff), var(--pulso-module-processing));
   color: #ffffff;
   font-size: 12.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   text-decoration: none;
   box-shadow:
@@ -29694,7 +29812,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   gap: 6px;
   color: color-mix(in srgb, var(--pulso-module-processing) 74%, var(--pulso-text-soft));
   font-size: 11.5px;
-  font-weight: 690;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
 }
 
@@ -29756,14 +29874,14 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 .pulso-processing-prereq-step-copy strong {
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.08;
 }
 
 .pulso-processing-prereq-step-copy small {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 590;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.24;
   white-space: normal;
 }
@@ -29771,7 +29889,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 .pulso-processing-prereq-step-index {
   color: color-mix(in srgb, var(--pulso-module-processing) 70%, var(--pulso-text-soft));
   font-size: 10px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -30258,7 +30376,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
       var(--pulso-surface);
     color: var(--pulso-text);
     font-size: 11px;
-    font-weight: 760;
+    font-weight: var(--pulso-weight-heavy);
     line-height: 1.22;
     text-align: left;
     white-space: pre-line;

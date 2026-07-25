@@ -57,7 +57,7 @@
 .dashboard-scope .dash-foda-group-filter span {
   color: var(--dash-texto-suave);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   padding: 0 6px;
   text-transform: uppercase;
   white-space: nowrap;
@@ -71,7 +71,7 @@
   cursor: pointer;
   font: inherit;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   padding: 4px 9px;
   max-width: 170px;
   overflow: hidden;
@@ -114,7 +114,7 @@
 }
 .dashboard-scope .dash-foda-cortes strong {
   color: var(--dash-texto);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 .dashboard-scope .dash-foda-cortes-sep {
   color: var(--dash-borde);
@@ -150,7 +150,7 @@
 .dashboard-scope .dash-foda-count-chip strong {
   color: var(--dash-primario);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   margin-left: 2px;
 }
 
@@ -174,7 +174,7 @@
   color: var(--dash-texto-suave);
   font-size: 10.5px;
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   position: absolute;
   right: 6px;
   transform: translateY(-50%);
@@ -193,7 +193,7 @@
   align-self: center;
   color: var(--dash-texto-suave);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   grid-column: 1;
   grid-row: 1;
   letter-spacing: 0.04em;
@@ -205,7 +205,7 @@
 .dashboard-scope .dash-foda-axis-note {
   color: var(--dash-texto-suave);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.035em;
   pointer-events: none;
   text-transform: uppercase;
@@ -311,7 +311,7 @@
 .dashboard-scope .dash-foda-legacy-area-label {
   color: rgba(32, 50, 77, 0.52);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.05em;
   pointer-events: none;
   position: absolute;
@@ -418,8 +418,8 @@
 .dashboard-scope .dash-foda-legacy-title {
   align-items: center;
   display: flex;
-  font-size: 9px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   justify-content: center;
   line-height: 1;
   min-width: 0;
@@ -483,7 +483,7 @@
 .dashboard-scope .dash-foda-hover-title {
   color: var(--dash-primario);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
   max-width: 190px;
 }
@@ -491,7 +491,7 @@
 .dashboard-scope .dash-foda-hover-group {
   color: var(--dash-texto-muted);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.15;
   max-width: 190px;
   overflow: hidden;
@@ -510,13 +510,13 @@
 
 .dashboard-scope .dash-foda-hover-row span {
   color: var(--dash-texto-muted);
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .dashboard-scope .dash-foda-hover-row strong {
   color: var(--dash-texto);
   font-variant-numeric: tabular-nums;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -532,7 +532,7 @@
 .dashboard-scope .dash-foda-hover-hint {
   border-top: 1px dashed var(--dash-divider);
   color: var(--dash-texto-muted);
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: italic;
   margin-top: 4px;
   padding-top: 4px;
@@ -588,14 +588,14 @@
 .dashboard-scope .dash-foda-detail-head h3 {
   color: var(--dash-primario);
   font-size: 16px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
   margin: 0;
 }
 .dashboard-scope .dash-foda-detail-group {
   color: var(--dash-texto-muted);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   margin: 4px 0 0;
 }
 .dashboard-scope .dash-foda-detail-close {
@@ -630,20 +630,20 @@
 .dashboard-scope .dash-foda-detail-metric span {
   color: var(--dash-texto-muted);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
 }
 .dashboard-scope .dash-foda-detail-metric strong {
   color: var(--dash-primario);
   font-size: 18px;
   font-variant-numeric: tabular-nums;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .dashboard-scope .dash-foda-detail-section-title {
   color: var(--dash-texto);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   margin: 4px 0 0;
 }
 .dashboard-scope .dash-foda-detail-chips {
@@ -666,7 +666,7 @@
 .dashboard-scope .dash-foda-detail-chips strong {
   color: var(--dash-primario);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 .dashboard-scope .dash-foda-detail-help {
   color: var(--dash-texto-muted);
@@ -688,7 +688,7 @@
   border-radius: 3px;
   font-size: calc(9px + 2px * var(--dash-foda-card-scale, 1));
   font-variant-numeric: tabular-nums;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   height: calc(18px + 5px * var(--dash-foda-card-scale, 1));
   justify-content: center;
   min-width: calc(26px + 5px * var(--dash-foda-card-scale, 1));
@@ -721,7 +721,7 @@
 .dashboard-scope .dash-foda-legacy-xtitle {
   color: var(--dash-texto-suave);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   grid-column: 2;
   grid-row: 4;
   letter-spacing: 0.04em;
@@ -804,7 +804,7 @@
   color: var(--dash-primario);
   font-size: 10.5px;
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   padding: 1px 7px;
 }
 
@@ -879,7 +879,7 @@
 .dashboard-scope .dash-foda-lectura-eyebrow {
   color: var(--dash-primario);
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -891,7 +891,7 @@
 }
 .dashboard-scope .dash-foda-lectura-lead strong {
   color: var(--dash-primario);
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 /* Frame — agrupa eje Y, board y eje X en un grid externo.
@@ -917,7 +917,7 @@
 .dashboard-scope .dash-foda-lectura-yaxis-label {
   color: var(--dash-texto);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   left: 4px;
   letter-spacing: 0.06em;
   position: absolute;
@@ -939,8 +939,8 @@
 }
 .dashboard-scope .dash-foda-lectura-yaxis-pole {
   color: var(--dash-texto-suave);
-  font-size: 9.5px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -971,8 +971,8 @@
 }
 .dashboard-scope .dash-foda-lectura-xaxis-pole {
   color: var(--dash-texto-suave);
-  font-size: 9.5px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -990,7 +990,7 @@
 .dashboard-scope .dash-foda-lectura-xaxis-title {
   color: var(--dash-texto);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   grid-column: 2;
   grid-row: 3;
   letter-spacing: 0.06em;
@@ -1045,7 +1045,7 @@
   align-items: flex-start;
   display: flex;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   justify-content: flex-start;
   letter-spacing: 0.04em;
   padding: 10px 14px;
@@ -1196,7 +1196,7 @@
   border-radius: 999px;
   color: #fff;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.05em;
   padding: 4px 12px;
   text-transform: uppercase;

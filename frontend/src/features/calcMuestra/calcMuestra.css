@@ -1,10 +1,5 @@
 .cmv2-frame.pulso-page-frame {
-  --module-accent: var(--pulso-module-sample);
-  --module-accent-soft: var(--pulso-module-sample-soft);
-  --module-accent-border: var(--pulso-module-sample-border);
-  --pulso-primary: var(--pulso-module-sample);
-  --pulso-primary-soft: var(--pulso-module-sample-soft);
-  --pulso-primary-border: var(--pulso-module-sample-border);
+  /* El acento del módulo vive en la tabla de paletas de theme.css. */
   --pulso-primary-focus: color-mix(in srgb, var(--pulso-module-sample) 15%, transparent);
   --pulso-primary-ring: color-mix(in srgb, var(--pulso-module-sample) 12%, transparent);
   --cmv2-accent: var(--pulso-module-sample);
@@ -145,14 +140,14 @@
 .cmv2-toolbar-copy strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.15;
 }
 
 .cmv2-toolbar-copy small {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   line-height: 1.25;
 }
 
@@ -229,7 +224,7 @@
   background: color-mix(in srgb, var(--pulso-surface-2) 88%, #fff 12%);
   color: var(--pulso-text-muted);
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   transition:
     background-color var(--motion-dur-fast) var(--motion-ease-out),
     border-color var(--motion-dur-fast) var(--motion-ease-out),
@@ -254,14 +249,14 @@
 .cmv2-section-pill-copy strong {
   max-width: none;
   font-size: 11.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.05;
 }
 
 .cmv2-section-pill-copy small {
   max-width: 122px;
-  font-size: 9.5px;
-  font-weight: 500;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-medium);
   line-height: 1.05;
   opacity: 0.72;
 }
@@ -417,8 +412,8 @@
 
 .cmv2-command-trip-main small {
   color: color-mix(in srgb, var(--cmv2-accent) 74%, var(--pulso-text-soft));
-  font-size: 9px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0;
   line-height: 1;
   text-transform: uppercase;
@@ -427,7 +422,7 @@
 .cmv2-command-trip-main strong {
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.1;
 }
 
@@ -445,7 +440,7 @@
   gap: 5px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1;
   white-space: nowrap;
 }
@@ -510,7 +505,7 @@
 .cmv2-command-current span {
   color: color-mix(in srgb, var(--cmv2-accent) 76%, var(--pulso-text-soft));
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.1;
   text-transform: uppercase;
 }
@@ -520,7 +515,7 @@
 .cmv2-command-current small {
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.1;
 }
 
@@ -537,7 +532,7 @@
   display: block;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
   text-transform: uppercase;
 }
@@ -547,7 +542,7 @@
   margin-top: 2px;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
 }
 
@@ -594,7 +589,7 @@
 .cmv2-compact-field span {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -610,7 +605,7 @@
   background: var(--cmv2-surface);
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   outline: none;
 }
 
@@ -705,7 +700,7 @@
   white-space: normal;
   color: var(--cmv2-accent-fg);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: .02em;
   text-transform: uppercase;
 }
@@ -721,7 +716,7 @@
   white-space: normal;
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.16;
 }
 
@@ -736,7 +731,7 @@
   white-space: normal;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 
@@ -752,7 +747,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-source-mode-note {
@@ -766,7 +761,7 @@
   background: color-mix(in srgb, var(--cmv2-accent-soft) 34%, #fff);
   color: var(--pulso-text-soft);
   font-size: 11.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.35;
 }
 
@@ -778,7 +773,7 @@
 
 .cmv2-source-mode-note strong {
   color: var(--pulso-text);
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-source-binding-list {
@@ -825,7 +820,7 @@
 .cmv2-source-build > span {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: .02em;
   text-transform: uppercase;
 }
@@ -853,7 +848,7 @@
   background: linear-gradient(180deg, #fff 0%, var(--pulso-surface-2) 100%);
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   text-decoration: none;
   cursor: pointer;
@@ -900,7 +895,7 @@
   overflow: visible;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
   overflow-wrap: anywhere;
   text-overflow: clip;
@@ -916,7 +911,7 @@
   background: color-mix(in srgb, var(--pulso-warn-bg) 68%, #fff);
   color: var(--pulso-warn-fg);
   font-size: 11.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.35;
 }
 
@@ -960,7 +955,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: .02em;
   line-height: 1.2;
   text-transform: uppercase;
@@ -969,7 +964,7 @@
 .cmv2-category-pane-head strong {
   color: var(--cmv2-accent-fg);
   font-size: 14px;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
@@ -1050,7 +1045,7 @@
   overflow-wrap: anywhere;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 920;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
 }
 
@@ -1080,7 +1075,7 @@
   overflow-wrap: anywhere;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
@@ -1140,7 +1135,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -1158,7 +1153,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.2;
 }
 
@@ -1172,7 +1167,7 @@
   background: var(--cmv2-surface);
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   outline: none;
   transition:
     background-color var(--motion-dur-fast) var(--motion-ease-out),
@@ -1243,7 +1238,7 @@
   display: block;
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
@@ -1251,7 +1246,7 @@
   margin: 4px 0 0;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.32;
 }
 
@@ -1260,7 +1255,7 @@
   margin-top: 7px;
   color: var(--pulso-text);
   font-size: 10.5px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.3;
 }
 
@@ -1280,9 +1275,9 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--cmv2-surface);
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   text-transform: uppercase;
 }
@@ -1338,7 +1333,7 @@
   overflow: hidden;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1363,8 +1358,8 @@
 .cmv2-dashboard-funnel-step span {
   min-width: 0;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
   text-transform: uppercase;
   overflow-wrap: anywhere;
@@ -1374,7 +1369,7 @@
 .cmv2-dashboard-funnel-step strong {
   color: var(--pulso-text);
   font-size: 15px;
-  font-weight: 940;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0;
   line-height: 1.1;
 }
@@ -1396,8 +1391,8 @@
 .cmv2-dashboard-funnel-step small {
   min-width: 0;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 780;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -1458,8 +1453,8 @@
   min-width: 0;
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -1470,7 +1465,7 @@
   min-width: 0;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.12;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -1482,7 +1477,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
@@ -1529,7 +1524,7 @@
   display: block;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
@@ -1539,7 +1534,7 @@
   margin-top: 2px;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.3;
 }
 
@@ -1610,7 +1605,7 @@
   min-width: 0;
   color: var(--pulso-text);
   font-size: 10.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.18;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -1636,7 +1631,7 @@
 .cmv2-native-stack-row strong {
   color: var(--pulso-text);
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   text-align: right;
   white-space: nowrap;
@@ -1644,8 +1639,8 @@
 
 .cmv2-native-bar-row small {
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 760;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-size-histogram {
@@ -1690,7 +1685,7 @@
   overflow: hidden;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
   text-align: center;
   text-overflow: ellipsis;
@@ -1700,14 +1695,14 @@
 .cmv2-size-histogram-bin strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.1;
   text-align: center;
 }
 
 .cmv2-size-histogram-bin small {
-  font-size: 9px;
-  font-weight: 760;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-native-legend {
@@ -1723,7 +1718,7 @@
   gap: 5px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-native-legend i {
@@ -1751,9 +1746,9 @@
   overflow: hidden;
   padding: 0 5px;
   color: #fff;
-  font-size: 8.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   line-height: 1;
   text-shadow: 0 1px 1px rgba(15, 23, 42, 0.3);
@@ -1805,8 +1800,8 @@
   min-width: 0;
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 8.5px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: .04em;
   line-height: 1.05;
   text-transform: uppercase;
@@ -1819,7 +1814,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.05;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1858,7 +1853,7 @@
   min-width: 0;
   color: var(--pulso-text);
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.12;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -1867,8 +1862,8 @@
 .cmv2-classroom-sex-label span {
   min-width: 0;
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 760;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.16;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -1892,9 +1887,9 @@
   overflow: hidden;
   padding: 0 6px;
   color: #fff;
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   line-height: 1;
   text-shadow: 0 1px 1px rgba(15, 23, 42, .34);
@@ -1926,15 +1921,15 @@
 .cmv2-classroom-sex-total strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 930;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   white-space: nowrap;
 }
 
 .cmv2-classroom-sex-total span {
   color: var(--pulso-text-soft);
-  font-size: 8.5px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   white-space: nowrap;
 }
@@ -1970,7 +1965,7 @@
   padding: 0 6px;
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   text-align: center;
 }
 
@@ -1992,7 +1987,7 @@
   padding: 0 7px;
   background: color-mix(in srgb, #fff 92%, var(--pulso-bg));
   color: var(--pulso-text);
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   box-shadow: 8px 0 12px rgba(255, 255, 255, 0.82);
   overflow-wrap: anywhere;
   white-space: normal;
@@ -2002,7 +1997,7 @@
   justify-content: center;
   padding: 0 6px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: clip;
@@ -2085,7 +2080,7 @@
   display: block;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: .02em;
   text-transform: uppercase;
 }
@@ -2100,7 +2095,7 @@
   overflow-wrap: anywhere;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
@@ -2113,7 +2108,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 
@@ -2128,7 +2123,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -2174,7 +2169,7 @@
   margin: 0;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-frame-issue-list article {
@@ -2226,7 +2221,7 @@
   color: var(--pulso-text);
   font-size: 10px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-frame-warning-list {
@@ -2261,7 +2256,7 @@
   background: var(--cmv2-surface);
   color: var(--pulso-text);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 
@@ -2278,7 +2273,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 730;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 
@@ -2302,7 +2297,7 @@
   background: var(--cmv2-surface);
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   outline: none;
 }
 
@@ -2360,7 +2355,7 @@
   display: block;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
@@ -2392,7 +2387,7 @@
   display: block;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
   text-transform: uppercase;
 }
@@ -2402,7 +2397,7 @@
   margin-top: 3px;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
@@ -2412,7 +2407,7 @@
   margin-top: 3px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 730;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
 
@@ -2428,7 +2423,7 @@
   background: var(--pulso-info-bg);
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.42;
 }
 
@@ -2452,12 +2447,12 @@
   margin-left: auto;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-classroom-recommendation strong {
   color: var(--cmv2-accent-fg);
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-classroom-method-card:focus-visible,
@@ -2484,7 +2479,7 @@
 .cmv2-subhead strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .cmv2-calc-card-head,
@@ -2501,7 +2496,7 @@
   color: var(--pulso-text);
   font-size: 15px;
   line-height: 1.2;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-results-stack {
@@ -2528,7 +2523,7 @@
   min-height: 28px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 
@@ -2548,7 +2543,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 13px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-formula-box > span,
@@ -2556,7 +2551,7 @@
   display: block;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -2570,7 +2565,7 @@
   min-height: 42px;
   padding: 0 12px;
   font-size: 18px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-primary,
@@ -2584,7 +2579,7 @@
   min-height: 32px;
   border-radius: var(--pulso-radius);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   text-decoration: none;
   cursor: pointer;
@@ -2835,8 +2830,8 @@
 
 .cmv2-section-sidebar-head span {
   color: color-mix(in srgb, var(--cmv2-accent) 76%, var(--pulso-text-soft));
-  font-size: 9.5px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -2845,7 +2840,7 @@
 .cmv2-section-sidebar-head strong {
   color: var(--pulso-text);
   font-size: 13.5px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
 }
 
@@ -2996,7 +2991,7 @@
   min-width: 0;
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.16;
   white-space: nowrap;
   overflow: hidden;
@@ -3068,8 +3063,8 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-muted);
-  font-size: 9px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -3114,7 +3109,7 @@
   background: var(--cmv2-accent-soft);
   color: var(--cmv2-accent-fg);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-busy-label {
@@ -3134,7 +3129,7 @@
   background: color-mix(in srgb, #fff 72%, var(--cmv2-accent-soft) 28%);
   color: var(--cmv2-accent-fg);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   cursor: pointer;
   transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
 }
@@ -3206,7 +3201,7 @@
   color: var(--pulso-text);
   font-size: 24px;
   line-height: 1.15;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
 }
 
@@ -3262,7 +3257,7 @@
   background: color-mix(in srgb, #fff 84%, var(--cmv2-accent-soft) 16%);
   color: var(--cmv2-accent-fg);
   font-size: 10.5px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 
@@ -3288,7 +3283,7 @@
   color: var(--pulso-text-soft);
   font-size: 12px;
   line-height: 1.35;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .cmv2-route-warning strong {
@@ -3296,7 +3291,7 @@
   margin-bottom: 1px;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-pathway-primer {
@@ -3342,8 +3337,8 @@
 .cmv2-pathway-primer small {
   display: block;
   color: var(--cmv2-accent-fg);
-  font-size: 9.5px;
-  font-weight: 920;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.1;
   text-transform: uppercase;
 }
@@ -3353,7 +3348,7 @@
   margin-top: 2px;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.16;
 }
 
@@ -3363,7 +3358,7 @@
   margin-top: 3px;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.26;
 }
 
@@ -3371,7 +3366,7 @@
   display: block;
   color: var(--cmv2-accent-fg);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -3403,7 +3398,7 @@
 .cmv2-frame-grid--routes .cmv2-path-tags span {
   min-height: 20px;
   padding: 0 6px;
-  font-size: 9.5px;
+  font-size: 10px;
 }
 
 .cmv2-card-answers {
@@ -3455,8 +3450,8 @@
 
 .cmv2-card-answers b {
   color: var(--route-accent-fg);
-  font-size: 9.4px;
-  font-weight: 920;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.1;
   text-transform: uppercase;
 }
@@ -3464,7 +3459,7 @@
 .cmv2-card-answers span {
   color: var(--pulso-text);
   font-size: 10.8px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.16;
 }
 
@@ -3472,8 +3467,8 @@
   display: block;
   overflow: visible;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 720;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
   text-transform: none;
 }
@@ -3583,7 +3578,7 @@
   max-width: 100%;
   color: var(--route-accent-fg);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
   white-space: normal;
   overflow-wrap: break-word;
@@ -3594,7 +3589,7 @@
   color: var(--pulso-text);
   font-size: 18px;
   line-height: 1.15;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   white-space: normal;
   overflow-wrap: break-word;
 }
@@ -3625,7 +3620,7 @@
   background: var(--route-accent-fg);
   color: #fff;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   white-space: normal;
 }
 
@@ -3650,7 +3645,7 @@
   background: color-mix(in srgb, var(--route-accent-soft) 64%, #fff);
   color: color-mix(in srgb, var(--route-accent-fg) 68%, var(--pulso-text-soft) 32%);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-reset-confirm {
@@ -3684,7 +3679,7 @@
   display: block;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-reset-confirm p {
@@ -3692,7 +3687,7 @@
   color: var(--pulso-text-soft);
   font-size: 12px;
   line-height: 1.35;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .cmv2-reset-confirm-actions {
@@ -3742,7 +3737,7 @@
   color: var(--pulso-text);
   font-size: 15px;
   line-height: 1.12;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
 }
 
@@ -3753,7 +3748,7 @@
   overflow: visible;
   color: var(--pulso-text-soft);
   font-size: 11.5px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.3;
 }
 
@@ -3825,7 +3820,7 @@
   display: block;
   color: var(--pulso-text);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: -0.01em;
 }
 
@@ -3840,7 +3835,7 @@
   background: color-mix(in srgb, var(--cmv2-accent-soft) 48%, #fff);
   color: var(--cmv2-accent-fg);
   font-size: 10.5px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
   white-space: nowrap;
 }
@@ -3873,7 +3868,7 @@
 .cmv2-param span {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -3891,7 +3886,7 @@
   background: var(--cmv2-surface);
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   outline: none;
 }
 
@@ -3899,7 +3894,7 @@
 .cmv2-panel textarea::placeholder,
 .cmv2-table input::placeholder {
   color: color-mix(in srgb, var(--pulso-text-soft) 72%, transparent);
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .cmv2-form-grid input:focus,
@@ -3961,7 +3956,7 @@
   background: color-mix(in srgb, #ffffff 88%, transparent);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   pointer-events: none;
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
 }
@@ -3992,7 +3987,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -4001,7 +3996,7 @@
   margin-top: 2px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .cmv2-table tr:last-child td {
@@ -4014,7 +4009,7 @@
 
 .cmv2-total-row td {
   background: var(--pulso-surface-2);
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-actor-row {
@@ -4070,7 +4065,7 @@
   display: block;
   color: var(--actor-fg);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
@@ -4080,7 +4075,7 @@
   margin-top: 2px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.25;
 }
 
@@ -4126,7 +4121,7 @@
 .cmv2-number-cell span {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-product {
@@ -4137,7 +4132,7 @@
   padding: 0 7px;
   border-radius: var(--pulso-radius-chip);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.12;
   overflow: visible;
   text-overflow: clip;
@@ -4178,7 +4173,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-nested-output {
@@ -4191,7 +4186,7 @@
   margin: 0 0 6px;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-mini-table {
@@ -4213,14 +4208,14 @@
 .cmv2-mini-table strong {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-mini-table em {
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .cmv2-scenario-grid,
@@ -4293,7 +4288,7 @@
   gap: 5px;
   color: var(--cmv2-accent-fg);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -4307,7 +4302,7 @@
   color: var(--pulso-text);
   font-size: 13px;
   line-height: 1.2;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-scenario p,
@@ -4320,7 +4315,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   line-height: 1.35;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   overflow-wrap: anywhere;
   white-space: normal;
 }
@@ -4369,7 +4364,7 @@
   gap: 5px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 
@@ -5372,7 +5367,7 @@
 /* Valor grande, label chico: jerarquía clara de las stat-cards */
 .cmv2-frame .cmv2-metric strong {
   font-size: 17px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.01em;
   line-height: 1.12;
 }
@@ -5560,7 +5555,7 @@
       var(--pulso-surface);
     color: var(--pulso-text);
     font-size: 11px;
-    font-weight: 720;
+    font-weight: var(--pulso-weight-bold);
     line-height: 1.26;
     text-align: left;
     white-space: pre-line;

@@ -319,7 +319,7 @@ function PreguntaChip({
         </code>
         <span
           style={{
-            fontSize: 9, fontWeight: 700,
+            fontSize: 10, fontWeight: 700,
             textTransform: "uppercase", letterSpacing: 0.4,
             padding: "1px 6px", borderRadius: 4,
             background: ts.bg, color: ts.fg,
@@ -341,7 +341,7 @@ function PreguntaChip({
       </div>
       <div
         style={{
-          fontSize: 9, fontWeight: 600,
+          fontSize: 10, fontWeight: 600,
           textTransform: "uppercase", letterSpacing: 0.3,
           color: isTarget ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
         }}

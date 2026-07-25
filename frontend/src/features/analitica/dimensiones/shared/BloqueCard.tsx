@@ -122,7 +122,7 @@ export function BloqueCard({
         <div style={{ flex: 1, minWidth: 0 }}>
           <span
             style={{
-              fontSize: 9,
+              fontSize: 10,
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: 0.4,

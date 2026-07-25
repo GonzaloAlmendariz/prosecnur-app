@@ -35,7 +35,7 @@
 .rec-cabecera-titulo h2 {
   margin: 0;
   font-size: 18px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: -0.01em;
   color: var(--pulso-text);
 }
@@ -55,7 +55,7 @@
 
 .rec-cabecera-perfil {
   font-size: 11.5px;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-module-sample);
   background: var(--pulso-module-sample-soft);
   border: 1px solid var(--pulso-module-sample-border);
@@ -75,7 +75,7 @@
 
 .rec-badge-ejemplo {
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.08em;
   color: var(--pulso-accent-amber);
   border: 1px solid color-mix(in srgb, var(--pulso-accent-amber) 45%, transparent);
@@ -116,8 +116,8 @@
 
 .rec-resumen-context-title small {
   color: var(--cmv2-accent-fg);
-  font-size: 9px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -125,7 +125,7 @@
 .rec-resumen-context-title strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .rec-resumen-meta {
@@ -205,8 +205,8 @@
 .rec-resumen-item small {
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 9px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.035em;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -217,7 +217,7 @@
 .rec-resumen-item strong {
   color: var(--pulso-text);
   font-size: 17px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.08;
   font-variant-numeric: tabular-nums;
 }
@@ -237,7 +237,7 @@
 .rec-resumen-item-copy > span {
   overflow: hidden;
   color: var(--pulso-text-muted);
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -289,14 +289,14 @@
   align-items: baseline;
   gap: 10px;
   font-size: 14.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: -0.005em;
   color: var(--pulso-text);
 }
 
 .rec-bloque-contador {
   font-size: 11.5px;
-  font-weight: 550;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-faint);
   font-variant-numeric: tabular-nums;
 }
@@ -365,8 +365,8 @@
 
 .rec-cobertura-resumen dt {
   color: var(--pulso-text-muted);
-  font-size: 9.5px;
-  font-weight: 650;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.055em;
   text-transform: uppercase;
 }
@@ -374,7 +374,7 @@
 .rec-cobertura-resumen dd {
   color: var(--pulso-text);
   font-size: 16px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
   line-height: 1.15;
   white-space: nowrap;
@@ -393,7 +393,7 @@
   background: none;
   padding: 0;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-module-sample);
   cursor: pointer;
 }
@@ -445,7 +445,7 @@
   background: none;
   padding: 8px 11px;
   font-size: 12px;
-  font-weight: 550;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-soft);
   cursor: pointer;
 }
@@ -479,7 +479,7 @@
 .rec-sello {
   display: inline-block;
   font-size: 10.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.02em;
   border-radius: 999px;
   padding: 2px 8px;
@@ -522,7 +522,7 @@
   gap: 5px;
   padding: 4px 0 4px 8px;
   font-size: 11.5px;
-  font-weight: 550;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-accent-rose);
 }
 
@@ -559,7 +559,7 @@
 
 .rec-embudo-label {
   font-size: 12.5px;
-  font-weight: 550;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text);
   display: flex;
   align-items: baseline;
@@ -570,14 +570,14 @@
 .rec-embudo-resultado {
   font-style: normal;
   font-size: 10.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.06em;
   color: var(--pulso-module-sample);
 }
 
 .rec-embudo-cifra {
   font-size: 15px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
   display: flex;
@@ -588,7 +588,7 @@
 
 .rec-embudo-cifra small {
   font-size: 10.5px;
-  font-weight: 450;
+  font-weight: var(--pulso-weight-regular);
   color: var(--pulso-text-faint);
 }
 
@@ -708,7 +708,7 @@
 
 .rec-barras-valor {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
   text-align: right;
@@ -746,7 +746,7 @@
   align-items: end;
   padding: 0 4px 2px;
   color: var(--pulso-text-faint);
-  font-size: 9.5px;
+  font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -763,7 +763,7 @@
 
 .rec-barras[data-variante="cobertura"] .rec-barras-nombre {
   font-size: 12.5px;
-  font-weight: 550;
+  font-weight: var(--pulso-weight-medium);
 }
 
 .rec-barras[data-variante="cobertura"] .rec-barras-pista {
@@ -785,7 +785,7 @@
 
 .rec-barras[data-variante="cobertura"] .rec-barras-valor {
   font-size: 12.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .rec-factible {
@@ -793,7 +793,7 @@
   align-items: center;
   gap: 4px;
   color: var(--pulso-accent-amber);
-  font-weight: 550;
+  font-weight: var(--pulso-weight-medium);
 }
 
 .rec-factible[data-ok] {
@@ -886,7 +886,7 @@
 
 .rec-dist-value {
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
   text-align: right;
@@ -913,7 +913,7 @@
 .rec-criterios-grupo h4 {
   margin: 0 0 10px;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--pulso-text-faint);
@@ -953,7 +953,7 @@
 
 .rec-criterio header strong {
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   flex: 1;
 }
@@ -965,7 +965,7 @@
   height: 20px;
   border-radius: 7px;
   font-size: 11px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-module-sample);
   background: var(--pulso-module-sample-soft);
   flex: none;
@@ -1008,7 +1008,7 @@
 .rec-criterio-impacto dt {
   min-width: 64px;
   color: var(--pulso-text-faint);
-  font-weight: 550;
+  font-weight: var(--pulso-weight-medium);
 }
 
 .rec-criterio-impacto dd {
@@ -1021,7 +1021,7 @@
   align-items: center;
   gap: 4px;
   color: var(--pulso-accent-rose);
-  font-weight: 550;
+  font-weight: var(--pulso-weight-medium);
 }
 
 /* Pista al switch maestro 44×24 (`.pulso-switch`, theme.css). El encendido
@@ -1085,7 +1085,7 @@
   display: inline-block;
   font-style: normal;
   font-size: 10px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.03em;
   color: var(--pulso-module-sample);
   background: var(--pulso-module-sample-soft);
@@ -1153,7 +1153,7 @@
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  font-weight: 550;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text);
   background: var(--pulso-surface-3);
   border: 1px solid var(--pulso-border);
@@ -1250,7 +1250,7 @@
 .rec-niveles-head {
   background: var(--pulso-surface-2);
   border-bottom: 1px solid var(--pulso-border);
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-faint);
   font-size: 11px;
   letter-spacing: 0.03em;
@@ -1268,7 +1268,7 @@
 
 .rec-niveles-rango {
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-module-sample);
 }
 
@@ -1303,7 +1303,7 @@
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  font-weight: 550;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-faint);
   background: var(--pulso-surface);
   border: 1px solid var(--pulso-border);
@@ -1353,7 +1353,7 @@
 
 .rec-formula-control-label {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
 }
@@ -1384,7 +1384,7 @@
   background: none;
   padding: 4px 12px;
   font-size: 12px;
-  font-weight: 550;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-soft);
   cursor: pointer;
 }
@@ -1432,7 +1432,7 @@
   flex-direction: column;
   gap: 4px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--pulso-text-faint);
@@ -1441,7 +1441,7 @@
 .rec-ndiseno input {
   width: 150px;
   font-size: 14px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1507,14 +1507,14 @@
 .rec-escenario-card h4 {
   margin: 0;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
 .rec-escenario-cifra {
   margin: 0;
   font-size: 16px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-module-sample);
 }
@@ -1563,7 +1563,7 @@
 .rec-e2-head {
   background: var(--pulso-surface-2);
   font-size: 10.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--pulso-text-faint);
@@ -1571,7 +1571,7 @@
 
 .rec-e2-total {
   background: var(--pulso-surface-2);
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 /* ---------- Bolsa (segmented grande) ---------- */
@@ -1612,7 +1612,7 @@
 
 .rec-segmented-bolsa span {
   font-size: 15px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-module-sample);
 }
@@ -1649,7 +1649,7 @@
   flex-direction: column;
   gap: 5px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--pulso-text-faint);
@@ -1690,7 +1690,7 @@
 .rec-editor-head {
   background: var(--pulso-surface-2);
   font-size: 10.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--pulso-text-faint);
@@ -1703,7 +1703,7 @@
 }
 
 .rec-editor-n {
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .rec-editor-borrar {
@@ -1748,7 +1748,7 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  font-weight: 550;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-faint);
   border: 1px solid var(--pulso-border);
   border-radius: 999px;
@@ -1816,7 +1816,7 @@
   padding: 8px 14px;
   cursor: pointer;
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 

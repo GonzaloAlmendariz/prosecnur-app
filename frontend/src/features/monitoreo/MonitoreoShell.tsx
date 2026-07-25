@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import type { ComponentType, CSSProperties } from "react";
-import { AlertCircle, Activity } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { LoadingBlock } from "../../components/States";
 import { apiMonitoreoState, type MonitoreoState } from "../../api/client";
 import { MODULE_TONES } from "../../lib/modules";
@@ -14,16 +14,13 @@ function familyFromState(state: MonitoreoState | null): MonitoreoFamilyId {
   ) ?? "acreditacion";
 }
 
+/* Usa la primitiva compartida: antes era una tarjeta propia con ícono y dos
+ * líneas, así que la misma espera se veía distinta según por dónde entraras
+ * —anillo en el arranque, tarjeta acá, bloque en el resto de los módulos—. */
 function ShellFallback({ label = "Preparando monitoreo" }: { label?: string }) {
   return (
     <div className="mon-shell-fallback" style={MODULE_TONES.monitoreo as CSSProperties}>
-      <div className="mon-shell-fallback__mark" aria-hidden="true">
-        <Activity size={20} />
-      </div>
-      <div>
-        <strong>{label}</strong>
-        <span>Preparando la vista del proyecto...</span>
-      </div>
+      <LoadingBlock label={label} />
     </div>
   );
 }

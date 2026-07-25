@@ -61,7 +61,7 @@ function formatDataLine(label: string, value: string, compact: boolean): React.R
       lineHeight: 1.1,
       overflow: "hidden",
     }}>
-      <span style={{ flex: "0 0 auto", fontWeight: 740, color: "color-mix(in srgb, var(--pulso-primary) 58%, var(--pulso-text-soft))" }}>{label}</span>
+      <span style={{ flex: "0 0 auto", fontWeight: 700, color: "color-mix(in srgb, var(--pulso-primary) 58%, var(--pulso-text-soft))" }}>{label}</span>
       <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</span>
     </div>
   );
@@ -162,7 +162,7 @@ function SlotBox({ slot, label, compact = false }: { slot: GraficadorRef | null 
         color: "var(--pulso-text-soft)", fontSize: compact ? 8.5 : 10, padding: compact ? "0.22rem" : "0.4rem",
       }}>
         <span>Sin gráfico</span>
-        {slotLabel && <span style={{ marginTop: compact ? 1 : 2, fontWeight: 650 }}>{slotLabel}</span>}
+        {slotLabel && <span style={{ marginTop: compact ? 1 : 2, fontWeight: 600 }}>{slotLabel}</span>}
       </div>
     );
   }
@@ -183,7 +183,7 @@ function SlotBox({ slot, label, compact = false }: { slot: GraficadorRef | null 
         <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: compact ? 18 : 24, height: compact ? 18 : 24, borderRadius: compact ? 5 : 7, background: "color-mix(in srgb, var(--pulso-primary-soft) 78%, #ffffff)", boxShadow: "inset 0 0 0 1px var(--pulso-primary-border)" }}>
           <GrafIcon name={graficador} size={compact ? 13 : 16} />
         </span>
-        {slotLabel && <span style={{ fontSize: compact ? 7.6 : 8.6, color: "var(--pulso-primary)", fontWeight: 780, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginLeft: 4, padding: compact ? "1px 4px" : "2px 6px", border: "1px solid var(--pulso-primary-border)", borderRadius: 999, background: "rgba(255,255,255,0.72)" }}>{slotLabel}</span>}
+        {slotLabel && <span style={{ fontSize: compact ? 7.6 : 8.6, color: "var(--pulso-primary)", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginLeft: 4, padding: compact ? "1px 4px" : "2px 6px", border: "1px solid var(--pulso-primary-border)", borderRadius: 999, background: "rgba(255,255,255,0.72)" }}>{slotLabel}</span>}
       </div>
       <div style={{ fontSize: compact ? 9.5 : 11, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", letterSpacing: 0 }}>
         {graphLabel}

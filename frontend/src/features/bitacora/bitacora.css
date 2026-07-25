@@ -61,7 +61,7 @@
 .bitacora-command-kicker {
   color: var(--bitacora-accent);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.07em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -232,7 +232,7 @@
 .bcal-title {
   margin-left: 4px;
   font-size: 16px;
-  font-weight: 770;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.01em;
   text-transform: capitalize;
 }
@@ -259,7 +259,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   font-size: 12.5px;
-  font-weight: 660;
+  font-weight: var(--pulso-weight-bold);
   cursor: pointer;
   transition: background var(--motion-dur-fast) ease, color var(--motion-dur-fast) ease;
 }
@@ -284,7 +284,7 @@
   gap: 6px;
   color: var(--pulso-text-soft);
   font-size: 11.5px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .bcal-swatch {
@@ -315,7 +315,7 @@
   padding: 7px 10px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -355,7 +355,7 @@
   border-radius: 999px;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .bcal-day.is-out .bcal-daynum { color: var(--pulso-text-faint); opacity: 0.55; }
@@ -363,7 +363,7 @@
 .bcal-day.is-today .bcal-daynum {
   background: var(--module-accent, var(--pulso-primary));
   color: #fff;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .bcal-more {
@@ -372,7 +372,7 @@
   right: 6px;
   color: var(--pulso-text-faint);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .bcal-events {
@@ -395,7 +395,7 @@
   background: color-mix(in srgb, var(--cat, var(--pulso-primary)) 15%, var(--pulso-surface));
   color: color-mix(in srgb, var(--cat, var(--pulso-primary)) 74%, var(--pulso-text));
   font-size: 11.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   cursor: grab;
   pointer-events: auto;
   overflow: hidden;
@@ -408,7 +408,7 @@
 .bcal-event.is-dragging { opacity: 0.4; }
 
 /* flex 0 0 auto: sin esto la hora se comprime y queda pegada al título. */
-.bcal-event-time { flex: 0 0 auto; font-weight: 760; opacity: 0.85; }
+.bcal-event-time { flex: 0 0 auto; font-weight: var(--pulso-weight-heavy); opacity: 0.85; }
 
 .bcal-event-label {
   overflow: hidden;
@@ -470,7 +470,7 @@
 .bcal-week-dow {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -482,7 +482,7 @@
   height: 26px;
   border-radius: 999px;
   font-size: 15px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .bcal-week-day.is-today .bcal-week-date {
@@ -503,7 +503,7 @@
   padding: 0 8px;
   color: var(--pulso-text-faint);
   font-size: 10px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .bcal-allday-cell {
@@ -522,7 +522,7 @@
   background: color-mix(in srgb, var(--cat, var(--pulso-primary)) 15%, var(--pulso-surface));
   color: color-mix(in srgb, var(--cat, var(--pulso-primary)) 74%, var(--pulso-text));
   font-size: 11px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   text-align: left;
   cursor: grab;
   touch-action: none;
@@ -553,7 +553,7 @@
   right: 8px;
   color: var(--pulso-text-faint);
   font-size: 10.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   background: var(--pulso-surface);
   padding: 0 2px;
 }
@@ -592,11 +592,11 @@
 .bcal-timed:active { cursor: grabbing; }
 .bcal-timed.is-dragging { opacity: 0.4; }
 
-.bcal-timed-time { font-size: 10.5px; font-weight: 760; opacity: 0.9; }
+.bcal-timed-time { font-size: 10.5px; font-weight: var(--pulso-weight-heavy); opacity: 0.9; }
 
 .bcal-timed-label {
   font-size: 11.5px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -626,7 +626,7 @@
   color: var(--module-accent, var(--pulso-primary));
 }
 
-.bcal-empty strong { font-size: 15px; font-weight: 760; }
+.bcal-empty strong { font-size: 15px; font-weight: var(--pulso-weight-heavy); }
 .bcal-empty p { margin: 0; max-width: 44ch; color: var(--pulso-text-soft); font-size: 13px; line-height: 1.5; }
 
 .bcal-empty-actions {
@@ -649,7 +649,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   box-shadow: 0 12px 30px rgba(0, 20, 50, 0.28);
   pointer-events: none;
   white-space: nowrap;
@@ -680,7 +680,7 @@
   margin-bottom: 8px;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .bcal-tray-head span {
@@ -717,14 +717,14 @@
 .bcal-tray-item span {
   color: var(--pulso-text-faint);
   font-size: 10.5px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .bcal-tray-item strong {
   font-size: 12.5px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .bcal-tray-item.is-done { border-left-color: var(--pulso-success-fg); }
@@ -758,14 +758,14 @@
 
 .bcal-modal-head strong {
   font-size: 15px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .bcal-modal label {
   display: grid;
   gap: 5px;
   font-size: 12px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
 }
 

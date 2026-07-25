@@ -184,7 +184,7 @@ export function VariableSelect({
                         {v.label || <em>(sin etiqueta)</em>}
                       </span>
                     </div>
-                    <span style={{ fontSize: 9, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
                       {v.tipo}
                     </span>
                   </button>
