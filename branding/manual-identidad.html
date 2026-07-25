@@ -10,8 +10,8 @@
   --bk-warn:#d97706; --bk-warn-bg:#fff4e0; --bk-warn-fg:#8a5000;
   --bk-danger:#be123c; --bk-danger-bg:#fef2f2; --bk-danger-fg:#991b1b;
   --bk-repeat:#c95f20; --bk-repeat-bg:#fdeede; --bk-repeat-fg:#9a4913;
-  --bk-mod-editor:#6d5dfc; --bk-mod-proc:#0f766e; --bk-mod-dash:#2563eb; --bk-mod-rutas:#c2410c;
-  --bk-mod-muestra:#7c3aed; --bk-mod-bitacora:#a16207; --bk-mod-recop:#106e8c; --bk-mod-monitoreo:#be123c;
+  --bk-mod-editor:#7172c1; --bk-mod-proc:#0f766e; --bk-mod-dash:#4a6eb6; --bk-mod-rutas:#ac563b;
+  --bk-mod-muestra:#7260ae; --bk-mod-bitacora:#a16207; --bk-mod-recop:#106e8c; --bk-mod-monitoreo:#a0464e;
   --bk-focus:rgba(0,36,87,.15); --bk-navy-soft:rgba(0,36,87,.08); --bk-navy-border:rgba(0,36,87,.18);
   --bk-radius:10px; --bk-radius-card:14px; --bk-radius-panel:16px; --bk-radius-lens:20px; --bk-radius-chip:999px;
   --bk-ctrl-h:28px; --bk-ctrl-h-lg:36px; --bk-ctrl-weight:500;
@@ -72,7 +72,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
 .bb-ch{padding:72px 0 8px}
 .bb-ch-head{max-width:62ch;margin-bottom:36px}
 .bb-ch-num{font-family:var(--bk-mono);font-size:12px;font-weight:500;color:var(--bk-signal);letter-spacing:.08em}
-.bb-ch h2{font-size:28px;font-weight:680;letter-spacing:-0.015em;line-height:1.2;margin:6px 0 10px;text-wrap:balance}
+.bb-ch h2{font-size:28px;font-weight:800;letter-spacing:-0.015em;line-height:1.2;margin:6px 0 10px;text-wrap:balance}
 .bb-ch-lede{font-size:15px;color:var(--bk-ink-soft);margin:0}
 .bb-card{background:var(--bk-paper);border:1px solid var(--bk-border);border-radius:var(--bk-radius-panel);
   padding:24px;box-shadow:var(--bk-shadow-low)}
@@ -139,7 +139,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
 .bb-type-sample{flex:1 1 320px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bb-type-spec{font-family:var(--bk-mono);font-size:11px;color:var(--bk-ink-faint);flex:none;width:220px}
 .bb-stack-card{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
-.bb-num-demo{display:flex;gap:40px;flex-wrap:wrap;font-size:22px;font-weight:640}
+.bb-num-demo{display:flex;gap:40px;flex-wrap:wrap;font-size:22px;font-weight:700}
 .bb-num-demo .bb-cap{display:block;font-family:var(--bk-mono);font-size:11px;font-weight:400;color:var(--bk-ink-faint);margin-top:4px}
 
 /* ===== 04 Espaciado ===== */
@@ -181,7 +181,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
       <rect class="bb-bar" x="45" y="16" width="7" height="32" rx="3.5" fill="#002457"/>
     </svg>
     <div>
-      <p class="bb-hero-kicker">Manual de identidad visual · v1.2 · Julio 2026</p>
+      <p class="bb-hero-kicker">Manual de identidad visual · v1.3 · Julio 2026</p>
       <h1>Prosecnur</h1>
       <p class="bb-hero-sub">La señal ordenada: el pulso crudo del campo convertido en evidencia
         ordenada y defendible. Suite analítica de PULSO PUCP — Instituto de Analítica Social e
@@ -490,6 +490,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
         <h3 class="bb-h3">Espectro modular</h3>
         <p class="bb-spec">Cada módulo tiñe su chrome —dock, cards, rail—, nunca el contenido; el resto de la pantalla permanece frío</p>
         <div class="bb-mod-grid" id="bb-modules"><!-- generado por JS --></div>
+        <p class="bb-spec" style="margin:16px 0 0">Techo de croma <strong>0.12 en OKLCH</strong>: el tono de cada módulo es suyo y no se toca; lo que se acota es cuánta saturación puede gastar. Sin el techo, el croma iba de 0.086 (teal de Procesamiento) a 0.247 (violeta de Cálculo de muestra) —casi el triple—, y el mismo elemento se sentía sobrio en un módulo y estridente en otro; con él, el rango cae a 1.4×. Procesamiento, Bitácora y Fichas QR ya estaban en el techo o por debajo y conservan su hex exacto. Un techo más bajo se descartó con evidencia: a 0.090 el carmesí de Monitoreo cae en <code class="bb-code">#945155</code>, que se lee marrón sucio. El croma no se iguala, se acota.</p>
       </div>
 
     </div>
@@ -513,8 +514,8 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
         <h3 class="bb-h3">Escala</h3>
         <p class="bb-spec">tamaño / interlínea / peso — la escala completa del producto</p>
         <div>
-          <div class="bb-type-row"><div class="bb-type-sample" style="font-size:28px;line-height:1.2;font-weight:680;letter-spacing:-.015em">Avance de campo por distrito</div><div class="bb-type-spec">Display · 28 / 1.2 / 680</div></div>
-          <div class="bb-type-row"><div class="bb-type-sample" style="font-size:22px;line-height:1.25;font-weight:640;letter-spacing:-.01em">Muestra de aulas seleccionada</div><div class="bb-type-spec">Título · 22 / 1.25 / 640</div></div>
+          <div class="bb-type-row"><div class="bb-type-sample" style="font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-.015em">Avance de campo por distrito</div><div class="bb-type-spec">Display · 28 / 1.2 / 800 heavy</div></div>
+          <div class="bb-type-row"><div class="bb-type-sample" style="font-size:22px;line-height:1.25;font-weight:700;letter-spacing:-.01em">Muestra de aulas seleccionada</div><div class="bb-type-spec">Título · 22 / 1.25 / 700 bold</div></div>
           <div class="bb-type-row"><div class="bb-type-sample" style="font-size:17px;line-height:1.3;font-weight:600">Criterios de selección del marco</div><div class="bb-type-spec">Sección · 17 / 1.3 / 600</div></div>
           <div class="bb-type-row"><div class="bb-type-sample" style="font-size:15px;line-height:1.55">La base procesable reúne 1,283 casos válidos tras aplicar los filtros de consistencia.</div><div class="bb-type-spec">Cuerpo · 15 / 1.55 / 400</div></div>
           <div class="bb-type-row"><div class="bb-type-sample" style="font-size:15px;line-height:1.55;font-weight:500">Guardar y continuar con la validación</div><div class="bb-type-spec">Cuerpo medio · 15 / 1.55 / 500</div></div>
@@ -529,7 +530,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
           <h3 class="bb-h3">Principal</h3>
           <p class="bb-spec">UI, prosa, títulos</p>
           <p class="bb-code" style="display:block;padding:10px 12px;font-size:12px;line-height:1.6">-apple-system, BlinkMacSystemFont,<br>"Segoe UI", system-ui, sans-serif</p>
-          <p style="font-size:13px;color:var(--bk-ink-soft);margin:12px 0 0">Pesos: 400 prosa · 500 controles (600 en Windows) · 600 secciones · 640–680 títulos · 800 wordmark.</p>
+          <p style="font-size:13px;color:var(--bk-ink-soft);margin:12px 0 0">Escala de peso: seis escalones y nada entre medio — <strong>400</strong> regular (prosa) · <strong>500</strong> medium (controles; 600 en Windows) · <strong>600</strong> semibold (secciones) · <strong>700</strong> bold (títulos) · <strong>800</strong> heavy (display y wordmark) · <strong>900</strong> black (KPIs y microetiquetas). Se escriben siempre como token —<code class="bb-code">--pulso-weight-*</code> dentro de la app, <code class="bb-code">--prosecnur-type-*-weight</code> fuera—, nunca como literal; los intermedios (570, 640, 680, 770, 910…) están prohibidos. Piso de tamaño: 10&nbsp;px en UI, con print y etiquetas dentro de SVG como únicas excepciones.</p>
         </div>
         <div class="bb-card">
           <h3 class="bb-h3">Secundaria · datos</h3>
@@ -652,36 +653,36 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
       </div>
 
       <div class="bb-card">
-        <h3 class="bb-h3">Anatomía del mini-app</h3>
-        <p class="bb-spec">Cada módulo es una pequeña app de escritorio con cinco capas; nunca se aplanan en una sola barra o un solo sidebar</p>
+        <h3 class="bb-h3">Anatomía del módulo</h3>
+        <p class="bb-spec">Cinco niveles de navegación y ni uno más; UI nueva se cuelga de uno de ellos y jamás duplica la navegación de otro (ADR 0043→0044)</p>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px">
           <div style="border:1px solid var(--bk-border);border-radius:12px;padding:14px 16px;background:var(--bk-ice)">
-            <div style="font-size:12px;font-weight:600;color:var(--bk-signal)">Capa 1</div>
-            <div style="font-size:14px;font-weight:600;margin-top:2px">Comando</div>
-            <div style="font-size:12px;color:var(--bk-ink-soft);margin-top:4px">Command bar material de 3 zonas: contexto · rail · acciones. Sin H1 visible: la identidad vive aquí.</div>
+            <div style="font-size:12px;font-weight:600;color:var(--bk-signal)">Nivel 1</div>
+            <div style="font-size:14px;font-weight:600;margin-top:2px">Módulo</div>
+            <div style="font-size:12px;color:var(--bk-ink-soft);margin-top:4px">Homepage propia y paleta propia. Es el único nivel que vive en la ruta: <code class="bb-code">/procesamiento</code>, <code class="bb-code">/monitoreo</code>…</div>
           </div>
           <div style="border:1px solid var(--bk-border);border-radius:12px;padding:14px 16px;background:var(--bk-ice)">
-            <div style="font-size:12px;font-weight:600;color:var(--bk-signal)">Capa 2</div>
-            <div style="font-size:14px;font-weight:600;margin-top:2px">Secciones</div>
-            <div style="font-size:12px;color:var(--bk-ink-soft);margin-top:4px">Rail centrado tipo pillbar para las secciones primarias (Carga, Validación, Analítica…).</div>
+            <div style="font-size:12px;font-weight:600;color:var(--bk-signal)">Nivel 2</div>
+            <div style="font-size:14px;font-weight:600;margin-top:2px">Modo</div>
+            <div style="font-size:12px;color:var(--bk-ink-soft);margin-top:4px">Opcional. Reescribe el juego de secciones completo y lo determina el estudio, no un click del usuario. Hoy solo Monitoreo y Cálculo de muestra lo tienen.</div>
           </div>
           <div style="border:1px solid var(--bk-border);border-radius:12px;padding:14px 16px;background:var(--bk-ice)">
-            <div style="font-size:12px;font-weight:600;color:var(--bk-signal)">Capa 3</div>
-            <div style="font-size:14px;font-weight:600;margin-top:2px">Objetos</div>
-            <div style="font-size:12px;color:var(--bk-ink-soft);margin-top:4px">Sidebar/outline compacto para inventarios largos y pestañas dinámicas: siempre comprimido (solo íconos) con burbuja flotante en hover — incluida la activa — y título compacto de la pestaña al inicio del workbench.</div>
+            <div style="font-size:12px;font-weight:600;color:var(--bk-signal)">Nivel 3</div>
+            <div style="font-size:14px;font-weight:600;margin-top:2px">Sección</div>
+            <div style="font-size:12px;color:var(--bk-ink-soft);margin-top:4px">Top bar del módulo, rail centrado tipo pillbar. En Procesamiento: Carga, Validación, Codificación, Analítica, Gráficos.</div>
           </div>
           <div style="border:1px solid var(--bk-border);border-radius:12px;padding:14px 16px;background:var(--bk-ice)">
-            <div style="font-size:12px;font-weight:600;color:var(--bk-signal)">Capa 4</div>
-            <div style="font-size:14px;font-weight:600;margin-top:2px">Tabs locales</div>
-            <div style="font-size:12px;color:var(--bk-ink-soft);margin-top:4px">Pestañas compactas o segmented dentro de la sección activa.</div>
+            <div style="font-size:12px;font-weight:600;color:var(--bk-signal)">Nivel 4</div>
+            <div style="font-size:14px;font-weight:600;margin-top:2px">Pestaña</div>
+            <div style="font-size:12px;color:var(--bk-ink-soft);margin-top:4px">Rail de pestañas dentro de la sección activa. Para inventarios largos —reglas, variables, rutas— un sidebar/outline comprimido lista los objetos: es superficie, no un nivel de navegación.</div>
           </div>
           <div style="border:1px solid var(--bk-border);border-radius:12px;padding:14px 16px;background:var(--bk-ice)">
-            <div style="font-size:12px;font-weight:600;color:var(--bk-signal)">Capa 5</div>
-            <div style="font-size:14px;font-weight:600;margin-top:2px">Inspector</div>
-            <div style="font-size:12px;color:var(--bk-ink-soft);margin-top:4px">Propiedades contextuales del objeto seleccionado; edita, no navega.</div>
+            <div style="font-size:12px;font-weight:600;color:var(--bk-signal)">Nivel 5</div>
+            <div style="font-size:14px;font-weight:600;margin-top:2px">Panel</div>
+            <div style="font-size:12px;color:var(--bk-ink-soft);margin-top:4px">Popover, sideover, diálogo o inspector. Muestra las propiedades del objeto seleccionado: edita, no navega.</div>
           </div>
         </div>
-        <p class="bb-spec" style="margin:14px 0 0">Vocabulario de navegación: <strong>Familia/Módulo → Sección → Pestaña dinámica</strong>. El rail de secciones puede convivir con el sidebar: el rail cambia secciones, el sidebar lista objetos dentro de la sección activa.</p>
+        <p class="bb-spec" style="margin:14px 0 0">Vocabulario oficial: <strong>Módulo → Modo → Sección → Pestaña → Panel</strong>. Y toda vista es enlazable: la ruta nombra el módulo, el query nombra el resto —<code class="bb-code">/monitoreo?modo=territorial&amp;seccion=avance&amp;pestana=ump&amp;panel=filtros</code>—, con <code class="bb-code">foco</code> como parámetro ortogonal para la entidad seleccionada. Los nombres viejos (<code class="bb-code">family</code>, <code class="bb-code">tab</code>, <code class="bb-code">stage</code>, <code class="bb-code">step</code>…) se leen como alias, pero nunca se escriben.</p>
       </div>
 
     </div>
@@ -701,7 +702,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
 /* ---------- Cabecera de sección ---------- */
 .c-head{margin-bottom:32px}
 .c-kicker{margin:0 0 8px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--bk-ink-faint)}
-.c-title{margin:0;font-size:22px;line-height:1.25;font-weight:640;letter-spacing:-.01em;color:var(--bk-navy)}
+.c-title{margin:0;font-size:22px;line-height:1.25;font-weight:700;letter-spacing:-.01em;color:var(--bk-navy)}
 .c-lead{margin:8px 0 0;font-size:14px;line-height:1.55;color:var(--bk-ink-soft);max-width:640px}
 
 /* ---------- Tarjeta de bloque ---------- */
@@ -3284,7 +3285,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
 #pantallas .p-appbar-proj{position:absolute;left:50%;transform:translateX(-50%);font-size:12px;color:var(--bk-ink-soft);white-space:nowrap}
 #pantallas .p-avatar{margin-left:auto;width:22px;height:22px;border-radius:var(--bk-radius-chip);background:var(--bk-navy-soft);color:var(--bk-navy);font-size:10px;font-weight:600;display:grid;place-items:center;letter-spacing:.02em}
 #pantallas .p-hello{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;padding:18px 20px 4px}
-#pantallas .p-hello h4{margin:0;font-size:17px;font-weight:640;letter-spacing:-.01em;color:var(--bk-ink)}
+#pantallas .p-hello h4{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--bk-ink)}
 #pantallas .p-hello p{margin:0;font-size:12.5px;color:var(--bk-ink-soft);font-variant-numeric:tabular-nums}
 #pantallas .p-mgrid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:12px;padding:14px 20px 20px;min-height:0}
 #pantallas .p-mcard{display:flex;flex-direction:column;gap:8px;background:var(--bk-paper);border:1px solid var(--bk-border);border-top:3px solid var(--m);border-radius:var(--bk-radius-card);padding:12px 14px 13px;box-shadow:var(--bk-shadow-low);transition:transform var(--bk-dur-fast) var(--bk-ease-out),box-shadow var(--bk-dur-fast) var(--bk-ease-out)}
@@ -3792,7 +3793,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
           <thead><tr><th>Pieza</th><th>Ruta</th><th>Uso</th></tr></thead>
           <tbody>
             <tr><td>Índice del paquete</td><td><code>branding/README.md</code></td><td>Punto de entrada: mapa de piezas y rutas por audiencia</td></tr>
-            <tr><td>Dirección creativa</td><td><code>branding/direccion-creativa.md</code></td><td>Documento de congelamiento (v1.2); contra esto se revisa cada pieza nueva</td></tr>
+            <tr><td>Dirección creativa</td><td><code>branding/direccion-creativa.md</code></td><td>Documento de congelamiento (v1.3); contra esto se revisa cada pieza nueva</td></tr>
             <tr><td>Manifiesto canónico</td><td><code>branding/identity.json</code></td><td>Identidad formalizada y CONGELADA (App Identity OS): tokens, patrones, gates y decisiones con hash</td></tr>
             <tr><td>Derivados compilados</td><td><code>branding/identity/</code></td><td>tokens.css (172 tokens generados), referencia técnica, compilador y validador — regenerables con <code>node branding/identity/generate.mjs</code></td></tr>
             <tr><td>Tokens de marca</td><td><code>branding/tokens/prosecnur-brand.css</code></td><td>Espejo manual para piezas fuera de la app (web, docs, plantillas)</td></tr>
@@ -3814,7 +3815,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
             <tr><td>✓</td><td><code>packaging/macos/build-dmg.sh</code> (pipeline del <code>.icns</code>)</td><td>El Dock se genera desde <code>prosecnur-appicon.svg</code> (retícula macOS 82.4%); el <code>.ico</code> de Windows conserva el full-bleed</td></tr>
           </tbody>
         </table></div>
-        <p class="bb-spec" style="margin:12px 0 0">Los tokens de color, motion, radios y tipografía ya son los de producción. Unificaciones v1.1 aplicadas: el segmented control activo usa el gradiente maestro del primario (mismo lenguaje que pillbar y switch) y el sidebar icon-compressed de Fichas QR migró del overlay al push por grid canónico. Outliers conocidos a saldar: «Monitoreo acreditación» usa navy <code class="bb-code">#06346f</code> en PDF — unificar a <code class="bb-code">#002457</code>; en theme.css conviven dos ámbares (<code class="bb-code">--pulso-warn-accent #d68a00</code> vs el canónico <code class="bb-code">#D97706</code>) — unificar al canónico.</p>
+        <p class="bb-spec" style="margin:12px 0 0">Los tokens de color, motion, radios y tipografía ya son los de producción. Unificaciones v1.1 aplicadas: el segmented control activo usa el gradiente maestro del primario (mismo lenguaje que pillbar y switch) y el sidebar icon-compressed de Fichas QR migró del overlay al push por grid canónico. Los dos outliers que este manual listaba como pendientes ya están saldados: el navy <code class="bb-code">#06346f</code> de «Monitoreo acreditación» desapareció de los motores PDF y <code class="bb-code">--pulso-warn-accent</code> quedó unificado en el ámbar canónico <code class="bb-code">#d97706</code>.</p>
       </div>
 
       <div class="bb-card">
@@ -4015,7 +4016,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
     <div style="display:flex;align-items:center;gap:12px">
       <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="15.4" fill="#fff"/><rect x="12" y="30" width="7" height="18" rx="3.5" fill="#002457"/><rect x="23" y="22" width="7" height="26" rx="3.5" fill="#002457"/><rect x="34" y="28" width="7" height="20" rx="3.5" fill="#002457"/><rect x="45" y="16" width="7" height="32" rx="3.5" fill="#002457"/></svg>
       <span style="font-weight:700;color:#fff">Prosecnur</span>
-      <span>· Manual de identidad v1.2</span>
+      <span>· Manual de identidad v1.3</span>
     </div>
     <span>PULSO PUCP · Julio 2026</span>
   </div>
@@ -4061,14 +4062,14 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
   });}
 
   var MODULES=[
-    {name:"Editor de formularios",hex:"#6d5dfc",icon:"M4 20h16M6 16l6-10 6 10"},
+    {name:"Editor de formularios",hex:"#7172c1",icon:"M4 20h16M6 16l6-10 6 10"},
     {name:"Procesamiento",hex:"#0f766e",icon:"M4 6h16M4 12h16M4 18h10"},
-    {name:"Dashboard",hex:"#2563eb",icon:"M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z"},
-    {name:"Hojas de ruta",hex:"#c2410c",icon:"M12 21s-6-5.2-6-10a6 6 0 0 1 12 0c0 4.8-6 10-6 10zM12 11.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"},
-    {name:"Cálculo de muestra",hex:"#7c3aed",icon:"M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4M9 15h6M12 12v6M16 3l5 5M21 3l-5 5"},
+    {name:"Dashboard",hex:"#4a6eb6",icon:"M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z"},
+    {name:"Hojas de ruta",hex:"#ac563b",icon:"M12 21s-6-5.2-6-10a6 6 0 0 1 12 0c0 4.8-6 10-6 10zM12 11.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"},
+    {name:"Cálculo de muestra",hex:"#7260ae",icon:"M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4M9 15h6M12 12v6M16 3l5 5M21 3l-5 5"},
     {name:"Bitácora",hex:"#a16207",icon:"M4 4h13a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3zM8 8h8M8 12h6"},
     {name:"Recopiladores · Fichas QR",hex:"#106e8c",icon:"M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"},
-    {name:"Monitoreo de campo",hex:"#be123c",icon:"M22 12h-4l-3 8-6-16-3 8H2"}
+    {name:"Monitoreo de campo",hex:"#a0464e",icon:"M22 12h-4l-3 8-6-16-3 8H2"}
   ];
   var mg=document.getElementById("bb-modules");
   if(mg){MODULES.forEach(function(m){
