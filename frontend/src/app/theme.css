@@ -4592,7 +4592,14 @@ a { color: var(--pulso-primary); }
      banda de 52 a 74px. Entre centrar perfecto y no crecer de alto, manda no
      crecer. Medido: con `max-content` el rail igual queda centrado (desvío 0) en
      las rutas de Procesamiento, porque los dos lados pesan parecido. */
-  --command-bar-columns: minmax(0, max-content) minmax(0, 1fr) minmax(0, max-content);
+  /* La columna de ACCIONES va en `auto` y no en `minmax(0, max-content)`: con
+     min 0 el grid la encoge por debajo de sus controles y estos envuelven, que
+     es crecer de alto. Medido en Hojas de ruta: la zona quedaba en 296px para un
+     conmutador que pide 350 y la banda subía a 80px. Con `auto` su mínimo es el
+     min-content, así que se respeta.
+     Quien cede es el rail del medio, y puede: hace scroll interno con la barra
+     oculta, que es la degradación que ya tenía diseñada. */
+  --command-bar-columns: minmax(0, max-content) minmax(0, 1fr) auto;
   --command-bar-accent: var(--module-accent, var(--pulso-material-border));
   /* Un solo valor de mezcla, sin perilla por módulo: cuando la había, cinco
    * módulos eligieron 16, 24, 34, 42 y 76%, y el borde del chrome se veía de

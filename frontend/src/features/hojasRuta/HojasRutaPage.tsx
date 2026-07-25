@@ -1029,9 +1029,10 @@ function StatusPill({ ok, text, tone }: { ok?: boolean; text: string; tone?: Sta
 }
 
 function HeaderSummaryPill({ label, value }: { label: string; value: string }) {
+  // El `title` sostiene la etiqueta cuando la banda aprieta y el CSS la oculta.
   return (
-    <span className="hojas-ruta-header-pill">
-      <small>{label}</small>
+    <span className="hojas-ruta-header-pill" title={`${label}: ${value}`}>
+      <small className="hojas-ruta-header-pill-label">{label}</small>
       <strong>{value}</strong>
     </span>
   );
@@ -7711,10 +7712,19 @@ export default function HojasRutaPage() {
   const visiblePhaseNotice = phaseNotice?.message && dismissedPhaseNotice !== phaseNotice.message
     ? phaseNotice.message
     : "";
-  const chromeNotices = (error || frame?.pilot) ? ( // pila bajo la banda, no filas del chrome
+  const chromeNotices = (error || frame?.pilot || visiblePhaseNotice) ? ( // pila bajo la banda
     <>
       {error && <Alert kind="error">{error}</Alert>}
       {frame?.pilot && <Alert kind="warn">{frame.note}</Alert>}
+      {visiblePhaseNotice ? (
+        <div className="hojas-ruta-phase-notice-chip" role="status" title={visiblePhaseNotice}>
+          <Info size={13} aria-hidden="true" />
+          <span>{compactPhaseNotice(visiblePhaseNotice)}</span>
+          <button type="button" aria-label="Ocultar aviso de piloto" onClick={() => setDismissedPhaseNotice(visiblePhaseNotice)}>
+            <X size={12} aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
     </>
   ) : undefined;
 
@@ -7765,7 +7775,7 @@ export default function HojasRutaPage() {
                       <span className="pulso-phase-pill-stack">
                         <span className="pulso-phase-pill-label">
                           <span className="pulso-phase-pill-number" aria-hidden="true">{step.n}</span>
-                          <Icon size={13} aria-hidden="true" />{step.label}
+                          <Icon size={13} aria-hidden="true" /><span className="hojas-ruta-stage-label">{step.label}</span>
                         </span>
                       </span>
                     </button>
@@ -7776,38 +7786,21 @@ export default function HojasRutaPage() {
           </GlidingTabList>
         </div>
       }
-      /* Solo el chip de aviso: el conmutador de fase mide 88px por diseño y vive
-         en la superficie operativa, no en la banda. */
-      herramientas={visiblePhaseNotice ? (
-        <div className="hojas-ruta-phase-notice-chip" role="status" title={visiblePhaseNotice}>
-          <Info size={13} aria-hidden="true" />
-          <span>{compactPhaseNotice(visiblePhaseNotice)}</span>
-          <button
-            type="button"
-            aria-label="Ocultar aviso de piloto"
-            onClick={() => setDismissedPhaseNotice(visiblePhaseNotice)}
-          >
-            <X size={12} aria-hidden="true" />
-          </button>
-        </div>
-      ) : null}
+      herramientas={
+        <>
+          <PhaseHeaderControl
+            activePhase={activePhase}
+            pilotRun={pilotRun}
+            pilotSample={pilotSample}
+            pilotTitularCount={pilotTitularIds.length}
+            pilotExclusionMode={pilotExclusionMode}
+            busy={busy}
+            onPhaseChange={(phase) => void changePhase(phase)}
+            onPilotExclusionModeChange={(mode) => void setPilotExclusionMode(mode)}
+          />
+        </>
+      }
     />
-  ) : undefined;
-
-  /* Superficie operativa: operar, no navegar. Puede crecer de alto; la banda no. */
-  const chromeSurface = frame?.ok ? (
-    <div className="hojas-ruta-command-surface">
-      <PhaseHeaderControl
-        activePhase={activePhase}
-        pilotRun={pilotRun}
-        pilotSample={pilotSample}
-        pilotTitularCount={pilotTitularIds.length}
-        pilotExclusionMode={pilotExclusionMode}
-        busy={busy}
-        onPhaseChange={(phase) => void changePhase(phase)}
-        onPilotExclusionModeChange={(mode) => void setPilotExclusionMode(mode)}
-      />
-    </div>
   ) : undefined;
 
   return (
@@ -7823,7 +7816,6 @@ export default function HojasRutaPage() {
       chrome={chromeBar}
       notices={chromeNotices}
     >
-      {chromeSurface}
       <span
         hidden
         data-audit-ready="hojas-ruta"
