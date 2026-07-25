@@ -77,6 +77,23 @@
   min-width: 0;
 }
 
+/* Cada lado empuja hacia SU borde. Mientras las pistas laterales fueron `auto`
+ * esto no hacía falta —la zona medía lo que su contenido y no sobraba dónde
+ * flotar—, pero ahora llevan `minmax(min-content, 1fr)` para quedar iguales entre
+ * sí, así que casi siempre sobra espacio dentro de la zona.
+ *
+ * Sin esto el efecto se ve enseguida en las bandas de pocas acciones: en Bitácora
+ * el botón «Actualizar» quedaba pegado al rail, con 412px de vacío entre él y el
+ * borde derecho de la banda. La zona estaba bien medida y el contenido mal
+ * apoyado. */
+.pulso-module-command-bar > .pulso-command-bar-zone[data-zone="contexto"] {
+  justify-content: flex-start;
+}
+
+.pulso-module-command-bar > .pulso-command-bar-zone[data-zone="acciones"] {
+  justify-content: flex-end;
+}
+
 /* El rail NO se saca del flujo. Se intentó centrarlo en absoluto —primero sobre
  * 1480px de banda, después sobre 1200— y las dos veces terminó solapando el
  * contenido de los lados, porque el ancho que necesita depende del módulo: el

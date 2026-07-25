@@ -1357,6 +1357,12 @@ a { color: var(--pulso-primary); }
   top: calc(100% + 9px);
   left: 50%;
   z-index: 80;
+  /* `max-content` además del máximo: sin ancho propio, una caja absoluta se
+   * encoge hasta el ancho de su bloque contenedor —el tile del dock, ~40px— y el
+   * `nowrap` de más abajo impide que el texto envuelva, así que la burbuja
+   * recortaba la última letra de cada módulo en lugar de ensancharse. Se veía en
+   * los ocho, porque el dock es el mismo en todos. */
+  width: max-content;
   max-width: 150px;
   padding: 5px 8px;
   border-radius: 9px;

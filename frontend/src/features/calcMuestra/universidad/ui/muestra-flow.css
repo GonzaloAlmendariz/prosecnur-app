@@ -94,6 +94,17 @@
   top: -13px;
   left: 50%;
   transform: translateX(-50%);
+  /* Sin ancho propio, una caja absoluta se encoge hasta el ancho de su bloque
+   * contenedor —acá el círculo del nodo, 56px— y el `nowrap` de abajo impide que
+   * el texto envuelva: el resultado era «Estás aq» cortado a media palabra, no un
+   * badge más angosto. Con `max-content` la caja mide lo que su texto y el
+   * translateX la sigue centrando sobre el nodo.
+   *
+   * El `max-width: none` es imprescindible: una regla global deja los elementos
+   * en `max-width: 100%`, que acá significa el 100% del círculo —56px— y volvía a
+   * atar el badge al mismo ancho del que se lo acaba de soltar. */
+  width: max-content;
+  max-width: none;
   padding: 2px 8px;
   border-radius: 9px;
   background: var(--cmv2-accent);
