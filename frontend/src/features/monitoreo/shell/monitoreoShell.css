@@ -36,18 +36,11 @@
   justify-content: stretch;
 }
 
-.mon-commandbar:not(.has-section-rail) {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.mon-commandbar.has-section-rail {
-  grid-template-columns: minmax(188px, max-content) minmax(560px, 1fr) minmax(278px, max-content);
-}
-
-.mon-commandbar[data-view-count="1"].has-section-rail {
-  grid-template-columns: minmax(188px, max-content) minmax(184px, 0.8fr) minmax(278px, max-content);
-}
-
+/* El grid ya no se declara acá. Estas tres reglas imponían columnas propias
+   —188/560/278 con mínimos duros— y eran la razón por la que la tercera zona no
+   cabía y la banda se partía en dos filas. Las columnas salen del patrón maestro
+   y quien absorbe el apriete es el rail, que tiene scroll interno.
+   Lo que sí queda acá es el ancho máximo del módulo, que es decisión suya. */
 .mon-command-side {
   width: max-content;
   max-width: 100%;
@@ -622,17 +615,10 @@
   transform: scaleX(0.86);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .mon-section-pill:hover:not(.is-disabled):not(.is-active) {
-    border-color: color-mix(in srgb, var(--mon-shell-accent) 24%, var(--pulso-border));
-    background: color-mix(in srgb, var(--mon-shell-accent) 7%, #fff) !important;
-  }
-
-  .mon-section-pill:hover:not(.is-disabled):not(.is-active) .pulso-phase-pill-circle {
-    opacity: 0.72;
-    transform: scaleX(1);
-  }
-}
+/* El hover propio se fue a nav-states.css. Tenía tres diferencias con el de
+   Procesamiento —el tinte al 7% contra el 10%, el velo al 72% de opacidad en vez
+   de 100, y un `!important` que impedía cualquier ajuste— y sobre todo se
+   excluía de la píldora ACTIVA, que era la queja original. */
 
 .mon-section-pill .pulso-phase-pill-stack {
   min-width: 0;
@@ -711,12 +697,9 @@
   transform: scale(0.985);
 }
 
-.mon-section-pill:focus-visible {
-  outline: 2px solid transparent;
-  box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--mon-shell-accent) 18%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
+/* El anillo de foco propio se fue a nav-states.css. Era una sombra, y la sombra
+   del relieve de la píldora activa lo borraba: el foco desaparecía justo en la
+   sección en la que estabas. Ahora es un `outline`, inmune a eso. */
 
 .mon-route-hub {
   grid-template-rows: auto minmax(0, 1fr);

@@ -7075,20 +7075,8 @@
     font-size: 11.5px;
   }
 
-  /* Rail comprimido: número en todas y rótulo solo en la etapa activa. Es el
-     «título compacto de pestaña activa obligatorio» de la dirección v3, y
-     resuelve lo que se veía en pantalla y los números no delataban: con los
-     cinco rótulos completos el rail se cortaba a media palabra («Entr…») y el
-     conmutador de fase quedaba pegado al corte.
-     Se compacta al número y no al ícono: los íconos de estas píldoras ya venían
-     ocultos por el diseño previo, así que dejar solo el ícono producía píldoras
-     VACÍAS de 18px —navegación invisible—. El número más el `title` de cada botón
-     sostienen el significado de las inactivas. */
-  .hojas-ruta-stage-rail .pulso-phase-pill:not(.is-active) .hojas-ruta-stage-label {
-    display: none;
-  }
-
-  .hojas-ruta-stage-rail .pulso-phase-pill:not(.is-active) {
-    padding: 0 7px;
-  }
+  /* Ya no se recorta el rótulo de las etapas inactivas. Sin numeral y sin ícono
+     —los dos se retiraron para que el toolbar quede limpio— esconder el rótulo
+     dejaría píldoras VACÍAS, que es navegación invisible. Cuando no caben, el
+     rail hace scroll interno, que es su degradación de siempre. */
 }

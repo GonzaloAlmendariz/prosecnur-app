@@ -1902,7 +1902,6 @@ export default function RecopiladoresPage() {
                     <span className="pulso-phase-pill-circle" aria-hidden="true" />
                     <span className="pulso-phase-pill-stack">
                       <span className="pulso-phase-pill-label">
-                        <span className="pulso-phase-pill-number">{index + 1}</span>
                         <span className="pulso-phase-pill-text">{section.label}</span>
                       </span>
                     </span>

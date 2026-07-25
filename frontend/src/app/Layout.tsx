@@ -207,7 +207,9 @@ function ProcessingPhaseDockItem({ it, active }: { it: NavItem; active: boolean 
         <span className="pulso-phase-pill-circle" aria-hidden="true" />
         <span className="pulso-phase-pill-stack">
           <span className="pulso-phase-pill-label">
-            <span className="pulso-phase-pill-number pulso-processing-phase-number">{it.n}</span>
+            {/* Sin numeral: el orden ya se lee de izquierda a derecha y el chip
+                costaba ~22px por píldora, que es el ancho que el rail necesita
+                para caber junto a los indicadores de los lados. */}
             <span className="pulso-phase-pill-text">{it.label}</span>
           </span>
         </span>

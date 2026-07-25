@@ -16926,7 +16926,12 @@ button.mon-territorial-ump-audit-scrim {
   gap: 12px;
 }
 
-.mon-commandbar,
+/* `.mon-commandbar` YA NO entra acá. Esta regla es de otra época del módulo y
+ * declaraba `display: flex` con `flex-wrap: wrap`, un radio de 12 y padding de 6:
+ * pisaba el grid, el radio y el padding del patrón maestro sobre la banda
+ * compartida. Era la causa de que Monitoreo se partiera en dos filas y midiera
+ * 56px donde el resto mide 52. `.mon-toolbar` se queda porque es otra clase
+ * (hoy sin uso en TSX, candidata a limpieza aparte). */
 .mon-toolbar {
   display: flex;
   align-items: center;
@@ -24269,15 +24274,11 @@ button.mon-territorial-ump-audit-scrim {
     justify-self: start;
   }
 
-  .mon-commandbar,
+  /* Igual que arriba: estirar la banda al 100% y sus botones a `flex: 1 1 150px`
+     era del diseño anterior y rompía la fila única del patrón maestro. */
   .mon-commandbar-group {
     align-items: stretch;
     width: 100%;
-  }
-
-  .mon-commandbar button,
-  .mon-commandbar .mon-download-link {
-    flex: 1 1 150px;
   }
 
   .mon-sm-result-actions {

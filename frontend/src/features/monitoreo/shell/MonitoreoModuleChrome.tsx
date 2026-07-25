@@ -6,6 +6,8 @@ import type {
 } from "../core/monitoreoRegistry";
 import { seccionesDelModo } from "../core/monitoreoRegistry";
 import { GlidingTabList } from "../../../components/GlidingTabList";
+import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
+import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
 import { MonitoreoPathContext } from "./MonitoreoPathContext";
 import { PARAMS_DIRECCION } from "../../../lib/navegacion/direccion";
 
@@ -205,6 +207,12 @@ export function MonitoreoModuleChrome({
                 <a
                   href={saving ? undefined : monitoreoSeccionHref(item.key)}
                   data-gliding-key={item.key}
+                  /* Adopta los estados compartidos: el mismo hover, el mismo
+                   * hover sobre la sección activa y el mismo anillo de foco que
+                   * en Procesamiento. Era la diferencia que se veía. */
+                  data-nav-item=""
+                  data-nav-shape="pill"
+                  data-nav-state={selected ? "selected" : undefined}
                   className={`pulso-phase-pill mon-section-pill is-${item.key}${selected ? " is-active" : ""}${saving ? " is-disabled" : ""}`}
                   aria-label={accessibilityLabel}
                   aria-current={selected ? "page" : undefined}
@@ -234,7 +242,6 @@ export function MonitoreoModuleChrome({
                   <span className="pulso-phase-pill-circle" aria-hidden="true" />
                   <span className="pulso-phase-pill-stack">
                     <span className="pulso-phase-pill-label">
-                      <span className="pulso-phase-pill-number">{index + 1}</span>
                       <span className="pulso-phase-pill-text">{displayLabel}</span>
                       {metric ? <em className="pulso-phase-pill-metric">{metric}</em> : null}
                     </span>
@@ -248,102 +255,94 @@ export function MonitoreoModuleChrome({
     </div>
   ) : null;
 
+  const indicadores = routeSelected ? (
+    <ChromeIndicatorGroup
+      ariaLabel="Estado del monitoreo"
+      resumen={[
+        generationInfo ? `${generationInfo.label}: ${generationInfo.value}` : null,
+        `Registros: ${formatChromeCount(nRows)}`,
+        `Corte: ${cutLabel}`,
+      ].filter(Boolean).join(" · ")}
+    >
+      {generationInfo ? (
+        <ChromeIndicator
+          label={generationInfo.label}
+          value={generationInfo.value}
+          prioridad="baja"
+          detalle={generationInfo.title}
+        />
+      ) : null}
+      <ChromeIndicator label="Registros" value={formatChromeCount(nRows)} prioridad="alta" />
+      <ChromeIndicator label="Corte" value={cutLabel} prioridad="media" />
+    </ChromeIndicatorGroup>
+  ) : null;
+
   return (
     <div className="mon-module-chrome" data-audit-chrome="monitoring">
-      <div
-        className={`pulso-command-bar mon-commandbar${sectionRail ? " has-section-rail" : ""}`}
-        aria-label="Contexto operativo de monitoreo"
-        data-route-family={route?.family ?? "none"}
-        data-view-count={views.length}
-      >
-        <div className="mon-command-summary mon-command-side" aria-label="Resumen del modo de monitoreo">
-          <MonitoreoPathContext route={route} />
-          <span className="mon-command-token">
-            <small>Activas</small>
-            <strong>{activeSources}/{sourceTotal}</strong>
-          </span>
-          {!routeSelected ? (
-            <>
-              <span className="mon-command-token">
-                <small>Registros</small>
-                <strong>{formatChromeCount(nRows)}</strong>
+      <ModuleCommandBar
+        modulo="monitoreo"
+        className="mon-commandbar"
+        ariaLabel="Contexto operativo de monitoreo"
+        contexto={
+          <>
+            <MonitoreoPathContext route={route} />
+            {routeSelected ? (
+              <ChromeIndicator label="Activas" value={`${activeSources}/${sourceTotal}`} prioridad="media" />
+            ) : null}
+          </>
+        }
+        secciones={sectionRail}
+        herramientas={
+          <>
+            {!routeSelected ? (
+              <span className="mon-command-status">
+                {saving ? <Loader2 size={13} className="pulso-spin" /> : <Activity size={13} />}
+                {statusLabel}
               </span>
-              <span className="mon-command-token">
-                <small>Corte</small>
-                <strong>{cutLabel}</strong>
-              </span>
-            </>
-          ) : null}
-        </div>
-
-        {sectionRail}
-
-        <div className="mon-command-current mon-command-side" aria-live="polite">
-          {!routeSelected ? (
-            <span className="mon-command-status">
-              {saving ? <Loader2 size={13} className="pulso-spin" /> : <Activity size={13} />}
-              {statusLabel}
-            </span>
-          ) : null}
-          {routeSelected ? (
-            <>
-              {onSyncAll || onSyncAdvance ? (
-                <div className="mon-command-sync-group" aria-label="Actualización de monitoreo">
-	                  {onSyncAdvance ? (
-	                    <button
-	                      type="button"
-	                      className={`mon-command-sync is-advance${syncingAdvance ? " is-syncing" : ""}`}
-	                      disabled={saving || syncing || advanceSyncDisabled}
-	                      title={advanceProgressTitle}
-	                      aria-label={advanceProgressLabel ? `${advanceSyncLabel}: ${advanceProgressLabel}` : advanceSyncLabel}
-	                      style={chromeSyncProgressStyle(advanceProgress)}
-	                      onClick={() => {
-	                        void Promise.resolve(onSyncAdvance()).catch(() => undefined);
-	                      }}
-	                    >
-	                      {syncingAdvance ? <Loader2 size={13} className="pulso-spin" /> : <Activity size={13} />}
-	                      <span>{advanceSyncLabel}</span>
-	                      {advanceProgressLabel ? <strong className="mon-command-sync-progress">{advanceProgressLabel}</strong> : null}
-	                    </button>
-	                  ) : null}
-	                  {onSyncAll ? (
-	                    <button
-	                      type="button"
-	                      className={`mon-command-sync is-full${syncingFull ? " is-syncing" : ""}`}
-	                      disabled={saving || syncing || syncDisabled}
-	                      title={fullProgressTitle}
-	                      aria-label={fullProgressLabel ? `${syncLabel}: ${fullProgressLabel}` : syncLabel}
-	                      style={chromeSyncProgressStyle(fullProgress)}
-	                      onClick={() => {
-	                        void Promise.resolve(onSyncAll()).catch(() => undefined);
-	                      }}
-	                    >
-	                      {syncingFull ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
-	                      <span>{syncLabel}</span>
-	                      {fullProgressLabel ? <strong className="mon-command-sync-progress">{fullProgressLabel}</strong> : null}
-	                    </button>
-	                  ) : null}
-                </div>
-              ) : null}
-              {generationInfo ? (
-                <span className={`mon-command-token mon-command-generation is-${generationInfo.tone}`} title={generationInfo.title}>
-                  <small>{generationInfo.label}</small>
-                  <strong>{generationInfo.value}</strong>
-                </span>
-              ) : null}
-              <span className="mon-command-token">
-                <small>Registros</small>
-                <strong>{formatChromeCount(nRows)}</strong>
-              </span>
-              <span className="mon-command-token">
-                <small>Corte</small>
-                <strong>{cutLabel}</strong>
-              </span>
-            </>
-          ) : null}
-          {!routeSelected ? <strong>Selecciona un tipo de monitoreo</strong> : null}
-        </div>
-      </div>
+            ) : null}
+            {!routeSelected ? <strong>Selecciona un tipo de monitoreo</strong> : null}
+            {indicadores}
+            {routeSelected && (onSyncAll || onSyncAdvance) ? (
+              <div className="mon-command-sync-group" aria-label="Actualización de monitoreo">
+                {onSyncAdvance ? (
+                  <button
+                    type="button"
+                    className={`mon-command-sync is-advance${syncingAdvance ? " is-syncing" : ""}`}
+                    disabled={saving || syncing || advanceSyncDisabled}
+                    title={advanceProgressTitle}
+                    aria-label={advanceProgressLabel ? `${advanceSyncLabel}: ${advanceProgressLabel}` : advanceSyncLabel}
+                    style={chromeSyncProgressStyle(advanceProgress)}
+                    onClick={() => {
+                      void Promise.resolve(onSyncAdvance()).catch(() => undefined);
+                    }}
+                  >
+                    {syncingAdvance ? <Loader2 size={13} className="pulso-spin" /> : <Activity size={13} />}
+                    <span>{advanceSyncLabel}</span>
+                    {advanceProgressLabel ? <strong className="mon-command-sync-progress">{advanceProgressLabel}</strong> : null}
+                  </button>
+                ) : null}
+                {onSyncAll ? (
+                  <button
+                    type="button"
+                    className={`mon-command-sync is-full${syncingFull ? " is-syncing" : ""}`}
+                    disabled={saving || syncing || syncDisabled}
+                    title={fullProgressTitle}
+                    aria-label={fullProgressLabel ? `${syncLabel}: ${fullProgressLabel}` : syncLabel}
+                    style={chromeSyncProgressStyle(fullProgress)}
+                    onClick={() => {
+                      void Promise.resolve(onSyncAll()).catch(() => undefined);
+                    }}
+                  >
+                    {syncingFull ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
+                    <span>{syncLabel}</span>
+                    {fullProgressLabel ? <strong className="mon-command-sync-progress">{fullProgressLabel}</strong> : null}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </>
+        }
+      />
     </div>
   );
 }
