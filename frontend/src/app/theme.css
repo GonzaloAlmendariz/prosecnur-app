@@ -128,22 +128,38 @@
   --pulso-repeat-accent: #c95f20;
 
   /* Colores canónicos por módulo — una identidad estable para dock,
-   * Home y superficies futuras. Mantener sincronizado con lib/modules.ts. */
-  --pulso-module-editor: #6d5dfc;
-  --pulso-module-editor-soft: rgba(109, 93, 252, 0.13);
-  --pulso-module-editor-border: rgba(109, 93, 252, 0.32);
+   * Home y superficies futuras. Mantener sincronizado con lib/modules.ts.
+   *
+   * TECHO DE CROMA 0.12 EN OKLCH. El tono de cada módulo es suyo y no se toca;
+   * lo que se estandariza es cuánta saturación puede gastar.
+   *
+   * Medido antes de fijarlo: el rango iba de 0.086 (el teal de Procesamiento) a
+   * 0.247 (el violeta de Cálculo de muestra), casi el triple, y por eso el mismo
+   * elemento se sentía sobrio en un módulo y estridente en otro. El teal es el
+   * que se tomó como referencia —«ese verde más opaco está súper bien»— y el
+   * techo lo acerca a él sin lavarlo: el rango pasa de 2.87x a 1.4x.
+   *
+   * Un techo más bajo se probó y no sirve: a 0.090 el carmesí de Monitoreo cae en
+   * #945155, que ya no se lee como rojo sino como marrón sucio, y los módulos
+   * dejan de distinguirse entre sí. El croma no se iguala, se acota.
+   *
+   * Procesamiento (0.086), Fichas QR (0.092) y Bitácora (0.121) ya estaban en el
+   * techo o por debajo y conservan su hex exacto. */
+  --pulso-module-editor: #7172c1;
+  --pulso-module-editor-soft: rgba(113, 114, 193, 0.13);
+  --pulso-module-editor-border: rgba(113, 114, 193, 0.32);
   --pulso-module-processing: #0f766e;
   --pulso-module-processing-soft: rgba(15, 118, 110, 0.13);
   --pulso-module-processing-border: rgba(15, 118, 110, 0.3);
-  --pulso-module-dashboard: #2563eb;
-  --pulso-module-dashboard-soft: rgba(37, 99, 235, 0.13);
-  --pulso-module-dashboard-border: rgba(37, 99, 235, 0.3);
-  --pulso-module-routes: #c2410c;
-  --pulso-module-routes-soft: rgba(194, 65, 12, 0.13);
-  --pulso-module-routes-border: rgba(194, 65, 12, 0.3);
-  --pulso-module-sample: #7c3aed;
-  --pulso-module-sample-soft: rgba(124, 58, 237, 0.13);
-  --pulso-module-sample-border: rgba(124, 58, 237, 0.32);
+  --pulso-module-dashboard: #4a6eb6;
+  --pulso-module-dashboard-soft: rgba(74, 110, 182, 0.13);
+  --pulso-module-dashboard-border: rgba(74, 110, 182, 0.3);
+  --pulso-module-routes: #ac563b;
+  --pulso-module-routes-soft: rgba(172, 86, 59, 0.13);
+  --pulso-module-routes-border: rgba(172, 86, 59, 0.3);
+  --pulso-module-sample: #7260ae;
+  --pulso-module-sample-soft: rgba(114, 96, 174, 0.13);
+  --pulso-module-sample-border: rgba(114, 96, 174, 0.32);
   --pulso-module-encyclopedia: #a16207;
   --pulso-module-encyclopedia-soft: rgba(161, 98, 7, 0.13);
   --pulso-module-encyclopedia-border: rgba(161, 98, 7, 0.3);
@@ -155,9 +171,9 @@
   --pulso-module-collectors: #106e8c;
   --pulso-module-collectors-soft: rgba(16, 110, 140, 0.13);
   --pulso-module-collectors-border: rgba(16, 110, 140, 0.3);
-  --pulso-module-monitoring: #be123c;
-  --pulso-module-monitoring-soft: rgba(190, 18, 60, 0.12);
-  --pulso-module-monitoring-border: rgba(190, 18, 60, 0.3);
+  --pulso-module-monitoring: #a0464e;
+  --pulso-module-monitoring-soft: rgba(160, 70, 78, 0.12);
+  --pulso-module-monitoring-border: rgba(160, 70, 78, 0.3);
 
   /* Estados de codificación (usados en sidebars y badges del Wizard) */
   --pulso-status-in-progress: #0e7490;
@@ -3048,12 +3064,16 @@ a { color: var(--pulso-primary); }
   color: var(--pulso-warn-fg);
 }
 
-/* Disabled: compatibilidad con estados antiguos, opacidad reducida. */
+/* Disabled. El color y la atenuación los pone `app/nav-states.css` para todo item
+ * que emita `data-nav-item`; acá queda lo que es de la píldora y no del estado.
+ *
+ * Tenía `color: #c2c8d4` MÁS `opacity: 0.65`, y encima corría el 0.55 global de
+ * `button:where(:disabled)`: tres atenuaciones multiplicándose sobre un gris que
+ * ya era claro. Medido en Hojas de ruta, las etapas bloqueadas quedaban a 1.17 de
+ * contraste —«está blanco»—. Ahora son 3.11. */
 .pulso-phase-pill.is-disabled {
-  color: #c2c8d4;
   cursor: not-allowed;
   pointer-events: none;
-  opacity: 0.65;
 }
 
 .pulso-phase-pill.is-disabled .pulso-phase-pill-number {

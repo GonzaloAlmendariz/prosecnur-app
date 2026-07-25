@@ -165,10 +165,27 @@
   outline-offset: var(--pulso-nav-focus-offset);
 }
 
-[data-nav-item]:disabled,
-[data-nav-item][aria-disabled="true"] {
+/* ── Deshabilitado ───────────────────────────────────────────────────────────
+ * Atenúa con COLOR, nunca con `opacity`, y el atributo se repite para ganarle a
+ * las reglas que ya atenuaban por su cuenta sin tener que recurrir a `!important`.
+ *
+ * Motivo, medido en Hojas de ruta: sobre la misma píldora se apilaban tres
+ * atenuaciones —`button:where(:disabled)` al 0.55, `.pulso-phase-pill.is-disabled`
+ * con su gris propio MÁS opacity 0.65, y esta regla al 0.55—. Como la opacidad se
+ * multiplica y el color de partida ya era claro, las etapas bloqueadas quedaban a
+ * 1.17 de contraste contra la banda: prácticamente invisibles. El usuario lo
+ * reportó como «está blanco».
+ *
+ * Con `--pulso-text-faint` el resultado es ~3:1, que se lee y a la vez se
+ * distingue sin ambigüedad de una etapa disponible. Estas píldoras informan el
+ * recorrido completo del módulo —qué falta para llegar a Entrega—, así que
+ * ilegibles no cumplen su función. */
+[data-nav-item][data-nav-item]:disabled,
+[data-nav-item][data-nav-item][aria-disabled="true"] {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 1;
+  color: var(--pulso-text-faint);
+  border-color: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {

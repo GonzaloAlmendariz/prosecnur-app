@@ -34,21 +34,21 @@
   /* Acentos por módulo — copia literal de theme.css (que aún no cargó en el
      chunk de entrada) para que las luces de módulo del chooser resuelvan.
      Mantener sincronizado con theme.css / lib/modules.ts. */
-  --pulso-module-editor: #6d5dfc;
-  --pulso-module-editor-soft: rgba(109, 93, 252, 0.13);
-  --pulso-module-editor-border: rgba(109, 93, 252, 0.32);
+  --pulso-module-editor: #7172c1;
+  --pulso-module-editor-soft: rgba(113, 114, 193, 0.13);
+  --pulso-module-editor-border: rgba(113, 114, 193, 0.32);
   --pulso-module-processing: #0f766e;
   --pulso-module-processing-soft: rgba(15, 118, 110, 0.13);
   --pulso-module-processing-border: rgba(15, 118, 110, 0.3);
-  --pulso-module-dashboard: #2563eb;
-  --pulso-module-dashboard-soft: rgba(37, 99, 235, 0.13);
-  --pulso-module-dashboard-border: rgba(37, 99, 235, 0.3);
-  --pulso-module-routes: #c2410c;
-  --pulso-module-routes-soft: rgba(194, 65, 12, 0.13);
-  --pulso-module-routes-border: rgba(194, 65, 12, 0.3);
-  --pulso-module-sample: #7c3aed;
-  --pulso-module-sample-soft: rgba(124, 58, 237, 0.13);
-  --pulso-module-sample-border: rgba(124, 58, 237, 0.32);
+  --pulso-module-dashboard: #4a6eb6;
+  --pulso-module-dashboard-soft: rgba(74, 110, 182, 0.13);
+  --pulso-module-dashboard-border: rgba(74, 110, 182, 0.3);
+  --pulso-module-routes: #ac563b;
+  --pulso-module-routes-soft: rgba(172, 86, 59, 0.13);
+  --pulso-module-routes-border: rgba(172, 86, 59, 0.3);
+  --pulso-module-sample: #7260ae;
+  --pulso-module-sample-soft: rgba(114, 96, 174, 0.13);
+  --pulso-module-sample-border: rgba(114, 96, 174, 0.32);
   --pulso-module-encyclopedia: #a16207;
   --pulso-module-encyclopedia-soft: rgba(161, 98, 7, 0.13);
   --pulso-module-encyclopedia-border: rgba(161, 98, 7, 0.3);
@@ -58,9 +58,9 @@
   --pulso-module-collectors: #106e8c;
   --pulso-module-collectors-soft: rgba(16, 110, 140, 0.13);
   --pulso-module-collectors-border: rgba(16, 110, 140, 0.3);
-  --pulso-module-monitoring: #be123c;
-  --pulso-module-monitoring-soft: rgba(190, 18, 60, 0.12);
-  --pulso-module-monitoring-border: rgba(190, 18, 60, 0.3);
+  --pulso-module-monitoring: #a0464e;
+  --pulso-module-monitoring-soft: rgba(160, 70, 78, 0.12);
+  --pulso-module-monitoring-border: rgba(160, 70, 78, 0.3);
   /* Alineados a theme.css: eran #92400e y rgba(217,119,6,.4), que daban un
      ámbar distinto al de la app (ΔE76 14,0 en el texto, perceptible). El
      BootGate mostraba sus avisos en otro color que el resto del producto. */
