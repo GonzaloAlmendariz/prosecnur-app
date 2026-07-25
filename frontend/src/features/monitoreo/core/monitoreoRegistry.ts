@@ -16,12 +16,12 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { MonitoreoProfile } from "../../../api/client";
 
-export type WorkbenchView = "avance" | "ocurrencias" | "consultas" | "modelo" | "fuentes" | "telefonico" | "calidad";
-export type OperationalModelMode = "estructura" | "enlaces" | "casos" | "estrategias" | "reglas";
-export type MonitoreoRouteFamily = MonitoreoProfile["family"];
+export type MonitoreoSeccion = "avance" | "ocurrencias" | "consultas" | "modelo" | "fuentes" | "telefonico" | "calidad";
+export type PestanaModeloOperativo = "estructura" | "enlaces" | "casos" | "estrategias" | "reglas";
+export type MonitoreoModo = MonitoreoProfile["family"];
 
-export type MonitoreoRouteDefinition = {
-  family: MonitoreoRouteFamily;
+export type MonitoreoModoDefinicion = {
+  family: MonitoreoModo;
   label: string;
   shortLabel: string;
   status: "active" | "planned";
@@ -33,22 +33,52 @@ export type MonitoreoRouteDefinition = {
   sourceRoles: Array<{ label: string; detail: string }>;
 };
 
-export type WorkbenchViewDefinition = {
-  key: WorkbenchView;
+export type MonitoreoSeccionDefinicion = {
+  key: MonitoreoSeccion;
   label: string;
   shortLabel?: string;
   desc: string;
   icon: LucideIcon;
 };
 
-export type OperationalModelModeDefinition = {
-  key: OperationalModelMode;
+export type PestanaModeloOperativoDefinicion = {
+  key: PestanaModeloOperativo;
   label: string;
   desc: string;
   icon: LucideIcon;
 };
 
-export const MONITOREO_ROUTES: MonitoreoRouteDefinition[] = [
+// Adaptador de borde entre el cable y la navegación.
+//
+// `family` es el campo del contrato R↔React y del `.pulso`
+// (`monitoreo_profile.family`) y se queda como está: renombrarlo tocaría 82
+// archivos de `api/R/` y proyectos ya guardados. El concepto de navegación se
+// llama MODO, y su `id` es el que declara `lib/modules.ts`.
+//
+// Los dos vocabularios no coinciden en un caso —`aulas_universitarias` en el
+// cable es el modo `aulas`—, así que la traducción tiene que ser explícita:
+// derivarla con un `slice` o un `replace` es justo el tipo de coincidencia
+// silenciosa que se rompe la próxima vez que alguien agregue un modo.
+// Contrato: docs/adrs/0044-jerarquia-y-direcciones-de-navegacion.md
+const MODO_POR_FAMILY: Record<MonitoreoModo, string> = {
+  acreditacion: "acreditacion",
+  territorial: "territorial",
+  aulas_universitarias: "aulas",
+  telefonico: "telefonico",
+  // `digital_general` existe en el contrato del backend
+  // (`monitoreo_engine.R`) pero NO tiene modo declarado en `lib/modules.ts`:
+  // ningún juego de secciones lo representa todavía. Se mapea igual para que
+  // un proyecto con esa familia produzca una dirección legible en vez de una
+  // rota, pero su modo no aparece en el manifiesto y el inspector no lo
+  // recorrerá hasta que se declare.
+  digital_general: "digital-general",
+};
+
+export function modoIdDesdeFamily(family: MonitoreoModo): string {
+  return MODO_POR_FAMILY[family] ?? family;
+}
+
+export const MONITOREO_MODOS: MonitoreoModoDefinicion[] = [
   {
     family: "acreditacion",
     label: "Acreditación institucional",
@@ -118,7 +148,7 @@ export const MONITOREO_ROUTES: MonitoreoRouteDefinition[] = [
   },
 ];
 
-export const WORKBENCH_VIEWS: WorkbenchViewDefinition[] = [
+export const MONITOREO_SECCIONES: MonitoreoSeccionDefinicion[] = [
   { key: "fuentes", label: "Fuentes", shortLabel: "Fuentes", desc: "Sheets, encuestas y recopiladores", icon: PlugZap },
   { key: "modelo", label: "Modelo operativo", shortLabel: "Modelo", desc: "Metas, mecanismos y barrido", icon: ListChecks },
   { key: "consultas", label: "Consultas", shortLabel: "Consultas", desc: "Casos, cruces y trazabilidad", icon: Search },
@@ -126,7 +156,7 @@ export const WORKBENCH_VIEWS: WorkbenchViewDefinition[] = [
   { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Cumplimiento y brechas", icon: BarChart3 },
 ];
 
-export const TELEFONICO_WORKBENCH_VIEWS: WorkbenchViewDefinition[] = [
+export const TELEFONICO_WORKBENCH_VIEWS: MonitoreoSeccionDefinicion[] = [
   { key: "fuentes", label: "Fuentes", shortLabel: "Fuentes", desc: "Universo y barrido", icon: PlugZap },
   { key: "modelo", label: "Modelo operativo", shortLabel: "Modelo", desc: "Metas y cuotas telefónicas", icon: ListChecks },
   { key: "telefonico", label: "Llamadas", shortLabel: "Llamadas", desc: "Estados, barrido y supervisión", icon: PhoneCall },
@@ -134,7 +164,7 @@ export const TELEFONICO_WORKBENCH_VIEWS: WorkbenchViewDefinition[] = [
   { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Ritmo, cuotas, reportes y entregables", icon: BarChart3 },
 ];
 
-export const TERRITORIAL_WORKBENCH_VIEWS: WorkbenchViewDefinition[] = [
+export const TERRITORIAL_WORKBENCH_VIEWS: MonitoreoSeccionDefinicion[] = [
   { key: "fuentes", label: "Fuente", shortLabel: "Fuente", desc: "Formulario Kobo y filtro", icon: PlugZap },
   { key: "modelo", label: "UMPs", shortLabel: "UMPs", desc: "Orden, responsables y manzanas", icon: Route },
   { key: "calidad", label: "Validación", shortLabel: "Validación", desc: "GPS, reconciliación, duración y cuotas", icon: ShieldAlert },
@@ -143,7 +173,7 @@ export const TERRITORIAL_WORKBENCH_VIEWS: WorkbenchViewDefinition[] = [
   { key: "ocurrencias", label: "Ocurrencias de campo", shortLabel: "Ocurrencias", desc: "Estados y UMP", icon: ClipboardCheck },
 ];
 
-export const AULAS_WORKBENCH_VIEWS: WorkbenchViewDefinition[] = [
+export const AULAS_WORKBENCH_VIEWS: MonitoreoSeccionDefinicion[] = [
   { key: "fuentes", label: "Fuentes", shortLabel: "Fuentes", desc: "Plan, agenda y respuestas", icon: PlugZap },
   { key: "modelo", label: "Agenda de cursos-horario", shortLabel: "Agenda", desc: "Horario, responsable, enlaces y QR", icon: CalendarRange },
   { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Cursos-horario aplicados, cuotas y brechas", icon: BarChart3 },
@@ -151,7 +181,7 @@ export const AULAS_WORKBENCH_VIEWS: WorkbenchViewDefinition[] = [
   { key: "consultas", label: "Consultas", shortLabel: "Consultas", desc: "Trazabilidad por curso-horario", icon: Search },
 ];
 
-export const OPERATIONAL_MODEL_MODES: OperationalModelModeDefinition[] = [
+export const PESTANAS_MODELO_OPERATIVO: PestanaModeloOperativoDefinicion[] = [
   { key: "estructura", label: "Metas y modalidades", desc: "Por corte: meta y mecanismos", icon: Layers3 },
   { key: "casos", label: "Base de barrido", desc: "Responsables, intentos y estados", icon: ContactRound },
   { key: "enlaces", label: "Enlaces y envíos", desc: "Correo, QR y enlaces", icon: Link2 },
@@ -159,9 +189,9 @@ export const OPERATIONAL_MODEL_MODES: OperationalModelModeDefinition[] = [
   { key: "estrategias", label: "Calendario", desc: "Mecanismos por semana", icon: Route },
 ];
 
-export function workbenchViewsForRoute(route: Pick<MonitoreoRouteDefinition, "family">) {
+export function seccionesDelModo(route: Pick<MonitoreoModoDefinicion, "family">) {
   if (route.family === "territorial") return TERRITORIAL_WORKBENCH_VIEWS;
   if (route.family === "aulas_universitarias") return AULAS_WORKBENCH_VIEWS;
   if (route.family === "telefonico") return TELEFONICO_WORKBENCH_VIEWS;
-  return WORKBENCH_VIEWS;
+  return MONITOREO_SECCIONES;
 }

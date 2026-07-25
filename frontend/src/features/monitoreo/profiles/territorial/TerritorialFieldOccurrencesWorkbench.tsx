@@ -68,7 +68,7 @@ type OccurrenceAlertReviewItem = {
 };
 
 type TerritorialFieldOccurrencesWorkbenchProps = {
-  activeLocalTab?: string;
+  pestanaActiva?: string;
   busy?: boolean;
   reports: MonitoreoTerritorialDashboard | null;
   onError?: (message: string) => void;
@@ -459,7 +459,7 @@ function buildOccurrenceAlertReviewItems({
 }
 
 function TerritorialFieldOccurrencesWorkbenchImpl({
-  activeLocalTab,
+  pestanaActiva,
   busy = false,
   reports,
   onError,
@@ -486,7 +486,7 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
   const [assetSelectionError, setAssetSelectionError] = useState("");
   const [alertSearch, setAlertSearch] = useState("");
   const [alertFilter, setAlertFilter] = useState<OccurrenceAlertFilter>("todos");
-  const tab = isOccurrenceTab(activeLocalTab) ? activeLocalTab : "states";
+  const tab = isOccurrenceTab(pestanaActiva) ? pestanaActiva : "states";
   const disabled = busy || Boolean(localBusy);
   const active = Boolean(config?.asset_uid);
   const surveyLink = String(config?.survey_url || config?.asset_url || "").trim();

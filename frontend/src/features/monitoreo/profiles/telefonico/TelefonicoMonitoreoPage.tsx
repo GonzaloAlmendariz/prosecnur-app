@@ -57,8 +57,14 @@ import {
 } from "../../../../api/client";
 import { MODULE_TONES } from "../../../../lib/modules";
 import { PlotlyChart } from "../../../../lib/PlotlyChart";
-import { MONITOREO_ROUTES, WORKBENCH_VIEWS, workbenchViewsForRoute, type WorkbenchView } from "../../core/monitoreoRegistry";
-import { initialMonitoreoView, useMonitoreoTabParam } from "../../useMonitoreoTabParam";
+import {
+  modoIdDesdeFamily, MONITOREO_MODOS, MONITOREO_SECCIONES, seccionesDelModo, type MonitoreoSeccion } from "../../core/monitoreoRegistry";
+import {
+  pestanaInicialDeSeccion,
+  seccionInicialMonitoreo,
+  useMonitoreoDireccion,
+} from "../../useMonitoreoDireccion";
+import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail, type MonitoreoWorkbenchRailTab } from "../../components";
 import {
@@ -122,8 +128,8 @@ import "../../shell/monitoreoShell.css";
 import "../profilePage.css";
 import "./telefonicoProfile.css";
 
-const ACREDITACION_ROUTE = MONITOREO_ROUTES.find((route) => route.family === "acreditacion") ?? MONITOREO_ROUTES[0];
-const TELEFONICO_ROUTE = MONITOREO_ROUTES.find((route) => route.family === "telefonico") ?? ACREDITACION_ROUTE;
+const ACREDITACION_ROUTE = MONITOREO_MODOS.find((route) => route.family === "acreditacion") ?? MONITOREO_MODOS[0];
+const TELEFONICO_ROUTE = MONITOREO_MODOS.find((route) => route.family === "telefonico") ?? ACREDITACION_ROUTE;
 const ACREDITACION_SOURCE_TABS = [
   { key: "survey", label: "Encuestas en plataforma", detail: "SurveyMonkey/Kobo", icon: QrCode },
   { key: "sheets", label: "Bases en Sheets", detail: "Universo por actor", icon: Table2 },
@@ -222,8 +228,8 @@ const ACREDITACION_ADVANCE_TABS = [
 ] as const;
 type AcreditacionAdvanceTab = typeof ACREDITACION_ADVANCE_TABS[number]["key"];
 type AcreditacionLocalTabKey = AcreditacionSourceTab | AcreditacionModelTab | AcreditacionConsultaTab | AcreditacionPhoneTab | AcreditacionAdvanceTab;
-const TELEFONICO_VISIBLE_PHONE_TABS: readonly AcreditacionPhoneTab[] = ["resumen", "tiempos", "incidencia", "responsables", "alertas"];
-const TELEFONICO_VISIBLE_ADVANCE_TABS: readonly AcreditacionAdvanceTab[] = ["resumen", "actores", "salidas"];
+export const TELEFONICO_VISIBLE_PHONE_TABS: readonly AcreditacionPhoneTab[] = ["resumen", "tiempos", "incidencia", "responsables", "alertas"];
+export const TELEFONICO_VISIBLE_ADVANCE_TABS: readonly AcreditacionAdvanceTab[] = ["resumen", "actores", "salidas"];
 
 function isTelefonicoVisiblePhoneTab(tab: AcreditacionLocalTabKey): tab is AcreditacionPhoneTab {
   return TELEFONICO_VISIBLE_PHONE_TABS.includes(tab as AcreditacionPhoneTab);
@@ -4397,7 +4403,7 @@ function prettyModelLabel(value: string) {
     .replace(/\bpartial\b/i, "Parcial");
 }
 
-function scopeForView(view: WorkbenchView, family?: string): MonitoreoReportScope {
+function scopeForView(view: MonitoreoSeccion, family?: string): MonitoreoReportScope {
   if (view === "telefonico") return "phone_summary";
   if (view === "modelo" && family === "telefonico") return "phone_summary";
   if (view === "consultas" && family === "telefonico") return "phone_summary";
@@ -4414,7 +4420,7 @@ const ACREDITACION_BACKGROUND_SCOPES: MonitoreoReportScope[] = [
   "phone_summary",
 ];
 
-function backgroundScopesForView(view: WorkbenchView, family?: string): MonitoreoReportScope[] {
+function backgroundScopesForView(view: MonitoreoSeccion, family?: string): MonitoreoReportScope[] {
   if (family === "telefonico") {
     if (view === "fuentes" || view === "modelo") return ["phone_summary"];
     if (view === "telefonico") return ["source"];
@@ -19804,7 +19810,7 @@ function EmptyPanel({ title, detail }: { title: string; detail: string }) {
   );
 }
 
-function AcreditacionLoadingPanel({ view, label, phoneMode = false }: { view: WorkbenchView; label: string; phoneMode?: boolean }) {
+function AcreditacionLoadingPanel({ view, label, phoneMode = false }: { view: MonitoreoSeccion; label: string; phoneMode?: boolean }) {
   const items = view === "consultas"
     ? phoneMode ? [
       { icon: CheckCircle2, label: "Kobo", value: "efectivas" },
@@ -19850,7 +19856,7 @@ function AcreditacionLoadingPanel({ view, label, phoneMode = false }: { view: Wo
 }
 
 function renderAcreditacionView(
-  view: WorkbenchView,
+  view: MonitoreoSeccion,
   reports: MonitoreoAcreditacionReports | null,
   options: {
     activeSourceTab?: AcreditacionSourceTab;
@@ -19869,7 +19875,7 @@ function renderAcreditacionView(
     state?: MonitoreoState | null;
     onStateChange?: (state: MonitoreoState) => void;
     onPublished?: () => void;
-    onNavigateLocalTab?: (view: WorkbenchView, tab: AcreditacionLocalTabKey) => void;
+    onNavigateLocalTab?: (view: MonitoreoSeccion, tab: AcreditacionLocalTabKey) => void;
     routeLabel?: string;
     savingAcreditacion?: boolean;
   } = {},
@@ -20210,8 +20216,23 @@ function acreditacionRailAdvanceStats(state: MonitoreoState | null, reports: Mon
   };
 }
 
-function localTabsForAcreditacionView(
-  view: WorkbenchView,
+// Gemelo deliberado de `localTabsForAcreditacionView`
+// (profiles/acreditacion/AcreditacionMonitoreoPage.tsx): telefónico es un fork
+// vivo, no una copia pendiente de unificar. Sus ramas `isPhoneRoute` divergen a
+// propósito y NO deben re-fusionarse en un catálogo parametrizado:
+//   · modelo    → sin «Resumen/Lectura» (telefónico no lee Fuentes desde Modelo)
+//   · consultas → rama propia: Efectivas Kobo + CodPulso, y «Salvedades» solo
+//                 cuando hay casos con salvedad (acreditación no tiene rama phone)
+//   · telefónico→ Resumen operativo, Tiempos, Incidencia, Responsables, Alertas
+//                 (acreditación usa Día y Supervisión, que aquí no aplican)
+//   · avance    → Diario, Cuotas por categoría y Salidas (sin Contexto ni CodPulso)
+// Las ramas no-phone de abajo son herencia del fork y hoy son inalcanzables
+// (este archivo siempre monta `mode="telefonico"`); se conservan para que el
+// componente siga siendo montable con `mode="acreditacion"`.
+// Los catálogos base también divergen: aquí ACREDITACION_PHONE_TABS trae 8
+// entradas (suma `consultados` y `tiempos`) frente a las 6 de acreditación.
+export function localTabsForTelefonicoView(
+  view: MonitoreoSeccion,
   state: MonitoreoState | null,
   reports: MonitoreoAcreditacionReports | null,
   route: typeof ACREDITACION_ROUTE,
@@ -20489,35 +20510,35 @@ function localTabsForAcreditacionView(
 
 function AcreditacionWorkbenchRail({
   route,
-  activeView,
-  activeLocalTab,
-  onLocalTabChange,
+  seccionActiva,
+  pestanaActiva,
+  onCambioPestana,
   syncedAt,
   state,
   reports,
 }: {
   route: typeof ACREDITACION_ROUTE;
-  activeView: WorkbenchView;
-  activeLocalTab: string;
-  onLocalTabChange: (view: WorkbenchView, tab: AcreditacionLocalTabKey) => void;
+  seccionActiva: MonitoreoSeccion;
+  pestanaActiva: string;
+  onCambioPestana: (view: MonitoreoSeccion, tab: AcreditacionLocalTabKey) => void;
   syncedAt: string;
   state: MonitoreoState | null;
   reports: MonitoreoAcreditacionReports | null;
 }) {
-  const views = workbenchViewsForRoute(route);
+  const views = seccionesDelModo(route);
   const isPhoneRoute = route.family === "telefonico";
-  const activeSection = views.find((item) => item.key === activeView) ?? views[0] ?? {
+  const activeSection = views.find((item) => item.key === seccionActiva) ?? views[0] ?? {
     label: route.shortLabel,
     desc: "Vista operativa",
     icon: route.icon,
   };
-  const localTabs = localTabsForAcreditacionView(activeView, state, reports, route);
+  const localTabs = localTabsForTelefonicoView(seccionActiva, state, reports, route);
 
   return (
     <MonitoreoWorkbenchRail
-      activeLocalTab={activeLocalTab}
+      pestanaActiva={pestanaActiva}
       activeSection={activeSection}
-      activeView={activeView}
+      seccionActiva={seccionActiva}
       ariaLabel={isPhoneRoute ? "Flujos de monitoreo telefónico" : "Flujos de monitoreo de acreditación"}
       className={isPhoneRoute ? "is-telefonico" : "is-acreditacion"}
       emptyDetail={reports?.report_scope ?? activeSection.desc ?? "Vista operativa"}
@@ -20535,32 +20556,32 @@ function AcreditacionWorkbenchRail({
           ready: Boolean(syncedAt),
         },
       ]}
-      onLocalTabChange={(key) => onLocalTabChange(activeView, key as AcreditacionLocalTabKey)}
+      onCambioPestana={(key) => onCambioPestana(seccionActiva, key as AcreditacionLocalTabKey)}
     />
   );
 }
 
 function AcreditacionWorkbenchHead({
   route,
-  activeView,
+  seccionActiva,
   state,
   reports,
 }: {
   route: typeof ACREDITACION_ROUTE;
-  activeView: WorkbenchView;
+  seccionActiva: MonitoreoSeccion;
   state: MonitoreoState | null;
   reports: MonitoreoAcreditacionReports | null;
 }) {
-  const views = workbenchViewsForRoute(route);
-  const meta = views.find((item) => item.key === activeView) ?? views[0];
+  const views = seccionesDelModo(route);
+  const meta = views.find((item) => item.key === seccionActiva) ?? views[0];
   const Icon = meta.icon;
   const activeSources = activeSourceCount(state);
-  const preferActors = activeView === "modelo" || activeView === "avance";
+  const preferActors = seccionActiva === "modelo" || seccionActiva === "avance";
   const summary = stateFromReports(reports, num(state?.dashboard?.kpis?.total ?? state?.n_rows, 0), num(state?.dashboard?.kpis?.valid, 0), preferActors);
   const valid = num(state?.dashboard?.kpis?.valid, 0) || summary.effective;
   const mechanisms = state?.config?.strategy_phases?.length ?? 0;
   const actorCount = reports?.client_report?.actors?.length ?? 0;
-  const lastPill = activeView === "modelo"
+  const lastPill = seccionActiva === "modelo"
     ? `${fmt(actorCount)} actores`
     : `${fmt(mechanisms)} mecanismos`;
 
@@ -20581,11 +20602,11 @@ function AcreditacionWorkbenchHead({
 }
 
 function AcreditacionClarityStrip({
-  activeView,
+  seccionActiva,
   state,
   reports,
 }: {
-  activeView: WorkbenchView;
+  seccionActiva: MonitoreoSeccion;
   state: MonitoreoState | null;
   reports: MonitoreoAcreditacionReports | null;
 }) {
@@ -20695,16 +20716,16 @@ function AcreditacionClarityStrip({
     ocurrencias: [],
     calidad: [],
   };
-  const items = itemsByView[activeView] ?? itemsByView.fuentes;
+  const items = itemsByView[seccionActiva] ?? itemsByView.fuentes;
   const clarityLabel = isPhoneState ? "Lectura operativa de monitoreo telefónico" : "Lectura operativa de acreditación";
 
   return (
-    <section className={`mon-clarity-strip is-${activeView}`} aria-label={clarityLabel}>
+    <section className={`mon-clarity-strip is-${seccionActiva}`} aria-label={clarityLabel}>
       <div className="mon-clarity-items">
         {items.map((item) => {
           const Icon = item.icon;
           return (
-            <span key={`${activeView}-${item.label}`} className={`mon-clarity-card is-${item.tone}`}>
+            <span key={`${seccionActiva}-${item.label}`} className={`mon-clarity-card is-${item.tone}`}>
               <Icon size={14} />
               <span>
                 <em>{item.label}</em>
@@ -20724,13 +20745,17 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const route = isPhone ? TELEFONICO_ROUTE : ACREDITACION_ROUTE;
   const profileLabel = isPhone ? "Monitoreo telefónico" : "Acreditación";
   const [state, setState] = useState<MonitoreoState | null>(null);
-  const [activeView, setActiveView] = useState<WorkbenchView>(() => initialMonitoreoView("fuentes", workbenchViewsForRoute(route)));
-  useMonitoreoTabParam(activeView);
-  const [activeSourceTab, setActiveSourceTab] = useState<AcreditacionSourceTab>(isPhone ? "sheets" : "survey");
-  const [activeModelTab, setActiveModelTab] = useState<AcreditacionModelTab>("estructura");
-  const [activeConsultaTab, setActiveConsultaTab] = useState<AcreditacionConsultaTab>("plataforma");
-  const [activePhoneTab, setActivePhoneTab] = useState<AcreditacionPhoneTab>("resumen");
-  const [activeAdvanceTab, setActiveAdvanceTab] = useState<AcreditacionAdvanceTab>("resumen");
+  const [seccionActiva, setActiveView] = useState<MonitoreoSeccion>(() => seccionInicialMonitoreo("fuentes", seccionesDelModo(route)));
+  const [activeSourceTab, setActiveSourceTab] = useState<AcreditacionSourceTab>(() =>
+    pestanaInicialDeSeccion("fuentes", seccionActiva, isPhone ? "sheets" : "survey", ACREDITACION_SOURCE_TABS.map((tab) => tab.key)));
+  const [activeModelTab, setActiveModelTab] = useState<AcreditacionModelTab>(() =>
+    pestanaInicialDeSeccion("modelo", seccionActiva, "estructura", ACREDITACION_MODEL_TABS.map((tab) => tab.key)));
+  const [activeConsultaTab, setActiveConsultaTab] = useState<AcreditacionConsultaTab>(() =>
+    pestanaInicialDeSeccion("consultas", seccionActiva, "plataforma", ACREDITACION_CONSULTA_TABS.map((tab) => tab.key)));
+  const [activePhoneTab, setActivePhoneTab] = useState<AcreditacionPhoneTab>(() =>
+    pestanaInicialDeSeccion("telefonico", seccionActiva, "resumen", ACREDITACION_PHONE_TABS.map((tab) => tab.key)));
+  const [activeAdvanceTab, setActiveAdvanceTab] = useState<AcreditacionAdvanceTab>(() =>
+    pestanaInicialDeSeccion("avance", seccionActiva, "resumen", ACREDITACION_ADVANCE_TABS.map((tab) => tab.key)));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [savingAcreditacion, setSavingAcreditacion] = useState(false);
@@ -20739,7 +20764,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const [actionStatus, setActionStatus] = useState<AcreditacionActionStatus>(null);
   const [caseReconciliationBusyId, setCaseReconciliationBusyId] = useState("");
   const [caseReconciliationStatus, setCaseReconciliationStatus] = useState<AcreditacionActionStatus>(null);
-  const activeViewRef = useRef<WorkbenchView>(activeView);
+  const activeViewRef = useRef<MonitoreoSeccion>(seccionActiva);
   const loadSeqRef = useRef(0);
   const initialLoadStartedRef = useRef(false);
   const warmedScopesRef = useRef(new Set<string>());
@@ -20747,13 +20772,13 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const inFlightScopeRef = useRef(new Map<string, Promise<MonitoreoState | null>>());
   const scopeCacheEpochRef = useRef(0);
 
-  const routeWorkbenchViews = useMemo(() => workbenchViewsForRoute(route), [route]);
+  const routeWorkbenchViews = useMemo(() => seccionesDelModo(route), [route]);
   const activeDef = useMemo(
-    () => routeWorkbenchViews.find((item) => item.key === activeView)
-      ?? WORKBENCH_VIEWS.find((item) => item.key === activeView)
+    () => routeWorkbenchViews.find((item) => item.key === seccionActiva)
+      ?? MONITOREO_SECCIONES.find((item) => item.key === seccionActiva)
       ?? routeWorkbenchViews[0]
-      ?? WORKBENCH_VIEWS[0],
-    [activeView, routeWorkbenchViews],
+      ?? MONITOREO_SECCIONES[0],
+    [seccionActiva, routeWorkbenchViews],
   );
   const reports = reportsFromState(state);
   const phoneConsultaCaveatCount = isPhone ? telefonicoConsultaCaveatCount(reports) : 0;
@@ -20761,16 +20786,16 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   useEffect(() => {
     const phoneHiddenConsultaTab = activeConsultaTab === "base" ||
       (activeConsultaTab === "subsanacion" && phoneConsultaCaveatCount === 0);
-    if (isPhone && activeView === "consultas" && phoneHiddenConsultaTab) {
+    if (isPhone && seccionActiva === "consultas" && phoneHiddenConsultaTab) {
       setActiveConsultaTab("plataforma");
     }
-  }, [activeConsultaTab, activeView, isPhone, phoneConsultaCaveatCount]);
+  }, [activeConsultaTab, seccionActiva, isPhone, phoneConsultaCaveatCount]);
   useEffect(() => {
-    if (isPhone && activeView === "modelo" && activeModelTab === "resumen") {
+    if (isPhone && seccionActiva === "modelo" && activeModelTab === "resumen") {
       setActiveModelTab("estructura");
     }
-  }, [activeModelTab, activeView, isPhone]);
-  const prefetchBackgroundScopes = useCallback((view: WorkbenchView) => {
+  }, [activeModelTab, seccionActiva, isPhone]);
+  const prefetchBackgroundScopes = useCallback((view: MonitoreoSeccion) => {
     const activeScope = scopeForView(view, route.family);
     const scopes = [activeScope, ...backgroundScopesForView(view, route.family)]
       .filter((scope, index, all) => scope !== "full" && all.indexOf(scope) === index);
@@ -20819,7 +20844,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     inFlightScopeRef.current.clear();
   }, []);
 
-  const loadView = useCallback(async (view: WorkbenchView, force = false) => {
+  const loadView = useCallback(async (view: MonitoreoSeccion, force = false) => {
     const seq = ++loadSeqRef.current;
     const reportScope = scopeForView(view, route.family);
     if (force) {
@@ -20866,19 +20891,19 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   }, [clearScopeStateCache, prefetchBackgroundScopes, route.family]);
 
   useEffect(() => {
-    activeViewRef.current = activeView;
-  }, [activeView]);
+    activeViewRef.current = seccionActiva;
+  }, [seccionActiva]);
 
   useEffect(() => {
     if (initialLoadStartedRef.current) return;
     initialLoadStartedRef.current = true;
-    void loadView(activeView);
-  }, [activeView, loadView]);
+    void loadView(seccionActiva);
+  }, [seccionActiva, loadView]);
 
   useEffect(() => {
-    if (!isPhone || activeView !== "fuentes" || activeSourceTab !== "collectors") return;
+    if (!isPhone || seccionActiva !== "fuentes" || activeSourceTab !== "collectors") return;
     setActiveSourceTab("survey");
-  }, [activeSourceTab, activeView, isPhone]);
+  }, [activeSourceTab, seccionActiva, isPhone]);
 
   useEffect(() => {
     if (!isPhone) return;
@@ -20887,8 +20912,8 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   }, [activeAdvanceTab, activePhoneTab, isPhone]);
 
   const refreshCurrentView = useCallback(() => {
-    void loadView(activeView, true);
-  }, [activeView, loadView]);
+    void loadView(seccionActiva, true);
+  }, [seccionActiva, loadView]);
   const applyStateChange = useCallback((nextState: MonitoreoState) => {
     clearScopeStateCache();
     setState(nextState);
@@ -21040,19 +21065,31 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const activeSources = activeSourceCount(state);
   const chromeBusy = savingAcreditacion || sourceSyncing || Boolean(caseReconciliationBusyId);
   const refreshTitle = sourceSyncing ? "Sincronizando fuentes..." : loading ? "Actualizando vista..." : `Actualizar ${activeDef.shortLabel ?? activeDef.label}`;
-  const activeLocalTab = activeView === "fuentes"
+  const pestanaActiva = seccionActiva === "fuentes"
     ? activeSourceTab
-    : activeView === "modelo"
+    : seccionActiva === "modelo"
       ? activeModelTab
-      : activeView === "consultas"
+      : seccionActiva === "consultas"
         ? activeConsultaTab
-        : activeView === "telefonico"
+        : seccionActiva === "telefonico"
           ? activePhoneTab
-          : activeView === "avance"
+          : seccionActiva === "avance"
             ? activeAdvanceTab
             : "";
-  const hideWorkbenchStatus = activeView === "consultas" && (activeConsultaTab === "plataforma" || (!isPhone && activeConsultaTab === "base"));
-  const changeLocalTab = useCallback((view: WorkbenchView, tab: AcreditacionLocalTabKey) => {
+  useMonitoreoDireccion(seccionActiva, pestanaActiva || undefined, modoIdDesdeFamily(route.family), {
+    onSeccionPedida: setActiveView,
+    // `changeLocalTab` ya valida la pestaña contra el catálogo de la sección.
+    onPestanaPedida: (pestana, seccion) =>
+      changeLocalTab(seccion, pestana as AcreditacionLocalTabKey),
+  });
+  // Publica las pestañas de esta sección para que el inspector las enumere.
+  useRegistrarPestanasMonitoreo(
+    modoIdDesdeFamily(route.family),
+    seccionActiva,
+    localTabsForTelefonicoView(seccionActiva, state, reports, route),
+  );
+  const hideWorkbenchStatus = seccionActiva === "consultas" && (activeConsultaTab === "plataforma" || (!isPhone && activeConsultaTab === "base"));
+  const changeLocalTab = useCallback((view: MonitoreoSeccion, tab: AcreditacionLocalTabKey) => {
     if (view === "fuentes" && ACREDITACION_SOURCE_TABS.some((item) => item.key === tab)) {
       setActiveSourceTab(tab as AcreditacionSourceTab);
     } else if (
@@ -21074,7 +21111,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       setActiveAdvanceTab(tab as AcreditacionAdvanceTab);
     }
   }, [isPhone, phoneConsultaCaveatCount]);
-  const navigateLocalTab = useCallback((view: WorkbenchView, tab: AcreditacionLocalTabKey) => {
+  const navigateLocalTab = useCallback((view: MonitoreoSeccion, tab: AcreditacionLocalTabKey) => {
     changeLocalTab(view, tab);
     if (view === activeViewRef.current) return;
     activeViewRef.current = view;
@@ -21092,7 +21129,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
         bodyMode="fill"
         headerMode="sr-only"
         className="mon-page"
-        resetScrollKey={`${activeView}:${activeLocalTab}`}
+        resetScrollKey={`${seccionActiva}:${pestanaActiva}`}
         density="compact"
       >
         <span
@@ -21106,7 +21143,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           routes={[route]}
           route={route}
           routeSelected
-          activeView={activeView}
+          seccionActiva={seccionActiva}
           saving={chromeBusy}
           syncedAt={state?.synced_at ?? ""}
           generatedAt={state?.generated_at ?? reports?.generated_at ?? ""}
@@ -21127,8 +21164,8 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           advanceSyncLabel="Avance"
           advanceSyncTitle={refreshTitle}
           onSyncAdvance={() => { void runProfileSourceSync("advance"); }}
-          onViewChange={(view) => {
-            if (view === activeView) return;
+          onCambioSeccion={(view) => {
+            if (view === seccionActiva) return;
             activeViewRef.current = view;
             setActiveView(view);
             if (view !== "avance") setActiveAdvanceTab("resumen");
@@ -21137,15 +21174,15 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
         />
 
         <MonitoreoWorkbenchChrome
-          activeView={activeView}
+          seccionActiva={seccionActiva}
           ariaLabel={`Mesa de trabajo de ${isPhone ? "monitoreo telefónico" : "acreditación"}: ${activeDef.label}`}
           className="is-acreditacion"
           rail={(
             <AcreditacionWorkbenchRail
               route={route}
-              activeView={activeView}
-              activeLocalTab={activeLocalTab}
-              onLocalTabChange={changeLocalTab}
+              seccionActiva={seccionActiva}
+              pestanaActiva={pestanaActiva}
+              onCambioPestana={changeLocalTab}
               syncedAt={state?.synced_at ?? ""}
               state={state}
               reports={reports}
@@ -21154,7 +21191,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           head={null}
           clarity={(
             <AcreditacionClarityStrip
-              activeView={activeView}
+              seccionActiva={seccionActiva}
               state={state}
               reports={reports}
             />
@@ -21162,8 +21199,8 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           status={null}
         >
           {loading ? (
-            <AcreditacionLoadingPanel view={activeView} label={activeDef.label} phoneMode={isPhone} />
-          ) : renderAcreditacionView(activeView, reports, {
+            <AcreditacionLoadingPanel view={seccionActiva} label={activeDef.label} phoneMode={isPhone} />
+          ) : renderAcreditacionView(seccionActiva, reports, {
             activeSourceTab,
             activeModelTab,
             activeConsultaTab,

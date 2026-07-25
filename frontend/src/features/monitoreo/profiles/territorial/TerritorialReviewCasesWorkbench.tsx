@@ -93,7 +93,7 @@ const DEFAULT_DURATION_CONFIG = {
 };
 
 function TerritorialReviewCasesWorkbenchImpl({
-  activeLocalTab,
+  pestanaActiva,
   busy = false,
   config,
   phase,
@@ -103,7 +103,7 @@ function TerritorialReviewCasesWorkbenchImpl({
   onOperationalAdjustmentsReset,
   onOpenValidationCase,
 }: {
-  activeLocalTab?: string;
+  pestanaActiva?: string;
   busy?: boolean;
   config?: MonitoreoTerritorialConfig | null;
   phase?: MonitoreoTerritorialPhase;
@@ -128,10 +128,10 @@ function TerritorialReviewCasesWorkbenchImpl({
   const canClear = !isEmptyTerritorialReviewFilters(filters);
 
   useEffect(() => {
-    const type = territorialReviewTypeFromLocalTab(activeLocalTab);
+    const type = territorialReviewTypeFromLocalTab(pestanaActiva);
     if (!type || filters.type === type) return;
     setFilters((current) => ({ ...current, type }));
-  }, [activeLocalTab, filters.type]);
+  }, [pestanaActiva, filters.type]);
 
   const patchFilters = (patch: Partial<TerritorialReviewFilters>) => {
     setFilters((current) => ({ ...current, ...patch }));

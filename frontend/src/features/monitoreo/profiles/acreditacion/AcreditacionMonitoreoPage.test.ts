@@ -1406,11 +1406,11 @@ describe("Acreditacion phone alert supervision model", () => {
 // cuando la familia era "telefonico" — el rail quedaba vacío aunque el
 // backend trajera los bloques monitoreo_telefonico completos.
 import { localTabsForAcreditacionView } from "./AcreditacionMonitoreoPage";
-import { MONITOREO_ROUTES } from "../../core/monitoreoRegistry";
+import { MONITOREO_MODOS } from "../../core/monitoreoRegistry";
 import type { MonitoreoState } from "../../../../api/monitoreo";
 
 describe("localTabsForAcreditacionView — sección Teléfono en familia acreditación", () => {
-  const acreditacionRoute = MONITOREO_ROUTES.find((r) => r.family === "acreditacion")!;
+  const acreditacionRoute = MONITOREO_MODOS.find((r) => r.family === "acreditacion")!;
   const state = {
     monitoreo_profile: { family: "acreditacion" },
     sources: [],
