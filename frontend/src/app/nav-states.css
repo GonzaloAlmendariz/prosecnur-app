@@ -1,0 +1,97 @@
+/* =============================================================================
+ * Estados de navegación — dueño único
+ * -----------------------------------------------------------------------------
+ * Un item de navegación (píldora de sección, fila de rail, pestaña, chip) tiene
+ * cuatro estados y aquí viven los cuatro: hover, seleccionado, foco y
+ * deshabilitado. Antes vivían en 26 archivos con 145 reglas, y el resultado era
+ * el que reportó el usuario: la caja que aparece al pasar el mouse cambiaba de
+ * forma entre secciones —nueve radios distintos para el mismo tipo de item— y
+ * la pestaña en la que estabas no reaccionaba al mouse.
+ *
+ * CÓMO GANA ESTE ARCHIVO
+ * No por especificidad. Se midió: hay 378 reglas de estado de navegación en el
+ * repo y la más específica llega a (0,8,0), con 38 por encima de (0,5,0). Un
+ * piso de especificidad que las venciera a todas exigiría repetir el atributo
+ * nueve veces, y se rompería con la primera cadena responsive nueva.
+ *
+ * Gana por borrado, y el interruptor es el atributo. `[data-nav-item]` no lo
+ * lleva hoy ningún elemento: mientras un módulo no lo emita, este archivo no
+ * hace absolutamente nada. Cuando un módulo migra, en el MISMO commit emite el
+ * atributo y borra sus reglas de estado — así no hay ventana en la que dos
+ * sistemas se peleen, y no hace falta que este archivo sea más específico que
+ * lo que ya no existe.
+ *
+ * Lo que impide la regresión no es la cascada, es el detector
+ * (components/ModuleChrome.contract.test.ts): prohíbe que un archivo distinto
+ * de este vuelva a declarar hover/activo/foco de un item de navegación.
+ *
+ * CONTRATO QUE EMITE EL COMPONENTE
+ *   data-nav-item                    en el elemento clickeable (a / button)
+ *   data-nav-state="selected"        solo en el activo
+ *   data-nav-shape="pill" | "row"    pill = radio de chip; row = radio de rail
+ *
+ * Los tokens (`--pulso-nav-*`) se declaran en theme.css, no acá.
+ * ========================================================================== */
+
+[data-nav-item] {
+  border-radius: var(--pulso-nav-item-radius);
+  transition:
+    background var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+[data-nav-item][data-nav-shape="pill"] {
+  border-radius: var(--pulso-radius-chip);
+}
+
+/* ── Hover ───────────────────────────────────────────────────────────────────
+ * Bajo `hover: hover` a propósito: en trackpad y touch el navegador emula el
+ * hover y lo deja pegado al último item tocado. Hoy la mitad de las reglas del
+ * repo tiene esta guarda y la otra mitad no, así que el comportamiento tampoco
+ * era uniforme entre módulos. Acá o la tienen todas, o ninguna. */
+@media (hover: hover) and (pointer: fine) {
+  [data-nav-item]:hover:not(:disabled):not([aria-disabled="true"]):not([data-nav-state="selected"]) {
+    background: var(--pulso-nav-hover-bg);
+    color: var(--pulso-nav-hover-fg);
+    border-color: var(--pulso-nav-hover-border);
+  }
+
+  /* Hover SOBRE el activo. Es la queja literal del usuario, y estaba prohibido
+   * por CSS: catorce reglas lo suprimían con `:not(.is-active)` y una más lo
+   * hacía imposible forzando `background: transparent !important` en todo item
+   * con `aria-selected`.
+   *
+   * `background` y `color` van SIEMPRE en el mismo bloque. Ese es el invariante
+   * que evita el bug que Dashboard ya había sufrido y documentado: pintar el
+   * fondo claro del hover sin reasignar el color deja el texto blanco del
+   * activo sobre un fondo claro, es decir invisible. El detector lo verifica. */
+  [data-nav-item][data-nav-state="selected"]:hover:not(:disabled):not([aria-disabled="true"]) {
+    background: var(--pulso-nav-selected-hover-bg);
+    color: var(--pulso-nav-selected-hover-fg);
+    border-color: var(--pulso-nav-selected-border);
+  }
+}
+
+/* ── Foco ────────────────────────────────────────────────────────────────────
+ * `outline`, nunca `box-shadow`. El anillo global es una sombra a (0,1,0) y
+ * cualquier `.is-active` que use `box-shadow` para su relieve —las píldoras de
+ * sección, por ejemplo— lo borra sin querer. Ninguna regla `.is-active` del
+ * repo declara `outline`, así que por acá el anillo sobrevive al activo, y
+ * además se tiñe con el acento del módulo en vez del navy global. */
+[data-nav-item]:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--pulso-nav-focus-outline-color);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+[data-nav-item]:disabled,
+[data-nav-item][aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-nav-item] {
+    transition: none;
+  }
+}

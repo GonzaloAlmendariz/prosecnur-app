@@ -241,6 +241,87 @@
   --pulso-rail-row-height: 32px;
   --pulso-rail-row-height-lg: 40px;
   --pulso-active-base-footer-reserve: 12px;
+
+  /* ==========================================================================
+   * Chrome horizontal y estados de navegación — geometría única (ADR 0042)
+   * --------------------------------------------------------------------------
+   * Antes de este bloque, la geometría del chrome eran literales repetidos: el
+   * header a 58px en un sitio, la command bar a 46 en otro, sus controles a 32
+   * en un tercero, y `--pill-h` ya divergido a 34/34/29. Doce clases de módulo
+   * declaraban la misma banda con cinco alturas distintas (36/42/46/58/~125).
+   *
+   * Los estados de navegación estaban peor: cero tokens. Los 254 `:hover` del
+   * archivo resolvían a ~35 fondos distintos, la caja de hover del mismo tipo
+   * de item tenía nueve radios (6/8/9/10/11px y cuatro tokens ajenos), y los 55
+   * `:focus-visible` usaban ocho formas de anillo.
+   *
+   * Estos valores se declaran ACÁ y en ningún otro lugar. Una clase de módulo
+   * puede elegir entre estos tokens; no puede escribir el literal.
+   * ======================================================================== */
+
+  /* Alturas del chrome. Los tres primeros cierran literales existentes: no
+   * mueven un píxel, solo le ponen nombre a lo que ya medía así. */
+  --pulso-chrome-header-h: 58px;
+  --pulso-chrome-commandbar-h: 46px;
+  --pulso-chrome-commandbar-pad: 4px;
+  --pulso-chrome-commandbar-gap: 6px;
+  --pulso-chrome-commandbar-radius: 18px;
+  --pulso-chrome-control-h: 32px;
+  /* Superficie de comando: la banda operativa (KPIs, readiness, fase) que
+   * acompaña al chrome sin ser navegación. Es la única que puede envolver. */
+  --pulso-chrome-surface-h: var(--pulso-control-height-lg);
+
+  /* Píldora de sección. Dos alturas, no tres: 34 existe solo porque el chip de
+   * numeración no cabe en 32, y solo se usa donde hay pipeline real. */
+  --pulso-section-pill-h: 32px;
+  --pulso-section-pill-h-progress: 34px;
+  --pulso-section-pill-pad-x: 13px;
+  --pulso-section-pill-gap: 2px;
+
+  /* Rail de pestañas: siempre comprimido, empuja el canvas, jamás overlay
+   * (ADR 0038 patrón #3). El ancho expandido no se tokeniza porque no existe. */
+  --pulso-rail-compressed-width: 56px;
+  --pulso-nav-item-height: var(--pulso-rail-row-height-lg);
+  --pulso-nav-item-radius: 10px;
+  --pulso-nav-icon-size: 18px;
+
+  /* Burbuja del rail comprimido: título + subtítulo al hover Y al focus. */
+  --pulso-rail-bubble-radius: 10px;
+  --pulso-rail-bubble-offset: 8px;
+
+  /* Indirección de acento: un item de navegación sigue al módulo que lo
+   * contiene, nunca al navy global. `--module-accent` lo declara el frame del
+   * módulo (ver el bloque «Paleta de módulo» más abajo). */
+  --pulso-nav-accent: var(--module-accent, var(--pulso-primary));
+
+  --pulso-nav-hover-bg: color-mix(in srgb, var(--pulso-nav-accent) 10%, var(--pulso-surface));
+  --pulso-nav-hover-fg: var(--pulso-nav-accent);
+  --pulso-nav-hover-border: color-mix(in srgb, var(--pulso-nav-accent) 28%, var(--pulso-border));
+
+  --pulso-nav-selected-fg: #fff;
+  --pulso-nav-selected-border: var(--pulso-nav-accent);
+
+  /* Hover SOBRE el item activo. Existía en un solo lugar del repo
+   * (features/dashboard/theme/tokens.css), que además dejó comentado el porqué:
+   * sin reasignar el color, el fondo claro del hover se comía el texto blanco
+   * del activo. Esa fórmula sube acá y deja de ser un hallazgo local. */
+  --pulso-nav-selected-hover-bg: color-mix(in srgb, var(--pulso-surface-2) 86%, var(--pulso-nav-accent) 14%);
+  --pulso-nav-selected-hover-fg: var(--pulso-nav-accent);
+
+  /* Foco por `outline`, no por `box-shadow`: el anillo global de sombra
+   * (`button:where(:focus-visible)`) vale (0,1,0) y cualquier `.is-active` que
+   * declare su relieve con `box-shadow` lo borra — es el anillo que hoy se
+   * pierde en las píldoras activas. Ninguna regla `.is-active` del repo toca
+   * `outline`, así que por acá el anillo es inmune por construcción. */
+  --pulso-nav-focus-outline-width: 2px;
+  --pulso-nav-focus-outline-color: color-mix(in srgb, var(--pulso-nav-accent) 62%, transparent);
+  --pulso-nav-focus-offset: 2px;
+
+  /* Capas. Convención ya usada de facto (los overlays van sobre la toolbar
+   * porque la toolbar tiene transform y crea contexto de apilamiento). */
+  --pulso-z-toolbar: 1000;
+  --pulso-z-flyout: 1400;
+  --pulso-z-modal: 1500;
   --pulso-operational-min-workbench: 360px;
   --pulso-operational-min-panel: 360px;
   --pulso-operational-min-media: 360px;
@@ -2656,7 +2737,22 @@ a { color: var(--pulso-primary); }
   z-index: 1;
 }
 
-.pulso-gliding-tab-list [data-gliding-key][aria-selected="true"] {
+/* El fondo del item activo lo pinta el indicador que se desliza por detrás, así
+ * que el item tiene que quedar transparente o se ven dos píldoras superpuestas
+ * durante los 180ms de la transición. De ahí el `!important`.
+ *
+ * El `:not([data-nav-item]:hover)` es lo que deja pasar el hover sobre el item
+ * activo. Sin esto, ningún hover puede tocar el activo en los 47 archivos que
+ * usan `aria-selected`: era la causa de que la pestaña en la que estás no
+ * reaccione al mouse.
+ *
+ * La condición incluye el atributo a propósito, y no es un `:not(:hover)` a
+ * secas. El `color: #fff` de acá es la única fuente de texto blanco para los
+ * items que no declaran el suyo, así que abrir el hueco para todos los dejaría
+ * con texto oscuro sobre el indicador teñido justo al pasar el mouse. Con el
+ * atributo, el hueco se abre solo donde nav-states.css ya está listo para
+ * llenarlo —fondo Y color en el mismo bloque— y el item sin migrar no cambia. */
+.pulso-gliding-tab-list [data-gliding-key][aria-selected="true"]:not([data-nav-item]:hover) {
   background: transparent !important;
   box-shadow: none !important;
   color: var(--pulso-gliding-active-color, #fff) !important;
