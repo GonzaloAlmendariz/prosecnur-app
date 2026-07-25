@@ -48,17 +48,6 @@
   min-height: 0;
 }
 
-.hojas-ruta-module-chrome {
-  display: grid;
-  gap: 7px;
-  min-width: 0;
-}
-
-.hojas-ruta-alert-stack {
-  display: grid;
-  gap: 7px;
-}
-
 /* Geometría, material y sombra vienen del patrón maestro .pulso-command-bar
    (theme.css): contexto (KPIs) | secciones (rail centrado) | acciones, todo en
    una fila. Aquí solo viven las zonas de Hojas y su acento naranja.
@@ -71,9 +60,10 @@
      columna de acciones se negaba a encoger y la barra terminaba ~83px más
      ancha que el viewport, dejando el selector de regla de piloto pintado
      afuera y sin scroll que lo alcanzara —a 1280, 1440 y 1710 por igual—. */
-  --command-bar-columns: minmax(0, max-content) minmax(0, 1fr) minmax(0, max-content);
-  --command-bar-accent: var(--module-accent-border);
-  --command-bar-accent-mix: 76%;
+  /* Las columnas y la mezcla del acento salen del patrón maestro. La mezcla
+     propia era 76% —el borde más teñido de la app, contra el 34% de los demás—
+     y era una de las razones por las que el chrome se veía distinto al pasar de
+     un módulo a otro. */
   --commandbar-control-height: var(--command-bar-control-height);
 }
 
@@ -5971,11 +5961,6 @@
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 
-.hojas-ruta-delivery-tabs button:hover:not(:disabled):not(.is-active) {
-  background: var(--module-accent-soft);
-  color: var(--module-accent);
-}
-
 .hojas-ruta-delivery-tabs button:active:not(:disabled) {
   transform: scale(0.985);
 }
@@ -7072,4 +7057,14 @@
 
 .hojas-ruta-frame .hojas-ruta-method-selector button.is-active span {
   color: #405066;
+}
+
+/* Superficie operativa: el conmutador de fase del estudio. No es chrome de
+ * navegación —cambia el estado del estudio y lleva su propio resumen del
+ * piloto— y mide 88px por diseño, así que vive acá y no en la banda, que no
+ * crece. Es la separación navegar/operar del ADR 0042. */
+.hojas-ruta-command-surface {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--pulso-chrome-commandbar-gap);
 }

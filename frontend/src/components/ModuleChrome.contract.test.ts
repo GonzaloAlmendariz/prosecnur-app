@@ -189,9 +189,15 @@ function clave(r: Regla): string {
 const ES_BANDA =
   /command-bar|commandbar|context-bar|sourcebar|command-row|command-header|-topbar\b/;
 
-/** Selectores de la familia «item de navegación». */
+/**
+ * Selectores de la familia «item de navegación».
+ *
+ * Los `\b` no son decorativos: sin el límite, `view-tab` matcheaba dentro de
+ * «re-view-table» y el detector acusaba a filas de tabla de ser items de
+ * navegación. Un detector con falsos positivos se termina desactivando.
+ */
 const ES_ITEM_NAV =
-  /nav-item|section-pill|phase-pill|-tab\b|-tabs\b|tab-chip|rail-item|stage-item|dash-tab|compact-tab|mode-tab|estilo-tab|inspector-tab|xfs-tab|view-tab|delivery-tabs|sample-tabs|phase-tabs/;
+  /nav-item|section-pill|phase-pill|-tab\b|-tabs\b|tab-chip|rail-item|stage-item|dash-tab\b|compact-tab\b|mode-tab\b|estilo-tab\b|inspector-tab\b|xfs-tab\b|-view-tab\b|delivery-tabs\b|sample-tabs\b|phase-tabs\b/;
 
 /** El selector habla de un estado interactivo. */
 const ES_ESTADO = /:hover|:focus-visible|\.is-active|aria-selected|aria-current/;
@@ -306,7 +312,6 @@ const SUPRIME_HOVER_PENDIENTE = [
   "features/carga/carga-v2.css :: .pulso-platform-provider-tabs button:hover:not(.is-active):not(:disabled)",
   "features/dashboard/tabs/DimensionesTab/dimensiones.css :: .dashboard-scope .dash-dim-config-tab:hover:not(.is-active)",
   "features/dashboard/theme/tokens.css :: .dashboard-scope .dash-tab:hover:not(:disabled):not(.is-active)",
-  "features/hojasRuta/hojasRuta.css :: .hojas-ruta-delivery-tabs button:hover:not(:disabled):not(.is-active)",
   "features/monitoreo/monitoreo.css :: .mon-territorial-route-tabs button:not(.is-active):hover",
   "features/monitoreo/profiles/profilePage.css :: .mon-acr-query-tabs button:hover:not(.is-active)",
   "features/monitoreo/profiles/profilePage.css :: .mon-profile-local-tabs button:hover:not(.is-active)",
@@ -355,21 +360,14 @@ describe("estados de navegación", () => {
     "features/graficos/v2/styles/editor-v2.css :: .pulso-gv2-estilo-tab:hover, .pulso-gv2-estilo-tab:focus-visible",
     "features/graficos/v2/styles/editor-v2.css :: .pulso-gv2-picker-rail .pulso-gv2-picker-tab:hover",
     "features/graficos/v2/styles/editor-v2.css :: .pulso-gv2-preset-nav-item:hover",
-    "features/hojasRuta/hojasRuta.css :: .hojas-ruta-frame .hojas-ruta-review-table tbody tr:hover td",
-    "features/hojasRuta/hojasRuta.css :: .hojas-ruta-review-table tbody tr:hover td",
     "features/monitoreo/monitoreo.css :: .mon-nav-item:hover",
     "features/monitoreo/monitoreo.css :: .mon-workbench-rail.is-collapsible .mon-section-local-tabs .mon-nav-item:hover, .mon-workbench-rail.is-coll...",
     "features/monitoreo/profiles/profilePage.css :: .mon-acr-query-tabs button:hover:not(.is-active)",
     "features/monitoreo/profiles/profilePage.css :: .mon-profile-local-tabs button:hover:not(.is-active)",
     "features/monitoreo/profiles/telefonico/telefonicoProfile.css :: .is-telefonico-profile .mon-phone-supervision-tabs button:hover, .is-telefonico-profile .mon-phone-supervis...",
-    "features/monitoreo/profiles/territorial/territorialProfile.css :: .mon-duration-review-table tbody tr:hover, .mon-duration-review-table tbody tr.is-selected, .mon-duration-e...",
-    "features/monitoreo/profiles/territorial/territorialProfile.css :: .mon-territorial-review-table tbody tr.is-sin_observacion:hover",
-    "features/monitoreo/profiles/territorial/territorialProfile.css :: .mon-territorial-review-table tbody tr:hover",
     "features/monitoreo/salidas/outputsWorkbench.css :: .mon-outputs-audience-tabs button:hover:not(.is-active)",
     "features/monitoreo/shell/monitoreoShell.css :: .mon-section-pill:hover:not(.is-disabled):not(.is-active)",
     "features/monitoreo/shell/monitoreoShell.css :: .mon-workbench-rail.is-acreditacion .mon-section-local-tabs .mon-nav-item:hover",
-    "features/xlsformEditor/styles/xf-sheets.css :: .pulso-xlsform-frame .pulso-xfs-table tbody tr:hover td",
-    "features/xlsformEditor/styles/xf-sheets.css :: .pulso-xlsform-frame .pulso-xfs-table tbody tr:hover td.pulso-xfs-actions-col",
   ];
 
   test("un hover que pinta fondo también fija color", () => {
