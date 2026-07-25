@@ -23,7 +23,9 @@
 /* Geometría, material y sombra vienen del patrón maestro .pulso-command-bar
    (theme.css). Aquí solo viven las zonas de Fichas QR, su acento y el sticky. */
 .rec-topbar {
-  --command-bar-columns: minmax(238px, max-content) minmax(480px, 1fr) minmax(246px, max-content);
+  /* El override propio se retiró: el valor por defecto de `.pulso-command-bar`
+   * ya iguala los lados y centra el rail por construcción. Cinco módulos tenían
+   * su propia versión de esta perilla y ninguno el mismo valor. */
   --command-bar-accent: var(--rec-accent);
   --command-bar-accent-mix: 16%;
   --command-bar-radius: var(--rec-topbar-radius);
@@ -2925,12 +2927,12 @@
     grid-template-columns: 1fr;
   }
 
-  /* El topbar conserva su fila única: el pillbar mantiene sus etiquetas y es
-     el brand el que trunca; apilarlo lo hacía desbordar sobre la banda de
-     aplicación. El pillbar canónico gestiona su propio overflow-x. */
-  .rec-topbar {
-    grid-template-columns: minmax(0, 1fr) auto max-content;
-  }
+  /* Acá había un `grid-template-columns` propio para el topbar —pisando la
+     propiedad, no la variable, así que el default canónico no podía alcanzarlo—.
+     Existía para que «el brand truncara» cuando el título largo del módulo vivía
+     en la banda; ese título se retiró y la regla quedó dándole a la zona
+     izquierda todo el espacio libre: medido a 1024, 566px contra 177 y el rail a
+     195px del centro. El default iguala los lados y centra el rail. */
 
   .rec-package-output {
     grid-template-areas:

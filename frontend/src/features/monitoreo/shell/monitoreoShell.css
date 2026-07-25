@@ -1344,16 +1344,21 @@
 }
 
 @media (max-width: 1180px) {
+  /* La banda respeta el token de altura como los otros siete módulos. Acá bajaba
+   * a 40 en dos media queries distintas —el MISMO selector definido dos veces,
+   * quinta vez que aparece ese patrón en este módulo— y el `grid-template-columns`
+   * propio daba 144px al lado izquierdo contra 188 al derecho, que es de dónde
+   * salía el desbalance de 59px medido a 1024. El default canónico iguala los
+   * lados; una banda más baja en pantallas cortas, si se quiere, se decide por
+   * token para los ocho módulos, no con un valor local de Monitoreo. */
   .mon-commandbar {
-    min-height: 40px;
+    min-height: var(--pulso-chrome-commandbar-h);
     align-items: center;
-    grid-template-columns: minmax(144px, max-content) minmax(0, 1fr) minmax(188px, max-content);
     gap: 4px;
     padding: 3px 4px;
   }
 
   .mon-commandbar.has-section-rail {
-    grid-template-columns: minmax(144px, max-content) minmax(0, 1fr) minmax(188px, max-content);
   }
 
   .mon-commandbar.has-section-rail .mon-command-summary {
@@ -1544,13 +1549,12 @@
   }
 
   .mon-commandbar {
-    min-height: 40px;
+    min-height: var(--pulso-chrome-commandbar-h);
     padding: 3px 4px;
   }
 
   .mon-commandbar.has-section-rail {
-    min-height: 40px;
-    grid-template-columns: minmax(144px, max-content) minmax(0, 1fr) minmax(188px, max-content);
+    min-height: var(--pulso-chrome-commandbar-h);
     padding-block: 3px;
   }
 

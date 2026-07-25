@@ -29,7 +29,9 @@
 /* Geometría, material y sombra vienen del patrón maestro .pulso-command-bar
    (theme.css). Aquí solo viven las zonas del cronograma y su acento. */
 .plan-commandbar {
-  --command-bar-columns: minmax(206px, max-content) minmax(360px, 1fr) max-content;
+  /* El override propio se retiró: el valor por defecto de `.pulso-command-bar`
+   * ya iguala los lados y centra el rail por construcción. Cinco módulos tenían
+   * su propia versión de esta perilla y ninguno el mismo valor. */
   --command-bar-accent: var(--plan-accent-border);
   --command-bar-accent-mix: 36%;
   --plan-topbar-radius: var(--command-bar-radius);

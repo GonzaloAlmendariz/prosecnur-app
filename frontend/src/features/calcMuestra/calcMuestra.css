@@ -89,7 +89,9 @@
    alto— y sus controles flotaban sueltos sobre el lienzo; al heredar recupera
    la banda de tres zonas que usa el resto de los módulos. */
 .cmv2-commandbar {
-  --command-bar-columns: minmax(170px, 1fr) minmax(0, auto) minmax(260px, 1fr);
+  /* El override propio se retiró: el valor por defecto de `.pulso-command-bar`
+   * ya iguala los lados y centra el rail por construcción. Cinco módulos tenían
+   * su propia versión de esta perilla y ninguno el mismo valor. */
   --command-bar-accent: var(--cmv2-accent-border);
   --command-bar-accent-mix: 42%;
   justify-content: center;

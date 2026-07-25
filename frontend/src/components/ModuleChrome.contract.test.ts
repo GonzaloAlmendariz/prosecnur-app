@@ -243,10 +243,8 @@ const ALTURA_PROPIA_PENDIENTE = [
   "features/monitoreo/monitoreo.css :: .mon-toolbar button, .mon-commandbar button, .mon-download-link, .mon-inline-action, .mon-page .pulso-panel...",
   "features/monitoreo/monitoreo.css :: :where( .mon-toolbar, .mon-territorial-review-filterbar, .mon-query-evidencebar, .mon-territorial-exec-comm...",
   "features/monitoreo/profiles/territorial/territorialProfile.css :: .mon-territorial-exec-commandbar-meta span",
-  "features/monitoreo/shell/monitoreoShell.css :: .mon-commandbar",
   "features/monitoreo/shell/monitoreoShell.css :: .mon-commandbar .mon-command-sync",
   "features/monitoreo/shell/monitoreoShell.css :: .mon-commandbar .mon-command-sync svg",
-  "features/monitoreo/shell/monitoreoShell.css :: .mon-commandbar.has-section-rail",
 ];
 
 describe("geometría del chrome", () => {

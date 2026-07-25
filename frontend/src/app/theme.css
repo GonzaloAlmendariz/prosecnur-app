@@ -4649,16 +4649,27 @@ a { color: var(--pulso-primary); }
   /* Prioridad de quién cede cuando falta ancho, de menos a más importante:
      primero los indicadores (su propia escalera los recoge), después el rail
      —que tiene scroll interno—, y los controles operables nunca.
-     El grid solo puede expresar los dos últimos, y lo hace así: los lados van a
-     `auto`, cuyo mínimo es su min-content, de modo que ni un valor numérico ni un
-     `select` se recortan; el medio va a `minmax(0, 1fr)` y es quien absorbe.
-     Se probó la simetría `1fr auto 1fr` para centrar el rail por construcción y
-     hace lo contrario de lo que hace falta: en CSS Grid las pistas `fr` ceden su
-     base ANTES que una pista `auto`, así que a 1280 el conmutador de piloto quedó
-     en 47px para un contenido de 99 y el QA lo marcó como overflow.
-     La centralidad del rail se resuelve aparte, sacándolo del flujo cuando la
-     banda da el ancho (ver components/chrome.css). */
-  --command-bar-columns: minmax(0, auto) minmax(0, 1fr) minmax(0, auto);
+     El grid solo puede expresar los dos últimos, y lo hace así: los lados llevan
+     `minmax(min-content, 1fr)` y el medio `minmax(0, auto)`.
+
+     El mínimo es lo que hace que esto funcione y es donde falló el primer
+     intento. Con `minmax(0, 1fr)` los lados pueden ceder hasta cero, y en CSS
+     Grid las pistas `fr` ceden su base ANTES que una `auto`: a 1280 el conmutador
+     de piloto quedó en 47px para un contenido de 99 y el QA lo marcó como
+     overflow. Con `min-content` como suelo, la pista nunca baja de lo que su
+     contenido necesita —ni un valor numérico ni un `select` se recortan— y el
+     `1fr` solo reparte lo que sobra, en partes iguales.
+
+     El efecto es que los dos lados quedan del mismo ancho siempre que haya
+     espacio libre, y el rail del medio cae en el centro de la banda por
+     construcción, sin sacarlo del flujo. Eso reemplaza al centrado absoluto que
+     se intentó antes y se abandonó por solaparse con el contenido.
+
+     Medido en Hojas de ruta, que era el peor caso (contexto de tres indicadores
+     contra un único conmutador): lados 284/160 y rail a 62px del centro, contra
+     424/425 y desvío 0. Verificado a 1259, 996 y 836px de banda sin un solo
+     recorte ni desborde. */
+  --command-bar-columns: minmax(min-content, 1fr) minmax(0, auto) minmax(min-content, 1fr);
   --command-bar-accent: var(--module-accent, var(--pulso-material-border));
   /* Un solo valor de mezcla, sin perilla por módulo: cuando la había, cinco
    * módulos eligieron 16, 24, 34, 42 y 76%, y el borde del chrome se veía de
