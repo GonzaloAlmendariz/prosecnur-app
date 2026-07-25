@@ -1169,13 +1169,18 @@
   display: none;
 }
 
-/* El rail colapsado deja ~40px de ancho útil: la fecha entra apretando el
- * padding lateral, la hora no entra a ningún tamaño legible. La hora vive en el
- * `title` del item, y el dato completo ya está en la banda de corte y en el KPI. */
+/* El rail colapsado deja ~49px de ancho útil: la fecha entra SIN padding lateral,
+ * la hora no entra a ningún tamaño legible. La hora vive en el `title` del item,
+ * y el dato completo ya está en la banda de corte y en el KPI.
+ *
+ * Los 2px de padding lateral que había acá no alcanzaban: medido, «24/07/26»
+ * necesita 48px y le quedaban 45, así que el último dígito se cortaba por la
+ * mitad —sin elipsis, porque otra regla la anulaba con `clip`—. La fuente ya está
+ * en el piso de 10px y no puede achicarse más. */
 .mon-workbench-rail.is-collapsible .mon-rail-sync.is-last-update {
   min-height: 36px;
   border-radius: 10px;
-  padding: 4px 2px;
+  padding: 4px 0;
 }
 
 .mon-workbench-rail.is-collapsible .mon-rail-sync.is-last-update strong .mon-rail-sync-time {
