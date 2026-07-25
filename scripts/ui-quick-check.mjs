@@ -58,6 +58,7 @@ function parseArgs(argv) {
     focusedWarmup: process.env.UI_QA_FULL_WARMUP === "1" ? false : true,
     prefetchRouteData: process.env.UI_QA_PREFETCH_ROUTE_DATA === "1",
     clickTabs: [],
+    direcciones: [],
     name: "quick",
     routeProvided: false,
     viewportProvided: false,
@@ -100,6 +101,8 @@ function parseArgs(argv) {
       out.apiPort = Number(next());
     } else if (arg === "--click-tab") {
       out.clickTabs.push(next());
+    } else if (arg === "--ir") {
+      out.direcciones.push(next());
     } else if (arg === "--name") {
       out.name = next();
     } else if (arg === "--matrix") {
@@ -171,6 +174,8 @@ Qué hace:
 
 Opciones:
   --route PATH              Ruta a capturar. Puede repetirse.
+  --ir CLAVE                Navega a una dirección canónica (modulo/modo/seccion/pestana).
+                            Preferente sobre --click-tab. Puede repetirse.
   --viewport WIDTHxHEIGHT   Viewport a capturar. Puede repetirse.
   --matrix                  Usa /carga, /validacion, /codificacion, /analitica y la matriz desktop.
   --layout-preset NAME      auto, large, portable, portable-compact, compact o short.
@@ -902,6 +907,48 @@ async function prefetchRouteDataForQa(stack, route, timeoutMs, clickTabs = []) {
   }
 }
 
+// Navegación por DIRECCIÓN canónica (`modulo/modo/seccion/pestana#panel`).
+// Preferente sobre el click por etiqueta, que depende del texto visible.
+// Contrato: frontend/src/lib/navegacion/direccion.ts
+async function irADireccion(page, destino, timeoutMs) {
+  const resultado = await page.evaluate((clave) => {
+    const nav = window.__pulsoNav;
+    if (!nav) return "sin-puente";
+    return nav.ir(clave) ? "ok" : "sin-nodo";
+  }, destino);
+
+  if (resultado === "sin-puente") {
+    throw new Error(
+      "No hay puente de navegación (window.__pulsoNav). Solo se instala en dev o con ?qaWarmup=skip.",
+    );
+  }
+  if (resultado === "sin-nodo") {
+    const disponibles = await page.evaluate(() =>
+      (window.__pulsoNav?.manifiesto ?? []).map((nodo) => nodo.clave),
+    );
+    throw new Error(
+      `La dirección "${destino}" no existe en el manifiesto. Disponibles: ${disponibles.join(", ")}`,
+    );
+  }
+
+  await page.waitForLoadState("networkidle", { timeout: timeoutMs }).catch(() => {});
+  await esperarListo(page, timeoutMs);
+}
+
+// Readiness preguntada a la app, no adivinada con sleeps.
+async function esperarListo(page, timeoutMs) {
+  const limite = Date.now() + timeoutMs;
+  let ultimo = null;
+  while (Date.now() < limite) {
+    ultimo = await page.evaluate(() => window.__pulsoNav?.listo() ?? null);
+    if (!ultimo) return { listo: false, motivo: "sin-puente" };
+    if (ultimo.listo) return ultimo;
+    if (ultimo.motivo === "sin-marca-de-readiness") return ultimo;
+    await page.waitForTimeout(250);
+  }
+  return ultimo ?? { listo: false, motivo: "timeout" };
+}
+
 async function clickNamedControl(page, label, timeoutMs) {
   const pattern = new RegExp(escapeRegExp(label), "i");
   const startsWithPattern = new RegExp(`^\\s*${escapeRegExp(label)}(?:\\s|$)`, "i");
@@ -989,6 +1036,9 @@ async function runCaptures(opts, stack) {
           await page.locator(opts.waitSelector).first().waitFor({ state: "attached", timeout: opts.timeoutMs }).catch(() => {
             waitSelectorMatched = false;
           });
+        }
+        for (const destino of opts.direcciones) {
+          await irADireccion(page, destino, opts.timeoutMs);
         }
         for (const tab of opts.clickTabs) {
           await clickNamedControl(page, tab, opts.timeoutMs);

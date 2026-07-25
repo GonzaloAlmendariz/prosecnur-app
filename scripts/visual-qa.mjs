@@ -28,6 +28,7 @@ function parseArgs(argv) {
     timeoutMs: DEFAULT_TIMEOUT_MS,
     viewport: [{ width: 1440, height: 1000 }],
     clickTabs: [],
+    direcciones: [],
     expectText: [],
     forbidText: [],
   };
@@ -44,6 +45,7 @@ function parseArgs(argv) {
     else if (arg === "--layout-preset" || arg === "--preset") out.layoutPreset = next();
     else if (arg === "--wait-selector") out.waitSelector = next();
     else if (arg === "--click-tab") out.clickTabs.push(next());
+    else if (arg === "--ir") out.direcciones.push(next());
     else if (arg === "--expect-text") out.expectText.push(next());
     else if (arg === "--forbid-text") out.forbidText.push(next());
     else if (arg === "--viewport") out.viewport.push(parseViewport(next()));
@@ -100,7 +102,10 @@ Opciones principales:
   --session SID           Usa una sesión ya existente.
   --reload-engine         Activo por defecto: POST /api/system/reload-engine antes de abrir proyecto.
   --no-reload-engine      Omite hot reload del motor R.
+  --ir CLAVE              Navega a una dirección canónica (modulo/modo/seccion/pestana).
+                          Preferente sobre --click-tab. Puede repetirse.
   --click-tab TEXT        Abre una pestaña por nombre antes de capturar. Puede repetirse.
+                          Fallback frágil: depende del texto visible.
   --viewport 390x844      Agrega viewport. Puede repetirse.
   --only-viewport 1440x900 Usa solo ese viewport.
   --layout-preset NAME     Siembra pulso.layoutPreset: auto, large, portable, portable-compact, compact o short.
@@ -164,6 +169,60 @@ function stringOrEmpty(value) {
 
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Navegación por DIRECCIÓN canónica (`modulo/modo/seccion/pestana#panel`).
+//
+// Es la vía preferente: el runner pide el destino por su clave estable y la
+// app lo resuelve. Antes solo existía `clickNamedControl`, que dependía del
+// texto visible — y por eso el recorrido se caía cuando una etiqueta cambiaba,
+// se truncaba en viewport compacto o todavía no estaba pintada.
+// Contrato: frontend/src/lib/navegacion/direccion.ts
+async function irADireccion(page, destino, timeoutMs) {
+  const ok = await page.evaluate((clave) => {
+    const nav = window.__pulsoNav;
+    if (!nav) return "sin-puente";
+    return nav.ir(clave) ? "ok" : "sin-nodo";
+  }, destino);
+
+  if (ok === "sin-puente") {
+    throw new Error(
+      `No hay puente de navegación (window.__pulsoNav) en la página. ` +
+      `Solo se instala en dev o con ?qaWarmup=skip.`,
+    );
+  }
+  if (ok === "sin-nodo") {
+    const disponibles = await page.evaluate(() =>
+      (window.__pulsoNav?.manifiesto ?? []).map((nodo) => nodo.clave),
+    );
+    throw new Error(
+      `La dirección "${destino}" no existe en el manifiesto. ` +
+      `Disponibles: ${disponibles.join(", ")}`,
+    );
+  }
+
+  await page.waitForLoadState("networkidle", { timeout: timeoutMs }).catch(() => {});
+  await esperarListo(page, timeoutMs);
+}
+
+// Readiness real, preguntada a la app en vez de dormir a ciegas.
+//
+// Distingue "todavía en warm start" de "esta vista no declara readiness": con
+// proyectos de referencia el warm start tarda de verdad y una captura temprana
+// muestra ceros que parecen un bug y no lo son.
+async function esperarListo(page, timeoutMs) {
+  const limite = Date.now() + timeoutMs;
+  let ultimo = null;
+  while (Date.now() < limite) {
+    ultimo = await page.evaluate(() => window.__pulsoNav?.listo() ?? null);
+    if (!ultimo) return { listo: false, motivo: "sin-puente" };
+    if (ultimo.listo) return ultimo;
+    // Una vista sin marca de readiness nunca va a virar sola: no tiene sentido
+    // seguir sondeando hasta agotar el timeout.
+    if (ultimo.motivo === "sin-marca-de-readiness") return ultimo;
+    await page.waitForTimeout(250);
+  }
+  return ultimo ?? { listo: false, motivo: "timeout" };
 }
 
 async function clickNamedControl(page, label, timeoutMs) {
@@ -262,6 +321,9 @@ async function runViewport(opts, setup, viewport) {
 
   await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
   await page.waitForLoadState("networkidle", { timeout: opts.timeoutMs }).catch(() => {});
+  for (const destino of opts.direcciones) {
+    await irADireccion(page, destino, opts.timeoutMs);
+  }
   for (const tab of opts.clickTabs) {
     await clickNamedControl(page, tab, opts.timeoutMs);
     await page.waitForLoadState("networkidle", { timeout: opts.timeoutMs }).catch(() => {});
@@ -379,6 +441,7 @@ async function main() {
       layoutPreset: opts.layoutPreset,
       waitSelector: opts.waitSelector,
       clickTabs: opts.clickTabs,
+      direcciones: opts.direcciones,
     },
     setup,
     viewports,
