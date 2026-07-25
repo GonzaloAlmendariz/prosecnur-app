@@ -135,12 +135,10 @@ export default function AnaliticaPage() {
       layout="workbench"
       scrollOwner="panels"
       resetScrollKey={`${active}:${state?.active_base ?? ""}`}
-      toolbar={!prereqOk ? (
-        <div className="pulso-analitica-toolbar-stack">
-          <Alert kind="warn">
-            Necesitas cargar el XLSForm y la base de datos en <strong>1. Carga</strong> antes de analizar.
-          </Alert>
-        </div>
+      notices={!prereqOk ? (
+        <Alert kind="warn">
+          Necesitas cargar el XLSForm y la base de datos en <strong>1. Carga</strong> antes de analizar.
+        </Alert>
       ) : undefined}
     >
       <AdaptiveSplitView

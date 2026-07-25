@@ -75,6 +75,16 @@ export type ModuleCommandBarProps = {
   secciones?: ReactNode;
   /** Zona 3 — acciones, en prioridad decreciente. */
   acciones?: readonly ChromeAction[];
+  /**
+   * Controles compuestos de la zona de acciones: un selector de base, un menú de
+   * reportes, un toggle. `acciones` cubre botones simples y por eso puede ser
+   * declarativo; esto es para lo que no es un botón.
+   *
+   * No es un `children` libre disfrazado: vive dentro de la celda de acciones, que
+   * es `nowrap`, así que no puede crear una segunda fila. La uniformidad que pide
+   * el canon es de geometría y material, no de contenido.
+   */
+  herramientas?: ReactNode;
   /** Chips de estado. Se compactan o se recogen, nunca se pierden. */
   estado?: readonly ChromeStatusChip[];
   /**
@@ -108,6 +118,7 @@ export function ModuleCommandBar({
   contexto,
   secciones,
   acciones = [],
+  herramientas,
   estado = [],
   material = "glass",
   densidad = "normal",
@@ -155,6 +166,8 @@ export function ModuleCommandBar({
       </div>
 
       <div className="pulso-command-bar-zone" data-zone="acciones">
+        {herramientas}
+
         {!chipsRecogidos &&
           estado.map((chip) => (
             <button

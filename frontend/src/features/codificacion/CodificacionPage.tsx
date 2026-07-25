@@ -4,8 +4,8 @@ import { PARAMS_DIRECCION } from "../../lib/navegacion/direccion";
 import { AlertCircle, CheckCircle2, Database, FileSpreadsheet, Layers, Network, Tags, Wand2 } from "lucide-react";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
-import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
 import { PageFrame } from "../../components/PageFrame";
+import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { StepMeta } from "../../components/Stepper";
 import { GlidingTabList } from "../../components/GlidingTabList";
@@ -70,37 +70,27 @@ export default function CodificacionPage() {
           ? "Prepara el mapeo Excel de textos abiertos con control por base, variable e ID caso."
           : "Confirma todos los mapeos manuales y de matriz antes de adaptar las respuestas."
       }
-      toolbar={
-        <div className="pulso-codificacion-toolbar-stack">
-          <ContextBar
-            ariaLabel="Contexto de codificación"
-            className="pulso-codificacion-commandbar"
-            elevated
-          >
-            <CodificacionStatusSummary
-              hasXlsform={!!state?.xlsform}
-              hasData={!!state?.data}
-              prereqOk={prereqOk}
-              applied={!!state?.codif_aplicado}
-              bases={state?.n_bases ?? codifSource.options.length}
-              step={step}
-            />
-
-            {prereqOk && codifSource.options.length > 1 && state?.estudio_processing_mode !== "independent_siblings" && (
-              <>
-                <ContextBarDivider />
-                <BaseSelector source={codifSource} />
-              </>
-            )}
-
-          </ContextBar>
-
-          {!prereqOk && (
-            <Alert kind="warn">Necesitas cargar el formulario y las respuestas en <strong>1. Carga</strong> antes de codificar.</Alert>
-          )}
-        </div>
+      notices={
+        !prereqOk ? (
+          <Alert kind="warn">Necesitas cargar el formulario y las respuestas en <strong>1. Carga</strong> antes de codificar.</Alert>
+        ) : null
       }
     >
+      {/* El contexto sube a la banda del shell; antes esta página dibujaba una
+          segunda banda debajo del rail de secciones. */}
+      <ChromeSlotPortal zona="contexto">
+        <CodificacionStatusSummary
+          hasXlsform={!!state?.xlsform}
+          hasData={!!state?.data}
+          prereqOk={prereqOk}
+          applied={!!state?.codif_aplicado}
+          bases={state?.n_bases ?? codifSource.options.length}
+          step={step}
+        />
+        {prereqOk && codifSource.options.length > 1 && state?.estudio_processing_mode !== "independent_siblings" && (
+          <BaseSelector source={codifSource} />
+        )}
+      </ChromeSlotPortal>
       <AdaptiveSplitView
         ariaLabel="Mesa de trabajo de codificación"
         railLabel="Pestañas de codificación"

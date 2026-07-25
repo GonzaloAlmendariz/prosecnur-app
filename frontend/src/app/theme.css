@@ -385,6 +385,7 @@
 .pulso-analitica-frame,
 .pulso-graficos-frame,
 .pulso-processing-phase-dock,
+.pulso-processing-phase-row,
 .pulso-gv2-estilo-dialog {
   --module-accent: var(--pulso-module-processing);
   --module-accent-soft: var(--pulso-module-processing-soft);
@@ -442,6 +443,7 @@
 .pulso-analitica-frame,
 .pulso-graficos-frame,
 .pulso-processing-phase-dock,
+.pulso-processing-phase-row,
 .pulso-gv2-estilo-dialog,
 .pulso-xlsform-frame,
 .mon-module-chrome,
@@ -4583,7 +4585,13 @@ a { color: var(--pulso-primary); }
 
 .pulso-command-bar {
   /* Las tres zonas pueden encogerse. Una columna `max-content` a secas se niega
-     a hacerlo y empuja la barra más allá del viewport en vez de apretar. */
+     a hacerlo y empuja la barra más allá del viewport en vez de apretar.
+     Los lados van con `max-content` y NO con `1fr`: probé `1fr` a los dos lados
+     para clavar el rail al centro del viewport y el resumen de estado de
+     Validación —que no cabía en los 236px que le tocaban— se envolvió y subió la
+     banda de 52 a 74px. Entre centrar perfecto y no crecer de alto, manda no
+     crecer. Medido: con `max-content` el rail igual queda centrado (desvío 0) en
+     las rutas de Procesamiento, porque los dos lados pesan parecido. */
   --command-bar-columns: minmax(0, max-content) minmax(0, 1fr) minmax(0, max-content);
   --command-bar-accent: var(--module-accent, var(--pulso-material-border));
   /* Un solo valor de mezcla, sin perilla por módulo: cuando la había, cinco

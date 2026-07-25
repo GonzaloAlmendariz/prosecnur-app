@@ -16,6 +16,8 @@ import { ModulePickerHost } from "../features/home/ModulePickerHost";
 import { usePuenteNavegacion } from "../lib/navegacion/usePuenteNavegacion";
 import ModuleWarmupBoundary, { RouteLoadingFallback } from "./ModuleWarmupBoundary";
 import { GlidingTabList } from "../components/GlidingTabList";
+import { ModuleCommandBar } from "../components/ModuleCommandBar";
+import { ChromeSlotHost, ModuleChromeSlotsProvider } from "./ModuleChromeSlots";
 import { MultibaseReportMenu } from "../features/graficos/MultibaseReportMenu";
 import { processingBaseScopePresentation } from "../features/procesamiento/baseScopeModel";
 import { BrandMark } from "./BrandMark";
@@ -575,16 +577,26 @@ export default function Layout() {
           <SessionErrorChip />
         </div>
       </header>
+      {/* Banda única de la familia Procesamiento. Sus secciones son rutas
+          hermanas y comparten esta barra; las páginas publican su contexto en la
+          ranura en vez de dibujar una segunda banda debajo. */}
       {showFases && (
-        <div className="pulso-command-bar pulso-processing-phase-row">
-          <ProcessingPhaseDock items={items} />
-          <div className="pulso-processing-phase-side pulso-processing-phase-side--right">
-            <div className="pulso-base-workbench" role="group" aria-label="Visor de bases del procesamiento">
-              <SiblingWorkbenchSelector visible={showFases} placement="row" reportScope={reportScope} />
-              <MultibaseReportMenu />
-            </div>
-          </div>
-        </div>
+        <ModuleCommandBar
+          modulo="procesamiento"
+          className="pulso-processing-phase-row"
+          ariaLabel="Chrome de procesamiento"
+          contexto={<ChromeSlotHost zona="contexto" />}
+          secciones={<ProcessingPhaseDock items={items} />}
+          herramientas={
+            <>
+              <div className="pulso-base-workbench" role="group" aria-label="Visor de bases del procesamiento">
+                <SiblingWorkbenchSelector visible={showFases} placement="row" reportScope={reportScope} />
+                <MultibaseReportMenu />
+              </div>
+              <ChromeSlotHost zona="acciones" />
+            </>
+          }
+        />
       )}
       <main
         className={[
@@ -615,7 +627,11 @@ export default function Layout() {
 
   return (
     <ModuleNavigationRuntimeProvider>
-      <div className="pulso-shell">{canvas}</div>
+      {/* Envuelve el shell completo, no solo la banda: las páginas viven en el
+          <Outlet/> y publican su contexto en la ranura desde ahí. */}
+      <ModuleChromeSlotsProvider>
+        <div className="pulso-shell">{canvas}</div>
+      </ModuleChromeSlotsProvider>
       <ModulePickerHost />
     </ModuleNavigationRuntimeProvider>
   );
