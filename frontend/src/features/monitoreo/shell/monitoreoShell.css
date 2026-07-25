@@ -1633,23 +1633,31 @@
   }
 
   .mon-workbench-rail.is-acreditacion .mon-section-local-tabs .mon-nav-item {
-    min-height: 42px;
+    min-height: var(--pulso-nav-item-height);
   }
 }
 
 .mon-workbench-rail.is-collapsible .mon-section-local-tabs {
-  grid-auto-rows: 38px;
+  grid-auto-rows: var(--mon-local-tab-size);
 }
 
+/* Segunda definición del mismo selector, y la que de verdad manda: clavaba 38px
+ * con OCHO `!important` y por eso poner el token más arriba no cambiaba nada. Es
+ * la tercera vez que este archivo declara dos veces la misma cosa con valores
+ * distintos —ya pasó con `.mon-commandbar` y con `.mon-nav-item:hover`— y el
+ * síntoma siempre es el mismo: el control mide distinto según qué regla gane.
+ *
+ * Los `!important` se van con los literales: existían para vencer a la
+ * declaración de más arriba, y ahora las dos salen del mismo token. */
 .mon-workbench-rail.is-collapsible .mon-section-local-tabs .mon-nav-item {
-  inline-size: 38px !important;
-  block-size: 38px !important;
-  width: 38px !important;
-  height: 38px !important;
-  min-width: 38px !important;
-  min-height: 38px !important;
-  max-width: 38px !important;
-  max-height: 38px !important;
+  inline-size: var(--mon-local-tab-size);
+  block-size: var(--mon-local-tab-size);
+  width: var(--mon-local-tab-size);
+  height: var(--mon-local-tab-size);
+  min-width: var(--mon-local-tab-size);
+  min-height: var(--mon-local-tab-size);
+  max-width: var(--mon-local-tab-size);
+  max-height: var(--mon-local-tab-size);
   box-sizing: border-box;
 }
 

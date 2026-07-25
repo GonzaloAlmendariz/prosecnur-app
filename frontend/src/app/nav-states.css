@@ -78,6 +78,42 @@
   border-radius: var(--pulso-radius-chip);
 }
 
+/* ── Reposo del rail ─────────────────────────────────────────────────────────
+ * Esta es la diferencia que quedaba entre los sidebars, y era la queja literal:
+ * «Procesamiento tiene una vista mucho más profesional». Medido en Chrome, con
+ * la geometría ya unificada en 40×40 y radio 10, el item en reposo era:
+ *
+ *   Procesamiento   fondo blanco al 74%, borde visible, sombra de relieve
+ *   Monitoreo       fondo transparente, borde transparente, sin sombra
+ *
+ * Es decir: en Procesamiento cada destino es una tarjeta y se ve antes de tocarla;
+ * en Monitoreo el item no existía hasta el hover. No era un problema de hover
+ * —ese ya estaba unificado—, era que el reposo no tenía material.
+ *
+ * Gana Procesamiento porque es el que el usuario señaló como referencia. Los
+ * valores salen de su computado real, reescritos sobre tokens para que la próxima
+ * variación no pueda nacer de un literal nuevo: sin esto, el material vuelve a
+ * divergir en la primera cadena responsive que alguien agregue.
+ *
+ * Solo `row`. Las píldoras horizontales de sección viven sobre la banda, que ya
+ * es una superficie elevada: darles tarjeta propia sería relieve sobre relieve.
+ *
+ * Monitoreo ya reservaba el píxel del borde en transparente, así que esto no
+ * mueve el layout de nadie: se verificó que el item sigue midiendo 40×40. */
+[data-nav-item][data-nav-shape="row"] {
+  --pulso-nav-rest-bg: color-mix(in srgb, var(--pulso-surface) 86%, transparent);
+  --pulso-nav-rest-border: color-mix(in srgb, var(--pulso-border) 76%, transparent);
+  --pulso-nav-rest-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--pulso-surface) 78%, transparent),
+    var(--pulso-shadow-low);
+}
+
+[data-nav-item][data-nav-shape="row"]:not([data-nav-state="selected"]):not(:disabled):not([aria-disabled="true"]) {
+  background: var(--pulso-nav-rest-bg);
+  border-color: var(--pulso-nav-rest-border);
+  box-shadow: var(--pulso-nav-rest-shadow);
+}
+
 /* ── Hover ───────────────────────────────────────────────────────────────────
  * Bajo `hover: hover` a propósito: en trackpad y touch el navegador emula el
  * hover y lo deja pegado al último item tocado. Hoy la mitad de las reglas del
