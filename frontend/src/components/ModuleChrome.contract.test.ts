@@ -358,7 +358,6 @@ describe("estados de navegación", () => {
     "features/graficos/v2/styles/editor-v2.css :: .pulso-gv2-estilo-tab:hover, .pulso-gv2-estilo-tab:focus-visible",
     "features/graficos/v2/styles/editor-v2.css :: .pulso-gv2-picker-rail .pulso-gv2-picker-tab:hover",
     "features/graficos/v2/styles/editor-v2.css :: .pulso-gv2-preset-nav-item:hover",
-    "features/monitoreo/monitoreo.css :: .mon-nav-item:hover",
     "features/monitoreo/monitoreo.css :: .mon-workbench-rail.is-collapsible .mon-section-local-tabs .mon-nav-item:hover, .mon-workbench-rail.is-coll...",
     "features/monitoreo/profiles/profilePage.css :: .mon-acr-query-tabs button:hover:not(.is-active)",
     "features/monitoreo/profiles/profilePage.css :: .mon-profile-local-tabs button:hover:not(.is-active)",
