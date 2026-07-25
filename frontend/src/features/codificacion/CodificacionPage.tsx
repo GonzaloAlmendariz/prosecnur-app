@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { PARAMS_DIRECCION } from "../../lib/navegacion/direccion";
 import { AlertCircle, CheckCircle2, Database, FileSpreadsheet, Layers, Network, Tags, Wand2 } from "lucide-react";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
@@ -31,8 +32,11 @@ export default function CodificacionPage() {
 
   const prereqOk = !!state?.xlsform && !!state?.data;
 
-  // Step persistido en query string (?step=codificar | adaptar).
-  const rawStep = new URLSearchParams(location.search).get("step");
+  // Pestaña de la sección Codificación, persistida en la URL
+  // (?pestana=codificar | matrices | adaptar). `?step=` es el alias legacy:
+  // se lee, no se escribe. Contrato: `lib/navegacion/direccion.ts`.
+  const codifParams = new URLSearchParams(location.search);
+  const rawStep = codifParams.get(PARAMS_DIRECCION.pestana) ?? codifParams.get("step");
   const step: Step =
     rawStep === "codificar" ? "codificar" :
     rawStep === "matrices" ? "matrices" :
@@ -41,8 +45,9 @@ export default function CodificacionPage() {
 
   function goStep(next: Step) {
     const sp = new URLSearchParams(location.search);
-    if (next === "organizar") sp.delete("step");
-    else sp.set("step", next);
+    sp.delete("step");
+    if (next === "organizar") sp.delete(PARAMS_DIRECCION.pestana);
+    else sp.set(PARAMS_DIRECCION.pestana, next);
     navigate({ pathname: "/codificacion", search: sp.toString() ? `?${sp}` : "" });
   }
 
@@ -98,7 +103,7 @@ export default function CodificacionPage() {
     >
       <AdaptiveSplitView
         ariaLabel="Mesa de trabajo de codificación"
-        railLabel="Pasos de codificación"
+        railLabel="Pestañas de codificación"
         className={`pulso-codificacion-shell${!prereqOk ? " is-empty" : ""}`}
         rail={(
           <CodificacionModeSidebar
@@ -280,17 +285,18 @@ function CodificacionModeSidebar({
   disabled: boolean;
 }) {
   return (
-    <aside className="pulso-codificacion-sidebar pulso-sidebar" aria-label="Pasos de codificación">
+    <aside className="pulso-codificacion-sidebar pulso-sidebar" aria-label="Pestañas de codificación">
       <div className="pulso-codificacion-sidebar-head">
         <span className="pulso-section-eyebrow">Codificación</span>
-        <strong>{disabled ? "Pendiente" : "Flujo de trabajo"}</strong>
+        <strong>Vistas</strong>
+        {disabled ? <small className="pulso-sidebar-head-status">Pendiente</small> : null}
       </div>
       <GlidingTabList
         activeKey={active}
         orientation="vertical"
         style={{ "--pulso-gliding-indicator-radius": "10px" } as CSSProperties}
         role="tablist"
-        aria-label="Pasos de codificación"
+        aria-label="Pestañas de codificación"
         className="pulso-codificacion-nav"
       >
         {CODIFICACION_STEPS.map((item) => {

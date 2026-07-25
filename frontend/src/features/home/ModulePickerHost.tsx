@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { useLocation, useNavigate } from "react-router-dom";
 import { useProjectModules } from "../project/ProjectModulesContext";
+import { usePanelDireccionable } from "../../lib/navegacion/paneles";
+import { PANEL_MODULOS } from "./panelesHome";
 import { ModulePickerDialog } from "./ModulePickerDialog";
 
 // Overlay global del selector de módulos.
@@ -16,12 +17,13 @@ import { ModulePickerDialog } from "./ModulePickerDialog";
 //
 // El overlay es `position:fixed; inset:0; z-index:1000`, así que cubre el
 // módulo detrás sin CSS adicional.
+//
+// Como panel direccionable es `?panel=modulos` (quinto nivel de la gramática).
+// `?agregar=1` sigue funcionando como alias de lectura.
 export function ModulePickerHost() {
-  const location = useLocation();
-  const navigate = useNavigate();
   const { addedSlugs, addModule, removeModule } = useProjectModules();
-
-  const open = new URLSearchParams(location.search).get("agregar") === "1";
+  const panel = usePanelDireccionable(PANEL_MODULOS);
+  const { abierto: open, cerrar: close } = panel;
 
   const picker = useMemo(
     () => ({
@@ -31,17 +33,6 @@ export function ModulePickerHost() {
     }),
     [addedSlugs, addModule, removeModule],
   );
-
-  const close = useCallback(() => {
-    const params = new URLSearchParams(location.search);
-    if (!params.has("agregar")) return;
-    params.delete("agregar");
-    const rest = params.toString();
-    navigate(
-      { pathname: location.pathname, search: rest ? `?${rest}` : "" },
-      { replace: true },
-    );
-  }, [location.pathname, location.search, navigate]);
 
   useEffect(() => {
     if (!open) return;
@@ -54,7 +45,9 @@ export function ModulePickerHost() {
 
   if (!open) return null;
   return createPortal(
-    <ModulePickerDialog picker={picker} onClose={close} />,
+    <div {...panel.props}>
+      <ModulePickerDialog picker={picker} onClose={close} />
+    </div>,
     document.body,
   );
 }

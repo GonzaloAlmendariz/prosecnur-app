@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { PARAMS_DIRECCION } from "../../lib/navegacion/direccion";
 import {
   BarChart2,
   BookOpen,
@@ -106,16 +107,20 @@ export default function AnaliticaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prereqOk, prepOk]);
 
-  // Reporte activo desde el query string.
-  const raw = new URLSearchParams(location.search).get("reporte");
+  // Pestaña activa de la sección Analítica (cada reporte es una pestaña).
+  // `?reporte=` es el alias legacy: se lee, no se escribe.
+  // Contrato: `lib/navegacion/direccion.ts`.
+  const analiticaParams = new URLSearchParams(location.search);
+  const raw = analiticaParams.get(PARAMS_DIRECCION.pestana) ?? analiticaParams.get("reporte");
   const active: Reporte = (reportes.find((r) => r.key === raw)?.key) ?? "datos";
   const activeMeta = reportes.find((r) => r.key === active) ?? reportes[0] ?? REPORTES[0];
   const ActiveIcon = activeMeta.icon;
 
   function goReporte(next: Reporte) {
     const sp = new URLSearchParams(location.search);
-    if (next === "datos") sp.delete("reporte");
-    else sp.set("reporte", next);
+    sp.delete("reporte");
+    if (next === "datos") sp.delete(PARAMS_DIRECCION.pestana);
+    else sp.set(PARAMS_DIRECCION.pestana, next);
     navigate({ pathname: "/analitica", search: sp.toString() ? `?${sp}` : "" });
   }
 
@@ -140,7 +145,7 @@ export default function AnaliticaPage() {
     >
       <AdaptiveSplitView
         ariaLabel="Mesa de trabajo de analítica"
-        railLabel="Reportes de analítica"
+        railLabel="Pestañas de analítica"
         className={`pulso-analitica-shell${!prereqOk ? " is-empty" : ""}`}
         rail={(
           <AnaliticaSidebar
@@ -262,17 +267,22 @@ function AnaliticaSidebar({
   reportes: ReporteMeta[];
 }) {
   return (
-    <aside className="pulso-analitica-sidebar pulso-sidebar" aria-label="Reportes de analítica">
+    <aside className="pulso-analitica-sidebar pulso-sidebar" aria-label="Pestañas de analítica">
       <div className="pulso-analitica-sidebar-head">
         <span className="pulso-section-eyebrow">Analítica</span>
-        <strong>{prepBusy ? "Preparando datos" : prepOk ? "Mesa de reportes" : "Pendiente"}</strong>
+        <strong>Vistas</strong>
+        {prepBusy ? (
+          <small className="pulso-sidebar-head-status">Preparando datos</small>
+        ) : prepOk ? null : (
+          <small className="pulso-sidebar-head-status">Pendiente</small>
+        )}
       </div>
       <GlidingTabList
         activeKey={active}
         orientation="vertical"
         style={{ "--pulso-gliding-indicator-radius": "9px" } as CSSProperties}
         role="tablist"
-        aria-label="Reportes disponibles"
+        aria-label="Pestañas de analítica"
         className="pulso-analitica-nav"
       >
         {reportes.map((item) => {

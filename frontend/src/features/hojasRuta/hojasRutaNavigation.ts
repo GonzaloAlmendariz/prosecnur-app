@@ -124,6 +124,42 @@ function asDeliveryTab(value: string | null): HojasRutaDeliveryTab | null {
     : null;
 }
 
+// Hojas de ruta nombraba sus niveles `stage` (sección) y `tab` (pestaña). La
+// gramática canónica los llama `seccion` y `pestana`; los nombres viejos se
+// siguen leyendo para no romper enlaces guardados, pero nunca se escriben.
+// Contrato: `lib/navegacion/direccion.ts`.
+const PARAM_SECCION = "seccion";
+const PARAM_PESTANA = "pestana";
+const LEGACY_SECCION = "stage";
+const LEGACY_PESTANA = "tab";
+
+function leerNivel(
+  params: URLSearchParams,
+  canonico: string,
+  legacy: string,
+): string | null {
+  return params.get(canonico) ?? params.get(legacy);
+}
+
+function fijarNivel(
+  params: URLSearchParams,
+  canonico: string,
+  legacy: string,
+  valor: string,
+): void {
+  params.set(canonico, valor);
+  params.delete(legacy);
+}
+
+function borrarNivel(
+  params: URLSearchParams,
+  canonico: string,
+  legacy: string,
+): void {
+  params.delete(canonico);
+  params.delete(legacy);
+}
+
 function lastEnabled<T extends { key: string; disabled: boolean }>(
   items: readonly T[],
   fallback: T["key"],
@@ -149,11 +185,11 @@ export function buildHojasRutaNavigationSearch(
   const params = new URLSearchParams(
     currentSearch.startsWith("?") ? currentSearch.slice(1) : currentSearch,
   );
-  params.set("stage", stage);
+  fijarNivel(params, PARAM_SECCION, LEGACY_SECCION, stage);
   if (stage === "entrega" && deliveryTab) {
-    params.set("tab", deliveryTab);
+    fijarNivel(params, PARAM_PESTANA, LEGACY_PESTANA, deliveryTab);
   } else {
-    params.delete("tab");
+    borrarNivel(params, PARAM_PESTANA, LEGACY_PESTANA);
   }
   const serialized = params.toString();
   return serialized ? `?${serialized}` : "";
@@ -253,7 +289,7 @@ export function buildHojasRutaNavigation(
   const params = new URLSearchParams(
     input.search.startsWith("?") ? input.search.slice(1) : input.search,
   );
-  const requestedStageRaw = params.get("stage");
+  const requestedStageRaw = leerNivel(params, PARAM_SECCION, LEGACY_SECCION);
   const requestedStage = asStage(requestedStageRaw);
   const fallbackStage = lastEnabled(sections, "territorio") as HojasRutaStage;
   const persistedStageEnabled = !sections.find(
@@ -270,9 +306,13 @@ export function buildHojasRutaNavigation(
     );
     if (requestedSection && !requestedSection.disabled) {
       activeStage = requestedSection.key;
+      if (params.has(LEGACY_SECCION)) {
+        fijarNivel(params, PARAM_SECCION, LEGACY_SECCION, activeStage);
+        searchChanged = true;
+      }
     } else {
       activeStage = fallbackStage;
-      params.set("stage", activeStage);
+      fijarNivel(params, PARAM_SECCION, LEGACY_SECCION, activeStage);
       searchChanged = true;
     }
   }
@@ -287,11 +327,11 @@ export function buildHojasRutaNavigation(
   let activeDeliveryTab = persistedTabEnabled
     ? input.persistedDeliveryTab
     : fallbackDeliveryTab;
-  const requestedTabRaw = params.get("tab");
+  const requestedTabRaw = leerNivel(params, PARAM_PESTANA, LEGACY_PESTANA);
 
   if (activeStage !== "entrega") {
     if (requestedTabRaw !== null) {
-      params.delete("tab");
+      borrarNivel(params, PARAM_PESTANA, LEGACY_PESTANA);
       searchChanged = true;
     }
   } else if (requestedTabRaw !== null) {
@@ -301,9 +341,16 @@ export function buildHojasRutaNavigation(
     );
     if (requestedTabItem && !requestedTabItem.disabled) {
       activeDeliveryTab = requestedTabItem.key;
+      // La pestaña pedida es válida y no hay nada que corregir, pero si llegó
+      // por el alias legacy hay que migrarla igual: normalizar y dejar la URL
+      // mitad `tab=` mitad `seccion=` es peor que no haberla tocado.
+      if (params.has(LEGACY_PESTANA)) {
+        fijarNivel(params, PARAM_PESTANA, LEGACY_PESTANA, activeDeliveryTab);
+        searchChanged = true;
+      }
     } else {
       activeDeliveryTab = fallbackDeliveryTab;
-      params.set("tab", activeDeliveryTab);
+      fijarNivel(params, PARAM_PESTANA, LEGACY_PESTANA, activeDeliveryTab);
       searchChanged = true;
     }
   }

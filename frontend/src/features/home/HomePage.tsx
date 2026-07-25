@@ -6,6 +6,8 @@ import { useSession } from "../../lib/SessionContext";
 import { useProjectShell } from "../project/ProjectShell";
 import { useProjectModules } from "../project/ProjectModulesContext";
 import { GlobalSettingsDialog } from "./GlobalSettingsDialog";
+import { usePanelDireccionable } from "../../lib/navegacion/paneles";
+import { PANEL_CONFIGURACION, PANEL_MODULOS } from "./panelesHome";
 import { MissionControl, type ProcState } from "./MissionControl";
 import { ModuleCarousel } from "./ModuleCarousel";
 import { RELEASE_NOTES } from "./releaseNotes";
@@ -76,15 +78,13 @@ export default function HomePage() {
   const navigate = useNavigate();
   const proc = useProcesamientoState();
   const [layoutPreset] = useLayoutPreset();
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  // Configuración y selector de módulos son paneles direccionables
+  // (`?panel=configuracion`, `?panel=modulos`): se alcanzan por enlace, no
+  // solo por click. Los `?settings=` y `?agregar=1` viejos siguen entrando
+  // como alias.
+  const panelConfiguracion = usePanelDireccionable(PANEL_CONFIGURACION);
+  const panelModulos = usePanelDireccionable(PANEL_MODULOS);
   const { overview, loading, addedSlugs, addModule, removeModule } = useProjectModules();
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get("settings") === "connections" || params.get("settings") === "configuracion") {
-      setSettingsOpen(true);
-    }
-  }, [location.search]);
 
   const hasModules = addedSlugs.length > 0;
 
@@ -101,9 +101,7 @@ export default function HomePage() {
   // Layout) disparado por `?agregar=1` sobre la ruta actual. Desde el home la
   // ruta es `/`; preservamos los params existentes al abrirlo.
   function openPicker() {
-    const params = new URLSearchParams(location.search);
-    params.set("agregar", "1");
-    navigate({ pathname: location.pathname, search: `?${params.toString()}` });
+    panelModulos.abrir();
   }
 
   let content: ReactNode;
@@ -143,14 +141,14 @@ export default function HomePage() {
       <HomeFooter
         version={version}
         onClose={requestAppExit}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSettings={panelConfiguracion.abrir}
       />
 
       <GlobalSettingsDialog
-        open={settingsOpen}
+        open={panelConfiguracion.abierto}
         notes={RELEASE_NOTES}
         pulsoName={PULSO_FULL_NAME}
-        onClose={() => setSettingsOpen(false)}
+        onClose={panelConfiguracion.cerrar}
       />
     </div>
   );
