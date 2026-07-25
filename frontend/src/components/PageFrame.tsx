@@ -1,4 +1,16 @@
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactElement, type ReactNode } from "react";
+
+import type { ModuleCommandBar, ModuleCommandBarProps } from "./ModuleCommandBar";
+
+/**
+ * Un elemento que ES una `ModuleCommandBar`, no «cualquier nodo». Sin esto el
+ * slot `chrome` aceptaría un fragmento con tres hijos y volveríamos al chrome de
+ * varias filas por la puerta de atrás.
+ */
+export type ModuleCommandBarElement = ReactElement<
+  ModuleCommandBarProps,
+  typeof ModuleCommandBar
+>;
 
 const PAGE_MOTION_EASE = "cubic-bezier(0.23, 1, 0.32, 1)";
 
@@ -10,6 +22,20 @@ type PageFrameProps = {
   title: ReactNode;
   lead?: ReactNode;
   meta?: ReactNode;
+  /**
+   * Chrome del módulo: UNA fila. El tipo es lo que lo garantiza — solo acepta un
+   * `<ModuleCommandBar>`, así que un fragmento con dos hijos o un `<div>`
+   * envolviendo fallan en compilación, no en revisión.
+   *
+   * Es la corrección de la causa raíz del chrome de varias filas: `toolbar` es
+   * una pila vertical (correcto para avisos), y los módulos le metían la banda
+   * junto a tres alertas y un progreso de job. Cada hijo era una fila; Gráficos
+   * llegó a cinco.
+   */
+  chrome?: ModuleCommandBarElement;
+  /** Avisos, alertas y progreso de jobs. Pila vertical, debajo del chrome. */
+  notices?: ReactNode;
+  /** @deprecated Usa `chrome` + `notices`. Sobrevive para migrar por oleadas. */
   toolbar?: ReactNode;
   children: ReactNode;
   layout?: "document" | "workbench" | "canvas" | "data";
@@ -26,6 +52,8 @@ export function PageFrame({
   title,
   lead,
   meta,
+  chrome,
+  notices,
   toolbar,
   children,
   layout = "document",
@@ -113,7 +141,21 @@ export function PageFrame({
         </header>
       )}
 
-      {toolbar && <div ref={toolbarRef} className="pulso-page-frame-toolbar">{toolbar}</div>}
+      {chrome && (
+        <div ref={toolbarRef} className="pulso-page-frame-chrome" data-chrome-rows="1">
+          {chrome}
+        </div>
+      )}
+
+      {notices && <div className="pulso-page-frame-notices">{notices}</div>}
+
+      {/* Vía heredada. Solo se dibuja si la página aún no migró a `chrome`, para
+          que ninguna quede con dos bandas durante la migración por oleadas. */}
+      {toolbar && !chrome && (
+        <div ref={toolbarRef} className="pulso-page-frame-toolbar" data-legacy-toolbar="">
+          {toolbar}
+        </div>
+      )}
 
       <div
         ref={bodyRef}

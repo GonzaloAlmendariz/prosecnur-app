@@ -289,24 +289,7 @@
   --pulso-rail-bubble-radius: 10px;
   --pulso-rail-bubble-offset: 8px;
 
-  /* Indirección de acento: un item de navegación sigue al módulo que lo
-   * contiene, nunca al navy global. `--module-accent` lo declara el frame del
-   * módulo (ver el bloque «Paleta de módulo» más abajo). */
-  --pulso-nav-accent: var(--module-accent, var(--pulso-primary));
-
-  --pulso-nav-hover-bg: color-mix(in srgb, var(--pulso-nav-accent) 10%, var(--pulso-surface));
-  --pulso-nav-hover-fg: var(--pulso-nav-accent);
-  --pulso-nav-hover-border: color-mix(in srgb, var(--pulso-nav-accent) 28%, var(--pulso-border));
-
   --pulso-nav-selected-fg: #fff;
-  --pulso-nav-selected-border: var(--pulso-nav-accent);
-
-  /* Hover SOBRE el item activo. Existía en un solo lugar del repo
-   * (features/dashboard/theme/tokens.css), que además dejó comentado el porqué:
-   * sin reasignar el color, el fondo claro del hover se comía el texto blanco
-   * del activo. Esa fórmula sube acá y deja de ser un hallazgo local. */
-  --pulso-nav-selected-hover-bg: color-mix(in srgb, var(--pulso-surface-2) 86%, var(--pulso-nav-accent) 14%);
-  --pulso-nav-selected-hover-fg: var(--pulso-nav-accent);
 
   /* Foco por `outline`, no por `box-shadow`: el anillo global de sombra
    * (`button:where(:focus-visible)`) vale (0,1,0) y cualquier `.is-active` que
@@ -314,8 +297,18 @@
    * pierde en las píldoras activas. Ninguna regla `.is-active` del repo toca
    * `outline`, así que por acá el anillo es inmune por construcción. */
   --pulso-nav-focus-outline-width: 2px;
-  --pulso-nav-focus-outline-color: color-mix(in srgb, var(--pulso-nav-accent) 62%, transparent);
   --pulso-nav-focus-offset: 2px;
+
+  /* Los colores de estado que dependen del acento NO se declaran acá: viven en
+   * nav-states.css, sobre el propio item. Un `--pulso-nav-hover-bg: color-mix(…
+   * var(--module-accent) …)` declarado en `:root` se sustituye EN `:root`, donde
+   * `--module-accent` no existe, así que resolvería al navy global y los
+   * descendientes heredarían ese valor ya cocinado. Es la trampa de las custom
+   * properties: se resuelven donde se declaran, no donde se usan. Verificado en
+   * Chrome: el hover de la sección activa de Procesamiento salía navy en vez de
+   * verde. Por eso el mismo patrón que ya usa `.pulso-gliding-tab-list` —
+   * declarar la indirección sobre un elemento que sí está dentro del frame del
+   * módulo— es el correcto. */
 
   /* Capas. Convención ya usada de facto (los overlays van sobre la toolbar
    * porque la toolbar tiene transform y crea contexto de apilamiento). */
@@ -2872,7 +2865,9 @@ a { color: var(--pulso-primary); }
   width: 100%;
   height: 100%;
   border-radius: 9999px;
-  background: var(--pulso-primary-soft);
+  /* El velo hereda el color del sistema compartido cuando la píldora ya emite
+   * `data-nav-item`; el fallback mantiene sin cambio a las que aún no migraron. */
+  background: var(--pulso-nav-hover-bg, var(--pulso-primary-soft));
   opacity: 0;
   transform: scaleX(0.94);
   transform-origin: center;
@@ -3809,6 +3804,31 @@ a { color: var(--pulso-primary); }
   flex-wrap: wrap;
 }
 
+/* Chrome del módulo: un solo hijo y una sola fila. `display: block` sin gap a
+ * propósito — no hay nada que espaciar porque no hay nada que apilar. Lo que
+ * garantiza que sea un solo hijo es el tipo del slot en PageFrame, no esto. */
+.pulso-page-frame-chrome {
+  flex: 0 0 auto;
+  min-height: 0;
+  display: block;
+}
+
+/* Avisos: la pila vertical que antes compartía slot con el chrome y convertía
+ * cada alerta en una fila de la barra. Mismo comportamiento que tenía el
+ * toolbar heredado —columna, gap 8— para que migrar no mueva nada. */
+.pulso-page-frame-notices {
+  flex: 0 0 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 100%;
+}
+
+/* @deprecated — sobrevive mientras quedan páginas sin migrar a chrome/notices.
+ * Su `flex-direction: column` es la causa raíz del chrome de varias filas: es
+ * correcto para una pila de avisos y equivocado para la banda del módulo, y los
+ * módulos le pasaban las dos cosas juntas. */
 .pulso-page-frame-toolbar {
   flex: 0 0 auto;
   min-height: 0;
@@ -4566,19 +4586,22 @@ a { color: var(--pulso-primary); }
      a hacerlo y empuja la barra más allá del viewport en vez de apretar. */
   --command-bar-columns: minmax(0, max-content) minmax(0, 1fr) minmax(0, max-content);
   --command-bar-accent: var(--module-accent, var(--pulso-material-border));
+  /* Un solo valor de mezcla, sin perilla por módulo: cuando la había, cinco
+   * módulos eligieron 16, 24, 34, 42 y 76%, y el borde del chrome se veía de
+   * cinco intensidades distintas al pasar de uno a otro. */
   --command-bar-accent-mix: 34%;
-  --command-bar-radius: 18px;
-  --command-bar-control-height: 32px;
+  --command-bar-radius: var(--pulso-chrome-commandbar-radius);
+  --command-bar-control-height: var(--pulso-chrome-control-h);
   --command-bar-control-radius: 9999px;
 
   display: grid;
   grid-template-columns: var(--command-bar-columns);
   align-items: center;
-  gap: 6px;
+  gap: var(--pulso-chrome-commandbar-gap);
   min-width: 0;
   max-width: 100%;
-  min-height: 46px;
-  padding: 4px;
+  min-height: var(--pulso-chrome-commandbar-h);
+  padding: var(--pulso-chrome-commandbar-pad);
   border: 1px solid
     color-mix(in srgb, var(--command-bar-accent) var(--command-bar-accent-mix), var(--pulso-material-border));
   border-radius: var(--command-bar-radius);
