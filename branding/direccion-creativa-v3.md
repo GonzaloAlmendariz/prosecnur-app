@@ -64,13 +64,13 @@ los módulos navy.
 | Módulo | Token canónico actual | Acento |
 | --- | --- | --- |
 | Bitácora | `--pulso-module-encyclopedia` | `#A16207` |
-| Cálculo de muestra | `--pulso-module-sample` | `#7C3AED` |
-| Formularios | `--pulso-module-editor` | `#6D5DFC` |
-| Hojas de ruta | `--pulso-module-routes` | `#C2410C` |
+| Cálculo de muestra | `--pulso-module-sample` | `#7260AE` |
+| Formularios | `--pulso-module-editor` | `#7172C1` |
+| Hojas de ruta | `--pulso-module-routes` | `#AC563B` |
 | Fichas QR | `--pulso-module-collectors` | `#106E8C` |
-| Monitoreo | `--pulso-module-monitoring` | `#BE123C` |
+| Monitoreo | `--pulso-module-monitoring` | `#A0464E` |
 | Procesamiento | `--pulso-module-processing` | `#0F766E` |
-| Dashboard | `--pulso-module-dashboard` | `#2563EB` |
+| Dashboard | `--pulso-module-dashboard` | `#4A6EB6` |
 
 Cada familia conserva además sus roles derivados `-soft` y `-border`. El shell
 los consume mediante los aliases contextuales `--module-accent`,
@@ -88,6 +88,22 @@ distinguibles entre sí; lo que cambió es la legibilidad de uno, no la
 estructura del espectro. Un acento nuevo debe cumplir **4.5:1 sobre blanco**
 —porque en este sistema los acentos rotulan texto pequeño— y separarse con
 holgura de sus vecinos.
+
+**Techo de croma del 25 de julio de 2026.** Los ocho acentos quedan sujetos a
+un techo de **0.12 de croma en OKLCH** (decisión `dec-techo-croma-modular`,
+identidad 1.3.0). El tono de cada módulo es suyo y no se toca; lo que se
+estandariza es cuánta saturación puede gastar. Antes del techo el croma iba de
+0.086 —el teal de Procesamiento, que es la referencia— a 0.247 —el violeta de
+Cálculo de muestra—, casi el triple, y por eso el mismo elemento se sentía
+sobrio en un módulo y estridente en otro; con el techo el rango cae a 1.4×.
+Cambiaron cinco: Formularios, Dashboard, Hojas de ruta, Cálculo de muestra y
+Monitoreo. Procesamiento (0.086), Fichas QR (0.092) y Bitácora (0.121) ya
+estaban en el techo o por debajo y conservan su hex exacto. Un techo más bajo
+se probó y se descartó con evidencia: a 0.090 el carmesí de Monitoreo cae en
+`#945155`, que ya no se lee como rojo sino como marrón sucio. El croma no se
+iguala, se acota. Efecto colateral querido: Monitoreo dejó de coincidir con el
+carmesí semántico de peligro, que era una colisión de rol. **Un acento nuevo
+debe respetar el techo además del 4.5:1.**
 
 **Roles permitidos:** contexto de módulo, rail y superficie de selección,
 icono modular, tintes y bordes de procedencia, y foco contextual cuando el

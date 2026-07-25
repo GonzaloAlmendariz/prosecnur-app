@@ -176,13 +176,13 @@ Los colores semánticos mantienen sus propios tokens y señales no cromáticas.
 |---|---:|
 | Global | `#002457` |
 | Bitácora | `#A16207` |
-| Cálculo de muestra | `#7C3AED` |
-| Editor de formularios | `#6D5DFC` |
-| Hojas de ruta | `#C2410C` |
+| Cálculo de muestra | `#7260AE` |
+| Editor de formularios | `#7172C1` |
+| Hojas de ruta | `#AC563B` |
 | Fichas QR | `#106E8C` |
-| Monitoreo | `#BE123C` |
+| Monitoreo | `#A0464E` |
 | Procesamiento | `#0F766E` |
-| Dashboard | `#2563EB` |
+| Dashboard | `#4A6EB6` |
 | Enciclopedia | `#A16207` |
 
 Los ocho módulos operativos mantienen acentos distintivos. Global usa el navy

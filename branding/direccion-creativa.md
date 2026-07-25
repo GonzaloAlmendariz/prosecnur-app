@@ -48,18 +48,27 @@ el acento (modular o señal) aparece de forma puntual e intencional.
 | Peligro | Carmesí | `#BE123C` (fondo `#FEF2F2`, texto `#991B1B`) |
 
 **Espectro modular** (la dimensión dinámica de la identidad; cada módulo
-tiñe su chrome, nunca el contenido): Editor `#6D5DFC` · Procesamiento
-`#0F766E` · Dashboard `#2563EB` · Hojas de ruta `#C2410C` · Muestra
-`#7C3AED` · Bitácora `#A16207` · Recopiladores `#106E8C` · Monitoreo `#BE123C`.
+tiñe su chrome, nunca el contenido): Editor `#7172C1` · Procesamiento
+`#0F766E` · Dashboard `#4A6EB6` · Hojas de ruta `#AC563B` · Muestra
+`#7260AE` · Bitácora `#A16207` · Recopiladores `#106E8C` · Monitoreo `#A0464E`.
+Los ocho están sujetos a un **techo de croma de 0.12 en OKLCH**: el tono de
+cada módulo es suyo, lo que se acota es cuánta saturación gasta (decisión
+`dec-techo-croma-modular`).
 
 ## Tipografía — «Voz nativa»
 
 - **Principal**: `-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif`.
 - **Secundaria (datos/código)**: `ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`,
   siempre con `font-variant-numeric: tabular-nums` en métricas.
-- **Escala**: Display 28/1.2/680 · Título 22/1.25/640 · Sección 17/1.3/600 ·
+- **Escala**: Display 28/1.2/800 · Título 22/1.25/700 · Sección 17/1.3/600 ·
   Cuerpo 15/1.55/400 · Cuerpo medio 15/500 · Nota 13/1.45/400 · Pie 12/1.35/500 ·
   Micro 11/1.2/600 mayúsculas +0.06em.
+- **Escala de peso**: seis escalones y nada entre medio — 400 regular · 500
+  medium · 600 semibold · 700 bold · 800 heavy · 900 black, expuestos como
+  `--pulso-weight-*` en la app y `--prosecnur-type-*-weight` fuera de ella. Los
+  literales no se escriben en CSS de features y los intermedios (570, 640, 680,
+  770, 910…) están prohibidos. Piso de tamaño 10px en UI; print y las etiquetas
+  dentro de SVG son las únicas excepciones.
 - **Peso de trabajo de controles**: 500 en macOS, 600 en Windows
   (`data-platform="windows"`); la jerarquía se construye con tamaño y color,
   no con bold.

@@ -43,19 +43,19 @@ const MODULES = [
   {
     id: "calculo-muestra",
     label: "Cálculo de muestra",
-    accent: "#7C3AED",
+    accent: "#7260AE",
     aliases: ["calcMuestra", "muestra", "aulasFlow"],
   },
   {
     id: "formularios",
     label: "Editor de formularios",
-    accent: "#6D5DFC",
+    accent: "#7172C1",
     aliases: ["xlsformEditor"],
   },
   {
     id: "hojas-ruta",
     label: "Hojas de ruta",
-    accent: "#C2410C",
+    accent: "#AC563B",
     aliases: ["hojasRuta"],
   },
   {
@@ -67,7 +67,7 @@ const MODULES = [
   {
     id: "monitoreo",
     label: "Monitoreo",
-    accent: "#BE123C",
+    accent: "#A0464E",
     aliases: ["monitoreo"],
   },
   {
@@ -86,7 +86,7 @@ const MODULES = [
   {
     id: "dashboard",
     label: "Dashboard",
-    accent: "#2563EB",
+    accent: "#4A6EB6",
     aliases: ["dashboard"],
   },
   {
