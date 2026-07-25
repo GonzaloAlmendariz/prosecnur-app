@@ -1244,51 +1244,43 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Sin caja propia: vive dentro de la banda, que ya es la superficie. Antes eran
+ * tres cajas redondeadas anidadas —banda, este contenedor y el segmentado de
+ * adentro— y eso es lo que se leía como amateur. Y sin `flex-wrap`: envolver es
+ * crecer de alto, que es lo que subía la banda de 52 a 98px. */
 .hojas-ruta-phase-header {
-  min-width: 0;
-  max-width: min(100%, 520px);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--pulso-chrome-commandbar-gap);
   flex: 0 1 auto;
-  flex-wrap: wrap;
-  row-gap: 4px;
-  padding: 4px;
-  border: 1px solid color-mix(in srgb, var(--module-accent-border) 58%, var(--pulso-border));
-  border-radius: 22px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.76)),
-    var(--pulso-material-bg);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 7px 18px rgba(124, 45, 18, 0.08);
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
 .hojas-ruta-phase-header .hojas-ruta-phase-tabs {
-  min-width: 184px;
   flex: 0 0 auto;
   border: 1px solid color-mix(in srgb, var(--module-accent-border) 42%, var(--pulso-border));
-  border-radius: 18px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(248, 250, 252, 0.66));
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
   padding: 2px;
   gap: 2px;
 }
 
 .hojas-ruta-phase-header .hojas-ruta-phase-tabs button {
-  min-height: 34px;
-  border-radius: 14px;
-  padding: 0 13px;
+  min-height: calc(var(--pulso-chrome-control-h) - 6px);
+  border-radius: var(--pulso-radius-chip);
+  padding: 0 11px;
   font-size: 12px;
   letter-spacing: 0;
+  white-space: nowrap;
 }
 
 .hojas-ruta-phase-header .hojas-ruta-phase-tabs button.is-active {
-  border-radius: 14px;
+  border-radius: var(--pulso-radius-chip);
 }
 
 .hojas-ruta-phase-pilot-badge {
-  min-height: 34px;
+  min-height: var(--pulso-chrome-control-h);
   min-width: 88px;
   max-width: 118px;
   display: inline-flex;
@@ -1311,10 +1303,10 @@
 
 .hojas-ruta-phase-policy-select {
   position: relative;
-  min-width: 146px;
+  min-width: 0;
   display: flex;
   align-items: center;
-  flex: 0 1 166px;
+  flex: 0 1 auto;
 }
 
 .hojas-ruta-phase-policy-select span {
@@ -1328,7 +1320,7 @@
 
 .hojas-ruta-phase-policy-select select {
   width: 100%;
-  min-height: 34px;
+  min-height: var(--pulso-chrome-control-h);
   border: 1px solid color-mix(in srgb, var(--module-accent-border) 52%, var(--pulso-border));
   border-radius: 17px;
   background:
@@ -1343,7 +1335,7 @@
 }
 
 .hojas-ruta-phase-locked {
-  min-height: 34px;
+  min-height: var(--pulso-chrome-control-h);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4174,29 +4166,24 @@
     text-align: left;
   }
 
+  /* Este bloque venía de cuando el conmutador era una caja aparte que podía
+     envolver a sus anchas. Dentro de la banda no puede: envolver es crecer de
+     alto, y era lo que la subía de 52 a 80px. Los `flex: 1 1` que estiraban sus
+     piezas hasta el ancho completo también se van; ahora cada una ocupa lo suyo. */
   .hojas-ruta-phase-header {
     width: auto;
     min-width: 0;
     align-items: center;
     flex: 0 1 auto;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 
   .hojas-ruta-phase-header .hojas-ruta-phase-tabs {
-    flex: 1 1 184px;
-  }
-
-  .hojas-ruta-phase-header .hojas-ruta-phase-tabs button {
-    flex: 1 1 0;
+    flex: 0 0 auto;
   }
 
   .hojas-ruta-phase-policy-select {
-    flex: 1 1 150px;
-  }
-
-  .hojas-ruta-phase-policy-select select {
-    width: 100%;
-    max-width: none;
+    flex: 0 1 auto;
   }
 
   .hojas-ruta-map-explorer {
@@ -7059,12 +7046,49 @@
   color: #405066;
 }
 
-/* Superficie operativa: el conmutador de fase del estudio. No es chrome de
- * navegación —cambia el estado del estudio y lleva su propio resumen del
- * piloto— y mide 88px por diseño, así que vive acá y no en la banda, que no
- * crece. Es la separación navegar/operar del ADR 0042. */
-.hojas-ruta-command-surface {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: var(--pulso-chrome-commandbar-gap);
+
+/* ── Escalera de compactación de la banda ──────────────────────────────────
+ * A la ventana en que se usa la app (banda de ~936px) el contenido pide 1.330:
+ * KPIs 340 + rail 510 + control de fase 480. No caben, y la respuesta del canon
+ * no es envolver —eso es crecer de alto— sino compactar y recoger.
+ *
+ * Bajo 1200px de banda: el badge de titulares se va —su dato ya está en el
+ * `title` del control— y las píldoras de etapa pierden el número, que es
+ * ornamental cuando el orden se lee de izquierda a derecha.
+ *
+ * No hace falta esconder más. El primer intento recortó también las etiquetas de
+ * los KPIs y el último del grupo, pero eso era tratar un síntoma: la banda crecía
+ * porque el conmutador de fase tenía `flex-wrap: wrap` heredado de cuando era una
+ * caja aparte, no porque faltara ancho. Corregido eso, los KPIs vuelven enteros y
+ * los dos lados quedan parejos. */
+@container pulso-chrome (max-width: 1200px) {
+  .hojas-ruta-phase-pilot-badge {
+    display: none;
+  }
+
+  /* El número se QUEDA: en un pipeline numerado es la identidad de la etapa, y
+     es lo que sostiene a las inactivas cuando su rótulo se recoge. */
+
+  /* El conmutador no se estira más de lo que necesita. */
+  .hojas-ruta-phase-policy-select select {
+    padding-right: 22px;
+    font-size: 11.5px;
+  }
+
+  /* Rail comprimido: número en todas y rótulo solo en la etapa activa. Es el
+     «título compacto de pestaña activa obligatorio» de la dirección v3, y
+     resuelve lo que se veía en pantalla y los números no delataban: con los
+     cinco rótulos completos el rail se cortaba a media palabra («Entr…») y el
+     conmutador de fase quedaba pegado al corte.
+     Se compacta al número y no al ícono: los íconos de estas píldoras ya venían
+     ocultos por el diseño previo, así que dejar solo el ícono producía píldoras
+     VACÍAS de 18px —navegación invisible—. El número más el `title` de cada botón
+     sostienen el significado de las inactivas. */
+  .hojas-ruta-stage-rail .pulso-phase-pill:not(.is-active) .hojas-ruta-stage-label {
+    display: none;
+  }
+
+  .hojas-ruta-stage-rail .pulso-phase-pill:not(.is-active) {
+    padding: 0 7px;
+  }
 }
