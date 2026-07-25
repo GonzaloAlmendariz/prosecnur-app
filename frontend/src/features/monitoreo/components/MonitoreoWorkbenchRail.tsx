@@ -177,6 +177,13 @@ export function MonitoreoWorkbenchRail({
                 type="button"
                 role="tab"
                 data-gliding-key={tab.key}
+                /* Estados compartidos para los CUATRO modos de Monitoreo: este
+                 * rail lo montan territorial, acreditación y telefónico, así que
+                 * el hover, el hover sobre la pestaña activa y el anillo de foco
+                 * quedan iguales que en Procesamiento en todos ellos. */
+                data-nav-item=""
+                data-nav-shape="row"
+                data-nav-state={active ? "selected" : undefined}
                 aria-selected={active}
                 aria-label={`${tab.label}: ${tab.detail}`}
                 title={`${tab.label}: ${tab.detail}`}

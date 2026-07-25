@@ -901,7 +901,9 @@
 }
 
 .mon-workbench-rail.is-acreditacion .mon-section-local-tabs .mon-nav-item {
-  min-height: 36px;
+  /* Acreditación usaba 36 donde los otros perfiles usaban 38: misma clase, tres
+     alturas. Ahora los tres salen del token. */
+  min-height: var(--pulso-nav-item-height);
   grid-template-columns: 22px minmax(0, 1fr) auto;
   gap: 6px;
   border-color: transparent;
@@ -1075,7 +1077,12 @@
 }
 
 .mon-workbench-rail.is-collapsible .mon-section-local-tabs {
-  --mon-local-tab-size: 38px;
+  /* El item del rail comprimido sale del token compartido: Monitoreo tenía tres
+     alturas según el perfil —50 expandido, 38 colapsado, 36 en acreditación— y
+     Procesamiento usaba 40, así que el mismo control medía distinto según en qué
+     modo estuvieras. El expandido conserva su alto porque lleva dos líneas de
+     copy; el comprimido es el que se compara de verdad con el de Procesamiento. */
+  --mon-local-tab-size: var(--pulso-nav-item-height);
   --mon-local-tab-gap: 5px;
   grid-row: 1;
   position: relative;
