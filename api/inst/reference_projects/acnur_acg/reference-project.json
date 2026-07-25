@@ -1,0 +1,41 @@
+{
+  "schema": "prosecnur.reference_project_manifest.v1",
+  "reference_project_schema": "prosecnur.reference_project.v1",
+  "slug": "acnur_acg",
+  "title": "ACNUR ACG — Monitoreo territorial de acogida",
+  "family": "territorial",
+  "aporta": "el único que recorre el pipeline entero hasta analítica con datos reales",
+  "description": "Territorial completo: hojas de ruta por distrito con piloto y campo, codificación aplicada, y analítica con secciones, cruces y dimensiones.",
+  "anonimizado": true,
+  "origen_basename": "ACNURCG.pulso",
+  "project_sha256": "70ca67b9f5dcdbf2ad06c7144a005f48023122a57c97b152c11862412b4fde70",
+  "cobertura": {
+    "diseno_estudio": false,
+    "calc_muestra": true,
+    "editor_xlsform": true,
+    "hojas_ruta": true,
+    "monitoreo": true,
+    "carga": true,
+    "validacion": true,
+    "codificacion": true,
+    "analitica": true,
+    "graficos": true,
+    "dashboard": false
+  },
+  "modulos_cubiertos": ["calc_muestra", "editor_xlsform", "hojas_ruta", "monitoreo", "carga", "validacion", "codificacion", "analitica", "graficos"],
+  "canonical_flow": [
+    "diseno_planificacion",
+    "diseno_muestral",
+    "instrumento",
+    "preparacion_operativa_campo",
+    "levantamiento_monitoreo",
+    "carga_consolidacion_data",
+    "validacion_limpieza",
+    "codificacion",
+    "analitica",
+    "productos_analisis",
+    "cierre_auditoria_general"
+  ],
+  "n_tablas_anonimizadas": 73,
+  "n_nombres_seudonimizados": 194
+}

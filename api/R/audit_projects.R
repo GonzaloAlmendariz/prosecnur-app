@@ -31,11 +31,17 @@ audit_project_default_seed_root <- function() {
 
 .audit_project_catalog_list <- function() {
   list(
+    # `reduced_from` nombra el proyecto REAL del que se derivó la semilla, por
+    # su slug en `reference_projects.R`. Vive acá y no dentro de cada función de
+    # seed para que la procedencia sea un dato consultable —y verificable por
+    # test— en vez de un literal enterrado en el código de construcción.
+    # `NULL` significa que la familia se diseñó sin un estudio real de origen.
     territorial_lima_manzanas = list(
       slug = "territorial_lima_manzanas",
       title = "Auditoria Territorial Lima Manzanas",
       family = "territorial",
       description = "Distritos, UMP, manzanas titulares/reemplazo, filas Kobo-like, GPS, duracion, cuotas y salidas territoriales.",
+      reduced_from = "acnur_acg",
       canonical_order = 1L
     ),
     acreditacion_multiactor = list(
@@ -43,6 +49,7 @@ audit_project_default_seed_root <- function() {
       title = "Auditoria Acreditacion Multiactor",
       family = "acreditacion",
       description = "Actores, canales SurveyMonkey/Kobo/Sheets, correo, llamada, enlaces personalizados y brechas de respuesta.",
+      reduced_from = "acrconta",
       canonical_order = 2L
     ),
     procesamiento_multibase = list(
@@ -50,6 +57,7 @@ audit_project_default_seed_root <- function() {
       title = "Auditoria Procesamiento Multibase",
       family = "procesamiento",
       description = "Tres bases sinteticas tipo SurveyMonkey/Kobo/Sheets para carga, validacion, codificacion, analitica, graficos y dashboard.",
+      reduced_from = NULL,
       canonical_order = 3L
     ),
     telefonico_cuotas = list(
@@ -57,6 +65,7 @@ audit_project_default_seed_root <- function() {
       title = "Auditoria Telefonica Con Cuotas",
       family = "telefonico",
       description = "Barrido telefonico, responsables, intentos, estados, cuotas por distrito/grupo y seguimiento interno.",
+      reduced_from = "acnur_pdm",
       canonical_order = 4L
     )
   )
@@ -624,7 +633,7 @@ audit_project_catalog <- function() {
     ),
     coverage = list(
       monitoreo = "territorial",
-      reduced_from = "ACGACNUR",
+      reduced_from = meta$reduced_from,
       consent_filter = TRUE,
       kobo_like_rows = nrow(fixture$data),
       google_sheets_simulados = TRUE,
@@ -853,7 +862,7 @@ audit_project_catalog <- function() {
     ),
     coverage = list(
       monitoreo = "acreditacion",
-      reduced_from = "ACRCONTA",
+      reduced_from = meta$reduced_from,
       consent_filter = TRUE,
       multi_source_actor_bases = TRUE,
       actors = as.list(c("Estudiantes", "Docentes", "Egresados", "Empleadores")),
@@ -1297,6 +1306,7 @@ audit_project_catalog <- function() {
     ),
     coverage = list(
       monitoreo = "telefonico",
+      reduced_from = meta$reduced_from,
       cuotas_por_distrito = TRUE,
       phone_summary = TRUE,
       survey_like_recipients = TRUE,

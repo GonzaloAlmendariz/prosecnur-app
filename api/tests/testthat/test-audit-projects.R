@@ -174,7 +174,10 @@ test_that("proyectos canonicos generan .pulso portables con centinelas y fuentes
       expect_equal(unlist(s$monitoreo_config$territorial$platform_effective_values, use.names = FALSE), "1")
       expect_true(all(c("0", "1") %in% unique(as.character(terr_data$consent))))
       expect_equal(as.character(terr_data$consent[match("TER-RAW-0007", terr_data$response_id)]), "0")
-      expect_equal(s$audit_project$coverage$reduced_from, "ACGACNUR")
+      # La procedencia se declara con el slug del catalogo de proyectos de
+      # referencia, no con un nombre suelto: asi el puntero al estudio real
+      # resuelve y `test-reference-projects.R` puede verificarlo.
+      expect_equal(s$audit_project$coverage$reduced_from, "acnur_acg")
       expect_true(any(vapply(s$monitoreo_sources %||% list(), function(src) {
         identical(src$id %||% "", "qa_kobo_territorial_ocurrencias")
       }, logical(1))))
@@ -249,7 +252,7 @@ test_that("proyectos canonicos generan .pulso portables con centinelas y fuentes
         as.integer(graph_coverage$summary$graphable_variables)
       )
       expect_equal(as.integer(graph_coverage$summary$unused_graphable), 0L)
-      expect_equal(s$audit_project$coverage$reduced_from, "ACRCONTA")
+      expect_equal(s$audit_project$coverage$reduced_from, "acrconta")
       expect_true(is.list(s$calc_muestra_estudio))
       expect_equal(s$audit_project$sentinels$actor_missing_date, "ACR-RAW-MISSING-DATE")
     }

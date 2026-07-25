@@ -18,6 +18,12 @@ AUDIT_RUNS_DIR ?= $(REPO_ROOT)/outputs/audit-runs
 AUDIT_PROJECT ?= $(REPO_ROOT)/api/inst/audit_reference/prosecnur_audit_reference.pulso
 AUDIT_PROJECTS_DIR ?= $(REPO_ROOT)/outputs/audit-projects/seeds
 AUDIT_PROJECT_DELIVERABLES_DIR ?= $(REPO_ROOT)/outputs/audit-projects/deliverables
+# Proyectos de referencia: estudios REALES anonimizados. A diferencia de las
+# semillas sinteticas, viven versionados en api/inst/ y no se generan en cada
+# corrida — construirlos necesita los .pulso originales, que no estan en el repo.
+REFERENCE_PROJECTS_DIR ?= $(REPO_ROOT)/api/inst/reference_projects
+REFERENCE_RUNS_DIR ?= $(REPO_ROOT)/outputs/reference-runs
+REFERENCE_PROJECT ?= acnur_acg
 PROJECT ?= territorial_lima_manzanas
 PULSO_PORT ?= 8787
 VITE_DEV_PORT ?= 5173
@@ -27,7 +33,7 @@ QA_URL ?= http://localhost:5173/
 QA_API ?= auto
 QA_OUT ?= $(REPO_ROOT)/outputs/visual-qa/$(shell date +%Y%m%d-%H%M%S)
 
-.PHONY: help dev-api dev-frontend dev-pulso dev-electron-vite dev-status dev-prune visual-qa ui-quick-check monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit audit-projects-build audit-project-build audit-project-run audit-project-visual-matrix audit-project-deliverables build build-if-stale build-if-stale-fast dev-port-preflight clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
+.PHONY: help dev-api dev-frontend dev-pulso dev-electron-vite dev-status dev-prune visual-qa ui-quick-check monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit audit-projects-build audit-project-build audit-project-run audit-project-visual-matrix audit-project-deliverables reference-projects-build reference-project-build reference-project-verify reference-project-run reference-project-visual-matrix build build-if-stale build-if-stale-fast dev-port-preflight clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
 
 help:
 	@echo "Entrada normal del usuario:"
@@ -56,6 +62,11 @@ help:
 	@echo "  audit-project-run     Run dev stack with one isolated family audit project"
 	@echo "  audit-project-visual-matrix Run ui-quick-check across canonical routes"
 	@echo "  audit-project-deliverables Generate family deliverables/evidence report"
+	@echo "  reference-projects-build   Build all anonymized real-study fixtures"
+	@echo "  reference-project-build    Build one fixture; use REFERENCE_PROJECT=<slug>"
+	@echo "  reference-project-verify   Gate: no PII + declared coverage holds"
+	@echo "  reference-project-run      Run dev stack on an isolated fixture copy"
+	@echo "  reference-project-visual-matrix Run ui-quick-check across a fixture's routes"
 	@echo "  package-local    Generate distributable in dist.nosync/Prosecnur/"
 	@echo "  package-windows-self-contained Generate offline Windows bundle ZIP + Setup.exe + latest.yml"
 	@echo "  package-mac-dmg  Generate macOS .dmg (arm64 + x64) + latest-mac.yml"
@@ -225,6 +236,56 @@ audit-project-visual-matrix:
 audit-project-deliverables: audit-project-build
 	@test -n "$(PROJECT)" || (echo "uso: make audit-project-deliverables PROJECT=territorial_lima_manzanas"; exit 1)
 	Rscript api/scripts/audit_project_deliverables.R --project "$(PROJECT)" --out "$(AUDIT_PROJECT_DELIVERABLES_DIR)/$(PROJECT)" --seed "$(AUDIT_PROJECTS_DIR)/$(PROJECT)/$(PROJECT).pulso"
+
+# --- Proyectos de referencia (estudios reales anonimizados) -------------------
+# Construir requiere los .pulso originales del analista y PROSECNUR_ANON_SALT.
+# Verificar y correr solo necesitan el fixture ya versionado.
+
+reference-projects-build:
+	Rscript api/scripts/reference_project_build.R --all
+
+reference-project-build:
+	@test -n "$(REFERENCE_PROJECT)" || (echo "uso: make reference-project-build REFERENCE_PROJECT=acnur_acg"; exit 1)
+	Rscript api/scripts/reference_project_build.R --project "$(REFERENCE_PROJECT)"
+
+reference-project-verify:
+	Rscript api/scripts/reference_project_verify.R
+
+reference-project-run:
+	@test -n "$(REFERENCE_PROJECT)" || (echo "uso: make reference-project-run REFERENCE_PROJECT=acnur_acg"; exit 1)
+	@set -e; \
+	  RUN_MANIFEST="$$(Rscript api/scripts/reference_project_prepare_run.R --project "$(REFERENCE_PROJECT)" --root "$(REFERENCE_RUNS_DIR)")"; \
+	  if [ -z "$$RUN_MANIFEST" ] || [ ! -f "$$RUN_MANIFEST" ]; then \
+	    echo "[reference] prepare_run no devolvio un manifiesto valido: '$$RUN_MANIFEST'"; exit 1; \
+	  fi; \
+	  PROJECT_PATH="$$(Rscript -e 'cat(jsonlite::fromJSON(commandArgs(TRUE)[1])$$project_path)' "$$RUN_MANIFEST")"; \
+	  if [ -z "$$PROJECT_PATH" ] || [ ! -f "$$PROJECT_PATH" ]; then \
+	    echo "[reference] el manifiesto no trae un project_path usable: '$$PROJECT_PATH'"; exit 1; \
+	  fi; \
+	  echo "[reference] run manifest: $$RUN_MANIFEST"; \
+	  echo "[reference] project copy: $$PROJECT_PATH"; \
+	  PULSO_PORT="$(AUDIT_PORT)" \
+	  PULSO_BOOTSTRAP_PROJECT="$$PROJECT_PATH" \
+	  PULSO_OPEN_BROWSER=false \
+	  VITE_API_PROXY_TARGET="http://127.0.0.1:$(AUDIT_PORT)" \
+	  $(MAKE) -j2 dev-api dev-frontend
+
+reference-project-visual-matrix:
+	@test -n "$(REFERENCE_PROJECT)" || (echo "uso: make reference-project-visual-matrix REFERENCE_PROJECT=acnur_acg"; exit 1)
+	@test -f "$(REFERENCE_PROJECTS_DIR)/$(REFERENCE_PROJECT)/$(REFERENCE_PROJECT).pulso" || \
+	  (echo "Fixture ausente. Corre: make reference-project-build REFERENCE_PROJECT=$(REFERENCE_PROJECT)"; exit 1)
+	@set -e; \
+	  RUN_MANIFEST="$$(Rscript api/scripts/reference_project_prepare_run.R --project "$(REFERENCE_PROJECT)" --root "$(REFERENCE_RUNS_DIR)")"; \
+	  if [ -z "$$RUN_MANIFEST" ] || [ ! -f "$$RUN_MANIFEST" ]; then \
+	    echo "[reference] prepare_run no devolvio un manifiesto valido: '$$RUN_MANIFEST'"; exit 1; \
+	  fi; \
+	  PROJECT_PATH="$$(Rscript -e 'cat(jsonlite::fromJSON(commandArgs(TRUE)[1])$$project_path)' "$$RUN_MANIFEST")"; \
+	  if [ -z "$$PROJECT_PATH" ] || [ ! -f "$$PROJECT_PATH" ]; then \
+	    echo "[reference] el manifiesto no trae un project_path usable: '$$PROJECT_PATH'"; exit 1; \
+	  fi; \
+	  $(MAKE) ui-quick-check \
+	    PULSO="$$PROJECT_PATH" \
+	    UI_QA_ARGS='--route /diseno-estudio --route /plan-trabajo --route /calc-muestra --route /editor-xlsform --route /hojas-ruta --route /recopiladores --route /monitoreo --route /carga --route /validacion --route /codificacion --route /analitica --route /graficos --route /tablero --viewport 1440x900 --viewport 1280x720 --viewport 1024x640 --layout-preset auto --fail-on-issues --prefetch-route-data $(UI_QA_ARGS)'
 
 build:
 	@started=$$(date +%s); \

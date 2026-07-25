@@ -2,3 +2,11 @@
 ^\.Rproj\.user$
 ^tests/testthat/_snaps$
 ^inst/www/.*\.map$
+# Los proyectos de referencia (ADR 0043) son material de desarrollo y CI: 17 MB
+# de fixtures que no le sirven de nada al analista y que inflarian el
+# instalador. Se versionan en el repo pero no entran al paquete construido.
+# `pkgload::load_all()` —que es como corren la suite y el dev stack— mapea
+# inst/ completo sin mirar este archivo, asi que siguen disponibles donde hacen
+# falta; en un paquete realmente instalado, `reference_project_install_dir()`
+# no los encuentra y los tests se saltean, que es el comportamiento correcto.
+^inst/reference_projects$

@@ -1,0 +1,41 @@
+{
+  "schema": "prosecnur.reference_project_manifest.v1",
+  "reference_project_schema": "prosecnur.reference_project.v1",
+  "slug": "acrconta",
+  "title": "Acreditación Contabilidad — Multiactor",
+  "family": "acreditacion",
+  "aporta": "multiactor con Sheets, carga .sav e intake de hermanos independientes",
+  "description": "Acreditación multiactor con 13 fuentes y publicación a Sheets, más la base .sav del lado de procesamiento con sus mapas de códigos.",
+  "anonimizado": true,
+  "origen_basename": "acrconta_merged.pulso",
+  "project_sha256": "876d62528db14ba03730561f9bcbf645c042194a0e400cc4710249ec5b8d3e5a",
+  "cobertura": {
+    "diseno_estudio": true,
+    "calc_muestra": false,
+    "editor_xlsform": true,
+    "hojas_ruta": true,
+    "monitoreo": true,
+    "carga": true,
+    "validacion": false,
+    "codificacion": false,
+    "analitica": true,
+    "graficos": true,
+    "dashboard": false
+  },
+  "modulos_cubiertos": ["diseno_estudio", "editor_xlsform", "hojas_ruta", "monitoreo", "carga", "analitica", "graficos"],
+  "canonical_flow": [
+    "diseno_planificacion",
+    "diseno_muestral",
+    "instrumento",
+    "preparacion_operativa_campo",
+    "levantamiento_monitoreo",
+    "carga_consolidacion_data",
+    "validacion_limpieza",
+    "codificacion",
+    "analitica",
+    "productos_analisis",
+    "cierre_auditoria_general"
+  ],
+  "n_tablas_anonimizadas": 5,
+  "n_nombres_seudonimizados": 1095
+}
