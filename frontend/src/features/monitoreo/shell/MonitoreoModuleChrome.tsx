@@ -316,7 +316,8 @@ export function MonitoreoModuleChrome({
                       void Promise.resolve(onSyncAdvance()).catch(() => undefined);
                     }}
                   >
-                    {syncingAdvance ? <Loader2 size={13} className="pulso-spin" /> : <Activity size={13} />}
+                    {/* Solo el spinner: en reposo el label basta. */}
+                    {syncingAdvance ? <Loader2 size={13} className="pulso-spin" /> : null}
                     <span>{advanceSyncLabel}</span>
                     {advanceProgressLabel ? <strong className="mon-command-sync-progress">{advanceProgressLabel}</strong> : null}
                   </button>
@@ -333,7 +334,7 @@ export function MonitoreoModuleChrome({
                       void Promise.resolve(onSyncAll()).catch(() => undefined);
                     }}
                   >
-                    {syncingFull ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
+                    {syncingFull ? <Loader2 size={13} className="pulso-spin" /> : null}
                     <span>{syncLabel}</span>
                     {fullProgressLabel ? <strong className="mon-command-sync-progress">{fullProgressLabel}</strong> : null}
                   </button>

@@ -14,7 +14,9 @@ import {
 import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
 import { PageFrame } from "../../components/PageFrame";
-import { GlidingTabList } from "../../components/GlidingTabList";
+import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
+import { ModuleCommandBar } from "../../components/ModuleCommandBar";
+import { SectionPillbar } from "../../components/SectionPillbar";
 import {
   moduleChromeVars,
   PROSECNUR_MODULES,
@@ -104,62 +106,46 @@ export default function BitacoraPage() {
       className="bitacora-frame"
     >
       <div className="bitacora-shell" style={moduleChromeVars(BITACORA_MODULE)}>
-        {/* Command bar material de 3 zonas (patrón maestro 1, espejo del
-            mon-commandbar): contexto (dot + kicker) | rail de secciones
-            canónico (.pulso-phase-pillbar) | acciones (refresh). */}
-        <div className="pulso-command-bar bitacora-commandbar" aria-label="Contexto de la bitácora">
-          <span className="bitacora-command-context">
-            <span className="bitacora-command-dot" aria-hidden="true" />
-            <span className="bitacora-command-kicker">Bitácora</span>
-          </span>
-          <GlidingTabList
-            as="nav"
-            mode="nav"
-            activeKey={tab}
-            className="pulso-phase-pillbar bitacora-section-rail"
-            aria-label="Secciones de la bitácora"
-          >
-            <ol className="pulso-phase-pill-list">
-              {BITACORA_SECTIONS.map((item) => {
-                const Icon = item.icon;
-                const active = tab === item.id;
-                return (
-                  <li key={item.id} className="pulso-phase-pill-item">
-                    <Link
-                      to={item.to}
-                      data-gliding-key={item.id}
-                      className={`pulso-phase-pill bitacora-section-pill${active ? " is-active" : ""}`}
-                      aria-current={active ? "page" : undefined}
-                    >
-                      <span className="pulso-phase-pill-circle" aria-hidden="true" />
-                      <span className="pulso-phase-pill-stack">
-                        <span className="pulso-phase-pill-label">
-                          <Icon
-                            size={14}
-                            className="bitacora-section-pill-icon"
-                            aria-hidden="true"
-                          />
-                          <span className="pulso-phase-pill-text">{item.label}</span>
-                        </span>
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ol>
-          </GlidingTabList>
-          <div className="bitacora-command-actions">
-            <button
-              type="button"
-              className="bitacora-icon-button"
-              onClick={load}
-              title="Actualizar"
-              aria-label="Actualizar bitácora"
-            >
-              {loading ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />}
-            </button>
-          </div>
-        </div>
+        {/* La banda propia de Bitácora pasa al chrome compartido: era su propio
+            grid de tres zonas, con el pillbar llevando un ícono por sección y la
+            zona de contexto repitiendo el nombre del módulo, que la homepage ya
+            dice. En su lugar va el dato que sí se consulta desde acá. */}
+        <ModuleCommandBar
+          modulo="diseno-estudio"
+          ariaLabel="Acciones de la bitácora"
+          className="bitacora-commandbar"
+          contexto={
+            <ChromeIndicatorGroup ariaLabel="Contexto de la bitácora">
+              <ChromeIndicator
+                label="Entradas"
+                value={entries.length ? String(entries.length) : "sin entradas"}
+                prioridad="alta"
+              />
+            </ChromeIndicatorGroup>
+          }
+          secciones={
+            <SectionPillbar
+              modulo="diseno-estudio"
+              ariaLabel="Secciones de la bitácora"
+              seccionActiva={tab}
+              items={BITACORA_SECTIONS.map((item) => ({
+                id: item.id,
+                label: item.label,
+                href: item.to,
+              }))}
+            />
+          }
+          acciones={[
+            {
+              id: "actualizar",
+              label: "Actualizar",
+              rank: 1,
+              onSelect: load,
+              disabled: loading,
+              busy: loading,
+            },
+          ]}
+        />
 
         {error && <Alert kind="error">{error}</Alert>}
 

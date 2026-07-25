@@ -32,6 +32,8 @@ import { DEFAULT_TABS_ENABLED, useDashboardAutosave, useDashboardStore } from ".
 import { useDashboardManifest, useDashboardRecodVars } from "./useDashboardData";
 import { isPublicMode } from "../../lib/runtime";
 import { GlidingTabList } from "../../components/GlidingTabList";
+import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
+import { ModuleCommandBar } from "../../components/ModuleCommandBar";
 
 const DASHBOARD_SECTION_ICONS: Record<DashboardTabId, LucideIcon> = {
   resumen: LayoutDashboard,
@@ -161,74 +163,80 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
               que el resto de los módulos. La fila de secciones de más abajo NO
               la adopta a propósito: esa sí la ve el cliente del estudio y su
               aspecto es una decisión de marca aparte. */}
-          <div className="pulso-command-bar dash-admin-toolbar dash-editor-commandbar" role="toolbar" aria-label="Edición del dashboard">
-            <div className="dash-admin-toolbar-context">
-              {config.last_deploy && (
-                <span className="dash-admin-toolbar-deploy-info">
-                  Última publicación{" "}
-                  <a
-                    href={config.last_deploy.url || config.last_deploy.app_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Abrir Space en Hugging Face"
-                  >
-                    {config.last_deploy.repo_id}
-                  </a>
-                  {" — "}
-                  <RelativeTime iso={config.last_deploy.published_at} />
-                </span>
-              )}
-            </div>
-            <div className="dash-admin-toolbar-group" aria-label="Fuente y diseño">
-              <button
-                type="button"
-                disabled={!manifest}
-                className={sourceOpen ? "is-active" : ""}
-                onClick={() => setSourceOpen((v) => !v)}
-                title="Cambiar XLSForm y data del dashboard"
-              >
-                <UploadCloud size={13} /> Datos
-              </button>
-              <button
-                type="button"
-                disabled={!hasDashboardSource}
-                onClick={() => setPalettesOpen(true)}
-                title="Paletas de colores por lista"
-              >
-                <Palette size={13} /> Paletas
-              </button>
-              <button
-                type="button"
-                disabled={!hasDashboardSource}
-                onClick={() => setCustomizeOpen(true)}
-                title="Personalizar marca, pestañas y vistas"
-              >
-                <Settings size={13} /> Personalizar
-              </button>
-            </div>
-            <div className="dash-admin-toolbar-group is-output" aria-label="Previsualización y publicación">
-              <button
-                type="button"
-                disabled={!hasDashboardSource}
-                onClick={() => setPreviewMode(true)}
-                title="Ver el dashboard como se verá publicado"
-              >
-                <Eye size={13} /> Vista previa
-              </button>
-              <button
-                type="button"
-                disabled={!hasDashboardSource}
-                onClick={() => setPublishOpen(true)}
-                title={
-                  config.last_deploy
-                    ? `Re-publicar a ${config.last_deploy.repo_id}`
-                    : "Publicar el dashboard como Hugging Face Space"
-                }
-              >
-                <Rocket size={13} /> {config.last_deploy ? "Re-publicar" : "Deploy"}
-              </button>
-            </div>
-          </div>
+          <ModuleCommandBar
+            modulo="dashboard"
+            ariaLabel="Edición del dashboard"
+            className="dash-admin-toolbar dash-editor-commandbar"
+            contexto={
+              config.last_deploy ? (
+                <ChromeIndicatorGroup ariaLabel="Estado de publicación">
+                  <ChromeIndicator
+                    label="Última publicación"
+                    prioridad="alta"
+                    detalle="Abrir Space en Hugging Face"
+                    value={
+                      <>
+                        <a
+                          href={config.last_deploy.url || config.last_deploy.app_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {config.last_deploy.repo_id}
+                        </a>
+                        {" — "}
+                        <RelativeTime iso={config.last_deploy.published_at} />
+                      </>
+                    }
+                  />
+                </ChromeIndicatorGroup>
+              ) : undefined
+            }
+            acciones={[
+              {
+                id: "deploy",
+                label: config.last_deploy ? "Re-publicar" : "Deploy",
+                rank: 1,
+                kind: "primary",
+                onSelect: () => setPublishOpen(true),
+                disabled: !hasDashboardSource,
+                title: config.last_deploy
+                  ? `Re-publicar a ${config.last_deploy.repo_id}`
+                  : "Publicar el dashboard como Hugging Face Space",
+              },
+              {
+                id: "vista-previa",
+                label: "Vista previa",
+                rank: 2,
+                onSelect: () => setPreviewMode(true),
+                disabled: !hasDashboardSource,
+                title: "Ver el dashboard como se verá publicado",
+              },
+              {
+                id: "personalizar",
+                label: "Personalizar",
+                rank: 2,
+                onSelect: () => setCustomizeOpen(true),
+                disabled: !hasDashboardSource,
+                title: "Personalizar marca, pestañas y vistas",
+              },
+              {
+                id: "datos",
+                label: "Datos",
+                rank: 3,
+                onSelect: () => setSourceOpen((v) => !v),
+                disabled: !manifest,
+                title: "Cambiar XLSForm y data del dashboard",
+              },
+              {
+                id: "paletas",
+                label: "Paletas",
+                rank: 3,
+                onSelect: () => setPalettesOpen(true),
+                disabled: !hasDashboardSource,
+                title: "Paletas de colores por lista",
+              },
+            ]}
+          />
         </div>
       )}
 
