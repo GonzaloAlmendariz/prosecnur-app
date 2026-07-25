@@ -65,7 +65,13 @@ export type ProsecnurModuleSectionMeta = ProsecnurNavigationLeafMeta & {
   tabs?: readonly ProsecnurNavigationLeafMeta[];
 };
 
-export type ProsecnurModuleSectionSetMeta = {
+/**
+ * Un **modo** es una variante del módulo que reescribe su juego de secciones.
+ * Solo algunos módulos tienen modos y el modo activo lo determina el estudio
+ * del proyecto, no un click: por eso no se navega entre modos, se aterriza en
+ * el que corresponde. Jerarquía completa en `lib/navegacion/direccion.ts`.
+ */
+export type ProsecnurModuleModoMeta = {
   id: string;
   label: string;
   sections: readonly ProsecnurModuleSectionMeta[];
@@ -78,12 +84,14 @@ export type ResolvedProsecnurNavigationItem = ProsecnurNavigationLeafMeta & {
 export type ProsecnurNavigationLandingKind = "section" | "entrypoint";
 
 export const PROSECNUR_NAVIGATION_CONTRACT = {
-  version: 2,
+  version: 3,
+  grammar: "modulo/modo/seccion/pestana/panel",
   coverage: "primary-routes-v1",
-  profiledSectionsCoverage: "monitoring-profiles-v1",
+  modosCoverage: "monitoring-profiles-v1",
   tabsCoverage: "hojas-ruta-v1",
   shellCoverage: "hojas-ruta-v1",
   consumableByShell: true,
+  addressable: true,
 } as const;
 
 export type ProsecnurModuleMeta = {
@@ -98,7 +106,7 @@ export type ProsecnurModuleMeta = {
   to?: string;
   landingKind: ProsecnurNavigationLandingKind;
   sections: readonly ProsecnurModuleSectionMeta[];
-  sectionSets?: readonly ProsecnurModuleSectionSetMeta[];
+  modos?: readonly ProsecnurModuleModoMeta[];
 };
 
 export type ActiveProsecnurModuleMeta = ProsecnurModuleMeta & { to: string };
@@ -182,14 +190,14 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         id: "cronograma",
         label: "Cronograma",
         icon: IconWorkPlan,
-        to: "/bitacora?tab=cronograma",
+        to: "/bitacora?seccion=cronograma",
         layoutPolicy: "viewport",
       },
       {
         id: "calendario",
         label: "Calendario",
         icon: CalendarDays,
-        to: "/bitacora?tab=calendario",
+        to: "/bitacora?seccion=calendario",
         layoutPolicy: "viewport",
       },
     ],
@@ -273,56 +281,56 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         id: "territorio",
         label: "Territorio",
         icon: MapPinned,
-        to: "/hojas-ruta?stage=territorio",
+        to: "/hojas-ruta?seccion=territorio",
         layoutPolicy: "viewport",
       },
       {
         id: "poblacion",
         label: "Población",
         icon: BarChart3,
-        to: "/hojas-ruta?stage=poblacion",
+        to: "/hojas-ruta?seccion=poblacion",
         layoutPolicy: "viewport",
       },
       {
         id: "muestra",
         label: "Muestra",
         icon: Target,
-        to: "/hojas-ruta?stage=muestra",
+        to: "/hojas-ruta?seccion=muestra",
         layoutPolicy: "viewport",
       },
       {
         id: "manzanas",
         label: "Manzanas",
         icon: Shuffle,
-        to: "/hojas-ruta?stage=manzanas",
+        to: "/hojas-ruta?seccion=manzanas",
         layoutPolicy: "viewport",
       },
       {
         id: "entrega",
         label: "Entrega",
         icon: FileText,
-        to: "/hojas-ruta?stage=entrega",
+        to: "/hojas-ruta?seccion=entrega",
         layoutPolicy: "viewport",
         tabs: [
           {
             id: "cuotas",
             label: "Cuotas",
             icon: BarChart3,
-            to: "/hojas-ruta?stage=entrega&tab=cuotas",
+            to: "/hojas-ruta?seccion=entrega&pestana=cuotas",
             layoutPolicy: "viewport",
           },
           {
             id: "titulares",
             label: "Titulares",
             icon: MapPinned,
-            to: "/hojas-ruta?stage=entrega&tab=titulares",
+            to: "/hojas-ruta?seccion=entrega&pestana=titulares",
             layoutPolicy: "viewport",
           },
           {
             id: "reemplazos",
             label: "Reemplazos",
             icon: Shuffle,
-            to: "/hojas-ruta?stage=entrega&tab=reemplazos",
+            to: "/hojas-ruta?seccion=entrega&pestana=reemplazos",
             layoutPolicy: "viewport",
           },
         ],
@@ -383,50 +391,50 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         layoutPolicy: "viewport",
       },
     ],
-    sectionSets: [
+    modos: [
       {
         id: "acreditacion",
         label: "Acreditación",
         sections: [
-          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?tab=fuentes", layoutPolicy: "viewport" },
-          { id: "modelo", label: "Modelo operativo", icon: ListChecks, to: "/monitoreo?tab=modelo", layoutPolicy: "viewport" },
-          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?tab=consultas", layoutPolicy: "viewport" },
-          { id: "telefonico", label: "Monitoreo telefónico", icon: PhoneCall, to: "/monitoreo?tab=telefonico", layoutPolicy: "viewport" },
-          { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?tab=avance", layoutPolicy: "viewport" },
+          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport" },
+          { id: "modelo", label: "Modelo operativo", icon: ListChecks, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
+          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport" },
+          { id: "telefonico", label: "Monitoreo telefónico", icon: PhoneCall, to: "/monitoreo?seccion=telefonico", layoutPolicy: "viewport" },
+          { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?seccion=avance", layoutPolicy: "viewport" },
         ],
       },
       {
         id: "telefonico",
         label: "Telefónico",
         sections: [
-          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?tab=fuentes", layoutPolicy: "viewport" },
-          { id: "modelo", label: "Modelo operativo", icon: ListChecks, to: "/monitoreo?tab=modelo", layoutPolicy: "viewport" },
-          { id: "telefonico", label: "Llamadas", icon: PhoneCall, to: "/monitoreo?tab=telefonico", layoutPolicy: "viewport" },
-          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?tab=consultas", layoutPolicy: "viewport" },
-          { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?tab=avance", layoutPolicy: "viewport" },
+          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport" },
+          { id: "modelo", label: "Modelo operativo", icon: ListChecks, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
+          { id: "telefonico", label: "Llamadas", icon: PhoneCall, to: "/monitoreo?seccion=telefonico", layoutPolicy: "viewport" },
+          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport" },
+          { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?seccion=avance", layoutPolicy: "viewport" },
         ],
       },
       {
         id: "territorial",
         label: "Territorial",
         sections: [
-          { id: "fuentes", label: "Fuente", icon: PlugZap, to: "/monitoreo?tab=fuentes", layoutPolicy: "viewport" },
-          { id: "modelo", label: "UMPs", icon: Route, to: "/monitoreo?tab=modelo", layoutPolicy: "viewport" },
-          { id: "calidad", label: "Validación", icon: ShieldAlert, to: "/monitoreo?tab=calidad", layoutPolicy: "viewport" },
-          { id: "consultas", label: "Consultas internas", icon: Search, to: "/monitoreo?tab=consultas", layoutPolicy: "viewport" },
-          { id: "avance", label: "Avance territorial", icon: BarChart3, to: "/monitoreo?tab=avance", layoutPolicy: "viewport" },
-          { id: "ocurrencias", label: "Ocurrencias de campo", icon: ClipboardCheck, to: "/monitoreo?tab=ocurrencias", layoutPolicy: "viewport" },
+          { id: "fuentes", label: "Fuente", icon: PlugZap, to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport" },
+          { id: "modelo", label: "UMPs", icon: Route, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
+          { id: "calidad", label: "Validación", icon: ShieldAlert, to: "/monitoreo?seccion=calidad", layoutPolicy: "viewport" },
+          { id: "consultas", label: "Consultas internas", icon: Search, to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport" },
+          { id: "avance", label: "Avance territorial", icon: BarChart3, to: "/monitoreo?seccion=avance", layoutPolicy: "viewport" },
+          { id: "ocurrencias", label: "Ocurrencias de campo", icon: ClipboardCheck, to: "/monitoreo?seccion=ocurrencias", layoutPolicy: "viewport" },
         ],
       },
       {
         id: "aulas",
         label: "Cursos-horario",
         sections: [
-          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?tab=fuentes", layoutPolicy: "viewport" },
-          { id: "modelo", label: "Agenda de cursos-horario", icon: CalendarRange, to: "/monitoreo?tab=modelo", layoutPolicy: "viewport" },
-          { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?tab=avance", layoutPolicy: "viewport" },
-          { id: "calidad", label: "Validación", icon: ShieldAlert, to: "/monitoreo?tab=calidad", layoutPolicy: "viewport" },
-          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?tab=consultas", layoutPolicy: "viewport" },
+          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport" },
+          { id: "modelo", label: "Agenda de cursos-horario", icon: CalendarRange, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
+          { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?seccion=avance", layoutPolicy: "viewport" },
+          { id: "calidad", label: "Validación", icon: ShieldAlert, to: "/monitoreo?seccion=calidad", layoutPolicy: "viewport" },
+          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport" },
         ],
       },
     ],

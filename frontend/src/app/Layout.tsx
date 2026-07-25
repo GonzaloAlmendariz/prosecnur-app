@@ -13,6 +13,7 @@ import {
 } from "../lib/modules";
 import { ModuleNavigationRuntimeProvider } from "../lib/moduleNavigationRuntime";
 import { ModulePickerHost } from "../features/home/ModulePickerHost";
+import { usePuenteNavegacion } from "../lib/navegacion/usePuenteNavegacion";
 import ModuleWarmupBoundary, { RouteLoadingFallback } from "./ModuleWarmupBoundary";
 import { GlidingTabList } from "../components/GlidingTabList";
 import { MultibaseReportMenu } from "../features/graficos/MultibaseReportMenu";
@@ -519,6 +520,9 @@ function SiblingWorkbenchSelector({
 export default function Layout() {
   const items = useNavItems();
   const location = useLocation();
+  // Expone `window.__pulsoNav` para que el inspector visual navegue por
+  // dirección en vez de adivinar clicks sobre etiquetas visibles.
+  usePuenteNavegacion();
   const activeModule = PROSECNUR_PRIMARY_ACTIVE_MODULES.find(
     (item) => item.to === activeModuleRoute(location.pathname),
   );
