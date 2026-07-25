@@ -1308,6 +1308,28 @@ async function main() {
   if (opts.project && !(await fileExists(opts.project))) {
     throw new Error(`No existe el .pulso: ${opts.project}`);
   }
+  /* Abrir un proyecto escribe en él (sesión, autosave, caches del warm start).
+   * Con un .pulso sin permiso de escritura el backend no falla: se queda
+   * esperando, `/api/system/bootstrap` devuelve `{"sid":{}}` para siempre y
+   * tanto node como R quedan a 0% de CPU. Medido: 11 minutos sin una sola
+   * línea de salida contra ~1 minuto con una copia escribible.
+   *
+   * Es la trampa exacta de los proyectos de referencia del ADR 0043, que son
+   * 0444 a propósito para que un autosave no los pise. Acá se detecta y se dice
+   * qué hacer, en vez de dejar al que corre el gate mirando una consola muda. */
+  if (opts.project) {
+    try {
+      await fsp.access(opts.project, fs.constants.W_OK);
+    } catch {
+      throw new Error(
+        `El .pulso no tiene permiso de escritura y abrirlo colgaría el runner:\n` +
+        `  ${opts.project}\n\n` +
+        `Si es un proyecto de referencia (ADR 0043), saca una copia de corrida:\n` +
+        `  Rscript api/scripts/reference_project_prepare_run.R --project <slug>\n` +
+        `y pasa el \`project_path\` que imprime el manifiesto.`,
+      );
+    }
+  }
   await fsp.mkdir(opts.out, { recursive: true });
   const logDir = path.join(opts.out, "logs");
   await fsp.mkdir(logDir, { recursive: true });
