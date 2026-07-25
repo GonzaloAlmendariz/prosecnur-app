@@ -180,14 +180,10 @@ export default function ValidacionPage() {
       {/* El contexto de la página sube a la banda del shell en vez de dibujar una
           segunda banda debajo. Antes eran dos: la del shell con el rail de
           secciones y esta, con el resumen y el selector de base. */}
+      {/* Sin chips de estado en la banda: «Insumos» y «Lista para auditar» repiten
+          lo que el rail de secciones ya marca como completado. Queda el selector de
+          base, que sí se opera. */}
       <ChromeSlotPortal zona="contexto">
-        <ValidacionStatusSummary
-          hasXlsform={!!state?.xlsform}
-          hasData={!!state?.data}
-          prereqsOk={prereqsOk}
-          auditoriaRun={!!state?.auditoria_run}
-          bases={state?.n_bases ?? 0}
-        />
         {showBaseSelector && (
           <BaseSelector
             estudio={estudio}
@@ -254,61 +250,7 @@ export default function ValidacionPage() {
   );
 }
 
-function ValidacionStatusSummary({
-  hasXlsform,
-  hasData,
-  prereqsOk,
-  auditoriaRun,
-  bases,
-}: {
-  hasXlsform: boolean;
-  hasData: boolean;
-  prereqsOk: boolean;
-  auditoriaRun: boolean;
-  bases: number;
-}) {
-  // Con los insumos cargados, «Formulario» y «Respuestas» repiten lo que el rail
-  // de secciones ya marca como completado en la fase 1, y costaban ~180px del
-  // lado izquierdo de la banda. Se recogen a un chip y el detalle vuelve entero
-  // en cuanto falta alguno, que es cuando el dato sirve.
-  const insumosListos = hasXlsform && hasData;
-  const detalle = `Formulario: ${hasXlsform ? "cargado" : "pendiente"} · Respuestas: ${hasData ? "cargadas" : "pendientes"}`;
 
-  return (
-    <div className="pulso-validacion-status" aria-label="Estado de la validación">
-      {insumosListos ? (
-        <span className="pulso-validacion-status-pill is-done" title={detalle}>
-          <CheckCircle2 size={13} />
-          Insumos
-        </span>
-      ) : (
-        <>
-          <ValidacionStatusPill label="Formulario" done={hasXlsform} />
-          <ValidacionStatusPill label="Respuestas" done={hasData} />
-        </>
-      )}
-      <span className={`pulso-validacion-status-pill${auditoriaRun ? " is-done" : ""}`}>
-        <ShieldCheck size={13} />
-        {auditoriaRun ? "Auditoría corrida" : prereqsOk ? "Lista para auditar" : "En espera"}
-      </span>
-      {bases > 1 && (
-        <span className="pulso-validacion-status-pill">
-          <Database size={13} />
-          {bases} bases
-        </span>
-      )}
-    </div>
-  );
-}
-
-function ValidacionStatusPill({ label, done }: { label: string; done: boolean }) {
-  return (
-    <span className={`pulso-validacion-status-pill${done ? " is-done" : ""}`}>
-      <span aria-hidden="true" className="pulso-validacion-status-dot" />
-      {label}
-    </span>
-  );
-}
 
 function ValidacionModeSidebar({
   active,

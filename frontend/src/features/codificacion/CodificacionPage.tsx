@@ -78,15 +78,9 @@ export default function CodificacionPage() {
     >
       {/* El contexto sube a la banda del shell; antes esta página dibujaba una
           segunda banda debajo del rail de secciones. */}
+      {/* Sin chips de estado en la banda, igual que en Carga y Validación: el rail
+          ya comunica el avance. Queda el selector de base. */}
       <ChromeSlotPortal zona="contexto">
-        <CodificacionStatusSummary
-          hasXlsform={!!state?.xlsform}
-          hasData={!!state?.data}
-          prereqOk={prereqOk}
-          applied={!!state?.codif_aplicado}
-          bases={state?.n_bases ?? codifSource.options.length}
-          step={step}
-        />
         {prereqOk && codifSource.options.length > 1 && state?.estudio_processing_mode !== "independent_siblings" && (
           <BaseSelector source={codifSource} />
         )}
@@ -218,63 +212,7 @@ function BaseSelector({ source }: { source: ReturnType<typeof useCodifSource> })
   );
 }
 
-function CodificacionStatusSummary({
-  hasXlsform,
-  hasData,
-  prereqOk,
-  applied,
-  bases,
-  step,
-}: {
-  hasXlsform: boolean;
-  hasData: boolean;
-  prereqOk: boolean;
-  applied: boolean;
-  bases: number;
-  step: Step;
-}) {
-  const readyLabel =
-    step === "codificar" ? "Lista para codificar" :
-    step === "matrices" ? "Lista para matrices" :
-    step === "adaptar" ? "Lista para adaptar" :
-    "Lista para preparar";
-  // Mismo criterio que en Carga y Validación: con los insumos cargados estos dos
-  // chips repiten lo que el rail ya marca como completado, y engordaban el lado
-  // izquierdo de la banda contra un lado derecho casi vacío.
-  const insumosListos = hasXlsform && hasData;
-  const detalleInsumos = `Formulario: ${hasXlsform ? "cargado" : "pendiente"} · Respuestas: ${hasData ? "cargadas" : "pendientes"}`;
-  return (
-    <div className="pulso-codificacion-status" aria-label="Estado de la codificación">
-      {insumosListos ? (
-        <span className="pulso-codificacion-status-pill is-done" title={detalleInsumos}>Insumos</span>
-      ) : (
-        <>
-          <CodificacionStatusPill label="Formulario" done={hasXlsform} />
-          <CodificacionStatusPill label="Respuestas" done={hasData} />
-        </>
-      )}
-      <span className={`pulso-codificacion-status-pill${applied ? " is-done" : ""}`}>
-        {applied ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
-        {applied ? "Codificación aplicada" : prereqOk ? readyLabel : "En espera"}
-      </span>
-      {bases > 1 && (
-        <span className="pulso-codificacion-status-pill">
-          <Database size={13} />
-          {bases} bases
-        </span>
-      )}
-    </div>
-  );
-}
 
-function CodificacionStatusPill({ label, done }: { label: string; done: boolean }) {
-  return (
-    <span className={`pulso-codificacion-status-pill${done ? " is-done" : ""}`}>
-      <span aria-hidden="true" className="pulso-codificacion-status-dot" />
-      {label}
-    </span>
-  );
-}
 
 function CodificacionModeSidebar({
   active,

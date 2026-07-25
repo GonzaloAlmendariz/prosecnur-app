@@ -11,6 +11,15 @@
  * zonas por dentro, los chips de estado y el menú de overflow.
  * ========================================================================== */
 
+/* La ranura del portal no impone layout: abraza lo que reciba y centra. Sin esto,
+ * un `div` en bloque hereda el alto del margen de su contenido —pasó con el toggle
+ * de varias bases, que traía 18px de la forma larga y subía la banda a 60. */
+.pulso-chrome-slot {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
 .pulso-command-bar-zone {
   display: flex;
   align-items: center;
