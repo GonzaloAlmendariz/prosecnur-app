@@ -23,6 +23,8 @@ import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
 import { PageFrame } from "../../components/PageFrame";
+import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
+import { ChromeBaseSelector } from "../../components/ChromeBaseSelector";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { GlidingTabList } from "../../components/GlidingTabList";
 import { useAnaliticaAutosave } from "./useAnaliticaAutosave";
@@ -141,6 +143,13 @@ export default function AnaliticaPage() {
         </Alert>
       ) : undefined}
     >
+      {/* Selector de base en la banda del shell. Todas las secciones de
+          Procesamiento lo llevan menos Carga, que en su lugar tiene el control de
+          multibase porque es donde se dan de alta. */}
+      <ChromeSlotPortal zona="contexto">
+        <ChromeBaseSelector />
+      </ChromeSlotPortal>
+
       <AdaptiveSplitView
         ariaLabel="Mesa de trabajo de analítica"
         railLabel="Pestañas de analítica"

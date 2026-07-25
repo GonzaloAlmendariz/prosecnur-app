@@ -13,6 +13,8 @@ import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { JobProgress } from "../../components/JobProgress";
 import { PageFrame } from "../../components/PageFrame";
+import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
+import { ChromeBaseSelector } from "../../components/ChromeBaseSelector";
 import { usePlanStore } from "./store";
 import { useGraficosAutosave } from "./useGraficosAutosave";
 import { useGraficosShortcuts } from "./useGraficosShortcuts";
@@ -281,6 +283,17 @@ export default function GraficosPage() {
         </>
       }
     >
+      {/* Selector de base en la banda del shell. Todas las secciones de
+          Procesamiento lo llevan menos Carga, que en su lugar tiene el control de
+          multibase porque es donde se dan de alta.
+          En el informe compartido no aparece: ese informe es de TODAS las bases a
+          la vez, así que elegir una activa no significaría nada. */}
+      {!isSharedReport && (
+        <ChromeSlotPortal zona="contexto">
+          <ChromeBaseSelector />
+        </ChromeSlotPortal>
+      )}
+
       {isSharedReport || prepOk ? (
         <EditorShell />
       ) : (
