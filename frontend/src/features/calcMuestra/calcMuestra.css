@@ -98,8 +98,11 @@
   width: min(100%, 1720px);
 }
 
+/* `is-picker` declaraba DOS columnas para las tres zonas del chrome, así que la
+ * tercera caía a una segunda fila y la banda medía 76px contra los 52 del canon.
+ * Era el layout de cuando el selector de estudio tenía dos elementos; ahora las
+ * zonas las da el componente y el default las iguala. Solo queda el ancho. */
 .cmv2-commandbar.is-picker {
-  grid-template-columns: minmax(0, 1fr) auto;
   max-width: 1120px;
 }
 
@@ -4898,13 +4901,9 @@
 }
 
 @media (max-width: 1320px) {
-  .cmv2-commandbar {
-    grid-template-columns: minmax(150px, 1fr) minmax(0, auto) minmax(240px, 1fr);
-  }
-
-  .cmv2-commandbar.is-picker {
-    grid-template-columns: minmax(240px, 1fr) auto;
-  }
+  /* Aquí había dos overrides responsive más del grid: uno con los lados
+   * asimétricos (150 contra 240) y otro que volvía a apilar el picker en dos
+   * columnas. El default canónico ya iguala los lados a cualquier ancho. */
 
   
   .cmv2-toolbar-actions {

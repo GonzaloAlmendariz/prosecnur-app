@@ -27,6 +27,8 @@ import {
   X,
 } from "lucide-react";
 import { PageFrame } from "../../components/PageFrame";
+import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
+import { ModuleCommandBar } from "../../components/ModuleCommandBar";
 import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
@@ -2125,87 +2127,109 @@ export default function CalcMuestraPage() {
       title="Cálculo de muestra y marco muestral"
       toolbar={
         <div className={`cmv2-module-chrome ${desk === "sin_definir" ? "is-picker" : ""}`}>
-          <div className={`pulso-command-bar cmv2-commandbar ${desk === "sin_definir" ? "is-picker" : ""}`} role="toolbar" aria-label="Comandos de cálculo de muestra">
-            {desk === "sin_definir" ? (
-              <div className="cmv2-toolbar-context" aria-label="Contexto del módulo">
-                <span className="cmv2-toolbar-icon"><Calculator size={18} /></span>
-                <span className="cmv2-toolbar-copy">
-                  <strong>Cálculo de muestra</strong>
-                  <small>{deskSubtitleForDesk(desk)}</small>
-                </span>
-              </div>
-            ) : (
-              <div className="cmv2-command-summary" aria-label="Resumen del recorrido muestral">
-                {primaryChromeToken && (
-                  <span className={`cmv2-command-trip is-${primaryChromeToken.tone ?? "path"}`}>
-                    <span className="cmv2-command-trip-icon" aria-hidden="true"><Route size={14} /></span>
-                    <span className="cmv2-command-trip-main">
-                      <small>{primaryChromeToken.label}</small>
-                      <strong>{primaryChromeToken.value}</strong>
-                    </span>
-                  </span>
-                )}
-                {desk === "opinion_universitaria" && (
-                  <span className="cmv2-pill-soft cmv2-command-etapa" title="Etapa del estudio · se define en Datos → Estudio">
-                    {(workspace.etapa ?? "propuesta") === "campo" ? "Campo · DTI" : "Propuesta"}
-                  </span>
-                )}
-              </div>
-            )}
-
-            {desk !== "sin_definir" && (
-              <div className="cmv2-command-rail">
+          {/* La banda propia pasa al chrome compartido. Tenía su propio grid con
+              dos formas —una para el selector de estudio y otra para el escritorio
+              ya definido— y las acciones con ícono a la izquierda del label. El
+              componente da las tres zonas, la fila única y la escalera de overflow;
+              lo que era marcado de acciones ahora son datos. */}
+          <ModuleCommandBar
+            modulo="calc-muestra"
+            ariaLabel="Comandos de cálculo de muestra"
+            className={`cmv2-commandbar ${desk === "sin_definir" ? "is-picker" : ""}`}
+            contexto={
+              desk === "sin_definir" ? (
+                <ChromeIndicatorGroup ariaLabel="Contexto del módulo">
+                  <ChromeIndicator label="Estudio" value={deskSubtitleForDesk(desk)} prioridad="alta" />
+                </ChromeIndicatorGroup>
+              ) : (
+                <ChromeIndicatorGroup ariaLabel="Resumen del recorrido muestral">
+                  {primaryChromeToken && (
+                    <ChromeIndicator
+                      label={primaryChromeToken.label}
+                      value={primaryChromeToken.value}
+                      prioridad="alta"
+                    />
+                  )}
+                  {desk === "opinion_universitaria" && (
+                    <ChromeIndicator
+                      label="Etapa"
+                      value={(workspace.etapa ?? "propuesta") === "campo" ? "Campo · DTI" : "Propuesta"}
+                      prioridad="media"
+                      detalle="Etapa del estudio · se define en Datos → Estudio"
+                    />
+                  )}
+                </ChromeIndicatorGroup>
+              )
+            }
+            secciones={
+              desk !== "sin_definir" ? (
                 <CalcMuestraSectionRail
                   desk={desk}
                   activeSection={activeRailSection}
                   sectionStates={railSectionStates}
                   onSection={navegarSeccion}
                 />
-              </div>
-            )}
-
-            {desk === "sin_definir" ? (
-              <div className="cmv2-picker-status" aria-live="polite">
-                <ChromeStatusIcon size={14} />
-                <span>
-                  <strong>{chromeStatus.label}</strong>
-                  <small>{chromeStatus.detail}</small>
-                </span>
-              </div>
-            ) : (
-              <div className={`cmv2-toolbar-actions ${desk === "opinion_universitaria" ? "is-status-only" : ""}`}>
-                <span className={`cmv2-action-status is-${chromeStatus.tone}`} aria-live="polite">
-                  <ChromeStatusIcon size={13} className={ChromeStatusIcon === Loader2 ? "pulso-spin" : undefined} />
-                  {chromeStatus.label}
-                </span>
-                {desk === "opinion_universitaria" && (
-                  <span className="cmv2-save-status">
-                    <SaveStatusIndicator state={dirty ? "saving" : "saved"} variant="badge" />
-                  </span>
-                )}
-                {desk !== "opinion_universitaria" && (
-                  <div className="cmv2-command-cluster" aria-label="Acciones del cálculo">
-                    <button type="button" className="cmv2-ghost" onClick={openStudyChooser}>
-                      <RefreshCw size={14} /> Cambiar tipo
-                    </button>
-                    <button type="button" className="cmv2-primary" onClick={() => void calcular()} disabled={calculando || estudio.componentes.length === 0}>
-                      {calculando ? <Loader2 size={14} className="pulso-spin" /> : <Calculator size={14} />}
-                      Calcular
-                    </button>
-                    <button type="button" className="cmv2-ghost" onClick={() => void generarReporte()} disabled={reporteEnCurso || resultados === 0}>
-                      {reporteEnCurso ? <Loader2 size={14} className="pulso-spin" /> : <FileText size={14} />}
-                      Reporte
-                    </button>
-                    {reporteJobId && (
-                      <a className="cmv2-link-button" href={calcMuestraReporteDescargarUrl({ inline: true })} target="_blank" rel="noreferrer">
-                        Ver
-                      </a>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+              ) : undefined
+            }
+            estado={[
+              {
+                id: "estado",
+                label: chromeStatus.label,
+                // Los tonos de este módulo son ready | working | idle, no la escala
+                // de cinco del chip; se mapean, no se inventan.
+                tone:
+                  chromeStatus.tone === "ready"
+                    ? "success"
+                    : chromeStatus.tone === "working"
+                      ? "info"
+                      : "neutral",
+                detail: chromeStatus.detail,
+              },
+            ]}
+            herramientas={
+              desk === "opinion_universitaria" ? (
+                <SaveStatusIndicator state={dirty ? "saving" : "saved"} variant="badge" />
+              ) : reporteJobId ? (
+                <a
+                  className="cmv2-link-button"
+                  href={calcMuestraReporteDescargarUrl({ inline: true })}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Ver
+                </a>
+              ) : undefined
+            }
+            acciones={
+              desk === "sin_definir" || desk === "opinion_universitaria"
+                ? []
+                : [
+                    {
+                      id: "calcular",
+                      label: "Calcular",
+                      rank: 1,
+                      kind: "primary",
+                      onSelect: () => void calcular(),
+                      disabled: calculando || estudio.componentes.length === 0,
+                      busy: calculando,
+                    },
+                    {
+                      id: "reporte",
+                      label: "Reporte",
+                      rank: 2,
+                      onSelect: () => void generarReporte(),
+                      disabled: reporteEnCurso || resultados === 0,
+                      busy: reporteEnCurso,
+                    },
+                    {
+                      id: "cambiar-tipo",
+                      label: "Cambiar tipo",
+                      rank: 3,
+                      onSelect: openStudyChooser,
+                    },
+                  ]
+            }
+          />
           {desk === "opinion_universitaria" && (
             <ResumenDiseno motor={universityMotor} estudio={estudio} workspace={workspace} aulasState={aulasState} />
           )}

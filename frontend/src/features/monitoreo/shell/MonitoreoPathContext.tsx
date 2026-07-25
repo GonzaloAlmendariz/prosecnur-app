@@ -40,9 +40,10 @@ export function MonitoreoPathContext({ route }: Props) {
       data-monitoreo-active-family={activeFamily ?? "none"}
       data-monitoreo-path-count={MONITOREO_MODOS.length}
     >
-      <span className="mon-command-mode-icon" aria-hidden="true">
-        <ActiveIcon size={15} />
-      </span>
+      {/* El ícono del modo era decoración pura —el label de al lado ya dice cuál
+          es— y la banda va limpia: solo sobreviven los íconos que SON el control
+          (los chips de camino, que no tienen label visible) o que informan algo
+          que el texto no dice (el spinner de sincronización). */}
       <span className="mon-command-token-copy">
         <small>Modo</small>
         <strong>{activeLabel}</strong>
