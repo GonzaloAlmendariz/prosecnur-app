@@ -2864,10 +2864,17 @@
 }
 
 /* Fila colapsada: solo el ícono, centrado, a la altura de rail canónica. */
+/* Geometría del estándar de rail: cuadrado de `--pulso-nav-item-height` y radio
+ * `--pulso-nav-item-radius`, los mismos que usan Procesamiento, Monitoreo y
+ * Fichas QR. Medido antes: 38px de ancho contra 40 y radio 14 contra 10, que era
+ * lo único que hacía que este rail se leyera como de otra app. El material de
+ * reposo, el hover y el foco los pone `app/nav-states.css` desde que el item
+ * emite `data-nav-item`. */
 .cmv2-section-local-tab {
-  width: 100%;
-  min-width: 0;
-  height: var(--pulso-rail-row-height-lg);
+  width: var(--pulso-nav-item-height);
+  min-width: var(--pulso-nav-item-height);
+  height: var(--pulso-nav-item-height);
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
@@ -2875,7 +2882,7 @@
   gap: 0;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: var(--pulso-radius);
+  border-radius: var(--pulso-nav-item-radius);
   background: transparent;
   color: var(--pulso-text-soft);
   text-align: left;
@@ -4608,7 +4615,10 @@
 }
 
 .cmv2-section-local-tab {
-  border-radius: var(--pulso-radius);
+  /* Al token del estándar de rail, como las otras dos definiciones del mismo
+   * selector: estaba declarado TRES veces con tres radios distintos —10, el
+   * genérico y el de tarjeta— y ganaba el de 14px por especificidad. */
+  border-radius: var(--pulso-nav-item-radius);
 }
 
 /* Selected fill del rail icon-compressed (alinea la capa de pulido con el
@@ -5443,7 +5453,7 @@
 
 /* Tabs locales de sección: activa con borde de acento redondeado */
 .cmv2-frame .cmv2-section-local-tab {
-  border-radius: var(--pulso-radius-card);
+  border-radius: var(--pulso-nav-item-radius);
 }
 
 /* ── Mensajes transitorios del desk ─────────────────────────────────────────

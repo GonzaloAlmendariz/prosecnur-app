@@ -2518,6 +2518,14 @@ function CalcMuestraContextSidebar({
                 // (dec-sidebar-icon-tooltip, ADR 0038.)
                 aria-label={`${tab.label}. ${tab.detail}`}
                 data-rail-tooltip={guided ? `${tab.label}\n${tab.detail} · ${statusLabel}` : `${tab.label}\n${tab.detail}`}
+                // Contrato de `app/nav-states.css`: con el atributo puesto, el item
+                // toma el hover, el foco y el material de reposo compartidos. Este
+                // rail era el único de los cuatro que quedaba fuera del estándar
+                // —38px de ancho contra 40, radio 14 contra 10 y solo uno de sus
+                // cuatro items con material en reposo—.
+                data-nav-item=""
+                data-nav-shape="row"
+                data-nav-state={active ? "selected" : undefined}
                 onClick={() => selectTab(tab)}
               >
                 <span className="cmv2-section-local-icon" aria-hidden="true">
