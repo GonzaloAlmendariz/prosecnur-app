@@ -168,7 +168,24 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
             ariaLabel="Edición del dashboard"
             className="dash-admin-toolbar dash-editor-commandbar"
             contexto={
-              config.last_deploy ? (
+              // Sin `last_deploy` la zona quedaba vacía y toda la banda pesaba a
+              // la derecha. El estado de la fuente sí existe siempre y es lo que
+              // decide qué acciones están habilitadas, así que es el contexto
+              // honesto de este módulo mientras todavía no se publicó nada.
+              !config.last_deploy ? (
+                <ChromeIndicatorGroup ariaLabel="Estado del tablero">
+                  <ChromeIndicator
+                    label="Datos"
+                    value={manifest?.estado.tiene_data ? "cargados" : "sin cargar"}
+                    prioridad="alta"
+                  />
+                  <ChromeIndicator
+                    label="Dimensiones"
+                    value={manifest?.estado.tiene_dim ? "listas" : "pendientes"}
+                    prioridad="media"
+                  />
+                </ChromeIndicatorGroup>
+              ) : (
                 <ChromeIndicatorGroup ariaLabel="Estado de publicación">
                   <ChromeIndicator
                     label="Última publicación"
@@ -189,7 +206,7 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
                     }
                   />
                 </ChromeIndicatorGroup>
-              ) : undefined
+              )
             }
             acciones={[
               {
