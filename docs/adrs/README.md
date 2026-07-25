@@ -65,5 +65,6 @@ Usar la [plantilla ADR](0000-template.md). Cada decision debe incluir:
 | [0040](0040-flujo-acreditacion-formularios-monitoreo-procesamiento-ppt.md) | Aceptado | 2026-07-20 | Acreditacion enlaza revisiones XLSForm, efectivos reconciliados, procesamiento independiente y un PPT consolidado |
 | [0041](0041-shell-v3-sidebar-navegacion-unificado.md) | Reemplazado por 0042 | 2026-07-23 | Shell v3 con sidebar unificado para módulos, secciones y pestañas; revertido por el dueño el 2026-07-24 |
 | [0042](0042-chrome-modulo-uniforme-topbar.md) | Aceptado | 2026-07-24 | Chrome de módulo uniforme: top bar de secciones + rail de pestañas re-ratificados (patrones #1–#3 del ADR 0038), uniformidad en los 8 módulos y pulido macOS-like; reemplaza al ADR 0041 |
+| [0044](0044-jerarquia-y-direcciones-de-navegacion.md) | Aceptado | 2026-07-24 | Jerarquía canónica módulo→[modo]→sección→pestaña→panel con un solo vocabulario, y toda vista enlazable por dirección (`?modo=&seccion=&pestana=&panel=`) más manifiesto enumerable para el inspector visual |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).
