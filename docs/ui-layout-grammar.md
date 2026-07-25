@@ -2,6 +2,36 @@
 
 Esta guía define una gramática desktop-first para que Prosecnur mantenga una interfaz consistente en escritorios grandes, compactos y bajos. No optimiza para móvil angosto; la matriz base de QA es `1710x1107`, `1440x1000`, `1366x768`, `1280x720` y `1024x600`.
 
+## Jerarquía de navegación
+
+La gramática de layout se apoya en una jerarquía fija de cinco niveles
+(ADR 0044):
+
+```
+Módulo → [Modo] → Sección → Pestaña → Panel
+```
+
+- **Módulo**: familia de trabajo con homepage y paleta propia. Vive en el
+  `pathname`.
+- **Modo** (opcional): variante que reescribe el juego de secciones. Lo
+  determina el estudio del proyecto, no un click — por eso no se navega entre
+  modos, se aterriza en el que corresponde. Solo Monitoreo y Cálculo de muestra
+  tienen modos.
+- **Sección**: el recorrido del módulo; la top bar.
+- **Pestaña**: subdivisión dentro de una sección.
+- **Panel**: superficie superpuesta (popover, sideover, drawer, diálogo,
+  inspector).
+
+Reglas de layout que se derivan:
+
+- UI nueva se cuelga de uno de esos cinco niveles. No se inventa un sexto.
+- Nunca se duplica la navegación de un nivel en otro: si el rail de secciones
+  ya es el recorrido del módulo, no puede existir una segunda barra de pasos.
+- Los cinco niveles son direccionables:
+  `/<modulo>?modo=&seccion=&pestana=&panel=`. Un panel nuevo se conecta con
+  `usePanelDireccionable`, no con un `useState` suelto — si no está en la URL,
+  el QA visual no puede alcanzarlo.
+
 ## Breakpoints canónicos
 
 - `desktop`: ancho mayor a `1320px` y alto mayor a `720px`.
@@ -156,5 +186,16 @@ node scripts/ui-quick-check.mjs --route /validacion --viewport 1366x768 --layout
 node scripts/ui-quick-check.mjs --project /ruta/proyecto.pulso --route /analitica --viewport 1024x600 --layout-preset short
 node scripts/ui-quick-check.mjs --project /ruta/proyecto.pulso --matrix --fail-on-issues
 ```
+
+Para llegar a una vista profunda se usa `--ir` con la dirección canónica, no
+`--click-tab` con el texto visible:
+
+```bash
+node scripts/ui-quick-check.mjs --project /ruta/proyecto.pulso --route /monitoreo --ir monitoreo/territorial/avance
+```
+
+`--click-tab` sigue existiendo como fallback y es frágil por diseño: depende de
+una etiqueta que puede renombrarse, truncarse en viewport compacto o no existir
+todavía porque el warm start no terminó.
 
 El reporte debe revisar además `scrollJails`: contenedores de layout con contenido vertical mayor que su caja, sin scroll propio ni ancestro scrollable dentro del área principal.
