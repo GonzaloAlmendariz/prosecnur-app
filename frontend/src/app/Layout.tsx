@@ -17,7 +17,7 @@ import { usePuenteNavegacion } from "../lib/navegacion/usePuenteNavegacion";
 import ModuleWarmupBoundary, { RouteLoadingFallback } from "./ModuleWarmupBoundary";
 import { GlidingTabList } from "../components/GlidingTabList";
 import { ModuleCommandBar } from "../components/ModuleCommandBar";
-import { ChromeSlotHost, ModuleChromeSlotsProvider } from "./ModuleChromeSlots";
+import { ChromeSlotHost, ModuleChromeSlotsProvider, useHayRanura } from "./ModuleChromeSlots";
 import { MultibaseReportMenu } from "../features/graficos/MultibaseReportMenu";
 import { processingBaseScopePresentation } from "../features/procesamiento/baseScopeModel";
 import { BrandMark } from "./BrandMark";
@@ -322,14 +322,57 @@ function statusOn(value: unknown) {
   return value === true;
 }
 
+/**
+ * Visor de bases de la banda de Procesamiento.
+ *
+ * `SiblingWorkbenchSelector` tiene dos caras: cuando las bases son independientes
+ * es un CONTROL —permite saltar de mesa—, y cuando están combinadas es un
+ * `role="status"` que solo informa cuántas hay y en qué modo. Esa segunda cara
+ * competía con el selector de base que las páginas publican en la zona de
+ * contexto: dos cajas hablando del mismo conjunto, con el mismo número en las
+ * dos, y 219px de banda gastados en repetirlo.
+ *
+ * Cuando la página ya publicó su selector, el estado se recoge: el modo pasó a ser
+ * la cabecera del propio desplegable de bases, que es donde están las bases. El
+ * control, en cambio, nunca se recoge — no tiene dónde replicarse.
+ */
+function VisorBases({
+  visible,
+  reportScope,
+}: {
+  visible: boolean;
+  reportScope: "active" | "consolidated";
+}) {
+  const hayContexto = useHayRanura("contexto");
+
+  return (
+    <div className="pulso-base-workbench" role="group" aria-label="Visor de bases del procesamiento">
+      <SiblingWorkbenchSelector
+        visible={visible}
+        placement="row"
+        reportScope={reportScope}
+        omitirResumen={hayContexto}
+      />
+      <MultibaseReportMenu />
+    </div>
+  );
+}
+
 function SiblingWorkbenchSelector({
   visible,
   placement = "floating",
   reportScope = "active",
+  omitirResumen = false,
 }: {
   visible: boolean;
   placement?: "floating" | "row";
   reportScope?: "active" | "consolidated";
+  /**
+   * Recoge SOLO la cara informativa (`role="status"`), nunca el selector: la
+   * página ya dice cuántas bases hay y en qué modo, en el desplegable de su
+   * propio selector de base.
+   */
+  omitirResumen?: boolean;
 }) {
   const { state, refresh } = useSession();
   const [estudio, setEstudio] = useState<EstudioPayload | null>(null);
@@ -386,6 +429,7 @@ function SiblingWorkbenchSelector({
   }
 
   if (!needsBasePicker || !estudio) {
+    if (omitirResumen) return null;
     if (inRow && visible && baseCount > 0) {
       const modeLabel = independent ? "Preparando selector" : baseScope.summaryLabel;
       return (
@@ -591,10 +635,7 @@ export default function Layout() {
           secciones={<ProcessingPhaseDock items={items} />}
           herramientas={
             <>
-              <div className="pulso-base-workbench" role="group" aria-label="Visor de bases del procesamiento">
-                <SiblingWorkbenchSelector visible={showFases} placement="row" reportScope={reportScope} />
-                <MultibaseReportMenu />
-              </div>
+              <VisorBases visible={showFases} reportScope={reportScope} />
               <ChromeSlotHost zona="acciones" />
             </>
           }

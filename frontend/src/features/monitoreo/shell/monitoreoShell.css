@@ -90,7 +90,13 @@
 .mon-command-token.is-mode {
   min-width: 126px;
   display: inline-grid;
-  grid-template-columns: 24px minmax(0, 1fr);
+  /* Sin columna de ícono: la primera pista era la del ícono del modo, que se
+   * retiró por decoración. Al quitarlo el texto caía en esa pista de 24px —«MODO
+   * T…» para un contenido que necesita 64— porque una columna fija no se encoge
+   * ni cede su espacio cuando desaparece el contenido que la justificaba.
+   * Las cuatro declaraciones de esta pista (acá, la variante con chips, y las dos
+   * responsive) tienen que moverse juntas. */
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   justify-content: start;
   gap: 6px;
@@ -103,7 +109,7 @@
    hermanos son marcas inertes de contexto, no destinos: sin acento propio, sin
    cursor de enlace y sin foco de teclado. */
 .mon-command-token.is-mode.mon-path-context {
-  grid-template-columns: 24px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 6px;
   padding-right: 6px;
 }
@@ -147,24 +153,6 @@
   .mon-path-siblings {
     display: none;
   }
-}
-
-.mon-command-mode-icon {
-  width: 24px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid color-mix(in srgb, var(--mon-shell-accent) 24%, var(--pulso-border));
-  border-radius: var(--mon-topbar-control-radius);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--mon-shell-soft) 76%, #fff 24%), rgba(255, 255, 255, 0.74)),
-    var(--pulso-surface);
-  color: color-mix(in srgb, var(--mon-shell-accent) 84%, var(--pulso-text));
-}
-
-.mon-command-mode-icon svg {
-  stroke: currentColor;
 }
 
 .mon-command-token-copy {
@@ -1396,18 +1384,8 @@
 
   .mon-command-token.is-mode {
     min-width: 108px;
-    grid-template-columns: 21px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 4px;
-  }
-
-  .mon-command-mode-icon {
-    width: 21px;
-    height: 21px;
-  }
-
-  .mon-command-mode-icon svg {
-    width: 12px;
-    height: 12px;
   }
 
   .mon-command-token small,
@@ -1588,7 +1566,7 @@
 
   .mon-rail-web-publish-trigger {
     min-height: 44px;
-    grid-template-columns: 24px minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 6px;
     padding: 5px 6px;
   }
