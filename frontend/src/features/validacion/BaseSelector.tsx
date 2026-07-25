@@ -1,7 +1,7 @@
 import { ChevronDown, Layers } from "lucide-react";
 
 import type { EstudioPayload } from "../../api/client";
-import { BasesInspectorMenu } from "../../components/BasesInspectorMenu";
+import { BasesInspectorMenu, basesDesdeEstudio } from "../../components/BasesInspectorMenu";
 
 // =============================================================================
 // BaseSelector — la base activa, como desplegable
@@ -37,7 +37,7 @@ export default function BaseSelector({ estudio, selected, onChange, disabled, cl
 
   return (
     <BasesInspectorMenu
-      estudio={estudio}
+      bases={basesDesdeEstudio(estudio)}
       activa={activeKey}
       onSeleccionar={onChange}
       deshabilitado={disabled}

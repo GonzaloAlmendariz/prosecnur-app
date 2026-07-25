@@ -20,6 +20,40 @@ import { Check, Database, FileSpreadsheet, FileText } from "../vendor/lucide-rea
 
 import { Popover } from "./Popover";
 import type { EstudioBase, EstudioPayload } from "../api/estudio";
+
+/**
+ * Resumen de una base, en la forma mínima que el desglose necesita.
+ *
+ * Existe porque no todos los módulos tienen el payload del estudio: Codificación
+ * trabaja con claves y etiquetas y nada más. Antes que obligarlo a una petición
+ * extra —o que se escriba su propio selector, que es de donde venía la
+ * divergencia— el desglose acepta las dos formas y degrada: con datos completos
+ * muestra instrumento y archivo, y sin ellos lista los nombres.
+ */
+export type BaseResumen = {
+  nombre: string;
+  etiqueta: string;
+  instrumento?: string | null;
+  datos?: string | null;
+  filas?: number | null;
+  columnas?: number | null;
+  ext?: string | null;
+  repeat?: string | null;
+};
+
+/** Construye los resúmenes desde el payload del estudio, cuando se tiene. */
+export function basesDesdeEstudio(estudio: EstudioPayload): BaseResumen[] {
+  return Object.entries(estudio.bases ?? {}).map(([nombre, base]) => ({
+    nombre,
+    etiqueta: nombreDeBase(nombre, base),
+    instrumento: base.xlsform_file_name ?? null,
+    datos: base.data_file_name ?? null,
+    filas: base.n_filas,
+    columnas: base.n_columnas,
+    ext: base.data_ext ?? null,
+    repeat: base.repeat_group ?? null,
+  }));
+}
 import "./bases-inspector.css";
 
 function formatearFilas(n: number | null | undefined): string {
@@ -33,13 +67,13 @@ function nombreDeBase(nombre: string, base: EstudioBase): string {
 }
 
 export function BasesInspectorMenu({
-  estudio,
+  bases,
   activa,
   onSeleccionar,
   deshabilitado,
   disparador,
 }: {
-  estudio: EstudioPayload;
+  bases: readonly BaseResumen[];
   /** Base activa, para marcarla en la lista. */
   activa?: string | null;
   /**
@@ -50,8 +84,7 @@ export function BasesInspectorMenu({
   deshabilitado?: boolean;
   disparador: React.ReactElement;
 }) {
-  const entradas = Object.entries(estudio.bases ?? {});
-  if (entradas.length === 0) return disparador;
+  if (bases.length === 0) return disparador;
 
   return (
     <Popover
@@ -64,16 +97,16 @@ export function BasesInspectorMenu({
       <div className="pulso-bases-inspector">
         <div className="pulso-bases-inspector-head">
           <strong>
-            {entradas.length === 1 ? "1 base" : `${entradas.length} bases`}
+            {bases.length === 1 ? "1 base" : `${bases.length} bases`}
           </strong>
           <span>Instrumento y datos de cada una</span>
         </div>
 
         <ul className="pulso-bases-inspector-list">
-          {entradas.map(([nombre, base]) => {
+          {bases.map((base) => {
+            const nombre = base.nombre;
             const esActiva = nombre === activa;
-            const filas = formatearFilas(base.n_filas);
-            const columnas = formatearFilas(base.n_columnas);
+            const tieneDetalle = Boolean(base.instrumento || base.datos);
             return (
               <li
                 key={nombre}
@@ -93,7 +126,7 @@ export function BasesInspectorMenu({
                     onClick={() => onSeleccionar(nombre)}
                   >
                     <Database size={13} aria-hidden />
-                    <strong>{nombreDeBase(nombre, base)}</strong>
+                    <strong>{base.etiqueta}</strong>
                     {esActiva ? (
                       <span className="pulso-bases-inspector-badge">
                         <Check size={11} aria-hidden />
@@ -104,39 +137,43 @@ export function BasesInspectorMenu({
                 ) : (
                   <div className="pulso-bases-inspector-item-head">
                     <Database size={13} aria-hidden />
-                    <strong>{nombreDeBase(nombre, base)}</strong>
+                    <strong>{base.etiqueta}</strong>
                     {esActiva ? (
                       <span className="pulso-bases-inspector-badge">Activa</span>
                     ) : null}
                   </div>
                 )}
 
-                <dl className="pulso-bases-inspector-grid">
-                  <div>
-                    <dt>
-                      <FileText size={12} aria-hidden />
-                      Instrumento
-                    </dt>
-                    <dd title={base.xlsform_file_name ?? undefined}>
-                      {base.xlsform_file_name || "Sin formulario"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>
-                      <FileSpreadsheet size={12} aria-hidden />
-                      Base de datos
-                    </dt>
-                    <dd title={base.data_file_name ?? undefined}>
-                      {base.data_file_name || "Sin archivo"}
-                    </dd>
-                  </div>
-                </dl>
+                {tieneDetalle ? (
+                  <>
+                    <dl className="pulso-bases-inspector-grid">
+                      <div>
+                        <dt>
+                          <FileText size={12} aria-hidden />
+                          Instrumento
+                        </dt>
+                        <dd title={base.instrumento ?? undefined}>
+                          {base.instrumento || "Sin formulario"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>
+                          <FileSpreadsheet size={12} aria-hidden />
+                          Base de datos
+                        </dt>
+                        <dd title={base.datos ?? undefined}>
+                          {base.datos || "Sin archivo"}
+                        </dd>
+                      </div>
+                    </dl>
 
-                <p className="pulso-bases-inspector-meta">
-                  {filas} filas · {columnas} columnas
-                  {base.data_ext ? ` · ${base.data_ext}` : ""}
-                  {base.repeat_group ? ` · repeat ${base.repeat_group}` : ""}
-                </p>
+                    <p className="pulso-bases-inspector-meta">
+                      {formatearFilas(base.filas)} filas · {formatearFilas(base.columnas)} columnas
+                      {base.ext ? ` · ${base.ext}` : ""}
+                      {base.repeat ? ` · repeat ${base.repeat}` : ""}
+                    </p>
+                  </>
+                ) : null}
               </li>
             );
           })}

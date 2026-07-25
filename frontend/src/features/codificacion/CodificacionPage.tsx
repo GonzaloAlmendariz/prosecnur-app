@@ -1,11 +1,12 @@
 import { useState, type CSSProperties } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PARAMS_DIRECCION } from "../../lib/navegacion/direccion";
-import { AlertCircle, CheckCircle2, Database, FileSpreadsheet, Layers, Network, Tags, Wand2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronDown, Database, FileSpreadsheet, Layers, Network, Tags, Wand2 } from "lucide-react";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
+import { BasesInspectorMenu } from "../../components/BasesInspectorMenu";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { StepMeta } from "../../components/Stepper";
 import { GlidingTabList } from "../../components/GlidingTabList";
@@ -184,31 +185,37 @@ export default function CodificacionPage() {
 function BaseSelector({ source }: { source: ReturnType<typeof useCodifSource> }) {
   const { active, options, loading, setActive } = source;
   if (options.length <= 1) return null;
+
+  // Antes esto era una lista de chips con el nombre completo de cada base dentro
+  // de la banda: con un nombre largo —«Post-Distribution Monitoring - Espacios de
+  // Protección 2026 Q2»— se comía el lado izquierdo entero. Ahora es el mismo
+  // desglose compartido que usan Carga y Validación, con el ancho acotado.
+  //
+  // Codificación no carga el payload del estudio, así que sus resúmenes van sin
+  // instrumento ni archivo: el desglose lista los nombres y ya. Es la degradación
+  // honesta, y evita que este módulo vuelva a escribirse su propio selector.
+  const bases = options.map((src) => ({ nombre: src, etiqueta: source.labelFor(src) }));
+  const etiquetaActiva = active ? source.labelFor(active) : "Elegir base";
+
   return (
-    <div className="pulso-codificacion-base-selector">
-      <span className="pulso-codificacion-base-label">
-        <Layers size={13} />
-        Base
-      </span>
-      <div className="pulso-codificacion-base-list">
-        {options.map((src) => {
-          const isActive = src === active;
-          const label = source.labelFor(src);
-          return (
-            <button
-              key={src}
-              type="button"
-              disabled={loading}
-              onClick={() => setActive(src)}
-              className={`pulso-codificacion-base-chip${isActive ? " is-active" : ""}`}
-              title={label !== src ? src : undefined}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
+    <BasesInspectorMenu
+      bases={bases}
+      activa={active}
+      onSeleccionar={(nombre) => void setActive(nombre)}
+      deshabilitado={loading}
+      disparador={
+        <button
+          type="button"
+          className="pulso-bases-inspector-trigger is-selector"
+          title={`${etiquetaActiva} · ${options.length} bases en el estudio`}
+        >
+          <Layers size={12} aria-hidden />
+          <span className="pulso-bases-inspector-trigger-label">{etiquetaActiva}</span>
+          <span className="pulso-bases-inspector-trigger-count">{options.length}</span>
+          <ChevronDown size={12} aria-hidden />
+        </button>
+      }
+    />
   );
 }
 
