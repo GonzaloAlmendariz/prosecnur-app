@@ -238,10 +238,21 @@ function CodificacionStatusSummary({
     step === "matrices" ? "Lista para matrices" :
     step === "adaptar" ? "Lista para adaptar" :
     "Lista para preparar";
+  // Mismo criterio que en Carga y Validación: con los insumos cargados estos dos
+  // chips repiten lo que el rail ya marca como completado, y engordaban el lado
+  // izquierdo de la banda contra un lado derecho casi vacío.
+  const insumosListos = hasXlsform && hasData;
+  const detalleInsumos = `Formulario: ${hasXlsform ? "cargado" : "pendiente"} · Respuestas: ${hasData ? "cargadas" : "pendientes"}`;
   return (
     <div className="pulso-codificacion-status" aria-label="Estado de la codificación">
-      <CodificacionStatusPill label="Formulario" done={hasXlsform} />
-      <CodificacionStatusPill label="Respuestas" done={hasData} />
+      {insumosListos ? (
+        <span className="pulso-codificacion-status-pill is-done" title={detalleInsumos}>Insumos</span>
+      ) : (
+        <>
+          <CodificacionStatusPill label="Formulario" done={hasXlsform} />
+          <CodificacionStatusPill label="Respuestas" done={hasData} />
+        </>
+      )}
       <span className={`pulso-codificacion-status-pill${applied ? " is-done" : ""}`}>
         {applied ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
         {applied ? "Codificación aplicada" : prereqOk ? readyLabel : "En espera"}

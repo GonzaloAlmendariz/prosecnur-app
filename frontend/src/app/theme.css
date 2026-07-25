@@ -262,7 +262,14 @@
   /* Alturas del chrome. Los tres primeros cierran literales existentes: no
    * mueven un píxel, solo le ponen nombre a lo que ya medía así. */
   --pulso-chrome-header-h: 58px;
-  --pulso-chrome-commandbar-h: 46px;
+  /* 52 y no 46. La dirección v3 fija 46 como mínimo, y ese era el valor del
+   * token, pero el rail canónico —píldoras de 34 más el padding y el borde de la
+   * pillbar— mide 42, que con el padding de la banda da 52. Con el piso en 46 la
+   * banda medía 52 cuando el rail está en el flujo y 46 cuando se centra fuera de
+   * él, así que la misma banda cambiaba de alto entre anchos y entre módulos.
+   * Un token que no coincide con lo que se renderiza no sirve para exigir
+   * uniformidad: ahora el piso ES la altura. */
+  --pulso-chrome-commandbar-h: 52px;
   --pulso-chrome-commandbar-pad: 4px;
   --pulso-chrome-commandbar-gap: 6px;
   --pulso-chrome-commandbar-radius: 18px;
@@ -4592,14 +4599,19 @@ a { color: var(--pulso-primary); }
      banda de 52 a 74px. Entre centrar perfecto y no crecer de alto, manda no
      crecer. Medido: con `max-content` el rail igual queda centrado (desvío 0) en
      las rutas de Procesamiento, porque los dos lados pesan parecido. */
-  /* La columna de ACCIONES va en `auto` y no en `minmax(0, max-content)`: con
-     min 0 el grid la encoge por debajo de sus controles y estos envuelven, que
-     es crecer de alto. Medido en Hojas de ruta: la zona quedaba en 296px para un
-     conmutador que pide 350 y la banda subía a 80px. Con `auto` su mínimo es el
-     min-content, así que se respeta.
-     Quien cede es el rail del medio, y puede: hace scroll interno con la barra
-     oculta, que es la degradación que ya tenía diseñada. */
-  --command-bar-columns: minmax(0, max-content) minmax(0, 1fr) auto;
+  /* Prioridad de quién cede cuando falta ancho, de menos a más importante:
+     primero los indicadores (su propia escalera los recoge), después el rail
+     —que tiene scroll interno—, y los controles operables nunca.
+     El grid solo puede expresar los dos últimos, y lo hace así: los lados van a
+     `auto`, cuyo mínimo es su min-content, de modo que ni un valor numérico ni un
+     `select` se recortan; el medio va a `minmax(0, 1fr)` y es quien absorbe.
+     Se probó la simetría `1fr auto 1fr` para centrar el rail por construcción y
+     hace lo contrario de lo que hace falta: en CSS Grid las pistas `fr` ceden su
+     base ANTES que una pista `auto`, así que a 1280 el conmutador de piloto quedó
+     en 47px para un contenido de 99 y el QA lo marcó como overflow.
+     La centralidad del rail se resuelve aparte, sacándolo del flujo cuando la
+     banda da el ancho (ver components/chrome.css). */
+  --command-bar-columns: minmax(0, auto) minmax(0, 1fr) minmax(0, auto);
   --command-bar-accent: var(--module-accent, var(--pulso-material-border));
   /* Un solo valor de mezcla, sin perilla por módulo: cuando la había, cinco
    * módulos eligieron 16, 24, 34, 42 y 76%, y el borde del chrome se veía de

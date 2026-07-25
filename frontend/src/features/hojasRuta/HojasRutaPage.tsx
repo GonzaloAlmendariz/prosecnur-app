@@ -62,6 +62,7 @@ import { Alert } from "../../components/Alert";
 import { JobProgress } from "../../components/JobProgress";
 import { PageFrame } from "../../components/PageFrame";
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
+import { ChromeIndicator, ChromeIndicatorGroup, type ChromeIndicatorProps } from "../../components/ChromeIndicator";
 import { Panel } from "../../components/Panel";
 import { EmptyState, LoadingBlock } from "../../components/States";
 import { GlidingRadioGroup } from "../../components/GlidingRadioGroup";
@@ -1028,14 +1029,10 @@ function StatusPill({ ok, text, tone }: { ok?: boolean; text: string; tone?: Sta
   return <span style={style}>{text}</span>;
 }
 
-function HeaderSummaryPill({ label, value }: { label: string; value: string }) {
-  // El `title` sostiene la etiqueta cuando la banda aprieta y el CSS la oculta.
-  return (
-    <span className="hojas-ruta-header-pill" title={`${label}: ${value}`}>
-      <small className="hojas-ruta-header-pill-label">{label}</small>
-      <strong>{value}</strong>
-    </span>
-  );
+// Envoltorio delgado sobre el indicador compartido: acá solo vive la prioridad
+// con que cada dato cede cuando la banda aprieta.
+function HeaderSummaryPill({ label, value, prioridad }: { label: string; value: string; prioridad?: ChromeIndicatorProps["prioridad"] }) {
+  return <ChromeIndicator label={label} value={value} prioridad={prioridad} />;
 }
 
 function compactPhaseNotice(message: string) {
@@ -7734,12 +7731,15 @@ export default function HojasRutaPage() {
       className="hojas-ruta-commandbar"
       ariaLabel="Contexto operativo de hojas de ruta"
       contexto={
-        <div className="hojas-ruta-command-summary" aria-label="Resumen del marco">
-          <HeaderSummaryPill label="Base" value={frame.ok ? "Cargada" : "Pendiente"} />
-          <HeaderSummaryPill label="Distritos" value={formatNumber(selectedTerritories.length)} />
-          <HeaderSummaryPill label="Población" value={selectedPopulation > 0 ? formatNumber(selectedPopulation) : formatNumber(frame.poblacion ?? 0)} />
-          <HeaderSummaryPill label="Manz. censales" value={selectedManzanas > 0 ? formatNumber(selectedManzanas) : formatNumber(frame.n_manzanas ?? 0)} />
-        </div>
+        <ChromeIndicatorGroup
+          ariaLabel="Resumen del marco"
+          resumen={`Base: ${frame.ok ? "cargada" : "pendiente"} · Distritos: ${formatNumber(selectedTerritories.length)} · Población: ${formatNumber(selectedPopulation > 0 ? selectedPopulation : (frame.poblacion ?? 0))} · Manzanas censales: ${formatNumber(selectedManzanas > 0 ? selectedManzanas : (frame.n_manzanas ?? 0))}`}
+        >
+          <HeaderSummaryPill label="Base" value={frame.ok ? "Cargada" : "Pendiente"} prioridad="baja" />
+          <HeaderSummaryPill label="Distritos" value={formatNumber(selectedTerritories.length)} prioridad="alta" />
+          <HeaderSummaryPill label="Población" value={selectedPopulation > 0 ? formatNumber(selectedPopulation) : formatNumber(frame.poblacion ?? 0)} prioridad="alta" />
+          <HeaderSummaryPill label="Manz. censales" value={selectedManzanas > 0 ? formatNumber(selectedManzanas) : formatNumber(frame.n_manzanas ?? 0)} prioridad="media" />
+        </ChromeIndicatorGroup>
       }
       secciones={
         <div className="pulso-phase-rail hojas-ruta-stage-rail" aria-label="Etapas de hojas de ruta">

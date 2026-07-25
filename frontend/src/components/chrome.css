@@ -24,10 +24,12 @@
   overflow: hidden;
 }
 
+/* Los hijos del contexto no envuelven, pero tampoco se recortan a ciegas: el
+ * recorte con elipsis aplicado a todo mutilaba los valores numéricos
+ * («3,114,…»), que es peor que no mostrarlos. Lo que cede es el indicador
+ * completo, en el orden que declara su prioridad. */
 .pulso-command-bar-zone[data-zone="contexto"] > * {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -39,38 +41,39 @@
   flex-wrap: nowrap;
 }
 
-/* ── El rail de secciones va en su propia capa ──────────────────────────────
- * Centrado respecto a la BANDA, no respecto al espacio que le sobra a las
- * columnas. Es el patrón de las toolbars de macOS y resuelve un problema que se
- * ve: con el rail dentro del grid, su posición dependía de cuánto contexto
- * publicara cada ruta y se movía al cambiar de sección. Medido antes de esto:
- * 232px de salto entre Carga y Analítica dentro del mismo módulo.
+/* ── Centralidad del rail y balance de los lados ───────────────────────────
+ * El rail queda centrado por construcción, no por posicionamiento: las dos
+ * columnas laterales llevan el mismo `1fr` (ver `--command-bar-columns` en
+ * theme.css), así que la columna del medio queda simétrica en cualquier ancho.
  *
- * Al salir del flujo, su columna del grid queda sin contenido que la dimensione,
- * así que el `1fr` del medio se lo reparte a los lados y contexto y acciones
- * conservan su sitio. El precio es que un lado muy ancho puede acercarse al
- * rail; para eso la zona de contexto recorta con elipsis.
+ * Antes esto se hacía sacando el rail del flujo y centrándolo en absoluto, con
+ * un umbral de 1480px. Funcionaba arriba de ese ancho y por debajo el rail se
+ * corría; y en el intento de centrarlo siempre, se solapaba con los chips de
+ * estado. Con lados simétricos no hay que elegir: si el rail pide más que el
+ * hueco libre, los dos lados ceden por igual y la centralidad se conserva.
  *
- * Solo aplica al componente (`.pulso-module-command-bar`). Las bandas que
- * todavía aplican `.pulso-command-bar` a mano no emiten `data-zone` y siguen
- * intactas hasta que migren. */
+ * Lo que ceden son los indicadores de los lados. Se compactan en tres peldaños
+ * —menos gap, menos cuerpo tipográfico, y recorte con elipsis— antes que
+ * envolver o empujar al rail. Envolver es crecer de alto, y la banda no crece.
+ * ------------------------------------------------------------------------- */
+
 .pulso-module-command-bar {
   position: relative;
   container-type: inline-size;
   container-name: pulso-chrome;
 }
 
-/* El umbral no es un gusto, es una medición. Con el rail de Procesamiento en
- * 510px y el contexto más ancho de la familia en 465px, centrar simétricamente
- * necesita 510 + 2×465 + gaps ≈ 1.480px de banda. Por debajo de eso el rail
- * pisaría los chips de estado, y perder estado en silencio es justo lo que el
- * ADR 0042 prohíbe.
- *
- * Así que la degradación va declarada: centrado exacto cuando la banda da el
- * ancho —el preset grande de 1710 lo da— y de vuelta al flujo cuando no, donde
- * el rail se centra en el espacio sobrante y puede quedar descentrado. Se
- * prefiere descentrado a solapado. */
-@container pulso-chrome (min-width: 1480px) {
+.pulso-module-command-bar > .pulso-command-bar-zone[data-zone="contexto"],
+.pulso-module-command-bar > .pulso-command-bar-zone[data-zone="acciones"] {
+  min-width: 0;
+}
+
+/* El rail se centra respecto a la BANDA sacándolo del flujo, así su posición no
+ * depende de cuánto pese el contexto de cada ruta. El umbral bajó de 1480 a 1200
+ * porque la escalera de indicadores ya encoge los lados: con los lados livianos,
+ * a 1200 hay hueco de sobra y el rail no llega a tocarlos. Por debajo vuelve al
+ * flujo, donde puede quedar descentrado pero nunca solapado. */
+@container pulso-chrome (min-width: 1200px) {
   .pulso-module-command-bar > .pulso-command-bar-zone[data-zone="secciones"] {
     position: absolute;
     left: 50%;
@@ -81,180 +84,87 @@
   }
 }
 
-.pulso-command-bar-zone[data-zone="acciones"] {
-  justify-content: flex-end;
-  flex-wrap: nowrap;
-}
-
-/* Variante declarada, no tres `!important`: el editor de canvas de Gráficos
- * necesita que no haya un cristal encima del gráfico. */
-.pulso-module-command-bar[data-chrome-material="none"] {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-/* ── Chips de estado ────────────────────────────────────────────────────────
- * Semántica compartida, no acento de módulo: un aviso es amarillo en los ocho
- * módulos. Es la separación que pide el ADR 0042 entre chrome (acento propio) y
- * estado (colores de estado comunes). */
-.pulso-chrome-status-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: var(--pulso-chrome-control-h);
-  padding: 0 10px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-  font-weight: var(--pulso-control-weight);
-  white-space: nowrap;
-  cursor: default;
-}
-
-.pulso-chrome-status-chip:not(:disabled) {
-  cursor: pointer;
-}
-
-.pulso-chrome-status-chip[data-tone="info"] {
-  border-color: var(--pulso-info-border);
-  background: var(--pulso-info-bg);
-  color: var(--pulso-info-fg);
-}
-
-.pulso-chrome-status-chip[data-tone="success"] {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.pulso-chrome-status-chip[data-tone="warn"] {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
-.pulso-chrome-status-chip[data-tone="danger"] {
-  border-color: var(--pulso-danger-border);
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
-}
-
-/* ── Menú de overflow ─────────────────────────────────────────────────────── */
-
-.pulso-chrome-overflow {
-  display: grid;
-  gap: 8px;
-  min-width: 180px;
-}
-
-.pulso-chrome-overflow-group {
-  display: grid;
-  gap: 2px;
-}
-
-.pulso-chrome-overflow-group + .pulso-chrome-overflow-group {
-  padding-top: 8px;
-  border-top: 1px solid var(--pulso-border);
-}
-
-.pulso-chrome-overflow-item {
-  /* Declara su propia indirección porque el popover se monta en un portal sobre
-   * document.body y no hereda el frame del módulo — el mismo caso que theme.css
-   * documenta para `.pulso-gv2-estilo-dialog`. Fuera de un frame cae al primario
-   * global, que es lo correcto para un flotante sin módulo. */
-  --pulso-nav-accent: var(--module-accent, var(--pulso-primary));
-  --pulso-nav-hover-bg: color-mix(in srgb, var(--pulso-nav-accent) 10%, var(--pulso-surface));
-  --pulso-nav-hover-fg: var(--pulso-nav-accent);
-  --pulso-nav-hover-border: color-mix(in srgb, var(--pulso-nav-accent) 28%, var(--pulso-border));
-  --pulso-nav-focus-outline-color: color-mix(in srgb, var(--pulso-nav-accent) 62%, transparent);
-
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-height: var(--pulso-nav-item-height);
-  padding: 0 10px;
-  border: 1px solid transparent;
-  border-radius: var(--pulso-nav-item-radius);
-  background: transparent;
-  color: var(--pulso-text);
-  font-size: 13px;
-  font-weight: var(--pulso-control-weight);
-  text-align: left;
-  cursor: pointer;
-}
-
-.pulso-chrome-overflow-item[data-kind="danger"] {
-  color: var(--pulso-danger-fg);
-}
-
-.pulso-chrome-overflow-item:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-/* El item del menú es navegación de acciones y sigue el mismo lenguaje de
- * estados: mismo fondo de hover, mismo radio, mismo anillo de foco. */
-@media (hover: hover) and (pointer: fine) {
-  .pulso-chrome-overflow-item:hover:not(:disabled) {
-    background: var(--pulso-nav-hover-bg);
-    color: var(--pulso-nav-hover-fg);
-    border-color: var(--pulso-nav-hover-border);
+/* Peldaño 1 — banda de sobremesa apretada: se cierra el gap de los lados. */
+@container pulso-chrome (max-width: 1400px) {
+  .pulso-module-command-bar > .pulso-command-bar-zone[data-zone="contexto"],
+  .pulso-module-command-bar > .pulso-command-bar-zone[data-zone="acciones"] {
+    gap: 4px;
   }
 }
 
-.pulso-chrome-overflow-item:focus-visible {
-  outline: var(--pulso-nav-focus-outline-width) solid var(--pulso-nav-focus-outline-color);
-  outline-offset: var(--pulso-nav-focus-offset);
+/* ── Indicadores y su escalera ──────────────────────────────────────────────
+ * El valor nunca se recorta. Lo que cede, en orden: la etiqueta, y después el
+ * indicador entero según su prioridad declarada. El significado de lo que se
+ * recoge vive en el `title` del grupo. */
+
+.pulso-chrome-indicator-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
 }
 
-/* Un chip recogido conserva su detalle: recoger no es perder. */
-.pulso-chrome-overflow-status {
-  display: grid;
+.pulso-chrome-indicator {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
   gap: 1px;
-  padding: 4px 10px;
-  border-left: 2px solid var(--pulso-border);
+  flex: 0 0 auto;
+  padding: 0 10px;
+  min-height: var(--pulso-chrome-control-h);
+  white-space: nowrap;
 }
 
-.pulso-chrome-overflow-status[data-tone="warn"] {
-  border-left-color: var(--pulso-warn-border);
+.pulso-chrome-indicator + .pulso-chrome-indicator {
+  border-left: 1px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 22%, var(--pulso-border));
 }
 
-.pulso-chrome-overflow-status[data-tone="danger"] {
-  border-left-color: var(--pulso-danger-border);
-}
-
-.pulso-chrome-overflow-status[data-tone="success"] {
-  border-left-color: var(--pulso-success-border);
-}
-
-.pulso-chrome-overflow-status[data-tone="info"] {
-  border-left-color: var(--pulso-info-border);
-}
-
-.pulso-chrome-overflow-status-label {
-  font-size: 12.5px;
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-text);
-}
-
-.pulso-chrome-overflow-status-detail {
-  font-size: 11.5px;
+.pulso-chrome-indicator-label {
   color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.05;
+  text-transform: uppercase;
 }
 
-/* ── Rail de secciones ─────────────────────────────────────────────────────
- * La altura de la píldora sale del token, y el escalón de 34px existe solo
- * porque el chip de numeración no cabe en 32. */
-.pulso-section-pillbar .pulso-phase-pill-list {
-  height: var(--pulso-section-pill-h);
+.pulso-chrome-indicator-value {
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.1;
 }
 
-.pulso-section-pillbar[data-progreso="numbered"] .pulso-phase-pill-list {
-  height: var(--pulso-section-pill-h-progress);
+/* La escalera, en el orden que preserva el significado. Lo primero que cede es
+ * un indicador COMPLETO —etiqueta y valor juntos, con su dato a salvo en el
+ * `title` del grupo— y la etiqueta de los que sobreviven es lo ÚLTIMO que se va.
+ *
+ * El orden inverso se probó y se descartó midiendo: quitando primero las
+ * etiquetas, a 928px de banda quedaban tres números pelados —«6 · 3,114,851 ·
+ * 38,999»— que no dicen nada. Más pequeño está permitido; ilegible no. Es
+ * preferible un indicador menos, bien rotulado, que tres sin nombre. */
+
+/* Peldaño 2 — bajo 1300px: se recoge el de prioridad baja. */
+@container pulso-chrome (max-width: 1300px) {
+  .pulso-chrome-indicator[data-prioridad="baja"] {
+    display: none;
+  }
+}
+
+/* Peldaño 3 — bajo 1080px: se recogen los de prioridad media y quedan los altos,
+ * que siguen mostrando su etiqueta. */
+@container pulso-chrome (max-width: 1080px) {
+  .pulso-chrome-indicator[data-prioridad="media"] {
+    display: none;
+  }
+
+  .pulso-chrome-indicator {
+    padding: 0 8px;
+  }
+}
+
+/* Peldaño 4 — bajo 820px: último recurso, el valor solo. */
+@container pulso-chrome (max-width: 820px) {
+  .pulso-chrome-indicator-label {
+    display: none;
+  }
 }

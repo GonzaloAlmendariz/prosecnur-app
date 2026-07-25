@@ -8115,3 +8115,21 @@
   justify-content: flex-end;
   margin-bottom: var(--pulso-chrome-commandbar-gap);
 }
+
+/* Estado de insumos en su forma compacta: un chip en vez del medidor de tres
+ * pasos. El detalle solo aparece cuando falta algo; con todo listo era 352px de
+ * banda repitiendo lo que el rail de secciones ya marca como completado. */
+.pulso-carga-progress-meter.is-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: var(--pulso-chrome-control-h);
+  padding: 0 11px 0 8px;
+  border: 1px solid var(--pulso-success-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-success-bg);
+}
+
+.pulso-carga-progress-meter.is-compact .pulso-carga-progress-node.is-ready {
+  color: var(--pulso-success-fg);
+}

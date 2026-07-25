@@ -2445,8 +2445,28 @@ function CargaProgressMeter({
     },
   ];
 
+  // Cuando todo está listo, el detalle de los tres pasos no informa nada que el
+  // rail de secciones no diga ya con sus estados de completado, y costaba 352px
+  // del lado izquierdo de la banda —el desbalance que se veía contra los 168px
+  // del lado derecho—. En ese caso queda un solo chip; el detalle vuelve entero
+  // en cuanto falta algo, que es cuando sirve.
+  const pendientes = steps.filter((step) => step.tone !== "ready");
+  const resumen = steps.map((step) => `${step.label}: ${step.status}`).join(" · ");
+
+  if (pendientes.length === 0) {
+    return (
+      <div className="pulso-carga-progress-meter is-compact" aria-label="Estado de insumos" title={resumen}>
+        <span className="pulso-carga-progress-node is-ready" aria-hidden="true">✓</span>
+        <span className="pulso-carga-progress-copy">
+          <strong>Insumos</strong>
+          <small>Listos para validar</small>
+        </span>
+      </div>
+    );
+  }
+
   return (
-    <div className="pulso-carga-progress-meter" aria-label="Estado de insumos">
+    <div className="pulso-carga-progress-meter" aria-label="Estado de insumos" title={resumen}>
       <span className="pulso-carga-progress-label">Estado</span>
       <ol className="pulso-carga-progress-steps">
         {steps.map((step, index) => (
