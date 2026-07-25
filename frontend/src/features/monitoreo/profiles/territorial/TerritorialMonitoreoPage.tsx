@@ -57,12 +57,17 @@ import { GlidingTabList } from "../../../../components/GlidingTabList";
 import { PageFrame } from "../../../../components/PageFrame";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail } from "../../components";
 import {
-  MONITOREO_ROUTES,
+  MONITOREO_MODOS,
   TERRITORIAL_WORKBENCH_VIEWS,
-  type WorkbenchView,
-  type WorkbenchViewDefinition,
+  type MonitoreoSeccion,
+  type MonitoreoSeccionDefinicion,
 } from "../../core/monitoreoRegistry";
-import { initialMonitoreoView, useMonitoreoTabParam } from "../../useMonitoreoTabParam";
+import {
+  pestanaInicialMonitoreo,
+  seccionInicialMonitoreo,
+  useMonitoreoDireccion,
+} from "../../useMonitoreoDireccion";
+import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { territorialDurationOperationalStatusFromValues } from "../../territorialDuration";
 import {
   monitoreoScopeCache,
@@ -105,7 +110,7 @@ const TERRITORIAL_CANONICAL_HEADER_SCOPES: MonitoreoReportScope[] = [
 ];
 const TERRITORIAL_CANONICAL_HEADER_SCOPE_SET = new Set<string>(TERRITORIAL_CANONICAL_HEADER_SCOPES);
 
-const VIEW_ICONS: Partial<Record<WorkbenchView, typeof Route>> = {
+const VIEW_ICONS: Partial<Record<MonitoreoSeccion, typeof Route>> = {
   fuentes: DatabaseZap,
   modelo: Route,
   calidad: ShieldAlert,
@@ -113,7 +118,7 @@ const VIEW_ICONS: Partial<Record<WorkbenchView, typeof Route>> = {
   avance: BarChart3,
   ocurrencias: MapPinned,
 };
-const TERRITORIAL_ROUTE = MONITOREO_ROUTES.find((route) => route.family === "territorial") ?? MONITOREO_ROUTES[0];
+const TERRITORIAL_ROUTE = MONITOREO_MODOS.find((route) => route.family === "territorial") ?? MONITOREO_MODOS[0];
 type TerritorialLocalTabDefinition = {
   key: string;
   label: string;
@@ -160,11 +165,11 @@ const TERRITORIAL_LOCAL_TABS = {
     { key: "rhythm", label: "Ritmo", detail: "Dias e historial", icon: CalendarRange },
   ],
   telefonico: [],
-} satisfies Record<WorkbenchView, readonly TerritorialLocalTabDefinition[]>;
+} satisfies Record<MonitoreoSeccion, readonly TerritorialLocalTabDefinition[]>;
 const TERRITORIAL_ADVANCE_TABS = TERRITORIAL_LOCAL_TABS.avance;
 type TerritorialAdvanceLocalTab = typeof TERRITORIAL_ADVANCE_TABS[number]["key"];
 
-function defaultLocalTabForView(view: WorkbenchView) {
+function defaultLocalTabForView(view: MonitoreoSeccion) {
   return TERRITORIAL_LOCAL_TABS[view]?.[0]?.key ?? "";
 }
 
@@ -277,7 +282,7 @@ function territorialPhaseBadgeLabel(item: MonitoreoTerritorialPhaseCoherenceItem
 
 function territorialReportCacheLabel(
   reportReady: boolean,
-  loadingView: WorkbenchView | "initial" | "background" | null,
+  loadingView: MonitoreoSeccion | "initial" | "background" | null,
   meta: MonitoreoTerritorialReportCacheMeta | null | undefined,
 ) {
   if (reportReady && (meta?.cache_hit || meta?.cache_source === "project" || meta?.cache_source === "snapshot")) {
@@ -312,7 +317,7 @@ function isReplacementBlock(block: TerritorialBlockProgress) {
   return String(block.tipo_manzana || "").toLowerCase() === "reemplazo";
 }
 
-function scopeForView(view: WorkbenchView): MonitoreoReportScope {
+function scopeForView(view: MonitoreoSeccion): MonitoreoReportScope {
   return reportScopesForTerritorialView(view)[0] ?? "full";
 }
 
@@ -320,7 +325,7 @@ function scopesForPhase(phase: MonitoreoTerritorialPhase): MonitoreoReportScope[
   return phase === "pilot" ? TERRITORIAL_PILOT_SCOPES : TERRITORIAL_FIELD_SCOPES;
 }
 
-function viewAllowedInPhase(phase: MonitoreoTerritorialPhase, view: WorkbenchView) {
+function viewAllowedInPhase(phase: MonitoreoTerritorialPhase, view: MonitoreoSeccion) {
   return phase === "pilot" ? view === "avance" : true;
 }
 
@@ -371,7 +376,7 @@ function jobErrorMessage(job: JobSnapshot | null) {
 
 function scopeForPhaseViewTab(
   phase: MonitoreoTerritorialPhase,
-  view: WorkbenchView,
+  view: MonitoreoSeccion,
   _localTab = "",
 ): MonitoreoReportScope {
   if (phase === "pilot") return "advance_summary";
@@ -380,7 +385,7 @@ function scopeForPhaseViewTab(
 
 function territorialReportsCoverSelection(
   reports: MonitoreoTerritorialDashboard | null | undefined,
-  view: WorkbenchView,
+  view: MonitoreoSeccion,
   localTab = "",
 ) {
   if (!reports) return false;
@@ -391,7 +396,7 @@ function territorialReportsCoverSelection(
   return territorialReportsCoverView(reports, view);
 }
 
-function viewNeedsTerritorialReport(view: WorkbenchView, localTab = "") {
+function viewNeedsTerritorialReport(view: MonitoreoSeccion, localTab = "") {
   if (view === "fuentes") return false;
   if (view === "avance" && localTab === "salidas") return false;
   return true;
@@ -457,36 +462,36 @@ function territorialReportKpis(
 // cada transición de scopes pendientes; el rail solo depende de estas props.
 const TerritorialWorkbenchRail = memo(function TerritorialWorkbenchRail({
   activeDef,
-  activeLocalTab,
-  activeView,
+  pestanaActiva,
+  seccionActiva,
   cacheMeta,
   error,
   fieldPhaseHealth,
   localTabs,
   loadingView,
-  onLocalTabChange,
+  onCambioPestana,
   onPhaseChange,
   phase,
   pilotPhaseHealth,
   reportReady,
   syncedAt,
 }: {
-  activeDef: WorkbenchViewDefinition;
-  activeLocalTab: string;
-  activeView: WorkbenchView;
+  activeDef: MonitoreoSeccionDefinicion;
+  pestanaActiva: string;
+  seccionActiva: MonitoreoSeccion;
   cacheMeta?: MonitoreoTerritorialReportCacheMeta | null;
   error: string;
   fieldPhaseHealth: MonitoreoTerritorialPhaseCoherenceItem | null;
   localTabs: readonly TerritorialLocalTabDefinition[];
-  loadingView: WorkbenchView | "initial" | "background" | null;
-  onLocalTabChange: (tab: string) => void;
+  loadingView: MonitoreoSeccion | "initial" | "background" | null;
+  onCambioPestana: (tab: string) => void;
   onPhaseChange: (phase: MonitoreoTerritorialPhase) => void;
   phase: MonitoreoTerritorialPhase;
   pilotPhaseHealth: MonitoreoTerritorialPhaseCoherenceItem | null;
   reportReady: boolean;
   syncedAt: string;
 }) {
-  const ActiveIcon = VIEW_ICONS[activeView] ?? activeDef.icon ?? Route;
+  const ActiveIcon = VIEW_ICONS[seccionActiva] ?? activeDef.icon ?? Route;
   const flowTone = error ? "error" : reportReady ? "ready" : "warning";
   const flowProgress = reportReady ? "100%" : loadingView ? "42%" : "18%";
   const activePhaseHealth = phase === "pilot" ? pilotPhaseHealth : fieldPhaseHealth;
@@ -547,9 +552,9 @@ const TerritorialWorkbenchRail = memo(function TerritorialWorkbenchRail({
 
   return (
     <MonitoreoWorkbenchRail
-      activeLocalTab={activeLocalTab}
+      pestanaActiva={pestanaActiva}
       activeSection={{ ...activeDef, icon: ActiveIcon }}
-      activeView={activeView}
+      seccionActiva={seccionActiva}
       ariaLabel="Flujo territorial"
       localTabs={localTabs}
       modeCountLabel={`${localTabs.length || 1} modos`}
@@ -566,7 +571,7 @@ const TerritorialWorkbenchRail = memo(function TerritorialWorkbenchRail({
         },
       ]}
       summary={summary}
-      onLocalTabChange={onLocalTabChange}
+      onCambioPestana={onCambioPestana}
     />
   );
 });
@@ -579,7 +584,7 @@ const TerritorialWorkbenchHead = memo(function TerritorialWorkbenchHead({
   headerValidas,
   nRows,
 }: {
-  activeDef: WorkbenchViewDefinition;
+  activeDef: MonitoreoSeccionDefinicion;
   activeSources: number;
   headerAvance: number | null | undefined;
   headerMeta: number | null | undefined;
@@ -629,7 +634,7 @@ function EmptyPanel({ icon: Icon, title, detail }: { icon: typeof Route; title: 
   );
 }
 
-function territorialLoadingLabelForView(view: WorkbenchView) {
+function territorialLoadingLabelForView(view: MonitoreoSeccion) {
   switch (view) {
     case "modelo":
       return "Cargando UMPs...";
@@ -646,7 +651,7 @@ function territorialLoadingLabelForView(view: WorkbenchView) {
   }
 }
 
-function territorialLoadingPresentation(view: WorkbenchView): {
+function territorialLoadingPresentation(view: MonitoreoSeccion): {
   title: string;
   detail: string;
   status: string;
@@ -729,7 +734,7 @@ function territorialLoadingPresentation(view: WorkbenchView): {
   }
 }
 
-function territorialLoadingPreview(view: WorkbenchView) {
+function territorialLoadingPreview(view: MonitoreoSeccion) {
   switch (view) {
     case "modelo":
       return [
@@ -773,7 +778,7 @@ function TerritorialLoadingView({
   view,
   minHeight = 420,
 }: {
-  view: WorkbenchView;
+  view: MonitoreoSeccion;
   minHeight?: number;
 }) {
   const meta = territorialLoadingPresentation(view);
@@ -1095,21 +1100,21 @@ function RouteView({ reports }: { reports: MonitoreoTerritorialDashboard | null 
 }
 
 function ValidationView({
-  activeLocalTab,
+  pestanaActiva,
   config,
   phase = "field",
   reports,
   selectedResponseId: controlledSelectedResponseId,
-  onLocalTabChange,
+  onCambioPestana,
   onSelectedResponseChange,
   onStateChange,
 }: {
-  activeLocalTab?: string;
+  pestanaActiva?: string;
   config?: MonitoreoTerritorialConfig | null;
   phase?: MonitoreoTerritorialPhase;
   reports: MonitoreoTerritorialDashboard | null;
   selectedResponseId?: string;
-  onLocalTabChange?: (tab: string) => void;
+  onCambioPestana?: (tab: string) => void;
   onSelectedResponseChange?: (responseId: string) => void;
   onStateChange?: (state: MonitoreoState) => void;
 }) {
@@ -1123,17 +1128,17 @@ function ValidationView({
   const gpsPoints = useMemo(() => (reports ? makeGpsMapPoints(reports) : []), [reports]);
   // Handlers estables: los workbenches de validación están memoizados y una
   // arrow inline nueva por render anularía ese memo.
-  const openReconciliationTab = useCallback(() => onLocalTabChange?.("reconciliacion"), [onLocalTabChange]);
-  const openGeolocationTab = useCallback(() => onLocalTabChange?.("geolocalizacion"), [onLocalTabChange]);
+  const openReconciliationTab = useCallback(() => onCambioPestana?.("reconciliacion"), [onCambioPestana]);
+  const openGeolocationTab = useCallback(() => onCambioPestana?.("geolocalizacion"), [onCambioPestana]);
   const openGeoCaseFromDuration = useCallback((row: TerritorialResponseAuditRow) => {
     const responseId = String(row.response_id ?? "").trim();
     if (responseId) selectResponse(responseId);
-    onLocalTabChange?.("geolocalizacion");
-  }, [onLocalTabChange, selectResponse]);
+    onCambioPestana?.("geolocalizacion");
+  }, [onCambioPestana, selectResponse]);
   if (!reports) {
     return <EmptyPanel icon={ShieldAlert} title="Validación pendiente" detail="Todavía no hay auditoría territorial hidratada." />;
   }
-  if ((activeLocalTab ?? "geolocalizacion") === "geolocalizacion") {
+  if ((pestanaActiva ?? "geolocalizacion") === "geolocalizacion") {
     return (
       <TerritorialValidationGeoWorkbench
         reports={reports}
@@ -1142,7 +1147,7 @@ function ValidationView({
       />
     );
   }
-  if (activeLocalTab === "reconciliacion") {
+  if (pestanaActiva === "reconciliacion") {
     return (
       <TerritorialSpatialReconciliationWorkbench
         phase={phase}
@@ -1153,7 +1158,7 @@ function ValidationView({
       />
     );
   }
-  if (activeLocalTab === "duracion") {
+  if (pestanaActiva === "duracion") {
     return (
       <TerritorialDurationControl
         config={config}
@@ -1164,10 +1169,10 @@ function ValidationView({
       />
     );
   }
-  if (activeLocalTab === "cuotas") {
+  if (pestanaActiva === "cuotas") {
     return <TerritorialQuotaConsistencyPanel reports={reports} />;
   }
-  if (activeLocalTab === "anulacion") {
+  if (pestanaActiva === "anulacion") {
     return (
       <TerritorialProductionAnnulmentWorkspace
         reports={reports}
@@ -1305,10 +1310,10 @@ function AdvanceView({ reports }: { reports: MonitoreoTerritorialDashboard | nul
 }
 
 function renderView(
-  view: WorkbenchView,
+  view: MonitoreoSeccion,
   reports: MonitoreoTerritorialDashboard | null,
   options: {
-    activeLocalTab?: string;
+    pestanaActiva?: string;
     busy?: boolean;
     onError?: (message: string) => void;
     state?: MonitoreoState | null;
@@ -1317,7 +1322,7 @@ function renderView(
     onReload?: () => void;
     onSyncKobo?: () => Promise<void> | void;
     onStateChange?: (state: MonitoreoState) => void;
-    onLocalTabChange?: (tab: string) => void;
+    onCambioPestana?: (tab: string) => void;
     onOpenValidationCase?: (tab: "geolocalizacion" | "duracion", responseId?: string) => void;
     onOperationalAdjustmentApply?: (adjustment: MonitoreoTerritorialOperationalAdjustment) => Promise<MonitoreoTerritorialOperationalAdjustment>;
     onOperationalAdjustmentRevert?: (id: string, reason?: string) => Promise<string>;
@@ -1326,13 +1331,13 @@ function renderView(
     onValidationResponseChange?: (responseId: string) => void;
   } = {},
 ) {
-  const activeAdvanceTab = isTerritorialAdvanceLocalTab(options.activeLocalTab)
-    ? options.activeLocalTab
+  const activeAdvanceTab = isTerritorialAdvanceLocalTab(options.pestanaActiva)
+    ? options.pestanaActiva
     : "resumen";
   if (view === "fuentes") {
     return (
       <TerritorialSourceConsole
-        activeLocalTab={options.activeLocalTab}
+        pestanaActiva={options.pestanaActiva}
         busy={options.busy}
         phase={options.phase ?? "field"}
         reports={reports}
@@ -1347,7 +1352,7 @@ function renderView(
   if (view === "modelo") {
     return (
       <TerritorialModelWorkbench
-        activeLocalTab={options.activeLocalTab}
+        pestanaActiva={options.pestanaActiva}
         busy={options.busy}
         phase={options.phase ?? "field"}
         reports={reports}
@@ -1360,12 +1365,12 @@ function renderView(
   if (view === "calidad") {
     return (
       <ValidationView
-        activeLocalTab={options.activeLocalTab}
+        pestanaActiva={options.pestanaActiva}
         config={options.state?.config?.territorial ?? null}
         phase={options.phase}
         reports={reports}
         selectedResponseId={options.selectedValidationResponseId}
-        onLocalTabChange={options.onLocalTabChange}
+        onCambioPestana={options.onCambioPestana}
         onSelectedResponseChange={options.onValidationResponseChange}
         onStateChange={options.onStateChange}
       />
@@ -1374,7 +1379,7 @@ function renderView(
   if (view === "consultas") {
     return (
       <TerritorialReviewCasesWorkbench
-        activeLocalTab={options.activeLocalTab}
+        pestanaActiva={options.pestanaActiva}
         busy={options.busy}
         config={options.state?.config?.territorial ?? null}
         phase={options.phase}
@@ -1403,17 +1408,17 @@ function renderView(
   if (view === "avance") {
     return (
       <TerritorialAdvanceWorkbench
-        activeLocalTab={activeAdvanceTab}
+        pestanaActiva={activeAdvanceTab}
         reports={reports}
         syncedAt={options.state?.synced_at ?? reports?.generated_at ?? ""}
-        onLocalTabChange={options.onLocalTabChange}
+        onCambioPestana={options.onCambioPestana}
       />
     );
   }
   if (view === "ocurrencias") {
     return (
       <TerritorialFieldOccurrencesWorkbench
-        activeLocalTab={options.activeLocalTab}
+        pestanaActiva={options.pestanaActiva}
         busy={options.busy}
         reports={reports}
         onError={options.onError}
@@ -1427,19 +1432,31 @@ function renderView(
 
 export default function TerritorialMonitoreoPage() {
   const [state, setState] = useState<MonitoreoState | null>(null);
-  const [activeView, setActiveView] = useState<WorkbenchView>(() => initialMonitoreoView("fuentes", TERRITORIAL_WORKBENCH_VIEWS));
-  useMonitoreoTabParam(activeView);
-  const [activeLocalTabs, setActiveLocalTabs] = useState<Partial<Record<WorkbenchView, string>>>({
-    fuentes: defaultLocalTabForView("fuentes"),
-    modelo: defaultLocalTabForView("modelo"),
-    calidad: defaultLocalTabForView("calidad"),
-    consultas: defaultLocalTabForView("consultas"),
-    avance: defaultLocalTabForView("avance"),
-    ocurrencias: defaultLocalTabForView("ocurrencias"),
+  const [seccionActiva, setActiveView] = useState<MonitoreoSeccion>(() => seccionInicialMonitoreo("fuentes", TERRITORIAL_WORKBENCH_VIEWS));
+  const [activeLocalTabs, setActiveLocalTabs] = useState<Partial<Record<MonitoreoSeccion, string>>>(() => {
+    const porDefecto: Partial<Record<MonitoreoSeccion, string>> = {
+      fuentes: defaultLocalTabForView("fuentes"),
+      modelo: defaultLocalTabForView("modelo"),
+      calidad: defaultLocalTabForView("calidad"),
+      consultas: defaultLocalTabForView("consultas"),
+      avance: defaultLocalTabForView("avance"),
+      ocurrencias: defaultLocalTabForView("ocurrencias"),
+    };
+    // `?pestana=` solo aplica a la sección con la que se aterriza: pedir
+    // "mapa" no debe reescribir la pestaña recordada de las otras cinco.
+    const seccion = seccionInicialMonitoreo("fuentes", TERRITORIAL_WORKBENCH_VIEWS);
+    const disponibles = (TERRITORIAL_LOCAL_TABS[seccion] ?? []).map((tab) => tab.key);
+    return {
+      ...porDefecto,
+      [seccion]: pestanaInicialMonitoreo(
+        porDefecto[seccion] ?? defaultLocalTabForView(seccion),
+        disponibles,
+      ),
+    };
   });
   const [phase, setPhase] = useState<MonitoreoTerritorialPhase>("field");
   const [selectedValidationResponseId, setSelectedValidationResponseId] = useState("");
-  const [loadingView, setLoadingView] = useState<WorkbenchView | "initial" | "background" | null>("initial");
+  const [loadingView, setLoadingView] = useState<MonitoreoSeccion | "initial" | "background" | null>("initial");
   const [mutationBusy, setMutationBusy] = useState(false);
   const [error, setError] = useState("");
   const inFlightRef = useRef(new Map<string, number>());
@@ -1447,8 +1464,8 @@ export default function TerritorialMonitoreoPage() {
   const latestScopeRequestRef = useRef(new Map<string, number>());
   const scopeStateCacheRef = useRef(new Map<string, MonitoreoState>());
   const stateRef = useRef<MonitoreoState | null>(null);
-  const activeViewRef = useRef<WorkbenchView>("fuentes");
-  const activeLocalTabsRef = useRef<Partial<Record<WorkbenchView, string>>>(activeLocalTabs);
+  const activeViewRef = useRef<MonitoreoSeccion>("fuentes");
+  const activeLocalTabsRef = useRef<Partial<Record<MonitoreoSeccion, string>>>(activeLocalTabs);
   const [chromeSyncJob, setChromeSyncJob] = useState<JobSnapshot<MonitoreoSyncResult> | null>(null);
   const [chromeSyncJobId, setChromeSyncJobId] = useState("");
   const [chromeSyncMode, setChromeSyncMode] = useState<"advance" | "full">("advance");
@@ -1466,28 +1483,40 @@ export default function TerritorialMonitoreoPage() {
     });
   }, []);
 
-  const localTabs = TERRITORIAL_LOCAL_TABS[activeView] ?? [];
-  const activeLocalTab = activeLocalTabs[activeView] ?? defaultLocalTabForView(activeView);
-  const activeLocalTabDef = localTabs.find((tab) => tab.key === activeLocalTab) ?? localTabs[0] ?? null;
+  const localTabs = TERRITORIAL_LOCAL_TABS[seccionActiva] ?? [];
+  const pestanaActiva = activeLocalTabs[seccionActiva] ?? defaultLocalTabForView(seccionActiva);
+  useMonitoreoDireccion(seccionActiva, pestanaActiva, "territorial", {
+    onSeccionPedida: setActiveView,
+    onPestanaPedida: (pestana, seccion) => {
+      // Solo si esa pestaña existe en la sección destino: una dirección con
+      // una pestaña ajena no debe dejar la sección sin selección válida.
+      const disponibles = TERRITORIAL_LOCAL_TABS[seccion] ?? [];
+      if (!disponibles.some((tab) => tab.key === pestana)) return;
+      setActiveLocalTabs((actuales) => ({ ...actuales, [seccion]: pestana }));
+    },
+  });
+  // Publica las pestañas de esta sección para que el inspector las enumere.
+  useRegistrarPestanasMonitoreo("territorial", seccionActiva, localTabs);
+  const activeLocalTabDef = localTabs.find((tab) => tab.key === pestanaActiva) ?? localTabs[0] ?? null;
   const sourceKey = state ? territorialSourceKeyFromState(state, phase) : "sin-fuente";
-  const preferredScope = scopeForPhaseViewTab(phase, activeView, activeLocalTab);
+  const preferredScope = scopeForPhaseViewTab(phase, seccionActiva, pestanaActiva);
   const cachedEntry = useMemo(() => {
     if (!state) return null;
     const scopes = [
       preferredScope,
-      ...reportScopesForTerritorialView(activeView),
+      ...reportScopesForTerritorialView(seccionActiva),
     ].filter((scope, index, all) => all.indexOf(scope) === index);
     for (const scope of scopes) {
       const entry = monitoreoScopeCache.getTerritorial({ phase, source: sourceKey, scope });
-      if (entry && territorialReportsCoverSelection(entry.reports, activeView, activeLocalTab)) return entry;
+      if (entry && territorialReportsCoverSelection(entry.reports, seccionActiva, pestanaActiva)) return entry;
     }
     return null;
-  }, [activeLocalTab, activeView, phase, preferredScope, sourceKey, state]);
+  }, [pestanaActiva, seccionActiva, phase, preferredScope, sourceKey, state]);
   const rawReports = reportsFromState(state);
-  const reports = rawReports && territorialReportsCoverSelection(rawReports, activeView, activeLocalTab)
+  const reports = rawReports && territorialReportsCoverSelection(rawReports, seccionActiva, pestanaActiva)
     ? rawReports
     : cachedEntry?.reports ?? null;
-  const reportReady = Boolean(reports && territorialReportsCoverSelection(reports, activeView, activeLocalTab));
+  const reportReady = Boolean(reports && territorialReportsCoverSelection(reports, seccionActiva, pestanaActiva));
 
   useEffect(() => {
     stateRef.current = state;
@@ -1529,14 +1558,14 @@ export default function TerritorialMonitoreoPage() {
   }, []);
 
   useEffect(() => {
-    activeViewRef.current = activeView;
-  }, [activeView]);
+    activeViewRef.current = seccionActiva;
+  }, [seccionActiva]);
 
   useEffect(() => {
     activeLocalTabsRef.current = activeLocalTabs;
   }, [activeLocalTabs]);
 
-  const loadScope = useCallback(async (scope: MonitoreoReportScope, viewForLoading?: WorkbenchView, force = false) => {
+  const loadScope = useCallback(async (scope: MonitoreoReportScope, viewForLoading?: MonitoreoSeccion, force = false) => {
     const key = scopeStateKey(scope);
     if (!force) {
       const cachedState = scopeStateCacheRef.current.get(key);
@@ -1639,20 +1668,20 @@ export default function TerritorialMonitoreoPage() {
   }, []);
 
   useEffect(() => {
-    if (!viewAllowedInPhase(phase, activeView)) setActiveView("avance");
-  }, [activeView, phase]);
+    if (!viewAllowedInPhase(phase, seccionActiva)) setActiveView("avance");
+  }, [seccionActiva, phase]);
 
   useEffect(() => {
     if (!state || loadingView === "initial") return;
     if (error) return;
     if (cachedEntry) return;
-    const scope = scopeForPhaseViewTab(phase, activeView, activeLocalTab);
-    const delay = activeView === "avance" ? 180 : 0;
+    const scope = scopeForPhaseViewTab(phase, seccionActiva, pestanaActiva);
+    const delay = seccionActiva === "avance" ? 180 : 0;
     const timer = window.setTimeout(() => {
-      void loadScope(scope, activeView);
+      void loadScope(scope, seccionActiva);
     }, delay);
     return () => window.clearTimeout(timer);
-  }, [activeLocalTab, activeView, cachedEntry, error, loadScope, loadingView, phase, state]);
+  }, [pestanaActiva, seccionActiva, cachedEntry, error, loadScope, loadingView, phase, state]);
 
   useEffect(() => {
     if (!state || loadingView === "initial") return;
@@ -1673,7 +1702,7 @@ export default function TerritorialMonitoreoPage() {
   useEffect(() => {
     if (!state || loadingView === "initial") return;
     if (error) return;
-    if (phase === "pilot" || activeView !== "avance" || activeLocalTab !== "resumen") return;
+    if (phase === "pilot" || seccionActiva !== "avance" || pestanaActiva !== "resumen") return;
     if ((reports?.report_scope || "") !== "route_summary") return;
     const cachedAdvance = monitoreoScopeCache.getTerritorial({
       phase,
@@ -1685,7 +1714,7 @@ export default function TerritorialMonitoreoPage() {
       void loadScope("advance_summary");
     }, 1400);
     return () => window.clearTimeout(timer);
-  }, [activeLocalTab, activeView, error, loadScope, loadingView, phase, reports?.report_scope, sourceKey, state]);
+  }, [pestanaActiva, seccionActiva, error, loadScope, loadingView, phase, reports?.report_scope, sourceKey, state]);
 
   useEffect(() => {
     if (!state || loadingView === "initial") return;
@@ -1710,35 +1739,35 @@ export default function TerritorialMonitoreoPage() {
     [phase],
   );
   const activeDef = useMemo(
-    () => visibleViews.find((item) => item.key === activeView) ?? visibleViews[0] ?? TERRITORIAL_WORKBENCH_VIEWS[0],
-    [activeView, visibleViews],
+    () => visibleViews.find((item) => item.key === seccionActiva) ?? visibleViews[0] ?? TERRITORIAL_WORKBENCH_VIEWS[0],
+    [seccionActiva, visibleViews],
   );
 
   useEffect(() => {
     if (!localTabs.length) return;
-    if (localTabs.some((tab) => tab.key === activeLocalTab)) return;
-    setActiveLocalTabs((current) => ({ ...current, [activeView]: localTabs[0]?.key ?? "" }));
-  }, [activeLocalTab, activeView, localTabs]);
+    if (localTabs.some((tab) => tab.key === pestanaActiva)) return;
+    setActiveLocalTabs((current) => ({ ...current, [seccionActiva]: localTabs[0]?.key ?? "" }));
+  }, [pestanaActiva, seccionActiva, localTabs]);
 
   useEffect(() => {
     if (!activeLocalTabDef || typeof window === "undefined") return undefined;
     const timer = window.setTimeout(() => {
       window.dispatchEvent(new CustomEvent("prosecnur:monitoreo-local-tab", {
-        detail: { view: activeView, key: activeLocalTabDef.key, label: activeLocalTabDef.label },
+        detail: { view: seccionActiva, key: activeLocalTabDef.key, label: activeLocalTabDef.label },
       }));
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [activeLocalTabDef, activeView]);
+  }, [activeLocalTabDef, seccionActiva]);
 
   const changeLocalTab = useCallback((key: string) => {
-    const tab = (TERRITORIAL_LOCAL_TABS[activeView] ?? []).find((item) => item.key === key);
-    setActiveLocalTabs((current) => ({ ...current, [activeView]: key }));
+    const tab = (TERRITORIAL_LOCAL_TABS[seccionActiva] ?? []).find((item) => item.key === key);
+    setActiveLocalTabs((current) => ({ ...current, [seccionActiva]: key }));
     if (tab && typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("prosecnur:monitoreo-local-tab", {
-        detail: { view: activeView, key: tab.key, label: tab.label },
+        detail: { view: seccionActiva, key: tab.key, label: tab.label },
       }));
     }
-  }, [activeView]);
+  }, [seccionActiva]);
   const openValidationCase = useCallback((tab: "geolocalizacion" | "duracion", responseId?: string) => {
     setActiveLocalTabs((current) => ({ ...current, calidad: tab }));
     if (responseId) setSelectedValidationResponseId(responseId);
@@ -1769,8 +1798,8 @@ export default function TerritorialMonitoreoPage() {
   const fieldPhaseHealth = territorialPhaseHealthForState(state, "field");
   const activePhaseHealth = phase === "pilot" ? pilotPhaseHealth : fieldPhaseHealth;
   const refreshCurrentView = useCallback(() => {
-    void loadScope(preferredScope, activeView, true);
-  }, [activeView, loadScope, preferredScope]);
+    void loadScope(preferredScope, seccionActiva, true);
+  }, [seccionActiva, loadScope, preferredScope]);
   const syncActiveTerritorialSource = useCallback(async (syncMode: "advance" | "full" = "advance") => {
     if (!state?.config) {
       setError("Abre un proyecto territorial antes de actualizar.");
@@ -1927,7 +1956,7 @@ export default function TerritorialMonitoreoPage() {
   }, [applyTerritorialPageState, phase]);
   const changeTerritorialPhase = useCallback(async (nextPhase: MonitoreoTerritorialPhase) => {
     if (nextPhase === phase) return;
-    const nextView = viewAllowedInPhase(nextPhase, activeView) ? activeView : "avance";
+    const nextView = viewAllowedInPhase(nextPhase, seccionActiva) ? seccionActiva : "avance";
     const nextLocalTab = activeLocalTabs[nextView] ?? defaultLocalTabForView(nextView);
     setError("");
     setLoadingView("initial");
@@ -1950,7 +1979,7 @@ export default function TerritorialMonitoreoPage() {
     } finally {
       setLoadingView(null);
     }
-  }, [activeLocalTabs, activeView, clearScopeStateCache, phase, rememberScopeState]);
+  }, [activeLocalTabs, seccionActiva, clearScopeStateCache, phase, rememberScopeState]);
   const handlePhaseChange = useCallback((nextPhase: MonitoreoTerritorialPhase) => {
     void changeTerritorialPhase(nextPhase);
   }, [changeTerritorialPhase]);
@@ -1959,9 +1988,9 @@ export default function TerritorialMonitoreoPage() {
   const sourceTotal = primarySources.length;
   const activeScopeKey = `${phase}|${sourceKey}|${preferredScope}`;
   const activeScopePending = pendingScopes.has(activeScopeKey);
-  const activeNeedsReport = viewNeedsTerritorialReport(activeView, activeLocalTab);
+  const activeNeedsReport = viewNeedsTerritorialReport(seccionActiva, pestanaActiva);
   const activeLoading = loadingView === "initial"
-    || loadingView === activeView
+    || loadingView === seccionActiva
     || activeScopePending
     || Boolean(state && activeNeedsReport && !reportReady && !error);
   const chromeSyncing = Boolean(chromeSyncJobId);
@@ -1989,10 +2018,10 @@ export default function TerritorialMonitoreoPage() {
         data-audit-has-dashboard={state?.dashboard ? "true" : "false"}
       />
       <MonitoreoModuleChrome
-        routes={MONITOREO_ROUTES}
+        routes={MONITOREO_MODOS}
         route={TERRITORIAL_ROUTE}
         routeSelected
-        activeView={activeView}
+        seccionActiva={seccionActiva}
         saving={chromeBusy}
         syncedAt={state?.synced_at ?? ""}
         generatedAt={chromeGeneratedAt}
@@ -2013,23 +2042,23 @@ export default function TerritorialMonitoreoPage() {
         advanceSyncLabel="Avance"
         advanceSyncTitle="Actualizar avance territorial"
         onSyncAdvance={syncAdvance}
-        onViewChange={setActiveView}
+        onCambioSeccion={setActiveView}
       />
 
       <MonitoreoWorkbenchChrome
-        activeView={activeView}
+        seccionActiva={seccionActiva}
         isTerritorial
         rail={(
           <TerritorialWorkbenchRail
             activeDef={activeDef}
-            activeLocalTab={activeLocalTab}
-            activeView={activeView}
+            pestanaActiva={pestanaActiva}
+            seccionActiva={seccionActiva}
             cacheMeta={cacheMeta}
             error={error}
             fieldPhaseHealth={fieldPhaseHealth}
             localTabs={localTabs}
             loadingView={loadingView}
-            onLocalTabChange={changeLocalTab}
+            onCambioPestana={changeLocalTab}
             onPhaseChange={handlePhaseChange}
             phase={phase}
             pilotPhaseHealth={pilotPhaseHealth}
@@ -2053,16 +2082,16 @@ export default function TerritorialMonitoreoPage() {
           )}
 
           {activeLoading ? (
-            <TerritorialLoadingView view={activeView} minHeight={activeView === "avance" ? 560 : 420} />
+            <TerritorialLoadingView view={seccionActiva} minHeight={seccionActiva === "avance" ? 560 : 420} />
           ) : (
-            renderView(activeView, reports, {
-              activeLocalTab,
+            renderView(seccionActiva, reports, {
+              pestanaActiva,
               busy: chromeBusy,
               onError: setError,
               onPublished: refreshCurrentView,
               onReload: refreshCurrentView,
               onSyncKobo: syncField,
-              onLocalTabChange: changeLocalTab,
+              onCambioPestana: changeLocalTab,
               onOpenValidationCase: openValidationCase,
               onOperationalAdjustmentApply: applyOperationalAdjustment,
               onOperationalAdjustmentRevert: revertOperationalAdjustment,

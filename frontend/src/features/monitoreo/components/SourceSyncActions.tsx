@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { ClipboardCheck, Layers3, Loader2, RefreshCw } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { MonitoreoRouteFamily } from "../core/monitoreoRegistry";
+import type { MonitoreoModo } from "../core/monitoreoRegistry";
 import type { SourceSyncJobState } from "../syncProgress";
 
 export type SourceSyncActionItem = {
@@ -88,7 +88,7 @@ export function SourceSyncActions({
 // Acciones por familia del monolito: Sheets + fuente externa primaria
 // (SurveyMonkey o Kobo según la ruta) + Todo (sync completo).
 export function monitoreoSourceSyncActionItems(options: {
-  routeFamily: MonitoreoRouteFamily;
+  routeFamily: MonitoreoModo;
   sheetCount: number;
   surveyMonkeyCount: number;
   koboCount: number;

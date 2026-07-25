@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import type { WorkbenchView } from "../core/monitoreoRegistry";
+import type { MonitoreoSeccion } from "../core/monitoreoRegistry";
 
 export type MonitoreoFamilyId = "acreditacion" | "territorial" | "aulas_universitarias" | "telefonico";
 
@@ -16,8 +16,8 @@ export type MonitoreoFamilyModule = {
   family: MonitoreoFamilyId;
   chunk: string;
   label: string;
-  views: readonly WorkbenchView[];
+  views: readonly MonitoreoSeccion[];
   loadPage: () => Promise<{ default: ComponentType }>;
   warmupScopes: readonly MonitoreoReportScope[];
-  reportScopes?: Partial<Record<WorkbenchView, MonitoreoReportScope>>;
+  reportScopes?: Partial<Record<MonitoreoSeccion, MonitoreoReportScope>>;
 };

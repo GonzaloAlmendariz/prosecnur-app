@@ -20,13 +20,13 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
-  OPERATIONAL_MODEL_MODES,
-  type MonitoreoRouteDefinition,
-  type OperationalModelMode,
-  type WorkbenchView,
+  PESTANAS_MODELO_OPERATIVO,
+  type MonitoreoModoDefinicion,
+  type PestanaModeloOperativo,
+  type MonitoreoSeccion,
 } from "../core/monitoreoRegistry";
 
-export type MonitoreoSectionLocalTab = {
+export type MonitoreoPestanaDefinicion = {
   key: string;
   label: string;
   detail: string;
@@ -35,41 +35,41 @@ export type MonitoreoSectionLocalTab = {
   onClick?: () => void;
 };
 
-export function localTabsForSection({
+export function pestanasDeSeccion({
   route,
-  activeView,
-  activeModelMode,
-  activeLocalTab,
-  onModelModeChange,
-  onLocalTabChange,
+  seccionActiva,
+  pestanaModelo,
+  pestanaActiva,
+  onCambioPestanaModelo,
+  onCambioPestana,
 }: {
-  route: MonitoreoRouteDefinition;
-  activeView: WorkbenchView;
-  activeModelMode?: OperationalModelMode;
-  activeLocalTab?: string;
-  onModelModeChange?: (mode: OperationalModelMode) => void;
-  onLocalTabChange?: (key: string) => void;
-}): MonitoreoSectionLocalTab[] {
-  const controlledTabs = <T extends string>(tabs: Array<Omit<MonitoreoSectionLocalTab, "active" | "onClick"> & { key: T }>) => (
+  route: MonitoreoModoDefinicion;
+  seccionActiva: MonitoreoSeccion;
+  pestanaModelo?: PestanaModeloOperativo;
+  pestanaActiva?: string;
+  onCambioPestanaModelo?: (mode: PestanaModeloOperativo) => void;
+  onCambioPestana?: (key: string) => void;
+}): MonitoreoPestanaDefinicion[] {
+  const controlledTabs = <T extends string>(tabs: Array<Omit<MonitoreoPestanaDefinicion, "active" | "onClick"> & { key: T }>) => (
     tabs.map((tab) => ({
       ...tab,
-      active: activeLocalTab === tab.key,
-      onClick: () => onLocalTabChange?.(tab.key),
+      active: pestanaActiva === tab.key,
+      onClick: () => onCambioPestana?.(tab.key),
     }))
   );
 
-  if (route.family === "acreditacion" && activeView === "modelo") {
-    return OPERATIONAL_MODEL_MODES.filter((mode) => mode.key !== "enlaces").map((mode) => ({
+  if (route.family === "acreditacion" && seccionActiva === "modelo") {
+    return PESTANAS_MODELO_OPERATIVO.filter((mode) => mode.key !== "enlaces").map((mode) => ({
       key: mode.key,
       label: mode.label,
       detail: mode.desc,
       icon: mode.icon,
-      active: activeModelMode === mode.key,
-      onClick: () => onModelModeChange?.(mode.key),
+      active: pestanaModelo === mode.key,
+      onClick: () => onCambioPestanaModelo?.(mode.key),
     }));
   }
 
-  if (route.family === "acreditacion" && activeView === "fuentes") {
+  if (route.family === "acreditacion" && seccionActiva === "fuentes") {
     return controlledTabs([
       { key: "sheets", label: "Sheets", detail: "Base y barrido", icon: PlugZap },
       { key: "surveymonkey", label: "SurveyMonkey", detail: "Encuestas y canales", icon: QrCode },
@@ -79,7 +79,7 @@ export function localTabsForSection({
   }
 
   if (route.family === "territorial") {
-    const byView: Partial<Record<WorkbenchView, MonitoreoSectionLocalTab[]>> = {
+    const byView: Partial<Record<MonitoreoSeccion, MonitoreoPestanaDefinicion[]>> = {
       fuentes: controlledTabs([
         { key: "form", label: "Formulario", detail: "Kobo y hoja de ruta", icon: PlugZap },
         { key: "filter", label: "Filtro", detail: "Distritos y corte", icon: SlidersHorizontal },
@@ -111,14 +111,14 @@ export function localTabsForSection({
         { key: "rhythm", label: "Ritmo", detail: "Dias e historial", icon: Activity },
       ]),
     };
-    return byView[activeView] ?? [];
+    return byView[seccionActiva] ?? [];
   }
 
   if (route.family === "aulas_universitarias") {
     return [];
   }
 
-  const byView: Partial<Record<WorkbenchView, MonitoreoSectionLocalTab[]>> = {
+  const byView: Partial<Record<MonitoreoSeccion, MonitoreoPestanaDefinicion[]>> = {
     avance: controlledTabs([
       { key: "resumen", label: "Resumen", detail: "Cumplimiento general", icon: BarChart3 },
       { key: "actores", label: "Actores", detail: "Actor y segmento", icon: ContactRound },
@@ -134,5 +134,5 @@ export function localTabsForSection({
       { key: "supervision", label: "Supervisión", detail: "Control posterior", icon: ShieldAlert },
     ]),
   };
-  return byView[activeView] ?? [];
+  return byView[seccionActiva] ?? [];
 }

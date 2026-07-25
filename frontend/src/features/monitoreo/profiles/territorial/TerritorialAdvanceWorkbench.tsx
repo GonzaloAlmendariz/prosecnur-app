@@ -169,19 +169,19 @@ const ADVANCE_GPS_LEGEND = [
 ] as const;
 
 function TerritorialAdvanceWorkbenchImpl({
-  activeLocalTab,
+  pestanaActiva,
   reports,
   syncedAt,
-  onLocalTabChange,
+  onCambioPestana,
 }: {
-  activeLocalTab?: string;
+  pestanaActiva?: string;
   reports: MonitoreoTerritorialDashboard | null;
   syncedAt?: string;
-  onLocalTabChange?: (tab: string) => void;
+  onCambioPestana?: (tab: string) => void;
 }) {
   const [districtFilter, setDistrictFilter] = useState("todos");
   const [focusedUmp, setFocusedUmp] = useState("");
-  const tab = isAdvanceTab(activeLocalTab) ? activeLocalTab : ADVANCE_TAB_FALLBACK;
+  const tab = isAdvanceTab(pestanaActiva) ? pestanaActiva : ADVANCE_TAB_FALLBACK;
   const blocks = useMemo(() => blockRows(reports), [reports]);
   const dailyTargetTotal = useMemo(() => advanceObjectiveTotal(reports), [reports]);
   const dailyRows = useMemo(() => buildTerritorialDailyRows(reports, dailyTargetTotal, blocks), [blocks, dailyTargetTotal, reports]);
@@ -224,12 +224,12 @@ function TerritorialAdvanceWorkbenchImpl({
               onOpenDistrict={(key) => {
                 setDistrictFilter(key);
                 setFocusedUmp("");
-                onLocalTabChange?.("ump");
+                onCambioPestana?.("ump");
               }}
               onOpenUmp={(districtKey, umpKey) => {
                 setDistrictFilter(districtKey || "todos");
                 setFocusedUmp(umpKey);
-                onLocalTabChange?.("ump");
+                onCambioPestana?.("ump");
               }}
             />
           ) : null}
@@ -296,9 +296,11 @@ function TerritorialAdvanceSummary({
           <span><MapPin size={14} /> Corte territorial</span>
           <strong>{phaseLabel} · {cutLabel}</strong>
         </div>
+        {/* Válidas y avance ya viven en la banda del módulo (arriba) y en el KPI
+            (abajo): repetirlos acá hacía que 107% apareciera cinco veces y
+            1.283 cuatro en la misma pantalla. Esta banda se queda solo con lo
+            que no está en ninguna otra parte. */}
         <div className="mon-territorial-exec-commandbar-meta" aria-label="Contexto del corte">
-          <span>{formatMetric(advance.validas)} válidas</span>
-          <span>{formatPercentLabel(advance.avancePct)} avance</span>
           <span>{formatMetric(activeDistricts)} distritos con avance</span>
           {selectedDistrict !== "todos" ? <span>Distrito filtrado</span> : null}
         </div>
@@ -379,6 +381,7 @@ function TerritorialExecutiveUmpPanel({ stack }: { stack: TerritorialExecutiveUm
     { key: "incomplete", label: incompleteLabel, value: stack.incomplete, tone: "warning" },
     { key: "none", label: noneLabel, value: stack.none, tone: "muted" },
   ];
+  const segmentWidths = stackedWidths(segments.map((segment) => segment.value));
   return (
     <section className="mon-territorial-exec-ump" aria-label="Estado de UMP y manzanas">
       <header>
@@ -386,9 +389,9 @@ function TerritorialExecutiveUmpPanel({ stack }: { stack: TerritorialExecutiveUm
         <strong>{formatMetric(stack.complete)} completas · {formatMetric(pending)} faltan{completeDetail}</strong>
       </header>
       <div className="mon-territorial-exec-ump-stack" role="list" aria-label="Distribución de UMP completas, incompletas y sin avance">
-        {segments.map((segment) => {
+        {segments.map((segment, index) => {
           const pct = safePercent(segment.value, stack.total) ?? 0;
-          const width = Math.max(segment.value ? 5 : 0, pct);
+          const width = segmentWidths[index];
           const className = [
             `is-${segment.key}`,
             pct < 18 ? "is-compact" : "",
@@ -726,6 +729,7 @@ function TerritorialExecutiveOperationalCut({
     { key: "invalid", label: "No cuentan según criterio", value: advance.noValidas, tone: "muted", hint: criterionLabel },
   ];
   const total = items.reduce((sum, item) => sum + item.value, 0);
+  const itemWidths = stackedWidths(items.map((item) => item.value));
   return (
     <section className="mon-territorial-exec-cut" aria-label="Corte operativo">
       <header>
@@ -733,11 +737,11 @@ function TerritorialExecutiveOperationalCut({
         <strong>Qué entra y qué queda separado</strong>
       </header>
       <div className="mon-territorial-exec-cut-stack" aria-label="Distribución del corte operativo">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <i
             key={item.key}
             className={`is-${item.tone}`}
-            style={{ "--exec-stack-size": `${Math.max(item.value ? 5 : 0, safePercent(item.value, total) ?? 0)}%` } as CSSProperties}
+            style={{ "--exec-stack-size": `${itemWidths[index]}%` } as CSSProperties}
             title={`${item.label}: ${formatMetric(item.value)}`}
           />
         ))}
@@ -2881,6 +2885,19 @@ function isAdvanceTab(value: unknown): value is TerritorialAdvanceTab {
 function safePercent(value: number | null | undefined, total: number | null | undefined) {
   if (value == null || total == null || total <= 0) return null;
   return Math.min(100, (value / total) * 100);
+}
+
+/* Anchos de una barra apilada con piso de visibilidad. Un segmento con valor
+ * distinto de cero nunca baja de `floor`% —si no, desaparece—, pero ese piso hay
+ * que descontárselo a los demás: sumando los pisos sin renormalizar, 147/3/0 UMP
+ * daba 98% + 5% + 0% = 103% y la barra se comía 9px del último segmento contra
+ * el borde de la píldora. */
+function stackedWidths(values: number[], floor = 5) {
+  const total = values.reduce((sum, value) => sum + value, 0);
+  if (total <= 0) return values.map(() => 0);
+  const raw = values.map((value) => (value ? Math.max(floor, (value / total) * 100) : 0));
+  const sum = raw.reduce((acc, value) => acc + value, 0);
+  return sum > 100 ? raw.map((value) => (value / sum) * 100) : raw;
 }
 
 function formatPercentLabel(value: number | null | undefined) {

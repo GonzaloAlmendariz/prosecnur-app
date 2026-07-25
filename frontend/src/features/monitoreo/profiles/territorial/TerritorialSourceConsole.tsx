@@ -43,7 +43,7 @@ import {
   type MonitoreoTerritorialReconciliationBatchChange,
   type MonitoreoVariable,
 } from "../../../../api/client";
-import type { WorkbenchView } from "../../core/monitoreoRegistry";
+import type { MonitoreoSeccion } from "../../core/monitoreoRegistry";
 
 type TerritorialSourceTab = "form" | "filter" | "roster" | "reconciliation" | "history";
 type TerritorialSourceDeclaredUmpRow = NonNullable<MonitoreoTerritorialDashboard["ump_declared_summary"]>["rows"][number];
@@ -54,7 +54,7 @@ type TerritorialSourceCodeReviewLens = "all" | "assigned" | "suggested" | "manua
 type TerritorialSourceUmpQueueLens = "manual" | "without-route" | "missing" | "suggested";
 
 export type TerritorialSourceConsoleProps = {
-  activeLocalTab?: string;
+  pestanaActiva?: string;
   phase: MonitoreoTerritorialPhase;
   reports: MonitoreoTerritorialDashboard | null;
   state: MonitoreoState | null;
@@ -273,7 +273,7 @@ function sourceReadinessItems(config: MonitoreoConfig, reports: MonitoreoTerrito
 }
 
 function TerritorialSourceConsoleImpl({
-  activeLocalTab,
+  pestanaActiva,
   busy = false,
   phase,
   reports,
@@ -287,7 +287,7 @@ function TerritorialSourceConsoleImpl({
   const sources = state?.sources ?? [];
   const variables = state?.variables ?? [];
   const history = state?.territorial_update_history ?? [];
-  const [activeTab, setActiveTab] = useState<TerritorialSourceTab>(isTerritorialSourceTab(activeLocalTab) ? activeLocalTab : "form");
+  const [activeTab, setActiveTab] = useState<TerritorialSourceTab>(isTerritorialSourceTab(pestanaActiva) ? pestanaActiva : "form");
   const [assets, setAssets] = useState<MonitoreoKoboAssetItem[]>([]);
   const [assetsLoaded, setAssetsLoaded] = useState(false);
   const [assetsLoading, setAssetsLoading] = useState(false);
@@ -345,8 +345,8 @@ function TerritorialSourceConsoleImpl({
   }, [onError]);
 
   useEffect(() => {
-    setActiveTab(isTerritorialSourceTab(activeLocalTab) ? activeLocalTab : "form");
-  }, [activeLocalTab]);
+    setActiveTab(isTerritorialSourceTab(pestanaActiva) ? pestanaActiva : "form");
+  }, [pestanaActiva]);
 
   useEffect(() => {
     if (activeAssetUid) setShowFormList(false);
@@ -1786,7 +1786,7 @@ function TerritorialSourceConsoleImpl({
   );
 }
 
-export function isTerritorialSourceView(view: WorkbenchView, localTab?: string) {
+export function isTerritorialSourceView(view: MonitoreoSeccion, localTab?: string) {
   return view === "fuentes" && isTerritorialSourceTab(localTab ?? "form");
 }
 

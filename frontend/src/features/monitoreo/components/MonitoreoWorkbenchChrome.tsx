@@ -5,7 +5,7 @@ function joinClasses(...classes: Array<string | false | null | undefined>) {
 }
 
 export function MonitoreoWorkbenchChrome({
-  activeView,
+  seccionActiva,
   rail,
   head,
   children,
@@ -34,7 +34,7 @@ export function MonitoreoWorkbenchChrome({
         {head}
         {clarity}
         {status}
-        <div className={joinClasses(`mon-workbench-content mon-workbench-content--${activeView}`, contentClassName)}>
+        <div className={joinClasses(`mon-workbench-content mon-workbench-content--${seccionActiva}`, contentClassName)}>
           {children}
         </div>
       </main>

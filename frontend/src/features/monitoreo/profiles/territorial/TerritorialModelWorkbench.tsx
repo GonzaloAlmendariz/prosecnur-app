@@ -31,7 +31,7 @@ import { TerritorialRouteCoverageAtlas } from "./TerritorialRouteCoverageAtlas";
 type TerritorialModelTab = "resumen" | "tabla";
 
 export type TerritorialModelWorkbenchProps = {
-  activeLocalTab?: string;
+  pestanaActiva?: string;
   busy?: boolean;
   phase: MonitoreoTerritorialPhase;
   reports: MonitoreoTerritorialDashboard | null;
@@ -257,7 +257,7 @@ function isTerminalJob(job: JobSnapshot | null) {
 }
 
 function TerritorialModelWorkbenchImpl({
-  activeLocalTab,
+  pestanaActiva,
   busy = false,
   phase,
   reports,
@@ -265,7 +265,7 @@ function TerritorialModelWorkbenchImpl({
   onError,
   onReload,
 }: TerritorialModelWorkbenchProps) {
-  const activeTab: TerritorialModelTab = isModelTab(activeLocalTab) ? activeLocalTab : "resumen";
+  const activeTab: TerritorialModelTab = isModelTab(pestanaActiva) ? pestanaActiva : "resumen";
   const config = state?.config ?? null;
   const sources = state?.sources ?? [];
   const koboSource = config ? koboSourceForPhase(sources, config, phase) : null;

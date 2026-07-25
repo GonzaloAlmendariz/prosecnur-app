@@ -22,13 +22,13 @@ export type MonitoreoWorkbenchRailStatusItem = {
 };
 
 type MonitoreoWorkbenchRailProps = {
-  activeLocalTab: string;
+  pestanaActiva: string;
   activeSection: {
     label: string;
     desc: string;
     icon: LucideIcon;
   };
-  activeView: string;
+  seccionActiva: string;
   ariaLabel: string;
   className?: string;
   emptyDetail?: ReactNode;
@@ -45,7 +45,7 @@ type MonitoreoWorkbenchRailProps = {
   statusAriaLabel?: string;
   statusItems?: readonly MonitoreoWorkbenchRailStatusItem[];
   summary?: ReactNode;
-  onLocalTabChange: (key: string, label: string) => void;
+  onCambioPestana: (key: string, label: string) => void;
 };
 
 function joinClasses(...classes: Array<string | false | null | undefined>) {
@@ -78,9 +78,9 @@ function compactLastUpdateValue(value: ReactNode) {
 }
 
 export function MonitoreoWorkbenchRail({
-  activeLocalTab,
+  pestanaActiva,
   activeSection,
-  activeView,
+  seccionActiva,
   ariaLabel,
   className,
   emptyDetail,
@@ -97,7 +97,7 @@ export function MonitoreoWorkbenchRail({
   statusAriaLabel = "Estado del monitoreo",
   statusItems = [],
   summary,
-  onLocalTabChange,
+  onCambioPestana,
 }: MonitoreoWorkbenchRailProps) {
   const ActiveIcon = activeSection.icon;
   const resolvedModeCountLabel = modeCountLabel ?? (localTabs.length ? `${localTabs.length} modos` : "1 modo");
@@ -108,15 +108,15 @@ export function MonitoreoWorkbenchRail({
   const showRailStatus = statusItems.length > 0;
 
   useEffect(() => {
-    const activeTab = localTabs.find((tab) => tab.key === activeLocalTab);
+    const activeTab = localTabs.find((tab) => tab.key === pestanaActiva);
     if (!activeTab) return undefined;
     const timer = window.setTimeout(() => {
       window.dispatchEvent(new CustomEvent("prosecnur:monitoreo-local-tab", {
-        detail: { view: activeView, key: activeTab.key, label: activeTab.label },
+        detail: { view: seccionActiva, key: activeTab.key, label: activeTab.label },
       }));
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [activeLocalTab, activeView, localTabSignature, localTabs]);
+  }, [pestanaActiva, seccionActiva, localTabSignature, localTabs]);
 
   useEffect(() => {
     const tabsByKey = new Map(localTabs.map((tab) => [tab.key, tab]));
@@ -124,17 +124,17 @@ export function MonitoreoWorkbenchRail({
       const detail = (event as CustomEvent<{ view?: string; key?: unknown }>).detail;
       const key = typeof detail?.key === "string" ? detail.key : "";
       const tab = tabsByKey.get(key);
-      if (detail?.view !== activeView || !tab || key === activeLocalTab) return;
-      onLocalTabChange(tab.key, tab.label);
+      if (detail?.view !== seccionActiva || !tab || key === pestanaActiva) return;
+      onCambioPestana(tab.key, tab.label);
     }
     window.addEventListener("prosecnur:monitoreo-local-tab-active", handleLocalTabActive);
     return () => window.removeEventListener("prosecnur:monitoreo-local-tab-active", handleLocalTabActive);
-  }, [activeLocalTab, activeView, localTabSignature, localTabs, onLocalTabChange]);
+  }, [pestanaActiva, seccionActiva, localTabSignature, localTabs, onCambioPestana]);
 
   function activateLocalTab(tab: MonitoreoWorkbenchRailTab) {
-    onLocalTabChange(tab.key, tab.label);
+    onCambioPestana(tab.key, tab.label);
     window.dispatchEvent(new CustomEvent("prosecnur:monitoreo-local-tab", {
-      detail: { view: activeView, key: tab.key, label: tab.label },
+      detail: { view: seccionActiva, key: tab.key, label: tab.label },
     }));
   }
 
@@ -163,10 +163,10 @@ export function MonitoreoWorkbenchRail({
           </div>
         </>
       ) : null}
-      <GlidingTabList activeKey={activeLocalTab} orientation="vertical" className="mon-section-local-tabs" role="tablist" aria-label={`Pestañas locales de ${activeSection.label}`}>
+      <GlidingTabList activeKey={pestanaActiva} orientation="vertical" className="mon-section-local-tabs" role="tablist" aria-label={`Pestañas locales de ${activeSection.label}`}>
         {localTabs.length ? localTabs.map((tab, index) => {
           const Icon = tab.icon;
-          const active = activeLocalTab === tab.key;
+          const active = pestanaActiva === tab.key;
           const tabStyle = {
             "--mon-nav-index": index,
             "--mon-nav-tip-y": `${19 + index * 44}px`,
@@ -180,8 +180,8 @@ export function MonitoreoWorkbenchRail({
                 aria-selected={active}
                 aria-label={`${tab.label}: ${tab.detail}`}
                 title={`${tab.label}: ${tab.detail}`}
-                className={`mon-nav-item is-${activeView}-${tab.key}${active ? " is-active" : ""}`}
-                data-view-key={activeView}
+                className={`mon-nav-item is-${seccionActiva}-${tab.key}${active ? " is-active" : ""}`}
+                data-view-key={seccionActiva}
                 data-local-tab-key={tab.key}
                 data-rail-label={tab.label}
                 data-rail-tip={`${tab.label} · ${tab.detail}`}
@@ -225,6 +225,9 @@ export function MonitoreoWorkbenchRail({
             return (
               <div
                 key={item.label}
+                /* La marca de tiempo no cabe legible en el rail colapsado (40px):
+                 * el título la lleva completa y el CSS la recorta ahí, no acá. */
+                title={isLastUpdate && typeof item.value === "string" ? `${item.label}: ${item.value}` : undefined}
                 className={joinClasses(
                   "mon-rail-sync",
                   item.ready && "is-ready",

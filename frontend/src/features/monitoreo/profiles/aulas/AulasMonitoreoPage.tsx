@@ -12,8 +12,12 @@ import {
 import { AulasOperationsPanel, aulasPlanImported } from "./AulasOperationsPanel";
 import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "../../../aulasFlow/AulasApplicationFlow";
 import { MODULE_TONES } from "../../../../lib/modules";
-import { AULAS_WORKBENCH_VIEWS, MONITOREO_ROUTES, type WorkbenchView } from "../../core/monitoreoRegistry";
-import { initialMonitoreoView, useMonitoreoTabParam } from "../../useMonitoreoTabParam";
+import {
+  modoIdDesdeFamily, AULAS_WORKBENCH_VIEWS, MONITOREO_MODOS, type MonitoreoSeccion } from "../../core/monitoreoRegistry";
+import {
+  seccionInicialMonitoreo,
+  useMonitoreoDireccion,
+} from "../../useMonitoreoDireccion";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import {
   aulasFieldLabel,
@@ -25,7 +29,7 @@ import "../profilePage.css";
 import "../../shell/monitoreoShell.css";
 import "./aulasMonitoreo.css";
 
-const AULAS_ROUTE = MONITOREO_ROUTES.find((route) => route.family === "aulas_universitarias") ?? MONITOREO_ROUTES[2];
+const AULAS_ROUTE = MONITOREO_MODOS.find((route) => route.family === "aulas_universitarias") ?? MONITOREO_MODOS[2];
 
 function fmt(value: unknown, fallback = "0") {
   if (value == null || value === "") return fallback;
@@ -40,7 +44,7 @@ function pct(value: unknown) {
   return `${Math.round(n)}%`;
 }
 
-function scopeForView(view: WorkbenchView): MonitoreoReportScope {
+function scopeForView(view: MonitoreoSeccion): MonitoreoReportScope {
   if (view === "calidad") return "validation_summary";
   if (view === "consultas") return "queries_summary";
   if (view === "fuentes" || view === "modelo") return "source";
@@ -221,7 +225,7 @@ function HandoffTracePanel({ dashboard }: { dashboard: MonitoreoAulasDashboard |
   );
 }
 
-function renderAulasView(view: WorkbenchView, dashboard: MonitoreoAulasDashboard | null, operations?: ReactNode) {
+function renderAulasView(view: MonitoreoSeccion, dashboard: MonitoreoAulasDashboard | null, operations?: ReactNode) {
   if (view === "fuentes") {
     // Las operaciones (importar plan / sincronizar campo) se muestran incluso
     // sin dashboard: importar el plan es justamente la acción de arranque.
@@ -321,15 +325,18 @@ function renderAulasView(view: WorkbenchView, dashboard: MonitoreoAulasDashboard
 
 export default function AulasMonitoreoPage() {
   const [state, setState] = useState<MonitoreoState | null>(null);
-  const [activeView, setActiveView] = useState<WorkbenchView>(() => initialMonitoreoView("avance", AULAS_WORKBENCH_VIEWS));
-  useMonitoreoTabParam(activeView);
+  const [seccionActiva, setActiveView] = useState<MonitoreoSeccion>(() => seccionInicialMonitoreo("avance", AULAS_WORKBENCH_VIEWS));
+  // Cursos-horario no tiene pestañas: sus secciones son hojas del árbol.
+  useMonitoreoDireccion(seccionActiva, undefined, "aulas", {
+    onSeccionPedida: setActiveView,
+  });
   const [loading, setLoading] = useState(true);
   const [mutating, setMutating] = useState(false);
   const [error, setError] = useState("");
 
   const activeDef = useMemo(
-    () => AULAS_WORKBENCH_VIEWS.find((item) => item.key === activeView) ?? AULAS_WORKBENCH_VIEWS[0],
-    [activeView],
+    () => AULAS_WORKBENCH_VIEWS.find((item) => item.key === seccionActiva) ?? AULAS_WORKBENCH_VIEWS[0],
+    [seccionActiva],
   );
   const dashboard = dashboardFromState(state);
   const aulasConfig = state?.config?.aulas_universitarias ?? null;
@@ -344,7 +351,7 @@ export default function AulasMonitoreoPage() {
     ? "Recalcular el corte de campo de cursos-horario con el snapshot y la agenda locales"
     : "Primero importa el plan desde el cálculo de muestra (sección Fuentes)";
 
-  const loadView = useCallback(async (view: WorkbenchView, force = false) => {
+  const loadView = useCallback(async (view: MonitoreoSeccion, force = false) => {
     setLoading(true);
     try {
       const next = await apiMonitoreoState({
@@ -363,8 +370,8 @@ export default function AulasMonitoreoPage() {
   }, []);
 
   useEffect(() => {
-    void loadView(activeView);
-  }, [activeView, loadView]);
+    void loadView(seccionActiva);
+  }, [seccionActiva, loadView]);
 
   // Flujos movidos del monolito (unidad 4.1) sin reescribir la lógica:
   // importAulasFromCalcMuestra / syncAulasUniversitarias de MonitoreoPage.tsx.
@@ -407,7 +414,7 @@ export default function AulasMonitoreoPage() {
         routes={[AULAS_ROUTE]}
         route={AULAS_ROUTE}
         routeSelected
-        activeView={activeView}
+        seccionActiva={seccionActiva}
         saving={busy}
         syncedAt={state?.synced_at ?? ""}
         generatedAt={state?.generated_at ?? state?.synced_at ?? ""}
@@ -426,9 +433,9 @@ export default function AulasMonitoreoPage() {
         syncDisabled={busy}
         syncLabel="Recargar"
         syncTitle={refreshTitle}
-        onSyncAll={() => { void loadView(activeView, true); }}
-        onViewChange={(view) => {
-          if (view !== activeView) setActiveView(view);
+        onSyncAll={() => { void loadView(seccionActiva, true); }}
+        onCambioSeccion={(view) => {
+          if (view !== seccionActiva) setActiveView(view);
         }}
       />
 
@@ -464,7 +471,7 @@ export default function AulasMonitoreoPage() {
             {loading ? (
               <EmptyPanel title="Preparando vista" detail="Leyendo cache local del proyecto..." />
             ) : renderAulasView(
-              activeView,
+              seccionActiva,
               dashboard,
               <AulasOperationsPanel
                 config={aulasConfig}

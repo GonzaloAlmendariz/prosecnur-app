@@ -1,17 +1,18 @@
 import type { CSSProperties } from "react";
 import { Activity, Loader2, RefreshCw } from "lucide-react";
 import type {
-  MonitoreoRouteDefinition,
-  WorkbenchView,
+  MonitoreoModoDefinicion,
+  MonitoreoSeccion,
 } from "../core/monitoreoRegistry";
-import { workbenchViewsForRoute } from "../core/monitoreoRegistry";
+import { seccionesDelModo } from "../core/monitoreoRegistry";
 import { GlidingTabList } from "../../../components/GlidingTabList";
+import { PARAMS_DIRECCION } from "../../../lib/navegacion/direccion";
 
 type MonitoreoModuleChromeProps = {
-  routes: MonitoreoRouteDefinition[];
-  route: MonitoreoRouteDefinition | null;
+  routes: MonitoreoModoDefinicion[];
+  route: MonitoreoModoDefinicion | null;
   routeSelected: boolean;
-  activeView: WorkbenchView;
+  seccionActiva: MonitoreoSeccion;
   saving: boolean;
   syncedAt: string;
   generatedAt?: string;
@@ -24,7 +25,7 @@ type MonitoreoModuleChromeProps = {
   hasSnapshot: boolean;
   syncing?: boolean;
   syncProgress?: MonitoreoModuleSyncProgress | null;
-  viewMetrics?: Partial<Record<WorkbenchView, string>>;
+  viewMetrics?: Partial<Record<MonitoreoSeccion, string>>;
   syncDisabled?: boolean;
   syncLabel?: string;
   syncTitle?: string;
@@ -33,7 +34,7 @@ type MonitoreoModuleChromeProps = {
   advanceSyncLabel?: string;
   advanceSyncTitle?: string;
   onSyncAdvance?: () => Promise<void> | void;
-  onViewChange?: (view: WorkbenchView) => void;
+  onCambioSeccion?: (view: MonitoreoSeccion) => void;
 };
 
 type MonitoreoModuleSyncProgress = {
@@ -51,6 +52,15 @@ function formatChromeDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" });
+}
+
+/* La píldora del chrome da ~104px y el sello completo pide ~126px, así que se
+ * cortaba a media hora ("24/07/26, 6:3…"). En la píldora va la fecha, que entra
+ * entera; la hora exacta vive en el `title`, que ya llevaba el valor completo. */
+function formatChromeDateCompact(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("es-PE", { dateStyle: "short" });
 }
 
 function chromeSyncProgressPercent(progress: MonitoreoModuleSyncProgress | null | undefined) {
@@ -71,11 +81,20 @@ function chromeSyncProgressStyle(progress: MonitoreoModuleSyncProgress | null | 
   return { "--mon-sync-progress": `${percent}%` } as CSSProperties;
 }
 
-export function monitoreoViewHref(view: WorkbenchView, currentHref?: string) {
+/**
+ * Enlace a una sección de Monitoreo en forma canónica.
+ *
+ * Cambiar de sección descarta la pestaña activa a propósito: la pestaña
+ * pertenece a la sección que se abandona y arrastrarla produciría un
+ * `?pestana=` que no existe en el destino.
+ */
+export function monitoreoSeccionHref(seccion: MonitoreoSeccion, currentHref?: string) {
   const href = currentHref
     ?? (typeof window === "undefined" ? "http://localhost/monitoreo" : window.location.href);
   const url = new URL(href, "http://localhost");
-  url.searchParams.set("tab", view);
+  url.searchParams.set(PARAMS_DIRECCION.seccion, seccion);
+  url.searchParams.delete(PARAMS_DIRECCION.pestana);
+  url.searchParams.delete("tab");
   return `${url.pathname}${url.search}${url.hash}`;
 }
 
@@ -90,7 +109,7 @@ export function MonitoreoModuleChrome({
   routes,
   route,
   routeSelected,
-  activeView,
+  seccionActiva,
   saving,
   syncedAt,
   generatedAt = "",
@@ -112,10 +131,10 @@ export function MonitoreoModuleChrome({
   advanceSyncLabel = "Actualizar avance",
   advanceSyncTitle,
   onSyncAdvance,
-  onViewChange,
+  onCambioSeccion,
 }: MonitoreoModuleChromeProps) {
   const activeRoutes = routes.filter((item) => item.status === "active").length;
-  const views = route ? workbenchViewsForRoute(route) : [];
+  const views = route ? seccionesDelModo(route) : [];
   const RouteIcon = route?.icon ?? Activity;
   const statusLabel = route
     ? routeSelected
@@ -161,7 +180,7 @@ export function MonitoreoModuleChrome({
       const formatted = formatChromeDate(generatedAt);
       return {
         label: "Regenerado",
-        value: formatted,
+        value: formatChromeDateCompact(generatedAt),
         tone: "ready",
         title: `Regenerado ${formatted}`,
       };
@@ -174,17 +193,17 @@ export function MonitoreoModuleChrome({
       aria-label="Secciones de monitoreo"
       data-view-count={views.length}
     >
-      <GlidingTabList as="nav" mode="nav" activeKey={activeView} className="pulso-phase-pillbar mon-section-rail" aria-label={`Secciones de ${route.shortLabel}`}>
+      <GlidingTabList as="nav" mode="nav" activeKey={seccionActiva} className="pulso-phase-pillbar mon-section-rail" aria-label={`Secciones de ${route.shortLabel}`}>
         <ol className="pulso-phase-pill-list">
           {views.map((item, index) => {
-            const selected = item.key === activeView;
+            const selected = item.key === seccionActiva;
             const displayLabel = item.shortLabel ?? item.label;
             const metric = viewMetrics?.[item.key] ?? "";
             const accessibilityLabel = metric ? `${displayLabel}, ${metric}: ${item.desc}` : `${displayLabel}: ${item.desc}`;
             return (
               <li key={item.key} className="pulso-phase-pill-item">
                 <a
-                  href={saving ? undefined : monitoreoViewHref(item.key)}
+                  href={saving ? undefined : monitoreoSeccionHref(item.key)}
                   data-gliding-key={item.key}
                   className={`pulso-phase-pill mon-section-pill is-${item.key}${selected ? " is-active" : ""}${saving ? " is-disabled" : ""}`}
                   aria-label={accessibilityLabel}
@@ -199,7 +218,7 @@ export function MonitoreoModuleChrome({
                       return;
                     }
                     if (
-                      !onViewChange
+                      !onCambioSeccion
                       || event.button !== 0
                       || event.metaKey
                       || event.ctrlKey
@@ -209,7 +228,7 @@ export function MonitoreoModuleChrome({
                       return;
                     }
                     event.preventDefault();
-                    onViewChange(item.key);
+                    onCambioSeccion(item.key);
                   }}
                 >
                   <span className="pulso-phase-pill-circle" aria-hidden="true" />

@@ -3,10 +3,10 @@ import path from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
-import { MONITOREO_ROUTES } from "../core/monitoreoRegistry";
+import { MONITOREO_MODOS } from "../core/monitoreoRegistry";
 import {
   MonitoreoModuleChrome,
-  monitoreoViewHref,
+  monitoreoSeccionHref,
 } from "./MonitoreoModuleChrome";
 
 const shellDir = path.resolve(__dirname);
@@ -22,7 +22,7 @@ describe("semántica de navegación de Monitoreo", () => {
 
     expect(rail).toMatch(/<GlidingTabList[\s\S]*?mode="nav"/);
     expect(rail).toMatch(
-      /<a[\s\S]*?href=\{saving\s*\?\s*undefined\s*:\s*monitoreoViewHref\(item\.key\)\}/,
+      /<a[\s\S]*?href=\{saving\s*\?\s*undefined\s*:\s*monitoreoSeccionHref\(item\.key\)\}/,
     );
     expect(rail).toMatch(/aria-current=\{selected\s*\?\s*"page"\s*:\s*undefined\}/);
     expect(rail).not.toMatch(/role="tablist"/);
@@ -48,24 +48,41 @@ describe("semántica de navegación de Monitoreo", () => {
 
   test("el href conserva el contexto del proyecto y reemplaza solo la sección", () => {
     expect(
-      monitoreoViewHref(
+      monitoreoSeccionHref(
         "avance",
-        "http://localhost/monitoreo?proyecto=auditoria&tab=fuentes#estado",
+        "http://localhost/monitoreo?proyecto=auditoria&seccion=fuentes#estado",
       ),
-    ).toBe("/monitoreo?proyecto=auditoria&tab=avance#estado");
+    ).toBe("/monitoreo?proyecto=auditoria&seccion=avance#estado");
+  });
+
+  test("migra el `?tab=` legacy a la forma canónica en vez de dejar los dos", () => {
+    expect(
+      monitoreoSeccionHref("avance", "http://localhost/monitoreo?tab=fuentes"),
+    ).toBe("/monitoreo?seccion=avance");
+  });
+
+  test("cambiar de sección suelta la pestaña, que pertenecía a la anterior", () => {
+    // `?pestana=ump` solo existe en Avance territorial. Arrastrarlo a Fuentes
+    // produciría una dirección que nombra una pestaña inexistente.
+    expect(
+      monitoreoSeccionHref(
+        "fuentes",
+        "http://localhost/monitoreo?seccion=avance&pestana=ump",
+      ),
+    ).toBe("/monitoreo?seccion=fuentes");
   });
 
   test("durante el guardado no deja un href activable por menú contextual", () => {
-    const route = MONITOREO_ROUTES.find(
+    const route = MONITOREO_MODOS.find(
       (item) => item.family === "aulas_universitarias",
     );
     expect(route).toBeDefined();
 
     const html = renderToStaticMarkup(createElement(MonitoreoModuleChrome, {
-      routes: MONITOREO_ROUTES,
+      routes: MONITOREO_MODOS,
       route: route ?? null,
       routeSelected: true,
-      activeView: "avance",
+      seccionActiva: "avance",
       saving: true,
       syncedAt: "",
       sourceTotal: 0,

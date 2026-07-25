@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import type { WorkbenchView } from "../core/monitoreoRegistry";
+import type { MonitoreoSeccion } from "../core/monitoreoRegistry";
 
 export type MonitoreoWorkbenchChromeProps = {
-  activeView: WorkbenchView;
+  seccionActiva: MonitoreoSeccion;
   rail: ReactNode;
   head: ReactNode;
   children: ReactNode;
