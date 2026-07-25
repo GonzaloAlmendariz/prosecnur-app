@@ -39,6 +39,48 @@
   flex-wrap: nowrap;
 }
 
+/* ── El rail de secciones va en su propia capa ──────────────────────────────
+ * Centrado respecto a la BANDA, no respecto al espacio que le sobra a las
+ * columnas. Es el patrón de las toolbars de macOS y resuelve un problema que se
+ * ve: con el rail dentro del grid, su posición dependía de cuánto contexto
+ * publicara cada ruta y se movía al cambiar de sección. Medido antes de esto:
+ * 232px de salto entre Carga y Analítica dentro del mismo módulo.
+ *
+ * Al salir del flujo, su columna del grid queda sin contenido que la dimensione,
+ * así que el `1fr` del medio se lo reparte a los lados y contexto y acciones
+ * conservan su sitio. El precio es que un lado muy ancho puede acercarse al
+ * rail; para eso la zona de contexto recorta con elipsis.
+ *
+ * Solo aplica al componente (`.pulso-module-command-bar`). Las bandas que
+ * todavía aplican `.pulso-command-bar` a mano no emiten `data-zone` y siguen
+ * intactas hasta que migren. */
+.pulso-module-command-bar {
+  position: relative;
+  container-type: inline-size;
+  container-name: pulso-chrome;
+}
+
+/* El umbral no es un gusto, es una medición. Con el rail de Procesamiento en
+ * 510px y el contexto más ancho de la familia en 465px, centrar simétricamente
+ * necesita 510 + 2×465 + gaps ≈ 1.480px de banda. Por debajo de eso el rail
+ * pisaría los chips de estado, y perder estado en silencio es justo lo que el
+ * ADR 0042 prohíbe.
+ *
+ * Así que la degradación va declarada: centrado exacto cuando la banda da el
+ * ancho —el preset grande de 1710 lo da— y de vuelta al flujo cuando no, donde
+ * el rail se centra en el espacio sobrante y puede quedar descentrado. Se
+ * prefiere descentrado a solapado. */
+@container pulso-chrome (min-width: 1480px) {
+  .pulso-module-command-bar > .pulso-command-bar-zone[data-zone="secciones"] {
+    position: absolute;
+    left: 50%;
+    top: var(--pulso-chrome-commandbar-pad);
+    bottom: var(--pulso-chrome-commandbar-pad);
+    transform: translateX(-50%);
+    z-index: 1;
+  }
+}
+
 .pulso-command-bar-zone[data-zone="acciones"] {
   justify-content: flex-end;
   flex-wrap: nowrap;
