@@ -1,0 +1,218 @@
+/* =============================================================================
+ * Zonas del chrome de módulo
+ * -----------------------------------------------------------------------------
+ * Este archivo NO declara la geometría de la banda. El alto, el padding, el
+ * gap, el fondo, el borde, la sombra y el backdrop-filter viven en
+ * `.pulso-command-bar` (app/theme.css), cuyo comentario normativo dice que se
+ * declaran ahí «y en ningún otro lugar». Fue justamente redeclararlos por
+ * módulo lo que produjo cinco alturas distintas para la misma banda.
+ *
+ * Acá vive solo lo que el patrón maestro no cubre: cómo se reparten las tres
+ * zonas por dentro, los chips de estado y el menú de overflow.
+ * ========================================================================== */
+
+.pulso-command-bar-zone {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-chrome-commandbar-gap);
+  min-width: 0;
+}
+
+/* La zona de contexto puede truncar; es identidad, no navegación, y un nombre
+ * de formulario largo no tiene por qué empujar las secciones fuera de la vista. */
+.pulso-command-bar-zone[data-zone="contexto"] {
+  overflow: hidden;
+}
+
+.pulso-command-bar-zone[data-zone="contexto"] > * {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Las secciones al centro y sin envolver nunca: envolver es crecer de alto, y
+ * la barra no crece. Si no caben, el pillbar scrollea en su propio eje (ya lo
+ * hace `.pulso-phase-pillbar`, con scrollbar oculta). */
+.pulso-command-bar-zone[data-zone="secciones"] {
+  justify-content: center;
+  flex-wrap: nowrap;
+}
+
+.pulso-command-bar-zone[data-zone="acciones"] {
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+
+/* Variante declarada, no tres `!important`: el editor de canvas de Gráficos
+ * necesita que no haya un cristal encima del gráfico. */
+.pulso-module-command-bar[data-chrome-material="none"] {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* ── Chips de estado ────────────────────────────────────────────────────────
+ * Semántica compartida, no acento de módulo: un aviso es amarillo en los ocho
+ * módulos. Es la separación que pide el ADR 0042 entre chrome (acento propio) y
+ * estado (colores de estado comunes). */
+.pulso-chrome-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: var(--pulso-chrome-control-h);
+  padding: 0 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-control-weight);
+  white-space: nowrap;
+  cursor: default;
+}
+
+.pulso-chrome-status-chip:not(:disabled) {
+  cursor: pointer;
+}
+
+.pulso-chrome-status-chip[data-tone="info"] {
+  border-color: var(--pulso-info-border);
+  background: var(--pulso-info-bg);
+  color: var(--pulso-info-fg);
+}
+
+.pulso-chrome-status-chip[data-tone="success"] {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-chrome-status-chip[data-tone="warn"] {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-chrome-status-chip[data-tone="danger"] {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+/* ── Menú de overflow ─────────────────────────────────────────────────────── */
+
+.pulso-chrome-overflow {
+  display: grid;
+  gap: 8px;
+  min-width: 180px;
+}
+
+.pulso-chrome-overflow-group {
+  display: grid;
+  gap: 2px;
+}
+
+.pulso-chrome-overflow-group + .pulso-chrome-overflow-group {
+  padding-top: 8px;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-chrome-overflow-item {
+  /* Declara su propia indirección porque el popover se monta en un portal sobre
+   * document.body y no hereda el frame del módulo — el mismo caso que theme.css
+   * documenta para `.pulso-gv2-estilo-dialog`. Fuera de un frame cae al primario
+   * global, que es lo correcto para un flotante sin módulo. */
+  --pulso-nav-accent: var(--module-accent, var(--pulso-primary));
+  --pulso-nav-hover-bg: color-mix(in srgb, var(--pulso-nav-accent) 10%, var(--pulso-surface));
+  --pulso-nav-hover-fg: var(--pulso-nav-accent);
+  --pulso-nav-hover-border: color-mix(in srgb, var(--pulso-nav-accent) 28%, var(--pulso-border));
+  --pulso-nav-focus-outline-color: color-mix(in srgb, var(--pulso-nav-accent) 62%, transparent);
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: var(--pulso-nav-item-height);
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--pulso-nav-item-radius);
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-control-weight);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pulso-chrome-overflow-item[data-kind="danger"] {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-chrome-overflow-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* El item del menú es navegación de acciones y sigue el mismo lenguaje de
+ * estados: mismo fondo de hover, mismo radio, mismo anillo de foco. */
+@media (hover: hover) and (pointer: fine) {
+  .pulso-chrome-overflow-item:hover:not(:disabled) {
+    background: var(--pulso-nav-hover-bg);
+    color: var(--pulso-nav-hover-fg);
+    border-color: var(--pulso-nav-hover-border);
+  }
+}
+
+.pulso-chrome-overflow-item:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--pulso-nav-focus-outline-color);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+/* Un chip recogido conserva su detalle: recoger no es perder. */
+.pulso-chrome-overflow-status {
+  display: grid;
+  gap: 1px;
+  padding: 4px 10px;
+  border-left: 2px solid var(--pulso-border);
+}
+
+.pulso-chrome-overflow-status[data-tone="warn"] {
+  border-left-color: var(--pulso-warn-border);
+}
+
+.pulso-chrome-overflow-status[data-tone="danger"] {
+  border-left-color: var(--pulso-danger-border);
+}
+
+.pulso-chrome-overflow-status[data-tone="success"] {
+  border-left-color: var(--pulso-success-border);
+}
+
+.pulso-chrome-overflow-status[data-tone="info"] {
+  border-left-color: var(--pulso-info-border);
+}
+
+.pulso-chrome-overflow-status-label {
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-chrome-overflow-status-detail {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+/* ── Rail de secciones ─────────────────────────────────────────────────────
+ * La altura de la píldora sale del token, y el escalón de 34px existe solo
+ * porque el chip de numeración no cabe en 32. */
+.pulso-section-pillbar .pulso-phase-pill-list {
+  height: var(--pulso-section-pill-h);
+}
+
+.pulso-section-pillbar[data-progreso="numbered"] .pulso-phase-pill-list {
+  height: var(--pulso-section-pill-h-progress);
+}

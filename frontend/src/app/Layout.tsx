@@ -184,6 +184,13 @@ function ProcessingPhaseDockItem({ it, active }: { it: NavItem; active: boolean 
       <NavLink
         to={it.to}
         data-gliding-key={it.to}
+        /* Adopta los estados compartidos de nav-states.css. Lo que cambia al
+         * emitirlo: la sección ACTIVA por fin reacciona al mouse, y el anillo de
+         * foco pasa a ser un `outline` teñido con el acento del módulo en vez de
+         * una sombra azul que el relieve de la píldora activa borraba. */
+        data-nav-item=""
+        data-nav-shape="pill"
+        data-nav-state={active ? "selected" : undefined}
         aria-current={active ? "page" : undefined}
         title={it.blockedReason ?? (it.done ? `${it.label}: sección lista` : `Abrir ${it.label}`)}
         aria-label={it.blockedReason ? `${it.label}. ${it.blockedReason}` : `${it.label}. ${it.done ? "Sección lista." : "Abrir sección."}`}

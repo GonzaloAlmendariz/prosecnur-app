@@ -83,6 +83,40 @@ export type ResolvedProsecnurNavigationItem = ProsecnurNavigationLeafMeta & {
 
 export type ProsecnurNavigationLandingKind = "section" | "entrypoint";
 
+/**
+ * Cómo se comporta el chrome de un módulo.
+ *
+ * Cuatro perillas y una escotilla, deliberadamente pocas. El ADR 0042 pide que
+ * las variaciones estén «declaradas en el manifiesto, nunca ad-hoc en el
+ * page-file», y la lección de la divergencia anterior es que cada perilla que
+ * existe se usa: cuando la banda tenía `--command-bar-accent-mix`, cinco
+ * módulos eligieron cinco intensidades distintas. Por eso no hay perilla de
+ * alto, de radio ni de mezcla de acento: esos salen del token, siempre.
+ */
+export type ProsecnurModuleChromeMeta = {
+  /** Numerar las secciones solo tiene sentido con un pipeline real. */
+  progreso: "none" | "numbered";
+  densidad: "normal" | "compact";
+  /** El módulo tiene rail de pestañas (tercer nivel) además de secciones. */
+  rail: boolean;
+  /**
+   * Quién dibuja la banda. `shell` es la familia Procesamiento, cuyas secciones
+   * son rutas hermanas y comparten una sola barra montada en el layout: si cada
+   * página dibujara la suya habría dos bandas, que es lo que pasaba.
+   */
+  chromeOwner: "page" | "shell";
+  /**
+   * Excepción a la fila única, con su razón y el ADR que la respalda. Es la
+   * única vía legítima para que un módulo se salga del canon, y existe para que
+   * la excepción sea auditable en vez de ser deriva: el detector verifica que el
+   * ADR citado exista de verdad.
+   */
+  chromeExcepcion?: {
+    adr: string;
+    motivo: string;
+  };
+};
+
 export const PROSECNUR_NAVIGATION_CONTRACT = {
   version: 3,
   grammar: "modulo/modo/seccion/pestana/panel",
@@ -105,6 +139,7 @@ export type ProsecnurModuleMeta = {
   tone: ProsecnurModuleTone;
   to?: string;
   landingKind: ProsecnurNavigationLandingKind;
+  chrome: ProsecnurModuleChromeMeta;
   sections: readonly ProsecnurModuleSectionMeta[];
   modos?: readonly ProsecnurModuleModoMeta[];
 };
@@ -162,6 +197,12 @@ export const MODULE_TONES: Record<ProsecnurModuleSlug, ProsecnurModuleTone> = {
 export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   {
     slug: "diseno-estudio",
+    chrome: {
+      progreso: "none",
+      densidad: "normal",
+      rail: false,
+      chromeOwner: "page",
+    },
     title: "Bitácora",
     shortLabel: "Bitácora",
     tagline: "Bitácora, cronograma y calendario del estudio",
@@ -204,6 +245,14 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   },
   {
     slug: "calc-muestra",
+    chrome: {
+      // Numera porque sus secciones SON un recorrido: marco, criterios,
+      // cálculo, selección, entrega. No es decoración, es el orden del método.
+      progreso: "numbered",
+      densidad: "normal",
+      rail: true,
+      chromeOwner: "page",
+    },
     title: "Cálculo de muestra y marco muestral",
     shortLabel: "Cálculo de muestra",
     tagline: "Marco muestral, escenarios y selección de unidades",
@@ -232,6 +281,21 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   },
   {
     slug: "editor-xlsform",
+    chrome: {
+      progreso: "none",
+      densidad: "compact",
+      rail: true,
+      chromeOwner: "page",
+      chromeExcepcion: {
+        adr: "0042-chrome-modulo-uniforme-topbar.md",
+        motivo:
+          "Su banda no cabe en una fila: selector de formulario, tres metricas, " +
+          "dos chips de estado, el toggle Constructor/Hojas, «Mas vistas», el chip " +
+          "de avisos y seis acciones. Reducirla exige decidir que se recoge, y esa " +
+          "es una decision de producto, no de layout. Conserva el material, el " +
+          "radio, el acento y los estados del canon.",
+      },
+    },
     title: "Editor de formularios",
     shortLabel: "Formularios",
     tagline: "Diseño, importación y conversión de cuestionarios",
@@ -260,6 +324,13 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   },
   {
     slug: "hojas-ruta",
+    chrome: {
+      // Las etapas de una hoja de ruta son un pipeline con orden real.
+      progreso: "numbered",
+      densidad: "normal",
+      rail: false,
+      chromeOwner: "page",
+    },
     title: "Hojas de ruta para campo",
     shortLabel: "Hojas de ruta",
     tagline: "Cuotas, rutas y cartografía para el equipo de campo",
@@ -339,6 +410,12 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   },
   {
     slug: "recopiladores",
+    chrome: {
+      progreso: "none",
+      densidad: "normal",
+      rail: true,
+      chromeOwner: "page",
+    },
     title: "Fichas QR para cursos-horario",
     shortLabel: "Fichas QR",
     tagline: "Material imprimible para intervenciones por cursos-horario",
@@ -367,6 +444,14 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   },
   {
     slug: "monitoreo",
+    chrome: {
+      // Sus secciones no son pasos: se visitan en cualquier orden segun lo que
+      // el campo necesite hoy. Numerarlas prometeria una secuencia que no hay.
+      progreso: "none",
+      densidad: "normal",
+      rail: true,
+      chromeOwner: "page",
+    },
     title: "Monitoreo de campo",
     shortLabel: "Monitoreo",
     tagline: "Seguimiento del trabajo de campo",
@@ -441,6 +526,15 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   },
   {
     slug: "procesamiento",
+    chrome: {
+      progreso: "numbered",
+      densidad: "normal",
+      rail: true,
+      // Sus secciones son rutas hermanas (/carga, /validacion...) y comparten
+      // una sola barra montada en el layout. Cuando cada pagina dibujaba tambien
+      // la suya, la familia arrastraba dos bandas y ~100px de chrome en 6 rutas.
+      chromeOwner: "shell",
+    },
     title: "Procesamiento",
     shortLabel: "Procesamiento",
     tagline: "Carga, validación, codificación, análisis y reporte",
@@ -497,6 +591,21 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   },
   {
     slug: "dashboard",
+    chrome: {
+      progreso: "none",
+      densidad: "normal",
+      rail: true,
+      chromeOwner: "page",
+      chromeExcepcion: {
+        adr: "0042-chrome-modulo-uniforme-topbar.md",
+        motivo:
+          "El tablero publicado es un artefacto que ve el cliente y lleva su " +
+          "propia cabecera de identidad, que no es chrome de la app. Conserva su " +
+          "capa de nombres `dash-*` (excepcion ya documentada en " +
+          "docs/ui-layout-grammar.md) con los valores reasignados a los tokens " +
+          "compartidos, asi que no divergen aunque se llamen distinto.",
+      },
+    },
     title: "Dashboard interactivo",
     shortLabel: "Dashboard",
     tagline: "Exploración de resultados, cruces y base de datos",

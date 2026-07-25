@@ -30,10 +30,33 @@
  *   data-nav-state="selected"        solo en el activo
  *   data-nav-shape="pill" | "row"    pill = radio de chip; row = radio de rail
  *
- * Los tokens (`--pulso-nav-*`) se declaran en theme.css, no acá.
+ * DÓNDE VIVE CADA TOKEN
+ * La geometría (`--pulso-nav-item-height`, `-radius`, anchos) en theme.css, que
+ * no depende del contexto. Los colores derivados del acento, acá sobre el propio
+ * item: declararlos en `:root` los resolvería contra `:root`, donde no hay
+ * `--module-accent`, y todos los módulos heredarían el navy global.
  * ========================================================================== */
 
 [data-nav-item] {
+  /* La indirección de acento se declara ACÁ, sobre el item, y no en `:root`.
+   * Motivo, que costó una verificación en Chrome: `var(--module-accent)` dentro
+   * de una custom property se sustituye en el elemento donde se DECLARA. En
+   * `:root` no hay `--module-accent`, así que caía al navy global y todos los
+   * módulos heredaban ese valor ya resuelto. Sobre el item —que vive dentro del
+   * frame del módulo— resuelve al acento correcto. Mismo patrón que ya usaba
+   * `.pulso-gliding-tab-list` para su indicador. */
+  --pulso-nav-accent: var(--module-accent, var(--pulso-primary));
+  --pulso-nav-hover-bg: color-mix(in srgb, var(--pulso-nav-accent) 10%, var(--pulso-surface));
+  --pulso-nav-hover-fg: var(--pulso-nav-accent);
+  --pulso-nav-hover-border: color-mix(in srgb, var(--pulso-nav-accent) 28%, var(--pulso-border));
+  --pulso-nav-selected-border: var(--pulso-nav-accent);
+  /* Fórmula promovida de features/dashboard/theme/tokens.css, el único lugar del
+   * repo que ya había resuelto el hover sobre el activo: fondo OPACO que tapa el
+   * relleno de acento, y color de texto reasignado en el mismo bloque. */
+  --pulso-nav-selected-hover-bg: color-mix(in srgb, var(--pulso-surface-2) 86%, var(--pulso-nav-accent) 14%);
+  --pulso-nav-selected-hover-fg: var(--pulso-nav-accent);
+  --pulso-nav-focus-outline-color: color-mix(in srgb, var(--pulso-nav-accent) 62%, transparent);
+
   border-radius: var(--pulso-nav-item-radius);
   transition:
     background var(--motion-dur-fast) ease,
@@ -52,9 +75,21 @@
  * era uniforme entre módulos. Acá o la tienen todas, o ninguna. */
 @media (hover: hover) and (pointer: fine) {
   [data-nav-item]:hover:not(:disabled):not([aria-disabled="true"]):not([data-nav-state="selected"]) {
-    background: var(--pulso-nav-hover-bg);
     color: var(--pulso-nav-hover-fg);
     border-color: var(--pulso-nav-hover-border);
+  }
+
+  /* El fondo lo pinta el item… salvo la píldora de sección, que tiene su propio
+   * velo hijo (`.pulso-phase-pill-circle`) para poder animar el fill creciendo
+   * desde el centro, que es la micro-interacción que pide la dirección v3.
+   *
+   * Sin esta exclusión se pintan LAS DOS capas y el tinte sale del doble de
+   * intensidad. Medido en Chrome sobre una sección no activa: fondo del item más
+   * velo al 13% encima. El color sigue saliendo de un solo token —el velo lee
+   * `--pulso-nav-hover-bg` por herencia— así que no hay dos fuentes de verdad,
+   * solo dos formas de aplicarlo. */
+  [data-nav-item]:not([data-nav-shape="pill"]):hover:not(:disabled):not([aria-disabled="true"]):not([data-nav-state="selected"]) {
+    background: var(--pulso-nav-hover-bg);
   }
 
   /* Hover SOBRE el activo. Es la queja literal del usuario, y estaba prohibido
