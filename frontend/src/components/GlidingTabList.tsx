@@ -214,7 +214,16 @@ export const GlidingTabList = forwardRef<HTMLElement, GlidingTabListProps>(
         const nextRadius = getComputedStyle(activeItem).borderRadius || "0px";
         setGeometry((current) => geometryEquals(current, nextGeometry) ? current : nextGeometry);
         setIndicatorRadius((current) => current === nextRadius ? current : nextRadius);
-        setVisible(true);
+        // Visible SOLO con tamaño real. Antes se marcaba visible en cuanto había
+        // un item activo, aunque la medición diera 0×0 —pasa cuando el rail se
+        // mide sin layout todavía, o durante una transición de colapsado—. La
+        // clase quedaba mintiendo: el CSS confía en ella para volver el item
+        // transparente y dejar que el indicador pinte el relleno, así que con un
+        // indicador de 0×0 el contenido blanco del item activo caía sobre fondo
+        // blanco. Es el item invisible que se reportó en el sidebar de
+        // Codificación, medido: indicador `is-visible` con w=0 h=0 y el item en
+        // 42×42 con fondo transparente y color blanco.
+        setVisible(nextGeometry.width > 0 && nextGeometry.height > 0);
 
         if (!hasMeasuredRef.current) {
           hasMeasuredRef.current = true;
