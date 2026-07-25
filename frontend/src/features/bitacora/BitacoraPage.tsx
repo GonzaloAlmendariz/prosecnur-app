@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { PARAMS_DIRECCION } from "../../lib/navegacion/direccion";
 import {
   Loader2,
   RefreshCw,
@@ -37,22 +38,26 @@ function isBitacoraSection(section: ProsecnurModuleSectionMeta): section is Bita
 
 const BITACORA_SECTIONS = BITACORA_MODULE.sections.filter(isBitacoraSection);
 
-function tabFromSearch(search: string): Tab {
-  const value = new URLSearchParams(search).get("tab");
+// Bitácora llamaba `tab` a lo que la gramática canónica llama SECCIÓN: sus
+// tres destinos son el recorrido del módulo, no pestañas dentro de uno.
+// Contrato: `lib/navegacion/direccion.ts`.
+function seccionFromSearch(search: string): Tab {
+  const params = new URLSearchParams(search);
+  const value = params.get(PARAMS_DIRECCION.seccion) ?? params.get("tab");
   if (value === "cronograma" || value === "calendario") return value;
   return "bitacora";
 }
 
 export default function BitacoraPage() {
   const location = useLocation();
-  const [tab, setTab] = useState<Tab>(() => tabFromSearch(location.search));
+  const [tab, setTab] = useState<Tab>(() => seccionFromSearch(location.search));
   const [plan, setPlan] = useState<PlanTrabajoState | null>(null);
   const [entries, setEntries] = useState<DisenoEstudioBitacoraEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setTab(tabFromSearch(location.search));
+    setTab(seccionFromSearch(location.search));
   }, [location.search]);
 
   async function load() {

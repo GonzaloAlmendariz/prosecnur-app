@@ -479,8 +479,15 @@ function inferDesk(estudio: CalcMuestraEstudio, workspace: CalcMuestraWorkspace)
   return "sin_definir";
 }
 
-function requestedDeskFromSearch(searchParams: URLSearchParams): ActiveDesk | null {
-  const raw = searchParams.get("mesa") ?? searchParams.get("desk") ?? searchParams.get("tipo");
+// La "mesa" de Cálculo de muestra es un MODO en la gramática canónica: cambia
+// el juego de secciones del módulo y lo determina el estudio del proyecto.
+// `mesa`/`desk`/`tipo` sobreviven como alias de lectura.
+// Contrato: `lib/navegacion/direccion.ts`.
+function requestedModoFromSearch(searchParams: URLSearchParams): ActiveDesk | null {
+  const raw = searchParams.get("modo")
+    ?? searchParams.get("mesa")
+    ?? searchParams.get("desk")
+    ?? searchParams.get("tipo");
   const value = normalizeUniversityLabel(raw ?? "").replace(/_/g, " ");
   if (["AULAS", "MUESTRA AULAS", "OPINION UNIVERSITARIA", "HOSTIGAMIENTO"].includes(value)) {
     return "opinion_universitaria";
@@ -488,8 +495,9 @@ function requestedDeskFromSearch(searchParams: URLSearchParams): ActiveDesk | nu
   return null;
 }
 
-function clearDeskRequest(searchParams: URLSearchParams) {
+function clearModoRequest(searchParams: URLSearchParams) {
   const next = new URLSearchParams(searchParams);
+  next.delete("modo");
   next.delete("mesa");
   next.delete("desk");
   next.delete("tipo");
@@ -1046,7 +1054,7 @@ export default function CalcMuestraPage() {
   );
   const workspace = useMemo(() => normalizeWorkspace(estudio), [estudio]);
   const inferredDesk = inferDesk(estudio, workspace);
-  const requestedDesk = useMemo(() => requestedDeskFromSearch(searchParams), [searchParams]);
+  const requestedDesk = useMemo(() => requestedModoFromSearch(searchParams), [searchParams]);
   const hasAulasDeskState = useMemo(
     () => classroomFrameReady(aulasState) ||
       classroomComparisonReady(aulasState) ||
@@ -1146,7 +1154,7 @@ export default function CalcMuestraPage() {
   useEffect(() => {
     if (!hydrated || !requestedDesk) return;
     if (requestedDesk === "opinion_universitaria" && !aulasStateChecked) return;
-    setSearchParams(clearDeskRequest(searchParams), { replace: true });
+    setSearchParams(clearModoRequest(searchParams), { replace: true });
     if (requestedDesk === "opinion_universitaria" && (inferredDesk === "opinion_universitaria" || hasAulasDeskState)) {
       const recoveryTarget = classroomRecoveryTarget(aulasState);
       setDeskOverride("opinion_universitaria");

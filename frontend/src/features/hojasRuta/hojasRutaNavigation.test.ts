@@ -90,8 +90,10 @@ describe("HojasRuta navigation model", () => {
     expect(model.activeDeliveryTab).toBe("reemplazos");
     expect(model.runtime.activeSectionId).toBe("entrega");
     expect(model.runtime.activeTabId).toBe("reemplazos");
+    // Un enlace guardado con los nombres viejos sigue resolviendo, y de paso
+    // sale migrado a la forma canónica.
     expect(model.normalizedSearch).toBe(
-      "?shell=v3&stage=entrega&tab=reemplazos",
+      "?shell=v3&seccion=entrega&pestana=reemplazos",
     );
   });
 
@@ -141,33 +143,58 @@ describe("HojasRuta navigation model", () => {
       replacementCount: 0,
     });
 
+    // Entra por el alias legacy y sale en forma canónica: normalizar una URL
+    // vieja es exactamente el momento de migrarla.
     expect(invalidStage.activeStage).toBe("entrega");
     expect(invalidStage.normalizedSearch).toBe(
-      "?shell=v3&stage=entrega&tab=reemplazos",
+      "?shell=v3&seccion=entrega&pestana=reemplazos",
     );
     expect(lockedStage.activeStage).toBe("manzanas");
     expect(lockedStage.normalizedSearch).toBe(
-      "?shell=v3&stage=manzanas",
+      "?shell=v3&seccion=manzanas",
     );
     expect(lockedTab.activeDeliveryTab).toBe("titulares");
     expect(lockedTab.normalizedSearch).toBe(
-      "?shell=v3&stage=entrega&tab=titulares",
+      "?shell=v3&seccion=entrega&pestana=titulares",
     );
   });
 
-  it("builds canonical stage/tab searches without losing shell v3", () => {
+  it("sigue entendiendo los enlaces guardados con stage/tab", () => {
+    const legacy = buildHojasRutaNavigation({
+      ...READY_INPUT,
+      search: "?stage=entrega&tab=reemplazos",
+    });
+    const canonico = buildHojasRutaNavigation({
+      ...READY_INPUT,
+      search: "?seccion=entrega&pestana=reemplazos",
+    });
+
+    expect(legacy.activeStage).toBe(canonico.activeStage);
+    expect(legacy.activeDeliveryTab).toBe(canonico.activeDeliveryTab);
+  });
+
+  it("el param canónico gana sobre su alias legacy", () => {
+    const model = buildHojasRutaNavigation({
+      ...READY_INPUT,
+      search: "?stage=poblacion&seccion=entrega",
+    });
+
+    expect(model.activeStage).toBe("entrega");
+  });
+
+  it("escribe seccion/pestana canónicos sin perder shell v3", () => {
     expect(
       buildHojasRutaNavigationSearch(
         "?shell=v3&stage=entrega&tab=cuotas",
         "poblacion",
       ),
-    ).toBe("?shell=v3&stage=poblacion");
+    ).toBe("?shell=v3&seccion=poblacion");
     expect(
       buildHojasRutaNavigationSearch(
-        "?shell=v3&stage=poblacion",
+        "?shell=v3&seccion=poblacion",
         "entrega",
         "titulares",
       ),
-    ).toBe("?shell=v3&stage=entrega&tab=titulares");
+    ).toBe("?shell=v3&seccion=entrega&pestana=titulares");
   });
 });

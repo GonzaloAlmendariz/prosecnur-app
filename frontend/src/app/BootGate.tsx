@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react";
+import { hrefSinParamDeProyecto } from "../lib/navegacion/direccion";
 import {
   AlertTriangle,
   Check,
@@ -110,14 +111,13 @@ function readDevProjectPath() {
   return path || null;
 }
 
+// Saca el `?pulso=` una vez abierto el proyecto y deja intacto el resto de la
+// dirección (`?modo=`, `?seccion=`, `?pestana=`, `?panel=`): esos niveles son
+// justamente lo que tiene que sobrevivir al warm start para que un enlace
+// profundo aterrice donde prometió. Contrato: `lib/navegacion/direccion.ts`.
 function clearDevProjectPath() {
   if (!import.meta.env.DEV || typeof window === "undefined") return;
-  const url = new URL(window.location.href);
-  url.searchParams.delete("devPulso");
-  url.searchParams.delete("devProject");
-  url.searchParams.delete("pulso");
-  const nextSearch = url.searchParams.toString();
-  const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`;
+  const nextUrl = hrefSinParamDeProyecto(window.location.href);
   window.history.replaceState(window.history.state, "", nextUrl);
 }
 
@@ -469,6 +469,42 @@ function backendProgressDetail(progress: BootJobProgress | null) {
   return parts.length ? parts.join(" · ") : "En preparación";
 }
 
+/* Frontend, backend y scopes de backend son tres fuentes independientes, pero
+ * sus etiquetas pasan por el mismo mapeo amigable, que a propósito colapsa
+ * trabajos distintos en un mismo nombre ("Monitoreo local"). Como los `id`
+ * difieren, el mismo paso llegaba a mostrarse dos veces —una en ✓ y otra
+ * girando—. Se colapsa por etiqueta conservando el estado menos avanzado, que
+ * es el que describe con verdad si esa parte del arranque ya terminó. */
+const WARMUP_STATUS_PRIORITY: WarmupDisplayStepStatus[] = [
+  "running",
+  "pending",
+  "error",
+  "timeout",
+  "ready",
+  "skipped",
+];
+
+function leastAdvancedStatus(a: WarmupDisplayStepStatus, b: WarmupDisplayStepStatus) {
+  return WARMUP_STATUS_PRIORITY.indexOf(a) <= WARMUP_STATUS_PRIORITY.indexOf(b) ? a : b;
+}
+
+function collapseStepsByLabel(steps: WarmupDisplayStep[]) {
+  const seen = new Map<string, WarmupDisplayStep>();
+  for (const step of steps.splice(0)) {
+    const previous = seen.get(step.label);
+    if (!previous) {
+      seen.set(step.label, step);
+      continue;
+    }
+    const merged = leastAdvancedStatus(previous.status, step.status);
+    if (merged !== previous.status) {
+      previous.status = merged;
+      previous.detail = step.detail;
+    }
+  }
+  steps.push(...seen.values());
+}
+
 function warmupDisplaySteps({
   projectPath,
   frontendModules,
@@ -506,6 +542,7 @@ function warmupDisplaySteps({
   if (frontend.length) steps.push(...frontend);
   if (backend.length) steps.push(...backend);
   if (backendScopeSteps.length) steps.push(...backendScopeSteps);
+  collapseStepsByLabel(steps);
   if (backendEnabled && !backend.length) {
     steps.push({
       id: "backend-progress",
