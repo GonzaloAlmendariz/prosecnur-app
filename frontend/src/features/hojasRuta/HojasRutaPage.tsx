@@ -61,6 +61,7 @@ import {
 import { Alert } from "../../components/Alert";
 import { JobProgress } from "../../components/JobProgress";
 import { PageFrame } from "../../components/PageFrame";
+import { ModuleCommandBar } from "../../components/ModuleCommandBar";
 import { Panel } from "../../components/Panel";
 import { EmptyState, LoadingBlock } from "../../components/States";
 import { GlidingRadioGroup } from "../../components/GlidingRadioGroup";
@@ -7710,98 +7711,102 @@ export default function HojasRutaPage() {
   const visiblePhaseNotice = phaseNotice?.message && dismissedPhaseNotice !== phaseNotice.message
     ? phaseNotice.message
     : "";
-  const chromeToolbar = error || frame?.pilot || phaseNotice?.message || frame?.ok ? (
-    <div className="hojas-ruta-module-chrome">
-      {(error || frame?.pilot) && (
-        <div className="hojas-ruta-alert-stack">
-          {error && <Alert kind="error">{error}</Alert>}
-          {frame?.pilot && (
-            <Alert kind="warn">
-              {frame.note}
-            </Alert>
-          )}
+  const chromeNotices = (error || frame?.pilot) ? ( // pila bajo la banda, no filas del chrome
+    <>
+      {error && <Alert kind="error">{error}</Alert>}
+      {frame?.pilot && <Alert kind="warn">{frame.note}</Alert>}
+    </>
+  ) : undefined;
+
+  const chromeBar = frame?.ok ? (
+    <ModuleCommandBar
+      modulo="hojas-ruta"
+      className="hojas-ruta-commandbar"
+      ariaLabel="Contexto operativo de hojas de ruta"
+      contexto={
+        <div className="hojas-ruta-command-summary" aria-label="Resumen del marco">
+          <HeaderSummaryPill label="Base" value={frame.ok ? "Cargada" : "Pendiente"} />
+          <HeaderSummaryPill label="Distritos" value={formatNumber(selectedTerritories.length)} />
+          <HeaderSummaryPill label="Población" value={selectedPopulation > 0 ? formatNumber(selectedPopulation) : formatNumber(frame.poblacion ?? 0)} />
+          <HeaderSummaryPill label="Manz. censales" value={selectedManzanas > 0 ? formatNumber(selectedManzanas) : formatNumber(frame.n_manzanas ?? 0)} />
         </div>
-      )}
-
-      {frame?.ok && (
-        <div className="pulso-command-bar hojas-ruta-commandbar" aria-label="Contexto operativo de hojas de ruta">
-          <div className="hojas-ruta-command-summary" aria-label="Resumen del marco">
-            <HeaderSummaryPill label="Base" value={frame.ok ? "Cargada" : "Pendiente"} />
-            <HeaderSummaryPill label="Distritos" value={formatNumber(selectedTerritories.length)} />
-            <HeaderSummaryPill label="Población" value={selectedPopulation > 0 ? formatNumber(selectedPopulation) : formatNumber(frame.poblacion ?? 0)} />
-            <HeaderSummaryPill label="Manz. censales" value={selectedManzanas > 0 ? formatNumber(selectedManzanas) : formatNumber(frame.n_manzanas ?? 0)} />
-          </div>
-
-          <div className="hojas-ruta-stage-rail-wrap">
-            <div className="pulso-phase-rail hojas-ruta-stage-rail" aria-label="Etapas de hojas de ruta">
-              <GlidingTabList activeKey={currentStage} mode="tabs" className="pulso-phase-pillbar" role="group" aria-label="Etapas de hojas de ruta">
-                <ul className="pulso-phase-pill-list">
-                  {hojasRutaNavigation.sections.map((step) => {
-                    const active = step.key === currentStage;
-                    const Icon = HOJAS_RUTA_STAGE_ICONS[step.key];
-                    return (
-                      <li key={step.key} className="pulso-phase-pill-item">
-                        <button
-                          type="button"
-                          data-gliding-key={step.key}
-                          aria-pressed={active}
-                          aria-current={active ? "step" : undefined}
-                          aria-disabled={step.disabled || undefined}
-                          disabled={step.disabled}
-                          title={step.disabled ? step.disabledReason : step.hint}
-                          className={[
-                            "pulso-phase-pill",
-                            active ? "is-active" : "",
-                            step.done ? "is-done" : "",
-                            step.disabled ? "is-disabled" : "",
-                          ].filter(Boolean).join(" ")}
-                          onClick={() => selectStage(step.key)}
-                        >
-                          <span className="pulso-phase-pill-circle" aria-hidden="true" />
-                          <span className="pulso-phase-pill-stack">
-                            <span className="pulso-phase-pill-label">
-                              <span className="pulso-phase-pill-number" aria-hidden="true">{step.n}</span>
-                              <Icon size={13} aria-hidden="true" />
-                              {step.label}
-                            </span>
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </GlidingTabList>
-            </div>
-          </div>
-
-          <div className="hojas-ruta-command-actions" aria-label="Fase de aplicación y avisos">
-            {visiblePhaseNotice ? (
-              <div className="hojas-ruta-phase-notice-chip" role="status" title={visiblePhaseNotice}>
-                <Info size={13} aria-hidden="true" />
-                <span>{compactPhaseNotice(visiblePhaseNotice)}</span>
-                <button
-                  type="button"
-                  aria-label="Ocultar aviso de piloto"
-                  onClick={() => setDismissedPhaseNotice(visiblePhaseNotice)}
-                >
-                  <X size={12} aria-hidden="true" />
-                </button>
-              </div>
-            ) : null}
-
-            <PhaseHeaderControl
-              activePhase={activePhase}
-              pilotRun={pilotRun}
-              pilotSample={pilotSample}
-              pilotTitularCount={pilotTitularIds.length}
-              pilotExclusionMode={pilotExclusionMode}
-              busy={busy}
-              onPhaseChange={(phase) => void changePhase(phase)}
-              onPilotExclusionModeChange={(mode) => void setPilotExclusionMode(mode)}
-            />
-          </div>
+      }
+      secciones={
+        <div className="pulso-phase-rail hojas-ruta-stage-rail" aria-label="Etapas de hojas de ruta">
+          <GlidingTabList activeKey={currentStage} mode="tabs" className="pulso-phase-pillbar" role="group" aria-label="Etapas de hojas de ruta">
+            <ul className="pulso-phase-pill-list">
+              {hojasRutaNavigation.sections.map((step) => {
+                const active = step.key === currentStage;
+                const Icon = HOJAS_RUTA_STAGE_ICONS[step.key];
+                return (
+                  <li key={step.key} className="pulso-phase-pill-item">
+                    <button
+                      type="button"
+                      data-gliding-key={step.key}
+                      /* Etapas, no rutas: conserva `aria-current="step"` y
+                       * adopta los estados de nav-states.css. */
+                      data-nav-item=""
+                      data-nav-shape="pill"
+                      data-nav-state={active ? "selected" : undefined}
+                      aria-pressed={active}
+                      aria-current={active ? "step" : undefined}
+                      aria-disabled={step.disabled || undefined}
+                      disabled={step.disabled}
+                      title={step.disabled ? step.disabledReason : step.hint}
+                      className={[
+                        "pulso-phase-pill",
+                        active ? "is-active" : "",
+                        step.done ? "is-done" : "",
+                        step.disabled ? "is-disabled" : "",
+                      ].filter(Boolean).join(" ")}
+                      onClick={() => selectStage(step.key)}
+                    >
+                      <span className="pulso-phase-pill-circle" aria-hidden="true" />
+                      <span className="pulso-phase-pill-stack">
+                        <span className="pulso-phase-pill-label">
+                          <span className="pulso-phase-pill-number" aria-hidden="true">{step.n}</span>
+                          <Icon size={13} aria-hidden="true" />{step.label}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </GlidingTabList>
         </div>
-      )}
+      }
+      /* Solo el chip de aviso: el conmutador de fase mide 88px por diseño y vive
+         en la superficie operativa, no en la banda. */
+      herramientas={visiblePhaseNotice ? (
+        <div className="hojas-ruta-phase-notice-chip" role="status" title={visiblePhaseNotice}>
+          <Info size={13} aria-hidden="true" />
+          <span>{compactPhaseNotice(visiblePhaseNotice)}</span>
+          <button
+            type="button"
+            aria-label="Ocultar aviso de piloto"
+            onClick={() => setDismissedPhaseNotice(visiblePhaseNotice)}
+          >
+            <X size={12} aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
+    />
+  ) : undefined;
+
+  /* Superficie operativa: operar, no navegar. Puede crecer de alto; la banda no. */
+  const chromeSurface = frame?.ok ? (
+    <div className="hojas-ruta-command-surface">
+      <PhaseHeaderControl
+        activePhase={activePhase}
+        pilotRun={pilotRun}
+        pilotSample={pilotSample}
+        pilotTitularCount={pilotTitularIds.length}
+        pilotExclusionMode={pilotExclusionMode}
+        busy={busy}
+        onPhaseChange={(phase) => void changePhase(phase)}
+        onPilotExclusionModeChange={(mode) => void setPilotExclusionMode(mode)}
+      />
     </div>
   ) : undefined;
 
@@ -7815,8 +7820,10 @@ export default function HojasRutaPage() {
       headerMode="sr-only"
       title="Hojas de ruta"
       resetScrollKey={currentStage}
-      toolbar={chromeToolbar}
+      chrome={chromeBar}
+      notices={chromeNotices}
     >
+      {chromeSurface}
       <span
         hidden
         data-audit-ready="hojas-ruta"
@@ -8532,6 +8539,13 @@ export default function HojasRutaPage() {
                               type="button"
                               role="tab"
                               data-gliding-key={tab.key}
+                              /* Pestaña real con su tabpanel, así que conserva
+                               * `role="tab"` y `aria-selected`. Adopta los
+                               * estados compartidos para que su hover, su activo
+                               * y su foco sean los del resto de la app. */
+                              data-nav-item=""
+                              data-nav-shape="pill"
+                              data-nav-state={currentDeliveryTab === tab.key ? "selected" : undefined}
                               aria-selected={currentDeliveryTab === tab.key}
                               aria-controls={HOJAS_DELIVERY_REVIEW_PANEL_ID}
                               className={currentDeliveryTab === tab.key ? "is-active" : ""}

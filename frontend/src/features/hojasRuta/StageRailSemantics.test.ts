@@ -8,10 +8,14 @@ describe("Hojas de ruta stage rail semantics", () => {
       path.join(__dirname, "HojasRutaPage.tsx"),
       "utf8",
     );
-    const rail = source.slice(
-      source.indexOf('<div className="hojas-ruta-stage-rail-wrap">'),
-      source.indexOf('<div className="hojas-ruta-command-actions"'),
-    );
+    // Los marcadores cambiaron al migrar el módulo al chrome compartido: el
+    // rail vive en la zona `secciones` del ModuleCommandBar, así que ya no hay
+    // wrapper propio ni una zona de acciones hermana que lo cierre.
+    const inicio = source.indexOf('<div className="pulso-phase-rail hojas-ruta-stage-rail"');
+    const fin = source.indexOf("herramientas={", inicio);
+    expect(inicio, "no encontré el rail de etapas en la página").toBeGreaterThan(-1);
+    expect(fin, "no encontré el fin de la zona de secciones").toBeGreaterThan(inicio);
+    const rail = source.slice(inicio, fin);
 
     expect(rail).toContain("hojasRutaNavigation.sections.map((step)");
     expect(rail).toContain('role="group"');
