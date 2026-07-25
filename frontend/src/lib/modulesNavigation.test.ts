@@ -25,8 +25,8 @@ const EXPECTED_PRIMARY_NAVIGATION: Record<
     to: "/bitacora",
     sections: [
       { id: "bitacora", label: "Bitácora", to: "/bitacora", layoutPolicy: "viewport" },
-      { id: "cronograma", label: "Cronograma", to: "/bitacora?tab=cronograma", layoutPolicy: "viewport" },
-      { id: "calendario", label: "Calendario", to: "/bitacora?tab=calendario", layoutPolicy: "viewport" },
+      { id: "cronograma", label: "Cronograma", to: "/bitacora?seccion=cronograma", layoutPolicy: "viewport" },
+      { id: "calendario", label: "Calendario", to: "/bitacora?seccion=calendario", layoutPolicy: "viewport" },
     ],
   },
   "calc-muestra": {
@@ -47,11 +47,11 @@ const EXPECTED_PRIMARY_NAVIGATION: Record<
     landingKind: "entrypoint",
     to: "/hojas-ruta",
     sections: [
-      { id: "territorio", label: "Territorio", to: "/hojas-ruta?stage=territorio", layoutPolicy: "viewport" },
-      { id: "poblacion", label: "Población", to: "/hojas-ruta?stage=poblacion", layoutPolicy: "viewport" },
-      { id: "muestra", label: "Muestra", to: "/hojas-ruta?stage=muestra", layoutPolicy: "viewport" },
-      { id: "manzanas", label: "Manzanas", to: "/hojas-ruta?stage=manzanas", layoutPolicy: "viewport" },
-      { id: "entrega", label: "Entrega", to: "/hojas-ruta?stage=entrega", layoutPolicy: "viewport" },
+      { id: "territorio", label: "Territorio", to: "/hojas-ruta?seccion=territorio", layoutPolicy: "viewport" },
+      { id: "poblacion", label: "Población", to: "/hojas-ruta?seccion=poblacion", layoutPolicy: "viewport" },
+      { id: "muestra", label: "Muestra", to: "/hojas-ruta?seccion=muestra", layoutPolicy: "viewport" },
+      { id: "manzanas", label: "Manzanas", to: "/hojas-ruta?seccion=manzanas", layoutPolicy: "viewport" },
+      { id: "entrega", label: "Entrega", to: "/hojas-ruta?seccion=entrega", layoutPolicy: "viewport" },
     ],
   },
   recopiladores: {
@@ -89,14 +89,16 @@ const EXPECTED_PRIMARY_NAVIGATION: Record<
 };
 
 describe("manifiesto primario de navegación", () => {
-  it("declara la cobertura v2 que el shell consume solo con runtime de Hojas", () => {
+  it("declara la cobertura v3 con la gramática de direcciones nombrada", () => {
     expect(PROSECNUR_NAVIGATION_CONTRACT).toEqual({
-      version: 2,
+      version: 3,
+      grammar: "modulo/modo/seccion/pestana/panel",
       coverage: "primary-routes-v1",
-      profiledSectionsCoverage: "monitoring-profiles-v1",
+      modosCoverage: "monitoring-profiles-v1",
       tabsCoverage: "hojas-ruta-v1",
       shellCoverage: "hojas-ruta-v1",
       consumableByShell: true,
+      addressable: true,
     });
   });
 
@@ -169,16 +171,16 @@ describe("manifiesto primario de navegación", () => {
 
     expect(routes?.tone.accent).toBe("var(--pulso-module-routes)");
     expect(routes?.sections.map(({ id, label, to }) => ({ id, label, to }))).toEqual([
-      { id: "territorio", label: "Territorio", to: "/hojas-ruta?stage=territorio" },
-      { id: "poblacion", label: "Población", to: "/hojas-ruta?stage=poblacion" },
-      { id: "muestra", label: "Muestra", to: "/hojas-ruta?stage=muestra" },
-      { id: "manzanas", label: "Manzanas", to: "/hojas-ruta?stage=manzanas" },
-      { id: "entrega", label: "Entrega", to: "/hojas-ruta?stage=entrega" },
+      { id: "territorio", label: "Territorio", to: "/hojas-ruta?seccion=territorio" },
+      { id: "poblacion", label: "Población", to: "/hojas-ruta?seccion=poblacion" },
+      { id: "muestra", label: "Muestra", to: "/hojas-ruta?seccion=muestra" },
+      { id: "manzanas", label: "Manzanas", to: "/hojas-ruta?seccion=manzanas" },
+      { id: "entrega", label: "Entrega", to: "/hojas-ruta?seccion=entrega" },
     ]);
     expect(delivery?.tabs?.map(({ id, label, to }) => ({ id, label, to }))).toEqual([
-      { id: "cuotas", label: "Cuotas", to: "/hojas-ruta?stage=entrega&tab=cuotas" },
-      { id: "titulares", label: "Titulares", to: "/hojas-ruta?stage=entrega&tab=titulares" },
-      { id: "reemplazos", label: "Reemplazos", to: "/hojas-ruta?stage=entrega&tab=reemplazos" },
+      { id: "cuotas", label: "Cuotas", to: "/hojas-ruta?seccion=entrega&pestana=cuotas" },
+      { id: "titulares", label: "Titulares", to: "/hojas-ruta?seccion=entrega&pestana=titulares" },
+      { id: "reemplazos", label: "Reemplazos", to: "/hojas-ruta?seccion=entrega&pestana=reemplazos" },
     ]);
   });
 
@@ -191,13 +193,13 @@ describe("manifiesto primario de navegación", () => {
     }
   });
 
-  it("declara las secciones estables de Monitoreo por perfil sin cargar features", () => {
+  it("declara los modos de Monitoreo y las secciones de cada uno", () => {
     const monitoring = PROSECNUR_MODULES.find((module) => module.slug === "monitoreo");
 
     expect(monitoring).toBeDefined();
-    for (const set of monitoring?.sectionSets ?? []) {
-      expect(set.label).toMatch(/[a-záéíóúüñ]/);
-      for (const section of set.sections) {
+    for (const modo of monitoring?.modos ?? []) {
+      expect(modo.label).toMatch(/[a-záéíóúüñ]/);
+      for (const section of modo.sections) {
         expect(section.icon).toBeTruthy();
         expect(section.label[0]).toBe(section.label[0].toLocaleUpperCase("es-PE"));
         expect(section.label).toMatch(/[a-záéíóúüñ]/);
@@ -205,10 +207,10 @@ describe("manifiesto primario de navegación", () => {
       }
     }
 
-    expect(monitoring?.sectionSets?.map((set) => ({
-      id: set.id,
-      label: set.label,
-      sections: set.sections.map(({ id, label, to, layoutPolicy }) => ({
+    expect(monitoring?.modos?.map((modo) => ({
+      id: modo.id,
+      label: modo.label,
+      sections: modo.sections.map(({ id, label, to, layoutPolicy }) => ({
         id,
         label,
         to,
@@ -219,45 +221,45 @@ describe("manifiesto primario de navegación", () => {
         id: "acreditacion",
         label: "Acreditación",
         sections: [
-          { id: "fuentes", label: "Fuentes", to: "/monitoreo?tab=fuentes", layoutPolicy: "viewport" },
-          { id: "modelo", label: "Modelo operativo", to: "/monitoreo?tab=modelo", layoutPolicy: "viewport" },
-          { id: "consultas", label: "Consultas", to: "/monitoreo?tab=consultas", layoutPolicy: "viewport" },
-          { id: "telefonico", label: "Monitoreo telefónico", to: "/monitoreo?tab=telefonico", layoutPolicy: "viewport" },
-          { id: "avance", label: "Avance", to: "/monitoreo?tab=avance", layoutPolicy: "viewport" },
+          { id: "fuentes", label: "Fuentes", to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport" },
+          { id: "modelo", label: "Modelo operativo", to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
+          { id: "consultas", label: "Consultas", to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport" },
+          { id: "telefonico", label: "Monitoreo telefónico", to: "/monitoreo?seccion=telefonico", layoutPolicy: "viewport" },
+          { id: "avance", label: "Avance", to: "/monitoreo?seccion=avance", layoutPolicy: "viewport" },
         ],
       },
       {
         id: "telefonico",
         label: "Telefónico",
         sections: [
-          { id: "fuentes", label: "Fuentes", to: "/monitoreo?tab=fuentes", layoutPolicy: "viewport" },
-          { id: "modelo", label: "Modelo operativo", to: "/monitoreo?tab=modelo", layoutPolicy: "viewport" },
-          { id: "telefonico", label: "Llamadas", to: "/monitoreo?tab=telefonico", layoutPolicy: "viewport" },
-          { id: "consultas", label: "Consultas", to: "/monitoreo?tab=consultas", layoutPolicy: "viewport" },
-          { id: "avance", label: "Avance", to: "/monitoreo?tab=avance", layoutPolicy: "viewport" },
+          { id: "fuentes", label: "Fuentes", to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport" },
+          { id: "modelo", label: "Modelo operativo", to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
+          { id: "telefonico", label: "Llamadas", to: "/monitoreo?seccion=telefonico", layoutPolicy: "viewport" },
+          { id: "consultas", label: "Consultas", to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport" },
+          { id: "avance", label: "Avance", to: "/monitoreo?seccion=avance", layoutPolicy: "viewport" },
         ],
       },
       {
         id: "territorial",
         label: "Territorial",
         sections: [
-          { id: "fuentes", label: "Fuente", to: "/monitoreo?tab=fuentes", layoutPolicy: "viewport" },
-          { id: "modelo", label: "UMPs", to: "/monitoreo?tab=modelo", layoutPolicy: "viewport" },
-          { id: "calidad", label: "Validación", to: "/monitoreo?tab=calidad", layoutPolicy: "viewport" },
-          { id: "consultas", label: "Consultas internas", to: "/monitoreo?tab=consultas", layoutPolicy: "viewport" },
-          { id: "avance", label: "Avance territorial", to: "/monitoreo?tab=avance", layoutPolicy: "viewport" },
-          { id: "ocurrencias", label: "Ocurrencias de campo", to: "/monitoreo?tab=ocurrencias", layoutPolicy: "viewport" },
+          { id: "fuentes", label: "Fuente", to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport" },
+          { id: "modelo", label: "UMPs", to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
+          { id: "calidad", label: "Validación", to: "/monitoreo?seccion=calidad", layoutPolicy: "viewport" },
+          { id: "consultas", label: "Consultas internas", to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport" },
+          { id: "avance", label: "Avance territorial", to: "/monitoreo?seccion=avance", layoutPolicy: "viewport" },
+          { id: "ocurrencias", label: "Ocurrencias de campo", to: "/monitoreo?seccion=ocurrencias", layoutPolicy: "viewport" },
         ],
       },
       {
         id: "aulas",
         label: "Cursos-horario",
         sections: [
-          { id: "fuentes", label: "Fuentes", to: "/monitoreo?tab=fuentes", layoutPolicy: "viewport" },
-          { id: "modelo", label: "Agenda de cursos-horario", to: "/monitoreo?tab=modelo", layoutPolicy: "viewport" },
-          { id: "avance", label: "Avance", to: "/monitoreo?tab=avance", layoutPolicy: "viewport" },
-          { id: "calidad", label: "Validación", to: "/monitoreo?tab=calidad", layoutPolicy: "viewport" },
-          { id: "consultas", label: "Consultas", to: "/monitoreo?tab=consultas", layoutPolicy: "viewport" },
+          { id: "fuentes", label: "Fuentes", to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport" },
+          { id: "modelo", label: "Agenda de cursos-horario", to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
+          { id: "avance", label: "Avance", to: "/monitoreo?seccion=avance", layoutPolicy: "viewport" },
+          { id: "calidad", label: "Validación", to: "/monitoreo?seccion=calidad", layoutPolicy: "viewport" },
+          { id: "consultas", label: "Consultas", to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport" },
         ],
       },
     ]);
