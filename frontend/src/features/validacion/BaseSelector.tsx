@@ -1,19 +1,21 @@
-import { Database, Layers } from "lucide-react";
+import { ChevronDown, Layers } from "lucide-react";
+
 import type { EstudioPayload } from "../../api/client";
-import { RepeatBadge } from "../../components/RepeatBadge";
-import { GlidingTabList } from "../../components/GlidingTabList";
-import { isRepeatChildBase } from "../../lib/repeatIdentity";
+import { BasesInspectorMenu } from "../../components/BasesInspectorMenu";
 
 // =============================================================================
-// BaseSelector — selector de base arriba del todo en Fase 2
+// BaseSelector — la base activa, como desplegable
 // =============================================================================
-// Multi-base: grupo de botones segmentados con el nombre de cada base.
-// Single-base (sin estudio o con 1 sola base): se oculta, no tiene sentido
-// ofrecer un selector. El valor `null` significa "usa la primera base por
-// defecto" y el backend lo resuelve.
+// Antes era una lista de chips segmentados, uno por base, dentro de la banda del
+// módulo: con dos bases ya ocupaba ~380px y cada base nueva le comía más ancho al
+// rail de secciones. Y encima duplicaba información con el resumen «N bases» que
+// el shell dibuja del otro lado.
 //
-// Cambiar de base dispara una invalidación masiva de caché en los tabs
-// (vía `version` en el store) — el caller ya lo maneja.
+// Ahora es un disparador de ancho fijo que abre el desglose compartido, que además
+// de dejar elegir muestra el instrumento y la base de datos de cada una — que es
+// lo que de verdad hay que poder auditar en un estudio multibase.
+//
+// Single-base: no se dibuja. Ofrecer un selector de una sola opción es ruido.
 
 type Props = {
   estudio: EstudioPayload | null;
@@ -28,64 +30,29 @@ export default function BaseSelector({ estudio, selected, onChange, disabled, cl
 
   const bases = Object.values(estudio.bases);
   const activeKey = selected ?? bases[0]?.nombre ?? null;
+  const activa = bases.find((b) => b.nombre === activeKey) ?? bases[0];
+  const etiqueta = activa
+    ? activa.source_alias || activa.source_title || activa.nombre
+    : "Elegir base";
 
   return (
-    <GlidingTabList
-      activeKey={activeKey}
-      role="group"
-      aria-label="Base activa para validar"
-      className={["pulso-validacion-base-selector", className].filter(Boolean).join(" ")}
-    >
-      <span
-        aria-hidden="true"
-        className="pulso-validacion-base-label"
-      >
-        <Layers size={12} /> Validar
-      </span>
-      <div className="pulso-validacion-base-list">
-        {bases.map((b) => {
-          const active = b.nombre === activeKey;
-          const label = b.source_alias || b.source_title || b.nombre;
-          const isRepeatChild = isRepeatChildBase(b);
-          const repeatGroup = String(b.repeat_group ?? "").trim();
-          const repeatParent = String(b.parent_base ?? "").trim();
-          return (
-            <button
-              key={b.nombre}
-              type="button"
-              aria-pressed={active}
-              data-gliding-key={b.nombre}
-              onClick={() => onChange(b.nombre)}
-              disabled={disabled || active}
-              title={
-                b.n_filas != null
-                  ? `${label} · ${b.n_filas} filas · ${b.n_columnas} columnas`
-                  : label
-              }
-              className={`pulso-validacion-base-chip${active ? " is-active" : ""}${isRepeatChild ? " is-repeat" : ""}`}
-            >
-              <Database size={11} />
-              {label}
-              {isRepeatChild && (
-                <RepeatBadge
-                  repeatGroup={repeatGroup || null}
-                  compact
-                  title={
-                    repeatParent
-                      ? `Respuestas repetidas de «${repeatParent}» (una fila por opción marcada)`
-                      : "Base de respuestas repetidas"
-                  }
-                />
-              )}
-              {b.n_filas != null && (
-                <span>
-                  · {b.n_filas}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </GlidingTabList>
+    <BasesInspectorMenu
+      estudio={estudio}
+      activa={activeKey}
+      onSeleccionar={onChange}
+      deshabilitado={disabled}
+      disparador={
+        <button
+          type="button"
+          className={["pulso-bases-inspector-trigger", "is-selector", className].filter(Boolean).join(" ")}
+          title={`${etiqueta} · ${estudio.n_bases} bases en el estudio`}
+        >
+          <Layers size={12} aria-hidden />
+          <span className="pulso-bases-inspector-trigger-label">{etiqueta}</span>
+          <span className="pulso-bases-inspector-trigger-count">{estudio.n_bases}</span>
+          <ChevronDown size={12} aria-hidden />
+        </button>
+      }
+    />
   );
 }

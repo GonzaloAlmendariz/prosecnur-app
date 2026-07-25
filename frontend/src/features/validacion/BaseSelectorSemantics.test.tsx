@@ -34,7 +34,17 @@ function multibaseStudy(): EstudioPayload {
 }
 
 describe("BaseSelector semantics", () => {
-  it("exposes the active database as a pressed button group, not as tabs without a panel", () => {
+  /**
+   * El modelo cambió: antes era un grupo de botones segmentados, uno por base,
+   * dentro de la banda del módulo —con dos bases ya ocupaba ~380px y cada base
+   * nueva le comía ancho al rail—. Ahora es un disparador de ancho acotado que
+   * abre el desglose compartido.
+   *
+   * Lo que este test sigue cuidando es lo mismo en espíritu: que sea un botón de
+   * verdad, que diga cuál es la base activa, y que NO finja ser un tablist —un
+   * `role="tab"` sin `tabpanel` es una promesa falsa al lector de pantalla.
+   */
+  it("es un botón que nombra la base activa, no un tablist sin panel", () => {
     const html = renderToStaticMarkup(
       <BaseSelector
         estudio={multibaseStudy()}
@@ -43,11 +53,11 @@ describe("BaseSelector semantics", () => {
       />,
     );
 
-    expect(html).toContain('role="group"');
-    expect(html).toContain('aria-label="Base activa para validar"');
     expect(html).toContain('type="button"');
-    expect(html).toContain('aria-pressed="true"');
-    expect(html).toContain('aria-pressed="false"');
+    // El nombre de la base activa se lee en el disparador, sin abrir nada.
+    expect(html).toContain("Hogares");
+    // Y cuántas hay en total, que es la otra mitad del contexto.
+    expect(html).toContain("2");
     expect(html).not.toContain('role="tablist"');
     expect(html).not.toContain('role="tab"');
     expect(html).not.toContain("aria-selected");

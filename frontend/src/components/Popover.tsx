@@ -203,13 +203,20 @@ export function Popover({
   // El portal aterriza dentro del frame del módulo cuando existe, para que
   // los tokens scoped (ej. --cmv2-*) resuelvan dentro del popover; cae a body
   // si no hay frame. position: fixed sigue anclado al viewport en ambos casos.
+  // `typeof document` y no `document` directo: este componente se renderiza en
+  // tests con `renderToStaticMarkup`, donde no hay DOM, y tocarlo en render
+  // reventaba el árbol completo. Sin documento no hay portal que montar, y como
+  // el panel solo se dibuja abierto, el marcado en servidor no pierde nada.
   const portalTarget =
-    (triggerRef.current?.closest(".pulso-page-frame") as HTMLElement | null) ?? document.body;
+    typeof document === "undefined"
+      ? null
+      : (triggerRef.current?.closest(".pulso-page-frame") as HTMLElement | null) ?? document.body;
 
   return (
     <>
       {cloneElement(trigger, triggerProps)}
       {open &&
+        portalTarget &&
         createPortal(
           <div
             ref={panelRef}

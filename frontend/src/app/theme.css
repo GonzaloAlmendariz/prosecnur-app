@@ -2766,21 +2766,38 @@ a { color: var(--pulso-primary); }
  *
  * Con la condición, mientras el indicador no esté visible el item conserva su
  * propio pintado (ver la regla siguiente) y nunca hay blanco sobre blanco. */
-.pulso-gliding-tab-list:has(.pulso-gliding-tab-indicator.is-visible)
+/* Solo los rails HORIZONTALES confían en el indicador para su relleno.
+ *
+ * En los verticales —los sidebars— la medición falla de verdad: se midió un
+ * indicador con la clase `is-visible` puesta y tamaño 0×0, con el item activo en
+ * 42×42, fondo transparente y contenido blanco. Resultado: blanco sobre blanco,
+ * el item activo como una caja vacía. Es el bug reportado en el sidebar de
+ * Codificación, y se reprodujo tras recarga limpia.
+ *
+ * Se intentó condicionar la regla a que el indicador estuviera visible, y no
+ * alcanza porque la clase se pone igual. Así que en vertical no se depende de la
+ * medición: el item se pinta él mismo (regla siguiente). Se pierde el deslizado en
+ * los sidebars y se conserva en las pillbars horizontales, donde funciona. Entre
+ * una animación y navegación invisible, la animación cede. */
+.pulso-gliding-tab-list:not([data-gliding-orientation="vertical"])
   [data-gliding-key][aria-selected="true"]:not([data-nav-item]:hover) {
   background: transparent !important;
   box-shadow: none !important;
   color: var(--pulso-gliding-active-color, #fff) !important;
 }
 
-/* Red de seguridad: sin indicador medido, el item activo se pinta él mismo, con
- * el mismo color que tendría el indicador. Así el contenido blanco siempre cae
- * sobre el acento, y cuando el indicador aparece el color coincide y no se nota
- * ningún salto. */
-.pulso-gliding-tab-list:not(:has(.pulso-gliding-tab-indicator.is-visible))
+/* Rails verticales: el item activo pinta su propio relleno, con el mismo color que
+ * tendría el indicador, así nunca queda contenido claro sobre fondo claro. */
+.pulso-gliding-tab-list[data-gliding-orientation="vertical"]
   [data-gliding-key][aria-selected="true"] {
   background: var(--pulso-gliding-indicator-bg);
   color: var(--pulso-gliding-active-color, #fff);
+}
+
+/* Y su indicador se oculta: con el item pintado, dejarlo sería una segunda capa
+ * del mismo color asomando en los bordes durante la transición. */
+.pulso-gliding-tab-list[data-gliding-orientation="vertical"] .pulso-gliding-tab-indicator {
+  display: none;
 }
 
 .pulso-gliding-tab-indicator {

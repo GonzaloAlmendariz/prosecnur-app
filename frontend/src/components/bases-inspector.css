@@ -154,3 +154,49 @@
   outline: var(--pulso-nav-focus-outline-width) solid var(--pulso-nav-focus-outline-color);
   outline-offset: var(--pulso-nav-focus-offset);
 }
+
+/* El disparador en su forma de SELECTOR: nombre de la base activa, cuántas hay y
+ * el chevron. Ancho acotado a propósito — antes esto era una lista de chips, uno
+ * por base, y con dos ya ocupaba ~380px de banda. */
+.pulso-bases-inspector-trigger.is-selector {
+  max-width: 260px;
+}
+
+.pulso-bases-inspector-trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-bases-inspector-trigger-count {
+  flex: 0 0 auto;
+  padding: 0 6px;
+  border-radius: var(--pulso-radius-chip);
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, var(--pulso-surface));
+  color: var(--module-accent, var(--pulso-primary));
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+/* Item seleccionable: la cabecera pasa a ser un botón y toma los estados
+ * compartidos de nav-states.css, así el hover y el foco son los de la app. */
+.pulso-bases-inspector-item[data-seleccionable] .pulso-bases-inspector-item-head {
+  width: 100%;
+  padding: 2px 4px;
+  margin: -2px -4px 0;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.pulso-bases-inspector-item[data-seleccionable] .pulso-bases-inspector-item-head:disabled {
+  cursor: default;
+}
+
+.pulso-bases-inspector-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}

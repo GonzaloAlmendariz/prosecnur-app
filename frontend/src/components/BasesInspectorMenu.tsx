@@ -16,10 +16,10 @@
  * cuyo instrumento no es el que uno cree es un error caro y silencioso.
  */
 
-import { Database, FileSpreadsheet, FileText } from "../../vendor/lucide-react";
+import { Check, Database, FileSpreadsheet, FileText } from "../vendor/lucide-react";
 
-import { Popover } from "../../components/Popover";
-import type { EstudioBase, EstudioPayload } from "../../api/estudio";
+import { Popover } from "./Popover";
+import type { EstudioBase, EstudioPayload } from "../api/estudio";
 import "./bases-inspector.css";
 
 function formatearFilas(n: number | null | undefined): string {
@@ -35,11 +35,19 @@ function nombreDeBase(nombre: string, base: EstudioBase): string {
 export function BasesInspectorMenu({
   estudio,
   activa,
+  onSeleccionar,
+  deshabilitado,
   disparador,
 }: {
   estudio: EstudioPayload;
   /** Base activa, para marcarla en la lista. */
   activa?: string | null;
+  /**
+   * Si se pasa, cada base se vuelve seleccionable y el desglose ES el selector.
+   * Sin esto es solo inventario de lectura.
+   */
+  onSeleccionar?: (nombre: string) => void;
+  deshabilitado?: boolean;
   disparador: React.ReactElement;
 }) {
   const entradas = Object.entries(estudio.bases ?? {});
@@ -71,14 +79,37 @@ export function BasesInspectorMenu({
                 key={nombre}
                 className="pulso-bases-inspector-item"
                 data-activa={esActiva ? "" : undefined}
+                data-seleccionable={onSeleccionar ? "" : undefined}
               >
-                <div className="pulso-bases-inspector-item-head">
-                  <Database size={13} aria-hidden />
-                  <strong>{nombreDeBase(nombre, base)}</strong>
-                  {esActiva ? (
-                    <span className="pulso-bases-inspector-badge">Activa</span>
-                  ) : null}
-                </div>
+                {onSeleccionar ? (
+                  <button
+                    type="button"
+                    className="pulso-bases-inspector-item-head"
+                    data-nav-item=""
+                    data-nav-shape="row"
+                    data-nav-state={esActiva ? "selected" : undefined}
+                    aria-pressed={esActiva}
+                    disabled={deshabilitado || esActiva}
+                    onClick={() => onSeleccionar(nombre)}
+                  >
+                    <Database size={13} aria-hidden />
+                    <strong>{nombreDeBase(nombre, base)}</strong>
+                    {esActiva ? (
+                      <span className="pulso-bases-inspector-badge">
+                        <Check size={11} aria-hidden />
+                        Activa
+                      </span>
+                    ) : null}
+                  </button>
+                ) : (
+                  <div className="pulso-bases-inspector-item-head">
+                    <Database size={13} aria-hidden />
+                    <strong>{nombreDeBase(nombre, base)}</strong>
+                    {esActiva ? (
+                      <span className="pulso-bases-inspector-badge">Activa</span>
+                    ) : null}
+                  </div>
+                )}
 
                 <dl className="pulso-bases-inspector-grid">
                   <div>
