@@ -137,18 +137,21 @@ const BLOCK_MAP_MAX_ZOOM = 10;
 const STREET_MAP_CLIENT_CACHE_VERSION = "street-context-neighbor-v2";
 const CONTEXT_MAP_CLIENT_CACHE_VERSION = "context-neighbor-curated-v2";
 // Paleta cartografica en hex/rgba concretos (el mapa se pinta en <canvas>, donde
-// no resuelven las CSS vars). Foco/cuotas se alinean al acento naranja
-// (--pulso-module-routes = #c2410c) para no dejar verde compitiendo: foco =
+// no resuelven las CSS vars). Foco/cuotas se alinean al acento del modulo
+// (--pulso-module-routes = #ac563b) para no dejar verde compitiendo: foco =
 // contorno palido, cuotas = relleno solido. Reemplazo (azul)/piloto (ambar) propios.
+// Estos tres valores son una COPIA del token y hay que moverlos con el: el acento
+// bajo al techo de croma 0.12 y, si el mapa se quedaba en el naranja anterior,
+// quedaba mas encendido que el chrome que lo rodea.
 const MAP_GEOMETRY_STYLE = {
   background: "#f7f5e8",
   contextFill: "rgba(248,246,226,0.76)",
   contextStroke: "rgba(31,41,55,0.66)",
   mutedFill: "rgba(248,246,226,0.64)",
   mutedStroke: "rgba(51,65,85,0.46)",
-  focusFill: "rgba(194,65,12,0.14)",
-  focusStroke: "#c2410c",
-  selectedFill: "#c2410c",
+  focusFill: "rgba(172,86,59,0.14)",
+  focusStroke: "#ac563b",
+  selectedFill: "#ac563b",
   selectedStroke: "#7c2d12",
   replacementFill: "#bfdbfe",
   replacementStroke: "#1d4ed8",
