@@ -40,15 +40,20 @@
   --prosecnur-danger-bg: #fef2f2;
   --prosecnur-danger-fg: #991b1b;
 
-  /* --- Espectro modular (acentos de chrome por módulo) ------- */
-  --prosecnur-mod-editor: #6d5dfc;
+  /* --- Espectro modular (acentos de chrome por módulo) -------
+   * Techo de croma 0.12 en OKLCH: el tono de cada módulo es suyo, lo que
+   * se acota es cuánta saturación gasta. Procesamiento, Bitácora y
+   * Recopiladores ya estaban en el techo o por debajo y conservan su hex.
+   * El carmesí de Monitoreo dejó de coincidir con --prosecnur-danger,
+   * que era una colisión de rol (acento de módulo vs. estado). */
+  --prosecnur-mod-editor: #7172c1;
   --prosecnur-mod-procesamiento: #0f766e;
-  --prosecnur-mod-dashboard: #2563eb;
-  --prosecnur-mod-rutas: #c2410c;
-  --prosecnur-mod-muestra: #7c3aed;
+  --prosecnur-mod-dashboard: #4a6eb6;
+  --prosecnur-mod-rutas: #ac563b;
+  --prosecnur-mod-muestra: #7260ae;
   --prosecnur-mod-bitacora: #a16207;
   --prosecnur-mod-recopiladores: #106e8c;
-  --prosecnur-mod-monitoreo: #be123c;
+  --prosecnur-mod-monitoreo: #a0464e;
 
   /* --- Interacción ------------------------------------------ */
   --prosecnur-focus: rgba(0, 36, 87, 0.15);

@@ -257,3 +257,63 @@
   align-items: center;
   gap: 3px;
 }
+
+
+/* ── Clúster de varias bases (Carga) ────────────────────────────────────────
+ * El modo de varias bases y el inventario del estudio son dos controles —uno
+ * alterna, el otro abre un desglose— y por eso NO se funden en un botón que hace
+ * dos cosas. Pero hablan del mismo asunto, y sueltos eran dos pastillas
+ * compitiendo por el lado izquierdo de la banda: 142px + 69 con su aire, cada una
+ * con su borde.
+ *
+ * El material sube al contenedor y los hijos lo pierden: una sola pastilla con un
+ * divisor en medio. Uno visualmente, dos funcionalmente — el mismo recurso que ya
+ * usa la banda de Monitoreo para agrupar sus controles de sincronización. */
+.pulso-multibase-cluster {
+  display: inline-flex;
+  align-items: stretch;
+  min-width: 0;
+  min-height: var(--pulso-chrome-control-h);
+  border: 1px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 26%, var(--pulso-border));
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 82%, transparent);
+  overflow: hidden;
+}
+
+/* Los hijos ceden su propio material: dentro del clúster el borde y el fondo ya
+ * los pone el contenedor, y dejarlos puestos dibujaba una caja dentro de otra. */
+.pulso-multibase-cluster .pulso-multibase-toggle.is-compact,
+.pulso-multibase-cluster .pulso-bases-inspector-trigger,
+.pulso-carga-commandbar .pulso-multibase-cluster .pulso-multibase-toggle {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* El divisor lo pone el segundo control, para que no aparezca cuando el estudio
+ * tiene una sola base y el inventario no se renderiza.
+ *
+ * Va DESPUÉS de la neutralización y con su misma especificidad: la regla de
+ * arriba pone `border: 0` sobre estos mismos elementos, y un `> * + *` suelto
+ * —especificidad cero— perdía contra ella y el divisor no llegaba a dibujarse. */
+.pulso-multibase-cluster > .pulso-multibase-toggle.is-compact + *,
+.pulso-multibase-cluster > * + .pulso-bases-inspector-trigger,
+.pulso-multibase-cluster > * + * > .pulso-bases-inspector-trigger {
+  border-left: 1px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 18%, var(--pulso-border));
+}
+
+.pulso-bases-inspector-trigger.is-cluster {
+  gap: 6px;
+  height: 100%;
+  padding: 0 11px;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-bases-inspector-trigger.is-cluster:hover {
+    color: var(--pulso-text);
+  }
+}

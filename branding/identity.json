@@ -5,8 +5,8 @@
     "name": "Prosecnur — La señal ordenada (identidad visual v1.2)",
     "mode": "reconstruction",
     "status": "frozen",
-    "version": "1.2.1",
-    "manifest_hash": "sha256:930fe502548ef92703911a240184eb792bbe58ac98d814211654aeee0dfd7c57",
+    "version": "1.3.0",
+    "manifest_hash": "sha256:b0a069a17441e7bc8808e2a0c7e972317431f6db921f8f00eb330a5f8b8661f3",
     "owners": [
       "Gonzalo Almendáriz (PULSO PUCP)"
     ]
@@ -284,6 +284,40 @@
         "ev-direccion-creativa",
         "ev-theme-css"
       ]
+    },
+    {
+      "id": "dec-techo-croma-modular",
+      "gate": "change-request",
+      "owner": "Gonzalo Almendáriz (PULSO PUCP)",
+      "timestamp": "2026-07-25T15:56:00Z",
+      "status": "approved",
+      "rationale": "Los ocho acentos de módulo quedan sujetos a un techo de croma de 0.12 en OKLCH: el tono de cada módulo es suyo y no se toca, lo que se estandariza es cuánta saturación puede gastar. Medido antes de fijarlo, el croma iba de 0.086 (teal de Procesamiento) a 0.247 (violeta de Cálculo de muestra), casi el triple, y por eso el mismo elemento se sentía sobrio en un módulo y estridente en otro; el teal es la referencia y el techo acerca los demás a él sin lavarlos —el rango pasa de 2.87x a 1.4x—. Un techo más bajo se probó y se descartó con evidencia: a 0.090 el carmesí de Monitoreo cae en #945155, que ya no se lee como rojo sino como marrón sucio. Cambian cinco acentos: Editor #6D5DFC→#7172C1, Dashboard #2563EB→#4A6EB6, Hojas de ruta #C2410C→#AC563B, Cálculo de muestra #7C3AED→#7260AE, Monitoreo #BE123C→#A0464E. Procesamiento (0.086), Fichas QR (0.092) y Bitácora (0.121) ya estaban en el techo o por debajo y conservan su hex exacto. Efecto colateral querido: el acento de Monitoreo deja de coincidir con el carmesí semántico de peligro, que era una colisión de rol. El invariante de ocho acentos distintos y con contraste suficiente se mantiene y está cubierto por contrato de test en el frontend. Aprobado por el usuario el 2026-07-25 («me gusta más la paleta de hoy, más seria y profesional»).",
+      "evidence_ids": [
+        "ev-theme-css"
+      ]
+    },
+    {
+      "id": "dec-navegacion-cinco-niveles",
+      "gate": "change-request",
+      "owner": "Gonzalo Almendáriz (PULSO PUCP)",
+      "timestamp": "2026-07-25T15:56:00Z",
+      "status": "approved",
+      "rationale": "El vocabulario de navegación se alinea con los ADR 0043→0044: la jerarquía canónica es Módulo → Modo → Sección → Pestaña → Panel, y toda vista es enlazable (ruta = módulo, query = el resto, con params canónicos modo/seccion/pestana/panel/foco). Reemplaza a la formulación de tres niveles «Familia/Módulo → Sección → Pestaña dinámica»: «familia» quedó como alias de lectura en el cable y no se escribe, y faltaban dos niveles reales —el Modo, que reescribe el juego de secciones y lo determina el estudio y no un click, y el Panel, que es donde viven popovers, sideovers, diálogos e inspectores—. El sidebar deja de figurar como nivel de navegación: tras el ADR 0042 el chrome canónico es top bar de secciones + rail de pestañas, y el sidebar sobrevive solo como inventario de objetos dentro de una sección.",
+      "evidence_ids": [
+        "ev-direccion-creativa",
+        "ev-theme-css"
+      ]
+    },
+    {
+      "id": "dec-escala-pesos-seis",
+      "gate": "change-request",
+      "owner": "Gonzalo Almendáriz (PULSO PUCP)",
+      "timestamp": "2026-07-25T15:56:00Z",
+      "status": "approved",
+      "rationale": "La escala tipográfica de peso se reduce a seis escalones —400/500/600/700/800/900— y el manifiesto deja de prescribir valores intermedios: display pasa de 680 a 800 (heavy) y title de 640 a 700 (bold), que son los pesos que la app aplica realmente en esos tamaños (h1.pulso-page-title es 22px/700; los displays de 24-28px usan heavy). El motivo es que antes convivían 44 pesos distintos repartidos en ~4.800 declaraciones, con lo que dos elementos del mismo rango se veían distinto según el archivo que los definiera. Los 620/680 de la firma de motion de diagramas son milisegundos y no se tocan.",
+      "evidence_ids": [
+        "ev-theme-css"
+      ]
     }
   ],
   "territories": [
@@ -484,7 +518,7 @@
         },
         {
           "name": "module-editor",
-          "value": "#6D5DFC",
+          "value": "#7172C1",
           "role": "accent"
         },
         {
@@ -494,17 +528,17 @@
         },
         {
           "name": "module-dashboard",
-          "value": "#2563EB",
+          "value": "#4A6EB6",
           "role": "accent"
         },
         {
           "name": "module-routes",
-          "value": "#C2410C",
+          "value": "#AC563B",
           "role": "accent"
         },
         {
           "name": "module-sample",
-          "value": "#7C3AED",
+          "value": "#7260AE",
           "role": "accent"
         },
         {
@@ -519,7 +553,7 @@
         },
         {
           "name": "module-monitoring",
-          "value": "#BE123C",
+          "value": "#A0464E",
           "role": "accent"
         },
         {
@@ -647,7 +681,7 @@
           "value": {
             "size_px": 28,
             "line_height": 1.2,
-            "weight": 680
+            "weight": 800
           }
         },
         {
@@ -655,7 +689,7 @@
           "value": {
             "size_px": 22,
             "line_height": 1.25,
-            "weight": 640
+            "weight": 700
           }
         },
         {
@@ -708,6 +742,12 @@
             "letter_spacing_em": 0.06
           }
         }
+      ],
+      "rules": [
+        "Escala de peso de seis escalones y nada entre medio: 400 regular · 500 medium · 600 semibold · 700 bold · 800 heavy · 900 black, expuestos como --pulso-weight-* en la app y --prosecnur-type-*-weight fuera de ella; los pesos intermedios (570, 640, 680, 770, 910\u2026) quedan prohibidos",
+        "Los literales de font-weight no se escriben en CSS de features: siempre el token del escal\u00f3n",
+        "Piso de tama\u00f1o de 10px en UI; las excepciones son print y etiquetas dentro de SVG, donde el medio define su propio piso",
+        "Los n\u00fameros de m\u00e9trica van con font-variant-numeric: tabular-nums, sin excepci\u00f3n"
       ]
     },
     "spacing": {
@@ -837,13 +877,14 @@
   },
   "architecture": {
     "navigation": {
-      "principle": "Jerarquía canónica de tres niveles —Familia/Módulo → Sección → Pestaña dinámica— sobre una anatomía de mini-app de cinco capas que nunca se aplanan en una sola barra o un solo sidebar.",
+      "principle": "Jerarquía canónica de cinco niveles —Módulo → Modo → Sección → Pestaña → Panel— donde toda vista es enlazable: la ruta nombra el módulo y el query nombra el resto (ADR 0043→0044).",
       "rules": [
-        "Vocabulario oficial: Familia/Módulo (homepage, paleta propia) → Sección (top bar del módulo; en Procesamiento: Carga, Validación, Codificación, Analítica, Gráficos) → Pestaña dinámica; UI nueva se cuelga de uno de esos tres niveles y nunca duplica la navegación de un nivel en otro",
-        "Anatomía de cinco capas: Capa 1 Comando (command bar material de 3 zonas: contexto · rail · acciones; sin H1 visible, la identidad vive aquí) · Capa 2 Secciones (rail centrado tipo pillbar) · Capa 3 Objetos (sidebar/outline compacto para inventarios largos: reglas, variables, rutas, pestañas dinámicas; icon-compressed que empuja el canvas) · Capa 4 Tabs locales (pestañas compactas o segmented dentro de la sección activa) · Capa 5 Inspector (propiedades contextuales del objeto seleccionado; edita, no navega)",
+        "Vocabulario oficial: Módulo (homepage, paleta propia) → Modo (opcional; reescribe el juego de secciones y lo determina el estudio, no un click — hoy Monitoreo y Cálculo de muestra) → Sección (top bar del módulo; en Procesamiento: Carga, Validación, Codificación, Analítica, Gráficos) → Pestaña → Panel (popover/sideover/diálogo/inspector); UI nueva se cuelga de uno de esos cinco niveles y nunca duplica la navegación de un nivel en otro",
+        "Anatomía de superficie del módulo: command bar material de 3 zonas (contexto · rail · acciones; sin H1 visible, la identidad vive ahí) · top bar de secciones tipo pillbar centrada · rail de pestañas · sidebar/outline compacto como inventario de objetos dentro de la sección activa (no es un nivel de navegación) · panel/inspector con las propiedades del objeto seleccionado, que edita y no navega",
         "Al abrir un proyecto se aterriza en el homepage del proyecto (cards de avance), jamás en una ruta heredada de otro proyecto",
         "El rail superior YA es el recorrido: el pulido didáctico va dentro de cada pestaña, nunca como segunda barra de pasos",
-        "El sidebar de pestañas expande empujando el canvas por grid, nunca como overlay flotante",
+        "Toda vista es enlazable: ruta = módulo, query = el resto (/monitoreo?modo=territorial&seccion=avance&pestana=ump&panel=filtros). Params canónicos modo/seccion/pestana/panel/foco; los nombres viejos (family, tab, stage, mesa, desk, step, reporte) se leen como alias pero nunca se escriben",
+        "Un overlay nuevo se conecta con usePanelDireccionable, no con un useState suelto; el sidebar de objetos expande empujando el canvas por grid, nunca como overlay flotante",
         "Módulos canónicos y sus rutas: Bitácora (/bitacora), Cálculo de muestra (/calc-muestra), Editor de formularios (/editor-xlsform), Hojas de ruta (/hojas-ruta), Fichas QR (/recopiladores), Monitoreo (/monitoreo), Procesamiento (/procesamiento), Dashboard (/tablero)"
       ]
     },
@@ -889,7 +930,7 @@
       "invariants": [
         "Tokens --pulso-* de theme.css como única fuente de color/motion/geometría en features",
         "Íconos lucide siempre vía el shim src/vendor/lucide-react.ts",
-        "Jerarquía de navegación de tres niveles y patrones maestros en todos los módulos",
+        "Jerarquía de navegación de cinco niveles (Módulo → Modo → Sección → Pestaña → Panel), direcciones enlazables y patrones maestros en todos los módulos",
         "Registro de readiness data-audit-ready en vistas que participan del QA visual"
       ],
       "adaptations": [
@@ -959,8 +1000,8 @@
           "path": "branding/manual-identidad.html",
           "ownership": "manual_template",
           "status": "current",
-          "identity_version": "1.2.1",
-          "manifest_hash": "sha256:930fe502548ef92703911a240184eb792bbe58ac98d814211654aeee0dfd7c57"
+          "identity_version": "1.3.0",
+          "manifest_hash": "sha256:b0a069a17441e7bc8808e2a0c7e972317431f6db921f8f00eb330a5f8b8661f3"
         },
         {
           "id": "prosecnur-brand-css",
@@ -968,8 +1009,8 @@
           "path": "branding/tokens/prosecnur-brand.css",
           "ownership": "manual_template",
           "status": "current",
-          "identity_version": "1.2.1",
-          "manifest_hash": "sha256:930fe502548ef92703911a240184eb792bbe58ac98d814211654aeee0dfd7c57"
+          "identity_version": "1.3.0",
+          "manifest_hash": "sha256:b0a069a17441e7bc8808e2a0c7e972317431f6db921f8f00eb330a5f8b8661f3"
         }
       ]
     },
@@ -1044,8 +1085,8 @@
       "path": "branding/identity/tokens.css",
       "ownership": "generated",
       "status": "current",
-      "identity_version": "1.2.1",
-      "manifest_hash": "sha256:930fe502548ef92703911a240184eb792bbe58ac98d814211654aeee0dfd7c57"
+      "identity_version": "1.3.0",
+      "manifest_hash": "sha256:b0a069a17441e7bc8808e2a0c7e972317431f6db921f8f00eb330a5f8b8661f3"
     },
     {
       "id": "identity-reference-doc",
@@ -1053,8 +1094,8 @@
       "path": "branding/identity/identity-reference.html",
       "ownership": "generated",
       "status": "current",
-      "identity_version": "1.2.1",
-      "manifest_hash": "sha256:930fe502548ef92703911a240184eb792bbe58ac98d814211654aeee0dfd7c57"
+      "identity_version": "1.3.0",
+      "manifest_hash": "sha256:b0a069a17441e7bc8808e2a0c7e972317431f6db921f8f00eb330a5f8b8661f3"
     }
   ],
   "extensions": {
@@ -1100,7 +1141,7 @@
       },
       "module_spectrum": {
         "editor-xlsform": {
-          "accent": "#6D5DFC",
+          "accent": "#7172C1",
           "css": "--pulso-module-editor",
           "titulo": "Editor de formularios"
         },
@@ -1110,17 +1151,17 @@
           "titulo": "Procesamiento"
         },
         "dashboard": {
-          "accent": "#2563EB",
+          "accent": "#4A6EB6",
           "css": "--pulso-module-dashboard",
           "titulo": "Dashboard interactivo"
         },
         "hojas-ruta": {
-          "accent": "#C2410C",
+          "accent": "#AC563B",
           "css": "--pulso-module-routes",
           "titulo": "Hojas de ruta para campo"
         },
         "calc-muestra": {
-          "accent": "#7C3AED",
+          "accent": "#7260AE",
           "css": "--pulso-module-sample",
           "titulo": "Cálculo de muestra y marco muestral"
         },
@@ -1140,7 +1181,7 @@
           "titulo": "Fichas QR para cursos-horario"
         },
         "monitoreo": {
-          "accent": "#BE123C",
+          "accent": "#A0464E",
           "css": "--pulso-module-monitoring",
           "titulo": "Monitoreo de campo"
         }
@@ -1237,9 +1278,12 @@
         "tratamiento": "tú, español peruano neutro"
       },
       "navigation_vocabulary": {
-        "nivel-1": "Familia/Módulo (homepage, paleta propia)",
-        "nivel-2": "Sección (top bar del módulo)",
-        "nivel-3": "Pestaña dinámica (sidebar icon-compressed)"
+        "nivel-1": "Módulo (homepage, paleta propia; ruta)",
+        "nivel-2": "Modo (opcional, lo determina el estudio; query modo)",
+        "nivel-3": "Sección (top bar del módulo; query seccion)",
+        "nivel-4": "Pestaña (rail de pestañas; query pestana)",
+        "nivel-5": "Panel (popover/sideover/diálogo/inspector; query panel)",
+        "ortogonal": "foco — entidad seleccionada dentro del nivel activo"
       },
       "superseded_decisions": {
         "dec-calc-sidebar-push": "superseded por dec-sidebar-icon-tooltip (2026-07-16)"
