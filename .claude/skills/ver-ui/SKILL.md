@@ -11,14 +11,83 @@ La app arranca en BootGate → elegir proyecto → clicks. Este skill salta todo
 
 1. **Backend**: si el puerto 8787 ya responde (`curl -s localhost:8787/api/system/health` o fetch vía proxy), reutilízalo — suele ser el proceso R del usuario, no lo mates. Si no, `preview_start` con "Backend (Plumber API)".
 2. **Frontend**: `preview_start` con "Frontend (Vite dev server)" (puerto 5173, proxy `/api` → 8787).
-3. **Proyecto**: el `.pulso` que indique el usuario; sin indicación, el de referencia: `api/inst/audit_reference/prosecnur_audit_reference.pulso`. Para estudios reales, el `.pulso` del cliente (sin copiarlo al repo).
-4. **Navega en un paso** con `preview_eval`:
+3. **Proyecto**: el `.pulso` que indique el usuario. Sin indicación, elige según lo que necesites ver (ADR 0043):
+
+   | Necesitas | Usa | Qué trae |
+   |---|---|---|
+   | Estado real de un módulo | `api/inst/reference_projects/<slug>/<slug>.pulso` | ver tabla abajo |
+   | Algo mínimo y determinista | `api/inst/audit_reference/prosecnur_audit_reference.pulso` | semilla sintética |
+
+   Los cuatro proyectos de referencia son **estudios reales anonimizados** y versionados. Elige por lo que aporta, no por su nombre:
+
+   | slug | módulos | úsalo para |
+   |---|---|---|
+   | `acnur_acg` | 9 | el más completo: carga → validación → codificación → analítica → gráficos, hojas de ruta territorial |
+   | `acnur_pdm` | 7 | repeat groups Kobo reales, filtro de universo, dashboard |
+   | `acrconta` | 7 | acreditación multiactor (4 actores, 13 fuentes), Sheets, plan de trabajo |
+   | `hsvg2026` | 2 | calc-muestra de aulas a escala real (29 mil estudiantes, 5.263 cursos-horario) |
+
+   Son **read-only a propósito** (`0444`) y así están bien para observar: la app los abre sin problema y el permiso impide que un autosave los pise. Solo si vas a *modificar* el proyecto, saca una copia de corrida con
+   `Rscript api/scripts/reference_project_prepare_run.R --project <slug>` (imprime un manifest con `project_path` ya escribible).
+
+   Los `.pulso` de cliente sin anonimizar **no se copian al repo** ni se dejan en rutas versionadas.
+4. **Navega en un paso** con la dirección canónica (ADR 0044). La jerarquía es
+   **módulo → [modo] → sección → pestaña → panel**, y los cinco niveles viven
+   en la URL:
+
    ```js
-   window.location.href = '/<ruta>?pulso=' + encodeURIComponent('<ruta absoluta al .pulso>')
+   window.location.href = '/monitoreo?modo=territorial&seccion=avance&pestana=ump&pulso=' + encodeURIComponent('<ruta absoluta al .pulso>')
    ```
-   Rutas: `/monitoreo`, `/analitica`, `/graficos`, `/tablero`, `/calc-muestra` (acepta `?mesa=aulas`), `/bitacora` (acepta `?tab=cronograma`), `/carga`, `/validacion`, `/codificacion`, `/hojas-ruta`, `/editor-xlsform`.
-5. **Espera el warm start** (~15–30 s la primera vez): sondea con `preview_eval` hasta que aparezca contenido del módulo (o `[data-audit-ready]` donde exista — no todos los perfiles lo exponen). No uses sleeps ciegos largos; sondea.
-6. **Estado profundo**: las pestañas internas (ej. secciones de Monitoreo: Fuentes/Agenda/Avance/Validación/Consultas) NO se rutean por URL — usa `preview_snapshot` para ver la estructura y `preview_click` sobre el tab. `calc-muestra` y `bitacora` sí aceptan query params.
+
+   Params canónicos: `?modo=` `?seccion=` `?pestana=` `?panel=` `?foco=`.
+   Los viejos (`tab`, `stage`, `mesa`, `desk`, `step`, `reporte`) todavía se
+   leen, pero la app los reescribe a la forma canónica.
+
+   Rutas: `/monitoreo`, `/analitica`, `/graficos`, `/tablero`, `/calc-muestra`,
+   `/bitacora`, `/carga`, `/validacion`, `/codificacion`, `/hojas-ruta`,
+   `/editor-xlsform`.
+
+   El `?pulso=` se consume al abrir el proyecto; **el resto de la dirección
+   sobrevive al warm start** y aterrizas donde pediste.
+5. **Espera el warm start** (~15–30 s la primera vez; con proyectos de
+   referencia puede pasar el minuto). Sondea `window.__pulsoNav.listo()`, que
+   distingue los tres casos que importan:
+
+   | `motivo` | qué significa | qué hacer |
+   |---|---|---|
+   | `warm-start` | la pantalla de progreso sigue arriba | seguir sondeando |
+   | `sin-marca-de-readiness` | la vista no declara `data-audit-ready` | no va a virar sola: reportar y seguir |
+   | `marca-en-false` | la vista dice explícitamente que no está lista | seguir sondeando |
+
+   No uses sleeps ciegos.
+
+   **Con proyectos de referencia esto no es opcional, es la trampa principal.** Traen datos de verdad, así que el warm start tarda de verdad, y una captura temprana muestra una vista que parece rota sin estarlo. Medido el 2026-07-24 sobre `acrconta` en `/monitoreo`:
+
+   | | captura temprana | tras el warm start |
+   |---|---|---|
+   | Fuentes | `0/0` | `13/13` |
+   | Registros | `0` | `1.277` |
+   | Sync | `Pendiente` | `Listo` |
+
+   Antes de juzgar una vista como vacía, confirma que el header del módulo dejó de decir `Pendiente`/`Preparando` y que los contadores dejaron de ser cero. Si ves la pantalla de progreso con el anillo de porcentaje, todavía estás en warm start: sigue sondeando.
+6. **Estado profundo**: ya no hace falta clickear. Todo nivel se pide por URL,
+   y la app expone su navegación en `window.__pulsoNav` (dev y QA visual):
+
+   ```js
+   window.__pulsoNav.manifiesto           // TODAS las vistas direccionables
+   window.__pulsoNav.ir("monitoreo/territorial/avance")  // navega sin recargar
+   window.__pulsoNav.describir()          // dónde estoy ahora
+   window.__pulsoNav.hijos()              // qué cuelga de aquí
+   window.__pulsoNav.listo()              // readiness real, no un sleep
+   window.__pulsoNav.paneles()            // overlays declarados vs montados
+   ```
+
+   `ir()` conserva el proyecto abierto: saltar entre vistas no vuelve a pagar
+   el warm start. Los runners lo consumen con `--ir <clave>`.
+
+   **Clickear por nombre es el fallback frágil**, no el método: depende del
+   texto visible, que cambia, se trunca en viewport compacto y no existe hasta
+   que termina el warm start.
 7. **Itera solo si eres implementador**: con la vista abierta, el owner `frontend-react` puede editar sus globs y aprovechar HMR. Si invoca este skill `qa-visual-desktop` o `verificador`, permanece read-only y limita cualquier evidencia a rutas temporales fuera del árbol versionado.
 8. **Evidencia**: cierra con `preview_screenshot` (y `preview_resize` para el viewport compacto 1024x600 si tocaste layout).
 
