@@ -2754,10 +2754,33 @@ a { color: var(--pulso-primary); }
  * con texto oscuro sobre el indicador teñido justo al pasar el mouse. Con el
  * atributo, el hueco se abre solo donde nav-states.css ya está listo para
  * llenarlo —fondo Y color en el mismo bloque— y el item sin migrar no cambia. */
-.pulso-gliding-tab-list [data-gliding-key][aria-selected="true"]:not([data-nav-item]:hover) {
+/* El `:has()` es lo que impide el item activo INVISIBLE.
+ *
+ * Esta regla vuelve el item transparente y le pone texto blanco, confiando en que
+ * el indicador ya pintó el relleno detrás. Pero el indicador se mide en runtime y
+ * hasta que `GlidingTabList` lo marca `is-visible` no hay relleno: en ese hueco
+ * quedaba contenido blanco sobre fondo blanco. Se ve en el primer pintado, y se
+ * queda así si la medición falla —por ejemplo cuando el rail se monta oculto y
+ * mide cero—. Es el bug que se reportó en el sidebar de Codificación: el item
+ * activo aparecía como una caja vacía con borde.
+ *
+ * Con la condición, mientras el indicador no esté visible el item conserva su
+ * propio pintado (ver la regla siguiente) y nunca hay blanco sobre blanco. */
+.pulso-gliding-tab-list:has(.pulso-gliding-tab-indicator.is-visible)
+  [data-gliding-key][aria-selected="true"]:not([data-nav-item]:hover) {
   background: transparent !important;
   box-shadow: none !important;
   color: var(--pulso-gliding-active-color, #fff) !important;
+}
+
+/* Red de seguridad: sin indicador medido, el item activo se pinta él mismo, con
+ * el mismo color que tendría el indicador. Así el contenido blanco siempre cae
+ * sobre el acento, y cuando el indicador aparece el color coincide y no se nota
+ * ningún salto. */
+.pulso-gliding-tab-list:not(:has(.pulso-gliding-tab-indicator.is-visible))
+  [data-gliding-key][aria-selected="true"] {
+  background: var(--pulso-gliding-indicator-bg);
+  color: var(--pulso-gliding-active-color, #fff);
 }
 
 .pulso-gliding-tab-indicator {

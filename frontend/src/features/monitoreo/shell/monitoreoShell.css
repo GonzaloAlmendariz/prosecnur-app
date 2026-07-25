@@ -531,10 +531,12 @@
   max-width: min(100%, 224px);
 }
 
+/* La geometría de la píldora ya no se redefine acá. Monitoreo tenía `--pill-h`
+   en 32 contra los 34 canónicos y su propio padding de 4 contra 3, y el conjunto
+   pintaba 28px dentro de una barra de 42: catorce píxeles de margen contra los
+   ocho de Procesamiento. Eso es lo que se veía como «más alto y no se llega a
+   pintar todo». */
 .mon-section-rail.pulso-phase-pillbar {
-  --pill-h: 32px;
-  --pill-pad-x: 8px;
-  --pill-gap: 3px;
   flex: 0 1 auto;
   width: auto;
   min-width: 0;
@@ -548,7 +550,6 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     inset 0 -1px 0 rgba(15, 23, 42, 0.035);
-  padding: 4px;
 }
 
 .mon-section-rail .pulso-phase-pill-list {
@@ -577,16 +578,19 @@
   min-width: 0;
 }
 
+/* Sin `height` propio ni `background: transparent !important`.
+ *
+ * El `!important` era la causa del hover que borraba letras: impedía que la regla
+ * compartida pintara el fondo claro sobre la píldora activa, así que quedaba el
+ * relleno de acento del indicador con el texto tambien en color de acento. Y el
+ * `height: calc(var(--pill-h) - 4px)` dejaba la píldora 4px más baja que su
+ * propia lista, que es el margen de más que se notaba. */
 .mon-section-pill {
   min-width: clamp(86px, 7vw, 128px);
-  height: calc(var(--pill-h) - 4px);
   border: 1px solid transparent;
   border-radius: var(--mon-topbar-control-radius);
-  background: transparent !important;
-  box-shadow: none !important;
   padding-inline: clamp(7px, 0.56vw, 10px);
   color: var(--pulso-text-soft);
-  clip-path: inset(0 round var(--mon-topbar-control-radius));
   transition:
     background-color var(--motion-dur-fast) var(--motion-ease-out),
     border-color var(--motion-dur-fast) var(--motion-ease-out),
@@ -595,17 +599,11 @@
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 
+/* Los cinco `!important` de este bloque desaparecen con el resto: forzaban alto,
+   radio, padding y transparencia por encima de cualquier ajuste, y eran lo que
+   hacía a este rail imposible de unificar con el de Procesamiento. */
 .mon-section-rail .mon-section-pill.pulso-phase-pill {
-  height: calc(var(--pill-h) - 4px) !important;
-  border-radius: var(--mon-topbar-control-radius) !important;
-  clip-path: inset(0 round var(--mon-topbar-control-radius));
-  padding: 0 clamp(7px, 0.56vw, 10px) !important;
-}
-
-.mon-section-rail .mon-section-pill.pulso-phase-pill:not(.is-active) {
-  border: 1px solid transparent !important;
-  background: transparent !important;
-  box-shadow: none !important;
+  padding: 0 clamp(7px, 0.56vw, 10px);
 }
 
 .mon-section-pill .pulso-phase-pill-circle {

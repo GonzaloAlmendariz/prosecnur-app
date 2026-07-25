@@ -823,89 +823,76 @@ export default function CargaPage() {
       layout="workbench"
       scrollOwner="panels"
     >
-      {/* El estado y el modo del estudio suben a la banda del shell. Antes esta
-          página dibujaba una segunda banda de 56px debajo del rail. */}
+      {/* En la banda va el modo del estudio, no el chip de insumos: lo que el rail
+          de secciones ya marca como completado no necesita repetirse, y ese espacio
+          lo aprovecha un control que sí se opera. */}
       <ChromeSlotPortal zona="contexto">
-        <CargaCommandSummary
-          hasXlsform={hasXlsform}
-          hasData={hasData}
-          pendingChoiceMapping={pendingChoiceMapping}
-          allReady={allReady}
-        />
-        {(allReady || hasXlsform || hasData) && (
-          <SaveStatusIndicator
-            state={allReady ? "saved" : "dirty"}
-            variant="badge"
-            savedLabel="Insumos listos"
+        <MultiBaseToggle
+          compact
+          on={isMultiBase}
+            plannedPublics={!isMultiBase && plannedPublics > 1 ? plannedPublics : 0}
+            canTurnOff={isMultiBase && (state?.n_bases ?? 0) <= 1}
+            bases={state?.n_bases ?? 0}
+            disabled={!!busy}
+            onTurnOn={async () => {
+              setError("");
+              setBusy("Activando modo de varias bases…");
+              try {
+                if (state?.has_estudio) {
+                  const p = await apiEstudioGet();
+                  setEstudio(p);
+                  setForceMultiBase(true);
+                  setAutoOpenAddBase(false);
+                  setPreferredMultiStrategy(hasDefaultStudyBase ? "independent" : undefined);
+                } else if (hasXlsform && hasData) {
+                  // Hay archivos single-base — los promovemos a base_1.
+                  await apiEstudioFromSession();
+                  const p = await apiEstudioGet();
+                  setEstudio(p);
+                  setForceMultiBase(true);
+                  setPreferredMultiStrategy("independent");
+                  setAutoOpenAddBase(false);
+                } else {
+                  // Todavía no hay archivos — creamos un estudio vacío.
+                  // En vacío dejamos que el BasesPanel muestre primero
+                  // la estrategia de importación/API; el usuario aún puede
+                  // escoger "Agregar otra base" si quiere carga manual.
+                  const p = await apiEstudioInit();
+                  setEstudio(p);
+                  setForceMultiBase(true);
+                  setPreferredMultiStrategy(undefined);
+                  setAutoOpenAddBase(false);
+                }
+                await refresh();
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy("");
+              }
+            }}
+            onTurnOff={async () => {
+              setError("");
+              setBusy("Volviendo a una sola base…");
+              try {
+                await apiEstudioDowngradeToSingle();
+                setEstudio(null);
+                setAutoOpenAddBase(false);
+                setForceMultiBase(false);
+                setPreferredMultiStrategy(undefined);
+                await refresh();
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy("");
+              }
+            }}
           />
-        )}
       </ChromeSlotPortal>
 
       {/* El toggle de varias bases se queda en el cuerpo, no en el chrome. Es un
           control de OPERAR —cambia el modo del estudio y lleva su copy
           explicativo— y metido en la banda la subía de 52 a 125px porque no cabe
           en una fila. La separación navegar/operar del ADR 0042 existe para esto. */}
-      <div className="pulso-carga-study-mode">
-        <MultiBaseToggle
-          on={isMultiBase}
-          plannedPublics={!isMultiBase && plannedPublics > 1 ? plannedPublics : 0}
-          canTurnOff={isMultiBase && (state?.n_bases ?? 0) <= 1}
-          bases={state?.n_bases ?? 0}
-          disabled={!!busy}
-          onTurnOn={async () => {
-            setError("");
-            setBusy("Activando modo de varias bases…");
-            try {
-              if (state?.has_estudio) {
-                const p = await apiEstudioGet();
-                setEstudio(p);
-                setForceMultiBase(true);
-                setAutoOpenAddBase(false);
-                setPreferredMultiStrategy(hasDefaultStudyBase ? "independent" : undefined);
-              } else if (hasXlsform && hasData) {
-                // Hay archivos single-base — los promovemos a base_1.
-                await apiEstudioFromSession();
-                const p = await apiEstudioGet();
-                setEstudio(p);
-                setForceMultiBase(true);
-                setPreferredMultiStrategy("independent");
-                setAutoOpenAddBase(false);
-              } else {
-                // Todavía no hay archivos — creamos un estudio vacío.
-                // En vacío dejamos que el BasesPanel muestre primero
-                // la estrategia de importación/API; el usuario aún puede
-                // escoger "Agregar otra base" si quiere carga manual.
-                const p = await apiEstudioInit();
-                setEstudio(p);
-                setForceMultiBase(true);
-                setPreferredMultiStrategy(undefined);
-                setAutoOpenAddBase(false);
-              }
-              await refresh();
-            } catch (e) {
-              setError((e as Error).message);
-            } finally {
-              setBusy("");
-            }
-          }}
-          onTurnOff={async () => {
-            setError("");
-            setBusy("Volviendo a una sola base…");
-            try {
-              await apiEstudioDowngradeToSingle();
-              setEstudio(null);
-              setAutoOpenAddBase(false);
-              setForceMultiBase(false);
-              setPreferredMultiStrategy(undefined);
-              await refresh();
-            } catch (e) {
-              setError((e as Error).message);
-            } finally {
-              setBusy("");
-            }
-          }}
-        />
-      </div>
 
 
       {(busy || error || handoffMessage) && (
@@ -2391,97 +2378,7 @@ function CargaReadinessBoard({
 // =====================================================================
 // Upload card — dropzone unificada con estado visual
 // =====================================================================
-function CargaCommandSummary({
-  hasXlsform,
-  hasData,
-  pendingChoiceMapping,
-  allReady,
-}: {
-  hasXlsform: boolean;
-  hasData: boolean;
-  pendingChoiceMapping: boolean;
-  allReady: boolean;
-}) {
-  return (
-    <CargaProgressMeter
-      hasXlsform={hasXlsform}
-      hasData={hasData}
-      pendingChoiceMapping={pendingChoiceMapping}
-      allReady={allReady}
-    />
-  );
-}
 
-function CargaProgressMeter({
-  hasXlsform,
-  hasData,
-  pendingChoiceMapping,
-  allReady,
-}: {
-  hasXlsform: boolean;
-  hasData: boolean;
-  pendingChoiceMapping: boolean;
-  allReady: boolean;
-}) {
-  const reviewStatus = pendingChoiceMapping ? "Revisar códigos" : allReady ? "Validable" : "Pendiente";
-  const steps = [
-    {
-      key: "formulario",
-      label: "Formulario",
-      status: hasXlsform ? "Cargado" : "Pendiente",
-      tone: hasXlsform ? "ready" : "pending",
-    },
-    {
-      key: "respuestas",
-      label: "Respuestas",
-      status: hasData ? "Cargadas" : "Pendientes",
-      tone: hasData ? "ready" : "pending",
-    },
-    {
-      key: "revision",
-      label: "Revisión",
-      status: reviewStatus,
-      tone: pendingChoiceMapping ? "warning" : allReady ? "ready" : "pending",
-    },
-  ];
-
-  // Cuando todo está listo, el detalle de los tres pasos no informa nada que el
-  // rail de secciones no diga ya con sus estados de completado, y costaba 352px
-  // del lado izquierdo de la banda —el desbalance que se veía contra los 168px
-  // del lado derecho—. En ese caso queda un solo chip; el detalle vuelve entero
-  // en cuanto falta algo, que es cuando sirve.
-  const pendientes = steps.filter((step) => step.tone !== "ready");
-  const resumen = steps.map((step) => `${step.label}: ${step.status}`).join(" · ");
-
-  if (pendientes.length === 0) {
-    return (
-      <div className="pulso-carga-progress-meter is-compact" aria-label="Estado de insumos" title={resumen}>
-        <span className="pulso-carga-progress-node is-ready" aria-hidden="true">✓</span>
-        <span className="pulso-carga-progress-copy">
-          <strong>Insumos</strong>
-          <small>Listos para validar</small>
-        </span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="pulso-carga-progress-meter" aria-label="Estado de insumos" title={resumen}>
-      <span className="pulso-carga-progress-label">Estado</span>
-      <ol className="pulso-carga-progress-steps">
-        {steps.map((step, index) => (
-          <li key={step.key} className={`is-${step.tone}`}>
-            <span className="pulso-carga-progress-node" aria-hidden="true">{index + 1}</span>
-            <span className="pulso-carga-progress-copy">
-              <strong>{step.label}</strong>
-              <small>{step.status}</small>
-            </span>
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-}
 
 function CargaSuiteBar({
   modeLabel,
@@ -2829,6 +2726,7 @@ function ContinuarCTA() {
 //     con tooltip "quita las bases extra primero". El botón "Cerrar
 //     estudio" del panel cubre el caso destructivo.
 function MultiBaseToggle({
+  compact,
   on, plannedPublics, canTurnOff, bases, disabled, onTurnOn, onTurnOff,
 }: {
   on: boolean;
@@ -2838,6 +2736,8 @@ function MultiBaseToggle({
   disabled: boolean;
   onTurnOn: () => Promise<void>;
   onTurnOff: () => Promise<void>;
+  /** Forma de una fila para la banda del módulo. */
+  compact?: boolean;
 }) {
   if (!on && plannedPublics > 1) {
     return (
@@ -2871,6 +2771,36 @@ function MultiBaseToggle({
       ? `Tienes ${bases} bases. Para volver a una sola, quita las extras en el panel de abajo.`
       : "Activo: puedes subir varias bases o importar encuestas por API."
     : "Úsalo cuando el estudio combine varias bases, encuestas o submuestras.";
+
+  // Forma compacta para la banda: el rótulo y el switch en una fila de 32px, con
+  // la explicación en el tooltip. La forma larga —título más párrafo— mide dos
+  // líneas y la banda no crece de alto.
+  if (compact) {
+    return (
+      <div
+        role="group"
+        aria-labelledby="multibase-toggle-label"
+        className={`pulso-multibase-toggle is-compact${on ? " is-on" : ""}${locked ? " is-locked" : ""}`}
+        title={hint}
+      >
+        <span id="multibase-toggle-label" className="pulso-multibase-toggle-title">
+          Varias bases
+        </span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={on}
+          aria-label="Varias bases"
+          onClick={handleClick}
+          disabled={effectiveDisabled}
+          title={locked ? "Quita las bases extra primero para apagarlo" : hint}
+          className="pulso-switch"
+        >
+          <span aria-hidden="true" className="pulso-switch-thumb" />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div

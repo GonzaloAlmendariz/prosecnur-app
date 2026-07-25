@@ -50,11 +50,21 @@
   --pulso-nav-hover-fg: var(--pulso-nav-accent);
   --pulso-nav-hover-border: color-mix(in srgb, var(--pulso-nav-accent) 28%, var(--pulso-border));
   --pulso-nav-selected-border: var(--pulso-nav-accent);
-  /* Fórmula promovida de features/dashboard/theme/tokens.css, el único lugar del
-   * repo que ya había resuelto el hover sobre el activo: fondo OPACO que tapa el
-   * relleno de acento, y color de texto reasignado en el mismo bloque. */
-  --pulso-nav-selected-hover-bg: color-mix(in srgb, var(--pulso-surface-2) 86%, var(--pulso-nav-accent) 14%);
-  --pulso-nav-selected-hover-fg: var(--pulso-nav-accent);
+  /* Hover sobre el activo: se ACLARA el relleno con un velo blanco, no se tapa.
+   *
+   * El primer intento copiaba la fórmula de Dashboard —fondo opaco que cubre el
+   * relleno de acento y texto reasignado al acento— y funciona solo si nada pinta
+   * por encima ni por detrás del item. En Monitoreo el relleno lo pinta el
+   * indicador deslizante que va DETRÁS, así que el fondo opaco no llegaba a
+   * aplicarse y solo cambiaba el texto: quedaba acento sobre acento. Medido en
+   * Chrome: contraste 1.0, letras invisibles. Era el «hover que desaparece
+   * letras».
+   *
+   * Un velo translúcido no tiene ese problema: aclara lo que haya debajo, venga
+   * del item o del indicador, y el texto se queda blanco. No hay combinación en
+   * la que texto y fondo terminen del mismo color. */
+  --pulso-nav-selected-hover-bg: color-mix(in srgb, #ffffff 20%, transparent);
+  --pulso-nav-selected-hover-fg: var(--pulso-nav-selected-fg);
   --pulso-nav-focus-outline-color: color-mix(in srgb, var(--pulso-nav-accent) 62%, transparent);
 
   border-radius: var(--pulso-nav-item-radius);
@@ -97,10 +107,10 @@
    * hacía imposible forzando `background: transparent !important` en todo item
    * con `aria-selected`.
    *
-   * `background` y `color` van SIEMPRE en el mismo bloque. Ese es el invariante
-   * que evita el bug que Dashboard ya había sufrido y documentado: pintar el
-   * fondo claro del hover sin reasignar el color deja el texto blanco del
-   * activo sobre un fondo claro, es decir invisible. El detector lo verifica. */
+   * `background` y `color` van SIEMPRE en el mismo bloque, y el color es el mismo
+   * blanco del activo. Así el par no puede desincronizarse: la falla de Monitoreo
+   * fue exactamente eso —el color cambió y el fondo no— y con un velo translúcido
+   * más el blanco explícito ya no hay combinación que se cancele. */
   [data-nav-item][data-nav-state="selected"]:hover:not(:disabled):not([aria-disabled="true"]) {
     background: var(--pulso-nav-selected-hover-bg);
     color: var(--pulso-nav-selected-hover-fg);

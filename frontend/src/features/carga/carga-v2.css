@@ -8133,3 +8133,33 @@
 .pulso-carga-progress-meter.is-compact .pulso-carga-progress-node.is-ready {
   color: var(--pulso-success-fg);
 }
+
+/* Toggle de varias bases en su forma compacta, para la banda del módulo. La forma
+ * larga —título más párrafo de ayuda— mide dos líneas, y la banda no crece de
+ * alto: acá la explicación vive en el tooltip. */
+.pulso-multibase-toggle.is-compact {
+  /* El margen inferior de la forma larga era para separarla del contenido del
+     cuerpo; dentro de la banda sumaba 18px de alto y la subía a 60. */
+  margin: 0;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--pulso-chrome-control-h);
+  padding: 0 4px 0 11px;
+  border: 1px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 26%, var(--pulso-border));
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  white-space: nowrap;
+}
+
+.pulso-multibase-toggle.is-compact .pulso-multibase-toggle-title {
+  font-size: 12px;
+  font-weight: var(--pulso-control-weight);
+  color: var(--pulso-text);
+}
+
+.pulso-multibase-toggle.is-compact.is-on {
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 48%, var(--pulso-border));
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 8%, var(--pulso-surface));
+}
