@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { GlidingTabList } from "../../components/GlidingTabList";
+import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
+import { ModuleCommandBar } from "../../components/ModuleCommandBar";
 import { toDataURL } from "qrcode";
 import {
   apiCalcMuestraState,
@@ -1577,7 +1579,6 @@ export default function RecopiladoresPage() {
             label: "Sin agenda",
             detail: "preparar cursos-horario",
           };
-  const TopStatusIcon = topStatus.icon;
   const flowStep: AulasFlowStep = activeTab === "retorno"
     ? "monitoreo"
     : activeSection === "fichas" || activeSection === "paquete"
@@ -1866,14 +1867,63 @@ export default function RecopiladoresPage() {
 
   return (
     <div className="rec-page" style={MODULE_TONES.recopiladores as CSSProperties} data-audit-ready={!loading && (state !== null || calcState !== null) ? "recopiladores" : undefined}>
-      <header className="pulso-command-bar rec-topbar">
-        <div className="rec-brand">
-          <span><QrCode size={18} /></span>
-          <div>
-            <small>Motor QR/PDF</small>
-            <strong>Fichas QR para intervenciones por cursos-horario</strong>
-          </div>
-        </div>
+      {/* La banda venía con el título largo del módulo a la izquierda y las
+          acciones a la derecha: 659px de tinta contra 348, el peor desbalance de
+          los ocho módulos. El título además estaba repetido literalmente en el
+          `AulasApplicationFlow` de abajo, así que retirarlo no pierde nada — la
+          decisión de retirar las franjas de título ya estaba tomada.
+          En su lugar, la izquierda lleva los dos datos que sí se consultan
+          mientras se opera: qué entra a campo y sobre qué facultad. */}
+      <ModuleCommandBar
+        modulo="recopiladores"
+        ariaLabel="Acciones de fichas QR"
+        className="rec-topbar"
+        contexto={
+          <ChromeIndicatorGroup
+            ariaLabel="Contexto de fichas QR"
+            resumen={`${fmt(agendaRows.length)} cursos-horario en el plan · ${selectedFacultyLabel}`}
+          >
+            <ChromeIndicator
+              label="Plan"
+              value={agendaRows.length ? `${fmt(agendaRows.length)} cursos-horario` : "pendiente"}
+              prioridad="alta"
+            />
+            {/* «Todas las facultades» se dice con el label puesto: dentro de un
+                indicador rotulado «Facultad», el valor «Todas» ya es la frase
+                completa, y las 19 letras de más eran 100px de desbalance contra
+                el lado derecho.
+                Prioridad media, no baja: con `baja` la escalera lo recogía ya a
+                1259px de banda —medido— y el dato desaparecía habiendo sitio de
+                sobra. Es el segundo en irse cuando de verdad aprieta, no el
+                primero en irse siempre. */}
+            <ChromeIndicator
+              label="Facultad"
+              value={selectedFaculty === "todas" ? "Todas" : selectedFacultyLabel}
+              prioridad="media"
+              detalle={selectedFacultyLabel}
+            />
+          </ChromeIndicatorGroup>
+        }
+        estado={[
+          {
+            id: "estado",
+            label: topStatus.label,
+            tone: topStatus.tone === "ready" ? "success" : topStatus.tone === "current" ? "info" : "warn",
+            detail: topStatus.detail,
+          },
+        ]}
+        acciones={[
+          {
+            id: "actualizar",
+            label: "Actualizar",
+            rank: 1,
+            onSelect: () => void load(true),
+            disabled: loading,
+            busy: loading,
+          },
+        ]}
+        secciones={
+        <>
         {/* Selector de etapas (.pulso-phase-pillbar):
             mismas píldoras centradas de Monitoreo/Bitácora, con número de fase
             19×19 y estado done derivado de los hitos existentes. El acento
@@ -1911,20 +1961,9 @@ export default function RecopiladoresPage() {
             })}
           </ol>
         </GlidingTabList>
-        <div className="rec-actions">
-          <span className={`rec-top-status is-${topStatus.tone}`}>
-            <TopStatusIcon size={14} />
-            <span>
-              <strong>{topStatus.label}</strong>
-              <small>{topStatus.detail}</small>
-            </span>
-          </span>
-          <button type="button" onClick={() => void load(true)} disabled={loading}>
-            {loading ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
-            Actualizar
-          </button>
-        </div>
-      </header>
+        </>
+        }
+      />
 
       <AulasApplicationFlow
         tone="recopiladores"
@@ -1973,6 +2012,15 @@ export default function RecopiladoresPage() {
                     className={active ? "is-active" : ""}
                     aria-label={`${tab.label}. ${tab.detail}`}
                     data-rail-tooltip={`${tab.label}\n${tab.detail}`}
+                    // Contrato de `app/nav-states.css`: con el atributo puesto, el
+                    // item toma el hover, el foco y el material de reposo
+                    // compartidos. Sin él este rail se quedaba plano —sin fondo ni
+                    // borde hasta el hover— mientras los de Procesamiento y
+                    // Monitoreo ya eran tarjetas. Era el mismo destino con dos
+                    // aspectos según el módulo.
+                    data-nav-item=""
+                    data-nav-shape="row"
+                    data-nav-state={active ? "selected" : undefined}
                     onClick={() => setActiveTab(tab.id)}
                     onKeyDown={(event) => {
                       // Roving tabindex del tablist vertical: las flechas mueven

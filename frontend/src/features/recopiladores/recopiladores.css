@@ -201,12 +201,6 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .rec-sidebar nav button:hover:not(.is-active) {
-    border-color: color-mix(in srgb, var(--rec-accent) 16%, var(--pulso-border));
-    background: color-mix(in srgb, var(--rec-accent) 7%, #fff);
-    color: var(--pulso-text);
-  }
-
   .rec-actions button:hover:not(:disabled),
   .rec-actions a:hover,
   .rec-next-actions a:hover,
@@ -378,9 +372,11 @@
 
 /* Fila colapsada: solo el ícono, centrado, a la altura de rail canónica. */
 .rec-sidebar nav button {
-  width: 100%;
-  min-width: 0;
-  height: var(--pulso-rail-row-height-lg);
+  /* Cuadrado y del mismo lado que los otros cinco rails: con `width: 100%` este
+   * item medía 38 contra los 40 de Monitoreo y Procesamiento. */
+  width: var(--pulso-nav-item-height);
+  min-width: var(--pulso-nav-item-height);
+  height: var(--pulso-nav-item-height);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
@@ -461,12 +457,18 @@
     0 8px 18px color-mix(in srgb, var(--rec-accent) 18%, transparent);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .rec-sidebar nav button:hover:not(.is-active) {
-    background: color-mix(in srgb, #fff 82%, var(--rec-accent-soft) 18%);
-    color: var(--rec-accent);
-  }
-}
+/* Las dos reglas de hover de este rail vivían acá y se borraron al emitir
+ * `data-nav-item`: el hover, el foco y el reposo los pinta `app/nav-states.css`.
+ *
+ * Eran DOS definiciones del mismo selector —`:hover:not(.is-active)`— con
+ * valores distintos: una tenía borde y texto neutro, la otra ni borde y texto de
+ * acento. Cuál ganaba dependía del orden en el bundle, que con el CSS de features
+ * importado en lazy no está garantizado. Es la cuarta vez que aparece este patrón
+ * en el repo (dos en monitoreo.css, una en monitoreoShell.css, esta), y siempre
+ * con el mismo síntoma: el control se ve distinto según qué ruta cargó primero.
+ *
+ * El `:not(.is-active)` era además la causa literal de «la pestaña en la que
+ * estamos no tiene hover». */
 
 .rec-sidebar nav button:active:not(:disabled) {
   transform: scale(0.98);
