@@ -295,6 +295,9 @@ function ValidacionModeSidebar({
               data-rail-desc={tab.desc ?? ""}
               data-rail-tooltip={tab.desc ? `${tab.label}\n${tab.desc}` : tab.label}
               data-gliding-key={tab.key}
+              data-nav-item=""
+              data-nav-shape="row"
+              data-nav-state={isActive ? "selected" : undefined}
             >
               <span className="pulso-validacion-nav-index">{index + 1}</span>
               <span aria-hidden="true" className="pulso-validacion-nav-icon">

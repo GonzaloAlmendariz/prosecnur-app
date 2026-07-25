@@ -101,11 +101,26 @@
  * Monitoreo ya reservaba el píxel del borde en transparente, así que esto no
  * mueve el layout de nadie: se verificó que el item sigue midiendo 40×40. */
 [data-nav-item][data-nav-shape="row"] {
-  --pulso-nav-rest-bg: color-mix(in srgb, var(--pulso-surface) 86%, transparent);
-  --pulso-nav-rest-border: color-mix(in srgb, var(--pulso-border) 76%, transparent);
+  /* Estos valores NO son una interpretación: son el material del rail de
+   * Procesamiento, que es el estándar declarado. Cuando ese rail se migró al
+   * atributo se comparó su computado antes y después, y la primera versión de
+   * este bloque —un color plano al 86%— le cambiaba el fondo, le borraba el
+   * degradado y le movía el borde. El estándar manda sobre la aproximación.
+   *
+   * El degradado es lo que le da el relieve de tarjeta: un color plano se ve
+   * chato al lado del mismo item con luz de arriba abajo. */
+  --pulso-nav-rest-bg:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 253, 0.78)),
+    rgba(255, 255, 255, 0.74);
+  /* El borde lleva un 34% del borde de acento del módulo: es lo que le da el
+   * tinte y lo que hace que el mismo rail se sienta de Procesamiento o de
+   * Monitoreo sin cambiar de forma. Con el gris neutro a secas el item se veía
+   * correcto pero desafiliado. `--pulso-primary-border` ya lo reasigna cada frame
+   * de módulo, así que la fórmula es una y el resultado es el de cada uno. */
+  --pulso-nav-rest-border: color-mix(in srgb, var(--pulso-primary-border) 34%, var(--pulso-border));
   --pulso-nav-rest-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--pulso-surface) 78%, transparent),
-    var(--pulso-shadow-low);
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 4px 12px rgba(15, 23, 42, 0.03);
 }
 
 [data-nav-item][data-nav-shape="row"]:not([data-nav-state="selected"]):not(:disabled):not([aria-disabled="true"]) {

@@ -314,6 +314,9 @@ function AnaliticaSidebar({
                 onChange(item.key);
               }}
               className={`pulso-analitica-nav-item${isActive ? " is-active" : ""}${done ? " is-done" : ""}`}
+              data-nav-item=""
+              data-nav-shape="row"
+              data-nav-state={isActive ? "selected" : undefined}
             >
               <span aria-hidden="true" className="pulso-analitica-nav-icon">
                 <Icon size={15} />
