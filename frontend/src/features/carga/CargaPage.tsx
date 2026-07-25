@@ -53,7 +53,7 @@ import "./carga-v2.css";
 import { Panel } from "../../components/Panel";
 import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
-import { BasesInspectorMenu } from "../../components/BasesInspectorMenu";
+import { BasesInspectorMenu, basesDesdeEstudio } from "../../components/BasesInspectorMenu";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
@@ -895,7 +895,7 @@ export default function CargaPage() {
             las fases 2 a 5 ese panel ni existe. */}
         {estudio && estudio.n_bases > 1 ? (
           <BasesInspectorMenu
-            estudio={estudio}
+            bases={basesDesdeEstudio(estudio)}
             activa={estudio.active_base ?? state?.active_base ?? null}
             disparador={
               <button type="button" className="pulso-bases-inspector-trigger">
