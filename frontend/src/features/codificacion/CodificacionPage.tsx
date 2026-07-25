@@ -248,6 +248,9 @@ function CodificacionModeSidebar({
               disabled={disabled}
               onClick={() => onChange(item.key)}
               className={`pulso-codificacion-nav-item${isActive ? " is-active" : ""}`}
+              data-nav-item=""
+              data-nav-shape="row"
+              data-nav-state={isActive ? "selected" : undefined}
               aria-label={`${item.label}${item.hint ? `. ${item.hint}` : ""}`}
               title={item.hint ? `${item.label}\n${item.hint}` : item.label}
               data-rail-title={item.label}

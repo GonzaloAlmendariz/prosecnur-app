@@ -2111,6 +2111,9 @@ function CargaWorkspaceTabs({
         data-rail-title="Preparar"
         data-rail-desc="Formulario, respuestas y fuentes"
         data-rail-tooltip={"Preparar\nFormulario, respuestas y fuentes"}
+        data-nav-item=""
+        data-nav-shape="row"
+        data-nav-state={active === "insumos" ? "selected" : undefined}
       >
         <Upload size={14} />
         <span className="pulso-carga-tab-label">Preparar</span>
@@ -2131,6 +2134,9 @@ function CargaWorkspaceTabs({
         data-rail-title="Ver base"
         data-rail-desc={baseReady ? "Respuestas cargadas" : "Pendiente hasta completar insumos"}
         data-rail-tooltip={baseReady ? "Ver base\nRespuestas cargadas" : "Ver base\nPendiente hasta completar insumos"}
+        data-nav-item=""
+        data-nav-shape="row"
+        data-nav-state={active === "base" ? "selected" : undefined}
       >
         <Table2 size={14} />
         <span className="pulso-carga-tab-label">Ver base</span>
