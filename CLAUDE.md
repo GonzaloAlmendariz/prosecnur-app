@@ -23,7 +23,7 @@ skill `/revamp-visual` → `qa-visual-desktop` toma baseline → `frontend-react
 SurveyMonkey/Kobo/Sheets → `dominio-prosecnur` + `integraciones-datos` → `especialista-integraciones`; diagnóstico, contratos y metodología pueden investigar en paralelo. Tests sin red y gate `verificador`.
 
 **Rama 5 — Estudios reales (datos de cliente)**
-skill `/estudio-real` (ACNUR/UNSA/Polarización-style: instrumento, cuotas, base procesable, pesos, pipeline). Auditoría sintética canónica → skill global `prosecnur-project`.
+skill `/estudio-real` (ACNUR/UNSA/Polarización-style: instrumento, cuotas, base procesable, pesos, pipeline). Auditoría sintética canónica → skill global `prosecnur-project`. Para reproducir un bug sobre estado real usar los **proyectos de referencia** (ADR 0043): cuatro estudios anonimizados y versionados en `api/inst/reference_projects/` (`acnur_pdm` repeats Kobo, `acnur_acg` pipeline completo hasta analítica, `hsvg2026` marco de aulas a escala, `acrconta` multiactor + Sheets). Nunca commitear un `.pulso` de cliente sin pasarlo por `api/scripts/pulso_anonimizar.R`.
 
 **Rama 6 — Escritorio y release técnico**
 Electron, R embebido, asociación `.pulso`, instaladores, updater y workflows → `desktop-packaging` + revisiones aplicables → `verificador`. Construir no autoriza firmar, publicar, taggear ni subir.
@@ -77,3 +77,4 @@ Regla transversal: **toda rama que toque código termina en el agente `verificad
 - R completo: `make`-menos; usar `testthat::test_dir` como en CI (`.github/workflows/quality.yml`)
 - Visual: `make ui-quick-check` · `make visual-qa` · `make monitoreo-qa`
 - Auditoría canónica: `make audit-project-visual-matrix`
+- Proyectos de referencia: `make reference-project-verify` (gate de PII + cobertura) · `make reference-project-run REFERENCE_PROJECT=<slug>` · `make reference-project-visual-matrix REFERENCE_PROJECT=<slug>`
