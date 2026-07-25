@@ -267,10 +267,26 @@ function ValidacionStatusSummary({
   auditoriaRun: boolean;
   bases: number;
 }) {
+  // Con los insumos cargados, «Formulario» y «Respuestas» repiten lo que el rail
+  // de secciones ya marca como completado en la fase 1, y costaban ~180px del
+  // lado izquierdo de la banda. Se recogen a un chip y el detalle vuelve entero
+  // en cuanto falta alguno, que es cuando el dato sirve.
+  const insumosListos = hasXlsform && hasData;
+  const detalle = `Formulario: ${hasXlsform ? "cargado" : "pendiente"} · Respuestas: ${hasData ? "cargadas" : "pendientes"}`;
+
   return (
     <div className="pulso-validacion-status" aria-label="Estado de la validación">
-      <ValidacionStatusPill label="Formulario" done={hasXlsform} />
-      <ValidacionStatusPill label="Respuestas" done={hasData} />
+      {insumosListos ? (
+        <span className="pulso-validacion-status-pill is-done" title={detalle}>
+          <CheckCircle2 size={13} />
+          Insumos
+        </span>
+      ) : (
+        <>
+          <ValidacionStatusPill label="Formulario" done={hasXlsform} />
+          <ValidacionStatusPill label="Respuestas" done={hasData} />
+        </>
+      )}
       <span className={`pulso-validacion-status-pill${auditoriaRun ? " is-done" : ""}`}>
         <ShieldCheck size={13} />
         {auditoriaRun ? "Auditoría corrida" : prereqsOk ? "Lista para auditar" : "En espera"}
