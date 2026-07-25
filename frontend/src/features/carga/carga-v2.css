@@ -8106,3 +8106,12 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Fila del modo de estudio. Vive en el cuerpo y no en el chrome porque cambia el
+ * modo del estudio y lleva copy explicativo: es operar, no navegar. Cuando estaba
+ * en la banda, la subía de 52 a 125px. */
+.pulso-carga-study-mode {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--pulso-chrome-commandbar-gap);
+}

@@ -9,8 +9,8 @@ import {
 import { useSession } from "../../lib/SessionContext";
 import { repeatContextFromBase } from "../../lib/rosterExplorer";
 import { Alert } from "../../components/Alert";
-import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
 import { PageFrame } from "../../components/PageFrame";
+import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { TabMeta } from "../../components/TabStrip";
 import { EmptyState, ErrorBlock } from "../../components/States";
@@ -164,33 +164,8 @@ export default function ValidacionPage() {
       layout="workbench"
       scrollOwner="panels"
       resetScrollKey={`${activeTab}:${baseNombre ?? ""}`}
-      toolbar={
-        <div className="pulso-validacion-toolbar-stack">
-          <ContextBar
-            ariaLabel="Contexto de validación"
-            className="pulso-validacion-commandbar"
-            elevated
-          >
-            <ValidacionStatusSummary
-              hasXlsform={!!state?.xlsform}
-              hasData={!!state?.data}
-              prereqsOk={prereqsOk}
-              auditoriaRun={!!state?.auditoria_run}
-              bases={state?.n_bases ?? 0}
-            />
-
-            {showBaseSelector && (
-              <>
-                <ContextBarDivider />
-                <BaseSelector
-                  estudio={estudio}
-                  selected={baseNombre}
-                  onChange={(next) => void handleBaseChange(next)}
-                />
-              </>
-            )}
-          </ContextBar>
-
+      notices={
+        <>
           {!prereqsOk && (
             <Alert kind="warn">
               <strong>Faltan insumos.</strong>{" "}
@@ -199,9 +174,29 @@ export default function ValidacionPage() {
           )}
 
           {loadError && <ErrorBlock label="No se pudo cargar el estudio" detail={loadError} />}
-        </div>
+        </>
       }
     >
+      {/* El contexto de la página sube a la banda del shell en vez de dibujar una
+          segunda banda debajo. Antes eran dos: la del shell con el rail de
+          secciones y esta, con el resumen y el selector de base. */}
+      <ChromeSlotPortal zona="contexto">
+        <ValidacionStatusSummary
+          hasXlsform={!!state?.xlsform}
+          hasData={!!state?.data}
+          prereqsOk={prereqsOk}
+          auditoriaRun={!!state?.auditoria_run}
+          bases={state?.n_bases ?? 0}
+        />
+        {showBaseSelector && (
+          <BaseSelector
+            estudio={estudio}
+            selected={baseNombre}
+            onChange={(next) => void handleBaseChange(next)}
+          />
+        )}
+      </ChromeSlotPortal>
+
       <AdaptiveSplitView
         ariaLabel="Mesa de trabajo de validación"
         railLabel="Pestañas de validación"

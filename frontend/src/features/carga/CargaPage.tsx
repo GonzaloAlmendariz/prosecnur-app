@@ -50,9 +50,9 @@ import {
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import "./carga-v2.css";
-import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
 import { Panel } from "../../components/Panel";
 import { PageFrame } from "../../components/PageFrame";
+import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
@@ -822,88 +822,92 @@ export default function CargaPage() {
       bodyMode="fill"
       layout="workbench"
       scrollOwner="panels"
-      toolbar={
-        <ContextBar
-          ariaLabel="Estado de carga y modo del estudio"
-          className="pulso-carga-commandbar"
-          elevated
-        >
-          <CargaCommandSummary
-            hasXlsform={hasXlsform}
-            hasData={hasData}
-            pendingChoiceMapping={pendingChoiceMapping}
-            allReady={allReady}
-          />
-          {(allReady || hasXlsform || hasData) && (
-            <SaveStatusIndicator
-              state={allReady ? "saved" : "dirty"}
-              variant="badge"
-              savedLabel="Insumos listos"
-            />
-          )}
-          <ContextBarDivider />
-          <MultiBaseToggle
-            on={isMultiBase}
-            plannedPublics={!isMultiBase && plannedPublics > 1 ? plannedPublics : 0}
-            canTurnOff={isMultiBase && (state?.n_bases ?? 0) <= 1}
-            bases={state?.n_bases ?? 0}
-            disabled={!!busy}
-            onTurnOn={async () => {
-              setError("");
-              setBusy("Activando modo de varias bases…");
-              try {
-                if (state?.has_estudio) {
-                  const p = await apiEstudioGet();
-                  setEstudio(p);
-                  setForceMultiBase(true);
-                  setAutoOpenAddBase(false);
-                  setPreferredMultiStrategy(hasDefaultStudyBase ? "independent" : undefined);
-                } else if (hasXlsform && hasData) {
-                  // Hay archivos single-base — los promovemos a base_1.
-                  await apiEstudioFromSession();
-                  const p = await apiEstudioGet();
-                  setEstudio(p);
-                  setForceMultiBase(true);
-                  setPreferredMultiStrategy("independent");
-                  setAutoOpenAddBase(false);
-                } else {
-                  // Todavía no hay archivos — creamos un estudio vacío.
-                  // En vacío dejamos que el BasesPanel muestre primero
-                  // la estrategia de importación/API; el usuario aún puede
-                  // escoger "Agregar otra base" si quiere carga manual.
-                  const p = await apiEstudioInit();
-                  setEstudio(p);
-                  setForceMultiBase(true);
-                  setPreferredMultiStrategy(undefined);
-                  setAutoOpenAddBase(false);
-                }
-                await refresh();
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy("");
-              }
-            }}
-            onTurnOff={async () => {
-              setError("");
-              setBusy("Volviendo a una sola base…");
-              try {
-                await apiEstudioDowngradeToSingle();
-                setEstudio(null);
-                setAutoOpenAddBase(false);
-                setForceMultiBase(false);
-                setPreferredMultiStrategy(undefined);
-                await refresh();
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy("");
-              }
-            }}
-          />
-        </ContextBar>
-      }
     >
+      {/* El estado y el modo del estudio suben a la banda del shell. Antes esta
+          página dibujaba una segunda banda de 56px debajo del rail. */}
+      <ChromeSlotPortal zona="contexto">
+        <CargaCommandSummary
+          hasXlsform={hasXlsform}
+          hasData={hasData}
+          pendingChoiceMapping={pendingChoiceMapping}
+          allReady={allReady}
+        />
+        {(allReady || hasXlsform || hasData) && (
+          <SaveStatusIndicator
+            state={allReady ? "saved" : "dirty"}
+            variant="badge"
+            savedLabel="Insumos listos"
+          />
+        )}
+      </ChromeSlotPortal>
+
+      {/* El toggle de varias bases se queda en el cuerpo, no en el chrome. Es un
+          control de OPERAR —cambia el modo del estudio y lleva su copy
+          explicativo— y metido en la banda la subía de 52 a 125px porque no cabe
+          en una fila. La separación navegar/operar del ADR 0042 existe para esto. */}
+      <div className="pulso-carga-study-mode">
+        <MultiBaseToggle
+          on={isMultiBase}
+          plannedPublics={!isMultiBase && plannedPublics > 1 ? plannedPublics : 0}
+          canTurnOff={isMultiBase && (state?.n_bases ?? 0) <= 1}
+          bases={state?.n_bases ?? 0}
+          disabled={!!busy}
+          onTurnOn={async () => {
+            setError("");
+            setBusy("Activando modo de varias bases…");
+            try {
+              if (state?.has_estudio) {
+                const p = await apiEstudioGet();
+                setEstudio(p);
+                setForceMultiBase(true);
+                setAutoOpenAddBase(false);
+                setPreferredMultiStrategy(hasDefaultStudyBase ? "independent" : undefined);
+              } else if (hasXlsform && hasData) {
+                // Hay archivos single-base — los promovemos a base_1.
+                await apiEstudioFromSession();
+                const p = await apiEstudioGet();
+                setEstudio(p);
+                setForceMultiBase(true);
+                setPreferredMultiStrategy("independent");
+                setAutoOpenAddBase(false);
+              } else {
+                // Todavía no hay archivos — creamos un estudio vacío.
+                // En vacío dejamos que el BasesPanel muestre primero
+                // la estrategia de importación/API; el usuario aún puede
+                // escoger "Agregar otra base" si quiere carga manual.
+                const p = await apiEstudioInit();
+                setEstudio(p);
+                setForceMultiBase(true);
+                setPreferredMultiStrategy(undefined);
+                setAutoOpenAddBase(false);
+              }
+              await refresh();
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setBusy("");
+            }
+          }}
+          onTurnOff={async () => {
+            setError("");
+            setBusy("Volviendo a una sola base…");
+            try {
+              await apiEstudioDowngradeToSingle();
+              setEstudio(null);
+              setAutoOpenAddBase(false);
+              setForceMultiBase(false);
+              setPreferredMultiStrategy(undefined);
+              await refresh();
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setBusy("");
+            }
+          }}
+        />
+      </div>
+
+
       {(busy || error || handoffMessage) && (
         <div ref={feedbackRef} className="pulso-feedback-stack pulso-feedback-stack--upload">
           {busy && <LoadingBlock variant="inline" label={busy} />}
