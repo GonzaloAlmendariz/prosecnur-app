@@ -28,9 +28,18 @@
 }
 
 /* La zona de contexto puede truncar; es identidad, no navegación, y un nombre
- * de formulario largo no tiene por qué empujar las secciones fuera de la vista. */
+ * de formulario largo no tiene por qué empujar las secciones fuera de la vista.
+ *
+ * Trunca con `clip`, no con `hidden`: la zona mide exactamente el alto de su
+ * control —32px—, así que `hidden` recortaba a ras cualquier relieve que el
+ * control proyectara fuera de su caja, y el borde del selector aparecía cortado
+ * contra la banda. `overflow-clip-margin` deja pasar esos 6px de sombra sin
+ * devolver el desbordamiento horizontal, que es lo único que había que evitar.
+ * Verificado midiendo con `visible`: ningún hijo se sale de la banda, así que el
+ * recorte nunca estuvo conteniendo nada. */
 .pulso-command-bar-zone[data-zone="contexto"] {
-  overflow: hidden;
+  overflow: clip;
+  overflow-clip-margin: 6px;
 }
 
 /* Los hijos del contexto no envuelven, pero tampoco se recortan a ciegas: el

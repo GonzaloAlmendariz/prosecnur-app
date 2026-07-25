@@ -177,18 +177,53 @@
   outline-offset: var(--pulso-nav-focus-offset);
 }
 
-/* El disparador en su forma de SELECTOR: nombre de la base activa, cuántas hay y
- * el chevron. Ancho acotado a propósito — antes esto era una lista de chips, uno
- * por base, y con dos ya ocupaba ~380px de banda. */
+/* El disparador en su forma de SELECTOR: rótulo, nombre de la base activa,
+ * cuántas hay y el chevron. Ancho acotado a propósito — antes esto era una lista
+ * de chips, uno por base, y con dos ya ocupaba ~380px de banda.
+ *
+ * La estructura de dos líneas es la MISMA de `.pulso-chrome-indicator`: rótulo de
+ * 10px en mayúsculas arriba, valor de 13px abajo. Puesto junto a un indicador, un
+ * texto plano de 12px se leía como un control traído de otra pantalla. Compartir
+ * la escala tipográfica es lo que lo integra en la banda. */
 .pulso-bases-inspector-trigger.is-selector {
   max-width: 260px;
+  gap: 8px;
+  padding: 0 10px;
+}
+
+.pulso-bases-inspector-trigger-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  text-align: left;
+}
+
+.pulso-bases-inspector-trigger-copy small {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.05;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .pulso-bases-inspector-trigger-label {
   min-width: 0;
   overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* El chevron cede el color: es afordance, no contenido. */
+.pulso-bases-inspector-trigger-chevron {
+  flex: 0 0 auto;
+  color: var(--pulso-text-faint);
 }
 
 .pulso-bases-inspector-trigger-count {

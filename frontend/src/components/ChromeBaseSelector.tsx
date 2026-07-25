@@ -21,11 +21,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { BasesInspectorMenu, basesDesdeEstudio } from "./BasesInspectorMenu";
+import { BaseSelectorTrigger, BasesInspectorMenu, basesDesdeEstudio } from "./BasesInspectorMenu";
 import { apiEstudioActiveBaseSet, apiEstudioGet, type EstudioPayload } from "../api/client";
 import { processingBaseScopePresentation } from "../features/procesamiento/baseScopeModel";
 import { useSession } from "../lib/SessionContext";
-import { ChevronDown, Layers } from "../vendor/lucide-react";
 
 export function ChromeBaseSelector() {
   const { refresh } = useSession();
@@ -89,18 +88,7 @@ export function ChromeBaseSelector() {
       onSeleccionar={(nombre) => void seleccionar(nombre)}
       deshabilitado={cambiando}
       modo={alcance.summaryLabel}
-      disparador={
-        <button
-          type="button"
-          className="pulso-bases-inspector-trigger is-selector"
-          title={`${etiqueta} · ${estudio.n_bases} bases en el estudio`}
-        >
-          <Layers size={12} aria-hidden />
-          <span className="pulso-bases-inspector-trigger-label">{etiqueta}</span>
-          <span className="pulso-bases-inspector-trigger-count">{estudio.n_bases}</span>
-          <ChevronDown size={12} aria-hidden />
-        </button>
-      }
+      disparador={<BaseSelectorTrigger etiqueta={etiqueta} total={estudio.n_bases} />}
     />
   );
 }

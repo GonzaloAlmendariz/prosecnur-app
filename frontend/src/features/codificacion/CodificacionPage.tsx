@@ -6,7 +6,7 @@ import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
-import { BasesInspectorMenu } from "../../components/BasesInspectorMenu";
+import { BaseSelectorTrigger, BasesInspectorMenu } from "../../components/BasesInspectorMenu";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { StepMeta } from "../../components/Stepper";
 import { GlidingTabList } from "../../components/GlidingTabList";
@@ -203,18 +203,7 @@ function BaseSelector({ source }: { source: ReturnType<typeof useCodifSource> })
       activa={active}
       onSeleccionar={(nombre) => void setActive(nombre)}
       deshabilitado={loading}
-      disparador={
-        <button
-          type="button"
-          className="pulso-bases-inspector-trigger is-selector"
-          title={`${etiquetaActiva} · ${options.length} bases en el estudio`}
-        >
-          <Layers size={12} aria-hidden />
-          <span className="pulso-bases-inspector-trigger-label">{etiquetaActiva}</span>
-          <span className="pulso-bases-inspector-trigger-count">{options.length}</span>
-          <ChevronDown size={12} aria-hidden />
-        </button>
-      }
+      disparador={<BaseSelectorTrigger etiqueta={etiquetaActiva} total={options.length} />}
     />
   );
 }

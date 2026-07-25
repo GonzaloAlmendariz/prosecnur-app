@@ -16,7 +16,7 @@
  * cuyo instrumento no es el que uno cree es un error caro y silencioso.
  */
 
-import { Check, Database, FileSpreadsheet, FileText } from "../vendor/lucide-react";
+import { Check, ChevronDown, Database, FileSpreadsheet, FileText } from "../vendor/lucide-react";
 
 import { Popover } from "./Popover";
 import type { EstudioBase, EstudioPayload } from "../api/estudio";
@@ -64,6 +64,48 @@ function formatearFilas(n: number | null | undefined): string {
 /** Nombre legible de la base: alias del analista, título de la fuente, o su id. */
 function nombreDeBase(nombre: string, base: EstudioBase): string {
   return base.source_alias || base.source_title || (nombre === "default" ? "Base única" : nombre);
+}
+
+/**
+ * Disparador canónico del selector de base.
+ *
+ * Existía tres veces —Validación con su componente, Codificación escrito a mano
+ * en su page-file, y el del chrome— y las tres se veían parecidas por copia, no
+ * por contrato. Acá vive una sola.
+ *
+ * Habla la misma gramática que los indicadores de la banda: rótulo pequeño en
+ * mayúsculas arriba, valor abajo. Antes era un texto plano con un ícono de capas
+ * al lado, y al ponerlo junto a un `ChromeIndicator` se leía como un control de
+ * otra app: mismo sitio, misma altura, otra tipografía. El ícono decorativo se
+ * fue —la banda va limpia— y el chevron se queda, porque es lo que anuncia que
+ * esto abre algo.
+ */
+export function BaseSelectorTrigger({
+  etiqueta,
+  total,
+  rotulo = "Base",
+  ...resto
+}: {
+  etiqueta: string;
+  /** Cuántas bases hay en el estudio. Se muestra como contador. */
+  total: number;
+  rotulo?: string;
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      type="button"
+      className="pulso-bases-inspector-trigger is-selector"
+      title={`${etiqueta} · ${total} bases en el estudio`}
+      {...resto}
+    >
+      <span className="pulso-bases-inspector-trigger-copy">
+        <small>{rotulo}</small>
+        <strong className="pulso-bases-inspector-trigger-label">{etiqueta}</strong>
+      </span>
+      <span className="pulso-bases-inspector-trigger-count">{total}</span>
+      <ChevronDown size={12} aria-hidden className="pulso-bases-inspector-trigger-chevron" />
+    </button>
+  );
 }
 
 export function BasesInspectorMenu({
