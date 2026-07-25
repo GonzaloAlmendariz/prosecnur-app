@@ -457,27 +457,27 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
   },
   {
     id: "validacion",
-    label: "Validacion",
+    label: "Validación",
     load: () => import("../features/validacion/ValidacionPage"),
   },
   {
     id: "codificacion",
-    label: "Codificacion",
+    label: "Codificación",
     load: () => import("../features/codificacion/CodificacionPage"),
   },
   {
     id: "analitica",
-    label: "Analitica",
+    label: "Analítica",
     load: () => import("../features/analitica/AnaliticaPage"),
   },
   {
     id: "graficos",
-    label: "Graficos",
+    label: "Gráficos",
     load: () => import("../features/graficos/GraficosPage"),
   },
   {
     id: "graficos_datos",
-    label: "Graficos locales",
+    label: "Gráficos locales",
     load: warmupGraficosLocalData,
   },
   {
@@ -502,7 +502,7 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
   },
   {
     id: "calc_muestra",
-    label: "Calculo de muestra",
+    label: "Cálculo de muestra",
     load: () => import("../features/calcMuestra/CalcMuestraPage"),
   },
   {
@@ -537,7 +537,7 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
   },
   {
     id: "editor_xlsform",
-    label: "Editor XLSForm",
+    label: "Editor de formularios",
     load: () => import("../features/xlsformEditor/XlsformEditorPage"),
   },
   {
@@ -555,12 +555,12 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
   },
   {
     id: "plotly",
-    label: "Motor de graficos",
+    label: "Motor de gráficos",
     load: () => import("plotly.js-dist-min"),
   },
   {
     id: "html_to_image",
-    label: "Exportacion visual",
+    label: "Exportación visual",
     load: () => Promise.all([
       import("html-to-image"),
       import("../features/dashboard/shared/FullscreenWrapper"),

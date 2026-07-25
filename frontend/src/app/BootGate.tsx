@@ -305,6 +305,30 @@ function friendlyWarmupMessage(raw: string | null | undefined, phase: GatePhase)
   if (/estado del editor xlsform/i.test(text)) {
     return "Editor de formularios";
   }
+  /* Los scopes del backend llegan como frases crudas y sin tildes ("Estado de
+   * codificacion disponible.") y caían al fallback, que las mostraba tal cual
+   * junto a etiquetas ya traducidas. Cada scope tiene su nombre de módulo. */
+  if (/estado de carga disponible/i.test(text)) {
+    return "Carga local";
+  }
+  if (/estado de codificacion disponible/i.test(text)) {
+    return "Codificación local";
+  }
+  if (/estado analitico disponible/i.test(text)) {
+    return "Analítica local";
+  }
+  if (/configuracion local de graficos disponible/i.test(text)) {
+    return "Gráficos locales";
+  }
+  if (/configuracion o curacion de dashboard disponible/i.test(text)) {
+    return "Dashboard local";
+  }
+  if (/agenda de aulas disponible/i.test(text)) {
+    return "Agenda de aulas";
+  }
+  if (/avance factual por canal|cobertura publicada por canal/i.test(text)) {
+    return "Avance por canal";
+  }
   if (/proyecto activo verificado/i.test(text)) {
     return "Proyecto local";
   }
@@ -328,7 +352,19 @@ function friendlyWarmupMessage(raw: string | null | undefined, phase: GatePhase)
   if (moduleName.includes("xlsform")) return "Cargando editor de formularios";
   if (moduleName.includes("diseno") || moduleName.includes("diseño")) return "Cargando diseño del estudio";
   if (moduleName.includes("enciclopedia")) return "Cargando biblioteca metodológica";
-  return text.replace(/cache/gi, "caché").replace(/\.\.\.$/, "...");
+  /* Último recurso para un scope que todavía no tiene nombre propio: se acentúa
+   * lo que el backend manda sin tildes y se le quita el punto final, para que no
+   * desentone al lado de las etiquetas ya traducidas. */
+  return text
+    .replace(/cache/gi, "caché")
+    .replace(/\bcodificacion\b/gi, "codificación")
+    .replace(/\bvalidacion\b/gi, "validación")
+    .replace(/\banalitic([oa])\b/gi, "analític$1")
+    .replace(/\bgraficos\b/gi, "gráficos")
+    .replace(/\bconfiguracion\b/gi, "configuración")
+    .replace(/\bcuracion\b/gi, "curación")
+    .replace(/\.$/, "")
+    .replace(/\.\.\.$/, "...");
 }
 
 function friendlyWarmupDetail(raw: string | null | undefined, phase: GatePhase, progressPercent: number) {
