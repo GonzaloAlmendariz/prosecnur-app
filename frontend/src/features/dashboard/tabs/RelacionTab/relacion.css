@@ -42,7 +42,7 @@
 .dashboard-scope .dash-cross-table thead th {
   background: var(--dash-superficie-2);
   color: var(--dash-primario);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   text-align: center;
 }
 
@@ -53,7 +53,7 @@
 /* Cabeceras de fila siempre a la izquierda — el resto centrado. */
 .dashboard-scope .dash-cross-table tbody th {
   color: var(--dash-texto);
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   text-align: left;
 }
 
@@ -64,7 +64,7 @@
 
 .dashboard-scope .dash-cross-table-total {
   background: var(--dash-superficie-2);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .dashboard-scope .dash-cross-table-total th {
@@ -99,7 +99,7 @@
   border-top: 1px solid var(--dash-borde);
   color: var(--dash-primario);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.04em;
   padding: 6px 10px;
   text-align: center;
@@ -108,7 +108,7 @@
 .dashboard-scope .dash-cross-table-multi th.dash-cross-rowhdr {
   text-align: left;
   white-space: nowrap;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
 }
 .dashboard-scope .dash-cross-table-multi td.dash-cross-pct {
   color: var(--dash-texto-suave);

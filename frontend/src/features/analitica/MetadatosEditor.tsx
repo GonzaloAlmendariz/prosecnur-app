@@ -281,7 +281,7 @@ function VariableRow({
           <span style={{ fontStyle: "italic" }}>—</span>
         )}
         {v.has_labels && (
-          <div style={{ fontSize: 9, color: "var(--pulso-text-soft)", marginTop: 2 }}>
+          <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", marginTop: 2 }}>
             con value-labels
           </div>
         )}
@@ -354,7 +354,7 @@ function MeasureSelector({
           <option key={m} value={m}>{MEASURE_COPY[m].label}</option>
         ))}
       </select>
-      <div style={{ fontSize: 9, color: "var(--pulso-text-soft)", display: "flex", alignItems: "center", gap: 3 }}>
+      <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", display: "flex", alignItems: "center", gap: 3 }}>
         {isOverride ? (
           <>
             <PencilLine size={9} />

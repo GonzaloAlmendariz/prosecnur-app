@@ -297,7 +297,7 @@ export function CombinarVarsPanel({
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
           <label
             style={{
-              fontSize: 9,
+              fontSize: 10,
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: 0.4,
@@ -324,7 +324,7 @@ export function CombinarVarsPanel({
 
           <label
             style={{
-              fontSize: 9,
+              fontSize: 10,
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: 0.4,

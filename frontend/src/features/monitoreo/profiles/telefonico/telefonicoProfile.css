@@ -163,7 +163,7 @@
 
 .is-telefonico-profile .mon-kobo-portability-note strong {
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--phone-kobo-portability) 72%, var(--pulso-text));
@@ -171,7 +171,7 @@
 
 .is-telefonico-profile .mon-kobo-portability-note span {
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.3;
   color: var(--pulso-text-soft);
 }
@@ -317,9 +317,9 @@
 .is-telefonico-profile .mon-phone-operation-grid em {
   grid-area: label;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -328,7 +328,7 @@
   grid-area: value;
   color: var(--pulso-text);
   font-size: 16px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
@@ -344,7 +344,7 @@
   grid-area: hint;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .is-telefonico-profile .mon-phone-overview-grid > .mon-phone-storage--statuses {
@@ -550,7 +550,7 @@
 .is-telefonico-profile .mon-phone-pending-table-panel > header span {
   color: #0f6f77;
   font-size: 10px;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -560,7 +560,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -574,7 +574,7 @@
   color: #0f6f77;
   font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   padding: 4px 8px;
 }
 
@@ -607,7 +607,7 @@
   background: color-mix(in srgb, var(--pulso-surface-2) 82%, #fff);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -615,7 +615,7 @@
 .is-telefonico-profile .mon-phone-pending-table td {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .is-telefonico-profile .mon-phone-pending-table td strong,
@@ -629,7 +629,7 @@
 
 .is-telefonico-profile .mon-phone-pending-table td strong {
   font-size: 13px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
 }
 
@@ -637,7 +637,7 @@
   margin-top: 2px;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.1;
 }
 
@@ -834,7 +834,7 @@
   justify-items: center;
   gap: 2px;
   color: var(--pulso-text-muted);
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   text-align: center;
 }
@@ -842,7 +842,7 @@
 .is-telefonico-profile .mon-phone-daily-axis-labels strong {
   color: #168a55;
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
 }
 
@@ -853,7 +853,7 @@
   color: #6b7686;
   font-size: 10px;
   font-style: normal;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1;
   text-transform: lowercase;
 }
@@ -861,7 +861,7 @@
 .is-telefonico-profile .mon-phone-daily-axis-labels small {
   color: #778292;
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1;
 }
 
@@ -870,12 +870,12 @@
 }
 
 .is-telefonico-profile .mon-phone-daily-axis-labels.is-dense strong {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .is-telefonico-profile .mon-phone-daily-axis-labels.is-dense em,
 .is-telefonico-profile .mon-phone-daily-axis-labels.is-dense small {
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .is-telefonico-profile .mon-phone-daily-axis-labels.is-compact {
@@ -884,12 +884,12 @@
 }
 
 .is-telefonico-profile .mon-phone-daily-axis-labels.is-compact strong {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .is-telefonico-profile .mon-phone-daily-axis-labels.is-compact em,
 .is-telefonico-profile .mon-phone-daily-axis-labels.is-compact small {
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .is-telefonico-profile .mon-phone-advance-parallel {
@@ -928,7 +928,7 @@
 }
 
 .is-telefonico-profile .mon-phone-advance-status-list em {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .is-telefonico-profile .mon-phone-advance-status-list strong {
@@ -984,7 +984,7 @@
   overflow: hidden;
   color: var(--pulso-text-soft);
   font-style: normal;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.12;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -992,7 +992,7 @@
 
 .is-telefonico-profile .mon-phone-advance-audit-strip em {
   color: var(--pulso-text-muted);
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -1002,7 +1002,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.08;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1086,8 +1086,8 @@
 .is-telefonico-profile .mon-phone-advance-rule-console > section p {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 720;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.08;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1108,7 +1108,7 @@
 
 .is-telefonico-profile .mon-phone-advance-rule-console > section span,
 .is-telefonico-profile .mon-phone-advance-rule-steps span {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.03em;
 }
 
@@ -1122,7 +1122,7 @@
 }
 
 .is-telefonico-profile .mon-phone-advance-rule-steps em {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 @media (max-width: 1180px) {
@@ -1293,13 +1293,13 @@
 .is-telefonico-profile .mon-phone-supervision-tabs strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 870;
+  font-weight: var(--pulso-weight-black);
 }
 
 .is-telefonico-profile .mon-phone-supervision-tabs span {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .is-telefonico-profile .mon-phone-supervision-tabs em {
@@ -1309,7 +1309,7 @@
   color: var(--phone-supervision-tab);
   font-size: 13px;
   font-style: normal;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   text-align: right;
 }
 
@@ -1389,8 +1389,8 @@
   align-items: center;
   gap: 6px;
   color: var(--phone-time-hero);
-  font-size: 9.5px;
-  font-weight: 880;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -1399,7 +1399,7 @@
   min-width: 0;
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.08;
 }
 
@@ -1407,7 +1407,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.25;
 }
 
@@ -1452,9 +1452,9 @@
 
 .is-telefonico-profile .mon-phone-time-hero-kpis em {
   color: var(--phone-time-kpi);
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -1462,13 +1462,13 @@
 .is-telefonico-profile .mon-phone-time-hero-kpis strong {
   color: var(--pulso-text);
   font-size: 15px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
 }
 
 .is-telefonico-profile .mon-phone-time-hero-kpis small {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .is-telefonico-profile .mon-phone-time-guide {
@@ -1511,14 +1511,14 @@
 .is-telefonico-profile .mon-phone-time-guide strong {
   color: var(--phone-time-guide);
   font-size: 11px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
 }
 
 .is-telefonico-profile .mon-phone-time-guide em {
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 730;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .is-telefonico-profile .mon-phone-time-cases {
@@ -1572,7 +1572,7 @@
 .is-telefonico-profile .mon-phone-time-cases > section > header span {
   color: var(--phone-time-case-tone);
   font-size: 10px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -1580,7 +1580,7 @@
 .is-telefonico-profile .mon-phone-time-cases > section > header strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
 }
 
 .is-telefonico-profile .mon-phone-time-case-list {
@@ -1610,8 +1610,8 @@
   border-color: var(--pulso-border);
   background: color-mix(in srgb, var(--pulso-surface) 94%, transparent);
   color: var(--pulso-text-faint);
-  font-size: 9px;
-  font-weight: 880;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   backdrop-filter: blur(12px);
@@ -1646,8 +1646,8 @@
   gap: 5px;
   justify-self: start;
   color: var(--phone-time-case);
-  font-size: 9.5px;
-  font-weight: 880;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -1655,7 +1655,7 @@
 .is-telefonico-profile .mon-phone-time-case-row strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
 }
 
 .is-telefonico-profile .mon-phone-time-case-row span:not(.mon-phone-time-case-status),
@@ -1664,13 +1664,13 @@
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .is-telefonico-profile .mon-phone-time-case-row b {
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.1;
 }
 
@@ -1681,18 +1681,18 @@
 
 .is-telefonico-profile .mon-phone-time-case-row small.is-alert {
   color: var(--pulso-danger-fg);
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .is-telefonico-profile .mon-phone-time-cases > p {
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .is-telefonico-profile .mon-phone-time-hero-kpis small {
-  font-size: 9.5px;
+  font-size: 10px;
 }
 
 .is-telefonico-profile .mon-phone-time-control-head {
@@ -1711,7 +1711,7 @@
   margin-top: 1px;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 690;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
 }
 
@@ -1731,7 +1731,7 @@
 }
 
 .is-telefonico-profile .mon-phone-time-buckets span {
-  font-size: 9.5px;
+  font-size: 10px;
 }
 
 .is-telefonico-profile .mon-phone-time-buckets strong {
@@ -1739,7 +1739,7 @@
 }
 
 .is-telefonico-profile .mon-phone-time-buckets em {
-  font-size: 9.5px;
+  font-size: 10px;
 }
 
 .is-telefonico-profile .mon-phone-time-guide {
@@ -1756,7 +1756,7 @@
 }
 
 .is-telefonico-profile .mon-phone-time-guide em {
-  font-size: 9.5px;
+  font-size: 10px;
 }
 
 .is-telefonico-profile .mon-phone-time-cases {
@@ -1803,8 +1803,8 @@
 
 .is-telefonico-profile .mon-phone-time-cases-title span {
   color: var(--phone-time-accent, var(--pulso-success-fg));
-  font-size: 9.5px;
-  font-weight: 880;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -1812,7 +1812,7 @@
 .is-telefonico-profile .mon-phone-time-cases-title strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
 }
 
 .is-telefonico-profile .mon-phone-time-cases-title em {
@@ -1820,7 +1820,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .is-telefonico-profile .mon-phone-time-cases > section > header {
@@ -1830,7 +1830,7 @@
 }
 
 .is-telefonico-profile .mon-phone-time-cases > section > header span {
-  font-size: 9.5px;
+  font-size: 10px;
 }
 
 .is-telefonico-profile .mon-phone-time-cases > section > header strong {
@@ -1851,11 +1851,11 @@
 .is-telefonico-profile .mon-phone-time-case-row.is-head {
   z-index: 3;
   top: 38px;
-  font-size: 8.8px;
+  font-size: 10px;
 }
 
 .is-telefonico-profile .mon-phone-time-case-status {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .is-telefonico-profile .mon-phone-time-case-row strong {
@@ -1921,7 +1921,7 @@
   gap: 6px;
   color: var(--phone-model-tone);
   font-size: 10px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   line-height: 1.05;
   text-transform: uppercase;
@@ -1930,7 +1930,7 @@
 .is-telefonico-profile .mon-phone-model-reading-rule strong {
   color: var(--pulso-text);
   font-size: 16px;
-  font-weight: 890;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.08;
 }
 
@@ -1939,7 +1939,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 
@@ -1983,7 +1983,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.08;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1997,7 +1997,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.12;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2023,9 +2023,9 @@
 
 .is-telefonico-profile .mon-phone-model-routing em {
   color: var(--phone-model-tone);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 870;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   line-height: 1.05;
   text-transform: uppercase;
@@ -2094,7 +2094,7 @@
   gap: 6px;
   color: #0a6b8f;
   font-size: 10px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   line-height: 1.05;
   text-transform: uppercase;
@@ -2103,7 +2103,7 @@
 .is-telefonico-profile .mon-field-schedule-window strong {
   color: var(--pulso-text);
   font-size: 18px;
-  font-weight: 890;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.05;
 }
 
@@ -2111,7 +2111,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .is-telefonico-profile .mon-field-schedule-weekrail {
@@ -2151,7 +2151,7 @@
 .is-telefonico-profile .mon-field-schedule-weekrail em {
   font-size: 10px;
   font-style: normal;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
 }
 
@@ -2194,9 +2194,9 @@
 
 .is-telefonico-profile .mon-field-schedule-cards em {
   color: var(--field-schedule-card);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 870;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -2204,13 +2204,13 @@
 .is-telefonico-profile .mon-field-schedule-cards strong {
   color: var(--pulso-text);
   font-size: 16px;
-  font-weight: 890;
+  font-weight: var(--pulso-weight-black);
 }
 
 .is-telefonico-profile .mon-field-schedule-cards small {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .is-telefonico-profile .mon-field-schedule-evidence {
@@ -2248,7 +2248,7 @@
   gap: 6px;
   color: #0a6b8f;
   font-size: 10px;
-  font-weight: 870;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   line-height: 1.05;
   text-transform: uppercase;
@@ -2257,7 +2257,7 @@
 .is-telefonico-profile .mon-field-schedule-evidence-summary strong {
   color: var(--pulso-text);
   font-size: 18px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.08;
 }
 
@@ -2265,7 +2265,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 11.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.32;
 }
 
@@ -2288,7 +2288,7 @@
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   padding: 6px 7px;
 }
 
@@ -2301,7 +2301,7 @@
   min-width: 0;
   overflow: hidden;
   color: var(--pulso-text);
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2352,15 +2352,15 @@
   display: block;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.08;
 }
 
 .is-telefonico-profile .mon-field-schedule-evidence-days em {
   color: var(--field-day-tone);
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.06em;
   line-height: 1.05;
   text-transform: uppercase;
@@ -2384,7 +2384,7 @@
 .is-telefonico-profile .mon-field-schedule-evidence-days small {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   text-align: right;
 }
 
@@ -2459,7 +2459,7 @@
 .is-telefonico-profile .mon-phone-quota-rhythm-progress-value {
   color: #116b43;
   font-size: 15px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   white-space: nowrap;
 }
@@ -2483,20 +2483,20 @@
 .is-telefonico-profile .mon-phone-quota-rhythm-progress-copy strong {
   color: var(--pulso-text);
   font-size: 19px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .is-telefonico-profile .mon-phone-quota-rhythm-progress-copy em {
   color: var(--pulso-text);
   font-size: 11px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .is-telefonico-profile .mon-phone-quota-rhythm-progress-copy small {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .is-telefonico-profile .mon-phone-quota-rhythm-row-summary > small {
@@ -2505,7 +2505,7 @@
   overflow: hidden;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.18;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2535,7 +2535,7 @@
 }
 
 .is-telefonico-profile .mon-phone-quota-rhythm-row-chart .mon-advance-daily-mini > header em {
-  font-size: 9.5px;
+  font-size: 10px;
 }
 
 .is-telefonico-profile .mon-phone-quota-rhythm-row-chart .mon-advance-daily-board {
@@ -2636,13 +2636,13 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .is-telefonico-profile .mon-phone-consulted-summary strong {
   color: var(--pulso-text);
   font-size: 15px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   text-align: right;
 }
 
@@ -2716,7 +2716,7 @@
   color: #136f46;
   padding: 3px 7px;
   font-size: 10px;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   white-space: nowrap;
 }
@@ -2744,7 +2744,7 @@
   color: var(--phone-row-accent, #64748b);
   padding: 3px 7px;
   font-size: 10px;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   white-space: nowrap;
 }
@@ -2817,9 +2817,9 @@
 
 .is-telefonico-profile .mon-phone-crossing-summary em {
   color: var(--phone-crossing-accent);
-  font-size: 9.2px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -2827,7 +2827,7 @@
 .is-telefonico-profile .mon-phone-crossing-summary strong {
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
   text-align: right;
 }
 
@@ -2835,7 +2835,7 @@
   grid-column: 1 / -1;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .is-telefonico-profile .mon-phone-crossing-pill {
@@ -2848,7 +2848,7 @@
   color: #136f46;
   padding: 4px 8px;
   font-size: 10px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   white-space: nowrap;
 }
@@ -2898,7 +2898,7 @@
 .is-telefonico-profile .mon-phone-caveats-panel.is-empty span {
   color: #136f46;
   font-size: 10px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -2914,7 +2914,7 @@
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 13px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 
@@ -2960,9 +2960,9 @@
 
 .is-telefonico-profile .mon-phone-caveats-empty-metrics em {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -2970,7 +2970,7 @@
 .is-telefonico-profile .mon-phone-caveats-empty-metrics strong {
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 880;
+  font-weight: var(--pulso-weight-black);
 }
 
 .is-telefonico-profile .mon-phone-caveats-empty-guide {
@@ -3003,9 +3003,9 @@
 
 .is-telefonico-profile .mon-phone-caveats-empty-guide em {
   color: #0f6f77;
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -3013,14 +3013,14 @@
 .is-telefonico-profile .mon-phone-caveats-empty-guide strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.12;
 }
 
 .is-telefonico-profile .mon-phone-caveats-empty-guide small {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 690;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.1;
 }
 
@@ -3079,9 +3079,9 @@
 
 .is-telefonico-profile .mon-phone-caveats-list em {
   color: var(--pulso-text-faint);
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -3089,13 +3089,13 @@
 .is-telefonico-profile .mon-phone-caveats-list strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .is-telefonico-profile .mon-phone-caveats-list small {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 @media (max-width: 1180px) {
@@ -3252,7 +3252,7 @@
   }
 
   .is-telefonico-profile .mon-phone-crossing-summary em {
-    font-size: 8.5px;
+    font-size: 10px;
   }
 
   .is-telefonico-profile .mon-phone-crossing-summary strong {

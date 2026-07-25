@@ -146,7 +146,7 @@
 .home-cinema .home-cinema-card.is-focused .home-cinema-card-tagline {
   margin: 0;
   font-size: 12.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.3;
   color: var(--home-mod-accent, var(--pulso-primary));
   text-wrap: balance;
@@ -625,7 +625,7 @@
 .home-settings-head h3 {
   margin: 0;
   font-size: 20px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-primary);
 }
 
@@ -648,7 +648,7 @@
   color: var(--pulso-text-soft);
   background: transparent;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
 
@@ -660,7 +660,7 @@
   background: var(--pulso-surface);
   border: 1px solid var(--pulso-border);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .home-settings-tabs button.is-active {
@@ -708,7 +708,7 @@
 
 .home-settings-panel-copy strong {
   color: var(--pulso-text);
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .home-layout-preset-list {
@@ -788,7 +788,7 @@
 
 .home-layout-preset-current span {
   font-size: 10px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -796,7 +796,7 @@
 .home-layout-preset-current strong {
   min-width: 0;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   text-align: right;
 }
 
@@ -926,7 +926,7 @@
   border-radius: 999px;
   min-height: 38px;
   padding: 10px 18px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .home-wrap .home-cinema-cta:active {
@@ -968,7 +968,7 @@
   min-height: var(--pulso-control-height-lg);
   padding: 4px 11px;
   border-radius: 999px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   transition:
     transform var(--motion-dur-press) var(--motion-ease-out),
     background var(--motion-dur-fast) ease,
@@ -1054,7 +1054,7 @@
   margin: 0 0 3px;
   color: var(--pulso-text-faint);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.15em;
   text-transform: uppercase;
 }
@@ -1062,7 +1062,7 @@
 .home-mission-title {
   margin: 0;
   font-size: clamp(21px, 2vw, 26px);
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.12;
   letter-spacing: -0.022em;
 }
@@ -1074,7 +1074,7 @@
   flex-wrap: wrap;
   color: var(--pulso-text-soft);
   font-size: 12.5px;
-  font-weight: 560;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .home-mission-meta-dot {
@@ -1111,7 +1111,7 @@
 
 .home-mc-stat-tile-value {
   font-size: 18px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
   letter-spacing: -0.01em;
 }
@@ -1119,7 +1119,7 @@
 .home-mc-stat-tile-label {
   color: var(--pulso-text-faint);
   font-size: 10.5px;
-  font-weight: 660;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -1322,14 +1322,14 @@
 
 .home-mc-head-text strong {
   font-size: 15px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
 }
 
 .home-mc-tagline {
   color: var(--pulso-text-soft);
   font-size: 11.5px;
-  font-weight: 560;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
   white-space: normal;
 }
@@ -1389,7 +1389,7 @@
   color: inherit;
   font: inherit;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   text-align: left;
   cursor: pointer;
 }
@@ -1416,7 +1416,7 @@
 .home-mc-menu-progress dt {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -1454,7 +1454,7 @@
 
 .home-mc-menu-progress dd {
   font-size: 12px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .home-mc-status {
@@ -1467,7 +1467,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 
@@ -1527,8 +1527,8 @@
 
 .home-mc-activity > span {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 740;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.08em;
   line-height: 1;
   text-transform: uppercase;
@@ -1538,7 +1538,7 @@
   max-width: 100%;
   color: var(--pulso-text);
   font-size: 17px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.012em;
   line-height: 1.25;
   overflow-wrap: break-word;
@@ -1580,8 +1580,8 @@
 .home-mc-progress-steps > span {
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 620;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1589,12 +1589,12 @@
 
 .home-mc-progress-steps > span.is-done {
   color: var(--pulso-text);
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .home-mc-progress-steps > span.is-current {
   color: var(--home-mod-accent, var(--pulso-primary));
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .home-mc-progress-copy {
@@ -1611,7 +1611,7 @@
   flex: 0 0 auto;
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
 }
 
@@ -1619,7 +1619,7 @@
   max-width: 116px;
   overflow: hidden;
   font-size: 10.5px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1642,14 +1642,14 @@
 .home-mc-secondary-stat > strong {
   color: var(--pulso-text);
   font-size: 17px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
 }
 
 .home-mc-secondary-stat > span {
   min-width: 0;
   font-size: 11px;
-  font-weight: 660;
+  font-weight: var(--pulso-weight-bold);
   overflow-wrap: break-word;
 }
 
@@ -1660,7 +1660,7 @@
 /* Sin dato: el guion hereda el peso del hero y parece una barra; se atenúa. */
 .home-mc-stat.is-hero.is-empty > strong {
   color: var(--pulso-text-faint);
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
 }
 
 /* Hero de palabra (fase, estado): escala menor que el hero numérico. */
@@ -1689,7 +1689,7 @@
   background: var(--home-mod-accent, var(--pulso-primary));
   color: #fff;
   font-size: 10px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -1697,7 +1697,7 @@
 .home-mc-daychip-day {
   padding: 4px 0 6px;
   font-size: 26px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   color: var(--home-mod-accent, var(--pulso-primary));
 }
@@ -1709,14 +1709,14 @@
 
 .home-mc-date-title {
   font-size: 13px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.home-mc-countdown { font-size: 11.5px; font-weight: 720; }
+.home-mc-countdown { font-size: 11.5px; font-weight: var(--pulso-weight-bold); }
 .home-mc-countdown.is-future { color: var(--pulso-text-soft); }
 .home-mc-countdown.is-today { color: var(--pulso-warn-fg); }
 .home-mc-countdown.is-past,
@@ -1734,7 +1734,7 @@
   border: 1px solid var(--pulso-warn-border);
   color: var(--pulso-warn-fg);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 
@@ -1749,7 +1749,7 @@
 
 .home-mc-stat > strong {
   font-size: 21px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -1765,7 +1765,7 @@
 
 .home-mc-stat-label {
   font-size: 12.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
 }
 
@@ -1810,14 +1810,14 @@
 .home-mc-phase-labels span {
   flex: 1;
   text-align: center;
-  font-size: 9.5px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-faint);
 }
 
 .home-mc-phase-labels span.is-done {
   color: var(--home-mod-accent, var(--pulso-primary));
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .home-mc-viz.is-phases .home-mc-stat {
@@ -1862,7 +1862,7 @@
 .home-mc-fact strong {
   overflow: hidden;
   font-size: 13.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
   letter-spacing: -0.01em;
   text-overflow: ellipsis;
@@ -1871,8 +1871,8 @@
 
 .home-mc-fact > span {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 680;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   line-height: 1.2;
@@ -1890,7 +1890,7 @@
   background: var(--home-mod-accent-soft, var(--pulso-primary-soft));
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   transition: background var(--motion-dur-fast) ease;
 }
 
@@ -1918,7 +1918,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
   font-size: 13px;
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
   cursor: pointer;
   transition: border-color var(--motion-dur-fast) ease, background var(--motion-dur-fast) ease, color var(--motion-dur-fast) ease;
@@ -1956,7 +1956,7 @@
   transform: translate(-50%, -50%);
 }
 
-.home-confirm strong { font-size: 16px; font-weight: 760; }
+.home-confirm strong { font-size: 16px; font-weight: var(--pulso-weight-heavy); }
 .home-confirm p { margin: 0; color: var(--pulso-text-soft); font-size: 13px; line-height: 1.5; }
 
 .home-confirm-actions {
@@ -1973,7 +1973,7 @@
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
   font-size: 13px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   cursor: pointer;
 }
 
@@ -2015,7 +2015,7 @@
   margin: 0 0 2px;
   color: var(--pulso-text-soft);
   font-size: 11.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.15em;
   text-transform: uppercase;
 }
@@ -2023,7 +2023,7 @@
 .home-setup-head h1 {
   margin: 0;
   font-size: clamp(22px, 2.4vw, 28px);
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.01em;
 }
 
@@ -2078,7 +2078,7 @@
   border: 1px solid color-mix(in srgb, var(--pulso-success-fg) 20%, transparent);
   color: color-mix(in srgb, var(--pulso-success-fg) 82%, var(--pulso-text));
   font-size: 12px;
-  font-weight: 560;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: -0.005em;
 }
 
@@ -2097,7 +2097,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
   font-size: 12.5px;
-  font-weight: 660;
+  font-weight: var(--pulso-weight-bold);
   cursor: pointer;
   transition: border-color var(--motion-dur-fast) ease, color var(--motion-dur-fast) ease;
 }
@@ -2138,7 +2138,7 @@
 .home-cinema-card-added em {
   font-style: normal;
   font-size: 10px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
@@ -2193,7 +2193,7 @@
   min-width: 0;
   margin: 0;
   font-size: 20px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.01em;
 }
 
@@ -2205,7 +2205,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
   font-size: 11.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 
@@ -2217,7 +2217,7 @@
   background: var(--pulso-primary);
   color: #fff;
   font-size: 13px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   cursor: pointer;
 }
 
@@ -2294,7 +2294,7 @@
 .home-settings-rail-brand h3 {
   margin: 0;
   font-size: 16px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-primary);
 }
 
@@ -2364,7 +2364,7 @@
 
 .home-settings-nav-text strong {
   font-size: 12.5px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.25;
 }
 
@@ -2384,7 +2384,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 
@@ -2418,7 +2418,7 @@
 .home-settings-main-copy h4 {
   margin: 0;
   font-size: 17px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.01em;
 }
 
@@ -2546,7 +2546,7 @@
   display: block;
   margin-bottom: 2px;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.7px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
@@ -2590,14 +2590,14 @@
 .home-layout-preset-copy strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
 .home-layout-preset-copy small {
   color: var(--pulso-primary);
   font-size: 11px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
@@ -2658,7 +2658,7 @@
   white-space: nowrap;
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .home-connection-title p {
@@ -2682,7 +2682,7 @@
   background: var(--pulso-warn-bg);
   border: 1px solid var(--pulso-warn-border);
   font-size: 10.5px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
 }
 
@@ -2735,8 +2735,8 @@
 .home-connection-empty span {
   min-width: 0;
   color: var(--pulso-text-soft);
-  font-size: 9.8px;
-  font-weight: 820;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.05em;
   line-height: 1.2;
   text-transform: uppercase;
@@ -2747,7 +2747,7 @@
   min-width: 0;
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2757,7 +2757,7 @@
   min-width: 0;
   color: var(--pulso-text-soft);
   font-size: 10.8px;
-  font-weight: 560;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.34;
   overflow-wrap: anywhere;
 }
@@ -2817,7 +2817,7 @@
   cursor: pointer;
   list-style: none;
   font-size: 11.5px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .home-connection-details > summary::-webkit-details-marker {
@@ -2836,7 +2836,7 @@
   color: var(--pulso-primary);
   background: #fff;
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .home-connection-details[open] > summary::after {
@@ -2848,7 +2848,7 @@
   margin-left: auto;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 680;
+  font-weight: var(--pulso-weight-bold);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2868,13 +2868,13 @@
   gap: 4px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .home-connection-form label > small {
   color: var(--pulso-text-soft);
   font-size: 10.8px;
-  font-weight: 560;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.34;
 }
 
@@ -2891,14 +2891,14 @@
   background: var(--pulso-surface);
   font-family: inherit;
   font-size: 12px;
-  font-weight: 620;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 
 .home-connection-form input[type="password"],
 .home-connection-form textarea {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-weight: 520;
+  font-weight: var(--pulso-weight-medium);
 }
 
 .home-connection-form textarea {
@@ -2910,7 +2910,7 @@
 .home-secret-input.is-masked {
   -webkit-text-security: disc;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-weight: 520;
+  font-weight: var(--pulso-weight-medium);
 }
 
 .home-connection-form input[type="password"]:focus,
@@ -2947,7 +2947,7 @@
 .home-connection-profiles-head span {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -2997,14 +2997,14 @@
 .home-connection-profile strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .home-connection-profile small {
   margin-top: 2px;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 560;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .home-connection-profile-actions {
@@ -3022,7 +3022,7 @@
   color: var(--pulso-primary);
   background: #fff;
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
 }
 
@@ -3039,7 +3039,7 @@
   gap: 7px !important;
   color: var(--pulso-text-soft);
   font-size: 11px !important;
-  font-weight: 600 !important;
+  font-weight: var(--pulso-weight-semibold) !important;
 }
 
 .home-connection-check input {
@@ -3066,7 +3066,7 @@
   color: var(--pulso-text);
   background: var(--pulso-surface);
   font-size: 11.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
   white-space: nowrap;
   cursor: pointer;
@@ -3105,7 +3105,7 @@
   margin: -4px 0 0;
   color: var(--pulso-text-soft);
   font-size: 10.8px;
-  font-weight: 560;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
 
@@ -3186,7 +3186,7 @@
 
 .home-drawer-eyebrow {
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.7px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
@@ -3197,7 +3197,7 @@
 .home-drawer-title {
   margin: 0;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-primary);
   letter-spacing: -0.3px;
 }
@@ -3241,7 +3241,7 @@
 
 .home-release-pill {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   font-family: ui-monospace, monospace;
   padding: 3px 9px;
   border-radius: 999px;
@@ -3262,8 +3262,8 @@
 }
 
 .home-release-now {
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.6px;
   text-transform: uppercase;
   padding: 2px 7px;
@@ -3326,7 +3326,7 @@
   display: block;
   margin-bottom: 7px;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.65px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);

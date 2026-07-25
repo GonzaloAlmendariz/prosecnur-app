@@ -356,7 +356,7 @@ export default function ReglaDrillPanel({
             color: var(--pulso-text);
             box-shadow: var(--pulso-shadow-low);
             font-size: 11px;
-            font-weight: 500;
+            font-weight: var(--pulso-weight-medium);
             line-height: 1.45;
             opacity: 0;
             pointer-events: none;
@@ -1014,7 +1014,7 @@ const logicStepNumberStyle: React.CSSProperties = {
   color: "var(--pulso-primary)",
   border: "1px solid var(--pulso-border)",
   fontSize: 11,
-  fontWeight: 850,
+  fontWeight: 800,
 };
 
 const logicCardStyle: React.CSSProperties = {
@@ -1032,7 +1032,7 @@ const logicCardStyle: React.CSSProperties = {
 const logicCodeStyle: React.CSSProperties = {
   fontFamily: "ui-monospace, monospace",
   fontSize: 11,
-  fontWeight: 850,
+  fontWeight: 800,
   color: "var(--pulso-primary)",
   paddingTop: 1,
 };
@@ -1040,7 +1040,7 @@ const logicCodeStyle: React.CSSProperties = {
 const logicQuestionStyle: React.CSSProperties = {
   minWidth: 0,
   fontSize: 12,
-  fontWeight: 750,
+  fontWeight: 700,
   color: "var(--pulso-text)",
   lineHeight: 1.35,
   overflowWrap: "anywhere",
@@ -1262,7 +1262,7 @@ function CaseLogicSummary({
             fontSize: 12,
             lineHeight: 1.5,
             color: "var(--pulso-text)",
-            fontWeight: 650,
+            fontWeight: 600,
           }}
         >
           {resultText}

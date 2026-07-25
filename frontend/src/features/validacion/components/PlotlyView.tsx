@@ -367,7 +367,7 @@ function NativeBarChart({
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
                 fontSize: 12,
-                fontWeight: 750,
+                fontWeight: 700,
                 color: "var(--pulso-text)",
               }}
             >
@@ -399,7 +399,7 @@ function NativeBarChart({
                 minWidth: 30,
                 textAlign: "right",
                 fontSize: 12,
-                fontWeight: 850,
+                fontWeight: 800,
                 color: "var(--pulso-primary)",
                 fontVariantNumeric: "tabular-nums",
               }}
@@ -515,7 +515,7 @@ function NativeHeatmap({ summary }: { summary: NativeHeatmapSummary }) {
                       whiteSpace: "nowrap",
                       fontSize: 10,
                       lineHeight: 1.15,
-                      fontWeight: 750,
+                      fontWeight: 700,
                       opacity: value > 0 ? 0.92 : 0.72,
                     }}
                   >
@@ -525,7 +525,7 @@ function NativeHeatmap({ summary }: { summary: NativeHeatmapSummary }) {
                     style={{
                       fontSize: value > 0 ? 17 : 12,
                       lineHeight: 1,
-                      fontWeight: 850,
+                      fontWeight: 800,
                       fontVariantNumeric: "tabular-nums",
                     }}
                   >

@@ -37,7 +37,7 @@
 .cmv2-cob-card-title h3 {
   margin: 0;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 .cmv2-cob-card-title p {
@@ -53,7 +53,7 @@
 }
 .cmv2-cob-card-kpi strong {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
 }
@@ -73,7 +73,7 @@
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-muted);
 }
 .cmv2-cob-legend-item i {
@@ -126,5 +126,5 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.cmv2-cob-row-val b { font-size: 13px; font-weight: 700; color: var(--pulso-text); }
+.cmv2-cob-row-val b { font-size: 13px; font-weight: var(--pulso-weight-bold); color: var(--pulso-text); }
 .cmv2-cob-row-val em { font-size: 11px; font-style: normal; color: var(--pulso-text-muted); }

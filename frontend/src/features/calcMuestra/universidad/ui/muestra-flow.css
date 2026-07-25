@@ -98,8 +98,8 @@
   border-radius: 9px;
   background: var(--cmv2-accent);
   color: var(--cmv2-surface, var(--pulso-surface));
-  font-size: 9.5px;
-  font-weight: 750;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.02em;
   white-space: nowrap;
   box-shadow: var(--pulso-shadow-popover, 0 2px 8px rgba(0, 0, 0, 0.12));
@@ -116,7 +116,7 @@
 
 .cmv2-muestra-flow-label strong {
   font-size: 11.5px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: -0.1px;
   color: var(--pulso-text);
 }
@@ -186,7 +186,7 @@
 }
 
 .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-label small {
-  font-size: 9.5px;
+  font-size: 10px;
 }
 
 /* --- Motion ---------------------------------------------------------------- */

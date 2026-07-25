@@ -304,7 +304,7 @@ function SeccionRow({
           >
             {seccion.nombre}
             {seccion.manual && (
-              <span style={{ marginLeft: 6, fontSize: 9, color: "var(--pulso-text-soft)", fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.3 }}>
+              <span style={{ marginLeft: 6, fontSize: 10, color: "var(--pulso-text-soft)", fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.3 }}>
                 editado
               </span>
             )}

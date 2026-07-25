@@ -1,10 +1,5 @@
 .hojas-ruta-frame {
-  --module-accent: var(--pulso-module-routes);
-  --module-accent-soft: var(--pulso-module-routes-soft);
-  --module-accent-border: var(--pulso-module-routes-border);
-  --pulso-primary: var(--pulso-module-routes);
-  --pulso-primary-soft: var(--pulso-module-routes-soft);
-  --pulso-primary-border: var(--pulso-module-routes-border);
+  /* El acento del módulo vive en la tabla de paletas de theme.css. */
   --pulso-primary-focus: rgba(194, 65, 12, 0.15);
   --pulso-primary-ring: rgba(194, 65, 12, 0.12);
   gap: 8px;
@@ -71,8 +66,12 @@
    opacidad y sombra; al heredar recupera la geometría común. */
 .hojas-ruta-commandbar {
   /* Contexto y acciones a su ancho de contenido; el rail (columna central)
-     absorbe el apriete y hace scroll interno con dignidad si no alcanza. */
-  --command-bar-columns: max-content minmax(0, 1fr) max-content;
+     absorbe el apriete y hace scroll interno con dignidad si no alcanza.
+     `minmax(0, max-content)` y no `max-content` a secas: con `max-content` la
+     columna de acciones se negaba a encoger y la barra terminaba ~83px más
+     ancha que el viewport, dejando el selector de regla de piloto pintado
+     afuera y sin scroll que lo alcanzara —a 1280, 1440 y 1710 por igual—. */
+  --command-bar-columns: minmax(0, max-content) minmax(0, 1fr) minmax(0, max-content);
   --command-bar-accent: var(--module-accent-border);
   --command-bar-accent-mix: 76%;
   --commandbar-control-height: var(--command-bar-control-height);
@@ -107,6 +106,10 @@
   justify-content: flex-end;
   gap: 8px;
   justify-self: end;
+  /* Última defensa de la regla de toolbars: si las acciones no entran,
+     envuelven en vez de pintarse fuera del viewport. */
+  flex-wrap: wrap;
+  row-gap: 4px;
 }
 
 .hojas-ruta-phase-notice-chip {
@@ -137,7 +140,7 @@
   overflow: hidden;
   color: inherit;
   font-size: 11.5px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -177,7 +180,10 @@
   min-width: 0;
   max-width: 100%;
   display: flex;
-  justify-content: center;
+  /* `safe center` y no `center` a secas: cuando el pillbar no entra, centrarlo
+     reparte el desborde a ambos lados y la primera etapa queda fuera de alcance
+     incluso con el scroll interno del propio pillbar. */
+  justify-content: safe center;
 }
 
 .hojas-ruta-stage-rail {
@@ -196,7 +202,7 @@
 
 .hojas-ruta-stage-rail .pulso-phase-pill {
   border: 0;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-stage-rail .pulso-phase-pill svg {
@@ -258,7 +264,7 @@
   box-shadow: 0 22px 55px rgba(15, 23, 42, 0.1);
   color: var(--pulso-text);
   font-size: 15px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-map-column,
@@ -288,14 +294,14 @@
 .hojas-ruta-side-kicker {
   color: var(--module-accent);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.4px;
   text-transform: uppercase;
 }
 
 .hojas-ruta-frame .pulso-section-eyebrow {
   color: var(--module-accent);
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .hojas-ruta-side-copy,
@@ -348,7 +354,7 @@
   color: var(--pulso-text);
   font-size: 15px;
   line-height: 1.25;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-focus-strip {
@@ -386,7 +392,7 @@
   display: block;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 
@@ -402,7 +408,7 @@
   margin-top: 2px;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
 
@@ -439,7 +445,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
 }
 
@@ -523,7 +529,7 @@
   padding: 8px 10px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .hojas-ruta-map-legend span {
@@ -624,7 +630,7 @@
   background: transparent;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
   transition:
     background 120ms cubic-bezier(0.23, 1, 0.32, 1),
@@ -654,7 +660,7 @@
   text-align: center;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-lima-map.is-compact {
@@ -734,7 +740,7 @@
 .hojas-ruta-zone-info-selected strong,
 .hojas-ruta-zone-info-selected span {
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-map-badge {
@@ -760,8 +766,8 @@
   border: 0;
   background: transparent;
   color: rgba(100, 116, 139, 0.5);
-  font-size: 8px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.2;
   pointer-events: none;
   box-shadow: none;
@@ -783,7 +789,7 @@
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-nse-legend span {
@@ -866,7 +872,7 @@
   margin-top: 3px;
   color: var(--pulso-text);
   font-size: 15px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
@@ -969,7 +975,7 @@
   background: var(--pulso-primary);
   color: white;
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
   transition:
     transform 120ms cubic-bezier(0.23, 1, 0.32, 1),
@@ -1038,7 +1044,7 @@
   gap: 8px;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .hojas-ruta-district-tools > div {
@@ -1053,7 +1059,7 @@
   background: white;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   cursor: pointer;
   transition:
     border-color 140ms cubic-bezier(0.23, 1, 0.32, 1),
@@ -1142,7 +1148,7 @@
   justify-content: center;
   cursor: pointer;
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   transition:
     border-color 140ms cubic-bezier(0.23, 1, 0.32, 1),
     background 140ms cubic-bezier(0.23, 1, 0.32, 1),
@@ -1233,8 +1239,8 @@
 
 .hojas-ruta-header-pill small {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.05;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -1243,7 +1249,7 @@
 .hojas-ruta-header-pill strong {
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
 }
@@ -1255,6 +1261,8 @@
   align-items: center;
   gap: 6px;
   flex: 0 1 auto;
+  flex-wrap: wrap;
+  row-gap: 4px;
   padding: 4px;
   border: 1px solid color-mix(in srgb, var(--module-accent-border) 58%, var(--pulso-border));
   border-radius: 22px;
@@ -1305,7 +1313,7 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(248, 250, 252, 0.64));
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1338,7 +1346,7 @@
   color: var(--pulso-text);
   padding: 0 28px 0 11px;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.82),
     0 1px 2px rgba(15, 23, 42, 0.04);
@@ -1355,7 +1363,7 @@
   background: rgba(255, 255, 255, 0.74);
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-stage-shell {
@@ -1438,7 +1446,7 @@
   padding: 7px 8px 7px 10px;
   border-radius: 999px 0 0 999px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
   transform-origin: center;
   transition:
@@ -1546,14 +1554,14 @@
 
 .hojas-ruta-notice-popover strong {
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-notice-popover span {
   margin-top: 5px;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.45;
 }
 
@@ -1794,7 +1802,7 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.035em;
   text-transform: uppercase;
 }
@@ -1810,7 +1818,7 @@
 .hojas-ruta-territory-table .is-number {
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   text-align: right;
   white-space: nowrap;
 }
@@ -1836,7 +1844,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1846,7 +1854,7 @@
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.02em;
 }
 
@@ -1894,7 +1902,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1903,7 +1911,7 @@
   margin-top: 2px;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .hojas-ruta-territory-density-meter {
@@ -1938,7 +1946,7 @@
   color: color-mix(in srgb, var(--module-accent) 72%, var(--pulso-text));
   font-size: 10.5px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1948,7 +1956,7 @@
   display: block;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-selected-row span,
@@ -1972,14 +1980,14 @@
   color: var(--module-accent);
   font-size: 13px;
   font-style: normal;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
 }
 
 .hojas-ruta-mini-table small {
   color: color-mix(in srgb, var(--module-accent) 70%, var(--pulso-text-soft));
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-mode-switch {
@@ -1999,7 +2007,7 @@
   min-height: 34px;
   padding: 0 14px;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
   transition:
     background 140ms cubic-bezier(0.23, 1, 0.32, 1),
@@ -2052,7 +2060,7 @@
   display: block;
   color: var(--pulso-primary);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -2062,7 +2070,7 @@
   margin-top: 3px;
   color: var(--pulso-text);
   font-size: 15px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-stage-coach p {
@@ -2114,7 +2122,7 @@
 .hojas-ruta-readiness-item span {
   color: inherit;
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
   overflow-wrap: normal;
   word-break: keep-all;
@@ -2125,7 +2133,7 @@
   margin: 0;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
 }
 
@@ -2182,7 +2190,7 @@
 .hojas-ruta-sample-mode-cards strong {
   color: inherit;
   font-size: 11.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.15;
   overflow-wrap: anywhere;
 }
@@ -2191,7 +2199,7 @@
   margin-top: 0;
   color: color-mix(in srgb, currentColor 82%, transparent);
   font-size: 10px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.18;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -2240,7 +2248,7 @@
   background: color-mix(in srgb, var(--module-accent) 12%, #fff);
   color: var(--module-accent);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
 }
 
@@ -2252,7 +2260,7 @@
 .hojas-ruta-flow-step-head strong {
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.2;
 }
 
@@ -2289,7 +2297,7 @@
   display: block;
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-sample-size-heading span {
@@ -2319,7 +2327,7 @@
   display: block;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-sample-plain-card span,
@@ -2385,14 +2393,14 @@
 .hojas-ruta-sample-advice-item span {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
 
 .hojas-ruta-sample-advice-item strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   white-space: nowrap;
 }
 
@@ -2421,7 +2429,7 @@
 .hojas-ruta-method-note strong {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-method-note span {
@@ -2484,13 +2492,13 @@
 .hojas-ruta-sample-control > span {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-sample-control .hojas-ruta-inline-help {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   text-transform: none;
 }
 
@@ -2519,7 +2527,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   pointer-events: none;
 }
 
@@ -2553,7 +2561,7 @@
 
 .hojas-ruta-design-presets strong {
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   white-space: normal;
   overflow-wrap: anywhere;
 }
@@ -2577,7 +2585,7 @@
 .hojas-ruta-deff-guide > summary {
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   cursor: pointer;
 }
 
@@ -2613,7 +2621,7 @@
 .hojas-ruta-deff-recommendation span {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
 }
 
@@ -2621,7 +2629,7 @@
   margin-top: 2px;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-deff-recommendation p {
@@ -2639,7 +2647,7 @@
   background: white;
   color: var(--pulso-primary);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -2663,7 +2671,7 @@
 .hojas-ruta-deff-rule strong {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-deff-rule span {
@@ -2695,14 +2703,14 @@
 .hojas-ruta-deff-scenarios span {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-deff-scenarios strong {
   margin-top: 2px;
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
 }
 
@@ -2719,7 +2727,7 @@
   gap: 8px;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .hojas-ruta-checkbox-row input {
@@ -2777,7 +2785,7 @@
 .hojas-ruta-sample-empty-state strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-sample-empty-state span {
@@ -2831,7 +2839,7 @@
 .hojas-ruta-n-choice-card span {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
 }
 
@@ -2839,7 +2847,7 @@
   margin-top: 4px;
   color: var(--pulso-text);
   font-size: 21px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -2848,7 +2856,7 @@
   margin-top: 6px;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.3;
 }
 
@@ -2874,7 +2882,7 @@
   background: white;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
 }
 
@@ -3013,7 +3021,7 @@
 .hojas-ruta-section-title strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-section-title span {
@@ -3053,7 +3061,7 @@
   background: #fbfefd;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .hojas-ruta-output-list svg {
@@ -3088,7 +3096,7 @@
   background: white;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
 }
 
@@ -3190,7 +3198,7 @@
   color: var(--pulso-text-soft);
   padding: 0 10px;
   font-size: 11.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -3224,14 +3232,14 @@
   text-align: right;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .hojas-ruta-phase-summary strong {
   max-width: 100%;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3245,7 +3253,7 @@
   padding: 8px 10px;
   font-size: 12px;
   line-height: 1.35;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-phase-policy {
@@ -3258,7 +3266,7 @@
   color: var(--pulso-text-soft);
   font-size: 12px;
   line-height: 1.35;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-phase-reset {
@@ -3269,7 +3277,7 @@
   color: var(--pulso-text);
   padding: 0 10px;
   font-size: 11.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -3367,7 +3375,7 @@
   display: block;
   color: var(--pulso-primary);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -3378,7 +3386,7 @@
   color: var(--pulso-text);
   font-size: 14px;
   line-height: 1.2;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3412,7 +3420,7 @@
   background: white;
   color: var(--pulso-primary);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
 }
 
@@ -3434,14 +3442,14 @@
 .hojas-ruta-sampling-inspector-action-copy strong {
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-sampling-inspector-action-copy small {
   margin-top: 2px;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .hojas-ruta-sampling-zone-list,
@@ -3514,7 +3522,7 @@
   color: var(--pulso-text);
   font-size: 12.5px;
   line-height: 1.18;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   overflow-wrap: anywhere;
   white-space: normal;
 }
@@ -3541,14 +3549,14 @@
   color: var(--module-accent);
   font-size: 11.5px;
   line-height: 1.18;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-zone-row-status small {
   color: var(--pulso-text-soft);
   font-size: 10px;
   line-height: 1.22;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .hojas-ruta-zone-row-status.is-empty strong {
@@ -3579,7 +3587,7 @@
   color: var(--pulso-primary);
   font-style: normal;
   font-size: 15px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-pop-preview {
@@ -3603,7 +3611,7 @@
 .hojas-ruta-pop-title {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-pop-caption {
@@ -3640,7 +3648,7 @@
   display: block;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .hojas-ruta-pop-summary strong {
@@ -3699,7 +3707,7 @@
   background: #f7fafb;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0;
 }
 
@@ -3719,7 +3727,7 @@
   background: #fbfcfd;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-pop-table .is-age-head {
@@ -3784,7 +3792,7 @@
 .hojas-ruta-pop-table .is-row-label {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -3797,7 +3805,7 @@
 .hojas-ruta-pop-table .is-total {
   background: #f6fafb;
   color: var(--pulso-text);
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-pop-table tfoot td {
@@ -3808,7 +3816,7 @@
   border-bottom: 0;
   background: color-mix(in srgb, var(--module-accent) 12%, #fff);
   color: var(--module-accent);
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   box-shadow: 0 -10px 18px rgba(15, 23, 42, 0.055);
 }
 
@@ -3976,7 +3984,7 @@
 .hojas-ruta-table-pager strong {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-table-pager button {
@@ -3985,7 +3993,7 @@
   background: #ffffff;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   padding: 6px 10px;
   cursor: pointer;
 }
@@ -4012,7 +4020,7 @@
   background: #f7fafb;
   color: #334155;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-review-table tbody tr:nth-child(even) td {
@@ -4044,7 +4052,7 @@
 
 .hojas-ruta-review-table .is-strong {
   color: var(--pulso-text);
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 @media (max-width: 1180px) {
@@ -4055,7 +4063,7 @@
     border-radius: 16px;
     /* El rail (superficie prioritaria) tiene ancho garantizado para sus 5
        etapas; el contexto se acota y hace scroll interno si no alcanza. */
-    grid-template-columns: minmax(0, 272px) minmax(0, 1fr) max-content;
+    grid-template-columns: minmax(0, 272px) minmax(0, 1fr) minmax(0, max-content);
   }
 
   .hojas-ruta-command-summary {
@@ -4468,7 +4476,7 @@
 
 .hojas-ruta-allocation-cards strong {
   font-size: 12.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   color: var(--pulso-text);
   white-space: normal;
   overflow-wrap: normal;
@@ -4496,7 +4504,7 @@
   background: #f8fafc;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
 }
 
@@ -4508,7 +4516,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .hojas-ruta-sample-advanced {
@@ -4549,7 +4557,7 @@
 .hojas-ruta-sample-result-headline .eyebrow {
   color: var(--module-accent);
   font-size: 10.5px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -4557,14 +4565,14 @@
 .hojas-ruta-sample-result-headline .hojas-ruta-inline-help {
   color: var(--module-accent);
   font-size: 10.5px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
 }
 
 .hojas-ruta-sample-result-headline strong {
   color: var(--pulso-text);
   font-size: 21px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -4591,7 +4599,7 @@
 .hojas-ruta-sample-result-rationale strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-sample-result-rationale span {
@@ -4609,7 +4617,7 @@
   background: white;
   color: var(--pulso-primary);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -4659,7 +4667,7 @@
   display: block;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
@@ -4674,7 +4682,7 @@
   max-width: 100%;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.02em;
   line-height: 1.2;
   text-transform: uppercase;
@@ -4758,7 +4766,7 @@
   box-shadow: 0 14px 34px rgba(15, 23, 42, 0.16);
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0;
   line-height: 1.4;
   text-transform: none;
@@ -4828,7 +4836,7 @@
   margin-top: 2px;
   color: var(--pulso-text);
   font-size: 18px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
 }
 
@@ -4877,7 +4885,7 @@
 .hojas-ruta-sample-contacts .eyebrow {
   color: #92400e;
   font-size: 10.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -4885,7 +4893,7 @@
 .hojas-ruta-sample-contacts strong {
   color: #78350f;
   font-size: 21px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -4904,7 +4912,7 @@
 
 .hojas-ruta-sample-contacts em {
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 /* Tips collapsible */
@@ -4992,7 +5000,7 @@
 .hojas-ruta-stat-criteria-grid strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-stat-criteria-grid span {
@@ -5044,7 +5052,7 @@
 .hojas-ruta-sampling-summary-hero .eyebrow {
   color: var(--module-accent);
   font-size: 10.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -5052,7 +5060,7 @@
 .hojas-ruta-sampling-summary-hero strong {
   color: var(--module-accent);
   font-size: 21px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -5139,7 +5147,7 @@
   color: var(--pulso-text);
   font-size: 13px;
   line-height: 1.18;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   overflow-wrap: anywhere;
   white-space: normal;
 }
@@ -5209,7 +5217,7 @@
 .hojas-ruta-segmented-field > span {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-segmented {
@@ -5226,7 +5234,7 @@
   background: white;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
 }
 
@@ -5271,7 +5279,7 @@
 .hojas-ruta-route-jump-group > span {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-route-jump-options {
@@ -5309,13 +5317,13 @@
 
 .hojas-ruta-route-jump-options strong {
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-route-jump-options small {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .hojas-ruta-jump-formula {
@@ -5330,7 +5338,7 @@
 .hojas-ruta-jump-formula span {
   color: var(--pulso-primary);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -5338,7 +5346,7 @@
 .hojas-ruta-jump-formula strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-jump-formula small {
@@ -5383,7 +5391,7 @@
 .hojas-ruta-replacement-grid span {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-replacement-grid input {
@@ -5394,7 +5402,7 @@
   background: white;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   padding: 0 9px;
 }
 
@@ -5413,7 +5421,7 @@
 .hojas-ruta-replacement-slider label {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-replacement-value {
@@ -5428,7 +5436,7 @@
   color: var(--pulso-primary);
   font-size: 20px;
   line-height: 1;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
 }
 
@@ -5437,7 +5445,7 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   line-height: 1.1;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .hojas-ruta-replacement-slider input[type="range"] {
@@ -5453,7 +5461,7 @@
   justify-content: space-between;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .hojas-ruta-replacement-grid strong {
@@ -5466,7 +5474,7 @@
   background: rgba(240, 253, 250, 0.88);
   color: var(--module-accent);
   font-size: 13px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   padding: 0 9px;
 }
 
@@ -5540,7 +5548,7 @@
   background: white;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
 }
 
@@ -5621,7 +5629,7 @@
 .hojas-ruta-block-list-info strong {
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-block-list-info span {
@@ -5641,7 +5649,7 @@
   color: var(--pulso-primary);
   font-style: normal;
   font-size: 16px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -5733,14 +5741,14 @@
   color: var(--pulso-text);
   font-size: 12px;
   line-height: 1.2;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-manual-summary span {
   flex: 0 0 auto;
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-manual-results-meta {
@@ -5749,7 +5757,7 @@
   justify-content: flex-end;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-manual-results button {
@@ -5778,7 +5786,7 @@
 
 .hojas-ruta-manual-results button strong {
   font-size: 11.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-manual-results button small {
@@ -5802,7 +5810,7 @@
   gap: 4px;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-manual-controls input {
@@ -5844,7 +5852,7 @@
   background: color-mix(in srgb, var(--module-accent) 6%, #fff);
   color: var(--module-accent);
   font-size: 10.5px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .hojas-ruta-sample-next {
@@ -5878,7 +5886,7 @@
 .hojas-ruta-route-history-row strong {
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-route-history-row span {
@@ -5902,7 +5910,7 @@
   background: white;
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
 }
 
@@ -5954,7 +5962,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
   cursor: pointer;
   transition:
@@ -6212,13 +6220,13 @@
 .hojas-ruta-block-popup-head strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-block-popup-head span {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .hojas-ruta-block-popup-stats {
@@ -6238,7 +6246,7 @@
   display: block;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
@@ -6248,7 +6256,7 @@
   margin-top: 1px;
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
 }
 
@@ -6259,13 +6267,13 @@
   flex-wrap: wrap;
   font-size: 11.5px;
   color: var(--pulso-text);
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .hojas-ruta-block-popup-sex span.is-soft {
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   margin-left: auto;
 }
 
@@ -6283,7 +6291,7 @@
 .hojas-ruta-block-popup-nse span {
   color: inherit;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -6291,7 +6299,7 @@
 .hojas-ruta-block-popup-nse strong {
   color: inherit;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-block-popup-nse small {
@@ -6313,7 +6321,7 @@
 .hojas-ruta-block-popup-assignment strong {
   color: var(--module-accent);
   font-size: 12.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-block-popup-assignment span {
@@ -6339,7 +6347,7 @@
   border-radius: 6px;
   background: white;
   font-size: 11px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   cursor: pointer;
 }
 
@@ -6383,13 +6391,13 @@
 .hojas-ruta-sample-formula summary strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-sample-formula summary span {
   color: var(--pulso-text-soft);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .hojas-ruta-sample-formula-body {
@@ -6424,7 +6432,7 @@
 .hojas-ruta-sample-formula-body .step {
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-sample-formula-body code {
@@ -6449,7 +6457,7 @@
 
 .hojas-ruta-sample-formula-body em strong {
   color: var(--pulso-text);
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-sample-formula-body li.is-bind em strong {
@@ -6555,7 +6563,7 @@
 .hojas-ruta-age-method-row strong,
 .hojas-ruta-age-scope-row strong {
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   white-space: normal;
   overflow-wrap: anywhere;
 }
@@ -6591,7 +6599,7 @@
   border-radius: 6px;
   padding: 6px 10px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
 }
 
@@ -6619,7 +6627,7 @@
 .hojas-ruta-age-pending strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-age-pending span {
@@ -6655,7 +6663,7 @@
 .hojas-ruta-age-generated-row strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-age-generated-row span {
@@ -6668,7 +6676,7 @@
   flex: 0 0 auto;
   color: color-mix(in srgb, var(--module-accent) 78%, var(--pulso-text));
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -6703,7 +6711,7 @@
 .hojas-ruta-age-row strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 .hojas-ruta-age-row span {
@@ -6719,7 +6727,7 @@
   background: white;
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -6761,7 +6769,7 @@
 
 .hojas-ruta-route-check strong {
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   color: var(--pulso-text);
 }
 

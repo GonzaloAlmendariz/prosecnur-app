@@ -2132,6 +2132,9 @@ function CargaWorkspaceSidebar({
 }) {
   return (
     <aside className="pulso-carga-workspace-sidebar pulso-sidebar" aria-label="Pestañas de carga">
+      {/* Gramática compartida del rail de pestañas (ADR 0044): el eyebrow nombra
+          la sección, el título es identidad fija y el estado vive en su propia
+          línea, nunca reemplazando a la identidad. */}
       <div className="pulso-carga-workspace-sidebar-head">
         <span className="pulso-section-eyebrow">Carga</span>
         <strong>Vistas</strong>

@@ -262,7 +262,7 @@
   padding: 4px 10px;
   min-height: 0;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-muted);
   cursor: help;
@@ -524,7 +524,7 @@
   padding: 4px 10px;
   min-height: 0;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-muted);
   cursor: pointer;
   transition:
@@ -908,7 +908,7 @@
 }
 
 .cmv2-university-desk .rec-formula-control-hint {
-  font-size: 9.5px;
+  font-size: 10px;
 }
 
 .cmv2-university-desk .rec-formula > .cmv2-uni-cifra-fila {
@@ -1197,7 +1197,7 @@
 
 .cmv2-calc-params-eyebrow {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--pulso-text-muted);
@@ -1274,7 +1274,7 @@
   min-width: 26px;
   text-align: center;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
 }
@@ -1304,7 +1304,7 @@
   border-radius: 7px;
   background: transparent;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-muted);
   cursor: pointer;
   transition: background-color 150ms ease, color 150ms ease;
@@ -1316,7 +1316,7 @@
 .cmv2-segment button[data-active] {
   background: var(--pulso-surface);
   color: var(--cmv2-accent-fg, var(--pulso-primary));
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   box-shadow: 0 1px 2px color-mix(in srgb, var(--cmv2-accent) 14%, transparent);
 }
 
@@ -1339,7 +1339,7 @@
 
 .cmv2-ch-kpi span {
   font-size: 20px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
 }
@@ -1411,7 +1411,7 @@
 
 .cmv2-ch-chart-valor {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
 }
@@ -1492,7 +1492,7 @@
 }
 
 .cmv2-ch-tabla td:first-child strong {
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 /* Columna Extra: stepper por fila + control bulk en la cabecera, centrados. */
@@ -1539,7 +1539,7 @@
 
 .cmv2-ch-metodo-label {
   font-size: 12px;
-  font-weight: 550;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text);
 }
 
@@ -1561,7 +1561,7 @@
 
 .cmv2-ch-metodo-ayuda strong {
   color: var(--pulso-text);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 /* --- Columnas de referencia y «En uso» de la tabla por facultad ------------- */
@@ -1577,11 +1577,11 @@
 .cmv2-ch-tabla td.cmv2-ch-td-enuso strong,
 .cmv2-ch-tabla td.cmv2-ch-td-ref[data-enuso] {
   color: var(--cmv2-accent, var(--pulso-accent));
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .cmv2-ch-tabla th.cmv2-ch-th-ref {
-  font-weight: 550;
+  font-weight: var(--pulso-weight-medium);
 }
 
 /* Badge de facultad chica en la columna LI 95%: el bootstrap no es fiable. */
@@ -1595,7 +1595,7 @@
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
   font-size: 11px;
-  font-weight: 550;
+  font-weight: var(--pulso-weight-medium);
   white-space: nowrap;
   cursor: help;
 }
@@ -1618,5 +1618,5 @@
   line-height: 1.55;
 }
 .cmv2-ch-stale-banner strong {
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }

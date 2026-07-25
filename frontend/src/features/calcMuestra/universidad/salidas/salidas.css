@@ -184,14 +184,14 @@
 
 .cmv2-sal-panel .cmv2-uni-flujo-label {
   font-size: 10px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   white-space: normal;
 }
 
 .cmv2-sal-panel .cmv2-uni-flujo-valor {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.01em;
 }
 
@@ -215,13 +215,13 @@
 
 .cmv2-sal-panel .cmv2-uni-cifra-label {
   font-size: 10px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
 }
 
 .cmv2-sal-panel .cmv2-uni-cifra-valor {
   font-size: 21px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   white-space: normal;
   line-height: 1.12;
 }
@@ -312,7 +312,7 @@
 
 .cmv2-sal-observaciones li span em {
   font-style: normal;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-muted);
 }
 
@@ -351,7 +351,7 @@
 .cmv2-sal-meta b {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -378,7 +378,7 @@
 }
 
 .cmv2-sal-ficha .cmv2-sal-meta b {
-  font-size: 9.5px;
+  font-size: 10px;
   letter-spacing: 0.09em;
 }
 
@@ -406,7 +406,7 @@
   z-index: 1;
   padding: 0 14px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   cursor: pointer;
   color: var(--pulso-text-muted);
   transition:
@@ -456,7 +456,7 @@
 .cmv2-sal-pii-pop strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1.3;
 }
 
@@ -486,14 +486,14 @@
 .cmv2-sal-pii-pop th {
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
 .cmv2-sal-pii-pop td:first-child {
   color: var(--pulso-text);
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 
@@ -528,7 +528,7 @@
 .cmv2-sal-stack .cmv2-did-segment button {
   min-height: 26px;
   padding: 3px 12px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   transition:
     color 150ms var(--cmv2-ease-in-out, ease-in-out),
     background-color 150ms var(--cmv2-ease-in-out, ease-in-out),
@@ -614,7 +614,7 @@
 
 .cmv2-sal-destino > header strong {
   font-size: 13px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   color: var(--pulso-text);
 }
 
@@ -663,7 +663,7 @@
   border-radius: 999px;
   background: var(--cmv2-surface-tint);
   font-size: 11.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
   cursor: pointer;
   transition:
@@ -772,12 +772,12 @@
 .cmv2-sal-profundidad b {
   color: var(--pulso-text);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-sal-profundidad i {
   font-style: normal;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   color: var(--cmv2-accent-fg);
 }
 
@@ -903,7 +903,7 @@
 
 .cmv2-sal-historial-lista b {
   flex: none;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
 }
 
@@ -947,7 +947,7 @@
   border-top: 0;
   color: var(--pulso-text-muted);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -955,12 +955,12 @@
 .cmv2-sal-historial-comparacion th[scope="row"],
 .cmv2-sal-historial-comparacion thead th:first-child {
   text-align: left;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
 .cmv2-sal-historial-comparacion td[data-delta] {
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   color: var(--cmv2-accent-fg);
 }
 
@@ -1015,7 +1015,7 @@
 .cmv2-sal-paquete-lista li strong em {
   font-style: normal;
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--pulso-text-muted);
@@ -1069,7 +1069,7 @@
 
 .cmv2-sal-stack .cmv2-table th {
   font-size: 11px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   color: var(--pulso-text-muted);
   border-bottom-color: var(--cmv2-border-strong);

@@ -251,7 +251,7 @@ export function Step2_ListasEvaluativas() {
                         <span
                           title="Lista evaluativa estándar reconocida automáticamente"
                           style={{
-                            fontSize: 9,
+                            fontSize: 10,
                             fontWeight: 700,
                             textTransform: "uppercase",
                             letterSpacing: 0.4,
@@ -268,7 +268,7 @@ export function Step2_ListasEvaluativas() {
                         <span
                           title="Lista del instrumento que no coincide con escalas evaluativas conocidas. Decide si es evaluativa o no (ej. demográfica)."
                           style={{
-                            fontSize: 9,
+                            fontSize: 10,
                             fontWeight: 700,
                             textTransform: "uppercase",
                             letterSpacing: 0.4,

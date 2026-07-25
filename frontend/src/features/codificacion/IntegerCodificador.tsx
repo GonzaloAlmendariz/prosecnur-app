@@ -284,7 +284,7 @@ export function IntegerCodificador({ parent }: Props) {
                 }}
               >
                 <span style={{ fontFamily: "monospace" }}>{r.texto}</span>
-                <span style={{ color: "var(--pulso-text-soft)", fontSize: 9 }}>×{r.frecuencia}</span>
+                <span style={{ color: "var(--pulso-text-soft)", fontSize: 10 }}>×{r.frecuencia}</span>
               </span>
             ))}
             {uncovered.length > 40 && <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", alignSelf: "center" }}>+ {uncovered.length - 40} más</span>}

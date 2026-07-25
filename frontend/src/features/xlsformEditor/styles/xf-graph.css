@@ -91,7 +91,7 @@
   min-height: 30px;
   padding: 0 4px 0 2px;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.08em;
   color: var(--pulso-text-muted);
   text-transform: uppercase;
@@ -116,7 +116,7 @@
   min-height: 30px;
   padding: 6px 10px;
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
   cursor: pointer;
   transition: background 120ms ease, color 120ms ease;
@@ -399,7 +399,7 @@
   border-radius: 7px;
   padding: 5px 10px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
   box-shadow: var(--pulso-shadow-soft);
   cursor: pointer;
@@ -612,7 +612,7 @@
   border-radius: 999px;
   border: 1px solid var(--pulso-primary-border);
   background: var(--pulso-surface);
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   transition:
     border-color var(--motion-dur-fast) ease,
     color var(--motion-dur-fast) ease,
@@ -626,7 +626,7 @@
 /* Título + subtítulo compactos. */
 .pulso-graph-overlay .pulso-graph-header-title strong {
   font-size: 13.5px;
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: -0.01em;
   line-height: 1.2;
 }
@@ -645,7 +645,7 @@
   padding: 5px 12px;
   border-radius: 999px;
   background: var(--pulso-surface);
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   transition:
     background var(--motion-dur-fast) ease,
     border-color var(--motion-dur-fast) ease,
@@ -711,7 +711,7 @@
   min-height: 28px;
   padding: 5px 11px;
   border-radius: 999px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   transition:
     background var(--motion-dur-fast) ease,
     border-color var(--motion-dur-fast) ease,
@@ -740,7 +740,7 @@
   border-radius: 999px;
   background: var(--pulso-surface);
   font-size: 11px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-muted);
   transition:
     background var(--motion-dur-fast) ease,
@@ -843,7 +843,7 @@
   backdrop-filter: blur(6px) saturate(1.1);
   -webkit-backdrop-filter: blur(6px) saturate(1.1);
   font-size: 10.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.5;
   color: var(--pulso-text);
   white-space: nowrap;
@@ -879,7 +879,7 @@
 }
 .pulso-graph-overlay .pulso-graph-condpicker-eyebrow {
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
@@ -907,7 +907,7 @@
   min-height: 30px;
   padding: 6px 14px;
   border-radius: 999px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   transition:
     background var(--motion-dur-fast) ease,
     border-color var(--motion-dur-fast) ease,
@@ -1007,7 +1007,7 @@
 }
 .pulso-graph-overlay .pulso-graph-condpicker-combo-chosen code {
   color: var(--pulso-primary);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 /* ── Paneles laterales (detalle de nodo / relación lógica) ─────────────── */
@@ -1020,7 +1020,7 @@
 .pulso-graph-overlay .pulso-graph-detail-go {
   min-height: 32px;
   border-radius: 999px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
   transition:
     background var(--motion-dur-fast) ease,
@@ -1031,7 +1031,7 @@
 }
 .pulso-graph-overlay .pulso-graph-edge-panel-btn {
   border-radius: 999px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   transition:
     background var(--motion-dur-fast) ease,
     border-color var(--motion-dur-fast) ease,
@@ -1071,7 +1071,7 @@
 
 .pulso-graph-overlay .pulso-graph-zoom-indicator {
   border-radius: 999px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 /* ── Hover (solo puntero fino) ─────────────────────────────────────────── */

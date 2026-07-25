@@ -53,7 +53,7 @@
   margin: 0 -1px;
   border-radius: 3px;
   font: inherit;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--cmv2-accent);
   cursor: help;
   border-bottom: 1px dotted var(--cmv2-accent);
@@ -93,7 +93,7 @@
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.02em;
   border: 1px solid color-mix(in srgb, var(--pulso-success-border, var(--cmv2-accent-border)) 78%, transparent);
   color: var(--pulso-success-fg, var(--cmv2-accent));
@@ -148,7 +148,7 @@
   cursor: pointer;
   list-style: none;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   user-select: none;
 }
@@ -260,7 +260,7 @@
 
 .cmv2-did-slider-head output {
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--cmv2-accent);
 }
 
@@ -383,7 +383,7 @@
   border-radius: 7px;
   padding: 3px 10px;
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-muted);
   cursor: pointer;
@@ -453,7 +453,7 @@
   /* Eyebrow unificado del desk: 10.5px / 650 / 0.06em / muted. */
   margin: 0;
   font-size: 10.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--pulso-text-muted);
@@ -462,7 +462,7 @@
 .cmv2-did-kpi dd {
   margin: 0;
   font-size: 19px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
 }
@@ -485,7 +485,7 @@
 
 .cmv2-did-kpi .cmv2-did-kpi-hint[data-tono="warn"] {
   color: var(--pulso-warn-fg);
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 /* --- Memoria de cálculo (decision log) -------------------------------------------- */
@@ -534,7 +534,7 @@
 
 .cmv2-did-log-decision {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 

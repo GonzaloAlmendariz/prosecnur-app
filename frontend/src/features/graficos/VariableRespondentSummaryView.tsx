@@ -76,7 +76,7 @@ const containerStyle: CSSProperties = {
 const headingStyle: CSSProperties = {
   color: "var(--pulso-text)",
   fontSize: 10,
-  fontWeight: 760,
+  fontWeight: 800,
   lineHeight: 1.2,
 };
 
@@ -100,7 +100,7 @@ const chipStyle: CSSProperties = {
   background: "var(--pulso-surface)",
   color: "var(--pulso-text-soft)",
   fontSize: 10,
-  fontWeight: 650,
+  fontWeight: 600,
   lineHeight: 1.25,
 };
 
@@ -109,14 +109,14 @@ const sourceStyle: CSSProperties = {
   maxWidth: 180,
   overflow: "hidden",
   color: "var(--pulso-text)",
-  fontWeight: 760,
+  fontWeight: 800,
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
 };
 
 const noteStyle: CSSProperties = {
   color: "var(--pulso-text-soft)",
-  fontSize: 9.5,
-  fontWeight: 580,
+  fontSize: 10,
+  fontWeight: 600,
   lineHeight: 1.25,
 };

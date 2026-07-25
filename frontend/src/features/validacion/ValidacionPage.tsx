@@ -204,7 +204,7 @@ export default function ValidacionPage() {
     >
       <AdaptiveSplitView
         ariaLabel="Mesa de trabajo de validación"
-        railLabel="Secciones de validación"
+        railLabel="Pestañas de validación"
         className={`pulso-validacion-shell${!prereqsOk ? " is-empty" : ""}`}
         rail={(
           <ValidacionModeSidebar
@@ -309,17 +309,18 @@ function ValidacionModeSidebar({
   disabled: boolean;
 }) {
   return (
-    <aside className="pulso-validacion-sidebar pulso-sidebar" aria-label="Secciones de validación">
+    <aside className="pulso-validacion-sidebar pulso-sidebar" aria-label="Pestañas de validación">
       <div className="pulso-validacion-sidebar-head">
         <span className="pulso-section-eyebrow">Validación</span>
-        <strong>{disabled ? "Pendiente" : "Validación"}</strong>
+        <strong>Vistas</strong>
+        {disabled ? <small className="pulso-sidebar-head-status">Pendiente</small> : null}
       </div>
       <GlidingTabList
         activeKey={active}
         orientation="vertical"
         style={{ "--pulso-gliding-indicator-radius": "10px" } as CSSProperties}
         role="tablist"
-        aria-label="Secciones de validación"
+        aria-label="Pestañas de validación"
         className="pulso-validacion-nav"
       >
         {TABS.map((tab, index) => {

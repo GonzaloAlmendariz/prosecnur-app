@@ -211,8 +211,8 @@ const captionStyle: CSSProperties = {
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   color: "var(--pulso-text-soft)",
-  fontSize: 9,
-  fontWeight: 820,
+  fontSize: 10,
+  fontWeight: 800,
   lineHeight: 1,
   textTransform: "uppercase",
   letterSpacing: 0,
@@ -224,7 +224,7 @@ const selectedLabelStyle: CSSProperties = {
   whiteSpace: "nowrap",
   color: "var(--pulso-text)",
   fontSize: 11.5,
-  fontWeight: 820,
+  fontWeight: 800,
   lineHeight: 1.12,
   letterSpacing: 0,
 };
@@ -254,7 +254,7 @@ const popoverHeadStyle: CSSProperties = {
   borderBottom: "1px solid var(--pulso-border)",
   color: "var(--pulso-text-soft)",
   fontSize: 10,
-  fontWeight: 820,
+  fontWeight: 800,
   textTransform: "uppercase",
 };
 
@@ -302,7 +302,7 @@ const optionLabelStyle: CSSProperties = {
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   fontSize: 11.5,
-  fontWeight: 760,
+  fontWeight: 800,
   letterSpacing: 0,
 };
 

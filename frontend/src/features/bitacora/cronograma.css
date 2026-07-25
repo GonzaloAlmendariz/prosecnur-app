@@ -70,7 +70,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.14;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -81,7 +81,7 @@
   overflow: hidden;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.16;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -138,8 +138,8 @@
 
 .plan-command-token small {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.05em;
   line-height: 1;
   text-transform: uppercase;
@@ -148,7 +148,7 @@
 .plan-command-token strong {
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.12;
   text-align: center;
 }
@@ -169,7 +169,7 @@
   color: var(--pulso-text);
   background: var(--pulso-surface);
   font-size: 12px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   text-decoration: none;
   cursor: pointer;
   transition:
@@ -191,7 +191,7 @@
   background: transparent;
   box-shadow: none;
   font-size: 11px;
-  font-weight: 840;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .plan-button--primary {
@@ -375,7 +375,7 @@
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 780;
+  font-weight: var(--pulso-weight-heavy);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -443,7 +443,7 @@ button.plan-rail-item {
     linear-gradient(180deg, color-mix(in srgb, var(--plan-accent-soft) 74%, #fff 26%), rgba(255, 255, 255, 0.86)),
     var(--pulso-surface);
   font-size: 10px;
-  font-weight: 860;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   text-transform: uppercase;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
@@ -474,7 +474,7 @@ button.plan-rail-item {
     0 10px 24px rgba(15, 23, 42, 0.12);
   color: var(--pulso-text);
   font-size: 11.5px;
-  font-weight: 820;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.18;
   opacity: 0;
   padding: 7px 9px;
@@ -627,7 +627,7 @@ button.plan-rail-item {
   overflow: hidden;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

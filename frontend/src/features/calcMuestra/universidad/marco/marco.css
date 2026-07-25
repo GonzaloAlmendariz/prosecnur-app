@@ -27,7 +27,7 @@
 .cmv2-marco-subhead strong {
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
 }
 
 /* --- Población: flujo del universo + cifras con procedencia ----------------- */
@@ -155,7 +155,7 @@
   background: none;
   padding: 0 2px;
   font-size: inherit;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--cmv2-accent-fg);
   cursor: help;
   border-bottom: 1px dotted var(--cmv2-accent-border);
@@ -299,7 +299,7 @@
   left: 6px;
   font-style: normal;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
   color: var(--pulso-danger-fg, var(--cmv2-accent));
   background: color-mix(in srgb, var(--cmv2-surface) 82%, transparent);
@@ -458,8 +458,8 @@
   transform: translateX(-50%);
   white-space: nowrap;
   font-style: normal;
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-muted);
 }
@@ -467,7 +467,7 @@
 .cmv2-marco-gauge-scale {
   display: grid;
   grid-template-columns: 70fr 20fr 10fr;
-  font-size: 9.5px;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--pulso-text-muted);
@@ -486,17 +486,17 @@
    tono, así la escala "revisar / aceptable / sólido" se lee de un vistazo. */
 .cmv2-marco-gauge[data-tone="danger"] .cmv2-marco-gauge-scale span:first-child {
   color: var(--pulso-danger-fg);
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .cmv2-marco-gauge[data-tone="warn"] .cmv2-marco-gauge-scale span:nth-child(2) {
   color: var(--pulso-warn-fg);
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .cmv2-marco-gauge[data-tone="ok"] .cmv2-marco-gauge-scale span:last-child {
   color: var(--pulso-success-fg);
-  font-weight: 750;
+  font-weight: var(--pulso-weight-bold);
 }
 
 /* --- Consistencia: reconciliación cuantitativa de las dos fuentes ----------- */
@@ -524,7 +524,7 @@
 .cmv2-marco-reconciliation small {
   color: var(--pulso-text-muted);
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -532,7 +532,7 @@
 .cmv2-marco-reconciliation strong {
   color: var(--pulso-text);
   font-size: 21px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -554,7 +554,7 @@
   background: color-mix(in srgb, var(--pulso-success-bg) 38%, var(--cmv2-surface));
   color: var(--pulso-success-fg);
   font-size: 11px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .cmv2-marco-relation-state.is-review {
@@ -618,8 +618,8 @@
 
 .cmv2-frame-source-node small {
   color: var(--pulso-text-muted);
-  font-size: 9.5px;
-  font-weight: 750;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -628,7 +628,7 @@
   margin-top: 2px;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-frame-source-node em {
@@ -674,15 +674,15 @@
 
 .cmv2-frame-join-key span {
   color: var(--pulso-text-muted);
-  font-size: 8.5px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
 
 .cmv2-frame-join-key strong {
   margin: 0;
   color: var(--cmv2-accent);
-  font-size: 9.5px;
+  font-size: 10px;
   white-space: nowrap;
 }
 
@@ -691,7 +691,7 @@
   display: block;
   font-style: normal;
   font-size: 10.5px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--cmv2-accent-fg);
   padding-top: 2px;
 }
@@ -885,7 +885,7 @@
 .cmv2-marco-stack .cmv2-native-bar-row > span,
 .cmv2-marco-stack .cmv2-native-stack-row > span {
   font-size: 12px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -977,7 +977,7 @@
   margin-left: auto;
   color: var(--pulso-text-soft);
   font-size: 10px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1;
 }
 
@@ -1032,7 +1032,7 @@
 
 .cmv2-marco-stack .cmv2-dashboard-insights article strong {
   font-size: 18px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.01em;
   line-height: 1.12;
   font-variant-numeric: tabular-nums;
@@ -1074,7 +1074,7 @@
 }
 
 .cmv2-marco-stack .cmv2-classroom-sex-summary small {
-  font-size: 9.5px;
+  font-size: 10px;
   letter-spacing: 0.06em;
   color: var(--pulso-text-muted);
 }
@@ -1139,7 +1139,7 @@
 .cmv2-marco-consistencia .cmv2-frame-issue-list h4,
 .cmv2-marco-consistencia .cmv2-frame-preview-list h4 {
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--pulso-text-muted);
@@ -1157,7 +1157,7 @@
   padding: 9px 12px;
   border-radius: 10px;
   font-size: 11px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.45;
   white-space: normal;
 }
@@ -1264,7 +1264,7 @@
 .cmv2-marco-aulas-lead strong {
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
@@ -1302,7 +1302,7 @@
 .cmv2-ch-grupos-toggle strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .cmv2-ch-grupos-toggle em {
@@ -1330,7 +1330,7 @@
   min-width: 42px;
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .cmv2-ch-grupos-tag i {
@@ -1411,7 +1411,7 @@
   background: transparent;
   color: var(--cmv2-accent-fg, var(--cmv2-accent));
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
 
@@ -1435,7 +1435,7 @@
   margin-bottom: 10px;
   color: var(--pulso-text-muted);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .cmv2-marco-drill-select select {
@@ -1488,7 +1488,7 @@
 .cmv2-ch-sexo-title strong {
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-ch-sexo-title span {
@@ -1509,7 +1509,7 @@
   gap: 8px;
   color: var(--pulso-text-muted);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .cmv2-ch-sexo-select select {
@@ -1534,7 +1534,7 @@
   background: var(--cmv2-surface);
   color: var(--pulso-text);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
 
@@ -1580,7 +1580,7 @@
 .cmv2-ch-sexo-label strong {
   color: var(--pulso-text);
   font-size: 12.5px;
-  font-weight: 650;
+  font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1632,13 +1632,13 @@
 .cmv2-ch-sexo-total strong {
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
 
 .cmv2-ch-sexo-total span {
   color: var(--pulso-text-muted);
-  font-size: 9.5px;
+  font-size: 10px;
 }
 
 @media (max-width: 720px) {
@@ -1754,7 +1754,7 @@
 .cmv2-inv-head strong {
   color: var(--pulso-text);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
 }
 
 .cmv2-inv-head small {
@@ -1778,7 +1778,7 @@
 .cmv2-inv-head-crudo b {
   color: var(--pulso-text);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1855,7 +1855,7 @@
 .cmv2-inv-track > header strong {
   color: var(--pulso-text);
   font-size: 21px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -1902,7 +1902,7 @@
 
 .cmv2-inv-bar label b {
   color: var(--pulso-text);
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1934,7 +1934,7 @@
 .cmv2-inv-merma b,
 .cmv2-inv-razon b {
   color: var(--pulso-text);
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1969,7 +1969,7 @@
 
 .cmv2-inv-bridge b {
   color: var(--pulso-text);
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
 
@@ -2087,7 +2087,7 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   gap: 6px;
   margin: 0;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 .cmv2-partic-subtitle svg { color: var(--cmv2-accent-fg); }
@@ -2144,7 +2144,7 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   background: var(--pulso-surface);
   color: var(--pulso-text-muted);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   cursor: pointer;
 }
 .cmv2-partic-decision-btn + .cmv2-partic-decision-btn {
@@ -2225,7 +2225,7 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 .cmv2-chfp-section-copy h3 {
   margin: 0;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 .cmv2-chfp-section-copy p {
@@ -2290,7 +2290,7 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 .cmv2-chfp-bloque-title { display: grid; gap: 2px; min-width: 0; }
 .cmv2-chfp-bloque-nombre {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2306,7 +2306,7 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   border: 1px solid var(--cmv2-border);
   background: var(--pulso-surface);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-muted);
   white-space: nowrap;
 }
@@ -2320,14 +2320,14 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   align-items: baseline;
   gap: 5px;
   font-size: 20px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
 }
 .cmv2-chfp-bloque-hero em {
   font-size: 10px;
   font-style: normal;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-muted);
 }
 /* Embudo VERTICAL (reunión §4): la radiografía da el contexto de la facultad
@@ -2358,7 +2358,7 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   padding-bottom: 8px;
   border-bottom: 1px solid var(--cmv2-border);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--cmv2-accent-fg);
@@ -2378,7 +2378,7 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 .cmv2-chfp-selecciona-nota {
   margin: 8px 2px 0;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-muted);
 }
 /* Bisagra del embudo: separa los filtros generales de la decisión de tipo. */
@@ -2398,12 +2398,12 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 }
 .cmv2-chfp-bisagra strong {
   font-size: 15px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   color: var(--cmv2-accent-fg);
 }
 .cmv2-chfp-bisagra em {
   font-style: normal;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--cmv2-accent-fg);
 }
 
@@ -2451,12 +2451,12 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 .cmv2-chfp-crit-head:hover strong { color: var(--cmv2-accent-fg); }
 .cmv2-chfp-crit-head strong {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 .cmv2-chfp-crit-state {
   font-size: 11px;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-muted);
   white-space: nowrap;
 }
@@ -2467,7 +2467,7 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 .cmv2-chfp-min-input-row { display: flex; align-items: center; gap: 10px; }
 .cmv2-chfp-min-input-hint {
   font-size: 11.5px;
-  font-weight: 400;
+  font-weight: var(--pulso-weight-regular);
   text-transform: none;
   letter-spacing: 0;
   color: var(--pulso-text-muted);
@@ -2616,9 +2616,9 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   color: var(--pulso-text-muted);
 }
 .cmv2-chfp-min-dist strong { color: var(--pulso-text); }
-.cmv2-chfp-min-alerta { color: var(--cmv2-accent-fg); font-weight: 500; }
+.cmv2-chfp-min-alerta { color: var(--cmv2-accent-fg); font-weight: var(--pulso-weight-medium); }
 /* Sub-cifra en la tabla por tipo (media junto a mediana, CH elegibles). */
-.cmv2-dist-sub { font-size: 10px; font-weight: 400; color: var(--pulso-text-muted); }
+.cmv2-dist-sub { font-size: 10px; font-weight: var(--pulso-weight-regular); color: var(--pulso-text-muted); }
 .cmv2-dist-rango {
   display: block;
   margin-top: 1px;
@@ -2697,7 +2697,7 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 }
 .cmv2-explorador-contraste-titulo {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--cmv2-accent-fg);
@@ -2719,7 +2719,7 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 }
 .cmv2-explorador-contraste li strong {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
@@ -2804,7 +2804,7 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 
 .cmv2-explorador-card-nombre {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
@@ -2814,14 +2814,14 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   gap: 6px;
   flex-shrink: 0;
   font-size: 24px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
 }
 .cmv2-explorador-card-hero em {
   font-size: 11px;
   font-style: normal;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-muted);
 }
 
@@ -2905,7 +2905,7 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 }
 .cmv2-explorador-dist-label {
   overflow: hidden;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2933,7 +2933,7 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 
 .cmv2-explorador-niveles > summary {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--cmv2-accent-fg);
   cursor: pointer;
   list-style: revert;
@@ -2958,7 +2958,7 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   border: 1px solid var(--cmv2-border);
   background: var(--pulso-surface);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-muted);
   white-space: nowrap;
 }
@@ -2995,7 +2995,7 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   border: none;
   background: none;
   font: inherit;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   color: inherit;
   cursor: pointer;
 }
@@ -3048,16 +3048,16 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
    arriba): dan la escala PROPIA de cada gráfica alineadas a su marca. */
 .cmv2-boxplot-val {
   fill: var(--pulso-text-muted);
-  font-size: 9px;
+  font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
 .cmv2-boxplot-val--med {
   fill: var(--cmv2-accent-fg, var(--pulso-text));
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 .cmv2-boxplot-val--mean {
   fill: var(--pulso-warn-fg, var(--pulso-warning));
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
 }
 .cmv2-boxplot-whisker {
   stroke: color-mix(in srgb, var(--pulso-text) 42%, transparent);

@@ -3223,7 +3223,7 @@ function ZoneGeometryMap({
       ) : null}
       {detailFeature && !compact ? (
         <div className="hojas-ruta-map-info">
-          <div style={{ fontSize: 12, fontWeight: 850 }}>Zona {detailFeature.zona}</div>
+          <div style={{ fontSize: 12, fontWeight: 800 }}>Zona {detailFeature.zona}</div>
           <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 4 }}>
             {formatNumber(detailFeature.nManzanas)} manzanas · {formatNumber(detailFeature.viviendas)} viviendas
           </div>
@@ -3924,7 +3924,7 @@ function LimaCoverageMap({
         )}
         {!compact && infoDistrict && (
           <div className="hojas-ruta-map-info" data-audit-map-overlay="info">
-            <div style={{ fontSize: 12, fontWeight: 850 }}>{infoTerritory?.distrito ?? infoDistrict.properties.distrito}</div>
+            <div style={{ fontSize: 12, fontWeight: 800 }}>{infoTerritory?.distrito ?? infoDistrict.properties.distrito}</div>
             <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 4 }}>
               {infoDistrict.properties.ubigeo} · {selectionMode ? "click agrega/quita" : "click abre zonas"}
             </div>
@@ -4127,7 +4127,7 @@ function DistrictSelectorGrid({
               >
                 <DistrictShapeIcon ubigeo={t.ubigeo} active={isConfirmed} />
                 <span style={{ minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: 12, fontWeight: 850, color: "var(--pulso-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span style={{ display: "block", fontSize: 12, fontWeight: 800, color: "var(--pulso-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {t.distrito}
                   </span>
                   <span style={{ display: "block", marginTop: 3, fontSize: 11, color: "var(--pulso-text-soft)" }}>

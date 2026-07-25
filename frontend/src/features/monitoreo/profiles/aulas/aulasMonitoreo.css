@@ -53,8 +53,8 @@
 .mon-profile-page.is-aulas-flow .aulas-kpi span {
   min-height: 22px;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.05em;
   line-height: 1.12;
   text-transform: uppercase;
@@ -63,7 +63,7 @@
 .mon-profile-page.is-aulas-flow .aulas-kpi strong {
   color: var(--pulso-text);
   font-size: 21px;
-  font-weight: 900;
+  font-weight: var(--pulso-weight-black);
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -199,8 +199,8 @@
 .mon-profile-page.is-aulas-flow .aulas-ops-grid article span {
   grid-area: label;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -209,7 +209,7 @@
   grid-area: value;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1.15;
 }
 
@@ -245,7 +245,7 @@
   background: #fff;
   color: var(--pulso-text);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: var(--pulso-weight-medium);
   line-height: 1;
   cursor: pointer;
 }
@@ -287,7 +287,7 @@
   background: color-mix(in srgb, var(--pulso-module-monitoring) 7%, #fff);
   color: color-mix(in srgb, var(--pulso-module-monitoring) 78%, var(--pulso-text));
   font-size: 10px;
-  font-weight: 850;
+  font-weight: var(--pulso-weight-heavy);
   padding: 3px 9px;
   white-space: nowrap;
 }

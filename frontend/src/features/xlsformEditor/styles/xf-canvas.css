@@ -35,7 +35,7 @@
   background: color-mix(in srgb, var(--pulso-primary) 6%, white);
   color: color-mix(in srgb, var(--pulso-primary) 72%, #475569);
   font-size: 10px;
-  font-weight: 720;
+  font-weight: var(--pulso-weight-bold);
   line-height: 1;
   white-space: nowrap;
 }
@@ -44,7 +44,7 @@
   overflow: hidden;
   color: inherit;
   font-family: ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 10px;
   text-overflow: ellipsis;
 }
 
@@ -58,7 +58,7 @@
   background: white;
   color: var(--pulso-primary);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease;
 }
@@ -112,8 +112,8 @@
 
 /* Chip del tipo: español + término técnico entre paréntesis (TechTerm). */
 .pulso-xlsform-frame .pulso-canvas-card-typebadge .pulso-xf-tech {
-  font-size: 9px;
-  font-weight: 500;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-medium);
   letter-spacing: 0;
   text-transform: none;
 }
@@ -125,7 +125,7 @@
   gap: 4px;
   align-items: center;
   font-size: 10px;
-  font-weight: 740;
+  font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.2px;
   line-height: 1;
 }
@@ -192,12 +192,12 @@
 
 .pulso-xlsform-frame .pulso-canvas-section-title {
   font-size: 15.5px;
-  font-weight: 760;
+  font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.1px;
 }
 
 .pulso-xlsform-frame .pulso-canvas-section-count {
-  font-weight: 640;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-xlsform-frame .pulso-canvas-section-toggle svg {
@@ -211,7 +211,7 @@
 .pulso-xlsform-frame .pulso-canvas-section-boundary .pulso-xf-tech {
   min-width: 0;
   overflow: hidden;
-  font-size: 9px;
+  font-size: 10px;
   text-overflow: ellipsis;
 }
 

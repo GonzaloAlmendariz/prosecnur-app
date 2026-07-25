@@ -931,7 +931,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
           <div style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: "var(--adoptada-fg)" }}>{p.parent}</div>
           <div style={{ flex: 1 }} />
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 6px", borderRadius: 4, background: "white", color: "var(--adoptada-fg)", fontSize: 9, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", border: "1px solid var(--adoptada-border)" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 6px", borderRadius: 4, background: "white", color: "var(--adoptada-fg)", fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", border: "1px solid var(--adoptada-border)" }}>
             <Check size={10} /> Texto conectado
           </span>
         </div>
@@ -1081,7 +1081,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
               padding: "2px 6px", borderRadius: 4,
               background: needsDummy ? "var(--pulso-warn-bg)" : "var(--pulso-success-bg)",
               color: needsDummy ? "var(--pulso-warn-fg)" : "var(--pulso-success-fg)",
-              fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
+              fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
               textTransform: "uppercase", whiteSpace: "nowrap",
               border: needsDummy ? "1px solid #f0d799" : "none",
             }}
@@ -1330,12 +1330,12 @@ function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: {
               <code style={{ fontFamily: "monospace", fontWeight: 700, color: isSelected ? "var(--pulso-primary)" : sugerida ? "var(--pulso-warn-fg)" : "var(--pulso-text-soft)" }}>{o.codigo}</code>
               <span style={{ color: "var(--pulso-text)", fontWeight: isSelected ? 600 : 400 }}>{truncate(o.label, 70)}</span>
               {sugerida && !isSelected && (
-                <span style={{ fontSize: 9, fontWeight: 700, color: "var(--pulso-warn-fg)", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--pulso-warn-fg)", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
                   ← Probable
                 </span>
               )}
               {isSelected && (
-                <span style={{ fontSize: 9, fontWeight: 700, color: "var(--pulso-primary)", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--pulso-primary)", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
                   Seleccionada
                 </span>
               )}
@@ -1364,7 +1364,7 @@ function PairedSide({ title, subtitle, tone }: { title: string; subtitle: string
       }}
     >
       <div style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 600, color: tone === "primary" ? "var(--pulso-primary)" : "var(--pulso-text)", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" }}>{title}</div>
-      <div style={{ fontSize: 9, color: "var(--pulso-text-soft)" }}>{subtitle}</div>
+      <div style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>{subtitle}</div>
     </div>
   );
 }
@@ -1374,7 +1374,7 @@ function ArquetipoBadge({ arq, paired, tipoStyle }: { arq: Arquetipo; paired: bo
   if (!cfg) return null;
   const Icon = cfg.icon;
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 6px", borderRadius: 4, background: cfg.bg, color: cfg.fg, fontSize: 9, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", whiteSpace: "nowrap" }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 6px", borderRadius: 4, background: cfg.bg, color: cfg.fg, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", whiteSpace: "nowrap" }}>
       <Icon size={10} />
       {cfg.label}
     </span>
