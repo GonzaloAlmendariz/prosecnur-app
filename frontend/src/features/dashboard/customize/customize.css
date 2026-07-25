@@ -706,7 +706,9 @@
  * aspecto lo ve el cliente del estudio y cambiarlo es una decisión de marca,
  * no de chrome. */
 .dashboard-scope .dash-admin-toolbar {
-  --command-bar-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  /* El override propio se retiró: el valor por defecto de `.pulso-command-bar`
+   * ya iguala los lados y centra el rail por construcción. Cinco módulos tenían
+   * su propia versión de esta perilla y ninguno el mismo valor. */
   --command-bar-accent: var(--dash-editor-accent);
   --command-bar-accent-mix: 34%;
   width: 100%;
