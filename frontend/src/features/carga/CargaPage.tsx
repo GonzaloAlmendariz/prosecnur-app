@@ -53,6 +53,7 @@ import "./carga-v2.css";
 import { Panel } from "../../components/Panel";
 import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
+import { BasesInspectorMenu } from "./BasesInspectorMenu";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
@@ -887,6 +888,22 @@ export default function CargaPage() {
               }
             }}
           />
+
+        {/* Con varias bases, el número solo no informa: lo que hay que poder
+            auditar es qué instrumento usa cada base y sobre qué archivo. El
+            desglose se abre desde acá y no obliga a bajar al panel del cuerpo —en
+            las fases 2 a 5 ese panel ni existe. */}
+        {estudio && estudio.n_bases > 1 ? (
+          <BasesInspectorMenu
+            estudio={estudio}
+            activa={estudio.active_base ?? state?.active_base ?? null}
+            disparador={
+              <button type="button" className="pulso-bases-inspector-trigger">
+                {estudio.n_bases} bases
+              </button>
+            }
+          />
+        ) : null}
       </ChromeSlotPortal>
 
       {/* El toggle de varias bases se queda en el cuerpo, no en el chrome. Es un
