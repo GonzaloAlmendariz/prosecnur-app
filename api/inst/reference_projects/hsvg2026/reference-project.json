@@ -1,0 +1,41 @@
+{
+  "schema": "prosecnur.reference_project_manifest.v1",
+  "reference_project_schema": "prosecnur.reference_project.v1",
+  "slug": "hsvg2026",
+  "title": "HSyVbG 2026 — Muestra de cursos-horario",
+  "family": "muestral",
+  "aporta": "calc-muestra de aulas a escala real; ningún sintético llega a ese volumen",
+  "description": "Diseño muestral de aulas a escala real: marco de 29 mil estudiantes y 5 mil cursos-horario, con criterios, particularidades y auditorías.",
+  "anonimizado": true,
+  "origen_basename": "HSTVG26.pulso",
+  "project_sha256": "07f8bd17f40366103db2169d4d3bad5d23c0850b39999e1aada358ee7cb22a41",
+  "cobertura": {
+    "diseno_estudio": false,
+    "calc_muestra": true,
+    "editor_xlsform": true,
+    "hojas_ruta": false,
+    "monitoreo": false,
+    "carga": false,
+    "validacion": false,
+    "codificacion": false,
+    "analitica": false,
+    "graficos": false,
+    "dashboard": false
+  },
+  "modulos_cubiertos": ["calc_muestra", "editor_xlsform"],
+  "canonical_flow": [
+    "diseno_planificacion",
+    "diseno_muestral",
+    "instrumento",
+    "preparacion_operativa_campo",
+    "levantamiento_monitoreo",
+    "carga_consolidacion_data",
+    "validacion_limpieza",
+    "codificacion",
+    "analitica",
+    "productos_analisis",
+    "cierre_auditoria_general"
+  ],
+  "n_tablas_anonimizadas": 13,
+  "n_nombres_seudonimizados": 37685
+}

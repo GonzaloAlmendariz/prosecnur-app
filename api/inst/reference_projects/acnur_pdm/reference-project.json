@@ -1,0 +1,41 @@
+{
+  "schema": "prosecnur.reference_project_manifest.v1",
+  "reference_project_schema": "prosecnur.reference_project.v1",
+  "slug": "acnur_pdm",
+  "title": "ACNUR PDM — Monitoreo post-distribución",
+  "family": "telefonico",
+  "aporta": "repeat groups Kobo end-to-end y filtrado de universo por base",
+  "description": "Multibase Kobo con repeat group real: base padre y `rep_servicios` unidas por `_parent_index`, con filtro de universo activo en ambas.",
+  "anonimizado": true,
+  "origen_basename": "ACNUR_PDM.pulso",
+  "project_sha256": "66870918d30d6e21948b118a4542c5bab3bdf9620cda8c67fbfde57bc23783ee",
+  "cobertura": {
+    "diseno_estudio": false,
+    "calc_muestra": false,
+    "editor_xlsform": true,
+    "hojas_ruta": true,
+    "monitoreo": true,
+    "carga": true,
+    "validacion": true,
+    "codificacion": false,
+    "analitica": false,
+    "graficos": true,
+    "dashboard": true
+  },
+  "modulos_cubiertos": ["editor_xlsform", "hojas_ruta", "monitoreo", "carga", "validacion", "graficos", "dashboard"],
+  "canonical_flow": [
+    "diseno_planificacion",
+    "diseno_muestral",
+    "instrumento",
+    "preparacion_operativa_campo",
+    "levantamiento_monitoreo",
+    "carga_consolidacion_data",
+    "validacion_limpieza",
+    "codificacion",
+    "analitica",
+    "productos_analisis",
+    "cierre_auditoria_general"
+  ],
+  "n_tablas_anonimizadas": 33,
+  "n_nombres_seudonimizados": 402
+}
