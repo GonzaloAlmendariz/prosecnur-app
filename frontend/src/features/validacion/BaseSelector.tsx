@@ -1,7 +1,7 @@
 import { ChevronDown, Layers } from "lucide-react";
 
 import type { EstudioPayload } from "../../api/client";
-import { BasesInspectorMenu, basesDesdeEstudio } from "../../components/BasesInspectorMenu";
+import { BaseSelectorTrigger, BasesInspectorMenu, basesDesdeEstudio } from "../../components/BasesInspectorMenu";
 import { processingBaseScopePresentation } from "../procesamiento/baseScopeModel";
 
 // =============================================================================
@@ -48,18 +48,7 @@ export default function BaseSelector({ estudio, selected, onChange, disabled, cl
       onSeleccionar={onChange}
       deshabilitado={disabled}
       modo={alcance.summaryLabel}
-      disparador={
-        <button
-          type="button"
-          className={["pulso-bases-inspector-trigger", "is-selector", className].filter(Boolean).join(" ")}
-          title={`${etiqueta} · ${estudio.n_bases} bases en el estudio`}
-        >
-          <Layers size={12} aria-hidden />
-          <span className="pulso-bases-inspector-trigger-label">{etiqueta}</span>
-          <span className="pulso-bases-inspector-trigger-count">{estudio.n_bases}</span>
-          <ChevronDown size={12} aria-hidden />
-        </button>
-      }
+      disparador={<BaseSelectorTrigger etiqueta={etiqueta} total={estudio.n_bases} />}
     />
   );
 }
