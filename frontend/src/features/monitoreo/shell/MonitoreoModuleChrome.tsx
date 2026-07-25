@@ -6,6 +6,7 @@ import type {
 } from "../core/monitoreoRegistry";
 import { seccionesDelModo } from "../core/monitoreoRegistry";
 import { GlidingTabList } from "../../../components/GlidingTabList";
+import { MonitoreoPathContext } from "./MonitoreoPathContext";
 import { PARAMS_DIRECCION } from "../../../lib/navegacion/direccion";
 
 type MonitoreoModuleChromeProps = {
@@ -135,7 +136,6 @@ export function MonitoreoModuleChrome({
 }: MonitoreoModuleChromeProps) {
   const activeRoutes = routes.filter((item) => item.status === "active").length;
   const views = route ? seccionesDelModo(route) : [];
-  const RouteIcon = route?.icon ?? Activity;
   const statusLabel = route
     ? routeSelected
       ? "Modo fijado"
@@ -257,15 +257,7 @@ export function MonitoreoModuleChrome({
         data-view-count={views.length}
       >
         <div className="mon-command-summary mon-command-side" aria-label="Resumen del modo de monitoreo">
-          <span className="mon-command-token is-mode">
-            <span className="mon-command-mode-icon" aria-hidden="true">
-              <RouteIcon size={15} />
-            </span>
-            <span className="mon-command-token-copy">
-              <small>Modo</small>
-              <strong>{route?.shortLabel ?? "Sin definir"}</strong>
-            </span>
-          </span>
+          <MonitoreoPathContext route={route} />
           <span className="mon-command-token">
             <small>Activas</small>
             <strong>{activeSources}/{sourceTotal}</strong>
