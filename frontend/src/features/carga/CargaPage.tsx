@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  AlertTriangle, ArrowRight, ArrowRightLeft, CheckCircle2, ClipboardCheck, CloudDownload,
+  AlertTriangle, ArrowRight, ArrowRightLeft, CheckCircle2, ChevronDown, ClipboardCheck, CloudDownload,
   Database, FileSpreadsheet, FileWarning, Download, Info, Loader2, RefreshCw, Search, ShieldCheck,
   Table2, Trash2, Upload, UploadCloud,
 } from "lucide-react";
@@ -828,6 +828,13 @@ export default function CargaPage() {
           de secciones ya marca como completado no necesita repetirse, y ese espacio
           lo aprovecha un control que sí se opera. */}
       <ChromeSlotPortal zona="contexto">
+        {/* Los dos controles comparten una sola pastilla. Alternar el modo y abrir
+            el inventario son acciones distintas —por eso siguen siendo dos
+            controles y no un botón que hace dos cosas—, pero hablan del mismo
+            asunto y separados se leían como dos cajas sueltas peleando por el
+            lado izquierdo de la banda. El clúster les da material único y un
+            divisor: uno visualmente, dos funcionalmente. */}
+        <div className="pulso-multibase-cluster">
         <MultiBaseToggle
           compact
           on={isMultiBase}
@@ -897,13 +904,17 @@ export default function CargaPage() {
           <BasesInspectorMenu
             bases={basesDesdeEstudio(estudio)}
             activa={estudio.active_base ?? state?.active_base ?? null}
+            modo={estudio.n_bases > 1 ? "Inventario del estudio" : undefined}
             disparador={
-              <button type="button" className="pulso-bases-inspector-trigger">
-                {estudio.n_bases} bases
+              <button type="button" className="pulso-bases-inspector-trigger is-cluster">
+                <span className="pulso-bases-inspector-trigger-count">{estudio.n_bases}</span>
+                <span>bases</span>
+                <ChevronDown size={12} aria-hidden className="pulso-bases-inspector-trigger-chevron" />
               </button>
             }
           />
         ) : null}
+        </div>
       </ChromeSlotPortal>
 
       {/* El toggle de varias bases se queda en el cuerpo, no en el chrome. Es un

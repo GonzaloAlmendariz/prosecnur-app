@@ -3,9 +3,9 @@
  * ------------------------------------------------------------
  * Generador : prosecnur-identity-compiler v1.0.0 (branding/identity/generate.mjs)
  * Fuente    : branding/identity.json
- * Identidad : prosecnur-la-senal-ordenada v1.2.1 (frozen)
- * Manifest  : sha256:930fe502548ef92703911a240184eb792bbe58ac98d814211654aeee0dfd7c57
- * Input     : sha256:664cbdcfc151b4f2b90027180fa82bc3313134ea88ee011655754f0fa29ec88e (digest del archivo identity.json)
+ * Identidad : prosecnur-la-senal-ordenada v1.3.0 (frozen)
+ * Manifest  : sha256:b0a069a17441e7bc8808e2a0c7e972317431f6db921f8f00eb330a5f8b8661f3
+ * Input     : sha256:de47bf8c3037c9cf2b5293b42e0e85cff6d97a7910fe79285776555fc7e07b9f (digest del archivo identity.json)
  * ------------------------------------------------------------
  * Derivado determinista del manifiesto congelado. El identificador
  * de generación es el input digest (sin timestamp, a propósito).
@@ -38,14 +38,14 @@
   --prosecnur-brand-navy: #002457;
   --prosecnur-brand-navy-800: #013371;
   --prosecnur-signal-blue: #2457d6;
-  --prosecnur-module-editor: #6d5dfc;
+  --prosecnur-module-editor: #7172c1;
   --prosecnur-module-processing: #0f766e;
-  --prosecnur-module-dashboard: #2563eb;
-  --prosecnur-module-routes: #c2410c;
-  --prosecnur-module-sample: #7c3aed;
+  --prosecnur-module-dashboard: #4a6eb6;
+  --prosecnur-module-routes: #ac563b;
+  --prosecnur-module-sample: #7260ae;
   --prosecnur-module-encyclopedia: #a16207;
   --prosecnur-module-collectors: #106e8c;
-  --prosecnur-module-monitoring: #be123c;
+  --prosecnur-module-monitoring: #a0464e;
   --prosecnur-accent-cyan: #0ea5b7;
   --prosecnur-accent-green: #16a34a;
   --prosecnur-accent-rose: #c2416b;
@@ -106,15 +106,15 @@
   /* --- Espectro modular · alias por slug de módulo
    * fuente: extensions.pe.pucp.pulso.prosecnur.module_spectrum
    * ------------------------------------------------------------ */
-  --prosecnur-mod-editor-xlsform: #6d5dfc; /* Editor de formularios — operativo: --pulso-module-editor */
+  --prosecnur-mod-editor-xlsform: #7172c1; /* Editor de formularios — operativo: --pulso-module-editor */
   --prosecnur-mod-procesamiento: #0f766e; /* Procesamiento — operativo: --pulso-module-processing */
-  --prosecnur-mod-dashboard: #2563eb; /* Dashboard interactivo — operativo: --pulso-module-dashboard */
-  --prosecnur-mod-hojas-ruta: #c2410c; /* Hojas de ruta para campo — operativo: --pulso-module-routes */
-  --prosecnur-mod-calc-muestra: #7c3aed; /* Cálculo de muestra y marco muestral — operativo: --pulso-module-sample */
+  --prosecnur-mod-dashboard: #4a6eb6; /* Dashboard interactivo — operativo: --pulso-module-dashboard */
+  --prosecnur-mod-hojas-ruta: #ac563b; /* Hojas de ruta para campo — operativo: --pulso-module-routes */
+  --prosecnur-mod-calc-muestra: #7260ae; /* Cálculo de muestra y marco muestral — operativo: --pulso-module-sample */
   --prosecnur-mod-diseno-estudio: #a16207; /* Bitácora — operativo: --pulso-module-encyclopedia */
   --prosecnur-mod-plan-trabajo: #a16207; /* Plan de trabajo (fusionado en Bitácora) — operativo: --pulso-module-workplan (alias de encyclopedia) */
   --prosecnur-mod-recopiladores: #106e8c; /* Fichas QR para cursos-horario — operativo: --pulso-module-collectors */
-  --prosecnur-mod-monitoreo: #be123c; /* Monitoreo de campo — operativo: --pulso-module-monitoring */
+  --prosecnur-mod-monitoreo: #a0464e; /* Monitoreo de campo — operativo: --pulso-module-monitoring */
 
   /* --- Tipografía · familias «Voz nativa»
    * fuente: foundations.typography.families
@@ -127,10 +127,10 @@
    * ------------------------------------------------------------ */
   --prosecnur-type-display-size: 28px;
   --prosecnur-type-display-line: 1.2;
-  --prosecnur-type-display-weight: 680;
+  --prosecnur-type-display-weight: 800;
   --prosecnur-type-title-size: 22px;
   --prosecnur-type-title-line: 1.25;
-  --prosecnur-type-title-weight: 640;
+  --prosecnur-type-title-weight: 700;
   --prosecnur-type-section-size: 17px;
   --prosecnur-type-section-line: 1.3;
   --prosecnur-type-section-weight: 600;

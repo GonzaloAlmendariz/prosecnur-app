@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Prosecnur — referencia técnica de identidad v1.2.1</title>
+<title>Prosecnur — referencia técnica de identidad v1.3.0</title>
 <meta name="generator" content="prosecnur-identity-compiler v1.0.0">
 <style>
 /* ============================================================
@@ -11,9 +11,9 @@
  * ------------------------------------------------------------
  * Generador : prosecnur-identity-compiler v1.0.0 (branding/identity/generate.mjs)
  * Fuente    : branding/identity.json
- * Identidad : prosecnur-la-senal-ordenada v1.2.1 (frozen)
- * Manifest  : sha256:930fe502548ef92703911a240184eb792bbe58ac98d814211654aeee0dfd7c57
- * Input     : sha256:664cbdcfc151b4f2b90027180fa82bc3313134ea88ee011655754f0fa29ec88e (digest del archivo identity.json)
+ * Identidad : prosecnur-la-senal-ordenada v1.3.0 (frozen)
+ * Manifest  : sha256:b0a069a17441e7bc8808e2a0c7e972317431f6db921f8f00eb330a5f8b8661f3
+ * Input     : sha256:de47bf8c3037c9cf2b5293b42e0e85cff6d97a7910fe79285776555fc7e07b9f (digest del archivo identity.json)
  * ------------------------------------------------------------
  * Derivado determinista del manifiesto congelado. El identificador
  * de generación es el input digest (sin timestamp, a propósito).
@@ -46,14 +46,14 @@
   --prosecnur-brand-navy: #002457;
   --prosecnur-brand-navy-800: #013371;
   --prosecnur-signal-blue: #2457d6;
-  --prosecnur-module-editor: #6d5dfc;
+  --prosecnur-module-editor: #7172c1;
   --prosecnur-module-processing: #0f766e;
-  --prosecnur-module-dashboard: #2563eb;
-  --prosecnur-module-routes: #c2410c;
-  --prosecnur-module-sample: #7c3aed;
+  --prosecnur-module-dashboard: #4a6eb6;
+  --prosecnur-module-routes: #ac563b;
+  --prosecnur-module-sample: #7260ae;
   --prosecnur-module-encyclopedia: #a16207;
   --prosecnur-module-collectors: #106e8c;
-  --prosecnur-module-monitoring: #be123c;
+  --prosecnur-module-monitoring: #a0464e;
   --prosecnur-accent-cyan: #0ea5b7;
   --prosecnur-accent-green: #16a34a;
   --prosecnur-accent-rose: #c2416b;
@@ -114,15 +114,15 @@
   /* --- Espectro modular · alias por slug de módulo
    * fuente: extensions.pe.pucp.pulso.prosecnur.module_spectrum
    * ------------------------------------------------------------ */
-  --prosecnur-mod-editor-xlsform: #6d5dfc; /* Editor de formularios — operativo: --pulso-module-editor */
+  --prosecnur-mod-editor-xlsform: #7172c1; /* Editor de formularios — operativo: --pulso-module-editor */
   --prosecnur-mod-procesamiento: #0f766e; /* Procesamiento — operativo: --pulso-module-processing */
-  --prosecnur-mod-dashboard: #2563eb; /* Dashboard interactivo — operativo: --pulso-module-dashboard */
-  --prosecnur-mod-hojas-ruta: #c2410c; /* Hojas de ruta para campo — operativo: --pulso-module-routes */
-  --prosecnur-mod-calc-muestra: #7c3aed; /* Cálculo de muestra y marco muestral — operativo: --pulso-module-sample */
+  --prosecnur-mod-dashboard: #4a6eb6; /* Dashboard interactivo — operativo: --pulso-module-dashboard */
+  --prosecnur-mod-hojas-ruta: #ac563b; /* Hojas de ruta para campo — operativo: --pulso-module-routes */
+  --prosecnur-mod-calc-muestra: #7260ae; /* Cálculo de muestra y marco muestral — operativo: --pulso-module-sample */
   --prosecnur-mod-diseno-estudio: #a16207; /* Bitácora — operativo: --pulso-module-encyclopedia */
   --prosecnur-mod-plan-trabajo: #a16207; /* Plan de trabajo (fusionado en Bitácora) — operativo: --pulso-module-workplan (alias de encyclopedia) */
   --prosecnur-mod-recopiladores: #106e8c; /* Fichas QR para cursos-horario — operativo: --pulso-module-collectors */
-  --prosecnur-mod-monitoreo: #be123c; /* Monitoreo de campo — operativo: --pulso-module-monitoring */
+  --prosecnur-mod-monitoreo: #a0464e; /* Monitoreo de campo — operativo: --pulso-module-monitoring */
 
   /* --- Tipografía · familias «Voz nativa»
    * fuente: foundations.typography.families
@@ -135,10 +135,10 @@
    * ------------------------------------------------------------ */
   --prosecnur-type-display-size: 28px;
   --prosecnur-type-display-line: 1.2;
-  --prosecnur-type-display-weight: 680;
+  --prosecnur-type-display-weight: 800;
   --prosecnur-type-title-size: 22px;
   --prosecnur-type-title-line: 1.25;
-  --prosecnur-type-title-weight: 640;
+  --prosecnur-type-title-weight: 700;
   --prosecnur-type-section-size: 17px;
   --prosecnur-type-section-line: 1.3;
   --prosecnur-type-section-weight: 600;
@@ -346,9 +346,9 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
 <main>
   <header class="doc">
     <h1>Prosecnur — La señal ordenada (identidad visual v1.2)</h1>
-    <p>Referencia técnica generada del manifiesto — prosecnur-la-senal-ordenada · v1.2.1 · status frozen</p>
-    <p><code>manifest_hash: sha256:930fe502548ef92703911a240184eb792bbe58ac98d814211654aeee0dfd7c57</code></p>
-    <p><code>input sha256: 664cbdcfc151b4f2b90027180fa82bc3313134ea88ee011655754f0fa29ec88e</code> · prosecnur-identity-compiler v1.0.0</p>
+    <p>Referencia técnica generada del manifiesto — prosecnur-la-senal-ordenada · v1.3.0 · status frozen</p>
+    <p><code>manifest_hash: sha256:b0a069a17441e7bc8808e2a0c7e972317431f6db921f8f00eb330a5f8b8661f3</code></p>
+    <p><code>input sha256: de47bf8c3037c9cf2b5293b42e0e85cff6d97a7910fe79285776555fc7e07b9f</code> · prosecnur-identity-compiler v1.0.0</p>
     <p class="note" style="opacity:.7">Documento GENERADO (no editar): el mirror rico es branding/manual-identidad.html; la norma es branding/identity.json + branding/direccion-creativa.md. La marca se reproduce solo desde branding/logo/.</p>
   </header>
 
@@ -420,24 +420,24 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
         <div class="sw-meta"><code>--prosecnur-signal-blue</code><span>#2457d6</span></div>
       </div>
       <div class="sw">
-        <div class="sw-chip" style="background:#6d5dfc"></div>
-        <div class="sw-meta"><code>--prosecnur-module-editor</code><span>#6d5dfc</span></div>
+        <div class="sw-chip" style="background:#7172c1"></div>
+        <div class="sw-meta"><code>--prosecnur-module-editor</code><span>#7172c1</span></div>
       </div>
       <div class="sw">
         <div class="sw-chip" style="background:#0f766e"></div>
         <div class="sw-meta"><code>--prosecnur-module-processing</code><span>#0f766e</span></div>
       </div>
       <div class="sw">
-        <div class="sw-chip" style="background:#2563eb"></div>
-        <div class="sw-meta"><code>--prosecnur-module-dashboard</code><span>#2563eb</span></div>
+        <div class="sw-chip" style="background:#4a6eb6"></div>
+        <div class="sw-meta"><code>--prosecnur-module-dashboard</code><span>#4a6eb6</span></div>
       </div>
       <div class="sw">
-        <div class="sw-chip" style="background:#c2410c"></div>
-        <div class="sw-meta"><code>--prosecnur-module-routes</code><span>#c2410c</span></div>
+        <div class="sw-chip" style="background:#ac563b"></div>
+        <div class="sw-meta"><code>--prosecnur-module-routes</code><span>#ac563b</span></div>
       </div>
       <div class="sw">
-        <div class="sw-chip" style="background:#7c3aed"></div>
-        <div class="sw-meta"><code>--prosecnur-module-sample</code><span>#7c3aed</span></div>
+        <div class="sw-chip" style="background:#7260ae"></div>
+        <div class="sw-meta"><code>--prosecnur-module-sample</code><span>#7260ae</span></div>
       </div>
       <div class="sw">
         <div class="sw-chip" style="background:#a16207"></div>
@@ -448,8 +448,8 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
         <div class="sw-meta"><code>--prosecnur-module-collectors</code><span>#106e8c</span></div>
       </div>
       <div class="sw">
-        <div class="sw-chip" style="background:#be123c"></div>
-        <div class="sw-meta"><code>--prosecnur-module-monitoring</code><span>#be123c</span></div>
+        <div class="sw-chip" style="background:#a0464e"></div>
+        <div class="sw-meta"><code>--prosecnur-module-monitoring</code><span>#a0464e</span></div>
       </div>
       <div class="sw">
         <div class="sw-chip" style="background:#0ea5b7"></div>
@@ -619,24 +619,24 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
     <p class="src">fuente: <code>extensions.pe.pucp.pulso.prosecnur.module_spectrum</code> — el acento tiñe el chrome del módulo, nunca el contenido</p>
     <div class="swgrid">
       <div class="sw">
-        <div class="sw-chip" style="background:#6d5dfc"></div>
-        <div class="sw-meta"><code>--prosecnur-mod-editor-xlsform</code><span>#6d5dfc</span><em>Editor de formularios · --pulso-module-editor</em></div>
+        <div class="sw-chip" style="background:#7172c1"></div>
+        <div class="sw-meta"><code>--prosecnur-mod-editor-xlsform</code><span>#7172c1</span><em>Editor de formularios · --pulso-module-editor</em></div>
       </div>
       <div class="sw">
         <div class="sw-chip" style="background:#0f766e"></div>
         <div class="sw-meta"><code>--prosecnur-mod-procesamiento</code><span>#0f766e</span><em>Procesamiento · --pulso-module-processing</em></div>
       </div>
       <div class="sw">
-        <div class="sw-chip" style="background:#2563eb"></div>
-        <div class="sw-meta"><code>--prosecnur-mod-dashboard</code><span>#2563eb</span><em>Dashboard interactivo · --pulso-module-dashboard</em></div>
+        <div class="sw-chip" style="background:#4a6eb6"></div>
+        <div class="sw-meta"><code>--prosecnur-mod-dashboard</code><span>#4a6eb6</span><em>Dashboard interactivo · --pulso-module-dashboard</em></div>
       </div>
       <div class="sw">
-        <div class="sw-chip" style="background:#c2410c"></div>
-        <div class="sw-meta"><code>--prosecnur-mod-hojas-ruta</code><span>#c2410c</span><em>Hojas de ruta para campo · --pulso-module-routes</em></div>
+        <div class="sw-chip" style="background:#ac563b"></div>
+        <div class="sw-meta"><code>--prosecnur-mod-hojas-ruta</code><span>#ac563b</span><em>Hojas de ruta para campo · --pulso-module-routes</em></div>
       </div>
       <div class="sw">
-        <div class="sw-chip" style="background:#7c3aed"></div>
-        <div class="sw-meta"><code>--prosecnur-mod-calc-muestra</code><span>#7c3aed</span><em>Cálculo de muestra y marco muestral · --pulso-module-sample</em></div>
+        <div class="sw-chip" style="background:#7260ae"></div>
+        <div class="sw-meta"><code>--prosecnur-mod-calc-muestra</code><span>#7260ae</span><em>Cálculo de muestra y marco muestral · --pulso-module-sample</em></div>
       </div>
       <div class="sw">
         <div class="sw-chip" style="background:#a16207"></div>
@@ -651,8 +651,8 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
         <div class="sw-meta"><code>--prosecnur-mod-recopiladores</code><span>#106e8c</span><em>Fichas QR para cursos-horario · --pulso-module-collectors</em></div>
       </div>
       <div class="sw">
-        <div class="sw-chip" style="background:#be123c"></div>
-        <div class="sw-meta"><code>--prosecnur-mod-monitoreo</code><span>#be123c</span><em>Monitoreo de campo · --pulso-module-monitoring</em></div>
+        <div class="sw-chip" style="background:#a0464e"></div>
+        <div class="sw-meta"><code>--prosecnur-mod-monitoreo</code><span>#a0464e</span><em>Monitoreo de campo · --pulso-module-monitoring</em></div>
       </div></div>
   </section>
 
@@ -665,8 +665,8 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
     </tbody></table>
     <h3>Escala</h3>
     <table><thead><tr><th>paso</th><th>size / line / weight</th><th>muestra</th></tr></thead><tbody>
-<tr><td><code>display</code></td><td>28px / 1.2 / 680</td><td><span style="font-size:28px;line-height:1.2;font-weight:680;">La señal ordenada 0123456789</span></td></tr>
-<tr><td><code>title</code></td><td>22px / 1.25 / 640</td><td><span style="font-size:22px;line-height:1.25;font-weight:640;">La señal ordenada 0123456789</span></td></tr>
+<tr><td><code>display</code></td><td>28px / 1.2 / 800</td><td><span style="font-size:28px;line-height:1.2;font-weight:800;">La señal ordenada 0123456789</span></td></tr>
+<tr><td><code>title</code></td><td>22px / 1.25 / 700</td><td><span style="font-size:22px;line-height:1.25;font-weight:700;">La señal ordenada 0123456789</span></td></tr>
 <tr><td><code>section</code></td><td>17px / 1.3 / 600</td><td><span style="font-size:17px;line-height:1.3;font-weight:600;">La señal ordenada 0123456789</span></td></tr>
 <tr><td><code>body</code></td><td>15px / 1.55 / 400</td><td><span style="font-size:15px;line-height:1.55;font-weight:400;">La señal ordenada 0123456789</span></td></tr>
 <tr><td><code>body-medium</code></td><td>15px / 1.55 / 500</td><td><span style="font-size:15px;line-height:1.55;font-weight:500;">La señal ordenada 0123456789</span></td></tr>
@@ -774,9 +774,9 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
     <h2>Navegación y layouts</h2>
     <p class="src">fuente: <code>architecture.navigation</code> + <code>architecture.layouts</code> + <code>foundations.responsive</code></p>
     <table><thead><tr><th>nivel</th><th>definición</th></tr></thead><tbody>
-      <tr><td><code>nivel-1</code></td><td>Familia/Módulo (homepage, paleta propia)</td></tr><tr><td><code>nivel-2</code></td><td>Sección (top bar del módulo)</td></tr><tr><td><code>nivel-3</code></td><td>Pestaña dinámica (sidebar icon-compressed)</td></tr>
+      <tr><td><code>nivel-1</code></td><td>Módulo (homepage, paleta propia; ruta)</td></tr><tr><td><code>nivel-2</code></td><td>Modo (opcional, lo determina el estudio; query modo)</td></tr><tr><td><code>nivel-3</code></td><td>Sección (top bar del módulo; query seccion)</td></tr><tr><td><code>nivel-4</code></td><td>Pestaña (rail de pestañas; query pestana)</td></tr><tr><td><code>nivel-5</code></td><td>Panel (popover/sideover/diálogo/inspector; query panel)</td></tr><tr><td><code>ortogonal</code></td><td>foco — entidad seleccionada dentro del nivel activo</td></tr>
     </tbody></table>
-    <ul class="rules"><li>Vocabulario oficial: Familia/Módulo (homepage, paleta propia) → Sección (top bar del módulo; en Procesamiento: Carga, Validación, Codificación, Analítica, Gráficos) → Pestaña dinámica; UI nueva se cuelga de uno de esos tres niveles y nunca duplica la navegación de un nivel en otro</li><li>Anatomía de cinco capas: Capa 1 Comando (command bar material de 3 zonas: contexto · rail · acciones; sin H1 visible, la identidad vive aquí) · Capa 2 Secciones (rail centrado tipo pillbar) · Capa 3 Objetos (sidebar/outline compacto para inventarios largos: reglas, variables, rutas, pestañas dinámicas; icon-compressed que empuja el canvas) · Capa 4 Tabs locales (pestañas compactas o segmented dentro de la sección activa) · Capa 5 Inspector (propiedades contextuales del objeto seleccionado; edita, no navega)</li><li>Al abrir un proyecto se aterriza en el homepage del proyecto (cards de avance), jamás en una ruta heredada de otro proyecto</li><li>El rail superior YA es el recorrido: el pulido didáctico va dentro de cada pestaña, nunca como segunda barra de pasos</li><li>El sidebar de pestañas expande empujando el canvas por grid, nunca como overlay flotante</li><li>Módulos canónicos y sus rutas: Bitácora (/bitacora), Cálculo de muestra (/calc-muestra), Editor de formularios (/editor-xlsform), Hojas de ruta (/hojas-ruta), Fichas QR (/recopiladores), Monitoreo (/monitoreo), Procesamiento (/procesamiento), Dashboard (/tablero)</li></ul>
+    <ul class="rules"><li>Vocabulario oficial: Módulo (homepage, paleta propia) → Modo (opcional; reescribe el juego de secciones y lo determina el estudio, no un click — hoy Monitoreo y Cálculo de muestra) → Sección (top bar del módulo; en Procesamiento: Carga, Validación, Codificación, Analítica, Gráficos) → Pestaña → Panel (popover/sideover/diálogo/inspector); UI nueva se cuelga de uno de esos cinco niveles y nunca duplica la navegación de un nivel en otro</li><li>Anatomía de superficie del módulo: command bar material de 3 zonas (contexto · rail · acciones; sin H1 visible, la identidad vive ahí) · top bar de secciones tipo pillbar centrada · rail de pestañas · sidebar/outline compacto como inventario de objetos dentro de la sección activa (no es un nivel de navegación) · panel/inspector con las propiedades del objeto seleccionado, que edita y no navega</li><li>Al abrir un proyecto se aterriza en el homepage del proyecto (cards de avance), jamás en una ruta heredada de otro proyecto</li><li>El rail superior YA es el recorrido: el pulido didáctico va dentro de cada pestaña, nunca como segunda barra de pasos</li><li>Toda vista es enlazable: ruta = módulo, query = el resto (/monitoreo?modo=territorial&amp;seccion=avance&amp;pestana=ump&amp;panel=filtros). Params canónicos modo/seccion/pestana/panel/foco; los nombres viejos (family, tab, stage, mesa, desk, step, reporte) se leen como alias pero nunca se escriben</li><li>Un overlay nuevo se conecta con usePanelDireccionable, no con un useState suelto; el sidebar de objetos expande empujando el canvas por grid, nunca como overlay flotante</li><li>Módulos canónicos y sus rutas: Bitácora (/bitacora), Cálculo de muestra (/calc-muestra), Editor de formularios (/editor-xlsform), Hojas de ruta (/hojas-ruta), Fichas QR (/recopiladores), Monitoreo (/monitoreo), Procesamiento (/procesamiento), Dashboard (/tablero)</li></ul>
     <h3>Economía del chrome</h3>
     <ul class="rules"><li>Sin franjas de título: los módulos no llevan H1 visible (headerMode=&quot;sr-only&quot;); sin títulos interiores redundantes en paneles</li><li>Datos en el primer viewport: exploradores, filtros y resúmenes son herramientas subordinadas</li><li>Jerarquía de contenedores: Shell → PageFrame con layouts document (lectura/formularios con scroll de página), workbench (rail + área principal con scroll interno), canvas (superficie visual con área mínima preservada), data (tabla/grilla con scroll interno)</li><li>Dueños de scroll: page (el área principal scrollea) · body (el body del PageFrame scrollea) · panels (paneles internos, degradando a .pulso-main en compact/short)</li><li>Un solo dueño de scroll por pantalla (No Scroll Jail); overflow:hidden solo oculta contenido decorativo o delega a un descendiente scrollable</li></ul>
     <h3>Responsive</h3>
@@ -810,8 +810,8 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
   </section>
 
   <footer>
-    Derivado determinista de <code>branding/identity.json</code> · prosecnur-la-senal-ordenada v1.2.1 ·
-    <code>sha256:930fe502548ef92703911a240184eb792bbe58ac98d814211654aeee0dfd7c57</code> · prosecnur-identity-compiler v1.0.0
+    Derivado determinista de <code>branding/identity.json</code> · prosecnur-la-senal-ordenada v1.3.0 ·
+    <code>sha256:b0a069a17441e7bc8808e2a0c7e972317431f6db921f8f00eb330a5f8b8661f3</code> · prosecnur-identity-compiler v1.0.0
   </footer>
 </main>
 </body>
