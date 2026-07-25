@@ -125,9 +125,6 @@ const HOJAS_RUTA_STAGE_ORDER: Record<HojasRutaStage, number> = {
   manzanas: 3,
   entrega: 4,
 };
-const HOJAS_RUTA_STAGE_ICONS: Record<HojasRutaStage, typeof MapPinned> = {
-  territorio: MapPinned, poblacion: BarChart3, muestra: Target, manzanas: Shuffle, entrega: FileText,
-};
 const DISTRICT_FEATURES = (districtCoverage as unknown as { features: DistrictFeature[] }).features;
 const DISTRICT_FEATURE_BY_UBIGEO = new Map(DISTRICT_FEATURES.map((feature) => [feature.properties.ubigeo, feature]));
 const MAP_SIZE = 560;
@@ -7747,7 +7744,6 @@ export default function HojasRutaPage() {
             <ul className="pulso-phase-pill-list">
               {hojasRutaNavigation.sections.map((step) => {
                 const active = step.key === currentStage;
-                const Icon = HOJAS_RUTA_STAGE_ICONS[step.key];
                 return (
                   <li key={step.key} className="pulso-phase-pill-item">
                     <button
@@ -7774,8 +7770,7 @@ export default function HojasRutaPage() {
                       <span className="pulso-phase-pill-circle" aria-hidden="true" />
                       <span className="pulso-phase-pill-stack">
                         <span className="pulso-phase-pill-label">
-                          <span className="pulso-phase-pill-number" aria-hidden="true">{step.n}</span>
-                          <Icon size={13} aria-hidden="true" /><span className="hojas-ruta-stage-label">{step.label}</span>
+                          <span className="pulso-phase-pill-text">{step.label}</span>
                         </span>
                       </span>
                     </button>

@@ -30497,45 +30497,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     contain: layout style;
   }
 
-  .pulso-main--processing :is(
-    .pulso-carga-stage-item[data-rail-tooltip],
-    .pulso-carga-view-tab.is-sidebar[data-rail-tooltip],
-    .pulso-validacion-nav-item[data-rail-tooltip],
-    .pulso-codificacion-nav-item[data-rail-tooltip],
-    .pulso-analitica-nav-item[data-rail-tooltip]
-  )::before {
-    content: "";
-    position: absolute;
-    left: calc(100% + 8px);
-    top: 50%;
-    z-index: 420;
-    display: none;
-    width: max-content;
-    min-width: 122px;
-    max-width: 220px;
-    min-height: 0;
-    padding: 7px 9px;
-    border: 1px solid color-mix(in srgb, var(--pulso-module-processing-border) 52%, var(--pulso-border));
-    border-radius: 10px;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 253, 0.96)),
-      var(--pulso-surface);
-    color: var(--pulso-text);
-    font-size: 11px;
-    font-weight: var(--pulso-weight-heavy);
-    line-height: 1.22;
-    text-align: left;
-    white-space: pre-line;
-    box-shadow: var(--pulso-shadow-popover);
-    opacity: 0;
-    visibility: hidden;
-    overflow-wrap: anywhere;
-    pointer-events: none;
-    transform: translateY(-50%);
-    transition:
-      opacity 150ms var(--motion-ease-out),
-      visibility 0s linear 150ms;
-  }
 
   .pulso-main--processing :is(
     .pulso-carga-stage-item[data-rail-tooltip]:hover,

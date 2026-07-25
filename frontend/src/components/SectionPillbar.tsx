@@ -39,7 +39,7 @@ export type SectionPillbarItem = {
   shortLabel?: string;
   /** Href canónico. Lo produce `useSeccion().hrefDe("seccion", id)`. */
   href: string;
-  /** Sección ya completada. Solo se dibuja si `progreso` la pide. */
+  /** Sección ya completada. Se marca con un punto, sin depender del numeral. */
   done?: boolean;
   /**
    * Prerrequisito que falta. La sección sigue siendo navegable a propósito —
@@ -102,7 +102,7 @@ export function SectionPillbar({
                   className={[
                     "pulso-phase-pill",
                     activa ? "is-active" : "",
-                    item.done && progreso === "numbered" ? "is-done" : "",
+                    item.done ? "is-done" : "",
                     item.lockedReason ? "is-blocked" : "",
                   ]
                     .filter(Boolean)
@@ -111,9 +111,6 @@ export function SectionPillbar({
                   <span className="pulso-phase-pill-circle" aria-hidden="true" />
                   <span className="pulso-phase-pill-stack">
                     <span className="pulso-phase-pill-label">
-                      {progreso === "numbered" && (
-                        <span className="pulso-phase-pill-number">{indice + 1}</span>
-                      )}
                       <span className="pulso-phase-pill-text">{texto}</span>
                     </span>
                   </span>

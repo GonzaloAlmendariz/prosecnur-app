@@ -316,8 +316,6 @@ const SUPRIME_HOVER_PENDIENTE = [
   "features/monitoreo/profiles/profilePage.css :: .mon-acr-query-tabs button:hover:not(.is-active)",
   "features/monitoreo/profiles/profilePage.css :: .mon-profile-local-tabs button:hover:not(.is-active)",
   "features/monitoreo/salidas/outputsWorkbench.css :: .mon-outputs-audience-tabs button:hover:not(.is-active)",
-  "features/monitoreo/shell/monitoreoShell.css :: .mon-section-pill:hover:not(.is-disabled):not(.is-active)",
-  "features/monitoreo/shell/monitoreoShell.css :: .mon-section-pill:hover:not(.is-disabled):not(.is-active) .pulso-phase-pill-circle",
   "features/xlsformEditor/styles/xf-inspector.css :: .pulso-inspector.pulso-xfi .pulso-inspector-tab-trigger:hover:not(.is-active)",
   "features/xlsformEditor/styles/xf-sheets.css :: .pulso-xlsform-frame .pulso-xfs-tab:hover:not(.is-active)",
 ];
@@ -366,7 +364,6 @@ describe("estados de navegación", () => {
     "features/monitoreo/profiles/profilePage.css :: .mon-profile-local-tabs button:hover:not(.is-active)",
     "features/monitoreo/profiles/telefonico/telefonicoProfile.css :: .is-telefonico-profile .mon-phone-supervision-tabs button:hover, .is-telefonico-profile .mon-phone-supervis...",
     "features/monitoreo/salidas/outputsWorkbench.css :: .mon-outputs-audience-tabs button:hover:not(.is-active)",
-    "features/monitoreo/shell/monitoreoShell.css :: .mon-section-pill:hover:not(.is-disabled):not(.is-active)",
     "features/monitoreo/shell/monitoreoShell.css :: .mon-workbench-rail.is-acreditacion .mon-section-local-tabs .mon-nav-item:hover",
   ];
 
@@ -456,13 +453,14 @@ describe("manifiesto de chrome", () => {
     expect(sinChrome).toEqual([]);
   });
 
-  test("solo se numeran las secciones de un pipeline real", () => {
-    // Numerar secciones que se visitan en cualquier orden promete una secuencia
-    // que no existe. Esta lista es corta a propósito y crecer es una decisión.
+  test("ningún módulo numera sus secciones", () => {
+    // Los numerales se retiraron de los cinco rails: costaban ~22px por píldora y
+    // ese ancho es lo que el rail necesita para caber junto a los indicadores de
+    // los lados. El componente conserva la capacidad; volver a usarla es una
+    // decisión, no un descuido.
     const numerados = PROSECNUR_MODULES.filter((m) => m.chrome.progreso === "numbered")
-      .map((m) => m.slug)
-      .sort();
-    expect(numerados).toEqual(["calc-muestra", "hojas-ruta", "procesamiento"]);
+      .map((m) => m.slug);
+    expect(numerados).toEqual([]);
   });
 
   test("cada excepción de chrome cita un ADR que existe", () => {

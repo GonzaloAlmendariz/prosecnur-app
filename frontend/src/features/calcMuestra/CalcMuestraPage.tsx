@@ -2395,7 +2395,6 @@ function CalcMuestraSectionRail({
                   <span className="pulso-phase-pill-circle" aria-hidden="true" />
                   <span className="pulso-phase-pill-stack">
                     <span className="pulso-phase-pill-label">
-                      <span className="pulso-phase-pill-number">{index + 1}</span>
                       <span className="cmv2-section-pill-copy">
                         <strong>{item.shortLabel ?? item.label}</strong>
                       </span>

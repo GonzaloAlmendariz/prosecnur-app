@@ -68,21 +68,22 @@
   min-width: 0;
 }
 
-/* El rail se centra respecto a la BANDA sacándolo del flujo, así su posición no
- * depende de cuánto pese el contexto de cada ruta. El umbral bajó de 1480 a 1200
- * porque la escalera de indicadores ya encoge los lados: con los lados livianos,
- * a 1200 hay hueco de sobra y el rail no llega a tocarlos. Por debajo vuelve al
- * flujo, donde puede quedar descentrado pero nunca solapado. */
-@container pulso-chrome (min-width: 1200px) {
-  .pulso-module-command-bar > .pulso-command-bar-zone[data-zone="secciones"] {
-    position: absolute;
-    left: 50%;
-    top: var(--pulso-chrome-commandbar-pad);
-    bottom: var(--pulso-chrome-commandbar-pad);
-    transform: translateX(-50%);
-    z-index: 1;
-  }
-}
+/* El rail NO se saca del flujo. Se intentó centrarlo en absoluto —primero sobre
+ * 1480px de banda, después sobre 1200— y las dos veces terminó solapando el
+ * contenido de los lados, porque el ancho que necesita depende del módulo: el
+ * rail de Monitoreo mide 657px con sus seis secciones contra 510 el de
+ * Procesamiento, así que ningún umbral fijo sirve para los ocho.
+ *
+ * Y la simetría por columnas tampoco: `1fr` a los lados los inanicia antes que
+ * al centro y recorta valores y controles.
+ *
+ * Así que la centralidad se consigue por donde el usuario la pidió — «medir bien
+ * el uso de los indicadores a los lados»—: con los dos lados de peso parecido, el
+ * rail centrado dentro de su columna cae casi en el centro de la banda. Medido con
+ * los lados ya compactados: Monitoreo a 26px del centro con 253 contra 293 de
+ * contenido. El desvío es consecuencia del balance, no de un truco de
+ * posicionamiento, y no puede solapar nada.
+ * ------------------------------------------------------------------------- */
 
 /* Peldaño 1 — banda de sobremesa apretada: se cierra el gap de los lados. */
 @container pulso-chrome (max-width: 1400px) {

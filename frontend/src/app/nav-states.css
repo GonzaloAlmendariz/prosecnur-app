@@ -130,3 +130,71 @@
     transition: none;
   }
 }
+
+/* ── Burbuja del rail comprimido — dueño único ──────────────────────────────
+ * Cuando el rail de pestañas está en modo ícono, el nombre del destino vive en
+ * una burbuja flotante. Estaba replicada en tres archivos y había divergido en
+ * nueve propiedades: el desplazamiento (8 contra 12px), el ancho mínimo (122
+ * contra 132), el máximo (220 contra 236), el padding, el peso tipográfico
+ * (heavy contra bold), la interlínea (1.22 contra 1.26), la duración (150 contra
+ * 140ms), el `overflow-wrap` que una no tenía, y —la peor— TRES fuentes
+ * distintas para el color del borde: el módulo de procesamiento, el acento de
+ * Fichas QR y el primario global al 30% en vez del 52%.
+ *
+ * Acá el borde sale de `--pulso-nav-accent`, así que sigue al módulo solo, sin
+ * que cada archivo tenga que nombrar su propio acento.
+ *
+ * Este bloque define CÓMO se ve y arranca oculta. CUÁNDO aparece lo sigue
+ * decidiendo cada módulo, porque depende de si su rail está comprimido y eso lo
+ * sabe su propio media query. Lo que se borró de cada archivo es la geometría
+ * duplicada, no la condición.
+ * ------------------------------------------------------------------------- */
+
+[data-rail-tooltip] {
+  /* Su propia indirección: un item con burbuja no siempre lleva
+   * `data-nav-item`, y sin esto el `color-mix` del borde quedaría inválido. */
+  --pulso-nav-accent: var(--module-accent, var(--pulso-primary));
+}
+
+[data-rail-tooltip]::before {
+  content: "";
+  position: absolute;
+  left: calc(100% + var(--pulso-rail-bubble-offset));
+  top: 50%;
+  z-index: var(--pulso-z-flyout);
+  display: none;
+  width: max-content;
+  min-width: 122px;
+  max-width: 220px;
+  min-height: 0;
+  padding: 7px 9px;
+  border: 1px solid color-mix(in srgb, var(--pulso-nav-accent) 52%, var(--pulso-border));
+  border-radius: var(--pulso-rail-bubble-radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 253, 0.96)),
+    var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.22;
+  text-align: left;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  box-shadow: var(--pulso-shadow-popover);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition:
+    opacity var(--motion-dur-fast) var(--motion-ease-out),
+    visibility 0s linear var(--motion-dur-fast);
+}
+
+/* La burbuja arranca en `display: none` y CADA módulo la revela con
+ * `display: block` desde su propio media query, porque solo él sabe si su rail
+ * está comprimido. Acá no hay regla de hover a propósito: sin `display` sería CSS
+ * muerto, y con `display` la burbuja aparecería también cuando el rail está
+ * expandido y el nombre ya se lee — dos veces el mismo texto.
+ *
+ * Lo que se unificó es la apariencia, que es lo que divergía. El «cuándo» sigue
+ * siendo del módulo, y eso es correcto. */

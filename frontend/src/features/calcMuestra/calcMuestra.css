@@ -5538,36 +5538,6 @@
     position: relative;
     overflow: visible;
   }
-  .cmv2-section-local-tab[data-rail-tooltip]::before {
-    content: none;
-    position: absolute;
-    left: calc(100% + 12px);
-    top: 50%;
-    z-index: 420;
-    width: max-content;
-    min-width: 132px;
-    max-width: 236px;
-    padding: 7px 10px;
-    border: 1px solid color-mix(in srgb, var(--pulso-primary) 30%, var(--pulso-border));
-    border-radius: 10px;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 253, 0.96)),
-      var(--pulso-surface);
-    color: var(--pulso-text);
-    font-size: 11px;
-    font-weight: var(--pulso-weight-bold);
-    line-height: 1.26;
-    text-align: left;
-    white-space: pre-line;
-    box-shadow: var(--pulso-shadow-popover);
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transform: translateY(-50%);
-    transition:
-      opacity 140ms var(--motion-ease-out),
-      visibility 0s linear 140ms;
-  }
   .cmv2-section-local-tab[data-rail-tooltip]:hover::before,
   .cmv2-section-local-tab[data-rail-tooltip]:focus-visible::before {
     content: attr(data-rail-tooltip);

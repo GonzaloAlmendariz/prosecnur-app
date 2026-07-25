@@ -94,7 +94,12 @@ export type ProsecnurNavigationLandingKind = "section" | "entrypoint";
  * alto, de radio ni de mezcla de acento: esos salen del token, siempre.
  */
 export type ProsecnurModuleChromeMeta = {
-  /** Numerar las secciones solo tiene sentido con un pipeline real. */
+  /**
+   * Numerar las secciones. Hoy ningún módulo lo pide: los numerales costaban
+   * ~22px por píldora y ese ancho es justo lo que el rail necesita para caber
+   * junto a los indicadores de los lados. El orden de un pipeline ya se lee de
+   * izquierda a derecha.
+   */
   progreso: "none" | "numbered";
   densidad: "normal" | "compact";
   /** El módulo tiene rail de pestañas (tercer nivel) además de secciones. */
@@ -246,9 +251,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   {
     slug: "calc-muestra",
     chrome: {
-      // Numera porque sus secciones SON un recorrido: marco, criterios,
-      // cálculo, selección, entrega. No es decoración, es el orden del método.
-      progreso: "numbered",
+      progreso: "none",
       densidad: "normal",
       rail: true,
       chromeOwner: "page",
@@ -325,8 +328,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   {
     slug: "hojas-ruta",
     chrome: {
-      // Las etapas de una hoja de ruta son un pipeline con orden real.
-      progreso: "numbered",
+      progreso: "none",
       densidad: "normal",
       rail: false,
       chromeOwner: "page",
@@ -527,7 +529,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   {
     slug: "procesamiento",
     chrome: {
-      progreso: "numbered",
+      progreso: "none",
       densidad: "normal",
       rail: true,
       // Sus secciones son rutas hermanas (/carga, /validacion...) y comparten
