@@ -71,6 +71,7 @@ export function BasesInspectorMenu({
   activa,
   onSeleccionar,
   deshabilitado,
+  modo,
   disparador,
 }: {
   bases: readonly BaseResumen[];
@@ -82,6 +83,14 @@ export function BasesInspectorMenu({
    */
   onSeleccionar?: (nombre: string) => void;
   deshabilitado?: boolean;
+  /**
+   * Cómo trata el procesamiento a este conjunto de bases: combinadas en una sola
+   * mesa o independientes. Vive acá y no en la banda porque es una propiedad DE
+   * las bases, y tenerlo suelto a la derecha ponía dos controles a hablar del
+   * mismo conjunto —uno decía «2 bases · Bases combinadas», el otro el nombre de
+   * la activa— compitiendo por el ancho de la banda.
+   */
+  modo?: string | null;
   disparador: React.ReactElement;
 }) {
   if (bases.length === 0) return disparador;
@@ -100,6 +109,9 @@ export function BasesInspectorMenu({
             {bases.length === 1 ? "1 base" : `${bases.length} bases`}
           </strong>
           <span>Instrumento y datos de cada una</span>
+          {modo ? (
+            <span className="pulso-bases-inspector-modo">{modo}</span>
+          ) : null}
         </div>
 
         <ul className="pulso-bases-inspector-list">

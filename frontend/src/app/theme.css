@@ -26212,9 +26212,22 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   justify-content: center;
 }
 
+/* La fila de acciones ocupa el ancho completo de la banda, y con todo apilado
+ * contra el borde derecho dejaba 592px muertos a la izquierda: el peor
+ * desbalance que quedaba en la app.
+ *
+ * Se reparte con la misma gramática que el chrome compartido —lo que CREA a un
+ * lado, lo que SACA al otro—: «Nuevo formulario» abre la fila y el grupo de
+ * exportación la cierra. No es solo llenar el hueco; separa dos cosas que hacen
+ * cosas distintas y que antes se leían como una sola tira de seis botones. */
 .pulso-xlsform-commandbar-group--actions {
-  justify-content: flex-end;
+  justify-content: flex-start;
   flex-wrap: wrap;
+}
+
+/* Todo lo que produce una salida se agrupa contra el borde derecho. */
+.pulso-xlsform-commandbar-group--actions > .pulso-xf-export-cluster {
+  margin-inline-start: auto;
 }
 
 .pulso-xlsform-commandbar-kicker {
@@ -28838,6 +28851,21 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   z-index: 1200;
   transform-origin: top right;
   animation: pulso-xls-popover-in 170ms var(--motion-ease-out) both;
+}
+
+/* El menú se ancla al MISMO borde donde vive su disparador.
+ *
+ * Todos los menús de esta banda cuelgan de `right: 0` porque históricamente sus
+ * disparadores estaban a la derecha. «Nuevo formulario» pasó a abrir la fila de
+ * acciones por la izquierda, y con el anclaje derecho el panel crecía hacia
+ * afuera de la ventana: se cortaba contra el borde izquierdo de la pantalla.
+ * Un menú de 320px sobre un disparador pegado al borde solo cabe si crece hacia
+ * adentro. El `transform-origin` acompaña, para que la animación de entrada
+ * salga de la esquina correcta y no parezca que el panel viene de otro sitio. */
+.pulso-xlsform-frame .pulso-more-views-wrapper:has(.pulso-xf-intake-trigger) .pulso-more-views-menu {
+  right: auto;
+  left: 0;
+  transform-origin: top left;
 }
 
 /* Geometría de los controles secundarios del editor. El fondo y el borde los

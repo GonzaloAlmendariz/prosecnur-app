@@ -2,6 +2,7 @@ import { ChevronDown, Layers } from "lucide-react";
 
 import type { EstudioPayload } from "../../api/client";
 import { BasesInspectorMenu, basesDesdeEstudio } from "../../components/BasesInspectorMenu";
+import { processingBaseScopePresentation } from "../procesamiento/baseScopeModel";
 
 // =============================================================================
 // BaseSelector — la base activa, como desplegable
@@ -26,6 +27,11 @@ type Props = {
 };
 
 export default function BaseSelector({ estudio, selected, onChange, disabled, className }: Props) {
+  const alcance = processingBaseScopePresentation(
+    estudio?.processing_mode ?? null,
+    estudio?.n_bases ?? 0,
+  );
+
   if (!estudio || estudio.n_bases <= 1) return null;
 
   const bases = Object.values(estudio.bases);
@@ -41,6 +47,7 @@ export default function BaseSelector({ estudio, selected, onChange, disabled, cl
       activa={activeKey}
       onSeleccionar={onChange}
       deshabilitado={disabled}
+      modo={alcance.summaryLabel}
       disparador={
         <button
           type="button"
