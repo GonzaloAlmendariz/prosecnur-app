@@ -290,6 +290,13 @@
   --pulso-rail-compressed-width: 56px;
   --pulso-nav-item-height: var(--pulso-rail-row-height-lg);
   --pulso-nav-item-radius: 10px;
+  /* Los rails de Procesamiento leen estos dos con un literal de respaldo
+   * —`var(--pulso-processing-rail-item-height, 42px)`— y el token no estaba
+   * declarado en ninguna parte, así que siempre ganaba el 42 de respaldo. Ese es
+   * el motivo real por el que su item medía 42 y el de Monitoreo 40: ninguno de
+   * los dos estaba leyendo el token canónico. Declarados acá, los dos convergen. */
+  --pulso-processing-rail-item-height: var(--pulso-nav-item-height);
+  --pulso-processing-rail-item-width: var(--pulso-nav-item-height);
   --pulso-nav-icon-size: 18px;
 
   /* Burbuja del rail comprimido: título + subtítulo al hover Y al focus. */
@@ -30587,6 +30594,14 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
     min-width: var(--pulso-processing-rail-item-width, 42px) !important;
     max-width: var(--pulso-processing-rail-item-width, 42px) !important;
     flex: 0 0 var(--pulso-processing-rail-item-width, 42px) !important;
+    /* Este bloque fijaba el ancho y se olvidaba del alto, así que el item de
+     * Carga era el único de los cinco rails de Procesamiento que no obedecía al
+     * token: quedaba en 42 (40 de contenido + 1px de borde a cada lado, sin
+     * box-sizing) mientras el resto medía 40. */
+    height: var(--pulso-processing-rail-item-height) !important;
+    min-height: var(--pulso-processing-rail-item-height) !important;
+    box-sizing: border-box !important;
+    border-radius: var(--pulso-nav-item-radius) !important;
     justify-content: center !important;
     align-items: center !important;
     gap: 0 !important;
