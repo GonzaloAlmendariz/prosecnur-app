@@ -622,6 +622,18 @@
   new_row$name <- new_name
   new_row[[lab_col_s]] <- base_label  # misma etiqueta que la base
 
+  # Reaplicación sobre un instrumento YA adaptado: `<new_name>` puede venir del
+  # ciclo anterior (propio o del bridge de project_pulso). Se retiran esas filas
+  # antes de insertar para que aplicar dos veces deje el mismo survey que
+  # aplicar una sola vez, en lugar de acumular filas con el mismo `name`.
+  i_prev <- if (identical(new_name, base_name)) integer(0) else {
+    which(as.character(survey$name) == new_name)
+  }
+  if (length(i_prev)) {
+    survey <- survey[-i_prev, , drop = FALSE]
+    i_base <- match(base_name, survey$name)
+  }
+
   survey2 <- .row_after(survey, i_base, new_row)
 
   # inyectar choices del list destino (evitando duplicados exactos)
