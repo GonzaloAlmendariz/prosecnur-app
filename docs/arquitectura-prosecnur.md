@@ -168,6 +168,13 @@ recopiladores lógicos personalizados, materiales y el handoff versionado previo
 al campo. En Kobo, estos recopiladores pueden materializarse como enlaces
 `d[campo]=valor`; no implican un recurso collector remoto independiente.
 
+La propuesta también asigna a Recopiladores la semántica de los materiales de
+aplicación: templates, bloques, bindings e instancias ligados al deployment. El
+renderer PDF será un servicio puro y Archivos custodiará los binarios; Reportes,
+Gráficos y Archivos no decidirán el contenido operativo. Materiales será un
+editor estructurado de fichas y paquetes, no una superficie general para editar
+PDF existentes.
+
 La propuesta no cambia aún el contrato vigente. Mientras el ADR no sea
 aceptado e implementado, [ADR 0019](adrs/0019-monitoreo-aulas-universitarias.md)
 conserva en Monitoreo la agenda y los links/QR de aulas. El plan de transición,
