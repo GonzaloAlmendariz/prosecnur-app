@@ -8,26 +8,49 @@
 # ============================================================
 
 # Proyecta el par propio del Dashboard sobre los nombres `rp_inst`/`rp_data`
-# que consumen los engines.
+# que consumen los engines. Dos trampas que este helper cierra:
 #
-# La asignación tiene que ser `s["x"] <- list(valor)` y no `s$x <- valor`:
-# cuando el Dashboard todavía no tiene fuente, el valor es NULL y `s$x <- NULL`
-# *borra* el elemento de la lista de sesión. Sin el nombre presente, cualquier
-# `s$rp_data` posterior cae por partial matching en `rp_data_sources` — las
-# tablas por fuente de Procesamiento, que en un estudio con grupos repeat son
-# una lista de data.frames. El guard `is.null(s$rp_data)` de cada engine
-# devuelve entonces FALSE y el engine sigue con una lista donde espera un
-# data.frame (`!nrow(lista)` → "invalid argument type", HTTP 500 en /tablero).
-# Con `s["x"] <- list(NULL)` el nombre sobrevive con valor NULL y el guard
-# dispara como corresponde. Los lados derechos usan `[[` (exacto) por lo mismo.
+# 1. La asignación tiene que ser `s["x"] <- list(valor)` y no `s$x <- valor`:
+#    cuando el Dashboard todavía no tiene fuente, el valor es NULL y
+#    `s$x <- NULL` *borra* el elemento de la lista de sesión. Sin el nombre
+#    presente, cualquier `s$rp_data` posterior cae por partial matching en
+#    `rp_data_sources` — las tablas por fuente de Procesamiento, que en un
+#    estudio con grupos repeat son una lista de data.frames. El guard
+#    `is.null(s$rp_data)` de cada engine devuelve entonces FALSE y el engine
+#    sigue con una lista donde espera un data.frame (`!nrow(lista)` →
+#    "invalid argument type", HTTP 500 en /tablero y en /resumen/kpis). Con
+#    `s["x"] <- list(NULL)` el nombre sobrevive con valor NULL y el guard
+#    dispara como corresponde. Los lados derechos usan `[[` (exacto) por lo
+#    mismo.
+# 2. El Dashboard NO es multibase: su fuente es un XLSForm + una data
+#    importados por el propio módulo. Si el cache llega con otra forma,
+#    fallamos con un código `E_*` en vez de arrastrar el tipo inválido hasta
+#    un error crudo de R.
 .dashboard_ctx <- function(s) {
   s["rp_inst"] <- list(s[["dashboard_rp_inst"]])
   s["rp_data"] <- list(s[["dashboard_rp_data"]])
+
+  data <- s[["rp_data"]]
+  if (!is.null(data) && !is.data.frame(data)) {
+    stop_api(
+      500, "E_DASHBOARD_FUENTE_INVALIDA",
+      "La fuente del Dashboard no es una base tabular. Vuelve a importarla desde el panel de Datos.",
+      details = list(clase = paste(class(data), collapse = "/"))
+    )
+  }
+  inst <- s[["rp_inst"]]
+  if (!is.null(inst) && !.pulso_valid_inst_cache(inst)) {
+    stop_api(
+      500, "E_DASHBOARD_FUENTE_INVALIDA",
+      "El instrumento del Dashboard no tiene la forma esperada. Vuelve a importarlo desde el panel de Datos.",
+      details = list(clase = paste(class(inst), collapse = "/"))
+    )
+  }
   s
 }
 
 .dashboard_has_source <- function(s) {
-  !is.null(s$dashboard_rp_inst) && !is.null(s$dashboard_rp_data)
+  !is.null(s[["dashboard_rp_inst"]]) && !is.null(s[["dashboard_rp_data"]])
 }
 
 .dashboard_source_meta <- function(s) {
