@@ -211,13 +211,19 @@ export const ModuleStatusCard = forwardRef<
               <span className="home-mc-tagline">{module.tagline}</span>
             </span>
           </span>
+          {/* Un solo aviso por tarjeta. Con los dos, "Requiere atención" y
+              "57 por revisar" decían lo mismo ocupando 167px, y el nombre del
+              módulo se comprimía a 52px: los avisos tapaban la identidad de la
+              tarjeta. Cuando hay alerta gana la alerta, que además dice cuánto;
+              el estado sigue leyéndose en el color del chip y del marco. */}
           <span className="home-mc-signals">
-            <span className={`home-mc-status is-${view.state}`}>{view.statusLabel}</span>
-            {view.alert && (
-              <span className="home-mc-alert" title={view.alert}>
+            {view.alert ? (
+              <span className="home-mc-alert" title={`${view.statusLabel}: ${view.alert}`}>
                 <TriangleAlert size={11} strokeWidth={2.6} aria-hidden="true" />
                 {view.alert}
               </span>
+            ) : (
+              <span className={`home-mc-status is-${view.state}`}>{view.statusLabel}</span>
             )}
           </span>
         </span>
