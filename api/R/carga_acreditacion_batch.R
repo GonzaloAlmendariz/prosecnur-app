@@ -36,6 +36,15 @@
   stop_api(status, code, message, details = details)
 }
 
+# El core de preparación es compartido por dos puentes distintos hacia una base
+# de acreditación: el batch desde Monitoreo ("BATCH") y la escotilla SAV manual
+# ("SAV"). Ambos recorren el MISMO pipeline de normalización, pero deben emitir
+# códigos `E_*` propios de su superficie. `.acb_code` construye el código con el
+# prefijo del llamador para no acoplar la taxonomía entre puentes.
+.acb_code <- function(prefix, suffix) {
+  sprintf("E_ACREDITACION_%s_%s", prefix, suffix)
+}
+
 .acb_empty_preview <- function() {
   list(
     ok = TRUE,
@@ -211,7 +220,7 @@
   list(intake = intake, entries = validation$entries[ord])
 }
 
-.acb_revision_choice_maps <- function(revision) {
+.acb_revision_choice_maps <- function(revision, error_prefix = "BATCH") {
   maps <- revision$choice_code_maps %||% list()
   if (!is.list(maps)) maps <- list()
   sealed_sha256 <- .acb_scalar(
@@ -222,7 +231,7 @@
   if (nzchar(sealed_sha256) && !identical(sealed_sha256, computed_sha256)) {
     .acb_error(
       422,
-      "E_ACREDITACION_BATCH_CHOICE_MAP_HASH",
+      .acb_code(error_prefix, "CHOICE_MAP_HASH"),
       "Los mapas de códigos de la revisión publicada no coinciden con su sello SHA-256."
     )
   }
@@ -232,7 +241,8 @@
   )
 }
 
-.acb_normalization_audit <- function(normalization, revision_maps, compatibility) {
+.acb_normalization_audit <- function(normalization, revision_maps, compatibility,
+                                     error_prefix = "BATCH") {
   applied_maps <- normalization$choice_code_maps %||% list()
   applied_named <- .dn_choice_code_maps_named(applied_maps)
   sealed_named <- .dn_choice_code_maps_named(revision_maps$maps)
@@ -240,7 +250,7 @@
   if (length(unsealed)) {
     .acb_error(
       422,
-      "E_ACREDITACION_BATCH_UNSEALED_CHOICE_MAP",
+      .acb_code(error_prefix, "UNSEALED_CHOICE_MAP"),
       "La data efectiva requiere mapas de códigos que no están sellados en la revisión publicada.",
       details = list(variables = as.list(sort(unsealed)))
     )
@@ -262,26 +272,35 @@
   )
 }
 
-.acb_prepare_entry <- function(s, context, selection, intake_entry) {
+# Core compartido: dada una `data_df` cruda (venga de Monitoreo o de un SAV) y la
+# entrada de intake que fija su instrumento publicado, recorre el pipeline de
+# normalización de acreditación y devuelve el item preparado (data normalizada +
+# auditorías). `error_prefix` decide la superficie de códigos `E_*` ("BATCH" vs
+# "SAV"). `monitoreo_sources` sólo aplica al mapeo SurveyMonkey por q-columnas;
+# el SAV manual pasa `list()` porque su data ya viene con nombres del instrumento.
+.acreditacion_prepare_from_data <- function(s, intake_entry, data_df,
+                                            monitoreo_sources = list(),
+                                            error_prefix = "BATCH") {
   actor_key <- .acb_scalar(intake_entry$actor_key)
-  actor_cases <- selection$selected[selection$selected$actor_key == actor_key, , drop = FALSE]
-  actor_rollup <- selection$rollup[selection$rollup$actor_key == actor_key, , drop = FALSE]
   health <- .processing_intake_revision_health(s, .acb_scalar(intake_entry$instrument_revision_id))
   if (!isTRUE(health$ok)) {
-    .acb_error(422, "E_ACREDITACION_BATCH_INSTRUMENT",
+    .acb_error(422, .acb_code(error_prefix, "INSTRUMENT"),
                sprintf("El instrumento aprobado para '%s' no está físicamente saludable.", actor_key))
   }
+  if (!is.data.frame(data_df)) {
+    .acb_error(422, .acb_code(error_prefix, "DATA"),
+               sprintf("La data de origen para '%s' no es tabular.", actor_key))
+  }
   rp_inst <- reporte_instrumento(path = health$file$path)
-  data_df <- context$data[actor_cases$response_row, , drop = FALSE]
   revision <- health$revision
   mapping <- .acreditacion_mapping_apply(
     data = data_df,
     instrumento = rp_inst,
     revision = revision,
-    monitoreo_sources = s$monitoreo_sources %||% list()
+    monitoreo_sources = monitoreo_sources
   )
   data_df <- mapping$data
-  revision_maps <- .acb_revision_choice_maps(revision)
+  revision_maps <- .acb_revision_choice_maps(revision, error_prefix = error_prefix)
   data_df <- normalize_data_for_xlsform(
     data_df, rp_inst, choice_code_maps = revision_maps$maps
   )
@@ -293,21 +312,18 @@
   normalization_audit <- .acb_normalization_audit(
     normalization,
     revision_maps,
-    compatibility
+    compatibility,
+    error_prefix = error_prefix
   )
   choice_domain_issues <- .sm_sav_choice_domain_issues(data_df, rp_inst)
   if (length(choice_domain_issues)) {
     .acb_error(
       422,
-      "E_ACREDITACION_BATCH_UNKNOWN_CHOICE_CODES",
+      .acb_code(error_prefix, "UNKNOWN_CHOICE_CODES"),
       "La data efectiva contiene códigos que no pertenecen al catálogo de la revisión publicada.",
       details = list(variables = choice_domain_issues)
     )
   }
-  trace_checksum <- .acb_hash(actor_cases[order(actor_cases$response_row), c(
-    "actor_key", "response_id", "response_row", "case_key"
-  ), drop = FALSE])
-  data_checksum <- .acb_hash(list(names = names(data_df), data = data_df))
   list(
     intake = intake_entry,
     revision = revision,
@@ -317,9 +333,7 @@
     data = data_df,
     n_filas = as.integer(nrow(data_df)),
     n_columnas = as.integer(ncol(data_df)),
-    n_excluded = as.integer(sum(!actor_rollup$selected)),
-    trace_checksum = trace_checksum,
-    data_checksum = data_checksum,
+    data_checksum = .acb_hash(list(names = names(data_df), data = data_df)),
     source_mapping_audit = mapping$audit,
     source_mapping_fingerprint = mapping$fingerprint,
     extras = extras,
@@ -328,6 +342,25 @@
     normalization_fingerprint = .acb_hash(normalization_audit),
     compatibility = compatibility
   )
+}
+
+.acb_prepare_entry <- function(s, context, selection, intake_entry) {
+  actor_key <- .acb_scalar(intake_entry$actor_key)
+  actor_cases <- selection$selected[selection$selected$actor_key == actor_key, , drop = FALSE]
+  actor_rollup <- selection$rollup[selection$rollup$actor_key == actor_key, , drop = FALSE]
+  data_df <- context$data[actor_cases$response_row, , drop = FALSE]
+  prepared <- .acreditacion_prepare_from_data(
+    s, intake_entry, data_df,
+    monitoreo_sources = s$monitoreo_sources %||% list(),
+    error_prefix = "BATCH"
+  )
+  trace_checksum <- .acb_hash(actor_cases[order(actor_cases$response_row), c(
+    "actor_key", "response_id", "response_row", "case_key"
+  ), drop = FALSE])
+  c(prepared, list(
+    n_excluded = as.integer(sum(!actor_rollup$selected)),
+    trace_checksum = trace_checksum
+  ))
 }
 
 .acb_prepare_state <- function(s) {
