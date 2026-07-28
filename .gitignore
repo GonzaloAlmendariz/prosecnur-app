@@ -42,6 +42,10 @@ api/inst/standalone/
 # Local Claude/Codex worktrees
 .claude/worktrees/
 
+# Bóveda Obsidian de referencia local. Se consulta desde este workspace,
+# pero su contenido y estado de editor no se publican con la aplicación.
+/Obsidian_Prosecnur/
+
 # Tests
 /tests/e2e/results/
 /tests/e2e/playwright-report/
