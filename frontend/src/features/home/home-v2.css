@@ -1346,6 +1346,10 @@
   min-width: 0;
 }
 
+/* Orden de prioridad en la cabecera: el chip conserva su tamaño natural (es
+   corto y truncarlo lo vuelve inútil: "Por inic…"), el nombre del módulo no se
+   toca porque es lo que hace reconocible la tarjeta, y quien cede es la
+   descripción, que ya nace con ellipsis. */
 .home-mc-head-id {
   display: flex;
   align-items: center;
@@ -1403,8 +1407,10 @@
   justify-content: flex-end;
   flex-wrap: nowrap;
   gap: 5px;
+  /* Tamaño natural: el chip no se encoge. `max-width` es solo la red de
+     seguridad para un texto de estado anormalmente largo. */
   flex: 0 0 auto;
-  max-width: 62%;
+  max-width: 55%;
 }
 
 .home-mc-kebab {
