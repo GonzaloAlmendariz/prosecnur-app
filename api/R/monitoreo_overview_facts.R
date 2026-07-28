@@ -1,23 +1,40 @@
 # =============================================================================
-# Coherencia home de proyecto <-> vista viva de "Avance territorial"
+# Coherencia home de proyecto <-> vista viva de cada familia de Monitoreo
 # =============================================================================
 #
-# El home arma la tarjeta de Monitoreo (familia territorial) desde
-# `snapshot$dashboard$territorial_reports$kpis` (ver .overview_monitoreo_facts
-# en project_overview.R). Ese tablero SOLO se reescribe cuando se reconstruye
-# con report_scope = "full" (ver .monitoreo_state_payload). La pagina "Avance
-# territorial" recomputa en vivo con report_scope = "advance_summary" y
-# deliberadamente NO reescribe `snapshot$dashboard` para no romper el contrato
-# de `dashboard_cache_token` / `dashboard_cache_key`, que estan atados al scope
-# "full". Resultado del bug: el home quedaba con los KPIs del ultimo tablero
-# completo (p.ej. 85.7% / 1028 de 1351) mientras la vista viva ya mostraba el
-# avance fresco (p.ej. 107% / 1283 de 1200).
+# El home arma la tarjeta de Monitoreo desde el snapshot (ver
+# .overview_monitoreo_facts en project_overview.R). Leer ahi el tablero guardado
+# fallaba de tres formas distintas, una por familia:
 #
-# Solucion: un campo liviano y dedicado en el snapshot,
-# `territorial_overview_facts`, que espeja los KPIs territoriales que la vista
-# viva acaba de servir. El home lo prefiere sobre el tablero congelado. No se
-# toca el token ni el scope del tablero "full", asi que el resto de lectores de
-# `snapshot$dashboard` sigue viendo un tablero coherente.
+#   territorial  `snapshot$dashboard$territorial_reports$kpis` SOLO se reescribe
+#                con report_scope = "full". La pagina "Avance territorial"
+#                recomputa con "advance_summary" y deliberadamente NO reescribe
+#                `snapshot$dashboard` para no romper `dashboard_cache_token` /
+#                `dashboard_cache_key`, atados al scope "full". El home quedaba
+#                con el ultimo tablero completo (85.7% / 1028 de 1351) mientras
+#                la vista viva ya mostraba el avance fresco.
+#   telefonico   el snapshot no guarda `dashboard` en absoluto, asi que el home
+#                leia ceros: "0 recolectados" sobre 2.726 filas sincronizadas y
+#                423 efectivas ya calculadas por el warm start.
+#   acreditacion `dashboard$kpis` mezclaba el numerador del bloque generico
+#                (filas crudas de todas las fuentes) con la meta: daba 444.9%.
+#                El denominador (287) SI era la meta legitima; lo que fallaba
+#                era contar filas en vez de entrevistas efectivas.
+#
+# Eje de la tarjeta: el avance se mide contra la META (cuanto falta por
+# levantar). Cuanto se ha recorrido de la base es un dato importante, pero
+# secundario, y baja a fact.
+#
+# Solucion: campos livianos y dedicados en el snapshot que espejan los KPIs que
+# la vista viva de cada familia acaba de servir. El home los prefiere sobre el
+# tablero guardado. No se toca el token ni el scope del tablero "full", asi que
+# el resto de lectores de `snapshot$dashboard` sigue viendo un tablero coherente.
+#
+# Para acreditacion/telefonico el espejo NO sale del bloque `kpis` generico sino
+# de `client_report$actors`, que es la tabla estructurada por actor con Universo
+# / Efectivas / Parciales / Sin respuesta / Meta — la misma fuente del "Reporte
+# de avance para cliente" que ve el usuario. Agregarla da exactamente el par
+# (efectivas, universo) que el modulo publica.
 
 # KPIs minimos que consume la tarjeta de Monitoreo territorial del home. Deben
 # coincidir con las llaves que lee .overview_monitoreo_facts (project_overview.R).
@@ -39,17 +56,152 @@ monitoreo_territorial_overview_facts <- function(dashboard) {
   facts
 }
 
-# Refresca `snapshot$territorial_overview_facts` con los KPIs que la vista viva
-# acaba de servir. Devuelve list(snapshot = , changed = ) para que el caller
-# persista SOLO cuando de verdad cambio (evita churn innecesario de session_set
-# en cada carga del payload).
-monitoreo_snapshot_refresh_territorial_facts <- function(snapshot, dashboard) {
+# Llaves del espejo de efectividad (acreditacion y telefonico).
+#
+# El avance del operativo se mide contra la META: cuanto falta por levantar.
+# `universo` es cuanto se ha recorrido de la base — dato importante, pero
+# secundario frente al avance. Se espejan los dos porcentajes porque no todos
+# los estudios declaran meta: `avance_pct` (sobre meta) es el principal y
+# `avance_universo_pct` es el respaldo cuando no hay meta que perseguir.
+.MONITOREO_OVERVIEW_EFECTIVIDAD_KEYS <- c(
+  "efectivas", "universo", "parciales", "sin_respuesta", "meta",
+  "avance_pct", "avance_universo_pct", "actores", "inconsistencias"
+)
+
+# Suma una columna de un tabular que puede venir orientado por columna
+# (data.frame) o por fila (lista de registros, que es como viaja tras el
+# round-trip JSON/RDS del .pulso). Ignora los NA: `Meta` es NA cuando el actor
+# no declara minimo.
+.monitoreo_overview_sum_col <- function(tabular, colname) {
+  if (is.null(tabular)) return(0)
+  values <- if (is.data.frame(tabular)) {
+    tabular[[colname]]
+  } else if (is.list(tabular)) {
+    lapply(tabular, function(row) if (is.list(row)) row[[colname]] else NULL)
+  } else {
+    NULL
+  }
+  nums <- suppressWarnings(as.numeric(unlist(values, use.names = FALSE)))
+  if (!length(nums)) return(0)
+  sum(nums[is.finite(nums)])
+}
+
+.monitoreo_overview_rows_count <- function(tabular) {
+  if (is.null(tabular)) return(0L)
+  if (is.data.frame(tabular)) return(nrow(tabular))
+  if (is.list(tabular)) return(length(tabular))
+  0L
+}
+
+# Espejo de efectividad para acreditacion/telefonico, agregado desde
+# `client_report$actors`. Devuelve NULL cuando el tablero no trae ese reporte
+# (el caller no espeja ruido y el home cae al fallback).
+monitoreo_efectividad_overview_facts <- function(dashboard) {
+  if (!is.list(dashboard)) return(NULL)
+  report <- (dashboard$acreditacion_reports %||% list())$client_report %||% NULL
+  actors <- (report %||% list())$actors %||% NULL
+  if (.monitoreo_overview_rows_count(actors) == 0L) return(NULL)
+  efectivas <- .monitoreo_overview_sum_col(actors, "Efectivas")
+  universo <- .monitoreo_overview_sum_col(actors, "Universo")
+  # La meta puede venir declarada por actor (columna `Meta`) o, mas comun en los
+  # estudios reales, solo en la config: `objetivo_total` o la suma de `goals`.
+  # El engine ya resolvio esa cascada al construir `kpis$target`, asi que ese es
+  # el respaldo correcto en vez de reimplementarla aqui.
+  meta <- .monitoreo_overview_sum_col(actors, "Meta")
+  if (!(meta > 0)) meta <- .monitoreo_num((dashboard$kpis %||% list())$target, 0)
+  if (!is.finite(meta) || meta < 0) meta <- 0
+  # Mismos cocientes que publica el modulo (.monitoreo_client_report_pct
+  # devuelve proporcion 0-1; la tarjeta muestra porcentaje).
+  pct_meta <- .monitoreo_client_report_pct(efectivas, meta)
+  pct_universo <- .monitoreo_client_report_pct(efectivas, universo)
+  as_pct <- function(p) if (is.finite(p)) round(100 * p, 1) else -1
+  list(
+    efectivas = as.integer(efectivas),
+    universo = as.integer(universo),
+    parciales = as.integer(.monitoreo_overview_sum_col(actors, "Parciales")),
+    sin_respuesta = as.integer(.monitoreo_overview_sum_col(actors, "Sin respuesta")),
+    meta = as.integer(meta),
+    avance_pct = as_pct(pct_meta),
+    avance_universo_pct = as_pct(pct_universo),
+    actores = as.integer(.monitoreo_overview_rows_count(actors)),
+    inconsistencias = as.integer(.monitoreo_num((dashboard$kpis %||% list())$inconsistencies, 0))
+  )
+}
+
+# Espejo de aulas universitarias. Aqui el tablero de la familia ya vive bajo
+# `aulas_universitarias_reports`; el espejo solo garantiza frescura (mismas
+# llaves que ya consumia el home, sin cambiar su semantica).
+.MONITOREO_OVERVIEW_AULAS_KEYS <- c(
+  "respuestas_total", "respuestas_validas", "avance_pct", "quota_cells_pending", "brechas"
+)
+
+monitoreo_aulas_overview_facts <- function(dashboard) {
+  if (!is.list(dashboard)) return(NULL)
+  kpis <- (dashboard$aulas_universitarias_reports %||% list())$kpis %||% NULL
+  if (!is.list(kpis) || !length(kpis)) return(NULL)
+  facts <- kpis[.MONITOREO_OVERVIEW_AULAS_KEYS]
+  names(facts) <- .MONITOREO_OVERVIEW_AULAS_KEYS
+  if (all(vapply(facts, is.null, logical(1)))) return(NULL)
+  facts
+}
+
+# Campo del snapshot donde vive el espejo de cada familia. Un campo por familia
+# (en vez de uno solo compartido) porque `territorial_overview_facts` ya tiene
+# lectores fuera del home — el handoff de carga cuenta el universo desde ahi.
+.monitoreo_overview_facts_field <- function(family) {
+  switch(
+    .monitoreo_scalar(family, ""),
+    territorial = "territorial_overview_facts",
+    acreditacion = "efectividad_overview_facts",
+    telefonico = "efectividad_overview_facts",
+    aulas_universitarias = "aulas_overview_facts",
+    NULL
+  )
+}
+
+.monitoreo_overview_facts_for_family <- function(dashboard, family) {
+  switch(
+    .monitoreo_scalar(family, ""),
+    territorial = monitoreo_territorial_overview_facts(dashboard),
+    acreditacion = monitoreo_efectividad_overview_facts(dashboard),
+    telefonico = monitoreo_efectividad_overview_facts(dashboard),
+    aulas_universitarias = monitoreo_aulas_overview_facts(dashboard),
+    NULL
+  )
+}
+
+# Refresca el espejo de la familia con los KPIs que la vista viva acaba de
+# servir. Devuelve list(snapshot = , changed = ) para que el caller persista
+# SOLO cuando de verdad cambio (evita churn innecesario de session_set en cada
+# carga del payload).
+monitoreo_snapshot_refresh_overview_facts <- function(snapshot, dashboard, family) {
   if (!is.list(snapshot)) return(list(snapshot = snapshot, changed = FALSE))
-  facts <- monitoreo_territorial_overview_facts(dashboard)
+  field <- .monitoreo_overview_facts_field(family)
+  if (is.null(field)) return(list(snapshot = snapshot, changed = FALSE))
+  facts <- .monitoreo_overview_facts_for_family(dashboard, family)
   if (is.null(facts)) return(list(snapshot = snapshot, changed = FALSE))
-  if (identical(snapshot$territorial_overview_facts %||% NULL, facts)) {
+  if (identical(snapshot[[field]] %||% NULL, facts)) {
     return(list(snapshot = snapshot, changed = FALSE))
   }
-  snapshot$territorial_overview_facts <- facts
+  snapshot[[field]] <- facts
   list(snapshot = snapshot, changed = TRUE)
+}
+
+# Compat: el refresco territorial nombrado, que ya tenia llamadores y tests.
+monitoreo_snapshot_refresh_territorial_facts <- function(snapshot, dashboard) {
+  monitoreo_snapshot_refresh_overview_facts(snapshot, dashboard, "territorial")
+}
+
+# Persiste el espejo en sesion y devuelve el snapshot vigente. Preserva el flag
+# `project_dirty`: el espejo es cache derivado del tablero que se acaba de
+# servir, no una edicion del usuario, asi que abrir un proyecto y mirarlo no
+# puede dejarlo marcado como "sin guardar". Si el proyecto ya estaba sucio se
+# respeta ese estado.
+monitoreo_snapshot_store_overview_facts <- function(sid, snapshot, dashboard, family) {
+  out <- monitoreo_snapshot_refresh_overview_facts(snapshot, dashboard, family)
+  if (!isTRUE(out$changed)) return(snapshot)
+  was_dirty <- isTRUE(session_get(sid, required = FALSE)$project_dirty)
+  session_set(sid, "monitoreo_snapshot", out$snapshot)
+  if (!isTRUE(was_dirty)) session_set(sid, "project_dirty", FALSE)
+  out$snapshot
 }

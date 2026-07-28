@@ -874,13 +874,15 @@ monitoreo_sync_apply_deferred <- function(sid, result, sync_mode = "full", repor
     config = result$config,
     errors = result$errors
   ), artifacts)
-  # El fact territorial del home se conserva del corte previo (stale pero
-  # informativo) hasta que el primer GET territorial lo re-espeje con el
-  # tablero fresco (ver monitoreo_overview_facts.R). Antes se recalculaba
-  # aquí desde el dashboard recién construido; sin build no hay fuente nueva.
-  if (identical(family, "territorial") && is.list(prev_snapshot) &&
-      !is.null(prev_snapshot$territorial_overview_facts)) {
-    snapshot$territorial_overview_facts <- prev_snapshot$territorial_overview_facts
+  # Los facts del home se conservan del corte previo (stale pero informativo)
+  # hasta que el primer GET de la familia los re-espeje con el tablero fresco
+  # (ver monitoreo_overview_facts.R). Antes se recalculaban aquí desde el
+  # dashboard recién construido; sin build no hay fuente nueva.
+  if (is.list(prev_snapshot)) {
+    for (field in c("territorial_overview_facts", "efectividad_overview_facts",
+                    "aulas_overview_facts")) {
+      if (!is.null(prev_snapshot[[field]])) snapshot[[field]] <- prev_snapshot[[field]]
+    }
   }
   # Sin dashboard ni dashboard_cache_token: .monitoreo_snapshot_dashboard_valid
   # devuelve FALSE de entrada (snapshot$dashboard no es lista), así que el
