@@ -13,6 +13,17 @@
 .ACREDITACION_SAV_SOURCE_KIND <- "sav_manual_acreditacion"
 .ACREDITACION_SAV_BASE_SOURCE <- "sav_manual"
 
+# Superficie de códigos que este puente le presta al core compartido (el juego
+# gemelo del batch vive en carga_acreditacion_batch.R). Literales a propósito:
+# ver la nota junto a `.ACB_CODES_BATCH` sobre el censo de errors_registry.R.
+.ACB_CODES_SAV <- list(
+  instrument           = "E_ACREDITACION_SAV_INSTRUMENT",
+  data                 = "E_ACREDITACION_SAV_DATA",
+  choice_map_hash      = "E_ACREDITACION_SAV_CHOICE_MAP_HASH",
+  unsealed_choice_map  = "E_ACREDITACION_SAV_UNSEALED_CHOICE_MAP",
+  unknown_choice_codes = "E_ACREDITACION_SAV_UNKNOWN_CHOICE_CODES"
+)
+
 .acsav_error <- function(status, code, message, details = NULL) {
   stop_api(status, code, message, details = details)
 }
@@ -138,7 +149,7 @@
     prepared <- .acreditacion_prepare_from_data(
       s, r$entry, data_df,
       monitoreo_sources = list(),
-      error_prefix = "SAV"
+      codes = .ACB_CODES_SAV
     )
     c(prepared, list(
       sav_file_id = r$file_id,
