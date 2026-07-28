@@ -259,3 +259,48 @@ test_that(".dashboard_categorias_var lee labels de choices", {
   v1 <- Filter(function(v) v$value == "1", vals)[[1]]
   expect_identical(v1$label, "Opción 1")
 })
+
+# Regresión: cuando el Dashboard no tiene fuente propia, `.dashboard_ctx` debe
+# dejar `rp_data`/`rp_inst` en NULL. El bug: `s$rp_data <- NULL` borraba el
+# nombre de la lista de sesión y el `$` posterior caía por partial matching en
+# `rp_data_sources` (las tablas por fuente de Procesamiento, una lista de
+# data.frames en estudios con grupos repeat). Los guards `is.null()` de los
+# engines devolvían FALSE y `/api/dashboard/resumen/kpis` reventaba con
+# "invalid argument type" (HTTP 500 no controlado en /tablero).
+test_that(".dashboard_ctx no cae por partial matching en rp_data_sources", {
+  s <- list(
+    rp_data = .fx_data(),
+    rp_inst = .fx_inst(),
+    rp_data_sources = list(principal = .fx_data(), rep_hijo = .fx_data()),
+    rp_inst_sources = list(principal = .fx_inst(), rep_hijo = .fx_inst())
+  )
+  ctx <- prosecnurapp:::.dashboard_ctx(s)
+  expect_null(ctx$rp_data)
+  expect_null(ctx$rp_inst)
+  expect_true("rp_data" %in% names(ctx))
+  expect_true("rp_inst" %in% names(ctx))
+})
+
+test_that(".dashboard_resumen_kpis devuelve vacío sin fuente aunque haya rp_data_sources", {
+  s <- list(
+    rp_data = .fx_data(),
+    rp_inst = .fx_inst(),
+    rp_data_sources = list(principal = .fx_data(), rep_hijo = .fx_data()),
+    rp_inst_sources = list(principal = .fx_inst(), rep_hijo = .fx_inst())
+  )
+  expect_identical(prosecnurapp:::.dashboard_resumen_kpis(s, list()), list())
+  expect_identical(prosecnurapp:::.dashboard_resumen_payload(s, "Sección A", list())$rows, list())
+  expect_identical(prosecnurapp:::.dashboard_secciones_payload(s)$secciones, list())
+})
+
+test_that(".dashboard_resumen_kpis sigue calculando con fuente propia del Dashboard", {
+  s <- list(
+    dashboard_rp_data = .fx_data(),
+    dashboard_rp_inst = .fx_inst(),
+    rp_data_sources = list(principal = .fx_data(), rep_hijo = .fx_data())
+  )
+  out <- prosecnurapp:::.dashboard_resumen_kpis(s, list())
+  expect_equal(out$n_total, 5L)
+  vars <- vapply(out$kpis, function(k) k$var, character(1))
+  expect_true("q1" %in% vars)
+})
