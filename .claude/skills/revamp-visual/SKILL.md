@@ -22,7 +22,7 @@ Lanza `frontend-react` con la dirección congelada. Si `autor-regresiones` parti
 - El rail superior del módulo YA es el recorrido: no agregues segundas barras de pasos ni navegación duplicada; el pulido didáctico va dentro de cada pestaña.
 - Componentes nuevos en archivo propio; los page-files >1000 líneas no crecen.
 - Respeta la matriz de viewports (1710x1107 → 1024x600) y la regla "No Scroll Jail".
-- Aplica `docs/ui-layout-grammar.md#contrato-de-geometría-y-capacidad`: el marco exterior de pares o variantes repetidas no crece con `items.length`; la capacidad no usada permanece dentro de la superficie visible; las secciones independientes conservan altura intrínseca; y el exceso se resuelve dentro de un dueño de scroll, paginación, virtualización o detalle declarado.
+- Aplica el **Contrato de Superficie** (skill `/contrato-superficie`, norma en `docs/ui-layout-grammar.md#contrato-de-superficie`). Congelar dirección exige **C1 declarada**: cada grupo par o variante repetida nombra su `data-qa-geometry-group` y su contrato `equal`/`intrinsic` ANTES de asignar archivos — C1 es precondición, no resultado del QA. **C2**: el marco no crece con `items.length` y los hermanos comparten alto y ancho. **C3**: la capacidad no usada permanece dentro de la superficie visible y las secciones independientes conservan altura intrínseca. **C4**: el exceso pertenece a un dueño de scroll, paginación, virtualización o detalle alcanzable.
 - No borres páginas o componentes "porque el rediseño los reemplaza" sin confirmarlo explícitamente (gate 3 de CLAUDE.md).
 
 ## Fase 3 — QA visual con evidencia
