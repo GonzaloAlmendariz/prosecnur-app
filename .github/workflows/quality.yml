@@ -44,6 +44,12 @@ jobs:
       - name: Check generated adapters
         run: node agentic/sync-agentic-os.mjs --check --platform=none
 
+      # --check valida estructura; --audit valida verdad: archivos congelados
+      # que crecieron, monolitos nuevos sin gobierno, skills/agentes huérfanos
+      # y rutas o make targets citados que ya no existen.
+      - name: Audit governance truth
+        run: node agentic/sync-agentic-os.mjs --audit --platform=none
+
   # Frontend y backend corren en paralelo: el typecheck roto avisa en ~3-4 min
   # en vez de esperar los ~15 min del suite R (historial: dos releases muertos
   # por TS2307 que recién se supo a los 20 min).

@@ -55,7 +55,7 @@ Regla transversal: **toda rama que toque código termina en el agente `verificad
 ## Reglas de código — backend R
 
 - Errores que llegan al cliente siempre con `stop_api(status, code, ...)` y código `E_*` (`api/R/errors.R`). No `stop()` crudo en rutas alcanzables por la API; no `try()` silencioso sin comentario del porqué.
-- **Archivos congelados a crecimiento**: `monitoreo_engine.R`, `router_monitoreo.R`, `reporte_plan_ppt.R`, `MonitoreoPage.tsx`. Funcionalidad nueva va en archivo nuevo (`<modulo>_<tema>.R` / componente propio) que el archivo grande llama.
+- **Archivos congelados a crecimiento**: la lista viva y sus líneas base están en `agentic/manifest.json` (`policy.frozen_growth_files`); consúltala con `node agentic/sync-agentic-os.mjs --audit`, que falla si uno crece o si aparece un monolito nuevo sobre el umbral. **No dupliques la lista aquí**: la copia en prosa fue exactamente lo que derivó — `MonitoreoPage.tsx` siguió congelado tras borrarse mientras dos monolitos de perfil de ~20.000 líneas crecían sin gobierno. Funcionalidad nueva va en archivo nuevo (`<modulo>_<tema>.R` / componente o hoja propia) que el archivo grande llama; crecer un congelado exige subir su línea base de forma deliberada.
 - Micro-helpers (`%||%`, `*_scalar`, `*_slug`, `*_chr`…): usar los compartidos existentes (`helpers_calc_comunes.R`, `reporte_helpers_*.R`); no redefinir por módulo.
 - Engine nuevo = test nuevo (testthat). Lógica calculable siempre con test; render (PDF/PPT/XLSX) al menos con contrato de artefactos (`expect_report_artifacts_registered`) o golden.
 - Routers delgados: validación de input + llamada a engine + serialización. La lógica de dominio nueva va al engine, no al `mount_*`.

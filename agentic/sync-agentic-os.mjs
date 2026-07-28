@@ -38,11 +38,12 @@ const manifestPath = path.join(scriptDir, 'manifest.json')
 
 const rawArgs = process.argv.slice(2)
 const writeMode = rawArgs.includes('--write')
+const auditMode = rawArgs.includes('--audit')
 const strictExternal = rawArgs.includes('--strict-external')
 const platformArg = rawArgs.find((arg) => arg.startsWith('--platform='))
 const platform = platformArg?.slice('--platform='.length) ?? 'all'
 const unknownArgs = rawArgs.filter((arg) =>
-  !['--check', '--write', '--strict-external'].includes(arg) &&
+  !['--check', '--write', '--audit', '--strict-external'].includes(arg) &&
   !arg.startsWith('--platform='))
 
 if (unknownArgs.length || !VALID_PLATFORMS.has(platform)) {
@@ -53,6 +54,7 @@ if (unknownArgs.length || !VALID_PLATFORMS.has(platform)) {
 
 const errors = []
 const warnings = []
+let auditSummary = null
 const expectedFiles = new Map()
 let manifest
 
@@ -534,6 +536,17 @@ if (manifest) {
     validateExternalSkills()
   }
   if (structureValid && !errors.length) validateCollisionsAndDrift()
+  // La auditoría sustantiva corre sobre un manifest ya estructuralmente válido:
+  // `--check` comprueba forma, `--audit` comprueba verdad.
+  // Import perezoso: `--check` y `--write` no dependen del módulo de auditoría,
+  // de modo que el sincronizador sigue siendo ejecutable de forma aislada.
+  if (auditMode && structureValid && !errors.length) {
+    const { runGovernanceAudit, formatAuditReport } = await import('./governance-audit.mjs')
+    const audit = runGovernanceAudit(manifest, repoRoot)
+    for (const warning of audit.warnings) warnings.push(warning)
+    for (const error of audit.errors) fail(error)
+    auditSummary = formatAuditReport(audit.report)
+  }
 }
 
 if (warnings.length) for (const warning of warnings) console.warn(`WARN: ${warning}`)
@@ -543,6 +556,11 @@ if (errors.length) {
 }
 
 if (writeMode) writeAdapters()
+
+if (auditSummary) {
+  console.log(auditSummary)
+  console.log('OK: auditoría de gobierno sin hallazgos bloqueantes.')
+}
 
 const action = writeMode ? 'generados atómicamente y verificados' : 'verificados'
 console.log(`OK: schema v2; ${manifest.skills.length} skills, ${manifest.agents.length} agentes y ${Object.keys(manifest.routes).length} rutas ${action}.`)

@@ -360,10 +360,36 @@
       "api/R/monitoreo_engine.R",
       "api/R/router_monitoreo.R",
       "api/R/reporte_plan_ppt.R",
-      "frontend/src/features/monitoreo/MonitoreoPage.tsx"
+      "frontend/src/features/monitoreo/profiles/telefonico/TelefonicoMonitoreoPage.tsx",
+      "frontend/src/features/monitoreo/profiles/acreditacion/AcreditacionMonitoreoPage.tsx",
+      "frontend/src/features/monitoreo/monitoreo.css",
+      "frontend/src/features/monitoreo/profiles/profilePage.css",
+      "frontend/src/features/monitoreo/profiles/territorial/territorialProfile.css",
+      "frontend/src/features/graficos/v2/styles/editor-v2.css",
+      "frontend/src/app/theme.css",
+      "api/R/hojas_ruta_engine.R",
+      "frontend/src/features/carga/carga-v2.css",
+      "frontend/src/features/hojasRuta/HojasRutaPage.tsx"
     ],
     "code_change_final_gate": "verificador",
     "repair_protocol": "docs/loops-reparacion.md",
-    "generated_adapters_are_editable": false
+    "generated_adapters_are_editable": false,
+    "frozen_growth_threshold": 8000,
+    "frozen_growth_baseline": {
+      "api/R/monitoreo_engine.R": 39953,
+      "api/R/router_monitoreo.R": 8016,
+      "api/R/reporte_plan_ppt.R": 9410,
+      "frontend/src/features/monitoreo/profiles/telefonico/TelefonicoMonitoreoPage.tsx": 21576,
+      "frontend/src/features/monitoreo/profiles/acreditacion/AcreditacionMonitoreoPage.tsx": 19691,
+      "frontend/src/features/monitoreo/monitoreo.css": 38160,
+      "frontend/src/features/monitoreo/profiles/profilePage.css": 20167,
+      "frontend/src/features/monitoreo/profiles/territorial/territorialProfile.css": 17106,
+      "frontend/src/features/graficos/v2/styles/editor-v2.css": 33023,
+      "frontend/src/app/theme.css": 30756,
+      "api/R/hojas_ruta_engine.R": 10305,
+      "frontend/src/features/carga/carga-v2.css": 9501,
+      "frontend/src/features/hojasRuta/HojasRutaPage.tsx": 8991
+    },
+    "frozen_growth_exempt": []
   }
 }
