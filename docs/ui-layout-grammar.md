@@ -120,7 +120,47 @@ Reglas:
 - `<=900px` o `<=700px` de alto: layout apilado; el rail queda arriba con altura máxima y el main conserva el resto.
 - `scrollOwner="panels"`: el contenedor no scrollea globalmente; rail y main son superficies scrollables.
 
-### Contrato de geometría y capacidad
+### Contrato de Superficie
+
+> Toda superficie **declara** qué es, **mantiene** su marco pase lo que pase con
+> sus datos, **contiene** su propio vacío, deja todo su contenido **alcanzable**
+> y **entrega** la información que su función promete.
+
+Cinco cláusulas. Se citan por código (`C1`…`C5`) en direcciones, revisiones y
+veredictos: `C2 en Modelo > Cuotas` es accionable; "las tarjetas están
+desparejas" no lo es.
+
+| | Cláusula | Cómo falla |
+|---|---|---|
+| **C1** | Declaración | `geometry-undeclared` |
+| **C2** | Estabilidad | `equal-frame-drift` (alto y ancho) |
+| **C3** | Pertenencia | `capacity-drift` |
+| **C4** | Alcance | `scroll-jail`, `scroll-unreachable`, `placeholder-clipped` |
+| **C5** | Suficiencia | *no automatizable — exige juicio de dominio* |
+
+**C1–C4 las verifica `scripts/ui-quick-check.mjs`. C5 no.** Esa frontera es la
+razón de que un revamp tenga dos gates: el visual cierra C1–C4; C5 pasa por
+`dominio-prosecnur` y `revisor-metodologico`.
+
+#### C1 — Declaración
+
+Una superficie declara en markup qué es. Lo no declarado no existe para el gate,
+y un gate solo puede aprobar lo que comprobó: **verde por conformidad, nunca por
+ausencia**.
+
+- `data-qa-geometry-group` nombra el grupo; `data-qa-geometry-contract` vale
+  `equal` (pares y variantes repetidas) o `intrinsic` (secciones
+  independientes). El runner **no** adivina cuál corresponde.
+- `data-qa-geometry-member` marca los miembros cuando el hijo directo no lo es;
+  `data-qa-geometry-capacity="owned"` marca quién posee el vacío interior, y se
+  limita al contenedor visible de datos — nunca al panel ni al workbench.
+- Cuando la corrida exige geometría, el runner infiere colecciones candidatas de
+  hermanos visibles equivalentes y emite `geometry-undeclared`. Navegación,
+  tablas, tabs, toolbars, menús y controles quedan excluidos.
+- Una superficie nueva no está terminada sin C1, igual que no lo está sin ser
+  enlazable.
+
+#### C2 y C3 — Estabilidad y pertenencia
 
 La geometría exterior de una superficie expresa su rol; no la cantidad casual
 de datos que contiene. Dos tarjetas pares, dos columnas comparables o una serie
@@ -168,15 +208,49 @@ Ejemplos:
 | Tabla y filtros dentro de una DataSurface | Superficie estable; la tabla absorbe la capacidad y hace scroll. |
 | Dos secciones distintas apiladas | Altura intrínseca; no se crea un hueco para igualarlas con una tercera columna. |
 
-QA geométrico, por viewport:
+#### C4 — Alcance
 
-- declarar qué nodos forman cada grupo par o variante repetida;
-- medir `max(height) - min(height)`; tolerancia recomendada: 2 px;
-- repetir la medición en vacío, baja y alta cardinalidad;
-- medir por separado marco y contenido para distinguir capacidad interior de
-  hueco exterior;
-- confirmar que el exceso tiene dueño de scroll y que el contenido completo
-  sigue siendo alcanzable.
+Todo el contenido es alcanzable. Es la "Regla No Scroll Jail" de más arriba,
+elevada a cláusula del contrato:
+
+- un solo dueño de scroll por pantalla; sin cadenas anidadas que obliguen a
+  agotar dos superficies;
+- el dueño recorre `0 / maxScroll÷2 / maxScroll`, alcanza `atEnd` y deja visible
+  el último contenido realmente pintado;
+- cero recorte de texto operativo: nombre de fuente, rango, identificador o
+  placeholder. Una elipsis deliberada en una etiqueta larga es aceptable; en un
+  dato operativo, no.
+- los descendientes de `details:not([open])` no cuentan hasta abrirlo: en estado
+  cerrado solo el `summary` participa de la geometría visible.
+
+#### C5 — Suficiencia
+
+La superficie entrega la información que su función declarada —su `label` y su
+`detail`— promete. El vacío es un **estado honesto**, no una ausencia sin
+explicar. Ante una superficie vacía, el triaje decide y **solo una categoría
+autoriza añadir contenido**:
+
+| Categoría | Qué significa | Qué se hace |
+|---|---|---|
+| **1. Vacío legítimo** | El proyecto no tiene esos datos | Estado vacío dentro de la caja de su variante, que diga qué falta y cómo se llena |
+| **2. Vacío por fixture** | El dato existe pero no en el proyecto de referencia | Deuda de evidencia declarada. No se repara. **No se fabrican datos** |
+| **3. Vacío por desconexión** | El backend ya lo calcula y el frontend no lo consume | Defecto real de producto. Aquí sí se añade la información |
+
+Rellenar espacio con copy ornamental sigue prohibido; la categoría 3 no es
+relleno, es una promesa incumplida.
+
+QA por cláusula, por viewport:
+
+- **C1**: declarar qué nodos forman cada grupo par o variante repetida; cero
+  `geometry-undeclared` en el alcance auditado;
+- **C2**: medir `max - min` de alto **y de ancho**; tolerancia 2 px; repetir en
+  vacío, baja y alta cardinalidad;
+- **C3**: medir por separado marco y contenido para distinguir capacidad
+  interior de hueco exterior;
+- **C4**: confirmar que el exceso tiene dueño de scroll, que el recorrido llega
+  a `maxScroll` y que el contenido completo sigue siendo alcanzable;
+- **C5**: clasificar cada superficie vacía en 1 / 2 / 3 con evidencia; una celda
+  sin clasificar no es un pase.
 
 ### Canvas
 
