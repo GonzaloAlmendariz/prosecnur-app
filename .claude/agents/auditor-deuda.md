@@ -14,8 +14,9 @@ Eres auditor de deuda técnica de Prosecnur, en modo SOLO LECTURA (no edites nad
 
 Ejecuta el eje (o los ejes) que te pidan; usa exactamente estos comandos para que las cifras sean comparables entre auditorías:
 
-1. **Archivos congelados** (no deben crecer):
-   `wc -l api/R/monitoreo_engine.R api/R/router_monitoreo.R api/R/reporte_plan_ppt.R frontend/src/features/monitoreo/MonitoreoPage.tsx frontend/src/app/theme.css frontend/src/api/client.ts`
+1. **Archivos congelados** (no deben crecer). La lista es la del manifest, no una copia: una copia en prosa dejó congelado un archivo ya borrado mientras otros crecían sin gobierno.
+   `node agentic/sync-agentic-os.mjs --audit --platform=none` — reporta cada congelado con su línea base y su delta, y falla si alguno creció o si apareció un monolito nuevo sobre el umbral.
+   Para las cifras crudas: `python3 -c "import json;[print(v,k) for k,v in json.load(open('agentic/manifest.json'))['policy']['frozen_growth_baseline'].items()]" | while read n f; do printf '%s %s (base %s)\n' "$(wc -l < "$f")" "$f" "$n"; done`
 2. **Duplicación de micro-helpers R**:
    `grep -rn '"%||%" <- \|\`%||%\` <-' api/R --include='*.R' | wc -l` y `grep -rEn '\._?[a-z_]+_(scalar|slug|chr|bool) <- function' api/R | wc -l`
 3. **Errores crudos en R**: `grep -rn 'stop("' api/R --include='*.R' | grep -v stop_api | wc -l` y `grep -rn ' try(' api/R --include='*.R' | wc -l`
