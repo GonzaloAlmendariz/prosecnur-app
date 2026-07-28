@@ -1026,14 +1026,18 @@
 .home-mission {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   padding: 4px 2px 6px;
   /* Top-align con un margen superior chico (el resto del espacio queda abajo,
      como en cualquier dashboard). Antes se centraba en vertical, pero en
      pantallas altas eso dejaba demasiado margen ARRIBA; ahora el contenido
      empieza cerca del tope y llena el ancho, que se lee profesional. */
-  margin-top: clamp(6px, 2.5vh, 34px);
-  margin-bottom: auto;
+  margin-top: clamp(4px, 1vh, 16px);
+  /* Antes `margin-bottom: auto` empujaba todo arriba y dejaba el sobrante como
+     un hueco muerto al pie. Ahora la sección ocupa el alto disponible y es la
+     grilla la que decide si se estira (ver data-density). */
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
   /* Llena el ancho disponible (solo el padding base del layout como margen);
      el techo alto evita estirarse sin límite en ultrawide. Pocas cartas se
@@ -1042,39 +1046,43 @@
   align-self: center;
 }
 
+/* Cabecera de una sola línea. El titular grande costaba ~65px de alto que las
+   tarjetas necesitan para caber sin scroll, y duplicaba el nombre que ya
+   muestra el chip del topbar. */
 .home-mission-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: 16px;
   padding: 0 2px;
+  min-width: 0;
 }
 
-.home-mission-kicker {
-  margin: 0 0 3px;
-  color: var(--pulso-text-faint);
-  font-size: 11px;
-  font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
+.home-mission-id {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 10px;
+  min-width: 0;
 }
 
 .home-mission-title {
   margin: 0;
-  font-size: clamp(21px, 2vw, 26px);
+  font-size: 14.5px;
   font-weight: var(--pulso-weight-semibold);
-  line-height: 1.12;
-  letter-spacing: -0.022em;
+  line-height: 1.3;
+  letter-spacing: -0.012em;
 }
 
 .home-mission-client {
-  margin: 4px 0 0;
+  margin: 0;
   display: flex;
-  align-items: center;
+  align-items: baseline;
   flex-wrap: wrap;
-  color: var(--pulso-text-soft);
-  font-size: 12.5px;
-  font-weight: var(--pulso-weight-semibold);
+  min-width: 0;
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
 }
 
 .home-mission-meta-dot {
@@ -1125,17 +1133,41 @@
 }
 
 /* --- Grid de tarjetas por módulo (adaptativo al número) -------------- */
+/* C2 — contrato `equal`: todas las tarjetas comparten alto y ancho pase lo que
+   pase con sus datos. `grid-auto-rows: minmax(0, 1fr)` reparte el alto entre
+   las filas en vez de dejar que cada una crezca con su contenido (antes la
+   fila 1 medía 319px y la fila 2 345px). El exceso pertenece a .home-suite,
+   que es el dueño del scroll; dentro de la tarjeta nada scrollea. */
 .home-mission-grid {
   display: grid;
   justify-content: start;
   align-items: stretch;
+  align-content: start;
   grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
-  gap: 16px;
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 14px;
+}
+
+/* Con muchas tarjetas la grilla toma el alto sobrante en vez de dejar un
+   tercio de pantalla vacío abajo: las filas se reparten el espacio (siguen
+   compartiendo alto entre sí) hasta un techo, porque estirar una tarjeta más
+   allá de eso deja el contenido flotando en el vacío. Con pocas tarjetas NO se
+   estira — una sola tarjeta de 700px de alto sería absurda. */
+.home-mission-grid[data-density="balanced"],
+.home-mission-grid[data-density="dense"] {
+  flex: 1 1 auto;
+  align-content: stretch;
+  min-height: 0;
+}
+
+.home-mission-grid[data-density="balanced"] .home-mc-card,
+.home-mission-grid[data-density="dense"] .home-mc-card {
+  max-height: 300px;
 }
 
 .home-mission-grid[data-density="spacious"] {
   grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr));
-  gap: 20px;
+  gap: 16px;
 }
 
 .home-mission-grid[data-density="balanced"] {
@@ -1144,8 +1176,20 @@
 
 .home-mission-grid[data-density="dense"] {
   grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
-  gap: 14px;
+  gap: 12px;
 }
+
+/* Con ocho módulos la columna es estrecha y la tagline obliga al bloque de
+   identidad a envolver, duplicando el alto de la cabecera. El título del
+   módulo ya lo identifica; la descripción se recupera en el tooltip de la
+   tarjeta y en el diálogo de "Agregar módulo". */
+.home-mission-grid[data-density="dense"] .home-mc-tagline { display: none; }
+
+/* Lo mismo cuando la tarjeta lleva chip de alerta además del de estado: dos
+   chips no dejan ancho para la descripción y esta se cortaba a media palabra
+   ("Seguimiento del t…"). Entre truncar la descripción y omitirla, se omite:
+   un texto cortado no informa y ensucia. */
+.home-mc-card:has(.home-mc-alert) .home-mc-tagline { display: none; }
 
 @media (min-width: 1480px) {
   .home-mission-grid[data-density="dense"] {
@@ -1175,14 +1219,14 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 270px;
+  min-height: 232px;
   border: 1px solid var(--pulso-border);
-  border-radius: 18px;
+  border-radius: var(--pulso-radius-card);
   padding: 0;
   background: var(--pulso-surface);
   text-align: left;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 36, 87, 0.05);
+  box-shadow: var(--pulso-shadow-low);
   transition:
     transform var(--motion-dur-base) var(--motion-ease-out),
     border-color var(--motion-dur-fast) ease,
@@ -1191,22 +1235,21 @@
   animation-delay: calc(var(--i, 0) * 55ms);
 }
 
-.home-mission-grid[data-density="spacious"] .home-mc-card { min-height: 292px; }
-.home-mission-grid[data-density="balanced"] .home-mc-card { min-height: 280px; }
-.home-mission-grid[data-density="dense"] .home-mc-card { min-height: 270px; }
+/* Piso de legibilidad, no altura de diseño: el alto real lo reparte
+   grid-auto-rows. Con 8 módulos en 2 filas el piso debe caber en la mitad del
+   área visible (544px a 1280x720), por eso `dense` baja a 232px. */
+.home-mission-grid[data-density="spacious"] .home-mc-card { min-height: 256px; }
+.home-mission-grid[data-density="balanced"] .home-mc-card { min-height: 244px; }
+.home-mission-grid[data-density="dense"] .home-mc-card { min-height: 232px; }
 
 .home-mc-card:active { transform: scale(0.995); }
 
-.home-mc-card.is-active {
-  border-color: var(--home-mod-accent-border, var(--pulso-primary-border));
-}
-
-.home-mc-card.is-ready {
-  border-color: var(--pulso-success-border);
-}
-
+/* El estado NO tiñe el marco. Pintar el borde completo de verde/ámbar hacía
+   que ocho tarjetas juntas se leyeran como un semáforo desordenado y competía
+   con el acento del módulo. El estado se lee en su chip; el marco se queda
+   neutro, como una tarjeta agrupada de macOS. */
 .home-mc-card.is-warning {
-  border-color: var(--pulso-warn-border);
+  border-color: color-mix(in srgb, var(--pulso-warn-border) 55%, var(--pulso-border));
 }
 
 .home-mc-enter {
@@ -1215,11 +1258,11 @@
   flex: 1;
   flex-direction: column;
   align-items: stretch;
-  gap: 14px;
+  gap: 12px;
   width: 100%;
   min-height: inherit;
   border: 0;
-  padding: 18px 20px;
+  padding: 15px 17px 14px;
   background: transparent;
   color: inherit;
   font: inherit;
@@ -1238,44 +1281,48 @@
   outline-offset: 2px;
 }
 
+/* Hover macOS: elevación corta y sombra neutra. La sombra teñida de acento
+   con 18% de color leía como glow de web, no como material de escritorio. */
 @media (hover: hover) and (pointer: fine) {
   .home-mc-card:hover {
-    transform: translateY(-3px);
-    border-color: var(--home-mod-accent-border, var(--pulso-primary-border));
-    box-shadow: 0 16px 34px color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 18%, transparent);
+    transform: translateY(-2px);
+    border-color: var(--pulso-border-strong);
+    box-shadow: var(--pulso-shadow-soft);
   }
   .home-mc-card:hover .home-mc-cta-arrow { transform: translateX(2px); }
-  .home-mc-card:hover .home-mc-cta {
-    background: color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 15%, var(--pulso-surface));
-  }
+  .home-mc-card:hover .home-mc-cta { color: var(--home-mod-accent, var(--pulso-primary)); }
 }
 
-/* Firma de color del módulo: hairline de acento en el borde superior. */
+/* Firma de color del módulo: hairline de acento en el borde superior. Es la
+   ÚNICA tinta del marco, para que el acento identifique al módulo sin pelear
+   con el chip de estado. */
 .home-mc-card::before {
   content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 2px;
   background: linear-gradient(
     90deg,
     var(--home-mod-accent, var(--pulso-primary)),
-    color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 22%, transparent)
+    color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 18%, transparent)
   );
-  opacity: 0.9;
+  opacity: 0.85;
   pointer-events: none;
 }
 
-/* Marca de agua: el ícono del módulo recortado en la esquina superior der. */
+/* Marca de agua: el ícono del módulo recortado en la esquina superior der.
+   Más chica y más tenue que antes — con la tarjeta compacta, 92px invadían la
+   zona de la cifra. */
 .home-mc-watermark {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 92px;
-  height: 92px;
+  top: 10px;
+  right: 10px;
+  width: 72px;
+  height: 72px;
   color: var(--home-mod-accent, var(--pulso-primary));
-  opacity: 0.055;
+  opacity: 0.045;
   pointer-events: none;
   z-index: 0;
 }
@@ -1285,30 +1332,41 @@
 .home-mc-foot { position: relative; z-index: 1; }
 
 /* --- Cabecera de la tarjeta ------------------------------------------ */
+/* Sin wrap: con wrap, el chip de estado caía a una segunda línea solo en las
+   tarjetas cuyo texto era largo ("Por iniciar" sí, "Al día" no), así que la
+   grilla quedaba con cabeceras de dos alturas distintas. Ahora el chip vive
+   siempre en la línea del título y es el título el que cede con ellipsis. */
 .home-mc-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding-right: 38px;
+  flex-wrap: nowrap;
+  gap: 8px;
+  padding-right: 34px;
+  min-width: 0;
 }
 
 .home-mc-head-id {
   display: flex;
   align-items: center;
-  flex: 1 1 190px;
-  gap: 11px;
+  flex: 1 1 auto;
+  gap: 10px;
   min-width: 0;
+}
+
+.home-mc-head-text strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .home-mc-badge {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
   background: var(--home-mod-accent-soft, var(--pulso-primary-soft));
   color: var(--home-mod-accent, var(--pulso-primary));
 }
@@ -1321,26 +1379,32 @@
 }
 
 .home-mc-head-text strong {
-  font-size: 15px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.15;
+  font-size: 14.5px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.2;
+  letter-spacing: -0.012em;
 }
 
+/* La tagline describe el módulo, no su estado: con la tarjeta compacta se
+   limita a una línea para que no empuje la cifra. */
 .home-mc-tagline {
-  color: var(--pulso-text-soft);
+  overflow: hidden;
+  color: var(--pulso-text-faint);
   font-size: 11.5px;
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.35;
-  white-space: normal;
+  font-weight: var(--pulso-weight-medium);
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .home-mc-signals {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-wrap: nowrap;
+  gap: 5px;
   flex: 0 0 auto;
+  max-width: 62%;
 }
 
 .home-mc-kebab {
@@ -1460,14 +1524,14 @@
 .home-mc-status {
   display: inline-flex;
   align-items: center;
-  min-height: 21px;
+  min-height: 19px;
   border: 1px solid var(--pulso-border);
   border-radius: 999px;
-  padding: 1px 8px;
+  padding: 1px 7px;
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 10.5px;
-  font-weight: var(--pulso-weight-bold);
+  font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }
 
@@ -1496,9 +1560,12 @@
 }
 
 /* --- Indicador de dominio por módulo --------------------------------- */
+/* C3 — la capacidad no usada se reparte, no se acumula. Cuando la tarjeta se
+   estira para llenar la fila, el bloque de lectura se centra en el espacio
+   entre cabecera y pie en vez de dejar un hueco muerto en el medio. */
 .home-mc-viz {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: flex-start;
   gap: 14px;
   flex: 1;
@@ -1509,7 +1576,7 @@
 .home-mc-viz.is-progress {
   flex-direction: column;
   align-items: stretch;
-  justify-content: flex-start;
+  justify-content: center;
   gap: 9px;
 }
 
@@ -1526,21 +1593,29 @@
 }
 
 .home-mc-activity > span {
-  color: var(--pulso-text-soft);
+  color: var(--pulso-text-faint);
   font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-  letter-spacing: 0.08em;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.07em;
   line-height: 1;
   text-transform: uppercase;
 }
 
+/* La línea de actividad es la lectura principal de la tarjeta, pero a 17px
+   heavy se comía dos renglones y empujaba todo. A 14.5px semibold con tope de
+   dos líneas mantiene la jerarquía sin robarle alto a la cifra. */
 .home-mc-activity > strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
   max-width: 100%;
   color: var(--pulso-text);
-  font-size: 17px;
-  font-weight: var(--pulso-weight-heavy);
+  font-size: 14.5px;
+  font-weight: var(--pulso-weight-semibold);
   letter-spacing: -0.012em;
-  line-height: 1.25;
+  line-height: 1.3;
   overflow-wrap: break-word;
   white-space: normal;
 }
@@ -1747,9 +1822,11 @@
   min-width: 0;
 }
 
+/* Peso 600 y no 900: la cifra ya destaca por tamaño y contraste, y en Windows
+   el stack cae a Segoe UI, donde los pesos extremos se ven toscos. */
 .home-mc-stat > strong {
   font-size: 21px;
-  font-weight: var(--pulso-weight-black);
+  font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -1765,11 +1842,16 @@
 
 .home-mc-stat-label {
   font-size: 12.5px;
-  font-weight: var(--pulso-weight-bold);
-  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text-soft);
 }
 
 .home-mc-stat-sub {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
   font-size: 11.5px;
   color: var(--pulso-text-soft);
   line-height: 1.35;
@@ -1835,19 +1917,20 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-  padding-top: 12px;
+  margin-top: auto;
+  padding-top: 10px;
   text-align: left;
   border-top: 1px solid color-mix(in srgb, var(--pulso-border) 72%, transparent);
 }
 
 .home-mc-facts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   align-items: center;
   justify-items: start;
-  gap: 10px;
+  gap: 4px 12px;
   width: 100%;
   min-width: 0;
 }
@@ -1857,53 +1940,64 @@
   flex-direction: column;
   gap: 1px;
   min-width: 0;
+  max-width: 100%;
 }
 
 .home-mc-fact strong {
   overflow: hidden;
   font-size: 13.5px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.1;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.15;
   letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* La etiqueta no puede desbordar su celda: sin esto, dos facts de nombre largo
+   se pegaban y se leían como una sola palabra ("COMPONENTESTÉCNICAS"). Y sin
+   mayúsculas forzadas — gritan en una grilla de ocho tarjetas. */
+.home-mc-fact > span {
+  overflow: hidden;
+  max-width: 100%;
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-medium);
+  letter-spacing: 0.005em;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.home-mc-fact > span {
-  color: var(--pulso-text-soft);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  line-height: 1.2;
-}
-
+/* La tarjeta ENTERA es el botón (.home-mc-enter), así que el CTA es una
+   afirmación de destino, no un control aparte. Una píldora rellena con círculo
+   de flecha sugería un segundo click posible y pesaba 36px de alto; el patrón
+   macOS aquí es texto + chevron que reacciona al hover de la tarjeta. */
 .home-mc-cta {
   align-self: flex-start;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  border: 1px solid var(--home-mod-accent-border, var(--pulso-primary-border));
-  padding: 5px 5px 5px 13px;
-  border-radius: 999px;
-  background: var(--home-mod-accent-soft, var(--pulso-primary-soft));
-  color: var(--pulso-text);
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pulso-text-soft);
   font-size: 12px;
-  font-weight: var(--pulso-weight-bold);
-  transition: background var(--motion-dur-fast) ease;
+  font-weight: var(--pulso-weight-semibold);
+  transition: color var(--motion-dur-fast) ease;
 }
 
 .home-mc-cta-arrow {
   display: grid;
   place-items: center;
-  width: 25px;
-  height: 25px;
-  border-radius: 999px;
-  background: var(--home-mod-accent, var(--pulso-primary));
-  color: #fff;
+  width: 16px;
+  height: 16px;
+  color: currentColor;
   transition: transform var(--motion-dur-base) var(--motion-ease-out);
 }
+
+.home-mc-cta-arrow > svg { width: 13px; height: 13px; }
 
 /* --- Botón "agregar módulo" en la cabecera --------------------------- */
 .home-mission-add-btn {

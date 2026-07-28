@@ -75,9 +75,12 @@ export function MissionControl({
       aria-label="Estado del proyecto"
       data-audit-ready="home"
     >
+      {/* El nombre del proyecto ya vive en el chip del topbar, así que aquí se
+          reduce a una sola línea: conserva un h1 real (la página necesita
+          encabezado accesible) sin gastar en un titular el alto que las
+          tarjetas necesitan para caber sin scroll. */}
       <header className="home-mission-head">
         <div className="home-mission-id">
-          <p className="home-mission-kicker">Proyecto</p>
           <h1 className="home-mission-title">{overview.project.name}</h1>
           {metaLine.length > 0 && (
             <p className="home-mission-client">
@@ -100,6 +103,8 @@ export function MissionControl({
 
       <div
         className="home-mission-grid"
+        data-qa-geometry-group="home-module-cards"
+        data-qa-geometry-contract="equal"
         data-density={cards.length <= 3 ? "spacious" : cards.length <= 6 ? "balanced" : "dense"}
       >
         {cards.map(({ module, view }, index) => (
