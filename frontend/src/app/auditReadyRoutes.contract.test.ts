@@ -236,6 +236,52 @@ function compactExpression(node: ts.Node): string {
   return node.getText().replace(/\s+/g, "");
 }
 
+/** Inicializador de un `const <name> = …` de nivel de función, compactado. */
+function compactConstInitializer(relativePath: string, name: string): string | null {
+  const sourceFile = parseRoute(relativePath);
+  let found: string | null = null;
+  const walk = (node: ts.Node) => {
+    if (
+      found === null &&
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === name &&
+      node.initializer
+    ) {
+      found = compactExpression(node.initializer);
+    }
+    ts.forEachChild(node, walk);
+  };
+  walk(sourceFile);
+  return found;
+}
+
+/** Atributo JSX de la etiqueta que lleva un `id` literal dado. */
+function attributeOfTaggedElement(
+  relativePath: string,
+  elementId: string,
+  attributeName: string,
+): string | null {
+  const sourceFile = parseRoute(relativePath);
+  let found: string | null = null;
+  const walk = (node: ts.Node) => {
+    if (found === null && (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node))) {
+      const id = attribute(node, "id")?.initializer;
+      if (id && ts.isStringLiteral(id) && id.text === elementId) {
+        const attr = attribute(node, attributeName)?.initializer;
+        if (attr && ts.isJsxExpression(attr) && attr.expression) {
+          found = compactExpression(attr.expression);
+        } else if (attr && ts.isStringLiteral(attr)) {
+          found = attr.text;
+        }
+      }
+    }
+    ts.forEachChild(node, walk);
+  };
+  walk(sourceFile);
+  return found;
+}
+
 describe("audit-ready route root contract", () => {
   test("Codificación and Validación keep readiness out of their PageFrame shells", () => {
     const shells = [
@@ -372,6 +418,48 @@ describe("audit-ready route root contract", () => {
         remountsForLoading,
       })}`,
     ).toBe(true);
+  });
+
+  test("Analítica publishes section readiness in every settled state, empty included", () => {
+    // Regresión: la marca solo existía en el pane de Orden de categorías, así que
+    // un proyecto que aterrizaba en Analítica sin esa pestaña dejaba la ruta sin
+    // readiness y la matriz visual se cortaba con "sin-marca-de-readiness".
+    const { tag } = defaultPageRoot("features/analitica/AnaliticaPage.tsx", "PageFrame");
+    expect(
+      attribute(tag, "auditReady"),
+      "Analítica PageFrame shell publishes readiness before its active panel",
+    ).toBeUndefined();
+
+    expect(
+      attributeOfTaggedElement(
+        "features/analitica/AnaliticaPage.tsx",
+        "analitica-panel",
+        "data-audit-ready",
+      ),
+      "Analítica readiness must live on the tabpanel, wired to the guarded expression",
+    ).toBe("auditReady");
+
+    expect(
+      compactConstInitializer("features/analitica/AnaliticaPage.tsx", "auditReady"),
+      "Analítica readiness: empty gate and prep failure are settled states; only prep in flight is not",
+    ).toBe(
+      '!prereqOk?"analitica-vacio"'
+      + ':prepBusy?undefined'
+      + ':!prepOk?"analitica-preparacion"'
+      + ':activeMeta.readinessPropia?undefined'
+      + ':`analitica-${active}`',
+    );
+
+    // El shell es ancestro del pane y `estadoListo()` lee la primera marca del
+    // DOM: si la sección publicara la del pane que carga aparte, taparía su gate.
+    expect(
+      terminalReadinessKeys(["features/analitica/panes/OrdenCategoriasPane.tsx"], "analitica-"),
+      "The pane that owns its readiness must publish an exact semantic key",
+    ).toEqual(["analitica-orden"]);
+    expect(
+      terminalReadinessCount("features/analitica/panes/OrdenCategoriasPane.tsx", "analitica-orden"),
+      "The owning pane must mark both settled branches: loaded and error",
+    ).toBe(2);
   });
 
   test("Bitácora publishes an exact semantic key for each guarded tab", () => {
