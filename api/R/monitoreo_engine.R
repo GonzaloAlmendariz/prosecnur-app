@@ -4607,10 +4607,7 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
       stop("token_response debe ser lista o environment.", call. = FALSE)
     }
   } else {
-    handle <- curl::new_handle(
-      post = TRUE,
-      httpheader = c("Accept: application/json", "Content-Type: application/x-www-form-urlencoded")
-    )
+    handle <- .monitoreo_google_oauth_handle()
     curl::handle_setopt(handle, postfields = paste0(
       "code=", utils::URLencode(code, reserved = TRUE),
       "&client_id=", utils::URLencode(client$client_id, reserved = TRUE),
@@ -4641,10 +4638,7 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
   client <- .monitoreo_sheets_oauth_client(required = TRUE)
   token_uri <- .monitoreo_scalar(client$token_uri, "https://oauth2.googleapis.com/token")
   if (is.null(token_response)) {
-    handle <- curl::new_handle(
-      post = TRUE,
-      httpheader = c("Accept: application/json", "Content-Type: application/x-www-form-urlencoded")
-    )
+    handle <- .monitoreo_google_oauth_handle()
     curl::handle_setopt(handle, postfields = paste0(
       "client_id=", utils::URLencode(.monitoreo_scalar(client$client_id, ""), reserved = TRUE),
       "&client_secret=", utils::URLencode(.monitoreo_scalar(client$client_secret, ""), reserved = TRUE),
@@ -4692,14 +4686,7 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
 
 .monitoreo_google_api_once <- function(url, method = "GET", body = NULL, token = NULL) {
   token <- token %||% .monitoreo_sheets_access_token()
-  handle <- curl::new_handle(
-    customrequest = method,
-    httpheader = c(
-      sprintf("Authorization: Bearer %s", token),
-      "Accept: application/json",
-      "Content-Type: application/json"
-    )
-  )
+  handle <- .monitoreo_google_handle(token, method)
   if (!is.null(body)) {
     curl::handle_setopt(handle, postfields = jsonlite::toJSON(body, auto_unbox = TRUE, null = "null"))
   }
