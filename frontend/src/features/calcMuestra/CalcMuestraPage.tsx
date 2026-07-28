@@ -32,6 +32,7 @@ import { ModuleCommandBar } from "../../components/ModuleCommandBar";
 import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
+import { ContextTabRail } from "../../components/ContextTabRail";
 import { GlidingTabList } from "../../components/GlidingTabList";
 import { useCalcMuestraAutosave } from "./hooks/useCalcMuestraAutosave";
 import { useCalcMuestraStore, useMotorStore } from "./store";
@@ -148,7 +149,7 @@ import {
   JobCancelledError,
 } from "./hooks/jobPolling";
 import { debeResetearRailSection } from "./hooks/railReset";
-import { UniversidadDesk } from "./universidad/UniversidadDesk";
+import { UniversidadDesk, universityContextTabId } from "./universidad/UniversidadDesk";
 import { JobProgressBanner } from "./JobProgressBanner";
 import { presentResultadoPrecision } from "./resultadoPrecision";
 import { resolveUniversityLocalTab, universitySectionStates, universitySidebarTabs, type CalcMuestraSidebarTab } from "./universidad/universidadTabs";
@@ -2113,6 +2114,26 @@ export default function CalcMuestraPage() {
     : storedLocalTab && sidebarTabs.some((tab) => tab.id === storedLocalTab)
       ? storedLocalTab
       : sidebarTabs[0]?.id ?? "";
+  const activeRailMeta = activeSectionMetaForDesk(desk, activeRailSection);
+  const universityContextItems = desk === "opinion_universitaria"
+    ? sidebarTabs.map((tab) => ({
+        key: tab.classroomTab ?? tab.id,
+        label: tab.label,
+        description: `${tab.detail} · ${guidedStatusLabel(tab.status)}`,
+        icon: tab.icon,
+      }))
+    : [];
+
+  function selectUniversityContextTab(key: string) {
+    const tab = sidebarTabs.find((item) => (item.classroomTab ?? item.id) === key);
+    if (!tab) return;
+    if (tab.classroomTab) {
+      setActiveClassroomLabTab(tab.classroomTab);
+      return;
+    }
+    seleccionarPestanaLocal(tab);
+    navegarPestanaLocal(tab.targetId);
+  }
 
   if (!hydrated) return <LoadingBlock label="Cargando mesa de muestra..." />;
 
@@ -2242,8 +2263,17 @@ export default function CalcMuestraPage() {
         data-audit-ready="calc-muestra"
         data-audit-desk={desk}
       />
-      <div className={`cmv2-workbench ${desk === "sin_definir" ? "is-pathway-picker" : ""}`}>
-        {desk !== "sin_definir" && (
+      <div className={`cmv2-workbench ${desk === "sin_definir" ? "is-pathway-picker" : ""}${desk === "opinion_universitaria" ? " pulso-context-tab-layout" : ""}`}>
+        {desk === "opinion_universitaria" ? (
+          <ContextTabRail
+            ariaLabel={`Pestañas de ${activeRailMeta?.label ?? "la sección"}`}
+            activeKey={activeLocalTab}
+            items={universityContextItems}
+            panelId={activeRailMeta?.targetId ?? "cmv2-section-university-setup"}
+            tabId={(key) => universityContextTabId(activeRailSection, key)}
+            onChange={selectUniversityContextTab}
+          />
+        ) : desk !== "sin_definir" ? (
           <CalcMuestraContextSidebar
             desk={desk}
             estudio={estudio}
@@ -2256,7 +2286,7 @@ export default function CalcMuestraPage() {
             onLocalTab={seleccionarPestanaLocal}
             onLocalTarget={navegarPestanaLocal}
           />
-        )}
+        ) : null}
 
         <main className="cmv2-main">
           {msg && (

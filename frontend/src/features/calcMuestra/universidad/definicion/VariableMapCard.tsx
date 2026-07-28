@@ -86,6 +86,7 @@ export function VariableMapCard({
       data-state={state}
       data-type={valueType}
       data-flash={flash || undefined}
+      data-qa-geometry-member
     >
       <div className="cmv2-defi-var-card-head">
         <span className="cmv2-defi-var-title">
@@ -184,7 +185,7 @@ export function VariableMapCard({
         )}
       </div>
 
-      <div className="cmv2-defi-var-detail" data-type={valueType}>
+      <div className="cmv2-defi-var-detail" data-type={valueType} data-qa-geometry-content>
         {valueType === "categorica" && (
           categories.length > 0 ? (
             <div className="cmv2-defi-var-cats" aria-label={`Categorías observadas de ${base.label}`}>

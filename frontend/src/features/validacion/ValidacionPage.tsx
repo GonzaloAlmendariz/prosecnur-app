@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Activity, CheckCircle2, Compass, Database, ListTree, PieChart, ShieldCheck } from "lucide-react";
+import { Activity, Compass, Database, ListTree, PieChart, ShieldCheck } from "lucide-react";
 import {
   apiEstudioActiveBaseSet,
   apiEstudioGet,
@@ -12,9 +12,8 @@ import { Alert } from "../../components/Alert";
 import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
-import { TabMeta } from "../../components/TabStrip";
 import { EmptyState, ErrorBlock } from "../../components/States";
-import { GlidingTabList } from "../../components/GlidingTabList";
+import { ContextTabRail, type ContextTabRailItem } from "../../components/ContextTabRail";
 import BaseSelector from "./BaseSelector";
 import LimpiezaTab from "./tabs/LimpiezaTab";
 import InstrumentoTab from "./tabs/InstrumentoTab";
@@ -43,30 +42,30 @@ import "./validacion-v2.css";
 //
 // Sprint 1: shell + stubs. Sprints 2-5 llenan cada tab.
 
-const TABS: TabMeta<ValidacionTabId>[] = [
+const TABS: ContextTabRailItem<ValidacionTabId>[] = [
   {
     key: "explorar",
     label: "Explorar respuestas",
     icon: Compass,
-    desc: "Distribuciones y señales de revisión",
+    description: "Distribuciones y señales de revisión",
   },
   {
     key: "instrumento",
     label: "Reglas del formulario",
     icon: ListTree,
-    desc: "Saltos, rangos y catálogos",
+    description: "Saltos, rangos y catálogos",
   },
   {
     key: "reglas_custom",
     label: "Criterios de revisión",
     icon: PieChart,
-    desc: "Señales adicionales",
+    description: "Señales adicionales",
   },
   {
     key: "limpieza",
     label: "Cierre de base",
     icon: Activity,
-    desc: "Limpieza y normalización",
+    description: "Limpieza y normalización",
   },
 ];
 
@@ -196,7 +195,7 @@ export default function ValidacionPage() {
       <AdaptiveSplitView
         ariaLabel="Mesa de trabajo de validación"
         railLabel="Pestañas de validación"
-        className={`pulso-validacion-shell${!prereqsOk ? " is-empty" : ""}`}
+        className={`pulso-validacion-shell pulso-context-tab-layout${!prereqsOk ? " is-empty" : ""}`}
         rail={(
           <ValidacionModeSidebar
             active={activeTab}
@@ -229,7 +228,7 @@ export default function ValidacionPage() {
                 <div className="pulso-validacion-panel-copy">
                   <span className="pulso-section-eyebrow">Vista actual</span>
                   <h2>{activeMeta.label}</h2>
-                  {activeMeta.desc && <p>{activeMeta.desc}</p>}
+                  {activeMeta.description && <p>{activeMeta.description}</p>}
                 </div>
                 <span className="pulso-validacion-base-current">
                   <Database size={12} />
@@ -262,60 +261,14 @@ function ValidacionModeSidebar({
   disabled: boolean;
 }) {
   return (
-    <aside className="pulso-validacion-sidebar pulso-sidebar" aria-label="Pestañas de validación">
-      <div className="pulso-validacion-sidebar-head">
-        <span className="pulso-section-eyebrow">Validación</span>
-        <strong>Vistas</strong>
-        {disabled ? <small className="pulso-sidebar-head-status">Pendiente</small> : null}
-      </div>
-      <GlidingTabList
-        activeKey={active}
-        orientation="vertical"
-        style={{ "--pulso-gliding-indicator-radius": "10px" } as CSSProperties}
-        role="tablist"
-        aria-label="Pestañas de validación"
-        className="pulso-validacion-nav"
-      >
-        {TABS.map((tab, index) => {
-          const Icon = tab.icon;
-          const isActive = active === tab.key;
-          return (
-            <button
-              key={tab.key}
-              id={`validacion-tab-${tab.key}`}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              aria-controls="validacion-panel"
-              disabled={disabled}
-              onClick={() => onChange(tab.key)}
-              className={`pulso-validacion-nav-item${isActive ? " is-active" : ""}`}
-              aria-label={`${tab.label}${tab.desc ? `. ${tab.desc}` : ""}`}
-              data-rail-title={tab.label}
-              data-rail-desc={tab.desc ?? ""}
-              data-rail-tooltip={tab.desc ? `${tab.label}\n${tab.desc}` : tab.label}
-              data-gliding-key={tab.key}
-              data-nav-item=""
-              data-nav-shape="row"
-              data-nav-state={isActive ? "selected" : undefined}
-            >
-              <span className="pulso-validacion-nav-index">{index + 1}</span>
-              <span aria-hidden="true" className="pulso-validacion-nav-icon">
-                <Icon size={15} />
-              </span>
-              <span className="pulso-validacion-nav-copy">
-                <strong>{tab.label}</strong>
-                {tab.desc && <span>{tab.desc}</span>}
-              </span>
-              {isActive && !disabled && (
-                <span className="pulso-validacion-nav-current">
-                  <CheckCircle2 size={12} />
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </GlidingTabList>
-    </aside>
+    <ContextTabRail
+      ariaLabel="Pestañas de validación"
+      activeKey={active}
+      items={TABS}
+      panelId="validacion-panel"
+      tabId={(key) => `validacion-tab-${key}`}
+      onChange={onChange}
+      disabled={disabled}
+    />
   );
 }

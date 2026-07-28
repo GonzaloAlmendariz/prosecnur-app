@@ -2054,110 +2054,54 @@
   grid-template-rows: minmax(0, 1fr) auto;
 }
 
-/* --- Carrusel en modo selector (curaduría de módulos) ------------------ */
+/* --- Carrusel en modo selector (curaduría aditiva de módulos) ---------- */
 
-.home-cinema-picker-actions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-/* "En el proyecto": no un botón verde grande, sino un chip discreto — tinte
-   de éxito muy suave, hairline verde apenas, check pequeño y peso Medium. El
-   verde comunica "agregado" sin gritar. */
-.home-cinema-added-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 34px;
-  border-radius: 999px;
-  padding: 7px 13px;
-  background: color-mix(in srgb, var(--pulso-success-bg) 50%, var(--pulso-surface));
-  border: 1px solid color-mix(in srgb, var(--pulso-success-fg) 20%, transparent);
-  color: color-mix(in srgb, var(--pulso-success-fg) 82%, var(--pulso-text));
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-  letter-spacing: -0.005em;
-}
-
-.home-cinema-added-badge svg {
-  color: var(--pulso-success-fg);
-}
-
-.home-cinema-cta-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 36px;
-  border: 1px solid var(--pulso-border-strong);
-  border-radius: 999px;
-  padding: 8px 15px;
-  background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
-  font-size: 12.5px;
-  font-weight: var(--pulso-weight-bold);
-  cursor: pointer;
-  transition: border-color var(--motion-dur-fast) ease, color var(--motion-dur-fast) ease;
-}
-
-.home-cinema-cta-secondary:hover {
-  border-color: var(--pulso-danger-border);
-  color: var(--pulso-danger-fg);
-}
-
-/* Marca de agregado en las tarjetas del deck: check discreto con anillo de
-   superficie; en la tarjeta enfocada se expande a pill "En el proyecto".
-   span + hijo directo (0-2-1): la base `.home-cinema-card > *:not(...)`
-   (0-2-0) fuerza position: relative y empataría con una clase sola. */
-.home-cinema-card > span.home-cinema-card-added {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 3;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  height: 20px;
-  min-width: 20px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--pulso-success-fg) 80%, #fff);
-  color: #fff;
+/* La pertenencia se expresa únicamente como superficie resaltada. El foco
+   actual conserva su propio anillo para no confundir selección con pertenencia. */
+.home-cinema-card.is-added {
+  border-color: color-mix(in srgb, var(--home-mod-accent) 62%, var(--pulso-surface));
   box-shadow:
-    0 0 0 2px var(--pulso-surface),
-    0 1px 3px rgba(0, 40, 20, 0.14);
+    inset 0 0 0 2px color-mix(in srgb, var(--home-mod-accent) 18%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--pulso-surface) 90%, transparent),
+    0 26px 54px color-mix(in srgb, var(--home-mod-accent) 20%, transparent),
+    0 10px 24px color-mix(in srgb, var(--pulso-text) 11%, transparent);
 }
 
-.home-cinema-card-added.is-pill {
-  height: 22px;
-  padding: 0 10px 0 8px;
+/* Ocho logos, un único riel y una sola fila en toda la matriz desktop. */
+.home-cinema-strip {
+  flex-wrap: nowrap;
+  gap: clamp(10px, 1vw, 14px);
+  row-gap: 0;
+  padding: 7px 10px;
 }
 
-.home-cinema-card-added em {
-  font-style: normal;
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0.02em;
-  white-space: nowrap;
+.home-cinema-dot,
+:root[data-pulso-layout-preset="short"] .home-cinema-dot {
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+  flex: 0 0 38px;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
 }
 
-/* Check de agregado en el strip: integrado al item, no flotante. Verde suave
-   en vez de pleno para que sea una señal discreta, no un punto que grita. */
-.home-cinema-dot-check {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 13px;
-  height: 13px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--pulso-success-fg) 78%, #fff);
-  color: #fff;
+.home-cinema-dot::after {
+  display: none;
 }
 
 .home-cinema-dot.is-added {
-  color: var(--pulso-text);
+  border-color: var(--home-mod-accent-border);
+  background: color-mix(in srgb, var(--home-mod-accent-soft) 82%, var(--pulso-surface));
+  color: var(--home-mod-accent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pulso-surface) 90%, transparent);
+}
+
+.home-cinema-dot.is-current {
+  box-shadow:
+    0 0 0 2px var(--pulso-surface),
+    0 0 0 3px var(--home-mod-accent),
+    0 5px 12px color-mix(in srgb, var(--home-mod-accent) 12%, transparent);
 }
 
 /* --- Pop-over "Módulos del proyecto": deck giratorio a pantalla casi
@@ -2530,6 +2474,46 @@
    la regla legacy que las ocultaba a poca altura ya no aplica. */
 .home-cinema-deck-wrap .home-cinema-controls {
   display: inline-flex;
+}
+
+/* Composición adaptativa del picker: en pantallas altas el conjunto no se
+   estira hasta los extremos del stage; en bajas ocupa toda la altura. Así las
+   flechas, el mazo y el rail se perciben como una sola unidad centrada. */
+.home-picker-stage {
+  padding-block: clamp(10px, 1.5vh, 18px);
+}
+
+.home-picker-stage .home-cinema {
+  height: min(780px, 100%);
+  max-height: 780px;
+  gap: clamp(14px, 1.8vh, 20px);
+}
+
+.home-picker-overlay .home-cinema-deck-wrap {
+  gap: clamp(10px, 1.2vh, 14px);
+}
+
+.home-picker-overlay .home-cinema-controls {
+  gap: 10px;
+  padding: 5px;
+}
+
+@media (max-height: 720px) {
+  .home-picker-stage {
+    padding-block: 2px;
+  }
+
+  .home-picker-stage .home-cinema {
+    height: 100%;
+    max-height: none;
+    gap: 14px;
+  }
+
+  /* Tras retirar las acciones del selector, el mazo puede volver al centro
+     óptico: deja aire parejo entre controles y rail sin recortar la card. */
+  .home-picker-overlay .home-cinema .home-cinema-card {
+    top: 50%;
+  }
 }
 
 /* ── Ajustes globales (modal centrado) ─────────────────────────────────── */

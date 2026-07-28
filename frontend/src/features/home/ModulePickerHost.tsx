@@ -21,7 +21,7 @@ import { ModulePickerDialog } from "./ModulePickerDialog";
 // Como panel direccionable es `?panel=modulos` (quinto nivel de la gramática).
 // `?agregar=1` sigue funcionando como alias de lectura.
 export function ModulePickerHost() {
-  const { addedSlugs, addModule, removeModule } = useProjectModules();
+  const { addedSlugs, addModule } = useProjectModules();
   const panel = usePanelDireccionable(PANEL_MODULOS);
   const { abierto: open, cerrar: close } = panel;
 
@@ -29,9 +29,8 @@ export function ModulePickerHost() {
     () => ({
       isAdded: (slug: string) => addedSlugs.includes(slug),
       onAdd: addModule,
-      onRemove: removeModule,
     }),
-    [addedSlugs, addModule, removeModule],
+    [addedSlugs, addModule],
   );
 
   useEffect(() => {

@@ -214,7 +214,11 @@ export function DefVariablesTab({
               <span className="cmv2-eyebrow">{seccion.titulo}</span>
               <p className="cmv2-defi-var-group-hint">{seccion.descripcion}</p>
             </div>
-            <div className="cmv2-defi-var-grid cmv2-uni-stagger">
+            <div
+              className="cmv2-defi-var-grid cmv2-uni-stagger"
+              data-qa-geometry-group={`calc-variable-${seccion.id}`}
+              data-qa-geometry-contract="intrinsic"
+            >
               {bases.map((base) => {
                 const valueType = universityRoleValueType(base.role);
                 const selectValue = selectValueFor(base.role);

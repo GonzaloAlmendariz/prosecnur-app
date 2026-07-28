@@ -63,6 +63,10 @@ import { TabCobertura } from "../motor/pestanas/TabCobertura";
 import { TabDistribucion } from "../motor/pestanas/TabDistribucion";
 import { UniversityTabHeader } from "./ui/UniversityTabHeader";
 
+export function universityContextTabId(section: string, key: string) {
+  return `cmv2-context-tab-${section}-${key}`;
+}
+
 export function UniversidadDesk({
   estudio,
   workspace,
@@ -312,6 +316,8 @@ export function UniversidadDesk({
   const selectedLocalTab = localTabs.some((tab) => tab.id === activeLocalTab)
     ? activeLocalTab
     : localTabs[0]?.id ?? "";
+  const activeContextTabKey = selectedSection === "aulas" ? activeLabTab : selectedLocalTab;
+  const activeContextTabId = universityContextTabId(selectedSection, activeContextTabKey);
   const showLocalTab = (tabId: string) => selectedLocalTab === tabId;
   const activeTabMeta = selectedSection === "aulas"
     ? localTabs.find((tab) => tab.classroomTab === activeLabTab)
@@ -388,7 +394,7 @@ export function UniversidadDesk({
       ) : null}
       <div className="cmv2-university-workbench" data-active-section={selectedSection}>
         {selectedSection === "definicion" && (
-          <div id="cmv2-section-university-setup" className="cmv2-tab-panel" role="tabpanel" aria-labelledby="cmv2-active-local-title">
+          <div id="cmv2-section-university-setup" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
             {showLocalTab("def-estudio") && <div id="cmv2-local-def-estudio">
               <DefEstudioTab
                 estudio={estudio}
@@ -424,7 +430,7 @@ export function UniversidadDesk({
         )}
 
         {selectedSection === "marco" && (
-          <div id="cmv2-section-university-marco" className="cmv2-tab-panel" role="tabpanel" aria-labelledby="cmv2-active-local-title">
+          <div id="cmv2-section-university-marco" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
             {showLocalTab("marco-criterios-alumno") && <div id="cmv2-local-marco-criterios-alumno">
               <CriteriosMarcoTab
                 scope="alumno"
@@ -463,7 +469,7 @@ export function UniversidadDesk({
         )}
 
         {selectedSection === "aulas" && (
-          <div id="cmv2-section-university-aulas" className="cmv2-tab-panel" role="tabpanel" aria-labelledby="cmv2-active-local-title">
+          <div id="cmv2-section-university-aulas" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
             {activeLabTab === "marco" && <AulasMarcoTab model={labModel} />}
             {activeLabTab === "objetivo" && (
               <AulasObjetivoTab workspace={syncedWorkspace} model={labModel} onWorkspace={onWorkspace} />
@@ -498,7 +504,7 @@ export function UniversidadDesk({
         )}
 
         {selectedSection === "calculo" && (
-          <div id="cmv2-section-university-calculo" className="cmv2-tab-panel" role="tabpanel" aria-labelledby="cmv2-active-local-title">
+          <div id="cmv2-section-university-calculo" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
             {showLocalTab("calculo-diseno") && <div id="cmv2-local-calculo-diseno">
               <CalculoDisenoTab
                 totalComp={totalComp}
@@ -535,7 +541,7 @@ export function UniversidadDesk({
         )}
 
         {selectedSection === "salidas" && (
-          <div id="cmv2-section-university-salidas" className="cmv2-tab-panel" role="tabpanel" aria-labelledby="cmv2-active-local-title">
+          <div id="cmv2-section-university-salidas" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
             {showLocalTab("salidas-guia") && <div id="cmv2-local-salidas-guia">
               <SalidasCierreTab model={labModel} workspace={syncedWorkspace} />
             </div>}

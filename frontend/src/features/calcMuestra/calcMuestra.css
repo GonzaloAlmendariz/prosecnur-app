@@ -1,3 +1,10 @@
+/* Cálculo de muestra es un workbench de datos: el cap documental de `.pulso-main`
+   deja de aplicar únicamente cuando esta mesa está montada. El padding exterior
+   del shell se conserva como gutter; todo el ancho restante pertenece al canvas. */
+.pulso-main:has(.cmv2-frame) {
+  max-width: none;
+}
+
 .cmv2-frame.pulso-page-frame {
   /* El acento del módulo vive en la tabla de paletas de theme.css. */
   --pulso-primary-focus: color-mix(in srgb, var(--pulso-module-sample) 15%, transparent);
@@ -95,7 +102,7 @@
   --command-bar-accent: var(--cmv2-accent-border);
   --command-bar-accent-mix: 42%;
   justify-content: center;
-  width: min(100%, 1720px);
+  width: 100%;
 }
 
 /* `is-picker` declaraba DOS columnas para las tres zonas del chrome, así que la
@@ -2719,6 +2726,20 @@
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.6), transparent 30%),
     var(--pulso-surface-2);
+}
+
+/* Desk universitario: PageFrame delega el desplazamiento a paneles. El canvas
+   no puede competir con la pestaña activa como segundo scroll owner. */
+.cmv2-workbench.pulso-context-tab-layout > .cmv2-main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cmv2-workbench.pulso-context-tab-layout .cmv2-university-desk,
+.cmv2-workbench.pulso-context-tab-layout .cmv2-university-workbench {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 /* Mensaje informativo de la mesa (ej. "Base leída y marco construido…"): nota
