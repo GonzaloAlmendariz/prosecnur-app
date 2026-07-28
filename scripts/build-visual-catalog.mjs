@@ -512,7 +512,11 @@ const HIERARCHY = [
         label: "Entrada",
         tabs: ["Prerrequisitos", "Visor de base"],
       },
-      { id: "carga", label: "Carga", tabs: ["Preparar", "Ver base"] },
+      {
+        id: "carga",
+        label: "Carga",
+        tabs: ["Plan", "Fuentes", "Revisión", "Estructura", "Datos"],
+      },
       {
         id: "validacion",
         label: "Validación",
