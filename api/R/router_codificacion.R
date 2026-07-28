@@ -166,8 +166,13 @@
     }
     s$analitica_status_por_base[[active_analitica]] <- status
   }
-  s$analitica_rp_inst <- NULL
-  s$analitica_rp_data <- NULL
+  # `.session_state_clear` y no `s$x <- NULL`: borrar el nombre deja que
+  # `s$analitica_rp_data` caiga por partial matching en el
+  # `analitica_rp_data_sources` que se vacía dos líneas más abajo. Medido: sin
+  # esto, tras el switch a adaptados `is.null(s$analitica_rp_data)` era FALSE
+  # sobre un `list()`, o sea Analítica se creía preparada justo después de que
+  # este mismo bloque la invalidara.
+  s <- .session_state_clear(s, c("analitica_rp_inst", "analitica_rp_data"))
   s$analitica_rp_inst_sources <- list()
   s$analitica_rp_data_sources <- list()
   s$analitica_fuente <- NULL

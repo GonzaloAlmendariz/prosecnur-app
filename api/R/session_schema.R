@@ -119,9 +119,36 @@
     if (is.call(rhs) && identical(as.character(rhs[[1]])[1], "list") && length(rhs) == 1L) return(TRUE)
     FALSE
   }
+  # `s <- .session_state_clear(s, c("a", "b"))` es un reset top-level de cada
+  # clave literal del vector, igual que `s$a <- NULL`. Es la forma canónica del
+  # reset: `s$a <- NULL` borraría el nombre y dejaría que un `$` posterior caiga
+  # por partial matching en un hermano con el mismo prefijo (ver
+  # .session_state_clear en session_store.R). El censo tiene que verla o las
+  # filas cache_stripped quedarían huérfanas.
+  claves_state_clear <- function(e) {
+    if (!is.call(e) || length(e) < 3L) return(character(0))
+    if (!identical(as.character(e[[1]])[1], ".session_state_clear")) return(character(0))
+    if (!identical(e[[2]], quote(s))) return(character(0))
+    keys <- e[[3]]
+    lits <- if (is.character(keys)) {
+      keys
+    } else if (is.call(keys) && identical(as.character(keys[[1]])[1], "c")) {
+      as.list(keys)[-1]
+    } else {
+      list()
+    }
+    lits <- unlist(lits, use.names = FALSE)
+    lits <- lits[vapply(lits, is.character, logical(1))]
+    as.character(lits)
+  }
   caminar <- function(e) {
     if (is.call(e)) {
       op <- as.character(e[[1]])[1]
+      for (clave_chr in claves_state_clear(e)) {
+        acumulado[[length(acumulado) + 1L]] <<- data.frame(
+          clave = clave_chr, reset = TRUE, stringsAsFactors = FALSE
+        )
+      }
       if (op %in% c("<-", "=", "<<-") && length(e) == 3L) {
         lhs <- e[[2]]
         if (is.call(lhs) && identical(raiz(lhs), quote(s))) {

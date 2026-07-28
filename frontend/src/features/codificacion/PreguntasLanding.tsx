@@ -1328,7 +1328,23 @@ function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: {
                 {isSelected ? <Check size={12} color="var(--pulso-primary)" /> : null}
               </span>
               <code style={{ fontFamily: "monospace", fontWeight: 700, color: isSelected ? "var(--pulso-primary)" : sugerida ? "var(--pulso-warn-fg)" : "var(--pulso-text-soft)" }}>{o.codigo}</code>
-              <span style={{ color: "var(--pulso-text)", fontWeight: isSelected ? 600 : 400 }}>{truncate(o.label, 70)}</span>
+              {/* `minWidth: 0` + elipsis: la celda `1fr` se angosta con el panel
+                  y sin esto la etiqueta se pintaba fuera de su pista, sacando
+                  una barra de scroll horizontal al contenedor y cortando el
+                  final del texto contra su borde. El `title` deja el rótulo
+                  completo al alcance. */}
+              <span
+                title={o.label}
+                style={{
+                  color: "var(--pulso-text)",
+                  fontWeight: isSelected ? 600 : 400,
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {truncate(o.label, 70)}
+              </span>
               {sugerida && !isSelected && (
                 <span style={{ fontSize: 10, fontWeight: 700, color: "var(--pulso-warn-fg)", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
                   ← Probable

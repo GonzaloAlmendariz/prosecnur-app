@@ -33,14 +33,14 @@
 .monitoreo_invalidate_dashboard_caches <- function(sid, snapshot = NULL) {
   s <- session_get(sid)
   monitoreo_perf_variables_cache_invalidate(sid)
-  for (scope in c("source", "route_summary", "advance_summary", "validation_summary", "queries_summary", "phone_summary", "full")) {
-    s[[paste("monitoreo_dashboard_cache", scope, sep = "_")]] <- NULL
-    s[[paste("monitoreo_dashboard_cache_token", scope, sep = "_")]] <- NULL
-  }
-  s$monitoreo_dashboard_cache <- NULL
-  s$monitoreo_dashboard_cache_token <- NULL
-  s$monitoreo_dashboard_light_cache <- NULL
-  s$monitoreo_dashboard_light_cache_token <- NULL
+  scopes <- c("source", "route_summary", "advance_summary", "validation_summary", "queries_summary", "phone_summary", "full")
+  # Nombres en NULL, no borrados: si algún día un scope queda fuera de `scopes`,
+  # `s$monitoreo_dashboard_cache` resolvería por partial matching a ese scoped.
+  s <- .session_state_clear(s, c(
+    paste("monitoreo_dashboard_cache", scopes, sep = "_"),
+    paste("monitoreo_dashboard_cache_token", scopes, sep = "_"),
+    "monitoreo_dashboard_cache", "monitoreo_dashboard_cache_token",
+    "monitoreo_dashboard_light_cache", "monitoreo_dashboard_light_cache_token"))
   if (is.null(snapshot)) snapshot <- s$monitoreo_snapshot %||% NULL
   if (is.list(snapshot)) {
     snapshot$dashboard_cache_token <- NULL
@@ -536,10 +536,12 @@
   session_set(sid, "monitoreo_config", cfg)
   session_set(sid, "monitoreo_snapshot", snapshot)
   s <- session_get(sid)
-  s$monitoreo_dashboard_cache <- NULL
-  s$monitoreo_dashboard_cache_token <- NULL
-  s$monitoreo_dashboard_light_cache <- NULL
-  s$monitoreo_dashboard_light_cache_token <- NULL
+  # Acá los scoped NO se borran (viajan por el warm start), así que borrar el
+  # nombre global hacía que `s$monitoreo_dashboard_cache` resolviera a uno de
+  # ellos: la invalidación global terminaba leyendo el cache de otro scope.
+  s <- .session_state_clear(s, c(
+    "monitoreo_dashboard_cache", "monitoreo_dashboard_cache_token",
+    "monitoreo_dashboard_light_cache", "monitoreo_dashboard_light_cache_token"))
   .session_env[[sid]] <- s
   .monitoreo_territorial_invalidate_map_cache(sid, layers = "gps_points", reason = "snapshot_source_pruned")
   as.integer(removed)

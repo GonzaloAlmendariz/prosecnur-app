@@ -183,16 +183,34 @@ export function Coachmarks({ forceShow, onDone }: CoachmarksProps) {
 
 /** El target puede ser una tarjeta muy alta. El coachmark no debe crear
  * una ventana gigante: resalta una porción visible y representativa. */
-function computeSpotlightRect(rect: DOMRect): SpotlightRect {
+export function computeSpotlightRect(rect: DOMRect): SpotlightRect {
   const margin = 18;
   const pad = 8;
   const maxW = Math.min(760, window.innerWidth - margin * 2);
   const maxH = Math.min(420, window.innerHeight - margin * 2);
   const width = Math.max(120, Math.min(rect.width + pad * 2, maxW));
-  const height = Math.max(72, Math.min(rect.height + pad * 2, maxH));
   const centerX = rect.left + rect.width / 2;
   const left = Math.max(margin, Math.min(centerX - width / 2, window.innerWidth - width - margin));
-  const top = Math.max(margin, Math.min(rect.top - pad, window.innerHeight - height - margin));
+  // El halo se ancla al borde superior del target y es la ALTURA la que cede
+  // para no salirse de la pantalla. Antes cedía el `top` —se deslizaba hacia
+  // arriba hasta que el rect entero entrara—, así que con un target más alto
+  // que el viewport el halo se despegaba de lo que señalaba y arrastraba al
+  // callout, que con `placement: "top"` terminaba encima de la barra superior.
+  // Medido a 1024x640: tarjeta en y=536 y halo en y=300, 236 px de deriva.
+  //
+  // El anclaje cede SOLO cuando es físicamente imposible: si el target arranca
+  // tan abajo que ni la altura mínima entra, el halo sube lo justo para caber.
+  // Sin ese tope, el piso de `minH` ganaba sobre el recorte y el halo se salía
+  // por abajo hasta 72 px (target a menos de ~90 px del borde inferior).
+  const minH = 72;
+  const top = Math.min(
+    Math.max(margin, rect.top - pad),
+    Math.max(margin, window.innerHeight - margin - minH),
+  );
+  const height = Math.max(
+    minH,
+    Math.min(rect.height + pad * 2, maxH, window.innerHeight - top - margin),
+  );
 
   return {
     top,
@@ -206,7 +224,7 @@ function computeSpotlightRect(rect: DOMRect): SpotlightRect {
 
 /** Calcula posición del callout relativa al target rect. Garantiza que
  *  no se salga del viewport. */
-function computeCalloutPos(
+export function computeCalloutPos(
   rect: SpotlightRect,
   placement: CoachStep["placement"],
 ): { top: number; left: number } {
