@@ -2,13 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Download,
   FileSpreadsheet,
+  GanttChart,
+  ListOrdered,
   Loader2,
   Plus,
   RefreshCw,
+  Rows3,
   Save,
   Trash2,
   Upload,
-} from "lucide-react";
+} from "../../vendor/lucide-react";
 import {
   apiPlanTrabajoExport,
   apiPlanTrabajoImport,
@@ -21,7 +24,12 @@ import {
   type PlanTrabajoTask,
   type PlanTrabajoTaskPatch,
 } from "../../api/client";
+import { apiBitacoraEstado, type BitacoraEstado } from "../../api/bitacora";
 import { Alert } from "../../components/Alert";
+import { GlidingTabList } from "../../components/GlidingTabList";
+import { CompositorDeFases } from "./cronograma/CompositorDeFases";
+import { ListaCronologica } from "./cronograma/ListaCronologica";
+import "./cronograma/cronogramaFases.css";
 import {
   barStyle,
   kindLabel,
@@ -31,6 +39,21 @@ import {
   taskScale,
   toISODate,
 } from "./dateUtils";
+
+/**
+ * Las tres vistas del cronograma (ADR 0047).
+ *
+ * `fases` es la de entrada: es donde el cronograma se CONSTRUYE. Gantt y lista
+ * son formas de leerlo, no de armarlo. Antes la entrada era el Gantt de un
+ * Excel importado; el import sigue disponible, pero como acción secundaria.
+ */
+const VISTAS = [
+  { id: "fases", label: "Fases", icon: Rows3 },
+  { id: "gantt", label: "Gantt", icon: GanttChart },
+  { id: "lista", label: "Lista", icon: ListOrdered },
+] as const;
+
+type VistaCronograma = (typeof VISTAS)[number]["id"];
 
 function fmt(value: number | null | undefined) {
   return Intl.NumberFormat("es-PE").format(Number(value ?? 0));
@@ -65,6 +88,34 @@ export function CronogramaSection({
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastExportUrl, setLastExportUrl] = useState("");
+  const [vista, setVista] = useState<VistaCronograma>("fases");
+  const [bitacora, setBitacora] = useState<BitacoraEstado | null>(null);
+
+  // El payload consolidado alimenta el compositor y la lista; el Gantt sigue
+  // consumiendo `PlanTrabajoState` para no reescribirlo en esta fase.
+  useEffect(() => {
+    let vigente = true;
+    void (async () => {
+      try {
+        const siguiente = await apiBitacoraEstado();
+        if (vigente) setBitacora(siguiente);
+      } catch (err) {
+        if (vigente) {
+          setError(err instanceof Error ? err.message : "No se pudo abrir el cronograma por fases.");
+        }
+      }
+    })();
+    return () => {
+      vigente = false;
+    };
+  }, [state.plan.updated_at]);
+
+  // Una mutación del compositor cambia el plan: el Gantt y el calendario tienen
+  // que verlo sin que el usuario recargue.
+  function adoptarEstado(siguiente: BitacoraEstado) {
+    setBitacora(siguiente);
+    onChange({ ...state, plan: siguiente.plan });
+  }
 
   const tasks = state.plan.tasks ?? [];
   const selectedTask = tasks.find((task) => task.id === selectedId) ?? tasks[0] ?? null;
@@ -178,49 +229,101 @@ export function CronogramaSection({
   return (
     <div className="plan-shell plan-shell--embedded">
       <div className="pulso-command-bar plan-commandbar" aria-label="Acciones del cronograma">
-        <div className="plan-command-metrics plan-command-side" aria-label="Resumen del cronograma">
-          {readinessMetrics.map((metric) => (
-            <span key={metric.label} className="plan-command-token">
-              <small>{metric.label}</small>
-              <strong>{metric.value}</strong>
-            </span>
-          ))}
-        </div>
+        <GlidingTabList
+          className="plan-vista-switch plan-command-side"
+          activeKey={vista}
+          aria-label="Vista del cronograma"
+          onRovingKeyChange={(clave) => setVista(clave as VistaCronograma)}
+        >
+          {VISTAS.map((item) => {
+            const Icono = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                data-gliding-key={item.id}
+                aria-selected={vista === item.id}
+                className={`plan-vista-boton${vista === item.id ? " is-active" : ""}`}
+                onClick={() => setVista(item.id)}
+              >
+                <Icono size={14} aria-hidden="true" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </GlidingTabList>
 
         <div className="plan-commandbar-actions plan-command-side" aria-label="Acciones del cronograma">
-          <button type="button" className="plan-button plan-button--primary" onClick={createTask} disabled={saving}>
-            {saving ? <Loader2 size={15} className="spin" /> : <Plus size={15} />}
-            <span>Nueva actividad</span>
-          </button>
-          <label className="plan-button">
-            {uploading ? <Loader2 size={15} className="spin" /> : <Upload size={15} />}
-            <span>Importar</span>
-            <input
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={(event) => {
-                const file = event.currentTarget.files?.[0];
-                event.currentTarget.value = "";
-                void importFile(file);
-              }}
-            />
-          </label>
-          <button type="button" className="plan-button" onClick={exportPlan} disabled={!tasks.length || exporting}>
-            {exporting ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
-            <span>Exportar</span>
-          </button>
+          {vista !== "fases" && (
+            <button type="button" className="plan-button plan-button--primary" onClick={createTask} disabled={saving}>
+              {saving ? <Loader2 size={15} className="spin" /> : <Plus size={15} />}
+              <span>Nueva actividad</span>
+            </button>
+          )}
+          {/* Importar y exportar Excel bajan a secundario: el cronograma se
+              construye acá (ADR 0047). El export sigue siendo el formato que el
+              cliente espera, y el import rescata cronogramas ya hechos. */}
+          <details className="plan-excel-menu">
+            <summary className="plan-button">
+              <span>Excel</span>
+            </summary>
+            <div className="plan-excel-opciones">
+              <label className="plan-button">
+                {uploading ? <Loader2 size={15} className="spin" /> : <Upload size={15} />}
+                <span>Importar cronograma</span>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0];
+                    event.currentTarget.value = "";
+                    void importFile(file);
+                  }}
+                />
+              </label>
+              <button type="button" className="plan-button" onClick={exportPlan} disabled={!tasks.length || exporting}>
+                {exporting ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
+                <span>Exportar a XLSX</span>
+              </button>
+              <button
+                type="button"
+                className="plan-button"
+                onClick={resetPlan}
+                disabled={!tasks.length || saving}
+              >
+                <Trash2 size={15} />
+                <span>Limpiar cronograma</span>
+              </button>
+            </div>
+          </details>
           <button type="button" className="plan-icon-button" onClick={onReload} title="Actualizar" aria-label="Actualizar cronograma">
             <RefreshCw size={15} />
-          </button>
-          <button type="button" className="plan-icon-button" onClick={resetPlan} disabled={!tasks.length || saving} title="Limpiar cronograma" aria-label="Limpiar cronograma">
-            <Trash2 size={15} />
           </button>
         </div>
       </div>
 
       {error && <Alert kind="error">{error}</Alert>}
 
-      {!tasks.length ? (
+      {vista === "fases" ? (
+        bitacora ? (
+          <CompositorDeFases estado={bitacora} onEstado={adoptarEstado} />
+        ) : (
+          <div className="plan-empty">
+            <Loader2 size={26} className="spin" />
+            <strong>Abriendo el cronograma…</strong>
+          </div>
+        )
+      ) : vista === "lista" ? (
+        bitacora ? (
+          <ListaCronologica estado={bitacora} onEstado={adoptarEstado} />
+        ) : (
+          <div className="plan-empty">
+            <Loader2 size={26} className="spin" />
+            <strong>Abriendo el cronograma…</strong>
+          </div>
+        )
+      ) : !tasks.length ? (
         <div className="plan-empty">
           <FileSpreadsheet size={36} />
           <strong>Sin cronograma todavía</strong>

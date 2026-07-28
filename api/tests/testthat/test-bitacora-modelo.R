@@ -151,8 +151,11 @@ test_that("normalizar una tarea es idempotente y no pisa los campos originales",
   expect_equal(una$temporal_kind, "rango")
   expect_false(una$kind_manual)
   expect_false(una$fase_manual)
-  expect_equal(una$fase, "")
   expect_null(una$recurrence)
+  # La fase se DERIVA de los targets heredados; dejarla vacía convertiría a cada
+  # consumidor en un derivador. `fase_manual` sigue en FALSE porque nadie la
+  # eligió: derivada y elegida no son lo mismo.
+  expect_equal(una$fase, "campo")
 })
 
 test_that("normalizar una tarea sin ningún campo del ADR la completa igual", {

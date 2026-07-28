@@ -254,6 +254,11 @@ BITACORA_ACENTOS_HACIA <- "aeiouunaeiouaeiouc"
 # Deliberadamente NO toca `id`, `activity`, `kind`, `status` ni las fechas: esos
 # son del esquema original y sus dueños son los normalizadores de
 # router_plan_trabajo.R. Acá solo se agregan campos, nunca se pisan los viejos.
+#
+# Depende de `bitacora_fases.R` para resolver la fase. Es la única dependencia
+# hacia afuera de este archivo, y existe porque dejar `fase` vacía convertiría a
+# cada consumidor en un derivador: el .pulso quedaría con tareas sin clasificar
+# y la UI tendría que adivinar, que es justo lo que el ADR 0047 vino a eliminar.
 .bit_normalizar_tarea <- function(t) {
   if (is.null(t) || !is.list(t)) return(t)
   id <- calc_str(t$id, "")
@@ -266,8 +271,8 @@ BITACORA_ACENTOS_HACIA <- "aeiouunaeiouaeiouc"
   t$blocked_by <- .bit_bloqueadores(t$blocked_by, propio = id)
   t$archived_at <- .bit_marca(t$archived_at)
   t$kind_manual <- calc_bool(t$kind_manual, FALSE)
-  t$fase <- calc_str(t$fase, "")
   t$fase_manual <- calc_bool(t$fase_manual, FALSE)
+  t$fase <- .bit_fase_de_tarea(t)
   t$recurrence <- recurrencia
   t$temporal_kind <- .bit_temporal_kind(t$start_date, t$end_date, recurrencia)
   t

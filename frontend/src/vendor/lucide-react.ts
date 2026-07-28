@@ -47,6 +47,7 @@ export { default as Building2 } from "lucide-react/dist/esm/icons/building-2.mjs
 export { default as Calculator } from "lucide-react/dist/esm/icons/calculator.mjs";
 export { default as Calendar } from "lucide-react/dist/esm/icons/calendar.mjs";
 export { default as CalendarDays } from "lucide-react/dist/esm/icons/calendar-days.mjs";
+export { default as CalendarPlus } from "lucide-react/dist/esm/icons/calendar-plus.mjs";
 export { default as CalendarRange } from "lucide-react/dist/esm/icons/calendar-range.mjs";
 export { default as Camera } from "lucide-react/dist/esm/icons/camera.mjs";
 export { default as Check } from "lucide-react/dist/esm/icons/check.mjs";
@@ -99,6 +100,7 @@ export { default as FileText } from "lucide-react/dist/esm/icons/file-text.mjs";
 export { default as FileUp } from "lucide-react/dist/esm/icons/file-up.mjs";
 export { default as FileWarning } from "lucide-react/dist/esm/icons/file-exclamation-point.mjs";
 export { default as Filter } from "lucide-react/dist/esm/icons/funnel.mjs";
+export { default as Flag } from "lucide-react/dist/esm/icons/flag.mjs";
 export { default as Folder } from "lucide-react/dist/esm/icons/folder.mjs";
 export { default as FolderClosed } from "lucide-react/dist/esm/icons/folder-closed.mjs";
 export { default as FolderMinus } from "lucide-react/dist/esm/icons/folder-minus.mjs";
