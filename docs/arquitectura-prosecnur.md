@@ -1,6 +1,6 @@
 # Arquitectura de Prosecnur
 
-Actualizado: 2026-06-06
+Actualizado: 2026-07-27
 
 ## Proposito
 
@@ -153,10 +153,26 @@ la evolucion del codigo.
 | Graficos | Configurar plan visual, validar slides y exportar PPT/Word | Plan de graficos, presets, overrides, iconos, configuracion visual | `/api/graficos/*`; [`frontend/src/features/graficos`](../frontend/src/features/graficos) | Analitica como fuente, motor de graficadores, renderer PPTX si existe | Cambiar data cruda o planes de limpieza |
 | Dashboards | Crear visualizaciones interactivas y, cuando aplique, publicar un artefacto hospedado separado | Fuente dashboard, curacion, configuracion, tema, metadata de publicacion | `/api/dashboard/*`; [`frontend/src/features/dashboard`](../frontend/src/features/dashboard) | Carga/analitica como fuente, Hugging Face como destino opcional, filtros de superficie publicada | Convertir Prosecnur en app web mutable o exponer endpoints mutables fuera del flujo local |
 | Rutas | Preparar hojas de ruta, mapas, cuotas y reportes decisionales | Configuracion territorial, previews, entregables de campo | `/api/hojas-ruta/*`; [`frontend/src/features/hojasRuta`](../frontend/src/features/hojasRuta) | Archivos, datos cartograficos locales, jobs, reportes | Depender de analitica salvo contrato explicito de fuente |
-| Plan de trabajo | Importar, normalizar, editar y exportar cronogramas operativos; declarar actividades, fases, responsables, productos, hitos, ventanas esperadas y contratos de sincronizacion planificado/ejecutado | `plan_trabajo` como estado propio persistente liviano; archivos fuente en file store local; XLSX exportado como entregable descargable fuera de `.pulso` | `/api/plan-trabajo/*`; [`frontend/src/features/planTrabajo`](../frontend/src/features/planTrabajo) | Session store, archivos, lectores XLSX, exportador XLSX, estados publicos/estables de modulos consumidores | Mutar Monitoreo, Reportes, Carga, Validacion, Muestra o Hojas de ruta; guardar secretos; usar el cronograma como evidencia ejecutada sin confirmacion del modulo operativo |
-| Diseno del estudio | Componer un expediente metodologico vivo, leer avance de todos los modulos, mostrar fuentes/evidencias/riesgos y permitir bitacora redactada por el usuario | `diseno_estudio_bitacora` como estado propio persistente; resumen read-only derivado de Carga, Validacion, Codificacion, Analitica, Graficos, Dashboard, Muestra, Rutas, Plan de trabajo, Recopiladores y Monitoreo | `/api/diseno-estudio/*`; [`frontend/src/features/disenoEstudio`](../frontend/src/features/disenoEstudio); biblioteca legacy en `/api/enciclopedia/*` y [`frontend/src/features/enciclopedia`](../frontend/src/features/enciclopedia) | Session store, catalogos metodologicos locales, estados publicos/estables de modulos de dominio, ficha tecnica como consumidor | Mutar estados fuente de otros modulos, guardar secretos, serializar data cruda, convertir la bitacora en backend canonico de campo o reemplazar decisiones de limpieza/codificacion/monitoreo/planificacion |
+| Plan de trabajo | Importar, normalizar, editar y exportar cronogramas operativos; declarar actividades, fases, responsables, productos, hitos, ventanas esperadas y contratos de sincronizacion planificado/ejecutado | `plan_trabajo` como estado propio persistente liviano; archivos fuente en file store local; XLSX exportado como entregable descargable fuera de `.pulso` | `/api/plan-trabajo/*`; [`frontend/src/features/bitacora`](../frontend/src/features/bitacora) | Session store, archivos, lectores XLSX, exportador XLSX, estados publicos/estables de modulos consumidores | Mutar Monitoreo, Reportes, Carga, Validacion, Muestra o Hojas de ruta; guardar secretos; usar el cronograma como evidencia ejecutada sin confirmacion del modulo operativo |
+| Diseno del estudio | Componer un expediente metodologico vivo, leer avance de todos los modulos, mostrar fuentes/evidencias/riesgos y permitir bitacora redactada por el usuario | `diseno_estudio_bitacora` como estado propio persistente; resumen read-only derivado de Carga, Validacion, Codificacion, Analitica, Graficos, Dashboard, Muestra, Rutas, Plan de trabajo, Recopiladores y Monitoreo | `/api/diseno-estudio/*`; [`frontend/src/features/bitacora`](../frontend/src/features/bitacora); biblioteca legacy en `/api/enciclopedia/*` y [`frontend/src/features/enciclopedia`](../frontend/src/features/enciclopedia) | Session store, catalogos metodologicos locales, estados publicos/estables de modulos de dominio, ficha tecnica como consumidor | Mutar estados fuente de otros modulos, guardar secretos, serializar data cruda, convertir la bitacora en backend canonico de campo o reemplazar decisiones de limpieza/codificacion/monitoreo/planificacion |
 | Muestra | Calcular componentes muestrales, construir marcos de aulas, seleccionar titulares/reemplazos y exportar reporte | Estudio muestral, componentes, resultados, modo de trabajo, `calc_muestra_aulas_config`, `calc_muestra_aulas_frame`, `calc_muestra_aulas_selection` | `/api/calc-muestra/*`; [`frontend/src/features/calcMuestra`](../frontend/src/features/calcMuestra) | Motor de calculo, biblioteca metodologica local, jobs, Monitoreo cuando exporta seleccion de aulas | Mutar bases de encuesta, ejecutar campo o cerrar brechas operativas |
 | Monitoreo | Centro de control operativo local: fuentes, snapshots, casos, cruces, metas, alertas, auditoria, perfiles, exportaciones y publicaciones Sheets por audiencia y familia | `monitoreo_sources`, `monitoreo_config`, `monitoreo_profile`, `monitoreo_snapshot`, `monitoreo_publication`, eventos de sincronizacion; `monitoreo_territorial_map_cache` persiste mapas territoriales compactos por fase; `monitoreo_aulas_plan`, `monitoreo_aulas_snapshot` y `monitoreo_aulas_publication` persisten agenda/snapshots compactos; persiste en `.pulso` sin credenciales | `/api/monitoreo/*`, `/api/monitoreo/sheets/*`; [`frontend/src/features/monitoreo`](../frontend/src/features/monitoreo) | Carga, calc-muestra cuando importa, archivos, reportes, conexiones globales SurveyMonkey/Kobo/Google Sheets, hojas de ruta segun perfil | Reemplazar el estado del estudio sin accion explicita, pedir o guardar credenciales, usar Sheets como backend canonico, modificar pestanas vivas de campo, publicar Monitoreo en Hugging Face o Spaces |
+
+### Frontera propuesta de Recopiladores
+
+Recopiladores todavía no posee estado ni endpoints de dominio propios: la ruta
+actual prepara fichas para cursos-horario sobre contratos de Monitoreo de
+aulas. El [ADR 0046](adrs/0046-recopiladores-despliegue-recoleccion.md), en
+estado propuesto, plantea convertirlo en el módulo que prepara accesos,
+recopiladores lógicos personalizados, materiales y el handoff versionado previo
+al campo. En Kobo, estos recopiladores pueden materializarse como enlaces
+`d[campo]=valor`; no implican un recurso collector remoto independiente.
+
+La propuesta no cambia aún el contrato vigente. Mientras el ADR no sea
+aceptado e implementado, [ADR 0019](adrs/0019-monitoreo-aulas-universitarias.md)
+conserva en Monitoreo la agenda y los links/QR de aulas. El plan de transición,
+la investigación oficial de SurveyMonkey/Kobo y los schemas candidatos están
+en [Plan de Recopiladores 2026-07](plan-recopiladores-2026-07.md).
 
 ## Caracteristicas Arquitectonicas Criticas
 
