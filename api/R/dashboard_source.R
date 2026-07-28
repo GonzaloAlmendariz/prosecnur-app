@@ -7,9 +7,22 @@
 # - archivos subidos directamente desde /tablero.
 # ============================================================
 
+# Proyecta el par propio del Dashboard sobre los nombres `rp_inst`/`rp_data`
+# que consumen los engines.
+#
+# La asignación tiene que ser `s["x"] <- list(valor)` y no `s$x <- valor`:
+# cuando el Dashboard todavía no tiene fuente, el valor es NULL y `s$x <- NULL`
+# *borra* el elemento de la lista de sesión. Sin el nombre presente, cualquier
+# `s$rp_data` posterior cae por partial matching en `rp_data_sources` — las
+# tablas por fuente de Procesamiento, que en un estudio con grupos repeat son
+# una lista de data.frames. El guard `is.null(s$rp_data)` de cada engine
+# devuelve entonces FALSE y el engine sigue con una lista donde espera un
+# data.frame (`!nrow(lista)` → "invalid argument type", HTTP 500 en /tablero).
+# Con `s["x"] <- list(NULL)` el nombre sobrevive con valor NULL y el guard
+# dispara como corresponde. Los lados derechos usan `[[` (exacto) por lo mismo.
 .dashboard_ctx <- function(s) {
-  s$rp_inst <- s$dashboard_rp_inst %||% NULL
-  s$rp_data <- s$dashboard_rp_data %||% NULL
+  s["rp_inst"] <- list(s[["dashboard_rp_inst"]])
+  s["rp_data"] <- list(s[["dashboard_rp_data"]])
   s
 }
 
