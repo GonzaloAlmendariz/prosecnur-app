@@ -1691,8 +1691,10 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
     error = function(e) list()
   )
   landing_url <- kobo_api_asset_url(uid, base_url = base_url)
+  # `landing_url` viaja como enlace administrativo ("abrir en Kobo"), nunca como
+  # sustituto de la URL de captura: no acepta `d[]` y produciría QR sin
+  # trazabilidad. Si no hay formulario resoluble, se dice.
   survey_url <- kobo_api_survey_url(uid, base_url = base_url, detail = detail, deployment = deployment)
-  if (!nzchar(survey_url)) survey_url <- landing_url
   list(
     ok = TRUE,
     asset_uid = uid,
@@ -1713,7 +1715,17 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
         deployment$active %||%
         FALSE
     ),
-    resolved_from = if (identical(survey_url, landing_url)) "landing" else "deployment"
+    resolved_from = if (nzchar(survey_url)) "deployment" else "unresolved",
+    capture_issue = if (nzchar(survey_url)) "" else "no_resuelto",
+    capture_message = if (nzchar(survey_url)) {
+      ""
+    } else {
+      paste(
+        "Kobo no devolvió un formulario web para este proyecto. Abre el",
+        "proyecto en Kobo, copia el enlace del formulario y pégalo; la pantalla",
+        "administrativa del proyecto no sirve como URL de captura."
+      )
+    }
   )
 }
 
@@ -5033,8 +5045,9 @@ mount_monitoreo <- function(pr) {
         asset_url <- .monitoreo_scalar(occ$asset_url, "")
         if (!nzchar(asset_url)) asset_url <- .monitoreo_scalar(occ$survey_url, "")
         if (!nzchar(asset_url)) asset_url <- kobo_api_asset_url(asset_uid, base_url = base_url)
+        # Sin fallback a `asset_url`: es la landing administrativa y no captura.
         survey_url <- .monitoreo_scalar(occ$survey_url, "")
-        if (!nzchar(survey_url)) survey_url <- asset_url
+        if (!capture_url_ok(survey_url)) survey_url <- ""
         source_id <- .monitoreo_scalar(occ$source_id, "")
         if (!nzchar(source_id)) source_id <- paste0("kobo_occurrences_", .monitoreo_safe_name(asset_uid))
         source <- list(
@@ -5374,7 +5387,10 @@ mount_monitoreo <- function(pr) {
         source$asset_url <- kobo_api_asset_url(source$asset_uid, base_url = base_url)
       }
       if (!nzchar(.monitoreo_scalar(source$survey_url, ""))) {
-        source$survey_url <- .monitoreo_scalar(cfg$territorial$field_occurrences$survey_url, source$asset_url)
+        # Antes caía en `asset_url` (landing administrativa). Se prefiere quedar
+        # sin enlace de captura a publicar uno que no captura.
+        candidate <- .monitoreo_scalar(cfg$territorial$field_occurrences$survey_url, "")
+        source$survey_url <- if (capture_url_ok(candidate)) candidate else ""
       }
       payload <- tryCatch(
         kobo_api_fetch_all_asset_data(source$asset_uid, token, base_url = base_url),
@@ -5757,7 +5773,9 @@ mount_monitoreo <- function(pr) {
       updates <- parsed$updates %||% parsed$agenda %||% parsed$plan %||% parsed
       plan <- tryCatch(
         monitoreo_aulas_update_agenda(cfg$aulas_universitarias$plan %||% list(), updates),
-        error = function(e) stop_api(400, "E_AULAS_AGENDA", conditionMessage(e))
+        # Un `api_error` del engine ya trae código y detalle propios: se re-lanza
+        # tal cual para no aplastarlo bajo E_AULAS_AGENDA.
+        error = function(e) if (inherits(e, "api_error")) stop(e) else stop_api(400, "E_AULAS_AGENDA", conditionMessage(e))
       )
       cfg$aulas_universitarias$enabled <- TRUE
       cfg$aulas_universitarias$plan <- plan

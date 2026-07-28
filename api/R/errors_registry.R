@@ -170,6 +170,7 @@ errores_registrados <- function() {
     "E_CARGA_SAV_ZIP_EMPTY",                                 "router_carga.R",                    "400",
     "E_CARGA_SAV_ZIP_EXTRACT_FAILED",                        "router_carga.R",                    "400",
     "E_CARGA_SAV_ZIP_MULTI",                                 "router_carga.R",                    "400",
+    "E_CAPTURE_URL",                                         "capture_url.R",                     "400",
     "E_CATALOG_NOT_FOUND",                                   "calc_muestra_engine.R",             "500",
     "E_CATALOGO_NOT_FOUND",                                  "router_enciclopedia.R",             "500",
     "E_CIERRE_BLOQUEADO",                                    "router_monitoreo.R",                "409",

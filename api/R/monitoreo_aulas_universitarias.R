@@ -747,6 +747,12 @@ monitoreo_aulas_update_agenda <- function(current, updates = list()) {
       if (!nm %in% names(plan_df)) next
       value <- .monitoreo_scalar(row[[nm]], "")
       if (!nzchar(value) && !nm %in% c("link", "qr", "word_link", "pdf_link", "package_label", "package_status", "collector_id", "responsible", "replacement_note")) next
+      # El enlace de aplicación es lo que termina impreso en el QR: una URL que
+      # no puede recibir los parámetros de unidad se rechaza al guardar, no al
+      # descubrir que las respuestas llegaron sin identificar el aula.
+      if (identical(nm, "link") && nzchar(value)) {
+        capture_url_require(value, context = .monitoreo_scalar(plan_df$classroom_id[[idx[[1]]]], "Enlace de aplicación"))
+      }
       plan_df[idx, nm] <- value
     }
     plan_df$operational_status[idx] <- .monitoreo_aulas_status(plan_df$operational_status[idx], plan_df$operational_status[idx])
