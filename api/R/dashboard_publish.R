@@ -371,6 +371,77 @@
   headers
 }
 
+# Timeouts del transporte HTTP hacia Hugging Face. Plumber atiende en un solo
+# hilo: un handle sin limite no cuelga solo la publicacion, cuelga el backend
+# entero (se observo /api/system/health respondiendo 500 detras de una llamada
+# colgada). Ambos caminos de curl son llamadas de control (crear el Space y
+# whoami); la subida de artefactos va por `git push`, que estos limites NO
+# cubren. El total holgado es margen para un HF lento, no una necesidad
+# medida. Overridables por env.
+# Clamp comun de todos los limites de este archivo: valor invalido o ausente
+# cae al default, y el resultado nunca sale de la banda. Existe para que
+# "sin limite" no sea representable.
+.hf_timeout_clamp <- function(value, default, min_seconds, max_seconds) {
+  seconds <- suppressWarnings(as.numeric(value %||% default))
+  if (!is.finite(seconds) || seconds <= 0) seconds <- default
+  min(max_seconds, max(min_seconds, seconds))
+}
+
+.hf_api_timeout_seconds <- function(value = Sys.getenv("PROSECNUR_HF_TIMEOUT_SECONDS", unset = ""),
+                                    default = 180,
+                                    min_seconds = 10,
+                                    max_seconds = 1800) {
+  .hf_timeout_clamp(value, default, min_seconds, max_seconds)
+}
+
+.hf_api_connect_timeout_seconds <- function(timeout_seconds = .hf_api_timeout_seconds(),
+                                            value = Sys.getenv("PROSECNUR_HF_CONNECT_TIMEOUT_SECONDS", unset = "")) {
+  timeout_seconds <- .hf_api_timeout_seconds(timeout_seconds)
+  .hf_timeout_clamp(value, min(10, timeout_seconds), 1, timeout_seconds)
+}
+
+# Los pasos locales de git (init, add, commit...) no tocan la red, pero corren
+# en el mismo hilo unico de Plumber: un `add -A` sobre un stage enorme o un
+# proceso zombie bloquean igual. Reloj holgado, pero reloj.
+.hf_git_timeout_seconds <- function(value = Sys.getenv("PROSECNUR_HF_GIT_TIMEOUT_SECONDS", unset = ""),
+                                    default = 300,
+                                    min_seconds = 30,
+                                    max_seconds = 3600) {
+  .hf_timeout_clamp(value, default, min_seconds, max_seconds)
+}
+
+# El push si sube artefactos y puede tardar minutos de forma legitima, asi que
+# el reloj es solo la red de seguridad: quien corta de verdad un push colgado
+# es la deteccion de estancamiento de git (.hf_git_stall_opts).
+.hf_git_push_timeout_seconds <- function(value = Sys.getenv("PROSECNUR_HF_PUSH_TIMEOUT_SECONDS", unset = ""),
+                                         default = 1800,
+                                         min_seconds = 60,
+                                         max_seconds = 7200) {
+  .hf_timeout_clamp(value, default, min_seconds, max_seconds)
+}
+
+# Aborta la transferencia si baja de 1 KB/s por 60 s seguidos. Es mejor que un
+# reloj a secas: distingue "lento pero avanzando" (subida grande por conexion
+# mala, hay que dejarla) de "colgado" (socket muerto, hay que cortarlo).
+.hf_git_stall_opts <- function() {
+  c("-c", "http.lowSpeedLimit=1000", "-c", "http.lowSpeedTime=60")
+}
+
+# Constructor unico de handles hacia Hugging Face: ningun `curl::new_handle()`
+# suelto debe quedar en este archivo (lo verifica test-dashboard-publish-http.R).
+.hf_new_handle <- function(token, content_type = NULL) {
+  .dashboard_publish_require_curl()
+  h <- curl::new_handle()
+  timeout <- .hf_api_timeout_seconds()
+  curl::handle_setopt(
+    h,
+    timeout = timeout,
+    connecttimeout = .hf_api_connect_timeout_seconds(timeout)
+  )
+  do.call(curl::handle_setheaders, c(list(handle = h), as.list(.hf_headers(token, content_type))))
+  h
+}
+
 .hf_fail <- function(res, code, default_message) {
   body <- rawToChar(res$content %||% raw())
   msg <- default_message
@@ -389,8 +460,7 @@
   name <- parts[2]
   sdk <- .public_artifact_scalar(sdk, "docker")
   if (!sdk %in% c("docker", "static")) sdk <- "docker"
-  h <- curl::new_handle()
-  do.call(curl::handle_setheaders, c(list(handle = h), as.list(.hf_headers(token, "application/json"))))
+  h <- .hf_new_handle(token, "application/json")
   body <- jsonlite::toJSON(
     list(
       name = name,
@@ -417,7 +487,16 @@
   git
 }
 
-.git_run <- function(args, cwd, env = character(), code = "E_GIT_FAILED") {
+# El subcomando real, saltando los `-c clave=valor` que van antes ("push", no
+# "-c"). Solo se usa para redactar el mensaje de error.
+.git_subcommand <- function(args) {
+  args <- as.character(args)
+  reales <- args[!startsWith(args, "-") & !grepl("=", args, fixed = TRUE)]
+  if (length(reales)) reales[[1]] else "git"
+}
+
+.git_run <- function(args, cwd, env = character(), code = "E_GIT_FAILED",
+                     timeout = .hf_git_timeout_seconds()) {
   git <- .git_bin()
   out <- tempfile("git_stdout_")
   err <- tempfile("git_stderr_")
@@ -430,14 +509,27 @@
   # `system2()` une los args con espacios y los pasa al shell; sin
   # shQuote, args con espacios (mensaje del commit, etc.) se parten
   # incorrectamente. Escapamos cada arg por separado.
-  status <- system2(
+  # `timeout` mata el proceso y devuelve 124 (con warning). Sin el, un git
+  # colgado se queda con el unico hilo de Plumber para siempre.
+  status <- suppressWarnings(system2(
     git,
     args = vapply(args, shQuote, character(1)),
     stdout = out,
     stderr = err,
     env = env,
-    wait = TRUE
-  )
+    wait = TRUE,
+    timeout = timeout
+  ))
+  if (identical(as.integer(status), 124L)) {
+    stop_api(
+      504,
+      code,
+      sprintf(
+        "git %s no respondio en %s segundos y se cancelo.",
+        .git_subcommand(args), format(timeout)
+      )
+    )
+  }
   if (!identical(status, 0L)) {
     msg <- paste(
       c(readLines(err, warn = FALSE), readLines(out, warn = FALSE)),
@@ -455,7 +547,8 @@
   out <- tempfile("lfs_check_")
   on.exit(unlink(out, force = TRUE), add = TRUE)
   status <- suppressWarnings(system2(.git_bin(), c("lfs", "version"),
-                                     stdout = out, stderr = out))
+                                     stdout = out, stderr = out,
+                                     timeout = 30))
   if (!identical(status, 0L)) {
     stop_api(
       500,
@@ -478,8 +571,7 @@
 
 .hf_token_username <- function(token) {
   .dashboard_publish_require_curl()
-  h <- curl::new_handle()
-  do.call(curl::handle_setheaders, c(list(handle = h), as.list(.hf_headers(token))))
+  h <- .hf_new_handle(token)
   res <- curl::curl_fetch_memory("https://huggingface.co/api/whoami-v2", handle = h)
   if (res$status_code < 200L || res$status_code >= 300L) return("hf_user")
   parsed <- tryCatch(jsonlite::fromJSON(rawToChar(res$content %||% raw())), error = function(e) NULL)
@@ -531,8 +623,9 @@
   .git_run(c("-c", "user.name=Prosecnur", "-c", "user.email=deploy@prosecnur.local",
              "commit", "-m", commit_label), prepared$stage)
   .git_run(c("remote", "add", "origin", remote), prepared$stage)
-  .git_run(c("push", "--force", "origin", "main"), prepared$stage,
-           env = auth_env, code = "E_HF_PUSH_FAILED")
+  .git_run(c(.hf_git_stall_opts(), "push", "--force", "origin", "main"), prepared$stage,
+           env = auth_env, code = "E_HF_PUSH_FAILED",
+           timeout = .hf_git_push_timeout_seconds())
   invisible(TRUE)
 }
 
