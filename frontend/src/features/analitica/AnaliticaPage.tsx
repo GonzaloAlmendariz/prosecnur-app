@@ -52,6 +52,13 @@ type ReporteMeta = {
   label: string;
   icon: LucideIcon;
   desc: string;
+  /**
+   * El pane declara su propia marca de readiness (carga sus datos aparte del
+   * `preparar` de la sección). La sección no la adelanta: `estadoListo()` lee
+   * la primera marca del DOM y el shell es ancestro del pane, así que
+   * publicarla aquí taparía el gate del pane con un verde prematuro.
+   */
+  readinessPropia?: true;
 };
 
 const REPORTES: ReporteMeta[] = [
@@ -65,7 +72,7 @@ const REPORTES: ReporteMeta[] = [
   { key: "panel",        label: "Base panel",        icon: GitMerge,  desc: "Personas y mediciones" },
   { key: "ficha",        label: "Ficha técnica",     icon: FileText,  desc: "Metodología e informe" },
   { key: "cruces",       label: "Cruces",            icon: Grid3x3,   desc: "Comparaciones 2D" },
-  { key: "orden",        label: "Orden de categorías", icon: ListOrdered, desc: "Secuencia de respuestas ordinales" },
+  { key: "orden",        label: "Orden de categorías", icon: ListOrdered, desc: "Secuencia de respuestas ordinales", readinessPropia: true },
   { key: "dimensiones",  label: "Dimensiones",       icon: Layers,    desc: "Índices y puntajes" },
 ];
 
@@ -116,6 +123,24 @@ export default function AnaliticaPage() {
   const active: Reporte = (reportes.find((r) => r.key === raw)?.key) ?? "datos";
   const activeMeta = reportes.find((r) => r.key === active) ?? reportes[0] ?? REPORTES[0];
   const ActiveIcon = activeMeta.icon;
+
+  // Readiness del QA visual a nivel de sección. Analítica solo la declaraba en
+  // una pestaña suelta (Orden de categorías), así que cualquier proyecto que
+  // aterrizara aquí sin esa pestaña dejaba la ruta sin marca y el recorrido de
+  // la matriz se cortaba con "sin-marca-de-readiness".
+  // La marca se omite a propósito mientras corre la preparación automática —el
+  // único tramo en que la sección todavía se está resolviendo— y se publica en
+  // los tres estados terminales, incluido el vacío: una sección sin datos
+  // también terminó de cargar (C3 del Contrato de Superficie).
+  const auditReady = !prereqOk
+    ? "analitica-vacio"
+    : prepBusy
+      ? undefined
+      : !prepOk
+        ? "analitica-preparacion"
+        : activeMeta.readinessPropia
+          ? undefined
+          : `analitica-${active}`;
 
   function goReporte(next: Reporte) {
     const sp = new URLSearchParams(location.search);
@@ -184,6 +209,7 @@ export default function AnaliticaPage() {
           className="pulso-analitica-content pulso-content-area"
           role="tabpanel"
           aria-labelledby={`analitica-tab-${active}`}
+          data-audit-ready={auditReady}
         >
           {!prereqOk ? (
             <ProcessingPrereqGate

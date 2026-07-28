@@ -1247,9 +1247,16 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
       // input botón (button/submit/reset/image) NO tiene caret ni scroll
       // nativo, así que ahí un value recortado sí es contenido inalcanzable y
       // el detector tiene que seguir viéndolo (C4).
-      const nativeTextBox = el instanceof HTMLInputElement && [
+      //
+      // El <label> que ENVUELVE al campo hereda la misma medición engañosa: su
+      // `scrollWidth` lo fija el input de adentro, así que sin esta rama el
+      // derrame se reportaba en el padre justo después de perdonarlo en el hijo.
+      const textInputTypes = new Set([
         "text", "search", "url", "tel", "email", "password", "number",
-      ].includes(el.type);
+      ]);
+      const nativeTextBox = (el instanceof HTMLInputElement && textInputTypes.has(el.type))
+        || (el instanceof HTMLLabelElement
+          && Array.from(el.querySelectorAll("input")).some((field) => textInputTypes.has(field.type)));
       // `scrollWidth`/`clientWidth` son ENTEROS: en una caja de ancho
       // fraccionario el primero redondea hacia arriba y el segundo hacia
       // abajo, así que una caja perfectamente sana puede reportar unos píxeles

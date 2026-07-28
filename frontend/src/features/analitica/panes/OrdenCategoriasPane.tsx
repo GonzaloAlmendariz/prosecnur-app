@@ -111,8 +111,16 @@ export function OrdenCategoriasPane() {
 
   const ready = variables !== null && dataReview !== null;
 
+  // Este pane carga sus datos aparte del `preparar` de la sección, así que es
+  // dueño de su marca de readiness (`readinessPropia` en AnaliticaPage) y debe
+  // declararla en sus dos estados terminales: cargado y error. Sin la del
+  // error, un fallo del instrumento deja la ruta sin marca.
   if (error) {
-    return <ErrorBlock label="No se pudo cargar el instrumento" detail={error} />;
+    return (
+      <div data-audit-ready="analitica-orden" style={{ display: "contents" }}>
+        <ErrorBlock label="No se pudo cargar el instrumento" detail={error} />
+      </div>
+    );
   }
   if (!ready) {
     return <LoadingBlock label="Cargando variables y categorías…" />;
@@ -120,7 +128,7 @@ export function OrdenCategoriasPane() {
 
   return (
     <Panel>
-      <div className="analitica-report-shell" data-audit-ready="true">
+      <div className="analitica-report-shell" data-audit-ready="analitica-orden">
         <div className="analitica-dimensiones-docbar">
           <span className="analitica-dimensiones-docbar-icon" aria-hidden="true">
             <ArrowUpDown size={16} />
