@@ -896,11 +896,15 @@ function warmupModuleIdsForRoutes(routes) {
       ids.add("muestra");
     } else if (normalized.startsWith("/monitoreo")) {
       ids.add("monitoreo");
-    } else if (normalized.startsWith("/dashboard")) {
+    // Las rutas canónicas son `/tablero` y `/editor-xlsform` (ver el router en
+    // `app/`): no existe ni `/dashboard` ni `/xlsform`. Ambas ramas estaban
+    // escritas contra nombres que nunca llegan, así que sus módulos jamás
+    // calentaban y las dos rutas se capturaban solo con el warmup de `home`.
+    } else if (normalized.startsWith("/tablero")) {
       ids.add("dashboard");
       ids.add("dashboard_datos");
       ids.add("html_to_image");
-    } else if (normalized.startsWith("/xlsform")) {
+    } else if (normalized.startsWith("/editor-xlsform")) {
       ids.add("editor_xlsform");
     } else if (normalized.startsWith("/enciclopedia")) {
       ids.add("enciclopedia");
@@ -941,6 +945,22 @@ async function prefetchRouteDataForQa(stack, route, timeoutMs, clickTabs = []) {
       stack.apiUrl,
       `/api/monitoreo/state?include_reports=1&report_scope=${encodeURIComponent(reportScope)}`,
       { session: stack.session, timeoutMs: prefetchTimeoutMs },
+    ).catch((error) => ({ ok: false, status: "timeout", error: error?.message || String(error) }));
+    if (!prefetched.ok) {
+      console.log(`[ui-quick-check] prefetch omitido: ${prefetched.status || "error"}`);
+    }
+  }
+  // `/carga` publica readiness solo cuando llegó el payload de `/api/estudio`,
+  // que la página pide ON DEMAND al entrar en modo multi-base. En la PRIMERA
+  // captura de una corrida ese pedido llega frío y a veces excede la ventana de
+  // readiness: es el `waitSelectorMiss` intermitente de la matriz, que aislado
+  // no reproduce. Calentarlo acá es lo mismo que ya se hace con Monitoreo.
+  if (normalized.startsWith("/carga")) {
+    console.log(`[ui-quick-check] prefetch ${normalized} estudio`);
+    const prefetched = await apiRequest(
+      stack.apiUrl,
+      "/api/estudio",
+      { session: stack.session, timeoutMs: Math.min(timeoutMs, 12000) },
     ).catch((error) => ({ ok: false, status: "timeout", error: error?.message || String(error) }));
     if (!prefetched.ok) {
       console.log(`[ui-quick-check] prefetch omitido: ${prefetched.status || "error"}`);
