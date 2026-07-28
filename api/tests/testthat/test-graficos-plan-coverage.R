@@ -713,7 +713,7 @@ test_that("plan ACNUR pagina categorias extensas sin perder opciones", {
   expect_equal(vapply(pages, `[[`, integer(1), "page"), 1:2)
   expect_equal(vapply(pages, `[[`, integer(1), "pages"), c(2L, 2L))
   expect_true(all(c("c9", "Categoria 9", "c13", "Categoria 13") %in% pages[[1]]$exclude_options))
-  expect_true(all(c("c1", "Categoria 1", "c8", "Categoria 8") %in% pages[[2]]$exclude_options))
+  expect_true(all(c("c1", "Categoria 1", "c7", "Categoria 7") %in% pages[[2]]$exclude_options))
   expect_equal(.graficos_acnur_page_subtitle("Lima Norte", pages[[1]]), "Lima Norte · 1 de 2")
   expect_equal(.graficos_acnur_page_subtitle("Lima Norte", pages[[2]]), "Lima Norte · 2 de 2")
 })
