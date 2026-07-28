@@ -67,5 +67,7 @@ Usar la [plantilla ADR](0000-template.md). Cada decision debe incluir:
 | [0042](0042-chrome-modulo-uniforme-topbar.md) | Aceptado | 2026-07-24 | Chrome de módulo uniforme: top bar de secciones + rail de pestañas re-ratificados (patrones #1–#3 del ADR 0038), uniformidad en los 8 módulos y pulido macOS-like; reemplaza al ADR 0041 |
 | [0043](0043-proyectos-de-referencia-reales-anonimizados.md) | Aceptado | 2026-07-24 | Catálogo de proyectos de referencia: los cuatro estudios reales (ACNUR PDM, ACNUR ACG, HSyVbG 2026, Acreditación Contabilidad) anonimizados y versionados como fixtures, complementando las semillas sintéticas |
 | [0044](0044-jerarquia-y-direcciones-de-navegacion.md) | Aceptado | 2026-07-24 | Jerarquía canónica módulo→[modo]→sección→pestaña→panel con un solo vocabulario, y toda vista enlazable por dirección (`?modo=&seccion=&pestana=&panel=`) más manifiesto enumerable para el inspector visual |
+| [0045](0045-monitoreo-actores-modelo-telefonia-explicita.md) | Aceptado | 2026-07-27 | Fuentes gobierna actores y canales; Modelo configura estrategia y Teléfono consume esa declaración |
+| [0046](0046-recopiladores-despliegue-recoleccion.md) | Propuesto | 2026-07-27 | Recopiladores prepara accesos, materiales y handoff de recolección mediante adapters con capacidades reales de SurveyMonkey y Kobo |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).
