@@ -103,6 +103,10 @@
   occurred_at <- .diseno_scalar(entry$occurred_at %||% entry$occurredAt, .diseno_now_iso())
   id <- .diseno_scalar(entry$id, "")
   if (!nzchar(id)) id <- uuid::UUIDgenerate()
+  # ADR 0047: esta función re-normaliza la entrada en CADA lectura (ver
+  # .diseno_bitacora_entries), así que todo campo que no se enumere acá se borra
+  # solo en el GET siguiente. Los campos del subsistema tienen que estar en esta
+  # lista o se pierden en silencio.
   list(
     id = id,
     module_id = module_id,
@@ -112,7 +116,10 @@
     occurred_at = occurred_at,
     created_at = .diseno_scalar(entry$created_at %||% entry$createdAt, .diseno_now_iso()),
     updated_at = .diseno_scalar(entry$updated_at %||% entry$updatedAt, ""),
-    tags = .diseno_chr_list(entry$tags %||% list(), max_items = 6L)
+    tags = .diseno_chr_list(entry$tags %||% list(), max_items = 6L),
+    revisions = .bit_revisiones(entry$revisions),
+    archived_at = .bit_marca(entry$archived_at %||% entry$archivedAt),
+    links = .bit_vinculos(entry$links, origen = .bit_vinculo_clave("entrada", id))
   )
 }
 

@@ -435,9 +435,18 @@
 }
 
 .plan_rebuild_derived <- function(plan) {
-  tasks <- plan$tasks %||% list()
-  plan$milestones <- Filter(function(t) identical(t$kind, "milestone") || identical(t$kind, "deliverable"), tasks)
-  plan$windows <- .plan_windows(tasks)
+  # Punto único por el que pasan crear, editar, borrar e importar: acá cada
+  # tarea adquiere los campos del ADR 0047 (prioridad, etiquetas, recordatorios,
+  # vínculos, dependencias, forma temporal). Sin esto, `.plan_create_task`
+  # produciría tareas sin ellos y el payload sería heterogéneo.
+  tasks <- lapply(plan$tasks %||% list(), .bit_normalizar_tarea)
+  plan$tasks <- tasks
+  # Las archivadas siguen en `tasks` pero salen de los derivados: un hito
+  # archivado no debe contar como hito ni estirar la ventana de su fase.
+  vivas <- Filter(function(t) !nzchar(calc_str(t$archived_at, "")), tasks)
+  plan$milestones <- Filter(function(t) identical(t$kind, "milestone") || identical(t$kind, "deliverable"), vivas)
+  plan$windows <- .plan_windows(vivas)
+  plan$schema <- paste0("plan_trabajo_v", BITACORA_ESQUEMAS[["plan"]])
   plan$updated_at <- .plan_now_iso()
   plan
 }
@@ -454,11 +463,25 @@
     if (!is.null(patch[[field]])) task[[field]] <- .plan_time(patch[[field]])
   }
   if (!task$status %in% c("planned", "active", "done", "blocked", "risk")) task$status <- "planned"
+  # El tipo puede venir declarado en el patch; declararlo lo congela.
+  if (!is.null(patch$kind)) {
+    kind_pedido <- .plan_scalar(patch$kind, "")
+    if (kind_pedido %in% .plan_kind_values) {
+      task$kind <- kind_pedido
+      task$kind_manual <- TRUE
+    }
+  }
   task$sync_targets <- as.list(.plan_task_targets(task$activity, task$product))
   task$duration_days <- .plan_date_span_days(
     .plan_scalar(task$start_date, ""), .plan_scalar(task$end_date, "")
   )
-  task$kind <- .plan_task_kind(task$activity, as.integer(task$duration_days %||% 1L), unlist(task$sync_targets, use.names = FALSE))
+  # Las heurísticas de `.plan_task_kind` SUGIEREN, no deciden (ADR 0047): una
+  # vez que el usuario eligió el tipo, la regex sobre el texto de la actividad
+  # deja de pisarlo. Antes se recalculaba en cada edición y la elección se
+  # revertía sola en el guardado siguiente.
+  if (!isTRUE(task$kind_manual)) {
+    task$kind <- .plan_task_kind(task$activity, as.integer(task$duration_days %||% 1L), unlist(task$sync_targets, use.names = FALSE))
+  }
   tasks[[idx[[1L]]]] <- task
   plan$tasks <- tasks
   .plan_rebuild_derived(plan)
@@ -524,7 +547,10 @@
   targets <- .plan_task_targets(activity, product)
   duration <- .plan_date_span_days(start_date, end_date)
   kind <- .plan_scalar(patch$kind, "")
-  if (!(kind %in% .plan_kind_values)) kind <- .plan_task_kind(activity, duration, targets)
+  # Elegir el tipo al crear lo congela: la sugerencia por texto no vuelve a
+  # pisarlo en ediciones posteriores (ADR 0047).
+  kind_manual <- kind %in% .plan_kind_values
+  if (!kind_manual) kind <- .plan_task_kind(activity, duration, targets)
   task <- list(
     id = paste0("task_m_", uuid::UUIDgenerate()),
     sheet = "",
@@ -545,7 +571,16 @@
     grid_start_col = NA_integer_,
     grid_end_col = NA_integer_,
     sync_targets = as.list(targets),
-    notes = notes
+    notes = notes,
+    kind_manual = kind_manual,
+    # El resto de los campos del ADR 0047 los completa `.bit_normalizar_tarea`
+    # desde `.plan_rebuild_derived`, para no duplicar los defaults acá.
+    priority = .bit_prioridad(patch$priority),
+    tags = .bit_etiquetas(patch$tags),
+    reminders = .bit_recordatorios(patch$reminders),
+    links = .bit_vinculos(patch$links),
+    blocked_by = .bit_bloqueadores(patch$blocked_by),
+    recurrence = .bit_recurrencia(patch$recurrence)
   )
   tasks <- plan$tasks %||% list()
   tasks[[length(tasks) + 1L]] <- task
@@ -671,7 +706,10 @@ mount_plan_trabajo <- function(pr) {
       if (!(ext %in% c("xlsx", "xls"))) {
         stop_api(400, "E_PLAN_FILE_EXT", "Plan de trabajo requiere un archivo .xlsx o .xls.")
       }
-      plan <- .plan_normalize_import(meta$path, meta)
+      # Pasa por `.plan_rebuild_derived` como cualquier otra mutación: si no, un
+      # cronograma recién importado quedaría sin los campos del ADR 0047 hasta
+      # reabrir el proyecto, y el payload sería heterogéneo según el origen.
+      plan <- .plan_rebuild_derived(.plan_normalize_import(meta$path, meta))
       session_set(sid, "plan_trabajo", plan)
       .plan_state_payload(sid)
     })) |>

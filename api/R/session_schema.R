@@ -358,8 +358,9 @@ session_schema <- function() {
     "calc_muestra_aulas_stale_job_result", "literal", "persistible", "router_calc_muestra.R", "session_set", "",
 
     # --- Otros módulos ---
-    "plan_trabajo",                "literal", "persistible",    "router_plan_trabajo.R", "session_set", "",
-    "diseno_estudio_bitacora",     "literal", "persistible",    "router_diseno_estudio.R", "session_set", "",
+    "plan_trabajo",                "literal", "persistible",    "router_plan_trabajo.R", "session_set", "esquema propio plan_trabajo_v<N>; load_pulso migra por saltos en .bitacora_migrar_estado (ADR 0047)",
+    "diseno_estudio_bitacora",     "literal", "persistible",    "router_diseno_estudio.R", "session_set", "lista pelada sin campo de version; load_pulso la re-normaliza incondicionalmente (idempotente) en .bitacora_migrar_estado",
+    "bitacora_preferencias",       "literal", "persistible",    "bitacora_preferencias.R", "session_set", "filtros y vista de las cuatro secciones; viajan con el proyecto y no con la maquina (ADR 0047)",
     "project_modules",             "literal", "persistible",    "project_overview.R", "session_set", "",
     "xlsform_state",               "literal", "persistible",    "router_xlsform_editor.R", "session_set", "legacy mono-formulario; load lo migra a xlsform_forms",
     "xlsform_forms",               "literal", "persistible",    "xlsform_forms.R",   "directa",     "colección multi-formulario del editor",
