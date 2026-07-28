@@ -90,14 +90,21 @@ export function CompositorDeFases({
   if (!sembrado && estado.plan.tasks.length === 0) {
     return (
       <div className="bit-compositor-vacio" data-audit-ready="bitacora-cronograma-vacio">
-        <Sparkles size={34} aria-hidden="true" />
         <strong>Arma el cronograma del estudio</strong>
-        <p>
-          Prosecnur trae las seis fases de un estudio —Diseño, Muestra, Instrumento,
-          Campo, Procesamiento y Entregables—. Se siembran vacías y tú solo pones las
-          fechas: cada fase queda enlazada a sus módulos, así el cronograma después
-          puede contrastar lo planificado contra lo que realmente pasó.
-        </p>
+
+        {/* El recorrido se muestra, no se describe: seis fases en fila dicen de
+            un vistazo lo que un párrafo tarda cuatro líneas en explicar. */}
+        <ol className="bit-riel" aria-label="Las seis fases de un estudio">
+          {estado.catalogo_fases.map((f, i) => (
+            <li key={f.id} className="bit-riel-paso">
+              <span className="bit-riel-punto" aria-hidden="true">{i + 1}</span>
+              <span className="bit-riel-nombre">{f.label}</span>
+            </li>
+          ))}
+        </ol>
+
+        <p>Pones dos fechas por fase. El resto lo arma la app.</p>
+
         {error && <Alert kind="error">{error}</Alert>}
         <div className="bit-compositor-vacio-acciones">
           <button

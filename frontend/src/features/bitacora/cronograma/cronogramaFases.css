@@ -129,11 +129,18 @@
 }
 
 /* El grupo de fases posee su propio vacío: sin esto, seis filas cortas dejarían
- * el hueco al panel y el marco se movería según cuántas tengan actividades. */
+ * el hueco al panel y el marco se movería según cuántas tengan actividades.
+ *
+ * Las columnas se declaran ACÁ, una sola vez, y cada fila las hereda con
+ * `subgrid`. Con una grid por fila, cada una dimensionaba sus columnas `auto`
+ * según su propio contenido: el chip "Planificada" es más ancho que "En marcha"
+ * y eso corría los campos de fecha 2px entre filas. Medido, no supuesto. */
 .bit-compositor-fases {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 28px minmax(140px, 1fr) auto auto auto;
+  align-content: start;
+  row-gap: 8px;
+  column-gap: 12px;
   min-height: 0;
   overflow-y: auto;
   padding-block-end: 4px;
@@ -142,6 +149,9 @@
 /* --- Fila de fase -------------------------------------------------------- */
 
 .bit-fase {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
@@ -158,10 +168,10 @@
 }
 
 .bit-fase-cabecera {
+  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 28px minmax(140px, 1fr) auto auto auto;
+  grid-template-columns: subgrid;
   align-items: center;
-  gap: 12px;
   padding: 8px 12px;
   min-height: 46px;
 }
@@ -274,6 +284,7 @@
 }
 
 .bit-fase-aviso {
+  grid-column: 1 / -1;
   margin: 0;
   padding: 0 12px 8px 52px;
   font-size: 12px;
@@ -281,6 +292,7 @@
 }
 
 .bit-fase-actividades {
+  grid-column: 1 / -1;
   padding: 0 12px 10px 52px;
   border-top: 1px solid var(--pulso-border);
   padding-top: 10px;
@@ -325,6 +337,9 @@
 
 /* --- Estado vacío -------------------------------------------------------- */
 
+/* `width: 100%` explícito para que el vacío ocupe el ancho del shell en vez de
+ * encogerse a su contenido: el riel de fases necesita el ancho para quedar en
+ * una sola fila. */
 .bit-compositor-vacio {
   display: flex;
   flex-direction: column;
@@ -333,6 +348,7 @@
   gap: 10px;
   text-align: center;
   padding: 40px 24px;
+  width: 100%;
   height: 100%;
   color: var(--pulso-text-soft);
 }
@@ -345,9 +361,74 @@
 
 .bit-compositor-vacio p {
   margin: 0;
-  max-width: 58ch;
   font-size: 13px;
-  line-height: 1.55;
+  color: var(--pulso-text-soft);
+}
+
+/* Riel de las seis fases: el recorrido del estudio dibujado, con la línea que
+ * las une pasando POR DETRÁS de los puntos. */
+.bit-riel {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  margin: 4px 0 2px;
+  padding: 0;
+  list-style: none;
+}
+
+.bit-riel-paso {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  min-width: 92px;
+}
+
+/* La línea nace del punto y llega al siguiente; el último paso no la dibuja. */
+.bit-riel-paso:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 13px;
+  left: calc(50% + 15px);
+  width: calc(100% - 30px);
+  height: 1px;
+  background: var(--pulso-border-strong);
+}
+
+.bit-riel-punto {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--module-accent-border, var(--pulso-border-strong));
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--module-accent, var(--pulso-primary));
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.bit-riel-nombre {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .bit-riel {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 0;
+  }
+
+  /* Envuelto, la línea uniría pasos que ya no son contiguos visualmente. */
+  .bit-riel-paso::after {
+    display: none;
+  }
 }
 
 .bit-compositor-vacio-acciones {
@@ -447,20 +528,24 @@
   letter-spacing: 0;
 }
 
+/* Mismo criterio que el compositor: las columnas se declaran una vez en el
+ * grupo y cada fila las hereda con `subgrid`, para que las etiquetas y las
+ * acciones caigan en la misma x en todas las filas del bucket. */
 .bit-lista-grupo ul {
   margin: 0;
   padding: 0;
   list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto auto;
+  row-gap: 4px;
+  column-gap: 10px;
 }
 
 .bit-lista-item {
+  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) auto auto;
+  grid-template-columns: subgrid;
   align-items: center;
-  gap: 10px;
   padding: 7px 10px;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius);
