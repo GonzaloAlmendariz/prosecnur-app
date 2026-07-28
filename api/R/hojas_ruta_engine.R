@@ -1757,7 +1757,7 @@ hojas_ruta_cartografia_contexto_meta <- function(ubigeo = NULL) {
 
 .hojas_ruta_fetch_json <- function(base, params) {
   url <- .hojas_ruta_url_query(base, params)
-  res <- curl::curl_fetch_memory(url)
+  res <- curl::curl_fetch_memory(url, handle = .hojas_ruta_http_handle())
   if (res$status_code >= 400L) {
     stop(sprintf("La capa de manzanas respondio HTTP %s.", res$status_code), call. = FALSE)
   }
