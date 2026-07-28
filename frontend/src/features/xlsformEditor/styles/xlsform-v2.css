@@ -6541,3 +6541,44 @@ button.pulso-focus-calculation-recipe {
   border-radius: 999px;
   background: color-mix(in srgb, #eef2f8 72%, #ffffff);
 }
+
+/* ---------------------------------------------------------------------------
+ * Header del workspace en foco: se apila por ancho de COLUMNA, no de viewport.
+ *
+ * La rejilla es `minmax(0, 1fr) auto` y los controles (toggle de modo +
+ * acciones) piden ~419 px fijos. En un viewport de 1024 el workspace mide 665
+ * px, así que al título le quedaban 162 px y se truncaba con elipsis a media
+ * palabra —"Nueva pregunta de sele…"— pese a que el header tenía sitio de
+ * sobra. La regla que apila el header existía, pero colgaba de
+ * `@media (max-width: 900px)`: miraba el viewport (1024 > 900) y nunca
+ * disparaba para una columna que ya estaba por debajo de ese umbral.
+ *
+ * Con el contenedor, el mismo umbral se evalúa contra los 665 px reales y el
+ * título recupera el ancho completo.
+ * ------------------------------------------------------------------------- */
+
+.pulso-focus-workspace {
+  container-type: inline-size;
+  container-name: pulso-focus-workspace;
+}
+
+/* Los selectores van prefijados con `.pulso-xlsform-frame` —el mismo idioma que
+ * usa theme.css para lo específico del editor— para ganarle a la regla base por
+ * ESPECIFICIDAD (0-2-0 contra 0-1-0), sin depender del orden de carga.
+ * `@container` no aporta especificidad por sí solo, así que sin el prefijo la
+ * consulta queda inerte donde el tema cargue después: medido en el bundle de
+ * dev, xlsform-v2 es la hoja 30 y theme la 33, y así fue como se detectó. */
+@container pulso-focus-workspace (max-width: 900px) {
+  .pulso-xlsform-frame .pulso-focus-workspace-header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pulso-xlsform-frame .pulso-focus-workspace-controls {
+    justify-content: flex-start;
+  }
+
+  .pulso-xlsform-frame .pulso-focus-title-copy h3,
+  .pulso-xlsform-frame .pulso-focus-title-copy p {
+    white-space: normal;
+  }
+}
