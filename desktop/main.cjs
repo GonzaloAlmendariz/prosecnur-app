@@ -7,6 +7,10 @@ const https = require("node:https");
 const net = require("node:net");
 const os = require("node:os");
 const path = require("node:path");
+const { createCloseGuard, createStdioMirror } = require("./lifecycle.cjs");
+
+let stdoutMirror = null;
+let stderrMirror = null;
 
 // Handler global de excepciones — DEBE registrarse antes que cualquier otro
 // require que pueda fallar (auto-updater.cjs, mac-bootstrap.cjs). Asi si algo
@@ -40,17 +44,30 @@ function showFatalErrorDialog(err, source) {
     }
   } catch (dialogErr) {
     // Si dialog mismo fallo (muy temprano), al menos mandamos al stderr.
-    process.stderr.write(`[prosecnur-fatal] ${detail}\n`);
+    if (stderrMirror) stderrMirror.write(`[prosecnur-fatal] ${detail}\n`);
   }
 }
 
-process.on("uncaughtException", (err) => {
-  showFatalErrorDialog(err, "uncaughtException");
+function handleFatalError(err, source) {
+  showFatalErrorDialog(err, source);
   app.exit(1);
+}
+
+stdoutMirror = createStdioMirror(process.stdout, {
+  onUnexpectedError: (err) => handleFatalError(err, "stdout.error")
+});
+stderrMirror = createStdioMirror(process.stderr, {
+  onUnexpectedError: (err) => handleFatalError(err, "stderr.error")
+});
+
+process.on("uncaughtException", (err) => {
+  handleFatalError(err, "uncaughtException");
 });
 process.on("unhandledRejection", (reason) => {
-  showFatalErrorDialog(reason instanceof Error ? reason : new Error(String(reason)), "unhandledRejection");
-  app.exit(1);
+  handleFatalError(
+    reason instanceof Error ? reason : new Error(String(reason)),
+    "unhandledRejection"
+  );
 });
 
 const { bootstrapMacRuntime } = require("./mac-bootstrap.cjs");
@@ -108,9 +125,7 @@ let backendPort = null;
 let backendStartPromise = null;
 // Evita que dos exits cercanos del backend abran diálogos nativos superpuestos.
 let backendErrorDialogOpen = false;
-let rendererCloseGuardReady = false;
-let closeConfirmed = false;
-let closeRequestPending = false;
+const closeGuard = createCloseGuard();
 // Flag que marca cuando matamos el proceso adrede (por ej. durante
 // reintentos por bind error) para que el watchdog del exit handler no
 // muestre dialog de error en esos casos esperados.
@@ -151,7 +166,7 @@ function initLogs() {
       `\n===== Prosecnur arrancó ${new Date().toISOString()} =====\n`
     );
   } catch (error) {
-    process.stderr.write(`[prosecnur-desktop] No pude abrir log file: ${error.message}\n`);
+    stderrMirror.write(`[prosecnur-desktop] No pude abrir log file: ${error.message}\n`);
     logStream = null;
   }
 }
@@ -196,7 +211,7 @@ function writeRecentProjects(list) {
     fs.mkdirSync(path.dirname(recentProjectsPath()), { recursive: true });
     fs.writeFileSync(recentProjectsPath(), JSON.stringify(list, null, 2), "utf8");
   } catch (e) {
-    process.stderr.write(`[prosecnur-desktop] No pude escribir recent-projects: ${e.message}\n`);
+    stderrMirror.write(`[prosecnur-desktop] No pude escribir recent-projects: ${e.message}\n`);
   }
 }
 
@@ -842,12 +857,11 @@ function registerIpcHandlers() {
   ipcMain.handle("hf:forgetDestination", (_event, args = {}) => forgetHfDestination(args));
 
   ipcMain.on("app:closeGuardReady", (_event, ready) => {
-    rendererCloseGuardReady = Boolean(ready);
+    closeGuard.setRendererReady(ready);
   });
 
   ipcMain.handle("app:confirmClose", async () => {
-    closeConfirmed = true;
-    closeRequestPending = false;
+    closeGuard.confirmClose();
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.close();
       return true;
@@ -866,17 +880,12 @@ function sendMenuCommand(command) {
 }
 
 function requestAppCloseFromRenderer() {
-  if (!mainWindow || mainWindow.isDestroyed() || !rendererCloseGuardReady) {
-    closeConfirmed = true;
-    app.quit();
-    return;
-  }
-  if (closeRequestPending) return;
-  closeRequestPending = true;
-  mainWindow.webContents.send("app:close-request");
-  setTimeout(() => {
-    closeRequestPending = false;
-  }, 1000);
+  const hasWindow = Boolean(mainWindow && !mainWindow.isDestroyed());
+  closeGuard.requestClose({
+    hasWindow,
+    sendCloseRequest: () => mainWindow.webContents.send("app:close-request"),
+    quit: () => app.quit()
+  });
 }
 
 // Construye el submenú "Abrir reciente" del menú Archivo. Si no hay
@@ -1036,6 +1045,7 @@ function renderLoadingPage(elapsedMs) {
 }
 
 function showLoading() {
+  closeGuard.invalidateRenderer();
   stopLoadingUpdates();
   loadingStartedAt = Date.now();
   renderLoadingPage(0);
@@ -1056,6 +1066,7 @@ function stopLoadingUpdates() {
 }
 
 function showError(message) {
+  closeGuard.invalidateRenderer();
   const body = `
     <h1>No se pudo abrir Prosecnur</h1>
     <p>${escapeHtml(message)}</p>
@@ -1285,7 +1296,13 @@ async function waitForDevRenderer(timeoutMs = 30000) {
 async function loadRenderer(port) {
   await waitForDevRenderer();
   await clearRendererCaches();
-  await mainWindow.loadURL(rendererUrl(port));
+  closeGuard.allowRenderer();
+  try {
+    await mainWindow.loadURL(rendererUrl(port));
+  } catch (error) {
+    closeGuard.invalidateRenderer();
+    throw error;
+  }
 }
 
 // Patterns que R/plumber/httpuv imprimen cuando falla al bindear el
@@ -1325,12 +1342,12 @@ async function spawnBackendOnce(rscript, launchScript, root, port) {
   let stderrBuf = "";
   proc.stdout.on("data", (chunk) => {
     const s = `[prosecnur-r] ${chunk}`;
-    process.stdout.write(s);
+    stdoutMirror.write(s);
     writeLog(s);
   });
   proc.stderr.on("data", (chunk) => {
     const s = `[prosecnur-r] ${chunk}`;
-    process.stderr.write(s);
+    stderrMirror.write(s);
     writeLog(s);
     stderrBuf += chunk.toString("utf8");
   });
@@ -1342,6 +1359,8 @@ async function spawnBackendOnce(rscript, launchScript, root, port) {
     // Si el backend fue reemplazado durante un reintento, su salida tardía no
     // describe al motor actual y no debe abrir un diálogo falso.
     if (backend !== proc) return;
+    backend = null;
+    backendPort = null;
     // Ignoramos exits esperados: shutdown del usuario (backendStopping) y
     // reintentos por bind error (expectingBackendRestart). Solo disparamos
     // la UI de error si fue un crash real post-startup.
@@ -1424,7 +1443,7 @@ async function startBackendImpl() {
     if (attempt < MAX_ATTEMPTS) {
       expectingBackendRestart = true;
       try {
-        process.stderr.write(
+        stderrMirror.write(
           `[prosecnur-desktop] puerto ${port} robado entre check y spawn. Reintentando (${attempt}/${MAX_ATTEMPTS - 1}).\n`
         );
       } finally {
@@ -1461,11 +1480,13 @@ async function stopBackend() {
 
   backendStopping = true;
   const proc = backend;
+  const port = backendPort;
   backend = null;
+  backendPort = null;
 
-  if (backendPort) {
+  if (port) {
     try {
-      await requestJson(`http://${HOST}:${backendPort}/api/system/shutdown`, {
+      await requestJson(`http://${HOST}:${port}/api/system/shutdown`, {
         method: "POST",
         timeout: 1500,
         headers: { "X-Pulso-Shutdown-Token": SHUTDOWN_TOKEN }
@@ -1498,11 +1519,7 @@ function createMenu() {
         { role: "hide" },
         { role: "hideOthers" },
         { type: "separator" },
-        {
-          label: "Salir",
-          accelerator: "CmdOrCtrl+Q",
-          click: () => requestAppCloseFromRenderer()
-        }
+        { role: "quit", label: "Salir" }
       ]
     }] : []),
     {
@@ -1703,13 +1720,13 @@ async function createWindow() {
 
   mainWindow.once("ready-to-show", () => mainWindow.show());
   mainWindow.on("close", (event) => {
-    if (closeConfirmed || !rendererCloseGuardReady) return;
+    if (!closeGuard.shouldBlockClose()) return;
     event.preventDefault();
     requestAppCloseFromRenderer();
   });
   mainWindow.on("closed", () => {
     mainWindow = null;
-    rendererCloseGuardReady = false;
+    closeGuard.invalidateRenderer();
   });
 
   hardenWindowNavigation(mainWindow);
@@ -1791,7 +1808,7 @@ if (!gotLock) {
   });
 
   app.on("before-quit", (event) => {
-    if (!closeConfirmed && rendererCloseGuardReady) {
+    if (closeGuard.shouldBlockClose()) {
       event.preventDefault();
       requestAppCloseFromRenderer();
       return;
