@@ -82,7 +82,11 @@ export function SectionPillbar({
         mode="nav"
         className={["pulso-phase-pillbar", className].filter(Boolean).join(" ")}
       >
-        <ol className="pulso-phase-pill-list">
+        <ol
+          className="pulso-phase-pill-list"
+          data-qa-geometry-group="chrome/secciones"
+          data-qa-geometry-contract="intrinsic"
+        >
           {items.map((item, indice) => {
             const activa = item.id === seccionActiva;
             const texto = densidad === "compact" ? (item.shortLabel ?? item.label) : item.label;

@@ -157,6 +157,10 @@ export function ModuleCommandBar({
       role="group"
       aria-label={ariaLabel}
     >
+      {/* Las zonas son toolbar: el contrato de superficie las excluye de C1 a
+          propósito, porque su geometría la fija el control que contienen.
+          Declararlas metía sus botones al gate y el padding de un chip se leía
+          como capacidad sin usar. */}
       <div className="pulso-command-bar-zone" data-zone="contexto">
         {contexto}
       </div>
