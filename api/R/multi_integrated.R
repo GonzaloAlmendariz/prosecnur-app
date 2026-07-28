@@ -455,7 +455,7 @@
   out
 }
 
-.mi_audit <- function(sid, guide_xlsform_file_id, origins, origin_key_name = "origen") {
+.mi_audit <- function(sid, guide_xlsform_file_id, origins, origin_key_name = "origen", profile_id = NULL) {
   guide_ref <- .sm_mb_canonical_inst(sid, guide_xlsform_file_id)
   guide_meta <- guide_ref$meta
   guide <- .mi_xlsform_model(guide_meta$path, guide_meta$file_id, guide_meta$original_name)
@@ -489,7 +489,7 @@
   sm_audit <- NULL
   company_vars <- character(0)
   if (length(sm_origins)) {
-    token <- .connections_token_require("surveymonkey", sid)
+    token <- .connections_token_require("surveymonkey", sid, profile_id = profile_id)
     sm_specs <- lapply(sm_origins, function(o) list(
       survey_id = o$survey_id,
       pais = o$key_value,
@@ -1072,9 +1072,16 @@ multi_integrated_import <- function(sid,
                                     origins,
                                     origin_key_name = "origen",
                                     base_name = "base_integrada",
-                                    decisions = list()) {
+                                    decisions = list(),
+                                    profile_id = NULL) {
   origins <- .mi_origin_specs(origins)
-  audit <- .mi_audit(sid, guide_xlsform_file_id, origins, origin_key_name)
+  audit <- .mi_audit(
+    sid,
+    guide_xlsform_file_id,
+    origins,
+    origin_key_name,
+    profile_id = profile_id
+  )
   if (!isTRUE(audit$ok)) {
     stop_api(409, "E_MULTI_BLOCKED", "Hay diferencias bloqueantes antes de importar.")
   }
@@ -1087,7 +1094,7 @@ multi_integrated_import <- function(sid,
 
   token <- NA_character_
   if (any(vapply(origins, function(o) identical(o$source_kind, "surveymonkey"), logical(1)))) {
-    token <- .connections_token_require("surveymonkey", sid)
+    token <- .connections_token_require("surveymonkey", sid, profile_id = profile_id)
   }
 
   built <- .mi_build_instrument(sid, guide_xlsform_file_id, origins, audit, decisions, sm_token = token)
@@ -1439,11 +1446,17 @@ mount_multi_integrated <- function(pr) {
         res$setHeader("X-Pulso-Session", sid)
       }
       parsed <- .xlsform_editor_parse_body(req)
+      profile_id <- trimws(.mi_scalar(
+        parsed$connection_profile_id %||% parsed$connectionProfileId %||% parsed$profile_id %||% parsed$profileId,
+        ""
+      ))
+      if (!nzchar(profile_id)) profile_id <- NULL
       .mi_audit(
         sid = sid,
         guide_xlsform_file_id = .mi_scalar(parsed$guide_xlsform_file_id, ""),
         origins = parsed$origins %||% list(),
-        origin_key_name = .mi_scalar(parsed$origin_key_name, "origen")
+        origin_key_name = .mi_scalar(parsed$origin_key_name, "origen"),
+        profile_id = profile_id
       )
     })) |>
     plumber::pr_post("/api/multi/integrated/import", wrap_endpoint(function(req, res, ...) {
@@ -1453,13 +1466,19 @@ mount_multi_integrated <- function(pr) {
         res$setHeader("X-Pulso-Session", sid)
       }
       parsed <- .xlsform_editor_parse_body(req)
+      profile_id <- trimws(.mi_scalar(
+        parsed$connection_profile_id %||% parsed$connectionProfileId %||% parsed$profile_id %||% parsed$profileId,
+        ""
+      ))
+      if (!nzchar(profile_id)) profile_id <- NULL
       multi_integrated_import(
         sid = sid,
         guide_xlsform_file_id = .mi_scalar(parsed$guide_xlsform_file_id, ""),
         origins = parsed$origins %||% list(),
         origin_key_name = .mi_scalar(parsed$origin_key_name, "origen"),
         base_name = .mi_scalar(parsed$base_name, "base_integrada"),
-        decisions = parsed$decisions %||% list()
+        decisions = parsed$decisions %||% list(),
+        profile_id = profile_id
       )
     })) |>
     plumber::pr_post("/api/multi/integrated/decisions-docx", wrap_endpoint(function(req, res, ...) {

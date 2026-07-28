@@ -302,18 +302,29 @@
       (.estudio_suggestion_key(src$role) %in% c("", "respuestas", "respuesta") ||
          nzchar(src$survey_id) || nzchar(src$asset_uid))
   }, sources)
-  is_acreditacion <- identical(profile_family, "acreditacion") ||
-    any(grepl("acreditacion", .estudio_suggestion_key(vapply(sources, function(src) {
+  accreditation_declared <- identical(profile_family, "acreditacion") &&
+    isTRUE(profile$route_selected)
+  source_suggests_accreditation <- any(grepl(
+    "acreditacion",
+    .estudio_suggestion_key(vapply(sources, function(src) {
       paste(src$label, src$title, src$source_id, collapse = " ")
-    }, character(1)))))
+    }, character(1)))
+  ))
 
   warnings <- list()
-  if (!is_acreditacion && length(survey_sources)) {
-    warnings <- c(warnings, "Hay fuentes de encuesta en Monitoreo, pero no se detectó perfil de acreditación.")
+  if (!accreditation_declared && length(survey_sources)) {
+    warning <- if (identical(profile_family, "acreditacion")) {
+      "Hay fuentes de encuesta en Monitoreo, pero la ruta de acreditación no fue seleccionada explícitamente."
+    } else if (source_suggests_accreditation) {
+      "Los nombres de fuentes mencionan acreditación, pero eso no declara el estudio; selecciona explícitamente la ruta en Monitoreo."
+    } else {
+      "Hay fuentes de encuesta en Monitoreo, pero el estudio no fue declarado explícitamente como acreditación."
+    }
+    warnings <- c(warnings, warning)
   }
 
   groups <- list()
-  if (is_acreditacion && length(survey_sources)) {
+  if (accreditation_declared && length(survey_sources)) {
     keyed <- split(survey_sources, vapply(survey_sources, function(src) {
       actor_key <- src$actor_key
       if (!nzchar(actor_key) || identical(actor_key, "sin_actor")) {
@@ -371,14 +382,15 @@
   list(
     ok = TRUE,
     source = "monitoreo",
-    project_kind = if (is_acreditacion) "acreditacion" else NA_character_,
+    accreditation_declared = accreditation_declared,
+    project_kind = if (accreditation_declared) "acreditacion" else NA_character_,
     profile_family = if (nzchar(profile_family)) profile_family else NA_character_,
     profile_variant = if (nzchar(profile_variant)) profile_variant else NA_character_,
     has_suggestions = length(groups) > 0L,
     message = if (length(groups)) {
       sprintf("Detecté %d grupo%s de encuesta desde Monitoreo.", length(groups), if (length(groups) == 1L) "" else "s")
-    } else if (is_acreditacion) {
-      "Monitoreo está en acreditación, pero no encontré fuentes activas de encuesta para Procesamiento."
+    } else if (accreditation_declared) {
+      "El estudio está declarado como acreditación, pero no encontré fuentes activas de encuesta para Procesamiento."
     } else {
       "No encontré un monitoreo de acreditación con fuentes de encuesta listas para sugerir."
     },
@@ -1620,6 +1632,7 @@ mount_estudio <- function(pr) {
         return(list(
           ok = TRUE,
           source = "monitoreo",
+          accreditation_declared = FALSE,
           project_kind = NA_character_,
           profile_family = NA_character_,
           profile_variant = NA_character_,

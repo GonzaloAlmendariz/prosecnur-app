@@ -7,7 +7,8 @@ test_that("processing suggestions group accreditation monitoring sources by acto
   session_set(sid, "monitoreo_config", list(
     monitoreo_profile = list(
       family = "acreditacion",
-      variant = "multi_actor"
+      variant = "multi_actor",
+      route_selected = TRUE
     )
   ))
   session_set(sid, "monitoreo_sources", list(
@@ -58,6 +59,7 @@ test_that("processing suggestions group accreditation monitoring sources by acto
 
   payload <- .estudio_processing_suggestions_payload(sid)
 
+  expect_true(payload$accreditation_declared)
   expect_true(payload$has_suggestions)
   expect_equal(payload$project_kind, "acreditacion")
   expect_equal(payload$profile_variant, "multi_actor")
@@ -106,8 +108,75 @@ test_that("processing suggestions stay empty outside accreditation monitoring", 
 
   payload <- .estudio_processing_suggestions_payload(sid)
 
+  expect_false(payload$accreditation_declared)
   expect_false(payload$has_suggestions)
   expect_equal(length(payload$groups), 0L)
   expect_equal(payload$summary$survey_sources_count, 1L)
   expect_match(payload$warnings[[1]], "acreditación")
+})
+
+test_that("default accreditation family is not an explicit declaration", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  session_set(sid, "monitoreo_config", list(
+    monitoreo_profile = list(family = "acreditacion", variant = "multi_actor")
+  ))
+
+  payload <- .estudio_processing_suggestions_payload(sid)
+
+  expect_false(payload$accreditation_declared)
+  expect_true(is.na(payload$project_kind))
+  expect_false(payload$has_suggestions)
+  expect_equal(payload$groups, list())
+})
+
+test_that("accreditation source names do not bypass explicit route selection", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  session_set(sid, "monitoreo_config", list(
+    monitoreo_profile = list(family = "acreditacion", route_selected = FALSE)
+  ))
+  session_set(sid, "monitoreo_sources", list(
+    list(
+      id = "sm-acreditacion-docentes",
+      kind = "surveymonkey",
+      enabled = TRUE,
+      role = "respuestas",
+      survey_id = "123",
+      label = "Acreditación · Docentes",
+      survey_title = "Encuesta de acreditación para docentes",
+      dimensions = list(actor = "Docentes")
+    )
+  ))
+
+  payload <- .estudio_processing_suggestions_payload(sid)
+
+  expect_false(payload$accreditation_declared)
+  expect_true(is.na(payload$project_kind))
+  expect_false(payload$has_suggestions)
+  expect_equal(payload$groups, list())
+  expect_match(payload$warnings[[1]], "seleccionada explícitamente")
+})
+
+test_that("declared accreditation without sources has no actionable suggestions", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  session_set(sid, "monitoreo_config", list(
+    monitoreo_profile = list(
+      family = "acreditacion",
+      variant = "multi_actor",
+      route_selected = TRUE
+    )
+  ))
+
+  payload <- .estudio_processing_suggestions_payload(sid)
+
+  expect_true(payload$accreditation_declared)
+  expect_equal(payload$project_kind, "acreditacion")
+  expect_false(payload$has_suggestions)
+  expect_equal(payload$groups, list())
+  expect_match(payload$message, "declarado como acreditación")
 })

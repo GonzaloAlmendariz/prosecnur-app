@@ -762,12 +762,18 @@ export async function apiSurveyMonkeyMultibaseCollectors(
 export async function apiSurveyMonkeyMultibaseAudit(
   surveys: SurveyMonkeyMultibaseSurveyInput[],
   canonical_xlsform_file_id = "",
+  options: { profile_id?: string; connection_profile_id?: string } = {},
 ) {
+  const profileId = (options.profile_id ?? options.connection_profile_id)?.trim();
   return handle<SurveyMonkeyMultibaseAudit>(
     await apiFetch("/api/surveymonkey/multibase/audit", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ surveys, canonical_xlsform_file_id }),
+      body: JSON.stringify({
+        surveys,
+        canonical_xlsform_file_id,
+        ...(profileId ? { profile_id: profileId } : {}),
+      }),
     }),
   );
 }
@@ -796,6 +802,8 @@ export async function apiSurveyMonkeyMultibaseImport(payload: {
 
 export async function apiSurveyMonkeyMultibaseImportIndependent(payload: {
   surveys: SurveyMonkeyMultibaseSurveyInput[];
+  profile_id?: string;
+  connection_profile_id?: string;
   response_statuses?: string[];
   keep_missing_status?: boolean;
   canonical_xlsform_file_id?: string;

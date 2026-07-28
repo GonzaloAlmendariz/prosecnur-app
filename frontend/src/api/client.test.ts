@@ -44,7 +44,10 @@ import {
   apiEstudioActiveBaseSet,
   apiEstudioApplyIndependentTemplateLogic,
   apiEstudioPromoteIndependentSiblings,
+  apiMultiIntegratedAudit,
+  apiMultiIntegratedImport,
   apiSurveyMonkeyMultibaseApplyCanonicalXlsformLogic,
+  apiSurveyMonkeyMultibaseAudit,
   apiSurveyMonkeyMultibaseImportIndependent,
   apiSurveyMonkeyMultibaseInspectSurvey,
   apiSurveyMonkeyMultibaseListSurveys,
@@ -2422,6 +2425,90 @@ describe("Monitoreo client", () => {
     expect(result.cache_status).toBe("refreshed");
   });
 
+  test("serializes both SurveyMonkey connection profile aliases as profile_id", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return jsonResponse({
+        ok: true,
+        surveys: [],
+        ref_survey_id: "",
+        n_blocking: 0,
+        n_review: 0,
+        n_special: 0,
+        company_positions: [],
+        company_variables: [],
+        diffs: [],
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiSurveyMonkeyMultibaseAudit(
+      [{ survey_id: "1" }],
+      "",
+      { profile_id: "  principal  " },
+    );
+    await apiSurveyMonkeyMultibaseAudit(
+      [{ survey_id: "2" }],
+      "",
+      { connection_profile_id: "  secundaria  " },
+    );
+
+    expect(bodies).toEqual([
+      {
+        surveys: [{ survey_id: "1" }],
+        canonical_xlsform_file_id: "",
+        profile_id: "principal",
+      },
+      {
+        surveys: [{ survey_id: "2" }],
+        canonical_xlsform_file_id: "",
+        profile_id: "secundaria",
+      },
+    ]);
+  });
+
+  test("normalizes the selected profile for integrated SurveyMonkey audit and import", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return jsonResponse({ ok: true, audit: { ok: true } });
+    }));
+    const origins = [{
+      source_kind: "surveymonkey" as const,
+      key_value: "Peru",
+      survey_id: "123",
+    }];
+
+    await apiMultiIntegratedAudit({
+      guide_xlsform_file_id: "guide",
+      origin_key_name: "pais",
+      origins,
+      connection_profile_id: "  secundaria  ",
+    } as Parameters<typeof apiMultiIntegratedAudit>[0] & { connection_profile_id: string });
+    await apiMultiIntegratedImport({
+      guide_xlsform_file_id: "guide",
+      origin_key_name: "pais",
+      origins,
+      profile_id: "  secundaria  ",
+    } as Parameters<typeof apiMultiIntegratedImport>[0] & { profile_id: string });
+
+    expect(bodies).toEqual([
+      {
+        guide_xlsform_file_id: "guide",
+        origin_key_name: "pais",
+        origins,
+        profile_id: "secundaria",
+      },
+      {
+        guide_xlsform_file_id: "guide",
+        origin_key_name: "pais",
+        origins,
+        profile_id: "secundaria",
+      },
+    ]);
+  });
+
   test("sets the shared active base selector", async () => {
     let sentInit: RequestInit | undefined;
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
@@ -2570,6 +2657,7 @@ describe("Monitoreo client", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await apiSurveyMonkeyMultibaseImportIndependent({
+      connection_profile_id: "sm-secundaria",
       surveys: [{
         survey_id: "1",
         label: "Ingeniería Geológica",
@@ -2590,6 +2678,7 @@ describe("Monitoreo client", () => {
       expect.objectContaining({ method: "POST" }),
     );
     expect(JSON.parse(String(sentInit?.body))).toEqual({
+      connection_profile_id: "sm-secundaria",
       surveys: [{
         survey_id: "1",
         label: "Ingeniería Geológica",

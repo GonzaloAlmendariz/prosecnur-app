@@ -668,6 +668,8 @@ mount_sistema <- function(pr) {
         hojas_ruta_ok = isTRUE(s$hojas_ruta_ok),
         graficos_ppt_ok = isTRUE(s$graficos_ppt_ok),
         graficos_word_ok = isTRUE(s$graficos_word_ok),
+        processing_intake_mode = as.character(s$processing_intake$processing_mode %||% NA_character_),
+        processing_intake_entries_count = as.integer(length(s$processing_intake$entries %||% list())),
         # --- Estudio (multi-base, v0.2+) ---
         estudio_nombre = if (is.null(s$estudio)) NA_character_ else (s$estudio$nombre %||% NA_character_),
         # Flag de intención: TRUE si el usuario activó explícitamente el

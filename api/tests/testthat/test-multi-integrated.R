@@ -320,3 +320,29 @@ test_that("word de fraseos conserva referencias completas y bloques juntos", {
   expect_true(grepl("w:fill=\"FFF2A8\"", xml, fixed = TRUE))
   expect_true(length(gregexpr("<w:keepNext/>", xml, fixed = TRUE)[[1]]) >= 4L)
 })
+
+test_that("multi integrado conserva profile_id desde las rutas hasta SurveyMonkey", {
+  expect_true("profile_id" %in% names(formals(.mi_audit)))
+  expect_true("profile_id" %in% names(formals(multi_integrated_import)))
+
+  audit_src <- paste(deparse(body(.mi_audit), width.cutoff = 500L), collapse = "\n")
+  import_src <- paste(deparse(body(multi_integrated_import), width.cutoff = 500L), collapse = "\n")
+  expect_match(
+    audit_src,
+    '.connections_token_require("surveymonkey", sid, profile_id = profile_id)',
+    fixed = TRUE
+  )
+  expect_match(import_src, "profile_id = profile_id", fixed = TRUE)
+  expect_match(
+    import_src,
+    '.connections_token_require("surveymonkey", sid, profile_id = profile_id)',
+    fixed = TRUE
+  )
+
+  routes <- paste(deparse(body(mount_multi_integrated), width.cutoff = 500L), collapse = "\n")
+  expect_match(routes, "parsed$connection_profile_id", fixed = TRUE)
+  expect_match(routes, "parsed$connectionProfileId", fixed = TRUE)
+  expect_match(routes, "parsed$profile_id", fixed = TRUE)
+  expect_match(routes, "parsed$profileId", fixed = TRUE)
+  expect_match(routes, "profile_id = profile_id", fixed = TRUE)
+})

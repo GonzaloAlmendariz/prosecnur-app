@@ -219,6 +219,9 @@ export type SessionState = {
       "todavía no decide". */
   has_estudio: boolean;
   estudio_processing_mode?: "multibase" | "independent_siblings" | string | null;
+  /** Plan de ingreso declarado en Monitoreo; no implica haber escaneado fuentes. */
+  processing_intake_mode?: "multibase" | "independent_siblings" | string | null;
+  processing_intake_entries_count?: number;
   active_base?: string | null;
   n_bases: number;
   bases_nombres: string[];

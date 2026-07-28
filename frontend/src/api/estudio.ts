@@ -257,6 +257,7 @@ export type EstudioProcessingSuggestionGroup = {
 export type EstudioProcessingSuggestions = {
   ok: true;
   source: "monitoreo" | string;
+  accreditation_declared?: boolean;
   project_kind?: "acreditacion" | string | null;
   profile_family?: "acreditacion" | string | null;
   profile_variant?: string | null;
