@@ -27897,21 +27897,11 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
     min-height: 520px;
   }
 
-  .pulso-focus-workspace-header {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .pulso-focus-workspace-controls {
-    justify-content: flex-start;
-  }
+  /* El apilado del header y el ancho del título se rigen por el ANCHO DE LA
+     COLUMNA, no del viewport: viven en xlsform-v2.css como @container. */
 
   .pulso-focus-tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .pulso-focus-title-copy h3,
-  .pulso-focus-title-copy p {
-    white-space: normal;
   }
 }
 
