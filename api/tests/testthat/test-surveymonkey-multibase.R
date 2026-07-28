@@ -597,3 +597,41 @@ test_that("conversor API tolera preguntas abiertas sin filas ni opciones", {
   expect_equal(nrow(out), 1L)
   expect_equal(out$p5, "Respuesta abierta")
 })
+
+test_that("rutas multibase resuelven aliases de perfil antes de exigir el token", {
+  src <- paste(
+    deparse(body(mount_surveymonkey_multibase), width.cutoff = 500L),
+    collapse = "\n"
+  )
+  route_block <- function(path, next_path) {
+    start <- regexpr(path, src, fixed = TRUE)[[1]]
+    expect_gt(start, 0L)
+    remainder <- substring(src, start)
+    finish <- regexpr(next_path, remainder, fixed = TRUE)[[1]]
+    expect_gt(finish, 0L)
+    substring(remainder, 1L, finish - 1L)
+  }
+
+  blocks <- list(
+    audit = route_block(
+      "/api/surveymonkey/multibase/audit",
+      "/api/surveymonkey/multibase/import"
+    ),
+    import_independent = route_block(
+      "/api/surveymonkey/multibase/import-independent",
+      "/api/surveymonkey/multibase/apply-canonical-xlsform-logic"
+    )
+  )
+
+  for (block in blocks) {
+    expect_match(block, "parsed$connection_profile_id", fixed = TRUE)
+    expect_match(block, "parsed$connectionProfileId", fixed = TRUE)
+    expect_match(block, "parsed$profile_id", fixed = TRUE)
+    expect_match(block, "parsed$profileId", fixed = TRUE)
+    expect_match(
+      block,
+      '.connections_token_require("surveymonkey", sid, profile_id = profile_id)',
+      fixed = TRUE
+    )
+  }
+})

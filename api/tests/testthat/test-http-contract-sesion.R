@@ -38,6 +38,11 @@ test_that("POST /api/session crea sesion y GET /api/session/state refleja el vac
   expect_equal(as.numeric(st$json$n_bases), 0)
   expect_true(is.list(st$json$bases_nombres))
   expect_length(st$json$bases_nombres, 0)
+  # Resumen aditivo y read-only para decidir si Fuentes ofrece revisar
+  # Monitoreo sin disparar endpoints de scan desde el montaje del frontend.
+  expect_true("processing_intake_mode" %in% names(st$json))
+  expect_true("processing_intake_entries_count" %in% names(st$json))
+  expect_equal(as.numeric(st$json$processing_intake_entries_count), 0)
 })
 
 test_that("los errores de la API viajan como {error:{code,message}} con el status correcto", {

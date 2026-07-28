@@ -4884,7 +4884,8 @@ mount_surveymonkey_multibase <- function(pr) {
         res$setHeader("X-Pulso-Session", sid)
       }
       parsed <- .xlsform_editor_parse_body(req)
-      token <- .connections_token_require("surveymonkey", sid)
+      profile_id <- parsed$connection_profile_id %||% parsed$connectionProfileId %||% parsed$profile_id %||% parsed$profileId %||% NULL
+      token <- .connections_token_require("surveymonkey", sid, profile_id = profile_id)
       canonical_file_id <- .sm_mb_scalar(parsed$canonical_xlsform_file_id, "")
       canon <- tryCatch(.sm_mb_canonical_inst(sid, canonical_file_id), error = function(e) NULL)
       specs <- .sm_mb_normalize_survey_specs(parsed$surveys %||% list())
@@ -4915,7 +4916,8 @@ mount_surveymonkey_multibase <- function(pr) {
         res$setHeader("X-Pulso-Session", sid)
       }
       parsed <- .xlsform_editor_parse_body(req)
-      token <- .connections_token_require("surveymonkey", sid)
+      profile_id <- parsed$connection_profile_id %||% parsed$connectionProfileId %||% parsed$profile_id %||% parsed$profileId %||% NULL
+      token <- .connections_token_require("surveymonkey", sid, profile_id = profile_id)
       sm_multibase_import_independent(
         sid = sid,
         specs = parsed$surveys %||% list(),

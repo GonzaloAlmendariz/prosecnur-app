@@ -174,12 +174,19 @@ export async function apiMultiIntegratedAudit(payload: {
   guide_xlsform_file_id: string;
   origin_key_name: string;
   origins: MultiIntegratedOrigin[];
+  profile_id?: string;
+  connection_profile_id?: string;
 }) {
+  const { profile_id, connection_profile_id, ...requestPayload } = payload;
+  const profileId = profile_id?.trim() || connection_profile_id?.trim();
   const raw = await handle<unknown>(
     await apiFetch("/api/multi/integrated/audit", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...requestPayload,
+        ...(profileId ? { profile_id: profileId } : {}),
+      }),
     }),
   );
   return normalizeMultiIntegratedAudit(raw);
@@ -191,12 +198,19 @@ export async function apiMultiIntegratedImport(payload: {
   origins: MultiIntegratedOrigin[];
   base_name?: string;
   decisions?: MultiIntegratedDecisions;
+  profile_id?: string;
+  connection_profile_id?: string;
 }) {
+  const { profile_id, connection_profile_id, ...requestPayload } = payload;
+  const profileId = profile_id?.trim() || connection_profile_id?.trim();
   const raw = await handle<unknown>(
     await apiFetch("/api/multi/integrated/import", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...requestPayload,
+        ...(profileId ? { profile_id: profileId } : {}),
+      }),
     }),
   ) as Record<string, unknown>;
   return {
