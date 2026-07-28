@@ -3,6 +3,10 @@ import path from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
+import { ContactRound, PlugZap } from "../../../vendor/lucide-react";
+import { MonitoreoWorkbenchChrome } from "../components/MonitoreoWorkbenchChrome";
+import { MonitoreoRailLastUpdate } from "../components/MonitoreoRailLastUpdate";
+import { MonitoreoWorkbenchRail } from "../components/MonitoreoWorkbenchRail";
 import { MONITOREO_MODOS } from "../core/monitoreoRegistry";
 import {
   MonitoreoModuleChrome,
@@ -10,7 +14,6 @@ import {
 } from "./MonitoreoModuleChrome";
 
 const shellDir = path.resolve(__dirname);
-const componentsDir = path.resolve(shellDir, "../components");
 
 describe("semántica de navegación de Monitoreo", () => {
   test("las secciones con deep-link son enlaces y publican aria-current", () => {
@@ -30,20 +33,99 @@ describe("semántica de navegación de Monitoreo", () => {
     expect(rail).not.toMatch(/aria-selected=/);
   });
 
-  test("las pestañas locales conservan semántica tab sin fingir ser enlaces", () => {
+  test("las pestañas locales de acreditación delegan toda su apariencia al rail canónico", () => {
+    const rail = createElement(MonitoreoWorkbenchRail, {
+      pestanaActiva: "collectors",
+      activeSection: {
+        label: "Fuentes",
+        desc: "Plataformas y enlaces",
+        icon: PlugZap,
+      },
+      seccionActiva: "fuentes",
+      ariaLabel: "Flujos de monitoreo de acreditación",
+      className: "is-acreditacion",
+      iconOnlyTabs: true,
+      localTabs: [{
+        key: "collectors",
+        label: "Recopiladores",
+        detail: "1 enlace · inclusión",
+        icon: ContactRound,
+      }],
+      routeSectionLabel: "Acreditación · sección",
+      routeShortLabel: "Acreditación",
+      statusItems: [{
+        label: "Última actualización",
+        value: "23/07/26, 10:20 a. m.",
+        ready: true,
+      }],
+      onCambioPestana: () => undefined,
+    });
+    const html = renderToStaticMarkup(createElement("div", null,
+      rail,
+      createElement(MonitoreoWorkbenchChrome, {
+        seccionActiva: "fuentes",
+        rail: null,
+        head: null,
+        children: "Panel de fuentes",
+        contentRole: "tabpanel",
+        contentAriaLabelledBy: "monitoreo-fuentes-tab-collectors",
+      }),
+    ));
+
+    expect(html).toContain('class="pulso-context-tab-rail is-acreditacion"');
+    expect(html).toContain('role="tablist"');
+    expect(html).toContain('role="tab"');
+    expect(html).toContain('aria-selected="true"');
+    expect(html).toContain('id="monitoreo-fuentes-tab-collectors"');
+    expect(html).toContain('aria-controls="monitoreo-fuentes-panel"');
+    expect(html).toContain('id="monitoreo-fuentes-panel" role="tabpanel" aria-labelledby="monitoreo-fuentes-tab-collectors"');
+    expect(html).toContain('aria-live="off"');
+    expect(html).toContain('data-rail-tooltip="Recopiladores\n1 enlace · inclusión"');
+    expect(html).toContain('class="pulso-context-tab-rail-footer"');
+    expect(html).toContain('class="mon-rail-sync-date">23/07/26</span>');
+    expect(html).toContain('class="mon-rail-sync-time">10:20</span>');
+    expect(html).toContain('title="Última actualización: 23/07/26, 10:20 a. m."');
+    expect(html).not.toContain("mon-nav-item");
+    expect(html).not.toContain("mon-nav-tip");
+    expect(html).not.toContain('aria-current=');
+  });
+
+  test("acreditación y telefónico enlazan el panel con la pestaña activa", () => {
+    const profileFiles = [
+      "../profiles/acreditacion/AcreditacionMonitoreoPage.tsx",
+      "../profiles/telefonico/TelefonicoMonitoreoPage.tsx",
+    ];
+
+    for (const profileFile of profileFiles) {
+      const source = fs.readFileSync(path.resolve(shellDir, profileFile), "utf8");
+      expect(source).toContain('contentRole="tabpanel"');
+      expect(source).toContain('contentAriaLabelledBy={`monitoreo-${seccionActiva}-tab-${pestanaActiva}`}');
+    }
+  });
+
+  test("la cápsula compacta un corte ISO y distingue la ausencia de actualización", () => {
+    const updated = renderToStaticMarkup(createElement(MonitoreoRailLastUpdate, {
+      value: "2026-07-09T07:24:00",
+    }));
+    const empty = renderToStaticMarkup(createElement(MonitoreoRailLastUpdate, {
+      value: "Sin actualización",
+    }));
+
+    expect(updated).toContain('class="mon-rail-sync-date">09/07/26</span>');
+    expect(updated).toContain('class="mon-rail-sync-time">07:24</span>');
+    expect(empty).toContain('class="mon-rail-sync-date">Sin act.</span>');
+    expect(empty).not.toContain("Sin hora");
+  });
+
+  test("el adaptador conserva los dos eventos de sincronización local", () => {
     const source = fs.readFileSync(
-      path.join(componentsDir, "MonitoreoWorkbenchRail.tsx"),
+      path.resolve(shellDir, "../components/MonitoreoWorkbenchRail.tsx"),
       "utf8",
     );
-    const tabs = source.slice(
-      source.indexOf("<GlidingTabList"),
-      source.indexOf("</GlidingTabList>"),
-    );
 
-    expect(tabs).toMatch(/role="tablist"/);
-    expect(tabs).toMatch(/<button[\s\S]*?role="tab"/);
-    expect(tabs).toMatch(/aria-selected=\{active\}/);
-    expect(tabs).not.toMatch(/aria-current=/);
+    expect(source).toContain('new CustomEvent("prosecnur:monitoreo-local-tab"');
+    expect(source).toContain('window.addEventListener("prosecnur:monitoreo-local-tab-active"');
+    expect(source).toContain('window.removeEventListener("prosecnur:monitoreo-local-tab-active"');
   });
 
   test("el href conserva el contexto del proyecto y reemplaza solo la sección", () => {

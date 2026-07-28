@@ -1,12 +1,12 @@
 import type { MonitoreoConfig, MonitoreoLastSheetsPublication } from "../../../../api/client";
+import type { MonitoreoCorte } from "../../corte/corteContract";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 
 export type TerritorialOutputsPanelProps = {
   config?: Partial<MonitoreoConfig>;
   clientSheets?: MonitoreoLastSheetsPublication | null;
   internalSheets?: MonitoreoLastSheetsPublication | null;
-  hasSnapshot: boolean;
-  nRows: number;
+  corte: MonitoreoCorte;
   syncedAt?: string;
   onPublished?: () => void;
 };
@@ -15,8 +15,7 @@ export function TerritorialOutputsPanel({
   config,
   clientSheets,
   internalSheets,
-  hasSnapshot,
-  nRows,
+  corte,
   syncedAt,
   onPublished,
 }: TerritorialOutputsPanelProps) {
@@ -28,8 +27,7 @@ export function TerritorialOutputsPanel({
       config={config}
       clientSheets={clientSheets}
       internalSheets={internalSheets}
-      hasSnapshot={hasSnapshot}
-      nRows={nRows}
+      corte={corte}
       syncedAt={syncedAt}
       onPublished={onPublished}
     />

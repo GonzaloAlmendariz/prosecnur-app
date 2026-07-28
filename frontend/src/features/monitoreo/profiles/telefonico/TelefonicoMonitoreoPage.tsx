@@ -34,6 +34,7 @@ import {
   type MonitoreoCollectorUse,
   type MonitoreoConfig,
   type MonitoreoGoal,
+  type MonitoreoGoalObjetivo,
   type MonitoreoInternalQueryCase,
   type MonitoreoInternalQueryIssue,
   type JobProgress as JobProgressData,
@@ -80,6 +81,8 @@ import {
   normalizeInternalQueries,
   summarizeInternalCases,
 } from "../../internalQueries";
+import { corteAcreditacion } from "../../corte/corteAdapters";
+import { recorteTabla, type MonitoreoCorte } from "../../corte/corteContract";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import {
@@ -96,6 +99,14 @@ import {
   type AcreditacionQualityAlertTone,
 } from "./TelefonicoPhoneAlerts";
 import { upsertAcreditacionActorGoal } from "./TelefonicoActorGoals";
+import {
+  TelefonicoPlatformGapPanel,
+  TelefonicoReconciliationSummary,
+  TelefonicoStatusMatrixPanel,
+} from "./TelefonicoTeamDiagnostics";
+import { buildTelefonicoPlatformGap, buildTelefonicoStatusMatrix } from "./telefonicoTeamModel";
+import { TelefonicoCumplimientoPanel, TelefonicoEmbudo } from "./TelefonicoGoalPanel";
+import { buildTelefonicoCumplimiento } from "./telefonicoGoalModel";
 import {
   buildAcreditacionPhoneDailyPoints,
   buildAcreditacionPhoneDailyStatusSeries,
@@ -209,11 +220,11 @@ export const ACREDITACION_CONSULTA_TABS = [
 ] as const;
 export type AcreditacionConsultaTab = typeof ACREDITACION_CONSULTA_TABS[number]["key"];
 export const ACREDITACION_PHONE_TABS = [
-  { key: "resumen", label: "Resumen", detail: "Barrido telefónico", icon: PhoneCall },
+  { key: "resumen", label: "Resumen", detail: "Cumplimiento y casos", icon: PhoneCall },
   { key: "consultados", label: "Consultados", detail: "Efectivas Kobo", icon: CheckCircle2 },
   { key: "dia", label: "Día", detail: "Efectivas Kobo", icon: CalendarRange },
   { key: "tiempos", label: "Tiempos", detail: "Duración Kobo", icon: Clock3 },
-  { key: "incidencia", label: "Incidencias de la base", detail: "Sin efectiva e insistencia", icon: AlertCircle },
+  { key: "incidencia", label: "Sin efectiva", detail: "Insistencia y reintentos", icon: AlertCircle },
   { key: "responsables", label: "Responsables", detail: "Equipo y carga", icon: ContactRound },
   { key: "alertas", label: "Alertas", detail: "Alertas reales", icon: ShieldAlert },
   { key: "supervision", label: "Supervisión telefónica", detail: "Control y muestra", icon: ClipboardCheck },
@@ -1158,7 +1169,7 @@ function AcreditacionCanonicalModelWorkbench({
   }, [onStateChange, state?.config]);
 
   if (!reports) {
-    return <EmptyPanel title="Modelo pendiente" detail="Todavía no hay reporte local preparado para reconstruir metas, mecanismos y barrido." />;
+    return <EmptyPanel title="Modelo pendiente" detail="El último corte no incluye el modelo operativo. Sincroniza las fuentes para reconstruir metas, mecanismos y barrido." />;
   }
 
   return (
@@ -1166,9 +1177,9 @@ function AcreditacionCanonicalModelWorkbench({
       <section
         className={`pulso-panel mon-fill-panel mon-acr-model-panel${isPhoneModel && activeVisibleTab === "estrategias" ? " is-phone-model-schedule" : ""}`}
         style={{
-          minHeight: isPhoneModel && activeVisibleTab === "estrategias" ? "100%" : 0,
-          height: isPhoneModel && activeVisibleTab === "estrategias" ? "100%" : undefined,
-          overflowY: "auto",
+          minHeight: 0,
+          height: undefined,
+          overflowY: isPhoneModel && activeVisibleTab === "estrategias" ? "visible" : "auto",
           scrollbarGutter: "stable",
         } as CSSProperties}
         aria-label="Modelo operativo canónico de acreditación"
@@ -1336,7 +1347,7 @@ function AcreditacionPhoneModelReadingPanel({
       icon: KeyRound,
       label: "CodPulso",
       value: comparisonRows ? `${fmt(comparison.matchedEffective)}/${fmt(Math.max(comparison.phoneEffective, comparison.platformComplete))} tel. alineadas` : "Sin cruce leído",
-      detail: comparison.mismatch ? phoneCodPulsoDifferenceHint(comparison) : "estado telefonico se revisa en Llamadas",
+      detail: comparison.mismatch ? phoneCodPulsoDifferenceHint(comparison) : "el estado de la llamada se revisa en Llamadas",
       tone: comparisonRows && comparison.mismatch ? "warning" : comparisonRows ? "ready" : "neutral",
     },
   ] as const;
@@ -3059,10 +3070,12 @@ function AcreditacionPhoneQuotaEditor({
       tone: totalEffective ? "ready" : "neutral",
     },
     {
+      // Se llamaba «Avance» y mostraba la brecha: con el mínimo cubierto decía
+      // «Avance 0» junto a un 105,8 % de cumplimiento (plan §2.5).
       key: "gap",
-      label: "Avance",
-      value: fmt(totalGap),
-      detail: totalGap ? "se revisa en Avance" : "meta cubierta",
+      label: "Brecha",
+      value: totalGap ? fmt(totalGap) : "0",
+      detail: totalGap ? "faltan para el mínimo" : "mínimo cubierto",
       tone: totalGap ? "warning" : "ready",
     },
   ] as const;
@@ -3260,17 +3273,21 @@ function AcreditacionPhoneQuotaEditor({
         <div className="mon-phone-quota-editor-list">
           {rows.map((row) => {
             const progressPct = row.meta && row.meta > 0 ? safePercentValue(row.effective, row.meta) ?? 0 : safePercentValue(row.effective, row.universe) ?? 0;
+            // `nonEffectiveMargin` es universo − mínimo: la base que queda
+            // disponible por encima de lo que hay que alcanzar. Llamarla «no
+            // efectivas» nombraba como resultado de campo lo que es capacidad
+            // remanente (plan §2.5).
             const marginTitle = row.nonEffectiveMargin == null
               ? "Sin base"
               : row.nonEffectiveMargin >= 0
-                ? `${fmt(row.nonEffectiveMargin)} no efectivas posibles`
-                : `${fmt(Math.abs(row.nonEffectiveMargin))} base faltante`;
+                ? `${fmt(row.nonEffectiveMargin)} casos de reserva por encima del mínimo`
+                : `${fmt(Math.abs(row.nonEffectiveMargin))} casos de base faltantes para el mínimo`;
             const marginLabel = row.nonEffectiveMargin == null
               ? "Sin base"
               : row.nonEffectiveMargin >= 0
                 ? fmt(row.nonEffectiveMargin)
                 : fmt(Math.abs(row.nonEffectiveMargin));
-            const marginMetricLabel = row.nonEffectiveMargin != null && row.nonEffectiveMargin < 0 ? "Base faltante" : "No efectivas";
+            const marginMetricLabel = row.nonEffectiveMargin != null && row.nonEffectiveMargin < 0 ? "Base faltante" : "Reserva";
             return (
               <article key={row.key} className={`mon-phone-quota-editor-row ${row.source === "configured" ? "is-configured" : ""} ${row.gap ? "is-gap" : "is-ready"}`}>
                 <header>
@@ -4403,13 +4420,13 @@ function prettyModelLabel(value: string) {
     .replace(/\bpartial\b/i, "Parcial");
 }
 
-function scopeForView(view: MonitoreoSeccion, family?: string): MonitoreoReportScope {
-  if (view === "telefonico") return "phone_summary";
-  if (view === "modelo" && family === "telefonico") return "phone_summary";
-  if (view === "consultas" && family === "telefonico") return "phone_summary";
-  if (view === "consultas") return "queries_summary";
-  if (view === "modelo") return "advance_summary";
-  if (view === "fuentes") return "source";
+function scopeForView(requestedSection: MonitoreoSeccion, profileFamily?: string): MonitoreoReportScope {
+  if (requestedSection === "telefonico") return "phone_summary";
+  if (requestedSection === "modelo" && profileFamily === "telefonico") return "phone_summary";
+  if (requestedSection === "consultas" && profileFamily === "telefonico") return "phone_summary";
+  if (requestedSection === "consultas") return "queries_summary";
+  if (requestedSection === "modelo") return "advance_summary";
+  if (requestedSection === "fuentes") return "source";
   return "advance_summary";
 }
 
@@ -4545,9 +4562,67 @@ function phonePercentLabel(value: number | null | undefined) {
   return formatPercentLabel(value);
 }
 
+/**
+ * Objetivo declarado para una fila de cuota: `barrido` (trabajar el universo
+ * entero) o `minimo` (el piso interno basta). Lo declara el usuario por meta y
+ * viaja en el `.pulso`; sin declaración explícita se asume `minimo`, que es como
+ * se comportaba la app antes de existir el campo.
+ */
+function objetivoDeclaradoParaCuota(
+  goals: MonitoreoGoal[],
+  row: { variable: string; value: string },
+): MonitoreoGoalObjetivo | null {
+  const valorBuscado = normalizeSourceMatch(row.value);
+  if (!valorBuscado) return null;
+  const variableBuscada = normalizeSourceMatch(row.variable);
+  const candidatos = goals.filter((goal) => Object.entries(goal.filters ?? {}).some(
+    ([, value]) => normalizeSourceMatch(value) === valorBuscado,
+  ));
+  if (!candidatos.length) return null;
+  // Si más de una meta comparte el valor, gana la que también calza la variable.
+  const exacto = candidatos.find((goal) => Object.entries(goal.filters ?? {}).some(
+    ([key, value]) => normalizeSourceMatch(value) === valorBuscado
+      && (normalizeSourceMatch(key) === variableBuscada || phoneQuotaVariableLabel(key) === row.variable),
+  ));
+  return (exacto ?? candidatos[0]).objetivo ?? null;
+}
+
+/**
+ * Nombre corto de la plataforma de respuestas, leído de las columnas del corte.
+ * Evita hardcodear "Kobo" en un módulo que también corre con SurveyMonkey.
+ */
+function phonePlatformShortLabel(...rowSets: Array<Array<Record<string, unknown>>>) {
+  const columns = rowSets.flatMap((rows) => rows.flatMap((row) => Object.keys(row))).map(normalizeSourceMatch);
+  if (columns.some((column) => column.includes("kobo"))) return "Kobo";
+  if (columns.some((column) => column.includes("surveymonkey") || column.includes("survey monkey"))) return "SurveyMonkey";
+  return "plataforma";
+}
+
+/**
+ * Estados que niegan el logro. `includes("efectiv")` los daba por buenos:
+ * «No efectivo / No beneficiario» se pintaba de verde y se sumaba a las
+ * efectivas (245 en vez de 222 en acnur_pdm).
+ */
+function phoneStatusIsNegated(key: string) {
+  return /(^|\s|\/)(no|sin)\s+(efectiv|complet|contactad|benefici)/.test(key)
+    || key.includes("no benefici");
+}
+
+/**
+ * Encuesta lograda. Estricta a propósito: «Contactado por WhatsApp» es contacto,
+ * no entrevista, y «Encuesta parcial» no cierra el caso.
+ */
+function phoneStatusIsEffective(label: string) {
+  const key = normalizeSourceMatch(label);
+  if (!key || phoneStatusIsNegated(key)) return false;
+  if (key.includes("parcial")) return false;
+  return key.includes("efectiv") || key.includes("completa") || key.includes("completo");
+}
+
 function phoneStatusTone(label: string): "good" | "warn" | "risk" | "unswept" | "muted" {
   const key = normalizeSourceMatch(label);
   if (key.includes("por barrer") || key.includes("no barrido") || key.includes("pendiente")) return "unswept";
+  if (phoneStatusIsNegated(key)) return "risk";
   if (key.includes("efectiv") || key.includes("complet") || key.includes("contactado")) return "good";
   if (key.includes("no contesta") || key.includes("insistencia") || key.includes("reintento")) return "warn";
   if (key.includes("rechazo") || key.includes("fall") || key.includes("observ")) return "risk";
@@ -4844,8 +4919,13 @@ export function buildAcreditacionPhoneTimeControl({
   const durationAlerts = alerts.filter((alert) => alert.signal.kind === "short_duration");
   const timeRows = phoneTimeRowsWithAssignments(rows, assignmentRows);
   const allCases = (timeRows.map(phoneTimeCaseFromRow).filter(Boolean) as AcreditacionPhoneTimeCase[]).sort(phoneTimeCaseSort);
-  const cases = allCases.slice(0, caseLimit);
-  const hiddenCases = Math.max(0, allCases.length - cases.length);
+  // Listar 160 entrevistas de duración normal no es auditar nada: la tabla es
+  // para lo que hay que mirar. Si ninguna tiene salvedad, no se lista ninguna y
+  // el panel lo dice en una línea.
+  const flaggedCases = allCases.filter((item) => item.status !== "normal");
+  const listables = flaggedCases.length ? flaggedCases : [];
+  const cases = listables.slice(0, caseLimit);
+  const hiddenCases = Math.max(0, listables.length - cases.length);
   const under2 = allCases.length ? allCases.filter((item) => item.status === "muy_corto").length : durationAlerts.reduce((sum, alert) => {
     const threshold = phoneDurationAlertThreshold(alert);
     return threshold <= 2 ? sum + phoneAlertCaseCount(alert) : sum;
@@ -4863,21 +4943,21 @@ export function buildAcreditacionPhoneTimeControl({
   const bucketInputs: Array<Omit<AcreditacionPhoneTimeBucket, "percent">> = [
     {
       key: "under2",
-      label: "<2 min",
-      hint: "supervisión prioritaria",
+      label: "Menos de 2 min",
+      hint: "revisar primero",
       count: under2,
       tone: under2 ? "danger" : "ok",
     },
     {
       key: "under5",
-      label: "<5 min",
-      hint: "revisar saltos y consistencia",
+      label: "Entre 2 y 5 min",
+      hint: "puede faltar respuesta",
       count: under5,
       tone: under5 ? "warning" : "ok",
     },
     {
       key: "normal",
-      label: "5+ min",
+      label: "5 min o más",
       hint: "duración esperada",
       count: normal,
       tone: "ok",
@@ -5136,36 +5216,76 @@ function phoneDisplayRowsWithBaseColumn(rows: Array<Record<string, unknown>>) {
   });
 }
 
+/**
+ * Totales del barrido con **un solo origen por métrica**.
+ *
+ * La versión anterior encadenaba `??`/`||` entre poblaciones incompatibles: las
+ * efectivas podían venir de la suma por responsable, de la suma diaria o de los
+ * estados «buenos» según qué bloque llegara primero, y los no barridos podían
+ * salir de la suma por responsable, que excluye los casos sin asignar. Tres
+ * cifras distintas bajo la misma etiqueta. Ahora toda métrica se resuelve sobre
+ * la **base telefónica completa** y, si el corte no la trae, queda en `null`
+ * para que la UI muestre «—» en vez de sustituirla por otra cosa.
+ * Ver docs/plan-monitoreo-telefonico-2026-07.md §4.
+ */
+function phoneStatusCasesFor(
+  statusRows: Array<Record<string, unknown>>,
+  matches: (label: string) => boolean,
+) {
+  const hit = statusRows.filter((row) => matches(phoneRowValue(row, ["Estado", "Estatus", "Indicador"])));
+  if (!hit.length) return null;
+  return hit.reduce((sum, row) => sum + phoneRowNumber(row, ["Casos", "Valor"], 0), 0);
+}
+
 function phoneOperationTotals(
   summaryRows: Array<Record<string, unknown>>,
   statusRows: Array<Record<string, unknown>>,
   responsibleRows: Array<Record<string, unknown>>,
-  dailyRows: Array<Record<string, unknown>>,
 ) {
+  // Todos los casos de la base tienen un estado (incluido «No barrido»), así que
+  // la suma de estados es la misma población que el total del resumen.
+  const statusTotal = statusRows.length
+    ? statusRows.reduce((sum, row) => sum + phoneRowNumber(row, ["Casos"], 0), 0)
+    : null;
   const total = phoneSummaryValue(summaryRows, "total telefonico")
     ?? phoneSummaryValue(summaryRows, "total telefónico")
-    ?? statusRows.reduce((sum, row) => sum + phoneRowNumber(row, ["Casos"], 0), 0);
+    ?? statusTotal;
+
+  // «No barrido» es un estado de la base, no una suma por responsable: sumarlo
+  // por responsable dejaba fuera los casos sin asignar.
   const unswept = phoneSummaryValue(summaryRows, "no barridos")
-    ?? responsibleRows.reduce((sum, row) => sum + (phoneResponsibleMetrics(row).unswept ?? 0), 0);
-  const swept = phoneSummaryValue(summaryRows, "casos barridos") ?? Math.max(0, total - unswept);
-  const effectiveFromResponsible = responsibleRows.reduce((sum, row) => sum + phoneResponsibleMetrics(row).effective, 0);
-  const effectiveFromDaily = dailyRows.reduce((sum, row) => sum + phoneRowNumber(row, ["Efectivas", "Casos"], 0), 0);
-  const effective = effectiveFromResponsible || effectiveFromDaily || statusRows.reduce((sum, row) => {
-    const label = phoneRowValue(row, ["Estado", "Estatus", "Indicador"]);
-    return phoneStatusTone(label) === "good" ? sum + phoneRowNumber(row, ["Casos", "Valor"], 0) : sum;
-  }, 0);
-  const incidents = responsibleRows.reduce((sum, row) => sum + (phoneResponsibleMetrics(row).nonEffective ?? 0), 0) || Math.max(0, swept - effective);
+    ?? phoneStatusCasesFor(statusRows, (label) => phoneStatusTone(label) === "unswept");
+
+  const swept = phoneSummaryValue(summaryRows, "casos barridos")
+    ?? (total != null && unswept != null ? Math.max(0, total - unswept) : null);
+
+  // Efectiva declarada en el barrido: el estado de la hoja. La producción real
+  // la aporta la plataforma y se muestra aparte, nunca mezclada con esta.
+  const effective = phoneStatusCasesFor(statusRows, phoneStatusIsEffective);
+
+  // Definición aritmética sobre la misma población: barridos que no terminaron
+  // en efectiva. No se sustituye por la suma por responsable.
+  const incidents = swept != null && effective != null ? Math.max(0, swept - effective) : null;
+
   const responsables = new Set(responsibleRows.map((row, index) => phoneResponsibleName(row, index)).filter((name) => !phoneIsUnassignedResponsible(name))).size;
   return {
-    total,
-    swept,
-    unswept,
-    effective,
-    incidents,
+    total: total ?? 0,
+    swept: swept ?? 0,
+    unswept: unswept ?? 0,
+    effective: effective ?? 0,
+    incidents: incidents ?? 0,
+    /** `false` cuando el corte no trae la métrica y la UI debe mostrar «—». */
+    hasTotal: total != null,
+    hasSwept: swept != null,
+    hasUnswept: unswept != null,
+    hasEffective: effective != null,
+    hasIncidents: incidents != null,
     responsables,
     sweptPct: safePercentValue(swept, total),
     unsweptPct: safePercentValue(unswept, total),
+    /** Sobre barridos: es una tasa de resultado, no una proporción de la base. */
     incidentRatio: safePercentValue(incidents, swept),
+    effectiveOverSweptPct: safePercentValue(effective, swept),
   };
 }
 
@@ -5418,11 +5538,15 @@ function AcreditacionPhoneStorage({ totals }: { totals: ReturnType<typeof phoneO
   });
   const [hoveredSegmentKey, setHoveredSegmentKey] = useState("");
   const hoveredSegment = positionedSegments.find((segment) => segment.key === hoveredSegmentKey) ?? null;
+  // Las cuatro tarjetas comparten denominador: todas se leen sobre la base.
+  // Antes «Sin efectiva» usaba el barrido y se leía como comparable con las
+  // otras tres. La tasa sobre barridos sigue disponible, pero como dato
+  // secundario y rotulada como tal (plan §4).
   const operationItems = [
-    { key: "swept", label: "Barridos", value: totals.swept, pct: totals.sweptPct, hint: "de la base", tone: "swept", detail: "Casos con un estado telefonico registrado en el barrido." },
-    { key: "effective", label: "Efectivas tel.", value: totals.effective, pct: safePercentValue(totals.effective, total), hint: "estado declarado", tone: "effective", detail: "Casos que el barrido declara como efectivos; deben coincidir con Kobo por CodPulso." },
-    { key: "incidents", label: "Sin efectiva", value: totals.incidents, pct: totals.incidentRatio, hint: "del barrido", tone: totals.incidents > 0 ? "incidents" : "calm", detail: "Casos barridos con estado telefonico distinto de efectivo." },
-    { key: "unswept", label: "Por barrer", value: totals.unswept, pct: totals.unsweptPct, hint: "de la base", tone: "unswept", detail: "Casos de la base telefonica que aun no tienen estado de llamada." },
+    { key: "swept", label: "Barridos", value: totals.swept, pct: totals.sweptPct, hint: "de la base", tone: "swept", detail: "Casos que ya se llamaron y tienen un estado registrado.", available: totals.hasSwept },
+    { key: "effective", label: "Declaradas efectivas", value: totals.effective, pct: safePercentValue(totals.effective, total), hint: "de la base", tone: "effective", detail: "Lo que la hoja marca como efectivo. La producción real la valida la plataforma.", available: totals.hasEffective },
+    { key: "incidents", label: "Sin efectiva", value: totals.incidents, pct: safePercentValue(totals.incidents, total), hint: "de la base", tone: totals.incidents > 0 ? "incidents" : "calm", detail: `Barridos con estado distinto de efectivo. Sobre el barrido son ${phonePercentLabel(totals.incidentRatio)}.`, available: totals.hasIncidents },
+    { key: "unswept", label: "Por barrer", value: totals.unswept, pct: totals.unsweptPct, hint: "de la base", tone: "unswept", detail: "Casos de la base que todavía nadie llamó.", available: totals.hasUnswept },
   ];
   const operationTooltip = (item: typeof operationItems[number]) => (
     `${item.label}: ${formatMetric(item.value)} casos · ${phonePercentLabel(item.pct)} ${item.hint}. ${item.detail}`
@@ -5465,19 +5589,19 @@ function AcreditacionPhoneStorage({ totals }: { totals: ReturnType<typeof phoneO
           </div>
         ) : null}
       </div>
-      <div className="mon-phone-operation-grid" aria-label="Lectura operativa del barrido">
+      <div className="mon-phone-operation-grid" aria-label="Lectura operativa del barrido, toda sobre la base telefónica">
         {operationItems.map((item) => (
           <span
             key={item.key}
-            className={`is-${item.tone}`}
+            className={`is-${item.tone}${item.available ? "" : " is-unavailable"}`}
             aria-label={operationTooltip(item)}
             title={operationTooltip(item)}
             style={{ "--phone-operation-pct": `${Math.max(0, Math.min(100, item.pct ?? 0))}%` } as CSSProperties}
           >
             <em>{item.label}</em>
-            <strong>{formatMetric(item.value)}</strong>
+            <strong>{item.available ? formatMetric(item.value) : "—"}</strong>
             <i aria-hidden="true" title={operationTooltip(item)} />
-            <small>{phonePercentLabel(item.pct)} {item.hint}</small>
+            <small>{item.available ? `${phonePercentLabel(item.pct)} ${item.hint}` : "sin dato en el corte"}</small>
           </span>
         ))}
       </div>
@@ -5579,7 +5703,21 @@ function AcreditacionPhoneStatusStorage({
 }
 
 function AcreditacionPhoneResponsibleCards({ rows }: { rows: Array<Record<string, unknown>> }) {
-  const assignedRows = rows.filter((row, index) => !phoneIsUnassignedResponsible(phoneResponsibleName(row, index)));
+  const assignedRows = rows
+    .filter((row, index) => !phoneIsUnassignedResponsible(phoneResponsibleName(row, index)))
+    // Ordenar por efectivas absolutas premia a quien tiene más asignados y deja
+    // último a quien exige acción hoy (53 asignados, 4 barridos). El criterio es
+    // la proporción sin trabajar (plan §9).
+    .slice()
+    .sort((a, b) => {
+      const left = phoneResponsibleMetrics(a);
+      const right = phoneResponsibleMetrics(b);
+      const asignadosA = left.assigned ?? 0;
+      const asignadosB = right.assigned ?? 0;
+      const pendienteA = asignadosA > 0 ? (left.unswept ?? 0) / asignadosA : 0;
+      const pendienteB = asignadosB > 0 ? (right.unswept ?? 0) / asignadosB : 0;
+      return pendienteB - pendienteA || (right.unswept ?? 0) - (left.unswept ?? 0) || right.effective - left.effective;
+    });
   const unassignedRows = rows.filter((row, index) => phoneIsUnassignedResponsible(phoneResponsibleName(row, index)));
   const visibleActors = new Set(assignedRows.map((row) => normalizeSourceMatch(phoneResponsibleActorName(row))).filter(Boolean));
   const showActorContext = visibleActors.size > 1;
@@ -5728,7 +5866,7 @@ function AcreditacionPhoneIncidenceSection({
     return (
       <EmptyPanel
         title="Sin incidencia de base"
-        detail="Aún no hay llamadas barridas. Primero asigna responsables y sincroniza estados de llamada."
+        detail="El corte aún no incluye llamadas barridas. Asigna responsables y sincroniza los estados de llamada."
       />
     );
   }
@@ -5768,11 +5906,30 @@ function phoneOpsPercent(value: number, total: number) {
   return Math.max(0, Math.min(100, (value / total) * 100));
 }
 
-function phoneAttemptIntensity(avg: number | null) {
+/**
+ * Intensidad de insistencia. Con una referencia del equipo, califica por desvío
+ * relativo: una etiqueta que le sale a los 13 responsables por igual no
+ * discrimina nada (plan §8). Sin referencia mantiene los umbrales absolutos.
+ */
+function phoneAttemptIntensity(avg: number | null, referencia: number | null = null) {
   if (avg == null) return { key: "unknown", label: "S/D insistencia" };
+  if (referencia != null && referencia > 0) {
+    const ratio = avg / referencia;
+    if (ratio >= 1.25) return { key: "high", label: "Insiste más que el equipo" };
+    if (ratio <= 0.75) return { key: "low", label: "Insiste menos que el equipo" };
+    return { key: "medium", label: "En el promedio del equipo" };
+  }
   if (avg >= 4) return { key: "high", label: "Insistencia alta" };
   if (avg >= 3) return { key: "medium", label: "Insistencia media" };
   return { key: "low", label: "Insistencia baja" };
+}
+
+/** Mediana simple; devuelve `null` si no hay valores utilizables. */
+function phoneMedian(values: Array<number | null | undefined>) {
+  const clean = values.filter((value): value is number => value != null && Number.isFinite(value)).sort((a, b) => a - b);
+  if (!clean.length) return null;
+  const mid = Math.floor(clean.length / 2);
+  return clean.length % 2 ? clean[mid] : (clean[mid - 1] + clean[mid]) / 2;
 }
 
 type AcreditacionPhoneNoAnswerCase = {
@@ -5846,17 +6003,23 @@ function AcreditacionPhoneTimeWorkbench({
   const pendingReview = model.under2 + model.under5 + model.missing;
   return (
     <div className="mon-phone-time-workbench" aria-label="Validación de tiempos Kobo">
+      {/* El hero decía lo mismo que la grilla de abajo con otros rótulos:
+          Normal/Corta/Muy corta arriba y <2/<5/5+ debajo. Ahora el titular da
+          el veredicto y los tramos se cuentan una sola vez (plan §9). */}
       <section className={`mon-phone-time-hero is-${model.under2 ? "danger" : model.under5 ? "warning" : "ok"}`}>
         <div>
-          <span><Clock3 size={14} /> Validación de tiempos</span>
-          <strong>Duración de efectivas Kobo</strong>
-          <p>{formatMetric(model.totalEffective)} respuestas completas pasan filtro y no son prueba; {pendingReview ? `${formatMetric(pendingReview)} requieren revisión.` : "sin tiempos críticos."}</p>
-        </div>
-        <div className="mon-phone-time-hero-kpis">
-          <span className="is-ok"><em>Normal</em><strong>{formatMetric(model.normal)}</strong><small>5+ min</small></span>
-          <span className={model.under5 ? "is-warning" : "is-ok"}><em>Corta</em><strong>{formatMetric(model.under5)}</strong><small>2-5 min</small></span>
-          <span className={model.under2 ? "is-danger" : "is-ok"}><em>Muy corta</em><strong>{formatMetric(model.under2)}</strong><small>{"<2 min"}</small></span>
-          <span className={model.missing ? "is-warning" : "is-ok"}><em>Tiempo leído</em><strong>{formatMetric(reviewed)}</strong><small>{model.missing ? `${formatMetric(model.missing)} sin dato` : "lectura lista"}</small></span>
+          <span><Clock3 size={14} /> Duración</span>
+          <strong>
+            {pendingReview
+              ? `${formatMetric(pendingReview)} entrevista${pendingReview === 1 ? "" : "s"} por revisar`
+              : "Ninguna entrevista por revisar"}
+          </strong>
+          <p>
+            {pendingReview
+              ? `De ${formatMetric(model.totalEffective)} entrevistas completas, estas duraron menos de lo esperado.`
+              : `Las ${formatMetric(model.totalEffective)} entrevistas completas duraron lo esperado.`}
+            {model.missing ? ` ${formatMetric(model.missing)} no tienen duración registrada.` : ""}
+          </p>
         </div>
       </section>
       <AcreditacionPhoneSupervisionTimeControl model={model} />
@@ -5995,11 +6158,12 @@ function AcreditacionPhoneSupervisionTimeControl({ model }: { model: Acreditacio
     <section className={`mon-phone-time-control is-${reviewTone}`} aria-label="Control de tiempo de encuestas Kobo">
       <header className="mon-phone-ops-head mon-phone-time-control-head">
         <div>
-          <span><Table2 size={13} /> Auditoría de duración</span>
-          <strong>Casos efectivos Kobo por tiempo</strong>
-          <small>La duración clasifica calidad de la respuesta; no cambia el estado telefónico del barrido.</small>
+          <span><Table2 size={13} /> Duración de las entrevistas</span>
+          <strong>Cuánto duró cada entrevista completa</strong>
+          <small>Una entrevista muy corta puede indicar que se saltaron preguntas. No cambia el estado de la llamada.</small>
         </div>
-        <em>{model.cases.length ? `${formatMetric(model.cases.length)} listados` : `${formatMetric(model.flaggedTotal)} por revisar`}</em>
+        {/* Cuántas hay que mirar, no cuántas filas se pintaron. */}
+        {reviewTotal ? <em>{formatMetric(reviewTotal)} por revisar</em> : null}
       </header>
       <div className="mon-phone-time-track" aria-label="Distribución por duración">
         {model.buckets.map((bucket) => (
@@ -6021,13 +6185,17 @@ function AcreditacionPhoneSupervisionTimeControl({ model }: { model: Acreditacio
         ))}
       </div>
       {model.cases.length ? (
-        <div className="mon-phone-time-cases" aria-label="Casos efectivos Kobo por duración">
+        <div className="mon-phone-time-cases" aria-label="Entrevistas que requieren revisión por duración">
           <header className="mon-phone-time-cases-title">
             <div>
-              <span>Listado de tiempos Kobo</span>
-              <strong>{reviewTotal ? `${formatMetric(reviewTotal)} con salvedad de duración` : "Todas las efectivas tienen duración normal"}</strong>
+              <span>Para revisar</span>
+              <strong>{formatMetric(reviewTotal)} entrevista{reviewTotal === 1 ? "" : "s"} fuera de lo esperado</strong>
             </div>
-            <em>{formatMetric(model.cases.length)} visibles</em>
+            <em>
+              {model.hiddenCases
+                ? `${formatMetric(model.cases.length)} de ${formatMetric(model.cases.length + model.hiddenCases)}`
+                : `${formatMetric(model.cases.length)} listadas`}
+            </em>
           </header>
           {caseGroups.map((group) => (
             <section key={`phone-time-group-${group.key}`} className={`is-${group.tone}`}>
@@ -6068,8 +6236,8 @@ function AcreditacionPhoneSupervisionTimeControl({ model }: { model: Acreditacio
               <p>{phoneDurationAlertDisplayDetail(alert)}</p>
               <em>{formatMetric(phoneAlertCaseCount(alert))} caso{phoneAlertCaseCount(alert) === 1 ? "" : "s"}</em>
             </article>
-          )) : (
-            <p>No hay tabla de duración Kobo en este corte. Configura inicio/fin o duración si la encuesta no trae esos campos detectables.</p>
+          )) : model.normal ? null : (
+            <p>Este corte no trae la duración de las entrevistas.</p>
           )}
         </div>
       )}
@@ -6135,7 +6303,7 @@ function AcreditacionPhoneSupervisionSamplePlan({
       </div>
       <DataTable
         rows={plan.tableRows}
-        empty="No hay efectivas por responsable para proponer una base de supervisión."
+        empty="El corte no desglosa efectivas por responsable. Sincroniza el barrido antes de preparar la supervisión."
         preferredColumns={["Responsable", "Base", "Efectivas", "Objetivo 30%", plan.hasReadBase ? "Base leída" : "Base propuesta", "Por completar", "Cobertura", "Prioridad"]}
         maxColumns={8}
       />
@@ -6197,7 +6365,7 @@ function AcreditacionPhoneSupervisionPriorityPanel({ groups }: { groups: Acredit
             <em>{formatMetric(group.count)} caso{group.count === 1 ? "" : "s"}</em>
           </article>
         )) : (
-          <EmptyPanel title="Sin prioridades telefónicas" detail="No hay alertas activas de llamadas, responsables o barrido." />
+          <EmptyPanel title="Sin prioridades en el corte" detail="El último corte no reporta alertas activas. Revisa la sincronización antes de cerrar la supervisión." />
         )}
       </div>
     </section>
@@ -6218,13 +6386,13 @@ function AcreditacionPhoneQualityAlertsPanel({
   const observationLabel = observationCount === 1 ? "observación" : "observaciones";
   const heroTitle = observationCount
     ? `${formatMetric(observationCount)} ${observationLabel} localizada${observationCount === 1 ? "" : "s"}`
-    : "No hay observaciones telefónicas activas";
+    : "Sin observaciones en el último corte";
   const heroCopy = observationCount
     ? `Impactan ${formatMetric(impactedCases)} caso${impactedCases === 1 ? "" : "s"} y separan preparación, asignación y calidad antes de pasar a supervisión.`
     : "El reporte canónico no trae señales de enlace, duración, asignación o conciliación Kobo-barrido.";
   const summary = [
-    { label: "Observaciones", value: formatMetric(observationCount), hint: observationCount ? "filas agregadas" : "sin pendientes", tone: model.highest },
-    { label: "Casos impactados", value: formatMetric(impactedCases), hint: impactedCases ? "requieren lectura" : "sin impacto", tone: impactedCases ? model.highest : "ok" },
+    { label: "Observaciones", value: formatMetric(observationCount), hint: observationCount ? "para revisar" : "sin pendientes", tone: model.highest },
+    { label: "Casos impactados", value: formatMetric(impactedCases), hint: impactedCases ? "afectados" : "sin impacto", tone: impactedCases ? model.highest : "ok" },
     { label: "Prioridad", value: acreditacionQualityPriorityValue(model.highest), hint: observationCount ? "nivel más alto" : "lista", tone: model.highest },
   ];
   return (
@@ -6264,14 +6432,14 @@ function AcreditacionPhoneQualityAlertsPanel({
           {visibleAlerts.length ? visibleAlerts.map((alert) => (
             <AcreditacionPhoneQualityAlertCard key={alert.id} alert={alert} />
           )) : (
-            <EmptyPanel title="Sin observaciones telefónicas" detail="El bloque canónico de alertas no trae señales de llamadas o asignación para este corte." />
+            <EmptyPanel title="Sin observaciones" detail="Este corte no trae nada que revisar en llamadas ni en asignación." />
           )}
         </div>
 
         <aside className="mon-quality-alert-where" aria-label="Ubicación de observaciones">
           <div>
             <span>Dónde revisar primero</span>
-            <strong>{model.locations.length ? `${model.locations.length} punto${model.locations.length === 1 ? "" : "s"}` : "Sin puntos pendientes"}</strong>
+            <strong>{model.locations.length ? `${model.locations.length} lugar${model.locations.length === 1 ? "" : "es"} con observaciones` : "Nada pendiente"}</strong>
           </div>
           {model.locations.length ? (
             <div className="mon-quality-alert-where-list">
@@ -6286,16 +6454,16 @@ function AcreditacionPhoneQualityAlertsPanel({
               ))}
             </div>
           ) : (
-            <p>El barrido telefónico no muestra observaciones pendientes.</p>
+            <p>No hay observaciones pendientes.</p>
           )}
           <div className="mon-quality-alert-rulebook" aria-label="Reglas de alerta telefónica">
-            <span>Señales entrenadas</span>
+            <span>Qué se está vigilando</span>
             {ACREDITACION_PHONE_ALERT_RULES.map((rule) => {
               const active = signalRows.find((row) => row.kind === rule.kind);
               return (
                 <div key={rule.kind} className={active ? "is-active" : ""}>
                   <strong>{rule.label}</strong>
-                  <em>{active ? `${formatMetric(active.count)} caso${active.count === 1 ? "" : "s"}` : "vigilada"}</em>
+                  <em>{active ? `${formatMetric(active.count)} caso${active.count === 1 ? "" : "s"}` : "sin casos"}</em>
                 </div>
               );
             })}
@@ -6377,7 +6545,7 @@ function AcreditacionPhonePendingInsistence({
   reattemptRows.filter((row, index) => !phoneIsUnassignedResponsible(phoneResponsibleName(row, index))).forEach((row, index) => { ensure(row, index).reattempt = row; });
   detailRows.filter((row, index) => !phoneIsUnassignedResponsible(phoneResponsibleName(row, index))).forEach((row, index) => { ensure(row, index).details.push(row); });
 
-  const rows = Array.from(rowsByName.values()).map((record) => {
+  const baseRows = Array.from(rowsByName.values()).map((record) => {
     const pending = phoneRowNumber(record.pending ?? {}, ["No barridos", "Por barrer"], 0);
     const assigned = phoneRowOptionalNumber(record.pending ?? {}, ["Casos asignados", "Asignados"]);
     const swept = assigned == null ? null : Math.max(0, assigned - pending);
@@ -6388,9 +6556,13 @@ function AcreditacionPhonePendingInsistence({
       index,
       value: phoneAttemptBucketValue(record.insistence ?? {}, bucket),
     }));
-    const noAnswerCases = record.details
+    // Un caso sin intentos no tiene disposición: no puede figurar como «no
+    // contesta». Antes se colaban con «0 intentos» bajo ese rótulo (plan §2.5).
+    const noAnswerCasesAll = record.details
       .map((item, index) => phoneNoAnswerCaseFromRow(item, index, record.key))
       .sort((a, b) => a.attempts - b.attempts || a.name.localeCompare(b.name, "es"));
+    const noAnswerCases = noAnswerCasesAll.filter((item) => item.attempts > 0);
+    const noAnswerWithoutAttempts = noAnswerCasesAll.length - noAnswerCases.length;
     return {
       ...record,
       assigned,
@@ -6402,9 +6574,15 @@ function AcreditacionPhonePendingInsistence({
       reattemptable: phoneRowOptionalNumber(record.reattempt ?? {}, ["Casos reintentables"]),
       lowReattempt: phoneRowOptionalNumber(record.reattempt ?? {}, ["Reintentos bajos"]),
       noAnswerCases,
-      intensity: phoneAttemptIntensity(avg),
+      noAnswerWithoutAttempts,
+      avgForMedian: avg,
     };
   }).sort((a, b) => b.pending - a.pending || b.noAnswer - a.noAnswer || a.name.localeCompare(b.name, "es"));
+
+  // La insistencia se califica contra el propio equipo: con umbrales absolutos
+  // los 13 responsables salían con la misma etiqueta (plan §8).
+  const medianaIntentos = phoneMedian(baseRows.map((row) => row.avgForMedian));
+  const rows = baseRows.map((row) => ({ ...row, intensity: phoneAttemptIntensity(row.avgForMedian, medianaIntentos) }));
 
   const totalAssigned = rows.reduce((sum, row) => sum + (row.assigned ?? 0), 0);
   const totalPending = rows.reduce((sum, row) => sum + row.pending, 0);
@@ -6427,16 +6605,23 @@ function AcreditacionPhonePendingInsistence({
       <header className="mon-phone-ops-head">
         <div>
           <span>Pendientes e insistencia</span>
-          <strong>Barrido pendiente y fuerza de contacto por responsable</strong>
+          <strong>Casos por llamar e insistencia, por responsable</strong>
         </div>
         <em>{formatMetric(rows.length)} responsables</em>
       </header>
+      {/* Eran cinco cifras del mismo peso. Lo que decide es cuántos casos
+          quedan sin dueño; el resto es contexto. */}
       <div className="mon-phone-pending-workbench-summary">
-        <span><strong>{formatMetric(totalAssigned)}</strong><em>personas asignadas</em></span>
-        <span className={totalPending ? "is-warning" : "is-ok"}><strong>{formatMetric(totalPending)}</strong><em>casos por barrer</em></span>
-        <span><strong>{formatMetric(totalNoAnswer)}</strong><em>casos que no contestan</em></span>
-        {unassignedCases ? <span className="is-warning" title={`${formatMetric(unassignedCases)} casos sin responsable asignado`}><strong>{formatMetric(unassignedCases)}</strong><em>sin asignar</em></span> : null}
-        <span><strong>{avgAttempts == null ? "S/D" : avgAttempts.toLocaleString("es-PE", { maximumFractionDigits: 1 })}</strong><em>promedio de intentos</em></span>
+        {unassignedCases ? (
+          <span className="is-warning is-lead" title="Casos de la base que nadie tiene asignados">
+            <strong>{formatMetric(unassignedCases)}</strong>
+            <em>sin responsable</em>
+          </span>
+        ) : null}
+        <span className={totalPending ? "is-warning" : "is-ok"}><strong>{formatMetric(totalPending)}</strong><em>por llamar, ya asignados</em></span>
+        <span><strong>{formatMetric(totalNoAnswer)}</strong><em>no contestan</em></span>
+        <span><strong>{formatMetric(totalAssigned)}</strong><em>casos repartidos</em></span>
+        <span><strong>{avgAttempts == null ? "—" : avgAttempts.toLocaleString("es-PE", { maximumFractionDigits: 1 })}</strong><em>intentos en promedio</em></span>
       </div>
       <div className="mon-phone-attempt-scale" aria-label="Escala de insistencia por intentos">
         {totalBuckets.map((bucket, index) => (
@@ -6458,17 +6643,16 @@ function AcreditacionPhonePendingInsistence({
               <header>
                 <div>
                   <strong>{row.name}</strong>
-                  <em>{formatMetric(assigned)} personas asignadas · {formatMetric(row.noAnswer)} casos sin respuesta telefónica</em>
+                  <em>{formatMetric(assigned)} casos asignados · {formatMetric(row.noAnswer)} sin respuesta</em>
                 </div>
                 <span className={row.pending ? "is-warning" : "is-ok"}>
                   <strong>{formatMetric(row.pending)}</strong>
-                  <em>casos por barrer</em>
+                  <em>por llamar</em>
                 </span>
               </header>
               <div className="mon-phone-pending-track-block">
                 <div className="mon-phone-track-labels">
-                  <span><strong>{formatMetric(swept)}</strong><em>casos barridos</em></span>
-                  <span><strong>{formatMetric(row.pending)}</strong><em>casos por barrer</em></span>
+                  <span><strong>{formatMetric(swept)}</strong><em>ya llamados</em></span>
                 </div>
                 <div className="mon-phone-pending-track" aria-label={`${row.name}: ${formatMetric(swept)} barridos y ${formatMetric(row.pending)} por barrer`}>
                   {swept > 0 ? (
@@ -6512,8 +6696,11 @@ function AcreditacionPhonePendingInsistence({
                   ))}
                   {!row.buckets.some((bucket) => bucket.value > 0) ? <i className="is-empty" style={{ "--phone-segment": "100%" } as CSSProperties} /> : null}
                 </div>
+                {/* La escala completa ya está arriba, para todo el equipo.
+                    Repetirla por responsable con seis píldoras —incluidos los
+                    tramos en cero— sumaba una fila de ruido trece veces. */}
                 <div className="mon-phone-attempt-inline-counts">
-                  {row.buckets.map((bucket) => (
+                  {row.buckets.filter((bucket) => bucket.value > 0).map((bucket) => (
                     <span key={`${row.key}-${bucket.key}-count`} className={`is-bucket-${bucket.index + 1}`}>
                       <em>{bucket.detail}</em>
                       <strong>{formatMetric(bucket.value)}</strong>
@@ -6521,28 +6708,50 @@ function AcreditacionPhonePendingInsistence({
                   ))}
                 </div>
               </div>
-              {row.noAnswerCases.length ? (
-                <div className="mon-phone-noanswer-cases">
-                  <header>
+              <div className="mon-phone-noanswer-cases">
+                {row.noAnswerCases.length ? (
+                  <details className="mon-phone-noanswer-disclosure">
+                    <summary className="mon-phone-noanswer-summary">
+                      <span>Casos que no contestan</span>
+                      <strong>{formatMetric(row.noAnswerCases.length)} caso{row.noAnswerCases.length === 1 ? "" : "s"} con intento registrado</strong>
+                      {row.noAnswerWithoutAttempts > 0 ? (
+                        <small title="Sin intento registrado no hay disposición: no cuentan como no contesta">
+                          {formatMetric(row.noAnswerWithoutAttempts)} sin intento registrado, fuera de esta lista
+                        </small>
+                      ) : null}
+                    </summary>
+                    <div className="mon-phone-noanswer-list">
+                      {row.noAnswerCases.map((item) => (
+                        <article key={item.id} className={`is-${item.intensity.key}`}>
+                          <div>
+                            <strong>{item.name}</strong>
+                            {/* Sin nombre en la base, `name` ya es el CodPulso:
+                                repetirlo abajo era decir dos veces lo mismo. */}
+                            <em>{[
+                              item.code && item.code !== item.name ? `CodPulso ${item.code}` : "",
+                              item.dateLabel,
+                            ].filter(Boolean).join(" · ") || "sin fecha"}</em>
+                          </div>
+                          <span><strong>{phoneAttemptCountLabel(item.attempts)}</strong><em>de {formatMetric(item.target)}</em></span>
+                          <i title={`${item.status}: ${phoneAttemptCountLabel(item.attempts)} de ${formatMetric(item.target)}`}>
+                            <b style={{ "--phone-case-pct": `${item.ratioPct}%` } as CSSProperties} />
+                          </i>
+                        </article>
+                      ))}
+                    </div>
+                  </details>
+                ) : (
+                  <div className="mon-phone-noanswer-summary is-empty">
                     <span>Casos que no contestan</span>
-                    <strong>{formatMetric(row.noAnswerCases.length)} caso{row.noAnswerCases.length === 1 ? "" : "s"} con intento registrado</strong>
-                  </header>
-                  <div className="mon-phone-noanswer-list">
-                    {row.noAnswerCases.map((item) => (
-                      <article key={item.id} className={`is-${item.intensity.key}`}>
-                        <div>
-                          <strong>{item.name}</strong>
-                          <em>{item.actor}{item.code ? ` · CodPulso ${item.code}` : " · sin CodPulso"}{item.dateLabel ? ` · ${item.dateLabel}` : ""}</em>
-                        </div>
-                        <span><strong>{phoneAttemptCountLabel(item.attempts)}</strong><em>de {formatMetric(item.target)} intentos base</em></span>
-                        <i title={`${item.status}: ${phoneAttemptCountLabel(item.attempts)} de ${formatMetric(item.target)}`}>
-                          <b style={{ "--phone-case-pct": `${item.ratioPct}%` } as CSSProperties} />
-                        </i>
-                      </article>
-                    ))}
+                    <strong>0 casos con intento registrado</strong>
+                    {row.noAnswerWithoutAttempts > 0 ? (
+                      <small title="Sin intento registrado no hay disposición: no cuentan como no contesta">
+                        {formatMetric(row.noAnswerWithoutAttempts)} sin intento registrado, fuera de esta lista
+                      </small>
+                    ) : null}
                   </div>
-                </div>
-              ) : null}
+                )}
+              </div>
               <footer>
                 <span className={`is-${row.intensity.key}`}>{row.intensity.label}</span>
                 {row.lowReattempt != null && row.lowReattempt > 0 ? <span>{formatMetric(row.lowReattempt)} casos con baja insistencia</span> : null}
@@ -7028,7 +7237,7 @@ type PhonePlatformComparisonTotals = {
 function phoneCodPulsoDifferenceParts(comparison: Pick<PhonePlatformComparisonTotals, "mismatch" | "phoneWithoutPlatform" | "platformWithoutPhone" | "withoutCode">) {
   const parts: string[] = [];
   if (comparison.platformWithoutPhone) {
-    parts.push(`${fmt(comparison.platformWithoutPhone)} Kobo efectivas con estado telefonico pendiente`);
+    parts.push(`${fmt(comparison.platformWithoutPhone)} entrevistas completas sin estado registrado en la hoja`);
   }
   if (comparison.phoneWithoutPlatform) {
     parts.push(`${fmt(comparison.phoneWithoutPlatform)} tel. efectivas sin Kobo`);
@@ -7281,7 +7490,7 @@ function AcreditacionPhonePlatformComparison({ rows }: { rows: Array<Record<stri
       <header className="mon-phone-ops-head">
         <div>
           <span>CodPulso</span>
-          <strong>Barrido telefónico vs efectivas Kobo</strong>
+          <strong>Lo registrado en la hoja contra lo entrevistado</strong>
           <small>Kobo define las efectivas; el barrido confirma o queda pendiente por código individual.</small>
         </div>
         <em>{effectiveBadge}</em>
@@ -7383,11 +7592,17 @@ function AcreditacionPhoneOperationsWorkbench({
   activeTab,
   fallbackEffective = 0,
   standalone = false,
+  corte = null,
+  goals = [],
 }: {
   reports: MonitoreoAcreditacionReports;
   activeTab: AcreditacionPhoneTab;
   fallbackEffective?: number;
   standalone?: boolean;
+  /** Contrato de corte para el embudo de portada; sin él, el embudo no se dibuja. */
+  corte?: MonitoreoCorte | null;
+  /** Metas del proyecto: aportan el objetivo declarado por cuota. */
+  goals?: MonitoreoGoal[];
 }) {
   const summaryRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["resumen_telefonico"]);
   const statusRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_telefonico"]);
@@ -7402,6 +7617,10 @@ function AcreditacionPhoneOperationsWorkbench({
   const insistenceRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["insistencia_no_contesta"]);
   const detailRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["detalle_no_contesta"]);
   const reattemptRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["reintentos_responsable"]);
+  // Bloques que el engine ya producía y nadie consumía: estados por encuestador
+  // y cruce plataforma↔barrido por responsable (plan §3).
+  const statusByResponsibleRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_responsable"]);
+  const platformByResponsibleRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["campo_vs_plataforma_responsable"]);
   const alertRows = rowsForSheetBlock(reports, "alertas", ["alertas"]);
   const reconciliationRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["comparacion_codpulso", "campo_vs_plataforma_codpulso"]);
   const dailyBlock = phoneDailyBlockForPanel(reports);
@@ -7409,9 +7628,23 @@ function AcreditacionPhoneOperationsWorkbench({
   const statusDailyRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_dia", "estados_dia", "estatus_telefonico_dia"]);
   const timeRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["control_tiempo_kobo", "tiempos_kobo", "validacion_tiempos"]);
   const comparison = phonePlatformComparisonTotals(reconciliationRows);
+  const statusMatrix = buildTelefonicoStatusMatrix(statusByResponsibleRows);
+  const platformGap = buildTelefonicoPlatformGap(platformByResponsibleRows);
+  const platformLabel = phonePlatformShortLabel(platformByResponsibleRows, reconciliationRows);
+  // El cuadro de conciliación se dibuja solo si el corte trae el cruce caso a
+  // caso; sin él no hay cifra que mostrar y no se inventa una equivalente.
+  const reconciliationTotals = reconciliationRows.length
+    ? {
+      plataforma: comparison.platformComplete,
+      barrido: comparison.phoneEffective,
+      cruzadas: comparison.matchedEffective,
+      pendientes: comparison.platformWithoutPhone,
+    }
+    : null;
   const dailyBlockIsKoboEffective = normalizeSourceMatch(dailyBlock?.id ?? "").includes("avance_efectivo");
+  const dailyPoints = buildAcreditacionPhoneDailyPoints(dailyRows);
   const dailyKoboEffective = dailyBlockIsKoboEffective
-    ? buildAcreditacionPhoneDailyPoints(dailyRows).reduce((sum, point) => sum + point.effective, 0)
+    ? dailyPoints.reduce((sum, point) => sum + point.effective, 0)
     : 0;
   const queries = normalizeInternalQueries(reports.internal_queries);
   const queryCases = queries.case_rollup?.length ? queries.case_rollup : queries.cases;
@@ -7424,20 +7657,42 @@ function AcreditacionPhoneOperationsWorkbench({
   );
   const visibleStatusRows = statusRows.length ? statusRows : fallbackStatusRows;
   const visibleResponsibleRows = responsibleRows.length ? responsibleRows : fallbackResponsibleRows;
-  const totals = phoneOperationTotals(summaryRows, visibleStatusRows, visibleResponsibleRows, dailyRows);
+  const totals = phoneOperationTotals(summaryRows, visibleStatusRows, visibleResponsibleRows);
   const koboEffectiveForSupervision = comparison.platformComplete || dailyKoboEffective || null;
   const generatedAt = reports.generated_at ? formatDate(reports.generated_at) : "";
 
+  // Cumplimiento: la producción la valida la plataforma; el barrido aporta la
+  // reserva y el volumen trabajado. El modo (cuotas / total / sin meta) lo
+  // decide el propio modelo según lo que el usuario haya declarado (plan §5).
+  const parsedQuotasForGoal = phoneQuotaRowsForPanel(quotaRows);
+  const cumplimiento = buildTelefonicoCumplimiento({
+    categorias: parsedQuotasForGoal.map((row) => ({
+      clave: row.key,
+      etiqueta: row.value,
+      contexto: row.variable,
+      universo: row.universe,
+      minimo: row.meta,
+      logrado: row.effective,
+      objetivo: objetivoDeclaradoParaCuota(goals, row),
+    })),
+    logradoTotal: comparison.platformComplete || dailyKoboEffective || totals.effective,
+    porBarrer: totals.unswept,
+    barridos: totals.swept,
+    serieDiaria: dailyPoints.map((point) => point.effective),
+  });
+
   return (
     <section
-      className={`pulso-panel mon-fill-panel mon-phone-panel${standalone ? " is-standalone-phone" : ""}`}
-      style={{ minHeight: 0, overflow: "hidden", scrollbarGutter: "stable" } as CSSProperties}
+      className={`pulso-panel mon-phone-panel${standalone ? " is-standalone-phone" : " mon-fill-panel"}`}
+      // El panel recortaba en silencio todo lo que no cabía en el viewport
+      // (2.342 px en el corte de acnur_pdm). El scroll lo toma el workbench.
+      style={{ minHeight: 0, overflow: "visible" } as CSSProperties}
       aria-label={standalone ? "Monitoreo telefónico standalone" : "Monitoreo telefónico canónico"}
     >
       <header className="pulso-panel-header">
         <div className="pulso-panel-heading">
-          <span className="pulso-panel-eyebrow">{standalone ? "Monitoreo telefónico standalone" : "Operación telefónica"}</span>
-          <h2 className="pulso-panel-title"><span className="mon-title-icon"><PhoneCall size={16} /> Barrido telefónico</span></h2>
+          <span className="pulso-panel-eyebrow">Llamadas</span>
+          <h2 className="pulso-panel-title"><span className="mon-title-icon"><PhoneCall size={16} /> Estado de la operación telefónica</span></h2>
           <p className="pulso-panel-hint">
             {standalone
               ? "Estados telefónicos, barrido, responsables y cruce individual con Kobo por CodPulso."
@@ -7464,6 +7719,8 @@ function AcreditacionPhoneOperationsWorkbench({
           </div>
         ) : activeTab === "responsables" ? (
           <div className="mon-phone-layout mon-phone-layout--responsables">
+            <TelefonicoStatusMatrixPanel matrix={statusMatrix} />
+            <TelefonicoPlatformGapPanel gap={platformGap} plataformaLabel={platformLabel} />
             <AcreditacionPhoneResponsibleCards rows={visibleResponsibleRows} />
           </div>
         ) : activeTab === "incidencia" ? (
@@ -7480,10 +7737,22 @@ function AcreditacionPhoneOperationsWorkbench({
           </div>
         ) : (
           <div className="mon-phone-layout mon-phone-layout--summary">
+            {reconciliationTotals ? (
+              <TelefonicoReconciliationSummary
+                plataforma={reconciliationTotals.plataforma}
+                barrido={reconciliationTotals.barrido}
+                cruzadas={reconciliationTotals.cruzadas}
+                pendientes={reconciliationTotals.pendientes}
+                plataformaLabel={platformLabel}
+              />
+            ) : null}
+            {/* El cumplimiento preside la portada: responde «¿llegamos?» antes
+                que cualquier lectura de cobertura del barrido (plan §5). */}
+            <TelefonicoCumplimientoPanel cumplimiento={cumplimiento} />
             <section className="mon-phone-overview-grid" aria-label="Resumen de barrido telefónico">
               <AcreditacionPhoneStorage totals={totals} />
               <AcreditacionPhoneStatusStorage rows={visibleStatusRows} total={totals.total} />
-              <AcreditacionPhoneQuotaPanel rows={quotaRows} />
+              {corte ? <TelefonicoEmbudo corte={corte} /> : <AcreditacionPhoneQuotaPanel rows={quotaRows} />}
             </section>
             <section className="mon-phone-summary-secondary" aria-label="Lectura operativa del barrido">
               <AcreditacionPhoneIncidenceSection responsibleRows={visibleResponsibleRows} />
@@ -7496,8 +7765,15 @@ function AcreditacionPhoneOperationsWorkbench({
   );
 }
 
-function renderPhoneView(reports: MonitoreoAcreditacionReports, activeTab: AcreditacionPhoneTab = "resumen", fallbackEffective = 0, standalone = false) {
-  return <AcreditacionPhoneOperationsWorkbench reports={reports} activeTab={activeTab} fallbackEffective={fallbackEffective} standalone={standalone} />;
+function renderPhoneView(
+  reports: MonitoreoAcreditacionReports,
+  activeTab: AcreditacionPhoneTab = "resumen",
+  fallbackEffective = 0,
+  standalone = false,
+  corte: MonitoreoCorte | null = null,
+  goals: MonitoreoGoal[] = [],
+) {
+  return <AcreditacionPhoneOperationsWorkbench reports={reports} activeTab={activeTab} fallbackEffective={fallbackEffective} standalone={standalone} corte={corte} goals={goals} />;
 }
 
 function normalizeSourceMatch(value: unknown) {
@@ -11226,8 +11502,15 @@ function AcreditacionPhoneSourcesContractPanel({
         </div>
         <em>{contract.ready ? "Listo para monitoreo" : `Falta ${missingLabel}`}</em>
       </header>
+      {/* Cada pestaña muestra los slots de los que se ocupa. Antes las tres
+          pintaban los tres, así que «Paquete» era la unión literal de las otras
+          dos (plan §9). */}
       <div className="mon-phone-source-contract-grid">
-        {sourceSlots.map((slot) => (
+        {sourceSlots.filter((slot) => (
+          focus === "all"
+            || (focus === "sheets" && (slot.key === "universo" || slot.key === "barrido"))
+            || (focus === "kobo" && slot.key === "plataforma")
+        )).map((slot) => (
           <AcreditacionPhoneSourceSlotCard
             key={slot.key}
             slot={slot}
@@ -11515,7 +11798,13 @@ function DataTable({
   maxColumns?: number;
 }) {
   if (!rows.length) return <p className="mon-profile-muted">{empty}</p>;
-  const columns = compactColumns(rows, preferredColumns, maxColumns);
+  // Ningún recorte en silencio: ochenta filas y ocho columnas seguían siendo el
+  // límite, pero antes desaparecían datos sin que nada lo dijera.
+  const todasLasColumnas = compactColumns(rows, preferredColumns, Number.MAX_SAFE_INTEGER);
+  const recorteColumnas = recorteTabla(todasLasColumnas, maxColumns, "columna");
+  const columns = recorteColumnas.visibles;
+  const recorteFilas = recorteTabla(rows, 80);
+  const avisos = [recorteFilas.etiqueta, recorteColumnas.etiqueta].filter(Boolean);
   return (
     <div className="mon-profile-table-wrap">
       <table className="mon-profile-table">
@@ -11523,13 +11812,16 @@ function DataTable({
           <tr>{columns.map((column) => <th key={column}>{columnLabel(column)}</th>)}</tr>
         </thead>
         <tbody>
-          {rows.slice(0, 80).map((row, index) => (
+          {recorteFilas.visibles.map((row, index) => (
             <tr key={index}>
               {columns.map((column) => <td key={column}>{rowValue(row, column)}</td>)}
             </tr>
           ))}
         </tbody>
       </table>
+      {avisos.length ? (
+        <p className="mon-profile-table-recorte">{avisos.join(" · ")}</p>
+      ) : null}
     </div>
   );
 }
@@ -13855,7 +14147,7 @@ function AcreditacionCaseDetail({
   const telefonicoOutsideBase = Boolean(telefonicoBaseTrace?.outsideBase);
   const telefonicoPlatformEffective = isTelefonicoCase ? telefonicoCasePlatformEffective(item) : false;
   const telefonicoBaseLabel = telefonicoBaseTrace?.label ?? "Base por revisar";
-  const telefonicoPhoneState = item.base_status || item.secondary_identity_value || "Sin estado telefonico";
+  const telefonicoPhoneState = item.base_status || item.secondary_identity_value || "Sin estado";
   const telefonicoDecisionTitle = telefonicoOutsideBase
     ? "Kobo efectiva fuera de base"
     : telefonicoPlatformEffective && telefonicoPhoneEffective
@@ -14005,7 +14297,7 @@ function AcreditacionQueryBreakdownCard({
       <section className="mon-query-chart-card">
         <header><span>{icon}{title}</span></header>
         <div className="mon-query-breakdown-empty">
-          <EmptyPanel title="Sin datos" detail="No hay casos con este filtro." />
+          <EmptyPanel title="Sin casos para este filtro" detail="El filtro actual no devuelve casos. Ajusta los criterios para ampliar la lectura." />
         </div>
       </section>
     );
@@ -14633,7 +14925,7 @@ function AcreditacionCrossingsView({
     : "Razón de cruce o no cruce";
   return (
     <div className="mon-acr-crossing-grid">
-      <section className="mon-query-table-panel" aria-label={isPhoneMode ? "Alineación barrido-Kobo" : "Cruces efectivos"}>
+      <section className="mon-query-table-panel" aria-label={isPhoneMode ? "Entrevistas y su estado en la hoja" : "Cruces efectivos"}>
         <header className="mon-query-section-head">
           <div>
             <span>{isPhoneMode ? "Telefono vs Kobo" : "Cruces efectivos"}</span>
@@ -14648,7 +14940,7 @@ function AcreditacionCrossingsView({
         </header>
         {isPhoneMode ? (
           <div className="mon-phone-crossing-summary" aria-label="Resumen de alineación barrido-Kobo por CodPulso">
-            <span className="is-platform"><em>Kobo efectivas</em><strong>{fmt(phonePlatformEffective)}</strong><small>pasan filtro y no son prueba</small></span>
+            <span className="is-platform"><em>Kobo efectivas</em><strong>{fmt(phonePlatformEffective)}</strong><small>completas y con consentimiento</small></span>
             <span className="is-phone"><em>Tel. efectivas</em><strong>{fmt(phoneSweepEffective)}</strong><small>estado telefonico efectivo</small></span>
             <span className={phoneReviewCount ? "is-warning" : "is-ready"}><em>Kobo + tel.</em><strong>{fmt(phoneMatchedEffective)}/{fmt(phonePlatformEffective)}</strong><small>{phoneReviewCount ? "mismo CodPulso en ambos lados" : "CodPulso alineados"}</small></span>
             <span className={phonePlatformWithoutSweep ? "is-warning" : "is-ready"}><em>Tel. pendiente</em><strong>{fmt(phonePlatformWithoutSweep)}</strong><small>{phonePlatformWithoutSweep ? "Kobo cuenta; barrido aun no declara efectiva" : "sin brecha Kobo-tel."}</small></span>
@@ -14660,10 +14952,10 @@ function AcreditacionCrossingsView({
 	              <thead>
 	                <tr>
 	                  <th>Caso</th>
-	                  <th>{isPhoneMode ? "Estado telefónico" : "Cruce"}</th>
-	                  <th>{isPhoneMode ? "Lectura operativa" : "Razón"}</th>
-	                  <th>{isPhoneMode ? "CodPulso/base" : "Evidencia"}</th>
-	                  <th>Decisión / acción</th>
+	                  <th>{isPhoneMode ? "Estado de la llamada" : "Cruce"}</th>
+	                  <th>{isPhoneMode ? "Qué pasa" : "Razón"}</th>
+	                  {isPhoneMode ? null : <th>Evidencia</th>}
+	                  <th>{isPhoneMode ? "Qué hacer" : "Decisión / acción"}</th>
 	                </tr>
 	              </thead>
               <tbody>
@@ -14678,7 +14970,7 @@ function AcreditacionCrossingsView({
                   const phoneSweepOk = isPhoneMode && telefonicoCaseDeclaresEffective(item);
                   const phoneNeedsReview = isPhoneMode && (phonePlatformOk !== phoneSweepOk || phoneCaveat);
                   const phoneCaseTitle = telefonicoCaseCodPulsoLabel(item);
-                  const phoneStatus = item.base_status || item.secondary_identity_value || "Sin estado telefonico";
+                  const phoneStatus = item.base_status || item.secondary_identity_value || "Sin estado";
                   const phoneCaseDetail = [
                     phoneStatus,
                     caseResponseDateTimeLabel(item),
@@ -14687,34 +14979,36 @@ function AcreditacionCrossingsView({
                   const reasonTitle = isPhoneMode
                     ? phonePlatformOk && !phoneSweepOk
                       ? baseTrace?.found
-                        ? "Kobo efectiva; telefono pendiente"
-                        : "Kobo efectiva sin respaldo de base"
+                        ? "Falta marcarla en la hoja"
+                        : "Sin respaldo en la base"
                       : !phonePlatformOk && phoneSweepOk
-                        ? "Tel. efectiva sin efectiva Kobo"
+                        ? "Marcada sin encuesta completa"
                         : phoneNeedsReview
                           ? "Diferencia por revisar"
-                          : "Kobo y barrido coinciden"
+                          : "Todo coincide"
                     : explanation.title;
 	                  const reasonDetail = isPhoneMode
 	                    ? phonePlatformOk && !phoneSweepOk
-		                      ? `${baseTrace?.found ? "CodPulso ubicado en la base." : "La base requiere revision."} Estado telefonico actual: ${phoneStatus}. Actualizar o explicar el barrido.`
+	                      ? baseTrace?.found
+	                        ? "La persona respondió la encuesta completa, pero en la hoja sigue como no efectiva."
+	                        : "Respondió la encuesta, pero su código no se encuentra en la base."
 	                      : !phonePlatformOk && phoneSweepOk
-		                        ? "El barrido declara efectiva, pero Kobo no trae una respuesta completa valida para este CodPulso."
-		                        : phoneNeedsReview
-	                          ? "Revisar el CodPulso y el estado operativo antes del corte final."
-                          : "El mismo CodPulso esta efectivo en Kobo y en el barrido."
+	                        ? "La hoja la marca como efectiva, pero no hay encuesta completa con ese código."
+	                        : phoneNeedsReview
+	                          ? "El código y el estado no coinciden entre la hoja y la plataforma."
+	                          : "La hoja y la plataforma coinciden."
                     : explanation.detail;
                   const decisionLabel = isPhoneMode
                     ? phonePlatformOk && !phoneSweepOk
-                      ? "Avance Kobo; tel. pendiente"
-                      : phoneNeedsReview ? "Diferencia operativa" : "Coincidencia efectiva"
+                      ? "Actualizar la hoja"
+                      : phoneNeedsReview ? "Revisar el caso" : "Nada pendiente"
                     : explanation.decisionLabel;
                   const actionLabel = isPhoneMode
                     ? phoneNeedsReview
                       ? phonePlatformOk
-                        ? "Cuenta en Kobo; actualizar o explicar el estado telefonico."
-	                        : "No cuenta en Kobo; revisar por que el barrido lo declaro efectivo."
-                      : "Cuenta en Kobo y coincide con barrido por CodPulso."
+                        ? "Ya cuenta para el avance; falta registrar el estado."
+                        : "No cuenta para el avance hasta aclarar por qué se marcó."
+                      : "Cuenta para el avance."
                     : explanation.action;
                   return (
                     <tr key={id} className={`is-${explanation.tone}${selected ? " is-selected" : ""}`}>
@@ -14736,16 +15030,18 @@ function AcreditacionCrossingsView({
 	                        ) : (
 	                          <CaseCrossingPill value={internalCaseCrossingValue(item)} />
 	                        )}
-	                        <small>{isPhoneMode ? phonePlatformOk && !phoneSweepOk ? "Tel. pendiente" : phoneNeedsReview ? "Revisar diferencia" : "Tel. alineado" : internalCaseResponseStateLabel(internalCaseResponseStateValue(item))}</small>
+	                        {isPhoneMode ? null : <small>{internalCaseResponseStateLabel(internalCaseResponseStateValue(item))}</small>}
 	                      </td>
                       <td>
                         <strong>{reasonTitle}</strong>
                         <small>{reasonDetail}</small>
                       </td>
-                      <td>
-                        <span>{isPhoneMode ? baseTrace?.label ?? trace.primaryEvidence : trace.primaryEvidence}</span>
-                        <small>{isPhoneMode ? baseTrace?.detail : [trace.strategyLabel, trace.secondaryEvidence || explanation.evidenceDetail].filter(Boolean).join(" · ")}</small>
-                      </td>
+                      {isPhoneMode ? null : (
+                        <td>
+                          <span>{trace.primaryEvidence}</span>
+                          <small>{[trace.strategyLabel, trace.secondaryEvidence || explanation.evidenceDetail].filter(Boolean).join(" · ")}</small>
+                        </td>
+                      )}
                       <td>
                         <strong>{decisionLabel}</strong>
                         <small>{actionLabel}</small>
@@ -14967,9 +15263,14 @@ function TelefonicoEffectiveConsultedView({
           <div>
             <span>Efectivas Kobo</span>
             <strong><CheckCircle2 size={16} /> Efectivas Kobo por CodPulso</strong>
-            <small>Solo respuestas completas que pasan el filtro y no son prueba; el barrido telefónico queda como contexto.</small>
+            <small>Entrevistas completas con consentimiento. La columna de la derecha dice qué falta hacer con cada una.</small>
           </div>
-          <em>{fmt(cases.length)} efectivas</em>
+          {/* El corte se anuncia en la cabecera, no solo al pie de la tabla. */}
+          <em>
+            {cases.length > visible.length
+              ? `${fmt(visible.length)} de ${fmt(cases.length)} efectivas`
+              : `${fmt(cases.length)} efectivas`}
+          </em>
         </header>
 
         <div className="mon-phone-consulted-summary" aria-label="Resumen de efectivas consultadas">
@@ -15006,12 +15307,11 @@ function TelefonicoEffectiveConsultedView({
             <table className="mon-query-table mon-phone-consulted-table">
               <thead>
                 <tr>
-                  <th>CodPulso</th>
-                  <th>Fecha Kobo</th>
-                  <th>Respuesta</th>
-                  <th>CodPulso/base</th>
-                  <th>Estado telefónico</th>
-                  <th>Lectura</th>
+                  <th>Caso</th>
+                  <th>Entrevista</th>
+                  <th>En la base</th>
+                  <th>Estado de la llamada</th>
+                  <th>Qué falta</th>
                 </tr>
               </thead>
               <tbody>
@@ -15024,50 +15324,45 @@ function TelefonicoEffectiveConsultedView({
                   const phoneDeclaresEffective = telefonicoCaseDeclaresEffective(item);
                   const baseTrace = telefonicoCaseBaseTrace(item);
                   const outsideBase = baseTrace.outsideBase;
-                  const phoneState = item.base_status || item.secondary_identity_value || "Sin estado telefonico";
+                  const phoneState = item.base_status || item.secondary_identity_value || "Sin estado";
                   const phoneReading = outsideBase
-                    ? "Efectiva Kobo fuera de base"
+                    ? "Revisar la base"
                     : phoneDeclaresEffective
-                      ? "Kobo y barrido efectivos"
-                      : "Kobo efectiva; tel. pendiente";
+                      ? "Nada"
+                      : "Marcarla en la hoja";
                   const phoneReadingDetail = outsideBase
-                    ? "Cuenta en Kobo y requiere revisar si debe entrar a la base."
+                    ? "Respondió, pero su código no está en la base."
                     : phoneDeclaresEffective
-                      ? item.decision_reason || item.rule || "Cuenta como efectiva Kobo y como efectiva telefonica."
-                      : `CodPulso en base; el barrido aun declara "${phoneState}".`;
+                      ? ""
+                      : "Respondió la encuesta y la hoja no lo refleja.";
                   return (
                     <tr key={id} className={`${caveat ? "is-warning" : "is-effective"}${selected ? " is-selected" : ""}`}>
                       <td>
                         <button type="button" onClick={() => onCaseSelect(item)}>
                           <strong>{telefonicoCaseCodPulsoLabel(item)}</strong>
-                          <small>{item.base_record ? `Ubicado ${telefonicoCleanCodPulso(item.base_record)}` : trace.primaryEvidence || "sin CodPulso"}</small>
+                          <small>{responsible || "Sin responsable"}</small>
                         </button>
                       </td>
                       <td>
-                        <span>{caseResponseDateTimeLabel(item)}</span>
-                        <small>{caseResponseTimeDetailLabel(item)}</small>
-                      </td>
-                      <td>
                         <CaseStatusPill value={internalCaseResponseStateValue(item)} />
-                        <small>{item.source_label || "Kobo"}</small>
+                        <small>{caseResponseDateTimeLabel(item)}</small>
                       </td>
                       <td>
                         <span className={`mon-phone-base-pill is-${baseTrace.tone}`}>
                           {baseTrace.label}
                         </span>
-                        <small>{baseTrace.detail || trace.primaryEvidence}</small>
+                        {outsideBase ? <small>fuera de la base</small> : null}
                       </td>
                       <td>
                         <span className={`mon-phone-state-pill ${phoneDeclaresEffective ? "is-effective" : "is-pending"}`}>
-                          {phoneDeclaresEffective ? "Barrido efectivo" : phoneState}
+                          {phoneDeclaresEffective ? "Efectiva" : phoneState}
                         </span>
-                        <small>{responsible || "Sin responsable"}</small>
                       </td>
                       <td>
                         <span className={`mon-phone-consulted-tag ${outsideBase || caveat ? "is-caveat" : phoneDeclaresEffective ? "is-ok" : "is-pending"}`}>
                           {phoneReading}
                         </span>
-                        <small>{phoneReadingDetail}</small>
+                        {phoneReadingDetail ? <small>{phoneReadingDetail}</small> : null}
                       </td>
                     </tr>
                   );
@@ -15076,7 +15371,7 @@ function TelefonicoEffectiveConsultedView({
             </table>
           </div>
         ) : (
-          <EmptyPanel title="Sin efectivas Kobo" detail="No hay respuestas completas que pasen el filtro activo con los filtros seleccionados." />
+          <EmptyPanel title="Sin efectivas para estos filtros" detail="El filtro de efectivas no devuelve respuestas completas. Ajusta los criterios o revisa su configuración." />
         )}
         {cases.length > visible.length ? (
           <p className="mon-query-table-more">
@@ -15813,6 +16108,17 @@ function advanceGoalForActor(actor: string, goals: MonitoreoGoal[]) {
 }
 
 export function advanceCardsFromRows(rows: Array<Record<string, unknown>>, goals: MonitoreoGoal[] = []): AcreditacionAdvanceCard[] {
+  // Gemelo del fix en el perfil de acreditación: dos actores que normalizan al
+  // mismo slug compartían `id`, React lo leía como key duplicada y podía omitir
+  // una tarjeta entera sin avisar.
+  const slugsVistos = new Map<string, number>();
+  const idUnico = (actor: string, index: number) => {
+    const base = normalizeSourceMatch(actor) || String(index);
+    const repeticion = slugsVistos.get(base) ?? 0;
+    slugsVistos.set(base, repeticion + 1);
+    return repeticion === 0 ? `avance-${base}` : `avance-${base}-${repeticion + 1}`;
+  };
+
   return rows.map((row, index) => {
     const actor = rowText(row, ["Actor", "Unidad", "Corte", "Carrera"], `Actor ${index + 1}`);
     const universe = rowNumber(row, ["Base reportada", "Universo", "Total", "Base", "Casos"], 0);
@@ -15836,7 +16142,7 @@ export function advanceCardsFromRows(rows: Array<Record<string, unknown>>, goals
           ? "steady"
           : "low";
     return {
-      id: `avance-${normalizeSourceMatch(actor) || index}`,
+      id: idUnico(actor, index),
       actor,
       universe,
       effective,
@@ -16301,8 +16607,8 @@ function buildAcreditacionAdvanceDailySeries(
     const label = String(row[groupKey] ?? "").trim() || `${groupColumn} ${index + 1}`;
     const key = normalizeSourceMatch(label) || `${normalizeSourceMatch(groupColumn)}-${index}`;
     if (allowedGroups?.size && !allowedGroups.has(key)) return;
-    const state = String(acreditacionReportRowValue(row, ["estado", "estatus"]) ?? "").trim();
-    const tone = acreditacionSurveyStateTone(state);
+    const surveyState = String(acreditacionReportRowValue(row, ["estado", "estatus"]) ?? "").trim();
+    const tone = acreditacionSurveyStateTone(surveyState);
     const entry = grouped.get(key) ?? { label, points: new Map<string, AcreditacionAdvanceDailyPoint>() };
     dates.forEach((date) => addAcreditacionDailyValue(entry.points, date, tone, reportNumberValue(row[date])));
     grouped.set(key, entry);
@@ -19811,40 +20117,21 @@ function EmptyPanel({ title, detail }: { title: string; detail: string }) {
 }
 
 function AcreditacionLoadingPanel({ view, label, phoneMode = false }: { view: MonitoreoSeccion; label: string; phoneMode?: boolean }) {
-  const items = view === "consultas"
-    ? phoneMode ? [
-      { icon: CheckCircle2, label: "Kobo", value: "efectivas" },
-      { icon: Search, label: "CodPulso", value: "Kobo/barrido" },
-      { icon: ShieldAlert, label: "Salvedades", value: "no identificables" },
-    ] : [
-      { icon: Search, label: "Cruces", value: "plataforma/base" },
-      { icon: Table2, label: "Casos", value: "actor y canal" },
-      { icon: ShieldAlert, label: "Alertas", value: "subsanación" },
-    ]
-    : [
-      { icon: RefreshCw, label: "Cache", value: "local" },
-      { icon: Table2, label: "Corte", value: "reportes" },
-      { icon: CheckCircle2, label: "Vista", value: label },
-    ];
-
+  // Decía «Actualizando cache local» con tres fichas de jerga («Cache local»,
+  // «Corte reportes», «Vista Llamadas») ocupando la pantalla entera. Un estado
+  // de carga se explica en una línea y no reserva media vista.
   return (
     <section className={`mon-acr-loading-card is-${view}`} aria-live="polite" aria-label={`Preparando ${label}`}>
       <div className="mon-acr-loading-card__copy">
-        <span><Loader2 size={14} className="pulso-spin" /> Preparando {label}</span>
-        <strong>Actualizando cache local</strong>
-        <p>{view === "consultas" ? "Leyendo trazabilidad, cruces y revisión asistida." : "Leyendo el corte disponible para esta sección."}</p>
-      </div>
-      <div className="mon-acr-loading-card__items" aria-hidden="true">
-        {items.map((item) => {
-          const Icon = item.icon;
-          return (
-            <span key={`${item.label}-${item.value}`}>
-              <Icon size={13} />
-              <em>{item.label}</em>
-              <strong>{item.value}</strong>
-            </span>
-          );
-        })}
+        <span><Loader2 size={14} className="pulso-spin" /> Un momento</span>
+        <strong>Preparando {label.toLowerCase()}</strong>
+        <p>
+          {view === "consultas"
+            ? phoneMode
+              ? "Cruzando las entrevistas con la base de llamadas."
+              : "Cruzando respuestas con la base de cada actor."
+            : "Leyendo los datos del último corte."}
+        </p>
       </div>
       <div className="mon-acr-loading-card__skeleton" aria-hidden="true">
         <span />
@@ -19853,6 +20140,34 @@ function AcreditacionLoadingPanel({ view, label, phoneMode = false }: { view: Mo
       </div>
     </section>
   );
+}
+
+/**
+ * Corte canónico del perfil telefónico.
+ *
+ * El modelo exige tres fuentes —base, barrido y Kobo—. La auditoría encontró
+ * Fuentes/Paquete declarando "2/3 · Falta Kobo · Sin sync" mientras Avance/Salidas
+ * ofrecía PDFs con 9 efectivas: dos superficies leyendo distinto el mismo corte.
+ * El conteo de fuentes viaja dentro del corte para que el gate lo vea.
+ */
+function corteTelefonicoDeReports(
+  state: MonitoreoState | null | undefined,
+  reports: MonitoreoAcreditacionReports | null | undefined,
+) {
+  const esTelefonico = isTelefonicoMonitoreoState(state ?? null);
+  const fuentes = {
+    fuentesActivas: activeSourceCount(state ?? null),
+    fuentesRequeridas: esTelefonico ? 3 : (state?.sources?.length ?? null),
+  };
+  if (!reports) return corteAcreditacion(state, [], fuentes);
+  const actorRows = reports.client_report?.actors?.length
+    ? reports.client_report.actors
+    : rowsFromSheets(reports.sheets, ["actor", "avance", "brecha"]);
+  const cards = advanceCardsFromRows(
+    actorRows as Array<Record<string, unknown>>,
+    state?.config?.goals ?? [],
+  );
+  return corteAcreditacion(state, cards, { ...fuentes, generatedAt: reports.generated_at });
 }
 
 function renderAcreditacionView(
@@ -19881,19 +20196,18 @@ function renderAcreditacionView(
   } = {},
 ) {
   if (view === "avance" && options.activeAdvanceTab === "salidas") {
-    const state = options.state;
-    const isPhoneOutputs = isTelefonicoMonitoreoState(state);
+    const outputState = options.state;
+    const isPhoneOutputs = isTelefonicoMonitoreoState(outputState);
     return (
       <MonitoreoOutputsWorkbench
         family={isPhoneOutputs ? "telefonico" : "acreditacion"}
         routeLabel={isPhoneOutputs ? "Monitoreo telefónico" : options.routeLabel ?? "Acreditación"}
-        defaultTitle={isPhoneOutputs ? "" : state?.config?.acreditacion?.estudio?.titulo || "reporte-monitoreo"}
-        config={state?.config}
-        clientSheets={state?.publication?.client_last_sheets ?? null}
-        internalSheets={state?.publication?.internal_last_sheets ?? null}
-        hasSnapshot={Boolean(state?.has_snapshot)}
-        nRows={state?.n_rows ?? 0}
-        syncedAt={state?.synced_at ?? ""}
+        defaultTitle={isPhoneOutputs ? "" : outputState?.config?.acreditacion?.estudio?.titulo || "reporte-monitoreo"}
+        config={outputState?.config}
+        clientSheets={outputState?.publication?.client_last_sheets ?? null}
+        internalSheets={outputState?.publication?.internal_last_sheets ?? null}
+        corte={corteTelefonicoDeReports(outputState, reports)}
+        syncedAt={outputState?.synced_at ?? ""}
         onPublished={options.onPublished}
       />
     );
@@ -19949,6 +20263,8 @@ function renderAcreditacionView(
       options.activePhoneTab ?? "resumen",
       num(options.state?.dashboard?.kpis?.valid, 0),
       isTelefonicoMonitoreoState(options.state),
+      corteTelefonicoDeReports(options.state, reports),
+      options.state?.config?.goals ?? [],
     );
   }
   const isPhoneModel = isTelefonicoMonitoreoState(options.state);
@@ -20041,15 +20357,19 @@ function activeSourceCount(state: MonitoreoState | null) {
   return (state?.sources ?? []).filter((source) => source.enabled).length;
 }
 
-type AcreditacionRailStatus = NonNullable<MonitoreoWorkbenchRailTab["status"]>;
+type AcreditacionRailStatus = NonNullable<MonitoreoWorkbenchRailTab["estado"]>;
 
 function countText(count: number, singular: string, plural = `${singular}s`) {
   return `${fmt(count)} ${count === 1 ? singular : plural}`;
 }
 
+/**
+ * Estado de una pestaña del rail. Ver la nota gemela en el perfil de
+ * acreditación: `ready` significa evidencia completa, no "hay filas".
+ */
 function readyStatus(ready: boolean, risk = false): AcreditacionRailStatus {
-  if (risk) return "risk";
-  return ready ? "ready" : "warning";
+  if (risk) return "bloqueado";
+  return ready ? "listo" : "parcial";
 }
 
 function railTab(
@@ -20058,7 +20378,7 @@ function railTab(
     | typeof ACREDITACION_CONSULTA_TABS[number]
     | typeof ACREDITACION_PHONE_TABS[number]
     | typeof ACREDITACION_ADVANCE_TABS[number],
-  patch: Partial<Pick<MonitoreoWorkbenchRailTab, "label" | "detail" | "badge" | "status">> = {},
+  patch: Partial<Pick<MonitoreoWorkbenchRailTab, "label" | "detail" | "badge" | "estado">> = {},
 ): MonitoreoWorkbenchRailTab {
   return { ...tab, ...patch };
 }
@@ -20136,7 +20456,7 @@ function acreditacionRailPhoneStats(state: MonitoreoState | null, reports: Monit
   const visibleStatusRows = statusRows.length ? statusRows : fallbackStatusRows;
   const visibleResponsibleRows = responsibleRows.length ? responsibleRows : fallbackResponsibleRows;
   const dailyRows = reports ? phoneDailyBlockForPanel(reports)?.rows ?? [] : [];
-  const totals = phoneOperationTotals(summaryRows, visibleStatusRows, visibleResponsibleRows, dailyRows);
+  const totals = phoneOperationTotals(summaryRows, visibleStatusRows, visibleResponsibleRows);
   const pendingRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["no_barridos_responsable"]) : [];
   const insistenceRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["insistencia_no_contesta"]) : [];
   const detailRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["detalle_no_contesta"]) : [];
@@ -20253,19 +20573,19 @@ export function localTabsForTelefonicoView(
             ? `${countText(phoneStats.koboSources, "encuesta")} · ${phoneStats.phoneFilterConfigured ? "filtro listo" : "elige filtro"}`
             : "elige encuesta y filtro de efectiva",
           badge: phoneStats.koboSources ? fmt(phoneStats.koboSources) : undefined,
-          status: readyStatus(phoneStats.contract.platform.ready && phoneStats.phoneFilterConfigured),
+          estado: readyStatus(phoneStats.contract.platform.ready && phoneStats.phoneFilterConfigured),
         }),
         railTab(sheets, {
           label: "Base y barrido",
           detail: `${phoneStats.sheetReady}/2 Sheets · universo y estados`,
           badge: `${phoneStats.sheetReady}/2`,
-          status: readyStatus(phoneStats.sheetReady === 2),
+          estado: readyStatus(phoneStats.sheetReady === 2),
         }),
         railTab(active, {
           label: "Paquete",
           detail: `${phoneStats.sourceReady}/3 fuentes · corte local`,
           badge: `${phoneStats.sourceReady}/3`,
-          status: readyStatus(phoneStats.sourceReady === 3),
+          estado: readyStatus(phoneStats.sourceReady === 3),
         }),
       ];
     }
@@ -20275,25 +20595,25 @@ export function localTabsForTelefonicoView(
         label: "Plataforma",
         detail: sourceStats.platform ? `${countText(sourceStats.platformEnabled, "activa")} · respuestas` : "conecta encuestas",
         badge: sourceStats.platform ? fmt(sourceStats.platform) : undefined,
-        status: readyStatus(sourceStats.platformEnabled > 0),
+        estado: readyStatus(sourceStats.platformEnabled > 0),
       }),
       railTab(sheets, {
         label: "Bases",
         detail: sourceStats.sheets ? `${countText(sourceStats.sheetsEnabled, "activa")} · universo` : "conecta Sheets",
         badge: sourceStats.sheets ? fmt(sourceStats.sheets) : undefined,
-        status: readyStatus(sourceStats.sheetsEnabled > 0),
+        estado: readyStatus(sourceStats.sheetsEnabled > 0),
       }),
       railTab(collectors, {
         label: "Recopiladores",
         detail: sourceStats.collectors ? `${countText(sourceStats.collectors, "enlace")} · inclusión` : "vincula enlaces",
         badge: sourceStats.collectors ? fmt(sourceStats.collectors) : undefined,
-        status: readyStatus(sourceStats.collectors > 0),
+        estado: readyStatus(sourceStats.collectors > 0),
       }),
       railTab(active, {
         label: "Estado",
         detail: `${sourceStats.enabled}/${sourceStats.total || 0} fuentes · ${countText(sourceStats.reportSources, "fila")}`,
         badge: sourceStats.total ? `${sourceStats.enabled}/${sourceStats.total}` : undefined,
-        status: readyStatus(sourceStats.total > 0 && sourceStats.enabled === sourceStats.total),
+        estado: readyStatus(sourceStats.total > 0 && sourceStats.enabled === sourceStats.total),
       }),
     ];
   }
@@ -20309,13 +20629,13 @@ export function localTabsForTelefonicoView(
             ? `${countText(modelStats.phoneQuotaVariables, "variable")} · metas Kobo`
             : "define metas por variable",
           badge: modelStats.phoneQuotaRows ? fmt(modelStats.phoneQuotaRows) : undefined,
-          status: readyStatus(modelStats.phoneQuotaRows > 0),
+          estado: readyStatus(modelStats.phoneQuotaRows > 0),
         }),
         railTab(schedule, {
           label: "Cronograma",
           detail: modelStats.schedule,
           badge: modelStats.phases ? fmt(modelStats.phases) : undefined,
-          status: readyStatus(modelStats.phases > 0),
+          estado: readyStatus(modelStats.phases > 0),
         }),
       ];
     }
@@ -20323,18 +20643,18 @@ export function localTabsForTelefonicoView(
       railTab(structure, {
         detail: modelStats.actors ? `${countText(modelStats.actors, "actor")} · ${countText(modelStats.goals, "meta")}` : "define actores y metas",
         badge: modelStats.actors ? fmt(modelStats.actors) : undefined,
-        status: readyStatus(modelStats.actors > 0 || modelStats.goals > 0),
+        estado: readyStatus(modelStats.actors > 0 || modelStats.goals > 0),
       }),
       railTab(schedule, {
         detail: modelStats.schedule,
         badge: modelStats.phases ? fmt(modelStats.phases) : undefined,
-        status: readyStatus(modelStats.phases > 0),
+        estado: readyStatus(modelStats.phases > 0),
       }),
       railTab(summary, {
         label: "Lectura",
         detail: `${sourceStats.enabled}/${sourceStats.total || 0} fuentes · sin editar`,
         badge: sourceStats.total ? `${sourceStats.enabled}/${sourceStats.total}` : undefined,
-        status: readyStatus(sourceStats.enabled > 0),
+        estado: readyStatus(sourceStats.enabled > 0),
       }),
     ];
   }
@@ -20361,7 +20681,7 @@ export function localTabsForTelefonicoView(
           label: "Efectivas Kobo",
           detail: effectiveCases.length ? `${countText(effectiveCases.length, "caso efectivo", "casos efectivos")} · pasan filtro` : "sin efectivas Kobo",
           badge: effectiveCases.length ? fmt(effectiveCases.length) : undefined,
-          status: readyStatus(effectiveCases.length > 0),
+          estado: readyStatus(effectiveCases.length > 0),
         }),
         railTab(crosses, {
           label: "CodPulso",
@@ -20369,7 +20689,7 @@ export function localTabsForTelefonicoView(
             ? `${crossingMatchLabel} coinciden${crossingReview ? ` · ${fmt(crossingReview)} revisar` : ""}`
             : `${countText(effectiveCases.length, "efectiva")} · sin cruce`,
           badge: crossingComparable && crossingMatchLabel !== "S/D" ? crossingMatchLabel : undefined,
-          status: readyStatus(crossingComparable > 0 && crossingReview === 0, crossingReview > 0),
+          estado: readyStatus(crossingComparable > 0 && crossingReview === 0, crossingReview > 0),
         }),
       ];
       if (caveatCases.length) {
@@ -20377,7 +20697,7 @@ export function localTabsForTelefonicoView(
           label: "Salvedades",
           detail: `${countText(caveatCases.length, "caso")} · no identificable`,
           badge: fmt(caveatCases.length),
-          status: "warning",
+          estado: "parcial",
         }));
       }
       void base;
@@ -20387,22 +20707,22 @@ export function localTabsForTelefonicoView(
       railTab(platform, {
         detail: cases.length ? `${countText(cases.length, "caso")} · respuestas` : "sin casos trazados",
         badge: cases.length ? fmt(cases.length) : undefined,
-        status: readyStatus(cases.length > 0),
+        estado: readyStatus(cases.length > 0),
       }),
       railTab(base, {
         detail: `${countText(caseSummary.pending, "pendiente")} · base`,
         badge: caseSummary.pending ? fmt(caseSummary.pending) : undefined,
-        status: readyStatus(cases.length > 0),
+        estado: readyStatus(cases.length > 0),
       }),
       railTab(crosses, {
         detail: `${countText(caseSummary.effective, "efectiva")} · cruce`,
         badge: caseSummary.effective ? fmt(caseSummary.effective) : undefined,
-        status: readyStatus(caseSummary.effective > 0),
+        estado: readyStatus(caseSummary.effective > 0),
       }),
       railTab(fixes, {
         detail: issues ? `${countText(issues, "alerta")} · revisar` : "sin alertas",
         badge: issues ? fmt(issues) : undefined,
-        status: readyStatus(!issues, issues > 0),
+        estado: readyStatus(!issues, issues > 0),
       }),
     ];
   }
@@ -20417,7 +20737,7 @@ export function localTabsForTelefonicoView(
         label: "Resumen operativo",
         detail: `${fmt(phoneStats.totals.effective)} efectivas tel. · ${fmt(phoneStats.totals.unswept)} por barrer`,
         badge: phoneStats.totals.total ? fmt(phoneStats.totals.total) : undefined,
-        status: readyStatus(phoneStats.totals.total > 0, phoneStats.totals.unswept > 0),
+        estado: readyStatus(phoneStats.totals.total > 0, phoneStats.totals.unswept > 0),
       }),
       railTab(times, {
         label: "Validación de tiempo",
@@ -20425,19 +20745,19 @@ export function localTabsForTelefonicoView(
           ? `${fmt(phoneStats.timeRows)} efectivas · ${fmt(phoneStats.timeUnder2 + phoneStats.timeUnder5)} revisar`
           : "sin tabla de duración",
         badge: phoneStats.timeRows ? fmt(phoneStats.timeRows) : undefined,
-        status: readyStatus(phoneStats.timeRows > 0, phoneStats.timeUnder2 + phoneStats.timeUnder5 + phoneStats.timeMissing > 0),
+        estado: readyStatus(phoneStats.timeRows > 0, phoneStats.timeUnder2 + phoneStats.timeUnder5 + phoneStats.timeMissing > 0),
       }),
       railTab(incidence, {
         label: "Sin efectiva",
         detail: `${fmt(phoneStats.totals.incidents)} sin efectiva · ${fmt(phoneStats.totals.unswept)} por barrer`,
         badge: phoneStats.pendingRows ? fmt(phoneStats.pendingRows) : undefined,
-        status: phoneStats.totals.incidents || phoneStats.totals.unswept ? "warning" : "ready",
+        estado: phoneStats.totals.incidents || phoneStats.totals.unswept ? "parcial" : "listo",
       }),
       railTab(responsible, {
         label: "Responsables",
         detail: `${countText(phoneStats.totals.responsables || phoneStats.responsibleRows, "persona")} · carga`,
         badge: phoneStats.totals.responsables ? fmt(phoneStats.totals.responsables) : undefined,
-        status: readyStatus(phoneStats.responsibleRows > 0),
+        estado: readyStatus(phoneStats.responsibleRows > 0),
       }),
       railTab(alerts, {
         label: "Alertas reales",
@@ -20445,7 +20765,7 @@ export function localTabsForTelefonicoView(
           ? `${countText(phoneStats.alertObservations, "observación", "observaciones")} · ${fmt(phoneStats.alerts)} casos`
           : "sin observaciones activas",
         badge: phoneStats.alertObservations ? fmt(phoneStats.alertObservations) : undefined,
-        status: readyStatus(!phoneStats.alertObservations, phoneStats.alertObservations > 0),
+        estado: readyStatus(!phoneStats.alertObservations, phoneStats.alertObservations > 0),
       }),
     ];
   }
@@ -20460,7 +20780,7 @@ export function localTabsForTelefonicoView(
           label: "Diario",
           detail: `${countText(phoneStats.platformEffective, "efectiva")} · ritmo Kobo`,
           badge: phoneStats.platformEffective ? fmt(phoneStats.platformEffective) : undefined,
-          status: readyStatus(phoneStats.platformEffective > 0 && phoneStats.phoneFilterConfigured),
+          estado: readyStatus(phoneStats.platformEffective > 0 && phoneStats.phoneFilterConfigured),
         }),
         railTab(actors, {
           label: "Cuotas",
@@ -20468,12 +20788,12 @@ export function localTabsForTelefonicoView(
             ? `${countText(phoneStats.quotaCategoryRows, phoneStats.quotaCategoryNoun)} · ${fmt(phoneStats.quotaEffective)} efectivas${phoneStats.quotaGap ? ` · ${fmt(phoneStats.quotaGap)} faltan` : ""}`
             : "sin cuotas leídas",
           badge: phoneStats.quotaCategoryRows ? fmt(phoneStats.quotaCategoryRows) : undefined,
-          status: readyStatus(phoneStats.quotaCategoryRows > 0),
+          estado: readyStatus(phoneStats.quotaCategoryRows > 0),
         }),
         railTab(outputs, {
           label: "Salidas",
           detail: "publica PDF y hojas de avance",
-          status: state?.has_snapshot ? "ready" : "muted",
+          estado: state?.has_snapshot ? "listo" : "sin-configurar",
         }),
       ];
     }
@@ -20481,26 +20801,26 @@ export function localTabsForTelefonicoView(
       railTab(summary, {
         detail: `${fmt(advanceStats.summary.effective)} efectivas · ${fmt(advanceStats.summary.universe)} universo`,
         badge: advanceStats.summary.effective ? fmt(advanceStats.summary.effective) : undefined,
-        status: readyStatus(advanceStats.summary.effective > 0),
+        estado: readyStatus(advanceStats.summary.effective > 0),
       }),
       railTab(actors, {
         detail: `${countText(advanceStats.actors, "actor")} · brechas`,
         badge: advanceStats.actors ? fmt(advanceStats.actors) : undefined,
-        status: readyStatus(advanceStats.actors > 0),
+        estado: readyStatus(advanceStats.actors > 0),
       }),
       railTab(surveys, {
         detail: `${countText(advanceStats.sources, "fuente")} · canales`,
         badge: advanceStats.sources ? fmt(advanceStats.sources) : undefined,
-        status: readyStatus(advanceStats.sources > 0),
+        estado: readyStatus(advanceStats.sources > 0),
       }),
       railTab(detail, {
         detail: `${countText(advanceStats.controls, "control")} · reglas`,
         badge: advanceStats.controls ? fmt(advanceStats.controls) : undefined,
-        status: readyStatus(advanceStats.controls > 0),
+        estado: readyStatus(advanceStats.controls > 0),
       }),
       railTab(outputs, {
         detail: "publica PDF y hojas cliente",
-        status: state?.has_snapshot ? "ready" : "muted",
+        estado: state?.has_snapshot ? "listo" : "sin-configurar",
       }),
     ];
   }
@@ -20552,7 +20872,7 @@ function AcreditacionWorkbenchRail({
       statusItems={[
         {
           label: "Última actualización",
-          value: syncedAt ? formatDate(syncedAt) : "Sin actualización",
+          value: syncedAt || "Sin actualización",
           ready: Boolean(syncedAt),
         },
       ]}
@@ -20564,11 +20884,13 @@ function AcreditacionWorkbenchRail({
 function AcreditacionWorkbenchHead({
   route,
   seccionActiva,
+  pestanaActiva,
   state,
   reports,
 }: {
   route: typeof ACREDITACION_ROUTE;
   seccionActiva: MonitoreoSeccion;
+  pestanaActiva?: string;
   state: MonitoreoState | null;
   reports: MonitoreoAcreditacionReports | null;
 }) {
@@ -20585,15 +20907,22 @@ function AcreditacionWorkbenchHead({
     ? `${fmt(actorCount)} actores`
     : `${fmt(mechanisms)} mecanismos`;
 
+  // El nombre y el estado de la pestaña activa se dicen acá: el rail es
+  // icon-only y su cuadrante no lleva rótulo ni marcas.
+  const pestanas = localTabsForTelefonicoView(seccionActiva, state, reports, route);
+  const pestanaDef = pestanas.find((tab) => tab.key === pestanaActiva);
+
   return (
     <MonitoreoWorkbenchHead
       icon={Icon}
       eyebrow={`${route.shortLabel} · flujo actual`}
       title={meta.label}
+      pestanaLabel={pestanaDef?.label}
+      pestanaEstado={pestanaDef?.estado}
       detail={meta.desc}
       pills={[
         `${activeSources} fuentes`,
-        `${fmt(state?.n_rows ?? 0)} registros`,
+        `${fmt(state?.n_rows ?? 0)} en el snapshot`,
         `${fmt(valid)} válidas`,
         lastPill,
       ]}
@@ -20886,7 +21215,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       if (seq !== loadSeqRef.current || view !== activeViewRef.current) return;
       setError((e as Error).message);
     } finally {
-      if (seq === loadSeqRef.current) setLoading(false);
+      if (seq === loadSeqRef.current && view === activeViewRef.current) setLoading(false);
     }
   }, [clearScopeStateCache, prefetchBackgroundScopes, route.family]);
 
@@ -21049,7 +21378,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
         message: syncMode === "full"
           ? "Actualizacion completa lista; recopiladores persistidos si la API devolvio metadata."
           : route.family === "telefonico"
-            ? "Avance telefonico actualizado con Kobo y Sheets de base/barrido."
+            ? "Avance actualizado con las entrevistas de la plataforma y la hoja de llamadas."
             : "Avance actualizado usando la relacion guardada de recopiladores.",
       });
     } catch (e) {
@@ -21076,8 +21405,15 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           : seccionActiva === "avance"
             ? activeAdvanceTab
             : "";
+  const navigateSection = useCallback((view: MonitoreoSeccion) => {
+    if (view === activeViewRef.current) return;
+    activeViewRef.current = view;
+    setActiveView(view);
+    if (view !== "avance") setActiveAdvanceTab("resumen");
+    void loadView(view);
+  }, [loadView]);
   useMonitoreoDireccion(seccionActiva, pestanaActiva || undefined, modoIdDesdeFamily(route.family), {
-    onSeccionPedida: setActiveView,
+    onSeccionPedida: navigateSection,
     // `changeLocalTab` ya valida la pestaña contra el catálogo de la sección.
     onPestanaPedida: (pestana, seccion) =>
       changeLocalTab(seccion, pestana as AcreditacionLocalTabKey),
@@ -21113,12 +21449,14 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   }, [isPhone, phoneConsultaCaveatCount]);
   const navigateLocalTab = useCallback((view: MonitoreoSeccion, tab: AcreditacionLocalTabKey) => {
     changeLocalTab(view, tab);
-    if (view === activeViewRef.current) return;
-    activeViewRef.current = view;
-    setActiveView(view);
-    if (view !== "avance") setActiveAdvanceTab("resumen");
-    void loadView(view);
-  }, [changeLocalTab, loadView]);
+    navigateSection(view);
+  }, [changeLocalTab, navigateSection]);
+  const loadedReportScope = state?.dashboard?.acreditacion_reports?.report_scope;
+  const auditReady = !loading
+    && !error
+    && Boolean(state)
+    && (loadedReportScope === scopeForView(seccionActiva, isPhone ? "telefonico" : "acreditacion")
+      || loadedReportScope === "full");
 
   return (
     <div className={`mon-profile-canonical-shell ${isPhone ? "is-telefonico-profile" : "is-acreditacion-profile"}`} style={MODULE_TONES.monitoreo as CSSProperties}>
@@ -21134,7 +21472,8 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       >
         <span
           hidden
-          data-audit-ready={isPhone ? "monitoreo-telefonico" : "monitoreo-acreditacion"}
+          data-audit-ready={auditReady ? (isPhone ? "monitoreo-telefonico" : "monitoreo-acreditacion") : undefined}
+          data-audit-loading={loading ? "true" : "false"}
           data-audit-has-dashboard={state?.dashboard ? "true" : "false"}
         />
         {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
@@ -21164,19 +21503,16 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           advanceSyncLabel="Avance"
           advanceSyncTitle={refreshTitle}
           onSyncAdvance={() => { void runProfileSourceSync("advance"); }}
-          onCambioSeccion={(view) => {
-            if (view === seccionActiva) return;
-            activeViewRef.current = view;
-            setActiveView(view);
-            if (view !== "avance") setActiveAdvanceTab("resumen");
-            void loadView(view);
-          }}
+          onCambioSeccion={navigateSection}
         />
 
         <MonitoreoWorkbenchChrome
           seccionActiva={seccionActiva}
           ariaLabel={`Mesa de trabajo de ${isPhone ? "monitoreo telefónico" : "acreditación"}: ${activeDef.label}`}
           className="is-acreditacion"
+          contentRole="tabpanel"
+          contentAriaLabelledBy={`monitoreo-${seccionActiva}-tab-${pestanaActiva}`}
+          scrollResetKey={`${seccionActiva}/${pestanaActiva}`}
           rail={(
             <AcreditacionWorkbenchRail
               route={route}
@@ -21188,7 +21524,15 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
               reports={reports}
             />
           )}
-          head={null}
+          head={(
+            <AcreditacionWorkbenchHead
+              route={route}
+              seccionActiva={seccionActiva}
+              pestanaActiva={pestanaActiva}
+              state={state}
+              reports={reports}
+            />
+          )}
           clarity={(
             <AcreditacionClarityStrip
               seccionActiva={seccionActiva}

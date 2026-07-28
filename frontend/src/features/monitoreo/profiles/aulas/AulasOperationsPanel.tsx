@@ -65,7 +65,11 @@ export function AulasOperationsPanel({ config, sources, busy, onImportPlan, onSy
         <h3>Operación del plan</h3>
         <span>{imported ? "plan conectado" : "plan pendiente"}</span>
       </div>
-      <div className="aulas-ops-grid">
+      <div
+        className="aulas-ops-grid"
+        data-qa-geometry-group="monitoring-aulas-operations"
+        data-qa-geometry-contract="equal"
+      >
         {cards.map((card) => {
           const Icon = card.icon;
           return (

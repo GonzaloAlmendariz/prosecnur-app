@@ -1,0 +1,157 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, test } from "vitest";
+
+const aulasDir = path.dirname(fileURLToPath(import.meta.url));
+const css = fs.readFileSync(path.join(aulasDir, "..", "profilePage.css"), "utf8");
+const aulasCss = fs.readFileSync(path.join(aulasDir, "aulasMonitoreo.css"), "utf8");
+const aulasPage = fs.readFileSync(path.join(aulasDir, "AulasMonitoreoPage.tsx"), "utf8");
+const aulasOperations = fs.readFileSync(path.join(aulasDir, "AulasOperationsPanel.tsx"), "utf8");
+
+function compactRuleBody(selector: string): string {
+  const marker = "@media (max-width: 1180px) and (max-height: 760px)";
+  const start = css.indexOf(marker);
+  const section = css.slice(start, css.indexOf("@media ", start + marker.length));
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return section.match(new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+}
+
+function shortAulasRuleBody(selector: string): string {
+  const marker = "@media (max-height: 760px)";
+  const start = aulasCss.indexOf(marker);
+  const section = aulasCss.slice(start);
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return section.match(new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+}
+
+describe("Aulas: workbench compacto sin fila fantasma", () => {
+  test("entrega toda la única fila disponible al contenido cuando el sidebar está oculto", () => {
+    const genericWorkbench = compactRuleBody(".mon-profile-workbench");
+    const aulasWorkbench = compactRuleBody(".mon-profile-page.is-aulas-flow .mon-profile-workbench");
+
+    expect(genericWorkbench).toMatch(/grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\);/);
+    expect(aulasWorkbench).toMatch(/grid-template-rows:\s*minmax\(0,\s*1fr\);/);
+    expect(aulasWorkbench).not.toMatch(/auto\s+minmax\(0,\s*1fr\)/);
+  });
+
+  test("mantiene Fuentes intrínseca y estabiliza el marco de Agenda en altura corta", () => {
+    const view = shortAulasRuleBody(".mon-profile-page.is-aulas-flow .aulas-mon-view");
+    const sourceStack = shortAulasRuleBody(
+      ".mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-stack.aulas-fuentes-stack",
+    );
+    const agendaStack = shortAulasRuleBody(
+      ".mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-stack:has(.mon-aulas-handoff-panel)",
+    );
+    const dataPanel = shortAulasRuleBody(
+      ".mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-stack > .mon-profile-panel:last-child",
+    );
+    const table = shortAulasRuleBody(
+      ".mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-stack > .mon-profile-panel:last-child .mon-profile-table-wrap",
+    );
+
+    expect(view).toMatch(/overflow:\s*visible;/);
+    expect(sourceStack).toMatch(/grid-template-rows:\s*auto\s+auto;/);
+    expect(agendaStack).toMatch(/grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\);/);
+    expect(agendaStack).toMatch(/align-content:\s*stretch;/);
+    expect(agendaStack).toMatch(/overflow:\s*hidden;/);
+    expect(dataPanel).toMatch(/min-height:\s*180px;/);
+    expect(table).toMatch(/min-height:\s*128px;/);
+    expect(table).toMatch(/height:\s*100%;/);
+    expect(table).not.toMatch(/(?:^|[;\n])\s*height:\s*128px;/);
+  });
+
+  test("convierte el flujo repetido en una banda de proceso cuando falta altura", () => {
+    const flow = shortAulasRuleBody(".mon-profile-page.is-aulas-flow .aulas-flow");
+    const flowGrid = shortAulasRuleBody(".mon-profile-page.is-aulas-flow .aulas-flow-grid");
+    const flowCopy = shortAulasRuleBody(".mon-profile-page.is-aulas-flow .aulas-flow-copy");
+    const flowStep = shortAulasRuleBody(".mon-profile-page.is-aulas-flow .aulas-flow-steps li");
+    const flowStepDetail = shortAulasRuleBody(".mon-profile-page.is-aulas-flow .aulas-flow-steps li small");
+
+    expect(flow).toMatch(/margin:\s*0;/);
+    expect(flowGrid).toMatch(/grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto;/);
+    expect(flowCopy).toMatch(/display:\s*none;/);
+    expect(flowStep).toMatch(/min-height:\s*36px;/);
+    expect(flowStepDetail).toMatch(/display:\s*none;/);
+  });
+
+  test("declara los KPI repetidos como un grupo de geometría equivalente", () => {
+    expect(aulasPage).toContain('data-qa-geometry-group="monitoring-aulas-kpis"');
+    expect(aulasPage).toContain('data-qa-geometry-contract="equal"');
+  });
+
+  test("limita la capacidad vacía deliberada al viewport visible de cada tabla", () => {
+    expect(aulasPage).toMatch(
+      /<div\s+className="mon-profile-table-wrap"\s+data-qa-geometry-capacity="owned"\s+data-qa-geometry-member/,
+    );
+    expect(aulasPage.match(/data-qa-geometry-member/g)).toHaveLength(2);
+    expect(aulasPage.match(/data-qa-geometry-group="monitoring-aulas-table"/g) ?? []).toHaveLength(5);
+    expect(aulasPage.match(/data-qa-geometry-contract="intrinsic"/g) ?? []).toHaveLength(5);
+    expect(aulasPage).not.toContain('if (!rows.length) return <p className="mon-profile-muted">');
+    expect(aulasCss).toMatch(
+      /\.aulas-mon-view \.mon-profile-table-wrap > \.mon-profile-muted\s*\{[^}]*display:\s*grid;[^}]*place-items:\s*center;/s,
+    );
+    expect(aulasPage).not.toMatch(
+      /<section[^>]+data-qa-geometry-capacity="owned"/,
+    );
+  });
+
+  test("mantiene completo el traspaso operativo antes de la agenda en altura corta", () => {
+    const handoff = shortAulasRuleBody(
+      ".mon-profile-page.is-aulas-flow .aulas-mon-view .mon-aulas-handoff-panel",
+    );
+    const handoffHead = shortAulasRuleBody(
+      ".mon-profile-page.is-aulas-flow .mon-aulas-handoff-panel > .mon-profile-panel-head",
+    );
+    const handoffCard = shortAulasRuleBody(
+      ".mon-profile-page.is-aulas-flow .mon-aulas-handoff-grid article",
+    );
+    const handoffDetail = shortAulasRuleBody(
+      ".mon-profile-page.is-aulas-flow .mon-aulas-handoff-grid article p",
+    );
+
+    expect(handoff).toMatch(/grid-template-rows:\s*auto;/);
+    expect(handoffHead).toMatch(/display:\s*none;/);
+    expect(handoffCard).toMatch(/min-height:\s*40px;/);
+    expect(handoffDetail).toMatch(/display:\s*none;/);
+    expect(aulasPage).toContain('data-qa-geometry-group="monitoring-aulas-handoff"');
+  });
+
+  test("reserva el diagrama general para Fuentes y entrega las demás secciones a sus datos", () => {
+    expect(aulasPage).toMatch(/seccionActiva\s*===\s*"fuentes"\s*\?\s*\(\s*<AulasApplicationFlow/);
+    expect(aulasPage).toContain('className={`mon-profile-content${seccionActiva === "fuentes" ? " has-aulas-flow" : ""}`}');
+    expect(aulasCss).toMatch(
+      /\.mon-profile-page\.is-aulas-flow \.mon-profile-content\s*\{[^}]*grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\);/s,
+    );
+    expect(aulasCss).toMatch(
+      /\.mon-profile-page\.is-aulas-flow \.mon-profile-content\.has-aulas-flow\s*\{[^}]*grid-template-rows:\s*auto\s+auto\s+minmax\(0,\s*1fr\);/s,
+    );
+  });
+
+  test("presenta la operación de Fuentes como estados y acciones completos en una sola banda", () => {
+    const panel = shortAulasRuleBody(
+      ".mon-profile-page.is-aulas-flow .aulas-mon-view .aulas-ops-panel",
+    );
+    const head = shortAulasRuleBody(
+      ".mon-profile-page.is-aulas-flow .aulas-ops-panel > .mon-profile-panel-head",
+    );
+    const card = shortAulasRuleBody(
+      ".mon-profile-page.is-aulas-flow .aulas-ops-grid article",
+    );
+    const hint = shortAulasRuleBody(
+      ".mon-profile-page.is-aulas-flow .aulas-ops-grid article small",
+    );
+    const actionsMeta = shortAulasRuleBody(
+      ".mon-profile-page.is-aulas-flow .aulas-ops-actions em",
+    );
+
+    expect(panel).toMatch(/grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto;/);
+    expect(panel).toMatch(/grid-template-rows:\s*auto;/);
+    expect(head).toMatch(/display:\s*none;/);
+    expect(card).toMatch(/min-height:\s*40px;/);
+    expect(hint).toMatch(/display:\s*none;/);
+    expect(actionsMeta).toMatch(/display:\s*none;/);
+    expect(aulasOperations).toContain('data-qa-geometry-group="monitoring-aulas-operations"');
+    expect(aulasOperations).toContain('data-qa-geometry-contract="equal"');
+  });
+});

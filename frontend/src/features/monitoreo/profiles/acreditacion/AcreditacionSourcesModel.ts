@@ -562,7 +562,10 @@ export function acreditacionSweepSourceForChannel(
 export type AcreditacionActiveSourcesSummary = {
   activeSurveys: number;
   surveysWithActor: number;
+  /** Solo las bases de universo: una por actor. Gobierna la cobertura por actor. */
   activeSheetBases: number;
+  /** TODAS las hojas activas (universo + barrido + correo). Es la que cierra el inventario. */
+  activeSheets: number;
   actorsWithSurvey: string[];
   actorsWithSheet: string[];
   missingSheetActors: string[];
@@ -578,7 +581,8 @@ export function buildAcreditacionActiveSourcesSummary(
 ) {
   const activeSources = sources.filter((source) => source.enabled);
   const activeSurveys = acreditacionPlatformResponseSources(activeSources);
-  const activeSheetBases = activeSources.filter((source) => source.kind === "google_sheets" && source.role === "universo");
+  const activeSheets = activeSources.filter((source) => source.kind === "google_sheets");
+  const activeSheetBases = activeSheets.filter((source) => source.role === "universo");
   const actorsWithSurvey = acreditacionActorOptions(activeSurveys);
   const actorsWithSheet = acreditacionActorOptions(activeSheetBases);
   const sheetKeys = new Set(actorsWithSheet.map(normalizeKey));
@@ -592,6 +596,7 @@ export function buildAcreditacionActiveSourcesSummary(
     activeSurveys: activeSurveys.length,
     surveysWithActor: activeSurveys.filter((source) => Boolean(acreditacionSourceActor(source))).length,
     activeSheetBases: activeSheetBases.length,
+    activeSheets: activeSheets.length,
     actorsWithSurvey,
     actorsWithSheet,
     missingSheetActors: actorsWithSurvey.filter((actor) => !sheetKeys.has(normalizeKey(actor))),

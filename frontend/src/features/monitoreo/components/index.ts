@@ -10,6 +10,7 @@ export type {
 } from "./SourceSyncActions";
 export type { MonitoreoWorkbenchChromeProps } from "./MonitoreoWorkbenchChrome.types";
 export { MonitoreoWorkbenchHead } from "./MonitoreoWorkbenchHead";
+export { MonitoreoRailLastUpdate } from "./MonitoreoRailLastUpdate";
 export { MonitoreoWorkbenchRail } from "./MonitoreoWorkbenchRail";
 export type {
   MonitoreoWorkbenchRailStatusItem,

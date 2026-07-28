@@ -207,6 +207,19 @@
   margin-top: 0;
 }
 
+.is-telefonico-profile .mon-phone-source-tab.is-package .mon-phone-source-slot-data span {
+  min-height: 54px;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: start;
+}
+
+.is-telefonico-profile .mon-phone-source-tab.is-package .mon-phone-source-slot-data :is(strong, a) {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .is-telefonico-profile .mon-stage--telefonico > .mon-stage-stack {
   min-height: 0;
   height: 100%;
@@ -763,7 +776,7 @@
 
 .is-telefonico-profile .mon-phone-advance-grid > .mon-phone-advance-parallel {
   grid-area: context;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .is-telefonico-profile .mon-phone-advance-grid > .mon-advance-storage {
@@ -907,8 +920,8 @@
 }
 
 .is-telefonico-profile .mon-phone-advance-status-list {
-  min-height: 0;
-  height: 100%;
+  min-height: 34px;
+  height: auto;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-auto-rows: minmax(32px, 1fr);
@@ -925,6 +938,10 @@
   min-height: 0;
   align-content: center;
   padding: 5px 6px;
+}
+
+.is-telefonico-profile .mon-phone-advance-status-list > .is-muted:only-child {
+  grid-column: 1 / -1;
 }
 
 .is-telefonico-profile .mon-phone-advance-status-list em {
@@ -1065,7 +1082,11 @@
   gap: 6px;
   border-radius: 9px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--pulso-module-monitoring-soft) 14%, #fff)),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--pulso-surface) 96%, transparent),
+      color-mix(in srgb, var(--pulso-module-monitoring-soft) 14%, var(--pulso-surface))
+    ),
     var(--pulso-surface);
   padding: 6px;
 }
@@ -2322,7 +2343,7 @@
   --field-day-tone: #64748b;
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(132px, 0.22fr) minmax(160px, 1fr) minmax(220px, 0.34fr);
+  grid-template-columns: minmax(132px, 0.22fr) minmax(160px, 1fr) minmax(240px, 0.34fr);
   align-items: center;
   gap: 8px;
   border: 1px solid color-mix(in srgb, var(--field-day-tone) 16%, var(--pulso-border));
@@ -2783,8 +2804,11 @@
 .is-telefonico-profile .mon-phone-crossing-summary span {
   --phone-crossing-accent: #64748b;
   min-width: 0;
+  min-height: 52px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: start;
   align-items: center;
   gap: 3px 8px;
   border: 1px solid color-mix(in srgb, var(--phone-crossing-accent) 18%, var(--pulso-border));
@@ -2833,9 +2857,13 @@
 
 .is-telefonico-profile .mon-phone-crossing-summary small {
   grid-column: 1 / -1;
+  overflow: visible;
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-weight: var(--pulso-weight-bold);
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .is-telefonico-profile .mon-phone-crossing-pill {
@@ -3135,9 +3163,41 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .is-telefonico-profile .mon-phone-consulted-summary,
+  .is-telefonico-profile .mon-phone-consulted-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .is-telefonico-profile .mon-phone-consulted-filters {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+    align-items: center;
+  }
+
+  .is-telefonico-profile .mon-phone-consulted-filters .mon-acr-base-search-pill {
+    grid-column: 1 / -2;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .is-telefonico-profile .mon-phone-consulted-filters .mon-acr-base-filter-pill {
+    grid-row: 2;
+    min-width: 0;
+    min-height: 42px;
+    display: grid;
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-content: center;
+    gap: 2px;
+    padding: 4px 10px;
+  }
+
+  .is-telefonico-profile .mon-phone-consulted-filters .mon-acr-base-filter-pill select {
+    width: 100%;
+  }
+
+  .is-telefonico-profile .mon-phone-consulted-filters .mon-acr-base-clear-pill {
+    grid-column: -2 / -1;
+    grid-row: 1;
   }
 }
 
@@ -3259,10 +3319,6 @@
     font-size: 12.5px;
   }
 
-  .is-telefonico-profile .mon-phone-crossing-summary small {
-    display: none;
-  }
-
   .is-telefonico-profile .mon-acr-crossing-grid:has(.mon-phone-crossing-summary) .mon-acr-crossing-table {
     width: 100%;
     min-width: 0;
@@ -3376,5 +3432,1213 @@
   .is-telefonico-profile .mon-phone-time-case-row {
     gap: 5px;
     padding: 4px 6px;
+  }
+}
+
+/* ── Diagnóstico de equipo: estados por encuestador y plataforma vs barrido ──
+   Piezas de la Fase 1 del plan (docs/plan-monitoreo-telefonico-2026-07.md §3).
+   Consumen bloques que el engine R ya producía y solo viajaban al PDF. */
+
+.is-telefonico-profile {
+.mon-team-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 20px;
+  border: 1px dashed var(--pulso-border);
+  border-radius: var(--pulso-radius-md);
+  background: var(--pulso-surface-soft, var(--pulso-surface));
+}
+
+.mon-team-empty strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+}
+
+.mon-team-empty span {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.mon-team-matrix,
+.mon-team-gap {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-md);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--pulso-surface) 96%, transparent),
+      color-mix(in srgb, var(--pulso-module-monitoring-soft) 14%, var(--pulso-surface))
+    ),
+    var(--pulso-surface);
+}
+
+.mon-team-matrix-head,
+.mon-team-gap-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.mon-team-matrix-head > div > span,
+.mon-team-gap-head > div > span {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text-soft);
+}
+
+.mon-team-matrix-head > div > strong,
+.mon-team-gap-head > div > strong {
+  display: block;
+  font-size: 15px;
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-text);
+}
+
+.mon-team-matrix-head p,
+.mon-team-gap-head p {
+  margin: 3px 0 0;
+  max-width: 62ch;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.mon-team-matrix-head > em,
+.mon-team-gap-head > em {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: var(--pulso-radius-chip);
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text-soft);
+}
+
+.mon-team-matrix-head > em.is-warn,
+.mon-team-gap-head > em.is-warn {
+  border-color: color-mix(in srgb, var(--pulso-warn-accent) 40%, var(--pulso-border));
+  color: var(--pulso-warn-accent);
+}
+
+/* La tabla scrollea en su eje horizontal; el alto lo pone el contenido para
+   no reeditar el anti-patrón de cajas con scroll vertical oculto. */
+.mon-team-matrix-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.mon-team-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.mon-team-matrix-table th,
+.mon-team-matrix-table td {
+  padding: 6px 8px;
+  text-align: left;
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 60%, transparent);
+  white-space: nowrap;
+}
+
+.mon-team-matrix-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--pulso-surface);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text-soft);
+}
+
+.mon-team-matrix-table .is-num {
+  text-align: right;
+}
+
+.mon-team-matrix-table tbody th {
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+}
+
+.mon-team-matrix-table td strong {
+  display: block;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+}
+
+.mon-team-matrix-table td small {
+  display: block;
+  font-size: 10px;
+  color: var(--pulso-text-soft);
+}
+
+.mon-team-matrix-table tr.is-reference {
+  background: color-mix(in srgb, var(--pulso-module-monitoring-soft) 26%, transparent);
+}
+
+.mon-team-matrix-table tr.is-reference th,
+.mon-team-matrix-table tr.is-reference td strong {
+  color: color-mix(in srgb, var(--pulso-module-monitoring) 80%, var(--pulso-text));
+}
+
+.mon-team-matrix-table td.is-alta {
+  background: color-mix(in srgb, var(--pulso-warn-accent) 14%, transparent);
+}
+
+.mon-team-matrix-table td.is-alta strong {
+  color: var(--pulso-warn-accent);
+}
+
+.mon-team-matrix-table td.is-baja {
+  background: color-mix(in srgb, var(--pulso-info-fg) 10%, transparent);
+}
+
+.mon-team-matrix-note {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: var(--pulso-radius-chip);
+  background: color-mix(in srgb, var(--pulso-border) 50%, transparent);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text-soft);
+}
+
+.mon-team-matrix-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-size: 10px;
+  color: var(--pulso-text-soft);
+}
+
+.mon-team-matrix-foot span::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 5px;
+  border-radius: 3px;
+  vertical-align: -1px;
+  background: transparent;
+}
+
+.mon-team-matrix-foot .is-alta::before {
+  background: color-mix(in srgb, var(--pulso-warn-accent) 60%, transparent);
+}
+
+.mon-team-matrix-foot .is-baja::before {
+  background: color-mix(in srgb, var(--pulso-info-fg) 45%, transparent);
+}
+
+.mon-team-gap-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
+}
+
+.mon-team-gap-totals > span,
+.mon-team-reconciliation > span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-sm, 8px);
+  background: var(--pulso-surface);
+}
+
+.mon-team-gap-totals > span em,
+.mon-team-reconciliation > span em {
+  font-size: 10px;
+  font-style: normal;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+
+.mon-team-gap-totals > span strong,
+.mon-team-reconciliation > span strong {
+  font-size: 17px;
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-team-gap-totals > span.is-warn,
+.mon-team-reconciliation > span.is-warn {
+  border-color: color-mix(in srgb, var(--pulso-warn-accent) 40%, var(--pulso-border));
+}
+
+.mon-team-gap-totals > span.is-warn strong,
+.mon-team-reconciliation > span.is-warn strong {
+  color: var(--pulso-warn-accent);
+}
+
+.mon-team-gap-totals > span.is-risk {
+  border-color: color-mix(in srgb, var(--pulso-danger-fg) 36%, var(--pulso-border));
+}
+
+.mon-team-gap-totals > span.is-risk strong {
+  color: var(--pulso-danger-fg);
+}
+
+.mon-team-gap-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-team-gap-list > li {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.1fr) minmax(60px, 0.9fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius-sm, 8px);
+  background: color-mix(in srgb, var(--pulso-border) 22%, transparent);
+}
+
+.mon-team-gap-list > li.is-pending {
+  border-color: color-mix(in srgb, var(--pulso-warn-accent) 28%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-warn-accent) 8%, var(--pulso-surface));
+}
+
+.mon-team-gap-name strong {
+  display: block;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+}
+
+.mon-team-gap-name span {
+  font-size: 10px;
+  color: var(--pulso-text-soft);
+}
+
+.mon-team-gap-bar {
+  height: 6px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, var(--pulso-warn-accent) var(--team-gap-size), color-mix(in srgb, var(--pulso-border) 60%, transparent) var(--team-gap-size));
+}
+
+.mon-team-gap-figures {
+  display: flex;
+  gap: 12px;
+}
+
+.mon-team-gap-figures span {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 58px;
+}
+
+.mon-team-gap-figures em {
+  font-size: 10px;
+  font-style: normal;
+  color: var(--pulso-text-soft);
+}
+
+.mon-team-gap-figures strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-team-gap-figures .is-warn strong {
+  color: var(--pulso-warn-accent);
+}
+
+.mon-team-reconciliation {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.mon-team-reconciliation > span small {
+  font-size: 10px;
+  color: var(--pulso-text-soft);
+}
+
+.mon-team-reconciliation > span.is-lead {
+  border-color: color-mix(in srgb, var(--pulso-success-fg) 34%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-success-fg) 7%, var(--pulso-surface));
+}
+
+.mon-team-reconciliation > span.is-lead strong {
+  color: var(--pulso-success-fg);
+}
+
+/* ── Cumplimiento y embudo (plan §5) ─────────────────────────────────────────
+   Una sola forma para los tres modos de objetivo: con cuotas, con mínimo total
+   y sin mínimo. La reserva baja a pie de bloque cuando el mínimo está cubierto. */
+
+.mon-tel-goal,
+.mon-tel-funnel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-md);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--pulso-surface) 96%, transparent),
+      color-mix(in srgb, var(--pulso-module-monitoring-soft) 14%, var(--pulso-surface))
+    ),
+    var(--pulso-surface);
+}
+
+.mon-tel-goal.is-cubierto {
+  border-color: color-mix(in srgb, var(--pulso-success-fg) 34%, var(--pulso-border));
+}
+
+.mon-tel-goal.is-brecha {
+  border-color: color-mix(in srgb, var(--pulso-warn-accent) 38%, var(--pulso-border));
+}
+
+.mon-tel-goal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.mon-tel-goal-head > div > span {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text-soft);
+}
+
+.mon-tel-goal-head > div > strong {
+  display: block;
+  font-size: 19px;
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-text);
+}
+
+.mon-tel-goal.is-cubierto .mon-tel-goal-head > div > strong {
+  color: var(--pulso-success-fg);
+}
+
+.mon-tel-goal.is-brecha .mon-tel-goal-head > div > strong {
+  color: var(--pulso-warn-accent);
+}
+
+.mon-tel-goal-head > div > em {
+  font-size: 12px;
+  font-style: normal;
+  color: var(--pulso-text-soft);
+}
+
+.mon-tel-goal-pct {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.mon-tel-goal-pct strong {
+  font-size: 20px;
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-tel-goal-pct small {
+  font-size: 10px;
+  color: var(--pulso-text-soft);
+}
+
+.mon-tel-goal-bar {
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--pulso-border) 60%, transparent);
+}
+
+.mon-tel-goal-bar > i {
+  display: block;
+  height: 100%;
+  width: var(--goal-size);
+  border-radius: 999px;
+  background: var(--pulso-warn-accent);
+}
+
+.mon-tel-goal.is-cubierto .mon-tel-goal-bar > i,
+.mon-tel-goal.is-sin-meta .mon-tel-goal-bar > i {
+  background: var(--pulso-success-fg);
+}
+
+.mon-tel-goal-cats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-tel-goal-cats > li {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.2fr) minmax(60px, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 10px;
+  border-radius: var(--pulso-radius-sm, 8px);
+  background: color-mix(in srgb, var(--pulso-border) 20%, transparent);
+}
+
+.mon-tel-goal-cats > li.is-brecha {
+  background: color-mix(in srgb, var(--pulso-warn-accent) 9%, var(--pulso-surface));
+}
+
+.mon-tel-goal-cat-name strong {
+  display: block;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+}
+
+.mon-tel-goal-cat-name span {
+  font-size: 10px;
+  color: var(--pulso-text-soft);
+}
+
+.mon-tel-goal-cat-bar {
+  height: 6px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, var(--pulso-success-fg) var(--goal-size), color-mix(in srgb, var(--pulso-border) 60%, transparent) var(--goal-size));
+}
+
+.mon-tel-goal-cats > li.is-brecha .mon-tel-goal-cat-bar {
+  background:
+    linear-gradient(90deg, var(--pulso-warn-accent) var(--goal-size), color-mix(in srgb, var(--pulso-border) 60%, transparent) var(--goal-size));
+}
+
+.mon-tel-goal-cat-figures,
+.mon-tel-goal-plain,
+.mon-tel-goal-foot {
+  display: flex;
+  gap: 14px;
+}
+
+.mon-tel-goal-cat-figures span,
+.mon-tel-goal-plain span,
+.mon-tel-goal-foot span {
+  display: flex;
+  flex-direction: column;
+  min-width: 62px;
+}
+
+.mon-tel-goal-cat-figures span {
+  align-items: flex-end;
+}
+
+.mon-tel-goal-cat-figures em,
+.mon-tel-goal-plain em,
+.mon-tel-goal-foot em {
+  font-size: 10px;
+  font-style: normal;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+
+.mon-tel-goal-cat-figures strong,
+.mon-tel-goal-plain strong,
+.mon-tel-goal-foot strong {
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-tel-goal-plain strong,
+.mon-tel-goal-foot strong {
+  font-size: 16px;
+}
+
+.mon-tel-goal-foot strong small,
+.mon-tel-goal-plain strong small {
+  font-size: 10px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text-soft);
+}
+
+.mon-tel-goal-foot {
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 60%, transparent);
+}
+
+.mon-tel-goal-foot > span > small {
+  font-size: 10px;
+  color: var(--pulso-text-soft);
+}
+
+.mon-tel-goal-foot > span.is-lead strong {
+  font-size: 19px;
+  color: var(--pulso-warn-accent);
+}
+
+.mon-tel-goal-foot > span.is-quiet strong {
+  color: var(--pulso-text-soft);
+}
+
+.mon-tel-goal-cat-figures .is-ok strong,
+.mon-tel-goal-plain .is-ok strong,
+.mon-tel-goal-foot small.is-ok {
+  color: var(--pulso-success-fg);
+}
+
+.mon-tel-goal-cat-figures .is-warn strong,
+.mon-tel-goal-plain .is-warn strong,
+.mon-tel-goal-foot .is-warn strong,
+.mon-tel-goal-foot small.is-warn {
+  color: var(--pulso-warn-accent);
+}
+
+.mon-tel-funnel > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mon-tel-funnel > header span {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text-soft);
+}
+
+.mon-tel-funnel > header strong {
+  font-size: 14px;
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-tel-funnel ol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-tel-funnel-drop {
+  display: block;
+  padding: 2px 0 2px 14px;
+  font-size: 10px;
+  color: var(--pulso-danger-fg);
+}
+
+.mon-tel-funnel-step {
+  display: grid;
+  grid-template-columns: minmax(60px, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.mon-tel-funnel-step > i {
+  display: block;
+  height: 12px;
+  border-radius: 4px;
+  width: var(--funnel-size);
+  min-width: 6px;
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 55%, transparent);
+}
+
+.mon-tel-funnel-step > strong {
+  font-size: 14px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-tel-funnel-step > em {
+  min-width: 128px;
+  font-size: 10px;
+  font-style: normal;
+  color: var(--pulso-text-soft);
+}
+}
+
+/* ── Fase 7: la página scrollea, las cajas no ────────────────────────────────
+   El perfil llegó a tener nueve contenedores de scroll anidados en una sola
+   pestaña, con cajas de 250 px ocultando 2.539 px de contenido (1 de 13
+   responsables visible) y listas internas por responsable que se tragaban la
+   rueda del mouse. El scroll vive en el workbench; las cajas crecen.
+   Ver docs/plan-monitoreo-telefonico-2026-07.md §9. */
+
+.is-telefonico-profile .mon-phone-summary-secondary .mon-phone-ops-insights,
+.is-telefonico-profile .mon-phone-summary-secondary .mon-phone-responsibles,
+.is-telefonico-profile .mon-phone-layout--incidence .mon-phone-pending-workbench-list,
+.is-telefonico-profile .mon-phone-ops-card--pending-workbench .mon-phone-noanswer-list,
+.is-telefonico-profile .mon-quality-alert-list,
+.is-telefonico-profile .mon-quality-alert-where-list,
+.is-telefonico-profile .mon-phone-time-cases,
+.is-telefonico-profile .mon-phone-compare-list {
+  max-height: none;
+  overflow: visible;
+  overscroll-behavior: auto;
+}
+
+/* Las tablas anchas sí conservan scroll, pero solo horizontal: es su eje. */
+.is-telefonico-profile .mon-query-table-wrap {
+  max-height: none;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+/* Con las cajas abiertas, el scroll del workbench es el único de la vista. */
+.is-telefonico-profile .mon-phone-layout,
+.is-telefonico-profile .mon-phone-layout--summary,
+.is-telefonico-profile .mon-phone-layout--responsables,
+.is-telefonico-profile .mon-phone-layout--incidence,
+.is-telefonico-profile .mon-phone-layout--time,
+.is-telefonico-profile .mon-phone-panel .mon-phone-tabbody {
+  min-height: 0;
+  overflow: visible;
+}
+
+.is-telefonico-profile .mon-phone-panel {
+  overflow: visible !important;
+}
+
+/* Los títulos de card dejan de quedar decapitados bajo la banda sticky. */
+.is-telefonico-profile .mon-phone-ops-card--pending-workbench,
+.is-telefonico-profile .mon-phone-responsibles > article,
+.is-telefonico-profile .mon-phone-quota-rhythm-grid > article {
+  scroll-margin-top: 56px;
+}
+
+/* Con el scroll devuelto a la página, los layouts que se dimensionaban a
+   viewport (`height: 100%` + filas fijas) ya no sirven: al sumar el bloque de
+   cumplimiento y el de conciliación, el grid conservaba las filas calculadas
+   para los hijos viejos y los paneles se montaban unos sobre otros. Altura por
+   contenido y el workbench se encarga de desplazar. */
+.is-telefonico-profile .mon-phone-panel,
+.is-telefonico-profile .mon-phone-panel .mon-phone-tabbody,
+.is-telefonico-profile .mon-phone-layout,
+.is-telefonico-profile .mon-phone-layout--summary,
+.is-telefonico-profile .mon-phone-layout--responsables,
+.is-telefonico-profile .mon-phone-layout--incidence,
+.is-telefonico-profile .mon-phone-layout--time,
+.is-telefonico-profile .mon-phone-summary-secondary {
+  height: auto;
+  max-height: none;
+  grid-template-rows: none;
+  grid-auto-rows: auto;
+  align-content: start;
+  overflow: visible;
+}
+
+/* Las dos columnas del resumen vuelven a repartirse por contenido. */
+.is-telefonico-profile .mon-phone-summary-secondary {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 10px;
+}
+
+.is-telefonico-profile .mon-phone-overview-grid {
+  grid-auto-rows: auto;
+  align-items: start;
+}
+
+
+/* El grid del resumen repartía sus filas como `1fr` sobre una altura de
+   viewport: cada bloque recibía ~190 px sin importar cuánto midiera y el
+   sobrante se pintaba encima del vecino. Con `overflow: hidden` en el panel el
+   defecto quedaba oculto; al devolver el scroll a la página, saltó. Flex column
+   con `flex: 0 0 auto` respeta la altura natural de cada bloque.
+   Ver docs/plan-monitoreo-telefonico-2026-07.md §9. */
+.is-telefonico-profile .mon-phone-tabbody,
+.is-telefonico-profile .mon-phone-tabbody > .mon-phone-layout,
+.is-telefonico-profile .mon-phone-tabbody > .mon-phone-layout--summary,
+.is-telefonico-profile .mon-phone-tabbody > .mon-phone-layout--responsables,
+.is-telefonico-profile .mon-phone-tabbody > .mon-phone-layout--incidence,
+.is-telefonico-profile .mon-phone-tabbody > .mon-phone-layout--time {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.is-telefonico-profile .mon-phone-tabbody > .mon-phone-layout > *,
+.is-telefonico-profile .mon-phone-tabbody > .mon-phone-layout--summary > *,
+.is-telefonico-profile .mon-phone-tabbody > .mon-phone-layout--responsables > *,
+.is-telefonico-profile .mon-phone-tabbody > .mon-phone-layout--incidence > *,
+.is-telefonico-profile .mon-phone-tabbody > .mon-phone-layout--time > * {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+
+/* Recortes silenciosos: contenedores intermedios que conservaban `overflow:
+   hidden` y altura de viewport después de devolver el scroll a la página. En
+   acnur_pdm escondían 4.230 px en Tiempos, 8.568 px en Sin efectiva (solo se
+   alcanzaba el primero de 13 responsables) y 1.643 px en Alertas, sin barra de
+   desplazamiento que delatara que había más.
+   Ver docs/plan-monitoreo-telefonico-2026-07.md §9. */
+.is-telefonico-profile .mon-phone-time-workbench,
+.is-telefonico-profile .mon-phone-time-control,
+.is-telefonico-profile .mon-phone-ops-card,
+.is-telefonico-profile .mon-phone-ops-card--pending-workbench,
+.is-telefonico-profile .mon-phone-pending-workbench,
+.is-telefonico-profile .mon-quality-alert-panel,
+.is-telefonico-profile .mon-quality-alert-body,
+.is-telefonico-profile .mon-quality-alert-where {
+  height: auto;
+  max-height: none;
+  min-height: 0;
+  overflow: visible;
+  grid-template-rows: none;
+  grid-auto-rows: auto;
+}
+
+/* La columna lateral de alertas se apilaba sobre su propia lista al perder la
+   contención: cada bloque ocupa su alto y se ordenan en flujo. */
+.is-telefonico-profile .mon-quality-alert-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.is-telefonico-profile .mon-quality-alert-side > * {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.is-telefonico-profile .mon-phone-time-clear {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--pulso-success-fg) 24%, var(--pulso-border));
+  border-radius: var(--pulso-radius-md);
+  background: color-mix(in srgb, var(--pulso-success-fg) 6%, var(--pulso-surface));
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+}
+
+/* Cumplimiento por categoría en tabla: una cabecera para todas las filas en vez
+   de repetir los rótulos en cada una. */
+.is-telefonico-profile .mon-tel-goal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.is-telefonico-profile .mon-tel-goal-table th,
+.is-telefonico-profile .mon-tel-goal-table td {
+  padding: 5px 8px;
+  text-align: left;
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 55%, transparent);
+}
+
+.is-telefonico-profile .mon-tel-goal-table thead th {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text-soft);
+  border-bottom-color: var(--pulso-border);
+}
+
+.is-telefonico-profile .mon-tel-goal-table .is-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-tel-goal-table tbody th {
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+}
+
+.is-telefonico-profile .mon-tel-goal-table tbody th span {
+  display: block;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text-soft);
+}
+
+.is-telefonico-profile .mon-tel-goal-table td.is-bar {
+  width: 34%;
+  min-width: 90px;
+}
+
+.is-telefonico-profile .mon-tel-goal-table td.is-bar > i {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, var(--pulso-success-fg) var(--goal-size), color-mix(in srgb, var(--pulso-border) 60%, transparent) var(--goal-size));
+}
+
+.is-telefonico-profile .mon-tel-goal-table tr.is-brecha td.is-bar > i {
+  background:
+    linear-gradient(90deg, var(--pulso-warn-accent) var(--goal-size), color-mix(in srgb, var(--pulso-border) 60%, transparent) var(--goal-size));
+}
+
+.is-telefonico-profile .mon-tel-goal-table td.is-ok {
+  color: var(--pulso-success-fg);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.is-telefonico-profile .mon-tel-goal-table td.is-warn {
+  color: var(--pulso-warn-accent);
+  font-weight: var(--pulso-weight-bold);
+}
+
+/* El panel de carga reservaba media pantalla; ahora ocupa lo que dice. */
+.is-telefonico-profile .mon-acr-loading-card {
+  min-height: 0;
+  height: auto;
+  padding: 14px 16px;
+}
+
+/* La cifra que decide (casos sin dueño) pesa más que el contexto. */
+.is-telefonico-profile .mon-phone-pending-workbench-summary > span.is-lead strong {
+  font-size: 20px;
+}
+
+.is-telefonico-profile .mon-phone-pending-workbench-summary > span.is-lead {
+  border-color: color-mix(in srgb, var(--pulso-warn-accent) 46%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-warn-accent) 10%, var(--pulso-surface));
+}
+
+/* Pulido final del perfil: el contenido del workbench es el único dueño del
+   desplazamiento vertical y los paneles secundarios crecen con su contenido. */
+/* El chrome telefónico monta tres hijos reales: cabecera, banda de claridad y
+   contenido. La regla canónica de Acreditación tiene mayor especificidad y
+   declaraba solo dos filas; el contenido caía en una fila implícita mientras
+   la segunda absorbía el alto libre. Esta regla contractual debe empatar esa
+   especificidad para que la capacidad restante pertenezca al contenido. */
+.mon-profile-canonical-shell.is-telefonico-profile .mon-workbench.is-acreditacion .mon-workbench-main {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.is-telefonico-profile .mon-workbench-content {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+/* El stage heredaba un alto de viewport y encogía el panel aunque sus hijos ya
+   crecían por contenido. Al liberar también este último ancestro, el scroll
+   medido pertenece de verdad al workbench y no a una caja visual invisible. */
+.is-telefonico-profile .mon-stage--telefonico,
+.is-telefonico-profile .mon-stage--telefonico > .mon-stage-stack {
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.is-telefonico-profile .mon-phone-panel > .pulso-panel-header {
+  display: none;
+}
+
+/* `mon-workbench-content` es un flex column. El panel usa su contenido como
+   basis, no encoge y además consume el alto libre: en pestañas cortas la
+   capacidad queda dentro de la superficie dibujada; en las largas crece y el
+   workbench conserva el scroll. */
+.is-telefonico-profile .mon-phone-panel.is-standalone-phone {
+  flex: 1 0 auto;
+  height: max-content;
+  align-self: stretch;
+}
+
+/* Cronograma y cuotas conservaban cápsulas de altura fija heredadas del perfil
+   de acreditación. En Telefónico son documentos largos: crecen y delegan el
+   desplazamiento al workbench, igual que el resto del modo. */
+.is-telefonico-profile .mon-field-schedule-panel,
+.is-telefonico-profile .mon-phone-quota-rhythm,
+.is-telefonico-profile .mon-phone-quota-rhythm.has-series {
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.is-telefonico-profile .mon-acr-model-panel.is-phone-model-schedule .mon-field-schedule-panel {
+  flex: 0 0 auto;
+  min-height: 0;
+  height: max-content;
+  grid-template-rows: repeat(5, auto);
+  overflow: visible;
+}
+
+.is-telefonico-profile .mon-profile-empty,
+.is-telefonico-profile .mon-phone-quota-panel.is-empty,
+.is-telefonico-profile .mon-phone-caveats-panel.is-empty {
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  align-self: start;
+  align-content: start;
+  padding: 12px 14px;
+}
+
+.is-telefonico-profile .mon-phone-advance-grid,
+.is-telefonico-profile .mon-phone-quota-rhythm-grid,
+.is-telefonico-profile .mon-field-schedule-evidence-days {
+  height: auto;
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
+}
+
+/* Los mínimos rígidos convertían el ancho disponible en scroll horizontal o
+   columnas recortadas. Los grids principales negocian ahora su número de
+   columnas y conservan una sola columna antes del viewport compacto. */
+.is-telefonico-profile .mon-phone-source-tab.is-kobo .mon-phone-kobo-dossier,
+.is-telefonico-profile .mon-phone-overview-grid,
+.is-telefonico-profile .mon-phone-advance-hero,
+.is-telefonico-profile .mon-phone-quota-rhythm > header,
+.is-telefonico-profile .mon-phone-caveats,
+.is-telefonico-profile .mon-outputs-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.is-telefonico-profile .mon-phone-advance-grid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-rows: none;
+  grid-auto-rows: auto;
+  grid-template-areas: none;
+}
+
+.is-telefonico-profile .mon-phone-advance-grid > * {
+  height: auto;
+  min-height: 0;
+  grid-area: auto;
+  overflow: visible;
+}
+
+.is-telefonico-profile .mon-phone-advance-grid > .mon-advance-daily-mini {
+  grid-column: 1 / -1;
+}
+
+/* El resumen ancho tiene una composición deliberada: una fila de ritmo y tres
+   superficies paralelas debajo. El auto-fit genérico anterior creaba tracks
+   residuales (incluso uno de 0 px) y hacía que Contexto, Universo y Actor se
+   solaparan. El apilado sigue gobernado por el breakpoint compacto. */
+@media (min-width: 1201px) {
+  .is-telefonico-profile .mon-phone-advance-summary .mon-phone-advance-grid {
+    height: 100%;
+    max-height: 100%;
+    grid-template-columns: minmax(360px, 1fr) minmax(330px, 0.78fr) minmax(300px, 0.64fr);
+    grid-template-rows: minmax(300px, 0.92fr) minmax(300px, 1.08fr);
+    grid-template-areas:
+      "daily daily daily"
+      "storage context focus";
+    overflow: hidden;
+    padding-right: 0;
+  }
+}
+
+/* Más información por pantalla sin convertir etiquetas operativas en siglas. */
+.is-telefonico-profile .mon-quality-alert-panel,
+.is-telefonico-profile .mon-quality-alert-card,
+.is-telefonico-profile .mon-phone-responsible,
+.is-telefonico-profile .mon-phone-quota-actor,
+.is-telefonico-profile .mon-phone-quota-row,
+.is-telefonico-profile .mon-phone-pending-person {
+  gap: 6px;
+  padding: 8px;
+}
+
+.is-telefonico-profile .mon-phone-operation-grid em,
+.is-telefonico-profile .mon-phone-overview-grid .mon-phone-status-rank strong,
+.is-telefonico-profile .mon-phone-pending-workbench-summary em,
+.is-telefonico-profile .mon-quality-alert-card strong,
+.is-telefonico-profile .mon-quality-alert-action,
+.is-telefonico-profile .mon-quality-alert-where-list strong,
+.is-telefonico-profile .mon-phone-responsible-title span,
+.is-telefonico-profile .mon-phone-responsible-foot em,
+.is-telefonico-profile .mon-phone-quota-summary em,
+.is-telefonico-profile .mon-phone-quota-actor > header strong,
+.is-telefonico-profile .mon-phone-quota-row strong,
+.is-telefonico-profile .mon-phone-quota-row span,
+.is-telefonico-profile .mon-phone-quota-rhythm-progress-copy em,
+.is-telefonico-profile .mon-phone-quota-rhythm-row-summary > small {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Las cinco categorías conservan el mismo marco exterior. Dentro de cada una,
+   la descripción usa una banda completa y la barra comparte la segunda solo
+   con la tasa: así la cardinalidad no comprime nombre, base/meta ni requerido. */
+.is-telefonico-profile .mon-phone-quota-gap-board article {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "copy copy"
+    "bar rate";
+}
+
+.is-telefonico-profile .mon-phone-quota-gap-board article span {
+  grid-area: copy;
+}
+
+.is-telefonico-profile .mon-phone-quota-gap-board article > i {
+  grid-area: bar;
+}
+
+.is-telefonico-profile .mon-phone-quota-gap-board article > small {
+  grid-area: rate;
+}
+
+@media (max-width: 1200px) {
+  .is-telefonico-profile .mon-phone-advance-summary {
+    flex: 0 0 auto;
+    min-height: 0;
+    height: max-content;
+    grid-template-rows: auto;
+    align-content: start;
+    overflow: visible;
+  }
+
+  /* A 1024 px el paquete dispone de unos 912 px útiles: mantener tres
+     columnas convierte cada fuente en una tarjeta de 299 px y recorta sus
+     decisiones operativas. Las tres variantes conservan el mismo marco, pero
+     se apilan dentro del scroll que ya posee Fuentes. */
+  .is-telefonico-profile .mon-phone-source-tab.is-package .mon-phone-source-contract-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* La explicación ya está presente en el encabezado del editor. En compacto
+     cede ese ancho al camino operativo: cinco marcos iguales, sin conectores
+     que consuman columnas y sin convertir sus etiquetas en fragmentos. */
+  .is-telefonico-profile .mon-phone-quota-governor {
+    grid-template-columns: minmax(230px, 0.56fr) minmax(0, 1.44fr);
+  }
+
+  .is-telefonico-profile .mon-phone-quota-governor-main p {
+    display: none;
+  }
+
+  .is-telefonico-profile .mon-phone-quota-decision-path {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .is-telefonico-profile .mon-phone-quota-decision-path > i {
+    display: none;
+  }
+
+  .is-telefonico-profile .mon-phone-source-tab.is-kobo .mon-phone-kobo-dossier,
+  .is-telefonico-profile .mon-phone-source-tab.is-kobo .mon-phone-source-slot,
+  .is-telefonico-profile .mon-phone-overview-grid,
+  .is-telefonico-profile .mon-phone-advance-hero,
+  .is-telefonico-profile .mon-phone-advance-grid,
+  .is-telefonico-profile .mon-phone-quota-rhythm > header,
+  .is-telefonico-profile .mon-phone-quota-rhythm-row,
+  .is-telefonico-profile .mon-phone-caveats,
+  .is-telefonico-profile .mon-quality-alert-layout,
+  .is-telefonico-profile .mon-phone-summary-secondary,
+  .is-telefonico-profile .mon-outputs-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .is-telefonico-profile .mon-phone-source-tab.is-kobo .mon-phone-source-slot {
+    grid-template-areas:
+      "main"
+      "data"
+      "tags";
+  }
+
+  .is-telefonico-profile .mon-phone-advance-grid > .mon-advance-daily-mini {
+    grid-column: auto;
+  }
+
+  .is-telefonico-profile .mon-phone-advance-summary .mon-phone-advance-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(4, auto);
+    grid-template-areas:
+      "daily"
+      "context"
+      "storage"
+      "focus";
+  }
+
+  .is-telefonico-profile .mon-phone-advance-summary .mon-advance-line-chart.is-phone-effective-axis {
+    min-height: 280px;
+  }
+
+  .is-telefonico-profile .mon-phone-advance-summary .mon-advance-daily-mini.is-general .mon-advance-line-chart .dash-plotly-chart {
+    min-height: 0;
+  }
+
+  .is-telefonico-profile .mon-phone-advance-summary .mon-advance-daily-mini.is-general > header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .is-telefonico-profile .mon-phone-advance-summary .mon-advance-daily-mini.is-general {
+    min-height: 0;
+    height: max-content;
+    grid-template-rows: auto auto auto;
+    align-content: start;
+  }
+
+  .is-telefonico-profile .mon-phone-advance-summary .mon-advance-daily-board {
+    min-height: 0;
+    height: auto;
+  }
+
+  .is-telefonico-profile .mon-phone-advance-grid > .mon-phone-advance-parallel {
+    min-height: 230px;
+    height: max-content;
+    grid-template-rows: auto auto auto;
+  }
+
+  .is-telefonico-profile .mon-phone-advance-grid > .mon-advance-storage {
+    min-height: 230px;
+    height: max-content;
+  }
+
+  .is-telefonico-profile .mon-phone-advance-grid > .mon-advance-focus {
+    min-height: 210px;
+    height: max-content;
+  }
+
+  .is-telefonico-profile .mon-phone-advance-summary .mon-advance-daily-mini-tools {
+    justify-content: start;
   }
 }

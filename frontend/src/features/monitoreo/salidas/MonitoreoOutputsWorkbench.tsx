@@ -36,6 +36,8 @@ import {
   type MonitoreoTerritorialOperationalPackageReviewResult,
 } from "../../../api/client";
 import { GlidingTabList } from "../../../components/GlidingTabList";
+import { readinessDeSalidas, type MonitoreoCorte } from "../corte/corteContract";
+import { MonitoreoOutputsReadiness } from "./MonitoreoOutputsReadiness";
 import "./outputsWorkbench.css";
 
 type OutputAudience = "client" | "internal";
@@ -88,8 +90,12 @@ export type MonitoreoOutputsWorkbenchProps = {
   config?: Partial<MonitoreoConfig>;
   clientSheets?: MonitoreoLastSheetsPublication | null;
   internalSheets?: MonitoreoLastSheetsPublication | null;
-  hasSnapshot: boolean;
-  nRows: number;
+  /**
+   * Corte canónico. Reemplaza al par `hasSnapshot`/`nRows`: el conteo crudo del
+   * snapshot habilitaba salidas de cliente con cero válidas, que es el hallazgo
+   * P1 de la auditoría del 25-07-2026.
+   */
+  corte: MonitoreoCorte;
   syncedAt?: string;
   includeTargetsSupported?: boolean;
   className?: string;
@@ -548,13 +554,20 @@ export function MonitoreoOutputsWorkbench({
   config,
   clientSheets,
   internalSheets,
-  hasSnapshot,
-  nRows,
+  corte,
   syncedAt,
   includeTargetsSupported = true,
   className = "",
   onPublished,
 }: MonitoreoOutputsWorkbenchProps) {
+  const hasSnapshot = corte.hasSnapshot;
+  const nRows = corte.ingesta;
+  const readiness = useMemo(() => readinessDeSalidas(corte), [corte]);
+  // Las salidas de cliente exigen readiness completa. Las internas —producción,
+  // evidencia, handoff a Procesamiento— siguen disponibles con snapshot: son
+  // herramientas de diagnóstico del equipo, no entregables defendibles, y
+  // apagarlas empujaría a exportar por fuera de la app.
+  const salidaClienteHabilitada = readiness.puedePublicarCliente;
   const copy = copyForFamily(family);
   const productionCopy = productionCopyForFamily(family);
   const productionDefaultTitle = useMemo(
@@ -660,15 +673,20 @@ export function MonitoreoOutputsWorkbench({
   const activeEvidenceFiles = monitoreoEvidencePackFileLinks(activeEvidencePack);
   const showOperationalPackageReview = family === "territorial" && activeAudience === "internal";
   const operationalBusy = reviewingOperationalPackage || uploadingOperationalPackage || uploadingOperationalDrift;
-  const canGeneratePdf = hasSnapshot && nRows > 0 && !pdfJobId;
+  // El PDF de avance es el entregable de cliente: pasa por el gate de readiness,
+  // no por el conteo de filas del snapshot.
+  const canGeneratePdf = salidaClienteHabilitada && !pdfJobId;
   const canGenerateProductionPdf = hasSnapshot && nRows > 0 && !productionPdfJobId;
+  const sheetsClienteBloqueado = activeAudience === "client" && !salidaClienteHabilitada;
   const canPreflightSheets = hasSnapshot &&
+    !sheetsClienteBloqueado &&
     Boolean(activeTarget.trim()) &&
     !publishing &&
     !preflighting &&
     !evidencePacking &&
     !operationalBusy;
   const canPublishSheets = hasSnapshot &&
+    !sheetsClienteBloqueado &&
     Boolean(activeTarget.trim()) &&
     !publishing &&
     !preflighting &&
@@ -986,8 +1004,16 @@ export function MonitoreoOutputsWorkbench({
     }
   };
 
+  // Antes decía solo "N registros", y ese N era la ingesta cruda: el usuario leía
+  // "1.400 registros" y asumía 1.400 casos defendibles. Ahora los tres granos
+  // viajan juntos y con nombre.
   const snapshotHint = hasSnapshot
-    ? `${fmt(nRows)} registros${syncedAt ? ` · corte ${formatDate(syncedAt)}` : ""}`
+    ? [
+        `${fmt(corte.ingesta)} en el snapshot`,
+        corte.procesable != null ? `${fmt(corte.procesable)} procesables` : null,
+        `${corte.oficial == null ? "efectivas sin determinar" : `${fmt(corte.oficial)} válidas`}`,
+        syncedAt ? `corte ${formatDate(syncedAt)}` : null,
+      ].filter(Boolean).join(" · ")
     : "Sin corte sincronizado";
   const pdfButtonProgress = pdfJobId ? Math.max(8, Math.min(100, pdfProgress ?? 35)) : pdfReady ? 100 : 0;
   const productionPdfButtonProgress = productionPdfJobId
@@ -1043,6 +1069,8 @@ export function MonitoreoOutputsWorkbench({
         ) : null}
       </header>
 
+      <MonitoreoOutputsReadiness corte={corte} readiness={readiness} />
+
       <div className="mon-outputs-grid">
         <div className="mon-outputs-side-stack">
           <article className="mon-outputs-card mon-outputs-card--pdf">
@@ -1051,8 +1079,10 @@ export function MonitoreoOutputsWorkbench({
               <strong>{copy.title}</strong>
               <small>{copy.detail}</small>
             </div>
-            {!hasSnapshot ? (
-              <div className="mon-outputs-alert is-error"><AlertTriangle size={14} /> Sincroniza un corte antes de generar el PDF.</div>
+            {readiness.bloqueos.length ? (
+              <div className="mon-outputs-alert is-error">
+                <AlertTriangle size={14} /> {readiness.bloqueos[0].mensaje}
+              </div>
             ) : null}
             <button
               type="button"

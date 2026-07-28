@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { upsertAcreditacionActorGoal } from "./AcreditacionActorGoals";
 import { buildAcreditacionPhoneRealAlertModel, buildAcreditacionPhoneSupervisionModel } from "./AcreditacionPhoneAlerts";
 import { buildAcreditacionPhoneDailyPoints, buildAcreditacionPhoneDailyStatusSeries, buildAcreditacionPhoneDailyTableRows } from "./AcreditacionPhoneDailyTrend";
+import * as acreditacionPageModule from "./AcreditacionMonitoreoPage";
 import {
   ACREDITACION_MODEL_TABS,
   ACREDITACION_CONSULTA_TABS,
@@ -92,7 +93,42 @@ describe("Acreditacion fuentes", () => {
 });
 
 describe("Acreditacion telefonica", () => {
-  test("la leyenda preserva todos los estados positivos de la base telefonica", () => {
+  test("abre cuotas inicialmente solo cuando el viewport amplio puede absorber el detalle", () => {
+    const shouldStartPhoneQuotaExpanded = (
+      acreditacionPageModule as unknown as {
+        shouldStartPhoneQuotaExpanded?: (viewport: { width: number; height: number }) => boolean;
+      }
+    ).shouldStartPhoneQuotaExpanded;
+
+    expect(shouldStartPhoneQuotaExpanded).toBeTypeOf("function");
+    if (!shouldStartPhoneQuotaExpanded) return;
+
+    expect(shouldStartPhoneQuotaExpanded({ width: 1440, height: 1000 })).toBe(true);
+    expect(shouldStartPhoneQuotaExpanded({ width: 1024, height: 600 })).toBe(false);
+    expect(shouldStartPhoneQuotaExpanded({ width: 1440, height: 700 })).toBe(false);
+  });
+
+  test("activa la comparacion geometrica del resumen telefonico solo en viewport ancho", () => {
+    const isWidePhoneSummaryViewport = (
+      acreditacionPageModule as unknown as {
+        isWidePhoneSummaryViewport?: (viewport: { width: number }) => boolean;
+      }
+    ).isWidePhoneSummaryViewport;
+
+    expect(isWidePhoneSummaryViewport).toBeTypeOf("function");
+    if (!isWidePhoneSummaryViewport) return;
+
+    expect(isWidePhoneSummaryViewport({ width: 1440 })).toBe(true);
+    expect(isWidePhoneSummaryViewport({ width: 1181 })).toBe(true);
+    expect(isWidePhoneSummaryViewport({ width: 1180 })).toBe(false);
+    expect(isWidePhoneSummaryViewport({ width: 1024 })).toBe(false);
+  });
+
+  test("la leyenda agrupa los estados crudos sin perder ningun caso", () => {
+    // Contrato nuevo (2026-07-26): la franja dejo de volcar el vocabulario
+    // literal del cliente —once categorias truncadas, con puntos de color
+    // indistinguibles— y agrupa en familias operativas. Lo que NO puede pasar
+    // es que se pierda un caso ni que el crudo deje de ser trazable.
     const rows = [
       { Estado: "Efectiva", Casos: 12 },
       { Estado: "Parcial", Casos: 3 },
@@ -107,8 +143,13 @@ describe("Acreditacion telefonica", () => {
 
     const items = acreditacionPhoneStatusLegendItems(rows);
 
-    expect(items).toHaveLength(8);
-    expect(items.map((item) => item.label)).toEqual(expect.arrayContaining([
+    // Ningun caso se evapora en la agrupacion.
+    expect(items.reduce((sum, item) => sum + item.value, 0)).toBe(36);
+    // Menos etiquetas que categorias crudas: ese es el punto.
+    expect(items.length).toBeLessThan(8);
+    // Y cada etiqueta cruda sobrevive como detalle trazable.
+    const crudosVisibles = items.flatMap((item) => item.detalle.map((d) => d.label));
+    expect(crudosVisibles).toEqual(expect.arrayContaining([
       "Efectiva",
       "Parcial",
       "Rechazo",
@@ -118,6 +159,8 @@ describe("Acreditacion telefonica", () => {
       "Reprogramada",
       "Fuera de servicio",
     ]));
+    // Un estado en cero no entra a la leyenda.
+    expect(crudosVisibles).not.toContain("Sin casos");
   });
 });
 
@@ -436,6 +479,31 @@ describe("Acreditacion avance", () => {
     expect(card.progress).toBeCloseTo(40);
     expect(card.missing).toBe(20);
     expect(card.statusTone).toBe("steady");
+  });
+
+  test("da id único a actores que normalizan al mismo slug", () => {
+    // El id salía de normalizar el nombre, así que "Estudiantes" y "ESTUDIANTES"
+    // colapsaban al mismo valor. React lo leía como key duplicada y podía omitir
+    // una tarjeta entera de Avance sin avisar.
+    const cards = advanceCardsFromRows([
+      { Actor: "Estudiantes", Universo: 100, Efectivas: 40 },
+      { Actor: "ESTUDIANTES", Universo: 80, Efectivas: 30 },
+      { Actor: "Estudiantes ", Universo: 60, Efectivas: 20 },
+    ]);
+
+    expect(cards).toHaveLength(3);
+    expect(new Set(cards.map((card) => card.id)).size).toBe(3);
+    // El primero conserva el slug legible; los repetidos se desempatan.
+    expect(cards.some((card) => card.id === "avance-estudiantes")).toBe(true);
+  });
+
+  test("ninguna tarjeta comparte id aunque falten nombres de actor", () => {
+    const cards = advanceCardsFromRows([
+      { Universo: 10, Efectivas: 1 },
+      { Universo: 20, Efectivas: 2 },
+    ]);
+
+    expect(new Set(cards.map((card) => card.id)).size).toBe(cards.length);
   });
 });
 
