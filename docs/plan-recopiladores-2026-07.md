@@ -554,7 +554,7 @@ inspect_target(connection_ref, target_ref)
 preview_deployment(plan, target)
 commit_deployment(preview, confirmation)
 prepare_material_instances(deployment, template)
-render_artifacts(deployment)
+render_artifacts(instances)
 handoff_to_monitoring(deployment)
 ```
 
@@ -692,23 +692,38 @@ la vuelve `stale`.
 ```json
 {
   "schema": "collection_artifact_receipt/v1",
+  "receipt_id": "receipt-...",
   "artifact_id": "artifact-...",
   "instance_id": "material-...",
   "deployment_id": "deployment-...",
+  "plan_fingerprint": "sha256:...",
+  "deployment_fingerprint": "sha256:...",
+  "template_ref": {
+    "template_id": "template-...",
+    "revision": 3,
+    "sha256": "sha256:..."
+  },
+  "layout_fingerprint": "sha256:...",
   "file_id": "file-...",
   "media_type": "application/pdf",
   "filename": "fichas-aulas.pdf",
   "sha256": "sha256:...",
   "size_bytes": 123456,
   "page_count": 42,
-  "generator": { "id": "collection-material-renderer", "version": 1 },
+  "generator": {
+    "id": "collection-material-renderer",
+    "version": 1,
+    "fingerprint": "sha256:..."
+  },
+  "audience": "field_team",
   "sensitivity": "operational"
 }
 ```
 
-Cada entrega registra exactamente un manifest con fingerprints de plan,
-deployment, plantilla, layout y renderer. El binario queda fuera del `.pulso`;
-el proyecto conserva únicamente el recibo permitido.
+El recibo es el manifest canónico y único del artefacto; no se crea un
+`manifest.json` paralelo. Un paquete puede agregar varios recibos por referencia,
+sin duplicarlos. El binario queda fuera del `.pulso`; el proyecto conserva
+únicamente el recibo permitido.
 
 ## 7. Ownership y dependencias
 
@@ -774,6 +789,7 @@ Módulo Recopiladores
 │   ├── Canales
 │   └── Vinculación
 ├── Materiales
+│   ├── Diseño
 │   ├── Vista previa
 │   └── Paquetes
 └── Entrega
@@ -798,6 +814,84 @@ Readiness común:
 9. handoff idempotente disponible;
 10. `remote_write` deshabilitado en V1.
 
+### 9.1 Editor profesional de materiales
+
+La sección Materiales usa un workbench especializado:
+
+```text
+Command bar: preset · unidad de preview · undo/redo · zoom · guardar · generar
+Outline: páginas y bloques
+Canvas: página y safe area
+Inspector: contenido · binding · presentación · visibilidad
+```
+
+Dirección ejemplo:
+`/recopiladores?seccion=materiales&pestana=diseno&foco=block:<id>&panel=inspector`.
+En viewports compactos, el inspector pasa a panel direccionable sin crear otro
+nivel de navegación.
+
+V1 permite duplicar presets curados, añadir/ocultar/reordenar bloques, editar
+copy, elegir bindings permitidos, cambiar A4/carta/orientación/márgenes dentro
+de presets, previsualizar una unidad y agrupar paquetes. Incluye undo/redo de
+comandos semánticos, alternativa de teclado al drag, warnings de overflow,
+safe area y estado `dirty | saving | saved | conflict`.
+
+La preview DOM es feedback rápido. La preview autoritativa renderiza una página
+con el mismo compilador y dispositivo del PDF final y la rasteriza a imagen;
+se cachea por `layout_fingerprint`. `html-to-image` o `window.print()` no son el
+motor final.
+
+La preview autoritativa **no rasteriza el PDF**. El kit compartido
+(`pulso_pdf_theme.R`) dibuja con `grid` sobre `grDevices::pdf()`; la preview
+ejecuta el mismo código de dibujo cambiando únicamente el device a
+`grDevices::png()` con las mismas dimensiones de página. Así "el mismo
+compilador" es literal y no una aproximación, y no se introduce ninguna
+dependencia de sistema.
+
+Queda descartado `magick` como camino de la preview. Hoy se usa de forma
+opcional en `router_graficos.R` bajo `requireNamespace()`, pero exige ImageMagick
+instalado en el sistema y el R embebido de Electron no puede garantizarlo. Un
+fallback silencioso a "sin preview" reintroduciría el problema que este módulo
+existe para eliminar.
+
+Fuera de V1: canvas libre tipo Canva, coordenadas arbitrarias, solapamiento,
+rotación, fuentes/colores sin gobierno, HTML/SVG/scripts, importar o modificar
+PDF existentes, OCR, firmas, anotaciones, formularios AcroForm, colaboración y
+documentos genéricos.
+
+### 9.2 Motor de QR y verificación de legibilidad
+
+El QR se genera en el backend R. Hoy lo produce el paquete npm `qrcode` en el
+frontend y el resultado se persiste como data-URL en el campo `qr` del plan de
+aulas; eso impide que el job de render sea reproducible desde el `.pulso` y
+contradice la regla de §8 de no persistir QR.
+
+Dependencia elegida: el paquete CRAN **`qrcode`** (0.3.0). Es R puro —importa
+solo `assertthat`, `stats` y `utils`—, no exige binarios ni librerías de sistema
+y por tanto es seguro para el R embebido de Electron. La única dependencia
+transitiva nueva del paquete es `assertthat`.
+
+Consecuencias:
+
+- el bloque `access_qr` resuelve `access.qr_payload` y dibuja la matriz dentro
+  del mismo device `grid` que el resto de la página, no como imagen importada;
+- el campo `qr` del plan legacy deja de escribirse y se migra: el estado guarda
+  el `access_ref`, no el píxel;
+- el frontend conserva `qrcode` npm solo para la preview DOM rápida, que no es
+  autoritativa.
+
+Verificación de legibilidad, en tres niveles:
+
+1. **Geométrica**, en el compilador: quiet zone, contraste y tamaño mínimo en mm
+   se validan antes de dibujar; violarlos es un error de layout, no un warning.
+2. **Automática**, en el gate: el job emite el PNG de la página por el camino de
+   §9.1 y un script Node decodifica el QR con `jsqr` —dependencia de desarrollo
+   JS pura, en la raíz donde ya vive Playwright— y compara el payload decodificado
+   contra el `access_ref` esperado de esa página.
+3. **Física**, fuera del gate automático: el escaneo con dispositivo real no puede
+   correr en CI y se registra como paso manual del checklist de release, no como
+   criterio de aceptación automatizable.
+
 ## 10. Adapters iniciales
 
 | Adapter | Alcance V1 | Mutación remota |
@@ -812,6 +906,35 @@ Perfiles posteriores: acreditación multiactor, establecimientos/servicios,
 lotes telefónicos cerrados y complemento territorial sin duplicar mapas.
 
 ## 11. Plan por fases
+
+### 11.0 Secuencia de ejecución y unidades commiteables
+
+La regla de parada de §14 define **cuándo V1 está terminado**, no cuánto trabajo
+puede acumular el working tree. Las siete fases se ejecutan como una cadena de
+unidades commiteables independientes, cada una con su propio gate parcial. El
+orden lo fija la dependencia dura, no la numeración de fases.
+
+| # | Unidad | Depende de | Gate parcial |
+|---|---|---|---|
+| 1 | Bloqueo de landing Kobo como URL de captura, en front y backend | — | Test de que una landing o URL con fragmento administrativo bloquea la generación |
+| 2 | Extracción de `aulas_v1` desde `RecopiladoresPage.tsx`: normalización, matching, plantillas, manifiesto y QR | 1 | Paridad visual antes/después + unit tests del adapter y del parser manual |
+| 3 | Separación de componentes, store y direcciones URL; cuatro secciones en `modules.ts` | 2 | Direcciones enlazables `?seccion=&pestana=`; QA visual |
+| 4 | Schemas `collection_plan/v1` y `collection_deployment/v1` + fixtures + validadores | — | Fixtures válidos para aulas, acreditación y establecimientos |
+| 5 | `router_recopiladores.R` y engine propio; seed desde `monitoreo_aulas_plan` | 3, 4 | Proyecto legacy abre, genera, guarda y reabre con el mismo manifiesto |
+| 6 | Fingerprints, estado `stale` y round-trip `.pulso` | 5 | Cambiar selección, instrumento o versión remota invalida el deployment |
+| 7 | Handoff idempotente a Monitoreo | 6 | Repetir handoff es no-op; Monitoreo no regenera accesos |
+| 8 | Saneamiento de `kobo_api.R` y `surveymonkey_api.R` | — | Fixtures HTTP sin red; **gate ampliado a Carga y Monitoreo** |
+| 9 | Adapters read-only detrás de capabilities + `collection_capability_preflight/v1` | 5, 8 | Ninguna capability se infiere falsamente |
+| 10 | Spike de render: una ficha dibujada con el kit grid, sin schema congelado | 2 | Página PNG y PDF equivalentes; QR decodificable |
+| 11 | Congelamiento de `collection_material_template/v1`, instancia, layout y recibo | 10 | Schemas revisados contra lo que el spike demostró renderizable |
+| 12 | Compilador de layout: wrapping, cajas, paginación, overflow y mapa `page → unit_id/access_id` | 11 | Fixtures de texto extremo, URL máxima y acceso ausente |
+| 13 | Job de render: PDF/ZIP/TSV con `file_id`, SHA-256, page count y manifest único | 12 | Artefactos verificados estructural y visualmente; nada entra al `.pulso` |
+| 14 | Editor semántico de materiales: outline, canvas, inspector, undo/redo y preview | 13 | QA del editor en 1710×1107, 1024×600 y Windows 125/150%, incluido teclado |
+
+Las unidades 1, 4, 8 y 10 no dependen de ninguna otra y pueden adelantarse. La
+unidad 10 se ejecuta **antes** de congelar los schemas de material: un spike de
+render que descubre que un bloque no es dibujable es barato; un schema congelado
+que no lo es, no.
 
 ### Fase 0 — Gobernanza y fixtures
 
@@ -863,14 +986,22 @@ Gate: fixtures HTTP sin red; ninguna capability se infiere falsamente.
 
 ### Fase 4 — Motor de artefactos y handoff
 
-- producir PDF/ZIP/TSV reales mediante jobs cuando corresponda;
-- registrar `file_id`, checksums y manifest;
+- congelar schemas de template, instancia, layout y recibo;
+- crear presets built-in, empezando por `ficha_aplicacion_a4_v1` con paridad
+  respecto de la ficha actual;
+- construir editor semántico, preview rápida y preview autoritativa;
+- compilar layout antes de dibujar: wrapping, cajas, páginas, overflow y mapa
+  `page → unit_id/access_id`;
+- producir PDF/ZIP/TSV reales mediante jobs;
+- registrar `file_id`, MIME, SHA-256, tamaño, audiencia, sensibilidad y un solo
+  manifest;
 - mantener outputs fuera del `.pulso`;
 - enviar deployment a Monitoreo con `deployment_id` y fingerprint;
 - Monitoreo consume accesos en lectura y gobierna ejecución.
 
 Gate: artefactos estructural y visualmente verificados, sin secretos; repetir
-handoff es no-op.
+handoff es no-op; el mismo conjunto de fingerprints reproduce el mismo
+manifiesto y un output equivalente.
 
 ### Fase 5 — Kobo apply explícito
 
@@ -912,6 +1043,11 @@ de unidad/material. Orden sugerido:
 | Doble autoridad con Monitoreo | Handoff inmutable; ejecución sigue en Monitoreo |
 | Drift de instrumento/selección | Fingerprints y estado `stale` |
 | Links con PII o bearer | Clasificación, redacción y export fuera de `.pulso` |
+| Scope creep hacia Acrobat/Canva | Registro cerrado de bloques, bindings y presets |
+| Drift entre canvas y PDF | Schema único + preview autoritativa del renderer final |
+| QR ilegible tras imprimir | Quiet zone, contraste, tamaño en mm y decodificación desde página rasterizada |
+| Texto largo/overflow | Compilación previa de layout, warnings y fixtures extremos |
+| Material desactualizado | Fingerprints y estado `stale` para template/deployment/access |
 | “Guardar” causa side effect | `preview`/`commit` separados y confirmación |
 | Reintentos crean duplicados remotos | Idempotency key local + búsqueda por binding/receipt |
 | Target compartido sin permisos | Probe de capabilities y fallos explicables |
@@ -919,6 +1055,10 @@ de unidad/material. Orden sugerido:
 | Redeploy Kobo rompe campo | Versión fijada, warning y verificación de update/offline |
 | SurveyMonkey rate/contact limits | Backoff, paginación completa, límites observados |
 | Pérdida de compatibilidad `.pulso` | Migración aditiva; adapter legacy; no borrar keys v1 |
+| Preview atada a una librería de sistema ausente en Electron | Mismo código `grid` con device PNG; `magick` descartado |
+| Reparar los clientes SM/Kobo rompe Carga o Monitoreo | Son clientes compartidos: el gate de esa unidad incluye los tests de ambos módulos |
+| Congelar el schema de material antes de saber qué es dibujable | Spike de render previo al congelamiento (unidad 10 de §11.0) |
+| Data-URL de QR persistidos en el plan legacy | Migración explícita: el estado guarda `access_ref`, no el píxel |
 
 ## 13. Validación mínima de implementación
 
@@ -928,6 +1068,18 @@ de unidad/material. Orden sugerido:
 - fixtures HTTP sin red para Kobo y SurveyMonkey;
 - tests de paginación, 401/403/404/429/5xx y respuesta parcial;
 - verificación PDF/ZIP/TSV estructural y visual;
+- fixtures de template corto, texto extremo, URL máxima, acceso ausente/stale y
+  sensibilidad alta;
+- preview/final comparados desde páginas renderizadas por el mismo motor: mismo
+  código `grid`, device PNG contra device PDF;
+- PDF verificado en primera, intermedia y última página, con texto, bounding
+  boxes, conteo de páginas y ausencia de overflow;
+- QR decodificado con `jsqr` desde el PNG de página emitido por el propio job, y
+  comparado contra el `access_ref` esperado; la prueba física de escaneo queda en
+  el checklist manual de release, fuera del gate automático;
+- tests de Carga y Monitoreo incluidos en el gate de la unidad que toca
+  `kobo_api.R` o `surveymonkey_api.R`;
+- QA del editor en 1710×1107, 1024×600 y Windows 125/150%, incluido teclado;
 - búsqueda de tokens/PII en `.pulso`, manifests, logs y outputs;
 - QA visual antes/después de `aulas_v1`;
 - prueba de que cambiar selección, instrumento o versión remota invalida el
@@ -949,7 +1101,10 @@ La primera unidad de trabajo termina cuando:
 4. el manifiesto identifica unidad, instrumento, target y acceso sin ambigüedad;
 5. Monitoreo recibe un handoff idempotente;
 6. no entran secretos ni outputs al `.pulso`;
-7. ningún flujo de UI puede enviar, desplegar o cambiar permisos al guardar.
+7. ningún flujo de UI puede enviar, desplegar o cambiar permisos al guardar;
+8. la ficha actual se reproduce mediante una plantilla built-in;
+9. el PDF final retorna `file_id`, SHA-256, page count y manifest único;
+10. no existe una ruta desde Materiales hacia edición genérica de PDFs.
 
 Crear collectors remotos, desplegar Kobo y enviar campañas son unidades de
 trabajo posteriores; no forman parte de la definición de terminado de V1.

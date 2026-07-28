@@ -17,6 +17,11 @@ La ampliación a acreditación multiactor, establecimientos, listados y otros
 operativos no puede construirse extendiendo `MonitoreoAulasPlanRow` ni
 suponiendo que Kobo y SurveyMonkey ofrecen el mismo concepto.
 
+La salida actual tampoco constituye un motor de materiales: la ficha y portada
+están fijadas en JSX y “Generar PDF” ejecuta `window.print()`. No existe una
+plantilla versionada, preview autoritativa, job de render, checksum, manifest ni
+artefacto registrado.
+
 SurveyMonkey posee collectors remotos tipados, recipients, mensajes y
 estadísticas. Kobo posee projects/assets desplegados, web-form links,
 prefills y permisos. Puede personalizar un link con
@@ -73,6 +78,23 @@ Se adoptan estas reglas:
    artefactos PDF/Word/ZIP/QR/TSV quedan fuera salvo una política específica.
 9. La UI conserva el módulo `/recopiladores` y usa cuatro secciones: Plan,
    Accesos, Materiales y Entrega, enlazables por dirección.
+10. Recopiladores posee la semántica del material: templates, bloques, bindings,
+    instancias, agrupación y recibos ligados al deployment. Un renderer puro
+    compila la instancia; Archivos registra y guarda el binario; ninguno de esos
+    servicios decide el contenido operativo.
+11. Materiales será un editor semántico basado en presets y un registro cerrado
+    de bloques/bindings. No será un editor PDF universal ni un canvas libre tipo
+    Canva/Acrobat.
+12. La preview autoritativa y el PDF final usan el mismo compilador. El render
+    final corre como job y retorna `file_id`, MIME, SHA-256, page count y un
+    manifest único. Binarios y previews regenerables quedan fuera del `.pulso`.
+13. El QR se genera en el backend R con el paquete CRAN `qrcode`, elegido por ser
+    R puro y no exigir librerías de sistema que el R embebido de Electron no
+    puede garantizar. El frontend conserva su generador solo para preview no
+    autoritativa, y el estado deja de persistir data-URLs de QR.
+14. "El mismo compilador" es literal: la preview rasterizada ejecuta el mismo
+    código `grid` del PDF cambiando únicamente el device a PNG. No se rasteriza
+    el PDF ni se depende de ImageMagick.
 
 Hasta que el ADR sea aceptado e implementado, ADR 0019 conserva la autoridad
 actual de Monitoreo sobre agenda y links/QR de aulas.
@@ -85,6 +107,7 @@ Beneficios:
 - se elimina la ambigüedad entre canal, unidad, operador y recipient;
 - Kobo y SurveyMonkey conservan sus diferencias reales;
 - los deployments se vuelven reproducibles, versionados y auditables;
+- las fichas dejan de estar hardcodeadas y se vuelven templates reutilizables;
 - Monitoreo deja de preparar el mismo material que después debe seguir;
 - nuevos perfiles reutilizan contratos en lugar de copiar el flujo de aulas.
 
@@ -97,7 +120,10 @@ Costos y riesgos:
 - el aprovisionamiento remoto futuro exige idempotencia, permisos, límites,
   consentimiento y recuperación de fallos parciales;
 - los adapters deben inspeccionar capabilities en lugar de asumirlas por
-  proveedor o plan.
+  proveedor o plan;
+- el editor y el compilador de layout son superficies nuevas con riesgo de
+  overflow, drift de preview y scope creep;
+- el contrato fino del renderer PDF debe congelarse antes de implementarlo.
 
 Se descarta convertir Recopiladores en herramienta de emailing/SMS en V1. Se
 descarta también crear un asset Kobo por unidad: un deployment puede producir
@@ -124,6 +150,16 @@ múltiples accesos parametrizados.
   bloquean la generación de QR.
 - Navegar, guardar, generar links y hacer handoff producen cero `POST`, `PATCH`
   o `DELETE` contra proveedores externos en V1.
+- Templates y bindings usan schemas/allowlists; no aceptan HTML/CSS/JS,
+  expresiones o URLs remotas arbitrarias.
+- Cambiar template, deployment, instrumento o access marca la instancia
+  `stale`.
+- Preview y final se comparan desde páginas rasterizadas por el mismo renderer;
+  se verifican overflow, texto, primera/intermedia/última página y paridad.
+- Cada QR se valida por quiet zone, contraste, tamaño mínimo y decodificación
+  independiente desde el PNG de página que emite el propio job.
+- Cada entrega registra un solo manifest y artefactos con `file_id`, MIME,
+  SHA-256, audiencia y sensibilidad; ningún binario entra al `.pulso`.
 - Toda fase de mutación externa requiere autorización explícita del usuario y
   evidencia de resultado.
 
