@@ -401,7 +401,12 @@ reporte_ppt_plan <- function(
     font_size_value <- if (is_cover_title) {
       base_args$size_titulo_portada %||% base_args$title_cover_size %||% base_args$size_titulo_slide
     } else if (is_section_title) {
-      base_args$size_titulo_seccion %||% base_args$size_titulo_slide
+      # Misma regla que usa la capa router al precocinar los presets, para que
+      # el tamano no dependa del path por el que se pidio el export.
+      .ppt_section_title_size(
+        base_args$size_titulo_seccion,
+        base_args$size_titulo_slide
+      )
     } else {
       base_args$size_titulo_slide
     }
@@ -669,6 +674,9 @@ reporte_ppt_plan <- function(
         "' type_idx=", spec$type_idx %||% "NULL",
         ". Error: ", conditionMessage(out)
       )
+    }
+    if (!is.null(spec$anchor)) {
+      out <- .ppt_set_shape_anchor(out, spec$ph_label, spec$anchor)
     }
     out
   }
