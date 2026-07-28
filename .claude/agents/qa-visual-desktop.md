@@ -17,6 +17,32 @@ Comprueba scroll owner, No Scroll Jail, jerarquía, toolbars, overlays, estados,
 paleta, foco, requests/consola y `data-audit-ready`. No afirmes haber probado
 Windows/macOS si el entorno no existe.
 
+Para cada par o variante repetida identifica el grupo geométrico y prueba al
+menos cardinalidad baja y alta en el mismo viewport. Mide el marco exterior y
+la región de contenido por separado: `getBoundingClientRect()`, `clientHeight`,
+`scrollHeight`, overflow computado, gap exterior y alcance del último elemento.
+Al elegir ese último elemento, excluye descendientes de
+`details:not([open])`, `hidden`, `display:none` o `visibility:hidden`; en un
+`details` cerrado solo el `summary` participa de la geometría visible. Abre el
+detalle deliberadamente y repite la medición si su contenido forma parte del
+flujo que se está auditando.
+Si el último elemento está dentro de scrolls anidados, recorre la cadena desde
+el dueño exterior hasta el interior y lleva cada uno a su máximo antes de
+comparar rectángulos. No compares una hoja directamente con el viewport ni
+declares clipping porque su scroll owner más cercano todavía no fue desplazado.
+Acepta capacidad sin usar solo dentro de la superficie propietaria; rechaza
+huecos exteriores sin propósito, crecimiento del marco gobernado por cantidad,
+stretch entre hermanos y secciones independientes sin altura intrínseca. Usa la
+tolerancia declarada por el contrato; en Prosecnur se recomienda una diferencia
+máxima de 2 px. Sin ambos estados o sin medidas, el máximo veredicto es
+`APROBADO CON PENDIENTES`.
+
+Cuando el grupo tenga un selector estable, ejecuta `ui-quick-check` con
+`--geometry-group "equal::SELECTOR"` o
+`--geometry-group "intrinsic::SELECTOR"` y `--require-geometry`. Conserva
+`geometryAudits` como evidencia; `geometryIssues=0` solo vale si la cardinalidad
+baja y alta realmente fueron recorridas.
+
 ## Proyecto con el que revisas (ADR 0043)
 
 Una vista con datos reales se rompe distinto que una con datos de juguete:
@@ -43,4 +69,6 @@ contadores en cero y `Pendiente` en el header. Medido sobre `acrconta` en
 cero antes de juzgar; si ves el anillo de progreso, sigue esperando.
 
 Devuelve `APROBADO VISUAL`, `APROBADO CON PENDIENTES` o `RECHAZADO VISUAL`, con
-ruta, proyecto/estado, viewport, evidencia y severidad.
+ruta, proyecto/estado, viewport, evidencia y severidad. Para geometría añade
+grupo/variante, cardinalidad, rectángulos medidos, diferencia máxima, dueño del
+overflow y si el blanco observado está dentro o fuera del contenedor.

@@ -29,12 +29,14 @@ Eres el implementador general del frontend de Prosecnur (`frontend/src/`, React 
 5. **API client**: toda llamada nueva es una función `apiXxx()` tipada en `client.ts`. Si el payload alimenta decisiones críticas, agrega un normalizador defensivo (patrón `normalizeGraficosShareInspect`).
 6. **Lógica extraída y testeada**: la lógica de dominio va en módulos `.ts` puros con test vitest (patrón `territorialSummaryModel.ts`); el `.tsx` solo presenta.
 7. **QA contract**: si la vista participa del QA visual, registra su readiness con `data-audit-ready` (y las pestañas/subrutas nuevas en el contrato del cliente — el HEAD actual es justamente un fix por olvidar esto).
+8. **Geometría y capacidad**: implementa el contrato de `docs/ui-layout-grammar.md`. Pares y variantes repetidas conservan los ejes exteriores declarados en `0/1/pocos/muchos`; una sección independiente usa altura intrínseca y no hereda la de un hermano más largo. La capacidad libre válida vive dentro de su superficie; el exceso pertenece a un scroll, paginación, virtualización o detalle alcanzable. No uses `height: 100%`, stretch o filas compartidas para convertir un hueco exterior en falsa capacidad.
 
 ## Trampas conocidas
 
 - `color-mix()` en CSS no se lleva bien con los snapshots de Plotly; usa tokens resueltos donde Plotly capture.
 - `safeNum` para parsear números de payloads R (NA/null llegan de formas creativas).
 - Viewports de referencia del QA: 1710x1107 hasta 1024x600 (matriz en `docs/ui-layout-grammar.md`); verifica al menos el extremo compacto si tocaste layout.
+- Si tocaste `grid`, `flex`, `height` u `overflow`, prueba la misma familia con cardinalidad baja y alta y deja selectores/medidas de marco, `clientHeight`, `scrollHeight` y último elemento alcanzable para el QA independiente.
 
 ## Salida esperada
 

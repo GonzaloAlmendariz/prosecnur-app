@@ -33,10 +33,10 @@ Ruta: `api/inst/reference_projects/<slug>/<slug>.pulso`
 
 Combinaciones ya verificadas el 2026-07-24, útiles como punto de partida:
 
-| comando | qué se ve |
+| proyecto y destino | qué se ve |
 |---|---|
-| `acrconta` → `/monitoreo --click-tab "Avance"` | 13/13 fuentes, 1.277 registros, 4 actores |
-| `acnur_acg` → `/analitica --click-tab "Frecuencias"` | datos listos, base codificada, 8 secciones, 26 variables |
+| `acrconta` → Monitoreo / Avance, mediante `--ir` | 13/13 fuentes, 1.277 registros, 4 actores |
+| `acnur_acg` → Analítica / Frecuencias, mediante `--ir` | datos listos, base codificada, 8 secciones, 26 variables |
 | `hsvg2026` → `/calc-muestra` | 29.090 estudiantes, 5.263 cursos-horario, 136.284 filas del marco |
 
 Usa `/calc-muestra` a secas: con un query param que la mesa no reconoce, la app
@@ -79,12 +79,41 @@ Camino corto, headless y reproducible:
 ```bash
 node scripts/ui-quick-check.mjs \
   --project "api/inst/reference_projects/acnur_acg/acnur_acg.pulso" \
-  --route /analitica --viewport 1440x900 --click-tab "<sección>"
+  --route /monitoreo --viewport 1440x900 \
+  --ir monitoreo/territorial/avance
 ```
 
-`--click-tab` fuerza el asentamiento posterior al warm start y es la forma más
-barata de obtener una captura ya cargada. Sin él, la primera captura suele caer
-durante la carga.
+`--ir` usa la dirección canónica y permite comprobar ruta solicitada, ruta real
+y pestaña activa. `--click-tab` queda como fallback frágil: depende del texto
+visible, que puede cambiar, truncarse o no existir todavía durante el warm
+start. Ninguno de los dos reemplaza el gate de readiness descrito arriba; una
+captura temprana con contadores en cero debe repetirse. Con `--ir`, el runner
+mantiene la espera mientras la marca todavía no existe y aborta si la dirección
+no alcanza readiness final; no se acepta el shell global como sustituto.
+
+Cuando el objetivo incluya cajas pares, repetidos o secciones apiladas, activa
+el comprobador geométrico sobre los grupos concretos. `equal` exige marcos con
+una diferencia máxima de 2 px y permite capacidad vacía dentro; `intrinsic`
+rechaza capacidad sin dueño dentro de secciones que deben abrazar su contenido:
+
+```bash
+node scripts/ui-quick-check.mjs \
+  --project "api/inst/reference_projects/acnur_acg/acnur_acg.pulso" \
+  --route /monitoreo --viewport 1440x1000 \
+  --ir monitoreo/territorial/avance/resumen \
+  --geometry-group "equal::.selector-del-grupo-par" \
+  --geometry-group "intrinsic::.selector-de-secciones-independientes" \
+  --require-geometry --fail-on-issues
+```
+
+El reporte expone `geometryAudits` con marco, cardinalidad, `contentBottom`,
+`unusedInteriorBottom`, `exteriorGapBottom` y dueño de overflow. También puede
+descubrir grupos anotados con `data-qa-geometry-group`; una corrida requerida
+sin grupos medidos falla como cobertura ausente. El chrome de Monitoreo anota
+automáticamente sus filas como `monitoring-workbench-rows`: cabecera y claridad
+son intrínsecas, mientras la superficie de contenido declara su capacidad como
+propia. Así, un track implícito o inflado se reporta como `capacity-drift` aunque
+no produzca overflow.
 
 Matriz completa de rutas y viewports contra un proyecto:
 
@@ -112,6 +141,23 @@ Sigue `docs/ui-layout-grammar.md` y el skill global `prosecnur-design-system`:
 - **Etiquetas largas**: es lo que estos proyectos aportan y la semilla no. Mira
   específicamente cómo se comportan los enunciados de instrumento en tablas,
   chips, headers de columna y tooltips.
+- **Geometría de pares y repetidos**: identifica bloques comparables y cards de
+  la misma variante. Sus marcos deben conservar alto/ancho coherentes aunque
+  tengan distinta cantidad de información. Mide marco y contenido por separado.
+- **Vacío interior frente a hueco exterior**: es correcto que quede capacidad
+  sin usar dentro de una caja estable; rechaza huecos sin contenedor ni dueño
+  entre superficies, y cajas cuyo alto crece directamente con cada ítem.
+- **Cardinalidad**: repite vacío, pocos y muchos elementos. La caja exterior
+  permanece estable; el exceso se resuelve con el scroll, paginación o detalle
+  previsto y debe seguir siendo alcanzable.
+- **Visibilidad real**: al buscar el último elemento alcanzable, excluye
+  descendientes de `details:not([open])`, `[hidden]`, `display:none` y
+  `visibility:hidden`. En un detalle cerrado solo se mide el `summary`; abre el
+  cuerpo deliberadamente si esa divulgación pertenece al flujo auditado.
+- **Scroll anidado**: identifica toda la cadena de dueños. Desplaza primero el
+  exterior para traer la región al viewport y después el interior hasta su
+  máximo; comparar la última hoja con el viewport sin mover sus ancestros
+  produce falsos positivos de clipping.
 - Consola, requests fallidos y `data-audit-ready` donde exista.
 
 ## Higiene de servers (obligatoria)
@@ -127,8 +173,10 @@ Sigue `docs/ui-layout-grammar.md` y el skill global `prosecnur-design-system`:
 
 Veredicto `APROBADO VISUAL`, `APROBADO CON PENDIENTES` o `RECHAZADO VISUAL`, y
 por cada hallazgo: ruta, proyecto de referencia usado, viewport, screenshot y
-severidad. Di explícitamente con qué slug validaste cada ruta — un hallazgo sin
-esa referencia no es reproducible.
+severidad. Para geometría, incluye el grupo/variante, altos medidos, diferencia
+máxima y si el blanco está dentro o fuera del contenedor. Di explícitamente con
+qué slug validaste cada ruta — un hallazgo sin esa referencia no es
+reproducible.
 
 No edites producto ni fixtures: esto es revisión, no implementación. Si algo
 exige cambio de código, repórtalo y deja que lo tome el implementador.
