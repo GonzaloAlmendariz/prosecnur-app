@@ -1319,3 +1319,170 @@ test_that("el strip conserva el warm start de monitoreo y resetea las fugas herm
   expect_null(out$explorador_cache)
   expect_identical(out$monitoreo_config, s$monitoreo_config)
 })
+
+# --- Partial matching de `$`: borrar la clave abre un alias silencioso -------
+#
+# `s$rp_data <- NULL` ELIMINA el elemento de la lista de sesión. Sin el nombre,
+# `s$rp_data` resuelve por partial matching al único hermano con ese prefijo
+# (`rp_data_sources`, la lista de tablas por fuente) y `is.null()` devuelve
+# FALSE sobre una lista donde el consumidor espera un data.frame. Fue el 500 de
+# /tablero; estos tests fijan el invariante en los dos sitios que lo producían.
+
+test_that(".pulso_strip_caches deja los rp_* en NULL sin borrar su nombre", {
+  s <- list(
+    estudio = list(bases = list(b1 = list(nombre = "b1"))),
+    rp_data = data.frame(a = 1:3),
+    rp_inst = list(survey = data.frame(name = "q1")),
+    analitica_rp_data = data.frame(a = 1:3),
+    analitica_rp_inst = list(survey = data.frame(name = "q1")),
+    data_xlsform_compatibility = list(ok = TRUE)
+  )
+  out <- .pulso_strip_caches(s)
+
+  for (k in c("rp_data", "rp_inst", "analitica_rp_data", "analitica_rp_inst",
+              "data_xlsform_compatibility")) {
+    expect_true(k %in% names(out), info = k)
+    expect_null(out[[k]], info = k)
+  }
+  # El guard de todo consumidor tiene que seguir disparando pese a que los
+  # `_sources` quedan presentes (como list()) justo al lado.
+  expect_null(out$rp_data)
+  expect_null(out$analitica_rp_data)
+  expect_identical(out$rp_data_sources, list())
+})
+
+test_that(".pulso_strip_caches no confunde el token global con el token scoped", {
+  # Medido en acnur_pdm: con el nombre borrado y un solo token scoped presente,
+  # `s$monitoreo_dashboard_cache_token` resolvía al scoped, que SÍ viaja.
+  s <- list(
+    monitoreo_dashboard_cache_token = "global",
+    monitoreo_dashboard_cache_token_advance_summary = "scoped"
+  )
+  out <- .pulso_strip_caches(s)
+  expect_null(out$monitoreo_dashboard_cache_token)
+  expect_identical(out$monitoreo_dashboard_cache_token_advance_summary, "scoped")
+})
+
+test_that("session_set con NULL conserva la clave en vez de abrir el alias", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  session_set(sid, "rp_data_sources", list(b1 = data.frame(a = 1)))
+  session_set(sid, "rp_data", data.frame(a = 1:3))
+  session_set(sid, "rp_data", NULL)
+
+  s <- session_get(sid)
+  expect_true("rp_data" %in% names(s))
+  expect_null(s$rp_data)
+  expect_false(is.null(s$rp_data_sources))
+})
+
+test_that(".session_state_clear preserva nombres y no toca al resto", {
+  s <- list(rp_data = 1, rp_inst = 2, rp_data_sources = list(a = 1), otro = 3)
+  out <- prosecnurapp:::.session_state_clear(s, c("rp_data", "rp_inst"))
+  expect_named(out, c("rp_data", "rp_inst", "rp_data_sources", "otro"))
+  expect_null(out$rp_data)
+  expect_null(out$rp_inst)
+  expect_identical(out$rp_data_sources, list(a = 1))
+  expect_identical(out$otro, 3)
+  expect_identical(prosecnurapp:::.session_state_clear(s, character(0)), s)
+})
+
+test_that("el round-trip del .pulso conserva los nombres en NULL del strip", {
+  s <- list(
+    estudio = list(bases = list(b1 = list(nombre = "b1"))),
+    rp_data = data.frame(a = 1:3),
+    rp_inst = list(survey = data.frame(name = "q1"))
+  )
+  f <- tempfile(fileext = ".rds")
+  on.exit(unlink(f), add = TRUE)
+  saveRDS(.pulso_strip_caches(s), f)
+  back <- readRDS(f)
+
+  expect_true("rp_data" %in% names(back))
+  expect_null(back$rp_data)
+})
+
+# Los tres sitios hermanos del mismo defecto, fuera de project_pulso.R. Todos
+# escriben la sesión al store, así que el alias no se quedaba en la función:
+# contaminaba toda lectura posterior de `s$<clave>` en la app.
+
+test_that("estudio_remove_base deja rp_data/rp_inst en NULL al quitar la última base", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  s <- session_get(sid)
+  s$estudio <- list(bases = list(b1 = list(nombre = "b1")), active_base = "b1")
+  s$rp_data_sources <- list(b1 = data.frame(a = 1:3))
+  s$rp_inst_sources <- list(b1 = list(survey = data.frame(name = "q1")))
+  s$rp_data <- s$rp_data_sources$b1
+  s$rp_inst <- s$rp_inst_sources$b1
+  .session_env[[sid]] <- s
+
+  estudio_remove_base(sid, "b1")
+  out <- session_get(sid)
+
+  # Sin el fix: `rp_data` resolvía a `rp_data_sources` (list() tras quitar la
+  # entrada), o sea un estudio vacío se leía como cargado.
+  expect_true("rp_data" %in% names(out))
+  expect_null(out$rp_data)
+  expect_null(out$rp_inst)
+})
+
+test_that("estudio_remove_base no deja alias si la base que queda no tiene tabla cacheada", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  s <- session_get(sid)
+  s$estudio <- list(bases = list(b1 = list(nombre = "b1"), b2 = list(nombre = "b2")),
+                    active_base = "b1")
+  s$rp_data_sources <- list(b1 = data.frame(a = 1:3))   # b2 sin tabla cacheada
+  s$rp_inst_sources <- list(b1 = list(survey = data.frame(name = "q1")))
+  s$rp_data <- s$rp_data_sources$b1
+  .session_env[[sid]] <- s
+
+  estudio_remove_base(sid, "b1")
+  out <- session_get(sid)
+
+  expect_true("rp_data" %in% names(out))
+  expect_null(out$rp_data)
+})
+
+test_that(".codif_switch_analitica_to_adapted invalida Analítica sin dejar alias", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  s <- session_get(sid)
+  s$analitica_rp_data <- data.frame(a = 1:3)
+  s$analitica_rp_inst <- list(survey = data.frame(name = "q1"))
+  s$analitica_rp_data_sources <- list(b1 = data.frame(a = 1:3))
+  s$analitica_rp_inst_sources <- list(b1 = list(survey = data.frame(name = "q1")))
+  .session_env[[sid]] <- s
+
+  prosecnurapp:::.codif_switch_analitica_to_adapted(sid)
+  out <- session_get(sid)
+
+  expect_true("analitica_rp_data" %in% names(out))
+  expect_null(out$analitica_rp_data)
+  expect_null(out$analitica_rp_inst)
+})
+
+test_that(".monitoreo_invalidate_dashboard_caches no confunde el global con un scoped", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  s <- session_get(sid)
+  s$monitoreo_dashboard_cache <- list(pesado = TRUE)
+  s$monitoreo_dashboard_cache_token <- "tok"
+  s$monitoreo_dashboard_cache_advance_summary <- list(pesado = TRUE)
+  .session_env[[sid]] <- s
+
+  prosecnurapp:::.monitoreo_invalidate_dashboard_caches(sid)
+  out <- session_get(sid)
+
+  for (k in c("monitoreo_dashboard_cache", "monitoreo_dashboard_cache_token",
+              "monitoreo_dashboard_cache_advance_summary")) {
+    expect_true(k %in% names(out), info = k)
+    expect_null(out[[k]], info = k)
+  }
+})

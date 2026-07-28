@@ -16,6 +16,8 @@
  * cuyo instrumento no es el que uno cree es un error caro y silencioso.
  */
 
+import { forwardRef } from "react";
+
 import { Check, ChevronDown, Database, FileSpreadsheet, FileText } from "../vendor/lucide-react";
 
 import { Popover } from "./Popover";
@@ -80,19 +82,25 @@ function nombreDeBase(nombre: string, base: EstudioBase): string {
  * fue —la banda va limpia— y el chevron se queda, porque es lo que anuncia que
  * esto abre algo.
  */
-export function BaseSelectorTrigger({
-  etiqueta,
-  total,
-  rotulo = "Base",
-  ...resto
-}: {
-  etiqueta: string;
-  /** Cuántas bases hay en el estudio. Se muestra como contador. */
-  total: number;
-  rotulo?: string;
-} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+/*
+ * `forwardRef` no es decorativo: este componente se pasa como `disparador` del
+ * `Popover`, que clona el elemento e inyecta una `ref` para anclar el panel al
+ * trigger. Un componente de función sin forwardRef descarta esa ref —React
+ * avisa "Function components cannot be given refs"— y el Popover se queda sin
+ * ancla, cayendo al `.pulso-page-frame` del contenedor para posicionarse.
+ */
+export const BaseSelectorTrigger = forwardRef<
+  HTMLButtonElement,
+  {
+    etiqueta: string;
+    /** Cuántas bases hay en el estudio. Se muestra como contador. */
+    total: number;
+    rotulo?: string;
+  } & React.ButtonHTMLAttributes<HTMLButtonElement>
+>(function BaseSelectorTrigger({ etiqueta, total, rotulo = "Base", ...resto }, ref) {
   return (
     <button
+      ref={ref}
       type="button"
       className="pulso-bases-inspector-trigger is-selector"
       title={`${etiqueta} · ${total} bases en el estudio`}
@@ -106,7 +114,7 @@ export function BaseSelectorTrigger({
       <ChevronDown size={12} aria-hidden className="pulso-bases-inspector-trigger-chevron" />
     </button>
   );
-}
+});
 
 export function BasesInspectorMenu({
   bases,

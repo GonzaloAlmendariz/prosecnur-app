@@ -896,11 +896,15 @@ function warmupModuleIdsForRoutes(routes) {
       ids.add("muestra");
     } else if (normalized.startsWith("/monitoreo")) {
       ids.add("monitoreo");
-    } else if (normalized.startsWith("/dashboard")) {
+    // Las rutas canónicas son `/tablero` y `/editor-xlsform` (ver el router en
+    // `app/`): no existe ni `/dashboard` ni `/xlsform`. Ambas ramas estaban
+    // escritas contra nombres que nunca llegan, así que sus módulos jamás
+    // calentaban y las dos rutas se capturaban solo con el warmup de `home`.
+    } else if (normalized.startsWith("/tablero")) {
       ids.add("dashboard");
       ids.add("dashboard_datos");
       ids.add("html_to_image");
-    } else if (normalized.startsWith("/xlsform")) {
+    } else if (normalized.startsWith("/editor-xlsform")) {
       ids.add("editor_xlsform");
     } else if (normalized.startsWith("/enciclopedia")) {
       ids.add("enciclopedia");
@@ -941,6 +945,22 @@ async function prefetchRouteDataForQa(stack, route, timeoutMs, clickTabs = []) {
       stack.apiUrl,
       `/api/monitoreo/state?include_reports=1&report_scope=${encodeURIComponent(reportScope)}`,
       { session: stack.session, timeoutMs: prefetchTimeoutMs },
+    ).catch((error) => ({ ok: false, status: "timeout", error: error?.message || String(error) }));
+    if (!prefetched.ok) {
+      console.log(`[ui-quick-check] prefetch omitido: ${prefetched.status || "error"}`);
+    }
+  }
+  // `/carga` publica readiness solo cuando llegó el payload de `/api/estudio`,
+  // que la página pide ON DEMAND al entrar en modo multi-base. En la PRIMERA
+  // captura de una corrida ese pedido llega frío y a veces excede la ventana de
+  // readiness: es el `waitSelectorMiss` intermitente de la matriz, que aislado
+  // no reproduce. Calentarlo acá es lo mismo que ya se hace con Monitoreo.
+  if (normalized.startsWith("/carga")) {
+    console.log(`[ui-quick-check] prefetch ${normalized} estudio`);
+    const prefetched = await apiRequest(
+      stack.apiUrl,
+      "/api/estudio",
+      { session: stack.session, timeoutMs: Math.min(timeoutMs, 12000) },
     ).catch((error) => ({ ok: false, status: "timeout", error: error?.message || String(error) }));
     if (!prefetched.ok) {
       console.log(`[ui-quick-check] prefetch omitido: ${prefetched.status || "error"}`);
@@ -1215,7 +1235,49 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
       // la caja realmente sale del viewport.
       const nativeSelectBox = el instanceof HTMLSelectElement
         || (el instanceof HTMLLabelElement && Boolean(el.querySelector("select")));
-      const xOverflow = el.scrollWidth > el.clientWidth + 2 && !overflowXAllowed && !nativeSelectBox;
+      // Un <input> DE ENTRADA DE TEXTO mide igual: `scrollWidth` es el ancho de
+      // su VALOR, no de su caja, y el control lo recorta adentro
+      // (overflow-x:clip) desplazándolo con el caret. Es el comportamiento
+      // nativo del campo y no hay nada inalcanzable. Sin esta exclusión,
+      // cualquier formulario que muestre un texto largo dentro de un campo
+      // editable —el panel Datos de Analítica edita las etiquetas de pregunta,
+      // que son oraciones enteras— sale rojo por diseño y no por defecto.
+      //
+      // La lista es por `type` y no `instanceof HTMLInputElement` a secas: un
+      // input botón (button/submit/reset/image) NO tiene caret ni scroll
+      // nativo, así que ahí un value recortado sí es contenido inalcanzable y
+      // el detector tiene que seguir viéndolo (C4).
+      const nativeTextBox = el instanceof HTMLInputElement && [
+        "text", "search", "url", "tel", "email", "password", "number",
+      ].includes(el.type);
+      // `scrollWidth`/`clientWidth` son ENTEROS: en una caja de ancho
+      // fraccionario el primero redondea hacia arriba y el segundo hacia
+      // abajo, así que una caja perfectamente sana puede reportar unos píxeles
+      // de diferencia sin que nada se salga. Cuando el elemento no recorta
+      // (overflow-x visible), la pregunta real —¿el contenido escapa de la
+      // caja?— se puede medir con precisión subpíxel sobre la tinta.
+      //
+      // Es un desempate, no un indulto: solo perdona cuando la tinta CABE.
+      // Verificado contra los dos casos reales de acnur_acg — el badge de tipo
+      // del editor (tinta hasta 621 dentro de una caja hasta 624: 0 px
+      // perdidos, deja de reportarse) y el botón de opción de Codificación
+      // (tinta hasta 731 contra una caja hasta 714: 13 px que sí se cortaban,
+      // sigue reportándose).
+      const inkFitsBox = () => {
+        if (style.overflowX !== "visible") return false;
+        try {
+          const range = el.ownerDocument.createRange();
+          range.selectNodeContents(el);
+          const ink = range.getBoundingClientRect();
+          range.detach?.();
+          if (!ink || (ink.width === 0 && ink.height === 0)) return false;
+          return ink.right <= rect.right + 0.5 && ink.left >= rect.left - 0.5;
+        } catch {
+          return false;
+        }
+      };
+      const xOverflow = el.scrollWidth > el.clientWidth + 2 && !overflowXAllowed
+        && !nativeSelectBox && !nativeTextBox && !inkFitsBox();
       const yOverflow = el.scrollHeight > el.clientHeight + 2 && !overflowYAllowed;
       if (!xOverflow && !yOverflow) continue;
       const label = (el.getAttribute("aria-label") || el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 160);

@@ -136,6 +136,23 @@ export default function AnaliticaPage() {
       layout="workbench"
       scrollOwner="panels"
       resetScrollKey={`${active}:${state?.active_base ?? ""}`}
+      // Readiness del QA visual. Los tres estados terminales del panel se
+      // declaran con clave propia — incluido el vacío, que es una vista
+      // legítima y no una pantalla a medio cargar (C3 del contrato de
+      // superficie). Solo dicen "todavía no" la sesión sin hidratar y la
+      // preparación en vuelo, que son exactamente los momentos en que una
+      // captura saldría con contadores en cero.
+      auditReady={
+        !state
+          ? false
+          : !prereqOk
+            ? "analitica-sin-insumos"
+            : prepBusy
+              ? false
+              : prepOk
+                ? "analitica"
+                : "analitica-preparacion-fallida"
+      }
       notices={!prereqOk ? (
         <Alert kind="warn">
           Necesitas cargar el XLSForm y la base de datos en <strong>1. Carga</strong> antes de analizar.
