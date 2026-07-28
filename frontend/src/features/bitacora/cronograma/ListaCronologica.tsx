@@ -111,13 +111,14 @@ function FilaTarea({
             : ""}
         </small>
       </span>
-      {tarea.tags && tarea.tags.length > 0 && (
-        <span className="bit-lista-etiquetas">
-          {tarea.tags.map((etq) => (
-            <span key={etq} className="bit-etiqueta">{etq}</span>
-          ))}
-        </span>
-      )}
+      {/* La celda se renderiza SIEMPRE, aunque esté vacía: si se omitiera, la
+          fila tendría tres columnas en vez de cuatro y las acciones subirían
+          una posición, desalineándose de las filas que sí tienen etiquetas. */}
+      <span className="bit-lista-etiquetas">
+        {(tarea.tags ?? []).map((etq) => (
+          <span key={etq} className="bit-etiqueta">{etq}</span>
+        ))}
+      </span>
       <span className="bit-lista-acciones">
         <button type="button" onClick={onDuplicar} title="Duplicar" aria-label={`Duplicar ${tarea.activity}`}>
           <Copy size={13} />
