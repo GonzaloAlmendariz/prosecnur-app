@@ -2,6 +2,13 @@
 
 Esta guía define una gramática desktop-first para que Prosecnur mantenga una interfaz consistente en escritorios grandes, compactos y bajos. No optimiza para móvil angosto; la matriz base de QA es `1710x1107`, `1440x1000`, `1366x768`, `1280x720` y `1024x600`.
 
+La aplicación operativa y los errores históricos de esta gramática se
+documentan en
+`docs/qa/revamps-visuales-lecciones-operativas-2026-07-26.md`. En particular,
+un layout no queda aprobado solo por carecer de overflow global: debe validar
+contenido hidratado, cardinalidades extremas, geometría interna y dueños de
+scroll.
+
 ## Jerarquía de navegación
 
 La gramática de layout se apoya en una jerarquía fija de cinco niveles
@@ -112,6 +119,64 @@ Reglas:
 - `<=1180px`: rail compacto.
 - `<=900px` o `<=700px` de alto: layout apilado; el rail queda arriba con altura máxima y el main conserva el resto.
 - `scrollOwner="panels"`: el contenedor no scrollea globalmente; rail y main son superficies scrollables.
+
+### Contrato de geometría y capacidad
+
+La geometría exterior de una superficie expresa su rol; no la cantidad casual
+de datos que contiene. Dos tarjetas pares, dos columnas comparables o una serie
+de cards de la misma variante deben verse como miembros del mismo sistema, no
+como un mosaico de cajas que crecen con cada ítem.
+
+Se distinguen tres niveles:
+
+- **Marco exterior**: borde, material, ancho y alto que posicionan la
+  superficie dentro de la composición.
+- **Región de contenido**: lista, gráfico, tabla, texto o estado vacío que vive
+  dentro del marco.
+- **Capacidad no usada**: espacio interior disponible cuando el contenido no
+  llena la región. Es válido y conserva estabilidad visual.
+
+Reglas:
+
+- Superficies pares o repetidas de la misma variante conservan el mismo alto y
+  ancho dentro de un mismo régimen de viewport. Un grid puede estirar los
+  **marcos exteriores** deliberadamente para igualarlos.
+- El alto del marco se deriva del rol y del viewport, no de `items.length`. Un
+  estado vacío, dos elementos y el máximo previsto conservan la misma caja
+  exterior cuando pertenecen al mismo componente de capacidad acotada.
+- La variación se resuelve dentro de la región de contenido: estado vacío,
+  scroll interno, paginación, virtualización o divulgación progresiva. Las
+  acciones esenciales no se ocultan ni quedan fuera del recorrido de teclado.
+- El espacio sin usar es correcto cuando está **dentro** de un contenedor
+  visible y estable. Un hueco sin borde, material, propósito o dueño entre dos
+  superficies no es “aire”: es una rotura de composición.
+- Las secciones semánticamente independientes y apiladas no tienen que heredar
+  el alto de una vecina más larga. En ese caso usan altura intrínseca y el
+  siguiente bloque empieza después del gutter canónico.
+- Al cambiar de régimen responsive puede cambiar el alto objetivo, pero cambia
+  para todo el grupo o variante, no tarjeta por tarjeta según su contenido.
+- Igualar marcos no autoriza estirar filas, textos o controles internos. El
+  espacio sobrante queda como capacidad interior o se entrega a la región
+  scrollable declarada.
+
+Ejemplos:
+
+| Composición | Geometría correcta |
+|---|---|
+| Dos KPI o paneles comparables lado a lado | Marcos de igual alto; cada uno puede conservar espacio interior sin usar. |
+| Cards repetidas con 0, 2 o 8 subítems | Card estable; estado vacío o lista interna con límite/scroll. |
+| Tabla y filtros dentro de una DataSurface | Superficie estable; la tabla absorbe la capacidad y hace scroll. |
+| Dos secciones distintas apiladas | Altura intrínseca; no se crea un hueco para igualarlas con una tercera columna. |
+
+QA geométrico, por viewport:
+
+- declarar qué nodos forman cada grupo par o variante repetida;
+- medir `max(height) - min(height)`; tolerancia recomendada: 2 px;
+- repetir la medición en vacío, baja y alta cardinalidad;
+- medir por separado marco y contenido para distinguir capacidad interior de
+  hueco exterior;
+- confirmar que el exceso tiene dueño de scroll y que el contenido completo
+  sigue siendo alcanzable.
 
 ### Canvas
 

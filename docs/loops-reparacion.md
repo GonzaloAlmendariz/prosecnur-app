@@ -205,6 +205,10 @@ and the smallest next unblocker.
 
 ## Product Guardrails
 
+- En reparaciones visuales, aplicar además el gate operativo de
+  `docs/qa/revamps-visuales-lecciones-operativas-2026-07-26.md`. Un contador de
+  overflow en cero no sustituye la inspección del contenido hidratado, los
+  estados de cardinalidad ni la geometría interna.
 - Do not modify Electron, React components, Plumber endpoints, R engines,
   `.pulso` schemas, or business logic unless the current task explicitly asks
   for that product repair.

@@ -60,7 +60,7 @@
     "verificador": "gate"
   },
   "external_skills": [
-    "cronograma-encuestas", "emil-design-eng", "prosecnur-architecture",
+    "cronograma-encuestas", "emil-design-eng", "govern-visual-harmony", "prosecnur-architecture",
     "prosecnur-design-system", "prosecnur-pdf-engine", "prosecnur-project",
     "prosecnur-project-ui-check", "prosecnur-ux-evaluator",
     "visual-ui-inspector"
@@ -94,7 +94,7 @@
     "disenar": {
       "code_change": true,
       "skills": ["scope-lock", "orquestar-trabajo", "revamp-visual", "ver-ui", "cerrar-trabajo"],
-      "external": ["prosecnur-design-system", "emil-design-eng", "prosecnur-project-ui-check", "prosecnur-ux-evaluator", "visual-ui-inspector"],
+      "external": ["prosecnur-design-system", "govern-visual-harmony", "emil-design-eng", "prosecnur-project-ui-check", "prosecnur-ux-evaluator", "visual-ui-inspector"],
       "pools": {
         "discovery": ["diagnosticador-regresiones", "qa-visual-desktop", "guardian-contratos"],
         "implementation": ["autor-regresiones", "frontend-react"],

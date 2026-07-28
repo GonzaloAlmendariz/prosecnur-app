@@ -70,6 +70,9 @@ jobs:
       - name: Install desktop dependencies
         run: pnpm -C desktop install --frozen-lockfile
 
+      - name: Desktop lifecycle tests
+        run: pnpm -C desktop test
+
       - name: Frontend typecheck
         run: pnpm -C frontend exec tsc --noEmit --pretty false
 
