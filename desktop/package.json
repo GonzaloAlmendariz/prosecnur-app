@@ -5,6 +5,7 @@
   "description": "Desktop shell for Prosecnur",
   "main": "main.cjs",
   "scripts": {
+    "test": "node --test tests/*.test.cjs",
     "start": "electron .",
     "smoke:electron": "node smoke-electron.mjs",
     "dist:mac": "electron-builder --mac",
@@ -45,6 +46,7 @@
     "afterPack": "scripts/clean-mac-xattrs.cjs",
     "files": [
       "main.cjs",
+      "lifecycle.cjs",
       "preload.cjs",
       "auto-updater.cjs",
       "mac-bootstrap.cjs",
