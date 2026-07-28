@@ -131,3 +131,26 @@ test_that("hsvg2026 conserva el marco muestral a escala", {
   # Su aporte es el volumen: un marco recortado no ejercita lo mismo.
   expect_gt(nrow(frame$aula_frame), 1000L)
 })
+
+test_that("acnur_pdm sirve los payloads del Dashboard sin reventar", {
+  # Regresión: `/api/dashboard/resumen/kpis` devolvía 500 ("invalid argument
+  # type") con este fixture. Es multibase (base padre + `rep_servicios`) y no
+  # trae la fuente propia del Dashboard, así que el ctx del módulo se quedaba
+  # con el mapa `rp_data_sources` de Procesamiento por partial matching de `$`.
+  path <- fixture_o_skip("acnur_pdm")
+  l <- load_pulso(path)
+  on.exit(session_delete(l$session_id), add = TRUE)
+  s <- session_get(l$session_id)
+
+  # La premisa del test: estudio multibase y Dashboard sin fuente importada.
+  expect_gt(length(s$rp_data_sources %||% list()), 1L)
+  expect_false(.dashboard_has_source(s))
+
+  # Sin fuente propia, cada payload responde vacío en vez de fallar.
+  expect_identical(.dashboard_resumen_kpis(s, list()), list())
+  expect_length(.dashboard_secciones_payload(s)$secciones, 0L)
+  expect_equal(.dashboard_resumen_payload(s, "cualquiera", list())$n_total, 0L)
+  estado <- .dashboard_manifest(s)$estado
+  expect_false(isTRUE(estado$tiene_data))
+  expect_equal(estado$n_secciones, 0L)
+})

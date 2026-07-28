@@ -7,14 +7,45 @@
 # - archivos subidos directamente desde /tablero.
 # ============================================================
 
+# Proyecta el par propio del Dashboard sobre los nombres `rp_inst`/`rp_data`
+# que consume el resto del módulo. Dos trampas que este helper cierra:
+#
+# 1. `s$rp_data <- NULL` no deja la clave en NULL: la BORRA. Con la clave
+#    ausente, `$` cae en partial matching y `s$rp_data` devuelve
+#    `s$rp_data_sources` — el mapa multibase de Procesamiento, una LISTA de
+#    data frames por base. Los guardas `is.null(s$rp_data)` dejaban de
+#    disparar y el módulo terminaba calculando sobre esa lista (de ahí el
+#    `nrow(list()) = NULL` que reventaba en /resumen/kpis). Escribimos con
+#    `s["k"] <- list(v)`, que conserva la clave aunque el valor sea NULL.
+# 2. El Dashboard NO es multibase: su fuente es un XLSForm + una data
+#    importados por el propio módulo. Si el cache llega con otra forma,
+#    fallamos con un código `E_*` en vez de arrastrar el tipo inválido
+#    hasta un error crudo de R.
 .dashboard_ctx <- function(s) {
-  s$rp_inst <- s$dashboard_rp_inst %||% NULL
-  s$rp_data <- s$dashboard_rp_data %||% NULL
+  s["rp_inst"] <- list(s[["dashboard_rp_inst"]])
+  s["rp_data"] <- list(s[["dashboard_rp_data"]])
+
+  data <- s[["rp_data"]]
+  if (!is.null(data) && !is.data.frame(data)) {
+    stop_api(
+      500, "E_DASHBOARD_FUENTE_INVALIDA",
+      "La fuente del Dashboard no es una base tabular. Vuelve a importarla desde el panel de Datos.",
+      details = list(clase = paste(class(data), collapse = "/"))
+    )
+  }
+  inst <- s[["rp_inst"]]
+  if (!is.null(inst) && !.pulso_valid_inst_cache(inst)) {
+    stop_api(
+      500, "E_DASHBOARD_FUENTE_INVALIDA",
+      "El instrumento del Dashboard no tiene la forma esperada. Vuelve a importarlo desde el panel de Datos.",
+      details = list(clase = paste(class(inst), collapse = "/"))
+    )
+  }
   s
 }
 
 .dashboard_has_source <- function(s) {
-  !is.null(s$dashboard_rp_inst) && !is.null(s$dashboard_rp_data)
+  !is.null(s[["dashboard_rp_inst"]]) && !is.null(s[["dashboard_rp_data"]])
 }
 
 .dashboard_source_meta <- function(s) {

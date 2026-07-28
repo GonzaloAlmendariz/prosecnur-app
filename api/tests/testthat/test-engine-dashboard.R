@@ -259,3 +259,68 @@ test_that(".dashboard_categorias_var lee labels de choices", {
   v1 <- Filter(function(v) v$value == "1", vals)[[1]]
   expect_identical(v1$label, "Opción 1")
 })
+
+# ------------------------------------------------------------
+# Regresión: el ctx del Dashboard y el partial matching de `$`.
+#
+# `s$rp_data <- NULL` BORRA la clave en vez de dejarla en NULL. Con la clave
+# ausente, `$` cae en partial matching y `s$rp_data` devuelve
+# `s$rp_data_sources` — el mapa multibase de Procesamiento, una LISTA de data
+# frames. Los guardas `is.null(s$rp_data)` dejaban de disparar y el módulo
+# calculaba sobre esa lista: `/api/dashboard/resumen/kpis` moría en
+# `!nrow(list)` con "invalid argument type" (500 sin código E_*).
+
+.fx_sesion_multibase_sin_fuente_dashboard <- function() {
+  # Espejo de una sesión como la de `acnur_pdm`: estudio multibase con repeat
+  # group cargado en Procesamiento, y el Dashboard SIN su fuente propia.
+  list(
+    rp_data = .fx_data(),
+    rp_inst = .fx_inst(),
+    rp_data_sources = list(padre = .fx_data(), rep_hija = .fx_data()),
+    rp_inst_sources = list(padre = .fx_inst(), rep_hija = .fx_inst())
+  )
+}
+
+test_that(".dashboard_ctx no hereda las bases de Procesamiento por partial matching", {
+  ctx <- prosecnurapp:::.dashboard_ctx(.fx_sesion_multibase_sin_fuente_dashboard())
+  expect_null(ctx$rp_data)
+  expect_null(ctx$rp_inst)
+  # La clave tiene que seguir existiendo: es lo que corta el partial matching.
+  expect_true("rp_data" %in% names(ctx))
+  expect_true("rp_inst" %in% names(ctx))
+  expect_false(prosecnurapp:::.dashboard_has_source(ctx))
+})
+
+test_that(".dashboard_resumen_kpis no revienta en un estudio multibase sin fuente propia", {
+  s <- .fx_sesion_multibase_sin_fuente_dashboard()
+  expect_identical(prosecnurapp:::.dashboard_resumen_kpis(s, list()), list())
+  # El resto de payloads del módulo tampoco debe leer las bases ajenas.
+  expect_length(prosecnurapp:::.dashboard_secciones_payload(s)$secciones, 0L)
+  expect_equal(prosecnurapp:::.dashboard_resumen_payload(s, "Sección A", list())$n_total, 0L)
+})
+
+test_that(".dashboard_ctx sigue proyectando la fuente propia cuando existe", {
+  s <- .fx_sesion_multibase_sin_fuente_dashboard()
+  s$dashboard_rp_data <- .fx_data()
+  s$dashboard_rp_inst <- .fx_inst()
+  ctx <- prosecnurapp:::.dashboard_ctx(s)
+  expect_true(is.data.frame(ctx$rp_data))
+  expect_equal(nrow(ctx$rp_data), 5L)
+  expect_true(prosecnurapp:::.dashboard_has_source(ctx))
+})
+
+test_that(".dashboard_ctx rechaza un cache de fuente con forma invalida", {
+  s <- list(
+    dashboard_rp_data = list(padre = .fx_data(), rep_hija = .fx_data()),
+    dashboard_rp_inst = .fx_inst()
+  )
+  err <- tryCatch(prosecnurapp:::.dashboard_ctx(s), api_error = function(e) e)
+  expect_s3_class(err, "api_error")
+  expect_identical(err$code, "E_DASHBOARD_FUENTE_INVALIDA")
+  expect_identical(err$status, 500)
+
+  s2 <- list(dashboard_rp_data = .fx_data(), dashboard_rp_inst = list(survey = "no soy data.frame"))
+  err2 <- tryCatch(prosecnurapp:::.dashboard_ctx(s2), api_error = function(e) e)
+  expect_s3_class(err2, "api_error")
+  expect_identical(err2$code, "E_DASHBOARD_FUENTE_INVALIDA")
+})
