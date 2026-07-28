@@ -57,12 +57,20 @@
   # Dashboard: el rp_inst y rp_data son tibbles gordos derivables del par
   # XLSForm + data referenciado en s$dashboard_source. Al cargar se
   # re-importan vía .dashboard_rebuild_after_load.
-  s$dashboard_rp_inst <- NULL
-  s$dashboard_rp_data <- NULL
-  s$monitoreo_dashboard_cache <- NULL
-  s$monitoreo_dashboard_cache_token <- NULL
-  s$monitoreo_dashboard_light_cache <- NULL
-  s$monitoreo_dashboard_light_cache_token <- NULL
+  # `.session_state_clear` y no `s$x <- NULL`: borrar el nombre deja que un `$`
+  # posterior caiga por partial matching en un hermano con el mismo prefijo.
+  # Medido en acnur_pdm: sin el nombre, `s$monitoreo_dashboard_cache_token`
+  # resolvía al token SCOPED `monitoreo_dashboard_cache_token_advance_summary`
+  # —justo el que sí viaja en el .pulso por el warm start— así que la
+  # invalidación del cache global terminaba leyendo el token de otro scope.
+  s <- .session_state_clear(s, c(
+    "dashboard_rp_inst",
+    "dashboard_rp_data",
+    "monitoreo_dashboard_cache",
+    "monitoreo_dashboard_cache_token",
+    "monitoreo_dashboard_light_cache",
+    "monitoreo_dashboard_light_cache_token"
+  ))
   # Las variantes SCOPED (monitoreo_dashboard_cache_<scope> y su token) SÍ
   # viajan en el .pulso — DECISIÓN DEL DUEÑO (2026-07-23): el warm start es
   # intencional; se acepta que el archivo pese más a cambio de abrir el
@@ -104,13 +112,15 @@
     # En proyectos multi/base integrada, estos objetos son caches runtime
     # derivados de los file_id canónicos de cada base. Persistirlos puede
     # congelar un XLSForm/data anterior al archivo real que viaja en el .pulso.
-    s$rp_inst <- NULL
-    s$rp_data <- NULL
+    # Los cuatro `rp_*` conservan su nombre: sin él, `s$rp_data` resolvería a
+    # `rp_data_sources` (y `s$analitica_rp_data` a su `_sources`), que quedan
+    # como `list()` justo debajo — `is.null()` sobre `list()` es FALSE.
+    s <- .session_state_clear(s, c(
+      "rp_inst", "rp_data", "data_xlsform_compatibility",
+      "analitica_rp_inst", "analitica_rp_data"
+    ))
     s$rp_inst_sources <- list()
     s$rp_data_sources <- list()
-    s$data_xlsform_compatibility <- NULL
-    s$analitica_rp_inst <- NULL
-    s$analitica_rp_data <- NULL
     s$analitica_rp_inst_sources <- list()
     s$analitica_rp_data_sources <- list()
     s$analitica_prep_ok <- FALSE
@@ -841,15 +851,19 @@
   }
 
   if (changed) {
-    s$rp_data <- NULL
-    s$rp_inst <- NULL
-    s$analitica_rp_data <- NULL
-    s$analitica_rp_inst <- NULL
+    # Acá el borrado de nombres era el más caro de los dos: la sesión se
+    # reescribe al store (`.session_env[[sid]] <- s`), así que TODA lectura
+    # posterior de `s$rp_data` en la app —no solo la de esta función— caía por
+    # partial matching en `rp_data_sources`, que arriba se vació por base pero
+    # conserva el nombre. `.session_state_clear` mantiene los nombres en NULL.
+    s <- .session_state_clear(s, c(
+      "rp_data", "rp_inst", "analitica_rp_data", "analitica_rp_inst",
+      "data_xlsform_compatibility"
+    ))
     s$analitica_rp_data_sources <- list()
     s$analitica_rp_inst_sources <- list()
     s$analitica_prep_ok <- FALSE
     s$analitica_multibase_available <- FALSE
-    s$data_xlsform_compatibility <- NULL
     .session_env[[sid]] <- s
   }
   invisible(isTRUE(changed))
