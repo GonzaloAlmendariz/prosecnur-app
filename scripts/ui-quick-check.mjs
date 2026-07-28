@@ -1215,7 +1215,23 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
       // la caja realmente sale del viewport.
       const nativeSelectBox = el instanceof HTMLSelectElement
         || (el instanceof HTMLLabelElement && Boolean(el.querySelector("select")));
-      const xOverflow = el.scrollWidth > el.clientWidth + 2 && !overflowXAllowed && !nativeSelectBox;
+      // Un <input> DE ENTRADA DE TEXTO mide igual: `scrollWidth` es el ancho de
+      // su VALOR, no de su caja, y el control lo recorta adentro
+      // (overflow-x:clip) desplazándolo con el caret. Es el comportamiento
+      // nativo del campo y no hay nada inalcanzable. Sin esta exclusión,
+      // cualquier formulario que muestre un texto largo dentro de un campo
+      // editable —el panel Datos de Analítica edita las etiquetas de pregunta,
+      // que son oraciones enteras— sale rojo por diseño y no por defecto.
+      //
+      // La lista es por `type` y no `instanceof HTMLInputElement` a secas: un
+      // input botón (button/submit/reset/image) NO tiene caret ni scroll
+      // nativo, así que ahí un value recortado sí es contenido inalcanzable y
+      // el detector tiene que seguir viéndolo (C4).
+      const nativeTextBox = el instanceof HTMLInputElement && [
+        "text", "search", "url", "tel", "email", "password", "number",
+      ].includes(el.type);
+      const xOverflow = el.scrollWidth > el.clientWidth + 2 && !overflowXAllowed
+        && !nativeSelectBox && !nativeTextBox;
       const yOverflow = el.scrollHeight > el.clientHeight + 2 && !overflowYAllowed;
       if (!xOverflow && !yOverflow) continue;
       const label = (el.getAttribute("aria-label") || el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 160);
