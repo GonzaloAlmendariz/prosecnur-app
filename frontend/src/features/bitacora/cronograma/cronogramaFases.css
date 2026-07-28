@@ -1,0 +1,576 @@
+/* Compositor de fases y lista cronológica (ADR 0047).
+ *
+ * Archivo propio y no `bitacora.css`: la sección nueva es la vista de entrada
+ * del cronograma y merece su hoja, en vez de engordar una que ya pasa las 800
+ * líneas. Solo tokens `--pulso-*`; ningún hex.
+ */
+
+/* --- Conmutador de vistas ------------------------------------------------ */
+
+.plan-vista-switch {
+  position: relative;
+  display: inline-flex;
+  gap: var(--pulso-section-pill-gap);
+  padding: var(--pulso-chrome-pad);
+  border-radius: var(--pulso-chrome-radius);
+  background: var(--pulso-surface-2);
+}
+
+.plan-vista-boton {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--pulso-section-pill-h);
+  padding-inline: var(--pulso-section-pill-pad-x);
+  border: 0;
+  border-radius: calc(var(--pulso-chrome-radius) - var(--pulso-chrome-pad));
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  font-weight: var(--pulso-control-weight);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.plan-vista-boton:hover:not(.is-active) {
+  color: var(--pulso-text);
+}
+
+.plan-vista-boton.is-active {
+  color: var(--pulso-nav-selected-fg, var(--pulso-text));
+}
+
+.plan-vista-boton:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: -2px;
+}
+
+/* --- Menú de Excel (acción secundaria) ----------------------------------- */
+
+.plan-excel-menu {
+  position: relative;
+}
+
+.plan-excel-menu > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.plan-excel-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.plan-excel-opciones {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + 6px);
+  z-index: 1400;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 210px;
+  padding: 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+}
+
+.plan-excel-opciones .plan-button {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+/* --- Compositor ---------------------------------------------------------- */
+
+.bit-compositor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  height: 100%;
+}
+
+.bit-compositor-resumen {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.bit-compositor-token {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.bit-compositor-token small {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+
+.bit-compositor-token strong {
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.bit-compositor-acciones {
+  margin-inline-start: auto;
+  display: flex;
+  gap: 8px;
+}
+
+/* El grupo de fases posee su propio vacío: sin esto, seis filas cortas dejarían
+ * el hueco al panel y el marco se movería según cuántas tengan actividades. */
+.bit-compositor-fases {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-block-end: 4px;
+}
+
+/* --- Fila de fase -------------------------------------------------------- */
+
+.bit-fase {
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.bit-fase.is-vacia {
+  border-style: dashed;
+  background: transparent;
+}
+
+.bit-fase.is-expandida {
+  border-color: var(--module-accent-border, var(--pulso-border-strong));
+}
+
+.bit-fase-cabecera {
+  display: grid;
+  grid-template-columns: 28px minmax(140px, 1fr) auto auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  min-height: 46px;
+}
+
+.bit-fase-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: var(--pulso-nav-item-radius);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.bit-fase-toggle:hover {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+
+.bit-fase-nombre {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.bit-fase-nombre strong {
+  font-size: 13.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.bit-fase-nombre small {
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+}
+
+.bit-fase-evidencia {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--pulso-radius-chip);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-medium);
+  white-space: nowrap;
+}
+
+/* Verde solo para lo que tiene evidencia real: el estado planificado es
+ * deliberadamente neutro, no un "pendiente" en ámbar. Misma regla que la
+ * máquina de readiness de theme.css. */
+.bit-fase-evidencia.is-real {
+  background: var(--pulso-state-ready-bg);
+  border: 1px solid var(--pulso-state-ready-border);
+  color: var(--pulso-state-ready-fg);
+}
+
+.bit-fase-evidencia.is-plan {
+  background: var(--pulso-state-unset-bg);
+  border: 1px solid var(--pulso-state-unset-border);
+  color: var(--pulso-state-unset-fg);
+}
+
+.bit-fase-fechas {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pulso-text-faint);
+}
+
+.bit-fase-fechas input[type="date"] {
+  height: var(--pulso-control-height-md);
+  padding-inline: 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 12.5px;
+}
+
+.bit-fase-fechas input[type="date"]:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+  border-color: var(--pulso-primary-border);
+}
+
+.bit-fase-rango {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 122px;
+  justify-content: flex-end;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+.bit-fase-rango small {
+  padding: 1px 6px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+  font-size: 11px;
+}
+
+.bit-fase-rango.is-solapada {
+  color: var(--pulso-warn-fg);
+}
+
+.bit-fase-aviso {
+  margin: 0;
+  padding: 0 12px 8px 52px;
+  font-size: 12px;
+  color: var(--pulso-warn-fg);
+}
+
+.bit-fase-actividades {
+  padding: 0 12px 10px 52px;
+  border-top: 1px solid var(--pulso-border);
+  padding-top: 10px;
+}
+
+.bit-fase-sin-actividades {
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  max-width: 62ch;
+}
+
+.bit-fase-actividades ul {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bit-fase-actividad {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 8px;
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  font-size: 12.5px;
+}
+
+.bit-fase-actividad small {
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+}
+
+.bit-fase-actividad.is-done {
+  color: var(--pulso-text-faint);
+  text-decoration: line-through;
+}
+
+/* --- Estado vacío -------------------------------------------------------- */
+
+.bit-compositor-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: 40px 24px;
+  height: 100%;
+  color: var(--pulso-text-soft);
+}
+
+.bit-compositor-vacio strong {
+  font-size: 16px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.bit-compositor-vacio p {
+  margin: 0;
+  max-width: 58ch;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.bit-compositor-vacio-acciones {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+/* --- Botones ------------------------------------------------------------- */
+
+.bit-boton,
+.bit-boton--primario {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--pulso-control-height-lg);
+  padding-inline: 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-control-weight);
+  cursor: pointer;
+}
+
+.bit-boton:hover:not(:disabled) {
+  background: var(--pulso-surface-3);
+}
+
+.bit-boton--primario {
+  background: var(--pulso-primary);
+  border-color: var(--pulso-primary);
+  color: var(--pulso-surface);
+}
+
+.bit-boton--primario:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.bit-boton:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.bit-boton-sutil {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.bit-boton-sutil:hover {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+
+/* --- Lista cronológica --------------------------------------------------- */
+
+.bit-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-block-end: 8px;
+}
+
+.bit-lista-titulo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pulso-text-soft);
+}
+
+.bit-lista-grupo.is-vencido .bit-lista-titulo {
+  color: var(--pulso-danger-fg);
+}
+
+.bit-lista-titulo small {
+  padding: 0 6px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-medium);
+  letter-spacing: 0;
+}
+
+.bit-lista-grupo ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bit-lista-item {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+
+.bit-lista-item.is-vencida {
+  border-inline-start: 3px solid var(--pulso-danger-border);
+}
+
+.bit-lista-item.is-archivada {
+  opacity: 0.6;
+}
+
+.bit-lista-marca {
+  display: inline-flex;
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.bit-lista-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.bit-lista-cuerpo strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bit-lista-cuerpo small {
+  font-size: 11.5px;
+  color: var(--pulso-text-faint);
+}
+
+.bit-lista-item.is-done .bit-lista-cuerpo strong {
+  color: var(--pulso-text-faint);
+  text-decoration: line-through;
+}
+
+.bit-lista-etiquetas {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.bit-etiqueta {
+  padding: 1px 7px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+.bit-lista-acciones {
+  display: inline-flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.bit-lista-item:hover .bit-lista-acciones,
+.bit-lista-item:focus-within .bit-lista-acciones {
+  opacity: 1;
+}
+
+.bit-lista-acciones button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--pulso-nav-item-radius);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.bit-lista-acciones button:hover {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+
+/* El hover no puede ser el único camino: sin esto, las acciones serían
+ * inalcanzables por teclado. */
+.bit-lista-acciones button:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+@media (max-width: 900px) {
+  .bit-fase-cabecera {
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    row-gap: 8px;
+  }
+
+  .bit-fase-fechas,
+  .bit-fase-rango {
+    grid-column: 2 / -1;
+    justify-content: flex-start;
+  }
+
+  .bit-lista-acciones {
+    opacity: 1;
+  }
+}
