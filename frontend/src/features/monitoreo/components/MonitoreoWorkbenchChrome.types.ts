@@ -15,4 +15,13 @@ export type MonitoreoWorkbenchChromeProps = {
   className?: string;
   mainClassName?: string;
   contentClassName?: string;
+  contentId?: string;
+  contentRole?: "tabpanel";
+  contentAriaLabelledBy?: string;
+  /**
+   * Cambia cuando cambia la vista (sección o pestaña) y el contenido debe
+   * volver arriba. Sin esto se aterriza al pie de la pestaña nueva, con los
+   * títulos ya tapados por la banda sticky.
+   */
+  scrollResetKey?: string;
 };

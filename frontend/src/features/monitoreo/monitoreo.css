@@ -5656,16 +5656,29 @@
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(296px, 344px) minmax(0, 1fr);
-  grid-template-rows: var(--exec-dashboard-row) auto auto auto;
-  grid-template-areas:
-    "side districts"
-    "demographics demographics"
-    "priorities priorities"
-    "cut cut";
   gap: 10px;
   align-items: stretch;
   align-content: start;
+}
+
+/* «Resumen» responde cómo vamos: estado del campo, qué atender y qué entra en el
+ * corte. El tablero de distritos —660px él solo— se mudó a su propia pestaña
+ * porque empujaba prioridades y corte operativo fuera del pliegue. */
+.mon-territorial-exec-canvas.is-resumen {
+  grid-template-columns: minmax(296px, 380px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, auto) auto;
+  grid-template-areas:
+    "side priorities"
+    "cut cut";
+}
+
+/* «Distritos» responde dónde estamos: cobertura por distrito y cuotas. */
+.mon-territorial-exec-canvas.is-distritos {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "districts"
+    "demographics";
 }
 
 .mon-territorial-exec-side {
@@ -5674,7 +5687,11 @@
   min-height: 0;
   height: 100%;
   display: grid;
-  grid-template-rows: minmax(0, 1.02fr) minmax(0, 0.98fr);
+  /* El reparto 1.02fr/0.98fr era una proporción inventada que no miraba el
+   * contenido: la tarjeta de progreso recibía 331px para 400px de datos. El
+   * progreso pide lo suyo (`auto`) y UMP —que sí es una lista y sabe hacer
+   * scroll— se queda con el resto. */
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 10px;
   align-content: stretch;
 }
@@ -5713,9 +5730,13 @@
 .mon-territorial-exec-cut { grid-area: cut; }
 
 .mon-territorial-exec-progress {
-  align-content: stretch;
-  grid-template-rows: auto auto auto minmax(0, auto);
-  overflow: hidden;
+  /* `align-content: stretch` + filas `auto` repartía el alto sobrante entre las
+   * filas y, cuando faltaba, las comprimía por debajo de su contenido: el bloque
+   * de hechos pedía 133px, recibía 64px y el resto desaparecía bajo el
+   * `overflow: hidden`. Nada avisaba. Ahora las filas miden lo que necesitan y
+   * el sobrante se acumula al final en vez de repartirse. */
+  align-content: start;
+  grid-template-rows: repeat(4, auto) minmax(0, 1fr);
   border-color: color-mix(in srgb, var(--exec-land) 28%, var(--pulso-border));
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--exec-land) 9%, #fff), rgba(255, 255, 255, 0.96) 48%),
@@ -6082,7 +6103,17 @@
 }
 
 .mon-territorial-advance-map-card {
-  --advance-map-height: clamp(620px, calc(100vh - 450px), 780px);
+  /* El mapa se llevaba 692px de una pestaña que además tiene el detalle de la
+   * UMP seleccionada debajo: hacer click en una UMP dejaba su ficha fuera del
+   * pliegue, justo cuando se la acaba de pedir. Cediendo alto, el detalle asoma
+   * y el mapa sigue siendo cómodo. */
+  --advance-map-height: clamp(400px, calc(100vh - 560px), 560px);
+  /* La tarjeta se ciñe a su celda y reparte: encabezado arriba, visor con el
+   * resto. Sin esto crecía con el contenido y desbordaba la fila. */
+  height: 100%;
+  min-height: 0;
+  /* encabezado · mapa · conteos */
+  grid-template-rows: auto minmax(0, 1fr) auto;
   min-width: 0;
   display: grid;
   gap: 7px;
@@ -6115,8 +6146,13 @@
 }
 
 .mon-territorial-advance-map-viewport {
-  height: var(--advance-map-height);
-  min-height: 620px;
+  /* `min-height: 620px` era un piso rígido que ganaba a cualquier ajuste de
+   * alto: el visor inflaba su tarjeta por encima de la fila del grid y el mapa
+   * terminaba derramándose 184px sobre la tabla de UMP de abajo —la leyenda
+   * encimada sobre los KPIs—. Ahora toma el alto de su celda, con un piso que
+   * mantiene el mapa usable. */
+  height: 100%;
+  min-height: 320px;
   border-color: color-mix(in srgb, var(--pulso-border) 86%, #fff);
   border-radius: 10px;
   background:
@@ -6150,16 +6186,16 @@
   backdrop-filter: blur(16px) saturate(1.1);
 }
 
+/* Los seis conteos (completas, incompletas, GPS en zona…) son DATOS, no
+ * controles del mapa: flotando encima tapaban la cartografía y, al reducirse el
+ * visor, quedaban encimados con la leyenda y con el pie de ayuda. Bajan al flujo
+ * de la tarjeta, debajo del mapa, donde se leen sin tapar nada. */
 .mon-territorial-advance-map-footer {
-  position: absolute;
-  z-index: 3;
-  right: 12px;
-  bottom: 12px;
-  left: 12px;
+  position: static;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
   gap: 6px;
-  pointer-events: none;
+  padding: 8px 12px 10px;
 }
 
 .mon-territorial-swarm-card {
@@ -6574,10 +6610,13 @@
 
 .mon-territorial-ump-map-layout {
   grid-area: map;
-  --route-main-height: clamp(700px, calc(100vh - 360px), 860px);
   min-width: 0;
+  min-height: 400px;
+  height: clamp(440px, calc(100dvh - 410px), 680px);
   display: grid;
-  grid-template-columns: minmax(780px, 1fr) minmax(260px, 320px);
+  grid-template-columns: minmax(520px, 1.5fr) minmax(250px, 0.72fr) minmax(270px, 0.78fr);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: "map nav detail";
   gap: 8px;
   align-items: stretch;
 }
@@ -6624,7 +6663,7 @@
 .mon-territorial-ump-map-nav > div {
   min-width: 0;
   min-height: 0;
-  max-height: var(--route-main-height);
+  max-height: none;
   overflow: auto;
   display: grid;
   align-content: start;
@@ -6844,10 +6883,19 @@
   .mon-territorial-rhythm-layout,
   .mon-territorial-ump-context,
   .mon-territorial-ump-workspace,
-  .mon-territorial-ump-map-layout,
   .mon-territorial-swarm-body,
   .mon-territorial-ump-support-grid {
     grid-template-columns: 1fr;
+  }
+
+  .mon-territorial-ump-map-layout {
+    min-height: 0;
+    height: auto;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.55fr);
+    grid-template-rows: auto;
+    grid-template-areas:
+      "map map"
+      "nav detail";
   }
 
   .mon-territorial-ump-toolbar {
@@ -6864,7 +6912,11 @@
   }
 
   .mon-territorial-ump-map-nav > div {
-    max-height: 340px;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(240px, 280px);
   }
 
   .mon-territorial-tab-panel--rhythm .mon-territorial-rhythm-layout {
@@ -6877,6 +6929,22 @@
 }
 
 @media (max-width: 1180px) {
+  .mon-territorial-ump-toolbar {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .mon-territorial-ump-toolbar .mon-query-search {
+    grid-column: 1 / -1;
+  }
+
+  .mon-territorial-ump-toolbar .mon-territorial-ump-select {
+    grid-column: span 2;
+  }
+
+  .mon-territorial-ump-toolbar .mon-territorial-ump-select:nth-last-child(-n+2) {
+    grid-column: span 3;
+  }
+
   .mon-territorial-tab-panel--ump-map {
     grid-template-columns: 1fr;
     grid-template-areas:
@@ -6892,6 +6960,25 @@
     grid-template-areas:
       "table"
       "detail";
+  }
+
+  .mon-territorial-ump-map-layout {
+    min-height: 0;
+    height: auto;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    grid-template-areas:
+      "map"
+      "nav"
+      "detail";
+  }
+
+  .mon-territorial-ump-map-nav > div {
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(240px, 280px);
   }
 
   .mon-territorial-advance-zone-panel .mon-territorial-route-coverage-map-frame,
@@ -6943,12 +7030,16 @@
     grid-template-columns: 1fr 1fr;
   }
 
-  .mon-territorial-district-kpi-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .mon-territorial-ump-toolbar .mon-territorial-ump-select {
+    grid-column: auto;
   }
 
-  .mon-territorial-ump-map-layout {
-    --route-main-height: clamp(520px, calc(100vh - 320px), 700px);
+  .mon-territorial-ump-toolbar .mon-territorial-ump-select:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .mon-territorial-district-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .mon-territorial-advance-map-card {
@@ -6996,10 +7087,6 @@
 
   .mon-territorial-district-kpi-grid {
     grid-template-columns: 1fr;
-  }
-
-  .mon-territorial-ump-map-layout {
-    --route-main-height: 520px;
   }
 
   .mon-territorial-advance-map-card {
@@ -7310,7 +7397,7 @@
 
 .mon-territorial-geo-selected-case dt {
   color: var(--pulso-text-soft);
-  font-size: 8.5px;
+  font-size: 10px;
   font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
 }
@@ -7384,7 +7471,7 @@
 .mon-territorial-geo-district-copy em,
 .mon-territorial-geo-district-owner {
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -7409,7 +7496,7 @@
     linear-gradient(180deg, rgba(236, 253, 245, 0.92), rgba(240, 249, 255, 0.78)),
     #fff;
   color: #164e63;
-  font-size: 8.8px;
+  font-size: 10px;
   font-weight: var(--pulso-weight-black);
   line-height: 1;
   padding: 0 6px;
@@ -7512,7 +7599,7 @@
 
 .mon-territorial-geo-replacement-detail dt {
   color: var(--pulso-text-soft);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
 }
@@ -7522,7 +7609,7 @@
   margin: 0;
   overflow: hidden;
   color: var(--pulso-text);
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: var(--pulso-weight-heavy);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -7534,7 +7621,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   cursor: pointer;
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: var(--pulso-weight-heavy);
   padding: 0 0 0 28px;
   text-align: left;
@@ -7605,7 +7692,7 @@
 .mon-territorial-geo-case-place small,
 .mon-territorial-geo-case-date {
   color: var(--pulso-text-soft);
-  font-size: 9.15px;
+  font-size: 10px;
   font-style: normal;
   font-weight: var(--pulso-weight-bold);
 }
@@ -7626,7 +7713,7 @@
 
 .mon-territorial-geo-case-place b {
   color: var(--pulso-text-soft);
-  font-size: 9.35px;
+  font-size: 10px;
 }
 
 .mon-territorial-geo-case-meta small,
@@ -7653,7 +7740,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: var(--pulso-weight-black);
   line-height: 1;
   white-space: nowrap;
@@ -7801,7 +7888,7 @@
 
   .mon-territorial-geo-district-owner {
     color: color-mix(in srgb, var(--pulso-text-soft) 92%, var(--pulso-text));
-    font-size: 9.15px;
+    font-size: 10px;
     -webkit-line-clamp: 1;
   }
 
@@ -11241,7 +11328,7 @@
 
 .mon-territorial-geo-compass em {
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: normal;
   font-weight: var(--pulso-weight-bold);
   line-height: 1.12;
@@ -13575,7 +13662,9 @@
   height: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
-  grid-template-rows: minmax(340px, 0.82fr) minmax(260px, 1.18fr);
+  /* `minmax(340px, …)` seguía dejando que las filas cayeran por debajo de su
+   * contenido cuando el alto no alcanzaba, recortando 50px bajo `hidden`. */
+  grid-template-rows: minmax(auto, 0.82fr) minmax(auto, 1.18fr);
   align-items: stretch;
   gap: 12px;
   max-height: none;
@@ -26166,12 +26255,15 @@ button.mon-territorial-ump-audit-scrim {
 }
 
 .mon-territorial-route-workbench {
-  height: 100%;
-  min-height: 0;
+  /* `height: 100%` + `overflow: hidden` recortaba 136px en UMPs/Cobertura y
+   * UMPs/Manzanas sin ningún dueño de scroll que los rescatara. Mismo patrón que
+   * ya se corrigió en Fuente y en Ocurrencias: el bloque crece y la sección
+   * —que sí sabe desplazarse— revela el resto. */
+  min-height: 100%;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(auto, 1fr);
   gap: 10px;
-  overflow: hidden;
+  overflow-x: clip;
 }
 
 .mon-territorial-route-command {
@@ -28098,12 +28190,14 @@ button.mon-territorial-ump-audit-scrim {
 }
 
 .mon-stage--consultas {
-  height: 100%;
-  min-height: 0;
+  /* Último eslabón de la cadena de Consultas: con el panel de revisión ya
+   * cediendo, el recorte subía hasta acá. El escenario crece y el contenedor de
+   * la sección —que sí desplaza— revela el resto. */
+  min-height: 100%;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(auto, 1fr);
   gap: 10px;
-  overflow: hidden;
+  overflow-x: clip;
 }
 
 .mon-stage--consultas.is-no-cut-strip {
@@ -30698,7 +30792,11 @@ button.mon-territorial-ump-audit-scrim {
 
 .mon-territorial-source-workgrid--filter {
   grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
-  align-items: start;
+  align-items: stretch;
+}
+
+.mon-territorial-source-workgrid--filter > .mon-territorial-source-card:not(.mon-territorial-filter-config-summary) {
+  align-self: stretch;
 }
 
 .mon-territorial-filter-config-actions button {
@@ -31838,6 +31936,11 @@ button.mon-territorial-ump-audit-scrim {
 
   .mon-territorial-source-workgrid--filter {
     grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .mon-territorial-source-workgrid--filter > .mon-territorial-source-card:not(.mon-territorial-filter-config-summary) {
+    align-self: start;
   }
 
   .mon-territorial-source-command > .pulso-button,
@@ -32772,7 +32875,13 @@ button.mon-territorial-ump-audit-scrim {
 /* Territorial field occurrences: full-height UMP route workspace revamp */
 
 .mon-workbench-content:has(.mon-stage--ocurrencias) {
-  overflow: hidden;
+  /* Ocurrencias se diseñó como lienzo lleno sin scroll externo, confiando en
+   * que cada bloque scrollease por dentro. Cuando el contenido no cabía —y en
+   * cortes reales no cabe— no quedaba ningún dueño de scroll en toda la cadena
+   * de ancestros y la información simplemente se perdía. El clip horizontal se
+   * conserva; el vertical cede. */
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .mon-stage--ocurrencias .mon-field-occurrences {
@@ -33183,9 +33292,13 @@ button.mon-territorial-ump-audit-scrim {
 
 .mon-field-occurrences-overview {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  /* `minmax(0, 1fr)` dejaba que la segunda fila colapsara a 0px cuando el
+   * espacio no alcanzaba: el bloque de distritos existía en el DOM y medía
+   * cero. Con `auto` de mínimo la fila nunca baja de su contenido. */
+  grid-template-rows: auto minmax(auto, 1fr);
   gap: 8px;
-  overflow: hidden;
+  overflow-x: clip;
+  min-height: 0;
 }
 
 .mon-field-occurrences-districts > header span,
@@ -33293,17 +33406,50 @@ button.mon-territorial-ump-audit-scrim {
 .mon-stage--ocurrencias .mon-field-occurrences-body.is-alerts {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.38fr);
+  /* Una sola columna: el lateral duplicaba Resumen y Reporte UMP, y por
+   * sostenerlo la lista de alertas —lo único accionable del módulo— perdía
+   * 394px fuera de alcance. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
-  overflow: hidden;
+  overflow-x: clip;
+  /* Acotar la altura es correcto AQUÍ y solo aquí: la lista de alertas tiene su
+   * propio `overflow: auto`, así que con 113 casos el contenido sigue siendo
+   * alcanzable dentro de la lista. Sin la cota, `1fr` se estiraba a los 6.900px
+   * de la lista y el panel padre volvía a recortar. La regla general del módulo
+   * sigue siendo no acotar sin dueño de scroll. */
+  height: 100%;
+}
+
+/* El panel debe ceñirse a su celda para que la fila `1fr` de la lista se resuelva
+ * contra el alto disponible y no contra los 6.900px del contenido. */
+.mon-stage--ocurrencias .mon-field-occurrences-body.is-alerts > .mon-field-occurrences-alerts-panel {
+  height: 100%;
+  min-height: 0;
+  align-self: stretch;
 }
 
 .mon-stage--ocurrencias .mon-field-occurrences-body.is-rhythm {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.34fr);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.32fr);
   gap: 10px;
-  overflow: hidden;
+  overflow-x: clip;
+}
+
+/* La tarjeta de barras arrastra `grid-area: daily` del layout de Resumen, donde
+ * ese nombre sí existe. Acá no hay áreas declaradas, así que creaba una columna
+ * implícita al final: las barras —el contenido que da nombre a la pestaña—
+ * quedaban en 224px, ilegibles, mientras el lateral con seis eventos se llevaba
+ * 900px. Se anula el área heredada y cada bloque toma su columna. */
+.mon-stage--ocurrencias .mon-field-occurrences-body.is-rhythm > .mon-field-occurrences-chart-card.is-daily {
+  grid-area: auto;
+  grid-column: 1;
+  min-width: 0;
+}
+
+.mon-stage--ocurrencias .mon-field-occurrences-body.is-rhythm > .mon-field-occurrences-rhythm-side {
+  grid-column: 2;
+  min-width: 0;
 }
 
 .mon-field-occurrences-alerts-toolbar {
@@ -33526,7 +33672,8 @@ button.mon-territorial-ump-audit-scrim {
 .mon-workbench-content--ocurrencias,
 .mon-workbench-content:has(.mon-stage--ocurrencias) {
   overflow-x: hidden;
-  overflow-y: hidden;
+  /* Ver la nota de arriba: sin esto la sección entera no tenía dueño de scroll. */
+  overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
 }
@@ -33541,13 +33688,17 @@ button.mon-territorial-ump-audit-scrim {
   flex: 1 1 auto;
   min-height: 0;
   grid-template-columns: minmax(230px, 0.62fr) minmax(300px, 0.9fr) minmax(280px, 0.62fr);
-  grid-template-rows: auto minmax(0, 1fr);
+  /* La fila de distritos llegaba a 0px con `minmax(0, 1fr)`: el bloque estaba
+   * en el DOM y medía nada. `auto` de mínimo la ata a su contenido, y el clip
+   * pasa a ser solo horizontal para que la sección —que ahora sí tiene dueño de
+   * scroll— pueda revelar lo que sobra. */
+  grid-template-rows: auto minmax(auto, 1fr);
   grid-template-areas:
     "state outcomes daily"
     "districts districts daily";
   align-content: stretch;
   align-items: stretch;
-  overflow: hidden;
+  overflow-x: clip;
 }
 
 .mon-field-occurrences-overview.is-summary {
@@ -33634,11 +33785,19 @@ button.mon-territorial-ump-audit-scrim {
   }
 
   .mon-field-occurrences-district-row {
+    height: 256px;
     grid-template-columns: minmax(150px, 0.8fr) minmax(112px, 0.55fr) minmax(152px, 0.86fr);
     grid-template-areas:
       "name coverage counts"
       "meter meter outcomes";
     align-items: start;
+  }
+
+  .mon-field-occurrences-district-name span {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .mon-field-occurrences-district-name {
@@ -35054,9 +35213,14 @@ button.mon-territorial-ump-audit-scrim {
 /* Territorial Fuente: full-height tabs and reconciliation split */
 
 .mon-territorial-source-console {
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
+  /* `height: 100%` + `overflow: hidden` convertía cualquier desbordamiento en
+   * recorte mudo: en Fuente/Filtro el bloque de trabajo pedía 745px, recibía
+   * 528px y los 217px restantes desaparecían. El contenedor padre
+   * (`.mon-workbench-content`) ya es dueño de scroll, así que basta con dejar
+   * que la consola crezca: `min-height` llena el espacio cuando sobra y cede
+   * cuando falta. El recorte horizontal sí se conserva. */
+  min-height: 100%;
+  overflow-x: clip;
 }
 
 .mon-territorial-source-tabbar {
@@ -37883,3 +38047,114 @@ button.mon-territorial-ump-audit-scrim {
 }
 
 /* Territorial UMPs: keep the selected block detail visible beside the list. */
+
+/* Aviso de recorte de tabla (auditoría 2026-07-25).
+ * Las tablas de perfil cortaban a 80 filas y 8 columnas en silencio; Agenda
+ * pedía 9 columnas, así que origen y recopilador desaparecían sin dejar rastro.
+ * Cuando hay recorte, se dice. */
+.mon-profile-table-recorte {
+  margin: 6px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pulso-state-partial-fg);
+}
+
+/* Pestaña activa en el encabezado del workbench.
+ * El rail es icon-only y su cuadrante no lleva rótulo ni marcas, así que el
+ * "dónde estoy" y el estado de esa pestaña se dicen acá, con palabras. */
+.mon-workbench-head-tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 1px 0 0;
+}
+
+.mon-workbench-head-tab strong {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy);
+  color: var(--pulso-text);
+}
+
+.mon-workbench-head-tab em {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-state-unchecked-border);
+  background: var(--pulso-state-unchecked-bg);
+  color: var(--pulso-state-unchecked-fg);
+}
+
+.mon-workbench-head-tab em[data-estado="parcial"] {
+  border-color: var(--pulso-state-partial-border);
+  background: var(--pulso-state-partial-bg);
+  color: var(--pulso-state-partial-fg);
+}
+
+.mon-workbench-head-tab em[data-estado="bloqueado"] {
+  border-color: var(--pulso-state-blocked-border);
+  background: var(--pulso-state-blocked-bg);
+  color: var(--pulso-state-blocked-fg);
+}
+
+.mon-workbench-head-tab em[data-estado="sin-configurar"] {
+  border-color: var(--pulso-state-unset-border);
+  background: var(--pulso-state-unset-bg);
+  color: var(--pulso-state-unset-fg);
+}
+
+.mon-clarity-tab {
+  margin: 0 0 6px;
+}
+
+/* Ocurrencias · Distritos: la matriz sale de Resumen a su propia pestaña, así
+ * que ocupa el canvas entero en vez de disputarlo con estados y motivos. */
+.mon-stage--ocurrencias .mon-field-occurrences-overview.is-distritos {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(auto, 1fr);
+  grid-template-areas: "districts";
+  height: 100%;
+}
+
+/* El visor de mapa comparte la clase genérica `mon-territorial-map-viewport`,
+ * que declara `min-height: 520px` y, por venir después, gana a la regla de
+ * Avance. Ese piso hacía que el mapa desbordara su fila y se derramara 151px
+ * sobre la tabla de UMP: la leyenda de GPS quedaba encimada sobre los KPIs.
+ * Dentro del panel de Avance/UMP el visor toma el alto de su celda. */
+.mon-territorial-ump-map-pane .mon-territorial-map-viewport.mon-territorial-advance-map-viewport {
+  height: 100%;
+  min-height: 320px;
+}
+
+/* Leyenda del mapa de Avance: explica los colores, así que sí pertenece al mapa
+ * y se queda flotando — pero completa. Tenía `max-height: 74px` sobre 89px de
+ * contenido, así que la última fila ("Completando manzanas / calles") aparecía
+ * partida por la mitad detrás de un scroll de 15px que nadie ve. */
+.mon-territorial-ump-map-pane .mon-territorial-advance-map-legend {
+  max-height: none;
+  overflow: visible;
+}
+
+/* El pie de ayuda del mapa vuelve a anclarse al visor, ahora que los conteos
+ * dejaron de ocupar esa esquina. */
+.mon-territorial-ump-map-pane .mon-territorial-map-viewport.mon-territorial-advance-map-viewport {
+  height: auto;
+  min-height: 320px;
+}
+
+/* Ayuda de interacción del mapa de Avance. Antes era un <text> del SVG anclado
+ * a `LIMA_MAP_HEIGHT - 18`: cualquier cambio de alto la partía contra el borde
+ * inferior del viewBox. Como HTML se ancla al visor. */
+.mon-territorial-advance-map-hint {
+  position: absolute;
+  z-index: 3;
+  left: 12px;
+  bottom: 8px;
+  margin: 0;
+  pointer-events: none;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  color: var(--pulso-text-muted);
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--pulso-surface) 90%, transparent);
+}

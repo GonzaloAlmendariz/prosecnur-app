@@ -1,5 +1,14 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
+import type { ContextTabRailEstado } from "../../../components/ContextTabRail";
+
+const ETIQUETA_ESTADO: Record<ContextTabRailEstado, string> = {
+  "sin-configurar": "Sin configurar",
+  "no-evaluado": "No evaluado",
+  parcial: "Parcial",
+  bloqueado: "Bloqueado",
+  listo: "Listo",
+};
 
 type MonitoreoWorkbenchHeadProps = {
   icon: LucideIcon;
@@ -9,6 +18,14 @@ type MonitoreoWorkbenchHeadProps = {
   pills?: readonly ReactNode[];
   pillsAriaLabel?: string;
   className?: string;
+  /**
+   * Nombre de la pestaña activa. El rail es icon-only y su cuadrante no lleva
+   * rótulo, así que el nombre de dónde estás vive acá: sin esto, saber en qué
+   * pestaña estás dependía del tooltip o de la memoria.
+   */
+  pestanaLabel?: ReactNode;
+  /** Readiness de esa pestaña, dicha con palabras. */
+  pestanaEstado?: ContextTabRailEstado;
 };
 
 function joinClasses(...classes: Array<string | false | null | undefined>) {
@@ -23,6 +40,8 @@ export function MonitoreoWorkbenchHead({
   pills = [],
   pillsAriaLabel = "Resumen operativo",
   className,
+  pestanaLabel,
+  pestanaEstado,
 }: MonitoreoWorkbenchHeadProps) {
   const visiblePills = pills.filter((item) => item !== null && item !== undefined && item !== false);
 
@@ -34,6 +53,14 @@ export function MonitoreoWorkbenchHead({
       <div className="mon-workbench-head-copy">
         <span className="pulso-section-eyebrow">{eyebrow}</span>
         <h2>{title}</h2>
+        {pestanaLabel ? (
+          <p className="mon-workbench-head-tab">
+            <strong>{pestanaLabel}</strong>
+            {pestanaEstado && pestanaEstado !== "listo" ? (
+              <em data-estado={pestanaEstado}>{ETIQUETA_ESTADO[pestanaEstado]}</em>
+            ) : null}
+          </p>
+        ) : null}
         {detail ? <p>{detail}</p> : null}
       </div>
       {visiblePills.length ? (

@@ -121,7 +121,9 @@ export function buildAcreditacionPhoneRealAlertModel({
 }: {
   alertRows: Array<Record<string, unknown>>;
 }): AcreditacionPhoneSupervisionModel {
-  const alerts = buildAcreditacionQualityAlertItems(alertRows).filter(isAcreditacionTelephoneQualityAlert);
+  const alerts = dropAcreditacionRedundantAlerts(
+    buildAcreditacionQualityAlertItems(alertRows).filter(isAcreditacionTelephoneQualityAlert),
+  );
   const activeAlerts = sortAcreditacionQualityAlerts(alerts.filter((alert) => alert.tone !== "ok"));
   return {
     alerts,
@@ -248,17 +250,49 @@ function groupAcreditacionQualityAlertItems(items: AcreditacionQualityAlertItem[
   });
 }
 
+/**
+ * Quita alertas que son consecuencia de otra ya presente, no un hecho nuevo.
+ *
+ * «Casos sin responsable por barrer» repite «Casos sin responsable» con otras
+ * palabras: si nadie los tiene asignados, evidentemente no se pueden evaluar por
+ * responsable. Contarlas dos veces produjo «3.129 casos impactados» sobre una
+ * base de 2.296 y «Sin responsable: 2.394» donde eran 1.197.
+ * Ver docs/plan-monitoreo-telefonico-2026-07.md §8.
+ */
+function dropAcreditacionRedundantAlerts(alerts: AcreditacionQualityAlertItem[]) {
+  const tieneSinResponsable = alerts.some(
+    (alert) => normalizeAcreditacionAlertMatch(alert.type).includes("casos sin responsable"),
+  );
+  if (!tieneSinResponsable) return alerts;
+  return alerts.filter((alert) => {
+    const key = normalizeAcreditacionAlertMatch(alert.type);
+    const ownerKey = normalizeAcreditacionAlertMatch(alert.owner);
+    const detailKey = normalizeAcreditacionAlertMatch(alert.detail);
+    const esDerivada = key.includes("responsable no barridos")
+      && (ownerKey === "sin responsable" || detailKey.includes("sin responsable"));
+    return !esDerivada;
+  });
+}
+
 function acreditacionQualityAlertGroupKey(alert: AcreditacionQualityAlertItem) {
   const key = normalizeAcreditacionAlertMatch(alert.type);
   const codeKey = normalizeAcreditacionAlertMatch(alert.code);
+  // Una alerta es un hecho, no una fila. `formato codpulso` quedaba fuera de
+  // esta lista y generaba una observación por cada código: 286 de las 299 del
+  // corte acnur_pdm eran la misma sugerencia de escritura repetida.
+  // Ver docs/plan-monitoreo-telefonico-2026-07.md §8.
   const groupable =
     key.includes("sin cruce base")
     || key.includes("respuesta sin llave")
     || key.includes("llave faltante respuesta")
-    || key.includes("parcial plataforma");
+    || key.includes("parcial plataforma")
+    || key.includes("formato codpulso");
   if (key.includes("sin cruce base") && codeKey) {
     return `${key}|${normalizeAcreditacionAlertMatch(alert.where)}|${codeKey}`;
   }
+  // El formato del código es un hecho único del corte: su `where` es el propio
+  // código, así que agrupar por ubicación las dejaba una por una.
+  if (key.includes("formato codpulso")) return key;
   if (groupable) return `${key}|${normalizeAcreditacionAlertMatch(alert.where)}`;
   if (key.includes("responsable no barridos")) return `${key}|${normalizeAcreditacionAlertMatch(alert.owner || alert.where)}`;
   return `${key}|${normalizeAcreditacionAlertMatch(alert.where)}|${normalizeAcreditacionAlertMatch(alert.code)}|${normalizeAcreditacionAlertMatch(alert.detail)}`;
@@ -289,6 +323,9 @@ function acreditacionQualityGroupedAlertDetail(alert: AcreditacionQualityAlertIt
   }
   if (key.includes("parcial plataforma")) {
     return `${formatAlertMetric(count)} respuestas parciales deben permanecer fuera de efectivas y separadas para seguimiento.`;
+  }
+  if (key.includes("formato codpulso")) {
+    return `${formatAlertMetric(count)} códigos cruzan correctamente pero están escritos sin el formato PDM. Es una convención de escritura: no afecta el avance ni el cruce.`;
   }
   return alert.detail;
 }
@@ -403,7 +440,9 @@ function acreditacionQualityAlertWhere(type: string, owner: string, code: string
   if (typeKey.includes("sin cruce base")) return source || "Cruce base ↔ plataforma";
   if (typeKey.includes("respuesta sin llave") || typeKey.includes("llave faltante respuesta")) return source || "Respuestas sin llave";
   if (typeKey.includes("parcial plataforma")) return source || "Parciales de plataforma";
-  if (code) return `Código ${code}`;
+  // `code` llega con su propio prefijo (`codigo:PDM1107`), así que anteponer
+  // «Código» producía «Código codigo:PDM1107» en la lista lateral.
+  if (code) return `Código ${code.replace(/^(codpulso|cod pulso|codigo|código|id|cv_id|custom_value)\s*:\s*/i, "")}`;
   if (typeKey.includes("respuesta")) return "Respuestas SurveyMonkey";
   if (typeKey.includes("barrido") || typeKey.includes("responsable")) return "Base de barrido telefónico";
   return "Estudio";

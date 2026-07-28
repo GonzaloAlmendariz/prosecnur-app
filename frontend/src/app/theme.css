@@ -112,6 +112,42 @@
   --pulso-info-border: var(--pulso-primary-border);
   --pulso-info-fg: var(--pulso-primary);
 
+  /* Máquina de estados de readiness (auditoría de Monitoreo 2026-07-25).
+   * Los tokens de arriba dicen "esto salió bien / mal"; estos dicen "cuánta
+   * evidencia hay". La diferencia importa: antes "sin configurar", "0 reportes"
+   * y "pendiente" compartían el verde de éxito porque el único eje disponible
+   * era bien/mal, y un estado sin evaluar caía del lado bueno.
+   *
+   * REGLA: el verde vive solo en `--pulso-state-ready-*`. Los dos estados sin
+   * evidencia son deliberadamente neutros —no son malas noticias, son ausencia
+   * de noticia— y por eso no toman ni ámbar ni rojo. */
+  --pulso-state-unset-bg: rgba(15, 23, 42, 0.04);
+  --pulso-state-unset-border: rgba(15, 23, 42, 0.14);
+  --pulso-state-unset-fg: #64748b;
+
+  --pulso-state-unchecked-bg: rgba(71, 85, 105, 0.07);
+  --pulso-state-unchecked-border: rgba(71, 85, 105, 0.2);
+  --pulso-state-unchecked-fg: #475569;
+
+  --pulso-state-partial-bg: var(--pulso-warn-bg);
+  --pulso-state-partial-border: var(--pulso-warn-border);
+  --pulso-state-partial-fg: var(--pulso-warn-fg);
+
+  --pulso-state-blocked-bg: var(--pulso-danger-bg);
+  --pulso-state-blocked-border: var(--pulso-danger-border);
+  --pulso-state-blocked-fg: var(--pulso-danger-fg);
+
+  --pulso-state-ready-bg: var(--pulso-success-bg);
+  --pulso-state-ready-border: var(--pulso-success-border);
+  --pulso-state-ready-fg: var(--pulso-success-fg);
+
+  /* Selección != readiness. Se separan porque el acento de selección estaba
+   * mezclado con el tono de estado, y una pestaña seleccionada se leía como
+   * una pestaña lista. Selección usa el acento del módulo; readiness usa los
+   * tokens de arriba. Nunca el mismo canal visual. */
+  --pulso-nav-selected: var(--module-accent, var(--pulso-primary));
+  --pulso-nav-selected-bg: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, transparent);
+
   /* Repeat / roster (ADR 0030 Fase 5) — MARCADOR SEMÁNTICO TRANSVERSAL.
    * Naranja suave que significa SIEMPRE "esto pertenece a una estructura
    * repetida (roster one-to-many)": base hija de un begin_repeat, su grano

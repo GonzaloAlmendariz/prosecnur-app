@@ -408,27 +408,6 @@
   accent-color: var(--pulso-primary);
 }
 
-.mon-page .mon-territorial-route-workbench[data-model-tab="tabla"] .mon-territorial-route-table-card {
-  height: min(680px, calc(100vh - 330px));
-  min-height: 440px;
-  max-height: none;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  align-content: start;
-  overflow: hidden;
-}
-
-.mon-page .mon-territorial-route-workbench[data-model-tab="tabla"] .mon-territorial-route-table-scroll {
-  height: 100%;
-  min-height: 0;
-  max-height: none;
-  display: flex;
-  flex-direction: column;
-  align-content: stretch;
-  gap: 7px;
-  overflow: auto;
-  padding: 7px;
-}
-
 .mon-page .mon-territorial-route-workbench[data-model-tab="tabla"] .mon-territorial-route-accordion-item {
   flex: 0 0 auto;
   min-height: 64px;
@@ -436,10 +415,6 @@
 
 .mon-page .mon-territorial-route-workbench[data-model-tab="tabla"] .mon-territorial-route-accordion-item.is-expanded {
   min-height: 0;
-}
-
-.mon-page .mon-territorial-route-workbench[data-model-tab="tabla"] .mon-territorial-route-context-card {
-  max-height: none;
 }
 
 .mon-page .mon-territorial-route-workbench[data-model-tab="resumen"] .mon-territorial-route-summary-tab {
@@ -503,7 +478,6 @@
 }
 
 .ter-empty {
-  min-height: 360px;
   display: grid;
   place-content: center;
   justify-items: center;
@@ -958,9 +932,20 @@
   background: linear-gradient(90deg, var(--pulso-success-fg), var(--pulso-primary));
 }
 
-.mon-territorial-ump-map-pane .mon-territorial-validation-geo-map-card {
-  height: var(--route-main-height);
-  min-height: var(--route-main-height);
+.mon-territorial-ump-map-layout {
+  min-height: 400px;
+}
+
+.mon-territorial-ump-map-pane .mon-territorial-advance-map-card {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(320px, 1fr) auto;
+}
+
+.mon-territorial-ump-map-pane .mon-territorial-route-coverage-map-frame,
+.mon-territorial-ump-map-pane .mon-territorial-route-coverage-svg {
+  height: 100%;
+  min-height: 0;
 }
 
 .mon-territorial-ump-map-pane .mon-territorial-validation-geo-map-card > header strong {
@@ -972,8 +957,62 @@
   height: 100%;
 }
 
+/* El head del panel estaba oculto porque el mapa interactivo ya trae su propio
+ * encabezado y se veía dos veces lo mismo. Vuelve a mostrarse porque ahora aloja
+ * el conmutador de capas —los dos mapas apilados de antes comparten un espacio—,
+ * pero el bloque de texto sigue oculto en la capa que sí rotula por dentro. */
 .mon-territorial-ump-map-pane > .mon-territorial-ump-map-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+}
+
+/* Oculta solo el bloque de texto, nunca el conmutador: ambos son `div` hijos
+ * del head, así que un `> div` pelado apagaba también los botones de capa. */
+.mon-territorial-ump-map-pane[data-map-layer="ump"] > .mon-territorial-ump-map-head > div:not(.mon-territorial-ump-map-layers) {
   display: none;
+}
+
+/* Especificidad deliberada: el head declara `display: grid` para sus hijos y
+ * apilaba los dos botones uno debajo del otro. */
+.mon-territorial-ump-map-head > .mon-territorial-ump-map-layers {
+  display: inline-flex;
+  flex: none;
+  width: auto;
+  gap: 2px;
+  padding: 2px;
+  margin-left: auto;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-border) 30%, transparent);
+}
+
+.mon-territorial-ump-map-head > .mon-territorial-ump-map-layers button {
+  border: 0;
+  border-radius: 999px;
+  padding: 4px 11px;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  color: var(--pulso-text-soft);
+  background: transparent;
+  cursor: pointer;
+}
+
+.mon-territorial-ump-map-head > .mon-territorial-ump-map-layers button:hover {
+  color: var(--pulso-text);
+}
+
+.mon-territorial-ump-map-head > .mon-territorial-ump-map-layers button.is-active {
+  color: var(--pulso-nav-selected);
+  background: var(--pulso-surface);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--pulso-text) 10%, transparent);
+}
+
+.mon-territorial-ump-map-head > .mon-territorial-ump-map-layers button:focus-visible {
+  outline: 2px solid var(--pulso-nav-selected);
+  outline-offset: 1px;
 }
 
 .mon-territorial-validation-geo-map-viewport .mon-territorial-map-point-hit-layer {
@@ -1066,7 +1105,7 @@
     linear-gradient(180deg, color-mix(in srgb, #0e7490 7%, #fff), rgba(255, 255, 255, 0.92)),
     #fff;
   color: #155e75;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: var(--pulso-weight-heavy);
   padding: 6px 8px;
 }
@@ -1085,7 +1124,7 @@
 .mon-territorial-geo-child-context strong {
   flex: 0 0 auto;
   color: #334155;
-  font-size: 8.5px;
+  font-size: 10px;
   text-transform: uppercase;
 }
 
@@ -1097,7 +1136,7 @@
   overflow: hidden;
   border: 1px solid color-mix(in srgb, currentColor 20%, var(--pulso-border));
   border-radius: 999px;
-  font-size: 8.2px;
+  font-size: 10px;
   font-weight: var(--pulso-weight-black);
   letter-spacing: 0;
   line-height: 1;
@@ -1931,6 +1970,16 @@
 
 .mon-territorial-reconciliation-panel.is-code {
   grid-template-rows: auto auto auto auto minmax(0, 1fr);
+}
+
+.mon-territorial-reconciliation-panel.is-ump {
+  align-self: stretch;
+}
+
+@media (max-width: 1180px) {
+  .mon-territorial-reconciliation-panel.is-ump {
+    align-self: start;
+  }
 }
 
 .mon-territorial-reconciliation-panel > header {
@@ -3482,8 +3531,8 @@
 
 .mon-territorial-tab-panel--rhythm .mon-territorial-rhythm-chart .dash-plotly-chart {
   align-self: start;
-  height: 360px !important;
-  min-height: 360px !important;
+  height: clamp(260px, 38vh, 360px) !important;
+  min-height: 260px !important;
 }
 
 .mon-territorial-rhythm-chart header div {
@@ -3610,10 +3659,27 @@
 
 .mon-territorial-exec-progress-main > div > strong {
   color: var(--pulso-text);
-  font-size: 21px;
+  /* Baja de 21px porque el valor dejó de ser un número suelto: ahora carga su
+   * denominador ("1.283 de 1.200") y a 21px desbordaba la columna lateral. */
+  font-size: 19px;
   font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
-  line-height: 1;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+/* Sobre-cumplimiento explícito: el anillo recorta la barra a 100% y esta línea
+ * dice lo que el recorte esconde. */
+.mon-territorial-exec-progress-overshoot {
+  margin: 0;
+  padding: 4px 9px;
+  border-radius: 999px;
+  justify-self: start;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  color: var(--pulso-state-ready-fg);
+  background: var(--pulso-state-ready-bg);
+  border: 1px solid var(--pulso-state-ready-border);
 }
 
 .mon-territorial-exec-progress-main > div > em {
@@ -4441,11 +4507,6 @@
   padding: 8px;
 }
 
-.mon-territorial-advance-zone-panel {
-  grid-area: zone;
-  min-height: 0;
-}
-
 .mon-territorial-advance-map-head > div {
   min-width: 0;
   display: grid;
@@ -4938,94 +4999,6 @@
 
 .mon-territorial-ump-map-nav-row.is-incomplete { --ump-nav-color: var(--pulso-warn-accent); }
 
-.mon-territorial-ump-map-nav-focus {
-  min-width: 0;
-  display: grid;
-  gap: 5px;
-  border: 1px solid color-mix(in srgb, var(--pulso-primary) 22%, var(--pulso-border));
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.86)),
-    #fff;
-  padding: 7px;
-}
-
-.mon-territorial-ump-map-nav-focus span,
-.mon-territorial-ump-map-nav-focus strong,
-.mon-territorial-ump-map-nav-focus em,
-.mon-territorial-ump-map-nav-focus small {
-  min-width: 0;
-  overflow: hidden;
-  line-height: 1.15;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mon-territorial-ump-map-nav-focus span {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--pulso-primary);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-black);
-  text-transform: uppercase;
-}
-
-.mon-territorial-ump-map-nav-focus strong {
-  color: var(--pulso-text);
-  font-size: 12.5px;
-  font-weight: var(--pulso-weight-black);
-}
-
-.mon-territorial-ump-map-nav-focus em,
-.mon-territorial-ump-map-nav-focus small {
-  color: var(--pulso-text-soft);
-  font-size: 10px;
-  font-style: normal;
-  font-weight: var(--pulso-weight-bold);
-}
-
-.mon-territorial-ump-map-nav-focus dl {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px;
-  margin: 0;
-}
-
-.mon-territorial-ump-map-nav-focus dl div {
-  min-width: 0;
-  display: grid;
-  gap: 1px;
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 84%, #fff);
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.72);
-  padding: 4px 5px;
-}
-
-.mon-territorial-ump-map-nav-focus dt,
-.mon-territorial-ump-map-nav-focus dd {
-  min-width: 0;
-  overflow: hidden;
-  line-height: 1.1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mon-territorial-ump-map-nav-focus dt {
-  color: var(--pulso-text-muted);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-  text-transform: uppercase;
-}
-
-.mon-territorial-ump-map-nav-focus dd {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-}
-
 .mon-territorial-ump-map-nav-ring {
   grid-area: ring;
   width: 26px;
@@ -5459,9 +5432,10 @@
 }
 
 .mon-territorial-validation-geo-workbench {
-  --route-main-height: clamp(620px, calc(100vh - 350px), 860px);
+  --mon-territorial-map-height: clamp(420px, calc(100dvh - 350px), 760px);
+  --route-main-height: var(--mon-territorial-map-height);
   min-width: 0;
-  min-height: var(--route-main-height);
+  min-height: 0;
   display: grid;
   grid-template-columns: minmax(560px, 1.24fr) minmax(500px, 0.88fr);
   gap: 14px;
@@ -5633,7 +5607,7 @@
   min-width: 0;
   overflow: visible;
   color: var(--pulso-text-soft);
-  font-size: 8.4px;
+  font-size: 10px;
   font-style: normal;
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
@@ -6150,7 +6124,7 @@
   justify-content: space-between;
   gap: 8px;
   color: var(--pulso-text-soft);
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
@@ -6275,7 +6249,7 @@
 
 .mon-territorial-geo-district-risk em {
   color: var(--pulso-text-soft);
-  font-size: 7.6px;
+  font-size: 10px;
   font-style: normal;
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
@@ -6293,7 +6267,7 @@
   border: 1px solid color-mix(in srgb, currentColor 18%, var(--pulso-border));
   border-radius: var(--pulso-radius-chip);
   background: rgba(255, 255, 255, 0.72);
-  font-size: 7.8px;
+  font-size: 10px;
   font-weight: var(--pulso-weight-black);
   line-height: 1;
   padding: 0 5px;
@@ -6550,7 +6524,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--geo-row-color) 5%, #fff);
   color: color-mix(in srgb, var(--pulso-text) 78%, var(--geo-row-color));
-  font-size: 8.8px;
+  font-size: 10px;
   font-style: normal;
   font-weight: var(--pulso-weight-black);
   letter-spacing: 0;
@@ -6594,7 +6568,7 @@
   justify-content: center;
   border-top: 1px dashed color-mix(in srgb, var(--pulso-border) 84%, #fff);
   color: var(--pulso-text-faint);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   text-transform: uppercase;
@@ -6602,7 +6576,6 @@
 
 @media (max-width: 1320px) and (min-width: 1121px) {
   .mon-territorial-validation-geo-workbench {
-    --route-main-height: clamp(500px, calc(100vh - 300px), 620px);
     grid-template-columns: minmax(0, 1.18fr) minmax(340px, 0.82fr);
     gap: 10px;
   }
@@ -6614,7 +6587,7 @@
 
 @media (max-width: 1120px) {
   .mon-territorial-validation-geo-workbench {
-    --route-main-height: 680px;
+    --mon-territorial-map-height: clamp(340px, 48dvh, 520px);
     grid-template-columns: 1fr;
   }
 
@@ -8642,11 +8615,24 @@
   stroke: color-mix(in srgb, var(--territorial-gps-point) 86%, #102033);
 }
 
+/* Pasó de <text> del SVG a párrafo HTML (ver la nota en
+ * TerritorialValidationGeoWorkbench): dentro del viewBox se cortaba a la mitad
+ * del ancho disponible sin elipsis. */
 .mon-territorial-map-caption {
-  fill: rgba(71, 85, 105, 0.78);
+  position: absolute;
+  z-index: 3;
+  left: 12px;
+  right: 12px;
+  bottom: 8px;
+  margin: 0;
+  pointer-events: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text-muted);
   font-size: 10px;
   font-weight: var(--pulso-weight-heavy);
-  text-anchor: start;
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--pulso-surface) 90%, transparent);
 }
 
 .mon-territorial-dialog-overlay {
@@ -9952,13 +9938,15 @@
 
 .mon-territorial-review-panel {
   position: relative;
-  min-height: 0;
-  height: 100%;
+  /* Recortaba 142px en Consultas/Subsanaciones sin dueño de scroll: el mismo
+   * patrón `height: 100%` + `overflow: hidden` + fila que cae por debajo de su
+   * contenido. El panel crece y la sección desplaza. */
+  min-height: 100%;
   display: grid;
-  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto minmax(auto, 1fr);
   gap: 12px;
   margin-bottom: 0;
-  overflow: hidden;
+  overflow-x: clip;
 }
 
 .mon-territorial-review-hero > div:first-child {
@@ -11889,7 +11877,7 @@
 .mon-territorial-route-coverage-map-frame {
   position: relative;
   min-width: 0;
-  min-height: 430px;
+  min-height: var(--mon-territorial-map-height, clamp(360px, 46dvh, 620px));
   display: grid;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--pulso-border) 78%, #fff);
@@ -11903,7 +11891,7 @@
 .mon-territorial-route-coverage-svg {
   width: 100%;
   height: 100%;
-  min-height: 430px;
+  min-height: var(--mon-territorial-map-height, clamp(360px, 46dvh, 620px));
   display: block;
 }
 
@@ -11974,13 +11962,23 @@
   stroke-width: 4.4px;
 }
 
+/* Pasó de <text> del SVG a párrafo HTML: dentro del viewBox se recortaba contra
+ * el borde inferior y perdía media frase sin elipsis. Ahora se ancla al visor. */
 .mon-territorial-route-coverage-caption {
-  fill: rgba(15, 23, 42, 0.72);
-  font-size: 11px;
-  font-weight: var(--pulso-weight-black);
-  paint-order: stroke;
-  stroke: rgba(255, 255, 255, 0.88);
-  stroke-width: 3px;
+  position: absolute;
+  z-index: 3;
+  left: 12px;
+  bottom: 8px;
+  right: 12px;
+  margin: 0;
+  pointer-events: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--pulso-surface) 90%, transparent);
 }
 
 .mon-territorial-route-map-loading {
@@ -12404,22 +12402,6 @@
   padding: 8px 9px;
 }
 
-.mon-territorial-route-map-card.mon-territorial-validation-geo-map-card {
-  height: var(--route-main-height);
-  min-height: var(--route-main-height);
-}
-
-@media (max-width: 1120px) {
-  .mon-territorial-validation-geo-workbench {
-    min-height: 0;
-  }
-
-  .mon-territorial-validation-geo-workbench .mon-territorial-route-map-card.mon-territorial-validation-geo-map-card {
-    height: clamp(340px, 38vh, 430px);
-    min-height: clamp(340px, 38vh, 430px);
-  }
-}
-
 .mon-territorial-source-title strong {
   max-width: 920px;
   font-size: 18px;
@@ -12438,7 +12420,11 @@
 }
 
 .mon-territorial-source-console.is-tab-filter {
-  grid-template-rows: auto auto minmax(0, 1fr);
+  /* `minmax(0, 1fr)` deja que la fila baje por debajo de su contenido, que es
+   * como el bloque de trabajo terminaba comprimido a 528px pidiendo 745px. Con
+   * `auto` de mínimo la fila nunca baja del contenido y sigue estirándose
+   * cuando sobra espacio. */
+  grid-template-rows: auto auto minmax(auto, 1fr);
 }
 
 .mon-territorial-source-console.is-tab-filter .mon-territorial-source-command {
@@ -14496,6 +14482,11 @@
   grid-template-rows: auto minmax(0, 1fr);
   align-self: stretch;
   overflow: hidden;
+  /* Altura útil mínima. La lista de abajo sí sabe hacer scroll, pero el grid
+   * padre llegaba a darle 22px al bloque entero —menos que su propio
+   * encabezado— y el resultado era técnicamente alcanzable y funcionalmente
+   * inservible. El mínimo cubre header + dos filas completas. */
+  min-height: 148px;
 }
 
 .mon-field-occurrences-district-rows {
@@ -15519,42 +15510,6 @@
   overflow: hidden;
 }
 
-.mon-page .mon-territorial-route-table-workspace {
-  height: auto;
-  min-height: 100%;
-  overflow: visible;
-  align-content: start;
-}
-
-.mon-page .mon-territorial-route-table-workspace .mon-territorial-route-sidebar {
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto auto;
-  overflow: visible;
-  align-content: start;
-}
-
-.mon-page .mon-territorial-route-table-workspace .mon-territorial-route-table-card {
-  height: min(680px, calc(100vh - 330px));
-  min-height: 440px;
-  grid-template-rows: auto auto auto;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-.mon-page .mon-territorial-route-table-workspace .mon-territorial-route-context-card {
-  height: auto;
-  min-height: 300px;
-  max-height: 420px;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-.mon-page .mon-territorial-route-table-workspace .mon-territorial-route-table-scroll {
-  height: auto;
-  max-height: none;
-  overflow: visible;
-}
-
 .mon-page .pulso-panel button.mon-territorial-route-accordion-trigger {
   width: 100%;
   min-width: 0;
@@ -15682,6 +15637,10 @@
 .mon-territorial-loading.is-ocurrencias { --territorial-loading-accent: var(--pulso-module-monitoring); }
 
 .mon-territorial-loading.is-avance { --territorial-loading-accent: #2563eb; }
+
+.mon-page .mon-territorial-loading {
+  min-height: 0;
+}
 
 .mon-territorial-loading::before {
   content: "";
@@ -16290,6 +16249,16 @@
   overflow: auto;
 }
 
+.mon-territorial-map-point-node[role="button"]:focus-visible {
+  outline: none;
+}
+
+.mon-territorial-map-point-node[role="button"]:focus-visible .mon-territorial-map-point-focus {
+  fill: none;
+  stroke: var(--pulso-primary);
+  stroke-width: 2.4;
+}
+
 .mon-page .mon-territorial-route-table-workspace .mon-territorial-route-table-filters {
   gap: 5px;
 }
@@ -16394,12 +16363,744 @@
     overflow: visible;
   }
 
-  .mon-page .mon-territorial-route-table-workspace .mon-territorial-route-sidebar,
+  .mon-page .mon-territorial-route-table-workspace .mon-territorial-route-sidebar {
+    --mon-route-table-compact-h: clamp(360px, 58vh, 560px);
+    --mon-route-context-compact-h: clamp(320px, 50vh, 480px);
+    grid-template-rows: var(--mon-route-table-compact-h) var(--mon-route-context-compact-h);
+    height: auto;
+    overflow: visible;
+  }
+
   .mon-page .mon-territorial-route-table-workspace .mon-territorial-route-table-card,
   .mon-page .mon-territorial-route-table-workspace .mon-territorial-route-context-card {
     grid-column: auto;
     grid-row: auto;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .mon-page .mon-territorial-route-table-workspace .mon-territorial-route-table-scroll,
+  .mon-page .mon-territorial-route-table-workspace .mon-territorial-route-context-body {
+    height: 100%;
+    overflow: auto;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Barra de fuente de Ocurrencias (revamp 2026-07-26).
+ *
+ * Sustituye a la banda de ~180px que se repetía en las cinco pestañas. Aquí solo
+ * va el estado; el formulario, las acciones y la prueba de campos viven en el
+ * panel direccionable `?panel=fuente`.
+ * ------------------------------------------------------------------------- */
+.mon-occurrences-sourcebar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  /* Superficie operativa: toma el alto del sistema, no uno propio (contrato de
+   * geometría del chrome, ModuleChrome.contract.test.ts). */
+  min-height: var(--pulso-chrome-surface-h);
+  padding: 5px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--pulso-border);
+  background: color-mix(in srgb, var(--pulso-surface) 80%, transparent);
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+.mon-occurrences-sourcebar.is-idle {
+  border-color: var(--pulso-state-unset-border);
+  background: var(--pulso-state-unset-bg);
+}
+
+.mon-occurrences-sourcebar__estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-weight: var(--pulso-weight-heavy);
+  background: var(--pulso-state-unchecked-bg);
+  color: var(--pulso-state-unchecked-fg);
+}
+
+.mon-occurrences-sourcebar.is-active .mon-occurrences-sourcebar__estado {
+  background: var(--pulso-state-ready-bg);
+  color: var(--pulso-state-ready-fg);
+}
+
+.mon-occurrences-sourcebar__dato {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mon-occurrences-sourcebar__dato strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.mon-occurrences-sourcebar__form {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text-muted);
+}
+
+.mon-occurrences-sourcebar__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-heavy);
+  cursor: pointer;
+}
+
+.mon-occurrences-sourcebar__cta:hover {
+  border-color: var(--pulso-nav-selected);
+  color: var(--pulso-nav-selected);
+}
+
+.mon-occurrences-sourcebar__cta:focus-visible {
+  outline: 2px solid var(--pulso-nav-selected);
+  outline-offset: 1px;
+}
+
+/* Sideover de fuente ------------------------------------------------------- */
+.mon-occurrences-sourcepanel__scrim {
+  position: fixed;
+  inset: 0;
+  /* Convención de la casa: los overlays van sobre el toolbar (z 1000+). */
+  z-index: 1400;
+  background: color-mix(in srgb, var(--pulso-text) 24%, transparent);
+}
+
+.mon-occurrences-sourcepanel {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  z-index: 1401;
+  width: min(560px, 92vw);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--pulso-surface);
+  border-inline-start: 1px solid var(--pulso-border);
+  box-shadow: -12px 0 32px color-mix(in srgb, var(--pulso-text) 12%, transparent);
+}
+
+.mon-occurrences-sourcepanel__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.mon-occurrences-sourcepanel__head > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mon-occurrences-sourcepanel__head span {
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+
+.mon-occurrences-sourcepanel__head strong {
+  font-size: 14px;
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.mon-occurrences-sourcepanel__head em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.mon-occurrences-sourcepanel__head button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.mon-occurrences-sourcepanel__head button:hover {
+  color: var(--pulso-text);
+  border-color: var(--pulso-nav-selected);
+}
+
+.mon-occurrences-sourcepanel__body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 14px 16px 20px;
+}
+
+/* Dentro del panel, la banda de comando deja de competir por el ancho. */
+.mon-occurrences-sourcepanel__body .mon-field-occurrences-command {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  height: auto;
+}
+
+.mon-occurrences-sourcepanel__body .mon-field-occurrences-command-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mon-occurrences-sourcepanel__body .mon-field-occurrences-connect-summary {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Franja de cobertura, ahora en Resumen ------------------------------------ */
+.mon-field-occurrences-coverage-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.mon-field-occurrences-coverage-strip > span {
+  display: grid;
+  gap: 1px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+
+.mon-field-occurrences-coverage-strip > span.is-warning {
+  border-color: var(--pulso-state-partial-border);
+  background: var(--pulso-state-partial-bg);
+}
+
+.mon-field-occurrences-coverage-strip strong {
+  font-size: 17px;
+  font-weight: var(--pulso-weight-black);
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.mon-field-occurrences-coverage-strip em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+}
+
+/* La tarjeta destacada de Resumen pasa a liderar con la tasa de no efectividad
+ * (revamp de Ocurrencias 2026-07-26). El acento se alinea con lo que la cifra
+ * significa: el volumen de intentos era neutro, una tasa alta no lo es. */
+.mon-field-occurrences-intents-card.is-rate {
+  border-color: color-mix(in srgb, var(--occurrence-noneffective-color, var(--pulso-warn-accent)) 34%, var(--pulso-border));
+}
+
+.mon-field-occurrences-intents-card.is-rate strong {
+  color: var(--occurrence-noneffective-color, var(--pulso-warn-accent));
+  font-variant-numeric: tabular-nums;
+}
+
+/* Jerarquía de los indicadores de UMP (revamp de Ocurrencias 2026-07-26).
+ * Eran diez con el mismo peso, así que ninguno destacaba. Los que piden acción
+ * mantienen su presencia; los de contexto se apagan un punto. */
+.mon-field-occurrences-workspace-stats.is-context > span {
+  opacity: 0.82;
+}
+
+.mon-field-occurrences-workspace-stats.is-context strong {
+  font-size: 13px;
+}
+
+.mon-field-occurrences-workspace-stats.is-attention strong {
+  font-size: 16px;
+}
+
+/* Cuotas sexo/edad cerradas: franja en vez de tablero (revamp Avance 2026-07-26).
+ * El bloque completo mide ~538px y, con todas las cuotas cumplidas, los usaba
+ * para decir "0" cuatro veces mientras empujaba Prioridades y Corte operativo
+ * fuera de la pantalla. Cuando hay brecha vuelve el detalle entero. */
+.mon-territorial-exec-demographics.is-cerrada {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: 0;
+  padding: 9px 12px;
+}
+
+.mon-territorial-exec-demographics.is-cerrada > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+
+.mon-territorial-exec-demographics.is-cerrada > strong {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-heavy);
+  color: var(--pulso-state-ready-fg);
+  background: var(--pulso-state-ready-bg);
+  border: 1px solid var(--pulso-state-ready-border);
+}
+
+.mon-territorial-exec-demographics.is-cerrada > em {
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--pulso-text-muted);
+}
+
+/* El grid de trabajo de Fuente medía 528px mientras sus propias filas sumaban
+ * 580: las tarjetas se derramaban 218px fuera de su contenedor. El contenido es
+ * alcanzable —la sección desplaza—, pero el grid mentía sobre su tamaño y
+ * cualquier bloque posterior quedaba expuesto a solaparse. Ahora mide lo suyo. */
+.mon-territorial-source-console .mon-territorial-source-workgrid {
+  min-height: max-content;
+  align-self: start;
+}
+
+/* Cierre de geometría del workbench: los paneles largos crecen a su contenido
+ * y el desplazamiento queda en la superficie de cada sección. Esto evita que
+ * alturas heredadas del layout fill oculten formularios, tablas o el cierre de
+ * un tablero en ventanas compactas. */
+.mon-page .mon-workbench-content--fuentes,
+.mon-page .mon-workbench-content--modelo,
+.mon-page .mon-workbench-content--calidad,
+.mon-page .mon-workbench-content--ocurrencias {
+  overflow-y: auto;
+}
+
+.mon-page .mon-territorial-source-console,
+.mon-page .mon-territorial-source-tabpanel {
+  flex: 0 0 auto;
+  min-height: 0;
+  height: max-content;
+  overflow: visible;
+}
+
+.mon-page .mon-territorial-source-tabpanel > .mon-territorial-enumerator-roster {
+  min-height: 360px;
+  height: max-content;
+  grid-template-rows: auto minmax(300px, auto);
+  overflow: visible;
+}
+
+.mon-page .mon-territorial-enumerator-roster.is-roster .mon-territorial-enumerator-layout {
+  min-height: 300px;
+  height: auto;
+}
+
+.mon-page .mon-territorial-enumerator-roster.is-roster .mon-territorial-enumerator-table {
+  min-height: 300px;
+  height: clamp(300px, 52vh, 620px);
+}
+
+.mon-page .mon-territorial-route-workbench[data-model-tab="resumen"] .mon-territorial-route-atlas {
+  min-height: 590px;
+  height: auto;
+  grid-template-rows: minmax(360px, auto) minmax(220px, auto);
+  overflow: visible;
+}
+
+.mon-page .mon-territorial-validation-tabbody--quota .mon-territorial-quota-consistency {
+  min-height: 0;
+  height: max-content;
+  grid-template-rows: auto minmax(560px, auto);
+  overflow: visible;
+}
+
+.mon-page .mon-stage--ocurrencias .mon-field-occurrences {
+  flex: 0 0 auto;
+  min-height: 0;
+  height: max-content;
+  overflow: visible;
+}
+
+.mon-page .mon-workbench-content--ocurrencias > .mon-stage--ocurrencias {
+  flex: 0 0 auto;
+  min-height: 0;
+  height: max-content;
+  overflow: visible;
+}
+
+.mon-page .mon-workbench-content--calidad:has(.mon-territorial-quota-consistency) > .mon-stage--calidad,
+.mon-page .mon-workbench-content--calidad:has(.mon-territorial-quota-consistency) .mon-territorial-panel,
+.mon-page .mon-workbench-content--calidad:has(.mon-territorial-quota-consistency) .mon-territorial-validation-tabbody--quota,
+.mon-page .mon-workbench-content--calidad:has(.mon-territorial-quota-consistency) .mon-territorial-quota-consistency {
+  flex: 0 0 auto;
+  min-height: 0;
+  height: max-content;
+  overflow: visible;
+}
+
+.mon-page .mon-workbench-content--calidad:has(.mon-territorial-quota-consistency) .mon-territorial-quota-consistency {
+  grid-template-rows: auto minmax(560px, auto);
+}
+
+.mon-page .mon-workbench-content--consultas {
+  overflow-y: auto;
+}
+
+.mon-page .mon-workbench-content--consultas > .mon-stage--consultas {
+  flex: 0 0 auto;
+  min-height: 0;
+  height: max-content;
+  overflow: visible;
+}
+
+.mon-page .mon-territorial-review-workbench,
+.mon-page .mon-territorial-review-table-shell {
+  min-height: 320px;
+  height: 320px;
+}
+
+.mon-page .mon-territorial-review-table-shell {
+  overflow: visible;
+}
+
+@media (min-width: 981px) {
+  /* Las consultas con tabla tienen cientos de filas y su propio scroll. El
+   * alto libre del workbench debe ampliar ese viewport, no quedar como lienzo
+   * vacío debajo de una mesa fijada en 320px. Subsanaciones no monta este
+   * shell y, por tanto, conserva su flujo natural de panel largo. */
+  .mon-page .mon-workbench-content--consultas > .mon-stage--consultas:has(.mon-territorial-review-table-shell) {
+    flex: 1 1 auto;
+    min-height: 100%;
+    height: 100%;
+  }
+
+  .mon-page .mon-stage--consultas:has(.mon-territorial-review-table-shell) .mon-territorial-review-workbench,
+  .mon-page .mon-stage--consultas:has(.mon-territorial-review-table-shell) .mon-territorial-review-table-shell {
+    min-height: 320px;
+    height: 100%;
+  }
+
+  .mon-page .mon-stage--consultas:has(.mon-territorial-review-table-shell) .mon-territorial-review-table-shell {
+    overflow: hidden;
+  }
+}
+
+/* Consultas · Subsanaciones
+ *
+ * Este workbench ya vive dentro de la fila flexible del shell. Su antiguo alto
+ * `100dvh - 238px` volvía a descontar el chrome y creaba un cuarto scroll por
+ * fuera de sugerencias, inspector e historial. La rama se aísla del layout de
+ * tablas para usar el alto real que entrega el padre y no sus cinco tracks. */
+.mon-page .mon-workbench-content--consultas:has(.mon-operational-adjustments) {
+  overflow-y: hidden;
+}
+
+.mon-page .mon-workbench-content--consultas > .mon-stage--consultas:has(.mon-operational-adjustments) {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.mon-page .mon-stage--consultas:has(.mon-operational-adjustments) .mon-territorial-review-panel {
+  min-height: 0;
+  height: 100%;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 0;
+  overflow: hidden;
+}
+
+.mon-page .mon-stage--consultas:has(.mon-operational-adjustments) .mon-operational-adjustments {
+  min-height: 0;
+  height: 100%;
+  max-height: none;
+}
+
+/* La revisión activa pesa más que el historial: el inspector gana espacio para
+ * explicar la decisión sin esconder casi todo su cuerpo detrás del pie. */
+.mon-page .mon-stage--consultas:has(.mon-operational-adjustments) .mon-operational-adjustments__grid {
+  grid-template-rows: minmax(300px, 1.18fr) minmax(220px, 0.82fr);
+}
+
+/* Una sugerencia contiene nodos y una segunda fila de evidencia. Las filas
+ * implícitas se comprimían al mínimo del botón (118px) aunque el contenido
+ * necesitaba 149px; ahora cada tarjeta es una unidad íntegra y la lista, que ya
+ * es dueña de scroll, desplaza entre tarjetas completas. */
+.mon-page .mon-stage--consultas:has(.mon-operational-adjustments) .mon-operational-adjustments__list {
+  grid-auto-rows: max-content;
+}
+
+.mon-page .mon-stage--consultas:has(.mon-operational-adjustments) button.mon-operational-suggestion {
+  min-height: 118px;
+  height: max-content;
+}
+
+/* En ventanas bajas el contenido necesita más alto que la fila visible. El
+ * workbench exterior vuelve a ser el scroll de respaldo y los dos bloques
+ * funcionales conservan pisos útiles; ningún ancestro los recorta. */
+@media (max-height: 850px), (max-width: 980px) {
+  .mon-page .mon-workbench-content--consultas:has(.mon-operational-adjustments) {
+    overflow-y: auto;
+  }
+
+  .mon-page .mon-workbench-content--consultas > .mon-stage--consultas:has(.mon-operational-adjustments),
+  .mon-page .mon-stage--consultas:has(.mon-operational-adjustments) .mon-territorial-review-panel,
+  .mon-page .mon-stage--consultas:has(.mon-operational-adjustments) .mon-operational-adjustments {
+    min-height: 0;
     height: auto;
     overflow: visible;
+  }
+
+  .mon-page .mon-stage--consultas:has(.mon-operational-adjustments) .mon-territorial-review-panel {
+    grid-template-rows: minmax(auto, 1fr);
+    gap: 0;
+  }
+
+  .mon-page .mon-stage--consultas:has(.mon-operational-adjustments) .mon-operational-adjustments__grid {
+    height: auto;
+    grid-template-rows: 320px 280px;
+    overflow: visible;
+  }
+}
+
+/* A 1024px el panel de sugerencias comparte el ancho con el inspector. Dos
+ * nodos, el puente y los chips ya no caben con dignidad en ~480px: se apilan en
+ * una secuencia vertical que conserva la relación origen → destino. */
+@media (max-width: 1100px) {
+  .mon-page .mon-stage--consultas:has(.mon-operational-adjustments) button.mon-operational-suggestion {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mon-page .mon-stage--consultas:has(.mon-operational-adjustments) .mon-operational-transfer {
+    min-height: 30px;
+    grid-template-columns: auto auto auto;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mon-page .mon-stage--consultas:has(.mon-operational-adjustments) .mon-operational-suggestion__chips {
+    grid-column: 1;
+  }
+
+  .mon-page .mon-stage--consultas:has(.mon-operational-adjustments) .mon-operational-node-meta i.is-priority {
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+}
+
+/* Avance territorial · geometría útil
+ *
+ * Resumen ya no agrupa dos tarjetas dentro de una columna que hereda el alto
+ * de Prioridades. Las cuatro superficies participan del mismo grid y cada una
+ * ocupa únicamente lo que su contenido necesita. */
+.mon-territorial-exec-canvas.is-resumen {
+  grid-template-columns: minmax(296px, 380px) minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "progress priorities"
+    "ump cut";
+  align-items: start;
+}
+
+.mon-territorial-exec-side {
+  display: contents;
+}
+
+.mon-territorial-exec-canvas.is-resumen {
+  grid-template-areas:
+    "progress priorities"
+    "ump cut";
+}
+
+.mon-territorial-exec-priorities {
+  align-content: start;
+}
+
+.mon-territorial-exec-priority-groups {
+  align-items: start;
+}
+
+.mon-territorial-exec-priority-groups > article {
+  align-self: start;
+  height: auto;
+}
+
+.mon-territorial-exec-priority-groups > article.is-districts {
+  align-self: start;
+  height: auto;
+}
+
+/* Mapa y UMP es un master-detail real: mapa, lista y detalle comparten el
+ * primer plano. La tabla exhaustiva sigue disponible, pero no desplaza el
+ * trabajo principal hasta que el usuario la solicita. */
+.mon-territorial-ump-map-pane {
+  grid-area: map;
+  min-height: 400px;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.mon-territorial-ump-map-nav {
+  grid-area: nav;
+}
+
+.mon-territorial-ump-detail {
+  grid-area: detail;
+  overflow: auto;
+}
+
+.mon-territorial-ump-detail .mon-territorial-ump-responses > div {
+  max-height: none;
+  overflow: visible;
+}
+
+.mon-territorial-ump-map-pane .mon-territorial-map {
+  min-height: 400px;
+  height: 100%;
+}
+
+.mon-territorial-ump-table-disclosure {
+  grid-area: support;
+  min-width: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  overflow: hidden;
+}
+
+.mon-territorial-ump-table-disclosure > summary {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  padding: 7px 10px;
+}
+
+.mon-territorial-ump-table-disclosure > summary strong {
+  flex: 0 0 auto;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+}
+
+.mon-territorial-ump-table-disclosure > summary:focus-visible {
+  outline: 2px solid var(--pulso-primary);
+  outline-offset: -2px;
+}
+
+.mon-territorial-ump-table-disclosure[open] > summary {
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.mon-territorial-ump-table-disclosure .mon-territorial-ump-table-wrap {
+  max-height: clamp(320px, 52vh, 520px);
+  border: 0;
+  border-radius: 0;
+}
+
+/* Ritmo prioriza la serie completa y convierte los indicadores en una banda
+ * compacta. La tabla queda inmediatamente después, sin una columna lateral
+ * que fuerce al gráfico a sostener 360px en ventanas bajas. */
+.mon-territorial-rhythm-layout {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.mon-territorial-tab-panel--rhythm .mon-territorial-rhythm-side {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: auto;
+  align-content: start;
+}
+
+@media (max-width: 1100px) {
+  .mon-territorial-exec-canvas.is-resumen {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "progress"
+      "priorities"
+      "ump"
+      "cut";
+  }
+
+  .mon-territorial-tab-panel--rhythm .mon-territorial-rhythm-side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1360px) {
+  .mon-workbench-content--avance {
+    overflow-y: auto;
+  }
+
+  .mon-territorial-ump-map-pane .mon-territorial-advance-map-card {
+    height: auto;
+    min-height: 400px;
+    grid-template-rows: auto minmax(320px, auto) auto;
+  }
+
+  .mon-territorial-ump-detail {
+    overflow: visible;
+  }
+
+  .mon-territorial-ump-map-pane .mon-territorial-map-viewport.mon-territorial-advance-map-viewport {
+    height: auto;
+    min-height: 320px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .mon-territorial-ump-map-layout,
+  .mon-territorial-ump-map-pane {
+    min-height: 320px;
+  }
+
+  .mon-territorial-ump-map-pane .mon-territorial-map {
+    min-height: 320px;
+  }
+
+  .mon-territorial-ump-detail {
+    overflow: visible;
+  }
+}
+
+@media (max-height: 760px) {
+  .mon-territorial-tab-panel--rhythm .mon-territorial-rhythm-chart .dash-plotly-chart {
+    height: clamp(260px, calc(100dvh - 420px), 320px) !important;
+    min-height: 260px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .mon-territorial-tab-panel--rhythm .mon-territorial-rhythm-side {
+    grid-template-columns: 1fr;
   }
 }

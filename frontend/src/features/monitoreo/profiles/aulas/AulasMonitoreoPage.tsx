@@ -28,6 +28,7 @@ import type { MonitoreoReportScope } from "../types";
 import "../profilePage.css";
 import "../../shell/monitoreoShell.css";
 import "./aulasMonitoreo.css";
+import { recorteTabla } from "../../corte/corteContract";
 
 const AULAS_ROUTE = MONITOREO_MODOS.find((route) => route.family === "aulas_universitarias") ?? MONITOREO_MODOS[2];
 
@@ -55,11 +56,17 @@ function dashboardFromState(state: MonitoreoState | null) {
   return state?.dashboard?.aulas_universitarias_reports ?? null;
 }
 
-function compactColumns(rows: Array<Record<string, unknown>>, preferred: string[] = []) {
+// El límite deja de estar incrustado: quien llama decide, y el recorte se
+// declara en la vista (antes se perdían columnas sin aviso).
+function compactColumns(
+  rows: Array<Record<string, unknown>>,
+  preferred: string[] = [],
+  maxColumns = 8,
+) {
   const seen = new Set<string>();
   const keys = [...preferred, ...rows.flatMap((row) => Object.keys(row))]
     .filter((key) => key && !key.startsWith("_") && !seen.has(key) && (seen.add(key), true));
-  return keys.slice(0, 8);
+  return keys.slice(0, maxColumns);
 }
 
 type AulasKpi = { label: string; value: string; tone?: "neutral" | "warn" };
@@ -86,7 +93,13 @@ function aulasKpis(dashboard: MonitoreoAulasDashboard | null): AulasKpi[] {
 
 function AulasKpiBand({ dashboard }: { dashboard: MonitoreoAulasDashboard | null }) {
   return (
-    <div className="aulas-kpi-band" role="group" aria-label="Indicadores de cursos-horario">
+    <div
+      className="aulas-kpi-band"
+      role="group"
+      aria-label="Indicadores de cursos-horario"
+      data-qa-geometry-group="monitoring-aulas-kpis"
+      data-qa-geometry-contract="equal"
+    >
       {aulasKpis(dashboard).map((kpi) => (
         <div key={kpi.label} className={`aulas-kpi aulas-kpi--${kpi.tone ?? "neutral"}`}>
           <span>{kpi.label}</span>
@@ -106,23 +119,46 @@ function DataTable({
   empty: string;
   preferredColumns?: string[];
 }) {
-  if (!rows.length) return <p className="mon-profile-muted">{empty}</p>;
-  const columns = compactColumns(rows, preferredColumns);
-  const presentedRows = rows.map(presentAulasRow);
+  if (!rows.length) {
+    return (
+      <div
+        className="mon-profile-table-wrap"
+        data-qa-geometry-capacity="owned"
+        data-qa-geometry-member
+      >
+        <p className="mon-profile-muted">{empty}</p>
+      </div>
+    );
+  }
+  // La tabla recortaba a ocho columnas y ochenta filas sin decirlo, y Agenda
+  // pide nueve: origen y recopilador desaparecían de la vista sin dejar rastro.
+  // Ahora todo recorte se declara.
+  const todasLasColumnas = compactColumns(rows, preferredColumns, Number.MAX_SAFE_INTEGER);
+  const recorteColumnas = recorteTabla(todasLasColumnas, 8, "columna");
+  const columns = recorteColumnas.visibles;
+  const recorteFilas = recorteTabla(rows.map(presentAulasRow), 80);
+  const avisos = [recorteFilas.etiqueta, recorteColumnas.etiqueta].filter(Boolean);
   return (
-    <div className="mon-profile-table-wrap">
+    <div
+      className="mon-profile-table-wrap"
+      data-qa-geometry-capacity="owned"
+      data-qa-geometry-member
+    >
       <table className="mon-profile-table">
         <thead>
           <tr>{columns.map((column) => <th key={column}>{aulasFieldLabel(column)}</th>)}</tr>
         </thead>
         <tbody>
-          {presentedRows.slice(0, 80).map((row, index) => (
+          {recorteFilas.visibles.map((row, index) => (
             <tr key={index}>
               {columns.map((column) => <td key={column}>{String(row[column] ?? "")}</td>)}
             </tr>
           ))}
         </tbody>
       </table>
+      {avisos.length ? (
+        <p className="mon-profile-table-recorte">{avisos.join(" · ")}</p>
+      ) : null}
     </div>
   );
 }
@@ -212,7 +248,11 @@ function HandoffTracePanel({ dashboard }: { dashboard: MonitoreoAulasDashboard |
         <h3>Aplicación por cursos-horario</h3>
         <span>muestra, fichas QR y monitoreo</span>
       </div>
-      <div className="mon-aulas-handoff-grid">
+      <div
+        className="mon-aulas-handoff-grid"
+        data-qa-geometry-group="monitoring-aulas-handoff"
+        data-qa-geometry-contract="equal"
+      >
         {cards.map((card) => (
           <article key={card.label} className={`is-${card.tone}`}>
             <span>{card.label}</span>
@@ -240,7 +280,11 @@ function renderAulasView(view: MonitoreoSeccion, dashboard: MonitoreoAulasDashbo
     return (
       <div className="mon-profile-stack aulas-fuentes-stack">
         {operations}
-        <section className="mon-profile-panel">
+        <section
+          className="mon-profile-panel"
+          data-qa-geometry-group="monitoring-aulas-table"
+          data-qa-geometry-contract="intrinsic"
+        >
           <div className="mon-profile-panel-head">
             <h3>Fuente y plan</h3>
             <span>{fmt(rows.length)} campos</span>
@@ -261,7 +305,11 @@ function renderAulasView(view: MonitoreoSeccion, dashboard: MonitoreoAulasDashbo
     return (
       <div className="mon-profile-stack">
         <HandoffTracePanel dashboard={dashboard} />
-        <section className="mon-profile-panel">
+        <section
+          className="mon-profile-panel"
+          data-qa-geometry-group="monitoring-aulas-table"
+          data-qa-geometry-contract="intrinsic"
+        >
           <div className="mon-profile-panel-head">
             <h3>Agenda de cursos-horario</h3>
             <span>{fmt(dashboard.agenda?.length ?? 0)} cursos-horario</span>
@@ -279,7 +327,11 @@ function renderAulasView(view: MonitoreoSeccion, dashboard: MonitoreoAulasDashbo
     const rows = (dashboard.validation ?? []) as Array<Record<string, unknown>>;
     const summary = summarizeAulasValidation(rows);
     return (
-      <section className="mon-profile-panel">
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-table"
+        data-qa-geometry-contract="intrinsic"
+      >
         <div className="mon-profile-panel-head">
           <h3>Validación de cursos-horario</h3>
           <span>{summary.label}</span>
@@ -299,7 +351,11 @@ function renderAulasView(view: MonitoreoSeccion, dashboard: MonitoreoAulasDashbo
       ...((dashboard.brechas ?? []) as Array<Record<string, unknown>>),
     ];
     return (
-      <section className="mon-profile-panel">
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-table"
+        data-qa-geometry-contract="intrinsic"
+      >
         <div className="mon-profile-panel-head">
           <h3>Reemplazos y brechas</h3>
           <span>{fmt(rows.length)} filas</span>
@@ -312,7 +368,11 @@ function renderAulasView(view: MonitoreoSeccion, dashboard: MonitoreoAulasDashbo
   const avanceRows = (quotaRows.length ? quotaRows : dashboard.avance_por_estrato ?? []) as Array<Record<string, unknown>>;
   return (
     <div className="mon-profile-stack">
-      <section className="mon-profile-panel">
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-table"
+        data-qa-geometry-contract="intrinsic"
+      >
         <div className="mon-profile-panel-head">
           <h3>{quotaRows.length ? "Cuota sexo por facultad" : "Avance por estrato"}</h3>
           <span>{fmt(avanceRows.length)} filas</span>
@@ -455,17 +515,19 @@ export default function AulasMonitoreoPage() {
           </div>
         </aside>
 
-        <section className="mon-profile-content">
+        <section className={`mon-profile-content${seccionActiva === "fuentes" ? " has-aulas-flow" : ""}`}>
           <AulasKpiBand dashboard={dashboard} />
-          <AulasApplicationFlow
-            tone="monitoreo"
-            current="monitoreo"
-            compact
-            title="Seguimiento de la intervención por cursos-horario"
-            summary="Este monitoreo lee el plan del cálculo de muestra de cursos-horario y sus enlaces QR/PDF para medir avance, caídas, reemplazos y brechas sin rediseñar la muestra."
-            secondaryAction={{ to: AULAS_SAMPLE_ROUTE, label: "Ver muestra de cursos-horario" }}
-            action={{ to: "/recopiladores", label: "Abrir fichas QR" }}
-          />
+          {seccionActiva === "fuentes" ? (
+            <AulasApplicationFlow
+              tone="monitoreo"
+              current="monitoreo"
+              compact
+              title="Seguimiento de la intervención por cursos-horario"
+              summary="Este monitoreo lee el plan del cálculo de muestra de cursos-horario y sus enlaces QR/PDF para medir avance, caídas, reemplazos y brechas sin rediseñar la muestra."
+              secondaryAction={{ to: AULAS_SAMPLE_ROUTE, label: "Ver muestra de cursos-horario" }}
+              action={{ to: "/recopiladores", label: "Abrir fichas QR" }}
+            />
+          ) : null}
           <div className="aulas-mon-view">
             {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
             {loading ? (

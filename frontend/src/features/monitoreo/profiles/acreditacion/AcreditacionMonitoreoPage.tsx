@@ -77,6 +77,8 @@ import {
   normalizeInternalQueries,
   summarizeInternalCases,
 } from "../../internalQueries";
+import { corteAcreditacion } from "../../corte/corteAdapters";
+import { estadoVisual, readinessDeSalidas, recorteTabla } from "../../corte/corteContract";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import {
@@ -118,6 +120,17 @@ import {
   type AcreditacionPhoneSourceSlot,
   type AcreditacionTelephoneChannel,
 } from "./AcreditacionSourcesModel";
+import {
+  acreditacionLecturaObjetivo,
+  acreditacionObjetivoDeGoals,
+  acreditacionTitularObjetivo,
+} from "./AcreditacionObjetivoActor";
+import { AcreditacionEmbudoCorte } from "./AcreditacionEmbudoCorte";
+import {
+  acreditacionVentanaCampoObservada,
+  type AcreditacionVentanaCampo,
+} from "./AcreditacionVentanaCampo";
+import { acreditacionAgruparEstados } from "./AcreditacionEstadosLlamada";
 import { SourceSyncActions, type SourceSyncActionsProgress } from "../../components";
 import type { MonitoreoReportScope } from "../types";
 import "../../monitoreo.css";
@@ -286,6 +299,19 @@ function rowNumber(row: Record<string, unknown>, keys: string[], fallback = 0) {
   return fallback;
 }
 
+// Nombres canónicos de columna del reporte de acreditación. Existían SIETE
+// listas distintas para el mismo concepto y varias omitían el nombre real:
+// el reporte publica "Rechazos plataforma", pero `advanceCardsFromRows` sólo
+// buscaba "Rechazo"/"Rechazos"/"Refusals", así que la banda de universo de
+// Avance mostraba RECHAZOS 0 mientras la leyenda del gráfico —que sí leía la
+// columna buena— mostraba 3 en la misma pantalla (acrconta, 2026-07-26).
+// Una métrica, un origen: estos son los alias válidos y no se declaran ad hoc.
+const COL_UNIVERSO = ["Universo", "Base reportada", "Total", "Base", "Casos"];
+const COL_EFECTIVAS = ["Efectivas", "Validas", "Válidas", "Completas", "Completed"];
+const COL_PARCIALES = ["Parciales", "Partial"];
+const COL_RECHAZOS = ["Rechazos plataforma", "Rechazos", "Rechazo", "Refusals"];
+const COL_SIN_RESPUESTA = ["Sin respuesta", "Sin respuesta plataforma", "Pendientes", "Unanswered", "Pending"];
+
 type SeguimientoDraft = {
   n_efectivo: string;
   notas_campo: string;
@@ -333,10 +359,10 @@ type AcreditacionStateSummary = {
 function stateFromActors(actors: MonitoreoRow[] = [], fallbackRows = 0, fallbackValid = 0): AcreditacionStateSummary {
   const totals = actors.reduce<AcreditacionStateSummary>((acc, row) => {
     const record = row as Record<string, unknown>;
-    acc.universe += rowNumber(record, ["Universo", "Total"], 0);
-    acc.effective += rowNumber(record, ["Efectivas", "Completas", "Validas", "Válidas"], 0);
-    acc.partial += rowNumber(record, ["Parciales"], 0);
-    acc.refusal += rowNumber(record, ["Rechazo", "Rechazos plataforma", "Rechazos"], 0);
+    acc.universe += rowNumber(record, COL_UNIVERSO, 0);
+    acc.effective += rowNumber(record, COL_EFECTIVAS, 0);
+    acc.partial += rowNumber(record, COL_PARCIALES, 0);
+    acc.refusal += rowNumber(record, COL_RECHAZOS, 0);
     acc.unanswered += rowNumber(record, ["Sin respuesta"], 0);
     const ref = rowNumber(record, ["Referencia operativa", "Meta", "Mínimo", "Minimo"], Number.NaN);
     if (Number.isFinite(ref) && ref > 0) acc.reference = (acc.reference ?? 0) + ref;
@@ -543,7 +569,7 @@ function AcreditacionModelActorSummaryCard({
   };
 
   return (
-    <article className={`mon-acr-model-actor is-${statusTone}`}>
+    <article className={`mon-acr-model-actor is-${statusTone}`} data-qa-geometry-member>
       <header className="mon-acr-model-actor-head">
         <div>
           <span>Actor</span>
@@ -553,7 +579,7 @@ function AcreditacionModelActorSummaryCard({
       </header>
       <div className="mon-acr-model-actor-metrics">
         <AcreditacionActorFlowNode label="Universo" value={fmt(card.universe)} tone="base" />
-        <AcreditacionActorFlowNode label="Meta actor" value={card.meta == null ? "S/M" : fmt(card.meta)} tone={card.meta == null ? "warning" : "target"} />
+        <AcreditacionActorFlowNode label="Mínimo actor" value={card.meta == null ? "S/M" : fmt(card.meta)} tone={card.meta == null ? "warning" : "target"} />
         <AcreditacionActorFlowNode label="Efectivas" value={fmt(card.effective)} tone="ready" />
       </div>
       <div className="mon-acr-model-minimum-editor" aria-label={`Meta de ${card.actor}`}>
@@ -585,7 +611,11 @@ function AcreditacionModelActorSummaryCard({
       <div className="mon-acr-model-channel-strip">
         {channels.length ? channels.map((channel) => <span key={channel}>{channel}</span>) : <span>Sin canal</span>}
       </div>
-      <div className="mon-acr-model-source-list">
+      <div
+        className="mon-acr-model-source-list"
+        data-qa-geometry-capacity="owned"
+        data-qa-geometry-content
+      >
         {baseMechanisms.length ? (
           <section className="mon-acr-model-source-group mon-acr-model-source-group--base">
             <header>
@@ -985,6 +1015,11 @@ function AcreditacionCanonicalModelWorkbench({
   onStateChange?: (state: MonitoreoState) => void;
 }) {
   const client = reports?.client_report;
+  const sourceActorRoster = useMemo(
+    () => buildAcreditacionSourceActorRoster(state?.sources ?? []),
+    [state?.sources],
+  );
+  const sourceActors = useMemo(() => sourceActorRoster.map((item) => item.actor), [sourceActorRoster]);
   const actorRows = useMemo(() => (
     client?.actors?.length ? client.actors : rowsFromSheets(reports?.sheets ?? [], ["actor", "avance", "brecha"])
   ), [client?.actors, reports?.sheets]);
@@ -1001,24 +1036,39 @@ function AcreditacionCanonicalModelWorkbench({
       ? sheetActorDailyRows
       : client?.daily_general ?? [];
   const allowedActors = useMemo(
-    () => new Set(actorRows.map((row, index) => normalizeSourceMatch(rowText(row, ["Actor", "Unidad", "Corte", "Carrera"], `Actor ${index + 1}`)))),
-    [actorRows],
+    () => new Set(sourceActors.map(normalizeSourceMatch)),
+    [sourceActors],
   );
   const actorDailySeries = useMemo(
     () => reports ? buildAcreditacionAdvanceDailySeries(reports, "avance_general_dia", "Unidad", allowedActors) : [],
     [allowedActors, reports],
   );
+  const modelActorRows = useMemo(() => {
+    const rowsByActor = new Map(actorRows.map((row, index) => [
+      normalizeSourceMatch(rowText(row, ["Actor", "Unidad", "Corte", "Carrera"], `Actor ${index + 1}`)),
+      row,
+    ]));
+    return sourceActors.map((actor) => rowsByActor.get(normalizeSourceMatch(actor)) ?? { Actor: actor });
+  }, [actorRows, sourceActors]);
   const cards = useMemo(() => actorCardsForDashboard({
-    actorRows,
+    actorRows: modelActorRows,
     sourceRows: sourceRows as Array<Record<string, unknown>>,
     dailyRows,
     actorDailySeries,
     goals: state?.config?.goals ?? [],
     sources: state?.sources ?? [],
     progressRows: state?.dashboard?.progress ?? [],
-  }), [actorDailySeries, actorRows, dailyRows, sourceRows, state?.config?.goals, state?.dashboard?.progress, state?.sources]);
+  }), [actorDailySeries, dailyRows, modelActorRows, sourceRows, state?.config?.goals, state?.dashboard?.progress, state?.sources]);
   const totals = advanceTotals(cards);
   const goalSummary = actorGoalSummary(cards);
+  // La ventana de campo EJECUTADA, para confrontarla con la planificada. El
+  // periodo de campo va en la ficha técnica del expediente, así que no puede
+  // quedar como un dato opcional que nadie llena: en acrconta el cronograma
+  // decía "Semana 1 · 1 semana" con nueve semanas de campo ya corridas.
+  const campoObservado = useMemo(
+    () => acreditacionVentanaCampoObservada(dailyRows),
+    [dailyRows],
+  );
   const activeSources = (state?.sources ?? []).filter((source) => source.enabled);
   const sourceSummary = buildAcreditacionActiveSourcesSummary(state?.sources ?? [], state?.config?.operational_model.link_collectors ?? []);
   const telephoneChannels = buildAcreditacionTelephoneChannels(state?.sources ?? [], state?.config?.operational_model.link_collectors ?? []);
@@ -1125,10 +1175,6 @@ function AcreditacionCanonicalModelWorkbench({
       });
   }, [onStateChange, state?.config]);
 
-  if (!reports) {
-    return <EmptyPanel title="Modelo pendiente" detail="Todavía no hay reporte local preparado para reconstruir metas, mecanismos y barrido." />;
-  }
-
   return (
     <div className="mon-stage mon-stage--model mon-stage--acr-model">
       <section
@@ -1159,11 +1205,39 @@ function AcreditacionCanonicalModelWorkbench({
             <>
               <AcreditacionActorDashboardTile label="Actores" value={fmt(cards.length)} hint="modelo base" tone="base" />
               <AcreditacionActorDashboardTile label="Universo" value={fmt(totals.universe)} hint="desde Sheets" tone="ready" />
-              <AcreditacionActorDashboardTile label="Meta actor" value={metaTotal ? fmt(metaTotal) : "S/M"} hint={goalSummary.missingMeta ? `${fmt(goalSummary.missingMeta)} pendientes` : "configuradas"} tone={goalSummary.missingMeta ? "warning" : "target"} />
+              <AcreditacionActorDashboardTile label="Mínimo actor" value={metaTotal ? fmt(metaTotal) : "S/M"} hint={goalSummary.missingMeta ? `${fmt(goalSummary.missingMeta)} pendientes` : "configuradas"} tone={goalSummary.missingMeta ? "warning" : "target"} />
               <AcreditacionActorDashboardTile label="Campo" value={scheduleWindow} hint={reportWeekdayLabel === "Sin reporte" ? "reporte pendiente" : `reporte ${reportWeekdayLabel.toLowerCase()}`} tone={scheduleDraft.reportWeekday ? "ready" : "warning"} />
             </>
           )}
         </div>
+        {activeVisibleTab === "estructura" && !isPhoneModel ? (
+          <section className="mon-acr-model-roster" aria-label="Actores definidos en Fuentes">
+            <header>
+              <div>
+                <span>Actores definidos en Fuentes</span>
+                <strong>{countText(sourceActorRoster.length, "actor", "actores")}</strong>
+              </div>
+              <p>Nombres y canales se administran en Fuentes. Modelo organiza metas, mecanismos y calendario sin duplicar esa configuración.</p>
+            </header>
+            {sourceActorRoster.length ? (
+              <div
+                className="mon-acr-model-roster__items"
+                data-qa-geometry-group="acreditacion-source-actor-roster"
+                data-qa-geometry-contract="equal"
+              >
+                {sourceActorRoster.map((item) => (
+                  <span key={normalizeSourceMatch(item.actor)} className={item.phoneEnabled ? "is-phone" : ""} data-qa-geometry-member>
+                    <strong>{item.actor}</strong>
+                    <em>{countText(item.sourceCount, "fuente", "fuentes")}</em>
+                    {item.phoneEnabled ? <small><PhoneCall size={11} /> Telefónico</small> : null}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="mon-acr-model-roster__empty">Fuentes todavía no declara actores activos.</p>
+            )}
+          </section>
+        ) : null}
         {activeVisibleTab === "estructura" && isPhoneModel && state?.config ? (
           <>
             <AcreditacionPhoneQuotaEditor
@@ -1177,7 +1251,11 @@ function AcreditacionCanonicalModelWorkbench({
           </>
         ) : null}
         {activeVisibleTab === "estructura" && !isPhoneModel ? (
-          <div className="mon-acr-model-actor-grid">
+          <div
+            className="mon-acr-model-actor-grid"
+            data-qa-geometry-group={cards.length ? "acreditacion-model-actors" : undefined}
+            data-qa-geometry-contract={cards.length ? "equal" : undefined}
+          >
             {cards.length ? cards.map((card) => (
               <AcreditacionModelActorSummaryCard
                 key={card.id}
@@ -1186,12 +1264,12 @@ function AcreditacionCanonicalModelWorkbench({
                 onSaveGoal={saveActorGoal}
               />
             )) : (
-              <EmptyPanel title="Sin actores detectados" detail="Carga la base trabajada para armar el modelo por actor." />
+              <EmptyPanel title="Sin actores definidos" detail="Declara el actor y su nombre en Fuentes para incorporarlo al modelo operativo." />
             )}
           </div>
         ) : null}
         {activeVisibleTab === "estrategias" ? (
-          <AcreditacionFieldSchedulePanel config={state?.config ?? null} onStateChange={onStateChange} />
+          <AcreditacionFieldSchedulePanel config={state?.config ?? null} campoObservado={campoObservado} onStateChange={onStateChange} />
         ) : null}
         {activeVisibleTab === "resumen" ? (
           <section className="mon-contract-block mon-contract-block--wide" aria-label="Resumen de Fuentes para Modelo">
@@ -1217,9 +1295,11 @@ function AcreditacionCanonicalModelWorkbench({
 
 function AcreditacionFieldSchedulePanel({
   config,
+  campoObservado,
   onStateChange,
 }: {
   config: MonitoreoConfig | null;
+  campoObservado?: AcreditacionVentanaCampo | null;
   onStateChange?: (state: MonitoreoState) => void;
 }) {
   const [draft, setDraft] = useState<AcreditacionFieldScheduleDraft>(() => (
@@ -1240,7 +1320,7 @@ function AcreditacionFieldSchedulePanel({
   const previewWindow = calendarWeekRangeLabel(previewPhase.startWeek, previewPhase.startWeek + previewPhase.durationWeeks - 1);
   const dateWindow = draft.startDate || draft.endDate
     ? [draft.startDate || "inicio pendiente", draft.endDate || "fin pendiente"].join(" a ")
-    : "Fechas opcionales";
+    : "Sin declarar";
 
   const patchDraft = (patch: Partial<AcreditacionFieldScheduleDraft>) => {
     setDraft((current) => ({ ...current, ...patch }));
@@ -1276,9 +1356,24 @@ function AcreditacionFieldSchedulePanel({
       <div className="mon-acr-active-kpis">
         <StatTile label="Ventana" value={previewWindow} tone="good" />
         <StatTile label="Semanas" value={fmt(draft.durationWeeks)} tone={draft.durationWeeks ? "good" : "warn"} />
-        <StatTile label="Fechas" value={dateWindow} tone={draft.startDate && draft.endDate ? "good" : "neutral"} />
+        <StatTile label="Fechas" value={dateWindow} tone={draft.startDate && draft.endDate ? "good" : "warn"} />
         <StatTile label="Reporte" value={calendarReportWeekdayLabel(draft.reportWeekday)} tone={draft.reportWeekday ? "good" : "warn"} />
       </div>
+      {campoObservado ? (
+        <p
+          className="mon-field-schedule-observado"
+          data-desvio={campoObservado.semanas > draft.durationWeeks ? "si" : "no"}
+          role="note"
+        >
+          <strong>Campo ejecutado</strong>
+          <span>
+            {campoObservado.inicio} a {campoObservado.fin} · {countText(campoObservado.semanas, "semana", "semanas")} · {countText(campoObservado.diasConRespuesta, "día", "días")} con respuesta
+          </span>
+          {campoObservado.semanas > draft.durationWeeks ? (
+            <em>El plan declara {countText(draft.durationWeeks, "semana", "semanas")}; el campo ya lleva {campoObservado.semanas}.</em>
+          ) : null}
+        </p>
+      ) : null}
       <div className="mon-form mon-form--two">
         <label>
           <span>Semana inicio</span>
@@ -4090,12 +4185,12 @@ function prettyModelLabel(value: string) {
     .replace(/\bpartial\b/i, "Parcial");
 }
 
-function scopeForView(view: MonitoreoSeccion, family?: string): MonitoreoReportScope {
-  if (view === "telefonico") return "phone_summary";
-  if (view === "modelo" && family === "telefonico") return "phone_summary";
-  if (view === "consultas") return "queries_summary";
-  if (view === "modelo") return "advance_summary";
-  if (view === "fuentes") return "source";
+function scopeForView(requestedSection: MonitoreoSeccion, profileFamily?: string): MonitoreoReportScope {
+  if (requestedSection === "telefonico") return "phone_summary";
+  if (requestedSection === "modelo" && profileFamily === "telefonico") return "phone_summary";
+  if (requestedSection === "consultas") return "queries_summary";
+  if (requestedSection === "modelo") return "advance_summary";
+  if (requestedSection === "fuentes") return "source";
   return "advance_summary";
 }
 
@@ -4143,9 +4238,15 @@ function rowValue(row: Record<string, unknown>, key: string) {
   return String(value);
 }
 
-function compactColumns(rows: Array<Record<string, unknown>>, preferred: string[] = [], maxColumns = 8) {
+export function compactColumns(rows: Array<Record<string, unknown>>, preferred: string[] = [], maxColumns = 8) {
+  // `preferred` es un ORDEN deseado, no una promesa de que la columna exista.
+  // Antes se anteponía tal cual, así que "Resumen por actor" dibujaba una
+  // columna META con las cuatro celdas vacías —el bloque canónico del reporte
+  // nunca trae esa clave— y encima gastaba uno de los 8 espacios disponibles,
+  // desplazando una columna que sí tenía datos.
+  const disponibles = new Set(rows.flatMap((row) => Object.keys(row)));
   const seen = new Set<string>();
-  const keys = [...preferred, ...rows.flatMap((row) => Object.keys(row))]
+  const keys = [...preferred.filter((key) => disponibles.has(key)), ...rows.flatMap((row) => Object.keys(row))]
     .filter((key) => key && !key.startsWith("_") && !seen.has(key) && (seen.add(key), true));
   return keys.slice(0, maxColumns);
 }
@@ -4726,18 +4827,36 @@ function phoneQuotaStatusTone(status: string, gap: number | null) {
   return "warning";
 }
 
+export function shouldStartPhoneQuotaExpanded(
+  viewport?: { width: number; height: number },
+) {
+  const width = viewport?.width ?? (typeof window === "undefined" ? 0 : window.innerWidth);
+  const height = viewport?.height ?? (typeof window === "undefined" ? 0 : window.innerHeight);
+  return width >= 1181 && height >= 760;
+}
+
+export function isWidePhoneSummaryViewport(viewport?: { width: number }) {
+  const width = viewport?.width ?? (typeof window === "undefined" ? 0 : window.innerWidth);
+  return width >= 1181;
+}
+
 function AcreditacionPhoneQuotaPanel({ rows }: { rows: Array<Record<string, unknown>> }) {
   const quotaRows = phoneQuotaRowsForPanel(rows);
   const variables = uniqueDisplayValues(quotaRows.map((row) => row.variable));
   const [activeVariable, setActiveVariable] = useState("");
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(() => shouldStartPhoneQuotaExpanded());
   useEffect(() => {
     if (activeVariable && !variables.includes(activeVariable)) setActiveVariable("");
   }, [activeVariable, variables]);
   if (!quotaRows.length) {
     return (
-      <section className="mon-phone-quota-panel is-empty" aria-label="Cuotas telefónicas por variable">
-        <EmptyPanel title="Sin cuotas por variable" detail="Define una variable de control en la base de público objetivo para leer cuotas telefónicas por categoría." />
+      <section
+        className="mon-phone-quota-panel is-empty"
+        aria-label="Cuotas telefónicas por variable"
+      >
+        <div className="mon-phone-quota-empty" data-qa-geometry-capacity="owned">
+          <EmptyPanel title="Sin cuotas por variable" detail="Define una variable de control en la base de público objetivo para leer cuotas telefónicas por categoría." />
+        </div>
       </section>
     );
   }
@@ -4774,7 +4893,10 @@ function AcreditacionPhoneQuotaPanel({ rows }: { rows: Array<Record<string, unkn
   const detailId = "mon-phone-quota-detail";
 
   return (
-    <section className="mon-phone-quota-panel" aria-label="Cuotas telefónicas por variable">
+    <section
+      className={`mon-phone-quota-panel${expanded ? " is-expanded" : ""}`}
+      aria-label="Cuotas telefónicas por variable"
+    >
       <header className="mon-phone-ops-head mon-phone-quota-head">
         <div>
           <span>Cuotas telefónicas</span>
@@ -4834,7 +4956,7 @@ function AcreditacionPhoneQuotaPanel({ rows }: { rows: Array<Record<string, unkn
           )}
           <div className="mon-phone-quota-grid">
             {groups.map((group) => (
-              <article key={group.variable} className="mon-phone-quota-actor mon-phone-quota-variable">
+              <article key={group.variable} className="mon-phone-quota-actor mon-phone-quota-variable" data-qa-geometry-capacity="owned">
                 <header>
                   <strong>{group.variable}</strong>
                   <em>{formatMetric(group.rows.length)} categoría{group.rows.length === 1 ? "" : "s"} · {formatMetric(group.rows.reduce((sum, row) => sum + row.universe, 0))} base</em>
@@ -4888,7 +5010,7 @@ function AcreditacionPhoneStorage({ totals }: { totals: ReturnType<typeof phoneO
   const [hoveredSegmentKey, setHoveredSegmentKey] = useState("");
   const hoveredSegment = positionedSegments.find((segment) => segment.key === hoveredSegmentKey) ?? null;
   return (
-    <div className="mon-phone-storage" aria-label="Distribución telefónica">
+    <div className="mon-phone-storage" data-qa-geometry-member aria-label="Distribución telefónica">
       <div className="mon-phone-storage-head">
         <div>
           <span>Barra de barrido</span>
@@ -4975,7 +5097,7 @@ function AcreditacionPhoneStatusStorage({
   const hoveredStatus = positionedItems.find((item) => item.key === hoveredStatusKey) ?? null;
   if (!items.length) return <EmptyPanel title="Sin estados telefónicos" detail="El corte todavía no trae la distribución de estados del barrido." />;
   return (
-    <div className="mon-phone-storage mon-phone-storage--statuses" aria-label="Estados telefónicos">
+    <div className="mon-phone-storage mon-phone-storage--statuses" data-qa-geometry-member aria-label="Estados telefónicos">
       <div className="mon-phone-storage-head">
         <div>
           <span>Estados telefónicos</span>
@@ -6509,12 +6631,37 @@ function AcreditacionPhoneOperationsWorkbench({
   activeTab,
   fallbackEffective = 0,
   standalone = false,
+  sources = [],
 }: {
   reports: MonitoreoAcreditacionReports;
   activeTab: AcreditacionPhoneTab;
   fallbackEffective?: number;
   standalone?: boolean;
+  sources?: MonitoreoSource[];
 }) {
+  if (shouldShowAcreditacionPhoneEmptyState(standalone, sources)) {
+    return (
+      <section
+        className="pulso-panel mon-fill-panel mon-phone-panel mon-phone-panel--model-empty"
+        aria-label="Monitoreo telefónico sin actores participantes"
+      >
+        <header className="pulso-panel-header">
+          <div className="pulso-panel-heading">
+            <span className="pulso-panel-eyebrow">Operación telefónica</span>
+            <h2 className="pulso-panel-title"><span className="mon-title-icon"><PhoneCall size={16} /> Sin actores telefónicos</span></h2>
+            <p className="pulso-panel-hint">La ventana Teléfono usa únicamente los actores cuyo canal se declaró como Telefónico en Fuentes.</p>
+          </div>
+          <div className="mon-phone-meta"><span>0 actores</span></div>
+        </header>
+        <div className="mon-phone-tabbody">
+          <EmptyPanel
+            title="Ningún actor participa en Teléfono"
+            detail="Esta es una configuración válida. Declara el canal Telefónico en Fuentes cuando quieras incorporar uno o más actores."
+          />
+        </div>
+      </section>
+    );
+  }
   const summaryRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["resumen_telefonico"]);
   const statusRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_telefonico"]);
   const quotaRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]);
@@ -6597,7 +6744,12 @@ function AcreditacionPhoneOperationsWorkbench({
         ) : (
           <div className="mon-phone-layout mon-phone-layout--summary">
             {standalone ? <AcreditacionPhonePlatformComparison rows={reconciliationRows} /> : null}
-            <section className="mon-phone-overview-grid" aria-label="Resumen de barrido telefónico">
+            <section
+              className="mon-phone-overview-grid"
+              data-qa-geometry-group={isWidePhoneSummaryViewport() ? "acreditacion-phone-summary-top" : undefined}
+              data-qa-geometry-contract={isWidePhoneSummaryViewport() ? "equal" : undefined}
+              aria-label="Resumen de barrido telefónico"
+            >
               <AcreditacionPhoneStorage totals={totals} />
               <AcreditacionPhoneStatusStorage rows={visibleStatusRows} total={totals.total} />
               <AcreditacionPhoneQuotaPanel rows={quotaRows} />
@@ -6609,8 +6761,22 @@ function AcreditacionPhoneOperationsWorkbench({
   );
 }
 
-function renderPhoneView(reports: MonitoreoAcreditacionReports, activeTab: AcreditacionPhoneTab = "resumen", fallbackEffective = 0, standalone = false) {
-  return <AcreditacionPhoneOperationsWorkbench reports={reports} activeTab={activeTab} fallbackEffective={fallbackEffective} standalone={standalone} />;
+function renderPhoneView(
+  reports: MonitoreoAcreditacionReports,
+  activeTab: AcreditacionPhoneTab = "resumen",
+  fallbackEffective = 0,
+  standalone = false,
+  sources: MonitoreoSource[] = [],
+) {
+  return (
+    <AcreditacionPhoneOperationsWorkbench
+      reports={reports}
+      activeTab={activeTab}
+      fallbackEffective={fallbackEffective}
+      standalone={standalone}
+      sources={sources}
+    />
+  );
 }
 
 function normalizeSourceMatch(value: unknown) {
@@ -6619,6 +6785,45 @@ function normalizeSourceMatch(value: unknown) {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
+}
+
+export type AcreditacionSourceActorRosterItem = {
+  actor: string;
+  sourceCount: number;
+  phoneEnabled: boolean;
+};
+
+export function buildAcreditacionSourceActorRoster(
+  sources: MonitoreoSource[],
+): AcreditacionSourceActorRosterItem[] {
+  const roster = new Map<string, AcreditacionSourceActorRosterItem>();
+  sources.forEach((source) => {
+    if (!source.enabled) return;
+    const actor = String(source.dimensions?.actor ?? "").trim();
+    const actorKey = normalizeSourceMatch(actor);
+    if (!actorKey) return;
+    const phoneEnabled = normalizeSourceMatch(source.dimensions?.canal) === "telefonico";
+    const current = roster.get(actorKey);
+    roster.set(actorKey, current
+      ? {
+        ...current,
+        sourceCount: current.sourceCount + 1,
+        phoneEnabled: current.phoneEnabled || phoneEnabled,
+      }
+      : { actor, sourceCount: 1, phoneEnabled });
+  });
+  return Array.from(roster.values());
+}
+
+export function hasAcreditacionPhoneSourceActors(sources: MonitoreoSource[]) {
+  return buildAcreditacionSourceActorRoster(sources).some((item) => item.phoneEnabled);
+}
+
+export function shouldShowAcreditacionPhoneEmptyState(
+  standalone: boolean,
+  sources: MonitoreoSource[],
+) {
+  return !standalone && !hasAcreditacionPhoneSourceActors(sources);
 }
 
 function uniqueDisplayValues(values: unknown[]) {
@@ -6783,7 +6988,7 @@ function sourceRowsForTable(sources: MonitoreoSource[], { phoneMode = false }: {
       : { Actor: sourceActorLabel(source) }),
     Canal: acreditacionChannelLabel(sourceChannelLabel(source)),
     Estado: source.enabled ? "Activa" : "Inactiva",
-    "Ultimo sync": sourceSyncLabel(source),
+    "Último sync": sourceSyncLabel(source),
     ID: sourceExternalId(source),
   }));
 }
@@ -6799,7 +7004,7 @@ function sourcePackageRows(sources: MonitoreoSource[]) {
       Configuradas: presetSources.length,
       Activas: active.length,
       Estado: presetSourceStatus(presetSources),
-      "Ultimo sync": mostRecentSyncLabel(presetSources),
+      "Último sync": mostRecentSyncLabel(presetSources),
     };
   });
 }
@@ -8653,7 +8858,7 @@ function AcreditacionPlatformSurveySourcesView({
       <details className="mon-acr-source-disclosure" open={!platformSources.length}>
         <summary>
           <span><Plus size={14} /> Agregar SurveyMonkey</span>
-          <em>{surveySources.length ? "Catalogo cerrado por defecto" : "Sin SurveyMonkey configuradas"}</em>
+          <em>{surveySources.length ? "Catálogo cerrado por defecto" : "Sin SurveyMonkey configuradas"}</em>
         </summary>
         <AcreditacionSurveySourcePicker
           sources={surveySources}
@@ -8749,7 +8954,7 @@ function AcreditacionPlatformSurveySourcesView({
                 </div>
                 <div className="mon-acr-source-object-metrics">
                   <span><small>Recopiladores</small><strong>{fmt(collectorCount)}</strong></span>
-                  <span><small>Ultimo sync</small><strong>{sourceSyncLabel(source)}</strong></span>
+                  <span><small>Último sync</small><strong>{sourceSyncLabel(source)}</strong></span>
                   <span><small>Respuestas</small><strong>{fmt(responseCount)}</strong></span>
                 </div>
                 <div className="mon-acr-source-object-routing" aria-label="Declaración operativa de la encuesta">
@@ -9239,11 +9444,15 @@ function AcreditacionActiveSourcesView({
             <StatTile label="Fuentes" value={`${fmt(readySlots)}/3`} tone={readySlots === 3 ? "good" : "warn"} />
             <StatTile label="Sheets" value={fmt(phoneSheetSources.length)} tone={phoneSheetSources.length >= 2 ? "good" : "warn"} />
             <StatTile label="Kobo" value={fmt(koboSources.length)} tone={koboSources.length ? "good" : "warn"} />
-            <StatTile label="Ultimo sync" value={summary.lastSync ? formatDate(summary.lastSync) : "Sin sync"} tone={summary.lastSync ? "good" : "warn"} />
+            <StatTile label="Último sync" value={summary.lastSync ? formatDate(summary.lastSync) : "Sin sync"} tone={summary.lastSync ? "good" : "warn"} />
           </div>
         </section>
-        <div className="mon-acr-active-grid">
-          <section className="mon-acr-object-surface">
+        <div
+          className="mon-acr-active-grid"
+          data-qa-geometry-group="telefonico-active-sources"
+          data-qa-geometry-contract="equal"
+        >
+          <section className="mon-acr-object-surface" data-qa-geometry-member>
             <div className="mon-acr-object-surface-head">
               <div>
                 <span>Contrato telefónico</span>
@@ -9251,7 +9460,7 @@ function AcreditacionActiveSourcesView({
               </div>
               <em>{contract.ready ? "Paquete completo" : "Faltan piezas"}</em>
             </div>
-            <div className="mon-acr-active-source-list">
+            <div className="mon-acr-active-source-list" data-qa-geometry-content>
               {slots.map((slot) => (
                 <article key={slot.key} className={slot.ready ? "is-ready" : "is-warning"}>
                   <strong>{slot.label}</strong>
@@ -9261,7 +9470,7 @@ function AcreditacionActiveSourcesView({
               ))}
             </div>
           </section>
-          <section className="mon-acr-object-surface">
+          <section className="mon-acr-object-surface" data-qa-geometry-member>
             <div className="mon-acr-object-surface-head">
               <div>
                 <span>Base y barrido</span>
@@ -9269,7 +9478,7 @@ function AcreditacionActiveSourcesView({
               </div>
               <em>estados en paralelo</em>
             </div>
-            <div className="mon-acr-active-source-list">
+            <div className="mon-acr-active-source-list" data-qa-geometry-content>
               {phoneSheetSources.map((source) => (
                 <article key={source.id}>
                   <strong>{source.label || source.sheet_binding?.sheet_name || source.id}</strong>
@@ -9280,7 +9489,7 @@ function AcreditacionActiveSourcesView({
               {!phoneSheetSources.length ? <div className="mon-sm-empty">Sin Sheets telefónicas activas.</div> : null}
             </div>
           </section>
-          <section className="mon-acr-object-surface">
+          <section className="mon-acr-object-surface" data-qa-geometry-member>
             <div className="mon-acr-object-surface-head">
               <div>
                 <span>Kobo efectivo</span>
@@ -9288,7 +9497,7 @@ function AcreditacionActiveSourcesView({
               </div>
               <em>avance por CodPulso</em>
             </div>
-            <div className="mon-acr-active-source-list">
+            <div className="mon-acr-active-source-list" data-qa-geometry-content>
               {koboSources.map((source) => (
                 <article key={source.id}>
                   <strong>{acreditacionSurveySourceName(source)}</strong>
@@ -9311,7 +9520,7 @@ function AcreditacionActiveSourcesView({
                 <h3>Fuentes activas</h3>
                 <span>{fmt(activeRows.length)} filas</span>
               </div>
-              <DataTable rows={activeRows} empty="No hay fuentes activas." preferredColumns={["Fuente", "Servicio", "Rol", "Estado", "Ultimo sync", "ID"]} />
+              <DataTable rows={activeRows} empty="No hay fuentes activas." preferredColumns={["Fuente", "Servicio", "Rol", "Estado", "Último sync", "ID"]} />
             </section>
             <section className="mon-profile-panel">
               <div className="mon-profile-panel-head">
@@ -9337,18 +9546,25 @@ function AcreditacionActiveSourcesView({
       <section className="mon-acr-active-hero">
         <div>
           <span>Fuentes activas</span>
-          <strong>{fmt(summary.activeSurveys + summary.activeSheetBases)} piezas alimentando monitoreo</strong>
-          <p>Resumen operativo de lo que se usara para nutrir avance, actores, bases y recopiladores.</p>
+          {/* El titular contaba encuestas + bases de UNIVERSO y dejaba fuera el
+              barrido y las hojas de correo: decía "11 piezas" con 13/13 fuentes
+              activas en la banda de arriba y 6 hojas listadas abajo. */}
+          <strong>{fmt(summary.activeSurveys + summary.activeSheets)} piezas alimentando monitoreo</strong>
+          <p>Resumen operativo de lo que se usará para nutrir avance, actores, bases y recopiladores.</p>
         </div>
         <div className="mon-acr-active-kpis">
           <StatTile label="Encuestas" value={fmt(summary.activeSurveys)} tone={summary.activeSurveys ? "good" : "warn"} />
-          <StatTile label="Bases actor" value={fmt(summary.activeSheetBases)} tone={summary.missingSheetActors.length ? "warn" : "good"} />
+          <StatTile label="Hojas" value={fmt(summary.activeSheets)} tone={summary.missingSheetActors.length ? "warn" : "good"} />
           <StatTile label="Recop. incluidos" value={fmt(summary.includedCollectors)} tone={summary.includedCollectors ? "good" : "neutral"} />
-          <StatTile label="Ultimo sync" value={summary.lastSync ? formatDate(summary.lastSync) : "Sin sync"} tone={summary.lastSync ? "good" : "warn"} />
+          <StatTile label="Último sync" value={summary.lastSync ? formatDate(summary.lastSync) : "Sin sync"} tone={summary.lastSync ? "good" : "warn"} />
         </div>
       </section>
-      <div className="mon-acr-active-grid">
-        <section className="mon-acr-object-surface">
+      <div
+        className="mon-acr-active-grid"
+        data-qa-geometry-group="acreditacion-active-sources"
+        data-qa-geometry-contract="equal"
+      >
+        <section className="mon-acr-object-surface" data-qa-geometry-member>
           <div className="mon-acr-object-surface-head">
             <div>
               <span>Actores y cobertura</span>
@@ -9356,7 +9572,7 @@ function AcreditacionActiveSourcesView({
             </div>
             <em>{summary.missingSheetActors.length ? `${fmt(summary.missingSheetActors.length)} bases faltantes` : "Bases alineadas"}</em>
           </div>
-          <div className="mon-acr-active-actor-list">
+          <div className="mon-acr-active-actor-list" data-qa-geometry-content>
             {summary.actorsWithSurvey.map((actor) => {
               const hasSheet = summary.actorsWithSheet.some((sheetActor) => normalizeSourceMatch(sheetActor) === normalizeSourceMatch(actor));
               const actorSurveys = surveySources.filter((source) => normalizeSourceMatch(sourceActorLabel(source)) === normalizeSourceMatch(actor));
@@ -9371,29 +9587,29 @@ function AcreditacionActiveSourcesView({
             {!summary.actorsWithSurvey.length ? <div className="mon-sm-empty">Sin actores activos desde encuestas.</div> : null}
           </div>
         </section>
-        <section className="mon-acr-object-surface">
+        <section className="mon-acr-object-surface" data-qa-geometry-member>
           <div className="mon-acr-object-surface-head">
             <div>
               <span>Recopiladores</span>
-              <strong>{fmt(summary.includedCollectors)} incluidos · {fmt(summary.excludedCollectors)} excluidos</strong>
+              <strong>{countText(summary.includedCollectors, "incluido", "incluidos")} · {fmt(summary.excludedCollectors)} excluidos</strong>
             </div>
             <em>{summary.missingCollectorMetadata ? `${fmt(summary.missingCollectorMetadata)} sin metadata` : "Metadata real lista"}</em>
           </div>
-          <div className="mon-acr-active-source-list">
+          <div className="mon-acr-active-source-list" data-qa-geometry-content>
             {surveySources.map((source) => {
               const rows = acreditacionCollectorsForSource(source, linkCollectors);
               return (
                 <article key={source.id}>
                   <strong>{acreditacionSurveySourceName(source)}</strong>
-                  <span>{sourceActorLabel(source)} · {fmt(rows.filter((row) => row.enabled).length)} incluidos</span>
-                  <em>{source.collectors?.length ? `${fmt(source.collectors.length)} nombres reales` : "Falta Actualizar todo"}</em>
+                  <span>{sourceActorLabel(source)} · {countText(rows.filter((row) => row.enabled).length, "incluido", "incluidos")}</span>
+                  <em>{source.collectors?.length ? `${countText(source.collectors.length, "nombre real", "nombres reales")}` : "Falta Actualizar todo"}</em>
                 </article>
               );
             })}
             {!surveySources.length ? <div className="mon-sm-empty">Sin encuestas activas.</div> : null}
           </div>
         </section>
-        <section className="mon-acr-object-surface">
+        <section className="mon-acr-object-surface" data-qa-geometry-member>
           <div className="mon-acr-object-surface-head">
             <div>
               <span>Bases Sheets vinculadas</span>
@@ -9401,7 +9617,7 @@ function AcreditacionActiveSourcesView({
             </div>
             <em>{state?.has_snapshot ? "Snapshot local listo" : "Sin snapshot"}</em>
           </div>
-          <div className="mon-acr-active-source-list">
+          <div className="mon-acr-active-source-list" data-qa-geometry-content>
             {sheetSources.map((source) => (
               <article key={source.id}>
                 <strong>{source.label || sourceActorLabel(source)}</strong>
@@ -9424,14 +9640,14 @@ function AcreditacionActiveSourcesView({
               <h3>Cobertura fija</h3>
               <span>{fmt(packageRows.length)} piezas</span>
             </div>
-            <DataTable rows={packageRows} empty="No hay cobertura de fuentes para acreditacion." preferredColumns={["Pieza", "Servicio", "Configuradas", "Activas", "Estado", "Ultimo sync"]} />
+            <DataTable rows={packageRows} empty="No hay cobertura de fuentes para acreditación." preferredColumns={["Pieza", "Servicio", "Configuradas", "Activas", "Estado", "Último sync"]} />
           </section>
           <section className="mon-profile-panel">
             <div className="mon-profile-panel-head">
               <h3>Fuentes configuradas</h3>
               <span>{fmt(activeRows.length)} activas</span>
             </div>
-            <DataTable rows={activeRows} empty="No hay fuentes activas." preferredColumns={["Fuente", "Servicio", "Actor", "Canal", "Estado", "Ultimo sync", "ID"]} />
+            <DataTable rows={activeRows} empty="No hay fuentes activas." preferredColumns={["Fuente", "Servicio", "Actor", "Canal", "Estado", "Último sync", "ID"]} />
           </section>
           <section className="mon-profile-panel">
             <div className="mon-profile-panel-head">
@@ -10479,7 +10695,13 @@ function DataTable({
   maxColumns?: number;
 }) {
   if (!rows.length) return <p className="mon-profile-muted">{empty}</p>;
-  const columns = compactColumns(rows, preferredColumns, maxColumns);
+  // Ningún recorte en silencio: ochenta filas y ocho columnas seguían siendo el
+  // límite, pero antes desaparecían datos sin que nada lo dijera.
+  const todasLasColumnas = compactColumns(rows, preferredColumns, Number.MAX_SAFE_INTEGER);
+  const recorteColumnas = recorteTabla(todasLasColumnas, maxColumns, "columna");
+  const columns = recorteColumnas.visibles;
+  const recorteFilas = recorteTabla(rows, 80);
+  const avisos = [recorteFilas.etiqueta, recorteColumnas.etiqueta].filter(Boolean);
   return (
     <div className="mon-profile-table-wrap">
       <table className="mon-profile-table">
@@ -10487,13 +10709,16 @@ function DataTable({
           <tr>{columns.map((column) => <th key={column}>{columnLabel(column)}</th>)}</tr>
         </thead>
         <tbody>
-          {rows.slice(0, 80).map((row, index) => (
+          {recorteFilas.visibles.map((row, index) => (
             <tr key={index}>
               {columns.map((column) => <td key={column}>{rowValue(row, column)}</td>)}
             </tr>
           ))}
         </tbody>
       </table>
+      {avisos.length ? (
+        <p className="mon-profile-table-recorte">{avisos.join(" · ")}</p>
+      ) : null}
     </div>
   );
 }
@@ -11827,6 +12052,26 @@ function acreditacionIssuesForConsultaTab(issues: MonitoreoInternalQueryIssue[],
   return issues;
 }
 
+// Un empty state NUNCA puede culpar a "los filtros activos" cuando no hay
+// ninguno puesto. En acrconta las cuatro pestañas de Consultas salían vacías
+// —el `.pulso` no persiste `internal_queries` ni `case_rollup`— y el mensaje
+// decía "no hay filas con los filtros activos" con todos los selectores en
+// "Todos", escondiendo la causa real: sin reconciliación no hay avance real
+// ni handoff a Procesamiento (ADR 0040 §3).
+function acreditacionEmptyCaseDetail({
+  activeFilters,
+  hasAnyCase,
+  subject,
+}: {
+  activeFilters: boolean;
+  hasAnyCase: boolean;
+  subject: string;
+}) {
+  if (activeFilters) return `No hay ${subject} con los filtros activos.`;
+  if (hasAnyCase) return `El corte no trae ${subject}.`;
+  return `Este corte no conserva la reconciliación caso por caso, así que no hay ${subject} que mostrar. Vuelve a sincronizar el corte para regenerarla.`;
+}
+
 function acreditacionQueryAnswerCopy(
   tab: AcreditacionConsultaTab,
   summary: ReturnType<typeof summarizeInternalCases>,
@@ -12970,7 +13215,7 @@ function AcreditacionPlatformRecordsView({
             </table>
           </div>
         ) : (
-          <EmptyPanel title="Sin registros de plataforma" detail="No hay respuestas de plataforma con los filtros activos." />
+          <EmptyPanel title="Sin registros de plataforma" detail={acreditacionEmptyCaseDetail({ activeFilters, hasAnyCase: allCases.length > 0, subject: "respuestas de plataforma" })} />
         )}
         {cases.length > visible.length ? <p className="mon-query-table-more">Mostrando {fmt(visible.length)} de {fmt(cases.length)} registros. Usa filtros para acotar.</p> : null}
       </section>
@@ -13181,7 +13426,7 @@ function AcreditacionBaseStatusView({
             </table>
           </div>
         ) : (
-          <EmptyPanel title="Sin casos de base" detail="No hay filas del universo con los filtros activos." />
+          <EmptyPanel title="Sin casos de base" detail={acreditacionEmptyCaseDetail({ activeFilters, hasAnyCase: responseAllCount > 0, subject: "filas del universo" })} />
         )}
       </section>
     </div>
@@ -13674,6 +13919,8 @@ function AcreditacionConsultasPanel({
 export type AcreditacionAdvanceCard = {
   id: string;
   actor: string;
+  /** Objetivo declarado para este actor (barrido | minimo). Null => se sugiere. */
+  objetivo?: "barrido" | "minimo" | null;
   universe: number;
   effective: number;
   partial: number;
@@ -13696,7 +13943,7 @@ type AcreditacionActorMechanism = {
   channel: string;
 };
 
-type AcreditacionActorCard = AcreditacionAdvanceCard & {
+export type AcreditacionActorCard = AcreditacionAdvanceCard & {
   status: string;
   mechanisms: AcreditacionActorMechanism[];
   dailyPoints: AcreditacionAdvanceDailyPoint[];
@@ -13743,6 +13990,16 @@ type AcreditacionAdvanceDailySeries = {
   partial: number;
   refusals: number;
   total: number;
+  /**
+   * `true` cuando la "serie" se sintetizo desde una fila TOTALIZADA por fuente
+   * (Efectivas/Parciales/Total + Primer dia/Ultima respuesta), no desde un
+   * bloque diario real. El corte no persiste avance diario por fuente, asi que
+   * todo el total caia en una sola fecha —la de ultima respuesta— y se dibujaba
+   * con el aparato completo de un grafico de series: una barra gigante en un
+   * dia que ademas no cuadra con el ritmo general. Un agregado no se disfraza
+   * de ritmo.
+   */
+  aggregateOnly?: boolean;
 };
 
 type AcreditacionAdvanceSurveyRow = {
@@ -13859,13 +14116,26 @@ function advanceGoalForActor(actor: string, goals: MonitoreoGoal[]) {
 }
 
 export function advanceCardsFromRows(rows: Array<Record<string, unknown>>, goals: MonitoreoGoal[] = []): AcreditacionAdvanceCard[] {
+  // Dos actores cuyo nombre normaliza igual —"Estudiantes" en dos cortes, o con
+  // distinta capitalización— producían el mismo `id`. React lo veía como una
+  // key duplicada y podía **omitir una de las tarjetas sin avisar**: en el corte
+  // de acreditación multiactor desaparecía un actor completo de Avance. El
+  // desempate mantiene el slug legible y garantiza unicidad.
+  const slugsVistos = new Map<string, number>();
+  const idUnico = (actor: string, index: number) => {
+    const base = normalizeSourceMatch(actor) || String(index);
+    const repeticion = slugsVistos.get(base) ?? 0;
+    slugsVistos.set(base, repeticion + 1);
+    return repeticion === 0 ? `avance-${base}` : `avance-${base}-${repeticion + 1}`;
+  };
+
   return rows.map((row, index) => {
     const actor = rowText(row, ["Actor", "Unidad", "Corte", "Carrera"], `Actor ${index + 1}`);
-    const universe = rowNumber(row, ["Base reportada", "Universo", "Total", "Base", "Casos"], 0);
-    const effective = rowNumber(row, ["Efectivas", "Validas", "Válidas", "Completas", "Completed"], 0);
-    const partial = rowNumber(row, ["Parciales", "Partial"], 0);
-    const refusals = rowNumber(row, ["Rechazo", "Rechazos", "Refusals"], 0);
-    const explicitPending = rowNumber(row, ["Sin respuesta", "Pendientes", "Unanswered", "Pending"], NaN);
+    const universe = rowNumber(row, COL_UNIVERSO, 0);
+    const effective = rowNumber(row, COL_EFECTIVAS, 0);
+    const partial = rowNumber(row, COL_PARCIALES, 0);
+    const refusals = rowNumber(row, COL_RECHAZOS, 0);
+    const explicitPending = rowNumber(row, COL_SIN_RESPUESTA, NaN);
     const pending = Number.isFinite(explicitPending) ? explicitPending : Math.max(0, universe - effective - partial - refusals);
     const rowMeta = rowNumber(row, ["Meta", "Objetivo", "Meta efectiva", "Target"], NaN);
     const goalMeta = advanceGoalForActor(actor, goals);
@@ -13882,8 +14152,9 @@ export function advanceCardsFromRows(rows: Array<Record<string, unknown>>, goals
           ? "steady"
           : "low";
     return {
-      id: `avance-${normalizeSourceMatch(actor) || index}`,
+      id: idUnico(actor, index),
       actor,
+      objetivo: acreditacionObjetivoDeGoals(goals, actor),
       universe,
       effective,
       partial,
@@ -13988,9 +14259,9 @@ export function dailyPointsFromRows(rows: Array<Record<string, unknown>>): Acred
     const rawDate = rowText(row, ["Fecha", "Dia", "Día", "Date"], "");
     if (isAcreditacionDailyHeaderLabel(rawDate)) return [];
     const date = normalizeAcreditacionDailyDateLabel(rawDate);
-    const effective = rowNumber(row, ["Efectivas", "Validas", "Válidas", "Completed"], 0);
-    const partial = rowNumber(row, ["Parciales", "Partial"], 0);
-    const refusals = rowNumber(row, ["Rechazo", "Rechazos", "Rechazos telefónicos", "Rechazos plataforma", "Refusals"], 0);
+    const effective = rowNumber(row, COL_EFECTIVAS, 0);
+    const partial = rowNumber(row, COL_PARCIALES, 0);
+    const refusals = rowNumber(row, [...COL_RECHAZOS, "Rechazos telefónicos"], 0);
     const total = rowNumber(row, ["Total respuestas", "Total", "Respuestas"], effective + partial + refusals);
     return [{ date, effective, partial, refusals, total }];
   });
@@ -14305,8 +14576,8 @@ function buildAcreditacionAdvanceDailySeries(
     const label = String(row[groupKey] ?? "").trim() || `${groupColumn} ${index + 1}`;
     const key = normalizeSourceMatch(label) || `${normalizeSourceMatch(groupColumn)}-${index}`;
     if (allowedGroups?.size && !allowedGroups.has(key)) return;
-    const state = String(acreditacionReportRowValue(row, ["estado", "estatus"]) ?? "").trim();
-    const tone = acreditacionSurveyStateTone(state);
+    const surveyState = String(acreditacionReportRowValue(row, ["estado", "estatus"]) ?? "").trim();
+    const tone = acreditacionSurveyStateTone(surveyState);
     const entry = grouped.get(key) ?? { label, points: new Map<string, AcreditacionAdvanceDailyPoint>() };
     dates.forEach((date) => addAcreditacionDailyValue(entry.points, date, tone, reportNumberValue(row[date])));
     grouped.set(key, entry);
@@ -14441,9 +14712,9 @@ function fallbackDailyDateFromRow(row: Record<string, unknown>, index: number) {
 }
 
 function dailyPointFromSummaryRow(row: Record<string, unknown>, index: number): AcreditacionAdvanceDailyPoint {
-  const effective = rowNumber(row, ["Efectivas", "Validas", "Válidas", "Completas", "Completed"], 0);
-  const partial = rowNumber(row, ["Parciales", "Partial"], 0);
-  const refusals = rowNumber(row, ["Rechazos plataforma", "Rechazos", "Rechazo", "Refusals"], 0);
+  const effective = rowNumber(row, COL_EFECTIVAS, 0);
+  const partial = rowNumber(row, COL_PARCIALES, 0);
+  const refusals = rowNumber(row, COL_RECHAZOS, 0);
   const explicitTotal = rowNumber(row, ["Total respuestas", "Total", "Respuestas", "Casos"], NaN);
   return {
     date: fallbackDailyDateFromRow(row, index),
@@ -14543,6 +14814,8 @@ function buildAcreditacionDailySourceSeriesFromRows(
       partial: totals.partial,
       refusals: totals.refusals,
       total: totals.total,
+      // Viene de filas totalizadas, no de un bloque diario: no hay ritmo.
+      aggregateOnly: true,
     };
   }).filter((item) => item.total > 0 || item.completed > 0)
     .sort((a, b) => b.total - a.total || a.label.localeCompare(b.label, "es"));
@@ -14856,8 +15129,21 @@ function acreditacionCollectorsForSurvey(
 }
 
 function actorStatusLabel(card: AcreditacionAdvanceCard) {
-  if (card.meta == null) return "Meta pendiente";
-  if (card.statusTone === "complete") return "Meta cubierta";
+  if (card.meta == null) return "Mínimo pendiente";
+  // Cubrir el minimo NO cierra al actor: es un piso interno. Con objetivo de
+  // barrido, un actor a una respuesta de terminar el universo seguia luciendo
+  // "Meta cubierta" en verde y desaparecia de la lista de trabajo pendiente.
+  const lectura = acreditacionLecturaObjetivo({
+    universo: card.universe,
+    efectivas: card.effective,
+    minimo: card.meta,
+    objetivoDeclarado: card.objetivo,
+  });
+  if (lectura.objetivo === "barrido") {
+    if (lectura.cumplido) return "Universo cubierto";
+    return lectura.minimoCubierto ? "Mínimo cubierto · falta barrer" : "Bajo el mínimo";
+  }
+  if (card.statusTone === "complete") return "Mínimo cubierto";
   if (card.statusTone === "steady") return "En ruta";
   return "Requiere impulso";
 }
@@ -14951,9 +15237,9 @@ function actorMechanismObserved(
   if (row) {
     const total = rowNumber(row, ["Total respuestas", "Total", "Respuestas"], NaN);
     if (Number.isFinite(total)) return total;
-    return rowNumber(row, ["Efectivas", "Validas", "Válidas", "Completas"], 0)
-      + rowNumber(row, ["Parciales"], 0)
-      + rowNumber(row, ["Rechazos plataforma", "Rechazos"], 0);
+    return rowNumber(row, COL_EFECTIVAS, 0)
+      + rowNumber(row, COL_PARCIALES, 0)
+      + rowNumber(row, COL_RECHAZOS, 0);
   }
   const progress = progressRows.find((item) => {
     const rowActor = normalizeSourceMatch(item.dim_actor);
@@ -15009,7 +15295,7 @@ function actorMechanismsForCard(
       modality: normalizeSourceMatch(channel).includes("telefon") ? "telefono" : "response",
       observed: Number.isFinite(observed)
         ? observed
-        : rowNumber(row, ["Efectivas", "Validas", "Válidas"], 0) + rowNumber(row, ["Parciales"], 0) + rowNumber(row, ["Rechazos"], 0),
+        : rowNumber(row, COL_EFECTIVAS, 0) + rowNumber(row, COL_PARCIALES, 0) + rowNumber(row, COL_RECHAZOS, 0),
       channel,
     });
   });
@@ -15050,9 +15336,9 @@ function dailyPointsForActor(actor: string, dailyRows: Array<Record<string, unkn
     })
     .map((row, index) => {
       const date = rowText(row, ["Fecha", "Dia", "Día", "Date"], `Dia ${index + 1}`);
-      const effective = rowNumber(row, ["Efectivas", "Validas", "Válidas", "Completed"], 0);
-      const partial = rowNumber(row, ["Parciales", "Partial"], 0);
-      const refusals = rowNumber(row, ["Rechazo", "Rechazos", "Refusals"], 0);
+      const effective = rowNumber(row, COL_EFECTIVAS, 0);
+      const partial = rowNumber(row, COL_PARCIALES, 0);
+      const refusals = rowNumber(row, COL_RECHAZOS, 0);
       const total = rowNumber(row, ["Total respuestas", "Total", "Respuestas"], effective + partial + refusals);
       return { date, effective, partial, refusals, total };
     });
@@ -15431,7 +15717,17 @@ function AcreditacionAdvanceDailyMini({
       cumulative,
     };
   });
-  const visiblePoints = allChartRows.slice(-visibleLimit);
+  // El recorte SOLO puede comerse días vacíos. Con `slice(-visibleLimit)` a
+  // secas, un estudio largo perdía sus primeros días CON producción: medido el
+  // 2026-07-26 en acrconta, el gráfico general arrancaba el 11/06 con 288 de
+  // 429 respuestas ya acumuladas —el 65% del campo, incluido el pico real del
+  // 27/05— y la curva entraba a pantalla como una meseta. La ventana arranca
+  // en el menor entre la cola pedida y el primer día con respuesta: un gráfico
+  // denso es preferible a uno que miente sobre el ritmo.
+  const firstSignalIndex = allChartRows.findIndex((point) => point.dailyTotal > 0);
+  const tailStart = Math.max(0, allChartRows.length - visibleLimit);
+  const windowStart = firstSignalIndex >= 0 ? Math.min(tailStart, firstSignalIndex) : tailStart;
+  const visiblePoints = allChartRows.slice(windowStart);
   const chartRows = visiblePoints.map((point, index) => ({ ...point, x: index }));
   const hasDailySignal = chartRows.some((point) => point.dailyTotal > 0);
   const lastPoint = chartRows.at(-1) ?? null;
@@ -15439,7 +15735,10 @@ function AcreditacionAdvanceDailyMini({
     !best || point.dailyTotal > best.dailyTotal ? point : best
   ), null);
   const averageBase = effectiveOnly ? totals.effective : totals.total;
-  const average = chartRows.length ? averageBase / chartRows.length : 0;
+  // El promedio se calcula más abajo contra los días CON respuesta, que es lo
+  // que promete la frase del encabezado ("N días con respuesta · T · X/día").
+  // Dividir el total completo entre los días dibujados daba un 10.2/día cuando
+  // el real era 9.5 (429 sobre 45 días con respuesta).
   const resolvedReportWeekday = normalizeCalendarReportWeekday(reportWeekday) || calendarReportWeekdayFromDate(cutDate);
   const datedCuts = dailyCutsForChart(chartRows, reportCuts);
   const inferredWeeklyCuts = datedCuts.length ? [] : weeklyCutsForChart(chartRows, resolvedReportWeekday);
@@ -15667,10 +15966,21 @@ function AcreditacionAdvanceDailyMini({
     responsive: true,
     scrollZoom: false,
   };
+  const dailyLabel = effectiveOnly ? "efectivas" : "respuestas";
+  // Solo cuentan como "días con respuesta" los que además tienen fecha: si no,
+  // el encabezado prometía "9 días con respuesta" sobre un gráfico que decía
+  // "el corte todavía no trae respuestas fechadas" (Administrativos, 2026-07-26).
+  const datedSignalPoints = orderedSourcePoints.filter((point) => (
+    dailyPointTotalValue(point) > 0 && isDatedAcreditacionDailyPoint(point)
+  ));
+  const undatedResponses = orderedSourcePoints
+    .filter((point) => !isDatedAcreditacionDailyPoint(point))
+    .reduce((sum, point) => sum + (effectiveOnly ? dailyEffectiveValue(point) : dailyPointTotalValue(point)), 0);
+  const signalDayCount = datedSignalPoints.length;
+  const average = signalDayCount ? averageBase / signalDayCount : 0;
   const averageLabel = average ? average.toLocaleString("es-PE", { maximumFractionDigits: 1 }) : "S/D";
   const chartHeight = isCompactChart ? 154 : variant === "general" ? 360 : 300;
-  const dailyLabel = effectiveOnly ? "efectivas" : "respuestas";
-  const signalDayCount = orderedSourcePoints.filter((point) => dailyPointTotalValue(point) > 0).length;
+  const hiddenLeadingDays = windowStart;
   return (
     <article className={`mon-advance-daily-mini is-${variant}${isCompactChart ? " is-compact" : ""}`}>
       <header>
@@ -15716,11 +16026,27 @@ function AcreditacionAdvanceDailyMini({
           </div>
         </div>
       ) : (
-        <EmptyPanel title="Sin ritmo diario" detail="El corte todavía no trae respuestas fechadas para graficar avance." />
+        <EmptyPanel
+          title="Sin ritmo diario"
+          detail={undatedResponses > 0
+            ? `${fmt(undatedResponses)} ${dailyLabel} del corte llegaron sin fecha de respuesta, así que no hay ritmo que graficar.`
+            : "El corte todavía no trae respuestas fechadas para graficar avance."}
+        />
       )}
-      {orderedPoints.length > visiblePoints.length ? (
+      {hiddenLeadingDays > 0 || undatedResponses > 0 ? (
         <div className="mon-advance-daily-loose">
-          <span><strong>{fmt(visiblePoints.length)} de {fmt(orderedPoints.length)}</strong><em> días calendario visibles en el gráfico</em></span>
+          {hiddenLeadingDays > 0 ? (
+            <span>
+              <strong>{countText(hiddenLeadingDays, "día", "días")} sin respuesta</strong>
+              <em> ocultos antes del inicio del campo</em>
+            </span>
+          ) : null}
+          {undatedResponses > 0 ? (
+            <span>
+              <strong>{fmt(undatedResponses)} {dailyLabel} sin fecha</strong>
+              <em> fuera del gráfico, contadas en los totales</em>
+            </span>
+          ) : null}
         </div>
       ) : null}
     </article>
@@ -15819,6 +16145,11 @@ function AcreditacionActorMechanismRow({
   );
 }
 
+/** El scope telefonico mide cuotas, no universo de actor. */
+function isPhoneQuotaScopeForDial(scopeLabel: string) {
+  return scopeLabel !== "Actor";
+}
+
 function AcreditacionActorProgressCardView({
   card,
   cutDate,
@@ -15833,7 +16164,9 @@ function AcreditacionActorProgressCardView({
   scopeLabel?: string;
 }) {
   const totalProgress = card.progress ?? card.coverage ?? safePercentValue(card.effective, card.universe);
-  const dial = Math.max(0, Math.min(100, totalProgress ?? 0)) * 3.6;
+  // Denominador unico del donut: el universo del actor.
+  const coberturaUniverso = safePercentValue(card.effective, card.universe);
+  const dial = Math.max(0, Math.min(100, (isPhoneQuotaScopeForDial(scopeLabel) ? totalProgress : coberturaUniverso) ?? 0)) * 3.6;
   const isPhoneQuotaScope = scopeLabel !== "Actor";
   const completedPct = safePercentValue(card.effective, card.universe) ?? 0;
   const sweptWithoutEffective = isPhoneQuotaScope
@@ -15847,6 +16180,16 @@ function AcreditacionActorProgressCardView({
   const targetPct = safePercentValue(card.meta, card.universe);
   const clampedTargetPct = targetPct == null ? 0 : Math.max(0, Math.min(100, targetPct));
   const targetReached = card.missing != null ? card.missing <= 0 : card.meta != null && card.effective >= card.meta;
+  // El minimo es un PISO interno, no el objetivo. Que este cubierto no cierra
+  // al actor: si el universo es barrible, lo que manda es cuanto falta para
+  // barrerlo. La declaracion vive en la meta; sin ella se sugiere por tamano.
+  const lectura = acreditacionLecturaObjetivo({
+    universo: card.universe,
+    efectivas: card.effective,
+    minimo: card.meta,
+    objetivoDeclarado: card.objetivo,
+  });
+  const titularObjetivo = acreditacionTitularObjetivo(lectura, card.meta, card.effective);
   const baseMechanisms = card.mechanisms.filter((item) => item.role === "Universo" || item.role === "Barrido");
   const responseMechanisms = card.mechanisms.filter((item) => item.role === "Respuestas");
   return (
@@ -15869,9 +16212,16 @@ function AcreditacionActorProgressCardView({
       </header>
       <div className="mon-actor-card-body">
         <div className="mon-actor-radar" aria-label={`Avance de ${card.actor}`}>
+          {/* El donut de avance SIEMPRE se lee sobre el universo, sea cual sea
+              el objetivo declarado: es la cobertura del actor y no cambia de
+              denominador entre tarjetas. Antes decia "TOTAL" sin denominador
+              —un 65.9% que nadie podia interpretar— y por un momento llego a
+              alternar universo/minimo, que es peor: dos donuts contiguos
+              midiendo cosas distintas con la misma forma. El objetivo vigente
+              se lee en el titular de abajo, no aca. */}
           <div className={`mon-actor-dial is-${card.statusTone}`}>
-            <strong>{formatPercentLabel(totalProgress)}</strong>
-            <span>{isPhoneQuotaScope ? "Meta" : "Total"}</span>
+            <strong>{formatPercentLabel(isPhoneQuotaScope ? totalProgress : coberturaUniverso)}</strong>
+            <span>{isPhoneQuotaScope ? "Meta" : "del universo"}</span>
           </div>
           <div
             className={`mon-actor-pipeline-wrap${targetPct == null ? "" : " has-target"}`}
@@ -15887,7 +16237,7 @@ function AcreditacionActorProgressCardView({
             {targetPct != null ? (
               <span
                 className={`mon-actor-target ${targetReached ? "is-reached" : "is-open"}`}
-                title={`Meta ${fmt(card.meta)} (${formatPercentLabel(targetPct)} del universo)`}
+                title={`Mínimo ${fmt(card.meta)} (${formatPercentLabel(targetPct)} del universo)`}
                 aria-hidden="true"
               />
             ) : null}
@@ -15896,12 +16246,29 @@ function AcreditacionActorProgressCardView({
             <span>{fmt(card.effective)} efectivas</span>
             <strong>{fmt(card.pending)} {isPhoneQuotaScope ? "por barrer" : "pendientes"}</strong>
           </p>
+          {!isPhoneQuotaScope ? (
+            <p className="mon-actor-objetivo" data-objetivo={lectura.objetivo}>
+              <span>{titularObjetivo}</span>
+              {/* La otra lectura nunca desaparece: baja a linea secundaria. */}
+              <small>
+                {lectura.objetivo === "barrido"
+                  ? `${card.meta == null ? "Sin mínimo" : lectura.minimoCubierto ? `Mínimo ${fmt(card.meta)} cubierto` : `Mínimo ${fmt(card.meta)} pendiente`} · objetivo ${lectura.sugerido ? "sugerido" : "declarado"}`
+                  : `${countText(lectura.universoPendiente, "caso", "casos")} del universo sin trabajar · objetivo ${lectura.sugerido ? "sugerido" : "declarado"}`}
+              </small>
+            </p>
+          ) : null}
         </div>
         <div className="mon-actor-flow" aria-label={`Meta de ${scopeLabel.toLowerCase()}`}>
           <AcreditacionActorFlowNode label="Universo" value={fmt(card.universe)} tone="base" />
-          <AcreditacionActorFlowNode label="Meta" value={card.meta == null ? "S/M" : fmt(card.meta)} tone="target" />
+          <AcreditacionActorFlowNode label={isPhoneQuotaScope ? "Meta" : "Mínimo"} value={card.meta == null ? "S/M" : fmt(card.meta)} tone="target" />
           <AcreditacionActorFlowNode label="Efectivas" value={fmt(card.effective)} tone="ready" />
-          <AcreditacionActorFlowNode label={isPhoneQuotaScope ? "Pendiente" : "Brecha"} value={card.missing == null ? "S/M" : fmt(card.missing)} tone={card.missing != null && card.missing > 0 ? "warning" : "ready"} />
+          <AcreditacionActorFlowNode
+            label={isPhoneQuotaScope ? "Pendiente" : "Falta"}
+            value={isPhoneQuotaScope
+              ? (card.missing == null ? "S/M" : fmt(card.missing))
+              : (lectura.faltan == null ? "S/M" : fmt(lectura.faltan))}
+            tone={(isPhoneQuotaScope ? (card.missing ?? 0) > 0 : (lectura.faltan ?? 0) > 0) ? "warning" : "ready"}
+          />
         </div>
       </div>
       {card.dailyPoints.length ? (
@@ -16302,9 +16669,9 @@ function buildAcreditacionSurveyRows(
       refusals: 0,
       states: [],
     };
-    const effective = rowNumber(row, ["Efectivas", "Validas", "Válidas", "Completas", "Completed"], NaN);
-    const partial = rowNumber(row, ["Parciales", "Partial"], NaN);
-    const refusals = rowNumber(row, ["Rechazos plataforma", "Rechazos", "Rechazo", "Refusals"], NaN);
+    const effective = rowNumber(row, COL_EFECTIVAS, NaN);
+    const partial = rowNumber(row, COL_PARCIALES, NaN);
+    const refusals = rowNumber(row, COL_RECHAZOS, NaN);
     const explicitTotal = rowNumber(row, ["Total respuestas", "Total", "Respuestas", "Casos"], NaN);
     const hasParts = Number.isFinite(effective) || Number.isFinite(partial) || Number.isFinite(refusals);
     const partsTotal = (Number.isFinite(effective) ? effective : 0)
@@ -16418,6 +16785,48 @@ function dailySeriesForSurvey(
   return series.find((item) => uniqueNormalizedKeys([item.sourceId, item.label]).some((key) => rowKeys.includes(key))) ?? null;
 }
 
+/**
+ * Lectura agregada de una encuesta cuando el corte no trae su ritmo diario.
+ *
+ * El `.pulso` persiste `avance_actor_dia` y `efectivas_fecha`, pero NO un
+ * bloque diario por fuente: solo `fuentes_actor`, que es un totalizado con
+ * primer dia y ultima respuesta. Dibujar eso como serie ponia las 177
+ * respuestas de Estudiantes en un unico 15 de julio —una barra de 300px en una
+ * fecha que no cuadra con el ritmo general— y hacia parecer roto lo que en
+ * realidad falta en el corte.
+ */
+function AcreditacionAdvanceSurveyAggregate({
+  row,
+  serie,
+}: {
+  row: AcreditacionAdvanceSurveyRow;
+  serie: AcreditacionAdvanceDailySeries;
+}) {
+  const primerDia = rowText(row as unknown as Record<string, unknown>, ["Primer día", "Primer dia"], "");
+  const ultima = rowText(row as unknown as Record<string, unknown>, ["Última respuesta", "Ultima respuesta"], "");
+  return (
+    <section className="mon-advance-survey-aggregate" aria-label={`Totales de ${row.title}`}>
+      <header>
+        <span>Totales de la encuesta</span>
+        <strong>{row.title}</strong>
+        <em>El corte no trae ritmo diario por encuesta, solo el acumulado.</em>
+      </header>
+      <div className="mon-advance-survey-aggregate-kpis">
+        <span className="is-effective"><em>Efectivas</em><strong>{fmt(serie.completed)}</strong></span>
+        <span className="is-partial"><em>Parciales</em><strong>{fmt(serie.partial)}</strong></span>
+        <span className="is-refusals"><em>Rechazos</em><strong>{fmt(serie.refusals)}</strong></span>
+        <span><em>Total</em><strong>{fmt(serie.total)}</strong></span>
+      </div>
+      {primerDia || ultima ? (
+        <p className="mon-advance-survey-aggregate-window">
+          {primerDia ? <span><em>Primera respuesta</em><strong>{primerDia}</strong></span> : null}
+          {ultima ? <span><em>Última respuesta</em><strong>{ultima}</strong></span> : null}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 function AcreditacionAdvanceSurveyDailyChart({
   actor,
   row,
@@ -16458,6 +16867,8 @@ function AcreditacionAdvanceSurveyDailyChart({
   if (!active) return null;
   const isCollector = Boolean(selectedCollector) || (!daily && Boolean(fallbackCollector));
   const datedDays = active.points.filter((point) => parseAcreditacionDailyDate(point.date)).length;
+  // Un solo punto sintetizado no es una serie: se muestra como agregado.
+  const esAgregado = Boolean(active.aggregateOnly) || active.points.length <= 1;
   const collectorTotal = collectors.reduce((sum, item) => sum + item.total, 0);
   return (
     <div className="mon-advance-survey-chart-stack">
@@ -16475,17 +16886,25 @@ function AcreditacionAdvanceSurveyDailyChart({
           <em>{fmt(collectors.length)} recopilador{collectors.length === 1 ? "" : "es"} · {fmt(collectorTotal)} respuestas</em>
         </label>
       ) : null}
-      <AcreditacionAdvanceDailyMini
-        title={isCollector ? `${acreditacionCollectorSeriesDisplayName(active)} · ${row.title}` : row.title}
-        points={active.points}
-        variant="source"
-        cutDate={cutDate}
-        reportCuts={reportCuts}
-        reportWeekday={reportWeekday}
-      />
+      {esAgregado ? (
+        <AcreditacionAdvanceSurveyAggregate row={row} serie={active} />
+      ) : (
+        <AcreditacionAdvanceDailyMini
+          title={isCollector ? `${acreditacionCollectorSeriesDisplayName(active)} · ${row.title}` : row.title}
+          points={active.points}
+          variant="source"
+          cutDate={cutDate}
+          reportCuts={reportCuts}
+          reportWeekday={reportWeekday}
+        />
+      )}
       <div className="mon-advance-daily-foot">
         <span><strong>{actor}</strong> · {acreditacionChannelLabel(row.channel)}</span>
-        <span><strong>{fmt(datedDays)}</strong> días con fecha</span>
+        {esAgregado ? (
+          <span>sin ritmo por encuesta en este corte</span>
+        ) : (
+          <span><strong>{fmt(datedDays)}</strong> {datedDays === 1 ? "día" : "días"} con fecha</span>
+        )}
       </div>
     </div>
   );
@@ -16517,10 +16936,18 @@ function AcreditacionAdvanceSurveyCard({
           <strong>{row.title}</strong>
           <span>{acreditacionChannelLabel(row.channel)}{row.surveyId ? ` · ${row.surveyId}` : ""}</span>
         </header>
-        <div className="mon-advance-survey-meter" aria-label={`Respuestas de ${row.title}`}>
+        {/* La barra NO es avance hacia una meta: es el peso relativo de esta
+            encuesta frente a la que más respuestas trajo. Sin decirlo, se leía
+            como progreso (121 de 177 = 68%, donde 177 es otra encuesta). */}
+        <div
+          className="mon-advance-survey-meter"
+          aria-label={`${fmt(row.total)} respuestas de ${row.title}, ${Math.round(width)}% del volumen de la encuesta más grande del corte`}
+          title={max > 0 ? `Peso relativo: ${fmt(row.total)} de ${fmt(max)} respuestas de la encuesta más grande del corte` : undefined}
+        >
           <strong>{fmt(row.total)}</strong>
           <span>respuestas</span>
           <i style={{ "--advance-survey-total": `${width}%` } as CSSProperties} />
+          <small>peso relativo en el corte</small>
         </div>
         <div className="mon-advance-survey-states">
           {(row.states.length ? row.states : [
@@ -16852,8 +17279,16 @@ function AcreditacionAdvanceSurveysWorkbench({
         <div className="mon-advance-hero-kpis">
           <AcreditacionAdvanceMetric label="Fuentes" value={fmt(rows.length)} hint={`${fmt(channelCount)} canales · ${fmt(groups.length)} actores`} tone="base" />
           <AcreditacionAdvanceMetric label="Efectivas" value={fmt(totalEffective)} hint={`${fmt(totalPartial)} parciales`} tone="ready" />
-          <AcreditacionAdvanceMetric label="Rechazos" value={fmt(totalRefusals)} hint={totalCollectors ? `${fmt(totalCollectors)} recopiladores` : "sin serie por recopilador"} tone={totalRefusals ? "warning" : "base"} />
-          <AcreditacionAdvanceMetric label="Recopiladores" value={fmt(totalCollectors)} hint={totalCollectors ? "selección diaria disponible" : `${fmt(totalResponses)} respuestas`} tone={totalCollectors ? "ready" : "target"} />
+          <AcreditacionAdvanceMetric label="Rechazos" value={fmt(totalRefusals)} hint={`${fmt(totalPartial)} parciales en el corte`} tone={totalRefusals ? "warning" : "base"} />
+          {/* Esto NO es el inventario de recopiladores —que Fuentes cifra en 38—
+              sino cuántos traen serie diaria propia. Con la etiqueta anterior
+              la misma app decía 38 en una sección y 0 en otra. */}
+          <AcreditacionAdvanceMetric
+            label="Con serie diaria"
+            value={totalCollectors ? fmt(totalCollectors) : "S/D"}
+            hint={totalCollectors ? "recopiladores con ritmo propio" : "el corte no separa por recopilador"}
+            tone={totalCollectors ? "ready" : "target"}
+          />
         </div>
       </div>
       {groups.length ? (
@@ -16921,7 +17356,7 @@ function AcreditacionAdvanceFocus({ cards, scopeLabel = "Actor" }: { cards: Acre
             ? "Meta pendiente"
             : card.missing && card.missing > 0
               ? `${fmt(card.missing)} faltan de ${fmt(card.meta)}`
-              : `Meta ${fmt(card.meta)} cubierta`;
+              : `Mínimo ${fmt(card.meta)} cubierta`;
           return (
             <article key={card.id} className={`is-${card.statusTone}`}>
               <div>
@@ -17139,7 +17574,11 @@ function clientReportSheetsForPanel(client: MonitoreoAcreditacionReports["client
     mainBlocks.push({
       id: "resumen_actor",
       title: "Resumen por actor",
-      columns: compactColumns(client.actors as Array<Record<string, unknown>>, ["Actor", "Universo", "Efectivas", "Parciales", "Rechazos plataforma", "Sin respuesta", "Avance universo", "Meta", "Brecha meta"]),
+      // `Referencia operativa` es el nombre con el que el bloque canónico
+      // publica el mínimo: el reporte de cliente no expone "Meta" a propósito,
+      // porque el mínimo es interno. Pedir "Meta" solo producía una columna
+      // fantasma con las celdas vacías.
+      columns: compactColumns(client.actors as Array<Record<string, unknown>>, ["Actor", "Universo", "Efectivas", "Parciales", "Rechazos plataforma", "Sin respuesta", "Avance universo", "Referencia operativa"]),
       rows: client.actors,
     });
   }
@@ -17509,7 +17948,7 @@ function AcreditacionAdvanceDetailWorkbench({
         <div className="mon-advance-hero-copy">
           <span>Corte sincronizado</span>
           <strong>{fmt(totals.effective)} efectivas de {fmt(totals.universe)}</strong>
-          <p>Revisa si el corte efectivo conserva la composición esperada del universo y abre las tablas publicables del reporte.</p>
+          <p>Revisa si el corte efectivo conserva la composición esperada del universo y abre las tablas publicables del reporte. El mínimo por actor es interno y no viaja al reporte del cliente salvo que se pida.</p>
         </div>
         <div className="mon-advance-hero-kpis">
           <AcreditacionAdvanceMetric label="Variables" value={fmt(controlVariableRows(reports, controlRows).length)} hint="categorías de control" tone="target" />
@@ -17733,11 +18172,19 @@ function AcreditacionAdvanceSummaryWorkbench({
         <div className="mon-advance-hero-copy">
           <span>Corte sincronizado</span>
           <strong>{fmt(totals.effective)} efectivas de {fmt(totals.universe)}</strong>
-          <p>Distingue universo, metas por {scopeLabel.toLowerCase()} y respuestas de plataforma para leer el avance sin mezclar fuentes.</p>
+          <p>
+            {totals.metas
+              ? `${fmt(totals.metas - totals.brechas)} de ${countText(totals.metas, scopeLabel.toLowerCase(), `${scopeLabel.toLowerCase()}es`)} cubren su mínimo interno · ${countText(Math.max(0, totals.universe - totals.effective), "caso", "casos")} del universo sin trabajar.`
+              : `${fmt(Math.max(0, totals.universe - totals.effective))} casos del universo sin trabajar.`}
+          </p>
         </div>
         <div className="mon-advance-hero-kpis">
-          <AcreditacionAdvanceMetric label={`Metas ${scopeLabel.toLowerCase()}`} value={totals.metas ? `${fmt(totals.metas - totals.brechas)}/${fmt(totals.metas)}` : "S/M"} hint={totals.brechas ? `${fmt(totals.brechas)} con brecha` : "sin brecha"} tone={totals.brechas ? "target" : "ready"} />
-          <AcreditacionAdvanceMetric label="Efectivas" value={fmt(totals.effective)} hint={`${completionPct == null ? "S/D" : pct(completionPct)} del universo`} tone="ready" />
+          {/* Las DOS lecturas conviven: el minimo es el piso interno con el que
+              el estudio se cubre, y la cobertura del universo es lo que el
+              cliente suele perseguir. Mostrar solo la primera daba por cerrado
+              un estudio con casos sin trabajar. */}
+          <AcreditacionAdvanceMetric label={`Mínimos ${scopeLabel.toLowerCase()}`} value={totals.metas ? `${fmt(totals.metas - totals.brechas)}/${fmt(totals.metas)}` : "S/M"} hint={totals.brechas ? `${fmt(totals.brechas)} bajo el mínimo` : "todos cubiertos · interno"} tone={totals.brechas ? "target" : "ready"} />
+          <AcreditacionAdvanceMetric label="Universo" value={`${fmt(totals.effective)}/${fmt(totals.universe)}`} hint={`${completionPct == null ? "S/D" : pct(completionPct)} cubierto`} tone="ready" />
           <AcreditacionAdvanceMetric
             label={isPhoneModel ? "Por barrer" : "Pendientes"}
             value={fmt(totals.pending)}
@@ -17814,6 +18261,29 @@ function AcreditacionLoadingPanel({ view, label }: { view: MonitoreoSeccion; lab
   );
 }
 
+/**
+ * Corte canónico de Acreditación para el panel de salidas.
+ *
+ * Se calcula acá y no en el workbench de Avance porque la rama de salidas corre
+ * antes de que existan `reports`: sin este puente, "sin reporte" colapsaba a
+ * cero efectivas y el gate no distinguía "no hay válidas" de "todavía no
+ * sabemos cuántas hay".
+ */
+function corteAcreditacionDeReports(
+  state: MonitoreoState | null | undefined,
+  reports: MonitoreoAcreditacionReports | null | undefined,
+) {
+  if (!reports) return corteAcreditacion(state, []);
+  const actorRows = reports.client_report?.actors?.length
+    ? reports.client_report.actors
+    : rowsFromSheets(reports.sheets, ["actor", "avance", "brecha"]);
+  const cards = advanceCardsFromRows(
+    actorRows as Array<Record<string, unknown>>,
+    state?.config?.goals ?? [],
+  );
+  return corteAcreditacion(state, cards, { generatedAt: reports.generated_at });
+}
+
 function renderAcreditacionView(
   view: MonitoreoSeccion,
   reports: MonitoreoAcreditacionReports | null,
@@ -17840,35 +18310,19 @@ function renderAcreditacionView(
   } = {},
 ) {
   if (view === "avance" && options.activeAdvanceTab === "salidas") {
-    const state = options.state;
-    const isPhoneOutputs = isTelefonicoMonitoreoState(state);
+    const outputState = options.state;
+    const isPhoneOutputs = isTelefonicoMonitoreoState(outputState);
     return (
       <MonitoreoOutputsWorkbench
         family={isPhoneOutputs ? "telefonico" : "acreditacion"}
         routeLabel={isPhoneOutputs ? "Monitoreo telefónico" : options.routeLabel ?? "Acreditación"}
-        defaultTitle={isPhoneOutputs ? "" : state?.config?.acreditacion?.estudio?.titulo || "reporte-monitoreo"}
-        config={state?.config}
-        clientSheets={state?.publication?.client_last_sheets ?? null}
-        internalSheets={state?.publication?.internal_last_sheets ?? null}
-        hasSnapshot={Boolean(state?.has_snapshot)}
-        nRows={state?.n_rows ?? 0}
-        syncedAt={state?.synced_at ?? ""}
+        defaultTitle={isPhoneOutputs ? "" : outputState?.config?.acreditacion?.estudio?.titulo || "reporte-monitoreo"}
+        config={outputState?.config}
+        clientSheets={outputState?.publication?.client_last_sheets ?? null}
+        internalSheets={outputState?.publication?.internal_last_sheets ?? null}
+        corte={corteAcreditacionDeReports(outputState, reports)}
+        syncedAt={outputState?.synced_at ?? ""}
         onPublished={options.onPublished}
-      />
-    );
-  }
-  if (!reports) {
-    return <EmptyPanel title="Resumen pendiente" detail="Todavia no hay reporte local preparado para esta vista." />;
-  }
-  const client = reports.client_report;
-  if (view === "fuentes") {
-    return (
-      <AcreditacionSourcesWorkbench
-        reports={reports}
-        state={options.state}
-        activeTab={options.activeSourceTab ?? "survey"}
-        onStateChange={options.onStateChange}
-        onSourceTabChange={(tab) => options.onNavigateLocalTab?.("fuentes", tab)}
       />
     );
   }
@@ -17887,6 +18341,21 @@ function renderAcreditacionView(
       />
     );
   }
+  if (!reports) {
+    return <EmptyPanel title="Resumen pendiente" detail="Todavia no hay reporte local preparado para esta vista." />;
+  }
+  const client = reports.client_report;
+  if (view === "fuentes") {
+    return (
+      <AcreditacionSourcesWorkbench
+        reports={reports}
+        state={options.state}
+        activeTab={options.activeSourceTab ?? "survey"}
+        onStateChange={options.onStateChange}
+        onSourceTabChange={(tab) => options.onNavigateLocalTab?.("fuentes", tab)}
+      />
+    );
+  }
   if (view === "consultas") {
     return (
       <AcreditacionConsultasPanel
@@ -17901,11 +18370,19 @@ function renderAcreditacionView(
     );
   }
   if (view === "telefonico") {
+    // `kpis.valid` solo significa "efectivas telefónicas" en un estudio
+    // telefónico puro. En acreditación multiactor son TODAS las filas del
+    // corte (universo + respuestas + barrido): en acrconta valían 1.277 y la
+    // supervisión las rotulaba "efectivas Kobo" y proponía muestrear el 30%
+    // (384) sobre un barrido que estaba en cero. Sin fuente propia se pasa 0 y
+    // la vista dice S/D, nunca otro denominador.
+    const esEstudioTelefonico = isTelefonicoMonitoreoState(options.state);
     return renderPhoneView(
       reports,
       options.activePhoneTab ?? "resumen",
-      num(options.state?.dashboard?.kpis?.valid, 0),
-      isTelefonicoMonitoreoState(options.state),
+      esEstudioTelefonico ? num(options.state?.dashboard?.kpis?.valid, 0) : 0,
+      esEstudioTelefonico,
+      options.state?.sources ?? [],
     );
   }
   const isPhoneModel = isTelefonicoMonitoreoState(options.state);
@@ -18007,15 +18484,23 @@ function activeSourceCount(state: MonitoreoState | null) {
   return (state?.sources ?? []).filter((source) => source.enabled).length;
 }
 
-type AcreditacionRailStatus = NonNullable<MonitoreoWorkbenchRailTab["status"]>;
+type AcreditacionRailStatus = NonNullable<MonitoreoWorkbenchRailTab["estado"]>;
 
 function countText(count: number, singular: string, plural = `${singular}s`) {
   return `${fmt(count)} ${count === 1 ? singular : plural}`;
 }
 
+/**
+ * Estado de una pestaña del rail.
+ *
+ * `ready` debe significar "el control se ejecutó y la evidencia está completa",
+ * no "hay filas": esa confusión era la que pintaba "4 actores con brecha" con el
+ * mismo verde que un corte cerrado. Cuando la pestaña no tiene configuración,
+ * usa `estadoVisual` directamente en vez de forzar un booleano.
+ */
 function readyStatus(ready: boolean, risk = false): AcreditacionRailStatus {
-  if (risk) return "risk";
-  return ready ? "ready" : "warning";
+  if (risk) return "bloqueado";
+  return ready ? "listo" : "parcial";
 }
 
 function railTab(
@@ -18024,7 +18509,7 @@ function railTab(
     | typeof ACREDITACION_CONSULTA_TABS[number]
     | typeof ACREDITACION_PHONE_TABS[number]
     | typeof ACREDITACION_ADVANCE_TABS[number],
-  patch: Partial<Pick<MonitoreoWorkbenchRailTab, "label" | "detail" | "badge" | "status">> = {},
+  patch: Partial<Pick<MonitoreoWorkbenchRailTab, "label" | "detail" | "badge" | "estado">> = {},
 ): MonitoreoWorkbenchRailTab {
   return { ...tab, ...patch };
 }
@@ -18051,15 +18536,14 @@ function acreditacionRailSourceStats(state: MonitoreoState | null, reports: Moni
 }
 
 function acreditacionRailModelStats(state: MonitoreoState | null, reports: MonitoreoAcreditacionReports | null) {
-  const client = reports?.client_report;
-  const actorRows = client?.actors?.length ? client.actors : rowsFromSheets(reports?.sheets ?? [], ["actor", "avance", "brecha"]);
+  const actorRoster = buildAcreditacionSourceActorRoster(state?.sources ?? []);
   const phoneQuotaRows = reports ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]) : [];
   const quotaVariables = uniqueDisplayValues(phoneQuotaRows.map((row) => phoneRowValue(row, ["Variable"], ""))).length;
   const phases = state?.config?.strategy_phases ?? [];
   const scheduleDraft = acreditacionScheduleDraftFromPhases(phases);
   const goals = state?.config?.goals?.filter((goal) => Number(goal.meta) > 0).length ?? 0;
   return {
-    actors: actorRows.length,
+    actors: actorRoster.length,
     goals,
     phases: phases.length,
     schedule: scheduleDraft.durationWeeks
@@ -18132,10 +18616,22 @@ function acreditacionRailAdvanceStats(state: MonitoreoState | null, reports: Mon
   const controlRows = client?.controls?.length ? client.controls : rowsFromSheets(reports?.sheets ?? [], ["control", "segmento", "meta"]);
   const phone = acreditacionRailPhoneStats(state, reports);
   const summary = stateFromReports(reports, num(state?.dashboard?.kpis?.total ?? state?.n_rows, 0), num(state?.dashboard?.kpis?.valid, 0), true);
+  // Contar filas no dice si el corte está sano. Estas tres medidas sí: cuántos
+  // actores siguen con brecha, cuántas fuentes están realmente conectadas y si
+  // el corte se generó completo. Sin ellas el rail pintaba verde por existir.
+  const cards = advanceCardsFromRows(actorRows as Array<Record<string, unknown>>, state?.config?.goals ?? []);
+  const totals = advanceTotals(cards);
+  const fuentesActivas = (state?.sources ?? []).filter((source) => source.enabled).length;
   return {
     actors: actorRows.length,
     sources: sourceRows.length,
     controls: controlRows.length,
+    actoresConBrecha: totals.brechas,
+    efectivas: totals.effective,
+    metasDeclaradas: totals.metas,
+    fuentesActivas,
+    fuentesDeclaradas: state?.sources?.length ?? 0,
+    corteCompleto: state?.generation_status === "complete",
     summary,
     phone,
   };
@@ -18174,19 +18670,19 @@ export function localTabsForAcreditacionView(
             ? `${countText(phoneStats.koboSources, "encuesta")} · ${phoneStats.phoneFilterConfigured ? "filtro listo" : "elige filtro"}`
             : "elige encuesta y filtro de efectiva",
           badge: phoneStats.koboSources ? fmt(phoneStats.koboSources) : undefined,
-          status: readyStatus(phoneStats.contract.platform.ready && phoneStats.phoneFilterConfigured),
+          estado: readyStatus(phoneStats.contract.platform.ready && phoneStats.phoneFilterConfigured),
         }),
         railTab(sheets, {
           label: "Base y barrido",
           detail: `${phoneStats.sheetReady}/2 Sheets · universo y estados`,
           badge: `${phoneStats.sheetReady}/2`,
-          status: readyStatus(phoneStats.sheetReady === 2),
+          estado: readyStatus(phoneStats.sheetReady === 2),
         }),
         railTab(active, {
           label: "Paquete",
           detail: `${phoneStats.sourceReady}/3 fuentes · corte local`,
           badge: `${phoneStats.sourceReady}/3`,
-          status: readyStatus(phoneStats.sourceReady === 3),
+          estado: readyStatus(phoneStats.sourceReady === 3),
         }),
       ];
     }
@@ -18196,25 +18692,25 @@ export function localTabsForAcreditacionView(
         label: "Plataforma",
         detail: sourceStats.platform ? `${countText(sourceStats.platformEnabled, "activa")} · respuestas` : "conecta encuestas",
         badge: sourceStats.platform ? fmt(sourceStats.platform) : undefined,
-        status: readyStatus(sourceStats.platformEnabled > 0),
+        estado: readyStatus(sourceStats.platformEnabled > 0),
       }),
       railTab(sheets, {
         label: "Bases",
         detail: sourceStats.sheets ? `${countText(sourceStats.sheetsEnabled, "activa")} · universo` : "conecta Sheets",
         badge: sourceStats.sheets ? fmt(sourceStats.sheets) : undefined,
-        status: readyStatus(sourceStats.sheetsEnabled > 0),
+        estado: readyStatus(sourceStats.sheetsEnabled > 0),
       }),
       railTab(collectors, {
         label: "Recopiladores",
         detail: sourceStats.collectors ? `${countText(sourceStats.collectors, "enlace")} · inclusión` : "vincula enlaces",
         badge: sourceStats.collectors ? fmt(sourceStats.collectors) : undefined,
-        status: readyStatus(sourceStats.collectors > 0),
+        estado: readyStatus(sourceStats.collectors > 0),
       }),
       railTab(active, {
         label: "Estado",
         detail: `${sourceStats.enabled}/${sourceStats.total || 0} fuentes · ${countText(sourceStats.reportSources, "fila")}`,
         badge: sourceStats.total ? `${sourceStats.enabled}/${sourceStats.total}` : undefined,
-        status: readyStatus(sourceStats.total > 0 && sourceStats.enabled === sourceStats.total),
+        estado: readyStatus(sourceStats.total > 0 && sourceStats.enabled === sourceStats.total),
       }),
     ];
   }
@@ -18229,19 +18725,19 @@ export function localTabsForAcreditacionView(
             ? `${countText(modelStats.phoneQuotaVariables, "variable")} · metas Kobo`
             : "define metas por variable",
           badge: modelStats.phoneQuotaRows ? fmt(modelStats.phoneQuotaRows) : undefined,
-          status: readyStatus(modelStats.phoneQuotaRows > 0),
+          estado: readyStatus(modelStats.phoneQuotaRows > 0),
         }),
         railTab(schedule, {
           label: "Cronograma",
           detail: modelStats.schedule,
           badge: modelStats.phases ? fmt(modelStats.phases) : undefined,
-          status: readyStatus(modelStats.phases > 0),
+          estado: readyStatus(modelStats.phases > 0),
         }),
         railTab(summary, {
           label: "Lectura",
           detail: `${phoneStats.sourceReady}/3 fuentes · ${countText(phoneStats.totals.total, "caso")}`,
           badge: `${phoneStats.sourceReady}/3`,
-          status: readyStatus(phoneStats.sourceReady === 3),
+          estado: readyStatus(phoneStats.sourceReady === 3),
         }),
       ];
     }
@@ -18249,18 +18745,18 @@ export function localTabsForAcreditacionView(
       railTab(structure, {
         detail: modelStats.actors ? `${countText(modelStats.actors, "actor")} · ${countText(modelStats.goals, "meta")}` : "define actores y metas",
         badge: modelStats.actors ? fmt(modelStats.actors) : undefined,
-        status: readyStatus(modelStats.actors > 0 || modelStats.goals > 0),
+        estado: readyStatus(modelStats.actors > 0 || modelStats.goals > 0),
       }),
       railTab(schedule, {
         detail: modelStats.schedule,
         badge: modelStats.phases ? fmt(modelStats.phases) : undefined,
-        status: readyStatus(modelStats.phases > 0),
+        estado: readyStatus(modelStats.phases > 0),
       }),
       railTab(summary, {
         label: "Lectura",
         detail: `${sourceStats.enabled}/${sourceStats.total || 0} fuentes · sin editar`,
         badge: sourceStats.total ? `${sourceStats.enabled}/${sourceStats.total}` : undefined,
-        status: readyStatus(sourceStats.enabled > 0),
+        estado: readyStatus(sourceStats.enabled > 0),
       }),
     ];
   }
@@ -18275,24 +18771,31 @@ export function localTabsForAcreditacionView(
       railTab(platform, {
         detail: cases.length ? `${countText(cases.length, "caso")} · respuestas` : "sin casos trazados",
         badge: cases.length ? fmt(cases.length) : undefined,
-        status: readyStatus(cases.length > 0),
+        estado: readyStatus(cases.length > 0),
       }),
       railTab(base, {
         detail: `${countText(caseSummary.pending, "pendiente")} · base`,
         badge: caseSummary.pending ? fmt(caseSummary.pending) : undefined,
-        status: readyStatus(cases.length > 0),
+        estado: readyStatus(cases.length > 0),
       }),
       railTab(crosses, {
         detail: `${countText(caseSummary.effective, "efectiva")} · cruce`,
         badge: caseSummary.effective ? fmt(caseSummary.effective) : undefined,
-        status: readyStatus(caseSummary.effective > 0),
+        estado: readyStatus(caseSummary.effective > 0),
       }),
       railTab(fixes, {
         detail: issues ? `${countText(issues, "alerta")} · revisar` : "sin alertas",
         badge: issues ? fmt(issues) : undefined,
-        status: readyStatus(!issues, issues > 0),
+        estado: readyStatus(!issues, issues > 0),
       }),
     ];
+  }
+
+  if (view === "telefonico" && route.family !== "telefonico" && !hasAcreditacionPhoneSourceActors(state?.sources ?? [])) {
+    return ACREDITACION_PHONE_TABS.map((tab) => railTab(tab, {
+      detail: "sin actores con canal Telefónico en Fuentes",
+      estado: "sin-configurar",
+    }));
   }
 
   if (view === "telefonico" && phoneStats) {
@@ -18304,31 +18807,31 @@ export function localTabsForAcreditacionView(
           ? `${fmt(phoneStats.comparison.matchedEffective)} coinciden · ${fmt(phoneStats.comparison.mismatch)} dif.`
           : `${fmt(phoneStats.totals.effective)} efectivas declaradas`,
         badge: phoneStats.comparisonRows ? fmt(phoneStats.comparisonRows) : undefined,
-        status: readyStatus(phoneStats.comparisonRows > 0, phoneStats.comparison.mismatch > 0),
+        estado: readyStatus(phoneStats.comparisonRows > 0, phoneStats.comparison.mismatch > 0),
       }),
       railTab(day, {
         label: "Ritmo diario",
         detail: `${countText(phoneStats.dailyRows, "día", "días")} · ${fmt(phoneStats.platformEffective)} Kobo`,
         badge: phoneStats.dailyRows ? fmt(phoneStats.dailyRows) : undefined,
-        status: readyStatus(phoneStats.dailyRows > 0),
+        estado: readyStatus(phoneStats.dailyRows > 0),
       }),
       railTab(incidence, {
         label: "Sin efectiva",
         detail: `${fmt(phoneStats.totals.incidents)} sin efectiva · ${fmt(phoneStats.totals.unswept)} por barrer`,
         badge: phoneStats.pendingRows ? fmt(phoneStats.pendingRows) : undefined,
-        status: phoneStats.totals.incidents || phoneStats.totals.unswept ? "warning" : "ready",
+        estado: phoneStats.totals.incidents || phoneStats.totals.unswept ? "parcial" : "listo",
       }),
       railTab(responsible, {
         label: "Responsables",
         detail: `${countText(phoneStats.totals.responsables || phoneStats.responsibleRows, "persona")} · carga`,
         badge: phoneStats.totals.responsables ? fmt(phoneStats.totals.responsables) : undefined,
-        status: readyStatus(phoneStats.responsibleRows > 0),
+        estado: readyStatus(phoneStats.responsibleRows > 0),
       }),
       railTab(alerts, {
         label: "Alertas reales",
         detail: phoneStats.alerts ? countText(phoneStats.alerts, "alerta localizada", "alertas localizadas") : "sin alertas activas",
         badge: phoneStats.alerts ? fmt(phoneStats.alerts) : undefined,
-        status: readyStatus(!phoneStats.alerts, phoneStats.alerts > 0),
+        estado: readyStatus(!phoneStats.alerts, phoneStats.alerts > 0),
       }),
       railTab(supervision, {
         label: "Supervisión",
@@ -18336,7 +18839,7 @@ export function localTabsForAcreditacionView(
           ? `${fmt(phoneStats.comparison.mismatch)} diferencias priorizadas`
           : `${fmt(phoneStats.totals.effective)} efectivas para control`,
         badge: phoneStats.comparison.mismatch ? fmt(phoneStats.comparison.mismatch) : undefined,
-        status: readyStatus(phoneStats.totals.effective > 0, phoneStats.comparison.mismatch > 0),
+        estado: readyStatus(phoneStats.totals.effective > 0, phoneStats.comparison.mismatch > 0),
       }),
     ];
   }
@@ -18349,19 +18852,19 @@ export function localTabsForAcreditacionView(
           label: "Diario general",
           detail: `${countText(phoneStats.platformEffective, "efectiva")} · ritmo Kobo`,
           badge: phoneStats.platformEffective ? fmt(phoneStats.platformEffective) : undefined,
-          status: readyStatus(phoneStats.platformEffective > 0 && phoneStats.phoneFilterConfigured),
+          estado: readyStatus(phoneStats.platformEffective > 0 && phoneStats.phoneFilterConfigured),
         }),
         railTab(actors, {
           label: "Cuotas",
           detail: phoneStats.quotaRows ? `${countText(phoneStats.quotaRows, "celda")} · pendientes` : "sin cuotas leídas",
           badge: phoneStats.quotaRows ? fmt(phoneStats.quotaRows) : undefined,
-          status: readyStatus(phoneStats.quotaRows > 0),
+          estado: readyStatus(phoneStats.quotaRows > 0),
         }),
         railTab(surveys, {
           label: "Contexto",
           detail: `${countText(phoneStats.platformEffective, "efectiva")} · barrido paralelo`,
           badge: phoneStats.platformEffective ? fmt(phoneStats.platformEffective) : undefined,
-          status: readyStatus(phoneStats.platformEffective > 0),
+          estado: readyStatus(phoneStats.platformEffective > 0),
         }),
         railTab(detail, {
           label: "CodPulso",
@@ -18369,39 +18872,71 @@ export function localTabsForAcreditacionView(
             ? `${countText(phoneStats.comparison.mismatch, "diferencia")} · revisar`
             : "coincidencia barrido-Kobo",
           badge: phoneStats.comparison.mismatch ? fmt(phoneStats.comparison.mismatch) : undefined,
-          status: readyStatus(!phoneStats.comparison.mismatch, phoneStats.comparison.mismatch > 0),
+          estado: readyStatus(!phoneStats.comparison.mismatch, phoneStats.comparison.mismatch > 0),
         }),
         railTab(outputs, {
           label: "Salidas",
           detail: "publica PDF y hojas de avance",
-          status: state?.has_snapshot ? "ready" : "muted",
+          estado: state?.has_snapshot ? "listo" : "sin-configurar",
         }),
       ];
     }
+    // Cada estado se deriva de evidencia, no de "hay filas". Antes las cinco
+    // pestañas se pintaban de verde en cuanto el corte traía cualquier fila, y
+    // por eso "actores con brecha" se leía igual que "corte cerrado".
+    const corteAvance = corteAcreditacionDeReports(state, reports);
+    const readinessAvance = readinessDeSalidas(corteAvance);
     return [
       railTab(summary, {
         detail: `${fmt(advanceStats.summary.effective)} efectivas · ${fmt(advanceStats.summary.universe)} universo`,
         badge: advanceStats.summary.effective ? fmt(advanceStats.summary.effective) : undefined,
-        status: readyStatus(advanceStats.summary.effective > 0),
+        estado: estadoVisual({
+          configurado: Boolean(state?.has_snapshot),
+          evaluado: corteAvance.oficial != null,
+          completo: advanceStats.corteCompleto && corteAvance.brecha === 0,
+        }),
       }),
       railTab(actors, {
-        detail: `${countText(advanceStats.actors, "actor")} · brechas`,
-        badge: advanceStats.actors ? fmt(advanceStats.actors) : undefined,
-        status: readyStatus(advanceStats.actors > 0),
+        detail: advanceStats.actoresConBrecha
+          ? `${countText(advanceStats.actoresConBrecha, "actor")} con brecha`
+          : `${countText(advanceStats.actors, "actor")} sin brecha`,
+        // El badge cuenta lo que hay que atender, no lo que existe.
+        badge: advanceStats.actoresConBrecha ? fmt(advanceStats.actoresConBrecha) : undefined,
+        estado: estadoVisual({
+          configurado: advanceStats.actors > 0,
+          evaluado: advanceStats.metasDeclaradas > 0,
+          completo: advanceStats.actoresConBrecha === 0,
+        }),
       }),
       railTab(surveys, {
-        detail: `${countText(advanceStats.sources, "fuente")} · canales`,
+        detail: advanceStats.fuentesDeclaradas
+          ? `${advanceStats.fuentesActivas}/${advanceStats.fuentesDeclaradas} fuentes activas`
+          : "sin fuentes declaradas",
         badge: advanceStats.sources ? fmt(advanceStats.sources) : undefined,
-        status: readyStatus(advanceStats.sources > 0),
+        estado: estadoVisual({
+          configurado: advanceStats.fuentesDeclaradas > 0,
+          evaluado: advanceStats.sources > 0,
+          completo: advanceStats.fuentesDeclaradas > 0
+            && advanceStats.fuentesActivas === advanceStats.fuentesDeclaradas,
+        }),
       }),
       railTab(detail, {
         detail: `${countText(advanceStats.controls, "control")} · reglas`,
         badge: advanceStats.controls ? fmt(advanceStats.controls) : undefined,
-        status: readyStatus(advanceStats.controls > 0),
+        estado: estadoVisual({
+          configurado: advanceStats.controls > 0,
+          // Un control que no se ejecutó sobre el corte no es "correcto": es
+          // "no evaluado".
+          evaluado: advanceStats.controls > 0 && advanceStats.corteCompleto,
+          completo: advanceStats.controls > 0 && advanceStats.corteCompleto,
+        }),
       }),
       railTab(outputs, {
-        detail: "publica PDF y hojas cliente",
-        status: state?.has_snapshot ? "ready" : "muted",
+        detail: readinessAvance.puedePublicarCliente
+          ? "publica PDF y hojas cliente"
+          : readinessAvance.bloqueos[0]?.mensaje ?? "corte sin publicar",
+        badge: readinessAvance.bloqueos.length ? String(readinessAvance.bloqueos.length) : undefined,
+        estado: readinessAvance.estado,
       }),
     ];
   }
@@ -18452,7 +18987,7 @@ function AcreditacionWorkbenchRail({
       statusItems={[
         {
           label: "Última actualización",
-          value: syncedAt ? formatDate(syncedAt) : "Sin actualización",
+          value: syncedAt || "Sin actualización",
           ready: Boolean(syncedAt),
         },
       ]}
@@ -18464,11 +18999,13 @@ function AcreditacionWorkbenchRail({
 function AcreditacionWorkbenchHead({
   route,
   seccionActiva,
+  pestanaActiva,
   state,
   reports,
 }: {
   route: typeof ACREDITACION_ROUTE;
   seccionActiva: MonitoreoSeccion;
+  pestanaActiva?: string;
   state: MonitoreoState | null;
   reports: MonitoreoAcreditacionReports | null;
 }) {
@@ -18480,20 +19017,27 @@ function AcreditacionWorkbenchHead({
   const summary = stateFromReports(reports, num(state?.dashboard?.kpis?.total ?? state?.n_rows, 0), num(state?.dashboard?.kpis?.valid, 0), preferActors);
   const valid = num(state?.dashboard?.kpis?.valid, 0) || summary.effective;
   const mechanisms = state?.config?.strategy_phases?.length ?? 0;
-  const actorCount = reports?.client_report?.actors?.length ?? 0;
+  const actorCount = buildAcreditacionSourceActorRoster(state?.sources ?? []).length;
   const lastPill = seccionActiva === "modelo"
     ? `${fmt(actorCount)} actores`
     : `${fmt(mechanisms)} mecanismos`;
+
+  // El nombre y el estado de la pestaña activa se dicen acá: el rail es
+  // icon-only y su cuadrante no lleva rótulo ni marcas.
+  const pestanas = localTabsForAcreditacionView(seccionActiva, state, reports, route);
+  const pestanaDef = pestanas.find((tab) => tab.key === pestanaActiva);
 
   return (
     <MonitoreoWorkbenchHead
       icon={Icon}
       eyebrow={`${route.shortLabel} · flujo actual`}
       title={meta.label}
+      pestanaLabel={pestanaDef?.label}
+      pestanaEstado={pestanaDef?.estado}
       detail={meta.desc}
       pills={[
         `${activeSources} fuentes`,
-        `${fmt(state?.n_rows ?? 0)} registros`,
+        `${fmt(state?.n_rows ?? 0)} en el snapshot`,
         `${fmt(valid)} válidas`,
         lastPill,
       ]}
@@ -18502,20 +19046,23 @@ function AcreditacionWorkbenchHead({
 }
 
 export function acreditacionPhoneStatusLegendItems(rows: Array<Record<string, unknown>>) {
-  return rows.map((row, index) => {
-    const label = phoneRowValue(row, ["Estado", "Estatus", "Indicador"], `Estado ${index + 1}`);
-    const value = phoneRowNumber(row, ["Casos", "Valor", "Total"], 0);
-    const tone = phoneStatusTone(label);
-    const palette = phoneStatusPalette(label);
-    return {
-      key: `${normalizeSourceMatch(label) || "estado"}-${index}`,
-      label,
-      value,
-      tone,
-      palette,
-    };
-  }).filter((item) => item.value > 0)
-    .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, "es"));
+  // La franja publicaba las once categorías crudas del cliente —truncadas, con
+  // puntos de color indistinguibles y con su error de tipeo incluido— en la
+  // superficie más visible del módulo. Ahora se agrupan en cinco familias
+  // operativas y el crudo viaja como detalle trazable en el tooltip.
+  const crudo = rows.map((row, index) => ({
+    label: phoneRowValue(row, ["Estado", "Estatus", "Indicador"], `Estado ${index + 1}`),
+    value: phoneRowNumber(row, ["Casos", "Valor", "Total"], 0),
+  }));
+
+  return acreditacionAgruparEstados(crudo).map((grupo) => ({
+    key: grupo.familia,
+    label: grupo.label,
+    value: grupo.value,
+    tone: grupo.tono,
+    palette: phoneStatusPalette(grupo.label),
+    detalle: grupo.detalle,
+  }));
 }
 
 function phoneSemanticToneClass(tone: ReturnType<typeof phoneStatusTone>) {
@@ -18536,7 +19083,9 @@ function AcreditacionSemanticStatusLegend({ rows }: { rows: Array<Record<string,
           key={item.key}
           className={phoneSemanticToneClass(item.tone)}
           style={{ "--clarity-accent": item.palette.color } as CSSProperties}
-          title={`${item.label}: ${fmt(item.value)}`}
+          title={item.detalle.length > 1
+            ? `${item.label}: ${fmt(item.value)}\n${item.detalle.map((d) => `· ${d.label}: ${fmt(d.value)}`).join("\n")}`
+            : `${item.label}: ${fmt(item.value)}`}
         >
           <i aria-hidden="true" />
           <em>{item.label}</em>
@@ -18547,12 +19096,24 @@ function AcreditacionSemanticStatusLegend({ rows }: { rows: Array<Record<string,
   );
 }
 
+const ETIQUETA_ESTADO_PESTANA: Record<NonNullable<MonitoreoWorkbenchRailTab["estado"]>, string> = {
+  "sin-configurar": "Sin configurar",
+  "no-evaluado": "No evaluado",
+  parcial: "Parcial",
+  bloqueado: "Bloqueado",
+  listo: "Listo",
+};
+
 function AcreditacionClarityStrip({
   seccionActiva,
+  pestanaActiva,
+  route,
   state,
   reports,
 }: {
   seccionActiva: MonitoreoSeccion;
+  pestanaActiva?: string;
+  route?: typeof ACREDITACION_ROUTE;
   state: MonitoreoState | null;
   reports: MonitoreoAcreditacionReports | null;
 }) {
@@ -18572,14 +19133,18 @@ function AcreditacionClarityStrip({
     ? phoneStatusSheetRows
     : groupedCaseRows(cases, internalCaseResponseStateValue, internalCaseResponseStateLabel);
   const phoneStatusTotal = phoneStatusRows.reduce((sum, row) => sum + phoneRowNumber(row, ["Casos", "Valor", "Total"], 0), 0);
+  // Sin fallback entre denominadores distintos. La cadena anterior era
+  // `phoneBaseFromReport || summary.universe || state?.n_rows`, y hacía que la
+  // MISMA etiqueta "Base tel." dijera 270 en Supervisión —donde el bloque
+  // `estatus_telefonico` resuelve— y 519 en Resumen y Responsables, donde caía
+  // al universo completo del estudio. Igual con "Por barrer": 16 real contra
+  // 90 "sin respuesta del universo". Si la fuente telefónica no resuelve, la
+  // franja dice S/D; nunca otro número.
   const phoneBaseFromReport = phoneSummaryValue(phoneSummaryRows, "total telefonico")
     ?? phoneSummaryValue(phoneSummaryRows, "total telefónico")
-    ?? phoneStatusTotal;
-  const phoneBaseTotal = phoneBaseFromReport
-    || summary.universe
-    || state?.n_rows
-    || 0;
-  const phonePendingTotal = phoneSummaryValue(phoneSummaryRows, "no barridos") ?? summary.unanswered;
+    ?? (phoneStatusSheetRows.length ? phoneStatusTotal : null);
+  const phoneBaseTotal = phoneBaseFromReport;
+  const phonePendingTotal = phoneSummaryValue(phoneSummaryRows, "no barridos");
   const platformCaseCount = cases.length;
   const platformHasReport = Boolean(
     platformCaseCount ||
@@ -18631,18 +19196,36 @@ function AcreditacionClarityStrip({
       { label: "Alertas", value: fmt(issueCount), hint: "casos de revisión", tone: issueCount ? "warning" : "ready", icon: ShieldAlert },
     ],
     telefonico: [
-      { label: "Base tel.", value: phoneBaseTotal ? fmt(phoneBaseTotal) : "Pendiente", hint: phoneRows.length ? "base de barrido" : "requiere corte", tone: phoneBaseTotal ? "base" : "warning", icon: PhoneCall },
+      { label: "Base tel.", value: phoneBaseTotal != null ? fmt(phoneBaseTotal) : "S/D", hint: phoneBaseTotal != null ? "base de barrido" : "sin bloque telefónico", tone: phoneBaseTotal ? "base" : "warning", icon: PhoneCall },
       { label: "Kobo", value: platformCaseCount ? fmt(platformCaseCount) : (platformHasReport ? "Listo" : "Pendiente"), hint: platformCaseCount ? "casos trazados" : "cruce no cargado", tone: platformHasReport ? "ready" : "warning", icon: Search },
-      { label: "Por barrer", value: fmt(phonePendingTotal), hint: "operación telefónica", tone: phonePendingTotal ? "pending" : "ready", icon: AlertCircle },
+      { label: "Por barrer", value: phonePendingTotal != null ? fmt(phonePendingTotal) : "S/D", hint: phonePendingTotal != null ? "operación telefónica" : "sin bloque telefónico", tone: phonePendingTotal ? "pending" : "ready", icon: AlertCircle },
     ],
     ocurrencias: [],
     calidad: [],
   };
   const items = itemsByView[seccionActiva] ?? itemsByView.fuentes;
   const clarityLabel = isPhoneState ? "Lectura operativa de monitoreo telefónico" : "Lectura operativa de acreditación";
+  // El embudo de efectividad deja de vivir solo en Avance › Salidas: es la
+  // frase que ordena todo el módulo y se lee desde cualquier sección.
+  const corte = corteAcreditacionDeReports(state, reports);
+
+  // El rail es icon-only y su cuadrante no lleva rótulo, así que el nombre de la
+  // pestaña activa y su readiness se dicen acá, en la franja de lectura.
+  const pestanaDef = route && pestanaActiva
+    ? localTabsForAcreditacionView(seccionActiva, state, reports, route).find((tab) => tab.key === pestanaActiva)
+    : undefined;
 
   return (
     <section className={`mon-clarity-strip is-${seccionActiva}`} aria-label={clarityLabel}>
+      {pestanaDef ? (
+        <p className="mon-workbench-head-tab mon-clarity-tab">
+          <strong>{pestanaDef.label}</strong>
+          {pestanaDef.estado && pestanaDef.estado !== "listo" ? (
+            <em data-estado={pestanaDef.estado}>{ETIQUETA_ESTADO_PESTANA[pestanaDef.estado]}</em>
+          ) : null}
+        </p>
+      ) : null}
+      <AcreditacionEmbudoCorte corte={corte} />
       <div className="mon-clarity-items">
         {items.map((item) => {
           const Icon = item.icon;
@@ -18658,7 +19241,9 @@ function AcreditacionClarityStrip({
           );
         })}
       </div>
-      {seccionActiva === "telefonico" ? <AcreditacionSemanticStatusLegend rows={phoneStatusRows} /> : null}
+      {seccionActiva === "telefonico" && (route?.family === "telefonico" || hasAcreditacionPhoneSourceActors(state?.sources ?? []))
+        ? <AcreditacionSemanticStatusLegend rows={phoneStatusRows} />
+        : null}
     </section>
   );
 }
@@ -18777,7 +19362,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       if (seq !== loadSeqRef.current || view !== activeViewRef.current) return;
       setError((e as Error).message);
     } finally {
-      if (seq === loadSeqRef.current) setLoading(false);
+      if (seq === loadSeqRef.current && view === activeViewRef.current) setLoading(false);
     }
   }, [clearScopeStateCache, prefetchBackgroundScopes, route.family]);
 
@@ -18951,8 +19536,15 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           : seccionActiva === "avance"
             ? activeAdvanceTab
             : "";
+  const navigateSection = useCallback((view: MonitoreoSeccion) => {
+    if (view === activeViewRef.current) return;
+    activeViewRef.current = view;
+    setActiveView(view);
+    if (view !== "avance") setActiveAdvanceTab("resumen");
+    void loadView(view);
+  }, [loadView]);
   useMonitoreoDireccion(seccionActiva, pestanaActiva || undefined, modoIdDesdeFamily(route.family), {
-    onSeccionPedida: setActiveView,
+    onSeccionPedida: navigateSection,
     // `changeLocalTab` ya valida la pestaña contra el catálogo de la sección.
     onPestanaPedida: (pestana, seccion) =>
       changeLocalTab(seccion, pestana as AcreditacionLocalTabKey),
@@ -18979,15 +19571,17 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   }, []);
   const navigateLocalTab = useCallback((view: MonitoreoSeccion, tab: AcreditacionLocalTabKey) => {
     changeLocalTab(view, tab);
-    if (view === activeViewRef.current) return;
-    activeViewRef.current = view;
-    setActiveView(view);
-    if (view !== "avance") setActiveAdvanceTab("resumen");
-    void loadView(view);
-  }, [changeLocalTab, loadView]);
+    navigateSection(view);
+  }, [changeLocalTab, navigateSection]);
+  const loadedReportScope = state?.dashboard?.acreditacion_reports?.report_scope;
+  const auditReady = !loading
+    && !error
+    && Boolean(state)
+    && (loadedReportScope === scopeForView(seccionActiva, isPhone ? "telefonico" : "acreditacion")
+      || loadedReportScope === "full");
 
   return (
-    <div className="mon-profile-canonical-shell" style={MODULE_TONES.monitoreo as CSSProperties}>
+    <div className="mon-profile-canonical-shell is-acreditacion-profile" style={MODULE_TONES.monitoreo as CSSProperties}>
         <PageFrame
           title={route.label}
         layout="workbench"
@@ -19000,7 +19594,8 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       >
         <span
           hidden
-          data-audit-ready="monitoreo-acreditacion"
+          data-audit-ready={auditReady ? "monitoreo-acreditacion" : undefined}
+          data-audit-loading={loading ? "true" : "false"}
           data-audit-has-dashboard={state?.dashboard ? "true" : "false"}
         />
         {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
@@ -19030,19 +19625,15 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           advanceSyncLabel="Avance"
           advanceSyncTitle={refreshTitle}
           onSyncAdvance={() => { void runProfileSourceSync("advance"); }}
-          onCambioSeccion={(view) => {
-            if (view === seccionActiva) return;
-            activeViewRef.current = view;
-            setActiveView(view);
-            if (view !== "avance") setActiveAdvanceTab("resumen");
-            void loadView(view);
-          }}
+          onCambioSeccion={navigateSection}
         />
 
         <MonitoreoWorkbenchChrome
           seccionActiva={seccionActiva}
           ariaLabel={`Mesa de trabajo de acreditación: ${activeDef.label}`}
           className="is-acreditacion"
+          contentRole="tabpanel"
+          contentAriaLabelledBy={`monitoreo-${seccionActiva}-tab-${pestanaActiva}`}
           rail={(
             <AcreditacionWorkbenchRail
               route={route}
@@ -19058,6 +19649,8 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           clarity={(
             <AcreditacionClarityStrip
               seccionActiva={seccionActiva}
+              pestanaActiva={pestanaActiva}
+              route={route}
               state={state}
               reports={reports}
             />

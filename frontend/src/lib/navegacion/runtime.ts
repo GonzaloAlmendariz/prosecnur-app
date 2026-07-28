@@ -70,7 +70,9 @@ export function estadoListo(): EstadoListo {
 // modo, de la sección y a veces del estado del proyecto. Importarlas al
 // manifiesto arrastraría el bundle entero de Monitoreo a `lib/`, y copiarlas
 // produciría un segundo catálogo que se desincroniza — que es exactamente lo
-// que ya pasó con `monitoreoSectionTabs.ts`.
+// que pasó con `monitoreoSectionTabs.ts`, retirado el 2026-07-26: declaraba
+// pestañas de acreditación (Sheets, SurveyMonkey, Recopiladores,
+// Reconciliación) que ya no existían y que no consumía nadie.
 //
 // Así que las contribuye la vista montada: el manifiesto estático da módulos,
 // modos y secciones; la vista activa completa sus pestañas. El inspector

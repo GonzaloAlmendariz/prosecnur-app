@@ -403,13 +403,14 @@ export function TerritorialRouteCoverageMap({
                 );
               })}
             </g>
-            <text className="mon-territorial-route-coverage-caption" x="18" y={LIMA_MAP_HEIGHT - 18}>
-              {caption}
-            </text>
           </svg>
         ) : (
           <MapEmptyState title="Sin geometria territorial" hint="No hay distritos o zonas para dibujar en este corte." />
         )}
+        {/* El pie del mapa era un <text> del SVG anclado al viewBox: se recortaba
+            contra el borde y perdía la mitad de la frase, sin elipsis que lo
+            avisara. Como HTML se ancla al visor y respeta el ancho real. */}
+        {caption ? <p className="mon-territorial-route-coverage-caption" aria-hidden="true">{caption}</p> : null}
         {showLoading ? (
           <span className="mon-territorial-route-map-loading">
             <Loader2 size={13} className="pulso-spin" /> {mode === "selection" ? "Cargando manzanas" : "Cargando zonas"}

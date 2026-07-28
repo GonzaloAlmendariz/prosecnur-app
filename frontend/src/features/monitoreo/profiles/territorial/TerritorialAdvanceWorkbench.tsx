@@ -33,6 +33,7 @@ import type {
 } from "../../../../api/client";
 import { EmptyState } from "../../../../components/States";
 import { PlotlyChart } from "../../../../lib/PlotlyChart";
+import { textoAvance, textoSobrecumplimiento } from "../../corte/corteContract";
 import {
   buildTerritorialRouteCoverageModel,
 } from "../../routeCoverageModel";
@@ -62,7 +63,7 @@ import {
   type TerritorialSelectedMapFeature,
 } from "./TerritorialRouteCoverageAtlas";
 
-type TerritorialAdvanceTab = "resumen" | "ump" | "ritmo";
+type TerritorialAdvanceTab = "resumen" | "distritos" | "ump" | "ritmo";
 
 type AdvanceSummary = {
   total: number;
@@ -168,6 +169,24 @@ const ADVANCE_GPS_LEGEND = [
   { key: "geo_sin_gps", label: "Sin GPS" },
 ] as const;
 
+/**
+ * Etiqueta corta del criterio de validez.
+ *
+ * `field_label` trae el enunciado literal del XLSForm, y en estudios reales eso
+ * es una frase completa ("Si está de acuerdo con continuar con la encuesta, por
+ * favor, confirmar") que inunda una tarjeta de KPI. Se prefiere el nombre de la
+ * variable cuando el enunciado no cabe: es corto, trazable y no compite con el
+ * dato. El enunciado íntegro sigue disponible en el `title`.
+ */
+export function etiquetaCriterio(fieldLabel?: string | null, field?: string | null) {
+  const label = (fieldLabel ?? "").trim();
+  const nombre = (field ?? "").trim();
+  if (label && label.length <= 44) return label;
+  if (nombre) return nombre;
+  if (label) return `${label.slice(0, 41).trimEnd()}…`;
+  return "criterio configurado";
+}
+
 function TerritorialAdvanceWorkbenchImpl({
   pestanaActiva,
   reports,
@@ -191,7 +210,8 @@ function TerritorialAdvanceWorkbenchImpl({
   const mapLayers = useTerritorialAdvanceMapLayers(reports, blocks);
   const distributions = useMemo(() => buildAdvanceDistributions(reports), [reports]);
   const demographicQuota = useMemo(() => buildDemographicQuotaProgress(reports), [reports]);
-  const criterionLabel = reports?.source_validity?.field_label || reports?.source_validity?.field || "criterio configurado";
+  const criterionLabel = etiquetaCriterio(reports?.source_validity?.field_label, reports?.source_validity?.field);
+  const criterionTitle = reports?.source_validity?.field_label || reports?.source_validity?.field || "";
   const phaseLabel = reports?.active_route_phase === "pilot" ? "Piloto operativo" : "Campo real";
   const cutLabel = syncedAt || reports?.generated_at ? formatDate(syncedAt || reports?.generated_at || "") : "Sin corte";
 
@@ -209,11 +229,13 @@ function TerritorialAdvanceWorkbenchImpl({
     <div className="mon-stage mon-stage--avance">
       <div className="mon-stage-stack mon-stage-stack--dashboard">
         <section className="mon-advance-panel mon-territorial-panel" aria-label="Tablero de campo territorial">
-          {tab === "resumen" ? (
+          {tab === "resumen" || tab === "distritos" ? (
             <TerritorialAdvanceSummary
+              vista={tab === "distritos" ? "distritos" : "resumen"}
               advance={advance}
               blocks={blocks}
               criterionLabel={criterionLabel}
+              criterionTitle={criterionTitle}
               cutLabel={cutLabel}
               districts={districts}
               umpStack={umpStack}
@@ -261,9 +283,11 @@ function TerritorialAdvanceWorkbenchImpl({
 }
 
 function TerritorialAdvanceSummary({
+  vista,
   advance,
   blocks,
   criterionLabel,
+  criterionTitle,
   cutLabel,
   districts,
   umpStack,
@@ -274,9 +298,12 @@ function TerritorialAdvanceSummary({
   onOpenDistrict,
   onOpenUmp,
 }: {
+  /** «resumen» = cómo vamos; «distritos» = dónde estamos. */
+  vista: "resumen" | "distritos";
   advance: AdvanceSummary;
   blocks: TerritorialBlockProgress[];
   criterionLabel: string;
+  criterionTitle?: string;
   cutLabel: string;
   districts: TerritorialDistrictProgress[];
   umpStack: TerritorialExecutiveUmpStack;
@@ -290,12 +317,14 @@ function TerritorialAdvanceSummary({
   const priorities = buildAdvancePriorities(districts, blocks);
   const activeDistricts = districts.filter((row) => numberOrZero(row.validas) > 0).length;
   return (
-    <section className="mon-territorial-tab-panel mon-territorial-exec mon-territorial-tab-panel--summary" aria-label="Resumen ejecutivo de avance territorial">
+    <section className="mon-territorial-tab-panel mon-territorial-exec mon-territorial-tab-panel--summary" aria-label={vista === "resumen" ? "Resumen ejecutivo de avance territorial" : "Cobertura y cuotas por distrito"}>
       <header className="mon-territorial-exec-commandbar">
         <div>
           <span><MapPin size={14} /> Corte territorial</span>
           <strong>{phaseLabel} · {cutLabel}</strong>
         </div>
+        {/* La banda de corte es común a las dos vistas: sin ella, «Distritos»
+            perdería de qué corte está hablando. */}
         {/* Válidas y avance ya viven en la banda del módulo (arriba) y en el KPI
             (abajo): repetirlos acá hacía que 107% apareciera cinco veces y
             1.283 cuatro en la misma pantalla. Esta banda se queda solo con lo
@@ -305,19 +334,26 @@ function TerritorialAdvanceSummary({
           {selectedDistrict !== "todos" ? <span>Distrito filtrado</span> : null}
         </div>
       </header>
-      <div className="mon-territorial-exec-canvas">
-        <div className="mon-territorial-exec-side">
-          <TerritorialExecutiveProgressPanel advance={advance} criterionLabel={criterionLabel} cutLabel={cutLabel} districtCount={districts.length} />
-          <TerritorialExecutiveUmpPanel stack={umpStack} />
-        </div>
-        <TerritorialExecutiveDistrictBoard
-          rows={districts}
-          selectedDistrict={selectedDistrict}
-          onOpenDistrict={onOpenDistrict}
-        />
-        <TerritorialExecutiveDemographics sex={distributions.sex} age={distributions.age} quotaProgress={demographicQuota} />
-        <TerritorialExecutivePriorities groups={priorities} onOpenDistrict={onOpenDistrict} onOpenUmp={onOpenUmp} />
-        <TerritorialExecutiveOperationalCut advance={advance} criterionLabel={criterionLabel} />
+      <div className={`mon-territorial-exec-canvas is-${vista}`}>
+        {vista === "resumen" ? (
+          <>
+            <div className="mon-territorial-exec-side">
+              <TerritorialExecutiveProgressPanel advance={advance} criterionLabel={criterionLabel} criterionTitle={criterionTitle} cutLabel={cutLabel} districtCount={districts.length} />
+              <TerritorialExecutiveUmpPanel stack={umpStack} />
+            </div>
+            <TerritorialExecutivePriorities groups={priorities} onOpenDistrict={onOpenDistrict} onOpenUmp={onOpenUmp} />
+            <TerritorialExecutiveOperationalCut advance={advance} criterionLabel={criterionLabel} />
+          </>
+        ) : (
+          <>
+            <TerritorialExecutiveDistrictBoard
+              rows={districts}
+              selectedDistrict={selectedDistrict}
+              onOpenDistrict={onOpenDistrict}
+            />
+            <TerritorialExecutiveDemographics sex={distributions.sex} age={distributions.age} quotaProgress={demographicQuota} />
+          </>
+        )}
       </div>
     </section>
   );
@@ -326,22 +362,30 @@ function TerritorialAdvanceSummary({
 function TerritorialExecutiveProgressPanel({
   advance,
   criterionLabel,
+  criterionTitle,
   cutLabel,
   districtCount,
 }: {
   advance: AdvanceSummary;
   criterionLabel: string;
+  criterionTitle?: string;
   cutLabel: string;
   districtCount: number;
 }) {
   const pct = clamp(advance.avancePct ?? 0, 0, 100);
+  // La barra se recortaba a 100 pero el número seguía imprimiendo el valor real,
+  // así que un 107% aparecía sin explicación. Sobre-cumplir es una noticia y se
+  // dice con palabras, no dejando que el usuario deduzca la diferencia.
+  const sobrecumplimiento = textoSobrecumplimiento(advance.validas, advance.meta);
   return (
     <section className="mon-territorial-exec-progress" aria-label="Estado general del campo">
       <div className="mon-territorial-exec-progress-main">
         <div>
           <span>Estado general del campo</span>
-          <strong>{formatMetric(advance.validas)}</strong>
-          <em>válidas actuales</em>
+          {/* El número nunca viaja sin su denominador: "1.283 válidas" a secas
+              es lo que permitía que cada superficie mostrara un total distinto. */}
+          <strong>{textoAvance(advance.validas, advance.meta)}</strong>
+          <em>{advance.meta != null ? "válidas sobre la meta" : "válidas actuales · sin meta declarada"}</em>
         </div>
         <figure
           className="mon-territorial-exec-ring"
@@ -352,6 +396,9 @@ function TerritorialExecutiveProgressPanel({
           <span>avance</span>
         </figure>
       </div>
+      {sobrecumplimiento ? (
+        <p className="mon-territorial-exec-progress-overshoot">{sobrecumplimiento}</p>
+      ) : null}
       <div className="mon-territorial-exec-progress-track">
         <i style={{ width: `${pct}%` }} />
       </div>
@@ -361,7 +408,9 @@ function TerritorialExecutiveProgressPanel({
         <div><dt>Distritos</dt><dd>{formatMetric(districtCount)}</dd></div>
         <div className="is-cutoff"><dt>Corte</dt><dd>{cutLabel}</dd></div>
       </dl>
-      <p>Avance calculado con {criterionLabel}. Los estados técnicos explican el corte, pero no compiten con el cumplimiento territorial.</p>
+      {/* El párrafo largo se comió el espacio del bloque de hechos hasta hacerlo
+          desaparecer bajo el recorte. Dice lo mismo en una línea. */}
+      <p title={criterionTitle || undefined}>Criterio de válidas: {criterionLabel}</p>
     </section>
   );
 }
@@ -511,6 +560,31 @@ function TerritorialExecutiveDemographics({
 }) {
   if (quotaProgress.configured) {
     const summary = quotaProgress.summary;
+    // Con las cuotas cerradas, este bloque ocupaba 538px para repetir "0 brecha"
+    // en cuatro sub-bloques, y empujaba Prioridades y Corte operativo fuera del
+    // pliegue —justo lo que sí requiere decisión—. El espacio debe ser
+    // proporcional a la información: sin brecha, una franja; con brecha, el
+    // detalle completo de dónde está.
+    const sinBrecha = (summary.missing ?? 0) === 0
+      && summary.completeBuckets === summary.totalBuckets;
+
+    if (sinBrecha) {
+      return (
+        <section
+          className="mon-territorial-exec-demographics is-cerrada"
+          aria-label="Cuotas de sexo y edad cerradas"
+        >
+          <span><Layers3 size={14} /> Cuotas sexo/edad</span>
+          <strong>Cerradas</strong>
+          <em>
+            {formatMetric(summary.completeBuckets)}/{formatMetric(summary.totalBuckets)} segmentos ·
+            {" "}{formatMetric(summary.achieved)} de {formatMetric(summary.target)} casos ·
+            {" "}sin brecha en {formatMetric(summary.districtCount)} distritos
+          </em>
+        </section>
+      );
+    }
+
     return (
       <section className="mon-territorial-exec-demographics" aria-label="Avance agregado por cuotas de sexo y edad">
         <header>
@@ -862,6 +936,9 @@ function TerritorialAdvanceUmpSection({
   const [selectedKey, setSelectedKey] = useState("");
   const [selectedResponseId, setSelectedResponseId] = useState("");
   const [mapFocusToken, setMapFocusToken] = useState(0);
+  // Capa activa del único mapa de la pestaña. Arranca en UMP porque es la capa
+  // operativa; "zonas" es la lectura agregada.
+  const [mapLayer, setMapLayer] = useState<"ump" | "zonas">("ump");
   const sourceBlocks = useMemo(() => {
     const mapBlocks = Array.isArray(reports.map?.blocks) ? reports.map.blocks : [];
     const source = mapBlocks.length ? mapBlocks : blocks;
@@ -950,13 +1027,6 @@ function TerritorialAdvanceUmpSection({
   };
   return (
     <section className="mon-territorial-tab-panel mon-territorial-tab-panel--ump-map" aria-label="Mapa y UMP territorial">
-      <section className="mon-territorial-route-atlas-map-panel mon-territorial-advance-zone-panel" aria-label="Mapa territorial de zonas con cierre sin puntos GPS">
-        <header>
-          <span><MapPin size={13} /> Zonas con cierre</span>
-          <strong>{formatMetric(effectiveRouteZoneCount)} zonas · {formatMetric(effectiveRouteBlocks.length)} UMP completas</strong>
-        </header>
-        <TerritorialRouteCoverageMap coverage={routeCoverage} blocks={sourceBlocks} reports={reports} mode="effective-zones" />
-      </section>
       <div className="mon-territorial-ump-toolbar" aria-label="Filtros de UMP">
         <label className="mon-query-search">
           <Search size={14} />
@@ -998,32 +1068,67 @@ function TerritorialAdvanceUmpSection({
         />
       </div>
       <div className="mon-territorial-ump-map-layout">
-        <section className="mon-territorial-ump-map-pane" aria-label="Mapa territorial interactivo de UMP">
+        <section className="mon-territorial-ump-map-pane" data-map-layer={mapLayer} aria-label="Mapa territorial interactivo de UMP">
           <header className="mon-territorial-ump-map-head">
             <div>
-              <span><MapPin size={14} /> Mapa UMP</span>
-              <strong>{selected ? advanceBlockLabel(selected) : "Sin UMP seleccionada"}</strong>
-              <em>{visible.length ? `${formatMetric(visible.length)} manzanas filtradas · ${formatMetric(visibleGpsPoints.length)} puntos GPS · ${selectedDistrictLabel} · ${phaseLabel}` : "Sin manzanas con los filtros activos"}</em>
+              <span><MapPin size={14} /> Mapa territorial</span>
+              <strong>
+                {mapLayer === "zonas"
+                  ? `${formatMetric(effectiveRouteZoneCount)} zonas · ${formatMetric(effectiveRouteBlocks.length)} UMP completas`
+                  : selected ? advanceBlockLabel(selected) : "Sin UMP seleccionada"}
+              </strong>
+              <em>
+                {mapLayer === "zonas"
+                  ? "Cierre por zona, sin puntos GPS"
+                  : visible.length
+                    ? `${formatMetric(visible.length)} manzanas filtradas · ${formatMetric(visibleGpsPoints.length)} puntos GPS · ${selectedDistrictLabel} · ${phaseLabel}`
+                    : "Sin manzanas con los filtros activos"}
+              </em>
+            </div>
+            {/* Antes esta pestaña apilaba dos mapas completos, uno debajo del
+                otro, y obligaba a recorrer más de mil píxeles para compararlos.
+                Comparten un solo espacio y se conmutan. */}
+            <div className="mon-territorial-ump-map-layers" role="group" aria-label="Capa del mapa">
+              <button
+                type="button"
+                aria-pressed={mapLayer === "ump"}
+                className={mapLayer === "ump" ? "is-active" : ""}
+                onClick={() => setMapLayer("ump")}
+              >
+                UMP y GPS
+              </button>
+              <button
+                type="button"
+                aria-pressed={mapLayer === "zonas"}
+                className={mapLayer === "zonas" ? "is-active" : ""}
+                onClick={() => setMapLayer("zonas")}
+              >
+                Zonas con cierre
+              </button>
             </div>
           </header>
-          <TerritorialAdvanceUmpMap
-            blocks={sourceBlocks}
-            visibleBlocks={visible}
-            selectedBlock={selected}
-            gpsPoints={visibleGpsPoints}
-            mapGpsPoints={mapGpsPoints}
-            gpsSummary={gpsSummary}
-            selectedPointId={selectedResponseId}
-            gpsLayerLoading={gpsLayerLoading}
-            gpsLayerError={gpsLayerError}
-            focusToken={mapFocusToken}
-            onSelectBlock={selectBlock}
-            onSelectPoint={(point) => {
-              setSelectedResponseId(stringOrEmpty(point.response_id));
-              const matchingBlock = visible.find((block) => territorialAdvancePointMatchesIndex(point, buildAdvanceBlockMatchIndex([block]), false));
-              if (matchingBlock) selectBlock(matchingBlock, false);
-            }}
-          />
+          {mapLayer === "zonas" ? (
+            <TerritorialRouteCoverageMap coverage={routeCoverage} blocks={sourceBlocks} reports={reports} mode="effective-zones" />
+          ) : (
+            <TerritorialAdvanceUmpMap
+              blocks={sourceBlocks}
+              visibleBlocks={visible}
+              selectedBlock={selected}
+              gpsPoints={visibleGpsPoints}
+              mapGpsPoints={mapGpsPoints}
+              gpsSummary={gpsSummary}
+              selectedPointId={selectedResponseId}
+              gpsLayerLoading={gpsLayerLoading}
+              gpsLayerError={gpsLayerError}
+              focusToken={mapFocusToken}
+              onSelectBlock={selectBlock}
+              onSelectPoint={(point) => {
+                setSelectedResponseId(stringOrEmpty(point.response_id));
+                const matchingBlock = visible.find((block) => territorialAdvancePointMatchesIndex(point, buildAdvanceBlockMatchIndex([block]), false));
+                if (matchingBlock) selectBlock(matchingBlock, false);
+              }}
+            />
+          )}
         </section>
         <TerritorialUmpMapNavigator
           blocks={visible}
@@ -1031,8 +1136,6 @@ function TerritorialAdvanceUmpSection({
           selectedDistrictLabel={selectedDistrictLabel}
           onSelectBlock={selectBlock}
         />
-      </div>
-      <div className="mon-territorial-ump-support-grid">
         <section className="mon-territorial-ump-detail" aria-label="Detalle de UMP seleccionada">
           {selected ? (
             <>
@@ -1068,6 +1171,12 @@ function TerritorialAdvanceUmpSection({
             <div className="mon-territorial-audit-empty">Sin manzanas con esos filtros.</div>
           )}
         </section>
+      </div>
+      <details className="mon-territorial-ump-table-disclosure">
+        <summary>
+          <span>Tabla completa de UMP</span>
+          <strong>{formatMetric(visible.length)} registros</strong>
+        </summary>
         <div className="mon-territorial-ump-table-wrap">
           <table className="mon-territorial-ump-table" aria-label="Tabla operativa de UMP y manzanas">
             <thead>
@@ -1087,7 +1196,7 @@ function TerritorialAdvanceUmpSection({
                 const rowKey = advanceBlockStableKey(row);
                 const selectedRow = rowKey === selectedKey;
                 return (
-                  <tr key={rowKey} className={selectedRow ? "is-selected" : ""} onClick={() => selectBlock(row)}>
+                  <tr key={rowKey} className={selectedRow ? "is-selected" : ""}>
                     <td>
                       <strong>{row.ump || "S/D"}</strong>
                       <small>{[row.distrito || "Sin distrito", row.zona ? `Zona ${row.zona}` : "", row.manzana ? `Mz ${row.manzana}` : row.id_manzana].filter(Boolean).join(" · ")}</small>
@@ -1109,10 +1218,8 @@ function TerritorialAdvanceUmpSection({
                       <button
                         type="button"
                         className="mon-territorial-ump-row-action"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          selectBlock(row);
-                        }}
+                        aria-pressed={selectedRow}
+                        onClick={() => selectBlock(row)}
                       >
                         Seleccionar
                       </button>
@@ -1126,7 +1233,7 @@ function TerritorialAdvanceUmpSection({
             </tbody>
           </table>
         </div>
-      </div>
+      </details>
     </section>
   );
 }
@@ -1643,7 +1750,16 @@ function TerritorialAdvanceUmpMap({
                       key={pointId}
                       className={`mon-territorial-map-point-node ${advancePointGeoClass(point)} is-${point.geoDisposition}${selected ? " is-selected" : ""}`}
                       transform={`translate(${projected.x.toFixed(2)} ${projected.y.toFixed(2)}) scale(${pointScale.toFixed(6)})`}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Seleccionar punto GPS: ${territorialAdvancePointDetail(point)}`}
                       onClick={(event) => {
+                        event.stopPropagation();
+                        onSelectPoint(point);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") return;
+                        event.preventDefault();
                         event.stopPropagation();
                         onSelectPoint(point);
                       }}
@@ -1657,9 +1773,6 @@ function TerritorialAdvanceUmpMap({
                 })}
               </g>
             </g>
-            <text className="mon-territorial-route-coverage-caption" x="18" y={LIMA_MAP_HEIGHT - 18}>
-              Arrastra o usa trackpad para moverte · Ctrl+rueda o botones para zoom · click enfoca detalle
-            </text>
           </svg>
         ) : (
           <div className="mon-territorial-route-map-placeholder">
@@ -1687,19 +1800,29 @@ function TerritorialAdvanceUmpMap({
           {backgroundMapLoading ? <span className="is-map-level">Completando manzanas</span> : null}
           {backgroundRichLayerLoading ? <span className="is-map-level">Completando calles</span> : null}
         </div>
+        {/* La ayuda de interacción vivía como <text> dentro del SVG, en
+            coordenadas del viewBox: al ceder alto el mapa, quedaba partida por
+            la mitad contra el borde. Como HTML se ancla al visor y no depende
+            de la escala de la cartografía. */}
+        <p className="mon-territorial-advance-map-hint" aria-hidden="true">
+          Arrastra o usa trackpad para moverte · Ctrl+rueda o botones para zoom · click enfoca detalle
+        </p>
         <TerritorialAdvanceMapFocusStrip
           selectedPoint={selectedGpsPoint}
           selectedBlock={selectedBlock}
           hasSelectedGeometry={Boolean(selectedFeature)}
         />
-        <div className="mon-territorial-advance-map-footer" aria-label="Resumen del mapa UMP">
-          <span className="is-ready"><strong>{formatMetric(completeCount)}</strong><em>completas</em></span>
-          <span className="is-warning"><strong>{formatMetric(incompleteCount)}</strong><em>incompletas</em></span>
-          <span><strong>{formatMetric(gpsSummary.en_zona)}</strong><em>GPS en zona</em></span>
-          <span><strong>{formatMetric(gpsSummary.en_distrito)}</strong><em>GPS fuera zona</em></span>
-          <span><strong>{formatMetric(gpsSummary.fuera_distrito + gpsSummary.sin_cruce + gpsSummary.sin_gps)}</strong><em>GPS revisión</em></span>
-          <span><strong>{formatMetric(mapFeatures.length)}</strong><em>manzanas mapa</em></span>
-        </div>
+      </div>
+      {/* Los conteos son datos del corte, no controles del mapa: salen del visor
+          —donde flotaban tapando la cartografía y se encimaban con la leyenda—
+          y pasan a ser una fila propia de la tarjeta, debajo del mapa. */}
+      <div className="mon-territorial-advance-map-footer" aria-label="Resumen del mapa UMP">
+        <span className="is-ready"><strong>{formatMetric(completeCount)}</strong><em>completas</em></span>
+        <span className="is-warning"><strong>{formatMetric(incompleteCount)}</strong><em>incompletas</em></span>
+        <span><strong>{formatMetric(gpsSummary.en_zona)}</strong><em>GPS en zona</em></span>
+        <span><strong>{formatMetric(gpsSummary.en_distrito)}</strong><em>GPS fuera zona</em></span>
+        <span><strong>{formatMetric(gpsSummary.fuera_distrito + gpsSummary.sin_cruce + gpsSummary.sin_gps)}</strong><em>GPS revisión</em></span>
+        <span><strong>{formatMetric(mapFeatures.length)}</strong><em>manzanas mapa</em></span>
       </div>
       {mapError ? <div className="mon-territorial-map-error">{mapError}</div> : null}
       {richLayerError ? <div className="mon-territorial-map-error">{richLayerError}</div> : null}
@@ -1827,7 +1950,6 @@ function TerritorialUmpMapNavigator({
   selectedDistrictLabel: string;
   onSelectBlock: (block: TerritorialBlockProgress, focusMap?: boolean) => void;
 }) {
-  const selectedBlock = blocks.find((block) => advanceBlockStableKey(block) === selectedBlockKey) ?? blocks[0] ?? null;
   return (
     <aside className="mon-territorial-ump-map-nav" aria-label="Manzanas del mapa">
       <header>
@@ -1838,19 +1960,6 @@ function TerritorialUmpMapNavigator({
         <em>{formatMetric(blocks.length)}</em>
       </header>
       <div>
-        {selectedBlock ? (
-          <div className="mon-territorial-ump-map-nav-focus" aria-label="Resumen de la manzana seleccionada">
-            <span><MapPin size={12} /> UMP seleccionada</span>
-            <strong>{advanceBlockLabel(selectedBlock)}</strong>
-            <em>{advanceBlockDetail(selectedBlock)}</em>
-            <dl>
-              <div><dt>Responsable</dt><dd>{selectedBlock.responsable || "Sin responsable"}</dd></div>
-              <div><dt>Avance</dt><dd>{formatMetric(selectedBlock.validas)} / {formatMetric(selectedBlock.meta)}</dd></div>
-              <div><dt>Brecha</dt><dd>{formatMetric(selectedBlock.brecha)}</dd></div>
-              <div><dt>Estado</dt><dd>{blockStatusLabel(blockStatus(selectedBlock))}</dd></div>
-            </dl>
-          </div>
-        ) : null}
         {blocks.length ? blocks.map((block) => {
           const key = advanceBlockStableKey(block);
           const selected = key === selectedBlockKey;
@@ -2159,7 +2268,11 @@ function TerritorialAdvanceRhythmSection({
   }), []);
   const chart = useMemo(() => buildTerritorialDailyChart(rows, targetTotal), [rows, targetTotal]);
   const latest = rows[rows.length - 1] ?? null;
-  const best = rows.reduce<TerritorialDailyDashboardRow | null>((current, row) => (!current || row.validas > current.validas ? row : current), null);
+  // El máximo de una serie en cero sigue siendo una fila, y antes se imprimía
+  // como "Mejor día válido: 0" —un logro de cero—. Un día sin válidas no es el
+  // mejor día: es la ausencia de días con válidas.
+  const bestRow = rows.reduce<TerritorialDailyDashboardRow | null>((current, row) => (!current || row.validas > current.validas ? row : current), null);
+  const best = bestRow && bestRow.validas > 0 ? bestRow : null;
   const pendingValid = Math.max(0, targetTotal - (latest?.cumulative_valid ?? 0));
   const pendingUmp = Math.max(0, umpTotal - (latest?.cumulative_complete_ump ?? 0));
   return (
@@ -2178,7 +2291,7 @@ function TerritorialAdvanceRhythmSection({
               data={chart.data}
               layout={chart.layout}
               config={chartConfig}
-              height={360}
+              height={320}
               ariaLabel="UMP completadas por día y acumuladas"
             />
           ) : (
@@ -2191,9 +2304,19 @@ function TerritorialAdvanceRhythmSection({
           )}
         </article>
         <aside className="mon-territorial-rhythm-side" aria-label="Resumen de ritmo diario">
-          <AdvanceMetric label="Válidas acumuladas" value={formatMetric(latest?.cumulative_valid ?? 0)} hint={latest ? `${formatPercentLabel(latest.cumulative_progress_pct)} de la meta` : "sin fechas"} tone="ready" />
+          <AdvanceMetric
+            label="Válidas acumuladas"
+            value={latest ? formatMetric(latest.cumulative_valid) : "S/D"}
+            hint={latest ? `de ${formatMetric(targetTotal)} de meta` : "sin fechas en el corte"}
+            tone={latest && latest.cumulative_valid > 0 ? "ready" : "base"}
+          />
           <AdvanceMetric label="Brecha meta" value={formatMetric(pendingValid)} hint={`meta ${formatMetric(targetTotal)}`} tone={pendingValid ? "warning" : "ready"} />
-          <AdvanceMetric label="Mejor día válido" value={best ? formatMetric(best.validas) : "S/D"} hint={best ? territorialDailyDateLabel(best) : "sin fecha"} tone="base" />
+          <AdvanceMetric
+            label="Mejor día válido"
+            value={best ? formatMetric(best.validas) : "Sin días con válidas"}
+            hint={best ? territorialDailyDateLabel(best) : "ningún día del corte registra válidas"}
+            tone="base"
+          />
           <AdvanceMetric label="UMP completas" value={formatMetric(latest?.cumulative_complete_ump ?? 0)} hint={latest ? `${formatMetric(pendingUmp)} pendientes de ${formatMetric(umpTotal)}` : "sin fechas"} tone="base" />
         </aside>
       </div>
@@ -2879,7 +3002,7 @@ function prettyLabel(value: string) {
 }
 
 function isAdvanceTab(value: unknown): value is TerritorialAdvanceTab {
-  return value === "resumen" || value === "ump" || value === "ritmo";
+  return value === "resumen" || value === "distritos" || value === "ump" || value === "ritmo";
 }
 
 function safePercent(value: number | null | undefined, total: number | null | undefined) {

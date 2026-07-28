@@ -1593,6 +1593,14 @@
     grid-template-columns: 1fr;
   }
 
+  .mon-outputs-targets-toggle {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    white-space: normal;
+  }
+
   .mon-outputs-side-stack {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1619,4 +1627,166 @@
   .mon-outputs-status small {
     white-space: normal;
   }
+}
+
+/* Readiness del corte (auditoría 2026-07-25).
+ * El panel de salidas mostraba estado y acciones como bloques independientes:
+ * "ESTADO Pendiente" arriba y botones habilitados abajo. Este bloque los une. */
+.mon-outputs-readiness {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--pulso-radius-md, 12px);
+  border: 1px solid var(--pulso-state-unchecked-border);
+  background: var(--pulso-state-unchecked-bg);
+}
+
+.mon-outputs-readiness.is-listo {
+  border-color: var(--pulso-state-ready-border);
+  background: var(--pulso-state-ready-bg);
+}
+
+.mon-outputs-readiness.is-bloqueado {
+  border-color: var(--pulso-state-blocked-border);
+  background: var(--pulso-state-blocked-bg);
+}
+
+.mon-outputs-readiness.is-parcial {
+  border-color: var(--pulso-state-partial-border);
+  background: var(--pulso-state-partial-bg);
+}
+
+.mon-outputs-readiness.is-sin-configurar {
+  border-color: var(--pulso-state-unset-border);
+  background: var(--pulso-state-unset-bg);
+}
+
+.mon-outputs-readiness__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mon-outputs-readiness__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  color: var(--pulso-state-unchecked-fg);
+}
+
+.mon-outputs-readiness.is-listo .mon-outputs-readiness__badge { color: var(--pulso-state-ready-fg); }
+.mon-outputs-readiness.is-bloqueado .mon-outputs-readiness__badge { color: var(--pulso-state-blocked-fg); }
+.mon-outputs-readiness.is-parcial .mon-outputs-readiness__badge { color: var(--pulso-state-partial-fg); }
+.mon-outputs-readiness.is-sin-configurar .mon-outputs-readiness__badge { color: var(--pulso-state-unset-fg); }
+
+.mon-outputs-readiness__head strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.mon-outputs-readiness__granos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.mon-outputs-readiness__granos > div {
+  display: grid;
+  gap: 1px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pulso-surface) 76%, transparent);
+  border: 1px solid var(--pulso-border-subtle, var(--pulso-border));
+}
+
+.mon-outputs-readiness__granos dt {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pulso-text-muted);
+}
+
+.mon-outputs-readiness__granos dd {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.mon-outputs-readiness__granos small {
+  font-size: 10px;
+  color: var(--pulso-text-muted);
+}
+
+.mon-outputs-readiness__granos .is-oficial {
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 34%, var(--pulso-border));
+}
+
+.mon-outputs-readiness__saltos,
+.mon-outputs-readiness__bloqueos {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-outputs-readiness__saltos li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.mon-outputs-readiness__saltos strong {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: var(--pulso-state-partial-fg);
+}
+
+.mon-outputs-readiness__bloqueos li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--pulso-text);
+}
+
+.mon-outputs-readiness__bloqueos svg {
+  flex: none;
+  color: var(--pulso-state-blocked-fg);
+}
+
+.mon-outputs-readiness__bloqueos span { flex: 1; }
+
+.mon-outputs-readiness__bloqueos button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mon-outputs-readiness__bloqueos button:hover {
+  border-color: var(--pulso-nav-selected);
+  color: var(--pulso-nav-selected);
 }

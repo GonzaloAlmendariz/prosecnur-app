@@ -639,6 +639,34 @@ function TerritorialSpatialReconciliationBatchDialog({
   onApply: () => Promise<void>;
   onOpenChange: (open: boolean) => void;
 }) {
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const applyingRef = useRef(applying);
+  applyingRef.current = applying;
+
+  useEffect(() => {
+    if (!open) return undefined;
+    restoreFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const focusFrame = window.requestAnimationFrame(() => closeButtonRef.current?.focus());
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || applyingRef.current) return;
+      event.preventDefault();
+      onOpenChange(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener("keydown", handleKeyDown);
+      const restoreTarget = restoreFocusRef.current;
+      restoreFocusRef.current = null;
+      window.requestAnimationFrame(() => {
+        if (restoreTarget?.isConnected) restoreTarget.focus();
+      });
+    };
+  }, [onOpenChange, open]);
+
   if (!open) return null;
   return (
     <>
@@ -661,7 +689,7 @@ function TerritorialSpatialReconciliationBatchDialog({
               Se aplicarán {formatMetric(changes.length)} cambios UMP espaciales.
             </p>
           </div>
-          <button type="button" aria-label="Cerrar confirmación" onClick={() => onOpenChange(false)} disabled={applying}>
+          <button ref={closeButtonRef} type="button" aria-label="Cerrar confirmación" onClick={() => onOpenChange(false)} disabled={applying}>
             <XCircle size={16} />
           </button>
         </header>
@@ -1335,8 +1363,17 @@ function TerritorialValidationGeoRouteMap({
                       key={point.response_id || `gps-${index}`}
                       className={`mon-territorial-map-point-node ${stateClass} is-${disposition}${selected ? " is-selected" : ""}`}
                       transform={`translate(${projected.x.toFixed(2)} ${projected.y.toFixed(2)}) scale(${pointScale.toFixed(6)})`}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Seleccionar punto GPS ${point.response_id || index + 1}: ${point.declared_ump_normalized || point.advance_block_ump || "UMP sin dato"}, ${point.responsible_display || point.submitted_by || "sin responsable"}`}
                       onPointerDown={(event) => event.stopPropagation()}
                       onClick={(event) => {
+                        event.stopPropagation();
+                        if (point.response_id) onFocusPoint(point.response_id);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") return;
+                        event.preventDefault();
                         event.stopPropagation();
                         if (point.response_id) onFocusPoint(point.response_id);
                       }}
@@ -1350,9 +1387,6 @@ function TerritorialValidationGeoRouteMap({
                 })}
               </g>
             </g>
-            <text className="mon-territorial-map-caption" x="18" y={MAP_HEIGHT - 18}>
-              {`${selectedLabel} · arrastra o usa trackpad para mover · Ctrl/Cmd+rueda para zoom suave · ${formatMetric(visiblePoints.length)} puntos visibles · ${formatMetric(routeBlocks.length)} manzanas`}
-            </text>
           </svg>
         ) : (
           <div className="mon-territorial-route-map-placeholder" role="status">
@@ -1361,6 +1395,12 @@ function TerritorialValidationGeoRouteMap({
             <em>No hay cartografia o puntos GPS para dibujar en este corte.</em>
           </div>
         )}
+        {/* El pie del mapa era un <text> del SVG anclado a `MAP_HEIGHT - 18`: se
+            recortaba contra el borde del viewBox y perdía media frase, sin
+            elipsis que lo avisara. Como HTML se ancla al visor. */}
+        <p className="mon-territorial-map-caption" aria-hidden="true">
+          {`${selectedLabel} · arrastra o usa trackpad para mover · Ctrl/Cmd+rueda para zoom suave · ${formatMetric(visiblePoints.length)} puntos visibles · ${formatMetric(routeBlocks.length)} manzanas`}
+        </p>
         {blockingMapLoading ? (
           <span className="mon-territorial-route-map-loading">
             <Loader2 size={13} className="pulso-spin" /> Cargando cartografia

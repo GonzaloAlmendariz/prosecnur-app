@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import {
   Clock,
   ContactRound,
@@ -113,6 +113,7 @@ function TerritorialReviewCasesWorkbenchImpl({
   onOperationalAdjustmentsReset?: () => Promise<number>;
   onOpenValidationCase?: (tab: TerritorialValidationTab, responseId?: string) => void;
 }) {
+  const stageRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState<TerritorialReviewFilters>(EMPTY_TERRITORIAL_REVIEW_FILTERS);
   const [copiedCaseId, setCopiedCaseId] = useState("");
   const durationConfig = useMemo(() => ({
@@ -132,6 +133,12 @@ function TerritorialReviewCasesWorkbenchImpl({
     if (!type || filters.type === type) return;
     setFilters((current) => ({ ...current, type }));
   }, [pestanaActiva, filters.type]);
+
+  useEffect(() => {
+    if (!showingOperationalAdjustments) return;
+    const scrollOwner = stageRef.current?.closest<HTMLElement>(".mon-workbench-content--consultas");
+    if (scrollOwner) scrollOwner.scrollTop = 0;
+  }, [showingOperationalAdjustments]);
 
   const patchFilters = (patch: Partial<TerritorialReviewFilters>) => {
     setFilters((current) => ({ ...current, ...patch }));
@@ -157,7 +164,7 @@ function TerritorialReviewCasesWorkbenchImpl({
   }
 
   return (
-    <div className="mon-stage mon-stage--consultas">
+    <div ref={stageRef} className="mon-stage mon-stage--consultas">
       <section className="mon-territorial-panel mon-territorial-review-panel" aria-label="Consultas internas territoriales">
         {!showingOperationalAdjustments ? (
           <section className="mon-territorial-review-hero" aria-label="Resumen de registros consultables">

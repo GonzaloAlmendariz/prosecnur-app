@@ -100,10 +100,24 @@ export type MonitoreoKoboSurveyLink = {
   resolved_from: string;
 };
 
+/**
+ * `meta` es el **mínimo a llegar**, no el objetivo: es el piso interno con el
+ * que el estudio se cubre. Lo que se persigue depende del actor y del acuerdo
+ * con el cliente, y eso lo declara `objetivo`:
+ *
+ * - `barrido`: el universo es barrible y se busca cubrirlo entero; el mínimo
+ *   solo actúa como piso de seguridad.
+ * - `minimo`: el universo no se puede barrer y el mínimo ES el acuerdo.
+ *
+ * Sin declaración, la lectura la sugiere el tamaño del universo.
+ */
+export type MonitoreoGoalObjetivo = "barrido" | "minimo";
+
 export type MonitoreoGoal = {
   filters: Record<string, string>;
   meta: number;
   meta_pct?: number | null;
+  objetivo?: MonitoreoGoalObjetivo | null;
 };
 
 export type MonitoreoReportWeekday = "lunes" | "martes" | "miercoles" | "jueves" | "viernes" | "sabado" | "domingo";

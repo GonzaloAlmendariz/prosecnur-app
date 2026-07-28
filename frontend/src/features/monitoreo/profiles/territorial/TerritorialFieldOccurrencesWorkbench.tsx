@@ -41,6 +41,8 @@ import {
   type MonitoreoTerritorialDashboard,
 } from "../../../../api/client";
 import { Panel } from "../../../../components/Panel";
+import { recorteTabla } from "../../corte/corteContract";
+import { OccurrenceSourceBar } from "./TerritorialOccurrencesSourceBar";
 import {
   buildOccurrenceDistrictSummary,
   buildOccurrenceRouteUmpRows,
@@ -51,7 +53,7 @@ import {
   type OccurrenceUmpAttentionStatus,
 } from "../../fieldOccurrences";
 
-type OccurrenceTab = "states" | "registro" | "ump" | "alerts" | "rhythm";
+type OccurrenceTab = "states" | "distritos" | "registro" | "ump" | "alerts" | "rhythm";
 type OccurrenceBusy = "" | "config" | "xlsform" | "upload" | "inspect" | "sync" | "ump-export";
 type OccurrenceAlertKind = "missing" | "observations" | "outside_route" | "high_non_effective";
 type OccurrenceAlertFilter = "todos" | OccurrenceAlertKind;
@@ -240,7 +242,7 @@ function occurrenceOutcomeColor(key: string) {
 }
 
 function isOccurrenceTab(value: unknown): value is OccurrenceTab {
-  return value === "states" || value === "registro" || value === "ump" || value === "alerts" || value === "rhythm";
+  return value === "states" || value === "distritos" || value === "registro" || value === "ump" || value === "alerts" || value === "rhythm";
 }
 
 function occurrenceRateLabel(summary: MonitoreoFieldOccurrenceDashboard["summary"]) {
@@ -789,17 +791,18 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
   return (
     <section className="mon-stage mon-stage--ocurrencias">
       <Panel className="mon-territorial-panel mon-field-occurrences">
+        <OccurrenceSourceBar
+          estado={configStatusLabel}
+          activa={active}
+          reportes={formatMetric(summary.total_records)}
+          ultimaSync={syncLabel}
+          formulario={config?.asset_name || config?.form_title || "OCURRENCIAS DE TRABAJO DE CAMPO"}
+        >
         <section className={`mon-field-occurrences-command ${active ? "is-active" : "is-empty"}`} aria-label="Formulario y acciones de ocurrencias">
           <div className="mon-field-occurrences-command-source">
             <span>{active ? "Formulario Kobo activo" : "Formulario por seleccionar"}</span>
             <strong>{config?.asset_name || config?.form_title || "OCURRENCIAS DE TRABAJO DE CAMPO"}</strong>
             <em>{active ? shortenMiddle(config?.asset_uid ?? "", 34) : "Genera el XLSForm o vincula el formulario desde la consola canonica"}</em>
-          </div>
-          <div className="mon-field-occurrences-command-metrics" aria-label="Resumen compacto de ocurrencias">
-            <span><strong>{formatMetric(summary.total_records)}</strong><em>reportes</em></span>
-            <span><strong>{formatMetric(coverageCounts.reported)}/{formatMetric(coverageCounts.expected)}</strong><em>UMP con registro</em></span>
-            <span><strong>{formatMetric(coverageCounts.missing)}</strong><em>{formatMetric(coverageCounts.validasMissing)} validas sin ocurrencias{coverageCounts.latestMissing ? ` · ${coverageCounts.latestMissing}` : ""}</em></span>
-            <span><strong>{formatMetric(summary.no_efectivas)}</strong><em>{rateLabel} no efectiva · {formatMetric(coverageCounts.replacementFamilies)} reemplazos usados como titular</em></span>
           </div>
           <div className="mon-field-occurrences-command-actions">
             <button type="button" className="pulso-button" onClick={() => setAssetPickerOpen((current) => !current)} disabled={disabled}>
@@ -962,12 +965,37 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
           </div>
         ) : null}
 
+        </OccurrenceSourceBar>
+
         {tab === "states" ? (
           <section className="mon-field-occurrences-overview is-summary">
+            {/* Estos cuatro conteos vivían dentro de la banda de configuración, que
+                es donde menos significan: cobertura y no efectividad son lectura del
+                campo, no estado del formulario. Bajan a Resumen, su pestaña
+                propietaria. */}
+            <div className="mon-field-occurrences-coverage-strip" aria-label="Cobertura de reportes de ocurrencia">
+              <span>
+                <strong>{formatMetric(coverageCounts.reported)}/{formatMetric(coverageCounts.expected)}</strong>
+                <em>UMP con registro</em>
+              </span>
+              <span className={coverageCounts.missing ? "is-warning" : ""}>
+                <strong>{formatMetric(coverageCounts.missing)}</strong>
+                <em>sin registro · {formatMetric(coverageCounts.validasMissing)} válidas sin ocurrencias</em>
+              </span>
+              <span>
+                <strong>{formatMetric(coverageCounts.replacementFamilies)}</strong>
+                <em>reemplazos usados como titular</em>
+              </span>
+            </div>
             <div className="mon-field-occurrences-state-grid">
               <OccurrenceStateComposition summary={summary} rateLabel={rateLabel} />
               <OccurrenceOutcomeBars items={topOutcomes} total={summary.no_efectivas} />
             </div>
+          </section>
+        ) : null}
+
+        {tab === "distritos" ? (
+          <section className="mon-field-occurrences-overview is-distritos" aria-label="Estados de ocurrencia por distrito">
             <OccurrenceDistrictMatrix rows={districtSummary} />
           </section>
         ) : null}
@@ -1018,26 +1046,12 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
               </div>
             </section>
 
-            <aside className="mon-field-occurrences-side is-alert-summary">
-              <section>
-                <header><BarChart3 size={15} /><strong>Tipos de ocurrencia</strong></header>
-                {topOutcomes.length ? topOutcomes.map((item) => (
-                  <div key={item.key} className="mon-field-occurrences-outcome">
-                    <span>{item.label}</span>
-                    <strong>{formatMetric(item.total)}</strong>
-                  </div>
-                )) : <em>Sin conteos sincronizados.</em>}
-              </section>
-              <section>
-                <header><Route size={15} /><strong>Cobertura</strong></header>
-                <OccurrenceAlertLine label="Sin reporte UMP" value={occurrences?.alerts?.missing_blocks?.length ?? 0} hint={startedNoOccurrenceRows.length ? occurrenceRowsAdvanceContext(startedNoOccurrenceRows) : undefined} />
-                <OccurrenceAlertLine label="Completas sin ocurrencias" value={completeNoOccurrenceRows.length} hint={completeNoOccurrenceRows.length ? occurrenceRowsAdvanceContext(completeNoOccurrenceRows) : undefined} />
-                <OccurrenceAlertLine label="Incompletas sin ocurrencias" value={incompleteNoOccurrenceRows.length} hint={incompleteNoOccurrenceRows.length ? occurrenceRowsAdvanceContext(incompleteNoOccurrenceRows) : undefined} />
-                <OccurrenceAlertLine label="Con observacion" value={occurrences?.alerts?.observations?.length ?? 0} />
-                <OccurrenceAlertLine label="Fuera de ruta" value={occurrences?.alerts?.outside_route?.length ?? 0} />
-                <OccurrenceAlertLine label="No efectividad alta" value={occurrences?.alerts?.high_non_effective?.length ?? 0} />
-              </section>
-            </aside>
+            {/* Acá vivía un lateral con «Tipos de ocurrencia» —los mismos siete
+                motivos que ya muestra Resumen, valor por valor— y «Cobertura»
+                —los mismos conteos de Reporte UMP—. Repetirlos costaba 394px de
+                contenido fuera de alcance en la pestaña que existe justamente
+                para trabajar los casos. Cada dato se queda en su pestaña
+                propietaria y desde acá se llega con un enlace. */}
           </section>
         ) : null}
 
@@ -1071,10 +1085,14 @@ function OccurrenceStateComposition({
       <header>
         <span><CheckCircle2 size={14} /> Estados generales</span>
       </header>
-      <div className="mon-field-occurrences-intents-card">
-        <span>Intentos reportados</span>
-        <strong>{formatMetric(totalAttempts)}</strong>
-        <em>{formatMetric(summary.efectivas)} efectivas · {formatMetric(summary.no_efectivas)} no efectivas</em>
+      {/* El número grande era «intentos reportados». Un intento no es un logro:
+          es el denominador. Lo que decide la operación —y lo que el equipo mira
+          para reaccionar— es qué proporción de esos intentos no llegó a
+          entrevista. Esa es la cifra que lidera, con su denominador al lado. */}
+      <div className="mon-field-occurrences-intents-card is-rate">
+        <span>Tasa de no efectividad</span>
+        <strong>{rateLabel}</strong>
+        <em>{formatMetric(summary.no_efectivas)} no efectivas de {formatMetric(totalAttempts)} intentos</em>
       </div>
       <div className="mon-field-occurrences-state-meter" aria-hidden="true">
         <span className="is-effective" style={{ width: `${effectivePct}%` }} />
@@ -1083,7 +1101,7 @@ function OccurrenceStateComposition({
       <div className="mon-field-occurrences-state-stats">
         <span className="is-effective"><strong>{formatMetric(summary.efectivas)}</strong><em>Efectivas</em></span>
         <span className="is-noneffective"><strong>{formatMetric(summary.no_efectivas)}</strong><em>No efectivas</em></span>
-        <span><strong>{rateLabel}</strong><em>Tasa no efectiva</em></span>
+        <span><strong>{formatMetric(totalAttempts)}</strong><em>Intentos</em></span>
         <span><strong>{formatMetric(summary.days_reported)}</strong><em>Dias</em></span>
       </div>
     </section>
@@ -1169,6 +1187,10 @@ function OccurrenceRhythmWorkspace({
   const totalAttempts = summary.intentos || summary.efectivas + summary.no_efectivas;
   const latestDay = [...rows].sort((a, b) => String(a.date).localeCompare(String(b.date), "es-PE")).at(-1);
   const peakDay = [...rows].sort((a, b) => (b.intentos || 0) - (a.intentos || 0))[0];
+  // El historial cortaba a 18 eventos sin decirlo: la memoria de la fuente es
+  // justo lo que se consulta cuando un conteo no cuadra, y perder eventos ahí en
+  // silencio es lo peor que puede pasar.
+  const recorteHistorial = recorteTabla(history, 18, "fila");
   return (
     <section className="mon-field-occurrences-body is-rhythm" data-occurrence-tab="rhythm">
       <OccurrenceDailyBars rows={rows} />
@@ -1180,14 +1202,15 @@ function OccurrenceRhythmWorkspace({
             <span><strong>{formatMetric(rows.length)}</strong><em>dias con reporte</em></span>
             <span><strong>{peakDay ? formatMetric(peakDay.intentos || 0) : "0"}</strong><em>pico diario{peakDay ? ` · ${peakDay.date_label || formatShortDate(peakDay.date)}` : ""}</em></span>
             <span><strong>{latestDay?.date_label || "S/D"}</strong><em>ultimo dia</em></span>
-            <span><strong>{configStatusLabel}</strong><em>formulario</em></span>
-            <span><strong>{syncLabel}</strong><em>ultima sincronizacion</em></span>
+            {/* «formulario» y «última sincronización» eran configuración dentro de
+                una pestaña operativa; ahora viven en la barra de fuente, visible
+                en las cinco pestañas. */}
           </div>
         </section>
         <section className="mon-field-occurrences-history">
           <header><Clock size={15} /><strong>Historial operativo</strong><em>{formatMetric(history.length)} eventos</em></header>
           <div className="mon-field-occurrences-history-list">
-            {history.slice(0, 18).map((entry) => (
+            {recorteHistorial.visibles.map((entry) => (
               <article key={entry.id}>
                 <div>
                   <strong>{entry.type || "evento"}</strong>
@@ -1198,6 +1221,11 @@ function OccurrenceRhythmWorkspace({
               </article>
             ))}
             {!history.length && <em>Sin eventos registrados.</em>}
+            {recorteHistorial.recortado ? (
+              <em className="mon-field-occurrences-history-recorte">
+                {recorteHistorial.etiqueta.replace("filas", "eventos")}
+              </em>
+            ) : null}
           </div>
         </section>
       </aside>
@@ -1216,7 +1244,11 @@ function OccurrenceDistrictMatrix({ rows }: { rows: OccurrenceDistrictSummary[] 
         </div>
         <em>Estados consolidados y motivo predominante</em>
       </header>
-      <div className="mon-field-occurrences-district-rows">
+      <div
+        className="mon-field-occurrences-district-rows"
+        data-qa-geometry-group="territorial-occurrence-districts"
+        data-qa-geometry-contract="equal"
+      >
         {rows.length ? rows.map((row) => {
           const intentos = Math.max(0, row.intentos || row.efectivas + row.no_efectivas);
           const effectivePct = intentos > 0 ? Math.max(0, Math.min(100, (row.efectivas / intentos) * 100)) : 0;
@@ -1229,7 +1261,11 @@ function OccurrenceDistrictMatrix({ rows }: { rows: OccurrenceDistrictSummary[] 
           const validasSinReporte = row.validas_sin_reporte ?? 0;
           const ultimoIngresoSinReporte = row.ultimo_ingreso_sin_reporte ?? "";
           return (
-            <article key={row.distrito || "sin-distrito"} className="mon-field-occurrences-district-row">
+            <article
+              key={row.distrito || "sin-distrito"}
+              className="mon-field-occurrences-district-row"
+              data-qa-geometry-member
+            >
               <div className="mon-field-occurrences-district-name">
                 <strong>{row.distrito || "Sin distrito"}</strong>
                 <span>{formatMetric(row.ump_reportadas)} reportadas · {formatMetric(row.ump_completas_sin_reporte ?? 0)} completas sin ocurrencias · {formatMetric(row.ump_incompletas_sin_reporte ?? 0)} incompletas · {formatMetric(validasSinReporte)} validas{ultimoIngresoSinReporte ? ` · ultimo ingreso ${ultimoIngresoSinReporte}` : ""}</span>
@@ -1447,7 +1483,10 @@ function OccurrenceRegisterWorkspace({ rows }: { rows: OccurrenceRouteUmpRow[] }
         <div>
           <span><FileCheck2 size={14} /> Reporte UMP</span>
           <strong>{formatMetric(counts.reported)} con reporte · {formatMetric(counts.missing)} sin reporte</strong>
-          <em>{formatMetric(filteredRows.length)} visibles de {formatMetric(counts.expected)} UMP oficiales · {formatMetric(counts.unreconciled)} controles por conciliar</em>
+          {/* Decía «151 visibles de 150 UMP oficiales»: más filas en pantalla que
+              universo, porque `expected` excluye las no conciliadas y la lista no.
+              El denominador ahora es el mismo universo que se está listando. */}
+          <em>{formatMetric(filteredRows.length)} visibles de {formatMetric(registerRows.length)} en la lista · {formatMetric(counts.expected)} UMP oficiales · {formatMetric(counts.unreconciled)} por conciliar</em>
         </div>
         <div className="mon-field-occurrences-register-kpis" aria-label="Resumen del registro UMP">
           <span className="is-total"><strong>{formatMetric(counts.expected)}</strong><em>UMP oficiales</em></span>
@@ -1541,7 +1580,6 @@ function OccurrenceUmpWorkspace({ rows, allRows, onExportUmp }: {
   const [outcomeFilter, setOutcomeFilter] = useState("todos");
   const [selectedId, setSelectedId] = useState("");
   const [detailOpen, setDetailOpen] = useState(false);
-  const [detailSide, setDetailSide] = useState<"left" | "right">("right");
   const districtOptions = useMemo(() => (
     Array.from(new Set(rows.map((row) => row.distrito).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es-PE"))
   ), [rows]);
@@ -1590,9 +1628,12 @@ function OccurrenceUmpWorkspace({ rows, allRows, onExportUmp }: {
     ? `${formatMetric(counts.expected)} UMP titulares · ${formatMetric(counts.sinConciliacion)} sin conciliacion · ${formatMetric(filteredRows.length)} visibles`
     : `${formatMetric(counts.expected)} UMP titulares · ${formatMetric(filteredRows.length)} visibles`;
 
-  const openDetail = useCallback((row: OccurrenceRouteUmpRow, index: number) => {
+  // El inspector cambiaba de lado según la paridad de la fila: abrir la UMP 22 lo
+  // ponía a la derecha y la 23 a la izquierda. Nada en el dato justifica el salto,
+  // y obliga a rastrear con la vista dónde apareció el detalle cada vez. Posición
+  // fija: siempre a la derecha, como el resto de inspectores del sistema.
+  const openDetail = useCallback((row: OccurrenceRouteUmpRow) => {
     setSelectedId(row.id);
-    setDetailSide(index % 2 === 0 ? "right" : "left");
     setDetailOpen(true);
   }, []);
 
@@ -1601,20 +1642,29 @@ function OccurrenceUmpWorkspace({ rows, allRows, onExportUmp }: {
       <header className="mon-field-occurrences-workspace-head">
         <div className="mon-field-occurrences-workspace-title">
           <span><Route size={14} /> Lista completa de UMP</span>
-          <strong>{formatMetric(counts.expected)} titulares · {formatMetric(counts.reportadas)} con registro · {formatMetric(counts.sinReporte)} sin registro</strong>
-          <em>{coverageSummary} · {formatMetric(counts.replacementFamilies)} con reemplazo usado como titular · {formatMetric(counts.expectedBlocks)} manzanas activas</em>
+          {/* El titular decía «150 titulares · 138 con registro · 12 sin registro»,
+              que es palabra por palabra el de Reporte UMP: dos pestañas con el
+              mismo encabezado y nada que explicara en qué se diferencian. Esta
+              lidera con el resultado de la ocurrencia, que es su eje propio;
+              el cumplimiento de entrega es el de la pestaña vecina. */}
+          <strong>{formatMetric(counts.efectivas)} efectivas · {formatMetric(counts.noEfectivas)} no efectivas</strong>
+          <em>Mismo universo que Reporte UMP ({formatMetric(counts.expected)} titulares); acá manda qué pasó dentro de cada una · {formatMetric(counts.expectedBlocks)} manzanas activas</em>
         </div>
-        <div className="mon-field-occurrences-workspace-stats" aria-label="Indicadores de cobertura UMP">
+        {/* Diez indicadores con el mismo peso no jerarquizan nada. Se separan los
+            que piden acción de los que solo dan contexto. */}
+        <div className="mon-field-occurrences-workspace-stats is-attention" aria-label="UMP que piden atención">
+          <span className="is-sin_reporte"><strong>{formatMetric(counts.sinReporte)}</strong><em>sin reporte</em></span>
+          <span className="is-completa_sin_reporte"><strong>{formatMetric(counts.completasSinReporte)}</strong><em>completas sin ocurrencias</em></span>
+          <span className="is-incompleta_sin_reporte"><strong>{formatMetric(counts.incompletasSinReporte)}</strong><em>incompletas sin ocurrencias</em></span>
+          <span className="is-iniciada_sin_reporte"><strong>{formatMetric(counts.validasSinReporte)}</strong><em>validas sin ocurrencias{counts.ultimaSinReporte ? ` · ${counts.ultimaSinReporte}` : ""}</em></span>
+          <span className="is-revisar_cruce"><strong>{formatMetric(counts.sinConciliacion)}</strong><em>sin conciliacion</em></span>
+        </div>
+        <div className="mon-field-occurrences-workspace-stats is-context" aria-label="Contexto de cobertura UMP">
           <span className="is-total"><strong>{formatMetric(counts.expected)}</strong><em>UMP titulares</em></span>
           <span className="is-reported"><strong>{formatMetric(counts.reportadas)}</strong><em>con registro</em></span>
           <span className="is-reportada_efectiva"><strong>{formatMetric(counts.efectivas)}</strong><em>efectivas</em></span>
           <span className="is-reportada_no_efectiva"><strong>{formatMetric(counts.noEfectivas)}</strong><em>no efectivas</em></span>
-          <span className="is-completa_sin_reporte"><strong>{formatMetric(counts.completasSinReporte)}</strong><em>completas sin ocurrencias</em></span>
-          <span className="is-incompleta_sin_reporte"><strong>{formatMetric(counts.incompletasSinReporte)}</strong><em>incompletas sin ocurrencias</em></span>
-          <span className="is-iniciada_sin_reporte"><strong>{formatMetric(counts.validasSinReporte)}</strong><em>validas sin ocurrencias{counts.ultimaSinReporte ? ` · ${counts.ultimaSinReporte}` : ""}</em></span>
           <span className="is-replacement"><strong>{formatMetric(counts.replacementFamilies)}</strong><em>reemplazo usado como titular</em></span>
-          <span className="is-revisar_cruce"><strong>{formatMetric(counts.sinConciliacion)}</strong><em>sin conciliacion</em></span>
-          <span className="is-sin_reporte"><strong>{formatMetric(counts.sinReporte)}</strong><em>sin reporte</em></span>
         </div>
       </header>
 
@@ -1661,7 +1711,7 @@ function OccurrenceUmpWorkspace({ rows, allRows, onExportUmp }: {
         ) : null}
       </div>
 
-      <div className={`mon-field-occurrences-board ${detailOpen && selectedRow ? `is-detail-open is-detail-${detailSide}` : ""}`}>
+      <div className={`mon-field-occurrences-board ${detailOpen && selectedRow ? "is-detail-open is-detail-right" : ""}`}>
         <section className="mon-field-occurrences-ump-index" aria-label="Lista operativa de UMP">
           <header>
             <div>
@@ -1671,13 +1721,13 @@ function OccurrenceUmpWorkspace({ rows, allRows, onExportUmp }: {
             <em>Ordenadas por estado y resultado</em>
           </header>
           <div className="mon-field-occurrences-ump-rows" role="listbox" aria-label="UMP esperadas y sin conciliacion">
-            {filteredRows.map((row, index) => (
-              <OccurrenceUmpListRow key={row.id} row={row} selected={detailOpen && row.id === selectedRow?.id} onSelect={() => openDetail(row, index)} />
+            {filteredRows.map((row) => (
+              <OccurrenceUmpListRow key={row.id} row={row} selected={detailOpen && row.id === selectedRow?.id} onSelect={() => openDetail(row)} />
             ))}
             {!filteredRows.length && <p className="mon-field-occurrences-connect-note">Sin UMP para estos filtros.</p>}
           </div>
         </section>
-        {detailOpen && selectedRow ? <OccurrenceUmpDetail row={selectedRow} side={detailSide} onClose={() => setDetailOpen(false)} /> : null}
+        {detailOpen && selectedRow ? <OccurrenceUmpDetail row={selectedRow} side="right" onClose={() => setDetailOpen(false)} /> : null}
       </div>
     </section>
   );
