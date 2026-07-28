@@ -371,6 +371,45 @@
   headers
 }
 
+# Timeouts del transporte HTTP hacia Hugging Face. Plumber atiende en un solo
+# hilo: un handle sin limite no cuelga solo la publicacion, cuelga el backend
+# entero (se observo /api/system/health respondiendo 500 detras de una llamada
+# colgada). Ambos caminos de curl son llamadas de control (crear el Space y
+# whoami); la subida de artefactos va por `git push`, que estos limites NO
+# cubren. El total holgado es margen para un HF lento, no una necesidad
+# medida. Overridables por env.
+.hf_api_timeout_seconds <- function(value = Sys.getenv("PROSECNUR_HF_TIMEOUT_SECONDS", unset = ""),
+                                    default = 180,
+                                    min_seconds = 10,
+                                    max_seconds = 1800) {
+  seconds <- suppressWarnings(as.numeric(value %||% default))
+  if (!is.finite(seconds) || seconds <= 0) seconds <- default
+  min(max_seconds, max(min_seconds, seconds))
+}
+
+.hf_api_connect_timeout_seconds <- function(timeout_seconds = .hf_api_timeout_seconds(),
+                                            value = Sys.getenv("PROSECNUR_HF_CONNECT_TIMEOUT_SECONDS", unset = "")) {
+  timeout_seconds <- .hf_api_timeout_seconds(timeout_seconds)
+  seconds <- suppressWarnings(as.numeric(value %||% min(10, timeout_seconds)))
+  if (!is.finite(seconds) || seconds <= 0) seconds <- min(10, timeout_seconds)
+  min(timeout_seconds, max(1, seconds))
+}
+
+# Constructor unico de handles hacia Hugging Face: ningun `curl::new_handle()`
+# suelto debe quedar en este archivo (lo verifica test-dashboard-publish-http.R).
+.hf_new_handle <- function(token, content_type = NULL) {
+  .dashboard_publish_require_curl()
+  h <- curl::new_handle()
+  timeout <- .hf_api_timeout_seconds()
+  curl::handle_setopt(
+    h,
+    timeout = timeout,
+    connecttimeout = .hf_api_connect_timeout_seconds(timeout)
+  )
+  do.call(curl::handle_setheaders, c(list(handle = h), as.list(.hf_headers(token, content_type))))
+  h
+}
+
 .hf_fail <- function(res, code, default_message) {
   body <- rawToChar(res$content %||% raw())
   msg <- default_message
@@ -389,8 +428,7 @@
   name <- parts[2]
   sdk <- .public_artifact_scalar(sdk, "docker")
   if (!sdk %in% c("docker", "static")) sdk <- "docker"
-  h <- curl::new_handle()
-  do.call(curl::handle_setheaders, c(list(handle = h), as.list(.hf_headers(token, "application/json"))))
+  h <- .hf_new_handle(token, "application/json")
   body <- jsonlite::toJSON(
     list(
       name = name,
@@ -478,8 +516,7 @@
 
 .hf_token_username <- function(token) {
   .dashboard_publish_require_curl()
-  h <- curl::new_handle()
-  do.call(curl::handle_setheaders, c(list(handle = h), as.list(.hf_headers(token))))
+  h <- .hf_new_handle(token)
   res <- curl::curl_fetch_memory("https://huggingface.co/api/whoami-v2", handle = h)
   if (res$status_code < 200L || res$status_code >= 300L) return("hf_user")
   parsed <- tryCatch(jsonlite::fromJSON(rawToChar(res$content %||% raw())), error = function(e) NULL)
