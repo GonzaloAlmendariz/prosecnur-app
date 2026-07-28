@@ -4,6 +4,107 @@ El agente raíz es el orquestador. Conserva el contexto del usuario, carga los
 skills, fija alcance y ownership, delega, une resultados y controla cualquier
 acción externa. Ningún especialista puede crear otros agentes.
 
+## Mapa mental
+
+Tres ideas sostienen todo el sistema:
+
+1. **Una sola fuente canónica**, y todo lo demás se genera. Editar un adaptador
+   es siempre un error.
+2. **Toda tarea entra por una ruta**, y toda ruta que toca código sale por
+   `verificador`. No hay atajo.
+3. **Lo declarado se comprueba contra la realidad.** `--check` valida forma;
+   `--audit` valida verdad. Verde por conformidad, nunca por ausencia.
+
+### Capas: qué se edita y qué se genera
+
+```mermaid
+flowchart TB
+  subgraph FUENTE["FUENTE CANÓNICA — se edita a mano"]
+    I["AGENTS.md · CLAUDE.md<br/>docs/loops-reparacion.md"]
+    S[".claude/skills/*/SKILL.md<br/>16 skills"]
+    A[".claude/agents/*.md<br/>13 agentes"]
+    M["agentic/manifest.json<br/>rutas · perfiles · límites · política"]
+  end
+  subgraph GEN["ADAPTADORES — generados, nunca editar"]
+    CS[".agents/skills/"]
+    CA[".codex/agents/"]
+  end
+  subgraph PROV["PROVEEDORES"]
+    CL["Claude<br/>subagentes · Agent Teams"]
+    CX["Codex<br/>4 hilos · depth 1"]
+  end
+  SY["sync-agentic-os.mjs"]
+  S --> SY
+  A --> SY
+  M --> SY
+  SY -->|--write| CS
+  SY -->|--write| CA
+  I --> CL
+  S --> CL
+  A --> CL
+  CS --> CX
+  CA --> CX
+  SY -.->|--check · forma| M
+  SY -.->|--audit · verdad| M
+```
+
+### Anatomía de una tarea
+
+```mermaid
+flowchart LR
+  U(["tarea"]) --> L["lead<br/>clasifica · scope-lock"]
+  L --> D["descubrir<br/>≤3 read-only en paralelo"]
+  D --> C["lead sintetiza<br/>congela contrato y ownership"]
+  C --> W["implementar<br/>≤2 writers · globs disjuntos"]
+  W --> R["revisar<br/>contratos · metodología · QA visual"]
+  R --> G["verificador<br/>SERIAL · gate final"]
+  G --> Z(["/cerrar-trabajo"])
+  G -.->|rechaza| C
+```
+
+Límites duros: **lead + 3 workers · máximo 2 writers · profundidad 1 · 1
+reintento**. Solo el lead delega. Un resultado incompleto nunca se sintetiza
+como aprobado.
+
+### Las 8 ramas
+
+| Rama | Código | Skills propios | Implementan | Gate |
+|---|:--:|---|---|---|
+| **construir** | sí | `scope-lock` `orquestar-trabajo` `dominio-prosecnur` `nucleo-metodologico` `contrato-superficie` `cerrar-trabajo` | `autor-regresiones` `backend-r` `frontend-react` | `verificador` |
+| **disenar** | sí | `scope-lock` `orquestar-trabajo` `revamp-visual` `contrato-superficie` `ver-ui` `cerrar-trabajo` | `autor-regresiones` `frontend-react` | `verificador` |
+| **entregables** | sí | `scope-lock` `orquestar-trabajo` `entregables-oficina` `jobs-asincronos` `cerrar-trabajo` | `autor-regresiones` `especialista-entregables` | `verificador` |
+| **integraciones** | sí | `scope-lock` `orquestar-trabajo` `dominio-prosecnur` `integraciones-datos` `jobs-asincronos` `cerrar-trabajo` | `autor-regresiones` `especialista-integraciones` `frontend-react` | `verificador` |
+| **desktop_release** | sí | `scope-lock` `orquestar-trabajo` `cerrar-trabajo` | `autor-regresiones` `desktop-packaging` | `verificador` |
+| **operar_repo** | sí | `orquestar-trabajo` `cerrar-trabajo` `publicar` `preparar-release` `notas-parche` `auditoria-deuda` | `curador-commits` | `verificador` |
+| **estudios_reales** | no | `orquestar-trabajo` `estudio-real` `dominio-prosecnur` | — | — |
+| **gobernar** | no | `orquestar-trabajo` `dominio-prosecnur` | — | — |
+
+Las dos rutas sin gate son las que no cambian código. Toda ruta con
+`code_change: true` termina en `verificador`; el sincronizador lo exige.
+
+### Los dos comprobadores
+
+| | `--check` | `--audit` |
+|---|---|---|
+| **Qué valida** | Forma | Verdad |
+| **Pregunta** | ¿está todo bien conectado? | ¿sigue siendo cierto lo que afirma? |
+| **Detecta** | adaptadores desincronizados, inventario, colisiones, rutas sin gate, límites, sandbox | archivos congelados que crecieron, monolitos nuevos sin gobierno, skills/agentes huérfanos, rutas y `make` targets citados que ya no existen |
+| **Historia** | — | `MonitoreoPage.tsx` siguió congelado tras borrarse mientras dos monolitos de ~20.000 líneas crecían con el CI en verde |
+
+Ambos corren en el job `Agentic OS` de `quality.yml`.
+
+### Dónde vive cada decisión
+
+| Pregunta | Fuente |
+|---|---|
+| ¿Qué rama es esta tarea? | `CLAUDE.md` |
+| ¿Qué carga y quién implementa? | `agentic/manifest.json` → `routes` |
+| ¿Qué puede editar este agente? | `manifest.json` → `agent_profiles` + `profiles` |
+| ¿Cómo se reparan bugs? | `docs/loops-reparacion.md` |
+| ¿Cómo debe verse una superficie? | `docs/ui-layout-grammar.md` → Contrato de Superficie |
+| ¿Qué archivos no pueden crecer? | `manifest.json` → `policy.frozen_growth_files` |
+| ¿Por qué se decidió así? | `docs/adrs/` |
+
 ## Fuente única y adaptadores
 
 - `AGENTS.md` da a Codex la autorización y los límites durables.
@@ -131,10 +232,26 @@ node agentic/sync-agentic-os.mjs --check --platform=none
 node --test agentic/tests/*.test.mjs
 ```
 
-El job `Agentic OS` del workflow de calidad ejecuta tests, smokes de política y
-el check reproducible. Cubre altas/bajas, inventario exacto, deriva, colisiones,
-referencias inexistentes, rutas sin gate, límites, sandbox read-only y settings
-híbridos de Claude.
+Auditoría sustantiva, complementaria al check estructural:
+
+```bash
+node agentic/sync-agentic-os.mjs --audit --platform=none
+```
+
+Comprueba lo que `--check` nunca miró: que los archivos congelados existan y no
+hayan crecido sobre su línea base, que ningún archivo sobre
+`policy.frozen_growth_threshold` quede sin gobierno, que no haya skills ni
+agentes declarados sin ruta, y que toda ruta de archivo o `make` target citado
+en los documentos de gobierno exista. Informa además la carga por ruta y avisa
+cuando una duplica la mediana. Crecer un congelado exige subir su línea base en
+`policy.frozen_growth_baseline` de forma deliberada; exentarlo exige razón en
+`policy.frozen_growth_exempt`.
+
+El job `Agentic OS` del workflow de calidad ejecuta tests, smokes de política,
+el check reproducible y la auditoría de gobierno. Cubre altas/bajas, inventario
+exacto, deriva, colisiones, referencias inexistentes, rutas sin gate, límites,
+sandbox read-only, settings híbridos de Claude, crecimiento de archivos
+congelados y huérfanos de ruta.
 
 Los smokes offline comprueban la política, no el runtime del proveedor. Los
 smokes live son opt-in, parten de un árbol sin cambios y registran IDs, inicio,
