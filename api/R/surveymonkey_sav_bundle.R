@@ -534,8 +534,17 @@
     if (!nzchar(kind)) next
     variable <- trimws(as.character(survey$name[[i]] %||% ""))
     if (!nzchar(variable) || !(variable %in% names(data))) next
-    list_name <- sub("^(select_one|select_multiple)\\s+", "", type, perl = TRUE)
-    list_name <- strsplit(list_name, "\\s+", perl = TRUE)[[1]][1] %||% ""
+    # `reporte_instrumento` mueve el nombre de la lista a su propia columna
+    # `list_name` (el `type` queda como "select_one" a secas); un XLSForm crudo
+    # la deja embebida en el `type` ("select_one sexo"). Preferir la columna
+    # dedicada cuando existe y sólo parsear el `type` como fallback.
+    list_name <- if ("list_name" %in% names(survey)) {
+      trimws(as.character(survey$list_name[[i]] %||% ""))
+    } else ""
+    if (!nzchar(list_name)) {
+      list_name <- sub("^(select_one|select_multiple)\\s+", "", type, perl = TRUE)
+      list_name <- strsplit(list_name, "\\s+", perl = TRUE)[[1]][1] %||% ""
+    }
     allowed <- unique(trimws(as.character(
       choices$name[as.character(choices$list_name) == list_name]
     )))

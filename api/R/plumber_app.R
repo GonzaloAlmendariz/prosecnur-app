@@ -33,6 +33,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_carga(pr)
     pr <- mount_processing_intake(pr)
     pr <- mount_processing_release(pr)
+    pr <- mount_acreditacion_sav(pr)
     pr <- mount_connections(pr)
     pr <- mount_xlsform_editor(pr)
     pr <- mount_surveymonkey_multibase(pr)
