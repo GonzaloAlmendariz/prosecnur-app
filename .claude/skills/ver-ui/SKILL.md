@@ -80,6 +80,7 @@ La app arranca en BootGate → elegir proyecto → clicks. Este skill salta todo
    window.__pulsoNav.hijos()              // qué cuelga de aquí
    window.__pulsoNav.listo()              // readiness real, no un sleep
    window.__pulsoNav.paneles()            // overlays declarados vs montados
+   window.__pulsoNav.pestanasDeLaSeccion() // catálogo runtime de la sección actual
    ```
 
    `ir()` conserva el proyecto abierto: saltar entre vistas no vuelve a pagar
@@ -101,6 +102,16 @@ Historial del repo: sesiones que abren previews y no los cierran → 5+ servers 
 
 ## Trampas
 
+- **Contaminación de navegación en barridos multi-celda.** Medido en un barrido
+  de 21 secciones: el segundo viewport heredaba la última pestaña visitada y el
+  lote entero hubo que descartarlo. Si recorres más de una celda: precalienta la
+  sección para que monte su catálogo antes de enumerar, exige
+  `actual === expectedActual` **en cada captura** (no solo al final) y elimina
+  resúmenes residuales antes de reintentar. Una dirección que "resolvió" no
+  prueba que la superficie montó: compara la marca de readiness real, no la ruta.
+- El catálogo de pestañas **no** es estático: lo publica la vista montada en
+  runtime. Enumera con `window.__pulsoNav.pestanasDeLaSeccion()`, nunca desde una
+  matriz histórica — duplicar ese catálogo ya produjo una copia desincronizada.
 - `?pulso=` solo funciona en dev build; en producción/Electron no existe.
 - Si el backend se reinició, el `sid` del browser muere (`E_NO_SESSION`) — la app se auto-recupera, pero el proyecto hay que re-abrirlo: vuelve a navegar con `?pulso=`.
 - Vista con datos pesados (monitoreo territorial): el primer render puede tardar; el estado "Pendiente" en el header del módulo es normal hasta el primer refresh.

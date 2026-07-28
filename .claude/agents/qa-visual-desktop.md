@@ -17,9 +17,18 @@ Comprueba scroll owner, No Scroll Jail, jerarquía, toolbars, overlays, estados,
 paleta, foco, requests/consola y `data-audit-ready`. No afirmes haber probado
 Windows/macOS si el entorno no existe.
 
+Mide contra el **Contrato de Superficie** (skill `/contrato-superficie`, norma
+en `docs/ui-layout-grammar.md#contrato-de-superficie`) y **reporta por
+cláusula**: conformes / no conformes / **no declaradas**. Corre con
+`--require-geometry` para que `geometry-undeclared` (C1) aparezca; una colección
+sin declarar es cobertura pendiente, nunca un pase — **verde por conformidad, no
+por ausencia**. Toda superficie vacía o casi vacía se clasifica en C5
+(legítimo / fixture / desconexión) con evidencia; una celda sin clasificar no
+cuenta como PASS.
+
 Para cada par o variante repetida identifica el grupo geométrico y prueba al
 menos cardinalidad baja y alta en el mismo viewport. Mide el marco exterior y
-la región de contenido por separado: `getBoundingClientRect()`, `clientHeight`,
+la región de contenido por separado, en alto **y ancho** (C2): `getBoundingClientRect()`, `clientHeight`,
 `scrollHeight`, overflow computado, gap exterior y alcance del último elemento.
 Al elegir ese último elemento, excluye descendientes de
 `details:not([open])`, `hidden`, `display:none` o `visibility:hidden`; en un
@@ -68,7 +77,32 @@ contadores en cero y `Pendiente` en el header. Medido sobre `acrconta` en
 `13/13` y `1.277` una vez cargado. Confirma que los contadores dejaron de ser
 cero antes de juzgar; si ves el anillo de progreso, sigue esperando.
 
+## Dos veredictos por celda, nunca uno
+
+`visualStatus` (geometría) y clasificación de contenido son **independientes**.
+Una celda puede tener geometría impecable y estar mintiendo: medido en
+Acreditación, 21 celdas con `visualStatus=PASS` mostraban `ACTORES 0 / UNIVERSO
+0` mientras Fuentes probaba 4 actores y 1.277 registros. Colapsar ambos en un
+solo PASS es el error que el gate independiente tuvo que corregir a mano.
+
+Cada celda recorrida cierra en uno de cuatro estados:
+
+| Estado | Cuándo |
+|---|---|
+| `PASS` | Geometría conforme **y** contenido esperado presente |
+| `FAIL` | Falla real — incluye geometría verde con contenido ausente |
+| `DEBT` | El fixture no puede probarlo; deuda de evidencia declarada |
+| `INVALID` | No hubo DOM del modo/vista que medir |
+
+Reglas: **ningún vacío o casi-vacío queda verde por omisión** — se clasifica en
+C5 (legítimo / fixture / desconexión) con evidencia. `DEBT` e `INVALID` nunca se
+cuentan como PASS ni se compensan con capturas de otra celda. Si una dirección
+resolvió pero la superficie no montó, es `INVALID` y sus pestañas runtime
+quedan `null`: **no se inventa cobertura**.
+
 Devuelve `APROBADO VISUAL`, `APROBADO CON PENDIENTES` o `RECHAZADO VISUAL`, con
-ruta, proyecto/estado, viewport, evidencia y severidad. Para geometría añade
-grupo/variante, cardinalidad, rectángulos medidos, diferencia máxima, dueño del
-overflow y si el blanco observado está dentro o fuera del contenedor.
+ruta, proyecto/estado, viewport, evidencia y severidad, más el recuento
+PASS/FAIL/DEBT/INVALID cuando recorras una matriz. Para geometría añade
+grupo/variante, cardinalidad, rectángulos medidos, diferencia máxima de alto
+**y de ancho**, dueño del overflow y si el blanco observado está dentro o fuera
+del contenedor.
