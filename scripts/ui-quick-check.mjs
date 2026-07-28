@@ -57,6 +57,9 @@ function parseArgs(argv) {
     fullPage: false,
     focusedWarmup: process.env.UI_QA_FULL_WARMUP === "1" ? false : true,
     prefetchRouteData: process.env.UI_QA_PREFETCH_ROUTE_DATA === "1",
+    geometryGroups: [],
+    geometryTolerance: Number(process.env.UI_QA_GEOMETRY_TOLERANCE || "2"),
+    requireGeometry: false,
     clickTabs: [],
     direcciones: [],
     name: "quick",
@@ -121,6 +124,12 @@ function parseArgs(argv) {
       out.focusedWarmup = false;
     } else if (arg === "--prefetch-route-data") {
       out.prefetchRouteData = true;
+    } else if (arg === "--geometry-group") {
+      out.geometryGroups.push(parseGeometryGroup(next()));
+    } else if (arg === "--geometry-tolerance") {
+      out.geometryTolerance = Number(next());
+    } else if (arg === "--require-geometry") {
+      out.requireGeometry = true;
     } else if (arg === "--help" || arg === "-h") {
       printHelp();
       process.exit(0);
@@ -142,6 +151,10 @@ function parseArgs(argv) {
   if (!Number.isFinite(out.timeoutMs) || out.timeoutMs <= 0) {
     throw new Error(`Timeout inválido: ${out.timeoutMs}`);
   }
+  if (!Number.isFinite(out.geometryTolerance) || out.geometryTolerance < 0) {
+    throw new Error(`Tolerancia geométrica inválida: ${out.geometryTolerance}`);
+  }
+  if (out.geometryGroups.length > 0) out.requireGeometry = true;
   if (!Number.isFinite(out.frontendPort) || out.frontendPort <= 0) {
     throw new Error(`Puerto frontend inválido: ${out.frontendPort}`);
   }
@@ -194,9 +207,19 @@ Opciones:
   --focused-warmup          Carga solo warmups asociados a las rutas capturadas (default).
   --full-warmup             Usa el warmup global completo de la app.
   --prefetch-route-data     Hace prefetch best-effort del reporte de la ruta antes de abrirla.
+  --geometry-group CONTRACT::CSS
+                            Audita hijos visibles de un grupo. CONTRACT: equal o intrinsic.
+                            Puede repetirse; también descubre [data-qa-geometry-group].
+  --geometry-tolerance PX  Diferencia máxima entre marcos equivalentes. Default: 2.
+  --require-geometry       Exige cobertura: falla sin mediciones o ante colecciones
+                           hermanas visibles sin contrato geométrico declarado.
 
 El reporte marca scrollJails cuando un contenedor de layout tiene contenido
-vertical inaccesible por falta de scroll propio o ancestro scrollable.
+vertical inaccesible por falta de scroll propio o ancestro scrollable. La
+auditoría geométrica separa marco, contenido, capacidad interior y hueco
+exterior; visualIssues=0 no sustituye esa evidencia. Los inputs visibles y
+vacíos también miden su placeholder con la tipografía computada: si el texto no
+cabe en el ancho útil, el reporte emite placeholder-clipped.
 `);
 }
 
@@ -204,6 +227,18 @@ function parseViewport(value) {
   const match = String(value).match(/^(\d+)x(\d+)$/);
   if (!match) throw new Error(`Viewport inválido: ${value}. Usa WIDTHxHEIGHT, por ejemplo 1366x768.`);
   return { width: Number(match[1]), height: Number(match[2]) };
+}
+
+function parseGeometryGroup(value) {
+  const raw = String(value || "").trim();
+  const separator = raw.indexOf("::");
+  const contract = separator >= 0 ? raw.slice(0, separator).trim() : "equal";
+  const selector = separator >= 0 ? raw.slice(separator + 2).trim() : raw;
+  if (!new Set(["equal", "intrinsic"]).has(contract)) {
+    throw new Error(`Contrato geométrico inválido: ${contract}. Usa equal o intrinsic.`);
+  }
+  if (!selector) throw new Error("--geometry-group requiere un selector CSS.");
+  return { contract, selector };
 }
 
 function normalizeRoute(value) {
@@ -1105,7 +1140,12 @@ async function runCaptures(opts, stack) {
         await page.screenshot({ path: screenshot });
         if (fullScreenshot) await page.screenshot({ path: fullScreenshot, fullPage: true });
 
-        const dom = await inspectDom(page, { projectMode: Boolean(opts.project) });
+        const dom = await inspectDom(page, {
+          projectMode: Boolean(opts.project),
+          geometryGroups: opts.geometryGroups,
+          geometryTolerance: opts.geometryTolerance,
+          requireGeometry: opts.requireGeometry,
+        });
         results.push({
           route,
           viewport,
@@ -1130,8 +1170,13 @@ async function runCaptures(opts, stack) {
   return results;
 }
 
-async function inspectDom(page, { projectMode }) {
-  return page.evaluate(({ projectMode: wantsProject }) => {
+export async function inspectDom(page, { projectMode, geometryGroups, geometryTolerance, requireGeometry }) {
+  return page.evaluate(({
+    projectMode: wantsProject,
+    geometryGroups: requestedGeometryGroups,
+    geometryTolerance: geometryTolerancePx,
+    requireGeometry: geometryRequired,
+  }) => {
     const root = document.documentElement;
     const body = document.body;
     const text = body?.innerText || "";
@@ -1163,7 +1208,14 @@ async function inspectDom(page, { projectMode }) {
       if (!visible) continue;
       const overflowXAllowed = ["auto", "scroll"].includes(style.overflowX);
       const overflowYAllowed = ["auto", "scroll"].includes(style.overflowY);
-      const xOverflow = el.scrollWidth > el.clientWidth + 2 && !overflowXAllowed;
+      // Un <select> nativo reporta el ancho de su opción más larga como
+      // `scrollWidth`, aunque el control la recorte dentro de su caja. El label
+      // que lo envuelve hereda la misma medición. No son desbordes de layout:
+      // el overflow global y el rectángulo del control siguen detectando cuando
+      // la caja realmente sale del viewport.
+      const nativeSelectBox = el instanceof HTMLSelectElement
+        || (el instanceof HTMLLabelElement && Boolean(el.querySelector("select")));
+      const xOverflow = el.scrollWidth > el.clientWidth + 2 && !overflowXAllowed && !nativeSelectBox;
       const yOverflow = el.scrollHeight > el.clientHeight + 2 && !overflowYAllowed;
       if (!xOverflow && !yOverflow) continue;
       const label = (el.getAttribute("aria-label") || el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 160);
@@ -1202,6 +1254,7 @@ async function inspectDom(page, { projectMode }) {
 
     const scrollableYValues = new Set(["auto", "scroll", "overlay"]);
     const clippingYValues = new Set(["hidden", "clip"]);
+    const round2 = (value) => Math.round(value * 100) / 100;
     const isVisibleElement = (el) => {
       const closedDetails = el.closest("details:not([open])");
       if (closedDetails) {
@@ -1217,9 +1270,76 @@ async function inspectDom(page, { projectMode }) {
         && style.display !== "none"
         && style.visibility !== "hidden";
     };
+    const measurementCanvas = document.createElement("canvas");
+    const measurementContext = measurementCanvas.getContext("2d");
+    const controlTextMetrics = Array.from(document.querySelectorAll("input[placeholder]"))
+      .filter((input) => (
+        input instanceof HTMLInputElement
+        && input.value === ""
+        && input.placeholder.trim() !== ""
+        && isVisibleElement(input)
+      ))
+      .slice(0, 80)
+      .map((input) => {
+        const style = window.getComputedStyle(input);
+        if (measurementContext) {
+          measurementContext.font = [
+            style.fontStyle,
+            style.fontVariant,
+            style.fontWeight,
+            style.fontSize,
+            style.fontFamily,
+          ].filter(Boolean).join(" ");
+        }
+        const letterSpacing = Number.parseFloat(style.letterSpacing || "0") || 0;
+        const baseTextWidth = measurementContext?.measureText(input.placeholder).width ?? 0;
+        const textWidth = baseTextWidth + Math.max(0, input.placeholder.length - 1) * letterSpacing;
+        const paddingLeft = Number.parseFloat(style.paddingLeft || "0") || 0;
+        const paddingRight = Number.parseFloat(style.paddingRight || "0") || 0;
+        const availableWidth = Math.max(0, input.clientWidth - paddingLeft - paddingRight);
+        const clippedX = textWidth > availableWidth + 1;
+        const rect = input.getBoundingClientRect();
+        const metric = {
+          tag: "input",
+          id: input.id || null,
+          className: String(input.getAttribute("class") || "").slice(0, 180),
+          label: input.placeholder,
+          kind: "placeholder",
+          textWidth: round2(textWidth),
+          availableWidth: round2(availableWidth),
+          clientWidth: input.clientWidth,
+          clippedX,
+        };
+        if (clippedX && issues.length < 80) {
+          issues.push({
+            type: "placeholder-clipped",
+            tag: metric.tag,
+            className: metric.className,
+            label: metric.label,
+            rect: {
+              x: Math.round(rect.x),
+              y: Math.round(rect.y),
+              width: Math.round(rect.width),
+              height: Math.round(rect.height),
+            },
+            text: {
+              width: metric.textWidth,
+              availableWidth: metric.availableWidth,
+            },
+          });
+        }
+        return metric;
+      });
     const isScrollableY = (el) => {
       const style = window.getComputedStyle(el);
-      return scrollableYValues.has(style.overflowY) && el.scrollHeight > el.clientHeight + 2;
+      // `overflow:auto` no basta para delegar el recorrido: una región de
+      // 0–39 px existe en CSS, pero no ofrece una ventana de datos utilizable.
+      // Sin este piso, un descendiente colapsado podía ocultar el jail real de
+      // su ancestro y producir un falso verde en escritorios de poca altura.
+      return isVisibleElement(el)
+        && el.clientHeight >= 40
+        && scrollableYValues.has(style.overflowY)
+        && el.scrollHeight > el.clientHeight + 2;
     };
     const nearestScrollableY = (el) => {
       let node = el.parentElement;
@@ -1288,6 +1408,398 @@ async function inspectDom(page, { projectMode }) {
       if (scrollJails.length >= 40) break;
     }
 
+    const geometryAudits = [];
+    const geometryIssues = [];
+    const geometryCoverageMisses = [];
+    const auditedGroups = new Set();
+    const declaredGeometryGroups = new Set();
+    const geometrySpecs = [];
+
+    for (const spec of requestedGeometryGroups || []) {
+      let matches = [];
+      try {
+        matches = Array.from(document.querySelectorAll(spec.selector));
+      } catch (error) {
+        geometryCoverageMisses.push({
+          selector: spec.selector,
+          contract: spec.contract,
+          reason: `selector inválido: ${String(error?.message || error)}`,
+        });
+        continue;
+      }
+      if (matches.length === 0) {
+        geometryCoverageMisses.push({
+          selector: spec.selector,
+          contract: spec.contract,
+          reason: "grupo no encontrado",
+        });
+      }
+      for (const group of matches) {
+        declaredGeometryGroups.add(group);
+        geometrySpecs.push({ ...spec, group, source: "cli" });
+      }
+    }
+
+    for (const group of Array.from(document.querySelectorAll("[data-qa-geometry-group]"))) {
+      declaredGeometryGroups.add(group);
+      const contract = group.getAttribute("data-qa-geometry-contract") || "equal";
+      if (!["equal", "intrinsic"].includes(contract)) {
+        geometryCoverageMisses.push({
+          selector: `[data-qa-geometry-group="${group.getAttribute("data-qa-geometry-group") || ""}"]`,
+          contract,
+          reason: "data-qa-geometry-contract debe ser equal o intrinsic",
+        });
+        continue;
+      }
+      geometrySpecs.push({
+        contract,
+        selector: `[data-qa-geometry-group="${group.getAttribute("data-qa-geometry-group") || ""}"]`,
+        group,
+        source: "markup",
+      });
+    }
+
+    const visibleChildren = (parent) => Array.from(parent.children).filter((child) => isVisibleElement(child));
+    const scrollOwnerInside = (member) => {
+      if (isScrollableY(member)) return member;
+      return Array.from(member.querySelectorAll("*")).find((node) => isScrollableY(node)) || null;
+    };
+    const elementHint = (el) => ({
+      tag: el.tagName.toLowerCase(),
+      id: el.id || null,
+      className: String(el.getAttribute("class") || "").slice(0, 180),
+      label: (el.getAttribute("aria-label") || el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 120),
+    });
+
+    if (geometryRequired) {
+      const geometryStateClasses = new Set([
+        "active", "is-active",
+        "selected", "is-selected",
+        "current", "is-current",
+        "disabled", "is-disabled",
+        "open", "is-open",
+        "checked", "is-checked",
+      ]);
+      const excludedGeometryContainer = [
+        "nav",
+        "table", "thead", "tbody", "tfoot", "tr",
+        "svg", "defs", "g",
+        "[role='navigation']", "[role='tablist']", "[role='toolbar']",
+        "[role='menu']", "[role='menubar']", "[role='listbox']",
+      ].join(",");
+      const interactiveGeometryMember = [
+        "button", "a[href]", "input", "select", "textarea", "option",
+        "[contenteditable='true']",
+        "[role='button']", "[role='tab']", "[role='menuitem']", "[role='option']",
+      ].join(",");
+      const variantSignature = (member) => {
+        const structuralClasses = Array.from(member.classList)
+          .filter((className) => !geometryStateClasses.has(className))
+          .sort();
+        if (structuralClasses.length === 0) return null;
+        return `${member.tagName.toLowerCase()}.${structuralClasses.join(".")}`;
+      };
+      const geometryRoots = Array.from(document.querySelectorAll("[data-audit-ready]"))
+        .filter((node) => isVisibleElement(node));
+      const scannedParents = new Set();
+
+      for (const geometryRoot of geometryRoots) {
+        const parents = [geometryRoot, ...Array.from(geometryRoot.querySelectorAll("*"))];
+        for (const parent of parents) {
+          if (scannedParents.has(parent) || !isVisibleElement(parent)) continue;
+          scannedParents.add(parent);
+          if (declaredGeometryGroups.has(parent)) continue;
+          if (parent.closest(excludedGeometryContainer)) continue;
+
+          const variants = new Map();
+          for (const member of visibleChildren(parent)) {
+            if (
+              declaredGeometryGroups.has(member)
+              || member instanceof SVGElement
+              || member.matches(interactiveGeometryMember)
+            ) continue;
+            const signature = variantSignature(member);
+            if (!signature) continue;
+            const members = variants.get(signature) || [];
+            members.push(member);
+            variants.set(signature, members);
+          }
+
+          for (const [variant, members] of variants) {
+            if (members.length < 2) continue;
+            geometryCoverageMisses.push({
+              type: "geometry-undeclared",
+              selector: null,
+              contract: null,
+              reason: "colección visible de la misma variante sin contrato geométrico",
+              parent: elementHint(parent),
+              variant,
+              count: members.length,
+              members: members.map(elementHint),
+            });
+          }
+        }
+      }
+    }
+
+    const resolveReachabilityEnd = (owner, ownerRect, tolerance = 2) => {
+      const candidates = [];
+      let order = 0;
+      const addCandidate = (node, kind, clippedBy = null) => {
+        const rect = node.getBoundingClientRect();
+        candidates.push({
+          node,
+          rect,
+          kind,
+          clippedBy,
+          logicalBottom: rect.bottom - ownerRect.top + owner.scrollTop,
+          order: order++,
+        });
+      };
+      const furthestDescendant = (root) => {
+        let furthest = null;
+        const visitDescendant = (node) => {
+          if (!isVisibleElement(node)) return;
+          const style = window.getComputedStyle(node);
+          if (style.position === "fixed") return;
+          const rect = node.getBoundingClientRect();
+          if (!furthest || rect.bottom > furthest.rect.bottom + tolerance) {
+            furthest = { node, rect };
+          }
+          if (isScrollableY(node) || clippingYValues.has(style.overflowY)) return;
+          visibleChildren(node).forEach(visitDescendant);
+        };
+        visibleChildren(root).forEach(visitDescendant);
+        return furthest;
+      };
+      const visit = (node) => {
+        if (!isVisibleElement(node)) return;
+        const style = window.getComputedStyle(node);
+        if (style.position === "fixed") return;
+        if (node !== owner && isScrollableY(node)) {
+          addCandidate(node, "nested-scroll");
+          return;
+        }
+        const children = visibleChildren(node);
+        if (clippingYValues.has(style.overflowY)) {
+          const rect = node.getBoundingClientRect();
+          const furthest = furthestDescendant(node);
+          if (furthest && (
+            furthest.rect.top < rect.top - tolerance
+            || furthest.rect.bottom > rect.bottom + tolerance
+          )) {
+            addCandidate(furthest.node, "clipped", node);
+          } else {
+            addCandidate(node, "clip-surface");
+          }
+          return;
+        }
+        if (children.length > 0) {
+          children.forEach(visit);
+          return;
+        }
+        addCandidate(node, "leaf");
+      };
+      visibleChildren(owner).forEach(visit);
+      return candidates.reduce((best, candidate) => {
+        if (!best) return candidate;
+        if (candidate.logicalBottom > best.logicalBottom + tolerance) return candidate;
+        if (
+          Math.abs(candidate.logicalBottom - best.logicalBottom) <= tolerance
+          && candidate.order > best.order
+        ) return candidate;
+        return best;
+      }, null);
+    };
+    const auditScrollOwner = (owner) => {
+      const originalScrollTop = owner.scrollTop;
+      const maxScroll = Math.max(0, owner.scrollHeight - owner.clientHeight);
+      const textMetrics = Array.from(owner.querySelectorAll("strong"))
+        .filter((node) => isVisibleElement(node))
+        .slice(0, 60)
+        .map((node) => ({
+          ...elementHint(node),
+          clientWidth: node.clientWidth,
+          scrollWidth: node.scrollWidth,
+          clientHeight: node.clientHeight,
+          scrollHeight: node.scrollHeight,
+          clippedX: node.scrollWidth > node.clientWidth + 1,
+          clippedY: node.scrollHeight > node.clientHeight + 1,
+        }));
+      const setScrollTop = (value) => {
+        owner.scrollTop = value;
+        return owner.scrollTop;
+      };
+      const positions = {
+        start: setScrollTop(0),
+        middle: setScrollTop(Math.floor(maxScroll / 2)),
+        end: setScrollTop(maxScroll),
+      };
+      const ownerRect = owner.getBoundingClientRect();
+      const reachabilityEnd = resolveReachabilityEnd(owner, ownerRect);
+      const lastContent = reachabilityEnd?.node ?? null;
+      const lastRect = reachabilityEnd?.rect ?? null;
+      const atEnd = Math.abs(positions.end - maxScroll) <= 1;
+      const lastContentReachable = !reachabilityEnd?.clippedBy && (!lastRect || (
+        lastRect.bottom <= ownerRect.bottom + 2
+        && lastRect.bottom >= ownerRect.top - 2
+      ));
+      owner.scrollTop = originalScrollTop;
+      return {
+        scrollAudit: {
+          maxScroll,
+          originalScrollTop,
+          positions,
+          atEnd,
+          lastContentReachable,
+          lastContent: lastContent ? elementHint(lastContent) : null,
+          lastContentKind: reachabilityEnd?.kind ?? null,
+          ownerBottom: round2(ownerRect.bottom),
+          lastContentBottom: lastRect ? round2(lastRect.bottom) : null,
+          clippedBy: reachabilityEnd?.clippedBy ? elementHint(reachabilityEnd.clippedBy) : null,
+        },
+        textMetrics,
+      };
+    };
+
+    for (const spec of geometrySpecs) {
+      const group = spec.group;
+      if (auditedGroups.has(group) || !isVisibleElement(group)) continue;
+      auditedGroups.add(group);
+      const explicitMembers = Array.from(group.querySelectorAll("[data-qa-geometry-member]"))
+        .filter((member) => (
+          isVisibleElement(member)
+          && member.closest("[data-qa-geometry-group]") === group
+        ));
+      const members = explicitMembers.length > 0 ? explicitMembers : visibleChildren(group);
+      if (members.length === 0) {
+        geometryCoverageMisses.push({
+          selector: spec.selector,
+          contract: spec.contract,
+          reason: "grupo visible sin miembros visibles",
+        });
+        continue;
+      }
+
+      const groupRect = group.getBoundingClientRect();
+      const memberMeasures = members.map((member) => {
+        const rect = member.getBoundingClientRect();
+        const style = window.getComputedStyle(member);
+        const explicitContent = Array.from(member.querySelectorAll("[data-qa-geometry-content]"))
+          .filter((node) => isVisibleElement(node));
+        const contentNodes = explicitContent.length > 0 ? explicitContent : visibleChildren(member);
+        const cardinality = explicitContent.length > 0
+          ? explicitContent.reduce((count, region) => count + visibleChildren(region).length, 0)
+          : contentNodes.length;
+        const contentBottom = contentNodes.length > 0
+          ? Math.max(...contentNodes.map((node) => node.getBoundingClientRect().bottom))
+          : rect.top + Number.parseFloat(style.paddingTop || "0");
+        const paddingBottom = Number.parseFloat(style.paddingBottom || "0") || 0;
+        const ownedCapacity = member.getAttribute("data-qa-geometry-capacity") === "owned"
+          || Boolean(member.querySelector("[data-qa-geometry-capacity='owned']"));
+        const scrollOwner = scrollOwnerInside(member);
+        const scrollEvidence = scrollOwner ? auditScrollOwner(scrollOwner) : null;
+        const lastContent = contentNodes.at(-1) || null;
+        if (scrollOwner && scrollEvidence && (
+          !scrollEvidence.scrollAudit.atEnd
+          || !scrollEvidence.scrollAudit.lastContentReachable
+        )) {
+          geometryIssues.push({
+            type: "scroll-unreachable",
+            selector: spec.selector,
+            owner: elementHint(scrollOwner),
+            scrollAudit: scrollEvidence.scrollAudit,
+          });
+        }
+        return {
+          ...elementHint(member),
+          rect: {
+            x: round2(rect.x),
+            y: round2(rect.y),
+            width: round2(rect.width),
+            height: round2(rect.height),
+          },
+          cardinality,
+          contentBottom: round2(contentBottom),
+          unusedInteriorBottom: round2(Math.max(0, rect.bottom - paddingBottom - contentBottom)),
+          exteriorGapBottom: round2(Math.max(0, groupRect.bottom - rect.bottom)),
+          ownedCapacity,
+          overflowOwner: scrollOwner ? {
+            ...elementHint(scrollOwner),
+            clientHeight: scrollOwner.clientHeight,
+            scrollHeight: scrollOwner.scrollHeight,
+            scrollAudit: scrollEvidence.scrollAudit,
+            textMetrics: scrollEvidence.textMetrics,
+          } : null,
+          lastContent: lastContent ? elementHint(lastContent) : null,
+        };
+      });
+      const heights = memberMeasures.map((member) => member.rect.height);
+      const widths = memberMeasures.map((member) => member.rect.width);
+      const heightDelta = round2(Math.max(...heights) - Math.min(...heights));
+      const widthDelta = round2(Math.max(...widths) - Math.min(...widths));
+      const audit = {
+        selector: spec.selector,
+        source: spec.source,
+        contract: spec.contract,
+        tolerance: geometryTolerancePx,
+        group: {
+          ...elementHint(group),
+          rect: {
+            x: round2(groupRect.x),
+            y: round2(groupRect.y),
+            width: round2(groupRect.width),
+            height: round2(groupRect.height),
+          },
+        },
+        heightDelta,
+        widthDelta,
+        members: memberMeasures,
+      };
+      geometryAudits.push(audit);
+
+      if (spec.contract === "equal" && heightDelta > geometryTolerancePx) {
+        geometryIssues.push({
+          type: "equal-frame-drift",
+          selector: spec.selector,
+          heightDelta,
+          tolerance: geometryTolerancePx,
+          memberHeights: heights,
+        });
+      }
+      if (spec.contract === "equal" && widthDelta > geometryTolerancePx) {
+        geometryIssues.push({
+          type: "equal-frame-width-drift",
+          selector: spec.selector,
+          widthDelta,
+          tolerance: geometryTolerancePx,
+          memberWidths: widths,
+        });
+      }
+      if (spec.contract === "intrinsic") {
+        const inflatedMembers = memberMeasures.filter((member) => (
+          member.unusedInteriorBottom > geometryTolerancePx
+          && !member.ownedCapacity
+          && !member.overflowOwner
+        ));
+        if (inflatedMembers.length > 0) {
+          geometryIssues.push({
+            type: "capacity-drift",
+            selector: spec.selector,
+            tolerance: geometryTolerancePx,
+            members: inflatedMembers.map((member) => ({
+              ...elementHint(members[memberMeasures.indexOf(member)]),
+              unusedInteriorBottom: member.unusedInteriorBottom,
+            })),
+          });
+        }
+      }
+    }
+
+    if (geometryRequired && geometryAudits.length === 0 && geometryCoverageMisses.length === 0) {
+      geometryCoverageMisses.push({ selector: null, contract: null, reason: "sin grupos geométricos medidos" });
+    }
+
     const globalOverflowX = body ? body.scrollWidth > window.innerWidth + 2 : false;
     const noProjectText = /\bSin proyecto\b/i.test(text) || /Selecciona un proyecto\s+\.pulso/i.test(text);
     const rootClasses = String(root.getAttribute("class") || "");
@@ -1305,7 +1817,11 @@ async function inspectDom(page, { projectMode }) {
       noProjectText,
       projectLoaded: wantsProject ? !noProjectText : null,
       textSample: text.replace(/\s+/g, " ").trim().slice(0, 500),
+      controlTextMetrics,
       scrollJails,
+      geometryAudits,
+      geometryIssues,
+      geometryCoverageMisses,
       layoutRects: {
         shell: rectFor(".pulso-shell"),
         pageFrame: rectFor(".pulso-page-frame"),
@@ -1315,12 +1831,20 @@ async function inspectDom(page, { projectMode }) {
       },
       issues,
     };
-  }, { projectMode });
+  }, {
+    projectMode,
+    geometryGroups,
+    geometryTolerance,
+    requireGeometry,
+  });
 }
 
 function summarize(results, opts) {
   const visualIssues = results.flatMap((item) => item.issues || []);
   const scrollJails = results.flatMap((item) => item.scrollJails || []);
+  const geometryAudits = results.flatMap((item) => item.geometryAudits || []);
+  const geometryIssues = results.flatMap((item) => item.geometryIssues || []);
+  const geometryCoverageMisses = results.flatMap((item) => item.geometryCoverageMisses || []);
   const globalOverflow = results.filter((item) => item.globalOverflowX);
   const pageErrors = results.flatMap((item) => item.pageErrors || []);
   const consoleErrors = results.flatMap((item) => (item.consoleMessages || []).filter((msg) => (
@@ -1336,6 +1860,9 @@ function summarize(results, opts) {
     screenshots: results.map((item) => item.screenshot),
     visualIssues: visualIssues.length,
     scrollJails: scrollJails.length,
+    geometryGroups: geometryAudits.length,
+    geometryIssues: geometryIssues.length,
+    geometryCoverageMisses: geometryCoverageMisses.length,
     globalOverflow: globalOverflow.length,
     pageErrors: pageErrors.length,
     consoleErrors: consoleErrors.length,
@@ -1345,6 +1872,8 @@ function summarize(results, opts) {
     waitSelectorMisses: waitSelectorMisses.length + postClickWaitSelectorMisses.length,
     ok: visualIssues.length === 0 &&
       scrollJails.length === 0 &&
+      geometryIssues.length === 0 &&
+      geometryCoverageMisses.length === 0 &&
       globalOverflow.length === 0 &&
       pageErrors.length === 0 &&
       consoleErrors.length === 0 &&
@@ -1414,6 +1943,9 @@ async function main() {
         project: opts.project || null,
         headed: opts.headed,
         prefetchRouteData: opts.prefetchRouteData,
+        geometryGroups: opts.geometryGroups,
+        geometryTolerance: opts.geometryTolerance,
+        requireGeometry: opts.requireGeometry,
       },
       stack: {
         url: stack.url,
@@ -1437,14 +1969,16 @@ async function main() {
     if (stack.apiUrl) console.log(`[ui-quick-check] api: ${stack.apiUrl}`);
     if (stack.session) console.log(`[ui-quick-check] session: ${stack.session}`);
     for (const shot of summary.screenshots) console.log(`[ui-quick-check] screenshot: ${shot}`);
-    console.log(`[ui-quick-check] ok=${summary.ok} captures=${summary.captures} issues=${summary.visualIssues} scrollJails=${summary.scrollJails} overflow=${summary.globalOverflow} pageErrors=${summary.pageErrors} apiErrors=${summary.apiErrors} resourceErrors=${summary.resourceErrors} projectMisses=${summary.projectMisses} waitSelectorMisses=${summary.waitSelectorMisses}`);
+    console.log(`[ui-quick-check] ok=${summary.ok} captures=${summary.captures} issues=${summary.visualIssues} scrollJails=${summary.scrollJails} geometryGroups=${summary.geometryGroups} geometryIssues=${summary.geometryIssues} geometryCoverageMisses=${summary.geometryCoverageMisses} overflow=${summary.globalOverflow} pageErrors=${summary.pageErrors} apiErrors=${summary.apiErrors} resourceErrors=${summary.resourceErrors} projectMisses=${summary.projectMisses} waitSelectorMisses=${summary.waitSelectorMisses}`);
     if (!summary.ok && opts.failOnIssues) process.exitCode = 1;
   } finally {
     await cleanup();
   }
 }
 
-main().catch((error) => {
-  console.error(`[ui-quick-check] ${error?.stack || error}`);
-  process.exit(1);
-});
+if (path.resolve(process.argv[1] || "") === __filename) {
+  main().catch((error) => {
+    console.error(`[ui-quick-check] ${error?.stack || error}`);
+    process.exit(1);
+  });
+}
