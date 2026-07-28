@@ -348,11 +348,11 @@ Fuentes: `frontend/src/features/monitoreo/profiles/aulas/**/*`,
 
 ### Carga
 
-Pestañas Preparar/Ver base. Incluye progreso, guardado, varias bases,
-Manual/Plataforma, SurveyMonkey/Kobo, estrategias multibase, archivos,
-credenciales, catálogos, parciales, instrumentos, sincronización, SAV, mapeos,
-variables extra, códigos, universo, secciones, preguntas, lógica, drawers y
-wizards.
+Pestañas Plan, Fuentes, Revisión, Estructura y Datos. Incluye progreso,
+guardado, varias bases, Manual/Plataforma, SurveyMonkey/Kobo, estrategias
+multibase, archivos, credenciales, catálogos, parciales, instrumentos,
+sincronización, SAV, mapeos, variables extra, códigos, universo, secciones,
+preguntas, lógica, drawers y wizards.
 
 Fuentes: `frontend/src/features/carga/**/*`.
 

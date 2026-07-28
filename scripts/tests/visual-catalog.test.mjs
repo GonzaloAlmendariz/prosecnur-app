@@ -874,13 +874,13 @@ test("los ocho módulos mantienen sus acentos distintivos en el catálogo", () =
     },
     {
       bitacora: "#A16207",
-      calculo: "#7C3AED",
-      formularios: "#6D5DFC",
-      hojas: "#C2410C",
+      calculo: "#7260AE",
+      formularios: "#7172C1",
+      hojas: "#AC563B",
       fichas: "#106E8C",
-      monitoreo: "#BE123C",
+      monitoreo: "#A0464E",
       procesamiento: "#0F766E",
-      dashboard: "#2563EB",
+      dashboard: "#4A6EB6",
     },
   );
 });
