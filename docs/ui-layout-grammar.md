@@ -338,3 +338,5 @@ una etiqueta que puede renombrarse, truncarse en viewport compacto o no existir
 todavía porque el warm start no terminó.
 
 El reporte debe revisar además `scrollJails`: contenedores de layout con contenido vertical mayor que su caja, sin scroll propio ni ancestro scrollable dentro del área principal.
+
+Al leer una corrida con `--click-tab`, tener presente que Playwright deja el cursor sobre el control que acaba de clickear: la captura y la inspección del DOM salen con ese elemento en `:hover`, así que las capas que solo existen en hover aparecen desplegadas. En el carril icon-only de Procesamiento eso significa que la burbuja flotante de la pestaña activa (`dec-sidebar-icon-tooltip`) se ve sobre el canvas — es el comportamiento correcto, no un label expandido. El detector de desborde exime ese caso: un botón `[data-rail-tooltip]` que no clippea y cuyo contenido en flujo sí cabe no se reporta aunque su `::before` absoluto infle `scrollWidth`. Si el botón llegara a clippear la burbuja o el ícono se saliera de la caja, el hallazgo vuelve a aparecer.

@@ -1220,6 +1220,29 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
       "[class*='modal']",
       "[class*='popover']",
     ].join(",");
+    // El carril icon-only muestra su etiqueta en una burbuja flotante (dec-sidebar-icon-tooltip):
+    // un ::before position:absolute, pointer-events:none, que sale del botón a propósito y solo
+    // existe en hover/focus. Playwright deja el cursor sobre el control que acaba de clickear, así
+    // que al medir la burbuja está desplegada y scrollWidth la cuenta como desborde del botón. No
+    // es contenido recortado, así que se ignora mientras el botón no clippee y su contenido en
+    // flujo sí quepa dentro de la caja: si algún día la burbuja queda clippeada o el ícono se sale,
+    // el issue vuelve a reportarse.
+    const railTooltipEscape = (el, style) => {
+      if (!el.hasAttribute("data-rail-tooltip")) return false;
+      if (style.overflowX !== "visible" || style.overflowY !== "visible") return false;
+      const bubble = window.getComputedStyle(el, "::before");
+      if (bubble.display === "none" || bubble.position !== "absolute") return false;
+      const box = el.getBoundingClientRect();
+      const maxRight = box.left + el.clientLeft + el.clientWidth + 2;
+      const maxBottom = box.top + el.clientTop + el.clientHeight + 2;
+      return Array.from(el.children).every((child) => {
+        const childStyle = window.getComputedStyle(child);
+        if (childStyle.display === "none" || childStyle.visibility === "hidden") return true;
+        if (["absolute", "fixed"].includes(childStyle.position)) return true;
+        const childBox = child.getBoundingClientRect();
+        return childBox.right <= maxRight && childBox.bottom <= maxBottom;
+      });
+    };
     const issues = [];
     for (const el of Array.from(document.querySelectorAll(selector))) {
       const rect = el.getBoundingClientRect();
@@ -1287,6 +1310,7 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
         && !nativeSelectBox && !nativeTextBox && !inkFitsBox();
       const yOverflow = el.scrollHeight > el.clientHeight + 2 && !overflowYAllowed;
       if (!xOverflow && !yOverflow) continue;
+      if (railTooltipEscape(el, style)) continue;
       const label = (el.getAttribute("aria-label") || el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 160);
       issues.push({
         type: xOverflow && yOverflow ? "overflow-both" : xOverflow ? "overflow-x" : "overflow-y",
