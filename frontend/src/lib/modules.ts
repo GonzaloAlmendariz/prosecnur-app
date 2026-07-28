@@ -1,10 +1,14 @@
 import type { CSSProperties } from "react";
 import {
+  Archive,
   BarChart3,
   CalendarDays,
   CalendarRange,
+  CheckCircle2,
   ClipboardCheck,
+  ClipboardList,
   FileText,
+  Link2,
   ListChecks,
   MapPinned,
   PhoneCall,
@@ -127,7 +131,7 @@ export const PROSECNUR_NAVIGATION_CONTRACT = {
   version: 3,
   grammar: "modulo/modo/seccion/pestana/panel",
   coverage: "primary-routes-v1",
-  modosCoverage: "monitoring-profiles-v1",
+  modosCoverage: "monitoring-profiles-v1+calc-muestra-v1",
   tabsCoverage: "hojas-ruta-v1",
   shellCoverage: "hojas-ruta-v1",
   consumableByShell: true,
@@ -282,6 +286,60 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         layoutPolicy: "viewport",
       },
     ],
+    // La "mesa" del módulo es un MODO de la gramática: lo determina el estudio
+    // del proyecto, no un click, y reescribe el juego de secciones. Declararlo
+    // aquí es lo que permite que `useSeccion` resuelva el default por modo y que
+    // la dirección sobreviva a un enlace pegado. El catálogo de PESTAÑAS se
+    // queda en la feature (`universidad/universidadTabs.ts`), que ya resuelve
+    // sus alias históricos: duplicarlo aquí crearía dos fuentes que derivan.
+    modos: [
+      {
+        id: "opinion-universitaria",
+        label: "Muestra de cursos-horario",
+        sections: [
+          { id: "definicion", label: "Datos", icon: IconStudyDesign, to: "/calc-muestra?modo=opinion-universitaria&seccion=definicion", layoutPolicy: "viewport" },
+          { id: "marco", label: "Marco", icon: ClipboardList, to: "/calc-muestra?modo=opinion-universitaria&seccion=marco", layoutPolicy: "viewport" },
+          { id: "calculo", label: "Cálculo", icon: IconSample, to: "/calc-muestra?modo=opinion-universitaria&seccion=calculo", layoutPolicy: "viewport" },
+          { id: "aulas", label: "Selección", icon: Shuffle, to: "/calc-muestra?modo=opinion-universitaria&seccion=aulas", layoutPolicy: "viewport" },
+          { id: "salidas", label: "Entrega", icon: Route, to: "/calc-muestra?modo=opinion-universitaria&seccion=salidas", layoutPolicy: "viewport" },
+        ],
+      },
+      {
+        id: "marco-disponible",
+        label: "Muestra general",
+        sections: [
+          { id: "marco", label: "Marco", icon: IconStudyDesign, to: "/calc-muestra?modo=marco-disponible&seccion=marco", layoutPolicy: "viewport" },
+          { id: "metodo", label: "Método", icon: ListChecks, to: "/calc-muestra?modo=marco-disponible&seccion=metodo", layoutPolicy: "viewport" },
+          { id: "resultados", label: "Resultados", icon: BarChart3, to: "/calc-muestra?modo=marco-disponible&seccion=resultados", layoutPolicy: "viewport" },
+        ],
+      },
+      {
+        id: "acreditacion",
+        label: "Acreditación",
+        sections: [
+          { id: "actores", label: "Actores", icon: ClipboardList, to: "/calc-muestra?modo=acreditacion&seccion=actores", layoutPolicy: "viewport" },
+          { id: "contexto", label: "Contexto", icon: IconStudyDesign, to: "/calc-muestra?modo=acreditacion&seccion=contexto", layoutPolicy: "viewport" },
+          { id: "resultados", label: "Resultados", icon: BarChart3, to: "/calc-muestra?modo=acreditacion&seccion=resultados", layoutPolicy: "viewport" },
+        ],
+      },
+      {
+        id: "territorial-handoff",
+        label: "Territorial",
+        sections: [
+          { id: "hojas-ruta", label: "Diseño de rutas", icon: MapPinned, to: "/calc-muestra?modo=territorial-handoff&seccion=hojas-ruta", layoutPolicy: "viewport" },
+        ],
+      },
+      {
+        // El selector de tipo de estudio. Es un modo real —tiene su propia
+        // sección— y no un estado vacío: se aterriza en él cuando el proyecto
+        // todavía no declaró qué muestra necesita.
+        id: "sin-definir",
+        label: "Tipo de estudio",
+        sections: [
+          { id: "pathways", label: "Tipo de estudio", icon: IconSample, to: "/calc-muestra?seccion=pathways", layoutPolicy: "viewport" },
+        ],
+      },
+    ],
   },
   {
     slug: "editor-xlsform",
@@ -419,29 +477,104 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
       rail: true,
       chromeOwner: "page",
     },
-    title: "Fichas QR para cursos-horario",
-    shortLabel: "Fichas QR",
-    tagline: "Material imprimible para intervenciones por cursos-horario",
+    title: "Recopiladores",
+    shortLabel: "Recopiladores",
+    tagline: "Canales, accesos y materiales de recolección",
     blurb:
-      "Genera fichas imprimibles con código QR, enlace de Kobo y los datos de aplicación a partir del plan de cursos-horario. Articula la coordinación docente con el monitoreo de la intervención.",
+      "Prepara el despliegue de la recolección: toma el plan ya decidido y la revisión publicada del instrumento, y produce los accesos, los enlaces con QR y los materiales de aplicación que el campo necesita, con trazabilidad de qué unidad recibió qué.",
     features: [
-      "Una ficha por curso-horario del plan",
-      "QR, enlace y datos del curso en una sola hoja",
-      "Vista previa previa a la impresión o consolidación",
-      "Agrupación por facultad, selección o estado de enlace",
-      "Devolución de enlaces al monitoreo de cursos-horario",
+      "Un acceso trazable por unidad de aplicación",
+      "Enlace personalizado y QR sin pedir códigos al encuestado",
+      "Materiales imprimibles con los datos de la unidad",
+      "Agrupación por bloque de reparto para el trabajo de campo",
+      "Entrega auditable de los accesos a Monitoreo",
     ],
     icon: IconCollector,
     tone: MODULE_TONES.recopiladores,
     to: "/recopiladores",
     landingKind: "section",
+    // Las cuatro secciones canónicas del ADR 0046. El recorrido vive aquí y solo
+    // aquí: la página no vuelve a dibujar esta secuencia como barra de pasos.
     sections: [
       {
-        id: "recopiladores",
-        label: "Fichas QR",
-        icon: IconCollector,
+        id: "plan-recoleccion",
+        // Plan es el aterrizaje del módulo: su `to` es la ruta desnuda, como en
+        // el resto de módulos con landing de sección.
+        label: "Plan",
+        icon: ClipboardList,
         to: "/recopiladores",
         layoutPolicy: "viewport",
+        tabs: [
+          {
+            id: "unidades",
+            label: "Unidades",
+            icon: ClipboardList,
+            to: "/recopiladores?seccion=plan-recoleccion&pestana=unidades",
+            layoutPolicy: "viewport",
+          },
+        ],
+      },
+      {
+        id: "accesos",
+        label: "Accesos",
+        icon: Link2,
+        to: "/recopiladores?seccion=accesos",
+        layoutPolicy: "viewport",
+        tabs: [
+          {
+            id: "canales",
+            label: "Canales",
+            icon: Link2,
+            to: "/recopiladores?seccion=accesos&pestana=canales",
+            layoutPolicy: "viewport",
+          },
+          {
+            id: "vinculacion",
+            label: "Vinculación",
+            icon: Search,
+            to: "/recopiladores?seccion=accesos&pestana=vinculacion",
+            layoutPolicy: "viewport",
+          },
+        ],
+      },
+      {
+        id: "materiales",
+        label: "Materiales",
+        icon: IconCollector,
+        to: "/recopiladores?seccion=materiales",
+        layoutPolicy: "viewport",
+        tabs: [
+          {
+            id: "vista",
+            label: "Vista previa",
+            icon: IconCollector,
+            to: "/recopiladores?seccion=materiales&pestana=vista",
+            layoutPolicy: "viewport",
+          },
+          {
+            id: "paquetes",
+            label: "Paquetes",
+            icon: Archive,
+            to: "/recopiladores?seccion=materiales&pestana=paquetes",
+            layoutPolicy: "viewport",
+          },
+        ],
+      },
+      {
+        id: "entrega-campo",
+        label: "Entrega",
+        icon: CheckCircle2,
+        to: "/recopiladores?seccion=entrega-campo",
+        layoutPolicy: "viewport",
+        tabs: [
+          {
+            id: "traspaso",
+            label: "Monitoreo",
+            icon: CalendarDays,
+            to: "/recopiladores?seccion=entrega-campo&pestana=traspaso",
+            layoutPolicy: "viewport",
+          },
+        ],
       },
     ],
   },

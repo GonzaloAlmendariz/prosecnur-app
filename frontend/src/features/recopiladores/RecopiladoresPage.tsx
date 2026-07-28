@@ -15,8 +15,9 @@ import {
   QrCode,
   RefreshCw,
   Search,
-} from "lucide-react";
-import { Link } from "react-router-dom";
+  type LucideIcon,
+} from "../../vendor/lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { GlidingTabList } from "../../components/GlidingTabList";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
@@ -37,19 +38,27 @@ import {
   type MonitoreoAulasPlanRow,
   type MonitoreoState,
 } from "../../api/client";
-import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowStep } from "../aulasFlow/AulasApplicationFlow";
-import { MODULE_TONES } from "../../lib/modules";
+import { AULAS_SAMPLE_ROUTE } from "../aulasFlow/AulasApplicationFlow";
+import { MODULE_TONES, PROSECNUR_MODULES } from "../../lib/modules";
+import { searchConNivel, useDireccion, useSeccion } from "../../lib/navegacion/useDireccion";
+import {
+  esDireccionCanonica,
+  resolverDireccion,
+  type RecopiladoresPestana,
+  type RecopiladoresSeccion,
+} from "./navegacion";
+import { captureUrlIssue, captureUrlMessage, captureUrlOk } from "../../lib/captureUrl";
 import "./recopiladores.css";
 
-type QrSection = "preparacion" | "fichas" | "paquete";
-type QrTab = "agenda" | "enlaces" | "vista" | "listado" | "salida" | "retorno";
+type QrSection = RecopiladoresSeccion;
+type QrTab = RecopiladoresPestana;
 type StepTone = "ready" | "current" | "waiting";
 
 type TabDefinition = {
   id: QrTab;
   label: string;
   detail: string;
-  icon: typeof ClipboardList;
+  icon: LucideIcon;
 };
 
 type ManualLinkRecord = {
@@ -68,34 +77,56 @@ type LinkParseResult = {
 
 type TemplateContext = Record<string, string>;
 
-const SECTION_TABS: Record<QrSection, TabDefinition[]> = {
-  preparacion: [
-    { id: "agenda", label: "Agenda", detail: "cursos-horario y docentes", icon: ClipboardList },
-    { id: "enlaces", label: "Enlaces", detail: "uno por curso-horario", icon: Link2 },
-  ],
-  fichas: [
-    { id: "vista", label: "Vista previa", detail: "ficha imprimible", icon: QrCode },
-    { id: "listado", label: "Lista", detail: "revisión por curso-horario", icon: Search },
-  ],
-  paquete: [
-    { id: "salida", label: "PDF final", detail: "fichas imprimibles", icon: Archive },
-    { id: "retorno", label: "Monitoreo", detail: "guardar enlaces", icon: CheckCircle2 },
-  ],
+/**
+ * Las etiquetas e íconos salen del manifiesto: duplicar aquí el catálogo fue la
+ * causa de que la URL y la pantalla dijeran cosas distintas. El único dato que
+ * la página añade es el `detail`, que es copy de esta vista y de nadie más.
+ */
+const MODULO = PROSECNUR_MODULES.find((m) => m.slug === "recopiladores")!;
+
+const SECTION_DETAIL: Record<QrSection, string> = {
+  "plan-recoleccion": "unidades de aplicación",
+  accesos: "canales y vinculación",
+  materiales: "fichas y paquetes",
+  "entrega-campo": "verificación y traspaso",
 };
 
-const SECTIONS: Array<{ id: QrSection; label: string; detail: string; icon: typeof ClipboardList }> = [
-  { id: "preparacion", label: "Preparación", detail: "agenda y enlaces", icon: ClipboardList },
-  { id: "fichas", label: "Fichas", detail: "QR por curso-horario", icon: QrCode },
-  { id: "paquete", label: "Paquete", detail: "PDF final", icon: Archive },
-];
+const TAB_DETAIL: Record<QrTab, string> = {
+  unidades: "cursos-horario y docentes",
+  canales: "uno por curso-horario",
+  vinculacion: "revisión por curso-horario",
+  vista: "ficha imprimible",
+  paquetes: "fichas imprimibles",
+  traspaso: "guardar enlaces",
+};
+
+const SECTIONS: Array<{ id: QrSection; label: string; detail: string; icon: LucideIcon }> =
+  MODULO.sections.map((s) => ({
+    id: s.id as QrSection,
+    label: s.label,
+    detail: SECTION_DETAIL[s.id as QrSection],
+    icon: s.icon,
+  }));
+
+const SECTION_TABS: Record<QrSection, TabDefinition[]> = Object.fromEntries(
+  MODULO.sections.map((s) => [
+    s.id,
+    (s.tabs ?? []).map((t) => ({
+      id: t.id as QrTab,
+      label: t.label,
+      detail: TAB_DETAIL[t.id as QrTab],
+      icon: t.icon,
+    })),
+  ]),
+) as Record<QrSection, TabDefinition[]>;
 
 const TAB_COPY: Record<QrTab, { kicker: string; title: string; detail: string }> = {
-  agenda: {
+  unidades: {
     kicker: "Antes de imprimir",
     title: "Confirma qué cursos-horario entran a campo",
     detail: "La unidad operativa es el curso-horario: una fila debe tener curso, horario, salón, docente, facultad y estado de coordinación.",
   },
-  enlaces: {
+  canales: {
     kicker: "Enlace del curso-horario",
     title: "Crea un enlace único para cada curso-horario",
     detail: "El QR conserva el curso-horario sin pedir códigos al estudiante.",
@@ -105,17 +136,17 @@ const TAB_COPY: Record<QrTab, { kicker: string; title: string; detail: string }>
     title: "Revisa la ficha antes de llevarla a campo",
     detail: "La ficha debe poder leerse en segundos: curso, horario, docente, salón y QR específico de la aplicación.",
   },
-  listado: {
+  vinculacion: {
     kicker: "Control operativo",
     title: "Busca cursos-horario y corrige pendientes",
     detail: "Usa la lista para detectar enlaces faltantes, cursos sin horario o cursos-horario que aún no están listos para imprimir.",
   },
-  salida: {
+  paquetes: {
     kicker: "Motor PDF",
     title: "Genera el PDF de fichas QR",
     detail: "La salida produce una portada y una ficha imprimible por curso-horario, con QR, salón, docente y enlace visible.",
   },
-  retorno: {
+  traspaso: {
     kicker: "Seguimiento",
     title: "Guarda los enlaces en Monitoreo",
     detail: "Cada curso-horario conserva el enlace usado para su QR, de modo que el seguimiento sepa qué ficha recibió.",
@@ -123,13 +154,13 @@ const TAB_COPY: Record<QrTab, { kicker: string; title: string; detail: string }>
 };
 
 const SIDEBAR_NOTES: Record<QrTab, { icon: typeof ClipboardList; title: string; detail: string; tone: StepTone }> = {
-  agenda: {
+  unidades: {
     icon: ClipboardList,
     title: "Primero confirma los cursos-horario",
     detail: "Cada fila es un curso-horario que luego tendrá enlace, QR y ficha imprimible.",
     tone: "current",
   },
-  enlaces: {
+  canales: {
     icon: Link2,
     title: "Luego conecta Kobo",
     detail: "El identificador del curso-horario viaja en el enlace para reconocer la respuesta en Monitoreo.",
@@ -141,19 +172,19 @@ const SIDEBAR_NOTES: Record<QrTab, { icon: typeof ClipboardList; title: string; 
     detail: "La hoja debe identificar el curso-horario, mostrar el QR y sostenerse aun si el enlace se digita.",
     tone: "current",
   },
-  listado: {
+  vinculacion: {
     icon: Search,
     title: "Audita antes de imprimir",
     detail: "Busca cursos-horario sin enlace o datos incompletos antes de generar el paquete PDF.",
     tone: "waiting",
   },
-  salida: {
+  paquetes: {
     icon: FileText,
     title: "Motor PDF",
     detail: "Genera portada y una ficha QR por curso-horario para aplicación presencial.",
     tone: "ready",
   },
-  retorno: {
+  traspaso: {
     icon: CheckCircle2,
     title: "Cierra trazabilidad",
     detail: "Guarda los enlaces para que Monitoreo sepa qué ficha recibió cada curso-horario.",
@@ -241,12 +272,6 @@ function rowMatchKeys(row: MonitoreoAulasPlanRow) {
 
 function cleanKoboBaseUrl(value: unknown) {
   return normalizeText(value).replace(/\/+$/, "") || KOBO_DEFAULT_BASE_URL;
-}
-
-function koboLandingUrl(baseUrl: string, assetUid: string) {
-  const uid = normalizeText(assetUid);
-  if (!uid) return "";
-  return `${cleanKoboBaseUrl(baseUrl)}/#/forms/${encodeURIComponent(uid)}/landing`;
 }
 
 function koboProfileLabel(profile: ConnectionProfileState) {
@@ -633,7 +658,12 @@ function ReadinessRail({
   steps: Array<{ label: string; status: string; detail: string; tone: StepTone }>;
 }) {
   return (
-    <ol className="rec-readiness" aria-label="Recorrido operativo de aplicación por curso-horario">
+    <ol
+      className="rec-readiness"
+      aria-label="Recorrido operativo de aplicación por curso-horario"
+      data-qa-geometry-group="recopiladores/readiness"
+      data-qa-geometry-contract="intrinsic"
+    >
       {steps.map((step, index) => (
         <li key={step.label} className={`is-${step.tone}`}>
           <span>{index + 1}</span>
@@ -692,7 +722,12 @@ function LinkProcessStrip({
     },
   ] satisfies Array<{ label: string; value: string; detail: string; tone: StepTone; icon: typeof ClipboardList }>;
   return (
-    <ol className="rec-link-process" aria-label="Recorrido de enlaces QR por curso-horario">
+    <ol
+      className="rec-link-process"
+      aria-label="Recorrido de enlaces QR por curso-horario"
+      data-qa-geometry-group="recopiladores/proceso-enlaces"
+      data-qa-geometry-contract="intrinsic"
+    >
       {steps.map((step, index) => {
         const Icon = step.icon;
         return (
@@ -1283,7 +1318,9 @@ function KoboLinkPanel({
   onGenerate: () => void;
 }) {
   const hasToken = connection?.has_token === true;
-  const selectedAsset = assets.find((asset) => asset.uid === selectedAssetUid) ?? null;
+  // Un enlace vacío todavía no es un error que mostrar: el usuario no ha
+  // empezado. Solo se explica el problema cuando pegó algo que no captura.
+  const baseLinkIssue = normalizeText(baseLink) ? captureUrlIssue(baseLink) : "";
   return (
     <section className="rec-kobo-panel" aria-label="Kobo para generar enlaces por curso-horario">
       <div className="rec-kobo-head">
@@ -1294,7 +1331,11 @@ function KoboLinkPanel({
           <p>Usa una conexión guardada o pega el enlace base. La credencial no se muestra ni entra al proyecto.</p>
         </div>
       </div>
-      <div className="rec-kobo-controls">
+      <div
+        className="rec-kobo-controls"
+        data-qa-geometry-group="recopiladores/kobo-campos"
+        data-qa-geometry-contract="intrinsic"
+      >
         <label>
           <span>Cuenta</span>
           <select value={selectedProfileId} onChange={(event) => onProfileChange(event.currentTarget.value)} disabled={!profiles.length || loading}>
@@ -1332,8 +1373,10 @@ function KoboLinkPanel({
           <input
             value={baseLink}
             onChange={(event) => onBaseLinkChange(event.currentTarget.value)}
-            placeholder={selectedAsset ? koboLandingUrl(baseUrl, selectedAsset.uid) : "Pega el enlace de aplicación de Kobo"}
+            placeholder="Pega el enlace del formulario web de Kobo"
+            aria-invalid={baseLinkIssue ? true : undefined}
           />
+          {baseLinkIssue ? <small className="rec-kobo-invalid">{captureUrlMessage(baseLinkIssue)}</small> : null}
         </label>
         <label className="rec-kobo-wide">
           <span>Identificador por curso-horario</span>
@@ -1349,9 +1392,9 @@ function KoboLinkPanel({
       <div className="rec-kobo-foot">
         <span>{hasToken ? "Kobo conectado" : "Pega enlace base o configura Kobo"}</span>
         <span>{assets.length ? `${fmt(assets.length)} formularios` : "sin catálogo"}</span>
-        {resolvedFrom ? <span>{resolvedFrom === "deployment" ? "enlace de aplicación" : "landing de Kobo"}</span> : null}
+        {resolvedFrom ? <span>{resolvedFrom === "deployment" ? "enlace de aplicación" : "sin formulario resuelto"}</span> : null}
         <span>{linkedCount ? `${fmt(linkedCount)} con enlace` : `${fmt(agendaCount)} por generar`}</span>
-        <button type="button" className="is-primary" onClick={onGenerate} disabled={!agendaCount || !normalizeText(baseLink || (selectedAsset ? koboLandingUrl(baseUrl, selectedAsset.uid) : ""))}>
+        <button type="button" className="is-primary" onClick={onGenerate} disabled={!agendaCount || !captureUrlOk(baseLink)}>
           {linkedCount ? "Regenerar enlaces" : "Generar enlaces"}
         </button>
       </div>
@@ -1360,10 +1403,42 @@ function KoboLinkPanel({
 }
 
 export default function RecopiladoresPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [state, setState] = useState<MonitoreoState | null>(null);
   const [calcState, setCalcState] = useState<CalcMuestraState | null>(null);
-  const [activeSection, setActiveSection] = useState<QrSection>("preparacion");
-  const [activeTab, setActiveTab] = useState<QrTab>("agenda");
+  // La navegación NO es estado local: vive en la dirección, como en el resto de
+  // la app. Antes eran dos `useState` y por eso `?seccion=&pestana=` se leía en
+  // el inspector pero no movía la pantalla.
+  // `useSeccion` ya resuelve la sección contra el manifiesto, así que una clave
+  // vieja llegaría aquí convertida en la primera sección y el alias no se vería
+  // nunca. Los valores CRUDOS salen de `useDireccion`; de `useSeccion` solo se
+  // toma el navegador de niveles.
+  const direccionUrl = useDireccion();
+  const seccionUrl = direccionUrl?.seccion ?? null;
+  const pestanaUrl = direccionUrl?.pestana ?? null;
+  const { irA } = useSeccion("recopiladores");
+  const { seccion: activeSection, pestana: activeTab } = useMemo(
+    () => resolverDireccion(seccionUrl, pestanaUrl),
+    [seccionUrl, pestanaUrl],
+  );
+  const setActiveSection = useCallback((section: QrSection) => irA("seccion", section), [irA]);
+  const setActiveTab = useCallback((tab: QrTab) => irA("pestana", tab), [irA]);
+
+  // Un enlace viejo (`?seccion=preparacion&pestana=agenda`) aterriza donde debe
+  // y la app reescribe la dirección a la forma canónica, sin dejar entrada en el
+  // historial: los alias se leen, nunca se escriben. Se escriben los dos niveles
+  // de una sola vez porque `irA` gobierna uno solo y encadenarlo dejaría un
+  // estado intermedio con la sección nueva y la pestaña vieja.
+  useEffect(() => {
+    if (esDireccionCanonica(seccionUrl, pestanaUrl)) return;
+    const canonico = searchConNivel(
+      searchConNivel(location.search, "seccion", activeSection),
+      "pestana",
+      activeTab,
+    );
+    navigate(`${location.pathname}${canonico}`, { replace: true });
+  }, [seccionUrl, pestanaUrl, activeSection, activeTab, location.pathname, location.search, navigate]);
   const [selectedFaculty, setSelectedFaculty] = useState("todas");
   const [query, setQuery] = useState("");
   const [selectedKey, setSelectedKey] = useState("");
@@ -1541,12 +1616,12 @@ export default function RecopiladoresPage() {
   const activeCopy = TAB_COPY[activeTab];
   const sidebarNote = SIDEBAR_NOTES[activeTab];
   const SidebarNoteIcon = sidebarNote.icon;
-  const isFichaPreview = activeSection === "fichas" && activeTab === "vista";
-  const isPackageOutput = activeSection === "paquete" && activeTab === "salida";
-  const isPackageSave = activeSection === "paquete" && activeTab === "retorno";
-  const isLinkSetup = activeSection === "preparacion" && activeTab === "enlaces";
-  const isFichaList = activeSection === "fichas" && activeTab === "listado";
-  const isAgendaReview = activeSection === "preparacion" && activeTab === "agenda";
+  const isFichaPreview = activeSection === "materiales" && activeTab === "vista";
+  const isPackageOutput = activeSection === "materiales" && activeTab === "paquetes";
+  const isPackageSave = activeSection === "entrega-campo" && activeTab === "traspaso";
+  const isLinkSetup = activeSection === "accesos" && activeTab === "canales";
+  const isFichaList = activeSection === "accesos" && activeTab === "vinculacion";
+  const isAgendaReview = activeSection === "plan-recoleccion" && activeTab === "unidades";
   const agendaReady = agendaRows.length > 0;
   const linksReady = agendaReady && missingLinks === 0;
   const linksPartial = agendaReady && withLink > 0 && missingLinks > 0;
@@ -1579,18 +1654,14 @@ export default function RecopiladoresPage() {
             label: "Sin agenda",
             detail: "preparar cursos-horario",
           };
-  const flowStep: AulasFlowStep = activeTab === "retorno"
-    ? "monitoreo"
-    : activeSection === "fichas" || activeSection === "paquete"
-      ? "pdf"
-      : "qr";
   // Done por sección del rail: espejo 1:1 de los hitos que ya usa ReadinessRail
   // (Preparar QR → linksReady · Aplicar en el salón → readyForPrint ·
   // Cerrar trazabilidad → returnSaved). No introduce señales nuevas.
   const sectionDone: Record<QrSection, boolean> = {
-    preparacion: linksReady,
-    fichas: readyForPrint,
-    paquete: returnSaved,
+    "plan-recoleccion": agendaRows.length > 0,
+    accesos: linksReady,
+    materiales: readyForPrint,
+    "entrega-campo": returnSaved,
   };
   const readinessSteps = [
     {
@@ -1673,13 +1744,10 @@ export default function RecopiladoresPage() {
   function selectKoboAsset(uid: string) {
     setKoboAssetUid(uid);
     setKoboResolvedFrom("");
-    const asset = koboAssets.find((item) => item.uid === uid);
-    if (!asset) return;
-    const nextLanding = koboLandingUrl(koboBaseUrl, asset.uid);
-    setKoboBaseLink((current) => {
-      if (!current || /\/#\/forms\/[^/]+\/landing/i.test(current)) return nextLanding;
-      return current;
-    });
+    // El campo no se siembra con la landing administrativa: el enlace sale de
+    // "Resolver enlace" o lo pega el usuario. Un enlace heredado que no captura
+    // se limpia al cambiar de formulario en vez de arrastrarse al QR.
+    setKoboBaseLink((current) => (captureUrlOk(current) ? current : ""));
   }
 
   async function loadKoboAssets() {
@@ -1699,8 +1767,7 @@ export default function RecopiladoresPage() {
       const nextAsset = result.assets.find((asset) => asset.uid === koboAssetUid) ?? result.assets[0] ?? null;
       setKoboAssetUid(nextAsset?.uid ?? "");
       if (nextAsset) {
-        const landing = koboLandingUrl(cleanBase, nextAsset.uid);
-        setKoboBaseLink((current) => current || landing);
+        setKoboBaseLink((current) => (captureUrlOk(current) ? current : ""));
         setKoboResolvedFrom("");
       }
     } catch (e) {
@@ -1730,8 +1797,17 @@ export default function RecopiladoresPage() {
         base_url: cleanBase,
         connection_profile_id: selectedKoboProfile?.id || koboProfileId || undefined,
       });
-      setKoboBaseLink(result.survey_url || result.landing_url || koboLandingUrl(cleanBase, assetUid));
-      setKoboResolvedFrom(result.resolved_from || "landing");
+      // Solo `survey_url` sirve para colgar los parámetros de unidad. Si Kobo no
+      // resolvió un formulario, el campo se queda vacío y se dice por qué: la
+      // landing administrativa no es un reemplazo silencioso.
+      setKoboBaseLink(result.survey_url || "");
+      setKoboResolvedFrom(result.resolved_from || "unresolved");
+      if (!result.survey_url) {
+        setKoboError(
+          result.capture_message ||
+            "Kobo no devolvió un formulario web para este proyecto. Copia el enlace del formulario desde Kobo y pégalo.",
+        );
+      }
       if (result.name && !koboAssets.some((asset) => asset.uid === assetUid)) {
         setKoboAssets((current) => [
           ...current,
@@ -1756,9 +1832,14 @@ export default function RecopiladoresPage() {
       setKoboError("Primero necesitas una agenda de cursos-horario.");
       return;
     }
-    const base = normalizeText(koboBaseLink) || (selectedKoboAsset ? koboLandingUrl(koboBaseUrl, selectedKoboAsset.uid) : "");
-    if (!base) {
-      setKoboError("Pega el enlace base de aplicación de Kobo o selecciona un formulario.");
+    const base = normalizeText(koboBaseLink);
+    const issue = captureUrlIssue(base);
+    if (issue) {
+      setKoboError(
+        issue === "vacia"
+          ? "Pega el enlace del formulario web de Kobo, o resuélvelo desde el formulario seleccionado."
+          : captureUrlMessage(issue),
+      );
       return;
     }
     const next = new Map(manualLinks);
@@ -1804,8 +1885,8 @@ export default function RecopiladoresPage() {
 
   function preparePrintPackage() {
     if (!printableRows.length) return;
-    setActiveSection("paquete");
-    setActiveTab("salida");
+    setActiveSection("materiales");
+    setActiveTab("paquetes");
     setPrintPreparedAt(new Date().toISOString());
     window.requestAnimationFrame(() => {
       window.setTimeout(() => window.print(), 160);
@@ -1876,11 +1957,11 @@ export default function RecopiladoresPage() {
           mientras se opera: qué entra a campo y sobre qué facultad. */}
       <ModuleCommandBar
         modulo="recopiladores"
-        ariaLabel="Acciones de fichas QR"
+        ariaLabel="Acciones de Recopiladores"
         className="rec-topbar"
         contexto={
           <ChromeIndicatorGroup
-            ariaLabel="Contexto de fichas QR"
+            ariaLabel="Contexto de Recopiladores"
             resumen={`${fmt(agendaRows.length)} cursos-horario en el plan · ${selectedFacultyLabel}`}
           >
             <ChromeIndicator
@@ -1921,6 +2002,22 @@ export default function RecopiladoresPage() {
             disabled: loading,
             busy: loading,
           },
+          // Heredadas de la barra de pasos retirada: son los dos destinos que
+          // el módulo necesita ofrecer sin dibujar un recorrido paralelo.
+          {
+            id: "muestra",
+            label: "Ver muestra",
+            icon: CalendarRange,
+            rank: 3,
+            onSelect: () => navigate(AULAS_SAMPLE_ROUTE),
+          },
+          {
+            id: "monitoreo",
+            label: "Abrir monitoreo",
+            icon: ExternalLink,
+            rank: 2,
+            onSelect: () => navigate("/monitoreo"),
+          },
         ]}
         secciones={
         <>
@@ -1933,9 +2030,13 @@ export default function RecopiladoresPage() {
           mode="tabs"
           className="pulso-phase-pillbar rec-section-pillbar"
           role="group"
-          aria-label="Secciones de fichas QR"
+          aria-label="Secciones de Recopiladores"
         >
-          <ol className="pulso-phase-pill-list">
+          <ol
+            className="pulso-phase-pill-list"
+            data-qa-geometry-group="recopiladores/secciones"
+            data-qa-geometry-contract="intrinsic"
+          >
             {SECTIONS.map((section, index) => {
               const active = activeSection === section.id;
               return (
@@ -1965,21 +2066,17 @@ export default function RecopiladoresPage() {
         }
       />
 
-      <AulasApplicationFlow
-        tone="recopiladores"
-        current={flowStep}
-        compact
-        title="Motor QR/PDF para intervenciones por cursos-horario"
-        summary="Toma el plan de cursos-horario del cálculo de muestra, genera enlaces personalizados de Kobo, produce QR y fichas individuales, consolida PDF/Word por selección y devuelve enlaces a Monitoreo."
-        metrics={[
-          { label: "Plan de cursos-horario", value: agendaRows.length ? `${fmt(agendaRows.length)} cursos-horario` : "pendiente", tone: agendaRows.length ? "ready" : "warning" },
-          { label: "Enlaces Kobo", value: agendaRows.length ? `${fmt(withLink)}/${fmt(agendaRows.length)}` : "pendiente", tone: linksReady ? "ready" : withLink ? "current" : "warning" },
-          { label: "Fichas PDF", value: printPreparedAt ? "preparado" : printableRows.length ? `${fmt(printableRows.length)} producibles` : "pendiente", tone: printPreparedAt || printableRows.length ? "ready" : "warning" },
-          { label: "Monitoreo", value: returnSaved ? "guardado" : withLink ? `${fmt(unsavedLinks)} por guardar` : "pendiente", tone: returnSaved ? "ready" : withLink ? "current" : "warning" },
-        ]}
-        secondaryAction={{ to: AULAS_SAMPLE_ROUTE, label: "Ver muestra de cursos-horario" }}
-        action={{ to: "/monitoreo", label: "Abrir monitoreo de cursos-horario" }}
-      />
+      {/* Aquí vivía `AulasApplicationFlow`: una segunda barra con los cuatro
+          pasos numerados del módulo y una tercera banda de chips de estado. Las
+          tres decían la misma secuencia que el rail de secciones —que YA es el
+          recorrido— y encima la barra de pasos se desincronizaba de la sección
+          activa: en Paquete seguía marcando «3 Fichas PDF/Word». Entre las tres
+          bandas el chrome se comía casi un tercio del alto antes del primer dato
+          y el mismo número aparecía seis veces en pantalla.
+
+          El estado de avance no se perdió: vive en `ChromeIndicator` (Plan) y en
+          el command strip de cada pestaña, que lo dice donde se está operando.
+          Los dos destinos externos pasaron a acciones de la banda. */}
 
       <main className="rec-workbench">
         {/* Rail de tercer nivel (módulo → sección → pestaña): SIEMPRE comprimido
@@ -1995,7 +2092,7 @@ export default function RecopiladoresPage() {
               <strong>{SECTIONS.find((section) => section.id === activeSection)?.label}</strong>
               <small>{selectedFacultyLabel}</small>
             </div>
-            <GlidingTabList as="nav" activeKey={activeTab} orientation="vertical" role="tablist" aria-label="Pestañas de fichas QR">
+            <GlidingTabList as="nav" activeKey={activeTab} orientation="vertical" role="tablist" aria-label="Pestañas de la sección activa">
               {tabs.map((tab, index) => {
                 const Icon = tab.icon;
                 const active = activeTab === tab.id;
@@ -2077,7 +2174,7 @@ export default function RecopiladoresPage() {
               Los enlaces a muestra/monitoreo ya existen en los strips y en la
               banda de aplicación. pulso-sr-only es position:absolute, no ocupa
               fila del grid del canvas. */}
-          <h1 className="pulso-sr-only">{`Fichas QR · ${activeCopy.title}`}</h1>
+          <h1 className="pulso-sr-only">{`Recopiladores · ${activeCopy.title}`}</h1>
 
           {error ? <div className="rec-error"><AlertCircle size={16} /> {error}</div> : null}
 
@@ -2097,7 +2194,7 @@ export default function RecopiladoresPage() {
                   <button
                     type="button"
                     className="is-primary"
-                    onClick={() => setActiveTab("enlaces")}
+                    onClick={() => setActiveTab("canales")}
                   >
                     <Link2 size={14} />
                     Preparar enlaces
@@ -2160,8 +2257,8 @@ export default function RecopiladoresPage() {
                     type="button"
                     className="is-primary"
                     onClick={() => {
-                      setActiveSection("preparacion");
-                      setActiveTab("enlaces");
+                      setActiveSection("accesos");
+                      setActiveTab("canales");
                     }}
                   >
                     <Link2 size={14} />
@@ -2176,7 +2273,7 @@ export default function RecopiladoresPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    setActiveSection("fichas");
+                    setActiveSection("materiales");
                     setActiveTab("vista");
                   }}
                   disabled={!selectedRow}
@@ -2226,7 +2323,7 @@ export default function RecopiladoresPage() {
             <NextAction title={nextAction.title} detail={nextAction.detail} tone={nextAction.tone}>
               {!agendaReady ? (
                 <Link to={AULAS_SAMPLE_ROUTE}><CalendarRange size={14} /> Ir a muestra</Link>
-              ) : activeSection === "paquete" && readyForPrint ? (
+              ) : activeSection === "materiales" && readyForPrint ? (
                 <>
                   <button type="button" onClick={preparePrintPackage}>
                     <FileText size={14} />
@@ -2295,25 +2392,29 @@ export default function RecopiladoresPage() {
               <span><strong>{loading ? "..." : returnSaved ? "listo" : fmt(unsavedLinks)}</strong> por guardar</span>
             </div>
           ) : (
-            <div className="rec-metrics">
+            <div
+              className="rec-metrics"
+              data-qa-geometry-group="recopiladores/metricas"
+              data-qa-geometry-contract="equal"
+            >
               <Metric label="Cursos-horario en agenda" value={loading ? "..." : fmt(agendaRows.length)} hint="unidad de selección" />
               <Metric label="Estudiantes en cursos-horario" value={loading ? "..." : totalEligible ? fmt(totalEligible) : "sin dato"} hint="matrícula objetivo" />
               <Metric
-                label={activeSection === "paquete" ? "Fichas PDF" : "Con enlace"}
-                value={loading ? "..." : fmt(activeSection === "paquete" ? printableRows.length : withLink)}
-                hint={activeSection === "paquete" ? "una por curso-horario" : "listas para QR"}
+                label={activeSection === "materiales" ? "Fichas PDF" : "Con enlace"}
+                value={loading ? "..." : fmt(activeSection === "materiales" ? printableRows.length : withLink)}
+                hint={activeSection === "materiales" ? "una por curso-horario" : "listas para QR"}
               />
               <Metric
-                label={activeSection === "paquete" ? "Páginas PDF" : "Faltan enlaces"}
-                value={loading ? "..." : fmt(activeSection === "paquete" ? pdfPageCount : missingLinks)}
-                hint={activeSection === "paquete" ? "incluye portada" : selectedFacultyLabel}
+                label={activeSection === "materiales" ? "Páginas PDF" : "Faltan enlaces"}
+                value={loading ? "..." : fmt(activeSection === "materiales" ? pdfPageCount : missingLinks)}
+                hint={activeSection === "materiales" ? "incluye portada" : selectedFacultyLabel}
               />
             </div>
           )}
 
-          {activeSection === "paquete" || activeTab === "enlaces" || isFichaPreview || isFichaList || isAgendaReview ? null : <ReadinessRail steps={readinessSteps} />}
+          {activeSection === "materiales" || activeTab === "canales" || isFichaPreview || isFichaList || isAgendaReview ? null : <ReadinessRail steps={readinessSteps} />}
 
-          {activeSection === "paquete" || activeTab === "enlaces" ? null : (
+          {activeSection === "materiales" || activeTab === "canales" ? null : (
             <div className="rec-toolbar">
               <label>
                 <span>Facultad</span>
@@ -2333,9 +2434,9 @@ export default function RecopiladoresPage() {
             </div>
           )}
 
-          {activeSection === "paquete" ? (
-            <div className={`rec-package-board${activeTab === "retorno" ? " is-return is-save" : ""}${activeTab === "salida" ? " is-output" : ""}`}>
-              {activeTab === "salida" ? (
+          {isPackageOutput || isPackageSave ? (
+            <div className={`rec-package-board${activeTab === "traspaso" ? " is-return is-save" : ""}${activeTab === "paquetes" ? " is-output" : ""}`}>
+              {activeTab === "paquetes" ? (
                 <div className="rec-package-output">
                   <section className="rec-package-output-main">
                     <div className="rec-package-output-icon"><FileText size={22} /></div>
@@ -2413,7 +2514,7 @@ export default function RecopiladoresPage() {
                   </section>
                 </div>
               ) : null}
-              {activeTab === "retorno" ? (
+              {activeTab === "traspaso" ? (
                 <div className="rec-return-workbench">
                   <ReturnManifestPanel
                     rows={agendaRows}
@@ -2445,15 +2546,15 @@ export default function RecopiladoresPage() {
                 </div>
               ) : null}
             </div>
-          ) : activeTab === "enlaces" || activeTab === "listado" || activeTab === "agenda" ? (
-            <div className={`rec-list-panel${activeTab === "enlaces" ? " has-link-import" : ""}${activeTab === "agenda" ? " is-agenda-table" : ""}`}>
+          ) : activeTab === "canales" || activeTab === "vinculacion" || activeTab === "unidades" ? (
+            <div className={`rec-list-panel${activeTab === "canales" ? " has-link-import" : ""}${activeTab === "unidades" ? " is-agenda-table" : ""}`}>
               <div className="rec-audit-strip">
-                <strong>{activeTab === "enlaces" ? "Revisión de enlaces" : activeTab === "agenda" ? "Agenda de cursos-horario" : "Lista de cursos-horario"}</strong>
-                <span>{activeTab === "listado" || activeTab === "agenda" ? `${fmt(filteredRows.length)} visibles` : withLink ? `${fmt(withLink)} con enlace` : "sin enlaces"}</span>
+                <strong>{activeTab === "canales" ? "Revisión de enlaces" : activeTab === "unidades" ? "Agenda de cursos-horario" : "Lista de cursos-horario"}</strong>
+                <span>{activeTab === "vinculacion" || activeTab === "unidades" ? `${fmt(filteredRows.length)} visibles` : withLink ? `${fmt(withLink)} con enlace` : "sin enlaces"}</span>
                 <span>{missingLinks ? `${fmt(missingLinks)} faltan` : "cobertura completa"}</span>
                 <span>{agendaSource || "sin agenda"}</span>
               </div>
-              {activeTab === "enlaces" ? (
+              {activeTab === "canales" ? (
                 <div className="rec-link-workbench">
                   <KoboLinkPanel
                     connection={koboConnection}
@@ -2495,8 +2596,8 @@ export default function RecopiladoresPage() {
                   selectedKey={selectedKey}
                   onSelect={(row, key) => {
                     setSelectedKey(key);
-                    if (activeTab === "listado") {
-                      setActiveSection("fichas");
+                    if (activeTab === "vinculacion") {
+                      setActiveSection("materiales");
                       setActiveTab("vista");
                     }
                   }}
@@ -2511,8 +2612,8 @@ export default function RecopiladoresPage() {
                 selectedKey={selectedKey}
                 onSelect={(row, key) => {
                   setSelectedKey(key);
-                  if (activeSection === "preparacion") {
-                    setActiveSection("fichas");
+                  if (activeSection === "plan-recoleccion") {
+                    setActiveSection("materiales");
                     setActiveTab("vista");
                   }
                 }}

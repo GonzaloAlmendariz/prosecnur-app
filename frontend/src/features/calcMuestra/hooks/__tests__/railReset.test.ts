@@ -72,4 +72,64 @@ describe("debeResetearRailSection — F9 (bug QA #4)", () => {
       }),
     ).toBe(true);
   });
+
+  describe("aterrizaje con dirección profunda", () => {
+    it("no pisa la sección que pidió un enlace (prevDesk null = primer render)", () => {
+      // Regresión de la migración a direcciones enlazables: en el aterrizaje
+      // `prevDesk` es null, lo que contaba como cambio de mesa, y el default se
+      // aplicaba SIEMPRE. Con `?seccion=aulas` en la URL, todo deep-link caía en
+      // "Datos" — verificado en la app antes del fix.
+      expect(
+        debeResetearRailSection({
+          prevDesk: null,
+          desk: "opinion_universitaria",
+          recoveredAulasDesk: null,
+          deskOverride: null,
+          direccionPideSeccion: true,
+        }),
+      ).toBe(false);
+    });
+
+    it("sin sección en la dirección, el aterrizaje sí cae al default", () => {
+      expect(
+        debeResetearRailSection({
+          prevDesk: null,
+          desk: "opinion_universitaria",
+          recoveredAulasDesk: null,
+          deskOverride: null,
+          direccionPideSeccion: false,
+        }),
+      ).toBe(true);
+    });
+
+    it("la mesa pasa de sin_definir a la real al hidratar y NO pisa la sección pedida", () => {
+      // El caso que rompía de verdad: en el aterrizaje el desk transiciona
+      // sin_definir → opinion_universitaria, que es un cambio de mesa legítimo,
+      // y el default se aplicaba después del primer render. Verificado en la
+      // app: `?seccion=aulas` acababa en "Datos".
+      expect(
+        debeResetearRailSection({
+          prevDesk: "sin_definir",
+          desk: "opinion_universitaria",
+          recoveredAulasDesk: null,
+          deskOverride: null,
+          direccionPideSeccion: true,
+        }),
+      ).toBe(false);
+    });
+
+    it("cambio de mesa con una sección que la nueva no tiene → resetea", () => {
+      // `direccionPideSeccion` se calcula contra las secciones de la mesa
+      // vigente, así que una sección de la mesa vieja llega aquí como false.
+      expect(
+        debeResetearRailSection({
+          prevDesk: "opinion_universitaria",
+          desk: "acreditacion",
+          recoveredAulasDesk: null,
+          deskOverride: null,
+          direccionPideSeccion: false,
+        }),
+      ).toBe(true);
+    });
+  });
 });
