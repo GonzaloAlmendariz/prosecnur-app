@@ -1353,6 +1353,17 @@
   padding: 8px 10px;
 }
 
+/* Explica, junto al campo, por qué un enlace pegado no puede llevar el QR. */
+.rec-kobo-invalid {
+  color: var(--pulso-danger-fg);
+  font-weight: var(--pulso-weight-medium);
+  line-height: 1.35;
+}
+
+.rec-kobo-controls input[aria-invalid="true"] {
+  border-color: var(--pulso-danger-border);
+}
+
 .rec-kobo-controls select:focus-visible,
 .rec-kobo-controls input:focus-visible,
 .rec-kobo-controls textarea:focus-visible,

@@ -6,6 +6,7 @@ import type { CalcMuestraAulasFrame, CalcMuestraAulasSelection, CalcMuestraEstud
 import { apiFetch, apiPath, downloadUrl, getSession, handle, headers, registerMonitoreoMutationInvalidator, SESSION_KEY } from "./core";
 import type { FileJobResult, JobStart } from "./jobs";
 import { type CargaMonitoreoHandoffValidity, normalizeKoboAssets } from "./xlsformEditor";
+import { captureUrlOk } from "../lib/captureUrl";
 
 // ---------- Monitoreo digital ----------
 
@@ -92,12 +93,20 @@ export type MonitoreoKoboSurveyLink = {
   ok: true;
   asset_uid: string;
   name: string;
-  base_url: string;
+  /** Formulario web de captura. Vacío cuando Kobo no expuso ninguno. */
   survey_url: string;
+  /**
+   * Pantalla administrativa del proyecto en Kobo. Sirve para abrir el proyecto,
+   * nunca como URL de captura: no acepta `d[]`. Ver `lib/captureUrl`.
+   */
   landing_url: string;
+  base_url: string;
   version_id: string;
   deployment_active: boolean;
+  /** `"deployment"` cuando hay formulario; `"unresolved"` cuando no. */
   resolved_from: string;
+  capture_issue: string;
+  capture_message: string;
 };
 
 /**
@@ -3368,11 +3377,16 @@ export async function apiMonitoreoKoboSurveyLink(payload: {
     asset_uid: String(r.asset_uid ?? payload.asset_uid ?? ""),
     name: String(r.name ?? ""),
     base_url: String(r.base_url ?? payload.base_url ?? ""),
-    survey_url: String(r.survey_url ?? ""),
+    // Normalizador defensivo: un backend viejo podía devolver la landing como
+    // `survey_url`. Se descarta aquí para que ninguna vista la trate como URL de
+    // captura aunque venga en el cable.
+    survey_url: captureUrlOk(r.survey_url) ? String(r.survey_url) : "",
     landing_url: String(r.landing_url ?? ""),
     version_id: String(r.version_id ?? ""),
     deployment_active: r.deployment_active === true,
-    resolved_from: String(r.resolved_from ?? ""),
+    resolved_from: captureUrlOk(r.survey_url) ? String(r.resolved_from ?? "deployment") : "unresolved",
+    capture_issue: String(r.capture_issue ?? ""),
+    capture_message: String(r.capture_message ?? ""),
   };
 }
 
