@@ -352,6 +352,77 @@ describe("moduleCardModel", () => {
     });
   });
 
+  it("mide el avance por lo que falta para la meta, no por la base recorrida", () => {
+    // Acreditación: la meta (287) manda; el universo contactado (519) es dato
+    // secundario y baja a fact. Regresión: el home mostraba 444.9% contando
+    // filas crudas, y luego 36.2% midiendo contra el universo.
+    const overview = makeOverview();
+    overview.facts.monitoreo = {
+      family: "acreditacion",
+      has_snapshot: true,
+      collected: 519,
+      valid: 188,
+      target: 287,
+      avance_pct: 65.5,
+      alerts: 39,
+      valid_label: "efectivas",
+      collected_label: "universo",
+      avance_label: "avance de meta",
+    };
+    const monitoreo = view("monitoreo", overview);
+    expect(monitoreo.viz).toMatchObject({
+      kind: "stat",
+      value: "65.5%",
+      label: "avance de meta",
+    });
+    expect(monitoreo.sub).toBe("Faltan 99 para la meta · 188 de 287");
+    expect(monitoreo.facts).toContainEqual({ label: "universo", value: "519" });
+    // La alerta ya no borra el progreso de la sub-línea; viaja en su chip y no
+    // se repite ahí (regresión de ruido detectada en la app real).
+    expect(monitoreo.alert).toBe("39 por revisar");
+    expect(monitoreo.sub).not.toContain("por revisar");
+  });
+
+  it("dice que la meta está cumplida en vez de leerla como deuda", () => {
+    // PDM telefónico real: 423 efectivas contra una meta de 400. El operativo
+    // terminó; la tarjeta no puede sugerir lo contrario.
+    const overview = makeOverview();
+    overview.facts.monitoreo = {
+      family: "telefonico",
+      has_snapshot: true,
+      collected: 2296,
+      valid: 423,
+      target: 400,
+      avance_pct: 105.8,
+      alerts: 0,
+      valid_label: "efectivas",
+      collected_label: "universo",
+      avance_label: "avance de meta",
+    };
+    const monitoreo = view("monitoreo", overview);
+    expect(monitoreo.viz).toMatchObject({ kind: "stat", value: "105.8%" });
+    expect(monitoreo.sub).toBe("Meta cumplida · 423 de 400 efectivas");
+    expect(monitoreo.sub).not.toContain("Faltan");
+    expect(monitoreo.facts).toContainEqual({ label: "universo", value: "2,296" });
+  });
+
+  it("cae al vocabulario neutro cuando el backend no manda etiquetas", () => {
+    const overview = makeOverview();
+    overview.facts.monitoreo = {
+      family: "territorial",
+      has_snapshot: true,
+      collected: 1351,
+      valid: 975,
+      target: 1200,
+      avance_pct: 81.2,
+      alerts: 0,
+    };
+    const monitoreo = view("monitoreo", overview);
+    expect(monitoreo.viz).toMatchObject({ kind: "stat", label: "avance de campo" });
+    expect(monitoreo.sub).toBe("Faltan 225 para la meta · 975 de 1,200");
+    expect(monitoreo.facts).toContainEqual({ label: "recolectados", value: "1,351" });
+  });
+
   it("marca la actividad como señal principal cuando una cifra no explica qué hacer", () => {
     expect(view("monitoreo").emphasis).toBe("activity");
     expect(view("calc-muestra").emphasis).toBe("activity");

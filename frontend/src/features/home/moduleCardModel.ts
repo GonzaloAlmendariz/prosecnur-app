@@ -303,11 +303,18 @@ export function buildModuleCardView(
       const family =
         MONITOREO_FAMILY_LABEL[monitoring.family] ??
         (monitoring.family ? capitalize(monitoring.family) : "Sin tipo registrado");
+      // El vocabulario lo manda el backend porque cambia con la familia: en
+      // territorial el avance es "válidas sobre meta"; en acreditación y
+      // telefónico es "efectivas sobre universo contactado". Rotular ambas
+      // igual haría que la tarjeta mienta aunque las cifras sean correctas.
+      const validLabel = monitoring.valid_label || "válidos";
+      const collectedLabel = monitoring.collected_label || "recolectados";
+      const avanceLabel = monitoring.avance_label || "avance de campo";
       const viz: ModuleCardViz =
         monitoring.avance_pct >= 0
-          ? { kind: "stat", value: `${monitoring.avance_pct}%`, label: "avance de campo" }
+          ? { kind: "stat", value: `${monitoring.avance_pct}%`, label: avanceLabel }
           : monitoring.valid > 0
-            ? { kind: "stat", value: formatCount(monitoring.valid), label: "casos válidos" }
+            ? { kind: "stat", value: formatCount(monitoring.valid), label: `casos ${validLabel}` }
             : monitoring.collected > 0
               ? { kind: "stat", value: formatCount(monitoring.collected), label: "casos recolectados" }
               : protocol.monitoring_sources_count > 0
@@ -317,6 +324,22 @@ export function buildModuleCardView(
                     label: "fuentes de campo",
                   }
                 : { kind: "stat", value: "Sin fuentes", label: "conexión de campo" };
+      // Lo que el operativo necesita saber es cuánto falta para la meta, no
+      // cuánto se ha recorrido de la base: esa lectura va en la sub-línea y el
+      // recorrido baja a fact. Antes una alerta borraba el progreso; ahora el
+      // progreso manda y la alerta vive en su propio chip (repetirla aquí era
+      // ruido).
+      const gap = Math.max(0, monitoring.target - monitoring.valid);
+      const progressText =
+        monitoring.target > 0
+          ? gap === 0
+            ? `Meta cumplida · ${formatCount(monitoring.valid)} de ${formatCount(monitoring.target)} ${validLabel}`
+            : `Faltan ${formatCount(gap)} para la meta · ${formatCount(monitoring.valid)} de ${formatCount(monitoring.target)}`
+          : monitoring.collected > 0
+            ? `${formatCount(monitoring.valid)} ${validLabel} de ${formatCount(monitoring.collected)}`
+            : "";
+      const alertText =
+        monitoring.alerts > 0 ? `${formatCount(monitoring.alerts)} por revisar` : "";
       return {
         state,
         statusLabel: stateLabel(state),
@@ -330,17 +353,18 @@ export function buildModuleCardView(
             : undefined,
         viz,
         sub:
-          monitoring.alerts > 0
-            ? `${formatCount(monitoring.alerts)} alertas requieren revisión`
-            : monitoring.collected > 0
-              ? `${formatCount(monitoring.valid)} válidos de ${formatCount(monitoring.collected)}`
-              : nodeState === "ready"
-                ? "Tablero operativo conectado"
-                : "Conecta una fuente para iniciar el seguimiento",
+          progressText ||
+          alertText ||
+          (nodeState === "ready"
+            ? "Tablero operativo conectado"
+            : "Conecta una fuente para iniciar el seguimiento"),
         facts: [
           { label: "tipo", value: family },
           { label: "último corte", value: formatCutDate(metrics.monitoreo_last_cut) },
-          { label: "recolectados", value: formatCount(monitoring.collected) },
+          {
+            label: collectedLabel,
+            value: monitoring.collected > 0 ? formatCount(monitoring.collected) : "Sin definir",
+          },
         ],
         action: moduleAction(module, monitoring.alerts > 0 ? "Revisar alertas" : "Abrir monitoreo"),
         alert: monitoring.alerts > 0 ? `${formatCount(monitoring.alerts)} por revisar` : nodeAlert,

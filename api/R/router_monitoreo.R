@@ -2095,16 +2095,6 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   if (!is.null(territorial_map_cache) && is.list(dashboard) && is.list(dashboard$territorial_reports)) {
     dashboard$territorial_reports$map_cache <- territorial_map_cache$active %||% territorial_map_cache
   }
-  # Espeja los KPIs territoriales recien servidos al home (single source fresca),
-  # sin tocar dashboard_cache_token/scope del tablero "full". Ver
-  # monitoreo_overview_facts.R.
-  if (identical(family, "territorial") && isTRUE(include_reports) && is.list(snapshot)) {
-    facts_sync <- monitoreo_snapshot_refresh_territorial_facts(snapshot, dashboard)
-    if (isTRUE(facts_sync$changed)) {
-      snapshot <- facts_sync$snapshot
-      session_set(sid, "monitoreo_snapshot", snapshot)
-    }
-  }
   if (family %in% c("acreditacion", "telefonico")) {
     dashboard <- .monitoreo_acreditacion_repair_cached_dashboard(dashboard)
   }
@@ -2119,6 +2109,12 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
     dashboard$kpis$aulas_total <- aulas_dashboard$kpis$total_aulas %||% 0L
     dashboard$kpis$aulas_aplicadas <- aulas_dashboard$kpis$aulas_aplicadas %||% 0L
     dashboard$kpis$respuestas_validas_aulas <- aulas_dashboard$kpis$respuestas_validas %||% 0L
+  }
+  # Espeja al home los KPIs de la familia recien servidos (single source fresca),
+  # despues de las transformaciones por familia y sin tocar
+  # dashboard_cache_token/scope del tablero "full". Ver monitoreo_overview_facts.R.
+  if (isTRUE(include_reports) && is.list(snapshot)) {
+    snapshot <- monitoreo_snapshot_store_overview_facts(sid, snapshot, dashboard, family)
   }
   .monitoreo_log_timing("state", list(
     family = family,

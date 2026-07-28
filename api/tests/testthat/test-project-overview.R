@@ -66,8 +66,13 @@ test_that("facts.monitoreo despacha KPIs por familia (territorial vs generico)",
   expect_equal(mon_t$collected, 100L)
   expect_equal(mon_t$valid, 80L)
   expect_equal(mon_t$avance_pct, 40)
-  expect_equal(mon_t$alerts, 7L)
+  # Alertas = casos en revision, sin sumar el eje geo (ver
+  # test-monitoreo-overview-facts.R).
+  expect_equal(mon_t$alerts, 5L)
 
+  # Telefonico sin modelo de efectividad todavia: se degrada a un conteo
+  # honesto (cuantas respuestas hay) en vez de publicar el avance del bloque
+  # generico, que divide filas crudas entre objetivo_total.
   session_set(sid, "monitoreo_config", list(monitoreo_profile = list(family = "telefonico")))
   session_set(sid, "monitoreo_snapshot", list(dashboard = list(kpis = list(
     total = 50L, valid = 45L, target = 100L, avance_pct = 45, inconsistencies = 3L
@@ -76,6 +81,8 @@ test_that("facts.monitoreo despacha KPIs por familia (territorial vs generico)",
   expect_equal(mon_g$family, "telefonico")
   expect_equal(mon_g$collected, 50L)
   expect_equal(mon_g$alerts, 3L)
+  expect_equal(mon_g$avance_pct, -1)
+  expect_equal(mon_g$valid, 0L)
 })
 
 test_that("facts.calc detecta modo aulas y lee el summary data.frame", {

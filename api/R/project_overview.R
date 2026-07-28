@@ -135,29 +135,78 @@
 }
 
 # Monitoreo: KPIs conscientes de la familia (territorial/telefonico/aulas/
-# acreditacion). El avance_pct y los conteos viven en rutas distintas del
-# snapshot$dashboard segun la familia, por eso el dispatch.
+# acreditacion). Cada familia tiene su propio modelo de avance y su propia ruta
+# en el snapshot, por eso el dispatch. En todas se prefiere el espejo que la
+# vista viva dejo fresco (ver monitoreo_overview_facts.R) y solo se cae al
+# tablero guardado como compatibilidad hacia atras.
+#
+# Las etiquetas viajan con los datos porque el numerador y el denominador NO
+# significan lo mismo entre familias: en territorial es "validas sobre meta",
+# en acreditacion/telefonico es "efectivas sobre universo". Una tarjeta que
+# rotule ambas igual miente aunque las cifras sean correctas.
 .overview_monitoreo_facts <- function(s, family) {
   snap <- s$monitoreo_snapshot %||% list()
   dash <- snap$dashboard %||% list()
   fam <- .diseno_scalar(family, "")
   collected <- 0L; valid <- 0L; target <- 0L; avance <- -1; alerts <- 0L
+  # Las etiquetas describen los numeros que la tarjeta muestra: `valid_label` al
+  # numerador y `collected_label` a `collected`, que NO es lo mismo entre
+  # familias (respuestas recolectadas vs universo contactado).
+  valid_label <- "válidos"; collected_label <- "recolectados"
+  avance_label <- "avance de campo"
   if (identical(fam, "territorial")) {
-    # Preferimos los KPIs que la vista viva de "Avance territorial" espejo en el
-    # snapshot (report_scope advance_summary no reescribe dash$territorial_reports,
-    # asi que ese tablero puede quedar congelado). Fallback al tablero completo.
     k <- snap$territorial_overview_facts %||% (dash$territorial_reports %||% list())$kpis %||% list()
     collected <- as.integer(.diseno_num(k$total_respuestas, 0))
     valid <- as.integer(.diseno_num(k$validas, 0))
     target <- as.integer(.diseno_num(k$meta, 0))
     avance <- .overview_pct(k$avance_pct)
-    alerts <- as.integer(.diseno_num(k$revision, 0) + .diseno_num(k$geo_no_defendible, 0))
+    # Solo `revision`: validas + revision + no_defendibles particionan el total,
+    # mientras que los `geo_*` son un eje ortogonal de geolocalizacion. Sumarlos
+    # daba mas "alertas" que casos no validos en el estudio.
+    alerts <- as.integer(.diseno_num(k$revision, 0))
+    valid_label <- "válidas"
+    # Territorial ya mide validas sobre meta; se nombra igual que las demas
+    # familias para que "avance" signifique lo mismo en toda la app.
+    if (target > 0L) avance_label <- "avance de meta"
   } else if (identical(fam, "aulas_universitarias")) {
-    k <- (dash$aulas_universitarias_reports %||% list())$kpis %||% list()
+    k <- snap$aulas_overview_facts %||% (dash$aulas_universitarias_reports %||% list())$kpis %||% list()
     collected <- as.integer(.diseno_num(k$respuestas_total, 0))
     valid <- as.integer(.diseno_num(k$respuestas_validas, 0))
     avance <- .overview_pct(k$avance_pct)
     alerts <- as.integer(.diseno_num(k$quota_cells_pending, 0) + .diseno_num(k$brechas, 0))
+    valid_label <- "válidas"
+  } else if (fam %in% c("acreditacion", "telefonico")) {
+    # Modelo de efectividad de la familia: efectivas sobre universo, el mismo
+    # par que publica el "Reporte de avance para cliente". El bloque generico
+    # `dash$kpis` NO sirve aqui (total = filas crudas de todas las fuentes,
+    # valid == total, target = objetivo_total): daba 444.9% de avance.
+    k <- snap$efectividad_overview_facts %||% NULL
+    if (is.null(k)) k <- monitoreo_efectividad_overview_facts(dash)
+    if (!is.null(k)) {
+      collected <- as.integer(.diseno_num(k$universo, 0))
+      valid <- as.integer(.diseno_num(k$efectivas, 0))
+      target <- as.integer(.diseno_num(k$meta, 0))
+      alerts <- as.integer(.diseno_num(k$inconsistencias, 0))
+      valid_label <- "efectivas"
+      collected_label <- "universo"
+      # El avance del operativo es contra la meta: cuanto falta por levantar.
+      # El recorrido de la base es relevante, pero secundario; solo manda
+      # cuando el estudio no declara meta que perseguir.
+      if (target > 0L) {
+        avance <- .overview_pct(k$avance_pct)
+        avance_label <- "avance de meta"
+      } else {
+        avance <- .overview_pct(k$avance_universo_pct)
+        avance_label <- "avance sobre universo"
+      }
+    } else {
+      # Sin modelo de efectividad (aun no se sirvio el modulo) degradamos a un
+      # conteo honesto: cuantas respuestas hay. NO se reporta avance ni
+      # "validos" desde el bloque generico, que es de donde salia el 444.9%.
+      gk <- dash$kpis %||% list()
+      collected <- as.integer(.diseno_num(gk$total, 0))
+      alerts <- as.integer(.diseno_num(gk$inconsistencies, 0))
+    }
   } else {
     k <- dash$kpis %||% list()
     collected <- as.integer(.diseno_num(k$total, 0))
@@ -173,7 +222,10 @@
     valid = valid,
     target = target,
     avance_pct = avance,
-    alerts = alerts
+    alerts = alerts,
+    valid_label = valid_label,
+    collected_label = collected_label,
+    avance_label = avance_label
   )
 }
 
@@ -384,7 +436,9 @@
     ),
     monitoreo = safe(.overview_monitoreo_facts(s, protocol$monitoring_family),
                      list(family = "", has_snapshot = FALSE, collected = 0L, valid = 0L,
-                          target = 0L, avance_pct = -1, alerts = 0L)),
+                          target = 0L, avance_pct = -1, alerts = 0L,
+                          valid_label = "válidos", collected_label = "recolectados",
+                          avance_label = "avance de campo")),
     calc = safe(.overview_calc_facts(s),
                 list(macro_familia = "", mode = "general", aulas_titulares = 0L,
                      students_covered = 0L, faculties_count = 0L, territories_count = 0L,

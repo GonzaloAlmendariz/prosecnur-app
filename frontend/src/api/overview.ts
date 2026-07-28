@@ -50,12 +50,23 @@ export type ProjectOverviewFacts = {
   monitoreo: {
     family: string;
     has_snapshot: boolean;
+    /** Denominador del avance: universo contactado (acreditación/telefónico) o respuestas (territorial). */
     collected: number;
+    /** Numerador del avance: efectivas (acreditación/telefónico) o válidas (territorial/aulas). */
     valid: number;
     target: number;
     /** Avance % conocido, o -1 cuando no hay meta/dato. */
     avance_pct: number;
     alerts: number;
+    /**
+     * Vocabulario de la familia. El numerador y el denominador no significan lo
+     * mismo entre familias (válidas sobre meta vs efectivas sobre universo), así
+     * que la etiqueta viaja con el dato. `collected_label` describe a
+     * `collected`. Opcionales por compatibilidad con payloads previos al fix.
+     */
+    valid_label?: string;
+    collected_label?: string;
+    avance_label?: string;
   };
   calc: {
     macro_familia: string;
