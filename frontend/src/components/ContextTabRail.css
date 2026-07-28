@@ -1,0 +1,298 @@
+:root .pulso-context-tab-layout.pulso-context-tab-layout.pulso-context-tab-layout.pulso-context-tab-layout {
+  grid-template-columns: var(--pulso-rail-compressed-width) minmax(0, 1fr) !important;
+}
+
+.pulso-context-tab-layout > .pulso-adaptive-rail {
+  overflow: hidden;
+}
+
+.pulso-context-tab-layout > .pulso-context-tab-rail {
+  border-right: 1px solid var(--pulso-border);
+}
+
+.pulso-context-tab-rail {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--pulso-rail-bubble-offset);
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+}
+
+.pulso-context-tab-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pulso-chrome-commandbar-gap);
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.pulso-context-tab-list::-webkit-scrollbar {
+  display: none;
+}
+
+.pulso-context-tab-rail-footer {
+  box-sizing: border-box;
+  display: grid;
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  margin-top: var(--pulso-chrome-commandbar-gap);
+  padding-top: var(--pulso-chrome-commandbar-gap);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-context-tab-rail-meta {
+  display: grid;
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  text-align: center;
+}
+
+.pulso-context-tab-rail-meta > span {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: calc(var(--pulso-nav-item-height) + 18px);
+  padding: 6px 2px 5px;
+  border: 1px solid color-mix(
+    in srgb,
+    var(--module-accent, var(--pulso-primary)) 28%,
+    var(--pulso-border)
+  );
+  border-radius: var(--pulso-radius-chip);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--module-accent-soft, var(--pulso-primary-soft)) 34%, var(--pulso-surface)),
+      color-mix(in srgb, var(--module-accent-soft, var(--pulso-primary-soft)) 18%, var(--pulso-surface))
+    );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--pulso-surface) 82%, transparent),
+    0 4px 12px color-mix(in srgb, var(--pulso-text) 4%, transparent);
+}
+
+.pulso-context-tab-rail-meta strong {
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  color: var(--module-accent, var(--pulso-primary));
+  font-size: 8px;
+  font-weight: var(--pulso-control-weight);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: normal;
+}
+
+.pulso-context-tab-rail-meta small,
+.pulso-context-tab-rail-meta > span > span {
+  display: none;
+}
+
+.pulso-context-tab-rail-meta .mon-rail-sync-date {
+  display: block;
+  font-size: 7px;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+
+.pulso-context-tab-rail-meta .mon-rail-sync-time {
+  display: block;
+  color: var(--pulso-text-soft);
+  font-size: 7px;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.pulso-context-tab-item {
+  position: relative;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  flex: 0 0 var(--pulso-nav-item-height);
+  width: var(--pulso-nav-item-height);
+  min-width: var(--pulso-nav-item-height);
+  max-width: var(--pulso-nav-item-height);
+  height: var(--pulso-nav-item-height);
+  min-height: var(--pulso-nav-item-height);
+  padding: 0;
+  border-radius: var(--pulso-nav-item-radius);
+  color: var(--pulso-text-soft);
+  overflow: visible;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-context-tab-item:hover:not(:active) {
+    transform: none;
+  }
+}
+
+.pulso-context-tab-icon {
+  width: var(--pulso-nav-icon-size);
+  height: var(--pulso-nav-icon-size);
+  color: currentColor;
+}
+
+.pulso-context-tab-copy {
+  display: none;
+}
+
+@media (min-width: 1321px) and (min-height: 721px) {
+  .pulso-context-tab-rail--labeled .pulso-context-tab-list {
+    align-items: stretch;
+  }
+
+  .pulso-context-tab-rail--labeled .pulso-context-tab-item {
+    grid-template-columns: var(--pulso-nav-item-height) minmax(0, 1fr);
+    place-items: center start;
+    gap: var(--pulso-chrome-commandbar-gap);
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: auto;
+    min-height: var(--pulso-nav-item-height);
+    padding: 4px 8px 4px 2px;
+    text-align: left;
+  }
+
+  .pulso-context-tab-rail--labeled .pulso-context-tab-icon {
+    justify-self: center;
+  }
+
+  .pulso-context-tab-rail--labeled .pulso-context-tab-copy,
+  .pulso-context-tab-rail--labeled .pulso-context-tab-detail {
+    min-width: 0;
+  }
+
+  .pulso-context-tab-rail--labeled .pulso-context-tab-copy {
+    display: grid;
+    align-content: center;
+    gap: 1px;
+    width: 100%;
+  }
+
+  .pulso-context-tab-label,
+  .pulso-context-tab-detail {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pulso-context-tab-label {
+    color: currentColor;
+    font-size: 13px;
+    font-weight: var(--pulso-control-weight);
+    line-height: 1.18;
+  }
+
+  .pulso-context-tab-detail {
+    display: flex;
+    align-items: baseline;
+    gap: 3px;
+    color: var(--pulso-text-soft);
+    font-size: 10px;
+    font-weight: var(--pulso-weight-medium);
+    line-height: 1.2;
+  }
+
+  .pulso-context-tab-state,
+  .pulso-context-tab-description {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pulso-context-tab-state {
+    flex: 0 0 auto;
+  }
+
+  .pulso-context-tab-description {
+    min-width: 0;
+  }
+
+  .pulso-context-tab-item[data-rail-state="listo"] .pulso-context-tab-state {
+    color: var(--pulso-success-fg);
+  }
+
+  .pulso-context-tab-item[data-rail-state="parcial"] .pulso-context-tab-state {
+    color: var(--pulso-warn-fg);
+  }
+
+  .pulso-context-tab-item[data-rail-state="bloqueado"] .pulso-context-tab-state {
+    color: var(--pulso-danger-fg);
+  }
+
+  .pulso-context-tab-item[data-nav-state="selected"] .pulso-context-tab-detail,
+  .pulso-context-tab-item[data-nav-state="selected"] .pulso-context-tab-state {
+    color: currentColor;
+  }
+}
+
+.pulso-context-tab-tooltip {
+  position: fixed;
+  z-index: var(--pulso-z-flyout);
+  display: grid;
+  gap: 2px;
+  width: max-content;
+  min-width: 122px;
+  max-width: min(220px, calc(100vw - 20px));
+  padding: 7px 9px;
+  border: 1px solid color-mix(in srgb, var(--pulso-nav-accent, var(--pulso-primary)) 52%, var(--pulso-border));
+  border-radius: var(--pulso-rail-bubble-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: var(--pulso-shadow-popover);
+  pointer-events: none;
+  transform: translateY(-50%);
+  animation: pulso-context-tab-tooltip-in var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-context-tab-tooltip strong,
+.pulso-context-tab-tooltip span {
+  overflow-wrap: anywhere;
+}
+
+.pulso-context-tab-tooltip strong {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.22;
+}
+
+.pulso-context-tab-tooltip span {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-control-weight);
+  line-height: 1.28;
+}
+
+@keyframes pulso-context-tab-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-context-tab-tooltip {
+    animation: none;
+  }
+}
+
+/* El rail NO pinta badge ni punto de estado dentro del cuadrante de 40×40: es
+ * el estándar de sidebar de la casa y el cuadrante no admite nada encima del
+ * ícono. La readiness que el rail recibe se comunica por tooltip y `aria-label`
+ * (ver ContextTabRail.tsx) y, visualmente, en el encabezado del workbench. */

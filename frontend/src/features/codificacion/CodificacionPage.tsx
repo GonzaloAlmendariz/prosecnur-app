@@ -1,15 +1,14 @@
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PARAMS_DIRECCION } from "../../lib/navegacion/direccion";
-import { AlertCircle, CheckCircle2, ChevronDown, Database, FileSpreadsheet, Layers, Network, Tags, Wand2 } from "lucide-react";
+import { AlertCircle, ChevronDown, Database, FileSpreadsheet, Layers, Network, Tags, Wand2 } from "lucide-react";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
 import { BaseSelectorTrigger, BasesInspectorMenu } from "../../components/BasesInspectorMenu";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
-import { StepMeta } from "../../components/Stepper";
-import { GlidingTabList } from "../../components/GlidingTabList";
+import { ContextTabRail, type ContextTabRailItem } from "../../components/ContextTabRail";
 import { LoadingBlock } from "../../components/States";
 import { PreguntasLanding } from "./PreguntasLanding";
 import { CodificarWizard } from "./CodificarWizard";
@@ -89,7 +88,7 @@ export default function CodificacionPage() {
       <AdaptiveSplitView
         ariaLabel="Mesa de trabajo de codificación"
         railLabel="Pestañas de codificación"
-        className={`pulso-codificacion-shell${!prereqOk ? " is-empty" : ""}`}
+        className={`pulso-codificacion-shell pulso-context-tab-layout${!prereqOk ? " is-empty" : ""}`}
         rail={(
           <CodificacionModeSidebar
             active={step}
@@ -220,69 +219,22 @@ function CodificacionModeSidebar({
   disabled: boolean;
 }) {
   return (
-    <aside className="pulso-codificacion-sidebar pulso-sidebar" aria-label="Pestañas de codificación">
-      <div className="pulso-codificacion-sidebar-head">
-        <span className="pulso-section-eyebrow">Codificación</span>
-        <strong>Vistas</strong>
-        {disabled ? <small className="pulso-sidebar-head-status">Pendiente</small> : null}
-      </div>
-      <GlidingTabList
-        activeKey={active}
-        orientation="vertical"
-        style={{ "--pulso-gliding-indicator-radius": "10px" } as CSSProperties}
-        role="tablist"
-        aria-label="Pestañas de codificación"
-        className="pulso-codificacion-nav"
-      >
-        {CODIFICACION_STEPS.map((item) => {
-          const Icon = item.icon;
-          const isActive = active === item.key;
-          return (
-            <button
-              key={item.key}
-              id={`codificacion-step-${item.key}`}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              aria-controls="codificacion-panel"
-              disabled={disabled}
-              onClick={() => onChange(item.key)}
-              className={`pulso-codificacion-nav-item${isActive ? " is-active" : ""}`}
-              data-nav-item=""
-              data-nav-shape="row"
-              data-nav-state={isActive ? "selected" : undefined}
-              aria-label={`${item.label}${item.hint ? `. ${item.hint}` : ""}`}
-              title={item.hint ? `${item.label}\n${item.hint}` : item.label}
-              data-rail-title={item.label}
-              data-rail-desc={item.hint ?? ""}
-              data-rail-tooltip={item.hint ? `${item.label}\n${item.hint}` : item.label}
-              data-gliding-key={item.key}
-            >
-              <span className="pulso-codificacion-nav-index">{item.n}</span>
-              <span aria-hidden="true" className="pulso-codificacion-nav-icon">
-                <Icon size={15} />
-              </span>
-              <span className="pulso-codificacion-nav-copy">
-                <strong>{item.label}</strong>
-                {item.hint && <span>{item.hint}</span>}
-              </span>
-              {isActive && !disabled && (
-                <span className="pulso-codificacion-nav-current">
-                  <CheckCircle2 size={12} />
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </GlidingTabList>
-    </aside>
+    <ContextTabRail
+      ariaLabel="Pestañas de codificación"
+      activeKey={active}
+      items={CODIFICACION_STEPS}
+      panelId="codificacion-panel"
+      tabId={(key) => `codificacion-step-${key}`}
+      onChange={onChange}
+      disabled={disabled}
+    />
   );
 }
 
 // Definición de los pasos del flujo de codificación.
-const CODIFICACION_STEPS: StepMeta<Step>[] = [
-  { key: "organizar", n: 1, label: "Preparar", icon: Layers, hint: "Emparejar y marcar" },
-  { key: "codificar", n: 2, label: "Codificar", icon: Tags, hint: "Agrupar respuestas" },
-  { key: "matrices", n: 3, label: "Matrices", icon: Network, hint: "Mapear textos abiertos" },
-  { key: "adaptar", n: 4, label: "Adaptación", icon: Wand2, hint: "Confirmar y aplicar" },
+const CODIFICACION_STEPS: ContextTabRailItem<Step>[] = [
+  { key: "organizar", label: "Preparar", icon: Layers, description: "Emparejar y marcar" },
+  { key: "codificar", label: "Codificar", icon: Tags, description: "Agrupar respuestas" },
+  { key: "matrices", label: "Matrices", icon: Network, description: "Mapear textos abiertos" },
+  { key: "adaptar", label: "Adaptación", icon: Wand2, description: "Confirmar y aplicar" },
 ];

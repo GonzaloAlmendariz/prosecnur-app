@@ -1,10 +1,9 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PARAMS_DIRECCION } from "../../lib/navegacion/direccion";
 import {
   BarChart2,
   BookOpen,
-  CheckCircle2,
   ClipboardList,
   Database,
   FileSpreadsheet,
@@ -26,7 +25,7 @@ import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
 import { ChromeBaseSelector } from "../../components/ChromeBaseSelector";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
-import { GlidingTabList } from "../../components/GlidingTabList";
+import { ContextTabRail } from "../../components/ContextTabRail";
 import { useAnaliticaAutosave } from "./useAnaliticaAutosave";
 import { AnaliticaHeader } from "./AnaliticaHeader";
 import { CodebookPane } from "./panes/CodebookPane";
@@ -153,15 +152,12 @@ export default function AnaliticaPage() {
       <AdaptiveSplitView
         ariaLabel="Mesa de trabajo de analítica"
         railLabel="Pestañas de analítica"
-        className={`pulso-analitica-shell${!prereqOk ? " is-empty" : ""}`}
+        className={`pulso-analitica-shell pulso-context-tab-layout${!prereqOk ? " is-empty" : ""}`}
         rail={(
           <AnaliticaSidebar
             active={active}
             onChange={goReporte}
             disabled={!prereqOk || prepBusy || !prepOk}
-            prepBusy={prepBusy}
-            prepOk={prepOk}
-            state={state}
             reportes={reportes}
           />
         )}
@@ -260,95 +256,27 @@ function AnaliticaSidebar({
   active,
   onChange,
   disabled,
-  prepBusy,
-  prepOk,
-  state,
   reportes,
 }: {
   active: Reporte;
   onChange: (reporte: Reporte) => void;
   disabled: boolean;
-  prepBusy: boolean;
-  prepOk: boolean;
-  state: ReturnType<typeof useSession>["state"];
   reportes: ReporteMeta[];
 }) {
   return (
-    <aside className="pulso-analitica-sidebar pulso-sidebar" aria-label="Pestañas de analítica">
-      <div className="pulso-analitica-sidebar-head">
-        <span className="pulso-section-eyebrow">Analítica</span>
-        <strong>Vistas</strong>
-        {prepBusy ? (
-          <small className="pulso-sidebar-head-status">Preparando datos</small>
-        ) : prepOk ? null : (
-          <small className="pulso-sidebar-head-status">Pendiente</small>
-        )}
-      </div>
-      <GlidingTabList
-        activeKey={active}
-        orientation="vertical"
-        style={{ "--pulso-gliding-indicator-radius": "9px" } as CSSProperties}
-        role="tablist"
-        aria-label="Pestañas de analítica"
-        className="pulso-analitica-nav"
-      >
-        {reportes.map((item) => {
-          const Icon = item.icon;
-          const isActive = active === item.key;
-          const done = reporteDone(item.key, state);
-          return (
-            <button
-              key={item.key}
-              id={`analitica-tab-${item.key}`}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              aria-controls="analitica-panel"
-              aria-label={`${item.label}. ${item.desc}`}
-              data-rail-title={item.label}
-              data-rail-desc={item.desc}
-              data-rail-tooltip={`${item.label}\n${item.desc}`}
-              data-gliding-key={item.key}
-              disabled={disabled}
-              onClick={() => {
-                onChange(item.key);
-              }}
-              className={`pulso-analitica-nav-item${isActive ? " is-active" : ""}${done ? " is-done" : ""}`}
-              data-nav-item=""
-              data-nav-shape="row"
-              data-nav-state={isActive ? "selected" : undefined}
-            >
-              <span aria-hidden="true" className="pulso-analitica-nav-icon">
-                <Icon size={15} />
-              </span>
-              <span className="pulso-analitica-nav-copy">
-                <strong>{item.label}</strong>
-                <span>{item.desc}</span>
-              </span>
-              {done && (
-                <span className="pulso-analitica-nav-done">
-                  <CheckCircle2 size={12} />
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </GlidingTabList>
-    </aside>
+    <ContextTabRail
+      ariaLabel="Pestañas de analítica"
+      activeKey={active}
+      items={reportes.map(({ key, label, icon, desc }) => ({
+        key,
+        label,
+        icon,
+        description: desc,
+      }))}
+      panelId="analitica-panel"
+      tabId={(key) => `analitica-tab-${key}`}
+      onChange={onChange}
+      disabled={disabled}
+    />
   );
-}
-
-function reporteDone(reporte: Reporte, state: ReturnType<typeof useSession>["state"]) {
-  if (!state) return false;
-  if (reporte === "datos") return !!state.analitica_prep_ok;
-  if (reporte === "base_final") return !!state.analitica_prep_ok;
-  if (reporte === "codebook") return !!state.analitica_codebook_ok;
-  if (reporte === "bases") return !!state.analitica_spss_ok;
-  if (reporte === "frecuencias") return !!state.analitica_frecuencias_ok;
-  if (reporte === "multibase") return !!state.analitica_multibase_ok;
-  if (reporte === "panel") return !!state.analitica_panel_ok;
-  if (reporte === "ficha") return !!state.analitica_ficha_tecnica_ok;
-  if (reporte === "cruces") return !!state.analitica_cruces_ok;
-  if (reporte === "dimensiones") return !!state.analitica_dim_ok;
-  return false;
 }

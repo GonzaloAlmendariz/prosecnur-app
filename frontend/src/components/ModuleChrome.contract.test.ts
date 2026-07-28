@@ -319,6 +319,20 @@ const SUPRIME_HOVER_PENDIENTE = [
 ];
 
 describe("estados de navegación", () => {
+  test("el hover seleccionado de un rail conserva un fondo opaco", () => {
+    const fila = reglas(DUENO_ESTADOS).find(
+      (r) => r.selector === '[data-nav-item][data-nav-shape="row"]',
+    );
+    expect(fila, "no encontré el contrato visual de los items row").toBeTruthy();
+
+    const fondo = declara(fila!.cuerpo, "--pulso-nav-selected-hover-bg");
+    expect(fondo, "el rail debe especializar el hover del seleccionado").toContain(
+      "var(--pulso-nav-accent)",
+    );
+    expect(fondo).toContain("var(--pulso-surface)");
+    expect(fondo).not.toContain("transparent");
+  });
+
   test("ninguna regla nueva suprime el hover del item activo", () => {
     const infractores = todasLasReglas()
       .filter((r) => r.archivo !== DUENO_ESTADOS)

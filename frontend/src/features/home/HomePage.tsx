@@ -92,9 +92,8 @@ export default function HomePage() {
     () => ({
       isAdded: (slug: string) => addedSlugs.includes(slug),
       onAdd: addModule,
-      onRemove: removeModule,
     }),
-    [addedSlugs, addModule, removeModule],
+    [addedSlugs, addModule],
   );
 
   // El selector de módulos es un overlay global (<ModulePickerHost/> en el
@@ -126,7 +125,7 @@ export default function HomePage() {
           <p className="home-setup-kicker">Nuevo proyecto</p>
           <h1>Arma tu proyecto</h1>
           <p className="home-setup-sub">
-            Elige los módulos que vas a usar. Puedes sumar o quitar módulos cuando quieras.
+            Elige los módulos que vas a usar. Luego podrás administrarlos desde el inicio.
           </p>
         </header>
         <ModuleCarousel picker={picker} />

@@ -89,7 +89,7 @@
 .rec-resumen-shell {
   display: grid;
   gap: 4px;
-  width: min(100%, 1720px);
+  width: 100%;
   min-width: 0;
   padding: 0 6px;
   border: 0;

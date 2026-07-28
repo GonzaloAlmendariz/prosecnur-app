@@ -5,7 +5,7 @@ import {
   type CSSProperties,
   type KeyboardEvent,
 } from "react";
-import { ArrowRight, Check, ChevronLeft, ChevronRight, Minus } from "lucide-react";
+import { ArrowRight, Check, ChevronLeft, ChevronRight } from "../../vendor/lucide-react";
 import {
   PROSECNUR_PRIMARY_ACTIVE_MODULES as MODULES,
   homeModuleVars,
@@ -14,13 +14,12 @@ import {
 import { useLayoutPreset, type LayoutPreset } from "../../lib/layoutPreference";
 
 // Selector cinematográfico de módulos. El click enfoca/mueve tarjetas; el
-// detalle del módulo vive siempre visible. En modo selector cada módulo se
-// agrega o se quita del proyecto. Luce a casi pantalla completa.
+// detalle del módulo vive siempre visible. Este panel solo agrega módulos; la
+// administración y el retiro viven en las cards del homepage.
 
 export type ModulePicker = {
   isAdded: (slug: string) => boolean;
   onAdd: (slug: string) => void;
-  onRemove: (slug: string) => void;
 };
 
 type ModuleMotionDirection = "forward" | "backward";
@@ -71,7 +70,6 @@ export function ModuleCarousel({ picker }: { picker: ModulePicker }) {
   const [motionDirection, setMotionDirection] = useState<ModuleMotionDirection>("forward");
   const { deckRef, metrics } = useAdaptiveCinemaMetrics(layoutPreset);
   const focused = MODULES[focusIndex] ?? MODULES[0];
-  const focusedAdded = picker.isAdded(focused.slug);
 
   const focusedStyle = {
     ...homeModuleVars(focused),
@@ -93,11 +91,6 @@ export function ModuleCarousel({ picker }: { picker: ModulePicker }) {
     setFocusIndex(index);
   }
 
-  function toggleFocused() {
-    if (focusedAdded) picker.onRemove(focused.slug);
-    else picker.onAdd(focused.slug);
-  }
-
   function handleDeckKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key === "ArrowLeft") {
       event.preventDefault();
@@ -106,10 +99,6 @@ export function ModuleCarousel({ picker }: { picker: ModulePicker }) {
     if (event.key === "ArrowRight") {
       event.preventDefault();
       focusBy(1);
-    }
-    if (event.key === "Enter") {
-      event.preventDefault();
-      toggleFocused();
     }
   }
 
@@ -175,6 +164,7 @@ export function ModuleCarousel({ picker }: { picker: ModulePicker }) {
               const cardClass = [
                 "home-cinema-card",
                 isFocused ? "is-focused" : "",
+                added ? "is-added" : "",
                 hidden ? "is-hidden" : "",
                 "is-active",
               ].filter(Boolean).join(" ");
@@ -194,11 +184,6 @@ export function ModuleCarousel({ picker }: { picker: ModulePicker }) {
                     aria-label={`${mod.title}: ${mod.tagline}`}
                   >
                     <span className="home-cinema-card-glow" aria-hidden="true" />
-                    {added && (
-                      <span className="home-cinema-card-added" aria-hidden="true">
-                        <Check size={11} strokeWidth={3} />
-                      </span>
-                    )}
                     <span className="home-cinema-card-icon" aria-hidden="true">
                       <Icon size={30} strokeWidth={1.65} />
                     </span>
@@ -237,22 +222,7 @@ export function ModuleCarousel({ picker }: { picker: ModulePicker }) {
                       </li>
                     ))}
                   </ul>
-                  {added ? (
-                    <div className="home-cinema-picker-actions">
-                      <span className="home-cinema-added-badge">
-                        <Check size={13} strokeWidth={2.6} aria-hidden="true" />
-                        En el proyecto
-                      </span>
-                      <button
-                        type="button"
-                        className="home-cinema-cta-secondary"
-                        onClick={() => picker.onRemove(mod.slug)}
-                      >
-                        <Minus size={13} strokeWidth={2.4} aria-hidden="true" />
-                        Quitar
-                      </button>
-                    </div>
-                  ) : (
+                  {!added && (
                     <button
                       type="button"
                       className="home-cinema-cta"
@@ -280,16 +250,16 @@ export function ModuleCarousel({ picker }: { picker: ModulePicker }) {
               className={`home-cinema-dot ${index === focusIndex ? "is-current" : ""}${added ? " is-added" : ""}`}
               style={{ ...homeModuleVars(mod) } as CSSProperties}
               onClick={() => focusModule(index)}
-              aria-label={`Ver ${mod.title}`}
+              aria-label={`Ver ${mod.title}${added ? ", en el proyecto" : ""}`}
               aria-current={index === focusIndex ? "true" : undefined}
+              title={mod.shortLabel ?? mod.title}
             >
-              <Icon size={14} strokeWidth={1.9} aria-hidden="true" />
-              <span>{mod.shortLabel}</span>
-              {added && <span className="home-cinema-dot-check" aria-hidden="true"><Check size={10} strokeWidth={3} /></span>}
+              <Icon size={17} strokeWidth={1.9} aria-hidden="true" />
             </button>
           );
         })}
       </div>
+
     </section>
   );
 }

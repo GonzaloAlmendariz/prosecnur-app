@@ -20,8 +20,12 @@
 .cmv2-panel.cmv2-university-variable-map {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 16px 18px;
+  gap: var(--cmv2-space-4);
+  padding: var(--cmv2-space-2) var(--cmv2-space-3) var(--cmv2-space-4);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .cmv2-panel.cmv2-university-category-map {
@@ -878,24 +882,38 @@
 
 .cmv2-defi-var-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  overflow: clip;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--cmv2-surface);
 }
 
 .cmv2-defi-var-card {
   position: relative;
   display: grid;
-  /* Columna acotada: sin esto el track auto crece al max-content del head
-     (título + chip en una sola línea) y el badge se sale de la tarjeta. */
-  grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
-  align-content: start;
-  padding: 13px 13px 12px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: 12px;
+  grid-template-columns:
+    minmax(180px, 0.9fr)
+    minmax(210px, 1.05fr)
+    minmax(150px, 0.7fr)
+    minmax(220px, 1.25fr);
+  grid-template-areas:
+    "head select confirm detail"
+    "type sheet confirm detail";
+  gap: var(--cmv2-space-1) var(--cmv2-space-4);
+  align-items: center;
+  padding: var(--cmv2-space-3) var(--cmv2-space-4);
+  border: 0;
+  border-bottom: 1px solid var(--cmv2-border);
+  border-radius: 0;
   background: var(--cmv2-surface);
   min-width: 0;
   transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.cmv2-defi-var-card:last-child {
+  border-bottom: 0;
 }
 
 /* Hover solo aquí: la tarjeta es interactiva (select + popover). */
@@ -910,24 +928,21 @@
 }
 
 .cmv2-defi-var-card[data-state="confirmada"] {
-  border-color: color-mix(in srgb, var(--pulso-success-border) 60%, var(--cmv2-border));
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--pulso-success-fg) 5%, transparent), transparent 46%),
     var(--cmv2-surface);
 }
 
 .cmv2-defi-var-card[data-state="falta"] {
-  border-color: var(--pulso-warn-border);
   background: color-mix(in srgb, var(--pulso-warn-bg) 16%, var(--cmv2-surface));
 }
 
-/* Filete de tipo: la barra superior distingue de un vistazo el tratamiento. */
+/* Filete de estado/tipo: en la data surface acompaña el eje de lectura vertical. */
 .cmv2-defi-var-card::before {
   content: "";
   position: absolute;
-  inset: 0 0 auto 0;
-  height: 3px;
-  border-radius: 12px 12px 0 0;
+  inset: 0 auto 0 0;
+  width: 3px;
   background: var(--cmv2-border-strong);
 }
 
@@ -967,6 +982,7 @@
    ("Condición o elegibilidad") envuelven debajo de sí mismos sin empujar el
    chip a una segunda línea — alturas y anclas consistentes en toda la grilla. */
 .cmv2-defi-var-card-head {
+  grid-area: head;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
@@ -1012,6 +1028,7 @@
 }
 
 .cmv2-defi-var-type-tag {
+  grid-area: type;
   justify-self: start;
   display: inline-flex;
   align-items: center;
@@ -1070,8 +1087,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: var(--pulso-control-height-md);
+  height: var(--pulso-control-height-md);
   border: none;
   border-radius: 999px;
   background: none;
@@ -1110,8 +1127,9 @@
 }
 
 .cmv2-defi-var-card select {
+  grid-area: select;
   width: 100%;
-  min-height: 30px;
+  min-height: var(--pulso-control-height-lg);
   padding: 4px 8px;
   border: 1px solid var(--cmv2-border-strong);
   border-radius: 9px;
@@ -1130,11 +1148,12 @@
 
 /* --- Fila de confirmación (§3.3.1): la decisión consciente por campo -------- */
 .cmv2-defi-var-confirm {
+  grid-area: confirm;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  min-height: 24px;
+  min-height: var(--pulso-control-height-lg);
 }
 
 .cmv2-defi-var-confirmed {
@@ -1150,7 +1169,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 24px;
+  height: var(--pulso-control-height-md);
   padding: 0 11px;
   border: 1px solid var(--cmv2-accent-border);
   border-radius: 8px;
@@ -1177,7 +1196,7 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  height: 22px;
+  height: var(--pulso-control-height-md);
   padding: 0 7px;
   border: 1px solid var(--cmv2-border);
   border-radius: 7px;
@@ -1218,9 +1237,12 @@
 
 /* --- Zona de detalle: categorías (categórica) o resumen (numérica) --------- */
 .cmv2-defi-var-detail {
-  margin-top: 1px;
-  padding-top: 8px;
-  border-top: 1px dashed color-mix(in srgb, var(--cmv2-border) 80%, transparent);
+  grid-area: detail;
+  min-width: 0;
+  margin-top: 0;
+  padding: 0 0 0 var(--cmv2-space-3);
+  border-top: 0;
+  border-left: 1px solid color-mix(in srgb, var(--cmv2-border) 80%, transparent);
 }
 
 .cmv2-defi-var-detail-note {
@@ -1330,6 +1352,43 @@
   font-size: 11.5px;
   line-height: 1.45;
   color: var(--pulso-text-muted);
+}
+
+/* El rail/contexto local ya nombra Variables. Se conserva la explicación
+   operativa y se elimina el rótulo interior duplicado. */
+.cmv2-defi-var-head-copy > .cmv2-eyebrow {
+  display: none;
+}
+
+.cmv2-defi-var-sheet-note {
+  grid-area: sheet;
+}
+
+@media (max-width: 1280px) {
+  .cmv2-defi-var-card {
+    grid-template-columns: minmax(170px, 0.9fr) minmax(190px, 1fr) minmax(180px, 1fr);
+    grid-template-areas:
+      "head select confirm"
+      "type sheet detail";
+  }
+
+  .cmv2-defi-var-detail {
+    padding: var(--cmv2-space-2) 0 0;
+    border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 80%, transparent);
+    border-left: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .cmv2-defi-var-card {
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 0.9fr);
+    grid-template-areas:
+      "head head"
+      "type type"
+      "select confirm"
+      "sheet sheet"
+      "detail detail";
+  }
 }
 
 .cmv2-defi-var-head-actions {
