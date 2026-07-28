@@ -3,6 +3,7 @@
 // importan del barrel ./client; este módulo no cambia el contrato.
 
 import { apiFetch, handle, headers } from "./core";
+import type { BitacoraVinculo } from "./planTrabajo";
 
 // ============================================================================
 // Diseño del estudio
@@ -78,6 +79,15 @@ export type DisenoEstudioNextAction = {
   state: DisenoEstudioSourceState;
 };
 
+/** Una edición conservada: la bitácora es un registro, no un borrador. */
+export type DisenoEstudioBitacoraRevision = {
+  revised_at: string;
+  title: string;
+  body: string;
+  tone: string;
+  module_id: string;
+};
+
 export type DisenoEstudioBitacoraEntry = {
   id: string;
   module_id: string;
@@ -88,6 +98,14 @@ export type DisenoEstudioBitacoraEntry = {
   created_at: string;
   updated_at: string;
   tags: string[];
+
+  // ---- ADR 0047 ------------------------------------------------------------
+  // Opcionales porque un payload de un backend anterior no los trae.
+  /** Más reciente primero. Editar empuja la versión anterior acá. */
+  revisions?: DisenoEstudioBitacoraRevision[];
+  /** Las entradas se archivan; el borrado permanente es explícito. */
+  archived_at?: string;
+  links?: BitacoraVinculo[];
 };
 
 export type DisenoEstudioTimelineItem = DisenoEstudioBitacoraEntry & {
@@ -127,6 +145,7 @@ export type DisenoEstudioBitacoraInput = {
   body: string;
   occurred_at?: string;
   tags?: string[];
+  links?: BitacoraVinculo[];
 };
 
 export async function apiDisenoEstudioState() {

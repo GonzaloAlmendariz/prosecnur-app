@@ -2006,6 +2006,14 @@ load_pulso <- function(src_path) {
     s_seed <- .xlsform_forms_seed_from_legacy(session_get(new_sid))
     .session_env[[new_sid]] <- s_seed
   })
+  # Migración del subsistema Bitácora (ADR 0047): un .pulso guardado antes de
+  # este cambio trae tareas sin prioridad, recordatorios ni vínculos, y entradas
+  # sin historial de revisiones. El salto es aditivo e idempotente, así que
+  # abrir dos veces el mismo proyecto da exactamente lo mismo.
+  local({
+    s_bit <- .bitacora_migrar_estado(session_get(new_sid))
+    .session_env[[new_sid]] <- s_bit
+  })
   .pulso_repair_multibase_variant_xlsforms(new_sid)
   .pulso_repair_parent_recod_columns(new_sid)
   .pulso_rebuild_estudio_runtime_sources(new_sid)

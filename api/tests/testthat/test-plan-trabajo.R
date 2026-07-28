@@ -26,6 +26,9 @@ test_that("plan de trabajo entiende cronogramas XLSX con grilla diaria", {
 
   plan <- .plan_normalize_import(path, list(original_name = "cronograma.xlsx"))
 
+  # El parser produce la forma v1 a propósito: es una función pura Excel→plan.
+  # Quien aplica el esquema vigente es `.plan_rebuild_derived`, por donde pasa
+  # la ruta real de import (ver el test siguiente).
   expect_equal(plan$schema, "plan_trabajo_v1")
   expect_match(plan$title, "Cronograma Estudio ACNUR")
   expect_equal(length(plan$tasks), 2L)
@@ -41,6 +44,75 @@ test_that("plan de trabajo entiende cronogramas XLSX con grilla diaria", {
   expect_equal(report$kind, "milestone")
   expect_true("reportes" %in% unlist(report$sync_targets, use.names = FALSE))
   expect_equal(length(plan$windows), 2L)
+})
+
+test_that("un cronograma importado sale del rebuild con los campos del ADR 0047", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("readxl")
+  path <- tempfile(fileext = ".xlsx")
+  plan_test_workbook(path)
+
+  # La ruta real de import envuelve el parser en `.plan_rebuild_derived`: sin
+  # eso, un cronograma recién importado quedaría sin prioridad, etiquetas ni
+  # forma temporal hasta reabrir el proyecto, y el payload sería heterogéneo
+  # según de dónde vino la tarea.
+  plan <- .plan_rebuild_derived(.plan_normalize_import(path, list(original_name = "cronograma.xlsx")))
+
+  expect_equal(plan$schema, "plan_trabajo_v2")
+  for (t in plan$tasks) {
+    for (campo in c("priority", "priority_rank", "tags", "reminders", "links",
+                    "blocked_by", "archived_at", "kind_manual", "fase",
+                    "fase_manual", "temporal_kind")) {
+      expect_true(campo %in% names(t), info = paste("tarea", t$id, "sin", campo))
+    }
+  }
+  # Trabajo de campo va del 20 al 23 de mayo: es un rango.
+  expect_equal(plan$tasks[[1]]$temporal_kind, "rango")
+})
+
+test_that("el tipo elegido por el usuario sobrevive a una edición posterior", {
+  # Regresión del ADR 0047: `.plan_update_task` recalculaba `kind` desde el
+  # texto de la actividad en CADA edición, así que la elección del usuario se
+  # revertía sola en el guardado siguiente.
+  plan <- .plan_create_task(.plan_empty_plan(), list(
+    activity = "Levantamiento en campo",
+    start_date = "2026-03-01",
+    end_date = "2026-03-20",
+    kind = "activity"
+  ))
+  id <- plan$tasks[[1]]$id
+  # El texto dice "campo": la heurística querría `fieldwork_window`.
+  expect_equal(plan$tasks[[1]]$kind, "activity")
+  expect_true(plan$tasks[[1]]$kind_manual)
+
+  plan <- .plan_update_task(plan, id, list(responsible = "Equipo B"))
+  expect_equal(plan$tasks[[1]]$kind, "activity")
+
+  # Sin elección explícita, la heurística sí sugiere y sigue mandando.
+  plan2 <- .plan_create_task(.plan_empty_plan(), list(
+    activity = "Levantamiento en campo",
+    start_date = "2026-03-01",
+    end_date = "2026-03-20"
+  ))
+  expect_equal(plan2$tasks[[1]]$kind, "fieldwork_window")
+  expect_false(plan2$tasks[[1]]$kind_manual)
+})
+
+test_that("una tarea archivada sale de hitos y ventanas pero no del plan", {
+  plan <- .plan_create_task(.plan_empty_plan(), list(
+    activity = "Entrega de informe final",
+    start_date = "2026-04-05",
+    end_date = "2026-04-05",
+    kind = "milestone"
+  ))
+  expect_equal(length(plan$milestones), 1L)
+
+  plan$tasks[[1]]$archived_at <- "2026-04-10T10:00:00Z"
+  plan <- .plan_rebuild_derived(plan)
+
+  expect_equal(length(plan$tasks), 1L)
+  expect_equal(length(plan$milestones), 0L)
+  expect_equal(length(plan$windows), 0L)
 })
 
 test_that("plan de trabajo se persiste como estado propio y expone sincronizacion", {
