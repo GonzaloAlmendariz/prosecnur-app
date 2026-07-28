@@ -183,7 +183,7 @@ export function Coachmarks({ forceShow, onDone }: CoachmarksProps) {
 
 /** El target puede ser una tarjeta muy alta. El coachmark no debe crear
  * una ventana gigante: resalta una porción visible y representativa. */
-function computeSpotlightRect(rect: DOMRect): SpotlightRect {
+export function computeSpotlightRect(rect: DOMRect): SpotlightRect {
   const margin = 18;
   const pad = 8;
   const maxW = Math.min(760, window.innerWidth - margin * 2);
@@ -224,7 +224,7 @@ function computeSpotlightRect(rect: DOMRect): SpotlightRect {
 
 /** Calcula posición del callout relativa al target rect. Garantiza que
  *  no se salga del viewport. */
-function computeCalloutPos(
+export function computeCalloutPos(
   rect: SpotlightRect,
   placement: CoachStep["placement"],
 ): { top: number; left: number } {
