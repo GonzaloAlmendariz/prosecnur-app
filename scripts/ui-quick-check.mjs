@@ -818,8 +818,11 @@ function stubSessionState() {
 }
 
 function routeUrl(base, route, project = "") {
-  const url = new URL(base);
-  url.pathname = route;
+  // `route` puede incluir los niveles direccionables de la app en query
+  // (`/carga?pestana=fuentes`). Asignarlo a `pathname` escapa el `?` como
+  // `%3F` y termina visitando una ruta inexistente; resolverlo como URL
+  // conserva pathname, search y hash por separado.
+  const url = new URL(route, base);
   if (project) url.searchParams.set("devPulso", project);
   return url.toString();
 }
@@ -873,6 +876,9 @@ function warmupModuleIdsForRoutes(routes) {
 
 function monitoreoReportScopeForClickTabs(clickTabs = []) {
   const labels = clickTabs.map((value) => String(value || "").toLowerCase());
+  if (labels.some((label) => label.includes("teléfono") || label.includes("telefono") || label.includes("llamada"))) {
+    return "phone_summary";
+  }
   if (labels.some((label) => label.includes("validaci") || label.includes("geolocal") || label.includes("gps"))) {
     return "validation_summary";
   }
@@ -910,6 +916,12 @@ async function prefetchRouteDataForQa(stack, route, timeoutMs, clickTabs = []) {
 // Navegación por DIRECCIÓN canónica (`modulo/modo/seccion/pestana#panel`).
 // Preferente sobre el click por etiqueta, que depende del texto visible.
 // Contrato: frontend/src/lib/navegacion/direccion.ts
+async function cederRenderDeTransicion(page) {
+  await page.evaluate(() => new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  }));
+}
+
 async function irADireccion(page, destino, timeoutMs) {
   const resultado = await page.evaluate((clave) => {
     const nav = window.__pulsoNav;
@@ -931,8 +943,13 @@ async function irADireccion(page, destino, timeoutMs) {
     );
   }
 
-  await page.waitForLoadState("networkidle", { timeout: timeoutMs }).catch(() => {});
-  await esperarListo(page, timeoutMs);
+  await cederRenderDeTransicion(page);
+  const readiness = await esperarListo(page, timeoutMs);
+  if (!readiness?.listo) {
+    throw new Error(
+      `La dirección "${destino}" no alcanzó readiness final: ${readiness?.motivo || "estado desconocido"}.`,
+    );
+  }
 }
 
 // Readiness preguntada a la app, no adivinada con sleeps.
@@ -940,10 +957,25 @@ async function esperarListo(page, timeoutMs) {
   const limite = Date.now() + timeoutMs;
   let ultimo = null;
   while (Date.now() < limite) {
-    ultimo = await page.evaluate(() => window.__pulsoNav?.listo() ?? null);
-    if (!ultimo) return { listo: false, motivo: "sin-puente" };
+    const estado = await page.evaluate(() => {
+      const nav = window.__pulsoNav;
+      if (nav) return nav.listo();
+
+      // Los fixtures aislados del inspector no montan la aplicación ni su
+      // puente, pero sí declaran el mismo marcador verificable. Una shell real
+      // sin puente todavía está arrancando y debe seguir esperando.
+      const appShell = document.querySelector(".pulso-shell");
+      const marker = document.querySelector("[data-audit-ready]");
+      if (!appShell && marker) {
+        const value = marker.getAttribute("data-audit-ready") ?? "";
+        return value === "false"
+          ? { listo: false, motivo: "marca-en-false", marca: value }
+          : { listo: true, marca: value };
+      }
+      return null;
+    });
+    ultimo = estado ?? { listo: false, motivo: "sin-puente" };
     if (ultimo.listo) return ultimo;
-    if (ultimo.motivo === "sin-marca-de-readiness") return ultimo;
     await page.waitForTimeout(250);
   }
   return ultimo ?? { listo: false, motivo: "timeout" };
@@ -1042,11 +1074,23 @@ async function runCaptures(opts, stack) {
         }
         for (const tab of opts.clickTabs) {
           await clickNamedControl(page, tab, opts.timeoutMs);
-          await page.waitForLoadState("networkidle", { timeout: Math.min(5000, opts.timeoutMs) }).catch(() => {});
+          await cederRenderDeTransicion(page);
+          const tabReadiness = await esperarListo(page, opts.timeoutMs);
+          if (!tabReadiness?.listo) {
+            throw new Error(
+              `La pestaña "${tab}" no alcanzó readiness final: ${tabReadiness?.motivo || "estado desconocido"}.`,
+            );
+          }
           if (opts.waitAfterClickSelector) {
             await page.locator(opts.waitAfterClickSelector).first().waitFor({ state: "attached", timeout: opts.timeoutMs }).catch(() => {});
           }
-          await page.waitForTimeout(250);
+        }
+        await cederRenderDeTransicion(page);
+        const finalReadiness = await esperarListo(page, opts.timeoutMs);
+        if (!finalReadiness?.listo) {
+          throw new Error(
+            `La ruta "${route}" no alcanzó readiness final antes de la captura: ${finalReadiness?.motivo || "estado desconocido"}.`,
+          );
         }
         let postClickWaitSelectorMatched = true;
         if (opts.postClickWaitSelector) {
@@ -1054,7 +1098,6 @@ async function runCaptures(opts, stack) {
             postClickWaitSelectorMatched = false;
           });
         }
-        await page.waitForTimeout(250);
 
         const shotBase = `${opts.name}-${safeSlug(route)}-${viewportName(viewport)}-${opts.layoutPreset}`;
         const screenshot = path.join(opts.out, `${shotBase}.png`);
@@ -1160,9 +1203,19 @@ async function inspectDom(page, { projectMode }) {
     const scrollableYValues = new Set(["auto", "scroll", "overlay"]);
     const clippingYValues = new Set(["hidden", "clip"]);
     const isVisibleElement = (el) => {
+      const closedDetails = el.closest("details:not([open])");
+      if (closedDetails) {
+        const visibleSummary = closedDetails.querySelector(":scope > summary");
+        if (!visibleSummary || (el !== visibleSummary && !visibleSummary.contains(el))) return false;
+      }
       const rect = el.getBoundingClientRect();
       const style = window.getComputedStyle(el);
-      return rect.width > 1 && rect.height > 1 && style.display !== "none" && style.visibility !== "hidden";
+      return !el.hidden
+        && el.getClientRects().length > 0
+        && rect.width > 1
+        && rect.height > 1
+        && style.display !== "none"
+        && style.visibility !== "hidden";
     };
     const isScrollableY = (el) => {
       const style = window.getComputedStyle(el);
