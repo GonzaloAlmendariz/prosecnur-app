@@ -302,6 +302,11 @@ kobo_api_deploy_asset <- function(asset_uid,
   res$parsed %||% list(ok = TRUE)
 }
 
+#' URL administrativa del proyecto en Kobo.
+#'
+#' Es la pantalla de gestión del asset, no un formulario de captura: sirve para
+#' "abrir el proyecto en Kobo" y nunca debe viajar como `survey_url` ni recibir
+#' parámetros `d[]`. Ver [capture_url_issue()].
 kobo_api_asset_url <- function(asset_uid,
                                base_url = kobo_api_default_base_url()) {
   uid <- trimws(as.character(asset_uid %||% "")[1])
@@ -337,13 +342,16 @@ kobo_api_survey_url <- function(asset_uid,
     out
   }
   candidates <- c(collect_urls(deployment, "deployment"), collect_urls(detail, "detail"))
-  if (!length(candidates)) return(kobo_api_asset_url(asset_uid, base_url))
+  if (!length(candidates)) return("")
   df <- do.call(rbind, lapply(candidates, function(item) {
     data.frame(path = item$path, url = .kobo_api_absolute_url(item$url, base_url), stringsAsFactors = FALSE)
   }))
   df <- df[nzchar(df$url), , drop = FALSE]
   df <- df[!duplicated(df$url), , drop = FALSE]
-  if (!nrow(df)) return(kobo_api_asset_url(asset_uid, base_url))
+  # Una candidata con fragmento no puede recibir `d[]`: se descarta antes de
+  # puntuar para que nunca gane por ausencia de rivales.
+  df <- df[vapply(df$url, capture_url_ok, logical(1), USE.NAMES = FALSE), , drop = FALSE]
+  if (!nrow(df)) return("")
 
   path <- tolower(df$path)
   url <- tolower(df$url)
@@ -353,7 +361,9 @@ kobo_api_survey_url <- function(asset_uid,
   score <- score - ifelse(grepl("preview|api/v2|submission|data", path) | grepl("preview|api/v2|submission|data", url), 50L, 0L)
   df <- df[order(score, decreasing = TRUE), , drop = FALSE]
   if (nrow(df) && score[order(score, decreasing = TRUE)][[1]] > 0L) return(df$url[[1]])
-  kobo_api_asset_url(asset_uid, base_url)
+  # Sin candidata reconocible se devuelve vacío: la landing administrativa no es
+  # un sustituto, y decir "no resuelto" es lo único honesto que se puede decir.
+  ""
 }
 
 kobo_api_fetch_assets <- function(token,
