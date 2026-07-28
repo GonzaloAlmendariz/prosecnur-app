@@ -485,3 +485,75 @@ test_that("modo hijo explicito o con recod autonoma no se migra", {
   expect_equal(.codif_normalize_legacy_select_one_modes(sid, explicit, data_df)$rows[[1]]$modo_so, "hijo")
   expect_equal(.codif_normalize_legacy_select_one_modes(sid, materialized, data_df)$rows[[1]]$modo_so, "hijo")
 })
+
+test_that("re-adapting an already adapted instrument does not duplicate <parent>_recod", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("readxl")
+
+  td <- tempfile("codif_reapply_")
+  dir.create(td)
+  inst_path <- file.path(td, "instrumento.xlsx")
+  out_1 <- file.path(td, "instrumento_adaptado_1.xlsx")
+  out_2 <- file.path(td, "instrumento_adaptado_2.xlsx")
+
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "survey")
+  openxlsx::writeData(
+    wb, "survey",
+    data.frame(
+      type = c("select_one lst_transport", "select_multiple lst_conoc"),
+      name = c("transport", "conocimiento"),
+      label = c("Transporte", "Conocimiento"),
+      stringsAsFactors = FALSE
+    )
+  )
+  openxlsx::addWorksheet(wb, "choices")
+  openxlsx::writeData(
+    wb, "choices",
+    data.frame(
+      list_name = c("lst_transport", "lst_transport", "lst_conoc"),
+      name = c("1", "99", "1"),
+      label = c("Bus", "Otro", "Si"),
+      stringsAsFactors = FALSE
+    )
+  )
+  openxlsx::saveWorkbook(wb, inst_path, overwrite = TRUE)
+
+  data_adaptada <- data.frame(
+    `_index` = 1:2,
+    transport = c("1", "99"),
+    transport_recod = c("1", "5"),
+    transport_recod_label = c("Bus", "Bicicleta"),
+    conocimiento = c("1", "1"),
+    conocimiento_recod = c("1", "1 7"),
+    conocimiento_recod_label = c("Si", "Si || Parcial"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+
+  adaptar <- function(path_in, path_out) {
+    suppressMessages(ppra_adaptar_instrumento(
+      path_instrumento_in  = path_in,
+      path_data_adaptada   = data_adaptada,
+      path_instrumento_out = path_out,
+      so_parent_vars       = "transport",
+      sm_vars              = "conocimiento",
+      paint                = FALSE
+    ))
+  }
+
+  adaptar(inst_path, out_1)
+  survey_1 <- readxl::read_excel(out_1, sheet = "survey")
+  expect_equal(sum(survey_1$name == "transport_recod"), 1L)
+  expect_equal(sum(survey_1$name == "conocimiento_recod"), 1L)
+
+  # Segundo ciclo: el instrumento de entrada YA trae las filas `_recod`.
+  adaptar(out_1, out_2)
+  survey_2 <- readxl::read_excel(out_2, sheet = "survey")
+  expect_equal(sum(survey_2$name == "transport_recod"), 1L)
+  expect_equal(sum(survey_2$name == "conocimiento_recod"), 1L)
+
+  # Idempotencia: reaplicar deja el mismo survey (mismos nombres y orden).
+  expect_equal(as.character(survey_2$name), as.character(survey_1$name))
+  expect_equal(as.character(survey_2$type), as.character(survey_1$type))
+})
