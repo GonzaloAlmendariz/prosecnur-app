@@ -52,11 +52,34 @@ session_get <- function(sid, required = TRUE) {
   s
 }
 
+# Pone `keys` en NULL SIN borrar el nombre de la lista de sesión.
+#
+# `s$x <- NULL` (y `s[[x]] <- NULL`) ELIMINAN el elemento. Sin el nombre, el
+# `$` siguiente cae por partial matching en el único nombre que empiece igual:
+# `rp_data` → `rp_data_sources`, `rp_inst` → `rp_inst_sources`, y los pares
+# `analitica_*`. Ahí `is.null(s$rp_data)` devuelve FALSE sobre una lista de
+# data.frames por fuente, los guards dejan de disparar y el consumidor recibe
+# una lista donde espera un data.frame. Con `s[keys] <- list(NULL)` el nombre
+# sobrevive con valor NULL y el guard vuelve a ser confiable.
+#
+# El alias solo aparece cuando queda EXACTAMENTE un hermano con ese prefijo
+# (con dos o más, R no desambigua y devuelve NULL), así que depende del estado
+# y no se puede razonar por inspección: se usa el idioma siempre.
+.session_state_clear <- function(s, keys) {
+  keys <- as.character(keys)
+  if (!length(keys)) return(s)
+  s[keys] <- list(NULL)
+  s
+}
+
 # NOTA: las claves top-level de sesión están censadas en session_schema.R
 # (clave nueva ⇒ fila nueva ahí, mismo commit; gate en test-session-schema.R).
 session_set <- function(sid, key, value) {
   s <- session_get(sid)
-  s[[key]] <- value
+  # `s[key] <- list(value)` y no `s[[key]] <- value`: con value=NULL el segundo
+  # borra la clave y abre el partial matching descrito en .session_state_clear.
+  # Es el mismo assign para cualquier otro valor (listas y data.frames incluidos).
+  s[key] <- list(value)
   # Marcar dirty EXCEPTO para keys internas del propio sistema de proyecto
   # (sino se entraría en bucle: setear project_dirty vuelve a marcar dirty).
   if (!(key %in% c("project_path", "project_dirty", "project_last_saved_at"))) {
@@ -586,18 +609,25 @@ estudio_remove_base <- function(sid, nombre) {
 
   # Re-espejar si quedan bases; sino, limpiar los campos legacy.
   remaining <- names(s$estudio$bases)
+  # Las dos ramas usan `.session_state_clear` porque las dos pueden dejar los
+  # espejos en NULL: la de abajo siempre, y la de arriba cuando la base que
+  # queda no tiene tabla cacheada en `_sources`. Con `s$rp_data <- NULL` se
+  # borraría el nombre y `s$rp_data` pasaría a resolver por partial matching a
+  # `rp_data_sources` — medido: tras quitar la última base, `is.null(s$rp_data)`
+  # daba FALSE sobre un `list()`, o sea el estudio vacío se leía como cargado.
   if (length(remaining) > 0L) {
     first <- remaining[1]
-    s$rp_data <- s$rp_data_sources[[first]]
-    s$rp_inst <- s$rp_inst_sources[[first]]
+    # `s[k] <- list(v)` y no `s$k <- v`: si la base que queda no tiene tabla
+    # cacheada, `v` es NULL y el segundo borraría el nombre.
+    s["rp_data"] <- list(s$rp_data_sources[[first]])
+    s["rp_inst"] <- list(s$rp_inst_sources[[first]])
     if (identical(s$estudio$active_base %||% NULL, nombre) ||
         identical(s$codif_source_active %||% NULL, nombre)) {
       s$estudio$active_base <- first
       s$codif_source_active <- first
     }
   } else {
-    s$rp_data <- NULL
-    s$rp_inst <- NULL
+    s <- .session_state_clear(s, c("rp_data", "rp_inst"))
     s$estudio$active_base <- NULL
     s$codif_source_active <- NULL
   }
