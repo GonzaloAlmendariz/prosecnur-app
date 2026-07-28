@@ -1230,8 +1230,34 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
       const nativeTextBox = el instanceof HTMLInputElement && [
         "text", "search", "url", "tel", "email", "password", "number",
       ].includes(el.type);
+      // `scrollWidth`/`clientWidth` son ENTEROS: en una caja de ancho
+      // fraccionario el primero redondea hacia arriba y el segundo hacia
+      // abajo, así que una caja perfectamente sana puede reportar unos píxeles
+      // de diferencia sin que nada se salga. Cuando el elemento no recorta
+      // (overflow-x visible), la pregunta real —¿el contenido escapa de la
+      // caja?— se puede medir con precisión subpíxel sobre la tinta.
+      //
+      // Es un desempate, no un indulto: solo perdona cuando la tinta CABE.
+      // Verificado contra los dos casos reales de acnur_acg — el badge de tipo
+      // del editor (tinta hasta 621 dentro de una caja hasta 624: 0 px
+      // perdidos, deja de reportarse) y el botón de opción de Codificación
+      // (tinta hasta 731 contra una caja hasta 714: 13 px que sí se cortaban,
+      // sigue reportándose).
+      const inkFitsBox = () => {
+        if (style.overflowX !== "visible") return false;
+        try {
+          const range = el.ownerDocument.createRange();
+          range.selectNodeContents(el);
+          const ink = range.getBoundingClientRect();
+          range.detach?.();
+          if (!ink || (ink.width === 0 && ink.height === 0)) return false;
+          return ink.right <= rect.right + 0.5 && ink.left >= rect.left - 0.5;
+        } catch {
+          return false;
+        }
+      };
       const xOverflow = el.scrollWidth > el.clientWidth + 2 && !overflowXAllowed
-        && !nativeSelectBox && !nativeTextBox;
+        && !nativeSelectBox && !nativeTextBox && !inkFitsBox();
       const yOverflow = el.scrollHeight > el.clientHeight + 2 && !overflowYAllowed;
       if (!xOverflow && !yOverflow) continue;
       const label = (el.getAttribute("aria-label") || el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 160);
