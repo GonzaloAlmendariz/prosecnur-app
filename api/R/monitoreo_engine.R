@@ -522,16 +522,7 @@ monitoreo_normalize_profile <- function(profile = list(), acreditacion = NULL) {
     variant <- if (length(profile$segments %||% profile$segmentos %||% list())) "segmentada_por_carrera" else "multi_actor"
   }
 
-  units <- lapply(.monitoreo_normalize_profile_list(profile$units %||% profile$unidades), function(item) {
-    list(
-      id = .monitoreo_scalar(item$id %||% item$unidad, .monitoreo_safe_name(item$label %||% item$etiqueta %||% "")),
-      type = .monitoreo_scalar(item$type %||% item$tipo, "actor"),
-      label = .monitoreo_scalar(item$label %||% item$etiqueta %||% item$unidad, ""),
-      actor = .monitoreo_scalar(item$actor, ""),
-      segment = .monitoreo_scalar(item$segment %||% item$segmento, ""),
-      group = .monitoreo_scalar(item$group %||% item$grupo, "")
-    )
-  })
+  units <- .monitoreo_normalize_model_units(profile$units %||% profile$unidades)
   segments <- lapply(.monitoreo_normalize_profile_list(profile$segments %||% profile$segmentos), function(item) {
     list(
       id = .monitoreo_scalar(item$id %||% item$segment %||% item$segmento, ""),
@@ -633,6 +624,7 @@ monitoreo_normalize_profile <- function(profile = list(), acreditacion = NULL) {
   })
 
   out <- list(
+    schema_version = "monitoreo_profile_v2",
     family = family,
     variant = variant,
     status = .monitoreo_scalar(profile$status %||% profile$estado, if (family %in% c("acreditacion", "territorial", "aulas_universitarias", "telefonico")) "active" else "planned"),
@@ -3819,6 +3811,14 @@ monitoreo_normalize_config <- function(config = list(), data = NULL, previous_co
       if (is.finite(meta_pct) && meta_pct >= 0) {
         goal$meta_pct <- as.numeric(meta_pct)
       }
+      # `objetivo` declara si el actor se barre entero o si el minimo ES el
+      # acuerdo. La meta siempre fue un PISO interno, no el objetivo: sin este
+      # campo la UI daba por cerrado a un actor con universo por trabajar.
+      # Campo nuevo => whitelist explicita, o no sobrevive el round-trip .pulso.
+      objetivo <- .monitoreo_scalar(g$objetivo %||% g$objective %||% "", "")
+      if (objetivo %in% c("barrido", "minimo")) {
+        goal$objetivo <- objetivo
+      }
       goals[[length(goals) + 1L]] <- goal
     }
   }
@@ -3844,6 +3844,13 @@ monitoreo_normalize_config <- function(config = list(), data = NULL, previous_co
     config$monitoreo_profile %||% config$profile %||% defaults$monitoreo_profile,
     acreditacion = acreditacion
   )
+  if (identical(profile$family %||% "", "acreditacion")) {
+    source_units <- .monitoreo_source_declared_actor_units(data, profile$units %||% list())
+    if (isTRUE(attr(source_units, "source_contract_present", exact = TRUE))) {
+      attr(source_units, "source_contract_present") <- NULL
+      profile$units <- source_units
+    }
+  }
 	  territorial_input <- config$territorial %||% config$monitoreo_territorial %||% list()
   territorial <- monitoreo_territorial_normalize_config(
     territorial_input,
@@ -4307,9 +4314,9 @@ monitoreo_upsert_source <- function(sources, source) {
 
 .monitoreo_apply_source_metadata_to_data <- function(data, sources = list()) {
   if (is.null(data) || !is.data.frame(data)) return(data.frame())
-  if (!nrow(data) || !".source_id" %in% names(data)) return(data)
   sources <- monitoreo_normalize_sources(sources)
-  if (!length(sources)) return(data)
+  attr(data, "monitoreo_sources") <- sources
+  if (!nrow(data) || !".source_id" %in% names(data) || !length(sources)) return(data)
   variable_labels <- .monitoreo_variable_label_map(data)
   source_variable_labels <- .monitoreo_source_variable_label_map(data)
   metadata_cols <- c(".source_declared_person_code_var", ".source_declared_person_code_label")
@@ -23840,6 +23847,12 @@ monitoreo_acreditacion_reportes <- function(data, config = list(), report_scope 
     ))
   }
   if (identical(report_scope, "queries_summary")) {
+    # NO se rehidrata aqui automaticamente: medido el 2026-07-26 sobre acrconta
+    # (1.277 filas), reconstruir la reconciliacion cuesta ~66 s. Meterlo en el
+    # warm start rompe el arranque en caliente del .pulso, que no es
+    # negociable. La reconstruccion existe y esta probada
+    # (monitoreo_acreditacion_queries_cache.R) pero debe dispararse como accion
+    # explicita del usuario, con progreso visible y persistiendo el resultado.
     internal_queries <- cached_reports$internal_queries %||% .monitoreo_acreditacion_internal_queries(data, profile)
     return(list(
       schema = "apps_script_acreditacion_v1",
@@ -23866,50 +23879,13 @@ monitoreo_acreditacion_reportes <- function(data, config = list(), report_scope 
     ))
   }
   if (identical(report_scope, "phone_summary")) {
-    client_report <- if (identical(profile$family %||% "", "telefonico")) {
-      cached_client_report %||% .monitoreo_client_report_model(data, cfg, detail = "advance_summary")
-    } else {
-      cached_client_report %||% list(
-        schema = "monitoreo_client_report_v1",
-        generated_at = .monitoreo_now_iso(),
-        title = "Reporte de avance",
-        summary = list(),
-        actors = list(),
-        daily_general = list(),
-        daily_actor = list(),
-        sources = list(),
-        collector_sources = list(),
-        controls = list(),
-        client_report = cfg$client_report %||% .monitoreo_client_report_config(list()),
-        has_targets = FALSE,
-        sheets = list()
-      )
-    }
-    cached_sheets <- cached_reports$sheets %||% list()
-    cached_sheet <- function(id) {
-      if (!length(cached_sheets)) return(NULL)
-      matches <- Filter(function(sheet) identical(sheet$id %||% "", id), cached_sheets)
-      if (length(matches)) matches[[1L]] else NULL
-    }
-    phone_sheet <- cached_sheet("monitoreo_telefonico") %||%
-      .monitoreo_report_sheet(
-        "monitoreo_telefonico",
-        "Monitoreo telefónico",
-        "Seguimiento de llamadas, estados, responsables, pendientes e incidencias.",
-        .monitoreo_report_phone_blocks(data, profile, cfg)
-      )
-    alerts_sheet <- cached_sheet("alertas") %||%
-      .monitoreo_report_sheet("alertas", "Alertas", "Observaciones de consistencia del barrido y el cruce de respuestas.", list(
-        .monitoreo_report_block("alertas", "Observaciones detectadas", .monitoreo_report_alerts_df(data, profile))
-      ))
-    return(list(
-      schema = "apps_script_acreditacion_v1",
-      generated_at = .monitoreo_now_iso(),
-      report_scope = report_scope,
-      reference_tabs = as.list(c("Monitoreo telefónico", "Alertas")),
-      internal_queries = cached_reports$internal_queries %||% list(),
-      client_report = client_report,
-      sheets = list(phone_sheet, alerts_sheet)
+    return(.monitoreo_acreditacion_phone_summary_report(
+      data = data,
+      cfg = cfg,
+      profile = profile,
+      cached_reports = cached_reports,
+      cached_client_report = cached_client_report,
+      report_scope = report_scope
     ))
   }
 

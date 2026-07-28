@@ -1138,6 +1138,8 @@ test_that("perfil acreditacion genera reportes canonicos desde snapshot Sheets",
     Intentos = c(1, 0, 2, 3, 1),
     Fecha = c("2026-06-01", "2026-06-01", "2026-06-02", "2026-06-02", "2026-06-03"),
     `Ciclo de egreso` = c("2024-I", "2024-I", "2023-II", "2023-II", "2024-I"),
+    .source_actor = rep("Egresados", 5),
+    dim_canal = rep("Telefonico", 5),
     .source_role = rep("barrido", 5),
     .source_label = rep("Barrido carrera - Civil", 5),
     stringsAsFactors = FALSE,
@@ -1147,6 +1149,12 @@ test_that("perfil acreditacion genera reportes canonicos desde snapshot Sheets",
     monitoreo_profile = list(
       family = "acreditacion",
       variant = "segmentada_por_carrera",
+      units = list(list(
+        id = "egresados",
+        actor = "Egresados",
+        label = "Egresados",
+        phone = list(enabled = TRUE, role = "target")
+      )),
       segments = list(list(id = "Civil", label = "Civil", actor = "Egresados")),
       minimums = list(Civil = 2)
     )
@@ -1365,6 +1373,8 @@ test_that("perfil acreditacion usa payload liviano para monitoreo telefonico", {
     Fecha = c("2026-06-01", "2026-06-01", "2026-06-02", "2026-06-02", "2026-06-01", "2026-06-02"),
     Distrito = c("Lima", "Callao", "Lima", "Callao", "Lima", "Callao"),
     Grupo = c("Egresados 2020", "Egresados 2020", "Egresados 2021", "Egresados 2021", "Egresados 2020", "Egresados 2020"),
+    .source_actor = rep("Egresados", 6),
+    dim_canal = c(rep("Telefonico", 4), rep("Correo", 2)),
     .source_role = c("barrido", "barrido", "barrido", "barrido", "respuestas", "respuestas"),
     .source_label = c(
       "Barrido telefonico - Civil",
@@ -1381,6 +1391,12 @@ test_that("perfil acreditacion usa payload liviano para monitoreo telefonico", {
     monitoreo_profile = list(
       family = "acreditacion",
       variant = "segmentada_por_carrera",
+      units = list(list(
+        id = "egresados",
+        actor = "Egresados",
+        label = "Egresados",
+        phone = list(enabled = TRUE, role = "target")
+      )),
       segments = list(list(id = "Civil", label = "Civil", actor = "Egresados")),
       minimums = list(Civil = 2)
     ),
@@ -1675,6 +1691,7 @@ test_that("perfil acreditacion calcula cuotas telefonicas desde poblacion del ac
     Distrito = c("Lima", "Lima", "Callao", "Lima", "Centro", "Centro"),
     Carrera = c("Ingenieria", "Ingenieria", "Ingenieria", "Ingenieria", "Tiempo completo", "Tiempo parcial"),
     telefono_contacto = c("999111111", "999222222", "999333333", "999444444", "999555555", "999666666"),
+    dim_canal = c(rep("Telefonico", 4), rep("Correo", 2)),
     .source_role = rep("respuestas", 6),
     .source_id = c(rep("src_egresados_tel", 4), rep("src_docentes_correo", 2)),
     .source_label = c(rep("Egresados telefono asistido", 4), rep("Docentes correo", 2)),
@@ -1686,8 +1703,8 @@ test_that("perfil acreditacion calcula cuotas telefonicas desde poblacion del ac
       family = "acreditacion",
       variant = "multi_actor",
       units = list(
-        list(id = "Egresados", label = "Egresados"),
-        list(id = "Docentes", label = "Docentes")
+        list(id = "Egresados", actor = "Egresados", label = "Egresados", phone = list(enabled = TRUE, role = "target")),
+        list(id = "Docentes", actor = "Docentes", label = "Docentes", phone = list(enabled = FALSE, role = "none"))
       )
     ),
     operational_model = list(link_collectors = list(list(
@@ -1775,6 +1792,7 @@ test_that("monitoreo telefonico conserva estados por actor y responsable", {
       "Barrido telefonico - Docentes"
     ),
     dim_actor = c("Egresados", "Egresados", "Docentes", "Docentes"),
+    dim_canal = rep("Telefonico", 4),
     stringsAsFactors = FALSE,
     check.names = FALSE
   )
@@ -1785,8 +1803,8 @@ test_that("monitoreo telefonico conserva estados por actor y responsable", {
         family = family,
         variant = "multi_actor",
         units = list(
-          list(id = "Egresados", label = "Egresados"),
-          list(id = "Docentes", label = "Docentes")
+          list(id = "Egresados", label = "Egresados", phone = list(enabled = TRUE, role = "target")),
+          list(id = "Docentes", label = "Docentes", phone = list(enabled = TRUE, role = "target"))
         ),
         key_rules = list(universe_fields = c("CodPulso"), automatic_detection = FALSE)
       )

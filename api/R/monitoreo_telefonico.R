@@ -105,8 +105,14 @@
 
 # --- Conflictos de llave y conciliación barrido↔Kobo -------------------------
 
-.monitoreo_report_phone_key_conflict_mask <- function(response_rows, profile = list()) {
-  if (is.null(response_rows) || !is.data.frame(response_rows) || !nrow(response_rows)) return(logical(0))
+# Par (código del enlace, código escrito a mano) por respuesta. Cuando difieren,
+# el encuestador abrió el enlace de otro caso al levantar la encuesta y el cruce
+# apunta a la persona equivocada. La detección ya existía pero solo servía para
+# descontar el caso en silencio; ahora también alimenta un bloque reportable.
+# Ver docs/plan-monitoreo-telefonico-2026-07.md §7.
+.monitoreo_report_phone_key_pairs <- function(response_rows, profile = list()) {
+  vacio <- list(cv_id = character(0), manual_code = character(0))
+  if (is.null(response_rows) || !is.data.frame(response_rows) || !nrow(response_rows)) return(vacio)
   source_label_maps <- .monitoreo_source_variable_label_map(response_rows)
   clean_names <- .monitoreo_text_key(names(response_rows))
   global_labels <- .monitoreo_variable_label_map(response_rows)
@@ -158,10 +164,53 @@
     label_positions <- c(label_positions, which(source_label_match))
   }
   manual_code <- first_values_from_positions(c(manual_positions, label_positions))
-  return(vapply(seq_along(cv_id), function(i) {
+  list(cv_id = cv_id, manual_code = manual_code)
+}
+
+.monitoreo_report_phone_key_conflict_mask <- function(response_rows, profile = list()) {
+  pairs <- .monitoreo_report_phone_key_pairs(response_rows, profile)
+  cv_id <- pairs$cv_id
+  manual_code <- pairs$manual_code
+  if (!length(cv_id)) return(logical(0))
+  vapply(seq_along(cv_id), function(i) {
     nzchar(cv_id[[i]]) && nzchar(manual_code[[i]]) &&
       !isTRUE(.monitoreo_internal_code_values_match(cv_id[[i]], manual_code[[i]]))
-  }, logical(1)))
+  }, logical(1))
+}
+
+# Detalle reportable de los conflictos: qué enlace se abrió y qué código se
+# escribió, para resolver caso por caso. No decide cuál gana: reporta.
+.monitoreo_report_phone_key_conflict_df <- function(response_rows, profile = list()) {
+  vacio <- data.frame(
+    `Código del enlace` = character(0),
+    `Código escrito` = character(0),
+    Responsable = character(0),
+    Fecha = character(0),
+    check.names = FALSE
+  )
+  if (is.null(response_rows) || !is.data.frame(response_rows) || !nrow(response_rows)) return(vacio)
+  mask <- .monitoreo_report_phone_key_conflict_mask(response_rows, profile)
+  if (!length(mask) || !any(mask, na.rm = TRUE)) return(vacio)
+  pairs <- .monitoreo_report_phone_key_pairs(response_rows, profile)
+  idx <- which(mask)
+  responsables <- .monitoreo_report_first_values(
+    response_rows[idx, , drop = FALSE],
+    c("Responsable", "responsable", "collector_name", "recopilador", "Encuestador")
+  )
+  if (!length(responsables)) responsables <- rep("", length(idx))
+  fechas <- .monitoreo_report_first_values(
+    response_rows[idx, , drop = FALSE],
+    c("fecha", "Fecha", "date_created", "submission_time", "_submission_time", "end")
+  )
+  if (!length(fechas)) fechas <- rep("", length(idx))
+  data.frame(
+    `Código del enlace` = pairs$cv_id[idx],
+    `Código escrito` = pairs$manual_code[idx],
+    Responsable = as.character(responsables),
+    Fecha = as.character(fechas),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
 }
 
 .monitoreo_report_phone_reconciliation <- function(phone, responses, profile = list()) {
@@ -203,6 +252,35 @@
 }
 
 # --- Base telefónica, cuotas, metas y bloques del reporte --------------------
+
+.monitoreo_report_phone_actor_key <- function(value) {
+  value <- trimws(.monitoreo_scalar(value, ""))
+  if (!nzchar(value)) return("")
+  .monitoreo_safe_name(value)
+}
+
+.monitoreo_report_phone_source_actor_keys <- function(data = NULL) {
+  units <- .monitoreo_source_declared_actor_units(data)
+  actors <- vapply(Filter(function(unit) {
+    is.list(unit) && isTRUE((unit$phone %||% list())$enabled)
+  }, units), function(unit) {
+    .monitoreo_report_phone_actor_key(unit$actor)
+  }, character(1))
+  unique(actors[nzchar(actors)])
+}
+
+.monitoreo_report_phone_scope_data <- function(data, profile = list(), cfg = list()) {
+  if (is.null(data) || !is.data.frame(data)) return(data.frame())
+  profile <- monitoreo_normalize_profile(profile)
+  if (!identical(profile$family %||% "", "acreditacion")) return(data)
+  selected_actor_keys <- .monitoreo_report_phone_source_actor_keys(data)
+  if (!nrow(data) || !length(selected_actor_keys)) return(data[0, , drop = FALSE])
+
+  actors <- .monitoreo_source_declared_actor_values(data)
+  if (!length(actors)) actors <- rep("", nrow(data))
+  actor_keys <- vapply(actors, .monitoreo_report_phone_actor_key, character(1))
+  data[nzchar(actor_keys) & actor_keys %in% selected_actor_keys, , drop = FALSE]
+}
 
 .monitoreo_report_phone_data <- function(data) {
   work <- data[.monitoreo_report_role_mask(data, "barrido"), , drop = FALSE]
@@ -527,6 +605,8 @@
 }
 
 .monitoreo_report_phone_blocks <- function(data, profile = list(), cfg = list()) {
+  profile <- monitoreo_normalize_profile(profile)
+  data <- .monitoreo_report_phone_scope_data(data, profile, cfg)
   phone <- .monitoreo_report_phone_data(data)
   phone_from_population <- FALSE
   if (!nrow(phone)) {
@@ -1139,6 +1219,17 @@
   ))
   if (isTRUE(standalone_phone)) {
     blocks <- c(blocks, list(.monitoreo_report_block("comparacion_codpulso", "Comparación CodPulso: barrido vs Kobo", reconciliation_detail)))
+  }
+  # El conflicto de llave se descontaba en silencio; ahora se reporta para poder
+  # separarlo de los pendientes por falta de registro (plan §7).
+  key_conflicts <- .monitoreo_report_phone_key_conflict_df(responses, profile)
+  if (nrow(key_conflicts)) {
+    blocks <- c(blocks, list(.monitoreo_report_block(
+      "conflicto_enlace_codpulso",
+      "Enlace abierto distinto al código escrito",
+      utils::head(key_conflicts, 300L),
+      "El código que viajaba en el enlace no coincide con el que se escribió al levantar la encuesta. El caso queda sin cruzar hasta resolverlo."
+    )))
   }
   c(blocks, list(
     .monitoreo_report_block("estatus_responsable", "Estados por responsable", utils::head(by_status_resp, 240L)),
