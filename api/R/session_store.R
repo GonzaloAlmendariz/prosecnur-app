@@ -980,6 +980,12 @@ estudio_replace_base_files <- function(sid, nombre,
     stop_api(404, "E_BASE_NOT_FOUND", sprintf("Base '%s' no existe.", nombre))
   }
   meta <- s$estudio$bases[[nombre]]
+  pair_changed <-
+    (!is.null(xlsform_file_id) && nzchar(xlsform_file_id) &&
+       !identical(as.character(meta$xlsform_file_id %||% ""), as.character(xlsform_file_id))) ||
+    (!is.null(data_file_id) && nzchar(data_file_id) &&
+       !identical(as.character(meta$data_file_id %||% ""), as.character(data_file_id)))
+  if (isTRUE(pair_changed)) meta$choice_code_mapping <- NULL
   if (!is.null(xlsform_file_id) && nzchar(xlsform_file_id)) {
     meta$xlsform_file_id <- xlsform_file_id
     if (!is.null(rp_inst)) s$rp_inst_sources[[nombre]] <- rp_inst

@@ -66,8 +66,8 @@ export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied }:
       })
       .catch((reason: Error) => {
         if (requestId !== loadSequence.current) return;
-        // Sin base registrada todavía: estado esperado antes de cargar
-        // respuestas, no un error que alarme al usuario.
+        // Proyecto legacy sin una base materializada: es una limitación del
+        // alcance del filtro, no ausencia de respuestas.
         if (reason.message.includes("E_UNIVERSE_FILTER_BASE")) setSinBase(true);
         else setError(reason.message);
       })
@@ -175,7 +175,7 @@ export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied }:
         <div className="pulso-carga-universe-loading" role="status"><Loader2 size={14} className="pulso-spin" /> Leyendo configuración de la base…</div>
       ) : sinBase && !state ? (
         <div className="pulso-carga-universe-empty">
-          Disponible cuando cargues las respuestas de la base.
+          Este proyecto todavía no tiene una base registrada para configurar el universo.
         </div>
       ) : error && !state ? (
         <div className="pulso-carga-universe-error" role="alert">{error}</div>

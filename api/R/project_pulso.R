@@ -226,9 +226,45 @@
   NULL
 }
 
-.pulso_load_choice_maps <- function(sid) {
-  if (!exists(".carga_editor_choice_code_maps", mode = "function")) return(list())
-  tryCatch(.carga_editor_choice_code_maps(sid), error = function(e) list())
+.pulso_load_choice_maps <- function(sid, base_name = NULL) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s) || !exists(".carga_editor_choice_code_maps", mode = "function")) {
+    return(list())
+  }
+  requested <- as.character(base_name %||% "")[1]
+  if (is.na(requested)) requested <- ""
+  bases <- ((s$estudio %||% list())$bases %||% list())
+  if (!nzchar(requested)) {
+    if (length(bases)) return(list())
+    return(tryCatch(.carga_editor_choice_code_maps(sid), error = function(e) list()) %||% list())
+  }
+
+  base <- bases[[requested]] %||% list()
+  nested <- base$choice_code_mapping %||% list()
+  if (isTRUE(nested$confirmed) && length(nested$maps %||% list())) {
+    return(nested$maps)
+  }
+
+  primarias <- if (exists(".carga_review_primary_base_names", mode = "function")) {
+    .carga_review_primary_base_names(s)
+  } else {
+    character(0)
+  }
+  legacy <- s$choice_code_maps_confirmed %||% list()
+  can_migrate <- length(primarias) == 1L && identical(primarias[[1]], requested) &&
+    isTRUE(legacy$confirmed) && length(legacy$maps %||% list())
+  if (!can_migrate) return(list())
+
+  s$estudio$bases[[requested]]$choice_code_mapping <- list(
+    version = 1L,
+    confirmed = TRUE,
+    confirmed_at = as.character(legacy$confirmed_at %||% ""),
+    n_questions = as.integer(legacy$n_questions %||% length(legacy$maps)),
+    maps = legacy$maps
+  )
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+  legacy$maps
 }
 
 # Los .pulso guardados por versiones intermedias podían conservar los archivos
@@ -283,7 +319,18 @@
         error = function(e) NULL
       )
       if (!is.null(raw_df)) {
-        choice_maps <- .pulso_load_choice_maps(sid)
+        choice_maps <- .pulso_load_choice_maps(sid, base_name)
+        # El loader puede materializar el fallback legacy directamente en la
+        # sesión. Esta reconstrucción trabaja con un snapshot local `s`; mezcla
+        # aquí esa única mutación para no perderla cuando persista sus caches al
+        # terminar el loop (sin reemplazar avances de bases anteriores).
+        latest <- session_get(sid, required = FALSE)
+        migrated_mapping <- (((latest$estudio %||% list())$bases %||% list())[[base_name]] %||%
+          list())$choice_code_mapping %||% list()
+        if (isTRUE(migrated_mapping$confirmed) && length(migrated_mapping$maps %||% list())) {
+          base$choice_code_mapping <- migrated_mapping
+          s$project_dirty <- isTRUE(s$project_dirty) || isTRUE(latest$project_dirty)
+        }
         norm_ok <- TRUE
         data_norm <- tryCatch(
           normalize_data_for_xlsform(raw_df, inst, choice_code_maps = choice_maps),

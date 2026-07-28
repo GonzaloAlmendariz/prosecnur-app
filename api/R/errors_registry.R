@@ -150,6 +150,7 @@ errores_registrados <- function() {
     "E_BASE_NOMBRE",                                         "session_store.R",                   "400",
     "E_BASE_NOMBRE_INVALIDO",                                "session_store.R",                   "400",
     "E_BASE_NOT_FOUND",                                      "session_store.R",                   "404",
+    "E_BASE_REQUIRED",                                       "carga_review.R",                    "400",
     "E_BASE_REQUERIDA",                                      "carga_estructura_base.R",           "400",
     "E_BLOCK_MAP_SOURCE",                                    "hojas_ruta_engine.R",               "indirecto",
     "E_CALC_DEFF_RANGO",                                     "helpers_calc_comunes.R",            "400",

@@ -18,6 +18,13 @@ function createBasesButtonOpeningTag(): string {
 }
 
 describe("contrato accesible del lote multiactor", () => {
+  it("no ejecuta preview-batch hasta una segunda acción explícita", () => {
+    expect(source).not.toMatch(
+      /useEffect\(\(\) => \{[\s\S]{0,1200}apiCargaAcreditacionBatchPreview\(/u,
+    );
+    expect(source).toMatch(/Revisar (?:el )?corte|Preparar revisión/iu);
+  });
+
   it("presenta el corte efectivo como un heading real", () => {
     expect(source).toMatch(
       /<h[1-6][^>]*>\s*Crear bases con las encuestas efectivas\s*<\/h[1-6]>/u,

@@ -8,7 +8,6 @@ import {
   apiCargaExportNormalized,
   apiCargaImportKoboIndependent,
   apiCargaRefreshKoboIndependent,
-  apiConnectionProfileSetDefault,
   apiConnectionTokenLoad,
   apiEstudioAddBase,
   apiEstudioApplyIndependentTemplateLogic,
@@ -70,6 +69,7 @@ import { GlidingTabList } from "../../components/GlidingTabList";
 import { isRepeatChildBase } from "../../lib/repeatIdentity";
 import { IntegratedInstrumentsWizard } from "./IntegratedInstrumentsWizard";
 import { SavBundleImportPanel } from "./SavBundleImportPanel";
+import { CargaManualBaseLanes } from "./CargaManualBaseLanes";
 import { useCargaStore } from "./store";
 import type {
   MultiBaseStrategy,
@@ -107,6 +107,7 @@ export {
 
 type Props = {
   estudio: EstudioPayload;
+  plannedInputCount: number;
   onChanged: (payload: EstudioPayload) => Promise<void>;
   /** Si `true`, abre automáticamente el form "Agregar base" al montar.
       Útil cuando el usuario llega acá tras un "+ Agregar otra base" en
@@ -143,11 +144,10 @@ type SmCanonicalOption = {
 };
 
 export function BasesPanel({
-  estudio, onChanged, autoOpenAdd, hasSessionXlsform, onAutoOpenConsumed, onDowngraded, initialStrategy,
+  estudio, plannedInputCount, onChanged, autoOpenAdd, hasSessionXlsform, onAutoOpenConsumed, onDowngraded, initialStrategy,
 }: Props) {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
-  const [adding, setAdding] = useState(false);
   const [replacingFiles, setReplacingFiles] = useState<string | null>(null);
   const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -165,7 +165,6 @@ export function BasesPanel({
   useEffect(() => {
     if (autoOpenAdd) {
       setStrategy("separate");
-      setAdding(true);
       onAutoOpenConsumed?.();
     }
   }, [autoOpenAdd]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -173,7 +172,6 @@ export function BasesPanel({
   useEffect(() => {
     if (!initialStrategy) return;
     setStrategy(initialStrategy);
-    setAdding(false);
     setShowNewIntegration(false);
   }, [initialStrategy]);
 
@@ -182,7 +180,6 @@ export function BasesPanel({
   const integratedSignature = integratedBases
     .map((base) => `${base.nombre}:${base.multi_integrated?.imported_at ?? ""}:${base.multi_integrated?.origin_key_name ?? ""}`)
     .join("|");
-  const maxReached = estudio.n_bases >= estudio.max_bases;
   const canonicalOptionsRaw = [
     ...(hasSessionXlsform ? [{ fileId: "", label: "Formulario cargado en Carga/Editor" }] : []),
     ...bases.map((base) => ({ fileId: base.xlsform_file_id, label: `${base.nombre} · formulario` })),
@@ -201,11 +198,6 @@ export function BasesPanel({
       setShowNewIntegration(false);
       return;
     }
-    if (estudio.n_bases === 0 && !autoOpenAdd) {
-      setStrategy("independent");
-      setShowNewIntegration(false);
-      return;
-    }
     if (integratedBases.length > 0) {
       setStrategy("integrated");
       setShowNewIntegration(false);
@@ -213,22 +205,6 @@ export function BasesPanel({
     // Solo reacciona cuando cambia la integración persistida del estudio.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [integratedSignature, estudio.processing_mode]);
-
-  function requestStrategyChange(next: MultiBaseStrategy) {
-    if (next === strategy) return;
-    const currentCopy = MULTI_BASE_STRATEGY_COPY[strategy];
-    const nextCopy = MULTI_BASE_STRATEGY_COPY[next];
-    const ok = window.confirm(
-      `¿Cambiar de modo?\n\n` +
-      `Ahora estás en "${currentCopy.label}" (${currentCopy.detail}). ` +
-      `Vas a abrir "${nextCopy.label}" (${nextCopy.detail}).\n\n` +
-      `No se eliminan archivos ni respuestas; solo cambia la mesa de trabajo y las acciones visibles.`
-    );
-    if (!ok) return;
-    setStrategy(next);
-    if (next !== "integrated") setShowNewIntegration(false);
-    if (next !== "separate") setAdding(false);
-  }
 
   async function handleRemoveBase(nombre: string) {
     if (!window.confirm(
@@ -376,7 +352,7 @@ export function BasesPanel({
             </button>
           )}
           <div className="pulso-multibase-study-note">
-            Elige cómo se organiza este estudio.
+            La estrategia se definió en Plan; aquí incorporas y mantienes sus fuentes.
           </div>
         </div>
         <span className="pulso-multibase-study-count">
@@ -409,56 +385,20 @@ export function BasesPanel({
         )}
       </header>
 
-      <GlidingTabList
-        activeKey={strategy}
-        mode="tabs"
-        className="pulso-multi-strategy"
-        role="group"
+      <div
+        className={`pulso-multi-strategy is-locked is-${strategy}`}
         aria-label="Forma de trabajar varias bases"
+        role="status"
       >
-        <button
-          type="button"
-          className={strategy === "separate" ? "is-active" : ""}
-          aria-pressed={strategy === "separate"}
-          data-gliding-key="separate"
-          onClick={() => requestStrategyChange("separate")}
-          title="Mantener bases separadas - formulario y respuestas por base"
-        >
-          <Layers size={15} />
-          <span className="pulso-multi-strategy-label">
-            <strong>Mantener bases separadas</strong>
-            <small>Formulario y respuestas por base.</small>
-          </span>
-        </button>
-        <button
-          type="button"
-          className={strategy === "integrated" ? "is-active" : ""}
-          aria-pressed={strategy === "integrated"}
-          data-gliding-key="integrated"
-          onClick={() => requestStrategyChange("integrated")}
-          title="Unificar bases compatibles - formulario comun y base final"
-        >
-          <GitMerge size={15} />
-          <span className="pulso-multi-strategy-label">
-            <strong>Unificar bases compatibles</strong>
-            <small>Formulario común y base final.</small>
-          </span>
-        </button>
-        <button
-          type="button"
-          className={strategy === "independent" ? "is-active" : ""}
-          aria-pressed={strategy === "independent"}
-          data-gliding-key="independent"
-          onClick={() => requestStrategyChange("independent")}
-          title="Fuentes independientes - entregables por encuesta"
-        >
-          <Cloud size={15} />
-          <span className="pulso-multi-strategy-label">
-            <strong>Fuentes independientes</strong>
-            <small>Entregables por encuesta.</small>
-          </span>
-        </button>
-      </GlidingTabList>
+        <span className="pulso-multi-strategy-lock" aria-hidden="true">
+          {strategy === "integrated" ? <GitMerge size={15} /> : strategy === "independent" ? <Cloud size={15} /> : <Layers size={15} />}
+        </span>
+        <span className="pulso-multi-strategy-label">
+          <small>Estrategia fijada en Plan</small>
+          <strong>{MULTI_BASE_STRATEGY_COPY[strategy].label}</strong>
+          <span>{MULTI_BASE_STRATEGY_COPY[strategy].detail}</span>
+        </span>
+      </div>
 
       {strategy === "integrated" && (
         integratedBases.length > 0 && !showNewIntegration ? (
@@ -470,6 +410,7 @@ export function BasesPanel({
         ) : (
           <IntegratedInstrumentsWizard
             canonicalOptions={canonicalOptions}
+            plannedInputCount={plannedInputCount}
             disabled={!!busy}
             onImported={async (payload) => {
               await onChanged(payload);
@@ -483,6 +424,7 @@ export function BasesPanel({
       {strategy === "independent" && (
         <IndependentSiblingsSurveyMonkeyWizard
           estudio={estudio}
+          plannedInputCount={plannedInputCount}
           canonicalOptions={canonicalOptions}
           disabled={!!busy}
           onImported={async (payload) => {
@@ -496,87 +438,51 @@ export function BasesPanel({
       )}
 
       {strategy === "separate" && (
-        <>
-      {/* Lista de bases */}
-      <div className="pulso-base-list">
-        {bases.map((b) => (
-          <div key={b.nombre}>
-            <BaseRow
-              base={b}
-              isRenaming={renaming === b.nombre}
-              renameDraft={renameDraft}
-              onStartRename={() => { setRenameDraft(b.nombre); setRenaming(b.nombre); }}
-              onRenameChange={setRenameDraft}
-              onRenameCommit={() => handleRenameBase(b.nombre)}
-              onRenameCancel={() => setRenaming(null)}
-              onRemove={() => handleRemoveBase(b.nombre)}
-              onStartReplace={() => setReplacingFiles(b.nombre)}
-              onExport={() => void handleExportBase(b.nombre)}
-              isReplacing={replacingFiles === b.nombre}
-              busy={!!busy}
-            />
-            {replacingFiles === b.nombre && (
-              <ReplaceFilesForm
-                baseNombre={b.nombre}
-                onSubmit={async ({ xlsformFileId, dataFileId }) => {
-                  setError(""); setBusy(`Reemplazando archivos de ${b.nombre}…`);
-                  try {
-                    const p = await apiEstudioReplaceBaseFiles(b.nombre, {
-                      xlsform_file_id: xlsformFileId || undefined,
-                      data_file_id:    dataFileId    || undefined,
-                    });
-                    await onChanged(p);
-                    setReplacingFiles(null);
-                  } catch (e) {
-                    setError((e as Error).message);
-                  } finally {
-                    setBusy("");
-                  }
-                }}
-                onCancel={() => setReplacingFiles(null)}
+        <CargaManualBaseLanes
+          plannedInputCount={plannedInputCount}
+          bases={bases}
+          disabled={!!busy || estudio.n_bases >= estudio.max_bases}
+          onChanged={onChanged}
+          renderMaterializedBase={(b) => (
+            <div>
+              <BaseRow
+                base={b}
+                isRenaming={renaming === b.nombre}
+                renameDraft={renameDraft}
+                onStartRename={() => { setRenameDraft(b.nombre); setRenaming(b.nombre); }}
+                onRenameChange={setRenameDraft}
+                onRenameCommit={() => handleRenameBase(b.nombre)}
+                onRenameCancel={() => setRenaming(null)}
+                onRemove={() => handleRemoveBase(b.nombre)}
+                onStartReplace={() => setReplacingFiles(b.nombre)}
+                onExport={() => void handleExportBase(b.nombre)}
+                isReplacing={replacingFiles === b.nombre}
+                busy={!!busy}
               />
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Agregar base */}
-      {adding ? (
-        <AddBaseForm
-          existingNombres={bases.map((b) => b.nombre)}
-          onSubmit={async ({ nombre, xlsformFileId, dataFileId }) => {
-            setError(""); setBusy(`Agregando ${nombre}…`);
-            try {
-              await apiEstudioAddBase({
-                nombre,
-                xlsform_file_id: xlsformFileId,
-                data_file_id: dataFileId,
-              });
-              const p = await apiEstudioGet();
-              await onChanged(p);
-              setAdding(false);
-            } catch (e) {
-              setError((e as Error).message);
-            } finally {
-              setBusy("");
-            }
-          }}
-          onCancel={() => setAdding(false)}
+              {replacingFiles === b.nombre ? (
+                <ReplaceFilesForm
+                  baseNombre={b.nombre}
+                  onSubmit={async ({ xlsformFileId, dataFileId }) => {
+                    setError(""); setBusy(`Reemplazando archivos de ${b.nombre}…`);
+                    try {
+                      const payload = await apiEstudioReplaceBaseFiles(b.nombre, {
+                        xlsform_file_id: xlsformFileId || undefined,
+                        data_file_id: dataFileId || undefined,
+                      });
+                      await onChanged(payload);
+                      setReplacingFiles(null);
+                    } catch (reason) {
+                      setError((reason as Error).message);
+                    } finally {
+                      setBusy("");
+                    }
+                  }}
+                  onCancel={() => setReplacingFiles(null)}
+                />
+              ) : null}
+            </div>
+          )}
         />
-      ) : (
-        <button
-          type="button"
-          onClick={() => setAdding(true)}
-          disabled={maxReached || !!busy}
-          className={`pulso-base-add-button${maxReached ? " is-limited" : ""}`}
-        >
-          <Plus size={13} />
-          {maxReached
-            ? `Límite de ${estudio.max_bases} bases alcanzado`
-            : "Agregar otra base"}
-        </button>
-      )}
-        </>
       )}
 
       {busy && (
@@ -3193,8 +3099,8 @@ function smClipboardGuard(event: ClipboardEvent<HTMLInputElement>) {
 const SM_DEFAULT_BASE_URL = "https://api.surveymonkey.com/v3";
 const smCollectorCatalogCache = new Map<string, SurveyMonkeyMultibaseCollector[]>();
 
-function smCollectorCacheKey(surveyId: string, baseUrl = SM_DEFAULT_BASE_URL) {
-  return `${baseUrl}::${surveyId.trim()}`;
+function smCollectorCacheKey(surveyId: string, baseUrl = SM_DEFAULT_BASE_URL, profileId = "") {
+  return `${profileId.trim()}::${baseUrl}::${surveyId.trim()}`;
 }
 
 function smCollectorDisplayName(item: SurveyMonkeyMultibaseCollector) {
@@ -3227,12 +3133,14 @@ function smToggleCollectorId(current: string, collectorId: string, checked: bool
 
 function SmCollectorPicker({
   surveyId,
+  profileId = "",
   value,
   disabled,
   onChange,
   label = "Recopiladores incluidos",
 }: {
   surveyId: string;
+  profileId?: string;
   value: string;
   disabled: boolean;
   onChange: (value: string) => void;
@@ -3254,7 +3162,7 @@ function SmCollectorPicker({
       setError("");
       return;
     }
-    const cacheKey = smCollectorCacheKey(cleanSurveyId);
+    const cacheKey = smCollectorCacheKey(cleanSurveyId, SM_DEFAULT_BASE_URL, profileId);
     const cached = smCollectorCatalogCache.get(cacheKey);
     if (cached) {
       setCollectors(cached);
@@ -3263,11 +3171,11 @@ function SmCollectorPicker({
     }
     setError("");
     setCollectors(null);
-  }, [cleanSurveyId]);
+  }, [cleanSurveyId, profileId]);
 
   function loadCollectors() {
     if (!cleanSurveyId || loading) return;
-    const cacheKey = smCollectorCacheKey(cleanSurveyId);
+    const cacheKey = smCollectorCacheKey(cleanSurveyId, SM_DEFAULT_BASE_URL, profileId);
     const cached = smCollectorCatalogCache.get(cacheKey);
     if (cached) {
       setCollectors(cached);
@@ -3276,7 +3184,9 @@ function SmCollectorPicker({
     }
     setLoading(true);
     setError("");
-    void apiSurveyMonkeyMultibaseCollectors(cleanSurveyId)
+    void apiSurveyMonkeyMultibaseCollectors(cleanSurveyId, SM_DEFAULT_BASE_URL, {
+      profile_id: profileId || undefined,
+    })
       .then((result) => {
         smCollectorCatalogCache.set(cacheKey, result.collectors);
         setCollectors(result.collectors);
@@ -3762,11 +3672,13 @@ function smSelectedCampaignInputs(
 
 function IndependentSiblingsSurveyMonkeyWizard({
   estudio,
+  plannedInputCount,
   canonicalOptions,
   disabled,
   onImported,
 }: {
   estudio: EstudioPayload;
+  plannedInputCount: number;
   canonicalOptions: SmCanonicalOption[];
   disabled: boolean;
   onImported: (payload: EstudioPayload) => Promise<void>;
@@ -3799,6 +3711,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
   const setSurveyMonkeyLogicRules = useCargaStore((s) => s.setSmSharedLogicRules);
   const [surveyMonkeyLogicPreview, setSurveyMonkeyLogicPreview] = useState<SmLogicPreviewRow[] | null>(null);
   const [smConnection, setSmConnection] = useState<ConnectionTokenState | null>(null);
+  const [selectedSmProfileId, setSelectedSmProfileId] = useState("");
   // Tri-estado en el store: `null` = sin decisión del usuario → default del
   // useState original (`estudio.n_bases === 0`).
   const smShowSurveyCatalogRaw = useCargaStore((s) => s.smShowSurveyCatalog);
@@ -3828,7 +3741,12 @@ function IndependentSiblingsSurveyMonkeyWizard({
   const promotedBase = existingBases.find((base) => base.nombre === estudio.active_base) ?? existingBases[0] ?? null;
   const promotedTitle = smIndependentBaseTitle(promotedBase, estudio);
   const promotedName = promotedBase?.nombre === "default" ? smBaseSlug(promotedTitle) : promotedBase?.nombre;
-  const { maxBases: independentMaxBases, capacityLeft } = independentSiblingsCapacity(estudio);
+  const physicalCapacity = independentSiblingsCapacity(estudio);
+  const independentMaxBases = Math.max(
+    estudio.n_bases,
+    Math.min(physicalCapacity.maxBases, plannedInputCount),
+  );
+  const capacityLeft = Math.max(0, independentMaxBases - estudio.n_bases);
   const existingSurveyIds = new Set(existingBases.flatMap(smSurveyIdsFromBase));
   const existingKoboAssetIds = new Set(existingBases.flatMap(koboAssetIdsFromBase));
   const selectedSurveyIds = selectedIds;
@@ -3847,6 +3765,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
     return total + smSelectedCampaignInputs(item, scope, surveys).length;
   }, 0);
   const selectedTotal = estudio.n_bases + selectedInputs.length;
+  const plannedRemaining = Math.max(0, capacityLeft - selectedInputs.length);
   const selectedAliasRows = selectedNewSurveys.map((item) => {
     const alias = smAliasDraftValue(item, scopeDrafts[item.id]).trim();
     return { surveyId: item.id, alias, slug: smBaseSlug(alias) };
@@ -3925,11 +3844,6 @@ function IndependentSiblingsSurveyMonkeyWizard({
   }, [canonicalOptions, canonicalFileId]);
 
   useEffect(() => {
-    void loadProcessingSuggestions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
     if (monitoringKoboOnly && selectedIds.size === 0 && !(surveys?.length)) {
       setShowSurveyCatalog(false);
     }
@@ -3949,27 +3863,30 @@ function IndependentSiblingsSurveyMonkeyWizard({
 
   async function refreshSurveyMonkeyConnection() {
     try {
-      setSmConnection(await apiConnectionTokenLoad("surveymonkey"));
+      const next = await apiConnectionTokenLoad("surveymonkey");
+      setSmConnection(next);
+      setSelectedSmProfileId((current) => {
+        if (current && next.profiles?.some((profile) => profile.id === current && profile.has_token)) {
+          return current;
+        }
+        return next.active_profile_id
+          || next.profiles?.find((profile) => profile.is_default && profile.has_token)?.id
+          || next.profiles?.find((profile) => profile.has_token)?.id
+          || "";
+      });
     } catch {
       setSmConnection(null);
+      setSelectedSmProfileId("");
     }
   }
 
-  async function switchSurveyMonkeyProfile(profileId: string) {
+  function selectSurveyMonkeyProfile(profileId: string) {
     if (!profileId) return;
     setError("");
-    setBusy("Cambiando perfil SurveyMonkey...");
-    try {
-      const next = await apiConnectionProfileSetDefault("surveymonkey", profileId);
-      setSmConnection(next);
-      setSurveys(null);
-      setSurveyMeta(null);
-      setAudit(null);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy("");
-    }
+    setSelectedSmProfileId(profileId);
+    setSurveys(null);
+    setSurveyMeta(null);
+    setAudit(null);
   }
 
   async function loadSurveys(forceRefresh = false) {
@@ -3977,7 +3894,10 @@ function IndependentSiblingsSurveyMonkeyWizard({
     setBusy(forceRefresh ? "Actualizando catálogo SurveyMonkey..." : "Leyendo catálogo local SurveyMonkey...");
     try {
       await refreshSurveyMonkeyConnection();
-      const result = await apiSurveyMonkeyMultibaseListSurveys("", 500, 6, { forceRefresh });
+      const result = await apiSurveyMonkeyMultibaseListSurveys("", 500, 6, {
+        forceRefresh,
+        profile_id: selectedSmProfileId || undefined,
+      });
       setSurveys(result.surveys);
       setSurveyMeta({
         totalRecent: result.total_recent,
@@ -4208,6 +4128,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
       const result = await apiSurveyMonkeyMultibaseAudit(
         selectedInputs,
         hasCanonicalReference ? canonicalFileId : "",
+        { profile_id: selectedSmProfileId || undefined },
       );
       setAudit(result);
     } catch (e) {
@@ -4274,6 +4195,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
       if (hasNewBases) {
         const result = await apiSurveyMonkeyMultibaseImportIndependent({
           surveys: selectedInputs,
+          profile_id: selectedSmProfileId || undefined,
           response_statuses: ["completed"],
           keep_missing_status: false,
           canonical_xlsform_file_id: canonicalFileId,
@@ -4632,6 +4554,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
           </p>
           <div className="pulso-sm-family-meter pulso-sm-independent-meter" aria-label="Resumen de familia independiente">
             <span>{independentSiblingsCapacityLabel(selectedTotal, independentMaxBases)}</span>
+            <span>{plannedRemaining > 0 ? `${plannedRemaining} por agregar` : "Plan completo"}</span>
             <span>{hasCanonicalReference ? "Plantilla lista" : "Plantilla pendiente"}</span>
             <span>{hasExistingIndependentBases ? "Actualización disponible" : "Por configurar"}</span>
           </div>
@@ -5317,7 +5240,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
             <span>
               <strong>SurveyMonkey</strong>
               {smConnection?.has_token
-                ? `Perfil activo: ${smConnection.active_profile_alias || smConnection.active_profile_id || "Principal"}`
+                ? `Perfil seleccionado: ${smConnection.profiles?.find((profile) => profile.id === selectedSmProfileId)?.alias || smConnection.active_profile_alias || selectedSmProfileId || "Principal"}`
                 : "Sin token activo"}
             </span>
             {smConnection?.masked_token && <code>{smConnection.masked_token}</code>}
@@ -5328,9 +5251,9 @@ function IndependentSiblingsSurveyMonkeyWizard({
                 <button
                   key={profile.id}
                   type="button"
-                  className={profile.is_default ? "is-active" : ""}
-                  disabled={disabled || !!busy || profile.is_default || !profile.has_token}
-                  onClick={() => void switchSurveyMonkeyProfile(profile.id)}
+                  className={selectedSmProfileId === profile.id ? "is-active" : ""}
+                  disabled={disabled || !!busy || selectedSmProfileId === profile.id || !profile.has_token}
+                  onClick={() => selectSurveyMonkeyProfile(profile.id)}
                   title={profile.has_token ? `Usar ${profile.alias}` : `${profile.alias} no tiene token guardado`}
                 >
                   {profile.alias}
@@ -5353,7 +5276,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
         {surveys && (
           <>
             <div className="pulso-sm-list-caption">
-              {visibleSurveys.length} disponibles de {surveyMeta?.totalRecent ?? surveys.length} encuestas modificadas en los últimos {surveyMeta?.months ?? 6} meses · {selectedInputs.length} bases nuevas · {selectedMergeCampaignCount} campañas/canales · {capacityLeft} cupos para bases nuevas
+              {visibleSurveys.length} disponibles de {surveyMeta?.totalRecent ?? surveys.length} encuestas modificadas en los últimos {surveyMeta?.months ?? 6} meses · {selectedInputs.length} bases nuevas · {selectedMergeCampaignCount} campañas/canales · {plannedRemaining} por agregar según el plan
               {hiddenDuplicateSurveys.length ? ` · ${hiddenDuplicateSurveys.length} ocultas por repetidas` : ""}
               {surveyMeta && (
                 <> · {surveyMeta.cacheStatus === "stale_fallback" ? "refresco falló; usando catálogo local" : surveyMeta.fromCache ? "catálogo local" : "catálogo actualizado"} {smCatalogDateLabel(surveyMeta.fetchedAt)}</>
@@ -5535,6 +5458,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
                         </div>
                         <SmCollectorPicker
                           surveyId={item.id}
+                          profileId={selectedSmProfileId}
                           value={scope.collectorIds}
                           disabled={disabled || !!busy}
                           onChange={(value) => updateScope(item.id, { collectorIds: value })}
@@ -5648,6 +5572,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
                                 <div className="pulso-sm-extra-advanced">
                                   <SmCollectorPicker
                                     surveyId={source.surveyId}
+                                    profileId={selectedSmProfileId}
                                     value={source.collectorIds}
                                     disabled={disabled || !!busy || !source.surveyId.trim()}
                                     label="Recopiladores"
@@ -5720,7 +5645,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
       {overIndependentLimit && (
         <div className="pulso-sm-multibase-warning">
           <AlertTriangle size={15} />
-          Seleccionaste {selectedInputs.length} encuestas y quedan {capacityLeft} cupos. Este modo admite máximo {independentMaxBases} bases.
+          Seleccionaste {selectedInputs.length} encuestas y quedan {plannedRemaining} por agregar. Este plan admite máximo {independentMaxBases} bases.
         </div>
       )}
 

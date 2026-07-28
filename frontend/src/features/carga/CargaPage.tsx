@@ -1,17 +1,16 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  AlertTriangle, ArrowRight, ArrowRightLeft, CheckCircle2, ChevronDown, ClipboardCheck, CloudDownload,
+  AlertTriangle, ArrowRight, ArrowRightLeft, CheckCircle2, ClipboardCheck, CloudDownload,
   Database, FileSpreadsheet, FileWarning, Download, Info, Loader2, RefreshCw, Search, ShieldCheck,
   Table2, Trash2, Upload, UploadCloud,
 } from "lucide-react";
 import {
   apiCargaBaseSheet,
   apiCargaKoboAssets,
-  apiCargaKoboDetectedSource,
-  apiCargaMonitoreoHandoffStatus,
   apiCargaMonitoreoHandoffPromote,
-  apiAnaliticaReconciliacionGet,
-  apiAnaliticaReconciliacionSet,
+  apiCargaReview,
+  apiCargaReviewSummary,
+  apiCargaReviewReconciliation,
   apiCargaImportKobo,
   apiCargaImportSurveyMonkey,
   apiCargaData,
@@ -19,11 +18,8 @@ import {
   apiCargaConfirmChoiceMapping,
   apiCargaInstrumento,
   apiConnectionsList,
-  apiEstudioDowngradeToSingle,
-  apiEstudioFromSession,
   apiEstudioGet,
   apiEstudioInit,
-  apiEstudioProcessingSuggestions,
   apiInstrumentoEstructura,
   apiQuitarData,
   apiQuitarInstrumento,
@@ -35,6 +31,8 @@ import {
   ChoiceCodeMap,
   ChoiceCodeMapReview,
   ConnectionTokenState,
+  CargaReviewPayload,
+  CargaReviewSummaryPayload,
   EstudioBase,
   EstudioPayload,
   EstudioProcessingSuggestions,
@@ -49,17 +47,13 @@ import {
   uploadKindForDataFile,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
+import { useSeccion } from "../../lib/navegacion/useDireccion";
 import "./carga-v2.css";
-import { Panel } from "../../components/Panel";
+import "./carga-sources.css";
 import { PageFrame } from "../../components/PageFrame";
-import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
-import { BasesInspectorMenu, basesDesdeEstudio } from "../../components/BasesInspectorMenu";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
-import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { GlidingTabList } from "../../components/GlidingTabList";
-import SeccionesPanel from "./SeccionesPanel";
-import PreguntasPanel from "./PreguntasPanel";
 import { BasesPanel } from "./BasesPanel";
 import { EsquemaBaseSelector } from "./EsquemaBaseSelector";
 import { ReconciliacionExtraDialog } from "./ReconciliacionExtraDialog";
@@ -70,6 +64,32 @@ import { defaultEsquemaBase } from "./esquemaBaseModel";
 import { CargaUniverseFilter } from "./CargaUniverseFilter";
 import { ProcessingIntakePanel } from "./ProcessingIntakePanel";
 import { AcreditacionBatchPanel } from "./AcreditacionBatchPanel";
+import { CargaPlanOverview } from "./CargaPlanOverview";
+import { CargaTopologyDecision } from "./CargaTopologyDecision";
+import { CargaTopologyPlanBanner } from "./CargaTopologyPlanBanner";
+import { resolveCargaTopology } from "./CargaTopologyModel";
+import { CargaReviewSummary } from "./CargaReviewSummary";
+import { CargaStructureWorkbench } from "./CargaStructureWorkbench";
+import { useCargaStore, type CargaTopologyIntent, type MultiBaseStrategy } from "./store";
+import {
+  CARGA_WORKSPACE_TABS,
+  resolveCargaWorkspaceTab,
+  type CargaWorkspaceContext,
+  type CargaWorkspaceTab,
+} from "./CargaWorkspaceModel";
+import {
+  CARGA_WORKSPACE_PANEL_ID,
+  CargaWorkspaceNavigation,
+  cargaWorkspaceTabId,
+} from "./CargaWorkspaceNavigation";
+import { CargaWorkspaceHeader } from "./CargaWorkspaceHeader";
+import { CargaSourcesPlan } from "./CargaSourcesPlan";
+import {
+  CargaMonitoringDiscovery,
+  type CargaMonitoringDiscoveryResult,
+} from "./CargaMonitoringDiscovery";
+import { sourceInputCount, type ProcessingSourcesProfile } from "./CargaSourcesModel";
+import { CargaPlatformImportPanel } from "./CargaPlatformImportPanel";
 
 // Fase 1 — Carga de insumos.
 //
@@ -84,10 +104,7 @@ type InstrumentoResumen = Awaited<ReturnType<typeof apiCargaInstrumento>>["resum
 type DataPreview = Awaited<ReturnType<typeof apiCargaData>>["preview"];
 
 type IconCmp = typeof Database;
-type SourceMode = "files" | "platform";
-type CargaWorkspaceTab = "insumos" | "base";
-const CARGA_WORKSPACE_PANEL_ID = "carga-workspace-panel";
-const cargaWorkspaceTabId = (tab: CargaWorkspaceTab) => `carga-workspace-tab-${tab}`;
+export type SourceMode = "files" | "platform" | "monitoring";
 type DetectedKoboSource = KoboSourceSpec & {
   ok: true;
   detected: true;
@@ -98,6 +115,12 @@ type DetectedKoboSource = KoboSourceSpec & {
 
 function providerLabel(provider: CargaPlatformProvider) {
   return provider === "kobo" ? "KoboToolbox" : "SurveyMonkey";
+}
+
+export function cargaSourceModes(
+  _suggestions: EstudioProcessingSuggestions | null,
+): SourceMode[] {
+  return ["files", "platform", "monitoring"];
 }
 
 function connectedProfiles(connection?: ConnectionTokenState): Array<{ id: string; alias: string; base_url?: string; is_default?: boolean }> {
@@ -178,8 +201,30 @@ function choiceMapChangedItems(map: ChoiceCodeMap) {
   return map.mappings.filter((item) => normalizedChoiceCode(item.source_code) !== normalizedChoiceCode(item.xls_code));
 }
 
+function reviewReconciliationInfo(review: CargaReviewPayload): ReconciliacionInfo {
+  return {
+    ok: true,
+    extra: review.reconciliation.extra.map((extra) => ({
+      name: extra.name,
+      fill_pct: extra.fill_pct,
+      n_fill: extra.n_fill,
+      kind: extra.kind,
+      incluida: extra.incluida,
+    })),
+    n_extra: review.reconciliation.n_extra,
+    n_incluidas: review.reconciliation.n_incluidas,
+  };
+}
+
 export default function CargaPage() {
   const { sessionId, state, refresh } = useSession();
+  const cargaDireccion = useSeccion("procesamiento");
+  const topologyIntent = useCargaStore((store) => store.topologyIntent);
+  const setTopologyIntent = useCargaStore((store) => store.setTopologyIntent);
+  const multiBaseStrategy = useCargaStore((store) => store.strategy);
+  const setMultiBaseStrategy = useCargaStore((store) => store.setStrategy);
+  const plannedInputCount = useCargaStore((store) => store.plannedInputCount);
+  const setPlannedInputCount = useCargaStore((store) => store.setPlannedInputCount);
   const [instrumento, setInstrumento] = useState<InstrumentoResumen | null>(null);
   const [dataPreview, setDataPreview] = useState<DataPreview | null>(null);
   const [choiceMappingReview, setChoiceMappingReview] = useState<ChoiceCodeMapReview | null>(null);
@@ -192,9 +237,9 @@ export default function CargaPage() {
   const feedbackRef = useRef<HTMLDivElement | null>(null);
   const normalizationDetails = dataPreviewNormalizationDetails(dataPreview);
   const [forceMultiBase, setForceMultiBase] = useState(false);
-  const [preferredMultiStrategy, setPreferredMultiStrategy] = useState<"separate" | "integrated" | "independent" | undefined>(undefined);
+  const [preferredMultiStrategy, setPreferredMultiStrategy] = useState<MultiBaseStrategy | undefined>(undefined);
   const [sourceMode, setSourceMode] = useState<SourceMode>("files");
-  const [activeCargaTab, setActiveCargaTab] = useState<CargaWorkspaceTab>("insumos");
+  const monitoringReviewActionLabel = "Revisar Monitoreo";
   const [selectedCargaBase, setSelectedCargaBase] = useState("");
   const [platformProvider, setPlatformProvider] = useState<CargaPlatformProvider>("surveymonkey");
   const [connections, setConnections] = useState<ConnectionTokenState[]>([]);
@@ -212,55 +257,21 @@ export default function CargaPage() {
   const [platformMessage, setPlatformMessage] = useState("");
   const [detectedKoboSource, setDetectedKoboSource] = useState<DetectedKoboSource | null>(null);
   const [processingSuggestions, setProcessingSuggestions] = useState<EstudioProcessingSuggestions | null>(null);
-  const [processingSuggestionsStatus, setProcessingSuggestionsStatus] = useState("");
+  const [monitoringReviewed, setMonitoringReviewed] = useState(false);
+  const [monitoringProfile, setMonitoringProfile] = useState<ProcessingSourcesProfile | null>(null);
   const [intakeRefreshToken, setIntakeRefreshToken] = useState(0);
   const [handoffStatus, setHandoffStatus] = useState<CargaMonitoreoHandoffStatus | null>(null);
+  const [selectedMonitoringSourceId, setSelectedMonitoringSourceId] = useState<string | null>(null);
   const [handoffMessage, setHandoffMessage] = useState("");
-  // Reconciliación de variables data ↔ XLSForm. `reconInfo` alimenta el panel
-  // revisitable; el diálogo se abre solo tras traer/actualizar data con extras.
-  const [reconInfo, setReconInfo] = useState<ReconciliacionInfo | null>(null);
+  // Revisión autoritativa de la base elegida. El diálogo existente recibe una
+  // adaptación de `reconciliation`, sin mantener un segundo motor de decisión.
+  const [cargaReview, setCargaReview] = useState<CargaReviewPayload | null>(null);
+  const [cargaReviewSummary, setCargaReviewSummary] = useState<CargaReviewSummaryPayload | null>(null);
   const [reconDialogOpen, setReconDialogOpen] = useState(false);
+  const planningSeedRef = useRef("");
+  const reconInfo = cargaReview ? reviewReconciliationInfo(cargaReview) : null;
 
-  // Puente Monitoreo → Procesamiento (camino primario): si el proyecto ya tiene
-  // trabajo de campo validado, lo detectamos para ofrecer traerlo con su
-  // formulario. Si la detección falla, degradamos en silencio.
-  //
-  // Depende de `state` (no solo de sessionId): en apertura fresca el warm-start
-  // carga el snapshot de monitoreo DESPUÉS del primer render, y `sessionId` es
-  // estable, así que una sola consulta al montar detectaría 0 y mostraría el
-  // banner de import crudo. Re-consultar cuando `state` cambia (warm-start listo
-  // y tras cada import) hace que la tarjeta del handoff aparezca en cuanto el
-  // snapshot está disponible.
-  useEffect(() => {
-    let cancelled = false;
-    apiCargaMonitoreoHandoffStatus()
-      .then((payload) => {
-        if (cancelled) return;
-        setHandoffStatus(payload);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setHandoffStatus(null);
-      });
-    return () => { cancelled = true; };
-  }, [sessionId, state]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setProcessingSuggestionsStatus("Leyendo Monitoreo...");
-    apiEstudioProcessingSuggestions()
-      .then((payload) => {
-        if (cancelled) return;
-        setProcessingSuggestions(payload);
-        setProcessingSuggestionsStatus("");
-      })
-      .catch((e: Error) => {
-        if (cancelled) return;
-        setProcessingSuggestions(null);
-        setProcessingSuggestionsStatus(e.message);
-      });
-    return () => { cancelled = true; };
-  }, [sessionId]);
+  const sourceModes = cargaSourceModes(processingSuggestions);
 
   async function onQuitar(kind: "xlsform" | "data") {
     const label = kind === "xlsform" ? "el formulario" : "las respuestas";
@@ -344,20 +355,10 @@ export default function CargaPage() {
   useEffect(() => {
     let alive = true;
     setConnectionsLoading(true);
-    Promise.allSettled([apiConnectionsList(), apiCargaKoboDetectedSource()])
-      .then(([connectionsResult, koboHintResult]) => {
+    apiConnectionsList()
+      .then((result) => {
         if (!alive) return;
-        if (connectionsResult.status === "fulfilled") {
-          setConnections(connectionsResult.value.connections);
-        } else {
-          setPlatformError((connectionsResult.reason as Error).message);
-        }
-        if (koboHintResult.status === "fulfilled" && koboHintResult.value.ok && koboHintResult.value.detected) {
-          setDetectedKoboSource(koboHintResult.value);
-          if (koboHintResult.value.connection_profile_id) {
-            setSelectedKoboProfileId(koboHintResult.value.connection_profile_id);
-          }
-        }
+        setConnections(result.connections);
       })
       .catch((e) => {
         if (alive) setPlatformError((e as Error).message);
@@ -522,45 +523,71 @@ export default function CargaPage() {
     }
   }
 
-  // Consulta el estado de reconciliación de variables. `openIfExtra` abre el
-  // diálogo cuando hay variables extra sin resolver — solo se pasa `true` justo
-  // después de traer/actualizar la data (handoff o upload), nunca en bucle. La
-  // reconciliación es un extra: si falla, degrada en silencio sin romper la carga.
+  // Consulta la revisión autoritativa de la misma base que luego recibirá la
+  // reconciliación. Una cadena vacía representa la base legacy y el cliente la
+  // serializa sin query (GET) o como `base_nombre: null` (POST).
   async function loadReconciliacion(openIfExtra: boolean) {
     try {
-      const info = await apiAnaliticaReconciliacionGet();
-      setReconInfo(info);
-      if (openIfExtra && info.n_extra > 0) setReconDialogOpen(true);
+      const review = await apiCargaReview(selectedCargaBase);
+      setCargaReview(review);
+      if (openIfExtra && review.reconciliation.n_pendientes > 0) {
+        setReconDialogOpen(true);
+      }
     } catch {
-      setReconInfo(null);
+      setCargaReview(null);
+    }
+  }
+
+  async function loadReviewSummary() {
+    if (!isMultiBase) {
+      setCargaReviewSummary(null);
+      return null;
+    }
+    try {
+      const summary = await apiCargaReviewSummary();
+      setCargaReviewSummary(summary);
+      return summary;
+    } catch {
+      setCargaReviewSummary(null);
+      return null;
     }
   }
 
   async function onSaveReconciliacion(incluidas: string[]): Promise<ReconciliacionInfo> {
-    const info = await apiAnaliticaReconciliacionSet(incluidas);
-    setReconInfo(info);
-    return info;
+    const review = await apiCargaReviewReconciliation(selectedCargaBase, incluidas);
+    setCargaReview(review);
+    if (isMultiBase) await loadReviewSummary();
+    return reviewReconciliationInfo(review);
   }
 
-  // Mantiene el panel revisitable al día cuando hay una base con data cargada.
-  // No abre el diálogo (openIfExtra=false): eso es exclusivo de los triggers de
-  // carga, para no reabrirlo en cada refresh de estado.
-  useEffect(() => {
-    if (!state?.data) {
-      setReconInfo(null);
+  async function onBringFieldWorkToProcessing() {
+    if (
+      !handoffStatus
+      || (monitoringProfile !== "telefonico" && monitoringProfile !== "territorial")
+    ) return;
+    const selectedSource = handoffStatus.sources?.find(
+      (source) => source.source_id === selectedMonitoringSourceId,
+    );
+    if (monitoringProfile === "telefonico" && handoffStatus.sources?.length && !selectedSource) {
+      setError("Selecciona una fuente de Monitoreo antes de traerla a Procesamiento.");
       return;
     }
-    void loadReconciliacion(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.data]);
-
-  async function onBringFieldWorkToProcessing() {
-    if (!handoffStatus) return;
+    const sourceLabel = selectedSource?.label || handoffStatus.source.label || "trabajo de campo";
+    const processable = selectedSource?.counts.processable ?? handoffStatus.counts.processable;
+    const replacement = handoffStatus.existing_base.present
+      ? ` Reemplazará la base actual de ${handoffStatus.existing_base.n_filas.toLocaleString("es-PE")} filas.`
+      : " Creará la base de procesamiento con esta fuente.";
+    if (!window.confirm(
+      `¿Traer «${sourceLabel}» a Procesamiento?\n\n` +
+      `${processable.toLocaleString("es-PE")} respuestas procesables.${replacement}`,
+    )) return;
     setError("");
     setHandoffMessage("");
     setBusy("Trayendo tu trabajo de campo al procesamiento…");
     try {
-      const result = await apiCargaMonitoreoHandoffPromote();
+      const result = await apiCargaMonitoreoHandoffPromote(
+        selectedMonitoringSourceId ? { source_id: selectedMonitoringSourceId } : {},
+      );
       await refresh();
       // El handoff trae data de Monitoreo que puede incluir variables de
       // versiones viejas del formulario: ofrece reconciliarlas.
@@ -586,8 +613,12 @@ export default function CargaPage() {
   }
 
   // Estado de prereqs — muestra al lado del título como meta chip.
-  const hasXlsform = !!state?.xlsform;
-  const hasData = !!state?.data;
+  // Un archivo puede pertenecer a otra superficie del proyecto. Carga solo
+  // considera disponible un insumo después de que su propio motor lo parsea
+  // o previsualiza; así no declara una base lista usando archivos heredados de
+  // Monitoreo, Muestra u otro módulo.
+  const hasXlsform = !!state?.xlsform && !!state.instrumento_parsed;
+  const hasData = !!state?.data && !!state.data_previewed;
   const pendingChoiceMapping = !!dataPreview?.normalizacion?.choice_code_maps?.requires_confirmation;
   const allReady = hasXlsform && hasData && !pendingChoiceMapping;
   // El puente de trabajo de campo es el camino primario cuando aún no hay una
@@ -624,15 +655,22 @@ export default function CargaPage() {
       isIndependentStudy ||
       !(hasDefaultStudyBase)
     );
-  const plannedPublics = Math.max(
-    processingSuggestions?.summary.actors_count ?? 0,
-    processingSuggestions?.groups.length ?? 0,
-  );
-
   // Payload del estudio — cargamos on-demand cuando entramos a modo
   // multi-base para mostrar el BasesPanel con detalle de cada base.
   const [estudio, setEstudio] = useState<EstudioPayload | null>(null);
   const cargaBaseOptions = estudio ? Object.values(estudio.bases) : [];
+  const topologyBases = cargaBaseOptions.filter(
+    (base) => base.source_kind !== "kobo_repeat" && !base.parent_base,
+  );
+  const integratedBaseCount = topologyBases.filter(
+    (base) => Boolean(base.multi_integrated),
+  ).length;
+  const multiBaseInstrumentCount = topologyBases.filter(
+    (base) => Boolean(base.xlsform_file_id),
+  ).length;
+  const multiBaseDataCount = topologyBases.filter(
+    (base) => Boolean(base.data_file_id),
+  ).length;
   const cargaBaseSignature = estudio
     ? Object.keys(estudio.bases).sort((a, b) => a.localeCompare(b, "es")).join("|")
     : "";
@@ -642,12 +680,157 @@ export default function CargaPage() {
   const showInspection = isMultiBase
     ? !!estructura
     : !!state?.instrumento_parsed && !!estructura;
+  const workspaceHasInstrument = isMultiBase
+    ? multiBaseInstrumentCount > 0
+    : hasXlsform || showInspection;
+  const workspaceHasData = isMultiBase ? multiBaseDataCount > 0 : hasData;
+  const workspaceAllReady = isMultiBase
+    ? topologyBases.length > 0
+      && multiBaseInstrumentCount === topologyBases.length
+      && multiBaseDataCount === topologyBases.length
+      && !pendingChoiceMapping
+    : allReady;
+  const topologyHasStudy = Boolean(state?.has_estudio && !hasDefaultStudyBase);
+  const declaredTopologyStrategy: MultiBaseStrategy | null =
+    state?.processing_intake_mode === "independent_siblings"
+      ? "independent"
+      : null;
+  const topologyResolution = resolveCargaTopology({
+    hasStudy: topologyHasStudy,
+    baseCount: topologyHasStudy
+      ? estudio
+        ? topologyBases.length
+        : state?.n_bases ?? 0
+      : 0,
+    hasInstrument: hasXlsform,
+    hasData,
+    processingMode: topologyHasStudy ? state?.estudio_processing_mode : null,
+    integratedBaseCount,
+    declaredStrategy: declaredTopologyStrategy,
+    intent: topologyIntent,
+  });
+  const resolvedTopologyIntent: CargaTopologyIntent = topologyIntent ?? declaredTopologyStrategy;
+  const topologyIntentStrategy: MultiBaseStrategy | null =
+    resolvedTopologyIntent === "separate" || resolvedTopologyIntent === "integrated" || resolvedTopologyIntent === "independent"
+      ? resolvedTopologyIntent
+      : null;
+  const sourceStrategy = topologyResolution.strategy
+    ?? topologyIntentStrategy
+    ?? preferredMultiStrategy
+    ?? multiBaseStrategy;
+  const integratedOriginCount = topologyBases.reduce(
+    (total, base) => total + (base.multi_integrated?.origins?.length ?? 0),
+    0,
+  );
+  const materializedInputCount = isMultiBase
+    ? sourceStrategy === "integrated"
+      ? integratedOriginCount
+      : sourceInputCount(cargaBaseOptions)
+    : topologyResolution.mode === "multi"
+      ? 0
+      : Number(hasXlsform || hasData);
+  const reviewHasIssues = Boolean(cargaReview && (
+    !cargaReview.compatibility.ok
+    || cargaReview.choice_mapping.pending
+    || cargaReview.reconciliation.n_pendientes > 0
+  ));
+  const workspaceContext: CargaWorkspaceContext = {
+    hasInstrument: workspaceHasInstrument,
+    hasData: workspaceHasData,
+    hasBase: isMultiBase ? topologyBases.length > 0 : hasData,
+    hasReviewIssues: pendingChoiceMapping || reviewHasIssues,
+    isMultiBase,
+    baseCount: isMultiBase ? topologyBases.length : hasData ? 1 : 0,
+    instrumentBaseCount: isMultiBase ? multiBaseInstrumentCount : undefined,
+    dataBaseCount: isMultiBase ? multiBaseDataCount : undefined,
+  };
+  const activeCargaTab = resolveCargaWorkspaceTab(cargaDireccion.pestana, workspaceContext);
+  const cargaPlanActive = activeCargaTab === CARGA_WORKSPACE_TABS[0].key;
+
+  // Revisión solo opera sobre bases primarias. Datos conserva su selector
+  // completo (incluidos repeats); la normalización ocurre únicamente al entrar
+  // en esta pestaña.
+  useEffect(() => {
+    if (activeCargaTab !== "revision" || !isMultiBase || topologyBases.length === 0) return;
+    const primaryNames = new Set(topologyBases.map((base) => base.nombre));
+    setSelectedCargaBase((current) => {
+      if (primaryNames.has(current)) return current;
+      if (estudio?.active_base && primaryNames.has(estudio.active_base)) return estudio.active_base;
+      return topologyBases[0]?.nombre ?? "";
+    });
+  }, [activeCargaTab, cargaBaseSignature, estudio?.active_base, isMultiBase]);
+
+  // La lectura depende de pestaña + base. No usa el endpoint legacy que resolvía
+  // implícitamente contra `active_base` y podía guardar otra base distinta.
+  useEffect(() => {
+    if (activeCargaTab !== "revision") return;
+    if (!isMultiBase) {
+      if (!state?.instrumento_parsed || !state?.data_previewed) {
+        setCargaReview(null);
+        return;
+      }
+    }
+    if (isMultiBase && !topologyBases.some((base) => base.nombre === selectedCargaBase)) {
+      setCargaReview(null);
+      return;
+    }
+    let cancelled = false;
+    setCargaReview(null);
+    apiCargaReview(selectedCargaBase)
+      .then((review) => {
+        if (!cancelled) setCargaReview(review);
+      })
+      .catch(() => {
+        if (!cancelled) setCargaReview(null);
+      });
+    return () => { cancelled = true; };
+  }, [activeCargaTab, cargaBaseSignature, isMultiBase, selectedCargaBase, state?.data_previewed, state?.instrumento_parsed]);
+
+  // El avance multibase depende de todas las bases primarias, no solo del
+  // detalle que el selector está mostrando en este momento.
+  useEffect(() => {
+    if (activeCargaTab !== "revision" || !isMultiBase) {
+      setCargaReviewSummary(null);
+      return;
+    }
+    let cancelled = false;
+    setCargaReviewSummary(null);
+    apiCargaReviewSummary()
+      .then((summary) => {
+        if (!cancelled) setCargaReviewSummary(summary);
+      })
+      .catch(() => {
+        if (!cancelled) setCargaReviewSummary(null);
+      });
+    return () => { cancelled = true; };
+  }, [activeCargaTab, cargaBaseSignature, isMultiBase]);
+
+  function goCargaWorkspaceTab(next: CargaWorkspaceTab, replace = false) {
+    cargaDireccion.irA("pestana", next === "plan" ? null : next, { replace });
+  }
   // Flag que le pide al BasesPanel abrir directamente su form "Agregar
   // base" al montar. Se activa tras convertir single → multi con el
   // botón "+ Agregar otra base" para que el usuario no tenga que
   // buscar el botón dentro del panel.
   const [autoOpenAddBase, setAutoOpenAddBase] = useState(false);
   const lastSessionIdRef = useRef(sessionId);
+
+  useEffect(() => {
+    const intakeCount = state?.processing_intake_entries_count ?? 0;
+    const seedKey = `${sessionId ?? ""}:${state?.processing_intake_mode ?? ""}:${intakeCount}`;
+    if (planningSeedRef.current === seedKey) return;
+    planningSeedRef.current = seedKey;
+    if (state?.processing_intake_mode === "independent_siblings" && intakeCount > 0) {
+      setMultiBaseStrategy("independent");
+      setPlannedInputCount(intakeCount);
+    }
+  }, [sessionId, state?.processing_intake_entries_count, state?.processing_intake_mode]);
+
+  useEffect(() => {
+    if (materializedInputCount > plannedInputCount) {
+      setPlannedInputCount(materializedInputCount);
+    }
+  }, [materializedInputCount, plannedInputCount, setPlannedInputCount]);
 
   useEffect(() => {
     if (!sessionId || lastSessionIdRef.current === sessionId) return;
@@ -659,10 +842,18 @@ export default function CargaPage() {
     setEsquemaBase("");
     setEstudio(null);
     setAutoOpenAddBase(false);
-    setActiveCargaTab("insumos");
     setSelectedCargaBase("");
+    setCargaReview(null);
+    setReconDialogOpen(false);
     setForceMultiBase(false);
     setPreferredMultiStrategy(undefined);
+    setTopologyIntent(null);
+    setPlannedInputCount(1);
+    setMonitoringReviewed(false);
+    setMonitoringProfile(null);
+    setProcessingSuggestions(null);
+    setHandoffStatus(null);
+    setSelectedMonitoringSourceId(null);
     setError("");
     setBusy("");
   }, [sessionId]);
@@ -747,6 +938,7 @@ export default function CargaPage() {
     }
     if (payload.processing_mode === "independent_siblings") {
       setPreferredMultiStrategy("independent");
+      setMultiBaseStrategy("independent");
     }
     await refresh();
     if (payload.n_bases === 0) {
@@ -761,10 +953,12 @@ export default function CargaPage() {
     setError("");
     setBusy("Confirmando mapeo de códigos…");
     try {
-      await apiCargaConfirmChoiceMapping();
+      await apiCargaConfirmChoiceMapping(selectedCargaBase);
       setDataPreview((prev) => markChoiceMappingConfirmed(prev));
       setChoiceMappingReview(null);
       await refresh();
+      await loadReconciliacion(false);
+      if (isMultiBase) await loadReviewSummary();
     } catch (e: unknown) {
       setError((e as Error).message);
     } finally {
@@ -785,33 +979,133 @@ export default function CargaPage() {
     }
   }
 
-  async function openIndependentProcessingFromMonitoring() {
+  async function onEnableMultiBase(strategy: MultiBaseStrategy) {
     setError("");
-    setPlatformError("");
-    setBusy("Preparando varias fuentes desde Monitoreo...");
+    setBusy("Activando modo de varias bases…");
+    setTopologyIntent(strategy);
+    setPreferredMultiStrategy(strategy);
+    setMultiBaseStrategy(strategy);
     try {
-      let payload: EstudioPayload;
       if (state?.has_estudio) {
-        payload = await apiEstudioGet();
-      } else if (hasXlsform && hasData) {
-        await apiEstudioFromSession();
-        payload = await apiEstudioGet();
+        const payload = await apiEstudioGet();
+        setEstudio(payload);
+        setForceMultiBase(true);
+        setAutoOpenAddBase(false);
       } else {
-        payload = await apiEstudioInit();
+        const payload = await apiEstudioInit();
+        setEstudio(payload);
+        setForceMultiBase(true);
+        setAutoOpenAddBase(false);
       }
-      setEstudio(payload);
-      setForceMultiBase(true);
-      setPreferredMultiStrategy("independent");
-      setAutoOpenAddBase(false);
-      setSourceMode("platform");
-      setActiveCargaTab("insumos");
       await refresh();
-    } catch (e) {
-      setPlatformError((e as Error).message);
+      goCargaWorkspaceTab("fuentes");
+    } catch (reason) {
+      setError((reason as Error).message);
     } finally {
       setBusy("");
     }
   }
+
+  function onTopologyIntentChange(next: CargaTopologyIntent) {
+    setTopologyIntent(next);
+    if (next === "separate" || next === "integrated" || next === "independent") {
+      setMultiBaseStrategy(next);
+      setPlannedInputCount(plannedInputCount);
+    }
+  }
+
+  function onMonitoringDiscovered(result: CargaMonitoringDiscoveryResult) {
+    const reviewed = result.suggestions !== null && result.handoff !== null;
+    setProcessingSuggestions(result.suggestions);
+    setHandoffStatus(result.handoff);
+    setMonitoringProfile(result.profile);
+    setSelectedMonitoringSourceId(result.selectedSourceId);
+    setMonitoringReviewed(reviewed);
+  }
+
+  const sourcePlan = (
+    <CargaSourcesPlan
+      strategy={sourceStrategy}
+      single={topologyResolution.mode !== "multi"}
+      plannedInputCount={plannedInputCount}
+      materializedInputCount={materializedInputCount}
+      disabled={!!busy}
+      onPlannedInputCountChange={setPlannedInputCount}
+    />
+  );
+
+  const sourceOriginTabs = (
+    <GlidingTabList
+      activeKey={sourceMode}
+      mode="tabs"
+      onRovingKeyChange={(key) => setSourceMode(key as SourceMode)}
+      className="pulso-carga-source-switch pulso-compact-tabs pulso-carga-origin-tabs"
+      role="radiogroup"
+      aria-label="Origen de carga"
+    >
+      {sourceModes.map((mode) => (
+        <button
+          key={mode}
+          type="button"
+          className={`pulso-compact-tab pulso-carga-origin-tab${sourceMode === mode ? " is-active" : ""}`}
+          onClick={() => setSourceMode(mode)}
+          role="radio"
+          aria-checked={sourceMode === mode}
+          data-gliding-key={mode}
+          title={mode === "files"
+            ? "Manual - formulario y respuestas desde archivos locales"
+            : mode === "platform"
+              ? "Plataforma - SurveyMonkey o KoboToolbox"
+              : "Monitoreo - revisar el snapshot local antes de materializar"}
+        >
+          {mode === "files"
+            ? <Upload size={14} />
+            : mode === "platform"
+              ? <CloudDownload size={14} />
+              : <ClipboardCheck size={14} />}
+          <span className="pulso-carga-tab-label">
+            {mode === "files" ? "Manual" : mode === "platform" ? "Plataforma" : "Monitoreo"}
+          </span>
+        </button>
+      ))}
+    </GlidingTabList>
+  );
+
+  const monitoringSourcePanel = (
+    <>
+      <CargaMonitoringDiscovery
+        key={sessionId ?? "no-session"}
+        reviewLabel={monitoringReviewActionLabel}
+        onDiscovered={onMonitoringDiscovered}
+      />
+      {monitoringReviewed && monitoringProfile === "multi_actor" ? (
+        <>
+          <ProcessingIntakePanel
+            sessionId={sessionId}
+            suggestions={processingSuggestions?.groups}
+            onPlanSaved={() => setIntakeRefreshToken((current) => current + 1)}
+          />
+          <AcreditacionBatchPanel
+            sessionId={sessionId}
+            refreshToken={intakeRefreshToken}
+            onPromoted={async (payload) => {
+              await onEstudioChanged(payload);
+              goCargaWorkspaceTab("revision");
+            }}
+          />
+        </>
+      ) : null}
+      {monitoringReviewed && (monitoringProfile === "telefonico" || monitoringProfile === "territorial") && showFieldWorkHandoff && handoffStatus ? (
+        <FieldWorkHandoffCallout
+          status={handoffStatus}
+          selectedSourceId={selectedMonitoringSourceId}
+          busy={!!busy}
+          onBring={() => void onBringFieldWorkToProcessing()}
+          onUploadInstrument={(file) => void onPick("xlsform", file)}
+        />
+      ) : null}
+    </>
+  );
 
   return (
     <PageFrame
@@ -823,106 +1117,8 @@ export default function CargaPage() {
       bodyMode="fill"
       layout="workbench"
       scrollOwner="panels"
+      auditReady={isMultiBase && !estudio ? false : `carga-${activeCargaTab}`}
     >
-      {/* En la banda va el modo del estudio, no el chip de insumos: lo que el rail
-          de secciones ya marca como completado no necesita repetirse, y ese espacio
-          lo aprovecha un control que sí se opera. */}
-      <ChromeSlotPortal zona="contexto">
-        {/* Los dos controles comparten una sola pastilla. Alternar el modo y abrir
-            el inventario son acciones distintas —por eso siguen siendo dos
-            controles y no un botón que hace dos cosas—, pero hablan del mismo
-            asunto y separados se leían como dos cajas sueltas peleando por el
-            lado izquierdo de la banda. El clúster les da material único y un
-            divisor: uno visualmente, dos funcionalmente. */}
-        <div className="pulso-multibase-cluster">
-        <MultiBaseToggle
-          compact
-          on={isMultiBase}
-            plannedPublics={!isMultiBase && plannedPublics > 1 ? plannedPublics : 0}
-            canTurnOff={isMultiBase && (state?.n_bases ?? 0) <= 1}
-            bases={state?.n_bases ?? 0}
-            disabled={!!busy}
-            onTurnOn={async () => {
-              setError("");
-              setBusy("Activando modo de varias bases…");
-              try {
-                if (state?.has_estudio) {
-                  const p = await apiEstudioGet();
-                  setEstudio(p);
-                  setForceMultiBase(true);
-                  setAutoOpenAddBase(false);
-                  setPreferredMultiStrategy(hasDefaultStudyBase ? "independent" : undefined);
-                } else if (hasXlsform && hasData) {
-                  // Hay archivos single-base — los promovemos a base_1.
-                  await apiEstudioFromSession();
-                  const p = await apiEstudioGet();
-                  setEstudio(p);
-                  setForceMultiBase(true);
-                  setPreferredMultiStrategy("independent");
-                  setAutoOpenAddBase(false);
-                } else {
-                  // Todavía no hay archivos — creamos un estudio vacío.
-                  // En vacío dejamos que el BasesPanel muestre primero
-                  // la estrategia de importación/API; el usuario aún puede
-                  // escoger "Agregar otra base" si quiere carga manual.
-                  const p = await apiEstudioInit();
-                  setEstudio(p);
-                  setForceMultiBase(true);
-                  setPreferredMultiStrategy(undefined);
-                  setAutoOpenAddBase(false);
-                }
-                await refresh();
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy("");
-              }
-            }}
-            onTurnOff={async () => {
-              setError("");
-              setBusy("Volviendo a una sola base…");
-              try {
-                await apiEstudioDowngradeToSingle();
-                setEstudio(null);
-                setAutoOpenAddBase(false);
-                setForceMultiBase(false);
-                setPreferredMultiStrategy(undefined);
-                await refresh();
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy("");
-              }
-            }}
-          />
-
-        {/* Con varias bases, el número solo no informa: lo que hay que poder
-            auditar es qué instrumento usa cada base y sobre qué archivo. El
-            desglose se abre desde acá y no obliga a bajar al panel del cuerpo —en
-            las fases 2 a 5 ese panel ni existe. */}
-        {estudio && estudio.n_bases > 1 ? (
-          <BasesInspectorMenu
-            bases={basesDesdeEstudio(estudio)}
-            activa={estudio.active_base ?? state?.active_base ?? null}
-            modo={estudio.n_bases > 1 ? "Inventario del estudio" : undefined}
-            disparador={
-              <button type="button" className="pulso-bases-inspector-trigger is-cluster">
-                <span className="pulso-bases-inspector-trigger-count">{estudio.n_bases}</span>
-                <span>bases</span>
-                <ChevronDown size={12} aria-hidden className="pulso-bases-inspector-trigger-chevron" />
-              </button>
-            }
-          />
-        ) : null}
-        </div>
-      </ChromeSlotPortal>
-
-      {/* El toggle de varias bases se queda en el cuerpo, no en el chrome. Es un
-          control de OPERAR —cambia el modo del estudio y lleva su copy
-          explicativo— y metido en la banda la subía de 52 a 125px porque no cabe
-          en una fila. La separación navegar/operar del ADR 0042 existe para esto. */}
-
-
       {(busy || error || handoffMessage) && (
         <div ref={feedbackRef} className="pulso-feedback-stack pulso-feedback-stack--upload">
           {busy && <LoadingBlock variant="inline" label={busy} />}
@@ -936,13 +1132,15 @@ export default function CargaPage() {
         </div>
       )}
 
-      {reconInfo && reconInfo.n_extra > 0 && (
+      {activeCargaTab === "revision" && reconInfo && reconInfo.n_extra > 0 && (
         <div className="pulso-recon-panel" data-audit-ready="true">
           <span className="pulso-recon-panel-icon" aria-hidden="true">
             <FileWarning size={16} />
           </span>
           <div className="pulso-recon-panel-copy">
-            <span className="pulso-recon-panel-title">Variables extra en la data</span>
+            <span className="pulso-recon-panel-title">
+              Variables extra{cargaReview?.base_nombre ? ` · ${cargaReview.base_nombre}` : " en la data"}
+            </span>
             <span className="pulso-recon-panel-summary">{reconSummaryLabel(reconInfo)}</span>
           </div>
           <button
@@ -981,12 +1179,12 @@ export default function CargaPage() {
         <AdaptiveSplitView
           ariaLabel="Mesa de trabajo de varias bases"
           railLabel="Pestañas de carga"
-          className="pulso-upload-section pulso-carga-workbench pulso-carga-workbench--multibase"
+          className="pulso-upload-section pulso-carga-workbench pulso-carga-workbench--multibase pulso-context-tab-layout"
           rail={(
-            <CargaWorkspaceSidebar
+            <CargaWorkspaceNavigation
               active={activeCargaTab}
-              onChange={setActiveCargaTab}
-              baseReady={cargaBaseOptions.length > 0}
+              context={workspaceContext}
+              onChange={goCargaWorkspaceTab}
             />
           )}
         >
@@ -995,61 +1193,126 @@ export default function CargaPage() {
             role="tabpanel"
             aria-labelledby={cargaWorkspaceTabId(activeCargaTab)}
             tabIndex={0}
-            className="pulso-carga-content pulso-content-area pulso-carga-content--multi pulso-carga-content--framed"
+            className={`pulso-carga-content pulso-content-area pulso-carga-content--multi pulso-carga-content--framed${cargaPlanActive ? " is-plan" : ""}`}
           >
-            {/* Banda fija (fuera del scroller) + área scrolleable propia: el
-                suitebar se queda arriba sin tapar el contenido, que desliza por
-                debajo en su propio contenedor. */}
-            <CargaSuiteBar
-              modeLabel="Varias bases"
-              headline={cargaBaseOptions.length > 0 ? "Mesa multibase activa" : "Define las fuentes del estudio"}
-              detail={cargaBaseOptions.length > 0
-                ? `${cargaBaseOptions.length} base${cargaBaseOptions.length === 1 ? "" : "s"} listas para revisar, comparar y consolidar.`
-                : "Elige entre carga manual, fuentes conectadas o organización independiente desde Monitoreo."}
-              allReady={allReady}
-            />
+            <CargaWorkspaceHeader active={activeCargaTab} context={workspaceContext} />
             <div className="pulso-carga-scrollarea">
-            {activeCargaTab === "insumos" ? (
-              <>
-                <ProcessingIntakePanel
-                  sessionId={sessionId}
-                  suggestions={processingSuggestions?.groups}
-                  onPlanSaved={() => setIntakeRefreshToken((current) => current + 1)}
+            {activeCargaTab === "plan" ? (
+              <CargaPlanOverview
+                topology={topologyResolution}
+                bases={topologyBases}
+                hasInstrument={workspaceHasInstrument}
+                hasData={workspaceHasData}
+                pendingChoiceMapping={pendingChoiceMapping}
+                allReady={workspaceAllReady}
+                onOpenSources={() => goCargaWorkspaceTab("fuentes")}
+              >
+                  <CargaTopologyDecision
+                    resolution={topologyResolution}
+                    intent={resolvedTopologyIntent}
+                  disabled={!!busy}
+                  onIntentChange={onTopologyIntentChange}
                 />
-                <AcreditacionBatchPanel
-                  sessionId={sessionId}
-                  refreshToken={intakeRefreshToken}
-                  onPromoted={onEstudioChanged}
-                />
+              </CargaPlanOverview>
+            ) : activeCargaTab === "fuentes" ? (
+              <div className="pulso-carga-surface pulso-carga-sources" data-carga-surface="sources">
+              {sourcePlan}
+              {sourceOriginTabs}
+              {sourceMode === "monitoring" ? monitoringSourcePanel : null}
+              {sourceMode === "platform" && sourceStrategy === "separate" ? (
+                <div aria-label={`${plannedInputCount} destinos separados planificados`}>
+                  <CargaPlatformImportPanel
+                    strategy={sourceStrategy}
+                    single={false}
+                    plannedInputCount={plannedInputCount}
+                    onUseManual={() => setSourceMode("files")}
+                  />
+                </div>
+              ) : null}
+              {(sourceMode === "files" || (sourceMode === "platform" && sourceStrategy !== "separate")) ? (
                 <BasesPanel
                   estudio={estudio}
+                  plannedInputCount={plannedInputCount}
                   onChanged={onEstudioChanged}
                   hasSessionXlsform={hasXlsform}
                   autoOpenAdd={autoOpenAddBase}
                   onAutoOpenConsumed={() => setAutoOpenAddBase(false)}
-                  initialStrategy={preferredMultiStrategy}
+                  initialStrategy={sourceStrategy}
                   onDowngraded={async () => {
                     setAutoOpenAddBase(false);
                     setEstudio(null);
                     setForceMultiBase(false);
                     setPreferredMultiStrategy(undefined);
-                    setActiveCargaTab("insumos");
+                    setTopologyIntent("single");
+                    goCargaWorkspaceTab("plan");
                     await refresh();
                   }}
                 />
+              ) : null}
+              </div>
+            ) : activeCargaTab === "revision" ? (
+              <>
+                <div className="pulso-carga-review-toolbar">
+                  <label className="pulso-carga-review-base-field">
+                    <span>Base revisada</span>
+                    <select
+                      value={selectedCargaBase}
+                      onChange={(event) => setSelectedCargaBase(event.target.value)}
+                      disabled={!!busy}
+                    >
+                      {topologyBases.map((base) => (
+                        <option key={base.nombre} value={base.nombre}>{base.nombre}</option>
+                      ))}
+                    </select>
+                  </label>
+                {cargaReview?.choice_mapping.pending && cargaReview.choice_mapping.maps.length > 0 && (
+                  <button
+                    type="button"
+                    className="pulso-carga-review-mapping-button"
+                    onClick={() => setChoiceMappingReview({
+                      applied: cargaReview.choice_mapping.applied,
+                      requires_confirmation: cargaReview.choice_mapping.requires_confirmation,
+                      n_questions: cargaReview.choice_mapping.n_questions,
+                      maps: cargaReview.choice_mapping.maps,
+                    })}
+                    disabled={!!busy}
+                  >
+                    <ArrowRightLeft size={14} aria-hidden="true" />
+                    Revisar mapeo
+                  </button>
+                )}
                 {selectedCargaBase && (
                   <CargaUniverseFilter
                     baseNombre={selectedCargaBase}
                     disabled={!!busy}
                     onApplied={() => {
                       void apiEstudioGet()
-                        .then((payload) => onEstudioChanged(payload))
+                        .then(async (payload) => {
+                          await onEstudioChanged(payload);
+                          await loadReconciliacion(false);
+                          await loadReviewSummary();
+                        })
                         .catch((reason: Error) => setError(reason.message));
                     }}
                   />
                 )}
-                <CargaFollowupContent
-                  showInspection={showInspection}
+                </div>
+                <CargaReviewSummary
+                  instrumentBaseCount={multiBaseInstrumentCount}
+                  dataBaseCount={multiBaseDataCount}
+                  pendingChoiceMapping={pendingChoiceMapping}
+                  extraVariableCount={cargaReview?.reconciliation.n_pendientes ?? 0}
+                  allReady={workspaceAllReady}
+                  isMultiBase={isMultiBase}
+                  bases={topologyBases.length}
+                  review={cargaReview}
+                  reviewSummary={cargaReviewSummary}
+                  action={cargaReviewSummary?.all_ready && !busy && !error ? <ContinuarCTA /> : undefined}
+                />
+              </>
+            ) : activeCargaTab === "estructura" ? (
+              showInspection && estructura ? (
+                <CargaStructureWorkbench
                   estructura={estructura}
                   schemaSelector={(
                     <EsquemaBaseSelector
@@ -1058,16 +1321,14 @@ export default function CargaPage() {
                       onChange={setEsquemaBase}
                     />
                   )}
-                  hasXlsform={hasXlsform}
-                  hasData={hasData}
-                  pendingChoiceMapping={pendingChoiceMapping}
-                  allReady={allReady}
-                  isMultiBase={isMultiBase}
-                  bases={state?.n_bases ?? 0}
-                  busy={busy}
-                  error={error}
                 />
-              </>
+              ) : (
+                <EmptyState
+                  icon={<FileSpreadsheet size={20} />}
+                  title="Aún no hay estructura para revisar"
+                  hint="Agrega una base con instrumento desde Fuentes para inspeccionar secciones, preguntas y reglas."
+                />
+              )
             ) : (
               <CargaBaseSheetPane
                 isMultiBase
@@ -1139,12 +1400,12 @@ export default function CargaPage() {
       <AdaptiveSplitView
         ariaLabel="Mesa de trabajo de carga"
         railLabel="Pestañas de carga"
-        className="pulso-upload-section pulso-carga-workbench"
+        className="pulso-upload-section pulso-carga-workbench pulso-context-tab-layout"
         rail={(
-          <CargaWorkspaceSidebar
+          <CargaWorkspaceNavigation
             active={activeCargaTab}
-            onChange={setActiveCargaTab}
-            baseReady={allReady}
+            context={workspaceContext}
+            onChange={goCargaWorkspaceTab}
           />
         )}
       >
@@ -1154,98 +1415,46 @@ export default function CargaPage() {
           role="tabpanel"
           aria-labelledby={cargaWorkspaceTabId(activeCargaTab)}
           tabIndex={0}
-          className="pulso-carga-content pulso-content-area"
+          className={`pulso-carga-content pulso-content-area${cargaPlanActive ? " is-plan" : ""}`}
         >
-          <CargaSuiteBar
-            modeLabel={sourceMode === "files" ? "Carga manual" : "Carga conectada"}
-            headline={allReady ? "Insumos listos para validar" : sourceMode === "platform" ? "Importa desde una plataforma" : "Carga formulario y respuestas"}
-            detail={sourceMode === "platform"
-              ? "Lee SurveyMonkey o KoboToolbox, selecciona una fuente y deja el instrumento con su base listos en el mismo flujo."
-              : "Carga primero el formulario y luego las respuestas para reconstruir variables, códigos y compatibilidad antes de validar."}
-            allReady={allReady}
-            controls={activeCargaTab === "insumos" ? (
-                <GlidingTabList
-                  activeKey={sourceMode}
-                  mode="tabs"
-                  className="pulso-carga-source-switch pulso-compact-tabs pulso-carga-origin-tabs"
-                  role="radiogroup"
-                  aria-label="Origen de carga"
-                >
-                  <button
-                    type="button"
-                    className={`pulso-compact-tab pulso-carga-origin-tab${sourceMode === "files" ? " is-active" : ""}`}
-                    onClick={() => setSourceMode("files")}
-                    onKeyDown={(event) => {
-                      if (event.key === "Home") setSourceMode("files");
-                      else if (event.key === "End" || event.key === "ArrowLeft" || event.key === "ArrowRight") {
-                        setSourceMode("platform");
-                      }
-                    }}
-                    role="radio"
-                    aria-checked={sourceMode === "files"}
-                    data-gliding-key="files"
-                    title="Carga manual - XLSForm y respuestas desde archivos locales"
-                  >
-                    <Upload size={14} />
-                    <span className="pulso-carga-tab-label">Manual</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`pulso-compact-tab pulso-carga-origin-tab${sourceMode === "platform" ? " is-active" : ""}`}
-                    onClick={() => setSourceMode("platform")}
-                    onKeyDown={(event) => {
-                      if (event.key === "End") setSourceMode("platform");
-                      else if (event.key === "Home" || event.key === "ArrowLeft" || event.key === "ArrowRight") {
-                        setSourceMode("files");
-                      }
-                    }}
-                    role="radio"
-                    aria-checked={sourceMode === "platform"}
-                    data-gliding-key="platform"
-                    title="Plataforma - importar desde SurveyMonkey o KoboToolbox"
-                  >
-                    <CloudDownload size={14} />
-                    <span className="pulso-carga-tab-label">Plataforma</span>
-                  </button>
-                </GlidingTabList>
-              ) : null}
-          />
-
-          {activeCargaTab === "insumos" ? (
-            <>
-          <ProcessingIntakePanel
-            sessionId={sessionId}
-            suggestions={processingSuggestions?.groups}
-            onPlanSaved={() => setIntakeRefreshToken((current) => current + 1)}
-          />
-          <AcreditacionBatchPanel
-            sessionId={sessionId}
-            refreshToken={intakeRefreshToken}
-            onPromoted={onEstudioChanged}
-          />
-          {sourceMode === "files" && showFieldWorkHandoff && handoffStatus && (
-            <FieldWorkHandoffCallout
-              status={handoffStatus}
-              busy={!!busy}
-              onBring={() => void onBringFieldWorkToProcessing()}
-              onUploadInstrument={(file) => void onPick("xlsform", file)}
+          <CargaWorkspaceHeader active={activeCargaTab} context={workspaceContext} />
+          {activeCargaTab === "plan" ? (
+            <CargaPlanOverview
+              topology={topologyResolution}
+              bases={[]}
+              hasInstrument={hasXlsform}
+              hasData={hasData}
+              pendingChoiceMapping={pendingChoiceMapping}
+              allReady={allReady}
+              onOpenSources={() => goCargaWorkspaceTab("fuentes")}
+            >
+              <CargaTopologyDecision
+                resolution={topologyResolution}
+                intent={resolvedTopologyIntent}
+                disabled={!!busy}
+                onIntentChange={onTopologyIntentChange}
+              />
+            </CargaPlanOverview>
+          ) : activeCargaTab === "fuentes" ? (
+            <div className="pulso-carga-surface pulso-carga-sources" data-carga-surface="sources">
+          {sourcePlan}
+          {sourceOriginTabs}
+          {(resolvedTopologyIntent === "multi" || topologyIntentStrategy !== null) && !topologyHasStudy && (
+            <CargaTopologyPlanBanner
+              strategy={topologyIntentStrategy}
+              disabled={!!busy}
+              onEnableMultiBase={onEnableMultiBase}
             />
           )}
-
-          {sourceMode === "files" && detectedKoboSource && !showFieldWorkHandoff && (
-            <DetectedKoboSourceCallout
-              source={detectedKoboSource}
-              busy={!!busy}
-              hasConnection={koboConnection?.has_token === true}
-              onImport={() => void onImportDetectedKoboSource()}
-              onReview={() => {
-                setSourceMode("platform");
-                seedDetectedKoboAsset(detectedKoboSource);
-              }}
-            />
-          )}
+          {sourceMode === "monitoring" ? monitoringSourcePanel : null}
 
           {sourceMode === "platform" && (
+            <CargaPlatformImportPanel
+              strategy={sourceStrategy}
+              single={topologyResolution.mode !== "multi"}
+              plannedInputCount={plannedInputCount}
+              onUseManual={() => setSourceMode("files")}
+            >
             <PlatformImportPanel
               provider={platformProvider}
               onProviderChange={(provider) => {
@@ -1285,13 +1494,11 @@ export default function CargaPage() {
               busy={!!busy}
               error={platformError}
               message={platformMessage}
-              processingSuggestions={processingSuggestions}
-              processingSuggestionsStatus={processingSuggestionsStatus}
-              onOpenIndependentProcessing={() => void openIndependentProcessingFromMonitoring()}
               detectedKoboSource={detectedKoboSource}
               onImportDetectedKoboSource={() => void onImportDetectedKoboSource()}
               onImport={() => void onPlatformImport()}
             />
+            </CargaPlatformImportPanel>
           )}
 
           {sourceMode === "files" && (
@@ -1446,25 +1653,59 @@ export default function CargaPage() {
             />
           </div>
           )}
-          {hasData && !pendingChoiceMapping && (
-            <CargaUniverseFilter
-              disabled={!!busy}
-              onApplied={() => { void refresh().catch((reason: Error) => setError(reason.message)); }}
-            />
-          )}
-          <CargaFollowupContent
-            showInspection={showInspection}
-            estructura={estructura}
-            hasXlsform={hasXlsform}
-            hasData={hasData}
-            pendingChoiceMapping={pendingChoiceMapping}
-            allReady={allReady}
-            isMultiBase={isMultiBase}
-            bases={state?.n_bases ?? 0}
-            busy={busy}
-            error={error}
-          />
+            </div>
+          ) : activeCargaTab === "revision" ? (
+            <>
+              {cargaReview?.choice_mapping.pending && cargaReview.choice_mapping.maps.length > 0 && (
+                <button
+                  type="button"
+                  className="pulso-carga-review-mapping-button"
+                  onClick={() => setChoiceMappingReview({
+                    applied: cargaReview.choice_mapping.applied,
+                    requires_confirmation: cargaReview.choice_mapping.requires_confirmation,
+                    n_questions: cargaReview.choice_mapping.n_questions,
+                    maps: cargaReview.choice_mapping.maps,
+                  })}
+                  disabled={!!busy}
+                >
+                  <ArrowRightLeft size={14} aria-hidden="true" />
+                  Revisar mapeo
+                </button>
+              )}
+              {hasData && !pendingChoiceMapping && (
+                <CargaUniverseFilter
+                  disabled={!!busy}
+                  onApplied={() => {
+                    void refresh()
+                      .then(() => loadReconciliacion(false))
+                      .catch((reason: Error) => setError(reason.message));
+                  }}
+                />
+              )}
+              <CargaReviewSummary
+                instrumentBaseCount={Number(hasXlsform)}
+                dataBaseCount={Number(hasData)}
+                pendingChoiceMapping={pendingChoiceMapping}
+                extraVariableCount={cargaReview?.reconciliation.n_pendientes ?? 0}
+                allReady={allReady}
+                isMultiBase={isMultiBase}
+                bases={state?.n_bases ?? 0}
+                review={cargaReview}
+                action={cargaReview?.ready && allReady && !busy && !error ? <ContinuarCTA /> : undefined}
+              />
             </>
+            ) : activeCargaTab === "estructura" ? (
+            showInspection && estructura ? (
+              <CargaStructureWorkbench
+                estructura={estructura}
+              />
+            ) : (
+              <EmptyState
+                icon={<FileSpreadsheet size={20} />}
+                title="Aún no hay estructura para revisar"
+                hint="Agrega un formulario desde Fuentes para inspeccionar secciones, preguntas y reglas."
+              />
+            )
           ) : (
             <CargaBaseSheetPane
               allReady={allReady}
@@ -1477,9 +1718,6 @@ export default function CargaPage() {
           )}
         </div>
 
-        {/* El botón "+ Agregar otra base" se eliminó — ahora la
-            conversión single→multi se hace con el MultiBaseToggle de
-            arriba del todo. */}
       </AdaptiveSplitView>
       </>
       )}
@@ -1533,19 +1771,22 @@ function handoffCount(n: number | null | undefined): number {
 // ya validado se ofrece con su formulario, sin jerga de "promote"/"universo".
 function FieldWorkHandoffCallout({
   status,
+  selectedSourceId,
   busy,
   onBring,
   onUploadInstrument,
 }: {
   status: CargaMonitoreoHandoffStatus;
+  selectedSourceId: string | null;
   busy: boolean;
   onBring: () => void;
   onUploadInstrument: (file: File) => void;
 }) {
   const { counts, source } = status;
-  const processable = handoffCount(counts.processable);
+  const selectedSource = status.sources?.find((item) => item.source_id === selectedSourceId);
+  const processable = handoffCount(selectedSource?.counts.processable ?? counts.processable);
   const excluded = handoffCount(counts.no_defendible);
-  const studyLabel = source.label?.trim();
+  const studyLabel = selectedSource?.label?.trim() || source.label?.trim();
   // El instrumento de procesamiento es SIEMPRE local. Está listo solo cuando
   // hay un XLSForm local disponible; si falta, la UI ofrece subirlo.
   const instrumentReady =
@@ -1586,7 +1827,9 @@ function FieldWorkHandoffCallout({
           Tu trabajo de campo está listo para procesar
         </strong>
         {studyLabel ? (
-          <span className="pulso-carga-handoff-study">{studyLabel}</span>
+          <span className="pulso-carga-handoff-study">
+            {studyLabel}{selectedSource?.kind ? ` · ${selectedSource.kind}` : ""}
+          </span>
         ) : null}
         <p className="pulso-carga-handoff-count">
           {countLine}
@@ -1711,75 +1954,6 @@ function DetectedKoboSourceCallout({
   );
 }
 
-function PlatformProcessingSuggestions({
-  suggestions,
-  status,
-  busy,
-  onOpen,
-}: {
-  suggestions: EstudioProcessingSuggestions | null;
-  status: string;
-  busy: boolean;
-  onOpen: () => void;
-}) {
-  const groups = suggestions?.groups ?? [];
-  const shouldShow = Boolean(status || suggestions?.has_suggestions || suggestions?.profile_family === "acreditacion");
-  if (!shouldShow) return null;
-  const smGroups = groups.filter((group) => group.platform === "surveymonkey" && group.importable);
-  const koboGroups = groups.filter((group) => group.platform === "kobo" && group.importable);
-  const readyGroups = smGroups.length + koboGroups.length;
-  return (
-    <div className="pulso-monitoring-suggestions is-platform" aria-label="Sugerencias de Procesamiento desde Monitoreo">
-      <div className="pulso-monitoring-suggestions-head">
-        <span className="pulso-monitoring-suggestions-icon" aria-hidden="true">
-          {status ? <Loader2 size={15} className="pulso-spin" /> : <ArrowRightLeft size={15} />}
-        </span>
-        <div>
-          <strong>Procesamiento de acreditación sugerido desde Monitoreo</strong>
-          <span>
-            {status || suggestions?.message || "Las fuentes pueden organizarse por actor."}
-          </span>
-        </div>
-        <div className="pulso-monitoring-suggestions-actions">
-          <button type="button" onClick={onOpen} disabled={busy || !readyGroups}>
-            <ArrowRight size={13} />
-            Abrir fuentes independientes
-          </button>
-        </div>
-      </div>
-      {groups.length ? (
-        <div className="pulso-monitoring-suggestion-grid" role="list">
-          {groups.map((group) => {
-            const channels = Array.from(new Set(group.sources.map((source) => source.channel).filter(Boolean)));
-            return (
-              <div className="pulso-monitoring-suggestion-row is-compact" role="listitem" key={group.id}>
-                <div className="pulso-monitoring-suggestion-actor">
-                  <strong>{group.actor}</strong>
-                  <small>{group.platform === "surveymonkey" ? "SurveyMonkey" : "Kobo"} · {group.source_count} fuente{group.source_count === 1 ? "" : "s"}</small>
-                </div>
-                <div className="pulso-monitoring-suggestion-meta">
-                  <span>{group.response_count ? `${group.response_count} resp.` : "sin conteo"}</span>
-                  <span>{channels.length > 1 ? "Canal mixto" : channels[0] || "Canal por definir"}</span>
-                  <span>{group.importable ? "Listo para traducir" : "Detectado"}</span>
-                </div>
-                <span className={`pulso-platform-suggestion-status${group.importable ? " is-ready" : ""}`}>
-                  {group.importable ? <CheckCircle2 size={12} /> : <Info size={12} />}
-                  {group.importable ? (group.platform === "kobo" ? "Kobo" : "SurveyMonkey") : "Pendiente"}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="pulso-monitoring-suggestions-note">
-          <Info size={13} />
-          <span>{suggestions?.message || "Sin fuentes listas para Procesamiento."}</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function PlatformImportPanel({
   provider,
   onProviderChange,
@@ -1807,9 +1981,6 @@ function PlatformImportPanel({
   busy,
   error,
   message,
-  processingSuggestions,
-  processingSuggestionsStatus,
-  onOpenIndependentProcessing,
   detectedKoboSource,
   onImportDetectedKoboSource,
   onImport,
@@ -1840,9 +2011,6 @@ function PlatformImportPanel({
   busy: boolean;
   error: string;
   message: string;
-  processingSuggestions: EstudioProcessingSuggestions | null;
-  processingSuggestionsStatus: string;
-  onOpenIndependentProcessing: () => void;
   detectedKoboSource: DetectedKoboSource | null;
   onImportDetectedKoboSource: () => void;
   onImport: () => void;
@@ -1918,13 +2086,6 @@ function PlatformImportPanel({
         </div>
       </div>
 
-      <PlatformProcessingSuggestions
-        suggestions={processingSuggestions}
-        status={processingSuggestionsStatus}
-        busy={busy}
-        onOpen={onOpenIndependentProcessing}
-      />
-
       <div className="pulso-platform-controls">
         <label className="pulso-platform-field">
           <span>Conexión</span>
@@ -1950,9 +2111,6 @@ function PlatformImportPanel({
           <input
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") onLoadCatalog(false);
-            }}
             placeholder={isSurveyMonkey ? "Filtrar encuestas" : "Filtrar proyectos"}
             disabled={busy || catalogLoading || !hasConnection}
           />
@@ -2076,104 +2234,6 @@ function PlatformImportPanel({
   );
 }
 
-function CargaWorkspaceTabs({
-  active,
-  baseReady,
-  onChange,
-  layout = "toolbar",
-}: {
-  active: CargaWorkspaceTab;
-  baseReady: boolean;
-  onChange: (tab: CargaWorkspaceTab) => void;
-  layout?: "toolbar" | "sidebar";
-}) {
-  const isSidebar = layout === "sidebar";
-  const sidebarClass = isSidebar ? " is-sidebar" : "";
-
-  return (
-    <GlidingTabList
-      activeKey={active}
-      orientation={isSidebar ? "vertical" : "horizontal"}
-      className={`pulso-carga-source-switch pulso-compact-tabs pulso-carga-view-tabs${sidebarClass}`}
-      role="tablist"
-      aria-label="Vista de carga"
-    >
-      <button
-        id={cargaWorkspaceTabId("insumos")}
-        type="button"
-        className={`pulso-compact-tab pulso-carga-view-tab${sidebarClass}${active === "insumos" ? " is-active" : ""}`}
-        onClick={() => onChange("insumos")}
-        role="tab"
-        aria-selected={active === "insumos"}
-        aria-controls={CARGA_WORKSPACE_PANEL_ID}
-        data-gliding-key="insumos"
-        aria-label="Preparar carga. Formulario, respuestas y fuentes"
-        data-rail-title="Preparar"
-        data-rail-desc="Formulario, respuestas y fuentes"
-        data-rail-tooltip={"Preparar\nFormulario, respuestas y fuentes"}
-        data-nav-item=""
-        data-nav-shape="row"
-        data-nav-state={active === "insumos" ? "selected" : undefined}
-      >
-        <Upload size={14} />
-        <span className="pulso-carga-tab-label">Preparar</span>
-      </button>
-      <button
-        id={cargaWorkspaceTabId("base")}
-        type="button"
-        className={`pulso-compact-tab pulso-carga-view-tab${sidebarClass}${active === "base" ? " is-active" : ""}${baseReady ? " is-ready" : " is-pending"}`}
-        onClick={() => {
-          if (baseReady) onChange("base");
-        }}
-        role="tab"
-        aria-selected={active === "base"}
-        aria-controls={CARGA_WORKSPACE_PANEL_ID}
-        data-gliding-key="base"
-        aria-disabled={!baseReady}
-        aria-label={baseReady ? "Ver base. Respuestas cargadas" : "Ver base. Pendiente hasta completar insumos"}
-        data-rail-title="Ver base"
-        data-rail-desc={baseReady ? "Respuestas cargadas" : "Pendiente hasta completar insumos"}
-        data-rail-tooltip={baseReady ? "Ver base\nRespuestas cargadas" : "Ver base\nPendiente hasta completar insumos"}
-        data-nav-item=""
-        data-nav-shape="row"
-        data-nav-state={active === "base" ? "selected" : undefined}
-      >
-        <Table2 size={14} />
-        <span className="pulso-carga-tab-label">Ver base</span>
-        <span className="pulso-carga-view-tab-state" aria-hidden="true" />
-      </button>
-    </GlidingTabList>
-  );
-}
-
-function CargaWorkspaceSidebar({
-  active,
-  baseReady,
-  onChange,
-}: {
-  active: CargaWorkspaceTab;
-  baseReady: boolean;
-  onChange: (tab: CargaWorkspaceTab) => void;
-}) {
-  return (
-    <aside className="pulso-carga-workspace-sidebar pulso-sidebar" aria-label="Pestañas de carga">
-      {/* Gramática compartida del rail de pestañas (ADR 0044): el eyebrow nombra
-          la sección, el título es identidad fija y el estado vive en su propia
-          línea, nunca reemplazando a la identidad. */}
-      <div className="pulso-carga-workspace-sidebar-head">
-        <span className="pulso-section-eyebrow">Carga</span>
-        <strong>Vistas</strong>
-      </div>
-      <CargaWorkspaceTabs
-        active={active}
-        onChange={onChange}
-        baseReady={baseReady}
-        layout="sidebar"
-      />
-    </aside>
-  );
-}
-
 function CargaBaseSheetPane({
   isMultiBase = false,
   allReady,
@@ -2193,17 +2253,32 @@ function CargaBaseSheetPane({
 }) {
   const activeBase = baseOptions.find((base) => base.nombre === selectedBase) ?? baseOptions[0] ?? null;
   const hasMultiBase = isMultiBase && baseOptions.length > 0;
-  const enabled = isMultiBase ? hasMultiBase && !busy && !error : allReady && !busy && !error;
+  const activeBaseHasData = Boolean(activeBase?.data_file_id);
+  const enabled = isMultiBase ? hasMultiBase && activeBaseHasData && !busy && !error : allReady && !busy && !error;
   const disabledMessage = isMultiBase
-    ? "Agrega al menos una base para ver sus respuestas cargadas."
+    ? activeBase
+      ? "La base seleccionada todavía no tiene respuestas cargadas."
+      : "Agrega al menos una base para ver sus respuestas cargadas."
     : "Carga el formulario y las respuestas para ver la base completa.";
   const sourceLabel = isMultiBase && activeBase
     ? `Carga · ${cargaBaseLabel(activeBase)} · antes de validación, limpieza y codificación`
     : "Carga · antes de validación, limpieza y codificación";
 
+  if (!enabled) {
+    return (
+      <section className="pulso-carga-base-shell" data-carga-surface="data" aria-label="Base de carga">
+        <EmptyState
+          icon={<Table2 size={20} />}
+          title="Aún no hay datos de Carga para explorar"
+          hint={disabledMessage}
+        />
+      </section>
+    );
+  }
+
   return (
-    <section className="pulso-carga-base-shell" aria-label="Base de carga">
-      {isMultiBase && (
+    <section className="pulso-carga-base-shell" data-carga-surface="data" aria-label="Base de carga">
+      {isMultiBase && baseOptions.length > 1 && (
         <div className="pulso-carga-base-picker">
           <div>
             <strong>Base visible</strong>
@@ -2247,75 +2322,6 @@ function cargaBaseMeta(base: EstudioBase) {
   const rows = typeof base.n_filas === "number" ? base.n_filas.toLocaleString("es-PE") : "sin conteo";
   const cols = typeof base.n_columnas === "number" ? base.n_columnas.toLocaleString("es-PE") : "sin columnas";
   return `${base.nombre} · ${rows} filas · ${cols} columnas`;
-}
-
-function CargaFollowupContent({
-  showInspection,
-  estructura,
-  schemaSelector,
-  hasXlsform,
-  hasData,
-  pendingChoiceMapping,
-  allReady,
-  isMultiBase,
-  bases,
-  busy,
-  error,
-}: {
-  showInspection: boolean;
-  estructura: { secciones: Seccion[]; preguntas: Pregunta[] } | null;
-  schemaSelector?: ReactNode;
-  hasXlsform: boolean;
-  hasData: boolean;
-  pendingChoiceMapping: boolean;
-  allReady: boolean;
-  isMultiBase: boolean;
-  bases: number;
-  busy: string;
-  error: string;
-}) {
-  const showReadinessBoard = !showInspection && (allReady || pendingChoiceMapping || isMultiBase);
-
-  return (
-    <>
-      {showInspection && estructura && (
-        <section className="pulso-carga-inspection" aria-label="Inspección del instrumento">
-          {schemaSelector && (
-            <div className="pulso-carga-inspection-head">{schemaSelector}</div>
-          )}
-          <Panel
-            eyebrow="Instrumento"
-            title="Mapa de secciones"
-            hint="Cada fila es una sección del formulario con sus reglas de visibilidad."
-            className="pulso-carga-inspection-panel"
-          >
-            <SeccionesPanel secciones={estructura.secciones} />
-          </Panel>
-          <Panel
-            eyebrow="Instrumento"
-            title="Mapa del instrumento"
-            hint="Distingue preguntas respondidas, variables calculadas y reglas declaradas en el formulario."
-            className="pulso-carga-inspection-panel"
-          >
-            <PreguntasPanel preguntas={estructura.preguntas} secciones={estructura.secciones} />
-          </Panel>
-        </section>
-      )}
-
-      {showReadinessBoard && (
-        <CargaReadinessBoard
-          hasXlsform={hasXlsform}
-          hasData={hasData}
-          pendingChoiceMapping={pendingChoiceMapping}
-          allReady={allReady}
-          isMultiBase={isMultiBase}
-          bases={bases}
-        />
-      )}
-
-      {allReady && !busy && !error && <ContinuarCTA />}
-    </>
-  );
 }
 
 function CargaReadinessBoard({
@@ -2413,40 +2419,6 @@ function CargaReadinessBoard({
 // Upload card — dropzone unificada con estado visual
 // =====================================================================
 
-
-function CargaSuiteBar({
-  modeLabel,
-  headline,
-  detail,
-  allReady,
-  controls,
-}: {
-  modeLabel: string;
-  headline: string;
-  detail: string;
-  allReady: boolean;
-  controls?: ReactNode;
-}) {
-  return (
-    <section className="pulso-carga-suitebar" aria-label="Centro de control de carga">
-      <div className="pulso-carga-suitebar-main">
-        <span className="pulso-carga-suitebar-icon" aria-hidden="true">
-          {allReady ? <ShieldCheck size={18} /> : <Database size={18} />}
-        </span>
-        <div className="pulso-carga-suitebar-copy">
-          <span className="pulso-carga-suitebar-kicker">{modeLabel}</span>
-          <strong>{headline}</strong>
-          <p>{detail}</p>
-        </div>
-      </div>
-      {controls && (
-        <div className="pulso-carga-suitebar-controls">
-          {controls}
-        </div>
-      )}
-    </section>
-  );
-}
 
 function UploadCard({
   kind, icon: Icon, title, hint, whatIs, accept, acceptLabel, done, busy, disabled, disabledHint, resumen, onPick, onRemove,
@@ -2742,130 +2714,6 @@ function ContinuarCTA() {
       >
         Ir a Validación <ArrowRight size={13} />
       </a>
-    </div>
-  );
-}
-
-// =====================================================================
-// MultiBaseToggle — switch explícito entre "una base" y "varias bases"
-// =====================================================================
-// Copy intencionalmente humano: evitamos "multi-base", "single-base",
-// "XLSForm" etc. en el label. El switch dice simplemente "El estudio
-// tiene más de una base".
-//
-// Estados:
-//   - off + (algo cargado): click encendido → convierte a varias bases.
-//   - on + bases<=1: click apagado → degrada a una sola base.
-//   - on + bases>1: no puede apagarse sin pérdida — queda bloqueado
-//     con tooltip "quita las bases extra primero". El botón "Cerrar
-//     estudio" del panel cubre el caso destructivo.
-function MultiBaseToggle({
-  compact,
-  on, plannedPublics, canTurnOff, bases, disabled, onTurnOn, onTurnOff,
-}: {
-  on: boolean;
-  plannedPublics: number;
-  canTurnOff: boolean;
-  bases: number;
-  disabled: boolean;
-  onTurnOn: () => Promise<void>;
-  onTurnOff: () => Promise<void>;
-  /** Forma de una fila para la banda del módulo. */
-  compact?: boolean;
-}) {
-  if (!on && plannedPublics > 1) {
-    return (
-      <div
-        role="status"
-        aria-label={`${plannedPublics} públicos detectados con bases separadas planificadas`}
-        className="pulso-multibase-toggle is-planned"
-      >
-        <span className="pulso-multibase-planned-icon" aria-hidden="true"><Database size={16} /></span>
-        <div className="pulso-multibase-toggle-copy">
-          <div className="pulso-multibase-toggle-title">Bases separadas por público</div>
-          <div className="pulso-multibase-toggle-hint">
-            {plannedPublics} públicos detectados; las bases se crearán juntas al completar las asignaciones.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const locked = on && !canTurnOff;
-  const effectiveDisabled = disabled || locked;
-
-  const handleClick = async () => {
-    if (effectiveDisabled) return;
-    if (on) await onTurnOff();
-    else await onTurnOn();
-  };
-
-  const hint = on
-    ? bases > 1
-      ? `Tienes ${bases} bases. Para volver a una sola, quita las extras en el panel de abajo.`
-      : "Activo: puedes subir varias bases o importar encuestas por API."
-    : "Úsalo cuando el estudio combine varias bases, encuestas o submuestras.";
-
-  // Forma compacta para la banda: el rótulo y el switch en una fila de 32px, con
-  // la explicación en el tooltip. La forma larga —título más párrafo— mide dos
-  // líneas y la banda no crece de alto.
-  if (compact) {
-    return (
-      <div
-        role="group"
-        aria-labelledby="multibase-toggle-label"
-        className={`pulso-multibase-toggle is-compact${on ? " is-on" : ""}${locked ? " is-locked" : ""}`}
-        title={hint}
-      >
-        <span id="multibase-toggle-label" className="pulso-multibase-toggle-title">
-          Varias bases
-        </span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={on}
-          aria-label="Varias bases"
-          onClick={handleClick}
-          disabled={effectiveDisabled}
-          title={locked ? "Quita las bases extra primero para apagarlo" : hint}
-          className="pulso-switch"
-        >
-          <span aria-hidden="true" className="pulso-switch-thumb" />
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      role="group"
-      aria-labelledby="multibase-toggle-label"
-      className={`pulso-multibase-toggle${on ? " is-on" : ""}${locked ? " is-locked" : ""}`}
-    >
-      <div className="pulso-multibase-toggle-copy">
-        <div
-          id="multibase-toggle-label"
-          className="pulso-multibase-toggle-title"
-        >
-          Varias bases
-        </div>
-        <div className="pulso-multibase-toggle-hint">
-          {hint}
-        </div>
-      </div>
-
-      <button
-        type="button"
-        role="switch"
-        aria-checked={on}
-        aria-label="Varias bases"
-        onClick={handleClick}
-        disabled={effectiveDisabled}
-        title={locked ? "Quita las bases extra primero para apagarlo" : undefined}
-        className="pulso-switch"
-      >
-        <span aria-hidden="true" className="pulso-switch-thumb" />
-      </button>
     </div>
   );
 }

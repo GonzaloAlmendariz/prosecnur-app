@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -75,14 +75,14 @@ function entryStatusLabel(status: string, ready: boolean): string {
 
 export function AcreditacionBatchPanel({ sessionId, refreshToken = 0, onPromoted }: Props) {
   const [preview, setPreview] = useState<AcreditacionBatchPreview | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [confirmReplacement, setConfirmReplacement] = useState(false);
   const [error, setError] = useState("");
   const [guidedError, setGuidedError] = useState(false);
   const [message, setMessage] = useState("");
 
-  const load = useCallback(async () => {
+  async function load() {
     setLoading(true);
     setError("");
     try {
@@ -97,29 +97,14 @@ export function AcreditacionBatchPanel({ sessionId, refreshToken = 0, onPromoted
     } finally {
       setLoading(false);
     }
-  }, []);
+  }
 
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
+    setLoading(false);
     setError("");
     setMessage("");
     setPreview(null);
     setGuidedError(false);
-    void apiCargaAcreditacionBatchPreview()
-      .then((next) => {
-        if (cancelled) return;
-        setPreview(next);
-        setGuidedError(false);
-      })
-      .catch((reason) => {
-        if (cancelled) return;
-        const failure = failureFor(reason);
-        setError(failure.message);
-        setGuidedError(failure.guided);
-      })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
   }, [sessionId, refreshToken]);
 
   async function promote() {
@@ -147,11 +132,19 @@ export function AcreditacionBatchPanel({ sessionId, refreshToken = 0, onPromoted
     }
   }
 
-  if (loading && !preview) {
+  if (!preview) {
     return (
-      <section className="pulso-acreditacion-batch is-loading" aria-label="Corte efectivo de Monitoreo">
-        <Loader2 size={16} className="pulso-spin" aria-hidden="true" />
-        <span>Verificando el corte efectivo de Monitoreo…</span>
+      <section className="pulso-acreditacion-batch is-preflight" aria-label="Corte efectivo de Monitoreo">
+        <span className="pulso-acreditacion-batch-icon" aria-hidden="true"><Database size={18} /></span>
+        <div>
+          <strong>Preparar las bases del corte efectivo</strong>
+          <span>La revisión compara públicos, formularios publicados y encuestas efectivas sin crear bases.</span>
+          {error ? <small role="alert">{error}</small> : null}
+        </div>
+        <button type="button" className="pulso-primary" disabled={loading} onClick={() => void load()}>
+          {loading ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <ShieldCheck size={14} aria-hidden="true" />}
+          {loading ? "Preparando…" : "Revisar el corte"}
+        </button>
       </section>
     );
   }

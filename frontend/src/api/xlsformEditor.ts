@@ -1380,8 +1380,9 @@ export async function apiCargaMonitoreoHandoffStatus() {
 }
 
 export async function apiCargaMonitoreoHandoffPromote(
-  payload: { universe?: string; base_nombre?: string } = {},
+  payload: { universe?: string; base_nombre?: string; source_id?: string } = {},
 ) {
+  const sourceId = payload.source_id?.trim();
   return handle<MonitoreoProcessingHandoffPromoteResult>(
     await apiFetch("/api/carga/monitoreo-handoff/promote", {
       method: "POST",
@@ -1389,6 +1390,7 @@ export async function apiCargaMonitoreoHandoffPromote(
       body: JSON.stringify({
         ...(payload.universe ? { universe: payload.universe } : {}),
         ...(payload.base_nombre ? { base_nombre: payload.base_nombre } : {}),
+        ...(sourceId ? { source_id: sourceId } : {}),
       }),
     }),
   );
@@ -1794,6 +1796,270 @@ export async function apiProcessingReleaseApprove(payload: {
   );
 }
 
+// ── Revisión autoritativa de Carga ──────────────────────────────────────────
+// Esta superficie reemplaza la lectura implícita de `active_base`: tanto la
+// consulta como la persistencia reciben la misma base de manera explícita.
+export type CargaReviewCompatibility = {
+  applied: boolean;
+  ok: boolean;
+  status: string;
+  missing_columns: string[];
+  extra_columns: string[];
+  matched_columns: number;
+  expected_columns: number;
+  n_missing: number;
+  n_extra: number;
+  message: string;
+};
+
+export type CargaReviewChoiceMapping = {
+  status: string;
+  pending: boolean;
+  applied: boolean;
+  requires_confirmation: boolean;
+  n_questions: number;
+  maps: ChoiceCodeMap[];
+};
+
+export type CargaReviewReconciliationExtra = {
+  name: string;
+  fill_pct: number;
+  n_fill: number;
+  kind: "con_datos" | "vacia";
+  incluida: boolean;
+  decision: string;
+};
+
+export type CargaReviewReconciliation = {
+  extra: CargaReviewReconciliationExtra[];
+  n_extra: number;
+  n_incluidas: number;
+  n_excluidas: number;
+  n_pendientes: number;
+  reviewed: boolean;
+};
+
+export type CargaReviewPayload = {
+  ok: true;
+  base_nombre: string | null;
+  compatibility: CargaReviewCompatibility;
+  choice_mapping: CargaReviewChoiceMapping;
+  reconciliation: CargaReviewReconciliation;
+  ready: boolean;
+};
+
+function reviewBoolean(value: unknown): boolean {
+  if (value === true || value === 1 || value === "1" || value === "true") return true;
+  return false;
+}
+
+function reviewStrings(value: unknown): string[] {
+  return normalizeShareArray<unknown>(value)
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function normalizeCargaReviewChoiceMaps(value: unknown): ChoiceCodeMap[] {
+  return normalizeShareArray<unknown>(value)
+    .map((entry) => reconRecord(entry))
+    .filter((entry) => typeof entry.variable === "string" && entry.variable.trim().length > 0)
+    .map((entry): ChoiceCodeMap => ({
+      variable: String(entry.variable).trim(),
+      label: typeof entry.label === "string" ? entry.label : "",
+      type: typeof entry.type === "string" ? entry.type : "",
+      list_name: typeof entry.list_name === "string" ? entry.list_name : "",
+      status: typeof entry.status === "string" ? entry.status : "unknown",
+      high_confidence: reviewBoolean(entry.high_confidence),
+      requires_confirmation: reviewBoolean(entry.requires_confirmation),
+      mappings: normalizeShareArray<unknown>(entry.mappings)
+        .map((mapping) => reconRecord(mapping))
+        .filter((mapping) => typeof mapping.source_code === "string")
+        .map((mapping) => ({
+          source_code: String(mapping.source_code),
+          source_column: typeof mapping.source_column === "string" ? mapping.source_column : "",
+          source_label: typeof mapping.source_label === "string" ? mapping.source_label : "",
+          xls_code: typeof mapping.xls_code === "string" ? mapping.xls_code : "",
+          xls_label: typeof mapping.xls_label === "string" ? mapping.xls_label : "",
+          match: typeof mapping.match === "string" ? mapping.match : "",
+        })),
+    }));
+}
+
+function normalizeCargaReviewPayload(raw: unknown): CargaReviewPayload {
+  const root = reconRecord(raw);
+  const rawCompatibility = reconRecord(root.compatibility);
+  const rawChoiceMapping = reconRecord(root.choice_mapping);
+  const rawReconciliation = reconRecord(root.reconciliation);
+  const extra = normalizeShareArray<unknown>(rawReconciliation.extra)
+    .map((entry) => reconRecord(entry))
+    .filter((entry) => typeof entry.name === "string" && entry.name.trim().length > 0)
+    .map((entry): CargaReviewReconciliationExtra => {
+      const decision = typeof entry.decision === "string" ? entry.decision : "";
+      return {
+        name: String(entry.name).trim(),
+        fill_pct: reconNumber(entry.fill_pct),
+        n_fill: reconNumber(entry.n_fill),
+        kind: entry.kind === "vacia" ? "vacia" : "con_datos",
+        incluida: reviewBoolean(entry.incluida) || decision === "include",
+        decision,
+      };
+    });
+  const missingColumns = reviewStrings(rawCompatibility.missing_columns);
+  const extraColumns = reviewStrings(rawCompatibility.extra_columns);
+  const choiceMappingStatus = typeof rawChoiceMapping.status === "string"
+    ? rawChoiceMapping.status
+    : "unknown";
+  const choiceMaps = normalizeCargaReviewChoiceMaps(rawChoiceMapping.maps);
+  const choiceIsConfirmed = choiceMappingStatus === "confirmed";
+  const choiceRequiresConfirmation = !choiceIsConfirmed && (
+    reviewBoolean(rawChoiceMapping.requires_confirmation)
+    || choiceMaps.some((map) => map.requires_confirmation)
+  );
+
+  const compatibility: CargaReviewCompatibility = {
+    applied: reviewBoolean(rawCompatibility.applied),
+    ok: reviewBoolean(rawCompatibility.ok),
+    status: typeof rawCompatibility.status === "string" ? rawCompatibility.status : "unknown",
+    missing_columns: missingColumns,
+    extra_columns: extraColumns,
+    matched_columns: reconNumber(rawCompatibility.matched_columns),
+    expected_columns: reconNumber(rawCompatibility.expected_columns),
+    n_missing: reconNumber(rawCompatibility.n_missing, missingColumns.length),
+    n_extra: reconNumber(rawCompatibility.n_extra, extraColumns.length),
+    message: typeof rawCompatibility.message === "string" ? rawCompatibility.message : "",
+  };
+  const choiceMapping: CargaReviewChoiceMapping = {
+    status: choiceMappingStatus,
+    pending: reviewBoolean(rawChoiceMapping.pending)
+      || choiceMappingStatus === "pending"
+      || choiceMappingStatus === "requires_confirmation"
+      || choiceRequiresConfirmation,
+    applied: reviewBoolean(rawChoiceMapping.applied),
+    requires_confirmation: choiceRequiresConfirmation,
+    n_questions: reconNumber(rawChoiceMapping.n_questions, choiceMaps.length),
+    maps: choiceMaps,
+  };
+  const reconciliation: CargaReviewReconciliation = {
+    extra,
+    n_extra: reconNumber(rawReconciliation.n_extra, extra.length),
+    n_incluidas: reconNumber(
+      rawReconciliation.n_incluidas,
+      extra.filter((entry) => entry.incluida).length,
+    ),
+    n_excluidas: reconNumber(
+      rawReconciliation.n_excluidas,
+      extra.filter((entry) => entry.decision === "exclude").length,
+    ),
+    n_pendientes: reconNumber(
+      rawReconciliation.n_pendientes,
+      extra.filter((entry) => entry.decision === "pending").length,
+    ),
+    reviewed: reviewBoolean(rawReconciliation.reviewed),
+  };
+  const incompatible = !compatibility.ok
+    || compatibility.status === "incompatible"
+    || compatibility.n_missing > 0;
+
+  return {
+    ok: true,
+    base_nombre: typeof root.base_nombre === "string" && root.base_nombre.trim()
+      ? root.base_nombre.trim()
+      : null,
+    compatibility,
+    choice_mapping: choiceMapping,
+    reconciliation,
+    ready: reviewBoolean(root.ready)
+      && !incompatible
+      && !choiceMapping.pending
+      && reconciliation.n_pendientes === 0,
+  };
+}
+
+export async function apiCargaReview(
+  baseNombre?: string | null,
+): Promise<CargaReviewPayload> {
+  const normalizedBase = baseNombre?.trim();
+  const qs = normalizedBase
+    ? `?${new URLSearchParams({ base_nombre: normalizedBase }).toString()}`
+    : "";
+  const raw = await handle<unknown>(
+    await apiFetch(`/api/carga/review${qs}`, { headers: headers() }),
+  );
+  return normalizeCargaReviewPayload(raw);
+}
+
+export async function apiCargaReviewReconciliation(
+  baseNombre: string | null,
+  incluidas: string[],
+): Promise<CargaReviewPayload> {
+  const normalizedBase = baseNombre?.trim() || null;
+  const raw = await handle<unknown>(
+    await apiFetch("/api/carga/review/reconciliation", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ base_nombre: normalizedBase, incluidas }),
+    }),
+  );
+  return normalizeCargaReviewPayload(raw);
+}
+
+export type CargaReviewSummaryItem = {
+  base_nombre: string;
+  ready: boolean;
+  blockers: string[];
+};
+
+export type CargaReviewSummaryPayload = {
+  bases: CargaReviewSummaryItem[];
+  n_bases: number;
+  n_ready: number;
+  n_blocked: number;
+  all_ready: boolean;
+};
+
+function normalizeCargaReviewSummary(raw: unknown): CargaReviewSummaryPayload {
+  const root = reconRecord(raw);
+  const bases = normalizeShareArray<unknown>(root.bases)
+    .map((entry) => reconRecord(entry))
+    .filter((entry) => typeof entry.base_nombre === "string" && entry.base_nombre.trim().length > 0)
+    .map((entry): CargaReviewSummaryItem => {
+      const blockers = reviewStrings(entry.blockers);
+      return {
+        base_nombre: String(entry.base_nombre).trim(),
+        ready: reviewBoolean(entry.ready) && blockers.length === 0,
+        blockers,
+      };
+    });
+  const nBases = reconNumber(root.n_bases, bases.length);
+  const nReady = reconNumber(root.n_ready, bases.filter((base) => base.ready).length);
+  const nBlocked = reconNumber(root.n_blocked, bases.filter((base) => !base.ready).length);
+  const actualReady = bases.filter((base) => base.ready).length;
+  const actualBlocked = bases.length - actualReady;
+  const countsCoherent = nBases === bases.length
+    && nReady === actualReady
+    && nBlocked === actualBlocked
+    && nReady + nBlocked === nBases;
+
+  return {
+    bases,
+    n_bases: nBases,
+    n_ready: nReady,
+    n_blocked: nBlocked,
+    all_ready: reviewBoolean(root.all_ready)
+      && nBases > 0
+      && countsCoherent
+      && bases.every((base) => base.ready),
+  };
+}
+
+export async function apiCargaReviewSummary(): Promise<CargaReviewSummaryPayload> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/carga/review/summary", { headers: headers() }),
+  );
+  return normalizeCargaReviewSummary(raw);
+}
+
 // ── Reconciliación de variables data ↔ XLSForm ──────────────────────────────
 // Cuando la data (upload manual o handoff de Monitoreo) trae variables que ya
 // no existen en el XLSForm actual (típicamente de versiones viejas del
@@ -1867,7 +2133,8 @@ export async function apiAnaliticaReconciliacionSet(
   return normalizeReconciliacionInfo(raw);
 }
 
-export async function apiCargaConfirmChoiceMapping() {
+export async function apiCargaConfirmChoiceMapping(baseNombre?: string | null) {
+  const normalizedBase = baseNombre?.trim() || null;
   return handle<{
     ok: true;
     confirmed: boolean;
@@ -1878,7 +2145,7 @@ export async function apiCargaConfirmChoiceMapping() {
     await apiFetch("/api/carga/choice-mapping/confirm", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({}),
+      body: JSON.stringify({ base_nombre: normalizedBase }),
     }),
   );
 }
