@@ -133,19 +133,30 @@ import {
 import { acreditacionAgruparEstados } from "./AcreditacionEstadosLlamada";
 import { SourceSyncActions, type SourceSyncActionsProgress } from "../../components";
 import type { MonitoreoReportScope } from "../types";
+import { FranjaDeFuentes } from "./fuentes/FranjaDeFuentes";
+import { FuentesResumen } from "./fuentes/FuentesResumen";
+import { PanelConectarFuente } from "./fuentes/PanelConectarFuente";
+import { railDeFuentesAcreditacion, railDeFuentesTelefonico } from "./fuentes/railDeFuentes";
+import {
+  PESTANAS_DE_FUENTES,
+  PESTANA_DE_FUENTES_POR_DEFECTO,
+  clavesAceptadasDeFuentes,
+  esPestanaDeFuentes,
+  resolverPestanaDeFuentes,
+} from "./fuentes/pestanas";
+import type { PestanaDeFuentes } from "./fuentes/pestanas";
 import "../../monitoreo.css";
 import "../../shell/monitoreoShell.css";
 import "../profilePage.css";
 
 const ACREDITACION_ROUTE = MONITOREO_MODOS.find((route) => route.family === "acreditacion") ?? MONITOREO_MODOS[0];
 const TELEFONICO_ROUTE = MONITOREO_MODOS.find((route) => route.family === "telefonico") ?? ACREDITACION_ROUTE;
-const ACREDITACION_SOURCE_TABS = [
-  { key: "survey", label: "Encuestas en plataforma", detail: "SurveyMonkey/Kobo", icon: QrCode },
-  { key: "sheets", label: "Bases en Sheets", detail: "Universo por actor", icon: Table2 },
-  { key: "collectors", label: "Recopiladores", detail: "Inclusion y alias", icon: ContactRound },
-  { key: "activas", label: "Fuentes activas", detail: "Estado del paquete", icon: PlugZap },
-] as const;
-type AcreditacionSourceTab = typeof ACREDITACION_SOURCE_TABS[number]["key"];
+// Las pestañas de Fuentes viven en `fuentes/pestanas.ts`: se nombran por la
+// pregunta que responden y no por el servicio del que salen los datos, y
+// `survey` + `collectors` se unieron porque el recopilador hereda el canal de
+// su encuesta. Ver docs/plan-fuentes-legibles-2026-07.md §4.1.
+const ACREDITACION_SOURCE_TABS = PESTANAS_DE_FUENTES;
+type AcreditacionSourceTab = PestanaDeFuentes;
 const ACREDITACION_DEFAULT_ACTORS = ["Estudiantes", "Docentes", "Egresados", "Administrativos", "Empleadores"];
 const KOBO_DEFAULT_BASE_URL = "https://kf.kobotoolbox.org";
 type AcreditacionSourcePresetKey = "base_trabajada" | "barrido_telefonico" | "respuestas_surveymonkey";
@@ -7668,6 +7679,7 @@ function AcreditacionSourceStatusStrip({
   onSyncSheets,
   onSyncSurvey,
   onSyncAll,
+  onStateChange,
 }: {
   sources: MonitoreoSource[];
   reports: MonitoreoAcreditacionReports;
@@ -7678,6 +7690,7 @@ function AcreditacionSourceStatusStrip({
   onSyncSheets: () => Promise<void>;
   onSyncSurvey: () => Promise<void>;
   onSyncAll: () => Promise<void>;
+  onStateChange?: (state: MonitoreoState) => void;
 }) {
   const activeSources = sources.filter((source) => source.enabled);
   const phoneContract = phoneMode ? buildAcreditacionPhoneSourceContract(sources) : null;
@@ -7696,26 +7709,14 @@ function AcreditacionSourceStatusStrip({
         <strong>{phoneContract ? "Paquete telefónico" : "Paquete de acreditación"}</strong>
         <p>{fmt(packageTotalCount)} operativas · {fmt(packageActiveCount)} listas · corte {formatDate(reports.generated_at)}</p>
       </header>
-      <div className="mon-acr-source-status-metrics">
-        <span className={packageActiveCount >= packageTotalCount && packageTotalCount ? "is-ready" : "is-warning"}>
-          <PlugZap size={14} />
-          <em>Fuentes</em>
-          <strong>{fmt(packageActiveCount)}/{fmt(packageTotalCount)}</strong>
-          <small>{phoneContract ? "paquete operativo" : "paquete activo"}</small>
-        </span>
-        <span className={baseCount ? "is-ready" : "is-warning"}>
-          <Layers3 size={14} />
-          <em>Base</em>
-          <strong>{fmt(baseCount)}</strong>
-          <small>fuentes base</small>
-        </span>
-        <span className={surveyCount ? "is-ready" : "is-warning"}>
-          <QrCode size={14} />
-          <em>{phoneContract ? "Kobo" : "Plataforma"}</em>
-          <strong>{fmt(surveyCount)}</strong>
-          <small>{fmt(sweepCount)} barrido</small>
-        </span>
-      </div>
+      <FranjaDeFuentes universo={baseCount} encuestas={surveyCount} barrido={sweepCount} />
+      {phoneContract ? null : (
+        <PanelConectarFuente
+          sources={sources}
+          actoresSugeridos={acreditacionActorOptions(sources, ACREDITACION_DEFAULT_ACTORS)}
+          onStateChange={onStateChange}
+        />
+      )}
       <AcreditacionSourceSyncActions
         sheetCount={sheetCount}
         surveyCount={surveyCount}
@@ -10409,7 +10410,7 @@ function AcreditacionPhoneSourcesContractPanel({
             icon={slot.key === "universo" ? <Layers3 size={15} /> : slot.key === "barrido" ? <PhoneCall size={15} /> : <QrCode size={15} />}
             rowFallback={slot.key === "universo" ? nRows : undefined}
             syncFallback={syncedAt}
-            onSelect={() => onSourceTabChange?.(slot.key === "plataforma" ? "survey" : "sheets")}
+            onSelect={() => onSourceTabChange?.(slot.key === "plataforma" ? "encuestas" : "universo")}
           />
         ))}
       </div>
@@ -10496,7 +10497,7 @@ function AcreditacionPhoneSourcesContractPanel({
 function AcreditacionSourcesWorkbench({
   reports,
   state,
-  activeTab = "survey",
+  activeTab = PESTANA_DE_FUENTES_POR_DEFECTO,
   onStateChange,
   onSourceTabChange,
 }: {
@@ -10584,6 +10585,7 @@ function AcreditacionSourcesWorkbench({
       onSyncSheets={syncSheets}
       onSyncSurvey={() => syncExternal("survey", activeSurveySources.map((source) => source.id), isPhoneSourceModel ? "Actualizacion Kobo" : "Actualizacion de plataforma", "full")}
       onSyncAll={() => syncExternal("all", activeSources.map((source) => source.id), "Actualizacion completa", "full")}
+      onStateChange={onStateChange}
     />
   );
   const phoneSourceContract = (focus: "all" | "sheets" | "kobo" = "all") => isPhoneSourceModel ? (
@@ -10598,22 +10600,32 @@ function AcreditacionSourcesWorkbench({
     />
   ) : null;
 
-  if (activeTab === "survey") {
+  // «Encuestas y recopiladores» son una sola pestaña: el recopilador hereda el
+  // canal de su encuesta, así que separar la regla de su excepción obligaba a
+  // saltar de pestaña para tomar media decisión.
+  if (activeTab === "encuestas") {
     return (
       <div className="mon-profile-stack">
         {sourceStatus}
         {isPhoneSourceModel ? phoneSourceContract("kobo") : (
-          <AcreditacionPlatformSurveySourcesView
-            sources={operationalSources}
-            config={state?.config}
-            onStateChange={onStateChange}
-          />
+          <>
+            <AcreditacionPlatformSurveySourcesView
+              sources={operationalSources}
+              config={state?.config}
+              onStateChange={onStateChange}
+            />
+            <AcreditacionCollectorsSourceView
+              sources={operationalSources}
+              config={state?.config}
+              onStateChange={onStateChange}
+            />
+          </>
         )}
       </div>
     );
   }
 
-  if (activeTab === "sheets") {
+  if (activeTab === "universo") {
     return (
       <div className="mon-profile-stack">
         {sourceStatus}
@@ -10635,14 +10647,14 @@ function AcreditacionSourcesWorkbench({
     );
   }
 
-  if (activeTab === "collectors") {
+  // Resumen: lectura pura, sin un solo control que cambie el estudio.
+  if (!isPhoneSourceModel) {
     return (
-      <div className="mon-profile-stack">
+      <div className="mon-profile-stack fuentes-resumen-stack">
         {sourceStatus}
-        <AcreditacionCollectorsSourceView
+        <FuentesResumen
           sources={operationalSources}
-          config={state?.config}
-          onStateChange={onStateChange}
+          linkCollectors={state?.config?.operational_model.link_collectors ?? []}
         />
       </div>
     );
@@ -18078,13 +18090,13 @@ function AcreditacionAdvanceSummaryWorkbench({
             <p>{phoneFilterConfigured ? "Kobo cuenta el avance; el barrido queda como consulta operativa y CodPulso prueba coincidencia individual." : "Sin filtro, el tablero muestra la producción leída, pero la validación de avance todavía no queda cerrada."}</p>
           </section>
           <div className="mon-phone-advance-rule-steps">
-            <button type="button" className={phonePlatformSource ? "is-ready" : "is-warning"} onClick={() => onNavigateLocalTab?.("fuentes", "survey")}>
+            <button type="button" className={phonePlatformSource ? "is-ready" : "is-warning"} onClick={() => onNavigateLocalTab?.("fuentes", "encuestas")}>
               <span><QrCode size={13} /> Instrumento</span>
               <strong>{phoneInstrumentTitle}</strong>
               <em>{phoneInstrumentAsset ? shortenMiddle(phoneInstrumentAsset, 38) : "Selecciona Kobo"}</em>
             </button>
             <i aria-hidden="true" />
-            <button type="button" className={phoneFilterConfigured ? "is-ready" : "is-warning"} onClick={() => onNavigateLocalTab?.("fuentes", "survey")}>
+            <button type="button" className={phoneFilterConfigured ? "is-ready" : "is-warning"} onClick={() => onNavigateLocalTab?.("fuentes", "encuestas")}>
               <span><Filter size={13} /> Filtro</span>
               <strong>{phoneFilterLabel}</strong>
               <em>{phoneFilterHint}</em>
@@ -18350,7 +18362,7 @@ function renderAcreditacionView(
       <AcreditacionSourcesWorkbench
         reports={reports}
         state={options.state}
-        activeTab={options.activeSourceTab ?? "survey"}
+        activeTab={options.activeSourceTab ?? PESTANA_DE_FUENTES_POR_DEFECTO}
         onStateChange={options.onStateChange}
         onSourceTabChange={(tab) => options.onNavigateLocalTab?.("fuentes", tab)}
       />
@@ -18661,58 +18673,17 @@ export function localTabsForAcreditacionView(
   const advanceStats = acreditacionRailAdvanceStats(state, reports);
 
   if (view === "fuentes") {
+    // Orden, nombres y texto de acción: `fuentes/railDeFuentes.ts` (§4.1 y R4).
     if (isPhoneRoute && phoneStats) {
-      const [survey, sheets, , active] = ACREDITACION_SOURCE_TABS;
-      return [
-        railTab(survey, {
-          label: "Kobo",
-          detail: phoneStats.contract.platform.ready
-            ? `${countText(phoneStats.koboSources, "encuesta")} · ${phoneStats.phoneFilterConfigured ? "filtro listo" : "elige filtro"}`
-            : "elige encuesta y filtro de efectiva",
-          badge: phoneStats.koboSources ? fmt(phoneStats.koboSources) : undefined,
-          estado: readyStatus(phoneStats.contract.platform.ready && phoneStats.phoneFilterConfigured),
-        }),
-        railTab(sheets, {
-          label: "Base y barrido",
-          detail: `${phoneStats.sheetReady}/2 Sheets · universo y estados`,
-          badge: `${phoneStats.sheetReady}/2`,
-          estado: readyStatus(phoneStats.sheetReady === 2),
-        }),
-        railTab(active, {
-          label: "Paquete",
-          detail: `${phoneStats.sourceReady}/3 fuentes · corte local`,
-          badge: `${phoneStats.sourceReady}/3`,
-          estado: readyStatus(phoneStats.sourceReady === 3),
-        }),
-      ];
+      return railDeFuentesTelefonico({
+        fuentesListas: phoneStats.sourceReady,
+        hojasListas: phoneStats.sheetReady,
+        encuestasKobo: phoneStats.koboSources,
+        plataformaLista: phoneStats.contract.platform.ready,
+        filtroDefinido: phoneStats.phoneFilterConfigured,
+      });
     }
-    const [survey, sheets, collectors, active] = ACREDITACION_SOURCE_TABS;
-    return [
-      railTab(survey, {
-        label: "Plataforma",
-        detail: sourceStats.platform ? `${countText(sourceStats.platformEnabled, "activa")} · respuestas` : "conecta encuestas",
-        badge: sourceStats.platform ? fmt(sourceStats.platform) : undefined,
-        estado: readyStatus(sourceStats.platformEnabled > 0),
-      }),
-      railTab(sheets, {
-        label: "Bases",
-        detail: sourceStats.sheets ? `${countText(sourceStats.sheetsEnabled, "activa")} · universo` : "conecta Sheets",
-        badge: sourceStats.sheets ? fmt(sourceStats.sheets) : undefined,
-        estado: readyStatus(sourceStats.sheetsEnabled > 0),
-      }),
-      railTab(collectors, {
-        label: "Recopiladores",
-        detail: sourceStats.collectors ? `${countText(sourceStats.collectors, "enlace")} · inclusión` : "vincula enlaces",
-        badge: sourceStats.collectors ? fmt(sourceStats.collectors) : undefined,
-        estado: readyStatus(sourceStats.collectors > 0),
-      }),
-      railTab(active, {
-        label: "Estado",
-        detail: `${sourceStats.enabled}/${sourceStats.total || 0} fuentes · ${countText(sourceStats.reportSources, "fila")}`,
-        badge: sourceStats.total ? `${sourceStats.enabled}/${sourceStats.total}` : undefined,
-        estado: readyStatus(sourceStats.total > 0 && sourceStats.enabled === sourceStats.total),
-      }),
-    ];
+    return railDeFuentesAcreditacion(sourceStats);
   }
 
   if (view === "modelo") {
@@ -19254,8 +19225,17 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const profileLabel = isPhone ? "Monitoreo telefónico" : "Acreditación";
   const [state, setState] = useState<MonitoreoState | null>(null);
   const [seccionActiva, setActiveView] = useState<MonitoreoSeccion>(() => seccionInicialMonitoreo("fuentes", seccionesDelModo(route)));
+  // `clavesAceptadasDeFuentes()` incluye las claves viejas para que un enlace
+  // guardado con `?pestana=collectors` siga aterrizando donde corresponde;
+  // `resolverPestanaDeFuentes` las traduce a la clave canónica, que es la única
+  // que se escribe de vuelta en la URL (ADR 0044).
   const [activeSourceTab, setActiveSourceTab] = useState<AcreditacionSourceTab>(() =>
-    pestanaInicialDeSeccion("fuentes", seccionActiva, isPhone ? "sheets" : "survey", ACREDITACION_SOURCE_TABS.map((tab) => tab.key)));
+    resolverPestanaDeFuentes(pestanaInicialDeSeccion(
+      "fuentes",
+      seccionActiva,
+      PESTANA_DE_FUENTES_POR_DEFECTO,
+      clavesAceptadasDeFuentes(),
+    )));
   const [activeModelTab, setActiveModelTab] = useState<AcreditacionModelTab>(() =>
     pestanaInicialDeSeccion("modelo", seccionActiva, "estructura", ACREDITACION_MODEL_TABS.map((tab) => tab.key)));
   const [activeConsultaTab, setActiveConsultaTab] = useState<AcreditacionConsultaTab>(() =>
@@ -19376,10 +19356,10 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     void loadView(seccionActiva);
   }, [seccionActiva, loadView]);
 
-  useEffect(() => {
-    if (!isPhone || seccionActiva !== "fuentes" || activeSourceTab !== "collectors") return;
-    setActiveSourceTab("survey");
-  }, [activeSourceTab, seccionActiva, isPhone]);
+  // Antes vivía aquí un efecto que sacaba al modo telefónico de la pestaña
+  // `collectors`, que no existía para él. Ya no hace falta: `collectors` dejó
+  // de ser una clave y `resolverPestanaDeFuentes` la traduce a `encuestas`,
+  // que sí es válida en los dos modos.
 
   const refreshCurrentView = useCallback(() => {
     void loadView(seccionActiva, true);
@@ -19557,8 +19537,10 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   );
   const hideWorkbenchStatus = seccionActiva === "consultas" && (activeConsultaTab === "plataforma" || activeConsultaTab === "base");
   const changeLocalTab = useCallback((view: MonitoreoSeccion, tab: AcreditacionLocalTabKey) => {
-    if (view === "fuentes" && ACREDITACION_SOURCE_TABS.some((item) => item.key === tab)) {
-      setActiveSourceTab(tab as AcreditacionSourceTab);
+    if (view === "fuentes" && clavesAceptadasDeFuentes().includes(tab)) {
+      // Se guarda la clave canónica aunque llegue un alias: la URL nunca vuelve
+      // a escribir `survey` ni `collectors`.
+      setActiveSourceTab(resolverPestanaDeFuentes(tab));
     } else if (view === "modelo" && ACREDITACION_MODEL_TABS.some((item) => item.key === tab)) {
       setActiveModelTab(tab as AcreditacionModelTab);
     } else if (view === "consultas" && ACREDITACION_CONSULTA_TABS.some((item) => item.key === tab)) {

@@ -1,0 +1,901 @@
+/* Fuentes de Acreditación — hoja propia.
+ *
+ * Vive fuera de `monitoreo.css` (38.160 líneas) y `profilePage.css` (20.167),
+ * que están congeladas a crecimiento en `agentic/manifest.json`. Solo tokens
+ * `--pulso-*`: 26 de 51 hojas de feature ya arrastran hex sueltos y esta no
+ * suma uno más.
+ *
+ * Contrato de geometría: docs/plan-fuentes-legibles-2026-07.md §5.
+ */
+
+/* El stack del perfil es un grid de filas automáticas, así que un `flex: 1` en
+ * el hijo no alcanza: hay que decirle a la fila del resumen que se quede con lo
+ * que sobra. Se hace con una clase propia y no tocando `.mon-profile-stack`,
+ * que lo comparten todas las secciones del módulo. */
+.mon-profile-stack.fuentes-resumen-stack {
+  min-height: 100%;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.fuentes-resumen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* La vista ocupa el alto que el panel le entrega. Sin esto, las tarjetas se
+   * quedaban en 522 px dentro de un canvas de ~800 y sobraban ~180 px muertos
+   * al pie: hueco exterior sin dueño, que es rotura de composición (C3). */
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* ── Cabecera ──────────────────────────────────────────────────────────── */
+
+/* Tres bloques con pesos distintos: identidad a la izquierda, el mapa —que es
+ * el contenido— tomando lo que sobra, y el aviso al final con ancho acotado.
+ * Con `space-between` los tres quedaban separados por huecos iguales y el mapa
+ * flotaba en el centro sin pertenecer a nada. */
+.fuentes-resumen-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+  padding: 12px 14px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+}
+
+.fuentes-resumen-cabecera > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fuentes-resumen-cabecera > div > span {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+
+.fuentes-resumen-cabecera strong {
+  font-size: 17px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.fuentes-resumen-cabecera em {
+  font-size: 12px;
+  font-style: normal;
+  color: var(--pulso-text-soft);
+}
+
+.fuentes-resumen-aviso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  flex: 0 1 auto;
+  /* El aviso comparte ancho máximo con la columna de texto para que una lista
+   * larga de actores no empuje la cabecera fuera del pliegue (C4). */
+  max-width: 62ch;
+  padding: 8px 12px;
+  border-radius: var(--pulso-radius-card);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.fuentes-resumen-aviso svg {
+  flex: 0 0 auto;
+}
+
+.fuentes-resumen-aviso.is-listo {
+  border: 1px solid var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.fuentes-resumen-aviso.is-pendiente {
+  border: 1px solid var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+/* ── Los tres papeles ──────────────────────────────────────────────────── */
+
+/* C1/C2: contrato `equal`. Corregido tras verlo en `acrconta`: con `intrinsic`,
+ * Barrido —una sola fuente— quedaba como un muñón de 90 px junto a dos tarjetas
+ * de 285. No son secciones independientes: son tres hermanas del mismo rol, y
+ * el Contrato de Superficie es explícito para este caso —«dos cards pares, una
+ * con menos información: mismo marco; el vacío interior es capacidad
+ * legítima»—. El marco lo fija el viewport, nunca `items.length`. */
+.fuentes-resumen-papeles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.fuentes-resumen-tarjeta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  overflow: hidden;
+}
+
+.fuentes-resumen-tarjeta > header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-bg);
+}
+
+.fuentes-resumen-tarjeta > header > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.fuentes-resumen-tarjeta > header > span svg {
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.fuentes-resumen-tarjeta > header > strong {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+.fuentes-resumen-tarjeta > header > em {
+  grid-column: 1;
+  font-size: 11.5px;
+  font-style: normal;
+  color: var(--pulso-text-faint);
+}
+
+/* C3: el dueño del vacío y del scroll es la lista, no la tarjeta ni el panel.
+ * Una tarjeta con 30 fuentes hace scroll aquí dentro; el marco no crece. */
+.fuentes-resumen-lista {
+  display: flex;
+  flex-direction: column;
+  /* C3: la lista se queda con TODO el alto que el marco igualado le entrega,
+   * así el vacío de una tarjeta con pocas fuentes vive DENTRO de su borde. Sin
+   * `max-height`: el techo lo pone el panel, no una cifra escrita a mano. */
+  flex: 1 1 auto;
+  min-height: 148px;
+  overflow-y: auto;
+}
+
+.fuentes-resumen-vacio {
+  margin: 0;
+  padding: 16px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+}
+
+/* ── Fila de fuente ────────────────────────────────────────────────────── */
+
+.fuentes-resumen-fila {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.fuentes-resumen-fila:last-child {
+  border-bottom: none;
+}
+
+.fuentes-resumen-fila-titulo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+/* El nombre puede ser largo («Acreditación Contabilidad PUCP - Egresados
+ * Personalizado»). Se permiten dos líneas antes de recortar: es etiqueta, no
+ * dato operativo, y el ANTES lo cortaba a mitad de palabra (T2). */
+.fuentes-resumen-fila-titulo strong {
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.35;
+  color: var(--pulso-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.fuentes-resumen-fila-titulo em {
+  font-size: 11px;
+  font-style: normal;
+  color: var(--pulso-text-faint);
+}
+
+.fuentes-resumen-fila-enlace a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--module-accent, var(--pulso-primary));
+  text-decoration: none;
+}
+
+.fuentes-resumen-fila-enlace a:hover,
+.fuentes-resumen-fila-enlace a:focus-visible {
+  text-decoration: underline;
+}
+
+.fuentes-resumen-fila-enlace a span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuentes-resumen-fila-enlace > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--pulso-text-soft);
+}
+
+.fuentes-resumen-fila-enlace > span.is-pendiente {
+  color: var(--pulso-warn-fg);
+}
+
+.fuentes-resumen-fila-sync {
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+}
+
+/* ── Detalle técnico ───────────────────────────────────────────────────── */
+
+/* R1: los identificadores siguen estando —hacen falta para soporte y para
+ * cruzar con la plataforma— pero dejan de competir con el nombre. Cerrado, solo
+ * el `summary` participa de la geometría. */
+.fuentes-resumen-fila-detalle > summary {
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  cursor: pointer;
+  list-style: none;
+  padding: 2px 0;
+}
+
+.fuentes-resumen-fila-detalle > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fuentes-resumen-fila-detalle > summary::before {
+  content: "›";
+  display: inline-block;
+  margin-right: 5px;
+  transition: transform 120ms ease;
+}
+
+.fuentes-resumen-fila-detalle[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.fuentes-resumen-fila-detalle dl {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 4px 0 2px;
+  padding: 7px 9px;
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-bg);
+}
+
+.fuentes-resumen-fila-detalle dl > div {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.fuentes-resumen-fila-detalle dt {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+}
+
+/* C4: cero recorte de dato operativo. Un identificador con elipsis no sirve
+ * para pegarlo en la plataforma, que es para lo único que se muestra. */
+.fuentes-resumen-fila-detalle dd {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  color: var(--pulso-text-soft);
+  word-break: break-all;
+}
+
+/* ── Escritorio compacto y bajo ────────────────────────────────────────── */
+
+@media (max-width: 1180px) {
+  .fuentes-resumen-papeles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .fuentes-resumen-papeles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Escritorio bajo: estirar deja de servir. Con el chrome del módulo comido, el
+ * `1fr` aplastaba las tarjetas a 81 px —header y nada más— y la lista quedaba
+ * inusable aunque su `min-height` dijera 148. Aquí se abandona el estiramiento
+ * y el dueño del scroll pasa a `.pulso-main`, que es lo que manda la gramática
+ * para `compact`/`short`. */
+@media (max-height: 720px) {
+  .mon-profile-stack.fuentes-resumen-stack {
+    min-height: 0;
+    grid-template-rows: none;
+  }
+
+  .fuentes-resumen,
+  .fuentes-resumen-papeles {
+    flex: 0 0 auto;
+  }
+
+  /* Alto FIJO, no un rango. Con `min/max` la tarjeta de Barrido —sola en la
+   * segunda fila del grid— medía 156 px contra 349 de sus hermanas: `stretch`
+   * solo iguala dentro de una misma fila. C2 exige que el alto cambie para
+   * todo el grupo al cambiar de régimen, no fila por fila. */
+  .fuentes-resumen-lista {
+    flex: 0 0 auto;
+    height: 232px;
+    min-height: 0;
+  }
+}
+
+/* Nota de servicio: una vez para toda la vista, al pie y fuera de las tarjetas
+ * para que no altere el marco de ninguna. */
+.fuentes-resumen-nota-servicio {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 6px 2px 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--pulso-text-faint);
+}
+
+/* ── Mapa de cobertura por actor ───────────────────────────────────────── */
+
+/* Matriz actor × papel. Responde de un vistazo lo que antes exigía cruzar tres
+ * tarjetas. Es tabular a propósito: alinear los conteos en columna es lo que
+ * permite leer un hueco sin buscarlo. */
+.fuentes-resumen-mapa {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  overflow: hidden;
+}
+
+.fuentes-resumen-mapa-encabezado,
+.fuentes-resumen-mapa-fila {
+  display: grid;
+  grid-template-columns: minmax(88px, 1fr) repeat(3, 62px);
+  align-items: center;
+}
+
+.fuentes-resumen-mapa-encabezado {
+  background: var(--pulso-bg);
+}
+
+.fuentes-resumen-mapa-encabezado > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 6px;
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+}
+
+.fuentes-resumen-mapa-fila {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.fuentes-resumen-mapa-fila > strong {
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuentes-resumen-mapa-fila > span {
+  padding: 4px 6px;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.fuentes-resumen-mapa-fila > span.is-cubierto {
+  color: var(--pulso-success-fg);
+  background: var(--pulso-success-bg);
+}
+
+.fuentes-resumen-mapa-fila > span.is-falta {
+  color: var(--pulso-warn-fg);
+  background: var(--pulso-warn-bg);
+}
+
+.fuentes-resumen-mapa-fila > span.is-neutro {
+  color: var(--pulso-text-faint);
+}
+
+/* ══ Panel «Conectar fuente» ═══════════════════════════════════════════════
+ *
+ * Sideover, no diálogo centrado: conectar una fuente se hace mirando la lista
+ * de las que ya existen, y un modal al centro la tapa justo cuando hace falta
+ * comprobar que no se está duplicando una.
+ */
+
+/* z-index 1400: convención de la casa para overlays, por encima del toolbar
+ * que va en 1000. */
+.fuentes-conectar-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  background: rgba(15, 23, 42, 0.28);
+  display: flex;
+  justify-content: flex-end;
+  animation: fuentes-conectar-velo 140ms ease-out;
+}
+
+/* El panel entra deslizando desde su propio borde: una superficie que aparece
+ * de golpe obliga a releer la pantalla entera para saber qué cambió, y el
+ * desplazamiento dice de dónde vino y por dónde se va. */
+.fuentes-conectar {
+  animation: fuentes-conectar-entrada 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes fuentes-conectar-velo {
+  from { background: rgba(15, 23, 42, 0); }
+}
+
+@keyframes fuentes-conectar-entrada {
+  from { transform: translateX(24px); opacity: 0; }
+}
+
+/* Quien pidió menos movimiento no recibe ninguno. */
+@media (prefers-reduced-motion: reduce) {
+  .fuentes-conectar-fondo,
+  .fuentes-conectar {
+    animation: none;
+  }
+}
+
+.fuentes-conectar {
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 100%);
+  height: 100%;
+  background: var(--pulso-surface);
+  border-left: 1px solid var(--pulso-border);
+  box-shadow: -8px 0 24px rgba(15, 23, 42, 0.12);
+}
+
+.fuentes-conectar-cabecera {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--pulso-border);
+  flex: 0 0 auto;
+}
+
+.fuentes-conectar-cabecera > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fuentes-conectar-cabecera span {
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+
+.fuentes-conectar-cabecera strong {
+  font-size: 15px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.fuentes-conectar-cabecera > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--pulso-control-height-md);
+  height: var(--pulso-control-height-md);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+/* Los tres pasos son estado, no navegación: no se puede saltar al 3 sin haber
+ * leído, así que se pintan como indicador y nunca como botones. */
+.fuentes-conectar-pasos {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fuentes-conectar-pasos li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+}
+
+.fuentes-conectar-pasos i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--pulso-radius-chip);
+  border: 1px solid var(--pulso-border-strong);
+  font-style: normal;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.fuentes-conectar-pasos li.is-actual {
+  color: var(--pulso-text);
+}
+
+.fuentes-conectar-pasos li.is-actual i {
+  border-color: var(--module-accent, var(--pulso-primary));
+  background: var(--module-accent, var(--pulso-primary));
+  color: #fff;
+}
+
+.fuentes-conectar-pasos li.is-hecho i {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+/* El cuerpo es el único dueño de scroll del panel (C4). */
+.fuentes-conectar-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px;
+}
+
+.fuentes-conectar-paso {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fuentes-conectar-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.fuentes-conectar-grupo legend {
+  padding: 0;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+
+.fuentes-conectar-grupo input {
+  width: 100%;
+  min-height: var(--pulso-control-height-lg);
+  padding: 0 10px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  font-size: 12.5px;
+  color: var(--pulso-text);
+}
+
+.fuentes-conectar-grupo input:focus-visible {
+  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline-offset: -1px;
+}
+
+/* C2: las tarjetas de servicio son un grupo par. Su marco lo fija el grid, no
+ * el largo de la descripción. */
+.fuentes-conectar-opciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  align-items: stretch;
+  gap: 8px;
+}
+
+.fuentes-conectar-opciones.is-compacto {
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+
+/* `min-width: 0` es obligatorio: los items de un grid arrancan en
+ * `min-width: auto`, que les impide encogerse por debajo de su contenido, y
+ * por eso «Bases de universo y hojas de barrido» se recortaba en seco a 136 px
+ * en vez de envolver. C4 no admite recorte duro. */
+.fuentes-conectar-opciones button {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.fuentes-conectar-opciones button svg {
+  color: var(--pulso-text-faint);
+}
+
+.fuentes-conectar-opciones button strong {
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.fuentes-conectar-opciones button em,
+.fuentes-conectar-opciones button strong {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.fuentes-conectar-opciones button em {
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.4;
+  color: var(--pulso-text-faint);
+}
+
+.fuentes-conectar-opciones button.is-elegido {
+  border-color: var(--module-accent, var(--pulso-primary));
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 8%, transparent);
+}
+
+.fuentes-conectar-opciones button.is-elegido svg {
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+/* Pista de validación: aparece mientras se escribe y ocupa su renglón desde el
+ * principio, para que el formulario no salte cuando el diagnóstico cambia. */
+.fuentes-conectar-pista {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  min-height: 17px;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.fuentes-conectar-pista svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.fuentes-conectar-pista.is-ok { color: var(--pulso-success-fg); }
+.fuentes-conectar-pista.is-aviso { color: var(--pulso-warn-fg); }
+.fuentes-conectar-pista.is-neutra { color: var(--pulso-text-soft); }
+
+.fuentes-conectar-error {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  font-size: 11.5px;
+}
+
+/* El catálogo posee su propio scroll: con 200 encuestas, la lista no puede
+ * empujar el pie del panel fuera de la pantalla (C3/C4). */
+.fuentes-conectar-catalogo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.fuentes-conectar-catalogo.is-corto {
+  max-height: 190px;
+}
+
+.fuentes-conectar-catalogo button {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.fuentes-conectar-catalogo button strong {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text);
+}
+
+.fuentes-conectar-catalogo button em {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-style: normal;
+  color: var(--pulso-text-faint);
+}
+
+.fuentes-conectar-catalogo button.is-elegido {
+  border-color: var(--module-accent, var(--pulso-primary));
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 8%, transparent);
+}
+
+.fuentes-conectar-resultado {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-bg);
+}
+
+.fuentes-conectar-resultado > span {
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+
+.fuentes-conectar-resultado > strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.fuentes-conectar-resultado > em {
+  font-size: 11.5px;
+  font-style: normal;
+  color: var(--pulso-text-soft);
+}
+
+.fuentes-conectar-columnas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.fuentes-conectar-columnas i {
+  padding: 2px 7px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--pulso-text-soft);
+}
+
+.fuentes-conectar-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-bg);
+  flex: 0 0 auto;
+}
+
+@media (max-height: 720px) {
+  .fuentes-conectar-catalogo { max-height: 200px; }
+  .fuentes-conectar-catalogo.is-corto { max-height: 140px; }
+}
+
+/* ══ Franja de fuentes: una fila, no dos ═══════════════════════════════════
+ *
+ * Medido en `acrconta`: el grid resolvía a `981px | 350px` en dos filas, con
+ * estas consecuencias visibles:
+ *
+ *   · «Conectar fuente» heredaba el ancho de su columna y salía como un botón
+ *     de 350 px, cuando su etiqueta ocupa menos de un tercio;
+ *   · dos chips de dos cifras se estiraban sobre 981 px;
+ *   · los botones de sincronización caían a una segunda fila y dejaban la
+ *     celda de al lado vacía, que es el bloque muerto que se ve como una caja
+ *     gris sin contenido.
+ *
+ * Una franja de acciones se reparte por contenido, no por columnas fijas:
+ * contadores a la izquierda con su ancho natural, acciones a la derecha, y el
+ * hueco entre medio como separador. Se anula `grid-template-columns` porque la
+ * regla base lo declara y `display: flex` por sí solo no lo desactiva.
+ */
+.mon-profile-canonical-shell .mon-acr-source-status-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  grid-template-columns: none;
+}
+
+.mon-profile-canonical-shell .mon-acr-source-status-strip > .mon-acr-source-status-metrics {
+  flex: 0 0 auto;
+}
+
+/* Toma el hueco central y empuja sus botones contra el lado de las acciones,
+ * para que el aire quede ENTRE los dos grupos y no repartido dentro de ellos. */
+.mon-profile-canonical-shell .mon-acr-source-status-strip > .mon-source-sync-actions {
+  flex: 1 1 auto;
+  justify-content: flex-end;
+}
+
+/* El primario cierra la fila: en la gramática de la casa la acción que abre
+ * trabajo nuevo va al extremo, después de las de mantenimiento. */
+.mon-profile-canonical-shell .mon-acr-source-status-strip > .pulso-button.is-primary {
+  flex: 0 0 auto;
+  order: 9;
+}
