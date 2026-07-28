@@ -1215,7 +1215,21 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
       // la caja realmente sale del viewport.
       const nativeSelectBox = el instanceof HTMLSelectElement
         || (el instanceof HTMLLabelElement && Boolean(el.querySelector("select")));
-      const xOverflow = el.scrollWidth > el.clientWidth + 2 && !overflowXAllowed && !nativeSelectBox;
+      // Misma medición engañosa en un <input> de texto: `scrollWidth` es el
+      // largo del valor, no el de la caja, porque el control desplaza su texto
+      // internamente por diseño. Un valor más largo que el campo es el uso
+      // normal, no un derrame —Analítica > Datos edita etiquetas de variable,
+      // que son frases enteras, y reportaba una fila por cada una.
+      const textInputTypes = new Set([
+        "text", "search", "url", "tel", "email", "password", "number",
+      ]);
+      const nativeTextInput = (el instanceof HTMLInputElement && textInputTypes.has(el.type))
+        || (el instanceof HTMLLabelElement
+          && Array.from(el.querySelectorAll("input")).some((field) => textInputTypes.has(field.type)));
+      const xOverflow = el.scrollWidth > el.clientWidth + 2
+        && !overflowXAllowed
+        && !nativeSelectBox
+        && !nativeTextInput;
       const yOverflow = el.scrollHeight > el.clientHeight + 2 && !overflowYAllowed;
       if (!xOverflow && !yOverflow) continue;
       const label = (el.getAttribute("aria-label") || el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 160);
