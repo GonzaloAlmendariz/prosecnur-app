@@ -121,11 +121,26 @@ function nodosDeModulo(modulo: ProsecnurModuleMeta): NodoNavegacion[] {
 export const MANIFIESTO_NAVEGACION: readonly NodoNavegacion[] =
   PROSECNUR_MODULES.flatMap(nodosDeModulo);
 
+/**
+ * Panel de conexión de fuentes de Monitoreo.
+ *
+ * Vive en el manifiesto y no solo en su componente porque el QA visual recorre
+ * ESTA lista: un panel que solo existe en runtime nunca entra en una corrida
+ * automatizada, y el flujo de conectar una fuente es de los que más caro sale
+ * si se rompe en silencio.
+ */
+const PANEL_CONECTAR_FUENTE: PanelDeclarado = {
+  id: "conectar-fuente",
+  label: "Conectar fuente",
+  clase: "sideover",
+};
+
 /** Paneles declarados por módulo. `null` = disponibles en toda la app. */
 export const PANELES_POR_MODULO: Readonly<
   Partial<Record<ProsecnurModuleSlug | "global", readonly PanelDeclarado[]>>
 > = {
   global: [PANEL_MODULOS, PANEL_CONFIGURACION],
+  monitoreo: [PANEL_CONECTAR_FUENTE],
 };
 
 export function nodosDe(modulo: ProsecnurModuleSlug): NodoNavegacion[] {

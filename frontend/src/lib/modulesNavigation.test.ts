@@ -58,7 +58,10 @@ const EXPECTED_PRIMARY_NAVIGATION: Record<
     landingKind: "section",
     to: "/recopiladores",
     sections: [
-      { id: "recopiladores", label: "Fichas QR", to: "/recopiladores", layoutPolicy: "viewport" },
+      { id: "plan-recoleccion", label: "Plan", to: "/recopiladores", layoutPolicy: "viewport" },
+      { id: "accesos", label: "Accesos", to: "/recopiladores?seccion=accesos", layoutPolicy: "viewport" },
+      { id: "materiales", label: "Materiales", to: "/recopiladores?seccion=materiales", layoutPolicy: "viewport" },
+      { id: "entrega-campo", label: "Entrega", to: "/recopiladores?seccion=entrega-campo", layoutPolicy: "viewport" },
     ],
   },
   monitoreo: {
@@ -94,7 +97,7 @@ describe("manifiesto primario de navegación", () => {
       version: 3,
       grammar: "modulo/modo/seccion/pestana/panel",
       coverage: "primary-routes-v1",
-      modosCoverage: "monitoring-profiles-v1",
+      modosCoverage: "monitoring-profiles-v1+calc-muestra-v1",
       tabsCoverage: "hojas-ruta-v1",
       shellCoverage: "hojas-ruta-v1",
       consumableByShell: true,

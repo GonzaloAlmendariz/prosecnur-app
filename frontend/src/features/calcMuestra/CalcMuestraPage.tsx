@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   BarChart3,
@@ -91,11 +91,13 @@ import {
   type GuideStatus,
 } from "./sharedCore";
 import {
+  CLASSROOM_LAB_TABS,
   DEFAULT_UNIVERSITY_PUBLICATION_CONFIG,
   UNIVERSITY_FACULTY_COMPONENT_ID,
   UNIVERSITY_TOTAL_COMPONENT_ID,
   type ClassroomLabTab,
 } from "./universidad/shared/constants";
+import { deskDeModo, modoCrudoDeLaDireccion, useCalcMuestraDireccion } from "./navegacion";
 import { normalizeUniversityLabel } from "./universidad/shared/format";
 import {
   classroomComparisonReady,
@@ -486,25 +488,31 @@ function inferDesk(estudio: CalcMuestraEstudio, workspace: CalcMuestraWorkspace)
 // el juego de secciones del módulo y lo determina el estudio del proyecto.
 // `mesa`/`desk`/`tipo` sobreviven como alias de lectura.
 // Contrato: `lib/navegacion/direccion.ts`.
-function requestedModoFromSearch(searchParams: URLSearchParams): ActiveDesk | null {
-  const raw = searchParams.get("modo")
-    ?? searchParams.get("mesa")
-    ?? searchParams.get("desk")
-    ?? searchParams.get("tipo");
-  const value = normalizeUniversityLabel(raw ?? "").replace(/_/g, " ");
-  if (["AULAS", "MUESTRA AULAS", "OPINION UNIVERSITARIA", "HOSTIGAMIENTO"].includes(value)) {
-    return "opinion_universitaria";
-  }
-  return null;
+//
+// Durante mucho tiempo el modo se leía al montar y se BORRABA de la barra
+// (`clearModoRequest`), así que ninguna vista del módulo era enlazable: las 41
+// pantallas compartían la misma dirección desnuda. Ahora el modo se publica —lo
+// escribe `useCalcMuestraModoPublicado`— y las 4 mesas más el selector están
+// declaradas en el manifiesto, que es de donde `useSeccion` saca el default.
+/**
+ * La pestaña del laboratorio de cursos-horario que pide la dirección. Un id que
+ * no existe cae en la primera: un enlace viejo debe aterrizar en algo, no dejar
+ * el sidebar sin selección.
+ */
+function resolverClassroomLabTab(pestana: string | null | undefined): ClassroomLabTab {
+  const pedida = resolveUniversityLocalTab(pestana);
+  const conocida = CLASSROOM_LAB_TABS.find((tab) => tab.id === pedida);
+  return conocida?.id ?? "marco";
 }
 
-function clearModoRequest(searchParams: URLSearchParams) {
-  const next = new URLSearchParams(searchParams);
-  next.delete("modo");
-  next.delete("mesa");
-  next.delete("desk");
-  next.delete("tipo");
-  return next;
+export function modoPedidoDesdeDireccion(modo: string | null | undefined): ActiveDesk | null {
+  const value = normalizeUniversityLabel(modo ?? "").replace(/[_-]/g, " ");
+  if (!value) return null;
+  // Alias históricos del deep-link universitario. Se leen, nunca se escriben.
+  if (["AULAS", "MUESTRA AULAS", "HOSTIGAMIENTO"].includes(value)) {
+    return "opinion_universitaria";
+  }
+  return (deskDeModo(modo) as ActiveDesk | null) ?? null;
 }
 
 function defaultRailSectionForDesk(desk: ActiveDesk) {
@@ -968,7 +976,7 @@ function msgDeFallo(e: unknown, fallback: string): Msg {
 
 export default function CalcMuestraPage() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const {
     estudio,
     hydrated,
@@ -1013,8 +1021,10 @@ export default function CalcMuestraPage() {
   // cuando el estudio cambió después de generarlo. La descarga sigue viva.
   const [reporteStale, setReporteStale] = useState(false);
   const [exportandoAulas, setExportandoAulas] = useState(false);
-  const [activeRailSection, setActiveRailSection] = useState("pathways");
-  const [activeClassroomLabTab, setActiveClassroomLabTab] = useState<ClassroomLabTab>("marco");
+  // La navegación del módulo vive en la dirección, no en estado suelto: sección
+  // y pestaña se publican y se leen de la URL (ADR 0044). `activeLocalTabs`
+  // sobrevive como MEMORIA —qué pestaña se estaba viendo en cada sección— para
+  // no perder el sitio al ir y volver; la dirección manda, la memoria restaura.
   const [activeLocalTabs, setActiveLocalTabs] = useState<Record<string, string>>({});
   const [choosingDesk, setChoosingDesk] = useState(false);
   const [deskOverride, setDeskOverride] = useState<ActiveDesk | null>(null);
@@ -1057,7 +1067,10 @@ export default function CalcMuestraPage() {
   );
   const workspace = useMemo(() => normalizeWorkspace(estudio), [estudio]);
   const inferredDesk = inferDesk(estudio, workspace);
-  const requestedDesk = useMemo(() => requestedModoFromSearch(searchParams), [searchParams]);
+  const requestedDesk = useMemo(
+    () => modoPedidoDesdeDireccion(modoCrudoDeLaDireccion(location.search)),
+    [location.search],
+  );
   const hasAulasDeskState = useMemo(
     () => classroomFrameReady(aulasState) ||
       classroomComparisonReady(aulasState) ||
@@ -1070,6 +1083,21 @@ export default function CalcMuestraPage() {
     : null;
   const currentDesk = recoveredAulasDesk ?? inferredDesk;
   const desk: ActiveDesk = choosingDesk ? "sin_definir" : currentDesk;
+
+  // Sección y pestaña salen de la dirección. `seccionVigente` ya está validada
+  // contra las secciones de la mesa real, así que el rail nunca queda sin
+  // selección aunque llegue un enlace de otra mesa.
+  const direccion = useCalcMuestraDireccion(desk, hydrated, defaultRailSectionForDesk(desk));
+  const activeRailSection = direccion.seccionVigente;
+  const setActiveRailSection = direccion.irASeccion;
+  const activeClassroomLabTab = useMemo<ClassroomLabTab>(
+    () => resolverClassroomLabTab(direccion.pestana),
+    [direccion.pestana],
+  );
+  const setActiveClassroomLabTab = useCallback(
+    (tab: ClassroomLabTab) => direccion.irAPestana(tab),
+    [direccion],
+  );
   const resultados = estudio.componentes.filter(hasUsefulResult).length;
   const productos = Array.from(new Set(estudio.componentes.map(tecnicaProducto)));
   const hasExistingDesk = currentDesk !== "sin_definir" && (
@@ -1088,9 +1116,11 @@ export default function CalcMuestraPage() {
   useEffect(() => {
     const prevDesk = prevDeskRef.current;
     prevDeskRef.current = desk;
-    if (!debeResetearRailSection({ prevDesk, desk, recoveredAulasDesk, deskOverride })) return;
+    const direccionPideSeccion = Boolean(direccion.seccion)
+      && direccion.secciones.some((s) => s.id === direccion.seccion);
+    if (!debeResetearRailSection({ prevDesk, desk, recoveredAulasDesk, deskOverride, direccionPideSeccion })) return;
     setActiveRailSection(defaultRailSectionForDesk(desk));
-  }, [desk, recoveredAulasDesk, deskOverride]);
+  }, [desk, recoveredAulasDesk, deskOverride, direccion.seccion, direccion.secciones, setActiveRailSection]);
 
   // F13: cleanup del polling del reporte al desmontar (ver reportePollRef).
   useEffect(() => {
@@ -1154,17 +1184,35 @@ export default function CalcMuestraPage() {
     };
   }, [desk, activeRailSection, workspace, setWorkspaceSiCambia]);
 
+  // Aterrizaje del deep-link: ocurre UNA vez por montaje.
+  //
+  // Antes se cortaba solo, porque el efecto borraba el modo de la barra y
+  // `requestedDesk` pasaba a null en el ciclo siguiente. Ahora el modo se
+  // publica y se queda, así que sin este ref el efecto volvería a dispararse en
+  // cada cambio de dirección y arrastraría el rail de vuelta al destino de
+  // recuperación cada vez que el usuario navega.
+  const aterrizajeHecho = useRef(false);
+
   useEffect(() => {
     if (!hydrated || !requestedDesk) return;
+    if (aterrizajeHecho.current) return;
     if (requestedDesk === "opinion_universitaria" && !aulasStateChecked) return;
-    setSearchParams(clearModoRequest(searchParams), { replace: true });
+    aterrizajeHecho.current = true;
+
+    // Si la dirección ya nombra sección, manda ella: quien pegó el enlace pidió
+    // una vista concreta y el destino de recuperación no debe pisarla.
+    const direccionTraeSeccion = Boolean(direccion.seccion)
+      && direccion.secciones.some((s) => s.id === direccion.seccion);
+
     if (requestedDesk === "opinion_universitaria" && (inferredDesk === "opinion_universitaria" || hasAulasDeskState)) {
       const recoveryTarget = classroomRecoveryTarget(aulasState);
       setDeskOverride("opinion_universitaria");
       setChoosingDesk(false);
       setPendingDeskReset(null);
-      setActiveRailSection(recoveryTarget.section);
-      setActiveClassroomLabTab(recoveryTarget.tab);
+      if (!direccionTraeSeccion) {
+        setActiveRailSection(recoveryTarget.section);
+        setActiveClassroomLabTab(recoveryTarget.tab);
+      }
       return;
     }
     if (requestedDesk === "opinion_universitaria" && hasExistingDesk) {
@@ -1176,7 +1224,19 @@ export default function CalcMuestraPage() {
     if (requestedDesk === "opinion_universitaria") {
       void iniciar("opinion_universitaria");
     }
-  }, [aulasState, aulasStateChecked, hasAulasDeskState, hasExistingDesk, hydrated, inferredDesk, requestedDesk, searchParams, setSearchParams]);
+  }, [
+    aulasState,
+    aulasStateChecked,
+    direccion.seccion,
+    direccion.secciones,
+    hasAulasDeskState,
+    hasExistingDesk,
+    hydrated,
+    inferredDesk,
+    requestedDesk,
+    setActiveClassroomLabTab,
+    setActiveRailSection,
+  ]);
 
   useEffect(() => {
     if (!choosingDesk) return;
@@ -1332,14 +1392,17 @@ export default function CalcMuestraPage() {
   }
 
   function seleccionarPestanaLocal(tab: CalcMuestraSidebarTab) {
+    // Se escribe en los dos sitios a propósito: la dirección la hace enlazable
+    // y la memoria recuerda dónde estaba el usuario si vuelve a esta sección.
     setActiveLocalTabs((prev) => ({ ...prev, [`${desk}:${activeRailSection}`]: tab.id }));
+    direccion.irAPestana(tab.id);
   }
 
   // Navegación interna del Recorrido: entre capítulos (pestañas de su sección)
   // y hacia las secciones operativas ("hazlo con tu base").
   function navegarDesdeRecorrido(section: string, tab?: string) {
-    setActiveRailSection(section);
     if (tab) setActiveLocalTabs((prev) => ({ ...prev, [`${desk}:${section}`]: tab }));
+    direccion.irASeccionYPestana(section, tab ?? null);
   }
 
   function updateComponente(id: string, patch: ComponentePatch) {
@@ -2108,12 +2171,18 @@ export default function CalcMuestraPage() {
   const railSectionStates = desk === "opinion_universitaria"
     ? universitySectionStates({ estudio, workspace, aulasState })
     : undefined;
+  // Orden de precedencia de la pestaña: la dirección primero —es lo que hace
+  // enlazable la vista y lo que trae un enlace pegado—, la memoria de la sesión
+  // después, y la primera pestaña como piso. Un id que ninguna de las dos
+  // reconoce no deja el sidebar en blanco.
+  const pedidaEnDireccion = resolveUniversityLocalTab(direccion.pestana);
   const storedLocalTab = resolveUniversityLocalTab(activeLocalTabs[`${desk}:${activeRailSection}`]);
+  const localTabCandidato = [pedidaEnDireccion, storedLocalTab].find(
+    (id) => id && sidebarTabs.some((tab) => tab.id === id),
+  );
   const activeLocalTab = activeRailSection === "aulas"
     ? activeClassroomLabTab
-    : storedLocalTab && sidebarTabs.some((tab) => tab.id === storedLocalTab)
-      ? storedLocalTab
-      : sidebarTabs[0]?.id ?? "";
+    : localTabCandidato ?? sidebarTabs[0]?.id ?? "";
   const activeRailMeta = activeSectionMetaForDesk(desk, activeRailSection);
   const universityContextItems = desk === "opinion_universitaria"
     ? sidebarTabs.map((tab) => ({
