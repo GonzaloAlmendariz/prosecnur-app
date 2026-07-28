@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
 import type { EstudioMultiIntegrated, EstudioProcessingSuggestions } from "../../api/client";
 import {
@@ -41,7 +43,39 @@ import {
   smXlsformVariableLabelLookup,
 } from "./BasesPanel";
 
+const basesPanelSource = fs.readFileSync(
+  fileURLToPath(new URL("./BasesPanel.tsx", import.meta.url)),
+  "utf8",
+);
+
+function independentWizardSource(): string {
+  const start = basesPanelSource.indexOf("function IndependentSiblingsSurveyMonkeyWizard");
+  const end = basesPanelSource.indexOf("\nfunction fileLabel", start);
+  expect(start).toBeGreaterThan(-1);
+  expect(end).toBeGreaterThan(start);
+  return basesPanelSource.slice(start, end);
+}
+
 describe("BasesPanel integrated history helpers", () => {
+  test("keeps independent profile selection local instead of mutating the global default", () => {
+    expect(independentWizardSource()).not.toContain("apiConnectionProfileSetDefault");
+  });
+
+  test("threads the locally selected profile into independent catalog and import", () => {
+    const source = independentWizardSource();
+    const catalogCall = source.slice(
+      source.indexOf("apiSurveyMonkeyMultibaseListSurveys("),
+      source.indexOf("apiSurveyMonkeyMultibaseListSurveys(") + 650,
+    );
+    const importCall = source.slice(
+      source.indexOf("apiSurveyMonkeyMultibaseImportIndependent("),
+      source.indexOf("apiSurveyMonkeyMultibaseImportIndependent(") + 1_200,
+    );
+
+    expect(catalogCall).toMatch(/profile_id|connection_profile_id/u);
+    expect(importCall).toMatch(/profile_id|connection_profile_id/u);
+  });
+
   test("describes active independent bases without ambiguous fractions", () => {
     expect(independentSiblingsCapacityLabel(1, 10)).toBe("1 base activa · capacidad máxima 10");
     expect(independentSiblingsCapacityLabel(4, 10)).toBe("4 bases activas · capacidad máxima 10");

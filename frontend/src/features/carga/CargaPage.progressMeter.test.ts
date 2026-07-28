@@ -27,14 +27,34 @@ describe("medidor de preparación de Carga", () => {
     expect(source).not.toContain("<CargaCommandSummary");
   });
 
-  it("la banda lleva el modo del estudio en su lugar", () => {
-    // El espacio que ocupaba el medidor lo usa un control que sí se opera. Si
-    // esto falla, la banda quedó con el lado izquierdo vacío.
-    const portal = source.slice(
-      source.indexOf('<ChromeSlotPortal zona="contexto">'),
-      source.indexOf("</ChromeSlotPortal>"),
+  it("la topología es una decisión deliberada de Plan, no del toolbar", () => {
+    expect(source).not.toContain("pulso-multibase-toggle is-compact");
+    expect(source).not.toContain("<MultiBaseToggle");
+    expect(source).not.toContain("function MultiBaseToggle(");
+
+    const planBranches = source.split('activeCargaTab === "plan"').slice(1);
+    expect(planBranches).toHaveLength(2);
+    for (const branch of planBranches) {
+      expect(branch).toContain("<CargaPlanOverview");
+      expect(branch).toMatch(/<CargaPlanOverview[\s\S]{0,500}?topology=/u);
+      expect(branch).toMatch(/<CargaTopologyDecision[\s\S]{0,500}?resolution=/u);
+    }
+
+    expect(source.match(/<CargaTopologyDecision\b/gu)).toHaveLength(2);
+  });
+
+  it("declara las hermanas sugeridas por Acreditación sin materializarlas desde Plan", () => {
+    const resolverStart = source.indexOf(
+      "const topologyResolution = resolveCargaTopology({",
     );
-    expect(portal).toContain("<MultiBaseToggle");
-    expect(portal).toContain("compact");
+    const resolverEnd = source.indexOf("});", resolverStart);
+    const wiring = source.slice(Math.max(0, resolverStart - 1_600), resolverEnd + 3);
+
+    expect(resolverStart).toBeGreaterThan(-1);
+    expect(wiring).toContain("declaredStrategy:");
+    expect(wiring).toContain("processing_intake_mode");
+    expect(wiring).toContain("independent_siblings");
+    expect(wiring).not.toContain("apiEstudioProcessingSuggestions");
+    expect(wiring).toContain('"independent"');
   });
 });

@@ -402,9 +402,24 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL, c
   )
 }
 
-.carga_editor_choice_code_maps <- function(sid) {
+.carga_editor_choice_code_maps <- function(sid, base_nombre = NULL) {
   s <- session_get(sid, required = FALSE)
   if (is.null(s)) return(NULL)
+  requested <- as.character(base_nombre %||% "")[1]
+  if (is.na(requested)) requested <- ""
+  if (nzchar(requested)) {
+    base <- (((s$estudio %||% list())$bases %||% list())[[requested]]) %||% list()
+    confirmed <- base$choice_code_mapping %||% list()
+    if (isTRUE(confirmed$confirmed) && length(confirmed$maps %||% list())) {
+      return(confirmed$maps)
+    }
+    if (exists(".pulso_load_choice_maps", mode = "function")) {
+      migrated <- .pulso_load_choice_maps(sid, requested)
+      if (length(migrated)) return(migrated)
+    }
+    return(NULL)
+  }
+  if (length(((s$estudio %||% list())$bases %||% list()))) return(NULL)
   maps <- s$xlsform_state$workbook$surveyMonkeyLogic$choice_code_maps %||%
     s$xlsform_state$workbook$surveyMonkeyLogic$choiceCodeMaps %||%
     NULL
@@ -622,20 +637,28 @@ estudio_init_default_base <- function(sid) {
   df <- normalize_data_for_xlsform(
     df,
     inst,
-    choice_code_maps = .carga_editor_choice_code_maps(sid)
+    choice_code_maps = .carga_editor_choice_code_maps(sid, files$base_nombre)
   )
+  normalized_attr <- attr(df, "xlsform_normalized", exact = TRUE)
   # CURA (frente B): "Ver base" lee del archivo persistido. Las bases traídas por
   # el handoff de Monitoreo ANTES de este fix guardaron 177 columnas crudas (dups
   # group-prefixed + universo vacío + `.integration_mode`). Se sanean acá para
   # que Ver base muestre lo mismo que Validación/Analítica, sin re-importar.
   s_now <- session_get(sid, required = FALSE)
-  source_kind <- (((s_now %||% list())$estudio %||% list())$bases %||%
-                    list())[[files$base_nombre]]$source_kind %||% NULL
+  bases_now <- (((s_now %||% list())$estudio %||% list())$bases %||% list())
+  resolved_base <- as.character(files$base_nombre %||% "")[1]
+  source_kind <- if (!is.na(resolved_base) && nzchar(resolved_base) &&
+                     resolved_base %in% names(bases_now)) {
+    bases_now[[resolved_base]]$source_kind %||% NULL
+  } else {
+    NULL
+  }
   df <- sanitize_base_data(
     df, inst,
     monitoreo_handoff = if (is.null(source_kind)) NULL else .base_hygiene_is_monitoreo_kind(source_kind)
   )
   df <- .carga_reorder_data_columns(df, inst)
+  if (!is.null(normalized_attr)) attr(df, "xlsform_normalized") <- normalized_attr
   list(data = df, instrumento = inst, base_nombre = files$base_nombre)
 }
 
@@ -1919,33 +1942,51 @@ mount_carga <- function(pr) {
 		      estudio_init_default_base(sid)
 		      list(ok = TRUE, preview = preview)
 		    })) |>
-    plumber::pr_post("/api/carga/choice-mapping/confirm", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/carga/choice-mapping/confirm", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
-      s <- session_get(sid)
-      pending <- s$choice_code_maps_pending %||% NULL
-      if (is.null(pending) || !length(pending$maps %||% list())) {
-        return(list(ok = TRUE, confirmed = FALSE, message = "No hay mapeos pendientes por confirmar."))
+      body <- .carga_parse_json_body(req)
+      review <- .carga_review_confirm_choice_mapping(
+        sid,
+        base_nombre = body$base_nombre %||% NULL
+      )
+      confirmed <- identical(review$choice_mapping$status, "confirmed")
+      state <- session_get(sid)
+      mapping <- if (!is.null(review$base_nombre) && nzchar(review$base_nombre)) {
+        state$estudio$bases[[review$base_nombre]]$choice_code_mapping %||% list()
+      } else {
+        state$choice_code_maps_confirmed %||% list()
       }
-      maps_payload <- list(
-        applied = TRUE,
-        requires_confirmation = FALSE,
-        n_questions = as.integer(pending$n_questions %||% length(pending$maps)),
-        maps = pending$maps
-      )
-      .carga_store_choice_code_maps(sid, maps_payload, confirmed = TRUE)
-      tryCatch(
-        estudio_init_default_base(sid),
-        error = function(e) {
-          message("[carga] estudio_init_default_base tras confirmar mapeo falló: ", conditionMessage(e))
-        }
-      )
-      confirmed <- session_get(sid)$choice_code_maps_confirmed
-      list(
+      out <- list(
         ok = TRUE,
-        confirmed = TRUE,
-        n_questions = as.integer(confirmed$n_questions %||% 0L),
-        confirmed_at = as.character(confirmed$confirmed_at %||% "")
+        confirmed = confirmed,
+        n_questions = as.integer(review$choice_mapping$n_questions %||% 0L),
+        confirmed_at = as.character(mapping$confirmed_at %||% ""),
+        base_nombre = review$base_nombre,
+        review = review
       )
+      if (!confirmed) out$message <- "No hay mapeos pendientes por confirmar."
+      out
+    })) |>
+
+    plumber::pr_get("/api/carga/review/summary", wrap_endpoint(function(req, res) {
+      c(list(ok = TRUE), .carga_review_summary_payload(session_header(req)))
+    })) |>
+
+    plumber::pr_get("/api/carga/review", wrap_endpoint(function(req, res, base_nombre = NULL) {
+      sid <- session_header(req)
+      payload <- .carga_review_payload(sid, base_nombre = base_nombre)
+      c(list(ok = TRUE), payload)
+    })) |>
+
+    plumber::pr_post("/api/carga/review/reconciliation", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .carga_parse_json_body(req)
+      payload <- .carga_review_set_reconciliation(
+        sid,
+        base_nombre = body$base_nombre %||% NULL,
+        incluidas = .as_chr_vec(body$incluidas)
+      )
+      c(list(ok = TRUE), payload)
     })) |>
 
     plumber::pr_get("/api/carga/data/normalized-export", wrap_endpoint(function(req, res, format = "xlsx", base_nombre = NULL) {

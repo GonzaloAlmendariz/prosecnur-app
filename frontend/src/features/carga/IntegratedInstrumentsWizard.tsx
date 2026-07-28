@@ -4,6 +4,7 @@ import {
   FileText, GitMerge, Layers, Loader2, Plus, RefreshCw, Search, Trash2,
 } from "lucide-react";
 import {
+  apiConnectionTokenLoad,
   apiMultiIntegratedAudit,
   apiMultiIntegratedDecisionsDocx,
   apiMultiIntegratedDraftClear,
@@ -12,6 +13,7 @@ import {
   apiMultiIntegratedImport,
   apiSurveyMonkeyMultibaseListSurveys,
   apiUpload,
+  ConnectionTokenState,
   EstudioPayload,
   MultiIntegratedAudit,
   MultiIntegratedDecisions,
@@ -38,6 +40,7 @@ type DraftOrigin = MultiIntegratedOrigin & {
 
 type Props = {
   canonicalOptions: CanonicalOption[];
+  plannedInputCount: number;
   disabled?: boolean;
   onImported: (payload: EstudioPayload) => Promise<void>;
 };
@@ -90,6 +93,56 @@ function makeManualOrigin(): DraftOrigin {
     key_value: "",
     label: "",
   };
+}
+
+function makeManualOrigins(plannedInputCount: number): DraftOrigin[] {
+  const initialCount = Math.max(1, Math.trunc(plannedInputCount) || 1);
+  return Array.from({ length: initialCount }, () => makeManualOrigin());
+}
+
+function originHasContent(row: DraftOrigin): boolean {
+  return [
+    row.key_value,
+    row.label,
+    row.xlsform_file_id,
+    row.data_file_id,
+    row.survey_id,
+    row.xlsformFileName,
+    row.dataFileName,
+    row.surveyTitle,
+  ].some((value) => String(value ?? "").trim().length > 0);
+}
+
+function reconcileManualOrigins(rows: DraftOrigin[], plannedInputCount: number): DraftOrigin[] {
+  const planned = Math.max(1, Math.trunc(plannedInputCount) || 1);
+  if (rows.length < planned) {
+    return [...rows, ...makeManualOrigins(planned - rows.length)];
+  }
+  if (rows.length === planned) return rows;
+
+  const next = [...rows];
+  let removable = rows.length - planned;
+  for (let index = next.length - 1; index >= 0 && removable > 0; index -= 1) {
+    if (originHasContent(next[index])) continue;
+    next.splice(index, 1);
+    removable -= 1;
+  }
+  return next.length === rows.length ? rows : next;
+}
+
+function resolveSurveyMonkeyProfileId(
+  connection: ConnectionTokenState,
+  requestedProfileId = "",
+): string {
+  const profiles = (connection.profiles ?? []).filter((profile) => profile.has_token);
+  if (requestedProfileId && profiles.some((profile) => profile.id === requestedProfileId)) {
+    return requestedProfileId;
+  }
+  const activeProfileId = String(connection.active_profile_id ?? "").trim();
+  if (activeProfileId && (!profiles.length || profiles.some((profile) => profile.id === activeProfileId))) {
+    return activeProfileId;
+  }
+  return profiles.find((profile) => profile.is_default)?.id ?? profiles[0]?.id ?? "";
 }
 
 function makeSurveyMonkeyOrigin(item: SurveyMonkeyMultibaseListItem): DraftOrigin {
@@ -318,7 +371,7 @@ function diffSummary(groups: DiffGroup[]) {
   return out;
 }
 
-export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImported }: Props) {
+export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCount, disabled, onImported }: Props) {
   const canonicalSignature = canonicalOptions.map((option) => `${option.fileId}:${option.label}`).join("|");
   const [sourceMode, setSourceMode] = useState<IntegratedSourceMode>("manual");
   const [guideOptions, setGuideOptions] = useState<CanonicalOption[]>(canonicalOptions);
@@ -326,9 +379,11 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
   const [guideSurveyId, setGuideSurveyId] = useState("");
   const [originKeyName, setOriginKeyName] = useState("origen");
   const [baseName, setBaseName] = useState("base_integrada");
-  const [rows, setRows] = useState<DraftOrigin[]>([makeManualOrigin(), makeManualOrigin()]);
+  const [rows, setRows] = useState<DraftOrigin[]>(() => makeManualOrigins(plannedInputCount));
   const [surveys, setSurveys] = useState<SurveyMonkeyMultibaseListItem[] | null>(null);
   const [surveyMeta, setSurveyMeta] = useState<{ totalRecent: number; months: number } | null>(null);
+  const [smConnection, setSmConnection] = useState<ConnectionTokenState | null>(null);
+  const [selectedSmProfileId, setSelectedSmProfileId] = useState("");
   const [query, setQuery] = useState("");
   const [audit, setAudit] = useState<MultiIntegratedAudit | null>(null);
   const [decisions, setDecisions] = useState<MultiIntegratedDecisions>({ resolved_ids: [] });
@@ -344,6 +399,8 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
   const draftQueuedRef = useRef(false);
   const draftEpochRef = useRef(0);
   const hasGuide = guideOptions.length > 0;
+  const plannedOriginLimit = Math.max(1, Math.trunc(plannedInputCount) || 1);
+  const plannedOriginRemaining = Math.max(0, plannedOriginLimit - rows.length);
   const orderedRows = useMemo(() => {
     if (!guideSurveyId) return rows;
     return [...rows].sort((a, b) => {
@@ -354,13 +411,33 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
   }, [rows, guideSurveyId]);
   const origins = useMemo(() => compactOrigins(orderedRows), [orderedRows]);
   const hasIncompleteOrigins = rows.length > 0 && origins.length !== rows.length;
+  const hasExactPlannedOrigins = rows.length === plannedOriginLimit
+    && origins.length === plannedOriginLimit;
   const needsGuideSurveyLink = sourceMode === "surveymonkey" && rows.some((row) => row.source_kind === "surveymonkey") && !guideSurveyId;
-  const canAudit = hasGuide && origins.length > 0 && !hasIncompleteOrigins && !needsGuideSurveyLink && !busy && !disabled;
+  const canAudit = hasGuide && hasExactPlannedOrigins && !needsGuideSurveyLink && !busy && !disabled;
   const unresolved = pendingDiffs(audit, decisions);
-  const canImport = !!audit?.ok && unresolved.length === 0 && origins.length > 0 && !hasIncompleteOrigins && !needsGuideSurveyLink && !busy && !disabled;
+  const canImport = !!audit?.ok
+    && audit.n_origins === plannedOriginLimit
+    && unresolved.length === 0
+    && hasExactPlannedOrigins
+    && !needsGuideSurveyLink
+    && !busy
+    && !disabled;
   const selectedSurveyIds = useMemo(() => new Set(rows.map((row) => row.survey_id).filter(Boolean)), [rows]);
   const guideSurvey = useMemo(() => rows.find((row) => row.survey_id === guideSurveyId), [rows, guideSurveyId]);
   const selectedGuideLabel = guideOptions.find((option) => option.fileId === guideFileId)?.label ?? "Sin guía";
+  const selectedSmProfileLabel = smConnection?.profiles?.find(
+    (profile) => profile.id === selectedSmProfileId,
+  )?.alias || smConnection?.active_profile_alias || "Predeterminado";
+  const originPlanMessage = rows.length < plannedOriginLimit
+    ? `Faltan ${plannedOriginLimit - rows.length} ${plannedOriginLimit - rows.length === 1 ? "origen" : "orígenes"} por agregar.`
+    : rows.length > plannedOriginLimit
+      ? `Sobran ${rows.length - plannedOriginLimit} ${rows.length - plannedOriginLimit === 1 ? "fila conservada" : "filas conservadas"}; quítalas o amplía el plan.`
+      : origins.length < plannedOriginLimit
+        ? `Falta completar ${plannedOriginLimit - origins.length} ${plannedOriginLimit - origins.length === 1 ? "origen" : "orígenes"}.`
+        : audit && audit.n_origins !== plannedOriginLimit
+          ? `La auditoría corresponde a ${audit.n_origins} orígenes; vuelve a auditar los ${plannedOriginLimit} planificados.`
+          : "Plan completo.";
   const visibleSurveys = useMemo(
     () => (surveys ?? []).filter((item) => surveyMatchesQuery(item, query)),
     [surveys, query],
@@ -473,7 +550,9 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
           setBaseName(draft.base_name || "base_integrada");
           setQuery(draft.query ?? "");
           const savedRows = draftRows(draft.rows);
-          setRows(savedRows.length ? savedRows : (draft.source_mode === "surveymonkey" ? [] : [makeManualOrigin(), makeManualOrigin()]));
+          setRows(draft.source_mode === "surveymonkey"
+            ? savedRows
+            : reconcileManualOrigins(savedRows, plannedOriginLimit));
           setAudit(draft.audit ?? null);
           setDecisions(draft.decisions ?? { resolved_ids: [] });
           setDraftStatus("saved");
@@ -540,6 +619,14 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sourceMode]);
 
+  useEffect(() => {
+    if (sourceMode !== "manual") return;
+    setRows((current) => reconcileManualOrigins(current, plannedOriginLimit));
+    setAudit(null);
+    setDecisions({ resolved_ids: [] });
+    setActiveWordingTabs({});
+  }, [plannedOriginLimit, sourceMode]);
+
   function resetAudit() {
     setAudit(null);
     setDecisions({ resolved_ids: [] });
@@ -550,7 +637,7 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
     if (mode === sourceMode) return;
     setSourceMode(mode);
     setGuideSurveyId("");
-    setRows(mode === "manual" ? [makeManualOrigin(), makeManualOrigin()] : []);
+    setRows(mode === "manual" ? makeManualOrigins(plannedOriginLimit) : []);
     resetAudit();
   }
 
@@ -594,11 +681,32 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
     }
   }
 
-  async function loadSurveys(forceRefresh = false) {
+  async function loadSurveyMonkeyProfile(requestedProfileId = selectedSmProfileId) {
+    const connection = await apiConnectionTokenLoad("surveymonkey");
+    const profileId = resolveSurveyMonkeyProfileId(connection, requestedProfileId);
+    setSmConnection(connection);
+    setSelectedSmProfileId(profileId);
+    return profileId;
+  }
+
+  function selectSurveyMonkeyProfile(profileId: string) {
+    if (!profileId || profileId === selectedSmProfileId) return;
+    setSelectedSmProfileId(profileId);
+    setSurveys([]);
+    setSurveyMeta(null);
+    resetAudit();
+    void loadSurveys(false, profileId);
+  }
+
+  async function loadSurveys(forceRefresh = false, requestedProfileId = selectedSmProfileId) {
     setError("");
     setBusy(forceRefresh ? "Actualizando catálogo SurveyMonkey..." : "Leyendo catálogo local SurveyMonkey...");
     try {
-      const result = await apiSurveyMonkeyMultibaseListSurveys("", 500, 6, { forceRefresh });
+      const profileId = await loadSurveyMonkeyProfile(requestedProfileId);
+      const result = await apiSurveyMonkeyMultibaseListSurveys("", 500, 6, {
+        forceRefresh,
+        profile_id: profileId || undefined,
+      });
       setSurveys(result.surveys);
       setSurveyMeta({ totalRecent: result.total_recent, months: result.months });
       if (!result.surveys.length) setError("No encontré encuestas modificadas en los últimos 6 meses.");
@@ -610,8 +718,12 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
   }
 
   function toggleSurvey(item: SurveyMonkeyMultibaseListItem) {
-    resetAudit();
     const alreadySelected = rows.some((row) => row.survey_id === item.id);
+    if (!alreadySelected && rows.length >= plannedOriginLimit) {
+      setError(`El plan admite ${plannedOriginLimit} orígenes. Quita uno o amplía el plan antes de agregar otra encuesta.`);
+      return;
+    }
+    resetAudit();
     setRows((prev) => {
       if (prev.some((row) => row.survey_id === item.id)) return prev.filter((row) => row.survey_id !== item.id);
       return [...prev.filter((row) => row.source_kind === "surveymonkey"), makeSurveyMonkeyOrigin(item)];
@@ -624,13 +736,21 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
   }
 
   async function runAudit() {
+    if (!hasExactPlannedOrigins) {
+      setError(originPlanMessage);
+      return;
+    }
     setError("");
     setBusy("Auditando instrumentos hermanos...");
     try {
+      const profileId = sourceMode === "surveymonkey"
+        ? await loadSurveyMonkeyProfile()
+        : "";
       const result = await apiMultiIntegratedAudit({
         guide_xlsform_file_id: guideFileId,
         origin_key_name: originKeyName,
         origins,
+        profile_id: profileId || undefined,
       });
       setAudit(result);
       setDecisions({ resolved_ids: [] });
@@ -677,16 +797,24 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
 
   async function runImport() {
     if (!audit) return;
+    if (!hasExactPlannedOrigins || audit.n_origins !== plannedOriginLimit) {
+      setError(originPlanMessage);
+      return;
+    }
     setError("");
     setBusy("Importando base integrada...");
     try {
       draftEpochRef.current += 1;
+      const profileId = sourceMode === "surveymonkey"
+        ? await loadSurveyMonkeyProfile()
+        : "";
       const result = await apiMultiIntegratedImport({
         guide_xlsform_file_id: guideFileId,
         origin_key_name: originKeyName,
         origins,
         base_name: baseName,
         decisions,
+        profile_id: profileId || undefined,
       });
       setAudit(result.audit);
       await onImported(result.estudio);
@@ -823,6 +951,41 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
         )}
       </div>
 
+      {sourceMode === "surveymonkey" && (
+        <div className="pulso-sm-token-strip" aria-label="Perfil SurveyMonkey para la integración">
+          <div className="pulso-sm-token-strip-main">
+            <Cloud size={14} aria-hidden="true" />
+            <span>
+              <strong>SurveyMonkey</strong>
+              {smConnection?.has_token
+                ? `Perfil seleccionado: ${selectedSmProfileLabel}`
+                : "Se usará el perfil predeterminado disponible"}
+            </span>
+          </div>
+          {!!smConnection?.profiles?.length && (
+            <div className="pulso-sm-token-profiles" aria-label="Perfiles SurveyMonkey disponibles">
+              {smConnection.profiles.map((profile) => (
+                <button
+                  key={profile.id}
+                  type="button"
+                  className={profile.id === selectedSmProfileId ? "is-active" : ""}
+                  disabled={!!busy || disabled || !profile.has_token || profile.id === selectedSmProfileId}
+                  onClick={() => selectSurveyMonkeyProfile(profile.id)}
+                  title={profile.has_token ? `Usar ${profile.alias}` : `${profile.alias} no tiene credencial guardada`}
+                >
+                  {profile.alias}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className={`pulso-carga-plan-progress${rows.length > plannedOriginLimit ? " is-over" : ""}`} role="status">
+        <strong>{rows.length}/{plannedOriginLimit} orígenes configurados</strong>
+        <span>{originPlanMessage}</span>
+      </div>
+
       {sourceMode === "manual" ? (
         <div className="pulso-integrated-manual">
           {rows.map((row, index) => (
@@ -864,7 +1027,12 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
               </button>
             </div>
           ))}
-          <button type="button" className="pulso-sm-secondary" onClick={() => { setRows((prev) => [...prev, makeManualOrigin()]); resetAudit(); }}>
+          <button
+            type="button"
+            className="pulso-sm-secondary"
+            disabled={!!busy || disabled || plannedOriginRemaining <= 0}
+            onClick={() => { setRows((prev) => [...prev, makeManualOrigin()]); resetAudit(); }}
+          >
             <Plus size={13} /> Agregar origen
           </button>
         </div>
@@ -919,6 +1087,7 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
             <button
               type="button"
               className="pulso-sm-secondary"
+              disabled={!!busy || disabled || plannedOriginRemaining <= 0}
               onClick={() => setRows((prev) => [...prev, {
                 localId: `sm-manual-${Date.now()}`,
                 source_kind: "surveymonkey",

@@ -3,24 +3,18 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("Multibase strategy semantics", () => {
-  it("exposes work modes as pressed buttons with non-activating roving focus", () => {
+  it("presenta en Fuentes la estrategia de Plan como estado no interactivo", () => {
     const source = fs.readFileSync(
       path.join(__dirname, "BasesPanel.tsx"),
       "utf8",
     );
     const anchor = source.indexOf('aria-label="Forma de trabajar varias bases"');
-    const selector = source.slice(
-      source.lastIndexOf("<GlidingTabList", anchor),
-      source.indexOf("</GlidingTabList>", anchor),
-    );
+    const selector = source.slice(source.lastIndexOf("<div", anchor), source.indexOf("</div>", anchor));
 
-    expect(selector).toContain('role="group"');
-    expect(selector).toContain('mode="tabs"');
-    expect(selector).toContain("aria-pressed=");
-    expect(selector).toContain("requestStrategyChange(");
-    expect(selector).not.toContain('role="tablist"');
-    expect(selector).not.toContain('role="tab"');
-    expect(selector).not.toContain("aria-selected=");
-    expect(selector).not.toContain("onKeyDown=");
+    expect(anchor).toBeGreaterThan(-1);
+    expect(selector).toContain('role="status"');
+    expect(selector).toContain("Estrategia fijada en Plan");
+    expect(selector).not.toContain("<button");
+    expect(selector).not.toContain("requestStrategyChange(");
   });
 });

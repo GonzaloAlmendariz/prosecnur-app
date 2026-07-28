@@ -33,6 +33,11 @@ import {
   apiMonitoreoTerritorialSource,
   apiMonitoreoTerritorialUmpReconciliation,
   apiUpload,
+  apiCargaMonitoreoHandoffPromote,
+  apiCargaReview,
+  apiCargaReviewSummary,
+  apiCargaReviewReconciliation,
+  apiCargaConfirmChoiceMapping,
   apiCargaRefreshKoboIndependent,
   apiCargaProcessingIntake,
   apiCargaProcessingIntakeSave,
@@ -116,6 +121,265 @@ const workbook: XlsformEditorWorkbook = {
   },
   paper: paperSheet,
 };
+
+describe("Carga review client", () => {
+  beforeEach(() => {
+    vi.stubGlobal("localStorage", makeLocalStorage());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  test("scopes review and reconciliation to the same base and normalizes an unsafe payload", async () => {
+    const calls: Array<{ url: string; method: string; body?: unknown }> = [];
+    const rawReview = {
+      ok: true,
+      base_nombre: "A",
+      compatibility: {
+        applied: true,
+        ok: false,
+        status: "incompatible",
+        missing_columns: ["q_ausente", null, 7],
+        extra_columns: null,
+        matched_columns: "3",
+        expected_columns: "4",
+        n_missing: "1",
+        n_extra: null,
+        message: "Falta una variable requerida.",
+      },
+      choice_mapping: {
+        status: "pending",
+        pending: true,
+        applied: true,
+        requires_confirmation: true,
+        n_questions: "1",
+        maps: [{
+          variable: "p1",
+          label: "Pregunta 1",
+          type: "select_one",
+          list_name: "lista_p1",
+          status: "match_review",
+          high_confidence: true,
+          requires_confirmation: true,
+          mappings: [{
+            source_code: "01",
+            source_column: "p1",
+            source_label: "Sí",
+            xls_code: "1",
+            xls_label: "Sí",
+            match: "label",
+          }],
+        }],
+      },
+      reconciliation: {
+        extra: [
+          {
+            name: "auxiliar",
+            fill_pct: "25.5",
+            n_fill: "3",
+            kind: "con_datos",
+            incluida: false,
+            decision: "pending",
+          },
+          null,
+        ],
+        n_extra: "1",
+        n_incluidas: null,
+        n_excluidas: "0",
+        n_pendientes: "1",
+        reviewed: false,
+      },
+      // Un cliente defensivo no deja que un `ready` remoto incoherente oculte
+      // incompatibilidad ni decisiones pendientes.
+      ready: true,
+    };
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({
+        url: String(input),
+        method: init?.method ?? "GET",
+        ...(init?.body ? { body: JSON.parse(String(init.body)) } : {}),
+      });
+      return jsonResponse(rawReview);
+    }));
+
+    const loaded = await apiCargaReview("A");
+    const saved = await apiCargaReviewReconciliation("A", ["auxiliar"]);
+
+    expect(calls).toEqual([
+      { url: "/api/carga/review?base_nombre=A", method: "GET" },
+      {
+        url: "/api/carga/review/reconciliation",
+        method: "POST",
+        body: { base_nombre: "A", incluidas: ["auxiliar"] },
+      },
+    ]);
+    for (const review of [loaded, saved]) {
+      expect(review.compatibility).toMatchObject({
+        ok: false,
+        missing_columns: ["q_ausente"],
+        extra_columns: [],
+        matched_columns: 3,
+        expected_columns: 4,
+        n_missing: 1,
+        n_extra: 0,
+      });
+      expect(review.choice_mapping).toEqual({
+        status: "pending",
+        pending: true,
+        applied: true,
+        requires_confirmation: true,
+        n_questions: 1,
+        maps: [{
+          variable: "p1",
+          label: "Pregunta 1",
+          type: "select_one",
+          list_name: "lista_p1",
+          status: "match_review",
+          high_confidence: true,
+          requires_confirmation: true,
+          mappings: [{
+            source_code: "01",
+            source_column: "p1",
+            source_label: "Sí",
+            xls_code: "1",
+            xls_label: "Sí",
+            match: "label",
+          }],
+        }],
+      });
+      expect(review.reconciliation).toMatchObject({
+        n_extra: 1,
+        n_incluidas: 0,
+        n_excluidas: 0,
+        n_pendientes: 1,
+        reviewed: false,
+        extra: [{
+          name: "auxiliar",
+          fill_pct: 25.5,
+          n_fill: 3,
+          kind: "con_datos",
+          incluida: false,
+          decision: "pending",
+        }],
+      });
+      expect(review.ready).toBe(false);
+    }
+  });
+
+  test("normalizes the aggregate summary and rejects dishonest all-ready states", async () => {
+    const responses = [
+      { bases: [], n_bases: "0", n_ready: "0", n_blocked: "0", all_ready: true },
+      {
+        bases: [{ base_nombre: "A", ready: true, blockers: [] }],
+        n_bases: "2",
+        n_ready: "2",
+        n_blocked: "0",
+        all_ready: true,
+      },
+      {
+        bases: [
+          { base_nombre: "A", ready: true, blockers: [] },
+          { base_nombre: "B", ready: false, blockers: ["compatibility"] },
+        ],
+        n_bases: "2",
+        n_ready: "1",
+        n_blocked: "1",
+        all_ready: true,
+      },
+    ];
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => (
+      jsonResponse(responses.shift())
+    ));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const empty = await apiCargaReviewSummary();
+    const inconsistent = await apiCargaReviewSummary();
+    const blocked = await apiCargaReviewSummary();
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    for (const [url, init] of fetchMock.mock.calls) {
+      expect(url).toBe("/api/carga/review/summary");
+      expect(init).toEqual(expect.objectContaining({ headers: expect.any(Object) }));
+    }
+    expect(empty).toMatchObject({ bases: [], n_bases: 0, n_ready: 0, n_blocked: 0, all_ready: false });
+    expect(inconsistent.all_ready).toBe(false);
+    expect(blocked).toEqual({
+      bases: [
+        { base_nombre: "A", ready: true, blockers: [] },
+        { base_nombre: "B", ready: false, blockers: ["compatibility"] },
+      ],
+      n_bases: 2,
+      n_ready: 1,
+      n_blocked: 1,
+      all_ready: false,
+    });
+  });
+
+  test("keeps a confirmed choice mapping resolved even when its maps retain detection flags", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({
+      ok: true,
+      base_nombre: "A",
+      compatibility: {
+        applied: true,
+        ok: true,
+        status: "compatible",
+        missing_columns: [],
+        extra_columns: [],
+        n_missing: 0,
+        n_extra: 0,
+      },
+      choice_mapping: {
+        status: "confirmed",
+        pending: false,
+        applied: true,
+        requires_confirmation: false,
+        n_questions: 1,
+        maps: [{
+          variable: "p1",
+          requires_confirmation: true,
+          mappings: [],
+        }],
+      },
+      reconciliation: {
+        extra: [],
+        n_extra: 0,
+        n_incluidas: 0,
+        n_excluidas: 0,
+        n_pendientes: 0,
+        reviewed: true,
+      },
+      ready: true,
+    })));
+
+    const review = await apiCargaReview("A");
+
+    expect(review.choice_mapping).toMatchObject({
+      status: "confirmed",
+      pending: false,
+      requires_confirmation: false,
+      n_questions: 1,
+    });
+    expect(review.choice_mapping.maps[0]?.requires_confirmation).toBe(true);
+    expect(review.ready).toBe(true);
+  });
+
+  test("confirms choice mapping for the selected base while preserving legacy null scope", async () => {
+    const bodies: unknown[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return jsonResponse({ ok: true, confirmed: true });
+    }));
+
+    await apiCargaConfirmChoiceMapping("A");
+    await apiCargaConfirmChoiceMapping();
+
+    expect(bodies).toEqual([
+      { base_nombre: "A" },
+      { base_nombre: null },
+    ]);
+  });
+});
 
 function makeLocalStorage() {
   const store = new Map<string, string>();
@@ -1501,6 +1765,23 @@ describe("Monitoreo client", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  test("normalizes an optional monitoring handoff source id", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return jsonResponse({ ok: true });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiCargaMonitoreoHandoffPromote({ source_id: "  fuente-territorial  " });
+    await apiCargaMonitoreoHandoffPromote({ source_id: "   " });
+
+    expect(bodies).toEqual([
+      { source_id: "fuente-territorial" },
+      {},
+    ]);
   });
 
   test("can request lightweight and full monitoring state", async () => {

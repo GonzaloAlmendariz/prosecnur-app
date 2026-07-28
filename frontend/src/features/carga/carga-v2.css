@@ -1121,6 +1121,21 @@
   opacity: 0.68;
 }
 
+/* En multibase, el acceso a Monitoreo es una decisión metodológica y no un
+ * atajo frecuente: ambos nombres permanecen visibles para que la operación sea
+ * deliberada incluso antes de hover/foco. */
+.pulso-carga-multibase-origin-tabs.pulso-compact-tabs .pulso-compact-tab {
+  flex-basis: auto;
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+.pulso-carga-multibase-origin-tabs .pulso-carga-tab-label {
+  max-width: 126px;
+  opacity: 1;
+  transform: translateX(0);
+}
+
 .pulso-platform-provider-tabs.pulso-compact-tabs .pulso-compact-tab:is(:hover, :focus-visible, .is-active) .pulso-platform-provider-label {
   max-width: 112px;
 }
@@ -1604,42 +1619,6 @@
 @keyframes cga-fade-in-up {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-
-/* Estado informativo: Monitoreo detectó varios públicos, pero las bases aún
- * no existen. No imita un switch ni activa el modo multibase. */
-.pulso-carga-frame .pulso-carga-commandbar .pulso-multibase-toggle.is-planned {
-  flex: 1 1 360px;
-  min-width: 0;
-  max-width: 620px;
-  justify-content: flex-start;
-  gap: 9px;
-  padding: 6px 9px;
-  border: 1px solid var(--pulso-primary-border);
-  border-radius: 10px;
-  background: var(--pulso-primary-soft);
-}
-
-.pulso-carga-frame .pulso-multibase-planned-icon {
-  display: grid;
-  flex: 0 0 auto;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: var(--pulso-surface);
-  color: var(--pulso-primary);
-}
-
-.pulso-carga-frame .pulso-multibase-toggle.is-planned .pulso-multibase-toggle-title {
-  color: var(--pulso-primary);
-  font-size: 12px;
-}
-
-.pulso-carga-frame .pulso-multibase-toggle.is-planned .pulso-multibase-toggle-hint {
-  max-width: none;
-  color: var(--pulso-text-soft);
-  font-size: 11px;
 }
 
 /* ── Plan de ingreso: revisiones publicadas antes de crear bases ───────── */
@@ -4398,6 +4377,15 @@
   .pulso-carga-frame .pulso-carga-content--framed {
     grid-template-rows: auto auto;
   }
+
+  /* El resumen es un grid item con overflow recortado para conservar el
+     radio. Sin mínimo intrínseco, la fila flexible podía reducirlo a 125 px y
+     esconder los hallazgos. Al conservar su alto de contenido, el scroll
+     único del PageFrame recibe el excedente. */
+  .pulso-carga-frame .pulso-carga-review-summary {
+    align-self: start;
+    min-height: max-content;
+  }
 }
 
 /* ── Accesibilidad ─────────────────────────────────────────────────────── */
@@ -4429,12 +4417,48 @@
   margin-bottom: 0;
 }
 
-.pulso-carga-suitebar-kicker {
-  color: var(--carga-suite-accent);
-  font-size: 10px;
+.pulso-carga-frame .pulso-carga-plan-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 390px);
+  align-items: center;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+}
+
+.pulso-carga-frame .pulso-carga-plan-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pulso-carga-frame .pulso-carga-plan-copy strong {
+  color: var(--pulso-text);
+  font-size: 15px;
   font-weight: var(--pulso-weight-heavy);
-  line-height: 1.1;
-  text-transform: uppercase;
+  line-height: 1.25;
+}
+
+.pulso-carga-frame .pulso-carga-plan-copy p {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.pulso-carga-frame .pulso-carga-plan-panel > .pulso-multibase-toggle {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+@media (max-width: 1050px) {
+  .pulso-carga-frame .pulso-carga-plan-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .pulso-carga-workspace-sidebar .pulso-carga-tab-label {
@@ -8134,32 +8158,1344 @@
   color: var(--pulso-success-fg);
 }
 
-/* Toggle de varias bases en su forma compacta, para la banda del módulo. La forma
- * larga —título más párrafo de ayuda— mide dos líneas, y la banda no crece de
- * alto: acá la explicación vive en el tooltip. */
-.pulso-multibase-toggle.is-compact {
-  /* El margen inferior de la forma larga era para separarla del contenido del
-     cuerpo; dentro de la banda sumaba 18px de alto y la subía a 60. */
-  margin: 0;
+/* =========================================================================
+   Superficies conceptuales de Carga
+   ========================================================================= */
+
+.pulso-carga-surface {
+  min-width: 0;
+}
+
+.pulso-carga-sources {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+/* La pestaña activa se nombra en el workbench; el rail lateral permanece
+ * icon-only y reserva sus palabras para tooltip/foco. */
+.pulso-carga-workspace-header {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-module-processing-border, var(--pulso-border));
+  border-radius: var(--pulso-radius-panel);
+  background: color-mix(
+    in srgb,
+    var(--pulso-module-processing-soft, var(--pulso-surface-2)) 62%,
+    var(--pulso-surface)
+  );
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-carga-workspace-header-icon {
+  width: 34px;
+  height: 34px;
   display: inline-flex;
-  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--pulso-module-processing-border, var(--pulso-border));
+  border-radius: 9px;
+  background: var(--pulso-surface);
+  color: var(--pulso-module-processing, var(--pulso-primary));
+}
+
+.pulso-carga-workspace-header-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.pulso-carga-workspace-header-kicker {
+  color: var(--pulso-text-soft);
+  font-size: 9px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.pulso-carga-workspace-header-title {
+  min-width: 0;
+  display: flex;
   align-items: center;
   gap: 8px;
-  min-height: var(--pulso-chrome-control-h);
-  padding: 0 4px 0 11px;
-  border: 1px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 26%, var(--pulso-border));
+}
+
+.pulso-carga-workspace-header-title h2,
+.pulso-carga-workspace-header-copy p {
+  margin: 0;
+}
+
+.pulso-carga-workspace-header-title h2 {
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.2;
+}
+
+.pulso-carga-workspace-header-state {
+  min-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1;
   white-space: nowrap;
 }
 
-.pulso-multibase-toggle.is-compact .pulso-multibase-toggle-title {
+.pulso-carga-workspace-header[data-workspace-state="ready"] .pulso-carga-workspace-header-state {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-carga-workspace-header[data-workspace-state="attention"] .pulso-carga-workspace-header-state {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-carga-workspace-header-copy p {
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* En Plan, el contexto ocupa la fila intrínseca y la superficie toma el resto.
+ * Así la capacidad 0/1/pocas/muchas queda dentro de Cobertura. */
+.pulso-carga-content.is-plan {
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
+  overflow: hidden;
+}
+
+.pulso-carga-content--framed.is-plan > .pulso-carga-scrollarea {
+  grid-template-rows: minmax(0, 1fr);
+  align-content: stretch;
+  overflow: hidden;
+}
+
+/* Plan: una mesa de topología y cobertura, no un segundo flujo de carga. */
+.pulso-carga-plan-overview {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+  min-height: 100%;
+}
+
+.pulso-carga-plan-topology,
+.pulso-carga-plan-coverage {
+  min-width: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-carga-plan-topology {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.pulso-carga-plan-heading {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: start;
+  gap: 11px;
+  min-width: 0;
+}
+
+.pulso-carga-plan-heading-icon,
+.pulso-carga-plan-row-state,
+.pulso-carga-review-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pulso-module-processing, var(--pulso-primary));
+  border: 1px solid var(--pulso-module-processing-border, var(--pulso-primary-border));
+  background: var(--pulso-module-processing-soft, var(--pulso-primary-soft));
+}
+
+.pulso-carga-plan-heading-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+
+.pulso-carga-plan-heading h2,
+.pulso-carga-review-head h2,
+.pulso-carga-plan-coverage-head h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.22;
+}
+
+.pulso-carga-plan-heading h2,
+.pulso-carga-review-head h2 {
+  font-size: 15px;
+}
+
+.pulso-carga-plan-heading p,
+.pulso-carga-review-head p {
+  margin: 3px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  line-height: 1.42;
+}
+
+.pulso-carga-plan-heading p {
+  max-width: 64ch;
+}
+
+.pulso-carga-plan-control,
+.pulso-carga-topology-decision {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+.pulso-carga-topology-decision {
+  display: grid;
+  gap: 10px;
+}
+
+.pulso-carga-topology-mode,
+.pulso-carga-topology-strategies {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.pulso-carga-topology-mode legend,
+.pulso-carga-topology-strategies legend {
+  margin-bottom: 6px;
+  padding: 0;
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.25;
+}
+
+.pulso-carga-topology-mode-gallery,
+.pulso-carga-topology-strategy-gallery {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pulso-carga-topology-mode-gallery {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pulso-carga-topology-strategy-gallery {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pulso-carga-topology-mode-gallery > label,
+.pulso-carga-topology-strategy-gallery > label {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 16px 28px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-carga-topology-mode-gallery > label {
+  min-height: 64px;
+}
+
+.pulso-carga-topology-strategy-gallery > label {
+  min-height: 106px;
+}
+
+.pulso-carga-topology-mode-gallery > label:hover,
+.pulso-carga-topology-strategy-gallery > label:hover {
+  border-color: var(--pulso-border-strong);
+  background: var(--pulso-surface);
+}
+
+.pulso-carga-topology-mode-gallery > label:focus-within,
+.pulso-carga-topology-strategy-gallery > label:focus-within {
+  border-color: var(--pulso-module-processing-border, var(--pulso-primary-border));
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.pulso-carga-topology-mode-gallery > label.is-selected,
+.pulso-carga-topology-strategy-gallery > label.is-selected {
+  border-color: var(--pulso-module-processing-border, var(--pulso-primary-border));
+  background: var(--pulso-module-processing-soft, var(--pulso-primary-soft));
+}
+
+.pulso-carga-topology-mode-gallery input[type="radio"],
+.pulso-carga-topology-strategy-gallery input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  margin: 4px 0 0;
+  accent-color: var(--pulso-module-processing, var(--pulso-primary));
+}
+
+.pulso-carga-topology-mode:disabled label,
+.pulso-carga-topology-strategies:disabled label {
+  cursor: not-allowed;
+}
+
+.pulso-carga-topology-option-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-module-processing, var(--pulso-primary));
+}
+
+.pulso-carga-topology-option-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.pulso-carga-topology-option-copy strong {
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.25;
+}
+
+.pulso-carga-topology-option-copy small,
+.pulso-carga-topology-option-copy > span {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-medium);
+  line-height: 1.35;
+}
+
+.pulso-carga-topology-option-copy > span:first-of-type {
+  margin-top: 3px;
+}
+
+.pulso-carga-topology-option-copy b {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-carga-topology-selected {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 7px;
+  border: 1px solid var(--pulso-module-processing-border, var(--pulso-primary-border));
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-module-processing, var(--pulso-primary));
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.pulso-carga-topology-lock,
+.pulso-carga-topology-method-note {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-medium);
+  line-height: 1.35;
+}
+
+.pulso-carga-topology-lock {
+  padding: 7px 9px;
+  border: 1px solid var(--pulso-info-border);
+  border-radius: 8px;
+  background: var(--pulso-info-bg);
+  color: var(--pulso-info-fg);
+}
+
+.pulso-carga-topology-lock.is-conflict {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-carga-topology-lock svg,
+.pulso-carga-topology-method-note svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.pulso-carga-topology-plan-banner {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px;
+  border: 1px solid var(--pulso-module-processing-border, var(--pulso-primary-border));
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-module-processing-soft, var(--pulso-primary-soft));
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-carga-topology-plan-banner-icon {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--pulso-module-processing-border, var(--pulso-primary-border));
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  color: var(--pulso-module-processing, var(--pulso-primary));
+}
+
+.pulso-carga-topology-plan-banner h2,
+.pulso-carga-topology-plan-banner p,
+.pulso-carga-topology-plan-banner small {
+  margin: 0;
+}
+
+.pulso-carga-topology-plan-banner h2 {
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.25;
+}
+
+.pulso-carga-topology-plan-banner p {
+  margin-top: 3px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.pulso-carga-topology-plan-banner small {
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-medium);
+  line-height: 1.25;
+}
+
+.pulso-carga-topology-plan-action {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  border-color: var(--pulso-module-processing, var(--pulso-primary));
+  background: var(--pulso-module-processing, var(--pulso-primary));
+  color: var(--pulso-surface);
   font-size: 12px;
-  font-weight: var(--pulso-control-weight);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.pulso-carga-plan-coverage {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.pulso-carga-plan-coverage-head {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-carga-plan-coverage-head h3,
+.pulso-carga-structure-count {
+  font-size: 14px;
+}
+
+.pulso-carga-plan-metrics {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: 9px;
+  background: var(--pulso-surface);
+  overflow: hidden;
+}
+
+.pulso-carga-plan-metrics > div {
+  display: grid;
+  align-content: center;
+  gap: 1px;
+  min-width: 76px;
+  min-height: var(--pulso-control-height-lg);
+  padding: 4px 9px;
+  border-inline-start: 1px solid var(--pulso-border);
+}
+
+.pulso-carga-plan-metrics > div:first-child {
+  border-inline-start: 0;
+}
+
+.pulso-carga-plan-metrics dt,
+.pulso-carga-plan-metrics dd {
+  margin: 0;
+}
+
+.pulso-carga-plan-metrics dt {
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.pulso-carga-plan-metrics dd {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.2;
+}
+
+.pulso-carga-plan-metrics .is-ready dd {
+  color: var(--pulso-success-fg);
+}
+
+.pulso-carga-plan-metrics .is-attention dd {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-carga-plan-roster {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.pulso-carga-plan-roster[data-empty="true"],
+.pulso-carga-plan-roster[data-empty="true"] > ul {
+  min-height: 100%;
+}
+
+.pulso-carga-plan-roster[data-empty="true"] > ul {
+  display: grid;
+}
+
+.pulso-carga-plan-roster ul,
+.pulso-carga-review-checks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-carga-plan-roster li {
+  display: grid;
+  grid-template-columns: 30px minmax(210px, 1fr) minmax(108px, auto) minmax(108px, auto) minmax(96px, auto);
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-carga-plan-roster li:last-child {
+  border-bottom: 0;
+}
+
+.pulso-carga-plan-roster li.is-empty {
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-content: center;
+  min-height: 100%;
+  padding: 20px;
+  background: color-mix(
+    in srgb,
+    var(--pulso-module-processing-soft, var(--pulso-surface-2)) 28%,
+    var(--pulso-surface)
+  );
+}
+
+.pulso-carga-plan-empty-action {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 11px;
+  border: 1px solid var(--pulso-module-processing, var(--pulso-primary));
+  border-radius: 8px;
+  background: var(--pulso-module-processing, var(--pulso-primary));
+  color: var(--pulso-surface);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pulso-carga-plan-row-state {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+}
+
+.pulso-carga-plan-roster li.is-ready .pulso-carga-plan-row-state {
+  color: var(--pulso-success-fg);
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+}
+
+.pulso-carga-plan-roster li.is-attention .pulso-carga-plan-row-state {
+  color: var(--pulso-warn-fg);
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+.pulso-carga-plan-row-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-carga-plan-row-copy strong {
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-carga-plan-row-copy small {
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-carga-plan-asset,
+.pulso-carga-plan-row-label,
+.pulso-carga-review-scope {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.pulso-carga-plan-asset.is-ready,
+.pulso-carga-plan-roster li.is-ready .pulso-carga-plan-row-label {
+  color: var(--pulso-success-fg);
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+}
+
+.pulso-carga-plan-roster li.is-attention .pulso-carga-plan-row-label {
+  color: var(--pulso-warn-fg);
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+/* Revisión: contexto explícito por base y una bandeja compacta de incidencias. */
+.pulso-carga-review-toolbar {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.pulso-carga-review-base-field {
+  width: fit-content;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 6px 4px 10px;
+  border: 1px solid var(--pulso-module-processing-border, var(--pulso-border));
+  border-radius: 9px;
+  background: var(--pulso-module-processing-soft, var(--pulso-surface-2));
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-carga-review-base-field select {
+  min-width: min(220px, 48vw);
+  min-height: 28px;
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+.pulso-carga-review-toolbar > .pulso-carga-universe {
+  margin-top: 0;
+}
+
+.pulso-carga-review-mapping-button {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 6px 11px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 8px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font: inherit;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.pulso-carga-review-mapping-button:hover:not(:disabled) {
+  border-color: var(--pulso-warn-fg);
+}
+
+.pulso-carga-review-mapping-button:focus-visible {
+  outline: 2px solid var(--pulso-focus-ring);
+  outline-offset: 2px;
+}
+
+.pulso-carga-review-mapping-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.pulso-carga-review-summary {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(360px, auto);
+  gap: 0 16px;
+  min-width: 0;
+  margin-top: 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  overflow: hidden;
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-carga-review-summary.is-ready {
+  border-color: var(--pulso-success-border);
+}
+
+.pulso-carga-review-summary.is-attention {
+  border-color: var(--pulso-warn-border);
+}
+
+.pulso-carga-review-head {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 9px 12px;
+}
+
+.pulso-carga-review-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+
+.pulso-carga-review-summary.is-ready .pulso-carga-review-icon {
+  color: var(--pulso-success-fg);
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+}
+
+.pulso-carga-review-summary.is-attention .pulso-carga-review-icon {
+  color: var(--pulso-warn-fg);
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+.pulso-carga-review-scope {
+  align-self: start;
+  max-width: min(280px, 40vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pulso-carga-review-study-status {
+  grid-column: 1 / -1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-warn-fg);
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+
+.pulso-carga-review-study-status.is-ready {
+  color: var(--pulso-success-fg);
+}
+
+.pulso-carga-review-study-status strong {
+  color: currentColor;
+  font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
+}
+
+.pulso-carga-review-study-status span {
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  overflow-wrap: anywhere;
+}
+
+.pulso-carga-review-checks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(100px, 1fr));
+  align-items: stretch;
+  min-width: 0;
+  padding: 6px;
+  border-inline-start: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-carga-review-checks li {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 6px 8px;
+  color: var(--pulso-text-soft);
+  border-inline-start: 1px solid var(--pulso-border);
+}
+
+.pulso-carga-review-checks li:first-child {
+  border-inline-start: 0;
+}
+
+.pulso-carga-review-checks li.is-ready {
+  color: var(--pulso-success-fg);
+}
+
+.pulso-carga-review-checks li.is-attention {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-carga-review-checks li > span {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.pulso-carga-review-checks strong,
+.pulso-carga-review-checks small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-carga-review-checks strong {
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  line-height: 1.2;
+}
+
+.pulso-carga-review-checks small {
+  color: currentColor;
+  font-size: 9.5px;
+  line-height: 1.2;
+}
+
+.pulso-carga-review-findings {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 7px;
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  list-style: none;
+}
+
+.pulso-carga-review-findings li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  gap: 7px;
+  padding: 7px 8px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 8px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-carga-review-findings li.is-incompatible {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-carga-review-findings li > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.pulso-carga-review-findings strong,
+.pulso-carga-review-findings small {
+  overflow-wrap: anywhere;
+}
+
+.pulso-carga-review-findings strong {
+  color: currentColor;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.2;
+}
+
+.pulso-carga-review-findings small {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.pulso-carga-review-action {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-carga-review-action .pulso-continue-cta {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Estructura: navegación local persistente y una sola superficie a la vez. */
+.pulso-carga-structure-workbench {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 100%;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  overflow: hidden;
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-carga-structure-head {
+  display: grid;
+  grid-template-columns: max-content minmax(220px, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-carga-structure-copy,
+.pulso-carga-structure-schema {
+  min-width: 0;
+}
+
+.pulso-carga-structure-count {
+  display: block;
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.pulso-carga-structure-tabs {
+  display: inline-flex;
+  grid-column: -2 / -1;
+  align-items: center;
+  justify-self: end;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 9px;
+  background: var(--pulso-surface);
+}
+
+.pulso-carga-structure-tabs button {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.pulso-carga-structure-tabs button.is-active {
+  color: var(--pulso-module-processing, var(--pulso-primary));
+  border-color: var(--pulso-module-processing-border, var(--pulso-primary-border));
+  background: var(--pulso-module-processing-soft, var(--pulso-primary-soft));
+}
+
+.pulso-carga-structure-panel {
+  min-width: 0;
+  min-height: 0;
+  padding: 8px 10px;
+  overflow: auto;
+}
+
+.pulso-carga-section-list {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pulso-carga-section-row {
+  display: grid;
+  grid-template-columns: 52px minmax(220px, 1fr) auto minmax(180px, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: var(--pulso-surface);
+}
+
+.pulso-carga-section-row:nth-child(odd) {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-carga-section-prefix {
+  padding: 3px 7px;
+  border: 1px solid var(--pulso-module-processing-border, var(--pulso-primary-border));
+  border-radius: 4px;
+  background: var(--pulso-module-processing-soft, var(--pulso-primary-soft));
+  color: var(--pulso-module-processing, var(--pulso-primary));
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  text-align: center;
+}
+
+.pulso-carga-section-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.pulso-carga-section-label,
+.pulso-carga-section-name,
+.pulso-carga-section-condition {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-carga-section-label {
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-carga-section-name,
+.pulso-carga-section-condition {
+  color: var(--pulso-text-soft);
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+}
+
+.pulso-carga-section-condition {
   color: var(--pulso-text);
 }
 
-.pulso-multibase-toggle.is-compact.is-on {
-  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 48%, var(--pulso-border));
-  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 8%, var(--pulso-surface));
+.pulso-carga-section-flags {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pulso-carga-section-visibility {
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.pulso-carga-section-visibility.is-conditional {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.pulso-carga-section-condition-prefix {
+  margin-inline-end: 4px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-carga-section-condition-empty {
+  color: var(--pulso-text-soft);
+  opacity: 0.4;
+}
+
+@media (max-width: 1180px) {
+  .pulso-carga-plan-topology,
+  .pulso-carga-review-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pulso-carga-plan-coverage-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pulso-carga-plan-metrics {
+    width: 100%;
+  }
+
+  .pulso-carga-plan-metrics > div {
+    flex: 1 1 0;
+  }
+
+  .pulso-carga-topology-strategy-gallery {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pulso-carga-topology-strategy-gallery > label {
+    min-height: 0;
+  }
+
+  .pulso-carga-review-checks {
+    border-inline-start: 0;
+    border-top: 1px solid var(--pulso-border);
+  }
+
+  .pulso-carga-structure-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .pulso-carga-structure-schema {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 900px) {
+  .pulso-carga-topology-mode-gallery {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pulso-carga-topology-mode-gallery > label {
+    min-height: 0;
+  }
+
+  .pulso-carga-topology-plan-banner {
+    grid-template-columns: 36px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .pulso-carga-topology-plan-action {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .pulso-carga-plan-roster li {
+    grid-template-columns: 30px minmax(160px, 1fr) minmax(96px, auto) minmax(96px, auto);
+  }
+
+  .pulso-carga-plan-row-label {
+    grid-column: 2 / -1;
+    justify-self: start;
+  }
+
+  .pulso-carga-plan-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pulso-carga-plan-metrics > div:nth-child(odd) {
+    border-inline-start: 0;
+  }
+
+  .pulso-carga-plan-metrics > div:nth-child(n + 3) {
+    border-top: 1px solid var(--pulso-border);
+  }
+
+  .pulso-carga-review-checks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pulso-carga-review-checks li,
+  .pulso-carga-review-checks li:first-child {
+    border-inline-start: 0;
+    border-top: 1px solid var(--pulso-border);
+  }
+
+  .pulso-carga-review-checks li:first-child {
+    border-top: 0;
+  }
+
+  .pulso-carga-section-row {
+    grid-template-columns: 46px minmax(0, 1fr) auto;
+  }
+
+  .pulso-carga-section-condition {
+    grid-column: 2 / -1;
+    white-space: normal;
+  }
+}
+
+@media (max-height: 700px) {
+  .pulso-carga-content.is-plan,
+  .pulso-carga-content--framed.is-plan > .pulso-carga-scrollarea {
+    grid-template-rows: auto;
+    align-content: start;
+    overflow: visible;
+  }
+
+  .pulso-carga-plan-overview {
+    grid-template-rows: auto auto;
+    align-content: start;
+    gap: 8px;
+    min-height: auto;
+  }
+
+  .pulso-carga-plan-topology {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .pulso-carga-workspace-header {
+    padding-block: 7px;
+  }
+
+  .pulso-carga-plan-roster li.is-empty {
+    min-height: 112px;
+    padding: 14px;
+  }
+
+  .pulso-carga-topology-decision {
+    gap: 7px;
+  }
+
+  .pulso-carga-topology-mode-gallery > label,
+  .pulso-carga-topology-strategy-gallery > label {
+    padding-block: 7px;
+  }
+
+  .pulso-carga-section-row {
+    padding-block: 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-carga-topology-mode-gallery > label,
+  .pulso-carga-topology-strategy-gallery > label,
+  .pulso-carga-topology-plan-action {
+    transition: none;
+  }
+}
+
+/* En portátiles bajos, Preguntas debe mostrar contenido inspeccionable en el
+ * primer viewport. El resumen total ya vive en la cabecera del workbench; la
+ * leyenda y el conteo filtrado siguen disponibles para lectores de pantalla. */
+@media (max-width: 1100px) and (max-height: 680px) {
+  .pulso-carga-structure-panel.is-questions {
+    padding: 8px 12px;
+  }
+
+  .pulso-carga-structure-panel.is-questions .pulso-question-map {
+    gap: 7px;
+  }
+
+  .pulso-carga-structure-panel.is-questions :is(
+    .pulso-question-map-kind-summary,
+    .pulso-question-map-legend,
+    .pulso-question-map-count
+  ) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .pulso-carga-structure-panel.is-questions .pulso-question-map-toolbar {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .pulso-carga-structure-panel.is-questions .pulso-question-map-toolbar select {
+    flex: 0 1 190px;
+    min-width: 0;
+  }
+
+  .pulso-carga-structure-panel.is-questions .pulso-question-map-search {
+    min-width: 170px;
+  }
 }

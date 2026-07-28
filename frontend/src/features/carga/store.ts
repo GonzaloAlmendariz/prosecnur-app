@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { normalizePlannedInputCount } from "./CargaSourcesModel";
 
 // =============================================================================
 // Store de Carga — estado UI de módulo (patrón validacion/store.ts)
@@ -22,6 +23,7 @@ import { create } from "zustand";
 // migración de BasesPanel sea drop-in.
 
 export type MultiBaseStrategy = "separate" | "integrated" | "independent";
+export type CargaTopologyIntent = null | "single" | "multi" | MultiBaseStrategy;
 
 // Tipos del borrador de importación SurveyMonkey (antes locales de
 // BasesPanel.tsx; viven acá porque el store persiste `smScopeDrafts`).
@@ -57,8 +59,12 @@ function resolveUpdate<T>(next: Updater<T>, prev: T): T {
 }
 
 type CargaUiSlice = {
+  /** Decisión reversible de Plan; no implica importar, combinar ni persistir. */
+  topologyIntent: CargaTopologyIntent;
   /** Mesa de trabajo multi-base activa (BasesPanel). */
   strategy: MultiBaseStrategy;
+  /** Cantidad operativa de entradas declaradas en Plan/Fuentes. */
+  plannedInputCount: number;
   showNewIntegration: boolean;
   // --- Borrador del wizard de fuentes independientes SurveyMonkey ---
   /**
@@ -75,7 +81,9 @@ type CargaUiSlice = {
 };
 
 type CargaActions = {
+  setTopologyIntent: (next: Updater<CargaTopologyIntent>) => void;
   setStrategy: (next: Updater<MultiBaseStrategy>) => void;
+  setPlannedInputCount: (next: Updater<number>) => void;
   setShowNewIntegration: (next: Updater<boolean>) => void;
   setSmShowSurveyCatalog: (next: Updater<boolean | null>) => void;
   setSmCatalogQuery: (next: Updater<string>) => void;
@@ -88,7 +96,9 @@ type CargaActions = {
 };
 
 const DEFAULTS: CargaUiSlice = {
+  topologyIntent: null,
   strategy: "separate",
+  plannedInputCount: 1,
   showNewIntegration: false,
   smShowSurveyCatalog: null,
   smCatalogQuery: "",
@@ -100,7 +110,20 @@ const DEFAULTS: CargaUiSlice = {
 
 export const useCargaStore = create<CargaUiSlice & CargaActions>((set) => ({
   ...DEFAULTS,
-  setStrategy: (next) => set((s) => ({ strategy: resolveUpdate(next, s.strategy) })),
+  setTopologyIntent: (next) => set((s) => ({ topologyIntent: resolveUpdate(next, s.topologyIntent) })),
+  setStrategy: (next) => set((s) => {
+    const strategy = resolveUpdate(next, s.strategy);
+    return {
+      strategy,
+      plannedInputCount: normalizePlannedInputCount(strategy, s.plannedInputCount),
+    };
+  }),
+  setPlannedInputCount: (next) => set((s) => ({
+    plannedInputCount: normalizePlannedInputCount(
+      s.strategy,
+      resolveUpdate(next, s.plannedInputCount),
+    ),
+  })),
   setShowNewIntegration: (next) => set((s) => ({ showNewIntegration: resolveUpdate(next, s.showNewIntegration) })),
   setSmShowSurveyCatalog: (next) => set((s) => ({ smShowSurveyCatalog: resolveUpdate(next, s.smShowSurveyCatalog) })),
   setSmCatalogQuery: (next) => set((s) => ({ smCatalogQuery: resolveUpdate(next, s.smCatalogQuery) })),

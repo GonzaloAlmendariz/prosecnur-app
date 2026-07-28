@@ -1,5 +1,5 @@
-import { FolderClosed } from "lucide-react";
-import { Seccion } from "../../api/client";
+import { FolderClosed } from "../../vendor/lucide-react";
+import type { Seccion } from "../../api/client";
 import { EmptyState } from "../../components/States";
 import { RepeatBadge } from "../../components/RepeatBadge";
 
@@ -28,8 +28,8 @@ export default function SeccionesPanel({ secciones }: { secciones: Seccion[] }) 
     );
   }
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      {secciones.map((s, i) => {
+    <div className="pulso-carga-section-list">
+      {secciones.map((s) => {
         const cond = s.relevant ? sustituir_refs(s.relevant) : null;
         // Para grupos repetibles, la información útil no es la visibilidad sino qué
         // variable gobierna cuántas veces se repite (el `repeat_count`).
@@ -37,107 +37,41 @@ export default function SeccionesPanel({ secciones }: { secciones: Seccion[] }) 
         const repeatExpr = s.is_repeat && s.repeat_count ? sustituir_refs(s.repeat_count) : null;
         const showRepeatDriver = s.is_repeat && (repeatVars.length > 0 || !!repeatExpr);
         return (
-          <div
-            key={s.name}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "52px minmax(220px, 1fr) auto 1fr",
-              alignItems: "center",
-              gap: 10,
-              padding: "10px 12px",
-              background: i % 2 === 0 ? "var(--pulso-surface-2)" : "white",
-              border: "1px solid var(--pulso-border)",
-              borderRadius: 7,
-            }}
-            title={s.name}
-          >
-            <span
-              style={{
-                fontSize: 10, fontWeight: 700,
-                padding: "3px 7px",
-                borderRadius: 4,
-                background: "var(--pulso-primary-soft)",
-                color: "var(--pulso-primary)",
-                textAlign: "center",
-                fontFamily: "ui-monospace, monospace",
-                border: "1px solid var(--pulso-primary-border)",
-              }}
-            >
+          <div key={s.name} className="pulso-carga-section-row" title={`${s.label} · ${s.name}`}>
+            <span className="pulso-carga-section-prefix">
               {s.prefix || "—"}
             </span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
-              <span
-                style={{
-                  fontSize: 13, fontWeight: 600, color: "var(--pulso-text)",
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                }}
-              >
-                {s.label}
-              </span>
-              <code
-                style={{
-                  fontSize: 11,
-                  color: "var(--pulso-text-soft)",
-                  fontFamily: "ui-monospace, monospace",
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                }}
-              >
-                {s.name}
-              </code>
+            <div className="pulso-carga-section-copy">
+              <span className="pulso-carga-section-label">{s.label}</span>
+              <code className="pulso-carga-section-name">{s.name}</code>
             </div>
-            <div style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+            <div className="pulso-carga-section-flags">
               {s.is_repeat && <RepeatBadge compact />}
               {s.is_conditional ? (
-                <span
-                  style={{
-                    fontSize: 10, fontWeight: 700,
-                    padding: "2px 8px", borderRadius: 999,
-                    background: "var(--pulso-success-bg)",
-                    color: "var(--pulso-success-fg)",
-                    border: "1px solid var(--pulso-success-border)",
-                    textTransform: "uppercase", letterSpacing: 0.3,
-                    whiteSpace: "nowrap",
-                  }}
-                >
+                <span className="pulso-carga-section-visibility is-conditional">
                   condicional
                 </span>
               ) : s.is_repeat ? null : (
-                <span
-                  style={{
-                    fontSize: 10, fontWeight: 600,
-                    padding: "2px 8px", borderRadius: 999,
-                    background: "var(--pulso-surface-2)",
-                    color: "var(--pulso-text-soft)",
-                    border: "1px solid var(--pulso-border)",
-                    whiteSpace: "nowrap",
-                  }}
-                >
+                <span className="pulso-carga-section-visibility">
                   siempre visible
                 </span>
               )}
             </div>
-            <code
-              style={{
-                fontSize: 11,
-                color: "var(--pulso-text)",
-                fontFamily: "ui-monospace, monospace",
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              }}
-            >
+            <code className="pulso-carga-section-condition">
               {cond ? (
                 <>
-                  <span style={{ color: "var(--pulso-text-soft)", marginRight: 4 }}>si</span>
+                  <span className="pulso-carga-section-condition-prefix">si</span>
                   {cond}
                 </>
               ) : showRepeatDriver ? (
                 <>
-                  <span style={{ color: "var(--pulso-text-soft)", marginRight: 4 }}>
+                  <span className="pulso-carga-section-condition-prefix">
                     se repite según
                   </span>
                   {repeatVars.length > 0 ? repeatVars.join(", ") : repeatExpr}
                 </>
               ) : (
-                <span style={{ color: "var(--pulso-text-soft)", opacity: 0.4 }}>—</span>
+                <span className="pulso-carga-section-condition-empty">—</span>
               )}
             </code>
           </div>
