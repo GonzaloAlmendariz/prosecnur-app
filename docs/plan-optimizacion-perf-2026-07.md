@@ -127,16 +127,19 @@ todo tiene que estar ya disponible y rápido**. Por lo tanto:
 
 ## Métricas del loop (medir al cierre de cada ola)
 
-| Métrica | Hoy (2026-07-29) | Norte |
-|---|---|---|
-| Payload estático pre-render (gz) | ~349 KB (91 KB necesarios) | <120 KB |
-| Latencia de entrada a módulo tras warmup | baseline a medir en 1.1 | igual o mejor que hoy (contrato del warmup) |
-| CSS parseado en el arranque | 1.32 MB raw | <60 KB |
-| Congelamiento por import/refresh de Carga/SM | minutos (inline) | <1 s (job + merge) |
-| Re-render por tick de sync en perfiles | árbol completo (~20k líneas) | solo chrome de progreso |
-| Polls duplicados/huérfanos | territorial ×2; hasta 90 s post-unmount | 0 |
-| Spinners sin salida (useJob sin timeout) | 10+ features | 0 (patrón jobPolling) |
-| Animaciones perpetuas en reposo | 2 con repaint CPU | 0 |
+| Métrica | 2026-07-29 mañana | Cierre Olas 1–3 (2026-07-29) | Norte |
+|---|---|---|---|
+| Payload estático pre-render (gz) | ~349 KB (91 KB necesarios) | **128 KB** ✅ | <120 KB (a un pelo; 1.2 ya rindió) |
+| Latencia de entrada a módulo tras warmup | baseline | igual (warmup precarga monitoreo-core JS+CSS) ✅ | igual o mejor |
+| CSS parseado en el arranque | 1.32 MB raw | **~37 KB raw** ✅ | <60 KB |
+| Congelamiento por import/refresh de Carga/SM | minutos (inline) | **job + progreso; UI navegable** ✅ | <1 s |
+| Re-render por tick de sync en perfiles | árbol completo (~20k líneas) | **solo wrapper del chrome** ✅ | solo chrome |
+| Derivación por poll de GET state | 100–500 ms siempre | **~10 ms con hit** (108 ms miss) ✅ | ~0 con hit |
+| Rebuild del dashboard al abrir proyecto | inline en el open (+dirty accidental) | **en el warmup con budget; open limpio** ✅ | fuera del open |
+| Round-trips seriales del boot (click→suite) | 5 | **3** ✅ | ≤4 |
+| Polls duplicados/huérfanos | territorial ×2; hasta 90 s post-unmount | **0** ✅ | 0 |
+| Spinners sin salida (useJob sin timeout) | 10+ features | **0** ✅ | 0 |
+| Animaciones perpetuas en reposo | 2 con repaint CPU | **0** ✅ | 0 |
 
 ## Bitácora del loop
 
@@ -180,6 +183,16 @@ todo tiene que estar ya disponible y rápido**. Por lo tanto:
   Pendiente visual residual: ver los flujos de import con progreso en vivo
   exige credenciales de plataforma; se cubrirá en la próxima corrida de
   reference-project con secretos locales.
+- **2026-07-29 · OLAS 1–3 COMPLETAS**: 3.2 aterrizada (68ae886c) — el open ya
+  no paga el rebuild de la fuente del dashboard (50–65% del load en bench;
+  guard de carrera + lazy + memoria de fallos por fingerprint; de paso se
+  arregló el project_dirty accidental del open) — y 3.3 (f7bfe4cd) —
+  health ∥ bootstrap ∥ recientes y warmup-plan solapada con el IPC:
+  click→suite pasa de 5 etapas seriales a 3, waterfall verificado en vivo.
+  Tabla de métricas re-medida abajo: 11 de 11 en el norte o a un pelo.
+  Queda la Ola 4 (estructural, coordinar con saneamiento) y dos residuales:
+  smoke del worker callr real (gate de /preparar-release) y evidencia visual
+  de imports con progreso (exige secretos de plataforma).
 
 ## Protocolo
 
