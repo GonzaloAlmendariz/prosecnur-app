@@ -817,6 +817,12 @@
   justify-content: center;
   width: 15px;
   height: 15px;
+  min-height: 0;
+  /* `min-width`, no `flex`: es un ítem de GRID y ahí `flex` no hace nada. Sin
+   * esto la celda lo encogía a 9 px —el contenido no sostiene el ancho— y el
+   * checkbox salía como un rectángulo angosto. */
+  min-width: 15px;
+  justify-self: center;
   border: 1px solid var(--pulso-border-strong);
   border-radius: 4px;
   background: var(--pulso-surface);
@@ -883,12 +889,20 @@
   gap: 2px;
 }
 
+/* `min-height: 0` en todo control-caja de este archivo.
+ *
+ * La app declara `button { min-height: var(--pulso-control-height-md) }` (28px)
+ * para que los controles de formulario tengan altura táctil uniforme, y ese
+ * mínimo GANA sobre `height`. Un botón cuadrado de 24 salía de 24×28, y el
+ * checkbox de 13 salía de 13×28: un rectángulo alto en vez de un cuadrado. */
 .bcanvas-ref-boton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 24px;
   height: 24px;
+  min-height: 0;
+  flex: 0 0 auto;
   border: 0;
   border-radius: var(--pulso-nav-item-radius);
   background: transparent;
@@ -967,8 +981,8 @@
  * x aunque una anotación envuelva en dos renglones. */
 .bcanvas-ref-items {
   display: grid;
-  grid-template-columns: 14px minmax(0, 1fr) 14px;
-  gap: 1px 6px;
+  grid-template-columns: 16px minmax(0, 1fr) 16px;
+  gap: 2px 7px;
   margin: 0;
   padding: 6px 12px 8px;
   list-style: none;
@@ -990,17 +1004,37 @@
 }
 
 .bcanvas-ref-item-marca {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
+  min-height: 0;
+  flex: 0 0 auto;
   padding: 0;
-  border: 1px solid var(--pulso-border-strong);
+  border: 1.5px solid var(--pulso-border-strong);
   border-radius: 4px;
   background: var(--pulso-surface);
   color: var(--pulso-on-primary);
   cursor: pointer;
+}
+
+/* El cuadro se ve de 14 px pero se acierta en 24: un blanco de 14 px es una
+ * trampa con el ratón, y más todavía con el lienzo en zoom alejado. */
+.bcanvas-ref-item-marca::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+}
+
+.bcanvas-ref-item-marca:hover {
+  border-color: var(--module-accent, var(--pulso-primary));
+}
+
+.bcanvas-ref-item-marca:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
 }
 
 .bcanvas-ref-items li.is-hecho .bcanvas-ref-item-marca {
@@ -1009,11 +1043,14 @@
 }
 
 .bcanvas-ref-item-quitar {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  flex: 0 0 auto;
   padding: 0;
   border: 0;
   border-radius: 4px;
@@ -1021,6 +1058,12 @@
   color: var(--pulso-text-soft);
   opacity: 0;
   cursor: pointer;
+}
+
+.bcanvas-ref-item-quitar::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
 }
 
 .bcanvas-ref-items li:hover .bcanvas-ref-item-quitar,
