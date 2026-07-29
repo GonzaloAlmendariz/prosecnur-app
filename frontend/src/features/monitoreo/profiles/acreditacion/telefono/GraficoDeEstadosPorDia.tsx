@@ -6,11 +6,11 @@
  * abajo— y por eso comparten eje pero no escala.
  */
 
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 
 import type { AcreditacionDeclaracionEstado } from "../AcreditacionEstadosLlamada";
 import type { AcreditacionPhoneDailyStatusSeries } from "../AcreditacionPhoneDailyTrend";
-import { construirApiladoDeEstados, detalleDeSegmento } from "./apiladoDeEstados";
+import { construirApiladoDeEstados, detalleDeSegmento, resumenDelDia } from "./apiladoDeEstados";
 
 import "./apiladoDeEstados.css";
 
@@ -22,7 +22,14 @@ export function GraficoDeEstadosPorDia({
   declaraciones?: readonly AcreditacionDeclaracionEstado[];
 }) {
   const apilado = construirApiladoDeEstados(series, declaraciones);
+  // El día bajo el cursor. El `title` nativo tarda cerca de un segundo, no
+  // sigue al puntero y se pinta como tooltip del sistema: sobre un segmento de
+  // 4 px eso es no tener hover. El detalle se lee aquí, en el sitio fijo donde
+  // ya estaba el total, y aparece al instante.
+  const [diaEnFoco, setDiaEnFoco] = useState<string | null>(null);
   if (!apilado.dias.length) return null;
+
+  const foco = apilado.dias.find((dia) => dia.dia === diaEnFoco) ?? null;
 
   return (
     <section className="mon-apilado" aria-label="Estados telefónicos por día">
@@ -47,9 +54,35 @@ export function GraficoDeEstadosPorDia({
         ))}
       </ul>
 
-      <div className="mon-apilado-grafico" role="img" aria-label={`Composición diaria de ${apilado.total} casos barridos`}>
+      {/* Línea de lectura, siempre presente aunque no haya foco: si apareciera
+          solo al apuntar, la cabecera saltaría al entrar y salir del gráfico
+          (C2). Sin foco nombra el gesto que la llena (R4). */}
+      <p className={`mon-apilado-foco${foco ? " is-foco" : ""}`} aria-live="polite">
+        {foco ? resumenDelDia(foco) : "Pasa el cursor por un día para ver su reparto."}
+      </p>
+
+      {/* `is-enfocando` la pone React, no `:hover`. Con el selector de CSS, el
+          cursor dentro del gráfico pero en el hueco entre dos columnas no daba
+          foco a ningún día y la regla `:not(.is-foco)` atenuaba TODAS: el
+          gráfico entero se apagaba al pasar por encima. */}
+      <div
+        className={`mon-apilado-grafico${diaEnFoco ? " is-enfocando" : ""}`}
+        role="img"
+        aria-label={`Composición diaria de ${apilado.total} casos barridos`}
+      >
         {apilado.dias.map((dia) => (
-          <div className="mon-apilado-dia" key={dia.dia}>
+          <div
+            className={`mon-apilado-dia${dia.dia === diaEnFoco ? " is-foco" : ""}`}
+            key={dia.dia}
+            // El foco viaja por el día entero, no por el segmento: apuntar a una
+            // franja de 4 px con el ratón es lo que hacía inútil el hover.
+            onMouseEnter={() => setDiaEnFoco(dia.dia)}
+            onMouseLeave={() => setDiaEnFoco((actual) => (actual === dia.dia ? null : actual))}
+            onFocus={() => setDiaEnFoco(dia.dia)}
+            onBlur={() => setDiaEnFoco((actual) => (actual === dia.dia ? null : actual))}
+            tabIndex={0}
+            aria-label={resumenDelDia(dia)}
+          >
             <div
               className="mon-apilado-columna"
               // La altura relativa deja comparables los días entre sí; los

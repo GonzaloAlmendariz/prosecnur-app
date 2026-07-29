@@ -18,6 +18,7 @@
  * Gráfico y tabla no pueden discrepar porque leen la misma declaración.
  */
 
+import { contar } from "../../../fuentes/vocabulario";
 import type { AcreditacionPhoneDailyStatusSeries } from "../AcreditacionPhoneDailyTrend";
 import {
   ACREDITACION_ORDEN_FAMILIAS,
@@ -129,6 +130,23 @@ export function construirApiladoDeEstados(
     familias,
     total: dias.reduce((suma, dia) => suma + dia.total, 0),
   };
+}
+
+/**
+ * Resumen de un día para el hover: la fecha, cuántos casos y su reparto.
+ *
+ * Se lee en la cabecera del gráfico, no en un tooltip flotante: el `title`
+ * nativo tarda cerca de un segundo y no sigue al puntero, y las franjas más
+ * finas miden 4 px. Con el foco puesto en el día entero, apuntar es fácil y el
+ * texto aparece siempre en el mismo sitio.
+ */
+export function resumenDelDia(dia: DiaApilado): string {
+  const reparto = dia.segmentos
+    .map((segmento) => `${segmento.etiqueta} ${segmento.casos.toLocaleString("es-PE")}`)
+    .join(" · ");
+  // `contar` y no una plantilla propia: un día de un solo caso decía «1 casos».
+  const cabeza = `${dia.etiqueta} · ${contar(dia.total, "caso", "casos")}`;
+  return reparto ? `${cabeza} · ${reparto}` : cabeza;
 }
 
 /** Texto del hover de un segmento: qué familia, cuántos casos y de qué estados. */
