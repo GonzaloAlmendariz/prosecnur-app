@@ -1,0 +1,493 @@
+/* Bitácora: entrada rápida, filtros y timeline (ADR 0047).
+ * Solo tokens `--pulso-*`. */
+
+.bit-logbook {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  height: 100%;
+}
+
+/* --- Entrada rápida ------------------------------------------------------ */
+
+.bit-rapida {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.bit-rapida:focus-within {
+  border-color: var(--module-accent-border, var(--pulso-primary-border));
+}
+
+.bit-rapida-campo {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
+}
+
+.bit-rapida-campo::placeholder {
+  color: var(--pulso-text-faint);
+}
+
+/* El foco se marca en el contenedor, no en el textarea: el anillo alrededor de
+ * un campo sin borde propio se ve como un error de render. */
+.bit-rapida-campo:focus-visible {
+  outline: none;
+}
+
+.bit-rapida-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bit-rapida-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* --- Chips --------------------------------------------------------------- */
+
+.bit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.bit-chip.is-etiqueta {
+  border-style: dashed;
+}
+
+/* Los tonos usan la semántica de estado del tema, no colores propios: riesgo y
+ * bloqueo tienen que leerse igual acá que en el resto de la app. */
+.bit-chip.is-tono.is-riesgo {
+  background: var(--pulso-warn-bg);
+  border-color: var(--pulso-warn-border);
+  color: var(--pulso-warn-fg);
+}
+
+.bit-chip.is-tono.is-bloqueo {
+  background: var(--pulso-danger-bg);
+  border-color: var(--pulso-danger-border);
+  color: var(--pulso-danger-fg);
+}
+
+.bit-chip.is-tono.is-avance {
+  background: var(--pulso-state-ready-bg);
+  border-color: var(--pulso-state-ready-border);
+  color: var(--pulso-state-ready-fg);
+}
+
+.bit-chip.is-tono.is-decision {
+  background: var(--pulso-info-bg);
+  border-color: var(--pulso-info-border);
+  color: var(--pulso-info-fg);
+}
+
+.bit-chip.is-boton {
+  cursor: pointer;
+}
+
+.bit-chip.is-boton:hover {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+
+.bit-chip.is-boton.is-activo {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  border-color: var(--module-accent-border, var(--pulso-primary-border));
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.bit-chip.is-boton:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+/* --- Filtros ------------------------------------------------------------- */
+
+.bit-filtros {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.bit-filtros-controles {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.bit-filtros-busqueda {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 200px;
+  min-width: 0;
+  max-width: 320px;
+  height: var(--pulso-control-height-lg);
+  padding-inline: 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-faint);
+}
+
+.bit-filtros-busqueda input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+.bit-filtros-busqueda input:focus-visible {
+  outline: none;
+}
+
+.bit-filtros-busqueda:focus-within {
+  border-color: var(--pulso-primary-border);
+}
+
+.bit-filtros-grupo {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.bit-filtros-modulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--pulso-text-faint);
+}
+
+.bit-filtros-modulo select {
+  height: var(--pulso-control-height-md);
+  padding-inline: 7px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+.bit-filtros-cola {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.bit-filtros-conteo {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* --- Timeline ------------------------------------------------------------ */
+
+.bit-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-block-end: 8px;
+}
+
+.bit-timeline-fecha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 7px;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+}
+
+.bit-timeline-fecha small {
+  padding: 0 6px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-medium);
+}
+
+/* Columnas en la lista y heredadas por las filas: sin subgrid, el sello y las
+ * acciones no caerían en la misma x entre entradas de distinto largo. */
+.bit-timeline-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  row-gap: 6px;
+  column-gap: 10px;
+}
+
+.bit-entrada {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: start;
+  padding: 10px 11px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.bit-entrada.is-archivada {
+  opacity: 0.6;
+  border-style: dashed;
+}
+
+.bit-entrada-sello {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--module-accent-border, var(--pulso-border));
+  border-radius: var(--pulso-radius);
+  background: var(--module-accent-soft, var(--pulso-surface-2));
+  color: var(--module-accent, var(--pulso-text-soft));
+}
+
+.bit-entrada-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.bit-entrada-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--pulso-text-faint);
+}
+
+.bit-entrada-cuerpo strong {
+  font-size: 13.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.bit-entrada-cuerpo p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.bit-entrada-editada {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.bit-entrada-editada:hover {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+
+.bit-entrada-editada:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+.bit-entrada-etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.bit-entrada-acciones {
+  display: inline-flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.bit-entrada:hover .bit-entrada-acciones,
+.bit-entrada:focus-within .bit-entrada-acciones {
+  opacity: 1;
+}
+
+.bit-entrada-acciones button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--pulso-nav-item-radius);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.bit-entrada-acciones button:hover {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+
+/* El hover no puede ser el único camino: sin esto las acciones serían
+ * inalcanzables por teclado. */
+.bit-entrada-acciones button:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+/* --- Historial ----------------------------------------------------------- */
+
+.bit-historial {
+  margin-block-start: 6px;
+  padding: 8px 10px;
+  border: 1px dashed var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+
+.bit-historial h4 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pulso-text-faint);
+}
+
+.bit-historial ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bit-historial-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+}
+
+.bit-historial p {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  white-space: pre-wrap;
+}
+
+.bit-historial-titulo {
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text);
+}
+
+.bit-historial-vacio {
+  font-style: italic;
+  color: var(--pulso-text-faint);
+}
+
+/* --- Confirmación de borrado --------------------------------------------- */
+
+.bit-confirmar {
+  position: fixed;
+  inset-block-end: 22px;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  z-index: 1450;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  max-width: min(560px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+}
+
+.bit-confirmar strong {
+  font-size: 13.5px;
+  color: var(--pulso-text);
+}
+
+.bit-confirmar p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.bit-confirmar-acciones {
+  display: inline-flex;
+  gap: 6px;
+  margin-inline-start: auto;
+}
+
+.bit-boton--peligro {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+@media (max-width: 900px) {
+  .bit-entrada-acciones {
+    opacity: 1;
+  }
+
+  .bit-confirmar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .bit-confirmar-acciones {
+    margin-inline-start: 0;
+  }
+}

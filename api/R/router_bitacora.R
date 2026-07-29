@@ -175,6 +175,54 @@ mount_bitacora <- function(pr) {
       list(ok = TRUE, schema = BITACORA_AVISOS_SCHEMA, avisos = .bit_avisos_payload(session_get(sid)))
     })) |>
 
+    # --- Entradas ------------------------------------------------------------
+    #
+    # El alta y la edición siguen en `/api/bitacora` (router_diseno_estudio.R),
+    # que no cambia su contrato. Acá van las operaciones que el ADR 0047 agrega.
+    plumber::pr_post("/api/bitacora/entradas/<id>/archivar",
+                     wrap_endpoint(function(req, res, id, ...) {
+      sid <- session_header(req)
+      body <- .bit_parse_body(req)
+      entradas <- .bit_entrada_archivar(
+        .diseno_bitacora_entries(session_get(sid)),
+        .bit_id_de_ruta(id),
+        calc_bool(body$archivar, TRUE)
+      )
+      .diseno_bitacora_save(sid, entradas)
+      .bit_estado_payload(sid)
+    })) |>
+
+    # Borrado PERMANENTE. La ruta normal es archivar; esto existe para lo que el
+    # usuario confirma explícitamente.
+    plumber::pr_delete("/api/bitacora/entradas/<id>",
+                       wrap_endpoint(function(req, res, id, ...) {
+      sid <- session_header(req)
+      entradas <- .bit_entrada_purgar(
+        .diseno_bitacora_entries(session_get(sid)),
+        .bit_id_de_ruta(id)
+      )
+      .diseno_bitacora_save(sid, entradas)
+      .bit_estado_payload(sid)
+    })) |>
+
+    # Exporta EXACTAMENTE lo filtrado. El filtro se resuelve en el servidor para
+    # que no haya dos implementaciones que puedan divergir entre lo que se ve y
+    # lo que se descarga.
+    plumber::pr_post("/api/bitacora/entradas/exportar",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .bit_parse_body(req)
+      filtro <- body$filtro %||% .bit_prefs_leer(session_get(sid))$bitacora
+      entradas <- .bit_entradas_filtrar(.diseno_bitacora_entries(session_get(sid)), filtro)
+      markdown <- .bit_entradas_markdown(entradas)
+      list(
+        ok = TRUE,
+        schema = "bitacora_export_md_v1",
+        total = length(entradas),
+        markdown = markdown
+      )
+    })) |>
+
     plumber::pr_post("/api/bitacora/preferencias",
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
